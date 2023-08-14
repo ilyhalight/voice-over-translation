@@ -6,6 +6,7 @@ import { autoVolume } from "./config/config.js";
 import { sitesInvidious, sitesPiped } from "./config/alternativeUrls.js";
 import {
   translateFuncParam,
+  localStorageUserlangKey,
   availableLangs,
   additionalTTS,
   siteTranslates,
@@ -529,6 +530,7 @@ async function main() {
       console.log(`Set translation from ${from} to ${to}`);
       videoData.detectedLanguage = from;
       videoData.responseLanguage = to;
+      localStorage.setItem(localStorageUserlangKey, to);
     }
 
     // data - ytData or VideoData

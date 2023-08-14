@@ -1,5 +1,7 @@
 const translateFuncParam = 0x40_75_50_00_00_00_00_00;
 
+const localStorageUserlangKey = "VOT_userlang";
+
 // available languages for translation
 const availableLangs = {
   ru: "Russian",
@@ -1280,6 +1282,7 @@ const translations = {
 
 export {
   translateFuncParam,
+  localStorageUserlangKey,
   availableLangs,
   additionalTTS,
   siteTranslates,

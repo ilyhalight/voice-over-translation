@@ -1,7 +1,7 @@
 import debug from "./utils/debug.js";
-import { translations } from "./config/constants.js";
+import { translations, localStorageUserlangKey } from "./config/constants.js";
 
-const userlang = navigator.language || navigator.userLanguage;
+const userlang = localStorage.getItem(localStorageUserlangKey) || navigator.language || navigator.userLanguage;
 let lang = userlang.substr(0, 2).toLowerCase();
 if (!(lang in translations)) {
   lang = "en";
