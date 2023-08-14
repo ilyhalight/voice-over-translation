@@ -1,7 +1,7 @@
 {
   "name": "[VOT] - Voice Over Translation",
   "description": "A small extension that adds a Yandex Browser video translation to other browsers",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "author": "sodapng, mynovelhost, Toil, SashaXser",
   "namespace": "vot",
   "icon": "https://translate.yandex.ru/icons/favicon.ico",
