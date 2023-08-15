@@ -102,7 +102,7 @@ npm i
 | ⠀✅ | Opera GX | LVL4 (core: 91.0.4516.36) | Windows | Tampermonkey
 | ⠀✅ | Opera | v92.0.4561.43 | Windows | Tampermonkey
 | ⠀✅ | Vivaldi | 5.7.2921.63 | Windows, Linux | Tampermonkey
-| ⠀❔ | Safari | v15.6.1 | MacOS | Userscripts
+| ⠀❔ | Safari | v15.6.1 | MacOS, iOS | Userscripts
 | ⠀✅ | Kiwi Browser | v116.0.5845.61 | Android | Tampermonkey
 | ⠀✅ | Firefox Nightly | v118.0a1 | Android | Tampermonkey
 
