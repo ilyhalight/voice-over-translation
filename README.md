@@ -92,7 +92,7 @@ npm i
 | Статус | Браузер | Версия браузера | Платформа | Расширение
 |---|---|---|---|---
 | ⠀✅ | Firefox Developer Edition | v106.0b4, 64 bit | Windows | Tampermonkey
-| ⠀✅ | Firefox | v116.0.2 | Windows/Linux/Android | Tampermonkey
+| ⠀✅ | Firefox | v116.0.2 | Windows, Linux, Android | Tampermonkey
 | ⠀✅ | LibreWolf | v100.0.2-1 | Windows | Tampermonkey
 | ⠀✅ | Brave | v106.0.5249.91 | Windows | Tampermonkey
 | ⠀✅ | MS Edge | v106.0.1370.34 | Windows, Linux | Tampermonkey
