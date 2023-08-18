@@ -57,6 +57,12 @@ function getPlayerResponse() {
   return player?.getPlayerResponse?.call() ?? null;
 }
 
+function getPlayerData() {
+  const player = getPlayer();
+  if (isMobile()) return player?.data?.playerResponse?.videoDetails ?? null;
+  return player?.getVideoData?.call() ?? null;
+}
+
 function getSubtitles() {
   const response = getPlayerResponse();
   let captionTracks =
@@ -89,10 +95,13 @@ function getSubtitles() {
 // Get the video data from the player
 async function getVideoData() {
   const player = getPlayer();
-  const response = getPlayerResponse();
+  const response = getPlayerResponse(); // null in /embed
+  const data = getPlayerData();
   const {
     author,
-    title,
+    title
+  } = data ?? {};
+  const {
     shortDescription: description,
     isLive,
     isLiveContent,
@@ -122,6 +131,7 @@ export const youtubeUtils = {
   isMobile,
   getPlayer,
   getPlayerResponse,
+  getPlayerData,
   getSubtitles,
   getVideoData,
 };

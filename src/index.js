@@ -698,12 +698,15 @@ async function main() {
         });
       });
 
-      syncVolumeObserver.observe(document.querySelector(".ytp-volume-panel"), {
-        attributes: true,
-        childList: false,
-        subtree: true,
-        attributeOldValue: true,
-      });
+      const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
+      if (ytpVolumePanel) {
+        syncVolumeObserver.observe(ytpVolumePanel, {
+          attributes: true,
+          childList: false,
+          subtree: true,
+          attributeOldValue: true,
+        });
+      }
     }
 
     async function setSelectMenuValues(from, to) {
@@ -764,7 +767,7 @@ async function main() {
     async function getVideoData() {
       const videoData = {};
 
-      videoData.duration = video?.duration || 0;
+      videoData.duration = video?.duration || 343; // ! if 0 - we get 400 error
 
       videoData.videoId = getVideoId(siteHostname);
 
@@ -813,7 +816,7 @@ async function main() {
             if (e.name === "NotAllowedError") {
               const errorMessage = translations[lang].grantPermissionToAutoPlay;
               transformBtn("error", errorMessage);
-              throw `[VOT] ${errorMessage}`;
+              throw errorMessage;
             } else if (e.name === "NotSupportedError") {
               const errorMessage = sitesChromiumBlocked.includes(
                 window.location.hostname
@@ -821,7 +824,7 @@ async function main() {
                 ? translations[lang].neededAdditionalExtension
                 : translations[lang].audioFormatNotSupported;
               transformBtn("error", errorMessage);
-              throw `[VOT] ${errorMessage}`;
+              throw errorMessage;
             }
           });
         }
@@ -997,16 +1000,16 @@ async function main() {
           videoData.detectedLanguage === lang &&
           videoData.responseLanguage === lang
         ) {
-          throw `[VOT] ${translations[lang].VOTDisableFromYourLang}`;
+          throw translations[lang].VOTDisableFromYourLang;
         }
         if (ytData.isPremiere) {
-          throw `[VOT] ${translations[lang].VOTPremiere}`;
+          throw translations[lang].VOTPremiere;
         }
         if (ytData.isLive) {
-          throw `[VOT] ${translations[lang].VOTLiveNotSupported}`;
+          throw translations[lang].VOTLiveNotSupported;
         }
         if (videoData.duration > 14_400) {
-          throw `[VOT] ${translations[lang].VOTVideoIsTooLong}`;
+          throw translations[lang].VOTVideoIsTooLong;
         }
       }
       return true;
@@ -1064,7 +1067,7 @@ async function main() {
                 60_000
               );
             }
-            throw `[VOT] ${urlOrError}`;
+            throw urlOrError;
           }
 
           audio.src = urlOrError;
@@ -1279,13 +1282,13 @@ async function main() {
           const VIDEO_ID = getVideoId(siteHostname);
 
           if (!VIDEO_ID) {
-            throw `[VOT] ${translations[lang].VOTNoVideoIDFound}`;
+            throw translations[lang].VOTNoVideoIDFound;
           }
 
           await translateExecutor(VIDEO_ID);
         } catch (err) {
           console.error("[VOT]", err);
-          transformBtn("error", String(err).substring(5, err.length));
+          transformBtn("error", err);
         }
       });
 
@@ -1298,7 +1301,7 @@ async function main() {
       const VIDEO_ID = getVideoId(siteHostname);
 
       if (!VIDEO_ID) {
-        throw `[VOT] ${translations[lang].VOTNoVideoIDFound}`;
+        throw translations[lang].VOTNoVideoIDFound;
       }
 
       try {
@@ -1306,7 +1309,7 @@ async function main() {
         firstPlay = false;
       } catch (err) {
         console.error("[VOT]", err);
-        transformBtn("error", String(err).substring(5, err.length));
+        transformBtn("error", err);
         firstPlay = false;
       }
     });

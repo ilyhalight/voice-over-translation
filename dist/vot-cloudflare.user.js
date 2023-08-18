@@ -972,7 +972,7 @@ const siteTranslates = {
   it may be worth redesigning the translation system
   (if there is no necessary phrase, then the phrase in English / "raw" phrase will be displayed)
 */
-let translations = {
+let defualttranslations = {
   ru: {
     unSupportedExtensionError: `Ошибка! ${GM_info.scriptHandler} не поддерживается этой версией расширения!\n\nПожалуйста, используйте cloudflare-версию расширения VOT.`,
     VOTDisabledForDBUpdating: `VOT отключен из-за ошибки при обновление Базы Данных. Закройте все открытые вкладки с ${window.location.hostname} и попробуйте снова`,
@@ -1069,22 +1069,21 @@ let translations = {
 // временный вариант
 const userlang = navigator.language ?? navigator.userLanguage;
 let lang = userlang.substring(0, 2) ?? "en";
+let translations;
 
 // укажите свой репозеторий
 async function getTranslations(lang) {
   let response = await fetch(`https://raw.githubusercontent.com/SashaXser/voice-over-translation/master/localization/${lang}.json`, {
     method: "GET",
   });
-  let json = await response.json();
-  translations[lang] = { ...translations[lang], ...json };
+  const json = await response.json();
+  defualttranslations[lang] = { ...defualttranslations[lang], ...json };
+  return defualttranslations;
 }
 
-// временный вариант
-try {
-  await getTranslations(lang);
-} catch (error) {
-  console.error(error)
-}
+
+translations = await getTranslations(lang);
+
 
 
 
@@ -1887,12 +1886,15 @@ async function main() {
         });
       });
 
-      syncVolumeObserver.observe(document.querySelector(".ytp-volume-panel"), {
-        attributes: true,
-        childList: false,
-        subtree: true,
-        attributeOldValue: true,
-      });
+      const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
+      if (ytpVolumePanel) {
+        syncVolumeObserver.observe(ytpVolumePanel, {
+          attributes: true,
+          childList: false,
+          subtree: true,
+          attributeOldValue: true,
+        });
+      }
     }
 
     async function setSelectMenuValues(from, to) {
@@ -1953,7 +1955,7 @@ async function main() {
     async function getVideoData() {
       const videoData = {};
 
-      videoData.duration = video?.duration || 0;
+      videoData.duration = video?.duration || 343; // ! if 0 - we get 400 error
 
       videoData.videoId = (0,_utils_utils_js__WEBPACK_IMPORTED_MODULE_3__/* .getVideoId */ .gJ)(siteHostname);
 
@@ -2002,7 +2004,7 @@ async function main() {
             if (e.name === "NotAllowedError") {
               const errorMessage = _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].grantPermissionToAutoPlay;
               (0,_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .transformBtn */ .uJ)("error", errorMessage);
-              throw `[VOT] ${errorMessage}`;
+              throw errorMessage;
             } else if (e.name === "NotSupportedError") {
               const errorMessage = sitesChromiumBlocked.includes(
                 window.location.hostname
@@ -2010,7 +2012,7 @@ async function main() {
                 ? _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].neededAdditionalExtension
                 : _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].audioFormatNotSupported;
               (0,_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .transformBtn */ .uJ)("error", errorMessage);
-              throw `[VOT] ${errorMessage}`;
+              throw errorMessage;
             }
           });
         }
@@ -2186,16 +2188,16 @@ async function main() {
           videoData.detectedLanguage === _menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ &&
           videoData.responseLanguage === _menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ
         ) {
-          throw `[VOT] ${_config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTDisableFromYourLang}`;
+          throw _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTDisableFromYourLang;
         }
         if (ytData.isPremiere) {
-          throw `[VOT] ${_config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTPremiere}`;
+          throw _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTPremiere;
         }
         if (ytData.isLive) {
-          throw `[VOT] ${_config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTLiveNotSupported}`;
+          throw _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTLiveNotSupported;
         }
         if (videoData.duration > 14_400) {
-          throw `[VOT] ${_config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTVideoIsTooLong}`;
+          throw _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTVideoIsTooLong;
         }
       }
       return true;
@@ -2253,7 +2255,7 @@ async function main() {
                 60_000
               );
             }
-            throw `[VOT] ${urlOrError}`;
+            throw urlOrError;
           }
 
           audio.src = urlOrError;
@@ -2468,13 +2470,13 @@ async function main() {
           const VIDEO_ID = (0,_utils_utils_js__WEBPACK_IMPORTED_MODULE_3__/* .getVideoId */ .gJ)(siteHostname);
 
           if (!VIDEO_ID) {
-            throw `[VOT] ${_config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTNoVideoIDFound}`;
+            throw _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTNoVideoIDFound;
           }
 
           await translateExecutor(VIDEO_ID);
         } catch (err) {
           console.error("[VOT]", err);
-          (0,_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .transformBtn */ .uJ)("error", String(err).substring(5, err.length));
+          (0,_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .transformBtn */ .uJ)("error", err);
         }
       });
 
@@ -2487,7 +2489,7 @@ async function main() {
       const VIDEO_ID = (0,_utils_utils_js__WEBPACK_IMPORTED_MODULE_3__/* .getVideoId */ .gJ)(siteHostname);
 
       if (!VIDEO_ID) {
-        throw `[VOT] ${_config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTNoVideoIDFound}`;
+        throw _config_constants_js__WEBPACK_IMPORTED_MODULE_4__/* .translations */ .Iz[_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .lang */ .KQ].VOTNoVideoIDFound;
       }
 
       try {
@@ -2495,7 +2497,7 @@ async function main() {
         firstPlay = false;
       } catch (err) {
         console.error("[VOT]", err);
-        (0,_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .transformBtn */ .uJ)("error", String(err).substring(5, err.length));
+        (0,_menu_js__WEBPACK_IMPORTED_MODULE_6__/* .transformBtn */ .uJ)("error", err);
         firstPlay = false;
       }
     });
@@ -2862,7 +2864,6 @@ async function main() {
 main().catch((e) => {
   console.error("[VOT]", e);
 });
-
 __webpack_async_result__();
 } catch(e) { __webpack_async_result__(e); } });
 
@@ -4411,6 +4412,12 @@ function getPlayerResponse() {
   return player?.getPlayerResponse?.call() ?? null;
 }
 
+function getPlayerData() {
+  const player = getPlayer();
+  if (isMobile()) return player?.data?.playerResponse?.videoDetails ?? null;
+  return player?.getVideoData?.call() ?? null;
+}
+
 function getSubtitles() {
   const response = getPlayerResponse();
   let captionTracks =
@@ -4443,10 +4450,13 @@ function getSubtitles() {
 // Get the video data from the player
 async function getVideoData() {
   const player = getPlayer();
-  const response = getPlayerResponse();
+  const response = getPlayerResponse(); // null in /embed
+  const data = getPlayerData();
   const {
     author,
-    title,
+    title
+  } = data ?? {};
+  const {
     shortDescription: description,
     isLive,
     isLiveContent,
@@ -4476,10 +4486,10 @@ const youtubeUtils = {
   isMobile,
   getPlayer,
   getPlayerResponse,
+  getPlayerData,
   getSubtitles,
   getVideoData,
 };
-
 
 /***/ }),
 
@@ -4505,14 +4515,13 @@ const VideoSubtitlesRequest = new protobuf.Type("VideoSubtitlesRequest")
   .add(new protobuf.Field("url", 1, "string"))
   .add(new protobuf.Field("language", 2, "string")); // source language code
 
-// const VideoWhitelistStreamRequest = new protobuf.Type("VideoWhitelistStreamRequest")
-//   .add(new protobuf.Field("url", 1, "string"))
-//   .add(new protobuf.Field("deviceId", 4, "string"))
+const VideoStreamRequest = new protobuf.Type("VideoStreamRequest")
+  .add(new protobuf.Field("url", 1, "string"))
+  .add(new protobuf.Field("language", 2, "string"))
+  .add(new protobuf.Field("responseLanguage", 3, "string"))
 
-// const VideoTranslationStreamRequest = new protobuf.Type("VideoTranslationStreamRequest")
-//   .add(new protobuf.Field("url", 1, "string"))
-//   .add(new protobuf.Field("language", 2, "string"))
-//   .add(new protobuf.Field("responseLanguage", 3, "string"))
+const VideoStreamPingRequest = new protobuf.Type("VideoStreamPingRequest")
+  .add(new protobuf.Field("pingId", 1, "int32"))
 
 const VideoTranslationResponse = new protobuf.Type("VideoTranslationResponse")
   .add(new protobuf.Field("url", 1, "string"))
@@ -4537,46 +4546,23 @@ const VideoSubtitlesResponse = new protobuf.Type("VideoSubtitlesResponse")
   .add(new protobuf.Field("unknown0", 1, "int32"))
   .add(new protobuf.Field("subtitles", 2, "VideoSubtitlesObject", "repeated"));
 
+const VideoStreamObject = new protobuf.Type("VideoStreamObject")
+  .add(new protobuf.Field("url", 1, "string"))
+  .add(new protobuf.Field("timestamp", 2, "int32")) // timestamp in ms (probably means the time of 1 request to translate the stream)
+
+const VideoStreamResponse = new protobuf.Type("VideoStreamResponse")
+  .add(new protobuf.Field("interval", 1, "int32")) // 20s - streaming, 10s - translating
+  .add(new protobuf.Field("translatedInfo", 2, "VideoStreamObject"))
+  .add(new protobuf.Field("pingId", 3, "int32"))
+
+// * Yandex has been skipping any translation streams for a long time (whitelist always return true)
+// * Most likely, it is already outdated and will not be used
+// const VideoWhitelistStreamRequest = new protobuf.Type("VideoWhitelistStreamRequest")
+//   .add(new protobuf.Field("url", 1, "string"))
+//   .add(new protobuf.Field("deviceId", 4, "string"))
+
 // const VideoWhitelistStreamResponse = new protobuf.Type("VideoWhitelistStreamResponse")
 //   .add(new protobuf.Field("inWhitelist", 1, "bool"))
-
-// const VideoTranslationStreamResponse = new protobuf.Type("VideoTranslationStreamResponse")
-//   .add(new protobuf.Field("unknown1", 1, "int32"))
-//   .add(new protobuf.Field("array", 2, "string"))
-//   .add(new protobuf.Field("ping", 3, "int32"))
-
-// Create a root namespace and add the types
-// const root = new protobuf.Root().define("yandex").add(VideoWhitelistStreamRequest).add(VideoWhitelistStreamResponse);
-
-// // Export the encoding and decoding functions
-// export const yandexProtobuf = {
-//   encodeTranslationRequest(url, deviceId, unknown1, requestLang, responseLang) {
-//     return root.VideoWhitelistStreamRequest.encode({
-//       url,
-//       deviceId: 'UCLA_DiR1FfKNvjuUpBHmylQ'
-//     }).finish();
-//   },
-//   decodeTranslationResponse(response) {
-//     return root.VideoWhitelistStreamResponse.decode(new Uint8Array(response));
-//   }
-// };
-
-// // Create a root namespace and add the types
-// const root = new protobuf.Root().define("yandex").add(VideoTranslationStreamRequest).add(VideoTranslationStreamResponse);
-
-// // Export the encoding and decoding functions
-// export const yandexProtobuf = {
-//   encodeTranslationRequest(url, deviceId, unknown1, requestLang, responseLang) {
-//     return root.VideoTranslationStreamRequest.encode({
-//       url,
-//       language: requestLang,
-//       responseLanguage: responseLang
-//     }).finish();
-//   },
-//   decodeTranslationResponse(response) {
-//     return root.VideoTranslationStreamResponse.decode(new Uint8Array(response));
-//   }
-// };
 
 // Create a root namespace and add the types
 const root = new protobuf.Root()
@@ -4585,7 +4571,11 @@ const root = new protobuf.Root()
   .add(VideoTranslationResponse)
   .add(VideoSubtitlesRequest)
   .add(VideoSubtitlesObject)
-  .add(VideoSubtitlesResponse);
+  .add(VideoSubtitlesResponse)
+  .add(VideoStreamPingRequest)
+  .add(VideoStreamRequest)
+  .add(VideoStreamObject)
+  .add(VideoStreamResponse);
 
 // Export the encoding and decoding functions
 const yandexProtobuf = {
@@ -4613,8 +4603,22 @@ const yandexProtobuf = {
   decodeSubtitlesResponse(response) {
     return root.VideoSubtitlesResponse.decode(new Uint8Array(response));
   },
+  encodeStreamPingRequest(pingId) {
+    return root.VideoStreamPingRequest.encode({
+      pingId,
+    }).finish();
+  },
+  encodeStreamRequest(url, requestLang, responseLang) {
+    return root.VideoStreamRequest.encode({
+      url,
+      language: requestLang,
+      responseLanguage: responseLang,
+    }).finish();
+  },
+  decodeStreamResponse(response) {
+    return root.VideoStreamResponse.decode(new Uint8Array(response));
+  },
 };
-
 
 /***/ }),
 
