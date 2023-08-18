@@ -14,13 +14,14 @@ const VideoSubtitlesRequest = new protobuf.Type("VideoSubtitlesRequest")
   .add(new protobuf.Field("url", 1, "string"))
   .add(new protobuf.Field("language", 2, "string")); // source language code
 
-const VideoStreamRequest = new protobuf.Type("VideoStreamRequest")
-  .add(new protobuf.Field("url", 1, "string"))
-  .add(new protobuf.Field("language", 2, "string"))
-  .add(new protobuf.Field("responseLanguage", 3, "string"))
+// const VideoWhitelistStreamRequest = new protobuf.Type("VideoWhitelistStreamRequest")
+//   .add(new protobuf.Field("url", 1, "string"))
+//   .add(new protobuf.Field("deviceId", 4, "string"))
 
-const VideoStreamPingRequest = new protobuf.Type("VideoStreamPingRequest")
-  .add(new protobuf.Field("pingId", 1, "int32"))
+// const VideoTranslationStreamRequest = new protobuf.Type("VideoTranslationStreamRequest")
+//   .add(new protobuf.Field("url", 1, "string"))
+//   .add(new protobuf.Field("language", 2, "string"))
+//   .add(new protobuf.Field("responseLanguage", 3, "string"))
 
 const VideoTranslationResponse = new protobuf.Type("VideoTranslationResponse")
   .add(new protobuf.Field("url", 1, "string"))
@@ -45,23 +46,46 @@ const VideoSubtitlesResponse = new protobuf.Type("VideoSubtitlesResponse")
   .add(new protobuf.Field("unknown0", 1, "int32"))
   .add(new protobuf.Field("subtitles", 2, "VideoSubtitlesObject", "repeated"));
 
-const VideoStreamObject = new protobuf.Type("VideoStreamObject")
-  .add(new protobuf.Field("url", 1, "string"))
-  .add(new protobuf.Field("timestamp", 2, "int32")) // timestamp in ms (probably means the time of 1 request to translate the stream)
-
-const VideoStreamResponse = new protobuf.Type("VideoStreamResponse")
-  .add(new protobuf.Field("interval", 1, "int32")) // 20s - streaming, 10s - translating
-  .add(new protobuf.Field("translatedInfo", 2, "VideoStreamObject"))
-  .add(new protobuf.Field("pingId", 3, "int32"))
-
-// * Yandex has been skipping any translation streams for a long time (whitelist always return true)
-// * Most likely, it is already outdated and will not be used
-// const VideoWhitelistStreamRequest = new protobuf.Type("VideoWhitelistStreamRequest")
-//   .add(new protobuf.Field("url", 1, "string"))
-//   .add(new protobuf.Field("deviceId", 4, "string"))
-
 // const VideoWhitelistStreamResponse = new protobuf.Type("VideoWhitelistStreamResponse")
 //   .add(new protobuf.Field("inWhitelist", 1, "bool"))
+
+// const VideoTranslationStreamResponse = new protobuf.Type("VideoTranslationStreamResponse")
+//   .add(new protobuf.Field("unknown1", 1, "int32"))
+//   .add(new protobuf.Field("array", 2, "string"))
+//   .add(new protobuf.Field("ping", 3, "int32"))
+
+// Create a root namespace and add the types
+// const root = new protobuf.Root().define("yandex").add(VideoWhitelistStreamRequest).add(VideoWhitelistStreamResponse);
+
+// // Export the encoding and decoding functions
+// export const yandexProtobuf = {
+//   encodeTranslationRequest(url, deviceId, unknown1, requestLang, responseLang) {
+//     return root.VideoWhitelistStreamRequest.encode({
+//       url,
+//       deviceId: 'UCLA_DiR1FfKNvjuUpBHmylQ'
+//     }).finish();
+//   },
+//   decodeTranslationResponse(response) {
+//     return root.VideoWhitelistStreamResponse.decode(new Uint8Array(response));
+//   }
+// };
+
+// // Create a root namespace and add the types
+// const root = new protobuf.Root().define("yandex").add(VideoTranslationStreamRequest).add(VideoTranslationStreamResponse);
+
+// // Export the encoding and decoding functions
+// export const yandexProtobuf = {
+//   encodeTranslationRequest(url, deviceId, unknown1, requestLang, responseLang) {
+//     return root.VideoTranslationStreamRequest.encode({
+//       url,
+//       language: requestLang,
+//       responseLanguage: responseLang
+//     }).finish();
+//   },
+//   decodeTranslationResponse(response) {
+//     return root.VideoTranslationStreamResponse.decode(new Uint8Array(response));
+//   }
+// };
 
 // Create a root namespace and add the types
 const root = new protobuf.Root()
@@ -70,11 +94,7 @@ const root = new protobuf.Root()
   .add(VideoTranslationResponse)
   .add(VideoSubtitlesRequest)
   .add(VideoSubtitlesObject)
-  .add(VideoSubtitlesResponse)
-  .add(VideoStreamPingRequest)
-  .add(VideoStreamRequest)
-  .add(VideoStreamObject)
-  .add(VideoStreamResponse);
+  .add(VideoSubtitlesResponse);
 
 // Export the encoding and decoding functions
 export const yandexProtobuf = {
@@ -101,20 +121,5 @@ export const yandexProtobuf = {
   },
   decodeSubtitlesResponse(response) {
     return root.VideoSubtitlesResponse.decode(new Uint8Array(response));
-  },
-  encodeStreamPingRequest(pingId) {
-    return root.VideoStreamPingRequest.encode({
-      pingId,
-    }).finish();
-  },
-  encodeStreamRequest(url, requestLang, responseLang) {
-    return root.VideoStreamRequest.encode({
-      url,
-      language: requestLang,
-      responseLanguage: responseLang,
-    }).finish();
-  },
-  decodeStreamResponse(response) {
-    return root.VideoStreamResponse.decode(new Uint8Array(response));
   },
 };

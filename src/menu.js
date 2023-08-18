@@ -1,8 +1,8 @@
 import debug from "./utils/debug.js";
 import { translations } from "./config/constants.js";
 
-const userlang = navigator.language || navigator.userLanguage;
-let lang = userlang.substr(0, 2).toLowerCase();
+const userlang = navigator.language ?? navigator.userLanguage;
+let lang = userlang.substring(0, 2) ?? "en";
 if (!(lang in translations)) {
   lang = "en";
 }
