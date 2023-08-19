@@ -59,7 +59,7 @@ const siteTranslates = {
   it may be worth redesigning the translation system
   (if there is no necessary phrase, then the phrase in English / "raw" phrase will be displayed)
 */
-let defualttranslations = {
+let translations = {
   ru: {
     unSupportedExtensionError: `Ошибка! ${GM_info.scriptHandler} не поддерживается этой версией расширения!\n\nПожалуйста, используйте cloudflare-версию расширения VOT.`,
     VOTDisabledForDBUpdating: `VOT отключен из-за ошибки при обновление Базы Данных. Закройте все открытые вкладки с ${window.location.hostname} и попробуйте снова`,
@@ -153,23 +153,20 @@ let defualttranslations = {
   },
 };
 
-// временный вариант
-const userlang = navigator.language ?? navigator.userLanguage;
-let lang = userlang.substring(0, 2) ?? "en";
-let translations;
-
 // укажите свой репозеторий
-async function getTranslations(lang) {
+async function getTranslations() {
+  const userlang = navigator.language ?? navigator.userLanguage;
+  let lang = userlang.substring(0, 2) ?? "en";
   let response = await fetch(`https://raw.githubusercontent.com/SashaXser/voice-over-translation/master/localization/${lang}.json`, {
     method: "GET",
   });
   const json = await response.json();
-  defualttranslations[lang] = { ...defualttranslations[lang], ...json };
-  return defualttranslations;
+  translations[lang] = { ...translations[lang], ...json };
 }
 
-
-translations = await getTranslations(lang);
+(async () => {
+  await getTranslations(); // Вызываем функцию и ждем результата
+})();
 
 
 
