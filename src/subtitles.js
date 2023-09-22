@@ -137,6 +137,7 @@ function formatYoutubeSubtitles(subtitles) {
 }
 
 export async function fetchSubtitles(subtitlesObject) {
+  document.querySelector(".subtitlesDownload").href = subtitlesObject.url
   let resolved = false;
   let subtitles = await Promise.race([
     new Promise(async (resolve) => {
