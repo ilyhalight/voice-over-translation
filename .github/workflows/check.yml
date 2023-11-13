@@ -2,7 +2,9 @@ name: Check codebase using Sourcery
 
 on:
   push:
-    branches: [main]
+    paths:
+      - 'src/**'
+  workflow_dispatch:
 
 jobs:
   review-with-sourcery:
