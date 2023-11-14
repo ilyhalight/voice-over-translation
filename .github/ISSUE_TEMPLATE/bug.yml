@@ -16,7 +16,7 @@ body:
         Please make sure to check other opened and closed issues, it could be your bug has been reported already.
 
         **ИСПОЛЬЗУЙТЕ ЭТУ ФОРМУ ТОЛЬКО ДЛЯ БАГОВ**
-        Voice-over-translation не гарантирует ни 100% работу с каждым видео или аудио источником, ни работу вообще. Если Voice-over-translation не переводит некоторые или все медиа, вероятнее всего, это не программная ошибка, и не стоит о ней сообщать здесь.
+        Voice-over-translation не гарантирует ни 100% работу с каждым видео, ни работу вообще. Если Voice-over-translation не переводит некоторые или все медиа, вероятнее всего, это не программная ошибка, и не стоит о ней сообщать здесь.
 
         Пожалуйста, сообщайте только об ошибках в программе, таких как:
           * проблемы с меню
@@ -28,7 +28,7 @@ body:
     id: os
     attributes:
       label: Operating system / операционная система
-      description: Enter your Windows version. For Windows 10 and 11 include build/update number.
+      description: Enter your OS version. For Windows 10 and 11 include build/update number.
       placeholder: ex. Windows 10 20H2
     validations:
       required: false
@@ -79,10 +79,3 @@ body:
     attributes:
       label: Additional information / Дополнительная информация
       description: If you have a hints on why this bug happens, you can express it here / Если у вас есть предположения об источнике бага, вы можете изложить их здесь
-  - type: textarea
-    id: screenshot
-    attributes:
-      label: Screenshot / Скриншот
-      description: You can upload a screenshot of the bug if you want / Вы можете загрузить скриншот ошибки, если хотите
-    validations:
-      required: false
