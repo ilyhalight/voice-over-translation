@@ -84,7 +84,5 @@ body:
     attributes:
       label: Screenshot / Скриншот
       description: You can upload a screenshot of the bug if you want / Вы можете загрузить скриншот ошибки, если хотите
-      multiple: false
-      accept: image/png, image/jpeg
     validations:
       required: false
