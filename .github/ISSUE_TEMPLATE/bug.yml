@@ -27,7 +27,7 @@ body:
   - type: input
     id: os
     attributes:
-      label: Operating system / операционная система
+      label: Operating system / Операционная система
       description: Enter your OS version. For Windows 10 and 11 include build/update number.
       placeholder: ex. Windows 10 20H2
     validations:
@@ -55,6 +55,10 @@ body:
         - Tampermonkey
         - Violentmonkey
         - Greasemonkey
+        - OrangeMonkey
+        - AdGuard
+        - FireMonkey
+        - UserScripts
         - Other / Другой
     validations:
       required: true
