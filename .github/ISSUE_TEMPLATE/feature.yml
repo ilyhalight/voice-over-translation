@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         If you think of a great function which is missing from the script, go ahead and suggest it here.
-        Если вы придумали новую функцию, которого еще нет в скрипте, напишите о нем подробнее здесь.
+        Если вы придумали новую функцию, которой еще нет в скрипте, напишите о нем подробнее здесь.
   - type: textarea
     id: description
     attributes:

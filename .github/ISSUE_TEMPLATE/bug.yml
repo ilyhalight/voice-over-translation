@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         **USE THIS FORM ONLY FOR BUGS**
-        Voice-over-translation does not guarantee to work with every video or audio source or at all. If Voice-over-translation can't translate some or any media, this is most likely not a software bug, and you should not report it here.
+        Voice-over-translation does not guarantee to work with every video or at all. If Voice-over-translation can't translate some media, this is most likely not a software bug, and you should not report it here.
 
         Please only report software bugs, such as:
           * menu issues
@@ -16,7 +16,7 @@ body:
         Please make sure to check other opened and closed issues, it could be your bug has been reported already.
 
         **ИСПОЛЬЗУЙТЕ ЭТУ ФОРМУ ТОЛЬКО ДЛЯ БАГОВ**
-        Voice-over-translation не гарантирует ни 100% работу с каждым видео, ни работу вообще. Если Voice-over-translation не переводит некоторые или все медиа, вероятнее всего, это не программная ошибка, и не стоит о ней сообщать здесь.
+        Voice-over-translation не гарантирует ни 100% работу с каждым видео, ни работу вообще. Если Voice-over-translation не переводит некоторые медиа, вероятнее всего, это не программная ошибка, и не стоит о ней сообщать здесь.
 
         Пожалуйста, сообщайте только об ошибках в программе, таких как:
           * проблемы с меню
@@ -28,7 +28,7 @@ body:
     id: os
     attributes:
       label: Operating system / Операционная система
-      description: Enter your OS version. For Windows 10 and 11 include build/update number.
+      description: Enter your OS version. For Windows 10 and 11 include build/update number / Укажите версию вашей ОС. Для Windows 10 и 11 укажите номер сборки/обновления.
       placeholder: ex. Windows 10 20H2
     validations:
       required: false
