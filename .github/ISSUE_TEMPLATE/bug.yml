@@ -14,7 +14,6 @@ body:
           * other problems (not feature request)
 
         Please make sure to check other opened and closed issues, it could be your bug has been reported already.
-        For questions, or if in doubt, use NTC.party forum.
 
         **ИСПОЛЬЗУЙТЕ ЭТУ ФОРМУ ТОЛЬКО ДЛЯ БАГОВ**
         Voice-over-translation не гарантирует ни 100% работу с каждым видео или аудио источником, ни работу вообще. Если Voice-over-translation не переводит некоторые или все медиа, вероятнее всего, это не программная ошибка, и не стоит о ней сообщать здесь.
@@ -80,7 +79,7 @@ body:
     attributes:
       label: Additional information / Дополнительная информация
       description: If you have a hints on why this bug happens, you can express it here / Если у вас есть предположения об источнике бага, вы можете изложить их здесь
-  - type: file
+  - type: textarea
     id: screenshot
     attributes:
       label: Screenshot / Скриншот
