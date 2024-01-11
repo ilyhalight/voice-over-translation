@@ -249,6 +249,12 @@ const getVideoId = (service, video) => {
     case "yandexdisk": {
       return url.pathname.match(/\/[i|s|d]\/([^/]+)/)?.[1];
     }
+    case "coursehunter": {
+      return (
+        video.getAttribute("src") ||
+        video.querySelector("source").getAttribute("src")
+      ).replace(/.+\/\/.+\.net/g, "");
+    }
     default:
       return false;
   }

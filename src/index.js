@@ -2195,6 +2195,13 @@ async function main() {
         site.url = window.location.origin;
       }
 
+      if (site.host === "coursehunter") {
+        site.url = (
+          video.getAttribute("src") ||
+          video.querySelector("source").getAttribute("src")
+        ).match(/.+\/\/.+\.net/g)[0];
+      }
+
       if (!videosWrappers.has(video)) {
         videosWrappers.set(video, new VideoHandler(video, container, site));
         break;
