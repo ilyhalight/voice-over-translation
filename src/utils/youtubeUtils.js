@@ -164,7 +164,7 @@ function getSubtitles() {
 // Get the video data from the player
 async function getVideoData() {
   const player = getPlayer();
-  const response = getPlayerResponse(); // null in /embed
+  const response = getPlayerResponse();
   const data = getPlayerData();
   const { title: localizedTitle } = data ?? {};
   const {
