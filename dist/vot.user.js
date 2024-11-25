@@ -2248,9 +2248,7 @@ const en_namespaceObject = /*#__PURE__*/JSON.parse('{"__version__":5,"recommende
 ;// ./src/utils/debug.ts
 /* harmony default export */ const debug = ({
     log: (...text) => {
-        if (true) {
-            return;
-        }
+        if (false) {}
         return console.log("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
     },
 });
@@ -2445,7 +2443,7 @@ function isPiPAvailable() {
 function initHls() {
   return typeof Hls != "undefined" && Hls?.isSupported()
     ? new Hls({
-        debug: false, // turn it on manually if necessary
+        debug: true, // turn it on manually if necessary
         lowLatencyMode: true,
         backBufferLength: 90,
       })
@@ -2513,7 +2511,6 @@ function clearFileName(filename) {
 async function GM_fetch(url, opts = {}) {
   const { timeout = 15000, ...fetchOptions } = opts;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
     if (url.includes("api.browser.yandex.ru")) {
@@ -2524,14 +2521,12 @@ async function GM_fetch(url, opts = {}) {
       signal: controller.signal,
       ...fetchOptions,
     });
-    clearTimeout(timeoutId);
     return response;
   } catch (err) {
     // Если fetch завершился ошибкой, используем GM_xmlhttpRequest
     // https://greasyfork.org/ru/scripts/421384-gm-fetch/code
     debug.log("GM_fetch preventing cors by GM_xmlhttpRequest", err.message);
     return new Promise((resolve, reject) => {
-      clearTimeout(timeoutId);
       GM_xmlhttpRequest({
         method: fetchOptions.method || "GET",
         url,
@@ -2584,7 +2579,7 @@ function utils_getTimestamp() {
 
 const localeCacheTTL = 7200;
 const localizationUrl = `${contentUrl}/${
-   false ? 0 : "master"
+   true ? "dev" : 0
 }/src/localization`;
 
 // TODO: add get from hashes.json or use DEFAULT_LOCALES
@@ -6154,91 +6149,6 @@ function videoSeek(video, time) {
   video.currentTime = finalTime;
 }
 
-function isMusic() {
-  // Нужно доработать логику
-  const channelName = getPlayerData().author,
-    titleStr = getPlayerData().title.toUpperCase(),
-    titleWordsList = titleStr.match(/\w+/g),
-    playerData = document.body.querySelector("ytd-watch-flexy")?.playerData;
-
-  return (
-    [
-      titleStr,
-      document.URL,
-      channelName,
-      playerData?.microformat?.playerMicroformatRenderer.category,
-      playerData?.title,
-    ].some((i) => i?.toUpperCase().includes("MUSIC")) ||
-    document.body.querySelector(
-      "#upload-info #channel-name .badge-style-type-verified-artist",
-    ) ||
-    (channelName &&
-      /(VEVO|Topic|Records|RECORDS|Recordings|AMV)$/.test(channelName)) ||
-    (channelName &&
-      /(MUSIC|ROCK|SOUNDS|SONGS)/.test(channelName.toUpperCase())) ||
-    (titleWordsList?.length &&
-      [
-        "🎵",
-        "♫",
-        "SONG",
-        "SONGS",
-        "SOUNDTRACK",
-        "LYRIC",
-        "LYRICS",
-        "AMBIENT",
-        "MIX",
-        "VEVO",
-        "CLIP",
-        "KARAOKE",
-        "OPENING",
-        "COVER",
-        "COVERED",
-        "VOCAL",
-        "INSTRUMENTAL",
-        "ORCHESTRAL",
-        "DUBSTEP",
-        "DJ",
-        "DNB",
-        "BASS",
-        "BEAT",
-        "ALBUM",
-        "PLAYLIST",
-        "DUBSTEP",
-        "CHILL",
-        "RELAX",
-        "CLASSIC",
-        "CINEMATIC",
-      ].some((i) => titleWordsList.includes(i))) ||
-    [
-      "OFFICIAL VIDEO",
-      "OFFICIAL AUDIO",
-      "FEAT.",
-      "FT.",
-      "LIVE RADIO",
-      "DANCE VER",
-      "HIP HOP",
-      "ROCK N ROLL",
-      "HOUR VER",
-      "HOURS VER",
-      "INTRO THEME",
-    ].some((i) => titleStr.includes(i)) ||
-    (titleWordsList?.length &&
-      [
-        "OP",
-        "ED",
-        "MV",
-        "OST",
-        "NCS",
-        "BGM",
-        "EDM",
-        "GMV",
-        "AMV",
-        "MMD",
-        "MAD",
-      ].some((i) => titleWordsList.includes(i)))
-  );
-}
-
 function getSubtitles() {
   const response = getPlayerResponse();
   const playerCaptions = response?.captions?.playerCaptionsTracklistRenderer;
@@ -6303,7 +6213,7 @@ function getSubtitles() {
 // Get the video data from the player
 async function youtubeUtils_getVideoData() {
   const player = getPlayer();
-  const response = getPlayerResponse(); // null in /embed
+  const response = getPlayerResponse();
   const data = getPlayerData();
   const { title: localizedTitle } = data ?? {};
   const {
@@ -6340,7 +6250,6 @@ async function youtubeUtils_getVideoData() {
   setVideoVolume,
   videoSeek,
   isMuted,
-  isMusic,
 });
 
 ;// ./src/subtitles.js
@@ -6491,7 +6400,6 @@ function formatYoutubeSubtitles(subtitles, isAsr = false) {
         startMs: subtitle.tStartMs,
         durationMs,
         ...(isAsr ? { tokens } : {}),
-        speakerId: "0",
       });
     }
   }
@@ -6537,7 +6445,7 @@ async function subtitles_getSubtitles(client, videoData) {
     subtitles,
   } = videoData;
   const extraSubtitles =
-    host === "youtube" ? youtubeUtils.getSubtitles() : subtitles ?? [];
+    host === "youtube" ? youtubeUtils.getSubtitles() : (subtitles ?? []);
 
   const timeoutPromise = new Promise((_, reject) =>
     setTimeout(() => reject(new Error("Timeout")), 5000),
@@ -6647,6 +6555,7 @@ class SubtitlesWidget {
     this.maxLength = 300;
     this.maxLengthRegexp = /.{1,300}(?:\s|$)/g;
 
+    this.abortController = new AbortController();
     this.bindEvents();
     this.updateContainerRect();
   }
@@ -6659,15 +6568,19 @@ class SubtitlesWidget {
   }
 
   bindEvents() {
+    const { signal } = this.abortController;
+
     this.onMouseDownBound = (e) => this.onMouseDown(e);
     this.onMouseUpBound = () => this.onMouseUp();
     this.onMouseMoveBound = (e) => this.onMouseMove(e);
     this.onTimeUpdateBound = this.debounce(() => this.update(), 100);
 
-    document.addEventListener("mousedown", this.onMouseDownBound);
-    document.addEventListener("mouseup", this.onMouseUpBound);
-    document.addEventListener("mousemove", this.onMouseMoveBound);
-    this.video?.addEventListener("timeupdate", this.onTimeUpdateBound);
+    document.addEventListener("mousedown", this.onMouseDownBound, { signal });
+    document.addEventListener("mouseup", this.onMouseUpBound, { signal });
+    document.addEventListener("mousemove", this.onMouseMoveBound, { signal });
+    this.video?.addEventListener("timeupdate", this.onTimeUpdateBound, {
+      signal,
+    });
 
     this.resizeObserver = new ResizeObserver(() => this.onResize());
     this.resizeObserver.observe(this.container);
@@ -6869,10 +6782,7 @@ class SubtitlesWidget {
   }
 
   release() {
-    document.removeEventListener("mousedown", this.onMouseDownBound);
-    document.removeEventListener("mouseup", this.onMouseUpBound);
-    document.removeEventListener("mousemove", this.onMouseMoveBound);
-    this.video?.removeEventListener("timeupdate", this.onTimeUpdateBound);
+    this.abortController.abort();
     this.resizeObserver.disconnect();
     this.subtitlesContainer.remove();
   }
@@ -9266,7 +9176,360 @@ class Chaimu {
 
 
 
+;// ./node_modules/@vot.js/shared/dist/types/helpers/bannedvideo.js
+var TypeName;
+(function (TypeName) {
+    TypeName["Channel"] = "Channel";
+    TypeName["Video"] = "Video";
+})(TypeName || (TypeName = {}));
+
+;// ./node_modules/@vot.js/shared/dist/types/index.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;// ./node_modules/@vot.js/shared/dist/index.js
+
+
+
+
+
+
+
+
+
+;// ./src/utils/AudioDownloader.ts
+
+
+
+
+
+const desktopAudioItag = 251;
+const signatureCipherKeys = ["sp", "s", "url"];
+const MIN_CONTENT_LENGTH_MULTIPLAIER = 0.9;
+const CHUNK_STEPS = [6e4, 8e4, 15e4, 33e4, 46e4];
+const ACCEPTABLE_REQUEST_AND_RESPONSE_LENGTHS_DIFF = 0.9;
+const MIN_ARRAY_BUFFER_LENGTH = 15e3;
+class YouTubeAudioDownloader {
+    minChunkSize;
+    nr = 1;
+    constructor({ minChunkSize = config.minChunkSize } = {}) {
+        this.minChunkSize = minChunkSize;
+    }
+    isSignatureCipherKey(key) {
+        return signatureCipherKeys.includes(key);
+    }
+    getAudioAdaptiveFormat() {
+        const playerResponse = youtubeUtils.getPlayerResponse();
+        if (!playerResponse) {
+            return;
+        }
+        const { streamingData: { adaptiveFormats }, } = playerResponse;
+        const formatsWithItag = adaptiveFormats.filter((format) => format.itag === desktopAudioItag);
+        debug.log("formatsWithItag", formatsWithItag);
+        if (formatsWithItag.length < 2) {
+            return adaptiveFormats[0];
+        }
+        const hasAudioTrack = formatsWithItag.some((format) => Object.hasOwn(format, "audioTrack"));
+        debug.log("hasAudioTrack", hasAudioTrack);
+        if (!hasAudioTrack) {
+            return formatsWithItag[0];
+        }
+        const { captions: { playerCaptionsTracklistRenderer: { audioTracks, defaultAudioTrackIndex, }, }, } = playerResponse;
+        const hasMultiTracks = audioTracks.some((track) => Object.hasOwn(track, "hasDefaultTrack"));
+        debug.log("hasMultiTracks", hasMultiTracks);
+        if (!hasMultiTracks) {
+            return formatsWithItag[0];
+        }
+        const defaultAudioTrack = audioTracks?.[defaultAudioTrackIndex];
+        debug.log("defaultAudioTrack", defaultAudioTrack);
+        if (!defaultAudioTrack) {
+            return formatsWithItag[0];
+        }
+        return (formatsWithItag.find((format) => format.audioTrack?.id ===
+            defaultAudioTrack.audioTrackId) ?? formatsWithItag[0]);
+    }
+    makeFileId(fileSize) {
+        return JSON.stringify({
+            downloadType: AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME,
+            itag: desktopAudioItag,
+            minChunkSize: this.minChunkSize,
+            fileSize,
+        });
+    }
+    getContentLength(adaptiveFormat) {
+        const { contentLength } = adaptiveFormat;
+        const numericContentLength = parseInt(contentLength);
+        if (!Number.isFinite(numericContentLength)) {
+            throw new Error("Content length number isn't finite");
+        }
+        return numericContentLength;
+    }
+    fetchLocationOriginText = async () => {
+        let response, textContent;
+        try {
+            response = await GM_fetch(location.origin);
+            textContent = await response.text();
+        }
+        catch (err) {
+            throw new Error(`Can't get text from ${location.origin}, because ${err.message}`);
+        }
+        return textContent;
+    };
+    getUrlFromAdaptiveFormat(adaptiveFormat) {
+        const { url } = adaptiveFormat;
+        if (typeof url === "string" && url) {
+            return url;
+        }
+        // decryptSignatureCipher...
+        console.error("[VOT] SignatureCipher not supported yet");
+        return undefined;
+    }
+    calcChunkRangesParts(contentLength) {
+        if (contentLength < 1) {
+            throw new Error("Content length can't be less than 1");
+        }
+        const minimumChunkSize = Math.round(contentLength * MIN_CONTENT_LENGTH_MULTIPLAIER);
+        const chunkRanges = [];
+        let currentChunk = [];
+        let accumulatedSize = 0;
+        let stepIndex = 0;
+        let start = 0;
+        let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
+        while (end < contentLength) {
+            const mustExist = end < minimumChunkSize;
+            currentChunk.push({
+                start,
+                end,
+                mustExist,
+            });
+            accumulatedSize += end - start;
+            if (accumulatedSize >= this.minChunkSize) {
+                chunkRanges.push(currentChunk);
+                currentChunk = [];
+                accumulatedSize = 0;
+            }
+            if (stepIndex !== CHUNK_STEPS.length - 1)
+                stepIndex++;
+            start = end + 1;
+            end += CHUNK_STEPS[stepIndex];
+        }
+        end = contentLength;
+        currentChunk.push({
+            start,
+            end,
+            mustExist: false,
+        });
+        chunkRanges.push(currentChunk);
+        return chunkRanges;
+    }
+    calcChunkRanges(contentLength) {
+        if (contentLength < 1) {
+            throw new Error("Content length can't be less than 1");
+        }
+        const minimumChunkSize = Math.round(contentLength * MIN_CONTENT_LENGTH_MULTIPLAIER);
+        const chunkRanges = [];
+        let stepIndex = 0;
+        let start = 0;
+        let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
+        while (end < contentLength) {
+            const mustExist = end < minimumChunkSize;
+            chunkRanges.push({
+                start: start,
+                end: end,
+                mustExist: mustExist,
+            });
+            if (stepIndex !== CHUNK_STEPS.length - 1)
+                stepIndex++;
+            start = end + 1;
+            end += CHUNK_STEPS[stepIndex];
+        }
+        end = contentLength;
+        chunkRanges.push({
+            start: start,
+            end: end,
+            mustExist: false,
+        });
+        return chunkRanges;
+    }
+    mergeBuffers(buffers) {
+        const totalByteLength = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+        const mergedArray = new Uint8Array(totalByteLength);
+        let offset = 0;
+        for (const buffer of buffers) {
+            mergedArray.set(new Uint8Array(buffer), offset);
+            offset += buffer.byteLength;
+        }
+        return mergedArray;
+    }
+    getChunkRanges(adaptiveFormat, isPartialMode = false) {
+        // 12044969
+        const contentLength = this.getContentLength(adaptiveFormat);
+        debug.log(`[getChunkRanges (isPartialMode: ${isPartialMode})] contentLength: ${contentLength}`);
+        const chunkRanges = isPartialMode
+            ? this.calcChunkRangesParts(contentLength)
+            : this.calcChunkRanges(contentLength);
+        debug.log("[getChunkRanges] chunkRanges: ", chunkRanges);
+        if (!chunkRanges.length) {
+            throw new Error("Empty chunk ranges");
+        }
+        return chunkRanges;
+    }
+    async *getPartialAudioBuffers(audioAdaptiveFormat, currentUrl, fetchOpts = {}) {
+        const chunkRangesParts = this.getChunkRanges(audioAdaptiveFormat, true);
+        for (const chunkRange of chunkRangesParts) {
+            const { audio, url, isAcceptableLast } = await this.fetchAudioWithMetaByChunkRanges(currentUrl, fetchOpts, chunkRange);
+            if (url) {
+                currentUrl = url;
+            }
+            yield audio;
+            if (isAcceptableLast) {
+                break;
+            }
+        }
+    }
+    changeRangeAndNrInUrl(audioUrl, { start, end }) {
+        const url = new URL(audioUrl);
+        url.searchParams.set("range", `${start}-${end}`);
+        url.searchParams.set("nr", String(this.nr++));
+        url.searchParams.delete("ump");
+        return url.toString();
+    }
+    checkIsChunkLengthOk(buffer, { start, end }) {
+        const rangeLength = end - start;
+        if (rangeLength > MIN_ARRAY_BUFFER_LENGTH &&
+            buffer.byteLength < MIN_ARRAY_BUFFER_LENGTH) {
+            return false;
+        }
+        return (Math.min(rangeLength, buffer.byteLength) /
+            Math.max(rangeLength, buffer.byteLength) >
+            ACCEPTABLE_REQUEST_AND_RESPONSE_LENGTHS_DIFF);
+    }
+    convertArrayBufferToString(buffer) {
+        return new TextDecoder("ascii").decode(buffer);
+    }
+    getUrlFromArrayBuffer(buffer) {
+        const urlMatch = this.convertArrayBufferToString(buffer).match(/https:\/\/.*$/);
+        return urlMatch ? urlMatch[0] : null;
+    }
+    async fetchAudioWithMeta({ audioUrl, chunkRange, fetchOpts, isUrlChanged = false, }) {
+        const updatedUrl = this.changeRangeAndNrInUrl(audioUrl, chunkRange);
+        let response, audioBuffer;
+        try {
+            response = await GM_fetch(updatedUrl, fetchOpts);
+        }
+        catch (error) {
+            throw new Error(`Can't fetch audio URL ${updatedUrl}, because: ${error.message}`);
+        }
+        try {
+            audioBuffer = await response.arrayBuffer();
+        }
+        catch (error) {
+            throw new Error(`Can't get array buffer from audio URL ${updatedUrl}, because: ${error.message}`);
+        }
+        debug.log("[fetchAudioWithMeta] before checkIsChunkLengthOk", audioBuffer, chunkRange);
+        if (this.checkIsChunkLengthOk(audioBuffer, chunkRange)) {
+            return {
+                audio: audioBuffer,
+                url: isUrlChanged ? audioUrl : null,
+                isAcceptableLast: false,
+            };
+        }
+        const redirectedUrl = this.getUrlFromArrayBuffer(audioBuffer);
+        debug.log("[fetchAudioWithMeta] getUrlFromArrayBuffer", redirectedUrl);
+        if (redirectedUrl) {
+            return await this.fetchAudioWithMeta({
+                audioUrl: redirectedUrl,
+                chunkRange,
+                fetchOpts,
+                isUrlChanged: true,
+            });
+        }
+        if (!chunkRange.mustExist) {
+            return {
+                audio: audioBuffer,
+                url: null,
+                isAcceptableLast: true,
+            };
+        }
+        throw new Error(`Can't get redirected audio URL: ${updatedUrl}`);
+    }
+    async fetchAudioWithMetaByChunkRanges(audioUrl, fetchOpts, chunkRanges) {
+        let currentUrl = audioUrl;
+        const audioBuffers = [];
+        let isAcceptableLast = false;
+        for await (const chunkRange of chunkRanges) {
+            const res = await this.fetchAudioWithMeta({
+                audioUrl: currentUrl,
+                chunkRange,
+                fetchOpts,
+            });
+            debug.log("[fetchAudioWithMetaByChunkRanges] fetchAudioWithMeta result", res);
+            if (res.url) {
+                currentUrl = res.url;
+            }
+            audioBuffers.push(res.audio);
+            isAcceptableLast = res.isAcceptableLast;
+            if (isAcceptableLast) {
+                break;
+            }
+        }
+        return {
+            audio: this.mergeBuffers(audioBuffers),
+            url: currentUrl,
+            isAcceptableLast,
+        };
+    }
+    async *getAudioBuffers(audioAdaptiveFormat, currentUrl, fetchOpts = {}) {
+        const chunkRanges = this.getChunkRanges(audioAdaptiveFormat, false);
+        const { audio } = await this.fetchAudioWithMetaByChunkRanges(currentUrl, fetchOpts, chunkRanges);
+        yield audio;
+    }
+    async download(isPartialMode = false) {
+        const audioAdaptiveFormat = this.getAudioAdaptiveFormat();
+        debug.log("[download] audioAdaptiveFormat", audioAdaptiveFormat);
+        if (!audioAdaptiveFormat) {
+            throw new Error("Failed to get audioAdaptiveFormat");
+        }
+        const audioUrl = this.getUrlFromAdaptiveFormat(audioAdaptiveFormat);
+        if (!audioUrl) {
+            throw new Error("Failed to get audioUrl");
+        }
+        const fileId = this.makeFileId(audioAdaptiveFormat.contentLength);
+        debug.log("[download] audioAdaptiveFormat", audioAdaptiveFormat);
+        return {
+            fileId,
+            audioPartsLength: isPartialMode
+                ? this.getChunkRanges(audioAdaptiveFormat, true).length
+                : 1,
+            getAudioBuffers: async function* () {
+                yield* isPartialMode
+                    ? this.getPartialAudioBuffers(audioAdaptiveFormat, audioUrl)
+                    : this.getAudioBuffers(audioAdaptiveFormat, audioUrl);
+            }.bind(this),
+        };
+    }
+}
+
 ;// ./src/index.js
+
 
 
 
@@ -9397,6 +9660,8 @@ class VideoHandler {
     this.video = video;
     this.container = container;
     this.site = site;
+    this.abortController = new AbortController();
+    this.extraEvents = [];
     this.init();
   }
 
@@ -9597,7 +9862,7 @@ class VideoHandler {
     debug.log("preferAudio:", preferAudio);
     this.audioPlayer = new Chaimu({
       video: this.video,
-      debug: false,
+      debug: true,
       fetchFn: GM_fetch,
       preferAudio,
     });
@@ -10933,6 +11198,7 @@ class VideoHandler {
   }
 
   releaseExtraEvents() {
+    this.abortController.abort();
     this.resizeObserver?.disconnect();
     if (
       ["youtube", "googledrive"].includes(this.site.host) &&
@@ -10940,17 +11206,10 @@ class VideoHandler {
     ) {
       this.syncVolumeObserver?.disconnect();
     }
-
-    if (this.extraEvents) {
-      for (let i = 0; i < this.extraEvents.length; i++) {
-        const e = this.extraEvents[i];
-        e.element.removeEventListener(e.event, e.handler);
-      }
-    }
   }
 
   initExtraEvents() {
-    this.extraEvents = [];
+    const { signal } = this.abortController;
 
     const addExtraEventListener = (element, event, handler) => {
       this.extraEvents.push({
@@ -10958,7 +11217,7 @@ class VideoHandler {
         event,
         handler,
       });
-      element.addEventListener(event, handler);
+      element.addEventListener(event, handler, { signal });
     };
 
     const addExtraEventListeners = (element, events, handler) => {
@@ -11039,41 +11298,49 @@ class VideoHandler {
       }
     }
 
-    document.addEventListener("click", (event) => {
-      const e = event.target;
+    document.addEventListener(
+      "click",
+      (event) => {
+        const e = event.target;
 
-      const button = this.votButton.container;
-      const menu = this.votMenu.container;
-      const container = this.container;
-      const settings = this.votSettingsDialog.container;
-      const tempDialog = document.querySelector(".vot-dialog-temp");
+        const button = this.votButton.container;
+        const menu = this.votMenu.container;
+        const container = this.container;
+        const settings = this.votSettingsDialog.container;
+        const tempDialog = document.querySelector(".vot-dialog-temp");
 
-      const isButton = button.contains(e);
-      const isMenu = menu.contains(e);
-      const isVideo = container.contains(e);
-      const isSettings = settings.contains(e);
-      const isTempDialog = tempDialog?.contains(e) ?? false;
+        const isButton = button.contains(e);
+        const isMenu = menu.contains(e);
+        const isVideo = container.contains(e);
+        const isSettings = settings.contains(e);
+        const isTempDialog = tempDialog?.contains(e) ?? false;
 
-      debug.log(
-        `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`,
-      );
-      if (!(!isButton && !isMenu && !isSettings && !isTempDialog)) return;
-      if (!isVideo) this.logout(0);
+        debug.log(
+          `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`,
+        );
+        if (!(!isButton && !isMenu && !isSettings && !isTempDialog)) return;
+        if (!isVideo) this.logout(0);
 
-      this.votMenu.container.hidden = true;
-    });
+        this.votMenu.container.hidden = true;
+      },
+      { signal },
+    );
 
-    document.addEventListener("keydown", async (event) => {
-      const code = event.code;
-      // Проверка, если активный элемент - это вводимый элемент
-      const activeElement = document.activeElement;
-      const isInputElement =
-        ["input", "textarea"].includes(activeElement.tagName.toLowerCase()) ||
-        activeElement.isContentEditable;
-      if (!isInputElement && code === this.data.hotkeyButton) {
-        await this.handleTranslationBtnClick();
-      }
-    });
+    document.addEventListener(
+      "keydown",
+      async (event) => {
+        const code = event.code;
+        // Проверка, если активный элемент - это вводимый элемент
+        const activeElement = document.activeElement;
+        const isInputElement =
+          ["input", "textarea"].includes(activeElement.tagName.toLowerCase()) ||
+          activeElement.isContentEditable;
+        if (!isInputElement && code === this.data.hotkeyButton) {
+          await this.handleTranslationBtnClick();
+        }
+      },
+      { signal },
+    );
 
     let eventContainer = this.site.eventSelector
       ? document.querySelector(this.site.eventSelector)
@@ -11445,21 +11712,7 @@ class VideoHandler {
       videoData.detectedLanguage = trackLang || "auto";
     } else if (this.site.host === "weverse") {
       videoData.detectedLanguage = "ko";
-    } else if (
-      [
-        "bilibili",
-        "bitchute",
-        "rumble",
-        "peertube",
-        "dailymotion",
-        "trovo",
-        "yandexdisk",
-        "coursehunterLike",
-        "archive",
-        "nineanimetv",
-        "directlink",
-      ].includes(this.site.host)
-    ) {
+    } else {
       videoData.detectedLanguage = "auto";
     }
     return videoData;
@@ -11508,6 +11761,12 @@ class VideoHandler {
 
   async translateExecutor(VIDEO_ID) {
     debug.log("Run translateFunc", VIDEO_ID);
+    const audioDownloader = new YouTubeAudioDownloader();
+    const result = await audioDownloader.download(true);
+    console.log(result);
+    for await (const res of result.getAudioBuffers()) {
+      console.log(await res);
+    }
     await this.translateFunc(
       VIDEO_ID,
       this.videoData.isStream,
@@ -11569,6 +11828,10 @@ class VideoHandler {
 
     this.votDownloadButton.hidden = false;
     this.downloadTranslationUrl = audioUrl;
+    debug.log(
+      "afterUpdateTranslation downloadTranslationUrl",
+      this.downloadTranslationUrl,
+    );
   }
 
   async validateAudioUrl(audioUrl) {
@@ -11612,6 +11875,11 @@ class VideoHandler {
   // update translation audio src
   async updateTranslation(audioUrl) {
     // ! Don't use this function for streams
+    debug.log(
+      audioUrl,
+      this.cachedTranslation,
+      this.audioPlayer.player.currentSrc,
+    );
     if (this.cachedTranslation?.url !== this.audioPlayer.player.currentSrc) {
       audioUrl = await this.validateAudioUrl(audioUrl);
     }
@@ -11741,6 +12009,7 @@ class VideoHandler {
       await this.updateSubtitlesLangSelect();
     }
 
+    debug.log(this.downloadTranslationUrl, translateRes);
     this.videoTranslations.push({
       videoId: VIDEO_ID,
       from: requestLang,
