@@ -56,6 +56,7 @@ import {
   translateServices,
 } from "./utils/translateApis.js";
 import Chaimu, { initAudioContext } from "chaimu";
+import { YouTubeAudioDownloader } from "./utils/AudioDownloader.ts";
 
 const browserInfo = Bowser.getParser(window.navigator.userAgent).getResult();
 
@@ -214,8 +215,8 @@ class VideoHandler {
       await this.updateTranslationErrorMsg(
         res.remainingTime > 0
           ? secsToStrTime(res.remainingTime)
-          : (res.message ??
-              localizationProvider.get("translationTakeFewMinutes")),
+          : res.message ??
+              localizationProvider.get("translationTakeFewMinutes"),
       );
     } catch (err) {
       console.error("[VOT] Failed to translate video", err);
@@ -2261,6 +2262,12 @@ class VideoHandler {
 
   async translateExecutor(VIDEO_ID) {
     debug.log("Run translateFunc", VIDEO_ID);
+    const audioDownloader = new YouTubeAudioDownloader();
+    const result = await audioDownloader.download(true);
+    console.log(result);
+    for await (const res of result.getAudioBuffers()) {
+      console.log(await res);
+    }
     await this.translateFunc(
       VIDEO_ID,
       this.videoData.isStream,
@@ -2322,6 +2329,10 @@ class VideoHandler {
 
     this.votDownloadButton.hidden = false;
     this.downloadTranslationUrl = audioUrl;
+    debug.log(
+      "afterUpdateTranslation downloadTranslationUrl",
+      this.downloadTranslationUrl,
+    );
   }
 
   async validateAudioUrl(audioUrl) {
@@ -2365,6 +2376,11 @@ class VideoHandler {
   // update translation audio src
   async updateTranslation(audioUrl) {
     // ! Don't use this function for streams
+    debug.log(
+      audioUrl,
+      this.cachedTranslation,
+      this.audioPlayer.player.currentSrc,
+    );
     if (this.cachedTranslation?.url !== this.audioPlayer.player.currentSrc) {
       audioUrl = await this.validateAudioUrl(audioUrl);
     }
@@ -2494,6 +2510,7 @@ class VideoHandler {
       await this.updateSubtitlesLangSelect();
     }
 
+    debug.log(this.downloadTranslationUrl, translateRes);
     this.videoTranslations.push({
       videoId: VIDEO_ID,
       from: requestLang,
