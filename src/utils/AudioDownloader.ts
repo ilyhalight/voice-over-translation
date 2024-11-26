@@ -113,21 +113,6 @@ export class YouTubeAudioDownloader {
     return numericContentLength;
   }
 
-  fetchLocationOriginText = async () => {
-    let response, textContent;
-    try {
-      response = await GM_fetch(location.origin);
-      textContent = await response.text();
-    } catch (err) {
-      throw new Error(
-        `Can't get text from ${location.origin}, because ${
-          (err as Error).message
-        }`,
-      );
-    }
-    return textContent;
-  };
-
   getUrlFromAdaptiveFormat(adaptiveFormat: AudioAdaptiveFormat) {
     const { url } = adaptiveFormat as BaseAdaptiveFormatWithUrl;
     if (typeof url === "string" && url) {
