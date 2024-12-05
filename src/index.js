@@ -1885,10 +1885,6 @@ class VideoHandler {
       this.container.draggable = false;
     }
 
-    if (this.site.host === "googledrive") {
-      this.container.style.height = "100%";
-    }
-
     addExtraEventListener(this.video, "canplay", async () => {
       // Временное решение
       if (this.site.host === "rutube" && this.video.src) {
@@ -1941,6 +1937,13 @@ class VideoHandler {
   logout(n) {
     if (!this.votMenu.container.hidden) return;
     this.votButton.container.style.opacity = n;
+    if (this.site.externalEventHost) {
+      debug.log("Send data to external event host");
+      window.parent.postMessage(
+        n === 0 ? "extraEventMouseOut" : "extraEventMouseEnter",
+        this.site.externalEventHost,
+      );
+    }
   }
 
   resetTimer = () => {
@@ -2708,6 +2711,30 @@ async function main() {
           "https://rapid-cloud.co/",
         );
       }
+    });
+  }
+
+  if (window.location.origin === "https://drive.google.com") {
+    window.addEventListener("message", (e) => {
+      if (e.origin !== "https://youtube.googleapis.com") {
+        return;
+      }
+
+      if (!["extraEventMouseEnter", "extraEventMouseOut"].includes(e.data)) {
+        return;
+      }
+
+      debug.log("pass!!", e.data);
+
+      const iframeEl = document.querySelector("iframe[title]");
+      if (!iframeEl) {
+        console.error("[VOT] Failed to find video player iframe element");
+      }
+
+      iframeEl.style =
+        e.data === "extraEventMouseOut"
+          ? ""
+          : "position:relative;z-index:777 !important";
     });
   }
 
