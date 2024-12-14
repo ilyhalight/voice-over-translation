@@ -10516,9 +10516,8 @@ class VideoHandler {
 
       this.votVideoVolumeSlider.input.addEventListener("input", (e) => {
         const value = Number(e.target.value);
-        this.votVideoVolumeSlider.label.querySelector(
-          "strong",
-        ).textContent = `${value}%`;
+        this.votVideoVolumeSlider.label.querySelector("strong").textContent =
+          `${value}%`;
         this.setVideoVolume(value / 100);
         if (this.data.syncVolume) {
           this.syncVolumeWrapper("video", value);
@@ -11380,9 +11379,8 @@ class VideoHandler {
     const newSlidersVolume = Math.round(videoVolume);
 
     this.votVideoVolumeSlider.input.value = newSlidersVolume;
-    this.votVideoVolumeSlider.label.querySelector(
-      "strong",
-    ).textContent = `${newSlidersVolume}%`;
+    this.votVideoVolumeSlider.label.querySelector("strong").textContent =
+      `${newSlidersVolume}%`;
     ui.updateSlider(this.votVideoVolumeSlider.input);
 
     if (this.data.syncVolume === 1) {
@@ -11918,69 +11916,45 @@ const videoObserver = new VideoObserver();
 const videosWrappers = new WeakMap();
 
 /**
- * Finds the parent element of a given element that matches a specified selector.
+ * Finds the top-level container element for the given video element.
+ * The container is determined by traversing up the DOM tree and looking for
+ * the first parent element with a 'relative' or 'absolute' position, or
+ * an element with a class name containing 'player' or 'video-container'.
+ * If no such container is found, `null` is returned.
  *
- * @param {HTMLElement} el - The element to start searching from.
- * @param {string} selector - The CSS selector to match.
- * @returns {HTMLElement|null} The parent element that matches the selector, or null if no match is found.
+ * @param {HTMLVideoElement} video - The video element to find the container for.
+ * @returns {HTMLElement|null} The top-level container element, or `null` if not found.
  */
-function climb(el, selector) {
-  if (!el || !selector) {
+function findContainer(video) {
+  if (!video) return null;
+
+  function getTopContainer(element) {
+    let current = element;
+
+    while (current) {
+      const root = current.getRootNode();
+
+      if (root instanceof ShadowRoot) {
+        current = root.host;
+        continue;
+      }
+
+      const parent = current.parentElement;
+      if (!parent) break;
+
+      const position = getComputedStyle(parent).position;
+      if (['relative', 'absolute'].includes(position) || 
+          parent.matches('[class*="player"],[class*="video-container"]')) {
+        return parent;
+      }
+
+      current = parent;
+    }
+
     return null;
   }
 
-  if (el instanceof Document) {
-    return el.querySelector(selector);
-  }
-
-  const foundEl = el.closest(selector);
-  if (foundEl) {
-    return foundEl;
-  }
-
-  const root = el.getRootNode();
-  return climb(root instanceof Document ? root : root.host, selector);
-}
-
-/**
- * Finds the container element for a given video element and site object.
- *
- * @param {Object} site - The site object.
- * @param {Object} video - The video element.
- * @return {Object|null} The container element or null if not found.
- */
-function findContainer(site, video) {
-  debug.log("findContainer", site, video);
-  if (site.shadowRoot) {
-    let container = climb(video, site.selector);
-
-    debug.log("findContainer with site.shadowRoot", container);
-    return container ?? video.parentElement;
-  }
-
-  debug.log("findContainer without shadowRoot");
-
-  const browserVersion = browserInfo.browser.version?.split(".")?.[0];
-  if (
-    site.selector?.includes(":not") &&
-    site.selector?.includes("*") &&
-    browserVersion &&
-    ((browserInfo.browser.name === "Chrome" && Number(browserVersion) < 88) ||
-      (browserInfo.browser.name === "Firefox" && Number(browserVersion) < 84))
-  ) {
-    const selector = site.selector.split(" *")[0];
-    return selector
-      ? Array.from(document.querySelectorAll(selector)).find((e) =>
-          e.contains(video),
-        )
-      : video.parentElement;
-  }
-
-  return site.selector
-    ? Array.from(document.querySelectorAll(site.selector)).find((e) =>
-        e.contains(video),
-      )
-    : video.parentElement;
+  return getTopContainer(video);
 }
 
 function initIframeInteractor() {
@@ -12045,7 +12019,7 @@ async function src_main() {
     for (const site of getService()) {
       if (!site) continue;
 
-      let container = findContainer(site, video);
+      let container = findContainer(video);
       if (!container) continue;
 
       if (site.host === "rumble" && !video.style.display) {
