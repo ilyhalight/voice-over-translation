@@ -95,6 +95,88 @@ const createHotkeyText = (hotkey) =>
 let countryCode; // Used later for proxy settings
 
 /*─────────────────────────────────────────────────────────────*/
+/*           Helper class: CacheManager                        */
+/* Merges video translation and subtitles caching by a composite key  */
+/*─────────────────────────────────────────────────────────────*/
+class CacheManager {
+  constructor() {
+    this.cache = new Map();
+  }
+  /**
+   * Returns the full cache entry for the given key.
+   * @param {string} key The composite key.
+   * @returns {Object|undefined}
+   */
+  get(key) {
+    return this.cache.get(key);
+  }
+  /**
+   * Sets the full cache entry for the given key.
+   * @param {string} key The composite key.
+   * @param {Object} value The cache entry.
+   */
+  set(key, value) {
+    this.cache.set(key, value);
+  }
+  /**
+   * Deletes the entire cache entry for the given key.
+   * @param {string} key The composite key.
+   */
+  delete(key) {
+    this.cache.delete(key);
+  }
+  /**
+   * Gets the translation object for the given key.
+   * @param {string} key The composite key.
+   * @returns {Object|undefined}
+   */
+  getTranslation(key) {
+    const entry = this.get(key);
+    return entry ? entry.translation : undefined;
+  }
+  /**
+   * Sets the translation object for the given key.
+   * @param {string} key The composite key.
+   * @param {Object} translation The translation data.
+   */
+  setTranslation(key, translation) {
+    let entry = this.get(key) || {};
+    entry.translation = translation;
+    this.set(key, entry);
+  }
+  /**
+   * Gets the subtitles array for the given key.
+   * @param {string} key The composite key.
+   * @returns {Array|undefined}
+   */
+  getSubtitles(key) {
+    const entry = this.get(key);
+    return entry ? entry.subtitles : undefined;
+  }
+  /**
+   * Sets the subtitles array for the given key.
+   * @param {string} key The composite key.
+   * @param {Array} subtitles The subtitles data.
+   */
+  setSubtitles(key, subtitles) {
+    let entry = this.get(key) || {};
+    entry.subtitles = subtitles;
+    this.set(key, entry);
+  }
+  /**
+   * Deletes the subtitles data for the given key.
+   * @param {string} key The composite key.
+   */
+  deleteSubtitles(key) {
+    let entry = this.get(key);
+    if (entry) {
+      delete entry.subtitles;
+      this.set(key, entry);
+    }
+  }
+}
+
+/*─────────────────────────────────────────────────────────────*/
 /*           Helper class: VOTUIManager                        */
 /*  Handles creation of UI elements, event registration, and UI logic  */
 /*─────────────────────────────────────────────────────────────*/
@@ -302,10 +384,9 @@ class VOTUIManager {
           localizationProvider.get("VOTSubtitles"),
         ),
         onBeforeOpen: async () => {
-          if (
-            this.videoHandler.videoData.videoId !==
-            this.videoHandler.subtitlesListVideoId
-          ) {
+          // If subtitles cache for the current parameters is missing, load subtitles.
+          const cacheKey = `${this.videoHandler.videoData.videoId}_${this.videoHandler.videoData.detectedLanguage}_${this.videoHandler.videoData.responseLanguage}_${this.videoHandler.data.useNewModel}`;
+          if (!this.videoHandler.cacheManager.getSubtitles(cacheKey)) {
             this.videoHandler.setLoadingBtn(true);
             await this.videoHandler.loadSubtitles();
             this.videoHandler.setLoadingBtn(false);
@@ -623,7 +704,6 @@ class VOTUIManager {
             this.videoHandler.data.translateProxyEnabled,
           );
           this.videoHandler.initVOTClient();
-          this.videoHandler.videoTranslations.clear();
         },
         labelElement: ui.createVOTSelectLabel(
           localizationProvider.get("VOTTranslateProxyStatus"),
@@ -757,9 +837,8 @@ class VOTUIManager {
 
     this.videoHandler.votLocaleInfo = ui.createInformation(
       `${localizationProvider.get("VOTLocaleHash")}:`,
-      html`${this.videoHandler.data.localeHash}<br />(${localizationProvider.get(
-          "VOTUpdatedAt",
-        )}
+      html`${this.videoHandler.data
+          .localeHash}<br />(${localizationProvider.get("VOTUpdatedAt")}
         ${new Date(
           this.videoHandler.data.localeUpdatedAt * 1000,
         ).toLocaleString()})`,
@@ -1623,7 +1702,7 @@ class VOTTranslationHandler {
       );
       console.error("[VOT]", err);
       const cacheKey = `${videoData.videoId}_${requestLang}_${responseLang}_${this.videoHandler.data.useNewModel}`;
-      this.videoHandler.videoTranslations.set(cacheKey, { error: err });
+      this.videoHandler.cacheManager.setTranslation(cacheKey, { error: err });
       return null;
     }
     return new Promise((resolve) => {
@@ -1953,9 +2032,7 @@ class VideoHandler {
   votClient;
   /** @type {Chaimu} */
   audioPlayer;
-  /** @type {Map<string, any>} */
-  videoTranslations = new Map(); // map of video translations
-  cachedTranslation; // cached video translation
+  cacheManager; // cache for translation and subtitles
   downloadTranslationUrl = null;
   autoRetry; // auto retry timeout
   streamPing; // stream ping interval
@@ -1965,8 +2042,7 @@ class VideoHandler {
   tempVolume; // temp translation volume for syncing
   firstSyncVolume = true; // used for skip 1st syncing with observer
   longWaitingResCount = 0;
-  subtitlesList = [];
-  subtitlesListVideoId = null;
+  subtitles = []; // current subtitle list
   /** @type {any} */
   dragging;
 
@@ -1993,6 +2069,7 @@ class VideoHandler {
     this.uiManager = new VOTUIManager(this);
     this.translationHandler = new VOTTranslationHandler(this);
     this.videoManager = new VOTVideoManager(this);
+    this.cacheManager = new CacheManager();
     this.init();
   }
 
@@ -2505,7 +2582,7 @@ class VideoHandler {
       this.votDownloadSubtitlesButton.hidden = true;
       this.yandexSubtitles = null;
     } else {
-      const subtitlesObj = this.subtitlesList.at(parseInt(subs));
+      const subtitlesObj = this.subtitles.at(parseInt(subs));
       if (
         this.data.translateProxyEnabled === 2 &&
         subtitlesObj.url.startsWith(
@@ -2530,7 +2607,7 @@ class VideoHandler {
    * Updates the subtitles selection options.
    */
   async updateSubtitlesLangSelect() {
-    if (!this.subtitlesList || this.subtitlesList.length === 0) {
+    if (!this.subtitles || this.subtitles.length === 0) {
       const updatedOptions = [
         {
           label: localizationProvider.get("VOTSubtitlesDisabled"),
@@ -2550,7 +2627,7 @@ class VideoHandler {
         selected: true,
         disabled: false,
       },
-      ...this.subtitlesList.map((s, idx) => ({
+      ...this.subtitles.map((s, idx) => ({
         label:
           (localizationProvider.get("langs")[s.language] ??
             s.language.toUpperCase()) +
@@ -2581,21 +2658,23 @@ class VideoHandler {
       console.error(
         `[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`,
       );
-      this.subtitlesList = [];
-      this.subtitlesListVideoId = null;
+      this.subtitles = [];
       return;
     }
+    const cacheKey = `${this.videoData.videoId}_${this.videoData.detectedLanguage}_${this.videoData.responseLanguage}_${this.data.useNewModel}`;
     try {
-      this.subtitlesList = await SubtitlesProcessor.getSubtitles(
-        this.votClient,
-        this.videoData,
-      );
-      if (this.subtitlesList)
-        this.subtitlesListVideoId = this.videoData.videoId;
+      let cachedSubs = this.cacheManager.getSubtitles(cacheKey);
+      if (!cachedSubs) {
+        cachedSubs = await SubtitlesProcessor.getSubtitles(
+          this.votClient,
+          this.videoData,
+        );
+        this.cacheManager.setSubtitles(cacheKey, cachedSubs);
+      }
+      this.subtitles = cachedSubs;
     } catch (error) {
       console.error("[VOT] Failed to load subtitles:", error);
-      this.subtitlesList = [];
-      this.subtitlesListVideoId = null;
+      this.subtitles = [];
     }
     await this.updateSubtitlesLangSelect();
   }
@@ -2846,7 +2925,7 @@ class VideoHandler {
    * @param {string} audioUrl The audio URL.
    */
   async updateTranslation(audioUrl) {
-    if (this.cachedTranslation?.url !== this.audioPlayer.player.currentSrc) {
+    if (audioUrl !== this.audioPlayer.player.currentSrc) {
       audioUrl = await this.validateAudioUrl(this.proxifyAudio(audioUrl));
     }
     if (this.audioPlayer.player.src !== audioUrl) {
@@ -2889,16 +2968,14 @@ class VideoHandler {
     this.setLoadingBtn(true);
     this.volumeOnStart = this.getVideoVolume();
     const cacheKey = `${VIDEO_ID}_${requestLang}_${responseLang}_${this.data.useNewModel}`;
-    this.cachedTranslation = this.videoTranslations.get(cacheKey);
-    if (this.cachedTranslation?.url) {
-      await this.updateTranslation(this.cachedTranslation.url);
+    const cachedEntry = this.cacheManager.getTranslation(cacheKey);
+    if (cachedEntry?.url) {
+      await this.updateTranslation(cachedEntry.url);
       debug.log("[translateFunc] Cached translation was received");
       return;
-    } else if (this.cachedTranslation?.error) {
+    } else if (cachedEntry?.error) {
       debug.log("Skip translation - previous attempt failed");
-      await this.updateTranslationErrorMsg(
-        this.cachedTranslation.error.data?.message,
-      );
+      await this.updateTranslationErrorMsg(cachedEntry.error.data?.message);
       return;
     }
     if (isStream) {
@@ -2944,17 +3021,20 @@ class VideoHandler {
       return;
     }
     await this.updateTranslation(translateRes.url);
+    // Invalidate subtitles cache if there is no matching subtitle.
+    const cachedSubs = this.cacheManager.getSubtitles(cacheKey);
     if (
-      !this.subtitlesList.some(
+      !cachedSubs?.some(
         (item) =>
           item.source === "yandex" &&
           item.translatedFromLanguage === this.videoData.detectedLanguage &&
           item.language === this.videoData.responseLanguage,
       )
     ) {
-      this.subtitlesListVideoId = null;
+      this.cacheManager.deleteSubtitles(cacheKey);
+      this.subtitles = [];
     }
-    this.videoTranslations.set(cacheKey, {
+    this.cacheManager.setTranslation(cacheKey, {
       videoId: VIDEO_ID,
       from: requestLang,
       to: responseLang,
@@ -3055,11 +3135,9 @@ class VideoHandler {
       this.container.append(this.votButton.container, this.votMenu.container);
     }
     this.videoData = await this.getVideoData();
-    if (this.subtitlesListVideoId !== this.videoData.videoId) {
-      this.subtitlesList = [];
-      this.subtitlesListVideoId = null;
-      await this.updateSubtitlesLangSelect();
-    }
+    const cacheKey = `${this.videoData.videoId}_${this.videoData.detectedLanguage}_${this.videoData.responseLanguage}_${this.data.useNewModel}`;
+    this.subtitles = this.cacheManager.getSubtitles(cacheKey);
+    await this.updateSubtitlesLangSelect();
     this.translateToLang = this.data.responseLanguage ?? "ru";
     this.setSelectMenuValues(
       this.videoData.detectedLanguage,

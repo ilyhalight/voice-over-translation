@@ -16,7 +16,7 @@ export default class UI {
   </svg>`;
   static animeOpts = {
     easing: "linear",
-    delay: (el, i) => i * 200,
+    delay: (i) => i * 200,
   };
 
   /**
