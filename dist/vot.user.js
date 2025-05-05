@@ -1983,7 +1983,7 @@ function varint32read() {
 }
 
 ;// ./node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2024 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -2108,7 +2108,7 @@ function assertUInt64String(value) {
 }
 
 ;// ./node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2024 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -2160,7 +2160,7 @@ function getTextEncoding() {
 }
 
 ;// ./node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2024 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13715,18 +13715,25 @@ class HotkeyButton {
     this.button = elements.button;
   }
 
+   stopRecordingKeys() {
+    this.recording = false;
+    document.removeEventListener("keydown", this.keydownHandle);
+    document.removeEventListener("keyup", this.keyupOrBlurHandle);
+    document.removeEventListener("blur", this.keyupOrBlurHandle);
+    this.button.removeAttribute("data-status");
+    this.pressedKeys.clear();
+  }
+
    keydownHandle = (event) => {
-    if (!this.recording) return;
+    if (!this.recording || event.repeat) {
+      return;
+    }
 
     event.preventDefault();
     if (event.code === "Escape") {
-      this.pressedKeys.clear();
       this.key = null;
       this.button.textContent = this.keyText;
-      this.recording = false;
-      this.button.removeAttribute("data-status");
-      document.removeEventListener("keydown", this.keydownHandle);
-      document.removeEventListener("keyup", this.keyupHandle);
+      this.stopRecordingKeys();
       return;
     }
 
@@ -13734,17 +13741,13 @@ class HotkeyButton {
     this.button.textContent = formatKeysCombo(this.pressedKeys);
   };
 
-   keyupHandle = async (_event) => {
-    if (!this.recording) return;
-
-    this.recording = false;
-    document.removeEventListener("keydown", this.keydownHandle);
-    document.removeEventListener("keyup", this.keyupHandle);
+   keyupOrBlurHandle = () => {
+    if (!this.recording) {
+      return;
+    }
 
     this.key = formatKeysCombo(this.pressedKeys);
-
-    this.pressedKeys.clear();
-    this.button.removeAttribute("data-status");
+    this.stopRecordingKeys();
   };
 
    createElements() {
@@ -13754,9 +13757,7 @@ class HotkeyButton {
 
     const button = UI.createEl("vot-block", ["vot-hotkey-button"]);
     button.textContent = this.keyText;
-    button.onclick = () => console.log("click onclick");
     button.addEventListener("click", () => {
-      console.log("click");
       button.dataset.status = "active";
 
       this.recording = true;
@@ -13766,7 +13767,8 @@ class HotkeyButton {
       );
 
       document.addEventListener("keydown", this.keydownHandle);
-      document.addEventListener("keyup", this.keyupHandle);
+      document.addEventListener("keyup", this.keyupOrBlurHandle);
+      document.addEventListener("blur", this.keyupOrBlurHandle);
     });
 
     container.append(label, button);
@@ -13804,10 +13806,11 @@ class HotkeyButton {
   }
 
   get keyText() {
-    return (
-      this._key?.replace("Key", "").replace("Digit", "") ??
-      localizationProvider.get("None")
-    );
+    if (!this._key) {
+      return localizationProvider.get("None");
+    }
+
+    return this._key?.replace("Key", "").replace("Digit", "");
   }
 
   /**
@@ -13825,10 +13828,7 @@ class HotkeyButton {
 }
 
 /**
- * Formats a set of key codes into a string representing a key combination.
- *
- * @param {Set<string> | string[]} keys - A set or array of strings representing key codes.
- * @returns {string} - A formatted string representing the key combination.
+ * Formats a set of key codes into a string representing a key combination
  */
 function formatKeysCombo(keys) {
   const keysArray = Array.isArray(keys) ? keys : Array.from(keys);
@@ -16707,17 +16707,26 @@ class VideoHandler {
     );
 
     // Global keydown: trigger translation hotkey if appropriate.
-    const userPressedKeys = new Set(); // Set of key combinations pressed by the user
+    // Set of key combinations pressed by the user
+    const userPressedKeys = new Set();
 
     document.addEventListener(
       "keydown",
       async (event) => {
+        if (event.repeat) {
+          // prevent unnecessary calls
+          return;
+        }
+
         userPressedKeys.add(event.code);
 
         const activeElement = document.activeElement;
         const isInputElement =
           ["input", "textarea"].includes(activeElement.tagName.toLowerCase()) ||
           activeElement.isContentEditable;
+        if (isInputElement) {
+          return;
+        }
 
         const combo = formatKeysCombo(userPressedKeys);
 
@@ -16726,12 +16735,17 @@ class VideoHandler {
           `this.data.translationHotkey: ${this.data.translationHotkey}`,
         );
 
-        if (!isInputElement && combo === this.data.translationHotkey) {
+        if (combo === this.data.translationHotkey) {
           await this.translationHandler.handleTranslationBtnClick();
         }
       },
       { signal },
     );
+
+    document.addEventListener("blur", () => {
+      // clear the pressed keys when page lost focus
+      userPressedKeys.clear();
+    });
 
     document.addEventListener(
       "keyup",
