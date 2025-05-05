@@ -231,5 +231,6 @@
   "notFound": "غير موجود",
   "downloadFailed": "فشل تنزيل الملف",
   "minButtonPositionContainer": "يتغير موضع الزر فقط في اللاعبين الأكبر من 600 بكسل.",
-  "VOTTranslateProxyStatusDefault": "قد يؤدي تعطيل البروكسي تماما في بلدك إلى كسر الامتداد"
+  "VOTTranslateProxyStatusDefault": "قد يؤدي تعطيل البروكسي تماما في بلدك إلى كسر الامتداد",
+  "PressTheKeyCombination": "اضغط على مجموعة المفاتيح..."
 }

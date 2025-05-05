@@ -231,5 +231,6 @@
   "notFound": "ora ditemokaké",
   "downloadFailed": "Gagal kanggo ngundhuh file",
   "minButtonPositionContainer": "Posisi tombol mung owah-owahan ing pemain luwih saka 600 piksel.",
-  "VOTTranslateProxyStatusDefault": "Kanthi mateni proxying ing negara sampeyan bisa ngilangi ekstensi kasebut"
+  "VOTTranslateProxyStatusDefault": "Kanthi mateni proxying ing negara sampeyan bisa ngilangi ekstensi kasebut",
+  "PressTheKeyCombination": "Pencet kombinasi tombol..."
 }

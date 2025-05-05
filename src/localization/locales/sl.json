@@ -231,5 +231,6 @@
   "notFound": "ni bilo mogoče najti",
   "downloadFailed": "Datoteke ni bilo mogoče prenesti",
   "minButtonPositionContainer": "Položaj gumba se spremeni samo pri predvajalnikih, večjih od 600 slikovnih pik.",
-  "VOTTranslateProxyStatusDefault": "Popolnoma onemogočanje posredništva v vaši državi lahko prekine razširitev"
+  "VOTTranslateProxyStatusDefault": "Popolnoma onemogočanje posredništva v vaši državi lahko prekine razširitev",
+  "PressTheKeyCombination": "Pritisnite kombinacijo tipk..."
 }

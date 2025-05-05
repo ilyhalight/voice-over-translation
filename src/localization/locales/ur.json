@@ -231,5 +231,6 @@
   "notFound": "نہیں ملا",
   "downloadFailed": "فائل ڈاؤن لوڈ کرنے میں ناکام",
   "minButtonPositionContainer": "بٹن کی پوزیشن صرف 600 پکسلز سے بڑے کھلاڑیوں میں تبدیل ہوتی ہے ۔ ",
-  "VOTTranslateProxyStatusDefault": "آپ کے ملک میں پراکسی کو مکمل طور پر غیر فعال کرنا توسیع کو توڑ سکتا ہے ۔ "
+  "VOTTranslateProxyStatusDefault": "آپ کے ملک میں پراکسی کو مکمل طور پر غیر فعال کرنا توسیع کو توڑ سکتا ہے ۔ ",
+  "PressTheKeyCombination": "کلیدی امتزاج دبائیں۔.."
 }

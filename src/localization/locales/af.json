@@ -231,5 +231,6 @@
   "notFound": "nie gevind nie",
   "downloadFailed": "Kon nie lêer aflaai nie",
   "minButtonPositionContainer": "Die knoppie posisie verander slegs in spelers groter as 600 pixels.",
-  "VOTTranslateProxyStatusDefault": "As u die volmag in u land heeltemal deaktiveer, kan dit die uitbreiding verbreek"
+  "VOTTranslateProxyStatusDefault": "As u die volmag in u land heeltemal deaktiveer, kan dit die uitbreiding verbreek",
+  "PressTheKeyCombination": "Druk die sleutelkombinasie..."
 }

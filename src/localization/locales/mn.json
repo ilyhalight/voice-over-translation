@@ -231,5 +231,6 @@
   "notFound": "олдоогүй",
   "downloadFailed": "Файлыг татаж авч чадсангүй",
   "minButtonPositionContainer": "Товчлуурын байрлал нь зөвхөн 600 пикселээс том тоглогчдод л өөрчлөгддөг.",
-  "VOTTranslateProxyStatusDefault": "Танай улсад proxying-ийг бүрэн идэвхгүй болгох нь өргөтгөлийг эвдэж болзошгүй юм"
+  "VOTTranslateProxyStatusDefault": "Танай улсад proxying-ийг бүрэн идэвхгүй болгох нь өргөтгөлийг эвдэж болзошгүй юм",
+  "PressTheKeyCombination": "Товчлуурын хослолыг дарна уу..."
 }

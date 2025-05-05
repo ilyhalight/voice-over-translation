@@ -231,5 +231,6 @@
   "notFound": "ez da aurkitu",
   "downloadFailed": "Huts egin du fitxategia deskargatzean",
   "minButtonPositionContainer": "Botoiaren posizioa 600 pixel baino handiagoak diren jokalarietan bakarrik aldatzen da.",
-  "VOTTranslateProxyStatusDefault": "Zure herrialdean ordezkaritza erabat desgaitzeak luzapena hautsi dezake"
+  "VOTTranslateProxyStatusDefault": "Zure herrialdean ordezkaritza erabat desgaitzeak luzapena hautsi dezake",
+  "PressTheKeyCombination": "Sakatu tekla konbinazioa..."
 }

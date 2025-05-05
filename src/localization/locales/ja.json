@@ -231,5 +231,6 @@
   "notFound": "見つかりません",
   "downloadFailed": "ファイルのダウンロードに失敗しました",
   "minButtonPositionContainer": "ボタンの位置は、600ピクセルを超えるプレーヤーでのみ変更されます。",
-  "VOTTranslateProxyStatusDefault": "あなたの国でプロキシを完全に無効にすると、拡張機能が壊れる可能性があります"
+  "VOTTranslateProxyStatusDefault": "あなたの国でプロキシを完全に無効にすると、拡張機能が壊れる可能性があります",
+  "PressTheKeyCombination": "キーの組み合わせを押します。.."
 }

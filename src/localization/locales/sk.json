@@ -231,5 +231,6 @@
   "notFound": "nenájdený",
   "downloadFailed": "Nepodarilo sa stiahnuť súbor",
   "minButtonPositionContainer": "Pozícia tlačidla sa mení iba u hráčov väčších ako 600 pixelov.",
-  "VOTTranslateProxyStatusDefault": "Úplné zakázanie proxy vo vašej krajine môže Rozšírenie prerušiť"
+  "VOTTranslateProxyStatusDefault": "Úplné zakázanie proxy vo vašej krajine môže Rozšírenie prerušiť",
+  "PressTheKeyCombination": "Stlačte kombináciu klávesov..."
 }

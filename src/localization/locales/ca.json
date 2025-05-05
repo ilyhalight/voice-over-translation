@@ -231,5 +231,6 @@
   "notFound": "no trobat",
   "downloadFailed": "Ha fallat en descarregar el fitxer",
   "minButtonPositionContainer": "La posició del botó només canvia en jugadors de més de 600 píxels.",
-  "VOTTranslateProxyStatusDefault": "Desactivar completament el proxy al vostre país pot trencar l'extensió"
+  "VOTTranslateProxyStatusDefault": "Desactivar completament el proxy al vostre país pot trencar l'extensió",
+  "PressTheKeyCombination": "Premeu la combinació de tecles..."
 }

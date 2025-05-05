@@ -231,5 +231,6 @@
   "notFound": "नहीं मिला",
   "downloadFailed": "फ़ाइल डाउनलोड करने में विफल",
   "minButtonPositionContainer": "बटन की स्थिति केवल 600 पिक्सेल से बड़े खिलाड़ियों में बदलती है । ",
-  "VOTTranslateProxyStatusDefault": "अपने देश में प्रॉक्सी को पूरी तरह से अक्षम करने से एक्सटेंशन टूट सकता है"
+  "VOTTranslateProxyStatusDefault": "अपने देश में प्रॉक्सी को पूरी तरह से अक्षम करने से एक्सटेंशन टूट सकता है",
+  "PressTheKeyCombination": "कुंजी संयोजन दबाएं।.."
 }

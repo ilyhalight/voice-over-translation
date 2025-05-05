@@ -231,5 +231,6 @@
   "notFound": "tidak dijumpai",
   "downloadFailed": "Gagal memuat turun fail",
   "minButtonPositionContainer": "Kedudukan butang hanya berubah pada pemain yang lebih besar daripada 600 piksel.",
-  "VOTTranslateProxyStatusDefault": "Melumpuhkan proksi sepenuhnya di negara anda boleh mematahkan pelanjutan"
+  "VOTTranslateProxyStatusDefault": "Melumpuhkan proksi sepenuhnya di negara anda boleh mematahkan pelanjutan",
+  "PressTheKeyCombination": "Tekan kombinasi kekunci..."
 }

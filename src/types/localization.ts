@@ -292,8 +292,8 @@ export type Phrase =
   | "notFound"
   | "downloadFailed"
   | "minButtonPositionContainer"
-  | "en"
-  | "VOTTranslateProxyStatusDefault";
+  | "VOTTranslateProxyStatusDefault"
+  | "PressTheKeyCombination";
 
 export type Phrases = {
   recommended: string;
@@ -528,8 +528,8 @@ export type Phrases = {
   notFound: string;
   downloadFailed: string;
   minButtonPositionContainer: string;
-  en: string;
   VOTTranslateProxyStatusDefault: string;
+  PressTheKeyCombination: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

@@ -231,5 +231,6 @@
   "notFound": "topilmadi",
   "downloadFailed": "Faylni yuklab bo'lmadi",
   "minButtonPositionContainer": "Tugma holati faqat 600 pikseldan katta o'yinchilarda o'zgaradi.",
-  "VOTTranslateProxyStatusDefault": "Mamlakatingizda proksi-serverni butunlay o'chirib qo'yish kengaytmani buzishi mumkin"
+  "VOTTranslateProxyStatusDefault": "Mamlakatingizda proksi-serverni butunlay o'chirib qo'yish kengaytmani buzishi mumkin",
+  "PressTheKeyCombination": "Tugmalar birikmasini bosing..."
 }

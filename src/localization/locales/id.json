@@ -231,5 +231,6 @@
   "notFound": "tidak ditemukan",
   "downloadFailed": "Gagal mengunduh berkas",
   "minButtonPositionContainer": "Posisi tombol hanya berubah pada pemutar yang lebih besar dari 600 piksel.",
-  "VOTTranslateProxyStatusDefault": "Menonaktifkan proxy sepenuhnya di negara Anda dapat merusak ekstensi"
+  "VOTTranslateProxyStatusDefault": "Menonaktifkan proxy sepenuhnya di negara Anda dapat merusak ekstensi",
+  "PressTheKeyCombination": "Tekan kombinasi tombol..."
 }

@@ -231,5 +231,6 @@
   "notFound": "ayitholakalanga",
   "downloadFailed": "Yehlulekile ukulanda ifayela",
   "minButtonPositionContainer": "Isikhundla senkinobho sishintsha kuphela kubadlali abanamaphikseli angaphezu kuka-600.",
-  "VOTTranslateProxyStatusDefault": "Ukukhubaza ngokuphelele ukumela izwe lakho kungase kuphule ukunwetshwa"
+  "VOTTranslateProxyStatusDefault": "Ukukhubaza ngokuphelele ukumela izwe lakho kungase kuphule ukunwetshwa",
+  "PressTheKeyCombination": "Cindezela inhlanganisela key..."
 }

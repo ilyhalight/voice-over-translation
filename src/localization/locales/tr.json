@@ -231,5 +231,6 @@
   "notFound": "bulunamadı",
   "downloadFailed": "Dosya indirilemedi",
   "minButtonPositionContainer": "Düğmenin konumu yalnızca 600 pikselden büyük oynatıcılarda değişir.",
-  "VOTTranslateProxyStatusDefault": "Ülkenizdeki proxying'i tamamen devre dışı bırakmak uzantıyı bozabilir"
+  "VOTTranslateProxyStatusDefault": "Ülkenizdeki proxying'i tamamen devre dışı bırakmak uzantıyı bozabilir",
+  "PressTheKeyCombination": "Tuş kombinasyonuna basın..."
 }

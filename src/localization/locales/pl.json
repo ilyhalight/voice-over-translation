@@ -231,5 +231,6 @@
   "notFound": "nie znaleziono",
   "downloadFailed": "Nie udało się pobrać pliku",
   "minButtonPositionContainer": "Pozycja przycisku zmienia się tylko u graczy większych niż 600 pikseli.",
-  "VOTTranslateProxyStatusDefault": "Całkowite wyłączenie proxy w Twoim kraju może przerwać rozszerzenie"
+  "VOTTranslateProxyStatusDefault": "Całkowite wyłączenie proxy w Twoim kraju może przerwać rozszerzenie",
+  "PressTheKeyCombination": "Naciśnij kombinację klawiszy..."
 }

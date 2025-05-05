@@ -231,5 +231,6 @@
   "notFound": "မတွေ့ရ",
   "downloadFailed": "ဖိုင်ကိုဒေါင်းလုပ်ဆွဲရန်ပျက်ကွက်",
   "minButtonPositionContainer": "ခလုတ်အနေအထားက 600 pixel ထက်ကြီးတဲ့ကစားသမားတွေမှာပဲပြောင်းလဲတယ်။",
-  "VOTTranslateProxyStatusDefault": "သင့်နိုင်ငံတွင် proxying ကိုလုံးဝပိတ်ပင်ခြင်းသည်သက်တမ်းတိုးခြင်းကိုချိုးဖောက်နိုင်သည်။"
+  "VOTTranslateProxyStatusDefault": "သင့်နိုင်ငံတွင် proxying ကိုလုံးဝပိတ်ပင်ခြင်းသည်သက်တမ်းတိုးခြင်းကိုချိုးဖောက်နိုင်သည်။",
+  "PressTheKeyCombination": "ခလုတ်ပေါင်းစပ်မှုကိုနှိပ်ပါ။.."
 }

@@ -231,5 +231,6 @@
   "notFound": "no encontrado",
   "downloadFailed": "Error al descargar el archivo",
   "minButtonPositionContainer": "La posición del botón solo cambia en reproductores de más de 600 píxeles.",
-  "VOTTranslateProxyStatusDefault": "Deshabilitar completamente el proxy en su país puede romper la extensión"
+  "VOTTranslateProxyStatusDefault": "Deshabilitar completamente el proxy en su país puede romper la extensión",
+  "PressTheKeyCombination": "Presione la combinación de teclas..."
 }

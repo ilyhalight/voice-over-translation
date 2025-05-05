@@ -43,6 +43,7 @@ import { votStorage } from "./utils/storage.ts";
 import { detect, translate } from "./utils/translateApis.ts";
 import { UIManager } from "./ui/manager.ts";
 import { StorageData } from "./types/storage.ts";
+import { formatKeysCombo } from "./ui/components/hotkeyButton.ts";
 
 export let countryCode; // Used later for proxy settings
 
@@ -896,20 +897,38 @@ class VideoHandler {
     );
 
     // Global keydown: trigger translation hotkey if appropriate.
+    const userPressedKeys = new Set(); // Set of key combinations pressed by the user
+
     document.addEventListener(
       "keydown",
       async (event) => {
-        const code = event.code;
+        userPressedKeys.add(event.code);
+
         const activeElement = document.activeElement;
         const isInputElement =
           ["input", "textarea"].includes(activeElement.tagName.toLowerCase()) ||
           activeElement.isContentEditable;
-        if (!isInputElement && code === this.data.translationHotkey)
+
+        const combo = formatKeysCombo(userPressedKeys);
+
+        debug.log(`combo: ${combo}`);
+        debug.log(
+          `this.data.translationHotkey: ${this.data.translationHotkey}`,
+        );
+
+        if (!isInputElement && combo === this.data.translationHotkey) {
           await this.translationHandler.handleTranslationBtnClick();
+        }
       },
-      {
-        signal,
+      { signal },
+    );
+
+    document.addEventListener(
+      "keyup",
+      (event) => {
+        userPressedKeys.delete(event.code);
       },
+      { signal },
     );
 
     const eventContainer = this.getEventContainer();
