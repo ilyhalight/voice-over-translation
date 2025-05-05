@@ -897,17 +897,26 @@ class VideoHandler {
     );
 
     // Global keydown: trigger translation hotkey if appropriate.
-    const userPressedKeys = new Set(); // Set of key combinations pressed by the user
+    // Set of key combinations pressed by the user
+    const userPressedKeys = new Set();
 
     document.addEventListener(
       "keydown",
       async (event) => {
+        if (event.repeat) {
+          // prevent unnecessary calls
+          return;
+        }
+
         userPressedKeys.add(event.code);
 
         const activeElement = document.activeElement;
         const isInputElement =
           ["input", "textarea"].includes(activeElement.tagName.toLowerCase()) ||
           activeElement.isContentEditable;
+        if (isInputElement) {
+          return;
+        }
 
         const combo = formatKeysCombo(userPressedKeys);
 
@@ -916,12 +925,17 @@ class VideoHandler {
           `this.data.translationHotkey: ${this.data.translationHotkey}`,
         );
 
-        if (!isInputElement && combo === this.data.translationHotkey) {
+        if (combo === this.data.translationHotkey) {
           await this.translationHandler.handleTranslationBtnClick();
         }
       },
       { signal },
     );
+
+    document.addEventListener("blur", () => {
+      // clear the pressed keys when page lost focus
+      userPressedKeys.clear();
+    });
 
     document.addEventListener(
       "keyup",

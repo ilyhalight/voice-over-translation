@@ -25,18 +25,25 @@ export default class HotkeyButton {
     this.button = elements.button;
   }
 
+  private stopRecordingKeys() {
+    this.recording = false;
+    document.removeEventListener("keydown", this.keydownHandle);
+    document.removeEventListener("keyup", this.keyupOrBlurHandle);
+    document.removeEventListener("blur", this.keyupOrBlurHandle);
+    this.button.removeAttribute("data-status");
+    this.pressedKeys.clear();
+  }
+
   private keydownHandle = (event: KeyboardEvent) => {
-    if (!this.recording) return;
+    if (!this.recording || event.repeat) {
+      return;
+    }
 
     event.preventDefault();
     if (event.code === "Escape") {
-      this.pressedKeys.clear();
       this.key = null;
       this.button.textContent = this.keyText;
-      this.recording = false;
-      this.button.removeAttribute("data-status");
-      document.removeEventListener("keydown", this.keydownHandle);
-      document.removeEventListener("keyup", this.keyupHandle);
+      this.stopRecordingKeys();
       return;
     }
 
@@ -44,17 +51,13 @@ export default class HotkeyButton {
     this.button.textContent = formatKeysCombo(this.pressedKeys);
   };
 
-  private keyupHandle = async (_event: KeyboardEvent) => {
-    if (!this.recording) return;
-
-    this.recording = false;
-    document.removeEventListener("keydown", this.keydownHandle);
-    document.removeEventListener("keyup", this.keyupHandle);
+  private keyupOrBlurHandle = () => {
+    if (!this.recording) {
+      return;
+    }
 
     this.key = formatKeysCombo(this.pressedKeys);
-
-    this.pressedKeys.clear();
-    this.button.removeAttribute("data-status");
+    this.stopRecordingKeys();
   };
 
   private createElements() {
@@ -64,9 +67,7 @@ export default class HotkeyButton {
 
     const button = UI.createEl("vot-block", ["vot-hotkey-button"]);
     button.textContent = this.keyText;
-    button.onclick = () => console.log("click onclick");
     button.addEventListener("click", () => {
-      console.log("click");
       button.dataset.status = "active";
 
       this.recording = true;
@@ -76,7 +77,8 @@ export default class HotkeyButton {
       );
 
       document.addEventListener("keydown", this.keydownHandle);
-      document.addEventListener("keyup", this.keyupHandle);
+      document.addEventListener("keyup", this.keyupOrBlurHandle);
+      document.addEventListener("blur", this.keyupOrBlurHandle);
     });
 
     container.append(label, button);
@@ -114,10 +116,11 @@ export default class HotkeyButton {
   }
 
   get keyText() {
-    return (
-      this._key?.replace("Key", "").replace("Digit", "") ??
-      localizationProvider.get("None")
-    );
+    if (!this._key) {
+      return localizationProvider.get("None");
+    }
+
+    return this._key?.replace("Key", "").replace("Digit", "");
   }
 
   /**
@@ -135,10 +138,7 @@ export default class HotkeyButton {
 }
 
 /**
- * Formats a set of key codes into a string representing a key combination.
- *
- * @param {Set<string> | string[]} keys - A set or array of strings representing key codes.
- * @returns {string} - A formatted string representing the key combination.
+ * Formats a set of key codes into a string representing a key combination
  */
 export function formatKeysCombo(keys: Set<string> | string[]): string {
   const keysArray = Array.isArray(keys) ? keys : Array.from(keys);
