@@ -993,12 +993,14 @@ class VideoHandler {
       await this.setCanPlay();
     });
     addExtraEventListener(this.video, "emptied", async () => {
+      const videoId = await getVideoID(this.site, {
+        fetchFn: GM_fetch,
+        video: this.video,
+      });
       if (
         this.video.src &&
-        (await getVideoID(this.site, {
-          fetchFn: GM_fetch,
-          video: this.video,
-        })) === this.videoData.videoId
+        this.videoData &&
+        videoId === this.videoData.videoId
       )
         return;
       debug.log("lipsync mode is emptied");
@@ -1024,12 +1026,11 @@ class VideoHandler {
    * Called when the video can play.
    */
   async setCanPlay() {
-    if (
-      (await getVideoID(this.site, {
-        fetchFn: GM_fetch,
-        video: this.video,
-      })) === this.videoData.videoId
-    )
+    const videoId = await getVideoID(this.site, {
+      fetchFn: GM_fetch,
+      video: this.video,
+    });
+    if (this.video.src && this.videoData && videoId === this.videoData.videoId)
       return;
     await this.handleSrcChanged();
     await this.autoTranslate();
