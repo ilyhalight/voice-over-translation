@@ -524,6 +524,22 @@ export class SubtitlesWidget {
   }
 
   onClick = async (e) => {
+    const time = e.target._tokenStartMs / 1000;
+
+    if (typeof time === "number" && !isNaN(time) && this.video) {
+      const currentPosition = { ...this.position };
+
+      this.lastClickTime = e.target._tokenStartMs;
+      this.video.currentTime = time;
+
+      this.update();
+
+      if (this.position !== currentPosition) {
+        this.position = currentPosition;
+        this.applySubtitlePosition();
+      }
+    }
+
     if (
       this.tokenTooltip?.target === e.target &&
       this.tokenTooltip?.container
@@ -582,6 +598,8 @@ export class SubtitlesWidget {
       return html`<span
         @click="${this.onClick}"
         class="${passed ? "passed" : nothing}"
+        .data-token-start-ms="${token.startMs}"
+        ._tokenStartMs="${token.startMs}"
       >
         ${token.text.replace("\\n", "<br>")}
       </span>`;
@@ -643,9 +661,21 @@ export class SubtitlesWidget {
     if (!this.video || !this.subtitles) return;
 
     const time = this.video.currentTime * 1000;
-    const line = this.subtitles.subtitles.findLast(
-      (e) => e.startMs < time && time < e.startMs + e.durationMs,
+    const line = this.subtitles.subtitles.find(
+      (e) => e.startMs <= time && time < e.startMs + e.durationMs,
     );
+
+    if (
+      !line &&
+      this.lastClickTime &&
+      Math.abs(this.lastClickTime - time * 1000) < 100
+    ) {
+      line = this.subtitles.subtitles.find(
+        (e) =>
+          e.startMs <= this.lastClickTime &&
+          this.lastClickTime < e.startMs + e.durationMs,
+      );
+    }
 
     if (!line) {
       render(null, this.subtitlesContainer);
