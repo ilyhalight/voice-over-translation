@@ -295,7 +295,7 @@ class VOTTranslationHandler {
     }
     try {
       debug.log("[click translationBtn] trying execute translation");
-      if (!this.videoHandler.videoData.videoId) {
+      if (!this.videoHandler.videoData?.videoId) {
         throw new VOTLocalizedError("VOTNoVideoIDFound");
       }
       // For VK clips and Douyin, get the current video ID.
@@ -1145,7 +1145,7 @@ class VideoHandler {
    * Loads subtitles for the current video.
    */
   async loadSubtitles() {
-    if (!this.videoData.videoId) {
+    if (!this.videoData?.videoId) {
       console.error(
         `[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`,
       );

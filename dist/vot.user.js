@@ -16105,7 +16105,7 @@ class VOTTranslationHandler {
     }
     try {
       utils_debug.log("[click translationBtn] trying execute translation");
-      if (!this.videoHandler.videoData.videoId) {
+      if (!this.videoHandler.videoData?.videoId) {
         throw new VOTLocalizedError("VOTNoVideoIDFound");
       }
       // For VK clips and Douyin, get the current video ID.
@@ -16807,7 +16807,12 @@ class VideoHandler {
         fetchFn: GM_fetch,
         video: this.video,
       });
-      if (this.video.src && this.videoData && videoId === this.videoData.videoId) return;
+      if (
+        this.video.src &&
+        this.videoData &&
+        videoId === this.videoData.videoId
+      )
+        return;
       utils_debug.log("lipsync mode is emptied");
       this.videoData = undefined;
       this.stopTranslation();
@@ -16835,7 +16840,8 @@ class VideoHandler {
       fetchFn: GM_fetch,
       video: this.video,
     });
-    if (this.video.src && this.videoData && videoId === this.videoData.videoId) return;
+    if (this.video.src && this.videoData && videoId === this.videoData.videoId)
+      return;
     await this.handleSrcChanged();
     await this.autoTranslate();
     utils_debug.log("lipsync mode is canplay");
@@ -16949,7 +16955,7 @@ class VideoHandler {
    * Loads subtitles for the current video.
    */
   async loadSubtitles() {
-    if (!this.videoData.videoId) {
+    if (!this.videoData?.videoId) {
       console.error(
         `[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`,
       );
