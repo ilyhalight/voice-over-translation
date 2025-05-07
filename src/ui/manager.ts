@@ -13,7 +13,7 @@ import {
   GM_fetch,
 } from "../utils/utils.js";
 import type { UIManagerProps } from "../types/uiManager";
-import type { LocaleStorageKey, StorageData } from "../types/storage";
+import type { StorageData } from "../types/storage";
 import type { VideoHandler } from "..";
 import type { Status } from "../types/components/votButton";
 import { localizationProvider } from "../localization/localizationProvider";

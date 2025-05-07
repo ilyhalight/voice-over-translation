@@ -233,6 +233,49 @@ async function exitFullscreen() {
   }
 }
 
+const isIframe = () => window.self !== window.top;
+// TODO: for ts:
+// const sleep = (ms: number): Promise<void> =>
+//   new Promise((resolve) => window.setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// TODO: for ts: function timeout(ms: number, message = "Operation timed out"): Promise<never> {
+function timeout(ms, message = "Operation timed out") {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+// TODO: for ts:
+// async function waitForCondition(
+//   condition: () => boolean,
+//   timeoutMs: number,
+//   throwOnTimeout = false): Promise<void>
+async function waitForCondition(condition, timeoutMs, throwOnTimeout = false) {
+  let timedOut = false;
+
+  return Promise.race([
+    (async () => {
+      while (!condition() && !timedOut) {
+        await sleep(100);
+      }
+    })(),
+    // new Promise<void>((resolve, reject) => {
+    new Promise((resolve, reject) => {
+      window.setTimeout(() => {
+        timedOut = true;
+        if (throwOnTimeout) {
+          reject(
+            new Error(`Wait for condition reached timeout of ${timeoutMs}`),
+          );
+        } else {
+          resolve();
+        }
+      }, timeoutMs);
+    }),
+  ]);
+}
+
 export {
   secsToStrTime,
   isPiPAvailable,
@@ -245,4 +288,8 @@ export {
   clamp,
   toFlatObj,
   exitFullscreen,
+  isIframe,
+  sleep,
+  timeout,
+  waitForCondition,
 };

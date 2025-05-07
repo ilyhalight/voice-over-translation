@@ -13,6 +13,7 @@
 // @description:it Una piccola estensione che aggiunge la traduzione vocale del video dal browser Yandex ad altri browser
 // @description:ru Небольшое расширение, которое добавляет закадровый перевод видео из Яндекс Браузера в другие браузеры
 // @description:zh 一个小扩展，它增加了视频从Yandex浏览器到其他浏览器的画外音翻译
+// @grant          unsafeWindow
 // @grant          GM_addStyle
 // @grant          GM_deleteValue
 // @grant          GM_listValues
@@ -22,6 +23,7 @@
 // @grant          GM_notification
 // @grant          GM_info
 // @grant          window.focus
+// @grant          unsafeWindow
 // @require        https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.18/hls.light.min.js
 // @require        https://gist.githubusercontent.com/ilyhalight/6eb5bb4dffc7ca9e3c57d6933e2452f3/raw/7ab38af2228d0bed13912e503bc8a9ee4b11828d/gm-addstyle-polyfill.js
 // @match          *://*.youtube.com/*
@@ -229,7 +231,6 @@
 // @connect        yandex.net
 // @connect        timeweb.cloud
 // @connect        raw.githubusercontent.com
-// @connect        9animetv.to
 // @connect        vimeo.com
 // @connect        toil.cc
 // @connect        deno.dev
@@ -237,6 +238,7 @@
 // @connect        workers.dev
 // @connect        speed.cloudflare.com
 // @connect        porntn.com
+// @connect        googlevideo.com
 // @namespace      vot
 // @version        1.10.0beta
 // @icon           https://translate.yandex.ru/icons/favicon.ico
@@ -345,8 +347,6 @@ __webpack_require__.d(__webpack_exports__, {
   k: () => (/* binding */ countryCode)
 });
 
-// EXTERNAL MODULE: ./node_modules/bowser/es5.js
-var es5 = __webpack_require__("./node_modules/bowser/es5.js");
 ;// ./node_modules/chaimu/dist/config.js
 /* harmony default export */ const config = ({
     version: "1.0.4",
@@ -5197,6 +5197,8 @@ const storageKeys = [
 
 
 
+// EXTERNAL MODULE: ./node_modules/bowser/es5.js
+var es5 = __webpack_require__("./node_modules/bowser/es5.js");
 ;// ./node_modules/@vot.js/shared/dist/data/consts.js
 const availableLangs = [
     "auto",
@@ -5451,6 +5453,49 @@ async function exitFullscreen() {
     doc.webkitExitFullscreen && (await doc.webkitExitFullscreen());
     doc.exitFullscreen && (await doc.exitFullscreen());
   }
+}
+
+const isIframe = () => window.self !== window.top;
+// TODO: for ts:
+// const sleep = (ms: number): Promise<void> =>
+//   new Promise((resolve) => window.setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// TODO: for ts: function timeout(ms: number, message = "Operation timed out"): Promise<never> {
+function timeout(ms, message = "Operation timed out") {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+// TODO: for ts:
+// async function waitForCondition(
+//   condition: () => boolean,
+//   timeoutMs: number,
+//   throwOnTimeout = false): Promise<void>
+async function waitForCondition(condition, timeoutMs, throwOnTimeout = false) {
+  let timedOut = false;
+
+  return Promise.race([
+    (async () => {
+      while (!condition() && !timedOut) {
+        await sleep(100);
+      }
+    })(),
+    // new Promise<void>((resolve, reject) => {
+    new Promise((resolve, reject) => {
+      window.setTimeout(() => {
+        timedOut = true;
+        if (throwOnTimeout) {
+          reject(
+            new Error(`Wait for condition reached timeout of ${timeoutMs}`),
+          );
+        } else {
+          resolve();
+        }
+      }, timeoutMs);
+    }),
+  ]);
 }
 
 
@@ -10827,13 +10872,10 @@ class SubtitlesProcessor {
           },
           requestLang,
         }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 5000),
-        ),
+        timeout(5000, "Timeout"),
       ]);
 
       console.log("[VOT] Subtitles response:", res);
-
       if (res.waiting) {
         console.error("[VOT] Failed to get Yandex subtitles");
       }
@@ -15829,7 +15871,1006 @@ class UIManager {
   }
 }
 
+;// ./src/audioDownloader/shared.ts
+
+
+
+const IFRAME_HASH = "vot_iframe";
+const IFRAME_ID = "vot_iframe_player";
+
+const MIN_CHUNK_RANGES_PART_SIZE = data_config.minChunkSize; // 5295308
+const MIN_CONTENT_LENGTH_MULTIPLIER = 0.9;
+const CHUNK_STEPS = [60_000, 80_000, 150_000, 330_000, 460_000];
+const MIN_ARRAY_BUFFER_LENGTH = 15_000;
+const ACCEPTABLE_LENGTH_DIFF = 0.9;
+
+const getRequestUrl = (request) =>
+  typeof request === "string" ? request : request.url;
+
+function serializeRequestInit(
+  request,
+) {
+  const body = new Uint8Array([120, 0]);
+  if (typeof request === "string") {
+    return {
+      body,
+      cache: "no-store" ,
+      credentials: "include" ,
+      method: "POST",
+    };
+  }
+
+  const {
+    headers,
+    cache,
+    credentials,
+    integrity,
+    keepalive,
+    method,
+    mode,
+    redirect,
+    referrer,
+    referrerPolicy,
+  } = request;
+  const headersEntries = [...headers.entries()];
+
+  return {
+    body,
+    cache,
+    credentials,
+    headersEntries,
+    integrity,
+    keepalive,
+    method,
+    mode,
+    redirect,
+    referrer,
+    referrerPolicy,
+  };
+}
+
+function deserializeRequestInit(request) {
+  const { headersEntries, ...options } = request;
+  const headers = new Headers(headersEntries);
+  return {
+    ...options,
+    headers,
+  };
+}
+
+function serializeResponse(response) {
+  const { ok, redirected, status, statusText, type, url } = response;
+  return {
+    ok,
+    redirected,
+    status,
+    statusText,
+    type,
+    url,
+  };
+}
+
+;// ./src/audioDownloader/iframe.ts
+
+
+
+
+
+
+
+
+
+
+let lastMessageId = "";
+
+// TODO: remove after update vot.js
+
+
+
+
+
+
+const getAdaptiveFormats = () =>
+  YoutubeHelper.getPlayerResponse()?.streamingData?.adaptiveFormats;
+
+async function isEncodedRequest(url, request) {
+  if (
+    !url.includes("googlevideo.com/videoplayback") ||
+    typeof request === "string"
+  ) {
+    return false;
+  }
+
+  try {
+    const reader = request.clone().body?.getReader();
+    if (!reader) {
+      return false;
+    }
+
+    let totalLength = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      totalLength += value.length;
+      if (totalLength > 2) {
+        return true;
+      }
+    }
+  } catch {}
+
+  return false;
+}
+
+function selectBestAudioFormat() {
+  const allFormats = getAdaptiveFormats();
+  if (!allFormats?.length) {
+    const reason = !allFormats
+      ? "Cannot get adaptive formats"
+      : "Empty adaptive formats";
+    throw new Error(`Audio downloader. WEB API. ${reason}`);
+  }
+
+  const audioFormats = (allFormats ).filter(
+    ({ audioQuality, mimeType }) => audioQuality || mimeType?.includes("audio"),
+  );
+  if (!audioFormats.length) {
+    throw new Error("Audio downloader. WEB API. No audio adaptive formats");
+  }
+
+  const itag251Sorted = audioFormats
+    .filter(({ itag }) => itag === 251)
+    .sort(({ contentLength: a }, { contentLength: b }) =>
+      a && b ? Number.parseInt(a) - Number.parseInt(b) : -1,
+    );
+
+  return itag251Sorted.at(-1) ?? audioFormats[0];
+}
+
+const waitForPlayer = async () => {
+  await waitForCondition(() => Boolean(YoutubeHelper.getPlayer()), 10_000);
+  return YoutubeHelper.getPlayer();
+};
+
+async function getDownloadAudioData(data) {
+  try {
+    lastMessageId = data.messageId;
+    console.log("getDownloadAudioData", data);
+    const originalFetch = unsafeWindow.fetch;
+
+    unsafeWindow.fetch = async (
+      input,
+      init,
+    ) => {
+      console.log("patched window fetch :3", input, init);
+      if (input instanceof URL) {
+        input = input.toString();
+      }
+
+      const requestUrl = getRequestUrl(input);
+      if (await isEncodedRequest(requestUrl, input)) {
+        window.parent.postMessage(
+          {
+            ...data,
+            messageDirection: "response",
+            error: "Audio downloader. Detected encoded request.",
+          },
+          "*",
+        );
+        unsafeWindow.fetch = originalFetch;
+        return originalFetch(input, init);
+      }
+
+      const response = await originalFetch(input, init);
+      if (data.messageId !== lastMessageId) {
+        unsafeWindow.fetch = originalFetch;
+        return response;
+      }
+
+      if (requestUrl.includes("&itag=251&")) {
+        unsafeWindow.fetch = originalFetch;
+        window.parent.postMessage(
+          {
+            ...data,
+            messageDirection: "response",
+            payload: {
+              requestInfo: requestUrl,
+              requestInit: init || serializeRequestInit(input),
+              adaptiveFormat: selectBestAudioFormat(),
+              itag: 251,
+            },
+          },
+          "*",
+        );
+      }
+
+      return response;
+    };
+
+    const player = await waitForPlayer();
+    if (data.messageId !== lastMessageId) {
+      throw new Error(
+        "Audio downloader. Download started for another video while getting player",
+      );
+    }
+    if (!player?.loadVideoById) {
+      throw new Error(
+        "Audio downloader. There is no player.loadVideoById in iframe",
+      );
+    }
+    console.log("player", player, player.pauseVideo, player.mute);
+    player.loadVideoById(data.payload.videoId);
+    player.pauseVideo?.();
+    player.mute?.();
+
+    setTimeout(() => {
+      if (data.messageId !== lastMessageId) {
+        console.error(
+          "Audio Downloader. Download started for another video while waiting to repause video",
+        );
+        return;
+      }
+
+      if (!player) {
+        console.error(
+          "[Critical] Audio Downloader. Player not found in iframe after timeout",
+        );
+        return;
+      }
+
+      player.pauseVideo?.();
+    }, 1000);
+  } catch (error) {
+    window.parent.postMessage(
+      {
+        ...data,
+        messageDirection: "response",
+        error,
+      },
+      "*",
+    );
+  }
+}
+
+const handleIframeMessage = async ({ data }) => {
+  if (data?.messageDirection !== "request") {
+    return;
+  }
+
+  try {
+    switch (data.messageType) {
+      case "get-download-audio-data-in-iframe":
+        await getDownloadAudioData(
+          data.payload ,
+        );
+        break;
+      default:
+        console.log(`NOT IMPLEMENTED: ${data.messageType}`, data.payload);
+    }
+  } catch (error) {
+    console.error("[VOT] Main world bridge", {
+      error,
+    });
+  }
+};
+
+function initIframeService() {
+  window.addEventListener("message", handleIframeMessage);
+  window.parent.postMessage(
+    {
+      messageType: "say-service-iframe-is-ready",
+      messageDirection: "response",
+    },
+    "*",
+  );
+}
+
+;// ./src/audioDownloader/index.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let serviceIframe = null;
+let mediaQuaryIndex = 1;
+const textDecoder = new TextDecoder("ascii");
+
+const generateMessageId = () =>
+  `main-world-bridge-${performance.now()}-${Math.random()}`;
+
+const hasServiceIframe = () =>
+  document.getElementById(IFRAME_ID) ;
+
+async function setupServiceIframe(src) {
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "absolute";
+  iframe.style.zIndex = "-1";
+  iframe.style.display = "none";
+  iframe.id = IFRAME_ID;
+  iframe.src = `${src}#${IFRAME_HASH}`;
+  document.body.appendChild(iframe);
+
+  const ready = new Promise((resolve) => {
+    const handleMessage = ({ data }) => {
+      if (data.messageType === "say-service-iframe-is-ready") {
+        window.removeEventListener("message", handleMessage);
+        resolve(true);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+  });
+
+  await Promise.race([
+    ready,
+    timeout(
+      15000,
+      "Audio downloader. Service iframe did not have time to be ready",
+    ),
+  ]);
+
+  return iframe;
+}
+
+async function ensureServiceIframe(src) {
+  if (src.includes("#")) {
+    throw new Error(
+      "Audio downloader. The src parameter should not contain a hash (#) character.",
+    );
+  }
+
+  if (hasServiceIframe()) {
+    if (serviceIframe !== null) {
+      return serviceIframe;
+    }
+
+    throw new Error(
+      "Audio downloader. Service iframe already exists in DOM, but added not by us.",
+    );
+  }
+
+  serviceIframe = await setupServiceIframe(src);
+  return serviceIframe;
+}
+
+async function sendAudioDownloadRequestToIframe(
+  data,
+) {
+  const { videoId } = data.payload;
+  const iframeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1`;
+
+  try {
+    const iframe = await ensureServiceIframe(iframeUrl);
+    if (!hasServiceIframe()) {
+      throw new Error("Audio downloader. WEB API. Service iframe deleted");
+    }
+
+    iframe.contentWindow?.postMessage(
+      {
+        messageId: generateMessageId(),
+        messageType: "get-download-audio-data-in-iframe",
+        messageDirection: "request",
+        payload: data,
+        error: data.error,
+      },
+      "*",
+    );
+  } catch (err) {
+    data.error = err;
+    data.messageDirection = "response";
+    window.postMessage(data, "*");
+  }
+}
+
+function requestDataFromMainWorld(
+  messageType,
+  payload,
+) {
+  const messageId = generateMessageId();
+  return new Promise((resolve, reject) => {
+    const handleMessage = ({
+      data,
+    }) => {
+      if (
+        data?.messageId === messageId &&
+        data.messageType === messageType &&
+        data.messageDirection === "response"
+      ) {
+        window.removeEventListener("message", handleMessage);
+        data.error ? reject(data.error) : resolve(data.payload);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    window.postMessage(
+      {
+        messageId,
+        messageType,
+        messageDirection: "request",
+        ...(payload !== undefined && { payload }),
+      },
+      "*",
+    );
+  });
+}
+
+const getDownloadAudioDataInMainWorld = (payload) =>
+  requestDataFromMainWorld
+
+
+("get-download-audio-data-in-main-world", payload);
+
+const GET_AUDIO_DATA_ERROR_MESSAGE =
+  "Audio downloader. WEB API. Can not get getGeneratingAudioUrlsDataFromIframe due to timeout";
+
+async function getGeneratingAudioUrlsDataFromIframe(
+  videoId,
+) {
+  try {
+    return await Promise.race([
+      getDownloadAudioDataInMainWorld({ videoId }),
+      timeout(20000, GET_AUDIO_DATA_ERROR_MESSAGE),
+    ]);
+  } catch (err) {
+    const isTimeout =
+      err instanceof Error && err.message === GET_AUDIO_DATA_ERROR_MESSAGE;
+
+    throw new Error(
+      isTimeout
+        ? GET_AUDIO_DATA_ERROR_MESSAGE
+        : "Audio downloader. WEB API. Failed to get audio data",
+    );
+  }
+}
+
+function makeFileId(itag, fileSize) {
+  return JSON.stringify({
+    downloadType:
+      AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME,
+    itag,
+    minChunkSize: MIN_CHUNK_RANGES_PART_SIZE,
+    fileSize,
+  });
+}
+
+function parseContentLength({ contentLength }) {
+  if (typeof contentLength !== "string") {
+    throw new Error(
+      `Audio downloader. WEB API. Content length (${contentLength}) is not a string`,
+    );
+  }
+
+  const parsed = Number.parseInt(contentLength);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(
+      `Audio downloader. WEB API. Parsed content length is not finite (${parsed})`,
+    );
+  }
+
+  return parsed;
+}
+
+function getChunkRangesPartsFromContentLength(
+  contentLength,
+) {
+  if (contentLength < 1) {
+    throw new Error(
+      "Audio downloader. WEB API. contentLength must be at least 1",
+    );
+  }
+
+  const minChunkSize = Math.round(
+    contentLength * MIN_CONTENT_LENGTH_MULTIPLIER,
+  );
+  const parts = [];
+  let currentPart = [];
+  let currentPartSize = 0;
+  let stepIndex = 0;
+  let start = 0;
+  let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
+  while (end < contentLength) {
+    const mustExist = end < minChunkSize;
+    currentPart.push({ start, end, mustExist });
+    currentPartSize += end - start;
+    if (currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE) {
+      parts.push(currentPart);
+      currentPart = [];
+      currentPartSize = 0;
+    }
+
+    if (stepIndex < CHUNK_STEPS.length - 1) {
+      stepIndex++;
+    }
+
+    start = end + 1;
+    end += CHUNK_STEPS[stepIndex];
+  }
+
+  end = contentLength;
+  currentPart.push({ start, end, mustExist: false });
+  parts.push(currentPart);
+  return parts;
+}
+
+function getChunkRangesFromContentLength(contentLength) {
+  if (contentLength < 1) {
+    throw new Error(
+      "Audio downloader. WEB API. contentLength cannot be less than 1",
+    );
+  }
+
+  const minChunkSize = Math.round(
+    contentLength * MIN_CONTENT_LENGTH_MULTIPLIER,
+  );
+  const chunkRanges = [];
+  let stepIndex = 0;
+  let start = 0;
+  let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
+  while (end < contentLength) {
+    const mustExist = end < minChunkSize;
+    chunkRanges.push({
+      start,
+      end: end,
+      mustExist,
+    });
+
+    if (stepIndex !== CHUNK_STEPS.length - 1) {
+      stepIndex++;
+    }
+
+    start = end + 1;
+    end += CHUNK_STEPS[stepIndex];
+  }
+
+  chunkRanges.push({
+    start,
+    end: contentLength,
+    mustExist: false,
+  });
+
+  return chunkRanges;
+}
+
+function getChunkRangesPartsFromAdaptiveFormat(format) {
+  const contentLength = parseContentLength(format);
+  const chunkParts = getChunkRangesPartsFromContentLength(contentLength);
+  if (!chunkParts.length) {
+    throw new Error("Audio downloader. WEB API. No chunk parts generated");
+  }
+
+  return chunkParts;
+}
+
+const INCORRECT_FETCH_MEDIA_MESSAGE =
+  "Audio downloader. WEB API. Incorrect response on fetch media url";
+const CANT_FETCH_MEDIA_MESSAGE =
+  "Audio downloader. WEB API. Can not fetch media url";
+const CANT_GET_ARRAY_BUFFER_MESSAGE =
+  "Audio downloader. WEB API. Can not get array buffer from media url";
+
+function isChunkLengthAcceptable(
+  buffer,
+  { start, end },
+) {
+  const rangeLength = end - start;
+  if (
+    rangeLength > MIN_ARRAY_BUFFER_LENGTH &&
+    buffer.byteLength < MIN_ARRAY_BUFFER_LENGTH
+  ) {
+    return false;
+  }
+
+  return (
+    Math.min(rangeLength, buffer.byteLength) /
+      Math.max(rangeLength, buffer.byteLength) >
+    ACCEPTABLE_LENGTH_DIFF
+  );
+}
+
+function patchMediaUrl(
+  url,
+  { start, end },
+) {
+  const modifiedUrl = new URL(url);
+  modifiedUrl.searchParams.set("range", `${start}-${end}`);
+  modifiedUrl.searchParams.set("rn", String(mediaQuaryIndex++));
+  modifiedUrl.searchParams.delete("ump");
+  return modifiedUrl.toString();
+}
+
+const getUrlFromArrayBuffer = (buffer) => {
+  const match = textDecoder.decode(buffer).match(/https:\/\/.*$/);
+  return match?.[0] ?? null;
+};
+
+async function fetchMediaWithMeta({
+  mediaUrl,
+  chunkRange,
+  requestInit,
+  signal,
+  isUrlChanged = false,
+}) {
+  const patchedUrl = patchMediaUrl(mediaUrl, chunkRange);
+  let response;
+
+  try {
+    response = await GM_fetch(patchedUrl, {
+      ...requestInit,
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorDetails = serializeResponse(response);
+      console.error(INCORRECT_FETCH_MEDIA_MESSAGE, errorDetails);
+      throw new Error(INCORRECT_FETCH_MEDIA_MESSAGE);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message === INCORRECT_FETCH_MEDIA_MESSAGE) {
+      throw err;
+    }
+
+    console.error(CANT_FETCH_MEDIA_MESSAGE, {
+      mediaUrl: patchedUrl,
+      error: err,
+    });
+
+    throw new Error(CANT_FETCH_MEDIA_MESSAGE);
+  }
+
+  let arrayBuffer;
+  try {
+    arrayBuffer = await response.arrayBuffer();
+  } catch (err) {
+    console.error(CANT_GET_ARRAY_BUFFER_MESSAGE, {
+      mediaUrl: patchedUrl,
+      error: err,
+    });
+    throw new Error(CANT_GET_ARRAY_BUFFER_MESSAGE);
+  }
+
+  if (isChunkLengthAcceptable(arrayBuffer, chunkRange)) {
+    return {
+      media: arrayBuffer,
+      url: isUrlChanged ? mediaUrl : null,
+      isAcceptableLast: false,
+    };
+  }
+
+  const redirectedUrl = getUrlFromArrayBuffer(arrayBuffer);
+  if (redirectedUrl) {
+    return fetchMediaWithMeta({
+      mediaUrl: redirectedUrl,
+      chunkRange,
+      requestInit,
+      signal,
+      isUrlChanged: true,
+    });
+  }
+
+  if (!chunkRange.mustExist) {
+    return {
+      media: arrayBuffer,
+      url: null,
+      isAcceptableLast: true,
+    };
+  }
+
+  throw new Error(
+    `Audio downloader. WEB API. Can not get redirected media url ${patchedUrl}`,
+  );
+}
+
+function mergeBuffers(buffers) {
+  const totalLength = buffers.reduce(
+    (total, buffer) => total + buffer.byteLength,
+    0,
+  );
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const buffer of buffers) {
+    merged.set(new Uint8Array(buffer), offset);
+    offset += buffer.byteLength;
+  }
+
+  return merged;
+}
+
+async function fetchMediaWithMetaByChunkRanges(
+  mediaUrl,
+  requestInit,
+  chunkRanges,
+  signal,
+) {
+  let currentUrl = mediaUrl;
+  const mediaBuffers = [];
+  let isAcceptableLast = false;
+
+  for (const chunkRange of chunkRanges) {
+    const result = await fetchMediaWithMeta({
+      mediaUrl: currentUrl,
+      chunkRange,
+      requestInit,
+      signal,
+    });
+
+    if (result.url) {
+      currentUrl = result.url;
+    }
+
+    mediaBuffers.push(result.media);
+    isAcceptableLast = result.isAcceptableLast;
+
+    if (isAcceptableLast) {
+      break;
+    }
+  }
+
+  return {
+    media: mergeBuffers(mediaBuffers),
+    url: currentUrl,
+    isAcceptableLast,
+  };
+}
+
+function getChunkRangesFromAdaptiveFormat(
+  adaptiveFormat,
+) {
+  const contentLength = parseContentLength(adaptiveFormat);
+  const chunkRanges = getChunkRangesFromContentLength(contentLength);
+  if (!chunkRanges.length) {
+    throw new Error("Audio downloader. WEB API. Empty chunk ranges");
+  }
+
+  return chunkRanges;
+}
+
+async function getAudioFromWebApiWithReplacedFetch({
+  videoId,
+  returnByParts = false,
+  signal,
+}) {
+  const { requestInit, requestInfo, adaptiveFormat, itag } =
+    await getGeneratingAudioUrlsDataFromIframe(videoId);
+  if (!requestInfo) {
+    throw new Error("Audio downloader. WEB API. Can not get requestInfo");
+  }
+
+  let mediaUrl = getRequestUrl(requestInfo);
+  const serializedInit = serializeRequestInit(requestInfo);
+  const fallbackInit = deserializeRequestInit(serializedInit);
+  const finalRequestInit = requestInit || fallbackInit;
+
+  return {
+    fileId: makeFileId(itag, adaptiveFormat.contentLength),
+    mediaPartsLength: returnByParts
+      ? getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat).length
+      : 1,
+    async *getMediaBuffers() {
+      if (returnByParts) {
+        const chunkParts =
+          getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat);
+        for (const part of chunkParts) {
+          const { media, url, isAcceptableLast } =
+            await fetchMediaWithMetaByChunkRanges(
+              mediaUrl,
+              finalRequestInit,
+              part,
+              signal,
+            );
+
+          if (url) {
+            mediaUrl = url;
+          }
+
+          yield media;
+          if (isAcceptableLast) {
+            break;
+          }
+        }
+      } else {
+        const fullRange = getChunkRangesFromAdaptiveFormat(adaptiveFormat);
+        const { media } = await fetchMediaWithMetaByChunkRanges(
+          mediaUrl,
+          finalRequestInit,
+          fullRange,
+          signal,
+        );
+        yield media;
+      }
+    },
+  };
+}
+
+async function handleCommonAudioDownloadRequest({
+  audioDownloader,
+  translationId,
+  videoId,
+  signal,
+}) {
+  const audioData = await getAudioFromWebApiWithReplacedFetch({
+    videoId,
+    returnByParts: true,
+    signal,
+  });
+  if (!audioData) {
+    throw new Error("Audio downloader. Can not get audio data");
+  }
+  console.log("Audio downloader. Url found", {
+    audioDownloadType: "web_api_get_all_generating_urls_data_from_iframe",
+  });
+
+  const { getMediaBuffers, mediaPartsLength, fileId } = audioData;
+  if (mediaPartsLength < 2) {
+    const { value } = await getMediaBuffers().next();
+    if (!value) {
+      throw new Error("Audio downloader. Empty audio");
+    }
+
+    audioDownloader.onDownloadedAudio.dispatch(translationId, {
+      videoId,
+      fileId,
+      audioData: value,
+    });
+    return;
+  }
+
+  let index = 0;
+  for await (const audioChunk of getMediaBuffers()) {
+    if (!audioChunk) {
+      throw new Error("Audio downloader. Empty audio");
+    }
+
+    audioDownloader.onDownloadedPartialAudio.dispatch(translationId, {
+      videoId,
+      fileId,
+      audioData: audioChunk,
+      version: 1,
+      index,
+      amount: mediaPartsLength,
+    });
+
+    index++;
+  }
+}
+
+async function mainWorldMessageHandler({
+  data,
+}) {
+  try {
+    if (data?.messageDirection !== "request") {
+      return;
+    }
+
+    console.log("Main world bridge", data);
+    switch (data.messageType) {
+      case "get-download-audio-data-in-main-world": {
+        sendAudioDownloadRequestToIframe(
+          data ,
+        );
+        break;
+      }
+    }
+  } catch (error) {
+    console.error("[VOT] Main world bridge", {
+      error,
+    });
+  }
+}
+
+class AudioDownloader {
+  onDownloadedAudio = new EventImpl();
+  onDownloadedPartialAudio = new EventImpl();
+  onDownloadAudioError = new EventImpl();
+
+  async runAudioDownload(
+    videoId,
+    translationId,
+    signal,
+  ) {
+    window.addEventListener("message", mainWorldMessageHandler);
+    try {
+      await handleCommonAudioDownloadRequest({
+        audioDownloader: this,
+        translationId,
+        videoId,
+        signal,
+      });
+      console.log("Audio downloader. Audio download finished", {
+        videoId,
+      });
+    } catch (err) {
+      console.error("Audio downloader. Failed to download audio", err);
+      this.onDownloadAudioError.dispatch(videoId);
+    }
+
+    window.removeEventListener("message", mainWorldMessageHandler);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  addEventListener(
+    type,
+    listener,
+  ) {
+    switch (type) {
+      case "downloadedAudio":
+        this.onDownloadedAudio.addListener(listener);
+        break;
+      case "downloadedPartialAudio":
+        this.onDownloadedPartialAudio.addListener(listener);
+        break;
+      case "downloadAudioError":
+        this.onDownloadAudioError.addListener(listener);
+        break;
+    }
+
+    return this;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  removeEventListener(
+    type,
+    listener,
+  ) {
+    switch (type) {
+      case "downloadedAudio":
+        this.onDownloadedAudio.removeListener(listener);
+        break;
+      case "downloadedPartialAudio":
+        this.onDownloadedPartialAudio.removeListener(listener);
+        break;
+      case "downloadAudioError":
+        this.onDownloadAudioError.removeListener(listener);
+        break;
+    }
+
+    return this;
+  }
+}
+
 ;// ./src/index.js
+
+
+
 
 
 
@@ -15949,6 +16990,53 @@ class VOTTranslationHandler {
    */
   constructor(videoHandler) {
     this.videoHandler = videoHandler;
+    this.audioDownloader = new AudioDownloader();
+    this.audioDownloader
+      .addEventListener("downloadedAudio", async (translationId, data) => {
+        console.log("downloadedAudio", data);
+        const { videoId, fileId, audioData } = data;
+        const videoUrl = this.getCanonicalUrl(videoId);
+        await this.videoHandler.votClient.requestVtransAudio(
+          videoUrl,
+          translationId,
+          {
+            audioFile: audioData,
+            fileId,
+          },
+        );
+      })
+      .addEventListener(
+        "downloadedPartialAudio",
+        async (translationId, data) => {
+          // TODO: sended last audio part throw 400
+          // console.log("downloadedPartialAudio", data);
+          // const { audioData, fileId, videoId, amount, version, index } = data;
+          // const videoUrl = this.getCanonicalUrl(videoId);
+          // await this.videoHandler.votClient.requestVtransAudio(
+          //   videoUrl,
+          //   translationId,
+          //   {
+          //     audioFile: audioData,
+          //     fileId: String(index),
+          //   },
+          //   {
+          //     audioPartsLength: amount,
+          //     fileId,
+          //     unknown0: version,
+          //   },
+          // );
+        },
+      )
+      .addEventListener("downloadAudioError", async (videoId) => {
+        console.log(`Failed to download audio ${videoId}`);
+        const videoUrl = this.getCanonicalUrl(videoId);
+        await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
+      });
+  }
+
+  getCanonicalUrl(videoId) {
+    // i guess hardcoded > videoData.url (in this case)
+    return `https://youtu.be/${videoId}`;
   }
 
   /**
@@ -15964,6 +17052,7 @@ class VOTTranslationHandler {
     requestLang,
     responseLang,
     translationHelp = null,
+    shouldSendFailedAudio = false,
   ) {
     clearTimeout(this.videoHandler.autoRetry);
     utils_debug.log(
@@ -15980,17 +17069,40 @@ class VOTTranslationHandler {
           useLivelyVoice: this.videoHandler.data?.useNewModel,
           videoTitle: this.videoHandler.videoData.title,
         },
+        shouldSendFailedAudio,
       });
       utils_debug.log("Translate video result", res);
       if (res.translated && res.remainingTime < 1) {
         utils_debug.log("Video translation finished with this data: ", res);
         return res;
       }
+
       const message =
         res.message ?? localizationProvider.get("translationTakeFewMinutes");
       await this.videoHandler.updateTranslationErrorMsg(
         res.remainingTime > 0 ? secsToStrTime(res.remainingTime) : message,
       );
+
+      if (
+        res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
+        videoData.host === "youtube"
+      ) {
+        console.log("Start audio download");
+        await this.audioDownloader.runAudioDownload(
+          videoData.videoId,
+          res.translationId,
+          new AbortController().signal,
+        );
+        // for get instant result on download end
+        console.log("Send translate video");
+        return await this.translateVideoImpl(
+          videoData,
+          requestLang,
+          responseLang,
+          translationHelp,
+          true,
+        );
+      }
     } catch (err) {
       await this.videoHandler.updateTranslationErrorMsg(
         err.data?.message ?? err,
@@ -16010,6 +17122,7 @@ class VOTTranslationHandler {
             requestLang,
             responseLang,
             translationHelp,
+            true,
           ),
         );
       }, 20000);
@@ -17558,13 +18671,6 @@ function findContainer(site, video) {
  */
 function initIframeInteractor() {
   const configs = {
-    "https://9animetv.to": {
-      targetOrigin: "https://rapid-cloud.co",
-      dataFilter: (data) => data === "getVideoId",
-      extractVideoId: (url) => url.pathname.split("/").pop(),
-      iframeSelector: "#iframe-embed",
-      responseFormatter: (videoId) => `getVideoId:${videoId}`,
-    },
     "https://dev.epicgames.com": {
       targetOrigin: "https://dev.epicgames.com",
       dataFilter: (data) =>
@@ -17612,6 +18718,11 @@ function initIframeInteractor() {
  * Main function to start the extension.
  */
 async function src_main() {
+  if (isIframe() && window.location.hash.includes(IFRAME_HASH)) {
+    initIframeService();
+    return;
+  }
+
   utils_debug.log("Loading extension...");
   await localizationProvider.update();
   utils_debug.log(`Selected menu language: ${localizationProvider.lang}`);

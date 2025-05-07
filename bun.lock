@@ -16,6 +16,7 @@
         "@toil/gm-types": "^1.0.3",
         "@toil/translate": "^1.0.8",
         "@types/bun": "^1.2.12",
+        "@vot.js/core": "^2.4.2",
         "browser-id3-writer": "^6.2.0",
         "browserslist": "^4.24.5",
         "eslint": "^9.26.0",

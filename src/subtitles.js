@@ -2,7 +2,7 @@ import { html, render } from "lit-html";
 import { convertSubs } from "@vot.js/shared/utils/subs";
 
 import { defaultTranslationService } from "./config/config.js";
-import { lang, GM_fetch } from "./utils/utils.js";
+import { lang, GM_fetch, timeout } from "./utils/utils.js";
 import { translate } from "./utils/translateApis.ts";
 import { localizationProvider } from "./localization/localizationProvider.ts";
 import { votStorage } from "./utils/storage.ts";
@@ -245,13 +245,10 @@ export class SubtitlesProcessor {
           },
           requestLang,
         }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 5000),
-        ),
+        timeout(5000, "Timeout"),
       ]);
 
       console.log("[VOT] Subtitles response:", res);
-
       if (res.waiting) {
         console.error("[VOT] Failed to get Yandex subtitles");
       }

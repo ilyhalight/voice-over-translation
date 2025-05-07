@@ -1,4 +1,3 @@
-import Bowser from "bowser";
 import Chaimu, { initAudioContext } from "chaimu";
 
 import VOTClient, { VOTWorkerClient } from "@vot.js/ext";
@@ -36,6 +35,7 @@ import {
   cleanText,
   isProxyOnlyExtension,
   browserInfo,
+  isIframe,
 } from "./utils/utils.js";
 import { syncVolume } from "./utils/volume.js";
 import { VideoObserver } from "./utils/VideoObserver.js";
@@ -44,6 +44,10 @@ import { detect, translate } from "./utils/translateApis.ts";
 import { UIManager } from "./ui/manager.ts";
 import { StorageData } from "./types/storage.ts";
 import { formatKeysCombo } from "./ui/components/hotkeyButton.ts";
+import { initIframeService } from "./audioDownloader/iframe.ts";
+import { IFRAME_HASH } from "./audioDownloader/shared.ts";
+import { AudioDownloader } from "./audioDownloader/index.ts";
+import { VideoTranslationStatus } from "@vot.js/core/types/yandex";
 
 export let countryCode; // Used later for proxy settings
 
@@ -139,6 +143,53 @@ class VOTTranslationHandler {
    */
   constructor(videoHandler) {
     this.videoHandler = videoHandler;
+    this.audioDownloader = new AudioDownloader();
+    this.audioDownloader
+      .addEventListener("downloadedAudio", async (translationId, data) => {
+        console.log("downloadedAudio", data);
+        const { videoId, fileId, audioData } = data;
+        const videoUrl = this.getCanonicalUrl(videoId);
+        await this.videoHandler.votClient.requestVtransAudio(
+          videoUrl,
+          translationId,
+          {
+            audioFile: audioData,
+            fileId,
+          },
+        );
+      })
+      .addEventListener(
+        "downloadedPartialAudio",
+        async (translationId, data) => {
+          // TODO: sended last audio part throw 400
+          // console.log("downloadedPartialAudio", data);
+          // const { audioData, fileId, videoId, amount, version, index } = data;
+          // const videoUrl = this.getCanonicalUrl(videoId);
+          // await this.videoHandler.votClient.requestVtransAudio(
+          //   videoUrl,
+          //   translationId,
+          //   {
+          //     audioFile: audioData,
+          //     fileId: String(index),
+          //   },
+          //   {
+          //     audioPartsLength: amount,
+          //     fileId,
+          //     unknown0: version,
+          //   },
+          // );
+        },
+      )
+      .addEventListener("downloadAudioError", async (videoId) => {
+        console.log(`Failed to download audio ${videoId}`);
+        const videoUrl = this.getCanonicalUrl(videoId);
+        await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
+      });
+  }
+
+  getCanonicalUrl(videoId) {
+    // i guess hardcoded > videoData.url (in this case)
+    return `https://youtu.be/${videoId}`;
   }
 
   /**
@@ -154,6 +205,7 @@ class VOTTranslationHandler {
     requestLang,
     responseLang,
     translationHelp = null,
+    shouldSendFailedAudio = false,
   ) {
     clearTimeout(this.videoHandler.autoRetry);
     debug.log(
@@ -170,17 +222,40 @@ class VOTTranslationHandler {
           useLivelyVoice: this.videoHandler.data?.useNewModel,
           videoTitle: this.videoHandler.videoData.title,
         },
+        shouldSendFailedAudio,
       });
       debug.log("Translate video result", res);
       if (res.translated && res.remainingTime < 1) {
         debug.log("Video translation finished with this data: ", res);
         return res;
       }
+
       const message =
         res.message ?? localizationProvider.get("translationTakeFewMinutes");
       await this.videoHandler.updateTranslationErrorMsg(
         res.remainingTime > 0 ? secsToStrTime(res.remainingTime) : message,
       );
+
+      if (
+        res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
+        videoData.host === "youtube"
+      ) {
+        console.log("Start audio download");
+        await this.audioDownloader.runAudioDownload(
+          videoData.videoId,
+          res.translationId,
+          new AbortController().signal,
+        );
+        // for get instant result on download end
+        console.log("Send translate video");
+        return await this.translateVideoImpl(
+          videoData,
+          requestLang,
+          responseLang,
+          translationHelp,
+          true,
+        );
+      }
     } catch (err) {
       await this.videoHandler.updateTranslationErrorMsg(
         err.data?.message ?? err,
@@ -200,6 +275,7 @@ class VOTTranslationHandler {
             requestLang,
             responseLang,
             translationHelp,
+            true,
           ),
         );
       }, 20000);
@@ -1748,13 +1824,6 @@ function findContainer(site, video) {
  */
 function initIframeInteractor() {
   const configs = {
-    "https://9animetv.to": {
-      targetOrigin: "https://rapid-cloud.co",
-      dataFilter: (data) => data === "getVideoId",
-      extractVideoId: (url) => url.pathname.split("/").pop(),
-      iframeSelector: "#iframe-embed",
-      responseFormatter: (videoId) => `getVideoId:${videoId}`,
-    },
     "https://dev.epicgames.com": {
       targetOrigin: "https://dev.epicgames.com",
       dataFilter: (data) =>
@@ -1802,6 +1871,11 @@ function initIframeInteractor() {
  * Main function to start the extension.
  */
 async function main() {
+  if (isIframe() && window.location.hash.includes(IFRAME_HASH)) {
+    initIframeService();
+    return;
+  }
+
   debug.log("Loading extension...");
   await localizationProvider.update();
   debug.log(`Selected menu language: ${localizationProvider.lang}`);

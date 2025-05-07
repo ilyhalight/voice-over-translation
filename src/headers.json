@@ -115,7 +115,7 @@
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
-  "grant": ["window.focus"],
+  "grant": ["window.focus", "unsafeWindow"],
   "exclude": [
     "file://*/*.mp4*",
     "file://*/*.webm*",
@@ -146,13 +146,13 @@
     "yandex.net",
     "timeweb.cloud",
     "raw.githubusercontent.com",
-    "9animetv.to",
     "vimeo.com",
     "toil.cc",
     "deno.dev",
     "onrender.com",
     "workers.dev",
     "speed.cloudflare.com",
-    "porntn.com"
+    "porntn.com",
+    "googlevideo.com"
   ]
 }
