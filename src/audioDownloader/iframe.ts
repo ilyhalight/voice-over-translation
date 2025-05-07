@@ -1,6 +1,6 @@
 import {
   AudioAdaptiveFormat,
-  PlayerElement as YTPlayerElement,
+  PlayerElement,
 } from "@vot.js/ext/types/helpers/youtube";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 
@@ -9,13 +9,6 @@ import { waitForCondition } from "../utils/utils";
 import { getRequestUrl, serializeRequestInit } from "./shared";
 
 let lastMessageId = "";
-
-// TODO: remove after update vot.js
-type PlayerElement = YTPlayerElement & {
-  loadVideoById?(videoId: string): void;
-  pauseVideo?(): void;
-  mute?(): void;
-};
 
 const getAdaptiveFormats = () =>
   YoutubeHelper.getPlayerResponse()?.streamingData?.adaptiveFormats;
