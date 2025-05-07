@@ -183,7 +183,7 @@ async function getGeneratingAudioUrlsDataFromIframe(
   }
 }
 
-function makeFileId(itag: number, fileSize: string | number) {
+function makeFileId(itag: number, fileSize: string) {
   return JSON.stringify({
     downloadType:
       AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME,
