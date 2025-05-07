@@ -36,6 +36,7 @@ import {
   isProxyOnlyExtension,
   browserInfo,
   isIframe,
+  waitForCondition,
 } from "./utils/utils.js";
 import { syncVolume } from "./utils/volume.js";
 import { VideoObserver } from "./utils/VideoObserver.js";
@@ -144,46 +145,75 @@ class VOTTranslationHandler {
   constructor(videoHandler) {
     this.videoHandler = videoHandler;
     this.audioDownloader = new AudioDownloader();
+    this.downloading = false;
     this.audioDownloader
       .addEventListener("downloadedAudio", async (translationId, data) => {
         console.log("downloadedAudio", data);
+        if (!this.downloading) {
+          console.log("skip downloadedAudio");
+          return;
+        }
+
         const { videoId, fileId, audioData } = data;
         const videoUrl = this.getCanonicalUrl(videoId);
-        await this.videoHandler.votClient.requestVtransAudio(
-          videoUrl,
-          translationId,
-          {
-            audioFile: audioData,
-            fileId,
-          },
-        );
+        try {
+          await this.videoHandler.votClient.requestVtransAudio(
+            videoUrl,
+            translationId,
+            {
+              audioFile: audioData,
+              fileId,
+            },
+          );
+        } catch {
+          /* empty */
+        }
+        this.downloading = false;
       })
       .addEventListener(
         "downloadedPartialAudio",
         async (translationId, data) => {
-          // TODO: sended last audio part throw 400
-          // console.log("downloadedPartialAudio", data);
-          // const { audioData, fileId, videoId, amount, version, index } = data;
-          // const videoUrl = this.getCanonicalUrl(videoId);
-          // await this.videoHandler.votClient.requestVtransAudio(
-          //   videoUrl,
-          //   translationId,
-          //   {
-          //     audioFile: audioData,
-          //     fileId: String(index),
-          //   },
-          //   {
-          //     audioPartsLength: amount,
-          //     fileId,
-          //     unknown0: version,
-          //   },
-          // );
+          console.log("downloadedPartialAudio", data);
+          if (!this.downloading) {
+            console.log("skip downloadedPartialAudio");
+            return;
+          }
+
+          const { audioData, fileId, videoId, amount, version, index } = data;
+          const videoUrl = this.getCanonicalUrl(videoId);
+          try {
+            await this.videoHandler.votClient.requestVtransAudio(
+              videoUrl,
+              translationId,
+              {
+                audioFile: audioData,
+                chunkId: index,
+              },
+              {
+                audioPartsLength: amount,
+                fileId,
+                version,
+              },
+            );
+          } catch {
+            this.downloading = false;
+          }
+
+          if (index === amount - 1) {
+            this.downloading = false;
+          }
         },
       )
       .addEventListener("downloadAudioError", async (videoId) => {
+        if (!this.downloading) {
+          console.log("skip downloadAudioError");
+          return;
+        }
+
         console.log(`Failed to download audio ${videoId}`);
         const videoUrl = this.getCanonicalUrl(videoId);
         await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
+        this.downloading = false;
       });
   }
 
@@ -208,6 +238,7 @@ class VOTTranslationHandler {
     shouldSendFailedAudio = false,
   ) {
     clearTimeout(this.videoHandler.autoRetry);
+    this.downloading = false;
     debug.log(
       videoData,
       `Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`,
@@ -241,11 +272,16 @@ class VOTTranslationHandler {
         videoData.host === "youtube"
       ) {
         console.log("Start audio download");
+        this.downloading = true;
         await this.audioDownloader.runAudioDownload(
           videoData.videoId,
           res.translationId,
           new AbortController().signal,
         );
+
+        console.log("waiting downloading finish");
+        // 15000 is fetch timeout, so there's no point in waiting longer
+        await waitForCondition(() => this.downloading === false, 15000);
         // for get instant result on download end
         console.log("Send translate video");
         return await this.translateVideoImpl(
