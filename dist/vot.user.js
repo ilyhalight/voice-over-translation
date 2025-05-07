@@ -1614,12 +1614,12 @@ class Chaimu {
     hostWorker: "vot-worker.toil.cc",
     mediaProxy: "media-proxy.toil.cc",
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
-    componentVersion: "25.4.0.1746",
+    componentVersion: "25.4.0.1973",
     hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
     defaultDuration: 343,
     minChunkSize: 5295308,
     loggerLevel: 1,
-    version: "2.4.2",
+    version: "2.4.3",
 });
 
 ;// ./node_modules/@vot.js/shared/dist/types/logger.js
@@ -3275,7 +3275,7 @@ const VideoTranslationResponse = {
     },
 };
 function createBaseVideoTranslationCacheItem() {
-    return { status: 0, remainingTime: undefined };
+    return { status: 0, remainingTime: undefined, message: undefined, unknown0: undefined };
 }
 const VideoTranslationCacheItem = {
     encode(message, writer = new BinaryWriter()) {
@@ -3284,6 +3284,12 @@ const VideoTranslationCacheItem = {
         }
         if (message.remainingTime !== undefined) {
             writer.uint32(16).int32(message.remainingTime);
+        }
+        if (message.message !== undefined) {
+            writer.uint32(26).string(message.message);
+        }
+        if (message.unknown0 !== undefined) {
+            writer.uint32(32).int32(message.unknown0);
         }
         return writer;
     },
@@ -3308,6 +3314,20 @@ const VideoTranslationCacheItem = {
                     message.remainingTime = reader.int32();
                     continue;
                 }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.message = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 32) {
+                        break;
+                    }
+                    message.unknown0 = reader.int32();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -3320,6 +3340,8 @@ const VideoTranslationCacheItem = {
         return {
             status: isSet(object.status) ? globalThis.Number(object.status) : 0,
             remainingTime: isSet(object.remainingTime) ? globalThis.Number(object.remainingTime) : undefined,
+            message: isSet(object.message) ? globalThis.String(object.message) : undefined,
+            unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : undefined,
         };
     },
     toJSON(message) {
@@ -3330,6 +3352,12 @@ const VideoTranslationCacheItem = {
         if (message.remainingTime !== undefined) {
             obj.remainingTime = Math.round(message.remainingTime);
         }
+        if (message.message !== undefined) {
+            obj.message = message.message;
+        }
+        if (message.unknown0 !== undefined) {
+            obj.unknown0 = Math.round(message.unknown0);
+        }
         return obj;
     },
     create(base) {
@@ -3339,6 +3367,8 @@ const VideoTranslationCacheItem = {
         const message = createBaseVideoTranslationCacheItem();
         message.status = object.status ?? 0;
         message.remainingTime = object.remainingTime ?? undefined;
+        message.message = object.message ?? undefined;
+        message.unknown0 = object.unknown0 ?? undefined;
         return message;
     },
 };
@@ -3580,22 +3610,90 @@ const AudioBufferObject = {
         return message;
     },
 };
+function createBasePartialAudioBufferObject() {
+    return { audioFile: new Uint8Array(0), chunkId: 0 };
+}
+const PartialAudioBufferObject = {
+    encode(message, writer = new BinaryWriter()) {
+        if (message.audioFile.length !== 0) {
+            writer.uint32(18).bytes(message.audioFile);
+        }
+        if (message.chunkId !== 0) {
+            writer.uint32(8).int32(message.chunkId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBasePartialAudioBufferObject();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.audioFile = reader.bytes();
+                    continue;
+                }
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.chunkId = reader.int32();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : new Uint8Array(0),
+            chunkId: isSet(object.chunkId) ? globalThis.Number(object.chunkId) : 0,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.audioFile.length !== 0) {
+            obj.audioFile = base64FromBytes(message.audioFile);
+        }
+        if (message.chunkId !== 0) {
+            obj.chunkId = Math.round(message.chunkId);
+        }
+        return obj;
+    },
+    create(base) {
+        return PartialAudioBufferObject.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBasePartialAudioBufferObject();
+        message.audioFile = object.audioFile ?? new Uint8Array(0);
+        message.chunkId = object.chunkId ?? 0;
+        return message;
+    },
+};
 function createBaseChunkAudioObject() {
-    return { audioPartsLength: 0, audioBuffer: undefined, fileId: "", unknown0: 0 };
+    return { audioBuffer: undefined, audioPartsLength: 0, fileId: "", version: 0 };
 }
 const ChunkAudioObject = {
     encode(message, writer = new BinaryWriter()) {
+        if (message.audioBuffer !== undefined) {
+            PartialAudioBufferObject.encode(message.audioBuffer, writer.uint32(10).fork()).join();
+        }
         if (message.audioPartsLength !== 0) {
             writer.uint32(16).int32(message.audioPartsLength);
-        }
-        if (message.audioBuffer !== undefined) {
-            AudioBufferObject.encode(message.audioBuffer, writer.uint32(10).fork()).join();
         }
         if (message.fileId !== "") {
             writer.uint32(26).string(message.fileId);
         }
-        if (message.unknown0 !== 0) {
-            writer.uint32(32).int32(message.unknown0);
+        if (message.version !== 0) {
+            writer.uint32(32).int32(message.version);
         }
         return writer;
     },
@@ -3606,18 +3704,18 @@ const ChunkAudioObject = {
         while (reader.pos < end) {
             const tag = reader.uint32();
             switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.audioBuffer = PartialAudioBufferObject.decode(reader, reader.uint32());
+                    continue;
+                }
                 case 2: {
                     if (tag !== 16) {
                         break;
                     }
                     message.audioPartsLength = reader.int32();
-                    continue;
-                }
-                case 1: {
-                    if (tag !== 10) {
-                        break;
-                    }
-                    message.audioBuffer = AudioBufferObject.decode(reader, reader.uint32());
                     continue;
                 }
                 case 3: {
@@ -3631,7 +3729,7 @@ const ChunkAudioObject = {
                     if (tag !== 32) {
                         break;
                     }
-                    message.unknown0 = reader.int32();
+                    message.version = reader.int32();
                     continue;
                 }
             }
@@ -3644,25 +3742,25 @@ const ChunkAudioObject = {
     },
     fromJSON(object) {
         return {
+            audioBuffer: isSet(object.audioBuffer) ? PartialAudioBufferObject.fromJSON(object.audioBuffer) : undefined,
             audioPartsLength: isSet(object.audioPartsLength) ? globalThis.Number(object.audioPartsLength) : 0,
-            audioBuffer: isSet(object.audioBuffer) ? AudioBufferObject.fromJSON(object.audioBuffer) : undefined,
             fileId: isSet(object.fileId) ? globalThis.String(object.fileId) : "",
-            unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
+            version: isSet(object.version) ? globalThis.Number(object.version) : 0,
         };
     },
     toJSON(message) {
         const obj = {};
+        if (message.audioBuffer !== undefined) {
+            obj.audioBuffer = PartialAudioBufferObject.toJSON(message.audioBuffer);
+        }
         if (message.audioPartsLength !== 0) {
             obj.audioPartsLength = Math.round(message.audioPartsLength);
-        }
-        if (message.audioBuffer !== undefined) {
-            obj.audioBuffer = AudioBufferObject.toJSON(message.audioBuffer);
         }
         if (message.fileId !== "") {
             obj.fileId = message.fileId;
         }
-        if (message.unknown0 !== 0) {
-            obj.unknown0 = Math.round(message.unknown0);
+        if (message.version !== 0) {
+            obj.version = Math.round(message.version);
         }
         return obj;
     },
@@ -3671,12 +3769,12 @@ const ChunkAudioObject = {
     },
     fromPartial(object) {
         const message = createBaseChunkAudioObject();
-        message.audioPartsLength = object.audioPartsLength ?? 0;
         message.audioBuffer = (object.audioBuffer !== undefined && object.audioBuffer !== null)
-            ? AudioBufferObject.fromPartial(object.audioBuffer)
+            ? PartialAudioBufferObject.fromPartial(object.audioBuffer)
             : undefined;
+        message.audioPartsLength = object.audioPartsLength ?? 0;
         message.fileId = object.fileId ?? "";
-        message.unknown0 = object.unknown0 ?? 0;
+        message.version = object.version ?? 0;
         return message;
     },
 };
@@ -4676,8 +4774,8 @@ async function getHmacSha1(hmacKey, salt) {
     }
 }
 const browserSecHeaders = {
-    "sec-ch-ua": `"Chromium";v="132", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="99", "Yowser";v="2.5"`,
-    "sec-ch-ua-full-version-list": `"Chromium";v="132.0.6834.685", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="99.0.0.0", "Yowser";v="2.5"`,
+    "sec-ch-ua": `"Chromium";v="134", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="24", "Yowser";v="2.5"`,
+    "sec-ch-ua-full-version-list": `"Chromium";v="134.0.6998.1973", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="24.0.0.0", "Yowser";v="2.5"`,
     "Sec-Fetch-Mode": "no-cors",
 };
 
@@ -4869,20 +4967,24 @@ class YandexVOTProtobuf {
     static decodeTranslationCacheResponse(response) {
         return VideoTranslationCacheResponse.decode(new Uint8Array(response));
     }
+    static isPartialAudioBuffer(audioBuffer) {
+        return "chunkId" in audioBuffer;
+    }
     static encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) {
+        if (partialAudio && YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
+            return VideoTranslationAudioRequest.encode({
+                url,
+                translationId,
+                partialAudioInfo: {
+                    ...partialAudio,
+                    audioBuffer,
+                },
+            }).finish();
+        }
         return VideoTranslationAudioRequest.encode({
             url,
             translationId,
-            ...(partialAudio
-                ? {
-                    partialAudioInfo: {
-                        ...partialAudio,
-                        audioBuffer,
-                    },
-                }
-                : {
-                    audioInfo: audioBuffer,
-                }),
+            audioInfo: audioBuffer,
         }).finish();
     }
     static decodeTranslationAudioResponse(response) {
@@ -4940,12 +5042,15 @@ var VideoTranslationStatus;
 })(VideoTranslationStatus || (VideoTranslationStatus = {}));
 var AudioDownloadType;
 (function (AudioDownloadType) {
+    AudioDownloadType["WEB_API_VIDEO_SRC_FROM_IFRAME"] = "web_api_video_src_from_iframe";
+    AudioDownloadType["WEB_API_VIDEO_SRC"] = "web_api_video_src";
     AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME"] = "web_api_get_all_generating_urls_data_from_iframe";
+    AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME_TMP_EXP"] = "web_api_get_all_generating_urls_data_from_iframe_tmp_exp";
     AudioDownloadType["WEB_API_REPLACED_FETCH_INSIDE_IFRAME"] = "web_api_replaced_fetch_inside_iframe";
-    AudioDownloadType["WEB_API_REPLACED_FETCH_FORCE_REQUEST_WITH_SEEK"] = "web_api_replaced_fetch_force_request_with_seek";
-    AudioDownloadType["WEB_API_REPLACED_FETCH"] = "web_api_replaced_fetch";
     AudioDownloadType["ANDROID_API"] = "android_api";
     AudioDownloadType["WEB_API_SLOW"] = "web_api_slow";
+    AudioDownloadType["WEB_API_STEAL_SIG_AND_N"] = "web_api_steal_sig_and_n";
+    AudioDownloadType["WEB_API_COMBINED"] = "web_api_get_all_generating_urls_data_from_iframe,web_api_steal_sig_and_n";
 })(AudioDownloadType || (AudioDownloadType = {}));
 
 ;// ./node_modules/@vot.js/core/dist/types/service.js
@@ -5991,7 +6096,6 @@ class client_VOTClient extends MinimalClient {
             throw new VOTLocalizedError("requestTranslationFailed");
         }
         const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
-        console.log(translationData);
         Logger.log("translateVideo", translationData);
         const { status, translationId, } = translationData;
         switch (status) {
@@ -6097,7 +6201,9 @@ class client_VOTClient extends MinimalClient {
     }
     async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
         const session = await this.getSession("video-translation");
-        const body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio);
+        const body = YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)
+            ? YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio)
+            : YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, undefined);
         const path = this.paths.videoTranslationAudio;
         const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
         const res = await this.request(path, body, {
@@ -7655,6 +7761,7 @@ class OdyseeHelper extends BaseHelper {
 ;// ./node_modules/@vot.js/ext/dist/helpers/coursehunterLike.js
 
 
+
 class CoursehunterLikeHelper extends BaseHelper {
     API_ORIGIN = this.origin ?? "https://coursehunter.net";
     async getCourseId() {
@@ -7707,7 +7814,7 @@ class CoursehunterLikeHelper extends BaseHelper {
             return undefined;
         }
         return {
-            url: videoUrl,
+            url: proxyMedia(videoUrl),
             duration,
             title,
         };
@@ -15963,13 +16070,6 @@ function serializeResponse(response) {
 
 let lastMessageId = "";
 
-// TODO: remove after update vot.js
-
-
-
-
-
-
 const getAdaptiveFormats = () =>
   YoutubeHelper.getPlayerResponse()?.streamingData?.adaptiveFormats;
 
@@ -16991,46 +17091,75 @@ class VOTTranslationHandler {
   constructor(videoHandler) {
     this.videoHandler = videoHandler;
     this.audioDownloader = new AudioDownloader();
+    this.downloading = false;
     this.audioDownloader
       .addEventListener("downloadedAudio", async (translationId, data) => {
         console.log("downloadedAudio", data);
+        if (!this.downloading) {
+          console.log("skip downloadedAudio");
+          return;
+        }
+
         const { videoId, fileId, audioData } = data;
         const videoUrl = this.getCanonicalUrl(videoId);
-        await this.videoHandler.votClient.requestVtransAudio(
-          videoUrl,
-          translationId,
-          {
-            audioFile: audioData,
-            fileId,
-          },
-        );
+        try {
+          await this.videoHandler.votClient.requestVtransAudio(
+            videoUrl,
+            translationId,
+            {
+              audioFile: audioData,
+              fileId,
+            },
+          );
+        } catch {
+          /* empty */
+        }
+        this.downloading = false;
       })
       .addEventListener(
         "downloadedPartialAudio",
         async (translationId, data) => {
-          // TODO: sended last audio part throw 400
-          // console.log("downloadedPartialAudio", data);
-          // const { audioData, fileId, videoId, amount, version, index } = data;
-          // const videoUrl = this.getCanonicalUrl(videoId);
-          // await this.videoHandler.votClient.requestVtransAudio(
-          //   videoUrl,
-          //   translationId,
-          //   {
-          //     audioFile: audioData,
-          //     fileId: String(index),
-          //   },
-          //   {
-          //     audioPartsLength: amount,
-          //     fileId,
-          //     unknown0: version,
-          //   },
-          // );
+          console.log("downloadedPartialAudio", data);
+          if (!this.downloading) {
+            console.log("skip downloadedPartialAudio");
+            return;
+          }
+
+          const { audioData, fileId, videoId, amount, version, index } = data;
+          const videoUrl = this.getCanonicalUrl(videoId);
+          try {
+            await this.videoHandler.votClient.requestVtransAudio(
+              videoUrl,
+              translationId,
+              {
+                audioFile: audioData,
+                chunkId: index,
+              },
+              {
+                audioPartsLength: amount,
+                fileId,
+                version,
+              },
+            );
+          } catch {
+            this.downloading = false;
+          }
+
+          if (index === amount - 1) {
+            this.downloading = false;
+          }
         },
       )
       .addEventListener("downloadAudioError", async (videoId) => {
+        if (!this.downloading) {
+          console.log("skip downloadAudioError");
+          return;
+        }
+
         console.log(`Failed to download audio ${videoId}`);
         const videoUrl = this.getCanonicalUrl(videoId);
         await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
+        this.downloading = false;
       });
   }
 
@@ -17055,6 +17184,7 @@ class VOTTranslationHandler {
     shouldSendFailedAudio = false,
   ) {
     clearTimeout(this.videoHandler.autoRetry);
+    this.downloading = false;
     utils_debug.log(
       videoData,
       `Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`,
@@ -17088,11 +17218,16 @@ class VOTTranslationHandler {
         videoData.host === "youtube"
       ) {
         console.log("Start audio download");
+        this.downloading = true;
         await this.audioDownloader.runAudioDownload(
           videoData.videoId,
           res.translationId,
           new AbortController().signal,
         );
+
+        console.log("waiting downloading finish");
+        // 15000 is fetch timeout, so there's no point in waiting longer
+        await waitForCondition(() => this.downloading === false, 15000);
         // for get instant result on download end
         console.log("Send translate video");
         return await this.translateVideoImpl(
