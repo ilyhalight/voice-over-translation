@@ -281,7 +281,7 @@ class VOTTranslationHandler {
 
         console.log("waiting downloading finish");
         // 15000 is fetch timeout, so there's no point in waiting longer
-        await waitForCondition(() => this.downloading === false, 15000);
+        await waitForCondition(() => !this.downloading, 15000);
         // for get instant result on download end
         console.log("Send translate video");
         return await this.translateVideoImpl(
