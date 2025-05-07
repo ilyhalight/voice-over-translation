@@ -4,8 +4,8 @@
     "": {
       "name": "voice-over-translation",
       "dependencies": {
-        "@vot.js/ext": "^2.4.2",
-        "@vot.js/shared": "^2.4.2",
+        "@vot.js/ext": "^2.4.3",
+        "@vot.js/shared": "^2.4.3",
         "bowser": "^2.11.0",
         "chaimu": "^1.0.4",
         "lit": "^3.3.0",
@@ -16,13 +16,13 @@
         "@toil/gm-types": "^1.0.3",
         "@toil/translate": "^1.0.8",
         "@types/bun": "^1.2.12",
-        "@vot.js/core": "^2.4.2",
+        "@vot.js/core": "^2.4.3",
         "browser-id3-writer": "^6.2.0",
         "browserslist": "^4.24.5",
         "eslint": "^9.26.0",
         "eslint-plugin-oxlint": "^0.16.9",
         "eslint-webpack-plugin": "^5.0.1",
-        "globals": "^16.0.0",
+        "globals": "^16.1.0",
         "husky": "^9.1.7",
         "lightningcss": "^1.29.3",
         "npm-run-all2": "^8.0.1",
@@ -32,7 +32,7 @@
         "prettier": "^3.5.3",
         "sass": "^1.87.0",
         "typescript": "^5.8.3",
-        "webpack": "^5.99.7",
+        "webpack": "^5.99.8",
         "webpack-cli": "^6.0.1",
         "webpack-dev-server": "^5.2.1",
         "webpack-monkey": "^0.2.1",
@@ -194,11 +194,11 @@
 
     "@types/yargs-parser": ["@types/yargs-parser@21.0.2", "", {}, ""],
 
-    "@vot.js/core": ["@vot.js/core@2.4.2", "", { "dependencies": { "@vot.js/shared": "^2.4.2" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-/UPi0KjvOZLjKoY+L1xPaKf30beiOpWXazS1ShTNr6M8G6qQn85ob6FJOvRvD3E1HiClODNlV7cQK4kcetFI9Q=="],
+    "@vot.js/core": ["@vot.js/core@2.4.3", "", { "dependencies": { "@vot.js/shared": "^2.4.3" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-rSgHSiyysqacQpwpk+JpxqsTBYeGZfnxiDlu/NmL0cyESleJUJj+LrSo4PsRrKpcz0V08iAOKrtJGPoj/Hvq/Q=="],
 
-    "@vot.js/ext": ["@vot.js/ext@2.4.2", "", { "dependencies": { "@vot.js/core": "^2.4.2", "@vot.js/shared": "^2.4.2" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-RxeibahLxDqJNyiemuf/sDyWYbvQ4jJxgG46TJp4HJg35f1IhzFW2awkP0Pi2TuPVkfJuqssRlZ8HZFgzfbkvQ=="],
+    "@vot.js/ext": ["@vot.js/ext@2.4.3", "", { "dependencies": { "@vot.js/core": "^2.4.3", "@vot.js/shared": "^2.4.3" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-slfu01yUK2/E1T8yPvynRlBjpK+/EL+uBWj0owyOURzlnBs25ZYzdtMV+b9BppkN049pSRQu+Zmh1A6gpx7Ozg=="],
 
-    "@vot.js/shared": ["@vot.js/shared@2.4.2", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-en0+qeaJ5m65+qxXXJCb+q5Gh/sR3akjx8bEoCknPj7gf9QIec1v32nmUD9oaeGGeVK8w3wGnTh8/ETU0F9d+A=="],
+    "@vot.js/shared": ["@vot.js/shared@2.4.3", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-v4lrbZ/p93H78pbEyZjc61faVPxlG5Rl0m4TqHf2K5nlaQYnB3eKKs548kR73RNFYSAgCxK8hDhCPTypweIFHQ=="],
 
     "@webassemblyjs/ast": ["@webassemblyjs/ast@1.14.1", "", { "dependencies": { "@webassemblyjs/helper-numbers": "1.13.2", "@webassemblyjs/helper-wasm-bytecode": "1.13.2" } }, "sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ=="],
 
@@ -496,7 +496,7 @@
 
     "glob-to-regexp": ["glob-to-regexp@0.4.1", "", {}, "sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw=="],
 
-    "globals": ["globals@16.0.0", "", {}, "sha512-iInW14XItCXET01CQFqudPOWP2jYMl7T+QRQT+UNcR/iQncN/F0UNpgd76iFkBPgNQb4+X3LV9tLJYzwh+Gl3A=="],
+    "globals": ["globals@16.1.0", "", {}, "sha512-aibexHNbb/jiUSObBgpHLj+sIuUmJnYcgXBlrfsiDZ9rt4aF2TFRbyLgZ2iFQuVZ1K5Mx3FVkbKRSgKrbK3K2g=="],
 
     "gopd": ["gopd@1.0.1", "", { "dependencies": { "get-intrinsic": "^1.1.3" } }, ""],
 
@@ -960,7 +960,7 @@
 
     "wbuf": ["wbuf@1.7.3", "", { "dependencies": { "minimalistic-assert": "^1.0.0" } }, ""],
 
-    "webpack": ["webpack@5.99.7", "", { "dependencies": { "@types/eslint-scope": "^3.7.7", "@types/estree": "^1.0.6", "@types/json-schema": "^7.0.15", "@webassemblyjs/ast": "^1.14.1", "@webassemblyjs/wasm-edit": "^1.14.1", "@webassemblyjs/wasm-parser": "^1.14.1", "acorn": "^8.14.0", "browserslist": "^4.24.0", "chrome-trace-event": "^1.0.2", "enhanced-resolve": "^5.17.1", "es-module-lexer": "^1.2.1", "eslint-scope": "5.1.1", "events": "^3.2.0", "glob-to-regexp": "^0.4.1", "graceful-fs": "^4.2.11", "json-parse-even-better-errors": "^2.3.1", "loader-runner": "^4.2.0", "mime-types": "^2.1.27", "neo-async": "^2.6.2", "schema-utils": "^4.3.2", "tapable": "^2.1.1", "terser-webpack-plugin": "^5.3.11", "watchpack": "^2.4.1", "webpack-sources": "^3.2.3" }, "bin": { "webpack": "bin/webpack.js" } }, "sha512-CNqKBRMQjwcmKR0idID5va1qlhrqVUKpovi+Ec79ksW8ux7iS1+A6VqzfZXgVYCFRKl7XL5ap3ZoMpwBJxcg0w=="],
+    "webpack": ["webpack@5.99.8", "", { "dependencies": { "@types/eslint-scope": "^3.7.7", "@types/estree": "^1.0.6", "@types/json-schema": "^7.0.15", "@webassemblyjs/ast": "^1.14.1", "@webassemblyjs/wasm-edit": "^1.14.1", "@webassemblyjs/wasm-parser": "^1.14.1", "acorn": "^8.14.0", "browserslist": "^4.24.0", "chrome-trace-event": "^1.0.2", "enhanced-resolve": "^5.17.1", "es-module-lexer": "^1.2.1", "eslint-scope": "5.1.1", "events": "^3.2.0", "glob-to-regexp": "^0.4.1", "graceful-fs": "^4.2.11", "json-parse-even-better-errors": "^2.3.1", "loader-runner": "^4.2.0", "mime-types": "^2.1.27", "neo-async": "^2.6.2", "schema-utils": "^4.3.2", "tapable": "^2.1.1", "terser-webpack-plugin": "^5.3.11", "watchpack": "^2.4.1", "webpack-sources": "^3.2.3" }, "bin": { "webpack": "bin/webpack.js" } }, "sha512-lQ3CPiSTpfOnrEGeXDwoq5hIGzSjmwD72GdfVzF7CQAI7t47rJG9eDWvcEkEn3CUQymAElVvDg3YNTlCYj+qUQ=="],
 
     "webpack-cli": ["webpack-cli@6.0.1", "", { "dependencies": { "@discoveryjs/json-ext": "^0.6.1", "@webpack-cli/configtest": "^3.0.1", "@webpack-cli/info": "^3.0.1", "@webpack-cli/serve": "^3.0.1", "colorette": "^2.0.14", "commander": "^12.1.0", "cross-spawn": "^7.0.3", "envinfo": "^7.14.0", "fastest-levenshtein": "^1.0.12", "import-local": "^3.0.2", "interpret": "^3.1.1", "rechoir": "^0.8.0", "webpack-merge": "^6.0.1" }, "peerDependencies": { "webpack": "^5.82.0" }, "bin": "bin/cli.js" }, "sha512-MfwFQ6SfwinsUVi0rNJm7rHZ31GyTcpVE5pgVA3hwFRb7COD4TzjUUwhGWKfO50+xdc2MQPuEBBJoqIMGt3JDw=="],
 
@@ -1100,8 +1100,6 @@
 
     "terser-webpack-plugin/jest-worker": ["jest-worker@27.5.1", "", { "dependencies": { "@types/node": "*", "merge-stream": "^2.0.0", "supports-color": "^8.0.0" } }, "sha512-7vuh85V5cdDofPyxn58nrPjBktZo0u9x1g8WtjQol+jZDaE+fhN+cIvTj11GndBnMnyfrUOG1sZQxCdjKh+DKg=="],
 
-    "webpack/browserslist": ["browserslist@4.24.4", "", { "dependencies": { "caniuse-lite": "^1.0.30001688", "electron-to-chromium": "^1.5.73", "node-releases": "^2.0.19", "update-browserslist-db": "^1.1.1" }, "bin": "cli.js" }, "sha512-KDi1Ny1gSePi1vm0q4oxSF8b4DR44GF4BbmS2YdhPLOEqd8pDviZOGH/GsmRwoWJ2+5Lr085X7naowMwKHDG1A=="],
-
     "webpack/eslint-scope": ["eslint-scope@5.1.1", "", { "dependencies": { "esrecurse": "^4.3.0", "estraverse": "^4.1.1" } }, "sha512-2NxwbF/hZ0KpepYN0cNbo+FN6XoK7GaHlQhgx/hIZl6Va0bF45RQOOwhLIy8lQDbuCiadSLCBnH2CFYquit5bw=="],
 
     "webpack/schema-utils": ["schema-utils@4.3.2", "", { "dependencies": { "@types/json-schema": "^7.0.9", "ajv": "^8.9.0", "ajv-formats": "^2.1.1", "ajv-keywords": "^5.1.0" } }, "sha512-Gn/JaSk/Mt9gYubxTtSn/QCV4em9mpAPiR1rqy/Ocu19u/G9J5WWdNoUT4SiV6mFC3y6cxyFcFwdzPM3FgxGAQ=="],
@@ -1211,12 +1209,6 @@
     "webpack-dev-server/chokidar/readdirp": ["readdirp@3.6.0", "", { "dependencies": { "picomatch": "^2.2.1" } }, ""],
 
     "webpack-dev-server/open/is-wsl": ["is-wsl@3.1.0", "", { "dependencies": { "is-inside-container": "^1.0.0" } }, ""],
-
-    "webpack/browserslist/caniuse-lite": ["caniuse-lite@1.0.30001699", "", {}, "sha512-b+uH5BakXZ9Do9iK+CkDmctUSEqZl+SP056vc5usa0PL+ev5OHw003rZXcnjNDv3L8P5j6rwT6C0BPKSikW08w=="],
-
-    "webpack/browserslist/electron-to-chromium": ["electron-to-chromium@1.5.97", "", {}, "sha512-HKLtaH02augM7ZOdYRuO19rWDeY+QSJ1VxnXFa/XDFLf07HvM90pALIJFgrO+UVaajI3+aJMMpojoUTLZyQ7JQ=="],
-
-    "webpack/browserslist/update-browserslist-db": ["update-browserslist-db@1.1.1", "", { "dependencies": { "escalade": "^3.2.0", "picocolors": "^1.1.0" }, "peerDependencies": { "browserslist": ">= 4.21.0" }, "bin": "cli.js" }, ""],
 
     "webpack/eslint-scope/estraverse": ["estraverse@4.3.0", "", {}, "sha512-39nnKffWz8xN1BU/2c79n9nB9HDzo0niYUqx6xyqUnyoAnQyyWpOTdZEeiCch8BBu515t4wp9ZmgVfVhn9EBpw=="],
 
