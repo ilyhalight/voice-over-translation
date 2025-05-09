@@ -266,7 +266,11 @@ export default class Tooltip {
       width: anchorWidth,
       height: anchorHeight,
     } = this.anchor.getBoundingClientRect();
-    const { width, height } = this.container.getBoundingClientRect();
+    const { width: containerWidth, height: containerHeight } =
+      this.container.getBoundingClientRect();
+
+    const width = clamp(containerWidth, 0, this.pageWidth);
+    const height = clamp(containerHeight, 0, this.pageHeight);
 
     const left = anchorLeft - this.globalOffsetX;
     const right = anchorRight - this.globalOffsetX;
