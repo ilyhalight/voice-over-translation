@@ -1,14 +1,18 @@
+import type VOTClient from "@vot.js/ext";
+
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { SubtitlesData } from "@vot.js/shared/types/subs";
-import type VOTClient from "@vot.js/ext";
 import type { VOTWorkerClient } from "@vot.js/ext";
+import type { TranslationHelp } from "@vot.js/core/types/yandex";
 
 export type VideoData = object & {
   downloadTitle: string;
   videoId: string;
   detectedLanguage: RequestLang;
   responseLanguage: ResponseLang;
+  isStream: boolean;
+  translationHelp: TranslationHelp | null;
 }; // add typings for object
 export type Site = object; // add typings for object
 
@@ -61,9 +65,8 @@ export class VideoHandler {
   };
   cacheManager: CacheManager;
   audioPlayer: import("chaimu").default;
-  translationHandler: {
-    handleTranslationBtnClick: () => Promise<void>;
-  };
+  abortController: AbortController;
+  actionsAbortController: AbortController;
 
   constructor(video: HTMLVideoElement, container: HTMLElement, site: Site);
 
@@ -71,9 +74,18 @@ export class VideoHandler {
   syncVolumeWrapper(fromType: "translation" | "video", newVolume: number): void;
   getVideoVolume(): number;
   setVideoVolume(volume: number): this;
+  getVideoData(): Promise<VideoData>;
   changeSubtitlesLang(subs: string): Promise<this>;
   loadSubtitles(): Promise<void>;
   isMuted(): boolean;
+  hasActiveSource(): boolean;
+  translateFunc(
+    videoId: string,
+    isStream: boolean,
+    requestLang: RequestLang,
+    responseLang: ResponseLang,
+    translationHelp: TranslationHelp | null,
+  ): Promise<void>;
   initVOTClient(): this;
   createPlayer(): this;
   stopTranslate(): void;

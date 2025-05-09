@@ -20,6 +20,8 @@ import { localizationProvider } from "../localization/localizationProvider";
 import { maxAudioVolume, repositoryUrl } from "../config/config";
 import VOTButton from "./components/votButton";
 import { votStorage } from "../utils/storage";
+import debug from "../utils/debug";
+import { VOTLocalizedError } from "../utils/VOTLocalizedError.js";
 
 export class UIManager {
   root: HTMLElement;
@@ -101,7 +103,7 @@ export class UIManager {
     this.votOverlayView.initUIEvents();
     this.votOverlayView
       .addEventListener("click:translate", async () => {
-        await this.videoHandler?.translationHandler.handleTranslationBtnClick();
+        await this.handleTranslationBtnClick();
       })
       .addEventListener("click:pip", async () => {
         if (!this.videoHandler) {
@@ -234,9 +236,9 @@ export class UIManager {
         if (
           checked &&
           this.videoHandler &&
-          !this.videoHandler.audioPlayer.player.src
+          !this.videoHandler?.hasActiveSource()
         ) {
-          await this.videoHandler.translationHandler.handleTranslationBtnClick();
+          await this.handleTranslationBtnClick();
         }
       })
       .addEventListener("change:showVideoVolume", () => {
@@ -380,6 +382,76 @@ export class UIManager {
     // #endregion settings view events
   }
 
+  async handleTranslationBtnClick() {
+    if (!this.votOverlayView?.isInitialized()) {
+      throw new Error("[VOT] OverlayView isn't initialized");
+    }
+
+    if (!this.videoHandler) {
+      return this;
+    }
+
+    debug.log("[handleTranslationBtnClick] click translationBtn");
+    if (this.videoHandler.hasActiveSource()) {
+      debug.log("[handleTranslationBtnClick] video has active source");
+      this.videoHandler.stopTranslation();
+      return this;
+    }
+
+    if (
+      this.votOverlayView.votButton.status !== "none" ||
+      this.votOverlayView.votButton.loading
+    ) {
+      debug.log(
+        "[handleTranslationBtnClick] translationBtn isn't in none state",
+      );
+      this.videoHandler.actionsAbortController.abort();
+      this.videoHandler.stopTranslation();
+      return this;
+    }
+
+    try {
+      debug.log("[handleTranslationBtnClick] trying execute translation");
+      if (!this.videoHandler.videoData?.videoId) {
+        throw new VOTLocalizedError("VOTNoVideoIDFound");
+      }
+
+      // for VK clips and Douyin, we need update current video ID
+      if (
+        (this.videoHandler.site.host === "vk" &&
+          this.videoHandler.site.additionalData === "clips") ||
+        this.videoHandler.site.host === "douyin"
+      ) {
+        this.videoHandler.videoData = await this.videoHandler.getVideoData();
+      }
+
+      debug.log(
+        "[handleTranslationBtnClick] Run translateFunc",
+        this.videoHandler.videoData.videoId,
+      );
+      await this.videoHandler.translateFunc(
+        this.videoHandler.videoData.videoId,
+        this.videoHandler.videoData.isStream,
+        this.videoHandler.videoData.detectedLanguage,
+        this.videoHandler.videoData.responseLanguage,
+        this.videoHandler.videoData.translationHelp,
+      );
+    } catch (err) {
+      console.error("[VOT]", err);
+      if (!(err instanceof Error)) {
+        this.transformBtn("error", String(err));
+        return this;
+      }
+
+      const message =
+        err.name === "VOTLocalizedError"
+          ? (err as VOTLocalizedError).localizedMessage
+          : err.message;
+      this.transformBtn("error", message);
+    }
+
+    return this;
+  }
   private isLoadingText(text: string) {
     return (
       typeof text === "string" &&

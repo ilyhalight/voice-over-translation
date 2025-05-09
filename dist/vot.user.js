@@ -5142,9 +5142,7 @@ const en_namespaceObject = /*#__PURE__*/JSON.parse('{"recommended":"recommended"
 ;// ./src/utils/debug.ts
 /* harmony default export */ const utils_debug = ({
   log: (...text) => {
-    if (true) {
-      return;
-    }
+    if (false) {}
     return console.log(
       "%c[VOT DEBUG]",
       "background: #F2452D; color: #fff; padding: 5px;",
@@ -5243,6 +5241,7 @@ const storageKeys = [
   "audioBooster",
   "useNewModel",
   "autoHideButtonDelay",
+  "useAudioDownload",
   "localePhrases",
   "localeLang",
   "localeHash",
@@ -5251,6 +5250,7 @@ const storageKeys = [
 ] ;
 
  
+
 
 
 
@@ -5411,7 +5411,7 @@ function isPiPAvailable() {
 function initHls() {
   return typeof Hls != "undefined" && Hls?.isSupported()
     ? new Hls({
-        debug: false, // turn it on manually if necessary
+        debug: true, // turn it on manually if necessary
         lowLatencyMode: true,
         backBufferLength: 90,
       })
@@ -15567,6 +15567,8 @@ class SettingsView {
 
 
 
+
+
 class UIManager {
   root;
   portalContainer;
@@ -15647,7 +15649,7 @@ class UIManager {
     this.votOverlayView.initUIEvents();
     this.votOverlayView
       .addEventListener("click:translate", async () => {
-        await this.videoHandler?.translationHandler.handleTranslationBtnClick();
+        await this.handleTranslationBtnClick();
       })
       .addEventListener("click:pip", async () => {
         if (!this.videoHandler) {
@@ -15780,9 +15782,9 @@ class UIManager {
         if (
           checked &&
           this.videoHandler &&
-          !this.videoHandler.audioPlayer.player.src
+          !this.videoHandler?.hasActiveSource()
         ) {
-          await this.videoHandler.translationHandler.handleTranslationBtnClick();
+          await this.handleTranslationBtnClick();
         }
       })
       .addEventListener("change:showVideoVolume", () => {
@@ -15926,6 +15928,76 @@ class UIManager {
     // #endregion settings view events
   }
 
+  async handleTranslationBtnClick() {
+    if (!this.votOverlayView?.isInitialized()) {
+      throw new Error("[VOT] OverlayView isn't initialized");
+    }
+
+    if (!this.videoHandler) {
+      return this;
+    }
+
+    utils_debug.log("[handleTranslationBtnClick] click translationBtn");
+    if (this.videoHandler.hasActiveSource()) {
+      utils_debug.log("[handleTranslationBtnClick] video has active source");
+      this.videoHandler.stopTranslation();
+      return this;
+    }
+
+    if (
+      this.votOverlayView.votButton.status !== "none" ||
+      this.votOverlayView.votButton.loading
+    ) {
+      utils_debug.log(
+        "[handleTranslationBtnClick] translationBtn isn't in none state",
+      );
+      this.videoHandler.actionsAbortController.abort();
+      this.videoHandler.stopTranslation();
+      return this;
+    }
+
+    try {
+      utils_debug.log("[handleTranslationBtnClick] trying execute translation");
+      if (!this.videoHandler.videoData?.videoId) {
+        throw new VOTLocalizedError("VOTNoVideoIDFound");
+      }
+
+      // for VK clips and Douyin, we need update current video ID
+      if (
+        (this.videoHandler.site.host === "vk" &&
+          this.videoHandler.site.additionalData === "clips") ||
+        this.videoHandler.site.host === "douyin"
+      ) {
+        this.videoHandler.videoData = await this.videoHandler.getVideoData();
+      }
+
+      utils_debug.log(
+        "[handleTranslationBtnClick] Run translateFunc",
+        this.videoHandler.videoData.videoId,
+      );
+      await this.videoHandler.translateFunc(
+        this.videoHandler.videoData.videoId,
+        this.videoHandler.videoData.isStream,
+        this.videoHandler.videoData.detectedLanguage,
+        this.videoHandler.videoData.responseLanguage,
+        this.videoHandler.videoData.translationHelp,
+      );
+    } catch (err) {
+      console.error("[VOT]", err);
+      if (!(err instanceof Error)) {
+        this.transformBtn("error", String(err));
+        return this;
+      }
+
+      const message =
+        err.name === "VOTLocalizedError"
+          ? (err ).localizedMessage
+          : err.message;
+      this.transformBtn("error", message);
+    }
+
+    return this;
+  }
    isLoadingText(text) {
     return (
       typeof text === "string" &&
@@ -17174,6 +17246,8 @@ class VOTTranslationHandler {
    * @param {string} requestLang Source language.
    * @param {string} responseLang Target language.
    * @param {Object|null} [translationHelp=null] Optional translation helper data.
+   * @param {boolean} [shouldSendFailedAudio=false] Whether to send failed audio.
+   * @param {AbortSignal} [signal] Optional AbortSignal for cancellation.
    * @returns {Promise<Object|null>} Promise resolving to the translation result.
    */
   async translateVideoImpl(
@@ -17182,14 +17256,20 @@ class VOTTranslationHandler {
     responseLang,
     translationHelp = null,
     shouldSendFailedAudio = false,
+    signal = new AbortController().signal,
   ) {
     clearTimeout(this.videoHandler.autoRetry);
     this.downloading = false;
     utils_debug.log(
       videoData,
       `Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`,
+      signal,
     );
     try {
+      if (signal.aborted) {
+        throw new Error("AbortError");
+      }
+
       const res = await this.videoHandler.votClient.translateVideo({
         videoData,
         requestLang,
@@ -17202,6 +17282,10 @@ class VOTTranslationHandler {
         shouldSendFailedAudio,
       });
       utils_debug.log("Translate video result", res);
+      if (signal.aborted) {
+        throw new Error("AbortError");
+      }
+
       if (res.translated && res.remainingTime < 1) {
         utils_debug.log("Video translation finished with this data: ", res);
         return res;
@@ -17217,28 +17301,41 @@ class VOTTranslationHandler {
         res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
         videoData.host === "youtube"
       ) {
-        console.log("Start audio download");
+        utils_debug.log("Start audio download");
         this.downloading = true;
         await this.audioDownloader.runAudioDownload(
           videoData.videoId,
           res.translationId,
-          new AbortController().signal,
+          signal,
         );
 
-        console.log("waiting downloading finish");
+        utils_debug.log("waiting downloading finish");
         // 15000 is fetch timeout, so there's no point in waiting longer
-        await waitForCondition(() => this.downloading === false, 15000);
+        await waitForCondition(
+          () => !this.downloading || signal.aborted,
+          15000,
+        );
+        if (signal.aborted) {
+          utils_debug.log("aborted after audio downloader vtrans");
+          throw new Error("AbortError");
+        }
+
         // for get instant result on download end
-        console.log("Send translate video");
         return await this.translateVideoImpl(
           videoData,
           requestLang,
           responseLang,
           translationHelp,
           true,
+          signal,
         );
       }
     } catch (err) {
+      if (err.message === "AbortError") {
+        utils_debug.log("aborted video translation");
+        return null;
+      }
+
       await this.videoHandler.updateTranslationErrorMsg(
         err.data?.message ?? err,
       );
@@ -17258,6 +17355,7 @@ class VOTTranslationHandler {
             responseLang,
             translationHelp,
             true,
+            signal,
           ),
         );
       }, 20000);
@@ -17269,20 +17367,35 @@ class VOTTranslationHandler {
    * @param {Object} videoData The video data.
    * @param {string} requestLang Source language.
    * @param {string} responseLang Target language.
+   * @param {AbortSignal} [signal] Optional AbortSignal for cancellation.
    * @returns {Promise<Object|null>} Promise resolving to the stream translation result.
    */
-  async translateStreamImpl(videoData, requestLang, responseLang) {
+  async translateStreamImpl(
+    videoData,
+    requestLang,
+    responseLang,
+    signal = new AbortController().signal,
+  ) {
     clearTimeout(this.videoHandler.autoRetry);
     utils_debug.log(
       videoData,
       `Translate stream (requestLang: ${requestLang}, responseLang: ${responseLang})`,
     );
     try {
+      if (signal.aborted) {
+        throw new Error("AbortError");
+      }
+
       const res = await this.videoHandler.votClient.translateStream({
         videoData,
         requestLang,
         responseLang,
       });
+
+      if (signal.aborted) {
+        throw new Error("AbortError");
+      }
+
       utils_debug.log("Translate stream result", res);
       if (!res.translated && res.interval === 10) {
         await this.videoHandler.updateTranslationErrorMsg(
@@ -17295,6 +17408,7 @@ class VOTTranslationHandler {
                 videoData,
                 requestLang,
                 responseLang,
+                signal,
               ),
             );
           }, res.interval * 1000);
@@ -17317,69 +17431,16 @@ class VOTTranslationHandler {
       }, res.interval * 1000);
       return res;
     } catch (err) {
+      if (err.message === "AbortError") {
+        utils_debug.log("aborted stream translation");
+        return null;
+      }
+
       console.error("[VOT] Failed to translate stream", err);
       await this.videoHandler.updateTranslationErrorMsg(
         err.data?.message ?? err,
       );
       return null;
-    }
-  }
-
-  /**
-   * Handles the translation button click.
-   * @returns {Promise<void>}
-   */
-  async handleTranslationBtnClick() {
-    utils_debug.log(
-      "[click translationBtn]",
-      this.videoHandler.audioPlayer,
-      this.videoHandler.audioPlayer.player,
-    );
-    if (this.videoHandler.audioPlayer.player.src) {
-      utils_debug.log(
-        "[click translationBtn] audio.src is not empty",
-        this.videoHandler.audioPlayer.player.src,
-      );
-      this.videoHandler.stopTranslate();
-      return;
-    }
-    if (this.videoHandler.hls?.url) {
-      utils_debug.log(
-        "[click translationBtn] hls is not empty",
-        this.videoHandler.hls.url,
-      );
-      this.videoHandler.stopTranslate();
-      return;
-    }
-    try {
-      utils_debug.log("[click translationBtn] trying execute translation");
-      if (!this.videoHandler.videoData?.videoId) {
-        throw new VOTLocalizedError("VOTNoVideoIDFound");
-      }
-      // For VK clips and Douyin, get the current video ID.
-      if (
-        (this.videoHandler.site.host === "vk" &&
-          this.videoHandler.site.additionalData === "clips") ||
-        this.videoHandler.site.host === "douyin"
-      ) {
-        this.videoHandler.videoData = await this.videoHandler.getVideoData();
-      }
-      utils_debug.log("Run translateFunc", this.videoHandler.videoData.videoId);
-      this.videoHandler.isTranslating = true;
-      await this.videoHandler.translateFunc(
-        this.videoHandler.videoData.videoId,
-        this.videoHandler.videoData.isStream,
-        this.videoHandler.videoData.detectedLanguage,
-        this.videoHandler.videoData.responseLanguage,
-        this.videoHandler.videoData.translationHelp,
-      );
-    } catch (err) {
-      console.error("[VOT]", err);
-      if (err?.name === "VOTLocalizedError") {
-        this.videoHandler.transformBtn("error", err.localizedMessage);
-      } else {
-        this.videoHandler.transformBtn("error", err?.message);
-      }
     }
   }
 }
@@ -17589,6 +17650,10 @@ class VideoHandler {
   votClient;
   /** @type {Chaimu} */
   audioPlayer;
+  /** @type {AbortController|undefined} */
+  abortController;
+  /** @type {AbortController|undefined} */
+  actionsAbortController;
   cacheManager; // cache for translation and subtitles
   downloadTranslationUrl = null;
   autoRetry; // auto retry timeout
@@ -17619,6 +17684,7 @@ class VideoHandler {
     this.container = container;
     this.site = site;
     this.abortController = new AbortController();
+    this.actionsAbortController = new AbortController();
     this.extraEvents = [];
     // Create helper instances.
     this.uiManager = new UIManager({
@@ -17675,7 +17741,7 @@ class VideoHandler {
     this.firstPlay = false;
     try {
       this.videoManager.videoValidator();
-      await this.translationHandler.handleTranslationBtnClick();
+      await this.uiManager.handleTranslationBtnClick();
     } catch (err) {
       console.error("[VOT]", err);
       return;
@@ -17703,7 +17769,7 @@ class VideoHandler {
     utils_debug.log("preferAudio:", preferAudio);
     this.audioPlayer = new Chaimu({
       video: this.video,
-      debug: false,
+      debug: true,
       fetchFn: GM_fetch,
       fetchOpts: {
         timeout: 0,
@@ -17752,6 +17818,7 @@ class VideoHandler {
       translateProxyEnabledDefault: true,
       audioBooster: false,
       useNewModel: false,
+      useAudioDownload: true,
       localeHash: "",
       localeUpdatedAt: false,
     });
@@ -17830,6 +17897,9 @@ class VideoHandler {
   initVOTClient() {
     this.votOpts = {
       fetchFn: GM_fetch,
+      fetchOpts: {
+        signal: this.actionsAbortController.signal,
+      },
       hostVOT: votBackendUrl,
       host: this.data.translateProxyEnabled
         ? this.data.proxyWorkerHost
@@ -17850,6 +17920,13 @@ class VideoHandler {
   transformBtn(status, text) {
     this.uiManager.transformBtn(status, text);
     return this;
+  }
+
+  /**
+   * @returns {boolean} True if the extension audio player has active audio source
+   */
+  hasActiveSource() {
+    return !!(this.audioPlayer.player.src || this.hls?.url);
   }
 
   /**
@@ -17984,7 +18061,7 @@ class VideoHandler {
         );
 
         if (combo === this.data.translationHotkey) {
-          await this.translationHandler.handleTranslationBtnClick();
+          await this.uiManager.handleTranslationBtnClick();
         }
       },
       { signal },
@@ -18325,11 +18402,14 @@ class VideoHandler {
     this.longWaitingResCount = 0;
     this.transformBtn("none", localizationProvider.get("translateVideo"));
     utils_debug.log(`Volume on start: ${this.volumeOnStart}`);
-    if (this.volumeOnStart) this.setVideoVolume(this.volumeOnStart);
+    if (this.volumeOnStart) {
+      this.setVideoVolume(this.volumeOnStart);
+    }
     clearInterval(this.streamPing);
     clearTimeout(this.autoRetry);
     this.hls?.destroy();
     this.firstSyncVolume = true;
+    this.actionsAbortController = new AbortController();
   }
 
   /**
@@ -18441,6 +18521,8 @@ class VideoHandler {
         this.videoData.detectedLanguage,
         this.videoData.responseLanguage,
         this.videoData.translationHelp,
+        !this.data.useAudioDownload,
+        this.actionsAbortController.signal,
       );
       this.setSelectMenuValues(
         this.videoData.detectedLanguage,
@@ -18541,6 +18623,7 @@ class VideoHandler {
         this.videoData,
         requestLang,
         responseLang,
+        this.actionsAbortController.signal,
       );
       if (!translateRes) {
         utils_debug.log("Skip translation");
@@ -18572,6 +18655,8 @@ class VideoHandler {
       requestLang,
       responseLang,
       translationHelp,
+      !this.data.useAudioDownload,
+      this.actionsAbortController.signal,
     );
     utils_debug.log("[translateRes]", translateRes);
     if (!translateRes) {
@@ -18705,6 +18790,7 @@ class VideoHandler {
       this.videoData.detectedLanguage,
       this.videoData.responseLanguage,
     );
+    this.actionsAbortController = new AbortController();
   }
 
   /**

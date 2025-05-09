@@ -43,6 +43,7 @@ export const storageKeys = [
   "audioBooster",
   "useNewModel",
   "autoHideButtonDelay",
+  "useAudioDownload",
   "localePhrases",
   "localeLang",
   "localeHash",
@@ -90,6 +91,7 @@ export type StorageData = {
   audioBooster: boolean;
   useNewModel: boolean;
   autoHideButtonDelay: number;
+  useAudioDownload: boolean;
   localePhrases: string;
   localeLang: string;
   localeHash: string;
