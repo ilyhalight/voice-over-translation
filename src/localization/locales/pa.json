@@ -232,5 +232,7 @@
   "downloadFailed": "ਫਾਇਲ ਡਾਊਨਲੋਡ ਕਰਨ ਲਈ ਫੇਲ੍ਹ ਹੈ",
   "minButtonPositionContainer": "ਬਟਨ ਦੀ ਸਥਿਤੀ ਸਿਰਫ 600 ਪਿਕਸਲ ਤੋਂ ਵੱਡੇ ਖਿਡਾਰੀਆਂ ਵਿੱਚ ਬਦਲਦੀ ਹੈ.",
   "VOTTranslateProxyStatusDefault": "ਤੁਹਾਡੇ ਦੇਸ਼ ਵਿੱਚ ਪ੍ਰੌਕਸੀ ਨੂੰ ਪੂਰੀ ਤਰ੍ਹਾਂ ਅਯੋਗ ਕਰਨਾ ਐਕਸਟੈਂਸ਼ਨ ਨੂੰ ਤੋੜ ਸਕਦਾ ਹੈ",
-  "PressTheKeyCombination": "ਕੁੰਜੀ ਸੰਜੋਗ ਦਬਾਓ..."
+  "PressTheKeyCombination": "ਕੁੰਜੀ ਸੰਜੋਗ ਦਬਾਓ...",
+  "VOTUseAudioDownload": "ਆਡੀਓ ਡਾਊਨਲੋਡ ਵਰਤੋਂ",
+  "VOTUseAudioDownloadWarning": "ਆਡੀਓ ਡਾਉਨਲੋਡਸ ਨੂੰ ਅਯੋਗ ਕਰਨਾ ਐਕਸਟੈਂਸ਼ਨ ਦੀ ਕਾਰਜਸ਼ੀਲਤਾ ਨੂੰ ਪ੍ਰਭਾਵਤ ਕਰ ਸਕਦਾ ਹੈ"
 }

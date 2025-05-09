@@ -232,5 +232,7 @@
   "downloadFailed": "Файлыг татаж авч чадсангүй",
   "minButtonPositionContainer": "Товчлуурын байрлал нь зөвхөн 600 пикселээс том тоглогчдод л өөрчлөгддөг.",
   "VOTTranslateProxyStatusDefault": "Танай улсад proxying-ийг бүрэн идэвхгүй болгох нь өргөтгөлийг эвдэж болзошгүй юм",
-  "PressTheKeyCombination": "Товчлуурын хослолыг дарна уу..."
+  "PressTheKeyCombination": "Товчлуурын хослолыг дарна уу...",
+  "VOTUseAudioDownload": "Аудио татаж ашиглах",
+  "VOTUseAudioDownloadWarning": "Аудио татан авалтыг идэвхгүй болгох нь өргөтгөлийн үйл ажиллагаанд нөлөөлж болзошгүй юм"
 }

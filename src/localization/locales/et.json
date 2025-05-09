@@ -232,5 +232,7 @@
   "downloadFailed": "Faili allalaadimine nurjus",
   "minButtonPositionContainer": "Nupu asend muutub ainult mängijates, mis on suuremad kui 600 pikslit.",
   "VOTTranslateProxyStatusDefault": "Puhverserveri täielik keelamine teie riigis võib laienduse katkestada",
-  "PressTheKeyCombination": "Vajutage klahvikombinatsiooni..."
+  "PressTheKeyCombination": "Vajutage klahvikombinatsiooni...",
+  "VOTUseAudioDownload": "Kasutage heli allalaadimist",
+  "VOTUseAudioDownloadWarning": "Heli allalaadimise keelamine võib mõjutada laienduse funktsionaalsust"
 }

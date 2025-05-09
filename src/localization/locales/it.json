@@ -232,5 +232,7 @@
   "downloadFailed": "Download del file non riuscito",
   "minButtonPositionContainer": "La posizione del pulsante cambia solo nei giocatori più grandi di 600 pixel.",
   "VOTTranslateProxyStatusDefault": "La disattivazione completa del proxy nel tuo paese potrebbe interrompere l'estensione",
-  "PressTheKeyCombination": "Premere la combinazione di tasti..."
+  "PressTheKeyCombination": "Premere la combinazione di tasti...",
+  "VOTUseAudioDownload": "Usa il download audio",
+  "VOTUseAudioDownloadWarning": "La disattivazione dei download audio può influire sulla funzionalità dell'estensione"
 }

@@ -232,5 +232,7 @@
   "downloadFailed": "Preuzimanje datoteke nije uspjelo",
   "minButtonPositionContainer": "Položaj gumba mijenja se samo na igračima većim od 600 piksela.",
   "VOTTranslateProxyStatusDefault": "Potpuno onemogućavanje opunomoćenika u vašoj zemlji može dovesti do kvara proširenja",
-  "PressTheKeyCombination": "Pritisnite kombinaciju tipki..."
+  "PressTheKeyCombination": "Pritisnite kombinaciju tipki...",
+  "VOTUseAudioDownload": "Koristite preuzimanje zvuka",
+  "VOTUseAudioDownloadWarning": "Onemogućavanje preuzimanja zvuka može utjecati na funkcionalnost proširenja"
 }

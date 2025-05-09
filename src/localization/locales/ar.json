@@ -232,5 +232,7 @@
   "downloadFailed": "فشل تنزيل الملف",
   "minButtonPositionContainer": "يتغير موضع الزر فقط في اللاعبين الأكبر من 600 بكسل.",
   "VOTTranslateProxyStatusDefault": "قد يؤدي تعطيل البروكسي تماما في بلدك إلى كسر الامتداد",
-  "PressTheKeyCombination": "اضغط على مجموعة المفاتيح..."
+  "PressTheKeyCombination": "اضغط على مجموعة المفاتيح...",
+  "VOTUseAudioDownload": "استخدام تنزيل الصوت",
+  "VOTUseAudioDownloadWarning": "قد يؤثر تعطيل تنزيلات الصوت على وظيفة الامتداد"
 }

@@ -232,5 +232,7 @@
   "downloadFailed": "Kon nie lêer aflaai nie",
   "minButtonPositionContainer": "Die knoppie posisie verander slegs in spelers groter as 600 pixels.",
   "VOTTranslateProxyStatusDefault": "As u die volmag in u land heeltemal deaktiveer, kan dit die uitbreiding verbreek",
-  "PressTheKeyCombination": "Druk die sleutelkombinasie..."
+  "PressTheKeyCombination": "Druk die sleutelkombinasie...",
+  "VOTUseAudioDownload": "Gebruik klank aflaai",
+  "VOTUseAudioDownloadWarning": "As u klank aflaai deaktiveer, kan dit die funksionaliteit van die uitbreiding beïnvloed"
 }

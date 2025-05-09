@@ -232,5 +232,7 @@
   "downloadFailed": "ගොනුව බාගත කිරීමට අසමත්",
   "minButtonPositionContainer": "බොත්තමේ පිහිටීම වෙනස් වෙන්නේ පික්සල් 600ට වඩා විශාල ක් රීඩකයන් තුළ පමණයි.",
   "VOTTranslateProxyStatusDefault": "සම්පූර්ණයෙන්ම අක්රිය ඔබගේ රටේ proxying දීර්ඝ බිඳ දැමිය හැක",
-  "PressTheKeyCombination": "යතුරු සංයෝගය ඔබන්න..."
+  "PressTheKeyCombination": "යතුරු සංයෝගය ඔබන්න...",
+  "VOTUseAudioDownload": "ශ්රව්ය බාගත භාවිතා කරන්න",
+  "VOTUseAudioDownloadWarning": "ශ් රව් ය බාගත කිරීම් අක් රිය කිරීම දිගු කිරීමේ ක් රියාකාරිත්වයට බලපෑම් කළ හැකිය"
 }

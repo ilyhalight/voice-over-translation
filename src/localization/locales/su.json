@@ -232,5 +232,7 @@
   "downloadFailed": "Gagal pikeun ngundeur file",
   "minButtonPositionContainer": "Posisi tombol ngan robah dina pamaén leuwih gede ti 600 piksel.",
   "VOTTranslateProxyStatusDefault": "Lengkep nganonaktipkeun proxying di nagara anjeun bisa megatkeun extension nu",
-  "PressTheKeyCombination": "Pencét kombinasi konci..."
+  "PressTheKeyCombination": "Pencét kombinasi konci...",
+  "VOTUseAudioDownload": "Paké audio download",
+  "VOTUseAudioDownloadWarning": "Nganonaktipkeun download audio bisa mangaruhan fungsionalitas extension"
 }

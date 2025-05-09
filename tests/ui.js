@@ -12,7 +12,7 @@ import Dialog from "../src/ui/components/dialog.ts";
 import HotkeyButton from "../src/ui/components/hotkeyButton.ts";
 import Details from "../src/ui/components/details.ts";
 import LanguagePairSelect from "../src/ui/components/languagePairSelect.ts";
-import SelectLabel from "../src/ui/components/selectLabel.ts";
+import Label from "../src/ui/components/label.ts";
 
 class TestUI {
   initUI() {
@@ -309,7 +309,7 @@ class TestUI {
     this.votMenu.bodyContainer.appendChild(this.languagePair.container);
 
     // VOTSelectLabel
-    this.votSelectLabel = new SelectLabel({
+    this.votSelectLabel = new Label({
       labelText: "VOTSubtitles",
     });
     this.subtitlesSelect = new Select({

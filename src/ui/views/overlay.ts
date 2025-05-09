@@ -23,7 +23,7 @@ import { votStorage } from "../../utils/storage";
 import { maxAudioVolume } from "../../config/config";
 import { isPiPAvailable } from "../../utils/utils";
 import { localizationProvider } from "../../localization/localizationProvider";
-import SelectLabel from "../components/selectLabel";
+import Label from "../components/label";
 
 export class OverlayView {
   root: HTMLElement;
@@ -60,7 +60,7 @@ export class OverlayView {
   downloadSubtitlesButton?: HTMLElement;
   openSettingsButton?: HTMLElement;
   languagePairSelect?: LanguagePairSelect<RequestLang, ResponseLang>;
-  subtitlesSelectLabel?: SelectLabel;
+  subtitlesSelectLabel?: Label;
   subtitlesSelect?: Select;
   videoVolumeSliderLabel?: SliderLabel;
   videoVolumeSlider?: Slider;
@@ -97,7 +97,7 @@ export class OverlayView {
     downloadSubtitlesButton: HTMLElement;
     openSettingsButton: HTMLElement;
     languagePairSelect: LanguagePairSelect<RequestLang, ResponseLang>;
-    subtitlesSelectLabel: SelectLabel;
+    subtitlesSelectLabel: Label;
     subtitlesSelect: Select;
     videoVolumeSliderLabel: SliderLabel;
     videoVolumeSlider: Slider;
@@ -379,7 +379,7 @@ export class OverlayView {
       },
     });
 
-    this.subtitlesSelectLabel = new SelectLabel({
+    this.subtitlesSelectLabel = new Label({
       labelText: localizationProvider.get("VOTSubtitles"),
     });
     this.subtitlesSelect = new Select({

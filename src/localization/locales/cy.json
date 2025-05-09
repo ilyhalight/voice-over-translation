@@ -232,5 +232,7 @@
   "downloadFailed": "Methu llwytho ffeil i lawr",
   "minButtonPositionContainer": "Mae safle'r botwm ond yn newid mewn chwaraewyr sy'n fwy na 600 picsel.",
   "VOTTranslateProxyStatusDefault": "Gall analluogi dirprwyo'n llwyr yn eich gwlad dorri'r estyniad",
-  "PressTheKeyCombination": "Pwyswch y cyfuniad allweddol..."
+  "PressTheKeyCombination": "Pwyswch y cyfuniad allweddol...",
+  "VOTUseAudioDownload": "Defnyddio lawrlwytho sain",
+  "VOTUseAudioDownloadWarning": "Gall analluogi lawrlwythiadau sain effeithio ar ymarferoldeb yr estyniad"
 }

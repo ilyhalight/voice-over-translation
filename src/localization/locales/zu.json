@@ -232,5 +232,7 @@
   "downloadFailed": "Yehlulekile ukulanda ifayela",
   "minButtonPositionContainer": "Isikhundla senkinobho sishintsha kuphela kubadlali abanamaphikseli angaphezu kuka-600.",
   "VOTTranslateProxyStatusDefault": "Ukukhubaza ngokuphelele ukumela izwe lakho kungase kuphule ukunwetshwa",
-  "PressTheKeyCombination": "Cindezela inhlanganisela key..."
+  "PressTheKeyCombination": "Cindezela inhlanganisela key...",
+  "VOTUseAudioDownload": "Sebenzisa audio thwebula",
+  "VOTUseAudioDownloadWarning": "Ukukhubaza ukulandwa komsindo kungathinta ukusebenza kwesandiso"
 }

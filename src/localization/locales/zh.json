@@ -232,5 +232,7 @@
   "downloadFailed": "下载文件失败",
   "minButtonPositionContainer": "按钮位置仅在大于600像素的玩家中发生变化。",
   "VOTTranslateProxyStatusDefault": "在您的国家/地区完全禁用代理可能会破坏扩展",
-  "PressTheKeyCombination": "按组合键。.."
+  "PressTheKeyCombination": "按组合键。..",
+  "VOTUseAudioDownload": "使用音频下载",
+  "VOTUseAudioDownloadWarning": "禁用音频下载可能会影响扩展的功能"
 }

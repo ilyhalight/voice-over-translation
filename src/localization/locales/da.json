@@ -232,5 +232,7 @@
   "downloadFailed": "Kunne ikke hente filen",
   "minButtonPositionContainer": "Knappositionen ændres kun i spillere, der er større end 600 punkter.",
   "VOTTranslateProxyStatusDefault": "Fuldstændig deaktivering af fuldmagt i dit land kan bryde udvidelsen",
-  "PressTheKeyCombination": "Tryk på tastekombinationen..."
+  "PressTheKeyCombination": "Tryk på tastekombinationen...",
+  "VOTUseAudioDownload": "Brug lydoverførsel",
+  "VOTUseAudioDownloadWarning": "Deaktivering af lydoverførsler kan påvirke udvidelsens funktionalitet"
 }

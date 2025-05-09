@@ -1,6 +1,6 @@
 import { LitHtml } from "./shared";
 
-export type SelectLabelProps = {
+export type LabelProps = {
   labelText: string;
   icon?: LitHtml;
 };

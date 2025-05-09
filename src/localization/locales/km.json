@@ -232,5 +232,7 @@
   "downloadFailed": "បានបរាជ័យក្នុងការទាញយកឯកសារ",
   "minButtonPositionContainer": "ទីតាំងប៊ូតុងនេះបានផ្លាស់ប្តូរតែនៅក្នុងអ្នកលេងដែលមានទំហំធំជាង 600 ភិចសែល.",
   "VOTTranslateProxyStatusDefault": "បិទទាំងស្រុងប្រូកស៊ីនៅក្នុងប្រទេសរបស់អ្នកអាចបំបែកផ្នែកបន្ថែម",
-  "PressTheKeyCombination": "ចុចបន្សំគ្រាប់ចុច។.."
+  "PressTheKeyCombination": "ចុចបន្សំគ្រាប់ចុច។..",
+  "VOTUseAudioDownload": "ប្រើអូឌីយ៉ូទាញយក",
+  "VOTUseAudioDownloadWarning": "បិទការទាញយកអូឌីយ៉ូអាចប៉ះពាល់ដល់មុខងាររបស់ផ្នែកបន្ថែម"
 }

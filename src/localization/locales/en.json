@@ -232,5 +232,7 @@
   "downloadFailed": "Failed to download file",
   "minButtonPositionContainer": "The button position only changes in players larger than 600 pixels.",
   "VOTTranslateProxyStatusDefault": "Completely disabling proxying in your country may break the extension",
-  "PressTheKeyCombination": "Press the key combination..."
+  "PressTheKeyCombination": "Press the key combination...",
+  "VOTUseAudioDownload": "Use audio download",
+  "VOTUseAudioDownloadWarning": "Disabling audio downloads may affect the functionality of the extension"
 }

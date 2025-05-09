@@ -232,5 +232,7 @@
   "downloadFailed": "Datoteke ni bilo mogoče prenesti",
   "minButtonPositionContainer": "Položaj gumba se spremeni samo pri predvajalnikih, večjih od 600 slikovnih pik.",
   "VOTTranslateProxyStatusDefault": "Popolnoma onemogočanje posredništva v vaši državi lahko prekine razširitev",
-  "PressTheKeyCombination": "Pritisnite kombinacijo tipk..."
+  "PressTheKeyCombination": "Pritisnite kombinacijo tipk...",
+  "VOTUseAudioDownload": "Uporabite prenos zvoka",
+  "VOTUseAudioDownloadWarning": "Onemogočanje prenosov zvoka lahko vpliva na funkcionalnost razširitve"
 }

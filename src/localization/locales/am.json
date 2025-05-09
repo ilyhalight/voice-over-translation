@@ -232,5 +232,7 @@
   "downloadFailed": "ፋይል ማውረድ አልተሳካም",
   "minButtonPositionContainer": "ከ 600 ፒክስል በላይ በሆኑ ተጫዋቾች ላይ የአዝራር አቀማመጥ ብቻ ይለወጣል።",
   "VOTTranslateProxyStatusDefault": "በአገርዎ ውስጥ ፕሮክሲን ሙሉ በሙሉ ማሰናከል ቅጥያውን ሊያፈርስ ይችላል ። ",
-  "PressTheKeyCombination": "ቁልፍ ጥምረት ይጫኑ..."
+  "PressTheKeyCombination": "ቁልፍ ጥምረት ይጫኑ...",
+  "VOTUseAudioDownload": "የድምጽ ማውረድ ይጠቀሙ",
+  "VOTUseAudioDownloadWarning": "የድምጽ ማውረዶችን ማሰናከል የቅጥያውን ተግባር ላይ ተጽዕኖ ሊያሳድር ይችላል ። "
 }

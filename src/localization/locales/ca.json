@@ -232,5 +232,7 @@
   "downloadFailed": "Ha fallat en descarregar el fitxer",
   "minButtonPositionContainer": "La posició del botó només canvia en jugadors de més de 600 píxels.",
   "VOTTranslateProxyStatusDefault": "Desactivar completament el proxy al vostre país pot trencar l'extensió",
-  "PressTheKeyCombination": "Premeu la combinació de tecles..."
+  "PressTheKeyCombination": "Premeu la combinació de tecles...",
+  "VOTUseAudioDownload": "Utilitza la descàrrega d'àudio",
+  "VOTUseAudioDownloadWarning": "La desactivació de les descàrregues d'àudio pot afectar la funcionalitat de l'extensió"
 }

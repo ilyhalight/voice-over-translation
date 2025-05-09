@@ -28,24 +28,6 @@
     display: none !important;
   }
 
-  &-label {
-    font-size: 16px;
-    font-family: inherit;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-
-    .vot-select-label-icon {
-      height: 20px;
-      width: 20px;
-      margin-top: 2px;
-      > svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-  }
-
   &-outer {
     display: flex;
     align-items: center;

@@ -232,5 +232,7 @@
   "downloadFailed": "Faylni yuklab bo'lmadi",
   "minButtonPositionContainer": "Tugma holati faqat 600 pikseldan katta o'yinchilarda o'zgaradi.",
   "VOTTranslateProxyStatusDefault": "Mamlakatingizda proksi-serverni butunlay o'chirib qo'yish kengaytmani buzishi mumkin",
-  "PressTheKeyCombination": "Tugmalar birikmasini bosing..."
+  "PressTheKeyCombination": "Tugmalar birikmasini bosing...",
+  "VOTUseAudioDownload": "Audio yuklab olishdan foydalaning",
+  "VOTUseAudioDownloadWarning": "Ovozni yuklab olishni o'chirib qo'yish kengaytmaning ishlashiga ta'sir qilishi mumkin"
 }

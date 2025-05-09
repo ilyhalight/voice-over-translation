@@ -232,5 +232,7 @@
   "downloadFailed": "Nem sikerült letölteni a fájlt",
   "minButtonPositionContainer": "A gomb pozíciója csak a 600 pixelnél nagyobb játékosoknál változik.",
   "VOTTranslateProxyStatusDefault": "A proxy teljes letiltása az Ön országában megszakíthatja a kiterjesztést",
-  "PressTheKeyCombination": "Nyomja meg a billentyűkombinációt..."
+  "PressTheKeyCombination": "Nyomja meg a billentyűkombinációt...",
+  "VOTUseAudioDownload": "Használja az audio letöltést",
+  "VOTUseAudioDownloadWarning": "A hangletöltések letiltása befolyásolhatja a kiterjesztés működését"
 }

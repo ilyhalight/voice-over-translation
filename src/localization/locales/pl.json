@@ -232,5 +232,7 @@
   "downloadFailed": "Nie udało się pobrać pliku",
   "minButtonPositionContainer": "Pozycja przycisku zmienia się tylko u graczy większych niż 600 pikseli.",
   "VOTTranslateProxyStatusDefault": "Całkowite wyłączenie proxy w Twoim kraju może przerwać rozszerzenie",
-  "PressTheKeyCombination": "Naciśnij kombinację klawiszy..."
+  "PressTheKeyCombination": "Naciśnij kombinację klawiszy...",
+  "VOTUseAudioDownload": "Użyj pobierania audio",
+  "VOTUseAudioDownloadWarning": "Wyłączenie pobierania dźwięku może wpłynąć na funkcjonalność rozszerzenia"
 }

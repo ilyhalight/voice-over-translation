@@ -1,0 +1,17 @@
+.vot-label {
+  font-size: 16px;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &-icon {
+    height: 20px;
+    width: 20px;
+    margin-top: 2px;
+    > svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}

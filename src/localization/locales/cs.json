@@ -232,5 +232,7 @@
   "downloadFailed": "Nepodařilo se stáhnout soubor",
   "minButtonPositionContainer": "Pozice tlačítka se mění pouze u hráčů větších než 600 pixelů.",
   "VOTTranslateProxyStatusDefault": "Úplné deaktivace proxy ve vaší zemi může rozšíření přerušit",
-  "PressTheKeyCombination": "Stiskněte kombinaci kláves..."
+  "PressTheKeyCombination": "Stiskněte kombinaci kláves...",
+  "VOTUseAudioDownload": "Použijte stahování zvuku",
+  "VOTUseAudioDownloadWarning": "Zakázání stahování zvuku může ovlivnit funkčnost rozšíření"
 }

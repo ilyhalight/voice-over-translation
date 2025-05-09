@@ -232,5 +232,7 @@
   "downloadFailed": "파일 다운로드 실패",
   "minButtonPositionContainer": "버튼 위치는 600 픽셀보다 큰 플레이어에서만 변경됩니다.",
   "VOTTranslateProxyStatusDefault": "귀하의 국가에서 프록시를 완전히 비활성화하면 확장 프로그램이 중단 될 수 있습니다",
-  "PressTheKeyCombination": "키 조합을 누릅니다..."
+  "PressTheKeyCombination": "키 조합을 누릅니다...",
+  "VOTUseAudioDownload": "오디오 다운로드 사용",
+  "VOTUseAudioDownloadWarning": "오디오 다운로드를 비활성화하면 확장 프로그램의 기능에 영향을 줄 수 있습니다"
 }

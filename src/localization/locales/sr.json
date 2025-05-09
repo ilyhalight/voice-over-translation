@@ -232,5 +232,7 @@
   "downloadFailed": "Преузимање датотеке није успело",
   "minButtonPositionContainer": "Положај дугмета се мења само на плејерима већим од 600 пиксела.",
   "VOTTranslateProxyStatusDefault": "Потпуно онемогућавање проки сервера у вашој земљи може проузроковати квар проширења",
-  "PressTheKeyCombination": "Притисните комбинацију тастера..."
+  "PressTheKeyCombination": "Притисните комбинацију тастера...",
+  "VOTUseAudioDownload": "Користите аудио Довнлоад",
+  "VOTUseAudioDownloadWarning": "Онемогућавање преузимања звука може утицати на функционалност проширења"
 }

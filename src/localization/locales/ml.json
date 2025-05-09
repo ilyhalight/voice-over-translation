@@ -232,5 +232,7 @@
   "downloadFailed": "Failed to download file",
   "minButtonPositionContainer": "ബട്ടൺ സ്ഥാനം 600 പിക്സലുകളേക്കാൾ വലുപ്പമുള്ള കളിക്കാരിൽ മാത്രം മാറ്റുന്നു.",
   "VOTTranslateProxyStatusDefault": "നിങ്ങളുടെ രാജ്യത്ത് പ്രോക്സിംഗ് പൂർണ്ണമായും അപ്രാപ്തമാക്കുന്നത് വിപുലീകരണം തകർത്തേക്കാം",
-  "PressTheKeyCombination": "കീ കോമ്പിനേഷൻ അമർത്തുക..."
+  "PressTheKeyCombination": "കീ കോമ്പിനേഷൻ അമർത്തുക...",
+  "VOTUseAudioDownload": "Use audio download",
+  "VOTUseAudioDownloadWarning": "ഓഡിയോ ഡൌൺലോഡുകൾ അപ്രാപ്തമാക്കുന്നത് വിപുലീകരണത്തിന്റെ പ്രവർത്തനത്തെ ബാധിച്ചേക്കാം"
 }

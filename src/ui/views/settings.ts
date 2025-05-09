@@ -1,4 +1,4 @@
-import { html, render } from "lit-html";
+import { html } from "lit-html";
 import { availableLangs, subtitlesFormats } from "@vot.js/shared/consts";
 import type { SubtitleFormat } from "@vot.js/shared/types/subs";
 import type { TMInfoScriptMeta } from "@toil/gm-types/types/info/tampermonkey";
@@ -47,7 +47,7 @@ import {
   isProxyOnlyExtension,
 } from "../../utils/utils";
 import { HELP_ICON, WARNING_ICON } from "../icons";
-import SelectLabel from "../components/selectLabel";
+import Label from "../components/label";
 
 export class SettingsView {
   globalPortal: HTMLElement;
@@ -94,8 +94,11 @@ export class SettingsView {
   downloadWithNameCheckbox?: Checkbox;
   sendNotifyOnCompleteCheckbox?: Checkbox;
   useLivelyVoiceCheckbox?: Checkbox;
+  useAudioDownloadCheckbox?: Checkbox;
+  useAudioDownloadCheckboxLabel?: Label;
+  useAudioDownloadCheckboxTooltip?: Tooltip;
   subtitlesSettingsHeader?: HTMLElement;
-  subtitlesDownloadFormatSelectLabel?: SelectLabel;
+  subtitlesDownloadFormatSelectLabel?: Label;
   subtitlesDownloadFormatSelect?: Select<SubtitleFormat>;
   subtitlesDesignDetails?: Details;
   hotkeysSettingsHeader?: HTMLElement;
@@ -103,7 +106,7 @@ export class SettingsView {
   proxySettingsHeader?: HTMLElement;
   proxyM3U8HostTextfield?: Textfield;
   proxyWorkerHostTextfield?: Textfield;
-  proxyTranslationStatusSelectLabel?: SelectLabel;
+  proxyTranslationStatusSelectLabel?: Label;
   proxyTranslationStatusSelectTooltip?: Tooltip;
   proxyTranslationStatusSelect?: Select;
   miscSettingsHeader?: HTMLElement;
@@ -112,10 +115,10 @@ export class SettingsView {
   useNewAudioPlayerTooltip?: Tooltip;
   onlyBypassMediaCSPCheckbox?: Checkbox;
   onlyBypassMediaCSPTooltip?: Tooltip;
-  translationTextServiceLabel?: SelectLabel;
+  translationTextServiceLabel?: Label;
   translationTextServiceSelect?: Select<TranslateService>;
   translationTextServiceTooltip?: Tooltip;
-  detectServiceLabel?: SelectLabel;
+  detectServiceLabel?: Label;
   detectServiceSelect?: Select<DetectService>;
   appearanceDetails?: Details;
   aboutExtensionDetails?: Details;
@@ -145,10 +148,13 @@ export class SettingsView {
     downloadWithNameCheckbox: Checkbox;
     sendNotifyOnCompleteCheckbox: Checkbox;
     useLivelyVoiceCheckbox: Checkbox;
+    useAudioDownloadCheckbox: Checkbox;
+    useAudioDownloadCheckboxLabel: Label;
+    useAudioDownloadCheckboxTooltip: Tooltip;
     // #endregion Settings Translation type
     // #region Settings Subtitles type
     subtitlesSettingsHeader: HTMLElement;
-    subtitlesDownloadFormatSelectLabel: SelectLabel;
+    subtitlesDownloadFormatSelectLabel: Label;
     subtitlesDownloadFormatSelect: Select<SubtitleFormat>;
     subtitlesDesignDetails: Details;
     // #endregion Settings Subtitles type
@@ -160,12 +166,12 @@ export class SettingsView {
     proxySettingsHeader: HTMLElement;
     proxyM3U8HostTextfield: Textfield;
     proxyWorkerHostTextfield: Textfield;
-    proxyTranslationStatusSelectLabel: SelectLabel;
+    proxyTranslationStatusSelectLabel: Label;
     proxyTranslationStatusSelect: Select;
     // #endregion Settings Proxy type
     // #region Settings Misc type
     miscSettingsHeader: HTMLElement;
-    translationTextServiceLabel: SelectLabel;
+    translationTextServiceLabel: Label;
     translateAPIErrorsCheckbox: Checkbox;
     useNewAudioPlayerCheckbox: Checkbox;
     useNewAudioPlayerTooltip: Tooltip;
@@ -173,7 +179,7 @@ export class SettingsView {
     onlyBypassMediaCSPTooltip: Tooltip;
     translationTextServiceSelect: Select<TranslateService>;
     translationTextServiceTooltip: Tooltip;
-    detectServiceLabel: SelectLabel;
+    detectServiceLabel: Label;
     detectServiceSelect: Select<DetectService>;
     appearanceDetails: Details;
     aboutExtensionDetails: Details;
@@ -287,6 +293,24 @@ export class SettingsView {
       checked: this.data.useNewModel,
     });
 
+    this.useAudioDownloadCheckboxLabel = new Label({
+      labelText: localizationProvider.get("VOTUseAudioDownload"),
+      icon: WARNING_ICON,
+    });
+
+    this.useAudioDownloadCheckbox = new Checkbox({
+      labelHtml: this.useAudioDownloadCheckboxLabel.container,
+      checked: this.data.useAudioDownload,
+    });
+
+    this.useAudioDownloadCheckboxTooltip = new Tooltip({
+      target: this.useAudioDownloadCheckboxLabel.container,
+      content: localizationProvider.get("VOTUseAudioDownloadWarning"),
+      position: "bottom",
+      backgroundColor: "var(--vot-helper-ondialog)",
+      parentElement: this.globalPortal,
+    });
+
     this.dialog.bodyContainer.append(
       this.translationSettingsHeader,
       this.autoTranslateCheckbox.container,
@@ -298,6 +322,7 @@ export class SettingsView {
       this.downloadWithNameCheckbox.container,
       this.sendNotifyOnCompleteCheckbox.container,
       this.useLivelyVoiceCheckbox.container,
+      this.useAudioDownloadCheckbox.container,
     );
 
     // #endregion Translation
@@ -307,7 +332,7 @@ export class SettingsView {
       localizationProvider.get("subtitlesSettings"),
     );
 
-    this.subtitlesDownloadFormatSelectLabel = new SelectLabel({
+    this.subtitlesDownloadFormatSelectLabel = new Label({
       labelText: localizationProvider.get("VOTSubtitlesDownloadFormat"),
     });
     this.subtitlesDownloadFormatSelect = new Select<SubtitleFormat>({
@@ -376,7 +401,7 @@ export class SettingsView {
     const translateProxyEnabled = this.data.translateProxyEnabled ?? 0;
     const isTranslateProxyRequired =
       countryCode && proxyOnlyCountries.includes(countryCode);
-    this.proxyTranslationStatusSelectLabel = new SelectLabel({
+    this.proxyTranslationStatusSelectLabel = new Label({
       icon: isTranslateProxyRequired ? WARNING_ICON : undefined,
       labelText: localizationProvider.get("VOTTranslateProxyStatus"),
     });
@@ -461,7 +486,7 @@ export class SettingsView {
       this.onlyBypassMediaCSPCheckbox.hidden = true;
     }
 
-    this.translationTextServiceLabel = new SelectLabel({
+    this.translationTextServiceLabel = new Label({
       labelText: localizationProvider.get("VOTTranslationTextService"),
       icon: HELP_ICON,
     });
@@ -487,7 +512,7 @@ export class SettingsView {
       parentElement: this.globalPortal,
     });
 
-    this.detectServiceLabel = new SelectLabel({
+    this.detectServiceLabel = new Label({
       labelText: localizationProvider.get("VOTDetectService"),
     });
     const detectService = this.data.detectService ?? defaultDetectService;
@@ -638,6 +663,15 @@ export class SettingsView {
       debug.log("useNewModel value changed. New value:", checked);
       this.onChangeUseLivelyVoice.dispatch(checked);
     });
+
+    this.useAudioDownloadCheckbox.addEventListener(
+      "change",
+      async (checked) => {
+        this.data.useAudioDownload = checked;
+        await votStorage.set("useAudioDownload", this.data.useNewModel);
+        debug.log("useAudioDownload value changed. New value:", checked);
+      },
+    );
 
     // #endregion [Events] Translation
     // #region [Events] Subtitles
@@ -887,7 +921,7 @@ export class SettingsView {
         step: 0.1,
       });
 
-      const buttonPositionSelectLabel = new SelectLabel({
+      const buttonPositionSelectLabel = new Label({
         labelText: localizationProvider.get("buttonPositionInWidePlayer"),
         icon: HELP_ICON,
       });
@@ -910,7 +944,7 @@ export class SettingsView {
         parentElement: this.globalPortal,
       });
 
-      const menuLanguageSelectLabel = new SelectLabel({
+      const menuLanguageSelectLabel = new Label({
         labelText: localizationProvider.get("VOTMenuLanguage"),
       });
       const menuLanguageSelect = new Select({
@@ -1427,6 +1461,7 @@ export class SettingsView {
 
     this.dialog.remove();
     this.audioBoosterTooltip?.release();
+    this.useAudioDownloadCheckboxTooltip?.release();
     this.useNewAudioPlayerTooltip?.release();
     this.onlyBypassMediaCSPTooltip?.release();
     this.translationTextServiceTooltip?.release();

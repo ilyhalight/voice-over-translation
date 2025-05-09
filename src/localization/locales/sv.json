@@ -232,5 +232,7 @@
   "downloadFailed": "Det gick inte att hämta filen",
   "minButtonPositionContainer": "Knappens position ändras bara i spelare som är större än 600 pixlar.",
   "VOTTranslateProxyStatusDefault": "Helt inaktiverande proxy i ditt land kan bryta förlängningen",
-  "PressTheKeyCombination": "Tryck på tangentkombinationen..."
+  "PressTheKeyCombination": "Tryck på tangentkombinationen...",
+  "VOTUseAudioDownload": "Använd ljudnedladdning",
+  "VOTUseAudioDownloadWarning": "Inaktivera ljudnedladdningar kan påverka funktionaliteten i tillägget"
 }

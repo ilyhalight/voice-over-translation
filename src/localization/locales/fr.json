@@ -232,5 +232,7 @@
   "downloadFailed": "Impossible de télécharger le fichier",
   "minButtonPositionContainer": "La position du bouton ne change que dans les lecteurs de plus de 600 pixels.",
   "VOTTranslateProxyStatusDefault": "La désactivation complète du proxy dans votre pays peut casser l'extension",
-  "PressTheKeyCombination": "Appuyez sur la combinaison de touches..."
+  "PressTheKeyCombination": "Appuyez sur la combinaison de touches...",
+  "VOTUseAudioDownload": "Utiliser le téléchargement audio",
+  "VOTUseAudioDownloadWarning": "La désactivation des téléchargements audio peut affecter la fonctionnalité de l'extension"
 }

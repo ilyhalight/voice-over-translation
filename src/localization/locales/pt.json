@@ -231,5 +231,7 @@
   "downloadFailed": "Falha ao baixar o arquivo",
   "minButtonPositionContainer": "A posição do botão só muda em Jogadores com mais de 600 píxeis.",
   "VOTTranslateProxyStatusDefault": "Desativar completamente o proxy no seu país pode quebrar a extensão",
-  "PressTheKeyCombination": "Prima a combinação de teclas..."
+  "PressTheKeyCombination": "Prima a combinação de teclas...",
+  "VOTUseAudioDownload": "Utilizar a transferência de áudio",
+  "VOTUseAudioDownloadWarning": "A desativação de downloads de áudio pode afetar a funcionalidade da extensão"
 }

@@ -232,5 +232,7 @@
   "downloadFailed": "Huts egin du fitxategia deskargatzean",
   "minButtonPositionContainer": "Botoiaren posizioa 600 pixel baino handiagoak diren jokalarietan bakarrik aldatzen da.",
   "VOTTranslateProxyStatusDefault": "Zure herrialdean ordezkaritza erabat desgaitzeak luzapena hautsi dezake",
-  "PressTheKeyCombination": "Sakatu tekla konbinazioa..."
+  "PressTheKeyCombination": "Sakatu tekla konbinazioa...",
+  "VOTUseAudioDownload": "Erabili audio deskarga",
+  "VOTUseAudioDownloadWarning": "Audio deskargak desgaitzeak luzapenaren funtzionaltasunean eragina izan dezake"
 }

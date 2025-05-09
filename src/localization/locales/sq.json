@@ -232,5 +232,7 @@
   "downloadFailed": "Nuk arriti të shkarkojë skedarin",
   "minButtonPositionContainer": "Pozicioni i butonit ndryshon vetëm në lojtarët më të mëdhenj se 600 piksele.",
   "VOTTranslateProxyStatusDefault": "Çaktivizimi i plotë i proxying në vendin tuaj mund të prishë zgjatjen",
-  "PressTheKeyCombination": "Shtypni kombinimin e tastit..."
+  "PressTheKeyCombination": "Shtypni kombinimin e tastit...",
+  "VOTUseAudioDownload": "Përdorni shkarkimin audio",
+  "VOTUseAudioDownloadWarning": "Çaktivizimi i shkarkimeve audio mund të ndikojë në funksionalitetin e shtesës"
 }

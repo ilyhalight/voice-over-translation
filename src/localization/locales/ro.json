@@ -232,5 +232,7 @@
   "downloadFailed": "Nu a reușit să descarce fișierul",
   "minButtonPositionContainer": "Poziția butonului se schimbă doar la jucătorii mai mari de 600 de pixeli.",
   "VOTTranslateProxyStatusDefault": "Dezactivarea completă a proxy-ului în țara dvs. poate rupe extensia",
-  "PressTheKeyCombination": "Apăsați combinația de taste..."
+  "PressTheKeyCombination": "Apăsați combinația de taste...",
+  "VOTUseAudioDownload": "Utilizați descărcarea audio",
+  "VOTUseAudioDownloadWarning": "Dezactivarea descărcărilor audio poate afecta funcționalitatea extensiei"
 }

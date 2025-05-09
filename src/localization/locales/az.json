@@ -232,5 +232,7 @@
   "downloadFailed": "Faylı yükləmək mümkün olmadı",
   "minButtonPositionContainer": "Düymənin mövqeyi yalnız 600 pikseldən böyük pleyerlərdə dəyişir.",
   "VOTTranslateProxyStatusDefault": "Ölkənizdə bir proxy serverin tamamilə söndürülməsi uzantının pozulmasına səbəb ola bilər",
-  "PressTheKeyCombination": "Düymə birləşməsini basın..."
+  "PressTheKeyCombination": "Düymə birləşməsini basın...",
+  "VOTUseAudioDownload": "Audio yükləmədən istifadə edin",
+  "VOTUseAudioDownloadWarning": "Səs yükləməsini söndürmək uzantının funksionallığına təsir göstərə bilər"
 }
