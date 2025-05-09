@@ -39,6 +39,11 @@ const defaultDetectService = "yandexbrowser";
 const nonProxyExtensions = ["Tampermonkey", "Violentmonkey"];
 const proxyOnlyCountries = ["UA", "LV", "LT"];
 
+/**
+ * 100 - 3000 ms - delay before hiding button
+ */
+const defaultAutoHideDelay = 1000;
+
 export {
   workerHost,
   m3u8ProxyHost,
@@ -56,4 +61,5 @@ export {
   minLongWaitingCount,
   nonProxyExtensions,
   proxyOnlyCountries,
+  defaultAutoHideDelay,
 };

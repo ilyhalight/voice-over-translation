@@ -29,6 +29,7 @@ import type {
 import debug from "../../utils/debug";
 import { detectServices, translateServices } from "../../utils/translateApis";
 import {
+  defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
   defaultTranslationService,
@@ -869,7 +870,8 @@ export class SettingsView {
       });
       showPiPButtonCheckbox.hidden = !isPiPAvailable();
 
-      const autoHideButtonDelay = this.data.autoHideButtonDelay ?? 1;
+      const autoHideButtonDelay =
+        (this.data.autoHideButtonDelay ?? defaultAutoHideDelay) / 1000;
       const autoHideButtonDelaySliderLabel = new SliderLabel({
         labelText: localizationProvider.get("autoHideButtonDelay"),
         labelEOL: ":",
@@ -945,9 +947,11 @@ export class SettingsView {
       });
 
       autoHideButtonDelaySlider.addEventListener("input", async (value) => {
-        debug.log("autoHideButtonDelay value changed. New value:", value);
         autoHideButtonDelaySliderLabel.value = value;
-        this.data.autoHideButtonDelay = value;
+        // convert seconds to milliseconds
+        const newDelay = Math.round(value * 1000);
+        debug.log("autoHideButtonDelay value changed. New value:", newDelay);
+        this.data.autoHideButtonDelay = newDelay;
         await votStorage.set(
           "autoHideButtonDelay",
           this.data.autoHideButtonDelay,

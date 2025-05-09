@@ -24,6 +24,7 @@ import {
   votBackendUrl,
   workerHost,
   proxyOnlyCountries,
+  defaultAutoHideDelay,
 } from "./config/config.js";
 import { localizationProvider } from "./localization/localizationProvider.ts";
 import { SubtitlesWidget, SubtitlesProcessor } from "./subtitles.js";
@@ -38,8 +39,6 @@ import {
   browserInfo,
   isIframe,
   waitForCondition,
-  timeout,
-  sleep,
 } from "./utils/utils.js";
 import { syncVolume } from "./utils/volume.js";
 import { VideoObserver } from "./utils/VideoObserver.js";
@@ -802,6 +801,7 @@ class VideoHandler {
       translateProxyEnabledDefault: true,
       audioBooster: false,
       useNewModel: false,
+      autoHideButtonDelay: defaultAutoHideDelay,
       useAudioDownload: true,
       localeHash: "",
       localeUpdatedAt: false,
@@ -1164,7 +1164,7 @@ class VideoHandler {
     this.uiManager.votOverlayView.updateButtonOpacity(1);
     this.timer = setTimeout(() => {
       this.uiManager.votOverlayView.updateButtonOpacity(0);
-    }, 1000);
+    }, this.data.autoHideButtonDelay);
   };
 
   /**

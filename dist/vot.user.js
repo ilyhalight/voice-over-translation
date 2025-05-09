@@ -5193,6 +5193,11 @@ const defaultDetectService = "yandexbrowser";
 const nonProxyExtensions = ["Tampermonkey", "Violentmonkey"];
 const proxyOnlyCountries = ["UA", "LV", "LT"];
 
+/**
+ * 100 - 3000 ms - delay before hiding button
+ */
+const defaultAutoHideDelay = 1000;
+
 
 
 ;// ./src/types/storage.ts
@@ -14931,7 +14936,8 @@ class SettingsView {
       });
       showPiPButtonCheckbox.hidden = !isPiPAvailable();
 
-      const autoHideButtonDelay = this.data.autoHideButtonDelay ?? 1;
+      const autoHideButtonDelay =
+        (this.data.autoHideButtonDelay ?? defaultAutoHideDelay) / 1000;
       const autoHideButtonDelaySliderLabel = new SliderLabel({
         labelText: localizationProvider.get("autoHideButtonDelay"),
         labelEOL: ":",
@@ -15007,9 +15013,11 @@ class SettingsView {
       });
 
       autoHideButtonDelaySlider.addEventListener("input", async (value) => {
-        utils_debug.log("autoHideButtonDelay value changed. New value:", value);
         autoHideButtonDelaySliderLabel.value = value;
-        this.data.autoHideButtonDelay = value;
+        // convert seconds to milliseconds
+        const newDelay = Math.round(value * 1000);
+        utils_debug.log("autoHideButtonDelay value changed. New value:", newDelay);
+        this.data.autoHideButtonDelay = newDelay;
         await votStorage.set(
           "autoHideButtonDelay",
           this.data.autoHideButtonDelay,
@@ -15876,9 +15884,6 @@ class UIManager {
         this.votOverlayView.votButton.pipButton.hidden =
           this.votOverlayView.votButton.separator2.hidden =
             !this.votOverlayView.pipButtonVisible;
-      })
-      .addEventListener("input:autoHideButtonDelay", (value) => {
-        // TODO: add logic
       })
       .addEventListener("select:buttonPosition", (item) => {
         if (!this.votOverlayView.isInitialized()) {
@@ -17818,6 +17823,7 @@ class VideoHandler {
       translateProxyEnabledDefault: true,
       audioBooster: false,
       useNewModel: false,
+      autoHideButtonDelay: defaultAutoHideDelay,
       useAudioDownload: true,
       localeHash: "",
       localeUpdatedAt: false,
@@ -18180,7 +18186,7 @@ class VideoHandler {
     this.uiManager.votOverlayView.updateButtonOpacity(1);
     this.timer = setTimeout(() => {
       this.uiManager.votOverlayView.updateButtonOpacity(0);
-    }, 1000);
+    }, this.data.autoHideButtonDelay);
   };
 
   /**

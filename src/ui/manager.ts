@@ -331,9 +331,6 @@ export class UIManager {
           this.votOverlayView.votButton.separator2.hidden =
             !this.votOverlayView.pipButtonVisible;
       })
-      .addEventListener("input:autoHideButtonDelay", (value) => {
-        // TODO: add logic
-      })
       .addEventListener("select:buttonPosition", (item) => {
         if (!this.votOverlayView.isInitialized()) {
           return;
