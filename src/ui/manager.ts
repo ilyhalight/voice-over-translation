@@ -17,7 +17,11 @@ import type { StorageData } from "../types/storage";
 import type { VideoHandler } from "..";
 import type { Status } from "../types/components/votButton";
 import { localizationProvider } from "../localization/localizationProvider";
-import { maxAudioVolume, repositoryUrl } from "../config/config";
+import {
+  actualCompatVersion,
+  maxAudioVolume,
+  repositoryUrl,
+} from "../config/config";
 import VOTButton from "./components/votButton";
 import { votStorage } from "../utils/storage";
 import debug from "../utils/debug";
@@ -343,18 +347,7 @@ export class UIManager {
         );
       })
       .addEventListener("select:menuLanguage", async () => {
-        this.videoHandler?.stopTranslation();
-        this.release();
-        this.initUI();
-        this.initUIEvents();
-        if (!this.videoHandler) {
-          return;
-        }
-
-        await this.videoHandler.updateSubtitlesLangSelect();
-        this.videoHandler.subtitlesWidget.portal =
-          this.votOverlayView.votOverlayPortal;
-        this.videoHandler.subtitlesWidget.strTranslatedTokens = "";
+        await this.reloadMenu();
       })
       .addEventListener("click:bugReport", () => {
         if (!this.videoHandler) {
@@ -372,11 +365,31 @@ export class UIManager {
         await Promise.all(
           valuesForClear.map(async (val) => await votStorage.delete(val)),
         );
+        await votStorage.set("compatVersion", actualCompatVersion);
 
         window.location.reload();
       });
 
     // #endregion settings view events
+  }
+
+  async reloadMenu() {
+    if (!this.votOverlayView?.isInitialized()) {
+      throw new Error("[VOT] OverlayView isn't initialized");
+    }
+
+    this.videoHandler?.stopTranslation();
+    this.release();
+    this.initUI();
+    this.initUIEvents();
+    if (!this.videoHandler) {
+      return this;
+    }
+
+    await this.videoHandler.updateSubtitlesLangSelect();
+    this.videoHandler.subtitlesWidget.portal =
+      this.votOverlayView.votOverlayPortal;
+    this.videoHandler.subtitlesWidget.strTranslatedTokens = "";
   }
 
   async handleTranslationBtnClick() {

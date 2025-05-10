@@ -51,11 +51,25 @@ class LocalizationProvider {
     for (const key of this.storageKeys) {
       votStorage.syncDelete(key);
     }
+
+    return this;
   }
 
   private buildUrl(path: string, force = false) {
     const query = force ? `?timestamp=${getTimestamp()}` : "";
     return `${this.localizationUrl}${path}${query}`;
+  }
+
+  async changeLang(newLang: string) {
+    const oldLang = this.getLangOverride();
+    if (oldLang === newLang) {
+      return false;
+    }
+
+    await votStorage.set("localeLangOverride", newLang);
+    this.lang = this.getLang();
+    await this.update(true);
+    return true;
   }
 
   async checkUpdates(force = false) {
@@ -82,12 +96,15 @@ class LocalizationProvider {
       !force &&
       localeUpdatedAt + this.cacheTTL > getTimestamp() &&
       (await votStorage.get("localeLang")) === this.lang
-    )
-      return;
+    ) {
+      return this;
+    }
 
     const hash = await this.checkUpdates(force);
     await votStorage.set("localeUpdatedAt", getTimestamp());
-    if (!hash) return;
+    if (!hash) {
+      return this;
+    }
 
     debug.log("Updating locale...");
     try {
@@ -105,6 +122,7 @@ class LocalizationProvider {
       console.error("[VOT] [localizationProvider] Failed to get locale:", err);
       this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
     }
+    return this;
   }
 
   setLocaleFromJsonString(json: string) {
@@ -115,6 +133,7 @@ class LocalizationProvider {
       console.error("[VOT] [localizationProvider]", err);
       this.locale = {};
     }
+    return this;
   }
 
   getFromLocale(locale: Partial<FlatPhrases>, key: Phrase) {

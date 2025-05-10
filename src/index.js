@@ -25,6 +25,7 @@ import {
   workerHost,
   proxyOnlyCountries,
   defaultAutoHideDelay,
+  actualCompatVersion,
 } from "./config/config.js";
 import { localizationProvider } from "./localization/localizationProvider.ts";
 import { SubtitlesWidget, SubtitlesProcessor } from "./subtitles.js";
@@ -42,7 +43,7 @@ import {
 } from "./utils/utils.js";
 import { syncVolume } from "./utils/volume.js";
 import { VideoObserver } from "./utils/VideoObserver.js";
-import { votStorage } from "./utils/storage.ts";
+import { updateConfig, votStorage } from "./utils/storage.ts";
 import { detect, translate } from "./utils/translateApis.ts";
 import { UIManager } from "./ui/manager.ts";
 import { StorageData } from "./types/storage.ts";
@@ -259,7 +260,7 @@ class VOTTranslationHandler {
         responseLang,
         translationHelp,
         extraOpts: {
-          useLivelyVoice: this.videoHandler.data?.useNewModel,
+          useLivelyVoice: this.videoHandler.data?.useLivelyVoice,
           videoTitle: this.videoHandler.videoData.title,
         },
         shouldSendFailedAudio,
@@ -323,7 +324,7 @@ class VOTTranslationHandler {
         err.data?.message ?? err,
       );
       console.error("[VOT]", err);
-      const cacheKey = `${videoData.videoId}_${requestLang}_${responseLang}_${this.videoHandler.data.useNewModel}`;
+      const cacheKey = `${videoData.videoId}_${requestLang}_${responseLang}_${this.videoHandler.data.useLivelyVoice}`;
       this.videoHandler.cacheManager.setTranslation(cacheKey, {
         error: err,
       });
@@ -800,13 +801,18 @@ class VideoHandler {
       translateProxyEnabled: 0,
       translateProxyEnabledDefault: true,
       audioBooster: false,
-      useNewModel: false,
+      useLivelyVoice: false,
       autoHideButtonDelay: defaultAutoHideDelay,
       useAudioDownload: true,
+      compatVersion: "",
       localeHash: "",
-      localeUpdatedAt: false,
+      localeUpdatedAt: 0,
     });
-    // TODO: TEMP
+    if (this.data.compatVersion !== actualCompatVersion) {
+      this.data = await updateConfig(this.data);
+      await votStorage.set("compatVersion", actualCompatVersion);
+    }
+
     this.uiManager.data = this.data;
     console.log("[VOT] data from db: ", this.data);
 
@@ -1271,7 +1277,7 @@ class VideoHandler {
       this.subtitles = [];
       return;
     }
-    const cacheKey = `${this.videoData.videoId}_${this.videoData.detectedLanguage}_${this.videoData.responseLanguage}_${this.data.useNewModel}`;
+    const cacheKey = `${this.videoData.videoId}_${this.videoData.detectedLanguage}_${this.videoData.responseLanguage}_${this.data.useLivelyVoice}`;
     try {
       let cachedSubs = this.cacheManager.getSubtitles(cacheKey);
       if (!cachedSubs) {
@@ -1590,7 +1596,7 @@ class VideoHandler {
     this.videoValidator();
     this.uiManager.votOverlayView.votButton.loading = true;
     this.volumeOnStart = this.getVideoVolume();
-    const cacheKey = `${VIDEO_ID}_${requestLang}_${responseLang}_${this.data.useNewModel}`;
+    const cacheKey = `${VIDEO_ID}_${requestLang}_${responseLang}_${this.data.useLivelyVoice}`;
     const cachedEntry = this.cacheManager.getTranslation(cacheKey);
     if (cachedEntry?.url) {
       await this.updateTranslation(cachedEntry.url);
@@ -1666,7 +1672,7 @@ class VideoHandler {
       from: requestLang,
       to: responseLang,
       url: this.downloadTranslationUrl,
-      useNewModel: this.data?.useNewModel,
+      useLivelyVoice: this.data?.useLivelyVoice,
     });
   }
 
@@ -1766,7 +1772,7 @@ class VideoHandler {
       );
     }
     this.videoData = await this.getVideoData();
-    const cacheKey = `${this.videoData.videoId}_${this.videoData.detectedLanguage}_${this.videoData.responseLanguage}_${this.data.useNewModel}`;
+    const cacheKey = `${this.videoData.videoId}_${this.videoData.detectedLanguage}_${this.videoData.responseLanguage}_${this.data.useLivelyVoice}`;
     this.subtitles = this.cacheManager.getSubtitles(cacheKey);
     await this.updateSubtitlesLangSelect();
     this.translateToLang = this.data.responseLanguage ?? "ru";
@@ -1802,7 +1808,7 @@ class VideoHandler {
   <li>Loader: ${GM_info.scriptHandler} v${GM_info.version}</li>
   <li>Script version: ${GM_info.script.version}</li>
   <li>URL: <code>${window.location.href}</code></li>
-  <li>Lang: <code>${this.videoData.detectedLanguage}</code> -> <code>${this.videoData.responseLanguage}</code> (New model: ${this.data.useNewModel})</li>
+  <li>Lang: <code>${this.videoData.detectedLanguage}</code> -> <code>${this.videoData.responseLanguage}</code> (Lively voice: ${this.data.useLivelyVoice} | Audio download: ${this.data.useAudioDownload})</li>
   <li>Player: ${this.data.newAudioPlayer ? "New" : "Old"} (CSP only: ${this.data.onlyBypassMediaCSP})</li>
   <li>Proxying mode: ${this.data.translateProxyEnabled}</li>
 </ul>

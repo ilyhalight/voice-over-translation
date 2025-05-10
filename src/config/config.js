@@ -44,6 +44,8 @@ const proxyOnlyCountries = ["UA", "LV", "LT"];
  */
 const defaultAutoHideDelay = 1000;
 
+const actualCompatVersion = "2025-05-09";
+
 export {
   workerHost,
   m3u8ProxyHost,
@@ -62,4 +64,5 @@ export {
   nonProxyExtensions,
   proxyOnlyCountries,
   defaultAutoHideDelay,
+  actualCompatVersion,
 };

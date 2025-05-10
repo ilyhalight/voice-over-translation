@@ -542,7 +542,7 @@ export class OverlayView {
         return;
       }
 
-      const cacheKey = `${this.videoHandler.videoData.videoId}_${this.videoHandler.videoData.detectedLanguage}_${this.videoHandler.videoData.responseLanguage}_${this.data.useNewModel}`;
+      const cacheKey = `${this.videoHandler.videoData.videoId}_${this.videoHandler.videoData.detectedLanguage}_${this.videoHandler.videoData.responseLanguage}_${this.data.useLivelyVoice}`;
       if (this.videoHandler.cacheManager.getSubtitles(cacheKey)) {
         return;
       }

@@ -1,24 +1,143 @@
 import { KeysOrDefaultValue } from "@toil/gm-types/types/utils";
 
 import debug from "./debug";
-import { StorageKey, storageKeys } from "../types/storage";
+import {
+  CompatibilityVersion,
+  ConvertCategory,
+  ConvertData,
+  StorageData,
+  StorageKey,
+  storageKeys,
+} from "../types/storage";
 import { isSupportGM4 } from "./utils";
+import { actualCompatVersion } from "../config/config";
+import { localizationProvider } from "../localization/localizationProvider";
 
-export async function convertData(
-  data: Record<string, unknown>,
-  option: StorageKey,
-  oldValue: unknown,
-  newValue: string | number | boolean,
-  optionValue: string | number | boolean | undefined = undefined,
+const compatMay2025Data = {
+  numToBool: [
+    ["autoTranslate"],
+    ["dontTranslateYourLang", "enabledDontTranslateLanguages"],
+    ["autoSetVolumeYandexStyle", "enabledAutoVolume"],
+    ["showVideoSlider"],
+    ["syncVolume"],
+    ["downloadWithName"],
+    ["sendNotifyOnComplete"],
+    ["highlightWords"],
+    ["onlyBypassMediaCSP"],
+    ["newAudioPlayer"],
+    ["showPiPButton"],
+    ["translateAPIErrors"],
+    ["audioBooster"],
+    ["useNewModel", "useLivelyVoice"],
+  ],
+  number: [["autoVolume"]],
+  array: [["dontTranslateLanguage", "dontTranslateLanguages"]],
+  string: [
+    ["hotkeyButton", "translationHotkey"],
+    ["locale-lang-override", "localeLangOverride"],
+    ["locale-lang", "localeLang"],
+  ],
+} as const satisfies ConvertData;
+
+function getCompatCategory(
+  key: string,
+  value: unknown,
+  convertData?: ConvertData,
 ) {
-  const optionVal = optionValue ?? data[option];
-  if (optionVal !== oldValue) {
-    return;
+  if (typeof value === "number") {
+    return convertData?.number.some((item) => item[0] === key)
+      ? "number"
+      : "numToBool";
+  } else if (Array.isArray(value)) {
+    return "array";
+  } else if (typeof value === "string" || value === null) {
+    return "string";
   }
 
-  data[option] = newValue;
-  await votStorage.set(option, newValue);
-  console.log(`[VOT] Old ${option} converted to new ${newValue}`);
+  return undefined;
+}
+
+function convertByCompatCategory(category: ConvertCategory, value: unknown) {
+  if (["string", "array", "number"].includes(category)) {
+    return value;
+  }
+
+  return !!value;
+}
+
+type AnyDataKeys = Record<string, undefined>;
+
+export async function updateConfig(data: Record<string, unknown>) {
+  if ((data.compatVersion as CompatibilityVersion) === actualCompatVersion) {
+    return data;
+  }
+
+  const oldKeys = Object.values(compatMay2025Data)
+    .flat()
+    .reduce<AnyDataKeys>((result, key) => {
+      if (key[1]) {
+        result[key[0]] = undefined;
+      }
+
+      return result;
+    }, {});
+  const oldData = await votStorage.getValues<Record<string, any>>(oldKeys);
+  const existsOldData = Object.fromEntries(
+    Object.entries(oldData).filter(([_, value]) => value !== undefined),
+  );
+  const allData = { ...data, ...existsOldData };
+  const allDataKeys = Object.keys(allData).reduce<AnyDataKeys>(
+    (result, key) => {
+      result[key] = undefined;
+      return result;
+    },
+    {},
+  );
+  const realValues =
+    await votStorage.getValues<Record<string, any>>(allDataKeys);
+  const newData: Partial<StorageData> = data;
+  for (const [key, value] of Object.entries(allData)) {
+    const category = getCompatCategory(key, value, compatMay2025Data);
+    if (!category) {
+      continue;
+    }
+
+    const compatItem = compatMay2025Data[category].find(
+      (item) => item[0] === key,
+    );
+    if (!compatItem) {
+      continue;
+    }
+
+    const newKey = (compatItem[1] ?? key) as StorageKey;
+    if (realValues[key] === undefined) {
+      // skip auto values
+      continue;
+    }
+
+    let newValue = convertByCompatCategory(category, value);
+    if (key === "autoVolume" && (value as number) < 1) {
+      newValue = Math.round((value as number) * 100);
+    }
+
+    newData[newKey] = newValue as any;
+    if (existsOldData[key] !== undefined) {
+      // remove old key
+      await votStorage.delete(key as StorageKey);
+    }
+
+    if (newKey === "localeLangOverride") {
+      // by default data doesn't have localeLangOverride
+      await localizationProvider.changeLang(value);
+    }
+
+    await votStorage.set<any>(newKey, newValue);
+  }
+
+  return {
+    ...newData,
+    compatVersion: "2025-05-09",
+  };
 }
 
 export const votStorage = new (class {

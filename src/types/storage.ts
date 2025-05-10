@@ -11,6 +11,10 @@ export type LocaleStorageKey =
   | "localeUpdatedAt"
   | "localeLangOverride";
 
+export type ConvertCategory = "numToBool" | "number" | "array" | "string";
+export type ConvertDataItem = [oldName: string, newName?: string];
+export type ConvertData = Record<ConvertCategory, ConvertDataItem[]>;
+
 export const storageKeys = [
   "autoTranslate",
   "dontTranslateLanguages",
@@ -41,9 +45,10 @@ export const storageKeys = [
   "translateProxyEnabled",
   "translateProxyEnabledDefault",
   "audioBooster",
-  "useNewModel",
+  "useLivelyVoice",
   "autoHideButtonDelay",
   "useAudioDownload",
+  "compatVersion",
   "localePhrases",
   "localeLang",
   "localeHash",
@@ -52,6 +57,7 @@ export const storageKeys = [
 ] as const;
 
 export type TranslateProxyStatus = 0 | 1 | 2;
+export type CompatibilityVersion = "" | "2025-05-09";
 
 // TODO: remove comments after add config converter
 export type StorageData = {
@@ -89,9 +95,10 @@ export type StorageData = {
   translateProxyEnabled: TranslateProxyStatus;
   translateProxyEnabledDefault: boolean;
   audioBooster: boolean;
-  useNewModel: boolean;
+  useLivelyVoice: boolean;
   autoHideButtonDelay: number;
   useAudioDownload: boolean;
+  compatVersion: CompatibilityVersion;
   localePhrases: string;
   localeLang: string;
   localeHash: string;

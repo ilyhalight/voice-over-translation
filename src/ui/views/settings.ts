@@ -290,7 +290,7 @@ export class SettingsView {
 
     this.useLivelyVoiceCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("VOTUseLivelyVoice"),
-      checked: this.data.useNewModel,
+      checked: this.data.useLivelyVoice,
     });
 
     this.useAudioDownloadCheckboxLabel = new Label({
@@ -658,9 +658,9 @@ export class SettingsView {
     );
 
     this.useLivelyVoiceCheckbox.addEventListener("change", async (checked) => {
-      this.data.useNewModel = checked;
-      await votStorage.set("useNewModel", this.data.useNewModel);
-      debug.log("useNewModel value changed. New value:", checked);
+      this.data.useLivelyVoice = checked;
+      await votStorage.set("useLivelyVoice", this.data.useLivelyVoice);
+      debug.log("useLivelyVoice value changed. New value:", checked);
       this.onChangeUseLivelyVoice.dispatch(checked);
     });
 
@@ -668,7 +668,7 @@ export class SettingsView {
       "change",
       async (checked) => {
         this.data.useAudioDownload = checked;
-        await votStorage.set("useAudioDownload", this.data.useNewModel);
+        await votStorage.set("useAudioDownload", this.data.useAudioDownload);
         debug.log("useAudioDownload value changed. New value:", checked);
       },
     );
@@ -1001,15 +1001,11 @@ export class SettingsView {
       });
 
       menuLanguageSelect.addEventListener("selectItem", async (item) => {
-        const oldLang = localizationProvider.getLangOverride();
-        if (oldLang === item) {
+        const result = await localizationProvider.changeLang(item);
+        if (!result) {
           return;
         }
 
-        debug.log("menuLanguage value changed. New value:", item);
-        await votStorage.set("localeLangOverride", item);
-        localizationProvider.lang = localizationProvider.getLang();
-        await localizationProvider.update(true);
         this.data.localeUpdatedAt = await votStorage.get("localeUpdatedAt", 0);
         this.onSelectItemMenuLanguage.dispatch(item);
       });
