@@ -8,6 +8,7 @@ import { monkey } from "webpack-monkey";
 import { styleLoaderInsertStyleElement } from "webpack-monkey/lib/client/css.js";
 import ESLintPlugin from "eslint-webpack-plugin";
 import TerserPlugin from "terser-webpack-plugin";
+import { OxcMinifyWebpackPlugin } from "oxc-minify-webpack-plugin";
 
 import {
   sitesInvidious,
@@ -36,6 +37,23 @@ const availableLocales = await getAvailableLocales();
 const DEBUG_MODE = process.env.NODE_ENV === "development";
 const REPO_BRANCH = DEBUG_MODE || isBeta ? "dev" : "master";
 const REPO_UPDATE_BRANCH = isBeta ? "dev" : "master";
+const minimalOxc = {
+  codegen: {
+    removeWhitespace: false,
+  },
+  compress: {
+    keepNames: {
+      class: true,
+      function: true,
+    },
+  },
+  mangle: {
+    keepNames: {
+      class: true,
+      function: true,
+    },
+  },
+};
 
 function getHeaders(lang = "") {
   const headersPath = lang
@@ -158,8 +176,8 @@ export default (env) => {
     optimization: {
       emitOnErrors: true,
       moduleIds: "named",
-      minimize: BUILD_MINIFIED,
-      minimizer: [new TerserPlugin()],
+      minimize: true,
+      minimizer: [new OxcMinifyWebpackPlugin(BUILD_MINIFIED ? {} : minimalOxc)],
     },
   });
 };
