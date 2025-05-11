@@ -113,8 +113,6 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 /**
- * Remove all banned characters from filename
- *
  * @param {string} filename
  * @return {string}
  */

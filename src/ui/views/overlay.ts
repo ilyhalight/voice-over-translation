@@ -10,7 +10,7 @@ import VOTButton from "../components/votButton";
 import LanguagePairSelect from "../components/languagePairSelect";
 import Slider from "../components/slider";
 import SliderLabel from "../components/sliderLabel";
-import { DOWNLOAD_ICON, SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
+import { SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
 
 import type { Direction, Position } from "../../types/components/votButton";
 import type { ButtonLayout } from "../../types/uiManager";
@@ -24,6 +24,7 @@ import { maxAudioVolume } from "../../config/config";
 import { isPiPAvailable } from "../../utils/utils";
 import { localizationProvider } from "../../localization/localizationProvider";
 import Label from "../components/label";
+import DownloadButton from "../components/downloadButton";
 
 export class OverlayView {
   root: HTMLElement;
@@ -56,7 +57,7 @@ export class OverlayView {
   votButtonTooltip?: Tooltip;
   // menu
   votMenu?: VOTMenu;
-  downloadTranslationButton?: HTMLElement;
+  downloadTranslationButton?: DownloadButton;
   downloadSubtitlesButton?: HTMLElement;
   openSettingsButton?: HTMLElement;
   languagePairSelect?: LanguagePairSelect<RequestLang, ResponseLang>;
@@ -93,7 +94,7 @@ export class OverlayView {
     // #endregion Button type
     // #region Menu type
     votMenu: VOTMenu;
-    downloadTranslationButton: HTMLElement;
+    downloadTranslationButton: DownloadButton;
     downloadSubtitlesButton: HTMLElement;
     openSettingsButton: HTMLElement;
     languagePairSelect: LanguagePairSelect<RequestLang, ResponseLang>;
@@ -348,7 +349,7 @@ export class OverlayView {
     this.root.appendChild(this.votMenu.container);
 
     // #region VOT Menu Header
-    this.downloadTranslationButton = ui.createIconButton(DOWNLOAD_ICON);
+    this.downloadTranslationButton = new DownloadButton();
     this.downloadTranslationButton.hidden = true;
 
     this.downloadSubtitlesButton = ui.createIconButton(SUBTITLES_ICON);
@@ -357,7 +358,7 @@ export class OverlayView {
     this.openSettingsButton = ui.createIconButton(SETTINGS_ICON);
 
     this.votMenu.headerContainer.append(
-      this.downloadTranslationButton,
+      this.downloadTranslationButton.button,
       this.downloadSubtitlesButton,
       this.openSettingsButton,
     );

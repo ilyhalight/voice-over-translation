@@ -126,14 +126,21 @@ export class UIManager {
         await exitFullscreen();
       })
       .addEventListener("click:downloadTranslation", async () => {
-        if (!this.videoHandler?.downloadTranslationUrl) return;
+        if (
+          !this.votOverlayView.isInitialized() ||
+          !this.videoHandler?.downloadTranslationUrl ||
+          !this.videoHandler.videoData
+        ) {
+          return;
+        }
+
         try {
           if (!this.data.downloadWithName) {
             return window
               .open(this.videoHandler.downloadTranslationUrl, "_blank")
               ?.focus();
           }
-          // TODO: add loading animation or change text %
+
           const res = await GM_fetch(this.videoHandler.downloadTranslationUrl, {
             timeout: 0,
           });
@@ -144,17 +151,22 @@ export class UIManager {
           const contentLength = +res.headers.get("Content-Length");
           const reader = res.body.getReader();
           const chunksBuffer = new Uint8Array(contentLength);
+          this.votOverlayView.downloadTranslationButton.progress = 0;
           let offset = 0;
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              break;
+            }
+
             chunksBuffer.set(value, offset);
             offset += value.length;
-            // updateAnimation(Math.round((offset / contentLength) * 100));
+            this.votOverlayView.downloadTranslationButton.progress = Math.round(
+              (offset / contentLength) * 100,
+            );
           }
           const filename = clearFileName(
-            // biome-ignore lint/style/noNonNullAssertion: remove ! after rewriting index.js to ts
-            this.videoHandler.videoData!.downloadTitle,
+            this.videoHandler.videoData.downloadTitle,
           );
           const writer = new ID3Writer(chunksBuffer.buffer);
           writer.setFrame("TIT2", filename);
@@ -167,6 +179,8 @@ export class UIManager {
             localizationProvider.get("downloadFailed"),
           );
         }
+
+        this.votOverlayView.downloadTranslationButton.progress = 0;
       })
       .addEventListener("click:downloadSubtitles", async () => {
         if (

@@ -15,6 +15,23 @@
     dotsFlip 1.5s infinite alternate;
 }
 
+.vot-loader-text {
+  --vot-helper-theme: var(
+    --vot-theme-rgb,
+    var(--vot-primary-rgb, 33, 150, 243)
+  );
+  fill: rgb(var(--vot-helper-theme));
+  font-family: var(
+    --vot-font-family,
+    "Roboto",
+    "Segoe UI",
+    system-ui,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 500;
+}
+
 @keyframes dotsSlide {
   0%,
   10% {
