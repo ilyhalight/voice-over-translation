@@ -124,7 +124,7 @@ function clearFileName(filename) {
     return new Date().toLocaleDateString("en-us").replaceAll("/", "-");
   }
 
-  return filename.replace(/[\\/:*?"'<>|]/g, "");
+  return filename.replace(/^https?:\/\//, "").replace(/[\\/:*?"'<>|.]/g, "-");
 }
 
 async function GM_fetch(url, opts = {}) {
