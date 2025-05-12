@@ -4230,7 +4230,7 @@
 			s.href = i, s.download = n, s.click(), URL.revokeObjectURL(i);
 		}
 		function clearFileName(t) {
-			return t.trim().length === 0 ? new Date().toLocaleDateString("en-us").replaceAll("/", "-") : t.replace(/[\\/:*?"'<>|]/g, "");
+			return t.trim().length === 0 ? new Date().toLocaleDateString("en-us").replaceAll("/", "-") : t.replace(/^https?:\/\//, "").replace(/[\\/:*?"'<>|.]/g, "-");
 		}
 		async function GM_fetch(t, n = {}) {
 			let { timeout: i = 15e3,...s } = n, d = new AbortController();
