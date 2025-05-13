@@ -1,8 +1,9 @@
 import { config } from "@vot.js/shared";
 import { SerializedRequestInitData } from "../types/audioDownloader";
 
-export const IFRAME_HASH = "vot_iframe";
 export const IFRAME_ID = "vot_iframe_player";
+export const IFRAME_SERVICE = "service";
+export const IFRAME_HOST = "www.youtube.com";
 
 export const MIN_CHUNK_RANGES_PART_SIZE = config.minChunkSize; // 5295308
 export const MIN_CONTENT_LENGTH_MULTIPLIER = 0.9;

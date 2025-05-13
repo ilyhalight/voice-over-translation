@@ -10,14 +10,14 @@ import {
   FetchMediaWithMetaOptions,
   FetchMediaWithMetaResult,
   GetAudioFromAPIWithReplacedFetchOptions,
-  MessagePayload,
   VideoIdPayload,
 } from "../types/audioDownloader";
 import {
   ACCEPTABLE_LENGTH_DIFF,
   CHUNK_STEPS,
-  IFRAME_HASH,
+  IFRAME_HOST,
   IFRAME_ID,
+  IFRAME_SERVICE,
   MIN_ARRAY_BUFFER_LENGTH,
   MIN_CHUNK_RANGES_PART_SIZE,
   MIN_CONTENT_LENGTH_MULTIPLIER,
@@ -31,77 +31,32 @@ import {
 } from "./shared";
 import { AdaptiveFormat } from "@vot.js/ext/types/helpers/youtube";
 import { EventImpl } from "../core/eventImpl";
+import { MessagePayload } from "../types/iframeConnector";
+import {
+  ensureServiceIframe,
+  generateMessageId,
+  hasServiceIframe,
+  requestDataFromMainWorld,
+} from "../utils/iframeConnector";
 
 let serviceIframe: HTMLIFrameElement | null = null;
 let mediaQuaryIndex = 1;
 const textDecoder = new TextDecoder("ascii");
 
-const generateMessageId = () =>
-  `main-world-bridge-${performance.now()}-${Math.random()}`;
-
-const hasServiceIframe = () =>
-  document.getElementById(IFRAME_ID) as HTMLIFrameElement | null;
-
-async function setupServiceIframe(src: string) {
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "absolute";
-  iframe.style.zIndex = "-1";
-  iframe.style.display = "none";
-  iframe.id = IFRAME_ID;
-  iframe.src = `${src}#${IFRAME_HASH}`;
-  document.body.appendChild(iframe);
-
-  const ready = new Promise<boolean>((resolve) => {
-    const handleMessage = ({ data }: MessageEvent<MessagePayload>) => {
-      if (data.messageType === "say-service-iframe-is-ready") {
-        window.removeEventListener("message", handleMessage);
-        resolve(true);
-      }
-    };
-    window.addEventListener("message", handleMessage);
-  });
-
-  await Promise.race([
-    ready,
-    timeout(
-      15000,
-      "Audio downloader. Service iframe did not have time to be ready",
-    ),
-  ]);
-
-  return iframe;
-}
-
-async function ensureServiceIframe(src: string): Promise<HTMLIFrameElement> {
-  if (src.includes("#")) {
-    throw new Error(
-      "Audio downloader. The src parameter should not contain a hash (#) character.",
-    );
-  }
-
-  if (hasServiceIframe()) {
-    if (serviceIframe !== null) {
-      return serviceIframe;
-    }
-
-    throw new Error(
-      "Audio downloader. Service iframe already exists in DOM, but added not by us.",
-    );
-  }
-
-  serviceIframe = await setupServiceIframe(src);
-  return serviceIframe;
-}
-
 async function sendAudioDownloadRequestToIframe(
   data: MessagePayload<VideoIdPayload>,
 ) {
   const { videoId } = data.payload;
-  const iframeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1`;
+  const iframeUrl = `https://${IFRAME_HOST}/embed/${videoId}?autoplay=0&mute=1`;
 
   try {
-    const iframe = await ensureServiceIframe(iframeUrl);
-    if (!hasServiceIframe()) {
+    const iframe = await ensureServiceIframe(
+      serviceIframe,
+      iframeUrl,
+      IFRAME_ID,
+      IFRAME_SERVICE,
+    );
+    if (!hasServiceIframe(IFRAME_ID)) {
       throw new Error("Audio downloader. WEB API. Service iframe deleted");
     }
 
@@ -120,38 +75,6 @@ async function sendAudioDownloadRequestToIframe(
     data.messageDirection = "response";
     window.postMessage(data, "*");
   }
-}
-
-function requestDataFromMainWorld<PayloadType, ResponseType = unknown>(
-  messageType: string,
-  payload?: PayloadType,
-): Promise<ResponseType> {
-  const messageId = generateMessageId();
-  return new Promise((resolve, reject) => {
-    const handleMessage = ({
-      data,
-    }: MessageEvent<MessagePayload<ResponseType>>) => {
-      if (
-        data?.messageId === messageId &&
-        data.messageType === messageType &&
-        data.messageDirection === "response"
-      ) {
-        window.removeEventListener("message", handleMessage);
-        data.error ? reject(data.error) : resolve(data.payload);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    window.postMessage(
-      {
-        messageId,
-        messageType,
-        messageDirection: "request",
-        ...(payload !== undefined && { payload }),
-      },
-      "*",
-    );
-  });
 }
 
 const getDownloadAudioDataInMainWorld = (payload: VideoIdPayload) =>
@@ -605,7 +528,7 @@ export async function mainWorldMessageHandler({
     console.log("Main world bridge", data);
     switch (data.messageType) {
       case "get-download-audio-data-in-main-world": {
-        sendAudioDownloadRequestToIframe(
+        await sendAudioDownloadRequestToIframe(
           data as MessagePayload<VideoIdPayload>,
         );
         break;

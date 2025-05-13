@@ -54,6 +54,7 @@ export const storageKeys = [
   "localeHash",
   "localeUpdatedAt",
   "localeLangOverride",
+  "yandexToken",
 ] as const;
 
 export type TranslateProxyStatus = 0 | 1 | 2;
@@ -99,6 +100,7 @@ export type StorageData = {
   autoHideButtonDelay: number;
   useAudioDownload: boolean;
   compatVersion: CompatibilityVersion;
+  yandexToken: string;
   localePhrases: string;
   localeLang: string;
   localeHash: string;
