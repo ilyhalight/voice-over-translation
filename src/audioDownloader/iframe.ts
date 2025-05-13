@@ -4,9 +4,12 @@ import {
 } from "@vot.js/ext/types/helpers/youtube";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 
-import { MessagePayload, VideoIdPayload } from "../types/audioDownloader";
+import { VideoIdPayload } from "../types/audioDownloader";
 import { waitForCondition } from "../utils/utils";
-import { getRequestUrl, serializeRequestInit } from "./shared";
+import { getRequestUrl, IFRAME_SERVICE, serializeRequestInit } from "./shared";
+import debug from "../utils/debug";
+import { MessagePayload } from "../types/iframeConnector";
+import { initIframeService } from "../utils/iframeConnector";
 
 let lastMessageId = "";
 
@@ -77,14 +80,13 @@ const waitForPlayer = async (): Promise<PlayerElement | null> => {
 async function getDownloadAudioData(data: MessagePayload<VideoIdPayload>) {
   try {
     lastMessageId = data.messageId;
-    console.log("getDownloadAudioData", data);
+    debug.log("getDownloadAudioData", data);
     const originalFetch = unsafeWindow.fetch;
 
     unsafeWindow.fetch = async (
       input: RequestInfo | URL,
       init?: RequestInit,
     ) => {
-      console.log("patched window fetch :3", input, init);
       if (input instanceof URL) {
         input = input.toString();
       }
@@ -140,7 +142,6 @@ async function getDownloadAudioData(data: MessagePayload<VideoIdPayload>) {
         "Audio downloader. There is no player.loadVideoById in iframe",
       );
     }
-    console.log("player", player, player.pauseVideo, player.mute);
     player.loadVideoById(data.payload.videoId);
     player.pauseVideo?.();
     player.mute?.();
@@ -174,7 +175,7 @@ async function getDownloadAudioData(data: MessagePayload<VideoIdPayload>) {
   }
 }
 
-const handleIframeMessage = async ({ data }: { data: MessagePayload }) => {
+const handleIframeMessage = async ({ data }: MessageEvent<MessagePayload>) => {
   if (data?.messageDirection !== "request") {
     return;
   }
@@ -187,7 +188,7 @@ const handleIframeMessage = async ({ data }: { data: MessagePayload }) => {
         );
         break;
       default:
-        console.log(`NOT IMPLEMENTED: ${data.messageType}`, data.payload);
+        debug.log(`NOT IMPLEMENTED: ${data.messageType}`, data.payload);
     }
   } catch (error) {
     console.error("[VOT] Main world bridge", {
@@ -196,13 +197,6 @@ const handleIframeMessage = async ({ data }: { data: MessagePayload }) => {
   }
 };
 
-export function initIframeService() {
-  window.addEventListener("message", handleIframeMessage);
-  window.parent.postMessage(
-    {
-      messageType: "say-service-iframe-is-ready",
-      messageDirection: "response",
-    },
-    "*",
-  );
+export function initAudioDownloaderIframe() {
+  return initIframeService(IFRAME_SERVICE, handleIframeMessage);
 }

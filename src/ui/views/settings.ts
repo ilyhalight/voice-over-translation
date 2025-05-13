@@ -94,6 +94,7 @@ export class SettingsView {
   downloadWithNameCheckbox?: Checkbox;
   sendNotifyOnCompleteCheckbox?: Checkbox;
   useLivelyVoiceCheckbox?: Checkbox;
+  useLivelyVoiceTooltip?: Tooltip;
   useAudioDownloadCheckbox?: Checkbox;
   useAudioDownloadCheckboxLabel?: Label;
   useAudioDownloadCheckboxTooltip?: Tooltip;
@@ -122,6 +123,7 @@ export class SettingsView {
   detectServiceSelect?: Select<DetectService>;
   appearanceDetails?: Details;
   aboutExtensionDetails?: Details;
+  accountButton?: HTMLElement;
   bugReportButton?: HTMLElement;
   resetSettingsButton?: HTMLElement;
 
@@ -148,6 +150,7 @@ export class SettingsView {
     downloadWithNameCheckbox: Checkbox;
     sendNotifyOnCompleteCheckbox: Checkbox;
     useLivelyVoiceCheckbox: Checkbox;
+    useLivelyVoiceTooltip: Tooltip;
     useAudioDownloadCheckbox: Checkbox;
     useAudioDownloadCheckboxLabel: Label;
     useAudioDownloadCheckboxTooltip: Tooltip;
@@ -292,6 +295,16 @@ export class SettingsView {
       labelHtml: localizationProvider.get("VOTUseLivelyVoice"),
       checked: this.data.useLivelyVoice,
     });
+    if (!this.data.yandexSession) {
+      this.useLivelyVoiceCheckbox.disabled = true;
+      this.useLivelyVoiceTooltip = new Tooltip({
+        target: this.useLivelyVoiceCheckbox.container,
+        content: localizationProvider.get("VOTNeedYandexSession"),
+        position: "bottom",
+        backgroundColor: "var(--vot-helper-ondialog)",
+        parentElement: this.globalPortal,
+      });
+    }
 
     this.useAudioDownloadCheckboxLabel = new Label({
       labelText: localizationProvider.get("VOTUseAudioDownload"),
