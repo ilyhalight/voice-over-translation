@@ -1,6 +1,7 @@
 import "requestidlecallback-polyfill";
 import { EventImpl } from "../core/eventImpl.ts";
 import debug from "./debug.ts";
+import { sitesPoketube } from "@vot.js/shared/alternativeUrls";
 
 export class VideoObserver {
   static adKeywords = new Set([
@@ -40,6 +41,11 @@ export class VideoObserver {
   }
 
   hasAudio(video) {
+    if (sitesPoketube.includes(window.location.hostname)) {
+      // mozHasAudio in poketube is always false
+      return !video.muted;
+    }
+
     if (typeof video.mozHasAudio !== "undefined") {
       return video.mozHasAudio;
     }
