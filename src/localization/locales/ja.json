@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "あなたの国でプロキシを完全に無効にすると、拡張機能が壊れる可能性があります",
   "PressTheKeyCombination": "キーの組み合わせを押します。..",
   "VOTUseAudioDownload": "オーディオのダウンロードを使用する",
-  "VOTUseAudioDownloadWarning": "オーディオのダウンロードを無効にすると、拡張機能の機能に影響を与える可能性があります"
+  "VOTUseAudioDownloadWarning": "オーディオのダウンロードを無効にすると、拡張機能の機能に影響を与える可能性があります",
+  "VOTAccountRequired": "この機能を使用するにはログインする必要があります",
+  "VOTMyAccount": "マイアカウント",
+  "VOTLogin": "ログイン",
+  "VOTLogout": "ログアウト",
+  "VOTRefresh": "リフレッシュ"
 }

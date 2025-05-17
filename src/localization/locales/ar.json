@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "قد يؤدي تعطيل البروكسي تماما في بلدك إلى كسر الامتداد",
   "PressTheKeyCombination": "اضغط على مجموعة المفاتيح...",
   "VOTUseAudioDownload": "استخدام تنزيل الصوت",
-  "VOTUseAudioDownloadWarning": "قد يؤثر تعطيل تنزيلات الصوت على وظيفة الامتداد"
+  "VOTUseAudioDownloadWarning": "قد يؤثر تعطيل تنزيلات الصوت على وظيفة الامتداد",
+  "VOTAccountRequired": "تحتاج إلى تسجيل الدخول لاستخدام هذه الميزة",
+  "VOTMyAccount": "حسابي",
+  "VOTLogin": "تسجيل الدخول",
+  "VOTLogout": "تسجيل الخروج",
+  "VOTRefresh": "تحديث"
 }

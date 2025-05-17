@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "ਤੁਹਾਡੇ ਦੇਸ਼ ਵਿੱਚ ਪ੍ਰੌਕਸੀ ਨੂੰ ਪੂਰੀ ਤਰ੍ਹਾਂ ਅਯੋਗ ਕਰਨਾ ਐਕਸਟੈਂਸ਼ਨ ਨੂੰ ਤੋੜ ਸਕਦਾ ਹੈ",
   "PressTheKeyCombination": "ਕੁੰਜੀ ਸੰਜੋਗ ਦਬਾਓ...",
   "VOTUseAudioDownload": "ਆਡੀਓ ਡਾਊਨਲੋਡ ਵਰਤੋਂ",
-  "VOTUseAudioDownloadWarning": "ਆਡੀਓ ਡਾਉਨਲੋਡਸ ਨੂੰ ਅਯੋਗ ਕਰਨਾ ਐਕਸਟੈਂਸ਼ਨ ਦੀ ਕਾਰਜਸ਼ੀਲਤਾ ਨੂੰ ਪ੍ਰਭਾਵਤ ਕਰ ਸਕਦਾ ਹੈ"
+  "VOTUseAudioDownloadWarning": "ਆਡੀਓ ਡਾਉਨਲੋਡਸ ਨੂੰ ਅਯੋਗ ਕਰਨਾ ਐਕਸਟੈਂਸ਼ਨ ਦੀ ਕਾਰਜਸ਼ੀਲਤਾ ਨੂੰ ਪ੍ਰਭਾਵਤ ਕਰ ਸਕਦਾ ਹੈ",
+  "VOTAccountRequired": "ਇਸ ਫੀਚਰ ਨੂੰ ਵਰਤਣ ਲਈ ਤੁਹਾਨੂੰ ਲਾਗਇਨ ਕਰਨ ਦੀ ਲੋੜ ਹੈ",
+  "VOTMyAccount": "ਮੇਰਾ ਖਾਤਾ",
+  "VOTLogin": "ਲਾਗਇਨ",
+  "VOTLogout": "ਲਾਗਆਉਟ",
+  "VOTRefresh": "ਤਾਜ਼ਾ ਕਰੋ"
 }

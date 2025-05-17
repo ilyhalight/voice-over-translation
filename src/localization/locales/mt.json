@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Inkapaċitazzjoni kompletament prokura f'pajjiżek tista'tkisser l estensjoni",
   "PressTheKeyCombination": "Agħfas il-kombinazzjoni taċ-ċavetta...",
   "VOTUseAudioDownload": "Uża tniżżil awdjo",
-  "VOTUseAudioDownloadWarning": "Id diżattivazzjoni tat tniżżil tal awdjo tista'taffettwa l funzjonalità tal estensjoni"
+  "VOTUseAudioDownloadWarning": "Id diżattivazzjoni tat tniżżil tal awdjo tista'taffettwa l funzjonalità tal estensjoni",
+  "VOTAccountRequired": "Trid tidħol biex tuża din il karatteristika",
+  "VOTMyAccount": "Il-kont tiegħi",
+  "VOTLogin": "Login",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Aġġorna"
 }

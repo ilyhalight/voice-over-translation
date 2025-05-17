@@ -295,7 +295,12 @@ export type Phrase =
   | "VOTTranslateProxyStatusDefault"
   | "PressTheKeyCombination"
   | "VOTUseAudioDownload"
-  | "VOTUseAudioDownloadWarning";
+  | "VOTUseAudioDownloadWarning"
+  | "VOTAccountRequired"
+  | "VOTMyAccount"
+  | "VOTLogin"
+  | "VOTLogout"
+  | "VOTRefresh";
 
 export type Phrases = {
   recommended: string;
@@ -534,6 +539,11 @@ export type Phrases = {
   PressTheKeyCombination: string;
   VOTUseAudioDownload: string;
   VOTUseAudioDownloadWarning: string;
+  VOTAccountRequired: string;
+  VOTMyAccount: string;
+  VOTLogin: string;
+  VOTLogout: string;
+  VOTRefresh: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

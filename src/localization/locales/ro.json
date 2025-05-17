@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Dezactivarea completă a proxy-ului în țara dvs. poate rupe extensia",
   "PressTheKeyCombination": "Apăsați combinația de taste...",
   "VOTUseAudioDownload": "Utilizați descărcarea audio",
-  "VOTUseAudioDownloadWarning": "Dezactivarea descărcărilor audio poate afecta funcționalitatea extensiei"
+  "VOTUseAudioDownloadWarning": "Dezactivarea descărcărilor audio poate afecta funcționalitatea extensiei",
+  "VOTAccountRequired": "Trebuie să vă conectați pentru a utiliza această caracteristică",
+  "VOTMyAccount": "Contul meu",
+  "VOTLogin": "Autentificare",
+  "VOTLogout": "Deconectare",
+  "VOTRefresh": "Reîmprospătare"
 }

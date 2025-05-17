@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "သင့်နိုင်ငံတွင် proxying ကိုလုံးဝပိတ်ပင်ခြင်းသည်သက်တမ်းတိုးခြင်းကိုချိုးဖောက်နိုင်သည်။",
   "PressTheKeyCombination": "ခလုတ်ပေါင်းစပ်မှုကိုနှိပ်ပါ။..",
   "VOTUseAudioDownload": "အသံ download ကိုသုံးပါ",
-  "VOTUseAudioDownloadWarning": "အသံဒေါင်းလုပ်များကိုပိတ်ထားခြင်းသည် extension၏လုပ်ဆောင်ချက်များကိုသက်ရောက်နိုင်သည်။"
+  "VOTUseAudioDownloadWarning": "အသံဒေါင်းလုပ်များကိုပိတ်ထားခြင်းသည် extension၏လုပ်ဆောင်ချက်များကိုသက်ရောက်နိုင်သည်။",
+  "VOTAccountRequired": "ဤလုပ်ဆောင်ချက်ကိုအသုံးပြုရန်သင်ဝင်ရောက်ရန်လိုအပ်သည်။",
+  "VOTMyAccount": "ငါ့အကောင့်",
+  "VOTLogin": "ဝင်ရောက်ပါ",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Refresh"
 }

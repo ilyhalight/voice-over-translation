@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Ülkenizdeki proxying'i tamamen devre dışı bırakmak uzantıyı bozabilir",
   "PressTheKeyCombination": "Tuş kombinasyonuna basın...",
   "VOTUseAudioDownload": "Ses indirmeyi kullan",
-  "VOTUseAudioDownloadWarning": "Ses indirmelerini devre dışı bırakmak uzantının işlevselliğini etkileyebilir"
+  "VOTUseAudioDownloadWarning": "Ses indirmelerini devre dışı bırakmak uzantının işlevselliğini etkileyebilir",
+  "VOTAccountRequired": "Bu özelliği kullanmak için giriş yapmanız gerekir",
+  "VOTMyAccount": "Benim hesabım",
+  "VOTLogin": "Oturum aç",
+  "VOTLogout": "Çıkış",
+  "VOTRefresh": "Yenilemek"
 }

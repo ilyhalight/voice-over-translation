@@ -112,6 +112,7 @@
     "*://*.bunkr.ac/*",
     "*://*.bunkr.ax/*",
     "*://web.telegram.org/k/*",
+    "*://t2mc.toil.cc/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],

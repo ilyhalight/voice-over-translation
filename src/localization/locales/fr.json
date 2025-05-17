@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "La désactivation complète du proxy dans votre pays peut casser l'extension",
   "PressTheKeyCombination": "Appuyez sur la combinaison de touches...",
   "VOTUseAudioDownload": "Utiliser le téléchargement audio",
-  "VOTUseAudioDownloadWarning": "La désactivation des téléchargements audio peut affecter la fonctionnalité de l'extension"
+  "VOTUseAudioDownloadWarning": "La désactivation des téléchargements audio peut affecter la fonctionnalité de l'extension",
+  "VOTAccountRequired": "Vous devez vous connecter pour utiliser cette fonctionnalité",
+  "VOTMyAccount": "Mon compte",
+  "VOTLogin": "Connexion",
+  "VOTLogout": "Déconnexion",
+  "VOTRefresh": "Rafraîchir"
 }

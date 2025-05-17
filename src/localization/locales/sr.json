@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Потпуно онемогућавање проки сервера у вашој земљи може проузроковати квар проширења",
   "PressTheKeyCombination": "Притисните комбинацију тастера...",
   "VOTUseAudioDownload": "Користите аудио Довнлоад",
-  "VOTUseAudioDownloadWarning": "Онемогућавање преузимања звука може утицати на функционалност проширења"
+  "VOTUseAudioDownloadWarning": "Онемогућавање преузимања звука може утицати на функционалност проширења",
+  "VOTAccountRequired": "Морате се пријавити да бисте користили ову функцију",
+  "VOTMyAccount": "Мој рачун",
+  "VOTLogin": "Пријавите се",
+  "VOTLogout": "Одјава",
+  "VOTRefresh": "Освежите"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Gall analluogi dirprwyo'n llwyr yn eich gwlad dorri'r estyniad",
   "PressTheKeyCombination": "Pwyswch y cyfuniad allweddol...",
   "VOTUseAudioDownload": "Defnyddio lawrlwytho sain",
-  "VOTUseAudioDownloadWarning": "Gall analluogi lawrlwythiadau sain effeithio ar ymarferoldeb yr estyniad"
+  "VOTUseAudioDownloadWarning": "Gall analluogi lawrlwythiadau sain effeithio ar ymarferoldeb yr estyniad",
+  "VOTAccountRequired": "Mae angen i chi fewngofnodi i ddefnyddio'r nodwedd hon",
+  "VOTMyAccount": "Fy nghyfrif",
+  "VOTLogin": "Login",
+  "VOTLogout": "Allgofnodi",
+  "VOTRefresh": "Adnewyddu"
 }

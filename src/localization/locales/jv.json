@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Kanthi mateni proxying ing negara sampeyan bisa ngilangi ekstensi kasebut",
   "PressTheKeyCombination": "Pencet kombinasi tombol...",
   "VOTUseAudioDownload": "Gunakake audio download",
-  "VOTUseAudioDownloadWarning": "Mateni download audio bisa mengaruhi fungsi ekstensi"
+  "VOTUseAudioDownloadWarning": "Mateni download audio bisa mengaruhi fungsi ekstensi",
+  "VOTAccountRequired": "Sampeyan kudu mlebu kanggo nggunakake fitur iki",
+  "VOTMyAccount": "Akunku",
+  "VOTLogin": "Login",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Nganyari"
 }

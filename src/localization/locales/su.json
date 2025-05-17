@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Lengkep nganonaktipkeun proxying di nagara anjeun bisa megatkeun extension nu",
   "PressTheKeyCombination": "Pencét kombinasi konci...",
   "VOTUseAudioDownload": "Paké audio download",
-  "VOTUseAudioDownloadWarning": "Nganonaktipkeun download audio bisa mangaruhan fungsionalitas extension"
+  "VOTUseAudioDownloadWarning": "Nganonaktipkeun download audio bisa mangaruhan fungsionalitas extension",
+  "VOTAccountRequired": "Anjeun kudu asup pikeun make fitur ieu",
+  "VOTMyAccount": "Akun abdi",
+  "VOTLogin": "Login",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Nyegerkeun"
 }

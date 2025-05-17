@@ -155,6 +155,13 @@ export const votStorage = new (class {
     );
   }
 
+  /**
+   * Check if storage type is LocalStorage
+   */
+  isSupportOnlyLS() {
+    return !this.supportGM && !this.supportGMPromises;
+  }
+
   syncGet<T = unknown>(name: StorageKey, def?: unknown): T {
     if (this.supportGM) {
       return GM_getValue<T>(name, def);

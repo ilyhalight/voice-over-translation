@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Puhverserveri täielik keelamine teie riigis võib laienduse katkestada",
   "PressTheKeyCombination": "Vajutage klahvikombinatsiooni...",
   "VOTUseAudioDownload": "Kasutage heli allalaadimist",
-  "VOTUseAudioDownloadWarning": "Heli allalaadimise keelamine võib mõjutada laienduse funktsionaalsust"
+  "VOTUseAudioDownloadWarning": "Heli allalaadimise keelamine võib mõjutada laienduse funktsionaalsust",
+  "VOTAccountRequired": "Selle funktsiooni kasutamiseks peate sisse logima",
+  "VOTMyAccount": "Minu konto",
+  "VOTLogin": "Login",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Värskendamiseks"
 }

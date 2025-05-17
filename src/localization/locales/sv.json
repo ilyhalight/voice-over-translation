@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Helt inaktiverande proxy i ditt land kan bryta förlängningen",
   "PressTheKeyCombination": "Tryck på tangentkombinationen...",
   "VOTUseAudioDownload": "Använd ljudnedladdning",
-  "VOTUseAudioDownloadWarning": "Inaktivera ljudnedladdningar kan påverka funktionaliteten i tillägget"
+  "VOTUseAudioDownloadWarning": "Inaktivera ljudnedladdningar kan påverka funktionaliteten i tillägget",
+  "VOTAccountRequired": "Du måste logga in för att använda den här funktionen",
+  "VOTMyAccount": "Mitt konto",
+  "VOTLogin": "Logga",
+  "VOTLogout": "Utloggning",
+  "VOTRefresh": "Uppdatera"
 }

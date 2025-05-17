@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Completely disabling proxying in your country may break the extension",
   "PressTheKeyCombination": "Press the key combination...",
   "VOTUseAudioDownload": "Use audio download",
-  "VOTUseAudioDownloadWarning": "Disabling audio downloads may affect the functionality of the extension"
+  "VOTUseAudioDownloadWarning": "Disabling audio downloads may affect the functionality of the extension",
+  "VOTAccountRequired": "You need to log in to use this feature",
+  "VOTMyAccount": "My account",
+  "VOTLogin": "Login",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Refresh"
 }

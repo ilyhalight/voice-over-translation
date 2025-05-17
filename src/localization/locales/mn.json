@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Танай улсад proxying-ийг бүрэн идэвхгүй болгох нь өргөтгөлийг эвдэж болзошгүй юм",
   "PressTheKeyCombination": "Товчлуурын хослолыг дарна уу...",
   "VOTUseAudioDownload": "Аудио татаж ашиглах",
-  "VOTUseAudioDownloadWarning": "Аудио татан авалтыг идэвхгүй болгох нь өргөтгөлийн үйл ажиллагаанд нөлөөлж болзошгүй юм"
+  "VOTUseAudioDownloadWarning": "Аудио татан авалтыг идэвхгүй болгох нь өргөтгөлийн үйл ажиллагаанд нөлөөлж болзошгүй юм",
+  "VOTAccountRequired": "Энэ функцийг ашиглахын тулд та нэвтрэх хэрэгтэй",
+  "VOTMyAccount": "Миний данс",
+  "VOTLogin": "Нэвтрэх",
+  "VOTLogout": "Нэвтрэх",
+  "VOTRefresh": "Сэргээх"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Ukukhubaza ngokuphelele ukumela izwe lakho kungase kuphule ukunwetshwa",
   "PressTheKeyCombination": "Cindezela inhlanganisela key...",
   "VOTUseAudioDownload": "Sebenzisa audio thwebula",
-  "VOTUseAudioDownloadWarning": "Ukukhubaza ukulandwa komsindo kungathinta ukusebenza kwesandiso"
+  "VOTUseAudioDownloadWarning": "Ukukhubaza ukulandwa komsindo kungathinta ukusebenza kwesandiso",
+  "VOTAccountRequired": "Udinga ukungena ngemvume ukuze usebenzise lesi sici",
+  "VOTMyAccount": "I akhawunti yami",
+  "VOTLogin": "Ukungena ngemvume",
+  "VOTLogout": "Ukuphuma",
+  "VOTRefresh": "Vuselela"
 }

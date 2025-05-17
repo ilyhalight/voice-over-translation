@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "നിങ്ങളുടെ രാജ്യത്ത് പ്രോക്സിംഗ് പൂർണ്ണമായും അപ്രാപ്തമാക്കുന്നത് വിപുലീകരണം തകർത്തേക്കാം",
   "PressTheKeyCombination": "കീ കോമ്പിനേഷൻ അമർത്തുക...",
   "VOTUseAudioDownload": "Use audio download",
-  "VOTUseAudioDownloadWarning": "ഓഡിയോ ഡൌൺലോഡുകൾ അപ്രാപ്തമാക്കുന്നത് വിപുലീകരണത്തിന്റെ പ്രവർത്തനത്തെ ബാധിച്ചേക്കാം"
+  "VOTUseAudioDownloadWarning": "ഓഡിയോ ഡൌൺലോഡുകൾ അപ്രാപ്തമാക്കുന്നത് വിപുലീകരണത്തിന്റെ പ്രവർത്തനത്തെ ബാധിച്ചേക്കാം",
+  "VOTAccountRequired": "ഈ സവിശേഷത ഉപയോഗിക്കുന്നതിന് നിങ്ങൾ ലോഗിൻ ചെയ്യേണ്ടതുണ്ട്",
+  "VOTMyAccount": "എന്റെ അക്കൗണ്ട്",
+  "VOTLogin": "ലോഗിൻ ചെയ്യുക",
+  "VOTLogout": "പുറത്തുകടക്കുക",
+  "VOTRefresh": "പുതുക്കുക"
 }

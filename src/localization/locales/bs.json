@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Potpuno onemogućavanje proksiranja u vašoj zemlji može prekinuti proširenje",
   "PressTheKeyCombination": "Pritisnite kombinaciju tastera...",
   "VOTUseAudioDownload": "Koristi preuzimanje zvuka",
-  "VOTUseAudioDownloadWarning": "Onemogućavanje preuzimanja zvuka može uticati na funkcionalnost ekstenzije"
+  "VOTUseAudioDownloadWarning": "Onemogućavanje preuzimanja zvuka može uticati na funkcionalnost ekstenzije",
+  "VOTAccountRequired": "Morate se prijaviti da biste koristili ovu funkciju",
+  "VOTMyAccount": "Moj nalog",
+  "VOTLogin": "Prijava",
+  "VOTLogout": "Sound event",
+  "VOTRefresh": "Osvježi"
 }

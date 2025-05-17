@@ -1,0 +1,32 @@
+.vot-account {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+
+  &-container,
+  &-wrapper,
+  &-buttons {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  &-avatar {
+    max-width: 36px;
+    max-height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    overflow: hidden;
+    &-img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+}

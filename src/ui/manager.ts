@@ -250,6 +250,13 @@ export class UIManager {
     // #region settings view events
     this.votSettingsView.initUIEvents();
     this.votSettingsView
+      .addEventListener("update:account", async (account) => {
+        if (!this.videoHandler) {
+          return;
+        }
+
+        this.videoHandler.votClient.apiToken = account?.token;
+      })
       .addEventListener("change:autoTranslate", async (checked) => {
         if (
           checked &&

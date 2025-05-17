@@ -19,7 +19,11 @@ import type {
   LanguageSelectKey,
   SelectItem,
 } from "../../types/components/select";
-import type { StorageData, TranslateProxyStatus } from "../../types/storage";
+import type {
+  Account,
+  StorageData,
+  TranslateProxyStatus,
+} from "../../types/storage";
 import type { SettingsViewProps } from "../../types/views/settings";
 import { countryCode, type VideoHandler } from "../..";
 import type {
@@ -29,6 +33,7 @@ import type {
 import debug from "../../utils/debug";
 import { detectServices, translateServices } from "../../utils/translateApis";
 import {
+  authServerUrl,
   defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
@@ -48,6 +53,7 @@ import {
 } from "../../utils/utils";
 import { HELP_ICON, WARNING_ICON } from "../icons";
 import Label from "../components/label";
+import AccountButton from "../components/accountButton";
 
 export class SettingsView {
   globalPortal: HTMLElement;
@@ -58,6 +64,8 @@ export class SettingsView {
 
   private onClickBugReport = new EventImpl();
   private onClickResetSettings = new EventImpl();
+
+  private onUpdateAccount = new EventImpl();
 
   private onChangeAutoTranslate = new EventImpl();
   private onChangeShowVideoVolume = new EventImpl();
@@ -80,6 +88,9 @@ export class SettingsView {
   private onSelectItemMenuLanguage = new EventImpl();
 
   dialog?: Dialog;
+  accountHeader?: HTMLElement;
+  accountButton?: AccountButton;
+  accountButtonRefreshTooltip?: Tooltip;
   translationSettingsHeader?: HTMLElement;
   autoTranslateCheckbox?: Checkbox;
   dontTranslateLanguagesCheckbox?: Checkbox;
@@ -135,6 +146,11 @@ export class SettingsView {
   isInitialized(): this is {
     // #region Settings type
     dialog: Dialog;
+    // #region Settings Account type
+    accountHeader: HTMLElement;
+    accountButton: AccountButton;
+    accountButtonRefreshTooltip: Tooltip;
+    // #endregion Settings Account type
     // #region Settings Translation type
     translationSettingsHeader: HTMLElement;
     autoTranslateCheckbox: Checkbox;
@@ -205,6 +221,30 @@ export class SettingsView {
     });
     this.globalPortal.appendChild(this.dialog.container);
 
+    // #region Account
+    this.accountHeader = ui.createHeader(
+      localizationProvider.get("VOTMyAccount"),
+    );
+    this.accountButton = new AccountButton({
+      avatarId: this.data.account?.avatarId,
+      username: this.data.account?.username,
+      loggedIn: !!this.data.account?.token,
+    });
+    if (votStorage.isSupportOnlyLS()) {
+      // LocalStorage can't support sync settings between sites
+      this.accountButton.refreshButton.setAttribute("disabled", "true");
+      this.accountButton.actionButton.setAttribute("disabled", "true");
+    } else {
+      this.accountButtonRefreshTooltip = new Tooltip({
+        target: this.accountButton.refreshButton,
+        content: localizationProvider.get("VOTRefresh"),
+        position: "bottom",
+        backgroundColor: "var(--vot-helper-ondialog)",
+        parentElement: this.globalPortal,
+      });
+    }
+
+    // #endregion Account
     // #region Translation
     this.translationSettingsHeader = ui.createHeader(
       localizationProvider.get("translationSettings"),
@@ -294,15 +334,16 @@ export class SettingsView {
       labelHtml: localizationProvider.get("VOTUseLivelyVoice"),
       checked: this.data.useLivelyVoice,
     });
-    if (!this.data.yandexToken) {
+    this.useLivelyVoiceTooltip = new Tooltip({
+      target: this.useLivelyVoiceCheckbox.container,
+      content: localizationProvider.get("VOTAccountRequired"),
+      position: "bottom",
+      backgroundColor: "var(--vot-helper-ondialog)",
+      parentElement: this.globalPortal,
+      hidden: !!this.data.account?.token,
+    });
+    if (!this.data.account?.token) {
       this.useLivelyVoiceCheckbox.disabled = true;
-      this.useLivelyVoiceTooltip = new Tooltip({
-        target: this.useLivelyVoiceCheckbox.container,
-        content: localizationProvider.get("VOTNeedYandexSession"),
-        position: "bottom",
-        backgroundColor: "var(--vot-helper-ondialog)",
-        parentElement: this.globalPortal,
-      });
     }
 
     this.useAudioDownloadCheckboxLabel = new Label({
@@ -324,6 +365,8 @@ export class SettingsView {
     });
 
     this.dialog.bodyContainer.append(
+      this.accountHeader,
+      this.accountButton.container,
       this.translationSettingsHeader,
       this.autoTranslateCheckbox.container,
       this.dontTranslateLanguagesSelect.container,
@@ -578,6 +621,28 @@ export class SettingsView {
     }
 
     // #region [Events]
+    this.accountButton.addEventListener("click", async () => {
+      if (votStorage.isSupportOnlyLS()) {
+        return;
+      }
+
+      if (this.accountButton.loggedIn) {
+        await votStorage.delete("account");
+        this.data.account = {};
+        return this.updateAccountInfo();
+      }
+
+      window.open(authServerUrl, "_blank")?.focus();
+    });
+    this.accountButton.addEventListener("refresh", async () => {
+      if (votStorage.isSupportOnlyLS()) {
+        return;
+      }
+
+      this.data.account = await votStorage.get("account", {});
+      this.updateAccountInfo();
+    });
+
     // #region [Events] Translation
     this.autoTranslateCheckbox.addEventListener("change", async (checked) => {
       this.data.autoTranslate = checked;
@@ -1107,6 +1172,10 @@ export class SettingsView {
     listener: (checked: boolean) => void,
   ): this;
   addEventListener(
+    type: "update:account",
+    listener: (account: Partial<Account> | undefined) => void,
+  ): this;
+  addEventListener(
     type: "change:autoTranslate",
     listener: (checked: boolean) => void,
   ): this;
@@ -1178,6 +1247,7 @@ export class SettingsView {
     type:
       | "click:bugReport"
       | "click:resetSettings"
+      | "update:account"
       | "change:autoTranslate"
       | "change:showVideoVolume"
       | "change:audioBuster"
@@ -1205,6 +1275,10 @@ export class SettingsView {
       }
       case "click:resetSettings": {
         this.onClickResetSettings.addListener(listener);
+        break;
+      }
+      case "update:account": {
+        this.onUpdateAccount.addListener(listener);
         break;
       }
       case "change:autoTranslate": {
@@ -1289,6 +1363,10 @@ export class SettingsView {
     listener: (checked: boolean) => void,
   ): this;
   removeEventListener(
+    type: "update:account",
+    listener: (account: Partial<Account> | undefined) => void,
+  ): this;
+  removeEventListener(
     type: "change:autoTranslate",
     listener: (checked: boolean) => void,
   ): this;
@@ -1360,6 +1438,7 @@ export class SettingsView {
     type:
       | "click:bugReport"
       | "click:resetSettings"
+      | "update:account"
       | "change:autoTranslate"
       | "change:showVideoVolume"
       | "change:audioBuster"
@@ -1387,6 +1466,10 @@ export class SettingsView {
       }
       case "click:resetSettings": {
         this.onClickResetSettings.removeListener(listener);
+        break;
+      }
+      case "update:account": {
+        this.onUpdateAccount.removeListener(listener);
         break;
       }
       case "change:autoTranslate": {
@@ -1468,6 +1551,7 @@ export class SettingsView {
     }
 
     this.dialog.remove();
+    this.accountButtonRefreshTooltip?.release();
     this.audioBoosterTooltip?.release();
     this.useAudioDownloadCheckboxTooltip?.release();
     this.useNewAudioPlayerTooltip?.release();
@@ -1486,6 +1570,8 @@ export class SettingsView {
 
     this.onClickBugReport.clear();
     this.onClickResetSettings.clear();
+
+    this.onUpdateAccount.clear();
 
     this.onChangeAutoTranslate.clear();
     this.onChangeShowVideoVolume.clear();
@@ -1514,6 +1600,20 @@ export class SettingsView {
   release() {
     this.releaseUI(true);
     this.releaseUIEvents(false);
+    return this;
+  }
+
+  updateAccountInfo() {
+    if (!this.isInitialized()) {
+      throw new Error("[VOT] SettingsView isn't initialized");
+    }
+
+    const loggedIn = !!this.data.account?.token;
+    this.accountButton.avatarId = this.data.account?.avatarId;
+    this.useLivelyVoiceTooltip.hidden = this.accountButton.loggedIn = loggedIn;
+    this.accountButton.username = this.data.account?.username;
+    this.useLivelyVoiceCheckbox.disabled = !loggedIn;
+    this.onUpdateAccount.dispatch(this.data.account);
     return this;
   }
 

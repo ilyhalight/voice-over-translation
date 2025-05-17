@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "غیرفعال کردن کامل پروکسی در کشور شما ممکن است تمدید را بشکند",
   "PressTheKeyCombination": "کلید ترکیبی را فشار دهید...",
   "VOTUseAudioDownload": "استفاده از دانلود صوتی",
-  "VOTUseAudioDownloadWarning": "غیرفعال کردن دانلود های صوتی ممکن است بر عملکرد افزونه تأثیر بگذارد"
+  "VOTUseAudioDownloadWarning": "غیرفعال کردن دانلود های صوتی ممکن است بر عملکرد افزونه تأثیر بگذارد",
+  "VOTAccountRequired": "برای استفاده از این ویژگی باید وارد سیستم شوید",
+  "VOTMyAccount": "حساب کاربری من",
+  "VOTLogin": "ورود به سایت",
+  "VOTLogout": "خروج از سیستم",
+  "VOTRefresh": "تازه کردن"
 }

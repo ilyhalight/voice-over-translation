@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Popolnoma onemogočanje posredništva v vaši državi lahko prekine razširitev",
   "PressTheKeyCombination": "Pritisnite kombinacijo tipk...",
   "VOTUseAudioDownload": "Uporabite prenos zvoka",
-  "VOTUseAudioDownloadWarning": "Onemogočanje prenosov zvoka lahko vpliva na funkcionalnost razširitve"
+  "VOTUseAudioDownloadWarning": "Onemogočanje prenosov zvoka lahko vpliva na funkcionalnost razširitve",
+  "VOTAccountRequired": "Za uporabo te funkcije se morate prijaviti",
+  "VOTMyAccount": "Moj Račun",
+  "VOTLogin": "Prijava",
+  "VOTLogout": "Odjava",
+  "VOTRefresh": "Osveži"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Melumpuhkan proksi sepenuhnya di negara anda boleh mematahkan pelanjutan",
   "PressTheKeyCombination": "Tekan kombinasi kekunci...",
   "VOTUseAudioDownload": "Gunakan Muat turun audio",
-  "VOTUseAudioDownloadWarning": "Melumpuhkan muat turun audio boleh menjejaskan fungsi sambungan"
+  "VOTUseAudioDownloadWarning": "Melumpuhkan muat turun audio boleh menjejaskan fungsi sambungan",
+  "VOTAccountRequired": "Anda perlu log masuk untuk menggunakan ciri ini",
+  "VOTMyAccount": "Akaun saya",
+  "VOTLogin": "Logmasuk",
+  "VOTLogout": "Log keluar",
+  "VOTRefresh": "Segarkan semula"
 }

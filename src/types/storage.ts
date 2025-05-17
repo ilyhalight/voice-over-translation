@@ -54,11 +54,18 @@ export const storageKeys = [
   "localeHash",
   "localeUpdatedAt",
   "localeLangOverride",
-  "yandexToken",
+  "account",
 ] as const;
 
 export type TranslateProxyStatus = 0 | 1 | 2;
 export type CompatibilityVersion = "" | "2025-05-09";
+
+export type Account = {
+  username: string | undefined;
+  avatarId: string | undefined;
+  expires: number;
+  token: string;
+};
 
 // TODO: remove comments after add config converter
 export type StorageData = {
@@ -100,7 +107,8 @@ export type StorageData = {
   autoHideButtonDelay: number;
   useAudioDownload: boolean;
   compatVersion: CompatibilityVersion;
-  yandexToken: string;
+  // for have empty object if info isn't provided
+  account: Partial<Account>;
   localePhrases: string;
   localeLang: string;
   localeHash: string;

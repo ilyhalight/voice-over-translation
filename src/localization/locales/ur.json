@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "آپ کے ملک میں پراکسی کو مکمل طور پر غیر فعال کرنا توسیع کو توڑ سکتا ہے ۔ ",
   "PressTheKeyCombination": "کلیدی امتزاج دبائیں۔..",
   "VOTUseAudioDownload": "آڈیو ڈاؤن لوڈ کا استعمال کریں",
-  "VOTUseAudioDownloadWarning": "آڈیو ڈاؤن لوڈ کو غیر فعال کرنے سے توسیع کی فعالیت متاثر ہوسکتی ہے ۔ "
+  "VOTUseAudioDownloadWarning": "آڈیو ڈاؤن لوڈ کو غیر فعال کرنے سے توسیع کی فعالیت متاثر ہوسکتی ہے ۔ ",
+  "VOTAccountRequired": "اس خصوصیت کو استعمال کرنے کے لیے آپ کو لاگ ان کرنے کی ضرورت ہے ۔ ",
+  "VOTMyAccount": "میرا اکاؤنٹ",
+  "VOTLogin": "لاگ ان",
+  "VOTLogout": "لاگ آؤٹ",
+  "VOTRefresh": "ریفریش"
 }

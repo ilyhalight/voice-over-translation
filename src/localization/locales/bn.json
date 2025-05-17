@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "আপনার দেশে প্রক্সিংকে সম্পূর্ণরূপে অক্ষম করা এক্সটেনশনটি ভেঙে দিতে পারে",
   "PressTheKeyCombination": "কী সমন্বয় টিপুন...",
   "VOTUseAudioDownload": "অডিও ডাউনলোড ব্যবহার করুন",
-  "VOTUseAudioDownloadWarning": "অডিও ডাউনলোডগুলি অক্ষম করা এক্সটেনশনের কার্যকারিতাকে প্রভাবিত করতে পারে"
+  "VOTUseAudioDownloadWarning": "অডিও ডাউনলোডগুলি অক্ষম করা এক্সটেনশনের কার্যকারিতাকে প্রভাবিত করতে পারে",
+  "VOTAccountRequired": "এই বৈশিষ্ট্যটি ব্যবহার করতে আপনাকে লগ ইন করতে হবে",
+  "VOTMyAccount": "আমার অ্যাকাউন্ট",
+  "VOTLogin": "লগইন",
+  "VOTLogout": "লগআউট",
+  "VOTRefresh": "রিফ্রেশ"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "በአገርዎ ውስጥ ፕሮክሲን ሙሉ በሙሉ ማሰናከል ቅጥያውን ሊያፈርስ ይችላል ። ",
   "PressTheKeyCombination": "ቁልፍ ጥምረት ይጫኑ...",
   "VOTUseAudioDownload": "የድምጽ ማውረድ ይጠቀሙ",
-  "VOTUseAudioDownloadWarning": "የድምጽ ማውረዶችን ማሰናከል የቅጥያውን ተግባር ላይ ተጽዕኖ ሊያሳድር ይችላል ። "
+  "VOTUseAudioDownloadWarning": "የድምጽ ማውረዶችን ማሰናከል የቅጥያውን ተግባር ላይ ተጽዕኖ ሊያሳድር ይችላል ። ",
+  "VOTAccountRequired": "ይህንን ባህሪ ለመጠቀም መግባት አለብዎት ። ",
+  "VOTMyAccount": "የእኔ መለያ",
+  "VOTLogin": "አዲስ ዝምብሎ ይግባ",
+  "VOTLogout": "ግባ",
+  "VOTRefresh": "በድጋሚ ጀምር"
 }

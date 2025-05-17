@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "在您的国家/地区完全禁用代理可能会破坏扩展",
   "PressTheKeyCombination": "按组合键。..",
   "VOTUseAudioDownload": "使用音频下载",
-  "VOTUseAudioDownloadWarning": "禁用音频下载可能会影响扩展的功能"
+  "VOTUseAudioDownloadWarning": "禁用音频下载可能会影响扩展的功能",
+  "VOTAccountRequired": "您需要登录才能使用此功能",
+  "VOTMyAccount": "我的帐户",
+  "VOTLogin": "登入",
+  "VOTLogout": "登出",
+  "VOTRefresh": "刷新"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "As u die volmag in u land heeltemal deaktiveer, kan dit die uitbreiding verbreek",
   "PressTheKeyCombination": "Druk die sleutelkombinasie...",
   "VOTUseAudioDownload": "Gebruik klank aflaai",
-  "VOTUseAudioDownloadWarning": "As u klank aflaai deaktiveer, kan dit die funksionaliteit van die uitbreiding beïnvloed"
+  "VOTUseAudioDownloadWarning": "As u klank aflaai deaktiveer, kan dit die funksionaliteit van die uitbreiding beïnvloed",
+  "VOTAccountRequired": "U moet aanmeld om hierdie funksie te gebruik",
+  "VOTMyAccount": "My rekening",
+  "VOTLogin": "Aanmelding",
+  "VOTLogout": "Afmeld",
+  "VOTRefresh": "Verfris"
 }

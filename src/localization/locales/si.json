@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "සම්පූර්ණයෙන්ම අක්රිය ඔබගේ රටේ proxying දීර්ඝ බිඳ දැමිය හැක",
   "PressTheKeyCombination": "යතුරු සංයෝගය ඔබන්න...",
   "VOTUseAudioDownload": "ශ්රව්ය බාගත භාවිතා කරන්න",
-  "VOTUseAudioDownloadWarning": "ශ් රව් ය බාගත කිරීම් අක් රිය කිරීම දිගු කිරීමේ ක් රියාකාරිත්වයට බලපෑම් කළ හැකිය"
+  "VOTUseAudioDownloadWarning": "ශ් රව් ය බාගත කිරීම් අක් රිය කිරීම දිගු කිරීමේ ක් රියාකාරිත්වයට බලපෑම් කළ හැකිය",
+  "VOTAccountRequired": "මෙම විශේෂාංගය භාවිතා කිරීමට ඔබ පිවිසිය යුතුය",
+  "VOTMyAccount": "මගේ ගිණුම",
+  "VOTLogin": "පිවිසෙන්න",
+  "VOTLogout": "පිටවීම",
+  "VOTRefresh": "නැවුම් කරන්න"
 }

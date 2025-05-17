@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Сіздің елде прокси-серверді толығымен өшіру кеңейтімді бұзуы мүмкін",
   "PressTheKeyCombination": "Пернелер тіркесімін басыңыз...",
   "VOTUseAudioDownload": "Аудио жүктеуді пайдаланыңыз",
-  "VOTUseAudioDownloadWarning": "Аудио жүктеулерді өшіру кеңейтімнің жұмысына әсер етуі мүмкін"
+  "VOTUseAudioDownloadWarning": "Аудио жүктеулерді өшіру кеңейтімнің жұмысына әсер етуі мүмкін",
+  "VOTAccountRequired": "Бұл мүмкіндікті пайдалану үшін жүйеге кіру керек",
+  "VOTMyAccount": "Менің аккаунтым",
+  "VOTLogin": "Кіру",
+  "VOTLogout": "Шығу",
+  "VOTRefresh": "Жаңарту"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Całkowite wyłączenie proxy w Twoim kraju może przerwać rozszerzenie",
   "PressTheKeyCombination": "Naciśnij kombinację klawiszy...",
   "VOTUseAudioDownload": "Użyj pobierania audio",
-  "VOTUseAudioDownloadWarning": "Wyłączenie pobierania dźwięku może wpłynąć na funkcjonalność rozszerzenia"
+  "VOTUseAudioDownloadWarning": "Wyłączenie pobierania dźwięku może wpłynąć na funkcjonalność rozszerzenia",
+  "VOTAccountRequired": "Aby korzystać z tej funkcji, musisz się zalogować",
+  "VOTMyAccount": "Moje konto",
+  "VOTLogin": "Login",
+  "VOTLogout": "Wyloguj się",
+  "VOTRefresh": "Odśwież"
 }

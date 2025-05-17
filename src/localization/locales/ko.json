@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "귀하의 국가에서 프록시를 완전히 비활성화하면 확장 프로그램이 중단 될 수 있습니다",
   "PressTheKeyCombination": "키 조합을 누릅니다...",
   "VOTUseAudioDownload": "오디오 다운로드 사용",
-  "VOTUseAudioDownloadWarning": "오디오 다운로드를 비활성화하면 확장 프로그램의 기능에 영향을 줄 수 있습니다"
+  "VOTUseAudioDownloadWarning": "오디오 다운로드를 비활성화하면 확장 프로그램의 기능에 영향을 줄 수 있습니다",
+  "VOTAccountRequired": "이 기능을 사용하려면 로그인해야 합니다",
+  "VOTMyAccount": "내 계정",
+  "VOTLogin": "로그인",
+  "VOTLogout": "로그아웃",
+  "VOTRefresh": "새로 고침"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Fuldstændig deaktivering af fuldmagt i dit land kan bryde udvidelsen",
   "PressTheKeyCombination": "Tryk på tastekombinationen...",
   "VOTUseAudioDownload": "Brug lydoverførsel",
-  "VOTUseAudioDownloadWarning": "Deaktivering af lydoverførsler kan påvirke udvidelsens funktionalitet"
+  "VOTUseAudioDownloadWarning": "Deaktivering af lydoverførsler kan påvirke udvidelsens funktionalitet",
+  "VOTAccountRequired": "Du skal logge ind for at bruge denne funktion",
+  "VOTMyAccount": "Min konto",
+  "VOTLogin": "Login",
+  "VOTLogout": "Log ud",
+  "VOTRefresh": "Opdatere"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "ການປິດການ proxying ຢ່າງສົມບູນໃນປະເທດຂອງທ່ານອາດຈະທໍາລາຍການຂະຫຍາຍ",
   "PressTheKeyCombination": "ກົດປຸ່ມການປະສົມປະສານ...",
   "VOTUseAudioDownload": "ໃຊ້ການດາວໂຫລດສຽງ",
-  "VOTUseAudioDownloadWarning": "ການປິດການດາວໂຫຼດສຽງອາດຈະມີຜົນກະທົບການທໍາງານຂອງການຂະຫຍາຍ"
+  "VOTUseAudioDownloadWarning": "ການປິດການດາວໂຫຼດສຽງອາດຈະມີຜົນກະທົບການທໍາງານຂອງການຂະຫຍາຍ",
+  "VOTAccountRequired": "ທ່ານຈໍາເປັນຕ້ອງເຂົ້າໃນການນໍາໃຊ້ຄຸນນະສົມບັດນີ້",
+  "VOTMyAccount": "ບັນຊີຂອງຂ້ອຍ",
+  "VOTLogin": "ເຂົ້າສູ່ລະບົບ",
+  "VOTLogout": "ເຂົ້າສູ່ລະບົບ",
+  "VOTRefresh": "ສົດຊື່ນ"
 }

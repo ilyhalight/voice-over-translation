@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Çaktivizimi i plotë i proxying në vendin tuaj mund të prishë zgjatjen",
   "PressTheKeyCombination": "Shtypni kombinimin e tastit...",
   "VOTUseAudioDownload": "Përdorni shkarkimin audio",
-  "VOTUseAudioDownloadWarning": "Çaktivizimi i shkarkimeve audio mund të ndikojë në funksionalitetin e shtesës"
+  "VOTUseAudioDownloadWarning": "Çaktivizimi i shkarkimeve audio mund të ndikojë në funksionalitetin e shtesës",
+  "VOTAccountRequired": "Ju duhet të identifikoheni për të përdorur këtë veçori",
+  "VOTMyAccount": "Llogaria ime",
+  "VOTLogin": "Hyrje",
+  "VOTLogout": "Dalja",
+  "VOTRefresh": "Rifresko"
 }

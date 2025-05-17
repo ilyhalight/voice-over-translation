@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Mamlakatingizda proksi-serverni butunlay o'chirib qo'yish kengaytmani buzishi mumkin",
   "PressTheKeyCombination": "Tugmalar birikmasini bosing...",
   "VOTUseAudioDownload": "Audio yuklab olishdan foydalaning",
-  "VOTUseAudioDownloadWarning": "Ovozni yuklab olishni o'chirib qo'yish kengaytmaning ishlashiga ta'sir qilishi mumkin"
+  "VOTUseAudioDownloadWarning": "Ovozni yuklab olishni o'chirib qo'yish kengaytmaning ishlashiga ta'sir qilishi mumkin",
+  "VOTAccountRequired": "Ushbu xususiyatdan foydalanish uchun tizimga kirishingiz kerak",
+  "VOTMyAccount": "Mening hisobim",
+  "VOTLogin": "Kirish",
+  "VOTLogout": "Chiqish",
+  "VOTRefresh": "Yangilash"
 }

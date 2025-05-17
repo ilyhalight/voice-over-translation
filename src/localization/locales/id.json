@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Menonaktifkan proxy sepenuhnya di negara Anda dapat merusak ekstensi",
   "PressTheKeyCombination": "Tekan kombinasi tombol...",
   "VOTUseAudioDownload": "Gunakan pengunduhan audio",
-  "VOTUseAudioDownloadWarning": "Menonaktifkan unduhan audio dapat memengaruhi fungsionalitas ekstensi"
+  "VOTUseAudioDownloadWarning": "Menonaktifkan unduhan audio dapat memengaruhi fungsionalitas ekstensi",
+  "VOTAccountRequired": "Anda harus masuk untuk menggunakan fitur ini",
+  "VOTMyAccount": "Akun saya",
+  "VOTLogin": "Login",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Menyegarkan"
 }

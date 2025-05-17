@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Het volledig uitschakelen van proxy ' s in uw land kan de extensie breken",
   "PressTheKeyCombination": "Druk op de toetsencombinatie...",
   "VOTUseAudioDownload": "Audio downloaden gebruiken",
-  "VOTUseAudioDownloadWarning": "Het uitschakelen van audiodownloads kan de functionaliteit van de extensie beïnvloeden"
+  "VOTUseAudioDownloadWarning": "Het uitschakelen van audiodownloads kan de functionaliteit van de extensie beïnvloeden",
+  "VOTAccountRequired": "U moet inloggen om deze functie te gebruiken",
+  "VOTMyAccount": "Mijn account",
+  "VOTLogin": "Login",
+  "VOTLogout": "Afmelden",
+  "VOTRefresh": "Vernieuwen"
 }

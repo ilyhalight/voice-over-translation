@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "पूर्णतया आफ्नो देश मा प्रोक्सी अक्षम विस्तार तोड्न सक्छ",
   "PressTheKeyCombination": "कुञ्जी संयोजन थिच्नुहोस्।..",
   "VOTUseAudioDownload": "अडियो डाउनलोड प्रयोग गर्नुहोस्",
-  "VOTUseAudioDownloadWarning": "अडियो डाउनलोडहरू असक्षम पार्दा एक्सटेन्सनको कार्यक्षमतामा असर पर्न सक्छ"
+  "VOTUseAudioDownloadWarning": "अडियो डाउनलोडहरू असक्षम पार्दा एक्सटेन्सनको कार्यक्षमतामा असर पर्न सक्छ",
+  "VOTAccountRequired": "यो सुविधा प्रयोग गर्न तपाईँले लग इन गर्नु आवश्यक छ",
+  "VOTMyAccount": "मेरो खाता",
+  "VOTLogin": "लगइन गर्नुहोस्",
+  "VOTLogout": "लगआउट",
+  "VOTRefresh": "ताजा पार्नुहोस्"
 }

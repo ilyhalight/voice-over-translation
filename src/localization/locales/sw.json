@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Kuzima kabisa wakala katika nchi yako kunaweza kuvunja ugani",
   "PressTheKeyCombination": "Bonyeza mchanganyiko muhimu...",
   "VOTUseAudioDownload": "Tumia upakuaji wa sauti",
-  "VOTUseAudioDownloadWarning": "Kuzima upakuaji wa sauti kunaweza kuathiri utendakazi wa kiendelezi"
+  "VOTUseAudioDownloadWarning": "Kuzima upakuaji wa sauti kunaweza kuathiri utendakazi wa kiendelezi",
+  "VOTAccountRequired": "Unahitaji kuingia ili kutumia kipengele hiki",
+  "VOTMyAccount": "Akaunti yangu",
+  "VOTLogin": "Ingia",
+  "VOTLogout": "Kuingia",
+  "VOTRefresh": "Furahisha"
 }

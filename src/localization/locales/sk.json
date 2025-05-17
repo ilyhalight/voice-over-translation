@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Úplné zakázanie proxy vo vašej krajine môže Rozšírenie prerušiť",
   "PressTheKeyCombination": "Stlačte kombináciu klávesov...",
   "VOTUseAudioDownload": "Použite stiahnutie zvuku",
-  "VOTUseAudioDownloadWarning": "Zakázanie sťahovania zvuku môže mať vplyv na funkčnosť rozšírenia"
+  "VOTUseAudioDownloadWarning": "Zakázanie sťahovania zvuku môže mať vplyv na funkčnosť rozšírenia",
+  "VOTAccountRequired": "Ak chcete používať túto funkciu, musíte sa prihlásiť",
+  "VOTMyAccount": "Prihlásiť sa",
+  "VOTLogin": "Prihlásenie",
+  "VOTLogout": "Odhlásiť",
+  "VOTRefresh": "Obnoviť"
 }

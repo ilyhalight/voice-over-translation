@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Zure herrialdean ordezkaritza erabat desgaitzeak luzapena hautsi dezake",
   "PressTheKeyCombination": "Sakatu tekla konbinazioa...",
   "VOTUseAudioDownload": "Erabili audio deskarga",
-  "VOTUseAudioDownloadWarning": "Audio deskargak desgaitzeak luzapenaren funtzionaltasunean eragina izan dezake"
+  "VOTUseAudioDownloadWarning": "Audio deskargak desgaitzeak luzapenaren funtzionaltasunean eragina izan dezake",
+  "VOTAccountRequired": "Saioa hasi behar duzu ezaugarri hau erabiltzeko",
+  "VOTMyAccount": "Nire kontua",
+  "VOTLogin": "Saioa hasi",
+  "VOTLogout": "Saioa amaitzea",
+  "VOTRefresh": "Freskatu"
 }

@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "A proxy teljes letiltása az Ön országában megszakíthatja a kiterjesztést",
   "PressTheKeyCombination": "Nyomja meg a billentyűkombinációt...",
   "VOTUseAudioDownload": "Használja az audio letöltést",
-  "VOTUseAudioDownloadWarning": "A hangletöltések letiltása befolyásolhatja a kiterjesztés működését"
+  "VOTUseAudioDownloadWarning": "A hangletöltések letiltása befolyásolhatja a kiterjesztés működését",
+  "VOTAccountRequired": "A funkció használatához be kell jelentkeznie",
+  "VOTMyAccount": "Saját fiók",
+  "VOTLogin": "Bejelentkezés",
+  "VOTLogout": "Kijelentkezés",
+  "VOTRefresh": "Frissítés"
 }

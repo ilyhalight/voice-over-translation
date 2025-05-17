@@ -16,6 +16,8 @@ const votBackendUrl = "https://vot.toil.cc/v1";
  */
 const foswlyTranslateUrl = "https://translate.toil.cc/v2";
 const detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
+const authServerUrl = "https://t2mc.toil.cc";
+const avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
 
 const repoPath = "ilyhalight/voice-over-translation";
 const contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
@@ -65,4 +67,6 @@ export {
   proxyOnlyCountries,
   defaultAutoHideDelay,
   actualCompatVersion,
+  authServerUrl,
+  avatarServerUrl,
 };

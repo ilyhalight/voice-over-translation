@@ -234,5 +234,10 @@
   "VOTTranslateProxyStatusDefault": "Välityspalvelimen poistaminen kokonaan käytöstä maassasi voi rikkoa laajennuksen",
   "PressTheKeyCombination": "Paina näppäinyhdistelmää...",
   "VOTUseAudioDownload": "Käytä äänen lataamista",
-  "VOTUseAudioDownloadWarning": "Äänilatausten poistaminen käytöstä voi vaikuttaa laajennuksen toimivuuteen"
+  "VOTUseAudioDownloadWarning": "Äänilatausten poistaminen käytöstä voi vaikuttaa laajennuksen toimivuuteen",
+  "VOTAccountRequired": "Sinun on kirjauduttava sisään käyttääksesi tätä ominaisuutta",
+  "VOTMyAccount": "Oma tili",
+  "VOTLogin": "Kirjautuminen",
+  "VOTLogout": "Logout",
+  "VOTRefresh": "Päivitä"
 }
