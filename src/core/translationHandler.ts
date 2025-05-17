@@ -156,7 +156,7 @@ export class VOTTranslationHandler {
 
       if (
         res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
-        videoData.host === "youtube"
+        this.videoHandler.isYouTubeHosts()
       ) {
         debug.log("Start audio download");
         this.downloading = true;

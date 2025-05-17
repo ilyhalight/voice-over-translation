@@ -1118,6 +1118,15 @@ class VideoHandler {
   }
 
   /**
+   * used for enable audio downloader on this hosts
+   */
+  isYouTubeHosts() {
+    return ["youtube", "invidious", "piped", "poketube", "ricktube"].includes(
+      this.site.host,
+    );
+  }
+
+  /**
    * Sets up HLS streaming if needed.
    * @param {string} streamURL The HLS stream URL.
    */

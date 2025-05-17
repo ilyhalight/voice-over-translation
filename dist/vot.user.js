@@ -11035,7 +11035,7 @@
 					if (U.log("Translate video result", p), f.aborted) throw Error("AbortError");
 					if (p.translated && p.remainingTime < 1) return U.log("Video translation finished with this data: ", p), p;
 					let m = p.message ?? J.get("translationTakeFewMinutes");
-					if (await this.videoHandler.updateTranslationErrorMsg(p.remainingTime > 0 ? secsToStrTime(p.remainingTime) : m), p.status === j.AUDIO_REQUESTED && t.host === "youtube") {
+					if (await this.videoHandler.updateTranslationErrorMsg(p.remainingTime > 0 ? secsToStrTime(p.remainingTime) : m), p.status === j.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
 						if (U.log("Start audio download"), this.downloading = !0, await this.audioDownloader.runAudioDownload(t.videoId, p.translationId, f), U.log("waiting downloading finish"), await waitForCondition(() => !this.downloading || f.aborted, 15e3), f.aborted) throw U.log("aborted after audio downloader vtrans"), Error("AbortError");
 						return await this.translateVideoImpl(t, n, i, s, !0, f);
 					}
@@ -11541,6 +11541,15 @@
 					url: this.downloadTranslationUrl,
 					useLivelyVoice: this.data?.useLivelyVoice
 				});
+			}
+			isYouTubeHosts() {
+				return [
+					"youtube",
+					"invidious",
+					"piped",
+					"poketube",
+					"ricktube"
+				].includes(this.site.host);
 			}
 			setupHLS(t) {
 				this.hls.on(Hls.Events.MEDIA_ATTACHED, function() {
