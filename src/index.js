@@ -1,15 +1,8 @@
 import Chaimu, { initAudioContext } from "chaimu";
 
 import VOTClient, { VOTWorkerClient } from "@vot.js/ext";
-import votConfig from "@vot.js/shared/config";
-import {
-  getVideoData,
-  getVideoID,
-  getService,
-} from "@vot.js/ext/utils/videoData";
-import { availableLangs } from "@vot.js/shared/consts";
+import { getVideoID, getService } from "@vot.js/ext/utils/videoData";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
-import { VideoTranslationStatus } from "@vot.js/core/types/yandex";
 
 import ui from "./ui.js";
 import debug from "./utils/debug.ts";
@@ -26,6 +19,7 @@ import {
   proxyOnlyCountries,
   defaultAutoHideDelay,
   actualCompatVersion,
+  authServerUrl,
 } from "./config/config.js";
 import { localizationProvider } from "./localization/localizationProvider.ts";
 import { SubtitlesWidget, SubtitlesProcessor } from "./subtitles.js";
@@ -34,593 +28,37 @@ import {
   GM_fetch,
   initHls,
   calculatedResLang,
-  secsToStrTime,
-  cleanText,
   isProxyOnlyExtension,
   browserInfo,
-  isIframe,
-  waitForCondition,
 } from "./utils/utils.js";
+import { isIframe } from "./utils/iframeConnector.ts";
 import { syncVolume } from "./utils/volume.js";
 import { VideoObserver } from "./utils/VideoObserver.js";
 import { updateConfig, votStorage } from "./utils/storage.ts";
-import { detect, translate } from "./utils/translateApis.ts";
+import { translate } from "./utils/translateApis.ts";
 import { UIManager } from "./ui/manager.ts";
-import { StorageData } from "./types/storage.ts";
 import { formatKeysCombo } from "./ui/components/hotkeyButton.ts";
-import { initIframeService } from "./audioDownloader/iframe.ts";
-import { IFRAME_HASH } from "./audioDownloader/shared.ts";
-import { AudioDownloader } from "./audioDownloader/index.ts";
+import { initAudioDownloaderIframe } from "./audioDownloader/iframe.ts";
+import { IFRAME_HASH } from "./utils/iframeConnector.ts";
+import { initAuth } from "./core/auth.ts";
+import { CacheManager } from "./core/cacheManager.ts";
+import { VOTTranslationHandler } from "./core/translationHandler.ts";
+import { VOTVideoManager } from "./core/videoManager.ts";
 
 export let countryCode; // Used later for proxy settings
-
-/*─────────────────────────────────────────────────────────────*/
-/*           Helper class: CacheManager                        */
-/* Merges video translation and subtitles caching by a composite key  */
-/*─────────────────────────────────────────────────────────────*/
-class CacheManager {
-  constructor() {
-    this.cache = new Map();
-  }
-  /**
-   * Returns the full cache entry for the given key.
-   * @param {string} key The composite key.
-   * @returns {Object|undefined}
-   */
-  get(key) {
-    return this.cache.get(key);
-  }
-  /**
-   * Sets the full cache entry for the given key.
-   * @param {string} key The composite key.
-   * @param {Object} value The cache entry.
-   */
-  set(key, value) {
-    this.cache.set(key, value);
-  }
-  /**
-   * Deletes the entire cache entry for the given key.
-   * @param {string} key The composite key.
-   */
-  delete(key) {
-    this.cache.delete(key);
-  }
-  /**
-   * Gets the translation object for the given key.
-   * @param {string} key The composite key.
-   * @returns {Object|undefined}
-   */
-  getTranslation(key) {
-    const entry = this.get(key);
-    return entry ? entry.translation : undefined;
-  }
-  /**
-   * Sets the translation object for the given key.
-   * @param {string} key The composite key.
-   * @param {Object} translation The translation data.
-   */
-  setTranslation(key, translation) {
-    const entry = this.get(key) || {};
-    entry.translation = translation;
-    this.set(key, entry);
-  }
-  /**
-   * Gets the subtitles array for the given key.
-   * @param {string} key The composite key.
-   * @returns {Array|undefined}
-   */
-  getSubtitles(key) {
-    const entry = this.get(key);
-    return entry ? entry.subtitles : undefined;
-  }
-  /**
-   * Sets the subtitles array for the given key.
-   * @param {string} key The composite key.
-   * @param {Array} subtitles The subtitles data.
-   */
-  setSubtitles(key, subtitles) {
-    const entry = this.get(key) || {};
-    entry.subtitles = subtitles;
-    this.set(key, entry);
-  }
-  /**
-   * Deletes the subtitles data for the given key.
-   * @param {string} key The composite key.
-   */
-  deleteSubtitles(key) {
-    const entry = this.get(key);
-    if (entry) {
-      entry.subtitles = undefined;
-      this.set(key, entry);
-    }
-  }
-}
-
-/*─────────────────────────────────────────────────────────────*/
-/*       Helper class: VOTTranslationHandler                   */
-/*  Handles video translation, audio URL validation, etc.      */
-/*─────────────────────────────────────────────────────────────*/
-class VOTTranslationHandler {
-  /**
-   * @param {VideoHandler} videoHandler Parent VideoHandler instance.
-   */
-  constructor(videoHandler) {
-    this.videoHandler = videoHandler;
-    this.audioDownloader = new AudioDownloader();
-    this.downloading = false;
-    this.audioDownloader
-      .addEventListener("downloadedAudio", async (translationId, data) => {
-        console.log("downloadedAudio", data);
-        if (!this.downloading) {
-          console.log("skip downloadedAudio");
-          return;
-        }
-
-        const { videoId, fileId, audioData } = data;
-        const videoUrl = this.getCanonicalUrl(videoId);
-        try {
-          await this.videoHandler.votClient.requestVtransAudio(
-            videoUrl,
-            translationId,
-            {
-              audioFile: audioData,
-              fileId,
-            },
-          );
-        } catch {
-          /* empty */
-        }
-        this.downloading = false;
-      })
-      .addEventListener(
-        "downloadedPartialAudio",
-        async (translationId, data) => {
-          console.log("downloadedPartialAudio", data);
-          if (!this.downloading) {
-            console.log("skip downloadedPartialAudio");
-            return;
-          }
-
-          const { audioData, fileId, videoId, amount, version, index } = data;
-          const videoUrl = this.getCanonicalUrl(videoId);
-          try {
-            await this.videoHandler.votClient.requestVtransAudio(
-              videoUrl,
-              translationId,
-              {
-                audioFile: audioData,
-                chunkId: index,
-              },
-              {
-                audioPartsLength: amount,
-                fileId,
-                version,
-              },
-            );
-          } catch {
-            this.downloading = false;
-          }
-
-          if (index === amount - 1) {
-            this.downloading = false;
-          }
-        },
-      )
-      .addEventListener("downloadAudioError", async (videoId) => {
-        if (!this.downloading) {
-          console.log("skip downloadAudioError");
-          return;
-        }
-
-        console.log(`Failed to download audio ${videoId}`);
-        const videoUrl = this.getCanonicalUrl(videoId);
-        await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
-        this.downloading = false;
-      });
-  }
-
-  getCanonicalUrl(videoId) {
-    // i guess hardcoded > videoData.url (in this case)
-    return `https://youtu.be/${videoId}`;
-  }
-
-  /**
-   * Translates video data via API.
-   * @param {Object} videoData The video data object.
-   * @param {string} requestLang Source language.
-   * @param {string} responseLang Target language.
-   * @param {Object|null} [translationHelp=null] Optional translation helper data.
-   * @param {boolean} [shouldSendFailedAudio=false] Whether to send failed audio.
-   * @param {AbortSignal} [signal] Optional AbortSignal for cancellation.
-   * @returns {Promise<Object|null>} Promise resolving to the translation result.
-   */
-  async translateVideoImpl(
-    videoData,
-    requestLang,
-    responseLang,
-    translationHelp = null,
-    shouldSendFailedAudio = false,
-    signal = new AbortController().signal,
-  ) {
-    clearTimeout(this.videoHandler.autoRetry);
-    this.downloading = false;
-    debug.log(
-      videoData,
-      `Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`,
-      signal,
-    );
-    try {
-      if (signal.aborted) {
-        throw new Error("AbortError");
-      }
-
-      const res = await this.videoHandler.votClient.translateVideo({
-        videoData,
-        requestLang,
-        responseLang,
-        translationHelp,
-        extraOpts: {
-          useLivelyVoice: this.videoHandler.data?.useLivelyVoice,
-          videoTitle: this.videoHandler.videoData.title,
-        },
-        shouldSendFailedAudio,
-      });
-      debug.log("Translate video result", res);
-      if (signal.aborted) {
-        throw new Error("AbortError");
-      }
-
-      if (res.translated && res.remainingTime < 1) {
-        debug.log("Video translation finished with this data: ", res);
-        return res;
-      }
-
-      const message =
-        res.message ?? localizationProvider.get("translationTakeFewMinutes");
-      await this.videoHandler.updateTranslationErrorMsg(
-        res.remainingTime > 0 ? secsToStrTime(res.remainingTime) : message,
-      );
-
-      if (
-        res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
-        videoData.host === "youtube"
-      ) {
-        debug.log("Start audio download");
-        this.downloading = true;
-        await this.audioDownloader.runAudioDownload(
-          videoData.videoId,
-          res.translationId,
-          signal,
-        );
-
-        debug.log("waiting downloading finish");
-        // 15000 is fetch timeout, so there's no point in waiting longer
-        await waitForCondition(
-          () => !this.downloading || signal.aborted,
-          15000,
-        );
-        if (signal.aborted) {
-          debug.log("aborted after audio downloader vtrans");
-          throw new Error("AbortError");
-        }
-
-        // for get instant result on download end
-        return await this.translateVideoImpl(
-          videoData,
-          requestLang,
-          responseLang,
-          translationHelp,
-          true,
-          signal,
-        );
-      }
-    } catch (err) {
-      if (err.message === "AbortError") {
-        debug.log("aborted video translation");
-        return null;
-      }
-
-      await this.videoHandler.updateTranslationErrorMsg(
-        err.data?.message ?? err,
-      );
-      console.error("[VOT]", err);
-      const cacheKey = `${videoData.videoId}_${requestLang}_${responseLang}_${this.videoHandler.data.useLivelyVoice}`;
-      this.videoHandler.cacheManager.setTranslation(cacheKey, {
-        error: err,
-      });
-      return null;
-    }
-    return new Promise((resolve) => {
-      this.videoHandler.autoRetry = setTimeout(async () => {
-        resolve(
-          await this.translateVideoImpl(
-            videoData,
-            requestLang,
-            responseLang,
-            translationHelp,
-            true,
-            signal,
-          ),
-        );
-      }, 20000);
-    });
-  }
-
-  /**
-   * Translates a video stream.
-   * @param {Object} videoData The video data.
-   * @param {string} requestLang Source language.
-   * @param {string} responseLang Target language.
-   * @param {AbortSignal} [signal] Optional AbortSignal for cancellation.
-   * @returns {Promise<Object|null>} Promise resolving to the stream translation result.
-   */
-  async translateStreamImpl(
-    videoData,
-    requestLang,
-    responseLang,
-    signal = new AbortController().signal,
-  ) {
-    clearTimeout(this.videoHandler.autoRetry);
-    debug.log(
-      videoData,
-      `Translate stream (requestLang: ${requestLang}, responseLang: ${responseLang})`,
-    );
-    try {
-      if (signal.aborted) {
-        throw new Error("AbortError");
-      }
-
-      const res = await this.videoHandler.votClient.translateStream({
-        videoData,
-        requestLang,
-        responseLang,
-      });
-
-      if (signal.aborted) {
-        throw new Error("AbortError");
-      }
-
-      debug.log("Translate stream result", res);
-      if (!res.translated && res.interval === 10) {
-        await this.videoHandler.updateTranslationErrorMsg(
-          localizationProvider.get("translationTakeFewMinutes"),
-        );
-        return new Promise((resolve) => {
-          this.videoHandler.autoRetry = setTimeout(async () => {
-            resolve(
-              await this.translateStreamImpl(
-                videoData,
-                requestLang,
-                responseLang,
-                signal,
-              ),
-            );
-          }, res.interval * 1000);
-        });
-      }
-      if (res.message) {
-        debug.log(`Stream translation aborted! Message: ${res.message}`);
-        throw new VOTLocalizedError("streamNoConnectionToServer");
-      }
-      if (!res.result) {
-        debug.log("Failed to find translation result! Data:", res);
-        throw new VOTLocalizedError("audioNotReceived");
-      }
-      debug.log("Stream translated successfully. Running...", res);
-      this.videoHandler.streamPing = setInterval(async () => {
-        debug.log("Ping stream translation", res.pingId);
-        this.videoHandler.votClient.pingStream({
-          pingId: res.pingId,
-        });
-      }, res.interval * 1000);
-      return res;
-    } catch (err) {
-      if (err.message === "AbortError") {
-        debug.log("aborted stream translation");
-        return null;
-      }
-
-      console.error("[VOT] Failed to translate stream", err);
-      await this.videoHandler.updateTranslationErrorMsg(
-        err.data?.message ?? err,
-      );
-      return null;
-    }
-  }
-}
-
-/*─────────────────────────────────────────────────────────────*/
-/*         Helper class: VOTVideoManager                       */
-/*  Handles video data retrieval, volume controls, subtitles, and related events  */
-/*─────────────────────────────────────────────────────────────*/
-class VOTVideoManager {
-  /**
-   * @param {VideoHandler} videoHandler Parent VideoHandler instance.
-   */
-  constructor(videoHandler) {
-    this.videoHandler = videoHandler;
-  }
-
-  /**
-   * Retrieves video data from the page.
-   * @returns {Promise<Object>} Video data object.
-   */
-  async getVideoData() {
-    const {
-      duration,
-      url,
-      videoId,
-      host,
-      title,
-      translationHelp = null,
-      localizedTitle,
-      description,
-      detectedLanguage: possibleLanguage,
-      subtitles,
-      isStream = false,
-    } = await getVideoData(this.videoHandler.site, {
-      fetchFn: GM_fetch,
-      video: this.videoHandler.video,
-      language: localizationProvider.lang,
-    });
-
-    let detectedLanguage =
-      possibleLanguage ?? this.videoHandler.translateFromLang;
-    if (!possibleLanguage && title) {
-      const text = cleanText(title, description);
-      debug.log(`Detecting language text: ${text}`);
-      const language = await detect(text);
-      if (availableLangs.includes(language)) {
-        detectedLanguage = language;
-      }
-    }
-    const videoData = {
-      translationHelp,
-      isStream,
-      duration:
-        duration ||
-        this.videoHandler.video?.duration ||
-        votConfig.defaultDuration, // if 0, we get 400 error
-      videoId,
-      url,
-      host,
-      detectedLanguage,
-      responseLanguage: this.videoHandler.translateToLang,
-      subtitles,
-      title,
-      localizedTitle,
-      downloadTitle: localizedTitle ?? title ?? videoId,
-    };
-    console.log("[VOT] Detected language:", detectedLanguage);
-    // For certain hosts, force a default language.
-    if (["rutube", "ok.ru", "mail_ru"].includes(this.videoHandler.site.host)) {
-      videoData.detectedLanguage = "ru";
-    } else if (this.videoHandler.site.host === "youku") {
-      videoData.detectedLanguage = "zh";
-    } else if (this.videoHandler.site.host === "vk") {
-      const trackLang = document.getElementsByTagName("track")?.[0]?.srclang;
-      videoData.detectedLanguage = trackLang || "auto";
-    } else if (this.videoHandler.site.host === "weverse") {
-      videoData.detectedLanguage = "ko";
-    }
-    return videoData;
-  }
-
-  /**
-   * Validates video data (duration, language) before translation.
-   * @throws {VOTLocalizedError} If the video is too long or in a language that should not be translated.
-   * @returns {boolean} True if video is valid.
-   */
-  videoValidator() {
-    debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
-    if (
-      this.videoHandler.data.enabledDontTranslateLanguages &&
-      this.videoHandler.data.dontTranslateLanguages?.includes(
-        this.videoHandler.videoData.detectedLanguage,
-      )
-    ) {
-      throw new VOTLocalizedError("VOTDisableFromYourLang");
-    }
-    if (
-      this.videoHandler.site.host === "twitch" &&
-      this.videoHandler.videoData.isStream
-    ) {
-      // to translate streams on twitch, need to somehow go back 30(?) seconds to the player
-      throw new VOTLocalizedError("VOTStreamNotAvailable");
-    }
-
-    if (
-      !this.videoHandler.videoData.isStream &&
-      this.videoHandler.videoData.duration > 14400
-    ) {
-      throw new VOTLocalizedError("VOTVideoIsTooLong");
-    }
-    return true;
-  }
-
-  /**
-   * Gets current video volume (0.0 - 1.0).
-   * @returns {number} Video volume.
-   */
-  getVideoVolume() {
-    let videoVolume = this.videoHandler.video?.volume;
-    if (["youtube", "googledrive"].includes(this.videoHandler.site.host)) {
-      videoVolume = YoutubeHelper.getVolume() ?? videoVolume;
-    }
-    return videoVolume;
-  }
-
-  /**
-   * Sets the video volume.
-   * @param {number} volume A value between 0.0 and 1.0.
-   * @returns {VideoHandler} The VideoHandler instance.
-   */
-  setVideoVolume(volume) {
-    if (["youtube", "googledrive"].includes(this.videoHandler.site.host)) {
-      const videoVolume = YoutubeHelper.setVolume(volume);
-      if (videoVolume) return this.videoHandler;
-    }
-    this.videoHandler.video.volume = volume;
-    return this.videoHandler;
-  }
-
-  /**
-   * Checks if the video is muted.
-   * @returns {boolean} True if muted.
-   */
-  isMuted() {
-    return ["youtube", "googledrive"].includes(this.videoHandler.site.host)
-      ? YoutubeHelper.isMuted()
-      : this.videoHandler.video?.muted;
-  }
-
-  /**
-   * Syncs the video volume slider with the actual video volume.
-   */
-  syncVideoVolumeSlider() {
-    const videoVolume = this.isMuted() ? 0 : this.getVideoVolume() * 100;
-    const newSlidersVolume = Math.round(videoVolume);
-    this.videoHandler.uiManager.votOverlayView.videoVolumeSlider.value =
-      newSlidersVolume;
-    if (this.videoHandler.data.syncVolume) {
-      this.videoHandler.tempOriginalVolume = Number(newSlidersVolume);
-    }
-  }
-
-  /**
-   * Sets the language select menu values.
-   * @param {string} from Source language code.
-   * @param {string} to Target language code.
-   */
-  setSelectMenuValues(from, to) {
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.fromSelect.selectTitle =
-      localizationProvider.get(`langs.${from}`);
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.toSelect.selectTitle =
-      localizationProvider.get(`langs.${to}`);
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.fromSelect.setSelectedValue(
-      from,
-    );
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.toSelect.setSelectedValue(
-      to,
-    );
-    console.log(`[VOT] Set translation from ${from} to ${to}`);
-    this.videoHandler.videoData.detectedLanguage = from;
-    this.videoHandler.videoData.responseLanguage = to;
-  }
-}
 
 /*─────────────────────────────────────────────────────────────*/
 /*                        Main class: VideoHandler             */
 /*  Composes the helper classes and retains full functionality.  */
 /*─────────────────────────────────────────────────────────────*/
 class VideoHandler {
-  /** @type {string} */
+  /** @type {import("@vot.js/shared/types/data").RequestLang} */
   translateFromLang = "auto";
-  /** @type {string} */
+  /** @type {import("@vot.js/shared/types/data").ResponseLang} */
   translateToLang = calculatedResLang;
   /** @type {number|undefined} */
   timer;
-  /** @type {undefined|Partial<StorageData>} */
+  /** @type {undefined|Partial<import("./types/storage.ts").StorageData>} */
   data;
   /** @type {undefined|object} */
   videoData;
@@ -805,6 +243,7 @@ class VideoHandler {
       autoHideButtonDelay: defaultAutoHideDelay,
       useAudioDownload: true,
       compatVersion: "",
+      account: {},
       localeHash: "",
       localeUpdatedAt: 0,
     });
@@ -890,6 +329,7 @@ class VideoHandler {
       fetchOpts: {
         signal: this.actionsAbortController.signal,
       },
+      apiToken: this.data.account?.token,
       hostVOT: votBackendUrl,
       host: this.data.translateProxyEnabled
         ? this.data.proxyWorkerHost
@@ -1309,7 +749,8 @@ class VideoHandler {
    * @returns {VideoHandler} This instance.
    */
   setVideoVolume(volume) {
-    return this.videoManager.setVideoVolume(volume);
+    this.videoManager.setVideoVolume(volume);
+    return this;
   }
 
   /**
@@ -1929,12 +1370,15 @@ function initIframeInteractor() {
  * Main function to start the extension.
  */
 async function main() {
+  console.log("[VOT] Loading extension...");
   if (isIframe() && window.location.hash.includes(IFRAME_HASH)) {
-    initIframeService();
-    return;
+    return initAudioDownloaderIframe();
   }
 
-  debug.log("Loading extension...");
+  if (window.location.origin === authServerUrl) {
+    return await initAuth();
+  }
+
   await localizationProvider.update();
   debug.log(`Selected menu language: ${localizationProvider.lang}`);
   initIframeInteractor();

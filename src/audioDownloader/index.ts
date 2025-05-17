@@ -38,6 +38,7 @@ import {
   hasServiceIframe,
   requestDataFromMainWorld,
 } from "../utils/iframeConnector";
+import debug from "../utils/debug";
 
 let serviceIframe: HTMLIFrameElement | null = null;
 let mediaQuaryIndex = 1;
@@ -479,7 +480,7 @@ async function handleCommonAudioDownloadRequest({
   if (!audioData) {
     throw new Error("Audio downloader. Can not get audio data");
   }
-  console.log("Audio downloader. Url found", {
+  debug.log("Audio downloader. Url found", {
     audioDownloadType: "web_api_get_all_generating_urls_data_from_iframe",
   });
 
@@ -525,7 +526,6 @@ export async function mainWorldMessageHandler({
       return;
     }
 
-    console.log("Main world bridge", data);
     switch (data.messageType) {
       case "get-download-audio-data-in-main-world": {
         await sendAudioDownloadRequestToIframe(
@@ -559,7 +559,7 @@ export class AudioDownloader {
         videoId,
         signal,
       });
-      console.log("Audio downloader. Audio download finished", {
+      debug.log("Audio downloader. Audio download finished", {
         videoId,
       });
     } catch (err) {

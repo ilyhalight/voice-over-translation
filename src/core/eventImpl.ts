@@ -1,4 +1,4 @@
-import type { EventHandler } from "../types/core";
+import type { EventHandler } from "../types/core/eventImpl";
 
 export class EventImpl {
   listeners: Set<EventHandler>;

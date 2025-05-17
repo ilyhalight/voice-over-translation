@@ -165,7 +165,7 @@ async function GM_fetch(url, opts = {}) {
             status: resp.status,
             headers: headers,
           });
-          // Response have empty url by default
+          // Response have empty url by default (readonly)
           // this need to get same response url as in classic fetch
           Object.defineProperty(response, "url", {
             value: resp.finalUrl ?? "",
@@ -231,7 +231,6 @@ async function exitFullscreen() {
   }
 }
 
-const isIframe = () => window.self !== window.top;
 // TODO: for ts:
 // const sleep = (ms: number): Promise<void> =>
 //   new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -286,7 +285,6 @@ export {
   clamp,
   toFlatObj,
   exitFullscreen,
-  isIframe,
   sleep,
   timeout,
   waitForCondition,

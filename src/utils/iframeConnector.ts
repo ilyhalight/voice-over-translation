@@ -89,8 +89,6 @@ export function requestDataFromMainWorld<PayloadType, ResponseType = unknown>(
     const handleMessage = ({
       data,
     }: MessageEvent<MessagePayload<ResponseType>>) => {
-      console.log("new message", data);
-      console.log("waiting for", messageId, messageType, "response");
       if (
         data?.messageId === messageId &&
         data.messageType === messageType &&

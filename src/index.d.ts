@@ -1,35 +1,26 @@
 import type VOTClient from "@vot.js/ext";
 
-import type { ServiceConf } from "@vot.js/ext/types/service";
+import type { ServiceConf, VideoService } from "@vot.js/ext/types/service";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { SubtitlesData } from "@vot.js/shared/types/subs";
 import type { VOTWorkerClient } from "@vot.js/ext";
 import type { TranslationHelp } from "@vot.js/core/types/yandex";
 
-export type VideoData = object & {
+import { CacheManager } from "./core/cacheManager";
+import { UIManager } from "./ui/manager";
+
+export type VideoData = {
+  host: VideoService;
+  url: string;
   downloadTitle: string;
   videoId: string;
+  duration: number;
   detectedLanguage: RequestLang;
   responseLanguage: ResponseLang;
   isStream: boolean;
-  translationHelp: TranslationHelp | null;
-}; // add typings for object
-export type Site = object; // add typings for object
-
-export class CacheManager {
-  cache: Map<string, unknown>;
-
-  constructor();
-
-  get(key: string): unknown | undefined;
-  getTranslation(key: string): unknown | undefined;
-  getSubtitles(key: string): unknown | undefined;
-  set(key: string, value: unknown): void;
-  setTranslation(key: string, translation: unknown): void;
-  setSubtitles(key: string, subtitles: unknown): void;
-  delete(key: string): void;
-  deleteSubtitles(key: string): void;
-}
+  translationHelp: TranslationHelp[] | null;
+  title?: string;
+};
 
 export let countryCode: string | undefined;
 
@@ -38,9 +29,12 @@ export class VideoHandler {
   translateToLang: string;
 
   timer: ReturnType<typeof setTimeout> | undefined;
+  autoRetry: ReturnType<typeof setTimeout> | undefined;
+  streamPing: ReturnType<typeof setInterval> | undefined;
   videoData?: VideoData;
   site: ServiceConf;
   votClient: VOTClient | VOTWorkerClient;
+  uiManager: UIManager;
 
   firstPlay: boolean;
   audioContext?: AudioContext;
@@ -68,7 +62,11 @@ export class VideoHandler {
   abortController: AbortController;
   actionsAbortController: AbortController;
 
-  constructor(video: HTMLVideoElement, container: HTMLElement, site: Site);
+  constructor(
+    video: HTMLVideoElement,
+    container: HTMLElement,
+    site: ServiceConf,
+  );
 
   transformBtn(status: "none" | "success" | "error", text: string): this;
   syncVolumeWrapper(fromType: "translation" | "video", newVolume: number): void;
@@ -84,7 +82,7 @@ export class VideoHandler {
     isStream: boolean,
     requestLang: RequestLang,
     responseLang: ResponseLang,
-    translationHelp: TranslationHelp | null,
+    translationHelp: TranslationHelp[] | null,
   ): Promise<void>;
   initVOTClient(): this;
   createPlayer(): this;
@@ -98,4 +96,5 @@ export class VideoHandler {
     "additional-info": string;
   };
   updateSubtitlesLangSelect(): Promise<void>;
+  updateTranslationErrorMsg(errorMessage: string | Error): Promise<void>;
 }

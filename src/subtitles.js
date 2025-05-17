@@ -265,6 +265,7 @@ export class SubtitlesProcessor {
         ) {
           result.push({
             source: "yandex",
+            format: "json",
             language: sub.language,
             url: sub.url,
           });
@@ -273,6 +274,7 @@ export class SubtitlesProcessor {
         if (sub.translatedLanguage) {
           result.push({
             source: "yandex",
+            format: "json",
             language: sub.translatedLanguage,
             translatedFromLanguage: sub.language,
             url: sub.translatedUrl,

@@ -32,7 +32,6 @@ class TestUI {
     this.testHTML.style = "font-weight:bold; color: skyblue;";
     this.testHTML.textContent = "Lorem HTML ipsum dolor";
     this.h3WithHTML = ui.createHeader(this.testHTML.cloneNode(true), 3);
-    console.log(this.h3WithHTML.outerHTML);
     this.testDialog.bodyContainer.append(
       this.h1,
       this.h2,
