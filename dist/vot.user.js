@@ -8163,7 +8163,7 @@
 				return !1;
 			}
 			hasAudio(t) {
-				return t.mozHasAudio === void 0 ? t.webkitAudioDecodedByteCount === void 0 ? "audioTracks" in t && t.audioTracks.length > 0 || !t.muted : t.webkitAudioDecodedByteCount > 0 : t.mozHasAudio;
+				return xt.includes(window.location.hostname) ? !t.muted : t.mozHasAudio === void 0 ? t.webkitAudioDecodedByteCount === void 0 ? "audioTracks" in t && t.audioTracks.length > 0 || !t.muted : t.webkitAudioDecodedByteCount > 0 : t.mozHasAudio;
 			}
 			isValidVideo(t) {
 				if (this.isAdRelated(t)) return !1;

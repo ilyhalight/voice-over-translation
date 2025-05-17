@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "My Userscript",
+  "version": "1.0",
+  "description": "Встраивание user.js в Chrome",
+  "permissions": ["scripting", "storage"],
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  }
+}
