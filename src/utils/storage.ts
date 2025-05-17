@@ -162,7 +162,7 @@ export const votStorage = new (class {
     return !this.supportGM && !this.supportGMPromises;
   }
 
-  syncGet<T = unknown>(name: StorageKey, def?: unknown): T {
+  private syncGet<T = unknown>(name: StorageKey, def?: unknown): T {
     if (this.supportGM) {
       return GM_getValue<T>(name, def);
     }
@@ -209,7 +209,7 @@ export const votStorage = new (class {
     );
   }
 
-  syncSet<T extends KeysOrDefaultValue = undefined>(
+  private syncSet<T extends KeysOrDefaultValue = undefined>(
     name: StorageKey,
     value: T,
   ) {
@@ -231,7 +231,7 @@ export const votStorage = new (class {
     return Promise.resolve(this.syncSet<T>(name, value));
   }
 
-  syncDelete(name: StorageKey) {
+  private syncDelete(name: StorageKey) {
     if (this.supportGM) {
       return GM_deleteValue(name);
     }
@@ -247,7 +247,7 @@ export const votStorage = new (class {
     return Promise.resolve(this.syncDelete(name));
   }
 
-  syncList(): readonly StorageKey[] {
+  private syncList(): readonly StorageKey[] {
     if (this.supportGM) {
       return GM_listValues<StorageKey>();
     }

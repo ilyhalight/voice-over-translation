@@ -1026,14 +1026,14 @@ export class SettingsView {
       });
       const menuLanguageSelect = new Select({
         selectTitle: localizationProvider.get(
-          `langs.${localizationProvider.getLangOverride() as Locale | "auto"}`,
+          `langs.${localizationProvider.langOverride}`,
         ),
         dialogTitle: localizationProvider.get("VOTMenuLanguage"),
         labelElement: menuLanguageSelectLabel.container,
         dialogParent: this.globalPortal,
         items: Select.genLanguageItems(
           localizationProvider.getAvailableLangs(),
-          localizationProvider.getLangOverride(),
+          localizationProvider.langOverride,
         ),
       });
 

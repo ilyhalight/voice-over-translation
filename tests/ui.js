@@ -1,4 +1,3 @@
-import { svg } from "lit-html";
 import ui from "../src/ui.js";
 import Tooltip from "../src/ui/components/tooltip.ts";
 import Select from "../src/ui/components/select.ts";

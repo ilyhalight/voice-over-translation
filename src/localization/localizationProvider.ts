@@ -5,7 +5,9 @@ import { contentUrl } from "../config/config.js";
 import { votStorage } from "../utils/storage";
 import { getTimestamp, GM_fetch, lang, toFlatObj } from "../utils/utils.js";
 import { LocaleStorageKey } from "../types/storage";
-import { FlatPhrases, Phrase } from "../types/localization";
+import { FlatPhrases, Locale, Phrase } from "../types/localization";
+
+export type LangOverride = "auto" | Locale;
 
 class LocalizationProvider {
   storageKeys: LocaleStorageKey[] = [
@@ -28,28 +30,39 @@ class LocalizationProvider {
   cacheTTL = 7200;
   localizationUrl = `${contentUrl}/${REPO_BRANCH}/src/localization`;
 
+  _langOverride: LangOverride = "auto";
+
   constructor() {
     this.lang = this.getLang();
     this.locale = {};
-    this.setLocaleFromJsonString(votStorage.syncGet("localePhrases", ""));
   }
 
-  getLangOverride() {
-    return votStorage.syncGet<string>("localeLangOverride", "auto");
+  async init() {
+    this._langOverride = await votStorage.get<LangOverride>(
+      "localeLangOverride",
+      "auto",
+    );
+    this.lang = this.getLang();
+    const phrases = await votStorage.get<string>("localePhrases", "");
+    this.setLocaleFromJsonString(phrases);
+    return this;
+  }
+
+  get langOverride() {
+    return this._langOverride;
   }
 
   getLang(): string {
-    const langOverride = this.getLangOverride();
-    return langOverride !== "auto" ? langOverride : lang;
+    return this.langOverride !== "auto" ? this.langOverride : lang;
   }
 
   getAvailableLangs() {
     return AVAILABLE_LOCALES;
   }
 
-  reset() {
+  async reset() {
     for (const key of this.storageKeys) {
-      votStorage.syncDelete(key);
+      await votStorage.delete(key);
     }
 
     return this;
@@ -60,13 +73,14 @@ class LocalizationProvider {
     return `${this.localizationUrl}${path}${query}`;
   }
 
-  async changeLang(newLang: string) {
-    const oldLang = this.getLangOverride();
+  async changeLang(newLang: LangOverride) {
+    const oldLang = this.langOverride;
     if (oldLang === newLang) {
       return false;
     }
 
     await votStorage.set("localeLangOverride", newLang);
+    this._langOverride = newLang;
     this.lang = this.getLang();
     await this.update(true);
     return true;
@@ -160,3 +174,4 @@ class LocalizationProvider {
 }
 
 export const localizationProvider = new LocalizationProvider();
+await localizationProvider.init();
