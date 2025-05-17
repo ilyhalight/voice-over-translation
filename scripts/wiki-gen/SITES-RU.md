@@ -111,6 +111,19 @@
 - `poke.uk2.littlekai.co.uk`
 - `poke.blahai.gay`
 
+Доступные пути:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Ограничения:
+
+- Не работает в предпросмотре видео
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
 ## Ricktube
 
 Статус: [✅] Работает
@@ -118,6 +131,19 @@
 Доступные (под)домены:
 
 - `ricktube.ru`
+
+Доступные пути:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Ограничения:
+
+- Не работает в предпросмотре видео
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
 ## Vk
 
@@ -933,6 +959,14 @@
 Доступные пути:
 
 - /video/VIDEO_ID
+
+## Telegram
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+-
 
 ## Direct link to MP4/WEBM
 

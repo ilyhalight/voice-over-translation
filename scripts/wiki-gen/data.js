@@ -14,6 +14,8 @@ const siteData = {
   youtube: youtubeSiteData,
   invidious: youtubeAltSiteData,
   piped: youtubeAltSiteData,
+  ricktube: youtubeAltSiteData,
+  poketube: youtubeAltSiteData,
   vk: {
     paths: [
       "/video-xxxxxxxxx_xxxxxxxxx",

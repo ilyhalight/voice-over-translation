@@ -111,6 +111,19 @@ Available (sub)domains:
 - `poke.uk2.littlekai.co.uk`
 - `poke.blahai.gay`
 
+Available paths:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Limitations:
+
+- Doesn't work in the video preview
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
 ## Ricktube
 
 Status: [✅] Working
@@ -118,6 +131,19 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `ricktube.ru`
+
+Available paths:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Limitations:
+
+- Doesn't work in the video preview
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
 ## Vk
 
@@ -933,6 +959,14 @@ Available (sub)domains:
 Available paths:
 
 - /video/VIDEO_ID
+
+## Telegram
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+-
 
 ## Direct link to MP4/WEBM
 
