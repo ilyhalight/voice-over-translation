@@ -2,12 +2,11 @@ import { Account } from "../types/storage";
 import { votStorage } from "../utils/storage";
 
 declare global {
-  interface Window {
-    _userData: {
-      avatar_id: string;
-      username: string;
-    };
-  }
+  // instead of unsafeWindow
+  const _userData: {
+    avatar_id: string;
+    username: string;
+  };
 }
 
 async function handleAuthCallbackPage() {
@@ -33,7 +32,7 @@ async function handleAuthCallbackPage() {
 }
 
 async function handleProfilePage() {
-  const { avatar_id: avatarId, username } = unsafeWindow._userData;
+  const { avatar_id: avatarId, username } = _userData;
 
   if (!avatarId || !username) {
     throw new Error("[VOT] Invalid user data");

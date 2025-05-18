@@ -69,7 +69,7 @@
 > [!WARNING]
 > Если вы пользуетесь Tampermonkey 5.2.0+, не забудьте [включить "Режим разработчика"][devmode-enable]!
 
-1. Установите расширение **[Tampermonkey][tampermonkey-link]** (Альтернатива для Safari: **[UserScripts][userscripts-safari]**)
+1. Установите расширение **[Tampermonkey][tampermonkey-link]**
 2. **[«Установите Скрипт»][vot-dist]**
 
 ## Список функционала:
@@ -265,18 +265,22 @@ bun localize
 
 Расширение было протестировано в следующих расширениях-загрузчиках для юзерскриптов:
 
-| Статус                                             | Браузер | Расширение                                      |
-| -------------------------------------------------- | ------- | ----------------------------------------------- |
-| ⠀✅                                                | Любой   | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
-| ⠀✅                                                | Opera   | [Tampermonkey Opera][tampermonkey-opera]        |
-| ⠀✅                                                | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
-| ⠀⚠️ Работает в режиме проксирования                | Safari  | [Userscripts][userscripts-safari]               |
-| ⠀✅                                                | Любой   | [Violetmonkey][violetmonkey-link]               |
-| ⠀❔                                                | Любой   | [AdGuard Usercripts][adguard-userscripts]       |
-| ⠀[Гайд по установке][firemonkey-how-to]            | Firefox | [Firemonkey][firemonkey-link]                   |
-| ⠀✅                                                | Firefox | [Greasemonkey][greasemonkey-link]               |
-| ⚠️ RequestIdleCallback сыпет ошибками, но работает | Любой   | [OrangeMonkey][orangemonkey-link]               |
-| ⠀[Гайд по установке][user-js-and-css-how-to]       | Любой   | [User Javascript and CSS][user-js-and-css-link] |
+| Статус                                        | Браузер | Расширение                                      |
+| --------------------------------------------- | ------- | ----------------------------------------------- |
+| ⠀✅                                           | Любой   | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
+| ⠀✅                                           | Opera   | [Tampermonkey Opera][tampermonkey-opera]        |
+| ⠀✅                                           | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
+| ⠀⚠️¹                                          | Safari  | [Userscripts][userscripts-safari]               |
+| ⠀✅                                           | Любой   | [Violetmonkey][violetmonkey-link]               |
+| ⠀❔                                           | Любой   | [AdGuard Usercripts][adguard-userscripts]       |
+| ⠀[Гайд по установке][firemonkey-how-to]       | Firefox | [Firemonkey][firemonkey-link]                   |
+| ⠀✅                                           | Firefox | [Greasemonkey][greasemonkey-link]               |
+| ⠀⚠️²                                          | Любой   | [OrangeMonkey][orangemonkey-link]               |
+| ⠀[Гайд по установке][user-js-and-css-how-to]¹ | Любой   | [User Javascript and CSS][user-js-and-css-link] |
+
+¹ - Работает в режиме проксирования, важная функция "Использовать загрузку аудио" недоступна из-за отсутствия `unsafeWindow` API, что может привести к проблемам с переводом новых видео.
+
+² - RequestIdleCallback выдает множество ошибок в консоли, но расширение работает.
 
 ![example btn](https://github.com/ilyhalight/voice-over-translation/blob/master/img/example.png "btn")
 

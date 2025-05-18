@@ -1,7 +1,7 @@
 {
   "name": "[VOT] - Voice Over Translation",
   "description": "A small extension that adds a Yandex Browser video translation to other browsers",
-  "version": "1.10.0beta",
+  "version": "1.10.0",
   "author": "Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng",
   "namespace": "vot",
   "icon": "https://translate.yandex.ru/icons/favicon.ico",
@@ -116,7 +116,7 @@
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
-  "grant": ["window.focus", "unsafeWindow"],
+  "grant": ["window.focus"],
   "exclude": [
     "file://*/*.mp4*",
     "file://*/*.webm*",

@@ -41,6 +41,7 @@ export const browserInfo = Bowser.getParser(
 export const isProxyOnlyExtension =
   GM_info?.scriptHandler && !nonProxyExtensions.includes(GM_info.scriptHandler);
 export const isSupportGM4 = typeof GM !== "undefined";
+export const isUnsafeWindowAllowed = typeof unsafeWindow !== "undefined";
 
 function secsToStrTime(secs) {
   let minutes = Math.floor(secs / 60);

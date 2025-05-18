@@ -50,6 +50,7 @@ import {
   browserInfo,
   isPiPAvailable,
   isProxyOnlyExtension,
+  isUnsafeWindowAllowed,
 } from "../../utils/utils";
 import { HELP_ICON, WARNING_ICON } from "../icons";
 import Label from "../components/label";
@@ -355,6 +356,9 @@ export class SettingsView {
       labelHtml: this.useAudioDownloadCheckboxLabel.container,
       checked: this.data.useAudioDownload,
     });
+    if (!isUnsafeWindowAllowed) {
+      this.useAudioDownloadCheckbox.disabled = true;
+    }
 
     this.useAudioDownloadCheckboxTooltip = new Tooltip({
       target: this.useAudioDownloadCheckboxLabel.container,

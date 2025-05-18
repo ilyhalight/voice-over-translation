@@ -29,6 +29,7 @@ import {
   initHls,
   calculatedResLang,
   isProxyOnlyExtension,
+  isUnsafeWindowAllowed,
   browserInfo,
 } from "./utils/utils.js";
 import { isIframe } from "./utils/iframeConnector.ts";
@@ -241,7 +242,7 @@ class VideoHandler {
       audioBooster: false,
       useLivelyVoice: false,
       autoHideButtonDelay: defaultAutoHideDelay,
-      useAudioDownload: true,
+      useAudioDownload: isUnsafeWindowAllowed,
       compatVersion: "",
       account: {},
       localeHash: "",

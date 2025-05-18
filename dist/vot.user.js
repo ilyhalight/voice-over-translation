@@ -23,7 +23,6 @@
 // @grant          GM_notification
 // @grant          GM_info
 // @grant          window.focus
-// @grant          unsafeWindow
 // @require        https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.18/hls.light.min.js
 // @require        https://gist.githubusercontent.com/ilyhalight/6eb5bb4dffc7ca9e3c57d6933e2452f3/raw/7ab38af2228d0bed13912e503bc8a9ee4b11828d/gm-addstyle-polyfill.js
 // @match          *://*.youtube.com/*
@@ -241,12 +240,12 @@
 // @connect        porntn.com
 // @connect        googlevideo.com
 // @namespace      vot
-// @version        1.10.0beta
+// @version        1.10.0
 // @icon           https://translate.yandex.ru/icons/favicon.ico
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @homepageURL    https://github.com/ilyhalight/voice-over-translation
-// @updateURL      https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/dist/vot.user.js
-// @downloadURL    https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/dist/vot.user.js
+// @updateURL      https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+// @downloadURL    https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
 // @supportURL     https://github.com/ilyhalight/voice-over-translation/issues
 // ==/UserScript==
 
@@ -8193,7 +8192,7 @@
 						});
 					}
 					async function handleProfilePage() {
-						let { avatar_id: d, username: f } = unsafeWindow._userData;
+						let { avatar_id: d, username: f } = _userData;
 						if (!d || !f) throw Error("[VOT] Invalid user data");
 						let p = await h.d.get("account");
 						if (!p) throw Error("[VOT] No account data found");
@@ -8348,22 +8347,22 @@
 							clearTimeout(this.videoHandler.autoRetry), this.downloading = !1, _.A.log(d, `Translate video (requestLang: ${f}, responseLang: ${p})`, x);
 							try {
 								if (x.aborted) throw Error("AbortError");
-								let C = await this.videoHandler.votClient.translateVideo({
+								let C = this.videoHandler.isLivelyVoiceAllowed() && this.videoHandler.data?.useLivelyVoice, w = await this.videoHandler.votClient.translateVideo({
 									videoData: d,
 									requestLang: f,
 									responseLang: p,
 									translationHelp: m,
 									extraOpts: {
-										useLivelyVoice: this.videoHandler.data?.useLivelyVoice,
+										useLivelyVoice: C,
 										videoTitle: this.videoHandler.videoData?.title
 									},
 									shouldSendFailedAudio: g
 								});
-								if (_.A.log("Translate video result", C), x.aborted) throw Error("AbortError");
-								if (C.translated && C.remainingTime < 1) return _.A.log("Video translation finished with this data: ", C), C;
-								let w = C.message ?? v.j.get("translationTakeFewMinutes");
-								if (await this.videoHandler.updateTranslationErrorMsg(C.remainingTime > 0 ? (0, b.ox)(C.remainingTime) : w), C.status === h.v.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
-									if (_.A.log("Start audio download"), this.downloading = !0, await this.audioDownloader.runAudioDownload(d.videoId, C.translationId, x), _.A.log("waiting downloading finish"), await (0, b.UV)(() => !this.downloading || x.aborted, 15e3), x.aborted) throw _.A.log("aborted after audio downloader vtrans"), Error("AbortError");
+								if (_.A.log("Translate video result", w), x.aborted) throw Error("AbortError");
+								if (w.translated && w.remainingTime < 1) return _.A.log("Video translation finished with this data: ", w), w;
+								let T = w.message ?? v.j.get("translationTakeFewMinutes");
+								if (await this.videoHandler.updateTranslationErrorMsg(w.remainingTime > 0 ? (0, b.ox)(w.remainingTime) : T), w.status === h.v.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
+									if (_.A.log("Start audio download"), this.downloading = !0, await this.audioDownloader.runAudioDownload(d.videoId, w.translationId, x), _.A.log("waiting downloading finish"), await (0, b.UV)(() => !this.downloading || x.aborted, 15e3), x.aborted) throw _.A.log("aborted after audio downloader vtrans"), Error("AbortError");
 									return await this.translateVideoImpl(d, f, p, m, !0, x);
 								}
 							} catch (m) {
@@ -8628,7 +8627,7 @@
 									audioBooster: !1,
 									useLivelyVoice: !1,
 									autoHideButtonDelay: C.qU,
-									useAudioDownload: !0,
+									useAudioDownload: D.B0,
 									compatVersion: "",
 									account: {},
 									localeHash: "",
@@ -8789,6 +8788,9 @@
 								console.error("[VOT] Failed to load subtitles:", d), this.subtitles = [];
 							}
 							await this.updateSubtitlesLangSelect();
+						}
+						isLivelyVoiceAllowed() {
+							return !(this.videoData.detectedLanguage !== "en" || this.videoData.responseLanguage !== "ru" || !this.data.account?.token);
 						}
 						getVideoVolume() {
 							return this.videoManager.getVideoVolume();
@@ -9087,7 +9089,7 @@
 						locale;
 						defaultLocale = (0, b.GW)(h);
 						cacheTTL = 7200;
-						localizationUrl = `${_.hx}/dev/src/localization`;
+						localizationUrl = `${_.hx}/master/src/localization`;
 						_langOverride = "auto";
 						constructor() {
 							this.lang = this.getLang(), this.locale = {};
@@ -11544,7 +11546,7 @@
 							}), this.useAudioDownloadCheckbox = new w.A({
 								labelHtml: this.useAudioDownloadCheckboxLabel.container,
 								checked: this.data.useAudioDownload
-							}), this.useAudioDownloadCheckboxTooltip = new v.A({
+							}), J.B0 || (this.useAudioDownloadCheckbox.disabled = !0), this.useAudioDownloadCheckboxTooltip = new v.A({
 								target: this.useAudioDownloadCheckboxLabel.container,
 								content: K.j.get("VOTUseAudioDownloadWarning"),
 								position: "bottom",
@@ -12393,6 +12395,7 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, {
+						B0: () => U,
 						Bs: () => isPiPAvailable,
 						CK: () => initHls,
 						Eh: () => exitFullscreen,
@@ -12426,7 +12429,7 @@
 						"pl",
 						"sk",
 						"cs"
-					], D = C?.substring(0, 2).toLowerCase() || "en", O = (() => g.Xh.includes(D) ? D : E.includes(D) ? "ru" : "en")(), A = h.getParser(window.navigator.userAgent).getResult(), j = GM_info?.scriptHandler && !_.Wl.includes(GM_info.scriptHandler), F = typeof GM < "u";
+					], D = C?.substring(0, 2).toLowerCase() || "en", O = (() => g.Xh.includes(D) ? D : E.includes(D) ? "ru" : "en")(), A = h.getParser(window.navigator.userAgent).getResult(), j = GM_info?.scriptHandler && !_.Wl.includes(GM_info.scriptHandler), F = typeof GM < "u", U = typeof unsafeWindow < "u";
 					function secsToStrTime(d) {
 						let f = Math.floor(d / 60), p = Math.floor(d % 60), m = p / 60;
 						return m >= w && (f += 1, p = 0), f >= 60 ? v.j.get("translationTakeMoreThanHour") : f === 1 || f === 0 && p > 0 ? v.j.get("translationTakeAboutMinute") : f !== 11 && f % 10 == 1 ? v.j.get("translationTakeApproximatelyMinute2").replace("{0}", f) : ![

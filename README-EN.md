@@ -70,7 +70,7 @@ The voice-over translation of the video is now available not only in [YandexBrow
 > [!WARNING]
 > If you use Tampermonkey 5.2.0+, don't forget to [enable "Developer Mode"][devmode-enable]!
 
-1. Install the extension **[Tampermonkey][tampermonkey-link]** (An alternative for Safari: **[UserScripts][userscripts-safari]**)
+1. Install the extension **[Tampermonkey][tampermonkey-link]**
 2. **[«Install the Script»][vot-dist]**
 
 ## List of features:
@@ -264,18 +264,22 @@ To activate the script in Tampermonkey (MV3), you must [enable "Developer Mode"]
 
 Tested in the following extensions-loaders for userscripts:
 
-| Status                                                 | Browser | Extension                                       |
-| ------------------------------------------------------ | ------- | ----------------------------------------------- |
-| ⠀✅                                                    | Any     | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
-| ⠀✅                                                    | Opera   | [Tampermonkey Opera][tampermonkey-opera]        |
-| ⠀✅                                                    | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
-| ⠀⚠️ It works in proxying mode                          | Safari  | [Userscripts][userscripts-safari]               |
-| ⠀✅                                                    | Any     | [Violetmonkey][violetmonkey-link]               |
-| ⠀❔                                                    | Any     | [AdGuard Usercripts][adguard-userscripts]       |
-| ⠀[Install guide][firemonkey-how-to]                    | Firefox | [Firemonkey][firemonkey-link]                   |
-| ⠀✅                                                    | Firefox | [Greasemonkey][greasemonkey-link]               |
-| ⚠️ requestIdleCallback is full of errors, but it works | Any     | [OrangeMonkey][orangemonkey-link]               |
-| ⠀[Install guide][user-js-and-css-how-to]               | Any     | [User Javascript and CSS][user-js-and-css-link] |
+| Status                                    | Browser | Extension                                       |
+| ----------------------------------------- | ------- | ----------------------------------------------- |
+| ⠀✅                                       | Any     | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
+| ⠀✅                                       | Opera   | [Tampermonkey Opera][tampermonkey-opera]        |
+| ⠀✅                                       | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
+| ⠀⚠️¹                                      | Safari  | [Userscripts][userscripts-safari]               |
+| ⠀✅                                       | Any     | [Violetmonkey][violetmonkey-link]               |
+| ⠀❔                                       | Any     | [AdGuard Usercripts][adguard-userscripts]       |
+| ⠀[Install guide][firemonkey-how-to]       | Firefox | [Firemonkey][firemonkey-link]                   |
+| ⠀✅                                       | Firefox | [Greasemonkey][greasemonkey-link]               |
+| ⚠️²                                       | Any     | [OrangeMonkey][orangemonkey-link]               |
+| ⠀[Install guide][user-js-and-css-how-to]¹ | Any     | [User Javascript and CSS][user-js-and-css-link] |
+
+¹ - It works in proxying mode, the important "Use audio download" function is unavailable due to the lack of the `unsafeWindow` API, which may lead to problems with translating new videos.
+
+² - requestIdleCallback throws a lot of errors in the console, but the extension works.
 
 ![example btn](https://github.com/ilyhalight/voice-over-translation/blob/master/img/example_en.png "btn")
 

@@ -67,16 +67,11 @@ export type Account = {
   token: string;
 };
 
-// TODO: remove comments after add config converter
 export type StorageData = {
   autoTranslate: boolean;
-  // dontTranslateLanguage: string[]; -> dontTranslateLanguages
   dontTranslateLanguages: LanguageSelectKey[];
-  // dontTranslateYourLang: boolean; -> enabledDontTranslateLanguages
   enabledDontTranslateLanguages: boolean;
-  // autoSetVolumeYandexStyle: boolean; -> enabledAutoVolume
   enabledAutoVolume: boolean;
-  // old 0.1 - 1.0 -> now 0 - 100
   autoVolume: number;
   buttonPos: Position;
   showVideoSlider: boolean;
@@ -96,7 +91,6 @@ export type StorageData = {
   translateAPIErrors: boolean;
   translationService: TranslateService;
   detectService: DetectService;
-  // hotkeyButton: null | string; -> translationHotkey
   translationHotkey: null | string;
   m3u8ProxyHost: string;
   proxyWorkerHost: string;
