@@ -735,6 +735,23 @@ class VideoHandler {
     await this.updateSubtitlesLangSelect();
   }
 
+  isLivelyVoiceAllowed() {
+    // allowed only en -> ru pair
+    if (
+      this.videoData.detectedLanguage !== "en" ||
+      this.videoData.responseLanguage !== "ru"
+    ) {
+      return false;
+    }
+
+    // allowed only with auth
+    if (!this.data.account?.token) {
+      return false;
+    }
+
+    return true;
+  }
+
   /**
    * Gets the video volume.
    * @returns {number} The video volume (0.0 - 1.0).

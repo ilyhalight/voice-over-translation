@@ -77,6 +77,7 @@ export class VideoHandler {
   loadSubtitles(): Promise<void>;
   isMuted(): boolean;
   isYouTubeHosts(): boolean;
+  isLivelyVoiceAllowed(): boolean;
   hasActiveSource(): boolean;
   translateFunc(
     videoId: string,

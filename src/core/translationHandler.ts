@@ -127,13 +127,16 @@ export class VOTTranslationHandler {
         throw new Error("AbortError");
       }
 
+      const useLivelyVoice =
+        this.videoHandler.isLivelyVoiceAllowed() &&
+        this.videoHandler.data?.useLivelyVoice;
       const res = await this.videoHandler.votClient.translateVideo({
         videoData,
         requestLang,
         responseLang,
         translationHelp,
         extraOpts: {
-          useLivelyVoice: this.videoHandler.data?.useLivelyVoice,
+          useLivelyVoice,
           videoTitle: this.videoHandler.videoData?.title,
         },
         shouldSendFailedAudio,
