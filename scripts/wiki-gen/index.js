@@ -136,13 +136,17 @@ function genMarkdown(supportedSites, lang = "ru") {
       )}`;
     }
 
+    const extraDomains =
+      hasData && siteData[site.host].domains ? siteData[site.host].domains : [];
+    const domains = [...extraDomains, site.domains].filter(Boolean);
+
     return `## ${ucFirst(site.host)}
 
 ${locales.status[lang]}: [${site.status}] ${site.statusPhrase[lang]}
 
 ${locales.availabledDomains[lang]}:
 
-- ${site.domains}${paths}${limits}`;
+- ${domains}${paths}${limits}`;
   });
 }
 

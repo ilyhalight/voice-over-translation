@@ -357,7 +357,7 @@ Status: [✅] Working
 
 Available (sub)domains:
 
--
+- facebook.com
 
 Available paths:
 
@@ -966,7 +966,11 @@ Status: [✅] Working
 
 Available (sub)domains:
 
--
+- web.telegram.org
+
+Available paths:
+
+- /k/\*
 
 ## Direct link to MP4/WEBM
 

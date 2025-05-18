@@ -10,6 +10,10 @@ const youtubeAltSiteData = {
   limits: [...youtubeSiteData.limits],
 };
 
+/**
+ * paths - available list of pathnames
+ * domains - additional domains (if isn't parsed by regex)
+ */
 const siteData = {
   youtube: youtubeSiteData,
   invidious: youtubeAltSiteData,
@@ -77,6 +81,7 @@ const siteData = {
   },
   facebook: {
     paths: ["/reel/VIDEO_ID", "/videos/VIDEO_ID"],
+    domains: ["facebook.com"],
   },
   rutube: {
     paths: ["/video/VIDEO_ID", "/?bvid=VIDEO_ID"],
@@ -213,6 +218,10 @@ const siteData = {
   },
   imdb: {
     paths: ["/video/VIDEO_ID"],
+  },
+  telegram: {
+    paths: ["/k/*"],
+    domains: ["web.telegram.org"],
   },
   directlink: {
     paths: ["/*.mp4", "/*.webm"],
