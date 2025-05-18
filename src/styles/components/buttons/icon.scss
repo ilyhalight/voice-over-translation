@@ -21,9 +21,8 @@
     --vot-font-family,
     "Roboto",
     "Segoe UI",
-    BlinkMacSystemFont,
     system-ui,
-    -apple-system
+    sans-serif
   );
   font-size: 14px;
   font-weight: 500;
@@ -94,5 +93,12 @@
     &::after {
       opacity: 0;
     }
+  }
+
+  & svg {
+    fill: inherit;
+    stroke: inherit;
+    width: 24px;
+    height: 36px;
   }
 }

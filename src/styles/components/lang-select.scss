@@ -17,5 +17,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    & svg {
+      fill: inherit;
+      stroke: inherit;
+    }
   }
 }

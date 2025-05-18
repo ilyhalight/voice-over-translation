@@ -1,6 +1,9 @@
+import Bowser from "bowser";
+
 import { availableTTS } from "@vot.js/shared/consts";
 
-import { localizationProvider } from "../localization/localizationProvider.js";
+import { nonProxyExtensions } from "../config/config.js";
+import { localizationProvider } from "../localization/localizationProvider.ts";
 import debug from "./debug.ts";
 
 const userlang = navigator.language || navigator.userLanguage;
@@ -32,6 +35,13 @@ export const calculatedResLang = (() => {
 
   return "en";
 })();
+export const browserInfo = Bowser.getParser(
+  window.navigator.userAgent,
+).getResult();
+export const isProxyOnlyExtension =
+  GM_info?.scriptHandler && !nonProxyExtensions.includes(GM_info.scriptHandler);
+export const isSupportGM4 = typeof GM !== "undefined";
+export const isUnsafeWindowAllowed = typeof unsafeWindow !== "undefined";
 
 function secsToStrTime(secs) {
   let minutes = Math.floor(secs / 60);
@@ -104,8 +114,6 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 /**
- * Remove all banned characters from filename
- *
  * @param {string} filename
  * @return {string}
  */
@@ -115,7 +123,7 @@ function clearFileName(filename) {
     return new Date().toLocaleDateString("en-us").replaceAll("/", "-");
   }
 
-  return filename.replace(/[\\/:*?"'<>|]/g, "");
+  return filename.replace(/^https?:\/\//, "").replace(/[\\/:*?"'<>|.]/g, "-");
 }
 
 async function GM_fetch(url, opts = {}) {
@@ -158,7 +166,7 @@ async function GM_fetch(url, opts = {}) {
             status: resp.status,
             headers: headers,
           });
-          // Response have empty url by default
+          // Response have empty url by default (readonly)
           // this need to get same response url as in classic fetch
           Object.defineProperty(response, "url", {
             value: resp.finalUrl ?? "",
@@ -182,6 +190,90 @@ function clamp(value, min = 0, max = 100) {
   return Math.min(Math.max(value, min), max);
 }
 
+function toFlatObj(data) {
+  return Object.entries(data).reduce((result, [key, val]) => {
+    if (val === undefined) {
+      return result;
+    }
+
+    if (typeof val !== "object") {
+      result[key] = val;
+      return result;
+    }
+
+    const nestedItem = Object.entries(toFlatObj(data[key])).reduce(
+      (res, [k, v]) => {
+        res[`${key}.${k}`] = v;
+        return res;
+      },
+      {},
+    );
+    return {
+      ...result,
+      ...nestedItem,
+    };
+  }, {});
+}
+
+async function exitFullscreen() {
+  /**
+   * TODO: after rewrite to typescript
+    export interface DocumentWithFullscreen extends Document {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void>;
+    }
+
+    const doc = document as DocumentWithFullscreen;
+   */
+  const doc = document;
+  if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+    doc.webkitExitFullscreen && (await doc.webkitExitFullscreen());
+    doc.exitFullscreen && (await doc.exitFullscreen());
+  }
+}
+
+// TODO: for ts:
+// const sleep = (ms: number): Promise<void> =>
+//   new Promise((resolve) => window.setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// TODO: for ts: function timeout(ms: number, message = "Operation timed out"): Promise<never> {
+function timeout(ms, message = "Operation timed out") {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+// TODO: for ts:
+// async function waitForCondition(
+//   condition: () => boolean,
+//   timeoutMs: number,
+//   throwOnTimeout = false): Promise<void>
+async function waitForCondition(condition, timeoutMs, throwOnTimeout = false) {
+  let timedOut = false;
+
+  return Promise.race([
+    (async () => {
+      while (!condition() && !timedOut) {
+        await sleep(100);
+      }
+    })(),
+    // new Promise<void>((resolve, reject) => {
+    new Promise((resolve, reject) => {
+      window.setTimeout(() => {
+        timedOut = true;
+        if (throwOnTimeout) {
+          reject(
+            new Error(`Wait for condition reached timeout of ${timeoutMs}`),
+          );
+        } else {
+          resolve();
+        }
+      }, timeoutMs);
+    }),
+  ]);
+}
+
 export {
   secsToStrTime,
   isPiPAvailable,
@@ -192,4 +284,9 @@ export {
   GM_fetch,
   getTimestamp,
   clamp,
+  toFlatObj,
+  exitFullscreen,
+  sleep,
+  timeout,
+  waitForCondition,
 };

@@ -10,10 +10,16 @@ const youtubeAltSiteData = {
   limits: [...youtubeSiteData.limits],
 };
 
+/**
+ * paths - available list of pathnames
+ * domains - additional domains (if isn't parsed by regex)
+ */
 const siteData = {
   youtube: youtubeSiteData,
   invidious: youtubeAltSiteData,
   piped: youtubeAltSiteData,
+  ricktube: youtubeAltSiteData,
+  poketube: youtubeAltSiteData,
   vk: {
     paths: [
       "/video-xxxxxxxxx_xxxxxxxxx",
@@ -43,7 +49,16 @@ const siteData = {
     limits: [locales.noFeedVideos],
   },
   vimeo: {
-    paths: ["/CHANNEL_ID/VIDEO_ID", "/VIDEO_ID"],
+    paths: [
+      "/CHANNEL_ID/VIDEO_ID",
+      "/VIDEO_ID",
+      "/video/VIDEO_ID",
+      "/video/VIDEO?h=HASH_ID",
+      "/channels/CHANNEL_NAME/VIDEO_ID",
+      "/groups/GROUP_NAME/videos/VIDEO_ID",
+      "/showcase/SHOWCASE_ID/video/VIDEO_ID",
+      "/album/SHOWCASE_ID/video/VIDEO_ID",
+    ],
   },
   xvideos: {
     paths: ["/VIDEO_ID/VIDEO_NAME"],
@@ -66,6 +81,7 @@ const siteData = {
   },
   facebook: {
     paths: ["/reel/VIDEO_ID", "/videos/VIDEO_ID"],
+    domains: ["facebook.com"],
   },
   rutube: {
     paths: ["/video/VIDEO_ID", "/?bvid=VIDEO_ID"],
@@ -136,27 +152,23 @@ const siteData = {
   },
   patreon: {
     paths: ["/posts/POST_ID"],
-    limits: [locales.noSubtitles],
+    limits: [],
   },
   reddit: {
     paths: ["/r/SUB_REDDIT/comments/VIDEO_ID/VIDEO_NAME"],
-    limits: [locales.noSubtitles],
+    limits: [],
   },
   kick: {
     paths: ["/video/VIDEO_ID", "/NICKNAME?clip=clip_CLIPID"],
-    limits: [locales.noSubtitles, locales.noStreams],
+    limits: [locales.noStreams],
   },
   apple_developer: {
     paths: ["/videos/play/XXX/XXX"],
-    limits: [locales.noSubtitles],
+    limits: [],
   },
   epicgames: {
     paths: ["/community/learning/courses/XXX/XXX/XXX/XXX"],
-    limits: [locales.noSubtitles],
-  },
-  nineanimetv: {
-    paths: ["/watch/anime-name-ANIME_ID?ep=EPISODE_ID"],
-    limits: [locales.noSubtitles],
+    limits: [],
   },
   odysee: {
     paths: ["/@USERNAME/VIDEO_NAME"],
@@ -173,6 +185,43 @@ const siteData = {
   },
   incestflix: {
     paths: ["/watch/VIDEO_ID"],
+  },
+  dzen: {
+    paths: ["/video/watch/VIDEO_ID"],
+  },
+  cloudflarestream: {
+    paths: [],
+  },
+  loom: {
+    paths: ["/embed/VIDEO_ID", "/share/VIDEO_ID"],
+  },
+  artstation: {
+    paths: ["/courses/XXX/XXX/chapters/XXX"],
+  },
+  rtnews: {
+    paths: [],
+  },
+  bitview: {
+    paths: ["/watch?v=VIDEO_ID", "/embed?v=VIDEO_ID"],
+  },
+  kickstarter: {
+    paths: [],
+  },
+  thisvid: {
+    paths: ["/videos/VIDEO_ID", "/embed/VIDEO_ID"],
+  },
+  ign: {
+    paths: ["/XXX/CONTENT_ID/video/XXX", "/videos/VIDEO_ID"],
+  },
+  bunkr: {
+    paths: ["/f/VIDEO_ID"],
+  },
+  imdb: {
+    paths: ["/video/VIDEO_ID"],
+  },
+  telegram: {
+    paths: ["/k/*"],
+    domains: ["web.telegram.org"],
   },
   directlink: {
     paths: ["/*.mp4", "/*.webm"],

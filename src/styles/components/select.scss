@@ -13,9 +13,8 @@
     --vot-font-family,
     "Roboto",
     "Segoe UI",
-    BlinkMacSystemFont,
     system-ui,
-    -apple-system
+    sans-serif
   );
   font-size: 14px;
   font-weight: normal;
@@ -27,11 +26,6 @@
 
   &[hidden] {
     display: none !important;
-  }
-
-  &-label {
-    font-size: 16px;
-    font-family: inherit;
   }
 
   &-outer {
@@ -63,6 +57,10 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    & svg {
+      fill: inherit;
+      stroke: inherit;
+    }
   }
 
   &-content-list {
@@ -74,7 +72,6 @@
       border-radius: 8px !important;
       cursor: pointer;
       &:not([inert]):hover {
-        // background-color: rgb(38, 40, 45);
         background-color: rgb(42, 44, 49);
       }
       &[data-vot-selected="true"] {
@@ -87,8 +84,9 @@
           ) !important;
         }
       }
-      &[data-vot-disabled="true"] {
+      &[inert] {
         cursor: default;
+        color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
       }
       &[hidden] {
         display: none !important;

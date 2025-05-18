@@ -1,13 +1,13 @@
 import {
-  TooltipOpts,
-  Position,
+  type TooltipOpts,
+  type Position,
   positions,
-  Trigger,
+  type Trigger,
   triggers,
-  PagePosition,
-} from "../types/tooltip";
-import UI from "../ui";
-import { clamp } from "../utils/utils";
+  type PagePosition,
+} from "../../types/components/tooltip";
+import UI from "../../ui";
+import { clamp } from "../../utils/utils";
 
 export default class Tooltip {
   showed = false;
@@ -31,6 +31,7 @@ export default class Tooltip {
   maxWidth?: number;
   backgroundColor?: string;
   borderRadius?: number;
+  _bordered: boolean;
 
   container?: HTMLElement;
   onResizeObserver?: ResizeObserver;
@@ -48,6 +49,7 @@ export default class Tooltip {
     autoLayout = true,
     backgroundColor = undefined,
     borderRadius = undefined,
+    bordered = true,
     parentElement = document.body,
     layoutRoot = document.documentElement,
   }: TooltipOpts) {
@@ -71,6 +73,7 @@ export default class Tooltip {
     this.parentElement = parentElement;
     this.layoutRoot = layoutRoot;
     this.borderRadius = borderRadius;
+    this._bordered = bordered;
     this.maxWidth = maxWidth;
     this.backgroundColor = backgroundColor;
     this.updatePageSize();
@@ -184,7 +187,9 @@ export default class Tooltip {
 
   release() {
     this.destroy();
-    document.removeEventListener("scroll", this.onScroll);
+    document.removeEventListener("scroll", this.onScroll, {
+      capture: true,
+    });
     if (this.trigger === "click") {
       this.target.removeEventListener("pointerdown", this.onClick);
       return this;
@@ -201,6 +206,10 @@ export default class Tooltip {
     this.destroy(true);
     this.showed = true;
     this.container = UI.createEl("vot-block", ["vot-tooltip"], this.content);
+    if (this.bordered) {
+      this.container.classList.add("vot-tooltip-bordered");
+    }
+
     this.container.setAttribute("role", "tooltip");
     this.container.dataset.trigger = this.trigger;
     this.container.dataset.position = this.position;
@@ -230,8 +239,7 @@ export default class Tooltip {
       return this;
     }
 
-    let { top, left } = this.calcPos(this.autoLayout);
-
+    const { top, left } = this.calcPos(this.autoLayout);
     const availableWidth = this.pageWidth - this.offsetX * 2;
     const maxWidth =
       this.maxWidth ??
@@ -258,7 +266,11 @@ export default class Tooltip {
       width: anchorWidth,
       height: anchorHeight,
     } = this.anchor.getBoundingClientRect();
-    const { width, height } = this.container.getBoundingClientRect();
+    const { width: containerWidth, height: containerHeight } =
+      this.container.getBoundingClientRect();
+
+    const width = clamp(containerWidth, 0, this.pageWidth);
+    const height = clamp(containerHeight, 0, this.pageHeight);
 
     const left = anchorLeft - this.globalOffsetX;
     const right = anchorRight - this.globalOffsetX;
@@ -361,5 +373,14 @@ export default class Tooltip {
     );
 
     return this;
+  }
+
+  set bordered(isBordered: boolean) {
+    this._bordered = isBordered;
+    this.container?.classList.toggle("vot-tooltip-bordered");
+  }
+
+  get bordered() {
+    return this._bordered;
   }
 }

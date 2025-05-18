@@ -33,6 +33,11 @@ export type TooltipOpts = {
   maxWidth?: number;
   backgroundColor?: string;
   borderRadius?: number;
+  /**
+   * add border to tooltip
+   * @default true
+   */
+  bordered?: boolean;
   parentElement?: HTMLElement;
   layoutRoot?: HTMLElement;
 };

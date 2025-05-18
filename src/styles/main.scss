@@ -2,6 +2,7 @@
 @use "components/buttons/outlined.scss";
 @use "components/buttons/text.scss";
 @use "components/buttons/icon.scss";
+@use "components/buttons/hotkey.scss";
 
 @use "components/textfield.scss";
 @use "components/checkbox.scss";
@@ -16,11 +17,13 @@
 @use "components/tooltip.scss";
 @use "components/menu.scss";
 @use "components/dialog.scss";
+@use "components/loader.scss";
+@use "components/label.scss";
+@use "components/account.scss";
 @use "subtitles.scss";
 
 :root {
-  --vot-font-family: "Roboto", "Segoe UI", BlinkMacSystemFont, system-ui,
-    -apple-system;
+  --vot-font-family: "Roboto", "Segoe UI", system-ui, sans-serif;
 
   --vot-primary-rgb: 139, 180, 245;
   --vot-onprimary-rgb: 32, 33, 36;

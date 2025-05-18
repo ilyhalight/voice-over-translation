@@ -1,6 +1,7 @@
 import "requestidlecallback-polyfill";
-import { EventImpl } from "./EventImpl.js";
+import { EventImpl } from "../core/eventImpl.ts";
 import debug from "./debug.ts";
+import { sitesPoketube } from "@vot.js/shared/alternativeUrls";
 
 export class VideoObserver {
   static adKeywords = new Set([
@@ -40,6 +41,11 @@ export class VideoObserver {
   }
 
   hasAudio(video) {
+    if (sitesPoketube.includes(window.location.hostname)) {
+      // mozHasAudio in poketube is always false
+      return !video.muted;
+    }
+
     if (typeof video.mozHasAudio !== "undefined") {
       return video.mozHasAudio;
     }
@@ -102,14 +108,28 @@ export class VideoObserver {
 
     this.videoCache.add(video);
 
-    const onTimeUpdate = () => {
+    const onLoadedData = () => {
       if (this.isValidVideo(video)) {
         this.onVideoAdded.dispatch(video);
-        video.removeEventListener("timeupdate", onTimeUpdate);
+      }
+      video.removeEventListener("loadeddata", onLoadedData);
+    };
+
+    const onEmptied = () => {
+      if (!video.isConnected) {
+        this.onVideoRemoved.dispatch(video);
+        this.videoCache.delete(video);
+        video.removeEventListener("emptied", onEmptied);
       }
     };
 
-    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("emptied", onEmptied);
+
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      onLoadedData();
+    } else {
+      video.addEventListener("loadeddata", onLoadedData);
+    }
   }
 
   handleMutations = (mutations) => {

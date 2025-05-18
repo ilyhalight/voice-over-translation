@@ -8,6 +8,7 @@ import { monkey } from "webpack-monkey";
 import { styleLoaderInsertStyleElement } from "webpack-monkey/lib/client/css.js";
 import ESLintPlugin from "eslint-webpack-plugin";
 import TerserPlugin from "terser-webpack-plugin";
+import { OxcMinifyWebpackPlugin } from "oxc-minify-webpack-plugin";
 
 import {
   sitesInvidious,
@@ -16,59 +17,70 @@ import {
   sitesPeertube,
   sitesPoketube,
   sitesCoursehunterLike,
+  sitesRicktube,
+  // sitesMaterialious,
 } from "@vot.js/shared/alternativeUrls";
-import configShared from "./config.shared.js";
+import configShared from "./shared.config.js";
 
 import { repositoryUrl, contentUrl } from "../src/config/config.js";
 
-const dev = process.env.NODE_ENV === "development";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.resolve(path.dirname(__filename), "..");
 const localesDir = path.resolve(__dirname, "src", "localization", "locales");
+const metaHeadersPath = path.resolve(__dirname, "src", "headers.json");
 const priorityLocales = ["auto", "en", "ru"];
 
 let isBeta = getHeaders().version.includes("beta");
-const availableLocales = getAvailableLocales();
+const availableLocales = await getAvailableLocales();
 
-console.log("development mode: ", dev);
+// globals
+const DEBUG_MODE = process.env.NODE_ENV === "development";
+const REPO_BRANCH = DEBUG_MODE || isBeta ? "dev" : "master";
+const REPO_UPDATE_BRANCH = isBeta ? "dev" : "master";
+const minimalOxc = {
+  codegen: {
+    removeWhitespace: false,
+  },
+  compress: {
+    keepNames: {
+      class: true,
+      function: true,
+    },
+  },
+  mangle: {
+    keepNames: {
+      class: true,
+      function: true,
+    },
+  },
+};
 
-function getHeaders(lang) {
+function getHeaders(lang = "") {
   const headersPath = lang
     ? path.resolve(localesDir, "headers", lang)
-    : path.resolve(__dirname, "src", "headers.json");
-  return JSON.parse(fs.readFileSync(headersPath).toString());
+    : metaHeadersPath;
+  return JSON.parse(fs.readFileSync(headersPath, "utf8"));
 }
 
-function getAvailableLocales() {
-  const files = fs.readdirSync(localesDir);
-  const locales = files.reduce((result, file) => {
-    if (!file.endsWith(".json")) {
-      return result;
-    }
-
-    const locale = file.replace(".json", "");
-    if (priorityLocales.includes(locale)) {
-      return result;
-    }
-
-    result.push(locale);
-    return result;
-  }, []);
-
+async function getAvailableLocales() {
+  const hashes = await fs.promises.readFile(
+    path.resolve(localesDir, "..", "hashes.json"),
+    "utf8",
+  );
+  const content = JSON.parse(hashes);
+  const locales = Object.keys(content).filter(
+    (locale) => !priorityLocales.includes(locale),
+  );
   return [...priorityLocales, ...locales];
 }
 
 export default (env) => {
-  const build_type = env.build_type;
-  console.log("build type: ", build_type);
+  const BUILD_MINIFIED = env.build_type === "minify";
+  console.log(`minified: ${BUILD_MINIFIED}, dev: ${DEBUG_MODE}. Building...`);
 
-  function getFilename() {
-    let name = "vot";
-    if (build_type === "minify") {
-      name += "-min";
-    }
-
-    return name + ".user.js";
+  let filename = "vot";
+  if (BUILD_MINIFIED) {
+    filename += "-min";
   }
 
   function altUrlsToMatch() {
@@ -79,6 +91,8 @@ export default (env) => {
       sitesProxiTok,
       sitesPeertube,
       sitesPoketube,
+      sitesRicktube,
+      // sitesMaterialious,
       sitesCoursehunterLike,
     ]
       .map((sites) =>
@@ -91,24 +105,21 @@ export default (env) => {
   }
 
   return monkey({
-    mode: dev ? "development" : "production",
+    mode: DEBUG_MODE ? "development" : "production",
     ...configShared,
     entry: path.resolve(__dirname, "src", "index.js"),
     output: {
       path: path.resolve(__dirname, "dist"),
-      ...(!dev ? { filename: getFilename() } : {}),
+      ...(!DEBUG_MODE ? { filename: `${filename}.user.js` } : {}),
     },
     monkey: {
-      debug: dev,
+      debug: DEBUG_MODE,
       meta: {
-        resolve: path.resolve(__dirname, "src", "headers.json"),
+        resolve: metaHeadersPath,
         transform({ meta }) {
-          const extFileName = getFilename().slice(0, -8);
-          const finalURL = `${contentUrl}/${
-            isBeta ? "dev" : "master"
-          }/dist/${extFileName}.user.js`;
+          const finalURL = `${contentUrl}/${REPO_UPDATE_BRANCH}/dist/${filename}.user.js`;
 
-          meta.namespace = extFileName;
+          meta.namespace = filename;
           meta.homepageURL = repositoryUrl;
           meta.updateURL = meta.downloadURL = finalURL;
           meta.supportURL = `${repositoryUrl}/issues`;
@@ -145,12 +156,11 @@ export default (env) => {
         maxChunks: 1,
       }),
       new webpack.DefinePlugin({
-        DEBUG_MODE: dev,
-        // DEBUG_MODE: true,
-        IS_BETA_VERSION: isBeta,
+        DEBUG_MODE,
         AVAILABLE_LOCALES: JSON.stringify(availableLocales),
+        REPO_BRANCH: JSON.stringify(REPO_BRANCH),
         ...(() => {
-          if (!dev) {
+          if (!DEBUG_MODE) {
             return {
               __MK_GLOBAL__: {
                 styleLoaderInsertStyleElement,
@@ -166,8 +176,8 @@ export default (env) => {
     optimization: {
       emitOnErrors: true,
       moduleIds: "named",
-      minimize: build_type === "minify",
-      minimizer: [new TerserPlugin()],
+      minimize: true,
+      minimizer: [new OxcMinifyWebpackPlugin(BUILD_MINIFIED ? {} : minimalOxc)],
     },
   });
 };

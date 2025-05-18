@@ -1,3 +1,5 @@
+arch*.txt
+
 tests/utils.test.js
 
 dist/test-ui.user.js
@@ -141,3 +143,5 @@ dist/*.proxy.user.js
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+.idea

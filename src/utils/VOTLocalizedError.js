@@ -1,4 +1,4 @@
-import { localizationProvider } from "../localization/localizationProvider.js";
+import { localizationProvider } from "../localization/localizationProvider.ts";
 
 export class VOTLocalizedError extends Error {
   constructor(message) {

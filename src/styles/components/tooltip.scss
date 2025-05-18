@@ -2,6 +2,7 @@
   --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
   --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87);
   --vot-helper-ondialog: rgb(var(--vot-ondialog-rgb, 37, 38, 40));
+  --vot-helper-border: rgb(var(--vot-tooltip-border, 69, 69, 69));
   overflow: hidden;
   user-select: none;
   display: flex;
@@ -14,9 +15,8 @@
     --vot-font-family,
     "Roboto",
     "Segoe UI",
-    BlinkMacSystemFont,
     system-ui,
-    -apple-system
+    sans-serif
   );
   font-size: 14px;
   line-height: 1.5;
@@ -38,6 +38,10 @@
 
   &[data-trigger="click"] {
     user-select: text;
+  }
+
+  &.vot-tooltip-bordered {
+    border: 1px solid var(--vot-helper-border);
   }
 
   & * {

@@ -23,9 +23,8 @@
     --vot-font-family,
     "Roboto",
     "Segoe UI",
-    BlinkMacSystemFont,
     system-ui,
-    -apple-system
+    sans-serif
   );
   font-size: 14px;
   font-weight: 500;
@@ -70,18 +69,14 @@
       background-size 0.5s;
   }
 
-  &:hover {
-    &::before {
-      opacity: 0.04;
-    }
+  &:hover::before {
+    opacity: 0.04;
   }
 
-  &:active {
-    &::after {
-      opacity: 0.16;
-      background-size: 100% 100%;
-      transition: background-size 0s;
-    }
+  &:active::after {
+    opacity: 0.16;
+    background-size: 100% 100%;
+    transition: background-size 0s;
   }
 
   &[disabled="true"] {

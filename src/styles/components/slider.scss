@@ -219,4 +219,8 @@
       box-shadow: 0 0 0 2px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.04) !important;
     }
   }
+
+  &-label-value {
+    margin-left: 4px !important;
+  }
 }

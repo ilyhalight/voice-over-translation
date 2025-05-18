@@ -159,8 +159,8 @@ async function detect(text: string) {
   }
 }
 
-const foswlyServices = ["yandexbrowser", "msedge"];
-const detectServices = [...foswlyServices, "rust-server"];
+const foswlyServices = ["yandexbrowser", "msedge"] as const;
+const detectServices = [...foswlyServices, "rust-server"] as const;
 
 export {
   translate,

@@ -4,7 +4,10 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.resolve(path.dirname(__filename));
 
-export default {
+/**
+ * @type {import('webpack').Configuration}
+ */
+const config = {
   resolve: {
     extensions: [".js", ".ts"],
   },
@@ -25,11 +28,24 @@ export default {
         // use: ["style-loader", "css-loader", "sass-loader"],
         use: ["lightning-loader"],
       },
+      // {
+      //   test: /\.ts$/,
+      //   use: "ts-loader",
+      //   exclude: /node_modules/,
+      // },
       {
         test: /\.ts$/,
-        use: "ts-loader",
         exclude: /node_modules/,
+        use: {
+          loader: "@sucrase/webpack-loader",
+          options: {
+            transforms: ["typescript"],
+            disableESTransforms: true,
+          },
+        },
       },
     ],
   },
 };
+
+export default config;

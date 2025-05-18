@@ -1,3 +1,5 @@
+import { repositoryUrl } from "../../src/config/config";
+
 export default {
   limitations: {
     ru: "Ограничения",
@@ -36,16 +38,16 @@ export default {
     en: "Translation of live broadcasts is not available",
   },
   needBypassCSP: {
-    ru: 'Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом',
-    en: 'To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way',
+    ru: `Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](${repositoryUrl}/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом`,
+    en: `To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](${repositoryUrl}/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way`,
   },
   cantTranslatePHPremium: {
     ru: "Недоступен перевод для PH Premium",
     en: "Translation is not available for PH Premium",
   },
   needSetAccessToken: {
-    ru: "Для работы необходимо [установить Access Token](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-Where-to-get-Udemy-Access-Token%3F)",
-    en: "To work, you need to [set an Access Token](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-Where-to-get-Udemy-Access-Token%3F)",
+    ru: `Для работы необходимо [установить Access Token](${repositoryUrl}/wiki/%5BRU%5D-Where-to-get-Udemy-Access-Token%3F)"`,
+    en: `To work, you need to [set an Access Token](${repositoryUrl}/wiki/%5BEN%5D-Where-to-get-Udemy-Access-Token%3F)`,
   },
   needBeLoggedIn: {
     ru: "Необходимо быть авторизованным на сайте",

@@ -111,6 +111,19 @@
 - `poke.uk2.littlekai.co.uk`
 - `poke.blahai.gay`
 
+Доступные пути:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Ограничения:
+
+- Не работает в предпросмотре видео
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
 ## Ricktube
 
 Статус: [✅] Работает
@@ -118,6 +131,19 @@
 Доступные (под)домены:
 
 - `ricktube.ru`
+
+Доступные пути:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Ограничения:
+
+- Не работает в предпросмотре видео
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
 ## Vk
 
@@ -243,6 +269,12 @@
 
 - /CHANNEL_ID/VIDEO_ID
 - /VIDEO_ID
+- /video/VIDEO_ID
+- /video/VIDEO?h=HASH_ID
+- /channels/CHANNEL_NAME/VIDEO_ID
+- /groups/GROUP_NAME/videos/VIDEO_ID
+- /showcase/SHOWCASE_ID/video/VIDEO_ID
+- /album/SHOWCASE_ID/video/VIDEO_ID
 
 Ограничения:
 
@@ -325,7 +357,7 @@
 
 Доступные (под)домены:
 
--
+- facebook.com
 
 Доступные пути:
 
@@ -602,10 +634,6 @@
 
 - /posts/POST_ID
 
-Ограничения:
-
-- Нет субтитров
-
 ## Reddit
 
 Статус: [✅] Работает
@@ -623,7 +651,6 @@
 
 Ограничения:
 
-- Нет субтитров
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
 ## Kick
@@ -641,7 +668,6 @@
 
 Ограничения:
 
-- Нет субтитров
 - Не доступен перевод прямых трансляций
 
 ## Apple_developer
@@ -658,7 +684,6 @@
 
 Ограничения:
 
-- Нет субтитров
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
 ## Epicgames
@@ -672,26 +697,6 @@
 Доступные пути:
 
 - /community/learning/courses/XXX/XXX/XXX/XXX
-
-Ограничения:
-
-- Нет субтитров
-
-## 9AnimeTV
-
-Статус: [✅] Работает
-
-Доступные (под)домены:
-
-- `9animetv.to (vidstreaming / vidcloud)`
-
-Доступные пути:
-
-- /watch/anime-name-ANIME_ID?ep=EPISODE_ID
-
-Ограничения:
-
-- Нет субтитров
 
 ## Odysee
 
@@ -815,6 +820,10 @@
 
 - `dzen.ru`
 
+Доступные пути:
+
+- /video/watch/VIDEO_ID
+
 ## Cloudflarestream
 
 Статус: [✅] Работает
@@ -834,6 +843,15 @@
 
 - `(www.)?loom.com`
 
+Доступные пути:
+
+- /embed/VIDEO_ID
+- /share/VIDEO_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
 ## Artstation
 
 Статус: [✅] Работает
@@ -841,6 +859,10 @@
 Доступные (под)домены:
 
 - `(www.)?artstation.com`
+
+Доступные пути:
+
+- /courses/XXX/XXX/chapters/XXX
 
 ## Rtnews
 
@@ -858,6 +880,11 @@
 
 - `(www.)?bitview.net`
 
+Доступные пути:
+
+- /watch?v=VIDEO_ID
+- /embed?v=VIDEO_ID
+
 ## Kickstarter
 
 Статус: [✅] Работает
@@ -873,6 +900,77 @@
 Доступные (под)домены:
 
 - `(www.)?thisvid.com`
+
+Доступные пути:
+
+- /videos/VIDEO_ID
+- /embed/VIDEO_ID
+
+## Ign
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `(www.)?ign.com`
+- `ign.com`
+- `\w{2}.ign.com`
+
+Доступные пути:
+
+- /XXX/CONTENT_ID/video/XXX
+- /videos/VIDEO_ID
+
+## Bunkr
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `bunkr.site`
+- `bunkr.black`
+- `bunkr.cat`
+- `bunkr.media`
+- `bunkr.red`
+- `bunkr.ws`
+- `bunkr.org`
+- `bunkr.s[kiu]`
+- `bunkr.c[ir]`
+- `bunkr.fi`
+- `bunkr.p[hks]`
+- `bunkr.ru`
+- `bunkr.la`
+- `bunkr.is`
+- `bunkr.to`
+- `bunkr.a[cx]`
+
+Доступные пути:
+
+- /f/VIDEO_ID
+
+## Imdb
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `(www.)?imdb.com`
+
+Доступные пути:
+
+- /video/VIDEO_ID
+
+## Telegram
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- web.telegram.org
+
+Доступные пути:
+
+- /k/\*
 
 ## Direct link to MP4/WEBM
 

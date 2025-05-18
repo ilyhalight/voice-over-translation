@@ -1,46 +1,100 @@
-# Voice-over-translation
+# Voice Over Translation
 
-[![ru](https://img.shields.io/badge/%D1%8F%D0%B7%D1%8B%D0%BA-%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9%20%F0%9F%87%B7%F0%9F%87%BA-white)](README.md)
-[![en](https://img.shields.io/badge/lang-English%20%F0%9F%87%AC%F0%9F%87%A7-white)](README-EN.md)
+<!-- loaders links (website > github > store) -->
+
+[tampermonkey-link]: https://www.tampermonkey.net/index.php
+[tampermonkey-opera]: https://www.tampermonkey.net/index.php?browser=opera&locale=en
+[userscripts-safari]: https://github.com/quoid/userscripts
+[violetmonkey-link]: https://violentmonkey.github.io
+[adguard-userscripts]: https://kb.adguard.com/en/general/userscripts#supported-apps
+[firemonkey-link]: https://erosman.github.io/firemonkey/
+[greasemonkey-link]: https://github.com/greasemonkey/greasemonkey
+[orangemonkey-link]: https://chromewebstore.google.com/detail/OrangeMonkey/ekmeppjgajofkpiofbebgcbohbmfldaf
+[user-js-and-css-link]: https://tenrabbits.github.io/user-js-css-docs/
+
+<!-- FAQs / Wiki -->
+
+[firemonkey-how-to]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ#%D0%BA%D0%B0%D0%BA-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81-firemonkey
+[user-js-and-css-how-to]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ#%D0%BA%D0%B0%D0%BA-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81-user-js-and-css
+[devmode-enable]: https://www.tampermonkey.net/faq.php#Q209
+[vot-faq]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ
+[vot-supported-sites]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-Supported-sites
+[vot-wiki]: https://github.com/ilyhalight/voice-over-translation/wiki
+
+<!-- Our servers -->
+
+[vot-balancer]: https://vot-worker.toil.cc/health
+[vot-worker]: https://github.com/FOSWLY/vot-worker
+[media-proxy]: https://github.com/FOSWLY/media-proxy
+[vot-backend]: https://github.com/FOSWLY/vot-backend
+
+<!-- Install / Build -->
+
+[vot-dist]: https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+[nodejs-link]: https://nodejs.org
+[bun-link]: https://bun.sh/
+
+<!-- Badges -->
+
+[badge-en]: https://img.shields.io/badge/lang-English%20%F0%9F%87%AC%F0%9F%87%A7-white
+[badge-ru]: https://img.shields.io/badge/%D1%8F%D0%B7%D1%8B%D0%BA-%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9%20%F0%9F%87%B7%F0%9F%87%BA-white
+
+<!-- Other -->
+
+[vot-readme-ru]: README.md
+[vot-readme-en]: README-EN.md
+[vot-langs]: LANG_SUPPORT.md
+[vot-issues]: https://github.com/ilyhalight/voice-over-translation/issues
+[votjs-link]: https://github.com/FOSWLY/vot.js
+[vot-cli-link]: https://github.com/FOSWLY/vot-cli
+[localize-link]: https://github.com/ilyhalight/localize
+[yabrowser-link]: https://browser.yandex.com
+[yatranslate-link]: https://translate.yandex.ru/
+[contributors-link]: https://github.com/ilyhalight/voice-over-translation/graphs/contributors
+
+<!-- Content -->
+
+[![ru][badge-ru]][vot-readme-en]
+[![en][badge-en]][vot-readme-ru]
 
 > [!CAUTION]
-> Before creating Issues, we strongly recommend that you read the [FAQ](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) section, as well as with existing [Issues](https://github.com/ilyhalight/voice-over-translation/issues)
+> Before creating Issues, we strongly recommend that you read the [FAQ][vot-faq] section and with existing [Issues][vot-issues].
 
 > [!WARNING]
 > All rights to the original software belong to their respective right holders. The extension isn't affiliated with the original rights holders
 
-The voice-over translation of the video is now available not only in YandexBrowser. Very grateful, **[Yandex.Translate](https://translate.yandex.ru/)**, **[mynovelhost](https://github.com/mynovelhost)**, **[SashaXser](https://github.com/SashaXser)** and to all other contributors. Thanks <3
+The voice-over translation of the video is now available not only in [YandexBrowser][yabrowser-link]. Very grateful to devs who create **[Yandex.Translate][yatranslate-link]**, and all [contributors][contributors-link] who help make the extension better. Thanks <3
 
 ## Installing the extension:
 
 > [!WARNING]
-> If you use Tampermonkey 5.2.0+, don't forget to [enable](https://github.com/ilyhalight/voice-over-translation/issues/662#issuecomment-2160768958) Developer mode or use Tampermonkey MV2
+> If you use Tampermonkey 5.2.0+, don't forget to [enable "Developer Mode"][devmode-enable]!
 
-1. Install the extension **[Tampermonkey](https://www.tampermonkey.net/)** (An alternative for Safari: **[UserScripts](https://apps.apple.com/app/userscripts/id1463298887)**)
-2. **[«Install the Script»](https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js)**
+1. Install the extension **[Tampermonkey][tampermonkey-link]**
+2. **[«Install the Script»][vot-dist]**
 
-## List of functionality:
+## List of features:
 
-1. Video translation from [one of the available languages](LANG_SUPPORT.md) in russian, english or kazakh
-2. Translation of streams to YouTube (works with a slight delay)
-3. Displaying subtitles generated by the neural network
-4. Displaying subtitles from the site (YouTube additionally displays subtitles that are automatically translated by the site into the selected language)
-5. Saving used subtitles (supported formats: `.srt`, `.vtt`, `.json`)
-6. Saving the audio track of the translation (in `.mp3` format)
-7. Automatic video translation when opening
-8. Sliders for changing video volume and translation
-9. Automatic setting of the translated video volume (as in Yandex browser)
-10. Synchronizing the translation volume with the video volume
-11. Limiting the translation of videos from your native language (you can select the language in the menu)
-12. Translation with hotkey
-13. Setting up the design of subtitles
-14. Showing translation for separated words in subtitles
+- Translate videos into Russian, English, or Kazakh from [supported source languages][vot-langs]
+- Translate live streams on YouTube (with slight delay)
+- Display AI-generated subtitles
+- Show site subtitles (e.g., YouTube's auto-translated subs)
+- Save subtitles in `.srt`, `.vtt`, or `.json` formats
+- Save translated audio as `.mp3`
+- Auto-translate videos on open
+- Separate volume sliders for original and translated audio
+- Auto-adjust translated audio volume like in Yandex Browser
+- Sync translation volume with video volume
+- Limit translation for your native language (selectable in menu)
+- Trigger translation with a hotkey
+- Easy customize subtitle appearance
+- Show word-by-word translation in subtitles
 
 ### Useful links:
 
-1. Javascript library (vot.js): **[Link](https://github.com/FOSWLY/vot.js)**
-2. Terminal version (vot-cli): **[Link](https://github.com/FOSWLY/vot-cli)**
-3. Wiki: **[Link](https://github.com/ilyhalight/voice-over-translation/wiki)**
+1. Javascript library (vot.js): **[Link][votjs-link]**
+2. Terminal version (vot-cli): **[Link][vot-cli-link]**
+3. Wiki: **[Link][vot-wiki]**
 
 ## Note:
 
@@ -59,27 +113,27 @@ These domains can be set in the extension settings (only those domains that can 
 
 It's necessary for proxying requests if it is not possible to make a direct request to the Yandex servers
 
-- [vot-worker.toil.cc](https://vot-worker.toil.cc/health) (Load balancer between proxy servers)
-- [vot-worker-s1.toil.cc](https://github.com/FOSWLY/vot-worker)
-- [vot-worker-s2.toil.cc](https://github.com/FOSWLY/vot-worker)
-- [vot.deno.dev](https://github.com/FOSWLY/vot-worker)
-- [vot-new.toil-dump.workers.dev](https://github.com/FOSWLY/vot-worker) (⚠️ doesn't work in Russia)
+- [vot-worker.toil.cc][vot-balancer] (Load balancer between proxy servers)
+- [vot-worker-s1.toil.cc][vot-worker]
+- [vot-worker-s2.toil.cc][vot-worker]
+- [vot.deno.dev][vot-worker]
+- [vot-new.toil-dump.workers.dev][vot-worker] (⚠️ doesn't work in Russia)
 
 #### Media Proxy-server
 
 It's necessary for proxying `.m3u8` files and correcting the translation for indirect links to `.mp4` or `.webm`(for more information in the repository)
 
-- [media-proxy.toil.cc](https://github.com/FOSWLY/media-proxy)
+- [media-proxy.toil.cc][media-proxy]
 
 #### VOT-Backend
 
 It's necessary to translate additional sites that use the `.m3u8` or `.mpd` video format.
 
-- [vot.toil.cc](https://github.com/FOSWLY/vot-backend)
+- [vot.toil.cc][vot-backend]
 
 ## How to build an extension?
 
-1. Install Node.js 18.18+ / Bun.sh
+1. Install [Node.js 22+][nodejs-link] / [Bun.sh][bun-link]
 2. Install dependencies:
 
 ```bash
@@ -135,7 +189,7 @@ Bun:
 bunx patch-package --use-yarn @vot.js/package_name
 ```
 
-Do not use patches from the `bun patch` or from any npm packages. They will be incompatible with the patch-package, and may also break when updating the package.
+Do not use patches from the `bun patch` or from any other npm packages. They will be incompatible with the patch-package, and may also break when updating the package.
 
 ### How to update localization files?
 
@@ -143,29 +197,15 @@ For all interaction with localization files, the localize-tui utility is made.
 
 To call the utility, use the command:
 
-NPM:
-
-```bash
-npx @toil/localize-tui
-```
-
-Bun:
-
-```bash
-bunx @toil/localize-tui
-```
-
-or
-
 ```bash
 bun localize
 ```
 
-You can read more about the utility [here](https://github.com/ilyhalight/localize)
+You can read more about the utility [here][localize-link]
 
 ## Customization of appearance:
 
-The extension supports customization of the appearance using Stylus, Stylish and other similar extensions
+The extension supports customization of the appearance using Stylus, Stylish and other similar extensions.
 
 Example of changing styles:
 
@@ -193,7 +233,9 @@ Example of changing styles:
 }
 ```
 
-## The extension has been tested in the following browsers:
+## Tested browsers and loaders
+
+The extension has been tested in the following browsers:
 
 | Status | Browser                   | Min. Browser Version | Platform                | Extension                                                                                   |
 | ------ | ------------------------- | -------------------- | ----------------------- | ------------------------------------------------------------------------------------------- |
@@ -218,22 +260,26 @@ Example of changing styles:
 
 Min. Browser version it's a minimal version of which extension has been tested. However, this doesn't mean that it willn't run in older versions. Please note that we **don't** support or fix errors in outdated browsers.
 
-To activate the script in Tampermonkey (MV3), you must [enable "Developer Mode"](https://www.tampermonkey.net/faq.php#Q209)
+To activate the script in Tampermonkey (MV3), you must [enable "Developer Mode"][devmode-enable]
 
-## Tested in the following extensions for user scripts:
+Tested in the following extensions-loaders for userscripts:
 
-| Status                                                                                                                                 | Browser | Extension                                                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------- |
-| ⠀✅                                                                                                                                    | Any     | Tampermonkey Legacy (MV2)                                                          |
-| ⠀✅                                                                                                                                    | Opera   | Tampermonkey Opera                                                                 |
-| ⠀✅                                                                                                                                    | Chrome  | Tampermonkey (MV3)                                                                 |
-| ⠀⚠️ It works in proxying mode                                                                                                          | Safari  | Userscripts, Tampermonkey                                                          |
-| ⠀✅                                                                                                                                    | Any     | Violetmonkey                                                                       |
-| ⠀❔                                                                                                                                    | Any     | [AdGuard Usercripts](https://kb.adguard.com/en/general/userscripts#supported-apps) |
-| ⠀[Install guide](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ#how-to-use-the-extension-with-firemonkey)      | Firefox | Firemonkey                                                                         |
-| ⠀✅                                                                                                                                    | Firefox | Greasemonkey                                                                       |
-| ⚠️ requestIdleCallback is full of errors, but it works                                                                                 | Any     | OrangeMonkey                                                                       |
-| ⠀[Install guide](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ#how-to-use-the-extension-with-user-js-and-css) | Any     | User Javascript and CSS                                                            |
+| Status                                    | Browser | Extension                                       |
+| ----------------------------------------- | ------- | ----------------------------------------------- |
+| ⠀✅                                       | Any     | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
+| ⠀✅                                       | Opera   | [Tampermonkey Opera][tampermonkey-opera]        |
+| ⠀✅                                       | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
+| ⠀⚠️¹                                      | Safari  | [Userscripts][userscripts-safari]               |
+| ⠀✅                                       | Any     | [Violetmonkey][violetmonkey-link]               |
+| ⠀❔                                       | Any     | [AdGuard Usercripts][adguard-userscripts]       |
+| ⠀[Install guide][firemonkey-how-to]       | Firefox | [Firemonkey][firemonkey-link]                   |
+| ⠀✅                                       | Firefox | [Greasemonkey][greasemonkey-link]               |
+| ⚠️²                                       | Any     | [OrangeMonkey][orangemonkey-link]               |
+| ⠀[Install guide][user-js-and-css-how-to]¹ | Any     | [User Javascript and CSS][user-js-and-css-link] |
+
+¹ - It works in proxying mode, the important "Use audio download" function is unavailable due to the lack of the `unsafeWindow` API, which may lead to problems with translating new videos.
+
+² - requestIdleCallback throws a lot of errors in the console, but the extension works.
 
 ![example btn](https://github.com/ilyhalight/voice-over-translation/blob/master/img/example_en.png "btn")
 

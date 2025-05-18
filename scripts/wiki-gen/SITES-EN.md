@@ -111,6 +111,19 @@ Available (sub)domains:
 - `poke.uk2.littlekai.co.uk`
 - `poke.blahai.gay`
 
+Available paths:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Limitations:
+
+- Doesn't work in the video preview
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
 ## Ricktube
 
 Status: [✅] Working
@@ -118,6 +131,19 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `ricktube.ru`
+
+Available paths:
+
+- /watch
+- /embed
+- /shorts
+- /live
+- ?v=VIDEO_ID
+
+Limitations:
+
+- Doesn't work in the video preview
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
 ## Vk
 
@@ -243,6 +269,12 @@ Available paths:
 
 - /CHANNEL_ID/VIDEO_ID
 - /VIDEO_ID
+- /video/VIDEO_ID
+- /video/VIDEO?h=HASH_ID
+- /channels/CHANNEL_NAME/VIDEO_ID
+- /groups/GROUP_NAME/videos/VIDEO_ID
+- /showcase/SHOWCASE_ID/video/VIDEO_ID
+- /album/SHOWCASE_ID/video/VIDEO_ID
 
 Limitations:
 
@@ -325,7 +357,7 @@ Status: [✅] Working
 
 Available (sub)domains:
 
--
+- facebook.com
 
 Available paths:
 
@@ -602,10 +634,6 @@ Available paths:
 
 - /posts/POST_ID
 
-Limitations:
-
-- There are no subtitles
-
 ## Reddit
 
 Status: [✅] Working
@@ -623,7 +651,6 @@ Available paths:
 
 Limitations:
 
-- There are no subtitles
 - To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
 ## Kick
@@ -641,7 +668,6 @@ Available paths:
 
 Limitations:
 
-- There are no subtitles
 - Translation of live broadcasts is not available
 
 ## Apple_developer
@@ -658,7 +684,6 @@ Available paths:
 
 Limitations:
 
-- There are no subtitles
 - To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
 ## Epicgames
@@ -672,26 +697,6 @@ Available (sub)domains:
 Available paths:
 
 - /community/learning/courses/XXX/XXX/XXX/XXX
-
-Limitations:
-
-- There are no subtitles
-
-## 9AnimeTV
-
-Status: [✅] Working
-
-Available (sub)domains:
-
-- `9animetv.to (vidstreaming / vidcloud)`
-
-Available paths:
-
-- /watch/anime-name-ANIME_ID?ep=EPISODE_ID
-
-Limitations:
-
-- There are no subtitles
 
 ## Odysee
 
@@ -815,6 +820,10 @@ Available (sub)domains:
 
 - `dzen.ru`
 
+Available paths:
+
+- /video/watch/VIDEO_ID
+
 ## Cloudflarestream
 
 Status: [✅] Working
@@ -834,6 +843,15 @@ Available (sub)domains:
 
 - `(www.)?loom.com`
 
+Available paths:
+
+- /embed/VIDEO_ID
+- /share/VIDEO_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
 ## Artstation
 
 Status: [✅] Working
@@ -841,6 +859,10 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `(www.)?artstation.com`
+
+Available paths:
+
+- /courses/XXX/XXX/chapters/XXX
 
 ## Rtnews
 
@@ -858,6 +880,11 @@ Available (sub)domains:
 
 - `(www.)?bitview.net`
 
+Available paths:
+
+- /watch?v=VIDEO_ID
+- /embed?v=VIDEO_ID
+
 ## Kickstarter
 
 Status: [✅] Working
@@ -873,6 +900,77 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `(www.)?thisvid.com`
+
+Available paths:
+
+- /videos/VIDEO_ID
+- /embed/VIDEO_ID
+
+## Ign
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `(www.)?ign.com`
+- `ign.com`
+- `\w{2}.ign.com`
+
+Available paths:
+
+- /XXX/CONTENT_ID/video/XXX
+- /videos/VIDEO_ID
+
+## Bunkr
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `bunkr.site`
+- `bunkr.black`
+- `bunkr.cat`
+- `bunkr.media`
+- `bunkr.red`
+- `bunkr.ws`
+- `bunkr.org`
+- `bunkr.s[kiu]`
+- `bunkr.c[ir]`
+- `bunkr.fi`
+- `bunkr.p[hks]`
+- `bunkr.ru`
+- `bunkr.la`
+- `bunkr.is`
+- `bunkr.to`
+- `bunkr.a[cx]`
+
+Available paths:
+
+- /f/VIDEO_ID
+
+## Imdb
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `(www.)?imdb.com`
+
+Available paths:
+
+- /video/VIDEO_ID
+
+## Telegram
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- web.telegram.org
+
+Available paths:
+
+- /k/\*
 
 ## Direct link to MP4/WEBM
 
