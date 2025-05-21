@@ -47,7 +47,6 @@
 [vot-issues]: https://github.com/ilyhalight/voice-over-translation/issues
 [votjs-link]: https://github.com/FOSWLY/vot.js
 [vot-cli-link]: https://github.com/FOSWLY/vot-cli
-[localize-link]: https://github.com/ilyhalight/localize
 [yabrowser-link]: https://browser.yandex.com
 [yatranslate-link]: https://translate.yandex.ru/
 [contributors-link]: https://github.com/ilyhalight/voice-over-translation/graphs/contributors
@@ -172,37 +171,6 @@ bun install --yarn
    npm run build:default-min
    ```
 
-### How to patch vot.js?
-
-1. Make the necessary changes to node_modules/@vot.js/package_name/required file
-2. Save the changes using:
-
-NPM:
-
-```bash
-npx patch-package @vot.js/package_name
-```
-
-Bun:
-
-```bash
-bunx patch-package --use-yarn @vot.js/package_name
-```
-
-Do not use patches from the `bun patch` or from any other npm packages. They will be incompatible with the patch-package, and may also break when updating the package.
-
-### How to update localization files?
-
-For all interaction with localization files, the localize-tui utility is made.
-
-To call the utility, use the command:
-
-```bash
-bun localize
-```
-
-You can read more about the utility [here][localize-link]
-
 ## Customization of appearance:
 
 The extension supports customization of the appearance using Stylus, Stylish and other similar extensions.
@@ -234,6 +202,8 @@ Example of changing styles:
 ```
 
 ## Tested browsers and loaders
+
+This list is updated quite rarely, but in most cases the data in it will be relevant.
 
 The extension has been tested in the following browsers:
 
@@ -280,6 +250,10 @@ Tested in the following extensions-loaders for userscripts:
 ¹ - It works in proxying mode, the important "Use audio download" function is unavailable due to the lack of the `unsafeWindow` API, which may lead to problems with translating new videos.
 
 ² - requestIdleCallback throws a lot of errors in the console, but the extension works.
+
+## Contributing
+
+Please refer to the [contributing guide](./CONTRIBUTING.md).
 
 ![example btn](https://github.com/ilyhalight/voice-over-translation/blob/master/img/example_en.png "btn")
 
