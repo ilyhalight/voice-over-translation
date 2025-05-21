@@ -229,7 +229,6 @@
   "secs": "sec",
   "autoHideButtonDelay": "Întârziere înainte de a ascunde butonul de traducere",
   "notFound": "nu a fost găsit",
-  "downloadFailed": "Nu a reușit să descarce fișierul",
   "minButtonPositionContainer": "Poziția butonului se schimbă doar la jucătorii mai mari de 600 de pixeli.",
   "VOTTranslateProxyStatusDefault": "Dezactivarea completă a proxy-ului în țara dvs. poate rupe extensia",
   "PressTheKeyCombination": "Apăsați combinația de taste...",

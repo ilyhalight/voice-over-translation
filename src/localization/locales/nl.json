@@ -229,7 +229,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Vertraging voordat u de vertaal knop verbergt",
   "notFound": "niet gevonden",
-  "downloadFailed": "Downloaden van bestand is mislukt",
   "minButtonPositionContainer": "De positie van de knop verandert alleen bij spelers groter dan 600 pixels.",
   "VOTTranslateProxyStatusDefault": "Het volledig uitschakelen van proxy ' s in uw land kan de extensie breken",
   "PressTheKeyCombination": "Druk op de toetsencombinatie...",

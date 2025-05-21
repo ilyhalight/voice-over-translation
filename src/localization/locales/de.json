@@ -229,7 +229,6 @@
   "secs": "sekunden",
   "autoHideButtonDelay": "Verzögerung vor dem Ausblenden der Übersetzungstaste",
   "notFound": "nicht gefunden",
-  "downloadFailed": "Datei konnte nicht heruntergeladen werden",
   "minButtonPositionContainer": "Die Tastenposition ändert sich nur bei Playern, die größer als 600 Pixel sind.",
   "VOTTranslateProxyStatusDefault": "Das vollständige Deaktivieren des Proxy in Ihrem Land kann die Erweiterung beschädigen",
   "PressTheKeyCombination": "Drücken Sie die Tastenkombination...",

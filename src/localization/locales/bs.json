@@ -229,7 +229,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Vrijeme prije skrivanja dugmeta za prevođenje",
   "notFound": "nijedan pogodak nije pronađen.",
-  "downloadFailed": "Nisam uspio preuzeti datoteku",
   "minButtonPositionContainer": "Pozicija dugmeta se menja samo kod plejera većih od 600 piksela.",
   "VOTTranslateProxyStatusDefault": "Potpuno onemogućavanje proksiranja u vašoj zemlji može prekinuti proširenje",
   "PressTheKeyCombination": "Pritisnite kombinaciju tastera...",

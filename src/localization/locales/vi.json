@@ -229,7 +229,6 @@
   "secs": "sk",
   "autoHideButtonDelay": "Trì hoãn trước khi ẩn nút dịch",
   "notFound": "không tìm thấy",
-  "downloadFailed": "Không thể tải xuống tệp",
   "minButtonPositionContainer": "Vị trí nút chỉ thay đổi ở những người chơi lớn hơn 600 pixel.",
   "VOTTranslateProxyStatusDefault": "Vô hiệu hóa hoàn toàn proxy ở quốc gia của bạn có thể phá vỡ tiện ích mở rộng",
   "PressTheKeyCombination": "Nhấn tổ hợp phím...",

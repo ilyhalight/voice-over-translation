@@ -229,7 +229,6 @@
   "secs": "sekunda",
   "autoHideButtonDelay": "Zpoždění před skrytím tlačítka přeložit",
   "notFound": "nalézt",
-  "downloadFailed": "Nepodařilo se stáhnout soubor",
   "minButtonPositionContainer": "Pozice tlačítka se mění pouze u hráčů větších než 600 pixelů.",
   "VOTTranslateProxyStatusDefault": "Úplné deaktivace proxy ve vaší zemi může rozšíření přerušit",
   "PressTheKeyCombination": "Stiskněte kombinaci kláves...",

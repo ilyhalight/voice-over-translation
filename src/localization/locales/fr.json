@@ -229,7 +229,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Délai avant de masquer le bouton traduire",
   "notFound": "non trouvé",
-  "downloadFailed": "Impossible de télécharger le fichier",
   "minButtonPositionContainer": "La position du bouton ne change que dans les lecteurs de plus de 600 pixels.",
   "VOTTranslateProxyStatusDefault": "La désactivation complète du proxy dans votre pays peut casser l'extension",
   "PressTheKeyCombination": "Appuyez sur la combinaison de touches...",

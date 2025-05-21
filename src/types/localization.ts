@@ -290,7 +290,6 @@ export type Phrase =
   | "secs"
   | "autoHideButtonDelay"
   | "notFound"
-  | "downloadFailed"
   | "minButtonPositionContainer"
   | "VOTTranslateProxyStatusDefault"
   | "PressTheKeyCombination"
@@ -533,7 +532,6 @@ export type Phrases = {
   secs: string;
   autoHideButtonDelay: string;
   notFound: string;
-  downloadFailed: string;
   minButtonPositionContainer: string;
   VOTTranslateProxyStatusDefault: string;
   PressTheKeyCombination: string;

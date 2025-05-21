@@ -50,6 +50,7 @@ import {
   browserInfo,
   isPiPAvailable,
   isProxyOnlyExtension,
+  isSupportGMXhr,
   isUnsafeWindowAllowed,
 } from "../../utils/utils";
 import { HELP_ICON, WARNING_ICON } from "../icons";
@@ -325,6 +326,7 @@ export class SettingsView {
       labelHtml: localizationProvider.get("VOTDownloadWithName"),
       checked: this.data.downloadWithName,
     });
+    this.downloadWithNameCheckbox.disabled = !isSupportGMXhr;
 
     this.sendNotifyOnCompleteCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("VOTSendNotifyOnComplete"),

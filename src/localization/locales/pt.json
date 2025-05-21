@@ -228,7 +228,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Atraso antes de ocultar o botão Traduzir",
   "notFound": "não encontrado",
-  "downloadFailed": "Falha ao baixar o arquivo",
   "minButtonPositionContainer": "A posição do botão só muda em Jogadores com mais de 600 píxeis.",
   "VOTTranslateProxyStatusDefault": "Desativar completamente o proxy no seu país pode quebrar a extensão",
   "PressTheKeyCombination": "Prima a combinação de teclas...",
