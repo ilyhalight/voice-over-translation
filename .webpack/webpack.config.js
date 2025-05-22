@@ -7,7 +7,6 @@ import webpack from "webpack";
 import { monkey } from "webpack-monkey";
 import { styleLoaderInsertStyleElement } from "webpack-monkey/lib/client/css.js";
 import ESLintPlugin from "eslint-webpack-plugin";
-import TerserPlugin from "terser-webpack-plugin";
 import { OxcMinifyWebpackPlugin } from "oxc-minify-webpack-plugin";
 
 import {
