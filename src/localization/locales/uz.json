@@ -238,5 +238,8 @@
   "VOTMyAccount": "Mening hisobim",
   "VOTLogin": "Kirish",
   "VOTLogout": "Chiqish",
-  "VOTRefresh": "Yangilash"
+  "VOTRefresh": "Yangilash",
+  "VOTYandexToken": "Yandex OAuth Tokenini kiriting",
+  "VOTYandexTokenInfo": "Ushbu sohada hisob belgisini qo'lda o'rnatishingiz mumkin. Iltimos, tarjima so'rovini yuborishdan oldin uning haqiqiyligini tekshirmaymiz",
+  "VOTLoginViaToken": "Token orqali kirish"
 }

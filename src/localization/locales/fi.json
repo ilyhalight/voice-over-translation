@@ -238,5 +238,8 @@
   "VOTMyAccount": "Oma tili",
   "VOTLogin": "Kirjautuminen",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Päivitä"
+  "VOTRefresh": "Päivitä",
+  "VOTYandexToken": "Syötä Yandex OAuth-Token",
+  "VOTYandexTokenInfo": "Voit asettaa tilin tunnuksen manuaalisesti tässä kentässä. Huomaa, että emme tarkista sen voimassaoloa ennen käännöspyynnön lähettämistä",
+  "VOTLoginViaToken": "Kirjaudu Tokenin kautta"
 }

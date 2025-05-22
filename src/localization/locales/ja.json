@@ -238,5 +238,8 @@
   "VOTMyAccount": "マイアカウント",
   "VOTLogin": "ログイン",
   "VOTLogout": "ログアウト",
-  "VOTRefresh": "リフレッシュ"
+  "VOTRefresh": "リフレッシュ",
+  "VOTYandexToken": "Yandex OAuthトークンを入力します",
+  "VOTYandexTokenInfo": "このフィールドでは、アカウントトークンを手動で設定できます。 翻訳リクエストを送信する前にその有効性を確認しないことに注意してください",
+  "VOTLoginViaToken": "トークンを介したログイン"
 }

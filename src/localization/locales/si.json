@@ -238,5 +238,8 @@
   "VOTMyAccount": "මගේ ගිණුම",
   "VOTLogin": "පිවිසෙන්න",
   "VOTLogout": "පිටවීම",
-  "VOTRefresh": "නැවුම් කරන්න"
+  "VOTRefresh": "නැවුම් කරන්න",
+  "VOTYandexToken": "Yandex Oauth ටෝකනය ඇතුලත් කරන්න",
+  "VOTYandexTokenInfo": "ඔබට මෙම ක්ෂේත් රයේ ගිණුම් ටෝකනය අතින් සකස් කළ හැකිය. පරිවර්තන ඉල්ලීමක් යැවීමට පෙර අපි එහි වලංගුභාවය පරීක්ෂා නොකරන බව කරුණාවෙන් සලකන්න",
+  "VOTLoginViaToken": "Token හරහා පිවිසෙන්න"
 }

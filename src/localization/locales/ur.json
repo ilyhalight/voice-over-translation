@@ -238,5 +238,8 @@
   "VOTMyAccount": "میرا اکاؤنٹ",
   "VOTLogin": "لاگ ان",
   "VOTLogout": "لاگ آؤٹ",
-  "VOTRefresh": "ریفریش"
+  "VOTRefresh": "ریفریش",
+  "VOTYandexToken": "Yandex OAuth ٹوکن درج کریں",
+  "VOTYandexTokenInfo": "آپ دستی طور پر اس فیلڈ میں اکاؤنٹ ٹوکن سیٹ کر سکتے ہیں ۔  براہ کرم نوٹ کریں کہ ہم ترجمہ کی درخواست بھیجنے سے پہلے اس کی صداقت کی جانچ نہیں کرتے ہیں ۔ ",
+  "VOTLoginViaToken": "ٹوکن کے ذریعے لاگ ان کریں"
 }

@@ -238,5 +238,8 @@
   "VOTMyAccount": "ငါ့အကောင့်",
   "VOTLogin": "ဝင်ရောက်ပါ",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Refresh"
+  "VOTRefresh": "Refresh",
+  "VOTYandexToken": "Yandex OAuth Token ကိုထည့်ပါ",
+  "VOTYandexTokenInfo": "ဒီကွင်းမှာအကောင့် token ကိုလက်နဲ့သတ်မှတ်နိုင်ပါတယ်။ ကျေးဇူးပြု၍မှတ်ထားရန်မှာဘာသာပြန်တောင်းဆိုမှုမပို့မီ၎င်း၏မှန်ကန်မှုကိုကျွန်ုပ်တို့စစ်ဆေးခြင်းမရှိပါ။",
+  "VOTLoginViaToken": "Token မှတဆင့်ဝင်ရောက်ပါ"
 }

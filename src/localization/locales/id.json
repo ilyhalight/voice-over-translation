@@ -238,5 +238,8 @@
   "VOTMyAccount": "Akun saya",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Menyegarkan"
+  "VOTRefresh": "Menyegarkan",
+  "VOTYandexToken": "Masukkan Token OAuth Yandex",
+  "VOTYandexTokenInfo": "Anda dapat mengatur token akun secara manual di bidang ini. Harap perhatikan bahwa kami tidak memeriksa validitasnya sebelum mengirim permintaan terjemahan",
+  "VOTLoginViaToken": "Login melalui token"
 }

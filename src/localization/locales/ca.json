@@ -238,5 +238,8 @@
   "VOTMyAccount": "El meu compte",
   "VOTLogin": "Accés",
   "VOTLogout": "Sortida",
-  "VOTRefresh": "Refresca"
+  "VOTRefresh": "Refresca",
+  "VOTYandexToken": "Introduïu El Testimoni Yandex OAuth",
+  "VOTYandexTokenInfo": "Podeu configurar manualment el testimoni del compte en aquest camp. Tingueu en compte que no comprovem la seva validesa abans d'enviar una petició de traducció",
+  "VOTLoginViaToken": "Inicieu sessió mitjançant testimoni"
 }

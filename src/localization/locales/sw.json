@@ -238,5 +238,8 @@
   "VOTMyAccount": "Akaunti yangu",
   "VOTLogin": "Ingia",
   "VOTLogout": "Kuingia",
-  "VOTRefresh": "Furahisha"
+  "VOTRefresh": "Furahisha",
+  "VOTYandexToken": "Ingiza Ishara Ya Yandex OAuth",
+  "VOTYandexTokenInfo": "Unaweza kuweka ishara ya akaunti kwa mikono katika uwanja huu. Tafadhali kumbuka kuwa hatuangalii uhalali wake kabla ya kutuma ombi la kutafsiri",
+  "VOTLoginViaToken": "Ingia kupitia ishara"
 }

@@ -238,5 +238,8 @@
   "VOTMyAccount": "Minu konto",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Värskendamiseks"
+  "VOTRefresh": "Värskendamiseks",
+  "VOTYandexToken": "Sisestage Yandex OAuthi märk",
+  "VOTYandexTokenInfo": "Sellel väljal saate konto märgi käsitsi seadistada. Pange tähele, et me ei kontrolli selle kehtivust enne tõlkimistaotluse saatmist",
+  "VOTLoginViaToken": "Logi sisse tokeni kaudu"
 }

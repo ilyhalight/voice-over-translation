@@ -238,5 +238,8 @@
   "VOTMyAccount": "የእኔ መለያ",
   "VOTLogin": "አዲስ ዝምብሎ ይግባ",
   "VOTLogout": "ግባ",
-  "VOTRefresh": "በድጋሚ ጀምር"
+  "VOTRefresh": "በድጋሚ ጀምር",
+  "VOTYandexToken": "የ Yandex Out Toket አስገባ",
+  "VOTYandexTokenInfo": "በዚህ መስክ የመለያ ምልክቱን እራስዎ ማዘጋጀት ይችላሉ። የትርጉም ጥያቄ ከመላክዎ በፊት ትክክለኛነቱን እንደማንፈትሽ እባክዎ ልብ ይበሉ ። ",
+  "VOTLoginViaToken": "በቶከን በኩል ይግቡ"
 }

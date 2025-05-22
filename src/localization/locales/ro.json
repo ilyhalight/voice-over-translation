@@ -238,5 +238,8 @@
   "VOTMyAccount": "Contul meu",
   "VOTLogin": "Autentificare",
   "VOTLogout": "Deconectare",
-  "VOTRefresh": "Reîmprospătare"
+  "VOTRefresh": "Reîmprospătare",
+  "VOTYandexToken": "Introduceți tokenul Yandex OAuth",
+  "VOTYandexTokenInfo": "Puteți seta manual simbolul contului în acest câmp. Vă rugăm să rețineți că nu verificăm validitatea acesteia înainte de a trimite o solicitare de traducere",
+  "VOTLoginViaToken": "Autentificare prin token"
 }

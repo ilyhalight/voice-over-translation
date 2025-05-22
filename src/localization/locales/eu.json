@@ -238,5 +238,8 @@
   "VOTMyAccount": "Nire kontua",
   "VOTLogin": "Saioa hasi",
   "VOTLogout": "Saioa amaitzea",
-  "VOTRefresh": "Freskatu"
+  "VOTRefresh": "Freskatu",
+  "VOTYandexToken": "Sartu Yandex Oautheko Tokenera",
+  "VOTYandexTokenInfo": "Kontu-tokena eskuz ezar dezakezu eremu honetan. Kontuan izan ez dugula bere baliozkotasuna egiaztatzen itzulpen eskaera bat bidali aurretik",
+  "VOTLoginViaToken": "Saioa hasi token bidez"
 }

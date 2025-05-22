@@ -238,5 +238,8 @@
   "VOTMyAccount": "Tài khoản của tôi",
   "VOTLogin": "Đăng nhập",
   "VOTLogout": "Đăng xuất",
-  "VOTRefresh": "Làm mới"
+  "VOTRefresh": "Làm mới",
+  "VOTYandexToken": "Nhập Mã Thông báo Yandex OAuth",
+  "VOTYandexTokenInfo": "Bạn có thể đặt mã thông báo tài khoản theo cách thủ công trong trường này. Xin lưu ý rằng chúng tôi không kiểm tra tính hợp lệ của nó trước khi gửi yêu cầu dịch",
+  "VOTLoginViaToken": "Đăng nhập qua token"
 }

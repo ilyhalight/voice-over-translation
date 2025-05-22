@@ -238,5 +238,8 @@
   "VOTMyAccount": "Benim hesabım",
   "VOTLogin": "Oturum aç",
   "VOTLogout": "Çıkış",
-  "VOTRefresh": "Yenilemek"
+  "VOTRefresh": "Yenilemek",
+  "VOTYandexToken": "Yandex OAuth Belirtecini Girin",
+  "VOTYandexTokenInfo": "Bu alanda hesap belirtecini manuel olarak ayarlayabilirsiniz. Bir çeviri isteği göndermeden önce geçerliliğini kontrol etmediğimizi lütfen unutmayın",
+  "VOTLoginViaToken": "Token ile giriş yap"
 }

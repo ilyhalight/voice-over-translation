@@ -1,7 +1,7 @@
 import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
 import { AccountButtonProps } from "../../types/components/accountButton";
-import { REFRESH_ICON } from "../icons";
+import { REFRESH_ICON, KEY_ICON } from "../icons";
 import { avatarServerUrl } from "../../config/config";
 
 export default class AccountButton {
@@ -13,9 +13,11 @@ export default class AccountButton {
   avatarImg: HTMLImageElement;
   actionButton: HTMLElement;
   refreshButton: HTMLElement;
+  tokenButton: HTMLElement;
 
   private onClick = new EventImpl();
   private onRefresh = new EventImpl();
+  private onClickSecret = new EventImpl();
   private _loggedIn: boolean;
   private _username: string;
   private _avatarId: string;
@@ -38,6 +40,7 @@ export default class AccountButton {
 
     this.actionButton = elements.actionButton;
     this.refreshButton = elements.refreshButton;
+    this.tokenButton = elements.tokenButton;
   }
 
   private createElements() {
@@ -65,11 +68,17 @@ export default class AccountButton {
     actionButton.addEventListener("click", () => {
       this.onClick.dispatch();
     });
+    const tokenButton = UI.createIconButton(KEY_ICON);
+    tokenButton.hidden = this._loggedIn;
+    tokenButton.addEventListener("click", () => {
+      this.onClickSecret.dispatch();
+    });
+
     const refreshButton = UI.createIconButton(REFRESH_ICON);
     refreshButton.addEventListener("click", () => {
       this.onRefresh.dispatch();
     });
-    buttons.append(actionButton, refreshButton);
+    buttons.append(actionButton, tokenButton, refreshButton);
     container.append(accountWrapper, buttons);
 
     return {
@@ -81,24 +90,43 @@ export default class AccountButton {
       avatarEl,
       actionButton,
       refreshButton,
+      tokenButton,
     };
   }
 
-  addEventListener(type: "click" | "refresh", listener: () => void): this {
-    if (type === "click") {
-      this.onClick.addListener(listener);
-    } else if (type === "refresh") {
-      this.onRefresh.addListener(listener);
+  addEventListener(
+    type: "click" | "click:secret" | "refresh",
+    listener: () => void,
+  ): this {
+    switch (type) {
+      case "click":
+        this.onClick.addListener(listener);
+        break;
+      case "click:secret":
+        this.onClickSecret.addListener(listener);
+        break;
+      case "refresh":
+        this.onRefresh.addListener(listener);
+        break;
     }
 
     return this;
   }
 
-  removeEventListener(type: "click" | "refresh", listener: () => void): this {
-    if (type === "click") {
-      this.onClick.removeListener(listener);
-    } else if (type === "refresh") {
-      this.onRefresh.removeListener(listener);
+  removeEventListener(
+    type: "click" | "click:secret" | "refresh",
+    listener: () => void,
+  ): this {
+    switch (type) {
+      case "click":
+        this.onClick.removeListener(listener);
+        break;
+      case "click:secret":
+        this.onClickSecret.removeListener(listener);
+        break;
+      case "refresh":
+        this.onRefresh.removeListener(listener);
+        break;
     }
 
     return this;
@@ -116,6 +144,7 @@ export default class AccountButton {
     this._loggedIn = isLoggedIn;
     this.accountWrapper.hidden = !this._loggedIn;
     this.actionButton.textContent = this.buttonText;
+    this.tokenButton.hidden = this._loggedIn;
   }
 
   get avatarId() {

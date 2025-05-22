@@ -238,5 +238,8 @@
   "VOTMyAccount": "Saját fiók",
   "VOTLogin": "Bejelentkezés",
   "VOTLogout": "Kijelentkezés",
-  "VOTRefresh": "Frissítés"
+  "VOTRefresh": "Frissítés",
+  "VOTYandexToken": "Adja meg a Yandex OAuth Tokent",
+  "VOTYandexTokenInfo": "Ebben a mezőben manuálisan beállíthatja a fiók tokent. Felhívjuk figyelmét, hogy a fordítási kérelem elküldése előtt nem ellenőrizzük annak érvényességét",
+  "VOTLoginViaToken": "Bejelentkezés tokenen keresztül"
 }

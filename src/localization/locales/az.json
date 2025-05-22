@@ -238,5 +238,8 @@
   "VOTMyAccount": "Mənim Hesabım",
   "VOTLogin": "Daxil ol",
   "VOTLogout": "Sistemdən çıxın",
-  "VOTRefresh": "Təzələmək"
+  "VOTRefresh": "Təzələmək",
+  "VOTYandexToken": "OAuth daxil edin-Yandex Token",
+  "VOTYandexTokenInfo": "Bu sahədə hesab nişanını əl ilə təyin edə bilərsiniz. Xahiş edirik unutmayın ki, köçürmə sorğusu göndərməzdən əvvəl onun etibarlılığını yoxlamırıq",
+  "VOTLoginViaToken": "Token ilə daxil olun"
 }

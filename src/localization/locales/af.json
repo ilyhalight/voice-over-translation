@@ -238,5 +238,8 @@
   "VOTMyAccount": "My rekening",
   "VOTLogin": "Aanmelding",
   "VOTLogout": "Afmeld",
-  "VOTRefresh": "Verfris"
+  "VOTRefresh": "Verfris",
+  "VOTYandexToken": "Tik Die Yandex Oauth Token",
+  "VOTYandexTokenInfo": "U kan die rekeningteken handmatig in hierdie veld instel. Let asseblief daarop dat ons nie die geldigheid daarvan nagaan voordat u'n translate-versoek stuur nie",
+  "VOTLoginViaToken": "Teken in via token"
 }

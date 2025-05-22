@@ -238,5 +238,8 @@
   "VOTMyAccount": "គណនីរបស់ខ្ញុ",
   "VOTLogin": "ចូល",
   "VOTLogout": "ចេញ",
-  "VOTRefresh": "ធ្វើឲ្យស្រស់"
+  "VOTRefresh": "ធ្វើឲ្យស្រស់",
+  "VOTYandexToken": "បញ្ចូលសញ្ញា Yandex OAuth",
+  "VOTYandexTokenInfo": "អ្នកអាចកំណត់សញ្ញាគណនីនៅក្នុងវាលនេះដោយដៃ. សូមចំណាំថាយើងមិនបានពិនិត្យមើលសុពលភាពរបស់ខ្លួនមុនពេលផ្ញើសំណើបកប្រែ",
+  "VOTLoginViaToken": "ចូលតាមរយៈ token"
 }

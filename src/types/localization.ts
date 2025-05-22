@@ -299,7 +299,10 @@ export type Phrase =
   | "VOTMyAccount"
   | "VOTLogin"
   | "VOTLogout"
-  | "VOTRefresh";
+  | "VOTRefresh"
+  | "VOTYandexToken"
+  | "VOTYandexTokenInfo"
+  | "VOTLoginViaToken";
 
 export type Phrases = {
   recommended: string;
@@ -542,6 +545,9 @@ export type Phrases = {
   VOTLogin: string;
   VOTLogout: string;
   VOTRefresh: string;
+  VOTYandexToken: string;
+  VOTYandexTokenInfo: string;
+  VOTLoginViaToken: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

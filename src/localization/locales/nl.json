@@ -238,5 +238,8 @@
   "VOTMyAccount": "Mijn account",
   "VOTLogin": "Login",
   "VOTLogout": "Afmelden",
-  "VOTRefresh": "Vernieuwen"
+  "VOTRefresh": "Vernieuwen",
+  "VOTYandexToken": "Voer de Yandex OAuth Token in",
+  "VOTYandexTokenInfo": "U kunt het account-token handmatig instellen in dit veld. Houd er rekening mee dat we de geldigheid ervan niet controleren voordat we een vertaal verzoek sturen",
+  "VOTLoginViaToken": "Inloggen via token"
 }

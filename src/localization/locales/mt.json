@@ -238,5 +238,8 @@
   "VOTMyAccount": "Il-kont tiegħi",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Aġġorna"
+  "VOTRefresh": "Aġġorna",
+  "VOTYandexToken": "Daħħal It-Token Yandex OAuth",
+  "VOTYandexTokenInfo": "Tista'tissettja manwalment it-token tal-kont f'dan il-qasam. Jekk jogħġbok innota li aħna ma niċċekkjawx il-validità tagħha qabel ma nibagħtu talba ta'traduzzjoni",
+  "VOTLoginViaToken": "Idħol permezz tat-token"
 }

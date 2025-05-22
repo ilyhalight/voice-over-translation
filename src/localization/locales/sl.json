@@ -238,5 +238,8 @@
   "VOTMyAccount": "Moj Račun",
   "VOTLogin": "Prijava",
   "VOTLogout": "Odjava",
-  "VOTRefresh": "Osveži"
+  "VOTRefresh": "Osveži",
+  "VOTYandexToken": "Vnesite žeton OAuth",
+  "VOTYandexTokenInfo": "V tem polju lahko ročno nastavite žeton računa. Upoštevajte, da pred pošiljanjem zahteve za prevajanje ne preverimo njegove veljavnosti",
+  "VOTLoginViaToken": "Prijava prek žetona"
 }

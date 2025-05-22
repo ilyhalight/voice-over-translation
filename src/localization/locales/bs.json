@@ -238,5 +238,8 @@
   "VOTMyAccount": "Moj nalog",
   "VOTLogin": "Prijava",
   "VOTLogout": "Sound event",
-  "VOTRefresh": "Osvježi"
+  "VOTRefresh": "Osvježi",
+  "VOTYandexToken": "Unesite Yandex OAuth Token",
+  "VOTYandexTokenInfo": "Možete ručno podesiti token računa u ovom polju. Imajte na umu da ne provjeravamo njegovu valjanost prije slanja zahtjeva za prevođenje",
+  "VOTLoginViaToken": "Prijava putem tokena"
 }

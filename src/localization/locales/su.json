@@ -238,5 +238,8 @@
   "VOTMyAccount": "Akun abdi",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Nyegerkeun"
+  "VOTRefresh": "Nyegerkeun",
+  "VOTYandexToken": "Asupkeun Token Yandex OAuth",
+  "VOTYandexTokenInfo": "Anjeun tiasa sacara manual nyetel token akun dina widang ieu. Punten perhatoskeun yén kami henteu mariksa validitasna sateuacan ngirim pamundut tarjamahan",
+  "VOTLoginViaToken": "Login ngaliwatan token"
 }

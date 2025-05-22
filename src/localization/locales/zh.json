@@ -238,5 +238,8 @@
   "VOTMyAccount": "我的帐户",
   "VOTLogin": "登入",
   "VOTLogout": "登出",
-  "VOTRefresh": "刷新"
+  "VOTRefresh": "刷新",
+  "VOTYandexToken": "输入Yandex OAuth令牌",
+  "VOTYandexTokenInfo": "您可以在此字段中手动设置帐户令牌。 请注意，在发送翻译请求之前，我们不会检查其有效性",
+  "VOTLoginViaToken": "通过令牌登录"
 }

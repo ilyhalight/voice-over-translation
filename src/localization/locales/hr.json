@@ -238,5 +238,8 @@
   "VOTMyAccount": "Moj račun",
   "VOTLogin": "Prijaviti se",
   "VOTLogout": "Odjava",
-  "VOTRefresh": "Osvježiti"
+  "VOTRefresh": "Osvježiti",
+  "VOTYandexToken": "Unesite IDB-Token Jandeksa",
+  "VOTYandexTokenInfo": "U ovom polju možete ručno odrediti token računa. Imajte na umu da ne provjeravamo njegovu valjanost prije slanja zahtjeva za prijenos",
+  "VOTLoginViaToken": "Prijavite se pomoću tokena"
 }

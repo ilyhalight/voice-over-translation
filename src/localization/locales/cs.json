@@ -238,5 +238,8 @@
   "VOTMyAccount": "Můj účet",
   "VOTLogin": "Přihlášení",
   "VOTLogout": "Odhlášení",
-  "VOTRefresh": "Aktualizovat"
+  "VOTRefresh": "Aktualizovat",
+  "VOTYandexToken": "Zadejte Token Yandex OAuth",
+  "VOTYandexTokenInfo": "V tomto poli můžete ručně nastavit token účtu. Vezměte prosím na vědomí, že před odesláním požadavku na překlad nekontrolujeme jeho platnost",
+  "VOTLoginViaToken": "Přihlášení přes token"
 }

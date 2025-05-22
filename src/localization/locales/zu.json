@@ -238,5 +238,8 @@
   "VOTMyAccount": "I akhawunti yami",
   "VOTLogin": "Ukungena ngemvume",
   "VOTLogout": "Ukuphuma",
-  "VOTRefresh": "Vuselela"
+  "VOTRefresh": "Vuselela",
+  "VOTYandexToken": "Faka Ithokheni Yandex OAuth",
+  "VOTYandexTokenInfo": "Ungakwazi ngesandla usethe ithokheni akhawunti kule nkambu. Sicela uqaphele ukuthi asikuhloli ukuba yiqiniso kwayo ngaphambi kokuthumela isicelo sokuhumusha",
+  "VOTLoginViaToken": "Ukungena ngemvume nge token"
 }

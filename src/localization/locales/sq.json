@@ -238,5 +238,8 @@
   "VOTMyAccount": "Llogaria ime",
   "VOTLogin": "Hyrje",
   "VOTLogout": "Dalja",
-  "VOTRefresh": "Rifresko"
+  "VOTRefresh": "Rifresko",
+  "VOTYandexToken": "Futni Shenjën Yandex OAuth",
+  "VOTYandexTokenInfo": "Ju mund të vendosni manualisht shenjën e llogarisë në këtë fushë. Ju lutemi vini re se ne nuk e kontrollojmë vlefshmërinë e tij përpara se të dërgojmë një kërkesë për përkthim",
+  "VOTLoginViaToken": "Identifikohuni përmes token"
 }

@@ -238,5 +238,8 @@
   "VOTMyAccount": "내 계정",
   "VOTLogin": "로그인",
   "VOTLogout": "로그아웃",
-  "VOTRefresh": "새로 고침"
+  "VOTRefresh": "새로 고침",
+  "VOTYandexToken": "토큰을 입력합니다.",
+  "VOTYandexTokenInfo": "이 필드에서 계정 토큰을 수동으로 설정할 수 있습니다. 번역 요청을 보내기 전에 유효성을 확인하지 않습니다",
+  "VOTLoginViaToken": "토큰을 통해 로그인"
 }

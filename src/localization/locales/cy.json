@@ -238,5 +238,8 @@
   "VOTMyAccount": "Fy nghyfrif",
   "VOTLogin": "Login",
   "VOTLogout": "Allgofnodi",
-  "VOTRefresh": "Adnewyddu"
+  "VOTRefresh": "Adnewyddu",
+  "VOTYandexToken": "Rhowch Y Tocyn Yandex OAuth",
+  "VOTYandexTokenInfo": "Gallwch osod y tocyn cyfrif â llaw yn y maes hwn. Nodwch nad ydym yn gwirio ei ddilysrwydd cyn anfon cais cyfieithu",
+  "VOTLoginViaToken": "Mewngofnodi trwy docyn"
 }

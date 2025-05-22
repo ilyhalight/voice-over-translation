@@ -238,5 +238,8 @@
   "VOTMyAccount": "Il mio account",
   "VOTLogin": "Login",
   "VOTLogout": "Esci",
-  "VOTRefresh": "Aggiornare"
+  "VOTRefresh": "Aggiornare",
+  "VOTYandexToken": "Inserisci il token Yandex OAuth",
+  "VOTYandexTokenInfo": "È possibile impostare manualmente il token dell'account in questo campo. Si prega di notare che non controlliamo la sua validità prima di inviare una richiesta di traduzione",
+  "VOTLoginViaToken": "Accedi tramite token"
 }
