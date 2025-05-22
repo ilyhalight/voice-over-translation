@@ -435,7 +435,7 @@ export class SettingsView {
       localizationProvider.get("hotkeysSettings"),
     );
     this.translateHotkeyButton = new HotkeyButton({
-      labelHtml: "Translate",
+      labelHtml: localizationProvider.get("translateVideo"),
       key: this.data.translationHotkey,
     });
 

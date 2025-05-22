@@ -246,9 +246,6 @@ export type Phrase =
   | "VOTSubtitlesDesign"
   | "VOTSubtitlesFontSize"
   | "VOTSubtitlesOpacity"
-  | "VOTPressNewHotkey"
-  | "VOTCreateTranslationHotkey"
-  | "VOTChangeHotkeyWithCurrent"
   | "VOTSubtitlesDownloadFormat"
   | "VOTDownloadWithName"
   | "VOTUpdateLocaleFiles"
@@ -487,9 +484,6 @@ export type Phrases = {
   VOTSubtitlesDesign: string;
   VOTSubtitlesFontSize: string;
   VOTSubtitlesOpacity: string;
-  VOTPressNewHotkey: string;
-  VOTCreateTranslationHotkey: string;
-  VOTChangeHotkeyWithCurrent: string;
   VOTSubtitlesDownloadFormat: string;
   VOTDownloadWithName: string;
   VOTUpdateLocaleFiles: string;

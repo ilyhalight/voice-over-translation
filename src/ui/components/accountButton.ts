@@ -3,6 +3,7 @@ import { EventImpl } from "../../core/eventImpl";
 import { AccountButtonProps } from "../../types/components/accountButton";
 import { REFRESH_ICON, KEY_ICON } from "../icons";
 import { avatarServerUrl } from "../../config/config";
+import { localizationProvider } from "../../localization/localizationProvider";
 
 export default class AccountButton {
   container: HTMLElement;
@@ -133,7 +134,9 @@ export default class AccountButton {
   }
 
   get buttonText() {
-    return this._loggedIn ? `Logout` : "Login";
+    return this._loggedIn
+      ? localizationProvider.get("VOTLogout")
+      : localizationProvider.get("VOTLogin");
   }
 
   get loggedIn() {
