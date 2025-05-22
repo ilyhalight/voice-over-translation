@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Subtitle desain",
   "VOTSubtitlesFontSize": "Ukuran Font saka subtitles",
   "VOTSubtitlesOpacity": "Transparansi latar mburi subtitle",
-  "VOTPressNewHotkey": "Pencet tombol anyar...",
-  "VOTCreateTranslationHotkey": "Nggawe Hotkey Kanggo Terjemahan",
-  "VOTChangeHotkeyWithCurrent": "Ganti Tombol (Saiki: {0})",
   "VOTSubtitlesDownloadFormat": "Format kanggo ngundhuh subtitles",
   "VOTDownloadWithName": "Ngundhuh file kanthi jeneng video",
   "VOTUpdateLocaleFiles": "Nganyari file lokalisasi",
@@ -229,7 +226,6 @@
   "secs": "sèk",
   "autoHideButtonDelay": "Tundha sadurunge ndhelikake tombol translate",
   "notFound": "ora ditemokaké",
-  "downloadFailed": "Gagal kanggo ngundhuh file",
   "minButtonPositionContainer": "Posisi tombol mung owah-owahan ing pemain luwih saka 600 piksel.",
   "VOTTranslateProxyStatusDefault": "Kanthi mateni proxying ing negara sampeyan bisa ngilangi ekstensi kasebut",
   "PressTheKeyCombination": "Pencet kombinasi tombol...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Akunku",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Nganyari"
+  "VOTRefresh": "Nganyari",
+  "VOTYandexToken": "Mlebu Ing Yandex Token OAuth",
+  "VOTYandexTokenInfo": "Sampeyan bisa kanthi manual nyetel akun token ing lapangan iki. Elinga yen kita ora mriksa validitas sadurunge ngirim panjaluk terjemahan",
+  "VOTLoginViaToken": "Mlebu liwat token"
 }

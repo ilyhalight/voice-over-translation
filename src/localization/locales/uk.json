@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Дизайн субтитрів",
   "VOTSubtitlesFontSize": "Розмір шрифту субтитрів",
   "VOTSubtitlesOpacity": "Прозорість фону субтитрів",
-  "VOTPressNewHotkey": "Натисніть нову гарячу клавішу...",
-  "VOTCreateTranslationHotkey": "Створити гарячу клавішу для перекладу",
-  "VOTChangeHotkeyWithCurrent": "Змінити гарячу клавішу (поточна: {0})",
   "VOTSubtitlesDownloadFormat": "Формат для завантаження субтитрів",
   "VOTDownloadWithName": "Завантажуйте файли з назвою відео",
   "VOTUpdateLocaleFiles": "Оновити файли локалізації",
@@ -229,7 +226,6 @@
   "secs": "січ",
   "autoHideButtonDelay": "Затримайтеся, перш ніж приховувати кнопку перекладу",
   "notFound": "не знайдено",
-  "downloadFailed": "Не вдалося завантажити файл",
   "minButtonPositionContainer": "Положення кнопки змінюється тільки на програвачах розміром більше 600 пікселів.",
   "VOTTranslateProxyStatusDefault": "Повне вимкнення проксування у вашій країні може призвести до поломки розширення",
   "PressTheKeyCombination": "Натисніть комбінацію клавіш...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Мій рахунок",
   "VOTLogin": "Авторизувати",
   "VOTLogout": "Вихід",
-  "VOTRefresh": "Оновити"
+  "VOTRefresh": "Оновити",
+  "VOTYandexToken": "Введіть OAuth-токен Яндекса",
+  "VOTYandexTokenInfo": "Ви можете вручну вказати маркер облікового запису в цьому полі. Будь ласка, зверніть увагу, що ми не перевіряємо його дійсність перед відправкою запиту на переклад",
+  "VOTLoginViaToken": "Увійдіть за допомогою токена"
 }

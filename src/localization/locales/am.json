@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "ንዑስ ርዕሶች ንድፍ",
   "VOTSubtitlesFontSize": "የትርጉም ጽሑፎች ቅርጸ-ቁምፊ መጠን",
   "VOTSubtitlesOpacity": "የትርጉም ዳራ ግልፅነት",
-  "VOTPressNewHotkey": "አዲሱን ሆትኪይ ይጫኑ።..",
-  "VOTCreateTranslationHotkey": "ለትርጉም ሆትኪይ ይፍጠሩ",
-  "VOTChangeHotkeyWithCurrent": "ሆትኪይ ለውጥ (የአሁኑ: {0})",
   "VOTSubtitlesDownloadFormat": "ንዑስ ርዕሶችን ለማውረድ ቅርጸት",
   "VOTDownloadWithName": "ፋይሎችን በቪዲዮ ስም ያውርዱ",
   "VOTUpdateLocaleFiles": "የአካባቢ ፋይሎችን አዘምን",
@@ -229,7 +226,6 @@
   "secs": "ሰከንዶች",
   "autoHideButtonDelay": "የትርጉም አዝራሩን ከመደበቅ በፊት መዘግየት",
   "notFound": "አልተገኘም",
-  "downloadFailed": "ፋይል ማውረድ አልተሳካም",
   "minButtonPositionContainer": "ከ 600 ፒክስል በላይ በሆኑ ተጫዋቾች ላይ የአዝራር አቀማመጥ ብቻ ይለወጣል።",
   "VOTTranslateProxyStatusDefault": "በአገርዎ ውስጥ ፕሮክሲን ሙሉ በሙሉ ማሰናከል ቅጥያውን ሊያፈርስ ይችላል ። ",
   "PressTheKeyCombination": "ቁልፍ ጥምረት ይጫኑ...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "የእኔ መለያ",
   "VOTLogin": "አዲስ ዝምብሎ ይግባ",
   "VOTLogout": "ግባ",
-  "VOTRefresh": "በድጋሚ ጀምር"
+  "VOTRefresh": "በድጋሚ ጀምር",
+  "VOTYandexToken": "የ Yandex Out Toket አስገባ",
+  "VOTYandexTokenInfo": "በዚህ መስክ የመለያ ምልክቱን እራስዎ ማዘጋጀት ይችላሉ። የትርጉም ጥያቄ ከመላክዎ በፊት ትክክለኛነቱን እንደማንፈትሽ እባክዎ ልብ ይበሉ ። ",
+  "VOTLoginViaToken": "በቶከን በኩል ይግቡ"
 }

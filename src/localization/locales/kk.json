@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Субтитрлер дизайны",
   "VOTSubtitlesFontSize": "Субтитрлердің қаріп өлшемі",
   "VOTSubtitlesOpacity": "Субтитр фонының мөлдірлігі",
-  "VOTPressNewHotkey": "Жаңа жылдам пернені басыңыз...",
-  "VOTCreateTranslationHotkey": "Аударма Үшін Жылдам Перне жасаңыз",
-  "VOTChangeHotkeyWithCurrent": "Жылдам Пернені Өзгерту (Ағымдағы: {0})",
   "VOTSubtitlesDownloadFormat": "Субтитрлерді жүктеу форматы",
   "VOTDownloadWithName": "Бейне атауы бар файлдарды жүктеңіз",
   "VOTUpdateLocaleFiles": "Локализация файлдарын жаңарту",
@@ -229,7 +226,6 @@
   "secs": "әкк",
   "autoHideButtonDelay": "Аудару түймесін жасырмас бұрын кідірту",
   "notFound": "табылмады",
-  "downloadFailed": "Файлды жүктеу сәтсіз аяқталды",
   "minButtonPositionContainer": "Түйменің орны тек 600 пиксельден асатын ойнатқыштарда өзгереді.",
   "VOTTranslateProxyStatusDefault": "Сіздің елде прокси-серверді толығымен өшіру кеңейтімді бұзуы мүмкін",
   "PressTheKeyCombination": "Пернелер тіркесімін басыңыз...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Менің аккаунтым",
   "VOTLogin": "Кіру",
   "VOTLogout": "Шығу",
-  "VOTRefresh": "Жаңарту"
+  "VOTRefresh": "Жаңарту",
+  "VOTYandexToken": "Yandex OAuth Таңбалауышын енгізіңіз",
+  "VOTYandexTokenInfo": "Осы өрісте тіркелгі таңбалауышын қолмен орнатуға болады. Аударма сұрауын жібермес бұрын оның жарамдылығын тексермейтінімізді ескеріңіз",
+  "VOTLoginViaToken": "Токен арқылы кіру"
 }

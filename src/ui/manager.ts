@@ -1,4 +1,3 @@
-import { ID3Writer } from "browser-id3-writer";
 import { convertSubs } from "@vot.js/shared/utils/subs";
 
 import ui from "../ui";
@@ -9,8 +8,11 @@ import {
   clamp,
   clearFileName,
   downloadBlob,
+  downloadTranslation,
   exitFullscreen,
   GM_fetch,
+  isSupportGMXhr,
+  openDownloadTranslation,
 } from "../utils/utils.js";
 import type { UIManagerProps } from "../types/uiManager";
 import type { StorageData } from "../types/storage";
@@ -135,12 +137,13 @@ export class UIManager {
         }
 
         try {
-          if (!this.data.downloadWithName) {
-            return window
-              .open(this.videoHandler.downloadTranslationUrl, "_blank")
-              ?.focus();
+          if (!this.data.downloadWithName || !isSupportGMXhr) {
+            return openDownloadTranslation(
+              this.videoHandler.downloadTranslationUrl,
+            );
           }
 
+          this.votOverlayView.downloadTranslationButton.progress = 0;
           const res = await GM_fetch(this.videoHandler.downloadTranslationUrl, {
             timeout: 0,
           });
@@ -148,36 +151,15 @@ export class UIManager {
             throw new Error(`HTTP ${res.status}`);
           }
 
-          const contentLength = +res.headers.get("Content-Length");
-          const reader = res.body.getReader();
-          const chunksBuffer = new Uint8Array(contentLength);
-          this.votOverlayView.downloadTranslationButton.progress = 0;
-          let offset = 0;
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
-            }
-
-            chunksBuffer.set(value, offset);
-            offset += value.length;
-            this.votOverlayView.downloadTranslationButton.progress = Math.round(
-              (offset / contentLength) * 100,
-            );
-          }
           const filename = clearFileName(
             this.videoHandler.videoData.downloadTitle,
           );
-          const writer = new ID3Writer(chunksBuffer.buffer);
-          writer.setFrame("TIT2", filename);
-          writer.addTag();
-          downloadBlob(writer.getBlob(), `${filename}.mp3`);
+          await downloadTranslation(res, filename, (progress) => {
+            this.votOverlayView.downloadTranslationButton!.progress = progress;
+          });
         } catch (err) {
-          console.error("[VOT] Download failed:", err);
-          this.transformBtn(
-            "error",
-            localizationProvider.get("downloadFailed"),
-          );
+          console.error("[VOT] Download translation failed:", err);
+          openDownloadTranslation(this.videoHandler.downloadTranslationUrl);
         }
 
         this.votOverlayView.downloadTranslationButton.progress = 0;

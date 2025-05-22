@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Desain subtitle",
   "VOTSubtitlesFontSize": "Ukuran font tina subtitles",
   "VOTSubtitlesOpacity": "Transparansi tina latar subjudul",
-  "VOTPressNewHotkey": "Pencét hotkey anyar...",
-  "VOTCreateTranslationHotkey": "Jieun Hotkey Pikeun Tarjamahan",
-  "VOTChangeHotkeyWithCurrent": "Robah Hotkey (Ayeuna: {0})",
   "VOTSubtitlesDownloadFormat": "Format pikeun ngundeur terjemahan",
   "VOTDownloadWithName": "Ngundeur payil jeung ngaran video",
   "VOTUpdateLocaleFiles": "File lokalisasi Update",
@@ -229,7 +226,6 @@
   "secs": "detik",
   "autoHideButtonDelay": "Reureuh saméméh nyumputkeun tombol tarjamah",
   "notFound": "teu kapanggih",
-  "downloadFailed": "Gagal pikeun ngundeur file",
   "minButtonPositionContainer": "Posisi tombol ngan robah dina pamaén leuwih gede ti 600 piksel.",
   "VOTTranslateProxyStatusDefault": "Lengkep nganonaktipkeun proxying di nagara anjeun bisa megatkeun extension nu",
   "PressTheKeyCombination": "Pencét kombinasi konci...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Akun abdi",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Nyegerkeun"
+  "VOTRefresh": "Nyegerkeun",
+  "VOTYandexToken": "Asupkeun Token Yandex OAuth",
+  "VOTYandexTokenInfo": "Anjeun tiasa sacara manual nyetel token akun dina widang ieu. Punten perhatoskeun yén kami henteu mariksa validitasna sateuacan ngirim pamundut tarjamahan",
+  "VOTLoginViaToken": "Login ngaliwatan token"
 }

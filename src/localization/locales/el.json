@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Σχεδιασμός υπότιτλων",
   "VOTSubtitlesFontSize": "Μέγεθος γραμματοσειράς υπότιτλων",
   "VOTSubtitlesOpacity": "Διαφάνεια του φόντου υποτίτλων",
-  "VOTPressNewHotkey": "Πατήστε το νέο πλήκτρο πρόσβασης...",
-  "VOTCreateTranslationHotkey": "Δημιουργία πλήκτρου πρόσβασης για μετάφραση",
-  "VOTChangeHotkeyWithCurrent": "Αλλαγή Πλήκτρου Πρόσβασης (Τρέχον: {0})",
   "VOTSubtitlesDownloadFormat": "Η μορφή λήψης υπότιτλων",
   "VOTDownloadWithName": "Λήψη αρχείων με το όνομα του βίντεο",
   "VOTUpdateLocaleFiles": "Ενημέρωση αρχείων εντοπισμού",
@@ -229,7 +226,6 @@
   "secs": "δευτ.",
   "autoHideButtonDelay": "Καθυστέρηση πριν από την απόκρυψη του κουμπιού μετάφρασης",
   "notFound": "δεν βρέθηκε",
-  "downloadFailed": "Αποτυχία λήψης αρχείου",
   "minButtonPositionContainer": "Η θέση του κουμπιού αλλάζει μόνο σε παίκτες μεγαλύτερους από 600 εικονοστοιχεία.",
   "VOTTranslateProxyStatusDefault": "Η πλήρης απενεργοποίηση του διακομιστή μεσολάβησης στη χώρα σας ενδέχεται να σπάσει την επέκταση",
   "PressTheKeyCombination": "Πατήστε το συνδυασμό πλήκτρων...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Ο λογαριασμός μου",
   "VOTLogin": "Σύνδεση",
   "VOTLogout": "Αποσύνδεση",
-  "VOTRefresh": "Ανανέωση"
+  "VOTRefresh": "Ανανέωση",
+  "VOTYandexToken": "Εισαγάγετε το διακριτικό Yandex OAuth",
+  "VOTYandexTokenInfo": "Μπορείτε να ορίσετε χειροκίνητα το διακριτικό λογαριασμού σε αυτό το πεδίο. Λάβετε υπόψη ότι δεν ελέγχουμε την εγκυρότητά του πριν στείλουμε ένα αίτημα μετάφρασης",
+  "VOTLoginViaToken": "Σύνδεση μέσω διακριτικού"
 }

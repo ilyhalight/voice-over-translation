@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Оформление субтитров",
   "VOTSubtitlesFontSize": "Размер шрифта субтитров",
   "VOTSubtitlesOpacity": "Прозрачность фона субтитров",
-  "VOTPressNewHotkey": "Нажмите новую клавишу...",
-  "VOTCreateTranslationHotkey": "Назначить горячую клавишу для перевода",
-  "VOTChangeHotkeyWithCurrent": "Изменить горячую клавишу (Текущая: {0})",
   "VOTSubtitlesDownloadFormat": "Формат для загрузки субтитров",
   "VOTDownloadWithName": "Загружать файлы с названием видео",
   "VOTUpdateLocaleFiles": "Обновить файлы локализации",
@@ -229,7 +226,6 @@
   "secs": "сек.",
   "autoHideButtonDelay": "Задержка перед скрытием кнопки перевода",
   "notFound": "не найдено",
-  "downloadFailed": "Не удалось загрузить файл",
   "minButtonPositionContainer": "Положение кнопки меняется только на проигрывателях размером более 600 пикселей.",
   "VOTTranslateProxyStatusDefault": "Полное отключение проксирования в вашей стране может привести к поломке расширения",
   "PressTheKeyCombination": "Нажмите комбинацию клавиш...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Мой аккаунт",
   "VOTLogin": "Авторизоваться",
   "VOTLogout": "Выйти",
-  "VOTRefresh": "Обновить"
+  "VOTRefresh": "Обновить",
+  "VOTYandexToken": "Введите OAuth-токен Яндекса",
+  "VOTYandexTokenInfo": "Вы можете вручную указать токен учетной записи в этом поле. Пожалуйста, обратите внимание, что мы не проверяем его действительность перед отправкой запроса на перевод",
+  "VOTLoginViaToken": "Войти с помощью токена"
 }

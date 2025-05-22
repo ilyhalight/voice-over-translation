@@ -1,4 +1,5 @@
 import Bowser from "bowser";
+import { ID3Writer } from "browser-id3-writer";
 
 import { availableTTS } from "@vot.js/shared/consts";
 
@@ -42,6 +43,7 @@ export const isProxyOnlyExtension =
   GM_info?.scriptHandler && !nonProxyExtensions.includes(GM_info.scriptHandler);
 export const isSupportGM4 = typeof GM !== "undefined";
 export const isUnsafeWindowAllowed = typeof unsafeWindow !== "undefined";
+export const isSupportGMXhr = typeof GM_xmlhttpRequest !== "undefined";
 
 function secsToStrTime(secs) {
   let minutes = Math.floor(secs / 60);
@@ -274,6 +276,63 @@ async function waitForCondition(condition, timeoutMs, throwOnTimeout = false) {
   ]);
 }
 
+/**
+ * Downloads a translation file with progress tracking.
+ *
+ * @param {Response} res - The response object from a fetch request
+ * @param {number} contentLength - value of Content-Length header > 0
+ * @param {function(number): void} [onProgress] - Optional callback function to handle progress updates.
+ *                                                Receives the download progress as a percentage (0-100)
+ * @returns {Promise<ArrayBuffer>} A promise that resolves to the downloaded file as an ArrayBuffer
+ */
+async function _downloadTranslationWithProgress(
+  res,
+  contentLength,
+  onProgress = () => {},
+) {
+  const reader = res.body.getReader();
+  const chunksBuffer = new Uint8Array(contentLength);
+  let offset = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    chunksBuffer.set(value, offset);
+    offset += value.length;
+    onProgress(Math.round((offset / contentLength) * 100));
+  }
+
+  return chunksBuffer.buffer;
+}
+
+/**
+ * Downloads a translation file and saves it as an MP3 file with metadata, if possible tracking progress.
+ *
+ * @param {Response} res - The response object from a fetch request
+ * @param {string} filename - The name to assign to the downloaded file (without extension).
+ * @param {function(number): void} [onProgress] - Optional callback function to track download progress.
+ *        Receives a percentage (0 to 100) as its argument
+ * @returns {Promise<boolean>} - Resolves to `true` when the download completed.
+ */
+async function downloadTranslation(res, filename, onProgress = () => {}) {
+  const contentLength = +res.headers.get("Content-Length");
+  const arrayBuffer = await (!contentLength
+    ? res.arrayBuffer()
+    : _downloadTranslationWithProgress(res, contentLength, onProgress));
+  onProgress(100);
+  const writer = new ID3Writer(arrayBuffer);
+  writer.setFrame("TIT2", filename);
+  writer.addTag();
+  downloadBlob(writer.getBlob(), `${filename}.mp3`);
+  return true;
+}
+
+function openDownloadTranslation(url) {
+  window.open(url, "_blank")?.focus();
+}
+
 export {
   secsToStrTime,
   isPiPAvailable,
@@ -289,4 +348,6 @@ export {
   sleep,
   timeout,
   waitForCondition,
+  downloadTranslation,
+  openDownloadTranslation,
 };

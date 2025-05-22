@@ -180,9 +180,6 @@
   "VOTSubtitlesDesign": "Design de Legendas",
   "VOTSubtitlesFontSize": "Tamanho da fonte das legendas",
   "VOTSubtitlesOpacity": "Transparência do fundo do subtítulo",
-  "VOTPressNewHotkey": "Prima a nova tecla de atalho...",
-  "VOTCreateTranslationHotkey": "Criar tecla de atalho para tradução",
-  "VOTChangeHotkeyWithCurrent": "Alterar Tecla De Atalho (Actual: {0})",
   "VOTSubtitlesDownloadFormat": "O formato para baixar legendas",
   "VOTDownloadWithName": "Baixar arquivos com o nome do vídeo",
   "VOTUpdateLocaleFiles": "Actualizar ficheiros de localização",
@@ -228,7 +225,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Atraso antes de ocultar o botão Traduzir",
   "notFound": "não encontrado",
-  "downloadFailed": "Falha ao baixar o arquivo",
   "minButtonPositionContainer": "A posição do botão só muda em Jogadores com mais de 600 píxeis.",
   "VOTTranslateProxyStatusDefault": "Desativar completamente o proxy no seu país pode quebrar a extensão",
   "PressTheKeyCombination": "Prima a combinação de teclas...",
@@ -238,5 +234,8 @@
   "VOTMyAccount": "A minha conta",
   "VOTLogin": "Login",
   "VOTLogout": "Sair",
-  "VOTRefresh": "Atualizar"
+  "VOTRefresh": "Atualizar",
+  "VOTYandexToken": "Insira o token Yandex OAuth",
+  "VOTYandexTokenInfo": "Você pode definir manualmente o token da conta neste campo. Observe que não verificamos sua validade antes de enviar uma solicitação de tradução",
+  "VOTLoginViaToken": "Login via token"
 }

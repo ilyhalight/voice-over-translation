@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "字幕デザイン",
   "VOTSubtitlesFontSize": "字幕のフォントサイズ",
   "VOTSubtitlesOpacity": "字幕の背景の透明度",
-  "VOTPressNewHotkey": "新しいホットキーを押します。..",
-  "VOTCreateTranslationHotkey": "翻訳用のホットキーを作成する",
-  "VOTChangeHotkeyWithCurrent": "ホットキーの変更(現在:{0})",
   "VOTSubtitlesDownloadFormat": "字幕をダウンロードするためのフォーマット",
   "VOTDownloadWithName": "ビデオ名のファイルをダウンロードする",
   "VOTUpdateLocaleFiles": "ローカリゼーションファイルの更新",
@@ -229,7 +226,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "翻訳ボタンを非表示にする前に遅延します",
   "notFound": "見つかりません",
-  "downloadFailed": "ファイルのダウンロードに失敗しました",
   "minButtonPositionContainer": "ボタンの位置は、600ピクセルを超えるプレーヤーでのみ変更されます。",
   "VOTTranslateProxyStatusDefault": "あなたの国でプロキシを完全に無効にすると、拡張機能が壊れる可能性があります",
   "PressTheKeyCombination": "キーの組み合わせを押します。..",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "マイアカウント",
   "VOTLogin": "ログイン",
   "VOTLogout": "ログアウト",
-  "VOTRefresh": "リフレッシュ"
+  "VOTRefresh": "リフレッシュ",
+  "VOTYandexToken": "Yandex OAuthトークンを入力します",
+  "VOTYandexTokenInfo": "このフィールドでは、アカウントトークンを手動で設定できます。 翻訳リクエストを送信する前にその有効性を確認しないことに注意してください",
+  "VOTLoginViaToken": "トークンを介したログイン"
 }

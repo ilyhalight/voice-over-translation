@@ -246,9 +246,6 @@ export type Phrase =
   | "VOTSubtitlesDesign"
   | "VOTSubtitlesFontSize"
   | "VOTSubtitlesOpacity"
-  | "VOTPressNewHotkey"
-  | "VOTCreateTranslationHotkey"
-  | "VOTChangeHotkeyWithCurrent"
   | "VOTSubtitlesDownloadFormat"
   | "VOTDownloadWithName"
   | "VOTUpdateLocaleFiles"
@@ -290,7 +287,6 @@ export type Phrase =
   | "secs"
   | "autoHideButtonDelay"
   | "notFound"
-  | "downloadFailed"
   | "minButtonPositionContainer"
   | "VOTTranslateProxyStatusDefault"
   | "PressTheKeyCombination"
@@ -300,7 +296,10 @@ export type Phrase =
   | "VOTMyAccount"
   | "VOTLogin"
   | "VOTLogout"
-  | "VOTRefresh";
+  | "VOTRefresh"
+  | "VOTYandexToken"
+  | "VOTYandexTokenInfo"
+  | "VOTLoginViaToken";
 
 export type Phrases = {
   recommended: string;
@@ -485,9 +484,6 @@ export type Phrases = {
   VOTSubtitlesDesign: string;
   VOTSubtitlesFontSize: string;
   VOTSubtitlesOpacity: string;
-  VOTPressNewHotkey: string;
-  VOTCreateTranslationHotkey: string;
-  VOTChangeHotkeyWithCurrent: string;
   VOTSubtitlesDownloadFormat: string;
   VOTDownloadWithName: string;
   VOTUpdateLocaleFiles: string;
@@ -533,7 +529,6 @@ export type Phrases = {
   secs: string;
   autoHideButtonDelay: string;
   notFound: string;
-  downloadFailed: string;
   minButtonPositionContainer: string;
   VOTTranslateProxyStatusDefault: string;
   PressTheKeyCombination: string;
@@ -544,6 +539,9 @@ export type Phrases = {
   VOTLogin: string;
   VOTLogout: string;
   VOTRefresh: string;
+  VOTYandexToken: string;
+  VOTYandexTokenInfo: string;
+  VOTLoginViaToken: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

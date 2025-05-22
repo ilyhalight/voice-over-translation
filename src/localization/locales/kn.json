@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "ಉಪಶೀರ್ಷಿಕೆಗಳು ವಿನ್ಯಾಸ",
   "VOTSubtitlesFontSize": "ಉಪಶೀರ್ಷಿಕೆಗಳ ಫಾಂಟ್ ಗಾತ್ರ",
   "VOTSubtitlesOpacity": "ಉಪಶೀರ್ಷಿಕೆ ಹಿನ್ನೆಲೆ ಪಾರದರ್ಶಕತೆ",
-  "VOTPressNewHotkey": "ಹೊಸ ಹಾಟ್ಕೀ ಒತ್ತಿರಿ...",
-  "VOTCreateTranslationHotkey": "ಅನುವಾದಕ್ಕಾಗಿ Hotkey ರಚಿಸಿ",
-  "VOTChangeHotkeyWithCurrent": "ಹಾಟ್ಕೀ ಬದಲಾಯಿಸಿ (ಪ್ರಸ್ತುತ: {0})",
   "VOTSubtitlesDownloadFormat": "ಉಪಶೀರ್ಷಿಕೆಗಳನ್ನು ಡೌನ್ಲೋಡ್ ಮಾಡುವ ಸ್ವರೂಪ",
   "VOTDownloadWithName": "ವೀಡಿಯೊ ಹೆಸರಿನೊಂದಿಗೆ ಫೈಲ್ಗಳನ್ನು ಡೌನ್ಲೋಡ್ ಮಾಡಿ",
   "VOTUpdateLocaleFiles": "ಅಪ್ಡೇಟ್ ಸ್ಥಳೀಕರಣ ಕಡತಗಳನ್ನು",
@@ -229,7 +226,6 @@
   "secs": "ಸೆಕೆಂಡುಗಳು",
   "autoHideButtonDelay": "ಅನುವಾದ ಬಟನ್ ಮರೆಮಾಚುವ ಮೊದಲು ವಿಳಂಬ",
   "notFound": "ಕಂಡುಬಂದಿಲ್ಲ",
-  "downloadFailed": "ಕಡತವನ್ನು ಡೌನ್ಲೋಡ್ ಮಾಡಲು ವಿಫಲಗೊಂಡಿದೆ",
   "minButtonPositionContainer": "ಬಟನ್ ಸ್ಥಾನವು 600 ಪಿಕ್ಸೆಲ್ಗಳಿಗಿಂತ ದೊಡ್ಡದಾದ ಆಟಗಾರರಲ್ಲಿ ಮಾತ್ರ ಬದಲಾಗುತ್ತದೆ.",
   "VOTTranslateProxyStatusDefault": "ನಿಮ್ಮ ದೇಶದಲ್ಲಿ ಪ್ರಾಕ್ಸಿಂಗ್ ಅನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸುವುದರಿಂದ ವಿಸ್ತರಣೆಯನ್ನು ಮುರಿಯಬಹುದು",
   "PressTheKeyCombination": "ಕೀ ಸಂಯೋಜನೆಯನ್ನು ಒತ್ತಿರಿ...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "ನನ್ನ ಖಾತೆ",
   "VOTLogin": "ಲಾಗಿನ್ ಮಾಡಿ",
   "VOTLogout": "ಲಾಗ್ಔಟ್",
-  "VOTRefresh": "ರಿಫ್ರೆಶ್"
+  "VOTRefresh": "ರಿಫ್ರೆಶ್",
+  "VOTYandexToken": "Yandex OAuth ಟೋಕನ್ ಅನ್ನು ನಮೂದಿಸಿ",
+  "VOTYandexTokenInfo": "ಈ ಕ್ಷೇತ್ರದಲ್ಲಿ ನೀವು ಖಾತೆ ಟೋಕನ್ ಅನ್ನು ಹಸ್ತಚಾಲಿತವಾಗಿ ಹೊಂದಿಸಬಹುದು. ಅನುವಾದ ವಿನಂತಿಯನ್ನು ಕಳುಹಿಸುವ ಮೊದಲು ನಾವು ಅದರ ಸಿಂಧುತ್ವವನ್ನು ಪರಿಶೀಲಿಸುವುದಿಲ್ಲ ಎಂಬುದನ್ನು ದಯವಿಟ್ಟು ಗಮನಿಸಿ",
+  "VOTLoginViaToken": "ಟೋಕನ್ ಮೂಲಕ ಲಾಗಿನ್ ಮಾಡಿ"
 }

@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "စာတန်းထိုးဒီဇိုင်း",
   "VOTSubtitlesFontSize": "စာတန်းထိုးများ၏စာလုံးအရွယ်အစား",
   "VOTSubtitlesOpacity": "စာတန်းထိုးနောက်ခံ၏ပွင့်လင်းမြင်သာမှု",
-  "VOTPressNewHotkey": "ခလုတ်အသစ်ကိုနှိပ်ပါ။..",
-  "VOTCreateTranslationHotkey": "ဘာသာပြန်ရန် Hotkey ကိုဖန်တီးပါ",
-  "VOTChangeHotkeyWithCurrent": "Change Hotkey(လက်ရှိ:{0})",
   "VOTSubtitlesDownloadFormat": "စာတန်းထိုးများကိုဒေါင်းလုဒ်လုပ်ရန်ပုံစံ",
   "VOTDownloadWithName": "ဗီဒီယိုအမည်ပါဖိုင်များကိုဒေါင်းလုပ်ဆွဲပါ",
   "VOTUpdateLocaleFiles": "ဒေသတွင်းဖိုင်များကို Update လုပ်ပါ",
@@ -229,7 +226,6 @@
   "secs": "စက္ကန့်",
   "autoHideButtonDelay": "ဘာသာပြန်ခလုတ်ကိုမဖုံးကွယ်မီနှောင့်နှေးခြင်း",
   "notFound": "မတွေ့ရ",
-  "downloadFailed": "ဖိုင်ကိုဒေါင်းလုပ်ဆွဲရန်ပျက်ကွက်",
   "minButtonPositionContainer": "ခလုတ်အနေအထားက 600 pixel ထက်ကြီးတဲ့ကစားသမားတွေမှာပဲပြောင်းလဲတယ်။",
   "VOTTranslateProxyStatusDefault": "သင့်နိုင်ငံတွင် proxying ကိုလုံးဝပိတ်ပင်ခြင်းသည်သက်တမ်းတိုးခြင်းကိုချိုးဖောက်နိုင်သည်။",
   "PressTheKeyCombination": "ခလုတ်ပေါင်းစပ်မှုကိုနှိပ်ပါ။..",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "ငါ့အကောင့်",
   "VOTLogin": "ဝင်ရောက်ပါ",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Refresh"
+  "VOTRefresh": "Refresh",
+  "VOTYandexToken": "Yandex OAuth Token ကိုထည့်ပါ",
+  "VOTYandexTokenInfo": "ဒီကွင်းမှာအကောင့် token ကိုလက်နဲ့သတ်မှတ်နိုင်ပါတယ်။ ကျေးဇူးပြု၍မှတ်ထားရန်မှာဘာသာပြန်တောင်းဆိုမှုမပို့မီ၎င်း၏မှန်ကန်မှုကိုကျွန်ုပ်တို့စစ်ဆေးခြင်းမရှိပါ။",
+  "VOTLoginViaToken": "Token မှတဆင့်ဝင်ရောက်ပါ"
 }

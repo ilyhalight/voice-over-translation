@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Design subtitrari",
   "VOTSubtitlesFontSize": "Dimensiunea fontului subtitrărilor",
   "VOTSubtitlesOpacity": "Transparența fundalului subtitrării",
-  "VOTPressNewHotkey": "Apăsați tasta rapidă nouă...",
-  "VOTCreateTranslationHotkey": "Creați taste rapide pentru traducere",
-  "VOTChangeHotkeyWithCurrent": "Schimbare Tastă Rapidă (Curent: {0})",
   "VOTSubtitlesDownloadFormat": "Formatul pentru descărcarea subtitrărilor",
   "VOTDownloadWithName": "Descărcați fișiere cu numele videoclipului",
   "VOTUpdateLocaleFiles": "Actualizați fișierele de localizare",
@@ -229,7 +226,6 @@
   "secs": "sec",
   "autoHideButtonDelay": "Întârziere înainte de a ascunde butonul de traducere",
   "notFound": "nu a fost găsit",
-  "downloadFailed": "Nu a reușit să descarce fișierul",
   "minButtonPositionContainer": "Poziția butonului se schimbă doar la jucătorii mai mari de 600 de pixeli.",
   "VOTTranslateProxyStatusDefault": "Dezactivarea completă a proxy-ului în țara dvs. poate rupe extensia",
   "PressTheKeyCombination": "Apăsați combinația de taste...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Contul meu",
   "VOTLogin": "Autentificare",
   "VOTLogout": "Deconectare",
-  "VOTRefresh": "Reîmprospătare"
+  "VOTRefresh": "Reîmprospătare",
+  "VOTYandexToken": "Introduceți tokenul Yandex OAuth",
+  "VOTYandexTokenInfo": "Puteți seta manual simbolul contului în acest câmp. Vă rugăm să rețineți că nu verificăm validitatea acesteia înainte de a trimite o solicitare de traducere",
+  "VOTLoginViaToken": "Autentificare prin token"
 }

@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Dizajn titlova",
   "VOTSubtitlesFontSize": "Veličina fonta titla",
   "VOTSubtitlesOpacity": "Transparentnost pozadine titlova",
-  "VOTPressNewHotkey": "Pritisnite novu tipku prečaca...",
-  "VOTCreateTranslationHotkey": "Stvorite prečac za prijevod",
-  "VOTChangeHotkeyWithCurrent": "Promijenite prečac (trenutni: {0})",
   "VOTSubtitlesDownloadFormat": "Format za preuzimanje titlova",
   "VOTDownloadWithName": "Prenesite datoteke s nazivom videozapisa",
   "VOTUpdateLocaleFiles": "Ažurirajte datoteke lokalizacije",
@@ -229,7 +226,6 @@
   "secs": "sek",
   "autoHideButtonDelay": "Zadržite prije skrivanja gumba za prijevod",
   "notFound": "nije pronađeno",
-  "downloadFailed": "Preuzimanje datoteke nije uspjelo",
   "minButtonPositionContainer": "Položaj gumba mijenja se samo na igračima većim od 600 piksela.",
   "VOTTranslateProxyStatusDefault": "Potpuno onemogućavanje opunomoćenika u vašoj zemlji može dovesti do kvara proširenja",
   "PressTheKeyCombination": "Pritisnite kombinaciju tipki...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Moj račun",
   "VOTLogin": "Prijaviti se",
   "VOTLogout": "Odjava",
-  "VOTRefresh": "Osvježiti"
+  "VOTRefresh": "Osvježiti",
+  "VOTYandexToken": "Unesite IDB-Token Jandeksa",
+  "VOTYandexTokenInfo": "U ovom polju možete ručno odrediti token računa. Imajte na umu da ne provjeravamo njegovu valjanost prije slanja zahtjeva za prijenos",
+  "VOTLoginViaToken": "Prijavite se pomoću tokena"
 }

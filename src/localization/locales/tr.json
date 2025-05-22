@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Altyazı tasarımı",
   "VOTSubtitlesFontSize": "Altyazıların yazı tipi boyutu",
   "VOTSubtitlesOpacity": "Altyazı arka planının şeffaflığı",
-  "VOTPressNewHotkey": "Yeni kısayol tuşuna basın...",
-  "VOTCreateTranslationHotkey": "Çeviri için Kısayol Tuşu Oluşturma",
-  "VOTChangeHotkeyWithCurrent": "Kısayol Tuşunu Değiştir (Geçerli: {0})",
   "VOTSubtitlesDownloadFormat": "Altyazı indirme biçimi",
   "VOTDownloadWithName": "Video adına sahip dosyaları indirin",
   "VOTUpdateLocaleFiles": "Yerelleştirme dosyalarını güncelle",
@@ -229,7 +226,6 @@
   "secs": "saniye",
   "autoHideButtonDelay": "Çevir düğmesini gizlemeden önce gecikme",
   "notFound": "bulunamadı",
-  "downloadFailed": "Dosya indirilemedi",
   "minButtonPositionContainer": "Düğmenin konumu yalnızca 600 pikselden büyük oynatıcılarda değişir.",
   "VOTTranslateProxyStatusDefault": "Ülkenizdeki proxying'i tamamen devre dışı bırakmak uzantıyı bozabilir",
   "PressTheKeyCombination": "Tuş kombinasyonuna basın...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Benim hesabım",
   "VOTLogin": "Oturum aç",
   "VOTLogout": "Çıkış",
-  "VOTRefresh": "Yenilemek"
+  "VOTRefresh": "Yenilemek",
+  "VOTYandexToken": "Yandex OAuth Belirtecini Girin",
+  "VOTYandexTokenInfo": "Bu alanda hesap belirtecini manuel olarak ayarlayabilirsiniz. Bir çeviri isteği göndermeden önce geçerliliğini kontrol etmediğimizi lütfen unutmayın",
+  "VOTLoginViaToken": "Token ile giriş yap"
 }

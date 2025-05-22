@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Desain subtitle",
   "VOTSubtitlesFontSize": "Ukuran font subtitle",
   "VOTSubtitlesOpacity": "Transparansi latar belakang subtitle",
-  "VOTPressNewHotkey": "Tekan tombol pintas baru...",
-  "VOTCreateTranslationHotkey": "Buat Hotkey untuk Terjemahan",
-  "VOTChangeHotkeyWithCurrent": "Ubah Tombol Pintas (Saat ini: {0})",
   "VOTSubtitlesDownloadFormat": "Format untuk mengunduh subtitle",
   "VOTDownloadWithName": "Unduh file dengan nama video",
   "VOTUpdateLocaleFiles": "Perbarui file pelokalan",
@@ -229,7 +226,6 @@
   "secs": "detik",
   "autoHideButtonDelay": "Tunda sebelum menyembunyikan tombol terjemahkan",
   "notFound": "tidak ditemukan",
-  "downloadFailed": "Gagal mengunduh berkas",
   "minButtonPositionContainer": "Posisi tombol hanya berubah pada pemutar yang lebih besar dari 600 piksel.",
   "VOTTranslateProxyStatusDefault": "Menonaktifkan proxy sepenuhnya di negara Anda dapat merusak ekstensi",
   "PressTheKeyCombination": "Tekan kombinasi tombol...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Akun saya",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Menyegarkan"
+  "VOTRefresh": "Menyegarkan",
+  "VOTYandexToken": "Masukkan Token OAuth Yandex",
+  "VOTYandexTokenInfo": "Anda dapat mengatur token akun secara manual di bidang ini. Harap perhatikan bahwa kami tidak memeriksa validitasnya sebelum mengirim permintaan terjemahan",
+  "VOTLoginViaToken": "Login melalui token"
 }

@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Хадмалтай дизайн",
   "VOTSubtitlesFontSize": "Хадмалтай үсгийн хэмжээ",
   "VOTSubtitlesOpacity": "Subtitle background-ийн ил тод байдал",
-  "VOTPressNewHotkey": "Шинэ товчлуур дээр дарна уу...",
-  "VOTCreateTranslationHotkey": "Орчуулгын Hotkey үүсгэх",
-  "VOTChangeHotkeyWithCurrent": "Түлхүүр Гардуулах Өөрчлөх (Одоогийн: {0})",
   "VOTSubtitlesDownloadFormat": "Хадмал орчуулга татаж авах формат",
   "VOTDownloadWithName": "Видео нэртэй файлуудыг татаж авах",
   "VOTUpdateLocaleFiles": "Локалчлалын файлуудыг шинэчлэх",
@@ -229,7 +226,6 @@
   "secs": "секц",
   "autoHideButtonDelay": "Орчуулах товчийг нуухаасаа өмнө хойшлуул",
   "notFound": "олдоогүй",
-  "downloadFailed": "Файлыг татаж авч чадсангүй",
   "minButtonPositionContainer": "Товчлуурын байрлал нь зөвхөн 600 пикселээс том тоглогчдод л өөрчлөгддөг.",
   "VOTTranslateProxyStatusDefault": "Танай улсад proxying-ийг бүрэн идэвхгүй болгох нь өргөтгөлийг эвдэж болзошгүй юм",
   "PressTheKeyCombination": "Товчлуурын хослолыг дарна уу...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Миний данс",
   "VOTLogin": "Нэвтрэх",
   "VOTLogout": "Нэвтрэх",
-  "VOTRefresh": "Сэргээх"
+  "VOTRefresh": "Сэргээх",
+  "VOTYandexToken": "Yandex OAuth токен оруулна уу",
+  "VOTYandexTokenInfo": "Та энэ талбарт дансны түлхүүрийг гараар тохируулж болно. Орчуулах хүсэлт илгээхээс өмнө бид түүний хүчинтэй эсэхийг шалгахгүй болохыг анхаарна уу",
+  "VOTLoginViaToken": "Токеноор нэвтрэх"
 }

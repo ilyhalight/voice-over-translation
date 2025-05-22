@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "រចនាអក្សររត់ពីក្រោម",
   "VOTSubtitlesFontSize": "ទំហំពុម្ពអក្សរនៃចំណងជើងរង",
   "VOTSubtitlesOpacity": "តម្លាភាពនៃផ្ទៃខាងក្រោយចំណងជើងរង",
-  "VOTPressNewHotkey": "ចុចគ្រាប់ចុចចងថ្មី...",
-  "VOTCreateTranslationHotkey": "បង្កើតគ្រាប់ចុចចងសម្រាប់ការបកប្រែ",
-  "VOTChangeHotkeyWithCurrent": "ផ្លាស់ប្តូរគ្រាប់ចុចចង(បច្ចុប្បន្ន:{0})",
   "VOTSubtitlesDownloadFormat": "ទ្រង់ទ្រាយសម្រាប់ទាញយកចំណងជើងរង",
   "VOTDownloadWithName": "ទាញយកឯកសារដែលមានឈ្មោះវីដេអូ",
   "VOTUpdateLocaleFiles": "ធ្វើឲ្យឯកសារមូលដ្ឋានីយកម្មទាន់សម័យ",
@@ -229,7 +226,6 @@
   "secs": "វិ.",
   "autoHideButtonDelay": "ពន្យារពេលមុនពេលលាក់ប៊ូតុងបកប្រែ",
   "notFound": "រកមិនឃើញ",
-  "downloadFailed": "បានបរាជ័យក្នុងការទាញយកឯកសារ",
   "minButtonPositionContainer": "ទីតាំងប៊ូតុងនេះបានផ្លាស់ប្តូរតែនៅក្នុងអ្នកលេងដែលមានទំហំធំជាង 600 ភិចសែល.",
   "VOTTranslateProxyStatusDefault": "បិទទាំងស្រុងប្រូកស៊ីនៅក្នុងប្រទេសរបស់អ្នកអាចបំបែកផ្នែកបន្ថែម",
   "PressTheKeyCombination": "ចុចបន្សំគ្រាប់ចុច។..",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "គណនីរបស់ខ្ញុ",
   "VOTLogin": "ចូល",
   "VOTLogout": "ចេញ",
-  "VOTRefresh": "ធ្វើឲ្យស្រស់"
+  "VOTRefresh": "ធ្វើឲ្យស្រស់",
+  "VOTYandexToken": "បញ្ចូលសញ្ញា Yandex OAuth",
+  "VOTYandexTokenInfo": "អ្នកអាចកំណត់សញ្ញាគណនីនៅក្នុងវាលនេះដោយដៃ. សូមចំណាំថាយើងមិនបានពិនិត្យមើលសុពលភាពរបស់ខ្លួនមុនពេលផ្ញើសំណើបកប្រែ",
+  "VOTLoginViaToken": "ចូលតាមរយៈ token"
 }

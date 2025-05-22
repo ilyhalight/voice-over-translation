@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Projektowanie napisów",
   "VOTSubtitlesFontSize": "Rozmiar czcionki napisów",
   "VOTSubtitlesOpacity": "Przezroczystość tła napisów",
-  "VOTPressNewHotkey": "Naciśnij nowy klawisz skrótu...",
-  "VOTCreateTranslationHotkey": "Utwórz skrót do tłumaczenia",
-  "VOTChangeHotkeyWithCurrent": "Zmień Klawisz Skrótu (Current: {0})",
   "VOTSubtitlesDownloadFormat": "Format pobierania napisów",
   "VOTDownloadWithName": "Pobierz pliki z nazwą wideo",
   "VOTUpdateLocaleFiles": "Aktualizuj pliki lokalizacyjne",
@@ -229,7 +226,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Opóźnienie przed ukryciem przycisku tłumaczenia",
   "notFound": "nie znaleziono",
-  "downloadFailed": "Nie udało się pobrać pliku",
   "minButtonPositionContainer": "Pozycja przycisku zmienia się tylko u graczy większych niż 600 pikseli.",
   "VOTTranslateProxyStatusDefault": "Całkowite wyłączenie proxy w Twoim kraju może przerwać rozszerzenie",
   "PressTheKeyCombination": "Naciśnij kombinację klawiszy...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Moje konto",
   "VOTLogin": "Login",
   "VOTLogout": "Wyloguj się",
-  "VOTRefresh": "Odśwież"
+  "VOTRefresh": "Odśwież",
+  "VOTYandexToken": "Wprowadź Token Yandex OAuth",
+  "VOTYandexTokenInfo": "W tym polu możesz ręcznie ustawić token konta. Należy pamiętać, że nie sprawdzamy jego ważności przed wysłaniem żądania tłumaczenia",
+  "VOTLoginViaToken": "Zaloguj się przez token"
 }

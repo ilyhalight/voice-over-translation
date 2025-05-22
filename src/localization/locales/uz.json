@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Subtitrlar dizayni",
   "VOTSubtitlesFontSize": "Subtitrlarning shrift o'lchami",
   "VOTSubtitlesOpacity": "Subtitr fonining shaffofligi",
-  "VOTPressNewHotkey": "Yangi tezkor tugmani bosing...",
-  "VOTCreateTranslationHotkey": "Tarjima uchun tezkor tugma yarating",
-  "VOTChangeHotkeyWithCurrent": "O'zgartirish Hotkey (Hozirgi: {0})",
   "VOTSubtitlesDownloadFormat": "Subtitrlarni yuklab olish formati",
   "VOTDownloadWithName": "Video nomi bilan fayllarni yuklab oling",
   "VOTUpdateLocaleFiles": "Mahalliylashtirish fayllarini yangilang",
@@ -229,7 +226,6 @@
   "secs": "sek",
   "autoHideButtonDelay": "Tarjima tugmachasini yashirishdan oldin kechikish",
   "notFound": "topilmadi",
-  "downloadFailed": "Faylni yuklab bo'lmadi",
   "minButtonPositionContainer": "Tugma holati faqat 600 pikseldan katta o'yinchilarda o'zgaradi.",
   "VOTTranslateProxyStatusDefault": "Mamlakatingizda proksi-serverni butunlay o'chirib qo'yish kengaytmani buzishi mumkin",
   "PressTheKeyCombination": "Tugmalar birikmasini bosing...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Mening hisobim",
   "VOTLogin": "Kirish",
   "VOTLogout": "Chiqish",
-  "VOTRefresh": "Yangilash"
+  "VOTRefresh": "Yangilash",
+  "VOTYandexToken": "Yandex OAuth Tokenini kiriting",
+  "VOTYandexTokenInfo": "Ushbu sohada hisob belgisini qo'lda o'rnatishingiz mumkin. Iltimos, tarjima so'rovini yuborishdan oldin uning haqiqiyligini tekshirmaymiz",
+  "VOTLoginViaToken": "Token orqali kirish"
 }

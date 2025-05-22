@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Subtiitrite kujundus",
   "VOTSubtitlesFontSize": "Subtiitrite fondi suurus",
   "VOTSubtitlesOpacity": "Subtiitrite tausta läbipaistvus",
-  "VOTPressNewHotkey": "Vajutage uut kiirklahvi...",
-  "VOTCreateTranslationHotkey": "Looge tõlkimiseks kiirklahv",
-  "VOTChangeHotkeyWithCurrent": "Muuda Kiirklahvi (Praegune: {0})",
   "VOTSubtitlesDownloadFormat": "Subtiitrite allalaadimise vorming",
   "VOTDownloadWithName": "Laadige alla video nimega failid",
   "VOTUpdateLocaleFiles": "Uuenda lokaliseerimisfaile",
@@ -229,7 +226,6 @@
   "secs": "sekundid",
   "autoHideButtonDelay": "Viivitus enne tõlkimisnupu peitmist",
   "notFound": "ei leitud",
-  "downloadFailed": "Faili allalaadimine nurjus",
   "minButtonPositionContainer": "Nupu asend muutub ainult mängijates, mis on suuremad kui 600 pikslit.",
   "VOTTranslateProxyStatusDefault": "Puhverserveri täielik keelamine teie riigis võib laienduse katkestada",
   "PressTheKeyCombination": "Vajutage klahvikombinatsiooni...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Minu konto",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Värskendamiseks"
+  "VOTRefresh": "Värskendamiseks",
+  "VOTYandexToken": "Sisestage Yandex OAuthi märk",
+  "VOTYandexTokenInfo": "Sellel väljal saate konto märgi käsitsi seadistada. Pange tähele, et me ei kontrolli selle kehtivust enne tõlkimistaotluse saatmist",
+  "VOTLoginViaToken": "Logi sisse tokeni kaudu"
 }

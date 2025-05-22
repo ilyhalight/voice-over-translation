@@ -47,7 +47,6 @@
 [vot-issues]: https://github.com/ilyhalight/voice-over-translation/issues
 [votjs-link]: https://github.com/FOSWLY/vot.js
 [vot-cli-link]: https://github.com/FOSWLY/vot-cli
-[localize-link]: https://github.com/ilyhalight/localize
 [yabrowser-link]: https://yandex.ru/project/browser/streams/technology
 [yatranslate-link]: https://translate.yandex.ru/
 [contributors-link]: https://github.com/ilyhalight/voice-over-translation/graphs/contributors
@@ -144,7 +143,7 @@ npm install
 Bun:
 
 ```bash
-bun install --yarn
+bun install
 ```
 
 3. Сборка расширения:
@@ -172,37 +171,6 @@ bun install --yarn
    ```bash
    npm run build:default-min
    ```
-
-### Как патчить vot.js?
-
-1. Внесите нужные изменения в node_modules/@vot.js/package_name/нужный файл
-2. Сохраните изменения с помощью:
-
-NPM:
-
-```bash
-npx patch-package @vot.js/package_name
-```
-
-Bun:
-
-```bash
-bunx patch-package --use-yarn @vot.js/package_name
-```
-
-Не пользуйтесь патчами из `bun patch` или из каких-либо других npm пакетов. Они будут несовместимы с patch-package, а так же могут ломаться при обновлении пакета.
-
-### Как обновлять файлы локализации?
-
-Для всего взаимодействия с файлами локализации сделана консольная утилита localize-tui.
-
-Для вызова утилиты используйте команду:
-
-```bash
-bun localize
-```
-
-Подробнее о утилите можно прочитать [тут][localize-link]
 
 ## Кастомизация внешнего вида:
 
@@ -235,6 +203,8 @@ bun localize
 ```
 
 ## Проотестированные браузеры и загрузчики
+
+Данный список обновляется довольно редко, но в большинстве случаев данные в нем будут актуальными.
 
 Расширение протестировано в следующих браузерах:
 
@@ -281,6 +251,10 @@ bun localize
 ¹ - Работает в режиме проксирования, важная функция "Использовать загрузку аудио" недоступна из-за отсутствия `unsafeWindow` API, что может привести к проблемам с переводом новых видео.
 
 ² - RequestIdleCallback выдает множество ошибок в консоли, но расширение работает.
+
+## Contributing
+
+Пожайлуста, ознакомьтесь с [гайдом для контрибьюторов](./CONTRIBUTING.md).
 
 ![example btn](https://github.com/ilyhalight/voice-over-translation/blob/master/img/example.png "btn")
 

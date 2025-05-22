@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Disseny de subtítols",
   "VOTSubtitlesFontSize": "Mida del tipus de lletra dels subtítols",
   "VOTSubtitlesOpacity": "Transparència del fons dels subtítols",
-  "VOTPressNewHotkey": "Premeu la nova tecla d'accés ràpid...",
-  "VOTCreateTranslationHotkey": "Crea Una Tecla D'Accés Ràpid Per A La Traducció",
-  "VOTChangeHotkeyWithCurrent": "Canvia La Tecla D'Accés Ràpid (Actual: {0})",
   "VOTSubtitlesDownloadFormat": "El format per descarregar subtítols",
   "VOTDownloadWithName": "Baixeu fitxers amb el nom del vídeo",
   "VOTUpdateLocaleFiles": "Actualitza els fitxers de localització",
@@ -229,7 +226,6 @@
   "secs": "sec",
   "autoHideButtonDelay": "Retard abans d'ocultar el botó traduir",
   "notFound": "no trobat",
-  "downloadFailed": "Ha fallat en descarregar el fitxer",
   "minButtonPositionContainer": "La posició del botó només canvia en jugadors de més de 600 píxels.",
   "VOTTranslateProxyStatusDefault": "Desactivar completament el proxy al vostre país pot trencar l'extensió",
   "PressTheKeyCombination": "Premeu la combinació de tecles...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "El meu compte",
   "VOTLogin": "Accés",
   "VOTLogout": "Sortida",
-  "VOTRefresh": "Refresca"
+  "VOTRefresh": "Refresca",
+  "VOTYandexToken": "Introduïu El Testimoni Yandex OAuth",
+  "VOTYandexTokenInfo": "Podeu configurar manualment el testimoni del compte en aquest camp. Tingueu en compte que no comprovem la seva validesa abans d'enviar una petició de traducció",
+  "VOTLoginViaToken": "Inicieu sessió mitjançant testimoni"
 }

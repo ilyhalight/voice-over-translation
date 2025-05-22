@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Feliratok tervezése",
   "VOTSubtitlesFontSize": "A feliratok betűmérete",
   "VOTSubtitlesOpacity": "A felirat hátterének átláthatósága",
-  "VOTPressNewHotkey": "Nyomja meg az új gyorsbillentyűt...",
-  "VOTCreateTranslationHotkey": "Gyorsbillentyű létrehozása a fordításhoz",
-  "VOTChangeHotkeyWithCurrent": "Gyorsbillentyű Módosítása (Aktuális: {0})",
   "VOTSubtitlesDownloadFormat": "A feliratok letöltésének formátuma",
   "VOTDownloadWithName": "Töltsön le fájlokat a videó nevével",
   "VOTUpdateLocaleFiles": "Lokalizációs fájlok frissítése",
@@ -229,7 +226,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Késleltetés a Fordítás gomb elrejtése előtt",
   "notFound": "nem található",
-  "downloadFailed": "Nem sikerült letölteni a fájlt",
   "minButtonPositionContainer": "A gomb pozíciója csak a 600 pixelnél nagyobb játékosoknál változik.",
   "VOTTranslateProxyStatusDefault": "A proxy teljes letiltása az Ön országában megszakíthatja a kiterjesztést",
   "PressTheKeyCombination": "Nyomja meg a billentyűkombinációt...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Saját fiók",
   "VOTLogin": "Bejelentkezés",
   "VOTLogout": "Kijelentkezés",
-  "VOTRefresh": "Frissítés"
+  "VOTRefresh": "Frissítés",
+  "VOTYandexToken": "Adja meg a Yandex OAuth Tokent",
+  "VOTYandexTokenInfo": "Ebben a mezőben manuálisan beállíthatja a fiók tokent. Felhívjuk figyelmét, hogy a fordítási kérelem elküldése előtt nem ellenőrizzük annak érvényességét",
+  "VOTLoginViaToken": "Bejelentkezés tokenen keresztül"
 }

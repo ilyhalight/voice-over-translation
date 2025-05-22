@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "उपशीर्षक डिजाइन",
   "VOTSubtitlesFontSize": "उपशीर्षकहरूको फन्ट साइज",
   "VOTSubtitlesOpacity": "उपशीर्षक पृष्ठभूमिको पारदर्शिता",
-  "VOTPressNewHotkey": "नयाँ हटकी थिच्नुहोस्।..",
-  "VOTCreateTranslationHotkey": "अनुवादका लागि हटकी सिर्जना गर्नुहोस्",
-  "VOTChangeHotkeyWithCurrent": "हटकी (हालको: {0})परिवर्तन गर्नुहोस्",
   "VOTSubtitlesDownloadFormat": "उपशीर्षक डाउनलोड गर्नका लागि ढाँचा",
   "VOTDownloadWithName": "भिडियो नाम सहित फाइलहरू डाउनलोड गर्नुहोस्",
   "VOTUpdateLocaleFiles": "स्थानीयकरण फाइलहरू अद्यावधिक गर्नुहोस्",
@@ -229,7 +226,6 @@
   "secs": "सेकेन्ड",
   "autoHideButtonDelay": "अनुवाद बटन लुकाउनु अघि ढिलाइ",
   "notFound": "फेला परेन",
-  "downloadFailed": "फाइल डाउनलोड गर्न असफल भयो",
   "minButtonPositionContainer": "बटनको स्थिति केवल 600 पिक्सेल भन्दा ठूला खेलाडीहरूमा परिवर्तन हुन्छ । ",
   "VOTTranslateProxyStatusDefault": "पूर्णतया आफ्नो देश मा प्रोक्सी अक्षम विस्तार तोड्न सक्छ",
   "PressTheKeyCombination": "कुञ्जी संयोजन थिच्नुहोस्।..",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "मेरो खाता",
   "VOTLogin": "लगइन गर्नुहोस्",
   "VOTLogout": "लगआउट",
-  "VOTRefresh": "ताजा पार्नुहोस्"
+  "VOTRefresh": "ताजा पार्नुहोस्",
+  "VOTYandexToken": "यान्डेक्स ओआथ टोकन प्रविष्ट गर्नुहोस्",
+  "VOTYandexTokenInfo": "तपाईं यस क्षेत्रमा खाता टोकन म्यानुअल रूपमा सेट गर्न सक्नुहुन्छ ।  कृपया ध्यान दिनुहोस् कि हामी अनुवाद अनुरोध पठाउनु अघि यसको वैधता जाँच गर्दैनौं",
+  "VOTLoginViaToken": "टोकन मार्फत लगइन गर्नुहोस् । "
 }

@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Disinn tas-sottotitoli",
   "VOTSubtitlesFontSize": "Daqs tat-tipa tas-sottotitoli",
   "VOTSubtitlesOpacity": "Trasparenza tal-isfond tas-sottotitolu",
-  "VOTPressNewHotkey": "Agħfas il-hotkey il-ġdid...",
-  "VOTCreateTranslationHotkey": "Oħloq Hotkey għat-Traduzzjoni",
-  "VOTChangeHotkeyWithCurrent": "Ibdel Il-Hotkey (Kurrenti: {0})",
   "VOTSubtitlesDownloadFormat": "Il-format għat-tniżżil ta'sottotitoli",
   "VOTDownloadWithName": "Niżżel fajls bl-isem tal-vidjo",
   "VOTUpdateLocaleFiles": "Aġġorna l-fajls tal-lokalizzazzjoni",
@@ -229,7 +226,6 @@
   "secs": "seks",
   "autoHideButtonDelay": "Dewmien qabel ma taħbi l-buttuna ittraduċi",
   "notFound": "ma nstabx",
-  "downloadFailed": "Naqas milli tniżżel fajl",
   "minButtonPositionContainer": "Il-pożizzjoni tal-buttuna tinbidel biss f'plejers akbar minn 600 pixel.",
   "VOTTranslateProxyStatusDefault": "Inkapaċitazzjoni kompletament prokura f'pajjiżek tista'tkisser l estensjoni",
   "PressTheKeyCombination": "Agħfas il-kombinazzjoni taċ-ċavetta...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Il-kont tiegħi",
   "VOTLogin": "Login",
   "VOTLogout": "Logout",
-  "VOTRefresh": "Aġġorna"
+  "VOTRefresh": "Aġġorna",
+  "VOTYandexToken": "Daħħal It-Token Yandex OAuth",
+  "VOTYandexTokenInfo": "Tista'tissettja manwalment it-token tal-kont f'dan il-qasam. Jekk jogħġbok innota li aħna ma niċċekkjawx il-validità tagħha qabel ma nibagħtu talba ta'traduzzjoni",
+  "VOTLoginViaToken": "Idħol permezz tat-token"
 }

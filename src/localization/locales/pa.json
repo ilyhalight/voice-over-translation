@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "ਉਪਸਿਰਲੇਖ ਡਿਜ਼ਾਈਨ",
   "VOTSubtitlesFontSize": "ਉਪਸਿਰਲੇਖਾਂ ਦਾ ਫੋਂਟ ਸਾਈਜ਼",
   "VOTSubtitlesOpacity": "ਉਪਸਿਰਲੇਖ ਪਿਛੋਕੜ ਦੀ ਪਾਰਦਰਸ਼ਤਾ",
-  "VOTPressNewHotkey": "ਨਵ ਹੌਟਕੀ ਦਬਾਓ...",
-  "VOTCreateTranslationHotkey": "ਅਨੁਵਾਦ ਲਈ ਹੌਟਕੀ ਬਣਾਓ",
-  "VOTChangeHotkeyWithCurrent": "ਹਾਟਕੀ ਬਦਲੋ (ਮੌਜੂਦਾ: {0})",
   "VOTSubtitlesDownloadFormat": "ਉਪਸਿਰਲੇਖ ਡਾਊਨਲੋਡ ਕਰਨ ਲਈ ਫਾਰਮੈਟ",
   "VOTDownloadWithName": "ਵੀਡੀਓ ਨਾਂ ਨਾਲ ਫਾਇਲਾਂ ਡਾਊਨਲੋਡ ਕਰੋ",
   "VOTUpdateLocaleFiles": "ਸਥਾਨੀਕਰਨ ਫਾਇਲਾਂ ਅੱਪਡੇਟ",
@@ -229,7 +226,6 @@
   "secs": "ਸੈਕਿੰਡ",
   "autoHideButtonDelay": "ਅਨੁਵਾਦ ਬਟਨ ਨੂੰ ਲੁਕਾਉਣ ਤੋਂ ਪਹਿਲਾਂ ਦੇਰੀ",
   "notFound": "ਨਹੀਂ ਲੱਭਿਆ",
-  "downloadFailed": "ਫਾਇਲ ਡਾਊਨਲੋਡ ਕਰਨ ਲਈ ਫੇਲ੍ਹ ਹੈ",
   "minButtonPositionContainer": "ਬਟਨ ਦੀ ਸਥਿਤੀ ਸਿਰਫ 600 ਪਿਕਸਲ ਤੋਂ ਵੱਡੇ ਖਿਡਾਰੀਆਂ ਵਿੱਚ ਬਦਲਦੀ ਹੈ.",
   "VOTTranslateProxyStatusDefault": "ਤੁਹਾਡੇ ਦੇਸ਼ ਵਿੱਚ ਪ੍ਰੌਕਸੀ ਨੂੰ ਪੂਰੀ ਤਰ੍ਹਾਂ ਅਯੋਗ ਕਰਨਾ ਐਕਸਟੈਂਸ਼ਨ ਨੂੰ ਤੋੜ ਸਕਦਾ ਹੈ",
   "PressTheKeyCombination": "ਕੁੰਜੀ ਸੰਜੋਗ ਦਬਾਓ...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "ਮੇਰਾ ਖਾਤਾ",
   "VOTLogin": "ਲਾਗਇਨ",
   "VOTLogout": "ਲਾਗਆਉਟ",
-  "VOTRefresh": "ਤਾਜ਼ਾ ਕਰੋ"
+  "VOTRefresh": "ਤਾਜ਼ਾ ਕਰੋ",
+  "VOTYandexToken": "ਯਾਂਡੇਕਸ ਓਏਥ ਟੋਕਨ ਦਾਖਲ ਕਰੋ",
+  "VOTYandexTokenInfo": "ਤੁਹਾਨੂੰ ਇਸ ਖੇਤਰ ਵਿੱਚ ਦਸਤੀ ਖਾਤੇ ਟੋਕਨ ਸੈੱਟ ਕਰ ਸਕਦੇ ਹੋ. ਕਿਰਪਾ ਕਰਕੇ ਨੋਟ ਕਰੋ ਕਿ ਅਸੀਂ ਅਨੁਵਾਦ ਬੇਨਤੀ ਭੇਜਣ ਤੋਂ ਪਹਿਲਾਂ ਇਸਦੀ ਵੈਧਤਾ ਦੀ ਜਾਂਚ ਨਹੀਂ ਕਰਦੇ",
+  "VOTLoginViaToken": "ਟੋਕਨ ਰਾਹੀਂ ਲਾਗਇਨ"
 }

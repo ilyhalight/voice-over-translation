@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Undertekster design",
   "VOTSubtitlesFontSize": "Skriftstørrelse på undertekster",
   "VOTSubtitlesOpacity": "Gennemsigtighed i undertekstbaggrunden",
-  "VOTPressNewHotkey": "Tryk på den nye genvejstast...",
-  "VOTCreateTranslationHotkey": "Opret genvejstast til oversættelse",
-  "VOTChangeHotkeyWithCurrent": "Skift Genvejstast (Current: {0})",
   "VOTSubtitlesDownloadFormat": "Formatet til hentning af undertekster",
   "VOTDownloadWithName": "Hent filer med videonavnet",
   "VOTUpdateLocaleFiles": "Opdater lokaliseringsfiler",
@@ -229,7 +226,6 @@
   "secs": "sek",
   "autoHideButtonDelay": "Forsink, før du skjuler knappen Oversæt",
   "notFound": "ikke fundet",
-  "downloadFailed": "Kunne ikke hente filen",
   "minButtonPositionContainer": "Knappositionen ændres kun i spillere, der er større end 600 punkter.",
   "VOTTranslateProxyStatusDefault": "Fuldstændig deaktivering af fuldmagt i dit land kan bryde udvidelsen",
   "PressTheKeyCombination": "Tryk på tastekombinationen...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Min konto",
   "VOTLogin": "Login",
   "VOTLogout": "Log ud",
-  "VOTRefresh": "Opdatere"
+  "VOTRefresh": "Opdatere",
+  "VOTYandexToken": "Indtast Yandeks OAuth Token",
+  "VOTYandexTokenInfo": "Du kan manuelt indstille kontotokenet i dette felt. Bemærk, at vi ikke kontrollerer dens gyldighed, før vi sender en oversættelsesanmodning",
+  "VOTLoginViaToken": "Log ind via token"
 }

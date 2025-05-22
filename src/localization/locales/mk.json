@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Преводи дизајн",
   "VOTSubtitlesFontSize": "Големина на фонт на преводи",
   "VOTSubtitlesOpacity": "Транспарентност на позадината на титлот",
-  "VOTPressNewHotkey": "Притиснете го новото копче...",
-  "VOTCreateTranslationHotkey": "Креирај Клуч За Превод",
-  "VOTChangeHotkeyWithCurrent": "Променете Го Копчето (Струја: {0})",
   "VOTSubtitlesDownloadFormat": "Форматот за преземање преводи",
   "VOTDownloadWithName": "Преземете датотеки со името на видеото",
   "VOTUpdateLocaleFiles": "Ажурирајте ги датотеките за локализација",
@@ -229,7 +226,6 @@
   "secs": "секс",
   "autoHideButtonDelay": "Одложување пред да го скриете копчето преведи",
   "notFound": "не е пронајден",
-  "downloadFailed": "Не успеав да ја преземам датотеката",
   "minButtonPositionContainer": "Позицијата на копчето се менува само кај играчите поголеми од 600 пиксели.",
   "VOTTranslateProxyStatusDefault": "Целосно оневозможување на прокси во вашата земја може да го скрши продолжувањето",
   "PressTheKeyCombination": "Притиснете ја комбинацијата на копчиња...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Мојата сметка",
   "VOTLogin": "Најава",
   "VOTLogout": "Одјавување",
-  "VOTRefresh": "Освежи"
+  "VOTRefresh": "Освежи",
+  "VOTYandexToken": "Внесете Го Токенот Yandex OAuth",
+  "VOTYandexTokenInfo": "Можете рачно да го поставите токенот на сметката во оваа област. Ве молиме имајте предвид дека не ја проверуваме неговата валидност пред да испратиме барање за превод",
+  "VOTLoginViaToken": "Најава преку токен"
 }

@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Altyazı dizaynı",
   "VOTSubtitlesFontSize": "Altyazı şrift ölçüsü",
   "VOTSubtitlesOpacity": "Altyazı fon şəffaflığı",
-  "VOTPressNewHotkey": "Yeni isti düyməni basın...",
-  "VOTCreateTranslationHotkey": "Tərcümə üçün qısa düymə yaradın",
-  "VOTChangeHotkeyWithCurrent": "Qısayol düyməsini dəyişdirin (cari: {0})",
   "VOTSubtitlesDownloadFormat": "Altyazıları yükləmək üçün format",
   "VOTDownloadWithName": "Video adı ilə faylları yükləyin",
   "VOTUpdateLocaleFiles": "Yerli faylları yeniləyin",
@@ -229,7 +226,6 @@
   "secs": "sec",
   "autoHideButtonDelay": "Tərcümə düyməsini gizlətmədən əvvəl Saxlayın",
   "notFound": "tapılmadı",
-  "downloadFailed": "Faylı yükləmək mümkün olmadı",
   "minButtonPositionContainer": "Düymənin mövqeyi yalnız 600 pikseldən böyük pleyerlərdə dəyişir.",
   "VOTTranslateProxyStatusDefault": "Ölkənizdə bir proxy serverin tamamilə söndürülməsi uzantının pozulmasına səbəb ola bilər",
   "PressTheKeyCombination": "Düymə birləşməsini basın...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Mənim Hesabım",
   "VOTLogin": "Daxil ol",
   "VOTLogout": "Sistemdən çıxın",
-  "VOTRefresh": "Təzələmək"
+  "VOTRefresh": "Təzələmək",
+  "VOTYandexToken": "OAuth daxil edin-Yandex Token",
+  "VOTYandexTokenInfo": "Bu sahədə hesab nişanını əl ilə təyin edə bilərsiniz. Xahiş edirik unutmayın ki, köçürmə sorğusu göndərməzdən əvvəl onun etibarlılığını yoxlamırıq",
+  "VOTLoginViaToken": "Token ilə daxil olun"
 }

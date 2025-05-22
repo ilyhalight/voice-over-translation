@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "字幕设计",
   "VOTSubtitlesFontSize": "字幕的字体大小",
   "VOTSubtitlesOpacity": "字幕背景的透明度",
-  "VOTPressNewHotkey": "按新热键。..",
-  "VOTCreateTranslationHotkey": "为翻译创建热键",
-  "VOTChangeHotkeyWithCurrent": "更改热键(当前:{0})",
   "VOTSubtitlesDownloadFormat": "下载字幕的格式",
   "VOTDownloadWithName": "下载带有视频名称的文件",
   "VOTUpdateLocaleFiles": "更新本地化文件",
@@ -229,7 +226,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "隐藏翻译按钮之前延迟",
   "notFound": "未找到",
-  "downloadFailed": "下载文件失败",
   "minButtonPositionContainer": "按钮位置仅在大于600像素的玩家中发生变化。",
   "VOTTranslateProxyStatusDefault": "在您的国家/地区完全禁用代理可能会破坏扩展",
   "PressTheKeyCombination": "按组合键。..",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "我的帐户",
   "VOTLogin": "登入",
   "VOTLogout": "登出",
-  "VOTRefresh": "刷新"
+  "VOTRefresh": "刷新",
+  "VOTYandexToken": "输入Yandex OAuth令牌",
+  "VOTYandexTokenInfo": "您可以在此字段中手动设置帐户令牌。 请注意，在发送翻译请求之前，我们不会检查其有效性",
+  "VOTLoginViaToken": "通过令牌登录"
 }

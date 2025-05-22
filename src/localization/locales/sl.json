@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Oblikovanje podnapisov",
   "VOTSubtitlesFontSize": "Velikost pisave podnapisov",
   "VOTSubtitlesOpacity": "Preglednost ozadja podnapisov",
-  "VOTPressNewHotkey": "Pritisnite novo bližnjično tipko...",
-  "VOTCreateTranslationHotkey": "Ustvari bližnjico za prevod",
-  "VOTChangeHotkeyWithCurrent": "Spremeni Bližnjično Tipko (Trenutno: {0})",
   "VOTSubtitlesDownloadFormat": "Oblika za prenos podnapisov",
   "VOTDownloadWithName": "Prenesite datoteke z imenom videoposnetka",
   "VOTUpdateLocaleFiles": "Posodobite lokalizacijske datoteke",
@@ -229,7 +226,6 @@
   "secs": "sec",
   "autoHideButtonDelay": "Zakasnitev, preden skrijete gumb za prevajanje",
   "notFound": "ni bilo mogoče najti",
-  "downloadFailed": "Datoteke ni bilo mogoče prenesti",
   "minButtonPositionContainer": "Položaj gumba se spremeni samo pri predvajalnikih, večjih od 600 slikovnih pik.",
   "VOTTranslateProxyStatusDefault": "Popolnoma onemogočanje posredništva v vaši državi lahko prekine razširitev",
   "PressTheKeyCombination": "Pritisnite kombinacijo tipk...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Moj Račun",
   "VOTLogin": "Prijava",
   "VOTLogout": "Odjava",
-  "VOTRefresh": "Osveži"
+  "VOTRefresh": "Osveži",
+  "VOTYandexToken": "Vnesite žeton OAuth",
+  "VOTYandexTokenInfo": "V tem polju lahko ročno nastavite žeton računa. Upoštevajte, da pred pošiljanjem zahteve za prevajanje ne preverimo njegove veljavnosti",
+  "VOTLoginViaToken": "Prijava prek žetona"
 }

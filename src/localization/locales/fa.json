@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "طراحی زیرنویس",
   "VOTSubtitlesFontSize": "اندازه فونت زیرنویس",
   "VOTSubtitlesOpacity": "شفافیت پس زمینه زیرنویس",
-  "VOTPressNewHotkey": "کلید میانبر جدید را فشار دهید...",
-  "VOTCreateTranslationHotkey": "ایجاد کلید میانبر برای ترجمه",
-  "VOTChangeHotkeyWithCurrent": "کلید میانبر تغییر (در حال حاضر: {0})",
   "VOTSubtitlesDownloadFormat": "فرمت دانلود زیرنویس",
   "VOTDownloadWithName": "دانلود فایل با نام تصویری",
   "VOTUpdateLocaleFiles": "به روز رسانی فایل های محلی سازی",
@@ -229,7 +226,6 @@
   "secs": "ثانیه",
   "autoHideButtonDelay": "تاخیر قبل از پنهان کردن دکمه ترجمه",
   "notFound": "یافت نشد",
-  "downloadFailed": "شکست در دانلود فایل",
   "minButtonPositionContainer": "موقعیت دکمه فقط در بازیکنان بزرگتر از 600 پیکسل تغییر می کند.",
   "VOTTranslateProxyStatusDefault": "غیرفعال کردن کامل پروکسی در کشور شما ممکن است تمدید را بشکند",
   "PressTheKeyCombination": "کلید ترکیبی را فشار دهید...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "حساب کاربری من",
   "VOTLogin": "ورود به سایت",
   "VOTLogout": "خروج از سیستم",
-  "VOTRefresh": "تازه کردن"
+  "VOTRefresh": "تازه کردن",
+  "VOTYandexToken": "توکن Yandex OAuth را وارد کنید",
+  "VOTYandexTokenInfo": "شما می توانید توکن حساب را به صورت دستی در این فیلد تنظیم کنید. لطفا توجه داشته باشید که ما اعتبار آن را قبل از ارسال درخواست ترجمه بررسی نمی کنیم",
+  "VOTLoginViaToken": "ورود از طریق توکن"
 }

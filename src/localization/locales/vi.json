@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Thiết kế phụ đề",
   "VOTSubtitlesFontSize": "Kích thước phông chữ của phụ đề",
   "VOTSubtitlesOpacity": "Độ trong suốt của nền phụ đề",
-  "VOTPressNewHotkey": "Nhấn phím nóng mới...",
-  "VOTCreateTranslationHotkey": "Tạo Phím Nóng Để Dịch",
-  "VOTChangeHotkeyWithCurrent": "Thay Đổi Phím Nóng (Hiện Tại: {0})",
   "VOTSubtitlesDownloadFormat": "Định dạng để tải xuống phụ đề",
   "VOTDownloadWithName": "Tải xuống các tệp có tên video",
   "VOTUpdateLocaleFiles": "Cập nhật tệp bản địa hóa",
@@ -229,7 +226,6 @@
   "secs": "sk",
   "autoHideButtonDelay": "Trì hoãn trước khi ẩn nút dịch",
   "notFound": "không tìm thấy",
-  "downloadFailed": "Không thể tải xuống tệp",
   "minButtonPositionContainer": "Vị trí nút chỉ thay đổi ở những người chơi lớn hơn 600 pixel.",
   "VOTTranslateProxyStatusDefault": "Vô hiệu hóa hoàn toàn proxy ở quốc gia của bạn có thể phá vỡ tiện ích mở rộng",
   "PressTheKeyCombination": "Nhấn tổ hợp phím...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Tài khoản của tôi",
   "VOTLogin": "Đăng nhập",
   "VOTLogout": "Đăng xuất",
-  "VOTRefresh": "Làm mới"
+  "VOTRefresh": "Làm mới",
+  "VOTYandexToken": "Nhập Mã Thông báo Yandex OAuth",
+  "VOTYandexTokenInfo": "Bạn có thể đặt mã thông báo tài khoản theo cách thủ công trong trường này. Xin lưu ý rằng chúng tôi không kiểm tra tính hợp lệ của nó trước khi gửi yêu cầu dịch",
+  "VOTLoginViaToken": "Đăng nhập qua token"
 }

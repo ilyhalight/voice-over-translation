@@ -50,6 +50,7 @@ import {
   browserInfo,
   isPiPAvailable,
   isProxyOnlyExtension,
+  isSupportGMXhr,
   isUnsafeWindowAllowed,
 } from "../../utils/utils";
 import { HELP_ICON, WARNING_ICON } from "../icons";
@@ -92,6 +93,7 @@ export class SettingsView {
   accountHeader?: HTMLElement;
   accountButton?: AccountButton;
   accountButtonRefreshTooltip?: Tooltip;
+  accountButtonTokenTooltip?: Tooltip;
   translationSettingsHeader?: HTMLElement;
   autoTranslateCheckbox?: Checkbox;
   dontTranslateLanguagesCheckbox?: Checkbox;
@@ -151,6 +153,7 @@ export class SettingsView {
     accountHeader: HTMLElement;
     accountButton: AccountButton;
     accountButtonRefreshTooltip: Tooltip;
+    accountButtonTokenTooltip: Tooltip;
     // #endregion Settings Account type
     // #region Settings Translation type
     translationSettingsHeader: HTMLElement;
@@ -244,6 +247,13 @@ export class SettingsView {
         parentElement: this.globalPortal,
       });
     }
+    this.accountButtonTokenTooltip = new Tooltip({
+      target: this.accountButton.tokenButton,
+      content: localizationProvider.get("VOTLoginViaToken"),
+      position: "bottom",
+      backgroundColor: "var(--vot-helper-ondialog)",
+      parentElement: this.globalPortal,
+    });
 
     // #endregion Account
     // #region Translation
@@ -325,6 +335,7 @@ export class SettingsView {
       labelHtml: localizationProvider.get("VOTDownloadWithName"),
       checked: this.data.downloadWithName,
     });
+    this.downloadWithNameCheckbox.disabled = !isSupportGMXhr;
 
     this.sendNotifyOnCompleteCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("VOTSendNotifyOnComplete"),
@@ -424,7 +435,7 @@ export class SettingsView {
       localizationProvider.get("hotkeysSettings"),
     );
     this.translateHotkeyButton = new HotkeyButton({
-      labelHtml: "Translate",
+      labelHtml: localizationProvider.get("translateVideo"),
       key: this.data.translationHotkey,
     });
 
@@ -637,6 +648,37 @@ export class SettingsView {
       }
 
       window.open(authServerUrl, "_blank")?.focus();
+    });
+    this.accountButton.addEventListener("click:secret", async () => {
+      const dialog = new Dialog({
+        titleHtml: localizationProvider.get("VOTLoginViaToken"),
+        isTemp: true,
+      });
+      this.globalPortal.appendChild(dialog.container);
+
+      const tokenInfoEl = ui.createEl(
+        "vot-block",
+        undefined,
+        localizationProvider.get("VOTYandexTokenInfo"),
+      );
+      const tokenTextfield = new Textfield({
+        labelHtml: localizationProvider.get("VOTYandexToken"),
+        value: this.data.account?.token,
+      });
+
+      tokenTextfield.addEventListener("change", async (token) => {
+        this.data.account = token
+          ? {
+              // 1 year
+              expires: Date.now() + 31_534_180_000,
+              token,
+            }
+          : {};
+        await votStorage.set<Partial<Account>>("account", this.data.account);
+        this.updateAccountInfo();
+      });
+
+      dialog.bodyContainer.append(tokenInfoEl, tokenTextfield.container);
     });
     this.accountButton.addEventListener("refresh", async () => {
       if (votStorage.isSupportOnlyLS()) {
@@ -1556,6 +1598,7 @@ export class SettingsView {
 
     this.dialog.remove();
     this.accountButtonRefreshTooltip?.release();
+    this.accountButtonTokenTooltip?.release();
     this.audioBoosterTooltip?.release();
     this.useAudioDownloadCheckboxTooltip?.release();
     this.useNewAudioPlayerTooltip?.release();

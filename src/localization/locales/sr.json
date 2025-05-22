@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Дизајн титлова",
   "VOTSubtitlesFontSize": "Величина фонта титлова",
   "VOTSubtitlesOpacity": "Транспарентност позадине титлова",
-  "VOTPressNewHotkey": "Притисните нови интервентни тастер...",
-  "VOTCreateTranslationHotkey": "Направите интервентни тастер за превод",
-  "VOTChangeHotkeyWithCurrent": "Промените интервентни тастер (тренутни: {0})",
   "VOTSubtitlesDownloadFormat": "Формат за преузимање титлова",
   "VOTDownloadWithName": "Преузмите датотеке са именом видео записа",
   "VOTUpdateLocaleFiles": "Ажурирајте датотеке локализације",
@@ -229,7 +226,6 @@
   "secs": "сек",
   "autoHideButtonDelay": "Кашњење пре скривања дугмета за превод",
   "notFound": "није пронађено",
-  "downloadFailed": "Преузимање датотеке није успело",
   "minButtonPositionContainer": "Положај дугмета се мења само на плејерима већим од 600 пиксела.",
   "VOTTranslateProxyStatusDefault": "Потпуно онемогућавање проки сервера у вашој земљи може проузроковати квар проширења",
   "PressTheKeyCombination": "Притисните комбинацију тастера...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Мој рачун",
   "VOTLogin": "Пријавите се",
   "VOTLogout": "Одјава",
-  "VOTRefresh": "Освежите"
+  "VOTRefresh": "Освежите",
+  "VOTYandexToken": "Унесите ОАутх-Иандек токен",
+  "VOTYandexTokenInfo": "У овом пољу можете ручно одредити токен рачуна. Имајте на уму да не проверавамо његову ваљаност пре него што пошаљемо захтев за трансфер",
+  "VOTLoginViaToken": "Пријавите се помоћу токена"
 }

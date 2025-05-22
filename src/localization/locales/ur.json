@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "سب ٹائٹلز ڈیزائن",
   "VOTSubtitlesFontSize": "سب ٹائٹلز کا فونٹ سائز",
   "VOTSubtitlesOpacity": "ذیلی عنوان کے پس منظر کی شفافیت",
-  "VOTPressNewHotkey": "نئی ہاٹکی دبائیں۔..",
-  "VOTCreateTranslationHotkey": "ترجمہ کے لئے ہاٹکی بنائیں",
-  "VOTChangeHotkeyWithCurrent": "ہاٹکی تبدیل کریں (موجودہ: {0})",
   "VOTSubtitlesDownloadFormat": "سب ٹائٹلز ڈاؤن لوڈ کرنے کا فارمیٹ",
   "VOTDownloadWithName": "ویڈیو نام کے ساتھ فائلیں ڈاؤن لوڈ کریں",
   "VOTUpdateLocaleFiles": "لوکلائزیشن فائلوں کو اپ ڈیٹ کریں",
@@ -229,7 +226,6 @@
   "secs": "ایس ای سی ایس",
   "autoHideButtonDelay": "ترجمہ کے بٹن کو چھپانے سے پہلے تاخیر",
   "notFound": "نہیں ملا",
-  "downloadFailed": "فائل ڈاؤن لوڈ کرنے میں ناکام",
   "minButtonPositionContainer": "بٹن کی پوزیشن صرف 600 پکسلز سے بڑے کھلاڑیوں میں تبدیل ہوتی ہے ۔ ",
   "VOTTranslateProxyStatusDefault": "آپ کے ملک میں پراکسی کو مکمل طور پر غیر فعال کرنا توسیع کو توڑ سکتا ہے ۔ ",
   "PressTheKeyCombination": "کلیدی امتزاج دبائیں۔..",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "میرا اکاؤنٹ",
   "VOTLogin": "لاگ ان",
   "VOTLogout": "لاگ آؤٹ",
-  "VOTRefresh": "ریفریش"
+  "VOTRefresh": "ریفریش",
+  "VOTYandexToken": "Yandex OAuth ٹوکن درج کریں",
+  "VOTYandexTokenInfo": "آپ دستی طور پر اس فیلڈ میں اکاؤنٹ ٹوکن سیٹ کر سکتے ہیں ۔  براہ کرم نوٹ کریں کہ ہم ترجمہ کی درخواست بھیجنے سے پہلے اس کی صداقت کی جانچ نہیں کرتے ہیں ۔ ",
+  "VOTLoginViaToken": "ٹوکن کے ذریعے لاگ ان کریں"
 }

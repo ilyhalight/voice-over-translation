@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Azpitituluen diseinua",
   "VOTSubtitlesFontSize": "Azpitituluen letra-tamaina",
   "VOTSubtitlesOpacity": "Azpitituluen atzeko planoaren gardentasuna",
-  "VOTPressNewHotkey": "Sakatu laster-tekla berria...",
-  "VOTCreateTranslationHotkey": "Sortu Laster-Tekla Itzulpenerako",
-  "VOTChangeHotkeyWithCurrent": "Aldatu Laster-Tekla (Unekoa: {0})",
   "VOTSubtitlesDownloadFormat": "Azpitituluak deskargatzeko formatua",
   "VOTDownloadWithName": "Deskargatu bideoaren izena duten fitxategiak",
   "VOTUpdateLocaleFiles": "Eguneratu lokalizazio-fitxategiak",
@@ -229,7 +226,6 @@
   "secs": "segundoak",
   "autoHideButtonDelay": "Atzerapena itzultzeko botoia ezkutatu aurretik",
   "notFound": "ez da aurkitu",
-  "downloadFailed": "Huts egin du fitxategia deskargatzean",
   "minButtonPositionContainer": "Botoiaren posizioa 600 pixel baino handiagoak diren jokalarietan bakarrik aldatzen da.",
   "VOTTranslateProxyStatusDefault": "Zure herrialdean ordezkaritza erabat desgaitzeak luzapena hautsi dezake",
   "PressTheKeyCombination": "Sakatu tekla konbinazioa...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Nire kontua",
   "VOTLogin": "Saioa hasi",
   "VOTLogout": "Saioa amaitzea",
-  "VOTRefresh": "Freskatu"
+  "VOTRefresh": "Freskatu",
+  "VOTYandexToken": "Sartu Yandex Oautheko Tokenera",
+  "VOTYandexTokenInfo": "Kontu-tokena eskuz ezar dezakezu eremu honetan. Kontuan izan ez dugula bere baliozkotasuna egiaztatzen itzulpen eskaera bat bidali aurretik",
+  "VOTLoginViaToken": "Saioa hasi token bidez"
 }

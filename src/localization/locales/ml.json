@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "സബ്ടൈറ്റിലുകൾ ഡിസൈൻ",
   "VOTSubtitlesFontSize": "സബ്ടൈറ്റിലുകളുടെ അക്ഷരസഞ്ചയം",
   "VOTSubtitlesOpacity": "സബ്ടൈറ്റിൽ പശ്ചാത്തലത്തിന്റെ സുതാര്യത",
-  "VOTPressNewHotkey": "പുതിയ ഹോട്ട് കീ അമർത്തുക...",
-  "VOTCreateTranslationHotkey": "പരിഭാഷയ്ക്കായി ഹോട്ട്കീ സൃഷ്ടിക്കുക",
-  "VOTChangeHotkeyWithCurrent": "ഹോട്ട്കീ മാറ്റുക (നിലവില്: {0})",
   "VOTSubtitlesDownloadFormat": "സബ്ടൈറ്റിലുകൾ ഡൌൺലോഡ് ചെയ്യുന്നതിനുള്ള ഫോർമാറ്റ്",
   "VOTDownloadWithName": "വീഡിയോ പേര് ഉപയോഗിച്ച് ഫയലുകൾ ഡൗൺലോഡ്",
   "VOTUpdateLocaleFiles": "അപ്ഡേറ്റ് localization ഫയലുകൾ",
@@ -229,7 +226,6 @@
   "secs": "സെക്കന്റുകൾ",
   "autoHideButtonDelay": "വിവർത്തനം ബട്ടൺ മറയ്ക്കുന്നതിന് മുമ്പ് കാലതാമസം",
   "notFound": "കണ്ടെത്തിയില്ല",
-  "downloadFailed": "Failed to download file",
   "minButtonPositionContainer": "ബട്ടൺ സ്ഥാനം 600 പിക്സലുകളേക്കാൾ വലുപ്പമുള്ള കളിക്കാരിൽ മാത്രം മാറ്റുന്നു.",
   "VOTTranslateProxyStatusDefault": "നിങ്ങളുടെ രാജ്യത്ത് പ്രോക്സിംഗ് പൂർണ്ണമായും അപ്രാപ്തമാക്കുന്നത് വിപുലീകരണം തകർത്തേക്കാം",
   "PressTheKeyCombination": "കീ കോമ്പിനേഷൻ അമർത്തുക...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "എന്റെ അക്കൗണ്ട്",
   "VOTLogin": "ലോഗിൻ ചെയ്യുക",
   "VOTLogout": "പുറത്തുകടക്കുക",
-  "VOTRefresh": "പുതുക്കുക"
+  "VOTRefresh": "പുതുക്കുക",
+  "VOTYandexToken": "യാൻഡെക്സ് ഒഒത് ടോക്കൺ നൽകുക",
+  "VOTYandexTokenInfo": "ഈ ഫീൽഡിൽ നിങ്ങൾക്ക് അക്കൌണ്ട് ടോക്കൺ സ്വമേധയാ സജ്ജമാക്കാൻ കഴിയും. ഒരു വിവർത്തന അഭ്യർത്ഥന അയയ്ക്കുന്നതിന് മുമ്പ് ഞങ്ങൾ അതിന്റെ സാധുത പരിശോധിക്കുന്നില്ലെന്ന് ദയവായി ശ്രദ്ധിക്കുക",
+  "VOTLoginViaToken": "ടോക്കൺ വഴി ലോഗിൻ ചെയ്യുക"
 }

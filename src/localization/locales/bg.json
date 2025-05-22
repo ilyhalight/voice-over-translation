@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Субтитри дизайн",
   "VOTSubtitlesFontSize": "Размер на шрифта на субтитрите",
   "VOTSubtitlesOpacity": "Прозрачност на фона на субтитрите",
-  "VOTPressNewHotkey": "Натисни новата клавишна комбинация...",
-  "VOTCreateTranslationHotkey": "Създаване на клавиш за превод",
-  "VOTChangeHotkeyWithCurrent": "Промяна На Клавишната Комбинация (Текуща: {0})",
   "VOTSubtitlesDownloadFormat": "Формат за изтегляне на субтитри",
   "VOTDownloadWithName": "Изтегляне на файлове с името на видеото",
   "VOTUpdateLocaleFiles": "Актуализиране на локализационните файлове",
@@ -229,7 +226,6 @@
   "secs": "сек",
   "autoHideButtonDelay": "Забавяне преди скриване на бутона за превод",
   "notFound": "не е намерен",
-  "downloadFailed": "Неуспешно изтегляне на файла",
   "minButtonPositionContainer": "Позицията на бутона се променя само при играчи, по-големи от 600 пиксела.",
   "VOTTranslateProxyStatusDefault": "Пълното деактивиране на прокси услугите във вашата страна може да наруши разширението",
   "PressTheKeyCombination": "Натиснете клавишната комбинация...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Моят акаунт",
   "VOTLogin": "Вход",
   "VOTLogout": "Изход",
-  "VOTRefresh": "Обновяване"
+  "VOTRefresh": "Обновяване",
+  "VOTYandexToken": "Въведете Яндекс Оут токен",
+  "VOTYandexTokenInfo": "Можете ръчно да настроите маркера за акаунт в това поле. Моля, имайте предвид, че не проверяваме валидността му, преди да изпратим заявка за превод",
+  "VOTLoginViaToken": "Вход чрез токен"
 }

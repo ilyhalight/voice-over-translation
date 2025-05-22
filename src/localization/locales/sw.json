@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Subtitles kubuni",
   "VOTSubtitlesFontSize": "Ukubwa wa fonti ya manukuu",
   "VOTSubtitlesOpacity": "Uwazi wa mandharinyuma ya manukuu",
-  "VOTPressNewHotkey": "Bonyeza hotkey mpya...",
-  "VOTCreateTranslationHotkey": "Kujenga Hotkey Kwa Tafsiri",
-  "VOTChangeHotkeyWithCurrent": "Kubadili Hotkey (Sasa: {0})",
   "VOTSubtitlesDownloadFormat": "Umbizo la kupakua manukuu",
   "VOTDownloadWithName": "Pakua faili zilizo na jina la video",
   "VOTUpdateLocaleFiles": "Sasisha faili za ujanibishaji",
@@ -229,7 +226,6 @@
   "secs": "sekunde",
   "autoHideButtonDelay": "Kuchelewa kabla ya kujificha kifungo cha kutafsiri",
   "notFound": "haipatikani",
-  "downloadFailed": "Imeshindwa kupakua faili",
   "minButtonPositionContainer": "Nafasi ya kitufe hubadilika tu kwa wachezaji wakubwa kuliko saizi 600.",
   "VOTTranslateProxyStatusDefault": "Kuzima kabisa wakala katika nchi yako kunaweza kuvunja ugani",
   "PressTheKeyCombination": "Bonyeza mchanganyiko muhimu...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Akaunti yangu",
   "VOTLogin": "Ingia",
   "VOTLogout": "Kuingia",
-  "VOTRefresh": "Furahisha"
+  "VOTRefresh": "Furahisha",
+  "VOTYandexToken": "Ingiza Ishara Ya Yandex OAuth",
+  "VOTYandexTokenInfo": "Unaweza kuweka ishara ya akaunti kwa mikono katika uwanja huu. Tafadhali kumbuka kuwa hatuangalii uhalali wake kabla ya kutuma ombi la kutafsiri",
+  "VOTLoginViaToken": "Ingia kupitia ishara"
 }

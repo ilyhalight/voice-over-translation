@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Dizajni i titrave",
   "VOTSubtitlesFontSize": "Madhësia e shkronjave të titrave",
   "VOTSubtitlesOpacity": "Transparenca e sfondit të titrave",
-  "VOTPressNewHotkey": "Shtypni tastin e ri...",
-  "VOTCreateTranslationHotkey": "Krijo Hotkey Për Përkthim",
-  "VOTChangeHotkeyWithCurrent": "Ndrysho Hotkey (Aktual: {0})",
   "VOTSubtitlesDownloadFormat": "Formati për shkarkimin e titrave",
   "VOTDownloadWithName": "Shkarkoni skedarë me emrin e videos",
   "VOTUpdateLocaleFiles": "Përditësoni skedarët e lokalizimit",
@@ -229,7 +226,6 @@
   "secs": "sek",
   "autoHideButtonDelay": "Vononi para se të fshehni butonin e përkthimit",
   "notFound": "nuk u gjet",
-  "downloadFailed": "Nuk arriti të shkarkojë skedarin",
   "minButtonPositionContainer": "Pozicioni i butonit ndryshon vetëm në lojtarët më të mëdhenj se 600 piksele.",
   "VOTTranslateProxyStatusDefault": "Çaktivizimi i plotë i proxying në vendin tuaj mund të prishë zgjatjen",
   "PressTheKeyCombination": "Shtypni kombinimin e tastit...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Llogaria ime",
   "VOTLogin": "Hyrje",
   "VOTLogout": "Dalja",
-  "VOTRefresh": "Rifresko"
+  "VOTRefresh": "Rifresko",
+  "VOTYandexToken": "Futni Shenjën Yandex OAuth",
+  "VOTYandexTokenInfo": "Ju mund të vendosni manualisht shenjën e llogarisë në këtë fushë. Ju lutemi vini re se ne nuk e kontrollojmë vlefshmërinë e tij përpara se të dërgojmë një kërkesë për përkthim",
+  "VOTLoginViaToken": "Identifikohuni përmes token"
 }

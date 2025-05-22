@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "تصميم الترجمة",
   "VOTSubtitlesFontSize": "حجم الخط من ترجمات",
   "VOTSubtitlesOpacity": "شفافية خلفية العنوان الفرعي",
-  "VOTPressNewHotkey": "اضغط على مفتاح الاختصار الجديد...",
-  "VOTCreateTranslationHotkey": "إنشاء هوتكي للترجمة",
-  "VOTChangeHotkeyWithCurrent": "تغيير هوتكي (الحالي: {0})",
   "VOTSubtitlesDownloadFormat": "تنسيق تنزيل الترجمة",
   "VOTDownloadWithName": "تحميل الملفات مع اسم الفيديو",
   "VOTUpdateLocaleFiles": "تحديث ملفات الترجمة",
@@ -229,7 +226,6 @@
   "secs": "ثانية",
   "autoHideButtonDelay": "تأخير قبل إخفاء زر الترجمة",
   "notFound": "غير موجود",
-  "downloadFailed": "فشل تنزيل الملف",
   "minButtonPositionContainer": "يتغير موضع الزر فقط في اللاعبين الأكبر من 600 بكسل.",
   "VOTTranslateProxyStatusDefault": "قد يؤدي تعطيل البروكسي تماما في بلدك إلى كسر الامتداد",
   "PressTheKeyCombination": "اضغط على مجموعة المفاتيح...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "حسابي",
   "VOTLogin": "تسجيل الدخول",
   "VOTLogout": "تسجيل الخروج",
-  "VOTRefresh": "تحديث"
+  "VOTRefresh": "تحديث",
+  "VOTYandexToken": "أدخل رمز ياندكس أوث",
+  "VOTYandexTokenInfo": "يمكنك تعيين رمز الحساب يدويا في هذا الحقل. يرجى ملاحظة أننا لا نتحقق من صلاحيتها قبل إرسال طلب ترجمة",
+  "VOTLoginViaToken": "تسجيل الدخول عبر الرمز المميز"
 }

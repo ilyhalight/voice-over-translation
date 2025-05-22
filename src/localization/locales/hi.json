@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "उपशीर्षक डिजाइन",
   "VOTSubtitlesFontSize": "उपशीर्षक का फ़ॉन्ट आकार",
   "VOTSubtitlesOpacity": "उपशीर्षक पृष्ठभूमि की पारदर्शिता",
-  "VOTPressNewHotkey": "नई हॉटकी दबाएं।..",
-  "VOTCreateTranslationHotkey": "अनुवाद के लिए हॉटकी बनाएं",
-  "VOTChangeHotkeyWithCurrent": "हॉटकी बदलें (वर्तमान: {0})",
   "VOTSubtitlesDownloadFormat": "उपशीर्षक डाउनलोड करने का प्रारूप",
   "VOTDownloadWithName": "वीडियो नाम के साथ फ़ाइलें डाउनलोड करें",
   "VOTUpdateLocaleFiles": "स्थानीयकरण फ़ाइलें अपडेट करें",
@@ -229,7 +226,6 @@
   "secs": "एसईसीएस",
   "autoHideButtonDelay": "अनुवाद बटन छिपाने से पहले देरी",
   "notFound": "नहीं मिला",
-  "downloadFailed": "फ़ाइल डाउनलोड करने में विफल",
   "minButtonPositionContainer": "बटन की स्थिति केवल 600 पिक्सेल से बड़े खिलाड़ियों में बदलती है । ",
   "VOTTranslateProxyStatusDefault": "अपने देश में प्रॉक्सी को पूरी तरह से अक्षम करने से एक्सटेंशन टूट सकता है",
   "PressTheKeyCombination": "कुंजी संयोजन दबाएं।..",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "मेरा खाता",
   "VOTLogin": "लॉगिन करें",
   "VOTLogout": "लॉगआउट",
-  "VOTRefresh": "ताज़ा करें"
+  "VOTRefresh": "ताज़ा करें",
+  "VOTYandexToken": "यांडेक्स ओथ टोकन दर्ज करें",
+  "VOTYandexTokenInfo": "आप इस फ़ील्ड में खाता टोकन मैन्युअल रूप से सेट कर सकते हैं ।  कृपया ध्यान दें कि अनुवाद अनुरोध भेजने से पहले हम इसकी वैधता की जांच नहीं करते हैं",
+  "VOTLoginViaToken": "टोकन के माध्यम से लॉगिन करें"
 }

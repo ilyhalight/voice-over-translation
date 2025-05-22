@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Reka bentuk sarikata",
   "VOTSubtitlesFontSize": "Saiz fon sari kata",
   "VOTSubtitlesOpacity": "Ketelusan latar belakang sari kata",
-  "VOTPressNewHotkey": "Tekan kekunci panas baharu...",
-  "VOTCreateTranslationHotkey": "Buat Hotkey untuk terjemahan",
-  "VOTChangeHotkeyWithCurrent": "Tukar Hotkey (Semasa: {0})",
   "VOTSubtitlesDownloadFormat": "Format untuk muat turun sari kata",
   "VOTDownloadWithName": "Muat turun fail dengan nama video",
   "VOTUpdateLocaleFiles": "Kemas kini fail penyetempatan",
@@ -229,7 +226,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Tunda sebelum menyembunyikan butang Terjemah",
   "notFound": "tidak dijumpai",
-  "downloadFailed": "Gagal memuat turun fail",
   "minButtonPositionContainer": "Kedudukan butang hanya berubah pada pemain yang lebih besar daripada 600 piksel.",
   "VOTTranslateProxyStatusDefault": "Melumpuhkan proksi sepenuhnya di negara anda boleh mematahkan pelanjutan",
   "PressTheKeyCombination": "Tekan kombinasi kekunci...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Akaun saya",
   "VOTLogin": "Logmasuk",
   "VOTLogout": "Log keluar",
-  "VOTRefresh": "Segarkan semula"
+  "VOTRefresh": "Segarkan semula",
+  "VOTYandexToken": "MASUKKAN Token Yandex OAuth",
+  "VOTYandexTokenInfo": "Anda boleh menetapkan token akaun secara manual dalam medan ini. Sila ambil perhatian bahawa kami tidak menyemak kesahihannya sebelum menghantar permintaan Terjemah",
+  "VOTLoginViaToken": "Log masuk melalui token"
 }

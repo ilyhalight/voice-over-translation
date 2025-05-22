@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Dizajn titulkov",
   "VOTSubtitlesFontSize": "Veľkosť písma titulkov",
   "VOTSubtitlesOpacity": "Transparentnosť pozadia titulkov",
-  "VOTPressNewHotkey": "Stlačte novú klávesovú skratku...",
-  "VOTCreateTranslationHotkey": "Vytvoriť klávesovú skratku pre preklad",
-  "VOTChangeHotkeyWithCurrent": "Zmeniť Klávesovú Skratku (Aktuálne: {0})",
   "VOTSubtitlesDownloadFormat": "Formát na stiahnutie titulkov",
   "VOTDownloadWithName": "Stiahnite si súbory s názvom videa",
   "VOTUpdateLocaleFiles": "Aktualizácia lokalizačných súborov",
@@ -229,7 +226,6 @@
   "secs": "secs",
   "autoHideButtonDelay": "Oneskorenie pred skrytím tlačidla preložiť",
   "notFound": "nenájdený",
-  "downloadFailed": "Nepodarilo sa stiahnuť súbor",
   "minButtonPositionContainer": "Pozícia tlačidla sa mení iba u hráčov väčších ako 600 pixelov.",
   "VOTTranslateProxyStatusDefault": "Úplné zakázanie proxy vo vašej krajine môže Rozšírenie prerušiť",
   "PressTheKeyCombination": "Stlačte kombináciu klávesov...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Prihlásiť sa",
   "VOTLogin": "Prihlásenie",
   "VOTLogout": "Odhlásiť",
-  "VOTRefresh": "Obnoviť"
+  "VOTRefresh": "Obnoviť",
+  "VOTYandexToken": "Zadajte Token Yandex OAuth",
+  "VOTYandexTokenInfo": "V tomto poli môžete manuálne nastaviť token účtu. Upozorňujeme, že pred odoslaním žiadosti o preklad nekontrolujeme jeho platnosť",
+  "VOTLoginViaToken": "Prihlásenie cez token"
 }

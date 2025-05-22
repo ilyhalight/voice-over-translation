@@ -31,6 +31,7 @@ import {
   isProxyOnlyExtension,
   isUnsafeWindowAllowed,
   browserInfo,
+  isSupportGMXhr,
 } from "./utils/utils.js";
 import { isIframe } from "./utils/iframeConnector.ts";
 import { syncVolume } from "./utils/volume.js";
@@ -219,7 +220,7 @@ class VideoHandler {
       buttonPos: "default",
       showVideoSlider: true,
       syncVolume: false,
-      downloadWithName: true,
+      downloadWithName: isSupportGMXhr,
       sendNotifyOnComplete: false,
       subtitlesMaxLength: 300,
       highlightWords: false,

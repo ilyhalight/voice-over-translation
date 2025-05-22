@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Onderskrifte ontwerp",
   "VOTSubtitlesFontSize": "Lettergrootte van onderskrifte",
   "VOTSubtitlesOpacity": "Deursigtigheid van die ondertitel agtergrond",
-  "VOTPressNewHotkey": "Druk die nuwe sneltoets...",
-  "VOTCreateTranslationHotkey": "Skep Sneltoets Vir Vertaling",
-  "VOTChangeHotkeyWithCurrent": "Verander Sneltoets (Huidige: {0})",
   "VOTSubtitlesDownloadFormat": "Die formaat vir die aflaai van onderskrifte",
   "VOTDownloadWithName": "Laai lêers af met die video naam",
   "VOTUpdateLocaleFiles": "Dateer lokaliseringslêers op",
@@ -229,7 +226,6 @@
   "secs": "sek",
   "autoHideButtonDelay": "Vertraag voordat u die translate-knoppie wegsteek",
   "notFound": "nie gevind nie",
-  "downloadFailed": "Kon nie lêer aflaai nie",
   "minButtonPositionContainer": "Die knoppie posisie verander slegs in spelers groter as 600 pixels.",
   "VOTTranslateProxyStatusDefault": "As u die volmag in u land heeltemal deaktiveer, kan dit die uitbreiding verbreek",
   "PressTheKeyCombination": "Druk die sleutelkombinasie...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "My rekening",
   "VOTLogin": "Aanmelding",
   "VOTLogout": "Afmeld",
-  "VOTRefresh": "Verfris"
+  "VOTRefresh": "Verfris",
+  "VOTYandexToken": "Tik Die Yandex Oauth Token",
+  "VOTYandexTokenInfo": "U kan die rekeningteken handmatig in hierdie veld instel. Let asseblief daarop dat ons nie die geldigheid daarvan nagaan voordat u'n translate-versoek stuur nie",
+  "VOTLoginViaToken": "Teken in via token"
 }

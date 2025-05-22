@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "Titulky design",
   "VOTSubtitlesFontSize": "Velikost písma titulků",
   "VOTSubtitlesOpacity": "Průhlednost pozadí titulků",
-  "VOTPressNewHotkey": "Stiskněte novou klávesovou zkratku...",
-  "VOTCreateTranslationHotkey": "Vytvořit klávesovou zkratku pro překlad",
-  "VOTChangeHotkeyWithCurrent": "Změnit Klávesovou Zkratku (Aktuální: {0})",
   "VOTSubtitlesDownloadFormat": "Formát pro stahování titulků",
   "VOTDownloadWithName": "Stahujte soubory s názvem videa",
   "VOTUpdateLocaleFiles": "Aktualizace lokalizačních souborů",
@@ -229,7 +226,6 @@
   "secs": "sekunda",
   "autoHideButtonDelay": "Zpoždění před skrytím tlačítka přeložit",
   "notFound": "nalézt",
-  "downloadFailed": "Nepodařilo se stáhnout soubor",
   "minButtonPositionContainer": "Pozice tlačítka se mění pouze u hráčů větších než 600 pixelů.",
   "VOTTranslateProxyStatusDefault": "Úplné deaktivace proxy ve vaší zemi může rozšíření přerušit",
   "PressTheKeyCombination": "Stiskněte kombinaci kláves...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "Můj účet",
   "VOTLogin": "Přihlášení",
   "VOTLogout": "Odhlášení",
-  "VOTRefresh": "Aktualizovat"
+  "VOTRefresh": "Aktualizovat",
+  "VOTYandexToken": "Zadejte Token Yandex OAuth",
+  "VOTYandexTokenInfo": "V tomto poli můžete ručně nastavit token účtu. Vezměte prosím na vědomí, že před odesláním požadavku na překlad nekontrolujeme jeho platnost",
+  "VOTLoginViaToken": "Přihlášení přes token"
 }

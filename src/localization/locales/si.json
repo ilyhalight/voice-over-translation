@@ -181,9 +181,6 @@
   "VOTSubtitlesDesign": "උපසිරැසි නිර්මාණය",
   "VOTSubtitlesFontSize": "උපසිරැසි වල අකුරු ප්රමාණය",
   "VOTSubtitlesOpacity": "උපසිරැසි පසුබිමේ විනිවිදභාවය",
-  "VOTPressNewHotkey": "නව hotkey ඔබන්න...",
-  "VOTCreateTranslationHotkey": "පරිවර්තනය සඳහා Hotkey නිර්මාණය කරන්න",
-  "VOTChangeHotkeyWithCurrent": "Hotkey (වර්තමාන: {0})වෙනස් කරන්න",
   "VOTSubtitlesDownloadFormat": "උපසිරැසි බාගත කිරීම සඳහා ආකෘතිය",
   "VOTDownloadWithName": "වීඩියෝ නාමය සහිත ගොනු බාගත කරන්න",
   "VOTUpdateLocaleFiles": "දේශීයකරණ ගොනු යාවත්කාලීන කරන්න",
@@ -229,7 +226,6 @@
   "secs": "තත්පර",
   "autoHideButtonDelay": "පරිවර්තනය බොත්තම සැඟවීමට පෙර ප්රමාද",
   "notFound": "සොයාගත නොහැක",
-  "downloadFailed": "ගොනුව බාගත කිරීමට අසමත්",
   "minButtonPositionContainer": "බොත්තමේ පිහිටීම වෙනස් වෙන්නේ පික්සල් 600ට වඩා විශාල ක් රීඩකයන් තුළ පමණයි.",
   "VOTTranslateProxyStatusDefault": "සම්පූර්ණයෙන්ම අක්රිය ඔබගේ රටේ proxying දීර්ඝ බිඳ දැමිය හැක",
   "PressTheKeyCombination": "යතුරු සංයෝගය ඔබන්න...",
@@ -239,5 +235,8 @@
   "VOTMyAccount": "මගේ ගිණුම",
   "VOTLogin": "පිවිසෙන්න",
   "VOTLogout": "පිටවීම",
-  "VOTRefresh": "නැවුම් කරන්න"
+  "VOTRefresh": "නැවුම් කරන්න",
+  "VOTYandexToken": "Yandex Oauth ටෝකනය ඇතුලත් කරන්න",
+  "VOTYandexTokenInfo": "ඔබට මෙම ක්ෂේත් රයේ ගිණුම් ටෝකනය අතින් සකස් කළ හැකිය. පරිවර්තන ඉල්ලීමක් යැවීමට පෙර අපි එහි වලංගුභාවය පරීක්ෂා නොකරන බව කරුණාවෙන් සලකන්න",
+  "VOTLoginViaToken": "Token හරහා පිවිසෙන්න"
 }
