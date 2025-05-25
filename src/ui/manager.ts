@@ -10,10 +10,8 @@ import {
   downloadBlob,
   downloadTranslation,
   exitFullscreen,
-  GM_fetch,
-  isSupportGMXhr,
   openDownloadTranslation,
-} from "../utils/utils.js";
+} from "../utils/utils";
 import type { UIManagerProps } from "../types/uiManager";
 import type { StorageData } from "../types/storage";
 import type { VideoHandler } from "..";
@@ -28,6 +26,7 @@ import VOTButton from "./components/votButton";
 import { votStorage } from "../utils/storage";
 import debug from "../utils/debug";
 import { VOTLocalizedError } from "../utils/VOTLocalizedError.js";
+import { GM_fetch, isSupportGMXhr } from "../utils/gm";
 
 export class UIManager {
   root: HTMLElement;

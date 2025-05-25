@@ -3,7 +3,9 @@ import rawDefaultLocale from "./locales/en.json";
 import debug from "../utils/debug";
 import { contentUrl } from "../config/config.js";
 import { votStorage } from "../utils/storage";
-import { getTimestamp, GM_fetch, lang, toFlatObj } from "../utils/utils.js";
+import { getTimestamp, toFlatObj } from "../utils/utils";
+import { lang } from "../utils/localization";
+import { GM_fetch } from "../utils/gm";
 import { LocaleStorageKey } from "../types/storage";
 import { FlatPhrases, Locale, Phrase } from "../types/localization";
 

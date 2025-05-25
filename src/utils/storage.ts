@@ -9,7 +9,7 @@ import {
   StorageKey,
   storageKeys,
 } from "../types/storage";
-import { isSupportGM4 } from "./utils";
+import { isSupportGM4 } from "./gm";
 import { actualCompatVersion } from "../config/config";
 import { localizationProvider } from "../localization/localizationProvider";
 

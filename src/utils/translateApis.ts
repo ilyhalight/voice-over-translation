@@ -7,7 +7,7 @@ import {
   defaultTranslationService,
 } from "../config/config.js";
 import { votStorage } from "./storage";
-import { GM_fetch } from "./utils.js";
+import { GM_fetch } from "./gm";
 
 type FOSWLYErrorResponse = {
   error: string;

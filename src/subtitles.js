@@ -2,7 +2,9 @@ import { html, render } from "lit-html";
 import { convertSubs } from "@vot.js/shared/utils/subs";
 
 import { defaultTranslationService } from "./config/config.js";
-import { lang, GM_fetch, timeout } from "./utils/utils.js";
+import { timeout } from "./utils/utils.ts";
+import { lang } from "./utils/localization.ts";
+import { GM_fetch } from "./utils/gm.ts";
 import { translate } from "./utils/translateApis.ts";
 import { localizationProvider } from "./localization/localizationProvider.ts";
 import { votStorage } from "./utils/storage.ts";

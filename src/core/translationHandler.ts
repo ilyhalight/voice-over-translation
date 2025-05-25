@@ -13,7 +13,8 @@ import { VideoData, VideoHandler } from "..";
 import { AudioDownloader } from "../audioDownloader";
 import debug from "../utils/debug";
 import { localizationProvider } from "../localization/localizationProvider";
-import { secsToStrTime, waitForCondition } from "../utils/utils";
+import { waitForCondition } from "../utils/utils";
+import { secsToStrTime } from "../utils/localization";
 import { VOTLocalizedError } from "../utils/VOTLocalizedError";
 
 export class VOTTranslationHandler {

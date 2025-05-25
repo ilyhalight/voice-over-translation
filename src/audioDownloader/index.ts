@@ -23,7 +23,7 @@ import {
   MIN_CONTENT_LENGTH_MULTIPLIER,
   serializeResponse,
 } from "./shared";
-import { GM_fetch, timeout } from "../utils/utils";
+import { timeout } from "../utils/utils";
 import {
   deserializeRequestInit,
   getRequestUrl,
@@ -39,6 +39,7 @@ import {
   requestDataFromMainWorld,
 } from "../utils/iframeConnector";
 import debug from "../utils/debug";
+import { GM_fetch } from "../utils/gm";
 
 let serviceIframe: HTMLIFrameElement | null = null;
 let mediaQuaryIndex = 1;

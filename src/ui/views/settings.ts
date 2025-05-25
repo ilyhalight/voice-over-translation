@@ -13,7 +13,10 @@ import HotkeyButton from "../components/hotkeyButton";
 import SliderLabel from "../components/sliderLabel";
 import Details from "../components/details";
 import Textfield from "../components/textfield";
+import Label from "../components/label";
+import AccountButton from "../components/accountButton";
 
+import debug from "../../utils/debug";
 import type { Locale } from "../../types/localization";
 import type {
   LanguageSelectKey,
@@ -30,7 +33,6 @@ import type {
   DetectService,
   TranslateService,
 } from "../../types/translateApis";
-import debug from "../../utils/debug";
 import { detectServices, translateServices } from "../../utils/translateApis";
 import {
   authServerUrl,
@@ -46,16 +48,13 @@ import { EventImpl } from "../../core/eventImpl";
 import { votStorage } from "../../utils/storage";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { positions, type Position } from "../../types/components/votButton";
+import { browserInfo, isPiPAvailable } from "../../utils/utils";
 import {
-  browserInfo,
-  isPiPAvailable,
   isProxyOnlyExtension,
   isSupportGMXhr,
   isUnsafeWindowAllowed,
-} from "../../utils/utils";
+} from "../../utils/gm";
 import { HELP_ICON, WARNING_ICON } from "../icons";
-import Label from "../components/label";
-import AccountButton from "../components/accountButton";
 
 export class SettingsView {
   globalPortal: HTMLElement;

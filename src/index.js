@@ -24,15 +24,13 @@ import {
 import { localizationProvider } from "./localization/localizationProvider.ts";
 import { SubtitlesWidget, SubtitlesProcessor } from "./subtitles.js";
 import { VOTLocalizedError } from "./utils/VOTLocalizedError.js";
+import { initHls, calculatedResLang, browserInfo } from "./utils/utils.ts";
 import {
   GM_fetch,
-  initHls,
-  calculatedResLang,
   isProxyOnlyExtension,
   isUnsafeWindowAllowed,
-  browserInfo,
   isSupportGMXhr,
-} from "./utils/utils.js";
+} from "./utils/gm.ts";
 import { isIframe } from "./utils/iframeConnector.ts";
 import { syncVolume } from "./utils/volume.js";
 import { VideoObserver } from "./utils/VideoObserver.js";
