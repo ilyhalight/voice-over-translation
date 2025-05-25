@@ -1,13 +1,13 @@
 import rawDefaultLocale from "./locales/en.json";
 
-import debug from "../utils/debug";
 import { contentUrl } from "../config/config.js";
+import { FlatPhrases, Locale, Phrase } from "../types/localization";
+import { LocaleStorageKey } from "../types/storage";
+import debug from "../utils/debug";
+import { GM_fetch } from "../utils/gm";
+import { lang } from "../utils/localization";
 import { votStorage } from "../utils/storage";
 import { getTimestamp, toFlatObj } from "../utils/utils";
-import { lang } from "../utils/localization";
-import { GM_fetch } from "../utils/gm";
-import { LocaleStorageKey } from "../types/storage";
-import { FlatPhrases, Locale, Phrase } from "../types/localization";
 
 export type LangOverride = "auto" | Locale;
 

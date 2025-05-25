@@ -2,7 +2,6 @@ import { render } from "lit-html";
 import "./styles/main.scss";
 import { localizationProvider } from "./localization/localizationProvider.ts";
 
-// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export default class UI {
   /**
    * Auxiliary method for creating HTML elements

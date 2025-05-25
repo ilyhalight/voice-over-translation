@@ -970,7 +970,7 @@ Available (sub)domains:
 
 Available paths:
 
-- /k/\*
+- /k/*
 
 ## Direct link to MP4/WEBM
 

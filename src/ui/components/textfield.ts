@@ -1,6 +1,6 @@
-import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
 import type { TextfieldProps } from "../../types/components/textfield";
+import UI from "../../ui";
 
 export default class Textfield {
   container: HTMLElement;

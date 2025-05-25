@@ -2,8 +2,20 @@ import { convertSubs } from "@vot.js/shared/utils/subs";
 
 import ui from "../ui";
 
-import { OverlayView } from "./views/overlay";
-import { SettingsView } from "./views/settings";
+import type { VideoHandler } from "..";
+import {
+  actualCompatVersion,
+  maxAudioVolume,
+  repositoryUrl,
+} from "../config/config";
+import { localizationProvider } from "../localization/localizationProvider";
+import type { Status } from "../types/components/votButton";
+import type { StorageData } from "../types/storage";
+import type { UIManagerProps } from "../types/uiManager";
+import { VOTLocalizedError } from "../utils/VOTLocalizedError.js";
+import debug from "../utils/debug";
+import { GM_fetch, isSupportGMXhr } from "../utils/gm";
+import { votStorage } from "../utils/storage";
 import {
   clamp,
   clearFileName,
@@ -12,21 +24,9 @@ import {
   exitFullscreen,
   openDownloadTranslation,
 } from "../utils/utils";
-import type { UIManagerProps } from "../types/uiManager";
-import type { StorageData } from "../types/storage";
-import type { VideoHandler } from "..";
-import type { Status } from "../types/components/votButton";
-import { localizationProvider } from "../localization/localizationProvider";
-import {
-  actualCompatVersion,
-  maxAudioVolume,
-  repositoryUrl,
-} from "../config/config";
 import VOTButton from "./components/votButton";
-import { votStorage } from "../utils/storage";
-import debug from "../utils/debug";
-import { VOTLocalizedError } from "../utils/VOTLocalizedError.js";
-import { GM_fetch, isSupportGMXhr } from "../utils/gm";
+import { OverlayView } from "./views/overlay";
+import { SettingsView } from "./views/settings";
 
 export class UIManager {
   root: HTMLElement;

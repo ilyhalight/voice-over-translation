@@ -1,5 +1,5 @@
-import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
+import UI from "../../ui";
 import { DOWNLOAD_ICON } from "../icons";
 
 export default class DownloadButton {

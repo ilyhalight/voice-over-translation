@@ -1,9 +1,9 @@
-import UI from "../../ui";
-import { EventImpl } from "../../core/eventImpl";
-import { AccountButtonProps } from "../../types/components/accountButton";
-import { REFRESH_ICON, KEY_ICON } from "../icons";
 import { avatarServerUrl } from "../../config/config";
+import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
+import { AccountButtonProps } from "../../types/components/accountButton";
+import UI from "../../ui";
+import { KEY_ICON, REFRESH_ICON } from "../icons";
 
 export default class AccountButton {
   container: HTMLElement;

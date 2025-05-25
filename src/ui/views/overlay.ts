@@ -3,28 +3,28 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import ui from "../../ui";
 
-import Tooltip from "../components/tooltip";
-import Select from "../components/select";
-import VOTMenu from "../components/votMenu";
-import VOTButton from "../components/votButton";
 import LanguagePairSelect from "../components/languagePairSelect";
+import Select from "../components/select";
 import Slider from "../components/slider";
 import SliderLabel from "../components/sliderLabel";
+import Tooltip from "../components/tooltip";
+import VOTButton from "../components/votButton";
+import VOTMenu from "../components/votMenu";
 import { SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
 
-import type { Direction, Position } from "../../types/components/votButton";
-import type { ButtonLayout } from "../../types/uiManager";
-import type { LanguageSelectKey } from "../../types/components/select";
-import type { OverlayViewProps } from "../../types/views/overlay";
-import type { StorageData } from "../../types/storage";
 import type { VideoHandler } from "../..";
-import { EventImpl } from "../../core/eventImpl";
-import { votStorage } from "../../utils/storage";
 import { maxAudioVolume } from "../../config/config";
-import { isPiPAvailable } from "../../utils/utils";
+import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
-import Label from "../components/label";
+import type { LanguageSelectKey } from "../../types/components/select";
+import type { Direction, Position } from "../../types/components/votButton";
+import type { StorageData } from "../../types/storage";
+import type { ButtonLayout } from "../../types/uiManager";
+import type { OverlayViewProps } from "../../types/views/overlay";
+import { votStorage } from "../../utils/storage";
+import { isPiPAvailable } from "../../utils/utils";
 import DownloadButton from "../components/downloadButton";
+import Label from "../components/label";
 
 export class OverlayView {
   root: HTMLElement;
@@ -163,7 +163,6 @@ export class OverlayView {
       | "select:fromLanguage"
       | "select:toLanguage"
       | "select:subtitles",
-    // biome-ignore lint/suspicious/noExplicitAny: it's ok trust me
     listener: (...data: any[]) => void,
   ): this {
     switch (type) {
@@ -255,7 +254,6 @@ export class OverlayView {
       | "select:fromLanguage"
       | "select:toLanguage"
       | "select:subtitles",
-    // biome-ignore lint/suspicious/noExplicitAny: it's ok trust me
     listener: (...data: any[]) => void,
   ) {
     switch (type) {

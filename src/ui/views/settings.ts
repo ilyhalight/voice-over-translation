@@ -1,39 +1,22 @@
-import { html } from "lit-html";
+import type { TMInfoScriptMeta } from "@toil/gm-types/types/info/tampermonkey";
 import { availableLangs, subtitlesFormats } from "@vot.js/shared/consts";
 import type { SubtitleFormat } from "@vot.js/shared/types/subs";
-import type { TMInfoScriptMeta } from "@toil/gm-types/types/info/tampermonkey";
+import { html } from "lit-html";
 
 import ui from "../../ui";
-import Tooltip from "../components/tooltip";
+import AccountButton from "../components/accountButton";
+import Checkbox from "../components/checkbox";
+import Details from "../components/details";
+import Dialog from "../components/dialog";
+import HotkeyButton from "../components/hotkeyButton";
+import Label from "../components/label";
 import Select from "../components/select";
 import Slider from "../components/slider";
-import Dialog from "../components/dialog";
-import Checkbox from "../components/checkbox";
-import HotkeyButton from "../components/hotkeyButton";
 import SliderLabel from "../components/sliderLabel";
-import Details from "../components/details";
 import Textfield from "../components/textfield";
-import Label from "../components/label";
-import AccountButton from "../components/accountButton";
+import Tooltip from "../components/tooltip";
 
-import debug from "../../utils/debug";
-import type { Locale } from "../../types/localization";
-import type {
-  LanguageSelectKey,
-  SelectItem,
-} from "../../types/components/select";
-import type {
-  Account,
-  StorageData,
-  TranslateProxyStatus,
-} from "../../types/storage";
-import type { SettingsViewProps } from "../../types/views/settings";
-import { countryCode, type VideoHandler } from "../..";
-import type {
-  DetectService,
-  TranslateService,
-} from "../../types/translateApis";
-import { detectServices, translateServices } from "../../utils/translateApis";
+import { type VideoHandler, countryCode } from "../..";
 import {
   authServerUrl,
   defaultAutoHideDelay,
@@ -45,15 +28,32 @@ import {
   proxyWorkerHost,
 } from "../../config/config";
 import { EventImpl } from "../../core/eventImpl";
-import { votStorage } from "../../utils/storage";
 import { localizationProvider } from "../../localization/localizationProvider";
-import { positions, type Position } from "../../types/components/votButton";
-import { browserInfo, isPiPAvailable } from "../../utils/utils";
+import type {
+  LanguageSelectKey,
+  SelectItem,
+} from "../../types/components/select";
+import { type Position, positions } from "../../types/components/votButton";
+import type { Locale } from "../../types/localization";
+import type {
+  Account,
+  StorageData,
+  TranslateProxyStatus,
+} from "../../types/storage";
+import type {
+  DetectService,
+  TranslateService,
+} from "../../types/translateApis";
+import type { SettingsViewProps } from "../../types/views/settings";
+import debug from "../../utils/debug";
 import {
   isProxyOnlyExtension,
   isSupportGMXhr,
   isUnsafeWindowAllowed,
 } from "../../utils/gm";
+import { votStorage } from "../../utils/storage";
+import { detectServices, translateServices } from "../../utils/translateApis";
+import { browserInfo, isPiPAvailable } from "../../utils/utils";
 import { HELP_ICON, WARNING_ICON } from "../icons";
 
 export class SettingsView {
@@ -1167,8 +1167,8 @@ export class SettingsView {
         (this.data.localeUpdatedAt ?? 0) * 1000,
       ).toLocaleString();
       const localeInfoValue = html`${this.data.localeHash}<br />(${localizationProvider.get(
-          "VOTUpdatedAt",
-        )}
+        "VOTUpdatedAt",
+      )}
         ${localeUpdatedAt})`;
 
       const localeInfo = ui.createInformation(
@@ -1310,7 +1310,6 @@ export class SettingsView {
       | "select:translationTextService"
       | "select:buttonPosition"
       | "select:menuLanguage",
-    // biome-ignore lint/suspicious/noExplicitAny: it's ok trust me
     listener: (...data: any[]) => void,
   ): this {
     switch (type) {
@@ -1501,7 +1500,6 @@ export class SettingsView {
       | "select:translationTextService"
       | "select:buttonPosition"
       | "select:menuLanguage",
-    // biome-ignore lint/suspicious/noExplicitAny: it's ok trust me
     listener: (...data: any[]) => void,
   ) {
     switch (type) {

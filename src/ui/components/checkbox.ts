@@ -1,9 +1,9 @@
 import { render } from "lit-html";
 
-import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
 import type { CheckboxProps } from "../../types/components/checkbox";
 import type { LitHtml } from "../../types/components/shared";
+import UI from "../../ui";
 
 export default class Checkbox {
   container: HTMLElement;

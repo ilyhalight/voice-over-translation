@@ -1,49 +1,47 @@
-import Chaimu, { initAudioContext } from "chaimu";
-
 import VOTClient, { VOTWorkerClient } from "@vot.js/ext";
-import { getVideoID, getService } from "@vot.js/ext/utils/videoData";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
+import { getService, getVideoID } from "@vot.js/ext/utils/videoData";
+import Chaimu, { initAudioContext } from "chaimu";
 
 import ui from "./ui.js";
 import debug from "./utils/debug.ts";
 
+import { initAudioDownloaderIframe } from "./audioDownloader/iframe.ts";
 import {
+  actualCompatVersion,
+  authServerUrl,
+  defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
   defaultTranslationService,
   m3u8ProxyHost,
-  proxyWorkerHost,
   minLongWaitingCount,
+  proxyOnlyCountries,
+  proxyWorkerHost,
   votBackendUrl,
   workerHost,
-  proxyOnlyCountries,
-  defaultAutoHideDelay,
-  actualCompatVersion,
-  authServerUrl,
 } from "./config/config.js";
-import { localizationProvider } from "./localization/localizationProvider.ts";
-import { SubtitlesWidget, SubtitlesProcessor } from "./subtitles.js";
-import { VOTLocalizedError } from "./utils/VOTLocalizedError.js";
-import { initHls, calculatedResLang, browserInfo } from "./utils/utils.ts";
-import {
-  GM_fetch,
-  isProxyOnlyExtension,
-  isUnsafeWindowAllowed,
-  isSupportGMXhr,
-} from "./utils/gm.ts";
-import { isIframe } from "./utils/iframeConnector.ts";
-import { syncVolume } from "./utils/volume.js";
-import { VideoObserver } from "./utils/VideoObserver.js";
-import { updateConfig, votStorage } from "./utils/storage.ts";
-import { translate } from "./utils/translateApis.ts";
-import { UIManager } from "./ui/manager.ts";
-import { formatKeysCombo } from "./ui/components/hotkeyButton.ts";
-import { initAudioDownloaderIframe } from "./audioDownloader/iframe.ts";
-import { IFRAME_HASH } from "./utils/iframeConnector.ts";
 import { initAuth } from "./core/auth.ts";
 import { CacheManager } from "./core/cacheManager.ts";
 import { VOTTranslationHandler } from "./core/translationHandler.ts";
 import { VOTVideoManager } from "./core/videoManager.ts";
+import { localizationProvider } from "./localization/localizationProvider.ts";
+import { SubtitlesProcessor, SubtitlesWidget } from "./subtitles.js";
+import { formatKeysCombo } from "./ui/components/hotkeyButton.ts";
+import { UIManager } from "./ui/manager.ts";
+import { VOTLocalizedError } from "./utils/VOTLocalizedError.js";
+import { VideoObserver } from "./utils/VideoObserver.js";
+import {
+  GM_fetch,
+  isProxyOnlyExtension,
+  isSupportGMXhr,
+  isUnsafeWindowAllowed,
+} from "./utils/gm.ts";
+import { IFRAME_HASH, isIframe } from "./utils/iframeConnector.ts";
+import { updateConfig, votStorage } from "./utils/storage.ts";
+import { translate } from "./utils/translateApis.ts";
+import { browserInfo, calculatedResLang, initHls } from "./utils/utils.ts";
+import { syncVolume } from "./utils/volume.js";
 
 export let countryCode; // Used later for proxy settings
 
@@ -873,7 +871,6 @@ class VideoHandler {
         : 0;
     debug.log("longWaitingResCount", this.longWaitingResCount);
     if (this.longWaitingResCount > minLongWaitingCount) {
-      // biome-ignore lint/style/noParameterAssign: waiting recode to ts
       errorMessage = new VOTLocalizedError("TranslationDelayed");
     }
     if (errorMessage?.name === "VOTLocalizedError") {
@@ -976,7 +973,6 @@ class VideoHandler {
         this.videoData.detectedLanguage,
         this.videoData.responseLanguage,
       );
-      // biome-ignore lint/style/noParameterAssign: waiting recode to ts
       audioUrl = translateRes.url;
       debug.log("Fixed audio audioUrl", audioUrl);
     } catch (err) {
@@ -999,7 +995,6 @@ class VideoHandler {
         "https://vtrans.s3-private.mds.yandex.net/tts/prod/",
         "",
       );
-      // biome-ignore lint/style/noParameterAssign: waiting recode to ts
       audioUrl = `https://${this.data.proxyWorkerHost}/video-translation/audio-proxy/${audioPath}`;
       console.log(`[VOT] Audio proxied via ${audioUrl}`);
     }
@@ -1012,7 +1007,6 @@ class VideoHandler {
    */
   async updateTranslation(audioUrl) {
     if (audioUrl !== this.audioPlayer.player.currentSrc) {
-      // biome-ignore lint/style/noParameterAssign: waiting recode to ts
       audioUrl = await this.validateAudioUrl(this.proxifyAudio(audioUrl));
     }
     if (this.audioPlayer.player.src !== audioUrl) {
@@ -1148,11 +1142,9 @@ class VideoHandler {
    * @param {string} streamURL The HLS stream URL.
    */
   setupHLS(streamURL) {
-    // biome-ignore lint/complexity/useArrowFunction: waiting recode to ts
     this.hls.on(Hls.Events.MEDIA_ATTACHED, function () {
       debug.log("audio and hls.js are now bound together !");
     });
-    // biome-ignore lint/complexity/useArrowFunction: waiting recode to ts
     this.hls.on(Hls.Events.MANIFEST_PARSED, function (data) {
       debug.log(`manifest loaded, found ${data?.levels?.length} quality level`);
     });

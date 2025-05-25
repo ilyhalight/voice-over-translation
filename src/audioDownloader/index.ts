@@ -1,5 +1,7 @@
 import { AudioDownloadType } from "@vot.js/core/types/yandex";
 
+import { AdaptiveFormat } from "@vot.js/ext/types/helpers/youtube";
+import { EventImpl } from "../core/eventImpl";
 import {
   AudioDownloadRequestOptions,
   ChunkRange,
@@ -12,6 +14,16 @@ import {
   GetAudioFromAPIWithReplacedFetchOptions,
   VideoIdPayload,
 } from "../types/audioDownloader";
+import { MessagePayload } from "../types/iframeConnector";
+import debug from "../utils/debug";
+import { GM_fetch } from "../utils/gm";
+import {
+  ensureServiceIframe,
+  generateMessageId,
+  hasServiceIframe,
+  requestDataFromMainWorld,
+} from "../utils/iframeConnector";
+import { timeout } from "../utils/utils";
 import {
   ACCEPTABLE_LENGTH_DIFF,
   CHUNK_STEPS,
@@ -21,25 +33,11 @@ import {
   MIN_ARRAY_BUFFER_LENGTH,
   MIN_CHUNK_RANGES_PART_SIZE,
   MIN_CONTENT_LENGTH_MULTIPLIER,
-  serializeResponse,
-} from "./shared";
-import { timeout } from "../utils/utils";
-import {
   deserializeRequestInit,
   getRequestUrl,
   serializeRequestInit,
+  serializeResponse,
 } from "./shared";
-import { AdaptiveFormat } from "@vot.js/ext/types/helpers/youtube";
-import { EventImpl } from "../core/eventImpl";
-import { MessagePayload } from "../types/iframeConnector";
-import {
-  ensureServiceIframe,
-  generateMessageId,
-  hasServiceIframe,
-  requestDataFromMainWorld,
-} from "../utils/iframeConnector";
-import debug from "../utils/debug";
-import { GM_fetch } from "../utils/gm";
 
 let serviceIframe: HTMLIFrameElement | null = null;
 let mediaQuaryIndex = 1;

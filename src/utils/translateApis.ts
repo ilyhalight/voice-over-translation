@@ -1,13 +1,13 @@
-import type { ClientType, BaseProviderType } from "@toil/translate/types";
+import type { BaseProviderType, ClientType } from "@toil/translate/types";
 
 import {
-  foswlyTranslateUrl,
-  detectRustServerUrl,
   defaultDetectService,
   defaultTranslationService,
+  detectRustServerUrl,
+  foswlyTranslateUrl,
 } from "../config/config.js";
-import { votStorage } from "./storage";
 import { GM_fetch } from "./gm";
+import { votStorage } from "./storage";
 
 type FOSWLYErrorResponse = {
   error: string;

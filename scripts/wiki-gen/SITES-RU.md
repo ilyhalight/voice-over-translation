@@ -970,7 +970,7 @@
 
 Доступные пути:
 
-- /k/\*
+- /k/*
 
 ## Direct link to MP4/WEBM
 

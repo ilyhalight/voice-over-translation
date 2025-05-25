@@ -1,10 +1,10 @@
 import {
-  type TooltipOpts,
-  type Position,
-  positions,
-  type Trigger,
-  triggers,
   type PagePosition,
+  type Position,
+  type TooltipOpts,
+  type Trigger,
+  positions,
+  triggers,
 } from "../../types/components/tooltip";
 import UI from "../../ui";
 import { clamp } from "../../utils/utils";

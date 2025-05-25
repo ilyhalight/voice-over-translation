@@ -1,9 +1,9 @@
 import type VOTClient from "@vot.js/ext";
 
+import type { VOTWorkerClient } from "@vot.js/ext";
 import type { ServiceConf, VideoService } from "@vot.js/ext/types/service";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { SubtitlesData } from "@vot.js/shared/types/subs";
-import type { VOTWorkerClient } from "@vot.js/ext";
 import type { TranslationHelp } from "@vot.js/core/types/yandex";
 
 import { CacheManager } from "./core/cacheManager";

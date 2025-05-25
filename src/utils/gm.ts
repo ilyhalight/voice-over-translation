@@ -68,7 +68,7 @@ export async function GM_fetch(
           resolve(response);
         },
         ontimeout: () => reject(new Error("Timeout")),
-        onerror: (error) => reject(new Error(error as any)),
+        onerror: (error: any) => reject(new Error(error)),
         onabort: () => reject(new Error("AbortError")),
       });
     });

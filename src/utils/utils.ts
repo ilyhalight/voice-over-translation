@@ -13,7 +13,7 @@ export interface DocumentWithFullscreen extends Document {
 
 const textFilters =
   /(?:https?|www|\bhttp\s+)[^\s/]*?(?:\.\s*[a-z]{2,}|\/)\S*|#[^\s#]+|auto-generated\s+by\s+youtube|provided\s+to\s+youtube\s+by|released\s+on|paypal?|0x[\da-f]{40}|[13][1-9a-z]{25,34}|4[\dab][1-9a-z]{93}|t[1-9a-z]{33}/gi;
-const slavicLangs = [
+const slavicLangs = new Set([
   "uk",
   "be",
   "bg",
@@ -25,13 +25,13 @@ const slavicLangs = [
   "pl",
   "sk",
   "cs",
-];
+]);
 export const calculatedResLang: ResponseLang = (() => {
   if (availableTTS.includes(lang as ResponseLang)) {
     return lang as ResponseLang;
   }
 
-  if (slavicLangs.includes(lang)) {
+  if (slavicLangs.has(lang)) {
     return "ru";
   }
 
@@ -105,6 +105,7 @@ function clamp(value: number, min = 0, max = 100) {
 function toFlatObj<T extends Record<string, unknown>>(
   data: Record<string, unknown>,
 ): T {
+  // eslint-disable-next-line no-accumulating-spread
   return Object.entries(data).reduce<Record<string, unknown>>(
     (result, [key, val]) => {
       if (val === undefined) {

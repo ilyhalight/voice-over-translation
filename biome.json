@@ -1,5 +1,12 @@
 {
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
-    "ignore": ["dist/**/*.js", "tests/ui.js"]
+    "ignore": ["dist/**/*.js", "**/*.d.ts"]
+  },
+  "linter": {
+    "enabled": false
+  },
+  "formatter": {
+    "indentStyle": "space"
   }
 }

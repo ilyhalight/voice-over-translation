@@ -1,4 +1,3 @@
-import { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { VOTJSError } from "@vot.js/core/client";
 import {
   StreamTranslationResponse,
@@ -8,14 +7,15 @@ import {
   VideoTranslationStatus,
   WaitingStreamTranslationResponse,
 } from "@vot.js/core/types/yandex";
+import { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { VideoData, VideoHandler } from "..";
 import { AudioDownloader } from "../audioDownloader";
-import debug from "../utils/debug";
 import { localizationProvider } from "../localization/localizationProvider";
-import { waitForCondition } from "../utils/utils";
-import { secsToStrTime } from "../utils/localization";
 import { VOTLocalizedError } from "../utils/VOTLocalizedError";
+import debug from "../utils/debug";
+import { secsToStrTime } from "../utils/localization";
+import { waitForCondition } from "../utils/utils";
 
 export class VOTTranslationHandler {
   videoHandler: VideoHandler;

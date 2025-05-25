@@ -1,9 +1,9 @@
 import { render } from "lit-html";
 
-import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
-import type { SliderProps } from "../../types/components/slider";
 import type { LitHtml } from "../../types/components/shared";
+import type { SliderProps } from "../../types/components/slider";
+import UI from "../../ui";
 
 export default class Slider {
   container: HTMLElement;

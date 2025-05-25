@@ -1,11 +1,11 @@
 import { render } from "lit-html";
 
-import Select from "./select";
-import UI from "../../ui";
-import { ARROW_RIGHT_ICON } from "../icons";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { LanguagePairSelectProps } from "../../types/components/languagePairSelect";
 import type { SelectItem } from "../../types/components/select";
+import UI from "../../ui";
+import { ARROW_RIGHT_ICON } from "../icons";
+import Select from "./select";
 
 export default class LanguagePairSelect<
   F extends string = string,
@@ -101,13 +101,9 @@ export default class LanguagePairSelect<
     fromItems: SelectItem<U>[],
     toItems: SelectItem<I>[],
   ): LanguagePairSelect<U, I> {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     this._fromItems = fromItems as SelectItem<any>[];
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     this._toItems = toItems as SelectItem<any>[];
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     this.fromSelect = this.fromSelect.updateItems<any>(fromItems);
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     this.toSelect = this.toSelect.updateItems<any>(toItems);
     return this as unknown as LanguagePairSelect<U, I>;
   }

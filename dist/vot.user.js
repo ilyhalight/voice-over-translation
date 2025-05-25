@@ -3231,8 +3231,8 @@
 			p.d(f, {
 				q8: () => E,
 				kO: () => te,
-				Xv: () => ee,
-				n_: () => $,
+				Xv: () => $,
+				n_: () => ee,
 				P4: () => X,
 				LD: () => Z,
 				Y7: () => q,
@@ -3616,7 +3616,7 @@
 			function assertFloat32(d) {
 				if (typeof d == "string") {
 					let f = d;
-					if (d = Number(d), isNaN(d) && f !== "NaN") throw Error("invalid float32: " + f);
+					if (d = Number(d), Number.isNaN(d) && f !== "NaN") throw Error("invalid float32: " + f);
 				} else if (typeof d != "number") throw Error("invalid float32: " + typeof d);
 				if (Number.isFinite(d) && (d > v || d < b)) throw Error("invalid float32: " + d);
 			}
@@ -4577,7 +4577,7 @@
 					unknown1: 0
 				};
 			}
-			let ee = {
+			let $ = {
 				encode(d, f = new BinaryWriter()) {
 					return d.url !== "" && f.uint32(10).string(d.url), d.language !== "" && f.uint32(18).string(d.language), d.responseLanguage !== "" && f.uint32(26).string(d.responseLanguage), d.unknown0 !== 0 && f.uint32(40).int32(d.unknown0), d.unknown1 !== 0 && f.uint32(48).int32(d.unknown1), f;
 				},
@@ -4626,7 +4626,7 @@
 					return d.url !== "" && (f.url = d.url), d.language !== "" && (f.language = d.language), d.responseLanguage !== "" && (f.responseLanguage = d.responseLanguage), d.unknown0 !== 0 && (f.unknown0 = Math.round(d.unknown0)), d.unknown1 !== 0 && (f.unknown1 = Math.round(d.unknown1)), f;
 				},
 				create(d) {
-					return ee.fromPartial(d ?? {});
+					return $.fromPartial(d ?? {});
 				},
 				fromPartial(d) {
 					let f = createBaseStreamTranslationRequest();
@@ -4640,7 +4640,7 @@
 					pingId: void 0
 				};
 			}
-			let $ = {
+			let ee = {
 				encode(d, f = new BinaryWriter()) {
 					return d.interval !== 0 && f.uint32(8).int32(d.interval), d.translatedInfo !== void 0 && Q.encode(d.translatedInfo, f.uint32(18).fork()).join(), d.pingId !== void 0 && f.uint32(24).int32(d.pingId), f;
 				},
@@ -4679,7 +4679,7 @@
 					return d.interval !== 0 && (f.interval = streamIntervalToJSON(d.interval)), d.translatedInfo !== void 0 && (f.translatedInfo = Q.toJSON(d.translatedInfo)), d.pingId !== void 0 && (f.pingId = Math.round(d.pingId)), f;
 				},
 				create(d) {
-					return $.fromPartial(d ?? {});
+					return ee.fromPartial(d ?? {});
 				},
 				fromPartial(d) {
 					let f = createBaseStreamTranslationResponse();
@@ -7692,8 +7692,8 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { q: () => initAudioDownloaderIframe });
-					var h = p("./node_modules/@vot.js/ext/dist/helpers/youtube.js"), g = p("./src/utils/utils.js"), _ = p("./src/audioDownloader/shared.ts"), v = p("./src/utils/debug.ts"), b = p("./src/utils/iframeConnector.ts"), x = d([g, b]);
-					[g, b] = x.then ? (await x)() : x;
+					var h = p("./node_modules/@vot.js/ext/dist/helpers/youtube.js"), g = p("./src/utils/debug.ts"), _ = p("./src/utils/iframeConnector.ts"), v = p("./src/utils/utils.ts"), b = p("./src/audioDownloader/shared.ts"), x = d([_, v]);
+					[_, v] = x.then ? (await x)() : x;
 					let C = "", getAdaptiveFormats = () => h.A.getPlayerResponse()?.streamingData?.adaptiveFormats;
 					async function isEncodedRequest(d, f) {
 						if (!d.includes("googlevideo.com/videoplayback") || typeof f == "string") return !1;
@@ -7720,14 +7720,14 @@
 						let p = f.filter(({ itag: d }) => d === 251).sort(({ contentLength: d }, { contentLength: f }) => d && f ? Number.parseInt(d) - Number.parseInt(f) : -1);
 						return p.at(-1) ?? f[0];
 					}
-					let waitForPlayer = async () => (await (0, g.UV)(() => !!h.A.getPlayer(), 1e4), h.A.getPlayer());
+					let waitForPlayer = async () => (await (0, v.UV)(() => !!h.A.getPlayer(), 1e4), h.A.getPlayer());
 					async function getDownloadAudioData(d) {
 						try {
-							C = d.messageId, v.A.log("getDownloadAudioData", d);
+							C = d.messageId, g.A.log("getDownloadAudioData", d);
 							let f = unsafeWindow.fetch;
 							unsafeWindow.fetch = async (p, m) => {
 								p instanceof URL && (p = p.toString());
-								let h = (0, _.rh)(p);
+								let h = (0, b.rh)(p);
 								if (await isEncodedRequest(h, p)) return window.parent.postMessage({
 									...d,
 									messageDirection: "response",
@@ -7739,7 +7739,7 @@
 									messageDirection: "response",
 									payload: {
 										requestInfo: h,
-										requestInit: m || (0, _.yA)(p),
+										requestInit: m || (0, b.yA)(p),
 										adaptiveFormat: selectBestAudioFormat(),
 										itag: 251
 									}
@@ -7773,14 +7773,14 @@
 								case "get-download-audio-data-in-iframe":
 									await getDownloadAudioData(d.payload);
 									break;
-								default: v.A.log(`NOT IMPLEMENTED: ${d.messageType}`, d.payload);
+								default: g.A.log(`NOT IMPLEMENTED: ${d.messageType}`, d.payload);
 							}
 						} catch (d) {
 							console.error("[VOT] Main world bridge", { error: d });
 						}
 					};
 					function initAudioDownloaderIframe() {
-						return (0, b.Io)(_.D5, handleIframeMessage);
+						return (0, _.Io)(b.D5, handleIframeMessage);
 					}
 					m();
 				} catch (d) {
@@ -7793,14 +7793,18 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { I: () => AudioDownloader });
-					var h = p("./node_modules/@vot.js/core/dist/types/yandex.js"), g = p("./src/audioDownloader/shared.ts"), _ = p("./src/utils/utils.js"), v = p("./src/core/eventImpl.ts"), b = p("./src/utils/iframeConnector.ts"), x = p("./src/utils/debug.ts"), C = d([_, b]);
-					[_, b] = C.then ? (await C)() : C;
-					let w = null, T = 1, E = new TextDecoder("ascii");
+					var h = p("./node_modules/@vot.js/core/dist/types/yandex.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/utils/debug.ts"), v = p("./src/utils/gm.ts"), b = p("./src/utils/iframeConnector.ts"), x = p("./src/utils/utils.ts"), C = p("./src/audioDownloader/shared.ts"), w = d([
+						v,
+						b,
+						x
+					]);
+					[v, b, x] = w.then ? (await w)() : w;
+					let T = null, E = 1, D = new TextDecoder("ascii");
 					async function sendAudioDownloadRequestToIframe(d) {
-						let { videoId: f } = d.payload, p = `https://${g.ov}/embed/${f}?autoplay=0&mute=1`;
+						let { videoId: f } = d.payload, p = `https://${C.ov}/embed/${f}?autoplay=0&mute=1`;
 						try {
-							let f = await (0, b.IA)(w, p, g.pr, g.D5);
-							if (!(0, b.yB)(g.pr)) throw Error("Audio downloader. WEB API. Service iframe deleted");
+							let f = await (0, b.IA)(T, p, C.pr, C.D5);
+							if (!(0, b.yB)(C.pr)) throw Error("Audio downloader. WEB API. Service iframe deleted");
 							f.contentWindow?.postMessage({
 								messageId: (0, b.Ok)(),
 								messageType: "get-download-audio-data-in-iframe",
@@ -7812,20 +7816,20 @@
 							d.error = f, d.messageDirection = "response", window.postMessage(d, "*");
 						}
 					}
-					let getDownloadAudioDataInMainWorld = (d) => (0, b.hG)("get-download-audio-data-in-main-world", d), D = "Audio downloader. WEB API. Can not get getGeneratingAudioUrlsDataFromIframe due to timeout";
+					let getDownloadAudioDataInMainWorld = (d) => (0, b.hG)("get-download-audio-data-in-main-world", d), O = "Audio downloader. WEB API. Can not get getGeneratingAudioUrlsDataFromIframe due to timeout";
 					async function getGeneratingAudioUrlsDataFromIframe(d) {
 						try {
-							return await Promise.race([getDownloadAudioDataInMainWorld({ videoId: d }), (0, _.wR)(2e4, D)]);
+							return await Promise.race([getDownloadAudioDataInMainWorld({ videoId: d }), (0, x.wR)(2e4, O)]);
 						} catch (d) {
-							let f = d instanceof Error && d.message === D;
-							throw Error(f ? D : "Audio downloader. WEB API. Failed to get audio data");
+							let f = d instanceof Error && d.message === O;
+							throw Error(f ? O : "Audio downloader. WEB API. Failed to get audio data");
 						}
 					}
 					function makeFileId(d, f) {
 						return JSON.stringify({
 							downloadType: h.J.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME,
 							itag: d,
-							minChunkSize: g.Aj,
+							minChunkSize: C.Aj,
 							fileSize: f
 						});
 					}
@@ -7837,31 +7841,31 @@
 					}
 					function getChunkRangesPartsFromContentLength(d) {
 						if (d < 1) throw Error("Audio downloader. WEB API. contentLength must be at least 1");
-						let f = Math.round(d * g.kV), p = [], m = [], h = 0, _ = 0, v = 0, b = Math.min(g.sU[_], d);
-						for (; b < d;) {
-							let d = b < f;
+						let f = Math.round(d * C.kV), p = [], m = [], h = 0, g = 0, _ = 0, v = Math.min(C.sU[g], d);
+						for (; v < d;) {
+							let d = v < f;
 							m.push({
-								start: v,
-								end: b,
+								start: _,
+								end: v,
 								mustExist: d
-							}), h += b - v, h >= g.Aj && (p.push(m), m = [], h = 0), _ < g.sU.length - 1 && _++, v = b + 1, b += g.sU[_];
+							}), h += v - _, h >= C.Aj && (p.push(m), m = [], h = 0), g < C.sU.length - 1 && g++, _ = v + 1, v += C.sU[g];
 						}
-						return b = d, m.push({
-							start: v,
-							end: b,
+						return v = d, m.push({
+							start: _,
+							end: v,
 							mustExist: !1
 						}), p.push(m), p;
 					}
 					function getChunkRangesFromContentLength(d) {
 						if (d < 1) throw Error("Audio downloader. WEB API. contentLength cannot be less than 1");
-						let f = Math.round(d * g.kV), p = [], m = 0, h = 0, _ = Math.min(g.sU[m], d);
-						for (; _ < d;) {
-							let d = _ < f;
+						let f = Math.round(d * C.kV), p = [], m = 0, h = 0, g = Math.min(C.sU[m], d);
+						for (; g < d;) {
+							let d = g < f;
 							p.push({
 								start: h,
-								end: _,
+								end: g,
 								mustExist: d
-							}), m !== g.sU.length - 1 && m++, h = _ + 1, _ += g.sU[m];
+							}), m !== C.sU.length - 1 && m++, h = g + 1, g += C.sU[m];
 						}
 						return p.push({
 							start: h,
@@ -7874,63 +7878,63 @@
 						if (!p.length) throw Error("Audio downloader. WEB API. No chunk parts generated");
 						return p;
 					}
-					let O = "Audio downloader. WEB API. Incorrect response on fetch media url", A = "Audio downloader. WEB API. Can not fetch media url", j = "Audio downloader. WEB API. Can not get array buffer from media url";
+					let A = "Audio downloader. WEB API. Incorrect response on fetch media url", j = "Audio downloader. WEB API. Can not fetch media url", F = "Audio downloader. WEB API. Can not get array buffer from media url";
 					function isChunkLengthAcceptable(d, { start: f, end: p }) {
 						let m = p - f;
-						return m > g.ds && d.byteLength < g.ds ? !1 : Math.min(m, d.byteLength) / Math.max(m, d.byteLength) > g.cP;
+						return m > C.ds && d.byteLength < C.ds ? !1 : Math.min(m, d.byteLength) / Math.max(m, d.byteLength) > C.cP;
 					}
 					function patchMediaUrl(d, { start: f, end: p }) {
 						let m = new URL(d);
-						return m.searchParams.set("range", `${f}-${p}`), m.searchParams.set("rn", String(T++)), m.searchParams.delete("ump"), m.toString();
+						return m.searchParams.set("range", `${f}-${p}`), m.searchParams.set("rn", String(E++)), m.searchParams.delete("ump"), m.toString();
 					}
 					let getUrlFromArrayBuffer = (d) => {
-						let f = E.decode(d).match(/https:\/\/.*$/);
+						let f = D.decode(d).match(/https:\/\/.*$/);
 						return f?.[0] ?? null;
 					};
 					async function fetchMediaWithMeta({ mediaUrl: d, chunkRange: f, requestInit: p, signal: m, isUrlChanged: h = !1 }) {
-						let v = patchMediaUrl(d, f), b;
+						let g = patchMediaUrl(d, f), _;
 						try {
-							if (b = await (0, _.G3)(v, {
+							if (_ = await (0, v.G3)(g, {
 								...p,
 								signal: m
-							}), !b.ok) {
-								let d = (0, g.SZ)(b);
-								throw console.error(O, d), Error(O);
+							}), !_.ok) {
+								let d = (0, C.SZ)(_);
+								throw console.error(A, d), Error(A);
 							}
 						} catch (d) {
-							throw d instanceof Error && d.message === O ? d : (console.error(A, {
-								mediaUrl: v,
+							throw d instanceof Error && d.message === A ? d : (console.error(j, {
+								mediaUrl: g,
 								error: d
-							}), Error(A));
+							}), Error(j));
 						}
-						let x;
+						let b;
 						try {
-							x = await b.arrayBuffer();
+							b = await _.arrayBuffer();
 						} catch (d) {
-							throw console.error(j, {
-								mediaUrl: v,
+							throw console.error(F, {
+								mediaUrl: g,
 								error: d
-							}), Error(j);
+							}), Error(F);
 						}
-						if (isChunkLengthAcceptable(x, f)) return {
-							media: x,
+						if (isChunkLengthAcceptable(b, f)) return {
+							media: b,
 							url: h ? d : null,
 							isAcceptableLast: !1
 						};
-						let C = getUrlFromArrayBuffer(x);
-						if (C) return fetchMediaWithMeta({
-							mediaUrl: C,
+						let x = getUrlFromArrayBuffer(b);
+						if (x) return fetchMediaWithMeta({
+							mediaUrl: x,
 							chunkRange: f,
 							requestInit: p,
 							signal: m,
 							isUrlChanged: !0
 						});
 						if (!f.mustExist) return {
-							media: x,
+							media: b,
 							url: null,
 							isAcceptableLast: !0
 						};
-						throw Error(`Audio downloader. WEB API. Can not get redirected media url ${v}`);
+						throw Error(`Audio downloader. WEB API. Can not get redirected media url ${g}`);
 					}
 					function mergeBuffers(d) {
 						let f = d.reduce((d, f) => d + f.byteLength, 0), p = new Uint8Array(f), m = 0;
@@ -7960,21 +7964,21 @@
 						return p;
 					}
 					async function getAudioFromWebApiWithReplacedFetch({ videoId: d, returnByParts: f = !1, signal: p }) {
-						let { requestInit: m, requestInfo: h, adaptiveFormat: _, itag: v } = await getGeneratingAudioUrlsDataFromIframe(d);
+						let { requestInit: m, requestInfo: h, adaptiveFormat: g, itag: _ } = await getGeneratingAudioUrlsDataFromIframe(d);
 						if (!h) throw Error("Audio downloader. WEB API. Can not get requestInfo");
-						let b = (0, g.rh)(h), x = (0, g.yA)(h), C = (0, g.RZ)(x), w = m || C;
+						let v = (0, C.rh)(h), b = (0, C.yA)(h), x = (0, C.RZ)(b), w = m || x;
 						return {
-							fileId: makeFileId(v, _.contentLength),
-							mediaPartsLength: f ? getChunkRangesPartsFromAdaptiveFormat(_).length : 1,
+							fileId: makeFileId(_, g.contentLength),
+							mediaPartsLength: f ? getChunkRangesPartsFromAdaptiveFormat(g).length : 1,
 							async *getMediaBuffers() {
 								if (f) {
-									let d = getChunkRangesPartsFromAdaptiveFormat(_);
+									let d = getChunkRangesPartsFromAdaptiveFormat(g);
 									for (let f of d) {
-										let { media: d, url: m, isAcceptableLast: h } = await fetchMediaWithMetaByChunkRanges(b, w, f, p);
-										if (m && (b = m), yield d, h) break;
+										let { media: d, url: m, isAcceptableLast: h } = await fetchMediaWithMetaByChunkRanges(v, w, f, p);
+										if (m && (v = m), yield d, h) break;
 									}
 								} else {
-									let d = getChunkRangesFromAdaptiveFormat(_), { media: f } = await fetchMediaWithMetaByChunkRanges(b, w, d, p);
+									let d = getChunkRangesFromAdaptiveFormat(g), { media: f } = await fetchMediaWithMetaByChunkRanges(v, w, d, p);
 									yield f;
 								}
 							}
@@ -7987,29 +7991,29 @@
 							signal: m
 						});
 						if (!h) throw Error("Audio downloader. Can not get audio data");
-						x.A.log("Audio downloader. Url found", { audioDownloadType: "web_api_get_all_generating_urls_data_from_iframe" });
-						let { getMediaBuffers: g, mediaPartsLength: _, fileId: v } = h;
-						if (_ < 2) {
+						_.A.log("Audio downloader. Url found", { audioDownloadType: "web_api_get_all_generating_urls_data_from_iframe" });
+						let { getMediaBuffers: g, mediaPartsLength: v, fileId: b } = h;
+						if (v < 2) {
 							let { value: m } = await g().next();
 							if (!m) throw Error("Audio downloader. Empty audio");
 							d.onDownloadedAudio.dispatch(f, {
 								videoId: p,
-								fileId: v,
+								fileId: b,
 								audioData: m
 							});
 							return;
 						}
-						let b = 0;
+						let x = 0;
 						for await (let m of g()) {
 							if (!m) throw Error("Audio downloader. Empty audio");
 							d.onDownloadedPartialAudio.dispatch(f, {
 								videoId: p,
-								fileId: v,
+								fileId: b,
 								audioData: m,
 								version: 1,
-								index: b,
-								amount: _
-							}), b++;
+								index: x,
+								amount: v
+							}), x++;
 						}
 					}
 					async function mainWorldMessageHandler({ data: d }) {
@@ -8025,9 +8029,9 @@
 						}
 					}
 					class AudioDownloader {
-						onDownloadedAudio = new v.Z();
-						onDownloadedPartialAudio = new v.Z();
-						onDownloadAudioError = new v.Z();
+						onDownloadedAudio = new g.Z();
+						onDownloadedPartialAudio = new g.Z();
+						onDownloadAudioError = new g.Z();
 						async runAudioDownload(d, f, p) {
 							window.addEventListener("message", mainWorldMessageHandler);
 							try {
@@ -8036,7 +8040,7 @@
 									translationId: f,
 									videoId: d,
 									signal: p
-								}), x.A.log("Audio downloader. Audio download finished", { videoId: d });
+								}), _.A.log("Audio downloader. Audio download finished", { videoId: d });
 							} catch (f) {
 								console.error("Audio downloader. Failed to download audio", f), this.onDownloadAudioError.dispatch(d);
 							}
@@ -8283,21 +8287,22 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { F: () => VOTTranslationHandler });
-					var h = p("./node_modules/@vot.js/core/dist/types/yandex.js"), g = p("./src/audioDownloader/index.ts"), _ = p("./src/utils/debug.ts"), v = p("./src/localization/localizationProvider.ts"), b = p("./src/utils/utils.js"), x = p("./src/utils/VOTLocalizedError.js"), C = d([
+					var h = p("./node_modules/@vot.js/core/dist/types/yandex.js"), g = p("./src/audioDownloader/index.ts"), _ = p("./src/localization/localizationProvider.ts"), v = p("./src/utils/VOTLocalizedError.js"), b = p("./src/utils/debug.ts"), x = p("./src/utils/localization.ts"), C = p("./src/utils/utils.ts"), w = d([
 						g,
+						_,
 						v,
-						b,
-						x
+						x,
+						C
 					]);
-					[g, v, b, x] = C.then ? (await C)() : C;
+					[g, _, v, x, C] = w.then ? (await w)() : w;
 					class VOTTranslationHandler {
 						videoHandler;
 						audioDownloader;
 						downloading;
 						constructor(d) {
 							this.videoHandler = d, this.audioDownloader = new g.I(), this.downloading = !1, this.audioDownloader.addEventListener("downloadedAudio", async (d, f) => {
-								if (_.A.log("downloadedAudio", f), !this.downloading) {
-									_.A.log("skip downloadedAudio");
+								if (b.A.log("downloadedAudio", f), !this.downloading) {
+									b.A.log("skip downloadedAudio");
 									return;
 								}
 								let { videoId: p, fileId: m, audioData: h } = f, g = this.getCanonicalUrl(p);
@@ -8309,30 +8314,30 @@
 								} catch {}
 								this.downloading = !1;
 							}).addEventListener("downloadedPartialAudio", async (d, f) => {
-								if (_.A.log("downloadedPartialAudio", f), !this.downloading) {
-									_.A.log("skip downloadedPartialAudio");
+								if (b.A.log("downloadedPartialAudio", f), !this.downloading) {
+									b.A.log("skip downloadedPartialAudio");
 									return;
 								}
-								let { audioData: p, fileId: m, videoId: h, amount: g, version: v, index: b } = f, x = this.getCanonicalUrl(h);
+								let { audioData: p, fileId: m, videoId: h, amount: g, version: _, index: v } = f, x = this.getCanonicalUrl(h);
 								try {
 									await this.videoHandler.votClient.requestVtransAudio(x, d, {
 										audioFile: p,
-										chunkId: b
+										chunkId: v
 									}, {
 										audioPartsLength: g,
 										fileId: m,
-										version: v
+										version: _
 									});
 								} catch {
 									this.downloading = !1;
 								}
-								b === g - 1 && (this.downloading = !1);
+								v === g - 1 && (this.downloading = !1);
 							}).addEventListener("downloadAudioError", async (d) => {
 								if (!this.downloading) {
-									_.A.log("skip downloadAudioError");
+									b.A.log("skip downloadAudioError");
 									return;
 								}
-								_.A.log(`Failed to download audio ${d}`);
+								b.A.log(`Failed to download audio ${d}`);
 								let f = this.getCanonicalUrl(d);
 								await this.videoHandler.votClient.requestVtransFailAudio(f), this.downloading = !1;
 							});
@@ -8343,42 +8348,42 @@
 						isWaitingStreamRes(d) {
 							return !!d.message;
 						}
-						async translateVideoImpl(d, f, p, m = null, g = !1, x = new AbortController().signal) {
-							clearTimeout(this.videoHandler.autoRetry), this.downloading = !1, _.A.log(d, `Translate video (requestLang: ${f}, responseLang: ${p})`, x);
+						async translateVideoImpl(d, f, p, m = null, g = !1, v = new AbortController().signal) {
+							clearTimeout(this.videoHandler.autoRetry), this.downloading = !1, b.A.log(d, `Translate video (requestLang: ${f}, responseLang: ${p})`, v);
 							try {
-								if (x.aborted) throw Error("AbortError");
-								let C = this.videoHandler.isLivelyVoiceAllowed() && this.videoHandler.data?.useLivelyVoice, w = await this.videoHandler.votClient.translateVideo({
+								if (v.aborted) throw Error("AbortError");
+								let w = this.videoHandler.isLivelyVoiceAllowed() && this.videoHandler.data?.useLivelyVoice, T = await this.videoHandler.votClient.translateVideo({
 									videoData: d,
 									requestLang: f,
 									responseLang: p,
 									translationHelp: m,
 									extraOpts: {
-										useLivelyVoice: C,
+										useLivelyVoice: w,
 										videoTitle: this.videoHandler.videoData?.title
 									},
 									shouldSendFailedAudio: g
 								});
-								if (_.A.log("Translate video result", w), x.aborted) throw Error("AbortError");
-								if (w.translated && w.remainingTime < 1) return _.A.log("Video translation finished with this data: ", w), w;
-								let T = w.message ?? v.j.get("translationTakeFewMinutes");
-								if (await this.videoHandler.updateTranslationErrorMsg(w.remainingTime > 0 ? (0, b.ox)(w.remainingTime) : T), w.status === h.v.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
-									if (_.A.log("Start audio download"), this.downloading = !0, await this.audioDownloader.runAudioDownload(d.videoId, w.translationId, x), _.A.log("waiting downloading finish"), await (0, b.UV)(() => !this.downloading || x.aborted, 15e3), x.aborted) throw _.A.log("aborted after audio downloader vtrans"), Error("AbortError");
-									return await this.translateVideoImpl(d, f, p, m, !0, x);
+								if (b.A.log("Translate video result", T), v.aborted) throw Error("AbortError");
+								if (T.translated && T.remainingTime < 1) return b.A.log("Video translation finished with this data: ", T), T;
+								let E = T.message ?? _.j.get("translationTakeFewMinutes");
+								if (await this.videoHandler.updateTranslationErrorMsg(T.remainingTime > 0 ? (0, x.o)(T.remainingTime) : E), T.status === h.v.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
+									if (b.A.log("Start audio download"), this.downloading = !0, await this.audioDownloader.runAudioDownload(d.videoId, T.translationId, v), b.A.log("waiting downloading finish"), await (0, C.UV)(() => !this.downloading || v.aborted, 15e3), v.aborted) throw b.A.log("aborted after audio downloader vtrans"), Error("AbortError");
+									return await this.translateVideoImpl(d, f, p, m, !0, v);
 								}
 							} catch (m) {
-								if (m.message === "AbortError") return _.A.log("aborted video translation"), null;
+								if (m.message === "AbortError") return b.A.log("aborted video translation"), null;
 								await this.videoHandler.updateTranslationErrorMsg(m.data?.message ?? m), console.error("[VOT]", m);
 								let h = `${d.videoId}_${f}_${p}_${this.videoHandler.data?.useLivelyVoice}`;
 								return this.videoHandler.cacheManager.setTranslation(h, { error: m }), null;
 							}
 							return new Promise((h) => {
 								this.videoHandler.autoRetry = setTimeout(async () => {
-									h(await this.translateVideoImpl(d, f, p, m, !0, x));
+									h(await this.translateVideoImpl(d, f, p, m, !0, v));
 								}, 2e4);
 							});
 						}
 						async translateStreamImpl(d, f, p, m = new AbortController().signal) {
-							clearTimeout(this.videoHandler.autoRetry), _.A.log(d, `Translate stream (requestLang: ${f}, responseLang: ${p})`);
+							clearTimeout(this.videoHandler.autoRetry), b.A.log(d, `Translate stream (requestLang: ${f}, responseLang: ${p})`);
 							try {
 								if (m.aborted) throw Error("AbortError");
 								let h = await this.videoHandler.votClient.translateStream({
@@ -8387,18 +8392,18 @@
 									responseLang: p
 								});
 								if (m.aborted) throw Error("AbortError");
-								if (_.A.log("Translate stream result", h), !h.translated && h.interval === 10) return await this.videoHandler.updateTranslationErrorMsg(v.j.get("translationTakeFewMinutes")), new Promise((g) => {
+								if (b.A.log("Translate stream result", h), !h.translated && h.interval === 10) return await this.videoHandler.updateTranslationErrorMsg(_.j.get("translationTakeFewMinutes")), new Promise((g) => {
 									this.videoHandler.autoRetry = setTimeout(async () => {
 										g(await this.translateStreamImpl(d, f, p, m));
 									}, h.interval * 1e3);
 								});
-								if (this.isWaitingStreamRes(h)) throw _.A.log(`Stream translation aborted! Message: ${h.message}`), new x.n("streamNoConnectionToServer");
-								if (!h.result) throw _.A.log("Failed to find translation result! Data:", h), new x.n("audioNotReceived");
-								return _.A.log("Stream translated successfully. Running...", h), this.videoHandler.streamPing = setInterval(async () => {
-									_.A.log("Ping stream translation", h.pingId), this.videoHandler.votClient.pingStream({ pingId: h.pingId });
+								if (this.isWaitingStreamRes(h)) throw b.A.log(`Stream translation aborted! Message: ${h.message}`), new v.n("streamNoConnectionToServer");
+								if (!h.result) throw b.A.log("Failed to find translation result! Data:", h), new v.n("audioNotReceived");
+								return b.A.log("Stream translated successfully. Running...", h), this.videoHandler.streamPing = setInterval(async () => {
+									b.A.log("Ping stream translation", h.pingId), this.videoHandler.votClient.pingStream({ pingId: h.pingId });
 								}, h.interval * 1e3), h;
 							} catch (d) {
-								return d.message === "AbortError" ? (_.A.log("aborted stream translation"), null) : (console.error("[VOT] Failed to translate stream", d), await this.videoHandler.updateTranslationErrorMsg(d.data?.message ?? d), null);
+								return d.message === "AbortError" ? (b.A.log("aborted stream translation"), null) : (console.error("[VOT] Failed to translate stream", d), await this.videoHandler.updateTranslationErrorMsg(d.data?.message ?? d), null);
 							}
 						}
 					}
@@ -8413,76 +8418,77 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { k: () => VOTVideoManager });
-					var h = p("./node_modules/@vot.js/ext/dist/utils/videoData.js"), g = p("./node_modules/@vot.js/shared/dist/data/config.js"), _ = p("./node_modules/@vot.js/shared/dist/data/consts.js"), v = p("./src/utils/utils.js"), b = p("./src/localization/localizationProvider.ts"), x = p("./src/utils/debug.ts"), C = p("./src/utils/translateApis.ts"), w = p("./src/utils/VOTLocalizedError.js"), T = p("./node_modules/@vot.js/ext/dist/helpers/youtube.js"), E = d([
-						v,
+					var h = p("./node_modules/@vot.js/ext/dist/utils/videoData.js"), g = p("./node_modules/@vot.js/shared/dist/data/config.js"), _ = p("./node_modules/@vot.js/shared/dist/data/consts.js"), v = p("./node_modules/@vot.js/ext/dist/helpers/youtube.js"), b = p("./src/localization/localizationProvider.ts"), x = p("./src/utils/VOTLocalizedError.js"), C = p("./src/utils/debug.ts"), w = p("./src/utils/gm.ts"), T = p("./src/utils/translateApis.ts"), E = p("./src/utils/utils.ts"), D = d([
 						b,
-						C,
-						w
+						x,
+						w,
+						T,
+						E
 					]);
-					[v, b, C, w] = E.then ? (await E)() : E;
+					[b, x, w, T, E] = D.then ? (await D)() : D;
 					class VOTVideoManager {
 						videoHandler;
 						constructor(d) {
 							this.videoHandler = d;
 						}
 						async getVideoData() {
-							let { duration: d, url: f, videoId: p, host: m, title: w, translationHelp: T = null, localizedTitle: E, description: D, detectedLanguage: O, subtitles: A, isStream: j = !1 } = await (0, h.o4)(this.videoHandler.site, {
-								fetchFn: v.G3,
+							let { duration: d, url: f, videoId: p, host: m, title: v, translationHelp: x = null, localizedTitle: D, description: O, detectedLanguage: A, subtitles: j, isStream: F = !1 } = await (0, h.o4)(this.videoHandler.site, {
+								fetchFn: w.G3,
 								video: this.videoHandler.video,
 								language: b.j.lang
-							}), F = O ?? this.videoHandler.translateFromLang;
-							if (!O && w) {
-								let d = (0, v.X5)(w, D);
-								x.A.log(`Detecting language text: ${d}`);
-								let f = await (0, C.o0)(d);
-								_.xm.includes(f) && (F = f);
+							}), U = A ?? this.videoHandler.translateFromLang;
+							if (!A && v) {
+								let d = (0, E.X5)(v, O);
+								C.A.log(`Detecting language text: ${d}`);
+								let f = await (0, T.o0)(d);
+								_.xm.includes(f) && (U = f);
 							}
-							let U = {
-								translationHelp: T,
-								isStream: j,
+							let W = {
+								translationHelp: x,
+								isStream: F,
 								duration: d || this.videoHandler.video?.duration || g.A.defaultDuration,
 								videoId: p,
 								url: f,
 								host: m,
-								detectedLanguage: F,
+								detectedLanguage: U,
 								responseLanguage: this.videoHandler.translateToLang,
-								subtitles: A,
-								title: w,
-								localizedTitle: E,
-								downloadTitle: E ?? w ?? p
+								subtitles: j,
+								title: v,
+								localizedTitle: D,
+								downloadTitle: D ?? v ?? p
 							};
-							if (console.log("[VOT] Detected language:", F), [
+							if (console.log("[VOT] Detected language:", U), [
 								"rutube",
 								"ok.ru",
 								"mail_ru"
-							].includes(this.videoHandler.site.host)) U.detectedLanguage = "ru";
-							else if (this.videoHandler.site.host === "youku") U.detectedLanguage = "zh";
+							].includes(this.videoHandler.site.host)) W.detectedLanguage = "ru";
+							else if (this.videoHandler.site.host === "youku") W.detectedLanguage = "zh";
 							else if (this.videoHandler.site.host === "vk") {
 								let d = document.getElementsByTagName("track")?.[0]?.srclang;
-								U.detectedLanguage = d || "auto";
-							} else this.videoHandler.site.host === "weverse" && (U.detectedLanguage = "ko");
-							return U;
+								W.detectedLanguage = d || "auto";
+							} else this.videoHandler.site.host === "weverse" && (W.detectedLanguage = "ko");
+							return W;
 						}
 						videoValidator() {
-							if (!this.videoHandler.videoData || !this.videoHandler.data) throw new w.n("VOTNoVideoIDFound");
-							if (x.A.log("VideoValidator videoData: ", this.videoHandler.videoData), this.videoHandler.data.enabledDontTranslateLanguages && this.videoHandler.data.dontTranslateLanguages?.includes(this.videoHandler.videoData.detectedLanguage)) throw new w.n("VOTDisableFromYourLang");
-							if (this.videoHandler.site.host === "twitch" && this.videoHandler.videoData.isStream) throw new w.n("VOTStreamNotAvailable");
-							if (!this.videoHandler.videoData.isStream && this.videoHandler.videoData.duration > 14400) throw new w.n("VOTVideoIsTooLong");
+							if (!this.videoHandler.videoData || !this.videoHandler.data) throw new x.n("VOTNoVideoIDFound");
+							if (C.A.log("VideoValidator videoData: ", this.videoHandler.videoData), this.videoHandler.data.enabledDontTranslateLanguages && this.videoHandler.data.dontTranslateLanguages?.includes(this.videoHandler.videoData.detectedLanguage)) throw new x.n("VOTDisableFromYourLang");
+							if (this.videoHandler.site.host === "twitch" && this.videoHandler.videoData.isStream) throw new x.n("VOTStreamNotAvailable");
+							if (!this.videoHandler.videoData.isStream && this.videoHandler.videoData.duration > 14400) throw new x.n("VOTVideoIsTooLong");
 							return !0;
 						}
 						getVideoVolume() {
 							let d = this.videoHandler.video?.volume;
-							return ["youtube", "googledrive"].includes(this.videoHandler.site.host) && (d = T.A.getVolume() ?? d), d;
+							return ["youtube", "googledrive"].includes(this.videoHandler.site.host) && (d = v.A.getVolume() ?? d), d;
 						}
 						setVideoVolume(d) {
 							if (["youtube", "googledrive"].includes(this.videoHandler.site.host)) {
-								let f = T.A.setVolume(d);
+								let f = v.A.setVolume(d);
 								if (f) return this.videoHandler;
 							}
 							return this.videoHandler.video.volume = d, this;
 						}
 						isMuted() {
-							return ["youtube", "googledrive"].includes(this.videoHandler.site.host) ? T.A.isMuted() : this.videoHandler.video?.muted;
+							return ["youtube", "googledrive"].includes(this.videoHandler.site.host) ? v.A.isMuted() : this.videoHandler.video?.muted;
 						}
 						syncVideoVolumeSlider() {
 							let d = this.isMuted() ? 0 : this.getVideoVolume() * 100, f = Math.round(d);
@@ -8503,34 +8509,35 @@
 			"use strict";
 			p.a(d, async (d, m) => {
 				try {
-					p.d(f, { k: () => Q });
-					var h = p("./node_modules/chaimu/dist/index.js"), g = p("./node_modules/@vot.js/ext/dist/index.js"), _ = p("./node_modules/@vot.js/ext/dist/utils/videoData.js"), v = p("./node_modules/@vot.js/ext/dist/helpers/youtube.js"), b = p("./src/ui.js"), x = p("./src/utils/debug.ts"), C = p("./src/config/config.js"), w = p("./src/localization/localizationProvider.ts"), T = p("./src/subtitles.js"), E = p("./src/utils/VOTLocalizedError.js"), D = p("./src/utils/utils.js"), O = p("./src/utils/iframeConnector.ts"), A = p("./src/utils/volume.js"), j = p("./src/utils/VideoObserver.js"), F = p("./src/utils/storage.ts"), U = p("./src/utils/translateApis.ts"), W = p("./src/ui/manager.ts"), G = p("./src/ui/components/hotkeyButton.ts"), K = p("./src/audioDownloader/iframe.ts"), q = p("./src/core/auth.ts"), J = p("./src/core/cacheManager.ts"), Y = p("./src/core/translationHandler.ts"), X = p("./src/core/videoManager.ts"), Z = d([
-						g,
+					p.d(f, { k: () => $ });
+					var h = p("./node_modules/@vot.js/ext/dist/index.js"), g = p("./node_modules/@vot.js/ext/dist/helpers/youtube.js"), _ = p("./node_modules/@vot.js/ext/dist/utils/videoData.js"), v = p("./node_modules/chaimu/dist/index.js"), b = p("./src/ui.js"), x = p("./src/utils/debug.ts"), C = p("./src/audioDownloader/iframe.ts"), w = p("./src/config/config.js"), T = p("./src/core/auth.ts"), E = p("./src/core/cacheManager.ts"), D = p("./src/core/translationHandler.ts"), O = p("./src/core/videoManager.ts"), A = p("./src/localization/localizationProvider.ts"), j = p("./src/subtitles.js"), F = p("./src/ui/components/hotkeyButton.ts"), U = p("./src/ui/manager.ts"), W = p("./src/utils/VOTLocalizedError.js"), G = p("./src/utils/VideoObserver.js"), K = p("./src/utils/gm.ts"), q = p("./src/utils/iframeConnector.ts"), J = p("./src/utils/storage.ts"), Y = p("./src/utils/translateApis.ts"), X = p("./src/utils/utils.ts"), Z = p("./src/utils/volume.js"), Q = d([
+						h,
 						b,
-						w,
+						C,
 						T,
-						E,
 						D,
 						O,
+						A,
+						j,
 						F,
 						U,
 						W,
-						G,
 						K,
 						q,
+						J,
 						Y,
 						X
 					]);
-					[g, b, w, T, E, D, O, F, U, W, G, K, q, Y, X] = Z.then ? (await Z)() : Z;
-					let Q;
+					[h, b, C, T, D, O, A, j, F, U, W, K, q, J, Y, X] = Q.then ? (await Q)() : Q;
+					let $;
 					class VideoHandler {
 						translateFromLang = "auto";
-						translateToLang = D.HD;
+						translateToLang = X.HD;
 						timer;
 						data;
 						videoData;
 						firstPlay = !0;
-						audioContext = (0, h.GZ)();
+						audioContext = (0, v.GZ)();
 						hls;
 						votClient;
 						audioPlayer;
@@ -8548,13 +8555,13 @@
 						longWaitingResCount = 0;
 						subtitles = [];
 						constructor(d, f, p) {
-							x.A.log("[VideoHandler] add video:", d, "container:", f, this), this.video = d, this.container = f, this.site = p, this.abortController = new AbortController(), this.actionsAbortController = new AbortController(), this.extraEvents = [], this.uiManager = new W.o({
+							x.A.log("[VideoHandler] add video:", d, "container:", f, this), this.video = d, this.container = f, this.site = p, this.abortController = new AbortController(), this.actionsAbortController = new AbortController(), this.extraEvents = [], this.uiManager = new U.o({
 								root: this.container,
 								portalContainer: this.getPortalContainer(),
 								tooltipLayoutRoot: this.getTooltipLayoutRoot(),
 								data: this.data,
 								videoHandler: this
-							}), this.translationHandler = new Y.F(this), this.videoManager = new X.k(this), this.cacheManager = new J.G();
+							}), this.translationHandler = new D.F(this), this.videoManager = new O.k(this), this.cacheManager = new E.G();
 						}
 						getPortalContainer() {
 							return this.site.host === "youtube" && this.site.additionalData !== "mobile" ? this.container.parentElement : this.container;
@@ -8585,70 +8592,70 @@
 						}
 						createPlayer() {
 							let d = this.getPreferAudio();
-							return x.A.log("preferAudio:", d), this.audioPlayer = new h.Ay({
+							return x.A.log("preferAudio:", d), this.audioPlayer = new v.Ay({
 								video: this.video,
 								debug: !1,
-								fetchFn: D.G3,
+								fetchFn: K.G3,
 								fetchOpts: { timeout: 0 },
 								preferAudio: d
 							}), this;
 						}
 						async init() {
 							if (!this.initialized) {
-								if (this.data = await F.d.getValues({
+								if (this.data = await J.d.getValues({
 									autoTranslate: !1,
-									dontTranslateLanguages: [D.HD],
+									dontTranslateLanguages: [X.HD],
 									enabledDontTranslateLanguages: !0,
 									enabledAutoVolume: !0,
-									autoVolume: C.JD,
+									autoVolume: w.JD,
 									buttonPos: "default",
 									showVideoSlider: !0,
 									syncVolume: !1,
-									downloadWithName: D.yx,
+									downloadWithName: K.yx,
 									sendNotifyOnComplete: !1,
 									subtitlesMaxLength: 300,
 									highlightWords: !1,
 									subtitlesFontSize: 20,
 									subtitlesOpacity: 20,
 									subtitlesDownloadFormat: "srt",
-									responseLanguage: D.HD,
+									responseLanguage: X.HD,
 									defaultVolume: 100,
 									onlyBypassMediaCSP: Number(!!this.audioContext),
 									newAudioPlayer: Number(!!this.audioContext),
 									showPiPButton: !1,
 									translateAPIErrors: !0,
-									translationService: C.mE,
-									detectService: C.K2,
+									translationService: w.mE,
+									detectService: w.K2,
 									translationHotkey: null,
-									m3u8ProxyHost: C.se,
-									proxyWorkerHost: C.Pm,
+									m3u8ProxyHost: w.se,
+									proxyWorkerHost: w.Pm,
 									translateProxyEnabled: 0,
 									translateProxyEnabledDefault: !0,
 									audioBooster: !1,
 									useLivelyVoice: !1,
-									autoHideButtonDelay: C.qU,
-									useAudioDownload: D.B0,
+									autoHideButtonDelay: w.qU,
+									useAudioDownload: K.B0,
 									compatVersion: "",
 									account: {},
 									localeHash: "",
 									localeUpdatedAt: 0
-								}), this.data.compatVersion !== C.r4 && (this.data = await (0, F._)(this.data), await F.d.set("compatVersion", C.r4)), this.uiManager.data = this.data, console.log("[VOT] data from db: ", this.data), !this.data.translateProxyEnabled && D.up && (this.data.translateProxyEnabled = 1), !Q) try {
-									let d = await (0, D.G3)("https://speed.cloudflare.com/meta", { timeout: 7e3 });
-									({country: Q} = await d.json());
+								}), this.data.compatVersion !== w.r4 && (this.data = await (0, J._)(this.data), await J.d.set("compatVersion", w.r4)), this.uiManager.data = this.data, console.log("[VOT] data from db: ", this.data), !this.data.translateProxyEnabled && K.up && (this.data.translateProxyEnabled = 1), !$) try {
+									let d = await (0, K.G3)("https://speed.cloudflare.com/meta", { timeout: 7e3 });
+									({country: $} = await d.json());
 								} catch (d) {
 									console.error("[VOT] Error getting country:", d);
 								}
-								C.vZ.includes(Q) && this.data.translateProxyEnabledDefault && (this.data.translateProxyEnabled = 2), x.A.log("translateProxyEnabled", this.data.translateProxyEnabled, this.data.translateProxyEnabledDefault), x.A.log("Extension compatibility passed..."), this.initVOTClient(), this.uiManager.initUI(), this.uiManager.initUIEvents(), this.subtitlesWidget = new T.o(this.video, this.getPortalContainer(), this.site, this.uiManager.votOverlayView.votOverlayPortal, this.getTooltipLayoutRoot()), this.subtitlesWidget.setMaxLength(this.data.subtitlesMaxLength), this.subtitlesWidget.setHighlightWords(this.data.highlightWords), this.subtitlesWidget.setFontSize(this.data.subtitlesFontSize), this.subtitlesWidget.setOpacity(this.data.subtitlesOpacity), this.createPlayer(), this.setSelectMenuValues(this.videoData.detectedLanguage, this.data.responseLanguage ?? "ru"), this.translateToLang = this.data.responseLanguage ?? "ru", this.initExtraEvents(), await this.autoTranslate(), this.initialized = !0;
+								w.vZ.includes($) && this.data.translateProxyEnabledDefault && (this.data.translateProxyEnabled = 2), x.A.log("translateProxyEnabled", this.data.translateProxyEnabled, this.data.translateProxyEnabledDefault), x.A.log("Extension compatibility passed..."), this.initVOTClient(), this.uiManager.initUI(), this.uiManager.initUIEvents(), this.subtitlesWidget = new j.o(this.video, this.getPortalContainer(), this.site, this.uiManager.votOverlayView.votOverlayPortal, this.getTooltipLayoutRoot()), this.subtitlesWidget.setMaxLength(this.data.subtitlesMaxLength), this.subtitlesWidget.setHighlightWords(this.data.highlightWords), this.subtitlesWidget.setFontSize(this.data.subtitlesFontSize), this.subtitlesWidget.setOpacity(this.data.subtitlesOpacity), this.createPlayer(), this.setSelectMenuValues(this.videoData.detectedLanguage, this.data.responseLanguage ?? "ru"), this.translateToLang = this.data.responseLanguage ?? "ru", this.initExtraEvents(), await this.autoTranslate(), this.initialized = !0;
 							}
 						}
 						initVOTClient() {
 							return this.votOpts = {
-								fetchFn: D.G3,
+								fetchFn: K.G3,
 								fetchOpts: { signal: this.actionsAbortController.signal },
 								apiToken: this.data.account?.token,
-								hostVOT: C.tZ,
-								host: this.data.translateProxyEnabled ? this.data.proxyWorkerHost : C.rl
-							}, this.votClient = new (this.data.translateProxyEnabled ? g.Pu : g.Ay)(this.votOpts), this;
+								hostVOT: w.tZ,
+								host: this.data.translateProxyEnabled ? this.data.proxyWorkerHost : w.rl
+							}, this.votClient = new (this.data.translateProxyEnabled ? h.Pu : h.Ay)(this.votOpts), this;
 						}
 						transformBtn(d, f) {
 							return this.uiManager.transformBtn(d, f), this;
@@ -8699,7 +8706,7 @@
 								f.add(d.code);
 								let p = document.activeElement, m = ["input", "textarea"].includes(p.tagName.toLowerCase()) || p.isContentEditable;
 								if (m) return;
-								let h = (0, G._)(f);
+								let h = (0, F._)(f);
 								x.A.log(`combo: ${h}`), x.A.log(`this.data.translationHotkey: ${this.data.translationHotkey}`), h === this.data.translationHotkey && await this.uiManager.handleTranslationBtnClick();
 							}, { signal: d }), document.addEventListener("blur", () => {
 								f.clear();
@@ -8715,7 +8722,7 @@
 								this.site.host === "rutube" && this.video.src || await this.setCanPlay();
 							}), addExtraEventListener(this.video, "emptied", async () => {
 								let d = await (0, _.jY)(this.site, {
-									fetchFn: D.G3,
+									fetchFn: K.G3,
 									video: this.video
 								});
 								this.video.src && this.videoData && d === this.videoData.videoId || (x.A.log("lipsync mode is emptied"), this.videoData = void 0, this.stopTranslation());
@@ -8727,7 +8734,7 @@
 						}
 						async setCanPlay() {
 							let d = await (0, _.jY)(this.site, {
-								fetchFn: D.G3,
+								fetchFn: K.G3,
 								video: this.video
 							});
 							this.video.src && this.videoData && d === this.videoData.videoId || (await this.handleSrcChanged(), await this.autoTranslate(), x.A.log("lipsync mode is canplay"));
@@ -8748,13 +8755,13 @@
 									let d = f.url.replace("https://brosubs.s3-private.mds.yandex.net/vtrans/", "");
 									f.url = `https://${this.data.proxyWorkerHost}/video-subtitles/subtitles-proxy/${d}`, console.log(`[VOT] Subs proxied via ${f.url}`);
 								}
-								this.yandexSubtitles = await T.I.fetchSubtitles(f), this.subtitlesWidget.setContent(this.yandexSubtitles, f.language), this.uiManager.votOverlayView.downloadSubtitlesButton.hidden = !1;
+								this.yandexSubtitles = await j.I.fetchSubtitles(f), this.subtitlesWidget.setContent(this.yandexSubtitles, f.language), this.uiManager.votOverlayView.downloadSubtitlesButton.hidden = !1;
 							}
 						}
 						async updateSubtitlesLangSelect() {
 							if (!this.subtitles || this.subtitles.length === 0) {
 								let d = [{
-									label: w.j.get("VOTSubtitlesDisabled"),
+									label: A.j.get("VOTSubtitlesDisabled"),
 									value: "disabled",
 									selected: !0,
 									disabled: !1
@@ -8763,12 +8770,12 @@
 								return;
 							}
 							let d = [{
-								label: w.j.get("VOTSubtitlesDisabled"),
+								label: A.j.get("VOTSubtitlesDisabled"),
 								value: "disabled",
 								selected: !0,
 								disabled: !1
 							}, ...this.subtitles.map((d, f) => ({
-								label: (w.j.get(`langs.${d.language}`) ?? d.language.toUpperCase()) + (d.translatedFromLanguage ? ` ${w.j.get("VOTTranslatedFrom")} ${w.j.get(`langs.${d.translatedFromLanguage}`) ?? d.translatedFromLanguage.toUpperCase()}` : "") + (d.source === "yandex" ? "" : `, ${window.location.hostname}`) + (d.isAutoGenerated ? ` (${w.j.get("VOTAutogenerated")})` : ""),
+								label: (A.j.get(`langs.${d.language}`) ?? d.language.toUpperCase()) + (d.translatedFromLanguage ? ` ${A.j.get("VOTTranslatedFrom")} ${A.j.get(`langs.${d.translatedFromLanguage}`) ?? d.translatedFromLanguage.toUpperCase()}` : "") + (d.source === "yandex" ? "" : `, ${window.location.hostname}`) + (d.isAutoGenerated ? ` (${A.j.get("VOTAutogenerated")})` : ""),
 								value: f,
 								selected: !1,
 								disabled: !1
@@ -8777,13 +8784,13 @@
 						}
 						async loadSubtitles() {
 							if (!this.videoData?.videoId) {
-								console.error(`[VOT] ${w.j.getDefault("VOTNoVideoIDFound")}`), this.subtitles = [];
+								console.error(`[VOT] ${A.j.getDefault("VOTNoVideoIDFound")}`), this.subtitles = [];
 								return;
 							}
 							let d = `${this.videoData.videoId}_${this.videoData.detectedLanguage}_${this.videoData.responseLanguage}_${this.data.useLivelyVoice}`;
 							try {
 								let f = this.cacheManager.getSubtitles(d);
-								f || (f = await T.I.getSubtitles(this.votClient, this.videoData), this.cacheManager.setSubtitles(d, f)), this.subtitles = f;
+								f || (f = await j.I.getSubtitles(this.votClient, this.videoData), this.cacheManager.setSubtitles(d, f)), this.subtitles = f;
 							} catch (d) {
 								console.error("[VOT] Failed to load subtitles:", d), this.subtitles = [];
 							}
@@ -8808,7 +8815,7 @@
 							this.videoManager.setSelectMenuValues(d, f);
 						}
 						syncVolumeWrapper(d, f) {
-							let p = d === "translation" ? this.uiManager.votOverlayView.videoVolumeSlider : this.uiManager.votOverlayView.translationVolumeSlider, m = Number(p.input.value), h = (0, A.q)(d === "translation" ? this.video : this.audioPlayer.player, f, m, d === "translation" ? this.tempVolume : this.tempOriginalVolume);
+							let p = d === "translation" ? this.uiManager.votOverlayView.videoVolumeSlider : this.uiManager.votOverlayView.translationVolumeSlider, m = Number(p.input.value), h = (0, Z.q)(d === "translation" ? this.video : this.audioPlayer.player, f, m, d === "translation" ? this.tempVolume : this.tempOriginalVolume);
 							p.input.value = h, p.label.querySelector("strong").textContent = `${h}%`, b.A.updateSlider(p.input), this.tempOriginalVolume = d === "translation" ? h : f, this.tempVolume = d === "translation" ? f : h;
 						}
 						async getVideoData() {
@@ -8818,15 +8825,15 @@
 							return this.videoManager.videoValidator();
 						}
 						stopTranslate() {
-							this.audioPlayer.player.removeVideoEvents(), this.audioPlayer.player.clear(), this.audioPlayer.player.src = void 0, x.A.log("audioPlayer after stopTranslate", this.audioPlayer), this.uiManager.votOverlayView.videoVolumeSlider.hidden = !0, this.uiManager.votOverlayView.translationVolumeSlider.hidden = !0, this.uiManager.votOverlayView.downloadTranslationButton.hidden = !0, this.downloadTranslationUrl = null, this.longWaitingResCount = 0, this.transformBtn("none", w.j.get("translateVideo")), x.A.log(`Volume on start: ${this.volumeOnStart}`), this.volumeOnStart && this.setVideoVolume(this.volumeOnStart), clearInterval(this.streamPing), clearTimeout(this.autoRetry), this.hls?.destroy(), this.firstSyncVolume = !0, this.actionsAbortController = new AbortController();
+							this.audioPlayer.player.removeVideoEvents(), this.audioPlayer.player.clear(), this.audioPlayer.player.src = void 0, x.A.log("audioPlayer after stopTranslate", this.audioPlayer), this.uiManager.votOverlayView.videoVolumeSlider.hidden = !0, this.uiManager.votOverlayView.translationVolumeSlider.hidden = !0, this.uiManager.votOverlayView.downloadTranslationButton.hidden = !0, this.downloadTranslationUrl = null, this.longWaitingResCount = 0, this.transformBtn("none", A.j.get("translateVideo")), x.A.log(`Volume on start: ${this.volumeOnStart}`), this.volumeOnStart && this.setVideoVolume(this.volumeOnStart), clearInterval(this.streamPing), clearTimeout(this.autoRetry), this.hls?.destroy(), this.firstSyncVolume = !0, this.actionsAbortController = new AbortController();
 						}
 						async updateTranslationErrorMsg(d) {
-							let f = w.j.get("translationTake"), p = w.j.lang;
-							if (this.longWaitingResCount = d === w.j.get("translationTakeAboutMinute") ? this.longWaitingResCount + 1 : 0, x.A.log("longWaitingResCount", this.longWaitingResCount), this.longWaitingResCount > C.px && (d = new E.n("TranslationDelayed")), d?.name === "VOTLocalizedError") this.transformBtn("error", d.localizedMessage);
+							let f = A.j.get("translationTake"), p = A.j.lang;
+							if (this.longWaitingResCount = d === A.j.get("translationTakeAboutMinute") ? this.longWaitingResCount + 1 : 0, x.A.log("longWaitingResCount", this.longWaitingResCount), this.longWaitingResCount > w.px && (d = new W.n("TranslationDelayed")), d?.name === "VOTLocalizedError") this.transformBtn("error", d.localizedMessage);
 							else if (d instanceof Error) this.transformBtn("error", d?.message);
 							else if (this.data.translateAPIErrors && p !== "ru" && !d.includes(f)) {
 								this.uiManager.votOverlayView.votButton.loading = !0;
-								let f = await (0, U.Tl)(d, "ru", p);
+								let f = await (0, Y.Tl)(d, "ru", p);
 								this.transformBtn("error", f);
 							} else this.transformBtn("error", d);
 							[
@@ -8839,7 +8846,7 @@
 						afterUpdateTranslation(d) {
 							let f = this.uiManager.votOverlayView.votButton.container.dataset.status === "success";
 							this.uiManager.votOverlayView.videoVolumeSlider.hidden = !this.data.showVideoSlider || !f, this.uiManager.votOverlayView.translationVolumeSlider.hidden = !f, this.data.enabledAutoVolume && (this.uiManager.votOverlayView.videoVolumeSlider.value = this.data.autoVolume), this.videoData.isStream || (this.uiManager.votOverlayView.downloadTranslationButton.hidden = !1, this.downloadTranslationUrl = d), x.A.log("afterUpdateTranslation downloadTranslationUrl", this.downloadTranslationUrl), this.data.sendNotifyOnComplete && this.longWaitingResCount && f && GM_notification({
-								text: w.j.get("VOTTranslationCompletedNotify").replace("{0}", window.location.hostname),
+								text: A.j.get("VOTTranslationCompletedNotify").replace("{0}", window.location.hostname),
 								title: GM_info.script.name,
 								timeout: 5e3,
 								silent: !0,
@@ -8851,7 +8858,7 @@
 						}
 						async validateAudioUrl(d) {
 							try {
-								let f = await (0, D.G3)(d, { method: "HEAD" });
+								let f = await (0, K.G3)(d, { method: "HEAD" });
 								if (x.A.log("Test audio response", f), f.ok) return x.A.log("Valid audioUrl", d), d;
 								x.A.log("Yandex returned not valid audio, trying to fix..."), this.videoData.detectedLanguage = "auto";
 								let p = await this.translationHandler.translateVideoImpl(this.videoData, this.videoData.detectedLanguage, this.videoData.responseLanguage, this.videoData.translationHelp, !this.data.useAudioDownload, this.actionsAbortController.signal);
@@ -8875,17 +8882,17 @@
 							} catch (d) {
 								x.A.log("this.audioPlayer.init() error", d), this.transformBtn("error", d.message);
 							}
-							this.setupAudioSettings(), this.site.host === "twitter" && document.querySelector("button[data-testid=\"app-bar-back\"][role=\"button\"]").addEventListener("click", this.stopTranslation), this.transformBtn("success", w.j.get("disableTranslate")), this.afterUpdateTranslation(d);
+							this.setupAudioSettings(), this.site.host === "twitter" && document.querySelector("button[data-testid=\"app-bar-back\"][role=\"button\"]").addEventListener("click", this.stopTranslation), this.transformBtn("success", A.j.get("disableTranslate")), this.afterUpdateTranslation(d);
 						}
 						async translateFunc(d, f, p, m, h) {
 							console.log("[VOT] Video Data: ", this.videoData), x.A.log("Run videoValidator"), this.videoValidator(), this.uiManager.votOverlayView.votButton.loading = !0, this.volumeOnStart = this.getVideoVolume();
-							let g = `${d}_${p}_${m}_${this.data.useLivelyVoice}`, _ = this.cacheManager.getTranslation(g);
-							if (_?.url) {
-								await this.updateTranslation(_.url), x.A.log("[translateFunc] Cached translation was received");
+							let _ = `${d}_${p}_${m}_${this.data.useLivelyVoice}`, v = this.cacheManager.getTranslation(_);
+							if (v?.url) {
+								await this.updateTranslation(v.url), x.A.log("[translateFunc] Cached translation was received");
 								return;
 							}
-							if (_?.error) {
-								x.A.log("Skip translation - previous attempt failed"), await this.updateTranslationErrorMsg(_.error.data?.message);
+							if (v?.error) {
+								x.A.log("Skip translation - previous attempt failed"), await this.updateTranslationErrorMsg(v.error.data?.message);
 								return;
 							}
 							if (f) {
@@ -8894,14 +8901,14 @@
 									x.A.log("Skip translation");
 									return;
 								}
-								this.transformBtn("success", w.j.get("disableTranslate"));
+								this.transformBtn("success", A.j.get("disableTranslate"));
 								try {
-									this.hls = (0, D.CK)(), this.audioPlayer.init();
+									this.hls = (0, X.CK)(), this.audioPlayer.init();
 								} catch (d) {
 									x.A.log("this.audioPlayer.init() error", d), this.transformBtn("error", d.message);
 								}
 								let f = this.setHLSSource(d.result.url);
-								return this.site.host === "youtube" && v.A.videoSeek(this.video, 10), this.setupAudioSettings(), !this.video.src && !this.video.currentSrc && !this.video.srcObject ? this.stopTranslation() : this.afterUpdateTranslation(f);
+								return this.site.host === "youtube" && g.A.videoSeek(this.video, 10), this.setupAudioSettings(), !this.video.src && !this.video.currentSrc && !this.video.srcObject ? this.stopTranslation() : this.afterUpdateTranslation(f);
 							}
 							let b = await this.translationHandler.translateVideoImpl(this.videoData, p, m, h, !this.data.useAudioDownload, this.actionsAbortController.signal);
 							if (x.A.log("[translateRes]", b), !b) {
@@ -8909,8 +8916,8 @@
 								return;
 							}
 							await this.updateTranslation(b.url);
-							let C = this.cacheManager.getSubtitles(g);
-							C?.some((d) => d.source === "yandex" && d.translatedFromLanguage === this.videoData.detectedLanguage && d.language === this.videoData.responseLanguage) || (this.cacheManager.deleteSubtitles(g), this.subtitles = []), this.cacheManager.setTranslation(g, {
+							let C = this.cacheManager.getSubtitles(_);
+							C?.some((d) => d.source === "yandex" && d.translatedFromLanguage === this.videoData.detectedLanguage && d.language === this.videoData.responseLanguage) || (this.cacheManager.deleteSubtitles(_), this.subtitles = []), this.cacheManager.setTranslation(_, {
 								videoId: d,
 								from: p,
 								to: m,
@@ -8950,7 +8957,7 @@
 							let f = `https://${this.data.m3u8ProxyHost}/?all=yes&origin=${encodeURIComponent("https://strm.yandex.ru")}&referer=${encodeURIComponent("https://strm.yandex.ru")}&url=${encodeURIComponent(d)}`;
 							if (this.hls) this.setupHLS(f);
 							else if (this.audioPlayer.player.audio.canPlayType("application/vnd.apple.mpegurl")) this.audioPlayer.player.src = f;
-							else throw new E.n("audioFormatNotSupported");
+							else throw new W.n("audioFormatNotSupported");
 							return f;
 						}
 						setupAudioSettings() {
@@ -8970,11 +8977,11 @@
 							x.A.log("[VideoHandler] release"), this.initialized = !1, this.releaseExtraEvents(), this.subtitlesWidget.release(), this.uiManager.release();
 						}
 						collectReportInfo() {
-							let d = `${D.R5.os.name} ${D.R5.os.version}`, f = `<details>
+							let d = `${X.R5.os.name} ${X.R5.os.version}`, f = `<details>
 <summary>Autogenerated by VOT:</summary>
 <ul>
   <li>OS: ${d}</li>
-  <li>Browser: ${D.R5.browser.name} ${D.R5.browser.version}</li>
+  <li>Browser: ${X.R5.browser.name} ${X.R5.browser.version}</li>
   <li>Loader: ${GM_info.scriptHandler} v${GM_info.version}</li>
   <li>Script version: ${GM_info.script.version}</li>
   <li>URL: <code>${window.location.href}</code></li>
@@ -8982,7 +8989,7 @@
   <li>Player: ${this.data.newAudioPlayer ? "New" : "Old"} (CSP only: ${this.data.onlyBypassMediaCSP})</li>
   <li>Proxying mode: ${this.data.translateProxyEnabled}</li>
 </ul>
-</details>`, p = `1-bug-report-${w.j.lang === "ru" ? "ru" : "en"}.yml`;
+</details>`, p = `1-bug-report-${A.j.lang === "ru" ? "ru" : "en"}.yml`;
 							return {
 								assignees: "ilyhalight",
 								template: p,
@@ -8995,7 +9002,7 @@
 							this.abortController.abort(), this.resizeObserver?.disconnect(), ["youtube", "googledrive"].includes(this.site.host) && this.site.additionalData !== "mobile" && this.syncVolumeObserver?.disconnect();
 						}
 					}
-					let ee = new j.c(), $ = new WeakMap();
+					let ee = new G.c(), te = new WeakMap();
 					function climb(d, f) {
 						if (!d || !f) return null;
 						if (d instanceof Document) return d.querySelector(f);
@@ -9040,22 +9047,22 @@
 						});
 					}
 					async function main() {
-						if (console.log("[VOT] Loading extension..."), (0, O.d4)() && window.location.hash.includes(O.WF)) return (0, K.q)();
-						if (window.location.origin === C.xW) return await (0, q.L)();
-						await w.j.update(), x.A.log(`Selected menu language: ${w.j.lang}`), initIframeInteractor(), ee.onVideoAdded.addListener(async (d) => {
-							if ($.has(d)) return;
+						if (console.log("[VOT] Loading extension..."), (0, q.d4)() && window.location.hash.includes(q.WF)) return (0, C.q)();
+						if (window.location.origin === w.xW) return await (0, T.L)();
+						await A.j.update(), x.A.log(`Selected menu language: ${A.j.lang}`), initIframeInteractor(), ee.onVideoAdded.addListener(async (d) => {
+							if (te.has(d)) return;
 							let f, p = (0, _.cQ)().find((p) => (f = findContainer(p, d), !!f));
 							if (p) {
 								["peertube", "directlink"].includes(p.host) && (p.url = window.location.origin);
 								try {
 									let m = new VideoHandler(d, f, p);
-									m.videoData = await m.getVideoData(), await m.init(), $.set(d, m);
+									m.videoData = await m.getVideoData(), await m.init(), te.set(d, m);
 								} catch (d) {
 									console.error("[VOT] Failed to initialize videoHandler", d);
 								}
 							}
 						}), ee.onVideoRemoved.addListener(async (d) => {
-							$.has(d) && (await $.get(d).release(), $.delete(d));
+							te.has(d) && (await te.get(d).release(), te.delete(d));
 						}), ee.enable();
 					}
 					main().catch((d) => {
@@ -9074,9 +9081,14 @@
 			"use strict";
 			p.a(d, async (d, m) => {
 				try {
-					p.d(f, { j: () => C });
-					var h = p("./src/localization/locales/en.json"), g = p("./src/utils/debug.ts"), _ = p("./src/config/config.js"), v = p("./src/utils/storage.ts"), b = p("./src/utils/utils.js"), x = d([v, b]);
-					[v, b] = x.then ? (await x)() : x;
+					p.d(f, { j: () => T });
+					var h = p("./src/localization/locales/en.json"), g = p("./src/config/config.js"), _ = p("./src/utils/debug.ts"), v = p("./src/utils/gm.ts"), b = p("./src/utils/localization.ts"), x = p("./src/utils/storage.ts"), C = p("./src/utils/utils.ts"), w = d([
+						v,
+						b,
+						x,
+						C
+					]);
+					[v, b, x, C] = w.then ? (await w)() : w;
 					class LocalizationProvider {
 						storageKeys = [
 							"localePhrases",
@@ -9087,70 +9099,70 @@
 						];
 						lang;
 						locale;
-						defaultLocale = (0, b.GW)(h);
+						defaultLocale = (0, C.GW)(h);
 						cacheTTL = 7200;
-						localizationUrl = `${_.hx}/master/src/localization`;
+						localizationUrl = `${g.hx}/master/src/localization`;
 						_langOverride = "auto";
 						constructor() {
 							this.lang = this.getLang(), this.locale = {};
 						}
 						async init() {
-							this._langOverride = await v.d.get("localeLangOverride", "auto"), this.lang = this.getLang();
-							let d = await v.d.get("localePhrases", "");
+							this._langOverride = await x.d.get("localeLangOverride", "auto"), this.lang = this.getLang();
+							let d = await x.d.get("localePhrases", "");
 							return this.setLocaleFromJsonString(d), this;
 						}
 						get langOverride() {
 							return this._langOverride;
 						}
 						getLang() {
-							return this.langOverride === "auto" ? b.vV : this.langOverride;
+							return this.langOverride === "auto" ? b.v : this.langOverride;
 						}
 						getAvailableLangs() {
 							return "auto.en.ru.af.am.ar.az.bg.bn.bs.ca.cs.cy.da.de.el.es.et.eu.fa.fi.fr.gl.hi.hr.hu.hy.id.it.ja.jv.kk.km.kn.ko.lo.mk.ml.mn.ms.mt.my.ne.nl.pa.pl.pt.ro.si.sk.sl.sq.sr.su.sv.sw.tr.uk.ur.uz.vi.zh.zu".split(".");
 						}
 						async reset() {
-							for (let d of this.storageKeys) await v.d.delete(d);
+							for (let d of this.storageKeys) await x.d.delete(d);
 							return this;
 						}
 						buildUrl(d, f = !1) {
-							let p = f ? `?timestamp=${(0, b.lg)()}` : "";
+							let p = f ? `?timestamp=${(0, C.lg)()}` : "";
 							return `${this.localizationUrl}${d}${p}`;
 						}
 						async changeLang(d) {
 							let f = this.langOverride;
-							return f === d ? !1 : (await v.d.set("localeLangOverride", d), this._langOverride = d, this.lang = this.getLang(), await this.update(!0), !0);
+							return f === d ? !1 : (await x.d.set("localeLangOverride", d), this._langOverride = d, this.lang = this.getLang(), await this.update(!0), !0);
 						}
 						async checkUpdates(d = !1) {
-							g.A.log("Check locale updates...");
+							_.A.log("Check locale updates...");
 							try {
-								let f = await (0, b.G3)(this.buildUrl("/hashes.json", d));
+								let f = await (0, v.G3)(this.buildUrl("/hashes.json", d));
 								if (!f.ok) throw f.status;
 								let p = await f.json();
-								return await v.d.get("localeHash") === p[this.lang] ? !1 : p[this.lang];
+								return await x.d.get("localeHash") === p[this.lang] ? !1 : p[this.lang];
 							} catch (d) {
 								return console.error("[VOT] [localizationProvider] Failed to get locales hash:", d), !1;
 							}
 						}
 						async update(d = !1) {
-							let f = await v.d.get("localeUpdatedAt", 0);
-							if (!d && f + this.cacheTTL > (0, b.lg)() && await v.d.get("localeLang") === this.lang) return this;
+							let f = await x.d.get("localeUpdatedAt", 0);
+							if (!d && f + this.cacheTTL > (0, C.lg)() && await x.d.get("localeLang") === this.lang) return this;
 							let p = await this.checkUpdates(d);
-							if (await v.d.set("localeUpdatedAt", (0, b.lg)()), !p) return this;
-							g.A.log("Updating locale...");
+							if (await x.d.set("localeUpdatedAt", (0, C.lg)()), !p) return this;
+							_.A.log("Updating locale...");
 							try {
-								let f = await (0, b.G3)(this.buildUrl(`/locales/${this.lang}.json`, d));
+								let f = await (0, v.G3)(this.buildUrl(`/locales/${this.lang}.json`, d));
 								if (!f.ok) throw f.status;
 								let m = await f.text();
-								await v.d.set("localePhrases", m), await v.d.set("localeHash", p), await v.d.set("localeLang", this.lang), this.setLocaleFromJsonString(m);
+								await x.d.set("localePhrases", m), await x.d.set("localeHash", p), await x.d.set("localeLang", this.lang), this.setLocaleFromJsonString(m);
 							} catch (d) {
-								console.error("[VOT] [localizationProvider] Failed to get locale:", d), this.setLocaleFromJsonString(await v.d.get("localePhrases", ""));
+								console.error("[VOT] [localizationProvider] Failed to get locale:", d), this.setLocaleFromJsonString(await x.d.get("localePhrases", ""));
 							}
 							return this;
 						}
 						setLocaleFromJsonString(d) {
 							try {
 								let f = JSON.parse(d) || {};
-								this.locale = (0, b.GW)(f);
+								this.locale = (0, C.GW)(f);
 							} catch (d) {
 								console.error("[VOT] [localizationProvider]", d), this.locale = {};
 							}
@@ -9169,8 +9181,8 @@
 							return this.getFromLocale(this.locale, d) ?? this.getDefault(d);
 						}
 					}
-					let C = new LocalizationProvider();
-					await C.init(), m();
+					let T = new LocalizationProvider();
+					await T.init(), m();
 				} catch (d) {
 					m(d);
 				}
@@ -9187,15 +9199,17 @@
 						I: () => SubtitlesProcessor,
 						o: () => SubtitlesWidget
 					});
-					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./node_modules/@vot.js/shared/dist/utils/subs.js"), _ = p("./src/config/config.js"), v = p("./src/utils/utils.js"), b = p("./src/utils/translateApis.ts"), x = p("./src/localization/localizationProvider.ts"), C = p("./src/utils/storage.ts"), w = p("./src/ui/components/tooltip.ts"), T = p("./src/ui.js"), E = d([
+					var h = p("./node_modules/@vot.js/shared/dist/utils/subs.js"), g = p("./node_modules/lit-html/lit-html.js"), _ = p("./src/config/config.js"), v = p("./src/localization/localizationProvider.ts"), b = p("./src/ui.js"), x = p("./src/ui/components/tooltip.ts"), C = p("./src/utils/gm.ts"), w = p("./src/utils/localization.ts"), T = p("./src/utils/storage.ts"), E = p("./src/utils/translateApis.ts"), D = p("./src/utils/utils.ts"), O = d([
 						v,
 						b,
 						x,
 						C,
 						w,
-						T
+						T,
+						E,
+						D
 					]);
-					[v, b, x, C, w, T] = E.then ? (await E)() : E;
+					[v, b, x, C, w, T, E, D] = O.then ? (await O)() : O;
 					class SubtitlesProcessor {
 						static formatYandexTokens(d) {
 							let f = d.startMs + d.durationMs;
@@ -9297,14 +9311,14 @@
 							};
 						}
 						static async fetchSubtitles(d) {
-							let { source: f, isAutoGenerated: p, format: m, url: h } = d;
+							let { source: f, isAutoGenerated: p, format: m, url: g } = d;
 							try {
-								let _ = await (0, v.G3)(h, { timeout: 7e3 }), b;
+								let _ = await (0, C.G3)(g, { timeout: 7e3 }), v;
 								if (["vtt", "srt"].includes(m)) {
 									let d = await _.text();
-									b = (0, g.vk)(d, "json");
-								} else b = await _.json();
-								return f === "youtube" ? b = SubtitlesProcessor.formatYoutubeSubtitles(b, p) : f === "vk" && (b = SubtitlesProcessor.cleanJsonSubtitles(b)), b.subtitles = SubtitlesProcessor.processTokens(b, d), console.log("[VOT] Processed subtitles:", b), b;
+									v = (0, h.vk)(d, "json");
+								} else v = await _.json();
+								return f === "youtube" ? v = SubtitlesProcessor.formatYoutubeSubtitles(v, p) : f === "vk" && (v = SubtitlesProcessor.cleanJsonSubtitles(v)), v.subtitles = SubtitlesProcessor.processTokens(v, d), console.log("[VOT] Processed subtitles:", v), v;
 							} catch (d) {
 								return console.error("[VOT] Failed to process subtitles:", d), {
 									containsTokens: !1,
@@ -9313,7 +9327,7 @@
 							}
 						}
 						static async getSubtitles(d, f) {
-							let { host: p, url: m, detectedLanguage: h, videoId: g, duration: _, subtitles: b = [] } = f;
+							let { host: p, url: m, detectedLanguage: h, videoId: g, duration: _, subtitles: v = [] } = f;
 							try {
 								let f = await Promise.race([d.getSubtitles({
 									videoData: {
@@ -9323,9 +9337,9 @@
 										duration: _
 									},
 									requestLang: h
-								}), (0, v.wR)(5e3, "Timeout")]);
+								}), (0, D.wR)(5e3, "Timeout")]);
 								console.log("[VOT] Subtitles response:", f), f.waiting && console.error("[VOT] Failed to get Yandex subtitles");
-								let x = (f.subtitles ?? []).reduce((d, f) => (f.language && !d.find((d) => d.source === "yandex" && d.language === f.language && !d.translatedFromLanguage) && d.push({
+								let b = (f.subtitles ?? []).reduce((d, f) => (f.language && !d.find((d) => d.source === "yandex" && d.language === f.language && !d.translatedFromLanguage) && d.push({
 									source: "yandex",
 									format: "json",
 									language: f.language,
@@ -9337,9 +9351,9 @@
 									translatedFromLanguage: f.language,
 									url: f.translatedUrl
 								}), d), []);
-								return [...x, ...b].sort((d, f) => {
+								return [...b, ...v].sort((d, f) => {
 									if (d.source !== f.source) return d.source === "yandex" ? -1 : 1;
-									if (d.language !== f.language && (d.language === v.vV || f.language === v.vV)) return d.language === v.vV ? -1 : 1;
+									if (d.language !== f.language && (d.language === w.v || f.language === w.v)) return d.language === w.v ? -1 : 1;
 									if (d.source === "yandex") {
 										if (d.translatedFromLanguage !== f.translatedFromLanguage) return !d.translatedFromLanguage || !f.translatedFromLanguage ? d.language === f.language ? d.translatedFromLanguage ? 1 : -1 : d.translatedFromLanguage ? -1 : 1 : d.translatedFromLanguage === h ? -1 : 1;
 										if (!d.translatedFromLanguage) return d.language === h ? -1 : 1;
@@ -9421,12 +9435,12 @@
 							return d[0]?.text === " " && d.shift(), d.at(-1)?.text === " " && d.pop(), d;
 						}
 						async translateStrTokens(d) {
-							let f = this.subtitleLang, p = x.j.lang;
+							let f = this.subtitleLang, p = v.j.lang;
 							if (this.strTranslatedTokens) {
-								let m = await (0, b.Tl)(d, f, p);
+								let m = await (0, E.Tl)(d, f, p);
 								return [this.strTranslatedTokens, m];
 							}
-							let m = await (0, b.Tl)([this.strTokens, d], f, p);
+							let m = await (0, E.Tl)([this.strTokens, d], f, p);
 							return this.strTranslatedTokens = m[0], m;
 						}
 						releaseTooltip() {
@@ -9438,8 +9452,8 @@
 								return;
 							}
 							this.releaseTooltip(), d.target.classList.add("selected");
-							let f = d.target.textContent.trim().replace(/[.|,]/, ""), p = await C.d.get("translationService", _.mE), m = T.A.createSubtitleInfo(f, this.strTranslatedTokens || this.strTokens, p);
-							this.tokenTooltip = new w.A({
+							let f = d.target.textContent.trim().replace(/[.|,]/, ""), p = await T.d.get("translationService", _.mE), m = b.A.createSubtitleInfo(f, this.strTranslatedTokens || this.strTokens, p);
+							this.tokenTooltip = new x.A({
 								target: d.target,
 								anchor: this.subtitlesBlock,
 								layoutRoot: this.tooltipLayoutRoot,
@@ -9457,7 +9471,7 @@
 						renderTokens(d, f) {
 							return d.map((d) => {
 								let p = this.highlightWords && (f > d.startMs + d.durationMs / 2 || f > d.startMs - 100 && d.startMs + d.durationMs / 2 - f < 275);
-								return (0, h.qy)`<span
+								return (0, g.qy)`<span
         @click="${this.onClick}"
         class="${p ? "passed" : ""}"
       >
@@ -9467,7 +9481,7 @@
 						}
 						setContent(d, f = void 0) {
 							if (this.releaseTooltip(), this.subtitleLang = f, !d || !this.video) {
-								this.subtitles = null, (0, h.XX)(null, this.subtitlesContainer);
+								this.subtitles = null, (0, g.XX)(null, this.subtitlesContainer);
 								return;
 							}
 							this.subtitles = d, this.update();
@@ -9491,14 +9505,14 @@
 							if (!this.video || !this.subtitles) return;
 							let d = this.video.currentTime * 1e3, f = this.subtitles.subtitles.findLast((f) => f.startMs < d && d < f.startMs + f.durationMs);
 							if (!f) {
-								(0, h.XX)(null, this.subtitlesContainer), this.subtitlesBlock = null, this.releaseTooltip();
+								(0, g.XX)(null, this.subtitlesContainer), this.subtitlesBlock = null, this.releaseTooltip();
 								return;
 							}
-							let p = this.processTokens(f.tokens), m = this.renderTokens(p, d), g = JSON.stringify(m);
-							if (g !== this.lastContent) {
-								this.lastContent = g;
+							let p = this.processTokens(f.tokens), m = this.renderTokens(p, d), h = JSON.stringify(m);
+							if (h !== this.lastContent) {
+								this.lastContent = h;
 								let d = this.stringifyTokens(p);
-								d !== this.strTokens && (this.releaseTooltip(), this.strTokens = d, this.strTranslatedTokens = ""), (0, h.XX)((0, h.qy)`<vot-block
+								d !== this.strTokens && (this.releaseTooltip(), this.strTokens = d, this.strTranslatedTokens = ""), (0, g.XX)((0, g.qy)`<vot-block
           class="vot-subtitles"
           style="font-size: ${this.fontSize}px; --vot-subtitles-opacity: ${this.opacity}"
           >${m}</vot-block
@@ -9614,8 +9628,8 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => AccountButton });
-					var h = p("./src/ui.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/ui/icons.ts"), v = p("./src/config/config.js"), b = p("./src/localization/localizationProvider.ts"), x = d([h, b]);
-					[h, b] = x.then ? (await x)() : x;
+					var h = p("./src/config/config.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/localization/localizationProvider.ts"), v = p("./src/ui.js"), b = p("./src/ui/icons.ts"), x = d([_, v]);
+					[_, v] = x.then ? (await x)() : x;
 					class AccountButton {
 						container;
 						accountWrapper;
@@ -9638,27 +9652,27 @@
 							this.container = m.container, this.accountWrapper = m.accountWrapper, this.buttons = m.buttons, this.usernameEl = m.usernameEl, this.avatarEl = m.avatarEl, this.avatarImg = m.avatarImg, this.actionButton = m.actionButton, this.refreshButton = m.refreshButton, this.tokenButton = m.tokenButton;
 						}
 						createElements() {
-							let d = h.A.createEl("vot-block", ["vot-account"]), f = h.A.createEl("vot-block", ["vot-account-wrapper"]);
+							let d = v.A.createEl("vot-block", ["vot-account"]), f = v.A.createEl("vot-block", ["vot-account-wrapper"]);
 							f.hidden = !this._loggedIn;
-							let p = h.A.createEl("img", ["vot-account-avatar-img"]);
-							p.src = `${v.cL}/${this._avatarId}/islands-retina-middle`, p.loading = "lazy", p.alt = "user avatar";
-							let m = h.A.createEl("vot-block", ["vot-account-avatar"], p), g = h.A.createEl("vot-block", ["vot-account-username"]);
+							let p = v.A.createEl("img", ["vot-account-avatar-img"]);
+							p.src = `${h.cL}/${this._avatarId}/islands-retina-middle`, p.loading = "lazy", p.alt = "user avatar";
+							let m = v.A.createEl("vot-block", ["vot-account-avatar"], p), g = v.A.createEl("vot-block", ["vot-account-username"]);
 							g.textContent = this._username, f.append(m, g);
-							let b = h.A.createEl("vot-block", ["vot-account-buttons"]), x = h.A.createOutlinedButton(this.buttonText);
+							let _ = v.A.createEl("vot-block", ["vot-account-buttons"]), x = v.A.createOutlinedButton(this.buttonText);
 							x.addEventListener("click", () => {
 								this.onClick.dispatch();
 							});
-							let C = h.A.createIconButton(_.GA);
+							let C = v.A.createIconButton(b.GA);
 							C.hidden = this._loggedIn, C.addEventListener("click", () => {
 								this.onClickSecret.dispatch();
 							});
-							let w = h.A.createIconButton(_.M9);
+							let w = v.A.createIconButton(b.M9);
 							return w.addEventListener("click", () => {
 								this.onRefresh.dispatch();
-							}), b.append(x, C, w), d.append(f, b), {
+							}), _.append(x, C, w), d.append(f, _), {
 								container: d,
 								accountWrapper: f,
-								buttons: b,
+								buttons: _,
 								usernameEl: g,
 								avatarImg: p,
 								avatarEl: m,
@@ -9696,7 +9710,7 @@
 							return this;
 						}
 						get buttonText() {
-							return this._loggedIn ? b.j.get("VOTLogout") : b.j.get("VOTLogin");
+							return this._loggedIn ? _.j.get("VOTLogout") : _.j.get("VOTLogin");
 						}
 						get loggedIn() {
 							return this._loggedIn;
@@ -9708,7 +9722,7 @@
 							return this._avatarId;
 						}
 						set avatarId(d) {
-							this._avatarId = d ?? "0/0-0", this.avatarImg.src = `${v.cL}/${this._avatarId}/islands-retina-middle`;
+							this._avatarId = d ?? "0/0-0", this.avatarImg.src = `${h.cL}/${this._avatarId}/islands-retina-middle`;
 						}
 						get username() {
 							return this._username;
@@ -9734,13 +9748,13 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => Checkbox });
-					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/ui.js"), _ = p("./src/core/eventImpl.ts"), v = d([g]);
-					g = (v.then ? (await v)() : v)[0];
+					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/ui.js"), v = d([_]);
+					_ = (v.then ? (await v)() : v)[0];
 					class Checkbox {
 						container;
 						input;
 						label;
-						onChange = new _.Z();
+						onChange = new g.Z();
 						_labelHtml;
 						_checked;
 						_isSubCheckbox;
@@ -9750,13 +9764,13 @@
 							this.container = m.container, this.input = m.input, this.label = m.label;
 						}
 						createElements() {
-							let d = g.A.createEl("label", ["vot-checkbox"]);
+							let d = _.A.createEl("label", ["vot-checkbox"]);
 							this._isSubCheckbox && d.classList.add("vot-checkbox-sub");
 							let f = document.createElement("input");
 							f.type = "checkbox", f.checked = this._checked, f.addEventListener("change", () => {
 								this._checked = f.checked, this.onChange.dispatch(this._checked);
 							});
-							let p = g.A.createEl("span");
+							let p = _.A.createEl("span");
 							return (0, h.XX)(this._labelHtml, p), d.append(f, p), {
 								container: d,
 								input: f,
@@ -9799,13 +9813,13 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => Details });
-					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/ui.js"), _ = p("./src/core/eventImpl.ts"), v = p("./src/ui/icons.ts"), b = d([g]);
-					g = (b.then ? (await b)() : b)[0];
+					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/ui.js"), v = p("./src/ui/icons.ts"), b = d([_]);
+					_ = (b.then ? (await b)() : b)[0];
 					class Details {
 						container;
 						header;
 						arrowIcon;
-						onClick = new _.Z();
+						onClick = new g.Z();
 						_titleHtml;
 						constructor({ titleHtml: d }) {
 							this._titleHtml = d;
@@ -9813,9 +9827,9 @@
 							this.container = f.container, this.header = f.header, this.arrowIcon = f.arrowIcon;
 						}
 						createElements() {
-							let d = g.A.createEl("vot-block", ["vot-details"]), f = g.A.createEl("vot-block");
+							let d = _.A.createEl("vot-block", ["vot-details"]), f = _.A.createEl("vot-block");
 							f.append(this._titleHtml);
-							let p = g.A.createEl("vot-block", ["vot-details-arrow-icon"]);
+							let p = _.A.createEl("vot-block", ["vot-details-arrow-icon"]);
 							return (0, h.XX)(v.mQ, p), d.append(f, p), d.addEventListener("click", () => {
 								this.onClick.dispatch();
 							}), {
@@ -9848,8 +9862,8 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => Dialog });
-					var h = p("./src/ui.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/ui/icons.ts"), v = d([h]);
-					h = (v.then ? (await v)() : v)[0];
+					var h = p("./src/core/eventImpl.ts"), g = p("./src/ui.js"), _ = p("./src/ui/icons.ts"), v = d([g]);
+					g = (v.then ? (await v)() : v)[0];
 					class Dialog {
 						container;
 						backdrop;
@@ -9861,7 +9875,7 @@
 						closeButton;
 						bodyContainer;
 						footerContainer;
-						onClose = new g.Z();
+						onClose = new h.Z();
 						_titleHtml;
 						_isTemp;
 						constructor({ titleHtml: d, isTemp: f = !1 }) {
@@ -9870,19 +9884,23 @@
 							this.container = p.container, this.backdrop = p.backdrop, this.box = p.box, this.contentWrapper = p.contentWrapper, this.headerContainer = p.headerContainer, this.titleContainer = p.titleContainer, this.title = p.title, this.closeButton = p.closeButton, this.bodyContainer = p.bodyContainer, this.footerContainer = p.footerContainer;
 						}
 						createElements() {
-							let d = h.A.createEl("vot-block", ["vot-dialog-container"]);
+							let d = g.A.createEl("vot-block", ["vot-dialog-container"]);
 							this._isTemp && d.classList.add("vot-dialog-temp"), d.hidden = !this._isTemp;
-							let f = h.A.createEl("vot-block", ["vot-dialog-backdrop"]), p = h.A.createEl("vot-block", ["vot-dialog"]), m = h.A.createEl("vot-block", ["vot-dialog-content-wrapper"]), g = h.A.createEl("vot-block", ["vot-dialog-header-container"]), v = h.A.createEl("vot-block", ["vot-dialog-title-container"]), b = h.A.createEl("vot-block", ["vot-dialog-title"]);
+							let f = g.A.createEl("vot-block", ["vot-dialog-backdrop"]), p = g.A.createEl("vot-block", ["vot-dialog"]), m = g.A.createEl("vot-block", ["vot-dialog-content-wrapper"]), h = g.A.createEl("vot-block", ["vot-dialog-header-container"]), v = g.A.createEl("vot-block", ["vot-dialog-title-container"]), b = g.A.createEl("vot-block", ["vot-dialog-title"]);
 							b.append(this._titleHtml), v.appendChild(b);
-							let x = h.A.createIconButton(_.jr);
-							x.classList.add("vot-dialog-close-button"), f.onclick = x.onclick = () => this.close(), g.append(v, x);
-							let C = h.A.createEl("vot-block", ["vot-dialog-body-container"]), w = h.A.createEl("vot-block", ["vot-dialog-footer-container"]);
-							return m.append(g, C, w), p.appendChild(m), d.append(f, p), {
+							let x = g.A.createIconButton(_.jr);
+							x.classList.add("vot-dialog-close-button"), f.addEventListener("click", () => {
+								this.close();
+							}), x.addEventListener("click", () => {
+								this.close();
+							}), h.append(v, x);
+							let C = g.A.createEl("vot-block", ["vot-dialog-body-container"]), w = g.A.createEl("vot-block", ["vot-dialog-footer-container"]);
+							return m.append(h, C, w), p.appendChild(m), d.append(f, p), {
 								container: d,
 								backdrop: f,
 								box: p,
 								contentWrapper: m,
-								headerContainer: g,
+								headerContainer: h,
 								titleContainer: v,
 								title: b,
 								closeButton: x,
@@ -9926,20 +9944,20 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => DownloadButton });
-					var h = p("./src/ui.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/ui/icons.ts"), v = d([h]);
-					h = (v.then ? (await v)() : v)[0];
+					var h = p("./src/core/eventImpl.ts"), g = p("./src/ui.js"), _ = p("./src/ui/icons.ts"), v = d([g]);
+					g = (v.then ? (await v)() : v)[0];
 					class DownloadButton {
 						button;
 						loaderMain;
 						loaderText;
-						onClick = new g.Z();
+						onClick = new h.Z();
 						_progress = 0;
 						constructor() {
 							let d = this.createElements();
 							this.button = d.button, this.loaderMain = d.loaderMain, this.loaderText = d.loaderText;
 						}
 						createElements() {
-							let d = h.A.createIconButton(_.nO), f = d.querySelector(".vot-loader-main"), p = d.querySelector(".vot-loader-text");
+							let d = g.A.createIconButton(_.nO), f = d.querySelector(".vot-loader-main"), p = d.querySelector(".vot-loader-text");
 							return d.addEventListener("click", () => {
 								this.onClick.dispatch();
 							}), {
@@ -9981,12 +9999,12 @@
 						A: () => HotkeyButton,
 						_: () => formatKeysCombo
 					});
-					var h = p("./src/ui.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/localization/localizationProvider.ts"), v = d([h, _]);
-					[h, _] = v.then ? (await v)() : v;
+					var h = p("./src/core/eventImpl.ts"), g = p("./src/localization/localizationProvider.ts"), _ = p("./src/ui.js"), v = d([g, _]);
+					[g, _] = v.then ? (await v)() : v;
 					class HotkeyButton {
 						container;
 						button;
-						onChange = new g.Z();
+						onChange = new h.Z();
 						_labelHtml;
 						_key;
 						pressedKeys;
@@ -10012,11 +10030,11 @@
 							this.recording && (this.key = formatKeysCombo(this.pressedKeys), this.stopRecordingKeys());
 						};
 						createElements() {
-							let d = h.A.createEl("vot-block", ["vot-hotkey"]), f = h.A.createEl("vot-block", ["vot-hotkey-label"]);
+							let d = _.A.createEl("vot-block", ["vot-hotkey"]), f = _.A.createEl("vot-block", ["vot-hotkey-label"]);
 							f.textContent = this._labelHtml;
-							let p = h.A.createEl("vot-block", ["vot-hotkey-button"]);
+							let p = _.A.createEl("vot-block", ["vot-hotkey-button"]);
 							return p.textContent = this.keyText, p.addEventListener("click", () => {
-								p.dataset.status = "active", this.recording = !0, this.pressedKeys.clear(), this.button.textContent = _.j.get("PressTheKeyCombination"), document.addEventListener("keydown", this.keydownHandle), document.addEventListener("keyup", this.keyupOrBlurHandle), document.addEventListener("blur", this.keyupOrBlurHandle);
+								p.dataset.status = "active", this.recording = !0, this.pressedKeys.clear(), this.button.textContent = g.j.get("PressTheKeyCombination"), document.addEventListener("keydown", this.keydownHandle), document.addEventListener("keyup", this.keyupOrBlurHandle), document.addEventListener("blur", this.keyupOrBlurHandle);
 							}), d.append(f, p), {
 								container: d,
 								button: p,
@@ -10039,7 +10057,7 @@
 							return this._key;
 						}
 						get keyText() {
-							return this._key ? this._key?.replace("Key", "").replace("Digit", "") : _.j.get("None");
+							return this._key ? this._key?.replace("Key", "").replace("Digit", "") : g.j.get("None");
 						}
 						set key(d) {
 							this._key !== d && (this._key = d, this.button.textContent = this.keyText, this.onChange.dispatch(this._key));
@@ -10099,7 +10117,7 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => LanguagePairSelect });
-					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/ui/components/select.ts"), _ = p("./src/ui.js"), v = p("./src/ui/icons.ts"), b = p("./src/localization/localizationProvider.ts"), x = d([
+					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/localization/localizationProvider.ts"), _ = p("./src/ui.js"), v = p("./src/ui/icons.ts"), b = p("./src/ui/components/select.ts"), x = d([
 						g,
 						_,
 						b
@@ -10117,20 +10135,20 @@
 						_toSelectTitle;
 						_toDialogTitle;
 						_toItems;
-						constructor({ from: { selectTitle: d = b.j.get("videoLanguage"), dialogTitle: f = b.j.get("videoLanguage"), items: p }, to: { selectTitle: m = b.j.get("translationLanguage"), dialogTitle: h = b.j.get("translationLanguage"), items: g }, dialogParent: _ = document.documentElement }) {
-							this._fromSelectTitle = d, this._fromDialogTitle = f, this._fromItems = p, this._toSelectTitle = m, this._toDialogTitle = h, this._toItems = g, this.dialogParent = _;
-							let v = this.createElements();
-							this.container = v.container, this.fromSelect = v.fromSelect, this.directionIcon = v.directionIcon, this.toSelect = v.toSelect;
+						constructor({ from: { selectTitle: d = g.j.get("videoLanguage"), dialogTitle: f = g.j.get("videoLanguage"), items: p }, to: { selectTitle: m = g.j.get("translationLanguage"), dialogTitle: h = g.j.get("translationLanguage"), items: _ }, dialogParent: v = document.documentElement }) {
+							this._fromSelectTitle = d, this._fromDialogTitle = f, this._fromItems = p, this._toSelectTitle = m, this._toDialogTitle = h, this._toItems = _, this.dialogParent = v;
+							let b = this.createElements();
+							this.container = b.container, this.fromSelect = b.fromSelect, this.directionIcon = b.directionIcon, this.toSelect = b.toSelect;
 						}
 						createElements() {
-							let d = _.A.createEl("vot-block", ["vot-lang-select"]), f = new g.A({
+							let d = _.A.createEl("vot-block", ["vot-lang-select"]), f = new b.A({
 								selectTitle: this._fromSelectTitle,
 								dialogTitle: this._fromDialogTitle,
 								items: this._fromItems,
 								dialogParent: this.dialogParent
 							}), p = _.A.createEl("vot-block", ["vot-lang-select-icon"]);
 							(0, h.XX)(v.z3, p);
-							let m = new g.A({
+							let m = new b.A({
 								selectTitle: this._toSelectTitle,
 								dialogTitle: this._toDialogTitle,
 								items: this._toItems,
@@ -10161,13 +10179,13 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => Select });
-					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/ui.js"), _ = p("./src/ui/icons.ts"), v = p("./src/localization/localizationProvider.ts"), b = p("./src/core/eventImpl.ts"), x = p("./src/ui/components/dialog.ts"), C = p("./src/ui/components/textfield.ts"), w = d([
-						g,
+					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/localization/localizationProvider.ts"), v = p("./src/ui.js"), b = p("./src/ui/icons.ts"), x = p("./src/ui/components/dialog.ts"), C = p("./src/ui/components/textfield.ts"), w = d([
+						_,
 						v,
 						x,
 						C
 					]);
-					[g, v, x, C] = w.then ? (await w)() : w;
+					[_, v, x, C] = w.then ? (await w)() : w;
 					class Select {
 						container;
 						outer;
@@ -10181,8 +10199,8 @@
 						_items;
 						isLoading = !1;
 						isDialogOpen = !1;
-						onSelectItem = new b.Z();
-						onBeforeOpen = new b.Z();
+						onSelectItem = new g.Z();
+						onBeforeOpen = new g.Z();
 						contentList;
 						selectedItems = [];
 						selectedValues;
@@ -10193,7 +10211,7 @@
 						}
 						static genLanguageItems(d, f) {
 							return d.map((d) => {
-								let p = `langs.${d}`, m = v.j.get(p);
+								let p = `langs.${d}`, m = _.j.get(p);
 								return {
 									label: m === p ? d.toUpperCase() : m,
 									value: d,
@@ -10213,9 +10231,9 @@
 							this.updateTitle(), this.onSelectItem.dispatch(f);
 						};
 						createDialogContentList() {
-							let d = g.A.createEl("vot-block", ["vot-select-content-list"]);
+							let d = v.A.createEl("vot-block", ["vot-select-content-list"]);
 							for (let f of this._items) {
-								let p = g.A.createEl("vot-block", ["vot-select-content-item"]);
+								let p = v.A.createEl("vot-block", ["vot-select-content-item"]);
 								p.textContent = f.label, p.dataset.votSelected = f.selected === !0 ? "true" : "false", p.dataset.votValue = f.value, f.disabled && (p.inert = !0), p.addEventListener("click", (d) => {
 									if (!d.target.inert) return this.multiSelect ? this.multiSelectItemHandle(p, f) : this.singleSelectItemHandle(f);
 								}), d.appendChild(p);
@@ -10223,12 +10241,12 @@
 							return this.selectedItems = Object.values(d.childNodes), d;
 						}
 						createElements() {
-							let d = g.A.createEl("vot-block", ["vot-select"]);
+							let d = v.A.createEl("vot-block", ["vot-select"]);
 							this.labelElement && d.append(this.labelElement);
-							let f = g.A.createEl("vot-block", ["vot-select-outer"]), p = g.A.createEl("vot-block", ["vot-select-title"]);
+							let f = v.A.createEl("vot-block", ["vot-select-outer"]), p = v.A.createEl("vot-block", ["vot-select-title"]);
 							p.textContent = this.visibleText;
-							let m = g.A.createEl("vot-block", ["vot-select-arrow-icon"]);
-							return (0, h.XX)(_.mQ, m), f.append(p, m), f.addEventListener("click", () => {
+							let m = v.A.createEl("vot-block", ["vot-select-arrow-icon"]);
+							return (0, h.XX)(b.mQ, m), f.append(p, m), f.addEventListener("click", () => {
 								if (!(this.isLoading || this.isDialogOpen)) try {
 									this.isLoading = !0;
 									let d = new x.A({
@@ -10236,7 +10254,7 @@
 										isTemp: !0
 									});
 									this.onBeforeOpen.dispatch(d), this.dialogParent.appendChild(d.container);
-									let f = new C.A({ labelHtml: v.j.get("searchField") });
+									let f = new C.A({ labelHtml: _.j.get("searchField") });
 									f.addEventListener("input", (d) => {
 										for (let f of this.selectedItems) f.hidden = !f.textContent?.toLowerCase().includes(d);
 									}), this.contentList = this.createDialogContentList(), d.bodyContainer.append(f.container, this.contentList), d.addEventListener("close", () => {
@@ -10308,13 +10326,13 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => Slider });
-					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/ui.js"), _ = p("./src/core/eventImpl.ts"), v = d([g]);
-					g = (v.then ? (await v)() : v)[0];
+					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/ui.js"), v = d([_]);
+					_ = (v.then ? (await v)() : v)[0];
 					class Slider {
 						container;
 						input;
 						label;
-						onInput = new _.Z();
+						onInput = new g.Z();
 						_labelHtml;
 						_value;
 						_min;
@@ -10333,9 +10351,9 @@
 							return this._value = this.input.valueAsNumber, this._min = +this.input.min, this._max = +this.input.max, this.updateProgress(), this;
 						}
 						createElements() {
-							let d = g.A.createEl("vot-block", ["vot-slider"]), f = document.createElement("input");
+							let d = _.A.createEl("vot-block", ["vot-slider"]), f = document.createElement("input");
 							f.type = "range", f.min = this._min.toString(), f.max = this._max.toString(), f.step = this._step.toString(), f.value = this._value.toString();
-							let p = g.A.createEl("span");
+							let p = _.A.createEl("span");
 							return (0, h.XX)(this._labelHtml, p), d.append(f, p), f.addEventListener("input", () => {
 								this.update(), this.onInput.dispatch(this._value);
 							}), {
@@ -10445,14 +10463,14 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => Textfield });
-					var h = p("./src/ui.js"), g = p("./src/core/eventImpl.ts"), _ = d([h]);
-					h = (_.then ? (await _)() : _)[0];
+					var h = p("./src/core/eventImpl.ts"), g = p("./src/ui.js"), _ = d([g]);
+					g = (_.then ? (await _)() : _)[0];
 					class Textfield {
 						container;
 						input;
 						label;
-						onInput = new g.Z();
-						onChange = new g.Z();
+						onInput = new h.Z();
+						onChange = new h.Z();
 						_labelHtml;
 						_multiline;
 						_placeholder;
@@ -10463,9 +10481,9 @@
 							this.container = h.container, this.input = h.input, this.label = h.label;
 						}
 						createElements() {
-							let d = h.A.createEl("vot-block", ["vot-textfield"]), f = document.createElement(this._multiline ? "textarea" : "input");
+							let d = g.A.createEl("vot-block", ["vot-textfield"]), f = document.createElement(this._multiline ? "textarea" : "input");
 							this._labelHtml || f.classList.add("vot-show-placeholer"), f.placeholder = this._placeholder, f.value = this._value;
-							let p = h.A.createEl("span");
+							let p = g.A.createEl("span");
 							return p.append(this._labelHtml), d.append(f, p), f.addEventListener("input", () => {
 								this._value = this.input.value, this.onInput.dispatch(this._value);
 							}), f.addEventListener("change", () => {
@@ -10512,7 +10530,7 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { A: () => Tooltip });
-					var h = p("./src/types/components/tooltip.ts"), g = p("./src/ui.js"), _ = p("./src/utils/utils.js"), v = d([g, _]);
+					var h = p("./src/types/components/tooltip.ts"), g = p("./src/ui.js"), _ = p("./src/utils/utils.ts"), v = d([g, _]);
 					[g, _] = v.then ? (await v)() : v;
 					class Tooltip {
 						showed = !1;
@@ -10921,17 +10939,18 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { o: () => UIManager });
-					var h = p("./node_modules/@vot.js/shared/dist/utils/subs.js"), g = p("./src/ui.js"), _ = p("./src/ui/views/overlay.ts"), v = p("./src/ui/views/settings.ts"), b = p("./src/utils/utils.js"), x = p("./src/localization/localizationProvider.ts"), C = p("./src/config/config.js"), w = p("./src/ui/components/votButton.ts"), T = p("./src/utils/storage.ts"), E = p("./src/utils/debug.ts"), D = p("./src/utils/VOTLocalizedError.js"), O = d([
+					var h = p("./node_modules/@vot.js/shared/dist/utils/subs.js"), g = p("./src/ui.js"), _ = p("./src/config/config.js"), v = p("./src/localization/localizationProvider.ts"), b = p("./src/utils/VOTLocalizedError.js"), x = p("./src/utils/debug.ts"), C = p("./src/utils/gm.ts"), w = p("./src/utils/storage.ts"), T = p("./src/utils/utils.ts"), E = p("./src/ui/components/votButton.ts"), D = p("./src/ui/views/overlay.ts"), O = p("./src/ui/views/settings.ts"), A = d([
 						g,
-						_,
 						v,
 						b,
-						x,
+						C,
 						w,
 						T,
-						D
+						E,
+						D,
+						O
 					]);
-					[g, _, v, b, x, w, T, D] = O.then ? (await O)() : O;
+					[g, v, b, C, w, T, E, D, O] = A.then ? (await A)() : A;
 					class UIManager {
 						root;
 						portalContainer;
@@ -10950,14 +10969,14 @@
 						}
 						initUI() {
 							if (this.isInitialized()) throw Error("[VOT] UIManager is already initialized");
-							return this.initialized = !0, this.votGlobalPortal = g.A.createPortal(), document.documentElement.appendChild(this.votGlobalPortal), this.votOverlayView = new _.i({
+							return this.initialized = !0, this.votGlobalPortal = g.A.createPortal(), document.documentElement.appendChild(this.votGlobalPortal), this.votOverlayView = new D.i({
 								root: this.root,
 								portalContainer: this.portalContainer,
 								tooltipLayoutRoot: this.tooltipLayoutRoot,
 								globalPortal: this.votGlobalPortal,
 								data: this.data,
 								videoHandler: this.videoHandler
-							}), this.votOverlayView.initUI(), this.votSettingsView = new v.r({
+							}), this.votOverlayView.initUI(), this.votSettingsView = new O.r({
 								globalPortal: this.votGlobalPortal,
 								data: this.data,
 								videoHandler: this.videoHandler
@@ -10972,27 +10991,27 @@
 								let d = this.videoHandler.video === document.pictureInPictureElement;
 								await (d ? document.exitPictureInPicture() : this.videoHandler.video.requestPictureInPicture());
 							}).addEventListener("click:settings", async () => {
-								this.videoHandler?.subtitlesWidget.releaseTooltip(), this.votSettingsView.open(), await (0, b.Eh)();
+								this.videoHandler?.subtitlesWidget.releaseTooltip(), this.votSettingsView.open(), await (0, T.Eh)();
 							}).addEventListener("click:downloadTranslation", async () => {
 								if (!(!this.votOverlayView.isInitialized() || !this.videoHandler?.downloadTranslationUrl || !this.videoHandler.videoData)) {
 									try {
-										if (!this.data.downloadWithName || !b.yx) return (0, b.Wo)(this.videoHandler.downloadTranslationUrl);
+										if (!this.data.downloadWithName || !C.yx) return (0, T.Wo)(this.videoHandler.downloadTranslationUrl);
 										this.votOverlayView.downloadTranslationButton.progress = 0;
-										let d = await (0, b.G3)(this.videoHandler.downloadTranslationUrl, { timeout: 0 });
+										let d = await (0, C.G3)(this.videoHandler.downloadTranslationUrl, { timeout: 0 });
 										if (!d.ok) throw Error(`HTTP ${d.status}`);
-										let f = (0, b.Le)(this.videoHandler.videoData.downloadTitle);
-										await (0, b.MR)(d, f, (d) => {
+										let f = (0, T.Le)(this.videoHandler.videoData.downloadTitle);
+										await (0, T.MR)(d, f, (d) => {
 											this.votOverlayView.downloadTranslationButton.progress = d;
 										});
 									} catch (d) {
-										console.error("[VOT] Download translation failed:", d), (0, b.Wo)(this.videoHandler.downloadTranslationUrl);
+										console.error("[VOT] Download translation failed:", d), (0, T.Wo)(this.videoHandler.downloadTranslationUrl);
 									}
 									this.votOverlayView.downloadTranslationButton.progress = 0;
 								}
 							}).addEventListener("click:downloadSubtitles", async () => {
 								if (!this.videoHandler || !this.videoHandler.yandexSubtitles || !this.videoHandler.videoData) return;
-								let d = this.data.subtitlesDownloadFormat ?? "json", f = (0, h.vk)(this.videoHandler.yandexSubtitles, d), p = new Blob([d === "json" ? JSON.stringify(f) : f], { type: "text/plain" }), m = this.data.downloadWithName ? (0, b.Le)(this.videoHandler.videoData.downloadTitle) : `subtitles_${this.videoHandler.videoData.videoId}`;
-								(0, b.WN)(p, `${m}.${d}`);
+								let d = this.data.subtitlesDownloadFormat ?? "json", f = (0, h.vk)(this.videoHandler.yandexSubtitles, d), p = new Blob([d === "json" ? JSON.stringify(f) : f], { type: "text/plain" }), m = this.data.downloadWithName ? (0, T.Le)(this.videoHandler.videoData.downloadTitle) : `subtitles_${this.videoHandler.videoData.videoId}`;
+								(0, T.WN)(p, `${m}.${d}`);
 							}).addEventListener("input:videoVolume", (d) => {
 								this.videoHandler && (this.videoHandler.setVideoVolume(d / 100), this.data.syncVolume && this.videoHandler.syncVolumeWrapper("video", d));
 							}).addEventListener("input:translationVolume", () => {
@@ -11010,7 +11029,7 @@
 							}).addEventListener("change:audioBuster", async () => {
 								if (!this.votOverlayView.isInitialized()) return;
 								let d = this.votOverlayView.translationVolumeSlider.value;
-								this.votOverlayView.translationVolumeSlider.max = this.data.audioBooster ? C.T8 : 100, this.votOverlayView.translationVolumeSlider.value = (0, b.qE)(d, 0, 100);
+								this.votOverlayView.translationVolumeSlider.max = this.data.audioBooster ? _.T8 : 100, this.votOverlayView.translationVolumeSlider.value = (0, T.qE)(d, 0, 100);
 							}).addEventListener("change:useLivelyVoice", () => {
 								this.videoHandler?.stopTranslate();
 							}).addEventListener("change:subtitlesHighlightWords", (d) => {
@@ -11036,16 +11055,16 @@
 							}).addEventListener("select:buttonPosition", (d) => {
 								if (!this.votOverlayView.isInitialized()) return;
 								let f = this.data.buttonPos ?? d;
-								this.votOverlayView.updateButtonLayout(f, w.A.calcDirection(f));
+								this.votOverlayView.updateButtonLayout(f, E.A.calcDirection(f));
 							}).addEventListener("select:menuLanguage", async () => {
 								await this.reloadMenu();
 							}).addEventListener("click:bugReport", () => {
 								if (!this.videoHandler) return;
 								let d = new URLSearchParams(this.videoHandler.collectReportInfo()).toString();
-								window.open(`${C.Ek}/issues/new?${d}`, "_blank")?.focus();
+								window.open(`${_.Ek}/issues/new?${d}`, "_blank")?.focus();
 							}).addEventListener("click:resetSettings", async () => {
-								let d = await T.d.list();
-								await Promise.all(d.map(async (d) => await T.d.delete(d))), await T.d.set("compatVersion", C.r4), window.location.reload();
+								let d = await w.d.list();
+								await Promise.all(d.map(async (d) => await w.d.delete(d))), await w.d.set("compatVersion", _.r4), window.location.reload();
 							});
 						}
 						async reloadMenu() {
@@ -11056,11 +11075,11 @@
 						async handleTranslationBtnClick() {
 							if (!this.votOverlayView?.isInitialized()) throw Error("[VOT] OverlayView isn't initialized");
 							if (!this.videoHandler) return this;
-							if (E.A.log("[handleTranslationBtnClick] click translationBtn"), this.videoHandler.hasActiveSource()) return E.A.log("[handleTranslationBtnClick] video has active source"), this.videoHandler.stopTranslation(), this;
-							if (this.votOverlayView.votButton.status !== "none" || this.votOverlayView.votButton.loading) return E.A.log("[handleTranslationBtnClick] translationBtn isn't in none state"), this.videoHandler.actionsAbortController.abort(), this.videoHandler.stopTranslation(), this;
+							if (x.A.log("[handleTranslationBtnClick] click translationBtn"), this.videoHandler.hasActiveSource()) return x.A.log("[handleTranslationBtnClick] video has active source"), this.videoHandler.stopTranslation(), this;
+							if (this.votOverlayView.votButton.status !== "none" || this.votOverlayView.votButton.loading) return x.A.log("[handleTranslationBtnClick] translationBtn isn't in none state"), this.videoHandler.actionsAbortController.abort(), this.videoHandler.stopTranslation(), this;
 							try {
-								if (E.A.log("[handleTranslationBtnClick] trying execute translation"), !this.videoHandler.videoData?.videoId) throw new D.n("VOTNoVideoIDFound");
-								(this.videoHandler.site.host === "vk" && this.videoHandler.site.additionalData === "clips" || this.videoHandler.site.host === "douyin") && (this.videoHandler.videoData = await this.videoHandler.getVideoData()), E.A.log("[handleTranslationBtnClick] Run translateFunc", this.videoHandler.videoData.videoId), await this.videoHandler.translateFunc(this.videoHandler.videoData.videoId, this.videoHandler.videoData.isStream, this.videoHandler.videoData.detectedLanguage, this.videoHandler.videoData.responseLanguage, this.videoHandler.videoData.translationHelp);
+								if (x.A.log("[handleTranslationBtnClick] trying execute translation"), !this.videoHandler.videoData?.videoId) throw new b.n("VOTNoVideoIDFound");
+								(this.videoHandler.site.host === "vk" && this.videoHandler.site.additionalData === "clips" || this.videoHandler.site.host === "douyin") && (this.videoHandler.videoData = await this.videoHandler.getVideoData()), x.A.log("[handleTranslationBtnClick] Run translateFunc", this.videoHandler.videoData.videoId), await this.videoHandler.translateFunc(this.videoHandler.videoData.videoId, this.videoHandler.videoData.isStream, this.videoHandler.videoData.detectedLanguage, this.videoHandler.videoData.responseLanguage, this.videoHandler.videoData.translationHelp);
 							} catch (d) {
 								if (console.error("[VOT]", d), !(d instanceof Error)) return this.transformBtn("error", String(d)), this;
 								let f = d.name === "VOTLocalizedError" ? d.localizedMessage : d.message;
@@ -11069,7 +11088,7 @@
 							return this;
 						}
 						isLoadingText(d) {
-							return typeof d == "string" && (d.includes(x.j.get("translationTake")) || d.includes(x.j.get("TranslationDelayed")));
+							return typeof d == "string" && (d.includes(v.j.get("translationTake")) || d.includes(v.j.get("TranslationDelayed")));
 						}
 						transformBtn(d, f) {
 							if (!this.votOverlayView?.isInitialized()) throw Error("[VOT] OverlayView isn't initialized");
@@ -11098,7 +11117,7 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { i: () => OverlayView });
-					var h = p("./node_modules/@vot.js/shared/dist/data/consts.js"), g = p("./src/ui.js"), _ = p("./src/ui/components/tooltip.ts"), v = p("./src/ui/components/select.ts"), b = p("./src/ui/components/votMenu.ts"), x = p("./src/ui/components/votButton.ts"), C = p("./src/ui/components/languagePairSelect.ts"), w = p("./src/ui/components/slider.ts"), T = p("./src/ui/components/sliderLabel.ts"), E = p("./src/ui/icons.ts"), D = p("./src/core/eventImpl.ts"), O = p("./src/utils/storage.ts"), A = p("./src/config/config.js"), j = p("./src/utils/utils.js"), F = p("./src/localization/localizationProvider.ts"), U = p("./src/ui/components/label.ts"), W = p("./src/ui/components/downloadButton.ts"), G = d([
+					var h = p("./node_modules/@vot.js/shared/dist/data/consts.js"), g = p("./src/ui.js"), _ = p("./src/ui/components/languagePairSelect.ts"), v = p("./src/ui/components/select.ts"), b = p("./src/ui/components/slider.ts"), x = p("./src/ui/components/sliderLabel.ts"), C = p("./src/ui/components/tooltip.ts"), w = p("./src/ui/components/votButton.ts"), T = p("./src/ui/components/votMenu.ts"), E = p("./src/ui/icons.ts"), D = p("./src/config/config.js"), O = p("./src/core/eventImpl.ts"), A = p("./src/localization/localizationProvider.ts"), j = p("./src/utils/storage.ts"), F = p("./src/utils/utils.ts"), U = p("./src/ui/components/downloadButton.ts"), W = p("./src/ui/components/label.ts"), G = d([
 						g,
 						_,
 						v,
@@ -11107,13 +11126,13 @@
 						C,
 						w,
 						T,
-						O,
+						A,
 						j,
 						F,
 						U,
 						W
 					]);
-					[g, _, v, b, x, C, w, T, O, j, F, U, W] = G.then ? (await G)() : G;
+					[g, _, v, b, x, C, w, T, A, j, F, U, W] = G.then ? (await G)() : G;
 					class OverlayView {
 						root;
 						tooltipLayoutRoot;
@@ -11124,16 +11143,16 @@
 						data;
 						videoHandler;
 						cancelDraggingEvents = ["pointercancel", "touchcancel"];
-						onClickSettings = new D.Z();
-						onClickPiP = new D.Z();
-						onClickTranslate = new D.Z();
-						onClickDownloadTranslation = new D.Z();
-						onClickDownloadSubtitles = new D.Z();
-						onSelectFromLanguage = new D.Z();
-						onSelectToLanguage = new D.Z();
-						onSelectSubtitles = new D.Z();
-						onInputVideoVolume = new D.Z();
-						onInputTranslationVolume = new D.Z();
+						onClickSettings = new O.Z();
+						onClickPiP = new O.Z();
+						onClickTranslate = new O.Z();
+						onClickDownloadTranslation = new O.Z();
+						onClickDownloadSubtitles = new O.Z();
+						onSelectFromLanguage = new O.Z();
+						onSelectToLanguage = new O.Z();
+						onSelectSubtitles = new O.Z();
+						onInputVideoVolume = new O.Z();
+						onInputTranslationVolume = new O.Z();
 						votOverlayPortal;
 						votButton;
 						votButtonTooltip;
@@ -11237,60 +11256,60 @@
 							if (this.isInitialized()) throw Error("[VOT] OverlayView is already initialized");
 							this.initialized = !0;
 							let { position: f, direction: p } = this.calcButtonLayout(d);
-							this.votOverlayPortal = g.A.createPortal(!0), this.portalContainer.appendChild(this.votOverlayPortal), this.votButton = new x.A({
+							this.votOverlayPortal = g.A.createPortal(!0), this.portalContainer.appendChild(this.votOverlayPortal), this.votButton = new w.A({
 								position: f,
 								direction: p,
 								status: "none",
-								labelHtml: F.j.get("translateVideo")
-							}), this.votButton.opacity = 0, this.pipButtonVisible || this.votButton.showPiPButton(!1), this.root.appendChild(this.votButton.container), this.votButtonTooltip = new _.A({
+								labelHtml: A.j.get("translateVideo")
+							}), this.votButton.opacity = 0, this.pipButtonVisible || this.votButton.showPiPButton(!1), this.root.appendChild(this.votButton.container), this.votButtonTooltip = new C.A({
 								target: this.votButton.translateButton,
-								content: F.j.get("translateVideo"),
+								content: A.j.get("translateVideo"),
 								position: this.votButton.tooltipPos,
 								hidden: p === "row",
 								bordered: !1,
 								parentElement: this.votOverlayPortal,
 								layoutRoot: this.tooltipLayoutRoot
-							}), this.votMenu = new b.A({
-								titleHtml: F.j.get("VOTSettings"),
+							}), this.votMenu = new T.A({
+								titleHtml: A.j.get("VOTSettings"),
 								position: f
-							}), this.root.appendChild(this.votMenu.container), this.downloadTranslationButton = new W.A(), this.downloadTranslationButton.hidden = !0, this.downloadSubtitlesButton = g.A.createIconButton(E.U0), this.downloadSubtitlesButton.hidden = !0, this.openSettingsButton = g.A.createIconButton(E.c1), this.votMenu.headerContainer.append(this.downloadTranslationButton.button, this.downloadSubtitlesButton, this.openSettingsButton);
-							let m = this.videoHandler?.videoData?.detectedLanguage ?? "en", D = this.data.responseLanguage ?? "ru";
-							this.languagePairSelect = new C.A({
+							}), this.root.appendChild(this.votMenu.container), this.downloadTranslationButton = new U.A(), this.downloadTranslationButton.hidden = !0, this.downloadSubtitlesButton = g.A.createIconButton(E.U0), this.downloadSubtitlesButton.hidden = !0, this.openSettingsButton = g.A.createIconButton(E.c1), this.votMenu.headerContainer.append(this.downloadTranslationButton.button, this.downloadSubtitlesButton, this.openSettingsButton);
+							let m = this.videoHandler?.videoData?.detectedLanguage ?? "en", O = this.data.responseLanguage ?? "ru";
+							this.languagePairSelect = new _.A({
 								from: {
-									selectTitle: F.j.get(`langs.${m}`),
+									selectTitle: A.j.get(`langs.${m}`),
 									items: v.A.genLanguageItems(h.xm, m)
 								},
 								to: {
-									selectTitle: F.j.get(`langs.${D}`),
-									items: v.A.genLanguageItems(h.Xh, D)
+									selectTitle: A.j.get(`langs.${O}`),
+									items: v.A.genLanguageItems(h.Xh, O)
 								}
-							}), this.subtitlesSelectLabel = new U.A({ labelText: F.j.get("VOTSubtitles") }), this.subtitlesSelect = new v.A({
-								selectTitle: F.j.get("VOTSubtitlesDisabled"),
-								dialogTitle: F.j.get("VOTSubtitles"),
+							}), this.subtitlesSelectLabel = new W.A({ labelText: A.j.get("VOTSubtitles") }), this.subtitlesSelect = new v.A({
+								selectTitle: A.j.get("VOTSubtitlesDisabled"),
+								dialogTitle: A.j.get("VOTSubtitles"),
 								labelElement: this.subtitlesSelectLabel.container,
 								dialogParent: this.globalPortal,
 								items: [{
-									label: F.j.get("VOTSubtitlesDisabled"),
+									label: A.j.get("VOTSubtitlesDisabled"),
 									value: "disabled",
 									selected: !0
 								}]
 							});
-							let O = this.videoHandler ? this.videoHandler.getVideoVolume() * 100 : 100;
-							this.videoVolumeSliderLabel = new T.A({
-								labelText: F.j.get("VOTVolume"),
-								value: O
-							}), this.videoVolumeSlider = new w.A({
-								labelHtml: this.videoVolumeSliderLabel.container,
-								value: O
-							}), this.videoVolumeSlider.hidden = !this.data.showVideoSlider || this.votButton.status !== "success";
-							let j = this.data.defaultVolume ?? 100;
-							return this.tranlsationVolumeSliderLabel = new T.A({
-								labelText: F.j.get("VOTVolumeTranslation"),
+							let j = this.videoHandler ? this.videoHandler.getVideoVolume() * 100 : 100;
+							this.videoVolumeSliderLabel = new x.A({
+								labelText: A.j.get("VOTVolume"),
 								value: j
-							}), this.translationVolumeSlider = new w.A({
+							}), this.videoVolumeSlider = new b.A({
+								labelHtml: this.videoVolumeSliderLabel.container,
+								value: j
+							}), this.videoVolumeSlider.hidden = !this.data.showVideoSlider || this.votButton.status !== "success";
+							let F = this.data.defaultVolume ?? 100;
+							return this.tranlsationVolumeSliderLabel = new x.A({
+								labelText: A.j.get("VOTVolumeTranslation"),
+								value: F
+							}), this.translationVolumeSlider = new b.A({
 								labelHtml: this.tranlsationVolumeSliderLabel.container,
-								value: j,
-								max: this.data.audioBooster ? A.T8 : 100
+								value: F,
+								max: this.data.audioBooster ? D.T8 : 100
 							}), this.translationVolumeSlider.hidden = this.votButton.status !== "success", this.votMenu.bodyContainer.append(this.languagePairSelect.container, this.subtitlesSelect.container, this.videoVolumeSlider.container, this.translationVolumeSlider.container), this;
 						}
 						initUIEvents() {
@@ -11320,7 +11339,7 @@
 							}), this.languagePairSelect.fromSelect.addEventListener("selectItem", (d) => {
 								this.videoHandler?.videoData && (this.videoHandler.videoData.detectedLanguage = d), this.onSelectFromLanguage.dispatch(d);
 							}), this.languagePairSelect.toSelect.addEventListener("selectItem", async (d) => {
-								this.videoHandler?.videoData && (this.videoHandler.translateToLang = this.videoHandler.videoData.responseLanguage = d), this.data.responseLanguage = d, await O.d.set("responseLanguage", this.data.responseLanguage), this.onSelectToLanguage.dispatch(d);
+								this.videoHandler?.videoData && (this.videoHandler.translateToLang = this.videoHandler.videoData.responseLanguage = d), this.data.responseLanguage = d, await j.d.set("responseLanguage", this.data.responseLanguage), this.onSelectToLanguage.dispatch(d);
 							}), this.subtitlesSelect.addEventListener("beforeOpen", async (d) => {
 								if (!this.videoHandler?.videoData) return;
 								let f = `${this.videoHandler.videoData.videoId}_${this.videoHandler.videoData.detectedLanguage}_${this.videoHandler.videoData.responseLanguage}_${this.data.useLivelyVoice}`;
@@ -11333,7 +11352,7 @@
 							}), this.videoVolumeSlider.addEventListener("input", (d) => {
 								this.videoVolumeSliderLabel.value = d, this.onInputVideoVolume.dispatch(d);
 							}), this.translationVolumeSlider.addEventListener("input", async (d) => {
-								this.tranlsationVolumeSliderLabel.value = d, this.data.defaultVolume = d, await O.d.set("defaultVolume", this.data.defaultVolume), this.onInputTranslationVolume.dispatch(d);
+								this.tranlsationVolumeSliderLabel.value = d, this.data.defaultVolume = d, await j.d.set("defaultVolume", this.data.defaultVolume), this.onInputTranslationVolume.dispatch(d);
 							}), this;
 						}
 						updateButtonLayout(d, f) {
@@ -11341,10 +11360,10 @@
 						}
 						async moveButton(d) {
 							if (!this.isInitialized()) return this;
-							let f = x.A.calcPosition(d, this.isBigContainer);
+							let f = w.A.calcPosition(d, this.isBigContainer);
 							if (f === this.votButton.position) return this;
-							let p = x.A.calcDirection(f);
-							return this.data.buttonPos = f, this.updateButtonLayout(f, p), this.isBigContainer && await O.d.set("buttonPos", f), this;
+							let p = w.A.calcDirection(f);
+							return this.data.buttonPos = f, this.updateButtonLayout(f, p), this.isBigContainer && await j.d.set("buttonPos", f), this;
 						}
 						async handleDragMove(d, f, p = this.root.getBoundingClientRect()) {
 							if (!this.dragging) return this;
@@ -11381,7 +11400,7 @@
 							return this.root.clientWidth > 550;
 						}
 						get pipButtonVisible() {
-							return (0, j.Bs)() && !!this.data.showPiPButton;
+							return (0, F.Bs)() && !!this.data.showPiPButton;
 						}
 					}
 					m();
@@ -11395,7 +11414,7 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { r: () => SettingsView });
-					var h = p("./node_modules/lit-html/lit-html.js"), g = p("./node_modules/@vot.js/shared/dist/data/consts.js"), _ = p("./src/ui.js"), v = p("./src/ui/components/tooltip.ts"), b = p("./src/ui/components/select.ts"), x = p("./src/ui/components/slider.ts"), C = p("./src/ui/components/dialog.ts"), w = p("./src/ui/components/checkbox.ts"), T = p("./src/ui/components/hotkeyButton.ts"), E = p("./src/ui/components/sliderLabel.ts"), D = p("./src/ui/components/details.ts"), O = p("./src/ui/components/textfield.ts"), A = p("./src/index.js"), j = p("./src/utils/debug.ts"), F = p("./src/utils/translateApis.ts"), U = p("./src/config/config.js"), W = p("./src/core/eventImpl.ts"), G = p("./src/utils/storage.ts"), K = p("./src/localization/localizationProvider.ts"), q = p("./src/types/components/votButton.ts"), J = p("./src/utils/utils.js"), Y = p("./src/ui/icons.ts"), X = p("./src/ui/components/label.ts"), Z = p("./src/ui/components/accountButton.ts"), Q = d([
+					var h = p("./node_modules/@vot.js/shared/dist/data/consts.js"), g = p("./node_modules/lit-html/lit-html.js"), _ = p("./src/ui.js"), v = p("./src/ui/components/accountButton.ts"), b = p("./src/ui/components/checkbox.ts"), x = p("./src/ui/components/details.ts"), C = p("./src/ui/components/dialog.ts"), w = p("./src/ui/components/hotkeyButton.ts"), T = p("./src/ui/components/label.ts"), E = p("./src/ui/components/select.ts"), D = p("./src/ui/components/slider.ts"), O = p("./src/ui/components/sliderLabel.ts"), A = p("./src/ui/components/textfield.ts"), j = p("./src/ui/components/tooltip.ts"), F = p("./src/index.js"), U = p("./src/config/config.js"), W = p("./src/core/eventImpl.ts"), G = p("./src/localization/localizationProvider.ts"), K = p("./src/types/components/votButton.ts"), q = p("./src/utils/debug.ts"), J = p("./src/utils/gm.ts"), Y = p("./src/utils/storage.ts"), X = p("./src/utils/translateApis.ts"), Z = p("./src/utils/utils.ts"), Q = p("./src/ui/icons.ts"), $ = d([
 						_,
 						v,
 						b,
@@ -11407,14 +11426,15 @@
 						D,
 						O,
 						A,
+						j,
 						F,
 						G,
-						K,
 						J,
+						Y,
 						X,
 						Z
 					]);
-					[_, v, b, x, C, w, T, E, D, O, A, F, G, K, J, X, Z] = Q.then ? (await Q)() : Q;
+					[_, v, b, x, C, w, T, E, D, O, A, j, F, G, J, Y, X, Z] = $.then ? (await $)() : $;
 					class SettingsView {
 						globalPortal;
 						initialized = !1;
@@ -11498,35 +11518,35 @@
 						}
 						initUI() {
 							if (this.isInitialized()) throw Error("[VOT] SettingsView is already initialized");
-							this.initialized = !0, this.dialog = new C.A({ titleHtml: K.j.get("VOTSettings") }), this.globalPortal.appendChild(this.dialog.container), this.accountHeader = _.A.createHeader(K.j.get("VOTMyAccount")), this.accountButton = new Z.A({
+							this.initialized = !0, this.dialog = new C.A({ titleHtml: G.j.get("VOTSettings") }), this.globalPortal.appendChild(this.dialog.container), this.accountHeader = _.A.createHeader(G.j.get("VOTMyAccount")), this.accountButton = new v.A({
 								avatarId: this.data.account?.avatarId,
 								username: this.data.account?.username,
 								loggedIn: !!this.data.account?.token
-							}), G.d.isSupportOnlyLS() ? (this.accountButton.refreshButton.setAttribute("disabled", "true"), this.accountButton.actionButton.setAttribute("disabled", "true")) : this.accountButtonRefreshTooltip = new v.A({
+							}), Y.d.isSupportOnlyLS() ? (this.accountButton.refreshButton.setAttribute("disabled", "true"), this.accountButton.actionButton.setAttribute("disabled", "true")) : this.accountButtonRefreshTooltip = new j.A({
 								target: this.accountButton.refreshButton,
-								content: K.j.get("VOTRefresh"),
+								content: G.j.get("VOTRefresh"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							}), this.accountButtonTokenTooltip = new v.A({
+							}), this.accountButtonTokenTooltip = new j.A({
 								target: this.accountButton.tokenButton,
-								content: K.j.get("VOTLoginViaToken"),
+								content: G.j.get("VOTLoginViaToken"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							}), this.translationSettingsHeader = _.A.createHeader(K.j.get("translationSettings")), this.autoTranslateCheckbox = new w.A({
-								labelHtml: K.j.get("VOTAutoTranslate"),
+							}), this.translationSettingsHeader = _.A.createHeader(G.j.get("translationSettings")), this.autoTranslateCheckbox = new b.A({
+								labelHtml: G.j.get("VOTAutoTranslate"),
 								checked: this.data.autoTranslate
 							});
 							let d = this.data.dontTranslateLanguages ?? [];
-							this.dontTranslateLanguagesCheckbox = new w.A({
-								labelHtml: K.j.get("DontTranslateSelectedLanguages"),
+							this.dontTranslateLanguagesCheckbox = new b.A({
+								labelHtml: G.j.get("DontTranslateSelectedLanguages"),
 								checked: this.data.enabledDontTranslateLanguages
-							}), this.dontTranslateLanguagesSelect = new b.A({
+							}), this.dontTranslateLanguagesSelect = new E.A({
 								dialogParent: this.globalPortal,
-								dialogTitle: K.j.get("DontTranslateSelectedLanguages"),
-								selectTitle: d.map((d) => K.j.get(`langs.${d}`)).join(", ") ?? K.j.get("DontTranslateSelectedLanguages"),
-								items: b.A.genLanguageItems(g.xm).map((f) => ({
+								dialogTitle: G.j.get("DontTranslateSelectedLanguages"),
+								selectTitle: d.map((d) => G.j.get(`langs.${d}`)).join(", ") ?? G.j.get("DontTranslateSelectedLanguages"),
+								items: E.A.genLanguageItems(h.xm).map((f) => ({
 									...f,
 									selected: d.includes(f.value)
 								})),
@@ -11534,97 +11554,97 @@
 								labelElement: this.dontTranslateLanguagesCheckbox.container
 							});
 							let f = this.data.autoVolume ?? U.JD;
-							this.autoSetVolumeSliderLabel = new E.A({
-								labelText: K.j.get("VOTAutoSetVolume"),
+							this.autoSetVolumeSliderLabel = new O.A({
+								labelText: G.j.get("VOTAutoSetVolume"),
 								value: f
-							}), this.autoSetVolumeCheckbox = new w.A({
+							}), this.autoSetVolumeCheckbox = new b.A({
 								labelHtml: this.autoSetVolumeSliderLabel.container,
 								checked: this.data.enabledAutoVolume ?? !0
-							}), this.autoSetVolumeSlider = new x.A({
+							}), this.autoSetVolumeSlider = new D.A({
 								labelHtml: this.autoSetVolumeCheckbox.container,
 								value: f
-							}), this.showVideoVolumeSliderCheckbox = new w.A({
-								labelHtml: K.j.get("showVideoVolumeSlider"),
+							}), this.showVideoVolumeSliderCheckbox = new b.A({
+								labelHtml: G.j.get("showVideoVolumeSlider"),
 								checked: this.data.showVideoSlider
-							}), this.audioBoosterCheckbox = new w.A({
-								labelHtml: K.j.get("VOTAudioBooster"),
+							}), this.audioBoosterCheckbox = new b.A({
+								labelHtml: G.j.get("VOTAudioBooster"),
 								checked: this.data.audioBooster
-							}), this.videoHandler?.audioContext || (this.audioBoosterCheckbox.disabled = !0, this.audioBoosterTooltip = new v.A({
+							}), this.videoHandler?.audioContext || (this.audioBoosterCheckbox.disabled = !0, this.audioBoosterTooltip = new j.A({
 								target: this.audioBoosterCheckbox.container,
-								content: K.j.get("VOTNeedWebAudioAPI"),
+								content: G.j.get("VOTNeedWebAudioAPI"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							})), this.syncVolumeCheckbox = new w.A({
-								labelHtml: K.j.get("VOTSyncVolume"),
+							})), this.syncVolumeCheckbox = new b.A({
+								labelHtml: G.j.get("VOTSyncVolume"),
 								checked: this.data.syncVolume
-							}), this.downloadWithNameCheckbox = new w.A({
-								labelHtml: K.j.get("VOTDownloadWithName"),
+							}), this.downloadWithNameCheckbox = new b.A({
+								labelHtml: G.j.get("VOTDownloadWithName"),
 								checked: this.data.downloadWithName
-							}), this.downloadWithNameCheckbox.disabled = !J.yx, this.sendNotifyOnCompleteCheckbox = new w.A({
-								labelHtml: K.j.get("VOTSendNotifyOnComplete"),
+							}), this.downloadWithNameCheckbox.disabled = !J.yx, this.sendNotifyOnCompleteCheckbox = new b.A({
+								labelHtml: G.j.get("VOTSendNotifyOnComplete"),
 								checked: this.data.sendNotifyOnComplete
-							}), this.useLivelyVoiceCheckbox = new w.A({
-								labelHtml: K.j.get("VOTUseLivelyVoice"),
+							}), this.useLivelyVoiceCheckbox = new b.A({
+								labelHtml: G.j.get("VOTUseLivelyVoice"),
 								checked: this.data.useLivelyVoice
-							}), this.useLivelyVoiceTooltip = new v.A({
+							}), this.useLivelyVoiceTooltip = new j.A({
 								target: this.useLivelyVoiceCheckbox.container,
-								content: K.j.get("VOTAccountRequired"),
+								content: G.j.get("VOTAccountRequired"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal,
 								hidden: !!this.data.account?.token
-							}), this.data.account?.token || (this.useLivelyVoiceCheckbox.disabled = !0), this.useAudioDownloadCheckboxLabel = new X.A({
-								labelText: K.j.get("VOTUseAudioDownload"),
-								icon: Y.Xd
-							}), this.useAudioDownloadCheckbox = new w.A({
+							}), this.data.account?.token || (this.useLivelyVoiceCheckbox.disabled = !0), this.useAudioDownloadCheckboxLabel = new T.A({
+								labelText: G.j.get("VOTUseAudioDownload"),
+								icon: Q.Xd
+							}), this.useAudioDownloadCheckbox = new b.A({
 								labelHtml: this.useAudioDownloadCheckboxLabel.container,
 								checked: this.data.useAudioDownload
-							}), J.B0 || (this.useAudioDownloadCheckbox.disabled = !0), this.useAudioDownloadCheckboxTooltip = new v.A({
+							}), J.B0 || (this.useAudioDownloadCheckbox.disabled = !0), this.useAudioDownloadCheckboxTooltip = new j.A({
 								target: this.useAudioDownloadCheckboxLabel.container,
-								content: K.j.get("VOTUseAudioDownloadWarning"),
+								content: G.j.get("VOTUseAudioDownloadWarning"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							}), this.dialog.bodyContainer.append(this.accountHeader, this.accountButton.container, this.translationSettingsHeader, this.autoTranslateCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useLivelyVoiceCheckbox.container, this.useAudioDownloadCheckbox.container), this.subtitlesSettingsHeader = _.A.createHeader(K.j.get("subtitlesSettings")), this.subtitlesDownloadFormatSelectLabel = new X.A({ labelText: K.j.get("VOTSubtitlesDownloadFormat") }), this.subtitlesDownloadFormatSelect = new b.A({
-								selectTitle: this.data.subtitlesDownloadFormat ?? K.j.get("VOTSubtitlesDownloadFormat"),
-								dialogTitle: K.j.get("VOTSubtitlesDownloadFormat"),
+							}), this.dialog.bodyContainer.append(this.accountHeader, this.accountButton.container, this.translationSettingsHeader, this.autoTranslateCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useLivelyVoiceCheckbox.container, this.useAudioDownloadCheckbox.container), this.subtitlesSettingsHeader = _.A.createHeader(G.j.get("subtitlesSettings")), this.subtitlesDownloadFormatSelectLabel = new T.A({ labelText: G.j.get("VOTSubtitlesDownloadFormat") }), this.subtitlesDownloadFormatSelect = new E.A({
+								selectTitle: this.data.subtitlesDownloadFormat ?? G.j.get("VOTSubtitlesDownloadFormat"),
+								dialogTitle: G.j.get("VOTSubtitlesDownloadFormat"),
 								dialogParent: this.globalPortal,
 								labelElement: this.subtitlesDownloadFormatSelectLabel.container,
-								items: g.EG.map((d) => ({
+								items: h.EG.map((d) => ({
 									label: d.toUpperCase(),
 									value: d,
 									selected: d === this.data.subtitlesDownloadFormat
 								}))
-							}), this.subtitlesDesignDetails = new D.A({ titleHtml: K.j.get("VOTSubtitlesDesign") }), this.dialog.bodyContainer.append(this.subtitlesSettingsHeader, this.subtitlesDownloadFormatSelect.container, this.subtitlesDesignDetails.container), this.hotkeysSettingsHeader = _.A.createHeader(K.j.get("hotkeysSettings")), this.translateHotkeyButton = new T.A({
-								labelHtml: K.j.get("translateVideo"),
+							}), this.subtitlesDesignDetails = new x.A({ titleHtml: G.j.get("VOTSubtitlesDesign") }), this.dialog.bodyContainer.append(this.subtitlesSettingsHeader, this.subtitlesDownloadFormatSelect.container, this.subtitlesDesignDetails.container), this.hotkeysSettingsHeader = _.A.createHeader(G.j.get("hotkeysSettings")), this.translateHotkeyButton = new w.A({
+								labelHtml: G.j.get("translateVideo"),
 								key: this.data.translationHotkey
-							}), this.dialog.bodyContainer.append(this.hotkeysSettingsHeader, this.translateHotkeyButton.container), this.proxySettingsHeader = _.A.createHeader(K.j.get("proxySettings")), this.proxyM3U8HostTextfield = new O.A({
-								labelHtml: K.j.get("VOTM3u8ProxyHost"),
+							}), this.dialog.bodyContainer.append(this.hotkeysSettingsHeader, this.translateHotkeyButton.container), this.proxySettingsHeader = _.A.createHeader(G.j.get("proxySettings")), this.proxyM3U8HostTextfield = new A.A({
+								labelHtml: G.j.get("VOTM3u8ProxyHost"),
 								value: this.data.m3u8ProxyHost,
 								placeholder: U.se
-							}), this.proxyWorkerHostTextfield = new O.A({
-								labelHtml: K.j.get("VOTProxyWorkerHost"),
+							}), this.proxyWorkerHostTextfield = new A.A({
+								labelHtml: G.j.get("VOTProxyWorkerHost"),
 								value: this.data.proxyWorkerHost,
 								placeholder: U.Pm
 							});
 							let p = [
-								K.j.get("VOTTranslateProxyDisabled"),
-								K.j.get("VOTTranslateProxyEnabled"),
-								K.j.get("VOTTranslateProxyEverything")
-							], m = this.data.translateProxyEnabled ?? 0, h = A.k && U.vZ.includes(A.k);
-							this.proxyTranslationStatusSelectLabel = new X.A({
-								icon: h ? Y.Xd : void 0,
-								labelText: K.j.get("VOTTranslateProxyStatus")
-							}), h && (this.proxyTranslationStatusSelectTooltip = new v.A({
+								G.j.get("VOTTranslateProxyDisabled"),
+								G.j.get("VOTTranslateProxyEnabled"),
+								G.j.get("VOTTranslateProxyEverything")
+							], m = this.data.translateProxyEnabled ?? 0, g = F.k && U.vZ.includes(F.k);
+							this.proxyTranslationStatusSelectLabel = new T.A({
+								icon: g ? Q.Xd : void 0,
+								labelText: G.j.get("VOTTranslateProxyStatus")
+							}), g && (this.proxyTranslationStatusSelectTooltip = new j.A({
 								target: this.proxyTranslationStatusSelectLabel.icon,
-								content: K.j.get("VOTTranslateProxyStatusDefault"),
+								content: G.j.get("VOTTranslateProxyStatusDefault"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							})), this.proxyTranslationStatusSelect = new b.A({
+							})), this.proxyTranslationStatusSelect = new E.A({
 								selectTitle: p[m],
-								dialogTitle: K.j.get("VOTTranslateProxyStatus"),
+								dialogTitle: G.j.get("VOTTranslateProxyStatus"),
 								dialogParent: this.globalPortal,
 								labelElement: this.proxyTranslationStatusSelectLabel.container,
 								items: p.map((d, f) => ({
@@ -11633,252 +11653,252 @@
 									selected: f === m,
 									disabled: f === 0 && J.up
 								}))
-							}), this.dialog.bodyContainer.append(this.proxySettingsHeader, this.proxyM3U8HostTextfield.container, this.proxyWorkerHostTextfield.container, this.proxyTranslationStatusSelect.container), this.miscSettingsHeader = _.A.createHeader(K.j.get("miscSettings")), this.translateAPIErrorsCheckbox = new w.A({
-								labelHtml: K.j.get("VOTTranslateAPIErrors"),
+							}), this.dialog.bodyContainer.append(this.proxySettingsHeader, this.proxyM3U8HostTextfield.container, this.proxyWorkerHostTextfield.container, this.proxyTranslationStatusSelect.container), this.miscSettingsHeader = _.A.createHeader(G.j.get("miscSettings")), this.translateAPIErrorsCheckbox = new b.A({
+								labelHtml: G.j.get("VOTTranslateAPIErrors"),
 								checked: this.data.translateAPIErrors ?? !0
-							}), this.translateAPIErrorsCheckbox.hidden = K.j.lang === "ru", this.useNewAudioPlayerCheckbox = new w.A({
-								labelHtml: K.j.get("VOTNewAudioPlayer"),
+							}), this.translateAPIErrorsCheckbox.hidden = G.j.lang === "ru", this.useNewAudioPlayerCheckbox = new b.A({
+								labelHtml: G.j.get("VOTNewAudioPlayer"),
 								checked: this.data.newAudioPlayer
-							}), this.videoHandler?.audioContext || (this.useNewAudioPlayerCheckbox.disabled = !0, this.useNewAudioPlayerTooltip = new v.A({
+							}), this.videoHandler?.audioContext || (this.useNewAudioPlayerCheckbox.disabled = !0, this.useNewAudioPlayerTooltip = new j.A({
 								target: this.useNewAudioPlayerCheckbox.container,
-								content: K.j.get("VOTNeedWebAudioAPI"),
+								content: G.j.get("VOTNeedWebAudioAPI"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
 							}));
-							let j = this.videoHandler?.site.needBypassCSP ? `${K.j.get("VOTOnlyBypassMediaCSP")} (${K.j.get("VOTMediaCSPEnabledOnSite")})` : K.j.get("VOTOnlyBypassMediaCSP");
-							this.onlyBypassMediaCSPCheckbox = new w.A({
-								labelHtml: j,
+							let W = this.videoHandler?.site.needBypassCSP ? `${G.j.get("VOTOnlyBypassMediaCSP")} (${G.j.get("VOTMediaCSPEnabledOnSite")})` : G.j.get("VOTOnlyBypassMediaCSP");
+							this.onlyBypassMediaCSPCheckbox = new b.A({
+								labelHtml: W,
 								checked: this.data.onlyBypassMediaCSP,
 								isSubCheckbox: !0
-							}), this.videoHandler?.audioContext || (this.onlyBypassMediaCSPTooltip = new v.A({
+							}), this.videoHandler?.audioContext || (this.onlyBypassMediaCSPTooltip = new j.A({
 								target: this.onlyBypassMediaCSPCheckbox.container,
-								content: K.j.get("VOTNeedWebAudioAPI"),
+								content: G.j.get("VOTNeedWebAudioAPI"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							})), this.onlyBypassMediaCSPCheckbox.disabled = !this.data.newAudioPlayer && !!this.videoHandler?.audioContext, this.data.newAudioPlayer || (this.onlyBypassMediaCSPCheckbox.hidden = !0), this.translationTextServiceLabel = new X.A({
-								labelText: K.j.get("VOTTranslationTextService"),
-								icon: Y.w2
+							})), this.onlyBypassMediaCSPCheckbox.disabled = !this.data.newAudioPlayer && !!this.videoHandler?.audioContext, this.data.newAudioPlayer || (this.onlyBypassMediaCSPCheckbox.hidden = !0), this.translationTextServiceLabel = new T.A({
+								labelText: G.j.get("VOTTranslationTextService"),
+								icon: Q.w2
 							});
-							let W = this.data.translationService ?? U.mE;
-							this.translationTextServiceSelect = new b.A({
-								selectTitle: K.j.get(`services.${W}`),
-								dialogTitle: K.j.get("VOTTranslationTextService"),
+							let K = this.data.translationService ?? U.mE;
+							this.translationTextServiceSelect = new E.A({
+								selectTitle: G.j.get(`services.${K}`),
+								dialogTitle: G.j.get("VOTTranslationTextService"),
 								dialogParent: this.globalPortal,
 								labelElement: this.translationTextServiceLabel.container,
-								items: F.vN.map((d) => ({
-									label: K.j.get(`services.${d}`),
+								items: X.vN.map((d) => ({
+									label: G.j.get(`services.${d}`),
 									value: d,
-									selected: d === W
+									selected: d === K
 								}))
-							}), this.translationTextServiceTooltip = new v.A({
+							}), this.translationTextServiceTooltip = new j.A({
 								target: this.translationTextServiceLabel.icon,
-								content: K.j.get("VOTNotAffectToVoice"),
+								content: G.j.get("VOTNotAffectToVoice"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							}), this.detectServiceLabel = new X.A({ labelText: K.j.get("VOTDetectService") });
+							}), this.detectServiceLabel = new T.A({ labelText: G.j.get("VOTDetectService") });
 							let q = this.data.detectService ?? U.K2;
-							return this.detectServiceSelect = new b.A({
-								selectTitle: K.j.get(`services.${q}`),
-								dialogTitle: K.j.get("VOTDetectService"),
+							return this.detectServiceSelect = new E.A({
+								selectTitle: G.j.get(`services.${q}`),
+								dialogTitle: G.j.get("VOTDetectService"),
 								dialogParent: this.globalPortal,
 								labelElement: this.detectServiceLabel.container,
-								items: F.qh.map((d) => ({
-									label: K.j.get(`services.${d}`),
+								items: X.qh.map((d) => ({
+									label: G.j.get(`services.${d}`),
 									value: d,
 									selected: d === q
 								}))
-							}), this.appearanceDetails = new D.A({ titleHtml: K.j.get("appearance") }), this.aboutExtensionDetails = new D.A({ titleHtml: K.j.get("aboutExtension") }), this.bugReportButton = _.A.createOutlinedButton(K.j.get("VOTBugReport")), this.resetSettingsButton = _.A.createButton(K.j.get("resetSettings")), this.dialog.bodyContainer.append(this.miscSettingsHeader, this.translateAPIErrorsCheckbox.container, this.useNewAudioPlayerCheckbox.container, this.onlyBypassMediaCSPCheckbox.container, this.translationTextServiceSelect.container, this.detectServiceSelect.container, this.appearanceDetails.container, this.aboutExtensionDetails.container, this.bugReportButton, this.resetSettingsButton), this;
+							}), this.appearanceDetails = new x.A({ titleHtml: G.j.get("appearance") }), this.aboutExtensionDetails = new x.A({ titleHtml: G.j.get("aboutExtension") }), this.bugReportButton = _.A.createOutlinedButton(G.j.get("VOTBugReport")), this.resetSettingsButton = _.A.createButton(G.j.get("resetSettings")), this.dialog.bodyContainer.append(this.miscSettingsHeader, this.translateAPIErrorsCheckbox.container, this.useNewAudioPlayerCheckbox.container, this.onlyBypassMediaCSPCheckbox.container, this.translationTextServiceSelect.container, this.detectServiceSelect.container, this.appearanceDetails.container, this.aboutExtensionDetails.container, this.bugReportButton, this.resetSettingsButton), this;
 						}
 						initUIEvents() {
 							if (!this.isInitialized()) throw Error("[VOT] SettingsView isn't initialized");
 							return this.accountButton.addEventListener("click", async () => {
-								if (!G.d.isSupportOnlyLS()) {
-									if (this.accountButton.loggedIn) return await G.d.delete("account"), this.data.account = {}, this.updateAccountInfo();
+								if (!Y.d.isSupportOnlyLS()) {
+									if (this.accountButton.loggedIn) return await Y.d.delete("account"), this.data.account = {}, this.updateAccountInfo();
 									window.open(U.xW, "_blank")?.focus();
 								}
 							}), this.accountButton.addEventListener("click:secret", async () => {
 								let d = new C.A({
-									titleHtml: K.j.get("VOTLoginViaToken"),
+									titleHtml: G.j.get("VOTLoginViaToken"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
-								let f = _.A.createEl("vot-block", void 0, K.j.get("VOTYandexTokenInfo")), p = new O.A({
-									labelHtml: K.j.get("VOTYandexToken"),
+								let f = _.A.createEl("vot-block", void 0, G.j.get("VOTYandexTokenInfo")), p = new A.A({
+									labelHtml: G.j.get("VOTYandexToken"),
 									value: this.data.account?.token
 								});
 								p.addEventListener("change", async (d) => {
 									this.data.account = d ? {
 										expires: Date.now() + 3153418e4,
 										token: d
-									} : {}, await G.d.set("account", this.data.account), this.updateAccountInfo();
+									} : {}, await Y.d.set("account", this.data.account), this.updateAccountInfo();
 								}), d.bodyContainer.append(f, p.container);
 							}), this.accountButton.addEventListener("refresh", async () => {
-								G.d.isSupportOnlyLS() || (this.data.account = await G.d.get("account", {}), this.updateAccountInfo());
+								Y.d.isSupportOnlyLS() || (this.data.account = await Y.d.get("account", {}), this.updateAccountInfo());
 							}), this.autoTranslateCheckbox.addEventListener("change", async (d) => {
-								this.data.autoTranslate = d, await G.d.set("autoTranslate", this.data.autoTranslate), j.A.log("autoTranslate value changed. New value:", d), this.onChangeAutoTranslate.dispatch(d);
+								this.data.autoTranslate = d, await Y.d.set("autoTranslate", this.data.autoTranslate), q.A.log("autoTranslate value changed. New value:", d), this.onChangeAutoTranslate.dispatch(d);
 							}), this.dontTranslateLanguagesCheckbox.addEventListener("change", async (d) => {
-								this.data.enabledDontTranslateLanguages = d, await G.d.set("enabledDontTranslateLanguages", this.data.enabledDontTranslateLanguages), j.A.log("enabledDontTranslateLanguages value changed. New value:", d);
+								this.data.enabledDontTranslateLanguages = d, await Y.d.set("enabledDontTranslateLanguages", this.data.enabledDontTranslateLanguages), q.A.log("enabledDontTranslateLanguages value changed. New value:", d);
 							}), this.dontTranslateLanguagesSelect.addEventListener("selectItem", async (d) => {
-								this.data.dontTranslateLanguages = d, await G.d.set("dontTranslateLanguages", this.data.dontTranslateLanguages), j.A.log("dontTranslateLanguages value changed. New value:", d);
+								this.data.dontTranslateLanguages = d, await Y.d.set("dontTranslateLanguages", this.data.dontTranslateLanguages), q.A.log("dontTranslateLanguages value changed. New value:", d);
 							}), this.autoSetVolumeCheckbox.addEventListener("change", async (d) => {
-								this.data.enabledAutoVolume = d, await G.d.set("enabledAutoVolume", this.data.enabledAutoVolume), j.A.log("enabledAutoVolume value changed. New value:", d);
+								this.data.enabledAutoVolume = d, await Y.d.set("enabledAutoVolume", this.data.enabledAutoVolume), q.A.log("enabledAutoVolume value changed. New value:", d);
 							}), this.autoSetVolumeSlider.addEventListener("input", async (d) => {
-								this.data.autoVolume = this.autoSetVolumeSliderLabel.value = d, await G.d.set("autoVolume", this.data.autoVolume), j.A.log("autoVolume value changed. New value:", d);
+								this.data.autoVolume = this.autoSetVolumeSliderLabel.value = d, await Y.d.set("autoVolume", this.data.autoVolume), q.A.log("autoVolume value changed. New value:", d);
 							}), this.showVideoVolumeSliderCheckbox.addEventListener("change", async (d) => {
-								this.data.showVideoSlider = d, await G.d.set("showVideoSlider", this.data.showVideoSlider), j.A.log("showVideoVolumeSlider value changed. New value:", d), this.onChangeShowVideoVolume.dispatch(d);
+								this.data.showVideoSlider = d, await Y.d.set("showVideoSlider", this.data.showVideoSlider), q.A.log("showVideoVolumeSlider value changed. New value:", d), this.onChangeShowVideoVolume.dispatch(d);
 							}), this.audioBoosterCheckbox.addEventListener("change", async (d) => {
-								this.data.audioBooster = d, await G.d.set("audioBooster", this.data.audioBooster), j.A.log("audioBooster value changed. New value:", d), this.onChangeAudioBooster.dispatch(d);
+								this.data.audioBooster = d, await Y.d.set("audioBooster", this.data.audioBooster), q.A.log("audioBooster value changed. New value:", d), this.onChangeAudioBooster.dispatch(d);
 							}), this.syncVolumeCheckbox.addEventListener("change", async (d) => {
-								this.data.syncVolume = d, await G.d.set("syncVolume", this.data.syncVolume), j.A.log("syncVolume value changed. New value:", d);
+								this.data.syncVolume = d, await Y.d.set("syncVolume", this.data.syncVolume), q.A.log("syncVolume value changed. New value:", d);
 							}), this.downloadWithNameCheckbox.addEventListener("change", async (d) => {
-								this.data.downloadWithName = d, await G.d.set("downloadWithName", this.data.downloadWithName), j.A.log("downloadWithName value changed. New value:", d);
+								this.data.downloadWithName = d, await Y.d.set("downloadWithName", this.data.downloadWithName), q.A.log("downloadWithName value changed. New value:", d);
 							}), this.sendNotifyOnCompleteCheckbox.addEventListener("change", async (d) => {
-								this.data.sendNotifyOnComplete = d, await G.d.set("sendNotifyOnComplete", this.data.sendNotifyOnComplete), j.A.log("sendNotifyOnComplete value changed. New value:", d);
+								this.data.sendNotifyOnComplete = d, await Y.d.set("sendNotifyOnComplete", this.data.sendNotifyOnComplete), q.A.log("sendNotifyOnComplete value changed. New value:", d);
 							}), this.useLivelyVoiceCheckbox.addEventListener("change", async (d) => {
-								this.data.useLivelyVoice = d, await G.d.set("useLivelyVoice", this.data.useLivelyVoice), j.A.log("useLivelyVoice value changed. New value:", d), this.onChangeUseLivelyVoice.dispatch(d);
+								this.data.useLivelyVoice = d, await Y.d.set("useLivelyVoice", this.data.useLivelyVoice), q.A.log("useLivelyVoice value changed. New value:", d), this.onChangeUseLivelyVoice.dispatch(d);
 							}), this.useAudioDownloadCheckbox.addEventListener("change", async (d) => {
-								this.data.useAudioDownload = d, await G.d.set("useAudioDownload", this.data.useAudioDownload), j.A.log("useAudioDownload value changed. New value:", d);
+								this.data.useAudioDownload = d, await Y.d.set("useAudioDownload", this.data.useAudioDownload), q.A.log("useAudioDownload value changed. New value:", d);
 							}), this.subtitlesDownloadFormatSelect.addEventListener("selectItem", async (d) => {
-								this.data.subtitlesDownloadFormat = d, await G.d.set("subtitlesDownloadFormat", this.data.subtitlesDownloadFormat), j.A.log("subtitlesDownloadFormat value changed. New value:", d);
+								this.data.subtitlesDownloadFormat = d, await Y.d.set("subtitlesDownloadFormat", this.data.subtitlesDownloadFormat), q.A.log("subtitlesDownloadFormat value changed. New value:", d);
 							}), this.subtitlesDesignDetails.addEventListener("click", () => {
 								let d = new C.A({
-									titleHtml: K.j.get("VOTSubtitlesDesign"),
+									titleHtml: G.j.get("VOTSubtitlesDesign"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
-								let f = new w.A({
-									labelHtml: K.j.get("VOTHighlightWords"),
+								let f = new b.A({
+									labelHtml: G.j.get("VOTHighlightWords"),
 									checked: this.data.highlightWords
-								}), p = this.data.subtitlesMaxLength ?? 300, m = new E.A({
-									labelText: K.j.get("VOTSubtitlesMaxLength"),
+								}), p = this.data.subtitlesMaxLength ?? 300, m = new O.A({
+									labelText: G.j.get("VOTSubtitlesMaxLength"),
 									labelEOL: ":",
 									symbol: "",
 									value: p
-								}), h = new x.A({
+								}), h = new D.A({
 									labelHtml: m.container,
 									value: p,
 									min: 50,
 									max: 300
-								}), g = this.data.subtitlesFontSize ?? 20, _ = new E.A({
-									labelText: K.j.get("VOTSubtitlesFontSize"),
+								}), g = this.data.subtitlesFontSize ?? 20, _ = new O.A({
+									labelText: G.j.get("VOTSubtitlesFontSize"),
 									labelEOL: ":",
 									symbol: "px",
 									value: g
-								}), v = new x.A({
+								}), v = new D.A({
 									labelHtml: _.container,
 									value: g,
 									min: 8,
 									max: 50
-								}), b = this.data.subtitlesOpacity ?? 20, T = new E.A({
-									labelText: K.j.get("VOTSubtitlesOpacity"),
+								}), x = this.data.subtitlesOpacity ?? 20, w = new O.A({
+									labelText: G.j.get("VOTSubtitlesOpacity"),
 									labelEOL: ":",
-									value: b
-								}), D = new x.A({
-									labelHtml: T.container,
-									value: b
+									value: x
+								}), T = new D.A({
+									labelHtml: w.container,
+									value: x
 								});
-								d.bodyContainer.append(f.container, h.container, v.container, D.container), f.addEventListener("change", async (d) => {
-									this.data.highlightWords = d, await G.d.set("highlightWords", this.data.highlightWords), j.A.log("highlightWords value changed. New value:", d), this.onChangeSubtitlesHighlightWords.dispatch(d);
+								d.bodyContainer.append(f.container, h.container, v.container, T.container), f.addEventListener("change", async (d) => {
+									this.data.highlightWords = d, await Y.d.set("highlightWords", this.data.highlightWords), q.A.log("highlightWords value changed. New value:", d), this.onChangeSubtitlesHighlightWords.dispatch(d);
 								}), h.addEventListener("input", (d) => {
-									m.value = d, this.data.subtitlesMaxLength = d, G.d.set("subtitlesMaxLength", this.data.subtitlesMaxLength), j.A.log("highlightWords value changed. New value:", d), this.onInputSubtitlesMaxLength.dispatch(d);
+									m.value = d, this.data.subtitlesMaxLength = d, Y.d.set("subtitlesMaxLength", this.data.subtitlesMaxLength), q.A.log("highlightWords value changed. New value:", d), this.onInputSubtitlesMaxLength.dispatch(d);
 								}), v.addEventListener("input", (d) => {
-									_.value = d, this.data.subtitlesFontSize = d, G.d.set("subtitlesFontSize", this.data.subtitlesFontSize), j.A.log("subtitlesFontSize value changed. New value:", d), this.onInputSubtitlesFontSize.dispatch(d);
-								}), D.addEventListener("input", (d) => {
-									T.value = d, this.data.subtitlesOpacity = d, G.d.set("subtitlesOpacity", this.data.subtitlesOpacity), j.A.log("subtitlesOpacity value changed. New value:", d), this.onInputSubtitlesBackgroundOpacity.dispatch(d);
+									_.value = d, this.data.subtitlesFontSize = d, Y.d.set("subtitlesFontSize", this.data.subtitlesFontSize), q.A.log("subtitlesFontSize value changed. New value:", d), this.onInputSubtitlesFontSize.dispatch(d);
+								}), T.addEventListener("input", (d) => {
+									w.value = d, this.data.subtitlesOpacity = d, Y.d.set("subtitlesOpacity", this.data.subtitlesOpacity), q.A.log("subtitlesOpacity value changed. New value:", d), this.onInputSubtitlesBackgroundOpacity.dispatch(d);
 								});
 							}), this.translateHotkeyButton.addEventListener("change", async (d) => {
-								this.data.translationHotkey = d, await G.d.set("translationHotkey", this.data.translationHotkey), j.A.log("translationHotkey value changed. New value:", d);
+								this.data.translationHotkey = d, await Y.d.set("translationHotkey", this.data.translationHotkey), q.A.log("translationHotkey value changed. New value:", d);
 							}), this.proxyM3U8HostTextfield.addEventListener("change", async (d) => {
-								this.data.m3u8ProxyHost = d || U.se, await G.d.set("m3u8ProxyHost", this.data.m3u8ProxyHost), j.A.log("m3u8ProxyHost value changed. New value:", this.data.m3u8ProxyHost);
+								this.data.m3u8ProxyHost = d || U.se, await Y.d.set("m3u8ProxyHost", this.data.m3u8ProxyHost), q.A.log("m3u8ProxyHost value changed. New value:", this.data.m3u8ProxyHost);
 							}), this.proxyWorkerHostTextfield.addEventListener("change", async (d) => {
-								this.data.proxyWorkerHost = d || U.Pm, await G.d.set("proxyWorkerHost", this.data.proxyWorkerHost), j.A.log("proxyWorkerHost value changed. New value:", this.data.proxyWorkerHost), this.onChangeProxyWorkerHost.dispatch(d);
+								this.data.proxyWorkerHost = d || U.Pm, await Y.d.set("proxyWorkerHost", this.data.proxyWorkerHost), q.A.log("proxyWorkerHost value changed. New value:", this.data.proxyWorkerHost), this.onChangeProxyWorkerHost.dispatch(d);
 							}), this.proxyTranslationStatusSelect.addEventListener("selectItem", async (d) => {
-								this.data.translateProxyEnabled = Number.parseInt(d), await G.d.set("translateProxyEnabled", this.data.translateProxyEnabled), await G.d.set("translateProxyEnabledDefault", !1), j.A.log("translateProxyEnabled value changed. New value:", this.data.translateProxyEnabled), this.onSelectItemProxyTranslationStatus.dispatch(d);
+								this.data.translateProxyEnabled = Number.parseInt(d), await Y.d.set("translateProxyEnabled", this.data.translateProxyEnabled), await Y.d.set("translateProxyEnabledDefault", !1), q.A.log("translateProxyEnabled value changed. New value:", this.data.translateProxyEnabled), this.onSelectItemProxyTranslationStatus.dispatch(d);
 							}), this.translateAPIErrorsCheckbox.addEventListener("change", async (d) => {
-								this.data.translateAPIErrors = d, await G.d.set("translateAPIErrors", this.data.translateAPIErrors), j.A.log("translateAPIErrors value changed. New value:", d);
+								this.data.translateAPIErrors = d, await Y.d.set("translateAPIErrors", this.data.translateAPIErrors), q.A.log("translateAPIErrors value changed. New value:", d);
 							}), this.useNewAudioPlayerCheckbox.addEventListener("change", async (d) => {
-								this.data.newAudioPlayer = d, await G.d.set("newAudioPlayer", this.data.newAudioPlayer), j.A.log("newAudioPlayer value changed. New value:", d), this.onlyBypassMediaCSPCheckbox.disabled = this.onlyBypassMediaCSPCheckbox.hidden = !d, this.onChangeUseNewAudioPlayer.dispatch(d);
+								this.data.newAudioPlayer = d, await Y.d.set("newAudioPlayer", this.data.newAudioPlayer), q.A.log("newAudioPlayer value changed. New value:", d), this.onlyBypassMediaCSPCheckbox.disabled = this.onlyBypassMediaCSPCheckbox.hidden = !d, this.onChangeUseNewAudioPlayer.dispatch(d);
 							}), this.onlyBypassMediaCSPCheckbox.addEventListener("change", async (d) => {
-								this.data.onlyBypassMediaCSP = d, await G.d.set("onlyBypassMediaCSP", this.data.onlyBypassMediaCSP), j.A.log("onlyBypassMediaCSP value changed. New value:", d), this.onChangeOnlyBypassMediaCSP.dispatch(d);
+								this.data.onlyBypassMediaCSP = d, await Y.d.set("onlyBypassMediaCSP", this.data.onlyBypassMediaCSP), q.A.log("onlyBypassMediaCSP value changed. New value:", d), this.onChangeOnlyBypassMediaCSP.dispatch(d);
 							}), this.translationTextServiceSelect.addEventListener("selectItem", async (d) => {
-								this.data.translationService = d, await G.d.set("translationService", this.data.translationService), j.A.log("translationService value changed. New value:", d), this.onSelectItemTranslationTextService.dispatch(d);
+								this.data.translationService = d, await Y.d.set("translationService", this.data.translationService), q.A.log("translationService value changed. New value:", d), this.onSelectItemTranslationTextService.dispatch(d);
 							}), this.detectServiceSelect.addEventListener("selectItem", async (d) => {
-								this.data.detectService = d, await G.d.set("detectService", this.data.detectService), j.A.log("detectService value changed. New value:", d);
+								this.data.detectService = d, await Y.d.set("detectService", this.data.detectService), q.A.log("detectService value changed. New value:", d);
 							}), this.appearanceDetails.addEventListener("click", () => {
 								let d = new C.A({
-									titleHtml: K.j.get("appearance"),
+									titleHtml: G.j.get("appearance"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
-								let f = new w.A({
-									labelHtml: K.j.get("VOTShowPiPButton"),
+								let f = new b.A({
+									labelHtml: G.j.get("VOTShowPiPButton"),
 									checked: this.data.showPiPButton
 								});
-								f.hidden = !(0, J.Bs)();
-								let p = (this.data.autoHideButtonDelay ?? U.qU) / 1e3, m = new E.A({
-									labelText: K.j.get("autoHideButtonDelay"),
+								f.hidden = !(0, Z.Bs)();
+								let p = (this.data.autoHideButtonDelay ?? U.qU) / 1e3, m = new O.A({
+									labelText: G.j.get("autoHideButtonDelay"),
 									labelEOL: ":",
-									symbol: ` ${K.j.get("secs")}`,
+									symbol: ` ${G.j.get("secs")}`,
 									value: p
-								}), h = new x.A({
+								}), h = new D.A({
 									labelHtml: m.container,
 									value: p,
 									min: .1,
 									max: 3,
 									step: .1
-								}), g = new X.A({
-									labelText: K.j.get("buttonPositionInWidePlayer"),
-									icon: Y.w2
-								}), _ = new b.A({
-									selectTitle: K.j.get("buttonPositionInWidePlayer"),
-									dialogTitle: K.j.get("buttonPositionInWidePlayer"),
+								}), g = new T.A({
+									labelText: G.j.get("buttonPositionInWidePlayer"),
+									icon: Q.w2
+								}), _ = new E.A({
+									selectTitle: G.j.get("buttonPositionInWidePlayer"),
+									dialogTitle: G.j.get("buttonPositionInWidePlayer"),
 									labelElement: g.container,
 									dialogParent: this.globalPortal,
-									items: q.X.map((d) => ({
-										label: K.j.get(`position.${d}`),
+									items: K.X.map((d) => ({
+										label: G.j.get(`position.${d}`),
 										value: d,
 										selected: d === this.data.buttonPos
 									}))
-								}), T = new v.A({
+								}), v = new j.A({
 									target: g.icon,
-									content: K.j.get("minButtonPositionContainer"),
+									content: G.j.get("minButtonPositionContainer"),
 									position: "bottom",
 									backgroundColor: "var(--vot-helper-ondialog)",
 									parentElement: this.globalPortal
-								}), D = new X.A({ labelText: K.j.get("VOTMenuLanguage") }), O = new b.A({
-									selectTitle: K.j.get(`langs.${K.j.langOverride}`),
-									dialogTitle: K.j.get("VOTMenuLanguage"),
-									labelElement: D.container,
+								}), x = new T.A({ labelText: G.j.get("VOTMenuLanguage") }), w = new E.A({
+									selectTitle: G.j.get(`langs.${G.j.langOverride}`),
+									dialogTitle: G.j.get("VOTMenuLanguage"),
+									labelElement: x.container,
 									dialogParent: this.globalPortal,
-									items: b.A.genLanguageItems(K.j.getAvailableLangs(), K.j.langOverride)
+									items: E.A.genLanguageItems(G.j.getAvailableLangs(), G.j.langOverride)
 								});
-								d.bodyContainer.append(f.container, h.container, _.container, O.container), d.addEventListener("close", () => {
-									T.release();
+								d.bodyContainer.append(f.container, h.container, _.container, w.container), d.addEventListener("close", () => {
+									v.release();
 								}), f.addEventListener("change", async (d) => {
-									this.data.showPiPButton = d, await G.d.set("showPiPButton", this.data.showPiPButton), j.A.log("showPiPButton value changed. New value:", d), this.onChangeShowPiPButton.dispatch(d);
+									this.data.showPiPButton = d, await Y.d.set("showPiPButton", this.data.showPiPButton), q.A.log("showPiPButton value changed. New value:", d), this.onChangeShowPiPButton.dispatch(d);
 								}), h.addEventListener("input", async (d) => {
 									m.value = d;
 									let f = Math.round(d * 1e3);
-									j.A.log("autoHideButtonDelay value changed. New value:", f), this.data.autoHideButtonDelay = f, await G.d.set("autoHideButtonDelay", this.data.autoHideButtonDelay), this.onInputAutoHideButtonDelay.dispatch(d);
+									q.A.log("autoHideButtonDelay value changed. New value:", f), this.data.autoHideButtonDelay = f, await Y.d.set("autoHideButtonDelay", this.data.autoHideButtonDelay), this.onInputAutoHideButtonDelay.dispatch(d);
 								}), _.addEventListener("selectItem", async (d) => {
-									j.A.log("buttonPos value changed. New value:", d), this.data.buttonPos = d, await G.d.set("buttonPos", this.data.buttonPos), this.onSelectItemButtonPosition.dispatch(d);
-								}), O.addEventListener("selectItem", async (d) => {
-									let f = await K.j.changeLang(d);
-									f && (this.data.localeUpdatedAt = await G.d.get("localeUpdatedAt", 0), this.onSelectItemMenuLanguage.dispatch(d));
+									q.A.log("buttonPos value changed. New value:", d), this.data.buttonPos = d, await Y.d.set("buttonPos", this.data.buttonPos), this.onSelectItemButtonPosition.dispatch(d);
+								}), w.addEventListener("selectItem", async (d) => {
+									let f = await G.j.changeLang(d);
+									f && (this.data.localeUpdatedAt = await Y.d.get("localeUpdatedAt", 0), this.onSelectItemMenuLanguage.dispatch(d));
 								});
 							}), this.aboutExtensionDetails.addEventListener("click", () => {
 								let d = new C.A({
-									titleHtml: K.j.get("aboutExtension"),
+									titleHtml: G.j.get("aboutExtension"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
-								let f = _.A.createInformation(`${K.j.get("VOTVersion")}:`, GM_info.script.version || K.j.get("notFound")), p = _.A.createInformation(`${K.j.get("VOTAuthors")}:`, GM_info.script.author ?? K.j.get("notFound")), m = _.A.createInformation(`${K.j.get("VOTLoader")}:`, `${GM_info.scriptHandler} v${GM_info.version}`), g = _.A.createInformation(`${K.j.get("VOTBrowser")}:`, `${J.R5.browser.name} ${J.R5.browser.version} (${J.R5.os.name} ${J.R5.os.version})`), v = new Date((this.data.localeUpdatedAt ?? 0) * 1e3).toLocaleString(), b = (0, h.qy)`${this.data.localeHash}<br />(${K.j.get("VOTUpdatedAt")}
-        ${v})`, x = _.A.createInformation(`${K.j.get("VOTLocaleHash")}:`, b), w = _.A.createOutlinedButton(K.j.get("VOTUpdateLocaleFiles"));
-								d.bodyContainer.append(f.container, p.container, m.container, g.container, x.container, w), w.addEventListener("click", async () => {
-									await G.d.set("localeHash", ""), await K.j.update(!0), window.location.reload();
+								let f = _.A.createInformation(`${G.j.get("VOTVersion")}:`, GM_info.script.version || G.j.get("notFound")), p = _.A.createInformation(`${G.j.get("VOTAuthors")}:`, GM_info.script.author ?? G.j.get("notFound")), m = _.A.createInformation(`${G.j.get("VOTLoader")}:`, `${GM_info.scriptHandler} v${GM_info.version}`), h = _.A.createInformation(`${G.j.get("VOTBrowser")}:`, `${Z.R5.browser.name} ${Z.R5.browser.version} (${Z.R5.os.name} ${Z.R5.os.version})`), v = new Date((this.data.localeUpdatedAt ?? 0) * 1e3).toLocaleString(), b = (0, g.qy)`${this.data.localeHash}<br />(${G.j.get("VOTUpdatedAt")}
+        ${v})`, x = _.A.createInformation(`${G.j.get("VOTLocaleHash")}:`, b), w = _.A.createOutlinedButton(G.j.get("VOTUpdateLocaleFiles"));
+								d.bodyContainer.append(f.container, p.container, m.container, h.container, x.container, w), w.addEventListener("click", async () => {
+									await Y.d.set("localeHash", ""), await G.j.update(!0), window.location.reload();
 								});
 							}), this.bugReportButton.addEventListener("click", () => {
 								this.onClickBugReport.dispatch();
@@ -12068,7 +12088,7 @@
 		"./src/utils/VideoObserver.js": (d, f, p) => {
 			"use strict";
 			p.d(f, { c: () => VideoObserver });
-			var m = p("./node_modules/requestidlecallback-polyfill/index.js"), h = p("./src/core/eventImpl.ts"), g = p("./src/utils/debug.ts"), _ = p("./node_modules/@vot.js/shared/dist/data/alternativeUrls.js");
+			var m = p("./node_modules/requestidlecallback-polyfill/index.js"), h = p("./node_modules/@vot.js/shared/dist/data/alternativeUrls.js"), g = p("./src/core/eventImpl.ts"), _ = p("./src/utils/debug.ts");
 			class VideoObserver {
 				static adKeywords = new Set([
 					"advertise",
@@ -12087,7 +12107,7 @@
 					this.videoCache = new WeakSet(), this.observedNodes = {
 						added: new Set(),
 						removed: new Set()
-					}, this.onVideoAdded = new h.Z(), this.onVideoRemoved = new h.Z(), this.observer = new MutationObserver(this.handleMutations);
+					}, this.onVideoAdded = new g.Z(), this.onVideoRemoved = new g.Z(), this.observer = new MutationObserver(this.handleMutations);
 				}
 				isAdRelated(d) {
 					let f = [
@@ -12102,13 +12122,13 @@
 					return !1;
 				}
 				hasAudio(d) {
-					return _.sx.includes(window.location.hostname) ? !d.muted : d.mozHasAudio === void 0 ? d.webkitAudioDecodedByteCount === void 0 ? "audioTracks" in d && d.audioTracks.length > 0 || !d.muted : d.webkitAudioDecodedByteCount > 0 : d.mozHasAudio;
+					return h.sx.includes(window.location.hostname) ? !d.muted : d.mozHasAudio === void 0 ? d.webkitAudioDecodedByteCount === void 0 ? "audioTracks" in d && d.audioTracks.length > 0 || !d.muted : d.webkitAudioDecodedByteCount > 0 : d.mozHasAudio;
 				}
 				isValidVideo(d) {
 					if (this.isAdRelated(d)) return !1;
 					let f = d.parentElement;
 					for (; f && !this.isAdRelated(f);) f = f.parentElement;
-					return f ? !1 : this.hasAudio(d) ? !0 : (g.A.log("Ignoring video without audio:", d), !1);
+					return f ? !1 : this.hasAudio(d) ? !0 : (_.A.log("Ignoring video without audio:", d), !1);
 				}
 				traverseDOM(d) {
 					if (d instanceof HTMLVideoElement) {
@@ -12162,6 +12182,62 @@
 			p.d(f, { A: () => m });
 			let m = { log: (...d) => {} };
 		},
+		"./src/utils/gm.ts": (d, f, p) => {
+			"use strict";
+			p.a(d, async (d, m) => {
+				try {
+					p.d(f, {
+						B0: () => C,
+						G3: () => GM_fetch,
+						O6: () => x,
+						up: () => b,
+						yx: () => w
+					});
+					var h = p("./src/config/config.js"), g = p("./src/utils/debug.ts"), _ = p("./src/utils/utils.ts"), v = d([_]);
+					_ = (v.then ? (await v)() : v)[0];
+					let b = GM_info?.scriptHandler && !h.Wl.includes(GM_info.scriptHandler), x = typeof GM < "u", C = typeof unsafeWindow < "u", w = typeof GM_xmlhttpRequest < "u";
+					async function GM_fetch(d, f = {}) {
+						let { timeout: p = 15e3,...m } = f, h = new AbortController();
+						try {
+							if (typeof d == "string" && d.includes("api.browser.yandex.ru")) throw Error("Preventing yandex cors");
+							return await fetch(d, {
+								signal: h.signal,
+								...m
+							});
+						} catch (f) {
+							g.A.log("GM_fetch preventing CORS by GM_xmlhttpRequest", f.message);
+							let h = (0, _.dJ)(m.headers);
+							return new Promise((f, g) => {
+								GM_xmlhttpRequest({
+									method: m.method || "GET",
+									url: d.toString(),
+									responseType: "blob",
+									data: m.body,
+									timeout: p,
+									headers: h,
+									onload: (d) => {
+										let p = d.responseHeaders.split(/\r?\n/).reduce((d, f) => {
+											let [, p, m] = f.match(/^([\w-]+): (.+)$/) || [];
+											return p && (d[p] = m), d;
+										}, {}), m = new Response(d.response, {
+											status: d.status,
+											headers: p
+										});
+										Object.defineProperty(m, "url", { value: d.finalUrl ?? "" }), f(m);
+									},
+									ontimeout: () => g(Error("Timeout")),
+									onerror: (d) => g(Error(d)),
+									onabort: () => g(Error("AbortError"))
+								});
+							});
+						}
+					}
+					m();
+				} catch (d) {
+					m(d);
+				}
+			});
+		},
 		"./src/utils/iframeConnector.ts": (d, f, p) => {
 			"use strict";
 			p.a(d, async (d, m) => {
@@ -12175,7 +12251,7 @@
 						hG: () => requestDataFromMainWorld,
 						yB: () => hasServiceIframe
 					});
-					var h = p("./src/utils/utils.js"), g = d([h]);
+					var h = p("./src/utils/utils.ts"), g = d([h]);
 					h = (g.then ? (await g)() : g)[0];
 					let _ = "vot_iframe", isIframe = () => window.self !== window.top, generateMessageId = () => `main-world-bridge-${performance.now()}-${Math.random()}`, hasServiceIframe = (d) => document.getElementById(d);
 					async function setupServiceIframe(d, f, p) {
@@ -12223,6 +12299,38 @@
 				}
 			});
 		},
+		"./src/utils/localization.ts": (d, f, p) => {
+			"use strict";
+			p.a(d, async (d, m) => {
+				try {
+					p.d(f, {
+						o: () => secsToStrTime,
+						v: () => v
+					});
+					var h = p("./src/localization/localizationProvider.ts"), g = d([h]);
+					h = (g.then ? (await g)() : g)[0];
+					let _ = .66, v = navigator.language?.substring(0, 2).toLowerCase() || "en";
+					function secsToStrTime(d) {
+						let f = Math.floor(d / 60), p = Math.floor(d % 60), m = p / 60;
+						if (m >= _ && (f += 1, p = 0), f >= 60) return h.j.get("translationTakeMoreThanHour");
+						if (f <= 1) return h.j.get("translationTakeAboutMinute");
+						let g = String(f);
+						return f !== 11 && f % 10 == 1 ? h.j.get("translationTakeApproximatelyMinute2").replace("{0}", g) : ![
+							12,
+							13,
+							14
+						].includes(f) && [
+							2,
+							3,
+							4
+						].includes(f % 10) ? h.j.get("translationTakeApproximatelyMinute").replace("{0}", g) : h.j.get("translationTakeApproximatelyMinutes").replace("{0}", g);
+					}
+					m();
+				} catch (d) {
+					m(d);
+				}
+			});
+		},
 		"./src/utils/storage.ts": (d, f, p) => {
 			"use strict";
 			p.a(d, async (d, m) => {
@@ -12231,8 +12339,8 @@
 						_: () => updateConfig,
 						d: () => w
 					});
-					var h = p("./src/utils/debug.ts"), g = p("./src/types/storage.ts"), _ = p("./src/utils/utils.js"), v = p("./src/config/config.js"), b = p("./src/localization/localizationProvider.ts"), x = d([_, b]);
-					[_, b] = x.then ? (await x)() : x;
+					var h = p("./src/config/config.js"), g = p("./src/localization/localizationProvider.ts"), _ = p("./src/types/storage.ts"), v = p("./src/utils/debug.ts"), b = p("./src/utils/gm.ts"), x = d([g, b]);
+					[g, b] = x.then ? (await x)() : x;
 					let C = {
 						numToBool: [
 							["autoTranslate"],
@@ -12271,20 +12379,20 @@
 						].includes(d) ? f : !!f;
 					}
 					async function updateConfig(d) {
-						if (d.compatVersion === v.r4) return d;
-						let f = Object.values(C).flat().reduce((d, f) => (f[1] && (d[f[0]] = void 0), d), {}), p = await w.getValues(f), m = Object.fromEntries(Object.entries(p).filter(([d, f]) => f !== void 0)), h = {
+						if (d.compatVersion === h.r4) return d;
+						let f = Object.values(C).flat().reduce((d, f) => (f[1] && (d[f[0]] = void 0), d), {}), p = await w.getValues(f), m = Object.fromEntries(Object.entries(p).filter(([d, f]) => f !== void 0)), _ = {
 							...d,
 							...m
-						}, g = Object.keys(h).reduce((d, f) => (d[f] = void 0, d), {}), _ = await w.getValues(g), x = d;
-						for (let [d, f] of Object.entries(h)) {
+						}, v = Object.keys(_).reduce((d, f) => (d[f] = void 0, d), {}), b = await w.getValues(v), x = d;
+						for (let [d, f] of Object.entries(_)) {
 							let p = getCompatCategory(d, f, C);
 							if (!p) continue;
 							let h = C[p].find((f) => f[0] === d);
 							if (!h) continue;
-							let g = h[1] ?? d;
-							if (_[d] === void 0) continue;
+							let _ = h[1] ?? d;
+							if (b[d] === void 0) continue;
 							let v = convertByCompatCategory(p, f);
-							d === "autoVolume" && f < 1 && (v = Math.round(f * 100)), x[g] = v, m[d] !== void 0 && await w.delete(d), g === "localeLangOverride" && await b.j.changeLang(f), await w.set(g, v);
+							d === "autoVolume" && f < 1 && (v = Math.round(f * 100)), x[_] = v, m[d] !== void 0 && await w.delete(d), _ === "localeLangOverride" && await g.j.changeLang(f), await w.set(_, v);
 						}
 						return {
 							...x,
@@ -12296,7 +12404,7 @@
 						supportGMPromises;
 						supportGMGetValues;
 						constructor() {
-							this.supportGM = typeof GM_getValue == "function", this.supportGMPromises = _.O6 && typeof GM?.getValue == "function", this.supportGMGetValues = _.O6 && typeof GM?.getValues == "function", h.A.log(`[VOT Storage] GM Promises: ${this.supportGMPromises} | GM: ${this.supportGM}`);
+							this.supportGM = typeof GM_getValue == "function", this.supportGMPromises = b.O6 && typeof GM?.getValue == "function", this.supportGMGetValues = b.O6 && typeof GM?.getValues == "function", v.A.log(`[VOT Storage] GM Promises: ${this.supportGMPromises} | GM: ${this.supportGM}`);
 						}
 						isSupportOnlyLS() {
 							return !this.supportGM && !this.supportGMPromises;
@@ -12333,7 +12441,7 @@
 							return this.supportGMPromises ? await GM.deleteValue(d) : Promise.resolve(this.syncDelete(d));
 						}
 						syncList() {
-							return this.supportGM ? GM_listValues() : g.w;
+							return this.supportGM ? GM_listValues() : _.w;
 						}
 						async list() {
 							return this.supportGMPromises ? await GM.listValues() : Promise.resolve(this.syncList());
@@ -12355,7 +12463,7 @@
 						qh: () => w,
 						vN: () => C
 					});
-					var h = p("./src/config/config.js"), g = p("./src/utils/storage.ts"), _ = p("./src/utils/utils.js"), v = d([g, _]);
+					var h = p("./src/config/config.js"), g = p("./src/utils/gm.ts"), _ = p("./src/utils/storage.ts"), v = d([g, _]);
 					[g, _] = v.then ? (await v)() : v;
 					let b = new class {
 						isFOSWLYError(d) {
@@ -12363,7 +12471,7 @@
 						}
 						async request(d, f = {}) {
 							try {
-								let p = await ((0, _.G3)(`${h.k$}${d}`, {
+								let p = await ((0, g.G3)(`${h.k$}${d}`, {
 									timeout: 3e3,
 									...f
 								})), m = await (p.json());
@@ -12403,7 +12511,7 @@
 						}
 					}(), x = { async detect(d) {
 						try {
-							let f = await (0, _.G3)(h.sl, {
+							let f = await (0, g.G3)(h.sl, {
 								method: "POST",
 								body: d,
 								timeout: 3e3
@@ -12414,7 +12522,7 @@
 						}
 					} };
 					async function translate(d, f = "", p = "ru") {
-						let m = await g.d.get("translationService", h.mE);
+						let m = await _.d.get("translationService", h.mE);
 						switch (m) {
 							case "yandexbrowser":
 							case "msedge": {
@@ -12425,7 +12533,7 @@
 						}
 					}
 					async function detect(d) {
-						let f = await g.d.get("detectService", h.K2);
+						let f = await _.d.get("detectService", h.K2);
 						switch (f) {
 							case "yandexbrowser":
 							case "msedge": return await b.detect(d, f);
@@ -12440,37 +12548,31 @@
 				}
 			});
 		},
-		"./src/utils/utils.js": (d, f, p) => {
+		"./src/utils/utils.ts": (d, f, p) => {
 			"use strict";
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, {
-						B0: () => W,
 						Bs: () => isPiPAvailable,
 						CK: () => initHls,
 						Eh: () => exitFullscreen,
-						G3: () => GM_fetch,
 						GW: () => toFlatObj,
-						HD: () => A,
+						HD: () => T,
 						Le: () => clearFileName,
 						MR: () => downloadTranslation,
-						O6: () => U,
-						R5: () => j,
+						R5: () => E,
 						UV: () => waitForCondition,
 						WN: () => downloadBlob,
 						Wo: () => openDownloadTranslation,
 						X5: () => cleanText,
+						dJ: () => getHeaders,
 						lg: () => getTimestamp,
-						ox: () => secsToStrTime,
 						qE: () => clamp,
-						up: () => F,
-						vV: () => O,
-						wR: () => timeout,
-						yx: () => G
+						wR: () => timeout
 					});
-					var h = p("./node_modules/bowser/es5.js"), g = p("./node_modules/browser-id3-writer/dist/browser-id3-writer.mjs"), _ = p("./node_modules/@vot.js/shared/dist/data/consts.js"), v = p("./src/config/config.js"), b = p("./src/localization/localizationProvider.ts"), x = p("./src/utils/debug.ts"), C = d([b]);
-					b = (C.then ? (await C)() : C)[0];
-					let w = navigator.language || navigator.userLanguage, T = .66, E = /(?:https?|www|\bhttp\s+)[^\s/]*?(?:\.\s*[a-z]{2,}|\/)\S*|#[^\s#]+|auto-generated\s+by\s+youtube|provided\s+to\s+youtube\s+by|released\s+on|paypal?|0x[\da-f]{40}|[13][1-9a-z]{25,34}|4[\dab][1-9a-z]{93}|t[1-9a-z]{33}/gi, D = [
+					var h = p("./node_modules/bowser/es5.js"), g = p.n(h), _ = p("./node_modules/browser-id3-writer/dist/browser-id3-writer.mjs"), v = p("./node_modules/@vot.js/shared/dist/data/consts.js"), b = p("./src/utils/localization.ts"), x = d([b]);
+					b = (x.then ? (await x)() : x)[0];
+					let C = /(?:https?|www|\bhttp\s+)[^\s/]*?(?:\.\s*[a-z]{2,}|\/)\S*|#[^\s#]+|auto-generated\s+by\s+youtube|provided\s+to\s+youtube\s+by|released\s+on|paypal?|0x[\da-f]{40}|[13][1-9a-z]{25,34}|4[\dab][1-9a-z]{93}|t[1-9a-z]{33}/gi, w = new Set([
 						"uk",
 						"be",
 						"bg",
@@ -12482,22 +12584,7 @@
 						"pl",
 						"sk",
 						"cs"
-					], O = w?.substring(0, 2).toLowerCase() || "en", A = (() => _.Xh.includes(O) ? O : D.includes(O) ? "ru" : "en")(), j = h.getParser(window.navigator.userAgent).getResult(), F = GM_info?.scriptHandler && !v.Wl.includes(GM_info.scriptHandler), U = typeof GM < "u", W = typeof unsafeWindow < "u", G = typeof GM_xmlhttpRequest < "u";
-					function secsToStrTime(d) {
-						let f = Math.floor(d / 60), p = Math.floor(d % 60), m = p / 60;
-						return m >= T && (f += 1, p = 0), f >= 60 ? b.j.get("translationTakeMoreThanHour") : f === 1 || f === 0 && p > 0 ? b.j.get("translationTakeAboutMinute") : f !== 11 && f % 10 == 1 ? b.j.get("translationTakeApproximatelyMinute2").replace("{0}", f) : ![
-							12,
-							13,
-							14
-						].includes(f) && [
-							2,
-							3,
-							4
-						].includes(f % 10) ? b.j.get("translationTakeApproximatelyMinute").replace("{0}", f) : b.j.get("translationTakeApproximatelyMinutes").replace("{0}", f);
-					}
-					function isPiPAvailable() {
-						return "pictureInPictureEnabled" in document && document.pictureInPictureEnabled;
-					}
+					]), T = (() => v.Xh.includes(b.v) ? b.v : w.has(b.v) ? "ru" : "en")(), E = g().getParser(window.navigator.userAgent).getResult(), isPiPAvailable = () => "pictureInPictureEnabled" in document && document.pictureInPictureEnabled;
 					function initHls() {
 						return typeof Hls < "u" && Hls?.isSupported() ? new Hls({
 							debug: !1,
@@ -12506,51 +12593,20 @@
 						}) : void 0;
 					}
 					function cleanText(d, f) {
-						return (d + " " + (f || "")).replace(E, "").replace(/[^\p{L}]+/gu, " ").substring(0, 450).trim();
+						return (d + " " + (f || "")).replace(C, "").replace(/[^\p{L}]+/gu, " ").substring(0, 450).trim();
 					}
 					function downloadBlob(d, f) {
 						let p = URL.createObjectURL(d), m = document.createElement("a");
 						m.href = p, m.download = f, m.click(), URL.revokeObjectURL(p);
 					}
 					function clearFileName(d) {
-						return d.trim().length === 0 ? new Date().toLocaleDateString("en-us").replaceAll("/", "-") : d.replace(/^https?:\/\//, "").replace(/[\\/:*?"'<>|.]/g, "-");
-					}
-					async function GM_fetch(d, f = {}) {
-						let { timeout: p = 15e3,...m } = f, h = new AbortController();
-						try {
-							if (d.includes("api.browser.yandex.ru")) throw Error("Preventing yandex cors");
-							return await fetch(d, {
-								signal: h.signal,
-								...m
-							});
-						} catch (f) {
-							return x.A.log("GM_fetch preventing CORS by GM_xmlhttpRequest", f.message), new Promise((f, h) => {
-								GM_xmlhttpRequest({
-									method: m.method || "GET",
-									url: d,
-									responseType: "blob",
-									data: m.body,
-									timeout: p,
-									headers: m.headers || {},
-									onload: (d) => {
-										let p = d.responseHeaders.split(/\r?\n/).reduce((d, f) => {
-											let [, p, m] = f.match(/^([\w-]+): (.+)$/) || [];
-											return p && (d[p] = m), d;
-										}, {}), m = new Response(d.response, {
-											status: d.status,
-											headers: p
-										});
-										Object.defineProperty(m, "url", { value: d.finalUrl ?? "" }), f(m);
-									},
-									ontimeout: () => h(Error("Timeout")),
-									onerror: (d) => h(Error(d)),
-									onabort: () => h(Error("AbortError"))
-								});
-							});
-						}
+						return d.trim().length === 0 ? new Date().toLocaleDateString("en-us").replaceAll("/", "-") : d.replace(/^https?:\/\//, "").replace(/[\\/:*?"'<>|]/g, "-");
 					}
 					function getTimestamp() {
 						return Math.floor(Date.now() / 1e3);
+					}
+					function getHeaders(d) {
+						return d instanceof Headers ? Object.fromEntries(d.entries()) : Array.isArray(d) ? Object.fromEntries(d) : d || {};
 					}
 					function clamp(d, f = 0, p = 100) {
 						return Math.min(Math.max(d, f), p);
@@ -12581,13 +12637,15 @@
 						return Promise.race([(async () => {
 							for (; !d() && !m;) await sleep(100);
 						})(), new Promise((d, h) => {
-							window.setTimeout(() => {
+							setTimeout(() => {
 								m = !0, p ? h(Error(`Wait for condition reached timeout of ${f}`)) : d();
 							}, f);
 						})]);
 					}
-					async function _downloadTranslationWithProgress(d, f, p = () => {}) {
-						let m = d.body.getReader(), h = new Uint8Array(f), g = 0;
+					async function _downloadTranslationWithProgress(d, f, p = (d) => {}) {
+						let m = d.body?.getReader();
+						if (!m) throw Error("Response body is not readable");
+						let h = new Uint8Array(f), g = 0;
 						for (;;) {
 							let { done: d, value: _ } = await m.read();
 							if (d) break;
@@ -12595,11 +12653,11 @@
 						}
 						return h.buffer;
 					}
-					async function downloadTranslation(d, f, p = () => {}) {
-						let m = +d.headers.get("Content-Length"), h = await (m ? _downloadTranslationWithProgress(d, m, p) : d.arrayBuffer());
+					async function downloadTranslation(d, f, p = (d) => {}) {
+						let m = +(d.headers.get("Content-Length") ?? 0), h = await (m ? _downloadTranslationWithProgress(d, m, p) : d.arrayBuffer());
 						p(100);
-						let _ = new g.Q(h);
-						return _.setFrame("TIT2", f), _.addTag(), downloadBlob(_.getBlob(), `${f}.mp3`), !0;
+						let g = new _.Q(h);
+						return g.setFrame("TIT2", f), g.addTag(), downloadBlob(g.getBlob(), `${f}.mp3`), !0;
 					}
 					function openDownloadTranslation(d) {
 						window.open(d, "_blank")?.focus();
@@ -12664,7 +12722,10 @@
 				return fn.r ? h : getResult();
 			}, (d) => (d ? w(T[p] = d) : C(exports), resolveQueue(_))), _ && _.d < 0 && (_.d = 0);
 		};
-	})(), __webpack_require__.d = (exports, f) => {
+	})(), __webpack_require__.n = (d) => {
+		var f = d && d.__esModule ? () => d.default : () => d;
+		return __webpack_require__.d(f, { a: f }), f;
+	}, __webpack_require__.d = (exports, f) => {
 		for (var p in f) __webpack_require__.o(f, p) && !__webpack_require__.o(exports, p) && Object.defineProperty(exports, p, {
 			enumerable: !0,
 			get: f[p]
