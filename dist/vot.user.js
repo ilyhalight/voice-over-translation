@@ -697,7 +697,7 @@
 						translationHelp: g ?? [],
 						responseLanguage: h,
 						wasStream: v,
-						unknown2: 0,
+						unknown2: 1,
 						unknown3: 2,
 						bypassCache: x,
 						useLivelyVoice: C,
@@ -931,7 +931,8 @@
 					host: m.r.nine_gag,
 					url: "https://9gag.com/gag/",
 					match: /^9gag.com$/,
-					selector: ".video-post"
+					selector: ".video-post",
+					needExtraData: !0
 				},
 				{
 					host: m.r.twitch,
@@ -2470,6 +2471,24 @@
 				}
 			}
 			class NineGAGHelper extends g.q {
+				async getVideoData(d) {
+					let f = this.returnBaseData(d);
+					if (!f) return f;
+					try {
+						if (!this.video) throw Error("Video element not found");
+						let d = this.video.querySelector("source[type^=\"video/mp4\"], source[type^=\"video/webm\"]")?.src;
+						if (!d || !/^https?:\/\//.test(d)) throw Error("Video source not found");
+						return {
+							...f,
+							translationHelp: [{
+								target: "video_file_url",
+								targetUrl: d
+							}]
+						};
+					} catch {
+						return f;
+					}
+				}
 				async getVideoId(d) {
 					return /gag\/([^/]+)/.exec(d.pathname)?.[1];
 				}
@@ -3179,12 +3198,12 @@
 				hostWorker: "vot-worker.toil.cc",
 				mediaProxy: "media-proxy.toil.cc",
 				userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
-				componentVersion: "25.4.1.1054",
+				componentVersion: "25.4.3.870",
 				hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 				defaultDuration: 343,
 				minChunkSize: 5295308,
 				loggerLevel: 1,
-				version: "2.4.6"
+				version: "2.4.7"
 			};
 		},
 		"./node_modules/@vot.js/shared/dist/data/consts.js": (d, f, p) => {
@@ -3616,7 +3635,7 @@
 			function assertFloat32(d) {
 				if (typeof d == "string") {
 					let f = d;
-					if (d = Number(d), Number.isNaN(d) && f !== "NaN") throw Error("invalid float32: " + f);
+					if (d = Number(d), isNaN(d) && f !== "NaN") throw Error("invalid float32: " + f);
 				} else if (typeof d != "number") throw Error("invalid float32: " + typeof d);
 				if (Number.isFinite(d) && (d > v || d < b)) throw Error("invalid float32: " + d);
 			}
@@ -8737,7 +8756,7 @@
 								fetchFn: K.G3,
 								video: this.video
 							});
-							this.video.src && this.videoData && d === this.videoData.videoId || (await this.handleSrcChanged(), await this.autoTranslate(), x.A.log("lipsync mode is canplay"));
+							this.videoData && d === this.videoData.videoId || (await this.handleSrcChanged(), await this.autoTranslate(), x.A.log("lipsync mode is canplay"));
 						}
 						resetTimer = () => {
 							clearTimeout(this.timer), this.uiManager.votOverlayView.updateButtonOpacity(1), this.timer = setTimeout(() => {
