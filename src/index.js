@@ -593,8 +593,9 @@ class VideoHandler {
       fetchFn: GM_fetch,
       video: this.video,
     });
-    if (this.video.src && this.videoData && videoId === this.videoData.videoId)
+    if (this.videoData && videoId === this.videoData.videoId) {
       return;
+    }
     await this.handleSrcChanged();
     await this.autoTranslate();
     debug.log("lipsync mode is canplay");
