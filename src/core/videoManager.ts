@@ -126,10 +126,16 @@ export class VOTVideoManager {
    * Sets the video volume
    */
   setVideoVolume(volume: number) {
-    if (["youtube", "googledrive"].includes(this.videoHandler.site.host)) {
-      const videoVolume = YoutubeHelper.setVolume(volume);
-      if (videoVolume) return this.videoHandler;
+    if (!["youtube", "googledrive"].includes(this.videoHandler.site.host)) {
+      this.videoHandler.video.volume = volume;
+      return this;
     }
+
+    const videoVolume = YoutubeHelper.setVolume(volume);
+    if (videoVolume) {
+      return this;
+    }
+
     this.videoHandler.video.volume = volume;
     return this;
   }

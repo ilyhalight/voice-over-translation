@@ -559,17 +559,28 @@ export class OverlayView {
       this.onSelectSubtitles.dispatch(data);
     });
 
-    this.videoVolumeSlider.addEventListener("input", (value) => {
+    this.videoVolumeSlider.addEventListener("input", (value, fromSetter) => {
       this.videoVolumeSliderLabel.value = value;
+      if (fromSetter) {
+        return;
+      }
+
       this.onInputVideoVolume.dispatch(value);
     });
 
-    this.translationVolumeSlider.addEventListener("input", async (value) => {
-      this.tranlsationVolumeSliderLabel.value = value;
-      this.data.defaultVolume = value;
-      await votStorage.set("defaultVolume", this.data.defaultVolume);
-      this.onInputTranslationVolume.dispatch(value);
-    });
+    this.translationVolumeSlider.addEventListener(
+      "input",
+      async (value, fromSetter) => {
+        this.tranlsationVolumeSliderLabel.value = value;
+        this.data.defaultVolume = value;
+        await votStorage.set("defaultVolume", this.data.defaultVolume);
+        if (fromSetter) {
+          return;
+        }
+
+        this.onInputTranslationVolume.dispatch(value);
+      },
+    );
 
     // #endregion [Events] VOT Menu Body
     // #endregion [Events] VOT Menu

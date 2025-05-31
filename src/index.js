@@ -3,7 +3,6 @@ import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { getService, getVideoID } from "@vot.js/ext/utils/videoData";
 import Chaimu, { initAudioContext } from "chaimu";
 
-import ui from "./ui.js";
 import debug from "./utils/debug.ts";
 
 import { initAudioDownloaderIframe } from "./audioDownloader/iframe.ts";
@@ -41,7 +40,7 @@ import { IFRAME_HASH, isIframe } from "./utils/iframeConnector.ts";
 import { updateConfig, votStorage } from "./utils/storage.ts";
 import { translate } from "./utils/translateApis.ts";
 import { browserInfo, calculatedResLang, initHls } from "./utils/utils.ts";
-import { syncVolume } from "./utils/volume.js";
+import { syncVolume } from "./utils/volume.ts";
 
 export let countryCode; // Used later for proxy settings
 
@@ -251,6 +250,7 @@ class VideoHandler {
     }
 
     this.uiManager.data = this.data;
+    this.tempVolume = this.data.defaultVolume;
     console.log("[VOT] data from db: ", this.data);
 
     // Enable translate proxy if extension isn't compatible with GM_xmlhttpRequest
@@ -803,16 +803,13 @@ class VideoHandler {
       fromType === "translation"
         ? this.uiManager.votOverlayView.videoVolumeSlider
         : this.uiManager.votOverlayView.translationVolumeSlider;
-    const currentSliderValue = Number(slider.input.value);
     const finalValue = syncVolume(
       fromType === "translation" ? this.video : this.audioPlayer.player,
       newVolume,
-      currentSliderValue,
+      slider.value,
       fromType === "translation" ? this.tempVolume : this.tempOriginalVolume,
     );
-    slider.input.value = finalValue;
-    slider.label.querySelector("strong").textContent = `${finalValue}%`;
-    ui.updateSlider(slider.input);
+    slider.value = finalValue;
     this.tempOriginalVolume =
       fromType === "translation" ? finalValue : newVolume;
     this.tempVolume = fromType === "translation" ? newVolume : finalValue;

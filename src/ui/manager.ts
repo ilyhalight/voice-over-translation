@@ -198,9 +198,11 @@ export class UIManager {
         }
 
         this.videoHandler.setVideoVolume(volume / 100);
-        if (this.data.syncVolume) {
-          this.videoHandler.syncVolumeWrapper("video", volume);
+        if (!this.data.syncVolume) {
+          return;
         }
+
+        this.videoHandler.syncVolumeWrapper("video", volume);
       })
       .addEventListener("input:translationVolume", () => {
         if (!this.videoHandler) {

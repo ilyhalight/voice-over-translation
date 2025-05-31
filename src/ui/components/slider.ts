@@ -67,7 +67,7 @@ export default class Slider {
     container.append(input, label);
     input.addEventListener("input", () => {
       this.update();
-      this.onInput.dispatch(this._value);
+      this.onInput.dispatch(this._value, false);
     });
 
     return {
@@ -77,13 +77,19 @@ export default class Slider {
     };
   }
 
-  addEventListener(type: "input", listener: (value: number) => void): this {
+  addEventListener(
+    type: "input",
+    listener: (value: number, fromSetter: boolean) => void,
+  ): this {
     this.onInput.addListener(listener);
 
     return this;
   }
 
-  removeEventListener(type: "input", listener: (value: number) => void): this {
+  removeEventListener(
+    type: "input",
+    listener: (value: number, fromSetter: boolean) => void,
+  ): this {
     this.onInput.removeListener(listener);
 
     return this;
@@ -100,7 +106,7 @@ export default class Slider {
     this._value = val;
     this.input.value = val.toString();
     this.updateProgress();
-    this.onInput.dispatch(this._value);
+    this.onInput.dispatch(this._value, true);
   }
 
   get min() {
