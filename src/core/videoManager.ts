@@ -2,14 +2,15 @@ import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 
-import { VideoHandler } from "..";
-import { cleanText, GM_fetch } from "../utils/utils";
-import { localizationProvider } from "../localization/localizationProvider";
-import debug from "../utils/debug";
-import { detect } from "../utils/translateApis";
-import { VOTLocalizedError } from "../utils/VOTLocalizedError";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import { VideoHandler } from "..";
+import { localizationProvider } from "../localization/localizationProvider";
+import { VOTLocalizedError } from "../utils/VOTLocalizedError";
+import debug from "../utils/debug";
+import { GM_fetch } from "../utils/gm";
+import { detect } from "../utils/translateApis";
+import { cleanText } from "../utils/utils";
 
 export class VOTVideoManager {
   videoHandler: VideoHandler;
@@ -42,7 +43,7 @@ export class VOTVideoManager {
     if (!possibleLanguage && title) {
       const text = cleanText(title, description);
       debug.log(`Detecting language text: ${text}`);
-      const language = await detect(text);
+      const language = (await detect(text)) as RequestLang;
       if (availableLangs.includes(language)) {
         detectedLanguage = language;
       }
@@ -125,10 +126,16 @@ export class VOTVideoManager {
    * Sets the video volume
    */
   setVideoVolume(volume: number) {
-    if (["youtube", "googledrive"].includes(this.videoHandler.site.host)) {
-      const videoVolume = YoutubeHelper.setVolume(volume);
-      if (videoVolume) return this.videoHandler;
+    if (!["youtube", "googledrive"].includes(this.videoHandler.site.host)) {
+      this.videoHandler.video.volume = volume;
+      return this;
     }
+
+    const videoVolume = YoutubeHelper.setVolume(volume);
+    if (videoVolume) {
+      return this;
+    }
+
     this.videoHandler.video.volume = volume;
     return this;
   }

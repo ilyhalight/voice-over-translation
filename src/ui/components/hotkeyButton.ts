@@ -1,7 +1,7 @@
-import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
-import type { HotkeyButtonProps } from "../../types/components/hotkeyButton";
 import { localizationProvider } from "../../localization/localizationProvider";
+import type { HotkeyButtonProps } from "../../types/components/hotkeyButton";
+import UI from "../../ui";
 
 export default class HotkeyButton {
   container: HTMLElement;

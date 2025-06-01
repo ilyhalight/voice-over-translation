@@ -1,8 +1,8 @@
 import { render } from "lit-html";
 
-import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
 import type { DetailsProps } from "../../types/components/details";
+import UI from "../../ui";
 import { CHEVRON_ICON } from "../icons";
 
 export default class Details {

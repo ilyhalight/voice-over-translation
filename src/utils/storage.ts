@@ -1,6 +1,7 @@
 import { KeysOrDefaultValue } from "@toil/gm-types/types/utils";
 
-import debug from "./debug";
+import { actualCompatVersion } from "../config/config";
+import { localizationProvider } from "../localization/localizationProvider";
 import {
   CompatibilityVersion,
   ConvertCategory,
@@ -9,9 +10,8 @@ import {
   StorageKey,
   storageKeys,
 } from "../types/storage";
-import { isSupportGM4 } from "./utils";
-import { actualCompatVersion } from "../config/config";
-import { localizationProvider } from "../localization/localizationProvider";
+import debug from "./debug";
+import { isSupportGM4 } from "./gm";
 
 const compatMay2025Data = {
   numToBool: [

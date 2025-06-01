@@ -1,5 +1,11 @@
-// element - audio / video element
-function syncVolume(element, sliderVolume, otherSliderVolume, tempVolume) {
+import type { AudioPlayer, ChaimuPlayer } from "chaimu/player";
+
+export function syncVolume(
+  element: HTMLVideoElement | AudioPlayer | ChaimuPlayer,
+  sliderVolume: number,
+  otherSliderVolume: number,
+  tempVolume: number,
+) {
   let finalValue = sliderVolume;
   if (sliderVolume > tempVolume) {
     // sliderVolume = 100
@@ -25,5 +31,3 @@ function syncVolume(element, sliderVolume, otherSliderVolume, tempVolume) {
 
   return finalValue;
 }
-
-export { syncVolume };

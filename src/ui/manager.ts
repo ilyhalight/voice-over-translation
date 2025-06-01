@@ -2,32 +2,31 @@ import { convertSubs } from "@vot.js/shared/utils/subs";
 
 import ui from "../ui";
 
-import { OverlayView } from "./views/overlay";
-import { SettingsView } from "./views/settings";
+import type { VideoHandler } from "..";
+import {
+  actualCompatVersion,
+  maxAudioVolume,
+  repositoryUrl,
+} from "../config/config";
+import { localizationProvider } from "../localization/localizationProvider";
+import type { Status } from "../types/components/votButton";
+import type { StorageData } from "../types/storage";
+import type { UIManagerProps } from "../types/uiManager";
+import { VOTLocalizedError } from "../utils/VOTLocalizedError.js";
+import debug from "../utils/debug";
+import { GM_fetch, isSupportGMXhr } from "../utils/gm";
+import { votStorage } from "../utils/storage";
 import {
   clamp,
   clearFileName,
   downloadBlob,
   downloadTranslation,
   exitFullscreen,
-  GM_fetch,
-  isSupportGMXhr,
   openDownloadTranslation,
-} from "../utils/utils.js";
-import type { UIManagerProps } from "../types/uiManager";
-import type { StorageData } from "../types/storage";
-import type { VideoHandler } from "..";
-import type { Status } from "../types/components/votButton";
-import { localizationProvider } from "../localization/localizationProvider";
-import {
-  actualCompatVersion,
-  maxAudioVolume,
-  repositoryUrl,
-} from "../config/config";
+} from "../utils/utils";
 import VOTButton from "./components/votButton";
-import { votStorage } from "../utils/storage";
-import debug from "../utils/debug";
-import { VOTLocalizedError } from "../utils/VOTLocalizedError.js";
+import { OverlayView } from "./views/overlay";
+import { SettingsView } from "./views/settings";
 
 export class UIManager {
   root: HTMLElement;
@@ -199,9 +198,11 @@ export class UIManager {
         }
 
         this.videoHandler.setVideoVolume(volume / 100);
-        if (this.data.syncVolume) {
-          this.videoHandler.syncVolumeWrapper("video", volume);
+        if (!this.data.syncVolume) {
+          return;
         }
+
+        this.videoHandler.syncVolumeWrapper("video", volume);
       })
       .addEventListener("input:translationVolume", () => {
         if (!this.videoHandler) {

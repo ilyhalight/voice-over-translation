@@ -1,5 +1,5 @@
-import UI from "../../ui";
 import type { SliderLabelProps } from "../../types/components/sliderLabel";
+import UI from "../../ui";
 
 export default class SliderLabel {
   container: HTMLSpanElement;

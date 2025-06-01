@@ -7,3 +7,4 @@ const REPO_BRANCH: "master" | "dev";
  * @link https://wiki.greasespot.net/unsafeWindow
  */
 const unsafeWindow: Window;
+const Hls: typeof import("hls.js").default | undefined;

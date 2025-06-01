@@ -1,8 +1,8 @@
+import type { ResponseLang } from "@vot.js/shared/types/data";
 import type { SubtitleFormat } from "@vot.js/shared/types/subs";
 import type { LanguageSelectKey } from "./components/select";
-import type { DetectService, TranslateService } from "./translateApis";
 import type { Position } from "./components/votButton";
-import type { ResponseLang } from "@vot.js/shared/types/data";
+import type { DetectService, TranslateService } from "./translateApis";
 
 export type LocaleStorageKey =
   | "localePhrases"

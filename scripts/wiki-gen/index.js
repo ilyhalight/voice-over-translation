@@ -4,8 +4,8 @@ import * as path from "node:path";
 
 import sites from "@vot.js/ext/sites";
 
+import { extraData, siteData, sitesBlackList } from "./data";
 import locales from "./locales";
-import { siteData, extraData, sitesBlackList } from "./data";
 
 const availableSites = sites.filter(
   (site) => !sitesBlackList.includes(site.host),
@@ -45,7 +45,7 @@ function fixRegexStr(str) {
   let domain = new RegExp(str).source
     .replace(/^[/^]/g, "")
     .replace(/[$/]$/g, "");
-  if (str instanceof Function) {
+  if (typeof str === "function") {
     return [
       /host.includes\(([^()]*)\)/.exec(domain)?.[1]?.replace(/["']/g, ""),
     ];
@@ -84,7 +84,7 @@ function fixRegexStr(str) {
 }
 
 function getDomains(match) {
-  if (match instanceof Function) {
+  if (typeof match === "function") {
     return [];
   }
 
@@ -110,7 +110,9 @@ function genMarkdown(supportedSites, lang = "ru") {
 
     return {
       ...site,
-      domains: domains.map((domain) => `\`${domain}\``).join("\n- "),
+      domains: domains
+        .map((domain) => `\`${domain.replaceAll("\\.", ".")}\``)
+        .join("\n- "),
     };
   });
 

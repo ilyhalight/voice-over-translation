@@ -1,16 +1,16 @@
 import { render } from "lit-html";
 
-import UI from "../../ui";
-import { CHEVRON_ICON } from "../icons";
+import { EventImpl } from "../../core/eventImpl";
+import { localizationProvider } from "../../localization/localizationProvider";
 import type {
   LanguageSelectKey,
   SelectItem,
   SelectProps,
 } from "../../types/components/select";
-import { localizationProvider } from "../../localization/localizationProvider";
-import { EventImpl } from "../../core/eventImpl";
-import Dialog from "./dialog";
 import type { Phrase } from "../../types/localization";
+import UI from "../../ui";
+import { CHEVRON_ICON } from "../icons";
+import Dialog from "./dialog";
 import Textfield from "./textfield";
 
 export default class Select<
@@ -222,7 +222,6 @@ export default class Select<
   addEventListener(type: "beforeOpen", listener: (data: Dialog) => void): this;
   addEventListener(
     type: "beforeOpen" | "selectItem",
-    // biome-ignore lint/suspicious/noExplicitAny: it's ok trust me
     listener: (...data: any[]) => void,
   ): this {
     if (type === "selectItem") {
@@ -248,7 +247,6 @@ export default class Select<
   ): this;
   removeEventListener(
     type: "selectItem" | "beforeOpen",
-    // biome-ignore lint/suspicious/noExplicitAny: it's ok trust me
     listener: (...data: any[]) => void,
   ): this {
     if (type === "selectItem") {

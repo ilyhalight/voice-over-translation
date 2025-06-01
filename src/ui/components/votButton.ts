@@ -1,13 +1,13 @@
 import { render } from "lit-html";
 
-import UI from "../../ui";
-import { MENU_ICON, PIP_ICON_SVG, TRANSLATE_ICON_SVG } from "../icons";
 import type {
   Direction,
   Position,
   Status,
   VOTButtonProps,
 } from "../../types/components/votButton";
+import UI from "../../ui";
+import { MENU_ICON, PIP_ICON_SVG, TRANSLATE_ICON_SVG } from "../icons";
 
 export default class VOTButton {
   container: HTMLElement;

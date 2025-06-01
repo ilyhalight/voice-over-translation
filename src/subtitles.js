@@ -1,15 +1,16 @@
-import { html, render } from "lit-html";
 import { convertSubs } from "@vot.js/shared/utils/subs";
+import { html, render } from "lit-html";
 
 import { defaultTranslationService } from "./config/config.js";
-import { lang, GM_fetch, timeout } from "./utils/utils.js";
-import { translate } from "./utils/translateApis.ts";
 import { localizationProvider } from "./localization/localizationProvider.ts";
-import { votStorage } from "./utils/storage.ts";
-import Tooltip from "./ui/components/tooltip.ts";
 import UI from "./ui.js";
+import Tooltip from "./ui/components/tooltip.ts";
+import { GM_fetch } from "./utils/gm.ts";
+import { lang } from "./utils/localization.ts";
+import { votStorage } from "./utils/storage.ts";
+import { translate } from "./utils/translateApis.ts";
+import { timeout } from "./utils/utils.ts";
 
-// biome-ignore lint/complexity/noStaticOnlyClass: waiting rewrite to ts
 export class SubtitlesProcessor {
   static formatYandexTokens(line) {
     const lineEndMs = line.startMs + line.durationMs;
@@ -675,8 +676,9 @@ export class SubtitlesWidget {
       render(
         html`<vot-block
           class="vot-subtitles"
-          style="font-size: ${this.fontSize}px; --vot-subtitles-opacity: ${this
-            .opacity}"
+          style="font-size: ${this.fontSize}px; --vot-subtitles-opacity: ${
+            this.opacity
+          }"
           >${content}</vot-block
         >`,
         this.subtitlesContainer,

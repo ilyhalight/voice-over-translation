@@ -1,6 +1,6 @@
-import UI from "../../ui";
 import { EventImpl } from "../../core/eventImpl";
 import type { DialogProps } from "../../types/components/dialog";
+import UI from "../../ui";
 import { CLOSE_ICON } from "../icons";
 
 export default class Dialog {
@@ -64,7 +64,13 @@ export default class Dialog {
 
     const closeButton = UI.createIconButton(CLOSE_ICON);
     closeButton.classList.add("vot-dialog-close-button");
-    backdrop.onclick = closeButton.onclick = () => this.close();
+    backdrop.addEventListener("click", () => {
+      this.close();
+    });
+    closeButton.addEventListener("click", () => {
+      this.close();
+    });
+
     headerContainer.append(titleContainer, closeButton);
 
     const bodyContainer = UI.createEl("vot-block", [

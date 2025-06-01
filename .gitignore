@@ -1,7 +1,5 @@
 arch*.txt
 
-tests/utils.test.js
-
 dist/test-ui.user.js
 dist/*.txt
 
@@ -11,6 +9,7 @@ src/localization/locales/remove_phrase.py
 
 .vscode
 .pytest_cache
+.husky
 
 # Logs
 logs

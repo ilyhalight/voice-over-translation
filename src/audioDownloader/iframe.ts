@@ -1,15 +1,15 @@
+import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import {
   AudioAdaptiveFormat,
   PlayerElement,
 } from "@vot.js/ext/types/helpers/youtube";
-import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 
 import { VideoIdPayload } from "../types/audioDownloader";
-import { waitForCondition } from "../utils/utils";
-import { getRequestUrl, IFRAME_SERVICE, serializeRequestInit } from "./shared";
-import debug from "../utils/debug";
 import { MessagePayload } from "../types/iframeConnector";
+import debug from "../utils/debug";
 import { initIframeService } from "../utils/iframeConnector";
+import { waitForCondition } from "../utils/utils";
+import { IFRAME_SERVICE, getRequestUrl, serializeRequestInit } from "./shared";
 
 let lastMessageId = "";
 
