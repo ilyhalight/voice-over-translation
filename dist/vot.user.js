@@ -241,7 +241,7 @@
 // @connect        porntn.com
 // @connect        googlevideo.com
 // @namespace      vot
-// @version        1.10.1
+// @version        1.10.2
 // @icon           https://translate.yandex.ru/icons/favicon.ico
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @homepageURL    https://github.com/ilyhalight/voice-over-translation
