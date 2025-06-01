@@ -497,9 +497,9 @@
 
 Доступные (под)домены:
 
-- `disk.yandex.(ru|kz|com(\.am)?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(\.ge)?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(\.tr)?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.(ru|kz|com(.am)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.(ru|kz|com(.ge)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.(ru|kz|com(.tr)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
 
 Доступные пути:
 
@@ -954,7 +954,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?imdb.com`
+- `imdb.com`
+- `www.imdb.com`
 
 Доступные пути:
 
@@ -971,6 +972,22 @@
 Доступные пути:
 
 - /k/*
+
+## Oraclelearn
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `mylearn.oracle.com`
+
+Доступные пути:
+
+- /ou/course/COURSE_SLUG/COURSE_ID/LECTURE_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
 ## Direct link to MP4/WEBM
 

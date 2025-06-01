@@ -223,6 +223,9 @@ const siteData = {
     paths: ["/k/*"],
     domains: ["web.telegram.org"],
   },
+  oraclelearn: {
+    paths: ["/ou/course/COURSE_SLUG/COURSE_ID/LECTURE_ID"],
+  },
   directlink: {
     paths: ["/*.mp4", "/*.webm"],
     limits: [locales.noLocalLinks],

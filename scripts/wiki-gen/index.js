@@ -110,7 +110,9 @@ function genMarkdown(supportedSites, lang = "ru") {
 
     return {
       ...site,
-      domains: domains.map((domain) => `\`${domain}\``).join("\n- "),
+      domains: domains
+        .map((domain) => `\`${domain.replaceAll("\\.", ".")}\``)
+        .join("\n- "),
     };
   });
 

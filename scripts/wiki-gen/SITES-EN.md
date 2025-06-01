@@ -497,9 +497,9 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `disk.yandex.(ru|kz|com(\.am)?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(\.ge)?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(\.tr)?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.(ru|kz|com(.am)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.(ru|kz|com(.ge)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.(ru|kz|com(.tr)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
 
 Available paths:
 
@@ -954,7 +954,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?imdb.com`
+- `imdb.com`
+- `www.imdb.com`
 
 Available paths:
 
@@ -971,6 +972,22 @@ Available (sub)domains:
 Available paths:
 
 - /k/*
+
+## Oraclelearn
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `mylearn.oracle.com`
+
+Available paths:
+
+- /ou/course/COURSE_SLUG/COURSE_ID/LECTURE_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
 ## Direct link to MP4/WEBM
 
