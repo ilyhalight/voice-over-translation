@@ -131,6 +131,7 @@
 // @match          *://*.bunkr.ax/*
 // @match          *://web.telegram.org/k/*
 // @match          *://t2mc.toil.cc/*
+// @match          *://mylearn.oracle.com/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
@@ -1349,26 +1350,34 @@
 				{
 					host: m.r.bunkr,
 					url: "https://bunkr.site/",
-					match: /^bunkr.(site|black|cat|media|red|site|ws|org|s[kiu]|c[ir]|fi|p[hks]|ru|la|is|to|a[cx])$/,
+					match: /^bunkr\.(site|black|cat|media|red|site|ws|org|s[kiu]|c[ir]|fi|p[hks]|ru|la|is|to|a[cx])$/,
 					needExtraData: !0,
 					selector: ".plyr__video-wrapper"
 				},
 				{
 					host: m.r.imdb,
 					url: "https://www.imdb.com/video/",
-					match: /^(www.)?imdb.com$/,
+					match: /^(www\.)?imdb\.com$/,
 					selector: ".jw-media"
 				},
 				{
 					host: m.r.telegram,
 					url: "https://t.me/",
-					match: (d) => /^web.telegram.org$/.test(d.hostname) && d.pathname.startsWith("/k"),
+					match: (d) => /^web\.telegram\.org$/.test(d.hostname) && d.pathname.startsWith("/k"),
 					selector: ".ckin__player"
+				},
+				{
+					host: g.Q.oraclelearn,
+					url: "https://mylearn.oracle.com/ou/course/",
+					match: /^mylearn\.oracle\.com/,
+					selector: ".vjs-v7",
+					needExtraData: !0,
+					needBypassCSP: !0
 				},
 				{
 					host: m.r.custom,
 					url: "stub",
-					match: (d) => /([^.]+).(mp4|webm)/.test(d.pathname),
+					match: (d) => /([^.]+)\.(mp4|webm)/.test(d.pathname),
 					rawResult: !0
 				}
 			];
@@ -1394,7 +1403,7 @@
 				service;
 				video;
 				language;
-				constructor({ fetchFn: d = m.u9, extraInfo: f = !0, referer: p = document.referrer ?? window.location.origin + "/", origin: h = window.location.origin, service: g, video: _, language: v = "en" } = {}) {
+				constructor({ fetchFn: d = m.u9, extraInfo: f = !0, referer: p = document.referrer ?? `${window.location.origin}/`, origin: h = window.location.origin, service: g, video: _, language: v = "en" } = {}) {
 					this.fetch = d, this.extraInfo = f, this.referer = p, this.origin = /^(http(s)?):\/\//.test(String(h)) ? h : window.location.origin, this.service = g, this.video = _, this.language = v;
 				}
 				async getVideoData(d) {}
@@ -1554,7 +1563,7 @@
 							hash: m,
 							...b
 						};
-						let x = h.filter((d) => d.innerHTML.includes("var videoInfo = {}"))?.[0]?.textContent?.trim();
+						let x = h.find((d) => d.innerHTML.includes("var videoInfo = {}"))?.textContent?.trim();
 						if (!x) throw new g.a("Failed to find videoInfo content");
 						let C = /videoInfo\.type\s+?=\s+?'([^']+)'/.exec(x)?.[1], w = /videoInfo\.id\s+?=\s+?'([^']+)'/.exec(x)?.[1], T = /videoInfo\.hash\s+?=\s+?'([^']+)'/.exec(x)?.[1];
 						if (!C || !w || !T) throw new g.a("Failed to parse videoInfo content");
@@ -2539,8 +2548,8 @@
 					return d?.find((d) => d.type === "video/mp4")?.src;
 				}
 				findSubtitleUrl(d, f) {
-					let p = d?.find((d) => (0, x.ec)(d.locale_id) === f);
-					return p ||= d?.find((d) => (0, x.ec)(d.locale_id) === "en") ?? d?.[0], p?.url;
+					let p = d?.find((d) => (0, x.ec)(d.locale_id) === f) ?? d?.find((d) => (0, x.ec)(d.locale_id) === "en") ?? d?.[0];
+					return p?.url;
 				}
 				async getVideoData(d) {
 					let f = this.getModuleData();
@@ -2598,7 +2607,7 @@
 					}
 				}
 				static getPlayer() {
-					return super.getPlayer();
+					return VideoJSHelper.getPlayer();
 				}
 				async getVideoData(d) {
 					let f = this.getVideoDataByPlayer(d);
@@ -2879,6 +2888,30 @@
 					return `${g}/${h}`;
 				}
 			}
+			class OracleLearnHelper extends VideoJSHelper {
+				SUBTITLE_SOURCE = "oraclelearn";
+				async getVideoData(d) {
+					let f = this.getVideoDataByPlayer(d);
+					if (!f) return;
+					let { url: p, duration: m, subtitles: h } = f, g = this.returnBaseData(d), _ = (0, x.fl)(new URL(p));
+					return g ? {
+						url: g.url,
+						duration: m,
+						subtitles: h,
+						translationHelp: [{
+							target: "video_file_url",
+							targetUrl: _
+						}]
+					} : {
+						url: _,
+						duration: m,
+						subtitles: h
+					};
+				}
+				async getVideoId(d) {
+					return /\/ou\/course\/(([^/]+)\/(\d+)\/(\d+))/.exec(d.pathname)?.[1];
+				}
+			}
 			let D = {
 				[m.r.mailru]: MailRuHelper,
 				[m.r.weverse]: WeverseHelper,
@@ -2940,7 +2973,8 @@
 				[h.Q.coursera]: CourseraHelper,
 				[h.Q.douyin]: DouyinHelper,
 				[h.Q.artstation]: ArtstationHelper,
-				[h.Q.kickstarter]: KickstarterHelper
+				[h.Q.kickstarter]: KickstarterHelper,
+				[h.Q.oraclelearn]: OracleLearnHelper
 			};
 			class VideoHelper {
 				helpersData;
@@ -3067,7 +3101,7 @@
 			p.d(f, { Q: () => h });
 			var m = p("./node_modules/@vot.js/core/dist/types/service.js"), h;
 			(function(d) {
-				d.udemy = "udemy", d.coursera = "coursera", d.douyin = "douyin", d.artstation = "artstation", d.kickstarter = "kickstarter";
+				d.udemy = "udemy", d.coursera = "coursera", d.douyin = "douyin", d.artstation = "artstation", d.kickstarter = "kickstarter", d.oraclelearn = "oraclelearn";
 			})(h ||= {});
 			let g = {
 				...m.r,
@@ -3203,7 +3237,7 @@
 				defaultDuration: 343,
 				minChunkSize: 5295308,
 				loggerLevel: 1,
-				version: "2.4.7"
+				version: "2.4.8"
 			};
 		},
 		"./node_modules/@vot.js/shared/dist/data/consts.js": (d, f, p) => {

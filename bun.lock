@@ -228,11 +228,11 @@
 
     "@types/yargs-parser": ["@types/yargs-parser@21.0.2", "", {}, ""],
 
-    "@vot.js/core": ["@vot.js/core@2.4.7", "", { "dependencies": { "@vot.js/shared": "^2.4.7" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-6VSy2MojE5SF7ZxocMw86UpSIkW3JtU0DANSviS2E22W/pjxICRnwkm7S+a9fvbkbkLUyI9bLadL4voM/JsA1w=="],
+    "@vot.js/core": ["@vot.js/core@2.4.8", "", { "dependencies": { "@vot.js/shared": "^2.4.8" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-89IJtLqa1BRrOVNXKBB1G7fBhLRrFO+TIzW3zJXSa5q7+yCvfcxE1TV93Ae5JguGCZe+iy57Gdk0mHikWvtKpA=="],
 
-    "@vot.js/ext": ["@vot.js/ext@2.4.7", "", { "dependencies": { "@vot.js/core": "^2.4.7", "@vot.js/shared": "^2.4.7" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-dDwteILjZf/mfjNBOllgHz/gXMNNcSWK7BGZZkmP6yQSU++JLpIUvTIEg3/vm9jJH/KbN47HznAtv+6FzBlgxQ=="],
+    "@vot.js/ext": ["@vot.js/ext@2.4.8", "", { "dependencies": { "@vot.js/core": "^2.4.8", "@vot.js/shared": "^2.4.8" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-5cacfwvx6Lkjqn3my4oFDXTrLYkJ4KS9/HiDJ7949vRusamhaXi3Dv1Fsu+mjCQjJN2yhBe2LeLl31NThImVgQ=="],
 
-    "@vot.js/shared": ["@vot.js/shared@2.4.7", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-DxfutXpcL5/eny6pbR8+GkrCJWnTe4kALreZ69vY++W9TzmTM5GuOg2SBoObvhQkV+bvuEVgBNCGlnHLgPKu3w=="],
+    "@vot.js/shared": ["@vot.js/shared@2.4.8", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-nuR4/qEJT3ApLIKFW71FRX83LoS1JJ25qDJrsC7OLnINQxwOy7p+vETBWAsQxhRCKDIbI694k/yG5ZVJCJhI+Q=="],
 
     "@webassemblyjs/ast": ["@webassemblyjs/ast@1.14.1", "", { "dependencies": { "@webassemblyjs/helper-numbers": "1.13.2", "@webassemblyjs/helper-wasm-bytecode": "1.13.2" } }, "sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ=="],
 

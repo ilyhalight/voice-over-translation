@@ -113,6 +113,7 @@
     "*://*.bunkr.ax/*",
     "*://web.telegram.org/k/*",
     "*://t2mc.toil.cc/*",
+    "*://mylearn.oracle.com/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],

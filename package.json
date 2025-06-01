@@ -16,7 +16,7 @@
     "@toil/gm-types": "^1.0.4",
     "@toil/translate": "^1.0.8",
     "@types/bun": "^1.2.15",
-    "@vot.js/core": "^2.4.7",
+    "@vot.js/core": "^2.4.8",
     "browser-id3-writer": "^6.2.0",
     "browserslist": "^4.25.0",
     "eslint": "^9.28.0",
@@ -51,8 +51,8 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "@vot.js/ext": "^2.4.7",
-    "@vot.js/shared": "^2.4.7",
+    "@vot.js/ext": "^2.4.8",
+    "@vot.js/shared": "^2.4.8",
     "bowser": "^2.11.0",
     "chaimu": "^1.0.4",
     "lit": "^3.3.0",
