@@ -27,7 +27,7 @@
     "lightningcss": "^1.30.1",
     "npm-run-all2": "^8.0.4",
     "oxc-minify-webpack-plugin": "^1.0.0",
-    "oxlint": "^0.16.12",
+    "oxlint": "^0.17.0",
     "patch-package": "^8.0.0",
     "postinstall-postinstall": "^2.1.0",
     "sass": "^1.89.1",
@@ -54,7 +54,7 @@
     "@vot.js/ext": "^2.4.8",
     "@vot.js/shared": "^2.4.8",
     "bowser": "^2.11.0",
-    "chaimu": "^1.0.4",
+    "chaimu": "^1.0.5",
     "lit": "^3.3.0",
     "requestidlecallback-polyfill": "^1.0.2"
   }

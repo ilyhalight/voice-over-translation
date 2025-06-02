@@ -6667,546 +6667,12 @@
 				GZ: () => initAudioContext
 			});
 			let m = {
-				version: "1.0.4",
+				version: "1.0.5",
 				debug: !1,
 				fetchFn: fetch.bind(window)
-			};
-			class FifoSampleBuffer {
-				constructor() {
-					this._vector = new Float32Array(), this._position = 0, this._frameCount = 0;
-				}
-				get vector() {
-					return this._vector;
-				}
-				get position() {
-					return this._position;
-				}
-				get startIndex() {
-					return this._position * 2;
-				}
-				get frameCount() {
-					return this._frameCount;
-				}
-				get endIndex() {
-					return (this._position + this._frameCount) * 2;
-				}
-				clear() {
-					this.receive(this._frameCount), this.rewind();
-				}
-				put(d) {
-					this._frameCount += d;
-				}
-				putSamples(d, f, p = 0) {
-					f ||= 0;
-					let m = f * 2;
-					p >= 0 || (p = (d.length - m) / 2);
-					let h = p * 2;
-					this.ensureCapacity(p + this._frameCount);
-					let g = this.endIndex;
-					this.vector.set(d.subarray(m, m + h), g), this._frameCount += p;
-				}
-				putBuffer(d, f, p = 0) {
-					f ||= 0, p >= 0 || (p = d.frameCount - f), this.putSamples(d.vector, d.position + f, p);
-				}
-				receive(d) {
-					(!(d >= 0) || d > this._frameCount) && (d = this.frameCount), this._frameCount -= d, this._position += d;
-				}
-				receiveSamples(d, f = 0) {
-					let p = f * 2, m = this.startIndex;
-					d.set(this._vector.subarray(m, m + p)), this.receive(f);
-				}
-				extract(d, f = 0, p = 0) {
-					let m = this.startIndex + f * 2, h = p * 2;
-					d.set(this._vector.subarray(m, m + h));
-				}
-				ensureCapacity(d = 0) {
-					let f = parseInt(d * 2);
-					if (this._vector.length < f) {
-						let d = new Float32Array(f);
-						d.set(this._vector.subarray(this.startIndex, this.endIndex)), this._vector = d, this._position = 0;
-					} else this.rewind();
-				}
-				ensureAdditionalCapacity(d = 0) {
-					this.ensureCapacity(this._frameCount + d);
-				}
-				rewind() {
-					this._position > 0 && (this._vector.set(this._vector.subarray(this.startIndex, this.endIndex)), this._position = 0);
-				}
-			}
-			class AbstractFifoSamplePipe {
-				constructor(d) {
-					d ? (this._inputBuffer = new FifoSampleBuffer(), this._outputBuffer = new FifoSampleBuffer()) : this._inputBuffer = this._outputBuffer = null;
-				}
-				get inputBuffer() {
-					return this._inputBuffer;
-				}
-				set inputBuffer(d) {
-					this._inputBuffer = d;
-				}
-				get outputBuffer() {
-					return this._outputBuffer;
-				}
-				set outputBuffer(d) {
-					this._outputBuffer = d;
-				}
-				clear() {
-					this._inputBuffer.clear(), this._outputBuffer.clear();
-				}
-			}
-			class RateTransposer extends AbstractFifoSamplePipe {
-				constructor(d) {
-					super(d), this.reset(), this._rate = 1;
-				}
-				set rate(d) {
-					this._rate = d;
-				}
-				reset() {
-					this.slopeCount = 0, this.prevSampleL = 0, this.prevSampleR = 0;
-				}
-				clone() {
-					let d = new RateTransposer();
-					return d.rate = this._rate, d;
-				}
-				process() {
-					let d = this._inputBuffer.frameCount;
-					this._outputBuffer.ensureAdditionalCapacity(d / this._rate + 1);
-					let f = this.transpose(d);
-					this._inputBuffer.receive(), this._outputBuffer.put(f);
-				}
-				transpose(d = 0) {
-					if (d === 0) return 0;
-					let f = this._inputBuffer.vector, p = this._inputBuffer.startIndex, m = this._outputBuffer.vector, h = this._outputBuffer.endIndex, g = 0, _ = 0;
-					for (; this.slopeCount < 1;) m[h + 2 * _] = (1 - this.slopeCount) * this.prevSampleL + this.slopeCount * f[p], m[h + 2 * _ + 1] = (1 - this.slopeCount) * this.prevSampleR + this.slopeCount * f[p + 1], _ += 1, this.slopeCount += this._rate;
-					if (--this.slopeCount, d !== 1) out: for (;;) {
-						for (; this.slopeCount > 1;) if (--this.slopeCount, g += 1, g >= d - 1) break out;
-						let v = p + 2 * g;
-						m[h + 2 * _] = (1 - this.slopeCount) * f[v] + this.slopeCount * f[v + 2], m[h + 2 * _ + 1] = (1 - this.slopeCount) * f[v + 1] + this.slopeCount * f[v + 3], _ += 1, this.slopeCount += this._rate;
-					}
-					return this.prevSampleL = f[p + 2 * d - 2], this.prevSampleR = f[p + 2 * d - 1], _;
-				}
-			}
-			class FilterSupport {
-				constructor(d) {
-					this._pipe = d;
-				}
-				get pipe() {
-					return this._pipe;
-				}
-				get inputBuffer() {
-					return this._pipe.inputBuffer;
-				}
-				get outputBuffer() {
-					return this._pipe.outputBuffer;
-				}
-				fillInputBuffer() {
-					throw Error("fillInputBuffer() not overridden");
-				}
-				fillOutputBuffer(d = 0) {
-					for (; this.outputBuffer.frameCount < d;) {
-						let d = 8192 * 2 - this.inputBuffer.frameCount;
-						if (this.fillInputBuffer(d), this.inputBuffer.frameCount < 8192 * 2) break;
-						this._pipe.process();
-					}
-				}
-				clear() {
-					this._pipe.clear();
-				}
-			}
-			let noop = function() {};
-			class SimpleFilter extends FilterSupport {
-				constructor(d, f, p = noop) {
-					super(f), this.callback = p, this.sourceSound = d, this.historyBufferSize = 22050, this._sourcePosition = 0, this.outputBufferPosition = 0, this._position = 0;
-				}
-				get position() {
-					return this._position;
-				}
-				set position(d) {
-					if (d > this._position) throw RangeError("New position may not be greater than current position");
-					let f = this.outputBufferPosition - (this._position - d);
-					if (f < 0) throw RangeError("New position falls outside of history buffer");
-					this.outputBufferPosition = f, this._position = d;
-				}
-				get sourcePosition() {
-					return this._sourcePosition;
-				}
-				set sourcePosition(d) {
-					this.clear(), this._sourcePosition = d;
-				}
-				onEnd() {
-					this.callback();
-				}
-				fillInputBuffer(d = 0) {
-					let f = new Float32Array(d * 2), p = this.sourceSound.extract(f, d, this._sourcePosition);
-					this._sourcePosition += p, this.inputBuffer.putSamples(f, 0, p);
-				}
-				extract(d, f = 0) {
-					this.fillOutputBuffer(this.outputBufferPosition + f);
-					let p = Math.min(f, this.outputBuffer.frameCount - this.outputBufferPosition);
-					this.outputBuffer.extract(d, this.outputBufferPosition, p);
-					let m = this.outputBufferPosition + p;
-					return this.outputBufferPosition = Math.min(this.historyBufferSize, m), this.outputBuffer.receive(Math.max(m - this.historyBufferSize, 0)), this._position += p, p;
-				}
-				handleSampleData(d) {
-					this.extract(d.data, 4096);
-				}
-				clear() {
-					super.clear(), this.outputBufferPosition = 0;
-				}
-			}
-			let h = 0, g = h, _ = 0, v = _, b = 8, x = [
-				[
-					124,
-					186,
-					248,
-					310,
-					372,
-					434,
-					496,
-					558,
-					620,
-					682,
-					744,
-					806,
-					868,
-					930,
-					992,
-					1054,
-					1116,
-					1178,
-					1240,
-					1302,
-					1364,
-					1426,
-					1488,
-					0
-				],
-				[
-					-100,
-					-75,
-					-50,
-					-25,
-					25,
-					50,
-					75,
-					100,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0
-				],
-				[
-					-20,
-					-15,
-					-10,
-					-5,
-					5,
-					10,
-					15,
-					20,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0
-				],
-				[
-					-4,
-					-3,
-					-2,
-					-1,
-					1,
-					2,
-					3,
-					4,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0,
-					0
-				]
-			], C = .5, w = 2, T = 125, E = 50, D = (E - T) / (w - C), O = T - D * C, A = 25, j = 15, F = (j - A) / (w - C), U = A - F * C;
-			class Stretch extends AbstractFifoSamplePipe {
-				constructor(d) {
-					super(d), this._quickSeek = !0, this.midBufferDirty = !1, this.midBuffer = null, this.overlapLength = 0, this.autoSeqSetting = !0, this.autoSeekSetting = !0, this._tempo = 1, this.setParameters(44100, g, v, b);
-				}
-				clear() {
-					super.clear(), this.clearMidBuffer();
-				}
-				clearMidBuffer() {
-					this.midBufferDirty && (this.midBufferDirty = !1, this.midBuffer = null);
-				}
-				setParameters(d, f, p, m) {
-					d > 0 && (this.sampleRate = d), m > 0 && (this.overlapMs = m), f > 0 ? (this.sequenceMs = f, this.autoSeqSetting = !1) : this.autoSeqSetting = !0, p > 0 ? (this.seekWindowMs = p, this.autoSeekSetting = !1) : this.autoSeekSetting = !0, this.calculateSequenceParameters(), this.calculateOverlapLength(this.overlapMs), this.tempo = this._tempo;
-				}
-				set tempo(d) {
-					let f;
-					this._tempo = d, this.calculateSequenceParameters(), this.nominalSkip = this._tempo * (this.seekWindowLength - this.overlapLength), this.skipFract = 0, f = Math.floor(this.nominalSkip + .5), this.sampleReq = Math.max(f + this.overlapLength, this.seekWindowLength) + this.seekLength;
-				}
-				get tempo() {
-					return this._tempo;
-				}
-				get inputChunkSize() {
-					return this.sampleReq;
-				}
-				get outputChunkSize() {
-					return this.overlapLength + Math.max(0, this.seekWindowLength - 2 * this.overlapLength);
-				}
-				calculateOverlapLength(d = 0) {
-					let f;
-					f = this.sampleRate * d / 1e3, f = f < 16 ? 16 : f, f -= f % 8, this.overlapLength = f, this.refMidBuffer = new Float32Array(this.overlapLength * 2), this.midBuffer = new Float32Array(this.overlapLength * 2);
-				}
-				checkLimits(d, f, p) {
-					return d < f ? f : d > p ? p : d;
-				}
-				calculateSequenceParameters() {
-					let d, f;
-					this.autoSeqSetting && (d = O + D * this._tempo, d = this.checkLimits(d, E, T), this.sequenceMs = Math.floor(d + .5)), this.autoSeekSetting && (f = U + F * this._tempo, f = this.checkLimits(f, j, A), this.seekWindowMs = Math.floor(f + .5)), this.seekWindowLength = Math.floor(this.sampleRate * this.sequenceMs / 1e3), this.seekLength = Math.floor(this.sampleRate * this.seekWindowMs / 1e3);
-				}
-				set quickSeek(d) {
-					this._quickSeek = d;
-				}
-				clone() {
-					let d = new Stretch();
-					return d.tempo = this._tempo, d.setParameters(this.sampleRate, this.sequenceMs, this.seekWindowMs, this.overlapMs), d;
-				}
-				seekBestOverlapPosition() {
-					return this._quickSeek ? this.seekBestOverlapPositionStereoQuick() : this.seekBestOverlapPositionStereo();
-				}
-				seekBestOverlapPositionStereo() {
-					let d, f, p, m = 0;
-					for (this.preCalculateCorrelationReferenceStereo(), d = 0, f = Number.MIN_VALUE; m < this.seekLength; m += 1) p = this.calculateCrossCorrelationStereo(2 * m, this.refMidBuffer), p > f && (f = p, d = m);
-					return d;
-				}
-				seekBestOverlapPositionStereoQuick() {
-					let d, f, p, m = 0, h, g;
-					for (this.preCalculateCorrelationReferenceStereo(), f = Number.MIN_VALUE, d = 0, h = 0, g = 0; m < 4; m += 1) {
-						let _ = 0;
-						for (; x[m][_] && (g = h + x[m][_], !(g >= this.seekLength));) p = this.calculateCrossCorrelationStereo(2 * g, this.refMidBuffer), p > f && (f = p, d = g), _ += 1;
-						h = d;
-					}
-					return d;
-				}
-				preCalculateCorrelationReferenceStereo() {
-					let d = 0, f, p;
-					for (; d < this.overlapLength; d += 1) p = d * (this.overlapLength - d), f = d * 2, this.refMidBuffer[f] = this.midBuffer[f] * p, this.refMidBuffer[f + 1] = this.midBuffer[f + 1] * p;
-				}
-				calculateCrossCorrelationStereo(d, f) {
-					let p = this._inputBuffer.vector;
-					d += this._inputBuffer.startIndex;
-					let m = 0, h = 2, g = 2 * this.overlapLength, _;
-					for (; h < g; h += 2) _ = h + d, m += p[_] * f[h] + p[_ + 1] * f[h + 1];
-					return m;
-				}
-				overlap(d) {
-					this.overlapStereo(2 * d);
-				}
-				overlapStereo(d) {
-					let f = this._inputBuffer.vector;
-					d += this._inputBuffer.startIndex;
-					let p = this._outputBuffer.vector, m = this._outputBuffer.endIndex, h = 0, g, _, v = 1 / this.overlapLength, b, x, C;
-					for (; h < this.overlapLength; h += 1) _ = (this.overlapLength - h) * v, b = h * v, g = 2 * h, x = g + d, C = g + m, p[C + 0] = f[x + 0] * b + this.midBuffer[g + 0] * _, p[C + 1] = f[x + 1] * b + this.midBuffer[g + 1] * _;
-				}
-				process() {
-					let d, f, p;
-					if (this.midBuffer === null) {
-						if (this._inputBuffer.frameCount < this.overlapLength) return;
-						this.midBuffer = new Float32Array(this.overlapLength * 2), this._inputBuffer.receiveSamples(this.midBuffer, this.overlapLength);
-					}
-					for (; this._inputBuffer.frameCount >= this.sampleReq;) {
-						d = this.seekBestOverlapPosition(), this._outputBuffer.ensureAdditionalCapacity(this.overlapLength), this.overlap(Math.floor(d)), this._outputBuffer.put(this.overlapLength), f = this.seekWindowLength - 2 * this.overlapLength, f > 0 && this._outputBuffer.putBuffer(this._inputBuffer, d + this.overlapLength, f);
-						let m = this._inputBuffer.startIndex + 2 * (d + this.seekWindowLength - this.overlapLength);
-						this.midBuffer.set(this._inputBuffer.vector.subarray(m, m + 2 * this.overlapLength)), this.skipFract += this.nominalSkip, p = Math.floor(this.skipFract), this.skipFract -= p, this._inputBuffer.receive(p);
-					}
-				}
-			}
-			let testFloatEqual = function(d, f) {
-				return (d > f ? d - f : f - d) > 1e-10;
-			};
-			class SoundTouch {
-				constructor() {
-					this.transposer = new RateTransposer(!1), this.stretch = new Stretch(!1), this._inputBuffer = new FifoSampleBuffer(), this._intermediateBuffer = new FifoSampleBuffer(), this._outputBuffer = new FifoSampleBuffer(), this._rate = 0, this._tempo = 0, this.virtualPitch = 1, this.virtualRate = 1, this.virtualTempo = 1, this.calculateEffectiveRateAndTempo();
-				}
-				clear() {
-					this.transposer.clear(), this.stretch.clear();
-				}
-				clone() {
-					let d = new SoundTouch();
-					return d.rate = this.rate, d.tempo = this.tempo, d;
-				}
-				get rate() {
-					return this._rate;
-				}
-				set rate(d) {
-					this.virtualRate = d, this.calculateEffectiveRateAndTempo();
-				}
-				set rateChange(d) {
-					this._rate = 1 + .01 * d;
-				}
-				get tempo() {
-					return this._tempo;
-				}
-				set tempo(d) {
-					this.virtualTempo = d, this.calculateEffectiveRateAndTempo();
-				}
-				set tempoChange(d) {
-					this.tempo = 1 + .01 * d;
-				}
-				set pitch(d) {
-					this.virtualPitch = d, this.calculateEffectiveRateAndTempo();
-				}
-				set pitchOctaves(d) {
-					this.pitch = Math.exp(.69314718056 * d), this.calculateEffectiveRateAndTempo();
-				}
-				set pitchSemitones(d) {
-					this.pitchOctaves = d / 12;
-				}
-				get inputBuffer() {
-					return this._inputBuffer;
-				}
-				get outputBuffer() {
-					return this._outputBuffer;
-				}
-				calculateEffectiveRateAndTempo() {
-					let d = this._tempo, f = this._rate;
-					this._tempo = this.virtualTempo / this.virtualPitch, this._rate = this.virtualRate * this.virtualPitch, testFloatEqual(this._tempo, d) && (this.stretch.tempo = this._tempo), testFloatEqual(this._rate, f) && (this.transposer.rate = this._rate), this._rate > 1 ? this._outputBuffer != this.transposer.outputBuffer && (this.stretch.inputBuffer = this._inputBuffer, this.stretch.outputBuffer = this._intermediateBuffer, this.transposer.inputBuffer = this._intermediateBuffer, this.transposer.outputBuffer = this._outputBuffer) : this._outputBuffer != this.stretch.outputBuffer && (this.transposer.inputBuffer = this._inputBuffer, this.transposer.outputBuffer = this._intermediateBuffer, this.stretch.inputBuffer = this._intermediateBuffer, this.stretch.outputBuffer = this._outputBuffer);
-				}
-				process() {
-					this._rate > 1 ? (this.stretch.process(), this.transposer.process()) : (this.transposer.process(), this.stretch.process());
-				}
-			}
-			class WebAudioBufferSource {
-				constructor(d) {
-					this.buffer = d, this._position = 0;
-				}
-				get dualChannel() {
-					return this.buffer.numberOfChannels > 1;
-				}
-				get position() {
-					return this._position;
-				}
-				set position(d) {
-					this._position = d;
-				}
-				extract(d, f = 0, p = 0) {
-					this.position = p;
-					let m = this.buffer.getChannelData(0), h = this.dualChannel ? this.buffer.getChannelData(1) : this.buffer.getChannelData(0), g = 0;
-					for (; g < f; g++) d[g * 2] = m[g + p], d[g * 2 + 1] = h[g + p];
-					return Math.min(f, m.length - p);
-				}
-			}
-			let getWebAudioNode = function(d, f, p = noop, m = 4096) {
-				let h = d.createScriptProcessor(m, 2, 2), g = new Float32Array(m * 2);
-				return h.onaudioprocess = (d) => {
-					let h = d.outputBuffer.getChannelData(0), _ = d.outputBuffer.getChannelData(1), v = f.extract(g, m);
-					p(f.sourcePosition), v === 0 && f.onEnd();
-					let b = 0;
-					for (; b < v; b++) h[b] = g[b * 2], _[b] = g[b * 2 + 1];
-				}, h;
-			}, pad = function(d, f, p) {
-				return p ||= "0", d += "", d.length >= f ? d : Array(f - d.length + 1).join(p) + d;
-			}, minsSecs = function(d) {
-				let f = Math.floor(d / 60), p = d - f * 60;
-				return `${f}:${pad(parseInt(p), 2)}`;
-			}, onUpdate = function(d) {
-				let f = this.timePlayed, p = this.sampleRate;
-				if (this.sourcePosition = d, this.timePlayed = d / p, f !== this.timePlayed) {
-					let d = new CustomEvent("play", { detail: {
-						timePlayed: this.timePlayed,
-						formattedTimePlayed: this.formattedTimePlayed,
-						percentagePlayed: this.percentagePlayed
-					} });
-					this._node.dispatchEvent(d);
-				}
-			};
-			class PitchShifter {
-				constructor(d, f, p, m = noop) {
-					this._soundtouch = new SoundTouch();
-					let h = new WebAudioBufferSource(f);
-					this.timePlayed = 0, this.sourcePosition = 0, this._filter = new SimpleFilter(h, this._soundtouch, m), this._node = getWebAudioNode(d, this._filter, (d) => onUpdate.call(this, d), p), this.tempo = 1, this.rate = 1, this.duration = f.duration, this.sampleRate = d.sampleRate, this.listeners = [];
-				}
-				get formattedDuration() {
-					return minsSecs(this.duration);
-				}
-				get formattedTimePlayed() {
-					return minsSecs(this.timePlayed);
-				}
-				get percentagePlayed() {
-					return 100 * this._filter.sourcePosition / (this.duration * this.sampleRate);
-				}
-				set percentagePlayed(d) {
-					this._filter.sourcePosition = parseInt(d * this.duration * this.sampleRate), this.sourcePosition = this._filter.sourcePosition, this.timePlayed = this.sourcePosition / this.sampleRate;
-				}
-				get node() {
-					return this._node;
-				}
-				set pitch(d) {
-					this._soundtouch.pitch = d;
-				}
-				set pitchSemitones(d) {
-					this._soundtouch.pitchSemitones = d;
-				}
-				set rate(d) {
-					this._soundtouch.rate = d;
-				}
-				set tempo(d) {
-					this._soundtouch.tempo = d;
-				}
-				connect(d) {
-					this._node.connect(d);
-				}
-				disconnect() {
-					this._node.disconnect();
-				}
-				on(d, f) {
-					this.listeners.push({
-						name: d,
-						cb: f
-					}), this._node.addEventListener(d, (d) => f(d.detail));
-				}
-				off(d = null) {
-					let f = this.listeners;
-					d && (f = f.filter((f) => f.name === d)), f.forEach((d) => {
-						this._node.removeEventListener(d.name, (f) => d.cb(f.detail));
-					});
-				}
-			}
-			let W = { log: (...d) => {
+			}, h = { log: (...d) => {
 				if (m.debug) return console.log(`%c✦ chaimu.js v${m.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...d);
-			} }, G = [
+			} }, g = [
 				"playing",
 				"ratechange",
 				"play",
@@ -7228,28 +6694,28 @@
 					this.chaimu = d, this._src = f, this.fetch = this.chaimu.fetchFn, this.fetchOpts = this.chaimu.fetchOpts;
 				}
 				async init() {
-					return new Promise((d) => d(this));
+					return this;
 				}
-				clear() {
-					return new Promise((d) => d(this));
+				async clear() {
+					return this;
 				}
 				lipSync(d = !1) {
 					return this;
 				}
-				handleVideoEvent = (d) => (W.log(`handle video ${d.type}`), this.lipSync(d.type), this);
+				handleVideoEvent = (d) => (h.log(`handle video ${d.type}`), this.lipSync(d.type), this);
 				removeVideoEvents() {
-					for (let d of G) this.chaimu.video.removeEventListener(d, this.handleVideoEvent);
+					for (let d of g) this.chaimu.video?.removeEventListener(d, this.handleVideoEvent);
 					return this;
 				}
 				addVideoEvents() {
-					for (let d of G) this.chaimu.video.addEventListener(d, this.handleVideoEvent);
+					for (let d of g) this.chaimu.video?.addEventListener(d, this.handleVideoEvent);
 					return this;
 				}
 				async play() {
-					return new Promise((d) => d(this));
+					return this;
 				}
 				async pause() {
-					return new Promise((d) => d(this));
+					return this;
 				}
 				get name() {
 					return this.constructor.name;
@@ -7284,21 +6750,24 @@
 					super(d, f), this.updateAudio();
 				}
 				initAudioBooster() {
-					return this.chaimu.audioContext ? (this.gainNode && this.audioSource && (this.audioSource.disconnect(this.gainNode), this.gainNode.disconnect()), this.gainNode = this.chaimu.audioContext.createGain(), this.gainNode.connect(this.chaimu.audioContext.destination), this.audioSource = this.chaimu.audioContext.createMediaElementSource(this.audio), this.audioSource.connect(this.gainNode), this) : this;
+					return this.chaimu.audioContext ? (this.disconnectAudioNodes(), this.gainNode = this.chaimu.audioContext.createGain(), this.gainNode.connect(this.chaimu.audioContext.destination), this.audioSource = this.chaimu.audioContext.createMediaElementSource(this.audio), this.audioSource.connect(this.gainNode), this) : this;
+				}
+				disconnectAudioNodes() {
+					this.audioSource && (this.audioSource.disconnect(), this.audioSource = void 0), this.gainNode && (this.gainNode.disconnect(), this.gainNode = void 0);
 				}
 				updateAudio() {
 					return this.audio = new Audio(this.src), this.audio.crossOrigin = "anonymous", this;
 				}
 				async init() {
-					return new Promise((d) => (this.updateAudio(), this.initAudioBooster(), d(this)));
+					return this.updateAudio(), this.initAudioBooster(), this;
 				}
 				audioErrorHandle = (d) => {
 					console.error("[AudioPlayer]", d);
 				};
 				lipSync(d = !1) {
-					if (W.log("[AudioPlayer] lipsync video", this.chaimu.video), !this.chaimu.video) return this;
-					if (this.audio.currentTime = this.chaimu.video.currentTime, this.audio.playbackRate = this.chaimu.video.playbackRate, !d) return W.log("[AudioPlayer] lipsync mode isn't set"), this;
-					switch (W.log(`[AudioPlayer] lipsync mode is ${d}`), d) {
+					if (h.log("[AudioPlayer] lipsync video", this.chaimu.video), !this.chaimu.video) return this;
+					if (this.audio.currentTime = this.chaimu.video.currentTime, this.audio.playbackRate = this.chaimu.video.playbackRate, !d) return h.log("[AudioPlayer] lipsync mode isn't set"), this;
+					switch (h.log(`[AudioPlayer] lipsync mode is ${d}`), d) {
 						case "play":
 						case "playing":
 						case "seeked": return this.chaimu.video.paused || this.syncPlay(), this;
@@ -7308,16 +6777,16 @@
 					}
 				}
 				async clear() {
-					return new Promise((d) => (this.audio.pause(), this.audio.src = "", this.audio.removeAttribute("src"), d(this)));
+					return this.audio.pause(), this.audio.src = "", this.audio.removeAttribute("src"), this.disconnectAudioNodes(), this;
 				}
 				syncPlay() {
-					return W.log("[AudioPlayer] sync play called"), this.audio.play().catch(this.audioErrorHandle), this;
+					return h.log("[AudioPlayer] sync play called"), this.audio && this.audio.play().catch(this.audioErrorHandle), this;
 				}
 				async play() {
-					return W.log("[AudioPlayer] play called"), await this.audio.play().catch(this.audioErrorHandle), this;
+					return h.log("[AudioPlayer] play called"), this.audio && await this.audio.play().catch(this.audioErrorHandle), this;
 				}
 				async pause() {
-					return new Promise((d) => (W.log("[AudioPlayer] pause called"), this.audio.pause(), d(this)));
+					return h.log("[AudioPlayer] pause called"), this.audio && this.audio.pause(), this;
 				}
 				set src(d) {
 					if (this._src = d, !d) {
@@ -7355,34 +6824,53 @@
 			class ChaimuPlayer extends BasePlayer {
 				static name = "ChaimuPlayer";
 				audioBuffer;
-				sourceNode;
+				audioElement;
+				mediaElementSource;
 				gainNode;
-				audioShifter;
-				cleanerRunned = !1;
+				blobUrl;
+				isClearing = !1;
+				isInitializing = !1;
+				clearingPromise;
 				async fetchAudio() {
 					if (!this._src) throw Error("No audio source provided");
 					if (!this.chaimu.audioContext) throw Error("No audio context available");
-					W.log(`[ChaimuPlayer] Fetching audio from ${this._src}...`);
+					h.log(`[ChaimuPlayer] Fetching audio from ${this._src}...`);
+					let d;
 					try {
-						let d = await this.fetch(this._src, this.fetchOpts);
-						W.log("[ChaimuPlayer] Decoding fetched audio...");
-						let f = await d.arrayBuffer();
-						this.audioBuffer = await this.chaimu.audioContext.decodeAudioData(f);
-					} catch (d) {
-						throw Error(`Failed to fetch audio file, because ${d.message}`);
+						let f = await this.fetch(this._src, this.fetchOpts);
+						h.log("[ChaimuPlayer] Decoding fetched audio...");
+						let p = await f.arrayBuffer(), m = new Blob([p]);
+						d = URL.createObjectURL(m), this.audioBuffer = await this.chaimu.audioContext.decodeAudioData(p), this.blobUrl && URL.revokeObjectURL(this.blobUrl), this.blobUrl = d, d = void 0;
+					} catch (f) {
+						throw d && URL.revokeObjectURL(d), Error(`Failed to fetch audio file, because ${f.message}`);
 					}
 					return this;
 				}
 				initAudioBooster() {
-					return this.chaimu.audioContext ? (this.gainNode && this.gainNode.disconnect(), this.gainNode = this.chaimu.audioContext.createGain(), this) : this;
+					return this.chaimu.audioContext ? (this.disconnectAudioNodes(), this.gainNode = this.chaimu.audioContext.createGain(), this) : this;
+				}
+				disconnectAudioNodes() {
+					this.mediaElementSource && (this.mediaElementSource.disconnect(), this.mediaElementSource = void 0), this.gainNode && (this.gainNode.disconnect(), this.gainNode = void 0);
 				}
 				async init() {
-					return await this.fetchAudio(), this.initAudioBooster(), this;
+					if (this.isInitializing) throw Error("Initialization already in progress");
+					this.isInitializing = !0;
+					try {
+						return await this.fetchAudio(), this.initAudioBooster(), this.createAudioElement(), this;
+					} finally {
+						this.isInitializing = !1;
+					}
+				}
+				createAudioElement() {
+					if (!this.chaimu.audioContext) throw Error("No audio context available");
+					if (!this.blobUrl) throw Error("No blob URL available.");
+					let d = new Audio(this.blobUrl);
+					d.crossOrigin = "anonymous", "preservesPitch" in d && (d.preservesPitch = !0, "mozPreservesPitch" in d && (d.mozPreservesPitch = !0), "webkitPreservesPitch" in d && (d.webkitPreservesPitch = !0)), this.audioElement = d, this.mediaElementSource = this.chaimu.audioContext.createMediaElementSource(d), this.mediaElementSource.connect(this.gainNode), this.gainNode.connect(this.chaimu.audioContext.destination);
 				}
 				lipSync(d = !1) {
-					if (W.log("[ChaimuPlayer] lipsync video", this.chaimu.video, this), !this.chaimu.video) return this;
-					if (!d) return W.log("[ChaimuPlayer] lipsync mode isn't set"), this;
-					switch (W.log(`[ChaimuPlayer] lipsync mode is ${d}`), d) {
+					if (h.log("[ChaimuPlayer] lipsync video", this.chaimu.video, this), !this.chaimu.video) return this;
+					if (!d) return h.log("[ChaimuPlayer] lipsync mode isn't set"), this;
+					switch (h.log(`[ChaimuPlayer] lipsync mode is ${d}`), d) {
 						case "play":
 						case "playing":
 						case "ratechange":
@@ -7395,25 +6883,33 @@
 				async reopenCtx() {
 					if (!this.chaimu.audioContext) throw Error("No audio context available");
 					try {
-						await this.chaimu.audioContext.close();
-					} catch {}
-					return this;
+						this.chaimu.audioContext.state !== "closed" && await this.chaimu.audioContext.close();
+					} catch (d) {
+						h.log("[ChaimuPlayer] Failed to close audio context:", d);
+					}
+					return this.chaimu.audioContext = initAudioContext(), this;
 				}
 				async clear() {
+					if (this.isClearing && this.clearingPromise) return this.clearingPromise;
 					if (!this.chaimu.audioContext) throw Error("No audio context available");
-					if (W.log("clear audio context"), this.cleanerRunned = !0, await this.pause(), !this.gainNode) return this.cleanerRunned = !1, this;
-					this.sourceNode && (this.sourceNode.stop(), this.sourceNode.disconnect(this.gainNode), this.sourceNode = void 0), this.audioShifter && (this.audioShifter._node.disconnect(this.gainNode), this.audioShifter = void 0), this.gainNode.disconnect();
-					let d = this.volume;
-					return this.gainNode = void 0, await this.reopenCtx(), this.chaimu.audioContext = initAudioContext(), this.initAudioBooster(), this.volume = d, this.cleanerRunned = !1, this;
+					return h.log("clear audio context"), this.isClearing = !0, this.clearingPromise = (async () => {
+						try {
+							await this.pause(), this.audioElement && (this.audioElement.pause(), this.audioElement = void 0), this.blobUrl && (URL.revokeObjectURL(this.blobUrl), this.blobUrl = void 0), this.disconnectAudioNodes();
+							let d = this.gainNode ? this.gainNode.gain.value : 1;
+							return await this.reopenCtx(), this.chaimu.audioContext && (this.initAudioBooster(), this.volume = d), this;
+						} finally {
+							this.isClearing = !1, this.clearingPromise = void 0;
+						}
+					})(), this.clearingPromise;
 				}
 				async start() {
 					if (!this.chaimu.audioContext) throw Error("No audio context available");
-					if (!this.audioBuffer) throw Error("The player isn't initialized");
-					return !this.gainNode || this.audioShifter && this.audioShifter.duration < this.chaimu.video.currentTime ? (W.log("Skip starting player"), this) : this.cleanerRunned ? (W.log("The other cleaner is still running, waiting..."), this) : (W.log("starting audio"), await this.clear(), await this.play(), this.audioShifter = new PitchShifter(this.chaimu.audioContext, this.audioBuffer, 1024), this.audioShifter.tempo = this.chaimu.video.playbackRate, this.audioShifter.percentagePlayed = this.chaimu.video.currentTime / this.audioShifter.duration, this.sourceNode = this.chaimu.audioContext.createBufferSource(), this.sourceNode.buffer = null, this.sourceNode.connect(this.gainNode), this.audioShifter.connect(this.gainNode), this.gainNode.connect(this.chaimu.audioContext.destination), this.sourceNode.start(void 0, this.chaimu.video.currentTime), this);
+					if (!this.audioElement) throw Error("Audio element is missing");
+					return this.isClearing && this.clearingPromise && (h.log("The other cleaner is still running, waiting..."), await this.clearingPromise), h.log("starting audio via HTMLAudioElement"), await this.play(), this.chaimu.video && (this.audioElement.currentTime = this.chaimu.video.currentTime, this.audioElement.playbackRate = this.chaimu.video.playbackRate), this.audioElement.play().catch((d) => h.log("[ChaimuPlayer] Play audioElement failed:", d)), this;
 				}
 				async pause() {
 					if (!this.chaimu.audioContext) throw Error("No audio context available");
-					return this.chaimu.audioContext.state === "running" && await this.chaimu.audioContext.suspend(), this;
+					return this.audioElement && this.audioElement.pause(), this.chaimu.audioContext.state === "running" && await this.chaimu.audioContext.suspend(), this;
 				}
 				async play() {
 					if (!this.chaimu.audioContext) throw Error("No audio context available");
@@ -7435,14 +6931,13 @@
 					return this.gainNode ? this.gainNode.gain.value : 0;
 				}
 				set playbackRate(d) {
-					if (!this.audioShifter) throw Error("No audio source available");
-					this.audioShifter.pitch = d;
+					this.audioElement && (this.audioElement.playbackRate = d);
 				}
 				get playbackRate() {
-					return this.audioShifter?._soundtouch?.tempo ?? 0;
+					return this.audioElement ? this.audioElement.playbackRate : this.chaimu.video?.playbackRate ?? 1;
 				}
 				get currentTime() {
-					return this.chaimu.video.currentTime;
+					return this.chaimu.video?.currentTime ?? 0;
 				}
 			}
 			class Chaimu {
