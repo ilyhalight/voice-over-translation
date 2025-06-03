@@ -27,6 +27,8 @@
 [vot-worker]: https://github.com/FOSWLY/vot-worker
 [media-proxy]: https://github.com/FOSWLY/media-proxy
 [vot-backend]: https://github.com/FOSWLY/vot-backend
+[vot-status]: https://votstatus.toil.cc
+[vot-stats]: https://votstats.toil.cc
 
 <!-- Install / Build -->
 
@@ -128,6 +130,16 @@
 Необходим для перевода дополнительных сайтов, которые используют формат видео, который не поддерживается серверами Яндекса.
 
 - [vot.toil.cc][vot-backend]
+
+#### VOT Status and Stats
+
+Проверить текущий статус и аптайм всех серверов вы можете с помощью:
+
+- [votstatus.toil.cc][vot-status]
+
+Проверить статистику работы прокси серверов вы можете с помощью (обновляется раз в 5 минут):
+
+- [votstats.toil.cc][vot-stats]
 
 ## Как собрать расширение?
 
