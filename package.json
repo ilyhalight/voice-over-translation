@@ -34,7 +34,7 @@
     "typescript": "^5.8.3",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.1",
+    "webpack-dev-server": "^5.2.2",
     "webpack-monkey": "^0.2.1"
   },
   "scripts": {
@@ -43,6 +43,7 @@
     "build:min": "webpack build -c .webpack/webpack.config.js --env build_type=minify",
     "build:all": "npx run-p build build:min",
     "build:bun": "bun run build:all",
+    "build:dev": "webpack build -c .webpack/webpack.config.js --node-env development",
     "dev": "webpack serve --node-env development",
     "lint": "npx oxlint && npx eslint",
     "format": "npx @biomejs/biome check --write ./src",
