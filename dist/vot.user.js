@@ -241,7 +241,7 @@
 // @connect        porntn.com
 // @connect        googlevideo.com
 // @namespace      vot
-// @version        1.10.2
+// @version        1.10.3
 // @icon           https://translate.yandex.ru/icons/favicon.ico
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @homepageURL    https://github.com/ilyhalight/voice-over-translation
@@ -7370,7 +7370,7 @@
 							return await Promise.race([getDownloadAudioDataInMainWorld({ videoId: d }), (0, x.wR)(2e4, O)]);
 						} catch (d) {
 							let f = d instanceof Error && d.message === O;
-							throw Error(f ? O : "Audio downloader. WEB API. Failed to get audio data");
+							throw _.A.log("getGeneratingAudioUrlsDataFromIframe error", d), Error(f ? O : "Audio downloader. WEB API. Failed to get audio data");
 						}
 					}
 					function makeFileId(d, f) {
@@ -10959,7 +10959,7 @@
 			p.a(d, async (d, m) => {
 				try {
 					p.d(f, { r: () => SettingsView });
-					var h = p("./node_modules/@vot.js/shared/dist/data/consts.js"), g = p("./node_modules/lit-html/lit-html.js"), _ = p("./src/ui.js"), v = p("./src/ui/components/accountButton.ts"), b = p("./src/ui/components/checkbox.ts"), x = p("./src/ui/components/details.ts"), C = p("./src/ui/components/dialog.ts"), w = p("./src/ui/components/hotkeyButton.ts"), T = p("./src/ui/components/label.ts"), E = p("./src/ui/components/select.ts"), D = p("./src/ui/components/slider.ts"), O = p("./src/ui/components/sliderLabel.ts"), A = p("./src/ui/components/textfield.ts"), j = p("./src/ui/components/tooltip.ts"), F = p("./src/index.js"), U = p("./src/config/config.js"), W = p("./src/core/eventImpl.ts"), G = p("./src/localization/localizationProvider.ts"), K = p("./src/types/components/votButton.ts"), q = p("./src/utils/debug.ts"), J = p("./src/utils/gm.ts"), Y = p("./src/utils/storage.ts"), X = p("./src/utils/translateApis.ts"), Z = p("./src/utils/utils.ts"), Q = p("./src/ui/icons.ts"), $ = d([
+					var h = p("./node_modules/@vot.js/shared/dist/data/consts.js"), g = p("./node_modules/lit-html/lit-html.js"), _ = p("./src/ui.js"), v = p("./src/ui/components/accountButton.ts"), b = p("./src/ui/components/checkbox.ts"), x = p("./src/ui/components/details.ts"), C = p("./src/ui/components/dialog.ts"), w = p("./src/ui/components/hotkeyButton.ts"), T = p("./src/ui/components/label.ts"), E = p("./src/ui/components/select.ts"), D = p("./src/ui/components/slider.ts"), O = p("./src/ui/components/sliderLabel.ts"), A = p("./src/ui/components/textfield.ts"), j = p("./src/ui/components/tooltip.ts"), F = p("./node_modules/@vot.js/ext/dist/types/service.js"), U = p("./src/index.js"), W = p("./src/audioDownloader/index.ts"), G = p("./src/config/config.js"), K = p("./src/core/eventImpl.ts"), q = p("./src/localization/localizationProvider.ts"), J = p("./src/types/components/votButton.ts"), Y = p("./src/utils/debug.ts"), X = p("./src/utils/gm.ts"), Z = p("./src/utils/storage.ts"), Q = p("./src/utils/translateApis.ts"), $ = p("./src/utils/utils.ts"), ee = p("./src/ui/icons.ts"), te = d([
 						_,
 						v,
 						b,
@@ -10972,39 +10972,40 @@
 						O,
 						A,
 						j,
-						F,
-						G,
-						J,
-						Y,
+						U,
+						W,
+						q,
 						X,
-						Z
+						Z,
+						Q,
+						$
 					]);
-					[_, v, b, x, C, w, T, E, D, O, A, j, F, G, J, Y, X, Z] = $.then ? (await $)() : $;
+					[_, v, b, x, C, w, T, E, D, O, A, j, U, W, q, X, Z, Q, $] = te.then ? (await te)() : te;
 					class SettingsView {
 						globalPortal;
 						initialized = !1;
 						data;
 						videoHandler;
-						onClickBugReport = new W.Z();
-						onClickResetSettings = new W.Z();
-						onUpdateAccount = new W.Z();
-						onChangeAutoTranslate = new W.Z();
-						onChangeShowVideoVolume = new W.Z();
-						onChangeAudioBooster = new W.Z();
-						onChangeUseLivelyVoice = new W.Z();
-						onChangeSubtitlesHighlightWords = new W.Z();
-						onChangeProxyWorkerHost = new W.Z();
-						onChangeUseNewAudioPlayer = new W.Z();
-						onChangeOnlyBypassMediaCSP = new W.Z();
-						onChangeShowPiPButton = new W.Z();
-						onInputSubtitlesMaxLength = new W.Z();
-						onInputSubtitlesFontSize = new W.Z();
-						onInputSubtitlesBackgroundOpacity = new W.Z();
-						onInputAutoHideButtonDelay = new W.Z();
-						onSelectItemProxyTranslationStatus = new W.Z();
-						onSelectItemTranslationTextService = new W.Z();
-						onSelectItemButtonPosition = new W.Z();
-						onSelectItemMenuLanguage = new W.Z();
+						onClickBugReport = new K.Z();
+						onClickResetSettings = new K.Z();
+						onUpdateAccount = new K.Z();
+						onChangeAutoTranslate = new K.Z();
+						onChangeShowVideoVolume = new K.Z();
+						onChangeAudioBooster = new K.Z();
+						onChangeUseLivelyVoice = new K.Z();
+						onChangeSubtitlesHighlightWords = new K.Z();
+						onChangeProxyWorkerHost = new K.Z();
+						onChangeUseNewAudioPlayer = new K.Z();
+						onChangeOnlyBypassMediaCSP = new K.Z();
+						onChangeShowPiPButton = new K.Z();
+						onInputSubtitlesMaxLength = new K.Z();
+						onInputSubtitlesFontSize = new K.Z();
+						onInputSubtitlesBackgroundOpacity = new K.Z();
+						onInputAutoHideButtonDelay = new K.Z();
+						onSelectItemProxyTranslationStatus = new K.Z();
+						onSelectItemTranslationTextService = new K.Z();
+						onSelectItemButtonPosition = new K.Z();
+						onSelectItemMenuLanguage = new K.Z();
 						dialog;
 						accountHeader;
 						accountButton;
@@ -11063,34 +11064,34 @@
 						}
 						initUI() {
 							if (this.isInitialized()) throw Error("[VOT] SettingsView is already initialized");
-							this.initialized = !0, this.dialog = new C.A({ titleHtml: G.j.get("VOTSettings") }), this.globalPortal.appendChild(this.dialog.container), this.accountHeader = _.A.createHeader(G.j.get("VOTMyAccount")), this.accountButton = new v.A({
+							this.initialized = !0, this.dialog = new C.A({ titleHtml: q.j.get("VOTSettings") }), this.globalPortal.appendChild(this.dialog.container), this.accountHeader = _.A.createHeader(q.j.get("VOTMyAccount")), this.accountButton = new v.A({
 								avatarId: this.data.account?.avatarId,
 								username: this.data.account?.username,
 								loggedIn: !!this.data.account?.token
-							}), Y.d.isSupportOnlyLS() ? (this.accountButton.refreshButton.setAttribute("disabled", "true"), this.accountButton.actionButton.setAttribute("disabled", "true")) : this.accountButtonRefreshTooltip = new j.A({
+							}), Z.d.isSupportOnlyLS() ? (this.accountButton.refreshButton.setAttribute("disabled", "true"), this.accountButton.actionButton.setAttribute("disabled", "true")) : this.accountButtonRefreshTooltip = new j.A({
 								target: this.accountButton.refreshButton,
-								content: G.j.get("VOTRefresh"),
+								content: q.j.get("VOTRefresh"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
 							}), this.accountButtonTokenTooltip = new j.A({
 								target: this.accountButton.tokenButton,
-								content: G.j.get("VOTLoginViaToken"),
+								content: q.j.get("VOTLoginViaToken"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							}), this.translationSettingsHeader = _.A.createHeader(G.j.get("translationSettings")), this.autoTranslateCheckbox = new b.A({
-								labelHtml: G.j.get("VOTAutoTranslate"),
+							}), this.translationSettingsHeader = _.A.createHeader(q.j.get("translationSettings")), this.autoTranslateCheckbox = new b.A({
+								labelHtml: q.j.get("VOTAutoTranslate"),
 								checked: this.data.autoTranslate
 							});
 							let d = this.data.dontTranslateLanguages ?? [];
 							this.dontTranslateLanguagesCheckbox = new b.A({
-								labelHtml: G.j.get("DontTranslateSelectedLanguages"),
+								labelHtml: q.j.get("DontTranslateSelectedLanguages"),
 								checked: this.data.enabledDontTranslateLanguages
 							}), this.dontTranslateLanguagesSelect = new E.A({
 								dialogParent: this.globalPortal,
-								dialogTitle: G.j.get("DontTranslateSelectedLanguages"),
-								selectTitle: d.map((d) => G.j.get(`langs.${d}`)).join(", ") ?? G.j.get("DontTranslateSelectedLanguages"),
+								dialogTitle: q.j.get("DontTranslateSelectedLanguages"),
+								selectTitle: d.map((d) => q.j.get(`langs.${d}`)).join(", ") ?? q.j.get("DontTranslateSelectedLanguages"),
 								items: E.A.genLanguageItems(h.xm).map((f) => ({
 									...f,
 									selected: d.includes(f.value)
@@ -11098,9 +11099,9 @@
 								multiSelect: !0,
 								labelElement: this.dontTranslateLanguagesCheckbox.container
 							});
-							let f = this.data.autoVolume ?? U.JD;
+							let f = this.data.autoVolume ?? G.JD;
 							this.autoSetVolumeSliderLabel = new O.A({
-								labelText: G.j.get("VOTAutoSetVolume"),
+								labelText: q.j.get("VOTAutoSetVolume"),
 								value: f
 							}), this.autoSetVolumeCheckbox = new b.A({
 								labelHtml: this.autoSetVolumeSliderLabel.container,
@@ -11109,51 +11110,51 @@
 								labelHtml: this.autoSetVolumeCheckbox.container,
 								value: f
 							}), this.showVideoVolumeSliderCheckbox = new b.A({
-								labelHtml: G.j.get("showVideoVolumeSlider"),
+								labelHtml: q.j.get("showVideoVolumeSlider"),
 								checked: this.data.showVideoSlider
 							}), this.audioBoosterCheckbox = new b.A({
-								labelHtml: G.j.get("VOTAudioBooster"),
+								labelHtml: q.j.get("VOTAudioBooster"),
 								checked: this.data.audioBooster
 							}), this.videoHandler?.audioContext || (this.audioBoosterCheckbox.disabled = !0, this.audioBoosterTooltip = new j.A({
 								target: this.audioBoosterCheckbox.container,
-								content: G.j.get("VOTNeedWebAudioAPI"),
+								content: q.j.get("VOTNeedWebAudioAPI"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
 							})), this.syncVolumeCheckbox = new b.A({
-								labelHtml: G.j.get("VOTSyncVolume"),
+								labelHtml: q.j.get("VOTSyncVolume"),
 								checked: this.data.syncVolume
 							}), this.downloadWithNameCheckbox = new b.A({
-								labelHtml: G.j.get("VOTDownloadWithName"),
+								labelHtml: q.j.get("VOTDownloadWithName"),
 								checked: this.data.downloadWithName
-							}), this.downloadWithNameCheckbox.disabled = !J.yx, this.sendNotifyOnCompleteCheckbox = new b.A({
-								labelHtml: G.j.get("VOTSendNotifyOnComplete"),
+							}), this.downloadWithNameCheckbox.disabled = !X.yx, this.sendNotifyOnCompleteCheckbox = new b.A({
+								labelHtml: q.j.get("VOTSendNotifyOnComplete"),
 								checked: this.data.sendNotifyOnComplete
 							}), this.useLivelyVoiceCheckbox = new b.A({
-								labelHtml: G.j.get("VOTUseLivelyVoice"),
+								labelHtml: q.j.get("VOTUseLivelyVoice"),
 								checked: this.data.useLivelyVoice
 							}), this.useLivelyVoiceTooltip = new j.A({
 								target: this.useLivelyVoiceCheckbox.container,
-								content: G.j.get("VOTAccountRequired"),
+								content: q.j.get("VOTAccountRequired"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal,
 								hidden: !!this.data.account?.token
 							}), this.data.account?.token || (this.useLivelyVoiceCheckbox.disabled = !0), this.useAudioDownloadCheckboxLabel = new T.A({
-								labelText: G.j.get("VOTUseAudioDownload"),
-								icon: Q.Xd
+								labelText: q.j.get("VOTUseAudioDownload"),
+								icon: ee.Xd
 							}), this.useAudioDownloadCheckbox = new b.A({
 								labelHtml: this.useAudioDownloadCheckboxLabel.container,
 								checked: this.data.useAudioDownload
-							}), J.B0 || (this.useAudioDownloadCheckbox.disabled = !0), this.useAudioDownloadCheckboxTooltip = new j.A({
+							}), X.B0 || (this.useAudioDownloadCheckbox.disabled = !0), this.useAudioDownloadCheckboxTooltip = new j.A({
 								target: this.useAudioDownloadCheckboxLabel.container,
-								content: G.j.get("VOTUseAudioDownloadWarning"),
+								content: q.j.get("VOTUseAudioDownloadWarning"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							}), this.dialog.bodyContainer.append(this.accountHeader, this.accountButton.container, this.translationSettingsHeader, this.autoTranslateCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useLivelyVoiceCheckbox.container, this.useAudioDownloadCheckbox.container), this.subtitlesSettingsHeader = _.A.createHeader(G.j.get("subtitlesSettings")), this.subtitlesDownloadFormatSelectLabel = new T.A({ labelText: G.j.get("VOTSubtitlesDownloadFormat") }), this.subtitlesDownloadFormatSelect = new E.A({
-								selectTitle: this.data.subtitlesDownloadFormat ?? G.j.get("VOTSubtitlesDownloadFormat"),
-								dialogTitle: G.j.get("VOTSubtitlesDownloadFormat"),
+							}), this.dialog.bodyContainer.append(this.accountHeader, this.accountButton.container, this.translationSettingsHeader, this.autoTranslateCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useLivelyVoiceCheckbox.container, this.useAudioDownloadCheckbox.container), this.subtitlesSettingsHeader = _.A.createHeader(q.j.get("subtitlesSettings")), this.subtitlesDownloadFormatSelectLabel = new T.A({ labelText: q.j.get("VOTSubtitlesDownloadFormat") }), this.subtitlesDownloadFormatSelect = new E.A({
+								selectTitle: this.data.subtitlesDownloadFormat ?? q.j.get("VOTSubtitlesDownloadFormat"),
+								dialogTitle: q.j.get("VOTSubtitlesDownloadFormat"),
 								dialogParent: this.globalPortal,
 								labelElement: this.subtitlesDownloadFormatSelectLabel.container,
 								items: h.EG.map((d) => ({
@@ -11161,164 +11162,164 @@
 									value: d,
 									selected: d === this.data.subtitlesDownloadFormat
 								}))
-							}), this.subtitlesDesignDetails = new x.A({ titleHtml: G.j.get("VOTSubtitlesDesign") }), this.dialog.bodyContainer.append(this.subtitlesSettingsHeader, this.subtitlesDownloadFormatSelect.container, this.subtitlesDesignDetails.container), this.hotkeysSettingsHeader = _.A.createHeader(G.j.get("hotkeysSettings")), this.translateHotkeyButton = new w.A({
-								labelHtml: G.j.get("translateVideo"),
+							}), this.subtitlesDesignDetails = new x.A({ titleHtml: q.j.get("VOTSubtitlesDesign") }), this.dialog.bodyContainer.append(this.subtitlesSettingsHeader, this.subtitlesDownloadFormatSelect.container, this.subtitlesDesignDetails.container), this.hotkeysSettingsHeader = _.A.createHeader(q.j.get("hotkeysSettings")), this.translateHotkeyButton = new w.A({
+								labelHtml: q.j.get("translateVideo"),
 								key: this.data.translationHotkey
-							}), this.dialog.bodyContainer.append(this.hotkeysSettingsHeader, this.translateHotkeyButton.container), this.proxySettingsHeader = _.A.createHeader(G.j.get("proxySettings")), this.proxyM3U8HostTextfield = new A.A({
-								labelHtml: G.j.get("VOTM3u8ProxyHost"),
+							}), this.dialog.bodyContainer.append(this.hotkeysSettingsHeader, this.translateHotkeyButton.container), this.proxySettingsHeader = _.A.createHeader(q.j.get("proxySettings")), this.proxyM3U8HostTextfield = new A.A({
+								labelHtml: q.j.get("VOTM3u8ProxyHost"),
 								value: this.data.m3u8ProxyHost,
-								placeholder: U.se
+								placeholder: G.se
 							}), this.proxyWorkerHostTextfield = new A.A({
-								labelHtml: G.j.get("VOTProxyWorkerHost"),
+								labelHtml: q.j.get("VOTProxyWorkerHost"),
 								value: this.data.proxyWorkerHost,
-								placeholder: U.Pm
+								placeholder: G.Pm
 							});
 							let p = [
-								G.j.get("VOTTranslateProxyDisabled"),
-								G.j.get("VOTTranslateProxyEnabled"),
-								G.j.get("VOTTranslateProxyEverything")
-							], m = this.data.translateProxyEnabled ?? 0, g = F.k && U.vZ.includes(F.k);
+								q.j.get("VOTTranslateProxyDisabled"),
+								q.j.get("VOTTranslateProxyEnabled"),
+								q.j.get("VOTTranslateProxyEverything")
+							], m = this.data.translateProxyEnabled ?? 0, g = U.k && G.vZ.includes(U.k);
 							this.proxyTranslationStatusSelectLabel = new T.A({
-								icon: g ? Q.Xd : void 0,
-								labelText: G.j.get("VOTTranslateProxyStatus")
+								icon: g ? ee.Xd : void 0,
+								labelText: q.j.get("VOTTranslateProxyStatus")
 							}), g && (this.proxyTranslationStatusSelectTooltip = new j.A({
 								target: this.proxyTranslationStatusSelectLabel.icon,
-								content: G.j.get("VOTTranslateProxyStatusDefault"),
+								content: q.j.get("VOTTranslateProxyStatusDefault"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
 							})), this.proxyTranslationStatusSelect = new E.A({
 								selectTitle: p[m],
-								dialogTitle: G.j.get("VOTTranslateProxyStatus"),
+								dialogTitle: q.j.get("VOTTranslateProxyStatus"),
 								dialogParent: this.globalPortal,
 								labelElement: this.proxyTranslationStatusSelectLabel.container,
 								items: p.map((d, f) => ({
 									label: d,
 									value: f.toString(),
 									selected: f === m,
-									disabled: f === 0 && J.up
+									disabled: f === 0 && X.up
 								}))
-							}), this.dialog.bodyContainer.append(this.proxySettingsHeader, this.proxyM3U8HostTextfield.container, this.proxyWorkerHostTextfield.container, this.proxyTranslationStatusSelect.container), this.miscSettingsHeader = _.A.createHeader(G.j.get("miscSettings")), this.translateAPIErrorsCheckbox = new b.A({
-								labelHtml: G.j.get("VOTTranslateAPIErrors"),
+							}), this.dialog.bodyContainer.append(this.proxySettingsHeader, this.proxyM3U8HostTextfield.container, this.proxyWorkerHostTextfield.container, this.proxyTranslationStatusSelect.container), this.miscSettingsHeader = _.A.createHeader(q.j.get("miscSettings")), this.translateAPIErrorsCheckbox = new b.A({
+								labelHtml: q.j.get("VOTTranslateAPIErrors"),
 								checked: this.data.translateAPIErrors ?? !0
-							}), this.translateAPIErrorsCheckbox.hidden = G.j.lang === "ru", this.useNewAudioPlayerCheckbox = new b.A({
-								labelHtml: G.j.get("VOTNewAudioPlayer"),
+							}), this.translateAPIErrorsCheckbox.hidden = q.j.lang === "ru", this.useNewAudioPlayerCheckbox = new b.A({
+								labelHtml: q.j.get("VOTNewAudioPlayer"),
 								checked: this.data.newAudioPlayer
 							}), this.videoHandler?.audioContext || (this.useNewAudioPlayerCheckbox.disabled = !0, this.useNewAudioPlayerTooltip = new j.A({
 								target: this.useNewAudioPlayerCheckbox.container,
-								content: G.j.get("VOTNeedWebAudioAPI"),
+								content: q.j.get("VOTNeedWebAudioAPI"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
 							}));
-							let W = this.videoHandler?.site.needBypassCSP ? `${G.j.get("VOTOnlyBypassMediaCSP")} (${G.j.get("VOTMediaCSPEnabledOnSite")})` : G.j.get("VOTOnlyBypassMediaCSP");
+							let F = this.videoHandler?.site.needBypassCSP ? `${q.j.get("VOTOnlyBypassMediaCSP")} (${q.j.get("VOTMediaCSPEnabledOnSite")})` : q.j.get("VOTOnlyBypassMediaCSP");
 							this.onlyBypassMediaCSPCheckbox = new b.A({
-								labelHtml: W,
+								labelHtml: F,
 								checked: this.data.onlyBypassMediaCSP,
 								isSubCheckbox: !0
 							}), this.videoHandler?.audioContext || (this.onlyBypassMediaCSPTooltip = new j.A({
 								target: this.onlyBypassMediaCSPCheckbox.container,
-								content: G.j.get("VOTNeedWebAudioAPI"),
+								content: q.j.get("VOTNeedWebAudioAPI"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
 							})), this.onlyBypassMediaCSPCheckbox.disabled = !this.data.newAudioPlayer && !!this.videoHandler?.audioContext, this.data.newAudioPlayer || (this.onlyBypassMediaCSPCheckbox.hidden = !0), this.translationTextServiceLabel = new T.A({
-								labelText: G.j.get("VOTTranslationTextService"),
-								icon: Q.w2
+								labelText: q.j.get("VOTTranslationTextService"),
+								icon: ee.w2
 							});
-							let K = this.data.translationService ?? U.mE;
+							let W = this.data.translationService ?? G.mE;
 							this.translationTextServiceSelect = new E.A({
-								selectTitle: G.j.get(`services.${K}`),
-								dialogTitle: G.j.get("VOTTranslationTextService"),
+								selectTitle: q.j.get(`services.${W}`),
+								dialogTitle: q.j.get("VOTTranslationTextService"),
 								dialogParent: this.globalPortal,
 								labelElement: this.translationTextServiceLabel.container,
-								items: X.vN.map((d) => ({
-									label: G.j.get(`services.${d}`),
+								items: Q.vN.map((d) => ({
+									label: q.j.get(`services.${d}`),
 									value: d,
-									selected: d === K
+									selected: d === W
 								}))
 							}), this.translationTextServiceTooltip = new j.A({
 								target: this.translationTextServiceLabel.icon,
-								content: G.j.get("VOTNotAffectToVoice"),
+								content: q.j.get("VOTNotAffectToVoice"),
 								position: "bottom",
 								backgroundColor: "var(--vot-helper-ondialog)",
 								parentElement: this.globalPortal
-							}), this.detectServiceLabel = new T.A({ labelText: G.j.get("VOTDetectService") });
-							let q = this.data.detectService ?? U.K2;
+							}), this.detectServiceLabel = new T.A({ labelText: q.j.get("VOTDetectService") });
+							let K = this.data.detectService ?? G.K2;
 							return this.detectServiceSelect = new E.A({
-								selectTitle: G.j.get(`services.${q}`),
-								dialogTitle: G.j.get("VOTDetectService"),
+								selectTitle: q.j.get(`services.${K}`),
+								dialogTitle: q.j.get("VOTDetectService"),
 								dialogParent: this.globalPortal,
 								labelElement: this.detectServiceLabel.container,
-								items: X.qh.map((d) => ({
-									label: G.j.get(`services.${d}`),
+								items: Q.qh.map((d) => ({
+									label: q.j.get(`services.${d}`),
 									value: d,
-									selected: d === q
+									selected: d === K
 								}))
-							}), this.appearanceDetails = new x.A({ titleHtml: G.j.get("appearance") }), this.aboutExtensionDetails = new x.A({ titleHtml: G.j.get("aboutExtension") }), this.bugReportButton = _.A.createOutlinedButton(G.j.get("VOTBugReport")), this.resetSettingsButton = _.A.createButton(G.j.get("resetSettings")), this.dialog.bodyContainer.append(this.miscSettingsHeader, this.translateAPIErrorsCheckbox.container, this.useNewAudioPlayerCheckbox.container, this.onlyBypassMediaCSPCheckbox.container, this.translationTextServiceSelect.container, this.detectServiceSelect.container, this.appearanceDetails.container, this.aboutExtensionDetails.container, this.bugReportButton, this.resetSettingsButton), this;
+							}), this.appearanceDetails = new x.A({ titleHtml: q.j.get("appearance") }), this.aboutExtensionDetails = new x.A({ titleHtml: q.j.get("aboutExtension") }), this.bugReportButton = _.A.createOutlinedButton(q.j.get("VOTBugReport")), this.resetSettingsButton = _.A.createButton(q.j.get("resetSettings")), this.dialog.bodyContainer.append(this.miscSettingsHeader, this.translateAPIErrorsCheckbox.container, this.useNewAudioPlayerCheckbox.container, this.onlyBypassMediaCSPCheckbox.container, this.translationTextServiceSelect.container, this.detectServiceSelect.container, this.appearanceDetails.container, this.aboutExtensionDetails.container, this.bugReportButton, this.resetSettingsButton), this;
 						}
 						initUIEvents() {
 							if (!this.isInitialized()) throw Error("[VOT] SettingsView isn't initialized");
 							return this.accountButton.addEventListener("click", async () => {
-								if (!Y.d.isSupportOnlyLS()) {
-									if (this.accountButton.loggedIn) return await Y.d.delete("account"), this.data.account = {}, this.updateAccountInfo();
-									window.open(U.xW, "_blank")?.focus();
+								if (!Z.d.isSupportOnlyLS()) {
+									if (this.accountButton.loggedIn) return await Z.d.delete("account"), this.data.account = {}, this.updateAccountInfo();
+									window.open(G.xW, "_blank")?.focus();
 								}
 							}), this.accountButton.addEventListener("click:secret", async () => {
 								let d = new C.A({
-									titleHtml: G.j.get("VOTLoginViaToken"),
+									titleHtml: q.j.get("VOTLoginViaToken"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
-								let f = _.A.createEl("vot-block", void 0, G.j.get("VOTYandexTokenInfo")), p = new A.A({
-									labelHtml: G.j.get("VOTYandexToken"),
+								let f = _.A.createEl("vot-block", void 0, q.j.get("VOTYandexTokenInfo")), p = new A.A({
+									labelHtml: q.j.get("VOTYandexToken"),
 									value: this.data.account?.token
 								});
 								p.addEventListener("change", async (d) => {
 									this.data.account = d ? {
 										expires: Date.now() + 3153418e4,
 										token: d
-									} : {}, await Y.d.set("account", this.data.account), this.updateAccountInfo();
+									} : {}, await Z.d.set("account", this.data.account), this.updateAccountInfo();
 								}), d.bodyContainer.append(f, p.container);
 							}), this.accountButton.addEventListener("refresh", async () => {
-								Y.d.isSupportOnlyLS() || (this.data.account = await Y.d.get("account", {}), this.updateAccountInfo());
+								Z.d.isSupportOnlyLS() || (this.data.account = await Z.d.get("account", {}), this.updateAccountInfo());
 							}), this.autoTranslateCheckbox.addEventListener("change", async (d) => {
-								this.data.autoTranslate = d, await Y.d.set("autoTranslate", this.data.autoTranslate), q.A.log("autoTranslate value changed. New value:", d), this.onChangeAutoTranslate.dispatch(d);
+								this.data.autoTranslate = d, await Z.d.set("autoTranslate", this.data.autoTranslate), Y.A.log("autoTranslate value changed. New value:", d), this.onChangeAutoTranslate.dispatch(d);
 							}), this.dontTranslateLanguagesCheckbox.addEventListener("change", async (d) => {
-								this.data.enabledDontTranslateLanguages = d, await Y.d.set("enabledDontTranslateLanguages", this.data.enabledDontTranslateLanguages), q.A.log("enabledDontTranslateLanguages value changed. New value:", d);
+								this.data.enabledDontTranslateLanguages = d, await Z.d.set("enabledDontTranslateLanguages", this.data.enabledDontTranslateLanguages), Y.A.log("enabledDontTranslateLanguages value changed. New value:", d);
 							}), this.dontTranslateLanguagesSelect.addEventListener("selectItem", async (d) => {
-								this.data.dontTranslateLanguages = d, await Y.d.set("dontTranslateLanguages", this.data.dontTranslateLanguages), q.A.log("dontTranslateLanguages value changed. New value:", d);
+								this.data.dontTranslateLanguages = d, await Z.d.set("dontTranslateLanguages", this.data.dontTranslateLanguages), Y.A.log("dontTranslateLanguages value changed. New value:", d);
 							}), this.autoSetVolumeCheckbox.addEventListener("change", async (d) => {
-								this.data.enabledAutoVolume = d, await Y.d.set("enabledAutoVolume", this.data.enabledAutoVolume), q.A.log("enabledAutoVolume value changed. New value:", d);
+								this.data.enabledAutoVolume = d, await Z.d.set("enabledAutoVolume", this.data.enabledAutoVolume), Y.A.log("enabledAutoVolume value changed. New value:", d);
 							}), this.autoSetVolumeSlider.addEventListener("input", async (d) => {
-								this.data.autoVolume = this.autoSetVolumeSliderLabel.value = d, await Y.d.set("autoVolume", this.data.autoVolume), q.A.log("autoVolume value changed. New value:", d);
+								this.data.autoVolume = this.autoSetVolumeSliderLabel.value = d, await Z.d.set("autoVolume", this.data.autoVolume), Y.A.log("autoVolume value changed. New value:", d);
 							}), this.showVideoVolumeSliderCheckbox.addEventListener("change", async (d) => {
-								this.data.showVideoSlider = d, await Y.d.set("showVideoSlider", this.data.showVideoSlider), q.A.log("showVideoVolumeSlider value changed. New value:", d), this.onChangeShowVideoVolume.dispatch(d);
+								this.data.showVideoSlider = d, await Z.d.set("showVideoSlider", this.data.showVideoSlider), Y.A.log("showVideoVolumeSlider value changed. New value:", d), this.onChangeShowVideoVolume.dispatch(d);
 							}), this.audioBoosterCheckbox.addEventListener("change", async (d) => {
-								this.data.audioBooster = d, await Y.d.set("audioBooster", this.data.audioBooster), q.A.log("audioBooster value changed. New value:", d), this.onChangeAudioBooster.dispatch(d);
+								this.data.audioBooster = d, await Z.d.set("audioBooster", this.data.audioBooster), Y.A.log("audioBooster value changed. New value:", d), this.onChangeAudioBooster.dispatch(d);
 							}), this.syncVolumeCheckbox.addEventListener("change", async (d) => {
-								this.data.syncVolume = d, await Y.d.set("syncVolume", this.data.syncVolume), q.A.log("syncVolume value changed. New value:", d);
+								this.data.syncVolume = d, await Z.d.set("syncVolume", this.data.syncVolume), Y.A.log("syncVolume value changed. New value:", d);
 							}), this.downloadWithNameCheckbox.addEventListener("change", async (d) => {
-								this.data.downloadWithName = d, await Y.d.set("downloadWithName", this.data.downloadWithName), q.A.log("downloadWithName value changed. New value:", d);
+								this.data.downloadWithName = d, await Z.d.set("downloadWithName", this.data.downloadWithName), Y.A.log("downloadWithName value changed. New value:", d);
 							}), this.sendNotifyOnCompleteCheckbox.addEventListener("change", async (d) => {
-								this.data.sendNotifyOnComplete = d, await Y.d.set("sendNotifyOnComplete", this.data.sendNotifyOnComplete), q.A.log("sendNotifyOnComplete value changed. New value:", d);
+								this.data.sendNotifyOnComplete = d, await Z.d.set("sendNotifyOnComplete", this.data.sendNotifyOnComplete), Y.A.log("sendNotifyOnComplete value changed. New value:", d);
 							}), this.useLivelyVoiceCheckbox.addEventListener("change", async (d) => {
-								this.data.useLivelyVoice = d, await Y.d.set("useLivelyVoice", this.data.useLivelyVoice), q.A.log("useLivelyVoice value changed. New value:", d), this.onChangeUseLivelyVoice.dispatch(d);
+								this.data.useLivelyVoice = d, await Z.d.set("useLivelyVoice", this.data.useLivelyVoice), Y.A.log("useLivelyVoice value changed. New value:", d), this.onChangeUseLivelyVoice.dispatch(d);
 							}), this.useAudioDownloadCheckbox.addEventListener("change", async (d) => {
-								this.data.useAudioDownload = d, await Y.d.set("useAudioDownload", this.data.useAudioDownload), q.A.log("useAudioDownload value changed. New value:", d);
+								this.data.useAudioDownload = d, await Z.d.set("useAudioDownload", this.data.useAudioDownload), Y.A.log("useAudioDownload value changed. New value:", d);
 							}), this.subtitlesDownloadFormatSelect.addEventListener("selectItem", async (d) => {
-								this.data.subtitlesDownloadFormat = d, await Y.d.set("subtitlesDownloadFormat", this.data.subtitlesDownloadFormat), q.A.log("subtitlesDownloadFormat value changed. New value:", d);
+								this.data.subtitlesDownloadFormat = d, await Z.d.set("subtitlesDownloadFormat", this.data.subtitlesDownloadFormat), Y.A.log("subtitlesDownloadFormat value changed. New value:", d);
 							}), this.subtitlesDesignDetails.addEventListener("click", () => {
 								let d = new C.A({
-									titleHtml: G.j.get("VOTSubtitlesDesign"),
+									titleHtml: q.j.get("VOTSubtitlesDesign"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
 								let f = new b.A({
-									labelHtml: G.j.get("VOTHighlightWords"),
+									labelHtml: q.j.get("VOTHighlightWords"),
 									checked: this.data.highlightWords
 								}), p = this.data.subtitlesMaxLength ?? 300, m = new O.A({
-									labelText: G.j.get("VOTSubtitlesMaxLength"),
+									labelText: q.j.get("VOTSubtitlesMaxLength"),
 									labelEOL: ":",
 									symbol: "",
 									value: p
@@ -11328,7 +11329,7 @@
 									min: 50,
 									max: 300
 								}), g = this.data.subtitlesFontSize ?? 20, _ = new O.A({
-									labelText: G.j.get("VOTSubtitlesFontSize"),
+									labelText: q.j.get("VOTSubtitlesFontSize"),
 									labelEOL: ":",
 									symbol: "px",
 									value: g
@@ -11338,7 +11339,7 @@
 									min: 8,
 									max: 50
 								}), x = this.data.subtitlesOpacity ?? 20, w = new O.A({
-									labelText: G.j.get("VOTSubtitlesOpacity"),
+									labelText: q.j.get("VOTSubtitlesOpacity"),
 									labelEOL: ":",
 									value: x
 								}), T = new D.A({
@@ -11346,47 +11347,47 @@
 									value: x
 								});
 								d.bodyContainer.append(f.container, h.container, v.container, T.container), f.addEventListener("change", async (d) => {
-									this.data.highlightWords = d, await Y.d.set("highlightWords", this.data.highlightWords), q.A.log("highlightWords value changed. New value:", d), this.onChangeSubtitlesHighlightWords.dispatch(d);
+									this.data.highlightWords = d, await Z.d.set("highlightWords", this.data.highlightWords), Y.A.log("highlightWords value changed. New value:", d), this.onChangeSubtitlesHighlightWords.dispatch(d);
 								}), h.addEventListener("input", (d) => {
-									m.value = d, this.data.subtitlesMaxLength = d, Y.d.set("subtitlesMaxLength", this.data.subtitlesMaxLength), q.A.log("highlightWords value changed. New value:", d), this.onInputSubtitlesMaxLength.dispatch(d);
+									m.value = d, this.data.subtitlesMaxLength = d, Z.d.set("subtitlesMaxLength", this.data.subtitlesMaxLength), Y.A.log("highlightWords value changed. New value:", d), this.onInputSubtitlesMaxLength.dispatch(d);
 								}), v.addEventListener("input", (d) => {
-									_.value = d, this.data.subtitlesFontSize = d, Y.d.set("subtitlesFontSize", this.data.subtitlesFontSize), q.A.log("subtitlesFontSize value changed. New value:", d), this.onInputSubtitlesFontSize.dispatch(d);
+									_.value = d, this.data.subtitlesFontSize = d, Z.d.set("subtitlesFontSize", this.data.subtitlesFontSize), Y.A.log("subtitlesFontSize value changed. New value:", d), this.onInputSubtitlesFontSize.dispatch(d);
 								}), T.addEventListener("input", (d) => {
-									w.value = d, this.data.subtitlesOpacity = d, Y.d.set("subtitlesOpacity", this.data.subtitlesOpacity), q.A.log("subtitlesOpacity value changed. New value:", d), this.onInputSubtitlesBackgroundOpacity.dispatch(d);
+									w.value = d, this.data.subtitlesOpacity = d, Z.d.set("subtitlesOpacity", this.data.subtitlesOpacity), Y.A.log("subtitlesOpacity value changed. New value:", d), this.onInputSubtitlesBackgroundOpacity.dispatch(d);
 								});
 							}), this.translateHotkeyButton.addEventListener("change", async (d) => {
-								this.data.translationHotkey = d, await Y.d.set("translationHotkey", this.data.translationHotkey), q.A.log("translationHotkey value changed. New value:", d);
+								this.data.translationHotkey = d, await Z.d.set("translationHotkey", this.data.translationHotkey), Y.A.log("translationHotkey value changed. New value:", d);
 							}), this.proxyM3U8HostTextfield.addEventListener("change", async (d) => {
-								this.data.m3u8ProxyHost = d || U.se, await Y.d.set("m3u8ProxyHost", this.data.m3u8ProxyHost), q.A.log("m3u8ProxyHost value changed. New value:", this.data.m3u8ProxyHost);
+								this.data.m3u8ProxyHost = d || G.se, await Z.d.set("m3u8ProxyHost", this.data.m3u8ProxyHost), Y.A.log("m3u8ProxyHost value changed. New value:", this.data.m3u8ProxyHost);
 							}), this.proxyWorkerHostTextfield.addEventListener("change", async (d) => {
-								this.data.proxyWorkerHost = d || U.Pm, await Y.d.set("proxyWorkerHost", this.data.proxyWorkerHost), q.A.log("proxyWorkerHost value changed. New value:", this.data.proxyWorkerHost), this.onChangeProxyWorkerHost.dispatch(d);
+								this.data.proxyWorkerHost = d || G.Pm, await Z.d.set("proxyWorkerHost", this.data.proxyWorkerHost), Y.A.log("proxyWorkerHost value changed. New value:", this.data.proxyWorkerHost), this.onChangeProxyWorkerHost.dispatch(d);
 							}), this.proxyTranslationStatusSelect.addEventListener("selectItem", async (d) => {
-								this.data.translateProxyEnabled = Number.parseInt(d), await Y.d.set("translateProxyEnabled", this.data.translateProxyEnabled), await Y.d.set("translateProxyEnabledDefault", !1), q.A.log("translateProxyEnabled value changed. New value:", this.data.translateProxyEnabled), this.onSelectItemProxyTranslationStatus.dispatch(d);
+								this.data.translateProxyEnabled = Number.parseInt(d), await Z.d.set("translateProxyEnabled", this.data.translateProxyEnabled), await Z.d.set("translateProxyEnabledDefault", !1), Y.A.log("translateProxyEnabled value changed. New value:", this.data.translateProxyEnabled), this.onSelectItemProxyTranslationStatus.dispatch(d);
 							}), this.translateAPIErrorsCheckbox.addEventListener("change", async (d) => {
-								this.data.translateAPIErrors = d, await Y.d.set("translateAPIErrors", this.data.translateAPIErrors), q.A.log("translateAPIErrors value changed. New value:", d);
+								this.data.translateAPIErrors = d, await Z.d.set("translateAPIErrors", this.data.translateAPIErrors), Y.A.log("translateAPIErrors value changed. New value:", d);
 							}), this.useNewAudioPlayerCheckbox.addEventListener("change", async (d) => {
-								this.data.newAudioPlayer = d, await Y.d.set("newAudioPlayer", this.data.newAudioPlayer), q.A.log("newAudioPlayer value changed. New value:", d), this.onlyBypassMediaCSPCheckbox.disabled = this.onlyBypassMediaCSPCheckbox.hidden = !d, this.onChangeUseNewAudioPlayer.dispatch(d);
+								this.data.newAudioPlayer = d, await Z.d.set("newAudioPlayer", this.data.newAudioPlayer), Y.A.log("newAudioPlayer value changed. New value:", d), this.onlyBypassMediaCSPCheckbox.disabled = this.onlyBypassMediaCSPCheckbox.hidden = !d, this.onChangeUseNewAudioPlayer.dispatch(d);
 							}), this.onlyBypassMediaCSPCheckbox.addEventListener("change", async (d) => {
-								this.data.onlyBypassMediaCSP = d, await Y.d.set("onlyBypassMediaCSP", this.data.onlyBypassMediaCSP), q.A.log("onlyBypassMediaCSP value changed. New value:", d), this.onChangeOnlyBypassMediaCSP.dispatch(d);
+								this.data.onlyBypassMediaCSP = d, await Z.d.set("onlyBypassMediaCSP", this.data.onlyBypassMediaCSP), Y.A.log("onlyBypassMediaCSP value changed. New value:", d), this.onChangeOnlyBypassMediaCSP.dispatch(d);
 							}), this.translationTextServiceSelect.addEventListener("selectItem", async (d) => {
-								this.data.translationService = d, await Y.d.set("translationService", this.data.translationService), q.A.log("translationService value changed. New value:", d), this.onSelectItemTranslationTextService.dispatch(d);
+								this.data.translationService = d, await Z.d.set("translationService", this.data.translationService), Y.A.log("translationService value changed. New value:", d), this.onSelectItemTranslationTextService.dispatch(d);
 							}), this.detectServiceSelect.addEventListener("selectItem", async (d) => {
-								this.data.detectService = d, await Y.d.set("detectService", this.data.detectService), q.A.log("detectService value changed. New value:", d);
+								this.data.detectService = d, await Z.d.set("detectService", this.data.detectService), Y.A.log("detectService value changed. New value:", d);
 							}), this.appearanceDetails.addEventListener("click", () => {
 								let d = new C.A({
-									titleHtml: G.j.get("appearance"),
+									titleHtml: q.j.get("appearance"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
 								let f = new b.A({
-									labelHtml: G.j.get("VOTShowPiPButton"),
+									labelHtml: q.j.get("VOTShowPiPButton"),
 									checked: this.data.showPiPButton
 								});
-								f.hidden = !(0, Z.Bs)();
-								let p = (this.data.autoHideButtonDelay ?? U.qU) / 1e3, m = new O.A({
-									labelText: G.j.get("autoHideButtonDelay"),
+								f.hidden = !(0, $.Bs)();
+								let p = (this.data.autoHideButtonDelay ?? G.qU) / 1e3, m = new O.A({
+									labelText: q.j.get("autoHideButtonDelay"),
 									labelEOL: ":",
-									symbol: ` ${G.j.get("secs")}`,
+									symbol: ` ${q.j.get("secs")}`,
 									value: p
 								}), h = new D.A({
 									labelHtml: m.container,
@@ -11395,55 +11396,55 @@
 									max: 3,
 									step: .1
 								}), g = new T.A({
-									labelText: G.j.get("buttonPositionInWidePlayer"),
-									icon: Q.w2
+									labelText: q.j.get("buttonPositionInWidePlayer"),
+									icon: ee.w2
 								}), _ = new E.A({
-									selectTitle: G.j.get("buttonPositionInWidePlayer"),
-									dialogTitle: G.j.get("buttonPositionInWidePlayer"),
+									selectTitle: q.j.get("buttonPositionInWidePlayer"),
+									dialogTitle: q.j.get("buttonPositionInWidePlayer"),
 									labelElement: g.container,
 									dialogParent: this.globalPortal,
-									items: K.X.map((d) => ({
-										label: G.j.get(`position.${d}`),
+									items: J.X.map((d) => ({
+										label: q.j.get(`position.${d}`),
 										value: d,
 										selected: d === this.data.buttonPos
 									}))
 								}), v = new j.A({
 									target: g.icon,
-									content: G.j.get("minButtonPositionContainer"),
+									content: q.j.get("minButtonPositionContainer"),
 									position: "bottom",
 									backgroundColor: "var(--vot-helper-ondialog)",
 									parentElement: this.globalPortal
-								}), x = new T.A({ labelText: G.j.get("VOTMenuLanguage") }), w = new E.A({
-									selectTitle: G.j.get(`langs.${G.j.langOverride}`),
-									dialogTitle: G.j.get("VOTMenuLanguage"),
+								}), x = new T.A({ labelText: q.j.get("VOTMenuLanguage") }), w = new E.A({
+									selectTitle: q.j.get(`langs.${q.j.langOverride}`),
+									dialogTitle: q.j.get("VOTMenuLanguage"),
 									labelElement: x.container,
 									dialogParent: this.globalPortal,
-									items: E.A.genLanguageItems(G.j.getAvailableLangs(), G.j.langOverride)
+									items: E.A.genLanguageItems(q.j.getAvailableLangs(), q.j.langOverride)
 								});
 								d.bodyContainer.append(f.container, h.container, _.container, w.container), d.addEventListener("close", () => {
 									v.release();
 								}), f.addEventListener("change", async (d) => {
-									this.data.showPiPButton = d, await Y.d.set("showPiPButton", this.data.showPiPButton), q.A.log("showPiPButton value changed. New value:", d), this.onChangeShowPiPButton.dispatch(d);
+									this.data.showPiPButton = d, await Z.d.set("showPiPButton", this.data.showPiPButton), Y.A.log("showPiPButton value changed. New value:", d), this.onChangeShowPiPButton.dispatch(d);
 								}), h.addEventListener("input", async (d) => {
 									m.value = d;
 									let f = Math.round(d * 1e3);
-									q.A.log("autoHideButtonDelay value changed. New value:", f), this.data.autoHideButtonDelay = f, await Y.d.set("autoHideButtonDelay", this.data.autoHideButtonDelay), this.onInputAutoHideButtonDelay.dispatch(d);
+									Y.A.log("autoHideButtonDelay value changed. New value:", f), this.data.autoHideButtonDelay = f, await Z.d.set("autoHideButtonDelay", this.data.autoHideButtonDelay), this.onInputAutoHideButtonDelay.dispatch(d);
 								}), _.addEventListener("selectItem", async (d) => {
-									q.A.log("buttonPos value changed. New value:", d), this.data.buttonPos = d, await Y.d.set("buttonPos", this.data.buttonPos), this.onSelectItemButtonPosition.dispatch(d);
+									Y.A.log("buttonPos value changed. New value:", d), this.data.buttonPos = d, await Z.d.set("buttonPos", this.data.buttonPos), this.onSelectItemButtonPosition.dispatch(d);
 								}), w.addEventListener("selectItem", async (d) => {
-									let f = await G.j.changeLang(d);
-									f && (this.data.localeUpdatedAt = await Y.d.get("localeUpdatedAt", 0), this.onSelectItemMenuLanguage.dispatch(d));
+									let f = await q.j.changeLang(d);
+									f && (this.data.localeUpdatedAt = await Z.d.get("localeUpdatedAt", 0), this.onSelectItemMenuLanguage.dispatch(d));
 								});
 							}), this.aboutExtensionDetails.addEventListener("click", () => {
 								let d = new C.A({
-									titleHtml: G.j.get("aboutExtension"),
+									titleHtml: q.j.get("aboutExtension"),
 									isTemp: !0
 								});
 								this.globalPortal.appendChild(d.container);
-								let f = _.A.createInformation(`${G.j.get("VOTVersion")}:`, GM_info.script.version || G.j.get("notFound")), p = _.A.createInformation(`${G.j.get("VOTAuthors")}:`, GM_info.script.author ?? G.j.get("notFound")), m = _.A.createInformation(`${G.j.get("VOTLoader")}:`, `${GM_info.scriptHandler} v${GM_info.version}`), h = _.A.createInformation(`${G.j.get("VOTBrowser")}:`, `${Z.R5.browser.name} ${Z.R5.browser.version} (${Z.R5.os.name} ${Z.R5.os.version})`), v = new Date((this.data.localeUpdatedAt ?? 0) * 1e3).toLocaleString(), b = (0, g.qy)`${this.data.localeHash}<br />(${G.j.get("VOTUpdatedAt")}
-        ${v})`, x = _.A.createInformation(`${G.j.get("VOTLocaleHash")}:`, b), w = _.A.createOutlinedButton(G.j.get("VOTUpdateLocaleFiles"));
+								let f = _.A.createInformation(`${q.j.get("VOTVersion")}:`, GM_info.script.version || q.j.get("notFound")), p = _.A.createInformation(`${q.j.get("VOTAuthors")}:`, GM_info.script.author ?? q.j.get("notFound")), m = _.A.createInformation(`${q.j.get("VOTLoader")}:`, `${GM_info.scriptHandler} v${GM_info.version}`), h = _.A.createInformation(`${q.j.get("VOTBrowser")}:`, `${$.R5.browser.name} ${$.R5.browser.version} (${$.R5.os.name} ${$.R5.os.version})`), v = new Date((this.data.localeUpdatedAt ?? 0) * 1e3).toLocaleString(), b = (0, g.qy)`${this.data.localeHash}<br />(${q.j.get("VOTUpdatedAt")}
+        ${v})`, x = _.A.createInformation(`${q.j.get("VOTLocaleHash")}:`, b), w = _.A.createOutlinedButton(q.j.get("VOTUpdateLocaleFiles"));
 								d.bodyContainer.append(f.container, p.container, m.container, h.container, x.container, w), w.addEventListener("click", async () => {
-									await Y.d.set("localeHash", ""), await G.j.update(!0), window.location.reload();
+									await Z.d.set("localeHash", ""), await q.j.update(!0), window.location.reload();
 								});
 							}), this.bugReportButton.addEventListener("click", () => {
 								this.onClickBugReport.dispatch();
@@ -11812,9 +11813,10 @@
 					}
 					async function ensureServiceIframe(d, f, p, m) {
 						if (f.includes("#")) throw Error("The src parameter should not contain a hash (#) character.");
-						if (hasServiceIframe(p)) {
+						let h = hasServiceIframe(p);
+						if (h) {
 							if (d !== null) return d;
-							throw Error("Service iframe already exists in DOM, but added not by us.");
+							h?.remove();
 						}
 						return d = await setupServiceIframe(f, p, m), d;
 					}
