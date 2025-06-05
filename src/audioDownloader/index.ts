@@ -98,6 +98,7 @@ async function getGeneratingAudioUrlsDataFromIframe(
     const isTimeout =
       err instanceof Error && err.message === GET_AUDIO_DATA_ERROR_MESSAGE;
 
+    debug.log("getGeneratingAudioUrlsDataFromIframe error", err);
     throw new Error(
       isTimeout
         ? GET_AUDIO_DATA_ERROR_MESSAGE

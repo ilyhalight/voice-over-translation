@@ -52,14 +52,18 @@ export async function ensureServiceIframe(
     );
   }
 
-  if (hasServiceIframe(iframeId)) {
+  const serviceIframe = hasServiceIframe(iframeId);
+  if (serviceIframe) {
     if (iframe !== null) {
       return iframe;
     }
 
-    throw new Error(
-      "Service iframe already exists in DOM, but added not by us.",
-    );
+    // ? deleting the outdated iframe and replacing it with new
+    // Without this, it will give an error when changing the video
+    serviceIframe?.remove();
+    // throw new Error(
+    //   "Service iframe already exists in DOM, but added not by us.",
+    // );
   }
 
   iframe = await setupServiceIframe(src, iframeId, service);

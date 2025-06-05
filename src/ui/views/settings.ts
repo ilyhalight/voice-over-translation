@@ -16,7 +16,9 @@ import SliderLabel from "../components/sliderLabel";
 import Textfield from "../components/textfield";
 import Tooltip from "../components/tooltip";
 
+import { VideoService } from "@vot.js/ext/types/service";
 import { type VideoHandler, countryCode } from "../..";
+import { AudioDownloader } from "../../audioDownloader";
 import {
   authServerUrl,
   defaultAutoHideDelay,
@@ -1188,6 +1190,46 @@ export class SettingsView {
         localeInfo.container,
         updateLocaleFilesButton,
       );
+
+      if (
+        DEBUG_MODE &&
+        this.videoHandler &&
+        this.videoHandler?.site.host === VideoService.youtube
+      ) {
+        // ! Available only in debug mode, translation phrase doesn't need
+        const debugDownloadAudio = ui.createOutlinedButton(
+          "[YT | DEBUG] Download Audio",
+        );
+        debugDownloadAudio.addEventListener("click", async () => {
+          if (!this.videoHandler?.videoData) {
+            return;
+          }
+
+          const audioDownloader = new AudioDownloader();
+          audioDownloader
+            .addEventListener(
+              "downloadedAudio",
+              async (translationId, data) => {
+                debug.log("Audio downloaded:", translationId, data);
+              },
+            )
+            .addEventListener(
+              "downloadedPartialAudio",
+              async (translationId, data) => {
+                debug.log("Partial audio downloaded:", translationId, data);
+              },
+            )
+            .addEventListener("downloadAudioError", (videoId) => {
+              debug.log("Audio download error for videoId:", videoId);
+            });
+          await audioDownloader.runAudioDownload(
+            this.videoHandler.videoData.videoId,
+            "debug-mode",
+            new AbortController().signal,
+          );
+        });
+        dialog.bodyContainer.appendChild(debugDownloadAudio);
+      }
 
       updateLocaleFilesButton.addEventListener("click", async () => {
         await votStorage.set("localeHash", "");

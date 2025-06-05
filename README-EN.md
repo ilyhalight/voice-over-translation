@@ -130,6 +130,16 @@ It's necessary to translate additional sites that use the `.m3u8` or `.mpd` vide
 
 - [vot.toil.cc][vot-backend]
 
+#### VOT Status and Stats
+
+You can check the current status and uptime of all servers using:
+
+- [votstatus.toil.cc][vot-status]
+
+You can check the proxy server operation statistics using (updated every 5 minutes):
+
+- [votstats.toil.cc][vot-stats]
+
 ## How to build an extension?
 
 1. Install [Node.js 22+][nodejs-link] / [Bun.sh][bun-link]

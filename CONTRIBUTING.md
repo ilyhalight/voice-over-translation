@@ -29,6 +29,10 @@ If you are editing the translation manually, then you **MUST** update the hash u
 
 ![example](https://github.com/user-attachments/assets/2fcd3f70-aee6-4b45-827e-2fbe0d2cf599)
 
+## hls.js
+
+You **SHOULDN'T** update the hls.js version in the [package.json](./package.json) without updating in [headers.json](./src/headers.json)
+
 ## vot.js
 
 **DON'T forget** to pass `{ fetchFn: GM_fetch }` option to `getVideoID` and `getVideoData`
