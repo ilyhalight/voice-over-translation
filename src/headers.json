@@ -114,6 +114,10 @@
     "*://web.telegram.org/k/*",
     "*://t2mc.toil.cc/*",
     "*://mylearn.oracle.com/*",
+    "*://learn.deeplearning.ai/*",
+    "*://learn-staging.deeplearning.ai/*",
+    "*://learn-dev.deeplearning.ai/*",
+    "*://*.netacad.com/content/i2cs/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
