@@ -10,7 +10,7 @@ export type ButtonLayout = {
 export type UIManagerProps = {
   root: HTMLElement;
   portalContainer: HTMLElement;
-  tooltipLayoutRoot: HTMLElement;
+  tooltipLayoutRoot?: HTMLElement;
   data?: Partial<StorageData>;
   videoHandler?: VideoHandler;
 };

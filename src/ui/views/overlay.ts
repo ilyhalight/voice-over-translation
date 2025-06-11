@@ -28,7 +28,7 @@ import Label from "../components/label";
 
 export class OverlayView {
   root: HTMLElement;
-  tooltipLayoutRoot: HTMLElement;
+  tooltipLayoutRoot: HTMLElement | undefined;
   portalContainer: HTMLElement;
   globalPortal: HTMLElement;
 
@@ -497,6 +497,13 @@ export class OverlayView {
       e.stopPropagation();
       e.stopImmediatePropagation();
     });
+
+    // don't change mousedown, otherwise it may break on youtube
+    for (const event of ["pointerdown", "mousedown"]) {
+      this.votMenu.container.addEventListener(event, (e) => {
+        e.stopImmediatePropagation();
+      });
+    }
 
     // #region [Events] VOT Menu Header
     this.downloadTranslationButton.addEventListener("click", async () => {
