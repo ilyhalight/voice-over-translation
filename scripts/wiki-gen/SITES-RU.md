@@ -989,6 +989,33 @@
 
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
+## Deeplearningai
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `learn.deeplearning.ai`
+- `learn-dev.deeplearning.ai`
+- `learn-staging.deeplearning.ai`
+
+Доступные пути:
+
+- /courses/COURSE_NAME/lesson/LESSON_ID/VIDEO_ID
+
+## Netacad
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `netacad.com`
+- `www.netacad.com`
+
+Доступные пути:
+
+- /content/i2cs/*
+
 ## Direct link to MP4/WEBM
 
 Статус: [✅] Работает

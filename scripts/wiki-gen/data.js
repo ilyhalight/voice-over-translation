@@ -226,6 +226,12 @@ const siteData = {
   oraclelearn: {
     paths: ["/ou/course/COURSE_SLUG/COURSE_ID/LECTURE_ID"],
   },
+  deeplearningai: {
+    paths: ["/courses/COURSE_NAME/lesson/LESSON_ID/VIDEO_ID"],
+  },
+  netacad: {
+    paths: ["/content/i2cs/*"],
+  },
   directlink: {
     paths: ["/*.mp4", "/*.webm"],
     limits: [locales.noLocalLinks],
