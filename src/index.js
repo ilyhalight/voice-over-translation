@@ -104,8 +104,7 @@ class VideoHandler {
     this.site = site;
     this.abortController = new AbortController();
     this.actionsAbortController = new AbortController();
-    this.extraEvents = [];
-    // Create helper instances.
+    // Create helper instances
     this.uiManager = new UIManager({
       root: this.container,
       portalContainer: this.getPortalContainer(),
@@ -363,11 +362,6 @@ class VideoHandler {
   initExtraEvents() {
     const { signal } = this.abortController;
     const addExtraEventListener = (element, event, handler) => {
-      this.extraEvents.push({
-        element,
-        event,
-        handler,
-      });
       element.addEventListener(event, handler, {
         signal,
       });
@@ -530,26 +524,10 @@ class VideoHandler {
     if (this.site.host !== "xvideos")
       addExtraEventListener(document, "touchmove", this.resetTimer);
 
-    // Prevent propagation on pointerdown events.
-    addExtraEventListener(
-      this.uiManager.votOverlayView.votButton.container,
-      "pointerdown",
-      (e) => {
-        e.stopImmediatePropagation();
-      },
-    );
-    // don't change mousedown, otherwise it may break on youtube
-    addExtraEventListeners(
-      this.uiManager.votOverlayView.votMenu.container,
-      ["pointerdown", "mousedown"],
-      (e) => {
-        e.stopImmediatePropagation();
-      },
-    );
-
     // fix draggable menu in youtube (#394, #417)
-    if (this.site.host === "youtube") this.container.draggable = false;
-    if (this.site.host === "googledrive") this.container.style.height = "100%";
+    if (this.site.host === "youtube") {
+      this.container.draggable = false;
+    }
 
     addExtraEventListener(this.video, "canplay", async () => {
       if (this.site.host === "rutube" && this.video.src) return;
@@ -894,7 +872,7 @@ class VideoHandler {
         "Загружаем переведенное аудио",
       ].includes(errorMessage)
     ) {
-      this.uiManager.votOverlayView.votButton.loading = false;
+      this.uiManager.votOverlayView.votButton.loading = true;
     }
   }
 
@@ -943,15 +921,23 @@ class VideoHandler {
   }
 
   /**
-   * Validates the audio URL by sending a HEAD request.
+   * Validates the audio URL by sending a request.
    * @param {string} audioUrl The audio URL to validate.
    * @returns {Promise<string>} The valid audio URL.
    */
   async validateAudioUrl(audioUrl) {
     try {
-      const response = await GM_fetch(audioUrl, {
-        method: "HEAD",
-      });
+      const fetchOpts = this.isMultiMethodS3(audioUrl)
+        ? {
+            method: "HEAD",
+          }
+        : {
+            // some s3 don't support the same signature for different methods
+            headers: {
+              range: "bytes=0-0",
+            },
+          };
+      const response = await GM_fetch(audioUrl, fetchOpts);
       debug.log("Test audio response", response);
       if (response.ok) {
         debug.log("Valid audioUrl", audioUrl);
@@ -989,14 +975,22 @@ class VideoHandler {
       this.data.translateProxyEnabled === 2 &&
       audioUrl.startsWith("https://vtrans.s3-private.mds.yandex.net/tts/prod/")
     ) {
-      const audioPath = audioUrl.replace(
+      audioUrl = audioUrl.replace(
         "https://vtrans.s3-private.mds.yandex.net/tts/prod/",
-        "",
+        `https://${this.data.proxyWorkerHost}/video-translation/audio-proxy/`,
       );
-      audioUrl = `https://${this.data.proxyWorkerHost}/video-translation/audio-proxy/${audioPath}`;
       console.log(`[VOT] Audio proxied via ${audioUrl}`);
     }
     return audioUrl;
+  }
+
+  isMultiMethodS3(url) {
+    return (
+      url.startsWith("https://vtrans.s3-private.mds.yandex.net/tts/prod/") ||
+      url.startsWith(
+        `https://${this.data.proxyWorkerHost}/video-translation/audio-proxy/`,
+      )
+    );
   }
 
   /**
