@@ -11,7 +11,7 @@
 [greasemonkey-link]: https://github.com/greasemonkey/greasemonkey
 [orangemonkey-link]: https://chromewebstore.google.com/detail/OrangeMonkey/ekmeppjgajofkpiofbebgcbohbmfldaf
 [user-js-and-css-link]: https://tenrabbits.github.io/user-js-css-docs/ru/
-
+[greasemonkey-link]: https://www.greasespot.net/
 <!-- FAQs / Wiki -->
 
 [firemonkey-how-to]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ#%D0%BA%D0%B0%D0%BA-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81-firemonkey
@@ -69,8 +69,9 @@
 
 > [!WARNING]
 > Если вы пользуетесь Tampermonkey 5.2.0+, не забудьте [включить "Режим разработчика"][devmode-enable]!
+> Также учтите, что Tampermonkey проприетарен. Доступная альтернатива с открытым исходным кодом — Greasemonkey, — только для Firefox.
 
-1. Установите расширение **[Tampermonkey][tampermonkey-link]**
+1. Установите расширение **[Tampermonkey][tampermonkey-link]** или **[Greasemonkey][greasemonkey-link]** (Firefox)
 2. **[«Установите Скрипт»][vot-dist]**
 
 ## Список функционала:
