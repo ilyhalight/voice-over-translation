@@ -52,7 +52,7 @@ export type FetchMediaWithMetaByChunkRangesResult = {
   isAcceptableLast: boolean;
 };
 
-export type GetAudioFromAPIWithReplacedFetchOptions = {
+export type GetAudioFromAPIOptions = {
   videoId: string;
   returnByParts?: boolean;
   signal: AbortSignal;

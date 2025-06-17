@@ -31,11 +31,11 @@ import { SettingsView } from "./views/settings";
 export class UIManager {
   root: HTMLElement;
   portalContainer: HTMLElement;
-  tooltipLayoutRoot: HTMLElement;
+  tooltipLayoutRoot: HTMLElement | undefined;
 
   private initialized = false;
-  private data: Partial<StorageData>;
   private videoHandler?: VideoHandler;
+  data: Partial<StorageData>;
 
   votGlobalPortal?: HTMLElement;
   /**

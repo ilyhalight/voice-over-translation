@@ -12,10 +12,10 @@ import { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { VideoData, VideoHandler } from "..";
 import { AudioDownloader } from "../audioDownloader";
 import { localizationProvider } from "../localization/localizationProvider";
-import { VOTLocalizedError } from "../utils/VOTLocalizedError";
 import debug from "../utils/debug";
 import { secsToStrTime } from "../utils/localization";
 import { waitForCondition } from "../utils/utils";
+import { VOTLocalizedError } from "../utils/VOTLocalizedError";
 
 export class VOTTranslationHandler {
   videoHandler: VideoHandler;
@@ -121,7 +121,6 @@ export class VOTTranslationHandler {
     debug.log(
       videoData,
       `Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`,
-      signal,
     );
     try {
       if (signal.aborted) {

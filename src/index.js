@@ -2,9 +2,6 @@ import VOTClient, { VOTWorkerClient } from "@vot.js/ext";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { getService, getVideoID } from "@vot.js/ext/utils/videoData";
 import Chaimu, { initAudioContext } from "chaimu";
-
-import debug from "./utils/debug.ts";
-
 import { initAudioDownloaderIframe } from "./audioDownloader/iframe.ts";
 import {
   actualCompatVersion,
@@ -28,8 +25,7 @@ import { localizationProvider } from "./localization/localizationProvider.ts";
 import { SubtitlesProcessor, SubtitlesWidget } from "./subtitles.js";
 import { formatKeysCombo } from "./ui/components/hotkeyButton.ts";
 import { UIManager } from "./ui/manager.ts";
-import { VOTLocalizedError } from "./utils/VOTLocalizedError.js";
-import { VideoObserver } from "./utils/VideoObserver.js";
+import debug from "./utils/debug.ts";
 import {
   GM_fetch,
   isProxyOnlyExtension,
@@ -40,6 +36,8 @@ import { IFRAME_HASH, isIframe } from "./utils/iframeConnector.ts";
 import { updateConfig, votStorage } from "./utils/storage.ts";
 import { translate } from "./utils/translateApis.ts";
 import { browserInfo, calculatedResLang, initHls } from "./utils/utils.ts";
+import { VideoObserver } from "./utils/VideoObserver.js";
+import { VOTLocalizedError } from "./utils/VOTLocalizedError.js";
 import { syncVolume } from "./utils/volume.ts";
 
 export let countryCode; // Used later for proxy settings
@@ -104,8 +102,7 @@ class VideoHandler {
     this.site = site;
     this.abortController = new AbortController();
     this.actionsAbortController = new AbortController();
-    this.extraEvents = [];
-    // Create helper instances.
+    // Create helper instances
     this.uiManager = new UIManager({
       root: this.container,
       portalContainer: this.getPortalContainer(),
@@ -363,11 +360,6 @@ class VideoHandler {
   initExtraEvents() {
     const { signal } = this.abortController;
     const addExtraEventListener = (element, event, handler) => {
-      this.extraEvents.push({
-        element,
-        event,
-        handler,
-      });
       element.addEventListener(event, handler, {
         signal,
       });
@@ -530,26 +522,10 @@ class VideoHandler {
     if (this.site.host !== "xvideos")
       addExtraEventListener(document, "touchmove", this.resetTimer);
 
-    // Prevent propagation on pointerdown events.
-    addExtraEventListener(
-      this.uiManager.votOverlayView.votButton.container,
-      "pointerdown",
-      (e) => {
-        e.stopImmediatePropagation();
-      },
-    );
-    // don't change mousedown, otherwise it may break on youtube
-    addExtraEventListeners(
-      this.uiManager.votOverlayView.votMenu.container,
-      ["pointerdown", "mousedown"],
-      (e) => {
-        e.stopImmediatePropagation();
-      },
-    );
-
     // fix draggable menu in youtube (#394, #417)
-    if (this.site.host === "youtube") this.container.draggable = false;
-    if (this.site.host === "googledrive") this.container.style.height = "100%";
+    if (this.site.host === "youtube") {
+      this.container.draggable = false;
+    }
 
     addExtraEventListener(this.video, "canplay", async () => {
       if (this.site.host === "rutube" && this.video.src) return;
@@ -878,7 +854,7 @@ class VideoHandler {
     } else if (
       this.data.translateAPIErrors &&
       lang !== "ru" &&
-      !errorMessage.includes(translationTake)
+      !errorMessage?.includes(translationTake)
     ) {
       this.uiManager.votOverlayView.votButton.loading = true;
       const translatedMessage = await translate(errorMessage, "ru", lang);
@@ -894,7 +870,7 @@ class VideoHandler {
         "Загружаем переведенное аудио",
       ].includes(errorMessage)
     ) {
-      this.uiManager.votOverlayView.votButton.loading = false;
+      this.uiManager.votOverlayView.votButton.loading = true;
     }
   }
 
@@ -943,15 +919,23 @@ class VideoHandler {
   }
 
   /**
-   * Validates the audio URL by sending a HEAD request.
+   * Validates the audio URL by sending a request.
    * @param {string} audioUrl The audio URL to validate.
    * @returns {Promise<string>} The valid audio URL.
    */
   async validateAudioUrl(audioUrl) {
     try {
-      const response = await GM_fetch(audioUrl, {
-        method: "HEAD",
-      });
+      const fetchOpts = this.isMultiMethodS3(audioUrl)
+        ? {
+            method: "HEAD",
+          }
+        : {
+            // some s3 don't support the same signature for different methods
+            headers: {
+              range: "bytes=0-0",
+            },
+          };
+      const response = await GM_fetch(audioUrl, fetchOpts);
       debug.log("Test audio response", response);
       if (response.ok) {
         debug.log("Valid audioUrl", audioUrl);
@@ -989,14 +973,22 @@ class VideoHandler {
       this.data.translateProxyEnabled === 2 &&
       audioUrl.startsWith("https://vtrans.s3-private.mds.yandex.net/tts/prod/")
     ) {
-      const audioPath = audioUrl.replace(
+      audioUrl = audioUrl.replace(
         "https://vtrans.s3-private.mds.yandex.net/tts/prod/",
-        "",
+        `https://${this.data.proxyWorkerHost}/video-translation/audio-proxy/`,
       );
-      audioUrl = `https://${this.data.proxyWorkerHost}/video-translation/audio-proxy/${audioPath}`;
       console.log(`[VOT] Audio proxied via ${audioUrl}`);
     }
     return audioUrl;
+  }
+
+  isMultiMethodS3(url) {
+    return (
+      url.startsWith("https://vtrans.s3-private.mds.yandex.net/tts/prod/") ||
+      url.startsWith(
+        `https://${this.data.proxyWorkerHost}/video-translation/audio-proxy/`,
+      )
+    );
   }
 
   /**

@@ -67,9 +67,11 @@ function convertByCompatCategory(category: ConvertCategory, value: unknown) {
 
 type AnyDataKeys = Record<string, undefined>;
 
-export async function updateConfig(data: Record<string, unknown>) {
+export async function updateConfig<T>(
+  data: Record<string, unknown>,
+): Promise<T> {
   if ((data.compatVersion as CompatibilityVersion) === actualCompatVersion) {
-    return data;
+    return data as T;
   }
 
   const oldKeys = Object.values(compatMay2025Data)
@@ -137,7 +139,7 @@ export async function updateConfig(data: Record<string, unknown>) {
   return {
     ...newData,
     compatVersion: "2025-05-09",
-  };
+  } as T;
 }
 
 export const votStorage = new (class {
@@ -158,7 +160,7 @@ export const votStorage = new (class {
   /**
    * Check if storage type is LocalStorage
    */
-  isSupportOnlyLS() {
+  get isSupportOnlyLS() {
     return !this.supportGM && !this.supportGMPromises;
   }
 
@@ -188,7 +190,7 @@ export const votStorage = new (class {
   }
 
   async getValues<
-    T extends Record<StorageKey, KeysOrDefaultValue> = Record<
+    T extends Partial<Record<StorageKey, KeysOrDefaultValue>> = Record<
       StorageKey,
       KeysOrDefaultValue
     >,

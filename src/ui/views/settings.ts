@@ -1,24 +1,15 @@
 import type { TMInfoScriptMeta } from "@toil/gm-types/types/info/tampermonkey";
+import { AudioDownloadType } from "@vot.js/core/types/yandex";
+import { VideoService } from "@vot.js/ext/types/service";
 import { availableLangs, subtitlesFormats } from "@vot.js/shared/consts";
 import type { SubtitleFormat } from "@vot.js/shared/types/subs";
 import { html } from "lit-html";
-
-import ui from "../../ui";
-import AccountButton from "../components/accountButton";
-import Checkbox from "../components/checkbox";
-import Details from "../components/details";
-import Dialog from "../components/dialog";
-import HotkeyButton from "../components/hotkeyButton";
-import Label from "../components/label";
-import Select from "../components/select";
-import Slider from "../components/slider";
-import SliderLabel from "../components/sliderLabel";
-import Textfield from "../components/textfield";
-import Tooltip from "../components/tooltip";
-
-import { VideoService } from "@vot.js/ext/types/service";
-import { type VideoHandler, countryCode } from "../..";
+import { countryCode, type VideoHandler } from "../..";
 import { AudioDownloader } from "../../audioDownloader";
+import {
+  AvailableAudioDownloadType,
+  strategies,
+} from "../../audioDownloader/strategies";
 import {
   authServerUrl,
   defaultAutoHideDelay,
@@ -47,6 +38,7 @@ import type {
   TranslateService,
 } from "../../types/translateApis";
 import type { SettingsViewProps } from "../../types/views/settings";
+import ui from "../../ui";
 import debug from "../../utils/debug";
 import {
   isProxyOnlyExtension,
@@ -56,6 +48,17 @@ import {
 import { votStorage } from "../../utils/storage";
 import { detectServices, translateServices } from "../../utils/translateApis";
 import { browserInfo, isPiPAvailable } from "../../utils/utils";
+import AccountButton from "../components/accountButton";
+import Checkbox from "../components/checkbox";
+import Details from "../components/details";
+import Dialog from "../components/dialog";
+import HotkeyButton from "../components/hotkeyButton";
+import Label from "../components/label";
+import Select from "../components/select";
+import Slider from "../components/slider";
+import SliderLabel from "../components/sliderLabel";
+import Textfield from "../components/textfield";
+import Tooltip from "../components/tooltip";
 import { HELP_ICON, WARNING_ICON } from "../icons";
 
 export class SettingsView {
@@ -235,7 +238,7 @@ export class SettingsView {
       username: this.data.account?.username,
       loggedIn: !!this.data.account?.token,
     });
-    if (votStorage.isSupportOnlyLS()) {
+    if (votStorage.isSupportOnlyLS) {
       // LocalStorage can't support sync settings between sites
       this.accountButton.refreshButton.setAttribute("disabled", "true");
       this.accountButton.actionButton.setAttribute("disabled", "true");
@@ -638,7 +641,7 @@ export class SettingsView {
 
     // #region [Events]
     this.accountButton.addEventListener("click", async () => {
-      if (votStorage.isSupportOnlyLS()) {
+      if (votStorage.isSupportOnlyLS) {
         return;
       }
 
@@ -682,7 +685,7 @@ export class SettingsView {
       dialog.bodyContainer.append(tokenInfoEl, tokenTextfield.container);
     });
     this.accountButton.addEventListener("refresh", async () => {
-      if (votStorage.isSupportOnlyLS()) {
+      if (votStorage.isSupportOnlyLS) {
         return;
       }
 
@@ -1191,44 +1194,11 @@ export class SettingsView {
         updateLocaleFilesButton,
       );
 
-      if (
-        DEBUG_MODE &&
-        this.videoHandler &&
-        this.videoHandler?.site.host === VideoService.youtube
-      ) {
-        // ! Available only in debug mode, translation phrase doesn't need
-        const debugDownloadAudio = ui.createOutlinedButton(
-          "[YT | DEBUG] Download Audio",
-        );
-        debugDownloadAudio.addEventListener("click", async () => {
-          if (!this.videoHandler?.videoData) {
-            return;
-          }
-
-          const audioDownloader = new AudioDownloader();
-          audioDownloader
-            .addEventListener(
-              "downloadedAudio",
-              async (translationId, data) => {
-                debug.log("Audio downloaded:", translationId, data);
-              },
-            )
-            .addEventListener(
-              "downloadedPartialAudio",
-              async (translationId, data) => {
-                debug.log("Partial audio downloaded:", translationId, data);
-              },
-            )
-            .addEventListener("downloadAudioError", (videoId) => {
-              debug.log("Audio download error for videoId:", videoId);
-            });
-          await audioDownloader.runAudioDownload(
-            this.videoHandler.videoData.videoId,
-            "debug-mode",
-            new AbortController().signal,
-          );
-        });
-        dialog.bodyContainer.appendChild(debugDownloadAudio);
+      if (DEBUG_MODE) {
+        const debugEls = this.initDebugUI();
+        if (Array.isArray(debugEls)) {
+          dialog.bodyContainer.append(...debugEls);
+        }
       }
 
       updateLocaleFilesButton.addEventListener("click", async () => {
@@ -1248,6 +1218,68 @@ export class SettingsView {
 
     // #endregion [Events]
     return this;
+  }
+
+  /**
+   * Available only in debug mode, translation phrase doesn't need
+   */
+  initDebugUI() {
+    if (
+      !DEBUG_MODE ||
+      !this.isInitialized() ||
+      this.videoHandler?.site.host !== VideoService.youtube
+    ) {
+      return this;
+    }
+
+    let strategy: AvailableAudioDownloadType =
+      AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME;
+    const availableStrategies = Object.keys(
+      strategies,
+    ) as AvailableAudioDownloadType[];
+    const strategyTitle = "Audio download type";
+    const strategySelect = new Select<AvailableAudioDownloadType>({
+      items: availableStrategies.map((s) => ({
+        label: s,
+        value: s,
+        selected: s === strategy,
+      })),
+      selectTitle: strategyTitle,
+      dialogTitle: strategyTitle,
+    }).addEventListener("selectItem", (item) => {
+      strategy = item;
+    });
+
+    const debugDownloadAudioBtn = ui.createOutlinedButton(
+      "[YT | DEBUG] Download Audio",
+    );
+    debugDownloadAudioBtn.addEventListener("click", async () => {
+      if (!this.videoHandler?.videoData) {
+        return;
+      }
+
+      const audioDownloader = new AudioDownloader(strategy);
+      audioDownloader
+        .addEventListener("downloadedAudio", async (translationId, data) => {
+          debug.log("Audio downloaded:", translationId, data);
+        })
+        .addEventListener(
+          "downloadedPartialAudio",
+          async (translationId, data) => {
+            debug.log("Partial audio downloaded:", translationId, data);
+          },
+        )
+        .addEventListener("downloadAudioError", (videoId) => {
+          debug.log("Audio download error for videoId:", videoId);
+        });
+      await audioDownloader.runAudioDownload(
+        this.videoHandler.videoData.videoId,
+        "debug-mode",
+        new AbortController().signal,
+      );
+    });
+
+    return [strategySelect.container, debugDownloadAudioBtn];
   }
 
   addEventListener(

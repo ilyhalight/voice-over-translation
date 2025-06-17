@@ -989,6 +989,33 @@ Limitations:
 
 - To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
+## Deeplearningai
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `learn.deeplearning.ai`
+- `learn-dev.deeplearning.ai`
+- `learn-staging.deeplearning.ai`
+
+Available paths:
+
+- /courses/COURSE_NAME/lesson/LESSON_ID/VIDEO_ID
+
+## Netacad
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `netacad.com`
+- `www.netacad.com`
+
+Available paths:
+
+- /content/i2cs/*
+
 ## Direct link to MP4/WEBM
 
 Status: [✅] Working
