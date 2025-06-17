@@ -1,4 +1,5 @@
 import { config } from "@vot.js/shared";
+
 import { SerializedRequestInitData } from "../types/audioDownloader";
 
 export const IFRAME_ID = "vot_iframe_player";

@@ -160,7 +160,7 @@ export const votStorage = new (class {
   /**
    * Check if storage type is LocalStorage
    */
-  isSupportOnlyLS() {
+  get isSupportOnlyLS() {
     return !this.supportGM && !this.supportGMPromises;
   }
 
