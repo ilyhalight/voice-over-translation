@@ -2,9 +2,6 @@ import VOTClient, { VOTWorkerClient } from "@vot.js/ext";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { getService, getVideoID } from "@vot.js/ext/utils/videoData";
 import Chaimu, { initAudioContext } from "chaimu";
-
-import debug from "./utils/debug.ts";
-
 import { initAudioDownloaderIframe } from "./audioDownloader/iframe.ts";
 import {
   actualCompatVersion,
@@ -28,8 +25,7 @@ import { localizationProvider } from "./localization/localizationProvider.ts";
 import { SubtitlesProcessor, SubtitlesWidget } from "./subtitles.js";
 import { formatKeysCombo } from "./ui/components/hotkeyButton.ts";
 import { UIManager } from "./ui/manager.ts";
-import { VOTLocalizedError } from "./utils/VOTLocalizedError.js";
-import { VideoObserver } from "./utils/VideoObserver.js";
+import debug from "./utils/debug.ts";
 import {
   GM_fetch,
   isProxyOnlyExtension,
@@ -40,6 +36,8 @@ import { IFRAME_HASH, isIframe } from "./utils/iframeConnector.ts";
 import { updateConfig, votStorage } from "./utils/storage.ts";
 import { translate } from "./utils/translateApis.ts";
 import { browserInfo, calculatedResLang, initHls } from "./utils/utils.ts";
+import { VideoObserver } from "./utils/VideoObserver.js";
+import { VOTLocalizedError } from "./utils/VOTLocalizedError.js";
 import { syncVolume } from "./utils/volume.ts";
 
 export let countryCode; // Used later for proxy settings
@@ -856,7 +854,7 @@ class VideoHandler {
     } else if (
       this.data.translateAPIErrors &&
       lang !== "ru" &&
-      !errorMessage.includes(translationTake)
+      !errorMessage?.includes(translationTake)
     ) {
       this.uiManager.votOverlayView.votButton.loading = true;
       const translatedMessage = await translate(errorMessage, "ru", lang);
