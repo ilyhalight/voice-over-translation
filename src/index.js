@@ -847,6 +847,7 @@ class VideoHandler {
     if (this.longWaitingResCount > minLongWaitingCount) {
       errorMessage = new VOTLocalizedError("TranslationDelayed");
     }
+    debug.log("updateTranslationErrorMsg message", errorMessage);
     if (errorMessage?.name === "VOTLocalizedError") {
       this.transformBtn("error", errorMessage.localizedMessage);
     } else if (errorMessage instanceof Error) {

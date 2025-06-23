@@ -111,6 +111,12 @@ async function fetchMediaWithMeta({
     throw new Error(CANT_GET_ARRAY_BUFFER_MESSAGE);
   }
 
+  debug.log(
+    "isChunkLengthAcceptable",
+    isChunkLengthAcceptable(arrayBuffer, chunkRange),
+    arrayBuffer.byteLength,
+    chunkRange,
+  );
   if (isChunkLengthAcceptable(arrayBuffer, chunkRange)) {
     return {
       media: arrayBuffer,
@@ -120,6 +126,7 @@ async function fetchMediaWithMeta({
   }
 
   const redirectedUrl = getUrlFromArrayBuffer(arrayBuffer);
+  debug.log("redirectedUrl", redirectedUrl);
   if (redirectedUrl) {
     return fetchMediaWithMeta({
       mediaUrl: redirectedUrl,
