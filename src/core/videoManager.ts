@@ -87,14 +87,6 @@ export class VOTVideoManager {
 
     debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
     if (
-      this.videoHandler.data.enabledDontTranslateLanguages &&
-      this.videoHandler.data.dontTranslateLanguages?.includes(
-        this.videoHandler.videoData.detectedLanguage,
-      )
-    ) {
-      throw new VOTLocalizedError("VOTDisableFromYourLang");
-    }
-    if (
       this.videoHandler.site.host === "twitch" &&
       this.videoHandler.videoData.isStream
     ) {
