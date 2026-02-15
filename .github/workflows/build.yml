@@ -48,7 +48,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install 🔧
         shell: bash
-        run: npm ci
+        run: npm install
       - name: Build extension 🔧
         run: npm run build:ext
       - name: Upload extension artifacts 🚀
