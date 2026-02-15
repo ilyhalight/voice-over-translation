@@ -4,6 +4,7 @@
   "disableTranslate": "Turn off",
   "translationSettings": "Translation settings",
   "subtitlesSettings": "Subtitles settings",
+  "subtitlesSmartLayout": "Smart subtitle layout",
   "resetSettings": "Reset settings",
   "videoBeingTranslated": "The video is being translated",
   "videoLanguage": "Video language",
@@ -16,8 +17,10 @@
   "translationTakeApproximatelyMinute": "The translation will take approximately {0} minutes",
   "requestTranslationFailed": "Failed to request video translation",
   "audioNotReceived": "Audio link not received",
+  "VOTFailedDownloadAudio": "Failed to download audio",
   "audioFormatNotSupported": "The audio format is not supported",
   "VOTAutoTranslate": "Translate on open",
+  "VOTAutoSubtitles": "Subtitles on open",
   "VOTDontTranslateYourLang": "Don't translate from my language",
   "VOTVolume": "Video volume:",
   "VOTVolumeTranslation": "Translation volume:",
@@ -216,7 +219,7 @@
   },
   "aboutExtension": "About extension",
   "appearance": "Appearance",
-  "buttonPositionInWidePlayer": "Button position in wide player",
+  "buttonPosition": "Button position in the player",
   "position": {
     "left": "Left",
     "right": "Right",
@@ -238,5 +241,6 @@
   "VOTRefresh": "Refresh",
   "VOTYandexToken": "Enter the Yandex OAuth Token",
   "VOTYandexTokenInfo": "You can manually set the account token in this field. Please note that we don't check its validity before sending a translate request",
-  "VOTLoginViaToken": "Login via token"
+  "VOTLoginViaToken": "Login via token",
+  "smartDucking": "Adaptive volume"
 }

@@ -1,98 +1,29 @@
+@use "./mixins" as button;
+
 .vot-icon-button {
   --vot-helper-onsurface: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.87);
-  position: relative;
-  display: inline-block;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-  margin: 0 !important;
+  @include button.vot-button-base(
+    $radius: 50%,
+    $padding: 0,
+    $min-width: 36px,
+    $height: 36px,
+    $line-height: 36px,
+    $margin: 0 !important
+  );
   border: none !important;
-  border-radius: 50% !important;
-  padding: 0 !important;
   width: 36px;
-  height: 36px;
-  vertical-align: middle;
-  text-align: center;
-  text-overflow: ellipsis;
   fill: var(--vot-helper-onsurface);
   color: var(--vot-helper-onsurface);
   background-color: transparent;
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
-  );
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 36px;
-  outline: none;
-  cursor: pointer;
-
-  &[hidden] {
-    display: none !important;
-  }
-
-  &::-moz-focus-inner {
-    border: none !important;
-  }
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    border-radius: inherit !important;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    opacity: 0;
-  }
-
-  &::before {
-    background-color: var(--vot-helper-onsurface);
-    transition: opacity 0.2s;
-  }
-
-  &::after {
-    background: radial-gradient(
-        circle at center,
-        currentColor 1%,
-        transparent 1%
-      )
-      center/10000% 10000% no-repeat;
-    transition:
-      opacity 0.3s,
-      background-size 0.4s;
-  }
-
-  &:hover {
-    &::before {
-      opacity: 0.04;
-    }
-  }
-
-  &:active {
-    &::after {
-      opacity: 0.32;
-      background-size: 100% 100%;
-      transition:
-        background-size 0s,
-        opacity 0s;
-    }
-  }
-
+  @include button.vot-button-layers(var(--vot-helper-onsurface));
+  @include button.vot-button-layer-hover(0.04);
+  @include button.vot-button-layer-active(0.32);
   &[disabled="true"] {
     background-color: transparent;
     color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
     fill: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
     cursor: initial;
-
-    &::before,
-    &::after {
-      opacity: 0;
-    }
+    @include button.vot-button-layer-reset-disabled;
   }
 
   & svg {

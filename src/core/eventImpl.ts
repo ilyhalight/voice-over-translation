@@ -1,23 +1,31 @@
 import type { EventHandler } from "../types/core/eventImpl";
 
-export class EventImpl {
-  listeners: Set<EventHandler>;
-  constructor() {
-    this.listeners = new Set();
+/**
+ * Tiny, dependency-free event emitter.
+ *
+ * Notes:
+ * - Uses generics so emitted arguments stay strongly typed.
+ * - Adding the same listener twice is a no-op (idempotent).
+ * - Listener errors are isolated so one bad subscriber doesn't break the emitter.
+ */
+export class EventImpl<Args extends unknown[] = unknown[]> {
+  private readonly listeners = new Set<EventHandler<Args>>();
+
+  get size(): number {
+    return this.listeners.size;
   }
 
-  addListener(handler: EventHandler) {
-    if (this.listeners.has(handler)) {
-      throw new Error("[VOT] The listener has already been added.");
-    }
+  addListener(handler: EventHandler<Args>): this {
     this.listeners.add(handler);
+    return this;
   }
 
-  removeListener(handler: EventHandler) {
+  removeListener(handler: EventHandler<Args>): this {
     this.listeners.delete(handler);
+    return this;
   }
 
-  dispatch(...args: any[]) {
+  dispatch(...args: Args): void {
     for (const handler of this.listeners) {
       try {
         handler(...args);
@@ -27,7 +35,7 @@ export class EventImpl {
     }
   }
 
-  clear() {
+  clear(): void {
     this.listeners.clear();
   }
 }

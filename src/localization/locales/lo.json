@@ -216,7 +216,7 @@
   },
   "aboutExtension": "ກ່ຽວກັບການຂະຫຍາຍ",
   "appearance": "ຮູບລັກສະນະ",
-  "buttonPositionInWidePlayer": "ຕໍາແຫນ່ງປຸ່ມໃນຜູ້ນກ້ວາງ",
+  "buttonPosition": "ຕໍາແຫນ່ງປຸ່ມໃນເຄື່ອງຫຼີ້ນ",
   "position": {
     "left": "ຊ້າຍ",
     "right": "ຖືກຕ້ອງ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "ສົດຊື່ນ",
   "VOTYandexToken": "ກະລຸນາໃສ່ສັນຍາລັກ Yandex OAuth",
   "VOTYandexTokenInfo": "ທ່ານສາມາດກໍານົດຄູ່ມືບັນຊີ token ໃນພາກສະຫນາມນີ້. ກະລຸນາສັງເກດວ່າພວກເຮົາບໍ່ໄດ້ກວດສອບຄວາມຖືກຕ້ອງຂອງຕົນກ່ອນທີ່ຈະສົ່ງຄໍາຮ້ອງຂໍການແປພາສາ",
-  "VOTLoginViaToken": "ເຂົ້າສູ່ລະບົບຜ່ານ token"
+  "VOTLoginViaToken": "ເຂົ້າສູ່ລະບົບຜ່ານ token",
+  "subtitlesSmartLayout": "ຮູບແບບຄໍາບັນຍາຍອັດສະລິຍະ",
+  "smartDucking": "ປະລິມານການປັບຕົວ",
+  "VOTAutoSubtitles": "ຄໍາບັນຍາຍເປີດ"
 }

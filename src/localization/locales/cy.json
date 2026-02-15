@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Ynghylch estyniad",
   "appearance": "Ymddangosiad",
-  "buttonPositionInWidePlayer": "Safle'r botwm yn y chwaraewr llydan",
+  "buttonPosition": "Safle'r botwm yn y chwaraewr",
   "position": {
     "left": "Chwith",
     "right": "De",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Adnewyddu",
   "VOTYandexToken": "Rhowch Y Tocyn Yandex OAuth",
   "VOTYandexTokenInfo": "Gallwch osod y tocyn cyfrif â llaw yn y maes hwn. Nodwch nad ydym yn gwirio ei ddilysrwydd cyn anfon cais cyfieithu",
-  "VOTLoginViaToken": "Mewngofnodi trwy docyn"
+  "VOTLoginViaToken": "Mewngofnodi trwy docyn",
+  "subtitlesSmartLayout": "Cynllun is-deitl Smart",
+  "smartDucking": "Cyfrol addasol",
+  "VOTAutoSubtitles": "Isdeitlau ar agor"
 }

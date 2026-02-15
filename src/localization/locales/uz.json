@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Kengaytma haqida",
   "appearance": "Ko'rinishi",
-  "buttonPositionInWidePlayer": "Keng pleyerda tugma holati",
+  "buttonPosition": "Pleyerdagi tugma holati",
   "position": {
     "left": "Chapga",
     "right": "O'ng",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Yangilash",
   "VOTYandexToken": "Yandex OAuth Tokenini kiriting",
   "VOTYandexTokenInfo": "Ushbu sohada hisob belgisini qo'lda o'rnatishingiz mumkin. Iltimos, tarjima so'rovini yuborishdan oldin uning haqiqiyligini tekshirmaymiz",
-  "VOTLoginViaToken": "Token orqali kirish"
+  "VOTLoginViaToken": "Token orqali kirish",
+  "subtitlesSmartLayout": "Aqlli subtitr tartibi",
+  "smartDucking": "Moslashuvchan hajm",
+  "VOTAutoSubtitles": "Ochiq subtitrlar"
 }

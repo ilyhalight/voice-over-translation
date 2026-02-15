@@ -7,10 +7,6 @@
   color: var(--vot-helper-theme);
   fill: var(--vot-helper-theme);
 
-  &[hidden] {
-    display: none !important;
-  }
-
   &-icon {
     width: 32px;
     height: 32px;

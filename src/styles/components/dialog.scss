@@ -1,35 +1,33 @@
+@use "../mixins" as shared;
+
 .vot-dialog {
   --vot-helper-surface-rgb: var(--vot-surface-rgb, 255, 255, 255);
   --vot-helper-surface: rgb(var(--vot-helper-surface-rgb));
   --vot-helper-onsurface-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
   --vot-helper-onsurface: rgba(var(--vot-helper-onsurface-rgb), 0.87);
+  // When content is small we keep the dialog visually centered. For larger
+  // content (long settings pages, large blocks of text), JS can switch the
+  // dialog to a top-aligned mode and increase the max height via CSS vars.
+  --vot-dialog-viewport-margin: 16px;
+  --vot-dialog-max-height: 75vh;
   display: block;
   position: fixed;
-  top: 50%;
-  bottom: 50%;
   max-width: initial;
   max-height: initial;
-  width: calc(min(var(--vot-dialog-width, 512px), 100%));
+  width: min(var(--vot-dialog-width, 512px), 100%);
   height: fit-content;
-  inset-inline-start: 0px;
-  inset-inline-end: 0px;
-  inset-block-start: 0px;
-  inset-block-end: 0px;
-  border-radius: 8px;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  inset-block-start: 0;
+  inset-block-end: 0;
+  border: 1px solid var(--vot-border-color);
+  border-radius: var(--vot-radius-l);
   margin: auto !important;
   padding: 0 !important;
   background-color: var(--vot-helper-surface);
   color: var(--vot-helper-onsurface);
-  box-shadow:
-    0 0 16px rgba(0, 0, 0, 0.12),
-    0 16px 16px rgba(0, 0, 0, 0.24);
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
-  );
+  box-shadow: var(--vot-shadow-2);
+  @include shared.vot-font-family;
   font-size: 16px;
   line-height: 1.5;
   user-select: none;
@@ -41,16 +39,23 @@
   transform-origin: center;
   transform: scale(1);
   transition:
-    opacity 0.3s,
-    transform 0.1s;
+    opacity var(--vot-duration-medium) var(--vot-easing-standard),
+    transform var(--vot-duration-medium) var(--vot-easing-standard);
 
   [hidden] > & {
     pointer-events: none;
     opacity: 0;
-    transform: scale(0.5);
+    transform: translateY(-4px) scale(0.98);
     transition:
-      opacity 0.1s,
-      transform 0.2s;
+      opacity var(--vot-duration-fast) var(--vot-easing-standard),
+      transform var(--vot-duration-medium) var(--vot-easing-standard);
+  }
+
+  &[data-vertical-align="top"] {
+    inset-block-start: var(--vot-dialog-viewport-margin);
+    inset-block-end: auto;
+    // Keep horizontal centering while avoiding auto vertical centering.
+    margin: 0 auto !important;
   }
 
   &-container {
@@ -65,8 +70,6 @@
     }
 
     & * {
-      -webkit-box-sizing: border-box !important;
-      -moz-box-sizing: border-box !important;
       box-sizing: border-box !important;
     }
   }
@@ -91,7 +94,7 @@
   &-content-wrapper {
     display: flex;
     flex-direction: column;
-    max-height: 75vh;
+    max-height: var(--vot-dialog-max-height, 75vh);
     overflow: auto;
   }
 
@@ -106,8 +109,8 @@
     }
 
     & > .vot-icon-button {
-      margin-inline-end: 4px !important;
-      margin-top: 4px !important;
+      margin-inline-end: var(--vot-space-1) !important;
+      margin-top: var(--vot-space-1) !important;
     }
   }
 
@@ -125,54 +128,56 @@
     font-size: calc(15 / 13 * 100%);
     font-weight: bold;
     line-height: 1;
-    padding: 20px 20px 16px !important;
+    padding: var(--vot-space-5) var(--vot-space-5) var(--vot-space-4) !important;
   }
 
   &-body-container {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     min-height: 1.375rem;
     overflow: auto;
-    padding: 0 20px !important;
-    gap: 16px;
+    padding: 0 var(--vot-space-5) !important;
+    gap: var(--vot-space-4);
     overscroll-behavior: contain;
-
-    scrollbar-color: rgba(var(--vot-helper-onsurface-rgb), 0.1)
-      var(--vot-helper-surface) !important;
-
-    &::-webkit-scrollbar,
-    &::-webkit-scrollbar-track {
-      height: 12px !important;
-      width: 12px !important;
-      background: var(--vot-helper-surface) !important;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: rgba(var(--vot-helper-onsurface-rgb), 0.1) !important;
-      -webkit-border-radius: 1ex !important;
-      border: 5px solid var(--vot-helper-surface) !important;
-
-      &:hover {
-        border: 3px solid var(--vot-helper-surface) !important;
-      }
-    }
-
-    &::-webkit-scrollbar-corner {
-      background: var(--vot-helper-surface) !important;
-    }
+    @include shared.vot-overlay-scrollbar;
   }
 
   &-footer-container {
     flex-shrink: 0;
     display: flex;
     justify-content: flex-end;
-    padding: 16px !important;
+    flex-wrap: wrap;
+    gap: var(--vot-space-2);
+    padding: var(--vot-space-4) !important;
 
     &:empty {
-      padding: 20px 0 0 0 !important;
+      padding: var(--vot-space-5) 0 0 0 !important;
     }
+  }
+}
+
+// Mobile: avoid footer actions overflowing. Stack actions vertically and allow
+// longer localized labels to wrap instead of overflowing.
+@media (max-width: 480px) {
+  .vot-dialog-footer-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vot-dialog-footer-container
+    > :is(.vot-button, .vot-outlined-button, .vot-text-button) {
+    width: 100%;
+    height: auto;
+    min-height: 36px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 }

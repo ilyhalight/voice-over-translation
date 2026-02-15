@@ -33,3 +33,5 @@ jobs:
           prerelease: false
           files: |
             vot/vot*.user.js
+            vot/vot-extension-chrome-*.crx
+            vot/vot-extension-firefox-*.xpi

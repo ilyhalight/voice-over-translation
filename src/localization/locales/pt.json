@@ -215,7 +215,7 @@
   },
   "aboutExtension": "Sobre a extensão",
   "appearance": "Aparência",
-  "buttonPositionInWidePlayer": "Posição do botão no jogador largo",
+  "buttonPosition": "Posição do botão no leitor",
   "position": {
     "left": "Esquerda",
     "right": "Direito",
@@ -237,5 +237,8 @@
   "VOTRefresh": "Atualizar",
   "VOTYandexToken": "Insira o token Yandex OAuth",
   "VOTYandexTokenInfo": "Você pode definir manualmente o token da conta neste campo. Observe que não verificamos sua validade antes de enviar uma solicitação de tradução",
-  "VOTLoginViaToken": "Login via token"
+  "VOTLoginViaToken": "Login via token",
+  "subtitlesSmartLayout": "Smart subtitle layout",
+  "smartDucking": "Volume adaptativo",
+  "VOTAutoSubtitles": "Legendas em aberto"
 }

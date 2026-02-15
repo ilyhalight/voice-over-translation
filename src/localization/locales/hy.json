@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Ընդլայնման մասին",
   "appearance": "Արտաքին տեսք",
-  "buttonPositionInWidePlayer": "Կոճակի դիրքը լայն նվագարկիչում",
+  "buttonPosition": "Կոճակի դիրքը նվագարկիչում",
   "position": {
     "left": "Ձախ",
     "right": "Ճիշտ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Թարմացնել",
   "VOTYandexToken": "Մուտքագրեք OAuth-Yandex Token",
   "VOTYandexTokenInfo": "Այս դաշտում կարող եք ձեռքով նշել հաշվի նշանը: Խնդրում ենք նկատի ունենալ, որ մենք չենք ստուգում դրա վավերականությունը նախքան փոխանցման հարցում ուղարկելը",
-  "VOTLoginViaToken": "Մուտք գործեք նշանի հետ"
+  "VOTLoginViaToken": "Մուտք գործեք նշանի հետ",
+  "subtitlesSmartLayout": "Մտածված ենթագրերի դասավորություն",
+  "smartDucking": "Հարմարվողական ծավալ",
+  "VOTAutoSubtitles": "Ենթագրերը բացելիս"
 }

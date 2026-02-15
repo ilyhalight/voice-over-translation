@@ -1,7 +1,7 @@
 {
   "name": "[VOT] - Voice Over Translation",
   "description": "A small extension that adds a Yandex Browser video translation to other browsers",
-  "version": "1.10.5",
+  "version": "1.11.0",
   "author": "Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng",
   "namespace": "vot",
   "icon": "https://translate.yandex.ru/icons/favicon.ico",
@@ -14,6 +14,13 @@
     "*://*.xvideos-ar.com/*",
     "*://*.xvideos005.com/*",
     "*://*.xv-ru.com/*",
+    "*://*.xhamster.com/*",
+    "*://*.xhamster.desi/*",
+    "*://*.xhvid.com/*",
+    "*://*.spankbang.com/*",
+    "*://*.rule34video.com/*",
+    "*://*.picarto.tv/*",
+    "*://*.olympics.com/*",
     "*://*.pornhub.com/*",
     "*://*.pornhub.org/*",
     "*://*.vk.com/*",
@@ -27,6 +34,7 @@
     "*://*.facebook.com/*",
     "*://*.rutube.ru/*",
     "*://*.bilibili.com/*",
+    "*://*.bilibili.tv/*",
     "*://my.mail.ru/*",
     "*://*.bitchute.com/*",
     "*://*.coursera.org/*",
@@ -55,6 +63,7 @@
     "*://disk.yandex.tj/*",
     "*://disk.yandex.tm/*",
     "*://disk.yandex.uz/*",
+    "*://disk.360.yandex.ru/*",
     "*://youtube.googleapis.com/embed/*",
     "*://*.banned.video/*",
     "*://*.madmaxworld.tv/*",
@@ -118,6 +127,9 @@
     "*://learn-staging.deeplearning.ai/*",
     "*://learn-dev.deeplearning.ai/*",
     "*://*.netacad.com/content/i2cs/*",
+    "*://*.nicovideo.jp/*",
+    "*://*.zdf.de/*",
+    "*://*.weibo.com/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
@@ -128,7 +140,6 @@
     "*://accounts.youtube.com/*"
   ],
   "require": [
-    "https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.18/hls.light.min.js",
     "https://gist.githubusercontent.com/ilyhalight/6eb5bb4dffc7ca9e3c57d6933e2452f3/raw/7ab38af2228d0bed13912e503bc8a9ee4b11828d/gm-addstyle-polyfill.js"
   ],
   "connect": [
@@ -149,6 +160,7 @@
     "disk.yandex.tj",
     "disk.yandex.tm",
     "disk.yandex.uz",
+    "disk.360.yandex.ru",
     "yandex.net",
     "timeweb.cloud",
     "raw.githubusercontent.com",
@@ -157,7 +169,7 @@
     "deno.dev",
     "onrender.com",
     "workers.dev",
-    "speed.cloudflare.com",
+    "cloudflare-dns.com",
     "porntn.com",
     "googlevideo.com"
   ]

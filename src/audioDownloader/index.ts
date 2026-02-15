@@ -1,16 +1,16 @@
 import { AudioDownloadType } from "@vot.js/core/types/yandex";
 
 import { EventImpl } from "../core/eventImpl";
-import {
+import type {
   AudioDownloadRequestOptions,
   DownloadedAudioData,
   DownloadedPartialAudioData,
   VideoIdPayload,
 } from "../types/audioDownloader";
-import { MessagePayload } from "../types/iframeConnector";
+import type { MessagePayload } from "../types/iframeConnector";
 import debug from "../utils/debug";
 
-import { AvailableAudioDownloadType, strategies } from "./strategies";
+import { type AvailableAudioDownloadType, strategies } from "./strategies";
 import { sendRequestToIframe } from "./strategies/utils";
 
 async function handleCommonAudioDownloadRequest({
@@ -65,23 +65,34 @@ async function handleCommonAudioDownloadRequest({
   }
 }
 
-export async function mainWorldMessageHandler({
-  data,
-}: MessageEvent<MessagePayload>) {
+export async function mainWorldMessageHandler(
+  event: MessageEvent<MessagePayload>,
+) {
+  const { data, source } = event;
+
   try {
-    if (data?.messageDirection !== "request") {
+    if (data?.messageType !== "get-download-audio-data-in-main-world") {
       return;
     }
 
-    switch (data.messageType) {
-      case "get-download-audio-data-in-main-world": {
-        await sendRequestToIframe(
-          "get-download-audio-data-in-iframe",
-          data as MessagePayload<VideoIdPayload>,
-        );
-        break;
+    if (data.messageDirection === "response") {
+      // Relay iframe responses via the current page window so the requester can consume them:
+      // requestDataFromMainWorldWithId filters by event.source === globalThis.window.
+      if (source !== globalThis.window) {
+        globalThis.postMessage(data, "*");
       }
+
+      return;
     }
+
+    if (data.messageDirection !== "request") {
+      return;
+    }
+
+    await sendRequestToIframe(
+      "get-download-audio-data-in-iframe",
+      data as MessagePayload<VideoIdPayload>,
+    );
   } catch (error) {
     console.error("[VOT] Main world bridge", {
       error,
@@ -110,7 +121,7 @@ export class AudioDownloader {
     translationId: string,
     signal: AbortSignal,
   ) {
-    window.addEventListener("message", mainWorldMessageHandler);
+    globalThis.addEventListener("message", mainWorldMessageHandler);
     try {
       await handleCommonAudioDownloadRequest({
         audioDownloader: this,
@@ -126,7 +137,7 @@ export class AudioDownloader {
       this.onDownloadAudioError.dispatch(videoId);
     }
 
-    window.removeEventListener("message", mainWorldMessageHandler);
+    globalThis.removeEventListener("message", mainWorldMessageHandler);
   }
 
   addEventListener(

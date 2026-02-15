@@ -216,7 +216,7 @@
   },
   "aboutExtension": "දිගුව ගැන",
   "appearance": "පෙනුම",
-  "buttonPositionInWidePlayer": "පුළුල් ක්රීඩකයා තුළ බොත්තම ස්ථානය",
+  "buttonPosition": "ක්රීඩකයා තුළ බොත්තම පිහිටීම",
   "position": {
     "left": "වමට",
     "right": "හරි",
@@ -238,5 +238,8 @@
   "VOTRefresh": "නැවුම් කරන්න",
   "VOTYandexToken": "Yandex Oauth ටෝකනය ඇතුලත් කරන්න",
   "VOTYandexTokenInfo": "ඔබට මෙම ක්ෂේත් රයේ ගිණුම් ටෝකනය අතින් සකස් කළ හැකිය. පරිවර්තන ඉල්ලීමක් යැවීමට පෙර අපි එහි වලංගුභාවය පරීක්ෂා නොකරන බව කරුණාවෙන් සලකන්න",
-  "VOTLoginViaToken": "Token හරහා පිවිසෙන්න"
+  "VOTLoginViaToken": "Token හරහා පිවිසෙන්න",
+  "subtitlesSmartLayout": "ස්මාර්ට් උපසිරැසි සැකැස්ම",
+  "smartDucking": "අනුවර්තන පරිමාව",
+  "VOTAutoSubtitles": "විවෘත උපසිරැසි"
 }

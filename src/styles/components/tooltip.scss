@@ -32,10 +32,6 @@
   padding: 4px 8px !important;
   opacity: 0;
 
-  &[hidden] {
-    display: none !important;
-  }
-
   &[data-trigger="click"] {
     user-select: text;
   }
@@ -45,8 +41,6 @@
   }
 
   & * {
-    -webkit-box-sizing: border-box !important;
-    -moz-box-sizing: border-box !important;
     box-sizing: border-box !important;
   }
 }

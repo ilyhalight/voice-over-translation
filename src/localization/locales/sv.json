@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Om förlängning",
   "appearance": "Utseende",
-  "buttonPositionInWidePlayer": "Knappposition i bred spelare",
+  "buttonPosition": "Knappens position i spelaren",
   "position": {
     "left": "Vänster",
     "right": "Rättighet",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Uppdatera",
   "VOTYandexToken": "Ange Yandex OAuth-Token",
   "VOTYandexTokenInfo": "Du kan ställa in kontotoken manuellt i det här fältet. Observera att vi inte kontrollerar dess giltighet innan vi skickar en översättningsförfrågan",
-  "VOTLoginViaToken": "Logga in via token"
+  "VOTLoginViaToken": "Logga in via token",
+  "subtitlesSmartLayout": "Smart textning layout",
+  "smartDucking": "Adaptiv volym",
+  "VOTAutoSubtitles": "Undertexter på open"
 }

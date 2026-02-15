@@ -1,4 +1,4 @@
-import { Position } from "./votButton";
+import type { Position } from "./votButton";
 
 export type VOTMenuProps = {
   position?: Position;

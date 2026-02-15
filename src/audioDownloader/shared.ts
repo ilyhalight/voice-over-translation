@@ -1,6 +1,6 @@
 import { config } from "@vot.js/shared";
 
-import { SerializedRequestInitData } from "../types/audioDownloader";
+import type { SerializedRequestInitData } from "../types/audioDownloader";
 
 export const IFRAME_ID = "vot_iframe_player";
 export const IFRAME_SERVICE = "service";
@@ -58,12 +58,21 @@ export function serializeRequestInit(
 }
 
 export function deserializeRequestInit(request: SerializedRequestInitData) {
-  const { headersEntries, ...options } = request;
+  const { headersEntries, body, ...options } = request;
   const headers = new Headers(headersEntries);
-  return {
+  const deserialized: RequestInit = {
     ...options,
     headers,
   };
+
+  if (body && body.byteLength > 0) {
+    // Normalize to plain ArrayBuffer to satisfy DOM BodyInit typing.
+    const bytes = new Uint8Array(body.byteLength);
+    bytes.set(body);
+    deserialized.body = bytes.buffer;
+  }
+
+  return deserialized;
 }
 
 export function serializeResponse(response: Response) {

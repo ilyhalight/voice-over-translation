@@ -1,14 +1,16 @@
 import type { SliderLabelProps } from "../../types/components/sliderLabel";
 import UI from "../../ui";
+import { getHiddenState, setHiddenState } from "./componentShared";
 
 export default class SliderLabel {
   container: HTMLSpanElement;
   strong: HTMLElement;
+  text: HTMLElement;
 
-  private _labelText: string;
-  private _labelEOL: string;
+  private readonly _labelText: string;
+  private readonly _labelEOL: string;
   private _value: number;
-  private _symbol: string;
+  private readonly _symbol: string;
 
   constructor({
     labelText,
@@ -24,20 +26,29 @@ export default class SliderLabel {
     const elements = this.createElements();
     this.container = elements.container;
     this.strong = elements.strong;
+    this.text = elements.text;
   }
 
   private createElements() {
     const container = UI.createEl("vot-block", ["vot-slider-label"]);
-    container.textContent = this.labelText;
 
-    const strong = UI.createEl("strong", ["vot-slider-label-value"]);
+    // IMPORTANT:
+    // Keep the label text in its own element.
+    // A raw text node becomes an anonymous layout item in flex/grid containers
+    // and can cause misalignment of the value column.
+    const text = UI.createEl("span", ["vot-slider-label-text"]);
+    text.textContent = this.labelText;
+
+    // Value should not be overly bold/attention-grabbing; styling is handled in CSS.
+    const strong = UI.createEl("span", ["vot-slider-label-value"]);
     strong.textContent = this.valueText;
 
-    container.append(strong);
+    container.append(text, strong);
 
     return {
       container,
       strong,
+      text,
     };
   }
 
@@ -59,10 +70,10 @@ export default class SliderLabel {
   }
 
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
 }

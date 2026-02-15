@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Ngeunaan extension",
   "appearance": "Penampilan",
-  "buttonPositionInWidePlayer": "Posisi tombol dina pamuter lega",
+  "buttonPosition": "Posisi tombol dina pamuter",
   "position": {
     "left": "Kénca",
     "right": "Katuhu",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Nyegerkeun",
   "VOTYandexToken": "Asupkeun Token Yandex OAuth",
   "VOTYandexTokenInfo": "Anjeun tiasa sacara manual nyetel token akun dina widang ieu. Punten perhatoskeun yén kami henteu mariksa validitasna sateuacan ngirim pamundut tarjamahan",
-  "VOTLoginViaToken": "Login ngaliwatan token"
+  "VOTLoginViaToken": "Login ngaliwatan token",
+  "subtitlesSmartLayout": "Tata perenah subjudul pinter",
+  "smartDucking": "Volume adaptif",
+  "VOTAutoSubtitles": "Subjudul dina buka"
 }

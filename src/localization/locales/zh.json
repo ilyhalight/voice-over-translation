@@ -216,7 +216,7 @@
   },
   "aboutExtension": "关于延期",
   "appearance": "外观",
-  "buttonPositionInWidePlayer": "宽播放器中的按钮位置",
+  "buttonPosition": "播放器中的按钮位置",
   "position": {
     "left": "左图",
     "right": "对",
@@ -238,5 +238,8 @@
   "VOTRefresh": "刷新",
   "VOTYandexToken": "输入Yandex OAuth令牌",
   "VOTYandexTokenInfo": "您可以在此字段中手动设置帐户令牌。 请注意，在发送翻译请求之前，我们不会检查其有效性",
-  "VOTLoginViaToken": "通过令牌登录"
+  "VOTLoginViaToken": "通过令牌登录",
+  "subtitlesSmartLayout": "智能字幕布局",
+  "smartDucking": "自适应音量",
+  "VOTAutoSubtitles": "公开字幕"
 }

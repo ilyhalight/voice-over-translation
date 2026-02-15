@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Om udvidelse",
   "appearance": "Udseende",
-  "buttonPositionInWidePlayer": "Knap position i bred afspiller",
+  "buttonPosition": "Knap position i afspilleren",
   "position": {
     "left": "Venstre",
     "right": "Ret",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Opdatere",
   "VOTYandexToken": "Indtast Yandeks OAuth Token",
   "VOTYandexTokenInfo": "Du kan manuelt indstille kontotokenet i dette felt. Bemærk, at vi ikke kontrollerer dens gyldighed, før vi sender en oversættelsesanmodning",
-  "VOTLoginViaToken": "Log ind via token"
+  "VOTLoginViaToken": "Log ind via token",
+  "subtitlesSmartLayout": "Smart undertekstlayout",
+  "smartDucking": "Adaptiv volumen",
+  "VOTAutoSubtitles": "Undertekster på åben"
 }

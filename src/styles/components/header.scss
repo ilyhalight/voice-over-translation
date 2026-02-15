@@ -11,10 +11,6 @@
   line-height: 1.5;
   text-align: start;
 
-  &[hidden] {
-    display: none !important;
-  }
-
   &:not(:first-child) {
     padding-top: 8px;
   }

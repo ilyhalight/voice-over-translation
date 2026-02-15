@@ -216,7 +216,7 @@
   },
   "aboutExtension": "A proposito di estensione",
   "appearance": "Aspetto",
-  "buttonPositionInWidePlayer": "Posizione del pulsante nel lettore ampio",
+  "buttonPosition": "Posizione del pulsante nel lettore",
   "position": {
     "left": "Sinistra",
     "right": "Diritto",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Aggiornare",
   "VOTYandexToken": "Inserisci il token Yandex OAuth",
   "VOTYandexTokenInfo": "È possibile impostare manualmente il token dell'account in questo campo. Si prega di notare che non controlliamo la sua validità prima di inviare una richiesta di traduzione",
-  "VOTLoginViaToken": "Accedi tramite token"
+  "VOTLoginViaToken": "Accedi tramite token",
+  "subtitlesSmartLayout": "Layout intelligente dei sottotitoli",
+  "smartDucking": "Volume adattivo",
+  "VOTAutoSubtitles": "Sottotitoli su open"
 }

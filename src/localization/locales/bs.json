@@ -216,7 +216,7 @@
   },
   "aboutExtension": "O produženju",
   "appearance": "Izgled",
-  "buttonPositionInWidePlayer": "Pozicija dugmeta u širokom plejeru",
+  "buttonPosition": "Pozicija dugmeta u plejeru",
   "position": {
     "left": "Lijevo",
     "right": "Desno",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Osvježi",
   "VOTYandexToken": "Unesite Yandex OAuth Token",
   "VOTYandexTokenInfo": "Možete ručno podesiti token računa u ovom polju. Imajte na umu da ne provjeravamo njegovu valjanost prije slanja zahtjeva za prevođenje",
-  "VOTLoginViaToken": "Prijava putem tokena"
+  "VOTLoginViaToken": "Prijava putem tokena",
+  "subtitlesSmartLayout": "Smart izgled titlova",
+  "smartDucking": "Adaptivni volumen",
+  "VOTAutoSubtitles": "Subtitles on open"
 }

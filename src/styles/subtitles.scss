@@ -1,49 +1,126 @@
 .vot-subtitles {
-  --vot-subtitles-background: rgba(
-    var(--vot-surface-rgb, 46, 47, 52),
-    var(--vot-subtitles-opacity, 0.8)
-  );
-  position: relative;
-  max-width: 100%;
-  max-height: 100%;
-  width: max-content;
-  background: var(--vot-subtitles-background, rgba(46, 47, 52, 0.8));
-  color: var(--vot-subtitles-color, rgb(227, 227, 227));
-  border-radius: 0.5em !important;
-  pointer-events: all;
-  padding: 0.5em !important;
-  font-size: 20px;
-  font-family: var(
+  // Hard-locked typography for subtitles to avoid host-page overrides.
+  // Keep a dedicated custom prop so internal code can still override it if needed.
+  --vot-subtitles-font-family: var(
     --vot-font-family,
     "Roboto",
     "Segoe UI",
     system-ui,
     sans-serif
+  ) !important;
+
+  --vot-subtitles-background: rgba(
+    var(--vot-surface-rgb, 46, 47, 52),
+    var(--vot-subtitles-opacity, 0.8)
   );
-  line-height: normal;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
+
+  // Subtitles must stay fully readable.
+  // We intentionally do NOT clamp to a fixed line count (no ellipses).
+
+  position: relative;
+  // Max width is controlled by JS via `--vot-subtitles-max-width` (anchor-box relative)
+  // with a viewport-based fallback.
+  // NOTE: avoid a hard rem cap here. In fullscreen/theater layouts the viewport
+  // can be much wider, and a fixed cap causes the "postage stamp" wrapping issue.
+  max-width: var(--vot-subtitles-max-width, 70vw);
+  // `fit-content` can collapse to a very narrow width near the viewport edge
+  // (shrink-to-fit based on the remaining inline space). Prefer an intrinsic
+  // width that is only constrained by `max-width`.
+  width: max-content;
+
+  background: var(--vot-subtitles-background, rgba(46, 47, 52, 0.8));
+  color: var(--vot-subtitles-color, rgb(227, 227, 227));
+  border-radius: 0.5em !important;
+  pointer-events: all;
+  // For stable dragging on touch devices:
+  // - Prevent browser panning/zooming gestures from taking over
+  // - Avoid `pointercancel` mid-drag
+  touch-action: none;
+  padding: 0.5em 0.75em !important;
+
+  // Some players apply CSS transforms in fullscreen (or theater) modes.
+  // Transforms scale *all* descendants, which can unintentionally shrink
+  // already-small subtitle text. We allow JS to compensate via a numeric
+  // multiplier (default 1).
+  // Industry-like default sizing: keep captions comfortably readable even on
+  // smaller players, while scaling up on large viewports.
+  font-size: calc(
+    var(--vot-subtitles-font-size, clamp(18px, 2.2vw, 36px)) *
+      var(--vot-subtitles-scale-compensation, 1)
+  );
+  // Increase specificity (class repeated) + !important to win against aggressive host CSS.
+  font-family: var(--vot-subtitles-font-family) !important;
+  font-style: normal !important;
+  font-weight: var(--vot-subtitles-font-weight, 500) !important;
+  line-height: 1.25 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+
+  // Improve legibility on top of video.
+  text-shadow: var(
+    --vot-subtitles-text-shadow,
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.35)
+  );
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+
+  // Ensure descendants can't accidentally inherit host page typography.
+  // (The host page can still set styles globally; this keeps our tree consistent.)
+  &,
+  & * {
+    font-family: var(--vot-subtitles-font-family) !important;
+  }
+
   box-sizing: border-box;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 3px;
+
+  // Prevent host page styles from leaking into layout/paint.
+  contain: layout paint;
+  isolation: isolate;
+
+  // Use normal inline layout to make wrapping/line-breaking predictable.
+  display: block;
+  text-align: center;
+  margin: 0 auto;
+
+  // Keep multi-line captions centered (matches common player defaults).
+  &.vot-subtitles--multiline {
+    text-align: center;
+  }
+
+  // Progressive enhancement for better orphan/widow control in supported browsers.
+  text-wrap: wrap;
+
+  white-space: normal;
+  overflow-wrap: break-word;
 
   &-widget {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: block;
+    box-sizing: border-box;
+
     position: absolute;
-    width: 50%;
-    max-height: 100%;
-    min-height: 20%;
     z-index: 2147483647;
-    left: 25%;
-    top: 75%;
+
+    left: 50%;
+    // CSS-only fallback position:
+    // Bottom-center with a conservative bottom inset so captions stay readable
+    // even without CSS Anchor Positioning support.
+    --vot-subtitles-fallback-bottom-inset: calc(
+      env(safe-area-inset-bottom, 0px) + clamp(56px, 10vh, 220px) + 10px
+    );
+    top: calc(100% - var(--vot-subtitles-fallback-bottom-inset));
+    transform: translate(-50%, -100%);
+
+    // Same rationale as above: keep the widget width stable even when dragged
+    // close to the right/left edge.
+    width: max-content;
+    max-width: var(--vot-subtitles-max-width, 70vw);
+    max-height: 100%;
+
     pointer-events: none;
+    will-change: left, top, transform;
   }
 
   &-info {
@@ -79,13 +156,20 @@
     cursor: pointer;
     font-size: inherit !important;
     font-family: inherit !important;
-    line-height: normal !important;
+    font-style: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    text-transform: inherit !important;
+    text-decoration: none !important;
+    white-space: normal;
+    overflow-wrap: inherit;
+    word-break: normal;
 
     &.passed {
       color: var(--vot-subtitles-passed-color, rgb(33, 150, 243));
     }
 
-    &:before {
+    &::before {
       content: "";
       position: absolute;
       border-radius: 4px !important;
@@ -96,14 +180,26 @@
       padding: 0 2px !important;
     }
 
-    &:hover:before {
+    &:hover::before {
       background: var(--vot-subtitles-hover-color, rgba(255, 255, 255, 0.55));
     }
 
-    &.selected:before {
+    &.selected::before {
       background: var(--vot-subtitles-passed-color, rgb(33, 150, 243));
     }
   }
+}
+
+:fullscreen .vot-subtitles,
+:-webkit-full-screen .vot-subtitles {
+  // Fullscreen should utilize more horizontal real estate to reduce
+  // unnecessary line wrapping.
+  max-width: var(--vot-subtitles-max-width, 80vw);
+  font-size: calc(
+    var(--vot-subtitles-font-size, clamp(18px, 2vw, 34px)) *
+      var(--vot-subtitles-fullscreen-scale, 1) * 0.95 *
+      var(--vot-subtitles-scale-compensation, 1)
+  );
 }
 
 // max specificity for styles

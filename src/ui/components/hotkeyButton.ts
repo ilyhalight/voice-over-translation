@@ -2,16 +2,28 @@ import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { HotkeyButtonProps } from "../../types/components/hotkeyButton";
 import UI from "../../ui";
+import {
+  addComponentEventListener,
+  getHiddenState,
+  removeComponentEventListener,
+  setHiddenState,
+} from "./componentShared";
 
 export default class HotkeyButton {
   container: HTMLElement;
   button: HTMLElement;
 
-  private onChange = new EventImpl();
+  private readonly onChange = new EventImpl<[string | null]>();
+  private readonly events = {
+    change: this.onChange,
+  };
 
-  private _labelHtml: string;
+  private readonly _labelHtml: string;
   private _key: string | null;
-  private pressedKeys: Set<string>;
+  // Currently held keys while recording.
+  private readonly pressedKeys: Set<string>;
+  // Union of all keys pressed during the recording session.
+  private readonly comboKeys: Set<string>;
 
   private recording: boolean = false;
 
@@ -19,6 +31,7 @@ export default class HotkeyButton {
     this._labelHtml = labelHtml;
     this._key = key;
     this.pressedKeys = new Set<string>();
+    this.comboKeys = new Set<string>();
 
     const elements = this.createElements();
     this.container = elements.container;
@@ -29,12 +42,14 @@ export default class HotkeyButton {
     this.recording = false;
     document.removeEventListener("keydown", this.keydownHandle);
     document.removeEventListener("keyup", this.keyupOrBlurHandle);
-    document.removeEventListener("blur", this.keyupOrBlurHandle);
-    this.button.removeAttribute("data-status");
+    // "blur" on globalThis fires when the tab loses focus.
+    globalThis.removeEventListener("blur", this.blurHandle);
+    delete this.button.dataset.status;
     this.pressedKeys.clear();
+    this.comboKeys.clear();
   }
 
-  private keydownHandle = (event: KeyboardEvent) => {
+  private readonly keydownHandle = (event: KeyboardEvent) => {
     if (!this.recording || event.repeat) {
       return;
     }
@@ -48,16 +63,32 @@ export default class HotkeyButton {
     }
 
     this.pressedKeys.add(event.code);
-    this.button.textContent = formatKeysCombo(this.pressedKeys);
+    this.comboKeys.add(event.code);
+    this.button.textContent = formatKeysComboDisplay(this.pressedKeys);
   };
 
-  private keyupOrBlurHandle = () => {
-    if (!this.recording) {
-      return;
+  private readonly keyupOrBlurHandle = (event?: KeyboardEvent) => {
+    if (!this.recording) return;
+
+    // On keyup, release the key and finish once all keys are released.
+    if (event) {
+      this.pressedKeys.delete(event.code);
+      // Keep showing what the user is currently holding.
+      this.button.textContent = this.pressedKeys.size
+        ? formatKeysComboDisplay(this.pressedKeys)
+        : formatKeysComboDisplay(this.comboKeys);
+      if (this.pressedKeys.size) {
+        return;
+      }
     }
 
-    this.key = formatKeysCombo(this.pressedKeys);
+    // If user exited without pressing any key, treat as "no hotkey".
+    this.key = this.comboKeys.size ? formatKeysCombo(this.comboKeys) : null;
     this.stopRecordingKeys();
+  };
+
+  private readonly blurHandle = () => {
+    this.keyupOrBlurHandle();
   };
 
   private createElements() {
@@ -66,19 +97,29 @@ export default class HotkeyButton {
     label.textContent = this._labelHtml;
 
     const button = UI.createEl("vot-block", ["vot-hotkey-button"]);
+    // A11y: keyboard access for custom element.
+    UI.makeButtonLike(button);
     button.textContent = this.keyText;
     button.addEventListener("click", () => {
+      if (this.recording) {
+        // Clicking again cancels recording without changing the value.
+        this.stopRecordingKeys();
+        this.button.textContent = this.keyText;
+        return;
+      }
+
       button.dataset.status = "active";
 
       this.recording = true;
       this.pressedKeys.clear();
+      this.comboKeys.clear();
       this.button.textContent = localizationProvider.get(
         "PressTheKeyCombination",
       );
 
       document.addEventListener("keydown", this.keydownHandle);
       document.addEventListener("keyup", this.keyupOrBlurHandle);
-      document.addEventListener("blur", this.keyupOrBlurHandle);
+      globalThis.addEventListener("blur", this.blurHandle);
     });
 
     container.append(label, button);
@@ -86,29 +127,29 @@ export default class HotkeyButton {
   }
 
   addEventListener(
-    type: "change",
+    _type: "change",
     listener: (key: string | null) => void,
   ): this {
-    this.onChange.addListener(listener);
+    addComponentEventListener(this.events, "change", listener);
 
     return this;
   }
 
   removeEventListener(
-    type: "change",
+    _type: "change",
     listener: (key: string | null) => void,
   ): this {
-    this.onChange.removeListener(listener);
+    removeComponentEventListener(this.events, "change", listener);
 
     return this;
   }
 
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
 
   get key() {
@@ -120,7 +161,7 @@ export default class HotkeyButton {
       return localizationProvider.get("None");
     }
 
-    return this._key?.replace("Key", "").replace("Digit", "");
+    return formatKeysComboDisplay(this._key);
   }
 
   /**
@@ -145,5 +186,69 @@ export function formatKeysCombo(keys: Set<string> | string[]): string {
 
   return keysArray
     .map((code) => code.replace("Key", "").replace("Digit", ""))
+    .join("+");
+}
+
+/**
+ * Human-friendly formatting for hotkeys. Does not change stored semantics.
+ */
+function formatKeysComboDisplay(keys: Set<string> | string[] | string): string {
+  let parts: string[];
+  if (typeof keys === "string") {
+    parts = keys.split("+").filter(Boolean);
+  } else if (Array.isArray(keys)) {
+    parts = keys;
+  } else {
+    parts = Array.from(keys);
+  }
+
+  const map = (k: string) => {
+    // Stored keys may have removed "Key" / "Digit" already.
+    switch (k) {
+      case "ControlLeft":
+      case "ControlRight":
+      case "Control":
+        return "Ctrl";
+      case "ShiftLeft":
+      case "ShiftRight":
+      case "Shift":
+        return "Shift";
+      case "AltLeft":
+      case "AltRight":
+      case "Alt":
+        return "Alt";
+      case "MetaLeft":
+      case "MetaRight":
+      case "Meta":
+        return "Meta";
+      case "Space":
+        return "Space";
+      case "ArrowUp":
+        return "↑";
+      case "ArrowDown":
+        return "↓";
+      case "ArrowLeft":
+        return "←";
+      case "ArrowRight":
+        return "→";
+      default:
+        return k.replace("Key", "").replace("Digit", "");
+    }
+  };
+
+  // Show modifiers first, then the rest.
+  const priority = (k: string) => {
+    const m = map(k);
+    if (m === "Ctrl") return 0;
+    if (m === "Alt") return 1;
+    if (m === "Shift") return 2;
+    if (m === "Meta") return 3;
+    return 10;
+  };
+
+  return parts
+    .slice()
+    .sort((a, b) => priority(a) - priority(b))
+    .map(map)
     .join("+");
 }

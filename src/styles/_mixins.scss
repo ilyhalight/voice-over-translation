@@ -1,0 +1,43 @@
+@mixin vot-hidden-attr {
+  &[hidden] {
+    display: none !important;
+  }
+}
+
+@mixin vot-font-family {
+  font-family: var(
+    --vot-font-family,
+    "Roboto",
+    "Segoe UI",
+    system-ui,
+    sans-serif
+  ) !important;
+}
+
+@mixin vot-overlay-scrollbar(
+  $surface-var: --vot-helper-surface,
+  $thumb-rgb-var: --vot-helper-onsurface-rgb
+) {
+  scrollbar-color: rgba(var(#{$thumb-rgb-var}), 0.1) var(#{$surface-var}) !important;
+
+  &::-webkit-scrollbar,
+  &::-webkit-scrollbar-track {
+    width: 12px !important;
+    height: 12px !important;
+    background: var(#{$surface-var}) !important;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(#{$thumb-rgb-var}), 0.1) !important;
+    border-radius: 1ex;
+    border: 5px solid var(#{$surface-var}) !important;
+
+    &:hover {
+      border-width: 3px !important;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: var(#{$surface-var}) !important;
+  }
+}

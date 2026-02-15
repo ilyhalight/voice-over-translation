@@ -4,17 +4,26 @@ import { EventImpl } from "../../core/eventImpl";
 import type { CheckboxProps } from "../../types/components/checkbox";
 import type { LitHtml } from "../../types/components/shared";
 import UI from "../../ui";
+import {
+  addComponentEventListener,
+  getHiddenState,
+  removeComponentEventListener,
+  setHiddenState,
+} from "./componentShared";
 
 export default class Checkbox {
   container: HTMLElement;
   input: HTMLInputElement;
   label: HTMLSpanElement;
 
-  private onChange = new EventImpl();
+  private readonly onChange = new EventImpl<[boolean]>();
+  private readonly events = {
+    change: this.onChange,
+  };
 
-  private _labelHtml: LitHtml;
+  private readonly _labelHtml: LitHtml;
   private _checked: boolean;
-  private _isSubCheckbox: boolean;
+  private readonly _isSubCheckbox: boolean;
 
   constructor({
     labelHtml,
@@ -52,27 +61,30 @@ export default class Checkbox {
     return { container, input, label };
   }
 
-  addEventListener(type: "change", listener: (checked: boolean) => void): this {
-    this.onChange.addListener(listener);
+  addEventListener(
+    _type: "change",
+    listener: (checked: boolean) => void,
+  ): this {
+    addComponentEventListener(this.events, "change", listener);
 
     return this;
   }
 
   removeEventListener(
-    type: "change",
+    _type: "change",
     listener: (checked: boolean) => void,
   ): this {
-    this.onChange.removeListener(listener);
+    removeComponentEventListener(this.events, "change", listener);
 
     return this;
   }
 
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
 
   get disabled() {

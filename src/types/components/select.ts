@@ -1,4 +1,4 @@
-import { Phrases } from "../localization";
+import type { Phrases } from "../localization";
 
 export type SelectItem<T extends string = string> = {
   label: string;
@@ -19,4 +19,13 @@ export type SelectProps<
   multiSelect?: M;
 };
 
-export type LanguageSelectKey = Partial<keyof Phrases["langs"]>;
+/**
+ * Language keys supported by the built-in locale dictionaries.
+ *
+ * NOTE:
+ * `Partial<keyof ...>` was previously used here, but `Partial` is meant for
+ * object types and produces an unintuitive type when applied to a string
+ * union (it maps string method keys instead). We want a simple, strict union
+ * of the known language keys.
+ */
+export type LanguageSelectKey = keyof Phrases["langs"];

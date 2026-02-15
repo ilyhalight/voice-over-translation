@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Over extensie",
   "appearance": "Uiterlijk",
-  "buttonPositionInWidePlayer": "Knoppositie in brede speler",
+  "buttonPosition": "Knoppositie in de speler",
   "position": {
     "left": "Links",
     "right": "Recht",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Vernieuwen",
   "VOTYandexToken": "Voer de Yandex OAuth Token in",
   "VOTYandexTokenInfo": "U kunt het account-token handmatig instellen in dit veld. Houd er rekening mee dat we de geldigheid ervan niet controleren voordat we een vertaal verzoek sturen",
-  "VOTLoginViaToken": "Inloggen via token"
+  "VOTLoginViaToken": "Inloggen via token",
+  "subtitlesSmartLayout": "Smart subtitle layout",
+  "smartDucking": "Adaptief volume",
+  "VOTAutoSubtitles": "Ondertitels op open"
 }

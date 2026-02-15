@@ -1,16 +1,16 @@
 import { render } from "lit-html";
-
+import type { LabelProps } from "../../types/components/label";
+import type { LitHtml } from "../../types/components/shared";
 import UI from "../../ui";
-
-import { LabelProps } from "../../types/components/label";
-import { LitHtml } from "../../types/components/shared";
+import { getHiddenState, setHiddenState } from "./componentShared";
 
 export default class Label {
   container: HTMLElement;
   icon: HTMLElement;
+  text: HTMLElement;
 
-  private _labelText: string;
-  private _icon?: LitHtml;
+  private readonly _labelText: string;
+  private readonly _icon?: LitHtml;
 
   constructor({ labelText, icon }: LabelProps) {
     this._labelText = labelText;
@@ -19,29 +19,42 @@ export default class Label {
     const elements = this.createElements();
     this.container = elements.container;
     this.icon = elements.icon;
+    this.text = elements.text;
   }
 
   private createElements() {
     const container = UI.createEl("vot-block", ["vot-label"]);
-    container.textContent = this._labelText;
 
-    const icon = UI.createEl("vot-block", ["vot-label-icon"]);
+    // IMPORTANT:
+    // Do NOT set `container.textContent` directly.
+    // A text node becomes an anonymous flex/grid item in some layouts and can
+    // push the icon to the far edge ("detached help icon" bug).
+    // Wrap the text in a real element so we can style/wrap it predictably.
+    const text = UI.createEl("span", ["vot-label-text"]);
+    text.textContent = this._labelText;
+
+    const icon = UI.createEl("span", ["vot-label-icon"]);
     if (this._icon) {
       render(this._icon, icon);
+    } else {
+      // Avoid reserving space for an icon when none is provided.
+      icon.hidden = true;
     }
-    container.appendChild(icon);
+
+    container.append(text, icon);
 
     return {
       container,
       icon,
+      text,
     };
   }
 
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
 }

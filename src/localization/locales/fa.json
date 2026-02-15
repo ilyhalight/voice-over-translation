@@ -216,7 +216,7 @@
   },
   "aboutExtension": "درباره تمدید",
   "appearance": "ظاهر",
-  "buttonPositionInWidePlayer": "موقعیت دکمه در پخش گسترده",
+  "buttonPosition": "موقعیت دکمه در بازیکن",
   "position": {
     "left": "چپ",
     "right": "درسته ؟ ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "تازه کردن",
   "VOTYandexToken": "توکن Yandex OAuth را وارد کنید",
   "VOTYandexTokenInfo": "شما می توانید توکن حساب را به صورت دستی در این فیلد تنظیم کنید. لطفا توجه داشته باشید که ما اعتبار آن را قبل از ارسال درخواست ترجمه بررسی نمی کنیم",
-  "VOTLoginViaToken": "ورود از طریق توکن"
+  "VOTLoginViaToken": "ورود از طریق توکن",
+  "subtitlesSmartLayout": "طرح زیرنویس هوشمند",
+  "smartDucking": "حجم سازگاری",
+  "VOTAutoSubtitles": "زیرنویس در open"
 }

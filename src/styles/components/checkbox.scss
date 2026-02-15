@@ -1,4 +1,7 @@
 .vot-checkbox {
+  // Keep checkbox text alignment and nested indentation consistent.
+  // Used both for label padding and for `.vot-checkbox-sub` indentation.
+  --vot-checkbox-label-offset: 30px;
   --vot-helper-theme: var(
     --vot-theme-rgb,
     var(--vot-primary-rgb, 33, 150, 243)
@@ -17,28 +20,23 @@
     "Segoe UI",
     system-ui,
     sans-serif
-  );
+  ) !important;
+  text-transform: none !important;
   font-size: 16px;
   line-height: 1.5;
   text-align: start;
 
   &-sub {
-    padding-left: 28px !important;
-  }
-
-  &[hidden] {
-    display: none !important;
+    // Indent child checkboxes so their *box* aligns with the parent label text.
+    // (Looks visually "nested" without arbitrary offsets.)
+    padding-left: var(--vot-checkbox-label-offset) !important;
   }
 
   & > input {
     appearance: none;
-    -moz-appearance: none;
-    -webkit-appearance: none;
     z-index: 10000;
     position: absolute;
     display: block;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     margin: 3px 1px !important;
     padding: 0 !important;
@@ -60,11 +58,9 @@
     & + span {
       position: relative;
       display: inline-block;
-      -webkit-box-sizing: border-box;
-      -moz-box-sizing: border-box;
       font-family: inherit;
       box-sizing: border-box;
-      padding-left: 30px !important;
+      padding-left: var(--vot-checkbox-label-offset) !important;
       width: inherit;
       cursor: pointer;
       font-weight: normal;
@@ -94,8 +90,6 @@
         position: absolute;
         top: 3px;
         left: 1px;
-        -webkit-box-sizing: content-box !important;
-        -moz-box-sizing: content-box !important;
         box-sizing: content-box !important;
         width: 10px;
         height: 5px;
@@ -177,6 +171,19 @@
         opacity: 0;
         transform: scale(0);
       }
+    }
+  }
+}
+
+// Keyboard-only focus indicator (kept subtle, but present for accessibility).
+@at-root {
+  html.vot-keyboard-nav .vot-checkbox > input:focus-visible {
+    box-shadow: var(--vot-focus-ring), var(--vot-focus-ring-offset) !important;
+  }
+
+  @supports not selector(:focus-visible) {
+    html.vot-keyboard-nav .vot-checkbox > input:focus {
+      box-shadow: var(--vot-focus-ring), var(--vot-focus-ring-offset) !important;
     }
   }
 }

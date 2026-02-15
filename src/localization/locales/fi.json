@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Tietoja laajennuksesta",
   "appearance": "Ulkonäkö",
-  "buttonPositionInWidePlayer": "Painikkeen sijainti leveässä soittimessa",
+  "buttonPosition": "Painikkeen sijainti soittimessa",
   "position": {
     "left": "Jättää",
     "right": "Oikea",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Päivitä",
   "VOTYandexToken": "Syötä Yandex OAuth-Token",
   "VOTYandexTokenInfo": "Voit asettaa tilin tunnuksen manuaalisesti tässä kentässä. Huomaa, että emme tarkista sen voimassaoloa ennen käännöspyynnön lähettämistä",
-  "VOTLoginViaToken": "Kirjaudu Tokenin kautta"
+  "VOTLoginViaToken": "Kirjaudu Tokenin kautta",
+  "subtitlesSmartLayout": "Älykäs tekstityksen asettelu",
+  "smartDucking": "Mukautuva äänenvoimakkuus",
+  "VOTAutoSubtitles": "Tekstitys auki"
 }

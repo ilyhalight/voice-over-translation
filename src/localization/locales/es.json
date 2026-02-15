@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Acerca de la extensión",
   "appearance": "Apariencia",
-  "buttonPositionInWidePlayer": "Posición del botón en el reproductor ancho",
+  "buttonPosition": "Posición del botón en el reproductor",
   "position": {
     "left": "Izquierda",
     "right": "Correcto",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Refrescar",
   "VOTYandexToken": "Ingrese el Token Yandex OAuth",
   "VOTYandexTokenInfo": "Puede configurar manualmente el token de la cuenta en este campo. Tenga en cuenta que no verificamos su validez antes de enviar una solicitud de traducción",
-  "VOTLoginViaToken": "Iniciar sesión a través de token"
+  "VOTLoginViaToken": "Iniciar sesión a través de token",
+  "subtitlesSmartLayout": "Diseño inteligente de subtítulos",
+  "smartDucking": "Volumen adaptable",
+  "VOTAutoSubtitles": "Subtítulos en abierto"
 }

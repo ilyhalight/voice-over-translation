@@ -17,11 +17,7 @@
   line-height: 1.5;
   text-align: start;
   cursor: pointer;
-  transition: background 0.5s ease;
-
-  &[hidden] {
-    display: none !important;
-  }
+  transition: background var(--vot-duration-medium) var(--vot-easing-standard);
 
   &-arrow-icon {
     width: 20px;
@@ -34,6 +30,6 @@
   }
 
   &:hover {
-    background: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.04);
+    background: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.06);
   }
 }

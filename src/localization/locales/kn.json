@@ -216,7 +216,7 @@
   },
   "aboutExtension": "ವಿಸ್ತರಣೆ ಬಗ್ಗೆ",
   "appearance": "ಗೋಚರತೆ",
-  "buttonPositionInWidePlayer": "ವೈಡ್ ಪ್ಲೇಯರ್ನಲ್ಲಿ ಬಟನ್ ಸ್ಥಾನ",
+  "buttonPosition": "ಆಟಗಾರ ಬಟನ್ ಸ್ಥಾನ",
   "position": {
     "left": "ಎಡ",
     "right": "ಬಲ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "ರಿಫ್ರೆಶ್",
   "VOTYandexToken": "Yandex OAuth ಟೋಕನ್ ಅನ್ನು ನಮೂದಿಸಿ",
   "VOTYandexTokenInfo": "ಈ ಕ್ಷೇತ್ರದಲ್ಲಿ ನೀವು ಖಾತೆ ಟೋಕನ್ ಅನ್ನು ಹಸ್ತಚಾಲಿತವಾಗಿ ಹೊಂದಿಸಬಹುದು. ಅನುವಾದ ವಿನಂತಿಯನ್ನು ಕಳುಹಿಸುವ ಮೊದಲು ನಾವು ಅದರ ಸಿಂಧುತ್ವವನ್ನು ಪರಿಶೀಲಿಸುವುದಿಲ್ಲ ಎಂಬುದನ್ನು ದಯವಿಟ್ಟು ಗಮನಿಸಿ",
-  "VOTLoginViaToken": "ಟೋಕನ್ ಮೂಲಕ ಲಾಗಿನ್ ಮಾಡಿ"
+  "VOTLoginViaToken": "ಟೋಕನ್ ಮೂಲಕ ಲಾಗಿನ್ ಮಾಡಿ",
+  "subtitlesSmartLayout": "ಸ್ಮಾರ್ಟ್ ಉಪಶೀರ್ಷಿಕೆ ಲೇಔಟ್",
+  "smartDucking": "ಹೊಂದಾಣಿಕೆಯ ಪರಿಮಾಣ",
+  "VOTAutoSubtitles": "ತೆರೆಯ ಮೇಲೆ ಉಪಶೀರ್ಷಿಕೆಗಳು"
 }

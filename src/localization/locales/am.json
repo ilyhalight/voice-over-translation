@@ -216,7 +216,7 @@
   },
   "aboutExtension": "ስለ ቅጥያ",
   "appearance": "መልክ",
-  "buttonPositionInWidePlayer": "ሰፊ ተጫዋች ውስጥ አዝራር ቦታ",
+  "buttonPosition": "የሚሰጡዋቸውን የሚሰጡዋቸውን ተጫዋች",
   "position": {
     "left": "ግራ",
     "right": "ቀኝ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "በድጋሚ ጀምር",
   "VOTYandexToken": "የ Yandex Out Toket አስገባ",
   "VOTYandexTokenInfo": "በዚህ መስክ የመለያ ምልክቱን እራስዎ ማዘጋጀት ይችላሉ። የትርጉም ጥያቄ ከመላክዎ በፊት ትክክለኛነቱን እንደማንፈትሽ እባክዎ ልብ ይበሉ ። ",
-  "VOTLoginViaToken": "በቶከን በኩል ይግቡ"
+  "VOTLoginViaToken": "በቶከን በኩል ይግቡ",
+  "subtitlesSmartLayout": "ዘመናዊ ንዑስ ርዕስ አቀማመጥ",
+  "smartDucking": "የመላመድ ድምጽ",
+  "VOTAutoSubtitles": "ክፍት ላይ ንዑስ ርዕሶች"
 }

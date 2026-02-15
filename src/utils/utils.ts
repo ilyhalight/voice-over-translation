@@ -1,250 +1,131 @@
-import Bowser from "bowser";
-import { ID3Writer } from "browser-id3-writer";
+export { calculatedResLang } from "./localization";
 
-import { availableTTS } from "@vot.js/shared/consts";
-import { ResponseLang } from "@vot.js/shared/types/data";
+/**
+ * Creates a stable JSON string representation for consistent hashing
+ * @param value The value to stringify
+ * @returns A stable JSON string
+ */
+export function stableStringify(value: unknown): string {
+  const seen = new WeakSet<object>();
+  return JSON.stringify(value, (_key, val) => {
+    if (val && typeof val === "object") {
+      const obj = val as object;
+      if (seen.has(obj)) {
+        return "[Circular]";
+      }
+      seen.add(obj);
+      if (Array.isArray(val)) return val;
+      const sorted: Record<string, unknown> = {};
+      const entries = Object.entries(val).sort(([leftKey], [rightKey]) =>
+        leftKey.localeCompare(rightKey),
+      );
+      for (const [key, entryValue] of entries) {
+        sorted[key] = entryValue;
+      }
+      return sorted;
+    }
+    return val;
+  });
+}
 
-import { lang } from "./localization";
+/**
+ * Small, deterministic hash for cache keys. (Not crypto.)
+ * @param str The string to hash
+ * @returns A base36 string representation of the hash
+ */
+export function fnv1a32ToKeyPart(str: string): string {
+  let hash = 0x811c9dc5; // 2166136261
+  let i = 0;
+  while (i < str.length) {
+    const codePoint = str.codePointAt(i) ?? 0;
+    hash ^= codePoint;
+    hash = Math.imul(hash, 0x01000193); // 16777619
+    i += codePoint > 0xffff ? 2 : 1;
+  }
+  // Unsigned 32-bit to a compact base36 string.
+  return (hash >>> 0).toString(36);
+}
 
 export interface DocumentWithFullscreen extends Document {
   webkitFullscreenElement?: Element | null;
   webkitExitFullscreen?: () => Promise<void>;
 }
 
-const textFilters =
-  /(?:https?|www|\bhttp\s+)[^\s/]*?(?:\.\s*[a-z]{2,}|\/)\S*|#[^\s#]+|auto-generated\s+by\s+youtube|provided\s+to\s+youtube\s+by|released\s+on|paypal?|0x[\da-f]{40}|[13][1-9a-z]{25,34}|4[\dab][1-9a-z]{93}|t[1-9a-z]{33}/gi;
-const slavicLangs = new Set([
-  "uk",
-  "be",
-  "bg",
-  "mk",
-  "sr",
-  "bs",
-  "hr",
-  "sl",
-  "pl",
-  "sk",
-  "cs",
-]);
-export const calculatedResLang: ResponseLang = (() => {
-  if (availableTTS.includes(lang as ResponseLang)) {
-    return lang as ResponseLang;
-  }
-
-  if (slavicLangs.has(lang)) {
-    return "ru";
-  }
-
-  return "en";
-})();
-export const browserInfo = Bowser.getParser(
-  window.navigator.userAgent,
-).getResult();
-
 export const isPiPAvailable = () =>
-  "pictureInPictureEnabled" in document && document.pictureInPictureEnabled;
+  "pictureInPictureEnabled" in document &&
+  Boolean((document as any).pictureInPictureEnabled);
 
-function initHls() {
-  return typeof Hls != "undefined" && Hls?.isSupported()
-    ? new Hls({
-        debug: DEBUG_MODE,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-      })
-    : undefined;
-}
-
-function cleanText(title: string, description?: string) {
-  return (title + " " + (description || ""))
-    .replace(textFilters, "")
-    .replace(/[^\p{L}]+/gu, " ")
-    .substring(0, 450)
-    .trim();
-}
-
-/**
- * Downloads binary file with entered filename
- */
-function downloadBlob(blob: Blob, filename: string) {
+/** Downloads binary file with entered filename */
+export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+
+  revokeObjectUrlLater(url);
 }
 
-function clearFileName(filename: string) {
-  if (filename.trim().length === 0) {
-    return new Date().toLocaleDateString("en-us").replaceAll("/", "-");
-  }
+const DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 30_000;
 
-  return filename.replace(/^https?:\/\//, "").replace(/[\\/:*?"'<>|]/g, "-");
+export function revokeObjectUrlLater(
+  url: string,
+  delayMs = DEFAULT_OBJECT_URL_REVOKE_DELAY_MS,
+): void {
+  globalThis.setTimeout(() => URL.revokeObjectURL(url), delayMs);
 }
 
-function getTimestamp() {
-  return Math.floor(Date.now() / 1000);
+export function clearFileName(filename: string) {
+  const name = filename.trim();
+  if (!name) return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  return name.replace(/^https?:\/\//, "").replaceAll(/[\\/:*?"'<>|]/g, "-");
 }
 
-function getHeaders(headers: HeadersInit | undefined): Record<string, unknown> {
-  if (headers instanceof Headers) {
-    return Object.fromEntries(headers.entries());
-  }
+export const getTimestamp = () => Math.floor(Date.now() / 1000);
 
-  if (Array.isArray(headers)) {
-    return Object.fromEntries(headers);
-  }
+export const getHeaders = (headers?: HeadersInit): Record<string, string> =>
+  headers ? Object.fromEntries(new Headers(headers).entries()) : {};
 
-  return headers || {};
-}
+export const clamp = (value: number, min = 0, max = 100) =>
+  Math.min(Math.max(value, min), max);
 
-function clamp(value: number, min = 0, max = 100) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function toFlatObj<T extends Record<string, unknown>>(
+export function toFlatObj<T extends Record<string, unknown>>(
   data: Record<string, unknown>,
 ): T {
-  // eslint-disable-next-line no-accumulating-spread
-  return Object.entries(data).reduce<Record<string, unknown>>(
-    (result, [key, val]) => {
-      if (val === undefined) {
-        return result;
-      }
+  const out: Record<string, unknown> = {};
+  const stack: Array<[string, unknown]> = Object.entries(data);
 
-      if (typeof val !== "object") {
-        result[key] = val;
-        return result;
-      }
+  while (stack.length) {
+    const entry = stack.pop();
+    if (!entry) continue;
+    const [key, val] = entry;
+    if (val === undefined) continue;
 
-      const nestedItem = Object.entries(
-        toFlatObj<T>(data[key] as Record<string, unknown>),
-      ).reduce<Record<string, unknown>>((res, [k, v]) => {
-        res[`${key}.${k}`] = v;
-        return res;
-      }, {});
-      return {
-        ...result,
-        ...nestedItem,
-      };
-    },
-    {},
-  ) as T;
-}
+    const isPlainObject =
+      val !== null && typeof val === "object" && !Array.isArray(val);
 
-async function exitFullscreen() {
-  const doc = document as DocumentWithFullscreen;
-  if (doc.fullscreenElement || doc.webkitFullscreenElement) {
-    doc.webkitExitFullscreen && (await doc.webkitExitFullscreen());
-    doc.exitFullscreen && (await doc.exitFullscreen());
-  }
-}
-
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-function timeout(ms: number, message = "Operation timed out"): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(message)), ms);
-  });
-}
-
-async function waitForCondition(
-  condition: () => boolean,
-  timeoutMs: number,
-  throwOnTimeout = false,
-): Promise<void> {
-  let timedOut = false;
-
-  return Promise.race([
-    (async () => {
-      while (!condition() && !timedOut) {
-        await sleep(100);
-      }
-    })(),
-    new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
-        timedOut = true;
-        if (throwOnTimeout) {
-          reject(
-            new Error(`Wait for condition reached timeout of ${timeoutMs}`),
-          );
-        } else {
-          resolve();
-        }
-      }, timeoutMs);
-    }),
-  ]);
-}
-
-async function _downloadTranslationWithProgress(
-  res: Response,
-  contentLength: number,
-  onProgress = (_progress: number) => {},
-) {
-  const reader = res.body?.getReader();
-  if (!reader) {
-    throw new Error("Response body is not readable");
-  }
-  const chunksBuffer = new Uint8Array(contentLength);
-  let offset = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
+    if (!isPlainObject) {
+      out[key] = val;
+      continue;
     }
 
-    chunksBuffer.set(value, offset);
-    offset += value.length;
-    onProgress(Math.round((offset / contentLength) * 100));
+    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+      stack.push([`${key}.${k}`, v]);
+    }
   }
 
-  return chunksBuffer.buffer;
+  return out as T;
 }
 
-/**
- * Downloads a translation file and saves it as an MP3 file with metadata, if possible tracking progress.
- *
- * @param {Response} res - The response object from a fetch request
- * @param {string} filename - The name to assign to the downloaded file (without extension).
- * @param {function(number): void} [onProgress] - Optional callback function to track download progress.
- *        Receives a percentage (0 to 100) as its argument
- * @returns {Promise<boolean>} - Resolves to `true` when the download completed.
- */
-async function downloadTranslation(
-  res: Response,
-  filename: string,
-  onProgress = (_progress: number) => {},
-) {
-  const contentLength = +(res.headers.get("Content-Length") ?? 0);
-  const arrayBuffer = await (!contentLength
-    ? res.arrayBuffer()
-    : _downloadTranslationWithProgress(res, contentLength, onProgress));
-  onProgress(100);
-  const writer = new ID3Writer(arrayBuffer);
-  writer.setFrame("TIT2", filename);
-  writer.addTag();
-  downloadBlob(writer.getBlob(), `${filename}.mp3`);
-  return true;
-}
+export async function exitFullscreen() {
+  const doc = document as DocumentWithFullscreen;
 
-function openDownloadTranslation(url: string) {
-  window.open(url, "_blank")?.focus();
-}
+  if (!doc.fullscreenElement && !doc.webkitFullscreenElement) return;
 
-export {
-  initHls,
-  cleanText,
-  downloadBlob,
-  clearFileName,
-  getTimestamp,
-  getHeaders,
-  clamp,
-  toFlatObj,
-  exitFullscreen,
-  sleep,
-  timeout,
-  waitForCondition,
-  downloadTranslation,
-  openDownloadTranslation,
-};
+  if (doc.exitFullscreen) return doc.exitFullscreen();
+  return doc.webkitExitFullscreen?.();
+}

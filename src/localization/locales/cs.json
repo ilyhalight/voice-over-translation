@@ -216,7 +216,7 @@
   },
   "aboutExtension": "O rozšíření",
   "appearance": "Vzhled",
-  "buttonPositionInWidePlayer": "Pozice tlačítka v širokém přehrávači",
+  "buttonPosition": "Pozice tlačítka v přehrávači",
   "position": {
     "left": "Levá",
     "right": "Právo",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Aktualizovat",
   "VOTYandexToken": "Zadejte Token Yandex OAuth",
   "VOTYandexTokenInfo": "V tomto poli můžete ručně nastavit token účtu. Vezměte prosím na vědomí, že před odesláním požadavku na překlad nekontrolujeme jeho platnost",
-  "VOTLoginViaToken": "Přihlášení přes token"
+  "VOTLoginViaToken": "Přihlášení přes token",
+  "subtitlesSmartLayout": "Inteligentní rozložení titulků",
+  "smartDucking": "Adaptivní objem",
+  "VOTAutoSubtitles": "Titulky na open"
 }

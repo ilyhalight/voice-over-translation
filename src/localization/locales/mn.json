@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Сунгах тухай",
   "appearance": "Гадаад төрх",
-  "buttonPositionInWidePlayer": "Өргөн тоглуулагч дахь товчлуурын байрлал",
+  "buttonPosition": "Тоглогч дахь товчлуурын байрлал",
   "position": {
     "left": "Зүүн",
     "right": "Зөв",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Сэргээх",
   "VOTYandexToken": "Yandex OAuth токен оруулна уу",
   "VOTYandexTokenInfo": "Та энэ талбарт дансны түлхүүрийг гараар тохируулж болно. Орчуулах хүсэлт илгээхээс өмнө бид түүний хүчинтэй эсэхийг шалгахгүй болохыг анхаарна уу",
-  "VOTLoginViaToken": "Токеноор нэвтрэх"
+  "VOTLoginViaToken": "Токеноор нэвтрэх",
+  "subtitlesSmartLayout": "Smart subtitle зохион байгуулалт",
+  "smartDucking": "Дасан зохицох хэмжээ",
+  "VOTAutoSubtitles": "Нээлттэй дээр хадмалтай"
 }

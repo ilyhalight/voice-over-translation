@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Mengenai sambungan",
   "appearance": "Penampilan",
-  "buttonPositionInWidePlayer": "Kedudukan butang dalam pemain lebar",
+  "buttonPosition": "Kedudukan butang dalam pemain",
   "position": {
     "left": "Kiri",
     "right": "Kanan",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Segarkan semula",
   "VOTYandexToken": "MASUKKAN Token Yandex OAuth",
   "VOTYandexTokenInfo": "Anda boleh menetapkan token akaun secara manual dalam medan ini. Sila ambil perhatian bahawa kami tidak menyemak kesahihannya sebelum menghantar permintaan Terjemah",
-  "VOTLoginViaToken": "Log masuk melalui token"
+  "VOTLoginViaToken": "Log masuk melalui token",
+  "subtitlesSmartLayout": "Susun atur sari kata pintar",
+  "smartDucking": "Isipadu adaptif",
+  "VOTAutoSubtitles": "Subtitle di buka"
 }

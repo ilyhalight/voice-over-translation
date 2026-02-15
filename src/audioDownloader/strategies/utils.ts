@@ -1,7 +1,7 @@
-import { AudioDownloadType } from "@vot.js/core/types/yandex";
-import { AdaptiveFormat } from "@vot.js/ext/types/helpers/youtube";
-import { ChunkRange, VideoIdPayload } from "../../types/audioDownloader";
-import { MessagePayload } from "../../types/iframeConnector";
+import type { AudioDownloadType } from "@vot.js/core/types/yandex";
+import type { AdaptiveFormat } from "@vot.js/ext/types/helpers/youtube";
+import type { ChunkRange, VideoIdPayload } from "../../types/audioDownloader";
+import type { MessagePayload } from "../../types/iframeConnector";
 import {
   ensureServiceIframe,
   generateMessageId,
@@ -16,7 +16,40 @@ import {
   MIN_CONTENT_LENGTH_MULTIPLIER,
 } from "../shared";
 
-let serviceIframe: HTMLIFrameElement | null = null;
+const serviceIframe: HTMLIFrameElement | null = null;
+
+function generateChunkRanges(
+  contentLength: number,
+  minChunkSize: number,
+): ChunkRange[] {
+  const chunkRanges: ChunkRange[] = [];
+  let stepIndex = 0;
+  let start = 0;
+  let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
+
+  while (end < contentLength) {
+    chunkRanges.push({
+      start,
+      end,
+      mustExist: end < minChunkSize,
+    });
+
+    if (stepIndex < CHUNK_STEPS.length - 1) {
+      stepIndex++;
+    }
+
+    start = end + 1;
+    end += CHUNK_STEPS[stepIndex];
+  }
+
+  chunkRanges.push({
+    start,
+    end: contentLength,
+    mustExist: false,
+  });
+
+  return chunkRanges;
+}
 
 function getChunkRangesPartsFromContentLength(
   contentLength: number,
@@ -30,46 +63,37 @@ function getChunkRangesPartsFromContentLength(
   const minChunkSize = Math.round(
     contentLength * MIN_CONTENT_LENGTH_MULTIPLIER,
   );
-  const parts = [];
-  let currentPart = [];
+  const chunkRanges = generateChunkRanges(contentLength, minChunkSize);
+  const chunkRangeParts: ChunkRange[][] = [];
+  let currentPart: ChunkRange[] = [];
   let currentPartSize = 0;
-  let stepIndex = 0;
-  let start = 0;
-  let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
-  while (end < contentLength) {
-    const mustExist = end < minChunkSize;
-    currentPart.push({ start, end, mustExist });
-    currentPartSize += end - start;
-    if (currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE) {
-      parts.push(currentPart);
+
+  for (const chunkRange of chunkRanges) {
+    currentPart.push(chunkRange);
+    currentPartSize += chunkRange.end - chunkRange.start;
+    if (
+      currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE ||
+      chunkRange.end === contentLength
+    ) {
+      chunkRangeParts.push(currentPart);
       currentPart = [];
       currentPartSize = 0;
     }
-
-    if (stepIndex < CHUNK_STEPS.length - 1) {
-      stepIndex++;
-    }
-
-    start = end + 1;
-    end += CHUNK_STEPS[stepIndex];
   }
 
-  end = contentLength;
-  currentPart.push({ start, end, mustExist: false });
-  parts.push(currentPart);
-  return parts;
+  return chunkRangeParts;
 }
 
 function parseContentLength({ contentLength }: AdaptiveFormat): number {
   if (typeof contentLength !== "string") {
-    throw new Error(
+    throw new TypeError(
       `Audio downloader. WEB API. Content length (${contentLength}) is not a string`,
     );
   }
 
-  const parsed = Number.parseInt(contentLength);
+  const parsed = Number.parseInt(contentLength, 10);
   if (!Number.isFinite(parsed)) {
-    throw new Error(
+    throw new TypeError(
       `Audio downloader. WEB API. Parsed content length is not finite (${parsed})`,
     );
   }
@@ -97,33 +121,7 @@ function getChunkRangesFromContentLength(contentLength: number): ChunkRange[] {
   const minChunkSize = Math.round(
     contentLength * MIN_CONTENT_LENGTH_MULTIPLIER,
   );
-  const chunkRanges: ChunkRange[] = [];
-  let stepIndex = 0;
-  let start = 0;
-  let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
-  while (end < contentLength) {
-    const mustExist = end < minChunkSize;
-    chunkRanges.push({
-      start,
-      end: end,
-      mustExist,
-    });
-
-    if (stepIndex !== CHUNK_STEPS.length - 1) {
-      stepIndex++;
-    }
-
-    start = end + 1;
-    end += CHUNK_STEPS[stepIndex];
-  }
-
-  chunkRanges.push({
-    start,
-    end: contentLength,
-    mustExist: false,
-  });
-
-  return chunkRanges;
+  return generateChunkRanges(contentLength, minChunkSize);
 }
 
 export function getChunkRangesFromAdaptiveFormat(
@@ -185,7 +183,7 @@ export async function sendRequestToIframe(
   } catch (err) {
     data.error = err;
     data.messageDirection = "response";
-    window.postMessage(data, "*");
+    globalThis.postMessage(data, "*");
   }
 }
 

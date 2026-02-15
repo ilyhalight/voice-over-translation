@@ -27,12 +27,37 @@ jobs:
         shell: bash
         run: npm install
       - name: Build 🔧
-        run: npm run build
+        run: npm run build:all
       - name: Upload Artifact 🚀
         uses: actions/upload-artifact@v4
         with:
           name: vot-${{ matrix.node-version }}
           path: dist/vot*.user.js
+
+  extension:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+      - name: Setup Node.js ${{ matrix.node-version }} 🛎️
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install 🔧
+        shell: bash
+        run: npm ci
+      - name: Build extension 🔧
+        run: npm run build:ext
+      - name: Upload extension artifacts 🚀
+        uses: actions/upload-artifact@v4
+        with:
+          name: vot-extension-${{ matrix.node-version }}
+          path: |
+            dist-ext/vot-extension-chrome-*.crx
+            dist-ext/vot-extension-firefox-*.xpi
 
   bun:
     runs-on: ubuntu-latest
@@ -47,7 +72,7 @@ jobs:
         shell: bash
         run: bun install
       - name: Build 🔧
-        run: bun run build
+        run: bun run build:all
       - name: Upload Artifact 🚀
         uses: actions/upload-artifact@v4
         with:

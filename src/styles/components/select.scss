@@ -1,11 +1,11 @@
 .vot-select {
-  --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0) !important;
-  --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87) !important;
-  --vot-helper-safari1: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.6) !important;
+  --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
+  --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87);
+  --vot-helper-safari1: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.6);
   --vot-helper-safari2: rgba(
     var(--vot-onsurface-rgb, 0, 0, 0),
     0.87
-  ) !important;
+  );
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -20,13 +20,8 @@
   font-weight: normal;
   line-height: 1.5;
   text-align: start;
-
   color: var(--vot-helper-theme);
   fill: var(--vot-helper-theme);
-
-  &[hidden] {
-    display: none !important;
-  }
 
   &-outer {
     display: flex;
@@ -39,8 +34,18 @@
     border-radius: 4px !important;
     cursor: pointer;
     transition: border 0.2s !important;
+
     &:hover {
       border-color: var(--vot-helper-safari2) !important;
+    }
+
+    &[disabled="true"] {
+      opacity: 0.5;
+      cursor: default;
+
+      &:hover {
+        border-color: var(--vot-helper-safari1) !important;
+      }
     }
   }
 
@@ -50,7 +55,7 @@
     white-space: nowrap;
     font-family: inherit;
   }
-
+  
   &-arrow-icon {
     width: 20px;
     height: 32px;
@@ -71,12 +76,15 @@
       padding: 5px 10px !important;
       border-radius: 8px !important;
       cursor: pointer;
+
       &:not([inert]):hover {
         background-color: rgb(42, 44, 49);
       }
+
       &[data-vot-selected="true"] {
         color: rgb(var(--vot-primary-rgb, 33, 150, 243));
         background-color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.2);
+
         &:hover {
           background-color: rgba(
             var(--vot-primary-rgb, 33, 150, 243),
@@ -84,12 +92,10 @@
           ) !important;
         }
       }
+
       &[inert] {
         cursor: default;
         color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
-      }
-      &[hidden] {
-        display: none !important;
       }
     }
   }

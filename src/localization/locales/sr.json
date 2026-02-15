@@ -216,7 +216,7 @@
   },
   "aboutExtension": "О проширењу",
   "appearance": "Изглед",
-  "buttonPositionInWidePlayer": "Положај дугмета у широком плејеру",
+  "buttonPosition": "Положај дугмета у грамофону",
   "position": {
     "left": "Лево",
     "right": "Тачно",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Освежите",
   "VOTYandexToken": "Унесите ОАутх-Иандек токен",
   "VOTYandexTokenInfo": "У овом пољу можете ручно одредити токен рачуна. Имајте на уму да не проверавамо његову ваљаност пре него што пошаљемо захтев за трансфер",
-  "VOTLoginViaToken": "Пријавите се помоћу токена"
+  "VOTLoginViaToken": "Пријавите се помоћу токена",
+  "subtitlesSmartLayout": "Паметан изглед титлова",
+  "smartDucking": "Адаптивна јачина звука",
+  "VOTAutoSubtitles": "Титлови приликом отварања"
 }

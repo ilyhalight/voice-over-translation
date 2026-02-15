@@ -18,6 +18,7 @@
   "audioNotReceived": "Не получена ссылка на аудио",
   "audioFormatNotSupported": "Формат аудио не поддерживается",
   "VOTAutoTranslate": "Переводить при открытии",
+  "VOTAutoSubtitles": "Субтитры при открытии",
   "VOTDontTranslateYourLang": "Не переводить с родного языка",
   "VOTVolume": "Громкость видео:",
   "VOTVolumeTranslation": "Громкость перевода:",
@@ -216,7 +217,7 @@
   },
   "aboutExtension": "О расширении",
   "appearance": "Внешний вид",
-  "buttonPositionInWidePlayer": "Положение кнопки в широком плеере",
+  "buttonPosition": "Положение кнопки в плеере",
   "position": {
     "left": "Слева",
     "right": "Справа",
@@ -238,5 +239,7 @@
   "VOTRefresh": "Обновить",
   "VOTYandexToken": "Введите OAuth-токен Яндекса",
   "VOTYandexTokenInfo": "Вы можете вручную указать токен учетной записи в этом поле. Пожалуйста, обратите внимание, что мы не проверяем его действительность перед отправкой запроса на перевод",
-  "VOTLoginViaToken": "Войти с помощью токена"
+  "VOTLoginViaToken": "Войти с помощью токена",
+  "subtitlesSmartLayout": "Умное расположение субтитров",
+  "smartDucking": "Адаптивная громкость"
 }

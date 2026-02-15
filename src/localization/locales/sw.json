@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Kuhusu ugani",
   "appearance": "Kuonekana",
-  "buttonPositionInWidePlayer": "Nafasi ya kifungo katika mchezaji mpana",
+  "buttonPosition": "Nafasi ya kifungo katika mchezaji",
   "position": {
     "left": "Kushoto",
     "right": "Haki",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Furahisha",
   "VOTYandexToken": "Ingiza Ishara Ya Yandex OAuth",
   "VOTYandexTokenInfo": "Unaweza kuweka ishara ya akaunti kwa mikono katika uwanja huu. Tafadhali kumbuka kuwa hatuangalii uhalali wake kabla ya kutuma ombi la kutafsiri",
-  "VOTLoginViaToken": "Ingia kupitia ishara"
+  "VOTLoginViaToken": "Ingia kupitia ishara",
+  "subtitlesSmartLayout": "Mpangilio wa manukuu mahiri",
+  "smartDucking": "Kiasi cha kubadilika",
+  "VOTAutoSubtitles": "Subtitles juu ya wazi"
 }

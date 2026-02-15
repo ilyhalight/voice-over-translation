@@ -4,10 +4,13 @@
 
 Доступные (под)домены:
 
-- `(www.)?youtube.com`
-- `(www.)?youtube-nocookie.com`
-- `(www.)?youtubekids.com`
 - `m.youtube.com`
+- `youtube.com`
+- `youtube-nocookie.com`
+- `youtubekids.com`
+- `www.youtube.com`
+- `www.youtube-nocookie.com`
+- `www.youtubekids.com`
 
 Доступные пути:
 
@@ -28,15 +31,11 @@
 Доступные (под)домены:
 
 - `yewtu.be`
-- `yt.artemislena.eu`
-- `invidious.flokinet.to`
-- `iv.melmac.space`
 - `inv.nadeko.net`
-- `inv.tux.pizza`
-- `invidious.private.coffee`
-- `yt.drgnz.club`
-- `vid.puffyan.us`
-- `invidious.dhusch.de`
+- `invidious.nerdvpn.de`
+- `invidious.protokolla.fi`
+- `invidious.materialio.us`
+- `iv.melmac.space`
 
 Доступные пути:
 
@@ -58,33 +57,8 @@
 Доступные (под)домены:
 
 - `piped.video`
-- `piped.tokhmi.xyz`
-- `piped.moomoo.me`
-- `piped.syncpundit.io`
-- `piped.mha.fi`
-- `watch.whatever.social`
-- `piped.garudalinux.org`
-- `efy.piped.pages.dev`
-- `watch.leptons.xyz`
-- `piped.lunar.icu`
-- `yt.dc09.ru`
-- `piped.mint.lgbt`
-- `il.ax`
-- `piped.privacy.com.de`
-- `piped.esmailelbob.xyz`
-- `piped.projectsegfau.lt`
-- `piped.in.projectsegfau.lt`
-- `piped.us.projectsegfau.lt`
-- `piped.privacydev.net`
-- `piped.palveluntarjoaja.eu`
-- `piped.smnz.de`
-- `piped.adminforge.de`
-- `piped.qdi.fi`
-- `piped.hostux.net`
-- `piped.chauvet.pro`
-- `piped.jotoma.de`
-- `piped.pfcd.me`
-- `piped.frontendfriendly.xyz`
+- `piped.kavin.rocks`
+- `piped.private.coffee`
 
 Доступные пути:
 
@@ -99,51 +73,29 @@
 - Не работает в предпросмотре видео
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
-## Poketube
+## Zdf
 
 Статус: [✅] Работает
 
 Доступные (под)домены:
 
-- `poketube.fun`
-- `pt.sudovanilla.org`
-- `poke.ggtyler.dev`
-- `poke.uk2.littlekai.co.uk`
-- `poke.blahai.gay`
+- `zdf.de`
+- `www.zdf.de`
 
-Доступные пути:
-
-- /watch
-- /embed
-- /shorts
-- /live
-- ?v=VIDEO_ID
-
-Ограничения:
-
-- Не работает в предпросмотре видео
-- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
-
-## Ricktube
+## Niconico
 
 Статус: [✅] Работает
 
 Доступные (под)домены:
 
-- `ricktube.ru`
+- `nicovideo.jp`
+- `www.nicovideo.jp`
+- `sp.nicovideo.jp`
+- `nico.ms`
 
 Доступные пути:
 
-- /watch
-- /embed
-- /shorts
-- /live
-- ?v=VIDEO_ID
-
-Ограничения:
-
-- Не работает в предпросмотре видео
-- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+- /watch/VIDEO_ID
 
 ## Vk
 
@@ -151,15 +103,14 @@
 
 Доступные (под)домены:
 
+- `m.vk.com`
+- `m.vk.ru`
 - `vk.com`
 - `vk.ru`
 - `www.vk.com`
 - `www.vk.ru`
-- `m.vk.com`
-- `m.vk.ru`
 - `vkvideo.ru`
-- `www.vkvideo.ru`
-- `m.vkvideo.ru`
+- `*.vkvideo.ru`
 
 Доступные пути:
 
@@ -191,7 +142,8 @@
 Доступные (под)домены:
 
 - `m.twitch.tv`
-- `(www.)?twitch.tv`
+- `twitch.tv`
+- `www.twitch.tv`
 - `clips.twitch.tv`
 - `player.twitch.tv`
 
@@ -234,7 +186,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?tiktok.com`
+- `tiktok.com`
+- `www.tiktok.com`
 
 Доступные пути:
 
@@ -250,7 +203,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?douyin.com`
+- `douyin.com`
+- `www.douyin.com`
 
 Ограничения:
 
@@ -262,8 +216,10 @@
 
 Доступные (под)домены:
 
-- `player.vimeo.com`
 - `vimeo.com`
+- `www.vimeo.com`
+- `m.vimeo.com`
+- `player.vimeo.com`
 
 Доступные пути:
 
@@ -286,10 +242,10 @@
 
 Доступные (под)домены:
 
-- `(www.)?xvideos.com`
-- `(www.)?xvideos-ar.com`
-- `(www.)?xvideos\d\d\d.com`
-- `(www.)?xv-ru.com`
+- `xvideos*.com`
+- `www.xvideos*.com`
+- `xv-ru.com`
+- `www.xv-ru.com`
 
 Доступные пути:
 
@@ -299,14 +255,93 @@
 
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
+## Xhamster
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `xhvid.com`
+- `*.xhamster.com`
+- `*.xhamster.desi`
+- `xhamster*.com`
+- `xhamster*.desi`
+
+Доступные пути:
+
+- /videos/VIDEO_NAME-VIDEO_ID
+
+## Spankbang
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `spankbang.com`
+- `*.spankbang.com`
+
+Доступные пути:
+
+- /VIDEO_ID/video
+- /VIDEO_ID/play/VIDEO_NAME
+- /VIDEO_ID/embed/VIDEO_NAME
+- /PLAYLIST_ID/playlist/PLAYLIST_NAME
+
+## Rule34video
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `rule34video.com`
+- `www.rule34video.com`
+
+Доступные пути:
+
+- /video/VIDEO_ID
+- /videos/VIDEO_ID
+
+## Picarto
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `picarto.tv`
+- `www.picarto.tv`
+
+Доступные пути:
+
+- /CHANNEL_NAME
+- /CHANNEL_NAME/videos/VIDEO_ID
+- /CHANNEL_NAME/profile/videos/VIDEO_ID
+- /videopopout/VIDEO_ID
+
+## Olympics_replay
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `olympics.com`
+- `www.olympics.com`
+
+Доступные пути:
+
+- /LANG/replay/VIDEO_NAME
+- /LANG/video/VIDEO_NAME
+- /LANG/videos/VIDEO_NAME
+- /LANG/original-series/episode/VIDEO_NAME
+- /LANG/paris-2024/replay/VIDEO_NAME
+
 ## Pornhub
 
 Статус: [✅] Работает
 
 Доступные (под)домены:
 
-- `[a-z]+.pornhub.com`
-- `[a-z]+.pornhub.org`
+- `*.pornhub.com`
+- `*.pornhub.org`
 
 Доступные пути:
 
@@ -357,7 +392,7 @@
 
 Доступные (под)домены:
 
-- facebook.com
+- `facebook.com`
 
 Доступные пути:
 
@@ -390,6 +425,9 @@
 - `www.bilibili.com`
 - `m.bilibili.com`
 - `player.bilibili.com`
+- `bilibili.tv`
+- `www.bilibili.tv`
+- `m.bilibili.tv`
 
 Доступные пути:
 
@@ -410,7 +448,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?bitchute.com`
+- `bitchute.com`
+- `www.bitchute.com`
 
 Доступные пути:
 
@@ -423,7 +462,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?eporner.com`
+- `eporner.com`
+- `www.eporner.com`
 
 Доступные пути:
 
@@ -435,24 +475,24 @@
 
 Доступные (под)домены:
 
+- `peertube.tmp.rcp.tf`
+- `dalek.zone`
+- `video.sadmin.io`
+- `videos.viorsan.com`
 - `peertube.1312.media`
 - `tube.shanti.cafe`
 - `bee-tube.fr`
-- `video.sadmin.io`
-- `dalek.zone`
-- `review.peertube.biz`
-- `peervideo.club`
-- `tube.la-dina.net`
-- `peertube.tmp.rcp.tf`
-- `peertube.su`
 - `video.blender.org`
-- `videos.viorsan.com`
-- `tube-sciences-technologies.apps.education.fr`
-- `tube-numerique-educatif.apps.education.fr`
-- `tube-arts-lettres-sciences-humaines.apps.education.fr`
 - `beetoons.tv`
-- `comics.peertube.biz`
 - `makertube.net`
+- `peertube.tv`
+- `framatube.org`
+- `tilvids.com`
+- `diode.zone`
+- `fedimovie.com`
+- `video.hardlimit.com`
+- `share.tube`
+- `peervideo.club`
 
 Доступные пути:
 
@@ -468,8 +508,10 @@
 
 Доступные (под)домены:
 
-- `geo.dailymotion.com (встраиваемый плеер, на www.dailymotion.com работает)`
-- `geo[\d]+.dailymotion.com`
+- `dailymotion.com`
+- `www.dailymotion.com`
+- `geo*.dailymotion.com` (встраиваемый плеер, на www.dailymotion.com работает)
+- `dai.ly`
 
 Доступные пути:
 
@@ -497,9 +539,23 @@
 
 Доступные (под)домены:
 
-- `disk.yandex.(ru|kz|com(.am)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(.ge)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(.tr)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.ru`
+- `disk.yandex.kz`
+- `disk.yandex.com`
+- `disk.yandex.com.am`
+- `disk.yandex.com.ge`
+- `disk.yandex.com.tr`
+- `disk.yandex.by`
+- `disk.yandex.az`
+- `disk.yandex.co.il`
+- `disk.yandex.ee`
+- `disk.yandex.lt`
+- `disk.yandex.lv`
+- `disk.yandex.md`
+- `disk.yandex.net`
+- `disk.yandex.tj`
+- `disk.yandex.tm`
+- `disk.yandex.uz`
 
 Доступные пути:
 
@@ -540,7 +596,9 @@
 
 Доступные (под)домены:
 
-- `(www.)?banned.video|madmaxworld.tv`
+- `banned.video`
+- `www.banned.video`
+- `madmaxworld.tv`
 
 Доступные пути:
 
@@ -563,13 +621,31 @@
 
 - Не доступен перевод прямых трансляций
 
+## Weibo
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `weibo.com`
+- `www.weibo.com`
+- `video.weibo.com`
+
+Доступные пути:
+
+- /USER_ID/VIDEO_CODE
+- /0/VIDEO_CODE
+- /tv/show/FID
+- /show?fid=FID (video.weibo.com)
+
 ## Newgrounds
 
 Статус: [✅] Работает
 
 Доступные (под)домены:
 
-- `(www.)?newgrounds.com`
+- `newgrounds.com`
+- `www.newgrounds.com`
 
 Доступные пути:
 
@@ -628,7 +704,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?patreon.com`
+- `patreon.com`
+- `www.patreon.com`
 
 Доступные пути:
 
@@ -640,10 +717,10 @@
 
 Доступные (под)домены:
 
+- `old.reddit.com`
 - `reddit.com`
 - `www.reddit.com`
 - `new.reddit.com`
-- `old.reddit.com`
 
 Доступные пути:
 
@@ -788,7 +865,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?linkedin.com`
+- `linkedin.com`
+- `www.linkedin.com`
 
 Доступные пути:
 
@@ -804,9 +882,12 @@
 
 Доступные (под)домены:
 
-- `(www.)?incestflix.net`
-- `(www.)?incestflix.to`
-- `(www.)?incestflix.com`
+- `incestflix.net`
+- `incestflix.to`
+- `incestflix.com`
+- `www.incestflix.net`
+- `www.incestflix.to`
+- `www.incestflix.com`
 
 Доступные пути:
 
@@ -833,7 +914,7 @@
 - `watch.cloudflarestream.com`
 - `embed.cloudflarestream.com`
 - `iframe.cloudflarestream.com`
-- `customer-[^.]+.cloudflarestream.com`
+- `customer-*.cloudflarestream.com`
 
 ## Loom
 
@@ -841,7 +922,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?loom.com`
+- `loom.com`
+- `www.loom.com`
 
 Доступные пути:
 
@@ -858,7 +940,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?artstation.com`
+- `artstation.com`
+- `www.artstation.com`
 
 Доступные пути:
 
@@ -870,7 +953,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?rt.com`
+- `rt.com`
+- `www.rt.com`
 
 ## Bitview
 
@@ -878,7 +962,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?bitview.net`
+- `bitview.net`
+- `www.bitview.net`
 
 Доступные пути:
 
@@ -891,7 +976,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?kickstarter.com`
+- `kickstarter.com`
+- `www.kickstarter.com`
 
 ## Thisvid
 
@@ -899,7 +985,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?thisvid.com`
+- `thisvid.com`
+- `www.thisvid.com`
 
 Доступные пути:
 
@@ -912,9 +999,8 @@
 
 Доступные (под)домены:
 
-- `(www.)?ign.com`
 - `ign.com`
-- `\w{2}.ign.com`
+- `*.ign.com`
 
 Доступные пути:
 
@@ -934,15 +1020,21 @@
 - `bunkr.red`
 - `bunkr.ws`
 - `bunkr.org`
-- `bunkr.s[kiu]`
-- `bunkr.c[ir]`
+- `bunkr.sk`
+- `bunkr.si`
+- `bunkr.su`
+- `bunkr.ci`
+- `bunkr.cr`
 - `bunkr.fi`
-- `bunkr.p[hks]`
+- `bunkr.ph`
+- `bunkr.pk`
+- `bunkr.ps`
 - `bunkr.ru`
 - `bunkr.la`
 - `bunkr.is`
 - `bunkr.to`
-- `bunkr.a[cx]`
+- `bunkr.ac`
+- `bunkr.ax`
 
 Доступные пути:
 
@@ -967,7 +1059,7 @@
 
 Доступные (под)домены:
 
-- web.telegram.org
+- `web.telegram.org`
 
 Доступные пути:
 

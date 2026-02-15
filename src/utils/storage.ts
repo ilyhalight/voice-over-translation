@@ -1,13 +1,21 @@
-import { KeysOrDefaultValue } from "@toil/gm-types/types/utils";
+// Minimal "GM storage" value union. We intentionally keep this wide because
+// userscript managers store arbitrary JSON-like values.
+type KeysOrDefaultValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Record<string, unknown>
+  | unknown[];
 
 import { actualCompatVersion } from "../config/config";
-import { localizationProvider } from "../localization/localizationProvider";
 import {
-  CompatibilityVersion,
-  ConvertCategory,
-  ConvertData,
-  StorageData,
-  StorageKey,
+  type CompatibilityVersion,
+  type ConvertCategory,
+  type ConvertData,
+  type StorageData,
+  type StorageKey,
   storageKeys,
 } from "../types/storage";
 import debug from "./debug";
@@ -122,36 +130,44 @@ export async function updateConfig<T>(
       newValue = Math.round((value as number) * 100);
     }
 
-    newData[newKey] = newValue as any;
+    // `newKey` is runtime-validated by `convertData`. TS can lose the literal
+    // key union and infer the indexed access as `never`.
+    (newData as any)[newKey] = newValue as any;
     if (existsOldData[key] !== undefined) {
       // remove old key
       await votStorage.delete(key as StorageKey);
     }
 
-    if (newKey === "localeLangOverride") {
-      // by default data doesn't have localeLangOverride
-      await localizationProvider.changeLang(value);
-    }
+    // Note: we intentionally don't call localizationProvider.changeLang(...) here.
+    // The extension build bundles as a classic script (IIFE) and must avoid
+    // localization<->storage runtime cycles. Localization is initialized later
+    // (see ensureLocalizationProviderReady() in index.ts) and will read the persisted
+    // override on startup.
 
     await votStorage.set<any>(newKey, newValue);
   }
 
   return {
     ...newData,
-    compatVersion: "2025-05-09",
+    compatVersion: actualCompatVersion,
   } as T;
 }
 
-export const votStorage = new (class {
-  supportGM: boolean;
-  supportGMPromises: boolean;
-  supportGMGetValues: boolean;
+class VOTStorage {
+  supportGM = false;
+  supportGMPromises = false;
+  supportGMGetValues = false;
+  supportResolved = false;
 
-  constructor() {
+  private resolveSupport(): void {
+    if (this.supportResolved) return;
+    this.supportResolved = true;
+
     this.supportGM = typeof GM_getValue === "function";
     this.supportGMPromises = isSupportGM4 && typeof GM?.getValue === "function";
     this.supportGMGetValues =
       isSupportGM4 && typeof GM?.getValues === "function";
+
     debug.log(
       `[VOT Storage] GM Promises: ${this.supportGMPromises} | GM: ${this.supportGM}`,
     );
@@ -161,15 +177,17 @@ export const votStorage = new (class {
    * Check if storage type is LocalStorage
    */
   get isSupportOnlyLS() {
+    this.resolveSupport();
     return !this.supportGM && !this.supportGMPromises;
   }
 
-  private syncGet<T = unknown>(name: StorageKey, def?: unknown): T {
+  private syncGet<T = unknown>(name: StorageKey, def?: T): T {
+    this.resolveSupport();
     if (this.supportGM) {
       return GM_getValue<T>(name, def);
     }
 
-    let val = window.localStorage.getItem(name);
+    const val = globalThis.localStorage.getItem(name);
     if (!val) {
       return def as T;
     }
@@ -181,12 +199,13 @@ export const votStorage = new (class {
     }
   }
 
-  async get<T = unknown>(name: StorageKey, def?: unknown) {
+  async get<T = unknown>(name: StorageKey, def?: T) {
+    this.resolveSupport();
     if (this.supportGMPromises) {
       return await GM.getValue<T>(name, def);
     }
 
-    return Promise.resolve(this.syncGet<T>(name, def));
+    return this.syncGet<T>(name, def);
   }
 
   async getValues<
@@ -195,6 +214,7 @@ export const votStorage = new (class {
       KeysOrDefaultValue
     >,
   >(data: T): Promise<T> {
+    this.resolveSupport();
     if (this.supportGMGetValues) {
       return await GM.getValues<T>(data);
     }
@@ -203,53 +223,61 @@ export const votStorage = new (class {
       await Promise.all(
         Object.entries(data as Record<StorageKey, KeysOrDefaultValue>).map(
           async ([key, value]) => {
-            const val = await this.get<T[keyof T]>(key as StorageKey, value);
-            return [key, val];
+            const val = await this.get<T[keyof T]>(
+              key as StorageKey,
+              value as unknown as T[keyof T],
+            );
+            return [key, val] as const;
           },
         ),
       ),
-    );
+    ) as unknown as T;
   }
 
   private syncSet<T extends KeysOrDefaultValue = undefined>(
     name: StorageKey,
     value: T,
   ) {
+    this.resolveSupport();
     if (this.supportGM) {
       return GM_setValue<T>(name, value);
     }
 
-    return window.localStorage.setItem(name, JSON.stringify(value));
+    return globalThis.localStorage.setItem(name, JSON.stringify(value));
   }
 
   async set<T extends KeysOrDefaultValue = undefined>(
     name: StorageKey,
     value: T,
   ) {
+    this.resolveSupport();
     if (this.supportGMPromises) {
       return await GM.setValue<T>(name, value);
     }
 
-    return Promise.resolve(this.syncSet<T>(name, value));
+    return this.syncSet<T>(name, value);
   }
 
   private syncDelete(name: StorageKey) {
+    this.resolveSupport();
     if (this.supportGM) {
       return GM_deleteValue(name);
     }
 
-    return window.localStorage.removeItem(name);
+    return globalThis.localStorage.removeItem(name);
   }
 
   async delete(name: StorageKey) {
+    this.resolveSupport();
     if (this.supportGMPromises) {
       return await GM.deleteValue(name);
     }
 
-    return Promise.resolve(this.syncDelete(name));
+    return this.syncDelete(name);
   }
 
   private syncList(): readonly StorageKey[] {
+    this.resolveSupport();
     if (this.supportGM) {
       return GM_listValues<StorageKey>();
     }
@@ -258,10 +286,25 @@ export const votStorage = new (class {
   }
 
   async list() {
+    this.resolveSupport();
     if (this.supportGMPromises) {
       return await GM.listValues<StorageKey>();
     }
 
-    return Promise.resolve(this.syncList());
+    return this.syncList();
   }
+}
+
+const VOT_STORAGE_GLOBAL_KEY = "__VOT_STORAGE_SINGLETON__";
+
+export const votStorage: VOTStorage = (() => {
+  const scope = globalThis as Record<string, unknown>;
+  const existing = scope[VOT_STORAGE_GLOBAL_KEY];
+  if (existing instanceof VOTStorage) {
+    return existing;
+  }
+
+  const created = new VOTStorage();
+  scope[VOT_STORAGE_GLOBAL_KEY] = created;
+  return created;
 })();
