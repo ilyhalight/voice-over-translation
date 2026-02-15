@@ -1,7 +1,13 @@
+@use "./mixins" as button;
+
 .vot-hotkey {
+  // Keep the action label and the assigned key visually connected.
+  // Avoid pushing the key "pill" to the far edge of the dialog.
   display: flex;
-  justify-content: space-between;
-  align-items: start;
+  justify-content: flex-start;
+  align-items: center;
+  gap: var(--vot-space-3, 12px);
+  flex-wrap: wrap;
   &-label {
     max-width: 80%;
     word-break: break-word;
@@ -9,84 +15,26 @@
 }
 
 .vot-hotkey-button {
-  --vot-helper-surface: rgba(var(--vot-onsurface-rgb), 0.2);
   --vot-helper-theme: var(
     --vot-theme-rgb,
     var(--vot-primary-rgb, 33, 150, 243)
   );
-  position: relative;
-  display: inline-block;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-  margin: 0 !important;
-  border: solid 1px rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.24) !important;
-  border-radius: 4px !important;
-  padding: 0 8px !important;
-  min-width: 32px;
-  width: fit-content;
-  height: fit-content;
-  vertical-align: middle;
-  text-align: center;
-  background-color: transparent;
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
+  @include button.vot-button-base(
+    $radius: var(--vot-radius-s),
+    $padding: 0 var(--vot-space-2),
+    $min-width: 32px,
+    $height: fit-content,
+    $line-height: 1.5,
+    $font-size: 15px,
+    $font-weight: 400,
+    $margin: 0 !important
   );
-  font-size: 15px;
-  line-height: 1.5;
-  outline: none;
-  cursor: pointer;
-
-  &[hidden] {
-    display: none !important;
-  }
-
-  &::-moz-focus-inner {
-    border: none !important;
-  }
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    border-radius: 3px !important;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    opacity: 0;
-  }
-
-  &::before {
-    background-color: rgb(var(--vot-helper-theme));
-    transition: opacity 0.2s;
-  }
-
-  &::after {
-    background: radial-gradient(
-        circle at center,
-        currentColor 1%,
-        transparent 1%
-      )
-      center/10000% 10000% no-repeat;
-    transition:
-      opacity 1s,
-      background-size 0.5s;
-  }
-
-  &:hover::before {
-    opacity: 0.04;
-  }
-
-  &:active::after {
-    opacity: 0.16;
-    background-size: 100% 100%;
-    transition: background-size 0s;
-  }
+  border: solid 1px var(--vot-border-color) !important;
+  width: fit-content;
+  background-color: transparent;
+  @include button.vot-button-layers(rgb(var(--vot-helper-theme)));
+  @include button.vot-button-layer-hover(0.04);
+  @include button.vot-button-layer-active(0.16);
 
   &[data-status="active"] {
     color: rgb(var(--vot-helper-theme));
@@ -99,10 +47,6 @@
     background-color: transparent;
     color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
     cursor: initial;
-
-    &::before,
-    &::after {
-      opacity: 0;
-    }
+    @include button.vot-button-layer-reset-disabled;
   }
 }

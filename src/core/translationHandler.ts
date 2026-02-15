@@ -1,111 +1,301 @@
-import { VOTJSError } from "@vot.js/core/client";
 import {
-  StreamTranslationResponse,
-  TranslatedStreamTranslationResponse,
-  TranslatedVideoTranslationResponse,
-  TranslationHelp,
+  type TranslatedVideoTranslationResponse,
+  type TranslationHelp,
+  type VideoTranslationResponse,
   VideoTranslationStatus,
-  WaitingStreamTranslationResponse,
 } from "@vot.js/core/types/yandex";
-import { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
-import { VideoData, VideoHandler } from "..";
+import type { VideoData, VideoHandler } from "..";
 import { AudioDownloader } from "../audioDownloader";
 import { localizationProvider } from "../localization/localizationProvider";
+import type {
+  DownloadedAudioData,
+  DownloadedPartialAudioData,
+} from "../types/audioDownloader";
+import { throwIfAborted } from "../utils/abort";
 import debug from "../utils/debug";
-import { secsToStrTime } from "../utils/localization";
-import { waitForCondition } from "../utils/utils";
-import { VOTLocalizedError } from "../utils/VOTLocalizedError";
+import { getErrorMessage, isAbortError, makeAbortError } from "../utils/errors";
+import { formatTranslationEta } from "../utils/timeFormatting";
+import VOTLocalizedError from "../utils/VOTLocalizedError";
+import { notifyTranslationFailureIfNeeded } from "../videoHandler/modules/translationShared";
+
+type VotClientErrorShape = {
+  name?: unknown;
+  message?: unknown;
+  data?: {
+    message?: unknown;
+  };
+};
+
+function asVotClientErrorShape(value: unknown): VotClientErrorShape | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const candidate = value as {
+    name?: unknown;
+    message?: unknown;
+    data?: unknown;
+  };
+  const data =
+    candidate.data && typeof candidate.data === "object"
+      ? (candidate.data as { message?: unknown })
+      : undefined;
+
+  return {
+    name: candidate.name,
+    message: candidate.message,
+    data,
+  };
+}
+
+function getServerErrorMessage(value: unknown): string | undefined {
+  const err = asVotClientErrorShape(value);
+  const message = err?.data?.message;
+  return typeof message === "string" && message.length > 0
+    ? message
+    : undefined;
+}
+
+/**
+ * Historically we used `patch-package` to make `@vot.js/core` throw
+ * `VOTLocalizedError` for a few common failure cases.
+ *
+ * We now keep the dependency unpatched and instead map known error messages
+ * coming from the VOT client to the corresponding localized UI errors.
+ */
+function mapVotClientErrorForUi(error: unknown): unknown {
+  const err = asVotClientErrorShape(error);
+  if (!err) {
+    return error;
+  }
+  if (err.name !== "VOTJSError") {
+    return error;
+  }
+
+  const message = typeof err.message === "string" ? err.message : "";
+  const hasServerMessage =
+    typeof err.data?.message === "string" && err.data.message.length > 0;
+
+  // Keep server-provided messages when available.
+  if (message === "Yandex couldn't translate video" && !hasServerMessage) {
+    return new VOTLocalizedError("requestTranslationFailed");
+  }
+
+  if (message === "Failed to request video translation") {
+    return new VOTLocalizedError("requestTranslationFailed");
+  }
+
+  if (
+    message === "Audio link wasn't received" ||
+    message === "Audio link wasn't received from VOT response"
+  ) {
+    return new VOTLocalizedError("audioNotReceived");
+  }
+
+  return error;
+}
+
+type DownloadWaiter = {
+  resolve: () => void;
+  reject: (error: Error) => void;
+};
 
 export class VOTTranslationHandler {
-  videoHandler: VideoHandler;
-  audioDownloader: AudioDownloader;
+  readonly videoHandler: VideoHandler;
+  readonly audioDownloader: AudioDownloader;
   downloading: boolean;
+  private readonly downloadWaiters = new Set<DownloadWaiter>();
+
+  // Avoid spamming the fail-audio-js fallback for the same video URL.
+  // In normal operation we should extract the audio request from the iframe.
+  private readonly requestedFailAudio = new Set<string>();
 
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
     this.audioDownloader = new AudioDownloader();
     this.downloading = false;
+
     this.audioDownloader
-      .addEventListener("downloadedAudio", async (translationId, data) => {
-        debug.log("downloadedAudio", data);
-        if (!this.downloading) {
-          debug.log("skip downloadedAudio");
-          return;
-        }
+      .addEventListener("downloadedAudio", this.onDownloadedAudio)
+      .addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio)
+      .addEventListener("downloadAudioError", this.onDownloadAudioError);
+  }
 
-        const { videoId, fileId, audioData } = data;
-        const videoUrl = this.getCanonicalUrl(videoId);
-        try {
-          await this.videoHandler.votClient.requestVtransAudio(
-            videoUrl,
-            translationId,
-            {
-              audioFile: audioData,
-              fileId,
-            },
-          );
-        } catch {
-          /* empty */
-        }
-        this.downloading = false;
-      })
-      .addEventListener(
-        "downloadedPartialAudio",
-        async (translationId, data) => {
-          debug.log("downloadedPartialAudio", data);
-          if (!this.downloading) {
-            debug.log("skip downloadedPartialAudio");
-            return;
-          }
+  private readonly onDownloadedAudio = async (
+    translationId: string,
+    data: DownloadedAudioData,
+  ) => {
+    debug.log("downloadedAudio", data);
+    if (!this.downloading) {
+      debug.log("skip downloadedAudio");
+      return;
+    }
 
-          const { audioData, fileId, videoId, amount, version, index } = data;
-          const videoUrl = this.getCanonicalUrl(videoId);
-          try {
-            await this.videoHandler.votClient.requestVtransAudio(
-              videoUrl,
-              translationId,
-              {
-                audioFile: audioData,
-                chunkId: index,
-              },
-              {
-                audioPartsLength: amount,
-                fileId,
-                version,
-              },
-            );
-          } catch {
-            this.downloading = false;
-          }
-
-          if (index === amount - 1) {
-            this.downloading = false;
-          }
+    const { videoId, fileId, audioData } = data;
+    const videoUrl = this.getCanonicalUrl(videoId);
+    try {
+      await this.videoHandler.votClient.requestVtransAudio(
+        videoUrl,
+        translationId,
+        {
+          audioFile: audioData,
+          fileId,
         },
-      )
-      .addEventListener("downloadAudioError", async (videoId) => {
-        if (!this.downloading) {
-          debug.log("skip downloadAudioError");
-          return;
-        }
+      );
+    } catch {
+      /* empty */
+    }
+    this.finishDownloadSuccess();
+  };
 
-        debug.log(`Failed to download audio ${videoId}`);
-        const videoUrl = this.getCanonicalUrl(videoId);
+  private readonly onDownloadedPartialAudio = async (
+    translationId: string,
+    data: DownloadedPartialAudioData,
+  ) => {
+    debug.log("downloadedPartialAudio", data);
+    if (!this.downloading) {
+      debug.log("skip downloadedPartialAudio");
+      return;
+    }
+
+    const { audioData, fileId, videoId, amount, version, index } = data;
+    const videoUrl = this.getCanonicalUrl(videoId);
+    try {
+      await this.videoHandler.votClient.requestVtransAudio(
+        videoUrl,
+        translationId,
+        {
+          audioFile: audioData,
+          chunkId: index,
+        },
+        {
+          audioPartsLength: amount,
+          fileId,
+          version,
+        },
+      );
+    } catch {
+      this.finishDownloadFailure(
+        new Error("Audio downloader failed while uploading chunk"),
+      );
+      return;
+    }
+
+    if (index === amount - 1) {
+      this.finishDownloadSuccess();
+    }
+  };
+
+  private readonly onDownloadAudioError = async (videoId: string) => {
+    if (!this.downloading) {
+      debug.log("skip downloadAudioError");
+      return;
+    }
+
+    debug.log(`Failed to download audio ${videoId}`);
+    const videoUrl = this.getCanonicalUrl(videoId);
+
+    // The fail-audio-js endpoint is a rare fallback. Keep its usage minimal and
+    // only call it for YouTube when the audio downloader is enabled.
+    const shouldUseFallback =
+      this.videoHandler.site.host === "youtube" &&
+      Boolean(this.videoHandler.data?.useAudioDownload);
+
+    if (!shouldUseFallback) {
+      this.finishDownloadFailure(
+        new VOTLocalizedError("VOTFailedDownloadAudio"),
+      );
+      return;
+    }
+
+    try {
+      if (this.requestedFailAudio.has(videoUrl)) {
+        debug.log("fail-audio-js request already sent for this video");
+      } else {
+        debug.log("Sending fail-audio-js request");
         await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
-        this.downloading = false;
-      });
+        this.requestedFailAudio.add(videoUrl);
+      }
+
+      this.finishDownloadSuccess();
+    } catch (error) {
+      debug.error("fail-audio-js request failed", error);
+      this.finishDownloadFailure(
+        new VOTLocalizedError("VOTFailedDownloadAudio"),
+      );
+    }
+  };
+
+  private finishDownloadSuccess() {
+    this.downloading = false;
+    this.resolveDownloadWaiters();
+  }
+
+  private finishDownloadFailure(error: Error) {
+    this.downloading = false;
+    this.rejectDownloadWaiters(error);
   }
 
   private getCanonicalUrl(videoId: string) {
-    // i guess hardcoded > videoData.url (in this case)
     return `https://youtu.be/${videoId}`;
   }
 
-  private isWaitingStreamRes(
-    data: StreamTranslationResponse,
-  ): data is WaitingStreamTranslationResponse {
-    return !!(data as WaitingStreamTranslationResponse).message;
+  // Cancellation helpers live in utils/abort.ts.
+
+  /**
+   * Detector for cases when server rejects the request because
+   * "Lively/Live voices" are unavailable (unsupported language pair).
+   */
+  private isLivelyVoiceUnavailableError(value: unknown): boolean {
+    const msg = getErrorMessage(value);
+    return !!msg && msg.toLowerCase().includes("обычная озвучка");
+  }
+
+  private scheduleRetry<T>(
+    fn: () => Promise<T>,
+    delayMs: number,
+    signal: AbortSignal,
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      // Avoid a micro-race where the signal gets aborted between checking
+      // `signal.aborted` and attaching the abort listener.
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      const cleanup = () => {
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+        signal.removeEventListener("abort", onAbort);
+      };
+
+      const onAbort = () => {
+        cleanup();
+        reject(makeAbortError());
+      };
+
+      // Attach the listener first, then check `aborted` to close the race.
+      signal.addEventListener("abort", onAbort, { once: true });
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+
+      timeoutId = setTimeout(() => {
+        if (signal.aborted) {
+          onAbort();
+          return;
+        }
+        cleanup();
+        void fn().then(resolve, reject);
+      }, delayMs);
+
+      // Keep old behavior: allow caller to clear retries via the host.
+      if (timeoutId !== null) {
+        this.videoHandler.autoRetry = timeoutId;
+      }
+    });
   }
 
   async translateVideoImpl(
@@ -115,54 +305,112 @@ export class VOTTranslationHandler {
     translationHelp: TranslationHelp[] | null = null,
     shouldSendFailedAudio = false,
     signal = new AbortController().signal,
-  ): Promise<TranslatedVideoTranslationResponse | null> {
+    disableLivelyVoice = false,
+  ): Promise<
+    (TranslatedVideoTranslationResponse & { usedLivelyVoice: boolean }) | null
+  > {
     clearTimeout(this.videoHandler.autoRetry);
-    this.downloading = false;
+    this.finishDownloadSuccess();
+    const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
+      requestLang,
+      responseLang,
+    );
     debug.log(
       videoData,
-      `Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`,
+      `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`,
     );
+
+    let livelyDisabled = disableLivelyVoice;
+
     try {
-      if (signal.aborted) {
-        throw new Error("AbortError");
+      throwIfAborted(signal);
+
+      const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(
+        requestLangForApi,
+        responseLang,
+      );
+      let useLivelyVoice =
+        !livelyDisabled &&
+        livelyVoiceAllowed &&
+        Boolean(this.videoHandler.data?.useLivelyVoice);
+
+      let res: VideoTranslationResponse | undefined;
+
+      // If server says lively voices are unavailable, immediately retry once
+      // without lively voices and keep that choice for subsequent retries.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          res = await this.videoHandler.votClient.translateVideo({
+            videoData,
+            requestLang: requestLangForApi,
+            responseLang,
+            translationHelp,
+            extraOpts: {
+              useLivelyVoice,
+              videoTitle: this.videoHandler.videoData?.title,
+            },
+            shouldSendFailedAudio,
+          });
+        } catch (err) {
+          if (useLivelyVoice && this.isLivelyVoiceUnavailableError(err)) {
+            debug.log(
+              "[translateVideoImpl] Lively voices are unavailable. Falling back to standard translation.",
+              err,
+            );
+            livelyDisabled = true;
+            useLivelyVoice = false;
+            continue;
+          }
+          throw err;
+        }
+
+        if (useLivelyVoice && this.isLivelyVoiceUnavailableError(res)) {
+          debug.log(
+            "[translateVideoImpl] Server responded that lively voices are unavailable. Falling back to standard translation.",
+            res,
+          );
+          livelyDisabled = true;
+          useLivelyVoice = false;
+          res = undefined;
+          continue;
+        }
+        break;
       }
 
-      const useLivelyVoice =
-        this.videoHandler.isLivelyVoiceAllowed() &&
-        this.videoHandler.data?.useLivelyVoice;
-      const res = await this.videoHandler.votClient.translateVideo({
-        videoData,
-        requestLang,
-        responseLang,
-        translationHelp,
-        extraOpts: {
-          useLivelyVoice,
-          videoTitle: this.videoHandler.videoData?.title,
-        },
-        shouldSendFailedAudio,
-      });
-      debug.log("Translate video result", res);
-      if (signal.aborted) {
-        throw new Error("AbortError");
+      if (!res) {
+        throw new Error("Failed to get translation response");
       }
+
+      debug.log("Translate video result", res);
+      throwIfAborted(signal);
 
       if (res.translated && res.remainingTime < 1) {
         debug.log("Video translation finished with this data: ", res);
-        return res;
+        return { ...res, usedLivelyVoice: useLivelyVoice };
       }
 
       const message =
         res.message ?? localizationProvider.get("translationTakeFewMinutes");
       await this.videoHandler.updateTranslationErrorMsg(
-        res.remainingTime > 0 ? secsToStrTime(res.remainingTime) : message,
+        res.remainingTime > 0
+          ? formatTranslationEta(
+              res.remainingTime,
+              // The formatter expects a small set of keys; those keys exist in our phrase set.
+              (key) => localizationProvider.get(key),
+            )
+          : message,
+        signal,
       );
 
       if (
         res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
         this.videoHandler.isYouTubeHosts()
       ) {
+        this.videoHandler.hadAsyncWait = true;
+
         debug.log("Start audio download");
         this.downloading = true;
+
         await this.audioDownloader.runAudioDownload(
           videoData.videoId,
           res.translationId,
@@ -171,14 +419,7 @@ export class VOTTranslationHandler {
 
         debug.log("waiting downloading finish");
         // 15000 is fetch timeout, so there's no point in waiting longer
-        await waitForCondition(
-          () => !this.downloading || signal.aborted,
-          15000,
-        );
-        if (signal.aborted) {
-          debug.log("aborted after audio downloader vtrans");
-          throw new Error("AbortError");
-        }
+        await this.waitForAudioDownloadCompletion(signal, 15000);
 
         // for get instant result on download end
         return await this.translateVideoImpl(
@@ -188,113 +429,127 @@ export class VOTTranslationHandler {
           translationHelp,
           true,
           signal,
+          livelyDisabled,
         );
       }
     } catch (err) {
-      if ((err as Error).message === "AbortError") {
+      if (isAbortError(err)) {
         debug.log("aborted video translation");
         return null;
       }
 
+      const uiError = mapVotClientErrorForUi(err);
+
       await this.videoHandler.updateTranslationErrorMsg(
-        (err as any).data?.message ?? err,
+        getServerErrorMessage(uiError) ?? uiError,
+        signal,
       );
-      console.error("[VOT]", err);
-      const cacheKey = `${videoData.videoId}_${requestLang}_${responseLang}_${this.videoHandler.data?.useLivelyVoice}`;
-      this.videoHandler.cacheManager.setTranslation(cacheKey, {
-        error: err as VOTJSError,
+
+      // Most translation errors are handled inside the translation handler and
+      // returned as `null` to the caller. This means higher-level try/catch
+      // blocks won't see a rejected promise. Send the failure notification here
+      // so users still get a desktop alert (respecting user settings).
+      this.videoHandler.hadAsyncWait = notifyTranslationFailureIfNeeded({
+        aborted: Boolean(
+          this.videoHandler.actionsAbortController?.signal?.aborted,
+        ),
+        translateApiErrorsEnabled: Boolean(
+          this.videoHandler.data?.translateAPIErrors,
+        ),
+        hadAsyncWait: this.videoHandler.hadAsyncWait,
+        videoId: videoData.videoId,
+        error: err,
+        notify: (params) =>
+          this.videoHandler.notifier.translationFailed(params),
       });
+      console.error("[VOT]", err);
       return null;
     }
-    return new Promise((resolve) => {
-      this.videoHandler.autoRetry = setTimeout(async () => {
-        resolve(
-          await this.translateVideoImpl(
-            videoData,
-            requestLang,
-            responseLang,
-            translationHelp,
-            true,
-            signal,
-          ),
-        );
-      }, 20000);
+
+    this.videoHandler.hadAsyncWait = true;
+
+    return this.scheduleRetry(
+      () =>
+        this.translateVideoImpl(
+          videoData,
+          requestLang,
+          responseLang,
+          translationHelp,
+          shouldSendFailedAudio,
+          signal,
+          livelyDisabled,
+        ),
+      20000,
+      signal,
+    );
+  }
+
+  private waitForAudioDownloadCompletion(
+    signal: AbortSignal,
+    timeoutMs: number,
+  ): Promise<void> {
+    if (!this.downloading) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      let entry!: DownloadWaiter;
+
+      const onAbort = () => {
+        cleanup();
+        reject(makeAbortError());
+      };
+
+      const timeoutId = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, timeoutMs);
+
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        signal.removeEventListener("abort", onAbort);
+        this.downloadWaiters.delete(entry);
+      };
+
+      entry = {
+        resolve: () => {
+          cleanup();
+          resolve();
+        },
+        reject: (error: Error) => {
+          cleanup();
+          reject(error);
+        },
+      };
+
+      this.downloadWaiters.add(entry);
+
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+
+      signal.addEventListener("abort", onAbort, { once: true });
     });
   }
 
-  async translateStreamImpl(
-    videoData: VideoData,
-    requestLang: RequestLang,
-    responseLang: ResponseLang,
-    signal = new AbortController().signal,
-  ): Promise<TranslatedStreamTranslationResponse | null> {
-    clearTimeout(this.videoHandler.autoRetry);
-    debug.log(
-      videoData,
-      `Translate stream (requestLang: ${requestLang}, responseLang: ${responseLang})`,
-    );
-    try {
-      if (signal.aborted) {
-        throw new Error("AbortError");
-      }
+  private resolveDownloadWaiters() {
+    this.forEachDownloadWaiter((waiter) => waiter.resolve());
+  }
 
-      const res = await this.videoHandler.votClient.translateStream({
-        videoData,
-        requestLang,
-        responseLang,
-      });
+  private rejectDownloadWaiters(error: Error) {
+    this.forEachDownloadWaiter((waiter) => waiter.reject(error));
+  }
 
-      if (signal.aborted) {
-        throw new Error("AbortError");
-      }
+  private forEachDownloadWaiter(handler: (waiter: DownloadWaiter) => void) {
+    if (!this.downloadWaiters.size) {
+      return;
+    }
 
-      debug.log("Translate stream result", res);
-      if (!res.translated && res.interval === 10) {
-        await this.videoHandler.updateTranslationErrorMsg(
-          localizationProvider.get("translationTakeFewMinutes"),
-        );
-        return new Promise((resolve) => {
-          this.videoHandler.autoRetry = setTimeout(async () => {
-            resolve(
-              await this.translateStreamImpl(
-                videoData,
-                requestLang,
-                responseLang,
-                signal,
-              ),
-            );
-          }, res.interval * 1000);
-        });
-      }
-      if (this.isWaitingStreamRes(res)) {
-        debug.log(`Stream translation aborted! Message: ${res.message}`);
-        throw new VOTLocalizedError("streamNoConnectionToServer");
-      }
-
-      if (!res.result) {
-        debug.log("Failed to find translation result! Data:", res);
-        throw new VOTLocalizedError("audioNotReceived");
-      }
-
-      debug.log("Stream translated successfully. Running...", res);
-      this.videoHandler.streamPing = setInterval(async () => {
-        debug.log("Ping stream translation", res.pingId);
-        this.videoHandler.votClient.pingStream({
-          pingId: res.pingId,
-        });
-      }, res.interval * 1000);
-      return res;
-    } catch (err) {
-      if ((err as Error).message === "AbortError") {
-        debug.log("aborted stream translation");
-        return null;
-      }
-
-      console.error("[VOT] Failed to translate stream", err);
-      await this.videoHandler.updateTranslationErrorMsg(
-        (err as any).data?.message ?? err,
-      );
-      return null;
+    const waiters = Array.from(this.downloadWaiters);
+    this.downloadWaiters.clear();
+    for (const waiter of waiters) {
+      handler(waiter);
     }
   }
 }

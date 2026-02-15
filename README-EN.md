@@ -3,7 +3,7 @@
 <!-- loaders links (website > github > store) -->
 
 [tampermonkey-link]: https://www.tampermonkey.net/index.php
-[tampermonkey-opera]: https://www.tampermonkey.net/index.php?browser=opera&locale=en
+[violentmonkey-opera]: https://chrome.google.com/webstore/detail/violent-monkey/jinjaccalgkegednnccohejagnlnfdag
 [userscripts-safari]: https://github.com/quoid/userscripts
 [violetmonkey-link]: https://violentmonkey.github.io
 [adguard-userscripts]: https://kb.adguard.com/en/general/userscripts#supported-apps
@@ -27,10 +27,13 @@
 [vot-worker]: https://github.com/FOSWLY/vot-worker
 [media-proxy]: https://github.com/FOSWLY/media-proxy
 [vot-backend]: https://github.com/FOSWLY/vot-backend
+[vot-status]: https://votstatus.toil.cc
+[vot-stats]: https://votstats.toil.cc
 
 <!-- Install / Build -->
 
 [vot-dist]: https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+[vot-releases]: https://github.com/ilyhalight/voice-over-translation/releases
 [nodejs-link]: https://nodejs.org
 [bun-link]: https://bun.sh/
 
@@ -59,50 +62,74 @@
 > [!CAUTION]
 > Before creating Issues, we strongly recommend that you read the [FAQ][vot-faq] section and with existing [Issues][vot-issues].
 
-> [!WARNING]
-> All rights to the original software belong to their respective right holders. The extension isn't affiliated with the original rights holders
+> All rights to the original software belong to their respective owners. This extension is not affiliated with the original rights holders.
 
-The voice-over translation of the video is now available not only in [YandexBrowser][yabrowser-link]. Very grateful to devs who create **[Yandex.Translate][yatranslate-link]**, and all [contributors][contributors-link] who help make the extension better. Thanks <3
+Voice-over translation is now available beyond [Yandex Browser][yabrowser-link]. Thanks to the **[Yandex.Translate][yatranslate-link]** team and all [contributors][contributors-link] helping improve this project.
 
 ## Installing the extension:
 
 > [!WARNING]
-> If you use Tampermonkey 5.2.0+, don't forget to [enable "Developer Mode"][devmode-enable]!
+> **Important for Tampermonkey 5.2+ (MV3) users:**
+> In **Chromium**-based browsers (Chrome, Edge, Brave, Vivaldi, etc.) you must:
+> 1. Open the extensions page (`chrome://extensions`) and enable **"Developer mode"**.
+> 2. If you use **Chromium 138+**, open extension details and enable **"Allow User Scripts"**.
+>
+> **For Opera users:**
+> 1. Use **[Violentmonkey][violentmonkey-opera]** instead of Tampermonkey.
+> 2. In the extension settings, enable **"Allow access to search page results"**; otherwise the script will not work.
 
-1. Install the extension **[Tampermonkey][tampermonkey-link]**
-2. **[«Install the Script»][vot-dist]**
+1. Install a userscript manager: **[Tampermonkey][tampermonkey-link]** (or [Violentmonkey][violentmonkey-opera] for Opera)
+2. **[Install the script][vot-dist]**
+
+### Install Native Extension for Chrome / Chromium
+
+1. Open [Releases][vot-releases] and download `vot-extension-chrome-<version>.crx`
+2. Open your extensions page:
+   - Chrome: `chrome://extensions`
+   - Edge: `edge://extensions`
+   - Brave: `brave://extensions`
+   - Opera: `opera://extensions`
+3. Enable **Developer mode**
+4. Drag and drop the downloaded `.crx` file onto the extensions page
+
+### Install Native Extension for Firefox
+
+1. Open [Releases][vot-releases], click `vot-extension-firefox-<version>.xpi`, and confirm installation in Firefox
 
 ## List of features:
 
 - Translate videos into Russian, English, or Kazakh from [supported source languages][vot-langs]
-- Translate live streams on YouTube (with slight delay)
-- Display AI-generated subtitles
-- Show site subtitles (e.g., YouTube's auto-translated subs)
-- Save subtitles in `.srt`, `.vtt`, or `.json` formats
-- Save translated audio as `.mp3`
 - Auto-translate videos on open
+- Auto-enable subtitles on open
+- Smart subtitle layout that adapts line width and text size to player dimensions
+- Display AI-generated subtitles
+- Display site-provided subtitles (for example, auto-translated YouTube subtitles)
+- Save subtitles in `.srt`, `.vtt`, and `.json` formats
+- Save translated audio as `.mp3`
 - Separate volume sliders for original and translated audio
-- Auto-adjust translated audio volume like in Yandex Browser
-- Sync translation volume with video volume
-- Limit translation for your native language (selectable in menu)
-- Trigger translation with a hotkey
-- Easy customize subtitle appearance
-- Show word-by-word translation in subtitles
+- Adaptive volume: duck original audio while translated speech is playing
+- Limit translation for videos in your native language (language can be selected in the menu)
+- Link translation volume with video volume
+- Limit translation from selected languages
+- Hotkeys for translation and subtitles (including key combinations)
+- Easy subtitle appearance customization
+- Word-by-word translation directly in subtitles
 
 ### Useful links:
 
-1. Javascript library (vot.js): **[Link][votjs-link]**
+1. JavaScript library (vot.js): **[Link][votjs-link]**
 2. Terminal version (vot-cli): **[Link][vot-cli-link]**
 3. Wiki: **[Link][vot-wiki]**
 
 ## Note:
 
-1. I recommend allowing autoplay of "audio and video" to avoid errors when working with the extension
+1. It is recommended to allow autoplay for audio/video to avoid runtime playback errors
 2. The extension cannot translate videos longer than 4 hours (translator API limitation)
+3. For stable audio-download flow, use managers with `unsafeWindow` support (for example, Tampermonkey or Violentmonkey)
 
 ## List of supported sites:
 
-You can see the full list of supported websites and all restrictions related to their support in **[wiki](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-Supported-sites)**
+You can find the full list of supported websites and their specific limitations in the **[wiki][vot-supported-sites]**.
 
 ### Our domains:
 
@@ -110,7 +137,7 @@ These domains can be set in the extension settings (only those domains that can 
 
 #### Proxy-server
 
-It's necessary for proxying requests if it is not possible to make a direct request to the Yandex servers
+Required for proxying requests when direct access to Yandex servers is unavailable.
 
 - [vot-worker.toil.cc][vot-balancer] (Load balancer between proxy servers)
 - [vot-worker-s1.toil.cc][vot-worker]
@@ -132,11 +159,11 @@ It's necessary to translate additional sites that use the `.m3u8` or `.mpd` vide
 
 #### VOT Status and Stats
 
-You can check the current status and uptime of all servers using:
+Check current status and uptime of all servers here:
 
 - [votstatus.toil.cc][vot-status]
 
-You can check the proxy server operation statistics using (updated every 5 minutes):
+Check proxy server usage statistics (updated every 5 minutes):
 
 - [votstats.toil.cc][vot-stats]
 
@@ -145,6 +172,8 @@ You can check the proxy server operation statistics using (updated every 5 minut
 1. Install [Node.js 22+][nodejs-link] / [Bun.sh][bun-link]
 2. Install dependencies:
 
+NPM:
+
 ```bash
 npm install
 ```
@@ -152,40 +181,48 @@ npm install
 Bun:
 
 ```bash
-bun install --yarn
+bun install
 ```
 
-3. Building an extension:
+3. Build targets:
 
-   3.0. All versions at once:
+   3.0. Userscript (regular build):
 
    ```bash
    npm run build
    ```
 
-   3.1. All minified versions at once:
+   3.1. Userscript (minified build):
 
    ```bash
    npm run build:min
    ```
 
-   3.2. Only the regular version:
+   3.2. Userscript (both variants):
 
    ```bash
-   npm run build:default
+   npm run build:all
    ```
 
-   3.3. Only the usual min. versions:
+   3.3. Native Chrome/Firefox extension packages:
 
    ```bash
-   npm run build:default-min
+   npm run build:ext
    ```
+
+   3.4. Development userscript build with sourcemaps:
+
+   ```bash
+   npm run build:dev
+   ```
+
+Userscript artifacts are generated in `dist/`, native extension artifacts in `dist-ext/`.
 
 ## Customization of appearance:
 
-The extension supports customization of the appearance using Stylus, Stylish and other similar extensions.
+The extension supports appearance customization via Stylus, Stylish, and similar tools.
 
-Example of changing styles:
+Example style override:
 
 ```css
 /* ==UserStyle==
@@ -213,53 +250,51 @@ Example of changing styles:
 
 ## Tested browsers and loaders
 
-This list is updated quite rarely, but in most cases the data in it will be relevant.
+This list is updated infrequently but is usually still relevant.
 
 The extension has been tested in the following browsers:
 
 | Status | Browser                   | Min. Browser Version | Platform                | Extension                                                                                   |
 | ------ | ------------------------- | -------------------- | ----------------------- | ------------------------------------------------------------------------------------------- |
-| ⠀✅    | Firefox Developer Edition | v106                 | Windows                 | Tampermonkey (MV2), FireMonkey, VioletMonkey, Greasemonkey                                  |
-| ⠀✅    | Firefox                   | v116.0.2             | Windows, Linux, Android | Tampermonkey (MV2), Violetmonkey                                                            |
-| ⠀✅    | Firefox Nightly           | v118.0a1             | Windows, Android        | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | LibreWolf                 | v100.0.2-1           | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Brave                     | v1.46                | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | MS Edge                   | v106.0.1370.34       | Windows, Linux          | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Cent Browser              | v4.3.9.248           | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Cent Browser Beta         | v5.0.1002.182        | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violetmonkey, OrangeMonkey, User Javascript and CSS |
-| ⠀✅    | Opera GX (LVL4)           | core91               | Windows                 | Tampermonkey Opera                                                                          |
-| ⠀✅    | Opera GX (LVL5)           | core109              | Windows                 | Tampermonkey Opera                                                                          |
-| ⠀✅    | Opera                     | v92.0.4561.43        | Windows                 | Tampermonkey Opera                                                                          |
-| ⠀✅    | Vivaldi                   | 5.7.2921.63          | Windows, Linux          | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Safari                    | v15.6.1              | MacOS, iOS              | Userscripts, Tampermonkey                                                                   |
-| ⠀✅    | Kiwi Browser              | v116.0.5845.61       | Android                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Yandex Browser            | v24.4                | Windows                 | Tampermonkey (MV2), Tampermonkey (MV3)                                                      |
-| ⠀✅    | Arc                       | v1.6.1               | Windows                 | Tampermonkey (MV3)                                                                          |
-| ⠀✅    | Incognition               | v4.1.1.0 (v125)      | Windows                 | Tampermonkey (MV3), Tampermonkey (MV2)                                                      |
+| ✅     | Firefox Developer Edition | v106                 | Windows                 | Tampermonkey (MV2), FireMonkey, Violentmonkey, Greasemonkey                                  |
+| ✅     | Firefox                   | v116.0.2             | Windows, Linux, Android | Tampermonkey (MV2), Violentmonkey                                                            |
+| ✅     | Firefox Nightly           | v118.0a1             | Windows, Android        | Tampermonkey (MV2)                                                                          |
+| ✅     | LibreWolf                 | v100.0.2-1           | Windows                 | Tampermonkey (MV2)                                                                          |
+| ✅     | Brave                     | v1.46                | Windows                 | Tampermonkey (MV2)                                                                          |
+| ✅     | MS Edge                   | v106.0.1370.34       | Windows, Linux          | Tampermonkey (MV2)                                                                          |
+| ✅     | Cent Browser              | v4.3.9.248           | Windows                 | Tampermonkey (MV2)                                                                          |
+| ✅     | Cent Browser Beta         | v5.0.1002.182        | Windows                 | Tampermonkey (MV2)                                                                          |
+| ✅     | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violentmonkey, OrangeMonkey, User Javascript and CSS |
+| ✅     | Opera GX (LVL4)           | core91               | Windows                 | Violentmonkey                                                                               |
+| ✅     | Opera GX (LVL5)           | core109              | Windows                 | Violentmonkey                                                                               |
+| ✅     | Opera                     | v92.0.4561.43        | Windows                 | Violentmonkey                                                                               |
+| ✅     | Vivaldi                   | 5.7.2921.63          | Windows, Linux          | Tampermonkey (MV2)                                                                          |
+| ✅     | Safari                    | v15.6.1              | MacOS, iOS              | Userscripts, Tampermonkey                                                                   |
+| ✅     | Kiwi Browser              | v116.0.5845.61       | Android                 | Tampermonkey (MV2)                                                                          |
+| ✅     | Yandex Browser            | v24.4                | Windows                 | Tampermonkey (MV2), Tampermonkey (MV3)                                                     |
+| ✅     | Arc                       | v1.6.1               | Windows                 | Tampermonkey (MV3)                                                                          |
+| ✅     | Incognition               | v4.1.1.0 (v125)      | Windows                 | Tampermonkey (MV3), Tampermonkey (MV2)                                                     |
 
-Min. Browser version it's a minimal version of which extension has been tested. However, this doesn't mean that it willn't run in older versions. Please note that we **don't** support or fix errors in outdated browsers.
+Min. browser version is the lowest version where the extension was tested. This does not guarantee behavior on older versions. Please note that we **do not** support or fix issues in outdated browsers.
 
-To activate the script in Tampermonkey (MV3), you must [enable "Developer Mode"][devmode-enable]
+To activate the script in Tampermonkey (MV3), you must [enable "Developer Mode"][devmode-enable].
 
-Tested in the following extensions-loaders for userscripts:
+Tested in the following userscript manager extensions:
 
-| Status                                    | Browser | Extension                                       |
-| ----------------------------------------- | ------- | ----------------------------------------------- |
-| ⠀✅                                       | Any     | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
-| ⠀✅                                       | Opera   | [Tampermonkey Opera][tampermonkey-opera]        |
-| ⠀✅                                       | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
-| ⠀⚠️¹                                      | Safari  | [Userscripts][userscripts-safari]               |
-| ⠀✅                                       | Any     | [Violetmonkey][violetmonkey-link]               |
-| ⠀❔                                       | Any     | [AdGuard Usercripts][adguard-userscripts]       |
-| ⠀[Install guide][firemonkey-how-to]       | Firefox | [Firemonkey][firemonkey-link]                   |
-| ⠀✅                                       | Firefox | [Greasemonkey][greasemonkey-link]               |
-| ⚠️²                                       | Any     | [OrangeMonkey][orangemonkey-link]               |
-| ⠀[Install guide][user-js-and-css-how-to]¹ | Any     | [User Javascript and CSS][user-js-and-css-link] |
+| Status                    | Browser | Extension                                       |
+| ------------------------- | ------- | ----------------------------------------------- |
+| ✅                        | Any     | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
+| ✅                        | Opera   | [Violentmonkey][violentmonkey-opera]           |
+| ✅                        | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]        |
+| ⚠️¹                       | Safari  | [Userscripts][userscripts-safari]              |
+| ✅                        | Any     | [Violentmonkey][violetmonkey-link]             |
+| ❔                        | Any     | [AdGuard Userscripts][adguard-userscripts]     |
+| [Install guide][firemonkey-how-to] | Firefox | [Firemonkey][firemonkey-link]                  |
+| ✅                        | Firefox | [Greasemonkey][greasemonkey-link]              |
+| ⚠️²                       | Any     | [OrangeMonkey][orangemonkey-link]              |
+| [Install guide][user-js-and-css-how-to]¹ | Any     | [User Javascript and CSS][user-js-and-css-link] |
 
-¹ - It works in proxying mode, the important "Use audio download" function is unavailable due to the lack of the `unsafeWindow` API, which may lead to problems with translating new videos.
-
-² - requestIdleCallback throws a lot of errors in the console, but the extension works.
+¹ - Works in proxy mode, but the important "Use audio download" feature is unavailable due to missing `unsafeWindow` API, which can cause issues with newly requested translations.
 
 ## Contributing
 

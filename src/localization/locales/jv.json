@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Babagan ekstensi",
   "appearance": "Tampilan",
-  "buttonPositionInWidePlayer": "Posisi tombol ing pamuter sing amba",
+  "buttonPosition": "Posisi tombol ing pamuter",
   "position": {
     "left": "Kiwa",
     "right": "Ya wis",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Nganyari",
   "VOTYandexToken": "Mlebu Ing Yandex Token OAuth",
   "VOTYandexTokenInfo": "Sampeyan bisa kanthi manual nyetel akun token ing lapangan iki. Elinga yen kita ora mriksa validitas sadurunge ngirim panjaluk terjemahan",
-  "VOTLoginViaToken": "Mlebu liwat token"
+  "VOTLoginViaToken": "Mlebu liwat token",
+  "subtitlesSmartLayout": "Tata letak subtitle pinter",
+  "smartDucking": "Volume adaptif",
+  "VOTAutoSubtitles": "Subtitle ing mbukak"
 }

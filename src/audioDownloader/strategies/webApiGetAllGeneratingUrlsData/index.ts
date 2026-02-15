@@ -1,17 +1,18 @@
 import { AudioDownloadType } from "@vot.js/core/types/yandex";
-import {
+import type {
   ChunkRange,
   DownloadAudioDataIframeResponsePayload,
   FetchMediaWithMetaByChunkRangesResult,
   FetchMediaWithMetaOptions,
   FetchMediaWithMetaResult,
   GetAudioFromAPIOptions,
+  SerializedRequestInitData,
   VideoIdPayload,
 } from "../../../types/audioDownloader";
+import { timeout } from "../../../utils/async";
 import debug from "../../../utils/debug";
 import { GM_fetch } from "../../../utils/gm";
-import { requestDataFromMainWorld } from "../../../utils/iframeConnector";
-import { timeout } from "../../../utils/utils";
+import { requestDataFromMainWorldWithId } from "../../../utils/iframeConnector";
 import {
   deserializeRequestInit,
   getRequestUrl,
@@ -39,18 +40,45 @@ import {
 const STRATEGY_TYPE =
   AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME;
 
-const getDownloadAudioDataInMainWorld = (payload: VideoIdPayload) =>
-  requestDataFromMainWorld<
+function isSerializedRequestInitData(
+  value: unknown,
+): value is SerializedRequestInitData {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    "headersEntries" in (value as Record<string, unknown>)
+  );
+}
+
+function normalizeRequestInit(
+  requestInit: DownloadAudioDataIframeResponsePayload["requestInit"],
+  fallbackInit: RequestInit,
+): RequestInit {
+  if (!requestInit) {
+    return fallbackInit;
+  }
+
+  return isSerializedRequestInitData(requestInit)
+    ? deserializeRequestInit(requestInit)
+    : requestInit;
+}
+
+const getDownloadAudioDataInMainWorld = (
+  payload: VideoIdPayload,
+  signal: AbortSignal,
+) =>
+  requestDataFromMainWorldWithId<
     VideoIdPayload,
     DownloadAudioDataIframeResponsePayload
-  >("get-download-audio-data-in-main-world", payload);
+  >("get-download-audio-data-in-main-world", payload, { signal }).promise;
 
 async function getGeneratingAudioUrlsDataFromIframe(
   videoId: string,
+  signal: AbortSignal,
 ): Promise<DownloadAudioDataIframeResponsePayload> {
   try {
     return await Promise.race([
-      getDownloadAudioDataInMainWorld({ videoId }),
+      getDownloadAudioDataInMainWorld({ videoId }, signal),
       timeout(20000, GET_AUDIO_DATA_ERROR_MESSAGE),
     ]);
   } catch (err) {
@@ -193,7 +221,7 @@ export async function getAudioFromWebApiWithReplacedFetch({
   signal,
 }: GetAudioFromAPIOptions) {
   const { requestInit, requestInfo, adaptiveFormat, itag } =
-    await getGeneratingAudioUrlsDataFromIframe(videoId);
+    await getGeneratingAudioUrlsDataFromIframe(videoId, signal);
   if (!requestInfo) {
     throw new Error("Audio downloader. WEB API. Can not get requestInfo");
   }
@@ -201,7 +229,7 @@ export async function getAudioFromWebApiWithReplacedFetch({
   let mediaUrl = getRequestUrl(requestInfo);
   const serializedInit = serializeRequestInit(requestInfo);
   const fallbackInit = deserializeRequestInit(serializedInit);
-  const finalRequestInit = requestInit || fallbackInit;
+  const finalRequestInit = normalizeRequestInit(requestInit, fallbackInit);
 
   return {
     fileId: makeFileId(STRATEGY_TYPE, itag, adaptiveFormat.contentLength),

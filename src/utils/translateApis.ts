@@ -1,17 +1,64 @@
-import type { BaseProviderType, ClientType } from "@toil/translate/types";
+import type { BaseProviderType } from "@toil/translate/types";
 
 import {
   defaultDetectService,
   defaultTranslationService,
   detectRustServerUrl,
   foswlyTranslateUrl,
-} from "../config/config.js";
+} from "../config/config";
 import { GM_fetch } from "./gm";
 import { votStorage } from "./storage";
+
+// Small in-memory caches to avoid repeated async storage reads.
+// Settings rarely change during a session, but `translate()`/`detect()` can be
+// called from retry/error flows where every call used to hit storage.
+const SETTINGS_CACHE_TTL_MS = 5_000;
+
+let cachedTranslationService: string | null = null;
+let cachedTranslationServiceAt = 0;
+let cachedDetectService: string | null = null;
+let cachedDetectServiceAt = 0;
+
+async function getTranslationServiceCached(): Promise<string> {
+  const now = Date.now();
+  if (
+    cachedTranslationService &&
+    now - cachedTranslationServiceAt < SETTINGS_CACHE_TTL_MS
+  ) {
+    return cachedTranslationService;
+  }
+
+  const service = await votStorage.get(
+    "translationService",
+    defaultTranslationService,
+  );
+  cachedTranslationService = String(service);
+  cachedTranslationServiceAt = now;
+  return cachedTranslationService;
+}
+
+async function getDetectServiceCached(): Promise<string> {
+  const now = Date.now();
+  if (
+    cachedDetectService &&
+    now - cachedDetectServiceAt < SETTINGS_CACHE_TTL_MS
+  ) {
+    return cachedDetectService;
+  }
+
+  const service = await votStorage.get("detectService", defaultDetectService);
+  cachedDetectService = String(service);
+  cachedDetectServiceAt = now;
+  return cachedDetectService;
+}
 
 type FOSWLYErrorResponse = {
   error: string;
 };
+
+// Services supported by our FOSWLY Translate API wrapper.
+const foswlyServices = ["yandexbrowser", "msedge"] as const;
+type FoswlyService = (typeof foswlyServices)[number];
 
 /**
  * Limit: 10k symbols for yandex, 50k for msedge
@@ -35,14 +82,14 @@ const FOSWLYTranslateAPI = new (class {
 
       const data = (await res.json()) as T | FOSWLYErrorResponse;
       if (this.isFOSWLYError<T>(data)) {
-        throw data.error;
+        throw new Error(data.error);
       }
 
       return data;
     } catch (err) {
       console.error(
         `[VOT] Failed to get data from FOSWLY Translate API, because ${
-          (err as Error).message
+          err instanceof Error ? err.message : String(err)
         }`,
       );
       return undefined;
@@ -52,7 +99,7 @@ const FOSWLYTranslateAPI = new (class {
   async translateMultiple(
     text: string[],
     lang: string,
-    service: keyof typeof ClientType.TranslationService,
+    service: FoswlyService,
   ) {
     const result = await this.request<BaseProviderType.TranslationResponse>(
       "/translate",
@@ -72,11 +119,7 @@ const FOSWLYTranslateAPI = new (class {
     return result ? result.translations : text;
   }
 
-  async translate(
-    text: string,
-    lang: string,
-    service: keyof typeof ClientType.TranslationService,
-  ) {
+  async translate(text: string, lang: string, service: FoswlyService) {
     const result = await this.request<BaseProviderType.TranslationResponse>(
       `/translate?${new URLSearchParams({
         text,
@@ -88,10 +131,7 @@ const FOSWLYTranslateAPI = new (class {
     return result ? result.translations[0] : text;
   }
 
-  async detect(
-    text: string,
-    service: keyof typeof ClientType.TranslationService,
-  ) {
+  async detect(text: string, service: FoswlyService) {
     const result = await this.request<BaseProviderType.DetectResponse>(
       `/detect?${new URLSearchParams({
         text,
@@ -129,10 +169,7 @@ async function translate(
   fromLang = "",
   toLang = "ru",
 ) {
-  const service = await votStorage.get(
-    "translationService",
-    defaultTranslationService,
-  );
+  const service = await getTranslationServiceCached();
   switch (service) {
     case "yandexbrowser":
     case "msedge": {
@@ -147,7 +184,7 @@ async function translate(
 }
 
 async function detect(text: string) {
-  const service = await votStorage.get("detectService", defaultDetectService);
+  const service = await getDetectServiceCached();
   switch (service) {
     case "yandexbrowser":
     case "msedge":
@@ -159,7 +196,6 @@ async function detect(text: string) {
   }
 }
 
-const foswlyServices = ["yandexbrowser", "msedge"] as const;
 const detectServices = [...foswlyServices, "rust-server"] as const;
 
 export {

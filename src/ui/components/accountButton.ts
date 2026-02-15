@@ -1,9 +1,15 @@
 import { avatarServerUrl } from "../../config/config";
 import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
-import { AccountButtonProps } from "../../types/components/accountButton";
+import type { AccountButtonProps } from "../../types/components/accountButton";
 import UI from "../../ui";
 import { KEY_ICON, REFRESH_ICON } from "../icons";
+import {
+  addComponentEventListener,
+  getHiddenState,
+  removeComponentEventListener,
+  setHiddenState,
+} from "./componentShared";
 
 export default class AccountButton {
   container: HTMLElement;
@@ -16,9 +22,14 @@ export default class AccountButton {
   refreshButton: HTMLElement;
   tokenButton: HTMLElement;
 
-  private onClick = new EventImpl();
-  private onRefresh = new EventImpl();
-  private onClickSecret = new EventImpl();
+  private readonly onClick = new EventImpl();
+  private readonly onRefresh = new EventImpl();
+  private readonly onClickSecret = new EventImpl();
+  private readonly events = {
+    click: this.onClick,
+    "click:secret": this.onClickSecret,
+    refresh: this.onRefresh,
+  };
   private _loggedIn: boolean;
   private _username: string;
   private _avatarId: string;
@@ -69,13 +80,17 @@ export default class AccountButton {
     actionButton.addEventListener("click", () => {
       this.onClick.dispatch();
     });
-    const tokenButton = UI.createIconButton(KEY_ICON);
+    const tokenButton = UI.createIconButton(KEY_ICON, {
+      ariaLabel: localizationProvider.get("VOTLoginViaToken"),
+    });
     tokenButton.hidden = this._loggedIn;
     tokenButton.addEventListener("click", () => {
       this.onClickSecret.dispatch();
     });
 
-    const refreshButton = UI.createIconButton(REFRESH_ICON);
+    const refreshButton = UI.createIconButton(REFRESH_ICON, {
+      ariaLabel: localizationProvider.get("VOTRefresh"),
+    });
     refreshButton.addEventListener("click", () => {
       this.onRefresh.dispatch();
     });
@@ -99,17 +114,7 @@ export default class AccountButton {
     type: "click" | "click:secret" | "refresh",
     listener: () => void,
   ): this {
-    switch (type) {
-      case "click":
-        this.onClick.addListener(listener);
-        break;
-      case "click:secret":
-        this.onClickSecret.addListener(listener);
-        break;
-      case "refresh":
-        this.onRefresh.addListener(listener);
-        break;
-    }
+    addComponentEventListener(this.events, type, listener);
 
     return this;
   }
@@ -118,17 +123,7 @@ export default class AccountButton {
     type: "click" | "click:secret" | "refresh",
     listener: () => void,
   ): this {
-    switch (type) {
-      case "click":
-        this.onClick.removeListener(listener);
-        break;
-      case "click:secret":
-        this.onClickSecret.removeListener(listener);
-        break;
-      case "refresh":
-        this.onRefresh.removeListener(listener);
-        break;
-    }
+    removeComponentEventListener(this.events, type, listener);
 
     return this;
   }
@@ -169,10 +164,10 @@ export default class AccountButton {
   }
 
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
 }

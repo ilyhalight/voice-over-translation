@@ -1,12 +1,12 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
-import {
+import type {
   AudioAdaptiveFormat,
   PlayerElement,
 } from "@vot.js/ext/types/helpers/youtube";
-import { VideoIdPayload } from "../../../types/audioDownloader";
-import { MessagePayload } from "../../../types/iframeConnector";
+import type { VideoIdPayload } from "../../../types/audioDownloader";
+import type { MessagePayload } from "../../../types/iframeConnector";
+import { waitForCondition } from "../../../utils/async";
 import debug from "../../../utils/debug";
-import { waitForCondition } from "../../../utils/utils";
 import { getRequestUrl, serializeRequestInit } from "../../shared";
 
 let lastMessageId = "";
@@ -64,7 +64,7 @@ function selectBestAudioFormat() {
   const itag251Sorted = audioFormats
     .filter(({ itag }) => itag === 251)
     .sort(({ contentLength: a }, { contentLength: b }) =>
-      a && b ? Number.parseInt(a) - Number.parseInt(b) : -1,
+      a && b ? Number.parseInt(a, 10) - Number.parseInt(b, 10) : -1,
     );
 
   return itag251Sorted.at(-1) ?? audioFormats[0];
@@ -128,7 +128,7 @@ export async function getDownloadAudioData(
 
       const requestUrl = getRequestUrl(input);
       if (await isEncodedRequest(requestUrl, input)) {
-        window.parent.postMessage(
+        globalThis.parent.postMessage(
           {
             ...data,
             messageDirection: "response",
@@ -148,7 +148,7 @@ export async function getDownloadAudioData(
 
       if (requestUrl.includes("&itag=251&")) {
         unsafeWindow.fetch = originalFetch;
-        window.parent.postMessage(
+        globalThis.parent.postMessage(
           {
             ...data,
             messageDirection: "response",
@@ -168,7 +168,7 @@ export async function getDownloadAudioData(
 
     await loadVideo(data);
   } catch (error) {
-    window.parent.postMessage(
+    globalThis.parent.postMessage(
       {
         ...data,
         messageDirection: "response",

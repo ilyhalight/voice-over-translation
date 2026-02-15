@@ -1,5 +1,5 @@
-import { AudioAdaptiveFormat } from "@vot.js/ext/types/helpers/youtube";
-import { AudioDownloader } from "../audioDownloader";
+import type { AudioAdaptiveFormat } from "@vot.js/ext/types/helpers/youtube";
+import type { AudioDownloader } from "../audioDownloader";
 
 export type ChunkRange = {
   start: number;
@@ -11,8 +11,14 @@ export type VideoIdPayload = {
   videoId: string;
 };
 
+export type DownloadAudioDataSource =
+  | "player-response"
+  | "performance"
+  | "fetch-hook"
+  | "xhr-hook";
+
 export type SerializedRequestInitData = {
-  body: Uint8Array;
+  body?: Uint8Array | null;
   cache?: RequestCache;
   credentials?: RequestCredentials;
   headersEntries?: [string, string][];
@@ -27,9 +33,11 @@ export type SerializedRequestInitData = {
 
 export type DownloadAudioDataIframeResponsePayload = {
   requestInfo: string;
-  requestInit: RequestInit | SerializedRequestInitData;
-  adaptiveFormat: AudioAdaptiveFormat;
+  requestInit?: RequestInit | SerializedRequestInitData;
+  // playerResponse may be unavailable in some runtimes; keep this optional.
+  adaptiveFormat?: AudioAdaptiveFormat | null;
   itag: number;
+  source?: DownloadAudioDataSource;
 };
 
 export type FetchMediaWithMetaOptions = {

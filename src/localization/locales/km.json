@@ -216,7 +216,7 @@
   },
   "aboutExtension": "អំពីផ្នែកបន្ថែម",
   "appearance": "រូបរាង",
-  "buttonPositionInWidePlayer": "ទីតាំងប៊ូតុងនៅក្នុងកម្មវិធីចាក់ធំទូលាយ",
+  "buttonPosition": "ប៊ូតុងទីតាំងនៅក្នុងការលេង",
   "position": {
     "left": "ឆ្វេង",
     "right": "ស្តាំ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "ធ្វើឲ្យស្រស់",
   "VOTYandexToken": "បញ្ចូលសញ្ញា Yandex OAuth",
   "VOTYandexTokenInfo": "អ្នកអាចកំណត់សញ្ញាគណនីនៅក្នុងវាលនេះដោយដៃ. សូមចំណាំថាយើងមិនបានពិនិត្យមើលសុពលភាពរបស់ខ្លួនមុនពេលផ្ញើសំណើបកប្រែ",
-  "VOTLoginViaToken": "ចូលតាមរយៈ token"
+  "VOTLoginViaToken": "ចូលតាមរយៈ token",
+  "subtitlesSmartLayout": "ប្លង់ចំណងជើងរងរបស់ Smart",
+  "smartDucking": "កម្រិតសំឡេងសម្របសម្រួល",
+  "VOTAutoSubtitles": "បើកចំណងជើងរង"
 }

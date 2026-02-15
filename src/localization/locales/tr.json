@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Uzantı hakkında",
   "appearance": "Görünüm",
-  "buttonPositionInWidePlayer": "Geniş oynatıcıda düğme konumu",
+  "buttonPosition": "Oynatıcıdaki düğme konumu",
   "position": {
     "left": "Sol",
     "right": "Sağ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Yenilemek",
   "VOTYandexToken": "Yandex OAuth Belirtecini Girin",
   "VOTYandexTokenInfo": "Bu alanda hesap belirtecini manuel olarak ayarlayabilirsiniz. Bir çeviri isteği göndermeden önce geçerliliğini kontrol etmediğimizi lütfen unutmayın",
-  "VOTLoginViaToken": "Token ile giriş yap"
+  "VOTLoginViaToken": "Token ile giriş yap",
+  "subtitlesSmartLayout": "Akıllı altyazı düzeni",
+  "smartDucking": "Uyarlanabilir hacim",
+  "VOTAutoSubtitles": "Altyazılar açık"
 }

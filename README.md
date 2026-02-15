@@ -3,7 +3,7 @@
 <!-- loaders links (website > github > store) -->
 
 [tampermonkey-link]: https://www.tampermonkey.net/index.php
-[tampermonkey-opera]: https://www.tampermonkey.net/index.php?browser=opera&locale=en
+[violentmonkey-opera]: https://chrome.google.com/webstore/detail/violent-monkey/jinjaccalgkegednnccohejagnlnfdag
 [userscripts-safari]: https://github.com/quoid/userscripts
 [violetmonkey-link]: https://violentmonkey.github.io
 [adguard-userscripts]: https://kb.adguard.com/en/general/userscripts#supported-apps
@@ -33,6 +33,7 @@
 <!-- Install / Build -->
 
 [vot-dist]: https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+[vot-releases]: https://github.com/ilyhalight/voice-over-translation/releases
 [nodejs-link]: https://nodejs.org
 [bun-link]: https://bun.sh/
 
@@ -61,32 +62,56 @@
 > [!CAUTION]
 > Перед созданием Issues настоятельно рекомендуем ознакомиться с разделом [FAQ][vot-faq] и уже существующими [Issues][vot-issues].
 
-> Все права на оригинальное программное обеспечение принадлежат их правообладателям. Расширение не связано с оригинальными правообладателями
+> Все права на оригинальное программное обеспечение принадлежат их правообладателям. Расширение не связано с оригинальными правообладателями.
 
-Закадровый перевод видео, теперь, доступен не только в [YandexBrowser][yabrowser-link]. Очень признателен разработчикам создающим **[Yandex.Translate][yatranslate-link]**, а также всем [контрибьюторам][contributors-link] за помощь в улучшении расширения. Спасиб <3
+Закадровый перевод видео теперь доступен не только в [YandexBrowser][yabrowser-link]. Большое спасибо разработчикам **[Yandex.Translate][yatranslate-link]** и всем [контрибьюторам][contributors-link], которые помогают улучшать расширение.
 
 ## Установка расширения:
 
 > [!WARNING]
-> Если вы пользуетесь Tampermonkey 5.2.0+, не забудьте [включить "Режим разработчика"][devmode-enable]!
+> **Важно для пользователей Tampermonkey 5.2+ (MV3):**
+> В браузерах на движке **Chromium** (Chrome, Edge, Brave, Vivaldi и др.) необходимо:
+> 1. Открыть страницу расширений (`chrome://extensions`) и включить **«Режим разработчика»**.
+> 2. Если движок **Chromium версии 138+**, в «Сведениях» расширения включить **«Разрешить пользовательские скрипты»**.
+>
+> **Пользователям Opera:**
+> 1. Используйте **[Violentmonkey][violentmonkey-opera]** вместо Tampermonkey.
+> 2. В настройках расширения обязательно включите **«Разрешить доступ к результатам на странице поиска»**, иначе скрипт не будет работать.
 
-1. Установите расширение **[Tampermonkey][tampermonkey-link]**
-2. **[«Установите Скрипт»][vot-dist]**
+1. Установите загрузчик юзерскриптов: **[Tampermonkey][tampermonkey-link]** (или [Violentmonkey][violentmonkey-opera] для Opera)
+2. **[«Установить скрипт»][vot-dist]**
+
+### Установка нативного расширения для Chrome / Chromium
+
+1. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome-<версия>.crx`
+2. Откройте страницу расширений:
+   - Chrome: `chrome://extensions`
+   - Edge: `edge://extensions`
+   - Brave: `brave://extensions`
+   - Opera: `opera://extensions`
+3. Включите **«Режим разработчика»**
+4. Перетащите скачанный `.crx`-файл на страницу расширений
+
+### Установка нативного расширения для Firefox
+
+1. Откройте [Releases][vot-releases], нажмите на `vot-extension-firefox-<версия>.xpi` и подтвердите установку в Firefox
 
 ## Список функционала:
 
 - Перевод видео на русский, английский или казахский с [поддерживаемых языков][vot-langs]
-- Перевод прямых трансляций на YouTube (с небольшой задержкой)
+- Автоматический перевод видео при открытии
+- Автоматическое включение субтитров при открытии
+- Умное расположение субтитров: адаптация длины строк и размера текста под размер плеера
 - Отображение субтитров, сгенерированных нейросетью
 - Отображение субтитров с сайта (например, автопереведенные субтитры YouTube)
 - Сохранение субтитров в форматах `.srt`, `.vtt`, `.json`
 - Сохранение аудиодорожки перевода в формате `.mp3`
-- Автоматический перевод видео при открытии
 - Отдельные ползунки громкости для оригинального и переведённого звука
-- Автонастройка громкости перевода как в Яндекс Браузере
-- Синхронизация громкости перевода с громкостью видео
+- Адаптивная громкость: приглушение оригинала, когда звучит перевод
 - Ограничение перевода видео на родном языке (язык можно выбрать в меню)
-- Перевод по горячей клавише
+- Синхронизация громкости перевода с громкостью видео
+- Ограничение перевода с выбранных языков
+- Горячие клавиши для перевода и управления субтитрами (включая комбинации клавиш)
 - Простая настройка внешнего вида субтитров
 - Отображение перевода отдельных слов в субтитрах
 
@@ -98,20 +123,21 @@
 
 ## Примечание:
 
-1. Рекомендую разрешить автовоспроизведение "аудио и видео", чтобы избежать ошибок при работе расширения
+1. Рекомендуется разрешить автовоспроизведение «аудио и видео», чтобы избежать ошибок при работе расширения
 2. Расширение не может переводить видео длиной более 4 часов (ограничение API переводчика)
+3. Для стабильной работы загрузки аудио используйте загрузчики с поддержкой `unsafeWindow` (например, Tampermonkey или Violentmonkey)
 
 ## Список поддерживаемых сайтов:
 
-Полный список поддерживаемых веб-сайтов и все ограничения, связанные с их поддержкой, вы можете увидеть в **[вики][vot-supported-sites]**
+Полный список поддерживаемых веб-сайтов и ограничения, связанные с их поддержкой, доступны в **[вики][vot-supported-sites]**.
 
 ### Наши домены:
 
-Эти домены могут быть установлены в настройках расширения (здесь указаны только те домены, которые можно изменить без пересборки):
+Эти домены можно менять в настройках расширения без пересборки:
 
 #### Proxy-сервер
 
-Необходим для проксирования запросов, если не получается сделать прямой запрос к серверам Яндекса
+Нужен для проксирования запросов, если прямой доступ к серверам Яндекса недоступен.
 
 - [vot-worker.toil.cc][vot-balancer] (Балансировщик между прокси серверами)
 - [vot-worker-s1.toil.cc][vot-worker]
@@ -121,23 +147,23 @@
 
 #### Media Proxy-сервер
 
-Необходим для проксирования `.m3u8` файлов и исправления перевода для непрямых ссылок на `.mp4` или `.webm` (подробнее в репозитории)
+Нужен для проксирования `.m3u8`-файлов и корректной обработки непрямых ссылок на `.mp4` и `.webm`.
 
 - [media-proxy.toil.cc][media-proxy]
 
 #### VOT-Backend
 
-Необходим для перевода дополнительных сайтов, которые используют формат видео, который не поддерживается серверами Яндекса.
+Нужен для перевода дополнительных сайтов с форматами видео, которые не поддерживаются серверами Яндекса напрямую.
 
 - [vot.toil.cc][vot-backend]
 
 #### VOT Status and Stats
 
-Проверить текущий статус и аптайм всех серверов вы можете с помощью:
+Проверить текущий статус и аптайм всех серверов можно здесь:
 
 - [votstatus.toil.cc][vot-status]
 
-Проверить статистику работы прокси серверов вы можете с помощью (обновляется раз в 5 минут):
+Проверить статистику работы прокси-серверов (обновляется раз в 5 минут):
 
 - [votstats.toil.cc][vot-stats]
 
@@ -160,33 +186,41 @@ bun install
 
 3. Сборка расширения:
 
-   3.0. Все версии сразу:
+   3.0. Userscript (обычная сборка):
 
    ```bash
    npm run build
    ```
 
-   3.1. Все минифицированные версии сразу:
+   3.1. Userscript (минифицированная сборка):
 
    ```bash
    npm run build:min
    ```
 
-   3.2. Только обычная версии:
+   3.2. Userscript (обе версии подряд):
 
    ```bash
-   npm run build:default
+   npm run build:all
    ```
 
-   3.3. Только обычная мин. версии:
+   3.3. Нативные расширения Chrome/Firefox:
 
    ```bash
-   npm run build:default-min
+   npm run build:ext
    ```
+
+   3.4. Dev-сборка userscript с sourcemap:
+
+   ```bash
+   npm run build:dev
+   ```
+
+Артефакты userscript попадают в `dist/`, сборка нативных расширений — в `dist-ext/`.
 
 ## Кастомизация внешнего вида:
 
-Расширение поддерживает кастомизацию внешнего вида с помощью Stylus, Stylish и других подобных расширений.
+Расширение поддерживает кастомизацию внешнего вида с помощью Stylus, Stylish и других похожих расширений.
 
 Пример изменения стилей:
 
@@ -214,59 +248,57 @@ bun install
 }
 ```
 
-## Проотестированные браузеры и загрузчики
+## Протестированные браузеры и загрузчики
 
-Данный список обновляется довольно редко, но в большинстве случаев данные в нем будут актуальными.
+Этот список обновляется нечасто, но в большинстве случаев остаётся актуальным.
 
 Расширение протестировано в следующих браузерах:
 
-| Статус | Браузер                   | Мин. версия браузера | Платформа               | Расширение                                                                                  |
-| ------ | ------------------------- | -------------------- | ----------------------- | ------------------------------------------------------------------------------------------- |
-| ⠀✅    | Firefox Developer Edition | v106                 | Windows                 | Tampermonkey (MV2), FireMonkey, VioletMonkey, Greasemonkey                                  |
-| ⠀✅    | Firefox                   | v116.0.2             | Windows, Linux, Android | Tampermonkey (MV2), Violetmonkey                                                            |
-| ⠀✅    | Firefox Nightly           | v118.0a1             | Windows, Android        | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | LibreWolf                 | v100.0.2-1           | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Brave                     | v1.46                | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | MS Edge                   | v106.0.1370.34       | Windows, Linux          | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Cent Browser              | v4.3.9.248           | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Cent Browser Beta         | v5.0.1002.182        | Windows                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violetmonkey, OrangeMonkey, User Javascript and CSS |
-| ⠀✅    | Opera GX (LVL4)           | core91               | Windows                 | Tampermonkey Opera                                                                          |
-| ⠀✅    | Opera GX (LVL5)           | core109              | Windows                 | Tampermonkey Opera                                                                          |
-| ⠀✅    | Opera                     | v92.0.4561.43        | Windows                 | Tampermonkey Opera                                                                          |
-| ⠀✅    | Vivaldi                   | 5.7.2921.63          | Windows, Linux          | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Safari                    | v15.6.1              | MacOS, iOS              | Userscripts, Tampermonkey                                                                   |
-| ⠀✅    | Kiwi Browser              | v116.0.5845.61       | Android                 | Tampermonkey (MV2)                                                                          |
-| ⠀✅    | Yandex Browser            | v24.4                | Windows                 | Tampermonkey (MV2), Tampermonkey (MV3)                                                      |
-| ⠀✅    | Arc                       | v1.6.1               | Windows                 | Tampermonkey (MV3)                                                                          |
-| ⠀✅    | Incognition               | v4.1.1.0 (v125)      | Windows                 | Tampermonkey (MV3), Tampermonkey (MV2)                                                      |
+| Статус | Браузер                   | Мин. версия браузера | Платформа               | Расширение                                                                                   |
+| ------ | ------------------------- | -------------------- | ----------------------- | -------------------------------------------------------------------------------------------- |
+| ✅     | Firefox Developer Edition | v106                 | Windows                 | Tampermonkey (MV2), FireMonkey, Violentmonkey, Greasemonkey                                  |
+| ✅     | Firefox                   | v116.0.2             | Windows, Linux, Android | Tampermonkey (MV2), Violentmonkey                                                            |
+| ✅     | Firefox Nightly           | v118.0a1             | Windows, Android        | Tampermonkey (MV2)                                                                           |
+| ✅     | LibreWolf                 | v100.0.2-1           | Windows                 | Tampermonkey (MV2)                                                                           |
+| ✅     | Brave                     | v1.46                | Windows                 | Tampermonkey (MV2)                                                                           |
+| ✅     | MS Edge                   | v106.0.1370.34       | Windows, Linux          | Tampermonkey (MV2)                                                                           |
+| ✅     | Cent Browser              | v4.3.9.248           | Windows                 | Tampermonkey (MV2)                                                                           |
+| ✅     | Cent Browser Beta         | v5.0.1002.182        | Windows                 | Tampermonkey (MV2)                                                                           |
+| ✅     | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violentmonkey, OrangeMonkey, User Javascript and CSS |
+| ✅     | Opera GX (LVL4)           | core91               | Windows                 | Violentmonkey                                                                                |
+| ✅     | Opera GX (LVL5)           | core109              | Windows                 | Violentmonkey                                                                                |
+| ✅     | Opera                     | v92.0.4561.43        | Windows                 | Violentmonkey                                                                                |
+| ✅     | Vivaldi                   | 5.7.2921.63          | Windows, Linux          | Tampermonkey (MV2)                                                                           |
+| ✅     | Safari                    | v15.6.1              | MacOS, iOS              | Userscripts, Tampermonkey                                                                    |
+| ✅     | Kiwi Browser              | v116.0.5845.61       | Android                 | Tampermonkey (MV2)                                                                           |
+| ✅     | Yandex Browser            | v24.4                | Windows                 | Tampermonkey (MV2), Tampermonkey (MV3)                                                      |
+| ✅     | Arc                       | v1.6.1               | Windows                 | Tampermonkey (MV3)                                                                           |
+| ✅     | Incognition               | v4.1.1.0 (v125)      | Windows                 | Tampermonkey (MV3), Tampermonkey (MV2)                                                      |
 
-Мин. версия браузера - это минимальная версия, на которой расширение было протестировано. Однако это не означает, что оно не запустится в более старых версиях. Учтите, что поддержкой и исправление ошибок в устаревших браузерах мы **не занимаемся**.
+Мин. версия браузера — это минимальная версия, на которой расширение было протестировано. Это не означает, что оно не запустится в более старых версиях. Учтите, что поддержкой и исправлением ошибок в устаревших браузерах мы **не занимаемся**.
 
-Для активации скрипта в Tampermonkey (MV3) необходимо [включить "Режим разработчика"][devmode-enable]
+Для активации скрипта в Tampermonkey (MV3) необходимо [включить «Режим разработчика»][devmode-enable].
 
-Расширение было протестировано в следующих расширениях-загрузчиках для юзерскриптов:
+Расширение протестировано в следующих загрузчиках юзерскриптов:
 
-| Статус                                        | Браузер | Расширение                                      |
-| --------------------------------------------- | ------- | ----------------------------------------------- |
-| ⠀✅                                           | Любой   | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
-| ⠀✅                                           | Opera   | [Tampermonkey Opera][tampermonkey-opera]        |
-| ⠀✅                                           | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
-| ⠀⚠️¹                                          | Safari  | [Userscripts][userscripts-safari]               |
-| ⠀✅                                           | Любой   | [Violetmonkey][violetmonkey-link]               |
-| ⠀❔                                           | Любой   | [AdGuard Usercripts][adguard-userscripts]       |
-| ⠀[Гайд по установке][firemonkey-how-to]       | Firefox | [Firemonkey][firemonkey-link]                   |
-| ⠀✅                                           | Firefox | [Greasemonkey][greasemonkey-link]               |
-| ⠀⚠️²                                          | Любой   | [OrangeMonkey][orangemonkey-link]               |
-| ⠀[Гайд по установке][user-js-and-css-how-to]¹ | Любой   | [User Javascript and CSS][user-js-and-css-link] |
+| Статус                    | Браузер | Расширение                                       |
+| ------------------------- | ------- | ------------------------------------------------ |
+| ✅                        | Любой   | [Tampermonkey Legacy (MV2)][tampermonkey-link]  |
+| ✅                        | Opera   | [Violentmonkey][violentmonkey-opera]            |
+| ✅                        | Chrome  | [Tampermonkey (MV3)][tampermonkey-link]         |
+| ⚠️¹                       | Safari  | [Userscripts][userscripts-safari]               |
+| ✅                        | Любой   | [Violentmonkey][violetmonkey-link]              |
+| ❔                        | Любой   | [AdGuard Userscripts][adguard-userscripts]      |
+| [Гайд по установке][firemonkey-how-to] | Firefox | [Firemonkey][firemonkey-link]                   |
+| ✅                        | Firefox | [Greasemonkey][greasemonkey-link]               |
+| ⚠️²                       | Любой   | [OrangeMonkey][orangemonkey-link]               |
+| [Гайд по установке][user-js-and-css-how-to]¹ | Любой   | [User Javascript and CSS][user-js-and-css-link] |
 
-¹ - Работает в режиме проксирования, важная функция "Использовать загрузку аудио" недоступна из-за отсутствия `unsafeWindow` API, что может привести к проблемам с переводом новых видео.
-
-² - RequestIdleCallback выдает множество ошибок в консоли, но расширение работает.
+¹ - Работает в режиме проксирования, важная функция «Использовать загрузку аудио» недоступна из-за отсутствия `unsafeWindow` API, что может приводить к проблемам с переводом новых видео.
 
 ## Contributing
 
-Пожайлуста, ознакомьтесь с [гайдом для контрибьюторов](./CONTRIBUTING.md).
+Пожалуйста, ознакомьтесь с [гайдом для контрибьюторов](./CONTRIBUTING.md).
 
 ![example btn](https://github.com/ilyhalight/voice-over-translation/blob/master/img/example.png "btn")
 

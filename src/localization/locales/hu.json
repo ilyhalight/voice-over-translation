@@ -216,7 +216,7 @@
   },
   "aboutExtension": "A kiterjesztésről",
   "appearance": "Megjelenés",
-  "buttonPositionInWidePlayer": "Gomb pozíció széles lejátszóban",
+  "buttonPosition": "Gomb pozíció a lejátszóban",
   "position": {
     "left": "Balra",
     "right": "Jobb",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Frissítés",
   "VOTYandexToken": "Adja meg a Yandex OAuth Tokent",
   "VOTYandexTokenInfo": "Ebben a mezőben manuálisan beállíthatja a fiók tokent. Felhívjuk figyelmét, hogy a fordítási kérelem elküldése előtt nem ellenőrizzük annak érvényességét",
-  "VOTLoginViaToken": "Bejelentkezés tokenen keresztül"
+  "VOTLoginViaToken": "Bejelentkezés tokenen keresztül",
+  "subtitlesSmartLayout": "Intelligens felirat elrendezés",
+  "smartDucking": "Adaptív kötet",
+  "VOTAutoSubtitles": "Feliratok nyitva"
 }

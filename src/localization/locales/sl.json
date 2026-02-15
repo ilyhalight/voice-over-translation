@@ -216,7 +216,7 @@
   },
   "aboutExtension": "O razširitvi",
   "appearance": "Videz",
-  "buttonPositionInWidePlayer": "Položaj gumba v širokem predvajalniku",
+  "buttonPosition": "Položaj gumba v predvajalniku",
   "position": {
     "left": "Levo",
     "right": "Desno",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Osveži",
   "VOTYandexToken": "Vnesite žeton OAuth",
   "VOTYandexTokenInfo": "V tem polju lahko ročno nastavite žeton računa. Upoštevajte, da pred pošiljanjem zahteve za prevajanje ne preverimo njegove veljavnosti",
-  "VOTLoginViaToken": "Prijava prek žetona"
+  "VOTLoginViaToken": "Prijava prek žetona",
+  "subtitlesSmartLayout": "Pametna postavitev podnapisov",
+  "smartDucking": "Prilagodljiva prostornina",
+  "VOTAutoSubtitles": "Podnapisi na odprtem"
 }

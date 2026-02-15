@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Luzapenari buruz",
   "appearance": "Itxura",
-  "buttonPositionInWidePlayer": "Botoiaren posizioa jokalari zabalean",
+  "buttonPosition": "Jokalariaren botoiaren posizioa",
   "position": {
     "left": "Ezkerrera",
     "right": "Ezta",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Freskatu",
   "VOTYandexToken": "Sartu Yandex Oautheko Tokenera",
   "VOTYandexTokenInfo": "Kontu-tokena eskuz ezar dezakezu eremu honetan. Kontuan izan ez dugula bere baliozkotasuna egiaztatzen itzulpen eskaera bat bidali aurretik",
-  "VOTLoginViaToken": "Saioa hasi token bidez"
+  "VOTLoginViaToken": "Saioa hasi token bidez",
+  "subtitlesSmartLayout": "Azpitituluen diseinu adimenduna",
+  "smartDucking": "Bolumen egokitzailea",
+  "VOTAutoSubtitles": "Azpitituluak irekita"
 }

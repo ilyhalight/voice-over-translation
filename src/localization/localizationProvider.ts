@@ -1,13 +1,12 @@
-import rawDefaultLocale from "./locales/en.json";
-
-import { contentUrl } from "../config/config.js";
-import { FlatPhrases, Locale, Phrase } from "../types/localization";
-import { LocaleStorageKey } from "../types/storage";
+import { contentUrl } from "../config/config";
+import type { FlatPhrases, Locale, Phrase } from "../types/localization";
+import type { LocaleStorageKey } from "../types/storage";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
 import { lang } from "../utils/localization";
 import { votStorage } from "../utils/storage";
 import { getTimestamp, toFlatObj } from "../utils/utils";
+import rawDefaultLocale from "./locales/en.json";
 
 export type LangOverride = "auto" | Locale;
 
@@ -30,7 +29,8 @@ class LocalizationProvider {
   defaultLocale: FlatPhrases = toFlatObj(rawDefaultLocale);
 
   cacheTTL = 7200;
-  localizationUrl = `${contentUrl}/${REPO_BRANCH}/src/localization`;
+  localesUrl = `${contentUrl}/${REPO_BRANCH}/src/localization/locales`;
+  hashesUrl = `${contentUrl}/${REPO_BRANCH}/src/localization/hashes.json`;
 
   _langOverride: LangOverride = "auto";
 
@@ -58,8 +58,13 @@ class LocalizationProvider {
     return this.langOverride !== "auto" ? this.langOverride : lang;
   }
 
-  getAvailableLangs() {
-    return AVAILABLE_LOCALES;
+  getAvailableLangs(): LangOverride[] {
+    // Older extension builds injected AVAILABLE_LOCALES without the `auto`
+    // option. Ensure it is always present so Settings → Language can restore
+    // automatic detection.
+    return AVAILABLE_LOCALES.includes("auto")
+      ? AVAILABLE_LOCALES
+      : (["auto", ...AVAILABLE_LOCALES] as LangOverride[]);
   }
 
   async reset() {
@@ -70,9 +75,9 @@ class LocalizationProvider {
     return this;
   }
 
-  private buildUrl(path: string, force = false) {
+  private buildUrl(baseUrl: string, path: string, force = false) {
     const query = force ? `?timestamp=${getTimestamp()}` : "";
-    return `${this.localizationUrl}${path}${query}`;
+    return `${baseUrl}${path}${query}`;
   }
 
   async changeLang(newLang: LangOverride) {
@@ -91,7 +96,7 @@ class LocalizationProvider {
   async checkUpdates(force = false) {
     debug.log("Check locale updates...");
     try {
-      const res = await GM_fetch(this.buildUrl("/hashes.json", force));
+      const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
       if (!res.ok) throw res.status;
       const hashes = await res.json();
       return (await votStorage.get("localeHash")) !== hashes[this.lang]
@@ -125,7 +130,7 @@ class LocalizationProvider {
     debug.log("Updating locale...");
     try {
       const res = await GM_fetch(
-        this.buildUrl(`/locales/${this.lang}.json`, force),
+        this.buildUrl(this.localesUrl, `/${this.lang}.json`, force),
       );
       if (!res.ok) throw res.status;
       // We use it .text() in order for there to be a single logic for GM_Storage and localStorage
@@ -173,7 +178,29 @@ class LocalizationProvider {
   get(key: Phrase) {
     return this.getFromLocale(this.locale, key) ?? this.getDefault(key);
   }
+
+  getLangLabel(lang: string) {
+    const key = `langs.${lang}` as Phrase;
+    if (key in this.defaultLocale) {
+      const label = this.get(key);
+      if (label) {
+        return label;
+      }
+    }
+    return typeof lang === "string" ? lang.toUpperCase() : "";
+  }
 }
 
 export const localizationProvider = new LocalizationProvider();
-await localizationProvider.init();
+/**
+ * In the userscript build, SystemJS wrapping allowed a top-level await.
+ * For the extension build we emit classic scripts (IIFE), so we must avoid
+ * top-level await and instead expose an explicit lazy ready Promise.
+ */
+let localizationProviderReadyPromise: Promise<LocalizationProvider> | null =
+  null;
+
+export function ensureLocalizationProviderReady(): Promise<LocalizationProvider> {
+  localizationProviderReadyPromise ??= localizationProvider.init();
+  return localizationProviderReadyPromise;
+}

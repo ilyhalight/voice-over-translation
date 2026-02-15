@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Sobre l'extensió",
   "appearance": "Aparença",
-  "buttonPositionInWidePlayer": "Posició del botó en un jugador ample",
+  "buttonPosition": "Posició del botó al reproductor",
   "position": {
     "left": "Esquerra",
     "right": "Dret",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Refresca",
   "VOTYandexToken": "Introduïu El Testimoni Yandex OAuth",
   "VOTYandexTokenInfo": "Podeu configurar manualment el testimoni del compte en aquest camp. Tingueu en compte que no comprovem la seva validesa abans d'enviar una petició de traducció",
-  "VOTLoginViaToken": "Inicieu sessió mitjançant testimoni"
+  "VOTLoginViaToken": "Inicieu sessió mitjançant testimoni",
+  "subtitlesSmartLayout": "Disseny de subtítols intel ligent",
+  "smartDucking": "Volum adaptatiu",
+  "VOTAutoSubtitles": "Subtítols en obert"
 }

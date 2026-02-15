@@ -25,14 +25,7 @@
   line-height: 1.5 !important;
   text-align: start !important;
 
-  &[hidden] {
-    display: none !important;
-  }
-
-  & > input,
-  & > textarea {
-    -webkit-box-sizing: border-box !important;
-    -moz-box-sizing: border-box !important;
+  & > :is(input, textarea) {
     box-sizing: border-box !important;
     margin: 0 !important;
     border-style: solid !important;
@@ -58,21 +51,11 @@
       border 0.2s,
       box-shadow 0.2s !important;
 
+    &:not(:focus):not(:is(.vot-show-placeholder, .vot-show-placeholer))::placeholder {
+      color: transparent !important;
+    }
+
     &:not(:focus) {
-      &:not(.vot-show-placeholer) {
-        &::-moz-placeholder {
-          color: transparent !important;
-        }
-
-        &::-ms-input-placeholder {
-          color: transparent !important;
-        }
-
-        &::-webkit-input-placeholder {
-          color: transparent !important;
-        }
-      }
-
       &:placeholder-shown {
         border-top-color: var(--vot-helper-safari2) !important;
       }
@@ -110,8 +93,6 @@
     & + span::after {
       content: "" !important;
       display: block !important;
-      -webkit-box-sizing: border-box !important;
-      -moz-box-sizing: border-box !important;
       box-sizing: border-box !important;
       margin-top: 6px !important;
       border-top: solid 1px var(--vot-helper-safari2) !important;
@@ -137,7 +118,7 @@
       border-radius: 0 4px !important;
     }
 
-    &.vot-show-placeholer + span {
+    &:is(.vot-show-placeholder, .vot-show-placeholer) + span {
       &::before {
         margin-right: 0 !important;
       }
@@ -147,7 +128,7 @@
       }
     }
 
-    &:not(:focus):placeholder-shown {
+    &:is(:not(:focus):placeholder-shown) {
       & + span::before,
       & + span::after {
         border-top-color: transparent !important;

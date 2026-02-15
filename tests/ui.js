@@ -348,7 +348,7 @@ class TestUI {
         },
       ]);
       this.votButton.loading = false;
-      data.footerContainer.removeChild(loadingEl);
+      loadingEl.remove();
     });
 
     this.testDialog.bodyContainer.append(this.subtitlesSelect.container);

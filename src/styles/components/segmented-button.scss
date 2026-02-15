@@ -1,6 +1,20 @@
+@use "../mixins" as shared;
+@use "./buttons/mixins" as button;
+
 .vot-segmented-button {
   --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
   --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87);
+
+  // IMPORTANT (NicoNico and similar sites): some host pages/scripts aggressively
+  // write inline styles like `opacity: 0; pointer-events: none; touch-action: none;`
+  // to elements they don't recognize.
+  //
+  // We intentionally *own* these properties via author CSS + `!important` and
+  // drive state using a class. This way, external inline styles cannot make the
+  // button permanently invisible/non-interactive.
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  touch-action: none !important;
   overflow: hidden;
   position: absolute;
   left: 50%;
@@ -9,32 +23,27 @@
   user-select: none;
   display: flex;
   align-items: center;
-  height: 32px;
+  height: 36px;
   max-width: 100vw;
   background: rgb(var(--vot-surface-rgb, 255, 255, 255));
   color: var(--vot-helper-theme);
   fill: var(--vot-helper-theme);
-  border-radius: 4px !important;
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
-  );
+  border: 1px solid var(--vot-border-color) !important;
+  border-radius: var(--vot-radius-s) !important;
+  box-shadow: var(--vot-shadow-1) !important;
+  @include shared.vot-font-family;
   font-size: 16px;
   line-height: 1.5;
   cursor: default;
-  transition: opacity 0.5s;
+  transition: opacity var(--vot-duration-slow) var(--vot-easing-standard);
   z-index: 2147483647;
 
-  &[hidden] {
-    display: none !important;
+  &.vot-segmented-button--hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   & * {
-    -webkit-box-sizing: border-box !important;
-    -moz-box-sizing: border-box !important;
     box-sizing: border-box !important;
   }
 
@@ -42,9 +51,6 @@
     width: 1px;
     height: 50%;
     background: rgba(var(--vot-helper-theme-rgb), 0.1);
-    &[hidden] {
-      display: none !important;
-    }
   }
 
   & .vot-segment {
@@ -54,67 +60,39 @@
     justify-content: center;
     align-items: center;
     height: 100%;
-    padding: 0 8px !important;
+    padding: 0 var(--vot-space-2) !important;
     background-color: transparent;
     color: inherit;
-    transition: background-color 100ms ease-in-out;
+    transition: background-color var(--vot-duration-fast) var(--vot-easing-standard);
     border: none !important;
 
-    &[hidden] {
-      display: none !important;
+    // Prevent default UA focus outline (it gets clipped by overflow and shows as stripes).
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+
+    // Fallback: show focus ring on :focus (for browsers without :focus-visible),
+    // but hide it for pointer focus when :focus-visible is supported.
+    &:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--vot-focus-ring-color);
     }
 
-    &::before,
-    &::after {
-      content: "";
-      position: absolute;
-      border-radius: inherit !important;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      opacity: 0;
+    &:focus:not(:focus-visible) {
+      box-shadow: none;
     }
 
-    &::before {
-      background-color: rgb(var(--vot-helper-theme-rgb));
-      transition: opacity 0.2s;
-    }
-
-    &::after {
-      background: radial-gradient(
-          circle at center,
-          currentColor 1%,
-          transparent 1%
-        )
-        center/10000% 10000% no-repeat;
-      transition:
-        opacity 1s,
-        background-size 0.5s;
-    }
-
-    &:hover {
-      &::before {
-        opacity: 0.04;
-      }
-    }
-
-    &:active {
-      &::after {
-        opacity: 0.16;
-        background-size: 100% 100%;
-        transition: background-size 0s;
-      }
-    }
+    @include button.vot-button-layers(rgb(var(--vot-helper-theme-rgb)));
+    @include button.vot-button-layer-hover(0.04);
+    @include button.vot-button-layer-active(0.16);
 
     &-only-icon {
       @extend .vot-segment;
-      min-width: 32px;
+      min-width: 36px;
       padding: 0 !important;
     }
 
     &-label {
-      margin-left: 8px !important;
+      margin-left: var(--vot-space-2) !important;
       white-space: nowrap;
       color: inherit;
       font-weight: 400;
@@ -162,13 +140,13 @@
 
   &[data-position="left"] {
     left: 50px;
-    top: calc(25vh / 2);
+    top: 12.5vh;
   }
 
   &[data-position="right"] {
     left: auto;
     right: 0;
-    top: calc(25vh / 2);
+    top: 12.5vh;
   }
 
   & svg {

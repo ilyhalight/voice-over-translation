@@ -216,7 +216,7 @@
   },
   "aboutExtension": "এক্সটেনশন সম্পর্কে",
   "appearance": "চেহারা",
-  "buttonPositionInWidePlayer": "ওয়াইড প্লেয়ারে বোতামের অবস্থান",
+  "buttonPosition": "প্লেয়ারে বোতামের অবস্থান",
   "position": {
     "left": "বাম",
     "right": "ঠিক আছে",
@@ -238,5 +238,8 @@
   "VOTRefresh": "রিফ্রেশ",
   "VOTYandexToken": "ইয়ানডেক্স ওউথ টোকেন লিখুন",
   "VOTYandexTokenInfo": "আপনি ম্যানুয়ালি এই ক্ষেত্রে অ্যাকাউন্ট টোকেন সেট করতে পারেন. অনুগ্রহ করে মনে রাখবেন যে আমরা একটি অনুবাদ অনুরোধ পাঠানোর আগে এর বৈধতা পরীক্ষা করি না",
-  "VOTLoginViaToken": "টোকেনের মাধ্যমে লগইন করুন"
+  "VOTLoginViaToken": "টোকেনের মাধ্যমে লগইন করুন",
+  "subtitlesSmartLayout": "স্মার্ট সাবটাইটেল বিন্যাস",
+  "smartDucking": "অভিযোজিত ভলিউম",
+  "VOTAutoSubtitles": "সাবটাইটেল খোলা"
 }

@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Rreth zgjerimit",
   "appearance": "Pamje",
-  "buttonPositionInWidePlayer": "Pozicioni i butonit në lojtar të gjerë",
+  "buttonPosition": "Pozicioni i butonit në luajtës",
   "position": {
     "left": "Majtas",
     "right": "E drejtë",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Rifresko",
   "VOTYandexToken": "Futni Shenjën Yandex OAuth",
   "VOTYandexTokenInfo": "Ju mund të vendosni manualisht shenjën e llogarisë në këtë fushë. Ju lutemi vini re se ne nuk e kontrollojmë vlefshmërinë e tij përpara se të dërgojmë një kërkesë për përkthim",
-  "VOTLoginViaToken": "Identifikohuni përmes token"
+  "VOTLoginViaToken": "Identifikohuni përmes token",
+  "subtitlesSmartLayout": "Paraqitja e zgjuar e titrave",
+  "smartDucking": "Vëllimi adaptiv",
+  "VOTAutoSubtitles": "Titra në open"
 }

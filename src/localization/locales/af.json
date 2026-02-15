@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Oor uitbreiding",
   "appearance": "Voorkoms",
-  "buttonPositionInWidePlayer": "Knoppie posisie in wye speler",
+  "buttonPosition": "Knoppie posisie in die speler",
   "position": {
     "left": "Links",
     "right": "Regs",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Verfris",
   "VOTYandexToken": "Tik Die Yandex Oauth Token",
   "VOTYandexTokenInfo": "U kan die rekeningteken handmatig in hierdie veld instel. Let asseblief daarop dat ons nie die geldigheid daarvan nagaan voordat u'n translate-versoek stuur nie",
-  "VOTLoginViaToken": "Teken in via token"
+  "VOTLoginViaToken": "Teken in via token",
+  "subtitlesSmartLayout": "Slim onderskrif uitleg",
+  "smartDucking": "Aanpasbare volume",
+  "VOTAutoSubtitles": "Onderskrifte op open"
 }

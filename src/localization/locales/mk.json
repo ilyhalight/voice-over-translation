@@ -216,7 +216,7 @@
   },
   "aboutExtension": "За продолжување",
   "appearance": "Изглед",
-  "buttonPositionInWidePlayer": "Позиција на копчето во широк плеер",
+  "buttonPosition": "Позиција на копчето во плеерот",
   "position": {
     "left": "Лево",
     "right": "Така",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Освежи",
   "VOTYandexToken": "Внесете Го Токенот Yandex OAuth",
   "VOTYandexTokenInfo": "Можете рачно да го поставите токенот на сметката во оваа област. Ве молиме имајте предвид дека не ја проверуваме неговата валидност пред да испратиме барање за превод",
-  "VOTLoginViaToken": "Најава преку токен"
+  "VOTLoginViaToken": "Најава преку токен",
+  "subtitlesSmartLayout": "Паметен поднаслов распоред",
+  "smartDucking": "Адаптивен волумен",
+  "VOTAutoSubtitles": "Преводи на отворено"
 }

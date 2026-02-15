@@ -1,40 +1,40 @@
+@use "../mixins" as shared;
+
 .vot-menu {
   --vot-helper-surface-rgb: var(--vot-surface-rgb, 255, 255, 255);
   --vot-helper-surface: rgb(var(--vot-helper-surface-rgb));
   --vot-helper-onsurface-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
   --vot-helper-onsurface: rgba(var(--vot-helper-onsurface-rgb), 0.87);
+  --vot-settings-control-width: clamp(120px, 45%, 200px);
+
   overflow: hidden;
   position: absolute;
   left: 50%;
-  top: calc(5rem + 32px + 16px);
+  top: calc(5rem + 48px);
   user-select: none;
   background-color: var(--vot-helper-surface);
   color: var(--vot-helper-onsurface);
-  border-radius: 8px !important;
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
-  );
+  border: 1px solid var(--vot-border-color) !important;
+  border-radius: var(--vot-radius-m) !important;
+  box-shadow: var(--vot-shadow-2) !important;
+  @include shared.vot-font-family;
   font-size: 16px;
   line-height: 1.5;
-  min-width: 300px;
+  min-width: 320px;
+  width: fit-content;
+  max-width: min(90vw, 560px);
   cursor: default;
-  z-index: 2147483647;
+  z-index: 2147483646;
 
   visibility: visible;
   opacity: 1;
   transform-origin: top;
   transform: translate(-50%) scale(1);
   transition:
-    opacity 0.3s,
-    transform 0.1s;
+    opacity var(--vot-duration-medium) var(--vot-easing-standard),
+    transform var(--vot-duration-medium) var(--vot-easing-standard);
 
   & * {
-    -webkit-box-sizing: border-box !important;
-    -moz-box-sizing: border-box !important;
     box-sizing: border-box !important;
   }
 
@@ -43,12 +43,13 @@
     display: block !important;
     visibility: hidden;
     opacity: 0;
-    transform: translate(-50%) scale(0);
+    transform: translate(-50%, -4px) scale(0.98);
   }
 
   &-content-wrapper {
     display: flex;
     flex-direction: column;
+    min-width: 320px;
     min-height: 100px;
     max-height: calc(
       var(--vot-container-height, 75vh) - (5rem + 32px + 16px) * 2
@@ -58,17 +59,20 @@
 
   &-header-container {
     flex-shrink: 0;
-    align-items: flex-start;
+    align-items: center;
     display: flex;
     min-height: 31px;
+
+    // Prevent header icon buttons (gear/download) from hugging the right edge.
+    padding-inline-end: var(--vot-space-2) !important;
 
     &:empty {
       padding: 0 0 16px 0 !important;
     }
 
     & > .vot-icon-button {
-      margin-inline-end: 4px !important;
-      margin-top: 4px !important;
+      margin-inline-end: var(--vot-space-1) !important;
+      margin-top: var(--vot-space-1) !important;
     }
   }
 
@@ -85,70 +89,49 @@
   &-title {
     flex: 1;
     font-size: 16px;
-    font-weight: 400;
+    font-weight: 500;
     line-height: 1;
-    padding: 16px !important;
+    padding: var(--vot-space-4) !important;
   }
 
   &-body-container {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     min-height: 1.375rem;
     overflow: auto;
-    padding: 0 16px !important;
-    gap: 8px;
+    padding: 0 var(--vot-space-4) !important;
+    gap: var(--vot-space-2);
     overscroll-behavior: contain;
-
-    scrollbar-color: rgba(var(--vot-helper-onsurface-rgb), 0.1)
-      var(--vot-helper-surface) !important;
-
-    &::-webkit-scrollbar,
-    &::-webkit-scrollbar-track {
-      height: 12px !important;
-      width: 12px !important;
-      background: var(--vot-helper-surface) !important;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: rgba(var(--vot-helper-onsurface-rgb), 0.1) !important;
-      -webkit-border-radius: 1ex !important;
-      border: 5px solid var(--vot-helper-surface) !important;
-
-      &:hover {
-        border: 3px solid var(--vot-helper-surface) !important;
-      }
-    }
-
-    &::-webkit-scrollbar-corner {
-      background: var(--vot-helper-surface) !important;
-    }
+    @include shared.vot-overlay-scrollbar;
   }
 
   &-footer-container {
     flex-shrink: 0;
     display: flex;
     justify-content: flex-end;
-    padding: 16px !important;
+    padding: var(--vot-space-4) !important;
 
     &:empty {
-      padding: 16px 0 0 0 !important;
+      padding: var(--vot-space-4) 0 0 0 !important;
     }
   }
 
+  // Align labeled selects to the right edge in the compact menu.
+  .vot-select--labeled > .vot-select-outer {
+    margin-left: auto;
+  }
+
   &[data-position="left"] {
-    // left: calc(14% + 32px + 16px);
     left: 240px;
-    top: calc(25vh / 2);
+    top: 12.5vh;
     transform-origin: left;
   }
 
   &[data-position="right"] {
     right: -80px;
     left: auto;
-    top: calc(25vh / 2);
+    top: 12.5vh;
     transform-origin: right;
   }
 }

@@ -1,0 +1,79 @@
+@use "../../mixins" as shared;
+
+@mixin vot-button-base(
+  $radius,
+  $padding,
+  $min-width,
+  $height,
+  $line-height,
+  $font-size: 14px,
+  $font-weight: 500,
+  $margin: null
+) {
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+
+  @if $margin != null {
+    margin: $margin;
+  }
+
+  border-radius: $radius !important;
+  padding: $padding !important;
+  min-width: $min-width;
+  height: $height;
+  vertical-align: middle;
+  text-align: center;
+  text-overflow: ellipsis;
+  @include shared.vot-font-family;
+  font-size: $font-size;
+  font-weight: $font-weight;
+  line-height: $line-height;
+  outline: none;
+  cursor: pointer;
+}
+
+@mixin vot-button-layers($before-color) {
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit !important;
+    inset: 0;
+    opacity: 0;
+  }
+
+  &::before {
+    background-color: $before-color;
+    transition: opacity var(--vot-duration-medium) var(--vot-easing-standard);
+  }
+
+  &::after {
+    background: radial-gradient(circle at center, currentColor 1%, transparent 1%)
+      center / 10000% 10000% no-repeat;
+    transition:
+      opacity var(--vot-duration-slow) var(--vot-easing-standard),
+      background-size var(--vot-duration-slow) var(--vot-easing-standard);
+  }
+}
+
+@mixin vot-button-layer-hover($opacity) {
+  &:hover::before {
+    opacity: $opacity;
+  }
+}
+
+@mixin vot-button-layer-active($opacity) {
+  &:active::after {
+    opacity: $opacity;
+    background-size: 100% 100%;
+    transition: background-size 0s;
+  }
+}
+
+@mixin vot-button-layer-reset-disabled {
+  &::before,
+  &::after {
+    opacity: 0;
+  }
+}

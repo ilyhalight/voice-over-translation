@@ -1,17 +1,27 @@
 import { EventImpl } from "../../core/eventImpl";
 import type { TextfieldProps } from "../../types/components/textfield";
 import UI from "../../ui";
+import {
+  addComponentEventListener,
+  getHiddenState,
+  removeComponentEventListener,
+  setHiddenState,
+} from "./componentShared";
 
 export default class Textfield {
   container: HTMLElement;
   input: HTMLInputElement | HTMLTextAreaElement;
   label: HTMLSpanElement;
 
-  private onInput = new EventImpl();
-  private onChange = new EventImpl();
+  private readonly onInput = new EventImpl<[string]>();
+  private readonly onChange = new EventImpl<[string]>();
+  private readonly events = {
+    input: this.onInput,
+    change: this.onChange,
+  };
 
-  private _labelHtml: HTMLElement | string;
-  private _multiline: boolean;
+  private readonly _labelHtml: HTMLElement | string;
+  private readonly _multiline: boolean;
   private _placeholder: string;
   private _value: string;
 
@@ -38,7 +48,8 @@ export default class Textfield {
       this._multiline ? "textarea" : "input",
     );
     if (!this._labelHtml) {
-      input.classList.add("vot-show-placeholer");
+      // Backwards-compatible typo + correct class name.
+      input.classList.add("vot-show-placeholer", "vot-show-placeholder");
     }
     input.placeholder = this._placeholder;
     input.value = this._value;
@@ -66,11 +77,7 @@ export default class Textfield {
     type: "input" | "change",
     listener: (value: string) => void,
   ): this {
-    if (type === "change") {
-      this.onChange.addListener(listener);
-    } else if (type === "input") {
-      this.onInput.addListener(listener);
-    }
+    addComponentEventListener(this.events, type, listener);
 
     return this;
   }
@@ -79,11 +86,7 @@ export default class Textfield {
     type: "input" | "change",
     listener: (value: string) => void,
   ): this {
-    if (type === "change") {
-      this.onChange.removeListener(listener);
-    } else if (type === "input") {
-      this.onInput.removeListener(listener);
-    }
+    removeComponentEventListener(this.events, type, listener);
 
     return this;
   }
@@ -112,11 +115,19 @@ export default class Textfield {
     this.input.placeholder = this._placeholder = text;
   }
 
+  get disabled() {
+    return this.input.disabled;
+  }
+
+  set disabled(isDisabled: boolean) {
+    this.input.disabled = isDisabled;
+  }
+
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
 }

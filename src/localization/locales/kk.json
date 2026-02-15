@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Ұзарту туралы",
   "appearance": "Сыртқы түрі",
-  "buttonPositionInWidePlayer": "Кең ойнатқыштағы түйменің орны",
+  "buttonPosition": "Ойнатқыштағы түйменің орны",
   "position": {
     "left": "Солға",
     "right": "Дұрыс",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Жаңарту",
   "VOTYandexToken": "Yandex OAuth Таңбалауышын енгізіңіз",
   "VOTYandexTokenInfo": "Осы өрісте тіркелгі таңбалауышын қолмен орнатуға болады. Аударма сұрауын жібермес бұрын оның жарамдылығын тексермейтінімізді ескеріңіз",
-  "VOTLoginViaToken": "Токен арқылы кіру"
+  "VOTLoginViaToken": "Токен арқылы кіру",
+  "subtitlesSmartLayout": "Ақылды субтитр орналасуы",
+  "smartDucking": "Адаптивті көлем",
+  "VOTAutoSubtitles": "Ашық субтитрлер"
 }

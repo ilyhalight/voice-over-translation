@@ -216,7 +216,7 @@
   },
   "aboutExtension": "À propos de l'extension",
   "appearance": "Apparence",
-  "buttonPositionInWidePlayer": "Position des boutons dans le lecteur large",
+  "buttonPosition": "Position des boutons dans le lecteur",
   "position": {
     "left": "Gauche",
     "right": "Droite",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Rafraîchir",
   "VOTYandexToken": "Entrez le jeton Yandex OAuth",
   "VOTYandexTokenInfo": "Vous pouvez définir manuellement le jeton de compte dans ce champ. Veuillez noter que nous ne vérifions pas sa validité avant d'envoyer une demande de traduction",
-  "VOTLoginViaToken": "Connexion via un jeton"
+  "VOTLoginViaToken": "Connexion via un jeton",
+  "subtitlesSmartLayout": "Disposition intelligente des sous-titres",
+  "smartDucking": "Volume adaptatif",
+  "VOTAutoSubtitles": "Sous-titres à l'ouverture"
 }

@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Tentang ekstensi",
   "appearance": "Penampilan",
-  "buttonPositionInWidePlayer": "Posisi tombol di pemutar lebar",
+  "buttonPosition": "Posisi tombol di pemutar",
   "position": {
     "left": "Kiri",
     "right": "Benar kan",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Menyegarkan",
   "VOTYandexToken": "Masukkan Token OAuth Yandex",
   "VOTYandexTokenInfo": "Anda dapat mengatur token akun secara manual di bidang ini. Harap perhatikan bahwa kami tidak memeriksa validitasnya sebelum mengirim permintaan terjemahan",
-  "VOTLoginViaToken": "Login melalui token"
+  "VOTLoginViaToken": "Login melalui token",
+  "subtitlesSmartLayout": "Tata letak subtitle cerdas",
+  "smartDucking": "Volume adaptif",
+  "VOTAutoSubtitles": "Subtitle terbuka"
 }

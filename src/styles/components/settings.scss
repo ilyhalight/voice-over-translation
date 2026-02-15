@@ -1,0 +1,151 @@
+.vot-settings-section {
+  border: 1px solid var(--vot-border-color);
+  border-radius: var(--vot-radius-l);
+  padding: var(--vot-space-2);
+  background: rgba(var(--vot-helper-onsurface-rgb), 0.03);
+  display: flex;
+  flex-direction: column;
+
+  // Avoid `gap` for predictable layout across host pages.
+  & > * {
+    margin: 0 !important;
+  }
+
+  // Spacing between header and content.
+  & > * + * {
+    margin-top: var(--vot-space-2) !important;
+  }
+}
+
+.vot-settings-section-header {
+  margin: 0 !important;
+  padding: 0.45em 0.5em !important;
+  border-radius: var(--vot-radius-m);
+}
+
+.vot-settings-section-header .vot-details-arrow-icon {
+  transition: transform var(--vot-duration-medium) var(--vot-easing-standard);
+}
+
+.vot-settings-section-header[data-open="true"] .vot-details-arrow-icon {
+  transform: scale(1.25) rotate(0deg);
+}
+
+.vot-settings-section-content {
+  // Shared grid variables for "settings rows".
+  // Components (select/slider) read these to align their right column.
+  // Controls are no longer pushed to the far right edge of the dialog.
+  // We still use a "comfort" width so dropdown pills are consistent.
+  --vot-settings-control-width: 200px;
+  // Slightly tighter vertical rhythm for long settings pages.
+  --vot-settings-row-gap: var(--vot-space-2);
+
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--vot-space-1) var(--vot-space-1);
+
+  & > * {
+    margin: 0 !important;
+  }
+
+  & > * + * {
+    margin-top: var(--vot-settings-row-gap) !important;
+  }
+
+  // Consistent padding + full-row hit area.
+  // IMPORTANT: never override component `display` values here. Some controls
+  // (hotkey, select, slider) rely on flex/grid internally.
+  // Apply only to *direct* children.
+  // Some rows are composite controls (e.g. Select/Slider with a checkbox as
+  // the label element). Styling nested `.vot-checkbox` would add double
+  // padding and break alignment.
+  & > .vot-checkbox,
+  & > .vot-hotkey,
+  & > .vot-textfield,
+  & > .vot-select,
+  & > .vot-slider {
+    width: 100% !important;
+    padding: var(--vot-space-1);
+    box-sizing: border-box;
+  }
+
+  // ---------------------------------------------------------------------
+  // Textfields (Settings-only override)
+  // ---------------------------------------------------------------------
+  // The legacy Material-style outlined input notches can render as stray
+  // "ASCII" looking corners in the Proxy section (see screenshots).
+  // In settings, use a simpler stacked label + input pattern.
+  & > .vot-textfield {
+    display: flex !important;
+    flex-direction: column;
+    gap: var(--vot-space-1);
+    padding-top: 0 !important; // remove legacy notch offset
+  }
+
+  & > .vot-textfield > span {
+    // Label
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-height: none !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    color: rgba(var(--vot-helper-onsurface-rgb), 0.72) !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    order: 0;
+
+    &::before,
+    &::after {
+      content: none !important;
+      display: none !important;
+    }
+  }
+
+  & > .vot-textfield > input,
+  & > .vot-textfield > textarea {
+    // Control
+    order: 1;
+    width: 100% !important;
+    height: 36px !important;
+    padding: 0 var(--vot-space-3) !important;
+    border: 1px solid var(--vot-border-color) !important;
+    border-radius: var(--vot-radius-s) !important;
+    background: rgba(var(--vot-helper-onsurface-rgb), 0.04) !important;
+    color: rgba(var(--vot-helper-onsurface-rgb), 0.9) !important;
+    -webkit-text-fill-color: currentColor !important;
+    box-shadow: none !important;
+    transition:
+      border-color var(--vot-duration-fast) var(--vot-easing-standard),
+      background-color var(--vot-duration-fast) var(--vot-easing-standard);
+  }
+
+  // Multi-line should stay comfortable.
+  & > .vot-textfield > textarea {
+    min-height: 84px !important;
+    height: auto !important;
+    padding: var(--vot-space-2) var(--vot-space-3) !important;
+    resize: vertical;
+  }
+
+  & > .vot-textfield > input::placeholder,
+  & > .vot-textfield > textarea::placeholder {
+    color: rgba(var(--vot-helper-onsurface-rgb), 0.55) !important;
+  }
+
+  // Prevent legacy notch borders from reappearing on hover/placeholder.
+  & > .vot-textfield:hover > input,
+  & > .vot-textfield:hover > textarea {
+    border-color: var(--vot-border-color-hover) !important;
+  }
+
+  & > .vot-textfield > input:not(:focus):placeholder-shown,
+  & > .vot-textfield > textarea:not(:focus):placeholder-shown {
+    border-color: var(--vot-border-color) !important;
+  }
+
+  & > .vot-textfield > input:focus,
+  & > .vot-textfield > textarea:focus {
+    border-color: rgba(var(--vot-primary-rgb), 0.7) !important;
+  }
+}

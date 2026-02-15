@@ -11,6 +11,7 @@
 @use "components/header.scss";
 @use "components/info.scss";
 @use "components/details.scss";
+@use "components/settings.scss";
 
 @use "components/lang-select.scss";
 @use "components/segmented-button.scss";
@@ -32,13 +33,132 @@
 
   --vot-subtitles-color: rgb(var(--vot-onsurface-rgb, 227, 227, 227));
   --vot-subtitles-passed-color: rgb(var(--vot-primary-rgb, 33, 150, 243));
+
+  /*
+   * UI design tokens (used by menus, dialogs and controls).
+   *
+   * NOTE: Subtitle rendering & styling is out of scope for this sprint.
+   * Keep subtitle variables above unchanged.
+   */
+  --vot-space-1: 4px;
+  --vot-space-2: 8px;
+  --vot-space-3: 12px;
+  --vot-space-4: 16px;
+  --vot-space-5: 20px;
+  --vot-space-6: 24px;
+
+  --vot-radius-xs: 6px;
+  --vot-radius-s: 10px;
+  --vot-radius-m: 14px;
+  --vot-radius-l: 18px;
+
+  --vot-border-color: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.14);
+  --vot-border-color-hover: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.22);
+
+  --vot-shadow-1:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.14);
+  --vot-shadow-2:
+    0 2px 4px rgba(0, 0, 0, 0.22),
+    0 12px 32px rgba(0, 0, 0, 0.22);
+
+  --vot-duration-fast: 120ms;
+  --vot-duration-medium: 200ms;
+  --vot-duration-slow: 320ms;
+  --vot-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --vot-focus-ring-color: rgba(var(--vot-primary-rgb, 139, 180, 245), 0.9);
+  --vot-focus-ring: 0 0 0 2px var(--vot-focus-ring-color);
+  --vot-focus-ring-offset: 0 0 0 4px rgba(var(--vot-surface-rgb, 32, 33, 36), 0.9);
 }
 
+// ------------------------------
+// Global baseline for injected UI
+// ------------------------------
+
+// Avoid host-page box-sizing and typography resets from affecting our components.
+vot-block,
+vot-block * {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+// Enforce hidden attribute behavior inside the injected UI tree.
+// Keep opt-out classes for components that use custom hidden animations.
+vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),
+vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container) {
+  display: none !important;
+}
+
+// Use a stable typography baseline for all VOT UI.
 vot-block {
+  --vot-font-family: "Roboto", "Segoe UI", system-ui, sans-serif !important;
+  font-family: var(
+    --vot-font-family,
+    "Roboto",
+    "Segoe UI",
+    system-ui,
+    sans-serif
+  ) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   display: block;
-  font-family: inherit;
   // for reddit
   visibility: visible !important;
+}
+
+// Create an explicit stacking / blending boundary for overlays.
+.vot-portal-local,
+.vot-subtitles-widget {
+  isolation: isolate;
+}
+
+// ------------------------------
+// Focus handling & interaction polish
+// ------------------------------
+//
+// Requirements:
+// - No "halo" focus outlines for pointer interactions (mouse/touch).
+// - Keep a visible focus ring for keyboard navigation (Tab) for accessibility.
+//
+// JS toggles `html.vot-keyboard-nav` only when the user presses Tab.
+// See `src/ui.ts`.
+
+// Default: suppress native focus outlines/halos.
+// (We will re-introduce an explicit ring only for keyboard navigation below.)
+vot-block:focus,
+vot-block *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+// Keyboard navigation: show a consistent focus ring.
+html.vot-keyboard-nav vot-block:focus-visible,
+html.vot-keyboard-nav vot-block *:focus-visible {
+  box-shadow: var(--vot-focus-ring), var(--vot-focus-ring-offset) !important;
+}
+
+// Fallback for browsers without `:focus-visible` support.
+@supports not selector(:focus-visible) {
+  html.vot-keyboard-nav vot-block:focus,
+  html.vot-keyboard-nav vot-block *:focus {
+    box-shadow: var(--vot-focus-ring), var(--vot-focus-ring-offset) !important;
+  }
+}
+
+// Respect reduced-motion preference globally.
+@media (prefers-reduced-motion: reduce) {
+  .vot-portal-local *,
+  .vot-portal *,
+  .vot-subtitles-widget * {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .vot-portal {
@@ -48,6 +168,5 @@ vot-block {
     left: 0;
     top: 0;
     z-index: 2147483647;
-    // pointer-events: none;
   }
 }

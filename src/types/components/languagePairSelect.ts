@@ -1,4 +1,4 @@
-import { SelectItem } from "./select";
+import type { SelectItem } from "./select";
 
 export type LanguageSelectItem<T extends string = string> = {
   selectTitle?: string;

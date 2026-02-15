@@ -19,13 +19,13 @@ export default class LanguagePairSelect<
   dialogParent: HTMLElement;
 
   // from select opts
-  private _fromSelectTitle: string;
-  private _fromDialogTitle: string;
+  private readonly _fromSelectTitle: string;
+  private readonly _fromDialogTitle: string;
   private _fromItems: SelectItem<F>[];
 
   // to select opts
-  private _toSelectTitle: string;
-  private _toDialogTitle: string;
+  private readonly _toSelectTitle: string;
+  private readonly _toDialogTitle: string;
   private _toItems: SelectItem<T>[];
 
   constructor({

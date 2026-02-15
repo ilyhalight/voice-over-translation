@@ -1,4 +1,4 @@
-import { LitHtml } from "./shared";
+import type { LitHtml } from "./shared";
 
 export type CheckboxProps = {
   labelHtml: LitHtml;

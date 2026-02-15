@@ -1,17 +1,27 @@
 .vot-label {
   font-size: 16px;
+  line-height: 1.5;
   font-family: inherit;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: block;
+
+  &-text {
+    display: inline;
+  }
 
   &-icon {
-    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 20px;
-    margin-top: 2px;
+    height: 20px;
+    margin-left: 4px;
+    vertical-align: text-bottom;
+    cursor: help;
+
     > svg {
       width: 20px;
       height: 20px;
+      display: block;
     }
   }
 }

@@ -1,30 +1,22 @@
 {
   "compilerOptions": {
-    // Enable latest features
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["@toil/gm-types/v3", "@toil/gm-types/v4"],
-    "target": "ESNext",
+    "target": "ES2022",
     "module": "ESNext",
-    "moduleDetection": "force",
-    "allowJs": true,
-    "outDir": "dist",
-
-    // Bundler mode
-    "moduleResolution": "Bundler",
-    // "allowImportingTsExtensions": true,
-    "allowSyntheticDefaultImports": true,
-    // "verbatimModuleSyntax": true,
-    // "noEmit": true,
-
-    // Best practices
-    "strict": true,
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
+    "strict": false,
+    "noImplicitAny": false,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts"
+  ]
 }

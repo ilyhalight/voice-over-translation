@@ -17,9 +17,11 @@ export type ConvertData = Record<ConvertCategory, ConvertDataItem[]>;
 
 export const storageKeys = [
   "autoTranslate",
+  "autoSubtitles",
   "dontTranslateLanguages",
   "enabledDontTranslateLanguages",
   "enabledAutoVolume",
+  "enabledSmartDucking",
   "autoVolume",
   "buttonPos",
   "showVideoSlider",
@@ -27,6 +29,7 @@ export const storageKeys = [
   "downloadWithName",
   "sendNotifyOnComplete",
   "subtitlesMaxLength",
+  "subtitlesSmartLayout",
   "highlightWords",
   "subtitlesFontSize",
   "subtitlesOpacity",
@@ -40,6 +43,7 @@ export const storageKeys = [
   "translationService",
   "detectService",
   "translationHotkey",
+  "subtitlesHotkey",
   "m3u8ProxyHost",
   "proxyWorkerHost",
   "translateProxyEnabled",
@@ -69,9 +73,17 @@ export type Account = {
 
 export type StorageData = {
   autoTranslate: boolean;
+  autoSubtitles: boolean;
   dontTranslateLanguages: LanguageSelectKey[];
   enabledDontTranslateLanguages: boolean;
   enabledAutoVolume: boolean;
+  /**
+   * Smart Auto-Volume ducking: only lower original video volume while translated
+   * audio is actually audible.
+   *
+   * When disabled, Auto-Volume behaves like a classic constant ducking.
+   */
+  enabledSmartDucking: boolean;
   autoVolume: number;
   buttonPos: Position;
   showVideoSlider: boolean;
@@ -79,6 +91,11 @@ export type StorageData = {
   downloadWithName: boolean;
   sendNotifyOnComplete: boolean;
   subtitlesMaxLength: number;
+  /**
+   * Automatically adapts subtitle typography/line length to the current player size.
+   * Enabled by default for new users.
+   */
+  subtitlesSmartLayout: boolean;
   highlightWords: boolean;
   subtitlesFontSize: number;
   subtitlesOpacity: number;
@@ -92,6 +109,7 @@ export type StorageData = {
   translationService: TranslateService;
   detectService: DetectService;
   translationHotkey: null | string;
+  subtitlesHotkey: null | string;
   m3u8ProxyHost: string;
   proxyWorkerHost: string;
   translateProxyEnabled: TranslateProxyStatus;

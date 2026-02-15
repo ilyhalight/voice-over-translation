@@ -216,7 +216,7 @@
   },
   "aboutExtension": "延長について",
   "appearance": "外観",
-  "buttonPositionInWidePlayer": "ワイドプレーヤーでのボタン位置",
+  "buttonPosition": "プレーヤー内のボタン位置",
   "position": {
     "left": "左",
     "right": "右",
@@ -238,5 +238,8 @@
   "VOTRefresh": "リフレッシュ",
   "VOTYandexToken": "Yandex OAuthトークンを入力します",
   "VOTYandexTokenInfo": "このフィールドでは、アカウントトークンを手動で設定できます。 翻訳リクエストを送信する前にその有効性を確認しないことに注意してください",
-  "VOTLoginViaToken": "トークンを介したログイン"
+  "VOTLoginViaToken": "トークンを介したログイン",
+  "subtitlesSmartLayout": "スマート字幕レイアウト",
+  "smartDucking": "適応ボリューム",
+  "VOTAutoSubtitles": "オープン時の字幕"
 }

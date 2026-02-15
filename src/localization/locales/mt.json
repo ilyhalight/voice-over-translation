@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Dwar l-estensjoni",
   "appearance": "Dehra",
-  "buttonPositionInWidePlayer": "Pożizzjoni tal-buttuna fil-plejer wiesa",
+  "buttonPosition": "Pożizzjoni tal-buttuna fil-plejer",
   "position": {
     "left": "Xellug",
     "right": "Dritt",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Aġġorna",
   "VOTYandexToken": "Daħħal It-Token Yandex OAuth",
   "VOTYandexTokenInfo": "Tista'tissettja manwalment it-token tal-kont f'dan il-qasam. Jekk jogħġbok innota li aħna ma niċċekkjawx il-validità tagħha qabel ma nibagħtu talba ta'traduzzjoni",
-  "VOTLoginViaToken": "Idħol permezz tat-token"
+  "VOTLoginViaToken": "Idħol permezz tat-token",
+  "subtitlesSmartLayout": "Tqassim ta'sottotitolu intelliġenti",
+  "smartDucking": "Volum adattiv",
+  "VOTAutoSubtitles": "Sottotitoli fuq miftuħa"
 }

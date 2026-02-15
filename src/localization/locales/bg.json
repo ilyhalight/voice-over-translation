@@ -216,7 +216,7 @@
   },
   "aboutExtension": "За разширението",
   "appearance": "Външен вид",
-  "buttonPositionInWidePlayer": "Позиция на бутона в широк плейър",
+  "buttonPosition": "Позиция на бутона в плейъра",
   "position": {
     "left": "Ляво",
     "right": "Дясно",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Обновяване",
   "VOTYandexToken": "Въведете Яндекс Оут токен",
   "VOTYandexTokenInfo": "Можете ръчно да настроите маркера за акаунт в това поле. Моля, имайте предвид, че не проверяваме валидността му, преди да изпратим заявка за превод",
-  "VOTLoginViaToken": "Вход чрез токен"
+  "VOTLoginViaToken": "Вход чрез токен",
+  "subtitlesSmartLayout": "Интелигентно оформление на субтитрите",
+  "smartDucking": "Адаптивен обем",
+  "VOTAutoSubtitles": "Субтитри на открито"
 }

@@ -18,8 +18,6 @@ const siteData = {
   youtube: youtubeSiteData,
   invidious: youtubeAltSiteData,
   piped: youtubeAltSiteData,
-  ricktube: youtubeAltSiteData,
-  poketube: youtubeAltSiteData,
   vk: {
     paths: [
       "/video-xxxxxxxxx_xxxxxxxxx",
@@ -62,6 +60,50 @@ const siteData = {
   },
   xvideos: {
     paths: ["/VIDEO_ID/VIDEO_NAME"],
+  },
+  xhamster: {
+    paths: ["/videos/VIDEO_NAME-VIDEO_ID"],
+    domains: [
+      "xhamster.com",
+      "xhamster.desi",
+      "xhvid.com",
+      "*.xhamster.com",
+      "*.xhamster.desi",
+      "xhamster*.com",
+      "xhamster*.desi",
+    ],
+  },
+  spankbang: {
+    paths: [
+      "/VIDEO_ID/video",
+      "/VIDEO_ID/play/VIDEO_NAME",
+      "/VIDEO_ID/embed/VIDEO_NAME",
+      "/PLAYLIST_ID/playlist/PLAYLIST_NAME",
+    ],
+    domains: ["spankbang.com", "*.spankbang.com"],
+  },
+  rule34video: {
+    paths: ["/video/VIDEO_ID", "/videos/VIDEO_ID"],
+    domains: ["rule34video.com", "www.rule34video.com"],
+  },
+  picarto: {
+    paths: [
+      "/CHANNEL_NAME",
+      "/CHANNEL_NAME/videos/VIDEO_ID",
+      "/CHANNEL_NAME/profile/videos/VIDEO_ID",
+      "/videopopout/VIDEO_ID",
+    ],
+    domains: ["picarto.tv", "www.picarto.tv"],
+  },
+  olympics_replay: {
+    paths: [
+      "/LANG/replay/VIDEO_NAME",
+      "/LANG/video/VIDEO_NAME",
+      "/LANG/videos/VIDEO_NAME",
+      "/LANG/original-series/episode/VIDEO_NAME",
+      "/LANG/paris-2024/replay/VIDEO_NAME",
+    ],
+    domains: ["olympics.com", "www.olympics.com"],
   },
   pornhub: {
     paths: ["/view_video.php?viewkey=VIDEO_ID", "/embed/VIDEO_ID"],
@@ -137,6 +179,15 @@ const siteData = {
   weverse: {
     paths: ["/CHANNEL_NAME/media/VIDEO_ID", "/CHANNEL_NAME/live/VIDEO_ID"],
     limits: [locales.noStreams],
+  },
+  weibo: {
+    paths: [
+      "/USER_ID/VIDEO_CODE",
+      "/0/VIDEO_CODE",
+      "/tv/show/FID",
+      "/show?fid=FID (video.weibo.com)",
+    ],
+    domains: ["weibo.com", "www.weibo.com", "video.weibo.com"],
   },
   newgrounds: {
     paths: ["/XXX/view/XXX"],
@@ -231,6 +282,9 @@ const siteData = {
   },
   netacad: {
     paths: ["/content/i2cs/*"],
+  },
+  niconico: {
+    paths: ["/watch/VIDEO_ID"],
   },
   directlink: {
     paths: ["/*.mp4", "/*.webm"],

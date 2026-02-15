@@ -4,15 +4,16 @@ import { EventImpl } from "../../core/eventImpl";
 import type { LitHtml } from "../../types/components/shared";
 import type { SliderProps } from "../../types/components/slider";
 import UI from "../../ui";
+import { getHiddenState, setHiddenState } from "./componentShared";
 
 export default class Slider {
   container: HTMLElement;
   input: HTMLInputElement;
   label: HTMLSpanElement;
 
-  private onInput = new EventImpl();
+  private readonly onInput = new EventImpl<[number, boolean]>();
 
-  private _labelHtml: LitHtml;
+  private readonly _labelHtml: LitHtml;
   private _value: number;
   private _min: number;
   private _max: number;
@@ -39,7 +40,9 @@ export default class Slider {
   }
 
   private updateProgress() {
-    const progress = (this._value - this._min) / (this._max - this._min);
+    const range = this._max - this._min;
+    const raw = range <= 0 ? 0 : (this._value - this._min) / range;
+    const progress = Math.max(0, Math.min(1, raw));
     this.container.style.setProperty("--vot-progress", progress.toString());
     return this;
   }
@@ -78,7 +81,7 @@ export default class Slider {
   }
 
   addEventListener(
-    type: "input",
+    _type: "input",
     listener: (value: number, fromSetter: boolean) => void,
   ): this {
     this.onInput.addListener(listener);
@@ -87,7 +90,7 @@ export default class Slider {
   }
 
   removeEventListener(
-    type: "input",
+    _type: "input",
     listener: (value: number, fromSetter: boolean) => void,
   ): this {
     this.onInput.removeListener(listener);
@@ -103,8 +106,9 @@ export default class Slider {
    * If you set a different new value, it will trigger the input event
    */
   set value(val: number) {
-    this._value = val;
-    this.input.value = val.toString();
+    // Keep the value in range to avoid NaN progress.
+    this._value = clampNumber(val, this._min, this._max);
+    this.input.value = this._value.toString();
     this.updateProgress();
     this.onInput.dispatch(this._value, true);
   }
@@ -116,6 +120,8 @@ export default class Slider {
   set min(val: number) {
     this._min = val;
     this.input.min = this._min.toString();
+    this._value = clampNumber(this._value, this._min, this._max);
+    this.input.value = this._value.toString();
     this.updateProgress();
   }
 
@@ -126,6 +132,8 @@ export default class Slider {
   set max(val: number) {
     this._max = val;
     this.input.max = this._max.toString();
+    this._value = clampNumber(this._value, this._min, this._max);
+    this.input.value = this._value.toString();
     this.updateProgress();
   }
 
@@ -138,11 +146,25 @@ export default class Slider {
     this.input.step = this._step.toString();
   }
 
+  get disabled() {
+    return this.input.disabled;
+  }
+
+  set disabled(isDisabled: boolean) {
+    this.input.disabled = isDisabled;
+  }
+
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  if (max < min) return min;
+  return Math.max(min, Math.min(max, value));
 }

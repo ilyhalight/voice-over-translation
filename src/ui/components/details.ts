@@ -4,15 +4,24 @@ import { EventImpl } from "../../core/eventImpl";
 import type { DetailsProps } from "../../types/components/details";
 import UI from "../../ui";
 import { CHEVRON_ICON } from "../icons";
+import {
+  addComponentEventListener,
+  getHiddenState,
+  removeComponentEventListener,
+  setHiddenState,
+} from "./componentShared";
 
 export default class Details {
   container: HTMLElement;
   header: HTMLElement;
   arrowIcon: HTMLElement;
 
-  private onClick = new EventImpl();
+  private readonly onClick = new EventImpl();
+  private readonly events = {
+    click: this.onClick,
+  };
 
-  private _titleHtml: HTMLElement | string;
+  private readonly _titleHtml: HTMLElement | string;
 
   constructor({ titleHtml }: DetailsProps) {
     this._titleHtml = titleHtml;
@@ -25,6 +34,9 @@ export default class Details {
 
   private createElements() {
     const container = UI.createEl("vot-block", ["vot-details"]);
+
+    // A11y: make the custom element keyboard-accessible.
+    UI.makeButtonLike(container);
 
     const header = UI.createEl("vot-block");
     header.append(this._titleHtml);
@@ -43,23 +55,23 @@ export default class Details {
     };
   }
 
-  addEventListener(type: "click", listener: () => void): this {
-    this.onClick.addListener(listener);
+  addEventListener(_type: "click", listener: () => void): this {
+    addComponentEventListener(this.events, "click", listener);
 
     return this;
   }
 
-  removeEventListener(type: "click", listener: () => void): this {
-    this.onClick.removeListener(listener);
+  removeEventListener(_type: "click", listener: () => void): this {
+    removeComponentEventListener(this.events, "click", listener);
 
     return this;
   }
 
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
   }
 }

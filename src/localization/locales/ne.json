@@ -216,7 +216,7 @@
   },
   "aboutExtension": "विस्तारको बारेमा",
   "appearance": "उपस्थिति",
-  "buttonPositionInWidePlayer": "वाइड प्लेयरमा बटन स्थिति",
+  "buttonPosition": "प्लेयरमा बटन स्थिति",
   "position": {
     "left": "बायाँ",
     "right": "दायाँ",
@@ -238,5 +238,8 @@
   "VOTRefresh": "ताजा पार्नुहोस्",
   "VOTYandexToken": "यान्डेक्स ओआथ टोकन प्रविष्ट गर्नुहोस्",
   "VOTYandexTokenInfo": "तपाईं यस क्षेत्रमा खाता टोकन म्यानुअल रूपमा सेट गर्न सक्नुहुन्छ ।  कृपया ध्यान दिनुहोस् कि हामी अनुवाद अनुरोध पठाउनु अघि यसको वैधता जाँच गर्दैनौं",
-  "VOTLoginViaToken": "टोकन मार्फत लगइन गर्नुहोस् । "
+  "VOTLoginViaToken": "टोकन मार्फत लगइन गर्नुहोस् । ",
+  "subtitlesSmartLayout": "स्मार्ट उपशीर्षक लेआउट",
+  "smartDucking": "अनुकूलनशील मात्रा",
+  "VOTAutoSubtitles": "उपशीर्षकहरू खोल्नुहोस्"
 }

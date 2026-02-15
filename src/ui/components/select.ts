@@ -10,6 +10,12 @@ import type {
 import type { Phrase } from "../../types/localization";
 import UI from "../../ui";
 import { CHEVRON_ICON } from "../icons";
+import {
+  addComponentEventListener,
+  getHiddenState,
+  removeComponentEventListener,
+  setHiddenState,
+} from "./componentShared";
 import Dialog from "./dialog";
 import Textfield from "./textfield";
 
@@ -26,14 +32,18 @@ export default class Select<
   labelElement?: HTMLElement | string;
 
   private _selectTitle: string;
-  private _dialogTitle: string;
-  private multiSelect: MultiSelect;
+  private readonly _dialogTitle: string;
+  private readonly multiSelect: MultiSelect;
   private _items: SelectItem<T>[];
 
   private isLoading = false;
   private isDialogOpen = false;
-  private onSelectItem = new EventImpl();
-  private onBeforeOpen = new EventImpl();
+  private readonly onSelectItem = new EventImpl();
+  private readonly onBeforeOpen = new EventImpl();
+  private readonly events = {
+    selectItem: this.onSelectItem as EventImpl<any[]>,
+    beforeOpen: this.onBeforeOpen as EventImpl<any[]>,
+  };
   private contentList?: HTMLElement;
 
   selectedItems: HTMLElement[] = [];
@@ -77,7 +87,7 @@ export default class Select<
     });
   }
 
-  private multiSelectItemHandle = (
+  private readonly multiSelectItemHandle = (
     contentItem: HTMLElement,
     item: SelectItem<T>,
   ) => {
@@ -95,7 +105,7 @@ export default class Select<
     this.onSelectItem.dispatch(Array.from(this.selectedValues));
   };
 
-  private singleSelectItemHandle = (item: SelectItem<T>) => {
+  private readonly singleSelectItemHandle = (item: SelectItem<T>) => {
     const value = item.value;
     this.selectedValues = new Set([value]);
     for (const contentItem of this.selectedItems) {
@@ -140,7 +150,8 @@ export default class Select<
       contentList.appendChild(contentItem);
     }
 
-    this.selectedItems = Object.values(contentList.childNodes) as HTMLElement[];
+    // Use Element children only (childNodes may include Text/Comment nodes).
+    this.selectedItems = Array.from(contentList.children) as HTMLElement[];
 
     return contentList;
   }
@@ -148,10 +159,17 @@ export default class Select<
   private createElements() {
     const container = UI.createEl("vot-block", ["vot-select"]);
     if (this.labelElement) {
+      container.classList.add("vot-select--labeled");
       container.append(this.labelElement);
+    } else {
+      container.classList.add("vot-select--control-only");
     }
 
     const outer = UI.createEl("vot-block", ["vot-select-outer"]);
+    // A11y: make it behave like a button that opens a dialog.
+    UI.makeButtonLike(outer);
+    outer.setAttribute("aria-haspopup", "dialog");
+    outer.setAttribute("aria-expanded", "false");
     const title = UI.createEl("vot-block", ["vot-select-title"]);
     title.textContent = this.visibleText;
 
@@ -159,6 +177,13 @@ export default class Select<
     render(CHEVRON_ICON, arrowIcon);
     outer.append(title, arrowIcon);
     outer.addEventListener("click", () => {
+      const isDisabled =
+        outer.getAttribute("disabled") === "true" ||
+        outer.getAttribute("aria-disabled") === "true";
+      if (isDisabled) {
+        return;
+      }
+
       if (this.isLoading || this.isDialogOpen) {
         return;
       }
@@ -172,16 +197,20 @@ export default class Select<
 
         this.onBeforeOpen.dispatch(tempDialog);
         this.dialogParent.appendChild(tempDialog.container);
+        this.isDialogOpen = true;
+        outer.setAttribute("aria-expanded", "true");
 
+        // Always show the search box (even for small lists) for consistent UX.
         const votSearchLangTextfield = new Textfield({
           labelHtml: localizationProvider.get("searchField"),
         });
 
         votSearchLangTextfield.addEventListener("input", (searchText) => {
+          const normalizedSearchText = searchText.toLowerCase();
           for (const contentItem of this.selectedItems) {
             contentItem.hidden = !contentItem.textContent
               ?.toLowerCase()
-              .includes(searchText);
+              .includes(normalizedSearchText);
           }
         });
 
@@ -190,10 +219,18 @@ export default class Select<
           votSearchLangTextfield.container,
           this.contentList,
         );
+
         tempDialog.addEventListener("close", () => {
           this.isDialogOpen = false;
           this.selectedItems = [];
+          this.contentList = undefined;
+          outer.setAttribute("aria-expanded", "false");
         });
+
+        // Let Dialog handle focus & Escape.
+        tempDialog.open();
+        // NOTE: Do not force focus into the search field; automatic focus can be
+        // disruptive. Users can Tab into it when they want to filter.
       } finally {
         this.isLoading = false;
       }
@@ -224,22 +261,14 @@ export default class Select<
     type: "beforeOpen" | "selectItem",
     listener: (...data: any[]) => void,
   ): this {
-    if (type === "selectItem") {
-      this.onSelectItem.addListener(listener);
-    } else if (type === "beforeOpen") {
-      this.onBeforeOpen.addListener(listener);
-    }
+    addComponentEventListener(this.events, type, listener);
 
     return this;
   }
 
   removeEventListener(
     type: "selectItem",
-    listener: (
-      data: typeof this.multiSelect extends true
-        ? SelectItem<T>[]
-        : SelectItem<T>,
-    ) => void,
+    listener: (data: typeof this.multiSelect extends true ? T[] : T) => void,
   ): this;
   removeEventListener(
     type: "beforeOpen",
@@ -249,11 +278,7 @@ export default class Select<
     type: "selectItem" | "beforeOpen",
     listener: (...data: any[]) => void,
   ): this {
-    if (type === "selectItem") {
-      this.onSelectItem.removeListener(listener);
-    } else if (type === "beforeOpen") {
-      this.onBeforeOpen.removeListener(listener);
-    }
+    removeComponentEventListener(this.events, type, listener);
 
     return this;
   }
@@ -328,7 +353,7 @@ export default class Select<
       this._items
         .filter((item) => this.selectedValues.has(item.value))
         .map((item) => item.label)
-        .join(", ") ?? this._selectTitle
+        .join(", ") || this._selectTitle
     );
   }
 
@@ -338,10 +363,18 @@ export default class Select<
   }
 
   set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
+    setHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return this.container.hidden;
+    return getHiddenState(this.container);
+  }
+
+  get disabled() {
+    return this.outer.getAttribute("disabled") === "true";
+  }
+
+  set disabled(isDisabled: boolean) {
+    this.outer.toggleAttribute("disabled", isDisabled);
   }
 }

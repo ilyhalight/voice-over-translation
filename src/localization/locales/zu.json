@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Mayelana nokwandiswa",
   "appearance": "Ukubukeka",
-  "buttonPositionInWidePlayer": "Isikhundla senkinobho kumdlali obanzi",
+  "buttonPosition": "Isikhundla senkinobho kumdlali",
   "position": {
     "left": "Kwesobunxele",
     "right": "Ngakwesokudla",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Vuselela",
   "VOTYandexToken": "Faka Ithokheni Yandex OAuth",
   "VOTYandexTokenInfo": "Ungakwazi ngesandla usethe ithokheni akhawunti kule nkambu. Sicela uqaphele ukuthi asikuhloli ukuba yiqiniso kwayo ngaphambi kokuthumela isicelo sokuhumusha",
-  "VOTLoginViaToken": "Ukungena ngemvume nge token"
+  "VOTLoginViaToken": "Ukungena ngemvume nge token",
+  "subtitlesSmartLayout": "Ukuhlelwa kwesihlokwana esihlakaniphile",
+  "smartDucking": "Umthamo wokuzivumelanisa nezimo",
+  "VOTAutoSubtitles": "Izihlokwana ezivulekile"
 }

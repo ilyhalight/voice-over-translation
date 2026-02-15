@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Genişləndirmə haqqında",
   "appearance": "Görünüş",
-  "buttonPositionInWidePlayer": "Düymənin geniş pleyerdəki mövqeyi",
+  "buttonPosition": "Pleyerdəki düymə mövqeyi",
   "position": {
     "left": "Solda",
     "right": "Düzgün",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Təzələmək",
   "VOTYandexToken": "OAuth daxil edin-Yandex Token",
   "VOTYandexTokenInfo": "Bu sahədə hesab nişanını əl ilə təyin edə bilərsiniz. Xahiş edirik unutmayın ki, köçürmə sorğusu göndərməzdən əvvəl onun etibarlılığını yoxlamırıq",
-  "VOTLoginViaToken": "Token ilə daxil olun"
+  "VOTLoginViaToken": "Token ilə daxil olun",
+  "subtitlesSmartLayout": "Düşüncəli Altyazı düzeni",
+  "smartDucking": "Adaptiv həcm",
+  "VOTAutoSubtitles": "Açıldıqda altyazılar"
 }

@@ -15,21 +15,17 @@
     dotsFlip 1.5s infinite alternate;
 }
 
-.vot-loader-text {
+.vot-loader-progress {
   --vot-helper-theme: var(
     --vot-theme-rgb,
     var(--vot-primary-rgb, 33, 150, 243)
   );
-  fill: rgb(var(--vot-helper-theme));
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
-  );
-  font-size: 12px;
-  font-weight: 500;
+  fill: none;
+  stroke: rgb(var(--vot-helper-theme));
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
 }
 
 @keyframes dotsSlide {

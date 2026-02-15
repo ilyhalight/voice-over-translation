@@ -1,25 +1,8 @@
 .vot-slider {
-  --vot-safari-helper1: rgba(
-    var(--vot-primary-rgb, 33, 150, 243),
-    0.04
-  ) !important;
-  --vot-safari-helper2: rgba(
-    var(--vot-primary-rgb, 33, 150, 243),
-    0.12
-  ) !important;
-  --vot-safari-helper3: rgba(
-    var(--vot-primary-rgb, 33, 150, 243),
-    0.16
-  ) !important;
-  --vot-safari-helper4: rgba(
-    var(--vot-primary-rgb, 33, 150, 243),
-    0.24
-  ) !important;
-  display: inline-block;
   width: 100% !important;
   color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.87) !important;
   font-family: var(
-    --vot-font,
+    --vot-font-family,
     "Roboto",
     "Segoe UI",
     BlinkMacSystemFont,
@@ -30,33 +13,60 @@
   line-height: 1.5 !important;
   text-align: start !important;
 
-  &[hidden] {
-    display: none !important;
+  // Stable, predictable layout (no negative margins / relative shifts).
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  // Label row (rendered inside a wrapping <span> by the Slider component).
+  & > span {
+    order: 1;
+    display: block !important;
+    margin: 0 !important;
+  }
+
+  // SliderLabel component.
+  .vot-slider-label {
+    // Proximity-first label/value layout:
+    // show values as part of the label ("Subtitles max length: 300")
+    // instead of forcing users to scan to the far right edge.
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  &-label-value {
+    margin-left: 0 !important;
+    font-variant-numeric: tabular-nums;
+    // Reduce visual noise: values should be legible but not steal attention.
+    font-weight: 500;
+  }
+
+  .vot-slider-label-text {
+    min-width: 0;
   }
 
   & > input {
+    order: 2;
+
     border: none !important;
     appearance: none !important;
     -webkit-appearance: none !important;
     position: relative !important;
-    top: 24px !important;
+    top: 0 !important;
     display: block !important;
-    margin: 0 0 -36px !important;
+    margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    height: 36px !important;
+    height: 32px !important;
     background-color: transparent !important;
     cursor: pointer !important;
 
     &:hover {
-      // odysee fix
+      // Odysee applies aggressive player styles that can leak here.
       box-shadow: none !important;
-    }
-
-    /* Without Span */
-    &:last-child {
-      position: static !important;
-      margin: 0 !important;
     }
 
     /* Track Fill */
@@ -73,32 +83,24 @@
     &:disabled {
       cursor: default !important;
       opacity: 0.38 !important;
+
       & + span {
         color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38) !important;
       }
 
-      /* Webkit / Moz / MS | Disabled */
       &::-webkit-slider-runnable-track,
-      &::-moz-range-track,
-      &::-ms-fill-lower,
-      &::-ms-fill-upper {
+      &::-moz-range-track {
         background-color: rgba(
           var(--vot-onsurface-rgb, 0, 0, 0),
           0.38
         ) !important;
       }
 
-      &::-moz-range-thumb,
-      &::-ms-thumb,
-      &::-webkit-slider-thumb {
+      &::-webkit-slider-thumb,
+      &::-moz-range-thumb {
         background-color: rgb(var(--vot-onsurface-rgb, 0, 0, 0)) !important;
         box-shadow: 0 0 0 1px rgb(var(--vot-surface-rgb, 255, 255, 255)) !important;
         transform: scale(4, 4) !important;
-      }
-
-      // MS adittional
-      &::-ms-fill-upper {
-        opacity: 0.38 !important;
       }
 
       &::-moz-range-progress {
@@ -107,26 +109,11 @@
           0.87
         ) !important;
       }
-
-      &:-webkit-slider-thumb {
-        color: rgb(var(--vot-surface-rgb, 255, 255, 255)) !important;
-      }
     }
 
-    &:active {
-      /* Webkit | Active */
-      &::-webkit-slider-thumb {
-        box-shadow: 0 0 0 2px var(--vot-safari-helper4) !important;
-      }
-
-      /* Moz / MS | Active */
-      &::-moz-range-thumb,
-      &::-ms-thumb {
-        box-shadow: 0 0 0 2px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.24) !important;
-      }
-    }
-
-    // for vimeo player
+    // Keep interaction clean: avoid pointer-driven "halo" effects.
+    // (Keyboard focus indicator is handled via :focus-visible below.)
+    // Vimeo player styles can leak native outlines into our control.
     &:focus {
       outline: none !important;
     }
@@ -134,7 +121,7 @@
     /* Webkit / Moz | Track */
     &::-webkit-slider-runnable-track,
     &::-moz-range-track {
-      margin: 17px 0 !important;
+      margin: 15px 0 !important;
       border-radius: 1px !important;
       width: 100% !important;
       height: 2px !important;
@@ -144,83 +131,53 @@
       ) !important;
     }
 
-    /* MS | Track */
-    &::-ms-track {
-      -webkit-box-sizing: border-box !important;
-      -moz-box-sizing: border-box !important;
-      box-sizing: border-box !important;
-      margin: 17px 0 !important;
-      border: none !important;
-      border-radius: 1px !important;
-      padding: 0 17px !important;
-      width: 100% !important;
-      height: 2px !important;
-      background-color: transparent !important;
-    }
-
-    /* Webkit / Moz / MS | Thumb */
+    /* Webkit / Moz | Thumb */
     &::-webkit-slider-thumb,
-    &::-moz-range-thumb,
-    &::-ms-thumb {
+    &::-moz-range-thumb {
       appearance: none !important;
       border: none !important;
       border-radius: 50% !important;
-      height: 2px !important;
       width: 2px !important;
+      height: 2px !important;
       background-color: rgb(var(--vot-primary-rgb, 33, 150, 243)) !important;
       transform: scale(6, 6) !important;
+      box-shadow: none !important;
       transition: box-shadow 0.2s !important;
     }
 
-    /* Webkit | Thumb */
     &::-webkit-slider-thumb {
       margin: 0 !important;
       -webkit-appearance: none !important;
     }
 
-    /* Moz | Thumb */
-    &::-moz-range-thumb {
-      -moz-appearance: none !important;
-    }
-
-    /* MS | Thumb */
-    &::-ms-thumb {
-      margin: 0 17px !important;
-    }
-
-    /* Moz / MS | Progress */
-    &::-moz-range-progress,
-    &::-ms-fill-lower,
-    &::-ms-fill-upper {
+    /* Moz | Progress */
+    &::-moz-range-progress {
       border-radius: 1px !important;
       height: 2px !important;
       background-color: rgb(var(--vot-primary-rgb, 33, 150, 243)) !important;
     }
 
-    &::-moz-focus-outer {
-      border: none !important;
-    }
-  }
-
-  & > span {
-    display: inline-block !important;
-    margin-bottom: 36px !important;
-  }
-
-  &:hover > input {
-    /* Webkit | Hover */
-    &::-webkit-slider-thumb {
-      box-shadow: 0 0 0 2px var(--vot-safari-helper1) !important;
+    // Do not show focus halos for pointer focus.
+    &:focus:not(:focus-visible)::-webkit-slider-thumb,
+    &:focus:not(:focus-visible)::-moz-range-thumb {
+      box-shadow: none !important;
     }
 
-    /* MS / Moz | Hover */
-    &::-ms-thumb,
-    &:hover::-moz-range-thumb {
-      box-shadow: 0 0 0 2px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.04) !important;
-    }
-  }
+    // Keyboard focus: show an explicit indicator on the thumb.
+    // The global `html.vot-keyboard-nav` class is toggled by JS only on Tab.
+    // We scope the styles to our own slider to avoid affecting host-page ranges.
+    @at-root {
+      html.vot-keyboard-nav .vot-slider > input:focus-visible::-webkit-slider-thumb,
+      html.vot-keyboard-nav .vot-slider > input:focus-visible::-moz-range-thumb {
+        box-shadow: 0 0 0 2px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.24) !important;
+      }
 
-  &-label-value {
-    margin-left: 4px !important;
+      @supports not selector(:focus-visible) {
+        html.vot-keyboard-nav .vot-slider > input:focus::-webkit-slider-thumb,
+        html.vot-keyboard-nav .vot-slider > input:focus::-moz-range-thumb {
+          box-shadow: 0 0 0 2px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.24) !important;
+        }
+      }
+    }
   }
 }

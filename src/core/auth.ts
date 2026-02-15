@@ -1,4 +1,4 @@
-import { Account } from "../types/storage";
+import type { Account } from "../types/storage";
 import { votStorage } from "../utils/storage";
 
 declare global {
@@ -11,16 +11,16 @@ declare global {
 
 async function handleAuthCallbackPage() {
   const { access_token: token, expires_in: expiresIn } = Object.fromEntries(
-    new URLSearchParams(window.location.hash.slice(1)),
+    new URLSearchParams(globalThis.location.hash.slice(1)),
   );
 
   if (!token || !expiresIn) {
     throw new Error("[VOT] Invalid token response");
   }
 
-  const numExpiresIn = parseInt(expiresIn);
+  const numExpiresIn = Number.parseInt(expiresIn, 10);
   if (Number.isNaN(numExpiresIn)) {
-    throw new Error("[VOT] Invalid expires_in value");
+    throw new TypeError("[VOT] Invalid expires_in value");
   }
 
   await votStorage.set<Account>("account", {
@@ -51,11 +51,11 @@ async function handleProfilePage() {
 }
 
 export async function initAuth() {
-  if (window.location.pathname === "/auth/callback") {
+  if (globalThis.location.pathname === "/auth/callback") {
     return await handleAuthCallbackPage();
   }
 
-  if (window.location.pathname === "/my/profile") {
+  if (globalThis.location.pathname === "/my/profile") {
     return await handleProfilePage();
   }
 }

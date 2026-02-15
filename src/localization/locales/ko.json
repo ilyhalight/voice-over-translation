@@ -216,7 +216,7 @@
   },
   "aboutExtension": "확장 정보",
   "appearance": "외관",
-  "buttonPositionInWidePlayer": "와이드 플레이어의 버튼 위치",
+  "buttonPosition": "플레이어의 버튼 위치",
   "position": {
     "left": "왼쪽",
     "right": "오른쪽",
@@ -238,5 +238,8 @@
   "VOTRefresh": "새로 고침",
   "VOTYandexToken": "토큰을 입력합니다.",
   "VOTYandexTokenInfo": "이 필드에서 계정 토큰을 수동으로 설정할 수 있습니다. 번역 요청을 보내기 전에 유효성을 확인하지 않습니다",
-  "VOTLoginViaToken": "토큰을 통해 로그인"
+  "VOTLoginViaToken": "토큰을 통해 로그인",
+  "subtitlesSmartLayout": "스마트 자막 레이아웃",
+  "smartDucking": "적응 형 볼륨",
+  "VOTAutoSubtitles": "자막 열기"
 }

@@ -4,10 +4,13 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?youtube.com`
-- `(www.)?youtube-nocookie.com`
-- `(www.)?youtubekids.com`
 - `m.youtube.com`
+- `youtube.com`
+- `youtube-nocookie.com`
+- `youtubekids.com`
+- `www.youtube.com`
+- `www.youtube-nocookie.com`
+- `www.youtubekids.com`
 
 Available paths:
 
@@ -28,15 +31,11 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `yewtu.be`
-- `yt.artemislena.eu`
-- `invidious.flokinet.to`
-- `iv.melmac.space`
 - `inv.nadeko.net`
-- `inv.tux.pizza`
-- `invidious.private.coffee`
-- `yt.drgnz.club`
-- `vid.puffyan.us`
-- `invidious.dhusch.de`
+- `invidious.nerdvpn.de`
+- `invidious.protokolla.fi`
+- `invidious.materialio.us`
+- `iv.melmac.space`
 
 Available paths:
 
@@ -58,33 +57,8 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `piped.video`
-- `piped.tokhmi.xyz`
-- `piped.moomoo.me`
-- `piped.syncpundit.io`
-- `piped.mha.fi`
-- `watch.whatever.social`
-- `piped.garudalinux.org`
-- `efy.piped.pages.dev`
-- `watch.leptons.xyz`
-- `piped.lunar.icu`
-- `yt.dc09.ru`
-- `piped.mint.lgbt`
-- `il.ax`
-- `piped.privacy.com.de`
-- `piped.esmailelbob.xyz`
-- `piped.projectsegfau.lt`
-- `piped.in.projectsegfau.lt`
-- `piped.us.projectsegfau.lt`
-- `piped.privacydev.net`
-- `piped.palveluntarjoaja.eu`
-- `piped.smnz.de`
-- `piped.adminforge.de`
-- `piped.qdi.fi`
-- `piped.hostux.net`
-- `piped.chauvet.pro`
-- `piped.jotoma.de`
-- `piped.pfcd.me`
-- `piped.frontendfriendly.xyz`
+- `piped.kavin.rocks`
+- `piped.private.coffee`
 
 Available paths:
 
@@ -99,51 +73,29 @@ Limitations:
 - Doesn't work in the video preview
 - To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
-## Poketube
+## Zdf
 
 Status: [✅] Working
 
 Available (sub)domains:
 
-- `poketube.fun`
-- `pt.sudovanilla.org`
-- `poke.ggtyler.dev`
-- `poke.uk2.littlekai.co.uk`
-- `poke.blahai.gay`
+- `zdf.de`
+- `www.zdf.de`
 
-Available paths:
-
-- /watch
-- /embed
-- /shorts
-- /live
-- ?v=VIDEO_ID
-
-Limitations:
-
-- Doesn't work in the video preview
-- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
-
-## Ricktube
+## Niconico
 
 Status: [✅] Working
 
 Available (sub)domains:
 
-- `ricktube.ru`
+- `nicovideo.jp`
+- `www.nicovideo.jp`
+- `sp.nicovideo.jp`
+- `nico.ms`
 
 Available paths:
 
-- /watch
-- /embed
-- /shorts
-- /live
-- ?v=VIDEO_ID
-
-Limitations:
-
-- Doesn't work in the video preview
-- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+- /watch/VIDEO_ID
 
 ## Vk
 
@@ -151,15 +103,14 @@ Status: [✅] Working
 
 Available (sub)domains:
 
+- `m.vk.com`
+- `m.vk.ru`
 - `vk.com`
 - `vk.ru`
 - `www.vk.com`
 - `www.vk.ru`
-- `m.vk.com`
-- `m.vk.ru`
 - `vkvideo.ru`
-- `www.vkvideo.ru`
-- `m.vkvideo.ru`
+- `*.vkvideo.ru`
 
 Available paths:
 
@@ -191,7 +142,8 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `m.twitch.tv`
-- `(www.)?twitch.tv`
+- `twitch.tv`
+- `www.twitch.tv`
 - `clips.twitch.tv`
 - `player.twitch.tv`
 
@@ -234,7 +186,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?tiktok.com`
+- `tiktok.com`
+- `www.tiktok.com`
 
 Available paths:
 
@@ -250,7 +203,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?douyin.com`
+- `douyin.com`
+- `www.douyin.com`
 
 Limitations:
 
@@ -262,8 +216,10 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `player.vimeo.com`
 - `vimeo.com`
+- `www.vimeo.com`
+- `m.vimeo.com`
+- `player.vimeo.com`
 
 Available paths:
 
@@ -286,10 +242,10 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?xvideos.com`
-- `(www.)?xvideos-ar.com`
-- `(www.)?xvideos\d\d\d.com`
-- `(www.)?xv-ru.com`
+- `xvideos*.com`
+- `www.xvideos*.com`
+- `xv-ru.com`
+- `www.xv-ru.com`
 
 Available paths:
 
@@ -299,14 +255,93 @@ Limitations:
 
 - To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
+## Xhamster
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `xhvid.com`
+- `*.xhamster.com`
+- `*.xhamster.desi`
+- `xhamster*.com`
+- `xhamster*.desi`
+
+Available paths:
+
+- /videos/VIDEO_NAME-VIDEO_ID
+
+## Spankbang
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `spankbang.com`
+- `*.spankbang.com`
+
+Available paths:
+
+- /VIDEO_ID/video
+- /VIDEO_ID/play/VIDEO_NAME
+- /VIDEO_ID/embed/VIDEO_NAME
+- /PLAYLIST_ID/playlist/PLAYLIST_NAME
+
+## Rule34video
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `rule34video.com`
+- `www.rule34video.com`
+
+Available paths:
+
+- /video/VIDEO_ID
+- /videos/VIDEO_ID
+
+## Picarto
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `picarto.tv`
+- `www.picarto.tv`
+
+Available paths:
+
+- /CHANNEL_NAME
+- /CHANNEL_NAME/videos/VIDEO_ID
+- /CHANNEL_NAME/profile/videos/VIDEO_ID
+- /videopopout/VIDEO_ID
+
+## Olympics_replay
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `olympics.com`
+- `www.olympics.com`
+
+Available paths:
+
+- /LANG/replay/VIDEO_NAME
+- /LANG/video/VIDEO_NAME
+- /LANG/videos/VIDEO_NAME
+- /LANG/original-series/episode/VIDEO_NAME
+- /LANG/paris-2024/replay/VIDEO_NAME
+
 ## Pornhub
 
 Status: [✅] Working
 
 Available (sub)domains:
 
-- `[a-z]+.pornhub.com`
-- `[a-z]+.pornhub.org`
+- `*.pornhub.com`
+- `*.pornhub.org`
 
 Available paths:
 
@@ -357,7 +392,7 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- facebook.com
+- `facebook.com`
 
 Available paths:
 
@@ -390,6 +425,9 @@ Available (sub)domains:
 - `www.bilibili.com`
 - `m.bilibili.com`
 - `player.bilibili.com`
+- `bilibili.tv`
+- `www.bilibili.tv`
+- `m.bilibili.tv`
 
 Available paths:
 
@@ -410,7 +448,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?bitchute.com`
+- `bitchute.com`
+- `www.bitchute.com`
 
 Available paths:
 
@@ -423,7 +462,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?eporner.com`
+- `eporner.com`
+- `www.eporner.com`
 
 Available paths:
 
@@ -435,24 +475,24 @@ Status: [✅] Working
 
 Available (sub)domains:
 
+- `peertube.tmp.rcp.tf`
+- `dalek.zone`
+- `video.sadmin.io`
+- `videos.viorsan.com`
 - `peertube.1312.media`
 - `tube.shanti.cafe`
 - `bee-tube.fr`
-- `video.sadmin.io`
-- `dalek.zone`
-- `review.peertube.biz`
-- `peervideo.club`
-- `tube.la-dina.net`
-- `peertube.tmp.rcp.tf`
-- `peertube.su`
 - `video.blender.org`
-- `videos.viorsan.com`
-- `tube-sciences-technologies.apps.education.fr`
-- `tube-numerique-educatif.apps.education.fr`
-- `tube-arts-lettres-sciences-humaines.apps.education.fr`
 - `beetoons.tv`
-- `comics.peertube.biz`
 - `makertube.net`
+- `peertube.tv`
+- `framatube.org`
+- `tilvids.com`
+- `diode.zone`
+- `fedimovie.com`
+- `video.hardlimit.com`
+- `share.tube`
+- `peervideo.club`
 
 Available paths:
 
@@ -468,8 +508,10 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `geo.dailymotion.com (embedded player, on www.dailymotion.com it works)`
-- `geo[\d]+.dailymotion.com`
+- `dailymotion.com`
+- `www.dailymotion.com`
+- `geo*.dailymotion.com` (embedded player, on www.dailymotion.com it works)
+- `dai.ly`
 
 Available paths:
 
@@ -497,9 +539,23 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `disk.yandex.(ru|kz|com(.am)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(.ge)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
-- `disk.yandex.(ru|kz|com(.tr)?|by|az|co.il|ee|lt|lv|md|net|tj|tm|uz)`
+- `disk.yandex.ru`
+- `disk.yandex.kz`
+- `disk.yandex.com`
+- `disk.yandex.com.am`
+- `disk.yandex.com.ge`
+- `disk.yandex.com.tr`
+- `disk.yandex.by`
+- `disk.yandex.az`
+- `disk.yandex.co.il`
+- `disk.yandex.ee`
+- `disk.yandex.lt`
+- `disk.yandex.lv`
+- `disk.yandex.md`
+- `disk.yandex.net`
+- `disk.yandex.tj`
+- `disk.yandex.tm`
+- `disk.yandex.uz`
 
 Available paths:
 
@@ -540,7 +596,9 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?banned.video|madmaxworld.tv`
+- `banned.video`
+- `www.banned.video`
+- `madmaxworld.tv`
 
 Available paths:
 
@@ -563,13 +621,31 @@ Limitations:
 
 - Translation of live broadcasts is not available
 
+## Weibo
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `weibo.com`
+- `www.weibo.com`
+- `video.weibo.com`
+
+Available paths:
+
+- /USER_ID/VIDEO_CODE
+- /0/VIDEO_CODE
+- /tv/show/FID
+- /show?fid=FID (video.weibo.com)
+
 ## Newgrounds
 
 Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?newgrounds.com`
+- `newgrounds.com`
+- `www.newgrounds.com`
 
 Available paths:
 
@@ -628,7 +704,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?patreon.com`
+- `patreon.com`
+- `www.patreon.com`
 
 Available paths:
 
@@ -640,10 +717,10 @@ Status: [✅] Working
 
 Available (sub)domains:
 
+- `old.reddit.com`
 - `reddit.com`
 - `www.reddit.com`
 - `new.reddit.com`
-- `old.reddit.com`
 
 Available paths:
 
@@ -788,7 +865,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?linkedin.com`
+- `linkedin.com`
+- `www.linkedin.com`
 
 Available paths:
 
@@ -804,9 +882,12 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?incestflix.net`
-- `(www.)?incestflix.to`
-- `(www.)?incestflix.com`
+- `incestflix.net`
+- `incestflix.to`
+- `incestflix.com`
+- `www.incestflix.net`
+- `www.incestflix.to`
+- `www.incestflix.com`
 
 Available paths:
 
@@ -833,7 +914,7 @@ Available (sub)domains:
 - `watch.cloudflarestream.com`
 - `embed.cloudflarestream.com`
 - `iframe.cloudflarestream.com`
-- `customer-[^.]+.cloudflarestream.com`
+- `customer-*.cloudflarestream.com`
 
 ## Loom
 
@@ -841,7 +922,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?loom.com`
+- `loom.com`
+- `www.loom.com`
 
 Available paths:
 
@@ -858,7 +940,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?artstation.com`
+- `artstation.com`
+- `www.artstation.com`
 
 Available paths:
 
@@ -870,7 +953,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?rt.com`
+- `rt.com`
+- `www.rt.com`
 
 ## Bitview
 
@@ -878,7 +962,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?bitview.net`
+- `bitview.net`
+- `www.bitview.net`
 
 Available paths:
 
@@ -891,7 +976,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?kickstarter.com`
+- `kickstarter.com`
+- `www.kickstarter.com`
 
 ## Thisvid
 
@@ -899,7 +985,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?thisvid.com`
+- `thisvid.com`
+- `www.thisvid.com`
 
 Available paths:
 
@@ -912,9 +999,8 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `(www.)?ign.com`
 - `ign.com`
-- `\w{2}.ign.com`
+- `*.ign.com`
 
 Available paths:
 
@@ -934,15 +1020,21 @@ Available (sub)domains:
 - `bunkr.red`
 - `bunkr.ws`
 - `bunkr.org`
-- `bunkr.s[kiu]`
-- `bunkr.c[ir]`
+- `bunkr.sk`
+- `bunkr.si`
+- `bunkr.su`
+- `bunkr.ci`
+- `bunkr.cr`
 - `bunkr.fi`
-- `bunkr.p[hks]`
+- `bunkr.ph`
+- `bunkr.pk`
+- `bunkr.ps`
 - `bunkr.ru`
 - `bunkr.la`
 - `bunkr.is`
 - `bunkr.to`
-- `bunkr.a[cx]`
+- `bunkr.ac`
+- `bunkr.ax`
 
 Available paths:
 
@@ -967,7 +1059,7 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- web.telegram.org
+- `web.telegram.org`
 
 Available paths:
 

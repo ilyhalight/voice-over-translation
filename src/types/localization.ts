@@ -71,6 +71,7 @@ export type Phrase =
   | "disableTranslate"
   | "translationSettings"
   | "subtitlesSettings"
+  | "subtitlesSmartLayout"
   | "resetSettings"
   | "videoBeingTranslated"
   | "videoLanguage"
@@ -83,8 +84,10 @@ export type Phrase =
   | "translationTakeApproximatelyMinute"
   | "requestTranslationFailed"
   | "audioNotReceived"
+  | "VOTFailedDownloadAudio"
   | "audioFormatNotSupported"
   | "VOTAutoTranslate"
+  | "VOTAutoSubtitles"
   | "VOTDontTranslateYourLang"
   | "VOTVolume"
   | "VOTVolumeTranslation"
@@ -279,7 +282,7 @@ export type Phrase =
   | "services.rust-server"
   | "aboutExtension"
   | "appearance"
-  | "buttonPositionInWidePlayer"
+  | "buttonPosition"
   | "position.left"
   | "position.right"
   | "position.top"
@@ -299,7 +302,8 @@ export type Phrase =
   | "VOTRefresh"
   | "VOTYandexToken"
   | "VOTYandexTokenInfo"
-  | "VOTLoginViaToken";
+  | "VOTLoginViaToken"
+  | "smartDucking";
 
 export type Phrases = {
   recommended: string;
@@ -307,6 +311,7 @@ export type Phrases = {
   disableTranslate: string;
   translationSettings: string;
   subtitlesSettings: string;
+  subtitlesSmartLayout: string;
   resetSettings: string;
   videoBeingTranslated: string;
   videoLanguage: string;
@@ -319,8 +324,10 @@ export type Phrases = {
   translationTakeApproximatelyMinute: string;
   requestTranslationFailed: string;
   audioNotReceived: string;
+  VOTFailedDownloadAudio: string;
   audioFormatNotSupported: string;
   VOTAutoTranslate: string;
+  VOTAutoSubtitles: string;
   VOTDontTranslateYourLang: string;
   VOTVolume: string;
   VOTVolumeTranslation: string;
@@ -519,7 +526,7 @@ export type Phrases = {
   };
   aboutExtension: string;
   appearance: string;
-  buttonPositionInWidePlayer: string;
+  buttonPosition: string;
   position: {
     left: string;
     right: string;
@@ -542,6 +549,7 @@ export type Phrases = {
   VOTYandexToken: string;
   VOTYandexTokenInfo: string;
   VOTLoginViaToken: string;
+  smartDucking: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

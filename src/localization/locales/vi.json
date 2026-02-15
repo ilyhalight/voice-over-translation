@@ -216,7 +216,7 @@
   },
   "aboutExtension": "Về phần mở rộng",
   "appearance": "Ngoại hình",
-  "buttonPositionInWidePlayer": "Vị trí nút trong trình phát rộng",
+  "buttonPosition": "Vị trí nút trong trình phát",
   "position": {
     "left": "Trái",
     "right": "Phải không",
@@ -238,5 +238,8 @@
   "VOTRefresh": "Làm mới",
   "VOTYandexToken": "Nhập Mã Thông báo Yandex OAuth",
   "VOTYandexTokenInfo": "Bạn có thể đặt mã thông báo tài khoản theo cách thủ công trong trường này. Xin lưu ý rằng chúng tôi không kiểm tra tính hợp lệ của nó trước khi gửi yêu cầu dịch",
-  "VOTLoginViaToken": "Đăng nhập qua token"
+  "VOTLoginViaToken": "Đăng nhập qua token",
+  "subtitlesSmartLayout": "Bố cục phụ đề thông minh",
+  "smartDucking": "Khối lượng thích ứng",
+  "VOTAutoSubtitles": "Phụ đề mở"
 }

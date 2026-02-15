@@ -1,4 +1,4 @@
-import { ChunkRange } from "../../../types/audioDownloader";
+import type { ChunkRange } from "../../../types/audioDownloader";
 import { ACCEPTABLE_LENGTH_DIFF, MIN_ARRAY_BUFFER_LENGTH } from "../../shared";
 import { textDecoder } from "./consts";
 
@@ -37,5 +37,5 @@ export function isChunkLengthAcceptable(
 export const getUrlFromArrayBuffer = (
   buffer: ArrayBuffer,
 ): string | undefined => {
-  return textDecoder.decode(buffer).match(/https:\/\/.*$/)?.[0];
+  return /https:\/\/.*$/.exec(textDecoder.decode(buffer))?.[0];
 };
