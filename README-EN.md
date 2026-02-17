@@ -9,7 +9,6 @@
 [adguard-userscripts]: https://kb.adguard.com/en/general/userscripts#supported-apps
 [firemonkey-link]: https://erosman.github.io/firemonkey/
 [greasemonkey-link]: https://github.com/greasemonkey/greasemonkey
-[orangemonkey-link]: https://chromewebstore.google.com/detail/OrangeMonkey/ekmeppjgajofkpiofbebgcbohbmfldaf
 [user-js-and-css-link]: https://tenrabbits.github.io/user-js-css-docs/
 
 <!-- FAQs / Wiki -->
@@ -17,6 +16,7 @@
 [firemonkey-how-to]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ#%D0%BA%D0%B0%D0%BA-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81-firemonkey
 [user-js-and-css-how-to]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ#%D0%BA%D0%B0%D0%BA-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81-user-js-and-css
 [devmode-enable]: https://www.tampermonkey.net/faq.php#Q209
+[opera-search-results-access]: https://help.opera.com/en/extensions/content-scripts/
 [vot-faq]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ
 [vot-supported-sites]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-Supported-sites
 [vot-wiki]: https://github.com/ilyhalight/voice-over-translation/wiki
@@ -56,8 +56,8 @@
 
 <!-- Content -->
 
-[![ru][badge-ru]][vot-readme-en]
-[![en][badge-en]][vot-readme-ru]
+[![ru][badge-ru]][vot-readme-ru]
+[![en][badge-en]][vot-readme-en]
 
 > [!CAUTION]
 > Before creating Issues, we strongly recommend that you read the [FAQ][vot-faq] section and with existing [Issues][vot-issues].
@@ -71,12 +71,12 @@ Voice-over translation is now available beyond [Yandex Browser][yabrowser-link].
 > [!WARNING]
 > **Important for Tampermonkey 5.2+ (MV3) users:**
 > In **Chromium**-based browsers (Chrome, Edge, Brave, Vivaldi, etc.) you must:
-> 1. Open the extensions page (`chrome://extensions`) and enable **"Developer mode"**.
+> 1. Open the extensions page (`chrome://extensions`) and enable **"Developer mode"** (details in [Tampermonkey documentation][devmode-enable]).
 > 2. If you use **Chromium 138+**, open extension details and enable **"Allow User Scripts"**.
 >
 > **For Opera users:**
 > 1. Use **[Violentmonkey][violentmonkey-opera]** instead of Tampermonkey.
-> 2. In the extension settings, enable **"Allow access to search page results"**; otherwise the script will not work.
+> 2. In the extension settings, enable **"Allow access to search page results"** (Opera guide: [where to find this setting][opera-search-results-access]); otherwise the script will not work.
 
 1. Install a userscript manager: **[Tampermonkey][tampermonkey-link]** (or [Violentmonkey][violentmonkey-opera] for Opera)
 2. **[Install the script][vot-dist]**
@@ -264,7 +264,7 @@ The extension has been tested in the following browsers:
 | ✅     | MS Edge                   | v106.0.1370.34       | Windows, Linux          | Tampermonkey (MV2)                                                                          |
 | ✅     | Cent Browser              | v4.3.9.248           | Windows                 | Tampermonkey (MV2)                                                                          |
 | ✅     | Cent Browser Beta         | v5.0.1002.182        | Windows                 | Tampermonkey (MV2)                                                                          |
-| ✅     | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violentmonkey, OrangeMonkey, User Javascript and CSS |
+| ✅     | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violentmonkey, User Javascript and CSS |
 | ✅     | Opera GX (LVL4)           | core91               | Windows                 | Violentmonkey                                                                               |
 | ✅     | Opera GX (LVL5)           | core109              | Windows                 | Violentmonkey                                                                               |
 | ✅     | Opera                     | v92.0.4561.43        | Windows                 | Violentmonkey                                                                               |
@@ -291,7 +291,6 @@ Tested in the following userscript manager extensions:
 | ❔                        | Any     | [AdGuard Userscripts][adguard-userscripts]     |
 | [Install guide][firemonkey-how-to] | Firefox | [Firemonkey][firemonkey-link]                  |
 | ✅                        | Firefox | [Greasemonkey][greasemonkey-link]              |
-| ⚠️²                       | Any     | [OrangeMonkey][orangemonkey-link]              |
 | [Install guide][user-js-and-css-how-to]¹ | Any     | [User Javascript and CSS][user-js-and-css-link] |
 
 ¹ - Works in proxy mode, but the important "Use audio download" feature is unavailable due to missing `unsafeWindow` API, which can cause issues with newly requested translations.

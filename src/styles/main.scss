@@ -100,6 +100,7 @@ vot-block {
     system-ui,
     sans-serif
   ) !important;
+  font-weight: 400 !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -108,6 +109,11 @@ vot-block {
   display: block;
   // for reddit
   visibility: visible !important;
+}
+
+// Keep host-page typography rules from overriding VOT font weights.
+vot-block * {
+  font-weight: inherit !important;
 }
 
 // Create an explicit stacking / blending boundary for overlays.

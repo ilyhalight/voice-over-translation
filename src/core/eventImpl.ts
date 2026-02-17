@@ -35,6 +35,32 @@ export class EventImpl<Args extends unknown[] = unknown[]> {
     }
   }
 
+  async dispatchAsync(...args: Args): Promise<void> {
+    const pending: Promise<void>[] = [];
+
+    for (const handler of this.listeners) {
+      try {
+        const result = handler(...args);
+        if (result && typeof (result as Promise<void>).then === "function") {
+          pending.push(Promise.resolve(result));
+        }
+      } catch (exception) {
+        console.error("[VOT]", exception);
+      }
+    }
+
+    if (!pending.length) {
+      return;
+    }
+
+    const settled = await Promise.allSettled(pending);
+    for (const item of settled) {
+      if (item.status === "rejected") {
+        console.error("[VOT]", item.reason);
+      }
+    }
+  }
+
   clear(): void {
     this.listeners.clear();
   }

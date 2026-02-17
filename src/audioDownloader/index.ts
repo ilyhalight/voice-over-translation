@@ -38,7 +38,7 @@ async function handleCommonAudioDownloadRequest({
       throw new Error("Audio downloader. Empty audio");
     }
 
-    audioDownloader.onDownloadedAudio.dispatch(translationId, {
+    await audioDownloader.onDownloadedAudio.dispatchAsync(translationId, {
       videoId,
       fileId,
       audioData: value,
@@ -52,14 +52,17 @@ async function handleCommonAudioDownloadRequest({
       throw new Error("Audio downloader. Empty audio");
     }
 
-    audioDownloader.onDownloadedPartialAudio.dispatch(translationId, {
-      videoId,
-      fileId,
-      audioData: audioChunk,
-      version: 1,
-      index,
-      amount: mediaPartsLength,
-    });
+    await audioDownloader.onDownloadedPartialAudio.dispatchAsync(
+      translationId,
+      {
+        videoId,
+        fileId,
+        audioData: audioChunk,
+        version: 1,
+        index,
+        amount: mediaPartsLength,
+      },
+    );
 
     index++;
   }

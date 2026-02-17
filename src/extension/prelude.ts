@@ -179,7 +179,6 @@ function toSerializableXhrDetails(details: AnyObject): AnyObject {
     responseType: details.responseType,
     anonymous: details.anonymous,
     withCredentials: details.withCredentials,
-    wantProgressEvents: typeof details.onprogress === "function",
   };
 }
 
@@ -215,9 +214,6 @@ async function toBridgeXhrDetails(details: AnyObject): Promise<AnyObject> {
     responseType: details.responseType,
     anonymous: details.anonymous,
     withCredentials: details.withCredentials,
-    // Progress is expensive in extension messaging for tiny protobuf responses.
-    // Keep it only when caller actually subscribed to onprogress.
-    wantProgressEvents: typeof details.onprogress === "function",
   };
 }
 

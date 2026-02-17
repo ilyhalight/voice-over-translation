@@ -1,9 +1,4 @@
-import type {
-  VideoData as CoreVideoData,
-  VideoDataSubtitle,
-} from "@vot.js/core/types/client";
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
-import type { VideoService } from "@vot.js/ext/types/service";
 import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
@@ -39,24 +34,7 @@ const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
 
 const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
 
-type RawVideoData = CoreVideoData<VideoService>;
-
-type SubtitleLike = Pick<
-  VideoDataSubtitle,
-  "language" | "translatedFromLanguage"
->;
-
 type ResolvedRequestLang = Exclude<RequestLang, "auto">;
-
-type DetectSourceVideoData = Pick<
-  RuntimeVideoData,
-  | "videoId"
-  | "detectedLanguage"
-  | "responseLanguage"
-  | "title"
-  | "localizedTitle"
-  | "description"
->;
 
 function pickFirstNonEmptyString(...values: unknown[]): string | undefined {
   for (const value of values) {
@@ -78,59 +56,8 @@ function normalizeToRequestLang(value: unknown): RequestLang | undefined {
 
 function isResolvedLanguage(
   value: RequestLang | undefined,
-): value is Exclude<RequestLang, "auto"> {
+): value is ResolvedRequestLang {
   return Boolean(value && value !== "auto");
-}
-
-function inferLanguageFromSubtitles(
-  subtitles: unknown,
-): RequestLang | undefined {
-  if (!Array.isArray(subtitles) || subtitles.length === 0) {
-    return undefined;
-  }
-
-  const tracks = subtitles as SubtitleLike[];
-
-  // Prefer explicit source-language hints from translated tracks.
-  for (const track of tracks) {
-    const translatedFrom = normalizeToRequestLang(
-      track?.translatedFromLanguage,
-    );
-    if (isResolvedLanguage(translatedFrom)) {
-      return translatedFrom;
-    }
-  }
-
-  // Then prefer non-translated original subtitle tracks.
-  for (const track of tracks) {
-    if (track?.translatedFromLanguage) continue;
-    const language = normalizeToRequestLang(track?.language);
-    if (isResolvedLanguage(language)) {
-      return language;
-    }
-  }
-
-  // Last subtitles fallback: any concrete language track.
-  for (const track of tracks) {
-    const language = normalizeToRequestLang(track?.language);
-    if (isResolvedLanguage(language)) {
-      return language;
-    }
-  }
-
-  return undefined;
-}
-
-function pickResolvedLanguage(
-  ...values: Array<RequestLang | undefined>
-): Exclude<RequestLang, "auto"> | undefined {
-  for (const value of values) {
-    if (isResolvedLanguage(value)) {
-      return value;
-    }
-  }
-
-  return undefined;
 }
 
 function buildDetectText(
@@ -156,10 +83,7 @@ function resolveHostDetectedLanguage(host: string): RequestLang | undefined {
 
   if (host === "vk") {
     const trackLang = document.getElementsByTagName("track")?.[0]?.srclang;
-    const normalizedTrackLang = normalizeToRequestLang(trackLang);
-    if (isResolvedLanguage(normalizedTrackLang)) {
-      return normalizedTrackLang;
-    }
+    return normalizeToRequestLang(trackLang);
   }
 
   return undefined;
@@ -178,57 +102,6 @@ function getAriaValueNowPercent(selector: string): number | null {
   }
 
   return clampPercentInt(now);
-}
-
-function extractYouTubeVideoId(url: URL): string | undefined {
-  if (url.pathname === "/attribution_link") {
-    const encoded = url.searchParams.get("u");
-    if (encoded) {
-      try {
-        const decoded = decodeURIComponent(encoded);
-        const nestedUrl = decoded.startsWith("http")
-          ? new URL(decoded)
-          : new URL(decoded, url.origin);
-        return extractYouTubeVideoId(nestedUrl);
-      } catch {
-        // ignore malformed nested links
-      }
-    }
-  }
-
-  if (url.hostname === "youtu.be") {
-    const id = url.pathname.replace(/^\/+/, "").split("/")[0];
-    return id || undefined;
-  }
-
-  const vParam = url.searchParams.get("v");
-  if (vParam) {
-    return vParam;
-  }
-
-  return (
-    /\/(?:shorts|embed|live|v|e)\/([^/?#]+)/.exec(url.pathname)?.[1] ??
-    undefined
-  );
-}
-
-function selectDetectTextSource(
-  current: RuntimeVideoData | undefined,
-  fallback: DetectSourceVideoData,
-) {
-  if (current && current.videoId === fallback.videoId) {
-    return {
-      title: current.title,
-      localizedTitle: current.localizedTitle,
-      description: current.description,
-    };
-  }
-
-  return {
-    title: fallback.title,
-    localizedTitle: fallback.localizedTitle,
-    description: fallback.description,
-  };
 }
 
 export class VOTVideoManager {
@@ -254,7 +127,7 @@ export class VOTVideoManager {
     const task: Promise<ResolvedRequestLang | undefined> = (async () => {
       debug.log(`Detecting language text: ${text}`);
       const language = normalizeToRequestLang(await detect(text));
-      return pickResolvedLanguage(language);
+      return isResolvedLanguage(language) ? language : undefined;
     })();
 
     this.detectInFlightByVideoId.set(videoId, task);
@@ -267,139 +140,54 @@ export class VOTVideoManager {
     }
   }
 
-  private scheduleLanguageDetection(videoData: DetectSourceVideoData): void {
-    if (videoData.detectedLanguage !== "auto") {
-      return;
-    }
-
-    const source = selectDetectTextSource(
-      this.videoHandler.videoData,
-      videoData,
-    );
-    const text = buildDetectText(
-      source.title,
-      source.localizedTitle,
-      source.description,
-    );
-    if (!text) {
-      return;
-    }
-
-    void this.detectLanguageSingleFlight(videoData.videoId, text)
-      .then((detectedLanguage) => {
-        if (!detectedLanguage) {
-          return;
-        }
-        const latestVideoData = this.videoHandler.videoData;
-        if (!latestVideoData || latestVideoData.videoId !== videoData.videoId) {
-          return;
-        }
-        if (latestVideoData.detectedLanguage !== "auto") {
-          return;
-        }
-
-        this.setSelectMenuValues(
-          detectedLanguage,
-          latestVideoData.responseLanguage,
-        );
-        debug.log(
-          `[VOT] Async detected language resolved: ${detectedLanguage} for video ${videoData.videoId}`,
-        );
-      })
-      .catch((error) => {
-        debug.log("[VOT] Async detect failed", error);
-      });
-  }
-
-  private getYouTubeVideoDataFast(): RawVideoData {
-    const playerData = YoutubeHelper.getPlayerData();
-    const playerResponse = YoutubeHelper.getPlayerResponse();
-    const videoId =
-      pickFirstNonEmptyString(playerData?.video_id) ??
-      extractYouTubeVideoId(new URL(globalThis.location.href));
-
-    if (!videoId) {
-      throw new Error("[VOT] Failed to resolve YouTube videoId");
-    }
-
-    const { title: localizedTitle } = playerData ?? {};
-    const {
-      shortDescription: description,
-      isLive: isStream,
-      title,
-    } = playerResponse?.videoDetails ?? {};
-
-    const subtitles = YoutubeHelper.getSubtitles(localizationProvider.lang);
-    const duration = YoutubeHelper.getPlayer()?.getDuration?.() ?? undefined;
-    const detectedLanguage = normalizeToRequestLang(
-      YoutubeHelper.getLanguage(),
-    );
-
-    return {
-      duration,
-      url: `${this.videoHandler.site.url}${videoId}`,
-      videoId,
-      host: this.videoHandler.site.host,
-      title,
-      localizedTitle,
-      description,
-      detectedLanguage,
-      subtitles,
-      isStream: Boolean(isStream),
-    };
-  }
-
   async getVideoData() {
-    let rawVideoData: RawVideoData;
-    if (this.videoHandler.site.host === "youtube") {
-      rawVideoData = this.getYouTubeVideoDataFast();
-    } else {
-      rawVideoData = await getVideoData(this.videoHandler.site, {
-        fetchFn: GM_fetch,
-        video: this.videoHandler.video,
-        language: localizationProvider.lang,
-      });
-    }
-
     const {
       duration,
       url,
       videoId,
       host,
       title,
-      translationHelp,
+      translationHelp = null,
       localizedTitle,
       description,
       detectedLanguage: possibleLanguage,
       subtitles,
       isStream = false,
-    } = rawVideoData;
+    } = await getVideoData(this.videoHandler.site, {
+      fetchFn: GM_fetch,
+      video: this.videoHandler.video,
+      language: localizationProvider.lang,
+    });
 
-    const possibleRequestLanguage = normalizeToRequestLang(possibleLanguage);
-    const selectedRequestLanguage = normalizeToRequestLang(
-      this.videoHandler.translateFromLang,
+    const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
+    // Do not reuse previous video's language when current metadata has no lang.
+    // This keeps UI/auto behavior consistent on hosts where language is unknown.
+    let detectedLanguage: RequestLang = normalizedPossibleLanguage ?? "auto";
+
+    if (!normalizedPossibleLanguage) {
+      const text = buildDetectText(title, localizedTitle, description);
+      if (text) {
+        try {
+          const language = await this.detectLanguageSingleFlight(videoId, text);
+          if (language) {
+            detectedLanguage = language;
+          }
+        } catch (error) {
+          // Detection is best-effort; metadata loading must keep working.
+          debug.log("[VOT] detectLanguageSingleFlight failed", error);
+        }
+      }
+    }
+
+    const hostDetectedLanguage = resolveHostDetectedLanguage(
+      this.videoHandler.site.host,
     );
-    const shouldUseLanguageFallbacks =
-      this.videoHandler.site.host !== "youtube" ||
-      isResolvedLanguage(possibleRequestLanguage);
-
-    let detectedLanguage = pickResolvedLanguage(
-      possibleRequestLanguage,
-      shouldUseLanguageFallbacks ? selectedRequestLanguage : undefined,
-      shouldUseLanguageFallbacks
-        ? inferLanguageFromSubtitles(subtitles)
-        : undefined,
-    );
-
-    detectedLanguage = pickResolvedLanguage(
-      resolveHostDetectedLanguage(this.videoHandler.site.host),
-      detectedLanguage,
-    );
-
-    const normalizedDetectedLanguage: RequestLang = detectedLanguage ?? "auto";
+    if (hostDetectedLanguage) {
+      detectedLanguage = hostDetectedLanguage;
+    }
 
     const videoData = {
-      translationHelp: translationHelp ?? null,
+      translationHelp,
       isStream,
       duration:
         duration ||
@@ -408,7 +196,7 @@ export class VOTVideoManager {
       videoId,
       url,
       host,
-      detectedLanguage: normalizedDetectedLanguage,
+      detectedLanguage,
       responseLanguage: this.videoHandler.translateToLang,
       subtitles,
       title,
@@ -416,18 +204,19 @@ export class VOTVideoManager {
       description,
       downloadTitle: localizedTitle ?? title ?? videoId,
     } satisfies RuntimeVideoData;
-    console.log("[VOT] Detected language:", normalizedDetectedLanguage);
 
-    this.scheduleLanguageDetection(videoData);
+    console.log("[VOT] Detected language:", detectedLanguage);
     return videoData;
   }
 
-  videoValidator() {
-    if (!this.videoHandler.videoData || !this.videoHandler.data) {
+  async videoValidator() {
+    const videoData = this.videoHandler.videoData;
+    const data = this.videoHandler.data;
+    if (!videoData || !data) {
       throw new VOTLocalizedError("VOTNoVideoIDFound");
     }
 
-    console.log("[VOT] Video Data: ", this.videoHandler.videoData);
+    debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
     if (
       this.videoHandler.data.enabledDontTranslateLanguages &&
       this.videoHandler.data.dontTranslateLanguages?.includes(
@@ -436,16 +225,13 @@ export class VOTVideoManager {
     ) {
       throw new VOTLocalizedError("VOTDisableFromYourLang");
     }
+
     if (this.videoHandler.videoData.isStream) {
-      // Stream translation (HLS) is currently disabled.
-      // to translate streams on twitch, need to somehow go back 30(?) seconds to the player
+      // Stream translation is disabled for all hosts.
       throw new VOTLocalizedError("VOTStreamNotAvailable");
     }
 
-    if (
-      // !this.videoHandler.videoData.isStream &&
-      this.videoHandler.videoData.duration > 14400
-    ) {
+    if (this.videoHandler.videoData.duration > 14400) {
       throw new VOTLocalizedError("VOTVideoIsTooLong");
     }
     return true;
@@ -535,26 +321,28 @@ export class VOTVideoManager {
   }
 
   setSelectMenuValues(from: RequestLang, to: ResponseLang) {
-    if (
-      !this.videoHandler.uiManager.votOverlayView?.isInitialized() ||
-      !this.videoHandler.videoData
-    ) {
+    const videoData = this.videoHandler.videoData;
+    if (!videoData) {
       return this;
     }
 
     const normalizedFrom = normalizeToRequestLang(from) ?? "auto";
     console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.fromSelect.selectTitle =
+    videoData.detectedLanguage = normalizedFrom;
+    videoData.responseLanguage = to;
+    this.videoHandler.translateFromLang = normalizedFrom;
+    this.videoHandler.translateToLang = to;
+
+    const overlayView = this.videoHandler.uiManager.votOverlayView;
+    if (!overlayView?.isInitialized()) {
+      return this;
+    }
+
+    overlayView.languagePairSelect.fromSelect.selectTitle =
       localizationProvider.getLangLabel(normalizedFrom);
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.toSelect.selectTitle =
+    overlayView.languagePairSelect.toSelect.selectTitle =
       localizationProvider.getLangLabel(to);
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.fromSelect.setSelectedValue(
-      normalizedFrom,
-    );
-    this.videoHandler.uiManager.votOverlayView.languagePairSelect.toSelect.setSelectedValue(
-      to,
-    );
-    this.videoHandler.videoData.detectedLanguage = normalizedFrom;
-    this.videoHandler.videoData.responseLanguage = to;
+    overlayView.languagePairSelect.fromSelect.setSelectedValue(normalizedFrom);
+    overlayView.languagePairSelect.toSelect.setSelectedValue(to);
   }
 }

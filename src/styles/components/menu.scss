@@ -80,7 +80,7 @@
     display: flex;
     flex: 1;
     font-size: inherit;
-    font-weight: inherit;
+    font-weight: inherit !important;
     margin: 0 !important;
     outline: 0;
     text-align: start;
@@ -89,7 +89,7 @@
   &-title {
     flex: 1;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 500 !important;
     line-height: 1;
     padding: var(--vot-space-4) !important;
   }

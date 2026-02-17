@@ -48,11 +48,15 @@ import {
 import { VideoObserver } from "./utils/VideoObserver";
 import VOTLocalizedError from "./utils/VOTLocalizedError";
 import {
-  clampInt,
   clampPercentInt,
   snapVolume01,
   volume01ToPercent,
 } from "./utils/volume";
+import {
+  applyVolumeLinkDelta,
+  syncTranslationLinkSnapshot,
+  syncVideoLinkSnapshot,
+} from "./utils/volumeLink";
 import {
   getAutoHideDelay as getAutoHideDelayImpl,
   initExtraEvents as initExtraEventsImpl,
@@ -163,6 +167,12 @@ export class VideoHandler {
   internalVideoVolumeSetAt = 0;
   internalVideoVolumeSetPercent: number | null = null;
   internalVideoVolumeSuppressionMs = 250;
+  internalVideoVolumeSetHistory: Array<{
+    at: number;
+    percent: number;
+    suppressMs: number;
+  }> = [];
+  internalVideoVolumeSetHistoryLimit = 48;
 
   // Smart auto-volume ducking state. Used to lower the original video volume
   // only while the translated track has audible sound (not during silence).
@@ -196,6 +206,11 @@ export class VideoHandler {
   subtitlesWidget?: SubtitlesWidget;
 
   activeTranslation: { key: string; promise: Promise<unknown> } | null = null;
+  /**
+   * In-flight async teardown for translation/audio player cleanup.
+   * New translation starts should wait for this to avoid clear/init races.
+   */
+  stopTranslatePromise: Promise<void> | null = null;
 
   // Managers
   interactionChecker!: IntervalIdleChecker;
@@ -614,13 +629,8 @@ export class VideoHandler {
    * Run auto translate using orchestrator dependencies.
    */
   async runAutoTranslate() {
-    try {
-      this.videoManager.videoValidator();
-      await this.uiManager.handleTranslationBtnClick();
-    } catch (err) {
-      console.error("[VOT]", err);
-      throw err;
-    }
+    await this.videoManager.videoValidator();
+    await this.uiManager.handleTranslationBtnClick();
   }
 
   /**
@@ -686,12 +696,27 @@ export class VideoHandler {
    * our own recent programmatic setVideoVolume call.
    */
   isLikelyInternalVideoVolumeChange(observedPercent: number) {
+    const now = Date.now();
+    if (this.internalVideoVolumeSetHistory.length > 0) {
+      this.internalVideoVolumeSetHistory =
+        this.internalVideoVolumeSetHistory.filter(
+          (entry) => now - entry.at <= entry.suppressMs,
+        );
+
+      for (const entry of this.internalVideoVolumeSetHistory) {
+        // Allow a 1% tolerance to account for hosts that quantize volume.
+        if (Math.abs(observedPercent - entry.percent) <= 1) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     if (this.internalVideoVolumeSetPercent === null) return false;
 
-    const ageMs = Date.now() - this.internalVideoVolumeSetAt;
+    const ageMs = now - this.internalVideoVolumeSetAt;
     if (ageMs > this.internalVideoVolumeSuppressionMs) return false;
 
-    // Allow a 1% tolerance to account for hosts that quantize volume.
     return Math.abs(observedPercent - this.internalVideoVolumeSetPercent) <= 1;
   }
 
@@ -882,14 +907,39 @@ export class VideoHandler {
    * @param {number} volume A number between 0 and 1.
    * @returns {VideoHandler} This instance.
    */
-  setVideoVolume(volume: number): this {
+  setVideoVolume(
+    volume: number,
+    options: { suppressSyncMs?: number } = {},
+  ): this {
     const snapped = snapVolume01(volume);
+    const suppressSyncMs =
+      typeof options.suppressSyncMs === "number" &&
+      Number.isFinite(options.suppressSyncMs)
+        ? Math.max(0, options.suppressSyncMs)
+        : this.internalVideoVolumeSuppressionMs;
+    const now = Date.now();
+    const percent = volume01ToPercent(snapped);
 
     // Remember this programmatic update so external observers (e.g. YouTube aria
     // mutations) won't treat it as a user-driven volume change and resync volumes
     // again (which would cause drift/loops).
-    this.internalVideoVolumeSetAt = Date.now();
-    this.internalVideoVolumeSetPercent = volume01ToPercent(snapped);
+    this.internalVideoVolumeSetAt = now;
+    this.internalVideoVolumeSetPercent = percent;
+    this.internalVideoVolumeSetHistory.push({
+      at: now,
+      percent,
+      suppressMs: suppressSyncMs,
+    });
+    if (
+      this.internalVideoVolumeSetHistory.length >
+      this.internalVideoVolumeSetHistoryLimit
+    ) {
+      this.internalVideoVolumeSetHistory.splice(
+        0,
+        this.internalVideoVolumeSetHistory.length -
+          this.internalVideoVolumeSetHistoryLimit,
+      );
+    }
 
     this.videoManager.setVideoVolume(snapped);
     return this;
@@ -904,7 +954,7 @@ export class VideoHandler {
     // If syncVolume isn't initialized yet, keep the state aligned so the first
     // delta computation won't jump.
     if (!this.volumeLinkState.initialized) {
-      this.volumeLinkState.lastVideoPercent = normalized;
+      syncVideoLinkSnapshot(this.volumeLinkState, normalized);
       return;
     }
 
@@ -919,7 +969,30 @@ export class VideoHandler {
       return;
     }
 
-    this.volumeLinkState.lastVideoPercent = normalized;
+    syncVideoLinkSnapshot(this.volumeLinkState, normalized);
+  }
+
+  /**
+   * Keeps internal translation-volume snapshot aligned when syncVolume is
+   * temporarily disabled, so re-enabling link mode does not apply stale deltas.
+   */
+  onTranslationVolumeSliderSynced(volumePercent: number) {
+    if (!this.volumeLinkState.initialized) {
+      syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
+      return;
+    }
+
+    syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
+  }
+
+  /**
+   * Re-seeds syncVolume baseline from current UI slider values.
+   * Useful when toggling syncVolume on/off to avoid stale delta state.
+   */
+  resetVolumeLinkState(videoPercent: number, translationPercent: number): void {
+    syncVideoLinkSnapshot(this.volumeLinkState, videoPercent);
+    syncTranslationLinkSnapshot(this.volumeLinkState, translationPercent);
+    this.volumeLinkState.initialized = true;
   }
 
   /**
@@ -972,61 +1045,28 @@ export class VideoHandler {
     if (!videoSlider || !translationSlider) {
       return;
     }
+    const { nextVideo, nextTranslation } = applyVolumeLinkDelta({
+      state: this.volumeLinkState,
+      fromType,
+      newVolume,
+      currentVideo: Number(videoSlider.value),
+      currentTranslation: Number(translationSlider.value),
+      translationMin: translationSlider.min,
+      translationMax: translationSlider.max,
+    });
 
-    // Initialize state once from current slider values.
-    if (!this.volumeLinkState.initialized) {
-      this.volumeLinkState.lastVideoPercent = Number(videoSlider.value);
-      this.volumeLinkState.lastTranslationPercent = Number(
-        translationSlider.value,
-      );
-      this.volumeLinkState.initialized = true;
-    }
-
-    if (fromType === "video") {
-      const prevVideo = this.volumeLinkState.lastVideoPercent;
-      const delta = newVolume - prevVideo;
-
-      // Always update the initiator snapshot, even if delta is 0 / invalid.
-      this.volumeLinkState.lastVideoPercent = newVolume;
-
-      if (!Number.isFinite(delta) || delta === 0) {
-        return;
-      }
-
-      const currentTranslation = Number(translationSlider.value);
-      const nextTranslation = clampInt(
-        currentTranslation + delta,
-        translationSlider.min,
-        translationSlider.max,
-      );
-
+    if (typeof nextTranslation === "number") {
       translationSlider.value = nextTranslation;
-      this.volumeLinkState.lastTranslationPercent = nextTranslation;
-
       if (this.audioPlayer?.player) {
         this.audioPlayer.player.volume = nextTranslation / 100;
       }
-
       return;
     }
 
-    // fromType === "translation"
-    const prevTranslation = this.volumeLinkState.lastTranslationPercent;
-    const delta = newVolume - prevTranslation;
-
-    this.volumeLinkState.lastTranslationPercent = newVolume;
-
-    if (!Number.isFinite(delta) || delta === 0) {
-      return;
+    if (typeof nextVideo === "number") {
+      videoSlider.value = nextVideo;
+      this.setVideoVolume(nextVideo / 100);
     }
-
-    const currentVideo = Number(videoSlider.value);
-    const nextVideo = clampPercentInt(currentVideo + delta);
-
-    videoSlider.value = nextVideo;
-    this.volumeLinkState.lastVideoPercent = nextVideo;
-
-    this.setVideoVolume(nextVideo / 100);
   }
 
   /**
@@ -1039,64 +1079,83 @@ export class VideoHandler {
 
   /**
    * Validates the video.
-   * @returns {boolean} True if valid.
+   * @returns {Promise<boolean>} True if valid.
    */
-  videoValidator() {
-    return this.videoManager.videoValidator();
+  async videoValidator() {
+    return await this.videoManager.videoValidator();
   }
 
   /**
    * Stops translation and resets UI elements.
    */
-  stopTranslate() {
-    if (this.audioPlayer?.player) {
-      try {
-        this.audioPlayer.player.removeVideoEvents();
-        this.audioPlayer.player.clear();
-        this.audioPlayer.player.src = "";
-      } catch (err) {
-        debug.log("[stopTranslate] audioPlayer cleanup error", err);
-      }
-      debug.log("audioPlayer after stopTranslate", this.audioPlayer);
+  stopTranslate(): Promise<void> {
+    if (this.stopTranslatePromise) {
+      return this.stopTranslatePromise;
     }
-    this.activeTranslation = null;
-    const overlayView = this.uiManager.votOverlayView;
-    if (overlayView) {
-      if (overlayView.videoVolumeSlider) {
-        overlayView.videoVolumeSlider.hidden = true;
-      }
-      if (overlayView.translationVolumeSlider) {
-        overlayView.translationVolumeSlider.hidden = true;
-      }
-      if (overlayView.downloadTranslationButton) {
-        overlayView.downloadTranslationButton.hidden = true;
-      }
-    }
-    this.downloadTranslationUrl = null;
-    this.longWaitingResCount = 0;
-    this.hadAsyncWait = false;
-    this.transformBtn("none", localizationProvider.get("translateVideo"));
-    debug.log(`Volume on start: ${this.volumeOnStart}`);
 
-    // Restore the original video volume. If the user adjusted volume while
-    // ducking was enabled, prefer the latest baseline volume.
-    const restoreVolume =
-      typeof this.smartVolumeDuckingBaseline === "number"
-        ? this.smartVolumeDuckingBaseline
-        : this.volumeOnStart;
+    const cleanup = async () => {
+      if (this.audioPlayer?.player) {
+        try {
+          this.audioPlayer.player.removeVideoEvents();
+          this.audioPlayer.player.src = "";
+          await this.audioPlayer.player.clear();
+        } catch (err) {
+          debug.log("[stopTranslate] audioPlayer cleanup error", err);
+        }
+        debug.log("audioPlayer after stopTranslate", this.audioPlayer);
+      }
+      this.activeTranslation = null;
+      const overlayView = this.uiManager.votOverlayView;
+      if (overlayView) {
+        if (overlayView.videoVolumeSlider) {
+          overlayView.videoVolumeSlider.hidden = true;
+        }
+        if (overlayView.translationVolumeSlider) {
+          overlayView.translationVolumeSlider.hidden = true;
+        }
+        if (overlayView.downloadTranslationButton) {
+          overlayView.downloadTranslationButton.hidden = true;
+        }
+      }
+      this.downloadTranslationUrl = null;
+      this.longWaitingResCount = 0;
+      this.hadAsyncWait = false;
+      this.transformBtn("none", localizationProvider.get("translateVideo"));
+      debug.log(`Volume on start: ${this.volumeOnStart}`);
 
-    stopSmartVolumeDuckingImpl(this, { restoreVolume });
-    this.volumeOnStart = undefined;
-    if (this.autoRetry !== undefined) {
-      clearTimeout(this.autoRetry);
-      this.autoRetry = undefined;
-    }
-    if (this.translationRefreshTimeout !== undefined) {
-      clearTimeout(this.translationRefreshTimeout);
-      this.translationRefreshTimeout = undefined;
-    }
-    // Cancel in-flight translation work.
-    this.resetActionsAbortController("stopTranslate");
+      // Restore the original video volume. If the user adjusted volume while
+      // ducking was enabled, prefer the latest baseline volume.
+      const restoreVolume =
+        typeof this.smartVolumeDuckingBaseline === "number"
+          ? this.smartVolumeDuckingBaseline
+          : this.volumeOnStart;
+
+      stopSmartVolumeDuckingImpl(this, { restoreVolume });
+      this.volumeOnStart = undefined;
+      if (this.autoRetry !== undefined) {
+        clearTimeout(this.autoRetry);
+        this.autoRetry = undefined;
+      }
+      if (this.translationRefreshTimeout !== undefined) {
+        clearTimeout(this.translationRefreshTimeout);
+        this.translationRefreshTimeout = undefined;
+      }
+      // Cancel in-flight translation work.
+      this.resetActionsAbortController("stopTranslate");
+    };
+
+    const inFlight = cleanup().finally(() => {
+      if (this.stopTranslatePromise === inFlight) {
+        this.stopTranslatePromise = null;
+      }
+    });
+
+    this.stopTranslatePromise = inFlight;
+    return inFlight;
+  }
+
+  waitForPendingStopTranslate(): Promise<void> {
+    return this.stopTranslatePromise ?? Promise.resolve();
   }
 
   /**
@@ -1336,10 +1395,10 @@ export class VideoHandler {
   /**
    * Stops translation and synchronizes volume.
    */
-  stopTranslation = () => {
+  stopTranslation = async () => {
     this.translationOrchestrator?.reset();
     this.overlayVisibility?.cancel();
-    this.stopTranslate();
+    await this.stopTranslate();
     this.syncVideoVolumeSlider();
   };
 
@@ -1357,7 +1416,7 @@ export class VideoHandler {
     debug.log("[VideoHandler] release");
     this.initialized = false;
     try {
-      this.stopTranslation();
+      await this.stopTranslation();
     } catch (err) {
       debug.log("[VideoHandler] stopTranslation failed during release", err);
     }

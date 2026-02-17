@@ -190,6 +190,12 @@
   }
 }
 
+@media (max-width: 900px) and (pointer: coarse) {
+  .vot-subtitles-widget {
+    --vot-subtitles-fallback-bottom-inset: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 :fullscreen .vot-subtitles,
 :-webkit-full-screen .vot-subtitles {
   // Fullscreen should utilize more horizontal real estate to reduce

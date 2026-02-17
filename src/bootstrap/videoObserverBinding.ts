@@ -4,6 +4,8 @@ import type { VideoObserver } from "../utils/VideoObserver";
 type VideoHandlerLike = {
   init(): Promise<void>;
   setCanPlay(): Promise<void>;
+  getVideoData(): Promise<unknown>;
+  videoData?: unknown;
   release(): Promise<void> | void;
 };
 

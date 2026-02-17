@@ -1,3 +1,5 @@
+@use "../mixins" as shared;
+
 .vot-tooltip {
   --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
   --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87);
@@ -11,13 +13,7 @@
   color: var(--vot-helper-theme);
   fill: var(--vot-helper-theme);
   border-radius: 4px !important;
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
-  );
+  @include shared.vot-font-family;
   font-size: 14px;
   line-height: 1.5;
   cursor: default;
@@ -42,5 +38,6 @@
 
   & * {
     box-sizing: border-box !important;
+    font-family: inherit !important;
   }
 }

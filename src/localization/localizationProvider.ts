@@ -10,6 +10,13 @@ import rawDefaultLocale from "./locales/en.json";
 
 export type LangOverride = "auto" | Locale;
 
+const repoBranch =
+  typeof REPO_BRANCH !== "undefined" && REPO_BRANCH ? REPO_BRANCH : "master";
+const availableLocales =
+  typeof AVAILABLE_LOCALES !== "undefined" && Array.isArray(AVAILABLE_LOCALES)
+    ? AVAILABLE_LOCALES
+    : ["en"];
+
 class LocalizationProvider {
   storageKeys: LocaleStorageKey[] = [
     "localePhrases",
@@ -29,8 +36,8 @@ class LocalizationProvider {
   defaultLocale: FlatPhrases = toFlatObj(rawDefaultLocale);
 
   cacheTTL = 7200;
-  localesUrl = `${contentUrl}/${REPO_BRANCH}/src/localization/locales`;
-  hashesUrl = `${contentUrl}/${REPO_BRANCH}/src/localization/hashes.json`;
+  localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
+  hashesUrl = `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
 
   _langOverride: LangOverride = "auto";
 
@@ -62,9 +69,9 @@ class LocalizationProvider {
     // Older extension builds injected AVAILABLE_LOCALES without the `auto`
     // option. Ensure it is always present so Settings → Language can restore
     // automatic detection.
-    return AVAILABLE_LOCALES.includes("auto")
-      ? AVAILABLE_LOCALES
-      : (["auto", ...AVAILABLE_LOCALES] as LangOverride[]);
+    return availableLocales.includes("auto")
+      ? (availableLocales as LangOverride[])
+      : (["auto", ...availableLocales] as LangOverride[]);
   }
 
   async reset() {

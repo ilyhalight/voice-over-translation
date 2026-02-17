@@ -79,6 +79,9 @@ function syncAudioTranslationVolumeFromVideo(
   if (options.skipYouTubeLikeHosts && isYouTubeLikeHost(self.site.host)) {
     return;
   }
+  // While smart ducking is active, the script drives video volume itself.
+  // Ignore observer-driven sync to avoid feedback loops/jitter.
+  if (typeof self.smartVolumeDuckingInterval === "number") return;
   if (!self.data?.syncVolume || !self.audioPlayer?.player?.src) return;
   if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
   self.syncVolumeWrapper("video", videoPercent);
@@ -373,7 +376,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
   if (self.site.host === "youtube" && !self.site.additionalData) {
     add(document, "yt-page-data-updated", () => {
       debug.log("yt-page-data-updated");
-      if (!globalThis.location.pathname.includes("/shorts/")) return;
+      if (!globalThis.location.pathname.startsWith("/shorts/")) return;
       queueSetCanPlay();
     });
   }

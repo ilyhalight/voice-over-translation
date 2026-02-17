@@ -9,7 +9,6 @@
 [adguard-userscripts]: https://kb.adguard.com/en/general/userscripts#supported-apps
 [firemonkey-link]: https://erosman.github.io/firemonkey/
 [greasemonkey-link]: https://github.com/greasemonkey/greasemonkey
-[orangemonkey-link]: https://chromewebstore.google.com/detail/OrangeMonkey/ekmeppjgajofkpiofbebgcbohbmfldaf
 [user-js-and-css-link]: https://tenrabbits.github.io/user-js-css-docs/ru/
 
 <!-- FAQs / Wiki -->
@@ -17,6 +16,7 @@
 [firemonkey-how-to]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ#%D0%BA%D0%B0%D0%BA-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81-firemonkey
 [user-js-and-css-how-to]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ#%D0%BA%D0%B0%D0%BA-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81-user-js-and-css
 [devmode-enable]: https://www.tampermonkey.net/faq.php#Q209
+[opera-search-results-access]: https://help.opera.com/en/extensions/content-scripts/
 [vot-faq]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ
 [vot-supported-sites]: https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-Supported-sites
 [vot-wiki]: https://github.com/ilyhalight/voice-over-translation/wiki
@@ -56,8 +56,8 @@
 
 <!-- Content -->
 
-[![en][badge-en]][vot-readme-ru]
-[![ru][badge-ru]][vot-readme-en]
+[![en][badge-en]][vot-readme-en]
+[![ru][badge-ru]][vot-readme-ru]
 
 > [!CAUTION]
 > Перед созданием Issues настоятельно рекомендуем ознакомиться с разделом [FAQ][vot-faq] и уже существующими [Issues][vot-issues].
@@ -71,12 +71,12 @@
 > [!WARNING]
 > **Важно для пользователей Tampermonkey 5.2+ (MV3):**
 > В браузерах на движке **Chromium** (Chrome, Edge, Brave, Vivaldi и др.) необходимо:
-> 1. Открыть страницу расширений (`chrome://extensions`) и включить **«Режим разработчика»**.
+> 1. Открыть страницу расширений (`chrome://extensions`) и включить **«Режим разработчика»** (подробности в [документации Tampermonkey][devmode-enable]).
 > 2. Если движок **Chromium версии 138+**, в «Сведениях» расширения включить **«Разрешить пользовательские скрипты»**.
 >
 > **Пользователям Opera:**
 > 1. Используйте **[Violentmonkey][violentmonkey-opera]** вместо Tampermonkey.
-> 2. В настройках расширения обязательно включите **«Разрешить доступ к результатам на странице поиска»**, иначе скрипт не будет работать.
+> 2. В настройках расширения обязательно включите **«Разрешить доступ к результатам на странице поиска»** (гайд от Opera: [как найти эту настройку][opera-search-results-access]), иначе скрипт не будет работать.
 
 1. Установите загрузчик юзерскриптов: **[Tampermonkey][tampermonkey-link]** (или [Violentmonkey][violentmonkey-opera] для Opera)
 2. **[«Установить скрипт»][vot-dist]**
@@ -264,7 +264,7 @@ bun install
 | ✅     | MS Edge                   | v106.0.1370.34       | Windows, Linux          | Tampermonkey (MV2)                                                                           |
 | ✅     | Cent Browser              | v4.3.9.248           | Windows                 | Tampermonkey (MV2)                                                                           |
 | ✅     | Cent Browser Beta         | v5.0.1002.182        | Windows                 | Tampermonkey (MV2)                                                                           |
-| ✅     | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violentmonkey, OrangeMonkey, User Javascript and CSS |
+| ✅     | Google Chrome             | v106                 | Windows, MacOS, Linux   | Tampermonkey (MV2), Tampermonkey (MV3), Violentmonkey, User Javascript and CSS |
 | ✅     | Opera GX (LVL4)           | core91               | Windows                 | Violentmonkey                                                                                |
 | ✅     | Opera GX (LVL5)           | core109              | Windows                 | Violentmonkey                                                                                |
 | ✅     | Opera                     | v92.0.4561.43        | Windows                 | Violentmonkey                                                                                |
@@ -291,7 +291,6 @@ bun install
 | ❔                        | Любой   | [AdGuard Userscripts][adguard-userscripts]      |
 | [Гайд по установке][firemonkey-how-to] | Firefox | [Firemonkey][firemonkey-link]                   |
 | ✅                        | Firefox | [Greasemonkey][greasemonkey-link]               |
-| ⚠️²                       | Любой   | [OrangeMonkey][orangemonkey-link]               |
 | [Гайд по установке][user-js-and-css-how-to]¹ | Любой   | [User Javascript and CSS][user-js-and-css-link] |
 
 ¹ - Работает в режиме проксирования, важная функция «Использовать загрузку аудио» недоступна из-за отсутствия `unsafeWindow` API, что может приводить к проблемам с переводом новых видео.

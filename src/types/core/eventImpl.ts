@@ -13,4 +13,4 @@
  */
 export type EventHandler<Args extends unknown[] = unknown[]> = (
   ...args: Args
-) => void;
+) => void | Promise<void>;
