@@ -548,15 +548,15 @@ System.register("./__entry.js", [], (function (exports, module) {
           const te = new globalThis.TextEncoder();
           const td = new globalThis.TextDecoder();
           globalThis[symbol] = {
-            encodeUtf8(text) {
-              return te.encode(text);
+            encodeUtf8(text2) {
+              return te.encode(text2);
             },
             decodeUtf8(bytes) {
               return td.decode(bytes);
             },
-            checkUtf8(text) {
+            checkUtf8(text2) {
               try {
-                encodeURIComponent(text);
+                encodeURIComponent(text2);
                 return true;
               } catch (_2) {
                 return false;
@@ -5664,7 +5664,7 @@ ${subs}` : subs;
         const subtitles = parts.reduce((result, part) => {
           const lines = part.trim().split("\n");
           const time = lines[offset];
-          const text = lines.slice(offset + 1).join("\n");
+          const text2 = lines.slice(offset + 1).join("\n");
           if ((lines.length !== 2 || !part.includes(" --> ")) && !time?.includes(" --> ")) {
             if (result.length === 0) {
               return result;
@@ -5679,7 +5679,7 @@ ${lines.join("\n")}`;
           const endMs = convertToMSTime(end);
           const durationMs = endMs - startMs;
           result.push({
-            text,
+            text: text2,
             startMs,
             durationMs,
             speakerId: "0"
@@ -7590,11 +7590,11 @@ ${lines.join("\n")}`;
         fetchFn: fetch.bind(window)
       };
       const debug$1 = {
-        log: (...text) => {
+        log: (...text2) => {
           if (!config.debug) {
             return;
           }
-          return console.log(`%c✦ chaimu.js v${config.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
+          return console.log(`%c✦ chaimu.js v${config.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text2);
         }
       };
       const videoLipSyncEvents = [
@@ -9458,11 +9458,11 @@ locale;
               this.buildUrl(this.localesUrl, `/${this.lang}.json`, force)
             );
             if (!res.ok) throw res.status;
-            const text = await res.text();
-            await votStorage.set("localePhrases", text);
+            const text2 = await res.text();
+            await votStorage.set("localePhrases", text2);
             await votStorage.set("localeHash", hash);
             await votStorage.set("localeLang", this.lang);
-            this.setLocaleFromJsonString(text);
+            this.setLocaleFromJsonString(text2);
           } catch (err) {
             console.error("[VOT] [localizationProvider] Failed to get locale:", err);
             this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
@@ -11259,7 +11259,7 @@ isLivelyVoiceUnavailableError(value) {
             return void 0;
           }
         }
-        async translateMultiple(text, lang2, service) {
+        async translateMultiple(text2, lang2, service) {
           const result = await this.request(
             "/translate",
             {
@@ -11268,28 +11268,28 @@ isLivelyVoiceUnavailableError(value) {
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
-                text,
+                text: text2,
                 lang: lang2,
                 service
               })
             }
           );
-          return result ? result.translations : text;
+          return result ? result.translations : text2;
         }
-        async translate(text, lang2, service) {
+        async translate(text2, lang2, service) {
           const result = await this.request(
             `/translate?${new URLSearchParams({
-        text,
+        text: text2,
         lang: lang2,
         service
       })}`
           );
-          return result ? result.translations[0] : text;
+          return result ? result.translations[0] : text2;
         }
-        async detect(text, service) {
+        async detect(text2, service) {
           const result = await this.request(
             `/detect?${new URLSearchParams({
-        text,
+        text: text2,
         service
       })}`
           );
@@ -11297,11 +11297,11 @@ isLivelyVoiceUnavailableError(value) {
         }
       }();
       const RustServerAPI = {
-        async detect(text) {
+        async detect(text2) {
           try {
             const response = await GM_fetch(detectRustServerUrl, {
               method: "POST",
-              body: text,
+              body: text2,
               timeout: 3e3
             });
             return await response.text();
@@ -11313,26 +11313,26 @@ isLivelyVoiceUnavailableError(value) {
           }
         }
       };
-      async function translate(text, fromLang = "", toLang = "ru") {
+      async function translate(text2, fromLang = "", toLang = "ru") {
         const service = await getTranslationServiceCached();
         switch (service) {
           case "yandexbrowser":
           case "msedge": {
             const langPair = fromLang && toLang ? `${fromLang}-${toLang}` : toLang;
-            return Array.isArray(text) ? await FOSWLYTranslateAPI.translateMultiple(text, langPair, service) : await FOSWLYTranslateAPI.translate(text, langPair, service);
+            return Array.isArray(text2) ? await FOSWLYTranslateAPI.translateMultiple(text2, langPair, service) : await FOSWLYTranslateAPI.translate(text2, langPair, service);
           }
           default:
-            return text;
+            return text2;
         }
       }
-      async function detect(text) {
+      async function detect(text2) {
         const service = await getDetectServiceCached();
         switch (service) {
           case "yandexbrowser":
           case "msedge":
-            return await FOSWLYTranslateAPI.detect(text, service);
+            return await FOSWLYTranslateAPI.detect(text2, service);
           case "rust-server":
-            return await RustServerAPI.detect(text);
+            return await RustServerAPI.detect(text2);
           default:
             return "en";
         }
@@ -11484,13 +11484,13 @@ isLivelyVoiceUnavailableError(value) {
         constructor(videoHandler) {
           this.videoHandler = videoHandler;
         }
-        async detectLanguageSingleFlight(videoId, text) {
+        async detectLanguageSingleFlight(videoId, text2) {
           const inFlightDetect = this.detectInFlightByVideoId.get(videoId);
           if (inFlightDetect !== void 0) {
             return await inFlightDetect;
           }
           const task = (async () => {
-            const language = normalizeToRequestLang(await detect(text));
+            const language = normalizeToRequestLang(await detect(text2));
             return isResolvedLanguage(language) ? language : void 0;
           })();
           this.detectInFlightByVideoId.set(videoId, task);
@@ -11522,16 +11522,11 @@ isLivelyVoiceUnavailableError(value) {
           });
           const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
           let detectedLanguage = normalizedPossibleLanguage ?? "auto";
-          if (!normalizedPossibleLanguage) {
-            const text = buildDetectText(title, localizedTitle, description);
-            if (text) {
-              try {
-                const language = await this.detectLanguageSingleFlight(videoId, text);
-                if (language) {
-                  detectedLanguage = language;
-                }
-              } catch (error2) {
-              }
+          if (!normalizedPossibleLanguage && text) {
+            const text2 = buildDetectText(title, localizedTitle, description);
+            const language = await this.detectLanguageSingleFlight(videoId, text2);
+            if (language) {
+              detectedLanguage = language;
             }
           }
           const hostDetectedLanguage = resolveHostDetectedLanguage(
@@ -12882,11 +12877,11 @@ updateMount({
       const getWordPayload = (tokens, words, wordIndex) => {
         const word = words[wordIndex];
         if (!word) return "";
-        let text = "";
+        let text2 = "";
         for (let tokenIndex = word.tokenIndex; tokenIndex <= word.breakAfterTokenIndex; tokenIndex += 1) {
-          text += tokens[tokenIndex]?.text ?? "";
+          text2 += tokens[tokenIndex]?.text ?? "";
         }
-        return text.trimEnd();
+        return text2.trimEnd();
       };
       const applySentenceBoundarySplits = (wordRanges, tokens, words, isRangeAllowed) => {
         for (let i2 = 0; i2 < wordRanges.length - 1; i2 += 1) {
@@ -13741,7 +13736,7 @@ bottomInsetByMode = {
           }
           const metrics = measureWordSlices(
             wordSlices,
-            (text) => ctx.measureText(text).width
+            (text2) => ctx.measureText(text2).width
           );
           const memo = {
             key,
@@ -13818,18 +13813,18 @@ bottomInsetByMode = {
             tokens.slice(seg.startToken, seg.endToken)
           );
         }
-        async translateStrTokens(text) {
+        async translateStrTokens(text2) {
           const fromLang = this.subtitleLang ?? "";
           const toLang = localizationProvider.lang;
           if (this.strTranslatedTokens) {
-            const translated2 = await translate(text, fromLang, toLang);
+            const translated2 = await translate(text2, fromLang, toLang);
             return [
               this.strTranslatedTokens,
               typeof translated2 === "string" ? translated2 : ""
             ];
           }
           const translated = await translate(
-            [this.strTokens, text],
+            [this.strTokens, text2],
             fromLang,
             toLang
           );
@@ -13929,10 +13924,10 @@ bottomInsetByMode = {
           }
           this.releaseTooltip();
           const requestId = this.tooltipTranslationRequestId;
-          const text = this.normalizeTokenTextForTranslation(
+          const text2 = this.normalizeTokenTextForTranslation(
             target.textContent ?? ""
           );
-          if (!text) return;
+          if (!text2) return;
           const service = await votStorage.get(
             "translationService",
             defaultTranslationService
@@ -13940,7 +13935,7 @@ bottomInsetByMode = {
           if (requestId !== this.tooltipTranslationRequestId) return;
           target.classList.add("selected");
           const subtitlesInfo = UI.createSubtitleInfo(
-            text,
+            text2,
             this.strTranslatedTokens || this.strTokens,
             service
           );
@@ -13959,7 +13954,7 @@ bottomInsetByMode = {
           this.tokenTooltip = tooltip;
           tooltip.onClick();
           const strTokens = this.strTokens;
-          const translated = await this.translateStrTokens(text);
+          const translated = await this.translateStrTokens(text2);
           if (requestId !== this.tooltipTranslationRequestId) return;
           if (strTokens !== this.strTokens || this.tokenTooltip !== tooltip || tooltip.target !== target || !tooltip.showed)
             return;
@@ -13997,14 +13992,14 @@ bottomInsetByMode = {
               continue;
             }
             if (token.isWordLike) {
-              let text = token.text;
+              let text2 = token.text;
               let endIndex = i2;
               const hasBreakAfterWord = Boolean(breakAfter?.has(i2));
               let breakTokenIndex = hasBreakAfterWord ? i2 : null;
               while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
                 const next = tokens[endIndex + 1];
                 if (!next || next.isWordLike) break;
-                text += next.text;
+                text2 += next.text;
                 endIndex += 1;
                 if (breakAfter?.has(endIndex)) {
                   breakTokenIndex = endIndex;
@@ -14014,7 +14009,7 @@ bottomInsetByMode = {
               out.push(
                 b`<span
             data-vot-token="1"
-            >${text}</span
+            >${text2}</span
           >`
               );
               if (breakTokenIndex !== null) {
@@ -14830,19 +14825,19 @@ _labelText;
         }
         createElements() {
           const container = UI.createEl("vot-block", ["vot-label"]);
-          const text = UI.createEl("span", ["vot-label-text"]);
-          text.textContent = this._labelText;
+          const text2 = UI.createEl("span", ["vot-label-text"]);
+          text2.textContent = this._labelText;
           const icon = UI.createEl("span", ["vot-label-icon"]);
           if (this._icon) {
             D(this._icon, icon);
           } else {
             icon.hidden = true;
           }
-          container.append(text, icon);
+          container.append(text2, icon);
           return {
             container,
             icon,
-            text
+            text: text2
           };
         }
         set hidden(isHidden) {
@@ -15219,8 +15214,8 @@ set value(val) {
         get placeholder() {
           return this._placeholder;
         }
-        set placeholder(text) {
-          this.input.placeholder = this._placeholder = text;
+        set placeholder(text2) {
+          this.input.placeholder = this._placeholder = text2;
         }
         get disabled() {
           return this.input.disabled;
@@ -15715,15 +15710,15 @@ set value(val) {
         }
         createElements() {
           const container = UI.createEl("vot-block", ["vot-slider-label"]);
-          const text = UI.createEl("span", ["vot-slider-label-text"]);
-          text.textContent = this.labelText;
+          const text2 = UI.createEl("span", ["vot-slider-label-text"]);
+          text2.textContent = this.labelText;
           const strong = UI.createEl("span", ["vot-slider-label-value"]);
           strong.textContent = this.valueText;
-          container.append(text, strong);
+          container.append(text2, strong);
           return {
             container,
             strong,
-            text
+            text: text2
           };
         }
         get labelText() {
@@ -20926,18 +20921,18 @@ votSettingsView;
           }
           return this;
         }
-        isLoadingText(text) {
+        isLoadingText(text2) {
           const delayed = localizationProvider.get("TranslationDelayed");
-          return typeof text === "string" && (text.includes(localizationProvider.get("translationTake")) || (delayed ? text.includes(delayed) : false));
+          return typeof text2 === "string" && (text2.includes(localizationProvider.get("translationTake")) || (delayed ? text2.includes(delayed) : false));
         }
-        transformBtn(status, text) {
+        transformBtn(status, text2) {
           if (!this.votOverlayView?.isInitialized()) {
             throw new Error("[VOT] OverlayView isn't initialized");
           }
           this.votOverlayView.votButton.status = status;
-          this.votOverlayView.votButton.loading = status === "error" && this.isLoadingText(text);
-          this.votOverlayView.votButton.setText(text);
-          this.votOverlayView.votButtonTooltip.setContent(text);
+          this.votOverlayView.votButton.loading = status === "error" && this.isLoadingText(text2);
+          this.votOverlayView.votButton.setText(text2);
+          this.votOverlayView.votButtonTooltip.setContent(text2);
           return this;
         }
         releaseUI(initialized = false) {
@@ -21364,13 +21359,13 @@ scheduleHide(event) {
           }
         }
         translationCompleted(host) {
-          const text = safeL10n(
+          const text2 = safeL10n(
             "VOTTranslationCompletedNotify",
             "The translation on the {0} has been completed!"
           ).replace("{0}", host);
           this.send(
             {
-              text,
+              text: text2,
               title: getScriptTitle(),
               timeout: 5e3,
               silent: true,
@@ -22409,10 +22404,10 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         segmenterCache.set(cacheKey, segmenter);
         return segmenter;
       };
-      const segmentTextFallback = (text) => {
+      const segmentTextFallback = (text2) => {
         const result = [];
         splitTextRegexp.lastIndex = 0;
-        for (const match of text.matchAll(splitTextRegexp)) {
+        for (const match of text2.matchAll(splitTextRegexp)) {
           const segment = match[0];
           if (!segment) continue;
           result.push({
@@ -22423,13 +22418,13 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         }
         return result;
       };
-      const segmentText = (text, locale) => {
-        if (!text) return [];
+      const segmentText = (text2, locale) => {
+        if (!text2) return [];
         const segmenter = getSegmenter(locale);
         if (!segmenter) {
-          return segmentTextFallback(text);
+          return segmentTextFallback(text2);
         }
-        const segments = segmenter.segment(text);
+        const segments = segmenter.segment(text2);
         const result = [];
         for (const part of segments) {
           result.push({
@@ -22557,9 +22552,9 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         });
         return ranked.map((entry) => entry.descriptor);
       };
-      const resolveTokenWordLike = (value, text) => {
+      const resolveTokenWordLike = (value, text2) => {
         if (typeof value === "boolean") return value;
-        return Boolean(text.trim());
+        return Boolean(text2.trim());
       };
       const sanitizeToken = (token) => {
         if (!token || typeof token !== "object") {
@@ -22571,12 +22566,12 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           };
         }
         const raw = token;
-        const text = typeof raw.text === "string" ? raw.text : "";
+        const text2 = typeof raw.text === "string" ? raw.text : "";
         return {
-          text,
+          text: text2,
           startMs: typeof raw.startMs === "number" ? raw.startMs : 0,
           durationMs: typeof raw.durationMs === "number" ? raw.durationMs : 0,
-          isWordLike: resolveTokenWordLike(raw.isWordLike, text)
+          isWordLike: resolveTokenWordLike(raw.isWordLike, text2)
         };
       };
       const sanitizeLine = (line) => {
@@ -22627,7 +22622,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       };
       const buildYoutubeSourceTokens = (event, segs, durationMs) => {
         const sourceTokens = [];
-        let text = "";
+        let text2 = "";
         let remainingDuration = durationMs;
         for (let j = 0; j < segs.length; j += 1) {
           const segment = segs[j];
@@ -22651,9 +22646,9 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             durationMs: tokenDuration,
             isWordLike: Boolean(rawText.trim())
           });
-          text += rawText;
+          text2 += rawText;
         }
-        return { text, sourceTokens };
+        return { text: text2, sourceTokens };
       };
       const hasPositiveDuration = (token) => token.durationMs > 0;
       const normalizeLineText = (line) => {
@@ -22664,7 +22659,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       const allocateTimingsByLength = (texts, startMs, durationMs) => {
         if (!texts.length) return [];
         const safeDuration = Math.max(0, durationMs);
-        const weights = texts.map((text) => Math.max(text.length, 1));
+        const weights = texts.map((text2) => Math.max(text2.length, 1));
         const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
         const prefixWeights = new Array(weights.length + 1).fill(0);
         for (let i2 = 0; i2 < weights.length; i2 += 1) {
@@ -22740,8 +22735,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       const fetchRawSubtitles = async (url, format) => {
         const response = await GM_fetch(url, { timeout: 7e3 });
         if (format === "vtt" || format === "srt") {
-          const text = await response.text();
-          return convertSubs(text, "json");
+          const text2 = await response.text();
+          return convertSubs(text2, "json");
         }
         return response.json();
       };
@@ -22789,17 +22784,17 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         processTokens(subtitles, descriptor) {
           const lines = [];
           for (const line of subtitles.subtitles) {
-            const text = normalizeLineText(line);
+            const text2 = normalizeLineText(line);
             const tokens = buildLineTokens(
               {
                 ...line,
-                text
+                text: text2
               },
               descriptor
             );
             lines.push({
               ...line,
-              text,
+              text: text2,
               tokens
             });
           }
@@ -22818,12 +22813,12 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             if (!segs?.length) continue;
             const nextEvent = events[i2 + 1];
             const durationMs = getYoutubeEventDurationMs(event, nextEvent);
-            const { text, sourceTokens } = buildYoutubeSourceTokens(
+            const { text: text2, sourceTokens } = buildYoutubeSourceTokens(
               event,
               segs,
               durationMs
             );
-            const normalizedText = text.trim();
+            const normalizedText = text2.trim();
             if (!normalizedText) continue;
             processed.push({
               text: normalizedText,
@@ -24536,8 +24531,8 @@ initVOTClient() {
           this.votClient = new (this.data?.translateProxyEnabled ? VOTWorkerClient2 : VOTClient2)(this.votOpts);
           return this;
         }
-transformBtn(status, text) {
-          this.uiManager.transformBtn(status, text);
+transformBtn(status, text2) {
+          this.uiManager.transformBtn(status, text2);
           return this;
         }
 hasActiveSource() {
