@@ -230,16 +230,18 @@ export async function getAudioFromWebApiWithReplacedFetch({
   const serializedInit = serializeRequestInit(requestInfo);
   const fallbackInit = deserializeRequestInit(serializedInit);
   const finalRequestInit = normalizeRequestInit(requestInit, fallbackInit);
+  const chunkParts = returnByParts
+    ? getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat)
+    : null;
 
   return {
     fileId: makeFileId(STRATEGY_TYPE, itag, adaptiveFormat.contentLength),
-    mediaPartsLength: returnByParts
-      ? getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat).length
-      : 1,
+    mediaPartsLength: chunkParts?.length ?? 1,
     async *getMediaBuffers(): AsyncGenerator<Uint8Array> {
       if (returnByParts) {
-        const chunkParts =
-          getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat);
+        if (!chunkParts?.length) {
+          throw new Error("Audio downloader. WEB API. Empty chunk parts");
+        }
         for (const part of chunkParts) {
           const { media, url, isAcceptableLast } =
             await fetchMediaWithMetaByChunkRanges(

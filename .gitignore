@@ -3,6 +3,8 @@ arch*.txt
 dist/test-ui.user.js
 dist/*.txt
 dist/main.user.js
+dist-ext/chrome/
+dist-ext/firefox/
 
 src/localization/locales/generate_phrase.py
 src/localization/locales/regenerate_locales.py

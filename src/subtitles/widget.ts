@@ -535,6 +535,11 @@ export class SubtitlesWidget {
     const h = this.safeAreaProbeEl.offsetHeight || 0;
     return h;
   }
+  private isMobileViewport(): boolean {
+    if (typeof globalThis.matchMedia !== "function") return false;
+    return globalThis.matchMedia("(max-width: 900px) and (pointer: coarse)")
+      .matches;
+  }
   private getBottomInsetPreset() {
     const doc = document as Document & {
       webkitFullscreenElement?: Element | null;
@@ -595,6 +600,9 @@ export class SubtitlesWidget {
       Number.parseFloat(
         getComputedStyle(this.container).paddingBottom || "0",
       ) || 0;
+    if (this.isMobileViewport()) {
+      return Math.max(paddingBottom, safeAreaBottom);
+    }
     const anchorH =
       anchorBox?.h ??
       this.computeAnchorBoxLayout(layout ?? this.getLayoutSize()).h;

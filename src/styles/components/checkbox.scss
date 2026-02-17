@@ -63,7 +63,7 @@
       padding-left: var(--vot-checkbox-label-offset) !important;
       width: inherit;
       cursor: pointer;
-      font-weight: normal;
+      font-weight: normal !important;
 
       &::before {
         content: "";

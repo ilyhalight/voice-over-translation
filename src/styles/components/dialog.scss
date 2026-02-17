@@ -118,7 +118,7 @@
     display: flex;
     flex: 1;
     font-size: inherit;
-    font-weight: inherit;
+    font-weight: inherit !important;
     margin: 0 !important;
     outline: 0;
   }
@@ -126,7 +126,7 @@
   &-title {
     flex: 1;
     font-size: calc(15 / 13 * 100%);
-    font-weight: bold;
+    font-weight: bold !important;
     line-height: 1;
     padding: var(--vot-space-5) var(--vot-space-5) var(--vot-space-4) !important;
   }

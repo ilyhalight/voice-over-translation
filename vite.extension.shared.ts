@@ -14,6 +14,12 @@ export const srcDir = path.join(rootDir, "src");
 export const outBase = path.join(rootDir, "dist-ext");
 export const outTmp = path.join(outBase, "_tmp");
 
+const GITHUB_DIST_EXT_RAW_BASE =
+  "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
+const CHROME_UPDATES_MANIFEST_FILE = "vot-extension-chrome-updates.xml";
+const FIREFOX_UPDATES_MANIFEST_FILE = "vot-extension-firefox-updates.json";
+const FIREFOX_UPDATES_MANIFEST_URL = `${GITHUB_DIST_EXT_RAW_BASE}/${FIREFOX_UPDATES_MANIFEST_FILE}`;
+
 export type ExtensionBuildTarget = "chrome" | "firefox" | "all";
 
 export interface ExtensionHeaders {
@@ -409,7 +415,7 @@ function getFirefoxAddonId(): string {
   return (
     process.env.FIREFOX_ADDON_ID ||
     process.env.GECKO_ID ||
-    "vot-extension@local"
+    "vot-extension@firefox"
   );
 }
 
@@ -443,6 +449,10 @@ function getFirefoxDataCollectionPermissions(): {
   };
 }
 
+function getFirefoxXpiRawUrl(version: string): string {
+  return `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-firefox-${version}.xpi`;
+}
+
 function buildManifestFirefox({
   headers,
   includeWorld,
@@ -458,6 +468,7 @@ function buildManifestFirefox({
     defaultIcon[64] = "icons/icon-64.png";
   }
 
+  delete manifest.update_url;
   delete manifest.background;
   manifest.background = {
     scripts: ["background.js"],
@@ -465,6 +476,7 @@ function buildManifestFirefox({
   manifest.browser_specific_settings = {
     gecko: {
       id: getFirefoxAddonId(),
+      update_url: FIREFOX_UPDATES_MANIFEST_URL,
       strict_min_version: getFirefoxStrictMinVersion(),
       data_collection_permissions: getFirefoxDataCollectionPermissions(),
     },
@@ -485,6 +497,36 @@ async function writeManifest(
     JSON.stringify(manifest, null, 3),
     "utf8",
   );
+}
+
+async function writeFirefoxUpdatesManifest({
+  version,
+  addonId,
+}: {
+  version: string;
+  addonId: string;
+}): Promise<string> {
+  const updatesManifestPath = path.join(outBase, FIREFOX_UPDATES_MANIFEST_FILE);
+  const updatesManifest = {
+    addons: {
+      [addonId]: {
+        updates: [
+          {
+            version,
+            update_link: getFirefoxXpiRawUrl(version),
+          },
+        ],
+      },
+    },
+  };
+
+  await fs.writeFile(
+    updatesManifestPath,
+    JSON.stringify(updatesManifest, null, 3),
+    "utf8",
+  );
+
+  return updatesManifestPath;
 }
 
 async function zipDir(sourceDirPath: string, outZipPath: string): Promise<void> {
@@ -528,10 +570,12 @@ async function maybeBuildCrx({
 }: {
   sourceDir: string;
   version: string;
-}): Promise<string> {
+}): Promise<{ crxPath: string }> {
+  const customKeyPath = process.env.CHROME_CRX_KEY_PATH?.trim() || null;
+  const useTemporaryKey = !customKeyPath;
   const keyPath = path.resolve(
     rootDir,
-    process.env.CHROME_CRX_KEY_PATH || path.join(outBase, "vot-extension-chrome.pem"),
+    customKeyPath || path.join(outTmp, "vot-extension-chrome.pem"),
   );
   await fs.mkdir(path.dirname(keyPath), { recursive: true });
 
@@ -540,8 +584,29 @@ async function maybeBuildCrx({
     throw new Error(`CRX builder not found: ${crx3Bin}. Install dependencies first.`);
   }
   const outCrx = path.join(outBase, `vot-extension-chrome-${version}.crx`);
-  await runCmd(crx3Bin, ["-p", keyPath, "-o", outCrx, sourceDir], rootDir);
-  return outCrx;
+  try {
+    await runCmd(
+      crx3Bin,
+      [
+        "-p",
+        keyPath,
+        "-o",
+        outCrx,
+        "--appVersion",
+        version,
+        sourceDir,
+      ],
+      rootDir,
+    );
+  } finally {
+    if (useTemporaryKey) {
+      await fs.rm(keyPath, { force: true });
+      await fs.rm(path.join(outBase, "vot-extension-chrome.pem"), { force: true });
+    }
+  }
+  return {
+    crxPath: outCrx,
+  };
 }
 
 function isValidMatchPattern(pattern: string): boolean {
@@ -607,12 +672,24 @@ async function verifyOne(browserName: "chrome" | "firefox"): Promise<void> {
   if (browserName === "chrome" && !manifest.background?.service_worker) {
     throw new Error(`${browserName}: expected background.service_worker`);
   }
+  if (browserName === "chrome" && manifest.update_url) {
+    throw new Error(`${browserName}: update_url must not be set`);
+  }
   if (
     browserName === "firefox" &&
     (!Array.isArray(manifest.background?.scripts) ||
       !manifest.background.scripts.length)
   ) {
     throw new Error(`${browserName}: expected background.scripts[]`);
+  }
+  if (
+    browserName === "firefox" &&
+    manifest.browser_specific_settings?.gecko?.update_url !==
+      FIREFOX_UPDATES_MANIFEST_URL
+  ) {
+    throw new Error(
+      `${browserName}: expected browser_specific_settings.gecko.update_url to be ${FIREFOX_UPDATES_MANIFEST_URL}, got ${manifest.browser_specific_settings?.gecko?.update_url}`,
+    );
   }
 
   assertValidPatterns(
@@ -726,6 +803,15 @@ export async function verifyExtensionOutputs(
   }
   if (target === "all" || target === "firefox") {
     await verifyOne("firefox");
+    const firefoxUpdatesManifestPath = path.join(
+      outBase,
+      FIREFOX_UPDATES_MANIFEST_FILE,
+    );
+    if (!(await exists(firefoxUpdatesManifestPath))) {
+      throw new Error(
+        `firefox: missing updates manifest at ${firefoxUpdatesManifestPath}`,
+      );
+    }
   }
   console.log("\nExtension verification complete.");
 }
@@ -739,12 +825,16 @@ export async function finalizeExtensionBuildArtifacts(
   const shouldBuildFirefox = target === "all" || target === "firefox";
 
   await renameContentCss();
+  if (shouldBuildChrome) {
+    await fs.rm(path.join(outBase, CHROME_UPDATES_MANIFEST_FILE), { force: true });
+  }
 
   const version = headers.version || "0.0.0";
   let outChrome: string | null = null;
   let chromeCrx: string | null = null;
   let outFirefox: string | null = null;
   let firefoxXpi: string | null = null;
+  let firefoxUpdatesManifestPath: string | null = null;
 
   if (shouldBuildChrome) {
     outChrome = path.join(outBase, "chrome");
@@ -760,7 +850,8 @@ export async function finalizeExtensionBuildArtifacts(
 
     const chromeZip = path.join(outBase, `vot-extension-chrome-${version}.zip`);
     await fs.rm(chromeZip, { force: true });
-    chromeCrx = await maybeBuildCrx({ sourceDir: outChrome, version });
+    const chromeBuildResult = await maybeBuildCrx({ sourceDir: outChrome, version });
+    chromeCrx = chromeBuildResult.crxPath;
   }
 
   if (shouldBuildFirefox) {
@@ -777,6 +868,10 @@ export async function finalizeExtensionBuildArtifacts(
 
     firefoxXpi = path.join(outBase, `vot-extension-firefox-${version}.xpi`);
     await zipDir(outFirefox, firefoxXpi);
+    firefoxUpdatesManifestPath = await writeFirefoxUpdatesManifest({
+      version,
+      addonId: getFirefoxAddonId(),
+    });
   }
 
   await verifyExtensionOutputs(target);
@@ -789,6 +884,7 @@ export async function finalizeExtensionBuildArtifacts(
   if (outFirefox) {
     console.log(`- Firefox: ${outFirefox}`);
     console.log(`  - Package: ${firefoxXpi}`);
+    console.log(`  - Updates: ${firefoxUpdatesManifestPath}`);
   }
 }
 

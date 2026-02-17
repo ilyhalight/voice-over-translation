@@ -40,7 +40,6 @@ type XhrStartMessage = {
     headers?: Record<string, unknown>;
     data?: unknown;
     responseType?: string;
-    wantProgressEvents?: boolean;
     timeout?: number;
     anonymous?: boolean;
     withCredentials?: boolean;
@@ -56,6 +55,7 @@ type XhrStartMessage = {
 type XhrAbortMessage = { type: "abort" };
 
 type XhrPortMessage = XhrStartMessage | XhrAbortMessage;
+const MAX_INLINE_BINARY_RESPONSE_BYTES = 512 * 1024;
 
 // -----------------------------
 // declarativeNetRequest helper
@@ -161,14 +161,8 @@ async function ensureDnrHeaderRuleForYandex(
   // ---------------------------------------------------------------------
   // Header injection / normalization
   //
-  // The user-provided "Правильный запрос" capture for
   // `https://api.browser.yandex.ru/video-translation/translate` does NOT include
   // an `Origin` header.
-  //
-  // In a previous build we set Origin to the current page origin (e.g.
-  // https://www.youtube.com) to avoid leaking `chrome-extension://<id>`. That
-  // still diverges from the native Yandex request, so we now remove `Origin`
-  // entirely.
   //
   // In MV3, fetch()/XHR cannot control forbidden headers like `Origin` or
   // `Sec-*`. We use declarativeNetRequest.modifyHeaders (session rules) to:
@@ -292,31 +286,12 @@ type XhrResponse = {
   // without having to ship non-JSON types through extension messaging.
   responseType?: string;
   contentType?: string;
-  // Optional fallback for small binary payloads when chunked progress events
-  // are unavailable or dropped.
+  // Optional fallback for binary payloads in terminal messages.
   responseB64?: string;
   response?: unknown;
   responseText?: string;
   error?: string;
 };
-
-type XhrProgress = {
-  finalUrl: string;
-  readyState: number;
-  status: number;
-  statusText: string;
-  responseHeaders: string;
-  loaded: number;
-  total: number;
-  lengthComputable: boolean;
-  // JSON-serializable binary chunk.
-  // The bridge (content script) decodes this to ArrayBuffer before forwarding
-  // it to the MAIN-world GM_xmlhttpRequest callbacks.
-  chunkB64?: string;
-};
-
-// Base64 helpers live in `base64.ts`.
-const MAX_INLINE_BINARY_RESPONSE_BYTES = 512 * 1024;
 
 function getHeader(
   headers: Record<string, string>,
@@ -444,14 +419,6 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
     }
     const timeout = Number(details.timeout || 0);
     const responseType = String(details.responseType || "text").toLowerCase();
-    const wantProgressEvents = !!details.wantProgressEvents;
-    let hostname = "";
-    try {
-      hostname = new URL(url).hostname;
-    } catch {
-      hostname = "";
-    }
-    const isYandexApiRequest = isYandexApiHostname(hostname);
     debug.log("[VOT EXT][background][xhr] start", {
       xhrSessionId,
       state: "in_flight",
@@ -459,7 +426,6 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
       method,
       responseType,
       timeoutMs: timeout,
-      wantProgressEvents,
       headerCount: Object.keys(allHeaders).length,
       headerNames: Object.keys(allHeaders),
       forbiddenHeaderNames: Object.keys(forbiddenHeaders),
@@ -662,6 +628,7 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
 
       const responseHeaders = formatHeaders(res.headers);
       const finalUrl = res.url || url;
+      const responseContentType = res.headers.get("content-type") || "";
 
       const makeBase = (
         readyState: number,
@@ -685,90 +652,46 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
       let responseText: string | undefined;
       let responseB64: string | undefined;
 
-      // For Yandex protobuf calls we don't need progress events in GM_fetch.
-      // Sending only a terminal payload reduces extension message overhead.
-      const shouldStreamBinary =
-        wantBinary && !!res.body && (wantProgressEvents || !isYandexApiRequest);
+      if (wantBinary) {
+        const contentLength = Number(res.headers.get("content-length") || 0);
+        const shouldStreamBinary =
+          !!res.body &&
+          (!Number.isFinite(contentLength) ||
+            contentLength > MAX_INLINE_BINARY_RESPONSE_BYTES);
 
-      if (shouldStreamBinary) {
-        const total = Number(res.headers.get("content-length") || 0) || 0;
-        let loaded = 0;
-        const reader = res.body.getReader();
-        const inlineChunks: Uint8Array[] = [];
-        let inlineBytes = 0;
-        let canInline = true;
+        if (shouldStreamBinary) {
+          // Large binaries are streamed as progress chunks to avoid one huge
+          // base64 payload in extension messaging.
+          let loaded = 0;
+          const total = Number.isFinite(contentLength) ? contentLength : 0;
+          const reader = res.body.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value) continue;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (!value) continue;
-
-          loaded += value.byteLength;
-
-          if (canInline) {
-            const nextInlineBytes = inlineBytes + value.byteLength;
-            if (nextInlineBytes <= MAX_INLINE_BINARY_RESPONSE_BYTES) {
-              inlineChunks.push(value.slice());
-              inlineBytes = nextInlineBytes;
-            } else {
-              canInline = false;
-              inlineChunks.length = 0;
-              inlineBytes = 0;
-            }
-          }
-
-          const progress: XhrProgress = {
-            ...makeBase(3),
-            loaded,
-            total,
-            lengthComputable: total > 0,
-            chunkB64: bytesToBase64(value),
-          };
-
-          try {
+            loaded += value.byteLength;
             safePostMessage({
               type: "progress",
               state: "in_flight",
-              progress,
+              progress: {
+                ...makeBase(3),
+                loaded,
+                total,
+                lengthComputable: total > 0,
+                chunkB64: bytesToBase64(value),
+              },
             });
-            debug.log("[VOT EXT][background][xhr] progress", {
-              xhrSessionId,
-              url: finalUrl,
-              loaded,
-              total,
-            });
-          } catch {
-            // ignore
           }
-        }
-
-        if (inlineChunks.length && inlineBytes > 0) {
-          const merged = new Uint8Array(inlineBytes);
-          let offset = 0;
-          for (const chunk of inlineChunks) {
-            merged.set(chunk, offset);
-            offset += chunk.byteLength;
-          }
-          responseB64 = bytesToBase64(merged);
-        }
-
-        // Binary bodies are streamed to the bridge via progress events.
-        // We intentionally avoid sending the full binary payload in the final
-        // "load" message because extension messaging only supports
-        // JSON-serializable objects.
-        response = undefined;
-      } else if (wantBinary) {
-        // e.g. Yandex protobuf requests without onprogress handlers (or HEAD).
-        // We return a single terminal payload instead of progress chunks.
-        try {
+          response = undefined;
+        } else {
+          // Small binaries can be delivered in one terminal payload.
           const ab = await res.arrayBuffer();
           if (ab.byteLength > 0) {
             responseB64 = arrayBufferToBase64(ab);
           }
-        } catch {
-          // ignore
+          response = undefined;
         }
-        response = undefined;
       } else if (responseType === "json") {
         responseText = await res.text();
         try {
@@ -793,7 +716,6 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         responseTextLength: responseText?.length ?? 0,
         responseB64Length: responseB64?.length ?? 0,
       });
-      const responseContentType = res.headers.get("content-type") || "";
       safePostMessage({
         type: "load",
         state: "terminal",

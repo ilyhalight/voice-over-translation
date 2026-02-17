@@ -282,13 +282,18 @@ export class VOTTranslationHandler {
         return;
       }
 
-      timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(async () => {
         if (signal.aborted) {
           onAbort();
           return;
         }
         cleanup();
-        void fn().then(resolve, reject);
+        try {
+          const result = await fn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
       }, delayMs);
 
       // Keep old behavior: allow caller to clear retries via the host.

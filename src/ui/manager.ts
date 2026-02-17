@@ -14,7 +14,7 @@ import type { OverlayMount, UIManagerProps } from "../types/uiManager";
 import ui from "../ui";
 import debug from "../utils/debug";
 import { buildTranslationBlob, downloadTranslation } from "../utils/download";
-import { GM_fetch, isSupportGMXhr } from "../utils/gm";
+import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import {
@@ -22,7 +22,6 @@ import {
   clearFileName,
   downloadBlob,
   exitFullscreen,
-  revokeObjectUrlLater,
 } from "../utils/utils";
 import VOTLocalizedError from "../utils/VOTLocalizedError";
 import VOTButton from "./components/votButton";
@@ -178,9 +177,9 @@ export class UIManager {
 
         const downloadButton = this.votOverlayView.downloadTranslationButton;
         const downloadUrl = this.videoHandler.downloadTranslationUrl;
-        const filename = clearFileName(
-          this.videoHandler.videoData.downloadTitle,
-        );
+        const filename = this.data.downloadWithName
+          ? clearFileName(this.videoHandler.videoData.downloadTitle)
+          : `translation_${this.videoHandler.videoData.videoId}`;
         const isMobile = this.videoHandler.site.additionalData === "mobile";
 
         if (downloadButton) {
@@ -204,35 +203,10 @@ export class UIManager {
                 }
               },
             );
-            const file = new File([blob], `${filename}.mp3`, {
-              type: blob.type || "audio/mpeg",
-            });
-            const canShareFiles =
-              typeof navigator !== "undefined" &&
-              typeof navigator.canShare === "function" &&
-              navigator.canShare({ files: [file] });
-            if (navigator?.share && canShareFiles) {
-              await navigator.share({ files: [file], title: filename });
-              return;
-            }
-            const fallbackUrl = URL.createObjectURL(blob);
-            globalThis.open(fallbackUrl, "_blank")?.focus();
-            revokeObjectUrlLater(fallbackUrl);
+            await this.saveBlobWithMobileShare(blob, `${filename}.mp3`, true);
             return;
           }
 
-          if (!this.data.downloadWithName || !isSupportGMXhr) {
-            globalThis.open(downloadUrl, "_blank")?.focus();
-            return;
-          }
-
-          if (!downloadButton) {
-            throw new Error(
-              "[VOT] Download translation button is not initialized",
-            );
-          }
-
-          downloadButton.progress = 0;
           // Download the full audio. A range request (bytes=0-0) only returns a
           // tiny fragment (~1 byte + headers) which results in a silent ~5KB file.
           const res = await GM_fetch(downloadUrl, { timeout: 0 });
@@ -240,11 +214,15 @@ export class UIManager {
             throw new Error(`HTTP ${res.status}`);
           }
           await downloadTranslation(res, filename, (progress) => {
-            downloadButton.progress = progress;
+            if (downloadButton) {
+              downloadButton.progress = progress;
+            }
           });
         } catch (err) {
           console.error("[VOT] Download translation failed:", err);
-          globalThis.open(downloadUrl, "_blank")?.focus();
+          if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) {
+            globalThis.open(downloadUrl, "_blank")?.focus();
+          }
         } finally {
           if (downloadButton) {
             downloadButton.progress = 0;
@@ -284,6 +262,7 @@ export class UIManager {
 
         this.videoHandler.setVideoVolume(volume / 100);
         if (!this.data.syncVolume) {
+          this.videoHandler.onVideoVolumeSliderSynced(volume);
           return;
         }
 
@@ -299,6 +278,7 @@ export class UIManager {
         const nextVolume = volume ?? this.data.defaultVolume ?? 100;
         this.videoHandler.audioPlayer.player.volume = nextVolume / 100;
         if (!this.data.syncVolume) {
+          this.videoHandler.onTranslationVolumeSliderSynced(nextVolume);
           return;
         }
         this.videoHandler.syncVolumeWrapper("translation", nextVolume);
@@ -354,15 +334,35 @@ export class UIManager {
           const currentVolume = overlayView.translationVolumeSlider.value;
           const maxVolume = this.data.audioBooster ? maxAudioVolume : 100;
           overlayView.translationVolumeSlider.max = maxVolume;
-          overlayView.translationVolumeSlider.value = clamp(
-            currentVolume,
-            0,
-            maxVolume,
+          const nextVolume = clamp(currentVolume, 0, maxVolume);
+          overlayView.translationVolumeSlider.value = nextVolume;
+          this.videoHandler?.onTranslationVolumeSliderSynced(nextVolume);
+        });
+      })
+      .addEventListener("change:syncVolume", (checked) => {
+        if (!this.videoHandler) {
+          return;
+        }
+        this.videoHandler.setupAudioSettings();
+        if (!checked) {
+          return;
+        }
+
+        this.withInitializedOverlayView((overlayView) => {
+          const videoSlider = overlayView.videoVolumeSlider;
+          const translationSlider = overlayView.translationVolumeSlider;
+          if (!videoSlider || !translationSlider) {
+            return;
+          }
+
+          this.videoHandler.resetVolumeLinkState(
+            Number(videoSlider.value),
+            Number(translationSlider.value),
           );
         });
       })
       .addEventListener("change:useLivelyVoice", () => {
-        this.videoHandler?.stopTranslate();
+        void this.videoHandler?.stopTranslate();
       })
       .addEventListener("change:subtitlesHighlightWords", (checked) => {
         this.withSubtitlesWidget((widget) => {
@@ -394,14 +394,13 @@ export class UIManager {
           return;
         }
 
-        // Proxy host changes can invalidate cached requests/URLs.
-        // Best-effort refresh the active audio source and clear caches.
+        // Proxy host changes invalidate cached requests/URLs and should stop
+        // the current translation session.
         void this.videoHandler.handleProxySettingsChanged("proxyWorkerHost");
       })
       .addEventListener("select:proxyTranslationStatus", () => {
-        // Switching proxy mode changes the request path and can turn transient
-        // failures into successes (and vice versa). Clear caches and restart
-        // request plumbing.
+        // Switching proxy mode changes request routing. Drop stale cache and
+        // stop translation so the next run starts with fresh settings.
         void this.videoHandler?.handleProxySettingsChanged(
           "proxyTranslationStatus",
         );
@@ -479,7 +478,7 @@ export class UIManager {
     const settingsWasOpen =
       this.votSettingsView?.dialog?.container?.hidden === false;
 
-    this.videoHandler?.stopTranslation();
+    await this.videoHandler?.stopTranslation();
     this.release();
     this.initUI();
     this.initUIEvents();
@@ -537,7 +536,7 @@ export class UIManager {
     debug.log("[handleTranslationBtnClick] click translationBtn");
     if (this.videoHandler.hasActiveSource()) {
       debug.log("[handleTranslationBtnClick] video has active source");
-      this.videoHandler.stopTranslation();
+      await this.videoHandler.stopTranslation();
       return this;
     }
 
@@ -556,7 +555,7 @@ export class UIManager {
         "[handleTranslationBtnClick] translationBtn isn't in none state",
       );
       this.videoHandler.actionsAbortController.abort();
-      this.videoHandler.stopTranslation();
+      await this.videoHandler.stopTranslation();
       return this;
     }
 
@@ -691,12 +690,81 @@ export class UIManager {
     callback(widget);
   }
 
+  private triggerUrlDownload(url: string, filename: string): boolean {
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      // Cross-origin downloads can ignore `download`; keep navigation off the
+      // current tab in that case.
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async tryShareBlob(blob: Blob, filename: string): Promise<boolean> {
+    const nav = typeof navigator === "undefined" ? undefined : navigator;
+    if (!nav?.share || typeof File === "undefined") {
+      return false;
+    }
+
+    let file: File;
+    try {
+      file = new File([blob], filename, {
+        type: blob.type || "application/octet-stream",
+      });
+    } catch {
+      return false;
+    }
+
+    if (
+      typeof nav.canShare === "function" &&
+      !nav.canShare({ files: [file] })
+    ) {
+      return false;
+    }
+
+    try {
+      await nav.share({ files: [file], title: filename });
+      return true;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return true;
+      }
+      debug.warn("[VOT] navigator.share failed, fallback to download", err);
+      return false;
+    }
+  }
+
+  private async saveBlobWithMobileShare(
+    blob: Blob,
+    filename: string,
+    preferShare: boolean,
+  ): Promise<void> {
+    if (preferShare) {
+      const shared = await this.tryShareBlob(blob, filename);
+      if (shared) {
+        return;
+      }
+    }
+
+    downloadBlob(blob, filename);
+  }
+
   private restartAudioPlayer() {
     if (!this.videoHandler) {
       return;
     }
-
-    this.videoHandler.stopTranslate();
-    this.videoHandler.createPlayer();
+    void (async () => {
+      await this.videoHandler?.stopTranslate();
+      this.videoHandler?.createPlayer();
+    })();
   }
 }

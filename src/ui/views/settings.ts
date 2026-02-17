@@ -10,6 +10,7 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "change:autoSubtitles",
   "change:showVideoVolume",
   "change:audioBooster",
+  "change:syncVolume",
   "change:useLivelyVoice",
   "change:subtitlesHighlightWords",
   "change:subtitlesSmartLayout",
@@ -310,6 +311,7 @@ export class SettingsView {
       dispatch?.(value);
     });
   }
+
   initUI() {
     if (this.isInitialized()) {
       throw new Error("[VOT] SettingsView is already initialized");
@@ -425,13 +427,16 @@ export class SettingsView {
     this.autoSetVolumeSlider = new Slider({
       labelHtml: this.autoSetVolumeCheckbox.container,
       value: autoVolume,
+      min: 0,
     });
+    const syncVolumeEnabled = Boolean(this.data.syncVolume);
     this.autoSetVolumeSlider.disabled = !this.autoSetVolumeCheckbox.checked;
     this.smartDuckingCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("smartDucking"),
       checked: this.data.enabledSmartDucking ?? true,
     });
-    this.smartDuckingCheckbox.disabled = !this.autoSetVolumeCheckbox.checked;
+    this.smartDuckingCheckbox.disabled =
+      syncVolumeEnabled || !this.autoSetVolumeCheckbox.checked;
     this.showVideoVolumeSliderCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("showVideoVolumeSlider"),
       checked: this.data.showVideoSlider,
@@ -959,7 +964,8 @@ export class SettingsView {
       apply: (checked) => {
         this.data.enabledAutoVolume = checked;
         this.autoSetVolumeSlider.disabled = !checked;
-        this.smartDuckingCheckbox.disabled = !checked;
+        this.smartDuckingCheckbox.disabled =
+          !checked || Boolean(this.syncVolumeCheckbox?.checked);
       },
       storageKey: "enabledAutoVolume",
       readPersistedValue: () => this.data.enabledAutoVolume,
@@ -975,6 +981,7 @@ export class SettingsView {
       storageKey: "enabledSmartDucking",
       readPersistedValue: () => this.data.enabledSmartDucking,
       logLabel: "enabledSmartDucking",
+      afterPersist: async () => this.videoHandler?.setupAudioSettings?.(),
     });
     this.bindPersistedSetting({
       control: this.autoSetVolumeSlider,
@@ -1015,10 +1022,18 @@ export class SettingsView {
       event: "change",
       apply: (checked) => {
         this.data.syncVolume = checked;
+        this.autoSetVolumeSlider.disabled =
+          !this.autoSetVolumeCheckbox?.checked;
+        this.smartDuckingCheckbox.disabled =
+          checked || !this.autoSetVolumeCheckbox?.checked;
+        if (checked && this.smartDuckingCheckbox?.checked) {
+          this.smartDuckingCheckbox.checked = false;
+        }
       },
       storageKey: "syncVolume",
       readPersistedValue: () => this.data.syncVolume,
       logLabel: "syncVolume",
+      dispatch: (checked) => this.events["change:syncVolume"].dispatch(checked),
     });
     this.bindPersistedSetting({
       control: this.downloadWithNameCheckbox,

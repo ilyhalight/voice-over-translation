@@ -274,6 +274,9 @@ export class OverlayView {
       target: this.votButton.translateButton,
       content: localizationProvider.get("translateVideo"),
       position: this.votButton.tooltipPos,
+      // Keep side-tooltip direction stable for the moved button (left/right)
+      // so status/error text does not mirror to the opposite side.
+      autoLayout: false,
       hidden: direction === "row",
       bordered: false,
       parentElement: this.votOverlayPortal,

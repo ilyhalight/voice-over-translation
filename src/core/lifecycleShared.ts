@@ -1,6 +1,6 @@
 export type LifecycleTranslationResetHost = {
   videoData?: unknown;
-  stopTranslation(): void;
+  stopTranslation(): void | Promise<void>;
   resetSubtitlesWidget(): void;
 };
 

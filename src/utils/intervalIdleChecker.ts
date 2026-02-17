@@ -51,7 +51,10 @@ function getDefaultRuntime(): IntervalIdleRuntime {
         queueMicrotask(fn);
         return;
       }
-      Promise.resolve().then(fn);
+      void (async () => {
+        await Promise.resolve();
+        fn();
+      })();
     },
     isDocumentHidden: () =>
       typeof document !== "undefined" && typeof document.hidden === "boolean"

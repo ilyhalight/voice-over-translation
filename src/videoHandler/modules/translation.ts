@@ -42,14 +42,254 @@ type StopSmartVolumeDuckingOptions = {
 };
 
 type AudioPlayerLike = {
-  getAudioRms?: () => number | undefined;
+  audio?: HTMLMediaElement;
+  audioElement?: HTMLMediaElement;
+  gainNode?: AudioNode;
+  audioSource?: AudioNode;
+  mediaElementSource?: AudioNode;
+};
+
+type SmartDuckingAnalyserState = {
   analyser?: AnalyserNode;
   analyserFloatData?: Float32Array<ArrayBuffer>;
   analyserData?: Uint8Array<ArrayBuffer>;
-  getMediaElement?: () => HTMLMediaElement | undefined;
-  audio?: HTMLMediaElement;
-  audioElement?: HTMLMediaElement;
+  connectedInputNode?: AudioNode;
+  mediaElement?: HTMLMediaElement;
+  audioContext?: AudioContext;
+  createdMediaSource?: MediaElementAudioSourceNode;
+  mediaSourceCreationFailed?: boolean;
 };
+
+const smartDuckingAnalyserState = new WeakMap<
+  VideoHandler,
+  SmartDuckingAnalyserState
+>();
+
+function isAudioNode(node: unknown): node is AudioNode {
+  if (!node || typeof node !== "object") return false;
+  const candidate = node as { connect?: unknown; disconnect?: unknown };
+  return (
+    typeof candidate.connect === "function" &&
+    typeof candidate.disconnect === "function"
+  );
+}
+
+function getPlayerMediaElement(
+  player?: AudioPlayerLike,
+): HTMLMediaElement | undefined {
+  return player?.audio ?? player?.audioElement;
+}
+
+async function resumePlayerAudioContextIfNeeded(
+  handler: VideoHandler,
+): Promise<"not-needed" | "resumed" | "timeout" | "failed"> {
+  const ctx = handler.audioPlayer?.audioContext;
+  if (!ctx || ctx.state !== "suspended") return "not-needed";
+
+  const RESUME_TIMEOUT_MS = 1500;
+
+  const resumePromise = (async (): Promise<"resumed" | "failed"> => {
+    try {
+      await ctx.resume();
+      return "resumed";
+    } catch (err) {
+      debug.log("[updateTranslation] Failed to resume AudioContext", err);
+      return "failed";
+    }
+  })();
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<"timeout">((resolve) => {
+    timeoutId = setTimeout(() => resolve("timeout"), RESUME_TIMEOUT_MS);
+  });
+
+  const result = await Promise.race([resumePromise, timeoutPromise]);
+  if (timeoutId !== undefined) {
+    clearTimeout(timeoutId);
+  }
+
+  if (result === "resumed") {
+    debug.log("[updateTranslation] AudioContext resumed");
+  } else if (result === "timeout") {
+    debug.log("[updateTranslation] AudioContext resume timeout");
+  }
+
+  return result;
+}
+
+async function rollbackStaleAppliedSourceIfStillCurrent(
+  handler: VideoHandler,
+  appliedSourceUrl: string | null,
+): Promise<void> {
+  if (!appliedSourceUrl || !handler.audioPlayer) return;
+
+  const player = handler.audioPlayer.player;
+  const currentSource = String(player.currentSrc || player.src || "");
+  const normalizedCurrentUrl = handler.proxifyAudio(
+    handler.unproxifyAudio(currentSource),
+  );
+  const normalizedAppliedUrl = handler.proxifyAudio(
+    handler.unproxifyAudio(appliedSourceUrl),
+  );
+  if (normalizedCurrentUrl !== normalizedAppliedUrl) return;
+
+  try {
+    await player.clear();
+    player.src = "";
+    debug.log("[updateTranslation] cleared stale partially-applied source");
+  } catch (err) {
+    debug.log("[updateTranslation] failed to clear stale source", err);
+  }
+}
+
+function getSmartDuckingAudioContext(
+  handler: VideoHandler,
+): AudioContext | undefined {
+  return handler.audioPlayer?.audioContext ?? handler.audioContext;
+}
+
+function disconnectSmartDuckingAnalyser(
+  state: SmartDuckingAnalyserState,
+): void {
+  if (state.connectedInputNode && state.analyser) {
+    try {
+      state.connectedInputNode.disconnect(state.analyser);
+    } catch {
+      // ignore
+    }
+  }
+  state.connectedInputNode = undefined;
+
+  if (state.createdMediaSource) {
+    try {
+      state.createdMediaSource.disconnect();
+    } catch {
+      // ignore
+    }
+  }
+  state.createdMediaSource = undefined;
+
+  if (state.analyser) {
+    try {
+      state.analyser.disconnect();
+    } catch {
+      // ignore
+    }
+  }
+
+  state.analyser = undefined;
+  state.analyserFloatData = undefined;
+  state.analyserData = undefined;
+  state.mediaElement = undefined;
+  state.audioContext = undefined;
+  state.mediaSourceCreationFailed = false;
+}
+
+function releaseSmartDuckingAnalyser(handler: VideoHandler): void {
+  const state = smartDuckingAnalyserState.get(handler);
+  if (!state) return;
+
+  disconnectSmartDuckingAnalyser(state);
+  smartDuckingAnalyserState.delete(handler);
+}
+
+function resolveSmartDuckingInputNode(
+  player: AudioPlayerLike | undefined,
+  media: HTMLMediaElement,
+  audioContext: AudioContext,
+  state: SmartDuckingAnalyserState,
+): AudioNode | undefined {
+  if (isAudioNode(player?.gainNode)) return player.gainNode;
+  if (isAudioNode(player?.audioSource)) return player.audioSource;
+  if (isAudioNode(player?.mediaElementSource)) return player.mediaElementSource;
+
+  if (
+    state.mediaSourceCreationFailed &&
+    state.mediaElement === media &&
+    state.audioContext === audioContext
+  ) {
+    return undefined;
+  }
+
+  if (
+    state.createdMediaSource &&
+    state.mediaElement === media &&
+    state.audioContext === audioContext
+  ) {
+    return state.createdMediaSource;
+  }
+
+  try {
+    const source = audioContext.createMediaElementSource(media);
+    state.createdMediaSource = source;
+    state.mediaSourceCreationFailed = false;
+    return source;
+  } catch (err) {
+    state.mediaSourceCreationFailed = true;
+    debug.log("[SmartDucking] failed to create media source", err);
+    return undefined;
+  }
+}
+
+function ensureSmartDuckingAnalyser(
+  handler: VideoHandler,
+  player: AudioPlayerLike | undefined,
+  media: HTMLMediaElement,
+): { analyser: AnalyserNode; state: SmartDuckingAnalyserState } | undefined {
+  const audioContext = getSmartDuckingAudioContext(handler);
+  if (!audioContext) return undefined;
+
+  let state = smartDuckingAnalyserState.get(handler);
+  if (!state) {
+    state = {};
+    smartDuckingAnalyserState.set(handler, state);
+  }
+
+  if (
+    (state.mediaElement && state.mediaElement !== media) ||
+    (state.audioContext && state.audioContext !== audioContext)
+  ) {
+    disconnectSmartDuckingAnalyser(state);
+  }
+
+  state.mediaElement = media;
+  state.audioContext = audioContext;
+
+  if (!state.analyser) {
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    state.analyser = analyser;
+  }
+
+  const inputNode = resolveSmartDuckingInputNode(
+    player,
+    media,
+    audioContext,
+    state,
+  );
+  const analyser = state.analyser;
+  if (!inputNode || !analyser) return undefined;
+
+  if (state.connectedInputNode !== inputNode) {
+    if (state.connectedInputNode) {
+      try {
+        state.connectedInputNode.disconnect(analyser);
+      } catch {
+        // ignore
+      }
+    }
+
+    try {
+      inputNode.connect(analyser);
+      state.connectedInputNode = inputNode;
+    } catch (err) {
+      debug.log("[SmartDucking] failed to connect analyser", err);
+      return undefined;
+    }
+  }
+
+  return { analyser, state };
+}
 
 function readSmartDuckingRuntime(handler: VideoHandler): SmartDuckingRuntime {
   return {
@@ -111,6 +351,8 @@ export function stopSmartVolumeDucking(
       // ignore
     }
   }
+
+  releaseSmartDuckingAnalyser(handler);
   writeSmartDuckingRuntime(handler, resetSmartDuckingRuntime());
 }
 
@@ -118,38 +360,59 @@ function startSmartVolumeDucking(handler: VideoHandler): void {
   if (typeof globalThis === "undefined") return;
   if (typeof handler.smartVolumeDuckingInterval === "number") return;
 
-  writeSmartDuckingRuntime(
-    handler,
-    initSmartDuckingRuntime(handler.getVideoVolume()),
-  );
+  const currentVideoVolume = handler.getVideoVolume();
+  const baseline =
+    typeof handler.smartVolumeDuckingBaseline === "number"
+      ? handler.smartVolumeDuckingBaseline
+      : currentVideoVolume;
+
+  const runtime = initSmartDuckingRuntime(baseline);
+  if (
+    Number.isFinite(currentVideoVolume) &&
+    Number.isFinite(baseline) &&
+    currentVideoVolume <
+      baseline - SMART_DUCKING_DEFAULT_CONFIG.externalBaselineDelta01
+  ) {
+    // Resuming Smart mode from constant ducking: keep baseline untouched and
+    // continue from the already ducked state.
+    const now =
+      typeof performance !== "undefined" &&
+      typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    runtime.isDucked = true;
+    runtime.speechGateOpen = true;
+    runtime.lastApplied = currentVideoVolume;
+    runtime.lastSoundAt = now;
+  }
+
+  writeSmartDuckingRuntime(handler, runtime);
 
   handler.smartVolumeDuckingInterval = globalThis.setInterval(() => {
     smartDuckingTick(handler);
   }, SMART_DUCKING_DEFAULT_CONFIG.tickMs);
 }
 
-function getTranslatedAudioRms(this: VideoHandler): number | undefined {
-  const player = this.audioPlayer?.player as unknown as
+function getTranslatedAudioRms(
+  handler: VideoHandler,
+  media: HTMLMediaElement,
+): number | undefined {
+  const player = handler.audioPlayer?.player as unknown as
     | AudioPlayerLike
     | undefined;
+  const analyserBundle = ensureSmartDuckingAnalyser(handler, player, media);
+  if (!analyserBundle) return undefined;
 
-  // Preferred: use the helper implemented in chaimu (if available).
-  const rms = player?.getAudioRms?.();
-  if (typeof rms === "number" && Number.isFinite(rms)) return rms;
-
-  // Fallback: if the analyser is present (older builds might still expose it),
-  // compute RMS here.
-  const analyser: AnalyserNode | undefined = player?.analyser;
-  if (!analyser) return undefined;
+  const { analyser, state } = analyserBundle;
 
   try {
     // Use float time-domain data when available (avoids 8-bit quantization).
     if (typeof analyser.getFloatTimeDomainData === "function") {
-      let floatData = player?.analyserFloatData;
+      let floatData = state.analyserFloatData;
 
       if (floatData?.length !== analyser.fftSize) {
         floatData = new Float32Array(analyser.fftSize);
-        player.analyserFloatData = floatData;
+        state.analyserFloatData = floatData;
       }
 
       analyser.getFloatTimeDomainData(floatData);
@@ -158,18 +421,13 @@ function getTranslatedAudioRms(this: VideoHandler): number | undefined {
       for (const value of floatData) {
         sum += value * value;
       }
-      return Math.sqrt(sum / floatData.length);
+      return clamp(Math.sqrt(sum / floatData.length), 0, 1);
     }
 
-    // Byte fallback.
-    // TS 5.9+ types `Uint8Array` with a generic ArrayBuffer type parameter. WebAudio's
-    // `getByteTimeDomainData` expects a Uint8Array; the underlying buffer type does not
-    // matter for our usage, so we cast for compatibility.
-    let data = player?.analyserData;
-
+    let data = state.analyserData;
     if (data?.length !== analyser.fftSize) {
       data = new Uint8Array(analyser.fftSize);
-      player.analyserData = data;
+      state.analyserData = data;
     }
 
     analyser.getByteTimeDomainData(data);
@@ -179,7 +437,7 @@ function getTranslatedAudioRms(this: VideoHandler): number | undefined {
       const normalizedValue = (rawValue - 128) / 128;
       sum += normalizedValue * normalizedValue;
     }
-    return Math.sqrt(sum / data.length);
+    return clamp(Math.sqrt(sum / data.length), 0, 1);
   } catch {
     return undefined;
   }
@@ -189,11 +447,20 @@ function smartDuckingTick(handler: VideoHandler): void {
   const player = handler.audioPlayer?.player as unknown as
     | AudioPlayerLike
     | undefined;
-  const media: HTMLMediaElement | undefined =
-    player?.getMediaElement?.() ??
-    // Legacy fallbacks
-    player?.audio ??
-    player?.audioElement;
+  const media = getPlayerMediaElement(player);
+  const syncVolumeEnabled = Boolean(handler.data?.syncVolume);
+  const autoVolumeEnabled =
+    Boolean(handler.data?.enabledAutoVolume) && !syncVolumeEnabled;
+  const smartEnabled =
+    (handler.data?.enabledSmartDucking ?? true) && !syncVolumeEnabled;
+
+  // Smart ducking may be disabled while interval is still active (e.g. runtime
+  // settings toggle). Switch to one-shot classic ducking immediately and stop
+  // periodic corrections so user volume changes are not overridden.
+  if (autoVolumeEnabled && !smartEnabled) {
+    setupAudioSettings.call(handler);
+    return;
+  }
 
   const audioIsPlaying =
     !!media &&
@@ -213,15 +480,17 @@ function smartDuckingTick(handler: VideoHandler): void {
   const dynamicDuckingTarget =
     clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
   handler.smartVolumeDuckingTarget = dynamicDuckingTarget;
+  const rms =
+    audioIsPlaying && media ? getTranslatedAudioRms(handler, media) : 0;
 
   const decision = computeSmartDuckingStep(
     {
       nowMs: now,
       translationActive: handler.hasActiveSource(),
-      enabledAutoVolume: Boolean(handler.data?.enabledAutoVolume),
-      smartEnabled: handler.data?.enabledSmartDucking ?? true,
+      enabledAutoVolume: autoVolumeEnabled,
+      smartEnabled,
       audioIsPlaying,
-      rms: audioIsPlaying ? getTranslatedAudioRms.call(handler) : 0,
+      rms,
       currentVideoVolume,
       hostVideoActive,
       duckingTarget01: dynamicDuckingTarget,
@@ -436,38 +705,20 @@ export async function handleProxySettingsChanged(
   this: VideoHandler,
   reason = "proxySettingsChanged",
 ) {
+  debug.log(`[VOT] ${reason}: clearing translation/subtitles cache`);
   try {
-    debug.log(`[VOT] ${reason}: clearing translation cache`);
     this.cacheManager.clear();
     this.activeTranslation = null;
   } catch {
     // ignore
   }
 
-  // Cancel any in-flight requests so a new attempt can start cleanly.
+  // Switching proxy settings should cancel any ongoing translation and leave
+  // playback in a clean, disabled state.
   try {
-    this.resetActionsAbortController(reason);
+    await this.stopTranslation();
   } catch {
     // ignore
-  }
-
-  // If we're currently playing a translated audio track (non-stream),
-  // re-apply the proxy mapping and re-validate the URL.
-  try {
-    if (this.videoData?.isStream) {
-      return;
-    }
-
-    const current =
-      this.downloadTranslationUrl ||
-      this.audioPlayer?.player?.currentSrc ||
-      this.audioPlayer?.player?.src;
-
-    if (!current) return;
-
-    await this.updateTranslation(this.unproxifyAudio(current));
-  } catch (err) {
-    debug.log(`[VOT] ${reason}: failed to refresh active audio`, err);
   }
 }
 
@@ -482,8 +733,13 @@ export async function updateTranslation(
   audioUrl: string,
   actionContext?: { gen: number; videoId: string },
 ): Promise<void> {
+  await this.waitForPendingStopTranslate();
   if (this.isActionStale(actionContext)) return;
   if (!this.audioPlayer) {
+    this.createPlayer();
+  }
+  if (this.audioPlayer.audioContext?.state === "closed") {
+    debug.log("[updateTranslation] AudioContext is closed, recreating player");
     this.createPlayer();
   }
   const normalizedTargetUrl = this.proxifyAudio(this.unproxifyAudio(audioUrl));
@@ -502,18 +758,92 @@ export async function updateTranslation(
   }
   if (this.isActionStale(actionContext)) return;
   const shouldInitPlayer = this.audioPlayer.player.src !== nextAudioUrl;
+  let appliedSourceUrl: string | null = null;
   if (shouldInitPlayer) {
     this.audioPlayer.player.src = nextAudioUrl;
+    appliedSourceUrl = nextAudioUrl;
   }
+  let initError: unknown;
   try {
     if (shouldInitPlayer) {
-      this.audioPlayer.init();
+      await this.audioPlayer.init();
+    }
+    if (this.isActionStale(actionContext)) {
+      await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
+      return;
+    }
+    const resumeResult = await resumePlayerAudioContextIfNeeded(this);
+    if (resumeResult === "timeout") {
+      debug.log(
+        "[updateTranslation] continuing after AudioContext resume timeout",
+      );
+    } else if (resumeResult === "failed") {
+      debug.log(
+        "[updateTranslation] AudioContext resume failed, continue without deferred resume",
+      );
+    }
+    if (this.isActionStale(actionContext)) {
+      await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
+      return;
+    }
+    if (!this.video.paused && this.audioPlayer.player.src) {
+      this.audioPlayer.player.lipSync("play");
     }
   } catch (err: unknown) {
-    debug.log("this.audioPlayer.init() error", err);
-    const msg = err instanceof Error ? err.message : String(err);
-    this.transformBtn("error", msg);
+    initError = err;
   }
+
+  // Network/proxy hiccup fallback: if proxied URL failed to fetch audio data,
+  // retry once with the original direct S3 URL.
+  if (initError && shouldInitPlayer && !this.isActionStale(actionContext)) {
+    const directUrl = this.unproxifyAudio(nextAudioUrl);
+    if (directUrl !== nextAudioUrl) {
+      try {
+        debug.log(
+          "[updateTranslation] proxied audio init failed, retrying direct URL",
+        );
+        const validatedDirectUrl = await this.validateAudioUrl(
+          directUrl,
+          actionContext,
+        );
+        if (this.isActionStale(actionContext)) {
+          await rollbackStaleAppliedSourceIfStillCurrent(
+            this,
+            appliedSourceUrl,
+          );
+          return;
+        }
+        this.audioPlayer.player.src = validatedDirectUrl;
+        appliedSourceUrl = validatedDirectUrl;
+        nextAudioUrl = validatedDirectUrl;
+        await this.audioPlayer.init();
+
+        const resumeResult = await resumePlayerAudioContextIfNeeded(this);
+        if (resumeResult === "timeout" || resumeResult === "failed") {
+          debug.log(
+            "[updateTranslation] AudioContext not resumed after direct URL fallback",
+            resumeResult,
+          );
+        }
+        if (!this.video.paused && this.audioPlayer.player.src) {
+          this.audioPlayer.player.lipSync("play");
+        }
+        initError = undefined;
+      } catch (fallbackErr) {
+        initError = fallbackErr;
+      }
+    }
+  }
+
+  if (initError) {
+    debug.log("this.audioPlayer.init() error", initError);
+    await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
+    const msg =
+      initError instanceof Error ? initError.message : String(initError);
+    this.transformBtn("error", msg);
+    return;
+  }
+
   this.setupAudioSettings();
   this.transformBtn("success", localizationProvider.get("disableTranslate"));
   this.afterUpdateTranslation(nextAudioUrl);
@@ -527,8 +857,9 @@ export async function translateFunc(
   responseLang: string,
   translationHelp?: VideoData["translationHelp"],
 ): Promise<void> {
+  await this.waitForPendingStopTranslate();
   debug.log("Run videoValidator");
-  this.videoValidator();
+  await this.videoValidator();
   // Stream translation is currently disabled; keep this parameter for API compatibility.
 
   // Ensure we don't start requests with a stale/aborted signal.
@@ -669,6 +1000,15 @@ export async function translateFunc(
     if (this.activeTranslation?.promise === translationPromise) {
       this.activeTranslation = null;
     }
+    const overlayBtn = this.uiManager.votOverlayView?.votButton;
+    if (
+      !this.activeTranslation &&
+      overlayBtn?.loading &&
+      !this.hasActiveSource()
+    ) {
+      debug.log("[translateFunc] clearing stale loading state");
+      this.transformBtn("none", localizationProvider.get("translateVideo"));
+    }
   }
 }
 
@@ -681,18 +1021,49 @@ export function setupAudioSettings(this: VideoHandler) {
     this.audioPlayer.player.volume = this.data.defaultVolume / 100;
   }
 
-  // Smart Auto-Volume ducking: lower the original video volume only when
-  // translated audio is actually playing sound, and restore it during silence.
-  if (this.data?.enabledAutoVolume) {
-    this.smartVolumeDuckingTarget =
-      clamp(this.data.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
+  const autoVolumeEnabled =
+    Boolean(this.data?.enabledAutoVolume) && !this.data?.syncVolume;
+  const smartDuckingEnabled = this.data?.enabledSmartDucking ?? true;
 
-    // Start the ducking loop once per translation session.
-    startSmartVolumeDucking(this);
-  } else {
-    // Auto-volume toggled off -> stop ducking and restore baseline.
+  if (!autoVolumeEnabled) {
+    // Auto-volume toggled off -> restore baseline and fully reset smart ducking.
     stopSmartVolumeDucking(this, {
       restoreVolume: this.smartVolumeDuckingBaseline ?? this.volumeOnStart,
     });
+    return;
   }
+
+  const targetVolume =
+    clamp(this.data.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
+  this.smartVolumeDuckingTarget = targetVolume;
+
+  if (!this.hasActiveSource()) {
+    // No active translation source yet: keep target cached for next setup call.
+    return;
+  }
+
+  if (smartDuckingEnabled) {
+    startSmartVolumeDucking(this);
+    return;
+  }
+
+  // Smart ducking disabled -> fall back to classic constant ducking.
+  if (typeof this.smartVolumeDuckingInterval === "number") {
+    clearInterval(this.smartVolumeDuckingInterval);
+    this.smartVolumeDuckingInterval = undefined;
+  }
+
+  if (typeof this.smartVolumeDuckingBaseline !== "number") {
+    this.smartVolumeDuckingBaseline = this.getVideoVolume();
+  }
+
+  const baseline = this.smartVolumeDuckingBaseline ?? this.getVideoVolume();
+  this.setVideoVolume(Math.min(baseline, targetVolume));
+
+  // Keep runtime in a neutral state in constant mode.
+  writeSmartDuckingRuntime(
+    this,
+    initSmartDuckingRuntime(this.smartVolumeDuckingBaseline),
+  );
+  this.smartVolumeIsDucked = true;
 }

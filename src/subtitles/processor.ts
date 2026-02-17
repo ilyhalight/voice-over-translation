@@ -300,13 +300,19 @@ const ensureProcessedSubtitles = (input: unknown): ProcessedSubtitles => {
   return { subtitles };
 };
 
+const VK_INLINE_TIMESTAMP_RE = /<(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?>/gu;
+const VK_DUPLICATE_MAX_GAP_MS = 120;
+
 const stripHtmlToText = (value: string): string => {
   if (!value.includes("<")) return value;
-  if (typeof document === "undefined") return value;
 
-  const template = document.createElement("template");
-  template.innerHTML = value;
-  return template.content.textContent ?? "";
+  if (typeof document !== "undefined") {
+    const template = document.createElement("template");
+    template.innerHTML = value;
+    return template.content.textContent ?? "";
+  }
+
+  return value.replace(/<\/?[^>]+>/gu, "");
 };
 
 const getYoutubeEventDurationMs = (
@@ -616,15 +622,78 @@ export const SubtitlesProcessor = {
   },
 
   cleanJsonSubtitles(subtitles: ProcessedSubtitles): ProcessedSubtitles {
-    return {
-      subtitles: subtitles.subtitles.map((line) => ({
+    const normalizeText = (value: string): string =>
+      stripHtmlToText(value.replace(VK_INLINE_TIMESTAMP_RE, ""))
+        .replace(/\s+([,.:;!?])/gu, "$1")
+        .replace(/[ \t]*\n[ \t]*/gu, "\n")
+        .replace(/[ \t]{2,}/gu, " ")
+        .replace(/\n{3,}/gu, "\n\n")
+        .trim();
+
+    const normalizeComparable = (value: string): string =>
+      value.toLowerCase().replace(/\s+/gu, " ").trim();
+    const lineEndMs = (line: SubtitleLine): number =>
+      line.startMs + Math.max(0, line.durationMs);
+    const tokensTextLength = (tokens: SubtitleToken[]): number =>
+      tokens.reduce((sum, token) => sum + token.text.length, 0);
+
+    const cleanedLines = subtitles.subtitles
+      .map((line) => ({
         ...line,
-        text: stripHtmlToText(line.text),
-        tokens: line.tokens.map((token) => ({
-          ...token,
-          text: stripHtmlToText(token.text),
-        })),
-      })),
+        text: normalizeText(line.text),
+        tokens: line.tokens
+          .map((token) => ({
+            ...token,
+            text: normalizeText(token.text),
+          }))
+          .filter((token) => token.text.length > 0),
+      }))
+      .filter((line) => line.text.length > 0);
+
+    const mergedLines: SubtitleLine[] = [];
+    for (const line of cleanedLines) {
+      const currentComparable = normalizeComparable(line.text);
+      if (!currentComparable) continue;
+
+      const previous = mergedLines.at(-1);
+      if (!previous) {
+        mergedLines.push(line);
+        continue;
+      }
+
+      const previousComparable = normalizeComparable(previous.text);
+      const previousEnd = lineEndMs(previous);
+      const currentEnd = lineEndMs(line);
+      const isDuplicateText = previousComparable === currentComparable;
+      const isNearPrevious =
+        line.startMs <= previousEnd + VK_DUPLICATE_MAX_GAP_MS;
+
+      if (!isDuplicateText || !isNearPrevious) {
+        mergedLines.push(line);
+        continue;
+      }
+
+      // VK can emit duplicate cue bursts with tiny timing deltas. Merge them
+      // instead of dropping short cues by duration heuristics.
+      const mergedStart = Math.min(previous.startMs, line.startMs);
+      const mergedEnd = Math.max(previousEnd, currentEnd);
+      const previousTokensLength = tokensTextLength(previous.tokens);
+      const currentTokensLength = tokensTextLength(line.tokens);
+      const mergedTokens =
+        currentTokensLength >= previousTokensLength
+          ? line.tokens
+          : previous.tokens;
+
+      mergedLines[mergedLines.length - 1] = {
+        ...previous,
+        startMs: mergedStart,
+        durationMs: Math.max(0, mergedEnd - mergedStart),
+        tokens: mergedTokens,
+      };
+    }
+
+    return {
+      subtitles: mergedLines,
     };
   },
 

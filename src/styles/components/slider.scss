@@ -41,7 +41,7 @@
     margin-left: 0 !important;
     font-variant-numeric: tabular-nums;
     // Reduce visual noise: values should be legible but not steal attention.
-    font-weight: 500;
+    font-weight: 500 !important;
   }
 
   .vot-slider-label-text {
