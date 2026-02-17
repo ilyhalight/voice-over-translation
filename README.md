@@ -83,14 +83,14 @@
 
 ### Установка нативного расширения для Chrome / Chromium
 
-1. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome-<версия>.crx`
+1. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome-<версия>.zip`
 2. Откройте страницу расширений:
    - Chrome: `chrome://extensions`
    - Edge: `edge://extensions`
    - Brave: `brave://extensions`
    - Opera: `opera://extensions`
 3. Включите **«Режим разработчика»**
-4. Перетащите скачанный `.crx`-файл на страницу расширений
+4. Перетащите скачанный `.zip`-файл на страницу расширений
 
 ### Установка нативного расширения для Firefox
 
