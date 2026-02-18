@@ -444,9 +444,12 @@ System.register("./__entry.js", [], (function (exports, module) {
       const protoInt64 = makeInt64Support();
       function makeInt64Support() {
         const dv = new DataView(new ArrayBuffer(8));
-        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
+        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
         if (ok) {
-          const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
+          const MIN = BigInt("-9223372036854775808");
+          const MAX = BigInt("9223372036854775807");
+          const UMIN = BigInt("0");
+          const UMAX = BigInt("18446744073709551615");
           return {
             zero: BigInt(0),
             supported: true,
@@ -555,7 +558,7 @@ System.register("./__entry.js", [], (function (exports, module) {
               try {
                 encodeURIComponent(text);
                 return true;
-              } catch (e2) {
+              } catch (_2) {
                 return false;
               }
             }
@@ -702,12 +705,12 @@ int64(value) {
           return this;
         }
 sint64(value) {
-          let tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+          const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
           varint64write(lo, hi, this.buf);
           return this;
         }
 uint64(value) {
-          let tc = protoInt64.uEnc(value);
+          const tc = protoInt64.uEnc(value);
           varint64write(tc.lo, tc.hi, this.buf);
           return this;
         }
@@ -735,10 +738,9 @@ skip(wireType, fieldNo) {
               while (this.buf[this.pos++] & 128) {
               }
               break;
-
 case WireType.Bit64:
               this.pos += 4;
-case WireType.Bit32:
+            case WireType.Bit32:
               this.pos += 4;
               break;
             case WireType.LengthDelimited:
@@ -841,7 +843,7 @@ string() {
         if (typeof arg == "string") {
           const o2 = arg;
           arg = Number(arg);
-          if (isNaN(arg) && o2 !== "NaN") {
+          if (Number.isNaN(arg) && o2 !== "NaN") {
             throw new Error("invalid float32: " + o2);
           }
         } else if (typeof arg != "number") {
@@ -4097,8 +4099,8 @@ string() {
         idPlayer: "#player",
         jwPlayer: ".jwplayer, .jw-media",
         player: ".player",
-        videoJsUniversal: "video-js, .video-js:not(video), .vjs-player, [data-vjs-player], [id^='vjs_video_']:not(video)",
-        vkVideoPlayer: "vk-video-player"
+        videoJsUniversal: "[id^='vjs_video_']:not([id*='_html5_api']):not(video), video-js:not([id*='_html5_api']), .video-js:not(video):not([id*='_html5_api']), .vjs-player:not([id*='_html5_api']), [data-vjs-player]:not([id*='_html5_api'])",
+        vkVideoPlayer: ".videoplayer_media, vk-video-player"
       };
       const sites = [
         {
@@ -4259,7 +4261,7 @@ string() {
         {
           host: VideoService.olympicsreplay,
           url: "https://olympics.com/",
-          match: (url) => /^(www\.)?olympics\.com$/.test(url.host) && /^\/[a-z]{2}\/(?:paris-2024\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+\/?$/i.test(url.pathname),
+          match: (url) => /^(www\.)?olympics\.com$/.test(url.host) && /^\/[a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+\/?$/i.test(url.pathname),
           selector: sharedSelectors.videoJsUniversal
         },
         {
@@ -4412,8 +4414,8 @@ string() {
         {
           host: VideoService.weibo,
           url: "https://weibo.com/",
-          match: (url) => /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/(?:\d+\/[A-Za-z0-9]+|0\/[A-Za-z0-9]+|tv\/show\/\d+:(?:[\da-f]{32}|\d{16,}))\/?$/.test(url.pathname) || /^video\.weibo\.com$/.test(url.host) && /^\/show\/?$/.test(url.pathname) && /^\d+:(?:[\da-f]{32}|\d{16,})$/i.test(url.searchParams.get("fid") ?? ""),
-          selector: `#playVideo, sharedSelectors.videoJsUniversal`
+          match: (url) => /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/(?:\d+\/[A-Za-z0-9]+|0\/[A-Za-z0-9]+|tv\/show\/\d+:(?:[\da-f]{32}|\d{16,}))\/?$/.test(url.pathname) || /^video\.weibo\.com$/.test(url.host) && /^\/show\/?$/.test(url.pathname) && /^\d+:(?:[\da-f]{32}|\d{16,})$/i.test(url.searchParams.get("fid") ?? "") || /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/newlogin\/?$/.test(url.pathname) && (url.searchParams.has("url") || /^[A-Za-z0-9]+$/.test(url.searchParams.get("layerid") ?? "")),
+          selector: sharedSelectors.videoJsUniversal
         },
         {
           host: VideoService.newgrounds,
@@ -5880,7 +5882,7 @@ ${lines.join("\n")}`;
       }
       class OlympicsReplayHelper extends BaseHelper {
         async getVideoId(url) {
-          return /\/([a-z]{2}\/(?:paris-2024\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+)\/?$/i.exec(url.pathname)?.[1];
+          return /\/([a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+)\/?$/i.exec(url.pathname)?.[1];
         }
       }
       class OracleLearnHelper extends VideoJSHelper {
@@ -6297,6 +6299,9 @@ ${lines.join("\n")}`;
           return newLink ? /status\/([^/]+)/.exec(newLink)?.[1] : void 0;
         }
       }
+      function isObject(value) {
+        return typeof value === "object" && value !== null;
+      }
       function isUrlCandidate(value) {
         return typeof value === "object" && value !== null;
       }
@@ -6310,6 +6315,45 @@ ${lines.join("\n")}`;
         const source = data;
         const values = Array.isArray(source.Video) ? source.Video : Array.isArray(source.video) ? source.video : [];
         return values.filter(isUrlCandidate);
+      }
+      function getOutputCandidates(data) {
+        if (!isObject(data)) {
+          return [];
+        }
+        const result = [];
+        for (const [fallbackLabel, value] of Object.entries(data)) {
+          if (!isObject(value) || typeof value.url !== "string") {
+            continue;
+          }
+          result.push({
+            src: value.url,
+            type: typeof value.type === "string" ? value.type : void 0,
+            label: typeof value.height === "number" || typeof value.height === "string" ? value.height : fallbackLabel
+          });
+        }
+        return result;
+      }
+      function getQualityValue(value) {
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return value;
+        }
+        const match = String(value ?? "").match(/(\d{3,4})/);
+        return Number(match?.[1] ?? 0);
+      }
+      function getCandidateUrl(candidate) {
+        if (typeof candidate.file === "string") {
+          return candidate.file;
+        }
+        if (typeof candidate.src === "string") {
+          return candidate.src;
+        }
+        return void 0;
+      }
+      function isM3U8(type, url) {
+        return type.includes("mpegurl") || /\.m3u8(?:$|[?#])/i.test(url);
+      }
+      function isDash(type, url) {
+        return type.includes("dash") || /\.mpd(?:$|[?#])/i.test(url);
       }
       class UdemyHelper extends BaseHelper {
         API_ORIGIN = `${window.location.origin}/api-2.0`;
@@ -6325,8 +6369,72 @@ ${lines.join("\n")}`;
             return void 0;
           }
         }
-        getLectureId() {
-          return /learn\/lecture\/([^/]+)/.exec(window.location.pathname)?.[1];
+        getLectureId(videoId) {
+          const lectureIdRe = /(?:\/learn\/(?:v4\/t\/)?lecture\/|#\/?lecture\/|\/lecture\/view\/\?(?:[^#]*?&)*lecture(?:_|)id=)(\d+)/i;
+          return lectureIdRe.exec(window.location.href)?.[1] ?? (videoId ? lectureIdRe.exec(`/${videoId}`)?.[1] : void 0);
+        }
+        getCourseId(moduleData) {
+          const moduleDataWithExtra = moduleData;
+          const moduleCourseId = this.normalizeId(moduleDataWithExtra?.courseId ?? moduleDataWithExtra?.course_id ?? moduleDataWithExtra?.course?.id);
+          if (moduleCourseId) {
+            return moduleCourseId;
+          }
+          const attrCourseId = this.normalizeId(document.querySelector("[data-course-id]")?.getAttribute("data-course-id"));
+          if (attrCourseId) {
+            return attrCourseId;
+          }
+          const pageHtml = document.documentElement?.innerHTML ?? "";
+          return /data-course-id=["'](\d+)/i.exec(pageHtml)?.[1] ?? /&quot;courseId&quot;\s*:\s*(\d+)/i.exec(pageHtml)?.[1] ?? /"courseId"\s*:\s*(\d+)/i.exec(pageHtml)?.[1];
+        }
+        normalizeId(value) {
+          if (typeof value === "number" && Number.isFinite(value)) {
+            return String(value);
+          }
+          if (typeof value === "string") {
+            return /^\d+$/.test(value) ? value : void 0;
+          }
+          return void 0;
+        }
+        parseJson(value) {
+          try {
+            return JSON.parse(value);
+          } catch {
+            const normalized = value.replaceAll("&quot;", '"').replaceAll("&#34;", '"').replaceAll("&apos;", "'").replaceAll("&#39;", "'");
+            try {
+              return JSON.parse(normalized);
+            } catch {
+              return void 0;
+            }
+          }
+        }
+        getViewHtmlCandidates(viewHtml) {
+          if (typeof viewHtml !== "string" || !viewHtml.trim()) {
+            return [];
+          }
+          const doc = new DOMParser().parseFromString(viewHtml, "text/html");
+          const candidates = [];
+          for (const sourceEl of Array.from(doc.querySelectorAll("source"))) {
+            const src = sourceEl.getAttribute("src");
+            if (!src) {
+              continue;
+            }
+            candidates.push({
+              src,
+              type: sourceEl.getAttribute("type") ?? void 0,
+              label: sourceEl.getAttribute("data-res") ?? void 0
+            });
+          }
+          for (const setupDataEl of Array.from(doc.querySelectorAll("[videojs-setup-data]"))) {
+            const setupDataRaw = setupDataEl.getAttribute("videojs-setup-data");
+            if (!setupDataRaw) {
+              continue;
+            }
+            const setupData = this.parseJson(setupDataRaw);
+            if (setupData) {
+              candidates.push(...getUrlCandidates(setupData.sources));
+            }
+          }
+          return candidates;
         }
         isErrorData(data) {
           return Object.hasOwn(data, "error") || Object.hasOwn(data, "detail") && !Object.hasOwn(data, "_class");
@@ -6334,8 +6442,8 @@ ${lines.join("\n")}`;
         async getLectureData(courseId, lectureId) {
           try {
             const res = await this.fetch(`${this.API_ORIGIN}/users/me/subscribed-courses/${courseId}/lectures/${lectureId}/?` + new URLSearchParams({
-              "fields[lecture]": "title,description,asset,download_url,is_free,last_watched_second",
-              "fields[asset]": "asset_type,length,media_sources,stream_urls,download_urls,external_url,captions,thumbnail_sprite,slides,slide_urls,course_is_drmed,media_license_token"
+              "fields[lecture]": "title,description,view_html,asset,download_url,is_free,last_watched_second",
+              "fields[asset]": "asset_type,length,stream_url,media_sources,stream_urls,download_urls,external_url,captions,data,thumbnail_sprite,slides,slide_urls,course_is_drmed,media_license_token"
             }).toString());
             const data = await res.json();
             if (this.isErrorData(data)) {
@@ -6369,57 +6477,112 @@ ${lines.join("\n")}`;
             return void 0;
           }
         }
-        findVideoUrl(sources, streamUrls, downloadUrls) {
-          const mp4Sources = (sources ?? []).filter((src) => src?.type === "video/mp4" && typeof src.src === "string");
-          if (mp4Sources.length) {
-            const getQ = (v2) => Number(String(v2 ?? "").match(/(\d{3,4})/)?.[1] ?? 0);
-            mp4Sources.sort((a2, b2) => getQ(b2.label ?? b2.quality) - getQ(a2.label ?? a2.quality));
-            return mp4Sources[0]?.src;
+        findVideoUrl(sources, streamUrls, downloadUrls, streamUrl, externalUrl, outputs, viewHtml) {
+          const allCandidates = [];
+          const mediaSources = Array.isArray(sources) ? sources : [];
+          for (const source of mediaSources) {
+            allCandidates.push({
+              src: source.src,
+              type: source.type,
+              label: source.label
+            });
           }
-          const streamCandidates = getUrlCandidates(streamUrls);
-          const streamUrl = streamCandidates.find((x2) => typeof x2?.src === "string" && x2?.type === "video/mp4")?.src ?? streamCandidates.find((x2) => typeof x2?.src === "string" && (String(x2?.type).toLowerCase().includes("mpegurl") || String(x2?.src).toLowerCase().includes(".m3u8")))?.src ?? streamCandidates.find((x2) => typeof x2?.src === "string" && (String(x2?.type).toLowerCase().includes("dash") || String(x2?.src).toLowerCase().includes(".mpd")))?.src;
+          allCandidates.push(...getUrlCandidates(streamUrls));
+          allCandidates.push(...getUrlCandidates(downloadUrls));
+          allCandidates.push(...getOutputCandidates(outputs));
+          if (typeof viewHtml === "string") {
+            allCandidates.push(...this.getViewHtmlCandidates(viewHtml));
+          }
           if (typeof streamUrl === "string") {
-            return streamUrl;
+            allCandidates.push({ src: streamUrl });
           }
-          const downloadCandidates = getUrlCandidates(downloadUrls);
-          const downloadUrl = downloadCandidates.find((x2) => typeof x2?.file === "string" && x2?.type === "video/mp4")?.file ?? downloadCandidates.find((x2) => typeof x2?.file === "string")?.file ?? downloadCandidates.find((x2) => typeof x2?.src === "string")?.src;
-          return typeof downloadUrl === "string" ? downloadUrl : void 0;
+          if (typeof externalUrl === "string") {
+            allCandidates.push({ src: externalUrl });
+          }
+          const playerSrc = this.video?.currentSrc || this.video?.src;
+          if (typeof playerSrc === "string" && playerSrc) {
+            allCandidates.push({ src: playerSrc });
+          }
+          const dedupCandidates = new Map();
+          for (const candidate of allCandidates) {
+            const url = getCandidateUrl(candidate);
+            if (!url || /^javascript:/i.test(url)) {
+              continue;
+            }
+            const quality = getQualityValue(candidate.label ?? candidate.quality ?? candidate.height);
+            const type = String(candidate.type ?? "").toLowerCase();
+            const prev = dedupCandidates.get(url);
+            if (!prev || quality > prev.quality) {
+              dedupCandidates.set(url, {
+                url,
+                type,
+                quality,
+                isYouTubeWatch: /:\/\/(?:www\.)?youtube\.com\/watch\?/i.test(url)
+              });
+            }
+          }
+          const candidates = Array.from(dedupCandidates.values());
+          if (!candidates.length) {
+            return void 0;
+          }
+          const mp4Candidates = candidates.filter((item) => item.type.includes("mp4") || /\.mp4(?:$|[?#])/i.test(item.url));
+          if (mp4Candidates.length) {
+            mp4Candidates.sort((a2, b2) => b2.quality - a2.quality);
+            return mp4Candidates[0]?.url;
+          }
+          const hlsUrl = candidates.find((item) => isM3U8(item.type, item.url))?.url;
+          if (hlsUrl) {
+            return hlsUrl;
+          }
+          const dashUrl = candidates.find((item) => isDash(item.type, item.url))?.url;
+          if (dashUrl) {
+            return dashUrl;
+          }
+          const nonYoutube = candidates.find((item) => !item.isYouTubeWatch)?.url;
+          if (nonYoutube) {
+            return nonYoutube;
+          }
+          return candidates[0]?.url;
+        }
+        getCaptionLocale(caption) {
+          const localeId = typeof caption.locale_id === "string" ? caption.locale_id : typeof caption.locale?.locale === "string" ? caption.locale.locale : void 0;
+          return localeId ? normalizeLang$1(localeId) : void 0;
         }
         findSubtitleUrl(captions, detectedLanguage) {
-          const captionsWithDownload = captions;
-          const subtitle = captionsWithDownload.find((caption) => normalizeLang$1(caption.locale_id) === detectedLanguage) ?? captionsWithDownload.find((caption) => normalizeLang$1(caption.locale_id) === "en") ?? captionsWithDownload[0];
+          if (!Array.isArray(captions)) {
+            return void 0;
+          }
+          const captionsWithDownload = captions.filter((caption) => isObject(caption) && (typeof caption.url === "string" || typeof caption.download_url === "string"));
+          const subtitle = captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === detectedLanguage) ?? captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === "en") ?? captionsWithDownload[0];
           return subtitle?.url ?? subtitle?.download_url;
         }
         async getVideoData(videoId) {
           const moduleData = this.getModuleData();
-          if (!moduleData) {
-            return void 0;
-          }
-          const { courseId } = moduleData;
-          const lectureId = this.getLectureId();
+          const courseId = this.getCourseId(moduleData);
+          const lectureId = this.getLectureId(videoId);
           Logger.log(`[Udemy] courseId: ${courseId}, lectureId: ${lectureId}`);
-          if (!lectureId) {
+          if (!lectureId || !courseId) {
             return void 0;
           }
           const lectureData = await this.getLectureData(courseId, lectureId);
           if (!lectureData) {
             return void 0;
           }
-          const { title, description, asset } = lectureData;
+          const { title, description, asset, view_html } = lectureData;
           const { length: duration, media_sources, captions } = asset;
           const assetWithExtraUrls = asset;
           const streamUrls = assetWithExtraUrls.stream_urls;
           const downloadUrls = assetWithExtraUrls.download_urls;
-          const videoUrl = this.findVideoUrl(media_sources, streamUrls, downloadUrls);
+          const videoUrl = this.findVideoUrl(media_sources, streamUrls, downloadUrls, assetWithExtraUrls.stream_url ?? assetWithExtraUrls.streamUrl, assetWithExtraUrls.external_url, assetWithExtraUrls.data?.outputs, view_html);
           if (!videoUrl) {
             Logger.log("Failed to find video file in asset sources", asset);
             return void 0;
           }
           let courseLang = "en";
           const courseLangData = await this.getCourseLang(courseId);
-          if (courseLangData) {
-            const { locale: { locale: courseLocale } } = courseLangData;
-            courseLang = courseLocale ? normalizeLang$1(courseLocale) : courseLang;
+          const courseLocale = courseLangData?.locale?.locale;
+          if (typeof courseLocale === "string") {
+            courseLang = normalizeLang$1(courseLocale);
           }
           if (!availableLangs.includes(courseLang)) {
             courseLang = "en";
@@ -6723,6 +6886,9 @@ ${lines.join("\n")}`;
         }
       }
       const weiboVideoIdRe = /^\d+:(?:[\da-f]{32}|\d{16,})$/i;
+      const weiboLayerIdRe = /^[A-Za-z0-9]+$/;
+      const weiboHostRe = /^(?:www\.)?weibo\.com$/;
+      const weiboLoginPathRe = /^\/newlogin\/?$/;
       class WeiboHelper extends BaseHelper {
         async getVideoId(url) {
           if (url.hostname === "video.weibo.com") {
@@ -6731,6 +6897,25 @@ ${lines.join("\n")}`;
               return void 0;
             }
             return `tv/show/${fid}`;
+          }
+          if (weiboHostRe.test(url.host) && weiboLoginPathRe.test(url.pathname)) {
+            const nestedUrl = url.searchParams.get("url");
+            if (nestedUrl) {
+              try {
+                const parsedNestedUrl = new URL(nestedUrl, url.origin);
+                if (parsedNestedUrl.href !== url.href) {
+                  const nestedVideoId = await this.getVideoId(parsedNestedUrl);
+                  if (nestedVideoId) {
+                    return nestedVideoId;
+                  }
+                }
+              } catch {
+              }
+            }
+            const layerId = url.searchParams.get("layerid");
+            if (layerId && weiboLayerIdRe.test(layerId)) {
+              return `0/${layerId}`;
+            }
           }
           const normalizedPath = url.pathname.replace(/\/+$/, "");
           if (/^\/\d+\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/0\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/tv\/show\/\d+:(?:[\da-f]{32}|\d{16,})$/i.test(normalizedPath)) {
@@ -7929,8 +8114,6 @@ ${lines.join("\n")}`;
       const isIframe = () => globalThis.self !== globalThis.top;
       const generateMessageId = () => typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? `main-world-bridge-${crypto.randomUUID()}` : `main-world-bridge-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const SERVICE_IFRAME_READY_TIMEOUT_MS = 15e3;
-      const SERVICE_IFRAME_WIDTH_PX = 320;
-      const SERVICE_IFRAME_HEIGHT_PX = 240;
       const hasServiceIframe = (iframeId) => document.getElementById(iframeId);
       const isBridgeMessageLike = (value) => {
         if (!value || typeof value !== "object") {
@@ -7976,8 +8159,8 @@ ${lines.join("\n")}`;
         iframe.style.position = "fixed";
         iframe.style.left = "0";
         iframe.style.top = "0";
-        iframe.style.width = `${SERVICE_IFRAME_WIDTH_PX}px`;
-        iframe.style.height = `${SERVICE_IFRAME_HEIGHT_PX}px`;
+        iframe.style.width = "1px";
+        iframe.style.height = "1px";
         iframe.style.opacity = "0";
         iframe.style.pointerEvents = "none";
         iframe.style.border = "0";
@@ -8033,12 +8216,6 @@ ${lines.join("\n")}`;
         if (iframeFromDom) {
           iframeFromDom.remove();
         }
-        if (iframe && iframe !== iframeFromDom) {
-          if (isLiveMatchingServiceIframe(iframe, expectedSrc)) {
-            return iframe;
-          }
-          iframe.remove();
-        }
         return setupServiceIframe(src, iframeId, service);
       }
       function initIframeService(service, onmessage) {
@@ -8087,12 +8264,12 @@ ${lines.join("\n")}`;
               settle(() => data.error ? reject(data.error) : resolve(data.payload));
             }
           };
-          globalThis.addEventListener("message", handleMessage);
-          signal?.addEventListener("abort", onAbort, { once: true });
           if (signal?.aborted) {
             onAbort();
             return;
           }
+          globalThis.addEventListener("message", handleMessage);
+          signal?.addEventListener("abort", onAbort, { once: true });
           globalThis.postMessage(
             {
               messageId,
@@ -8195,25 +8372,7 @@ ${lines.join("\n")}`;
         }
       }
       let lastMessageId = "";
-      const getAdaptiveFormats = () => (YoutubeHelper.getPlayerResponse() ?? getGlobalPlayerResponse())?.streamingData?.adaptiveFormats;
-      function getGlobalPlayerResponse() {
-        const win = unsafeWindow;
-        if (win.ytInitialPlayerResponse && typeof win.ytInitialPlayerResponse === "object") {
-          return win.ytInitialPlayerResponse;
-        }
-        const rawPlayerResponse = win.ytplayer?.config?.args?.raw_player_response;
-        if (rawPlayerResponse && typeof rawPlayerResponse === "object") {
-          return rawPlayerResponse;
-        }
-        if (typeof rawPlayerResponse === "string") {
-          try {
-            return JSON.parse(rawPlayerResponse);
-          } catch {
-            return null;
-          }
-        }
-        return null;
-      }
+      const getAdaptiveFormats = () => YoutubeHelper.getPlayerResponse()?.streamingData?.adaptiveFormats;
       async function isEncodedRequest(url, request) {
         if (!url.includes("googlevideo.com/videoplayback") || typeof request === "string") {
           return false;
@@ -8255,93 +8414,25 @@ ${lines.join("\n")}`;
         );
         return itag251Sorted.at(-1) ?? audioFormats[0];
       }
-      function hasDirectMediaUrl(format) {
-        return "url" in format && typeof format.url === "string" && format.url.length > 0;
-      }
-      function pickBestDirectAudioFormat() {
-        const allFormats = getAdaptiveFormats();
-        if (!allFormats?.length) {
-          return null;
-        }
-        const audioFormats = allFormats.filter(
-          ({ audioQuality, mimeType }) => audioQuality || mimeType?.includes("audio")
-        );
-        return audioFormats.filter(hasDirectMediaUrl).sort((a2, b2) => (a2.bitrate || 0) - (b2.bitrate || 0)).at(-1) ?? null;
-      }
-      function createDirectAudioPayload(directAudioFormat) {
-        return {
-          requestInfo: directAudioFormat.url,
-          requestInit: {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store"
-          },
-          adaptiveFormat: directAudioFormat,
-          itag: directAudioFormat.itag
-        };
-      }
-      function getItagFromRequestUrl(requestUrl) {
-        try {
-          const rawItag = new URL(
-            requestUrl,
-            globalThis.location.href
-          ).searchParams.get("itag");
-          if (!rawItag) {
-            return null;
-          }
-          const parsedItag = Number.parseInt(rawItag, 10);
-          return Number.isFinite(parsedItag) ? parsedItag : null;
-        } catch {
-          const match = /(?:\?|&)itag=(\d+)(?:&|$)/.exec(requestUrl);
-          if (!match) {
-            return null;
-          }
-          const parsedItag = Number.parseInt(match[1], 10);
-          return Number.isFinite(parsedItag) ? parsedItag : null;
-        }
-      }
-      const getHtmlVideo = () => document.querySelector("video.html5-main-video") ?? document.querySelector("video");
-      const waitForPlaybackTargets = async () => {
-        await waitForCondition(
-          () => Boolean(YoutubeHelper.getPlayer()) || Boolean(getHtmlVideo()),
-          18e3
-        );
-        return {
-          player: YoutubeHelper.getPlayer(),
-          htmlVideo: getHtmlVideo()
-        };
+      const waitForPlayer = async () => {
+        await waitForCondition(() => Boolean(YoutubeHelper.getPlayer()), 1e4);
+        return YoutubeHelper.getPlayer();
       };
       const loadVideo = async (data) => {
-        const { player: player2, htmlVideo } = await waitForPlaybackTargets();
+        const player2 = await waitForPlayer();
         if (data.messageId !== lastMessageId) {
           throw new Error(
             "Audio downloader. Download started for another video while getting player"
           );
         }
-        if (!player2 && !htmlVideo) {
-          debug.log("Audio downloader. WEB API. playback targets missing", {
-            href: globalThis.location.href,
-            readyState: document.readyState,
-            hasMoviePlayer: Boolean(document.querySelector("#movie_player")),
-            hasPlayerContainer: Boolean(document.querySelector("#player")),
-            videoCount: document.querySelectorAll("video").length
-          });
+        if (!player2?.loadVideoById) {
           throw new Error(
-            "Audio downloader. WEB API. No player or html video element in iframe"
+            "Audio downloader. There is no player.loadVideoById in iframe"
           );
         }
-        if (player2?.loadVideoById) {
-          player2.loadVideoById(data.payload.videoId);
-        }
-        const playerWithPlay = player2;
-        player2?.pauseVideo?.();
-        player2?.mute?.();
-        playerWithPlay?.playVideo?.();
-        if (htmlVideo) {
-          htmlVideo.muted = true;
-          void htmlVideo.play().catch(() => {
-          });
-        }
+        player2.loadVideoById(data.payload.videoId);
+        player2.pauseVideo?.();
+        player2.mute?.();
         setTimeout(() => {
           if (data.messageId !== lastMessageId) {
             console.error(
@@ -8349,109 +8440,70 @@ ${lines.join("\n")}`;
             );
             return;
           }
-          if (!player2 && !htmlVideo) {
+          if (!player2) {
             console.error(
-              "[Critical] Audio Downloader. Player and html video not found in iframe after timeout"
+              "[Critical] Audio Downloader. Player not found in iframe after timeout"
             );
             return;
           }
-          player2?.pauseVideo?.();
-          htmlVideo?.pause();
+          player2.pauseVideo?.();
         }, 1e3);
       };
       async function getDownloadAudioData(data) {
-        lastMessageId = data.messageId;
-        const originalFetch = unsafeWindow.fetch;
-        let fetchHook = null;
-        let isSettled = false;
-        let timeoutId = null;
-        let resolveDone = null;
-        const done = new Promise((resolve) => {
-          resolveDone = resolve;
-        });
-        const clearHookAndTimer = () => {
-          if (timeoutId !== null) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-          }
-          if (fetchHook && unsafeWindow.fetch === fetchHook) {
-            unsafeWindow.fetch = originalFetch;
-          }
-        };
-        const settle = (response, shouldPostMessage = true) => {
-          if (isSettled) {
-            return;
-          }
-          isSettled = true;
-          clearHookAndTimer();
-          if (shouldPostMessage && data.messageId === lastMessageId && response) {
-            globalThis.parent.postMessage(
-              {
-                ...data,
-                messageDirection: "response",
-                ...response
-              },
-              "*"
-            );
-          }
-          resolveDone?.();
-        };
         try {
-          const directAudioFormat = pickBestDirectAudioFormat();
-          if (directAudioFormat) {
-            settle({
-              payload: createDirectAudioPayload(directAudioFormat)
-            });
-            return;
-          }
-          fetchHook = async (input, init2) => {
+          lastMessageId = data.messageId;
+          debug.log("getDownloadAudioData", data);
+          const originalFetch = unsafeWindow.fetch;
+          unsafeWindow.fetch = async (input, init2) => {
             if (input instanceof URL) {
               input = input.toString();
             }
             const requestUrl = getRequestUrl(input);
             if (await isEncodedRequest(requestUrl, input)) {
-              settle({
-                error: "Audio downloader. Detected encoded request."
-              });
+              globalThis.parent.postMessage(
+                {
+                  ...data,
+                  messageDirection: "response",
+                  error: "Audio downloader. Detected encoded request."
+                },
+                "*"
+              );
+              unsafeWindow.fetch = originalFetch;
               return originalFetch(input, init2);
             }
             const response = await originalFetch(input, init2);
             if (data.messageId !== lastMessageId) {
-              settle(null, false);
+              unsafeWindow.fetch = originalFetch;
               return response;
             }
-            const itag = getItagFromRequestUrl(requestUrl);
-            if (itag === 251) {
-              settle({
-                payload: {
-                  requestInfo: requestUrl,
-                  requestInit: init2 || serializeRequestInit(input),
-                  adaptiveFormat: selectBestAudioFormat(),
-                  itag
-                }
-              });
+            if (requestUrl.includes("&itag=251&")) {
+              unsafeWindow.fetch = originalFetch;
+              globalThis.parent.postMessage(
+                {
+                  ...data,
+                  messageDirection: "response",
+                  payload: {
+                    requestInfo: requestUrl,
+                    requestInit: init2 || serializeRequestInit(input),
+                    adaptiveFormat: selectBestAudioFormat(),
+                    itag: 251
+                  }
+                },
+                "*"
+              );
             }
             return response;
           };
-          unsafeWindow.fetch = fetchHook;
-          timeoutId = setTimeout(() => {
-            const timeoutDirectAudioFormat = pickBestDirectAudioFormat();
-            if (timeoutDirectAudioFormat) {
-              settle({
-                payload: createDirectAudioPayload(timeoutDirectAudioFormat)
-              });
-              return;
-            }
-            settle({
-              error: "Audio downloader. WEB API. Timed out while waiting for media request"
-            });
-          }, 12e3);
           await loadVideo(data);
-          await done;
         } catch (error2) {
-          settle({ error: error2 });
-        } finally {
-          clearHookAndTimer();
+          globalThis.parent.postMessage(
+            {
+              ...data,
+              messageDirection: "response",
+              error: error2
+            },
+            "*"
+          );
         }
       }
       const handleIframeMessage = async ({ data }) => {
@@ -8563,7 +8615,6 @@ ${lines.join("\n")}`;
         "localeLangOverride",
         "account"
       ];
-      const NEVER_ABORTED_SIGNAL = new AbortController().signal;
       function throwIfAborted(signal) {
         const maybeThrow = signal.throwIfAborted;
         if (typeof maybeThrow === "function") {
@@ -8582,42 +8633,57 @@ ${lines.join("\n")}`;
         }
       }
       function createTimeoutSignal(timeoutMs, external) {
+        const hasTimeout = typeof AbortSignal !== "undefined" && "timeout" in AbortSignal;
+        const hasAny = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
+        let timedOut = false;
         const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
         if (!hasEffectiveTimeout) {
+          if (external) {
+            return { signal: external, didTimeout: () => false, cleanup: () => {
+            } };
+          }
+          const controller2 = new AbortController();
           return {
-            signal: external ?? NEVER_ABORTED_SIGNAL,
+            signal: controller2.signal,
+            didTimeout: () => false,
             cleanup: () => {
             }
           };
         }
-        const controller = new AbortController();
-        let timeoutId;
-        const onExternalAbort = () => {
-          if (timeoutId !== void 0) {
-            clearTimeout(timeoutId);
-            timeoutId = void 0;
-          }
-          controller.abort(external?.reason);
-        };
-        if (external) {
-          external.addEventListener("abort", onExternalAbort, { once: true });
-          if (external.aborted) {
-            onExternalAbort();
-          }
-        }
-        if (!controller.signal.aborted) {
-          timeoutId = setTimeout(() => {
-            controller.abort(makeAbortError("Timeout"));
-            timeoutId = void 0;
+        if (hasTimeout && hasAny) {
+          const timeoutSignal = AbortSignal.timeout(
+            timeoutMs
+          );
+          const signal = AbortSignal.any(
+            external ? [external, timeoutSignal] : [timeoutSignal]
+          );
+          const id2 = setTimeout(() => {
+            timedOut = true;
           }, timeoutMs);
+          return {
+            signal,
+            didTimeout: () => timedOut,
+            cleanup: () => clearTimeout(id2)
+          };
         }
+        const controller = new AbortController();
+        const onExternalAbort = () => controller.abort(external?.reason);
+        if (external) {
+          if (external.aborted) {
+            controller.abort(external.reason);
+          } else {
+            external.addEventListener("abort", onExternalAbort, { once: true });
+          }
+        }
+        const id = setTimeout(() => {
+          timedOut = true;
+          controller.abort(makeAbortError("Timeout"));
+        }, timeoutMs);
         return {
           signal: controller.signal,
+          didTimeout: () => timedOut,
           cleanup: () => {
-            if (timeoutId !== void 0) {
-              clearTimeout(timeoutId);
-              timeoutId = void 0;
-            }
+            clearTimeout(id);
             external?.removeEventListener("abort", onExternalAbort);
           }
         };
@@ -8731,8 +8797,7 @@ ${lines.join("\n")}`;
         return doc.webkitExitFullscreen?.();
       }
       const YANDEX_API_HOST = "api.browser.yandex.ru";
-      const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
-      const scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
+      const scriptHandler = typeof GM_info !== "undefined" ? GM_info?.scriptHandler : void 0;
       const isProxyOnlyExtension = (
 
 !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && !!scriptHandler && !nonProxyExtensions.includes(scriptHandler)
@@ -8743,19 +8808,10 @@ ${lines.join("\n")}`;
       function shouldUseGmXhr(url) {
         return url.includes(YANDEX_API_HOST);
       }
-      function toRequestUrl(url) {
-        if (typeof url === "string") {
-          return url;
-        }
-        if (url instanceof URL) {
-          return url.href;
-        }
-        return url.url;
-      }
       async function gmXhrFetch(urlStr, timeout2, fetchOptions) {
         const headers = getHeaders(fetchOptions.headers);
         return await new Promise((resolve, reject) => {
-          const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
+          const gmXhr = typeof GM_xmlhttpRequest !== "undefined" ? GM_xmlhttpRequest : globalThis.GM_xmlhttpRequest;
           if (typeof gmXhr !== "function") {
             reject(new TypeError("GM_xmlhttpRequest is not available"));
             return;
@@ -8785,9 +8841,8 @@ ${lines.join("\n")}`;
               settled = true;
               cleanupAbort();
               const responseHeaders = String(resp.responseHeaders || "").split(/\r?\n/).reduce((acc, line) => {
-                const headerMatch = HEADER_LINE_RE.exec(line);
-                if (headerMatch) {
-                  const [, key, value] = headerMatch;
+                const [, key, value] = line.match(/^([\w-]+):\s*(.+)$/) || [];
+                if (key) {
                   acc[key] = value;
                 }
                 return acc;
@@ -8813,17 +8868,17 @@ ${lines.join("\n")}`;
             failOnce(makeAbortError());
           };
           if (fetchOptions.signal) {
-            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
             if (fetchOptions.signal.aborted) {
               onAbort();
               return;
             }
+            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
           }
         });
       }
       async function GM_fetch(url, opts = {}) {
         const { timeout: timeout2 = 15e3, ...fetchOptions } = opts;
-        const urlStr = toRequestUrl(url);
+        const urlStr = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
         if (shouldUseGmXhr(urlStr)) {
           return await gmXhrFetch(urlStr, timeout2, fetchOptions);
         }
@@ -8834,7 +8889,7 @@ ${lines.join("\n")}`;
             ...fetchOptions
           });
         } catch (err) {
-          if (signal.aborted || isAbortError(err)) {
+          if (isAbortError(err) || fetchOptions.signal?.aborted) {
             throw err;
           }
           debug.log(
@@ -9892,28 +9947,27 @@ clear() {
           this.listeners.clear();
         }
       }
-      let serviceIframe = null;
+      const serviceIframe = null;
       function generateChunkRanges(contentLength, minChunkSize) {
         const chunkRanges = [];
-        const lastByteIndex = contentLength - 1;
         let stepIndex = 0;
         let start = 0;
-        let end = Math.min(CHUNK_STEPS[stepIndex] - 1, lastByteIndex);
-        while (end < lastByteIndex) {
+        let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
+        while (end < contentLength) {
           chunkRanges.push({
             start,
             end,
-            mustExist: end + 1 < minChunkSize
+            mustExist: end < minChunkSize
           });
           if (stepIndex < CHUNK_STEPS.length - 1) {
             stepIndex++;
           }
           start = end + 1;
-          end = Math.min(start + CHUNK_STEPS[stepIndex] - 1, lastByteIndex);
+          end += CHUNK_STEPS[stepIndex];
         }
         chunkRanges.push({
           start,
-          end: lastByteIndex,
+          end: contentLength,
           mustExist: false
         });
         return chunkRanges;
@@ -9927,15 +9981,14 @@ clear() {
         const minChunkSize = Math.round(
           contentLength * MIN_CONTENT_LENGTH_MULTIPLIER
         );
-        const lastByteIndex = contentLength - 1;
         const chunkRanges = generateChunkRanges(contentLength, minChunkSize);
         const chunkRangeParts = [];
         let currentPart = [];
         let currentPartSize = 0;
         for (const chunkRange of chunkRanges) {
           currentPart.push(chunkRange);
-          currentPartSize += chunkRange.end - chunkRange.start + 1;
-          if (currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE || chunkRange.end === lastByteIndex) {
+          currentPartSize += chunkRange.end - chunkRange.start;
+          if (currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE || chunkRange.end === contentLength) {
             chunkRangeParts.push(currentPart);
             currentPart = [];
             currentPartSize = 0;
@@ -9965,6 +10018,25 @@ clear() {
         }
         return chunkParts;
       }
+      function getChunkRangesFromContentLength(contentLength) {
+        if (contentLength < 1) {
+          throw new Error(
+            "Audio downloader. WEB API. contentLength cannot be less than 1"
+          );
+        }
+        const minChunkSize = Math.round(
+          contentLength * MIN_CONTENT_LENGTH_MULTIPLIER
+        );
+        return generateChunkRanges(contentLength, minChunkSize);
+      }
+      function getChunkRangesFromAdaptiveFormat(adaptiveFormat) {
+        const contentLength = parseContentLength(adaptiveFormat);
+        const chunkRanges = getChunkRangesFromContentLength(contentLength);
+        if (!chunkRanges.length) {
+          throw new Error("Audio downloader. WEB API. Empty chunk ranges");
+        }
+        return chunkRanges;
+      }
       function mergeBuffers(buffers) {
         const totalLength = buffers.reduce(
           (total, buffer) => total + buffer.byteLength,
@@ -9980,23 +10052,18 @@ clear() {
       }
       async function sendRequestToIframe(messageType, data) {
         const { videoId } = data.payload;
-        const iframeUrl = new URL(`https://${IFRAME_HOST}/embed/${videoId}`);
-        iframeUrl.searchParams.set("autoplay", "1");
-        iframeUrl.searchParams.set("mute", "1");
-        iframeUrl.searchParams.set("playsinline", "1");
-        iframeUrl.searchParams.set("enablejsapi", "1");
-        iframeUrl.searchParams.set("origin", globalThis.location.origin);
+        const iframeUrl = `https://${IFRAME_HOST}/embed/${videoId}?autoplay=0&mute=1`;
         try {
-          serviceIframe = await ensureServiceIframe(
+          const iframe = await ensureServiceIframe(
             serviceIframe,
-            iframeUrl.toString(),
+            iframeUrl,
             IFRAME_ID,
             IFRAME_SERVICE
           );
           if (!hasServiceIframe(IFRAME_ID)) {
             throw new Error("Audio downloader. WEB API. Service iframe deleted");
           }
-          serviceIframe.contentWindow?.postMessage(
+          iframe.contentWindow?.postMessage(
             {
               messageId: generateMessageId(),
               messageType,
@@ -10007,14 +10074,9 @@ clear() {
             "*"
           );
         } catch (err) {
-          globalThis.postMessage(
-            {
-              ...data,
-              error: err,
-              messageDirection: "response"
-            },
-            "*"
-          );
+          data.error = err;
+          data.messageDirection = "response";
+          globalThis.postMessage(data, "*");
         }
       }
       function makeFileId(downloadType, itag, fileSize) {
@@ -10030,16 +10092,16 @@ clear() {
       const CANT_FETCH_MEDIA_MESSAGE = "Audio downloader. WEB API. Can not fetch media url";
       const CANT_GET_ARRAY_BUFFER_MESSAGE = "Audio downloader. WEB API. Can not get array buffer from media url";
       const textDecoder = new TextDecoder("ascii");
-      let mediaQueryIndex = 1;
+      let mediaQuaryIndex = 1;
       function patchMediaUrl(url, { start, end }) {
         const modifiedUrl = new URL(url);
         modifiedUrl.searchParams.set("range", `${start}-${end}`);
-        modifiedUrl.searchParams.set("rn", String(mediaQueryIndex++));
+        modifiedUrl.searchParams.set("rn", String(mediaQuaryIndex++));
         modifiedUrl.searchParams.delete("ump");
         return modifiedUrl.toString();
       }
       function isChunkLengthAcceptable(buffer, { start, end }) {
-        const rangeLength = end - start + 1;
+        const rangeLength = end - start;
         if (rangeLength > MIN_ARRAY_BUFFER_LENGTH && buffer.byteLength < MIN_ARRAY_BUFFER_LENGTH) {
           return false;
         }
@@ -10049,12 +10111,6 @@ clear() {
         return /https:\/\/.*$/.exec(textDecoder.decode(buffer))?.[0];
       };
       const STRATEGY_TYPE = AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME;
-      const IFRAME_DATA_ATTEMPT_TIMEOUT_MS = 2e4;
-      const IFRAME_DATA_RETRY_DELAY_MS = 1e3;
-      const RETRYABLE_IFRAME_ERRORS = new Set([
-        "Audio downloader. WEB API. No player or html video element in iframe",
-        "Audio downloader. WEB API. Timed out while waiting for media request"
-      ]);
       function isSerializedRequestInitData(value) {
         return Boolean(value) && typeof value === "object" && "headersEntries" in value;
       }
@@ -10064,80 +10120,15 @@ clear() {
         }
         return isSerializedRequestInitData(requestInit) ? deserializeRequestInit(requestInit) : requestInit;
       }
-      function requireAdaptiveFormat(adaptiveFormat) {
-        if (!adaptiveFormat) {
-          throw new Error("Audio downloader. WEB API. Missing adaptive format");
-        }
-        return adaptiveFormat;
-      }
-      async function createAudioFetchContext({
-        videoId,
-        signal
-      }) {
-        const { requestInit, requestInfo, adaptiveFormat, itag } = await getGeneratingAudioUrlsDataFromIframe(videoId, signal);
-        if (!requestInfo) {
-          throw new Error("Audio downloader. WEB API. Can not get requestInfo");
-        }
-        const normalizedAdaptiveFormat = requireAdaptiveFormat(adaptiveFormat);
-        const mediaUrl = getRequestUrl(requestInfo);
-        const serializedInit = serializeRequestInit(requestInfo);
-        const fallbackInit = deserializeRequestInit(serializedInit);
-        const finalRequestInit = normalizeRequestInit(requestInit, fallbackInit);
-        return {
-          fileId: makeFileId(
-            STRATEGY_TYPE,
-            itag,
-            normalizedAdaptiveFormat.contentLength
-          ),
-          mediaUrl,
-          requestInit: finalRequestInit,
-          adaptiveFormat: normalizedAdaptiveFormat,
-          signal
-        };
-      }
-      async function* streamMediaByChunkParts(mediaUrl, requestInit, chunkParts, signal) {
-        let currentUrl = mediaUrl;
-        for (const part of chunkParts) {
-          const { media, url, isAcceptableLast } = await fetchMediaWithMetaByChunkRanges(
-            currentUrl,
-            requestInit,
-            part,
-            signal
-          );
-          if (url) {
-            currentUrl = url;
-          }
-          yield media;
-          if (isAcceptableLast) {
-            break;
-          }
-        }
-      }
       const getDownloadAudioDataInMainWorld = (payload, signal) => requestDataFromMainWorldWithId("get-download-audio-data-in-main-world", payload, { signal }).promise;
-      const delay = (ms) => new Promise((resolve) => {
-        setTimeout(resolve, ms);
-      });
-      function isRetryableIframeError(error2) {
-        return RETRYABLE_IFRAME_ERRORS.has(getErrorMessage(error2));
-      }
       async function getGeneratingAudioUrlsDataFromIframe(videoId, signal) {
-        const requestFromMainWorld = () => Promise.race([
-          getDownloadAudioDataInMainWorld({ videoId }, signal),
-          timeout(IFRAME_DATA_ATTEMPT_TIMEOUT_MS, GET_AUDIO_DATA_ERROR_MESSAGE)
-        ]);
         try {
-          return await requestFromMainWorld();
+          return await Promise.race([
+            getDownloadAudioDataInMainWorld({ videoId }, signal),
+            timeout(2e4, GET_AUDIO_DATA_ERROR_MESSAGE)
+          ]);
         } catch (err) {
-          let finalError = err;
-          if (!signal.aborted && isRetryableIframeError(err)) {
-            await delay(IFRAME_DATA_RETRY_DELAY_MS);
-            try {
-              return await requestFromMainWorld();
-            } catch (retryError) {
-              finalError = retryError;
-            }
-          }
-          const isTimeout = getErrorMessage(finalError) === GET_AUDIO_DATA_ERROR_MESSAGE;
+          const isTimeout = err instanceof Error && err.message === GET_AUDIO_DATA_ERROR_MESSAGE;
           throw new Error(
             isTimeout ? GET_AUDIO_DATA_ERROR_MESSAGE : "Audio downloader. WEB API. Failed to get audio data"
           );
@@ -10242,31 +10233,56 @@ clear() {
           isAcceptableLast
         };
       }
-      async function getAudioFromWebApiWithReplacedFetchByParts({
+      async function getAudioFromWebApiWithReplacedFetch({
         videoId,
+        returnByParts = false,
         signal
       }) {
-        const context = await createAudioFetchContext({ videoId, signal });
-        const chunkParts = getChunkRangesPartsFromAdaptiveFormat(
-          context.adaptiveFormat
-        );
-        if (!chunkParts.length) {
-          throw new Error("Audio downloader. WEB API. Empty chunk parts");
+        const { requestInit, requestInfo, adaptiveFormat, itag } = await getGeneratingAudioUrlsDataFromIframe(videoId, signal);
+        if (!requestInfo) {
+          throw new Error("Audio downloader. WEB API. Can not get requestInfo");
         }
+        let mediaUrl = getRequestUrl(requestInfo);
+        const serializedInit = serializeRequestInit(requestInfo);
+        const fallbackInit = deserializeRequestInit(serializedInit);
+        const finalRequestInit = normalizeRequestInit(requestInit, fallbackInit);
+        const chunkParts = returnByParts ? getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat) : null;
         return {
-          fileId: context.fileId,
-          mediaPartsLength: chunkParts.length,
+          fileId: makeFileId(STRATEGY_TYPE, itag, adaptiveFormat.contentLength),
+          mediaPartsLength: chunkParts?.length ?? 1,
           async *getMediaBuffers() {
-            yield* streamMediaByChunkParts(
-              context.mediaUrl,
-              context.requestInit,
-              chunkParts,
-              context.signal
-            );
+            if (returnByParts) {
+              if (!chunkParts?.length) {
+                throw new Error("Audio downloader. WEB API. Empty chunk parts");
+              }
+              for (const part of chunkParts) {
+                const { media, url, isAcceptableLast } = await fetchMediaWithMetaByChunkRanges(
+                  mediaUrl,
+                  finalRequestInit,
+                  part,
+                  signal
+                );
+                if (url) {
+                  mediaUrl = url;
+                }
+                yield media;
+                if (isAcceptableLast) {
+                  break;
+                }
+              }
+            } else {
+              const chunkRanges = getChunkRangesFromAdaptiveFormat(adaptiveFormat);
+              const { media } = await fetchMediaWithMetaByChunkRanges(
+                mediaUrl,
+                finalRequestInit,
+                chunkRanges,
+                signal
+              );
+              yield media;
+            }
           }
         };
       }
-      const getAudioFromWebApiWithReplacedFetch = getAudioFromWebApiWithReplacedFetchByParts;
       const strategies = {
         [AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME]: getAudioFromWebApiWithReplacedFetch
       };
@@ -10278,6 +10294,7 @@ clear() {
       }) {
         const audioData = await strategies[audioDownloader.strategy]({
           videoId,
+          returnByParts: true,
           signal
         });
         if (!audioData) {
@@ -10352,10 +10369,7 @@ clear() {
           this.strategy = strategy;
         }
         async runAudioDownload(videoId, translationId, signal) {
-          const messageListenerController = new AbortController();
-          globalThis.addEventListener("message", mainWorldMessageHandler, {
-            signal: messageListenerController.signal
-          });
+          globalThis.addEventListener("message", mainWorldMessageHandler);
           try {
             await handleCommonAudioDownloadRequest({
               audioDownloader: this,
@@ -10369,9 +10383,8 @@ clear() {
           } catch (err) {
             console.error("Audio downloader. Failed to download audio", err);
             this.onDownloadAudioError.dispatch(videoId);
-          } finally {
-            messageListenerController.abort();
           }
+          globalThis.removeEventListener("message", mainWorldMessageHandler);
         }
         addEventListener(type, listener) {
           switch (type) {
@@ -10597,11 +10610,7 @@ requestedFailAudio = new Set();
                 fileId
               }
             );
-          } catch (error2) {
-            this.finishDownloadFailure(
-              new Error("Audio downloader failed while uploading full audio")
-            );
-            return;
+          } catch {
           }
           this.finishDownloadSuccess();
         };
@@ -10625,7 +10634,7 @@ requestedFailAudio = new Set();
                 version
               }
             );
-          } catch (error2) {
+          } catch {
             this.finishDownloadFailure(
               new Error("Audio downloader failed while uploading chunk")
             );
@@ -10714,7 +10723,7 @@ isLivelyVoiceUnavailableError(value) {
             }
           });
         }
-        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false) {
+        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = new AbortController().signal, disableLivelyVoice = false) {
           clearTimeout(this.videoHandler.autoRetry);
           this.finishDownloadSuccess();
           const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
@@ -10874,10 +10883,11 @@ isLivelyVoiceUnavailableError(value) {
               }
             };
             this.downloadWaiters.add(entry);
-            signal.addEventListener("abort", onAbort, { once: true });
             if (signal.aborted) {
               onAbort();
+              return;
             }
+            signal.addEventListener("abort", onAbort, { once: true });
           });
         }
         resolveDownloadWaiters() {
@@ -11418,9 +11428,6 @@ isLivelyVoiceUnavailableError(value) {
         zdf: "de"
       };
       const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
-      const REQUEST_LANG_SET = new Set(
-        availableLangs
-      );
       function pickFirstNonEmptyString(...values) {
         for (const value of values) {
           if (typeof value !== "string") continue;
@@ -11434,7 +11441,7 @@ isLivelyVoiceUnavailableError(value) {
       function normalizeToRequestLang(value) {
         if (typeof value !== "string") return void 0;
         const normalized = value.toLowerCase().split(/[-_]/)[0];
-        return REQUEST_LANG_SET.has(normalized) ? normalized : void 0;
+        return availableLangs.includes(normalized) ? normalized : void 0;
       }
       function isResolvedLanguage(value) {
         return Boolean(value && value !== "auto");
@@ -11480,7 +11487,7 @@ isLivelyVoiceUnavailableError(value) {
         async detectLanguageSingleFlight(videoId, text) {
           const inFlightDetect = this.detectInFlightByVideoId.get(videoId);
           if (inFlightDetect !== void 0) {
-            return inFlightDetect;
+            return await inFlightDetect;
           }
           const task = (async () => {
             const language = normalizeToRequestLang(await detect(text));
@@ -11518,9 +11525,12 @@ isLivelyVoiceUnavailableError(value) {
           if (!normalizedPossibleLanguage) {
             const text = buildDetectText(title, localizedTitle, description);
             if (text) {
-              const language = await this.detectLanguageSingleFlight(videoId, text);
-              if (language) {
-                detectedLanguage = language;
+              try {
+                const language = await this.detectLanguageSingleFlight(videoId, text);
+                if (language) {
+                  detectedLanguage = language;
+                }
+              } catch (error2) {
               }
             }
           }
@@ -21064,8 +21074,8 @@ queueAutoHide() {
           if (!this.show()) {
             return;
           }
-          const delay2 = this.deps.getAutoHideDelay();
-          this.hideDeadlineMs = this.nowMs() + Math.max(0, delay2);
+          const delay = this.deps.getAutoHideDelay();
+          this.hideDeadlineMs = this.nowMs() + Math.max(0, delay);
           this.hideArmed = true;
           this.deps.checker.markActivity("overlay-queue-hide");
           this.deps.checker.requestImmediateTick();
@@ -21905,49 +21915,9 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           ...overrides
         };
       }
-      function mergeListenerSignals(primary, secondary) {
-        if (!secondary || secondary === primary) {
-          return primary;
-        }
-        if (primary.aborted) {
-          return primary;
-        }
-        if (secondary.aborted) {
-          return secondary;
-        }
-        const canCombine = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
-        if (canCombine) {
-          return AbortSignal.any([primary, secondary]);
-        }
-        const controller = new AbortController();
-        const cleanup = () => {
-          primary.removeEventListener("abort", onPrimaryAbort);
-          secondary.removeEventListener("abort", onSecondaryAbort);
-        };
-        const onPrimaryAbort = () => {
-          cleanup();
-          controller.abort(primary.reason);
-        };
-        const onSecondaryAbort = () => {
-          cleanup();
-          controller.abort(secondary.reason);
-        };
-        primary.addEventListener("abort", onPrimaryAbort, { once: true });
-        secondary.addEventListener("abort", onSecondaryAbort, { once: true });
-        return controller.signal;
-      }
       function createScopedListeners(signal) {
         const add = (element, event, handler, options) => {
-          const mergedSignal = mergeListenerSignals(signal, options?.signal);
-          if (!options) {
-            element.addEventListener(event, handler, { signal: mergedSignal });
-            return;
-          }
-          const { signal: _ignoredSignal, ...restOptions } = options;
-          element.addEventListener(event, handler, {
-            ...restOptions,
-            signal: mergedSignal
-          });
+          element.addEventListener(event, handler, { signal, ...options });
         };
         const addMany = (element, events, handler, options) => {
           for (const event of events) {
@@ -22282,8 +22252,8 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         return buttonContainer instanceof Node && buttonContainer.contains(node) || menuContainer instanceof Node && menuContainer.contains(node);
       }
       function getAutoHideDelay() {
-        const delay2 = this.data?.autoHideButtonDelay;
-        return typeof delay2 === "number" && Number.isFinite(delay2) ? delay2 : defaultAutoHideDelay;
+        const delay = this.data?.autoHideButtonDelay;
+        return typeof delay === "number" && Number.isFinite(delay) ? delay : defaultAutoHideDelay;
       }
       function releaseExtraEvents() {
         this.resizeObserver?.disconnect();
@@ -22646,7 +22616,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           template.innerHTML = value;
           return template.content.textContent ?? "";
         }
-        return value.replaceAll(/<\/?[^>]+>/gu, "");
+        return value.replace(/<\/?[^>]+>/gu, "");
       };
       const getYoutubeEventDurationMs = (event, nextEvent) => {
         if (!nextEvent) return Math.max(0, event.dDurationMs);
@@ -22866,8 +22836,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           return { subtitles: processed };
         },
         cleanJsonSubtitles(subtitles) {
-          const normalizeText = (value) => stripHtmlToText(value.replaceAll(VK_INLINE_TIMESTAMP_RE, "")).replaceAll(/\s+([,.:;!?])/gu, "$1").replaceAll(/[ \t]*\n[ \t]*/gu, "\n").replaceAll(/[ \t]{2,}/gu, " ").replaceAll(/\n{3,}/gu, "\n\n").trim();
-          const normalizeComparable = (value) => value.toLowerCase().replaceAll(/\s+/gu, " ").trim();
+          const normalizeText = (value) => stripHtmlToText(value.replace(VK_INLINE_TIMESTAMP_RE, "")).replace(/\s+([,.:;!?])/gu, "$1").replace(/[ \t]*\n[ \t]*/gu, "\n").replace(/[ \t]{2,}/gu, " ").replace(/\n{3,}/gu, "\n\n").trim();
+          const normalizeComparable = (value) => value.toLowerCase().replace(/\s+/gu, " ").trim();
           const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
           const tokensTextLength = (tokens) => tokens.reduce((sum, token) => sum + token.text.length, 0);
           const cleanedLines = subtitles.subtitles.map((line) => ({
@@ -23759,8 +23729,9 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           case "noop":
             writeSmartDuckingRuntime(handler, decision.runtime);
             return;
-          default:
+          default: {
             throw new TypeError("Unhandled smart ducking decision");
+          }
         }
       }
       async function validateAudioUrl(audioUrl, actionContext) {
@@ -24710,7 +24681,7 @@ async videoValidator() {
           return await this.videoManager.videoValidator();
         }
 stopTranslate() {
-          if (this.stopTranslatePromise !== null) {
+          if (this.stopTranslatePromise) {
             return this.stopTranslatePromise;
           }
           const cleanup = async () => {
