@@ -444,12 +444,9 @@ System.register("./__entry.js", [], (function (exports, module) {
       const protoInt64 = makeInt64Support();
       function makeInt64Support() {
         const dv = new DataView(new ArrayBuffer(8));
-        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
+        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
         if (ok) {
-          const MIN = BigInt("-9223372036854775808");
-          const MAX = BigInt("9223372036854775807");
-          const UMIN = BigInt("0");
-          const UMAX = BigInt("18446744073709551615");
+          const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
           return {
             zero: BigInt(0),
             supported: true,
@@ -548,17 +545,17 @@ System.register("./__entry.js", [], (function (exports, module) {
           const te = new globalThis.TextEncoder();
           const td = new globalThis.TextDecoder();
           globalThis[symbol] = {
-            encodeUtf8(text2) {
-              return te.encode(text2);
+            encodeUtf8(text) {
+              return te.encode(text);
             },
             decodeUtf8(bytes) {
               return td.decode(bytes);
             },
-            checkUtf8(text2) {
+            checkUtf8(text) {
               try {
-                encodeURIComponent(text2);
+                encodeURIComponent(text);
                 return true;
-              } catch (_2) {
+              } catch (e2) {
                 return false;
               }
             }
@@ -705,12 +702,12 @@ int64(value) {
           return this;
         }
 sint64(value) {
-          const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+          let tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
           varint64write(lo, hi, this.buf);
           return this;
         }
 uint64(value) {
-          const tc = protoInt64.uEnc(value);
+          let tc = protoInt64.uEnc(value);
           varint64write(tc.lo, tc.hi, this.buf);
           return this;
         }
@@ -738,9 +735,10 @@ skip(wireType, fieldNo) {
               while (this.buf[this.pos++] & 128) {
               }
               break;
+
 case WireType.Bit64:
               this.pos += 4;
-            case WireType.Bit32:
+case WireType.Bit32:
               this.pos += 4;
               break;
             case WireType.LengthDelimited:
@@ -843,7 +841,7 @@ string() {
         if (typeof arg == "string") {
           const o2 = arg;
           arg = Number(arg);
-          if (Number.isNaN(arg) && o2 !== "NaN") {
+          if (isNaN(arg) && o2 !== "NaN") {
             throw new Error("invalid float32: " + o2);
           }
         } else if (typeof arg != "number") {
@@ -4099,8 +4097,8 @@ string() {
         idPlayer: "#player",
         jwPlayer: ".jwplayer, .jw-media",
         player: ".player",
-        videoJsUniversal: "[id^='vjs_video_']:not([id*='_html5_api']):not(video), video-js:not([id*='_html5_api']), .video-js:not(video):not([id*='_html5_api']), .vjs-player:not([id*='_html5_api']), [data-vjs-player]:not([id*='_html5_api'])",
-        vkVideoPlayer: ".videoplayer_media, vk-video-player"
+        videoJsUniversal: "video-js, .video-js:not(video), .vjs-player, [data-vjs-player], [id^='vjs_video_']:not(video)",
+        vkVideoPlayer: "vk-video-player"
       };
       const sites = [
         {
@@ -4261,7 +4259,7 @@ string() {
         {
           host: VideoService.olympicsreplay,
           url: "https://olympics.com/",
-          match: (url) => /^(www\.)?olympics\.com$/.test(url.host) && /^\/[a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+\/?$/i.test(url.pathname),
+          match: (url) => /^(www\.)?olympics\.com$/.test(url.host) && /^\/[a-z]{2}\/(?:paris-2024\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+\/?$/i.test(url.pathname),
           selector: sharedSelectors.videoJsUniversal
         },
         {
@@ -4414,8 +4412,8 @@ string() {
         {
           host: VideoService.weibo,
           url: "https://weibo.com/",
-          match: (url) => /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/(?:\d+\/[A-Za-z0-9]+|0\/[A-Za-z0-9]+|tv\/show\/\d+:(?:[\da-f]{32}|\d{16,}))\/?$/.test(url.pathname) || /^video\.weibo\.com$/.test(url.host) && /^\/show\/?$/.test(url.pathname) && /^\d+:(?:[\da-f]{32}|\d{16,})$/i.test(url.searchParams.get("fid") ?? "") || /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/newlogin\/?$/.test(url.pathname) && (url.searchParams.has("url") || /^[A-Za-z0-9]+$/.test(url.searchParams.get("layerid") ?? "")),
-          selector: sharedSelectors.videoJsUniversal
+          match: (url) => /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/(?:\d+\/[A-Za-z0-9]+|0\/[A-Za-z0-9]+|tv\/show\/\d+:(?:[\da-f]{32}|\d{16,}))\/?$/.test(url.pathname) || /^video\.weibo\.com$/.test(url.host) && /^\/show\/?$/.test(url.pathname) && /^\d+:(?:[\da-f]{32}|\d{16,})$/i.test(url.searchParams.get("fid") ?? ""),
+          selector: `#playVideo, sharedSelectors.videoJsUniversal`
         },
         {
           host: VideoService.newgrounds,
@@ -5664,7 +5662,7 @@ ${subs}` : subs;
         const subtitles = parts.reduce((result, part) => {
           const lines = part.trim().split("\n");
           const time = lines[offset];
-          const text2 = lines.slice(offset + 1).join("\n");
+          const text = lines.slice(offset + 1).join("\n");
           if ((lines.length !== 2 || !part.includes(" --> ")) && !time?.includes(" --> ")) {
             if (result.length === 0) {
               return result;
@@ -5679,7 +5677,7 @@ ${lines.join("\n")}`;
           const endMs = convertToMSTime(end);
           const durationMs = endMs - startMs;
           result.push({
-            text: text2,
+            text,
             startMs,
             durationMs,
             speakerId: "0"
@@ -5882,7 +5880,7 @@ ${lines.join("\n")}`;
       }
       class OlympicsReplayHelper extends BaseHelper {
         async getVideoId(url) {
-          return /\/([a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+)\/?$/i.exec(url.pathname)?.[1];
+          return /\/([a-z]{2}\/(?:paris-2024\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+)\/?$/i.exec(url.pathname)?.[1];
         }
       }
       class OracleLearnHelper extends VideoJSHelper {
@@ -6299,9 +6297,6 @@ ${lines.join("\n")}`;
           return newLink ? /status\/([^/]+)/.exec(newLink)?.[1] : void 0;
         }
       }
-      function isObject(value) {
-        return typeof value === "object" && value !== null;
-      }
       function isUrlCandidate(value) {
         return typeof value === "object" && value !== null;
       }
@@ -6315,45 +6310,6 @@ ${lines.join("\n")}`;
         const source = data;
         const values = Array.isArray(source.Video) ? source.Video : Array.isArray(source.video) ? source.video : [];
         return values.filter(isUrlCandidate);
-      }
-      function getOutputCandidates(data) {
-        if (!isObject(data)) {
-          return [];
-        }
-        const result = [];
-        for (const [fallbackLabel, value] of Object.entries(data)) {
-          if (!isObject(value) || typeof value.url !== "string") {
-            continue;
-          }
-          result.push({
-            src: value.url,
-            type: typeof value.type === "string" ? value.type : void 0,
-            label: typeof value.height === "number" || typeof value.height === "string" ? value.height : fallbackLabel
-          });
-        }
-        return result;
-      }
-      function getQualityValue(value) {
-        if (typeof value === "number" && Number.isFinite(value)) {
-          return value;
-        }
-        const match = String(value ?? "").match(/(\d{3,4})/);
-        return Number(match?.[1] ?? 0);
-      }
-      function getCandidateUrl(candidate) {
-        if (typeof candidate.file === "string") {
-          return candidate.file;
-        }
-        if (typeof candidate.src === "string") {
-          return candidate.src;
-        }
-        return void 0;
-      }
-      function isM3U8(type, url) {
-        return type.includes("mpegurl") || /\.m3u8(?:$|[?#])/i.test(url);
-      }
-      function isDash(type, url) {
-        return type.includes("dash") || /\.mpd(?:$|[?#])/i.test(url);
       }
       class UdemyHelper extends BaseHelper {
         API_ORIGIN = `${window.location.origin}/api-2.0`;
@@ -6369,72 +6325,8 @@ ${lines.join("\n")}`;
             return void 0;
           }
         }
-        getLectureId(videoId) {
-          const lectureIdRe = /(?:\/learn\/(?:v4\/t\/)?lecture\/|#\/?lecture\/|\/lecture\/view\/\?(?:[^#]*?&)*lecture(?:_|)id=)(\d+)/i;
-          return lectureIdRe.exec(window.location.href)?.[1] ?? (videoId ? lectureIdRe.exec(`/${videoId}`)?.[1] : void 0);
-        }
-        getCourseId(moduleData) {
-          const moduleDataWithExtra = moduleData;
-          const moduleCourseId = this.normalizeId(moduleDataWithExtra?.courseId ?? moduleDataWithExtra?.course_id ?? moduleDataWithExtra?.course?.id);
-          if (moduleCourseId) {
-            return moduleCourseId;
-          }
-          const attrCourseId = this.normalizeId(document.querySelector("[data-course-id]")?.getAttribute("data-course-id"));
-          if (attrCourseId) {
-            return attrCourseId;
-          }
-          const pageHtml = document.documentElement?.innerHTML ?? "";
-          return /data-course-id=["'](\d+)/i.exec(pageHtml)?.[1] ?? /&quot;courseId&quot;\s*:\s*(\d+)/i.exec(pageHtml)?.[1] ?? /"courseId"\s*:\s*(\d+)/i.exec(pageHtml)?.[1];
-        }
-        normalizeId(value) {
-          if (typeof value === "number" && Number.isFinite(value)) {
-            return String(value);
-          }
-          if (typeof value === "string") {
-            return /^\d+$/.test(value) ? value : void 0;
-          }
-          return void 0;
-        }
-        parseJson(value) {
-          try {
-            return JSON.parse(value);
-          } catch {
-            const normalized = value.replaceAll("&quot;", '"').replaceAll("&#34;", '"').replaceAll("&apos;", "'").replaceAll("&#39;", "'");
-            try {
-              return JSON.parse(normalized);
-            } catch {
-              return void 0;
-            }
-          }
-        }
-        getViewHtmlCandidates(viewHtml) {
-          if (typeof viewHtml !== "string" || !viewHtml.trim()) {
-            return [];
-          }
-          const doc = new DOMParser().parseFromString(viewHtml, "text/html");
-          const candidates = [];
-          for (const sourceEl of Array.from(doc.querySelectorAll("source"))) {
-            const src = sourceEl.getAttribute("src");
-            if (!src) {
-              continue;
-            }
-            candidates.push({
-              src,
-              type: sourceEl.getAttribute("type") ?? void 0,
-              label: sourceEl.getAttribute("data-res") ?? void 0
-            });
-          }
-          for (const setupDataEl of Array.from(doc.querySelectorAll("[videojs-setup-data]"))) {
-            const setupDataRaw = setupDataEl.getAttribute("videojs-setup-data");
-            if (!setupDataRaw) {
-              continue;
-            }
-            const setupData = this.parseJson(setupDataRaw);
-            if (setupData) {
-              candidates.push(...getUrlCandidates(setupData.sources));
-            }
-          }
-          return candidates;
+        getLectureId() {
+          return /learn\/lecture\/([^/]+)/.exec(window.location.pathname)?.[1];
         }
         isErrorData(data) {
           return Object.hasOwn(data, "error") || Object.hasOwn(data, "detail") && !Object.hasOwn(data, "_class");
@@ -6442,8 +6334,8 @@ ${lines.join("\n")}`;
         async getLectureData(courseId, lectureId) {
           try {
             const res = await this.fetch(`${this.API_ORIGIN}/users/me/subscribed-courses/${courseId}/lectures/${lectureId}/?` + new URLSearchParams({
-              "fields[lecture]": "title,description,view_html,asset,download_url,is_free,last_watched_second",
-              "fields[asset]": "asset_type,length,stream_url,media_sources,stream_urls,download_urls,external_url,captions,data,thumbnail_sprite,slides,slide_urls,course_is_drmed,media_license_token"
+              "fields[lecture]": "title,description,asset,download_url,is_free,last_watched_second",
+              "fields[asset]": "asset_type,length,media_sources,stream_urls,download_urls,external_url,captions,thumbnail_sprite,slides,slide_urls,course_is_drmed,media_license_token"
             }).toString());
             const data = await res.json();
             if (this.isErrorData(data)) {
@@ -6477,112 +6369,57 @@ ${lines.join("\n")}`;
             return void 0;
           }
         }
-        findVideoUrl(sources, streamUrls, downloadUrls, streamUrl, externalUrl, outputs, viewHtml) {
-          const allCandidates = [];
-          const mediaSources = Array.isArray(sources) ? sources : [];
-          for (const source of mediaSources) {
-            allCandidates.push({
-              src: source.src,
-              type: source.type,
-              label: source.label
-            });
+        findVideoUrl(sources, streamUrls, downloadUrls) {
+          const mp4Sources = (sources ?? []).filter((src) => src?.type === "video/mp4" && typeof src.src === "string");
+          if (mp4Sources.length) {
+            const getQ = (v2) => Number(String(v2 ?? "").match(/(\d{3,4})/)?.[1] ?? 0);
+            mp4Sources.sort((a2, b2) => getQ(b2.label ?? b2.quality) - getQ(a2.label ?? a2.quality));
+            return mp4Sources[0]?.src;
           }
-          allCandidates.push(...getUrlCandidates(streamUrls));
-          allCandidates.push(...getUrlCandidates(downloadUrls));
-          allCandidates.push(...getOutputCandidates(outputs));
-          if (typeof viewHtml === "string") {
-            allCandidates.push(...this.getViewHtmlCandidates(viewHtml));
-          }
+          const streamCandidates = getUrlCandidates(streamUrls);
+          const streamUrl = streamCandidates.find((x2) => typeof x2?.src === "string" && x2?.type === "video/mp4")?.src ?? streamCandidates.find((x2) => typeof x2?.src === "string" && (String(x2?.type).toLowerCase().includes("mpegurl") || String(x2?.src).toLowerCase().includes(".m3u8")))?.src ?? streamCandidates.find((x2) => typeof x2?.src === "string" && (String(x2?.type).toLowerCase().includes("dash") || String(x2?.src).toLowerCase().includes(".mpd")))?.src;
           if (typeof streamUrl === "string") {
-            allCandidates.push({ src: streamUrl });
+            return streamUrl;
           }
-          if (typeof externalUrl === "string") {
-            allCandidates.push({ src: externalUrl });
-          }
-          const playerSrc = this.video?.currentSrc || this.video?.src;
-          if (typeof playerSrc === "string" && playerSrc) {
-            allCandidates.push({ src: playerSrc });
-          }
-          const dedupCandidates = new Map();
-          for (const candidate of allCandidates) {
-            const url = getCandidateUrl(candidate);
-            if (!url || /^javascript:/i.test(url)) {
-              continue;
-            }
-            const quality = getQualityValue(candidate.label ?? candidate.quality ?? candidate.height);
-            const type = String(candidate.type ?? "").toLowerCase();
-            const prev = dedupCandidates.get(url);
-            if (!prev || quality > prev.quality) {
-              dedupCandidates.set(url, {
-                url,
-                type,
-                quality,
-                isYouTubeWatch: /:\/\/(?:www\.)?youtube\.com\/watch\?/i.test(url)
-              });
-            }
-          }
-          const candidates = Array.from(dedupCandidates.values());
-          if (!candidates.length) {
-            return void 0;
-          }
-          const mp4Candidates = candidates.filter((item) => item.type.includes("mp4") || /\.mp4(?:$|[?#])/i.test(item.url));
-          if (mp4Candidates.length) {
-            mp4Candidates.sort((a2, b2) => b2.quality - a2.quality);
-            return mp4Candidates[0]?.url;
-          }
-          const hlsUrl = candidates.find((item) => isM3U8(item.type, item.url))?.url;
-          if (hlsUrl) {
-            return hlsUrl;
-          }
-          const dashUrl = candidates.find((item) => isDash(item.type, item.url))?.url;
-          if (dashUrl) {
-            return dashUrl;
-          }
-          const nonYoutube = candidates.find((item) => !item.isYouTubeWatch)?.url;
-          if (nonYoutube) {
-            return nonYoutube;
-          }
-          return candidates[0]?.url;
-        }
-        getCaptionLocale(caption) {
-          const localeId = typeof caption.locale_id === "string" ? caption.locale_id : typeof caption.locale?.locale === "string" ? caption.locale.locale : void 0;
-          return localeId ? normalizeLang$1(localeId) : void 0;
+          const downloadCandidates = getUrlCandidates(downloadUrls);
+          const downloadUrl = downloadCandidates.find((x2) => typeof x2?.file === "string" && x2?.type === "video/mp4")?.file ?? downloadCandidates.find((x2) => typeof x2?.file === "string")?.file ?? downloadCandidates.find((x2) => typeof x2?.src === "string")?.src;
+          return typeof downloadUrl === "string" ? downloadUrl : void 0;
         }
         findSubtitleUrl(captions, detectedLanguage) {
-          if (!Array.isArray(captions)) {
-            return void 0;
-          }
-          const captionsWithDownload = captions.filter((caption) => isObject(caption) && (typeof caption.url === "string" || typeof caption.download_url === "string"));
-          const subtitle = captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === detectedLanguage) ?? captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === "en") ?? captionsWithDownload[0];
+          const captionsWithDownload = captions;
+          const subtitle = captionsWithDownload.find((caption) => normalizeLang$1(caption.locale_id) === detectedLanguage) ?? captionsWithDownload.find((caption) => normalizeLang$1(caption.locale_id) === "en") ?? captionsWithDownload[0];
           return subtitle?.url ?? subtitle?.download_url;
         }
         async getVideoData(videoId) {
           const moduleData = this.getModuleData();
-          const courseId = this.getCourseId(moduleData);
-          const lectureId = this.getLectureId(videoId);
+          if (!moduleData) {
+            return void 0;
+          }
+          const { courseId } = moduleData;
+          const lectureId = this.getLectureId();
           Logger.log(`[Udemy] courseId: ${courseId}, lectureId: ${lectureId}`);
-          if (!lectureId || !courseId) {
+          if (!lectureId) {
             return void 0;
           }
           const lectureData = await this.getLectureData(courseId, lectureId);
           if (!lectureData) {
             return void 0;
           }
-          const { title, description, asset, view_html } = lectureData;
+          const { title, description, asset } = lectureData;
           const { length: duration, media_sources, captions } = asset;
           const assetWithExtraUrls = asset;
           const streamUrls = assetWithExtraUrls.stream_urls;
           const downloadUrls = assetWithExtraUrls.download_urls;
-          const videoUrl = this.findVideoUrl(media_sources, streamUrls, downloadUrls, assetWithExtraUrls.stream_url ?? assetWithExtraUrls.streamUrl, assetWithExtraUrls.external_url, assetWithExtraUrls.data?.outputs, view_html);
+          const videoUrl = this.findVideoUrl(media_sources, streamUrls, downloadUrls);
           if (!videoUrl) {
             Logger.log("Failed to find video file in asset sources", asset);
             return void 0;
           }
           let courseLang = "en";
           const courseLangData = await this.getCourseLang(courseId);
-          const courseLocale = courseLangData?.locale?.locale;
-          if (typeof courseLocale === "string") {
-            courseLang = normalizeLang$1(courseLocale);
+          if (courseLangData) {
+            const { locale: { locale: courseLocale } } = courseLangData;
+            courseLang = courseLocale ? normalizeLang$1(courseLocale) : courseLang;
           }
           if (!availableLangs.includes(courseLang)) {
             courseLang = "en";
@@ -6886,9 +6723,6 @@ ${lines.join("\n")}`;
         }
       }
       const weiboVideoIdRe = /^\d+:(?:[\da-f]{32}|\d{16,})$/i;
-      const weiboLayerIdRe = /^[A-Za-z0-9]+$/;
-      const weiboHostRe = /^(?:www\.)?weibo\.com$/;
-      const weiboLoginPathRe = /^\/newlogin\/?$/;
       class WeiboHelper extends BaseHelper {
         async getVideoId(url) {
           if (url.hostname === "video.weibo.com") {
@@ -6897,25 +6731,6 @@ ${lines.join("\n")}`;
               return void 0;
             }
             return `tv/show/${fid}`;
-          }
-          if (weiboHostRe.test(url.host) && weiboLoginPathRe.test(url.pathname)) {
-            const nestedUrl = url.searchParams.get("url");
-            if (nestedUrl) {
-              try {
-                const parsedNestedUrl = new URL(nestedUrl, url.origin);
-                if (parsedNestedUrl.href !== url.href) {
-                  const nestedVideoId = await this.getVideoId(parsedNestedUrl);
-                  if (nestedVideoId) {
-                    return nestedVideoId;
-                  }
-                }
-              } catch {
-              }
-            }
-            const layerId = url.searchParams.get("layerid");
-            if (layerId && weiboLayerIdRe.test(layerId)) {
-              return `0/${layerId}`;
-            }
           }
           const normalizedPath = url.pathname.replace(/\/+$/, "");
           if (/^\/\d+\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/0\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/tv\/show\/\d+:(?:[\da-f]{32}|\d{16,})$/i.test(normalizedPath)) {
@@ -7590,11 +7405,11 @@ ${lines.join("\n")}`;
         fetchFn: fetch.bind(window)
       };
       const debug$1 = {
-        log: (...text2) => {
+        log: (...text) => {
           if (!config.debug) {
             return;
           }
-          return console.log(`%c✦ chaimu.js v${config.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text2);
+          return console.log(`%c✦ chaimu.js v${config.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
         }
       };
       const videoLipSyncEvents = [
@@ -8114,6 +7929,8 @@ ${lines.join("\n")}`;
       const isIframe = () => globalThis.self !== globalThis.top;
       const generateMessageId = () => typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? `main-world-bridge-${crypto.randomUUID()}` : `main-world-bridge-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const SERVICE_IFRAME_READY_TIMEOUT_MS = 15e3;
+      const SERVICE_IFRAME_WIDTH_PX = 320;
+      const SERVICE_IFRAME_HEIGHT_PX = 240;
       const hasServiceIframe = (iframeId) => document.getElementById(iframeId);
       const isBridgeMessageLike = (value) => {
         if (!value || typeof value !== "object") {
@@ -8159,8 +7976,8 @@ ${lines.join("\n")}`;
         iframe.style.position = "fixed";
         iframe.style.left = "0";
         iframe.style.top = "0";
-        iframe.style.width = "1px";
-        iframe.style.height = "1px";
+        iframe.style.width = `${SERVICE_IFRAME_WIDTH_PX}px`;
+        iframe.style.height = `${SERVICE_IFRAME_HEIGHT_PX}px`;
         iframe.style.opacity = "0";
         iframe.style.pointerEvents = "none";
         iframe.style.border = "0";
@@ -8216,6 +8033,12 @@ ${lines.join("\n")}`;
         if (iframeFromDom) {
           iframeFromDom.remove();
         }
+        if (iframe && iframe !== iframeFromDom) {
+          if (isLiveMatchingServiceIframe(iframe, expectedSrc)) {
+            return iframe;
+          }
+          iframe.remove();
+        }
         return setupServiceIframe(src, iframeId, service);
       }
       function initIframeService(service, onmessage) {
@@ -8264,12 +8087,12 @@ ${lines.join("\n")}`;
               settle(() => data.error ? reject(data.error) : resolve(data.payload));
             }
           };
+          globalThis.addEventListener("message", handleMessage);
+          signal?.addEventListener("abort", onAbort, { once: true });
           if (signal?.aborted) {
             onAbort();
             return;
           }
-          globalThis.addEventListener("message", handleMessage);
-          signal?.addEventListener("abort", onAbort, { once: true });
           globalThis.postMessage(
             {
               messageId,
@@ -8372,7 +8195,25 @@ ${lines.join("\n")}`;
         }
       }
       let lastMessageId = "";
-      const getAdaptiveFormats = () => YoutubeHelper.getPlayerResponse()?.streamingData?.adaptiveFormats;
+      const getAdaptiveFormats = () => (YoutubeHelper.getPlayerResponse() ?? getGlobalPlayerResponse())?.streamingData?.adaptiveFormats;
+      function getGlobalPlayerResponse() {
+        const win = unsafeWindow;
+        if (win.ytInitialPlayerResponse && typeof win.ytInitialPlayerResponse === "object") {
+          return win.ytInitialPlayerResponse;
+        }
+        const rawPlayerResponse = win.ytplayer?.config?.args?.raw_player_response;
+        if (rawPlayerResponse && typeof rawPlayerResponse === "object") {
+          return rawPlayerResponse;
+        }
+        if (typeof rawPlayerResponse === "string") {
+          try {
+            return JSON.parse(rawPlayerResponse);
+          } catch {
+            return null;
+          }
+        }
+        return null;
+      }
       async function isEncodedRequest(url, request) {
         if (!url.includes("googlevideo.com/videoplayback") || typeof request === "string") {
           return false;
@@ -8414,25 +8255,93 @@ ${lines.join("\n")}`;
         );
         return itag251Sorted.at(-1) ?? audioFormats[0];
       }
-      const waitForPlayer = async () => {
-        await waitForCondition(() => Boolean(YoutubeHelper.getPlayer()), 1e4);
-        return YoutubeHelper.getPlayer();
+      function hasDirectMediaUrl(format) {
+        return "url" in format && typeof format.url === "string" && format.url.length > 0;
+      }
+      function pickBestDirectAudioFormat() {
+        const allFormats = getAdaptiveFormats();
+        if (!allFormats?.length) {
+          return null;
+        }
+        const audioFormats = allFormats.filter(
+          ({ audioQuality, mimeType }) => audioQuality || mimeType?.includes("audio")
+        );
+        return audioFormats.filter(hasDirectMediaUrl).sort((a2, b2) => (a2.bitrate || 0) - (b2.bitrate || 0)).at(-1) ?? null;
+      }
+      function createDirectAudioPayload(directAudioFormat) {
+        return {
+          requestInfo: directAudioFormat.url,
+          requestInit: {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store"
+          },
+          adaptiveFormat: directAudioFormat,
+          itag: directAudioFormat.itag
+        };
+      }
+      function getItagFromRequestUrl(requestUrl) {
+        try {
+          const rawItag = new URL(
+            requestUrl,
+            globalThis.location.href
+          ).searchParams.get("itag");
+          if (!rawItag) {
+            return null;
+          }
+          const parsedItag = Number.parseInt(rawItag, 10);
+          return Number.isFinite(parsedItag) ? parsedItag : null;
+        } catch {
+          const match = /(?:\?|&)itag=(\d+)(?:&|$)/.exec(requestUrl);
+          if (!match) {
+            return null;
+          }
+          const parsedItag = Number.parseInt(match[1], 10);
+          return Number.isFinite(parsedItag) ? parsedItag : null;
+        }
+      }
+      const getHtmlVideo = () => document.querySelector("video.html5-main-video") ?? document.querySelector("video");
+      const waitForPlaybackTargets = async () => {
+        await waitForCondition(
+          () => Boolean(YoutubeHelper.getPlayer()) || Boolean(getHtmlVideo()),
+          18e3
+        );
+        return {
+          player: YoutubeHelper.getPlayer(),
+          htmlVideo: getHtmlVideo()
+        };
       };
       const loadVideo = async (data) => {
-        const player2 = await waitForPlayer();
+        const { player: player2, htmlVideo } = await waitForPlaybackTargets();
         if (data.messageId !== lastMessageId) {
           throw new Error(
             "Audio downloader. Download started for another video while getting player"
           );
         }
-        if (!player2?.loadVideoById) {
+        if (!player2 && !htmlVideo) {
+          debug.log("Audio downloader. WEB API. playback targets missing", {
+            href: globalThis.location.href,
+            readyState: document.readyState,
+            hasMoviePlayer: Boolean(document.querySelector("#movie_player")),
+            hasPlayerContainer: Boolean(document.querySelector("#player")),
+            videoCount: document.querySelectorAll("video").length
+          });
           throw new Error(
-            "Audio downloader. There is no player.loadVideoById in iframe"
+            "Audio downloader. WEB API. No player or html video element in iframe"
           );
         }
-        player2.loadVideoById(data.payload.videoId);
-        player2.pauseVideo?.();
-        player2.mute?.();
+        if (player2?.loadVideoById) {
+          player2.loadVideoById(data.payload.videoId);
+        }
+        const playerWithPlay = player2;
+        player2?.pauseVideo?.();
+        player2?.mute?.();
+        playerWithPlay?.playVideo?.();
+        if (htmlVideo) {
+          htmlVideo.muted = true;
+          void htmlVideo.play().catch(() => {
+          });
+        }
         setTimeout(() => {
           if (data.messageId !== lastMessageId) {
             console.error(
@@ -8440,70 +8349,109 @@ ${lines.join("\n")}`;
             );
             return;
           }
-          if (!player2) {
+          if (!player2 && !htmlVideo) {
             console.error(
-              "[Critical] Audio Downloader. Player not found in iframe after timeout"
+              "[Critical] Audio Downloader. Player and html video not found in iframe after timeout"
             );
             return;
           }
-          player2.pauseVideo?.();
+          player2?.pauseVideo?.();
+          htmlVideo?.pause();
         }, 1e3);
       };
       async function getDownloadAudioData(data) {
+        lastMessageId = data.messageId;
+        const originalFetch = unsafeWindow.fetch;
+        let fetchHook = null;
+        let isSettled = false;
+        let timeoutId = null;
+        let resolveDone = null;
+        const done = new Promise((resolve) => {
+          resolveDone = resolve;
+        });
+        const clearHookAndTimer = () => {
+          if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
+          if (fetchHook && unsafeWindow.fetch === fetchHook) {
+            unsafeWindow.fetch = originalFetch;
+          }
+        };
+        const settle = (response, shouldPostMessage = true) => {
+          if (isSettled) {
+            return;
+          }
+          isSettled = true;
+          clearHookAndTimer();
+          if (shouldPostMessage && data.messageId === lastMessageId && response) {
+            globalThis.parent.postMessage(
+              {
+                ...data,
+                messageDirection: "response",
+                ...response
+              },
+              "*"
+            );
+          }
+          resolveDone?.();
+        };
         try {
-          lastMessageId = data.messageId;
-          debug.log("getDownloadAudioData", data);
-          const originalFetch = unsafeWindow.fetch;
-          unsafeWindow.fetch = async (input, init2) => {
+          const directAudioFormat = pickBestDirectAudioFormat();
+          if (directAudioFormat) {
+            settle({
+              payload: createDirectAudioPayload(directAudioFormat)
+            });
+            return;
+          }
+          fetchHook = async (input, init2) => {
             if (input instanceof URL) {
               input = input.toString();
             }
             const requestUrl = getRequestUrl(input);
             if (await isEncodedRequest(requestUrl, input)) {
-              globalThis.parent.postMessage(
-                {
-                  ...data,
-                  messageDirection: "response",
-                  error: "Audio downloader. Detected encoded request."
-                },
-                "*"
-              );
-              unsafeWindow.fetch = originalFetch;
+              settle({
+                error: "Audio downloader. Detected encoded request."
+              });
               return originalFetch(input, init2);
             }
             const response = await originalFetch(input, init2);
             if (data.messageId !== lastMessageId) {
-              unsafeWindow.fetch = originalFetch;
+              settle(null, false);
               return response;
             }
-            if (requestUrl.includes("&itag=251&")) {
-              unsafeWindow.fetch = originalFetch;
-              globalThis.parent.postMessage(
-                {
-                  ...data,
-                  messageDirection: "response",
-                  payload: {
-                    requestInfo: requestUrl,
-                    requestInit: init2 || serializeRequestInit(input),
-                    adaptiveFormat: selectBestAudioFormat(),
-                    itag: 251
-                  }
-                },
-                "*"
-              );
+            const itag = getItagFromRequestUrl(requestUrl);
+            if (itag === 251) {
+              settle({
+                payload: {
+                  requestInfo: requestUrl,
+                  requestInit: init2 || serializeRequestInit(input),
+                  adaptiveFormat: selectBestAudioFormat(),
+                  itag
+                }
+              });
             }
             return response;
           };
+          unsafeWindow.fetch = fetchHook;
+          timeoutId = setTimeout(() => {
+            const timeoutDirectAudioFormat = pickBestDirectAudioFormat();
+            if (timeoutDirectAudioFormat) {
+              settle({
+                payload: createDirectAudioPayload(timeoutDirectAudioFormat)
+              });
+              return;
+            }
+            settle({
+              error: "Audio downloader. WEB API. Timed out while waiting for media request"
+            });
+          }, 12e3);
           await loadVideo(data);
+          await done;
         } catch (error2) {
-          globalThis.parent.postMessage(
-            {
-              ...data,
-              messageDirection: "response",
-              error: error2
-            },
-            "*"
-          );
+          settle({ error: error2 });
+        } finally {
+          clearHookAndTimer();
         }
       }
       const handleIframeMessage = async ({ data }) => {
@@ -8615,6 +8563,7 @@ ${lines.join("\n")}`;
         "localeLangOverride",
         "account"
       ];
+      const NEVER_ABORTED_SIGNAL = new AbortController().signal;
       function throwIfAborted(signal) {
         const maybeThrow = signal.throwIfAborted;
         if (typeof maybeThrow === "function") {
@@ -8633,57 +8582,42 @@ ${lines.join("\n")}`;
         }
       }
       function createTimeoutSignal(timeoutMs, external) {
-        const hasTimeout = typeof AbortSignal !== "undefined" && "timeout" in AbortSignal;
-        const hasAny = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
-        let timedOut = false;
         const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
         if (!hasEffectiveTimeout) {
-          if (external) {
-            return { signal: external, didTimeout: () => false, cleanup: () => {
-            } };
-          }
-          const controller2 = new AbortController();
           return {
-            signal: controller2.signal,
-            didTimeout: () => false,
+            signal: external ?? NEVER_ABORTED_SIGNAL,
             cleanup: () => {
             }
           };
         }
-        if (hasTimeout && hasAny) {
-          const timeoutSignal = AbortSignal.timeout(
-            timeoutMs
-          );
-          const signal = AbortSignal.any(
-            external ? [external, timeoutSignal] : [timeoutSignal]
-          );
-          const id2 = setTimeout(() => {
-            timedOut = true;
-          }, timeoutMs);
-          return {
-            signal,
-            didTimeout: () => timedOut,
-            cleanup: () => clearTimeout(id2)
-          };
-        }
         const controller = new AbortController();
-        const onExternalAbort = () => controller.abort(external?.reason);
+        let timeoutId;
+        const onExternalAbort = () => {
+          if (timeoutId !== void 0) {
+            clearTimeout(timeoutId);
+            timeoutId = void 0;
+          }
+          controller.abort(external?.reason);
+        };
         if (external) {
+          external.addEventListener("abort", onExternalAbort, { once: true });
           if (external.aborted) {
-            controller.abort(external.reason);
-          } else {
-            external.addEventListener("abort", onExternalAbort, { once: true });
+            onExternalAbort();
           }
         }
-        const id = setTimeout(() => {
-          timedOut = true;
-          controller.abort(makeAbortError("Timeout"));
-        }, timeoutMs);
+        if (!controller.signal.aborted) {
+          timeoutId = setTimeout(() => {
+            controller.abort(makeAbortError("Timeout"));
+            timeoutId = void 0;
+          }, timeoutMs);
+        }
         return {
           signal: controller.signal,
-          didTimeout: () => timedOut,
           cleanup: () => {
-            clearTimeout(id);
+            if (timeoutId !== void 0) {
+              clearTimeout(timeoutId);
+              timeoutId = void 0;
+            }
             external?.removeEventListener("abort", onExternalAbort);
           }
         };
@@ -8797,7 +8731,8 @@ ${lines.join("\n")}`;
         return doc.webkitExitFullscreen?.();
       }
       const YANDEX_API_HOST = "api.browser.yandex.ru";
-      const scriptHandler = typeof GM_info !== "undefined" ? GM_info?.scriptHandler : void 0;
+      const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
+      const scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
       const isProxyOnlyExtension = (
 
 !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && !!scriptHandler && !nonProxyExtensions.includes(scriptHandler)
@@ -8808,10 +8743,19 @@ ${lines.join("\n")}`;
       function shouldUseGmXhr(url) {
         return url.includes(YANDEX_API_HOST);
       }
+      function toRequestUrl(url) {
+        if (typeof url === "string") {
+          return url;
+        }
+        if (url instanceof URL) {
+          return url.href;
+        }
+        return url.url;
+      }
       async function gmXhrFetch(urlStr, timeout2, fetchOptions) {
         const headers = getHeaders(fetchOptions.headers);
         return await new Promise((resolve, reject) => {
-          const gmXhr = typeof GM_xmlhttpRequest !== "undefined" ? GM_xmlhttpRequest : globalThis.GM_xmlhttpRequest;
+          const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
           if (typeof gmXhr !== "function") {
             reject(new TypeError("GM_xmlhttpRequest is not available"));
             return;
@@ -8841,8 +8785,9 @@ ${lines.join("\n")}`;
               settled = true;
               cleanupAbort();
               const responseHeaders = String(resp.responseHeaders || "").split(/\r?\n/).reduce((acc, line) => {
-                const [, key, value] = line.match(/^([\w-]+):\s*(.+)$/) || [];
-                if (key) {
+                const headerMatch = HEADER_LINE_RE.exec(line);
+                if (headerMatch) {
+                  const [, key, value] = headerMatch;
                   acc[key] = value;
                 }
                 return acc;
@@ -8868,17 +8813,17 @@ ${lines.join("\n")}`;
             failOnce(makeAbortError());
           };
           if (fetchOptions.signal) {
+            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
             if (fetchOptions.signal.aborted) {
               onAbort();
               return;
             }
-            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
           }
         });
       }
       async function GM_fetch(url, opts = {}) {
         const { timeout: timeout2 = 15e3, ...fetchOptions } = opts;
-        const urlStr = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
+        const urlStr = toRequestUrl(url);
         if (shouldUseGmXhr(urlStr)) {
           return await gmXhrFetch(urlStr, timeout2, fetchOptions);
         }
@@ -8889,7 +8834,7 @@ ${lines.join("\n")}`;
             ...fetchOptions
           });
         } catch (err) {
-          if (isAbortError(err) || fetchOptions.signal?.aborted) {
+          if (signal.aborted || isAbortError(err)) {
             throw err;
           }
           debug.log(
@@ -9458,11 +9403,11 @@ locale;
               this.buildUrl(this.localesUrl, `/${this.lang}.json`, force)
             );
             if (!res.ok) throw res.status;
-            const text2 = await res.text();
-            await votStorage.set("localePhrases", text2);
+            const text = await res.text();
+            await votStorage.set("localePhrases", text);
             await votStorage.set("localeHash", hash);
             await votStorage.set("localeLang", this.lang);
-            this.setLocaleFromJsonString(text2);
+            this.setLocaleFromJsonString(text);
           } catch (err) {
             console.error("[VOT] [localizationProvider] Failed to get locale:", err);
             this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
@@ -9947,27 +9892,28 @@ clear() {
           this.listeners.clear();
         }
       }
-      const serviceIframe = null;
+      let serviceIframe = null;
       function generateChunkRanges(contentLength, minChunkSize) {
         const chunkRanges = [];
+        const lastByteIndex = contentLength - 1;
         let stepIndex = 0;
         let start = 0;
-        let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
-        while (end < contentLength) {
+        let end = Math.min(CHUNK_STEPS[stepIndex] - 1, lastByteIndex);
+        while (end < lastByteIndex) {
           chunkRanges.push({
             start,
             end,
-            mustExist: end < minChunkSize
+            mustExist: end + 1 < minChunkSize
           });
           if (stepIndex < CHUNK_STEPS.length - 1) {
             stepIndex++;
           }
           start = end + 1;
-          end += CHUNK_STEPS[stepIndex];
+          end = Math.min(start + CHUNK_STEPS[stepIndex] - 1, lastByteIndex);
         }
         chunkRanges.push({
           start,
-          end: contentLength,
+          end: lastByteIndex,
           mustExist: false
         });
         return chunkRanges;
@@ -9981,14 +9927,15 @@ clear() {
         const minChunkSize = Math.round(
           contentLength * MIN_CONTENT_LENGTH_MULTIPLIER
         );
+        const lastByteIndex = contentLength - 1;
         const chunkRanges = generateChunkRanges(contentLength, minChunkSize);
         const chunkRangeParts = [];
         let currentPart = [];
         let currentPartSize = 0;
         for (const chunkRange of chunkRanges) {
           currentPart.push(chunkRange);
-          currentPartSize += chunkRange.end - chunkRange.start;
-          if (currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE || chunkRange.end === contentLength) {
+          currentPartSize += chunkRange.end - chunkRange.start + 1;
+          if (currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE || chunkRange.end === lastByteIndex) {
             chunkRangeParts.push(currentPart);
             currentPart = [];
             currentPartSize = 0;
@@ -10018,25 +9965,6 @@ clear() {
         }
         return chunkParts;
       }
-      function getChunkRangesFromContentLength(contentLength) {
-        if (contentLength < 1) {
-          throw new Error(
-            "Audio downloader. WEB API. contentLength cannot be less than 1"
-          );
-        }
-        const minChunkSize = Math.round(
-          contentLength * MIN_CONTENT_LENGTH_MULTIPLIER
-        );
-        return generateChunkRanges(contentLength, minChunkSize);
-      }
-      function getChunkRangesFromAdaptiveFormat(adaptiveFormat) {
-        const contentLength = parseContentLength(adaptiveFormat);
-        const chunkRanges = getChunkRangesFromContentLength(contentLength);
-        if (!chunkRanges.length) {
-          throw new Error("Audio downloader. WEB API. Empty chunk ranges");
-        }
-        return chunkRanges;
-      }
       function mergeBuffers(buffers) {
         const totalLength = buffers.reduce(
           (total, buffer) => total + buffer.byteLength,
@@ -10052,18 +9980,23 @@ clear() {
       }
       async function sendRequestToIframe(messageType, data) {
         const { videoId } = data.payload;
-        const iframeUrl = `https://${IFRAME_HOST}/embed/${videoId}?autoplay=0&mute=1`;
+        const iframeUrl = new URL(`https://${IFRAME_HOST}/embed/${videoId}`);
+        iframeUrl.searchParams.set("autoplay", "1");
+        iframeUrl.searchParams.set("mute", "1");
+        iframeUrl.searchParams.set("playsinline", "1");
+        iframeUrl.searchParams.set("enablejsapi", "1");
+        iframeUrl.searchParams.set("origin", globalThis.location.origin);
         try {
-          const iframe = await ensureServiceIframe(
+          serviceIframe = await ensureServiceIframe(
             serviceIframe,
-            iframeUrl,
+            iframeUrl.toString(),
             IFRAME_ID,
             IFRAME_SERVICE
           );
           if (!hasServiceIframe(IFRAME_ID)) {
             throw new Error("Audio downloader. WEB API. Service iframe deleted");
           }
-          iframe.contentWindow?.postMessage(
+          serviceIframe.contentWindow?.postMessage(
             {
               messageId: generateMessageId(),
               messageType,
@@ -10074,9 +10007,14 @@ clear() {
             "*"
           );
         } catch (err) {
-          data.error = err;
-          data.messageDirection = "response";
-          globalThis.postMessage(data, "*");
+          globalThis.postMessage(
+            {
+              ...data,
+              error: err,
+              messageDirection: "response"
+            },
+            "*"
+          );
         }
       }
       function makeFileId(downloadType, itag, fileSize) {
@@ -10092,16 +10030,16 @@ clear() {
       const CANT_FETCH_MEDIA_MESSAGE = "Audio downloader. WEB API. Can not fetch media url";
       const CANT_GET_ARRAY_BUFFER_MESSAGE = "Audio downloader. WEB API. Can not get array buffer from media url";
       const textDecoder = new TextDecoder("ascii");
-      let mediaQuaryIndex = 1;
+      let mediaQueryIndex = 1;
       function patchMediaUrl(url, { start, end }) {
         const modifiedUrl = new URL(url);
         modifiedUrl.searchParams.set("range", `${start}-${end}`);
-        modifiedUrl.searchParams.set("rn", String(mediaQuaryIndex++));
+        modifiedUrl.searchParams.set("rn", String(mediaQueryIndex++));
         modifiedUrl.searchParams.delete("ump");
         return modifiedUrl.toString();
       }
       function isChunkLengthAcceptable(buffer, { start, end }) {
-        const rangeLength = end - start;
+        const rangeLength = end - start + 1;
         if (rangeLength > MIN_ARRAY_BUFFER_LENGTH && buffer.byteLength < MIN_ARRAY_BUFFER_LENGTH) {
           return false;
         }
@@ -10111,6 +10049,12 @@ clear() {
         return /https:\/\/.*$/.exec(textDecoder.decode(buffer))?.[0];
       };
       const STRATEGY_TYPE = AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME;
+      const IFRAME_DATA_ATTEMPT_TIMEOUT_MS = 2e4;
+      const IFRAME_DATA_RETRY_DELAY_MS = 1e3;
+      const RETRYABLE_IFRAME_ERRORS = new Set([
+        "Audio downloader. WEB API. No player or html video element in iframe",
+        "Audio downloader. WEB API. Timed out while waiting for media request"
+      ]);
       function isSerializedRequestInitData(value) {
         return Boolean(value) && typeof value === "object" && "headersEntries" in value;
       }
@@ -10120,15 +10064,80 @@ clear() {
         }
         return isSerializedRequestInitData(requestInit) ? deserializeRequestInit(requestInit) : requestInit;
       }
+      function requireAdaptiveFormat(adaptiveFormat) {
+        if (!adaptiveFormat) {
+          throw new Error("Audio downloader. WEB API. Missing adaptive format");
+        }
+        return adaptiveFormat;
+      }
+      async function createAudioFetchContext({
+        videoId,
+        signal
+      }) {
+        const { requestInit, requestInfo, adaptiveFormat, itag } = await getGeneratingAudioUrlsDataFromIframe(videoId, signal);
+        if (!requestInfo) {
+          throw new Error("Audio downloader. WEB API. Can not get requestInfo");
+        }
+        const normalizedAdaptiveFormat = requireAdaptiveFormat(adaptiveFormat);
+        const mediaUrl = getRequestUrl(requestInfo);
+        const serializedInit = serializeRequestInit(requestInfo);
+        const fallbackInit = deserializeRequestInit(serializedInit);
+        const finalRequestInit = normalizeRequestInit(requestInit, fallbackInit);
+        return {
+          fileId: makeFileId(
+            STRATEGY_TYPE,
+            itag,
+            normalizedAdaptiveFormat.contentLength
+          ),
+          mediaUrl,
+          requestInit: finalRequestInit,
+          adaptiveFormat: normalizedAdaptiveFormat,
+          signal
+        };
+      }
+      async function* streamMediaByChunkParts(mediaUrl, requestInit, chunkParts, signal) {
+        let currentUrl = mediaUrl;
+        for (const part of chunkParts) {
+          const { media, url, isAcceptableLast } = await fetchMediaWithMetaByChunkRanges(
+            currentUrl,
+            requestInit,
+            part,
+            signal
+          );
+          if (url) {
+            currentUrl = url;
+          }
+          yield media;
+          if (isAcceptableLast) {
+            break;
+          }
+        }
+      }
       const getDownloadAudioDataInMainWorld = (payload, signal) => requestDataFromMainWorldWithId("get-download-audio-data-in-main-world", payload, { signal }).promise;
+      const delay = (ms) => new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      });
+      function isRetryableIframeError(error2) {
+        return RETRYABLE_IFRAME_ERRORS.has(getErrorMessage(error2));
+      }
       async function getGeneratingAudioUrlsDataFromIframe(videoId, signal) {
+        const requestFromMainWorld = () => Promise.race([
+          getDownloadAudioDataInMainWorld({ videoId }, signal),
+          timeout(IFRAME_DATA_ATTEMPT_TIMEOUT_MS, GET_AUDIO_DATA_ERROR_MESSAGE)
+        ]);
         try {
-          return await Promise.race([
-            getDownloadAudioDataInMainWorld({ videoId }, signal),
-            timeout(2e4, GET_AUDIO_DATA_ERROR_MESSAGE)
-          ]);
+          return await requestFromMainWorld();
         } catch (err) {
-          const isTimeout = err instanceof Error && err.message === GET_AUDIO_DATA_ERROR_MESSAGE;
+          let finalError = err;
+          if (!signal.aborted && isRetryableIframeError(err)) {
+            await delay(IFRAME_DATA_RETRY_DELAY_MS);
+            try {
+              return await requestFromMainWorld();
+            } catch (retryError) {
+              finalError = retryError;
+            }
+          }
+          const isTimeout = getErrorMessage(finalError) === GET_AUDIO_DATA_ERROR_MESSAGE;
           throw new Error(
             isTimeout ? GET_AUDIO_DATA_ERROR_MESSAGE : "Audio downloader. WEB API. Failed to get audio data"
           );
@@ -10233,56 +10242,31 @@ clear() {
           isAcceptableLast
         };
       }
-      async function getAudioFromWebApiWithReplacedFetch({
+      async function getAudioFromWebApiWithReplacedFetchByParts({
         videoId,
-        returnByParts = false,
         signal
       }) {
-        const { requestInit, requestInfo, adaptiveFormat, itag } = await getGeneratingAudioUrlsDataFromIframe(videoId, signal);
-        if (!requestInfo) {
-          throw new Error("Audio downloader. WEB API. Can not get requestInfo");
+        const context = await createAudioFetchContext({ videoId, signal });
+        const chunkParts = getChunkRangesPartsFromAdaptiveFormat(
+          context.adaptiveFormat
+        );
+        if (!chunkParts.length) {
+          throw new Error("Audio downloader. WEB API. Empty chunk parts");
         }
-        let mediaUrl = getRequestUrl(requestInfo);
-        const serializedInit = serializeRequestInit(requestInfo);
-        const fallbackInit = deserializeRequestInit(serializedInit);
-        const finalRequestInit = normalizeRequestInit(requestInit, fallbackInit);
-        const chunkParts = returnByParts ? getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat) : null;
         return {
-          fileId: makeFileId(STRATEGY_TYPE, itag, adaptiveFormat.contentLength),
-          mediaPartsLength: chunkParts?.length ?? 1,
+          fileId: context.fileId,
+          mediaPartsLength: chunkParts.length,
           async *getMediaBuffers() {
-            if (returnByParts) {
-              if (!chunkParts?.length) {
-                throw new Error("Audio downloader. WEB API. Empty chunk parts");
-              }
-              for (const part of chunkParts) {
-                const { media, url, isAcceptableLast } = await fetchMediaWithMetaByChunkRanges(
-                  mediaUrl,
-                  finalRequestInit,
-                  part,
-                  signal
-                );
-                if (url) {
-                  mediaUrl = url;
-                }
-                yield media;
-                if (isAcceptableLast) {
-                  break;
-                }
-              }
-            } else {
-              const chunkRanges = getChunkRangesFromAdaptiveFormat(adaptiveFormat);
-              const { media } = await fetchMediaWithMetaByChunkRanges(
-                mediaUrl,
-                finalRequestInit,
-                chunkRanges,
-                signal
-              );
-              yield media;
-            }
+            yield* streamMediaByChunkParts(
+              context.mediaUrl,
+              context.requestInit,
+              chunkParts,
+              context.signal
+            );
           }
         };
       }
+      const getAudioFromWebApiWithReplacedFetch = getAudioFromWebApiWithReplacedFetchByParts;
       const strategies = {
         [AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME]: getAudioFromWebApiWithReplacedFetch
       };
@@ -10294,7 +10278,6 @@ clear() {
       }) {
         const audioData = await strategies[audioDownloader.strategy]({
           videoId,
-          returnByParts: true,
           signal
         });
         if (!audioData) {
@@ -10369,7 +10352,10 @@ clear() {
           this.strategy = strategy;
         }
         async runAudioDownload(videoId, translationId, signal) {
-          globalThis.addEventListener("message", mainWorldMessageHandler);
+          const messageListenerController = new AbortController();
+          globalThis.addEventListener("message", mainWorldMessageHandler, {
+            signal: messageListenerController.signal
+          });
           try {
             await handleCommonAudioDownloadRequest({
               audioDownloader: this,
@@ -10383,8 +10369,9 @@ clear() {
           } catch (err) {
             console.error("Audio downloader. Failed to download audio", err);
             this.onDownloadAudioError.dispatch(videoId);
+          } finally {
+            messageListenerController.abort();
           }
-          globalThis.removeEventListener("message", mainWorldMessageHandler);
         }
         addEventListener(type, listener) {
           switch (type) {
@@ -10610,7 +10597,11 @@ requestedFailAudio = new Set();
                 fileId
               }
             );
-          } catch {
+          } catch (error2) {
+            this.finishDownloadFailure(
+              new Error("Audio downloader failed while uploading full audio")
+            );
+            return;
           }
           this.finishDownloadSuccess();
         };
@@ -10634,7 +10625,7 @@ requestedFailAudio = new Set();
                 version
               }
             );
-          } catch {
+          } catch (error2) {
             this.finishDownloadFailure(
               new Error("Audio downloader failed while uploading chunk")
             );
@@ -10723,7 +10714,7 @@ isLivelyVoiceUnavailableError(value) {
             }
           });
         }
-        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = new AbortController().signal, disableLivelyVoice = false) {
+        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false) {
           clearTimeout(this.videoHandler.autoRetry);
           this.finishDownloadSuccess();
           const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
@@ -10883,11 +10874,10 @@ isLivelyVoiceUnavailableError(value) {
               }
             };
             this.downloadWaiters.add(entry);
+            signal.addEventListener("abort", onAbort, { once: true });
             if (signal.aborted) {
               onAbort();
-              return;
             }
-            signal.addEventListener("abort", onAbort, { once: true });
           });
         }
         resolveDownloadWaiters() {
@@ -11259,7 +11249,7 @@ isLivelyVoiceUnavailableError(value) {
             return void 0;
           }
         }
-        async translateMultiple(text2, lang2, service) {
+        async translateMultiple(text, lang2, service) {
           const result = await this.request(
             "/translate",
             {
@@ -11268,28 +11258,28 @@ isLivelyVoiceUnavailableError(value) {
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
-                text: text2,
+                text,
                 lang: lang2,
                 service
               })
             }
           );
-          return result ? result.translations : text2;
+          return result ? result.translations : text;
         }
-        async translate(text2, lang2, service) {
+        async translate(text, lang2, service) {
           const result = await this.request(
             `/translate?${new URLSearchParams({
-        text: text2,
+        text,
         lang: lang2,
         service
       })}`
           );
-          return result ? result.translations[0] : text2;
+          return result ? result.translations[0] : text;
         }
-        async detect(text2, service) {
+        async detect(text, service) {
           const result = await this.request(
             `/detect?${new URLSearchParams({
-        text: text2,
+        text,
         service
       })}`
           );
@@ -11297,11 +11287,11 @@ isLivelyVoiceUnavailableError(value) {
         }
       }();
       const RustServerAPI = {
-        async detect(text2) {
+        async detect(text) {
           try {
             const response = await GM_fetch(detectRustServerUrl, {
               method: "POST",
-              body: text2,
+              body: text,
               timeout: 3e3
             });
             return await response.text();
@@ -11313,26 +11303,26 @@ isLivelyVoiceUnavailableError(value) {
           }
         }
       };
-      async function translate(text2, fromLang = "", toLang = "ru") {
+      async function translate(text, fromLang = "", toLang = "ru") {
         const service = await getTranslationServiceCached();
         switch (service) {
           case "yandexbrowser":
           case "msedge": {
             const langPair = fromLang && toLang ? `${fromLang}-${toLang}` : toLang;
-            return Array.isArray(text2) ? await FOSWLYTranslateAPI.translateMultiple(text2, langPair, service) : await FOSWLYTranslateAPI.translate(text2, langPair, service);
+            return Array.isArray(text) ? await FOSWLYTranslateAPI.translateMultiple(text, langPair, service) : await FOSWLYTranslateAPI.translate(text, langPair, service);
           }
           default:
-            return text2;
+            return text;
         }
       }
-      async function detect(text2) {
+      async function detect(text) {
         const service = await getDetectServiceCached();
         switch (service) {
           case "yandexbrowser":
           case "msedge":
-            return await FOSWLYTranslateAPI.detect(text2, service);
+            return await FOSWLYTranslateAPI.detect(text, service);
           case "rust-server":
-            return await RustServerAPI.detect(text2);
+            return await RustServerAPI.detect(text);
           default:
             return "en";
         }
@@ -11428,6 +11418,9 @@ isLivelyVoiceUnavailableError(value) {
         zdf: "de"
       };
       const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
+      const REQUEST_LANG_SET = new Set(
+        availableLangs
+      );
       function pickFirstNonEmptyString(...values) {
         for (const value of values) {
           if (typeof value !== "string") continue;
@@ -11441,7 +11434,7 @@ isLivelyVoiceUnavailableError(value) {
       function normalizeToRequestLang(value) {
         if (typeof value !== "string") return void 0;
         const normalized = value.toLowerCase().split(/[-_]/)[0];
-        return availableLangs.includes(normalized) ? normalized : void 0;
+        return REQUEST_LANG_SET.has(normalized) ? normalized : void 0;
       }
       function isResolvedLanguage(value) {
         return Boolean(value && value !== "auto");
@@ -11484,13 +11477,13 @@ isLivelyVoiceUnavailableError(value) {
         constructor(videoHandler) {
           this.videoHandler = videoHandler;
         }
-        async detectLanguageSingleFlight(videoId, text2) {
+        async detectLanguageSingleFlight(videoId, text) {
           const inFlightDetect = this.detectInFlightByVideoId.get(videoId);
           if (inFlightDetect !== void 0) {
-            return await inFlightDetect;
+            return inFlightDetect;
           }
           const task = (async () => {
-            const language = normalizeToRequestLang(await detect(text2));
+            const language = normalizeToRequestLang(await detect(text));
             return isResolvedLanguage(language) ? language : void 0;
           })();
           this.detectInFlightByVideoId.set(videoId, task);
@@ -11522,11 +11515,13 @@ isLivelyVoiceUnavailableError(value) {
           });
           const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
           let detectedLanguage = normalizedPossibleLanguage ?? "auto";
-          if (!normalizedPossibleLanguage && text) {
-            const text2 = buildDetectText(title, localizedTitle, description);
-            const language = await this.detectLanguageSingleFlight(videoId, text2);
-            if (language) {
-              detectedLanguage = language;
+          if (!normalizedPossibleLanguage) {
+            const text = buildDetectText(title, localizedTitle, description);
+            if (text) {
+              const language = await this.detectLanguageSingleFlight(videoId, text);
+              if (language) {
+                detectedLanguage = language;
+              }
             }
           }
           const hostDetectedLanguage = resolveHostDetectedLanguage(
@@ -12877,11 +12872,11 @@ updateMount({
       const getWordPayload = (tokens, words, wordIndex) => {
         const word = words[wordIndex];
         if (!word) return "";
-        let text2 = "";
+        let text = "";
         for (let tokenIndex = word.tokenIndex; tokenIndex <= word.breakAfterTokenIndex; tokenIndex += 1) {
-          text2 += tokens[tokenIndex]?.text ?? "";
+          text += tokens[tokenIndex]?.text ?? "";
         }
-        return text2.trimEnd();
+        return text.trimEnd();
       };
       const applySentenceBoundarySplits = (wordRanges, tokens, words, isRangeAllowed) => {
         for (let i2 = 0; i2 < wordRanges.length - 1; i2 += 1) {
@@ -13736,7 +13731,7 @@ bottomInsetByMode = {
           }
           const metrics = measureWordSlices(
             wordSlices,
-            (text2) => ctx.measureText(text2).width
+            (text) => ctx.measureText(text).width
           );
           const memo = {
             key,
@@ -13813,18 +13808,18 @@ bottomInsetByMode = {
             tokens.slice(seg.startToken, seg.endToken)
           );
         }
-        async translateStrTokens(text2) {
+        async translateStrTokens(text) {
           const fromLang = this.subtitleLang ?? "";
           const toLang = localizationProvider.lang;
           if (this.strTranslatedTokens) {
-            const translated2 = await translate(text2, fromLang, toLang);
+            const translated2 = await translate(text, fromLang, toLang);
             return [
               this.strTranslatedTokens,
               typeof translated2 === "string" ? translated2 : ""
             ];
           }
           const translated = await translate(
-            [this.strTokens, text2],
+            [this.strTokens, text],
             fromLang,
             toLang
           );
@@ -13924,10 +13919,10 @@ bottomInsetByMode = {
           }
           this.releaseTooltip();
           const requestId = this.tooltipTranslationRequestId;
-          const text2 = this.normalizeTokenTextForTranslation(
+          const text = this.normalizeTokenTextForTranslation(
             target.textContent ?? ""
           );
-          if (!text2) return;
+          if (!text) return;
           const service = await votStorage.get(
             "translationService",
             defaultTranslationService
@@ -13935,7 +13930,7 @@ bottomInsetByMode = {
           if (requestId !== this.tooltipTranslationRequestId) return;
           target.classList.add("selected");
           const subtitlesInfo = UI.createSubtitleInfo(
-            text2,
+            text,
             this.strTranslatedTokens || this.strTokens,
             service
           );
@@ -13954,7 +13949,7 @@ bottomInsetByMode = {
           this.tokenTooltip = tooltip;
           tooltip.onClick();
           const strTokens = this.strTokens;
-          const translated = await this.translateStrTokens(text2);
+          const translated = await this.translateStrTokens(text);
           if (requestId !== this.tooltipTranslationRequestId) return;
           if (strTokens !== this.strTokens || this.tokenTooltip !== tooltip || tooltip.target !== target || !tooltip.showed)
             return;
@@ -13992,14 +13987,14 @@ bottomInsetByMode = {
               continue;
             }
             if (token.isWordLike) {
-              let text2 = token.text;
+              let text = token.text;
               let endIndex = i2;
               const hasBreakAfterWord = Boolean(breakAfter?.has(i2));
               let breakTokenIndex = hasBreakAfterWord ? i2 : null;
               while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
                 const next = tokens[endIndex + 1];
                 if (!next || next.isWordLike) break;
-                text2 += next.text;
+                text += next.text;
                 endIndex += 1;
                 if (breakAfter?.has(endIndex)) {
                   breakTokenIndex = endIndex;
@@ -14009,7 +14004,7 @@ bottomInsetByMode = {
               out.push(
                 b`<span
             data-vot-token="1"
-            >${text2}</span
+            >${text}</span
           >`
               );
               if (breakTokenIndex !== null) {
@@ -14825,19 +14820,19 @@ _labelText;
         }
         createElements() {
           const container = UI.createEl("vot-block", ["vot-label"]);
-          const text2 = UI.createEl("span", ["vot-label-text"]);
-          text2.textContent = this._labelText;
+          const text = UI.createEl("span", ["vot-label-text"]);
+          text.textContent = this._labelText;
           const icon = UI.createEl("span", ["vot-label-icon"]);
           if (this._icon) {
             D(this._icon, icon);
           } else {
             icon.hidden = true;
           }
-          container.append(text2, icon);
+          container.append(text, icon);
           return {
             container,
             icon,
-            text: text2
+            text
           };
         }
         set hidden(isHidden) {
@@ -15214,8 +15209,8 @@ set value(val) {
         get placeholder() {
           return this._placeholder;
         }
-        set placeholder(text2) {
-          this.input.placeholder = this._placeholder = text2;
+        set placeholder(text) {
+          this.input.placeholder = this._placeholder = text;
         }
         get disabled() {
           return this.input.disabled;
@@ -15710,15 +15705,15 @@ set value(val) {
         }
         createElements() {
           const container = UI.createEl("vot-block", ["vot-slider-label"]);
-          const text2 = UI.createEl("span", ["vot-slider-label-text"]);
-          text2.textContent = this.labelText;
+          const text = UI.createEl("span", ["vot-slider-label-text"]);
+          text.textContent = this.labelText;
           const strong = UI.createEl("span", ["vot-slider-label-value"]);
           strong.textContent = this.valueText;
-          container.append(text2, strong);
+          container.append(text, strong);
           return {
             container,
             strong,
-            text: text2
+            text
           };
         }
         get labelText() {
@@ -20921,18 +20916,18 @@ votSettingsView;
           }
           return this;
         }
-        isLoadingText(text2) {
+        isLoadingText(text) {
           const delayed = localizationProvider.get("TranslationDelayed");
-          return typeof text2 === "string" && (text2.includes(localizationProvider.get("translationTake")) || (delayed ? text2.includes(delayed) : false));
+          return typeof text === "string" && (text.includes(localizationProvider.get("translationTake")) || (delayed ? text.includes(delayed) : false));
         }
-        transformBtn(status, text2) {
+        transformBtn(status, text) {
           if (!this.votOverlayView?.isInitialized()) {
             throw new Error("[VOT] OverlayView isn't initialized");
           }
           this.votOverlayView.votButton.status = status;
-          this.votOverlayView.votButton.loading = status === "error" && this.isLoadingText(text2);
-          this.votOverlayView.votButton.setText(text2);
-          this.votOverlayView.votButtonTooltip.setContent(text2);
+          this.votOverlayView.votButton.loading = status === "error" && this.isLoadingText(text);
+          this.votOverlayView.votButton.setText(text);
+          this.votOverlayView.votButtonTooltip.setContent(text);
           return this;
         }
         releaseUI(initialized = false) {
@@ -21069,8 +21064,8 @@ queueAutoHide() {
           if (!this.show()) {
             return;
           }
-          const delay = this.deps.getAutoHideDelay();
-          this.hideDeadlineMs = this.nowMs() + Math.max(0, delay);
+          const delay2 = this.deps.getAutoHideDelay();
+          this.hideDeadlineMs = this.nowMs() + Math.max(0, delay2);
           this.hideArmed = true;
           this.deps.checker.markActivity("overlay-queue-hide");
           this.deps.checker.requestImmediateTick();
@@ -21359,13 +21354,13 @@ scheduleHide(event) {
           }
         }
         translationCompleted(host) {
-          const text2 = safeL10n(
+          const text = safeL10n(
             "VOTTranslationCompletedNotify",
             "The translation on the {0} has been completed!"
           ).replace("{0}", host);
           this.send(
             {
-              text: text2,
+              text,
               title: getScriptTitle(),
               timeout: 5e3,
               silent: true,
@@ -21910,9 +21905,49 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           ...overrides
         };
       }
+      function mergeListenerSignals(primary, secondary) {
+        if (!secondary || secondary === primary) {
+          return primary;
+        }
+        if (primary.aborted) {
+          return primary;
+        }
+        if (secondary.aborted) {
+          return secondary;
+        }
+        const canCombine = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
+        if (canCombine) {
+          return AbortSignal.any([primary, secondary]);
+        }
+        const controller = new AbortController();
+        const cleanup = () => {
+          primary.removeEventListener("abort", onPrimaryAbort);
+          secondary.removeEventListener("abort", onSecondaryAbort);
+        };
+        const onPrimaryAbort = () => {
+          cleanup();
+          controller.abort(primary.reason);
+        };
+        const onSecondaryAbort = () => {
+          cleanup();
+          controller.abort(secondary.reason);
+        };
+        primary.addEventListener("abort", onPrimaryAbort, { once: true });
+        secondary.addEventListener("abort", onSecondaryAbort, { once: true });
+        return controller.signal;
+      }
       function createScopedListeners(signal) {
         const add = (element, event, handler, options) => {
-          element.addEventListener(event, handler, { signal, ...options });
+          const mergedSignal = mergeListenerSignals(signal, options?.signal);
+          if (!options) {
+            element.addEventListener(event, handler, { signal: mergedSignal });
+            return;
+          }
+          const { signal: _ignoredSignal, ...restOptions } = options;
+          element.addEventListener(event, handler, {
+            ...restOptions,
+            signal: mergedSignal
+          });
         };
         const addMany = (element, events, handler, options) => {
           for (const event of events) {
@@ -22247,8 +22282,8 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         return buttonContainer instanceof Node && buttonContainer.contains(node) || menuContainer instanceof Node && menuContainer.contains(node);
       }
       function getAutoHideDelay() {
-        const delay = this.data?.autoHideButtonDelay;
-        return typeof delay === "number" && Number.isFinite(delay) ? delay : defaultAutoHideDelay;
+        const delay2 = this.data?.autoHideButtonDelay;
+        return typeof delay2 === "number" && Number.isFinite(delay2) ? delay2 : defaultAutoHideDelay;
       }
       function releaseExtraEvents() {
         this.resizeObserver?.disconnect();
@@ -22404,10 +22439,10 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         segmenterCache.set(cacheKey, segmenter);
         return segmenter;
       };
-      const segmentTextFallback = (text2) => {
+      const segmentTextFallback = (text) => {
         const result = [];
         splitTextRegexp.lastIndex = 0;
-        for (const match of text2.matchAll(splitTextRegexp)) {
+        for (const match of text.matchAll(splitTextRegexp)) {
           const segment = match[0];
           if (!segment) continue;
           result.push({
@@ -22418,13 +22453,13 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         }
         return result;
       };
-      const segmentText = (text2, locale) => {
-        if (!text2) return [];
+      const segmentText = (text, locale) => {
+        if (!text) return [];
         const segmenter = getSegmenter(locale);
         if (!segmenter) {
-          return segmentTextFallback(text2);
+          return segmentTextFallback(text);
         }
-        const segments = segmenter.segment(text2);
+        const segments = segmenter.segment(text);
         const result = [];
         for (const part of segments) {
           result.push({
@@ -22552,9 +22587,9 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         });
         return ranked.map((entry) => entry.descriptor);
       };
-      const resolveTokenWordLike = (value, text2) => {
+      const resolveTokenWordLike = (value, text) => {
         if (typeof value === "boolean") return value;
-        return Boolean(text2.trim());
+        return Boolean(text.trim());
       };
       const sanitizeToken = (token) => {
         if (!token || typeof token !== "object") {
@@ -22566,12 +22601,12 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           };
         }
         const raw = token;
-        const text2 = typeof raw.text === "string" ? raw.text : "";
+        const text = typeof raw.text === "string" ? raw.text : "";
         return {
-          text: text2,
+          text,
           startMs: typeof raw.startMs === "number" ? raw.startMs : 0,
           durationMs: typeof raw.durationMs === "number" ? raw.durationMs : 0,
-          isWordLike: resolveTokenWordLike(raw.isWordLike, text2)
+          isWordLike: resolveTokenWordLike(raw.isWordLike, text)
         };
       };
       const sanitizeLine = (line) => {
@@ -22611,7 +22646,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           template.innerHTML = value;
           return template.content.textContent ?? "";
         }
-        return value.replace(/<\/?[^>]+>/gu, "");
+        return value.replaceAll(/<\/?[^>]+>/gu, "");
       };
       const getYoutubeEventDurationMs = (event, nextEvent) => {
         if (!nextEvent) return Math.max(0, event.dDurationMs);
@@ -22622,7 +22657,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       };
       const buildYoutubeSourceTokens = (event, segs, durationMs) => {
         const sourceTokens = [];
-        let text2 = "";
+        let text = "";
         let remainingDuration = durationMs;
         for (let j = 0; j < segs.length; j += 1) {
           const segment = segs[j];
@@ -22646,9 +22681,9 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             durationMs: tokenDuration,
             isWordLike: Boolean(rawText.trim())
           });
-          text2 += rawText;
+          text += rawText;
         }
-        return { text: text2, sourceTokens };
+        return { text, sourceTokens };
       };
       const hasPositiveDuration = (token) => token.durationMs > 0;
       const normalizeLineText = (line) => {
@@ -22659,7 +22694,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       const allocateTimingsByLength = (texts, startMs, durationMs) => {
         if (!texts.length) return [];
         const safeDuration = Math.max(0, durationMs);
-        const weights = texts.map((text2) => Math.max(text2.length, 1));
+        const weights = texts.map((text) => Math.max(text.length, 1));
         const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
         const prefixWeights = new Array(weights.length + 1).fill(0);
         for (let i2 = 0; i2 < weights.length; i2 += 1) {
@@ -22735,8 +22770,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       const fetchRawSubtitles = async (url, format) => {
         const response = await GM_fetch(url, { timeout: 7e3 });
         if (format === "vtt" || format === "srt") {
-          const text2 = await response.text();
-          return convertSubs(text2, "json");
+          const text = await response.text();
+          return convertSubs(text, "json");
         }
         return response.json();
       };
@@ -22784,17 +22819,17 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         processTokens(subtitles, descriptor) {
           const lines = [];
           for (const line of subtitles.subtitles) {
-            const text2 = normalizeLineText(line);
+            const text = normalizeLineText(line);
             const tokens = buildLineTokens(
               {
                 ...line,
-                text: text2
+                text
               },
               descriptor
             );
             lines.push({
               ...line,
-              text: text2,
+              text,
               tokens
             });
           }
@@ -22813,12 +22848,12 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             if (!segs?.length) continue;
             const nextEvent = events[i2 + 1];
             const durationMs = getYoutubeEventDurationMs(event, nextEvent);
-            const { text: text2, sourceTokens } = buildYoutubeSourceTokens(
+            const { text, sourceTokens } = buildYoutubeSourceTokens(
               event,
               segs,
               durationMs
             );
-            const normalizedText = text2.trim();
+            const normalizedText = text.trim();
             if (!normalizedText) continue;
             processed.push({
               text: normalizedText,
@@ -22831,8 +22866,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           return { subtitles: processed };
         },
         cleanJsonSubtitles(subtitles) {
-          const normalizeText = (value) => stripHtmlToText(value.replace(VK_INLINE_TIMESTAMP_RE, "")).replace(/\s+([,.:;!?])/gu, "$1").replace(/[ \t]*\n[ \t]*/gu, "\n").replace(/[ \t]{2,}/gu, " ").replace(/\n{3,}/gu, "\n\n").trim();
-          const normalizeComparable = (value) => value.toLowerCase().replace(/\s+/gu, " ").trim();
+          const normalizeText = (value) => stripHtmlToText(value.replaceAll(VK_INLINE_TIMESTAMP_RE, "")).replaceAll(/\s+([,.:;!?])/gu, "$1").replaceAll(/[ \t]*\n[ \t]*/gu, "\n").replaceAll(/[ \t]{2,}/gu, " ").replaceAll(/\n{3,}/gu, "\n\n").trim();
+          const normalizeComparable = (value) => value.toLowerCase().replaceAll(/\s+/gu, " ").trim();
           const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
           const tokensTextLength = (tokens) => tokens.reduce((sum, token) => sum + token.text.length, 0);
           const cleanedLines = subtitles.subtitles.map((line) => ({
@@ -23724,9 +23759,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           case "noop":
             writeSmartDuckingRuntime(handler, decision.runtime);
             return;
-          default: {
+          default:
             throw new TypeError("Unhandled smart ducking decision");
-          }
         }
       }
       async function validateAudioUrl(audioUrl, actionContext) {
@@ -24531,8 +24565,8 @@ initVOTClient() {
           this.votClient = new (this.data?.translateProxyEnabled ? VOTWorkerClient2 : VOTClient2)(this.votOpts);
           return this;
         }
-transformBtn(status, text2) {
-          this.uiManager.transformBtn(status, text2);
+transformBtn(status, text) {
+          this.uiManager.transformBtn(status, text);
           return this;
         }
 hasActiveSource() {
@@ -24676,7 +24710,7 @@ async videoValidator() {
           return await this.videoManager.videoValidator();
         }
 stopTranslate() {
-          if (this.stopTranslatePromise) {
+          if (this.stopTranslatePromise !== null) {
             return this.stopTranslatePromise;
           }
           const cleanup = async () => {
