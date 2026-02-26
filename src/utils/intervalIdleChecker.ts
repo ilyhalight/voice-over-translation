@@ -9,10 +9,24 @@ export type IntervalIdleTickContext = {
 };
 
 export type IntervalIdleProfile = {
-  activeIntervalMs: number;
-  idleIntervalMs: number;
-  hiddenIntervalMs: number;
+  /**
+   * Polling interval used by the checker loop.
+   * Mirrors the fixed `IDLE_CHECK_INTERVAL_MS` approach from `app.js`.
+   */
+  checkIntervalMs: number;
+  /**
+   * Inactivity threshold after which mode switches to `"idle"`.
+   */
   idleAfterMs: number;
+  /**
+   * @deprecated Legacy aliases kept for backward compatibility with previous
+   * adaptive scheduler config. Used only when `checkIntervalMs` is omitted.
+   */
+  activeIntervalMs?: number;
+  /** @deprecated See `activeIntervalMs`. */
+  idleIntervalMs?: number;
+  /** @deprecated See `activeIntervalMs`. */
+  hiddenIntervalMs?: number;
 };
 
 type IntervalIdleSubscriber = (ctx: IntervalIdleTickContext) => void;
@@ -23,6 +37,7 @@ type IntervalIdleRuntime = {
   clearInterval: typeof clearInterval;
   queueMicrotask: (fn: () => void) => void;
   isDocumentHidden: () => boolean;
+  onVisibilityChange: (listener: () => void) => () => void;
 };
 
 type IntervalIdleCheckerOptions = {
@@ -31,11 +46,72 @@ type IntervalIdleCheckerOptions = {
 };
 
 const DEFAULT_PROFILE: IntervalIdleProfile = {
-  activeIntervalMs: 16,
-  idleIntervalMs: 120,
-  hiddenIntervalMs: 250,
+  checkIntervalMs: 250,
   idleAfterMs: 180,
 };
+
+function normalizePositiveMs(
+  value: number | undefined,
+  fallback: number,
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(1, Math.trunc(value));
+}
+
+function normalizeNonNegativeMs(
+  value: number | undefined,
+  fallback: number,
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(0, Math.trunc(value));
+}
+
+function normalizeOptionalPositiveMs(value: number | undefined): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  return Math.max(1, Math.trunc(value));
+}
+
+function resolveLegacyCheckIntervalMs(
+  profile: Partial<IntervalIdleProfile>,
+): number | null {
+  // Prefer `hiddenIntervalMs` because the old defaults used it as the most
+  // conservative cadence and it matches the interval-checker strategy best.
+  const hidden = normalizeOptionalPositiveMs(profile.hiddenIntervalMs);
+  if (hidden !== null) {
+    return hidden;
+  }
+  const idle = normalizeOptionalPositiveMs(profile.idleIntervalMs);
+  if (idle !== null) {
+    return idle;
+  }
+  const active = normalizeOptionalPositiveMs(profile.activeIntervalMs);
+  if (active !== null) {
+    return active;
+  }
+  return null;
+}
+
+function normalizeProfile(
+  profile: Partial<IntervalIdleProfile> = {},
+): IntervalIdleProfile {
+  const legacyCheckIntervalMs = resolveLegacyCheckIntervalMs(profile);
+  return {
+    checkIntervalMs: normalizePositiveMs(
+      profile.checkIntervalMs,
+      legacyCheckIntervalMs ?? DEFAULT_PROFILE.checkIntervalMs,
+    ),
+    idleAfterMs: normalizeNonNegativeMs(
+      profile.idleAfterMs,
+      DEFAULT_PROFILE.idleAfterMs,
+    ),
+  };
+}
 
 function getDefaultRuntime(): IntervalIdleRuntime {
   return {
@@ -47,19 +123,31 @@ function getDefaultRuntime(): IntervalIdleRuntime {
     setInterval: globalThis.setInterval.bind(globalThis),
     clearInterval: globalThis.clearInterval.bind(globalThis),
     queueMicrotask: (fn) => {
-      if (typeof queueMicrotask === "function") {
-        queueMicrotask(fn);
+      if (typeof globalThis.queueMicrotask === "function") {
+        globalThis.queueMicrotask(fn);
         return;
       }
-      void (async () => {
-        await Promise.resolve();
-        fn();
-      })();
+      Promise.resolve().then(fn);
     },
     isDocumentHidden: () =>
       typeof document !== "undefined" && typeof document.hidden === "boolean"
         ? document.hidden
         : false,
+    onVisibilityChange: (listener) => {
+      if (
+        typeof document === "undefined" ||
+        typeof document.addEventListener !== "function"
+      ) {
+        return () => undefined;
+      }
+
+      document.addEventListener("visibilitychange", listener);
+      return () => {
+        if (typeof document.removeEventListener === "function") {
+          document.removeEventListener("visibilitychange", listener);
+        }
+      };
+    },
   };
 }
 
@@ -68,18 +156,28 @@ export class IntervalIdleChecker {
   private readonly runtime: IntervalIdleRuntime;
   private readonly subscribers = new Set<IntervalIdleSubscriber>();
 
-  private timerId: ReturnType<typeof setInterval> | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private unsubscribeVisibilityChange: (() => void) | null = null;
   private running = false;
   private destroyed = false;
   private immediateQueued = false;
   private currentMode: IntervalIdleMode = "active";
   private lastActivityAt: number;
 
+  private readonly onVisibilityChangeHandler = (): void => {
+    if (this.destroyed || !this.running) return;
+
+    if (this.runtime.isDocumentHidden()) {
+      this.clearIntervalTimer();
+    } else {
+      this.armInterval();
+    }
+
+    this.requestImmediateTick();
+  };
+
   constructor(options: IntervalIdleCheckerOptions = {}) {
-    this.profile = {
-      ...DEFAULT_PROFILE,
-      ...options.profile,
-    };
+    this.profile = normalizeProfile(options.profile);
     this.runtime = {
       ...getDefaultRuntime(),
       ...options.runtime,
@@ -91,14 +189,17 @@ export class IntervalIdleChecker {
     if (this.destroyed || this.running) return;
     this.running = true;
     this.lastActivityAt = this.runtime.nowMs();
+    this.subscribeVisibilityChange();
+    this.armInterval();
     this.runTick("start");
   }
 
   stop(): void {
     if (!this.running) return;
     this.running = false;
-    this.clearTimer();
+    this.clearIntervalTimer();
     this.immediateQueued = false;
+    this.unsubscribeFromVisibilityChange();
   }
 
   destroy(): void {
@@ -124,10 +225,7 @@ export class IntervalIdleChecker {
     if (!this.running) return;
 
     const nextMode = this.resolveMode(this.lastActivityAt);
-    if (nextMode !== this.currentMode) {
-      this.currentMode = nextMode;
-      this.restartTimer(nextMode);
-    }
+    if (nextMode !== this.currentMode) this.currentMode = nextMode;
   }
 
   requestImmediateTick(): void {
@@ -148,33 +246,26 @@ export class IntervalIdleChecker {
     return inactiveFor >= this.profile.idleAfterMs ? "idle" : "active";
   }
 
-  private intervalForMode(mode: IntervalIdleMode): number {
-    if (mode === "hidden") return this.profile.hiddenIntervalMs;
-    if (mode === "idle") return this.profile.idleIntervalMs;
-    return this.profile.activeIntervalMs;
+  private clearIntervalTimer(): void {
+    if (this.intervalId === null) return;
+    this.runtime.clearInterval(this.intervalId);
+    this.intervalId = null;
   }
 
-  private clearTimer(): void {
-    if (this.timerId === null) return;
-    this.runtime.clearInterval(this.timerId);
-    this.timerId = null;
-  }
-
-  private restartTimer(mode: IntervalIdleMode): void {
-    this.clearTimer();
-    const intervalMs = Math.max(1, this.intervalForMode(mode));
-    this.timerId = this.runtime.setInterval(() => {
+  private armInterval(): void {
+    if (this.intervalId !== null) return;
+    this.intervalId = this.runtime.setInterval(() => {
       this.runTick("interval");
-    }, intervalMs);
+    }, this.profile.checkIntervalMs);
   }
 
   private runTick(source: IntervalIdleTickSource): void {
+    if (this.destroyed || !this.running) return;
+    if (this.subscribers.size === 0) return;
+
     const nowMs = this.runtime.nowMs();
     const nextMode = this.resolveMode(nowMs);
-    if (nextMode !== this.currentMode || this.timerId === null) {
-      this.currentMode = nextMode;
-      this.restartTimer(nextMode);
-    }
+    if (nextMode !== this.currentMode) this.currentMode = nextMode;
 
     const ctx: IntervalIdleTickContext = {
       nowMs,
@@ -189,6 +280,19 @@ export class IntervalIdleChecker {
         // Never allow one subscriber to break the scheduler loop.
       }
     }
+  }
+
+  private subscribeVisibilityChange(): void {
+    if (this.unsubscribeVisibilityChange !== null) return;
+    this.unsubscribeVisibilityChange = this.runtime.onVisibilityChange(
+      this.onVisibilityChangeHandler,
+    );
+  }
+
+  private unsubscribeFromVisibilityChange(): void {
+    if (this.unsubscribeVisibilityChange === null) return;
+    this.unsubscribeVisibilityChange();
+    this.unsubscribeVisibilityChange = null;
   }
 }
 

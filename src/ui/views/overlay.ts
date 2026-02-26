@@ -27,6 +27,8 @@ import VOTMenu from "../components/votMenu";
 import { SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
 
 export class OverlayView {
+  private static readonly BIG_CONTAINER_WIDTH_PX = 550;
+
   mount: OverlayMount;
   globalPortal: HTMLElement;
   private abortController: AbortController | null = null;
@@ -191,7 +193,7 @@ export class OverlayView {
   }
 
   calcButtonLayout(position: Position): ButtonLayout {
-    if (this.isBigContainer && ["left", "right"].includes(position)) {
+    if (this.isBigContainer && isSidePosition(position)) {
       return {
         direction: "column",
         position,
@@ -427,6 +429,8 @@ export class OverlayView {
         handler();
       }
     };
+    const isPrimaryActionPointer = (event: PointerEvent) =>
+      event.isPrimary && event.button === 0;
 
     // Quick settings popover state helpers.
     const setMenuOpen = (
@@ -460,7 +464,8 @@ export class OverlayView {
 
     this.votButton.translateButton.addEventListener(
       "pointerdown",
-      () => {
+      (event) => {
+        if (!isPrimaryActionPointer(event)) return;
         closeMenu();
         this.events["click:translate"].dispatch();
       },
@@ -478,7 +483,8 @@ export class OverlayView {
 
     this.votButton.pipButton.addEventListener(
       "pointerdown",
-      () => {
+      (event) => {
+        if (!isPrimaryActionPointer(event)) return;
         closeMenu();
         this.events["click:pip"].dispatch();
       },
@@ -496,6 +502,7 @@ export class OverlayView {
     this.votButton.menuButton.addEventListener(
       "pointerdown",
       (e) => {
+        if (!isPrimaryActionPointer(e)) return;
         e.preventDefault();
         toggleMenu();
       },
@@ -659,6 +666,10 @@ export class OverlayView {
       (language) => {
         if (this.videoHandler?.videoData) {
           this.videoHandler.videoData.detectedLanguage = language;
+          this.videoHandler.videoManager.rememberUserLanguageSelection(
+            this.videoHandler.videoData.videoId,
+            language,
+          );
         }
         this.events["select:fromLanguage"].dispatch(language);
       },
@@ -672,8 +683,10 @@ export class OverlayView {
             this.videoHandler.videoData.responseLanguage = language;
         }
         const prevResponseLanguage = this.data.responseLanguage;
-        this.data.responseLanguage = language;
-        await votStorage.set("responseLanguage", this.data.responseLanguage);
+        if (prevResponseLanguage !== language) {
+          this.data.responseLanguage = language;
+          await votStorage.set("responseLanguage", this.data.responseLanguage);
+        }
 
         // UX: keep the "Don't translate from selected languages" list in sync
         // with the selected response language, but only while the list still
@@ -682,6 +695,7 @@ export class OverlayView {
           this.data.enabledDontTranslateLanguages &&
           Array.isArray(this.data.dontTranslateLanguages) &&
           this.data.dontTranslateLanguages.length === 1 &&
+          prevResponseLanguage !== language &&
           typeof prevResponseLanguage === "string" &&
           this.data.dontTranslateLanguages[0] === prevResponseLanguage
         ) {
@@ -709,16 +723,20 @@ export class OverlayView {
         return;
       }
 
+      const prevLoading = this.votButton?.loading ?? false;
       if (this.votButton) {
         this.votButton.loading = true;
       }
       const loadingEl = ui.createInlineLoader();
       loadingEl.style.margin = "0 auto";
       dialog.footerContainer.appendChild(loadingEl);
-      await this.videoHandler.loadSubtitles();
-      loadingEl.remove();
-      if (this.votButton) {
-        this.votButton.loading = false;
+      try {
+        await this.videoHandler.loadSubtitles();
+      } finally {
+        loadingEl.remove();
+        if (this.votButton) {
+          this.votButton.loading = prevLoading;
+        }
       }
     });
 
@@ -743,8 +761,10 @@ export class OverlayView {
         if (this.translationVolumeSliderLabel) {
           this.translationVolumeSliderLabel.value = value;
         }
-        this.data.defaultVolume = value;
-        this.scheduleDefaultVolumePersist();
+        if (this.data.defaultVolume !== value) {
+          this.data.defaultVolume = value;
+          this.scheduleDefaultVolumePersist();
+        }
         if (fromSetter) {
           return;
         }
@@ -792,6 +812,58 @@ export class OverlayView {
     return this;
   }
 
+  private startDragSession(
+    clientX: number,
+    clientY: number,
+    activitySource: string,
+  ): void {
+    this.dragCandidate = true;
+    this.dragging = false;
+    this.dragStartX = clientX;
+    this.dragStartY = clientY;
+    this.currentClientX = clientX;
+
+    this.containerRect = this.root.getBoundingClientRect();
+    this.dragIsBigContainer = this.isBigContainer;
+    this.dragDirty = false;
+    this.intervalIdleChecker.markActivity(activitySource);
+    this.intervalIdleChecker.requestImmediateTick();
+  }
+
+  private queueDragTick(activitySource: string): void {
+    if (this.dragDirty) {
+      return;
+    }
+
+    this.dragDirty = true;
+    this.intervalIdleChecker.markActivity(activitySource);
+    this.intervalIdleChecker.requestImmediateTick();
+  }
+
+  private updateDragFromMove(
+    clientX: number,
+    clientY: number,
+    activitySource: string,
+  ): void {
+    this.currentClientX = clientX;
+
+    if (!this.dragCandidate) return;
+
+    if (!this.dragging) {
+      const dx = Math.abs(this.currentClientX - this.dragStartX);
+      const dy = Math.abs(clientY - this.dragStartY);
+      if (dx + dy >= this.dragThresholdPx) {
+        this.dragging = true;
+      }
+    }
+
+    if (!this.dragging) {
+      return;
+    }
+
+    this.queueDragTick(activitySource);
+  }
+
   onDragStart = (event: PointerEvent) => {
     // Only start drag on the primary pointer and the "primary" button.
     // (For touch pointers, `button` is 0.)
@@ -803,19 +875,11 @@ export class OverlayView {
 
     event.preventDefault();
 
-    this.dragCandidate = true;
-    this.dragging = false;
-    this.dragStartX = event.clientX;
-    this.dragStartY = event.clientY;
-    this.currentClientX = event.clientX;
+    this.startDragSession(event.clientX, event.clientY, "overlay-pointer-down");
 
-    this.containerRect = this.root.getBoundingClientRect();
-    this.dragIsBigContainer = this.isBigContainer;
-    this.dragDirty = false;
-    this.intervalIdleChecker.markActivity("overlay-pointer-down");
-    this.intervalIdleChecker.requestImmediateTick();
-
-    document.addEventListener("pointermove", this.onGlobalPointerMove);
+    document.addEventListener("pointermove", this.onGlobalPointerMove, {
+      passive: true,
+    });
     document.addEventListener("pointerup", this.onDragEnd);
     document.addEventListener("pointercancel", this.onDragEnd);
   };
@@ -825,19 +889,8 @@ export class OverlayView {
   onTouchDragStart = (event: TouchEvent) => {
     if (!event.touches || event.touches.length === 0) return;
 
-    this.dragCandidate = true;
-    this.dragging = false;
-
-    const t = event.touches[0];
-    this.dragStartX = t.clientX;
-    this.dragStartY = t.clientY;
-    this.currentClientX = t.clientX;
-
-    this.containerRect = this.root.getBoundingClientRect();
-    this.dragIsBigContainer = this.isBigContainer;
-    this.dragDirty = false;
-    this.intervalIdleChecker.markActivity("overlay-touch-start");
-    this.intervalIdleChecker.requestImmediateTick();
+    const touch = event.touches[0];
+    this.startDragSession(touch.clientX, touch.clientY, "overlay-touch-start");
 
     // Register non-passive move listener so we can call preventDefault()
     // once we detect an actual drag.
@@ -851,60 +904,34 @@ export class OverlayView {
   onGlobalTouchMove = (event: TouchEvent) => {
     if (!event.touches || event.touches.length === 0) return;
     const t = event.touches[0];
-
-    this.currentClientX = t.clientX;
-    const clientY = t.clientY;
-
-    if (!this.dragCandidate) return;
-
-    if (!this.dragging) {
-      const dx = Math.abs(this.currentClientX - this.dragStartX);
-      const dy = Math.abs(clientY - this.dragStartY);
-      if (dx + dy >= this.dragThresholdPx) {
-        this.dragging = true;
-      }
-    }
+    this.updateDragFromMove(t.clientX, t.clientY, "overlay-touch-move");
 
     // Only prevent page scrolling once we're sure the user is dragging.
     if (this.dragging) {
       event.preventDefault();
     }
-
-    if (this.dragging) {
-      this.dragDirty = true;
-      this.intervalIdleChecker.markActivity("overlay-touch-move");
-      this.intervalIdleChecker.requestImmediateTick();
-    }
   };
 
   onGlobalPointerMove = (event: PointerEvent) => {
-    this.currentClientX = event.clientX;
-    const clientY = event.clientY;
-
-    if (!this.dragCandidate) return;
-
-    if (!this.dragging) {
-      const dx = Math.abs(this.currentClientX - this.dragStartX);
-      const dy = Math.abs(clientY - this.dragStartY);
-      if (dx + dy >= this.dragThresholdPx) {
-        this.dragging = true;
-      }
-    }
-
-    if (this.dragging) {
-      this.dragDirty = true;
-      this.intervalIdleChecker.markActivity("overlay-pointer-move");
-      this.intervalIdleChecker.requestImmediateTick();
-    }
+    this.updateDragFromMove(
+      event.clientX,
+      event.clientY,
+      "overlay-pointer-move",
+    );
   };
 
   private readonly applyDragFromState = () => {
     if (!this.dragging || !this.dragDirty || !this.containerRect) return;
 
+    const width = this.containerRect.width;
+    if (!(width > 0 && Number.isFinite(width))) {
+      return;
+    }
+
     this.dragDirty = false;
     const x = this.currentClientX - this.containerRect.left;
-    const clampedX = Math.max(0, Math.min(x, this.containerRect.width));
-    const percentX = (clampedX / this.containerRect.width) * 100;
+    const clampedX = Math.max(0, Math.min(x, width));
+    const percentX = (clampedX / width) * 100;
 
     this.moveButton(percentX);
   };
@@ -1007,7 +1034,7 @@ export class OverlayView {
     const widthFromVideo =
       this.videoHandler?.video?.getBoundingClientRect?.().width;
     if (typeof widthFromVideo === "number" && Number.isFinite(widthFromVideo)) {
-      return widthFromVideo > 550;
+      return widthFromVideo > OverlayView.BIG_CONTAINER_WIDTH_PX;
     }
 
     const widthFromContainer =
@@ -1016,13 +1043,17 @@ export class OverlayView {
       typeof widthFromContainer === "number" &&
       Number.isFinite(widthFromContainer)
     ) {
-      return widthFromContainer > 550;
+      return widthFromContainer > OverlayView.BIG_CONTAINER_WIDTH_PX;
     }
 
-    return this.root.clientWidth > 550;
+    return this.root.clientWidth > OverlayView.BIG_CONTAINER_WIDTH_PX;
   }
 
   get pipButtonVisible() {
     return isPiPAvailable() && !!this.data.showPiPButton;
   }
+}
+
+function isSidePosition(position: Position): position is "left" | "right" {
+  return position === "left" || position === "right";
 }

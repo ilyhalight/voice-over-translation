@@ -1,4 +1,4 @@
-import { clamp, downloadBlob } from "./utils";
+import { clamp, type DownloadBlobOptions, downloadBlob } from "./utils";
 
 function toUint32BE(value: number): Uint8Array {
   return new Uint8Array([
@@ -103,10 +103,10 @@ export async function downloadTranslation(
   res: Response,
   filename: string,
   onProgress: (progress: number) => void = () => {},
+  saveOptions: DownloadBlobOptions = {},
 ) {
   const blob = await buildTranslationBlob(res, filename, onProgress);
-  downloadBlob(blob, `${filename}.mp3`);
-  return true;
+  return await downloadBlob(blob, `${filename}.mp3`, saveOptions);
 }
 
 export async function buildTranslationBlob(

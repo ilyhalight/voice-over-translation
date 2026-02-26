@@ -7,22 +7,6 @@ type IframeConfig = {
 
 export function initIframeInteractor(): void {
   const configs: Record<string, IframeConfig> = {
-    "https://www.dailymotion.com": {
-      targetOrigin: "https://geo.dailymotion.com",
-      dataFilter: (data: unknown) =>
-        typeof data === "object" &&
-        data !== null &&
-        "type" in data &&
-        (data as { type?: unknown }).type === "getDailymotionVideoId",
-      extractVideoId: (url: URL) => {
-        const match = /\/video\/(\w+)/.exec(url.pathname);
-        return match?.[1] ?? null;
-      },
-      responseFormatter: (videoId: string) => ({
-        type: "dailymotionVideoId",
-        videoId,
-      }),
-    },
     "https://dev.epicgames.com": {
       targetOrigin: "https://dev.epicgames.com",
       dataFilter: (data: unknown) =>

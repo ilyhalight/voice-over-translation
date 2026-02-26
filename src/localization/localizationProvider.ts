@@ -10,21 +10,33 @@ import rawDefaultLocale from "./locales/en.json";
 
 export type LangOverride = "auto" | Locale;
 
+const LOCALE_STORAGE_KEYS: readonly LocaleStorageKey[] = [
+  "localePhrases",
+  "localeLang",
+  "localeHash",
+  "localeUpdatedAt",
+  "localeLangOverride",
+];
+const DEFAULT_LOCALE: FlatPhrases = toFlatObj(rawDefaultLocale);
+const CACHE_TTL_SECONDS = 7200;
+
 const repoBranch =
   typeof REPO_BRANCH !== "undefined" && REPO_BRANCH ? REPO_BRANCH : "master";
-const availableLocales =
-  typeof AVAILABLE_LOCALES !== "undefined" && Array.isArray(AVAILABLE_LOCALES)
-    ? AVAILABLE_LOCALES
-    : ["en"];
+const availableLocales: readonly LangOverride[] = (() => {
+  const locales =
+    typeof AVAILABLE_LOCALES !== "undefined" && Array.isArray(AVAILABLE_LOCALES)
+      ? AVAILABLE_LOCALES
+      : ["en"];
+
+  // Older extension builds injected AVAILABLE_LOCALES without the `auto`
+  // option. Always expose it so Settings -> Language can restore automatic
+  // detection.
+  return locales.includes("auto")
+    ? (locales as LangOverride[])
+    : (["auto", ...locales] as LangOverride[]);
+})();
 
 class LocalizationProvider {
-  storageKeys: LocaleStorageKey[] = [
-    "localePhrases",
-    "localeLang",
-    "localeHash",
-    "localeUpdatedAt",
-    "localeLangOverride",
-  ];
   /**
    * Language used before page was reloaded
    */
@@ -33,13 +45,15 @@ class LocalizationProvider {
    * Locale phrases with current language
    */
   locale: Partial<FlatPhrases>;
-  defaultLocale: FlatPhrases = toFlatObj(rawDefaultLocale);
+  readonly defaultLocale: FlatPhrases = DEFAULT_LOCALE;
 
-  cacheTTL = 7200;
-  localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
-  hashesUrl = `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
+  readonly cacheTTL = CACHE_TTL_SECONDS;
+  readonly localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
+  readonly hashesUrl =
+    `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
 
-  _langOverride: LangOverride = "auto";
+  private readonly warnedMissingKeys = new Set<string>();
+  private _langOverride: LangOverride = "auto";
 
   constructor() {
     this.lang = this.getLang();
@@ -47,12 +61,12 @@ class LocalizationProvider {
   }
 
   async init() {
-    this._langOverride = await votStorage.get<LangOverride>(
-      "localeLangOverride",
-      "auto",
-    );
+    const [langOverride, phrases] = await Promise.all([
+      votStorage.get<LangOverride>("localeLangOverride", "auto"),
+      votStorage.get<string>("localePhrases", ""),
+    ]);
+    this._langOverride = langOverride;
     this.lang = this.getLang();
-    const phrases = await votStorage.get<string>("localePhrases", "");
     this.setLocaleFromJsonString(phrases);
     return this;
   }
@@ -66,23 +80,15 @@ class LocalizationProvider {
   }
 
   getAvailableLangs(): LangOverride[] {
-    // Older extension builds injected AVAILABLE_LOCALES without the `auto`
-    // option. Ensure it is always present so Settings → Language can restore
-    // automatic detection.
-    return availableLocales.includes("auto")
-      ? (availableLocales as LangOverride[])
-      : (["auto", ...availableLocales] as LangOverride[]);
+    return [...availableLocales];
   }
 
   async reset() {
-    for (const key of this.storageKeys) {
-      await votStorage.delete(key);
-    }
-
+    await Promise.all(LOCALE_STORAGE_KEYS.map((key) => votStorage.delete(key)));
     return this;
   }
 
-  private buildUrl(baseUrl: string, path: string, force = false) {
+  private buildUrl(baseUrl: string, path = "", force = false) {
     const query = force ? `?timestamp=${getTimestamp()}` : "";
     return `${baseUrl}${path}${query}`;
   }
@@ -100,37 +106,57 @@ class LocalizationProvider {
     return true;
   }
 
-  async checkUpdates(force = false) {
+  async checkUpdates(force = false): Promise<false | null | string> {
     debug.log("Check locale updates...");
     try {
       const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
       if (!res.ok) throw res.status;
+
       const hashes = await res.json();
-      return (await votStorage.get("localeHash")) !== hashes[this.lang]
-        ? hashes[this.lang]
-        : false;
+      if (!hashes || typeof hashes !== "object") {
+        throw new Error("Invalid locale hashes payload");
+      }
+
+      const nextHash = (hashes as Record<string, unknown>)[this.lang];
+      if (typeof nextHash !== "string" || !nextHash) {
+        return false;
+      }
+
+      const currentHash = await votStorage.get<string>("localeHash", "");
+      return currentHash === nextHash ? false : nextHash;
     } catch (err) {
       console.error(
         "[VOT] [localizationProvider] Failed to get locales hash:",
         err,
       );
-      return false;
+      return null;
     }
   }
 
   async update(force = false) {
-    const localeUpdatedAt = await votStorage.get<number>("localeUpdatedAt", 0);
-    if (
-      !force &&
-      localeUpdatedAt + this.cacheTTL > getTimestamp() &&
-      (await votStorage.get("localeLang")) === this.lang
-    ) {
-      return this;
+    const timestamp = getTimestamp();
+    if (!force) {
+      const [localeUpdatedAt, localeLang] = await Promise.all([
+        votStorage.get<number>("localeUpdatedAt", 0),
+        votStorage.get<string>("localeLang", ""),
+      ]);
+      if (
+        localeUpdatedAt + this.cacheTTL > timestamp &&
+        localeLang === this.lang
+      ) {
+        return this;
+      }
     }
 
     const hash = await this.checkUpdates(force);
-    await votStorage.set("localeUpdatedAt", getTimestamp());
+    if (hash === null) {
+      // Do not update localeUpdatedAt on transient failures.
+      // This allows a near-term retry instead of waiting for cache TTL.
+      return this;
+    }
+
     if (!hash) {
+      await votStorage.set("localeUpdatedAt", timestamp);
       return this;
     }
 
@@ -140,35 +166,68 @@ class LocalizationProvider {
         this.buildUrl(this.localesUrl, `/${this.lang}.json`, force),
       );
       if (!res.ok) throw res.status;
-      // We use it .text() in order for there to be a single logic for GM_Storage and localStorage
+
+      // Use `.text()` to keep a single storage format for GM_Storage/localStorage.
       const text = await res.text();
-      await votStorage.set("localePhrases", text);
-      await votStorage.set("localeHash", hash);
-      await votStorage.set("localeLang", this.lang);
       this.setLocaleFromJsonString(text);
+      await Promise.all([
+        votStorage.set("localePhrases", text),
+        votStorage.set("localeHash", hash),
+        votStorage.set("localeLang", this.lang),
+        votStorage.set("localeUpdatedAt", timestamp),
+      ]);
     } catch (err) {
       console.error("[VOT] [localizationProvider] Failed to get locale:", err);
       this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
     }
+
     return this;
   }
 
   setLocaleFromJsonString(json: string) {
+    const trimmed = json.trim();
+    if (!trimmed) {
+      this.locale = {};
+      this.warnedMissingKeys.clear();
+      return this;
+    }
+
     try {
-      const locale = JSON.parse(json) || {};
-      this.locale = toFlatObj(locale);
+      const locale = JSON.parse(trimmed);
+      if (!locale || typeof locale !== "object" || Array.isArray(locale)) {
+        throw new Error("Locale payload should be a JSON object");
+      }
+
+      this.locale = toFlatObj(locale as Record<string, unknown>);
     } catch (err) {
       console.error("[VOT] [localizationProvider]", err);
       this.locale = {};
     }
+
+    this.warnedMissingKeys.clear();
     return this;
   }
 
-  getFromLocale(locale: Partial<FlatPhrases>, key: Phrase) {
-    return locale?.[key] ?? this.warnMissingKey(locale, key);
+  private getFromLocale(
+    locale: Partial<FlatPhrases>,
+    key: Phrase,
+    source: "default" | "locale" = "locale",
+  ) {
+    const phrase = locale[key];
+    return phrase ?? this.warnMissingKey(locale, key, source);
   }
 
-  warnMissingKey(locale: Partial<FlatPhrases>, key: Phrase) {
+  private warnMissingKey(
+    locale: Partial<FlatPhrases>,
+    key: Phrase,
+    source: "default" | "locale",
+  ) {
+    const warningKey = `${source}:${key}`;
+    if (this.warnedMissingKeys.has(warningKey)) {
+      return undefined;
+    }
+
+    this.warnedMissingKeys.add(warningKey);
     console.warn(
       "[VOT] [localizationProvider] locale",
       locale,
@@ -179,7 +238,7 @@ class LocalizationProvider {
   }
 
   getDefault(key: Phrase) {
-    return this.getFromLocale(this.defaultLocale, key) ?? key;
+    return this.getFromLocale(this.defaultLocale, key, "default") ?? key;
   }
 
   get(key: Phrase) {
@@ -194,7 +253,7 @@ class LocalizationProvider {
         return label;
       }
     }
-    return typeof lang === "string" ? lang.toUpperCase() : "";
+    return lang.toUpperCase();
   }
 }
 

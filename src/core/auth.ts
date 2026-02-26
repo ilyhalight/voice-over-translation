@@ -2,7 +2,7 @@ import type { Account } from "../types/storage";
 import { votStorage } from "../utils/storage";
 
 declare global {
-  // instead of unsafeWindow
+  // Profile payload injected by Yandex account page runtime.
   const _userData: {
     avatar_id: string;
     username: string;

@@ -5,6 +5,7 @@ import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import type { VideoHandler } from "../../index";
 import { localizationProvider } from "../../localization/localizationProvider";
 import debug from "../../utils/debug";
+import { toErrorMessage } from "../../utils/errors";
 import { GM_fetch } from "../../utils/gm";
 import { clamp } from "../../utils/utils";
 import VOTLocalizedError from "../../utils/VOTLocalizedError";
@@ -25,7 +26,6 @@ import {
   normalizeTranslationHelp,
   notifyTranslationFailureIfNeeded,
   requestAndApplyTranslation,
-  requestTranslationAudio,
   setTranslationCacheValue,
   type TranslationAudioResult,
   updateTranslationAndSchedule,
@@ -40,6 +40,33 @@ type StopSmartVolumeDuckingOptions = {
    */
   restoreVolume?: number;
 };
+
+type ActionContext = { gen: number; videoId: string };
+
+type AutoVolumeMode = "off" | "classic" | "smart";
+
+type ApplyTranslationSourceResult =
+  | {
+      status: "success";
+      didSetSource: boolean;
+      appliedSourceUrl: string | null;
+    }
+  | {
+      status: "stale";
+      didSetSource: boolean;
+      appliedSourceUrl: string | null;
+    }
+  | {
+      status: "error";
+      didSetSource: boolean;
+      appliedSourceUrl: string | null;
+      error: unknown;
+    };
+
+const SMART_DUCKING_TICK_MS = SMART_DUCKING_DEFAULT_CONFIG.tickMs;
+const AUDIO_PROBE_TIMEOUT_MS = 5_000;
+const AUDIO_PROBE_RETRY_DELAY_MS = 150;
+const AUDIO_PROBE_MAX_ATTEMPTS = 2;
 
 type AudioPlayerLike = {
   audio?: HTMLMediaElement;
@@ -78,6 +105,20 @@ function getPlayerMediaElement(
   player?: AudioPlayerLike,
 ): HTMLMediaElement | undefined {
   return player?.audio ?? player?.audioElement;
+}
+
+function getNowMs(): number {
+  return typeof performance !== "undefined" &&
+    typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+}
+
+function getAutoVolumeMode(handler: VideoHandler): AutoVolumeMode {
+  if (handler.data?.syncVolume || !handler.data?.enabledAutoVolume) {
+    return "off";
+  }
+  return (handler.data?.enabledSmartDucking ?? true) ? "smart" : "classic";
 }
 
 async function resumePlayerAudioContextIfNeeded(
@@ -329,7 +370,7 @@ export function stopSmartVolumeDucking(
   const { restoreVolume } = options;
 
   if (typeof handler.smartVolumeDuckingInterval === "number") {
-    clearInterval(handler.smartVolumeDuckingInterval);
+    clearTimeout(handler.smartVolumeDuckingInterval);
     handler.smartVolumeDuckingInterval = undefined;
   }
 
@@ -356,9 +397,30 @@ export function stopSmartVolumeDucking(
   writeSmartDuckingRuntime(handler, resetSmartDuckingRuntime());
 }
 
+function scheduleNextSmartDuckingTick(handler: VideoHandler): void {
+  if (typeof globalThis === "undefined") return;
+  if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+
+  handler.smartVolumeDuckingInterval = globalThis.setTimeout(() => {
+    if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+
+    try {
+      smartDuckingTick(handler);
+    } catch (err) {
+      debug.log("[SmartDucking] tick failed, stopping smart ducking", err);
+      stopSmartVolumeDucking(handler);
+      return;
+    }
+
+    if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+    scheduleNextSmartDuckingTick(handler);
+  }, SMART_DUCKING_TICK_MS);
+}
+
 function startSmartVolumeDucking(handler: VideoHandler): void {
   if (typeof globalThis === "undefined") return;
   if (typeof handler.smartVolumeDuckingInterval === "number") return;
+  if (getAutoVolumeMode(handler) !== "smart") return;
 
   const currentVideoVolume = handler.getVideoVolume();
   const baseline =
@@ -375,11 +437,7 @@ function startSmartVolumeDucking(handler: VideoHandler): void {
   ) {
     // Resuming Smart mode from constant ducking: keep baseline untouched and
     // continue from the already ducked state.
-    const now =
-      typeof performance !== "undefined" &&
-      typeof performance.now === "function"
-        ? performance.now()
-        : Date.now();
+    const now = getNowMs();
     runtime.isDucked = true;
     runtime.speechGateOpen = true;
     runtime.lastApplied = currentVideoVolume;
@@ -388,9 +446,8 @@ function startSmartVolumeDucking(handler: VideoHandler): void {
 
   writeSmartDuckingRuntime(handler, runtime);
 
-  handler.smartVolumeDuckingInterval = globalThis.setInterval(() => {
-    smartDuckingTick(handler);
-  }, SMART_DUCKING_DEFAULT_CONFIG.tickMs);
+  handler.smartVolumeDuckingInterval = 0;
+  scheduleNextSmartDuckingTick(handler);
 }
 
 function getTranslatedAudioRms(
@@ -444,23 +501,15 @@ function getTranslatedAudioRms(
 }
 
 function smartDuckingTick(handler: VideoHandler): void {
+  if (getAutoVolumeMode(handler) !== "smart") {
+    setupAudioSettings.call(handler);
+    return;
+  }
+
   const player = handler.audioPlayer?.player as unknown as
     | AudioPlayerLike
     | undefined;
   const media = getPlayerMediaElement(player);
-  const syncVolumeEnabled = Boolean(handler.data?.syncVolume);
-  const autoVolumeEnabled =
-    Boolean(handler.data?.enabledAutoVolume) && !syncVolumeEnabled;
-  const smartEnabled =
-    (handler.data?.enabledSmartDucking ?? true) && !syncVolumeEnabled;
-
-  // Smart ducking may be disabled while interval is still active (e.g. runtime
-  // settings toggle). Switch to one-shot classic ducking immediately and stop
-  // periodic corrections so user volume changes are not overridden.
-  if (autoVolumeEnabled && !smartEnabled) {
-    setupAudioSettings.call(handler);
-    return;
-  }
 
   const audioIsPlaying =
     !!media &&
@@ -469,10 +518,7 @@ function smartDuckingTick(handler: VideoHandler): void {
     // Treat near-zero volume as inactive.
     (media.volume ?? 1) > 0.001;
 
-  const now =
-    typeof performance !== "undefined" && typeof performance.now === "function"
-      ? performance.now()
-      : Date.now();
+  const now = getNowMs();
   const currentVideoVolume = handler.getVideoVolume();
 
   const hostVideo = handler.video;
@@ -487,8 +533,8 @@ function smartDuckingTick(handler: VideoHandler): void {
     {
       nowMs: now,
       translationActive: handler.hasActiveSource(),
-      enabledAutoVolume: autoVolumeEnabled,
-      smartEnabled,
+      enabledAutoVolume: true,
+      smartEnabled: true,
       audioIsPlaying,
       rms,
       currentVideoVolume,
@@ -513,70 +559,94 @@ function smartDuckingTick(handler: VideoHandler): void {
     case "noop":
       writeSmartDuckingRuntime(handler, decision.runtime);
       return;
-    default: {
-      const exhaustiveCheck: never = decision;
-      void exhaustiveCheck;
+    default:
       throw new TypeError("Unhandled smart ducking decision");
+  }
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function probeAudioUrl(
+  handler: VideoHandler,
+  audioUrl: string,
+  actionContext?: ActionContext,
+): Promise<boolean> {
+  const fetchOpts = handler.isMultiMethodS3(audioUrl)
+    ? {
+        method: "HEAD",
+        signal: handler.actionsAbortController.signal,
+        timeout: AUDIO_PROBE_TIMEOUT_MS,
+      }
+    : {
+        // Some S3 providers reject HEAD while supporting range probes.
+        headers: {
+          range: "bytes=0-0",
+        },
+        signal: handler.actionsAbortController.signal,
+        timeout: AUDIO_PROBE_TIMEOUT_MS,
+      };
+
+  for (let attempt = 1; attempt <= AUDIO_PROBE_MAX_ATTEMPTS; attempt++) {
+    if (handler.isActionStale(actionContext)) return false;
+    try {
+      const response = await GM_fetch(audioUrl, fetchOpts);
+      if (handler.isActionStale(actionContext)) return false;
+      debug.log("[validateAudioUrl] probe response", {
+        audioUrl,
+        attempt,
+        ok: response.ok,
+        status: response.status,
+      });
+      if (response.ok) return true;
+    } catch (err: unknown) {
+      if (
+        handler.isActionStale(actionContext) ||
+        handler.actionsAbortController.signal.aborted
+      ) {
+        return false;
+      }
+      debug.log("[validateAudioUrl] probe error", { audioUrl, attempt, err });
+    }
+
+    if (attempt < AUDIO_PROBE_MAX_ATTEMPTS) {
+      await wait(AUDIO_PROBE_RETRY_DELAY_MS);
     }
   }
+
+  return false;
 }
 
 export async function validateAudioUrl(
   this: VideoHandler,
   audioUrl: string,
-  actionContext?: { gen: number; videoId: string },
+  actionContext?: ActionContext,
 ): Promise<string> {
   if (this.isActionStale(actionContext)) return audioUrl;
-  try {
-    const fetchOpts = this.isMultiMethodS3(audioUrl)
-      ? {
-          method: "HEAD",
-        }
-      : {
-          // some s3 don't support the same signature for different methods
-          headers: {
-            range: "bytes=0-0",
-          },
-        };
-    const response = await GM_fetch(audioUrl, fetchOpts);
-    if (this.isActionStale(actionContext)) return audioUrl;
-    debug.log("Test audio response", response);
-    if (response.ok) {
-      debug.log("Valid audioUrl", audioUrl);
-      return audioUrl;
-    }
-    debug.log("Yandex returned not valid audio, trying to fix...");
-    if (!this.videoData) {
-      debug.log("Skip audio fix - videoData is not available");
-      return audioUrl;
-    }
-    if (this.isActionStale(actionContext)) return audioUrl;
-    const fromLang = this.videoData.detectedLanguage || this.translateFromLang;
-    const translateRes = await requestTranslationAudio(
-      this.translationHandler,
-      {
-        videoData: this.videoData,
-        requestLang: fromLang as RequestLang,
-        responseLang: this.translateToLang,
-        translationHelp: this.videoData.translationHelp,
-        useAudioDownload: Boolean(this.data?.useAudioDownload),
-        signal: this.actionsAbortController.signal,
-      },
-    );
-    if (!translateRes) {
-      debug.log("Failed to retranslate audio - using original url");
-      return audioUrl;
-    }
-    this.setSelectMenuValues(
-      this.videoData.detectedLanguage,
-      this.videoData.responseLanguage,
-    );
-    this.scheduleTranslationRefresh();
-    audioUrl = translateRes.url;
-    debug.log("Fixed audio audioUrl", audioUrl);
-  } catch (err: unknown) {
-    debug.log("Test audio error:", err);
+
+  const isPrimaryUrlValid = await probeAudioUrl(this, audioUrl, actionContext);
+  if (isPrimaryUrlValid) {
+    return audioUrl;
   }
+
+  const directUrl = this.unproxifyAudio(audioUrl);
+  if (directUrl !== audioUrl) {
+    const isDirectUrlValid = await probeAudioUrl(
+      this,
+      directUrl,
+      actionContext,
+    );
+    if (isDirectUrlValid) {
+      debug.log("[validateAudioUrl] switching to direct audio URL after probe");
+      return directUrl;
+    }
+  }
+
+  // Keep the original URL and let updateTranslation() execute its own
+  // initialization fallback path.
   return audioUrl;
 }
 
@@ -601,7 +671,7 @@ async function requestApplyAndCacheTranslation(
     requestLang: RequestLang;
     responseLang: ResponseLang;
     translationHelp: VideoData["translationHelp"] | undefined;
-    actionContext: { gen: number; videoId: string };
+    actionContext: ActionContext;
     cacheKey: string;
     cacheVideoId: string;
     cacheRequestLang: string;
@@ -659,7 +729,7 @@ export async function refreshTranslationAudio(
     this.resetActionsAbortController("refreshTranslationAudio");
   }
   this.isRefreshingTranslation = true;
-  const actionContext = { gen: this.actionsGeneration, videoId };
+  const actionContext: ActionContext = { gen: this.actionsGeneration, videoId };
   const normalizedTranslationHelp = normalizeTranslationHelp(
     this.videoData.translationHelp,
   );
@@ -728,10 +798,79 @@ export function isMultiMethodS3(this: VideoHandler, url: string): boolean {
   });
 }
 
+function normalizeManagedAudioUrl(handler: VideoHandler, url: string): string {
+  return handler.proxifyAudio(handler.unproxifyAudio(url));
+}
+
+async function applyTranslationSource(
+  handler: VideoHandler,
+  sourceUrl: string,
+  actionContext?: ActionContext,
+): Promise<ApplyTranslationSourceResult> {
+  const didSetSource = handler.audioPlayer.player.src !== sourceUrl;
+  let appliedSourceUrl: string | null = null;
+
+  if (didSetSource) {
+    handler.audioPlayer.player.src = sourceUrl;
+    appliedSourceUrl = sourceUrl;
+  }
+
+  try {
+    if (didSetSource) {
+      await handler.audioPlayer.init();
+    }
+    if (handler.isActionStale(actionContext)) {
+      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      return {
+        status: "stale",
+        didSetSource,
+        appliedSourceUrl,
+      };
+    }
+
+    const resumeResult = await resumePlayerAudioContextIfNeeded(handler);
+    if (resumeResult === "timeout") {
+      debug.log(
+        "[updateTranslation] continuing after AudioContext resume timeout",
+      );
+    } else if (resumeResult === "failed") {
+      debug.log(
+        "[updateTranslation] AudioContext resume failed, continue without deferred resume",
+      );
+    }
+
+    if (handler.isActionStale(actionContext)) {
+      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      return {
+        status: "stale",
+        didSetSource,
+        appliedSourceUrl,
+      };
+    }
+
+    if (!handler.video.paused && handler.audioPlayer.player.src) {
+      handler.audioPlayer.player.lipSync("play");
+    }
+
+    return {
+      status: "success",
+      didSetSource,
+      appliedSourceUrl,
+    };
+  } catch (error: unknown) {
+    return {
+      status: "error",
+      didSetSource,
+      appliedSourceUrl,
+      error,
+    };
+  }
+}
+
 export async function updateTranslation(
   this: VideoHandler,
   audioUrl: string,
-  actionContext?: { gen: number; videoId: string },
+  actionContext?: ActionContext,
 ): Promise<void> {
   await this.waitForPendingStopTranslate();
   if (this.isActionStale(actionContext)) return;
@@ -742,12 +881,11 @@ export async function updateTranslation(
     debug.log("[updateTranslation] AudioContext is closed, recreating player");
     this.createPlayer();
   }
-  const normalizedTargetUrl = this.proxifyAudio(this.unproxifyAudio(audioUrl));
+
+  const normalizedTargetUrl = normalizeManagedAudioUrl(this, audioUrl);
   const currentSource =
     this.audioPlayer.player.currentSrc || this.audioPlayer.player.src || "";
-  const normalizedCurrentUrl = this.proxifyAudio(
-    this.unproxifyAudio(currentSource),
-  );
+  const normalizedCurrentUrl = normalizeManagedAudioUrl(this, currentSource);
 
   let nextAudioUrl = normalizedTargetUrl;
   if (normalizedTargetUrl !== normalizedCurrentUrl) {
@@ -757,45 +895,20 @@ export async function updateTranslation(
     );
   }
   if (this.isActionStale(actionContext)) return;
-  const shouldInitPlayer = this.audioPlayer.player.src !== nextAudioUrl;
-  let appliedSourceUrl: string | null = null;
-  if (shouldInitPlayer) {
-    this.audioPlayer.player.src = nextAudioUrl;
-    appliedSourceUrl = nextAudioUrl;
-  }
-  let initError: unknown;
-  try {
-    if (shouldInitPlayer) {
-      await this.audioPlayer.init();
-    }
-    if (this.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
-      return;
-    }
-    const resumeResult = await resumePlayerAudioContextIfNeeded(this);
-    if (resumeResult === "timeout") {
-      debug.log(
-        "[updateTranslation] continuing after AudioContext resume timeout",
-      );
-    } else if (resumeResult === "failed") {
-      debug.log(
-        "[updateTranslation] AudioContext resume failed, continue without deferred resume",
-      );
-    }
-    if (this.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
-      return;
-    }
-    if (!this.video.paused && this.audioPlayer.player.src) {
-      this.audioPlayer.player.lipSync("play");
-    }
-  } catch (err: unknown) {
-    initError = err;
-  }
+  let applyResult = await applyTranslationSource(
+    this,
+    nextAudioUrl,
+    actionContext,
+  );
+  let appliedSourceUrl = applyResult.appliedSourceUrl;
 
   // Network/proxy hiccup fallback: if proxied URL failed to fetch audio data,
   // retry once with the original direct S3 URL.
-  if (initError && shouldInitPlayer && !this.isActionStale(actionContext)) {
+  if (
+    applyResult.status === "error" &&
+    applyResult.didSetSource &&
+    !this.isActionStale(actionContext)
+  ) {
     const directUrl = this.unproxifyAudio(nextAudioUrl);
     if (directUrl !== nextAudioUrl) {
       try {
@@ -813,33 +926,30 @@ export async function updateTranslation(
           );
           return;
         }
-        this.audioPlayer.player.src = validatedDirectUrl;
-        appliedSourceUrl = validatedDirectUrl;
         nextAudioUrl = validatedDirectUrl;
-        await this.audioPlayer.init();
-
-        const resumeResult = await resumePlayerAudioContextIfNeeded(this);
-        if (resumeResult === "timeout" || resumeResult === "failed") {
-          debug.log(
-            "[updateTranslation] AudioContext not resumed after direct URL fallback",
-            resumeResult,
-          );
-        }
-        if (!this.video.paused && this.audioPlayer.player.src) {
-          this.audioPlayer.player.lipSync("play");
-        }
-        initError = undefined;
+        applyResult = await applyTranslationSource(
+          this,
+          validatedDirectUrl,
+          actionContext,
+        );
+        appliedSourceUrl = applyResult.appliedSourceUrl;
       } catch (fallbackErr) {
-        initError = fallbackErr;
+        applyResult = {
+          status: "error",
+          didSetSource: true,
+          appliedSourceUrl,
+          error: fallbackErr,
+        };
       }
     }
   }
 
-  if (initError) {
-    debug.log("this.audioPlayer.init() error", initError);
+  if (applyResult.status === "stale") return;
+
+  if (applyResult.status === "error") {
+    debug.log("this.audioPlayer.init() error", applyResult.error);
     await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
-    const msg =
-      initError instanceof Error ? initError.message : String(initError);
+    const msg = toErrorMessage(applyResult.error);
     this.transformBtn("error", msg);
     return;
   }
@@ -906,7 +1016,10 @@ export async function translateFunc(
     return;
   }
 
-  const actionContext = { gen: this.actionsGeneration, videoId: VIDEO_ID };
+  const actionContext: ActionContext = {
+    gen: this.actionsGeneration,
+    videoId: VIDEO_ID,
+  };
 
   const translationPromise = (async () => {
     if (this.isActionStale(actionContext)) {
@@ -1021,11 +1134,9 @@ export function setupAudioSettings(this: VideoHandler) {
     this.audioPlayer.player.volume = this.data.defaultVolume / 100;
   }
 
-  const autoVolumeEnabled =
-    Boolean(this.data?.enabledAutoVolume) && !this.data?.syncVolume;
-  const smartDuckingEnabled = this.data?.enabledSmartDucking ?? true;
+  const autoVolumeMode = getAutoVolumeMode(this);
 
-  if (!autoVolumeEnabled) {
+  if (autoVolumeMode === "off") {
     // Auto-volume toggled off -> restore baseline and fully reset smart ducking.
     stopSmartVolumeDucking(this, {
       restoreVolume: this.smartVolumeDuckingBaseline ?? this.volumeOnStart,
@@ -1042,14 +1153,14 @@ export function setupAudioSettings(this: VideoHandler) {
     return;
   }
 
-  if (smartDuckingEnabled) {
+  if (autoVolumeMode === "smart") {
     startSmartVolumeDucking(this);
     return;
   }
 
   // Smart ducking disabled -> fall back to classic constant ducking.
   if (typeof this.smartVolumeDuckingInterval === "number") {
-    clearInterval(this.smartVolumeDuckingInterval);
+    clearTimeout(this.smartVolumeDuckingInterval);
     this.smartVolumeDuckingInterval = undefined;
   }
 

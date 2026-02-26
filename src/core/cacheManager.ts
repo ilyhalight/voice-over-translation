@@ -6,6 +6,19 @@ import type {
 
 export const YANDEX_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
+type CacheField = "translation" | "subtitles";
+type CacheExpiryField = "translationExpiresAt" | "subtitlesExpiresAt";
+
+type CacheValueByField = {
+  translation: CacheTranslationSuccess;
+  subtitles: CacheSubtitle[];
+};
+
+const EXPIRY_FIELD_BY_FIELD: Record<CacheField, CacheExpiryField> = {
+  translation: "translationExpiresAt",
+  subtitles: "subtitlesExpiresAt",
+};
+
 /**
  * Small in-memory cache with TTL for both translations and subtitles.
  *
@@ -13,7 +26,6 @@ export const YANDEX_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
  */
 export class CacheManager {
   private readonly cache = new Map<string, CacheVideoById>();
-  private lastCleanupAt = 0;
 
   /**
    * Clears all cached entries.
@@ -23,89 +35,76 @@ export class CacheManager {
    */
   clear(): void {
     this.cache.clear();
-    this.lastCleanupAt = 0;
   }
 
   getTranslation(key: string): CacheTranslationSuccess | undefined {
-    const entry = this.cache.get(key);
-    if (!entry) return undefined;
-
-    const exp = entry.translationExpiresAt;
-    if (exp !== undefined && exp <= Date.now()) {
-      entry.translation = undefined;
-      entry.translationExpiresAt = undefined;
-      this.evictIfEmpty(key, entry);
-      return undefined;
-    }
-
-    return entry.translation;
+    return this.getValue(key, "translation");
   }
 
   setTranslation(key: string, translation: CacheTranslationSuccess): void {
-    this.maybeCleanup();
-    const entry = this.getOrCreateEntry(key);
-    entry.translation = translation;
-    entry.translationExpiresAt = Date.now() + YANDEX_TTL_MS;
+    this.setValue(key, "translation", translation);
   }
 
   getSubtitles(key: string): CacheSubtitle[] | undefined {
+    return this.getValue(key, "subtitles");
+  }
+
+  setSubtitles(key: string, subtitles: CacheSubtitle[]): void {
+    this.setValue(key, "subtitles", subtitles);
+  }
+
+  deleteSubtitles(key: string): void {
+    this.deleteValue(key, "subtitles");
+  }
+
+  private getValue<K extends CacheField>(
+    key: string,
+    field: K,
+  ): CacheValueByField[K] | undefined {
+    const now = Date.now();
     const entry = this.cache.get(key);
     if (!entry) return undefined;
 
-    const exp = entry.subtitlesExpiresAt;
-    if (exp !== undefined && exp <= Date.now()) {
-      entry.subtitles = undefined;
-      entry.subtitlesExpiresAt = undefined;
+    const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+    const expiresAt = entry[expiryField];
+    if (expiresAt !== undefined && expiresAt <= now) {
+      entry[field] = undefined;
+      entry[expiryField] = undefined;
       this.evictIfEmpty(key, entry);
       return undefined;
     }
 
-    return entry.subtitles;
+    return entry[field] as CacheValueByField[K] | undefined;
   }
 
-  setSubtitles(key: string, subtitles: CacheSubtitle[]): void {
-    this.maybeCleanup();
+  private setValue<K extends CacheField>(
+    key: string,
+    field: K,
+    value: CacheValueByField[K],
+  ): void {
+    const now = Date.now();
+
     const entry = this.getOrCreateEntry(key);
-    entry.subtitles = subtitles;
-    entry.subtitlesExpiresAt = Date.now() + YANDEX_TTL_MS;
+    const expiresAt = now + YANDEX_TTL_MS;
+    const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+
+    entry[field] = value as CacheVideoById[K];
+    entry[expiryField] = expiresAt;
   }
 
-  deleteSubtitles(key: string): void {
+  private deleteValue(key: string, field: CacheField): void {
     const entry = this.cache.get(key);
     if (!entry) return;
-    entry.subtitles = undefined;
-    entry.subtitlesExpiresAt = undefined;
+
+    const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+    entry[field] = undefined;
+    entry[expiryField] = undefined;
     this.evictIfEmpty(key, entry);
   }
 
   private evictIfEmpty(key: string, entry: CacheVideoById): void {
     if (entry.translation === undefined && entry.subtitles === undefined) {
       this.cache.delete(key);
-    }
-  }
-
-  private maybeCleanup(): void {
-    const now = Date.now();
-    // Cleanup at most once per minute to keep overhead low.
-    if (now - this.lastCleanupAt < 60_000) return;
-    this.lastCleanupAt = now;
-
-    for (const [key, entry] of this.cache) {
-      if (
-        entry.translationExpiresAt !== undefined &&
-        entry.translationExpiresAt <= now
-      ) {
-        entry.translation = undefined;
-        entry.translationExpiresAt = undefined;
-      }
-      if (
-        entry.subtitlesExpiresAt !== undefined &&
-        entry.subtitlesExpiresAt <= now
-      ) {
-        entry.subtitles = undefined;
-        entry.subtitlesExpiresAt = undefined;
-      }
-      this.evictIfEmpty(key, entry);
     }
   }
 

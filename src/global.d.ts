@@ -14,11 +14,6 @@ const REPO_BRANCH: "master" | "dev";
  */
 const VOT_AUTHORS: string;
 
-/**
- * @link https://wiki.greasespot.net/unsafeWindow
- */
-const unsafeWindow: Window;
-
 // --- Userscript globals (Tampermonkey / Violentmonkey / etc.) ---
 // These are injected at runtime by the userscript manager or by our extension
 // prelude. Keep them loosely typed.

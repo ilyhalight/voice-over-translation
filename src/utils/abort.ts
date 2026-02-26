@@ -1,5 +1,7 @@
 import { isAbortError, makeAbortError } from "./errors";
 
+export const NEVER_ABORTED_SIGNAL = new AbortController().signal;
+
 /**
  * Throws a canonical AbortError if the provided signal is aborted.
  *
@@ -30,7 +32,6 @@ export function throwIfAborted(signal: AbortSignal): void {
 
 export type TimeoutSignalResult = {
   signal: AbortSignal;
-  didTimeout: () => boolean;
   cleanup: () => void;
 };
 
@@ -44,70 +45,48 @@ export function createTimeoutSignal(
   timeoutMs: number,
   external?: AbortSignal | null,
 ): TimeoutSignalResult {
-  const hasTimeout =
-    typeof AbortSignal !== "undefined" && "timeout" in AbortSignal;
-  const hasAny = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
-
-  let timedOut = false;
   const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
 
   // If timeout is disabled (0/negative/NaN), just mirror the external signal.
   if (!hasEffectiveTimeout) {
-    if (external) {
-      return { signal: external, didTimeout: () => false, cleanup: () => {} };
-    }
-
-    const controller = new AbortController();
     return {
-      signal: controller.signal,
-      didTimeout: () => false,
+      signal: external ?? NEVER_ABORTED_SIGNAL,
       cleanup: () => {},
     };
   }
 
-  // Modern path (Chromium/Firefox/Node runtimes): AbortSignal.timeout + AbortSignal.any.
-  if (hasTimeout && hasAny) {
-    const timeoutSignal = (AbortSignal as any).timeout(
-      timeoutMs,
-    ) as AbortSignal;
-    const signal = (AbortSignal as any).any(
-      external ? [external, timeoutSignal] : [timeoutSignal],
-    ) as AbortSignal;
-
-    // AbortSignal.timeout doesn't expose a "did timeout" indicator, so track it.
-    const id = setTimeout(() => {
-      timedOut = true;
-    }, timeoutMs);
-
-    return {
-      signal,
-      didTimeout: () => timedOut,
-      cleanup: () => clearTimeout(id),
-    };
-  }
-
-  // Compatibility path.
   const controller = new AbortController();
-  const onExternalAbort = () => controller.abort(external?.reason);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const onExternalAbort = () => {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+      timeoutId = undefined;
+    }
+    controller.abort(external?.reason);
+  };
 
   if (external) {
+    external.addEventListener("abort", onExternalAbort, { once: true });
     if (external.aborted) {
-      controller.abort(external.reason);
-    } else {
-      external.addEventListener("abort", onExternalAbort, { once: true });
+      onExternalAbort();
     }
   }
 
-  const id = setTimeout(() => {
-    timedOut = true;
-    controller.abort(makeAbortError("Timeout"));
-  }, timeoutMs);
+  if (!controller.signal.aborted) {
+    timeoutId = setTimeout(() => {
+      controller.abort(makeAbortError("Timeout"));
+      timeoutId = undefined;
+    }, timeoutMs);
+  }
 
   return {
     signal: controller.signal,
-    didTimeout: () => timedOut,
     cleanup: () => {
-      clearTimeout(id);
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
       external?.removeEventListener("abort", onExternalAbort);
     },
   };

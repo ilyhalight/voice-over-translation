@@ -4,7 +4,7 @@ It's worth checking the original implementation from time to time — other extr
 
 Implemented:
 
-- `web_api_get_all_generating_urls_data_from_iframe`
+- `ytAudio`
 
 Broken in yabrowser:
 

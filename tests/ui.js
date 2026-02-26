@@ -1,18 +1,18 @@
-import ui from "../src/ui.js";
-import Tooltip from "../src/ui/components/tooltip.ts";
-import Select from "../src/ui/components/select.ts";
 import Checkbox from "../src/ui/components/checkbox.ts";
+import Details from "../src/ui/components/details.ts";
+import Dialog from "../src/ui/components/dialog.ts";
+import DownloadButton from "../src/ui/components/downloadButton.ts";
+import HotkeyButton from "../src/ui/components/hotkeyButton.ts";
+import Label from "../src/ui/components/label.ts";
+import LanguagePairSelect from "../src/ui/components/languagePairSelect.ts";
+import Select from "../src/ui/components/select.ts";
 import Slider from "../src/ui/components/slider.ts";
 import SliderLabel from "../src/ui/components/sliderLabel.ts";
 import Textfield from "../src/ui/components/textfield.ts";
+import Tooltip from "../src/ui/components/tooltip.ts";
 import VOTButton from "../src/ui/components/votButton.ts";
 import VOTMenu from "../src/ui/components/votMenu.ts";
-import Dialog from "../src/ui/components/dialog.ts";
-import HotkeyButton from "../src/ui/components/hotkeyButton.ts";
-import Details from "../src/ui/components/details.ts";
-import LanguagePairSelect from "../src/ui/components/languagePairSelect.ts";
-import Label from "../src/ui/components/label.ts";
-import DownloadButton from "../src/ui/components/downloadButton.ts";
+import ui from "../src/ui.js";
 
 class TestUI {
   initUI() {
@@ -103,7 +103,7 @@ class TestUI {
     this.iconButton = new DownloadButton();
     this.iconButtonWithProgress = new DownloadButton();
     this.iconButtonWithProgress.addEventListener("click", () => {
-      let timer = setInterval(() => {
+      const timer = setInterval(() => {
         this.iconButtonWithProgress.progress++;
         if (this.iconButtonWithProgress.progress > 99) {
           clearInterval(timer);
@@ -236,7 +236,11 @@ class TestUI {
     this.votPortal = ui.createPortal();
     document.documentElement.appendChild(this.votPortal);
 
-    this.testTooltipContent = ui.createEl("p", [], "Use logical sides too 👍🏻");
+    this.testTooltipContent = ui.createEl(
+      "p",
+      [],
+      "Use logical sides too 👍🏻",
+    );
     this.testTooltipLContent = this.testTooltipContent.cloneNode(true);
     this.testTooltipRContent = this.testTooltipContent.cloneNode(true);
     this.testTooltipBContent = ui.createEl(

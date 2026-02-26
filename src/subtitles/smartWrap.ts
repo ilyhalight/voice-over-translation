@@ -41,14 +41,6 @@ const isWordToken = (token: SubtitleToken | undefined): boolean =>
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
-const buildPrefixSums = (values: number[]): number[] => {
-  const prefix = new Array(values.length + 1).fill(0);
-  for (let i = 0; i < values.length; i += 1) {
-    prefix[i + 1] = prefix[i] + values[i];
-  }
-  return prefix;
-};
-
 const rangeSum = (prefix: number[], start: number, end: number): number => {
   if (end < start) return 0;
   return prefix[end + 1] - prefix[start];
@@ -98,6 +90,7 @@ export function buildWordSlices(tokens: SubtitleToken[]): {
   }
 
   const slices: WordSlice[] = [];
+  const keyParts: string[] = [];
 
   for (let i = 0; i < wordTokenIndices.length; i += 1) {
     const tokenIndex = wordTokenIndices[i];
@@ -115,17 +108,13 @@ export function buildWordSlices(tokens: SubtitleToken[]): {
     );
 
     let textToNextWord = "";
-    for (let cursor = tokenIndex; cursor < nextWordTokenIndex; cursor += 1) {
-      textToNextWord += tokens[cursor]?.text ?? "";
-    }
-
     let trailingGapAfterBreakText = "";
-    for (
-      let cursor = breakAfterTokenIndex + 1;
-      cursor < nextWordTokenIndex;
-      cursor += 1
-    ) {
-      trailingGapAfterBreakText += tokens[cursor]?.text ?? "";
+    for (let cursor = tokenIndex; cursor < nextWordTokenIndex; cursor += 1) {
+      const tokenText = tokens[cursor]?.text ?? "";
+      textToNextWord += tokenText;
+      if (cursor > breakAfterTokenIndex) {
+        trailingGapAfterBreakText += tokenText;
+      }
     }
 
     slices.push({
@@ -134,14 +123,11 @@ export function buildWordSlices(tokens: SubtitleToken[]): {
       textToNextWord,
       trailingGapAfterBreakText,
     });
-  }
-
-  const keyParts: string[] = [];
-  for (const slice of slices) {
     keyParts.push(
-      `${slice.textToNextWord}\u0002${slice.trailingGapAfterBreakText}\u0002${slice.breakAfterTokenIndex}`,
+      `${textToNextWord}\u0002${trailingGapAfterBreakText}\u0002${breakAfterTokenIndex}`,
     );
   }
+
   const key = keyParts.join("\u0001");
 
   return {
@@ -154,24 +140,51 @@ export function measureWordSlices(
   slices: WordSlice[],
   measure: (text: string) => number,
 ): WordMetrics {
-  const widths = slices.map((slice) => measure(slice.textToNextWord));
-  const chars = slices.map((slice) => slice.textToNextWord.length);
-  const trailingGapWidths = slices.map((slice) =>
-    measure(slice.trailingGapAfterBreakText),
-  );
-  const trailingGapChars = slices.map(
-    (slice) => slice.trailingGapAfterBreakText.length,
-  );
+  const wordsCount = slices.length;
+  const widths = new Array<number>(wordsCount);
+  const chars = new Array<number>(wordsCount);
+  const trailingGapWidths = new Array<number>(wordsCount);
+  const trailingGapChars = new Array<number>(wordsCount);
+  const prefixWidths = new Array<number>(wordsCount + 1);
+  const prefixChars = new Array<number>(wordsCount + 1);
+  prefixWidths[0] = 0;
+  prefixChars[0] = 0;
+
+  for (let i = 0; i < wordsCount; i += 1) {
+    const textToNextWord = slices[i].textToNextWord;
+    const trailingGapAfterBreakText = slices[i].trailingGapAfterBreakText;
+
+    const width = measure(textToNextWord);
+    const charCount = textToNextWord.length;
+    const trailingWidth = measure(trailingGapAfterBreakText);
+    const trailingCharCount = trailingGapAfterBreakText.length;
+
+    widths[i] = width;
+    chars[i] = charCount;
+    trailingGapWidths[i] = trailingWidth;
+    trailingGapChars[i] = trailingCharCount;
+    prefixWidths[i + 1] = prefixWidths[i] + width;
+    prefixChars[i + 1] = prefixChars[i] + charCount;
+  }
 
   return {
     widths,
     chars,
     trailingGapWidths,
     trailingGapChars,
-    prefixWidths: buildPrefixSums(widths),
-    prefixChars: buildPrefixSums(chars),
+    prefixWidths,
+    prefixChars,
   };
 }
+
+const getWordRangeWidthUnsafe = (
+  metrics: WordMetrics,
+  startWord: number,
+  endWord: number,
+): number => {
+  const total = rangeSum(metrics.prefixWidths, startWord, endWord);
+  return total - (metrics.trailingGapWidths[endWord] ?? 0);
+};
 
 export function getWordRangeWidth(
   metrics: WordMetrics,
@@ -185,9 +198,17 @@ export function getWordRangeWidth(
   const end = clamp(endWord, 0, metrics.widths.length - 1);
   if (end < start) return 0;
 
-  const total = rangeSum(metrics.prefixWidths, start, end);
-  return total - (metrics.trailingGapWidths[end] ?? 0);
+  return getWordRangeWidthUnsafe(metrics, start, end);
 }
+
+const getWordRangeCharsUnsafe = (
+  metrics: WordMetrics,
+  startWord: number,
+  endWord: number,
+): number => {
+  const total = rangeSum(metrics.prefixChars, startWord, endWord);
+  return total - (metrics.trailingGapChars[endWord] ?? 0);
+};
 
 export function getWordRangeChars(
   metrics: WordMetrics,
@@ -201,8 +222,7 @@ export function getWordRangeChars(
   const end = clamp(endWord, 0, metrics.chars.length - 1);
   if (end < start) return 0;
 
-  const total = rangeSum(metrics.prefixChars, start, end);
-  return total - (metrics.trailingGapChars[end] ?? 0);
+  return getWordRangeCharsUnsafe(metrics, start, end);
 }
 
 export function fitsInTwoLines(
@@ -213,14 +233,19 @@ export function fitsInTwoLines(
 ): boolean {
   if (endWord < startWord) return true;
   if (maxWidth <= 0) return false;
+  if (!metrics.widths.length) return true;
 
-  if (getWordRangeWidth(metrics, startWord, endWord) <= maxWidth) {
+  const start = clamp(startWord, 0, metrics.widths.length - 1);
+  const end = clamp(endWord, 0, metrics.widths.length - 1);
+  if (end < start) return true;
+
+  if (getWordRangeWidthUnsafe(metrics, start, end) <= maxWidth) {
     return true;
   }
 
-  for (let k = startWord; k < endWord; k += 1) {
-    const top = getWordRangeWidth(metrics, startWord, k);
-    const bottom = getWordRangeWidth(metrics, k + 1, endWord);
+  for (let k = start; k < end; k += 1) {
+    const top = getWordRangeWidthUnsafe(metrics, start, k);
+    const bottom = getWordRangeWidthUnsafe(metrics, k + 1, end);
     if (top <= maxWidth && bottom <= maxWidth) {
       return true;
     }
@@ -237,26 +262,17 @@ const scoreTwoLineCandidate = (
   count2: number,
   wordsInRange: number,
 ): number => {
-  const overflowPenaltyMul = 10_000;
-  const widths = [w1, w2];
   const mean = (w1 + w2) / 2;
 
-  let slackCost = 0;
-  for (const width of widths) {
-    const slack = maxWidth - width;
-    if (slack >= 0) {
-      slackCost += slack * slack;
-    } else {
-      const over = -slack;
-      slackCost += over * over * overflowPenaltyMul;
-    }
-  }
+  // Callers filter out overflowing line candidates, so only residual slack
+  // balancing is needed here.
+  const slack1 = maxWidth - w1;
+  const slack2 = maxWidth - w2;
+  const slackCost = slack1 * slack1 + slack2 * slack2;
 
-  let variance = 0;
-  for (const width of widths) {
-    const delta = width - mean;
-    variance += delta * delta;
-  }
+  const delta1 = w1 - mean;
+  const delta2 = w2 - mean;
+  const variance = delta1 * delta1 + delta2 * delta2;
 
   const canAvoidSingleton = wordsInRange >= 4;
   const singletonPenalty =
@@ -286,19 +302,23 @@ function computeBestTwoLineBreak(
   maxWidth: number,
 ): number | null {
   if (maxWidth <= 0) return null;
-  if (endWord <= startWord) return null;
+  if (!metrics.widths.length) return null;
+
+  const start = clamp(startWord, 0, metrics.widths.length - 1);
+  const end = clamp(endWord, 0, metrics.widths.length - 1);
+  if (end <= start) return null;
 
   let bestBreak: number | null = null;
   let bestCost = Number.POSITIVE_INFINITY;
-  const wordsInRange = endWord - startWord + 1;
+  const wordsInRange = end - start + 1;
 
-  for (let k = startWord; k < endWord; k += 1) {
-    const w1 = getWordRangeWidth(metrics, startWord, k);
-    const w2 = getWordRangeWidth(metrics, k + 1, endWord);
+  for (let k = start; k < end; k += 1) {
+    const w1 = getWordRangeWidthUnsafe(metrics, start, k);
+    const w2 = getWordRangeWidthUnsafe(metrics, k + 1, end);
     if (w1 > maxWidth || w2 > maxWidth) continue;
 
-    const count1 = k - startWord + 1;
-    const count2 = endWord - k;
+    const count1 = k - start + 1;
+    const count2 = end - k;
     const cost = scoreTwoLineCandidate(
       w1,
       w2,
@@ -322,9 +342,9 @@ export function computeBalancedBreaks(
   maxWidth: number,
 ): number[] {
   const n = metrics.widths.length;
-  if (n <= 1) return [];
+  if (n <= 1 || maxWidth <= 0) return [];
 
-  if (getWordRangeWidth(metrics, 0, n - 1) <= maxWidth) {
+  if (getWordRangeWidthUnsafe(metrics, 0, n - 1) <= maxWidth) {
     return [];
   }
 
@@ -337,15 +357,24 @@ function findLongestPrefixFittingTwoLines(
   maxWidth: number,
 ): number | null {
   const n = metrics.widths.length;
-  if (n <= 0) return null;
+  if (n <= 0 || maxWidth <= 0) return null;
 
-  for (let endWord = n - 1; endWord >= 0; endWord -= 1) {
-    if (fitsInTwoLines(metrics, 0, endWord, maxWidth)) {
-      return endWord;
+  let low = 0;
+  let high = n - 1;
+  let best: number | null = null;
+
+  // Prefix fit is monotonic: if [0..k] fits, every shorter prefix fits too.
+  while (low <= high) {
+    const middle = (low + high) >> 1;
+    if (fitsInTwoLines(metrics, 0, middle, maxWidth)) {
+      best = middle;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
     }
   }
 
-  return null;
+  return best;
 }
 
 export function resolveStrictTwoLineLayout(
@@ -367,7 +396,7 @@ export function resolveStrictTwoLineLayout(
     };
   }
 
-  const fullLineFits = getWordRangeWidth(metrics, 0, n - 1) <= maxWidth;
+  const fullLineFits = getWordRangeWidthUnsafe(metrics, 0, n - 1) <= maxWidth;
   if (fullLineFits) {
     return {
       breakAfterWordIndices: [],
@@ -614,7 +643,7 @@ export function computeTwoLineSegments(
     if (endWord < startWord) return false;
     if (
       charLimit !== null &&
-      getWordRangeChars(metrics, startWord, endWord) > charLimit
+      getWordRangeCharsUnsafe(metrics, startWord, endWord) > charLimit
     ) {
       return false;
     }

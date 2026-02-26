@@ -144,7 +144,6 @@ export async function notificationsCreate(
   if (!api || typeof createFn !== "function") return;
   await callAsync<void>(createFn.bind(api), [notificationId, options], {
     mapCbArgs: () => undefined,
-    rejectOnLastError: false,
   });
 }
 

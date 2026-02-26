@@ -13,13 +13,14 @@ import type { StorageData } from "../types/storage";
 import type { OverlayMount, UIManagerProps } from "../types/uiManager";
 import ui from "../ui";
 import debug from "../utils/debug";
-import { buildTranslationBlob, downloadTranslation } from "../utils/download";
+import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import {
   clamp,
   clearFileName,
+  type DownloadBlobOptions,
   downloadBlob,
   exitFullscreen,
 } from "../utils/utils";
@@ -142,9 +143,20 @@ export class UIManager {
       throw new Error("[VOT] UIManager isn't initialized");
     }
 
-    // #region overlay view events
     this.votOverlayView.initUIEvents();
-    this.votOverlayView
+    this.bindOverlayViewEvents();
+
+    this.votSettingsView.initUIEvents();
+    this.bindSettingsViewEvents();
+  }
+
+  private bindOverlayViewEvents() {
+    const overlayView = this.votOverlayView;
+    if (!overlayView) {
+      return;
+    }
+
+    overlayView
       .addEventListener("click:translate", async () => {
         await this.handleTranslationBtnClick();
       })
@@ -153,11 +165,15 @@ export class UIManager {
           return;
         }
 
-        const isPiPActive =
-          this.videoHandler.video === document.pictureInPictureElement;
-        await (isPiPActive
-          ? document.exitPictureInPicture()
-          : this.videoHandler.video.requestPictureInPicture());
+        try {
+          const isPiPActive =
+            this.videoHandler.video === document.pictureInPictureElement;
+          await (isPiPActive
+            ? document.exitPictureInPicture()
+            : this.videoHandler.video.requestPictureInPicture());
+        } catch (err) {
+          debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
+        }
       })
       .addEventListener("click:settings", async () => {
         this.videoHandler?.subtitlesWidget?.releaseTooltip();
@@ -167,93 +183,10 @@ export class UIManager {
         await exitFullscreen();
       })
       .addEventListener("click:downloadTranslation", async () => {
-        if (
-          !this.votOverlayView.isInitialized() ||
-          !this.videoHandler?.downloadTranslationUrl ||
-          !this.videoHandler.videoData
-        ) {
-          return;
-        }
-
-        const downloadButton = this.votOverlayView.downloadTranslationButton;
-        const downloadUrl = this.videoHandler.downloadTranslationUrl;
-        const filename = this.data.downloadWithName
-          ? clearFileName(this.videoHandler.videoData.downloadTitle)
-          : `translation_${this.videoHandler.videoData.videoId}`;
-        const isMobile = this.videoHandler.site.additionalData === "mobile";
-
-        if (downloadButton) {
-          downloadButton.progress = 0;
-        }
-
-        try {
-          if (isMobile) {
-            // Download the full audio. A range request (bytes=0-0) only returns a
-            // tiny fragment (~1 byte + headers) which results in a silent ~5KB file.
-            const res = await GM_fetch(downloadUrl, { timeout: 0 });
-            if (!res.ok) {
-              throw new Error(`HTTP ${res.status}`);
-            }
-            const blob = await buildTranslationBlob(
-              res,
-              filename,
-              (progress) => {
-                if (downloadButton) {
-                  downloadButton.progress = progress;
-                }
-              },
-            );
-            await this.saveBlobWithMobileShare(blob, `${filename}.mp3`, true);
-            return;
-          }
-
-          // Download the full audio. A range request (bytes=0-0) only returns a
-          // tiny fragment (~1 byte + headers) which results in a silent ~5KB file.
-          const res = await GM_fetch(downloadUrl, { timeout: 0 });
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-          }
-          await downloadTranslation(res, filename, (progress) => {
-            if (downloadButton) {
-              downloadButton.progress = progress;
-            }
-          });
-        } catch (err) {
-          console.error("[VOT] Download translation failed:", err);
-          if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) {
-            globalThis.open(downloadUrl, "_blank")?.focus();
-          }
-        } finally {
-          if (downloadButton) {
-            downloadButton.progress = 0;
-          }
-        }
+        await this.handleDownloadTranslationClick();
       })
       .addEventListener("click:downloadSubtitles", async () => {
-        const videoHandler = this.videoHandler;
-        if (!videoHandler?.yandexSubtitles || !videoHandler.videoData) {
-          return;
-        }
-
-        const subsFormat = this.data.subtitlesDownloadFormat ?? "json";
-        const subsContent = convertSubs(
-          mapProcessedSubtitlesToSharedData(videoHandler.yandexSubtitles),
-          subsFormat,
-        );
-        const blob = new Blob(
-          [
-            subsFormat === "json"
-              ? JSON.stringify(subsContent)
-              : (subsContent as string),
-          ],
-          {
-            type: "text/plain",
-          },
-        );
-        const filename = this.data.downloadWithName
-          ? clearFileName(videoHandler.videoData.downloadTitle)
-          : `subtitles_${videoHandler.videoData.videoId}`;
-        downloadBlob(blob, `${filename}.${subsFormat}`);
+        await this.handleDownloadSubtitlesClick();
       })
       .addEventListener("input:videoVolume", (volume) => {
         if (!this.videoHandler) {
@@ -283,14 +216,25 @@ export class UIManager {
         }
         this.videoHandler.syncVolumeWrapper("translation", nextVolume);
       })
-      .addEventListener("select:subtitles", async (data) => {
-        await this.videoHandler?.changeSubtitlesLang(data);
-      });
+      .addEventListener("select:subtitles", (data) => {
+        if (!this.videoHandler) {
+          return;
+        }
 
-    // #endregion overlay view events
-    // #region settings view events
-    this.votSettingsView.initUIEvents();
-    this.votSettingsView
+        this.runDetached(
+          this.videoHandler.changeSubtitlesLang(data),
+          "Failed to change subtitles language",
+        );
+      });
+  }
+
+  private bindSettingsViewEvents() {
+    const settingsView = this.votSettingsView;
+    if (!settingsView) {
+      return;
+    }
+
+    settingsView
       .addEventListener("update:account", async (account) => {
         if (!this.videoHandler) {
           return;
@@ -299,11 +243,8 @@ export class UIManager {
         this.videoHandler.votClient.apiToken = account?.token;
       })
       .addEventListener("change:autoTranslate", async (checked) => {
-        if (
-          checked &&
-          this.videoHandler &&
-          !this.videoHandler?.hasActiveSource()
-        ) {
+        const videoHandler = this.videoHandler;
+        if (checked && videoHandler && !videoHandler.hasActiveSource()) {
           await this.handleTranslationBtnClick();
         }
       })
@@ -362,32 +303,59 @@ export class UIManager {
         });
       })
       .addEventListener("change:useLivelyVoice", () => {
-        void this.videoHandler?.stopTranslate();
+        if (!this.videoHandler) {
+          return;
+        }
+
+        this.runDetached(
+          this.videoHandler.stopTranslate(),
+          "Failed to stop translation after voice mode change",
+        );
       })
       .addEventListener("change:subtitlesHighlightWords", (checked) => {
-        this.withSubtitlesWidget((widget) => {
-          widget.setHighlightWords(this.data.highlightWords ?? checked);
-        });
+        this.updateSubtitlesWidgetSetting(
+          checked,
+          this.data.highlightWords,
+          (widget, value) => {
+            widget.setHighlightWords(value);
+          },
+        );
       })
       .addEventListener("change:subtitlesSmartLayout", (checked) => {
-        this.withSubtitlesWidget((widget) => {
-          widget.setSmartLayout(this.data.subtitlesSmartLayout ?? checked);
-        });
+        this.updateSubtitlesWidgetSetting(
+          checked,
+          this.data.subtitlesSmartLayout,
+          (widget, value) => {
+            widget.setSmartLayout(value);
+          },
+        );
       })
       .addEventListener("input:subtitlesMaxLength", (value) => {
-        this.withSubtitlesWidget((widget) => {
-          widget.setMaxLength(this.data.subtitlesMaxLength ?? value);
-        });
+        this.updateSubtitlesWidgetSetting(
+          value,
+          this.data.subtitlesMaxLength,
+          (widget, nextValue) => {
+            widget.setMaxLength(nextValue);
+          },
+        );
       })
       .addEventListener("input:subtitlesFontSize", (value) => {
-        this.withSubtitlesWidget((widget) => {
-          widget.setFontSize(this.data.subtitlesFontSize ?? value);
-        });
+        this.updateSubtitlesWidgetSetting(
+          value,
+          this.data.subtitlesFontSize,
+          (widget, nextValue) => {
+            widget.setFontSize(nextValue);
+          },
+        );
       })
       .addEventListener("input:subtitlesBackgroundOpacity", (value) => {
-        this.withSubtitlesWidget((widget) => {
-          widget.setOpacity(this.data.subtitlesOpacity ?? value);
-        });
+        this.updateSubtitlesWidgetSetting(
+          value,
+          this.data.subtitlesOpacity,
+          (widget, nextValue) => {
+            widget.setOpacity(nextValue);
+          },
+        );
       })
       .addEventListener("change:proxyWorkerHost", (_value) => {
         if (!this.videoHandler) {
@@ -396,13 +364,23 @@ export class UIManager {
 
         // Proxy host changes invalidate cached requests/URLs and should stop
         // the current translation session.
-        void this.videoHandler.handleProxySettingsChanged("proxyWorkerHost");
+        this.runDetached(
+          this.videoHandler.handleProxySettingsChanged("proxyWorkerHost"),
+          "Failed to apply proxyWorkerHost change",
+        );
       })
       .addEventListener("select:proxyTranslationStatus", () => {
         // Switching proxy mode changes request routing. Drop stale cache and
         // stop translation so the next run starts with fresh settings.
-        void this.videoHandler?.handleProxySettingsChanged(
-          "proxyTranslationStatus",
+        if (!this.videoHandler) {
+          return;
+        }
+
+        this.runDetached(
+          this.videoHandler.handleProxySettingsChanged(
+            "proxyTranslationStatus",
+          ),
+          "Failed to apply proxyTranslationStatus change",
         );
       })
       .addEventListener("change:useNewAudioPlayer", () => {
@@ -454,15 +432,101 @@ export class UIManager {
       })
       .addEventListener("click:resetSettings", async () => {
         const valuesForClear = await votStorage.list();
-        await Promise.all(
-          valuesForClear.map(async (val) => await votStorage.delete(val)),
-        );
+        await Promise.all(valuesForClear.map((key) => votStorage.delete(key)));
         await votStorage.set("compatVersion", actualCompatVersion);
 
         globalThis.location.reload();
       });
+  }
 
-    // #endregion settings view events
+  private async handleDownloadTranslationClick() {
+    const overlayView = this.votOverlayView;
+    const videoHandler = this.videoHandler;
+    if (
+      !overlayView?.isInitialized() ||
+      !videoHandler?.downloadTranslationUrl ||
+      !videoHandler.videoData
+    ) {
+      return;
+    }
+
+    const downloadButton = overlayView.downloadTranslationButton;
+    const downloadUrl = videoHandler.downloadTranslationUrl;
+    const filename = this.data.downloadWithName
+      ? clearFileName(videoHandler.videoData.downloadTitle)
+      : `translation_${videoHandler.videoData.videoId}`;
+    const isMobile = this.isLikelyMobileDownloadContext();
+    const saveOptions: DownloadBlobOptions = { preferShare: isMobile };
+
+    const setProgress = (progress: number) => {
+      if (downloadButton) {
+        downloadButton.progress = progress;
+      }
+    };
+
+    setProgress(0);
+    try {
+      await this.downloadTranslationAudio(
+        downloadUrl,
+        filename,
+        setProgress,
+        saveOptions,
+      );
+    } catch (err) {
+      console.error("[VOT] Download translation failed:", err);
+      if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) {
+        globalThis.open(downloadUrl, "_blank")?.focus();
+      }
+    } finally {
+      setProgress(0);
+    }
+  }
+
+  private async downloadTranslationAudio(
+    downloadUrl: string,
+    filename: string,
+    onProgress: (progress: number) => void,
+    saveOptions: DownloadBlobOptions,
+  ) {
+    // Download the full audio. A range request (bytes=0-0) only returns a tiny
+    // fragment (~1 byte + headers), which results in a silent ~5KB file.
+    const response = await GM_fetch(downloadUrl, { timeout: 0 });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    await downloadTranslation(response, filename, onProgress, saveOptions);
+  }
+
+  private async handleDownloadSubtitlesClick() {
+    const videoHandler = this.videoHandler;
+    if (!videoHandler?.yandexSubtitles || !videoHandler.videoData) {
+      return;
+    }
+
+    const subsFormat = this.data.subtitlesDownloadFormat ?? "json";
+    const subsContent = convertSubs(
+      mapProcessedSubtitlesToSharedData(videoHandler.yandexSubtitles),
+      subsFormat,
+    );
+    const blob = new Blob(
+      [
+        subsFormat === "json"
+          ? JSON.stringify(subsContent)
+          : (subsContent as string),
+      ],
+      {
+        type: "text/plain",
+      },
+    );
+    const filename = this.data.downloadWithName
+      ? clearFileName(videoHandler.videoData.downloadTitle)
+      : `subtitles_${videoHandler.videoData.videoId}`;
+    const targetFilename = `${filename}.${subsFormat}`;
+    const isMobile = this.isLikelyMobileDownloadContext();
+    const saveOptions: DownloadBlobOptions = { preferShare: isMobile };
+
+    await downloadBlob(blob, targetFilename, saveOptions);
   }
 
   async reloadMenu() {
@@ -494,23 +558,26 @@ export class UIManager {
       this.votOverlayView.votMenu.hidden = prevMenuHidden;
       this.votOverlayView.votButton.container.hidden = prevButtonHidden;
       this.votOverlayView.votButton.opacity = prevButtonOpacity;
-    } catch {
-      // ignore best-effort restore
+    } catch (err) {
+      debug.warn(
+        "[VOT] Failed to restore overlay state after menu reload",
+        err,
+      );
     }
 
     // Re-bind overlay visibility interactions (overlay elements were recreated).
     try {
       this.videoHandler.rebindOverlayVisibilityTargets();
-    } catch {
-      // ignore
+    } catch (err) {
+      debug.warn("[VOT] Failed to rebind overlay visibility targets", err);
     }
 
     // Keep settings open when language changes (better UX).
     if (settingsWasOpen) {
       try {
         this.votSettingsView?.open();
-      } catch {
-        // ignore
+      } catch (err) {
+        debug.warn("[VOT] Failed to reopen settings after menu reload", err);
       }
     }
 
@@ -529,14 +596,15 @@ export class UIManager {
       throw new Error("[VOT] OverlayView isn't initialized");
     }
 
-    if (!this.videoHandler) {
+    const videoHandler = this.videoHandler;
+    if (!videoHandler) {
       return this;
     }
 
     debug.log("[handleTranslationBtnClick] click translationBtn");
-    if (this.videoHandler.hasActiveSource()) {
+    if (videoHandler.hasActiveSource()) {
       debug.log("[handleTranslationBtnClick] video has active source");
-      await this.videoHandler.stopTranslation();
+      await videoHandler.stopTranslation();
       return this;
     }
 
@@ -554,40 +622,29 @@ export class UIManager {
       debug.log(
         "[handleTranslationBtnClick] translationBtn isn't in none state",
       );
-      this.videoHandler.actionsAbortController.abort();
-      await this.videoHandler.stopTranslation();
+      videoHandler.actionsAbortController.abort();
+      await videoHandler.stopTranslation();
       return this;
     }
 
     try {
       debug.log("[handleTranslationBtnClick] trying execute translation");
-      if (!this.videoHandler.videoData?.videoId) {
-        throw new VOTLocalizedError("VOTNoVideoIDFound");
-      }
-
-      // for VK clips and Douyin, we need update current video ID
-      if (
-        (this.videoHandler.site.host === "vk" &&
-          this.videoHandler.site.additionalData === "clips") ||
-        this.videoHandler.site.host === "douyin"
-      ) {
-        this.videoHandler.videoData = await this.videoHandler.getVideoData();
-      }
+      const videoData = await this.getVideoDataForTranslation(videoHandler);
 
       debug.log(
         "[handleTranslationBtnClick] Run translateFunc",
-        this.videoHandler.videoData.videoId,
+        videoData.videoId,
       );
-      await this.videoHandler.translateFunc(
-        this.videoHandler.videoData.videoId,
-        this.videoHandler.videoData.isStream,
-        this.videoHandler.videoData.detectedLanguage,
-        this.videoHandler.videoData.responseLanguage,
-        this.videoHandler.videoData.translationHelp,
+      await videoHandler.translateFunc(
+        videoData.videoId,
+        videoData.isStream,
+        videoData.detectedLanguage,
+        videoData.responseLanguage,
+        videoData.translationHelp,
       );
     } catch (err) {
       // Check if this is an abort error and handle silently
-      if (err instanceof Error && err.name === "AbortError") {
+      if (this.isAbortError(err)) {
         this.transformBtn("none", localizationProvider.get("translateVideo"));
         return this;
       }
@@ -607,6 +664,35 @@ export class UIManager {
 
     return this;
   }
+
+  private async getVideoDataForTranslation(videoHandler: VideoHandler) {
+    if (!videoHandler.videoData?.videoId) {
+      throw new VOTLocalizedError("VOTNoVideoIDFound");
+    }
+
+    if (this.shouldRefreshVideoDataBeforeTranslation(videoHandler)) {
+      videoHandler.videoData = await videoHandler.getVideoData();
+    }
+
+    if (!videoHandler.videoData?.videoId) {
+      throw new VOTLocalizedError("VOTNoVideoIDFound");
+    }
+
+    return videoHandler.videoData;
+  }
+
+  private shouldRefreshVideoDataBeforeTranslation(videoHandler: VideoHandler) {
+    return (
+      (videoHandler.site.host === "vk" &&
+        videoHandler.site.additionalData === "clips") ||
+      videoHandler.site.host === "douyin"
+    );
+  }
+
+  private isAbortError(error: unknown) {
+    return error instanceof Error && error.name === "AbortError";
+  }
+
   private isLoadingText(text: string) {
     // Localization keys have historically varied in casing across builds.
     const delayed = localizationProvider.get("TranslationDelayed");
@@ -690,6 +776,25 @@ export class UIManager {
     callback(widget);
   }
 
+  private updateSubtitlesWidgetSetting<T>(
+    nextValue: T,
+    storedValue: T | undefined,
+    apply: (
+      widget: NonNullable<VideoHandler["subtitlesWidget"]>,
+      value: T,
+    ) => void,
+  ) {
+    this.withSubtitlesWidget((widget) => {
+      apply(widget, storedValue ?? nextValue);
+    });
+  }
+
+  private runDetached(task: Promise<unknown>, errorMessage: string) {
+    void task.catch((err) => {
+      debug.warn(`[VOT] ${errorMessage}`, err);
+    });
+  }
+
   private triggerUrlDownload(url: string, filename: string): boolean {
     try {
       const a = document.createElement("a");
@@ -709,62 +814,32 @@ export class UIManager {
     }
   }
 
-  private async tryShareBlob(blob: Blob, filename: string): Promise<boolean> {
-    const nav = typeof navigator === "undefined" ? undefined : navigator;
-    if (!nav?.share || typeof File === "undefined") {
-      return false;
-    }
-
-    let file: File;
-    try {
-      file = new File([blob], filename, {
-        type: blob.type || "application/octet-stream",
-      });
-    } catch {
-      return false;
-    }
-
-    if (
-      typeof nav.canShare === "function" &&
-      !nav.canShare({ files: [file] })
-    ) {
-      return false;
-    }
-
-    try {
-      await nav.share({ files: [file], title: filename });
+  private isLikelyMobileDownloadContext(): boolean {
+    if (this.videoHandler?.site.additionalData === "mobile") {
       return true;
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return true;
-      }
-      debug.warn("[VOT] navigator.share failed, fallback to download", err);
-      return false;
-    }
-  }
-
-  private async saveBlobWithMobileShare(
-    blob: Blob,
-    filename: string,
-    preferShare: boolean,
-  ): Promise<void> {
-    if (preferShare) {
-      const shared = await this.tryShareBlob(blob, filename);
-      if (shared) {
-        return;
-      }
     }
 
-    downloadBlob(blob, filename);
+    return (
+      typeof matchMedia === "function" &&
+      matchMedia("(pointer: coarse)").matches
+    );
   }
 
   private restartAudioPlayer() {
-    if (!this.videoHandler) {
+    void this.restartAudioPlayerSafely();
+  }
+
+  private async restartAudioPlayerSafely() {
+    const videoHandler = this.videoHandler;
+    if (!videoHandler) {
       return;
     }
-    void (async () => {
-      await this.videoHandler?.stopTranslate();
-      this.videoHandler?.createPlayer();
-    })();
+
+    try {
+      await videoHandler.stopTranslate();
+      videoHandler.createPlayer();
+    } catch (err) {
+      debug.warn("[VOT] Failed to restart audio player", err);
+    }
   }
 }

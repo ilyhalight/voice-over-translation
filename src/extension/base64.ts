@@ -5,15 +5,113 @@
  * both the content script and the service worker.
  */
 
-export function bytesToBase64(bytes: Uint8Array): string {
-  // Chunk to avoid stack overflows on large arrays.
-  const chunkSize = 0x8000;
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const sub = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCodePoint(...sub);
+type FromBase64Options = {
+  alphabet?: "base64" | "base64url";
+  lastChunkHandling?: "loose" | "strict" | "stop-before-partial";
+};
+
+type Uint8ArrayPrototypeWithBase64 = {
+  toBase64?: (this: Uint8Array) => string;
+};
+
+type Uint8ArrayConstructorWithBase64 = Uint8ArrayConstructor & {
+  fromBase64?: (input: string, options?: FromBase64Options) => Uint8Array;
+};
+
+const BASE64URL_DECODE_OPTIONS: FromBase64Options = {
+  alphabet: "base64url",
+};
+const nativeToBase64 =
+  typeof (Uint8Array.prototype as Uint8ArrayPrototypeWithBase64).toBase64 ===
+  "function"
+    ? (Uint8Array.prototype as Uint8ArrayPrototypeWithBase64).toBase64
+    : null;
+const nativeFromBase64 = (Uint8Array as Uint8ArrayConstructorWithBase64)
+  .fromBase64;
+
+function normalizeBase64Input(input: string): string {
+  // Allow surrounding / embedded whitespace and missing padding.
+  const withoutWhitespace = String(input).replaceAll(/\s+/g, "");
+  const remainder = withoutWhitespace.length % 4;
+  if (remainder === 1) {
+    throw new TypeError("Invalid base64 input.");
   }
-  return btoa(binary);
+  if (remainder === 0) return withoutWhitespace;
+  return withoutWhitespace + "=".repeat(4 - remainder);
+}
+
+function bytesToBinaryString(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return binary;
+}
+
+function decodeWithLegacyBase64Normalized(
+  normalizedBase64: string,
+): Uint8Array {
+  const atobFn = globalThis.atob;
+  if (typeof atobFn !== "function") {
+    throw new TypeError("Base64 decoder is not available in this environment.");
+  }
+
+  const binary = atobFn(normalizedBase64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
+}
+
+function encodeWithLegacyBase64(bytes: Uint8Array): string {
+  const btoaFn = globalThis.btoa;
+  if (typeof btoaFn !== "function") {
+    throw new TypeError("Base64 encoder is not available in this environment.");
+  }
+  return btoaFn(bytesToBinaryString(bytes));
+}
+
+function decodeBase64ToBytes(input: string): Uint8Array {
+  const normalized = normalizeBase64Input(input);
+  const normalizedStandard = normalized
+    .replaceAll("-", "+")
+    .replaceAll("_", "/");
+
+  if (typeof nativeFromBase64 !== "function") {
+    return decodeWithLegacyBase64Normalized(normalizedStandard);
+  }
+
+  const hasUrlAlphabet = normalized.includes("-") || normalized.includes("_");
+  const hasStandardAlphabet =
+    normalized.includes("+") || normalized.includes("/");
+
+  if (hasUrlAlphabet && !hasStandardAlphabet) {
+    return nativeFromBase64(normalized, BASE64URL_DECODE_OPTIONS);
+  }
+  return nativeFromBase64(
+    hasUrlAlphabet && hasStandardAlphabet ? normalizedStandard : normalized,
+  );
+}
+
+function bytesViewToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const { buffer, byteOffset, byteLength } = bytes;
+
+  if (buffer instanceof ArrayBuffer) {
+    if (byteOffset === 0 && byteLength === buffer.byteLength) return buffer;
+    return buffer.slice(byteOffset, byteOffset + byteLength);
+  }
+
+  const out = new ArrayBuffer(byteLength);
+  new Uint8Array(out).set(bytes);
+  return out;
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof nativeToBase64 === "function") {
+    return nativeToBase64.call(bytes);
+  }
+  return encodeWithLegacyBase64(bytes);
 }
 
 export function arrayBufferToBase64(ab: ArrayBuffer): string {
@@ -21,24 +119,9 @@ export function arrayBufferToBase64(ab: ArrayBuffer): string {
 }
 
 export function base64ToBytes(b64: string): Uint8Array {
-  // Be tolerant to base64url variants and missing padding.
-  let normalized = String(b64 || "").trim();
-  normalized = normalized.replaceAll("-", "+").replaceAll("_", "/");
-  const pad = normalized.length % 4;
-  if (pad) normalized += "=".repeat(4 - pad);
-
-  const binary = atob(normalized);
-  const len = binary.length;
-  const out = new Uint8Array(len);
-  for (let i = 0; i < len; i += 1) {
-    out[i] = binary.codePointAt(i) ?? 0;
-  }
-  return out;
+  return decodeBase64ToBytes(b64);
 }
 
 export function base64ToArrayBuffer(b64: string): ArrayBuffer {
-  const bytes = base64ToBytes(b64);
-  const out = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(out).set(bytes);
-  return out;
+  return bytesViewToArrayBuffer(base64ToBytes(b64));
 }

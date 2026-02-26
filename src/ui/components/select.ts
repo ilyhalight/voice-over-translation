@@ -45,6 +45,8 @@ export default class Select<
     beforeOpen: this.onBeforeOpen as EventImpl<any[]>,
   };
   private contentList?: HTMLElement;
+  private readonly contentItemSearchDatasetKey = "votSearchLabel";
+  private readonly contentItemIndexDatasetKey = "votIndex";
 
   selectedItems: HTMLElement[] = [];
   selectedValues: Set<T>;
@@ -87,20 +89,15 @@ export default class Select<
     });
   }
 
-  private readonly multiSelectItemHandle = (
-    contentItem: HTMLElement,
-    item: SelectItem<T>,
-  ) => {
+  private readonly multiSelectItemHandle = (item: SelectItem<T>) => {
     const value = item.value;
     if (this.selectedValues.has(value) && this.selectedValues.size > 1) {
       this.selectedValues.delete(value);
-      item.selected = false;
     } else {
       this.selectedValues.add(value);
-      item.selected = true;
     }
 
-    contentItem.dataset.votSelected = this.selectedValues.has(value).toString();
+    this.syncItemsSelectionState();
     this.updateSelectedState();
     this.onSelectItem.dispatch(Array.from(this.selectedValues));
   };
@@ -108,47 +105,71 @@ export default class Select<
   private readonly singleSelectItemHandle = (item: SelectItem<T>) => {
     const value = item.value;
     this.selectedValues = new Set([value]);
-    for (const contentItem of this.selectedItems) {
-      contentItem.dataset.votSelected = (
-        contentItem.dataset.votValue === value
-      ).toString();
-    }
-
-    for (const item of this._items) {
-      item.selected = item.value === value;
-    }
-
-    this.updateTitle();
+    this.syncItemsSelectionState();
+    this.updateSelectedState();
     this.onSelectItem.dispatch(value);
   };
+
+  private readonly onContentItemClick = (event: Event) => {
+    if (!(event.target instanceof HTMLElement)) {
+      return;
+    }
+
+    const contentItem = event.target.closest<HTMLElement>(
+      ".vot-select-content-item",
+    );
+    if (
+      !contentItem ||
+      contentItem.inert ||
+      !this.contentList?.contains(contentItem)
+    ) {
+      return;
+    }
+
+    const rawIndex = contentItem.dataset[this.contentItemIndexDatasetKey];
+    if (!rawIndex) {
+      return;
+    }
+
+    const item = this._items[Number(rawIndex)];
+    if (!item) {
+      return;
+    }
+
+    if (this.multiSelect) {
+      this.multiSelectItemHandle(item);
+      return;
+    }
+
+    this.singleSelectItemHandle(item);
+  };
+
+  private syncItemsSelectionState() {
+    for (const item of this._items) {
+      item.selected = this.selectedValues.has(item.value);
+    }
+  }
 
   private createDialogContentList() {
     const contentList = UI.createEl("vot-block", ["vot-select-content-list"]);
 
-    for (const item of this._items) {
+    for (const [index, item] of this._items.entries()) {
       const contentItem = UI.createEl("vot-block", ["vot-select-content-item"]);
       contentItem.textContent = item.label;
       contentItem.dataset.votSelected =
         item.selected === true ? "true" : "false";
       contentItem.dataset.votValue = item.value;
+      contentItem.dataset[this.contentItemSearchDatasetKey] =
+        item.label.toLowerCase();
+      contentItem.dataset[this.contentItemIndexDatasetKey] = String(index);
       if (item.disabled) {
         contentItem.inert = true;
       }
 
-      contentItem.addEventListener("click", (e) => {
-        if ((e.target as HTMLElement).inert) {
-          return;
-        }
-
-        if (this.multiSelect) {
-          return this.multiSelectItemHandle(contentItem, item);
-        }
-
-        return this.singleSelectItemHandle(item);
-      });
-
       contentList.appendChild(contentItem);
     }
+
+    contentList.addEventListener("click", this.onContentItemClick);
 
     // Use Element children only (childNodes may include Text/Comment nodes).
     this.selectedItems = Array.from(contentList.children) as HTMLElement[];
@@ -177,10 +198,7 @@ export default class Select<
     render(CHEVRON_ICON, arrowIcon);
     outer.append(title, arrowIcon);
     outer.addEventListener("click", () => {
-      const isDisabled =
-        outer.getAttribute("disabled") === "true" ||
-        outer.getAttribute("aria-disabled") === "true";
-      if (isDisabled) {
+      if (this.disabled) {
         return;
       }
 
@@ -208,9 +226,9 @@ export default class Select<
         votSearchLangTextfield.addEventListener("input", (searchText) => {
           const normalizedSearchText = searchText.toLowerCase();
           for (const contentItem of this.selectedItems) {
-            contentItem.hidden = !contentItem.textContent
-              ?.toLowerCase()
-              .includes(normalizedSearchText);
+            const searchableText =
+              contentItem.dataset[this.contentItemSearchDatasetKey] ?? "";
+            contentItem.hidden = !searchableText.includes(normalizedSearchText);
           }
         });
 
@@ -291,12 +309,12 @@ export default class Select<
   updateSelectedState() {
     if (this.selectedItems.length > 0) {
       for (const item of this.selectedItems) {
-        const val = item.dataset.votValue as T;
-        if (!val) {
+        const val = item.dataset.votValue;
+        if (val === undefined) {
           continue;
         }
 
-        item.dataset.votSelected = this.selectedValues.has(val).toString();
+        item.dataset.votSelected = this.selectedValues.has(val as T).toString();
       }
     }
 
@@ -305,19 +323,15 @@ export default class Select<
   }
 
   setSelectedValue(value: typeof this.multiSelect extends true ? T[] : T) {
+    const values = (Array.isArray(value) ? value : [value]) as T[];
+    let selectedValues: T[];
     if (this.multiSelect) {
-      this.selectedValues = new Set<T>(
-        Array.isArray(value)
-          ? (value.map(String) as T[])
-          : [String(value) as T],
-      );
+      selectedValues = values;
     } else {
-      this.selectedValues = new Set<T>([String(value) as T]);
+      selectedValues = values.length > 0 ? [values[0]] : [];
     }
-
-    for (const item of this._items) {
-      item.selected = this.selectedValues.has(String(item.value) as T);
-    }
+    this.selectedValues = new Set<T>(selectedValues);
+    this.syncItemsSelectionState();
 
     this.updateSelectedState();
     return this;
@@ -371,10 +385,18 @@ export default class Select<
   }
 
   get disabled() {
-    return this.outer.getAttribute("disabled") === "true";
+    return (
+      this.outer.getAttribute("disabled") === "true" ||
+      this.outer.getAttribute("aria-disabled") === "true"
+    );
   }
 
   set disabled(isDisabled: boolean) {
-    this.outer.toggleAttribute("disabled", isDisabled);
+    if (isDisabled) {
+      this.outer.setAttribute("disabled", "true");
+      return;
+    }
+
+    this.outer.removeAttribute("disabled");
   }
 }

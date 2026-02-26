@@ -1,14 +1,3 @@
-// Minimal "GM storage" value union. We intentionally keep this wide because
-// userscript managers store arbitrary JSON-like values.
-type KeysOrDefaultValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Record<string, unknown>
-  | unknown[];
-
 import { actualCompatVersion } from "../config/config";
 import {
   type CompatibilityVersion,
@@ -20,6 +9,17 @@ import {
 } from "../types/storage";
 import debug from "./debug";
 import { isSupportGM4 } from "./gm";
+
+// Minimal "GM storage" value union. We intentionally keep this wide because
+// userscript managers store arbitrary JSON-like values.
+type KeysOrDefaultValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Record<string, unknown>
+  | unknown[];
 
 const compatMay2025Data = {
   numToBool: [
@@ -47,33 +47,94 @@ const compatMay2025Data = {
   ],
 } as const satisfies ConvertData;
 
-function getCompatCategory(
-  key: string,
-  value: unknown,
-  convertData?: ConvertData,
-) {
-  if (typeof value === "number") {
-    return convertData?.number.some((item) => item[0] === key)
-      ? "number"
-      : "numToBool";
-  } else if (Array.isArray(value)) {
-    return "array";
-  } else if (typeof value === "string" || value === null) {
-    return "string";
+type CompatRule = Readonly<{
+  category: ConvertCategory;
+  oldKey: string;
+  newKey: StorageKey;
+  shouldDeleteOldKey: boolean;
+}>;
+
+const compatRules = (
+  Object.entries(compatMay2025Data) as [
+    ConvertCategory,
+    readonly (readonly [string, string?])[],
+  ][]
+).flatMap<CompatRule>(([category, entries]) =>
+  entries.map(([oldKey, maybeNewKey]) => ({
+    category,
+    oldKey,
+    newKey: (maybeNewKey ?? oldKey) as StorageKey,
+    shouldDeleteOldKey: Boolean(maybeNewKey),
+  })),
+);
+
+const compatRuleByOldKey = new Map<string, CompatRule>(
+  compatRules.map((rule) => [rule.oldKey, rule]),
+);
+
+const compatKeysToRead = Array.from(
+  new Set<string>(compatRules.map((rule) => rule.oldKey)),
+);
+
+function createUndefinedDefaults(
+  keys: Iterable<string>,
+): Record<string, undefined> {
+  const defaults: Record<string, undefined> = {};
+  for (const key of keys) {
+    defaults[key] = undefined;
   }
 
-  return undefined;
+  return defaults;
+}
+
+function isCompatValue(category: ConvertCategory, value: unknown) {
+  switch (category) {
+    case "numToBool":
+    case "number":
+      return typeof value === "number";
+    case "array":
+      return Array.isArray(value);
+    case "string":
+      return typeof value === "string" || value === null;
+    default:
+      return false;
+  }
 }
 
 function convertByCompatCategory(category: ConvertCategory, value: unknown) {
-  if (["string", "array", "number"].includes(category)) {
-    return value;
+  switch (category) {
+    case "string":
+    case "array":
+    case "number":
+      return value;
+    default:
+      return !!value;
   }
-
-  return !!value;
 }
 
-type AnyDataKeys = Record<string, undefined>;
+function normalizeCompatValue(
+  rule: CompatRule,
+  value: unknown,
+): KeysOrDefaultValue {
+  let convertedValue = convertByCompatCategory(rule.category, value);
+
+  if (rule.oldKey === "autoVolume" && typeof value === "number" && value < 1) {
+    convertedValue = Math.round(value * 100);
+  }
+
+  return convertedValue as KeysOrDefaultValue;
+}
+
+function areStorageValuesEqual(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return (
+      a.length === b.length &&
+      a.every((item, index) => Object.is(item, b[index]))
+    );
+  }
+
+  return Object.is(a, b);
+}
 
 export async function updateConfig<T>(
   data: Record<string, unknown>,
@@ -82,70 +143,45 @@ export async function updateConfig<T>(
     return data as T;
   }
 
-  const oldKeys = Object.values(compatMay2025Data)
-    .flat()
-    .reduce<AnyDataKeys>((result, key) => {
-      if (key[1]) {
-        result[key[0]] = undefined;
-      }
+  const keysToRead = new Set<string>([
+    ...Object.keys(data),
+    ...compatKeysToRead,
+  ]);
+  const persistedValues = await votStorage.getValues<
+    Record<string, KeysOrDefaultValue>
+  >(createUndefinedDefaults(keysToRead));
 
-      return result;
-    }, {});
-  const oldData = await votStorage.getValues<Record<string, any>>(oldKeys);
-  const existsOldData = Object.fromEntries(
-    Object.entries(oldData).filter(([_, value]) => value !== undefined),
-  );
-  const allData = { ...data, ...existsOldData };
-  const allDataKeys = Object.keys(allData).reduce<AnyDataKeys>(
-    (result, key) => {
-      result[key] = undefined;
-      return result;
-    },
-    {},
-  );
-  const realValues =
-    await votStorage.getValues<Record<string, any>>(allDataKeys);
-  const newData: Partial<StorageData> = data;
-  for (const [key, value] of Object.entries(allData)) {
-    const category = getCompatCategory(key, value, compatMay2025Data);
-    if (!category) {
+  const newData: Partial<StorageData> = { ...(data as Partial<StorageData>) };
+  const writeOperations: Promise<unknown>[] = [];
+  const deleteOperations: Promise<unknown>[] = [];
+
+  for (const [key, storedValue] of Object.entries(persistedValues)) {
+    if (storedValue === undefined) {
       continue;
     }
 
-    const compatItem = compatMay2025Data[category].find(
-      (item) => item[0] === key,
-    );
-    if (!compatItem) {
+    const compatRule = compatRuleByOldKey.get(key);
+    if (!compatRule || !isCompatValue(compatRule.category, storedValue)) {
       continue;
     }
 
-    const newKey = (compatItem[1] ?? key) as StorageKey;
-    if (realValues[key] === undefined) {
-      // skip auto values
-      continue;
+    const convertedValue = normalizeCompatValue(compatRule, storedValue);
+    (newData as Record<string, unknown>)[compatRule.newKey] = convertedValue;
+
+    const existingNewValue = persistedValues[compatRule.newKey];
+    if (
+      compatRule.shouldDeleteOldKey ||
+      !areStorageValuesEqual(existingNewValue, convertedValue)
+    ) {
+      writeOperations.push(votStorage.set(compatRule.newKey, convertedValue));
     }
 
-    let newValue = convertByCompatCategory(category, value);
-    if (key === "autoVolume" && (value as number) < 1) {
-      newValue = Math.round((value as number) * 100);
+    if (compatRule.shouldDeleteOldKey) {
+      deleteOperations.push(votStorage.delete(compatRule.oldKey as StorageKey));
     }
-
-    // `newKey` is runtime-validated by `convertData`. TS can lose the literal
-    // key union and infer the indexed access as `never`.
-    (newData as any)[newKey] = newValue as any;
-    if (existsOldData[key] !== undefined) {
-      // remove old key
-      await votStorage.delete(key as StorageKey);
-    }
-
-    // Note: we intentionally don't call localizationProvider.changeLang(...) here.
-    // The extension build bundles as a classic script (IIFE) and must avoid
-    // localization<->storage runtime cycles. Localization is initialized later
-    // (see ensureLocalizationProviderReady() in index.ts) and will read the persisted
-    // override on startup.
-
-    await votStorage.set<any>(newKey, newValue);
   }
+
+  await Promise.all([...writeOperations, ...deleteOperations]);
 
   return {
     ...newData,
@@ -153,42 +189,75 @@ export async function updateConfig<T>(
   } as T;
 }
 
+type StorageSupport = Readonly<{
+  legacyGet: boolean;
+  legacySet: boolean;
+  legacyDelete: boolean;
+  legacyList: boolean;
+  promiseGet: boolean;
+  promiseGetValues: boolean;
+  promiseSet: boolean;
+  promiseDelete: boolean;
+  promiseList: boolean;
+}>;
+
 class VOTStorage {
-  supportGM = false;
-  supportGMPromises = false;
-  supportGMGetValues = false;
-  supportResolved = false;
+  private support: StorageSupport | null = null;
 
-  private resolveSupport(): void {
-    if (this.supportResolved) return;
-    this.supportResolved = true;
+  private resolveSupport(): StorageSupport {
+    if (this.support) {
+      return this.support;
+    }
 
-    this.supportGM = typeof GM_getValue === "function";
-    this.supportGMPromises = isSupportGM4 && typeof GM?.getValue === "function";
-    this.supportGMGetValues =
-      isSupportGM4 && typeof GM?.getValues === "function";
+    const support: StorageSupport = {
+      legacyGet: typeof GM_getValue === "function",
+      legacySet: typeof GM_setValue === "function",
+      legacyDelete: typeof GM_deleteValue === "function",
+      legacyList: typeof GM_listValues === "function",
+      promiseGet: isSupportGM4 && typeof GM?.getValue === "function",
+      promiseGetValues: isSupportGM4 && typeof GM?.getValues === "function",
+      promiseSet: isSupportGM4 && typeof GM?.setValue === "function",
+      promiseDelete: isSupportGM4 && typeof GM?.deleteValue === "function",
+      promiseList: isSupportGM4 && typeof GM?.listValues === "function",
+    };
+    this.support = support;
 
     debug.log(
-      `[VOT Storage] GM Promises: ${this.supportGMPromises} | GM: ${this.supportGM}`,
+      `[VOT Storage] GM Promises: ${support.promiseGet} | GM legacy: ${support.legacyGet}`,
     );
+
+    return support;
   }
 
   /**
    * Check if storage type is LocalStorage
    */
   get isSupportOnlyLS() {
-    this.resolveSupport();
-    return !this.supportGM && !this.supportGMPromises;
+    const support = this.resolveSupport();
+    return (
+      !support.legacyGet &&
+      !support.legacySet &&
+      !support.legacyDelete &&
+      !support.legacyList &&
+      !support.promiseGet &&
+      !support.promiseGetValues &&
+      !support.promiseSet &&
+      !support.promiseDelete &&
+      !support.promiseList
+    );
   }
 
-  private syncGet<T = unknown>(name: StorageKey, def?: T): T {
-    this.resolveSupport();
-    if (this.supportGM) {
+  private syncGet<T = unknown>(
+    name: string,
+    def: T | undefined,
+    support: StorageSupport,
+  ): T {
+    if (support.legacyGet) {
       return GM_getValue<T>(name, def);
     }
 
     const val = globalThis.localStorage.getItem(name);
-    if (!val) {
+    if (val === null) {
       return def as T;
     }
 
@@ -199,48 +268,50 @@ class VOTStorage {
     }
   }
 
-  async get<T = unknown>(name: StorageKey, def?: T) {
-    this.resolveSupport();
-    if (this.supportGMPromises) {
-      return await GM.getValue<T>(name, def);
+  async get<T = unknown>(name: StorageKey, def?: T): Promise<T> {
+    const support = this.resolveSupport();
+    if (support.promiseGet && GM.getValue) {
+      return await GM.getValue(name, def);
     }
 
-    return this.syncGet<T>(name, def);
+    return this.syncGet<T>(name, def, support);
   }
 
   async getValues<
-    T extends Partial<Record<StorageKey, KeysOrDefaultValue>> = Record<
+    T extends Record<string, KeysOrDefaultValue> = Record<
       StorageKey,
       KeysOrDefaultValue
     >,
   >(data: T): Promise<T> {
-    this.resolveSupport();
-    if (this.supportGMGetValues) {
-      return await GM.getValues<T>(data);
+    const support = this.resolveSupport();
+    if (support.promiseGetValues && GM.getValues) {
+      return await GM.getValues(data);
+    }
+
+    const entries = Object.entries(data as Record<string, KeysOrDefaultValue>);
+
+    if (support.promiseGet && GM.getValue) {
+      const values = await Promise.all(
+        entries.map(async ([key, value]) => {
+          const storedValue = await GM.getValue(key, value);
+          return [key, storedValue] as const;
+        }),
+      );
+      return Object.fromEntries(values) as T;
     }
 
     return Object.fromEntries(
-      await Promise.all(
-        Object.entries(data as Record<StorageKey, KeysOrDefaultValue>).map(
-          async ([key, value]) => {
-            const val = await this.get<T[keyof T]>(
-              key as StorageKey,
-              value as unknown as T[keyof T],
-            );
-            return [key, val] as const;
-          },
-        ),
-      ),
-    ) as unknown as T;
+      entries.map(([key, value]) => [key, this.syncGet(key, value, support)]),
+    ) as T;
   }
 
-  private syncSet<T extends KeysOrDefaultValue = undefined>(
-    name: StorageKey,
-    value: T,
+  private syncSet(
+    name: string,
+    value: KeysOrDefaultValue,
+    support: StorageSupport,
   ) {
-    this.resolveSupport();
-    if (this.supportGM) {
-      return GM_setValue<T>(name, value);
+    if (support.legacySet) {
+      return GM_setValue(name, value);
     }
 
     return globalThis.localStorage.setItem(name, JSON.stringify(value));
@@ -249,49 +320,47 @@ class VOTStorage {
   async set<T extends KeysOrDefaultValue = undefined>(
     name: StorageKey,
     value: T,
-  ) {
-    this.resolveSupport();
-    if (this.supportGMPromises) {
-      return await GM.setValue<T>(name, value);
+  ): Promise<void> {
+    const support = this.resolveSupport();
+    if (support.promiseSet && GM.setValue) {
+      return await GM.setValue(name, value);
     }
 
-    return this.syncSet<T>(name, value);
+    return this.syncSet(name, value, support);
   }
 
-  private syncDelete(name: StorageKey) {
-    this.resolveSupport();
-    if (this.supportGM) {
+  private syncDelete(name: string, support: StorageSupport) {
+    if (support.legacyDelete) {
       return GM_deleteValue(name);
     }
 
     return globalThis.localStorage.removeItem(name);
   }
 
-  async delete(name: StorageKey) {
-    this.resolveSupport();
-    if (this.supportGMPromises) {
+  async delete(name: StorageKey): Promise<void> {
+    const support = this.resolveSupport();
+    if (support.promiseDelete && GM.deleteValue) {
       return await GM.deleteValue(name);
     }
 
-    return this.syncDelete(name);
+    return this.syncDelete(name, support);
   }
 
-  private syncList(): readonly StorageKey[] {
-    this.resolveSupport();
-    if (this.supportGM) {
+  private syncList(support: StorageSupport): readonly StorageKey[] {
+    if (support.legacyList) {
       return GM_listValues<StorageKey>();
     }
 
     return storageKeys;
   }
 
-  async list() {
-    this.resolveSupport();
-    if (this.supportGMPromises) {
+  async list(): Promise<readonly StorageKey[]> {
+    const support = this.resolveSupport();
+    if (support.promiseList && GM.listValues) {
       return await GM.listValues<StorageKey>();
     }
 
-    return this.syncList();
+    return this.syncList(support);
   }
 }
 

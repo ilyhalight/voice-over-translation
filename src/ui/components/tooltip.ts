@@ -8,7 +8,6 @@ import {
 } from "../../types/components/tooltip";
 import UI from "../../ui";
 import { clamp } from "../../utils/utils";
-import { setHiddenState } from "./componentShared";
 
 export default class Tooltip {
   /** Whether tooltip element is currently mounted. */
@@ -163,6 +162,14 @@ export default class Tooltip {
     this.showed ? this.destroy() : this.create();
   };
 
+  onTargetKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Escape" || !this.showed) {
+      return;
+    }
+
+    this.destroy();
+  };
+
   onScroll = () => {
     this.schedulePositionUpdate();
   };
@@ -187,9 +194,31 @@ export default class Tooltip {
     this.create();
   };
 
-  onMouseLeave = () => {
+  onMouseLeave = (event: MouseEvent | FocusEvent) => {
+    if (this.isInTooltipContext(event.relatedTarget)) {
+      return;
+    }
+
     this.destroy();
   };
+
+  onTooltipMouseLeave = (event: MouseEvent) => {
+    if (this.isInTooltipContext(event.relatedTarget)) {
+      return;
+    }
+
+    this.destroy();
+  };
+
+  private isInTooltipContext(nextTarget: EventTarget | null): boolean {
+    if (!(nextTarget instanceof Node)) {
+      return false;
+    }
+
+    return (
+      this.target.contains(nextTarget) || this.container?.contains(nextTarget)
+    );
+  }
 
   updatePageSize() {
     if (this.layoutRoot === document.documentElement) {
@@ -202,11 +231,9 @@ export default class Tooltip {
     }
 
     this.pageWidth =
-      (this.layoutRoot.clientWidth || document.documentElement.clientWidth) +
-      (globalThis.scrollX ?? globalThis.pageXOffset ?? 0);
+      this.layoutRoot.clientWidth || document.documentElement.clientWidth;
     this.pageHeight =
-      (this.layoutRoot.clientHeight || document.documentElement.clientHeight) +
-      (globalThis.scrollY ?? globalThis.pageYOffset ?? 0);
+      this.layoutRoot.clientHeight || document.documentElement.clientHeight;
     return this;
   }
 
@@ -219,6 +246,7 @@ export default class Tooltip {
   init() {
     this.onResizeObserver = new ResizeObserver(this.onResize);
     this.intersectionObserver = new IntersectionObserver(this.onIntersect);
+    this.target.addEventListener("keydown", this.onTargetKeyDown);
 
     if (this.trigger === "click") {
       this.target.addEventListener("pointerdown", this.onClick);
@@ -237,10 +265,11 @@ export default class Tooltip {
   }
 
   release() {
-    this.destroy();
+    this.destroy(true);
 
     // In case tooltip was mounted while releasing.
     this.detachScrollListener();
+    this.target.removeEventListener("keydown", this.onTargetKeyDown);
     if (this.trigger === "click") {
       this.target.removeEventListener("pointerdown", this.onClick);
       return this;
@@ -256,6 +285,10 @@ export default class Tooltip {
   }
 
   private schedulePositionUpdate() {
+    if (!this.container) {
+      return;
+    }
+
     if (this.positionRafId !== null) {
       return;
     }
@@ -288,7 +321,6 @@ export default class Tooltip {
   private create() {
     this.destroy(true);
     this.showed = true;
-    this.clearDestroyFallbackTimer();
     this.container = UI.createEl("vot-block", ["vot-tooltip"], this.content);
     if (this.bordered) {
       this.container.classList.add("vot-tooltip-bordered");
@@ -316,9 +348,14 @@ export default class Tooltip {
     }
 
     this.container.style.opacity = "1";
+    if (this.trigger === "hover") {
+      this.container.addEventListener("mouseleave", this.onTooltipMouseLeave);
+    }
     this.attachScrollListener();
     this.onResizeObserver?.observe(this.layoutRoot);
-    this.onResizeObserver?.observe(this.anchor);
+    if (this.anchor !== this.layoutRoot) {
+      this.onResizeObserver?.observe(this.anchor);
+    }
     this.intersectionObserver?.observe(this.target);
     return this;
   }
@@ -329,13 +366,8 @@ export default class Tooltip {
     }
 
     const { top, left } = this.calcPos(this.autoLayout, this.preferredPosition);
-    const availableWidth = this.pageWidth - this.offsetX * 2;
-    const maxWidth =
-      this.maxWidth ??
-      Math.min(
-        availableWidth,
-        this.pageWidth - Math.min(left, this.pageWidth - availableWidth),
-      );
+    const availableWidth = Math.max(0, this.pageWidth - this.offsetX * 2);
+    const maxWidth = clamp(this.maxWidth ?? availableWidth, 0, availableWidth);
 
     this.container.style.transform = `translate(${left}px, ${top}px)`;
     this.container.dataset.position = this.position;
@@ -364,85 +396,96 @@ export default class Tooltip {
 
     const width = clamp(containerWidth, 0, this.pageWidth);
     const height = clamp(containerHeight, 0, this.pageHeight);
-
     const left = anchorLeft - this.globalOffsetX;
     const right = anchorRight - this.globalOffsetX;
     const top = anchorTop - this.globalOffsetY;
     const bottom = anchorBottom - this.globalOffsetY;
 
-    let coords: PagePosition;
-
-    switch (position) {
-      case "top": {
-        const pTop = clamp(top - height - this.offsetY, 0, this.pageHeight);
-        if (autoLayout && pTop + this.offsetY < height) {
-          return this.calcPos(false, "bottom");
+    let resolvedPosition = position;
+    if (autoLayout) {
+      switch (position) {
+        case "top": {
+          const pTop = clamp(top - height - this.offsetY, 0, this.pageHeight);
+          if (pTop + this.offsetY < height) {
+            resolvedPosition = "bottom";
+          }
+          break;
         }
-
-        coords = {
-          top: pTop,
-          left: clamp(
-            left - width / 2 + anchorWidth / 2,
-            this.offsetX,
-            this.pageWidth - width - this.offsetX,
-          ),
-        };
-        break;
-      }
-      case "right": {
-        const pLeft = clamp(right + this.offsetX, 0, this.pageWidth - width);
-        if (autoLayout && pLeft + width > this.pageWidth - this.offsetX) {
-          return this.calcPos(false, "left");
+        case "right": {
+          const pLeft = clamp(right + this.offsetX, 0, this.pageWidth - width);
+          if (pLeft + width > this.pageWidth - this.offsetX) {
+            resolvedPosition = "left";
+          }
+          break;
         }
-
-        coords = {
-          top: clamp(
-            top + (anchorHeight - height) / 2,
-            this.offsetY,
-            this.pageHeight - height - this.offsetY,
-          ),
-          left: pLeft,
-        };
-        break;
-      }
-      case "bottom": {
-        const pTop = clamp(bottom + this.offsetY, 0, this.pageHeight - height);
-        if (autoLayout && pTop + height > this.pageHeight - this.offsetY) {
-          return this.calcPos(false, "top");
+        case "bottom": {
+          const pTop = clamp(
+            bottom + this.offsetY,
+            0,
+            this.pageHeight - height,
+          );
+          if (pTop + height > this.pageHeight - this.offsetY) {
+            resolvedPosition = "top";
+          }
+          break;
         }
-
-        coords = {
-          top: pTop,
-          left: clamp(
-            left - width / 2 + anchorWidth / 2,
-            this.offsetX,
-            this.pageWidth - width - this.offsetX,
-          ),
-        };
-        break;
-      }
-      case "left": {
-        const pLeft = Math.max(0, left - width - this.offsetX);
-        if (autoLayout && pLeft + width > left - this.offsetX) {
-          return this.calcPos(false, "right");
+        case "left": {
+          const pLeft = Math.max(0, left - width - this.offsetX);
+          if (pLeft + width > left - this.offsetX) {
+            resolvedPosition = "right";
+          }
+          break;
         }
-
-        coords = {
-          top: clamp(
-            top + (anchorHeight - height) / 2,
-            this.offsetY,
-            this.pageHeight - height - this.offsetY,
-          ),
-          left: pLeft,
-        };
-        break;
       }
-      default:
-        coords = { top: 0, left: 0 };
-        break;
     }
 
-    this.position = position;
+    let coords: PagePosition;
+    switch (resolvedPosition) {
+      case "top":
+        coords = {
+          top: clamp(top - height - this.offsetY, 0, this.pageHeight),
+          left: clamp(
+            left - width / 2 + anchorWidth / 2,
+            this.offsetX,
+            this.pageWidth - width - this.offsetX,
+          ),
+        };
+        break;
+      case "right":
+        coords = {
+          top: clamp(
+            top + (anchorHeight - height) / 2,
+            this.offsetY,
+            this.pageHeight - height - this.offsetY,
+          ),
+          left: clamp(right + this.offsetX, 0, this.pageWidth - width),
+        };
+        break;
+      case "bottom":
+        coords = {
+          top: clamp(bottom + this.offsetY, 0, this.pageHeight - height),
+          left: clamp(
+            left - width / 2 + anchorWidth / 2,
+            this.offsetX,
+            this.pageWidth - width - this.offsetX,
+          ),
+        };
+        break;
+      case "left":
+        coords = {
+          top: clamp(
+            top + (anchorHeight - height) / 2,
+            this.offsetY,
+            this.pageHeight - height - this.offsetY,
+          ),
+          left: Math.max(0, left - width - this.offsetX),
+        };
+        break;
+      default:
+        coords = { top: 0, left: 0 };
+    }
+
+    this.position = resolvedPosition;
     return coords;
   }
 
@@ -466,6 +509,7 @@ export default class Tooltip {
     }
 
     const container = this.container;
+    container.removeEventListener("mouseleave", this.onTooltipMouseLeave);
     container.style.pointerEvents = "none";
     container.style.opacity = "0";
 
@@ -524,7 +568,7 @@ export default class Tooltip {
   set hidden(isHidden: boolean) {
     this._hidden = isHidden;
     if (this.container) {
-      setHiddenState(this.container, isHidden);
+      this.container.hidden = isHidden;
     }
 
     // Keep aria-describedby in sync: if tooltip is effectively disabled,

@@ -17,33 +17,39 @@ type SubtitlesSelectOption = {
   disabled: boolean;
 };
 
+const DISABLED_SUBTITLES_VALUE = "disabled";
 const VALID_SUBTITLE_FORMATS = new Set<SubtitleDescriptor["format"]>([
   "srt",
   "vtt",
   "json",
 ]);
+const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
+const subtitlesSelectionRequestVersion = new WeakMap<VideoHandler, number>();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
 
 function asSubtitleDescriptor(value: unknown): SubtitleDescriptor | null {
-  if (!value || typeof value !== "object") {
+  if (!isRecord(value)) {
     return null;
   }
 
-  const descriptor = value as Partial<SubtitleDescriptor>;
+  const descriptor = value;
+  const format = descriptor.format;
   if (
     typeof descriptor.source !== "string" ||
     typeof descriptor.language !== "string" ||
     typeof descriptor.url !== "string" ||
-    typeof descriptor.format !== "string" ||
-    !VALID_SUBTITLE_FORMATS.has(
-      descriptor.format as SubtitleDescriptor["format"],
-    )
+    typeof format !== "string" ||
+    !VALID_SUBTITLE_FORMATS.has(format as SubtitleDescriptor["format"])
   ) {
     return null;
   }
 
   return {
     source: descriptor.source,
-    format: descriptor.format as SubtitleDescriptor["format"],
+    format: format as SubtitleDescriptor["format"],
     language: descriptor.language,
     url: descriptor.url,
     translatedFromLanguage:
@@ -58,7 +64,7 @@ function asSubtitleDescriptor(value: unknown): SubtitleDescriptor | null {
 }
 
 function getIndexedSubtitleDescriptors(
-  subtitles: unknown[],
+  subtitles: readonly unknown[],
 ): IndexedSubtitleDescriptor[] {
   const descriptors: IndexedSubtitleDescriptor[] = [];
 
@@ -77,30 +83,75 @@ function getIndexedSubtitleDescriptors(
   return descriptors;
 }
 
-function findSubtitleDescriptorByIndex(
-  subtitles: unknown[],
+function parseSubtitlesOptionIndex(value: string): number | null {
+  if (!SUBTITLES_INDEX_OPTION_PATTERN.test(value)) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function getSubtitleDescriptorAtIndex(
+  subtitles: readonly unknown[],
   index: number,
 ): SubtitleDescriptor | null {
-  return (
-    getIndexedSubtitleDescriptors(subtitles).find(
-      (item) => item.index === index,
-    )?.descriptor ?? null
-  );
+  if (!Number.isInteger(index) || index < 0 || index >= subtitles.length) {
+    return null;
+  }
+
+  return asSubtitleDescriptor(subtitles[index]);
+}
+
+function nextSubtitlesSelectionRequestVersion(handler: VideoHandler): number {
+  const nextVersion = (subtitlesSelectionRequestVersion.get(handler) ?? 0) + 1;
+  subtitlesSelectionRequestVersion.set(handler, nextVersion);
+  return nextVersion;
+}
+
+function isCurrentSubtitlesSelectionRequest(
+  handler: VideoHandler,
+  requestVersion: number,
+): boolean {
+  return subtitlesSelectionRequestVersion.get(handler) === requestVersion;
 }
 
 function createDisabledSubtitlesOption(): SubtitlesSelectOption {
   return {
     label: localizationProvider.get("VOTSubtitlesDisabled"),
-    value: "disabled",
+    value: DISABLED_SUBTITLES_VALUE,
     selected: true,
     disabled: false,
   };
 }
 
+function buildSubtitlesSelectOptions(
+  subtitleDescriptors: readonly IndexedSubtitleDescriptor[],
+): SubtitlesSelectOption[] {
+  const options: SubtitlesSelectOption[] = [createDisabledSubtitlesOption()];
+
+  for (const { descriptor, index } of subtitleDescriptors) {
+    options.push({
+      label: buildSubtitleLabel(descriptor),
+      value: String(index),
+      selected: false,
+      disabled: false,
+    });
+  }
+
+  return options;
+}
+
 function getSelectedSubtitlesValue(
   selectedValues: Iterable<string>,
 ): string | undefined {
-  return selectedValues[Symbol.iterator]().next().value;
+  const iterator = selectedValues[Symbol.iterator]();
+  const first = iterator.next();
+  return first.done ? undefined : first.value;
 }
 
 function buildSubtitleLabel(subtitle: SubtitleDescriptor): string {
@@ -244,12 +295,13 @@ export async function changeSubtitlesLang(
   subs: string,
 ): Promise<VideoHandler> {
   debug.log("[onchange] subtitles", subs);
+  const requestVersion = nextSubtitlesSelectionRequestVersion(this);
   const overlayView = this.uiManager.votOverlayView;
   if (!overlayView?.subtitlesSelect || !overlayView.downloadSubtitlesButton) {
     return this;
   }
   overlayView.subtitlesSelect.setSelectedValue(subs);
-  if (subs === "disabled") {
+  if (subs === DISABLED_SUBTITLES_VALUE) {
     if (this.hasSubtitlesWidget()) {
       this.subtitlesWidget?.setContent(null);
     }
@@ -258,12 +310,24 @@ export async function changeSubtitlesLang(
     return this;
   }
 
-  const subtitlesIndex = Number.parseInt(subs, 10);
-  const descriptor = findSubtitleDescriptorByIndex(
+  const subtitlesIndex = parseSubtitlesOptionIndex(subs);
+  if (subtitlesIndex == null) {
+    if (this.hasSubtitlesWidget()) {
+      this.subtitlesWidget?.setContent(null);
+    }
+    overlayView.downloadSubtitlesButton.hidden = true;
+    this.yandexSubtitles = null;
+    return this;
+  }
+
+  const descriptor = getSubtitleDescriptorAtIndex(
     this.subtitles,
     subtitlesIndex,
   );
   if (!descriptor) {
+    if (this.hasSubtitlesWidget()) {
+      this.subtitlesWidget?.setContent(null);
+    }
     overlayView.downloadSubtitlesButton.hidden = true;
     this.yandexSubtitles = null;
     return this;
@@ -282,7 +346,13 @@ export async function changeSubtitlesLang(
     debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
   }
 
-  this.yandexSubtitles = await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
+  const fetchedSubtitles =
+    await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
+  if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) {
+    return this;
+  }
+
+  this.yandexSubtitles = fetchedSubtitles;
   this.getSubtitlesWidget().setContent(
     this.yandexSubtitles,
     subtitlesObj.language,
@@ -298,26 +368,9 @@ export async function updateSubtitlesLangSelect(this: VideoHandler) {
   }
 
   const subtitleDescriptors = getIndexedSubtitleDescriptors(this.subtitles);
-  if (subtitleDescriptors.length === 0) {
-    const updatedOptions: SubtitlesSelectOption[] = [
-      createDisabledSubtitlesOption(),
-    ];
-    overlayView.subtitlesSelect.updateItems(updatedOptions);
-    await this.changeSubtitlesLang(updatedOptions[0].value);
-    return;
-  }
-
-  const updatedOptions: SubtitlesSelectOption[] = [
-    createDisabledSubtitlesOption(),
-    ...subtitleDescriptors.map(({ descriptor, index }) => ({
-      label: buildSubtitleLabel(descriptor),
-      value: String(index),
-      selected: false,
-      disabled: false,
-    })),
-  ];
+  const updatedOptions = buildSubtitlesSelectOptions(subtitleDescriptors);
   overlayView.subtitlesSelect.updateItems(updatedOptions);
-  await this.changeSubtitlesLang(updatedOptions[0].value);
+  await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
 }
 
 /**
@@ -382,8 +435,8 @@ export async function toggleSubtitlesForCurrentLangPair(this: VideoHandler) {
     overlayView.subtitlesSelect.selectedValues,
   );
 
-  if (currentValue && currentValue !== "disabled") {
-    await this.changeSubtitlesLang("disabled");
+  if (currentValue && currentValue !== DISABLED_SUBTITLES_VALUE) {
+    await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
     return this;
   }
 
@@ -420,6 +473,7 @@ export async function loadSubtitles(this: VideoHandler) {
 
       try {
         cachedSubs = await inflight;
+        cachedSubs = Array.isArray(cachedSubs) ? cachedSubs : [];
         this.cacheManager.setSubtitles(cacheKey, cachedSubs);
       } finally {
         // Only clear if we're still pointing at the same promise.
@@ -428,7 +482,7 @@ export async function loadSubtitles(this: VideoHandler) {
         }
       }
     }
-    this.subtitles = cachedSubs;
+    this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
   } catch (error) {
     console.error("[VOT] Failed to load subtitles:", error);
     this.subtitles = [];

@@ -34,11 +34,12 @@ export function closestCrossShadow(
     if (current instanceof Document) {
       if (origin) {
         const matches = current.querySelectorAll(selector);
-        return (
-          Array.from(matches).find((match) =>
-            containsCrossShadow(match, origin),
-          ) ?? null
-        );
+        for (const match of matches) {
+          if (containsCrossShadow(match, origin)) {
+            return match;
+          }
+        }
+        return null;
       }
       return current.querySelector(selector);
     }
@@ -64,61 +65,4 @@ export function closestCrossShadow(
   };
 
   return walk(element);
-}
-
-type ResolveInteractiveMountOptions = {
-  /** Max parent hops while escaping pointer-events:none islands */
-  maxPointerEventsHops?: number;
-  /** Max parent hops while searching for a positioned ancestor */
-  maxPositionedHops?: number;
-  /** Whether to prefer a positioned ancestor for stable absolute positioning */
-  preferPositioned?: boolean;
-};
-
-/**
- * Resolve a mount element for overlays/buttons that must remain clickable.
- *
- * Some video players render inner layers with `pointer-events: none`, which makes
- * any injected UI inside them unclickable. This helper climbs to a parent that
- * can receive pointer events and optionally prefers a positioned ancestor to keep
- * absolute positioning anchored.
- */
-export function resolveInteractiveMount(
-  base: HTMLElement,
-  {
-    maxPointerEventsHops = 30,
-    maxPositionedHops = 10,
-    preferPositioned = true,
-  }: ResolveInteractiveMountOptions = {},
-): HTMLElement {
-  let el: HTMLElement | null = base;
-
-  // Climb out of "pointer-events: none" islands (common in some video players).
-  let peHops = 0;
-  while (el?.parentElement && peHops < maxPointerEventsHops) {
-    const pe = getComputedStyle(el).pointerEvents;
-    const parentPe = getComputedStyle(el.parentElement).pointerEvents;
-    if (pe === "none" || parentPe === "none") {
-      el = el.parentElement;
-      peHops++;
-      continue;
-    }
-    break;
-  }
-
-  if (!preferPositioned) {
-    return el ?? base;
-  }
-
-  // Prefer a positioned ancestor so our absolutely-positioned UI stays anchored.
-  let positioned: HTMLElement | null = el;
-  let hops = 0;
-  while (positioned?.parentElement && hops < maxPositionedHops) {
-    const pos = getComputedStyle(positioned).position;
-    if (pos !== "static") break;
-    positioned = positioned.parentElement;
-    hops++;
-  }
-
-  return positioned ?? el ?? base;
 }

@@ -6,28 +6,71 @@ import {
 } from "./intervalIdleChecker";
 
 const AD_ATTRS = ["class", "id", "title"] as const;
+const AD_KEYWORDS = [
+  "advertise",
+  "advertisement",
+  "promo",
+  "sponsor",
+  "banner",
+  "commercial",
+  "preroll",
+  "midroll",
+  "postroll",
+  "ad-container",
+  "sponsored",
+] as const;
+const AD_KEYWORD_PATTERN = new RegExp(
+  AD_KEYWORDS.map((keyword) =>
+    keyword.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`),
+  ).join("|"),
+);
+
+type HTMLVideoWithAudioMetadata = HTMLVideoElement & {
+  audioTracks?: { length: number };
+  mozHasAudio?: boolean;
+  webkitAudioDecodedByteCount?: number;
+};
+
+type HTMLVideoWithCaptureStream = HTMLVideoElement & {
+  captureStream?: () => MediaStream;
+  mozCaptureStream?: () => MediaStream;
+};
 
 type AttachShadowSubscriber = (root: ShadowRoot) => void;
 
 type AttachShadowHookState = {
-  original: Element["attachShadow"];
+  descriptor: PropertyDescriptor;
   subscribers: Set<AttachShadowSubscriber>;
 };
 
-const ATTACH_SHADOW_HOOK_KEY = "__votAttachShadowHook";
+const ATTACH_SHADOW_HOOK_KEY = Symbol.for("vot.attachShadowHook");
+
+function getAttachShadowDescriptor(): PropertyDescriptor | null {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    Element.prototype,
+    "attachShadow",
+  );
+  if (!descriptor || typeof descriptor.value !== "function") {
+    return null;
+  }
+  return descriptor;
+}
 
 function getOrInstallAttachShadowHook(): AttachShadowHookState | null {
-  const g = globalThis as unknown as Record<string, unknown>;
+  const g = globalThis as Record<PropertyKey, unknown>;
   const existing = g[ATTACH_SHADOW_HOOK_KEY] as
     | AttachShadowHookState
     | undefined;
-  if (existing?.original && existing.subscribers) return existing;
+  if (existing?.descriptor && existing.subscribers instanceof Set) {
+    return existing;
+  }
 
-  const original = Element.prototype.attachShadow;
-  if (typeof original !== "function") return null;
+  const descriptor = getAttachShadowDescriptor();
+  if (!descriptor) return null;
+  const original = descriptor.value as Element["attachShadow"];
 
   const state: AttachShadowHookState = {
-    original,
+    descriptor,
     subscribers: new Set<AttachShadowSubscriber>(),
   };
 
@@ -50,9 +93,7 @@ function getOrInstallAttachShadowHook(): AttachShadowHookState | null {
 
   try {
     Object.defineProperty(Element.prototype, "attachShadow", {
-      configurable: true,
-      enumerable: true,
-      writable: true,
+      ...descriptor,
       value: patchedAttachShadow,
     });
   } catch {
@@ -67,47 +108,35 @@ function getOrInstallAttachShadowHook(): AttachShadowHookState | null {
 function removeAttachShadowSubscriber(
   subscriber: AttachShadowSubscriber,
 ): void {
-  const g = globalThis as unknown as Record<string, unknown>;
+  const g = globalThis as Record<PropertyKey, unknown>;
   const state = g[ATTACH_SHADOW_HOOK_KEY] as AttachShadowHookState | undefined;
   if (!state) return;
 
   state.subscribers.delete(subscriber);
   if (state.subscribers.size > 0) return;
 
-  // Last subscriber removed – restore native attachShadow.
+  // Last subscriber removed - restore native attachShadow.
   try {
-    Object.defineProperty(Element.prototype, "attachShadow", {
-      configurable: true,
-      enumerable: true,
-      writable: true,
-      value: state.original,
-    });
+    Object.defineProperty(Element.prototype, "attachShadow", state.descriptor);
   } catch {
     // Fallback.
-    Element.prototype.attachShadow = state.original;
+    const original = state.descriptor.value;
+    if (typeof original === "function") {
+      Element.prototype.attachShadow = original as Element["attachShadow"];
+    }
   }
 
   delete g[ATTACH_SHADOW_HOOK_KEY];
 }
 
 export class VideoObserver {
-  static readonly adKeywords = new Set([
-    "advertise",
-    "advertisement",
-    "promo",
-    "sponsor",
-    "banner",
-    "commercial",
-    "preroll",
-    "midroll",
-    "postroll",
-    "ad-container",
-    "sponsored",
-  ]);
-
   private seenVideos = new WeakSet<HTMLVideoElement>();
   private activeVideos = new WeakSet<HTMLVideoElement>();
   private observedRoots = new WeakSet<Node>();
+  private readonly videoListenerControllers = new Map<
+    HTMLVideoElement,
+    AbortController
+  >();
 
   private readonly pendingAdded = new Set<Node>();
   private readonly pendingRemoved = new Set<Node>();
@@ -144,13 +173,8 @@ export class VideoObserver {
     this.intervalIdleChecker = intervalIdleChecker;
   }
 
-  private static containsAdKeyword(token: string): boolean {
-    for (const kw of VideoObserver.adKeywords) {
-      if (token === kw || token.includes(kw)) {
-        return true;
-      }
-    }
-    return false;
+  private static containsAdKeyword(value: string): boolean {
+    return value.length > 0 && AD_KEYWORD_PATTERN.test(value);
   }
 
   private isAdRelated(element: Element): boolean {
@@ -158,14 +182,8 @@ export class VideoObserver {
       const rawValue = element.getAttribute(attr);
       if (!rawValue) continue;
 
-      const value = rawValue.toLowerCase();
-
-      const tokens = attr === "class" ? value.split(/\s+/) : [value];
-      for (const token of tokens) {
-        if (!token) continue;
-        if (VideoObserver.containsAdKeyword(token)) {
-          return true;
-        }
+      if (VideoObserver.containsAdKeyword(rawValue.toLowerCase())) {
+        return true;
       }
     }
 
@@ -180,10 +198,7 @@ export class VideoObserver {
   }
 
   private getCapturedAudioTrackCount(video: HTMLVideoElement): number | null {
-    const candidate = video as HTMLVideoElement & {
-      captureStream?: () => MediaStream;
-      mozCaptureStream?: () => MediaStream;
-    };
+    const candidate = video as HTMLVideoWithCaptureStream;
     const captureStream = candidate.captureStream ?? candidate.mozCaptureStream;
     if (typeof captureStream !== "function") return null;
 
@@ -203,7 +218,7 @@ export class VideoObserver {
     if (!video.autoplay || !video.loop) return false;
     if (video.controls) return false;
 
-    const v: any = video;
+    const v = video as HTMLVideoWithAudioMetadata;
 
     if (typeof v.mozHasAudio === "boolean") {
       return !v.mozHasAudio;
@@ -229,7 +244,7 @@ export class VideoObserver {
   }
 
   private hasAudio(video: HTMLVideoElement): boolean {
-    const v: any = video;
+    const v = video as HTMLVideoWithAudioMetadata;
 
     // MediaStream-backed videos expose audio tracks explicitly.
     if (video.srcObject instanceof MediaStream) {
@@ -296,7 +311,9 @@ export class VideoObserver {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
       acceptNode: (node) => {
         const el = node as Element;
-        return el.tagName === "VIDEO" || (el as any).shadowRoot
+        const isVideo = el.tagName === "VIDEO";
+        const hasShadowRoot = Boolean((el as HTMLElement).shadowRoot);
+        return isVideo || hasShadowRoot
           ? NodeFilter.FILTER_ACCEPT
           : NodeFilter.FILTER_SKIP;
       },
@@ -318,9 +335,35 @@ export class VideoObserver {
     }
   }
 
+  private getVideoListenerSignal(video: HTMLVideoElement): AbortSignal {
+    const existingController = this.videoListenerControllers.get(video);
+    if (existingController) {
+      existingController.abort();
+    }
+
+    const controller = new AbortController();
+    this.videoListenerControllers.set(video, controller);
+    return controller.signal;
+  }
+
+  private cleanupVideoListeners(video: HTMLVideoElement): void {
+    const controller = this.videoListenerControllers.get(video);
+    if (!controller) return;
+    controller.abort();
+    this.videoListenerControllers.delete(video);
+  }
+
+  private cleanupAllVideoListeners(): void {
+    for (const controller of this.videoListenerControllers.values()) {
+      controller.abort();
+    }
+    this.videoListenerControllers.clear();
+  }
+
   private trackVideo(video: HTMLVideoElement): void {
     if (this.seenVideos.has(video)) return;
     this.seenVideos.add(video);
+    const listenerSignal = this.getVideoListenerSignal(video);
 
     const tryValidate = () => {
       if (this.isValidVideo(video)) {
@@ -334,14 +377,21 @@ export class VideoObserver {
     if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
       tryValidate();
     } else {
-      video.addEventListener("loadeddata", tryValidate, { once: true });
+      video.addEventListener("loadeddata", tryValidate, {
+        once: true,
+        signal: listenerSignal,
+      });
 
       const handlePlay = () => {
         if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           tryValidate();
         }
       };
-      video.addEventListener("play", handlePlay, { once: true, passive: true });
+      video.addEventListener("play", handlePlay, {
+        once: true,
+        passive: true,
+        signal: listenerSignal,
+      });
     }
 
     video.addEventListener(
@@ -351,11 +401,13 @@ export class VideoObserver {
           this.untrackVideo(video);
         }
       },
-      { passive: true },
+      { passive: true, signal: listenerSignal },
     );
   }
 
   private untrackVideo(video: HTMLVideoElement): void {
+    this.cleanupVideoListeners(video);
+
     if (this.activeVideos.has(video)) {
       this.onVideoRemoved.dispatch(video);
       this.activeVideos.delete(video);
@@ -372,21 +424,17 @@ export class VideoObserver {
 
     if (node instanceof HTMLVideoElement) set.add(node);
 
-    // ShadowRoot is a ParentNode and supports querySelectorAll.
-    if (node instanceof ShadowRoot) {
+    if (
+      node instanceof Document ||
+      node instanceof DocumentFragment ||
+      node instanceof Element
+    ) {
       addAll(node.querySelectorAll("video"));
     }
 
     if (node instanceof Element) {
-      addAll(node.querySelectorAll("video"));
-
-      const sr = (node as HTMLElement).shadowRoot;
-      if (sr) addAll(sr.querySelectorAll("video"));
-    }
-
-    const pn = node as unknown as ParentNode;
-    if (pn?.querySelectorAll) {
-      addAll(pn.querySelectorAll("video"));
+      const shadowRoot = (node as HTMLElement).shadowRoot;
+      if (shadowRoot) addAll(shadowRoot.querySelectorAll("video"));
     }
 
     return Array.from(set);
@@ -533,9 +581,9 @@ export class VideoObserver {
     if (this.enabled) return;
     this.enabled = true;
     this.checkerUnsubscribe?.();
-    this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
-      this.onCheckerTick();
-    });
+    this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(
+      this.onCheckerTick,
+    );
     this.intervalIdleChecker.start();
     this.intervalIdleChecker.markActivity("video-observer-enable");
 
@@ -564,12 +612,7 @@ export class VideoObserver {
     this.onDocumentReady = onReady;
     document.addEventListener("readystatechange", onReady);
     if (typeof queueMicrotask === "function") queueMicrotask(onReady);
-    else {
-      void (async () => {
-        await Promise.resolve();
-        onReady();
-      })();
-    }
+    else void Promise.resolve().then(onReady);
   }
 
   disable() {
@@ -585,6 +628,7 @@ export class VideoObserver {
 
     this.uninstallAttachShadowHook();
     this.observer.disconnect();
+    this.cleanupAllVideoListeners();
     this.flushPending = false;
     this.checkerUnsubscribe?.();
     this.checkerUnsubscribe = null;

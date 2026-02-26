@@ -1,5 +1,7 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { getVideoID } from "@vot.js/ext/utils/videoData";
+import { availableLangs } from "@vot.js/shared/consts";
+import type { RequestLang } from "@vot.js/shared/types/data";
 import { defaultAutoHideDelay } from "../../config/config";
 import {
   isDesktopYouTubeLikeSite,
@@ -8,7 +10,6 @@ import {
 } from "../../core/hostPolicies";
 import { resetAndHideLifecycle } from "../../core/lifecycleShared";
 import type { VideoHandler } from "../../index";
-import { formatKeysCombo } from "../../ui/components/hotkeyButton";
 import debug from "../../utils/debug";
 import { GM_fetch } from "../../utils/gm";
 import { getPlatformEventConfig } from "../../utils/platformEvents";
@@ -33,12 +34,66 @@ type ExtraEventsContext = {
   add: ScopedAddListener;
   addMany: ScopedAddListeners;
 };
+
+function mergeListenerSignals(
+  primary: AbortSignal,
+  secondary?: AbortSignal,
+): AbortSignal {
+  if (!secondary || secondary === primary) {
+    return primary;
+  }
+
+  if (primary.aborted) {
+    return primary;
+  }
+
+  if (secondary.aborted) {
+    return secondary;
+  }
+
+  const canCombine = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
+  if (canCombine) {
+    return (AbortSignal as any).any([primary, secondary]) as AbortSignal;
+  }
+
+  const controller = new AbortController();
+
+  const cleanup = () => {
+    primary.removeEventListener("abort", onPrimaryAbort);
+    secondary.removeEventListener("abort", onSecondaryAbort);
+  };
+
+  const onPrimaryAbort = () => {
+    cleanup();
+    controller.abort(primary.reason);
+  };
+  const onSecondaryAbort = () => {
+    cleanup();
+    controller.abort(secondary.reason);
+  };
+
+  primary.addEventListener("abort", onPrimaryAbort, { once: true });
+  secondary.addEventListener("abort", onSecondaryAbort, { once: true });
+
+  return controller.signal;
+}
+
 function createScopedListeners(signal: AbortSignal): {
   add: ScopedAddListener;
   addMany: ScopedAddListeners;
 } {
   const add: ScopedAddListener = (element, event, handler, options) => {
-    element.addEventListener(event, handler, { signal, ...options });
+    const mergedSignal = mergeListenerSignals(signal, options?.signal);
+    if (!options) {
+      element.addEventListener(event, handler, { signal: mergedSignal });
+      return;
+    }
+
+    const { signal: _ignoredSignal, ...restOptions } = options;
+    element.addEventListener(event, handler, {
+      ...restOptions,
+      signal: mergedSignal,
+    });
   };
   const addMany: ScopedAddListeners = (element, events, handler, options) => {
     for (const event of events) {
@@ -101,18 +156,47 @@ function applyOverlayLayout(
   );
   overlayView.updateButtonLayout(position, direction);
 }
+type ParsedHotkey = {
+  parts: readonly string[];
+  partsSet: ReadonlySet<string>;
+};
+function normalizeHotkeyPart(value: string): string {
+  return value.replace("Key", "").replace("Digit", "");
+}
+function buildPressedHotkeyPartsSet(
+  userPressedKeys: Iterable<string>,
+): Set<string> {
+  const pressedParts = new Set<string>();
+  for (const key of userPressedKeys) {
+    pressedParts.add(normalizeHotkeyPart(key));
+  }
+  return pressedParts;
+}
+function getParsedHotkey(
+  hotkey: string | null | undefined,
+  cache: Map<string, ParsedHotkey>,
+): ParsedHotkey | null {
+  if (!hotkey) return null;
+  const cached = cache.get(hotkey);
+  if (cached) return cached;
+  const parts = hotkey.split("+").filter(Boolean).map(normalizeHotkeyPart);
+  const parsed: ParsedHotkey = {
+    parts,
+    partsSet: new Set(parts),
+  };
+  cache.set(hotkey, parsed);
+  return parsed;
+}
 function isHotkeyMatch(
-  userPressedKeys: Set<string>,
-  hotkey?: string | null,
+  pressedParts: ReadonlySet<string>,
+  hotkey: ParsedHotkey | null,
 ): boolean {
   if (!hotkey) return false;
-  const pressedParts = formatKeysCombo(userPressedKeys)
-    .split("+")
-    .filter(Boolean);
-  const hotkeyParts = hotkey.split("+").filter(Boolean);
-  if (pressedParts.length !== hotkeyParts.length) return false;
-  const pressedSet = new Set(pressedParts);
-  return hotkeyParts.every((key) => pressedSet.has(key));
+  if (pressedParts.size !== hotkey.parts.length) return false;
+  for (const key of hotkey.partsSet) {
+    if (!pressedParts.has(key)) return false;
+  }
+  return true;
 }
 function bindOverlayLayoutEvents(ctx: ExtraEventsContext): void {
   const { self, overlayView, addMany } = ctx;
@@ -176,34 +260,48 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
   if (self.site.host !== "youtube" || self.site.additionalData === "mobile")
     return;
   const syncAudioTrackLanguage = async () => {
-    if (!self.videoData) return;
-    const player = YoutubeHelper.getPlayer();
-    const availableTracks = player?.getAvailableAudioTracks?.() ?? null;
-    if (!Array.isArray(availableTracks) || availableTracks.length <= 1) return;
-    const currentTrackInfo = player?.getAudioTrack?.()?.getLanguageInfo?.();
-    const currentTrackId = currentTrackInfo?.id ?? undefined;
-    const currentLanguage =
-      currentTrackId && currentTrackId !== "und"
-        ? currentTrackId.toLowerCase().split(/[-_.]/)[0]
-        : YoutubeHelper.getLanguage();
-    if (!currentLanguage) return;
-    if (currentLanguage === self.videoData.detectedLanguage) return;
-    self.setSelectMenuValues(currentLanguage, self.videoData.responseLanguage);
-    if (
-      self.data?.autoTranslate &&
-      currentLanguage !== self.videoData.responseLanguage
-    ) {
-      debug.log(
-        `[VOT] Audio track language changed to ${currentLanguage}, triggering auto-translation`,
+    try {
+      if (!self.videoData) return;
+      const player = YoutubeHelper.getPlayer();
+      const availableTracks = player?.getAvailableAudioTracks?.() ?? null;
+      if (!Array.isArray(availableTracks) || availableTracks.length <= 1)
+        return;
+      const currentTrackInfo = player?.getAudioTrack?.()?.getLanguageInfo?.();
+      const currentTrackId = currentTrackInfo?.id;
+      const currentLanguageCode =
+        currentTrackId && currentTrackId !== "und"
+          ? currentTrackId.toLowerCase().split(/[-_.]/)[0]
+          : undefined;
+      if (!currentLanguageCode) return;
+      if (!availableLangs.includes(currentLanguageCode as RequestLang)) return;
+      const currentLanguage = currentLanguageCode as RequestLang;
+      if (currentLanguage === self.videoData.detectedLanguage) return;
+      self.videoManager.rememberDetectedLanguage(
+        self.videoData.videoId,
+        currentLanguage,
       );
-      try {
-        await self.uiManager.handleTranslationBtnClick();
-      } catch (error) {
+      self.setSelectMenuValues(
+        currentLanguage,
+        self.videoData.responseLanguage,
+      );
+      if (
+        self.data?.autoTranslate &&
+        currentLanguage !== self.videoData.responseLanguage
+      ) {
         debug.log(
-          "[VOT] Failed to trigger auto-translation on audio track change:",
-          error,
+          `[VOT] Audio track language changed to ${currentLanguage}, triggering auto-translation`,
         );
+        try {
+          await self.uiManager.handleTranslationBtnClick();
+        } catch (error) {
+          debug.log(
+            "[VOT] Failed to trigger auto-translation on audio track change:",
+            error,
+          );
+        }
       }
+    } catch (error) {
+      debug.log("[VOT] Failed to sync audio track language", error);
     }
   };
   const player = YoutubeHelper.getPlayer();
@@ -240,14 +338,13 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     const button = overlayView.votButton?.container;
     const menu = overlayView.votMenu?.container;
     const settings = self.uiManager.votSettingsView?.dialog?.container;
-    const tempDialog = document.querySelector(".vot-dialog-temp");
     const isButton = target && button ? button.contains(target) : false;
     const isMenu = target && menu ? menu.contains(target) : false;
     const isVideo = target ? self.container.contains(target) : false;
     const isSettings = target && settings ? settings.contains(target) : false;
-    const isTempDialog = target
-      ? (tempDialog?.contains(target) ?? false)
-      : false;
+    const isTempDialog =
+      target instanceof Element &&
+      target.closest(".vot-dialog-temp") instanceof Element;
     debug.log(
       `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`,
     );
@@ -259,8 +356,17 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     }
   });
   const userPressedKeys = new Set<string>();
+  const hotkeyCache = new Map<string, ParsedHotkey>();
   const clearUserPressedKeys = () => userPressedKeys.clear();
-  add(document, "keydown", async (event) => {
+  const runHotkeyAction = (
+    action: () => Promise<unknown>,
+    actionName: string,
+  ) => {
+    void action().catch((error) => {
+      debug.log(`[VOT] ${actionName} hotkey action failed`, error);
+    });
+  };
+  add(document, "keydown", (event) => {
     const keyboardEvent = event as KeyboardEvent;
     if (keyboardEvent.repeat) return;
     userPressedKeys.add(keyboardEvent.code);
@@ -270,14 +376,31 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
       ["input", "textarea"].includes(activeTag) ||
       Boolean(activeElement?.isContentEditable);
     if (isInputElement) return;
-    if (isHotkeyMatch(userPressedKeys, self.data?.translationHotkey)) {
+    const pressedParts = buildPressedHotkeyPartsSet(userPressedKeys);
+    if (
+      isHotkeyMatch(
+        pressedParts,
+        getParsedHotkey(self.data?.translationHotkey, hotkeyCache),
+      )
+    ) {
       clearUserPressedKeys();
-      await self.uiManager.handleTranslationBtnClick();
+      runHotkeyAction(
+        () => self.uiManager.handleTranslationBtnClick(),
+        "Translation",
+      );
       return;
     }
-    if (isHotkeyMatch(userPressedKeys, self.data?.subtitlesHotkey)) {
+    if (
+      isHotkeyMatch(
+        pressedParts,
+        getParsedHotkey(self.data?.subtitlesHotkey, hotkeyCache),
+      )
+    ) {
       clearUserPressedKeys();
-      await self.toggleSubtitlesForCurrentLangPair();
+      runHotkeyAction(
+        () => self.toggleSubtitlesForCurrentLangPair(),
+        "Subtitles",
+      );
     }
   });
   add(document, "keyup", (event) =>
@@ -338,26 +461,30 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
     if (self.site.host === "rutube" && self.video.src) return;
     queueSetCanPlay();
   });
-  add(self.video, "emptied", async () => {
+  const handleVideoEmptied = async () => {
     let videoId: string | undefined;
     try {
       videoId = await getVideoID(self.site, {
         fetchFn: GM_fetch,
         video: self.video,
       });
-    } catch {}
-    if (
-      self.video.src &&
-      self.videoData &&
-      videoId &&
-      videoId === self.videoData.videoId
-    ) {
+    } catch (error) {
+      debug.log("[VOT] Failed to resolve video id on emptied", error);
+    }
+    if (self.videoData && videoId && videoId === self.videoData.videoId) {
+      // Quality changes can trigger media reload (`emptied`) for the same
+      // logical video. Keep translation state intact in this case.
       return;
     }
     debug.log("lipsync mode is emptied");
     resetAndHideLifecycle(self, overlayView, {
       clearVideoData: true,
       hideMenu: true,
+    });
+  };
+  add(self.video, "emptied", () => {
+    void handleVideoEmptied().catch((error) => {
+      debug.log("[VOT] Failed to handle emptied lifecycle event", error);
     });
   });
   if (!isMuteSyncDisabledHost(self.site.host)) {

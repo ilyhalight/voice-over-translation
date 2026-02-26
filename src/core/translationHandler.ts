@@ -13,7 +13,7 @@ import type {
   DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
-import { throwIfAborted } from "../utils/abort";
+import { NEVER_ABORTED_SIGNAL, throwIfAborted } from "../utils/abort";
 import debug from "../utils/debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "../utils/errors";
 import { formatTranslationEta } from "../utils/timeFormatting";
@@ -109,7 +109,7 @@ export class VOTTranslationHandler {
   private readonly downloadWaiters = new Set<DownloadWaiter>();
 
   // Avoid spamming the fail-audio-js fallback for the same video URL.
-  // In normal operation we should extract the audio request from the iframe.
+  // In normal operation we should upload audio from the direct ytAudio path.
   private readonly requestedFailAudio = new Set<string>();
 
   constructor(videoHandler: VideoHandler) {
@@ -144,8 +144,12 @@ export class VOTTranslationHandler {
           fileId,
         },
       );
-    } catch {
-      /* empty */
+    } catch (error) {
+      debug.error("Failed to upload downloaded audio", error);
+      this.finishDownloadFailure(
+        new Error("Audio downloader failed while uploading full audio"),
+      );
+      return;
     }
     this.finishDownloadSuccess();
   };
@@ -176,7 +180,8 @@ export class VOTTranslationHandler {
           version,
         },
       );
-    } catch {
+    } catch (error) {
+      debug.error("Failed to upload downloaded audio chunk", error);
       this.finishDownloadFailure(
         new Error("Audio downloader failed while uploading chunk"),
       );
@@ -309,7 +314,7 @@ export class VOTTranslationHandler {
     responseLang: ResponseLang,
     translationHelp: TranslationHelp[] | null = null,
     shouldSendFailedAudio = false,
-    signal = new AbortController().signal,
+    signal = NEVER_ABORTED_SIGNAL,
     disableLivelyVoice = false,
   ): Promise<
     (TranslatedVideoTranslationResponse & { usedLivelyVoice: boolean }) | null
@@ -529,12 +534,10 @@ export class VOTTranslationHandler {
 
       this.downloadWaiters.add(entry);
 
+      signal.addEventListener("abort", onAbort, { once: true });
       if (signal.aborted) {
         onAbort();
-        return;
       }
-
-      signal.addEventListener("abort", onAbort, { once: true });
     });
   }
 

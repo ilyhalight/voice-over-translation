@@ -33,8 +33,39 @@ const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
 };
 
 const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
+const REQUEST_LANG_SET = new Set<RequestLang>(
+  availableLangs as readonly RequestLang[],
+);
 
 type ResolvedRequestLang = Exclude<RequestLang, "auto">;
+type SharedLanguageState = {
+  detectInFlight?: Promise<ResolvedRequestLang | undefined>;
+  detectedLanguage?: ResolvedRequestLang;
+  userLanguageOverride?: ResolvedRequestLang;
+  lastLoggedDetectedLanguage?: RequestLang;
+  lastLoggedLangPair?: string;
+};
+
+/**
+ * Shared language caches across VideoManager instances within one frame.
+ *
+ * YouTube Shorts can transiently create multiple video handlers while the URL
+ * (and therefore resolved `videoId`) still points to the same active short.
+ * Per-instance caches are insufficient in that case and can trigger duplicate
+ * language detection requests.
+ */
+const sharedLanguageStateByVideoId = new Map<string, SharedLanguageState>();
+
+function getSharedLanguageState(videoId: string): SharedLanguageState {
+  const cachedState = sharedLanguageStateByVideoId.get(videoId);
+  if (cachedState) {
+    return cachedState;
+  }
+
+  const createdState: SharedLanguageState = {};
+  sharedLanguageStateByVideoId.set(videoId, createdState);
+  return createdState;
+}
 
 function pickFirstNonEmptyString(...values: unknown[]): string | undefined {
   for (const value of values) {
@@ -51,7 +82,7 @@ function pickFirstNonEmptyString(...values: unknown[]): string | undefined {
 function normalizeToRequestLang(value: unknown): RequestLang | undefined {
   if (typeof value !== "string") return undefined;
   const normalized = value.toLowerCase().split(/[-_]/)[0] as RequestLang;
-  return availableLangs.includes(normalized) ? normalized : undefined;
+  return REQUEST_LANG_SET.has(normalized) ? normalized : undefined;
 }
 
 function isResolvedLanguage(
@@ -106,22 +137,60 @@ function getAriaValueNowPercent(selector: string): number | null {
 
 export class VOTVideoManager {
   videoHandler: VideoHandler;
-  private readonly detectInFlightByVideoId = new Map<
-    string,
-    Promise<ResolvedRequestLang | undefined>
-  >();
 
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
+  }
+
+  private setDetectedLanguageCache(
+    videoId: string,
+    language: RequestLang | undefined,
+  ): void {
+    const normalizedLanguage = normalizeToRequestLang(language);
+    if (!isResolvedLanguage(normalizedLanguage)) {
+      return;
+    }
+
+    getSharedLanguageState(videoId).detectedLanguage = normalizedLanguage;
+  }
+
+  rememberUserLanguageSelection(videoId: string, language: RequestLang): void {
+    const normalizedLanguage = normalizeToRequestLang(language);
+    if (!isResolvedLanguage(normalizedLanguage)) {
+      // "auto" means no manual override for this video.
+      const sharedLanguageState = sharedLanguageStateByVideoId.get(videoId);
+      if (sharedLanguageState) {
+        delete sharedLanguageState.userLanguageOverride;
+      }
+      return;
+    }
+
+    const sharedLanguageState = getSharedLanguageState(videoId);
+    sharedLanguageState.userLanguageOverride = normalizedLanguage;
+    sharedLanguageState.detectedLanguage = normalizedLanguage;
+  }
+
+  rememberDetectedLanguage(videoId: string, language: RequestLang): void {
+    const normalizedLanguage = normalizeToRequestLang(language);
+    if (!isResolvedLanguage(normalizedLanguage)) {
+      return;
+    }
+
+    getSharedLanguageState(videoId).detectedLanguage = normalizedLanguage;
+
+    if (this.videoHandler.videoData?.videoId === videoId) {
+      this.videoHandler.videoData.detectedLanguage = normalizedLanguage;
+    }
   }
 
   private async detectLanguageSingleFlight(
     videoId: string,
     text: string,
   ): Promise<ResolvedRequestLang | undefined> {
-    const inFlightDetect = this.detectInFlightByVideoId.get(videoId);
+    const sharedLanguageState = getSharedLanguageState(videoId);
+    const inFlightDetect = sharedLanguageState.detectInFlight;
     if (inFlightDetect !== undefined) {
-      return await inFlightDetect;
+      return inFlightDetect;
     }
 
     const task: Promise<ResolvedRequestLang | undefined> = (async () => {
@@ -130,12 +199,12 @@ export class VOTVideoManager {
       return isResolvedLanguage(language) ? language : undefined;
     })();
 
-    this.detectInFlightByVideoId.set(videoId, task);
+    sharedLanguageState.detectInFlight = task;
     try {
       return await task;
     } finally {
-      if (this.detectInFlightByVideoId.get(videoId) === task) {
-        this.detectInFlightByVideoId.delete(videoId);
+      if (sharedLanguageState.detectInFlight === task) {
+        delete sharedLanguageState.detectInFlight;
       }
     }
   }
@@ -159,31 +228,41 @@ export class VOTVideoManager {
       language: localizationProvider.lang,
     });
 
+    const sharedLanguageState = getSharedLanguageState(videoId);
+    const userOverrideLanguage = sharedLanguageState.userLanguageOverride;
+    const cachedDetectedLanguage = sharedLanguageState.detectedLanguage;
     const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
-    // Do not reuse previous video's language when current metadata has no lang.
-    // This keeps UI/auto behavior consistent on hosts where language is unknown.
-    let detectedLanguage: RequestLang = normalizedPossibleLanguage ?? "auto";
+    let detectedLanguage: RequestLang =
+      userOverrideLanguage ??
+      normalizedPossibleLanguage ??
+      cachedDetectedLanguage ??
+      "auto";
 
-    if (!normalizedPossibleLanguage) {
+    if (
+      !userOverrideLanguage &&
+      !normalizedPossibleLanguage &&
+      !cachedDetectedLanguage
+    ) {
       const text = buildDetectText(title, localizedTitle, description);
       if (text) {
-        try {
-          const language = await this.detectLanguageSingleFlight(videoId, text);
-          if (language) {
-            detectedLanguage = language;
-          }
-        } catch (error) {
-          // Detection is best-effort; metadata loading must keep working.
-          debug.log("[VOT] detectLanguageSingleFlight failed", error);
+        const language = await this.detectLanguageSingleFlight(videoId, text);
+        if (language) {
+          detectedLanguage = language;
+          this.setDetectedLanguageCache(videoId, language);
         }
       }
+    }
+
+    if (!userOverrideLanguage && normalizedPossibleLanguage) {
+      this.setDetectedLanguageCache(videoId, normalizedPossibleLanguage);
     }
 
     const hostDetectedLanguage = resolveHostDetectedLanguage(
       this.videoHandler.site.host,
     );
-    if (hostDetectedLanguage) {
+    if (hostDetectedLanguage && !userOverrideLanguage) {
       detectedLanguage = hostDetectedLanguage;
+      this.setDetectedLanguageCache(videoId, hostDetectedLanguage);
     }
 
     const videoData = {
@@ -205,7 +284,10 @@ export class VOTVideoManager {
       downloadTitle: localizedTitle ?? title ?? videoId,
     } satisfies RuntimeVideoData;
 
-    console.log("[VOT] Detected language:", detectedLanguage);
+    if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
+      console.log("[VOT] Detected language:", detectedLanguage);
+      sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
+    }
     return videoData;
   }
 
@@ -327,7 +409,12 @@ export class VOTVideoManager {
     }
 
     const normalizedFrom = normalizeToRequestLang(from) ?? "auto";
-    console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+    const langPairLogKey = `${normalizedFrom}->${to}`;
+    const sharedLanguageState = getSharedLanguageState(videoData.videoId);
+    if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
+      console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+      sharedLanguageState.lastLoggedLangPair = langPairLogKey;
+    }
     videoData.detectedLanguage = normalizedFrom;
     videoData.responseLanguage = to;
     this.videoHandler.translateFromLang = normalizedFrom;
