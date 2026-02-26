@@ -48,13 +48,13 @@ function normalizeDomain(domain) {
     .replaceAll(String.raw`\/`,"/")
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "")
-    .replace(/[()]/g, "")
+    .replaceAll(/[()]/g, "")
     .replace(/^\./, "")
     .replace(/\.$/, "")
     .replace(/:\d+$/, "")
-    .replace(/\s+/g, "")
-    .replace(/\*{2,}/g, "*")
-    .replace(/\.\./g, ".")
+    .replaceAll(/\s+/g, "")
+    .replaceAll(/\*{2,}/g, "*")
+    .replaceAll("..", ".")
     .trim();
 }
 
@@ -64,7 +64,7 @@ function wildcardToRegExp(wildcardPattern) {
   }
 
   const escaped = wildcardPattern
-    .replace(/[|\\{}()[\]^$+?.]/g, String.raw`\$&`)
+    .replaceAll(/[|\\{}()[\]^$+?.]/g, String.raw`\$&`)
     .replaceAll("*", ".*");
   return new RegExp(`^${escaped}$`, "i");
 }

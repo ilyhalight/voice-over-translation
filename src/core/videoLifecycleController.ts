@@ -44,6 +44,7 @@ interface VideoLifecycleHost {
     responseLanguage: ResponseLang,
   ): string;
   translationOrchestrator: {
+    reset(): void;
     runAutoTranslationIfEligible(): Promise<void>;
   };
   enableSubtitlesForCurrentLangPair(): Promise<unknown>;
@@ -112,11 +113,17 @@ export class VideoLifecycleController {
     const hasSrcObject = this.host.video.srcObject ? "1" : "0";
     if (this.host.site.host === "youtube") {
       const path = globalThis.location.pathname;
+      const stableUrlKey = `${globalThis.location.origin}${path}${globalThis.location.search}`;
       if (path.startsWith("/shorts/")) {
         // Shorts frequently rotate blob src values for the same logical video.
         // Use pathname to keep lifecycle keys stable and avoid duplicate runs.
-        return `${globalThis.location.origin}${path}||${hasSrcObject}`;
+        return `${stableUrlKey}||${hasSrcObject}`;
       }
+
+      // On regular YouTube pages, changing playback quality can reload media
+      // and rotate `currentSrc` without changing the logical video.
+      // Keep lifecycle key URL-based so quality switches don't reset state.
+      return `${stableUrlKey}||${hasSrcObject}`;
     }
 
     const src = this.host.video.currentSrc || this.host.video.src || "";
@@ -278,6 +285,7 @@ export class VideoLifecycleController {
     debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, {
       sourceKey,
     });
+    this.host.translationOrchestrator.reset();
     this.host.firstPlay = true;
 
     const overlayView = this.host.uiManager.votOverlayView;

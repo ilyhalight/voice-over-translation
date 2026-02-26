@@ -76,8 +76,22 @@ const MAX_INLINE_BINARY_RESPONSE_BYTES = 512 * 1024;
  * (TAB_ID_NONE), i.e. service-worker initiated requests.
  */
 
-const DNR_RULE_ID = 9001;
-let dnrLastSignature = "";
+const DNR_RULE_ID_YANDEX_HEADERS = 9001;
+const DNR_RULE_ID_YOUTUBEI_ORIGIN = 9002;
+const DNR_RULE_ID_GOOGLEVIDEO_HEADERS = 9003;
+const dnrAppliedSignatures = new Map<number, string>();
+let dnrRuleUpdateQueue: Promise<void> = Promise.resolve();
+
+type DnrRequestHeaderRemove = {
+  header: string;
+  operation: "remove";
+};
+type DnrRequestHeaderSet = {
+  header: string;
+  operation: "set";
+  value: string;
+};
+type DnrRequestHeader = DnrRequestHeaderRemove | DnrRequestHeaderSet;
 
 function hasDnr(): boolean {
   return Boolean(ext?.declarativeNetRequest?.updateSessionRules);
@@ -136,12 +150,44 @@ function isForbiddenToSetViaFetch(headerName: string): boolean {
   return false;
 }
 
-function stableHeaderSignature(headers: Record<string, string>): string {
-  const entries = Object.entries(headers)
-    .map(([k, v]) => [normalizeHeaderName(k).toLowerCase(), String(v)] as const)
-    .filter(([k]) => Boolean(k))
+function signatureFromDnrRequestHeaders(
+  requestHeaders: readonly DnrRequestHeader[],
+): string {
+  const entries = requestHeaders
+    .map(
+      (h) =>
+        [
+          `${normalizeHeaderName(String(h.header)).toLowerCase()}:${String(h.operation)}`,
+          String("value" in h ? h.value : ""),
+        ] as const,
+    )
     .sort((a, b) => a[0].localeCompare(b[0]));
   return JSON.stringify(entries);
+}
+
+function queueDnrSessionRuleUpdate(
+  ruleId: number,
+  signature: string,
+  rule: unknown,
+): Promise<void> {
+  if (signature === dnrAppliedSignatures.get(ruleId)) {
+    return Promise.resolve();
+  }
+
+  // Serialize session rule updates so concurrent requests cannot race and
+  // revert each other's header set.
+  dnrRuleUpdateQueue = dnrRuleUpdateQueue
+    .catch(() => undefined)
+    .then(async () => {
+      if (signature === dnrAppliedSignatures.get(ruleId)) return;
+      await updateSessionRules({
+        removeRuleIds: [ruleId],
+        addRules: [rule],
+      });
+      dnrAppliedSignatures.set(ruleId, signature);
+    });
+
+  return dnrRuleUpdateQueue;
 }
 
 async function ensureDnrHeaderRuleForYandex(
@@ -172,19 +218,8 @@ async function ensureDnrHeaderRuleForYandex(
   //     while still allowing other required `Sec-*` headers for the endpoint
   //     (e.g. `sec-vtrans-*`).
 
-  type DnrRequestHeaderRemove = {
-    header: string;
-    operation: "remove";
-  };
-  type DnrRequestHeaderSet = {
-    header: string;
-    operation: "set";
-    value: string;
-  };
-  type DnrRequestHeader = DnrRequestHeaderRemove | DnrRequestHeaderSet;
-
   const requestHeaders: DnrRequestHeader[] = [
-    // Must be absent per "Правильный запрос".
+    // Must be absent in the known-good request capture.
     { header: "Origin", operation: "remove" },
     // Not present in the capture; remove if added by caller/stack.
     { header: "Referer", operation: "remove" },
@@ -203,19 +238,10 @@ async function ensureDnrHeaderRuleForYandex(
     });
   }
 
-  const signature = stableHeaderSignature(
-    Object.fromEntries(
-      requestHeaders.map((h) => [
-        `${String(h.header).toLowerCase()}:${String(h.operation)}`,
-        String("value" in h ? h.value : ""),
-      ]),
-    ),
-  );
-  if (signature === dnrLastSignature) return;
-  dnrLastSignature = signature;
+  const signature = signatureFromDnrRequestHeaders(requestHeaders);
 
   const rule = {
-    id: DNR_RULE_ID,
+    id: DNR_RULE_ID_YANDEX_HEADERS,
     priority: 1,
     action: {
       type: "modifyHeaders",
@@ -225,14 +251,106 @@ async function ensureDnrHeaderRuleForYandex(
       // Anchor at the URL start to avoid accidental matches.
       urlFilter: "|https://api.browser.yandex.ru/",
       // Extension-initiated fetch()/XHR can show up as "xmlhttprequest"
-      // in Chromium, but some forks label it as "other".
-      resourceTypes: ["xmlhttprequest", "other"],
+      // in Chromium.
+      resourceTypes: ["xmlhttprequest"],
       // Only match requests not associated with a tab (service worker).
       tabIds: [-1],
     },
   };
 
-  await updateSessionRules({ removeRuleIds: [DNR_RULE_ID], addRules: [rule] });
+  await queueDnrSessionRuleUpdate(DNR_RULE_ID_YANDEX_HEADERS, signature, rule);
+}
+
+function isYoutubeiApiUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname === "www.youtube.com" &&
+      parsed.pathname.startsWith("/youtubei/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isGooglevideoUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    return (
+      parsed.protocol === "https:" &&
+      (host === "googlevideo.com" || host.endsWith(".googlevideo.com"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function ensureDnrOriginStripRuleForYoutubei(url: string): Promise<void> {
+  if (!hasDnr()) return;
+  if (!isYoutubeiApiUrl(url)) return;
+
+  const requestHeaders: DnrRequestHeader[] = [
+    { header: "Origin", operation: "remove" },
+    { header: "x-client-data", operation: "remove" },
+    { header: "x-goog-visitor-id", operation: "remove" },
+  ];
+  const signature = JSON.stringify({
+    v: 2,
+    headers: signatureFromDnrRequestHeaders(requestHeaders),
+  });
+
+  const rule = {
+    id: DNR_RULE_ID_YOUTUBEI_ORIGIN,
+    priority: 1,
+    action: {
+      type: "modifyHeaders",
+      requestHeaders,
+    },
+    condition: {
+      urlFilter: "|https://www.youtube.com/youtubei/",
+      resourceTypes: ["xmlhttprequest"],
+      // Scope header mutations to service-worker initiated requests.
+      tabIds: [-1],
+    },
+  };
+
+  await queueDnrSessionRuleUpdate(DNR_RULE_ID_YOUTUBEI_ORIGIN, signature, rule);
+}
+
+async function ensureDnrStripRuleForGooglevideo(url: string): Promise<void> {
+  if (!hasDnr()) return;
+  if (!isGooglevideoUrl(url)) return;
+
+  const requestHeaders: DnrRequestHeader[] = [
+    { header: "x-client-data", operation: "remove" },
+  ];
+  const signature = JSON.stringify({
+    v: 1,
+    headers: signatureFromDnrRequestHeaders(requestHeaders),
+  });
+
+  const rule = {
+    id: DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
+    priority: 1,
+    action: {
+      type: "modifyHeaders",
+      requestHeaders,
+    },
+    condition: {
+      urlFilter: "||googlevideo.com/",
+      resourceTypes: ["xmlhttprequest"],
+      // Scope header mutations to service-worker initiated requests.
+      tabIds: [-1],
+    },
+  };
+
+  await queueDnrSessionRuleUpdate(
+    DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
+    signature,
+    rule,
+  );
 }
 
 function asErrorMessage(err: unknown): string {
@@ -293,6 +411,19 @@ type XhrResponse = {
   error?: string;
 };
 
+function createTerminalXhrError(url: string, error: string): XhrResponse {
+  return {
+    finalUrl: url,
+    readyState: 4,
+    status: 0,
+    statusText: "",
+    responseHeaders: "",
+    response: null,
+    responseText: "",
+    error,
+  };
+}
+
 function getHeader(
   headers: Record<string, string>,
   name: string,
@@ -314,12 +445,24 @@ function isProtobufContentType(contentType: string | undefined): boolean {
   );
 }
 
-function looksLikeBase64Payload(s: string): boolean {
+function tryDecodeStrictBase64Payload(s: string): Uint8Array | null {
   const str = String(s || "");
-  // Base64 is ASCII, no whitespace/control chars, and only base64url/base64 alphabet.
-  if (!str || /\s/.test(str)) return false;
-  if (!/^[A-Za-z0-9+/=_-]+$/.test(str)) return false;
-  return true;
+  if (!str || /\s/.test(str)) return null;
+  if (!/^[A-Za-z0-9+/=_-]+$/.test(str)) return null;
+  // Require explicit base64/base64url markers to avoid decoding plain tokens.
+  if (!/[+/=_-]/.test(str)) return null;
+
+  const normalized = str.replaceAll("-", "+").replaceAll("_", "/");
+  const remainder = normalized.length % 4;
+  if (remainder === 1) return null;
+  const padded =
+    remainder === 0 ? normalized : `${normalized}${"=".repeat(4 - remainder)}`;
+
+  try {
+    return base64ToBytes(padded);
+  } catch {
+    return null;
+  }
 }
 
 function latin1StringToBytes(s: string): Uint8Array {
@@ -406,6 +549,10 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
     }
 
     if (msg.type !== "start") return;
+    // Preserve "abort-before-start" semantics only when no request has been
+    // started on this port yet. Otherwise, allow the next request to proceed.
+    const shouldAbortImmediately = abortedByUser && controller === null;
+    abortedByUser = false;
 
     const { details } = msg;
     const url = details.url;
@@ -434,7 +581,7 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
 
     // If the caller aborted before we even received the start payload,
     // respond immediately without starting a network request.
-    if (abortedByUser) {
+    if (shouldAbortImmediately) {
       const errorObj: XhrResponse = {
         finalUrl: url,
         readyState: 4,
@@ -490,10 +637,12 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
       // Without this, no-proxy mode cannot faithfully emulate the userscript
       // manager's GM_xmlhttpRequest and Yandex endpoints reject the request.
       try {
+        await ensureDnrStripRuleForGooglevideo(url);
+        await ensureDnrOriginStripRuleForYoutubei(url);
         await ensureDnrHeaderRuleForYandex(url, forbiddenHeaders);
       } catch (e) {
         console.warn(
-          "[VOT Extension] Failed to apply DNR header rule; requests may break:",
+          "[VOT Extension] Failed to apply DNR header rules; requests may break:",
           e,
         );
       }
@@ -501,6 +650,14 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
       let body: BodyInit | undefined = isBodyAllowed
         ? decodeSerializedBody(details.data)
         : undefined;
+      let recoveredBodyFromDetails: Uint8Array | null | undefined;
+      const getRecoveredBodyFromDetails = (): Uint8Array | null => {
+        if (recoveredBodyFromDetails !== undefined) {
+          return recoveredBodyFromDetails;
+        }
+        recoveredBodyFromDetails = coerceBodyToBytes(details.data);
+        return recoveredBodyFromDetails;
+      };
       const contentType = getHeader(allHeaders, "content-type");
       const isProtobufRequest = isProtobufContentType(contentType);
 
@@ -519,7 +676,7 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         isProtobufRequest &&
         (body === undefined || body === null)
       ) {
-        const recovered = coerceBodyToBytes(details.data);
+        const recovered = getRecoveredBodyFromDetails();
         if (recovered) {
           body = recovered as unknown as BodyInit;
           debug.warn(
@@ -539,7 +696,7 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
       // by fetch() and corrupt the payload.
       if (isBodyAllowed && typeof body === "string" && isProtobufRequest) {
         if (looksLikeObjectToStringPayload(body)) {
-          const recovered = coerceBodyToBytes(details.data);
+          const recovered = getRecoveredBodyFromDetails();
           if (recovered) {
             body = recovered as unknown as BodyInit;
             debug.warn(
@@ -556,15 +713,16 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         }
 
         if (typeof body === "string") {
-          body = (looksLikeBase64Payload(body)
-            ? base64ToBytes(body)
-            : latin1StringToBytes(body)) as unknown as BodyInit;
+          const maybeBase64Bytes = tryDecodeStrictBase64Payload(body);
+          body = (maybeBase64Bytes ??
+            latin1StringToBytes(body)) as unknown as BodyInit;
           debug.log(
             "[VOT EXT][background][xhr] protobuf string converted to bytes",
             {
               xhrSessionId,
               url,
               method,
+              strategy: maybeBase64Bytes ? "base64" : "latin1",
               convertedBody: summarizeBodyForDebug(body),
             },
           );
@@ -580,24 +738,6 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         cache: cache ?? "default",
         body: summarizeBodyForDebug(body),
       });
-
-      if (
-        isBodyAllowed &&
-        typeof body === "string" &&
-        isProtobufRequest &&
-        looksLikeObjectToStringPayload(body)
-      ) {
-        debug.error(
-          "[VOT EXT][background][xhr] protobuf body still object-like string before fetch",
-          {
-            xhrSessionId,
-            url,
-            method,
-            bodyString: body,
-            sourceBody: summarizeBodyForDebug(details.data),
-          },
-        );
-      }
 
       const requestInit: RequestInit = {
         method,
@@ -743,16 +883,10 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         } else {
           kind = "abort";
         }
-        const errorObj: XhrResponse = {
-          finalUrl: url,
-          readyState: 4,
-          status: 0,
-          statusText: "",
-          responseHeaders: "",
-          response: null,
-          responseText: "",
-          error: kind === "timeout" ? "Timeout" : "Aborted",
-        };
+        const errorObj = createTerminalXhrError(
+          url,
+          kind === "timeout" ? "Timeout" : "Aborted",
+        );
 
         try {
           safePostMessage({ type: kind, state: "terminal", error: errorObj });
@@ -770,16 +904,7 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         return;
       }
 
-      const errorObj: XhrResponse = {
-        finalUrl: url,
-        readyState: 4,
-        status: 0,
-        statusText: "",
-        responseHeaders: "",
-        response: null,
-        responseText: "",
-        error: asErrorMessage(err),
-      };
+      const errorObj = createTerminalXhrError(url, asErrorMessage(err));
 
       safePostMessage({
         type: "error",
@@ -803,79 +928,141 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
 // GM_notification bridge
 // -----------------------------
 
+type GmNotificationSender = {
+  tab?: {
+    id?: number;
+    windowId?: number;
+  };
+};
+
+type GmNotificationDetails = {
+  title: string;
+  text: string;
+  silent: boolean;
+  timeout: number;
+};
+
+type GmNotificationMessage = {
+  type: "gm_notification";
+  details?: unknown;
+};
+
+export function isGmNotificationMessage(
+  msg: unknown,
+): msg is GmNotificationMessage {
+  if (!msg || typeof msg !== "object") return false;
+  return (msg as { type?: unknown }).type === "gm_notification";
+}
+
+export function normalizeGmNotificationDetails(
+  details: unknown,
+): GmNotificationDetails {
+  const raw =
+    details && typeof details === "object"
+      ? (details as Record<string, unknown>)
+      : {};
+
+  const timeoutRaw = Number(raw.timeout ?? 0);
+  return {
+    title: raw.title != null ? String(raw.title) : "",
+    text: raw.text != null ? String(raw.text) : "",
+    silent: Boolean(raw.silent),
+    timeout: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? timeoutRaw : 0,
+  };
+}
+
+export function createBridgeNotificationId(
+  sender: GmNotificationSender,
+): string {
+  const tabId = sender.tab?.id;
+  const windowId = sender.tab?.windowId;
+
+  const safeTab = typeof tabId === "number" ? tabId : -1;
+  const safeWin = typeof windowId === "number" ? windowId : -1;
+
+  const nonce =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}:${Math.random().toString(36).slice(2)}`;
+
+  return `vot:${safeTab}:${safeWin}:${nonce}`;
+}
+
+export function createBridgeNotificationOptions(
+  details: GmNotificationDetails,
+): Record<string, unknown> {
+  const isFirefox =
+    typeof (ext?.runtime as { getBrowserInfo?: unknown })?.getBrowserInfo ===
+    "function";
+  const iconUrl = ext?.runtime?.getURL
+    ? ext.runtime.getURL("icons/icon-128.png")
+    : "icons/icon-128.png";
+
+  // Firefox's notifications API does not support some Chrome-only fields
+  // (e.g. `silent`). Passing unsupported fields can cause the call to throw
+  // and the notification to never show.
+  const options: Record<string, unknown> = {
+    type: "basic",
+    iconUrl,
+    title: details.title || "VOT",
+    message: details.text,
+  };
+  if (!isFirefox) {
+    options.silent = details.silent;
+  }
+  return options;
+}
+
+function sendNotificationResponse(
+  sendResponse: ((value: unknown) => void) | undefined,
+  payload: unknown,
+): void {
+  if (typeof sendResponse !== "function") return;
+  try {
+    sendResponse(payload);
+  } catch {
+    // ignore
+  }
+}
+
 ext?.runtime?.onMessage?.addListener?.(
   (
     msg: unknown,
-    sender: { tab?: { id?: number; windowId?: number } },
+    sender: GmNotificationSender,
     sendResponse: ((value: unknown) => void) | undefined,
   ) => {
-    if (!msg || typeof msg !== "object") return;
+    if (!isGmNotificationMessage(msg)) return;
 
-    const typedMessage = msg as { type?: unknown; details?: unknown };
-    if (typedMessage.type !== "gm_notification") return;
+    const details = normalizeGmNotificationDetails(msg.details);
+    const notificationId = createBridgeNotificationId(sender);
+    const options = createBridgeNotificationOptions(details);
 
-    const details = (typedMessage.details || {}) as {
-      title?: string;
-      text?: string;
-      image?: string;
-      silent?: boolean;
-      timeout?: number;
-    };
+    void (async () => {
+      try {
+        await notificationsCreate(notificationId, options);
 
-    const tabId = sender.tab?.id;
-    const windowId = sender.tab?.windowId;
+        if (details.timeout > 0) {
+          setTimeout(() => {
+            void notificationsClear(notificationId);
+          }, details.timeout);
+        }
 
-    const safeTab = typeof tabId === "number" ? tabId : -1;
-    const safeWin = typeof windowId === "number" ? windowId : -1;
-
-    const nonce =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}:${Math.random().toString(36).slice(2)}`;
-
-    const notificationId = `vot:${safeTab}:${safeWin}:${nonce}`;
-
-    const isFirefox =
-      typeof (ext?.runtime as { getBrowserInfo?: unknown })?.getBrowserInfo ===
-      "function";
-    const iconUrl = ext?.runtime?.getURL
-      ? ext.runtime.getURL("icons/icon-128.png")
-      : "icons/icon-128.png";
-
-    // Firefox's notifications API does not support some Chrome-only fields
-    // (e.g. `silent`). Passing unsupported fields can cause the call to throw
-    // and the notification to never show.
-    const opts: Record<string, unknown> = {
-      type: "basic",
-      iconUrl,
-      title: details.title || "VOT",
-      message: details.text || "",
-    };
-    if (!isFirefox) {
-      opts.silent = !!details.silent;
-    }
-
-    void notificationsCreate(notificationId, opts).catch((e) => {
-      // Avoid crashing the background service worker on notification API errors.
-      debug.error("[VOT EXT][background] Failed to create notification", e);
-    });
-
-    // Best-effort auto-clear
-    const timeout = Number(details.timeout || 0);
-    if (timeout > 0) {
-      setTimeout(() => {
-        void notificationsClear(notificationId);
-      }, timeout);
-    }
-
-    // Best-effort reply (bridge does not rely on it).
-    try {
-      if (typeof sendResponse === "function") {
-        sendResponse({ ok: true });
+        sendNotificationResponse(sendResponse, { ok: true });
+      } catch (error) {
+        // Avoid crashing the background service worker on notification API errors.
+        debug.error(
+          "[VOT EXT][background] Failed to create notification",
+          error,
+        );
+        sendNotificationResponse(sendResponse, {
+          ok: false,
+          error: asErrorMessage(error),
+        });
       }
-    } catch {
-      // ignore
-    }
+    })();
+
+    // Keep the channel alive while notification creation finishes in MV3 SW.
+    return true;
   },
 );
 

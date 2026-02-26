@@ -80,11 +80,7 @@ import type {
 import ui from "../../ui";
 import debug from "../../utils/debug";
 import { getEnvironmentInfo } from "../../utils/environment";
-import {
-  isProxyOnlyExtension,
-  isSupportGMXhr,
-  isUnsafeWindowAllowed,
-} from "../../utils/gm";
+import { isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
 import { detectServices, translateServices } from "../../utils/translateApis";
 import { isPiPAvailable } from "../../utils/utils";
@@ -491,10 +487,7 @@ export class SettingsView {
       labelHtml: this.useAudioDownloadCheckboxLabel.container,
       checked: this.data.useAudioDownload,
     });
-    if (
-      !isUnsafeWindowAllowed &&
-      !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION)
-    ) {
+    if (!isSupportGMXhr) {
       this.useAudioDownloadCheckbox.disabled = true;
     }
     this.useAudioDownloadCheckboxTooltip = new Tooltip({

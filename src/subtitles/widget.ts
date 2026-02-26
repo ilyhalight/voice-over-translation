@@ -115,6 +115,7 @@ export class SubtitlesWidget {
   private subtitlesContainer: HTMLElement | null = null;
   private subtitlesBlock: HTMLElement | null = null;
   private renderedTokenEls: HTMLSpanElement[] = [];
+  private readonly passedFlagsBuffer: boolean[] = [];
   private subtitles: ProcessedSubtitles | null = null;
   private subtitleLang?: string;
   private lastRenderKey: string | null = null;
@@ -815,75 +816,54 @@ export class SubtitlesWidget {
     if (s === 0 && e === tokens.length) return tokens;
     return s >= e ? [] : tokens.slice(s, e);
   }
-  private splitRangesByMaxLength(
-    tokens: SubtitleToken[],
-  ): Array<[number, number]> {
-    const ranges: Array<[number, number]> = [];
-    let start = 0;
-    let length = 0;
-    for (const [index, token] of tokens.entries()) {
-      length += token.text.length;
-      if (length > this.maxLength && index > start) {
-        ranges.push([start, index]);
-        start = index;
-        length = token.text.length;
-      }
-    }
-    if (start < tokens.length) {
-      ranges.push([start, tokens.length]);
-    }
-    return ranges;
-  }
-  private pickRangeByTime(
-    tokens: SubtitleToken[],
-    ranges: Array<[number, number]>,
-    time: number,
-  ): [number, number] {
-    let chosen = ranges[0] ?? [0, tokens.length];
-    for (const range of ranges) {
-      const first = tokens[range[0]];
-      const last = tokens[range[1] - 1];
-      if (!first || !last) continue;
-      const nextStartMs =
-        range[1] < tokens.length ? tokens[range[1]].startMs : undefined;
-      const endMs = nextStartMs ?? last.startMs + (last.durationMs ?? 0);
-      if (first.startMs <= time && time < endMs) {
-        chosen = range;
-        break;
-      }
-    }
-    return chosen;
-  }
   private selectTokensByMaxLength(
     tokens: SubtitleToken[],
     time: number,
   ): SubtitleToken[] {
     if (!tokens.length) return tokens;
-    let totalChars = 0;
-    for (const token of tokens) {
-      totalChars += token?.text.length ?? 0;
+    let start = 0;
+    let length = 0;
+    let overflowed = false;
+    let chosenStart = 0;
+    let chosenEnd = tokens.length;
+    let hasChosenRange = false;
+    let matchedByTime = false;
+    const considerRange = (rangeStart: number, rangeEnd: number): void => {
+      if (rangeEnd <= rangeStart) return;
+      if (!hasChosenRange) {
+        chosenStart = rangeStart;
+        chosenEnd = rangeEnd;
+        hasChosenRange = true;
+      }
+      if (matchedByTime) return;
+      const first = tokens[rangeStart];
+      const last = tokens[rangeEnd - 1];
+      if (!first || !last) return;
+      const nextStartMs =
+        rangeEnd < tokens.length ? tokens[rangeEnd]?.startMs : undefined;
+      const endMs = nextStartMs ?? last.startMs + (last.durationMs ?? 0);
+      if (first.startMs <= time && time < endMs) {
+        chosenStart = rangeStart;
+        chosenEnd = rangeEnd;
+        matchedByTime = true;
+      }
+    };
+    for (const [index, token] of tokens.entries()) {
+      const nextLength = length + token.text.length;
+      if (nextLength > this.maxLength && index > start) {
+        overflowed = true;
+        considerRange(start, index);
+        start = index;
+        length = token.text.length;
+        continue;
+      }
+      length = nextLength;
     }
-    if (totalChars <= this.maxLength) {
+    if (!overflowed) {
       return this.trimEdgeWhitespaceTokens(tokens);
     }
-    const ranges = this.splitRangesByMaxLength(tokens);
-    const chosen = this.pickRangeByTime(tokens, ranges, time);
-    return this.trimEdgeWhitespaceTokens(tokens.slice(chosen[0], chosen[1]));
-  }
-  private computeTwoLineSegments(
-    tokens: SubtitleToken[],
-    words: Word[],
-    metrics: WordMetrics,
-    maxWidthPx: number,
-    maxChars: number,
-  ): SegmentRange[] {
-    return computeTwoLineSegmentsUtil(
-      tokens,
-      words,
-      metrics,
-      maxWidthPx,
-      maxChars,
-    );
+    considerRange(start, tokens.length);
+    return this.trimEdgeWhitespaceTokens(tokens.slice(chosenStart, chosenEnd));
   }
   private buildTokenPrecomputeInput(
     tokens: SubtitleToken[],
@@ -996,7 +976,7 @@ export class SubtitlesWidget {
       return this.tokenProcessingMemo;
     }
     const safeMaxWidthPx = applyWrapWidthGuard(lineMeasure.maxWidthPx);
-    const segmentRanges = this.computeTwoLineSegments(
+    const segmentRanges = computeTwoLineSegmentsUtil(
       tokens,
       lineMeasure.words,
       lineMeasure.metrics,
@@ -1230,14 +1210,17 @@ export class SubtitlesWidget {
     tooltip.setContent(subtitlesInfo.container);
   };
   private buildPassedState(tokens: SubtitleToken[], time: number): boolean[] {
-    const flags: boolean[] = [];
+    const flags = this.passedFlagsBuffer;
+    let wordIndex = 0;
     for (const token of tokens) {
       if (!token.isWordLike) continue;
       const halfway = token.startMs + token.durationMs / 2;
       const passed =
         time > halfway || (time > token.startMs - 100 && halfway - time < 275);
-      flags.push(passed);
+      flags[wordIndex] = passed;
+      wordIndex += 1;
     }
+    flags.length = wordIndex;
     return flags;
   }
   private renderTokens(
@@ -1341,21 +1324,15 @@ export class SubtitlesWidget {
     this.breakAfterTokenIndices = indices;
     this.breakAfterTokenIndexSet = indices.length ? new Set(indices) : null;
   }
-  private enqueueWrapRecompute(tokens: SubtitleToken[] | null = null): void {
+  private scheduleWrapRecompute(tokens: SubtitleToken[] | null = null): void {
     if (tokens) {
       this.lastWrapTokens = tokens;
     }
+    const shouldRequestTick = !this.wrapPending;
     this.wrapPending = true;
-    this.intervalIdleChecker.requestImmediateTick();
-  }
-  private scheduleWrapRecompute(tokens: SubtitleToken[] | null = null): void {
-    this.enqueueWrapRecompute(tokens);
-  }
-  private scheduleWrapRecomputeBeforePaint(
-    tokens: SubtitleToken[] | null = null,
-  ): void {
-    this.enqueueWrapRecompute(tokens);
-    this.intervalIdleChecker.requestImmediateTick();
+    if (shouldRequestTick) {
+      this.intervalIdleChecker.requestImmediateTick();
+    }
   }
   private maybeRefreshPosition(force = false): void {
     if (this.abortController.signal.aborted) return;
@@ -1543,7 +1520,11 @@ export class SubtitlesWidget {
     }
   }
   setOpacity(rate: number): void {
-    this.opacity = ((100 - Number(rate)) / 100).toFixed(2);
+    const numericRate = Number(rate);
+    const clampedRate = Number.isFinite(numericRate)
+      ? clampToRange(numericRate, 0, 100)
+      : 0;
+    this.opacity = ((100 - clampedRate) / 100).toFixed(2);
     if (this.subtitlesBlock) {
       this.subtitlesBlock.style.setProperty(
         "--vot-subtitles-opacity",
@@ -1552,7 +1533,11 @@ export class SubtitlesWidget {
     }
   }
   private stringifyTokens(tokens: SubtitleToken[]): string {
-    return tokens.map((token) => token.text).join("");
+    let out = "";
+    for (const token of tokens) {
+      out += token.text;
+    }
+    return out;
   }
   private updateMultilineAlignmentIfNeeded(layoutAffectingKey: string): void {
     const block = this.subtitlesBlock;
@@ -1723,7 +1708,7 @@ export class SubtitlesWidget {
     this.updateMultilineAlignmentIfNeeded(layoutAffectingKey);
     if (tokensChanged) {
       this.applyPositionAfterContentRender();
-      this.scheduleWrapRecomputeBeforePaint(tokens);
+      this.scheduleWrapRecompute(tokens);
       this.scheduleReposition();
     } else {
       this.maybeRefreshPosition();

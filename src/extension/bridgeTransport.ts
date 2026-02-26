@@ -9,22 +9,24 @@ function isArrayBuffer(value: unknown): value is ArrayBuffer {
 function getTransferables(payload: AnyObject): Transferable[] {
   if (payload.type !== TYPE_XHR_EVENT) return [];
 
-  const out: Transferable[] = [];
   const eventPayload = payload.payload as AnyObject | undefined;
-
   const progressChunk = eventPayload?.progress?.chunk;
-  if (isArrayBuffer(progressChunk)) out.push(progressChunk);
-
   const responseBody = eventPayload?.response?.response;
-  if (isArrayBuffer(responseBody) && responseBody !== progressChunk) {
-    out.push(responseBody);
+
+  if (!isArrayBuffer(progressChunk)) {
+    return isArrayBuffer(responseBody) ? [responseBody] : [];
   }
 
-  return out;
+  if (!isArrayBuffer(responseBody) || responseBody === progressChunk) {
+    return [progressChunk];
+  }
+
+  return [progressChunk, responseBody];
 }
 
 function markMessage(payload: AnyObject): BridgeMarkedMessage {
-  return { [MARK]: true, ...payload };
+  // Always force the marker at the final write position.
+  return { ...payload, [MARK]: true };
 }
 
 export function toBridgeMessage(payload: AnyObject): BridgeMarkedMessage {

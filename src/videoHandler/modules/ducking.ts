@@ -1,6 +1,9 @@
 import { clamp } from "../../utils/utils";
 import { snapVolume01Towards, VIDEO_VOLUME_STEP_01 } from "../../utils/volume";
 
+const VOLUME_MIN_01 = 0;
+const VOLUME_MAX_01 = 1;
+
 export type SmartDuckingConfig = {
   tickMs: number;
   thresholdOnRms: number;
@@ -67,7 +70,7 @@ export type SmartDuckingDecision =
   | SmartDuckingApplyDecision
   | SmartDuckingNoopDecision;
 
-export const SMART_DUCKING_DEFAULT_CONFIG: Readonly<SmartDuckingConfig> = {
+export const SMART_DUCKING_DEFAULT_CONFIG = Object.freeze({
   tickMs: 50,
   thresholdOnRms: 0.012,
   thresholdOffRms: 0.009,
@@ -84,7 +87,7 @@ export const SMART_DUCKING_DEFAULT_CONFIG: Readonly<SmartDuckingConfig> = {
   unduckTolerance01: 0.01,
   volumeStep01: VIDEO_VOLUME_STEP_01,
   applyDeltaThreshold01: VIDEO_VOLUME_STEP_01 / 2,
-};
+} satisfies SmartDuckingConfig);
 
 export function initSmartDuckingRuntime(
   baseline?: number,
@@ -128,16 +131,15 @@ export function computeSmartDuckingStep(
   nextRuntime.lastTickAt = now;
 
   const hasRms = isFiniteNumber(input.rms);
-  const rmsValue =
-    hasRms && typeof input.rms === "number" ? clamp(input.rms, 0, 1) : 0;
-  const prevEnv = clamp(nextRuntime.rmsEnvelope, 0, 1);
+  const rmsValue = hasRms ? clamp(input.rms, VOLUME_MIN_01, VOLUME_MAX_01) : 0;
+  const prevEnv = nextRuntime.rmsEnvelope;
   const envTauMs =
     rmsValue > prevEnv ? config.rmsAttackTauMs : config.rmsReleaseTauMs;
-  const envAlpha = envTauMs > 0 ? 1 - Math.exp(-dtMs / envTauMs) : 1;
+  const envAlpha = envTauMs > 0 ? -Math.expm1(-dtMs / envTauMs) : 1;
   nextRuntime.rmsEnvelope = clamp(
     prevEnv + (rmsValue - prevEnv) * envAlpha,
-    0,
-    1,
+    VOLUME_MIN_01,
+    VOLUME_MAX_01,
   );
 
   let gateOpen = nextRuntime.speechGateOpen;
@@ -214,7 +216,6 @@ export function computeSmartDuckingStep(
 
   if (gateOpen) {
     if (!nextRuntime.isDucked) {
-      nextRuntime.baseline = baseline;
       nextRuntime.isDucked = true;
     }
     desired = duckedTarget;
@@ -225,22 +226,24 @@ export function computeSmartDuckingStep(
     nextRuntime.isDucked = false;
   }
 
-  const tauMs =
+  const smoothingTauMs =
     desired < currentVideoVolume ? config.attackTauMs : config.releaseTauMs;
-  const alpha = tauMs > 0 ? 1 - Math.exp(-dtMs / tauMs) : 1;
-  let nextVolume = currentVideoVolume + (desired - currentVideoVolume) * alpha;
+  const smoothingAlpha =
+    smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
+  let nextVolume =
+    currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
 
   const maxDelta =
     (desired < currentVideoVolume ? config.maxDownPerSec : config.maxUpPerSec) *
     dtSec;
-  if (Number.isFinite(maxDelta) && maxDelta > 0) {
+  if (maxDelta > 0) {
     nextVolume = clamp(
       nextVolume,
       currentVideoVolume - maxDelta,
       currentVideoVolume + maxDelta,
     );
   }
-  nextVolume = clamp(nextVolume, 0, 1);
+  nextVolume = clamp(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
 
   const quantized = snapVolume01Towards(
     nextVolume,
@@ -249,10 +252,16 @@ export function computeSmartDuckingStep(
     config.volumeStep01,
   );
 
+  const applyDeltaThreshold01 = config.applyDeltaThreshold01;
+
+  if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
+    nextRuntime.lastApplied = quantized;
+    return { kind: "noop", runtime: nextRuntime };
+  }
+
   if (
     !isFiniteNumber(nextRuntime.lastApplied) ||
-    Math.abs(quantized - nextRuntime.lastApplied) >=
-      config.applyDeltaThreshold01
+    Math.abs(quantized - nextRuntime.lastApplied) >= applyDeltaThreshold01
   ) {
     nextRuntime.lastApplied = quantized;
     return {
@@ -269,7 +278,7 @@ function normalizeRuntime(runtime: SmartDuckingRuntime): SmartDuckingRuntime {
   return {
     isDucked: Boolean(runtime.isDucked),
     speechGateOpen: Boolean(runtime.speechGateOpen),
-    rmsEnvelope: clamp(runtime.rmsEnvelope ?? 0, 0, 1),
+    rmsEnvelope: normalizeVolume01(runtime.rmsEnvelope) ?? 0,
     baseline: normalizeVolume01(runtime.baseline),
     lastApplied: normalizeVolume01(runtime.lastApplied),
     lastTickAt: isFiniteNumber(runtime.lastTickAt) ? runtime.lastTickAt : 0,
@@ -282,7 +291,7 @@ function normalizeRuntime(runtime: SmartDuckingRuntime): SmartDuckingRuntime {
 
 function normalizeVolume01(value?: number): number | undefined {
   if (!isFiniteNumber(value)) return undefined;
-  return clamp(value, 0, 1);
+  return clamp(value, VOLUME_MIN_01, VOLUME_MAX_01);
 }
 
 function isFiniteNumber(value: unknown): value is number {

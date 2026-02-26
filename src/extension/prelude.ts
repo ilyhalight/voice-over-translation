@@ -1,4 +1,5 @@
 import debug from "../utils/debug";
+import { toErrorMessage } from "../utils/errors";
 import {
   serializeBodyForPort,
   summarizeBodyForDebug,
@@ -18,14 +19,35 @@ import {
 
 const PRELUDE_BOOT_KEY = "__VOT_EXT_PRELUDE_BOOTED__";
 const XHR_FALLBACK_TIMEOUT_GRACE_MS = 1_000;
+const BRIDGE_REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_ID_PREFIX =
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+
+type UnknownRecord = Record<string, unknown>;
+type PendingRequest = {
+  resolve: (value: unknown) => void;
+  reject: (reason: unknown) => void;
+  timeoutId: number;
+};
+
+function asRecord(value: unknown): UnknownRecord {
+  return value && typeof value === "object" ? (value as UnknownRecord) : {};
+}
+
+function toFiniteNumber(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 /**
  * Extension prelude script (MAIN world content script).
  *
  * Why MAIN world?
- * - The VOT codebase relies on page-context access ("unsafeWindow" / platform helpers that
- *   read site globals) for full feature parity on some sites (YouTube subtitles/lang detection,
- *   VK Video, NicoNico, etc.).
+ * - The VOT codebase relies on page-context events and direct media controls on
+ *   some sites (YouTube subtitles/lang detection, VK Video, NicoNico, etc.).
  * - MAIN world scripts do not have WebExtension APIs, so we expose a tiny userscript-like API
  *   surface by talking to `src/extension/bridge.ts` via globalThis.postMessage.
  */
@@ -45,45 +67,44 @@ function postToBridge(payload: AnyObject) {
 //
 // We strip non-serializable fields here and handle click behaviour in the
 // background script (see src/extension/background.ts).
-function sanitizeNotificationDetails(details: any): AnyObject {
-  const d: AnyObject =
-    details && typeof details === "object" ? (details as AnyObject) : {};
-
-  const out: AnyObject = {
+function sanitizeNotificationDetails(details: unknown): AnyObject {
+  const d = asRecord(details);
+  return {
     title: d.title != null ? String(d.title) : undefined,
     text: d.text != null ? String(d.text) : undefined,
     image: d.image != null ? String(d.image) : undefined,
     silent: !!d.silent,
-    timeout: d.timeout != null ? Number(d.timeout) : undefined,
+    timeout: toFiniteNumber(d.timeout),
     tag: d.tag != null ? String(d.tag) : undefined,
   };
-
-  return out;
 }
 
 // Request/response plumbing for GM.* promises API.
 let seq = 0;
-const pending = new Map<
-  string,
-  { resolve: (v: any) => void; reject: (e: any) => void; t: number }
->();
+const pending = new Map<string, PendingRequest>();
 
-function makeId() {
+function makeId(): string {
   seq += 1;
-  return `${Date.now()}_${seq}_${Math.random().toString(36).slice(2)}`;
+  return `${REQUEST_ID_PREFIX}_${seq.toString(36)}`;
 }
 
-function request<T = any>(action: string, payload: AnyObject = {}): Promise<T> {
+function request<T = unknown>(
+  action: string,
+  payload: AnyObject = {},
+): Promise<T> {
   const id = makeId();
   return new Promise<T>((resolve, reject) => {
     // Safety timeout so calls don't hang forever if the bridge isn't available.
-    const timeoutMs = 15_000;
-    const t = globalThis.setTimeout(() => {
+    const timeoutId = globalThis.setTimeout(() => {
       pending.delete(id);
       reject(new Error(`VOT bridge timeout for ${action}`));
-    }, timeoutMs);
+    }, BRIDGE_REQUEST_TIMEOUT_MS);
 
-    pending.set(id, { resolve, reject, t });
+    pending.set(id, {
+      resolve: (value) => resolve(value as T),
+      reject,
+      timeoutId,
+    });
     postToBridge({ type: TYPE_REQ, id, action, payload });
   });
 }
@@ -108,6 +129,28 @@ function callXhrCallback(fn: unknown, arg: unknown): void {
   } catch (err) {
     console.error("[VOT Extension] GM_xmlhttpRequest callback error", err);
   }
+}
+
+type XhrSettleCallbackName = "onload" | "onerror" | "ontimeout" | "onabort";
+type XhrSettleState = { isSettled: boolean };
+
+function createXhrSettleHandler(
+  callbackName: XhrSettleCallbackName,
+  original: AnyObject,
+  settleState: XhrSettleState,
+  resolve: (value: unknown) => void,
+  reject: (reason: unknown) => void,
+): (value: unknown) => void {
+  return (value: unknown) => {
+    callXhrCallback(original[callbackName], value);
+    if (settleState.isSettled) return;
+    settleState.isSettled = true;
+    if (callbackName === "onload") {
+      resolve(value);
+      return;
+    }
+    reject(value);
+  };
 }
 
 function popXhrCallbacks(requestId: string): AnyObject | null {
@@ -141,7 +184,6 @@ function armXhrFallbackWatchdog(
   state.timeoutId = globalThis.setTimeout(() => {
     const current = xhrCallbacks.get(requestId);
     if (!current || current.settled) return;
-    current.settled = true;
     debug.warn("[VOT EXT][prelude] GM_xmlhttpRequest timeout fallback fired", {
       requestId,
       timeoutMs: current.timeoutMs,
@@ -183,12 +225,12 @@ function toSerializableXhrDetails(details: AnyObject): AnyObject {
 }
 
 async function toBridgeXhrDetails(details: AnyObject): Promise<AnyObject> {
-  const sourceBodySummary = summarizeBodyForDebug(details?.data);
-  const serializedData = await serializeBodyForPort(details?.data);
+  const sourceBodySummary = summarizeBodyForDebug(details.data);
+  const serializedData = await serializeBodyForPort(details.data);
   const serializedBodySummary = summarizeBodyForDebug(serializedData);
   debug.log("[VOT EXT][prelude] GM_xmlhttpRequest body serialized", {
-    url: details?.url,
-    method: details?.method,
+    url: details.url,
+    method: details.method,
     from: sourceBodySummary,
     to: serializedBodySummary,
   });
@@ -198,8 +240,8 @@ async function toBridgeXhrDetails(details: AnyObject): Promise<AnyObject> {
     /^\[object [^\]]+\]$/.test(serializedData.trim())
   ) {
     debug.warn("[VOT EXT][prelude] suspicious serialized body string", {
-      url: details?.url,
-      method: details?.method,
+      url: details.url,
+      method: details.method,
       serializedBody: serializedData,
       sourceBody: sourceBodySummary,
     });
@@ -218,7 +260,7 @@ async function toBridgeXhrDetails(details: AnyObject): Promise<AnyObject> {
 }
 
 function extractXhrStatus(data: unknown): AnyObject {
-  const src = data && typeof data === "object" ? (data as AnyObject) : {};
+  const src = asRecord(data);
   return {
     status: src.status ?? null,
     statusText: src.statusText ?? null,
@@ -227,16 +269,25 @@ function extractXhrStatus(data: unknown): AnyObject {
   };
 }
 
-function installPageGmPolyfills() {
-  // Provide unsafeWindow for compatibility with the userscript build.
-  try {
-    (globalThis as any).unsafeWindow = globalThis;
-  } catch {
-    // ignore
-  }
+function makeXhrTerminalErrorPayload(
+  callbacks: AnyObject,
+  error: string,
+): AnyObject {
+  return {
+    finalUrl: String(callbacks.url ?? ""),
+    readyState: 4,
+    status: 0,
+    statusText: "",
+    responseHeaders: "",
+    response: null,
+    responseText: "",
+    error,
+  };
+}
 
+function installPageGmPolyfills() {
   // Legacy GM_notification (callback-based). Used by src/utils/notify.ts.
-  (globalThis as any).GM_notification = (details: any) => {
+  (globalThis as any).GM_notification = (details: unknown) => {
     try {
       postToBridge({
         type: TYPE_NOTIFY,
@@ -258,8 +309,7 @@ function installPageGmPolyfills() {
   // GM_xmlhttpRequest shim backed by the extension service worker.
   (globalThis as any).GM_xmlhttpRequest = (details: AnyObject) => {
     const requestId = makeId();
-    const callbacks: AnyObject =
-      details && typeof details === "object" ? details : {};
+    const callbacks: AnyObject = asRecord(details);
     const timeoutMs = Number(callbacks.timeout ?? 0);
     const callbackState: XhrCallbackState = {
       callbacks,
@@ -299,15 +349,18 @@ function installPageGmPolyfills() {
           requestId,
           details: requestDetails,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active || !xhrCallbacks.has(requestId)) return;
         active = false;
-        const errorMsg = String(err?.message || err);
+        const errorMsg = toErrorMessage(err);
         debug.log("[VOT EXT][prelude] GM_xmlhttpRequest start error", {
           requestId,
           error: errorMsg,
         });
-        callXhrCallback(popXhrCallbacks(requestId)?.onerror, errorMsg);
+        callXhrCallback(
+          popXhrCallbacks(requestId)?.onerror,
+          makeXhrTerminalErrorPayload(callbacks, errorMsg),
+        );
       }
     };
     startRequest();
@@ -336,55 +389,50 @@ function installPageGmPolyfills() {
    * (GM_xmlhttpRequest -> abort handle, GM.xmlHttpRequest -> abortable Promise),
    * so scripts written for ScriptCat/Tampermonkey behave consistently.
    */
+  type AbortablePromise<T> = Promise<T> & { abort: () => void };
+
   const gmPromiseXmlHttpRequest = (details: AnyObject) => {
-    const original = (details || {}) as AnyObject;
+    const original = asRecord(details);
 
     let abortFn: (() => void) | null = null;
-    let settled = false;
 
-    const p: any = new Promise((resolve, reject) => {
+    const p = new Promise<unknown>((resolve, reject) => {
       const wrapped: AnyObject = { ...original };
+      const settleState: XhrSettleState = { isSettled: false };
 
-      const safeCall = (fn: any, arg: any) => {
-        try {
-          if (typeof fn === "function") fn(arg);
-        } catch (e) {
-          console.error("[VOT Extension] GM.xmlHttpRequest callback error", e);
-        }
-      };
-
-      wrapped.onload = (res: any) => {
-        safeCall(original.onload, res);
-        if (!settled) {
-          settled = true;
-          resolve(res);
-        }
-      };
-      wrapped.onerror = (err: any) => {
-        safeCall(original.onerror, err);
-        if (!settled) {
-          settled = true;
-          reject(err);
-        }
-      };
-      wrapped.ontimeout = (err: any) => {
-        safeCall(original.ontimeout, err);
-        if (!settled) {
-          settled = true;
-          reject(err);
-        }
-      };
-      wrapped.onabort = (err: any) => {
-        safeCall(original.onabort, err);
-        if (!settled) {
-          settled = true;
-          reject(err);
-        }
-      };
+      wrapped.onload = createXhrSettleHandler(
+        "onload",
+        original,
+        settleState,
+        resolve,
+        reject,
+      );
+      wrapped.onerror = createXhrSettleHandler(
+        "onerror",
+        original,
+        settleState,
+        resolve,
+        reject,
+      );
+      wrapped.ontimeout = createXhrSettleHandler(
+        "ontimeout",
+        original,
+        settleState,
+        resolve,
+        reject,
+      );
+      wrapped.onabort = createXhrSettleHandler(
+        "onabort",
+        original,
+        settleState,
+        resolve,
+        reject,
+      );
 
       const ctrl = (globalThis as any).GM_xmlhttpRequest(wrapped);
-      abortFn = ctrl?.abort ? ctrl.abort.bind(ctrl) : null;
-    });
+      abortFn =
+        ctrl && typeof ctrl.abort === "function" ? ctrl.abort.bind(ctrl) : null;
+    }) as AbortablePromise<unknown>;
 
     p.abort = () => {
       try {
@@ -399,18 +447,15 @@ function installPageGmPolyfills() {
 
   // GM4 promises API used by src/utils/storage.ts.
   (globalThis as any).GM = {
-    getValue: async (key: string, def?: any) =>
-      await request("gm_getValue", { key, def }),
-    setValue: async (key: string, value: any) => {
-      await request("gm_setValue", { key, value });
-    },
-    deleteValue: async (key: string) => {
-      await request("gm_deleteValue", { key });
-    },
-    listValues: async () => await request("gm_listValues"),
-    getValues: async (defaults: AnyObject) =>
-      await request("gm_getValues", { defaults }),
-    notification: (details: any) => {
+    getValue: <T>(key: string, def?: T) =>
+      request<T>("gm_getValue", { key, def }),
+    setValue: (key: string, value: unknown) =>
+      request<void>("gm_setValue", { key, value }),
+    deleteValue: (key: string) => request<void>("gm_deleteValue", { key }),
+    listValues: <T extends string = string>() => request<T[]>("gm_listValues"),
+    getValues: <T extends AnyObject>(defaults: T) =>
+      request<T>("gm_getValues", { defaults }),
+    notification: (details: unknown) => {
       postToBridge({
         type: TYPE_NOTIFY,
         details: sanitizeNotificationDetails(details),
@@ -452,9 +497,9 @@ function handlePromiseResponse(data: AnyObject): boolean {
   if (!item) return true;
 
   pending.delete(id);
-  clearTimeout(item.t);
+  clearTimeout(item.timeoutId);
   if (data.ok) item.resolve(data.result);
-  else item.reject(new Error(String(data.error || "Bridge error")));
+  else item.reject(new Error(toErrorMessage(data.error ?? "Bridge error")));
   return true;
 }
 
@@ -536,10 +581,7 @@ function handleXhrEvent(data: AnyObject): void {
   if (!state) return;
 
   const callbacks = state.callbacks;
-  const payload =
-    data.payload && typeof data.payload === "object"
-      ? (data.payload as AnyObject)
-      : {};
+  const payload = asRecord(data.payload) as AnyObject;
   const kind = String(payload.type ?? "");
 
   logXhrEvent(requestId, kind, payload);
@@ -558,7 +600,14 @@ function handleXhrEvent(data: AnyObject): void {
 
   if (kind === "error" || kind === "timeout" || kind === "abort") {
     finalizeXhrFailure(requestId, callbacks, payload, kind);
+    return;
   }
+
+  debug.warn("[VOT EXT][prelude] unexpected XHR bridge event", {
+    requestId,
+    kind,
+    payload,
+  });
 }
 
 const preludeGlobal = globalThis as Record<string, unknown>;
@@ -585,13 +634,7 @@ if (preludeGlobal[PRELUDE_BOOT_KEY]) {
     }
   };
 
-  const startPreludeInitialization = async () => {
-    try {
-      await initializePrelude();
-    } catch {
-      // initializePrelude already handles non-fatal startup failures.
-    }
-  };
-
-  startPreludeInitialization();
+  void initializePrelude().catch(() => {
+    // initializePrelude already handles non-fatal startup failures.
+  });
 }

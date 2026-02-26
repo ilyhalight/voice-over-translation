@@ -1,6 +1,8 @@
 import debug from "../utils/debug";
+import { toErrorMessage } from "../utils/errors";
 import { base64ToArrayBuffer } from "./base64";
 import {
+  isBodySerializedForPort,
   serializeBodyForPort,
   summarizeBodyForDebug,
 } from "./bodySerialization";
@@ -39,9 +41,14 @@ const BRIDGE_BOOT_KEY = "__VOT_EXT_BRIDGE_BOOTED__";
 
 type UaBrandVersion = { brand: string; version: string };
 const UA_CH_CACHE_TTL_MS = 10 * 60 * 1000;
-let cachedUaChHeaders: Record<string, string> | null = null;
+const UA_CH_HIGH_ENTROPY_HINTS = ["fullVersionList"];
+const TERMINAL_XHR_EVENT_TYPES = new Set(["load", "error", "timeout", "abort"]);
+const EMPTY_HEADERS = Object.freeze({}) as Readonly<Record<string, string>>;
+let cachedUaChHeaders: Readonly<Record<string, string>> = EMPTY_HEADERS;
 let cachedUaChHeadersExpiresAt = 0;
-let cachedUaChHeadersPromise: Promise<Record<string, string>> | null = null;
+let cachedUaChHeadersPromise: Promise<Readonly<Record<string, string>>> | null =
+  null;
+const ESCAPED_DOUBLE_QUOTE = String.raw`\"`;
 
 // -- UA Client Hints helpers -------------------------------------------------
 //
@@ -59,7 +66,7 @@ let cachedUaChHeadersPromise: Promise<Record<string, string>> | null = null;
 
 function escapeHeaderValue(value: string): string {
   // Avoid breaking quoted header values.
-  return value.replace(/"/g, '\\"');
+  return value.replaceAll('"', ESCAPED_DOUBLE_QUOTE);
 }
 
 function formatUaBrands(brands: UaBrandVersion[]): string {
@@ -116,7 +123,7 @@ async function getUaChHeaders(): Promise<Record<string, string>> {
   // Only request the high entropy value required by the valid capture:
   // `sec-ch-ua-full-version-list`.
   try {
-    const high = await uaData.getHighEntropyValues?.(["fullVersionList"]);
+    const high = await uaData.getHighEntropyValues?.(UA_CH_HIGH_ENTROPY_HINTS);
     if (Array.isArray(high?.fullVersionList) && high.fullVersionList.length) {
       headers["sec-ch-ua-full-version-list"] = formatUaBrands(
         high.fullVersionList,
@@ -129,24 +136,32 @@ async function getUaChHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-async function getCachedUaChHeaders(): Promise<Record<string, string>> {
+function freezeHeaders(
+  headers: Record<string, string>,
+): Readonly<Record<string, string>> {
+  return Object.freeze({ ...headers });
+}
+
+async function getCachedUaChHeaders(): Promise<
+  Readonly<Record<string, string>>
+> {
   const now = Date.now();
-  if (cachedUaChHeaders && now < cachedUaChHeadersExpiresAt) {
-    return { ...cachedUaChHeaders };
+  if (now < cachedUaChHeadersExpiresAt) {
+    return cachedUaChHeaders;
   }
   if (cachedUaChHeadersPromise !== null) {
-    return { ...(await cachedUaChHeadersPromise) };
+    return await cachedUaChHeadersPromise;
   }
 
   cachedUaChHeadersPromise = (async () => {
-    const headers = await getUaChHeaders();
+    const headers = freezeHeaders(await getUaChHeaders());
     cachedUaChHeaders = headers;
     cachedUaChHeadersExpiresAt = Date.now() + UA_CH_CACHE_TTL_MS;
     return headers;
   })();
 
   try {
-    return { ...(await cachedUaChHeadersPromise) };
+    return await cachedUaChHeadersPromise;
   } finally {
     cachedUaChHeadersPromise = null;
   }
@@ -154,51 +169,59 @@ async function getCachedUaChHeaders(): Promise<Record<string, string>> {
 
 function ensureHeadersObject(details: AnyObject): Record<string, string> {
   const raw = details?.headers;
-  if (raw && typeof raw === "object") {
-    // Normalize to string values.
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(raw)) {
-      if (v == null) continue;
-      out[String(k)] = String(v);
-    }
-    details.headers = out;
-    return out;
+  if (!raw || typeof raw !== "object") {
+    const headers: Record<string, string> = {};
+    details.headers = headers;
+    return headers;
   }
-  const out: Record<string, string> = {};
-  details.headers = out;
-  return out;
-}
 
-function getHeaderInsensitive(
-  headers: Record<string, string>,
-  name: string,
-): string | undefined {
-  const needle = name.toLowerCase();
-  for (const [k, v] of Object.entries(headers)) {
-    if (k.toLowerCase() === needle) return v;
-  }
-  return undefined;
-}
-
-function setHeaderIfMissing(
-  headers: Record<string, string>,
-  name: string,
-  value: string,
-): void {
-  if (!value) return;
-  if (getHeaderInsensitive(headers, name) != null) return;
-  headers[name] = value;
-}
-
-function deleteHeaderInsensitive(
-  headers: Record<string, string>,
-  name: string,
-): void {
-  const needle = name.toLowerCase();
-  for (const k of Object.keys(headers)) {
-    if (k.toLowerCase() === needle) {
-      delete headers[k];
+  // Normalize in place and drop unsupported values.
+  const headers = raw as Record<string, unknown>;
+  for (const [name, value] of Object.entries(headers)) {
+    if (typeof value === "string") continue;
+    if (typeof value === "number" || typeof value === "boolean") {
+      headers[name] = String(value);
+      continue;
     }
+    delete headers[name];
+  }
+
+  details.headers = headers;
+  return headers as Record<string, string>;
+}
+
+function stripYandexHeaders(headers: Record<string, string>): void {
+  for (const headerName of Object.keys(headers)) {
+    if (shouldStripYandexHeader(headerName)) {
+      delete headers[headerName];
+    }
+  }
+}
+
+function mergeHeadersIfMissing(
+  headers: Record<string, string>,
+  additions: Readonly<Record<string, string>>,
+): void {
+  const existingNames = new Set<string>();
+  for (const name of Object.keys(headers)) {
+    existingNames.add(name.toLowerCase());
+  }
+
+  for (const [name, value] of Object.entries(additions)) {
+    if (!value) continue;
+    const normalizedName = name.toLowerCase();
+    if (existingNames.has(normalizedName)) continue;
+    headers[name] = value;
+    existingNames.add(normalizedName);
+  }
+}
+
+function getHostname(url: string): string {
+  if (!url) return "";
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
   }
 }
 
@@ -225,6 +248,28 @@ type XhrPortState = {
 };
 
 const xhrPorts = new Map<string, XhrPortState>();
+
+function disconnectPortSafely(port: XhrPortState["port"]): void {
+  try {
+    port.disconnect();
+  } catch {
+    // ignore
+  }
+}
+
+function settleXhrPort(requestId: string, state: XhrPortState): void {
+  state.settled = true;
+  disconnectPortSafely(state.port);
+  xhrPorts.delete(requestId);
+}
+
+function isRequestStateActive(
+  requestId: string,
+  expectedState: XhrPortState,
+): boolean {
+  const currentState = xhrPorts.get(requestId);
+  return currentState === expectedState && !currentState.settled;
+}
 
 function toLifecycleState(kind: string): "in_flight" | "terminal" {
   return kind === "progress" ? "in_flight" : "terminal";
@@ -269,19 +314,52 @@ function concatArrayBuffers(
   return out.buffer;
 }
 
+function resolveBinaryResponseBuffer(
+  directResponse: unknown,
+  chunks: ArrayBuffer[],
+  totalBytes: number,
+  fallbackB64: unknown,
+): ArrayBuffer {
+  if (directResponse instanceof ArrayBuffer) {
+    return directResponse;
+  }
+  if (totalBytes > 0) {
+    return concatArrayBuffers(chunks, totalBytes);
+  }
+  if (typeof fallbackB64 === "string" && fallbackB64.length > 0) {
+    return base64ToArrayBuffer(fallbackB64);
+  }
+  return new ArrayBuffer(0);
+}
+
 async function startXhr(requestId: string, details: AnyObject) {
+  const normalizedRequestId = String(requestId || "");
+  const safeDetails: AnyObject = details ?? {};
+
   try {
+    if (!normalizedRequestId) {
+      throw new Error("Missing requestId for bridge XHR");
+    }
+    requestId = normalizedRequestId;
+
+    if (xhrPorts.has(requestId)) {
+      debug.warn("[VOT EXT][bridge] replacing active XHR request", {
+        requestId,
+      });
+      abortXhr(requestId);
+    }
+
     debug.log("[VOT EXT][bridge] startXhr", {
       requestId,
-      url: details?.url,
-      method: details?.method,
-      responseType: details?.responseType,
-      timeoutMs: Number(details?.timeout ?? 0),
+      url: safeDetails?.url,
+      method: safeDetails?.method,
+      responseType: safeDetails?.responseType,
+      timeoutMs: Number(safeDetails?.timeout ?? 0),
       headerCount:
-        details?.headers && typeof details.headers === "object"
-          ? Object.keys(details.headers).length
+        safeDetails?.headers && typeof safeDetails.headers === "object"
+          ? Object.keys(safeDetails.headers).length
           : 0,
-      body: summarizeBodyForDebug(details?.data),
+      body: summarizeBodyForDebug(safeDetails?.data),
     });
 
     const connected = ext?.runtime?.connect?.({ name: PORT_NAME });
@@ -289,7 +367,9 @@ async function startXhr(requestId: string, details: AnyObject) {
       throw new Error("Bridge port is not available");
     }
     const port = connected as XhrPortState["port"];
-    const responseType = String(details?.responseType || "text").toLowerCase();
+    const responseType = String(
+      safeDetails?.responseType || "text",
+    ).toLowerCase();
     const state: XhrPortState = {
       port,
       responseType,
@@ -303,7 +383,7 @@ async function startXhr(requestId: string, details: AnyObject) {
       requestId,
       payload: {
         state: "acknowledged",
-        timeoutMs: Number(details?.timeout ?? 0),
+        timeoutMs: Number(safeDetails?.timeout ?? 0),
         responseType,
         ts: Date.now(),
       },
@@ -329,7 +409,7 @@ async function startXhr(requestId: string, details: AnyObject) {
 
       // Decode binary chunks coming from the service worker (sent as base64
       // because extension messaging only supports JSON-serializable payloads).
-      if (st && msg.type === "progress" && msg.progress) {
+      if (msg.type === "progress" && msg.progress) {
         const b64 = msg.progress.chunkB64;
         if (typeof b64 === "string" && b64.length) {
           const ab = base64ToArrayBuffer(b64);
@@ -344,7 +424,7 @@ async function startXhr(requestId: string, details: AnyObject) {
         }
       }
 
-      if (st && msg.type === "load" && msg.response) {
+      if (msg.type === "load" && msg.response) {
         const rt = String(
           msg.response.responseType || st.responseType || "text",
         ).toLowerCase();
@@ -352,14 +432,12 @@ async function startXhr(requestId: string, details: AnyObject) {
         if (rt === "arraybuffer" || rt === "blob") {
           const directResponse = msg.response.response;
           const fallbackB64 = msg.response.responseB64;
-          const ab =
-            directResponse instanceof ArrayBuffer
-              ? directResponse
-              : st.totalBytes > 0
-                ? concatArrayBuffers(st.chunks, st.totalBytes)
-                : typeof fallbackB64 === "string" && fallbackB64.length
-                  ? base64ToArrayBuffer(fallbackB64)
-                  : new ArrayBuffer(0);
+          const ab = resolveBinaryResponseBuffer(
+            directResponse,
+            st.chunks,
+            st.totalBytes,
+            fallbackB64,
+          );
           delete msg.response.responseB64;
           st.chunks.length = 0;
           st.totalBytes = 0;
@@ -379,22 +457,13 @@ async function startXhr(requestId: string, details: AnyObject) {
       postXhrEvent(requestId, msg);
 
       // Close port for terminal events.
-      if (
-        msg.type === "load" ||
-        msg.type === "error" ||
-        msg.type === "timeout" ||
-        msg.type === "abort"
-      ) {
+      if (TERMINAL_XHR_EVENT_TYPES.has(String(msg.type ?? ""))) {
         debug.log("[VOT EXT][bridge] terminal event", {
           requestId,
           kind: msg.type,
           status: msg.response?.status ?? msg.error?.status ?? null,
         });
-        st.settled = true;
-        try {
-          port.disconnect();
-        } catch {}
-        xhrPorts.delete(requestId);
+        settleXhrPort(requestId, st);
       }
     });
 
@@ -403,72 +472,60 @@ async function startXhr(requestId: string, details: AnyObject) {
       if (!st || st.settled) return;
       debug.warn("[VOT EXT][bridge] port disconnected before terminal event", {
         requestId,
-        url: details?.url ?? null,
+        url: safeDetails?.url ?? null,
       });
-      st.settled = true;
+      settleXhrPort(requestId, st);
       postXhrEvent(requestId, {
         type: "error",
         error: makeBridgeXhrError(
-          details,
+          safeDetails,
           "Bridge port disconnected before response",
         ),
       });
-      xhrPorts.delete(requestId);
     });
 
-    try {
-      const urlStr = String(details?.url || "");
-      const hostname = urlStr ? new URL(urlStr).hostname : "";
-      if (isYandexApiHostname(hostname)) {
-        const headers = ensureHeadersObject(details);
+    const urlStr = String(safeDetails?.url ?? "");
+    const hostname = getHostname(urlStr);
+    if (isYandexApiHostname(hostname)) {
+      const headers = ensureHeadersObject(safeDetails);
+      stripYandexHeaders(headers);
 
-        for (const headerName of Object.keys(headers)) {
-          if (shouldStripYandexHeader(headerName)) {
-            deleteHeaderInsensitive(headers, headerName);
-          }
-        }
+      const uaCh = await getCachedUaChHeaders();
+      if (!isRequestStateActive(requestId, state)) return;
+      mergeHeadersIfMissing(headers, uaCh);
 
-        const uaCh = await getCachedUaChHeaders();
-        for (const [k, v] of Object.entries(uaCh)) {
-          setHeaderIfMissing(headers, k, v);
-        }
-
-        debug.log("[VOT EXT][bridge] yandex header normalization", {
-          requestId,
-          url: urlStr,
-          headerCount: Object.keys(headers).length,
-          headerNames: Object.keys(headers),
-        });
-      }
-    } catch {
-      // best-effort only
+      debug.log("[VOT EXT][bridge] yandex header normalization", {
+        requestId,
+        url: urlStr,
+        headerCount: Object.keys(headers).length,
+        headerNames: Object.keys(headers),
+      });
     }
 
-    const data = await serializeBodyForPort(details?.data);
+    if (!isRequestStateActive(requestId, state)) return;
+
+    // Chrome extension messaging uses JSON serialization, so prelude serializes
+    // the request body before crossing worlds. Keep a defensive fallback for
+    // unexpected callers that bypass prelude.
+    const data = isBodySerializedForPort(safeDetails?.data)
+      ? safeDetails.data
+      : await serializeBodyForPort(safeDetails?.data);
     const serializedBodySummary = summarizeBodyForDebug(data);
     debug.log("[VOT EXT][bridge] serialized body", {
       requestId,
-      url: details?.url ?? null,
-      from: summarizeBodyForDebug(details?.data),
+      url: safeDetails?.url ?? null,
+      from: summarizeBodyForDebug(safeDetails?.data),
       to: serializedBodySummary,
     });
 
     // The request could be aborted while we're async-serializing (Blob -> bytes).
     // If so, avoid starting a network request.
-    if (!xhrPorts.has(requestId)) {
-      state.settled = true;
-      try {
-        port.disconnect();
-      } catch {
-        // ignore
-      }
-      return;
-    }
+    if (!isRequestStateActive(requestId, state)) return;
 
     const serializedDetails: AnyObject = {
-      ...details,
+      ...safeDetails,
       data,
-      responseType: details?.responseType,
+      responseType: safeDetails?.responseType,
     };
 
     debug.log("[VOT EXT][bridge] post start to background", {
@@ -479,48 +536,44 @@ async function startXhr(requestId: string, details: AnyObject) {
       body: serializedBodySummary,
     });
 
-    port.postMessage({ type: "start", details: serializedDetails });
+    state.port.postMessage({ type: "start", details: serializedDetails });
   } catch (error: unknown) {
-    const st = xhrPorts.get(requestId);
-    if (st) {
-      st.settled = true;
-      xhrPorts.delete(requestId);
-      try {
-        st.port.disconnect();
-      } catch {
-        // ignore
-      }
+    const requestKey = normalizedRequestId || requestId;
+    const st = xhrPorts.get(requestKey);
+    if (st && !st.settled) {
+      settleXhrPort(requestKey, st);
     }
+
+    const errorMessage = toErrorMessage(error);
     debug.log("[VOT EXT][bridge] startXhr error", {
-      requestId,
-      error: error instanceof Error ? error.message : String(error),
+      requestId: requestKey,
+      error: errorMessage,
       lastError: ext?.runtime?.lastError ?? null,
     });
-    postXhrEvent(requestId, {
-      type: "error",
-      error: makeBridgeXhrError(
-        details,
-        error instanceof Error ? error.message : String(error),
-      ),
-    });
+
+    if (requestKey) {
+      postXhrEvent(requestKey, {
+        type: "error",
+        error: makeBridgeXhrError(safeDetails, errorMessage),
+      });
+    }
   }
 }
 
 function abortXhr(requestId: string) {
   const st = xhrPorts.get(requestId);
-  if (!st) return;
+  if (!st || st.settled) return;
   st.settled = true;
 
   debug.warn("[VOT EXT][bridge] abortXhr", { requestId });
 
   try {
     st.port.postMessage({ type: "abort" });
-  } catch {}
+  } catch {
+    // ignore
+  }
 
-  try {
-    st.port.disconnect();
-  } catch {}
-
+  disconnectPortSafely(st.port);
   xhrPorts.delete(requestId);
 }
 

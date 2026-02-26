@@ -45,6 +45,12 @@ type NotifySendOpts = {
 
 const now = () => Date.now();
 
+type LocalizedErrorLike = {
+  name?: unknown;
+  localizedMessage?: unknown;
+  unlocalizedMessage?: unknown;
+};
+
 function getScriptTitle(): string {
   return GM_info?.script?.name || "VOT";
 }
@@ -70,6 +76,53 @@ function canSend(
 
 function markSent(lastSentAt: Map<string, number>, key: string) {
   lastSentAt.set(key, now());
+}
+
+function localizePhraseText(message: string): string | null {
+  const key = message.trim();
+  if (!key) return null;
+
+  try {
+    const localized = localizationProvider.get(key as Phrase);
+    const defaultText = localizationProvider.getDefault(key as Phrase);
+    const isKnownPhrase = localized !== key || defaultText !== key;
+    return isKnownPhrase ? localized || defaultText || key : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveLocalizedErrorMessage(message: unknown): string {
+  if (message && typeof message === "object") {
+    const localizedError = message as LocalizedErrorLike;
+    if (localizedError.name === "VOTLocalizedError") {
+      if (
+        typeof localizedError.localizedMessage === "string" &&
+        localizedError.localizedMessage.trim()
+      ) {
+        return localizedError.localizedMessage;
+      }
+      if (typeof localizedError.unlocalizedMessage === "string") {
+        const byPhraseKey = localizePhraseText(
+          localizedError.unlocalizedMessage,
+        );
+        if (byPhraseKey) return byPhraseKey;
+      }
+    }
+  }
+
+  if (typeof message === "string") {
+    const byPhraseKey = localizePhraseText(message);
+    if (byPhraseKey) return byPhraseKey;
+  }
+
+  const extracted = getErrorMessage(message);
+  if (extracted) {
+    const byPhraseKey = localizePhraseText(extracted);
+    return byPhraseKey || extracted;
+  }
+
+  return safeL10n("requestTranslationFailed", "Translation failed");
 }
 
 function trySendViaUserscriptApi(details: NotifyDetails): boolean {
@@ -169,7 +222,7 @@ export class Notifier {
 
     if (isAbortError(message)) return;
 
-    const msg = getErrorMessage(message) || "Translation failed";
+    const msg = resolveLocalizedErrorMessage(message);
     const title = getScriptTitle();
 
     this.send(

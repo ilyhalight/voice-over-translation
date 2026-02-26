@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.1
+// @version         1.11.2
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -145,6 +145,8 @@
 // @match           *://*.netacad.com/content/i2cs/*
 // @match           *://*.nicovideo.jp/*
 // @match           *://*.zdf.de/*
+// @match           *://iframe.mediadelivery.net/*
+// @match           *://video.bunnycdn.com/*
 // @match           *://*.weibo.com/*
 // @match           *://*/*.mp4*
 // @match           *://*/*.webm*
@@ -220,6 +222,7 @@
 // @connect         workers.dev
 // @connect         cloudflare-dns.com
 // @connect         porntn.com
+// @connect         youtube.com
 // @connect         googlevideo.com
 // @grant           GM.deleteValue
 // @grant           GM.getValue
@@ -234,7 +237,6 @@
 // @grant           GM_notification
 // @grant           GM_setValue
 // @grant           GM_xmlhttpRequest
-// @grant           unsafeWindow
 // @grant           window.focus
 // ==/UserScript==
 
@@ -444,12 +446,9 @@ System.register("./__entry.js", [], (function (exports, module) {
       const protoInt64 = makeInt64Support();
       function makeInt64Support() {
         const dv = new DataView(new ArrayBuffer(8));
-        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
+        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
         if (ok) {
-          const MIN = BigInt("-9223372036854775808");
-          const MAX = BigInt("9223372036854775807");
-          const UMIN = BigInt("0");
-          const UMAX = BigInt("18446744073709551615");
+          const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
           return {
             zero: BigInt(0),
             supported: true,
@@ -558,7 +557,7 @@ System.register("./__entry.js", [], (function (exports, module) {
               try {
                 encodeURIComponent(text);
                 return true;
-              } catch (_2) {
+              } catch (e2) {
                 return false;
               }
             }
@@ -705,12 +704,12 @@ int64(value) {
           return this;
         }
 sint64(value) {
-          const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+          let tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
           varint64write(lo, hi, this.buf);
           return this;
         }
 uint64(value) {
-          const tc = protoInt64.uEnc(value);
+          let tc = protoInt64.uEnc(value);
           varint64write(tc.lo, tc.hi, this.buf);
           return this;
         }
@@ -738,9 +737,10 @@ skip(wireType, fieldNo) {
               while (this.buf[this.pos++] & 128) {
               }
               break;
+
 case WireType.Bit64:
               this.pos += 4;
-            case WireType.Bit32:
+case WireType.Bit32:
               this.pos += 4;
               break;
             case WireType.LengthDelimited:
@@ -843,7 +843,7 @@ string() {
         if (typeof arg == "string") {
           const o2 = arg;
           arg = Number(arg);
-          if (Number.isNaN(arg) && o2 !== "NaN") {
+          if (isNaN(arg) && o2 !== "NaN") {
             throw new Error("invalid float32: " + o2);
           }
         } else if (typeof arg != "number") {
@@ -3236,15 +3236,10 @@ string() {
         }
         return `${generalUrl}&url=${btoa(url.href)}&origin=${url.origin}&referer=${url.origin}`;
       }
-      function buildVkVideoUrl(videoId, sourceUrl) {
-        const protocol = "https:";
-        const hostname = sourceUrl.hostname.replace(/^m\./, "");
+      function buildVkVideoUrl$1(videoId, sourceUrl) {
         const cleanedVideoId = videoId.replace(/^\/+/, "");
-        const canonicalHost = hostname.endsWith("vkvideo.ru") ? "vkvideo.ru" : hostname.endsWith("vk.com") || hostname.endsWith("vk.ru") ? "vk.com" : hostname;
-        const pathname = sourceUrl.pathname.replace(/\/+$/, "");
-        const pathAlreadyContainsId = /^\/(?:video|clip)-?\d+_\d+$/.test(pathname);
-        const base = pathAlreadyContainsId ? `${protocol}//${canonicalHost}${pathname}` : `${protocol}//${canonicalHost}/${cleanedVideoId}`;
-        const out = new URL(base);
+        const out = new URL("https://vk.com/video");
+        out.searchParams.set("z", cleanedVideoId);
         for (const key of ["list", "access_key"]) {
           const value = sourceUrl.searchParams.get(key);
           if (value) {
@@ -3446,6 +3441,7 @@ string() {
         VideoService2["incestflix"] = "incestflix";
         VideoService2["porntn"] = "porntn";
         VideoService2["dzen"] = "dzen";
+        VideoService2["bunnystream"] = "bunnystream";
         VideoService2["cloudflarestream"] = "cloudflarestream";
         VideoService2["loom"] = "loom";
         VideoService2["rtnews"] = "rtnews";
@@ -4366,7 +4362,7 @@ string() {
         {
           host: VideoService.dailymotion,
           url: "https://www.dailymotion.com/video/",
-          match: /^((www\.)?dailymotion\.com|geo(\d+)?\.dailymotion\.com|dai\.ly)$/,
+          match: /^((www\.|player\.)?dailymotion\.com|geo(\d+)?\.dailymotion\.com|dai\.ly)$/,
           selector: sharedSelectors.player
         },
         {
@@ -4564,7 +4560,17 @@ string() {
           host: VideoService.dzen,
           url: "https://dzen.ru/video/watch/",
           match: /^dzen.ru$/,
-          selector: ".zen-ui-video-video-player"
+          selector: `[class*="player__playerWrap"] > div`
+        },
+        {
+          host: VideoService.bunnystream,
+          url: "stub",
+          match: [
+            /^video\.bunnycdn\.com$/,
+            /^iframe\.mediadelivery\.net$/,
+            /^(?:[^.]+\.)*b-cdn\.net$/
+          ],
+          selector: null
         },
         {
           host: VideoService.cloudflarestream,
@@ -4917,6 +4923,11 @@ string() {
           return /\/f\/([^/]+)/.exec(url.pathname)?.[1];
         }
       }
+      class BunnyStreamHelper extends BaseHelper {
+        async getVideoId(url) {
+          return url.pathname + url.search;
+        }
+      }
       class CloudflareStreamHelper extends BaseHelper {
         async getVideoId(url) {
           return url.pathname + url.search;
@@ -5154,20 +5165,21 @@ string() {
         }
       }
       class DailymotionHelper extends BaseHelper {
-        async getVideoId(_url) {
-          return new Promise((resolve) => {
-            const origin = "https://www.dailymotion.com";
-            const timeout2 = setTimeout(() => resolve(void 0), 3e3);
-            window.addEventListener("message", (e2) => {
-              if (e2.origin !== origin)
-                return;
-              if (typeof e2.data !== "object" || e2.data?.type !== "dailymotionVideoId")
-                return;
-              clearTimeout(timeout2);
-              resolve(e2.data.videoId);
-            });
-            window.top?.postMessage({ type: "getDailymotionVideoId" }, origin);
-          });
+        getVideoIdFromUrl(url) {
+          if (url.hostname === "dai.ly") {
+            return url.pathname.split("/").filter(Boolean)?.[0];
+          }
+          const videoIdFromQuery = url.searchParams.get("video");
+          if (videoIdFromQuery) {
+            return videoIdFromQuery;
+          }
+          return /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? /(?:^|\/)player\/([^/.]+)/.exec(url.pathname)?.[1];
+        }
+        async getVideoId(url) {
+          const parsedVideoId = this.getVideoIdFromUrl(url);
+          if (parsedVideoId) {
+            return parsedVideoId;
+          }
         }
       }
       class DeeplearningAIHelper extends BaseHelper {
@@ -5952,7 +5964,16 @@ ${lines.join("\n")}`;
       }
       class PeertubeHelper extends BaseHelper {
         async getVideoId(url) {
-          return /\/w\/([^/]+)/.exec(url.pathname)?.[0];
+          const normalizedPathname = url.pathname.replace(/\/+$/, "");
+          const watchVideoId = /\/videos\/watch\/([^/]+)/.exec(normalizedPathname)?.[1];
+          if (watchVideoId) {
+            return `/videos/watch/${watchVideoId}`;
+          }
+          const shortVideoId = /\/w\/([^/]+)/.exec(normalizedPathname)?.[1];
+          if (shortVideoId) {
+            return `/videos/watch/${shortVideoId}`;
+          }
+          return void 0;
         }
       }
       class PicartoHelper extends BaseHelper {
@@ -6628,6 +6649,36 @@ ${lines.join("\n")}`;
         isPrivatePlayer() {
           return this.referer && !this.referer.includes("vimeo.com") && this.origin.endsWith("player.vimeo.com");
         }
+        toPublicUrl(videoId) {
+          const [id, hash] = videoId.split(":", 2);
+          return hash ? `${this.DEFAULT_SITE_ORIGIN}/${id}/${hash}` : `${this.DEFAULT_SITE_ORIGIN}/${id}`;
+        }
+        returnPublicBaseData(videoId) {
+          const baseData = this.returnBaseData(videoId);
+          if (!baseData) {
+            return void 0;
+          }
+          return {
+            ...baseData,
+            url: this.toPublicUrl(videoId)
+          };
+        }
+        normalizePublicVideoUrl(url, videoId) {
+          try {
+            const parsed = new URL(url);
+            if (parsed.hostname === "player.vimeo.com") {
+              return this.toPublicUrl(videoId);
+            }
+            if (parsed.hostname.endsWith("vimeo.com")) {
+              const colonMatch = /^\/(\d+):([a-z0-9]+)$/i.exec(parsed.pathname);
+              if (colonMatch) {
+                return `${this.DEFAULT_SITE_ORIGIN}/${colonMatch[1]}/${colonMatch[2]}`;
+              }
+            }
+          } catch {
+          }
+          return url;
+        }
         async getViewerData() {
           try {
             const res = await this.fetch("https://vimeo.com/_next/viewer");
@@ -6763,18 +6814,18 @@ ${lines.join("\n")}`;
             };
           }
           if (!this.extraInfo) {
-            return this.returnBaseData(videoId);
+            return this.returnPublicBaseData(videoId);
           }
           if (videoId.includes("/")) {
             videoId = videoId.replace("/", ":");
           }
           const viewerData = await this.getViewerData();
           if (!viewerData) {
-            return this.returnBaseData(videoId);
+            return this.returnPublicBaseData(videoId);
           }
           const videoInfo = await this.getVideoInfo(videoId);
           if (!videoInfo) {
-            return this.returnBaseData(videoId);
+            return this.returnPublicBaseData(videoId);
           }
           const subsData = await this.getSubsInfo(videoId);
           const subtitles = subsData.map((caption) => ({
@@ -6784,7 +6835,8 @@ ${lines.join("\n")}`;
             url: caption.link,
             isAutoGenerated: caption.language.includes("autogen")
           }));
-          const { link: url, duration, name: title, description } = videoInfo;
+          const { link, duration, name: title, description } = videoInfo;
+          const url = this.normalizePublicVideoUrl(link, videoId);
           return {
             url,
             title,
@@ -6794,7 +6846,8 @@ ${lines.join("\n")}`;
           };
         }
         async getVideoId(url) {
-          const embedId = /video\/[^/]+$/.exec(url.pathname)?.[0];
+          const normalizedPathname = url.pathname.replace(/\/+$/, "");
+          const embedId = /video\/[^/]+$/.exec(normalizedPathname)?.[0];
           if (this.isPrivatePlayer()) {
             return embedId;
           }
@@ -6803,11 +6856,11 @@ ${lines.join("\n")}`;
             const videoId = embedId.replace("video/", "");
             return hash ? `${videoId}/${hash}` : videoId;
           }
-          const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(url.pathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(url.pathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(url.pathname)?.[2];
+          const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(normalizedPathname)?.[2];
           if (categoriesVideoId) {
             return categoriesVideoId;
           }
-          return /([^/]+\/)?[^/]+$/.exec(url.pathname)?.[0];
+          return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
         }
       }
       class VKHelper extends BaseHelper {
@@ -6826,7 +6879,7 @@ ${lines.join("\n")}`;
           const player2 = VKHelper.getPlayer();
           if (!player2) {
             const base = this.returnBaseData(videoId);
-            return base ? { ...base, url: buildVkVideoUrl(videoId, currentUrl) } : base;
+            return base ? { ...base, url: buildVkVideoUrl$1(videoId, currentUrl) } : base;
           }
           try {
             const { description: descriptionHTML, duration, md_title: title } = player2.vars;
@@ -6844,7 +6897,7 @@ ${lines.join("\n")}`;
               }));
             }
             return {
-              url: buildVkVideoUrl(videoId, currentUrl),
+              url: buildVkVideoUrl$1(videoId, currentUrl),
               title,
               description,
               duration,
@@ -6853,7 +6906,7 @@ ${lines.join("\n")}`;
           } catch (err) {
             Logger.error(`Failed to get VK video data, because: ${err.message}`);
             const base = this.returnBaseData(videoId);
-            return base ? { ...base, url: buildVkVideoUrl(videoId, currentUrl) } : base;
+            return base ? { ...base, url: buildVkVideoUrl$1(videoId, currentUrl) } : base;
           }
         }
         async getVideoId(url) {
@@ -7467,6 +7520,7 @@ ${lines.join("\n")}`;
         [VideoService.piped]: YoutubeHelper,
         [VideoService.zdf]: ZDFHelper,
         [VideoService.dzen]: DzenHelper,
+        [VideoService.bunnystream]: BunnyStreamHelper,
         [VideoService.cloudflarestream]: CloudflareStreamHelper,
         [VideoService.loom]: LoomHelper,
         [VideoService.rtnews]: RtNewsHelper,
@@ -7497,6 +7551,18 @@ ${lines.join("\n")}`;
       }
       function hasHelper(host) {
         return host in availableHelpers;
+      }
+      function buildVkVideoUrl(videoId, sourceUrl) {
+        const cleanedVideoId = videoId.replace(/^\/+/, "");
+        const out = new URL("https://vk.com/video");
+        out.searchParams.set("z", cleanedVideoId);
+        for (const key of ["list", "access_key"]) {
+          const value = sourceUrl.searchParams.get(key);
+          if (value) {
+            out.searchParams.set(key, value);
+          }
+        }
+        return out.toString();
       }
       function getService() {
         if (localLinkRe.exec(window.location.href)) {
@@ -7537,6 +7603,7 @@ ${lines.join("\n")}`;
         if ([
           VideoService.peertube,
           VideoService.coursehunterLike,
+          VideoService.bunnystream,
           VideoService.cloudflarestream
         ].includes(service.host)) {
           service.url = origin;
@@ -8085,448 +8152,6 @@ ${lines.join("\n")}`;
           return this._debug;
         }
       }
-      const noop = () => {
-      };
-      const log = noop;
-      const warn = noop;
-      const error = noop;
-      const debug = { log, warn, error };
-      function getErrorMessage(error2) {
-        if (!error2) return "";
-        if (typeof error2 === "string") return error2;
-        const anyErr = error2;
-        return anyErr?.data?.message || anyErr?.error?.message || anyErr?.message || (typeof anyErr?.toString === "function" ? anyErr.toString() : "") || String(anyErr);
-      }
-      function isAbortError(err) {
-        const anyErr = err;
-        return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
-      }
-      function makeAbortError(message = "Aborted") {
-        try {
-          return new DOMException(message, "AbortError");
-        } catch {
-          const err = new Error(message);
-          err.name = "AbortError";
-          return err;
-        }
-      }
-      const IFRAME_HASH = "vot_iframe";
-      const isIframe = () => globalThis.self !== globalThis.top;
-      const generateMessageId = () => typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? `main-world-bridge-${crypto.randomUUID()}` : `main-world-bridge-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const SERVICE_IFRAME_READY_TIMEOUT_MS = 15e3;
-      const hasServiceIframe = (iframeId) => document.getElementById(iframeId);
-      const isBridgeMessageLike = (value) => {
-        if (!value || typeof value !== "object") {
-          return false;
-        }
-        const data = value;
-        return typeof data.messageType === "string" && typeof data.messageDirection === "string";
-      };
-      const normalizedHref = (url) => {
-        try {
-          return new URL(url, globalThis.location.href).href;
-        } catch {
-          return null;
-        }
-      };
-      const iframeSrcMatches = (iframe, expectedSrc) => {
-        const expected = normalizedHref(expectedSrc);
-        const current = normalizedHref(iframe.src);
-        if (!expected || !current) {
-          return iframe.getAttribute("src") === expectedSrc;
-        }
-        return current === expected;
-      };
-      const isLiveMatchingServiceIframe = (iframe, expectedSrc) => {
-        if (!iframe?.isConnected || !iframe.contentWindow) {
-          return false;
-        }
-        return iframeSrcMatches(iframe, expectedSrc);
-      };
-      async function setupServiceIframe(src, id, service) {
-        if (!document.body) {
-          await new Promise((resolve) => {
-            if (document.readyState === "loading") {
-              globalThis.addEventListener("DOMContentLoaded", () => resolve(), {
-                once: true
-              });
-            } else {
-              resolve();
-            }
-          });
-        }
-        const iframe = document.createElement("iframe");
-        iframe.style.position = "fixed";
-        iframe.style.left = "0";
-        iframe.style.top = "0";
-        iframe.style.width = "1px";
-        iframe.style.height = "1px";
-        iframe.style.opacity = "0";
-        iframe.style.pointerEvents = "none";
-        iframe.style.border = "0";
-        iframe.style.zIndex = "-1";
-        iframe.setAttribute("allow", "autoplay; encrypted-media");
-        iframe.id = id;
-        iframe.src = `${src}#${IFRAME_HASH}`;
-        document.body.appendChild(iframe);
-        const expectedSource = iframe.contentWindow;
-        const readyMessageType = `say-${service}-iframe-is-ready`;
-        try {
-          await new Promise((resolve, reject) => {
-            const handleMessage = (event) => {
-              if (event.source !== expectedSource) {
-                return;
-              }
-              if (!isBridgeMessageLike(event.data)) {
-                return;
-              }
-              if (event.data.messageType !== readyMessageType || event.data.messageDirection !== "response") {
-                return;
-              }
-              cleanup();
-              resolve();
-            };
-            const timeoutId = globalThis.setTimeout(() => {
-              cleanup();
-              reject(new Error("Service iframe did not have time to be ready"));
-            }, SERVICE_IFRAME_READY_TIMEOUT_MS);
-            const cleanup = () => {
-              globalThis.clearTimeout(timeoutId);
-              globalThis.removeEventListener("message", handleMessage);
-            };
-            globalThis.addEventListener("message", handleMessage);
-          });
-        } catch (error2) {
-          iframe.remove();
-          throw error2;
-        }
-        return iframe;
-      }
-      async function ensureServiceIframe(iframe, src, iframeId, service) {
-        if (src.includes("#")) {
-          throw new Error(
-            "The src parameter should not contain a hash (#) character."
-          );
-        }
-        const expectedSrc = `${src}#${IFRAME_HASH}`;
-        const iframeFromDom = hasServiceIframe(iframeId);
-        if (isLiveMatchingServiceIframe(iframeFromDom, expectedSrc)) {
-          return iframeFromDom;
-        }
-        if (iframeFromDom) {
-          iframeFromDom.remove();
-        }
-        return setupServiceIframe(src, iframeId, service);
-      }
-      function initIframeService(service, onmessage) {
-        globalThis.addEventListener("message", onmessage);
-        globalThis.parent.postMessage(
-          {
-            messageType: `say-${service}-iframe-is-ready`,
-            messageDirection: "response"
-          },
-          "*"
-        );
-      }
-      function requestDataFromMainWorldWithId(messageType, payload, options) {
-        const messageId = generateMessageId();
-        const signal = options?.signal;
-        const promise = new Promise((resolve, reject) => {
-          let settled = false;
-          let handleMessage = null;
-          let onAbort = null;
-          const cleanup = () => {
-            if (handleMessage) {
-              globalThis.removeEventListener("message", handleMessage);
-            }
-            if (signal && onAbort) {
-              signal.removeEventListener("abort", onAbort);
-            }
-          };
-          const settle = (fn) => {
-            if (settled) return;
-            settled = true;
-            cleanup();
-            fn();
-          };
-          onAbort = () => {
-            settle(() => reject(makeAbortError()));
-          };
-          handleMessage = (event) => {
-            if (event.source !== globalThis.window) {
-              return;
-            }
-            if (!isBridgeMessageLike(event.data)) {
-              return;
-            }
-            const data = event.data;
-            if (data?.messageId === messageId && data.messageType === messageType && data.messageDirection === "response") {
-              settle(() => data.error ? reject(data.error) : resolve(data.payload));
-            }
-          };
-          if (signal?.aborted) {
-            onAbort();
-            return;
-          }
-          globalThis.addEventListener("message", handleMessage);
-          signal?.addEventListener("abort", onAbort, { once: true });
-          globalThis.postMessage(
-            {
-              messageId,
-              messageType,
-              messageDirection: "request",
-              ...payload !== void 0 && { payload }
-            },
-            "*"
-          );
-        });
-        return { messageId, promise };
-      }
-      const IFRAME_ID = "vot_iframe_player";
-      const IFRAME_SERVICE = "service";
-      const IFRAME_HOST = "www.youtube.com";
-      const MIN_CHUNK_RANGES_PART_SIZE = votConfig.minChunkSize;
-      const MIN_CONTENT_LENGTH_MULTIPLIER = 0.9;
-      const CHUNK_STEPS = [6e4, 8e4, 15e4, 33e4, 46e4];
-      const MIN_ARRAY_BUFFER_LENGTH = 15e3;
-      const ACCEPTABLE_LENGTH_DIFF = 0.9;
-      const getRequestUrl = (request) => typeof request === "string" ? request : request.url;
-      function serializeRequestInit(request) {
-        const body = new Uint8Array([120, 0]);
-        if (typeof request === "string") {
-          return {
-            body,
-            cache: "no-store",
-            credentials: "include",
-            method: "POST"
-          };
-        }
-        const {
-          headers,
-          cache,
-          credentials,
-          integrity,
-          keepalive,
-          method,
-          mode,
-          redirect,
-          referrer,
-          referrerPolicy
-        } = request;
-        const headersEntries = [...headers.entries()];
-        return {
-          body,
-          cache,
-          credentials,
-          headersEntries,
-          integrity,
-          keepalive,
-          method,
-          mode,
-          redirect,
-          referrer,
-          referrerPolicy
-        };
-      }
-      function deserializeRequestInit(request) {
-        const { headersEntries, body, ...options } = request;
-        const headers = new Headers(headersEntries);
-        const deserialized = {
-          ...options,
-          headers
-        };
-        if (body && body.byteLength > 0) {
-          const bytes = new Uint8Array(body.byteLength);
-          bytes.set(body);
-          deserialized.body = bytes.buffer;
-        }
-        return deserialized;
-      }
-      function serializeResponse(response) {
-        const { ok, redirected, status, statusText, type, url } = response;
-        return {
-          ok,
-          redirected,
-          status,
-          statusText,
-          type,
-          url
-        };
-      }
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      function timeout(ms, message = "Operation timed out") {
-        return new Promise(
-          (_2, reject) => setTimeout(() => reject(new Error(message)), ms)
-        );
-      }
-      async function waitForCondition(condition, timeoutMs, throwOnTimeout = false) {
-        const deadline = Date.now() + timeoutMs;
-        while (!condition()) {
-          if (Date.now() >= deadline) {
-            if (throwOnTimeout) {
-              throw new Error(`Wait for condition reached timeout of ${timeoutMs}`);
-            }
-            return;
-          }
-          await sleep(100);
-        }
-      }
-      let lastMessageId = "";
-      const getAdaptiveFormats = () => YoutubeHelper.getPlayerResponse()?.streamingData?.adaptiveFormats;
-      async function isEncodedRequest(url, request) {
-        if (!url.includes("googlevideo.com/videoplayback") || typeof request === "string") {
-          return false;
-        }
-        try {
-          const reader = request.clone().body?.getReader();
-          if (!reader) {
-            return false;
-          }
-          let totalLength = 0;
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
-            }
-            totalLength += value.length;
-            if (totalLength > 2) {
-              return true;
-            }
-          }
-        } catch {
-        }
-        return false;
-      }
-      function selectBestAudioFormat() {
-        const allFormats = getAdaptiveFormats();
-        if (!allFormats?.length) {
-          const reason = !allFormats ? "Cannot get adaptive formats" : "Empty adaptive formats";
-          throw new Error(`Audio downloader. WEB API. ${reason}`);
-        }
-        const audioFormats = allFormats.filter(
-          ({ audioQuality, mimeType }) => audioQuality || mimeType?.includes("audio")
-        );
-        if (!audioFormats.length) {
-          throw new Error("Audio downloader. WEB API. No audio adaptive formats");
-        }
-        const itag251Sorted = audioFormats.filter(({ itag }) => itag === 251).sort(
-          ({ contentLength: a2 }, { contentLength: b2 }) => a2 && b2 ? Number.parseInt(a2, 10) - Number.parseInt(b2, 10) : -1
-        );
-        return itag251Sorted.at(-1) ?? audioFormats[0];
-      }
-      const waitForPlayer = async () => {
-        await waitForCondition(() => Boolean(YoutubeHelper.getPlayer()), 1e4);
-        return YoutubeHelper.getPlayer();
-      };
-      const loadVideo = async (data) => {
-        const player2 = await waitForPlayer();
-        if (data.messageId !== lastMessageId) {
-          throw new Error(
-            "Audio downloader. Download started for another video while getting player"
-          );
-        }
-        if (!player2?.loadVideoById) {
-          throw new Error(
-            "Audio downloader. There is no player.loadVideoById in iframe"
-          );
-        }
-        player2.loadVideoById(data.payload.videoId);
-        player2.pauseVideo?.();
-        player2.mute?.();
-        setTimeout(() => {
-          if (data.messageId !== lastMessageId) {
-            console.error(
-              "Audio Downloader. Download started for another video while waiting to repause video"
-            );
-            return;
-          }
-          if (!player2) {
-            console.error(
-              "[Critical] Audio Downloader. Player not found in iframe after timeout"
-            );
-            return;
-          }
-          player2.pauseVideo?.();
-        }, 1e3);
-      };
-      async function getDownloadAudioData(data) {
-        try {
-          lastMessageId = data.messageId;
-          debug.log("getDownloadAudioData", data);
-          const originalFetch = unsafeWindow.fetch;
-          unsafeWindow.fetch = async (input, init2) => {
-            if (input instanceof URL) {
-              input = input.toString();
-            }
-            const requestUrl = getRequestUrl(input);
-            if (await isEncodedRequest(requestUrl, input)) {
-              globalThis.parent.postMessage(
-                {
-                  ...data,
-                  messageDirection: "response",
-                  error: "Audio downloader. Detected encoded request."
-                },
-                "*"
-              );
-              unsafeWindow.fetch = originalFetch;
-              return originalFetch(input, init2);
-            }
-            const response = await originalFetch(input, init2);
-            if (data.messageId !== lastMessageId) {
-              unsafeWindow.fetch = originalFetch;
-              return response;
-            }
-            if (requestUrl.includes("&itag=251&")) {
-              unsafeWindow.fetch = originalFetch;
-              globalThis.parent.postMessage(
-                {
-                  ...data,
-                  messageDirection: "response",
-                  payload: {
-                    requestInfo: requestUrl,
-                    requestInit: init2 || serializeRequestInit(input),
-                    adaptiveFormat: selectBestAudioFormat(),
-                    itag: 251
-                  }
-                },
-                "*"
-              );
-            }
-            return response;
-          };
-          await loadVideo(data);
-        } catch (error2) {
-          globalThis.parent.postMessage(
-            {
-              ...data,
-              messageDirection: "response",
-              error: error2
-            },
-            "*"
-          );
-        }
-      }
-      const handleIframeMessage = async ({ data }) => {
-        if (data?.messageDirection !== "request") {
-          return;
-        }
-        try {
-          if (data.messageType === "get-download-audio-data-in-iframe") {
-            await getDownloadAudioData(
-              data.payload
-            );
-          } else {
-            debug.log(`NOT IMPLEMENTED: ${data.messageType}`, data.payload);
-          }
-        } catch (error2) {
-          console.error("[VOT] Main world bridge", {
-            error: error2
-          });
-        }
-      };
-      function initAudioDownloaderIframe() {
-        return initIframeService(IFRAME_SERVICE, handleIframeMessage);
-      }
       const MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
       function isBootstrapStatus(value) {
         return value === "idle" || value === "booting" || value === "booted" || value === "failed";
@@ -8615,6 +8240,102 @@ ${lines.join("\n")}`;
         "localeLangOverride",
         "account"
       ];
+      const log = (...text) => {
+        console.log(
+          "%c[VOT DEBUG]",
+          "background: #3700ffff; color: #fff; padding: 5px;",
+          ...text
+        );
+      };
+      const warn = (...text) => {
+        console.warn(
+          "%c[VOT DEBUG]",
+          "background: #e1ff00ff; color: #fff; padding: 5px;",
+          ...text
+        );
+      };
+      const error = (...text) => {
+        console.error(
+          "%c[VOT DEBUG]",
+          "background: #F2452D; color: #fff; padding: 5px;",
+          ...text
+        );
+      };
+      const debug = { log, warn, error };
+      function stringifyUnknownObject(value) {
+        const seen2 = new WeakSet();
+        try {
+          const serialized = JSON.stringify(value, (_key, currentValue) => {
+            if (typeof currentValue !== "object" || currentValue === null) {
+              return currentValue;
+            }
+            if (seen2.has(currentValue)) {
+              return "[Circular]";
+            }
+            seen2.add(currentValue);
+            return currentValue;
+          });
+          return serialized ?? null;
+        } catch {
+          return null;
+        }
+      }
+      function toErrorMessage(error2, fallback = "Unknown error") {
+        if (error2 instanceof Error) {
+          return error2.message || fallback;
+        }
+        if (typeof error2 === "string") {
+          return error2 || fallback;
+        }
+        if (error2 === null || error2 === void 0) {
+          return fallback;
+        }
+        if (typeof error2 === "object") {
+          const anyErr = error2;
+          if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
+            return anyErr.data.message;
+          }
+          if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
+            return anyErr.error.message;
+          }
+          if (typeof anyErr?.message === "string" && anyErr.message) {
+            return anyErr.message;
+          }
+          const serialized = stringifyUnknownObject(error2);
+          if (serialized && serialized !== "{}") {
+            return serialized;
+          }
+          const ctorName = error2.constructor?.name;
+          return ctorName ? `[${ctorName}]` : fallback;
+        }
+        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
+          return `${error2}`;
+        }
+        if (typeof error2 === "symbol") {
+          return error2.description ? `Symbol(${error2.description})` : "Symbol";
+        }
+        if (typeof error2 === "function") {
+          return error2.name ? `[Function ${error2.name}]` : "[Function]";
+        }
+        return fallback;
+      }
+      function getErrorMessage(error2) {
+        return toErrorMessage(error2, "");
+      }
+      function isAbortError(err) {
+        const anyErr = err;
+        return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
+      }
+      function makeAbortError(message = "Aborted") {
+        try {
+          return new DOMException(message, "AbortError");
+        } catch {
+          const err = new Error(message);
+          err.name = "AbortError";
+          return err;
+        }
+      }
+      const NEVER_ABORTED_SIGNAL = new AbortController().signal;
       function throwIfAborted(signal) {
         const maybeThrow = signal.throwIfAborted;
         if (typeof maybeThrow === "function") {
@@ -8633,57 +8354,42 @@ ${lines.join("\n")}`;
         }
       }
       function createTimeoutSignal(timeoutMs, external) {
-        const hasTimeout = typeof AbortSignal !== "undefined" && "timeout" in AbortSignal;
-        const hasAny = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
-        let timedOut = false;
         const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
         if (!hasEffectiveTimeout) {
-          if (external) {
-            return { signal: external, didTimeout: () => false, cleanup: () => {
-            } };
-          }
-          const controller2 = new AbortController();
           return {
-            signal: controller2.signal,
-            didTimeout: () => false,
+            signal: external ?? NEVER_ABORTED_SIGNAL,
             cleanup: () => {
             }
           };
         }
-        if (hasTimeout && hasAny) {
-          const timeoutSignal = AbortSignal.timeout(
-            timeoutMs
-          );
-          const signal = AbortSignal.any(
-            external ? [external, timeoutSignal] : [timeoutSignal]
-          );
-          const id2 = setTimeout(() => {
-            timedOut = true;
-          }, timeoutMs);
-          return {
-            signal,
-            didTimeout: () => timedOut,
-            cleanup: () => clearTimeout(id2)
-          };
-        }
         const controller = new AbortController();
-        const onExternalAbort = () => controller.abort(external?.reason);
+        let timeoutId;
+        const onExternalAbort = () => {
+          if (timeoutId !== void 0) {
+            clearTimeout(timeoutId);
+            timeoutId = void 0;
+          }
+          controller.abort(external?.reason);
+        };
         if (external) {
+          external.addEventListener("abort", onExternalAbort, { once: true });
           if (external.aborted) {
-            controller.abort(external.reason);
-          } else {
-            external.addEventListener("abort", onExternalAbort, { once: true });
+            onExternalAbort();
           }
         }
-        const id = setTimeout(() => {
-          timedOut = true;
-          controller.abort(makeAbortError("Timeout"));
-        }, timeoutMs);
+        if (!controller.signal.aborted) {
+          timeoutId = setTimeout(() => {
+            controller.abort(makeAbortError("Timeout"));
+            timeoutId = void 0;
+          }, timeoutMs);
+        }
         return {
           signal: controller.signal,
-          didTimeout: () => timedOut,
           cleanup: () => {
-            clearTimeout(id);
+            if (timeoutId !== void 0) {
+              clearTimeout(timeoutId);
+              timeoutId = void 0;
+            }
             external?.removeEventListener("abort", onExternalAbort);
           }
         };
@@ -8715,22 +8421,41 @@ ${lines.join("\n")}`;
       }
       const lang = getNavigatorLang();
       const calculatedResLang = resolveCalculatedResLang(lang);
+      const DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 3e4;
+      const INVALID_FILENAME_CHARS_RE = /[\\/:*?"'<>|]+/g;
+      const URL_PROTOCOL_RE = /^https?:\/\//i;
+      const MULTIPLE_DASHES_RE = /-{2,}/g;
+      const EDGE_FILE_CHARS_RE = /^[.\s-]+|[.\s-]+$/g;
+      function getDateFallbackFilename() {
+        return ( new Date()).toISOString().slice(0, 10);
+      }
+      function stripAsciiControlChars(value) {
+        let out = "";
+        for (let index = 0; index < value.length; index++) {
+          const code = value.codePointAt(index) ?? 0;
+          if (code >= 32 && code !== 127) {
+            out += value[index];
+          }
+        }
+        return out;
+      }
       function stableStringify(value) {
         const seen2 = new WeakSet();
         return JSON.stringify(value, (_key, val) => {
           if (val && typeof val === "object") {
-            const obj = val;
-            if (seen2.has(obj)) {
+            if (seen2.has(val)) {
               return "[Circular]";
             }
-            seen2.add(obj);
-            if (Array.isArray(val)) return val;
+            seen2.add(val);
+            if (Array.isArray(val)) {
+              return val;
+            }
             const sorted = {};
-            const entries = Object.entries(val).sort(
-              ([leftKey], [rightKey]) => leftKey.localeCompare(rightKey)
+            const keys = Object.keys(val).sort(
+              (a2, b2) => a2.localeCompare(b2)
             );
-            for (const [key, entryValue] of entries) {
-              sorted[key] = entryValue;
+            for (const key of keys) {
+              sorted[key] = val[key];
             }
             return sorted;
           }
@@ -8748,29 +8473,96 @@ ${lines.join("\n")}`;
         }
         return (hash >>> 0).toString(36);
       }
-      const isPiPAvailable = () => "pictureInPictureEnabled" in document && Boolean(document.pictureInPictureEnabled);
-      function downloadBlob(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a2 = document.createElement("a");
-        a2.href = url;
-        a2.download = filename;
-        document.body.appendChild(a2);
-        a2.click();
-        a2.remove();
-        revokeObjectUrlLater(url);
+      const isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
+      async function writeBlobToHandle(handle, blob) {
+        try {
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return true;
+        } catch {
+          return false;
+        }
       }
-      const DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 3e4;
+      async function shareBlob(blob, filename) {
+        const nav = typeof navigator === "undefined" ? void 0 : navigator;
+        if (!nav?.share || typeof File === "undefined") {
+          return "unsupported";
+        }
+        let file;
+        try {
+          file = new File([blob], filename, {
+            type: blob.type || "application/octet-stream"
+          });
+        } catch {
+          return "unsupported";
+        }
+        if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) {
+          return "unsupported";
+        }
+        try {
+          await nav.share({ files: [file], title: filename });
+          return "shared";
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            return "shared";
+          }
+          return "error";
+        }
+      }
+      function triggerBlobDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.rel = "noopener noreferrer";
+        anchor.target = "_blank";
+        anchor.style.position = "fixed";
+        anchor.style.left = "-9999px";
+        anchor.style.top = "0";
+        (document.body ?? document.documentElement).append(anchor);
+        try {
+          anchor.click();
+          return true;
+        } catch {
+          return false;
+        } finally {
+          anchor.remove();
+          revokeObjectUrlLater(url);
+        }
+      }
+      async function downloadBlob(blob, filename, options = {}) {
+        if (options.fileHandle) {
+          const saved = await writeBlobToHandle(options.fileHandle, blob);
+          if (saved) {
+            return true;
+          }
+        }
+        if (options.preferShare) {
+          const shareResult = await shareBlob(blob, filename);
+          if (shareResult === "shared") {
+            return true;
+          }
+        }
+        return triggerBlobDownload(blob, filename);
+      }
       function revokeObjectUrlLater(url, delayMs = DEFAULT_OBJECT_URL_REVOKE_DELAY_MS) {
-        globalThis.setTimeout(() => URL.revokeObjectURL(url), delayMs);
+        const safeDelayMs = Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : DEFAULT_OBJECT_URL_REVOKE_DELAY_MS;
+        globalThis.setTimeout(() => URL.revokeObjectURL(url), safeDelayMs);
       }
       function clearFileName(filename) {
-        const name = filename.trim();
-        if (!name) return ( new Date()).toISOString().slice(0, 10);
-        return name.replace(/^https?:\/\//, "").replaceAll(/[\\/:*?"'<>|]/g, "-");
+        const trimmed = filename.trim();
+        if (!trimmed) return getDateFallbackFilename();
+        const sanitized = stripAsciiControlChars(trimmed).replace(URL_PROTOCOL_RE, "").replaceAll(INVALID_FILENAME_CHARS_RE, "-").replaceAll(MULTIPLE_DASHES_RE, "-").replaceAll(EDGE_FILE_CHARS_RE, "");
+        return sanitized || getDateFallbackFilename();
       }
       const getTimestamp = () => Math.floor(Date.now() / 1e3);
       const getHeaders = (headers) => headers ? Object.fromEntries(new Headers(headers).entries()) : {};
-      const clamp$2 = (value, min = 0, max = 100) => Math.min(Math.max(value, min), max);
+      function clamp$2(value, min = 0, max = 100) {
+        const lower = Math.min(min, max);
+        const upper = Math.max(min, max);
+        return Math.min(Math.max(value, lower), upper);
+      }
       function toFlatObj(data) {
         const out = {};
         const stack = Object.entries(data);
@@ -8779,8 +8571,8 @@ ${lines.join("\n")}`;
           if (!entry) continue;
           const [key, val] = entry;
           if (val === void 0) continue;
-          const isPlainObject = val !== null && typeof val === "object" && !Array.isArray(val);
-          if (!isPlainObject) {
+          const isFlattenable = val !== null && typeof val === "object" && !Array.isArray(val);
+          if (!isFlattenable) {
             out[key] = val;
             continue;
           }
@@ -8793,25 +8585,89 @@ ${lines.join("\n")}`;
       async function exitFullscreen() {
         const doc = document;
         if (!doc.fullscreenElement && !doc.webkitFullscreenElement) return;
-        if (doc.exitFullscreen) return doc.exitFullscreen();
-        return doc.webkitExitFullscreen?.();
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+          return;
+        }
+        if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        }
       }
       const YANDEX_API_HOST = "api.browser.yandex.ru";
-      const scriptHandler = typeof GM_info !== "undefined" ? GM_info?.scriptHandler : void 0;
+      const GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
+      const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
+      const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+      const scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
       const isProxyOnlyExtension = (
 
 !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && !!scriptHandler && !nonProxyExtensions.includes(scriptHandler)
       );
       const isSupportGM4 = typeof GM !== "undefined";
-      const isUnsafeWindowAllowed = typeof unsafeWindow !== "undefined";
       const isSupportGMXhr = typeof GM_xmlhttpRequest !== "undefined";
-      function shouldUseGmXhr(url) {
-        return url.includes(YANDEX_API_HOST);
+      function getRequestHost(url) {
+        const normalizedUrl = url.trim();
+        try {
+          return new URL(normalizedUrl).hostname.toLowerCase();
+        } catch {
+          if (!URL_SCHEME_RE.test(normalizedUrl)) {
+            try {
+              return new URL(`https://${normalizedUrl}`).hostname.toLowerCase();
+            } catch {
+            }
+          }
+          return void 0;
+        }
+      }
+      function isHostOrSubdomain(host, targetHost) {
+        return host === targetHost || host.endsWith(`.${targetHost}`);
+      }
+      function shouldUseGmXhr(host, url, forceGmXhr = false) {
+        if (forceGmXhr) {
+          return true;
+        }
+        if (!host) {
+          const lowerUrl = url.toLowerCase();
+          return lowerUrl.includes(YANDEX_API_HOST) || lowerUrl.includes(GOOGLEVIDEO_HOST_SUFFIX);
+        }
+        return isHostOrSubdomain(host, YANDEX_API_HOST) || isHostOrSubdomain(host, GOOGLEVIDEO_HOST_SUFFIX);
+      }
+      function toRequestUrl(url) {
+        if (typeof url === "string") {
+          return url;
+        }
+        if (url instanceof URL) {
+          return url.href;
+        }
+        return url.url;
+      }
+      function parseResponseHeaders(rawHeaders) {
+        if (typeof rawHeaders !== "string" || rawHeaders.length === 0) {
+          return {};
+        }
+        return rawHeaders.split(/\r?\n/).reduce((acc, line) => {
+          const headerMatch = HEADER_LINE_RE.exec(line);
+          if (!headerMatch) {
+            return acc;
+          }
+          const [, key, value] = headerMatch;
+          acc[key] = value;
+          return acc;
+        }, {});
+      }
+      function getGmXhrErrorMessage(error2) {
+        const maybeError = error2;
+        if (typeof maybeError?.error === "string") {
+          return maybeError.error;
+        }
+        if (typeof maybeError?.statusText === "string") {
+          return maybeError.statusText;
+        }
+        return getErrorMessage(error2) || "Unknown error";
       }
       async function gmXhrFetch(urlStr, timeout2, fetchOptions) {
         const headers = getHeaders(fetchOptions.headers);
         return await new Promise((resolve, reject) => {
-          const gmXhr = typeof GM_xmlhttpRequest !== "undefined" ? GM_xmlhttpRequest : globalThis.GM_xmlhttpRequest;
+          const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
           if (typeof gmXhr !== "function") {
             reject(new TypeError("GM_xmlhttpRequest is not available"));
             return;
@@ -8840,24 +8696,19 @@ ${lines.join("\n")}`;
               if (settled) return;
               settled = true;
               cleanupAbort();
-              const responseHeaders = String(resp.responseHeaders || "").split(/\r?\n/).reduce((acc, line) => {
-                const [, key, value] = line.match(/^([\w-]+):\s*(.+)$/) || [];
-                if (key) {
-                  acc[key] = value;
-                }
-                return acc;
-              }, {});
+              const responseHeaders = parseResponseHeaders(resp.responseHeaders);
               const response = new Response(resp.response, {
                 status: resp.status,
+                statusText: typeof resp.statusText === "string" ? resp.statusText : "",
                 headers: responseHeaders
               });
               Object.defineProperty(response, "url", {
-                value: resp.finalUrl ?? ""
+                value: resp.finalUrl ?? urlStr
               });
               resolve(response);
             },
             ontimeout: () => failOnce(new Error("Timeout")),
-            onerror: (error2) => failOnce(new Error(String(error2))),
+            onerror: (error2) => failOnce(new Error(getGmXhrErrorMessage(error2))),
             onabort: () => failOnce(makeAbortError())
           });
           onAbort = () => {
@@ -8868,33 +8719,39 @@ ${lines.join("\n")}`;
             failOnce(makeAbortError());
           };
           if (fetchOptions.signal) {
+            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
             if (fetchOptions.signal.aborted) {
               onAbort();
               return;
             }
-            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
           }
         });
       }
       async function GM_fetch(url, opts = {}) {
-        const { timeout: timeout2 = 15e3, ...fetchOptions } = opts;
-        const urlStr = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
-        if (shouldUseGmXhr(urlStr)) {
+        const { timeout: timeout2 = 15e3, forceGmXhr = false, ...fetchOptions } = opts;
+        const urlStr = toRequestUrl(url);
+        const host = getRequestHost(urlStr);
+        if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
+          debug.log("GM_fetch: routing request via GM_xmlhttpRequest", {
+            host: host ?? "unknown",
+            reason: forceGmXhr ? "forced" : "host-policy",
+            url: urlStr
+          });
           return await gmXhrFetch(urlStr, timeout2, fetchOptions);
         }
         const { signal, cleanup } = createTimeoutSignal(timeout2, fetchOptions.signal);
         try {
           return await fetch(url, {
-            signal,
-            ...fetchOptions
+            ...fetchOptions,
+            signal
           });
         } catch (err) {
-          if (isAbortError(err) || fetchOptions.signal?.aborted) {
+          if (signal.aborted || isAbortError(err)) {
             throw err;
           }
           debug.log(
             "GM_fetch preventing CORS by GM_xmlhttpRequest",
-            err?.message ?? String(err)
+            getErrorMessage(err) || "Unknown error"
           );
           return await gmXhrFetch(urlStr, timeout2, fetchOptions);
         } finally {
@@ -8926,102 +8783,132 @@ ${lines.join("\n")}`;
           ["locale-lang", "localeLang"]
         ]
       };
-      function getCompatCategory(key, value, convertData) {
-        if (typeof value === "number") {
-          return convertData?.number.some((item) => item[0] === key) ? "number" : "numToBool";
-        } else if (Array.isArray(value)) {
-          return "array";
-        } else if (typeof value === "string" || value === null) {
-          return "string";
+      const compatRules = Object.entries(compatMay2025Data).flatMap(
+        ([category, entries]) => entries.map(([oldKey, maybeNewKey]) => ({
+          category,
+          oldKey,
+          newKey: maybeNewKey ?? oldKey,
+          shouldDeleteOldKey: Boolean(maybeNewKey)
+        }))
+      );
+      const compatRuleByOldKey = new Map(
+        compatRules.map((rule) => [rule.oldKey, rule])
+      );
+      const compatKeysToRead = Array.from(
+        new Set(compatRules.map((rule) => rule.oldKey))
+      );
+      function createUndefinedDefaults(keys) {
+        const defaults = {};
+        for (const key of keys) {
+          defaults[key] = void 0;
         }
-        return void 0;
+        return defaults;
+      }
+      function isCompatValue(category, value) {
+        switch (category) {
+          case "numToBool":
+          case "number":
+            return typeof value === "number";
+          case "array":
+            return Array.isArray(value);
+          case "string":
+            return typeof value === "string" || value === null;
+          default:
+            return false;
+        }
       }
       function convertByCompatCategory(category, value) {
-        if (["string", "array", "number"].includes(category)) {
-          return value;
+        switch (category) {
+          case "string":
+          case "array":
+          case "number":
+            return value;
+          default:
+            return !!value;
         }
-        return !!value;
+      }
+      function normalizeCompatValue(rule, value) {
+        let convertedValue = convertByCompatCategory(rule.category, value);
+        if (rule.oldKey === "autoVolume" && typeof value === "number" && value < 1) {
+          convertedValue = Math.round(value * 100);
+        }
+        return convertedValue;
+      }
+      function areStorageValuesEqual(a2, b2) {
+        if (Array.isArray(a2) && Array.isArray(b2)) {
+          return a2.length === b2.length && a2.every((item, index) => Object.is(item, b2[index]));
+        }
+        return Object.is(a2, b2);
       }
       async function updateConfig(data) {
         if (data.compatVersion === actualCompatVersion) {
           return data;
         }
-        const oldKeys = Object.values(compatMay2025Data).flat().reduce((result, key) => {
-          if (key[1]) {
-            result[key[0]] = void 0;
-          }
-          return result;
-        }, {});
-        const oldData = await votStorage.getValues(oldKeys);
-        const existsOldData = Object.fromEntries(
-          Object.entries(oldData).filter(([_2, value]) => value !== void 0)
-        );
-        const allData = { ...data, ...existsOldData };
-        const allDataKeys = Object.keys(allData).reduce(
-          (result, key) => {
-            result[key] = void 0;
-            return result;
-          },
-          {}
-        );
-        const realValues = await votStorage.getValues(allDataKeys);
-        const newData = data;
-        for (const [key, value] of Object.entries(allData)) {
-          const category = getCompatCategory(key, value, compatMay2025Data);
-          if (!category) {
+        const keysToRead = new Set([
+          ...Object.keys(data),
+          ...compatKeysToRead
+        ]);
+        const persistedValues = await votStorage.getValues(createUndefinedDefaults(keysToRead));
+        const newData = { ...data };
+        const writeOperations = [];
+        const deleteOperations = [];
+        for (const [key, storedValue] of Object.entries(persistedValues)) {
+          if (storedValue === void 0) {
             continue;
           }
-          const compatItem = compatMay2025Data[category].find(
-            (item) => item[0] === key
-          );
-          if (!compatItem) {
+          const compatRule = compatRuleByOldKey.get(key);
+          if (!compatRule || !isCompatValue(compatRule.category, storedValue)) {
             continue;
           }
-          const newKey = compatItem[1] ?? key;
-          if (realValues[key] === void 0) {
-            continue;
+          const convertedValue = normalizeCompatValue(compatRule, storedValue);
+          newData[compatRule.newKey] = convertedValue;
+          const existingNewValue = persistedValues[compatRule.newKey];
+          if (compatRule.shouldDeleteOldKey || !areStorageValuesEqual(existingNewValue, convertedValue)) {
+            writeOperations.push(votStorage.set(compatRule.newKey, convertedValue));
           }
-          let newValue = convertByCompatCategory(category, value);
-          if (key === "autoVolume" && value < 1) {
-            newValue = Math.round(value * 100);
+          if (compatRule.shouldDeleteOldKey) {
+            deleteOperations.push(votStorage.delete(compatRule.oldKey));
           }
-          newData[newKey] = newValue;
-          if (existsOldData[key] !== void 0) {
-            await votStorage.delete(key);
-          }
-          await votStorage.set(newKey, newValue);
         }
+        await Promise.all([...writeOperations, ...deleteOperations]);
         return {
           ...newData,
           compatVersion: actualCompatVersion
         };
       }
       class VOTStorage {
-        supportGM = false;
-        supportGMPromises = false;
-        supportGMGetValues = false;
-        supportResolved = false;
+        support = null;
         resolveSupport() {
-          if (this.supportResolved) return;
-          this.supportResolved = true;
-          this.supportGM = typeof GM_getValue === "function";
-          this.supportGMPromises = isSupportGM4 && typeof GM?.getValue === "function";
-          this.supportGMGetValues = isSupportGM4 && typeof GM?.getValues === "function";
+          if (this.support) {
+            return this.support;
+          }
+          const support = {
+            legacyGet: typeof GM_getValue === "function",
+            legacySet: typeof GM_setValue === "function",
+            legacyDelete: typeof GM_deleteValue === "function",
+            legacyList: typeof GM_listValues === "function",
+            promiseGet: isSupportGM4 && typeof GM?.getValue === "function",
+            promiseGetValues: isSupportGM4 && typeof GM?.getValues === "function",
+            promiseSet: isSupportGM4 && typeof GM?.setValue === "function",
+            promiseDelete: isSupportGM4 && typeof GM?.deleteValue === "function",
+            promiseList: isSupportGM4 && typeof GM?.listValues === "function"
+          };
+          this.support = support;
           debug.log(
-            `[VOT Storage] GM Promises: ${this.supportGMPromises} | GM: ${this.supportGM}`
+            `[VOT Storage] GM Promises: ${support.promiseGet} | GM legacy: ${support.legacyGet}`
           );
+          return support;
         }
 get isSupportOnlyLS() {
-          this.resolveSupport();
-          return !this.supportGM && !this.supportGMPromises;
+          const support = this.resolveSupport();
+          return !support.legacyGet && !support.legacySet && !support.legacyDelete && !support.legacyList && !support.promiseGet && !support.promiseGetValues && !support.promiseSet && !support.promiseDelete && !support.promiseList;
         }
-        syncGet(name, def) {
-          this.resolveSupport();
-          if (this.supportGM) {
+        syncGet(name, def, support) {
+          if (support.legacyGet) {
             return GM_getValue(name, def);
           }
           const val = globalThis.localStorage.getItem(name);
-          if (!val) {
+          if (val === null) {
             return def;
           }
           try {
@@ -9031,72 +8918,69 @@ get isSupportOnlyLS() {
           }
         }
         async get(name, def) {
-          this.resolveSupport();
-          if (this.supportGMPromises) {
+          const support = this.resolveSupport();
+          if (support.promiseGet && GM.getValue) {
             return await GM.getValue(name, def);
           }
-          return this.syncGet(name, def);
+          return this.syncGet(name, def, support);
         }
         async getValues(data) {
-          this.resolveSupport();
-          if (this.supportGMGetValues) {
+          const support = this.resolveSupport();
+          if (support.promiseGetValues && GM.getValues) {
             return await GM.getValues(data);
           }
+          const entries = Object.entries(data);
+          if (support.promiseGet && GM.getValue) {
+            const values = await Promise.all(
+              entries.map(async ([key, value]) => {
+                const storedValue = await GM.getValue(key, value);
+                return [key, storedValue];
+              })
+            );
+            return Object.fromEntries(values);
+          }
           return Object.fromEntries(
-            await Promise.all(
-              Object.entries(data).map(
-                async ([key, value]) => {
-                  const val = await this.get(
-                    key,
-                    value
-                  );
-                  return [key, val];
-                }
-              )
-            )
+            entries.map(([key, value]) => [key, this.syncGet(key, value, support)])
           );
         }
-        syncSet(name, value) {
-          this.resolveSupport();
-          if (this.supportGM) {
+        syncSet(name, value, support) {
+          if (support.legacySet) {
             return GM_setValue(name, value);
           }
           return globalThis.localStorage.setItem(name, JSON.stringify(value));
         }
         async set(name, value) {
-          this.resolveSupport();
-          if (this.supportGMPromises) {
+          const support = this.resolveSupport();
+          if (support.promiseSet && GM.setValue) {
             return await GM.setValue(name, value);
           }
-          return this.syncSet(name, value);
+          return this.syncSet(name, value, support);
         }
-        syncDelete(name) {
-          this.resolveSupport();
-          if (this.supportGM) {
+        syncDelete(name, support) {
+          if (support.legacyDelete) {
             return GM_deleteValue(name);
           }
           return globalThis.localStorage.removeItem(name);
         }
         async delete(name) {
-          this.resolveSupport();
-          if (this.supportGMPromises) {
+          const support = this.resolveSupport();
+          if (support.promiseDelete && GM.deleteValue) {
             return await GM.deleteValue(name);
           }
-          return this.syncDelete(name);
+          return this.syncDelete(name, support);
         }
-        syncList() {
-          this.resolveSupport();
-          if (this.supportGM) {
+        syncList(support) {
+          if (support.legacyList) {
             return GM_listValues();
           }
           return storageKeys;
         }
         async list() {
-          this.resolveSupport();
-          if (this.supportGMPromises) {
+          const support = this.resolveSupport();
+          if (support.promiseList && GM.listValues) {
             return await GM.listValues();
           }
-          return this.syncList();
+          return this.syncList(support);
         }
       }
       const VOT_STORAGE_GLOBAL_KEY = "__VOT_STORAGE_SINGLETON__";
@@ -9368,34 +9252,40 @@ get isSupportOnlyLS() {
         smartDucking
       };
       var define_AVAILABLE_LOCALES_default = ["auto", "en", "ru", "af", "am", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "el", "es", "et", "eu", "fa", "fi", "fr", "gl", "hi", "hr", "hu", "hy", "id", "it", "ja", "jv", "kk", "km", "kn", "ko", "lo", "mk", "ml", "mn", "ms", "mt", "my", "ne", "nl", "pa", "pl", "pt", "ro", "si", "sk", "sl", "sq", "sr", "su", "sv", "sw", "tr", "uk", "ur", "uz", "vi", "zh", "zu"];
+      const LOCALE_STORAGE_KEYS = [
+        "localePhrases",
+        "localeLang",
+        "localeHash",
+        "localeUpdatedAt",
+        "localeLangOverride"
+      ];
+      const DEFAULT_LOCALE$1 = toFlatObj(rawDefaultLocale);
+      const CACHE_TTL_SECONDS = 7200;
       const repoBranch = "master";
-      const availableLocales = typeof define_AVAILABLE_LOCALES_default !== "undefined" && Array.isArray(define_AVAILABLE_LOCALES_default) ? define_AVAILABLE_LOCALES_default : ["en"];
+      const availableLocales = (() => {
+        const locales = typeof define_AVAILABLE_LOCALES_default !== "undefined" && Array.isArray(define_AVAILABLE_LOCALES_default) ? define_AVAILABLE_LOCALES_default : ["en"];
+        return locales.includes("auto") ? locales : ["auto", ...locales];
+      })();
       class LocalizationProvider {
-        storageKeys = [
-          "localePhrases",
-          "localeLang",
-          "localeHash",
-          "localeUpdatedAt",
-          "localeLangOverride"
-        ];
 lang;
 locale;
-        defaultLocale = toFlatObj(rawDefaultLocale);
-        cacheTTL = 7200;
+        defaultLocale = DEFAULT_LOCALE$1;
+        cacheTTL = CACHE_TTL_SECONDS;
         localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
         hashesUrl = `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
+        warnedMissingKeys = new Set();
         _langOverride = "auto";
         constructor() {
           this.lang = this.getLang();
           this.locale = {};
         }
         async init() {
-          this._langOverride = await votStorage.get(
-            "localeLangOverride",
-            "auto"
-          );
+          const [langOverride, phrases] = await Promise.all([
+            votStorage.get("localeLangOverride", "auto"),
+            votStorage.get("localePhrases", "")
+          ]);
+          this._langOverride = langOverride;
           this.lang = this.getLang();
-          const phrases = await votStorage.get("localePhrases", "");
           this.setLocaleFromJsonString(phrases);
           return this;
         }
@@ -9406,15 +9296,13 @@ locale;
           return this.langOverride !== "auto" ? this.langOverride : lang;
         }
         getAvailableLangs() {
-          return availableLocales.includes("auto") ? availableLocales : ["auto", ...availableLocales];
+          return [...availableLocales];
         }
         async reset() {
-          for (const key of this.storageKeys) {
-            await votStorage.delete(key);
-          }
+          await Promise.all(LOCALE_STORAGE_KEYS.map((key) => votStorage.delete(key)));
           return this;
         }
-        buildUrl(baseUrl, path, force = false) {
+        buildUrl(baseUrl, path = "", force = false) {
           const query = force ? `?timestamp=${getTimestamp()}` : "";
           return `${baseUrl}${path}${query}`;
         }
@@ -9430,39 +9318,61 @@ locale;
           return true;
         }
         async checkUpdates(force = false) {
+          debug.log("Check locale updates...");
           try {
             const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
             if (!res.ok) throw res.status;
             const hashes = await res.json();
-            return await votStorage.get("localeHash") !== hashes[this.lang] ? hashes[this.lang] : false;
+            if (!hashes || typeof hashes !== "object") {
+              throw new Error("Invalid locale hashes payload");
+            }
+            const nextHash = hashes[this.lang];
+            if (typeof nextHash !== "string" || !nextHash) {
+              return false;
+            }
+            const currentHash = await votStorage.get("localeHash", "");
+            return currentHash === nextHash ? false : nextHash;
           } catch (err) {
             console.error(
               "[VOT] [localizationProvider] Failed to get locales hash:",
               err
             );
-            return false;
+            return null;
           }
         }
         async update(force = false) {
-          const localeUpdatedAt = await votStorage.get("localeUpdatedAt", 0);
-          if (!force && localeUpdatedAt + this.cacheTTL > getTimestamp() && await votStorage.get("localeLang") === this.lang) {
-            return this;
+          const timestamp = getTimestamp();
+          if (!force) {
+            const [localeUpdatedAt, localeLang] = await Promise.all([
+              votStorage.get("localeUpdatedAt", 0),
+              votStorage.get("localeLang", "")
+            ]);
+            if (localeUpdatedAt + this.cacheTTL > timestamp && localeLang === this.lang) {
+              return this;
+            }
           }
           const hash = await this.checkUpdates(force);
-          await votStorage.set("localeUpdatedAt", getTimestamp());
-          if (!hash) {
+          if (hash === null) {
             return this;
           }
+          if (!hash) {
+            await votStorage.set("localeUpdatedAt", timestamp);
+            return this;
+          }
+          debug.log("Updating locale...");
           try {
             const res = await GM_fetch(
               this.buildUrl(this.localesUrl, `/${this.lang}.json`, force)
             );
             if (!res.ok) throw res.status;
             const text = await res.text();
-            await votStorage.set("localePhrases", text);
-            await votStorage.set("localeHash", hash);
-            await votStorage.set("localeLang", this.lang);
             this.setLocaleFromJsonString(text);
+            await Promise.all([
+              votStorage.set("localePhrases", text),
+              votStorage.set("localeHash", hash),
+              votStorage.set("localeLang", this.lang),
+              votStorage.set("localeUpdatedAt", timestamp)
+            ]);
           } catch (err) {
             console.error("[VOT] [localizationProvider] Failed to get locale:", err);
             this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
@@ -9470,19 +9380,35 @@ locale;
           return this;
         }
         setLocaleFromJsonString(json) {
+          const trimmed = json.trim();
+          if (!trimmed) {
+            this.locale = {};
+            this.warnedMissingKeys.clear();
+            return this;
+          }
           try {
-            const locale = JSON.parse(json) || {};
+            const locale = JSON.parse(trimmed);
+            if (!locale || typeof locale !== "object" || Array.isArray(locale)) {
+              throw new Error("Locale payload should be a JSON object");
+            }
             this.locale = toFlatObj(locale);
           } catch (err) {
             console.error("[VOT] [localizationProvider]", err);
             this.locale = {};
           }
+          this.warnedMissingKeys.clear();
           return this;
         }
-        getFromLocale(locale, key) {
-          return locale?.[key] ?? this.warnMissingKey(locale, key);
+        getFromLocale(locale, key, source = "locale") {
+          const phrase = locale[key];
+          return phrase ?? this.warnMissingKey(locale, key, source);
         }
-        warnMissingKey(locale, key) {
+        warnMissingKey(locale, key, source) {
+          const warningKey = `${source}:${key}`;
+          if (this.warnedMissingKeys.has(warningKey)) {
+            return void 0;
+          }
+          this.warnedMissingKeys.add(warningKey);
           console.warn(
             "[VOT] [localizationProvider] locale",
             locale,
@@ -9492,7 +9418,7 @@ locale;
           return void 0;
         }
         getDefault(key) {
-          return this.getFromLocale(this.defaultLocale, key) ?? key;
+          return this.getFromLocale(this.defaultLocale, key, "default") ?? key;
         }
         get(key) {
           return this.getFromLocale(this.locale, key) ?? this.getDefault(key);
@@ -9505,7 +9431,7 @@ locale;
               return label;
             }
           }
-          return typeof lang2 === "string" ? lang2.toUpperCase() : "";
+          return lang2.toUpperCase();
         }
       }
       const localizationProvider = new LocalizationProvider();
@@ -9514,20 +9440,9 @@ locale;
         localizationProviderReadyPromise ??= localizationProvider.init();
         return localizationProviderReadyPromise;
       }
+      const isIframe = () => globalThis.self !== globalThis.top;
       function initIframeInteractor() {
         const configs = {
-          "https://www.dailymotion.com": {
-            targetOrigin: "https://geo.dailymotion.com",
-            dataFilter: (data) => typeof data === "object" && data !== null && "type" in data && data.type === "getDailymotionVideoId",
-            extractVideoId: (url) => {
-              const match = /\/video\/(\w+)/.exec(url.pathname);
-              return match?.[1] ?? null;
-            },
-            responseFormatter: (videoId) => ({
-              type: "dailymotionVideoId",
-              videoId
-            })
-          },
           "https://dev.epicgames.com": {
             targetOrigin: "https://dev.epicgames.com",
             dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
@@ -9716,13 +9631,9 @@ locale;
       }
       function shouldSkipIframeBootstrap(input) {
         if (!input.isIframe) return false;
-        if (input.hash.includes(input.iframeHash)) return false;
         return input.href === "about:blank" || input.href.startsWith("about:srcdoc") || input.origin === "null";
       }
       function resolveBootstrapMode(input) {
-        if (input.isIframe && input.hash.includes(input.iframeHash)) {
-          return "iframe-helper";
-        }
         if (shouldSkipIframeBootstrap(input)) {
           return "skip";
         }
@@ -9732,75 +9643,63 @@ locale;
         return "top-full";
       }
       const YANDEX_TTL_MS = 2 * 60 * 60 * 1e3;
+      const EXPIRY_FIELD_BY_FIELD = {
+        translation: "translationExpiresAt",
+        subtitles: "subtitlesExpiresAt"
+      };
       class CacheManager {
         cache = new Map();
-        lastCleanupAt = 0;
 clear() {
           this.cache.clear();
-          this.lastCleanupAt = 0;
         }
         getTranslation(key) {
-          const entry = this.cache.get(key);
-          if (!entry) return void 0;
-          const exp = entry.translationExpiresAt;
-          if (exp !== void 0 && exp <= Date.now()) {
-            entry.translation = void 0;
-            entry.translationExpiresAt = void 0;
-            this.evictIfEmpty(key, entry);
-            return void 0;
-          }
-          return entry.translation;
+          return this.getValue(key, "translation");
         }
         setTranslation(key, translation) {
-          this.maybeCleanup();
-          const entry = this.getOrCreateEntry(key);
-          entry.translation = translation;
-          entry.translationExpiresAt = Date.now() + YANDEX_TTL_MS;
+          this.setValue(key, "translation", translation);
         }
         getSubtitles(key) {
+          return this.getValue(key, "subtitles");
+        }
+        setSubtitles(key, subtitles) {
+          this.setValue(key, "subtitles", subtitles);
+        }
+        deleteSubtitles(key) {
+          this.deleteValue(key, "subtitles");
+        }
+        getValue(key, field) {
+          const now2 = Date.now();
           const entry = this.cache.get(key);
           if (!entry) return void 0;
-          const exp = entry.subtitlesExpiresAt;
-          if (exp !== void 0 && exp <= Date.now()) {
-            entry.subtitles = void 0;
-            entry.subtitlesExpiresAt = void 0;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          const expiresAt = entry[expiryField];
+          if (expiresAt !== void 0 && expiresAt <= now2) {
+            entry[field] = void 0;
+            entry[expiryField] = void 0;
             this.evictIfEmpty(key, entry);
             return void 0;
           }
-          return entry.subtitles;
+          return entry[field];
         }
-        setSubtitles(key, subtitles) {
-          this.maybeCleanup();
+        setValue(key, field, value) {
+          const now2 = Date.now();
           const entry = this.getOrCreateEntry(key);
-          entry.subtitles = subtitles;
-          entry.subtitlesExpiresAt = Date.now() + YANDEX_TTL_MS;
+          const expiresAt = now2 + YANDEX_TTL_MS;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          entry[field] = value;
+          entry[expiryField] = expiresAt;
         }
-        deleteSubtitles(key) {
+        deleteValue(key, field) {
           const entry = this.cache.get(key);
           if (!entry) return;
-          entry.subtitles = void 0;
-          entry.subtitlesExpiresAt = void 0;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          entry[field] = void 0;
+          entry[expiryField] = void 0;
           this.evictIfEmpty(key, entry);
         }
         evictIfEmpty(key, entry) {
           if (entry.translation === void 0 && entry.subtitles === void 0) {
             this.cache.delete(key);
-          }
-        }
-        maybeCleanup() {
-          const now2 = Date.now();
-          if (now2 - this.lastCleanupAt < 6e4) return;
-          this.lastCleanupAt = now2;
-          for (const [key, entry] of this.cache) {
-            if (entry.translationExpiresAt !== void 0 && entry.translationExpiresAt <= now2) {
-              entry.translation = void 0;
-              entry.translationExpiresAt = void 0;
-            }
-            if (entry.subtitlesExpiresAt !== void 0 && entry.subtitlesExpiresAt <= now2) {
-              entry.subtitles = void 0;
-              entry.subtitlesExpiresAt = void 0;
-            }
-            this.evictIfEmpty(key, entry);
           }
         }
         getOrCreateEntry(key) {
@@ -9834,9 +9733,12 @@ clear() {
           if (current instanceof Document) {
             if (origin) {
               const matches = current.querySelectorAll(selector);
-              return Array.from(matches).find(
-                (match) => containsCrossShadow(match, origin)
-              ) ?? null;
+              for (const match of matches) {
+                if (containsCrossShadow(match, origin)) {
+                  return match;
+                }
+              }
+              return null;
             }
             return current.querySelector(selector);
           }
@@ -9858,36 +9760,6 @@ clear() {
           return null;
         };
         return walk(element);
-      }
-      function resolveInteractiveMount(base, {
-        maxPointerEventsHops = 30,
-        maxPositionedHops = 10,
-        preferPositioned = true
-      } = {}) {
-        let el = base;
-        let peHops = 0;
-        while (el?.parentElement && peHops < maxPointerEventsHops) {
-          const pe = getComputedStyle(el).pointerEvents;
-          const parentPe = getComputedStyle(el.parentElement).pointerEvents;
-          if (pe === "none" || parentPe === "none") {
-            el = el.parentElement;
-            peHops++;
-            continue;
-          }
-          break;
-        }
-        if (!preferPositioned) {
-          return el ?? base;
-        }
-        let positioned = el;
-        let hops = 0;
-        while (positioned?.parentElement && hops < maxPositionedHops) {
-          const pos = getComputedStyle(positioned).position;
-          if (pos !== "static") break;
-          positioned = positioned.parentElement;
-          hops++;
-        }
-        return positioned ?? el ?? base;
       }
       function findConnectedContainerBySelector(video, selector) {
         if (!selector) {
@@ -9947,345 +9819,880 @@ clear() {
           this.listeners.clear();
         }
       }
-      const serviceIframe = null;
-      function generateChunkRanges(contentLength, minChunkSize) {
-        const chunkRanges = [];
-        let stepIndex = 0;
-        let start = 0;
-        let end = Math.min(CHUNK_STEPS[stepIndex], contentLength);
-        while (end < contentLength) {
-          chunkRanges.push({
-            start,
-            end,
-            mustExist: end < minChunkSize
-          });
-          if (stepIndex < CHUNK_STEPS.length - 1) {
-            stepIndex++;
-          }
-          start = end + 1;
-          end += CHUNK_STEPS[stepIndex];
-        }
-        chunkRanges.push({
-          start,
-          end: contentLength,
-          mustExist: false
-        });
-        return chunkRanges;
-      }
-      function getChunkRangesPartsFromContentLength(contentLength) {
-        if (contentLength < 1) {
-          throw new Error(
-            "Audio downloader. WEB API. contentLength must be at least 1"
-          );
-        }
-        const minChunkSize = Math.round(
-          contentLength * MIN_CONTENT_LENGTH_MULTIPLIER
-        );
-        const chunkRanges = generateChunkRanges(contentLength, minChunkSize);
-        const chunkRangeParts = [];
-        let currentPart = [];
-        let currentPartSize = 0;
-        for (const chunkRange of chunkRanges) {
-          currentPart.push(chunkRange);
-          currentPartSize += chunkRange.end - chunkRange.start;
-          if (currentPartSize >= MIN_CHUNK_RANGES_PART_SIZE || chunkRange.end === contentLength) {
-            chunkRangeParts.push(currentPart);
-            currentPart = [];
-            currentPartSize = 0;
-          }
-        }
-        return chunkRangeParts;
-      }
-      function parseContentLength({ contentLength }) {
-        if (typeof contentLength !== "string") {
-          throw new TypeError(
-            `Audio downloader. WEB API. Content length (${contentLength}) is not a string`
-          );
-        }
-        const parsed = Number.parseInt(contentLength, 10);
-        if (!Number.isFinite(parsed)) {
-          throw new TypeError(
-            `Audio downloader. WEB API. Parsed content length is not finite (${parsed})`
-          );
-        }
-        return parsed;
-      }
-      function getChunkRangesPartsFromAdaptiveFormat(format) {
-        const contentLength = parseContentLength(format);
-        const chunkParts = getChunkRangesPartsFromContentLength(contentLength);
-        if (!chunkParts.length) {
-          throw new Error("Audio downloader. WEB API. No chunk parts generated");
-        }
-        return chunkParts;
-      }
-      function getChunkRangesFromContentLength(contentLength) {
-        if (contentLength < 1) {
-          throw new Error(
-            "Audio downloader. WEB API. contentLength cannot be less than 1"
-          );
-        }
-        const minChunkSize = Math.round(
-          contentLength * MIN_CONTENT_LENGTH_MULTIPLIER
-        );
-        return generateChunkRanges(contentLength, minChunkSize);
-      }
-      function getChunkRangesFromAdaptiveFormat(adaptiveFormat) {
-        const contentLength = parseContentLength(adaptiveFormat);
-        const chunkRanges = getChunkRangesFromContentLength(contentLength);
-        if (!chunkRanges.length) {
-          throw new Error("Audio downloader. WEB API. Empty chunk ranges");
-        }
-        return chunkRanges;
-      }
-      function mergeBuffers(buffers) {
-        const totalLength = buffers.reduce(
-          (total, buffer) => total + buffer.byteLength,
-          0
-        );
-        const merged = new Uint8Array(totalLength);
-        let offset = 0;
-        for (const buffer of buffers) {
-          merged.set(new Uint8Array(buffer), offset);
-          offset += buffer.byteLength;
-        }
-        return merged;
-      }
-      async function sendRequestToIframe(messageType, data) {
-        const { videoId } = data.payload;
-        const iframeUrl = `https://${IFRAME_HOST}/embed/${videoId}?autoplay=0&mute=1`;
-        try {
-          const iframe = await ensureServiceIframe(
-            serviceIframe,
-            iframeUrl,
-            IFRAME_ID,
-            IFRAME_SERVICE
-          );
-          if (!hasServiceIframe(IFRAME_ID)) {
-            throw new Error("Audio downloader. WEB API. Service iframe deleted");
-          }
-          iframe.contentWindow?.postMessage(
-            {
-              messageId: generateMessageId(),
-              messageType,
-              messageDirection: "request",
-              payload: data,
-              error: data.error
-            },
-            "*"
-          );
-        } catch (err) {
-          data.error = err;
-          data.messageDirection = "response";
-          globalThis.postMessage(data, "*");
-        }
-      }
-      function makeFileId(downloadType, itag, fileSize) {
+      function makeFileId(downloadType, itag, fileSize, minChunkSize) {
         return JSON.stringify({
           downloadType,
           itag,
-          minChunkSize: MIN_CHUNK_RANGES_PART_SIZE,
+          minChunkSize,
           fileSize
         });
       }
-      const GET_AUDIO_DATA_ERROR_MESSAGE = "Audio downloader. WEB API. Can not get getGeneratingAudioUrlsDataFromIframe due to timeout";
-      const INCORRECT_FETCH_MEDIA_MESSAGE = "Audio downloader. WEB API. Incorrect response on fetch media url";
-      const CANT_FETCH_MEDIA_MESSAGE = "Audio downloader. WEB API. Can not fetch media url";
-      const CANT_GET_ARRAY_BUFFER_MESSAGE = "Audio downloader. WEB API. Can not get array buffer from media url";
-      const textDecoder = new TextDecoder("ascii");
-      let mediaQuaryIndex = 1;
-      function patchMediaUrl(url, { start, end }) {
-        const modifiedUrl = new URL(url);
-        modifiedUrl.searchParams.set("range", `${start}-${end}`);
-        modifiedUrl.searchParams.set("rn", String(mediaQuaryIndex++));
-        modifiedUrl.searchParams.delete("ump");
-        return modifiedUrl.toString();
+      function normalizeMimeType(mimeType) {
+        return mimeType?.toLowerCase() ?? "";
       }
-      function isChunkLengthAcceptable(buffer, { start, end }) {
-        const rangeLength = end - start;
-        if (rangeLength > MIN_ARRAY_BUFFER_LENGTH && buffer.byteLength < MIN_ARRAY_BUFFER_LENGTH) {
-          return false;
+      function isAudioOnlyMimeType(mimeType) {
+        const normalizedMimeType = normalizeMimeType(mimeType);
+        return normalizedMimeType.includes("audio/") && !normalizedMimeType.includes("video/");
+      }
+      function isPreferredAdaptiveAudioMimeType(mimeType) {
+        const normalizedMimeType = normalizeMimeType(mimeType);
+        return normalizedMimeType.includes("opus") || normalizedMimeType.includes("mp4a.");
+      }
+      function isMp4aAdaptiveAudioMimeType(mimeType) {
+        const normalizedMimeType = normalizeMimeType(mimeType);
+        return normalizedMimeType.includes("audio/mp4") && normalizedMimeType.includes("mp4a.");
+      }
+      function isOpusAdaptiveAudioMimeType(mimeType) {
+        const normalizedMimeType = normalizeMimeType(mimeType);
+        return normalizedMimeType.includes("audio/webm") && normalizedMimeType.includes("opus");
+      }
+      function extractAudioCodecFromMimeType(mimeType) {
+        if (!mimeType) {
+          return "mp4a.40.2";
         }
-        return Math.min(rangeLength, buffer.byteLength) / Math.max(rangeLength, buffer.byteLength) > ACCEPTABLE_LENGTH_DIFF;
+        const codecsMatch = /codecs="([^"]+)"/i.exec(mimeType);
+        if (!codecsMatch) {
+          return "mp4a.40.2";
+        }
+        const codecBlock = codecsMatch[1];
+        if (!codecBlock) {
+          return "mp4a.40.2";
+        }
+        const codecs = codecBlock.split(",").map((value) => value.trim());
+        const firstCodec = codecs[0];
+        return codecs.find((value) => value.toLowerCase().startsWith("mp4a.")) ?? firstCodec ?? "mp4a.40.2";
       }
-      const getUrlFromArrayBuffer = (buffer) => {
-        return /https:\/\/.*$/.exec(textDecoder.decode(buffer))?.[0];
+      function pickByBitrate(formats, direction) {
+        let selected = null;
+        let selectedBitrate = direction === "max" ? -Infinity : Infinity;
+        for (const format of formats) {
+          const bitrate = format.bitrate ?? 0;
+          if (direction === "max" && bitrate > selectedBitrate || direction === "min" && bitrate < selectedBitrate) {
+            selected = format;
+            selectedBitrate = bitrate;
+          }
+        }
+        return selected;
+      }
+      function pickAdaptiveAudioFormat(formats, quality) {
+        const audioFormats = formats.filter(
+          (format) => isAudioOnlyMimeType(format.mimeType)
+        );
+        if (!audioFormats.length) {
+          throw new Error("No adaptive audio formats were found in player response");
+        }
+        const preferredMp4aFormats = audioFormats.filter(
+          (format) => isMp4aAdaptiveAudioMimeType(format.mimeType)
+        );
+        const preferredOpusFormats = audioFormats.filter(
+          (format) => isOpusAdaptiveAudioMimeType(format.mimeType)
+        );
+        const preferredFormats = audioFormats.filter(
+          (format) => isPreferredAdaptiveAudioMimeType(format.mimeType)
+        );
+        const preferredCandidates = quality === "bestefficiency" ? [preferredOpusFormats, preferredFormats, audioFormats] : [
+          preferredMp4aFormats,
+          preferredOpusFormats,
+          preferredFormats,
+          audioFormats
+        ];
+        const candidates = preferredCandidates.find((formats2) => formats2.length > 0) ?? audioFormats;
+        const selected = pickByBitrate(
+          candidates,
+          quality === "bestefficiency" ? "min" : "max"
+        );
+        if (!selected) {
+          throw new Error("No adaptive audio formats were found in player response");
+        }
+        return selected;
+      }
+      const VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
+      const YT_BASE = "https://www.youtube.com";
+      const ANDROID_CLIENT_VERSION = "19.44.38";
+      const ANDROID_VR_CLIENT_VERSION = "1.60.19";
+      const IOS_CLIENT_VERSION = "19.45.4";
+      const CLIENT_FALLBACK_ORDER = [
+        "ANDROID_VR",
+        "ANDROID",
+        "IOS",
+        "WEB",
+        "MWEB"
+      ];
+      const DEFAULT_HEADERS = {
+        accept: "*/*",
+        origin: YT_BASE,
+        referer: `${YT_BASE}/`
       };
-      const STRATEGY_TYPE = AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME;
-      function isSerializedRequestInitData(value) {
-        return Boolean(value) && typeof value === "object" && "headersEntries" in value;
+      const RANGE_FALLBACK_CHUNK_SIZE = 256 * 1024;
+      function withSignal(signal) {
+        return signal ? { signal } : {};
       }
-      function normalizeRequestInit(requestInit, fallbackInit) {
-        if (!requestInit) {
-          return fallbackInit;
+      function resolveInnertubeClient(requestedClient, watchContext, videoId) {
+        switch (requestedClient) {
+          case "ANDROID":
+          case "YTMUSIC_ANDROID":
+          case "YTSTUDIO_ANDROID":
+            return {
+              clientName: "ANDROID",
+              clientVersion: ANDROID_CLIENT_VERSION,
+              hl: "en",
+              gl: "US",
+              androidSdkVersion: 34,
+              osName: "Android",
+              osVersion: "14",
+              platform: "MOBILE"
+            };
+          case "ANDROID_VR":
+            return {
+              clientName: "ANDROID_VR",
+              clientVersion: ANDROID_VR_CLIENT_VERSION,
+              hl: "en",
+              gl: "US",
+              androidSdkVersion: 31,
+              osName: "Android",
+              osVersion: "12",
+              platform: "MOBILE"
+            };
+          case "IOS":
+            return {
+              clientName: "IOS",
+              clientVersion: IOS_CLIENT_VERSION,
+              hl: "en",
+              gl: "US",
+              platform: "MOBILE",
+              osName: "iPhone",
+              osVersion: "18.0.0.22A3354",
+              deviceMake: "Apple",
+              deviceModel: "iPhone16,2"
+            };
+          case "MWEB":
+            return {
+              clientName: "MWEB",
+              clientVersion: watchContext.clientVersion,
+              hl: "en",
+              gl: "US",
+              originalUrl: `${YT_BASE}/watch?v=${videoId}`
+            };
+          default:
+            return {
+              clientName: "WEB",
+              clientVersion: watchContext.clientVersion,
+              hl: "en",
+              gl: "US",
+              utcOffsetMinutes: 0,
+              originalUrl: `${YT_BASE}/watch?v=${videoId}`
+            };
         }
-        return isSerializedRequestInitData(requestInit) ? deserializeRequestInit(requestInit) : requestInit;
       }
-      const getDownloadAudioDataInMainWorld = (payload, signal) => requestDataFromMainWorldWithId("get-download-audio-data-in-main-world", payload, { signal }).promise;
-      async function getGeneratingAudioUrlsDataFromIframe(videoId, signal) {
-        try {
-          return await Promise.race([
-            getDownloadAudioDataInMainWorld({ videoId }, signal),
-            timeout(2e4, GET_AUDIO_DATA_ERROR_MESSAGE)
-          ]);
-        } catch (err) {
-          const isTimeout = err instanceof Error && err.message === GET_AUDIO_DATA_ERROR_MESSAGE;
-          throw new Error(
-            isTimeout ? GET_AUDIO_DATA_ERROR_MESSAGE : "Audio downloader. WEB API. Failed to get audio data"
-          );
+      function extractVideoId(input) {
+        const value = input.trim();
+        if (VIDEO_ID_PATTERN.test(value)) {
+          return value;
         }
-      }
-      async function fetchMediaWithMeta({
-        mediaUrl,
-        chunkRange,
-        requestInit,
-        signal,
-        isUrlChanged = false
-      }) {
-        const patchedUrl = patchMediaUrl(mediaUrl, chunkRange);
-        let response;
+        let url;
         try {
-          response = await GM_fetch(patchedUrl, {
-            ...requestInit,
-            signal
-          });
-          if (!response.ok) {
-            const errorDetails = serializeResponse(response);
-            console.error(INCORRECT_FETCH_MEDIA_MESSAGE, errorDetails);
-            throw new Error(INCORRECT_FETCH_MEDIA_MESSAGE);
+          url = new URL(value);
+        } catch {
+          throw new Error(`Cannot extract YouTube video id from: ${input}`);
+        }
+        const hostname = url.hostname.toLowerCase();
+        if (hostname === "youtu.be" || hostname.endsWith(".youtu.be")) {
+          const id = url.pathname.split("/").find(Boolean);
+          if (id && VIDEO_ID_PATTERN.test(id)) {
+            return id;
           }
-        } catch (err) {
-          if (err instanceof Error && err.message === INCORRECT_FETCH_MEDIA_MESSAGE) {
-            throw err;
+        }
+        const searchId = url.searchParams.get("v");
+        if (searchId && VIDEO_ID_PATTERN.test(searchId)) {
+          return searchId;
+        }
+        const pathSegments = url.pathname.split("/").filter(Boolean);
+        const shortsIndex = pathSegments.indexOf("shorts");
+        if (shortsIndex !== -1) {
+          const shortsId = pathSegments[shortsIndex + 1];
+          if (shortsId && VIDEO_ID_PATTERN.test(shortsId)) {
+            return shortsId;
           }
-          console.error(CANT_FETCH_MEDIA_MESSAGE, {
-            mediaUrl: patchedUrl,
-            error: err
+        }
+        const embedIndex = pathSegments.indexOf("embed");
+        if (embedIndex !== -1) {
+          const embedId = pathSegments[embedIndex + 1];
+          if (embedId && VIDEO_ID_PATTERN.test(embedId)) {
+            return embedId;
+          }
+        }
+        throw new Error(`Cannot extract YouTube video id from: ${input}`);
+      }
+      function decodeEscapedJsonString(input) {
+        return input.replaceAll("\\u0026", "&").replaceAll("\\/", "/");
+      }
+      function getRequiredVideoId(request) {
+        const source = request.videoId ?? request.videoUrl;
+        if (!source) {
+          throw new Error("Either videoId or videoUrl is required");
+        }
+        return extractVideoId(source);
+      }
+      function matchFirst(source, patterns) {
+        for (const pattern of patterns) {
+          const matched = pattern.exec(source)?.[1];
+          if (matched) {
+            return matched;
+          }
+        }
+        return void 0;
+      }
+      async function readResponseBytes(response) {
+        const byteReader = response.bytes;
+        if (typeof byteReader === "function") {
+          return byteReader.call(response);
+        }
+        return new Uint8Array(await response.arrayBuffer());
+      }
+      function makeCPN(length = 16) {
+        const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+        let output = "";
+        if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+          const bytes = new Uint8Array(length);
+          crypto.getRandomValues(bytes);
+          for (const byte of bytes) {
+            output += alphabet[byte % alphabet.length] ?? "a";
+          }
+          return output;
+        }
+        for (let i2 = 0; i2 < length; i2++) {
+          output += alphabet[Math.floor(Math.random() * alphabet.length)] ?? "a";
+        }
+        return output;
+      }
+      function parsePositiveInteger(value) {
+        if (!value) {
+          return null;
+        }
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          return null;
+        }
+        return parsed;
+      }
+      function parseContentLengthFromContentRange(contentRange) {
+        if (!contentRange) {
+          return null;
+        }
+        const matched = /\/(\d+)\s*$/i.exec(contentRange);
+        return parsePositiveInteger(matched?.[1]);
+      }
+      function addRangeToStreamUrl(streamUrl, start, end, requestNumber) {
+        const url = new URL(streamUrl);
+        url.searchParams.set("range", `${start}-${end}`);
+        if (requestNumber > 0) {
+          url.searchParams.set("rn", String(requestNumber));
+        } else {
+          url.searchParams.delete("rn");
+        }
+        return url.toString();
+      }
+      function getAudioMimeType(mimeType) {
+        const normalizedMimeType = mimeType?.toLowerCase() ?? "";
+        if (normalizedMimeType.includes("audio/webm")) {
+          return "audio/webm";
+        }
+        if (normalizedMimeType.includes("audio/mp4")) {
+          return "audio/mp4";
+        }
+        return "audio/aac";
+      }
+      function buildClientAttemptOrder(requestedClient) {
+        const ordered = requestedClient ? [requestedClient, ...CLIENT_FALLBACK_ORDER] : [...CLIENT_FALLBACK_ORDER];
+        const seen2 = new Set();
+        return ordered.filter((client) => {
+          if (seen2.has(client)) {
+            return false;
+          }
+          seen2.add(client);
+          return true;
+        });
+      }
+      let AudioDownloader$1 = class AudioDownloader {
+        fetchFn;
+        constructor(options = {}) {
+          this.fetchFn = options.fetchImplementation ?? fetch;
+        }
+        async fetchRangeChunk(streamUrl, start, end, signal, requestNumber) {
+          const rangeUrl = addRangeToStreamUrl(streamUrl, start, end, requestNumber);
+          const rangeHeader = `bytes=${start}-${end}`;
+          let queryResponseStatus = "fetch_error";
+          try {
+            const queryResponse = await this.fetchFn(rangeUrl, {
+              headers: DEFAULT_HEADERS,
+              ...withSignal(signal)
+            });
+            queryResponseStatus = queryResponse.status;
+            if (queryResponse.ok) {
+              const bytes2 = await readResponseBytes(queryResponse);
+              if (!bytes2.byteLength) {
+                throw new Error("Received empty stream chunk");
+              }
+              return bytes2;
+            }
+          } catch (error2) {
+            queryResponseStatus = error2 instanceof Error ? error2.message : "fetch_error";
+          }
+          const headerResponse = await this.fetchFn(streamUrl, {
+            headers: {
+              ...DEFAULT_HEADERS,
+              range: rangeHeader
+            },
+            ...withSignal(signal)
           });
-          throw new Error(CANT_FETCH_MEDIA_MESSAGE);
+          if (!headerResponse.ok) {
+            throw new Error(
+              `Failed to download stream chunk: query=${queryResponseStatus}; header=${headerResponse.status}`
+            );
+          }
+          const bytes = await readResponseBytes(headerResponse);
+          if (!bytes.byteLength) {
+            throw new Error("Received empty stream chunk");
+          }
+          return bytes;
         }
-        let arrayBuffer;
-        try {
-          arrayBuffer = await response.arrayBuffer();
-        } catch (err) {
-          console.error(CANT_GET_ARRAY_BUFFER_MESSAGE, {
-            mediaUrl: patchedUrl,
-            error: err
-          });
-          throw new Error(CANT_GET_ARRAY_BUFFER_MESSAGE);
-        }
-        debug.log(
-          "isChunkLengthAcceptable",
-          isChunkLengthAcceptable(arrayBuffer, chunkRange),
-          arrayBuffer.byteLength,
-          chunkRange
-        );
-        if (isChunkLengthAcceptable(arrayBuffer, chunkRange)) {
-          return {
-            media: arrayBuffer,
-            url: isUrlChanged ? mediaUrl : null,
-            isAcceptableLast: false
-          };
-        }
-        const redirectedUrl = getUrlFromArrayBuffer(arrayBuffer);
-        if (redirectedUrl) {
-          return fetchMediaWithMeta({
-            mediaUrl: redirectedUrl,
-            chunkRange,
-            requestInit,
+        async downloadStreamByRanges(streamUrl, contentLengthHint, signal) {
+          const fileSize = await this.resolveStreamContentLength(
+            streamUrl,
+            contentLengthHint,
             signal,
-            isUrlChanged: true
-          });
-        }
-        if (!chunkRange.mustExist) {
-          return {
-            media: arrayBuffer,
-            url: null,
-            isAcceptableLast: true
-          };
-        }
-        throw new Error(
-          `Audio downloader. WEB API. Can not get redirected media url ${patchedUrl}`
-        );
-      }
-      async function fetchMediaWithMetaByChunkRanges(mediaUrl, requestInit, chunkRanges, signal) {
-        let currentUrl = mediaUrl;
-        const mediaBuffers = [];
-        let isAcceptableLast = false;
-        for (const chunkRange of chunkRanges) {
-          const result = await fetchMediaWithMeta({
-            mediaUrl: currentUrl,
-            chunkRange,
-            requestInit,
-            signal
-          });
-          if (result.url) {
-            currentUrl = result.url;
+            true
+          );
+          const merged = new Uint8Array(fileSize);
+          let offset = 0;
+          for (let start = 0, index = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE, index++) {
+            const end = Math.min(fileSize - 1, start + RANGE_FALLBACK_CHUNK_SIZE - 1);
+            const chunk = await this.fetchRangeChunk(
+              streamUrl,
+              start,
+              end,
+              signal,
+              index + 1
+            );
+            if (offset + chunk.byteLength > merged.byteLength) {
+              throw new Error(
+                "Downloaded stream chunk exceeds probed stream content length"
+              );
+            }
+            merged.set(chunk, offset);
+            offset += chunk.byteLength;
           }
-          mediaBuffers.push(result.media);
-          isAcceptableLast = result.isAcceptableLast;
-          if (isAcceptableLast) {
-            break;
+          if (offset === merged.byteLength) {
+            return merged;
           }
+          return merged.slice(0, offset);
         }
-        return {
-          media: mergeBuffers(mediaBuffers),
-          url: currentUrl,
-          isAcceptableLast
-        };
-      }
-      async function getAudioFromWebApiWithReplacedFetch({
-        videoId,
-        returnByParts = false,
-        signal
-      }) {
-        const { requestInit, requestInfo, adaptiveFormat, itag } = await getGeneratingAudioUrlsDataFromIframe(videoId, signal);
-        if (!requestInfo) {
-          throw new Error("Audio downloader. WEB API. Can not get requestInfo");
-        }
-        let mediaUrl = getRequestUrl(requestInfo);
-        const serializedInit = serializeRequestInit(requestInfo);
-        const fallbackInit = deserializeRequestInit(serializedInit);
-        const finalRequestInit = normalizeRequestInit(requestInit, fallbackInit);
-        const chunkParts = returnByParts ? getChunkRangesPartsFromAdaptiveFormat(adaptiveFormat) : null;
-        return {
-          fileId: makeFileId(STRATEGY_TYPE, itag, adaptiveFormat.contentLength),
-          mediaPartsLength: chunkParts?.length ?? 1,
-          async *getMediaBuffers() {
-            if (returnByParts) {
-              if (!chunkParts?.length) {
-                throw new Error("Audio downloader. WEB API. Empty chunk parts");
-              }
-              for (const part of chunkParts) {
-                const { media, url, isAcceptableLast } = await fetchMediaWithMetaByChunkRanges(
-                  mediaUrl,
-                  finalRequestInit,
-                  part,
-                  signal
-                );
-                if (url) {
-                  mediaUrl = url;
-                }
-                yield media;
-                if (isAcceptableLast) {
-                  break;
-                }
-              }
-            } else {
-              const chunkRanges = getChunkRangesFromAdaptiveFormat(adaptiveFormat);
-              const { media } = await fetchMediaWithMetaByChunkRanges(
-                mediaUrl,
-                finalRequestInit,
-                chunkRanges,
+        async downloadStreamBytes(streamUrl, contentLengthHint, signal, options = {}) {
+          if (options.preferRangeFirst) {
+            try {
+              return await this.downloadStreamByRanges(
+                streamUrl,
+                contentLengthHint,
                 signal
               );
-              yield media;
+            } catch (rangeError) {
+              const rangeMessage = rangeError instanceof Error ? rangeError.message : String(rangeError);
+              throw new Error(`Failed to download stream by ranges: ${rangeMessage}`);
+            }
+          }
+          let fullResponseStatus = "fetch_error";
+          try {
+            const streamResponse = await this.fetchFn(streamUrl, {
+              headers: DEFAULT_HEADERS,
+              ...withSignal(signal)
+            });
+            fullResponseStatus = streamResponse.status;
+            if (streamResponse.ok) {
+              const bytes = await readResponseBytes(streamResponse);
+              if (!bytes.byteLength) {
+                throw new Error("Received empty stream");
+              }
+              return bytes;
+            }
+          } catch (error2) {
+            fullResponseStatus = error2 instanceof Error ? error2.message : "fetch_error";
+          }
+          try {
+            return await this.downloadStreamByRanges(
+              streamUrl,
+              contentLengthHint,
+              signal
+            );
+          } catch (rangeError) {
+            const rangeMessage = rangeError instanceof Error ? rangeError.message : String(rangeError);
+            throw new Error(
+              `Failed to download stream: full=${fullResponseStatus}; range=${rangeMessage}`
+            );
+          }
+        }
+        async downloadAudioToChunkStream(request, options) {
+          if (options.chunkSize <= 0) {
+            throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
+          }
+          const videoId = getRequiredVideoId(request);
+          const { signal } = request;
+          const watchContext = await this.fetchWatchContext(videoId, signal);
+          const quality = request.videoQuality ?? "best";
+          const clientAttempts = buildClientAttemptOrder(request.client);
+          const attemptErrors = [];
+          for (const client of clientAttempts) {
+            try {
+              const resolved = await this.resolvePlayableFormatForClient({
+                videoId,
+                watchContext,
+                client,
+                quality,
+                signal
+              });
+              if (!isAudioOnlyMimeType(resolved.chosenFormat.mimeType)) {
+                throw new Error(
+                  "Chunk mode requires an adaptive audio stream format"
+                );
+              }
+              const fileSize = await this.resolveStreamContentLength(
+                resolved.streamUrl,
+                resolved.chosenFormat.contentLength,
+                request.signal,
+                true
+              );
+              const mediaPartsLength = Math.max(
+                1,
+                Math.ceil(fileSize / options.chunkSize)
+              );
+              return {
+                videoId: resolved.videoId,
+                fileSize,
+                itag: resolved.chosenFormat.itag ?? 0,
+                mediaPartsLength,
+                getMediaBuffers: (async function* () {
+                  for (let index = 0; index < mediaPartsLength; index++) {
+                    const start = index * options.chunkSize;
+                    const end = Math.min(fileSize - 1, start + options.chunkSize - 1);
+                    const bytes = await this.fetchRangeChunk(
+                      resolved.streamUrl,
+                      start,
+                      end,
+                      request.signal,
+                      index + 1
+                    );
+                    yield bytes;
+                  }
+                }).bind(this)
+              };
+            } catch (error2) {
+              const message = error2 instanceof Error ? error2.message : String(error2);
+              attemptErrors.push(`${client}: ${message}`);
+            }
+          }
+          throw new Error(
+            `Unable to resolve streamable format for chunk mode. Attempts: ${attemptErrors.join(" | ")}`
+          );
+        }
+        async downloadAudioToUint8Array(request) {
+          const chunks = [];
+          let total = 0;
+          const streamResult = await this.extractAndWriteAudio(request, {
+            async write(chunk) {
+              chunks.push(chunk);
+              total += chunk.byteLength;
+            }
+          });
+          const bytes = new Uint8Array(total);
+          let offset = 0;
+          for (const chunk of chunks) {
+            bytes.set(chunk, offset);
+            offset += chunk.byteLength;
+          }
+          return {
+            ...streamResult,
+            bytes
+          };
+        }
+        async extractAndWriteAudio(request, sink) {
+          const videoId = getRequiredVideoId(request);
+          const { signal } = request;
+          const watchContext = await this.fetchWatchContext(videoId, signal);
+          const quality = request.videoQuality ?? "bestefficiency";
+          const clientAttempts = buildClientAttemptOrder(request.client);
+          const attemptErrors = [];
+          for (const client of clientAttempts) {
+            try {
+              const resolved = await this.resolvePlayableFormatForClient({
+                videoId,
+                watchContext,
+                client,
+                quality,
+                signal
+              });
+              const isAudioOnly = isAudioOnlyMimeType(resolved.chosenFormat.mimeType);
+              const streamBytes = await this.downloadStreamBytes(
+                resolved.streamUrl,
+                resolved.chosenFormat.contentLength,
+                request.signal,
+                {
+
+preferRangeFirst: isAudioOnly
+                }
+              );
+              const hints = this.getExtractionHints(resolved.chosenFormat);
+              if (isAudioOnly) {
+                await sink.write(streamBytes);
+                return {
+                  videoId: resolved.videoId,
+                  bytesWritten: streamBytes.byteLength,
+                  mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
+                  codec: hints.codec,
+                  sampleRate: hints.sampleRate,
+                  channels: hints.channels
+                };
+              }
+              throw new Error(
+                "Selected stream is not audio-only. Video-based fallback is disabled."
+              );
+            } catch (error2) {
+              const message = error2 instanceof Error ? error2.message : String(error2);
+              attemptErrors.push(`${client}: ${message}`);
+            }
+          }
+          throw new Error(
+            `Unable to download playable stream format. Attempts: ${attemptErrors.join(" | ")}`
+          );
+        }
+        async resolvePlayableFormatForClient({
+          videoId,
+          watchContext,
+          client,
+          quality,
+          signal
+        }) {
+          const response = await this.fetchPlayerResponse(
+            videoId,
+            watchContext,
+            client,
+            signal
+          );
+          const adaptiveFormats = response.streamingData?.adaptiveFormats ?? [];
+          const directAdaptiveFormats = adaptiveFormats.filter(
+            (format) => Boolean(format.url)
+          );
+          let chosenFormat = null;
+          if (directAdaptiveFormats.length) {
+            try {
+              chosenFormat = pickAdaptiveAudioFormat(directAdaptiveFormats, quality);
+            } catch {
+            }
+          }
+          if (!chosenFormat) {
+            throw new Error(
+              "Player response did not contain direct adaptive audio stream URLs"
+            );
+          }
+          const streamUrl = this.resolveFormatUrl(
+            chosenFormat,
+            watchContext.clientVersion
+          );
+          return {
+            videoId,
+            client,
+            chosenFormat,
+            streamUrl
+          };
+        }
+        async resolveStreamContentLength(streamUrl, contentLengthHint, signal, forceProbe = false) {
+          const hintedLength = parsePositiveInteger(contentLengthHint);
+          if (hintedLength !== null && !forceProbe) {
+            return hintedLength;
+          }
+          const probeUrl = addRangeToStreamUrl(streamUrl, 0, 0, 0);
+          let probeResponse = null;
+          let probeQueryStatus = "fetch_error";
+          try {
+            const queryProbeResponse = await this.fetchFn(probeUrl, {
+              headers: DEFAULT_HEADERS,
+              ...withSignal(signal)
+            });
+            probeQueryStatus = queryProbeResponse.status;
+            if (queryProbeResponse.ok) {
+              probeResponse = queryProbeResponse;
+            }
+          } catch (error2) {
+            probeQueryStatus = error2 instanceof Error ? error2.message : "fetch_error";
+          }
+          if (!probeResponse) {
+            const headerProbeResponse = await this.fetchFn(streamUrl, {
+              headers: {
+                ...DEFAULT_HEADERS,
+                range: "bytes=0-0"
+              },
+              ...withSignal(signal)
+            });
+            if (headerProbeResponse.ok) {
+              probeResponse = headerProbeResponse;
+            } else {
+              if (hintedLength !== null) {
+                return hintedLength;
+              }
+              throw new Error(
+                `Failed to probe stream content length: query=${probeQueryStatus}; header=${headerProbeResponse.status}`
+              );
+            }
+          }
+          if (!probeResponse.ok) {
+            if (hintedLength !== null) {
+              return hintedLength;
+            }
+            throw new Error(
+              `Failed to probe stream content length: ${probeResponse.status}`
+            );
+          }
+          const contentRangeLength = parseContentLengthFromContentRange(
+            probeResponse.headers.get("content-range")
+          );
+          const storedLength = parsePositiveInteger(
+            probeResponse.headers.get("x-goog-stored-content-length")
+          );
+          const contentLength = parsePositiveInteger(
+            probeResponse.headers.get("content-length")
+          );
+          if (typeof probeResponse.body?.cancel === "function") {
+            try {
+              await probeResponse.body.cancel();
+            } catch {
+            }
+          }
+          return contentRangeLength ?? storedLength ?? hintedLength ?? contentLength ?? (() => {
+            throw new Error("Failed to resolve stream content length");
+          })();
+        }
+        getExtractionHints(format) {
+          const codec = extractAudioCodecFromMimeType(format.mimeType);
+          const sampleRate = Number.parseInt(format.audioSampleRate ?? "", 10);
+          return {
+            codec,
+            sampleRate: Number.isFinite(sampleRate) && sampleRate > 0 ? sampleRate : 44100,
+            channels: format.audioChannels && format.audioChannels > 0 ? format.audioChannels : 2
+          };
+        }
+        resolveFormatUrl(format, clientVersion) {
+          if (!format.url) {
+            throw new Error("Selected format does not contain a direct stream URL");
+          }
+          const streamUrl = new URL(format.url);
+          const client = streamUrl.searchParams.get("c");
+          if (client === "WEB") {
+            streamUrl.searchParams.set("cver", clientVersion);
+          }
+          streamUrl.searchParams.set("cpn", makeCPN());
+          return streamUrl.toString();
+        }
+        async fetchWatchContext(videoId, signal) {
+          const watchUrl = `${YT_BASE}/watch?v=${encodeURIComponent(videoId)}&hl=en`;
+          const response = await this.fetchFn(watchUrl, {
+            headers: DEFAULT_HEADERS,
+            ...withSignal(signal)
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to load watch page: ${response.status}`);
+          }
+          const html = await response.text();
+          const apiKey = matchFirst(html, [
+            /"INNERTUBE_API_KEY":"([^"]+)"/,
+            /["']INNERTUBE_API_KEY["']\s*:\s*"([^"]+)"/
+          ]);
+          const clientVersion = matchFirst(html, [
+            /"INNERTUBE_CLIENT_VERSION":"([^"]+)"/,
+            /["']INNERTUBE_CLIENT_VERSION["']\s*:\s*"([^"]+)"/
+          ]);
+          const stsRaw = matchFirst(html, [/"STS":(\d+)/, /["']STS["']\s*:\s*(\d+)/]);
+          const visitorData = matchFirst(html, [
+            /"VISITOR_DATA":"([^"]+)"/,
+            /"visitorData":"([^"]+)"/,
+            /["'](?:VISITOR_DATA|visitorData)["']\s*:\s*"([^"]+)"/
+          ]);
+          if (!apiKey || !clientVersion) {
+            throw new Error(
+              "Failed to extract required player context from watch page"
+            );
+          }
+          const signatureTimestamp = stsRaw ? Number.parseInt(stsRaw, 10) : void 0;
+          const context = {
+            apiKey,
+            clientVersion
+          };
+          if (typeof signatureTimestamp === "number" && Number.isFinite(signatureTimestamp)) {
+            context.signatureTimestamp = signatureTimestamp;
+          }
+          if (visitorData) {
+            context.visitorData = decodeEscapedJsonString(visitorData);
+          }
+          return context;
+        }
+        async fetchPlayerResponse(videoId, watchContext, requestedClient, signal) {
+          const client = resolveInnertubeClient(
+            requestedClient,
+            watchContext,
+            videoId
+          );
+          if (watchContext.visitorData) {
+            client.visitorData = watchContext.visitorData;
+          }
+          const body = {
+            context: {
+              client
+            },
+            videoId,
+            contentCheckOk: true,
+            racyCheckOk: true
+          };
+          if (watchContext.signatureTimestamp) {
+            body.playbackContext = {
+              contentPlaybackContext: {
+                signatureTimestamp: watchContext.signatureTimestamp
+              }
+            };
+          }
+          const endpoint = `${YT_BASE}/youtubei/v1/player?key=${encodeURIComponent(watchContext.apiKey)}`;
+          const response = await this.fetchFn(endpoint, {
+            method: "POST",
+            headers: {
+              ...DEFAULT_HEADERS,
+              "content-type": "application/json",
+              ...watchContext.visitorData ? { "x-goog-visitor-id": watchContext.visitorData } : {}
+            },
+            body: JSON.stringify(body),
+            ...withSignal(signal)
+          });
+          if (!response.ok) {
+            throw new Error(
+              `Player API request failed with status ${response.status}`
+            );
+          }
+          const json = await response.json();
+          const hasFormats = Boolean(json.streamingData?.formats?.length);
+          const hasAdaptiveFormats = Boolean(
+            json.streamingData?.adaptiveFormats?.length
+          );
+          if (!hasFormats && !hasAdaptiveFormats) {
+            throw new Error("Player response did not contain streaming formats");
+          }
+          return json;
+        }
+      };
+      const DEFAULT_YT_AUDIO_QUALITY = "bestefficiency";
+      const DEFAULT_FETCH_TIMEOUT_MS = 3e4;
+      function assertValidChunkSize(chunkSize) {
+        if (chunkSize <= 0) {
+          throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
+        }
+      }
+      function splitAudioIntoChunks(bytes, chunkSize) {
+        if (bytes.byteLength <= chunkSize) {
+          return [bytes];
+        }
+        const chunks = [];
+        for (let start = 0; start < bytes.byteLength; start += chunkSize) {
+          chunks.push(
+            bytes.subarray(start, Math.min(start + chunkSize, bytes.length))
+          );
+        }
+        return chunks;
+      }
+      function createYtAudioFetch({
+        signal,
+        timeoutMs
+      }) {
+        return async (input, init2 = {}) => await GM_fetch(input, {
+          ...init2,
+          signal: init2.signal ?? signal,
+          forceGmXhr: true,
+          timeout: timeoutMs
+        });
+      }
+      async function getAudioFromYtAudio({ videoId, signal }, deps = {}) {
+        const chunkSize = deps.chunkSize ?? votConfig.minChunkSize;
+        assertValidChunkSize(chunkSize);
+        const fetchImplementation = createYtAudioFetch({
+          signal,
+          timeoutMs: deps.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
+        });
+        const downloader = deps.createDownloader?.(fetchImplementation) ?? new AudioDownloader$1({ fetchImplementation });
+        const streamingDownload = typeof downloader.downloadAudioToChunkStream === "function" ? downloader.downloadAudioToChunkStream.bind(downloader) : void 0;
+        if (typeof streamingDownload === "function") {
+          try {
+            const streamResult = await streamingDownload(
+              {
+                videoId,
+                videoQuality: DEFAULT_YT_AUDIO_QUALITY,
+                signal
+              },
+              { chunkSize }
+            );
+            return {
+              fileId: makeFileId(
+                AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
+                streamResult.itag,
+                String(streamResult.fileSize),
+                chunkSize
+              ),
+              mediaPartsLength: streamResult.mediaPartsLength,
+              getMediaBuffers: streamResult.getMediaBuffers
+            };
+          } catch (error2) {
+            console.warn(
+              "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
+              error2
+            );
+          }
+        }
+        const result = await downloader.downloadAudioToUint8Array({
+          videoId,
+          videoQuality: DEFAULT_YT_AUDIO_QUALITY,
+          signal
+        });
+        const bytes = result.bytes;
+        if (!bytes || bytes.byteLength === 0) {
+          throw new Error("Audio downloader. ytAudio. Empty audio");
+        }
+        const chunks = splitAudioIntoChunks(bytes, chunkSize);
+        if (!chunks.length) {
+          throw new Error("Audio downloader. ytAudio. Can not split audio");
+        }
+        const fileId = makeFileId(
+          AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
+          0,
+          String(bytes.byteLength),
+          chunkSize
+        );
+        return {
+          fileId,
+          mediaPartsLength: chunks.length,
+          async *getMediaBuffers() {
+            for (const chunk of chunks) {
+              yield chunk;
             }
           }
         };
       }
+      const YT_AUDIO_STRATEGY = "ytAudio";
       const strategies = {
-        [AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME]: getAudioFromWebApiWithReplacedFetch
+        [YT_AUDIO_STRATEGY]: getAudioFromYtAudio
       };
+      function assertValidMediaPartsLength(mediaPartsLength) {
+        if (!Number.isInteger(mediaPartsLength) || mediaPartsLength < 1) {
+          throw new Error("Audio downloader. Invalid media parts length");
+        }
+      }
+      function assertHasAudioChunk(chunk) {
+        if (!chunk || chunk.byteLength === 0) {
+          throw new Error("Audio downloader. Empty audio");
+        }
+        return chunk;
+      }
       async function handleCommonAudioDownloadRequest({
         audioDownloader,
         translationId,
@@ -10294,7 +10701,6 @@ clear() {
       }) {
         const audioData = await strategies[audioDownloader.strategy]({
           videoId,
-          returnByParts: true,
           signal
         });
         if (!audioData) {
@@ -10304,29 +10710,27 @@ clear() {
           audioDownloadType: audioDownloader.strategy
         });
         const { getMediaBuffers, mediaPartsLength, fileId } = audioData;
+        assertValidMediaPartsLength(mediaPartsLength);
         if (mediaPartsLength < 2) {
-          const { value } = await getMediaBuffers().next();
-          if (!value) {
-            throw new Error("Audio downloader. Empty audio");
-          }
+          const iterator = getMediaBuffers();
+          const { value } = await iterator.next();
+          const singleChunk = assertHasAudioChunk(value);
           await audioDownloader.onDownloadedAudio.dispatchAsync(translationId, {
             videoId,
             fileId,
-            audioData: value
+            audioData: singleChunk
           });
           return;
         }
         let index = 0;
         for await (const audioChunk of getMediaBuffers()) {
-          if (!audioChunk) {
-            throw new Error("Audio downloader. Empty audio");
-          }
+          const chunk = assertHasAudioChunk(audioChunk);
           await audioDownloader.onDownloadedPartialAudio.dispatchAsync(
             translationId,
             {
               videoId,
               fileId,
-              audioData: audioChunk,
+              audioData: chunk,
               version: 1,
               index,
               amount: mediaPartsLength
@@ -10334,42 +10738,24 @@ clear() {
           );
           index++;
         }
-      }
-      async function mainWorldMessageHandler(event) {
-        const { data, source } = event;
-        try {
-          if (data?.messageType !== "get-download-audio-data-in-main-world") {
-            return;
-          }
-          if (data.messageDirection === "response") {
-            if (source !== globalThis.window) {
-              globalThis.postMessage(data, "*");
-            }
-            return;
-          }
-          if (data.messageDirection !== "request") {
-            return;
-          }
-          await sendRequestToIframe(
-            "get-download-audio-data-in-iframe",
-            data
+        if (index !== mediaPartsLength) {
+          throw new Error(
+            `Audio downloader. Expected ${mediaPartsLength} chunks, got ${index}`
           );
-        } catch (error2) {
-          console.error("[VOT] Main world bridge", {
-            error: error2
-          });
         }
       }
-      class AudioDownloader {
+      class AudioDownloader2 {
         onDownloadedAudio = new EventImpl();
         onDownloadedPartialAudio = new EventImpl();
         onDownloadAudioError = new EventImpl();
         strategy;
-        constructor(strategy = AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME) {
+        constructor(strategy = YT_AUDIO_STRATEGY) {
           this.strategy = strategy;
+          debug.log("Audio downloader created", {
+            strategy
+          });
         }
         async runAudioDownload(videoId, translationId, signal) {
-          globalThis.addEventListener("message", mainWorldMessageHandler);
           try {
             await handleCommonAudioDownloadRequest({
               audioDownloader: this,
@@ -10381,10 +10767,12 @@ clear() {
               videoId
             });
           } catch (err) {
-            console.error("Audio downloader. Failed to download audio", err);
+            debug.error("Audio downloader. Failed to download audio", {
+              videoId,
+              error: err instanceof Error ? err.message : String(err)
+            });
             this.onDownloadAudioError.dispatch(videoId);
           }
-          globalThis.removeEventListener("message", mainWorldMessageHandler);
         }
         addEventListener(type, listener) {
           switch (type) {
@@ -10591,12 +10979,14 @@ localizedMessage;
 requestedFailAudio = new Set();
         constructor(videoHandler) {
           this.videoHandler = videoHandler;
-          this.audioDownloader = new AudioDownloader();
+          this.audioDownloader = new AudioDownloader2();
           this.downloading = false;
           this.audioDownloader.addEventListener("downloadedAudio", this.onDownloadedAudio).addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio).addEventListener("downloadAudioError", this.onDownloadAudioError);
         }
         onDownloadedAudio = async (translationId, data) => {
+          debug.log("downloadedAudio", data);
           if (!this.downloading) {
+            debug.log("skip downloadedAudio");
             return;
           }
           const { videoId, fileId, audioData } = data;
@@ -10610,12 +11000,19 @@ requestedFailAudio = new Set();
                 fileId
               }
             );
-          } catch {
+          } catch (error2) {
+            debug.error("Failed to upload downloaded audio", error2);
+            this.finishDownloadFailure(
+              new Error("Audio downloader failed while uploading full audio")
+            );
+            return;
           }
           this.finishDownloadSuccess();
         };
         onDownloadedPartialAudio = async (translationId, data) => {
+          debug.log("downloadedPartialAudio", data);
           if (!this.downloading) {
+            debug.log("skip downloadedPartialAudio");
             return;
           }
           const { audioData, fileId, videoId, amount, version, index } = data;
@@ -10634,7 +11031,8 @@ requestedFailAudio = new Set();
                 version
               }
             );
-          } catch {
+          } catch (error2) {
+            debug.error("Failed to upload downloaded audio chunk", error2);
             this.finishDownloadFailure(
               new Error("Audio downloader failed while uploading chunk")
             );
@@ -10646,8 +11044,10 @@ requestedFailAudio = new Set();
         };
         onDownloadAudioError = async (videoId) => {
           if (!this.downloading) {
+            debug.log("skip downloadAudioError");
             return;
           }
+          debug.log(`Failed to download audio ${videoId}`);
           const videoUrl = this.getCanonicalUrl(videoId);
           const shouldUseFallback = this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload);
           if (!shouldUseFallback) {
@@ -10666,6 +11066,7 @@ requestedFailAudio = new Set();
             }
             this.finishDownloadSuccess();
           } catch (error2) {
+            debug.error("fail-audio-js request failed", error2);
             this.finishDownloadFailure(
               new VOTLocalizedError("VOTFailedDownloadAudio")
             );
@@ -10723,12 +11124,16 @@ isLivelyVoiceUnavailableError(value) {
             }
           });
         }
-        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = new AbortController().signal, disableLivelyVoice = false) {
+        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false) {
           clearTimeout(this.videoHandler.autoRetry);
           this.finishDownloadSuccess();
           const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
             requestLang,
             responseLang
+          );
+          debug.log(
+            videoData,
+            `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`
           );
           let livelyDisabled = disableLivelyVoice;
           try {
@@ -10816,6 +11221,7 @@ isLivelyVoiceUnavailableError(value) {
             }
           } catch (err) {
             if (isAbortError(err)) {
+              debug.log("aborted video translation");
               return null;
             }
             const uiError = mapVotClientErrorForUi(err);
@@ -10883,11 +11289,10 @@ isLivelyVoiceUnavailableError(value) {
               }
             };
             this.downloadWaiters.add(entry);
+            signal.addEventListener("abort", onAbort, { once: true });
             if (signal.aborted) {
               onAbort();
-              return;
             }
-            signal.addEventListener("abort", onAbort, { once: true });
           });
         }
         resolveDownloadWaiters() {
@@ -10918,6 +11323,7 @@ isLivelyVoiceUnavailableError(value) {
         }
         setState(next) {
           this.state = next;
+          debug.log("[TranslationOrchestrator] state", next);
         }
         reset() {
           this.setState({ status: "idle" });
@@ -10930,8 +11336,14 @@ isLivelyVoiceUnavailableError(value) {
             return;
           }
           if (this.deps.isMobileYouTubeMuted?.()) {
+            debug.log(
+              "[TranslationOrchestrator] Mobile YouTube video is muted, deferring auto-translate"
+            );
             this.setState({ status: "deferred", reason: "muted" });
             this.deps.setMuteWatcher?.(() => {
+              debug.log(
+                "[TranslationOrchestrator] Video unmuted, running deferred auto-translate"
+              );
               this.setState({ status: "idle" });
               void this.runAutoTranslationIfEligible();
             });
@@ -11009,6 +11421,7 @@ isLivelyVoiceUnavailableError(value) {
           this.lifecycleGeneration += 1;
           const sessionId = this.lifecycleGeneration;
           this.resetActions(`[VideoLifecycle][session:${sessionId}] ${reason}`);
+          debug.log(`[VideoLifecycle][session:${sessionId}] started`, { reason });
           return sessionId;
         }
         shouldAbortHandleSrcChanged(callId, stage) {
@@ -11028,9 +11441,11 @@ isLivelyVoiceUnavailableError(value) {
           const hasSrcObject = this.host.video.srcObject ? "1" : "0";
           if (this.host.site.host === "youtube") {
             const path = globalThis.location.pathname;
+            const stableUrlKey = `${globalThis.location.origin}${path}${globalThis.location.search}`;
             if (path.startsWith("/shorts/")) {
-              return `${globalThis.location.origin}${path}||${hasSrcObject}`;
+              return `${stableUrlKey}||${hasSrcObject}`;
             }
+            return `${stableUrlKey}||${hasSrcObject}`;
           }
           const src = this.host.video.currentSrc || this.host.video.src || "";
           return `${globalThis.location.href}||${src}||${hasSrcObject}`;
@@ -11057,6 +11472,10 @@ isLivelyVoiceUnavailableError(value) {
               this.invalidateActiveSession(
                 "setCanPlay source changed while previous trigger is running"
               );
+            } else {
+              debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", {
+                sourceKey: incomingSourceKey
+              });
             }
             return await this.setCanPlayLoopPromise;
           }
@@ -11078,11 +11497,18 @@ isLivelyVoiceUnavailableError(value) {
         async runSetCanPlayOnce() {
           const sourceKey = this.getCurrentSourceKey();
           if (this.host.videoData?.videoId && sourceKey === this.lastSetCanPlaySourceKey) {
+            debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", {
+              sourceKey
+            });
             return;
           }
           try {
             this.host.videoData = await this.host.getVideoData();
           } catch (err) {
+            debug.log(
+              `[VideoLifecycle] getVideoData failed for source ${sourceKey}`,
+              err
+            );
             this.host.videoData = void 0;
             hideLifecycleOverlay(this.host.uiManager.votOverlayView, {
               hideMenu: true
@@ -11091,6 +11517,9 @@ isLivelyVoiceUnavailableError(value) {
           }
           this.activeSetCanPlaySourceKey = sourceKey;
           const currentId = this.startSession(`setCanPlay (source: ${sourceKey})`);
+          debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay started`, {
+            sourceKey
+          });
           try {
             await this.handleSrcChanged(currentId, sourceKey);
             if (this.isStale(currentId)) {
@@ -11128,6 +11557,10 @@ isLivelyVoiceUnavailableError(value) {
           try {
             await this.host.enableSubtitlesForCurrentLangPair();
           } catch (err) {
+            debug.log(
+              `[VideoLifecycle][session:${sessionId}] auto-subtitles failed`,
+              err
+            );
           }
         }
         async handleSrcChanged(callId, expectedSourceKey) {
@@ -11136,6 +11569,10 @@ isLivelyVoiceUnavailableError(value) {
           if (this.shouldAbortHandleSrcChanged(sessionId, "before start")) {
             return;
           }
+          debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, {
+            sourceKey
+          });
+          this.host.translationOrchestrator.reset();
           this.host.firstPlay = true;
           const overlayView = this.host.uiManager.votOverlayView;
           resetAndHideLifecycle(this.host, overlayView, { requireVideoData: true });
@@ -11157,6 +11594,9 @@ isLivelyVoiceUnavailableError(value) {
             return;
           }
           if (!this.host.videoData?.videoId) {
+            debug.log(
+              `[VideoLifecycle][session:${sessionId}] No videoId resolved, hiding overlay`
+            );
             hideLifecycleOverlay(overlayView, { hideMenu: true });
             return;
           }
@@ -11179,6 +11619,7 @@ isLivelyVoiceUnavailableError(value) {
           overlayView.votButton.opacity = 1;
           this.host.queueOverlayAutoHide?.();
           this.lastSetCanPlaySourceKey = sourceKey;
+          debug.log(`[VideoLifecycle][session:${sessionId}] src handling finished`);
         }
       }
       const URL_FILTER = /\b(?:https?:\/\/|www\.)\S+/gi;
@@ -11428,6 +11869,19 @@ isLivelyVoiceUnavailableError(value) {
         zdf: "de"
       };
       const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
+      const REQUEST_LANG_SET = new Set(
+        availableLangs
+      );
+      const sharedLanguageStateByVideoId = new Map();
+      function getSharedLanguageState(videoId) {
+        const cachedState = sharedLanguageStateByVideoId.get(videoId);
+        if (cachedState) {
+          return cachedState;
+        }
+        const createdState = {};
+        sharedLanguageStateByVideoId.set(videoId, createdState);
+        return createdState;
+      }
       function pickFirstNonEmptyString(...values) {
         for (const value of values) {
           if (typeof value !== "string") continue;
@@ -11441,7 +11895,7 @@ isLivelyVoiceUnavailableError(value) {
       function normalizeToRequestLang(value) {
         if (typeof value !== "string") return void 0;
         const normalized = value.toLowerCase().split(/[-_]/)[0];
-        return availableLangs.includes(normalized) ? normalized : void 0;
+        return REQUEST_LANG_SET.has(normalized) ? normalized : void 0;
       }
       function isResolvedLanguage(value) {
         return Boolean(value && value !== "auto");
@@ -11480,25 +11934,56 @@ isLivelyVoiceUnavailableError(value) {
       }
       class VOTVideoManager {
         videoHandler;
-        detectInFlightByVideoId = new Map();
         constructor(videoHandler) {
           this.videoHandler = videoHandler;
         }
+        setDetectedLanguageCache(videoId, language) {
+          const normalizedLanguage = normalizeToRequestLang(language);
+          if (!isResolvedLanguage(normalizedLanguage)) {
+            return;
+          }
+          getSharedLanguageState(videoId).detectedLanguage = normalizedLanguage;
+        }
+        rememberUserLanguageSelection(videoId, language) {
+          const normalizedLanguage = normalizeToRequestLang(language);
+          if (!isResolvedLanguage(normalizedLanguage)) {
+            const sharedLanguageState2 = sharedLanguageStateByVideoId.get(videoId);
+            if (sharedLanguageState2) {
+              delete sharedLanguageState2.userLanguageOverride;
+            }
+            return;
+          }
+          const sharedLanguageState = getSharedLanguageState(videoId);
+          sharedLanguageState.userLanguageOverride = normalizedLanguage;
+          sharedLanguageState.detectedLanguage = normalizedLanguage;
+        }
+        rememberDetectedLanguage(videoId, language) {
+          const normalizedLanguage = normalizeToRequestLang(language);
+          if (!isResolvedLanguage(normalizedLanguage)) {
+            return;
+          }
+          getSharedLanguageState(videoId).detectedLanguage = normalizedLanguage;
+          if (this.videoHandler.videoData?.videoId === videoId) {
+            this.videoHandler.videoData.detectedLanguage = normalizedLanguage;
+          }
+        }
         async detectLanguageSingleFlight(videoId, text) {
-          const inFlightDetect = this.detectInFlightByVideoId.get(videoId);
+          const sharedLanguageState = getSharedLanguageState(videoId);
+          const inFlightDetect = sharedLanguageState.detectInFlight;
           if (inFlightDetect !== void 0) {
-            return await inFlightDetect;
+            return inFlightDetect;
           }
           const task = (async () => {
+            debug.log(`Detecting language text: ${text}`);
             const language = normalizeToRequestLang(await detect(text));
             return isResolvedLanguage(language) ? language : void 0;
           })();
-          this.detectInFlightByVideoId.set(videoId, task);
+          sharedLanguageState.detectInFlight = task;
           try {
             return await task;
           } finally {
-            if (this.detectInFlightByVideoId.get(videoId) === task) {
-              this.detectInFlightByVideoId.delete(videoId);
+            if (sharedLanguageState.detectInFlight === task) {
+              delete sharedLanguageState.detectInFlight;
             }
           }
         }
@@ -11520,25 +12005,30 @@ isLivelyVoiceUnavailableError(value) {
             video: this.videoHandler.video,
             language: localizationProvider.lang
           });
+          const sharedLanguageState = getSharedLanguageState(videoId);
+          const userOverrideLanguage = sharedLanguageState.userLanguageOverride;
+          const cachedDetectedLanguage = sharedLanguageState.detectedLanguage;
           const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
-          let detectedLanguage = normalizedPossibleLanguage ?? "auto";
-          if (!normalizedPossibleLanguage) {
+          let detectedLanguage = userOverrideLanguage ?? normalizedPossibleLanguage ?? cachedDetectedLanguage ?? "auto";
+          if (!userOverrideLanguage && !normalizedPossibleLanguage && !cachedDetectedLanguage) {
             const text = buildDetectText(title, localizedTitle, description);
             if (text) {
-              try {
-                const language = await this.detectLanguageSingleFlight(videoId, text);
-                if (language) {
-                  detectedLanguage = language;
-                }
-              } catch (error2) {
+              const language = await this.detectLanguageSingleFlight(videoId, text);
+              if (language) {
+                detectedLanguage = language;
+                this.setDetectedLanguageCache(videoId, language);
               }
             }
+          }
+          if (!userOverrideLanguage && normalizedPossibleLanguage) {
+            this.setDetectedLanguageCache(videoId, normalizedPossibleLanguage);
           }
           const hostDetectedLanguage = resolveHostDetectedLanguage(
             this.videoHandler.site.host
           );
-          if (hostDetectedLanguage) {
+          if (hostDetectedLanguage && !userOverrideLanguage) {
             detectedLanguage = hostDetectedLanguage;
+            this.setDetectedLanguageCache(videoId, hostDetectedLanguage);
           }
           const videoData = {
             translationHelp,
@@ -11555,7 +12045,10 @@ videoId,
             description,
             downloadTitle: localizedTitle ?? title ?? videoId
           };
-          console.log("[VOT] Detected language:", detectedLanguage);
+          if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
+            console.log("[VOT] Detected language:", detectedLanguage);
+            sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
+          }
           return videoData;
         }
         async videoValidator() {
@@ -11626,7 +12119,12 @@ syncVideoVolumeSlider() {
             return this;
           }
           const normalizedFrom = normalizeToRequestLang(from) ?? "auto";
-          console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+          const langPairLogKey = `${normalizedFrom}->${to}`;
+          const sharedLanguageState = getSharedLanguageState(videoData.videoId);
+          if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
+            console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+            sharedLanguageState.lastLoggedLangPair = langPairLogKey;
+          }
           videoData.detectedLanguage = normalizedFrom;
           videoData.responseLanguage = to;
           this.videoHandler.translateFromLang = normalizedFrom;
@@ -11998,18 +12496,6 @@ createIconButton(templateHtml, options = {}) {
       };
       const positions$1 = ["left", "top", "right", "bottom"];
       const triggers = ["hover", "click"];
-      function addComponentEventListener(events, type, listener) {
-        events[type].addListener(listener);
-      }
-      function removeComponentEventListener(events, type, listener) {
-        events[type].removeListener(listener);
-      }
-      function setHiddenState(element, isHidden) {
-        element.hidden = isHidden;
-      }
-      function getHiddenState(element) {
-        return element.hidden;
-      }
       class Tooltip {
 showed = false;
         target;
@@ -12131,6 +12617,12 @@ updateMount({
         onClick = () => {
           this.showed ? this.destroy() : this.create();
         };
+        onTargetKeyDown = (event) => {
+          if (event.key !== "Escape" || !this.showed) {
+            return;
+          }
+          this.destroy();
+        };
         onScroll = () => {
           this.schedulePositionUpdate();
         };
@@ -12149,9 +12641,24 @@ updateMount({
         onMouseEnter = () => {
           this.create();
         };
-        onMouseLeave = () => {
+        onMouseLeave = (event) => {
+          if (this.isInTooltipContext(event.relatedTarget)) {
+            return;
+          }
           this.destroy();
         };
+        onTooltipMouseLeave = (event) => {
+          if (this.isInTooltipContext(event.relatedTarget)) {
+            return;
+          }
+          this.destroy();
+        };
+        isInTooltipContext(nextTarget) {
+          if (!(nextTarget instanceof Node)) {
+            return false;
+          }
+          return this.target.contains(nextTarget) || this.container?.contains(nextTarget);
+        }
         updatePageSize() {
           if (this.layoutRoot === document.documentElement) {
             this.globalOffsetX = 0;
@@ -12161,8 +12668,8 @@ updateMount({
             this.globalOffsetX = left;
             this.globalOffsetY = top;
           }
-          this.pageWidth = (this.layoutRoot.clientWidth || document.documentElement.clientWidth) + (globalThis.scrollX ?? globalThis.pageXOffset ?? 0);
-          this.pageHeight = (this.layoutRoot.clientHeight || document.documentElement.clientHeight) + (globalThis.scrollY ?? globalThis.pageYOffset ?? 0);
+          this.pageWidth = this.layoutRoot.clientWidth || document.documentElement.clientWidth;
+          this.pageHeight = this.layoutRoot.clientHeight || document.documentElement.clientHeight;
           return this;
         }
         onIntersect = ([entry]) => {
@@ -12173,6 +12680,7 @@ updateMount({
         init() {
           this.onResizeObserver = new ResizeObserver(this.onResize);
           this.intersectionObserver = new IntersectionObserver(this.onIntersect);
+          this.target.addEventListener("keydown", this.onTargetKeyDown);
           if (this.trigger === "click") {
             this.target.addEventListener("pointerdown", this.onClick);
             return this;
@@ -12186,8 +12694,9 @@ updateMount({
           return this;
         }
         release() {
-          this.destroy();
+          this.destroy(true);
           this.detachScrollListener();
+          this.target.removeEventListener("keydown", this.onTargetKeyDown);
           if (this.trigger === "click") {
             this.target.removeEventListener("pointerdown", this.onClick);
             return this;
@@ -12201,6 +12710,9 @@ updateMount({
           return this;
         }
         schedulePositionUpdate() {
+          if (!this.container) {
+            return;
+          }
           if (this.positionRafId !== null) {
             return;
           }
@@ -12227,7 +12739,6 @@ updateMount({
         create() {
           this.destroy(true);
           this.showed = true;
-          this.clearDestroyFallbackTimer();
           this.container = UI.createEl("vot-block", ["vot-tooltip"], this.content);
           if (this.bordered) {
             this.container.classList.add("vot-tooltip-bordered");
@@ -12250,9 +12761,14 @@ updateMount({
             this.syncAriaDescribedBy(true);
           }
           this.container.style.opacity = "1";
+          if (this.trigger === "hover") {
+            this.container.addEventListener("mouseleave", this.onTooltipMouseLeave);
+          }
           this.attachScrollListener();
           this.onResizeObserver?.observe(this.layoutRoot);
-          this.onResizeObserver?.observe(this.anchor);
+          if (this.anchor !== this.layoutRoot) {
+            this.onResizeObserver?.observe(this.anchor);
+          }
           this.intersectionObserver?.observe(this.target);
           return this;
         }
@@ -12261,11 +12777,8 @@ updateMount({
             return this;
           }
           const { top, left } = this.calcPos(this.autoLayout, this.preferredPosition);
-          const availableWidth = this.pageWidth - this.offsetX * 2;
-          const maxWidth = this.maxWidth ?? Math.min(
-            availableWidth,
-            this.pageWidth - Math.min(left, this.pageWidth - availableWidth)
-          );
+          const availableWidth = Math.max(0, this.pageWidth - this.offsetX * 2);
+          const maxWidth = clamp$2(this.maxWidth ?? availableWidth, 0, availableWidth);
           this.container.style.transform = `translate(${left}px, ${top}px)`;
           this.container.dataset.position = this.position;
           this.container.style.maxWidth = `${maxWidth}px`;
@@ -12290,15 +12803,48 @@ updateMount({
           const right = anchorRight - this.globalOffsetX;
           const top = anchorTop - this.globalOffsetY;
           const bottom = anchorBottom - this.globalOffsetY;
+          let resolvedPosition = position2;
+          if (autoLayout) {
+            switch (position2) {
+              case "top": {
+                const pTop = clamp$2(top - height - this.offsetY, 0, this.pageHeight);
+                if (pTop + this.offsetY < height) {
+                  resolvedPosition = "bottom";
+                }
+                break;
+              }
+              case "right": {
+                const pLeft = clamp$2(right + this.offsetX, 0, this.pageWidth - width);
+                if (pLeft + width > this.pageWidth - this.offsetX) {
+                  resolvedPosition = "left";
+                }
+                break;
+              }
+              case "bottom": {
+                const pTop = clamp$2(
+                  bottom + this.offsetY,
+                  0,
+                  this.pageHeight - height
+                );
+                if (pTop + height > this.pageHeight - this.offsetY) {
+                  resolvedPosition = "top";
+                }
+                break;
+              }
+              case "left": {
+                const pLeft = Math.max(0, left - width - this.offsetX);
+                if (pLeft + width > left - this.offsetX) {
+                  resolvedPosition = "right";
+                }
+                break;
+              }
+            }
+          }
           let coords;
-          switch (position2) {
-            case "top": {
-              const pTop = clamp$2(top - height - this.offsetY, 0, this.pageHeight);
-              if (autoLayout && pTop + this.offsetY < height) {
-                return this.calcPos(false, "bottom");
-              }
+          switch (resolvedPosition) {
+            case "top":
               coords = {
-                top: pTop,
+                top: clamp$2(top - height - this.offsetY, 0, this.pageHeight),
                 left: clamp$2(
                   left - width / 2 + anchorWidth / 2,
                   this.offsetX,
@@ -12306,29 +12852,19 @@ updateMount({
                 )
               };
               break;
-            }
-            case "right": {
-              const pLeft = clamp$2(right + this.offsetX, 0, this.pageWidth - width);
-              if (autoLayout && pLeft + width > this.pageWidth - this.offsetX) {
-                return this.calcPos(false, "left");
-              }
+            case "right":
               coords = {
                 top: clamp$2(
                   top + (anchorHeight - height) / 2,
                   this.offsetY,
                   this.pageHeight - height - this.offsetY
                 ),
-                left: pLeft
+                left: clamp$2(right + this.offsetX, 0, this.pageWidth - width)
               };
               break;
-            }
-            case "bottom": {
-              const pTop = clamp$2(bottom + this.offsetY, 0, this.pageHeight - height);
-              if (autoLayout && pTop + height > this.pageHeight - this.offsetY) {
-                return this.calcPos(false, "top");
-              }
+            case "bottom":
               coords = {
-                top: pTop,
+                top: clamp$2(bottom + this.offsetY, 0, this.pageHeight - height),
                 left: clamp$2(
                   left - width / 2 + anchorWidth / 2,
                   this.offsetX,
@@ -12336,27 +12872,20 @@ updateMount({
                 )
               };
               break;
-            }
-            case "left": {
-              const pLeft = Math.max(0, left - width - this.offsetX);
-              if (autoLayout && pLeft + width > left - this.offsetX) {
-                return this.calcPos(false, "right");
-              }
+            case "left":
               coords = {
                 top: clamp$2(
                   top + (anchorHeight - height) / 2,
                   this.offsetY,
                   this.pageHeight - height - this.offsetY
                 ),
-                left: pLeft
+                left: Math.max(0, left - width - this.offsetX)
               };
               break;
-            }
             default:
               coords = { top: 0, left: 0 };
-              break;
           }
-          this.position = position2;
+          this.position = resolvedPosition;
           return coords;
         }
         destroy(instant = false) {
@@ -12376,6 +12905,7 @@ updateMount({
             return this;
           }
           const container = this.container;
+          container.removeEventListener("mouseleave", this.onTooltipMouseLeave);
           container.style.pointerEvents = "none";
           container.style.opacity = "0";
           const handleTransitionDone = () => {
@@ -12423,7 +12953,7 @@ updateMount({
         set hidden(isHidden) {
           this._hidden = isHidden;
           if (this.container) {
-            setHiddenState(this.container, isHidden);
+            this.container.hidden = isHidden;
           }
           if (this.showed) {
             this.syncAriaDescribedBy(!isHidden);
@@ -12563,13 +13093,6 @@ updateMount({
       }
       const isWordToken = (token) => Boolean(token?.isWordLike && token.text?.trim());
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-      const buildPrefixSums = (values) => {
-        const prefix2 = new Array(values.length + 1).fill(0);
-        for (let i2 = 0; i2 < values.length; i2 += 1) {
-          prefix2[i2 + 1] = prefix2[i2] + values[i2];
-        }
-        return prefix2;
-      };
       const rangeSum = (prefix2, start, end) => {
         if (end < start) return 0;
         return prefix2[end + 1] - prefix2[start];
@@ -12601,6 +13124,7 @@ updateMount({
           }
         }
         const slices = [];
+        const keyParts = [];
         for (let i2 = 0; i2 < wordTokenIndices.length; i2 += 1) {
           const tokenIndex = wordTokenIndices[i2];
           const nextWordTokenIndex = i2 + 1 < wordTokenIndices.length ? wordTokenIndices[i2 + 1] : tokens.length;
@@ -12614,12 +13138,13 @@ updateMount({
             nextWordTokenIndex - 1
           );
           let textToNextWord = "";
-          for (let cursor = tokenIndex; cursor < nextWordTokenIndex; cursor += 1) {
-            textToNextWord += tokens[cursor]?.text ?? "";
-          }
           let trailingGapAfterBreakText = "";
-          for (let cursor = breakAfterTokenIndex + 1; cursor < nextWordTokenIndex; cursor += 1) {
-            trailingGapAfterBreakText += tokens[cursor]?.text ?? "";
+          for (let cursor = tokenIndex; cursor < nextWordTokenIndex; cursor += 1) {
+            const tokenText = tokens[cursor]?.text ?? "";
+            textToNextWord += tokenText;
+            if (cursor > breakAfterTokenIndex) {
+              trailingGapAfterBreakText += tokenText;
+            }
           }
           slices.push({
             tokenIndex,
@@ -12627,11 +13152,8 @@ updateMount({
             textToNextWord,
             trailingGapAfterBreakText
           });
-        }
-        const keyParts = [];
-        for (const slice of slices) {
           keyParts.push(
-            `${slice.textToNextWord}${slice.trailingGapAfterBreakText}${slice.breakAfterTokenIndex}`
+            `${textToNextWord}${trailingGapAfterBreakText}${breakAfterTokenIndex}`
           );
         }
         const key = keyParts.join("");
@@ -12641,50 +13163,67 @@ updateMount({
         };
       }
       function measureWordSlices(slices, measure) {
-        const widths = slices.map((slice) => measure(slice.textToNextWord));
-        const chars = slices.map((slice) => slice.textToNextWord.length);
-        const trailingGapWidths = slices.map(
-          (slice) => measure(slice.trailingGapAfterBreakText)
-        );
-        const trailingGapChars = slices.map(
-          (slice) => slice.trailingGapAfterBreakText.length
-        );
+        const wordsCount = slices.length;
+        const widths = new Array(wordsCount);
+        const chars = new Array(wordsCount);
+        const trailingGapWidths = new Array(wordsCount);
+        const trailingGapChars = new Array(wordsCount);
+        const prefixWidths = new Array(wordsCount + 1);
+        const prefixChars = new Array(wordsCount + 1);
+        prefixWidths[0] = 0;
+        prefixChars[0] = 0;
+        for (let i2 = 0; i2 < wordsCount; i2 += 1) {
+          const textToNextWord = slices[i2].textToNextWord;
+          const trailingGapAfterBreakText = slices[i2].trailingGapAfterBreakText;
+          const width = measure(textToNextWord);
+          const charCount = textToNextWord.length;
+          const trailingWidth = measure(trailingGapAfterBreakText);
+          const trailingCharCount = trailingGapAfterBreakText.length;
+          widths[i2] = width;
+          chars[i2] = charCount;
+          trailingGapWidths[i2] = trailingWidth;
+          trailingGapChars[i2] = trailingCharCount;
+          prefixWidths[i2 + 1] = prefixWidths[i2] + width;
+          prefixChars[i2 + 1] = prefixChars[i2] + charCount;
+        }
         return {
           widths,
           chars,
           trailingGapWidths,
           trailingGapChars,
-          prefixWidths: buildPrefixSums(widths),
-          prefixChars: buildPrefixSums(chars)
+          prefixWidths,
+          prefixChars
         };
       }
+      const getWordRangeWidthUnsafe = (metrics, startWord, endWord) => {
+        const total = rangeSum(metrics.prefixWidths, startWord, endWord);
+        return total - (metrics.trailingGapWidths[endWord] ?? 0);
+      };
       function getWordRangeWidth(metrics, startWord, endWord) {
         if (endWord < startWord) return 0;
         if (!metrics.widths.length) return 0;
         const start = clamp(startWord, 0, metrics.widths.length - 1);
         const end = clamp(endWord, 0, metrics.widths.length - 1);
         if (end < start) return 0;
-        const total = rangeSum(metrics.prefixWidths, start, end);
-        return total - (metrics.trailingGapWidths[end] ?? 0);
+        return getWordRangeWidthUnsafe(metrics, start, end);
       }
-      function getWordRangeChars(metrics, startWord, endWord) {
-        if (endWord < startWord) return 0;
-        if (!metrics.chars.length) return 0;
-        const start = clamp(startWord, 0, metrics.chars.length - 1);
-        const end = clamp(endWord, 0, metrics.chars.length - 1);
-        if (end < start) return 0;
-        const total = rangeSum(metrics.prefixChars, start, end);
-        return total - (metrics.trailingGapChars[end] ?? 0);
-      }
+      const getWordRangeCharsUnsafe = (metrics, startWord, endWord) => {
+        const total = rangeSum(metrics.prefixChars, startWord, endWord);
+        return total - (metrics.trailingGapChars[endWord] ?? 0);
+      };
       function fitsInTwoLines(metrics, startWord, endWord, maxWidth) {
         if (endWord < startWord) return true;
         if (maxWidth <= 0) return false;
-        if (getWordRangeWidth(metrics, startWord, endWord) <= maxWidth) {
+        if (!metrics.widths.length) return true;
+        const start = clamp(startWord, 0, metrics.widths.length - 1);
+        const end = clamp(endWord, 0, metrics.widths.length - 1);
+        if (end < start) return true;
+        if (getWordRangeWidthUnsafe(metrics, start, end) <= maxWidth) {
           return true;
         }
-        for (let k2 = startWord; k2 < endWord; k2 += 1) {
-          const top = getWordRangeWidth(metrics, startWord, k2);
-          const bottom = getWordRangeWidth(metrics, k2 + 1, endWord);
+        for (let k2 = start; k2 < end; k2 += 1) {
+          const top = getWordRangeWidthUnsafe(metrics, start, k2);
+          const bottom = getWordRangeWidthUnsafe(metrics, k2 + 1, end);
           if (top <= maxWidth && bottom <= maxWidth) {
             return true;
           }
@@ -12692,24 +13231,13 @@ updateMount({
         return false;
       }
       const scoreTwoLineCandidate = (w1, w2, maxWidth, count1, count2, wordsInRange) => {
-        const overflowPenaltyMul = 1e4;
-        const widths = [w1, w2];
         const mean = (w1 + w2) / 2;
-        let slackCost = 0;
-        for (const width of widths) {
-          const slack = maxWidth - width;
-          if (slack >= 0) {
-            slackCost += slack * slack;
-          } else {
-            const over = -slack;
-            slackCost += over * over * overflowPenaltyMul;
-          }
-        }
-        let variance = 0;
-        for (const width of widths) {
-          const delta = width - mean;
-          variance += delta * delta;
-        }
+        const slack1 = maxWidth - w1;
+        const slack2 = maxWidth - w2;
+        const slackCost = slack1 * slack1 + slack2 * slack2;
+        const delta1 = w1 - mean;
+        const delta2 = w2 - mean;
+        const variance = delta1 * delta1 + delta2 * delta2;
         const canAvoidSingleton = wordsInRange >= 4;
         const singletonPenalty = canAvoidSingleton && (count1 <= 1 || count2 <= 1) ? 1e9 : 0;
         const canAvoidTwoWordOrphans = wordsInRange >= 6;
@@ -12722,16 +13250,19 @@ updateMount({
       };
       function computeBestTwoLineBreak(metrics, startWord, endWord, maxWidth) {
         if (maxWidth <= 0) return null;
-        if (endWord <= startWord) return null;
+        if (!metrics.widths.length) return null;
+        const start = clamp(startWord, 0, metrics.widths.length - 1);
+        const end = clamp(endWord, 0, metrics.widths.length - 1);
+        if (end <= start) return null;
         let bestBreak = null;
         let bestCost = Number.POSITIVE_INFINITY;
-        const wordsInRange = endWord - startWord + 1;
-        for (let k2 = startWord; k2 < endWord; k2 += 1) {
-          const w1 = getWordRangeWidth(metrics, startWord, k2);
-          const w2 = getWordRangeWidth(metrics, k2 + 1, endWord);
+        const wordsInRange = end - start + 1;
+        for (let k2 = start; k2 < end; k2 += 1) {
+          const w1 = getWordRangeWidthUnsafe(metrics, start, k2);
+          const w2 = getWordRangeWidthUnsafe(metrics, k2 + 1, end);
           if (w1 > maxWidth || w2 > maxWidth) continue;
-          const count1 = k2 - startWord + 1;
-          const count2 = endWord - k2;
+          const count1 = k2 - start + 1;
+          const count2 = end - k2;
           const cost = scoreTwoLineCandidate(
             w1,
             w2,
@@ -12749,8 +13280,8 @@ updateMount({
       }
       function computeBalancedBreaks(metrics, maxWidth) {
         const n2 = metrics.widths.length;
-        if (n2 <= 1) return [];
-        if (getWordRangeWidth(metrics, 0, n2 - 1) <= maxWidth) {
+        if (n2 <= 1 || maxWidth <= 0) return [];
+        if (getWordRangeWidthUnsafe(metrics, 0, n2 - 1) <= maxWidth) {
           return [];
         }
         const breakIndex = computeBestTwoLineBreak(metrics, 0, n2 - 1, maxWidth);
@@ -12758,13 +13289,20 @@ updateMount({
       }
       function findLongestPrefixFittingTwoLines(metrics, maxWidth) {
         const n2 = metrics.widths.length;
-        if (n2 <= 0) return null;
-        for (let endWord = n2 - 1; endWord >= 0; endWord -= 1) {
-          if (fitsInTwoLines(metrics, 0, endWord, maxWidth)) {
-            return endWord;
+        if (n2 <= 0 || maxWidth <= 0) return null;
+        let low = 0;
+        let high = n2 - 1;
+        let best = null;
+        while (low <= high) {
+          const middle = low + high >> 1;
+          if (fitsInTwoLines(metrics, 0, middle, maxWidth)) {
+            best = middle;
+            low = middle + 1;
+          } else {
+            high = middle - 1;
           }
         }
-        return null;
+        return best;
       }
       function resolveStrictTwoLineLayout(metrics, maxWidth) {
         if (maxWidth <= 0) {
@@ -12780,7 +13318,7 @@ updateMount({
             truncateAfterWordIndex: null
           };
         }
-        const fullLineFits = getWordRangeWidth(metrics, 0, n2 - 1) <= maxWidth;
+        const fullLineFits = getWordRangeWidthUnsafe(metrics, 0, n2 - 1) <= maxWidth;
         if (fullLineFits) {
           return {
             breakAfterWordIndices: [],
@@ -12944,7 +13482,7 @@ updateMount({
         const charLimit = Number.isFinite(maxChars) && maxChars > 0 ? maxChars : null;
         const isRangeAllowed = (startWord, endWord) => {
           if (endWord < startWord) return false;
-          if (charLimit !== null && getWordRangeChars(metrics, startWord, endWord) > charLimit) {
+          if (charLimit !== null && getWordRangeCharsUnsafe(metrics, startWord, endWord) > charLimit) {
             return false;
           }
           return fitsInTwoLines(metrics, startWord, endWord, maxWidthPx);
@@ -12977,6 +13515,7 @@ updateMount({
         subtitlesContainer = null;
         subtitlesBlock = null;
         renderedTokenEls = [];
+        passedFlagsBuffer = [];
         subtitles = null;
         subtitleLang;
         lastRenderKey = null;
@@ -13613,59 +14152,50 @@ bottomInsetByMode = {
           if (s2 === 0 && e2 === tokens.length) return tokens;
           return s2 >= e2 ? [] : tokens.slice(s2, e2);
         }
-        splitRangesByMaxLength(tokens) {
-          const ranges = [];
-          let start = 0;
-          let length = 0;
-          for (const [index, token] of tokens.entries()) {
-            length += token.text.length;
-            if (length > this.maxLength && index > start) {
-              ranges.push([start, index]);
-              start = index;
-              length = token.text.length;
-            }
-          }
-          if (start < tokens.length) {
-            ranges.push([start, tokens.length]);
-          }
-          return ranges;
-        }
-        pickRangeByTime(tokens, ranges, time) {
-          let chosen = ranges[0] ?? [0, tokens.length];
-          for (const range of ranges) {
-            const first = tokens[range[0]];
-            const last = tokens[range[1] - 1];
-            if (!first || !last) continue;
-            const nextStartMs = range[1] < tokens.length ? tokens[range[1]].startMs : void 0;
-            const endMs = nextStartMs ?? last.startMs + (last.durationMs ?? 0);
-            if (first.startMs <= time && time < endMs) {
-              chosen = range;
-              break;
-            }
-          }
-          return chosen;
-        }
         selectTokensByMaxLength(tokens, time) {
           if (!tokens.length) return tokens;
-          let totalChars = 0;
-          for (const token of tokens) {
-            totalChars += token?.text.length ?? 0;
+          let start = 0;
+          let length = 0;
+          let overflowed = false;
+          let chosenStart = 0;
+          let chosenEnd = tokens.length;
+          let hasChosenRange = false;
+          let matchedByTime = false;
+          const considerRange = (rangeStart, rangeEnd) => {
+            if (rangeEnd <= rangeStart) return;
+            if (!hasChosenRange) {
+              chosenStart = rangeStart;
+              chosenEnd = rangeEnd;
+              hasChosenRange = true;
+            }
+            if (matchedByTime) return;
+            const first = tokens[rangeStart];
+            const last = tokens[rangeEnd - 1];
+            if (!first || !last) return;
+            const nextStartMs = rangeEnd < tokens.length ? tokens[rangeEnd]?.startMs : void 0;
+            const endMs = nextStartMs ?? last.startMs + (last.durationMs ?? 0);
+            if (first.startMs <= time && time < endMs) {
+              chosenStart = rangeStart;
+              chosenEnd = rangeEnd;
+              matchedByTime = true;
+            }
+          };
+          for (const [index, token] of tokens.entries()) {
+            const nextLength = length + token.text.length;
+            if (nextLength > this.maxLength && index > start) {
+              overflowed = true;
+              considerRange(start, index);
+              start = index;
+              length = token.text.length;
+              continue;
+            }
+            length = nextLength;
           }
-          if (totalChars <= this.maxLength) {
+          if (!overflowed) {
             return this.trimEdgeWhitespaceTokens(tokens);
           }
-          const ranges = this.splitRangesByMaxLength(tokens);
-          const chosen = this.pickRangeByTime(tokens, ranges, time);
-          return this.trimEdgeWhitespaceTokens(tokens.slice(chosen[0], chosen[1]));
-        }
-        computeTwoLineSegments(tokens, words, metrics, maxWidthPx, maxChars) {
-          return computeTwoLineSegments(
-            tokens,
-            words,
-            metrics,
-            maxWidthPx,
-            maxChars
-          );
+          considerRange(start, tokens.length);
+          return this.trimEdgeWhitespaceTokens(tokens.slice(chosenStart, chosenEnd));
         }
         buildTokenPrecomputeInput(tokens) {
           const cached = this.tokenPrecomputeMemo;
@@ -13760,7 +14290,7 @@ bottomInsetByMode = {
             return this.tokenProcessingMemo;
           }
           const safeMaxWidthPx = applyWrapWidthGuard(lineMeasure.maxWidthPx);
-          const segmentRanges = this.computeTwoLineSegments(
+          const segmentRanges = computeTwoLineSegments(
             tokens,
             lineMeasure.words,
             lineMeasure.metrics,
@@ -13968,13 +14498,16 @@ bottomInsetByMode = {
           tooltip.setContent(subtitlesInfo.container);
         };
         buildPassedState(tokens, time) {
-          const flags = [];
+          const flags = this.passedFlagsBuffer;
+          let wordIndex = 0;
           for (const token of tokens) {
             if (!token.isWordLike) continue;
             const halfway = token.startMs + token.durationMs / 2;
             const passed = time > halfway || time > token.startMs - 100 && halfway - time < 275;
-            flags.push(passed);
+            flags[wordIndex] = passed;
+            wordIndex += 1;
           }
+          flags.length = wordIndex;
           return flags;
         }
         renderTokens(tokens) {
@@ -14064,19 +14597,15 @@ bottomInsetByMode = {
           this.breakAfterTokenIndices = indices;
           this.breakAfterTokenIndexSet = indices.length ? new Set(indices) : null;
         }
-        enqueueWrapRecompute(tokens = null) {
+        scheduleWrapRecompute(tokens = null) {
           if (tokens) {
             this.lastWrapTokens = tokens;
           }
+          const shouldRequestTick = !this.wrapPending;
           this.wrapPending = true;
-          this.intervalIdleChecker.requestImmediateTick();
-        }
-        scheduleWrapRecompute(tokens = null) {
-          this.enqueueWrapRecompute(tokens);
-        }
-        scheduleWrapRecomputeBeforePaint(tokens = null) {
-          this.enqueueWrapRecompute(tokens);
-          this.intervalIdleChecker.requestImmediateTick();
+          if (shouldRequestTick) {
+            this.intervalIdleChecker.requestImmediateTick();
+          }
         }
         maybeRefreshPosition(force = false) {
           if (this.abortController.signal.aborted) return;
@@ -14250,7 +14779,9 @@ bottomInsetByMode = {
           }
         }
         setOpacity(rate) {
-          this.opacity = ((100 - Number(rate)) / 100).toFixed(2);
+          const numericRate = Number(rate);
+          const clampedRate = Number.isFinite(numericRate) ? clampToRange(numericRate, 0, 100) : 0;
+          this.opacity = ((100 - clampedRate) / 100).toFixed(2);
           if (this.subtitlesBlock) {
             this.subtitlesBlock.style.setProperty(
               "--vot-subtitles-opacity",
@@ -14259,7 +14790,11 @@ bottomInsetByMode = {
           }
         }
         stringifyTokens(tokens) {
-          return tokens.map((token) => token.text).join("");
+          let out = "";
+          for (const token of tokens) {
+            out += token.text;
+          }
+          return out;
         }
         updateMultilineAlignmentIfNeeded(layoutAffectingKey) {
           const block = this.subtitlesBlock;
@@ -14403,7 +14938,7 @@ updateMultilineAlignmentClass(measureSignature) {
           this.updateMultilineAlignmentIfNeeded(layoutAffectingKey);
           if (tokensChanged) {
             this.applyPositionAfterContentRender();
-            this.scheduleWrapRecomputeBeforePaint(tokens);
+            this.scheduleWrapRecompute(tokens);
             this.scheduleReposition();
           } else {
             this.maybeRefreshPosition();
@@ -14505,10 +15040,9 @@ updateMultilineAlignmentClass(measureSignature) {
         return merged.buffer;
       }
       async function downloadTranslation(res, filename, onProgress = () => {
-      }) {
+      }, saveOptions = {}) {
         const blob = await buildTranslationBlob(res, filename, onProgress);
-        downloadBlob(blob, `${filename}.mp3`);
-        return true;
+        return await downloadBlob(blob, `${filename}.mp3`, saveOptions);
       }
       async function buildTranslationBlob(res, filename, onProgress = () => {
       }) {
@@ -14583,6 +15117,18 @@ updateMultilineAlignmentClass(measureSignature) {
       const KEY_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
   <path fill="currentColor" d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"/>
   </svg>`;
+      function addComponentEventListener(events, type, listener) {
+        events[type].addListener(listener);
+      }
+      function removeComponentEventListener(events, type, listener) {
+        events[type].removeListener(listener);
+      }
+      function setHiddenState(element, isHidden) {
+        element.hidden = isHidden;
+      }
+      function getHiddenState(element) {
+        return element.hidden;
+      }
       class VOTButton {
         container;
         translateButton;
@@ -15255,6 +15801,8 @@ set value(val) {
           beforeOpen: this.onBeforeOpen
         };
         contentList;
+        contentItemSearchDatasetKey = "votSearchLabel";
+        contentItemIndexDatasetKey = "votIndex";
         selectedItems = [];
         selectedValues;
         constructor({
@@ -15289,52 +15837,68 @@ set value(val) {
             };
           });
         }
-        multiSelectItemHandle = (contentItem, item) => {
+        multiSelectItemHandle = (item) => {
           const value = item.value;
           if (this.selectedValues.has(value) && this.selectedValues.size > 1) {
             this.selectedValues.delete(value);
-            item.selected = false;
           } else {
             this.selectedValues.add(value);
-            item.selected = true;
           }
-          contentItem.dataset.votSelected = this.selectedValues.has(value).toString();
+          this.syncItemsSelectionState();
           this.updateSelectedState();
           this.onSelectItem.dispatch(Array.from(this.selectedValues));
         };
         singleSelectItemHandle = (item) => {
           const value = item.value;
           this.selectedValues = new Set([value]);
-          for (const contentItem of this.selectedItems) {
-            contentItem.dataset.votSelected = (contentItem.dataset.votValue === value).toString();
-          }
-          for (const item2 of this._items) {
-            item2.selected = item2.value === value;
-          }
-          this.updateTitle();
+          this.syncItemsSelectionState();
+          this.updateSelectedState();
           this.onSelectItem.dispatch(value);
         };
+        onContentItemClick = (event) => {
+          if (!(event.target instanceof HTMLElement)) {
+            return;
+          }
+          const contentItem = event.target.closest(
+            ".vot-select-content-item"
+          );
+          if (!contentItem || contentItem.inert || !this.contentList?.contains(contentItem)) {
+            return;
+          }
+          const rawIndex = contentItem.dataset[this.contentItemIndexDatasetKey];
+          if (!rawIndex) {
+            return;
+          }
+          const item = this._items[Number(rawIndex)];
+          if (!item) {
+            return;
+          }
+          if (this.multiSelect) {
+            this.multiSelectItemHandle(item);
+            return;
+          }
+          this.singleSelectItemHandle(item);
+        };
+        syncItemsSelectionState() {
+          for (const item of this._items) {
+            item.selected = this.selectedValues.has(item.value);
+          }
+        }
         createDialogContentList() {
           const contentList = UI.createEl("vot-block", ["vot-select-content-list"]);
-          for (const item of this._items) {
+          for (const [index, item] of this._items.entries()) {
             const contentItem = UI.createEl("vot-block", ["vot-select-content-item"]);
             contentItem.textContent = item.label;
             contentItem.dataset.votSelected = item.selected === true ? "true" : "false";
             contentItem.dataset.votValue = item.value;
+            contentItem.dataset[this.contentItemSearchDatasetKey] = item.label.toLowerCase();
+            contentItem.dataset[this.contentItemIndexDatasetKey] = String(index);
             if (item.disabled) {
               contentItem.inert = true;
             }
-            contentItem.addEventListener("click", (e2) => {
-              if (e2.target.inert) {
-                return;
-              }
-              if (this.multiSelect) {
-                return this.multiSelectItemHandle(contentItem, item);
-              }
-              return this.singleSelectItemHandle(item);
-            });
             contentList.appendChild(contentItem);
           }
+          contentList.addEventListener("click", this.onContentItemClick);
           this.selectedItems = Array.from(contentList.children);
           return contentList;
         }
@@ -15356,8 +15920,7 @@ set value(val) {
           D(CHEVRON_ICON, arrowIcon);
           outer.append(title, arrowIcon);
           outer.addEventListener("click", () => {
-            const isDisabled = outer.getAttribute("disabled") === "true" || outer.getAttribute("aria-disabled") === "true";
-            if (isDisabled) {
+            if (this.disabled) {
               return;
             }
             if (this.isLoading || this.isDialogOpen) {
@@ -15379,7 +15942,8 @@ set value(val) {
               votSearchLangTextfield.addEventListener("input", (searchText) => {
                 const normalizedSearchText = searchText.toLowerCase();
                 for (const contentItem of this.selectedItems) {
-                  contentItem.hidden = !contentItem.textContent?.toLowerCase().includes(normalizedSearchText);
+                  const searchableText = contentItem.dataset[this.contentItemSearchDatasetKey] ?? "";
+                  contentItem.hidden = !searchableText.includes(normalizedSearchText);
                 }
               });
               this.contentList = this.createDialogContentList();
@@ -15427,7 +15991,7 @@ set value(val) {
           if (this.selectedItems.length > 0) {
             for (const item of this.selectedItems) {
               const val = item.dataset.votValue;
-              if (!val) {
+              if (val === void 0) {
                 continue;
               }
               item.dataset.votSelected = this.selectedValues.has(val).toString();
@@ -15437,16 +16001,15 @@ set value(val) {
           return this;
         }
         setSelectedValue(value) {
+          const values = Array.isArray(value) ? value : [value];
+          let selectedValues;
           if (this.multiSelect) {
-            this.selectedValues = new Set(
-              Array.isArray(value) ? value.map(String) : [String(value)]
-            );
+            selectedValues = values;
           } else {
-            this.selectedValues = new Set([String(value)]);
+            selectedValues = values.length > 0 ? [values[0]] : [];
           }
-          for (const item of this._items) {
-            item.selected = this.selectedValues.has(String(item.value));
-          }
+          this.selectedValues = new Set(selectedValues);
+          this.syncItemsSelectionState();
           this.updateSelectedState();
           return this;
         }
@@ -15480,10 +16043,14 @@ updateItems(newItems) {
           return getHiddenState(this.container);
         }
         get disabled() {
-          return this.outer.getAttribute("disabled") === "true";
+          return this.outer.getAttribute("disabled") === "true" || this.outer.getAttribute("aria-disabled") === "true";
         }
         set disabled(isDisabled) {
-          this.outer.toggleAttribute("disabled", isDisabled);
+          if (isDisabled) {
+            this.outer.setAttribute("disabled", "true");
+            return;
+          }
+          this.outer.removeAttribute("disabled");
         }
       }
       class LanguagePairSelect {
@@ -15834,6 +16401,7 @@ menuId = typeof crypto !== "undefined" && "randomUUID" in crypto ? `vot-menu-${c
         }
       }
       class OverlayView {
+        static BIG_CONTAINER_WIDTH_PX = 550;
         mount;
         globalPortal;
         abortController = null;
@@ -15934,7 +16502,7 @@ updateMount(nextMount) {
           return this.initialized;
         }
         calcButtonLayout(position2) {
-          if (this.isBigContainer && ["left", "right"].includes(position2)) {
+          if (this.isBigContainer && isSidePosition(position2)) {
             return {
               direction: "column",
               position: position2
@@ -16112,6 +16680,7 @@ selectTitle: localizationProvider.get(
               handler();
             }
           };
+          const isPrimaryActionPointer = (event) => event.isPrimary && event.button === 0;
           const setMenuOpen = (open, { returnFocusToToggle = false } = {}) => {
             if (!this.isInitialized()) return;
             this.votMenu.hidden = !open;
@@ -16131,7 +16700,8 @@ selectTitle: localizationProvider.get(
           const closeMenu = (returnFocusToToggle = false) => setMenuOpen(false, { returnFocusToToggle });
           this.votButton.translateButton.addEventListener(
             "pointerdown",
-            () => {
+            (event) => {
+              if (!isPrimaryActionPointer(event)) return;
               closeMenu();
               this.events["click:translate"].dispatch();
             },
@@ -16147,7 +16717,8 @@ selectTitle: localizationProvider.get(
           );
           this.votButton.pipButton.addEventListener(
             "pointerdown",
-            () => {
+            (event) => {
+              if (!isPrimaryActionPointer(event)) return;
               closeMenu();
               this.events["click:pip"].dispatch();
             },
@@ -16164,6 +16735,7 @@ selectTitle: localizationProvider.get(
           this.votButton.menuButton.addEventListener(
             "pointerdown",
             (e2) => {
+              if (!isPrimaryActionPointer(e2)) return;
               e2.preventDefault();
               toggleMenu();
             },
@@ -16260,6 +16832,10 @@ selectTitle: localizationProvider.get(
             (language) => {
               if (this.videoHandler?.videoData) {
                 this.videoHandler.videoData.detectedLanguage = language;
+                this.videoHandler.videoManager.rememberUserLanguageSelection(
+                  this.videoHandler.videoData.videoId,
+                  language
+                );
               }
               this.events["select:fromLanguage"].dispatch(language);
             }
@@ -16271,9 +16847,11 @@ selectTitle: localizationProvider.get(
                 this.videoHandler.translateToLang = this.videoHandler.videoData.responseLanguage = language;
               }
               const prevResponseLanguage = this.data.responseLanguage;
-              this.data.responseLanguage = language;
-              await votStorage.set("responseLanguage", this.data.responseLanguage);
-              if (this.data.enabledDontTranslateLanguages && Array.isArray(this.data.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && typeof prevResponseLanguage === "string" && this.data.dontTranslateLanguages[0] === prevResponseLanguage) {
+              if (prevResponseLanguage !== language) {
+                this.data.responseLanguage = language;
+                await votStorage.set("responseLanguage", this.data.responseLanguage);
+              }
+              if (this.data.enabledDontTranslateLanguages && Array.isArray(this.data.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && prevResponseLanguage !== language && typeof prevResponseLanguage === "string" && this.data.dontTranslateLanguages[0] === prevResponseLanguage) {
                 this.data.dontTranslateLanguages = [language];
                 await votStorage.set(
                   "dontTranslateLanguages",
@@ -16295,16 +16873,20 @@ selectTitle: localizationProvider.get(
             if (this.videoHandler.cacheManager.getSubtitles(cacheKey)) {
               return;
             }
+            const prevLoading = this.votButton?.loading ?? false;
             if (this.votButton) {
               this.votButton.loading = true;
             }
             const loadingEl = UI.createInlineLoader();
             loadingEl.style.margin = "0 auto";
             dialog.footerContainer.appendChild(loadingEl);
-            await this.videoHandler.loadSubtitles();
-            loadingEl.remove();
-            if (this.votButton) {
-              this.votButton.loading = false;
+            try {
+              await this.videoHandler.loadSubtitles();
+            } finally {
+              loadingEl.remove();
+              if (this.votButton) {
+                this.votButton.loading = prevLoading;
+              }
             }
           });
           this.subtitlesSelect.addEventListener("selectItem", (data) => {
@@ -16325,8 +16907,10 @@ selectTitle: localizationProvider.get(
               if (this.translationVolumeSliderLabel) {
                 this.translationVolumeSliderLabel.value = value;
               }
-              this.data.defaultVolume = value;
-              this.scheduleDefaultVolumePersist();
+              if (this.data.defaultVolume !== value) {
+                this.data.defaultVolume = value;
+                this.scheduleDefaultVolumePersist();
+              }
               if (fromSetter) {
                 return;
               }
@@ -16360,38 +16944,57 @@ selectTitle: localizationProvider.get(
           this.updateButtonLayout(position2, direction);
           return this;
         }
+        startDragSession(clientX, clientY, activitySource) {
+          this.dragCandidate = true;
+          this.dragging = false;
+          this.dragStartX = clientX;
+          this.dragStartY = clientY;
+          this.currentClientX = clientX;
+          this.containerRect = this.root.getBoundingClientRect();
+          this.dragIsBigContainer = this.isBigContainer;
+          this.dragDirty = false;
+          this.intervalIdleChecker.markActivity(activitySource);
+          this.intervalIdleChecker.requestImmediateTick();
+        }
+        queueDragTick(activitySource) {
+          if (this.dragDirty) {
+            return;
+          }
+          this.dragDirty = true;
+          this.intervalIdleChecker.markActivity(activitySource);
+          this.intervalIdleChecker.requestImmediateTick();
+        }
+        updateDragFromMove(clientX, clientY, activitySource) {
+          this.currentClientX = clientX;
+          if (!this.dragCandidate) return;
+          if (!this.dragging) {
+            const dx = Math.abs(this.currentClientX - this.dragStartX);
+            const dy = Math.abs(clientY - this.dragStartY);
+            if (dx + dy >= this.dragThresholdPx) {
+              this.dragging = true;
+            }
+          }
+          if (!this.dragging) {
+            return;
+          }
+          this.queueDragTick(activitySource);
+        }
         onDragStart = (event) => {
           if (!event.isPrimary || event.button !== 0) return;
           if (event.pointerType === "touch") return;
           event.preventDefault();
-          this.dragCandidate = true;
-          this.dragging = false;
-          this.dragStartX = event.clientX;
-          this.dragStartY = event.clientY;
-          this.currentClientX = event.clientX;
-          this.containerRect = this.root.getBoundingClientRect();
-          this.dragIsBigContainer = this.isBigContainer;
-          this.dragDirty = false;
-          this.intervalIdleChecker.markActivity("overlay-pointer-down");
-          this.intervalIdleChecker.requestImmediateTick();
-          document.addEventListener("pointermove", this.onGlobalPointerMove);
+          this.startDragSession(event.clientX, event.clientY, "overlay-pointer-down");
+          document.addEventListener("pointermove", this.onGlobalPointerMove, {
+            passive: true
+          });
           document.addEventListener("pointerup", this.onDragEnd);
           document.addEventListener("pointercancel", this.onDragEnd);
         };
 
 onTouchDragStart = (event) => {
           if (!event.touches || event.touches.length === 0) return;
-          this.dragCandidate = true;
-          this.dragging = false;
-          const t2 = event.touches[0];
-          this.dragStartX = t2.clientX;
-          this.dragStartY = t2.clientY;
-          this.currentClientX = t2.clientX;
-          this.containerRect = this.root.getBoundingClientRect();
-          this.dragIsBigContainer = this.isBigContainer;
-          this.dragDirty = false;
-          this.intervalIdleChecker.markActivity("overlay-touch-start");
-          this.intervalIdleChecker.requestImmediateTick();
+          const touch = event.touches[0];
+          this.startDragSession(touch.clientX, touch.clientY, "overlay-touch-start");
           document.addEventListener("touchmove", this.onGlobalTouchMove, {
             passive: false
           });
@@ -16401,48 +17004,28 @@ onTouchDragStart = (event) => {
         onGlobalTouchMove = (event) => {
           if (!event.touches || event.touches.length === 0) return;
           const t2 = event.touches[0];
-          this.currentClientX = t2.clientX;
-          const clientY = t2.clientY;
-          if (!this.dragCandidate) return;
-          if (!this.dragging) {
-            const dx = Math.abs(this.currentClientX - this.dragStartX);
-            const dy = Math.abs(clientY - this.dragStartY);
-            if (dx + dy >= this.dragThresholdPx) {
-              this.dragging = true;
-            }
-          }
+          this.updateDragFromMove(t2.clientX, t2.clientY, "overlay-touch-move");
           if (this.dragging) {
             event.preventDefault();
           }
-          if (this.dragging) {
-            this.dragDirty = true;
-            this.intervalIdleChecker.markActivity("overlay-touch-move");
-            this.intervalIdleChecker.requestImmediateTick();
-          }
         };
         onGlobalPointerMove = (event) => {
-          this.currentClientX = event.clientX;
-          const clientY = event.clientY;
-          if (!this.dragCandidate) return;
-          if (!this.dragging) {
-            const dx = Math.abs(this.currentClientX - this.dragStartX);
-            const dy = Math.abs(clientY - this.dragStartY);
-            if (dx + dy >= this.dragThresholdPx) {
-              this.dragging = true;
-            }
-          }
-          if (this.dragging) {
-            this.dragDirty = true;
-            this.intervalIdleChecker.markActivity("overlay-pointer-move");
-            this.intervalIdleChecker.requestImmediateTick();
-          }
+          this.updateDragFromMove(
+            event.clientX,
+            event.clientY,
+            "overlay-pointer-move"
+          );
         };
         applyDragFromState = () => {
           if (!this.dragging || !this.dragDirty || !this.containerRect) return;
+          const width = this.containerRect.width;
+          if (!(width > 0 && Number.isFinite(width))) {
+            return;
+          }
           this.dragDirty = false;
           const x2 = this.currentClientX - this.containerRect.left;
-          const clampedX = Math.max(0, Math.min(x2, this.containerRect.width));
-          const percentX = clampedX / this.containerRect.width * 100;
+          const clampedX = Math.max(0, Math.min(x2, width));
+          const percentX = clampedX / width * 100;
           this.moveButton(percentX);
         };
         onCheckerTick = () => {
@@ -16520,17 +17103,20 @@ onTouchDragStart = (event) => {
         get isBigContainer() {
           const widthFromVideo = this.videoHandler?.video?.getBoundingClientRect?.().width;
           if (typeof widthFromVideo === "number" && Number.isFinite(widthFromVideo)) {
-            return widthFromVideo > 550;
+            return widthFromVideo > OverlayView.BIG_CONTAINER_WIDTH_PX;
           }
           const widthFromContainer = this.videoHandler?.container?.getBoundingClientRect?.().width;
           if (typeof widthFromContainer === "number" && Number.isFinite(widthFromContainer)) {
-            return widthFromContainer > 550;
+            return widthFromContainer > OverlayView.BIG_CONTAINER_WIDTH_PX;
           }
-          return this.root.clientWidth > 550;
+          return this.root.clientWidth > OverlayView.BIG_CONTAINER_WIDTH_PX;
         }
         get pipButtonVisible() {
           return isPiPAvailable() && !!this.data.showPiPButton;
         }
+      }
+      function isSidePosition(position2) {
+        return position2 === "left" || position2 === "right";
       }
       const positions = ["default", "top", "left", "right"];
       const BROWSER_ALIASES_MAP = {
@@ -19462,6 +20048,7 @@ set key(newKey) {
         setSubtitlesSmartLayout(checked) {
           this.data.subtitlesSmartLayout = checked;
           void votStorage.set("subtitlesSmartLayout", checked);
+          debug.log("subtitlesSmartLayout value changed. New value:", checked);
           if (this.subtitlesSmartLayoutCheckbox?.checked !== checked) {
             this.suppressSubtitlesSmartLayoutCheckboxChange = true;
             this.subtitlesSmartLayoutCheckbox.checked = checked;
@@ -19506,6 +20093,7 @@ set key(newKey) {
           control.addEventListener(event, async (value) => {
             apply(value);
             await votStorage.set(storageKey, readPersistedValue());
+            debug.log(`${logLabel} value changed. New value:`, value);
             if (afterPersist) {
               await afterPersist(value);
             }
@@ -19683,7 +20271,7 @@ set key(newKey) {
             labelHtml: this.useAudioDownloadCheckboxLabel.container,
             checked: this.data.useAudioDownload
           });
-          if (!isUnsafeWindowAllowed && !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION)) {
+          if (!isSupportGMXhr) {
             this.useAudioDownloadCheckbox.disabled = true;
           }
           this.useAudioDownloadCheckboxTooltip = new Tooltip({
@@ -20112,6 +20700,10 @@ set key(newKey) {
                 "enabledDontTranslateLanguages",
                 this.data.enabledDontTranslateLanguages
               );
+              debug.log(
+                "enabledDontTranslateLanguages value changed. New value:",
+                checked
+              );
             }
           );
           this.dontTranslateLanguagesSelect.addEventListener(
@@ -20122,6 +20714,7 @@ set key(newKey) {
                 "dontTranslateLanguages",
                 this.data.dontTranslateLanguages
               );
+              debug.log("dontTranslateLanguages value changed. New value:", values);
             }
           );
           this.bindPersistedSetting({
@@ -20272,6 +20865,7 @@ set key(newKey) {
               "subtitlesMaxLength",
               this.data.subtitlesMaxLength
             );
+            debug.log("subtitlesMaxLength value changed. New value:", value);
             this.events["input:subtitlesMaxLength"].dispatch(value);
           });
           this.subtitlesFontSizeSlider.addEventListener("input", (value) => {
@@ -20284,6 +20878,7 @@ set key(newKey) {
               "subtitlesFontSize",
               this.data.subtitlesFontSize
             );
+            debug.log("subtitlesFontSize value changed. New value:", value);
             this.events["input:subtitlesFontSize"].dispatch(value);
           });
           this.subtitlesBackgroundOpacitySlider.addEventListener("input", (value) => {
@@ -20293,6 +20888,7 @@ set key(newKey) {
               "subtitlesOpacity",
               this.data.subtitlesOpacity
             );
+            debug.log("subtitlesOpacity value changed. New value:", value);
             this.events["input:subtitlesBackgroundOpacity"].dispatch(value);
           });
           this.bindPersistedSetting({
@@ -20411,6 +21007,7 @@ set key(newKey) {
           this.autoHideButtonDelaySlider.addEventListener("input", (value) => {
             this.autoHideButtonDelaySliderLabel.value = value;
             const newDelay = Math.round(value * 1e3);
+            debug.log("autoHideButtonDelay value changed. New value:", newDelay);
             this.data.autoHideButtonDelay = newDelay;
             this.scheduleStoragePersist(
               "autoHideButtonDelay",
@@ -20599,14 +21196,27 @@ votSettingsView;
             throw new Error("[VOT] UIManager isn't initialized");
           }
           this.votOverlayView.initUIEvents();
-          this.votOverlayView.addEventListener("click:translate", async () => {
+          this.bindOverlayViewEvents();
+          this.votSettingsView.initUIEvents();
+          this.bindSettingsViewEvents();
+        }
+        bindOverlayViewEvents() {
+          const overlayView = this.votOverlayView;
+          if (!overlayView) {
+            return;
+          }
+          overlayView.addEventListener("click:translate", async () => {
             await this.handleTranslationBtnClick();
           }).addEventListener("click:pip", async () => {
             if (!this.videoHandler) {
               return;
             }
-            const isPiPActive = this.videoHandler.video === document.pictureInPictureElement;
-            await (isPiPActive ? document.exitPictureInPicture() : this.videoHandler.video.requestPictureInPicture());
+            try {
+              const isPiPActive = this.videoHandler.video === document.pictureInPictureElement;
+              await (isPiPActive ? document.exitPictureInPicture() : this.videoHandler.video.requestPictureInPicture());
+            } catch (err) {
+              debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
+            }
           }).addEventListener("click:settings", async () => {
             this.videoHandler?.subtitlesWidget?.releaseTooltip();
             this.videoHandler?.overlayVisibility?.cancel();
@@ -20614,73 +21224,9 @@ votSettingsView;
             this.votSettingsView.open();
             await exitFullscreen();
           }).addEventListener("click:downloadTranslation", async () => {
-            if (!this.votOverlayView.isInitialized() || !this.videoHandler?.downloadTranslationUrl || !this.videoHandler.videoData) {
-              return;
-            }
-            const downloadButton = this.votOverlayView.downloadTranslationButton;
-            const downloadUrl = this.videoHandler.downloadTranslationUrl;
-            const filename = this.data.downloadWithName ? clearFileName(this.videoHandler.videoData.downloadTitle) : `translation_${this.videoHandler.videoData.videoId}`;
-            const isMobile = this.videoHandler.site.additionalData === "mobile";
-            if (downloadButton) {
-              downloadButton.progress = 0;
-            }
-            try {
-              if (isMobile) {
-                const res2 = await GM_fetch(downloadUrl, { timeout: 0 });
-                if (!res2.ok) {
-                  throw new Error(`HTTP ${res2.status}`);
-                }
-                const blob = await buildTranslationBlob(
-                  res2,
-                  filename,
-                  (progress) => {
-                    if (downloadButton) {
-                      downloadButton.progress = progress;
-                    }
-                  }
-                );
-                await this.saveBlobWithMobileShare(blob, `${filename}.mp3`, true);
-                return;
-              }
-              const res = await GM_fetch(downloadUrl, { timeout: 0 });
-              if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-              }
-              await downloadTranslation(res, filename, (progress) => {
-                if (downloadButton) {
-                  downloadButton.progress = progress;
-                }
-              });
-            } catch (err) {
-              console.error("[VOT] Download translation failed:", err);
-              if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) {
-                globalThis.open(downloadUrl, "_blank")?.focus();
-              }
-            } finally {
-              if (downloadButton) {
-                downloadButton.progress = 0;
-              }
-            }
+            await this.handleDownloadTranslationClick();
           }).addEventListener("click:downloadSubtitles", async () => {
-            const videoHandler = this.videoHandler;
-            if (!videoHandler?.yandexSubtitles || !videoHandler.videoData) {
-              return;
-            }
-            const subsFormat = this.data.subtitlesDownloadFormat ?? "json";
-            const subsContent = convertSubs(
-              mapProcessedSubtitlesToSharedData(videoHandler.yandexSubtitles),
-              subsFormat
-            );
-            const blob = new Blob(
-              [
-                subsFormat === "json" ? JSON.stringify(subsContent) : subsContent
-              ],
-              {
-                type: "text/plain"
-              }
-            );
-            const filename = this.data.downloadWithName ? clearFileName(videoHandler.videoData.downloadTitle) : `subtitles_${videoHandler.videoData.videoId}`;
-            downloadBlob(blob, `${filename}.${subsFormat}`);
+            await this.handleDownloadSubtitlesClick();
           }).addEventListener("input:videoVolume", (volume) => {
             if (!this.videoHandler) {
               return;
@@ -20702,17 +21248,29 @@ votSettingsView;
               return;
             }
             this.videoHandler.syncVolumeWrapper("translation", nextVolume);
-          }).addEventListener("select:subtitles", async (data) => {
-            await this.videoHandler?.changeSubtitlesLang(data);
+          }).addEventListener("select:subtitles", (data) => {
+            if (!this.videoHandler) {
+              return;
+            }
+            this.runDetached(
+              this.videoHandler.changeSubtitlesLang(data),
+              "Failed to change subtitles language"
+            );
           });
-          this.votSettingsView.initUIEvents();
-          this.votSettingsView.addEventListener("update:account", async (account) => {
+        }
+        bindSettingsViewEvents() {
+          const settingsView = this.votSettingsView;
+          if (!settingsView) {
+            return;
+          }
+          settingsView.addEventListener("update:account", async (account) => {
             if (!this.videoHandler) {
               return;
             }
             this.videoHandler.votClient.apiToken = account?.token;
           }).addEventListener("change:autoTranslate", async (checked) => {
-            if (checked && this.videoHandler && !this.videoHandler?.hasActiveSource()) {
+            const videoHandler = this.videoHandler;
+            if (checked && videoHandler && !videoHandler.hasActiveSource()) {
               await this.handleTranslationBtnClick();
             }
           }).addEventListener("change:autoSubtitles", async (checked) => {
@@ -20759,35 +21317,70 @@ votSettingsView;
               );
             });
           }).addEventListener("change:useLivelyVoice", () => {
-            void this.videoHandler?.stopTranslate();
+            if (!this.videoHandler) {
+              return;
+            }
+            this.runDetached(
+              this.videoHandler.stopTranslate(),
+              "Failed to stop translation after voice mode change"
+            );
           }).addEventListener("change:subtitlesHighlightWords", (checked) => {
-            this.withSubtitlesWidget((widget) => {
-              widget.setHighlightWords(this.data.highlightWords ?? checked);
-            });
+            this.updateSubtitlesWidgetSetting(
+              checked,
+              this.data.highlightWords,
+              (widget, value) => {
+                widget.setHighlightWords(value);
+              }
+            );
           }).addEventListener("change:subtitlesSmartLayout", (checked) => {
-            this.withSubtitlesWidget((widget) => {
-              widget.setSmartLayout(this.data.subtitlesSmartLayout ?? checked);
-            });
+            this.updateSubtitlesWidgetSetting(
+              checked,
+              this.data.subtitlesSmartLayout,
+              (widget, value) => {
+                widget.setSmartLayout(value);
+              }
+            );
           }).addEventListener("input:subtitlesMaxLength", (value) => {
-            this.withSubtitlesWidget((widget) => {
-              widget.setMaxLength(this.data.subtitlesMaxLength ?? value);
-            });
+            this.updateSubtitlesWidgetSetting(
+              value,
+              this.data.subtitlesMaxLength,
+              (widget, nextValue) => {
+                widget.setMaxLength(nextValue);
+              }
+            );
           }).addEventListener("input:subtitlesFontSize", (value) => {
-            this.withSubtitlesWidget((widget) => {
-              widget.setFontSize(this.data.subtitlesFontSize ?? value);
-            });
+            this.updateSubtitlesWidgetSetting(
+              value,
+              this.data.subtitlesFontSize,
+              (widget, nextValue) => {
+                widget.setFontSize(nextValue);
+              }
+            );
           }).addEventListener("input:subtitlesBackgroundOpacity", (value) => {
-            this.withSubtitlesWidget((widget) => {
-              widget.setOpacity(this.data.subtitlesOpacity ?? value);
-            });
+            this.updateSubtitlesWidgetSetting(
+              value,
+              this.data.subtitlesOpacity,
+              (widget, nextValue) => {
+                widget.setOpacity(nextValue);
+              }
+            );
           }).addEventListener("change:proxyWorkerHost", (_value) => {
             if (!this.videoHandler) {
               return;
             }
-            void this.videoHandler.handleProxySettingsChanged("proxyWorkerHost");
+            this.runDetached(
+              this.videoHandler.handleProxySettingsChanged("proxyWorkerHost"),
+              "Failed to apply proxyWorkerHost change"
+            );
           }).addEventListener("select:proxyTranslationStatus", () => {
-            void this.videoHandler?.handleProxySettingsChanged(
-              "proxyTranslationStatus"
+            if (!this.videoHandler) {
+              return;
+            }
+            this.runDetached(
+              this.videoHandler.handleProxySettingsChanged(
+                "proxyTranslationStatus"
+              ),
+              "Failed to apply proxyTranslationStatus change"
             );
           }).addEventListener("change:useNewAudioPlayer", () => {
             this.restartAudioPlayer();
@@ -20824,12 +21417,74 @@ votSettingsView;
             globalThis.open(`${repositoryUrl}/issues/new?${params}`, "_blank")?.focus();
           }).addEventListener("click:resetSettings", async () => {
             const valuesForClear = await votStorage.list();
-            await Promise.all(
-              valuesForClear.map(async (val) => await votStorage.delete(val))
-            );
+            await Promise.all(valuesForClear.map((key) => votStorage.delete(key)));
             await votStorage.set("compatVersion", actualCompatVersion);
             globalThis.location.reload();
           });
+        }
+        async handleDownloadTranslationClick() {
+          const overlayView = this.votOverlayView;
+          const videoHandler = this.videoHandler;
+          if (!overlayView?.isInitialized() || !videoHandler?.downloadTranslationUrl || !videoHandler.videoData) {
+            return;
+          }
+          const downloadButton = overlayView.downloadTranslationButton;
+          const downloadUrl = videoHandler.downloadTranslationUrl;
+          const filename = this.data.downloadWithName ? clearFileName(videoHandler.videoData.downloadTitle) : `translation_${videoHandler.videoData.videoId}`;
+          const isMobile = this.isLikelyMobileDownloadContext();
+          const saveOptions = { preferShare: isMobile };
+          const setProgress = (progress) => {
+            if (downloadButton) {
+              downloadButton.progress = progress;
+            }
+          };
+          setProgress(0);
+          try {
+            await this.downloadTranslationAudio(
+              downloadUrl,
+              filename,
+              setProgress,
+              saveOptions
+            );
+          } catch (err) {
+            console.error("[VOT] Download translation failed:", err);
+            if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) {
+              globalThis.open(downloadUrl, "_blank")?.focus();
+            }
+          } finally {
+            setProgress(0);
+          }
+        }
+        async downloadTranslationAudio(downloadUrl, filename, onProgress, saveOptions) {
+          const response = await GM_fetch(downloadUrl, { timeout: 0 });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          await downloadTranslation(response, filename, onProgress, saveOptions);
+        }
+        async handleDownloadSubtitlesClick() {
+          const videoHandler = this.videoHandler;
+          if (!videoHandler?.yandexSubtitles || !videoHandler.videoData) {
+            return;
+          }
+          const subsFormat = this.data.subtitlesDownloadFormat ?? "json";
+          const subsContent = convertSubs(
+            mapProcessedSubtitlesToSharedData(videoHandler.yandexSubtitles),
+            subsFormat
+          );
+          const blob = new Blob(
+            [
+              subsFormat === "json" ? JSON.stringify(subsContent) : subsContent
+            ],
+            {
+              type: "text/plain"
+            }
+          );
+          const filename = this.data.downloadWithName ? clearFileName(videoHandler.videoData.downloadTitle) : `subtitles_${videoHandler.videoData.videoId}`;
+          const targetFilename = `${filename}.${subsFormat}`;
+          const isMobile = this.isLikelyMobileDownloadContext();
+          const saveOptions = { preferShare: isMobile };
+          await downloadBlob(blob, targetFilename, saveOptions);
         }
         async reloadMenu() {
           if (!this.votOverlayView?.isInitialized()) {
@@ -20853,16 +21508,22 @@ votSettingsView;
             this.votOverlayView.votMenu.hidden = prevMenuHidden;
             this.votOverlayView.votButton.container.hidden = prevButtonHidden;
             this.votOverlayView.votButton.opacity = prevButtonOpacity;
-          } catch {
+          } catch (err) {
+            debug.warn(
+              "[VOT] Failed to restore overlay state after menu reload",
+              err
+            );
           }
           try {
             this.videoHandler.rebindOverlayVisibilityTargets();
-          } catch {
+          } catch (err) {
+            debug.warn("[VOT] Failed to rebind overlay visibility targets", err);
           }
           if (settingsWasOpen) {
             try {
               this.votSettingsView?.open();
-            } catch {
+            } catch (err) {
+              debug.warn("[VOT] Failed to reopen settings after menu reload", err);
             }
           }
           await this.videoHandler.updateSubtitlesLangSelect();
@@ -20877,42 +21538,43 @@ votSettingsView;
           if (!this.votOverlayView?.isInitialized()) {
             throw new Error("[VOT] OverlayView isn't initialized");
           }
-          if (!this.videoHandler) {
+          const videoHandler = this.videoHandler;
+          if (!videoHandler) {
             return this;
           }
-          if (this.videoHandler.hasActiveSource()) {
-            await this.videoHandler.stopTranslation();
+          debug.log("[handleTranslationBtnClick] click translationBtn");
+          if (videoHandler.hasActiveSource()) {
+            debug.log("[handleTranslationBtnClick] video has active source");
+            await videoHandler.stopTranslation();
             return this;
           }
           if (this.votOverlayView.votButton.status === "error" && !this.votOverlayView.votButton.loading) {
             this.transformBtn("none", localizationProvider.get("translateVideo"));
           }
           if (this.votOverlayView.votButton.status !== "none" || this.votOverlayView.votButton.loading) {
-            this.videoHandler.actionsAbortController.abort();
-            await this.videoHandler.stopTranslation();
+            debug.log(
+              "[handleTranslationBtnClick] translationBtn isn't in none state"
+            );
+            videoHandler.actionsAbortController.abort();
+            await videoHandler.stopTranslation();
             return this;
           }
           try {
             debug.log("[handleTranslationBtnClick] trying execute translation");
-            if (!this.videoHandler.videoData?.videoId) {
-              throw new VOTLocalizedError("VOTNoVideoIDFound");
-            }
-            if (this.videoHandler.site.host === "vk" && this.videoHandler.site.additionalData === "clips" || this.videoHandler.site.host === "douyin") {
-              this.videoHandler.videoData = await this.videoHandler.getVideoData();
-            }
+            const videoData = await this.getVideoDataForTranslation(videoHandler);
             debug.log(
               "[handleTranslationBtnClick] Run translateFunc",
-              this.videoHandler.videoData.videoId
+              videoData.videoId
             );
-            await this.videoHandler.translateFunc(
-              this.videoHandler.videoData.videoId,
-              this.videoHandler.videoData.isStream,
-              this.videoHandler.videoData.detectedLanguage,
-              this.videoHandler.videoData.responseLanguage,
-              this.videoHandler.videoData.translationHelp
+            await videoHandler.translateFunc(
+              videoData.videoId,
+              videoData.isStream,
+              videoData.detectedLanguage,
+              videoData.responseLanguage,
+              videoData.translationHelp
             );
           } catch (err) {
-            if (err instanceof Error && err.name === "AbortError") {
+            if (this.isAbortError(err)) {
               this.transformBtn("none", localizationProvider.get("translateVideo"));
               return this;
             }
@@ -20925,6 +21587,24 @@ votSettingsView;
             this.transformBtn("error", message);
           }
           return this;
+        }
+        async getVideoDataForTranslation(videoHandler) {
+          if (!videoHandler.videoData?.videoId) {
+            throw new VOTLocalizedError("VOTNoVideoIDFound");
+          }
+          if (this.shouldRefreshVideoDataBeforeTranslation(videoHandler)) {
+            videoHandler.videoData = await videoHandler.getVideoData();
+          }
+          if (!videoHandler.videoData?.videoId) {
+            throw new VOTLocalizedError("VOTNoVideoIDFound");
+          }
+          return videoHandler.videoData;
+        }
+        shouldRefreshVideoDataBeforeTranslation(videoHandler) {
+          return videoHandler.site.host === "vk" && videoHandler.site.additionalData === "clips" || videoHandler.site.host === "douyin";
+        }
+        isAbortError(error2) {
+          return error2 instanceof Error && error2.name === "AbortError";
         }
         isLoadingText(text) {
           const delayed = localizationProvider.get("TranslationDelayed");
@@ -20982,6 +21662,16 @@ votSettingsView;
           }
           callback(widget);
         }
+        updateSubtitlesWidgetSetting(nextValue, storedValue, apply) {
+          this.withSubtitlesWidget((widget) => {
+            apply(widget, storedValue ?? nextValue);
+          });
+        }
+        runDetached(task, errorMessage) {
+          void task.catch((err) => {
+            debug.warn(`[VOT] ${errorMessage}`, err);
+          });
+        }
         triggerUrlDownload(url, filename) {
           try {
             const a2 = document.createElement("a");
@@ -20998,49 +21688,26 @@ votSettingsView;
             return false;
           }
         }
-        async tryShareBlob(blob, filename) {
-          const nav = typeof navigator === "undefined" ? void 0 : navigator;
-          if (!nav?.share || typeof File === "undefined") {
-            return false;
-          }
-          let file;
-          try {
-            file = new File([blob], filename, {
-              type: blob.type || "application/octet-stream"
-            });
-          } catch {
-            return false;
-          }
-          if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) {
-            return false;
-          }
-          try {
-            await nav.share({ files: [file], title: filename });
+        isLikelyMobileDownloadContext() {
+          if (this.videoHandler?.site.additionalData === "mobile") {
             return true;
-          } catch (err) {
-            if (err instanceof DOMException && err.name === "AbortError") {
-              return true;
-            }
-            return false;
           }
-        }
-        async saveBlobWithMobileShare(blob, filename, preferShare) {
-          if (preferShare) {
-            const shared = await this.tryShareBlob(blob, filename);
-            if (shared) {
-              return;
-            }
-          }
-          downloadBlob(blob, filename);
+          return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
         }
         restartAudioPlayer() {
-          if (!this.videoHandler) {
+          void this.restartAudioPlayerSafely();
+        }
+        async restartAudioPlayerSafely() {
+          const videoHandler = this.videoHandler;
+          if (!videoHandler) {
             return;
           }
-          void (async () => {
-            await this.videoHandler?.stopTranslate();
-            this.videoHandler?.createPlayer();
-          })();
+          try {
+            await videoHandler.stopTranslate();
+            videoHandler.createPlayer();
+          } catch (err) {
+            debug.warn("[VOT] Failed to restart audio player", err);
+          }
         }
       }
       class OverlayVisibilityController {
@@ -21142,6 +21809,7 @@ scheduleHide(event) {
             active = document.activeElement;
           }
           if (active && this.deps.isInteractiveNode(active)) {
+            debug.log("[OverlayVisibility] skip hide (focus inside overlay)");
             return;
           }
           const view = this.getView();
@@ -21164,44 +21832,103 @@ scheduleHide(event) {
         }
       }
       const DEFAULT_PROFILE = {
-        activeIntervalMs: 16,
-        idleIntervalMs: 120,
-        hiddenIntervalMs: 250,
+        checkIntervalMs: 250,
         idleAfterMs: 180
       };
+      function normalizePositiveMs(value, fallback) {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          return fallback;
+        }
+        return Math.max(1, Math.trunc(value));
+      }
+      function normalizeNonNegativeMs(value, fallback) {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          return fallback;
+        }
+        return Math.max(0, Math.trunc(value));
+      }
+      function normalizeOptionalPositiveMs(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          return null;
+        }
+        return Math.max(1, Math.trunc(value));
+      }
+      function resolveLegacyCheckIntervalMs(profile) {
+        const hidden = normalizeOptionalPositiveMs(profile.hiddenIntervalMs);
+        if (hidden !== null) {
+          return hidden;
+        }
+        const idle = normalizeOptionalPositiveMs(profile.idleIntervalMs);
+        if (idle !== null) {
+          return idle;
+        }
+        const active = normalizeOptionalPositiveMs(profile.activeIntervalMs);
+        if (active !== null) {
+          return active;
+        }
+        return null;
+      }
+      function normalizeProfile(profile = {}) {
+        const legacyCheckIntervalMs = resolveLegacyCheckIntervalMs(profile);
+        return {
+          checkIntervalMs: normalizePositiveMs(
+            profile.checkIntervalMs,
+            legacyCheckIntervalMs ?? DEFAULT_PROFILE.checkIntervalMs
+          ),
+          idleAfterMs: normalizeNonNegativeMs(
+            profile.idleAfterMs,
+            DEFAULT_PROFILE.idleAfterMs
+          )
+        };
+      }
       function getDefaultRuntime() {
         return {
           nowMs: () => typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now(),
           setInterval: globalThis.setInterval.bind(globalThis),
           clearInterval: globalThis.clearInterval.bind(globalThis),
           queueMicrotask: (fn) => {
-            if (typeof queueMicrotask === "function") {
-              queueMicrotask(fn);
+            if (typeof globalThis.queueMicrotask === "function") {
+              globalThis.queueMicrotask(fn);
               return;
             }
-            void (async () => {
-              await Promise.resolve();
-              fn();
-            })();
+            Promise.resolve().then(fn);
           },
-          isDocumentHidden: () => typeof document !== "undefined" && typeof document.hidden === "boolean" ? document.hidden : false
+          isDocumentHidden: () => typeof document !== "undefined" && typeof document.hidden === "boolean" ? document.hidden : false,
+          onVisibilityChange: (listener) => {
+            if (typeof document === "undefined" || typeof document.addEventListener !== "function") {
+              return () => void 0;
+            }
+            document.addEventListener("visibilitychange", listener);
+            return () => {
+              if (typeof document.removeEventListener === "function") {
+                document.removeEventListener("visibilitychange", listener);
+              }
+            };
+          }
         };
       }
       class IntervalIdleChecker {
         profile;
         runtime;
         subscribers = new Set();
-        timerId = null;
+        intervalId = null;
+        unsubscribeVisibilityChange = null;
         running = false;
         destroyed = false;
         immediateQueued = false;
         currentMode = "active";
         lastActivityAt;
+        onVisibilityChangeHandler = () => {
+          if (this.destroyed || !this.running) return;
+          if (this.runtime.isDocumentHidden()) {
+            this.clearIntervalTimer();
+          } else {
+            this.armInterval();
+          }
+          this.requestImmediateTick();
+        };
         constructor(options = {}) {
-          this.profile = {
-            ...DEFAULT_PROFILE,
-            ...options.profile
-          };
+          this.profile = normalizeProfile(options.profile);
           this.runtime = {
             ...getDefaultRuntime(),
             ...options.runtime
@@ -21212,13 +21939,16 @@ scheduleHide(event) {
           if (this.destroyed || this.running) return;
           this.running = true;
           this.lastActivityAt = this.runtime.nowMs();
+          this.subscribeVisibilityChange();
+          this.armInterval();
           this.runTick("start");
         }
         stop() {
           if (!this.running) return;
           this.running = false;
-          this.clearTimer();
+          this.clearIntervalTimer();
           this.immediateQueued = false;
+          this.unsubscribeFromVisibilityChange();
         }
         destroy() {
           if (this.destroyed) return;
@@ -21240,10 +21970,7 @@ scheduleHide(event) {
           this.lastActivityAt = this.runtime.nowMs();
           if (!this.running) return;
           const nextMode = this.resolveMode(this.lastActivityAt);
-          if (nextMode !== this.currentMode) {
-            this.currentMode = nextMode;
-            this.restartTimer(nextMode);
-          }
+          if (nextMode !== this.currentMode) this.currentMode = nextMode;
         }
         requestImmediateTick() {
           if (this.destroyed || !this.running || this.immediateQueued) return;
@@ -21261,30 +21988,23 @@ scheduleHide(event) {
           const inactiveFor = nowMs - this.lastActivityAt;
           return inactiveFor >= this.profile.idleAfterMs ? "idle" : "active";
         }
-        intervalForMode(mode) {
-          if (mode === "hidden") return this.profile.hiddenIntervalMs;
-          if (mode === "idle") return this.profile.idleIntervalMs;
-          return this.profile.activeIntervalMs;
+        clearIntervalTimer() {
+          if (this.intervalId === null) return;
+          this.runtime.clearInterval(this.intervalId);
+          this.intervalId = null;
         }
-        clearTimer() {
-          if (this.timerId === null) return;
-          this.runtime.clearInterval(this.timerId);
-          this.timerId = null;
-        }
-        restartTimer(mode) {
-          this.clearTimer();
-          const intervalMs = Math.max(1, this.intervalForMode(mode));
-          this.timerId = this.runtime.setInterval(() => {
+        armInterval() {
+          if (this.intervalId !== null) return;
+          this.intervalId = this.runtime.setInterval(() => {
             this.runTick("interval");
-          }, intervalMs);
+          }, this.profile.checkIntervalMs);
         }
         runTick(source) {
+          if (this.destroyed || !this.running) return;
+          if (this.subscribers.size === 0) return;
           const nowMs = this.runtime.nowMs();
           const nextMode = this.resolveMode(nowMs);
-          if (nextMode !== this.currentMode || this.timerId === null) {
-            this.currentMode = nextMode;
-            this.restartTimer(nextMode);
-          }
+          if (nextMode !== this.currentMode) this.currentMode = nextMode;
           const ctx = {
             nowMs,
             mode: nextMode,
@@ -21296,6 +22016,17 @@ scheduleHide(event) {
             } catch {
             }
           }
+        }
+        subscribeVisibilityChange() {
+          if (this.unsubscribeVisibilityChange !== null) return;
+          this.unsubscribeVisibilityChange = this.runtime.onVisibilityChange(
+            this.onVisibilityChangeHandler
+          );
+        }
+        unsubscribeFromVisibilityChange() {
+          if (this.unsubscribeVisibilityChange === null) return;
+          this.unsubscribeVisibilityChange();
+          this.unsubscribeVisibilityChange = null;
         }
       }
       function createIntervalIdleChecker(profile) {
@@ -21321,6 +22052,44 @@ scheduleHide(event) {
       function markSent(lastSentAt, key) {
         lastSentAt.set(key, now());
       }
+      function localizePhraseText(message) {
+        const key = message.trim();
+        if (!key) return null;
+        try {
+          const localized = localizationProvider.get(key);
+          const defaultText = localizationProvider.getDefault(key);
+          const isKnownPhrase = localized !== key || defaultText !== key;
+          return isKnownPhrase ? localized || defaultText || key : null;
+        } catch {
+          return null;
+        }
+      }
+      function resolveLocalizedErrorMessage(message) {
+        if (message && typeof message === "object") {
+          const localizedError = message;
+          if (localizedError.name === "VOTLocalizedError") {
+            if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) {
+              return localizedError.localizedMessage;
+            }
+            if (typeof localizedError.unlocalizedMessage === "string") {
+              const byPhraseKey = localizePhraseText(
+                localizedError.unlocalizedMessage
+              );
+              if (byPhraseKey) return byPhraseKey;
+            }
+          }
+        }
+        if (typeof message === "string") {
+          const byPhraseKey = localizePhraseText(message);
+          if (byPhraseKey) return byPhraseKey;
+        }
+        const extracted = getErrorMessage(message);
+        if (extracted) {
+          const byPhraseKey = localizePhraseText(extracted);
+          return byPhraseKey || extracted;
+        }
+        return safeL10n("requestTranslationFailed", "Translation failed");
+      }
       function trySendViaUserscriptApi(details) {
         try {
           if (typeof GM_notification === "function") {
@@ -21340,6 +22109,7 @@ scheduleHide(event) {
             return true;
           }
         } catch (err) {
+          debug.log("[notify] userscript api error", err);
         }
         return false;
       }
@@ -21361,6 +22131,7 @@ scheduleHide(event) {
               debug.log("[notify] unavailable", normalized);
             }
           } catch (err) {
+            debug.log("[notify] send error", err);
           }
         }
         translationCompleted(host) {
@@ -21388,7 +22159,7 @@ scheduleHide(event) {
         translationFailed(params) {
           const { videoId, message } = params;
           if (isAbortError(message)) return;
-          const msg = getErrorMessage(message) || "Translation failed";
+          const msg = resolveLocalizedErrorMessage(message);
           const title = getScriptTitle();
           this.send(
             {
@@ -21409,15 +22180,46 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         }
       }
       const AD_ATTRS = ["class", "id", "title"];
-      const ATTACH_SHADOW_HOOK_KEY = "__votAttachShadowHook";
+      const AD_KEYWORDS = [
+        "advertise",
+        "advertisement",
+        "promo",
+        "sponsor",
+        "banner",
+        "commercial",
+        "preroll",
+        "midroll",
+        "postroll",
+        "ad-container",
+        "sponsored"
+      ];
+      const AD_KEYWORD_PATTERN = new RegExp(
+        AD_KEYWORDS.map(
+          (keyword) => keyword.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
+        ).join("|")
+      );
+      const ATTACH_SHADOW_HOOK_KEY = Symbol.for("vot.attachShadowHook");
+      function getAttachShadowDescriptor() {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          Element.prototype,
+          "attachShadow"
+        );
+        if (!descriptor || typeof descriptor.value !== "function") {
+          return null;
+        }
+        return descriptor;
+      }
       function getOrInstallAttachShadowHook() {
         const g2 = globalThis;
         const existing = g2[ATTACH_SHADOW_HOOK_KEY];
-        if (existing?.original && existing.subscribers) return existing;
-        const original = Element.prototype.attachShadow;
-        if (typeof original !== "function") return null;
+        if (existing?.descriptor && existing.subscribers instanceof Set) {
+          return existing;
+        }
+        const descriptor = getAttachShadowDescriptor();
+        if (!descriptor) return null;
+        const original = descriptor.value;
         const state = {
-          original,
+          descriptor,
           subscribers: new Set()
         };
         const patchedAttachShadow = function(init2) {
@@ -21426,15 +22228,14 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
             try {
               sub(root);
             } catch (error2) {
+              debug.error("attachShadow subscriber failed", error2);
             }
           }
           return root;
         };
         try {
           Object.defineProperty(Element.prototype, "attachShadow", {
-            configurable: true,
-            enumerable: true,
-            writable: true,
+            ...descriptor,
             value: patchedAttachShadow
           });
         } catch {
@@ -21450,34 +22251,20 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         state.subscribers.delete(subscriber);
         if (state.subscribers.size > 0) return;
         try {
-          Object.defineProperty(Element.prototype, "attachShadow", {
-            configurable: true,
-            enumerable: true,
-            writable: true,
-            value: state.original
-          });
+          Object.defineProperty(Element.prototype, "attachShadow", state.descriptor);
         } catch {
-          Element.prototype.attachShadow = state.original;
+          const original = state.descriptor.value;
+          if (typeof original === "function") {
+            Element.prototype.attachShadow = original;
+          }
         }
         delete g2[ATTACH_SHADOW_HOOK_KEY];
       }
       class VideoObserver {
-        static adKeywords = new Set([
-          "advertise",
-          "advertisement",
-          "promo",
-          "sponsor",
-          "banner",
-          "commercial",
-          "preroll",
-          "midroll",
-          "postroll",
-          "ad-container",
-          "sponsored"
-        ]);
         seenVideos = new WeakSet();
         activeVideos = new WeakSet();
         observedRoots = new WeakSet();
+        videoListenerControllers = new Map();
         pendingAdded = new Set();
         pendingRemoved = new Set();
         flushPending = false;
@@ -21502,25 +22289,15 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         constructor(intervalIdleChecker = createIntervalIdleChecker()) {
           this.intervalIdleChecker = intervalIdleChecker;
         }
-        static containsAdKeyword(token) {
-          for (const kw of VideoObserver.adKeywords) {
-            if (token === kw || token.includes(kw)) {
-              return true;
-            }
-          }
-          return false;
+        static containsAdKeyword(value) {
+          return value.length > 0 && AD_KEYWORD_PATTERN.test(value);
         }
         isAdRelated(element) {
           for (const attr of AD_ATTRS) {
             const rawValue = element.getAttribute(attr);
             if (!rawValue) continue;
-            const value = rawValue.toLowerCase();
-            const tokens = attr === "class" ? value.split(/\s+/) : [value];
-            for (const token of tokens) {
-              if (!token) continue;
-              if (VideoObserver.containsAdKeyword(token)) {
-                return true;
-              }
+            if (VideoObserver.containsAdKeyword(rawValue.toLowerCase())) {
+              return true;
             }
           }
           return false;
@@ -21587,6 +22364,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           if (this.isAdRelated(video)) return false;
           if (this.isInsideAd(video)) return false;
           if (!this.hasAudio(video)) {
+            debug.log("Ignoring video without audio:", video);
             return false;
           }
           return true;
@@ -21607,7 +22385,9 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
             acceptNode: (node) => {
               const el = node;
-              return el.tagName === "VIDEO" || el.shadowRoot ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+              const isVideo = el.tagName === "VIDEO";
+              const hasShadowRoot = Boolean(el.shadowRoot);
+              return isVideo || hasShadowRoot ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
             }
           });
           while (walker.nextNode()) {
@@ -21623,9 +22403,31 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
             }
           }
         }
+        getVideoListenerSignal(video) {
+          const existingController = this.videoListenerControllers.get(video);
+          if (existingController) {
+            existingController.abort();
+          }
+          const controller = new AbortController();
+          this.videoListenerControllers.set(video, controller);
+          return controller.signal;
+        }
+        cleanupVideoListeners(video) {
+          const controller = this.videoListenerControllers.get(video);
+          if (!controller) return;
+          controller.abort();
+          this.videoListenerControllers.delete(video);
+        }
+        cleanupAllVideoListeners() {
+          for (const controller of this.videoListenerControllers.values()) {
+            controller.abort();
+          }
+          this.videoListenerControllers.clear();
+        }
         trackVideo(video) {
           if (this.seenVideos.has(video)) return;
           this.seenVideos.add(video);
+          const listenerSignal = this.getVideoListenerSignal(video);
           const tryValidate = () => {
             if (this.isValidVideo(video)) {
               if (!this.activeVideos.has(video)) {
@@ -21637,13 +22439,20 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
             tryValidate();
           } else {
-            video.addEventListener("loadeddata", tryValidate, { once: true });
+            video.addEventListener("loadeddata", tryValidate, {
+              once: true,
+              signal: listenerSignal
+            });
             const handlePlay = () => {
               if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
                 tryValidate();
               }
             };
-            video.addEventListener("play", handlePlay, { once: true, passive: true });
+            video.addEventListener("play", handlePlay, {
+              once: true,
+              passive: true,
+              signal: listenerSignal
+            });
           }
           video.addEventListener(
             "emptied",
@@ -21652,10 +22461,11 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
                 this.untrackVideo(video);
               }
             },
-            { passive: true }
+            { passive: true, signal: listenerSignal }
           );
         }
         untrackVideo(video) {
+          this.cleanupVideoListeners(video);
           if (this.activeVideos.has(video)) {
             this.onVideoRemoved.dispatch(video);
             this.activeVideos.delete(video);
@@ -21668,17 +22478,12 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
             for (const v2 of videos) set.add(v2);
           };
           if (node instanceof HTMLVideoElement) set.add(node);
-          if (node instanceof ShadowRoot) {
+          if (node instanceof Document || node instanceof DocumentFragment || node instanceof Element) {
             addAll(node.querySelectorAll("video"));
           }
           if (node instanceof Element) {
-            addAll(node.querySelectorAll("video"));
-            const sr = node.shadowRoot;
-            if (sr) addAll(sr.querySelectorAll("video"));
-          }
-          const pn = node;
-          if (pn?.querySelectorAll) {
-            addAll(pn.querySelectorAll("video"));
+            const shadowRoot = node.shadowRoot;
+            if (shadowRoot) addAll(shadowRoot.querySelectorAll("video"));
           }
           return Array.from(set);
         }
@@ -21791,9 +22596,9 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           if (this.enabled) return;
           this.enabled = true;
           this.checkerUnsubscribe?.();
-          this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
-            this.onCheckerTick();
-          });
+          this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(
+            this.onCheckerTick
+          );
           this.intervalIdleChecker.start();
           this.intervalIdleChecker.markActivity("video-observer-enable");
           this.installAttachShadowHook();
@@ -21816,12 +22621,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           this.onDocumentReady = onReady;
           document.addEventListener("readystatechange", onReady);
           if (typeof queueMicrotask === "function") queueMicrotask(onReady);
-          else {
-            void (async () => {
-              await Promise.resolve();
-              onReady();
-            })();
-          }
+          else void Promise.resolve().then(onReady);
         }
         disable() {
           if (!this.enabled) return;
@@ -21833,6 +22633,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           }
           this.uninstallAttachShadowHook();
           this.observer.disconnect();
+          this.cleanupAllVideoListeners();
           this.flushPending = false;
           this.checkerUnsubscribe?.();
           this.checkerUnsubscribe = null;
@@ -21915,9 +22716,49 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           ...overrides
         };
       }
+      function mergeListenerSignals(primary, secondary) {
+        if (!secondary || secondary === primary) {
+          return primary;
+        }
+        if (primary.aborted) {
+          return primary;
+        }
+        if (secondary.aborted) {
+          return secondary;
+        }
+        const canCombine = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
+        if (canCombine) {
+          return AbortSignal.any([primary, secondary]);
+        }
+        const controller = new AbortController();
+        const cleanup = () => {
+          primary.removeEventListener("abort", onPrimaryAbort);
+          secondary.removeEventListener("abort", onSecondaryAbort);
+        };
+        const onPrimaryAbort = () => {
+          cleanup();
+          controller.abort(primary.reason);
+        };
+        const onSecondaryAbort = () => {
+          cleanup();
+          controller.abort(secondary.reason);
+        };
+        primary.addEventListener("abort", onPrimaryAbort, { once: true });
+        secondary.addEventListener("abort", onSecondaryAbort, { once: true });
+        return controller.signal;
+      }
       function createScopedListeners(signal) {
         const add = (element, event, handler, options) => {
-          element.addEventListener(event, handler, { signal, ...options });
+          const mergedSignal = mergeListenerSignals(signal, options?.signal);
+          if (!options) {
+            element.addEventListener(event, handler, { signal: mergedSignal });
+            return;
+          }
+          const { signal: _ignoredSignal, ...restOptions } = options;
+          element.addEventListener(event, handler, {
+            ...restOptions,
+            signal: mergedSignal
+          });
         };
         const addMany = (element, events, handler, options) => {
           for (const event of events) {
@@ -21968,13 +22809,35 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         );
         overlayView.updateButtonLayout(position2, direction);
       }
-      function isHotkeyMatch(userPressedKeys, hotkey) {
+      function normalizeHotkeyPart(value) {
+        return value.replace("Key", "").replace("Digit", "");
+      }
+      function buildPressedHotkeyPartsSet(userPressedKeys) {
+        const pressedParts = new Set();
+        for (const key of userPressedKeys) {
+          pressedParts.add(normalizeHotkeyPart(key));
+        }
+        return pressedParts;
+      }
+      function getParsedHotkey(hotkey, cache) {
+        if (!hotkey) return null;
+        const cached = cache.get(hotkey);
+        if (cached) return cached;
+        const parts = hotkey.split("+").filter(Boolean).map(normalizeHotkeyPart);
+        const parsed = {
+          parts,
+          partsSet: new Set(parts)
+        };
+        cache.set(hotkey, parsed);
+        return parsed;
+      }
+      function isHotkeyMatch(pressedParts, hotkey) {
         if (!hotkey) return false;
-        const pressedParts = formatKeysCombo(userPressedKeys).split("+").filter(Boolean);
-        const hotkeyParts = hotkey.split("+").filter(Boolean);
-        if (pressedParts.length !== hotkeyParts.length) return false;
-        const pressedSet = new Set(pressedParts);
-        return hotkeyParts.every((key) => pressedSet.has(key));
+        if (pressedParts.size !== hotkey.parts.length) return false;
+        for (const key of hotkey.partsSet) {
+          if (!pressedParts.has(key)) return false;
+        }
+        return true;
       }
       function bindOverlayLayoutEvents(ctx) {
         const { self, overlayView, addMany } = ctx;
@@ -22033,21 +22896,42 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         if (self.site.host !== "youtube" || self.site.additionalData === "mobile")
           return;
         const syncAudioTrackLanguage = async () => {
-          if (!self.videoData) return;
-          const player22 = YoutubeHelper.getPlayer();
-          const availableTracks = player22?.getAvailableAudioTracks?.() ?? null;
-          if (!Array.isArray(availableTracks) || availableTracks.length <= 1) return;
-          const currentTrackInfo = player22?.getAudioTrack?.()?.getLanguageInfo?.();
-          const currentTrackId = currentTrackInfo?.id ?? void 0;
-          const currentLanguage = currentTrackId && currentTrackId !== "und" ? currentTrackId.toLowerCase().split(/[-_.]/)[0] : YoutubeHelper.getLanguage();
-          if (!currentLanguage) return;
-          if (currentLanguage === self.videoData.detectedLanguage) return;
-          self.setSelectMenuValues(currentLanguage, self.videoData.responseLanguage);
-          if (self.data?.autoTranslate && currentLanguage !== self.videoData.responseLanguage) {
-            try {
-              await self.uiManager.handleTranslationBtnClick();
-            } catch (error2) {
+          try {
+            if (!self.videoData) return;
+            const player22 = YoutubeHelper.getPlayer();
+            const availableTracks = player22?.getAvailableAudioTracks?.() ?? null;
+            if (!Array.isArray(availableTracks) || availableTracks.length <= 1)
+              return;
+            const currentTrackInfo = player22?.getAudioTrack?.()?.getLanguageInfo?.();
+            const currentTrackId = currentTrackInfo?.id;
+            const currentLanguageCode = currentTrackId && currentTrackId !== "und" ? currentTrackId.toLowerCase().split(/[-_.]/)[0] : void 0;
+            if (!currentLanguageCode) return;
+            if (!availableLangs.includes(currentLanguageCode)) return;
+            const currentLanguage = currentLanguageCode;
+            if (currentLanguage === self.videoData.detectedLanguage) return;
+            self.videoManager.rememberDetectedLanguage(
+              self.videoData.videoId,
+              currentLanguage
+            );
+            self.setSelectMenuValues(
+              currentLanguage,
+              self.videoData.responseLanguage
+            );
+            if (self.data?.autoTranslate && currentLanguage !== self.videoData.responseLanguage) {
+              debug.log(
+                `[VOT] Audio track language changed to ${currentLanguage}, triggering auto-translation`
+              );
+              try {
+                await self.uiManager.handleTranslationBtnClick();
+              } catch (error2) {
+                debug.log(
+                  "[VOT] Failed to trigger auto-translation on audio track change:",
+                  error2
+                );
+              }
             }
+          } catch (error2) {
+            debug.log("[VOT] Failed to sync audio track language", error2);
           }
         };
         const player2 = YoutubeHelper.getPlayer();
@@ -22057,6 +22941,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
             try {
               player2.addEventListener(eventName, syncAudioTrackLanguage);
             } catch (error2) {
+              debug.log(`[VOT] Failed to bind ${eventName}`, error2);
             }
           }
         }
@@ -22069,6 +22954,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
               try {
                 player2.removeEventListener(eventName, syncAudioTrackLanguage);
               } catch (error2) {
+                debug.log(`[VOT] Failed to unbind ${eventName}`, error2);
               }
             }
           },
@@ -22082,12 +22968,14 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           const button = overlayView.votButton?.container;
           const menu = overlayView.votMenu?.container;
           const settings = self.uiManager.votSettingsView?.dialog?.container;
-          const tempDialog = document.querySelector(".vot-dialog-temp");
           const isButton = target && button ? button.contains(target) : false;
           const isMenu = target && menu ? menu.contains(target) : false;
           const isVideo = target ? self.container.contains(target) : false;
           const isSettings = target && settings ? settings.contains(target) : false;
-          const isTempDialog = target ? tempDialog?.contains(target) ?? false : false;
+          const isTempDialog = target instanceof Element && target.closest(".vot-dialog-temp") instanceof Element;
+          debug.log(
+            `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`
+          );
           if (isButton || isMenu || isSettings || isTempDialog) return;
           if (!isVideo) overlayView.updateButtonOpacity(0);
           if (menu && !menu.hidden) {
@@ -22096,8 +22984,14 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           }
         });
         const userPressedKeys = new Set();
+        const hotkeyCache = new Map();
         const clearUserPressedKeys = () => userPressedKeys.clear();
-        add(document, "keydown", async (event) => {
+        const runHotkeyAction = (action, actionName) => {
+          void action().catch((error2) => {
+            debug.log(`[VOT] ${actionName} hotkey action failed`, error2);
+          });
+        };
+        add(document, "keydown", (event) => {
           const keyboardEvent = event;
           if (keyboardEvent.repeat) return;
           userPressedKeys.add(keyboardEvent.code);
@@ -22105,14 +22999,27 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           const activeTag = activeElement?.tagName?.toLowerCase?.() ?? "";
           const isInputElement = ["input", "textarea"].includes(activeTag) || Boolean(activeElement?.isContentEditable);
           if (isInputElement) return;
-          if (isHotkeyMatch(userPressedKeys, self.data?.translationHotkey)) {
+          const pressedParts = buildPressedHotkeyPartsSet(userPressedKeys);
+          if (isHotkeyMatch(
+            pressedParts,
+            getParsedHotkey(self.data?.translationHotkey, hotkeyCache)
+          )) {
             clearUserPressedKeys();
-            await self.uiManager.handleTranslationBtnClick();
+            runHotkeyAction(
+              () => self.uiManager.handleTranslationBtnClick(),
+              "Translation"
+            );
             return;
           }
-          if (isHotkeyMatch(userPressedKeys, self.data?.subtitlesHotkey)) {
+          if (isHotkeyMatch(
+            pressedParts,
+            getParsedHotkey(self.data?.subtitlesHotkey, hotkeyCache)
+          )) {
             clearUserPressedKeys();
-            await self.toggleSubtitlesForCurrentLangPair();
+            runHotkeyAction(
+              () => self.toggleSubtitlesForCurrentLangPair(),
+              "Subtitles"
+            );
           }
         });
         add(
@@ -22163,6 +23070,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           try {
             await self.setCanPlay();
           } catch (err) {
+            debug.log("[VOT] setCanPlay() failed", err);
           }
         };
         let setCanPlayQueued = false;
@@ -22178,21 +23086,28 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           if (self.site.host === "rutube" && self.video.src) return;
           queueSetCanPlay();
         });
-        add(self.video, "emptied", async () => {
+        const handleVideoEmptied = async () => {
           let videoId;
           try {
             videoId = await getVideoID(self.site, {
               fetchFn: GM_fetch,
               video: self.video
             });
-          } catch {
+          } catch (error2) {
+            debug.log("[VOT] Failed to resolve video id on emptied", error2);
           }
-          if (self.video.src && self.videoData && videoId && videoId === self.videoData.videoId) {
+          if (self.videoData && videoId && videoId === self.videoData.videoId) {
             return;
           }
+          debug.log("lipsync mode is emptied");
           resetAndHideLifecycle(self, overlayView, {
             clearVideoData: true,
             hideMenu: true
+          });
+        };
+        add(self.video, "emptied", () => {
+          void handleVideoEmptied().catch((error2) => {
+            debug.log("[VOT] Failed to handle emptied lifecycle event", error2);
           });
         });
         if (!isMuteSyncDisabledHost(self.site.host)) {
@@ -22210,6 +23125,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         }
         if (self.site.host === "youtube" && !self.site.additionalData) {
           add(document, "yt-page-data-updated", () => {
+            debug.log("yt-page-data-updated");
             if (!globalThis.location.pathname.startsWith("/shorts/")) return;
             queueSetCanPlay();
           });
@@ -22330,9 +23246,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           audioBooster: false,
           useLivelyVoice: false,
           autoHideButtonDelay: defaultAutoHideDelay,
-
-
-useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" && IS_EXTENSION,
+useAudioDownload: isSupportGMXhr,
           compatVersion: "",
           account: {},
           localeHash: "",
@@ -22367,6 +23281,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           this.data.translateProxyEnabled,
           this.data.translateProxyEnabledDefault
         );
+        debug.log("Extension compatibility passed...");
         this.initVOTClient();
         this.uiManager.initUI();
         this.uiManager.initUIEvents();
@@ -22377,6 +23292,11 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         this.translateToLang = this.data.responseLanguage ?? "ru";
         this.initExtraEvents();
         this.initialized = true;
+      }
+      function timeout(ms, message = "Operation timed out") {
+        return new Promise(
+          (_2, reject) => setTimeout(() => reject(new Error(message)), ms)
+        );
       }
       const DEFAULT_LOCALE = "und";
       const segmenterCache = new Map();
@@ -22440,9 +23360,14 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         }
         return result;
       };
-      const isSubtitleDescriptor = (arg) => Boolean(
-        arg && typeof arg === "object" && "format" in arg && "source" in arg && "url" in arg
-      );
+      const isSubtitleFormat = (value) => value === "json" || value === "srt" || value === "vtt";
+      const isRecord$1 = (value) => Boolean(value && typeof value === "object");
+      const toFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
+      const toNonNegativeNumber = (value) => Math.max(0, toFiniteNumber(value));
+      const isSubtitleDescriptor = (arg) => {
+        if (!isRecord$1(arg)) return false;
+        return typeof arg.source === "string" && isSubtitleFormat(arg.format) && typeof arg.language === "string" && typeof arg.url === "string" && (arg.translatedFromLanguage === void 0 || typeof arg.translatedFromLanguage === "string") && (arg.isAutoGenerated === void 0 || typeof arg.isAutoGenerated === "boolean");
+      };
       const pickDescriptorFromVideoData = (videoData, requestLang, spokenLang) => {
         const list = videoData.subtitles;
         if (!Array.isArray(list) || list.length === 0) return null;
@@ -22460,12 +23385,25 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       const appendYoutubePoTokenParams = (inputUrl) => {
         const poToken = YoutubeHelper.getPoToken();
         if (!poToken) return inputUrl;
+        let normalizedPoToken = poToken;
+        for (let i2 = 0; i2 < 10; i2 += 1) {
+          let nextValue;
+          try {
+            nextValue = decodeURIComponent(normalizedPoToken);
+          } catch {
+            break;
+          }
+          if (nextValue === normalizedPoToken) {
+            break;
+          }
+          normalizedPoToken = nextValue;
+        }
         const deviceParamsRaw = YoutubeHelper.getDeviceParams();
-        const normalizedDeviceParams = deviceParamsRaw.replace(/^[?&]+/u, "");
+        const normalizedDeviceParams = typeof deviceParamsRaw === "string" ? deviceParamsRaw.replace(/^[?&]+/u, "") : "";
         try {
           const parsed = new URL(inputUrl);
           parsed.searchParams.set("potc", "1");
-          parsed.searchParams.set("pot", poToken);
+          parsed.searchParams.set("pot", normalizedPoToken);
           if (normalizedDeviceParams) {
             const deviceParams = new URLSearchParams(normalizedDeviceParams);
             for (const [key, value] of deviceParams.entries()) {
@@ -22476,7 +23414,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         } catch {
           const separator = inputUrl.includes("?") ? "&" : "?";
           const serializedDeviceParams = normalizedDeviceParams ? `&${normalizedDeviceParams}` : "";
-          return `${inputUrl}${separator}potc=1&pot=${encodeURIComponent(poToken)}${serializedDeviceParams}`;
+          return `${inputUrl}${separator}potc=1&pot=${encodeURIComponent(normalizedPoToken)}${serializedDeviceParams}`;
         }
       };
       const compareNumbers = (left, right) => left - right;
@@ -22535,23 +23473,27 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           nonYandexAutogeneratedRank
         ];
       };
+      const rankSubtitle = (descriptor, index, requestLang) => ({
+        descriptor,
+        index,
+        rank: buildSubtitleRank(descriptor, requestLang),
+        language: descriptor.language,
+        translatedFromLanguage: descriptor.translatedFromLanguage ?? "",
+        source: descriptor.source,
+        url: descriptor.url,
+        isAutoGenerated: Number(Boolean(descriptor.isAutoGenerated))
+      });
       const sortSubtitles = (subtitles, requestLang) => {
-        const ranked = subtitles.map((descriptor, index) => ({
-          descriptor,
-          index
-        }));
+        const ranked = subtitles.map(
+          (descriptor, index) => rankSubtitle(descriptor, index, requestLang)
+        );
         ranked.sort((left, right) => {
-          const leftRank = buildSubtitleRank(left.descriptor, requestLang);
-          const rightRank = buildSubtitleRank(right.descriptor, requestLang);
-          const rankDiff = compareRankArrays(leftRank, rightRank);
+          const rankDiff = compareRankArrays(left.rank, right.rank);
           if (rankDiff !== 0) return rankDiff;
-          const descriptorOrder = compareStrings(left.descriptor.language, right.descriptor.language) || compareStrings(
-            left.descriptor.translatedFromLanguage ?? "",
-            right.descriptor.translatedFromLanguage ?? ""
-          ) || compareStrings(left.descriptor.source, right.descriptor.source) || compareStrings(left.descriptor.url, right.descriptor.url) || compareNumbers(
-            Number(Boolean(left.descriptor.isAutoGenerated)),
-            Number(Boolean(right.descriptor.isAutoGenerated))
-          );
+          const descriptorOrder = compareStrings(left.language, right.language) || compareStrings(
+            left.translatedFromLanguage,
+            right.translatedFromLanguage
+          ) || compareStrings(left.source, right.source) || compareStrings(left.url, right.url) || compareNumbers(left.isAutoGenerated, right.isAutoGenerated);
           if (descriptorOrder !== 0) return descriptorOrder;
           return compareNumbers(left.index, right.index);
         });
@@ -22574,8 +23516,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         const text = typeof raw.text === "string" ? raw.text : "";
         return {
           text,
-          startMs: typeof raw.startMs === "number" ? raw.startMs : 0,
-          durationMs: typeof raw.durationMs === "number" ? raw.durationMs : 0,
+          startMs: toNonNegativeNumber(raw.startMs),
+          durationMs: toNonNegativeNumber(raw.durationMs),
           isWordLike: resolveTokenWordLike(raw.isWordLike, text)
         };
       };
@@ -22593,8 +23535,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         const tokens = Array.isArray(raw.tokens) ? raw.tokens.map(sanitizeToken) : [];
         return {
           text: typeof raw.text === "string" ? raw.text : "",
-          startMs: typeof raw.startMs === "number" ? raw.startMs : 0,
-          durationMs: typeof raw.durationMs === "number" ? raw.durationMs : 0,
+          startMs: toNonNegativeNumber(raw.startMs),
+          durationMs: toNonNegativeNumber(raw.durationMs),
           speakerId: typeof raw.speakerId === "string" ? raw.speakerId : "0",
           tokens
         };
@@ -22609,6 +23551,11 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       };
       const VK_INLINE_TIMESTAMP_RE = /<(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?>/gu;
       const VK_DUPLICATE_MAX_GAP_MS = 120;
+      const VK_PUNCTUATION_SPACING_RE = /\s+([,.:;!?])/gu;
+      const VK_AROUND_NEWLINE_SPACING_RE = /[ \t]*\n[ \t]*/gu;
+      const VK_MULTIPLE_SPACES_RE = /[ \t]{2,}/gu;
+      const VK_EXCESS_NEWLINES_RE = /\n{3,}/gu;
+      const VK_COMPARABLE_SPACING_RE = /\s+/gu;
       const stripHtmlToText = (value) => {
         if (!value.includes("<")) return value;
         if (typeof document !== "undefined") {
@@ -22616,8 +23563,18 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           template.innerHTML = value;
           return template.content.textContent ?? "";
         }
-        return value.replace(/<\/?[^>]+>/gu, "");
+        return value.replaceAll(/<\/?[^>]+>/gu, "");
       };
+      const normalizeSubtitleText = (value) => {
+        let normalized = value;
+        if (normalized.includes("<")) {
+          normalized = stripHtmlToText(
+            normalized.replaceAll(VK_INLINE_TIMESTAMP_RE, "")
+          );
+        }
+        return normalized.replaceAll(VK_PUNCTUATION_SPACING_RE, "$1").replaceAll(VK_AROUND_NEWLINE_SPACING_RE, "\n").replaceAll(VK_MULTIPLE_SPACES_RE, " ").replaceAll(VK_EXCESS_NEWLINES_RE, "\n\n").trim();
+      };
+      const normalizeComparableText = (value) => value.toLowerCase().replaceAll(VK_COMPARABLE_SPACING_RE, " ").trim();
       const getYoutubeEventDurationMs = (event, nextEvent) => {
         if (!nextEvent) return Math.max(0, event.dDurationMs);
         if (event.tStartMs + event.dDurationMs <= nextEvent.tStartMs) {
@@ -22698,8 +23655,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         }
         return timedWords;
       };
-      const buildLineTokens = (line, descriptor) => {
-        const lineText = normalizeLineText(line);
+      const buildLineTokens = (line, descriptor, lineText) => {
         if (!lineText) return [];
         const locale = descriptor.language;
         const segments = segmentText(lineText, locale);
@@ -22715,7 +23671,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           durationMs: baseTimings[index]?.durationMs ?? 0,
           isWordLike: segment.isWordLike
         }));
-        const sourceTimedWords = collectSourceTimedWords(line.tokens ?? [], locale);
+        const sourceTimedWords = collectSourceTimedWords(line.tokens, locale);
         if (!sourceTimedWords.length) return nextTokens;
         const wordIndices = nextTokens.reduce((indices, token, index) => {
           if (token.isWordLike && token.text.trim()) indices.push(index);
@@ -22790,13 +23746,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           const lines = [];
           for (const line of subtitles.subtitles) {
             const text = normalizeLineText(line);
-            const tokens = buildLineTokens(
-              {
-                ...line,
-                text
-              },
-              descriptor
-            );
+            const tokens = buildLineTokens(line, descriptor, text);
             lines.push({
               ...line,
               text,
@@ -22836,28 +23786,52 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           return { subtitles: processed };
         },
         cleanJsonSubtitles(subtitles) {
-          const normalizeText = (value) => stripHtmlToText(value.replace(VK_INLINE_TIMESTAMP_RE, "")).replace(/\s+([,.:;!?])/gu, "$1").replace(/[ \t]*\n[ \t]*/gu, "\n").replace(/[ \t]{2,}/gu, " ").replace(/\n{3,}/gu, "\n\n").trim();
-          const normalizeComparable = (value) => value.toLowerCase().replace(/\s+/gu, " ").trim();
           const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
-          const tokensTextLength = (tokens) => tokens.reduce((sum, token) => sum + token.text.length, 0);
-          const cleanedLines = subtitles.subtitles.map((line) => ({
-            ...line,
-            text: normalizeText(line.text),
-            tokens: line.tokens.map((token) => ({
-              ...token,
-              text: normalizeText(token.text)
-            })).filter((token) => token.text.length > 0)
-          })).filter((line) => line.text.length > 0);
+          const tokensTextLength = (tokens) => {
+            let totalLength = 0;
+            for (const token of tokens) {
+              totalLength += token.text.length;
+            }
+            return totalLength;
+          };
+          const cleanedLines = [];
+          const comparableTexts = [];
+          const tokensLengths = [];
+          for (const line of subtitles.subtitles) {
+            const normalizedLineText = normalizeSubtitleText(line.text);
+            if (!normalizedLineText) continue;
+            const normalizedTokens = [];
+            for (const token of line.tokens) {
+              const normalizedTokenText = normalizeSubtitleText(token.text);
+              if (!normalizedTokenText) continue;
+              normalizedTokens.push({
+                ...token,
+                text: normalizedTokenText
+              });
+            }
+            cleanedLines.push({
+              ...line,
+              text: normalizedLineText,
+              tokens: normalizedTokens
+            });
+            comparableTexts.push(normalizeComparableText(normalizedLineText));
+            tokensLengths.push(tokensTextLength(normalizedTokens));
+          }
           const mergedLines = [];
-          for (const line of cleanedLines) {
-            const currentComparable = normalizeComparable(line.text);
+          const mergedComparable = [];
+          const mergedTokensLength = [];
+          for (let i2 = 0; i2 < cleanedLines.length; i2 += 1) {
+            const line = cleanedLines[i2];
+            const currentComparable = comparableTexts[i2];
             if (!currentComparable) continue;
             const previous = mergedLines.at(-1);
             if (!previous) {
               mergedLines.push(line);
+              mergedComparable.push(currentComparable);
+              mergedTokensLength.push(tokensLengths[i2]);
               continue;
             }
-            const previousComparable = normalizeComparable(previous.text);
+            const previousComparable = mergedComparable.at(-1);
             const previousEnd = lineEndMs(previous);
             const currentEnd = lineEndMs(line);
             const isDuplicateText = previousComparable === currentComparable;
@@ -22868,8 +23842,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             }
             const mergedStart = Math.min(previous.startMs, line.startMs);
             const mergedEnd = Math.max(previousEnd, currentEnd);
-            const previousTokensLength = tokensTextLength(previous.tokens);
-            const currentTokensLength = tokensTextLength(line.tokens);
+            const previousTokensLength = mergedTokensLength.at(-1) ?? 0;
+            const currentTokensLength = tokensLengths[i2];
             const mergedTokens = currentTokensLength >= previousTokensLength ? line.tokens : previous.tokens;
             mergedLines[mergedLines.length - 1] = {
               ...previous,
@@ -22877,6 +23851,10 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
               durationMs: Math.max(0, mergedEnd - mergedStart),
               tokens: mergedTokens
             };
+            mergedTokensLength[mergedTokensLength.length - 1] = Math.max(
+              previousTokensLength,
+              currentTokensLength
+            );
           }
           return {
             subtitles: mergedLines
@@ -22998,24 +23976,29 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         const subtitlesPath = subtitlesUrl.slice(SUBTITLE_SOURCE_PREFIX.length);
         return `https://${getProxyHost(config2.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
       }
+      const DISABLED_SUBTITLES_VALUE = "disabled";
       const VALID_SUBTITLE_FORMATS = new Set([
         "srt",
         "vtt",
         "json"
       ]);
+      const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
+      const subtitlesSelectionRequestVersion = new WeakMap();
+      function isRecord(value) {
+        return value !== null && typeof value === "object";
+      }
       function asSubtitleDescriptor(value) {
-        if (!value || typeof value !== "object") {
+        if (!isRecord(value)) {
           return null;
         }
         const descriptor = value;
-        if (typeof descriptor.source !== "string" || typeof descriptor.language !== "string" || typeof descriptor.url !== "string" || typeof descriptor.format !== "string" || !VALID_SUBTITLE_FORMATS.has(
-          descriptor.format
-        )) {
+        const format = descriptor.format;
+        if (typeof descriptor.source !== "string" || typeof descriptor.language !== "string" || typeof descriptor.url !== "string" || typeof format !== "string" || !VALID_SUBTITLE_FORMATS.has(format)) {
           return null;
         }
         return {
           source: descriptor.source,
-          format: descriptor.format,
+          format,
           language: descriptor.language,
           url: descriptor.url,
           translatedFromLanguage: typeof descriptor.translatedFromLanguage === "string" ? descriptor.translatedFromLanguage : void 0,
@@ -23036,21 +24019,54 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         }
         return descriptors;
       }
-      function findSubtitleDescriptorByIndex(subtitles, index) {
-        return getIndexedSubtitleDescriptors(subtitles).find(
-          (item) => item.index === index
-        )?.descriptor ?? null;
+      function parseSubtitlesOptionIndex(value) {
+        if (!SUBTITLES_INDEX_OPTION_PATTERN.test(value)) {
+          return null;
+        }
+        const parsed = Number(value);
+        if (!Number.isSafeInteger(parsed)) {
+          return null;
+        }
+        return parsed;
+      }
+      function getSubtitleDescriptorAtIndex(subtitles, index) {
+        if (!Number.isInteger(index) || index < 0 || index >= subtitles.length) {
+          return null;
+        }
+        return asSubtitleDescriptor(subtitles[index]);
+      }
+      function nextSubtitlesSelectionRequestVersion(handler) {
+        const nextVersion = (subtitlesSelectionRequestVersion.get(handler) ?? 0) + 1;
+        subtitlesSelectionRequestVersion.set(handler, nextVersion);
+        return nextVersion;
+      }
+      function isCurrentSubtitlesSelectionRequest(handler, requestVersion) {
+        return subtitlesSelectionRequestVersion.get(handler) === requestVersion;
       }
       function createDisabledSubtitlesOption() {
         return {
           label: localizationProvider.get("VOTSubtitlesDisabled"),
-          value: "disabled",
+          value: DISABLED_SUBTITLES_VALUE,
           selected: true,
           disabled: false
         };
       }
+      function buildSubtitlesSelectOptions(subtitleDescriptors) {
+        const options = [createDisabledSubtitlesOption()];
+        for (const { descriptor, index } of subtitleDescriptors) {
+          options.push({
+            label: buildSubtitleLabel(descriptor),
+            value: String(index),
+            selected: false,
+            disabled: false
+          });
+        }
+        return options;
+      }
       function getSelectedSubtitlesValue(selectedValues) {
-        return selectedValues[Symbol.iterator]().next().value;
+        const iterator = selectedValues[Symbol.iterator]();
+        const first = iterator.next();
+        return first.done ? void 0 : first.value;
       }
       function buildSubtitleLabel(subtitle) {
         const languageLabel = localizationProvider.getLangLabel(subtitle.language);
@@ -23130,12 +24146,14 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         return null;
       }
       async function changeSubtitlesLang(subs) {
+        debug.log("[onchange] subtitles", subs);
+        const requestVersion = nextSubtitlesSelectionRequestVersion(this);
         const overlayView = this.uiManager.votOverlayView;
         if (!overlayView?.subtitlesSelect || !overlayView.downloadSubtitlesButton) {
           return this;
         }
         overlayView.subtitlesSelect.setSelectedValue(subs);
-        if (subs === "disabled") {
+        if (subs === DISABLED_SUBTITLES_VALUE) {
           if (this.hasSubtitlesWidget()) {
             this.subtitlesWidget?.setContent(null);
           }
@@ -23143,12 +24161,23 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           this.yandexSubtitles = null;
           return this;
         }
-        const subtitlesIndex = Number.parseInt(subs, 10);
-        const descriptor = findSubtitleDescriptorByIndex(
+        const subtitlesIndex = parseSubtitlesOptionIndex(subs);
+        if (subtitlesIndex == null) {
+          if (this.hasSubtitlesWidget()) {
+            this.subtitlesWidget?.setContent(null);
+          }
+          overlayView.downloadSubtitlesButton.hidden = true;
+          this.yandexSubtitles = null;
+          return this;
+        }
+        const descriptor = getSubtitleDescriptorAtIndex(
           this.subtitles,
           subtitlesIndex
         );
         if (!descriptor) {
+          if (this.hasSubtitlesWidget()) {
+            this.subtitlesWidget?.setContent(null);
+          }
           overlayView.downloadSubtitlesButton.hidden = true;
           this.yandexSubtitles = null;
           return this;
@@ -23165,7 +24194,11 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           };
           debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
         }
-        this.yandexSubtitles = await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
+        const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
+        if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) {
+          return this;
+        }
+        this.yandexSubtitles = fetchedSubtitles;
         this.getSubtitlesWidget().setContent(
           this.yandexSubtitles,
           subtitlesObj.language
@@ -23179,25 +24212,9 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           return;
         }
         const subtitleDescriptors = getIndexedSubtitleDescriptors(this.subtitles);
-        if (subtitleDescriptors.length === 0) {
-          const updatedOptions2 = [
-            createDisabledSubtitlesOption()
-          ];
-          overlayView.subtitlesSelect.updateItems(updatedOptions2);
-          await this.changeSubtitlesLang(updatedOptions2[0].value);
-          return;
-        }
-        const updatedOptions = [
-          createDisabledSubtitlesOption(),
-          ...subtitleDescriptors.map(({ descriptor, index }) => ({
-            label: buildSubtitleLabel(descriptor),
-            value: String(index),
-            selected: false,
-            disabled: false
-          }))
-        ];
+        const updatedOptions = buildSubtitlesSelectOptions(subtitleDescriptors);
         overlayView.subtitlesSelect.updateItems(updatedOptions);
-        await this.changeSubtitlesLang(updatedOptions[0].value);
+        await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
       }
       async function enableSubtitlesForCurrentLangPair() {
         const overlayView = this.uiManager.votOverlayView;
@@ -23234,8 +24251,8 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         const currentValue = getSelectedSubtitlesValue(
           overlayView.subtitlesSelect.selectedValues
         );
-        if (currentValue && currentValue !== "disabled") {
-          await this.changeSubtitlesLang("disabled");
+        if (currentValue && currentValue !== DISABLED_SUBTITLES_VALUE) {
+          await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
           return this;
         }
         await this.enableSubtitlesForCurrentLangPair();
@@ -23267,6 +24284,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             }
             try {
               cachedSubs = await inflight;
+              cachedSubs = Array.isArray(cachedSubs) ? cachedSubs : [];
               this.cacheManager.setSubtitles(cacheKey, cachedSubs);
             } finally {
               if (this.subtitlesLoadPromises.get(cacheKey) === inflight) {
@@ -23274,14 +24292,16 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
               }
             }
           }
-          this.subtitles = cachedSubs;
+          this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
         } catch (error2) {
           console.error("[VOT] Failed to load subtitles:", error2);
           this.subtitles = [];
         }
         await this.updateSubtitlesLangSelect();
       }
-      const SMART_DUCKING_DEFAULT_CONFIG = {
+      const VOLUME_MIN_01 = 0;
+      const VOLUME_MAX_01 = 1;
+      const SMART_DUCKING_DEFAULT_CONFIG = Object.freeze({
         tickMs: 50,
         thresholdOnRms: 0.012,
         thresholdOffRms: 9e-3,
@@ -23298,7 +24318,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         unduckTolerance01: 0.01,
         volumeStep01: VIDEO_VOLUME_STEP_01,
         applyDeltaThreshold01: VIDEO_VOLUME_STEP_01 / 2
-      };
+      });
       function initSmartDuckingRuntime(baseline) {
         return {
           isDucked: false,
@@ -23317,7 +24337,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       function computeSmartDuckingStep(input, runtime, config2 = SMART_DUCKING_DEFAULT_CONFIG) {
         const nextRuntime = normalizeRuntime(runtime);
         const volumeOnStart = normalizeVolume01(input.volumeOnStart);
-        if (!input.translationActive || !input.enabledAutoVolume) {
+        if (!input.translationActive || false) {
           return {
             kind: "stop",
             runtime: nextRuntime,
@@ -23330,21 +24350,17 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         const dtSec = dtMs / 1e3;
         nextRuntime.lastTickAt = now2;
         const hasRms = isFiniteNumber(input.rms);
-        const rmsValue = hasRms && typeof input.rms === "number" ? clamp$2(input.rms, 0, 1) : 0;
-        const prevEnv = clamp$2(nextRuntime.rmsEnvelope, 0, 1);
+        const rmsValue = hasRms ? clamp$2(input.rms, VOLUME_MIN_01, VOLUME_MAX_01) : 0;
+        const prevEnv = nextRuntime.rmsEnvelope;
         const envTauMs = rmsValue > prevEnv ? config2.rmsAttackTauMs : config2.rmsReleaseTauMs;
-        const envAlpha = envTauMs > 0 ? 1 - Math.exp(-dtMs / envTauMs) : 1;
+        const envAlpha = envTauMs > 0 ? -Math.expm1(-dtMs / envTauMs) : 1;
         nextRuntime.rmsEnvelope = clamp$2(
           prevEnv + (rmsValue - prevEnv) * envAlpha,
-          0,
-          1
+          VOLUME_MIN_01,
+          VOLUME_MAX_01
         );
         let gateOpen = nextRuntime.speechGateOpen;
-        if (!input.smartEnabled) {
-          gateOpen = true;
-          nextRuntime.lastSoundAt = now2;
-          nextRuntime.rmsMissingSinceAt = null;
-        } else if (input.audioIsPlaying && !hasRms) {
+        if (input.audioIsPlaying && !hasRms) {
           nextRuntime.rmsMissingSinceAt ??= now2;
           if (gateOpen) {
             nextRuntime.lastSoundAt = now2;
@@ -23388,32 +24404,36 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         let desired = baseline;
         if (gateOpen) {
           if (!nextRuntime.isDucked) {
-            nextRuntime.baseline = baseline;
             nextRuntime.isDucked = true;
           }
           desired = duckedTarget;
         } else if (nextRuntime.isDucked && Math.abs(baseline - currentVideoVolume) < config2.unduckTolerance01) {
           nextRuntime.isDucked = false;
         }
-        const tauMs = desired < currentVideoVolume ? config2.attackTauMs : config2.releaseTauMs;
-        const alpha = tauMs > 0 ? 1 - Math.exp(-dtMs / tauMs) : 1;
-        let nextVolume = currentVideoVolume + (desired - currentVideoVolume) * alpha;
+        const smoothingTauMs = desired < currentVideoVolume ? config2.attackTauMs : config2.releaseTauMs;
+        const smoothingAlpha = smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
+        let nextVolume = currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
         const maxDelta = (desired < currentVideoVolume ? config2.maxDownPerSec : config2.maxUpPerSec) * dtSec;
-        if (Number.isFinite(maxDelta) && maxDelta > 0) {
+        if (maxDelta > 0) {
           nextVolume = clamp$2(
             nextVolume,
             currentVideoVolume - maxDelta,
             currentVideoVolume + maxDelta
           );
         }
-        nextVolume = clamp$2(nextVolume, 0, 1);
+        nextVolume = clamp$2(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
         const quantized = snapVolume01Towards(
           nextVolume,
           currentVideoVolume,
           desired,
           config2.volumeStep01
         );
-        if (!isFiniteNumber(nextRuntime.lastApplied) || Math.abs(quantized - nextRuntime.lastApplied) >= config2.applyDeltaThreshold01) {
+        const applyDeltaThreshold01 = config2.applyDeltaThreshold01;
+        if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
+          nextRuntime.lastApplied = quantized;
+          return { kind: "noop", runtime: nextRuntime };
+        }
+        if (!isFiniteNumber(nextRuntime.lastApplied) || Math.abs(quantized - nextRuntime.lastApplied) >= applyDeltaThreshold01) {
           nextRuntime.lastApplied = quantized;
           return {
             kind: "apply",
@@ -23427,7 +24447,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         return {
           isDucked: Boolean(runtime.isDucked),
           speechGateOpen: Boolean(runtime.speechGateOpen),
-          rmsEnvelope: clamp$2(runtime.rmsEnvelope ?? 0, 0, 1),
+          rmsEnvelope: normalizeVolume01(runtime.rmsEnvelope) ?? 0,
           baseline: normalizeVolume01(runtime.baseline),
           lastApplied: normalizeVolume01(runtime.lastApplied),
           lastTickAt: isFiniteNumber(runtime.lastTickAt) ? runtime.lastTickAt : 0,
@@ -23437,11 +24457,15 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       }
       function normalizeVolume01(value) {
         if (!isFiniteNumber(value)) return void 0;
-        return clamp$2(value, 0, 1);
+        return clamp$2(value, VOLUME_MIN_01, VOLUME_MAX_01);
       }
       function isFiniteNumber(value) {
         return typeof value === "number" && Number.isFinite(value);
       }
+      const SMART_DUCKING_TICK_MS = SMART_DUCKING_DEFAULT_CONFIG.tickMs;
+      const AUDIO_PROBE_TIMEOUT_MS = 5e3;
+      const AUDIO_PROBE_RETRY_DELAY_MS = 150;
+      const AUDIO_PROBE_MAX_ATTEMPTS = 2;
       const smartDuckingAnalyserState = new WeakMap();
       function isAudioNode(node) {
         if (!node || typeof node !== "object") return false;
@@ -23450,6 +24474,15 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       }
       function getPlayerMediaElement(player2) {
         return player2?.audio ?? player2?.audioElement;
+      }
+      function getNowMs() {
+        return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
+      }
+      function getAutoVolumeMode(handler) {
+        if (handler.data?.syncVolume || !handler.data?.enabledAutoVolume) {
+          return "off";
+        }
+        return handler.data?.enabledSmartDucking ?? true ? "smart" : "classic";
       }
       async function resumePlayerAudioContextIfNeeded(handler) {
         const ctx = handler.audioPlayer?.audioContext;
@@ -23460,6 +24493,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             await ctx.resume();
             return "resumed";
           } catch (err) {
+            debug.log("[updateTranslation] Failed to resume AudioContext", err);
             return "failed";
           }
         })();
@@ -23470,6 +24504,11 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         const result = await Promise.race([resumePromise, timeoutPromise]);
         if (timeoutId !== void 0) {
           clearTimeout(timeoutId);
+        }
+        if (result === "resumed") {
+          debug.log("[updateTranslation] AudioContext resumed");
+        } else if (result === "timeout") {
+          debug.log("[updateTranslation] AudioContext resume timeout");
         }
         return result;
       }
@@ -23489,6 +24528,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           player2.src = "";
           debug.log("[updateTranslation] cleared stale partially-applied source");
         } catch (err) {
+          debug.log("[updateTranslation] failed to clear stale source", err);
         }
       }
       function getSmartDuckingAudioContext(handler) {
@@ -23545,6 +24585,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           return source;
         } catch (err) {
           state.mediaSourceCreationFailed = true;
+          debug.log("[SmartDucking] failed to create media source", err);
           return void 0;
         }
       }
@@ -23585,6 +24626,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
             inputNode.connect(analyser);
             state.connectedInputNode = inputNode;
           } catch (err) {
+            debug.log("[SmartDucking] failed to connect analyser", err);
             return void 0;
           }
         }
@@ -23615,7 +24657,7 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
       function stopSmartVolumeDucking(handler, options = {}) {
         const { restoreVolume } = options;
         if (typeof handler.smartVolumeDuckingInterval === "number") {
-          clearInterval(handler.smartVolumeDuckingInterval);
+          clearTimeout(handler.smartVolumeDuckingInterval);
           handler.smartVolumeDuckingInterval = void 0;
         }
         const baseline = typeof restoreVolume === "number" ? restoreVolume : handler.smartVolumeDuckingBaseline ?? handler.volumeOnStart;
@@ -23628,23 +24670,39 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         releaseSmartDuckingAnalyser(handler);
         writeSmartDuckingRuntime(handler, resetSmartDuckingRuntime());
       }
+      function scheduleNextSmartDuckingTick(handler) {
+        if (typeof globalThis === "undefined") return;
+        if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+        handler.smartVolumeDuckingInterval = globalThis.setTimeout(() => {
+          if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+          try {
+            smartDuckingTick(handler);
+          } catch (err) {
+            debug.log("[SmartDucking] tick failed, stopping smart ducking", err);
+            stopSmartVolumeDucking(handler);
+            return;
+          }
+          if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+          scheduleNextSmartDuckingTick(handler);
+        }, SMART_DUCKING_TICK_MS);
+      }
       function startSmartVolumeDucking(handler) {
         if (typeof globalThis === "undefined") return;
         if (typeof handler.smartVolumeDuckingInterval === "number") return;
+        if (getAutoVolumeMode(handler) !== "smart") return;
         const currentVideoVolume = handler.getVideoVolume();
         const baseline = typeof handler.smartVolumeDuckingBaseline === "number" ? handler.smartVolumeDuckingBaseline : currentVideoVolume;
         const runtime = initSmartDuckingRuntime(baseline);
         if (Number.isFinite(currentVideoVolume) && Number.isFinite(baseline) && currentVideoVolume < baseline - SMART_DUCKING_DEFAULT_CONFIG.externalBaselineDelta01) {
-          const now2 = typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
+          const now2 = getNowMs();
           runtime.isDucked = true;
           runtime.speechGateOpen = true;
           runtime.lastApplied = currentVideoVolume;
           runtime.lastSoundAt = now2;
         }
         writeSmartDuckingRuntime(handler, runtime);
-        handler.smartVolumeDuckingInterval = globalThis.setInterval(() => {
-          smartDuckingTick(handler);
-        }, SMART_DUCKING_DEFAULT_CONFIG.tickMs);
+        handler.smartVolumeDuckingInterval = 0;
+        scheduleNextSmartDuckingTick(handler);
       }
       function getTranslatedAudioRms(handler, media) {
         const player2 = handler.audioPlayer?.player;
@@ -23682,18 +24740,15 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
         }
       }
       function smartDuckingTick(handler) {
-        const player2 = handler.audioPlayer?.player;
-        const media = getPlayerMediaElement(player2);
-        const syncVolumeEnabled = Boolean(handler.data?.syncVolume);
-        const autoVolumeEnabled = Boolean(handler.data?.enabledAutoVolume) && !syncVolumeEnabled;
-        const smartEnabled = (handler.data?.enabledSmartDucking ?? true) && !syncVolumeEnabled;
-        if (autoVolumeEnabled && !smartEnabled) {
+        if (getAutoVolumeMode(handler) !== "smart") {
           setupAudioSettings.call(handler);
           return;
         }
+        const player2 = handler.audioPlayer?.player;
+        const media = getPlayerMediaElement(player2);
         const audioIsPlaying = !!media && !media.paused && !media.muted &&
 (media.volume ?? 1) > 1e-3;
-        const now2 = typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
+        const now2 = getNowMs();
         const currentVideoVolume = handler.getVideoVolume();
         const hostVideo = handler.video;
         const hostVideoActive = !(hostVideo && (hostVideo.paused || hostVideo.ended));
@@ -23704,8 +24759,6 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           {
             nowMs: now2,
             translationActive: handler.hasActiveSource(),
-            enabledAutoVolume: autoVolumeEnabled,
-            smartEnabled,
             audioIsPlaying,
             rms,
             currentVideoVolume,
@@ -23729,58 +24782,68 @@ useAudioDownload: isUnsafeWindowAllowed || typeof IS_EXTENSION !== "undefined" &
           case "noop":
             writeSmartDuckingRuntime(handler, decision.runtime);
             return;
-          default: {
+          default:
             throw new TypeError("Unhandled smart ducking decision");
+        }
+      }
+      function wait(ms) {
+        return new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        });
+      }
+      async function probeAudioUrl(handler, audioUrl, actionContext) {
+        const fetchOpts = handler.isMultiMethodS3(audioUrl) ? {
+          method: "HEAD",
+          signal: handler.actionsAbortController.signal,
+          timeout: AUDIO_PROBE_TIMEOUT_MS
+        } : {
+headers: {
+            range: "bytes=0-0"
+          },
+          signal: handler.actionsAbortController.signal,
+          timeout: AUDIO_PROBE_TIMEOUT_MS
+        };
+        for (let attempt = 1; attempt <= AUDIO_PROBE_MAX_ATTEMPTS; attempt++) {
+          if (handler.isActionStale(actionContext)) return false;
+          try {
+            const response = await GM_fetch(audioUrl, fetchOpts);
+            if (handler.isActionStale(actionContext)) return false;
+            debug.log("[validateAudioUrl] probe response", {
+              audioUrl,
+              attempt,
+              ok: response.ok,
+              status: response.status
+            });
+            if (response.ok) return true;
+          } catch (err) {
+            if (handler.isActionStale(actionContext) || handler.actionsAbortController.signal.aborted) {
+              return false;
+            }
+            debug.log("[validateAudioUrl] probe error", { audioUrl, attempt, err });
+          }
+          if (attempt < AUDIO_PROBE_MAX_ATTEMPTS) {
+            await wait(AUDIO_PROBE_RETRY_DELAY_MS);
           }
         }
+        return false;
       }
       async function validateAudioUrl(audioUrl, actionContext) {
         if (this.isActionStale(actionContext)) return audioUrl;
-        try {
-          const fetchOpts = this.isMultiMethodS3(audioUrl) ? {
-            method: "HEAD"
-          } : {
-headers: {
-              range: "bytes=0-0"
-            }
-          };
-          const response = await GM_fetch(audioUrl, fetchOpts);
-          if (this.isActionStale(actionContext)) return audioUrl;
-          debug.log("Test audio response", response);
-          if (response.ok) {
-            debug.log("Valid audioUrl", audioUrl);
-            return audioUrl;
-          }
-          debug.log("Yandex returned not valid audio, trying to fix...");
-          if (!this.videoData) {
-            debug.log("Skip audio fix - videoData is not available");
-            return audioUrl;
-          }
-          if (this.isActionStale(actionContext)) return audioUrl;
-          const fromLang = this.videoData.detectedLanguage || this.translateFromLang;
-          const translateRes = await requestTranslationAudio(
-            this.translationHandler,
-            {
-              videoData: this.videoData,
-              requestLang: fromLang,
-              responseLang: this.translateToLang,
-              translationHelp: this.videoData.translationHelp,
-              useAudioDownload: Boolean(this.data?.useAudioDownload),
-              signal: this.actionsAbortController.signal
-            }
+        const isPrimaryUrlValid = await probeAudioUrl(this, audioUrl, actionContext);
+        if (isPrimaryUrlValid) {
+          return audioUrl;
+        }
+        const directUrl = this.unproxifyAudio(audioUrl);
+        if (directUrl !== audioUrl) {
+          const isDirectUrlValid = await probeAudioUrl(
+            this,
+            directUrl,
+            actionContext
           );
-          if (!translateRes) {
-            debug.log("Failed to retranslate audio - using original url");
-            return audioUrl;
+          if (isDirectUrlValid) {
+            debug.log("[validateAudioUrl] switching to direct audio URL after probe");
+            return directUrl;
           }
-          this.setSelectMenuValues(
-            this.videoData.detectedLanguage,
-            this.videoData.responseLanguage
-          );
-          this.scheduleTranslationRefresh();
-          audioUrl = translateRes.url;
-          debug.log("Fixed audio audioUrl", audioUrl);
-        } catch (err) {
         }
         return audioUrl;
       }
@@ -23793,6 +24856,7 @@ headers: {
         const refreshDelayMs = Math.max(3e4, YANDEX_TTL_MS - 5 * 60 * 1e3);
         this.translationRefreshTimeout = setTimeout(() => {
           this.refreshTranslationAudio().catch((error2) => {
+            debug.log("[scheduleTranslationRefresh] refresh failed", error2);
           });
         }, refreshDelayMs);
       }
@@ -23871,12 +24935,16 @@ headers: {
           translateProxyEnabled: this.data?.translateProxyEnabled,
           proxyWorkerHost: this.data?.proxyWorkerHost
         });
+        if (proxiedAudioUrl !== audioUrl) {
+          debug.log(`[VOT] Audio proxied via ${proxiedAudioUrl}`);
+        }
         return proxiedAudioUrl;
       }
       function unproxifyAudio(audioUrl) {
         return unproxifyYandexAudioUrl(audioUrl);
       }
       async function handleProxySettingsChanged(reason = "proxySettingsChanged") {
+        debug.log(`[VOT] ${reason}: clearing translation/subtitles cache`);
         try {
           this.cacheManager.clear();
           this.activeTranslation = null;
@@ -23892,44 +24960,29 @@ headers: {
           proxyWorkerHost: this.data?.proxyWorkerHost
         });
       }
-      async function updateTranslation(audioUrl, actionContext) {
-        await this.waitForPendingStopTranslate();
-        if (this.isActionStale(actionContext)) return;
-        if (!this.audioPlayer) {
-          this.createPlayer();
-        }
-        if (this.audioPlayer.audioContext?.state === "closed") {
-          this.createPlayer();
-        }
-        const normalizedTargetUrl = this.proxifyAudio(this.unproxifyAudio(audioUrl));
-        const currentSource = this.audioPlayer.player.currentSrc || this.audioPlayer.player.src || "";
-        const normalizedCurrentUrl = this.proxifyAudio(
-          this.unproxifyAudio(currentSource)
-        );
-        let nextAudioUrl = normalizedTargetUrl;
-        if (normalizedTargetUrl !== normalizedCurrentUrl) {
-          nextAudioUrl = await this.validateAudioUrl(
-            normalizedTargetUrl,
-            actionContext
-          );
-        }
-        if (this.isActionStale(actionContext)) return;
-        const shouldInitPlayer = this.audioPlayer.player.src !== nextAudioUrl;
+      function normalizeManagedAudioUrl(handler, url) {
+        return handler.proxifyAudio(handler.unproxifyAudio(url));
+      }
+      async function applyTranslationSource(handler, sourceUrl, actionContext) {
+        const didSetSource = handler.audioPlayer.player.src !== sourceUrl;
         let appliedSourceUrl = null;
-        if (shouldInitPlayer) {
-          this.audioPlayer.player.src = nextAudioUrl;
-          appliedSourceUrl = nextAudioUrl;
+        if (didSetSource) {
+          handler.audioPlayer.player.src = sourceUrl;
+          appliedSourceUrl = sourceUrl;
         }
-        let initError;
         try {
-          if (shouldInitPlayer) {
-            await this.audioPlayer.init();
+          if (didSetSource) {
+            await handler.audioPlayer.init();
           }
-          if (this.isActionStale(actionContext)) {
-            await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
-            return;
+          if (handler.isActionStale(actionContext)) {
+            await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+            return {
+              status: "stale",
+              didSetSource,
+              appliedSourceUrl
+            };
           }
-          const resumeResult = await resumePlayerAudioContextIfNeeded(this);
+          const resumeResult = await resumePlayerAudioContextIfNeeded(handler);
           if (resumeResult === "timeout") {
             debug.log(
               "[updateTranslation] continuing after AudioContext resume timeout"
@@ -23939,17 +24992,59 @@ headers: {
               "[updateTranslation] AudioContext resume failed, continue without deferred resume"
             );
           }
-          if (this.isActionStale(actionContext)) {
-            await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
-            return;
+          if (handler.isActionStale(actionContext)) {
+            await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+            return {
+              status: "stale",
+              didSetSource,
+              appliedSourceUrl
+            };
           }
-          if (!this.video.paused && this.audioPlayer.player.src) {
-            this.audioPlayer.player.lipSync("play");
+          if (!handler.video.paused && handler.audioPlayer.player.src) {
+            handler.audioPlayer.player.lipSync("play");
           }
-        } catch (err) {
-          initError = err;
+          return {
+            status: "success",
+            didSetSource,
+            appliedSourceUrl
+          };
+        } catch (error2) {
+          return {
+            status: "error",
+            didSetSource,
+            appliedSourceUrl,
+            error: error2
+          };
         }
-        if (initError && shouldInitPlayer && !this.isActionStale(actionContext)) {
+      }
+      async function updateTranslation(audioUrl, actionContext) {
+        await this.waitForPendingStopTranslate();
+        if (this.isActionStale(actionContext)) return;
+        if (!this.audioPlayer) {
+          this.createPlayer();
+        }
+        if (this.audioPlayer.audioContext?.state === "closed") {
+          debug.log("[updateTranslation] AudioContext is closed, recreating player");
+          this.createPlayer();
+        }
+        const normalizedTargetUrl = normalizeManagedAudioUrl(this, audioUrl);
+        const currentSource = this.audioPlayer.player.currentSrc || this.audioPlayer.player.src || "";
+        const normalizedCurrentUrl = normalizeManagedAudioUrl(this, currentSource);
+        let nextAudioUrl = normalizedTargetUrl;
+        if (normalizedTargetUrl !== normalizedCurrentUrl) {
+          nextAudioUrl = await this.validateAudioUrl(
+            normalizedTargetUrl,
+            actionContext
+          );
+        }
+        if (this.isActionStale(actionContext)) return;
+        let applyResult = await applyTranslationSource(
+          this,
+          nextAudioUrl,
+          actionContext
+        );
+        let appliedSourceUrl = applyResult.appliedSourceUrl;
+        if (applyResult.status === "error" && applyResult.didSetSource && !this.isActionStale(actionContext)) {
           const directUrl = this.unproxifyAudio(nextAudioUrl);
           if (directUrl !== nextAudioUrl) {
             try {
@@ -23967,29 +25062,28 @@ headers: {
                 );
                 return;
               }
-              this.audioPlayer.player.src = validatedDirectUrl;
-              appliedSourceUrl = validatedDirectUrl;
               nextAudioUrl = validatedDirectUrl;
-              await this.audioPlayer.init();
-              const resumeResult = await resumePlayerAudioContextIfNeeded(this);
-              if (resumeResult === "timeout" || resumeResult === "failed") {
-                debug.log(
-                  "[updateTranslation] AudioContext not resumed after direct URL fallback",
-                  resumeResult
-                );
-              }
-              if (!this.video.paused && this.audioPlayer.player.src) {
-                this.audioPlayer.player.lipSync("play");
-              }
-              initError = void 0;
+              applyResult = await applyTranslationSource(
+                this,
+                validatedDirectUrl,
+                actionContext
+              );
+              appliedSourceUrl = applyResult.appliedSourceUrl;
             } catch (fallbackErr) {
-              initError = fallbackErr;
+              applyResult = {
+                status: "error",
+                didSetSource: true,
+                appliedSourceUrl,
+                error: fallbackErr
+              };
             }
           }
         }
-        if (initError) {
+        if (applyResult.status === "stale") return;
+        if (applyResult.status === "error") {
+          debug.log("this.audioPlayer.init() error", applyResult.error);
           await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
-          const msg = initError instanceof Error ? initError.message : String(initError);
+          const msg = toErrorMessage(applyResult.error);
           this.transformBtn("error", msg);
           return;
         }
@@ -23999,18 +25093,21 @@ headers: {
       }
       async function translateFunc(VIDEO_ID, _isStream, requestLang, responseLang, translationHelp) {
         await this.waitForPendingStopTranslate();
+        debug.log("Run videoValidator");
         await this.videoValidator();
         if (this.actionsAbortController?.signal?.aborted) {
           this.resetActionsAbortController("translateFunc");
         }
         const overlayView = this.uiManager.votOverlayView;
         if (!overlayView?.votButton) {
+          debug.log("[translateFunc] Overlay view missing, skipping translation");
           return;
         }
         overlayView.votButton.loading = true;
         this.hadAsyncWait = false;
         this.volumeOnStart = this.getVideoVolume();
         if (!VIDEO_ID) {
+          debug.log("Skip translation - no VIDEO_ID resolved yet");
           await this.updateTranslationErrorMsg(
             new VOTLocalizedError("VOTNoVideoIDFound"),
             this.actionsAbortController.signal
@@ -24034,12 +25131,17 @@ headers: {
         );
         const activeKey = `video_${cacheKey}`;
         if (this.activeTranslation?.key === activeKey) {
+          debug.log("[translateFunc] Reusing in-flight translation");
           await this.activeTranslation.promise;
           return;
         }
-        const actionContext = { gen: this.actionsGeneration, videoId: VIDEO_ID };
+        const actionContext = {
+          gen: this.actionsGeneration,
+          videoId: VIDEO_ID
+        };
         const translationPromise = (async () => {
           if (this.isActionStale(actionContext)) {
+            debug.log("[translateFunc] Stale translation task - skipping");
             return;
           }
           const reqLang = requestLang;
@@ -24055,6 +25157,7 @@ headers: {
           if (cachedEntry?.url) {
             const updated = await applyTranslationUrl(cachedEntry.url);
             if (!updated) return;
+            debug.log("[translateFunc] Cached translation was received");
             return;
           }
           const translateRes = await requestApplyAndCacheTranslation(this, {
@@ -24082,7 +25185,9 @@ headers: {
               }
             }
           });
+          debug.log("[translateRes]", translateRes);
           if (!translateRes) {
+            debug.log("Skip translation");
             return;
           }
         })();
@@ -24108,6 +25213,7 @@ headers: {
           }
           const overlayBtn = this.uiManager.votOverlayView?.votButton;
           if (!this.activeTranslation && overlayBtn?.loading && !this.hasActiveSource()) {
+            debug.log("[translateFunc] clearing stale loading state");
             this.transformBtn("none", localizationProvider.get("translateVideo"));
           }
         }
@@ -24119,9 +25225,8 @@ headers: {
         if (typeof this.data?.defaultVolume === "number") {
           this.audioPlayer.player.volume = this.data.defaultVolume / 100;
         }
-        const autoVolumeEnabled = Boolean(this.data?.enabledAutoVolume) && !this.data?.syncVolume;
-        const smartDuckingEnabled = this.data?.enabledSmartDucking ?? true;
-        if (!autoVolumeEnabled) {
+        const autoVolumeMode = getAutoVolumeMode(this);
+        if (autoVolumeMode === "off") {
           stopSmartVolumeDucking(this, {
             restoreVolume: this.smartVolumeDuckingBaseline ?? this.volumeOnStart
           });
@@ -24132,12 +25237,12 @@ headers: {
         if (!this.hasActiveSource()) {
           return;
         }
-        if (smartDuckingEnabled) {
+        if (autoVolumeMode === "smart") {
           startSmartVolumeDucking(this);
           return;
         }
         if (typeof this.smartVolumeDuckingInterval === "number") {
-          clearInterval(this.smartVolumeDuckingInterval);
+          clearTimeout(this.smartVolumeDuckingInterval);
           this.smartVolumeDuckingInterval = void 0;
         }
         if (typeof this.smartVolumeDuckingBaseline !== "number") {
@@ -24153,6 +25258,7 @@ headers: {
       }
       const RESPONSE_LANG_SET = new Set(availableTTS);
       const isResponseLang = (value) => RESPONSE_LANG_SET.has(value);
+      const RESOLVED_VOID_PROMISE = Promise.resolve();
       class VideoHandler {
         video;
         container;
@@ -24225,7 +25331,7 @@ errorTranslationCache = new Map();
           if (cache?.container === container && cache.base === base && (cache.root.isConnected ?? document.documentElement.contains(cache.root))) {
             return { root: cache.root, portalContainer: cache.portalContainer };
           }
-          const root = resolveInteractiveMount(base);
+          const root = base;
           const portalContainer = root;
           this.mountCache = { container, base, root, portalContainer };
           return { root, portalContainer };
@@ -24267,6 +25373,13 @@ getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage) {
           }
         }
 constructor(video, container, site) {
+          debug.log(
+            "[VideoHandler] add video:",
+            video,
+            "container:",
+            container,
+            this
+          );
           this.video = video;
           this.container = container;
           this.site = site;
@@ -24485,6 +25598,7 @@ getPreferAudio() {
         }
 createPlayer() {
           const preferAudio = this.getPreferAudio();
+          debug.log("preferAudio:", preferAudio);
           this.audioPlayer = new Chaimu({
             video: this.video,
 debug: Boolean(false),
@@ -24498,16 +25612,21 @@ debug: Boolean(false),
         }
 isLikelyInternalVideoVolumeChange(observedPercent) {
           const now2 = Date.now();
-          if (this.internalVideoVolumeSetHistory.length > 0) {
-            this.internalVideoVolumeSetHistory = this.internalVideoVolumeSetHistory.filter(
-              (entry) => now2 - entry.at <= entry.suppressMs
-            );
-            for (const entry of this.internalVideoVolumeSetHistory) {
-              if (Math.abs(observedPercent - entry.percent) <= 1) {
-                return true;
+          const history = this.internalVideoVolumeSetHistory;
+          if (history.length > 0) {
+            let writeIndex = 0;
+            let matchFound = false;
+            for (const entry of history) {
+              if (now2 - entry.at > entry.suppressMs) {
+                continue;
+              }
+              history[writeIndex++] = entry;
+              if (!matchFound && Math.abs(observedPercent - entry.percent) <= 1) {
+                matchFound = true;
               }
             }
-            return false;
+            history.length = writeIndex;
+            return matchFound;
           }
           if (this.internalVideoVolumeSetPercent === null) return false;
           const ageMs = now2 - this.internalVideoVolumeSetAt;
@@ -24517,11 +25636,11 @@ isLikelyInternalVideoVolumeChange(observedPercent) {
         callModule(impl, ...args) {
           return impl.call(this, ...args);
         }
-        async callModuleAsync(impl, ...args) {
-          return await impl.call(this, ...args);
+        callModuleAsync(impl, ...args) {
+          return impl.call(this, ...args);
         }
-async init() {
-          return await init.call(this);
+init() {
+          return init.call(this);
         }
 initVOTClient() {
           this.votOpts = {
@@ -24559,11 +25678,11 @@ getAutoHideDelay() {
 changeSubtitlesLang = changeSubtitlesLang;
 updateSubtitlesLangSelect = updateSubtitlesLangSelect;
 loadSubtitles = loadSubtitles;
-async enableSubtitlesForCurrentLangPair() {
-          return await this.callModuleAsync(enableSubtitlesForCurrentLangPair);
+enableSubtitlesForCurrentLangPair() {
+          return this.callModuleAsync(enableSubtitlesForCurrentLangPair);
         }
-async toggleSubtitlesForCurrentLangPair() {
-          return await this.callModuleAsync(toggleSubtitlesForCurrentLangPair);
+toggleSubtitlesForCurrentLangPair() {
+          return this.callModuleAsync(toggleSubtitlesForCurrentLangPair);
         }
         getRequestLangForTranslation(requestLang, responseLang) {
           if (this.data?.useLivelyVoice && this.data?.account?.token && responseLang === "ru") {
@@ -24674,14 +25793,14 @@ syncVolumeWrapper(fromType, newVolume) {
             this.setVideoVolume(nextVideo / 100);
           }
         }
-async getVideoData() {
-          return await this.videoManager.getVideoData();
+getVideoData() {
+          return this.videoManager.getVideoData();
         }
-async videoValidator() {
-          return await this.videoManager.videoValidator();
+videoValidator() {
+          return this.videoManager.videoValidator();
         }
 stopTranslate() {
-          if (this.stopTranslatePromise) {
+          if (this.stopTranslatePromise !== null) {
             return this.stopTranslatePromise;
           }
           const cleanup = async () => {
@@ -24691,6 +25810,7 @@ stopTranslate() {
                 this.audioPlayer.player.src = "";
                 await this.audioPlayer.player.clear();
               } catch (err) {
+                debug.log("[stopTranslate] audioPlayer cleanup error", err);
               }
               debug.log("audioPlayer after stopTranslate", this.audioPlayer);
             }
@@ -24734,7 +25854,7 @@ stopTranslate() {
           return inFlight;
         }
         waitForPendingStopTranslate() {
-          return this.stopTranslatePromise ?? Promise.resolve();
+          return this.stopTranslatePromise ?? RESOLVED_VOID_PROMISE;
         }
 async updateTranslationErrorMsg(errorMessage, signal) {
           if (signal?.aborted) {
@@ -24747,6 +25867,7 @@ async updateTranslationErrorMsg(errorMessage, signal) {
           if (this.longWaitingResCount > minLongWaitingCount) {
             errorMessage = new VOTLocalizedError("TranslationDelayed");
           }
+          debug.log("updateTranslationErrorMsg message", errorMessage);
           if (errorMessage?.name === "VOTLocalizedError") {
             this.transformBtn("error", errorMessage.localizedMessage);
           } else if (errorMessage instanceof Error) {
@@ -24834,12 +25955,8 @@ afterUpdateTranslation(audioUrl) {
             this.hadAsyncWait = false;
           }
         }
-async validateAudioUrl(audioUrl, actionContext) {
-          return await this.callModuleAsync(
-            validateAudioUrl,
-            audioUrl,
-            actionContext
-          );
+validateAudioUrl(audioUrl, actionContext) {
+          return this.callModuleAsync(validateAudioUrl, audioUrl, actionContext);
         }
         scheduleTranslationRefresh() {
           this.callModule(scheduleTranslationRefresh);
@@ -24856,8 +25973,8 @@ handleProxySettingsChanged = handleProxySettingsChanged;
           return this.callModule(isMultiMethodS3, url);
         }
 updateTranslation = updateTranslation;
-async translateFunc(VIDEO_ID, isStream, requestLang, responseLang, translationHelp) {
-          return await translateFunc.call(
+translateFunc(VIDEO_ID, isStream, requestLang, responseLang, translationHelp) {
+          return translateFunc.call(
             this,
             VIDEO_ID,
             isStream,
@@ -24882,10 +25999,12 @@ handleSrcChanged() {
           return this.lifecycleController.handleSrcChanged();
         }
 async release() {
+          debug.log("[VideoHandler] release");
           this.initialized = false;
           try {
             await this.stopTranslation();
           } catch (err) {
+            debug.log("[VideoHandler] stopTranslation failed during release", err);
           }
           this.lifecycleController?.teardown();
           this.abortController?.abort();
@@ -24957,28 +26076,25 @@ releaseExtraEvents = releaseExtraEvents;
         return servicesCache;
       }
       function findContainer(site, video) {
+        debug.log("findContainer", site, video);
         if (!site.selector) {
+          debug.log("findContainer without selector, using parentElement");
           return video.parentElement;
         }
         const matched = findConnectedContainerBySelector(video, site.selector);
-        if (site.shadowRoot) ;
-        if (matched) {
-          return matched;
+        if (site.shadowRoot) {
+          debug.log("findContainer with site.shadowRoot", matched);
+        } else {
+          debug.log("findContainer without shadowRoot", matched);
         }
-        return null;
+        return matched;
       }
       async function main() {
         const bootstrapMode = resolveBootstrapMode({
           isIframe: isIframe(),
           href: String(globalThis.location.href || ""),
-          origin: globalThis.location.origin,
-          hash: globalThis.location.hash,
-          iframeHash: IFRAME_HASH
+          origin: globalThis.location.origin
         });
-        if (bootstrapMode === "iframe-helper") {
-          logBootstrap("Starting iframe helper runtime");
-          return initAudioDownloaderIframe();
-        }
         if (bootstrapMode === "skip") {
           logBootstrap("Skipping bootstrap for non-runnable iframe");
           return;
@@ -24992,7 +26108,7 @@ releaseExtraEvents = releaseExtraEvents;
         bindObserverListeners({
           videoObserver,
           videosWrappers,
-          ensureRuntimeActivated: async (reason) => await ensureRuntimeActivated(reason, logBootstrap),
+          ensureRuntimeActivated: (reason) => ensureRuntimeActivated(reason, logBootstrap),
           getServicesCached,
           findContainer,
           createVideoHandler: (video, container, site) => new VideoHandler(video, container, site)

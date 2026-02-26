@@ -76,21 +76,21 @@ Voice-over translation is now available beyond [Yandex Browser][yabrowser-link].
 >
 > **For Opera users:**
 > 1. Use **[Violentmonkey][violentmonkey-opera]** instead of Tampermonkey.
-> 2. In the extension settings, enable **"Allow access to search page results"** (Opera guide: [where to find this setting][opera-search-results-access]); otherwise the script will not work.
+> 2. In the extension settings, enable **"Allow access to search page results"** (Opera guide: [where to find this setting][opera-search-results-access]), otherwise the script will not work.
 
 1. Install a userscript manager: **[Tampermonkey][tampermonkey-link]** (or [Violentmonkey][violentmonkey-opera] for Opera)
 2. **[Install the script][vot-dist]**
 
 ### Install Native Extension for Chrome / Chromium
 
-1. Open [Releases][vot-releases] and download `vot-extension-chrome-<version>.crx`
+1. Open [Releases][vot-releases] and download `vot-extension-chrome-<version>.zip`
 2. Open your extensions page:
    - Chrome: `chrome://extensions`
    - Edge: `edge://extensions`
    - Brave: `brave://extensions`
    - Opera: `opera://extensions`
 3. Enable **Developer mode**
-4. Drag and drop the downloaded `.crx` file onto the extensions page
+4. Drag and drop the downloaded `.zip` file onto the extensions page
 
 ### Install Native Extension for Firefox
 
@@ -125,7 +125,7 @@ Voice-over translation is now available beyond [Yandex Browser][yabrowser-link].
 
 1. It is recommended to allow autoplay for audio/video to avoid runtime playback errors
 2. The extension cannot translate videos longer than 4 hours (translator API limitation)
-3. For stable audio-download flow, use managers with `unsafeWindow` support (for example, Tampermonkey or Violentmonkey)
+3. For stable audio-download flow, use up-to-date and supported userscript managers (for example, Tampermonkey or Violentmonkey)
 
 ## List of supported sites:
 
@@ -293,7 +293,7 @@ Tested in the following userscript manager extensions:
 | ✅                        | Firefox | [Greasemonkey][greasemonkey-link]              |
 | [Install guide][user-js-and-css-how-to]¹ | Any     | [User Javascript and CSS][user-js-and-css-link] |
 
-¹ - Works in proxy mode, but the important "Use audio download" feature is unavailable due to missing `unsafeWindow` API, which can cause issues with newly requested translations.
+¹ - Works in proxy mode, disabling the "Use audio download" feature may cause issues with newly requested translations.
 
 ## Contributing
 

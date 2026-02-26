@@ -1,17 +1,29 @@
-import { AudioDownloadType } from "@vot.js/core/types/yandex";
-
 import { EventImpl } from "../core/eventImpl";
 import type {
   AudioDownloadRequestOptions,
   DownloadedAudioData,
   DownloadedPartialAudioData,
-  VideoIdPayload,
 } from "../types/audioDownloader";
-import type { MessagePayload } from "../types/iframeConnector";
 import debug from "../utils/debug";
 
-import { type AvailableAudioDownloadType, strategies } from "./strategies";
-import { sendRequestToIframe } from "./strategies/utils";
+import {
+  type AvailableAudioDownloadType,
+  strategies,
+  YT_AUDIO_STRATEGY,
+} from "./strategies";
+
+function assertValidMediaPartsLength(mediaPartsLength: number): void {
+  if (!Number.isInteger(mediaPartsLength) || mediaPartsLength < 1) {
+    throw new Error("Audio downloader. Invalid media parts length");
+  }
+}
+
+function assertHasAudioChunk(chunk: Uint8Array | undefined): Uint8Array {
+  if (!chunk || chunk.byteLength === 0) {
+    throw new Error("Audio downloader. Empty audio");
+  }
+  return chunk;
+}
 
 async function handleCommonAudioDownloadRequest({
   audioDownloader,
@@ -21,7 +33,6 @@ async function handleCommonAudioDownloadRequest({
 }: AudioDownloadRequestOptions) {
   const audioData = await strategies[audioDownloader.strategy]({
     videoId,
-    returnByParts: true,
     signal,
   });
   if (!audioData) {
@@ -32,32 +43,31 @@ async function handleCommonAudioDownloadRequest({
   });
 
   const { getMediaBuffers, mediaPartsLength, fileId } = audioData;
+  assertValidMediaPartsLength(mediaPartsLength);
+
   if (mediaPartsLength < 2) {
-    const { value }: { value: Uint8Array } = await getMediaBuffers().next();
-    if (!value) {
-      throw new Error("Audio downloader. Empty audio");
-    }
+    const iterator = getMediaBuffers();
+    const { value } = (await iterator.next()) as { value: Uint8Array };
+    const singleChunk = assertHasAudioChunk(value);
 
     await audioDownloader.onDownloadedAudio.dispatchAsync(translationId, {
       videoId,
       fileId,
-      audioData: value,
+      audioData: singleChunk,
     });
     return;
   }
 
   let index = 0;
   for await (const audioChunk of getMediaBuffers()) {
-    if (!audioChunk) {
-      throw new Error("Audio downloader. Empty audio");
-    }
+    const chunk = assertHasAudioChunk(audioChunk);
 
     await audioDownloader.onDownloadedPartialAudio.dispatchAsync(
       translationId,
       {
         videoId,
         fileId,
-        audioData: audioChunk,
+        audioData: chunk,
         version: 1,
         index,
         amount: mediaPartsLength,
@@ -66,53 +76,24 @@ async function handleCommonAudioDownloadRequest({
 
     index++;
   }
-}
 
-export async function mainWorldMessageHandler(
-  event: MessageEvent<MessagePayload>,
-) {
-  const { data, source } = event;
-
-  try {
-    if (data?.messageType !== "get-download-audio-data-in-main-world") {
-      return;
-    }
-
-    if (data.messageDirection === "response") {
-      // Relay iframe responses via the current page window so the requester can consume them:
-      // requestDataFromMainWorldWithId filters by event.source === globalThis.window.
-      if (source !== globalThis.window) {
-        globalThis.postMessage(data, "*");
-      }
-
-      return;
-    }
-
-    if (data.messageDirection !== "request") {
-      return;
-    }
-
-    await sendRequestToIframe(
-      "get-download-audio-data-in-iframe",
-      data as MessagePayload<VideoIdPayload>,
+  if (index !== mediaPartsLength) {
+    throw new Error(
+      `Audio downloader. Expected ${mediaPartsLength} chunks, got ${index}`,
     );
-  } catch (error) {
-    console.error("[VOT] Main world bridge", {
-      error,
-    });
   }
 }
 
 export class AudioDownloader {
-  onDownloadedAudio = new EventImpl();
-  onDownloadedPartialAudio = new EventImpl();
-  onDownloadAudioError = new EventImpl();
+  onDownloadedAudio = new EventImpl<[string, DownloadedAudioData]>();
+  onDownloadedPartialAudio = new EventImpl<
+    [string, DownloadedPartialAudioData]
+  >();
+  onDownloadAudioError = new EventImpl<[string]>();
 
   strategy: AvailableAudioDownloadType;
 
-  constructor(
-    strategy: AvailableAudioDownloadType = AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME,
-  ) {
+  constructor(strategy: AvailableAudioDownloadType = YT_AUDIO_STRATEGY) {
     this.strategy = strategy;
     debug.log("Audio downloader created", {
       strategy,
@@ -124,7 +105,6 @@ export class AudioDownloader {
     translationId: string,
     signal: AbortSignal,
   ) {
-    globalThis.addEventListener("message", mainWorldMessageHandler);
     try {
       await handleCommonAudioDownloadRequest({
         audioDownloader: this,
@@ -136,11 +116,12 @@ export class AudioDownloader {
         videoId,
       });
     } catch (err) {
-      console.error("Audio downloader. Failed to download audio", err);
+      debug.error("Audio downloader. Failed to download audio", {
+        videoId,
+        error: err instanceof Error ? err.message : String(err),
+      });
       this.onDownloadAudioError.dispatch(videoId);
     }
-
-    globalThis.removeEventListener("message", mainWorldMessageHandler);
   }
 
   addEventListener(

@@ -11,12 +11,7 @@ import {
 import type { VideoHandler } from "../../index";
 import type { LanguageSelectKey } from "../../types/components/select";
 import debug from "../../utils/debug";
-import {
-  GM_fetch,
-  isProxyOnlyExtension,
-  isSupportGMXhr,
-  isUnsafeWindowAllowed,
-} from "../../utils/gm";
+import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
 import { countryCode, setCountryCode } from "../shared";
@@ -91,12 +86,8 @@ export async function init(this: VideoHandler) {
     audioBooster: false,
     useLivelyVoice: false,
     autoHideButtonDelay: defaultAutoHideDelay,
-    // In extensions we inject scripts into the page (main world), so the audio
-    // downloader can usually work even if the `unsafeWindow` heuristic fails in
-    // some browsers/builds.
-    useAudioDownload:
-      isUnsafeWindowAllowed ||
-      (typeof IS_EXTENSION !== "undefined" && IS_EXTENSION),
+    // Audio download now uses direct network requests (GM_fetch/GM_xmlhttpRequest).
+    useAudioDownload: isSupportGMXhr,
     compatVersion: "",
     account: {},
     localeHash: "",

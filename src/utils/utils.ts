@@ -1,5 +1,66 @@
 export { calculatedResLang } from "./localization";
 
+const DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 30_000;
+const INVALID_FILENAME_CHARS_RE = /[\\/:*?"'<>|]+/g;
+const URL_PROTOCOL_RE = /^https?:\/\//i;
+const MULTIPLE_DASHES_RE = /-{2,}/g;
+const EDGE_FILE_CHARS_RE = /^[.\s-]+|[.\s-]+$/g;
+
+type PlainRecord = Record<string, unknown>;
+type SaveFilePickerWindow = Window & {
+  showSaveFilePicker?: (
+    options?: SaveFilePickerOptions,
+  ) => Promise<DownloadFileHandle>;
+};
+type SaveFilePickerOptions = {
+  suggestedName?: string;
+  types?: SaveFilePickerAcceptType[];
+  excludeAcceptAllOption?: boolean;
+};
+type SaveFilePickerAcceptType = {
+  description?: string;
+  accept: Record<string, string[]>;
+};
+type NavigatorWithShare = Navigator & {
+  canShare?: (data?: ShareData) => boolean;
+};
+type DownloadFileWritable = {
+  write: (data: Blob) => Promise<void> | void;
+  close: () => Promise<void> | void;
+};
+
+export type DownloadFileHandle = {
+  createWritable: () => Promise<DownloadFileWritable>;
+};
+export type DownloadBlobOptions = {
+  fileHandle?: DownloadFileHandle | null;
+  preferShare?: boolean;
+};
+export type RequestFileSaveHandleOptions = {
+  mimeType?: string;
+  extension?: string;
+  description?: string;
+};
+export type RequestFileSaveHandleResult = {
+  handle: DownloadFileHandle | null;
+  cancelled: boolean;
+};
+
+function getDateFallbackFilename(): string {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function stripAsciiControlChars(value: string): string {
+  let out = "";
+  for (let index = 0; index < value.length; index++) {
+    const code = value.codePointAt(index) ?? 0;
+    if (code >= 0x20 && code !== 0x7f) {
+      out += value[index];
+    }
+  }
+  return out;
+}
+
 /**
  * Creates a stable JSON string representation for consistent hashing
  * @param value The value to stringify
@@ -7,23 +68,29 @@ export { calculatedResLang } from "./localization";
  */
 export function stableStringify(value: unknown): string {
   const seen = new WeakSet<object>();
+
   return JSON.stringify(value, (_key, val) => {
     if (val && typeof val === "object") {
-      const obj = val as object;
-      if (seen.has(obj)) {
+      if (seen.has(val)) {
         return "[Circular]";
       }
-      seen.add(obj);
-      if (Array.isArray(val)) return val;
-      const sorted: Record<string, unknown> = {};
-      const entries = Object.entries(val).sort(([leftKey], [rightKey]) =>
-        leftKey.localeCompare(rightKey),
-      );
-      for (const [key, entryValue] of entries) {
-        sorted[key] = entryValue;
+
+      seen.add(val);
+      if (Array.isArray(val)) {
+        return val;
       }
+
+      const sorted: PlainRecord = {};
+      const keys = Object.keys(val as PlainRecord).sort((a, b) =>
+        a.localeCompare(b),
+      );
+      for (const key of keys) {
+        sorted[key] = (val as PlainRecord)[key];
+      }
+
       return sorted;
     }
+
     return val;
   });
 }
@@ -51,38 +118,181 @@ export interface DocumentWithFullscreen extends Document {
   webkitExitFullscreen?: () => Promise<void>;
 }
 
-export const isPiPAvailable = () =>
-  "pictureInPictureEnabled" in document &&
-  Boolean((document as any).pictureInPictureEnabled);
+export const isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
 
-/** Downloads binary file with entered filename */
-export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
+function normalizeExtension(extension?: string): string | null {
+  if (!extension) return null;
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  const trimmed = extension.trim();
+  if (!trimmed) return null;
 
-  revokeObjectUrlLater(url);
+  return trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
 }
 
-const DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 30_000;
+function buildPickerAcceptType(
+  options: RequestFileSaveHandleOptions,
+): SaveFilePickerAcceptType | null {
+  if (!options.mimeType) return null;
+
+  const extension = normalizeExtension(options.extension);
+  if (!extension) return null;
+
+  return {
+    description: options.description,
+    accept: {
+      [options.mimeType]: [extension],
+    },
+  };
+}
+
+export async function requestFileSaveHandle(
+  filename: string,
+  options: RequestFileSaveHandleOptions = {},
+): Promise<RequestFileSaveHandleResult> {
+  const pickerHost = globalThis as typeof globalThis & SaveFilePickerWindow;
+  if (typeof pickerHost.showSaveFilePicker !== "function") {
+    return { handle: null, cancelled: false };
+  }
+
+  const acceptType = buildPickerAcceptType(options);
+  const pickerOptions: SaveFilePickerOptions = {
+    suggestedName: filename,
+    ...(acceptType ? { types: [acceptType] } : {}),
+  };
+
+  try {
+    const handle = await pickerHost.showSaveFilePicker(pickerOptions);
+    return { handle, cancelled: false };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return { handle: null, cancelled: true };
+    }
+
+    return { handle: null, cancelled: false };
+  }
+}
+
+async function writeBlobToHandle(
+  handle: DownloadFileHandle,
+  blob: Blob,
+): Promise<boolean> {
+  try {
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function shareBlob(
+  blob: Blob,
+  filename: string,
+): Promise<"shared" | "unsupported" | "error"> {
+  const nav =
+    typeof navigator === "undefined"
+      ? undefined
+      : (navigator as NavigatorWithShare);
+  if (!nav?.share || typeof File === "undefined") {
+    return "unsupported";
+  }
+
+  let file: File;
+  try {
+    file = new File([blob], filename, {
+      type: blob.type || "application/octet-stream",
+    });
+  } catch {
+    return "unsupported";
+  }
+
+  if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) {
+    return "unsupported";
+  }
+
+  try {
+    await nav.share({ files: [file], title: filename });
+    return "shared";
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      // Treat user cancellation as a completed interaction.
+      return "shared";
+    }
+
+    return "error";
+  }
+}
+
+function triggerBlobDownload(blob: Blob, filename: string): boolean {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener noreferrer";
+  anchor.target = "_blank";
+  anchor.style.position = "fixed";
+  anchor.style.left = "-9999px";
+  anchor.style.top = "0";
+  (document.body ?? document.documentElement).append(anchor);
+
+  try {
+    anchor.click();
+    return true;
+  } catch {
+    return false;
+  } finally {
+    anchor.remove();
+    revokeObjectUrlLater(url);
+  }
+}
+
+/** Downloads binary file with entered filename */
+export async function downloadBlob(
+  blob: Blob,
+  filename: string,
+  options: DownloadBlobOptions = {},
+): Promise<boolean> {
+  if (options.fileHandle) {
+    const saved = await writeBlobToHandle(options.fileHandle, blob);
+    if (saved) {
+      return true;
+    }
+  }
+
+  if (options.preferShare) {
+    const shareResult = await shareBlob(blob, filename);
+    if (shareResult === "shared") {
+      return true;
+    }
+  }
+
+  return triggerBlobDownload(blob, filename);
+}
 
 export function revokeObjectUrlLater(
   url: string,
   delayMs = DEFAULT_OBJECT_URL_REVOKE_DELAY_MS,
 ): void {
-  globalThis.setTimeout(() => URL.revokeObjectURL(url), delayMs);
+  const safeDelayMs =
+    Number.isFinite(delayMs) && delayMs >= 0
+      ? delayMs
+      : DEFAULT_OBJECT_URL_REVOKE_DELAY_MS;
+
+  globalThis.setTimeout(() => URL.revokeObjectURL(url), safeDelayMs);
 }
 
-export function clearFileName(filename: string) {
-  const name = filename.trim();
-  if (!name) return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+export function clearFileName(filename: string): string {
+  const trimmed = filename.trim();
+  if (!trimmed) return getDateFallbackFilename();
 
-  return name.replace(/^https?:\/\//, "").replaceAll(/[\\/:*?"'<>|]/g, "-");
+  const sanitized = stripAsciiControlChars(trimmed)
+    .replace(URL_PROTOCOL_RE, "")
+    .replaceAll(INVALID_FILENAME_CHARS_RE, "-")
+    .replaceAll(MULTIPLE_DASHES_RE, "-")
+    .replaceAll(EDGE_FILE_CHARS_RE, "");
+
+  return sanitized || getDateFallbackFilename();
 }
 
 export const getTimestamp = () => Math.floor(Date.now() / 1000);
@@ -90,8 +300,11 @@ export const getTimestamp = () => Math.floor(Date.now() / 1000);
 export const getHeaders = (headers?: HeadersInit): Record<string, string> =>
   headers ? Object.fromEntries(new Headers(headers).entries()) : {};
 
-export const clamp = (value: number, min = 0, max = 100) =>
-  Math.min(Math.max(value, min), max);
+export function clamp(value: number, min = 0, max = 100): number {
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+  return Math.min(Math.max(value, lower), upper);
+}
 
 export function toFlatObj<T extends Record<string, unknown>>(
   data: Record<string, unknown>,
@@ -105,15 +318,14 @@ export function toFlatObj<T extends Record<string, unknown>>(
     const [key, val] = entry;
     if (val === undefined) continue;
 
-    const isPlainObject =
+    const isFlattenable =
       val !== null && typeof val === "object" && !Array.isArray(val);
-
-    if (!isPlainObject) {
+    if (!isFlattenable) {
       out[key] = val;
       continue;
     }
 
-    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(val)) {
       stack.push([`${key}.${k}`, v]);
     }
   }
@@ -121,11 +333,17 @@ export function toFlatObj<T extends Record<string, unknown>>(
   return out as T;
 }
 
-export async function exitFullscreen() {
+export async function exitFullscreen(): Promise<void> {
   const doc = document as DocumentWithFullscreen;
 
   if (!doc.fullscreenElement && !doc.webkitFullscreenElement) return;
 
-  if (doc.exitFullscreen) return doc.exitFullscreen();
-  return doc.webkitExitFullscreen?.();
+  if (doc.exitFullscreen) {
+    await doc.exitFullscreen();
+    return;
+  }
+
+  if (doc.webkitExitFullscreen) {
+    await doc.webkitExitFullscreen();
+  }
 }

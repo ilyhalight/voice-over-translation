@@ -64,12 +64,6 @@ const extensionEntries: ExtensionEntry[] = [
     emptyOutDir: false,
   },
   {
-    entry: "src/extension/iframe.ts",
-    format: "iife",
-    fileName: "iframe.js",
-    emptyOutDir: false,
-  },
-  {
     entry: "src/extension/background.ts",
     format: "es",
     fileName: "background.js",
@@ -228,7 +222,6 @@ async function copyExtensionFiles(
     "bridge.js",
     "prelude.js",
     "content.js",
-    "iframe.js",
     "content.css",
   ];
   for (const fileName of filesToCopy) {
@@ -397,17 +390,7 @@ function buildManifestChrome({
       128: "icons/icon-128.png",
       256: "icons/icon-256.png",
     },
-    content_scripts: [
-      ...contentScripts,
-      {
-        matches: ["*://www.youtube.com/embed/*"],
-        js: ["prelude.js", "iframe.js"],
-        all_frames: true,
-        match_about_blank: true,
-        run_at: "document_start",
-        ...(includeWorld ? { world: "MAIN" } : {}),
-      },
-    ],
+    content_scripts: contentScripts,
   };
 }
 
@@ -583,7 +566,7 @@ async function maybeBuildCrx({
   if (!(await exists(crx3Bin))) {
     throw new Error(`CRX builder not found: ${crx3Bin}. Install dependencies first.`);
   }
-  const outCrx = path.join(outBase, `vot-extension-chrome-${version}.crx`);
+  const outCrx = path.join(outBase, `vot-extension-chrome-${version}.zip`);
   try {
     await runCmd(
       crx3Bin,
@@ -734,7 +717,6 @@ async function verifyOne(browserName: "chrome" | "firefox"): Promise<void> {
     "prelude.js",
     "content.js",
     "content.css",
-    "iframe.js",
     "background.js",
     "icons/icon-16.png",
     "icons/icon-32.png",
@@ -755,9 +737,8 @@ async function verifyOne(browserName: "chrome" | "firefox"): Promise<void> {
   const bridge = await fs.readFile(path.join(dir, "bridge.js"), "utf8");
   const prelude = await fs.readFile(path.join(dir, "prelude.js"), "utf8");
   const content = await fs.readFile(path.join(dir, "content.js"), "utf8");
-  const iframe = await fs.readFile(path.join(dir, "iframe.js"), "utf8");
   const background = await fs.readFile(path.join(dir, "background.js"), "utf8");
-  const combined = `${bridge}\n${prelude}\n${content}\n${iframe}\n${background}`;
+  const combined = `${bridge}\n${prelude}\n${content}\n${background}`;
 
   const forbiddenSnippets = ["cdnjs.cloudflare.com/ajax/libs/hls.js", "@require"];
   for (const snippet of forbiddenSnippets) {
@@ -831,7 +812,7 @@ export async function finalizeExtensionBuildArtifacts(
 
   const version = headers.version || "0.0.0";
   let outChrome: string | null = null;
-  let chromeCrx: string | null = null;
+  let chromeZip: string | null = null;
   let outFirefox: string | null = null;
   let firefoxXpi: string | null = null;
   let firefoxUpdatesManifestPath: string | null = null;
@@ -848,10 +829,8 @@ export async function finalizeExtensionBuildArtifacts(
       buildManifestChrome({ headers, includeWorld }),
     );
 
-    const chromeZip = path.join(outBase, `vot-extension-chrome-${version}.zip`);
-    await fs.rm(chromeZip, { force: true });
-    const chromeBuildResult = await maybeBuildCrx({ sourceDir: outChrome, version });
-    chromeCrx = chromeBuildResult.crxPath;
+    chromeZip = path.join(outBase, `vot-extension-chrome-${version}.zip`);
+    await zipDir(outChrome, chromeZip);
   }
 
   if (shouldBuildFirefox) {
@@ -879,7 +858,7 @@ export async function finalizeExtensionBuildArtifacts(
   console.log("Extension build complete:");
   if (outChrome) {
     console.log(`- Chrome:  ${outChrome}`);
-    console.log(`  - CRX:     ${chromeCrx}`);
+    console.log(`  - Package: ${chromeZip}`);
   }
   if (outFirefox) {
     console.log(`- Firefox: ${outFirefox}`);

@@ -5,7 +5,6 @@ import { availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import Chaimu from "chaimu/client";
 import { initAudioContext } from "chaimu/player";
-import { initAudioDownloaderIframe } from "./audioDownloader/iframe";
 import { getOrCreateBootState } from "./bootstrap/bootState";
 import { ensureRuntimeActivated } from "./bootstrap/runtimeActivation";
 import { bindObserverListeners } from "./bootstrap/videoObserverBinding";
@@ -30,10 +29,9 @@ import type { OverlayMount } from "./types/uiManager";
 import { UIManager } from "./ui/manager";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
 import debug from "./utils/debug";
-import { resolveInteractiveMount } from "./utils/dom";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
 import { GM_fetch } from "./utils/gm";
-import { IFRAME_HASH, isIframe } from "./utils/iframeConnector";
+import { isIframe } from "./utils/iframeConnector";
 import {
   createIntervalIdleChecker,
   type IntervalIdleChecker,
@@ -100,6 +98,13 @@ export { countryCode } from "./videoHandler/shared";
 const RESPONSE_LANG_SET = new Set<string>(availableTTS as readonly string[]);
 const isResponseLang = (value: string): value is ResponseLang =>
   RESPONSE_LANG_SET.has(value);
+const RESOLVED_VOID_PROMISE: Promise<void> = Promise.resolve();
+
+type InternalVideoVolumeSetHistoryEntry = {
+  at: number;
+  percent: number;
+  suppressMs: number;
+};
 
 /*─────────────────────────────────────────────────────────────*/
 /*                        Main class: VideoHandler             */
@@ -167,11 +172,7 @@ export class VideoHandler {
   internalVideoVolumeSetAt = 0;
   internalVideoVolumeSetPercent: number | null = null;
   internalVideoVolumeSuppressionMs = 250;
-  internalVideoVolumeSetHistory: Array<{
-    at: number;
-    percent: number;
-    suppressMs: number;
-  }> = [];
+  internalVideoVolumeSetHistory: InternalVideoVolumeSetHistoryEntry[] = [];
   internalVideoVolumeSetHistoryLimit = 48;
 
   // Smart auto-volume ducking state. Used to lower the original video volume
@@ -268,7 +269,7 @@ export class VideoHandler {
       return { root: cache.root, portalContainer: cache.portalContainer };
     }
 
-    const root = resolveInteractiveMount(base);
+    const root = base;
     const portalContainer = root;
 
     this.mountCache = { container, base, root, portalContainer };
@@ -697,19 +698,25 @@ export class VideoHandler {
    */
   isLikelyInternalVideoVolumeChange(observedPercent: number) {
     const now = Date.now();
-    if (this.internalVideoVolumeSetHistory.length > 0) {
-      this.internalVideoVolumeSetHistory =
-        this.internalVideoVolumeSetHistory.filter(
-          (entry) => now - entry.at <= entry.suppressMs,
-        );
+    const history = this.internalVideoVolumeSetHistory;
+    if (history.length > 0) {
+      let writeIndex = 0;
+      let matchFound = false;
 
-      for (const entry of this.internalVideoVolumeSetHistory) {
+      for (const entry of history) {
+        if (now - entry.at > entry.suppressMs) {
+          continue;
+        }
+
+        history[writeIndex++] = entry;
         // Allow a 1% tolerance to account for hosts that quantize volume.
-        if (Math.abs(observedPercent - entry.percent) <= 1) {
-          return true;
+        if (!matchFound && Math.abs(observedPercent - entry.percent) <= 1) {
+          matchFound = true;
         }
       }
-      return false;
+
+      history.length = writeIndex;
+      return matchFound;
     }
 
     if (this.internalVideoVolumeSetPercent === null) return false;
@@ -727,19 +734,19 @@ export class VideoHandler {
     return impl.call(this, ...args);
   }
 
-  private async callModuleAsync<TArgs extends unknown[], TResult>(
+  private callModuleAsync<TArgs extends unknown[], TResult>(
     impl: (this: VideoHandler, ...args: TArgs) => Promise<TResult>,
     ...args: TArgs
   ): Promise<TResult> {
-    return await impl.call(this, ...args);
+    return impl.call(this, ...args);
   }
 
   /**
    * Initializes the VideoHandler: loads settings, UI, video data, events, etc.
    * @returns {Promise<void>}
    */
-  async init() {
-    return await initVideoHandler.call(this);
+  init(): Promise<void> {
+    return initVideoHandler.call(this);
   }
 
   /**
@@ -841,8 +848,8 @@ export class VideoHandler {
    * Used by the subtitles hotkey: prefers Yandex captions for the exact pair,
    * then falls back to any captions in the target language.
    */
-  async enableSubtitlesForCurrentLangPair() {
-    return await this.callModuleAsync(enableSubtitlesForCurrentLangPairImpl);
+  enableSubtitlesForCurrentLangPair() {
+    return this.callModuleAsync(enableSubtitlesForCurrentLangPairImpl);
   }
 
   /**
@@ -852,8 +859,8 @@ export class VideoHandler {
    * - If subtitles are disabled, this enables the best subtitles track for the
    *   current language pair.
    */
-  async toggleSubtitlesForCurrentLangPair() {
-    return await this.callModuleAsync(toggleSubtitlesForCurrentLangPairImpl);
+  toggleSubtitlesForCurrentLangPair() {
+    return this.callModuleAsync(toggleSubtitlesForCurrentLangPairImpl);
   }
 
   getRequestLangForTranslation(
@@ -1073,23 +1080,23 @@ export class VideoHandler {
    * Retrieves video data.
    * @returns {Promise<Object>} The video data object.
    */
-  async getVideoData() {
-    return await this.videoManager.getVideoData();
+  getVideoData() {
+    return this.videoManager.getVideoData();
   }
 
   /**
    * Validates the video.
    * @returns {Promise<boolean>} True if valid.
    */
-  async videoValidator() {
-    return await this.videoManager.videoValidator();
+  videoValidator() {
+    return this.videoManager.videoValidator();
   }
 
   /**
    * Stops translation and resets UI elements.
    */
   stopTranslate(): Promise<void> {
-    if (this.stopTranslatePromise) {
+    if (this.stopTranslatePromise !== null) {
       return this.stopTranslatePromise;
     }
 
@@ -1155,7 +1162,7 @@ export class VideoHandler {
   }
 
   waitForPendingStopTranslate(): Promise<void> {
-    return this.stopTranslatePromise ?? Promise.resolve();
+    return this.stopTranslatePromise ?? RESOLVED_VOID_PROMISE;
   }
 
   /**
@@ -1296,15 +1303,11 @@ export class VideoHandler {
    * @param {string} audioUrl The audio URL to validate.
    * @returns {Promise<string>} The valid audio URL.
    */
-  async validateAudioUrl(
+  validateAudioUrl(
     audioUrl: string,
     actionContext?: { gen: number; videoId: string },
   ): Promise<string> {
-    return await this.callModuleAsync(
-      validateAudioUrlImpl,
-      audioUrl,
-      actionContext,
-    );
+    return this.callModuleAsync(validateAudioUrlImpl, audioUrl, actionContext);
   }
 
   scheduleTranslationRefresh(): void {
@@ -1361,14 +1364,14 @@ export class VideoHandler {
    * @param {string} responseLang Target language.
    * @param {any} translationHelp Optional translation helper data.
    */
-  async translateFunc(
+  translateFunc(
     VIDEO_ID: string,
     isStream: boolean,
     requestLang: string,
     responseLang: string,
     translationHelp?: any,
   ): Promise<void> {
-    return await translateFuncImpl.call(
+    return translateFuncImpl.call(
       this,
       VIDEO_ID,
       isStream,
@@ -1531,11 +1534,7 @@ function findContainer(
     debug.log("findContainer without shadowRoot", matched);
   }
 
-  if (matched) {
-    return matched;
-  }
-
-  return null;
+  return matched;
 }
 
 /**
@@ -1546,14 +1545,8 @@ async function main(): Promise<void> {
     isIframe: isIframe(),
     href: String(globalThis.location.href || ""),
     origin: globalThis.location.origin,
-    hash: globalThis.location.hash,
-    iframeHash: IFRAME_HASH,
   });
 
-  if (bootstrapMode === "iframe-helper") {
-    logBootstrap("Starting iframe helper runtime");
-    return initAudioDownloaderIframe();
-  }
   if (bootstrapMode === "skip") {
     logBootstrap("Skipping bootstrap for non-runnable iframe");
     return;
@@ -1569,8 +1562,8 @@ async function main(): Promise<void> {
   bindObserverListeners({
     videoObserver,
     videosWrappers,
-    ensureRuntimeActivated: async (reason: string) =>
-      await ensureRuntimeActivated(reason, logBootstrap),
+    ensureRuntimeActivated: (reason: string) =>
+      ensureRuntimeActivated(reason, logBootstrap),
     getServicesCached,
     findContainer,
     createVideoHandler: (video, container, site) =>

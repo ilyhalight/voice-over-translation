@@ -62,7 +62,6 @@ export type FetchMediaWithMetaByChunkRangesResult = {
 
 export type GetAudioFromAPIOptions = {
   videoId: string;
-  returnByParts?: boolean;
   signal: AbortSignal;
 };
 
