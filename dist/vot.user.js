@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.2.1
+// @version         1.11.2.2
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -8179,7 +8179,7 @@ ${lines.join("\n")}`;
       const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
       const proxyWorkerHost = "vot-worker.kload.workers.dev";
       const votBackendUrl = "https://vot.toil.cc/v1";
-      const foswlyTranslateUrl = "https://translate.toil.cc/v2";
+      const foswlyTranslateUrl = "https://translate-backend.transly.workers.dev/v2";
       const detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
       const authServerUrl = "https://t2mc.toil.cc";
       const avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
@@ -8190,7 +8190,7 @@ ${lines.join("\n")}`;
       const maxAudioVolume = 900;
       const minLongWaitingCount = 5;
       const defaultTranslationService = "yandexbrowser";
-      const defaultDetectService = "rust-server";
+      const defaultDetectService = "yandexbrowser";
       const nonProxyExtensions = ["Tampermonkey", "Violentmonkey"];
       const proxyOnlyCountries = ["UA", "LV", "LT"];
       const defaultAutoHideDelay = 1e3;
@@ -8246,138 +8246,6 @@ ${lines.join("\n")}`;
       const warn = noop;
       const error = noop;
       const debug = { log, warn, error };
-      function stringifyUnknownObject(value) {
-        const seen2 = new WeakSet();
-        try {
-          const serialized = JSON.stringify(value, (_key, currentValue) => {
-            if (typeof currentValue !== "object" || currentValue === null) {
-              return currentValue;
-            }
-            if (seen2.has(currentValue)) {
-              return "[Circular]";
-            }
-            seen2.add(currentValue);
-            return currentValue;
-          });
-          return serialized ?? null;
-        } catch {
-          return null;
-        }
-      }
-      function toErrorMessage(error2, fallback = "Unknown error") {
-        if (error2 instanceof Error) {
-          return error2.message || fallback;
-        }
-        if (typeof error2 === "string") {
-          return error2 || fallback;
-        }
-        if (error2 === null || error2 === void 0) {
-          return fallback;
-        }
-        if (typeof error2 === "object") {
-          const anyErr = error2;
-          if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
-            return anyErr.data.message;
-          }
-          if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
-            return anyErr.error.message;
-          }
-          if (typeof anyErr?.message === "string" && anyErr.message) {
-            return anyErr.message;
-          }
-          const serialized = stringifyUnknownObject(error2);
-          if (serialized && serialized !== "{}") {
-            return serialized;
-          }
-          const ctorName = error2.constructor?.name;
-          return ctorName ? `[${ctorName}]` : fallback;
-        }
-        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
-          return `${error2}`;
-        }
-        if (typeof error2 === "symbol") {
-          return error2.description ? `Symbol(${error2.description})` : "Symbol";
-        }
-        if (typeof error2 === "function") {
-          return error2.name ? `[Function ${error2.name}]` : "[Function]";
-        }
-        return fallback;
-      }
-      function getErrorMessage(error2) {
-        return toErrorMessage(error2, "");
-      }
-      function isAbortError(err) {
-        const anyErr = err;
-        return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
-      }
-      function makeAbortError(message = "Aborted") {
-        try {
-          return new DOMException(message, "AbortError");
-        } catch {
-          const err = new Error(message);
-          err.name = "AbortError";
-          return err;
-        }
-      }
-      const NEVER_ABORTED_SIGNAL = new AbortController().signal;
-      function throwIfAborted(signal) {
-        const maybeThrow = signal.throwIfAborted;
-        if (typeof maybeThrow === "function") {
-          try {
-            maybeThrow.call(signal);
-            return;
-          } catch (e2) {
-            if (signal.aborted || isAbortError(e2)) {
-              throw makeAbortError();
-            }
-            throw e2 instanceof Error ? e2 : new Error(String(e2));
-          }
-        }
-        if (signal.aborted) {
-          throw makeAbortError();
-        }
-      }
-      function createTimeoutSignal(timeoutMs, external) {
-        const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
-        if (!hasEffectiveTimeout) {
-          return {
-            signal: external ?? NEVER_ABORTED_SIGNAL,
-            cleanup: () => {
-            }
-          };
-        }
-        const controller = new AbortController();
-        let timeoutId;
-        const onExternalAbort = () => {
-          if (timeoutId !== void 0) {
-            clearTimeout(timeoutId);
-            timeoutId = void 0;
-          }
-          controller.abort(external?.reason);
-        };
-        if (external) {
-          external.addEventListener("abort", onExternalAbort, { once: true });
-          if (external.aborted) {
-            onExternalAbort();
-          }
-        }
-        if (!controller.signal.aborted) {
-          timeoutId = setTimeout(() => {
-            controller.abort(makeAbortError("Timeout"));
-            timeoutId = void 0;
-          }, timeoutMs);
-        }
-        return {
-          signal: controller.signal,
-          cleanup: () => {
-            if (timeoutId !== void 0) {
-              clearTimeout(timeoutId);
-              timeoutId = void 0;
-            }
-            external?.removeEventListener("abort", onExternalAbort);
-          }
-        };
-      }
       function getNavigatorLang() {
         return navigator.language?.substring(0, 2).toLowerCase() || "en";
       }
@@ -8577,6 +8445,454 @@ ${lines.join("\n")}`;
           await doc.webkitExitFullscreen();
         }
       }
+      const YANDEX_TTL_MS = 2 * 60 * 60 * 1e3;
+      const RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
+      const RESPONSE_CACHE_KEY_HEADER = "x-vot-cache-key";
+      const DEFAULT_RESPONSE_CACHE_NAME = "vot-http-cache-v1";
+      const MAX_MEMORY_CACHE_ENTRIES = 500;
+      const EXPIRY_FIELD_BY_FIELD = {
+        translation: "translationExpiresAt",
+        subtitles: "subtitlesExpiresAt"
+      };
+      class CacheManager {
+        cache = new Map();
+clear() {
+          this.cache.clear();
+        }
+        getTranslation(key) {
+          return this.getValue(key, "translation");
+        }
+        setTranslation(key, translation) {
+          this.setValue(key, "translation", translation);
+        }
+        getSubtitles(key) {
+          return this.getValue(key, "subtitles");
+        }
+        setSubtitles(key, subtitles) {
+          this.setValue(key, "subtitles", subtitles);
+        }
+        deleteSubtitles(key) {
+          this.deleteValue(key, "subtitles");
+        }
+        getValue(key, field) {
+          const now2 = Date.now();
+          const entry = this.cache.get(key);
+          if (!entry) return void 0;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          const expiresAt = entry[expiryField];
+          if (expiresAt !== void 0 && expiresAt <= now2) {
+            entry[field] = void 0;
+            entry[expiryField] = void 0;
+            this.evictIfEmpty(key, entry);
+            return void 0;
+          }
+          return entry[field];
+        }
+        setValue(key, field, value) {
+          const now2 = Date.now();
+          const entry = this.getOrCreateEntry(key);
+          const expiresAt = now2 + YANDEX_TTL_MS;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          entry[field] = value;
+          entry[expiryField] = expiresAt;
+        }
+        deleteValue(key, field) {
+          const entry = this.cache.get(key);
+          if (!entry) return;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          entry[field] = void 0;
+          entry[expiryField] = void 0;
+          this.evictIfEmpty(key, entry);
+        }
+        evictIfEmpty(key, entry) {
+          if (entry.translation === void 0 && entry.subtitles === void 0) {
+            this.cache.delete(key);
+          }
+        }
+        getOrCreateEntry(key) {
+          const existing = this.cache.get(key);
+          if (existing) return existing;
+          const entry = {};
+          this.cache.set(key, entry);
+          return entry;
+        }
+      }
+      class ResponseCacheManager {
+        memoryCache = new Map();
+        inFlightRequests = new Map();
+        async execute(context, options, fetcher) {
+          if (!options || options.ttlMs <= 0) {
+            return await fetcher();
+          }
+          const key = options.key ?? this.buildDefaultCacheKey(context);
+          if (!key) {
+            return await fetcher();
+          }
+          const method = this.normalizeMethod(context.method);
+          const ttlMs = options.ttlMs;
+          const cacheName = options.cacheName || DEFAULT_RESPONSE_CACHE_NAME;
+          const useMemory = options.useMemory !== false;
+          const useCacheApi = options.useCacheApi !== false && method === "GET" && this.supportsCacheApi();
+          const cacheApiKey = useCacheApi ? fnv1a32ToKeyPart(key) : "";
+          const dedupe = options.dedupe !== false;
+          const allowStaleOnError = options.allowStaleOnError !== false;
+          const nowMs = Date.now();
+          let staleFallback;
+          if (useMemory) {
+            const memoryHit = this.readMemoryCache(key, nowMs);
+            if (memoryHit.fresh) {
+              return memoryHit.fresh;
+            }
+            staleFallback = memoryHit.stale ?? staleFallback;
+          }
+          if (useCacheApi) {
+            const cacheApiHit = await this.readCacheApi(
+              cacheName,
+              context.url,
+              cacheApiKey,
+              ttlMs,
+              nowMs,
+              allowStaleOnError
+            );
+            if (cacheApiHit.fresh) {
+              if (useMemory) {
+                this.writeMemoryCache(
+                  key,
+                  cacheApiHit.fresh.clone(),
+                  cacheApiHit.expiresAt ?? nowMs + ttlMs
+                );
+              }
+              return cacheApiHit.fresh;
+            }
+            staleFallback = staleFallback ?? cacheApiHit.stale;
+          }
+          const runNetworkRequest = async () => {
+            const response = await fetcher();
+            if (!response.ok) {
+              return response;
+            }
+            const createdAtMs = Date.now();
+            const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+            if (useMemory) {
+              this.writeMemoryCache(key, response.clone(), expiresAt);
+            }
+            if (useCacheApi) {
+              const storable = this.toStorableResponse(response.clone(), createdAtMs);
+              await this.writeCacheApi(cacheName, context.url, cacheApiKey, storable);
+            }
+            return response;
+          };
+          if (!dedupe) {
+            try {
+              return await runNetworkRequest();
+            } catch (err) {
+              if (allowStaleOnError && staleFallback) {
+                return staleFallback;
+              }
+              throw err;
+            }
+          }
+          const inFlight = this.inFlightRequests.get(key);
+          if (inFlight) {
+            return (await inFlight).clone();
+          }
+          const networkPromise = (async () => {
+            try {
+              return await runNetworkRequest();
+            } catch (err) {
+              if (allowStaleOnError && staleFallback) {
+                return staleFallback.clone();
+              }
+              throw err;
+            }
+          })();
+          this.inFlightRequests.set(key, networkPromise);
+          try {
+            return (await networkPromise).clone();
+          } finally {
+            this.inFlightRequests.delete(key);
+          }
+        }
+        computeExpiresAt(createdAtMs, ttlMs) {
+          if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
+            return createdAtMs;
+          }
+          const maxAdd = Number.MAX_SAFE_INTEGER - createdAtMs;
+          if (ttlMs >= maxAdd) {
+            return Number.MAX_SAFE_INTEGER;
+          }
+          return createdAtMs + ttlMs;
+        }
+        normalizeMethod(method) {
+          return (method || "GET").toUpperCase();
+        }
+        resolveBodyKey(body) {
+          if (body == null) return "";
+          if (typeof body === "string") return body;
+          if (body instanceof URLSearchParams) return body.toString();
+          return void 0;
+        }
+        buildDefaultCacheKey(context) {
+          const method = this.normalizeMethod(context.method);
+          if (method === "GET" || method === "HEAD") {
+            return `${method}:${context.url}`;
+          }
+          const bodyKey = this.resolveBodyKey(context.body);
+          if (bodyKey === void 0) return void 0;
+          return `${method}:${context.url}#${fnv1a32ToKeyPart(bodyKey)}`;
+        }
+        supportsCacheApi() {
+          return typeof caches !== "undefined" && typeof caches.open === "function";
+        }
+        readCreatedAtMs(response) {
+          const raw = response.headers.get(RESPONSE_CACHE_CREATED_AT_HEADER);
+          if (!raw) return null;
+          const value = Number(raw);
+          return Number.isFinite(value) ? value : null;
+        }
+        ensureVaryByCacheKey(headers) {
+          const varyRaw = headers.get("vary");
+          if (!varyRaw) {
+            headers.set("vary", RESPONSE_CACHE_KEY_HEADER);
+            return;
+          }
+          const varyParts = varyRaw.split(",").map((part) => part.trim().toLowerCase());
+          if (!varyParts.includes("*") && !varyParts.includes(RESPONSE_CACHE_KEY_HEADER)) {
+            headers.set("vary", `${varyRaw}, ${RESPONSE_CACHE_KEY_HEADER}`);
+          }
+        }
+        toStorableResponse(response, createdAtMs) {
+          const headers = new Headers(response.headers);
+          headers.set(RESPONSE_CACHE_CREATED_AT_HEADER, String(createdAtMs));
+          this.ensureVaryByCacheKey(headers);
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers
+          });
+        }
+        readMemoryCache(key, nowMs) {
+          const entry = this.memoryCache.get(key);
+          if (!entry) return {};
+          if (entry.expiresAt > nowMs) {
+            this.touchMemoryCache(key, entry);
+            return {
+              fresh: entry.response.clone(),
+              expiresAt: entry.expiresAt
+            };
+          }
+          this.memoryCache.delete(key);
+          return {
+            stale: entry.response.clone(),
+            expiresAt: entry.expiresAt
+          };
+        }
+        touchMemoryCache(key, entry) {
+          this.memoryCache.delete(key);
+          this.memoryCache.set(key, entry);
+        }
+        trimMemoryCache() {
+          while (this.memoryCache.size > MAX_MEMORY_CACHE_ENTRIES) {
+            const first = this.memoryCache.keys().next().value;
+            if (typeof first !== "string") break;
+            this.memoryCache.delete(first);
+          }
+        }
+        writeMemoryCache(key, response, expiresAt) {
+          if (this.memoryCache.has(key)) {
+            this.memoryCache.delete(key);
+          }
+          this.memoryCache.set(key, {
+            response,
+            expiresAt
+          });
+          this.trimMemoryCache();
+        }
+        async readCacheApi(cacheName, url, cacheKey, ttlMs, nowMs, allowStaleOnError) {
+          try {
+            const request = new Request(url, {
+              method: "GET",
+              headers: {
+                [RESPONSE_CACHE_KEY_HEADER]: cacheKey
+              }
+            });
+            const cache = await caches.open(cacheName);
+            const cached = await cache.match(request);
+            if (!cached) return {};
+            const createdAtMs = this.readCreatedAtMs(cached);
+            if (createdAtMs === null) {
+              await cache.delete(request);
+              return {};
+            }
+            const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+            if (expiresAt > nowMs) {
+              return {
+                fresh: cached.clone(),
+                expiresAt
+              };
+            }
+            if (!allowStaleOnError) {
+              await cache.delete(request);
+              return {};
+            }
+            return {
+              stale: cached.clone(),
+              expiresAt
+            };
+          } catch {
+            return {};
+          }
+        }
+        async writeCacheApi(cacheName, url, cacheKey, response) {
+          try {
+            const request = new Request(url, {
+              method: "GET",
+              headers: {
+                [RESPONSE_CACHE_KEY_HEADER]: cacheKey
+              }
+            });
+            const cache = await caches.open(cacheName);
+            await cache.put(request, response);
+          } catch {
+          }
+        }
+      }
+      const responseCacheManager = new ResponseCacheManager();
+      async function executeWithResponseCache(context, options, fetcher) {
+        return await responseCacheManager.execute(context, options, fetcher);
+      }
+      function stringifyUnknownObject(value) {
+        const seen2 = new WeakSet();
+        try {
+          const serialized = JSON.stringify(value, (_key, currentValue) => {
+            if (typeof currentValue !== "object" || currentValue === null) {
+              return currentValue;
+            }
+            if (seen2.has(currentValue)) {
+              return "[Circular]";
+            }
+            seen2.add(currentValue);
+            return currentValue;
+          });
+          return serialized ?? null;
+        } catch {
+          return null;
+        }
+      }
+      function toErrorMessage(error2, fallback = "Unknown error") {
+        if (error2 instanceof Error) {
+          return error2.message || fallback;
+        }
+        if (typeof error2 === "string") {
+          return error2 || fallback;
+        }
+        if (error2 === null || error2 === void 0) {
+          return fallback;
+        }
+        if (typeof error2 === "object") {
+          const anyErr = error2;
+          if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
+            return anyErr.data.message;
+          }
+          if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
+            return anyErr.error.message;
+          }
+          if (typeof anyErr?.message === "string" && anyErr.message) {
+            return anyErr.message;
+          }
+          const serialized = stringifyUnknownObject(error2);
+          if (serialized && serialized !== "{}") {
+            return serialized;
+          }
+          const ctorName = error2.constructor?.name;
+          return ctorName ? `[${ctorName}]` : fallback;
+        }
+        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
+          return `${error2}`;
+        }
+        if (typeof error2 === "symbol") {
+          return error2.description ? `Symbol(${error2.description})` : "Symbol";
+        }
+        if (typeof error2 === "function") {
+          return error2.name ? `[Function ${error2.name}]` : "[Function]";
+        }
+        return fallback;
+      }
+      function getErrorMessage(error2) {
+        return toErrorMessage(error2, "");
+      }
+      function isAbortError(err) {
+        const anyErr = err;
+        return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
+      }
+      function makeAbortError(message = "Aborted") {
+        try {
+          return new DOMException(message, "AbortError");
+        } catch {
+          const err = new Error(message);
+          err.name = "AbortError";
+          return err;
+        }
+      }
+      const NEVER_ABORTED_SIGNAL = new AbortController().signal;
+      function throwIfAborted(signal) {
+        const maybeThrow = signal.throwIfAborted;
+        if (typeof maybeThrow === "function") {
+          try {
+            maybeThrow.call(signal);
+            return;
+          } catch (e2) {
+            if (signal.aborted || isAbortError(e2)) {
+              throw makeAbortError();
+            }
+            throw e2 instanceof Error ? e2 : new Error(String(e2));
+          }
+        }
+        if (signal.aborted) {
+          throw makeAbortError();
+        }
+      }
+      function createTimeoutSignal(timeoutMs, external) {
+        const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
+        if (!hasEffectiveTimeout) {
+          return {
+            signal: external ?? NEVER_ABORTED_SIGNAL,
+            cleanup: () => {
+            }
+          };
+        }
+        const controller = new AbortController();
+        let timeoutId;
+        const onExternalAbort = () => {
+          if (timeoutId !== void 0) {
+            clearTimeout(timeoutId);
+            timeoutId = void 0;
+          }
+          controller.abort(external?.reason);
+        };
+        if (external) {
+          external.addEventListener("abort", onExternalAbort, { once: true });
+          if (external.aborted) {
+            onExternalAbort();
+          }
+        }
+        if (!controller.signal.aborted) {
+          timeoutId = setTimeout(() => {
+            controller.abort(makeAbortError("Timeout"));
+            timeoutId = void 0;
+          }, timeoutMs);
+        }
+        return {
+          signal: controller.signal,
+          cleanup: () => {
+            if (timeoutId !== void 0) {
+              clearTimeout(timeoutId);
+              timeoutId = void 0;
+            }
+            external?.removeEventListener("abort", onExternalAbort);
+          }
+        };
+      }
       const YANDEX_API_HOST = "api.browser.yandex.ru";
       const GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
       const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
@@ -8623,6 +8939,15 @@ ${lines.join("\n")}`;
           return url.href;
         }
         return url.url;
+      }
+      function resolveRequestMethod(url, method) {
+        if (method) {
+          return method.toUpperCase();
+        }
+        if (url instanceof Request) {
+          return (url.method || "GET").toUpperCase();
+        }
+        return "GET";
       }
       function parseResponseHeaders(rawHeaders) {
         if (typeof rawHeaders !== "string" || rawHeaders.length === 0) {
@@ -8712,30 +9037,53 @@ ${lines.join("\n")}`;
         });
       }
       async function GM_fetch(url, opts = {}) {
-        const { timeout: timeout2 = 15e3, forceGmXhr = false, ...fetchOptions } = opts;
+        const {
+          timeout: timeout2 = 15e3,
+          forceGmXhr = false,
+          responseCache,
+          ...fetchOptions
+        } = opts;
         const urlStr = toRequestUrl(url);
         const host = getRequestHost(urlStr);
-        if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
-          return await gmXhrFetch(urlStr, timeout2, fetchOptions);
-        }
-        const { signal, cleanup } = createTimeoutSignal(timeout2, fetchOptions.signal);
-        try {
-          return await fetch(url, {
-            ...fetchOptions,
-            signal
-          });
-        } catch (err) {
-          if (signal.aborted || isAbortError(err)) {
-            throw err;
+        const method = resolveRequestMethod(url, fetchOptions.method);
+        const performRequest = async () => {
+          if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
+            return await gmXhrFetch(urlStr, timeout2, fetchOptions);
           }
-          debug.log(
-            "GM_fetch preventing CORS by GM_xmlhttpRequest",
-            getErrorMessage(err) || "Unknown error"
+          const { signal, cleanup } = createTimeoutSignal(
+            timeout2,
+            fetchOptions.signal
           );
-          return await gmXhrFetch(urlStr, timeout2, fetchOptions);
-        } finally {
-          cleanup();
+          try {
+            return await fetch(url, {
+              ...fetchOptions,
+              signal
+            });
+          } catch (err) {
+            if (signal.aborted || isAbortError(err)) {
+              throw err;
+            }
+            debug.log(
+              "GM_fetch preventing CORS by GM_xmlhttpRequest",
+              getErrorMessage(err) || "Unknown error"
+            );
+            return await gmXhrFetch(urlStr, timeout2, fetchOptions);
+          } finally {
+            cleanup();
+          }
+        };
+        if (!responseCache) {
+          return await performRequest();
         }
+        return await executeWithResponseCache(
+          {
+            url: urlStr,
+            method,
+            body: fetchOptions.body
+          },
+          responseCache,
+          performRequest
+        );
       }
       const compatMay2025Data = {
         numToBool: [
@@ -9240,6 +9588,8 @@ get isSupportOnlyLS() {
       ];
       const DEFAULT_LOCALE$1 = toFlatObj(rawDefaultLocale);
       const CACHE_TTL_SECONDS = 7200;
+      const HASHES_REQUEST_CACHE_TTL_MS = 5 * 60 * 1e3;
+      const LOCALE_REQUEST_CACHE_TTL_MS = 24 * 60 * 60 * 1e3;
       const repoBranch = "master";
       const availableLocales = (() => {
         const locales = typeof define_AVAILABLE_LOCALES_default !== "undefined" && Array.isArray(define_AVAILABLE_LOCALES_default) ? define_AVAILABLE_LOCALES_default : ["en"];
@@ -9298,7 +9648,13 @@ locale;
         }
         async checkUpdates(force = false) {
           try {
-            const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
+            const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force), {
+              responseCache: force ? void 0 : {
+                ttlMs: HASHES_REQUEST_CACHE_TTL_MS,
+                cacheName: "vot-locales-hashes-v1",
+                allowStaleOnError: true
+              }
+            });
             if (!res.ok) throw res.status;
             const hashes = await res.json();
             if (!hashes || typeof hashes !== "object") {
@@ -9339,7 +9695,14 @@ locale;
           }
           try {
             const res = await GM_fetch(
-              this.buildUrl(this.localesUrl, `/${this.lang}.json`, force)
+              this.buildUrl(this.localesUrl, `/${this.lang}.json`, force),
+              {
+                responseCache: force ? void 0 : {
+                  ttlMs: LOCALE_REQUEST_CACHE_TTL_MS,
+                  cacheName: "vot-locales-files-v1",
+                  allowStaleOnError: true
+                }
+              }
             );
             if (!res.ok) throw res.status;
             const text = await res.text();
@@ -9618,74 +9981,6 @@ locale;
           return "iframe-lazy";
         }
         return "top-full";
-      }
-      const YANDEX_TTL_MS = 2 * 60 * 60 * 1e3;
-      const EXPIRY_FIELD_BY_FIELD = {
-        translation: "translationExpiresAt",
-        subtitles: "subtitlesExpiresAt"
-      };
-      class CacheManager {
-        cache = new Map();
-clear() {
-          this.cache.clear();
-        }
-        getTranslation(key) {
-          return this.getValue(key, "translation");
-        }
-        setTranslation(key, translation) {
-          this.setValue(key, "translation", translation);
-        }
-        getSubtitles(key) {
-          return this.getValue(key, "subtitles");
-        }
-        setSubtitles(key, subtitles) {
-          this.setValue(key, "subtitles", subtitles);
-        }
-        deleteSubtitles(key) {
-          this.deleteValue(key, "subtitles");
-        }
-        getValue(key, field) {
-          const now2 = Date.now();
-          const entry = this.cache.get(key);
-          if (!entry) return void 0;
-          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-          const expiresAt = entry[expiryField];
-          if (expiresAt !== void 0 && expiresAt <= now2) {
-            entry[field] = void 0;
-            entry[expiryField] = void 0;
-            this.evictIfEmpty(key, entry);
-            return void 0;
-          }
-          return entry[field];
-        }
-        setValue(key, field, value) {
-          const now2 = Date.now();
-          const entry = this.getOrCreateEntry(key);
-          const expiresAt = now2 + YANDEX_TTL_MS;
-          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-          entry[field] = value;
-          entry[expiryField] = expiresAt;
-        }
-        deleteValue(key, field) {
-          const entry = this.cache.get(key);
-          if (!entry) return;
-          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-          entry[field] = void 0;
-          entry[expiryField] = void 0;
-          this.evictIfEmpty(key, entry);
-        }
-        evictIfEmpty(key, entry) {
-          if (entry.translation === void 0 && entry.subtitles === void 0) {
-            this.cache.delete(key);
-          }
-        }
-        getOrCreateEntry(key) {
-          const existing = this.cache.get(key);
-          if (existing) return existing;
-          const entry = {};
-          this.cache.set(key, entry);
-          return entry;
-        }
       }
       function getComposableParent(node) {
         if (!node) return null;
@@ -11577,6 +11872,7 @@ isLivelyVoiceUnavailableError(value) {
         return cleaned.replaceAll(/[\p{P}\p{S}]+/gu, " ").replaceAll(/\s+/g, " ").trim().slice(0, 450);
       }
       const SETTINGS_CACHE_TTL_MS = 5e3;
+      const IMMUTABLE_API_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
       let cachedTranslationService = null;
       let cachedTranslationServiceAt = 0;
       let cachedDetectService = null;
@@ -11613,6 +11909,11 @@ isLivelyVoiceUnavailableError(value) {
           try {
             const res = await GM_fetch(`${foswlyTranslateUrl}${path}`, {
               timeout: 3e3,
+              responseCache: {
+                ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+                cacheName: "vot-foswly-api-v1",
+                allowStaleOnError: true
+              },
               ...opts
             });
             const data = await res.json();
@@ -11670,7 +11971,12 @@ isLivelyVoiceUnavailableError(value) {
             const response = await GM_fetch(detectRustServerUrl, {
               method: "POST",
               body: text,
-              timeout: 3e3
+              timeout: 3e3,
+              responseCache: {
+                ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+                cacheName: "vot-rust-detect-v1",
+                allowStaleOnError: true
+              }
             });
             return await response.text();
           } catch (error2) {
@@ -11682,6 +11988,9 @@ isLivelyVoiceUnavailableError(value) {
         }
       };
       async function translate(text, fromLang = "", toLang = "ru") {
+        if (fromLang && toLang && fromLang === toLang) {
+          return text;
+        }
         const service = await getTranslationServiceCached();
         switch (service) {
           case "yandexbrowser":
@@ -24817,6 +25126,7 @@ headers: {
           await this.stopTranslation();
         } catch {
         }
+        this.initVOTClient();
       }
       function isMultiMethodS3(url) {
         return isYandexAudioUrlOrProxy(url, {
@@ -25214,6 +25524,13 @@ getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage) {
           if (!actionContext) return false;
           return this.actionsGeneration !== actionContext.gen || this.videoData?.videoId !== actionContext.videoId;
         }
+        updateVOTClientRequestSignal() {
+          if (!this.votClient) return;
+          this.votClient.fetchOpts = {
+            ...this.votClient.fetchOpts ?? {},
+            signal: this.actionsAbortController.signal
+          };
+        }
         resetActionsAbortController(reason) {
           try {
             this.actionsAbortController?.abort(reason);
@@ -25221,9 +25538,7 @@ getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage) {
           }
           this.actionsAbortController = new AbortController();
           this.actionsGeneration++;
-          if (this.data) {
-            this.initVOTClient();
-          }
+          this.updateVOTClientRequestSignal();
         }
 constructor(video, container, site) {
           this.video = video;
