@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.2
+// @version         1.11.2.1
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -8177,7 +8177,7 @@ ${lines.join("\n")}`;
       }
       const workerHost = "api.browser.yandex.ru";
       const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
-      const proxyWorkerHost = "vot-worker.toil.cc";
+      const proxyWorkerHost = "vot-worker.kload.workers.dev";
       const votBackendUrl = "https://vot.toil.cc/v1";
       const foswlyTranslateUrl = "https://translate.toil.cc/v2";
       const detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
