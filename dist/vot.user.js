@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.2.2
+// @version         1.11.2.3
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -10106,10 +10106,6 @@ locale;
         const normalizedMimeType = normalizeMimeType(mimeType);
         return normalizedMimeType.includes("audio/") && !normalizedMimeType.includes("video/");
       }
-      function isPreferredAdaptiveAudioMimeType(mimeType) {
-        const normalizedMimeType = normalizeMimeType(mimeType);
-        return normalizedMimeType.includes("opus") || normalizedMimeType.includes("mp4a.");
-      }
       function isMp4aAdaptiveAudioMimeType(mimeType) {
         const normalizedMimeType = normalizeMimeType(mimeType);
         return normalizedMimeType.includes("audio/mp4") && normalizedMimeType.includes("mp4a.");
@@ -10123,16 +10119,11 @@ locale;
           return "mp4a.40.2";
         }
         const codecsMatch = /codecs="([^"]+)"/i.exec(mimeType);
-        if (!codecsMatch) {
+        if (!codecsMatch?.[1]) {
           return "mp4a.40.2";
         }
-        const codecBlock = codecsMatch[1];
-        if (!codecBlock) {
-          return "mp4a.40.2";
-        }
-        const codecs = codecBlock.split(",").map((value) => value.trim());
-        const firstCodec = codecs[0];
-        return codecs.find((value) => value.toLowerCase().startsWith("mp4a.")) ?? firstCodec ?? "mp4a.40.2";
+        const codecs = codecsMatch[1].split(",").map((value) => value.trim());
+        return codecs.find((value) => value.toLowerCase().startsWith("mp4a.")) ?? codecs[0] ?? "mp4a.40.2";
       }
       function pickByBitrate(formats, direction) {
         let selected = null;
@@ -10153,30 +10144,39 @@ locale;
         if (!audioFormats.length) {
           throw new Error("No adaptive audio formats were found in player response");
         }
-        const preferredMp4aFormats = audioFormats.filter(
-          (format) => isMp4aAdaptiveAudioMimeType(format.mimeType)
-        );
-        const preferredOpusFormats = audioFormats.filter(
-          (format) => isOpusAdaptiveAudioMimeType(format.mimeType)
-        );
-        const preferredFormats = audioFormats.filter(
-          (format) => isPreferredAdaptiveAudioMimeType(format.mimeType)
-        );
-        const preferredCandidates = quality === "bestefficiency" ? [preferredOpusFormats, preferredFormats, audioFormats] : [
-          preferredMp4aFormats,
-          preferredOpusFormats,
-          preferredFormats,
+        const pickDirection = quality === "bestefficiency" ? "min" : "max";
+        const candidateGroups = quality === "bestefficiency" ? [
+          audioFormats.filter(
+            (format) => isOpusAdaptiveAudioMimeType(format.mimeType)
+          ),
+          audioFormats
+        ] : [
+          audioFormats.filter(
+            (format) => isMp4aAdaptiveAudioMimeType(format.mimeType)
+          ),
+          audioFormats.filter(
+            (format) => isOpusAdaptiveAudioMimeType(format.mimeType)
+          ),
           audioFormats
         ];
-        const candidates = preferredCandidates.find((formats2) => formats2.length > 0) ?? audioFormats;
-        const selected = pickByBitrate(
-          candidates,
-          quality === "bestefficiency" ? "min" : "max"
-        );
-        if (!selected) {
-          throw new Error("No adaptive audio formats were found in player response");
+        for (const candidates of candidateGroups) {
+          if (!candidates.length) {
+            continue;
+          }
+          const selected = pickByBitrate(candidates, pickDirection);
+          if (selected) {
+            return selected;
+          }
         }
-        return selected;
+        throw new Error("No adaptive audio formats were found in player response");
+      }
+      class YtWatchContextForbiddenError extends Error {
+        status;
+        constructor(status = 403) {
+          super(`Failed to load watch page: ${status}`);
+          this.name = "YtWatchContextForbiddenError";
+          this.status = status;
+        }
       }
       const VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
       const YT_BASE = "https://www.youtube.com";
@@ -10315,10 +10315,6 @@ locale;
         return void 0;
       }
       async function readResponseBytes(response) {
-        const byteReader = response.bytes;
-        if (typeof byteReader === "function") {
-          return byteReader.call(response);
-        }
         return new Uint8Array(await response.arrayBuffer());
       }
       function makeCPN(length = 16) {
@@ -10354,15 +10350,52 @@ locale;
         const matched = /\/(\d+)\s*$/i.exec(contentRange);
         return parsePositiveInteger(matched?.[1]);
       }
-      function addRangeToStreamUrl(streamUrl, start, end, requestNumber) {
-        const url = new URL(streamUrl);
-        url.searchParams.set("range", `${start}-${end}`);
-        if (requestNumber > 0) {
-          url.searchParams.set("rn", String(requestNumber));
-        } else {
-          url.searchParams.delete("rn");
+      function parseContentRangeHeader(contentRange) {
+        if (!contentRange) {
+          return null;
         }
-        return url.toString();
+        const matched = /^bytes\s+(\d+)-(\d+)\/(?:\d+|\*)$/i.exec(
+          contentRange.trim()
+        );
+        if (!matched) {
+          return null;
+        }
+        const start = Number.parseInt(matched[1] ?? "", 10);
+        const end = Number.parseInt(matched[2] ?? "", 10);
+        if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start) {
+          return null;
+        }
+        return { start, end };
+      }
+      function getExpectedRangeLength(start, end) {
+        return end - start + 1;
+      }
+      function isValidRangeChunkResponse(response, bytes, start, end) {
+        const expectedLength = getExpectedRangeLength(start, end);
+        if (expectedLength <= 0) {
+          return false;
+        }
+        if (bytes.byteLength <= 0 || bytes.byteLength > expectedLength) {
+          return false;
+        }
+        const contentRange = parseContentRangeHeader(
+          response.headers.get("content-range")
+        );
+        if (contentRange) {
+          return contentRange.start === start && contentRange.end === start + bytes.byteLength - 1;
+        }
+        if (response.status === 206) {
+          return bytes.byteLength === expectedLength;
+        }
+        if (response.status === 200) {
+          return start === 0 && bytes.byteLength === expectedLength;
+        }
+        return false;
+      }
+      function describeRangeChunkResponse(response, bytes) {
+        const contentRange = response.headers.get("content-range") ?? "none";
+        const contentLength = response.headers.get("content-length") ?? "none";
+        return `status=${response.status}; bytes=${bytes.byteLength}; content-range=${contentRange}; content-length=${contentLength}`;
       }
       function getAudioMimeType(mimeType) {
         const normalizedMimeType = mimeType?.toLowerCase() ?? "";
@@ -10390,41 +10423,23 @@ locale;
         constructor(options = {}) {
           this.fetchFn = options.fetchImplementation ?? fetch;
         }
-        async fetchRangeChunk(streamUrl, start, end, signal, requestNumber) {
-          const rangeUrl = addRangeToStreamUrl(streamUrl, start, end, requestNumber);
+        async fetchRangeChunk(streamUrl, start, end, signal) {
           const rangeHeader = `bytes=${start}-${end}`;
-          let queryResponseStatus = "fetch_error";
-          try {
-            const queryResponse = await this.fetchFn(rangeUrl, {
-              headers: DEFAULT_HEADERS,
-              ...withSignal(signal)
-            });
-            queryResponseStatus = queryResponse.status;
-            if (queryResponse.ok) {
-              const bytes2 = await readResponseBytes(queryResponse);
-              if (!bytes2.byteLength) {
-                throw new Error("Received empty stream chunk");
-              }
-              return bytes2;
-            }
-          } catch (error2) {
-            queryResponseStatus = error2 instanceof Error ? error2.message : "fetch_error";
-          }
-          const headerResponse = await this.fetchFn(streamUrl, {
+          const response = await this.fetchFn(streamUrl, {
             headers: {
               ...DEFAULT_HEADERS,
               range: rangeHeader
             },
             ...withSignal(signal)
           });
-          if (!headerResponse.ok) {
-            throw new Error(
-              `Failed to download stream chunk: query=${queryResponseStatus}; header=${headerResponse.status}`
-            );
+          if (!response.ok) {
+            throw new Error(`Failed to download stream chunk: ${response.status}`);
           }
-          const bytes = await readResponseBytes(headerResponse);
-          if (!bytes.byteLength) {
-            throw new Error("Received empty stream chunk");
+          const bytes = await readResponseBytes(response);
+          if (!isValidRangeChunkResponse(response, bytes, start, end)) {
+            throw new Error(
+              `Received unexpected stream chunk payload: ${describeRangeChunkResponse(response, bytes)}`
+            );
           }
           return bytes;
         }
@@ -10437,15 +10452,9 @@ locale;
           );
           const merged = new Uint8Array(fileSize);
           let offset = 0;
-          for (let start = 0, index = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE, index++) {
+          for (let start = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE) {
             const end = Math.min(fileSize - 1, start + RANGE_FALLBACK_CHUNK_SIZE - 1);
-            const chunk = await this.fetchRangeChunk(
-              streamUrl,
-              start,
-              end,
-              signal,
-              index + 1
-            );
+            const chunk = await this.fetchRangeChunk(streamUrl, start, end, signal);
             if (offset + chunk.byteLength > merged.byteLength) {
               throw new Error(
                 "Downloaded stream chunk exceeds probed stream content length"
@@ -10458,49 +10467,6 @@ locale;
             return merged;
           }
           return merged.slice(0, offset);
-        }
-        async downloadStreamBytes(streamUrl, contentLengthHint, signal, options = {}) {
-          if (options.preferRangeFirst) {
-            try {
-              return await this.downloadStreamByRanges(
-                streamUrl,
-                contentLengthHint,
-                signal
-              );
-            } catch (rangeError) {
-              const rangeMessage = rangeError instanceof Error ? rangeError.message : String(rangeError);
-              throw new Error(`Failed to download stream by ranges: ${rangeMessage}`);
-            }
-          }
-          let fullResponseStatus = "fetch_error";
-          try {
-            const streamResponse = await this.fetchFn(streamUrl, {
-              headers: DEFAULT_HEADERS,
-              ...withSignal(signal)
-            });
-            fullResponseStatus = streamResponse.status;
-            if (streamResponse.ok) {
-              const bytes = await readResponseBytes(streamResponse);
-              if (!bytes.byteLength) {
-                throw new Error("Received empty stream");
-              }
-              return bytes;
-            }
-          } catch (error2) {
-            fullResponseStatus = error2 instanceof Error ? error2.message : "fetch_error";
-          }
-          try {
-            return await this.downloadStreamByRanges(
-              streamUrl,
-              contentLengthHint,
-              signal
-            );
-          } catch (rangeError) {
-            const rangeMessage = rangeError instanceof Error ? rangeError.message : String(rangeError);
-            throw new Error(
-              `Failed to download stream: full=${fullResponseStatus}; range=${rangeMessage}`
-            );
-          }
         }
         async downloadAudioToChunkStream(request, options) {
           if (options.chunkSize <= 0) {
@@ -10549,8 +10515,7 @@ locale;
                       resolved.streamUrl,
                       start,
                       end,
-                      request.signal,
-                      index + 1
+                      request.signal
                     );
                     yield bytes;
                   }
@@ -10601,31 +10566,24 @@ locale;
                 quality,
                 signal
               });
-              const isAudioOnly = isAudioOnlyMimeType(resolved.chosenFormat.mimeType);
-              const streamBytes = await this.downloadStreamBytes(
+              if (!isAudioOnlyMimeType(resolved.chosenFormat.mimeType)) {
+                throw new Error("Selected stream is not audio-only");
+              }
+              const streamBytes = await this.downloadStreamByRanges(
                 resolved.streamUrl,
                 resolved.chosenFormat.contentLength,
-                request.signal,
-                {
-
-preferRangeFirst: isAudioOnly
-                }
+                request.signal
               );
               const hints = this.getExtractionHints(resolved.chosenFormat);
-              if (isAudioOnly) {
-                await sink.write(streamBytes);
-                return {
-                  videoId: resolved.videoId,
-                  bytesWritten: streamBytes.byteLength,
-                  mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
-                  codec: hints.codec,
-                  sampleRate: hints.sampleRate,
-                  channels: hints.channels
-                };
-              }
-              throw new Error(
-                "Selected stream is not audio-only. Video-based fallback is disabled."
-              );
+              await sink.write(streamBytes);
+              return {
+                videoId: resolved.videoId,
+                bytesWritten: streamBytes.byteLength,
+                mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
+                codec: hints.codec,
+                sampleRate: hints.sampleRate,
+                channels: hints.channels
+              };
             } catch (error2) {
               const message = error2 instanceof Error ? error2.message : String(error2);
               attemptErrors.push(`${client}: ${message}`);
@@ -10652,25 +10610,21 @@ preferRangeFirst: isAudioOnly
           const directAdaptiveFormats = adaptiveFormats.filter(
             (format) => Boolean(format.url)
           );
-          let chosenFormat = null;
-          if (directAdaptiveFormats.length) {
-            try {
-              chosenFormat = pickAdaptiveAudioFormat(directAdaptiveFormats, quality);
-            } catch {
-            }
-          }
-          if (!chosenFormat) {
+          if (!directAdaptiveFormats.length) {
             throw new Error(
               "Player response did not contain direct adaptive audio stream URLs"
             );
           }
+          const chosenFormat = pickAdaptiveAudioFormat(
+            directAdaptiveFormats,
+            quality
+          );
           const streamUrl = this.resolveFormatUrl(
             chosenFormat,
             watchContext.clientVersion
           );
           return {
             videoId,
-            client,
             chosenFormat,
             streamUrl
           };
@@ -10680,39 +10634,21 @@ preferRangeFirst: isAudioOnly
           if (hintedLength !== null && !forceProbe) {
             return hintedLength;
           }
-          const probeUrl = addRangeToStreamUrl(streamUrl, 0, 0, 0);
-          let probeResponse = null;
-          let probeQueryStatus = "fetch_error";
+          let probeResponse;
           try {
-            const queryProbeResponse = await this.fetchFn(probeUrl, {
-              headers: DEFAULT_HEADERS,
-              ...withSignal(signal)
-            });
-            probeQueryStatus = queryProbeResponse.status;
-            if (queryProbeResponse.ok) {
-              probeResponse = queryProbeResponse;
-            }
-          } catch (error2) {
-            probeQueryStatus = error2 instanceof Error ? error2.message : "fetch_error";
-          }
-          if (!probeResponse) {
-            const headerProbeResponse = await this.fetchFn(streamUrl, {
+            probeResponse = await this.fetchFn(streamUrl, {
               headers: {
                 ...DEFAULT_HEADERS,
                 range: "bytes=0-0"
               },
               ...withSignal(signal)
             });
-            if (headerProbeResponse.ok) {
-              probeResponse = headerProbeResponse;
-            } else {
-              if (hintedLength !== null) {
-                return hintedLength;
-              }
-              throw new Error(
-                `Failed to probe stream content length: query=${probeQueryStatus}; header=${headerProbeResponse.status}`
-              );
+          } catch (error2) {
+            if (hintedLength !== null) {
+              return hintedLength;
             }
+            const message = error2 instanceof Error ? error2.message : String(error2);
+            throw new Error(`Failed to probe stream content length: ${message}`);
           }
           if (!probeResponse.ok) {
             if (hintedLength !== null) {
@@ -10769,6 +10705,9 @@ preferRangeFirst: isAudioOnly
             ...withSignal(signal)
           });
           if (!response.ok) {
+            if (response.status === 403) {
+              throw new YtWatchContextForbiddenError(response.status);
+            }
             throw new Error(`Failed to load watch page: ${response.status}`);
           }
           const html = await response.text();
@@ -10862,18 +10801,6 @@ preferRangeFirst: isAudioOnly
           throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
         }
       }
-      function splitAudioIntoChunks(bytes, chunkSize) {
-        if (bytes.byteLength <= chunkSize) {
-          return [bytes];
-        }
-        const chunks = [];
-        for (let start = 0; start < bytes.byteLength; start += chunkSize) {
-          chunks.push(
-            bytes.subarray(start, Math.min(start + chunkSize, bytes.length))
-          );
-        }
-        return chunks;
-      }
       function createYtAudioFetch({
         signal,
         timeoutMs
@@ -10885,6 +10812,12 @@ preferRangeFirst: isAudioOnly
           timeout: timeoutMs
         });
       }
+      function isWatchContextForbiddenError(error2) {
+        if (error2 instanceof YtWatchContextForbiddenError) {
+          return true;
+        }
+        return error2 instanceof Error && /failed to load watch page:\s*403/i.test(error2.message);
+      }
       async function getAudioFromYtAudio({ videoId, signal }, deps = {}) {
         const chunkSize = deps.chunkSize ?? votConfig.minChunkSize;
         assertValidChunkSize(chunkSize);
@@ -10893,33 +10826,33 @@ preferRangeFirst: isAudioOnly
           timeoutMs: deps.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
         });
         const downloader = deps.createDownloader?.(fetchImplementation) ?? new AudioDownloader$1({ fetchImplementation });
-        const streamingDownload = typeof downloader.downloadAudioToChunkStream === "function" ? downloader.downloadAudioToChunkStream.bind(downloader) : void 0;
-        if (typeof streamingDownload === "function") {
-          try {
-            const streamResult = await streamingDownload(
-              {
-                videoId,
-                videoQuality: DEFAULT_YT_AUDIO_QUALITY,
-                signal
-              },
-              { chunkSize }
-            );
-            return {
-              fileId: makeFileId(
-                AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
-                streamResult.itag,
-                String(streamResult.fileSize),
-                chunkSize
-              ),
-              mediaPartsLength: streamResult.mediaPartsLength,
-              getMediaBuffers: streamResult.getMediaBuffers
-            };
-          } catch (error2) {
-            console.warn(
-              "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
-              error2
-            );
+        try {
+          const streamResult = await downloader.downloadAudioToChunkStream(
+            {
+              videoId,
+              videoQuality: DEFAULT_YT_AUDIO_QUALITY,
+              signal
+            },
+            { chunkSize }
+          );
+          return {
+            fileId: makeFileId(
+              AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
+              streamResult.itag,
+              String(streamResult.fileSize),
+              chunkSize
+            ),
+            mediaPartsLength: streamResult.mediaPartsLength,
+            getMediaBuffers: streamResult.getMediaBuffers
+          };
+        } catch (error2) {
+          if (isWatchContextForbiddenError(error2)) {
+            throw error2;
           }
+          console.warn(
+            "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
+            error2
+          );
         }
         const result = await downloader.downloadAudioToUint8Array({
           videoId,
@@ -10930,10 +10863,7 @@ preferRangeFirst: isAudioOnly
         if (!bytes || bytes.byteLength === 0) {
           throw new Error("Audio downloader. ytAudio. Empty audio");
         }
-        const chunks = splitAudioIntoChunks(bytes, chunkSize);
-        if (!chunks.length) {
-          throw new Error("Audio downloader. ytAudio. Can not split audio");
-        }
+        const mediaPartsLength = Math.max(1, Math.ceil(bytes.byteLength / chunkSize));
         const fileId = makeFileId(
           AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
           0,
@@ -10942,10 +10872,11 @@ preferRangeFirst: isAudioOnly
         );
         return {
           fileId,
-          mediaPartsLength: chunks.length,
+          mediaPartsLength,
           async *getMediaBuffers() {
-            for (const chunk of chunks) {
-              yield chunk;
+            for (let start = 0; start < bytes.byteLength; start += chunkSize) {
+              const end = Math.min(start + chunkSize, bytes.byteLength);
+              yield bytes.subarray(start, end);
             }
           }
         };
@@ -11844,32 +11775,37 @@ isLivelyVoiceUnavailableError(value) {
           this.lastSetCanPlaySourceKey = sourceKey;
         }
       }
-      const URL_FILTER = /\b(?:https?:\/\/|www\.)\S+/gi;
-      const HASHTAG_FILTER = /#[^\s#]+/g;
-      const YOUTUBE_META_FILTER = /auto-generated\s+by\s+youtube|provided\s+to\s+youtube\s+by|released\s+on/gi;
-      const PAYPAL_FILTER = /paypal?/gi;
-      const ETH_ADDRESS_FILTER = /0x[\da-f]{40}/gi;
-      const BTC_ADDRESS_FILTER = /[13][1-9a-z]{25,34}/gi;
-      const BTC_BECH32_FILTER = /4[\dab][1-9a-z]{93}/gi;
-      const TON_ADDRESS_FILTER = /t[1-9a-z]{33}/gi;
-      const TEXT_FILTERS = [
-        URL_FILTER,
-        HASHTAG_FILTER,
-        YOUTUBE_META_FILTER,
-        PAYPAL_FILTER,
-        ETH_ADDRESS_FILTER,
-        BTC_ADDRESS_FILTER,
-        BTC_BECH32_FILTER,
-        TON_ADDRESS_FILTER
-      ];
+      const MAX_TEXT_LENGTH = 450;
+      const REMOVABLE_TOKEN_FILTER = new RegExp(
+        [
+String.raw`(?:https?:\/\/|www\.)\S+`,
+          String.raw`#[^\s#]+`,
+          String.raw`auto-generated\s+by\s+youtube`,
+          String.raw`provided\s+to\s+youtube\s+by`,
+          String.raw`released\s+on`,
+          String.raw`\bpaypal\b`,
+          String.raw`\b0x[a-f0-9]{40}\b`,
+String.raw`\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b`,
+String.raw`\b(?:bc1|tb1|bcrt1)[ac-hj-np-z02-9]{11,71}\b`,
+String.raw`\b(?:-1|0):[a-f0-9]{64}\b`
+        ].join("|"),
+        "giu"
+      );
+      const NOISE_CHARACTER_FILTER = /[\p{N}\p{P}\p{S}]+/gu;
+      const WHITESPACE_FILTER = /\s+/g;
+      const LETTER_FILTER = new RegExp("\\p{L}", "u");
+      function trimToMaxLength(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.slice(0, maxLength).trimEnd();
+      }
       function cleanText(title, description) {
         const raw = `${title ?? ""} ${description ?? ""}`.trim();
         if (!raw) return "";
-        let cleaned = raw;
-        for (const filter of TEXT_FILTERS) {
-          cleaned = cleaned.replaceAll(filter, "");
+        const cleaned = raw.normalize("NFKC").replace(REMOVABLE_TOKEN_FILTER, " ").replace(NOISE_CHARACTER_FILTER, " ").replace(WHITESPACE_FILTER, " ").trim();
+        if (!LETTER_FILTER.test(cleaned)) {
+          return "";
         }
-        return cleaned.replaceAll(/[\p{P}\p{S}]+/gu, " ").replaceAll(/\s+/g, " ").trim().slice(0, 450);
+        return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
       }
       const SETTINGS_CACHE_TTL_MS = 5e3;
       const IMMUTABLE_API_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
@@ -12118,16 +12054,6 @@ isLivelyVoiceUnavailableError(value) {
         sharedLanguageStateByVideoId.set(videoId, createdState);
         return createdState;
       }
-      function pickFirstNonEmptyString(...values) {
-        for (const value of values) {
-          if (typeof value !== "string") continue;
-          const trimmed = value.trim();
-          if (trimmed) {
-            return trimmed;
-          }
-        }
-        return void 0;
-      }
       function normalizeToRequestLang(value) {
         if (typeof value !== "string") return void 0;
         const normalized = value.toLowerCase().split(/[-_]/)[0];
@@ -12136,14 +12062,10 @@ isLivelyVoiceUnavailableError(value) {
       function isResolvedLanguage(value) {
         return Boolean(value && value !== "auto");
       }
-      function buildDetectText(title, localizedTitle, description) {
-        const textTitle = pickFirstNonEmptyString(
-          title,
-          localizedTitle,
-          document.title
-        );
+      function buildDetectText(title, description) {
+        const textTitle = typeof title === "string" ? title : "";
         const textDescription = typeof description === "string" ? description : void 0;
-        return cleanText(textTitle ?? "", textDescription);
+        return cleanText(textTitle, textDescription);
       }
       function resolveHostDetectedLanguage(host) {
         const forcedDetectedLanguage = FORCED_DETECTED_LANGUAGE_BY_HOST[host];
@@ -12244,26 +12166,29 @@ isLivelyVoiceUnavailableError(value) {
           const userOverrideLanguage = sharedLanguageState.userLanguageOverride;
           const cachedDetectedLanguage = sharedLanguageState.detectedLanguage;
           const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
-          let detectedLanguage = userOverrideLanguage ?? normalizedPossibleLanguage ?? cachedDetectedLanguage ?? "auto";
-          if (!userOverrideLanguage && !normalizedPossibleLanguage && !cachedDetectedLanguage) {
-            const text = buildDetectText(title, localizedTitle, description);
-            if (text) {
-              const language = await this.detectLanguageSingleFlight(videoId, text);
-              if (language) {
-                detectedLanguage = language;
-                this.setDetectedLanguageCache(videoId, language);
+          let detectedLanguage = "auto";
+          if (!isStream) {
+            detectedLanguage = userOverrideLanguage ?? normalizedPossibleLanguage ?? cachedDetectedLanguage ?? "auto";
+            if (!userOverrideLanguage && !normalizedPossibleLanguage && !cachedDetectedLanguage) {
+              const text = buildDetectText(title, description);
+              if (text) {
+                const language = await this.detectLanguageSingleFlight(videoId, text);
+                if (language) {
+                  detectedLanguage = language;
+                  this.setDetectedLanguageCache(videoId, language);
+                }
               }
             }
-          }
-          if (!userOverrideLanguage && normalizedPossibleLanguage) {
-            this.setDetectedLanguageCache(videoId, normalizedPossibleLanguage);
-          }
-          const hostDetectedLanguage = resolveHostDetectedLanguage(
-            this.videoHandler.site.host
-          );
-          if (hostDetectedLanguage && !userOverrideLanguage) {
-            detectedLanguage = hostDetectedLanguage;
-            this.setDetectedLanguageCache(videoId, hostDetectedLanguage);
+            if (!userOverrideLanguage && normalizedPossibleLanguage) {
+              this.setDetectedLanguageCache(videoId, normalizedPossibleLanguage);
+            }
+            const hostDetectedLanguage = resolveHostDetectedLanguage(
+              this.videoHandler.site.host
+            );
+            if (hostDetectedLanguage && !userOverrideLanguage) {
+              detectedLanguage = hostDetectedLanguage;
+              this.setDetectedLanguageCache(videoId, hostDetectedLanguage);
+            }
           }
           const videoData = {
             translationHelp,
@@ -13373,14 +13298,15 @@ updateMount({
             nextWordTokenIndex - 1
           );
           let textToNextWord = "";
-          let trailingGapAfterBreakText = "";
+          let breakTextLength = 0;
           for (let cursor = tokenIndex; cursor < nextWordTokenIndex; cursor += 1) {
             const tokenText = tokens[cursor]?.text ?? "";
             textToNextWord += tokenText;
-            if (cursor > breakAfterTokenIndex) {
-              trailingGapAfterBreakText += tokenText;
+            if (cursor <= breakAfterTokenIndex) {
+              breakTextLength = textToNextWord.length;
             }
           }
+          const trailingGapAfterBreakText = textToNextWord.slice(breakTextLength);
           slices.push({
             tokenIndex,
             breakAfterTokenIndex,
@@ -13412,8 +13338,8 @@ updateMount({
           const trailingGapAfterBreakText = slices[i2].trailingGapAfterBreakText;
           const width = measure(textToNextWord);
           const charCount = textToNextWord.length;
-          const trailingWidth = measure(trailingGapAfterBreakText);
           const trailingCharCount = trailingGapAfterBreakText.length;
+          const trailingWidth = trailingCharCount ? measure(trailingGapAfterBreakText) : 0;
           widths[i2] = width;
           chars[i2] = charCount;
           trailingGapWidths[i2] = trailingWidth;
@@ -13453,12 +13379,18 @@ updateMount({
         const start = clamp(startWord, 0, metrics.widths.length - 1);
         const end = clamp(endWord, 0, metrics.widths.length - 1);
         if (end < start) return true;
-        if (getWordRangeWidthUnsafe(metrics, start, end) <= maxWidth) {
+        const prefixWidths = metrics.prefixWidths;
+        const trailingGapWidths = metrics.trailingGapWidths;
+        const startPrefix = prefixWidths[start];
+        const endPrefix = prefixWidths[end + 1];
+        const endTrailingGapWidth = trailingGapWidths[end] ?? 0;
+        if (endPrefix - startPrefix - endTrailingGapWidth <= maxWidth) {
           return true;
         }
         for (let k2 = start; k2 < end; k2 += 1) {
-          const top = getWordRangeWidthUnsafe(metrics, start, k2);
-          const bottom = getWordRangeWidthUnsafe(metrics, k2 + 1, end);
+          const splitPrefix = prefixWidths[k2 + 1];
+          const top = splitPrefix - startPrefix - (trailingGapWidths[k2] ?? 0);
+          const bottom = endPrefix - splitPrefix - endTrailingGapWidth;
           if (top <= maxWidth && bottom <= maxWidth) {
             return true;
           }
@@ -13489,12 +13421,18 @@ updateMount({
         const start = clamp(startWord, 0, metrics.widths.length - 1);
         const end = clamp(endWord, 0, metrics.widths.length - 1);
         if (end <= start) return null;
+        const prefixWidths = metrics.prefixWidths;
+        const trailingGapWidths = metrics.trailingGapWidths;
+        const startPrefix = prefixWidths[start];
+        const endPrefix = prefixWidths[end + 1];
+        const endTrailingGapWidth = trailingGapWidths[end] ?? 0;
         let bestBreak = null;
         let bestCost = Number.POSITIVE_INFINITY;
         const wordsInRange = end - start + 1;
         for (let k2 = start; k2 < end; k2 += 1) {
-          const w1 = getWordRangeWidthUnsafe(metrics, start, k2);
-          const w2 = getWordRangeWidthUnsafe(metrics, k2 + 1, end);
+          const splitPrefix = prefixWidths[k2 + 1];
+          const w1 = splitPrefix - startPrefix - (trailingGapWidths[k2] ?? 0);
+          const w2 = endPrefix - splitPrefix - endTrailingGapWidth;
           if (w1 > maxWidth || w2 > maxWidth) continue;
           const count1 = k2 - start + 1;
           const count2 = end - k2;
@@ -13688,15 +13626,29 @@ updateMount({
           next.startWord = nextStartWord;
         }
       };
+      const resolveSegmentStartToken = (tokens, words, startWordIndex) => {
+        const startWord = words[startWordIndex];
+        if (!startWord) return 0;
+        const previousBreakAfterTokenIndex = startWordIndex > 0 ? words[startWordIndex - 1]?.breakAfterTokenIndex ?? startWord.tokenIndex - 1 : -1;
+        let startToken = clamp(
+          previousBreakAfterTokenIndex + 1,
+          0,
+          startWord.tokenIndex
+        );
+        while (startToken < startWord.tokenIndex && !tokens[startToken]?.text.trim()) {
+          startToken += 1;
+        }
+        return startToken;
+      };
       const mapWordRangesToTimedSegments = (wordRanges, words, tokens) => {
         const segments = [];
         for (const range of wordRanges) {
           const startWord = words[range.startWord];
           const endWord = words[range.endWord];
           if (!startWord || !endWord) continue;
-          const startToken = startWord.tokenIndex;
+          const startToken = resolveSegmentStartToken(tokens, words, range.startWord);
           const endToken = endWord.breakAfterTokenIndex + 1;
-          const startMs = tokens[startToken]?.startMs ?? 0;
+          const startMs = tokens[startWord.tokenIndex]?.startMs ?? tokens[startToken]?.startMs ?? 0;
           const endTokenStartMs = tokens[endWord.tokenIndex]?.startMs ?? startMs;
           const endTokenDurationMs = tokens[endWord.tokenIndex]?.durationMs ?? 0;
           const nextWord = words[range.endWord + 1];
