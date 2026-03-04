@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.2.4
+// @version         1.11.2.5
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -12172,7 +12172,7 @@ String.raw`\b(?:-1|0):[a-f0-9]{64}\b`
             }
           }
         }
-        async getVideoData() {
+        async getVideoData({ allowLanguageDetection = false } = {}) {
           const {
             duration,
             url,
@@ -12196,30 +12196,31 @@ String.raw`\b(?:-1|0):[a-f0-9]{64}\b`
           const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
           let detectedLanguage = "auto";
           if (!isStream) {
-            detectedLanguage = userOverrideLanguage ?? normalizedPossibleLanguage ?? cachedDetectedLanguage ?? "auto";
-            if (!userOverrideLanguage && !normalizedPossibleLanguage && !cachedDetectedLanguage) {
-              const text = buildDetectText(title, description);
-              if (text.length >= MIN_DETECT_TEXT_LENGTH) {
-                const language = await this.detectLanguageSingleFlight(videoId, text);
-                if (language) {
-                  detectedLanguage = language;
-                  this.setDetectedLanguageCache(videoId, language);
+            detectedLanguage = userOverrideLanguage ?? cachedDetectedLanguage ?? "auto";
+            if (allowLanguageDetection && !userOverrideLanguage) {
+              const hostDetectedLanguage = resolveHostDetectedLanguage(
+                this.videoHandler.site.host
+              );
+              if (hostDetectedLanguage) {
+                detectedLanguage = hostDetectedLanguage;
+                this.setDetectedLanguageCache(videoId, hostDetectedLanguage);
+              } else if (normalizedPossibleLanguage) {
+                detectedLanguage = normalizedPossibleLanguage;
+                this.setDetectedLanguageCache(videoId, normalizedPossibleLanguage);
+              } else if (!cachedDetectedLanguage) {
+                const text = buildDetectText(title, description);
+                if (text.length >= MIN_DETECT_TEXT_LENGTH) {
+                  const language = await this.detectLanguageSingleFlight(videoId, text);
+                  if (language) {
+                    detectedLanguage = language;
+                    this.setDetectedLanguageCache(videoId, language);
+                  }
+                } else if (text) {
+                  debug.log(
+                    `Skipping language detection: text too short (${text.length} < ${MIN_DETECT_TEXT_LENGTH})`
+                  );
                 }
-              } else if (text) {
-                debug.log(
-                  `Skipping language detection: text too short (${text.length} < ${MIN_DETECT_TEXT_LENGTH})`
-                );
               }
-            }
-            if (!userOverrideLanguage && normalizedPossibleLanguage) {
-              this.setDetectedLanguageCache(videoId, normalizedPossibleLanguage);
-            }
-            const hostDetectedLanguage = resolveHostDetectedLanguage(
-              this.videoHandler.site.host
-            );
-            if (hostDetectedLanguage && !userOverrideLanguage) {
-              detectedLanguage = hostDetectedLanguage;
-              this.setDetectedLanguageCache(videoId, hostDetectedLanguage);
             }
           }
           const videoData = {
@@ -12237,7 +12238,7 @@ videoId,
             description,
             downloadTitle: localizedTitle ?? title ?? videoId
           };
-          if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
+          if (detectedLanguage !== "auto" && sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
             console.log("[VOT] Detected language:", detectedLanguage);
             sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
           }
@@ -12313,7 +12314,7 @@ syncVideoVolumeSlider() {
           const normalizedFrom = normalizeToRequestLang(from) ?? "auto";
           const langPairLogKey = `${normalizedFrom}->${to}`;
           const sharedLanguageState = getSharedLanguageState(videoData.videoId);
-          if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
+          if (normalizedFrom !== "auto" && sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
             console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
             sharedLanguageState.lastLoggedLangPair = langPairLogKey;
           }
@@ -12701,7 +12702,6 @@ showed = false;
         offsetX;
         offsetY;
         _hidden;
-        autoLayout;
         pageWidth;
         pageHeight;
         globalOffsetX;
@@ -12728,7 +12728,6 @@ tooltipId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.ran
           offset = 4,
           maxWidth = void 0,
           hidden = false,
-          autoLayout = true,
           backgroundColor = void 0,
           borderRadius = void 0,
           bordered = true,
@@ -12748,7 +12747,6 @@ tooltipId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.ran
             this.offsetY = offset.y;
           }
           this._hidden = hidden;
-          this.autoLayout = autoLayout;
           this.trigger = Tooltip.validateTrigger(trigger) ? trigger : "hover";
           this.position = Tooltip.validatePos(position2) ? position2 : "top";
           this.preferredPosition = this.position;
@@ -12968,7 +12966,7 @@ updateMount({
           if (!this.container) {
             return this;
           }
-          const { top, left } = this.calcPos(this.autoLayout, this.preferredPosition);
+          const { top, left } = this.calcPos(this.preferredPosition);
           const availableWidth = Math.max(0, this.pageWidth - this.offsetX * 2);
           const maxWidth = clamp$2(this.maxWidth ?? availableWidth, 0, availableWidth);
           this.container.style.transform = `translate(${left}px, ${top}px)`;
@@ -12976,7 +12974,7 @@ updateMount({
           this.container.style.maxWidth = `${maxWidth}px`;
           return this;
         }
-        calcPos(autoLayout = true, position2 = this.preferredPosition) {
+        calcPos(position2 = this.preferredPosition) {
           if (!this.container) {
             return { top: 0, left: 0 };
           }
@@ -12995,89 +12993,38 @@ updateMount({
           const right = anchorRight - this.globalOffsetX;
           const top = anchorTop - this.globalOffsetY;
           const bottom = anchorBottom - this.globalOffsetY;
-          let resolvedPosition = position2;
-          if (autoLayout) {
-            switch (position2) {
-              case "top": {
-                const pTop = clamp$2(top - height - this.offsetY, 0, this.pageHeight);
-                if (pTop + this.offsetY < height) {
-                  resolvedPosition = "bottom";
-                }
-                break;
-              }
-              case "right": {
-                const pLeft = clamp$2(right + this.offsetX, 0, this.pageWidth - width);
-                if (pLeft + width > this.pageWidth - this.offsetX) {
-                  resolvedPosition = "left";
-                }
-                break;
-              }
-              case "bottom": {
-                const pTop = clamp$2(
-                  bottom + this.offsetY,
-                  0,
-                  this.pageHeight - height
-                );
-                if (pTop + height > this.pageHeight - this.offsetY) {
-                  resolvedPosition = "top";
-                }
-                break;
-              }
-              case "left": {
-                const pLeft = Math.max(0, left - width - this.offsetX);
-                if (pLeft + width > left - this.offsetX) {
-                  resolvedPosition = "right";
-                }
-                break;
-              }
-            }
-          }
           let coords;
-          switch (resolvedPosition) {
+          const centeredLeft = left - width / 2 + anchorWidth / 2;
+          const centeredTop = top + (anchorHeight - height) / 2;
+          switch (position2) {
             case "top":
               coords = {
-                top: clamp$2(top - height - this.offsetY, 0, this.pageHeight),
-                left: clamp$2(
-                  left - width / 2 + anchorWidth / 2,
-                  this.offsetX,
-                  this.pageWidth - width - this.offsetX
-                )
+                top: top - height - this.offsetY,
+                left: centeredLeft
               };
               break;
             case "right":
               coords = {
-                top: clamp$2(
-                  top + (anchorHeight - height) / 2,
-                  this.offsetY,
-                  this.pageHeight - height - this.offsetY
-                ),
-                left: clamp$2(right + this.offsetX, 0, this.pageWidth - width)
+                top: centeredTop,
+                left: right + this.offsetX
               };
               break;
             case "bottom":
               coords = {
-                top: clamp$2(bottom + this.offsetY, 0, this.pageHeight - height),
-                left: clamp$2(
-                  left - width / 2 + anchorWidth / 2,
-                  this.offsetX,
-                  this.pageWidth - width - this.offsetX
-                )
+                top: bottom + this.offsetY,
+                left: centeredLeft
               };
               break;
             case "left":
               coords = {
-                top: clamp$2(
-                  top + (anchorHeight - height) / 2,
-                  this.offsetY,
-                  this.pageHeight - height - this.offsetY
-                ),
-                left: Math.max(0, left - width - this.offsetX)
+                top: centeredTop,
+                left: left - width - this.offsetX
               };
               break;
             default:
               coords = { top: 0, left: 0 };
           }
-          this.position = resolvedPosition;
+          this.position = position2;
           return coords;
         }
         destroy(instant = false) {
@@ -16788,8 +16735,6 @@ updateMount(nextMount) {
             target: this.votButton.translateButton,
             content: localizationProvider.get("translateVideo"),
             position: this.votButton.tooltipPos,
-
-autoLayout: false,
             hidden: direction === "row",
             bordered: false,
             parentElement: this.votOverlayPortal,
@@ -21484,7 +21429,7 @@ votSettingsView;
           }).addEventListener("change:autoTranslate", async (checked) => {
             const videoHandler = this.videoHandler;
             if (checked && videoHandler && !videoHandler.hasActiveSource()) {
-              await this.handleTranslationBtnClick();
+              await this.handleTranslationBtnClick({ isAutoTrigger: true });
             }
           }).addEventListener("change:autoSubtitles", async (checked) => {
             if (!checked || !this.videoHandler?.videoData?.videoId) {
@@ -21741,7 +21686,7 @@ votSettingsView;
           }
           return this;
         }
-        async handleTranslationBtnClick() {
+        async handleTranslationBtnClick(options = {}) {
           if (!this.votOverlayView?.isInitialized()) {
             throw new Error("[VOT] OverlayView isn't initialized");
           }
@@ -21780,6 +21725,10 @@ votSettingsView;
               this.transformBtn("none", localizationProvider.get("translateVideo"));
               return this;
             }
+            if (options.isAutoTrigger && err instanceof VOTLocalizedError && err.unlocalizedMessage === "VOTDisableFromYourLang") {
+              this.transformBtn("none", localizationProvider.get("translateVideo"));
+              return this;
+            }
             console.error("[VOT]", err);
             if (!(err instanceof Error)) {
               this.transformBtn("error", String(err));
@@ -21791,19 +21740,17 @@ votSettingsView;
           return this;
         }
         async getVideoDataForTranslation(videoHandler) {
+          videoHandler.videoData = await videoHandler.getVideoData({
+            allowLanguageDetection: true
+          });
           if (!videoHandler.videoData?.videoId) {
             throw new VOTLocalizedError("VOTNoVideoIDFound");
           }
-          if (this.shouldRefreshVideoDataBeforeTranslation(videoHandler)) {
-            videoHandler.videoData = await videoHandler.getVideoData();
-          }
-          if (!videoHandler.videoData?.videoId) {
-            throw new VOTLocalizedError("VOTNoVideoIDFound");
-          }
+          videoHandler.setSelectMenuValues(
+            videoHandler.videoData.detectedLanguage,
+            videoHandler.videoData.responseLanguage
+          );
           return videoHandler.videoData;
-        }
-        shouldRefreshVideoDataBeforeTranslation(videoHandler) {
-          return videoHandler.site.host === "vk" && videoHandler.site.additionalData === "clips" || videoHandler.site.host === "douyin";
         }
         isAbortError(error2) {
           return error2 instanceof Error && error2.name === "AbortError";
@@ -23117,7 +23064,9 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
                 `[VOT] Audio track language changed to ${currentLanguage}, triggering auto-translation`
               );
               try {
-                await self.uiManager.handleTranslationBtnClick();
+                await self.uiManager.handleTranslationBtnClick({
+                  isAutoTrigger: true
+                });
               } catch (error2) {
                 debug.log(
                   "[VOT] Failed to trigger auto-translation on audio track change:",
@@ -25723,7 +25672,7 @@ getEventContainer() {
         }
 async runAutoTranslate() {
           await this.videoManager.videoValidator();
-          await this.uiManager.handleTranslationBtnClick();
+          await this.uiManager.handleTranslationBtnClick({ isAutoTrigger: true });
         }
 getAudioContext() {
           if (this.audioContext) return this.audioContext;
@@ -25943,8 +25892,8 @@ syncVolumeWrapper(fromType, newVolume) {
             this.setVideoVolume(nextVideo / 100);
           }
         }
-getVideoData() {
-          return this.videoManager.getVideoData();
+getVideoData(options) {
+          return this.videoManager.getVideoData(options);
         }
 videoValidator() {
           return this.videoManager.videoValidator();
