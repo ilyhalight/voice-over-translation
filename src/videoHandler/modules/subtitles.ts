@@ -396,7 +396,8 @@ export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
 
   const fromLang = (this.videoData?.detectedLanguage ??
     this.translateFromLang) as string;
-  const toLang = (this.data?.responseLanguageSubtitles || this.videoData?.responseLanguage ||
+  const toLang = (this.data?.responseLanguageSubtitles ||
+    this.videoData?.responseLanguage ||
     this.translateToLang) as string;
 
   const bestIdx = pickBestSubtitlesIndex(

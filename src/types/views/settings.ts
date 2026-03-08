@@ -1,5 +1,6 @@
 import type { VideoHandler } from "../..";
 import type { LangOverride } from "../../localization/localizationProvider";
+import type { LanguageSelectKey } from "../components/select";
 import type { Position } from "../components/votButton";
 import type { Account, StorageData } from "../storage";
 import type { TranslateService } from "../translateApis";
@@ -34,5 +35,5 @@ export type SettingsViewEventMap = {
   "select:translationTextService": [item: TranslateService];
   "select:buttonPosition": [item: Position];
   "select:menuLanguage": [item: LangOverride];
-  "select:subtitlesLanguage":[item: string];
+  "select:subtitlesLanguage": [item: "" | Exclude<LanguageSelectKey, "auto">];
 };

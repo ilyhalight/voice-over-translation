@@ -536,7 +536,9 @@ export class SettingsView {
     this.subtitlesLanguageSelectLabel = new Label({
       labelText: localizationProvider.get("VOTSubtitlesLanguage"),
     });
-    this.subtitlesLanguageSelect = new Select<string>({
+    this.subtitlesLanguageSelect = new Select<
+      "" | Exclude<LanguageSelectKey, "auto">
+    >({
       selectTitle:
         subtitlesLanguage === ""
           ? localizationProvider.get("langs.auto" as any)
@@ -544,17 +546,17 @@ export class SettingsView {
       dialogTitle: localizationProvider.get("VOTSubtitlesLanguage"),
       dialogParent: this.globalPortal,
       labelElement: this.subtitlesLanguageSelectLabel.container,
-      items:[
+      items: [
         {
           label: localizationProvider.get("langs.auto" as any),
           value: "",
           selected: subtitlesLanguage === "",
         },
         ...Select.genLanguageItems(
-          availableLangs.filter((l) => l !== "auto")
+          availableLangs.filter((l) => l !== "auto"),
         ).map((item) => ({
           ...item,
-          value: item.value as string,
+          value: item.value as Exclude<LanguageSelectKey, "auto">,
           selected: subtitlesLanguage === item.value,
         })),
       ],
@@ -1113,7 +1115,7 @@ export class SettingsView {
       readPersistedValue: () => this.data.subtitlesDownloadFormat,
       logLabel: "subtitlesDownloadFormat",
     });
-    
+
     this.bindPersistedSetting({
       control: this.subtitlesLanguageSelect,
       event: "selectItem",

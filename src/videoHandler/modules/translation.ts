@@ -1070,14 +1070,23 @@ export async function translateFunc(
         const cachedSubs = subsCacheKey
           ? this.cacheManager.getSubtitles(subsCacheKey)
           : null;
-        const targetSubtitleLang = this.data?.responseLanguageSubtitles || videoData.responseLanguage;
+        const targetSubtitleLang =
+          this.data?.responseLanguageSubtitles || videoData.responseLanguage;
         if (
-          !cachedSubs?.some(
-            (item) =>
-              item.source === "yandex" &&
-              item.translatedFromLanguage === videoData.detectedLanguage &&
-              item.language === targetSubtitleLang,
-          )
+          !cachedSubs?.some((item) => {
+            if (
+              item.source !== "yandex" ||
+              item.language !== targetSubtitleLang
+            ) {
+              return false;
+            }
+            // If user wants original subtitles (target == detected), accept it.
+            // Otherwise ensure it is translated from the correct source.
+            return (
+              targetSubtitleLang === videoData.detectedLanguage ||
+              item.translatedFromLanguage === videoData.detectedLanguage
+            );
+          })
         ) {
           if (subsCacheKey) this.cacheManager.deleteSubtitles(subsCacheKey);
           this.subtitles = [];

@@ -120,7 +120,7 @@ export type StorageData = {
   autoHideButtonDelay: number;
   useAudioDownload: boolean;
   compatVersion: CompatibilityVersion;
-  responseLanguageSubtitles: string;
+  responseLanguageSubtitles: "" | Exclude<LanguageSelectKey, "auto">;
   // for have empty object if info isn't provided
   account: Partial<Account>;
   localePhrases: string;
