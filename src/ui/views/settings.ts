@@ -26,6 +26,7 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "select:translationTextService",
   "select:buttonPosition",
   "select:menuLanguage",
+  "select:subtitlesLanguage",
 ];
 function createSettingsEvents(): {
   [K in keyof SettingsViewEventMap]: EventImpl<SettingsViewEventMap[K]>;
@@ -140,6 +141,8 @@ export class SettingsView {
   useAudioDownloadCheckboxTooltip?: Tooltip;
   subtitlesDownloadFormatSelectLabel?: Label;
   subtitlesDownloadFormatSelect?: Select<SubtitleFormat>;
+  subtitlesLanguageSelectLabel?: Label;
+  subtitlesLanguageSelect?: Select<string>;
   subtitlesHighlightWordsCheckbox?: Checkbox;
   subtitlesSmartLayoutCheckbox?: Checkbox;
   subtitlesMaxLengthSliderLabel?: SliderLabel;
@@ -528,6 +531,35 @@ export class SettingsView {
         selected: format === this.data.subtitlesDownloadFormat,
       })),
     });
+
+    const subtitlesLanguage = this.data.responseLanguageSubtitles ?? "";
+    this.subtitlesLanguageSelectLabel = new Label({
+      labelText: localizationProvider.get("VOTSubtitlesLanguage"),
+    });
+    this.subtitlesLanguageSelect = new Select<string>({
+      selectTitle:
+        subtitlesLanguage === ""
+          ? localizationProvider.get("langs.auto" as any)
+          : localizationProvider.get(`langs.${subtitlesLanguage}` as any),
+      dialogTitle: localizationProvider.get("VOTSubtitlesLanguage"),
+      dialogParent: this.globalPortal,
+      labelElement: this.subtitlesLanguageSelectLabel.container,
+      items:[
+        {
+          label: localizationProvider.get("langs.auto" as any),
+          value: "",
+          selected: subtitlesLanguage === "",
+        },
+        ...Select.genLanguageItems(
+          availableLangs.filter((l) => l !== "auto")
+        ).map((item) => ({
+          ...item,
+          value: item.value as string,
+          selected: subtitlesLanguage === item.value,
+        })),
+      ],
+    });
+
     this.subtitlesHighlightWordsCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("VOTHighlightWords"),
       checked: this.data.highlightWords,
@@ -578,6 +610,7 @@ export class SettingsView {
     });
     subtitlesSection.content.append(
       this.subtitlesDownloadFormatSelect.container,
+      this.subtitlesLanguageSelect.container,
       this.subtitlesHighlightWordsCheckbox.container,
       this.subtitlesSmartLayoutCheckbox.container,
       this.subtitlesMaxLengthSlider.container,
@@ -1080,6 +1113,20 @@ export class SettingsView {
       readPersistedValue: () => this.data.subtitlesDownloadFormat,
       logLabel: "subtitlesDownloadFormat",
     });
+    
+    this.bindPersistedSetting({
+      control: this.subtitlesLanguageSelect,
+      event: "selectItem",
+      apply: (item) => {
+        this.data.responseLanguageSubtitles = item;
+      },
+      storageKey: "responseLanguageSubtitles",
+      readPersistedValue: () => this.data.responseLanguageSubtitles,
+      logLabel: "responseLanguageSubtitles",
+      dispatch: (item) =>
+        this.events["select:subtitlesLanguage"].dispatch(item),
+    });
+
     this.bindPersistedSetting({
       control: this.subtitlesHighlightWordsCheckbox,
       event: "change",

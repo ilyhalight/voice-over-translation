@@ -34,4 +34,5 @@ export type SettingsViewEventMap = {
   "select:translationTextService": [item: TranslateService];
   "select:buttonPosition": [item: Position];
   "select:menuLanguage": [item: LangOverride];
+  "select:subtitlesLanguage":[item: string];
 };

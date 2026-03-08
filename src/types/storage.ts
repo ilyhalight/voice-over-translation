@@ -53,6 +53,7 @@ export const storageKeys = [
   "autoHideButtonDelay",
   "useAudioDownload",
   "compatVersion",
+  "responseLanguageSubtitles",
   "localePhrases",
   "localeLang",
   "localeHash",
@@ -119,6 +120,7 @@ export type StorageData = {
   autoHideButtonDelay: number;
   useAudioDownload: boolean;
   compatVersion: CompatibilityVersion;
+  responseLanguageSubtitles: string;
   // for have empty object if info isn't provided
   account: Partial<Account>;
   localePhrases: string;
