@@ -142,7 +142,7 @@ export class SettingsView {
   subtitlesDownloadFormatSelectLabel?: Label;
   subtitlesDownloadFormatSelect?: Select<SubtitleFormat>;
   subtitlesLanguageSelectLabel?: Label;
-  subtitlesLanguageSelect?: Select<string>;
+  subtitlesLanguageSelect?: Select<"" | Exclude<LanguageSelectKey, "auto">>;
   subtitlesHighlightWordsCheckbox?: Checkbox;
   subtitlesSmartLayoutCheckbox?: Checkbox;
   subtitlesMaxLengthSliderLabel?: SliderLabel;
