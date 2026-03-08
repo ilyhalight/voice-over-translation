@@ -1060,29 +1060,31 @@ export async function translateFunc(
       cacheResponseLang: responseLang,
       onBeforeCache: async () => {
         // Invalidate subtitles cache if there is no matching subtitle.
-        const subsCacheKey = this.videoData
-          ? this.getSubtitlesCacheKey(
-              VIDEO_ID,
-              this.videoData.detectedLanguage,
-              this.videoData.responseLanguage,
-            )
-          : null;
-        const cachedSubs = subsCacheKey
-          ? this.cacheManager.getSubtitles(subsCacheKey)
-          : null;
+        const subsCacheKey = this.getSubtitlesCacheKey(
+          VIDEO_ID,
+          reqLang,
+          resLang,
+        );
+        const cachedSubs = this.cacheManager.getSubtitles(subsCacheKey);
+
         if (
           !cachedSubs?.some((item) => {
-            if (item.source !== "yandex" || item.language !== responseLang) {
+            if (item.source !== "yandex" || item.language !== resLang) {
               return false;
             }
             return (
-              responseLang === videoData.detectedLanguage ||
-              item.translatedFromLanguage === videoData.detectedLanguage
+              resLang === reqLang || item.translatedFromLanguage === reqLang
             );
           })
         ) {
-          if (subsCacheKey) this.cacheManager.deleteSubtitles(subsCacheKey);
-          this.subtitles = [];
+          this.cacheManager.deleteSubtitles(subsCacheKey);
+
+          if (
+            this.videoData?.responseLanguage === resLang &&
+            this.videoData?.detectedLanguage === reqLang
+          ) {
+            this.subtitles = [];
+          }
         }
       },
     });
