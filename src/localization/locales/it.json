@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Accedi tramite token",
   "subtitlesSmartLayout": "Layout intelligente dei sottotitoli",
   "smartDucking": "Volume adattivo",
-  "VOTAutoSubtitles": "Sottotitoli su open"
+  "VOTAutoSubtitles": "Sottotitoli su open",
+  "VOTSubtitlesFont": "Carattere sottotitoli"
 }

@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "تسجيل الدخول عبر الرمز المميز",
   "subtitlesSmartLayout": "تخطيط الترجمة الذكية",
   "smartDucking": "حجم التكيف",
-  "VOTAutoSubtitles": "ترجمات على فتح"
+  "VOTAutoSubtitles": "ترجمات على فتح",
+  "VOTSubtitlesFont": "خط الترجمة"
 }

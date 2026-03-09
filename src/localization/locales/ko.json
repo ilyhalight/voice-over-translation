@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "토큰을 통해 로그인",
   "subtitlesSmartLayout": "스마트 자막 레이아웃",
   "smartDucking": "적응 형 볼륨",
-  "VOTAutoSubtitles": "자막 열기"
+  "VOTAutoSubtitles": "자막 열기",
+  "VOTSubtitlesFont": "자막 글꼴"
 }

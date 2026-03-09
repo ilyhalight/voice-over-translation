@@ -21,10 +21,24 @@ const DISABLED_SUBTITLES_VALUE = "disabled";
 const VALID_SUBTITLE_FORMATS = new Set<SubtitleDescriptor["format"]>([
   "srt",
   "vtt",
+  "ass",
   "json",
 ]);
 const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
 const subtitlesSelectionRequestVersion = new WeakMap<VideoHandler, number>();
+
+function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
+  const videoData = handler.videoData;
+  if (!videoData?.videoId) {
+    return null;
+  }
+
+  return handler.getSubtitlesCacheKey(
+    videoData.videoId,
+    videoData.detectedLanguage,
+    videoData.responseLanguage,
+  );
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
@@ -343,7 +357,7 @@ export async function changeSubtitlesLang(
       ...subtitlesObj,
       url: proxiedSubtitlesUrl,
     };
-    debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
+    console.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
   }
 
   const fetchedSubtitles =
@@ -373,6 +387,38 @@ export async function updateSubtitlesLangSelect(this: VideoHandler) {
   await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
 }
 
+export async function ensureSubtitlesForCurrentLangPair(this: VideoHandler) {
+  const cacheKey = getCurrentSubtitlesCacheKey(this);
+
+  if (!cacheKey) {
+    if (this.subtitlesCacheKey !== null || this.subtitles.length > 0) {
+      this.subtitles = [];
+      this.subtitlesCacheKey = null;
+      await this.updateSubtitlesLangSelect();
+    }
+    return this;
+  }
+
+  if (this.subtitlesCacheKey === cacheKey) {
+    const hasCachedSubtitles =
+      this.cacheManager.getSubtitles(cacheKey) !== undefined;
+    if (this.subtitles.length > 0 || hasCachedSubtitles) {
+      return this;
+    }
+  }
+
+  const cachedSubs = this.cacheManager.getSubtitles(cacheKey);
+  if (cachedSubs !== undefined) {
+    this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
+    this.subtitlesCacheKey = cacheKey;
+    await this.updateSubtitlesLangSelect();
+    return this;
+  }
+
+  await this.loadSubtitles();
+  return this;
+}
+
 /**
  * Hotkey/helper: enables subtitles for the currently selected language pair.
  *
@@ -384,14 +430,11 @@ export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
   if (!overlayView?.subtitlesSelect) return this;
 
-  // Ensure we have subtitles list loaded.
-  if (!Array.isArray(this.subtitles) || this.subtitles.length === 0) {
-    try {
-      await this.loadSubtitles();
-    } catch {
-      // If loading fails, we can't enable anything.
-      return this;
-    }
+  try {
+    await ensureSubtitlesForCurrentLangPair.call(this);
+  } catch {
+    // If loading fails, we can't enable anything.
+    return this;
   }
 
   const fromLang = (this.videoData?.detectedLanguage ??
@@ -450,6 +493,7 @@ export async function loadSubtitles(this: VideoHandler) {
       `[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`,
     );
     this.subtitles = [];
+    this.subtitlesCacheKey = null;
     return;
   }
   const cacheKey = this.getSubtitlesCacheKey(
@@ -483,9 +527,11 @@ export async function loadSubtitles(this: VideoHandler) {
       }
     }
     this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
+    this.subtitlesCacheKey = cacheKey;
   } catch (error) {
     console.error("[VOT] Failed to load subtitles:", error);
     this.subtitles = [];
+    this.subtitlesCacheKey = null;
   }
   await this.updateSubtitlesLangSelect();
 }

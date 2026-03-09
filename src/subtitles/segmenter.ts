@@ -4,85 +4,66 @@ export type TextSegment = {
   isWordLike: boolean;
 };
 
-const DEFAULT_LOCALE = "und";
-const segmenterCache = new Map<string, Intl.Segmenter>();
+export type SentenceSegment = {
+  text: string;
+  index: number;
+};
 
-const hasNativeSegmenter = (): boolean =>
-  typeof Intl !== "undefined" && typeof Intl.Segmenter === "function";
+const DEFAULT_CACHE_LOCALE = "und";
+const wordSegmenterCache = new Map<string, Intl.Segmenter>();
+const sentenceSegmenterCache = new Map<string, Intl.Segmenter>();
 
-const splitTextRegexp = /[\p{L}\p{N}]+|[^\p{L}\p{N}]+/gu;
-
-const wordLikeRegexp = /[\p{L}\p{N}]/u;
-
-const canonicalizeLocale = (locale?: string): string => {
-  if (typeof Intl === "undefined") return DEFAULT_LOCALE;
-  if (!locale) return DEFAULT_LOCALE;
+const canonicalizeLocale = (locale?: string): string | undefined => {
+  if (!locale) return undefined;
 
   try {
-    const canonical = Intl.getCanonicalLocales(locale)[0];
-    return canonical || DEFAULT_LOCALE;
+    return Intl.getCanonicalLocales(locale)[0];
   } catch {
-    return DEFAULT_LOCALE;
+    return undefined;
   }
 };
 
 const resolveSegmenterLocale = (locale?: string): string | undefined => {
   const canonicalLocale = canonicalizeLocale(locale);
-  if (canonicalLocale === DEFAULT_LOCALE) return undefined;
+  if (!canonicalLocale) return undefined;
 
-  const supported = Intl.Segmenter.supportedLocalesOf([canonicalLocale]);
-  return supported[0];
+  return Intl.Segmenter.supportedLocalesOf([canonicalLocale])[0];
 };
 
-const getSegmenter = (locale?: string): Intl.Segmenter | null => {
-  if (!hasNativeSegmenter()) return null;
-
+const getSegmenter = (
+  locale: string | undefined,
+  granularity: Intl.SegmenterOptions["granularity"],
+): Intl.Segmenter => {
   const resolvedLocale = resolveSegmenterLocale(locale);
-  const cacheKey = resolvedLocale ?? DEFAULT_LOCALE;
+  const cacheKey = `${granularity}:${resolvedLocale ?? DEFAULT_CACHE_LOCALE}`;
+  const segmenterCache =
+    granularity === "sentence" ? sentenceSegmenterCache : wordSegmenterCache;
   const cached = segmenterCache.get(cacheKey);
   if (cached) return cached;
 
-  const segmenter = new Intl.Segmenter(resolvedLocale, { granularity: "word" });
+  const segmenter = new Intl.Segmenter(resolvedLocale, { granularity });
   segmenterCache.set(cacheKey, segmenter);
   return segmenter;
-};
-
-const segmentTextFallback = (text: string): TextSegment[] => {
-  const result: TextSegment[] = [];
-  splitTextRegexp.lastIndex = 0;
-
-  for (const match of text.matchAll(splitTextRegexp)) {
-    const segment = match[0];
-    if (!segment) continue;
-
-    result.push({
-      text: segment,
-      index: match.index ?? 0,
-      isWordLike: wordLikeRegexp.test(segment),
-    });
-  }
-
-  return result;
 };
 
 export const segmentText = (text: string, locale?: string): TextSegment[] => {
   if (!text) return [];
 
-  const segmenter = getSegmenter(locale);
-  if (!segmenter) {
-    return segmentTextFallback(text);
-  }
+  return Array.from(getSegmenter(locale, "word").segment(text), (part) => ({
+    text: part.segment,
+    index: part.index,
+    isWordLike: Boolean(part.isWordLike),
+  }));
+};
 
-  const segments = segmenter.segment(text);
-  const result: TextSegment[] = [];
+export const segmentSentences = (
+  text: string,
+  locale?: string,
+): SentenceSegment[] => {
+  if (!text) return [];
 
-  for (const part of segments) {
-    result.push({
-      text: part.segment,
-      index: part.index,
-      isWordLike: Boolean(part.isWordLike),
-    });
-  }
-
-  return result;
+  return Array.from(getSegmenter(locale, "sentence").segment(text), (part) => ({
+    text: part.segment,
+    index: part.index,
+  }));
 };

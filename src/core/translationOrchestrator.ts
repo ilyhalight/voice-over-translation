@@ -73,8 +73,8 @@ export class TranslationOrchestrator {
     this.setState({ status: "pending", reason: "auto" });
 
     try {
-      this.deps.setFirstPlay(false);
       await this.deps.scheduleAutoTranslate();
+      this.deps.setFirstPlay(false);
       this.reset();
     } catch (err) {
       this.setState({ status: "error", message: err });

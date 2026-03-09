@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Logga in via token",
   "subtitlesSmartLayout": "Smart textning layout",
   "smartDucking": "Adaptiv volym",
-  "VOTAutoSubtitles": "Undertexter på open"
+  "VOTAutoSubtitles": "Undertexter på open",
+  "VOTSubtitlesFont": "Textning teckensnitt"
 }

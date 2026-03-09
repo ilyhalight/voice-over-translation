@@ -24,7 +24,7 @@ function initKeyboardNavigationMode(): void {
   // Only Tab indicates keyboard *navigation* intent.
   globalThis.addEventListener(
     "keydown",
-    (e) => {
+    (e: KeyboardEvent) => {
       if (e.key === "Tab") enable();
     },
     true,

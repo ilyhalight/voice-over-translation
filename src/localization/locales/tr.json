@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Token ile giriş yap",
   "subtitlesSmartLayout": "Akıllı altyazı düzeni",
   "smartDucking": "Uyarlanabilir hacim",
-  "VOTAutoSubtitles": "Altyazılar açık"
+  "VOTAutoSubtitles": "Altyazılar açık",
+  "VOTSubtitlesFont": "Altyazı yazı tipi"
 }

@@ -67,6 +67,7 @@ export async function init(this: VideoHandler) {
     subtitlesSmartLayout: true,
     highlightWords: false,
     subtitlesFontSize: 20,
+    subtitlesFontFamily: "default-sans",
     subtitlesOpacity: 20,
     subtitlesDownloadFormat: "srt",
     responseLanguage: calculatedResLang,
@@ -145,7 +146,7 @@ export async function init(this: VideoHandler) {
   );
   debug.log("Extension compatibility passed...");
 
-  this.initVOTClient();
+  await this.initVOTClient();
 
   // Initialize UI elements and events.
   this.uiManager.initUI();

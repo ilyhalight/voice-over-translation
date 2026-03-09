@@ -16,7 +16,7 @@ type TranslationRequester = {
     translationHelp: VideoData["translationHelp"],
     shouldSendFailedAudio: boolean,
     signal: AbortSignal,
-  ): Promise<(TranslationAudioResult & { url: string }) | null>;
+  ): Promise<TranslationAudioResult | null>;
 };
 
 export type TranslationActionContext = {

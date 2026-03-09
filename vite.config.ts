@@ -152,6 +152,7 @@ export default defineConfig(async ({ command, mode }) => {
       DEBUG_MODE: JSON.stringify(debugMode),
       AVAILABLE_LOCALES: JSON.stringify(availableLocales),
       REPO_BRANCH: JSON.stringify(repoBranch),
+      VOT_VERSION: JSON.stringify(String((mainHeaders as any).version || "")),
       // Expose a tiny piece of metadata to runtime UI (Settings → About).
       // This avoids relying on GM_info.script.author which isn't present in
       // the extension build.
@@ -165,7 +166,7 @@ export default defineConfig(async ({ command, mode }) => {
     },
     build: {
       outDir: distDir,
-      emptyOutDir: !buildMinified,
+      emptyOutDir: false,
       minify: buildMinified ? "esbuild" : false,
       sourcemap: debugMode,
       rollupOptions: {

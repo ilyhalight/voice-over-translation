@@ -15,13 +15,19 @@ export function initIframeInteractor(): void {
       responseFormatter: (videoId: string, data: unknown) =>
         `${typeof data === "string" ? data : ""}:${videoId}`,
     },
+    "https://www.dailymotion.com": {
+      targetOrigin: "https://geo.dailymotion.com",
+      dataFilter: (data: unknown) =>
+        typeof data === "string" && data.startsWith("getVideoId:"),
+      extractVideoId: (url: URL) => {
+        return /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1];
+      },
+      responseFormatter: (videoId: string) => `getVideoId:${videoId}`,
+    },
   };
 
   const currentConfig = Object.entries(configs).find(
-    ([origin]) =>
-      globalThis.location.origin === origin &&
-      (origin !== "https://dev.epicgames.com" ||
-        globalThis.location.pathname.includes("/community/learning/")),
+    ([origin]) => globalThis.location.origin === origin,
   )?.[1];
 
   if (!currentConfig) return;

@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Đăng nhập qua token",
   "subtitlesSmartLayout": "Bố cục phụ đề thông minh",
   "smartDucking": "Khối lượng thích ứng",
-  "VOTAutoSubtitles": "Phụ đề mở"
+  "VOTAutoSubtitles": "Phụ đề mở",
+  "VOTSubtitlesFont": "Phông chữ phụ đề"
 }

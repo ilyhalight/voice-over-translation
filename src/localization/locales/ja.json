@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "トークンを介したログイン",
   "subtitlesSmartLayout": "スマート字幕レイアウト",
   "smartDucking": "適応ボリューム",
-  "VOTAutoSubtitles": "オープン時の字幕"
+  "VOTAutoSubtitles": "オープン時の字幕",
+  "VOTSubtitlesFont": "字幕フォント"
 }

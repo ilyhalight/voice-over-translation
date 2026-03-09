@@ -26,11 +26,3 @@ export function findActiveSubtitleLineIndex(
 
   return -1;
 }
-
-export function getLayoutAffectingKey(
-  subtitleTokensKey: string,
-  wrapKey: string,
-  variantKey = 0,
-): string {
-  return `${subtitleTokensKey}:${wrapKey}:${variantKey}`;
-}

@@ -111,7 +111,7 @@ function request<T = unknown>(
 
 type XhrCallbackState = {
   callbacks: AnyObject;
-  timeoutId: number | null;
+  timeoutId: ReturnType<typeof setTimeout> | null;
   timeoutMs: number;
   acknowledged: boolean;
   settled: boolean;
@@ -634,7 +634,11 @@ if (preludeGlobal[PRELUDE_BOOT_KEY]) {
     }
   };
 
-  void initializePrelude().catch(() => {
-    // initializePrelude already handles non-fatal startup failures.
-  });
+  void (async () => {
+    try {
+      await initializePrelude();
+    } catch {
+      // initializePrelude already handles non-fatal startup failures.
+    }
+  })();
 }

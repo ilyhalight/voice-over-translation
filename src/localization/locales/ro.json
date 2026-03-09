@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Autentificare prin token",
   "subtitlesSmartLayout": "Aspect inteligent de subtitrare",
   "smartDucking": "Volum adaptiv",
-  "VOTAutoSubtitles": "Subtitrari pe open"
+  "VOTAutoSubtitles": "Subtitrari pe open",
+  "VOTSubtitlesFont": "Font subtitrare"
 }

@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Ukungena ngemvume nge token",
   "subtitlesSmartLayout": "Ukuhlelwa kwesihlokwana esihlakaniphile",
   "smartDucking": "Umthamo wokuzivumelanisa nezimo",
-  "VOTAutoSubtitles": "Izihlokwana ezivulekile"
+  "VOTAutoSubtitles": "Izihlokwana ezivulekile",
+  "VOTSubtitlesFont": "Ifonti yesihlokwana"
 }

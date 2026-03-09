@@ -14,9 +14,16 @@ export type SelectProps<
   selectTitle: string;
   dialogTitle: string;
   items: SelectItem<T>[];
+  searchItemsProvider?: (
+    query: string,
+  ) => Promise<SelectItem<T>[]> | SelectItem<T>[];
   labelElement?: HTMLElement | string;
   dialogParent?: HTMLElement;
   multiSelect?: M;
+};
+
+export type SelectUpdateItemsOptions = {
+  persist?: boolean;
 };
 
 /**

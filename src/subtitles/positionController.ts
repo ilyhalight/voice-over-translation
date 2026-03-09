@@ -55,3 +55,32 @@ export function clampAnchorWithinBox({
   nextAnchorY = clampToRange(nextAnchorY, minAnchorY, maxAnchorY);
   return { anchorX: nextAnchorX, anchorY: nextAnchorY };
 }
+
+type SnapAxisInput = {
+  current: number;
+  candidates: number[];
+  thresholdPx: number;
+};
+
+export function snapValueToNearestCandidate({
+  current,
+  candidates,
+  thresholdPx,
+}: SnapAxisInput): { snapped: boolean; value: number } {
+  let closestValue = current;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  for (const candidate of candidates) {
+    const distance = Math.abs(candidate - current);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestValue = candidate;
+    }
+  }
+
+  if (!Number.isFinite(closestDistance) || closestDistance > thresholdPx) {
+    return { snapped: false, value: current };
+  }
+
+  return { snapped: true, value: closestValue };
+}

@@ -180,6 +180,7 @@
   "translationTakeApproximatelyMinute2": "Перевод займёт примерно {0} минуту",
   "VOTAudioBooster": "Расширенное увеличение громкости перевода",
   "VOTSubtitlesDesign": "Оформление субтитров",
+  "VOTSubtitlesFont": "Шрифт субтитров",
   "VOTSubtitlesFontSize": "Размер шрифта субтитров",
   "VOTSubtitlesOpacity": "Прозрачность фона субтитров",
   "VOTSubtitlesDownloadFormat": "Формат для загрузки субтитров",

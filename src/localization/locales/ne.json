@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "टोकन मार्फत लगइन गर्नुहोस् । ",
   "subtitlesSmartLayout": "स्मार्ट उपशीर्षक लेआउट",
   "smartDucking": "अनुकूलनशील मात्रा",
-  "VOTAutoSubtitles": "उपशीर्षकहरू खोल्नुहोस्"
+  "VOTAutoSubtitles": "उपशीर्षकहरू खोल्नुहोस्",
+  "VOTSubtitlesFont": "उपशीर्षक फन्ट"
 }

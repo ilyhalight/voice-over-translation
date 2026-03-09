@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Connexion via un jeton",
   "subtitlesSmartLayout": "Disposition intelligente des sous-titres",
   "smartDucking": "Volume adaptatif",
-  "VOTAutoSubtitles": "Sous-titres à l'ouverture"
+  "VOTAutoSubtitles": "Sous-titres à l'ouverture",
+  "VOTSubtitlesFont": "Police des sous-titres"
 }

@@ -13,6 +13,11 @@ const REPO_BRANCH: "master" | "dev";
  * Present in both userscript and extension builds.
  */
 const VOT_AUTHORS: string;
+/**
+ * Build-time injected extension/userscript version (from `src/headers.json`).
+ * Present in both userscript and extension builds.
+ */
+const VOT_VERSION: string;
 
 // --- Userscript globals (Tampermonkey / Violentmonkey / etc.) ---
 // These are injected at runtime by the userscript manager or by our extension

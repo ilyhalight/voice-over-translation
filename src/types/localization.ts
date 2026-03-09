@@ -247,6 +247,7 @@ export type Phrase =
   | "translationTakeApproximatelyMinute2"
   | "VOTAudioBooster"
   | "VOTSubtitlesDesign"
+  | "VOTSubtitlesFont"
   | "VOTSubtitlesFontSize"
   | "VOTSubtitlesOpacity"
   | "VOTSubtitlesDownloadFormat"
@@ -489,6 +490,7 @@ export type Phrases = {
   translationTakeApproximatelyMinute2: string;
   VOTAudioBooster: string;
   VOTSubtitlesDesign: string;
+  VOTSubtitlesFont: string;
   VOTSubtitlesFontSize: string;
   VOTSubtitlesOpacity: string;
   VOTSubtitlesDownloadFormat: string;

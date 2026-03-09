@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Přihlášení přes token",
   "subtitlesSmartLayout": "Inteligentní rozložení titulků",
   "smartDucking": "Adaptivní objem",
-  "VOTAutoSubtitles": "Titulky na open"
+  "VOTAutoSubtitles": "Titulky na open",
+  "VOTSubtitlesFont": "Písmo titulků"
 }

@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "ເຂົ້າສູ່ລະບົບຜ່ານ token",
   "subtitlesSmartLayout": "ຮູບແບບຄໍາບັນຍາຍອັດສະລິຍະ",
   "smartDucking": "ປະລິມານການປັບຕົວ",
-  "VOTAutoSubtitles": "ຄໍາບັນຍາຍເປີດ"
+  "VOTAutoSubtitles": "ຄໍາບັນຍາຍເປີດ",
+  "VOTSubtitlesFont": "ຕົວອັກສອນບັນຍາຍ"
 }

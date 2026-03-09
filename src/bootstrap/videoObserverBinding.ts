@@ -25,14 +25,16 @@ type BindObserverListenersOptions = {
   ) => VideoHandlerLike;
 };
 
-let observerListenersBound = false;
+type SiteContainerMatch = {
+  site: ServiceConf;
+  container: HTMLElement;
+};
+
+const boundObservers = new WeakSet<VideoObserver>();
 
 export function bindObserverListeners(
   options: BindObserverListenersOptions,
 ): void {
-  if (observerListenersBound) return;
-  observerListenersBound = true;
-
   const {
     videoObserver,
     videosWrappers,
@@ -41,6 +43,9 @@ export function bindObserverListeners(
     findContainer,
     createVideoHandler,
   } = options;
+
+  if (boundObservers.has(videoObserver)) return;
+  boundObservers.add(videoObserver);
 
   const initializingVideos = new WeakSet<HTMLVideoElement>();
   const containerOwners = new WeakMap<HTMLElement, HTMLVideoElement>();
@@ -63,6 +68,44 @@ export function bindObserverListeners(
       return;
     }
     pendingVideoByContainer.delete(container);
+  };
+
+  const releaseVideoHandler = async (
+    video: HTMLVideoElement,
+    reason: string,
+  ): Promise<void> => {
+    const videoHandler = videosWrappers.get(video);
+    if (!videoHandler) {
+      return;
+    }
+
+    try {
+      await videoHandler.release();
+    } catch (error) {
+      console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
+    } finally {
+      videosWrappers.delete(video);
+    }
+  };
+
+  const getMatchedSiteAndContainer = (
+    video: HTMLVideoElement,
+  ): SiteContainerMatch | null => {
+    for (const candidate of getServicesCached()) {
+      const container = findContainer(candidate, video);
+      if (container) {
+        return { site: candidate, container };
+      }
+    }
+
+    return null;
+  };
+
+  const withRuntimeSiteUrl = (site: ServiceConf): ServiceConf => {
+    const host = String(site.host);
+    return host === "peertube" || host === "directlink"
+      ? { ...site, url: globalThis.location.origin }
+      : site;
   };
 
   const promotePendingVideo = async (
@@ -99,15 +142,11 @@ export function bindObserverListeners(
         return;
       }
 
-      let container: HTMLElement | null = null;
-      const site = getServicesCached().find((candidate) => {
-        container = findContainer(candidate, video);
-        return Boolean(container);
-      });
-
-      if (!site || !container) {
+      const match = getMatchedSiteAndContainer(video);
+      if (!match) {
         return;
       }
+      const { site, container } = match;
 
       const activeVideoForContainer = containerOwners.get(container);
       if (activeVideoForContainer && activeVideoForContainer !== video) {
@@ -116,20 +155,15 @@ export function bindObserverListeners(
           return;
         }
 
-        try {
-          await videosWrappers.get(activeVideoForContainer)?.release();
-        } catch (err) {
-          console.error("[VOT] Failed to release stale videoHandler", err);
-        }
-        videosWrappers.delete(activeVideoForContainer);
+        await releaseVideoHandler(activeVideoForContainer, "stale container");
         clearContainerOwner(activeVideoForContainer);
       }
 
-      if (["peertube", "directlink"].includes(site.host)) {
-        site.url = globalThis.location.origin;
-      }
-
-      const videoHandler = createVideoHandler(video, container, site);
+      const videoHandler = createVideoHandler(
+        video,
+        container,
+        withRuntimeSiteUrl(site),
+      );
       // Register before async init to prevent duplicate in-flight handlers.
       videosWrappers.set(video, videoHandler);
       videoContainers.set(video, container);
@@ -147,15 +181,13 @@ export function bindObserverListeners(
         }
       } catch (err) {
         if (videosWrappers.get(video) === videoHandler) {
-          videosWrappers.delete(video);
+          await releaseVideoHandler(video, "init failed");
           const container = clearContainerOwner(video);
           clearPendingVideo(container);
           await promotePendingVideo(container);
         }
-        throw err;
+        console.error("[VOT] Failed to initialize videoHandler", err);
       }
-    } catch (err) {
-      console.error("[VOT] Failed to initialize videoHandler", err);
     } finally {
       initializingVideos.delete(video);
     }
@@ -165,10 +197,7 @@ export function bindObserverListeners(
 
   videoObserver.onVideoRemoved.addListener(async (video) => {
     const container = clearContainerOwner(video);
-    if (videosWrappers.has(video)) {
-      await videosWrappers.get(video)?.release();
-      videosWrappers.delete(video);
-    }
+    await releaseVideoHandler(video, "video removed");
     initializingVideos.delete(video);
     if (container && pendingVideoByContainer.get(container) === video) {
       clearPendingVideo(container);

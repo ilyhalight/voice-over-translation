@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Bejelentkezés tokenen keresztül",
   "subtitlesSmartLayout": "Intelligens felirat elrendezés",
   "smartDucking": "Adaptív kötet",
-  "VOTAutoSubtitles": "Feliratok nyitva"
+  "VOTAutoSubtitles": "Feliratok nyitva",
+  "VOTSubtitlesFont": "Felirat betűtípus"
 }

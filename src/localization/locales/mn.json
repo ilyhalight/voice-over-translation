@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Токеноор нэвтрэх",
   "subtitlesSmartLayout": "Smart subtitle зохион байгуулалт",
   "smartDucking": "Дасан зохицох хэмжээ",
-  "VOTAutoSubtitles": "Нээлттэй дээр хадмалтай"
+  "VOTAutoSubtitles": "Нээлттэй дээр хадмалтай",
+  "VOTSubtitlesFont": "Хадмал үсгийн фонт"
 }

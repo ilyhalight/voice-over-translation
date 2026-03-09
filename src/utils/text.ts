@@ -1,35 +1,48 @@
-const URL_FILTER = /\b(?:https?:\/\/|www\.)\S+/gi;
-const HASHTAG_FILTER = /#[^\s#]+/g;
-const YOUTUBE_META_FILTER =
-  /auto-generated\s+by\s+youtube|provided\s+to\s+youtube\s+by|released\s+on/gi;
-const PAYPAL_FILTER = /paypal?/gi;
-const ETH_ADDRESS_FILTER = /0x[\da-f]{40}/gi;
-const BTC_ADDRESS_FILTER = /[13][1-9a-z]{25,34}/gi;
-const BTC_BECH32_FILTER = /4[\dab][1-9a-z]{93}/gi;
-const TON_ADDRESS_FILTER = /t[1-9a-z]{33}/gi;
-const TEXT_FILTERS = [
-  URL_FILTER,
-  HASHTAG_FILTER,
-  YOUTUBE_META_FILTER,
-  PAYPAL_FILTER,
-  ETH_ADDRESS_FILTER,
-  BTC_ADDRESS_FILTER,
-  BTC_BECH32_FILTER,
-  TON_ADDRESS_FILTER,
-] as const;
+const MAX_TEXT_LENGTH = 450;
 
-export function cleanText(title: string, description?: string) {
+const REMOVABLE_TOKEN_FILTER = new RegExp(
+  [
+    // URLs.
+    String.raw`(?:https?:\/\/|www\.)\S+`,
+    String.raw`#[^\s#]+`,
+    String.raw`auto-generated\s+by\s+youtube`,
+    String.raw`provided\s+to\s+youtube\s+by`,
+    String.raw`released\s+on`,
+    String.raw`\bpaypal\b`,
+    String.raw`\b0x[a-f0-9]{40}\b`,
+    // Bitcoin legacy Base58 (mainnet P2PKH/P2SH).
+    String.raw`\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b`,
+    // Bitcoin Bech32 / Bech32m.
+    String.raw`\b(?:bc1|tb1|bcrt1)[ac-hj-np-z02-9]{11,71}\b`,
+    // TON raw format.
+    String.raw`\b(?:-1|0):[a-f0-9]{64}\b`,
+  ].join("|"),
+  "giu",
+);
+
+const NOISE_CHARACTER_FILTER = /[\p{N}\p{P}\p{S}]+/gu;
+const WHITESPACE_FILTER = /\s+/g;
+const LETTER_FILTER = /\p{L}/u;
+
+function trimToMaxLength(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trimEnd();
+}
+
+export function cleanText(title: string, description?: string): string {
   const raw = `${title ?? ""} ${description ?? ""}`.trim();
   if (!raw) return "";
 
-  let cleaned = raw;
-  for (const filter of TEXT_FILTERS) {
-    cleaned = cleaned.replaceAll(filter, "");
+  const cleaned = raw
+    .normalize("NFKC")
+    .replace(REMOVABLE_TOKEN_FILTER, " ")
+    .replace(NOISE_CHARACTER_FILTER, " ")
+    .replace(WHITESPACE_FILTER, " ")
+    .trim();
+
+  if (!LETTER_FILTER.test(cleaned)) {
+    return "";
   }
 
-  return cleaned
-    .replaceAll(/[\p{P}\p{S}]+/gu, " ")
-    .replaceAll(/\s+/g, " ")
-    .trim()
-    .slice(0, 450);
+  return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
 }

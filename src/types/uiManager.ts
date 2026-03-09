@@ -11,6 +11,7 @@ export type ButtonLayout = {
 export type OverlayMount = {
   root: HTMLElement;
   portalContainer: HTMLElement;
+  subtitlesMountContainer: HTMLElement;
   tooltipLayoutRoot?: HTMLElement;
 };
 

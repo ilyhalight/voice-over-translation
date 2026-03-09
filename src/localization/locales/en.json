@@ -182,6 +182,7 @@
   "translationTakeApproximatelyMinute2": "The translation will take approximately {0} minutes",
   "VOTAudioBooster": "Extended translation volume increase",
   "VOTSubtitlesDesign": "Subtitles design",
+  "VOTSubtitlesFont": "Subtitle font",
   "VOTSubtitlesFontSize": "Font size of subtitles",
   "VOTSubtitlesOpacity": "Transparency of the subtitle background",
   "VOTSubtitlesDownloadFormat": "The format for downloading subtitles",

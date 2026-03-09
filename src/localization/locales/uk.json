@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Увійдіть за допомогою токена",
   "subtitlesSmartLayout": "Продуманий макет субтитрів",
   "smartDucking": "Адаптивна гучність",
-  "VOTAutoSubtitles": "Субтитри при відкритті"
+  "VOTAutoSubtitles": "Субтитри при відкритті",
+  "VOTSubtitlesFont": "Шрифт субтитрів"
 }

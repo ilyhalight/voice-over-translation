@@ -332,18 +332,3 @@ export function toFlatObj<T extends Record<string, unknown>>(
 
   return out as T;
 }
-
-export async function exitFullscreen(): Promise<void> {
-  const doc = document as DocumentWithFullscreen;
-
-  if (!doc.fullscreenElement && !doc.webkitFullscreenElement) return;
-
-  if (doc.exitFullscreen) {
-    await doc.exitFullscreen();
-    return;
-  }
-
-  if (doc.webkitExitFullscreen) {
-    await doc.webkitExitFullscreen();
-  }
-}
