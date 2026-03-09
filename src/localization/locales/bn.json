@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "টোকেনের মাধ্যমে লগইন করুন",
   "subtitlesSmartLayout": "স্মার্ট সাবটাইটেল বিন্যাস",
   "smartDucking": "অভিযোজিত ভলিউম",
-  "VOTAutoSubtitles": "সাবটাইটেল খোলা"
+  "VOTAutoSubtitles": "সাবটাইটেল খোলা",
+  "VOTSubtitlesFont": "সাবটাইটেল ফন্ট"
 }

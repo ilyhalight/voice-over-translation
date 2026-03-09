@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Inicieu sessió mitjançant testimoni",
   "subtitlesSmartLayout": "Disseny de subtítols intel ligent",
   "smartDucking": "Volum adaptatiu",
-  "VOTAutoSubtitles": "Subtítols en obert"
+  "VOTAutoSubtitles": "Subtítols en obert",
+  "VOTSubtitlesFont": "Tipus de lletra dels subtítols"
 }

@@ -59,6 +59,16 @@ export interface AudioDownloaderOptions {
   fetchImplementation?: typeof fetch;
 }
 
+export class YtWatchContextForbiddenError extends Error {
+  readonly status: number;
+
+  constructor(status = 403) {
+    super(`Failed to load watch page: ${status}`);
+    this.name = "YtWatchContextForbiddenError";
+    this.status = status;
+  }
+}
+
 interface WatchContext {
   apiKey: string;
   clientVersion: string;
@@ -92,7 +102,6 @@ interface ExtractionHints {
 
 interface ResolvedPlayableFormat {
   videoId: string;
-  client: AudioDownloadClient;
   chosenFormat: InnertubeFormat;
   streamUrl: string;
 }
@@ -254,10 +263,6 @@ function matchFirst(
 }
 
 async function readResponseBytes(response: Response): Promise<Uint8Array> {
-  const byteReader = (response as { bytes?: () => Promise<Uint8Array> }).bytes;
-  if (typeof byteReader === "function") {
-    return byteReader.call(response);
-  }
   return new Uint8Array(await response.arrayBuffer());
 }
 
@@ -308,20 +313,84 @@ function parseContentLengthFromContentRange(
   return parsePositiveInteger(matched?.[1]);
 }
 
-function addRangeToStreamUrl(
-  streamUrl: string,
+function parseContentRangeHeader(
+  contentRange: string | null,
+): { start: number; end: number } | null {
+  if (!contentRange) {
+    return null;
+  }
+
+  const matched = /^bytes\s+(\d+)-(\d+)\/(?:\d+|\*)$/i.exec(
+    contentRange.trim(),
+  );
+  if (!matched) {
+    return null;
+  }
+
+  const start = Number.parseInt(matched[1] ?? "", 10);
+  const end = Number.parseInt(matched[2] ?? "", 10);
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start < 0 ||
+    end < start
+  ) {
+    return null;
+  }
+
+  return { start, end };
+}
+
+function getExpectedRangeLength(start: number, end: number): number {
+  return end - start + 1;
+}
+
+function isValidRangeChunkResponse(
+  response: Response,
+  bytes: Uint8Array,
   start: number,
   end: number,
-  requestNumber: number,
-): string {
-  const url = new URL(streamUrl);
-  url.searchParams.set("range", `${start}-${end}`);
-  if (requestNumber > 0) {
-    url.searchParams.set("rn", String(requestNumber));
-  } else {
-    url.searchParams.delete("rn");
+): boolean {
+  const expectedLength = getExpectedRangeLength(start, end);
+  if (expectedLength <= 0) {
+    return false;
   }
-  return url.toString();
+
+  if (bytes.byteLength <= 0 || bytes.byteLength > expectedLength) {
+    return false;
+  }
+
+  const contentRange = parseContentRangeHeader(
+    response.headers.get("content-range"),
+  );
+  if (contentRange) {
+    return (
+      contentRange.start === start &&
+      contentRange.end === start + bytes.byteLength - 1
+    );
+  }
+
+  // 206 responses should normally include content-range. In environments where
+  // this header is stripped, accept only exact-size payloads.
+  if (response.status === 206) {
+    return bytes.byteLength === expectedLength;
+  }
+
+  // 200 without content-range is ambiguous for non-zero offsets.
+  if (response.status === 200) {
+    return start === 0 && bytes.byteLength === expectedLength;
+  }
+
+  return false;
+}
+
+function describeRangeChunkResponse(
+  response: Response,
+  bytes: Uint8Array,
+): string {
+  const contentRange = response.headers.get("content-range") ?? "none";
+  const contentLength = response.headers.get("content-length") ?? "none";
+  return `status=${response.status}; bytes=${bytes.byteLength}; content-range=${contentRange}; content-length=${contentLength}`;
 }
 
 function getAudioMimeType(
@@ -366,46 +435,24 @@ export class AudioDownloader {
     start: number,
     end: number,
     signal: AbortSignal | undefined,
-    requestNumber: number,
   ): Promise<Uint8Array> {
-    const rangeUrl = addRangeToStreamUrl(streamUrl, start, end, requestNumber);
     const rangeHeader = `bytes=${start}-${end}`;
-
-    let queryResponseStatus: number | string = "fetch_error";
-    try {
-      const queryResponse = await this.fetchFn(rangeUrl, {
-        headers: DEFAULT_HEADERS,
-        ...withSignal(signal),
-      });
-      queryResponseStatus = queryResponse.status;
-      if (queryResponse.ok) {
-        const bytes = await readResponseBytes(queryResponse);
-        if (!bytes.byteLength) {
-          throw new Error("Received empty stream chunk");
-        }
-        return bytes;
-      }
-    } catch (error) {
-      queryResponseStatus =
-        error instanceof Error ? error.message : "fetch_error";
-    }
-
-    const headerResponse = await this.fetchFn(streamUrl, {
+    const response = await this.fetchFn(streamUrl, {
       headers: {
         ...DEFAULT_HEADERS,
         range: rangeHeader,
       },
       ...withSignal(signal),
     });
-    if (!headerResponse.ok) {
-      throw new Error(
-        `Failed to download stream chunk: query=${queryResponseStatus}; header=${headerResponse.status}`,
-      );
+    if (!response.ok) {
+      throw new Error(`Failed to download stream chunk: ${response.status}`);
     }
 
-    const bytes = await readResponseBytes(headerResponse);
-    if (!bytes.byteLength) {
-      throw new Error("Received empty stream chunk");
+    const bytes = await readResponseBytes(response);
+    if (!isValidRangeChunkResponse(response, bytes, start, end)) {
+      throw new Error(
+        `Received unexpected stream chunk payload: ${describeRangeChunkResponse(response, bytes)}`,
+      );
     }
     return bytes;
   }
@@ -424,19 +471,9 @@ export class AudioDownloader {
     const merged = new Uint8Array(fileSize);
     let offset = 0;
 
-    for (
-      let start = 0, index = 0;
-      start < fileSize;
-      start += RANGE_FALLBACK_CHUNK_SIZE, index++
-    ) {
+    for (let start = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE) {
       const end = Math.min(fileSize - 1, start + RANGE_FALLBACK_CHUNK_SIZE - 1);
-      const chunk = await this.fetchRangeChunk(
-        streamUrl,
-        start,
-        end,
-        signal,
-        index + 1,
-      );
+      const chunk = await this.fetchRangeChunk(streamUrl, start, end, signal);
       if (offset + chunk.byteLength > merged.byteLength) {
         throw new Error(
           "Downloaded stream chunk exceeds probed stream content length",
@@ -454,62 +491,6 @@ export class AudioDownloader {
     return merged.slice(0, offset);
   }
 
-  private async downloadStreamBytes(
-    streamUrl: string,
-    contentLengthHint: string | undefined,
-    signal: AbortSignal | undefined,
-    options: {
-      preferRangeFirst?: boolean;
-    } = {},
-  ): Promise<Uint8Array> {
-    if (options.preferRangeFirst) {
-      try {
-        return await this.downloadStreamByRanges(
-          streamUrl,
-          contentLengthHint,
-          signal,
-        );
-      } catch (rangeError) {
-        const rangeMessage =
-          rangeError instanceof Error ? rangeError.message : String(rangeError);
-        throw new Error(`Failed to download stream by ranges: ${rangeMessage}`);
-      }
-    }
-
-    let fullResponseStatus: number | string = "fetch_error";
-    try {
-      const streamResponse = await this.fetchFn(streamUrl, {
-        headers: DEFAULT_HEADERS,
-        ...withSignal(signal),
-      });
-      fullResponseStatus = streamResponse.status;
-      if (streamResponse.ok) {
-        const bytes = await readResponseBytes(streamResponse);
-        if (!bytes.byteLength) {
-          throw new Error("Received empty stream");
-        }
-        return bytes;
-      }
-    } catch (error) {
-      fullResponseStatus =
-        error instanceof Error ? error.message : "fetch_error";
-    }
-
-    try {
-      return await this.downloadStreamByRanges(
-        streamUrl,
-        contentLengthHint,
-        signal,
-      );
-    } catch (rangeError) {
-      const rangeMessage =
-        rangeError instanceof Error ? rangeError.message : String(rangeError);
-      throw new Error(
-        `Failed to download stream: full=${fullResponseStatus}; range=${rangeMessage}`,
-      );
-    }
-  }
-
   async downloadAudioToChunkStream(
     request: AudioStreamRequest,
     options: AudioChunkStreamOptions,
@@ -518,31 +499,16 @@ export class AudioDownloader {
       throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
     }
 
-    const videoId = getRequiredVideoId(request);
-    const { signal } = request;
-    const watchContext = await this.fetchWatchContext(videoId, signal);
-    const quality = request.videoQuality ?? "best";
-    const clientAttempts = buildClientAttemptOrder(request.client);
-    const attemptErrors: string[] = [];
-
-    for (const client of clientAttempts) {
-      try {
-        const resolved = await this.resolvePlayableFormatForClient({
-          videoId,
-          watchContext,
-          client,
-          quality,
-          signal,
-        });
-        if (!isAudioOnlyMimeType(resolved.chosenFormat.mimeType)) {
-          throw new Error(
-            "Chunk mode requires an adaptive audio stream format",
-          );
-        }
+    return this.withResolvedPlayableAudioFormat(
+      request,
+      request.videoQuality ?? "best",
+      "Chunk mode requires an adaptive audio stream format",
+      "Unable to resolve streamable format for chunk mode",
+      async ({ resolved, signal }) => {
         const fileSize = await this.resolveStreamContentLength(
           resolved.streamUrl,
           resolved.chosenFormat.contentLength,
-          request.signal,
+          signal,
           true,
         );
         const mediaPartsLength = Math.max(
@@ -563,21 +529,13 @@ export class AudioDownloader {
                 resolved.streamUrl,
                 start,
                 end,
-                request.signal,
-                index + 1,
+                signal,
               );
               yield bytes;
             }
           }.bind(this),
         };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        attemptErrors.push(`${client}: ${message}`);
-      }
-    }
-
-    throw new Error(
-      `Unable to resolve streamable format for chunk mode. Attempts: ${attemptErrors.join(" | ")}`,
+      },
     );
   }
 
@@ -611,10 +569,45 @@ export class AudioDownloader {
     request: AudioStreamRequest,
     sink: { write: (chunk: Uint8Array) => Promise<void> },
   ): Promise<AudioStreamResult> {
+    return this.withResolvedPlayableAudioFormat(
+      request,
+      request.videoQuality ?? "bestefficiency",
+      "Selected stream is not audio-only",
+      "Unable to download playable stream format",
+      async ({ resolved, signal }) => {
+        const streamBytes = await this.downloadStreamByRanges(
+          resolved.streamUrl,
+          resolved.chosenFormat.contentLength,
+          signal,
+        );
+
+        const hints = this.getExtractionHints(resolved.chosenFormat);
+        await sink.write(streamBytes);
+        return {
+          videoId: resolved.videoId,
+          bytesWritten: streamBytes.byteLength,
+          mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
+          codec: hints.codec,
+          sampleRate: hints.sampleRate,
+          channels: hints.channels,
+        };
+      },
+    );
+  }
+
+  private async withResolvedPlayableAudioFormat<T>(
+    request: AudioStreamRequest,
+    quality: AudioDownloadQuality,
+    audioOnlyErrorMessage: string,
+    failurePrefix: string,
+    onResolved: (context: {
+      resolved: ResolvedPlayableFormat;
+      signal: AbortSignal | undefined;
+    }) => Promise<T>,
+  ): Promise<T> {
     const videoId = getRequiredVideoId(request);
     const { signal } = request;
     const watchContext = await this.fetchWatchContext(videoId, signal);
-    const quality = request.videoQuality ?? "bestefficiency";
     const clientAttempts = buildClientAttemptOrder(request.client);
     const attemptErrors: string[] = [];
 
@@ -627,43 +620,18 @@ export class AudioDownloader {
           quality,
           signal,
         });
-        const isAudioOnly = isAudioOnlyMimeType(resolved.chosenFormat.mimeType);
-        const streamBytes = await this.downloadStreamBytes(
-          resolved.streamUrl,
-          resolved.chosenFormat.contentLength,
-          request.signal,
-          {
-            // Audio-only streams are commonly served with strict rules that can
-            // reject plain full-file GET requests. Range mode is more reliable.
-            preferRangeFirst: isAudioOnly,
-          },
-        );
-
-        const hints = this.getExtractionHints(resolved.chosenFormat);
-        if (isAudioOnly) {
-          await sink.write(streamBytes);
-          return {
-            videoId: resolved.videoId,
-            bytesWritten: streamBytes.byteLength,
-            mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
-            codec: hints.codec,
-            sampleRate: hints.sampleRate,
-            channels: hints.channels,
-          };
+        if (!isAudioOnlyMimeType(resolved.chosenFormat.mimeType)) {
+          throw new Error(audioOnlyErrorMessage);
         }
 
-        throw new Error(
-          "Selected stream is not audio-only. Video-based fallback is disabled.",
-        );
+        return await onResolved({ resolved, signal });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         attemptErrors.push(`${client}: ${message}`);
       }
     }
 
-    throw new Error(
-      `Unable to download playable stream format. Attempts: ${attemptErrors.join(" | ")}`,
-    );
+    throw new Error(`${failurePrefix}. Attempts: ${attemptErrors.join(" | ")}`);
   }
 
   private async resolvePlayableFormatForClient({
@@ -689,21 +657,16 @@ export class AudioDownloader {
     const directAdaptiveFormats = adaptiveFormats.filter((format) =>
       Boolean(format.url),
     );
-    let chosenFormat: InnertubeFormat | null = null;
-
-    if (directAdaptiveFormats.length) {
-      try {
-        chosenFormat = pickAdaptiveAudioFormat(directAdaptiveFormats, quality);
-      } catch {
-        // Try next client below.
-      }
-    }
-
-    if (!chosenFormat) {
+    if (!directAdaptiveFormats.length) {
       throw new Error(
         "Player response did not contain direct adaptive audio stream URLs",
       );
     }
+    const chosenFormat = pickAdaptiveAudioFormat(
+      directAdaptiveFormats,
+      quality,
+    );
+
     const streamUrl = this.resolveFormatUrl(
       chosenFormat,
       watchContext.clientVersion,
@@ -711,7 +674,6 @@ export class AudioDownloader {
 
     return {
       videoId,
-      client,
       chosenFormat,
       streamUrl,
     };
@@ -728,40 +690,21 @@ export class AudioDownloader {
       return hintedLength;
     }
 
-    const probeUrl = addRangeToStreamUrl(streamUrl, 0, 0, 0);
-    let probeResponse: Response | null = null;
-    let probeQueryStatus: number | string = "fetch_error";
+    let probeResponse: Response;
     try {
-      const queryProbeResponse = await this.fetchFn(probeUrl, {
-        headers: DEFAULT_HEADERS,
-        ...withSignal(signal),
-      });
-      probeQueryStatus = queryProbeResponse.status;
-      if (queryProbeResponse.ok) {
-        probeResponse = queryProbeResponse;
-      }
-    } catch (error) {
-      probeQueryStatus = error instanceof Error ? error.message : "fetch_error";
-    }
-
-    if (!probeResponse) {
-      const headerProbeResponse = await this.fetchFn(streamUrl, {
+      probeResponse = await this.fetchFn(streamUrl, {
         headers: {
           ...DEFAULT_HEADERS,
           range: "bytes=0-0",
         },
         ...withSignal(signal),
       });
-      if (headerProbeResponse.ok) {
-        probeResponse = headerProbeResponse;
-      } else {
-        if (hintedLength !== null) {
-          return hintedLength;
-        }
-        throw new Error(
-          `Failed to probe stream content length: query=${probeQueryStatus}; header=${headerProbeResponse.status}`,
-        );
+    } catch (error) {
+      if (hintedLength !== null) {
+        return hintedLength;
       }
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to probe stream content length: ${message}`);
     }
 
     if (!probeResponse.ok) {
@@ -845,6 +788,9 @@ export class AudioDownloader {
       ...withSignal(signal),
     });
     if (!response.ok) {
+      if (response.status === 403) {
+        throw new YtWatchContextForbiddenError(response.status);
+      }
       throw new Error(`Failed to load watch page: ${response.status}`);
     }
 

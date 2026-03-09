@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.2
+// @version         1.11.3
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -137,7 +137,7 @@
 // @match           *://*.bunkr.ac/*
 // @match           *://*.bunkr.ax/*
 // @match           *://web.telegram.org/k/*
-// @match           *://t2mc.toil.cc/*
+// @match           *://rust-server-531j.onrender.com/*
 // @match           *://mylearn.oracle.com/*
 // @match           *://learn.deeplearning.ai/*
 // @match           *://learn-staging.deeplearning.ai/*
@@ -4110,6 +4110,13 @@ string() {
         {
           host: VideoService.youtube,
           url: "https://youtu.be/",
+          match: (enteredUrl) => /^(www.)?youtube(-nocookie|kids)?.com$/.test(enteredUrl.hostname) && enteredUrl.pathname.startsWith("/tv"),
+          selector: "#container",
+          needExtraData: true
+        },
+        {
+          host: VideoService.youtube,
+          url: "https://youtu.be/",
           match: /^(www.)?youtube(-nocookie|kids)?.com$/,
           selector: ".html5-video-container:not(#inline-player *)",
           needExtraData: true
@@ -5009,7 +5016,6 @@ string() {
         "ja"
       ];
       const availableTTS = ["ru", "en", "kk"];
-      const subtitlesFormats = ["srt", "vtt", "json"];
       class VideoJSHelper extends BaseHelper {
         SUBTITLE_SOURCE = "videojs";
         SUBTITLE_FORMAT = "vtt";
@@ -5166,19 +5172,38 @@ string() {
       }
       class DailymotionHelper extends BaseHelper {
         getVideoIdFromUrl(url) {
-          if (url.hostname === "dai.ly") {
-            return url.pathname.split("/").filter(Boolean)?.[0];
-          }
           const videoIdFromQuery = url.searchParams.get("video");
           if (videoIdFromQuery) {
             return videoIdFromQuery;
           }
-          return /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? /(?:^|\/)player\/([^/.]+)/.exec(url.pathname)?.[1];
+        }
+        resolveVideoIdViaPostMessage() {
+          return new Promise((resolve) => {
+            const origin = "https://www.dailymotion.com";
+            const timeout2 = setTimeout(() => {
+              window.removeEventListener("message", onMessage);
+              resolve(void 0);
+            }, 3e3);
+            const onMessage = (e2) => {
+              if (e2.origin !== origin) {
+                return;
+              }
+              if (!(typeof e2.data === "string" && e2.data.startsWith("getVideoId:"))) {
+                return;
+              }
+              clearTimeout(timeout2);
+              window.removeEventListener("message", onMessage);
+              resolve(e2.data.replace("getVideoId:", ""));
+            };
+            window.addEventListener("message", onMessage);
+            window.top?.postMessage("getVideoId:", origin);
+          });
         }
         async getVideoId(url) {
-          const parsedVideoId = this.getVideoIdFromUrl(url);
-          if (parsedVideoId) {
-            return parsedVideoId;
+          if (window.self !== window.top) {
+            return await this.resolveVideoIdViaPostMessage();
+          } else {
+            return this.getVideoIdFromUrl(url);
           }
         }
       }
@@ -5630,101 +5655,6 @@ string() {
         TypeName2["Channel"] = "Channel";
         TypeName2["Video"] = "Video";
       })(TypeName || (TypeName = {}));
-      function convertToStrTime(ms, delimiter = ",") {
-        const seconds = ms / 1e3;
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor(seconds % 3600 / 60);
-        const remainingSeconds = Math.floor(seconds % 60);
-        const milliseconds = Math.floor(ms % 1e3);
-        return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}${delimiter}${milliseconds.toString().padStart(3, "0")}`;
-      }
-      function convertToMSTime(time) {
-        const parts = time.split(" ")?.[0]?.split(":");
-        if (parts.length < 3) {
-          parts.unshift("00");
-        }
-        const [strHours, strMinutes, strSeconds] = parts;
-        const secs2 = +strSeconds.replace(/[,.]/, "");
-        const mins = +strMinutes * 6e4;
-        const hours = +strHours * 36e5;
-        return hours + mins + secs2;
-      }
-      function convertSubsFromJSON(data, output = "srt") {
-        const isVTT = output === "vtt";
-        const delimiter = isVTT ? "." : ",";
-        const subs = data.subtitles.map((sub, idx) => {
-          const result = isVTT ? "" : `${idx + 1}
-`;
-          return result + `${convertToStrTime(sub.startMs, delimiter)} --> ${convertToStrTime(sub.startMs + sub.durationMs, delimiter)}
-${sub.text}
-
-`;
-        }).join("").trim();
-        return isVTT ? `WEBVTT
-
-${subs}` : subs;
-      }
-      function convertSubsToJSON(data, from = "srt") {
-        const parts = data.split(/\r?\n\r?\n/g);
-        if (from === "vtt") {
-          parts.shift();
-        }
-        if (/^\d+\r?\n/.exec(parts?.[0] ?? "")) {
-          from = "srt";
-        }
-        const offset = +(from === "srt");
-        const subtitles = parts.reduce((result, part) => {
-          const lines = part.trim().split("\n");
-          const time = lines[offset];
-          const text = lines.slice(offset + 1).join("\n");
-          if ((lines.length !== 2 || !part.includes(" --> ")) && !time?.includes(" --> ")) {
-            if (result.length === 0) {
-              return result;
-            }
-            result[result.length - 1].text += `
-
-${lines.join("\n")}`;
-            return result;
-          }
-          const [start, end] = time.split(" --> ");
-          const startMs = convertToMSTime(start);
-          const endMs = convertToMSTime(end);
-          const durationMs = endMs - startMs;
-          result.push({
-            text,
-            startMs,
-            durationMs,
-            speakerId: "0"
-          });
-          return result;
-        }, []);
-        return {
-          containsTokens: false,
-          subtitles
-        };
-      }
-      function getSubsFormat(data) {
-        if (typeof data !== "string") {
-          return "json";
-        }
-        if (/^(WEBVTT([^\n]+)?)(\r?\n)/.exec(data)) {
-          return "vtt";
-        }
-        return "srt";
-      }
-      function convertSubs(data, output = "srt") {
-        const from = getSubsFormat(data);
-        if (from === output)
-          return data;
-        if (from === "json") {
-          return convertSubsFromJSON(data, output);
-        }
-        data = convertSubsToJSON(data, from);
-        if (output === "json") {
-          return data;
-        }
-        return convertSubsFromJSON(data, output);
-      }
       class LoomHelper extends BaseHelper {
         getClientVersion() {
           if (typeof SENTRY_RELEASE === "undefined") {
@@ -6794,7 +6724,7 @@ ${lines.join("\n")}`;
               language: normalizeLang$1(sub.lang),
               source: "vimeo",
               format: "vtt",
-              url: this.SITE_ORIGIN + sub.url,
+              url: new URL(sub.url, this.SITE_ORIGIN).href,
               isAutoGenerated: sub.lang.includes("autogenerated")
             }));
             const translationHelp = subtitles2.length ? [
@@ -7294,6 +7224,38 @@ ${lines.join("\n")}`;
         static isMobile() {
           return /^m\.youtube\.com$/.test(window.location.hostname);
         }
+        static extractVideoId(url) {
+          const rawHash = url.hash.replace(/^#/, "");
+          if (rawHash) {
+            const normalizedHash = rawHash.startsWith("!") ? rawHash.slice(1) : rawHash;
+            let decodedHash = normalizedHash;
+            try {
+              decodedHash = decodeURIComponent(normalizedHash);
+            } catch {
+            }
+            try {
+              const hashUrl = decodedHash.startsWith("http") ? new URL(decodedHash) : new URL(decodedHash.startsWith("/") ? decodedHash : `/${decodedHash}`, url.origin);
+              const hashVideoId = YoutubeHelper.extractVideoId(hashUrl);
+              if (hashVideoId) {
+                return hashVideoId;
+              }
+            } catch {
+              const hashVideoId = /(?:^|[?&#])v=([^&#]+)/.exec(decodedHash)?.[1];
+              if (hashVideoId) {
+                return hashVideoId;
+              }
+            }
+          }
+          if (url.hostname === "youtu.be") {
+            const id = url.pathname.replace(/^\/+/, "").split("/")[0];
+            return id || void 0;
+          }
+          const pathVideoId = /\/(?:watch|embed|shorts|live|v|e)\/([^/?#]+)/.exec(url.pathname)?.[1] ?? void 0;
+          if (pathVideoId) {
+            return pathVideoId;
+          }
+          return url.searchParams.get("v") ?? void 0;
+        }
         static getPlayer() {
           if (window.location.pathname.startsWith("/shorts/") && !YoutubeHelper.isMobile()) {
             return document.querySelector("#shorts-player");
@@ -7445,15 +7407,11 @@ ${lines.join("\n")}`;
           };
         }
         async getVideoId(url) {
-          if (url.hostname === "youtu.be") {
-            url.search = `?v=${url.pathname.replace("/", "")}`;
-            url.pathname = "/watch";
-          }
           if (url.searchParams.has("enablejsapi")) {
             const videoUrl = YoutubeHelper.getPlayer()?.getVideoUrl();
             url = videoUrl ? new URL(videoUrl) : url;
           }
-          return /(?:watch|embed|shorts|live)\/([^/]+)/.exec(url.pathname)?.[1] ?? url.searchParams.get("v");
+          return YoutubeHelper.extractVideoId(url);
         }
       }
       const zdfPlayPathRe = /^\/play\/([^/?#]+)\/([^/?#]+)\/([^/?#]+)\/?$/i;
@@ -8177,11 +8135,11 @@ ${lines.join("\n")}`;
       }
       const workerHost = "api.browser.yandex.ru";
       const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
-      const proxyWorkerHost = "vot-worker.toil.cc";
+      const proxyWorkerHost = "vot-worker.kload.workers.dev";
       const votBackendUrl = "https://vot.toil.cc/v1";
-      const foswlyTranslateUrl = "https://translate.toil.cc/v2";
+      const foswlyTranslateUrl = "https://translate-backend.transly.workers.dev/v2";
       const detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
-      const authServerUrl = "https://t2mc.toil.cc";
+      const authServerUrl = "https://rust-server-531j.onrender.com";
       const avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
       const repoPath = "ilyhalight/voice-over-translation";
       const contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
@@ -8190,7 +8148,7 @@ ${lines.join("\n")}`;
       const maxAudioVolume = 900;
       const minLongWaitingCount = 5;
       const defaultTranslationService = "yandexbrowser";
-      const defaultDetectService = "rust-server";
+      const defaultDetectService = "yandexbrowser";
       const nonProxyExtensions = ["Tampermonkey", "Violentmonkey"];
       const proxyOnlyCountries = ["UA", "LV", "LT"];
       const defaultAutoHideDelay = 1e3;
@@ -8212,6 +8170,7 @@ ${lines.join("\n")}`;
         "subtitlesSmartLayout",
         "highlightWords",
         "subtitlesFontSize",
+        "subtitlesFontFamily",
         "subtitlesOpacity",
         "subtitlesDownloadFormat",
         "responseLanguage",
@@ -8236,164 +8195,17 @@ ${lines.join("\n")}`;
         "localePhrases",
         "localeLang",
         "localeHash",
+        "localeVersion",
         "localeUpdatedAt",
         "localeLangOverride",
         "account"
       ];
-      const log = (...text) => {
-        console.log(
-          "%c[VOT DEBUG]",
-          "background: #3700ffff; color: #fff; padding: 5px;",
-          ...text
-        );
+      const noop = () => {
       };
-      const warn = (...text) => {
-        console.warn(
-          "%c[VOT DEBUG]",
-          "background: #e1ff00ff; color: #fff; padding: 5px;",
-          ...text
-        );
-      };
-      const error = (...text) => {
-        console.error(
-          "%c[VOT DEBUG]",
-          "background: #F2452D; color: #fff; padding: 5px;",
-          ...text
-        );
-      };
+      const log = noop;
+      const warn = noop;
+      const error = noop;
       const debug = { log, warn, error };
-      function stringifyUnknownObject(value) {
-        const seen2 = new WeakSet();
-        try {
-          const serialized = JSON.stringify(value, (_key, currentValue) => {
-            if (typeof currentValue !== "object" || currentValue === null) {
-              return currentValue;
-            }
-            if (seen2.has(currentValue)) {
-              return "[Circular]";
-            }
-            seen2.add(currentValue);
-            return currentValue;
-          });
-          return serialized ?? null;
-        } catch {
-          return null;
-        }
-      }
-      function toErrorMessage(error2, fallback = "Unknown error") {
-        if (error2 instanceof Error) {
-          return error2.message || fallback;
-        }
-        if (typeof error2 === "string") {
-          return error2 || fallback;
-        }
-        if (error2 === null || error2 === void 0) {
-          return fallback;
-        }
-        if (typeof error2 === "object") {
-          const anyErr = error2;
-          if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
-            return anyErr.data.message;
-          }
-          if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
-            return anyErr.error.message;
-          }
-          if (typeof anyErr?.message === "string" && anyErr.message) {
-            return anyErr.message;
-          }
-          const serialized = stringifyUnknownObject(error2);
-          if (serialized && serialized !== "{}") {
-            return serialized;
-          }
-          const ctorName = error2.constructor?.name;
-          return ctorName ? `[${ctorName}]` : fallback;
-        }
-        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
-          return `${error2}`;
-        }
-        if (typeof error2 === "symbol") {
-          return error2.description ? `Symbol(${error2.description})` : "Symbol";
-        }
-        if (typeof error2 === "function") {
-          return error2.name ? `[Function ${error2.name}]` : "[Function]";
-        }
-        return fallback;
-      }
-      function getErrorMessage(error2) {
-        return toErrorMessage(error2, "");
-      }
-      function isAbortError(err) {
-        const anyErr = err;
-        return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
-      }
-      function makeAbortError(message = "Aborted") {
-        try {
-          return new DOMException(message, "AbortError");
-        } catch {
-          const err = new Error(message);
-          err.name = "AbortError";
-          return err;
-        }
-      }
-      const NEVER_ABORTED_SIGNAL = new AbortController().signal;
-      function throwIfAborted(signal) {
-        const maybeThrow = signal.throwIfAborted;
-        if (typeof maybeThrow === "function") {
-          try {
-            maybeThrow.call(signal);
-            return;
-          } catch (e2) {
-            if (signal.aborted || isAbortError(e2)) {
-              throw makeAbortError();
-            }
-            throw e2 instanceof Error ? e2 : new Error(String(e2));
-          }
-        }
-        if (signal.aborted) {
-          throw makeAbortError();
-        }
-      }
-      function createTimeoutSignal(timeoutMs, external) {
-        const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
-        if (!hasEffectiveTimeout) {
-          return {
-            signal: external ?? NEVER_ABORTED_SIGNAL,
-            cleanup: () => {
-            }
-          };
-        }
-        const controller = new AbortController();
-        let timeoutId;
-        const onExternalAbort = () => {
-          if (timeoutId !== void 0) {
-            clearTimeout(timeoutId);
-            timeoutId = void 0;
-          }
-          controller.abort(external?.reason);
-        };
-        if (external) {
-          external.addEventListener("abort", onExternalAbort, { once: true });
-          if (external.aborted) {
-            onExternalAbort();
-          }
-        }
-        if (!controller.signal.aborted) {
-          timeoutId = setTimeout(() => {
-            controller.abort(makeAbortError("Timeout"));
-            timeoutId = void 0;
-          }, timeoutMs);
-        }
-        return {
-          signal: controller.signal,
-          cleanup: () => {
-            if (timeoutId !== void 0) {
-              clearTimeout(timeoutId);
-              timeoutId = void 0;
-            }
-            external?.removeEventListener("abort", onExternalAbort);
-          }
-        };
-      }
       function getNavigatorLang() {
         return navigator.language?.substring(0, 2).toLowerCase() || "en";
       }
@@ -8582,16 +8394,539 @@ ${lines.join("\n")}`;
         }
         return out;
       }
-      async function exitFullscreen() {
-        const doc = document;
-        if (!doc.fullscreenElement && !doc.webkitFullscreenElement) return;
-        if (doc.exitFullscreen) {
-          await doc.exitFullscreen();
-          return;
+      const YANDEX_TTL_MS = 2 * 60 * 60 * 1e3;
+      const RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
+      const RESPONSE_CACHE_KEY_HEADER = "x-vot-cache-key";
+      const DEFAULT_RESPONSE_CACHE_NAME = "vot-http-cache-v1";
+      const MAX_MEMORY_CACHE_ENTRIES = 500;
+      const VOT_SESSION_STORAGE_KEY = "VOTSession";
+      const EXPIRY_FIELD_BY_FIELD = {
+        translation: "translationExpiresAt",
+        subtitles: "subtitlesExpiresAt"
+      };
+      function getCurrentUnixTimestampSeconds() {
+        return Math.floor(Date.now() / 1e3);
+      }
+      function isVOTSession(value) {
+        if (!value || typeof value !== "object") {
+          return false;
         }
-        if (doc.webkitExitFullscreen) {
-          await doc.webkitExitFullscreen();
+        const candidate = value;
+        return typeof candidate.expires === "number" && Number.isFinite(candidate.expires) && typeof candidate.timestamp === "number" && Number.isFinite(candidate.timestamp) && typeof candidate.uuid === "string" && candidate.uuid.length > 0 && typeof candidate.secretKey === "string" && candidate.secretKey.length > 0;
+      }
+      function sanitizeVOTSessions(value) {
+        if (!value || typeof value !== "object") {
+          return {};
         }
+        const now2 = getCurrentUnixTimestampSeconds();
+        const entries = Object.entries(value).flatMap(
+          ([module, session]) => {
+            if (!isVOTSession(session)) {
+              return [];
+            }
+            if (session.timestamp + session.expires <= now2) {
+              return [];
+            }
+            return [[module, session]];
+          }
+        );
+        return Object.fromEntries(entries);
+      }
+      function isStoredVOTSession(value) {
+        if (!value || typeof value !== "object") {
+          return false;
+        }
+        const candidate = value;
+        return typeof candidate.expiresAt === "number" && Number.isFinite(candidate.expiresAt) && typeof candidate.secretKey === "string" && candidate.secretKey.length > 0 && typeof candidate.uuid === "string" && candidate.uuid.length > 0;
+      }
+      class VOTSessionStorageCache {
+        constructor(storage = votStorage) {
+          this.storage = storage;
+        }
+        getStorageKey(host) {
+          return VOT_SESSION_STORAGE_KEY;
+        }
+        async restore(host, currentSessions = {}) {
+          const storageKey = this.getStorageKey(host);
+          const rawStoredSession = await this.storage.getRaw(storageKey);
+          if (!isStoredVOTSession(rawStoredSession)) {
+            return currentSessions;
+          }
+          const nowMs = Date.now();
+          if (rawStoredSession.expiresAt <= nowMs) {
+            await this.storage.deleteRaw(storageKey);
+            return currentSessions;
+          }
+          const remainingSeconds = Math.max(
+            1,
+            Math.ceil((rawStoredSession.expiresAt - nowMs) / 1e3)
+          );
+          return {
+            ...currentSessions,
+            "video-translation": {
+              secretKey: rawStoredSession.secretKey,
+              uuid: rawStoredSession.uuid,
+              expires: remainingSeconds,
+              timestamp: Math.floor(nowMs / 1e3)
+            }
+          };
+        }
+        async persist(host, sessions) {
+          const storageKey = this.getStorageKey(host);
+          const translationSession = sanitizeVOTSessions(sessions)["video-translation"];
+          if (!translationSession) {
+            await this.storage.deleteRaw(storageKey);
+            return;
+          }
+          await this.storage.setRaw(storageKey, {
+            secretKey: translationSession.secretKey,
+            uuid: translationSession.uuid,
+            expiresAt: (translationSession.timestamp + translationSession.expires) * 1e3
+          });
+        }
+      }
+      class InMemoryCacheManager {
+        cache = new Map();
+clear() {
+          this.cache.clear();
+        }
+        getTranslation(key) {
+          return this.getValue(key, "translation");
+        }
+        setTranslation(key, translation) {
+          this.setValue(key, "translation", translation);
+        }
+        getSubtitles(key) {
+          return this.getValue(key, "subtitles");
+        }
+        setSubtitles(key, subtitles) {
+          this.setValue(key, "subtitles", subtitles);
+        }
+        deleteSubtitles(key) {
+          this.deleteValue(key, "subtitles");
+        }
+        getValue(key, field) {
+          const now2 = Date.now();
+          const entry = this.cache.get(key);
+          if (!entry) return void 0;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          const expiresAt = entry[expiryField];
+          if (expiresAt !== void 0 && expiresAt <= now2) {
+            entry[field] = void 0;
+            entry[expiryField] = void 0;
+            this.evictIfEmpty(key, entry);
+            return void 0;
+          }
+          return entry[field];
+        }
+        setValue(key, field, value) {
+          const now2 = Date.now();
+          const entry = this.getOrCreateEntry(key);
+          const expiresAt = now2 + YANDEX_TTL_MS;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          entry[field] = value;
+          entry[expiryField] = expiresAt;
+        }
+        deleteValue(key, field) {
+          const entry = this.cache.get(key);
+          if (!entry) return;
+          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
+          entry[field] = void 0;
+          entry[expiryField] = void 0;
+          this.evictIfEmpty(key, entry);
+        }
+        evictIfEmpty(key, entry) {
+          if (entry.translation === void 0 && entry.subtitles === void 0) {
+            this.cache.delete(key);
+          }
+        }
+        getOrCreateEntry(key) {
+          const existing = this.cache.get(key);
+          if (existing) return existing;
+          const entry = {};
+          this.cache.set(key, entry);
+          return entry;
+        }
+      }
+      class ResponseCacheManager {
+        memoryCache = new Map();
+        inFlightRequests = new Map();
+        async execute(context, options, fetcher) {
+          if (!options || options.ttlMs <= 0) {
+            return fetcher();
+          }
+          const key = options.key ?? this.buildDefaultCacheKey(context);
+          if (!key) {
+            return fetcher();
+          }
+          const method = this.normalizeMethod(context.method);
+          const ttlMs = options.ttlMs;
+          const cacheName = options.cacheName || DEFAULT_RESPONSE_CACHE_NAME;
+          const useMemory = options.useMemory !== false;
+          const useCacheApi = options.useCacheApi !== false && method === "GET" && this.supportsCacheApi();
+          const cacheApiKey = useCacheApi ? fnv1a32ToKeyPart(key) : "";
+          const dedupe = options.dedupe !== false;
+          const allowStaleOnError = options.allowStaleOnError !== false;
+          const nowMs = Date.now();
+          let staleFallback;
+          if (useMemory) {
+            const memoryHit = this.readMemoryCache(key, nowMs);
+            if (memoryHit.fresh) {
+              return memoryHit.fresh;
+            }
+            staleFallback = memoryHit.stale ?? staleFallback;
+          }
+          if (useCacheApi) {
+            const cacheApiHit = await this.readCacheApi(
+              cacheName,
+              context.url,
+              cacheApiKey,
+              ttlMs,
+              nowMs,
+              allowStaleOnError
+            );
+            if (cacheApiHit.fresh) {
+              if (useMemory) {
+                this.writeMemoryCache(
+                  key,
+                  cacheApiHit.fresh.clone(),
+                  cacheApiHit.expiresAt ?? nowMs + ttlMs
+                );
+              }
+              return cacheApiHit.fresh;
+            }
+            staleFallback = staleFallback ?? cacheApiHit.stale;
+          }
+          const runNetworkRequest = async () => {
+            const response = await fetcher();
+            if (!response.ok) {
+              return response;
+            }
+            const createdAtMs = Date.now();
+            const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+            if (useMemory) {
+              this.writeMemoryCache(key, response.clone(), expiresAt);
+            }
+            if (useCacheApi) {
+              const storable = this.toStorableResponse(response.clone(), createdAtMs);
+              await this.writeCacheApi(cacheName, context.url, cacheApiKey, storable);
+            }
+            return response;
+          };
+          if (!dedupe) {
+            try {
+              return await runNetworkRequest();
+            } catch (err) {
+              if (allowStaleOnError && staleFallback) {
+                return staleFallback;
+              }
+              throw err;
+            }
+          }
+          const inFlight = this.inFlightRequests.get(key);
+          if (inFlight !== void 0) {
+            return (await inFlight).clone();
+          }
+          const networkPromise = (async () => {
+            try {
+              return await runNetworkRequest();
+            } catch (err) {
+              if (allowStaleOnError && staleFallback) {
+                return staleFallback.clone();
+              }
+              throw err;
+            }
+          })();
+          this.inFlightRequests.set(key, networkPromise);
+          try {
+            return (await networkPromise).clone();
+          } finally {
+            this.inFlightRequests.delete(key);
+          }
+        }
+        computeExpiresAt(createdAtMs, ttlMs) {
+          if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
+            return createdAtMs;
+          }
+          const maxAdd = Number.MAX_SAFE_INTEGER - createdAtMs;
+          if (ttlMs >= maxAdd) {
+            return Number.MAX_SAFE_INTEGER;
+          }
+          return createdAtMs + ttlMs;
+        }
+        normalizeMethod(method) {
+          return (method || "GET").toUpperCase();
+        }
+        resolveBodyKey(body) {
+          if (body == null) return "";
+          if (typeof body === "string") return body;
+          if (body instanceof URLSearchParams) return body.toString();
+          return void 0;
+        }
+        buildDefaultCacheKey(context) {
+          const method = this.normalizeMethod(context.method);
+          if (method === "GET" || method === "HEAD") {
+            return `${method}:${context.url}`;
+          }
+          const bodyKey = this.resolveBodyKey(context.body);
+          if (bodyKey === void 0) return void 0;
+          return `${method}:${context.url}#${fnv1a32ToKeyPart(bodyKey)}`;
+        }
+        supportsCacheApi() {
+          return typeof caches !== "undefined" && typeof caches.open === "function";
+        }
+        readCreatedAtMs(response) {
+          const raw = response.headers.get(RESPONSE_CACHE_CREATED_AT_HEADER);
+          if (!raw) return null;
+          const value = Number(raw);
+          return Number.isFinite(value) ? value : null;
+        }
+        ensureVaryByCacheKey(headers) {
+          const varyRaw = headers.get("vary");
+          if (!varyRaw) {
+            headers.set("vary", RESPONSE_CACHE_KEY_HEADER);
+            return;
+          }
+          const varyParts = new Set(
+            varyRaw.split(",").map((part) => part.trim().toLowerCase())
+          );
+          if (!varyParts.has("*") && !varyParts.has(RESPONSE_CACHE_KEY_HEADER)) {
+            headers.set("vary", `${varyRaw}, ${RESPONSE_CACHE_KEY_HEADER}`);
+          }
+        }
+        toStorableResponse(response, createdAtMs) {
+          const headers = new Headers(response.headers);
+          headers.set(RESPONSE_CACHE_CREATED_AT_HEADER, String(createdAtMs));
+          this.ensureVaryByCacheKey(headers);
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers
+          });
+        }
+        readMemoryCache(key, nowMs) {
+          const entry = this.memoryCache.get(key);
+          if (!entry) return {};
+          if (entry.expiresAt > nowMs) {
+            this.touchMemoryCache(key, entry);
+            return {
+              fresh: entry.response.clone(),
+              expiresAt: entry.expiresAt
+            };
+          }
+          this.memoryCache.delete(key);
+          return {
+            stale: entry.response.clone(),
+            expiresAt: entry.expiresAt
+          };
+        }
+        touchMemoryCache(key, entry) {
+          this.memoryCache.delete(key);
+          this.memoryCache.set(key, entry);
+        }
+        trimMemoryCache() {
+          while (this.memoryCache.size > MAX_MEMORY_CACHE_ENTRIES) {
+            const first = this.memoryCache.keys().next().value;
+            if (typeof first !== "string") break;
+            this.memoryCache.delete(first);
+          }
+        }
+        writeMemoryCache(key, response, expiresAt) {
+          if (this.memoryCache.has(key)) {
+            this.memoryCache.delete(key);
+          }
+          this.memoryCache.set(key, {
+            response,
+            expiresAt
+          });
+          this.trimMemoryCache();
+        }
+        async readCacheApi(cacheName, url, cacheKey, ttlMs, nowMs, allowStaleOnError) {
+          try {
+            const request = new Request(url, {
+              method: "GET",
+              headers: {
+                [RESPONSE_CACHE_KEY_HEADER]: cacheKey
+              }
+            });
+            const cache = await caches.open(cacheName);
+            const cached = await cache.match(request);
+            if (!cached) return {};
+            const createdAtMs = this.readCreatedAtMs(cached);
+            if (createdAtMs === null) {
+              await cache.delete(request);
+              return {};
+            }
+            const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+            if (expiresAt > nowMs) {
+              return {
+                fresh: cached.clone(),
+                expiresAt
+              };
+            }
+            if (!allowStaleOnError) {
+              await cache.delete(request);
+              return {};
+            }
+            const stale = cached.clone();
+            await cache.delete(request);
+            return {
+              stale,
+              expiresAt
+            };
+          } catch {
+            return {};
+          }
+        }
+        async writeCacheApi(cacheName, url, cacheKey, response) {
+          try {
+            const request = new Request(url, {
+              method: "GET",
+              headers: {
+                [RESPONSE_CACHE_KEY_HEADER]: cacheKey
+              }
+            });
+            const cache = await caches.open(cacheName);
+            await cache.put(request, response);
+          } catch {
+          }
+        }
+      }
+      const responseCacheManager = new ResponseCacheManager();
+      async function executeWithResponseCache(context, options, fetcher) {
+        return responseCacheManager.execute(context, options, fetcher);
+      }
+      function stringifyUnknownObject(value) {
+        const seen2 = new WeakSet();
+        try {
+          const serialized = JSON.stringify(value, (_key, currentValue) => {
+            if (typeof currentValue !== "object" || currentValue === null) {
+              return currentValue;
+            }
+            if (seen2.has(currentValue)) {
+              return "[Circular]";
+            }
+            seen2.add(currentValue);
+            return currentValue;
+          });
+          return serialized ?? null;
+        } catch {
+          return null;
+        }
+      }
+      function toErrorMessage(error2, fallback = "Unknown error") {
+        if (error2 instanceof Error) {
+          return error2.message || fallback;
+        }
+        if (typeof error2 === "string") {
+          return error2 || fallback;
+        }
+        if (error2 === null || error2 === void 0) {
+          return fallback;
+        }
+        if (typeof error2 === "object") {
+          const anyErr = error2;
+          if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
+            return anyErr.data.message;
+          }
+          if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
+            return anyErr.error.message;
+          }
+          if (typeof anyErr?.message === "string" && anyErr.message) {
+            return anyErr.message;
+          }
+          const serialized = stringifyUnknownObject(error2);
+          if (serialized && serialized !== "{}") {
+            return serialized;
+          }
+          const ctorName = error2.constructor?.name;
+          return ctorName ? `[${ctorName}]` : fallback;
+        }
+        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
+          return `${error2}`;
+        }
+        if (typeof error2 === "symbol") {
+          return error2.description ? `Symbol(${error2.description})` : "Symbol";
+        }
+        if (typeof error2 === "function") {
+          return error2.name ? `[Function ${error2.name}]` : "[Function]";
+        }
+        return fallback;
+      }
+      function getErrorMessage(error2) {
+        return toErrorMessage(error2, "");
+      }
+      function isAbortError(err) {
+        const anyErr = err;
+        return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
+      }
+      function makeAbortError(message = "Aborted") {
+        try {
+          return new DOMException(message, "AbortError");
+        } catch {
+          const err = new Error(message);
+          err.name = "AbortError";
+          return err;
+        }
+      }
+      const NEVER_ABORTED_SIGNAL = new AbortController().signal;
+      function throwIfAborted(signal) {
+        const maybeThrow = signal.throwIfAborted;
+        if (typeof maybeThrow === "function") {
+          try {
+            maybeThrow.call(signal);
+            return;
+          } catch (e2) {
+            if (signal.aborted || isAbortError(e2)) {
+              throw makeAbortError();
+            }
+            throw e2 instanceof Error ? e2 : new Error(String(e2));
+          }
+        }
+        if (signal.aborted) {
+          throw makeAbortError();
+        }
+      }
+      function createTimeoutSignal(timeoutMs, external) {
+        const hasEffectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
+        if (!hasEffectiveTimeout) {
+          return {
+            signal: external ?? NEVER_ABORTED_SIGNAL,
+            cleanup: () => {
+            }
+          };
+        }
+        const controller = new AbortController();
+        let timeoutId;
+        const onExternalAbort = () => {
+          if (timeoutId !== void 0) {
+            clearTimeout(timeoutId);
+            timeoutId = void 0;
+          }
+          controller.abort(external?.reason);
+        };
+        if (external) {
+          external.addEventListener("abort", onExternalAbort, { once: true });
+          if (external.aborted) {
+            onExternalAbort();
+          }
+        }
+        if (!controller.signal.aborted) {
+          timeoutId = setTimeout(() => {
+            controller.abort(makeAbortError("Timeout"));
+            timeoutId = void 0;
+          }, timeoutMs);
+        }
+        return {
+          signal: controller.signal,
+          cleanup: () => {
+            if (timeoutId !== void 0) {
+              clearTimeout(timeoutId);
+              timeoutId = void 0;
+            }
+            external?.removeEventListener("abort", onExternalAbort);
+          }
+        };
       }
       const YANDEX_API_HOST = "api.browser.yandex.ru";
       const GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
@@ -8639,6 +8974,15 @@ ${lines.join("\n")}`;
           return url.href;
         }
         return url.url;
+      }
+      function resolveRequestMethod(url, method) {
+        if (method) {
+          return method.toUpperCase();
+        }
+        if (url instanceof Request) {
+          return (url.method || "GET").toUpperCase();
+        }
+        return "GET";
       }
       function parseResponseHeaders(rawHeaders) {
         if (typeof rawHeaders !== "string" || rawHeaders.length === 0) {
@@ -8728,35 +9072,53 @@ ${lines.join("\n")}`;
         });
       }
       async function GM_fetch(url, opts = {}) {
-        const { timeout: timeout2 = 15e3, forceGmXhr = false, ...fetchOptions } = opts;
+        const {
+          timeout: timeout2 = 15e3,
+          forceGmXhr = false,
+          responseCache,
+          ...fetchOptions
+        } = opts;
         const urlStr = toRequestUrl(url);
         const host = getRequestHost(urlStr);
-        if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
-          debug.log("GM_fetch: routing request via GM_xmlhttpRequest", {
-            host: host ?? "unknown",
-            reason: forceGmXhr ? "forced" : "host-policy",
-            url: urlStr
-          });
-          return await gmXhrFetch(urlStr, timeout2, fetchOptions);
-        }
-        const { signal, cleanup } = createTimeoutSignal(timeout2, fetchOptions.signal);
-        try {
-          return await fetch(url, {
-            ...fetchOptions,
-            signal
-          });
-        } catch (err) {
-          if (signal.aborted || isAbortError(err)) {
-            throw err;
+        const method = resolveRequestMethod(url, fetchOptions.method);
+        const performRequest = async () => {
+          if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
+            return await gmXhrFetch(urlStr, timeout2, fetchOptions);
           }
-          debug.log(
-            "GM_fetch preventing CORS by GM_xmlhttpRequest",
-            getErrorMessage(err) || "Unknown error"
+          const { signal, cleanup } = createTimeoutSignal(
+            timeout2,
+            fetchOptions.signal
           );
-          return await gmXhrFetch(urlStr, timeout2, fetchOptions);
-        } finally {
-          cleanup();
+          try {
+            return await fetch(url, {
+              ...fetchOptions,
+              signal
+            });
+          } catch (err) {
+            if (signal.aborted || isAbortError(err)) {
+              throw err;
+            }
+            debug.log(
+              "GM_fetch preventing CORS by GM_xmlhttpRequest",
+              getErrorMessage(err) || "Unknown error"
+            );
+            return await gmXhrFetch(urlStr, timeout2, fetchOptions);
+          } finally {
+            cleanup();
+          }
+        };
+        if (!responseCache) {
+          return await performRequest();
         }
+        return await executeWithResponseCache(
+          {
+            url: urlStr,
+            method,
+            body: fetchOptions.body
+          },
+          responseCache,
+          performRequest
+        );
       }
       const compatMay2025Data = {
         numToBool: [
@@ -8903,7 +9265,7 @@ get isSupportOnlyLS() {
           const support = this.resolveSupport();
           return !support.legacyGet && !support.legacySet && !support.legacyDelete && !support.legacyList && !support.promiseGet && !support.promiseGetValues && !support.promiseSet && !support.promiseDelete && !support.promiseList;
         }
-        syncGet(name, def, support) {
+        syncGetByName(name, def, support) {
           if (support.legacyGet) {
             return GM_getValue(name, def);
           }
@@ -8917,12 +9279,15 @@ get isSupportOnlyLS() {
             return def;
           }
         }
-        async get(name, def) {
+        async getRaw(name, def) {
           const support = this.resolveSupport();
           if (support.promiseGet && GM.getValue) {
             return await GM.getValue(name, def);
           }
-          return this.syncGet(name, def, support);
+          return this.syncGetByName(name, def, support);
+        }
+        async get(name, def) {
+          return this.getRaw(name, def);
         }
         async getValues(data) {
           const support = this.resolveSupport();
@@ -8940,34 +9305,43 @@ get isSupportOnlyLS() {
             return Object.fromEntries(values);
           }
           return Object.fromEntries(
-            entries.map(([key, value]) => [key, this.syncGet(key, value, support)])
+            entries.map(([key, value]) => [
+              key,
+              this.syncGetByName(key, value, support)
+            ])
           );
         }
-        syncSet(name, value, support) {
+        syncSetByName(name, value, support) {
           if (support.legacySet) {
             return GM_setValue(name, value);
           }
           return globalThis.localStorage.setItem(name, JSON.stringify(value));
         }
-        async set(name, value) {
+        async setRaw(name, value) {
           const support = this.resolveSupport();
           if (support.promiseSet && GM.setValue) {
             return await GM.setValue(name, value);
           }
-          return this.syncSet(name, value, support);
+          return this.syncSetByName(name, value, support);
         }
-        syncDelete(name, support) {
+        async set(name, value) {
+          return this.setRaw(name, value);
+        }
+        syncDeleteByName(name, support) {
           if (support.legacyDelete) {
             return GM_deleteValue(name);
           }
           return globalThis.localStorage.removeItem(name);
         }
-        async delete(name) {
+        async deleteRaw(name) {
           const support = this.resolveSupport();
           if (support.promiseDelete && GM.deleteValue) {
             return await GM.deleteValue(name);
           }
-          return this.syncDelete(name, support);
+          return this.syncDeleteByName(name, support);
+        }
+        async delete(name) {
+          return this.deleteRaw(name);
         }
         syncList(support) {
           if (support.legacyList) {
@@ -8994,6 +9368,20 @@ get isSupportOnlyLS() {
         scope[VOT_STORAGE_GLOBAL_KEY] = created;
         return created;
       })();
+      function getProfilePayload() {
+        const payload = globalThis._userData;
+        if (!payload || typeof payload !== "object") {
+          return null;
+        }
+        const candidate = payload;
+        if (typeof candidate.avatar_id !== "string" || typeof candidate.username !== "string" || candidate.avatar_id.length === 0 || candidate.username.length === 0) {
+          return null;
+        }
+        return {
+          avatar_id: candidate.avatar_id,
+          username: candidate.username
+        };
+      }
       async function handleAuthCallbackPage() {
         const { access_token: token, expires_in: expiresIn } = Object.fromEntries(
           new URLSearchParams(globalThis.location.hash.slice(1))
@@ -9013,10 +9401,11 @@ get isSupportOnlyLS() {
         });
       }
       async function handleProfilePage() {
-        const { avatar_id: avatarId, username } = _userData;
-        if (!avatarId || !username) {
+        const payload = getProfilePayload();
+        if (!payload) {
           throw new Error("[VOT] Invalid user data");
         }
+        const { avatar_id: avatarId, username } = payload;
         const data = await votStorage.get("account");
         if (!data) {
           throw new Error("[VOT] No account data found");
@@ -9029,10 +9418,10 @@ get isSupportOnlyLS() {
       }
       async function initAuth() {
         if (globalThis.location.pathname === "/auth/callback") {
-          return await handleAuthCallbackPage();
+          return handleAuthCallbackPage();
         }
         if (globalThis.location.pathname === "/my/profile") {
-          return await handleProfilePage();
+          return handleProfilePage();
         }
       }
       const recommended = "recommended";
@@ -9090,6 +9479,7 @@ get isSupportOnlyLS() {
       const translationTakeApproximatelyMinute2 = "The translation will take approximately {0} minutes";
       const VOTAudioBooster = "Extended translation volume increase";
       const VOTSubtitlesDesign = "Subtitles design";
+      const VOTSubtitlesFont = "Subtitle font";
       const VOTSubtitlesFontSize = "Font size of subtitles";
       const VOTSubtitlesOpacity = "Transparency of the subtitle background";
       const VOTSubtitlesDownloadFormat = "The format for downloading subtitles";
@@ -9198,6 +9588,7 @@ get isSupportOnlyLS() {
         translationTakeApproximatelyMinute2,
         VOTAudioBooster,
         VOTSubtitlesDesign,
+        VOTSubtitlesFont,
         VOTSubtitlesFontSize,
         VOTSubtitlesOpacity,
         VOTSubtitlesDownloadFormat,
@@ -9256,21 +9647,28 @@ get isSupportOnlyLS() {
         "localePhrases",
         "localeLang",
         "localeHash",
+        "localeVersion",
         "localeUpdatedAt",
         "localeLangOverride"
       ];
-      const DEFAULT_LOCALE$1 = toFlatObj(rawDefaultLocale);
-      const CACHE_TTL_SECONDS = 7200;
+      const DEFAULT_LOCALE = toFlatObj(rawDefaultLocale);
       const repoBranch = "master";
       const availableLocales = (() => {
         const locales = typeof define_AVAILABLE_LOCALES_default !== "undefined" && Array.isArray(define_AVAILABLE_LOCALES_default) ? define_AVAILABLE_LOCALES_default : ["en"];
         return locales.includes("auto") ? locales : ["auto", ...locales];
       })();
+      function resolveRuntimeLocaleVersion(buildVersion, scriptVersion) {
+        return buildVersion || scriptVersion || "unknown";
+      }
+      function getRuntimeLocaleVersion() {
+        const buildVersion = String("1.11.3");
+        const scriptVersion = typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "";
+        return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
+      }
       class LocalizationProvider {
 lang;
 locale;
-        defaultLocale = DEFAULT_LOCALE$1;
-        cacheTTL = CACHE_TTL_SECONDS;
+        defaultLocale = DEFAULT_LOCALE;
         localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
         hashesUrl = `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
         warnedMissingKeys = new Set();
@@ -9318,7 +9716,6 @@ locale;
           return true;
         }
         async checkUpdates(force = false) {
-          debug.log("Check locale updates...");
           try {
             const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
             if (!res.ok) throw res.status;
@@ -9341,25 +9738,22 @@ locale;
           }
         }
         async update(force = false) {
-          const timestamp = getTimestamp();
-          if (!force) {
-            const [localeUpdatedAt, localeLang] = await Promise.all([
-              votStorage.get("localeUpdatedAt", 0),
-              votStorage.get("localeLang", "")
-            ]);
-            if (localeUpdatedAt + this.cacheTTL > timestamp && localeLang === this.lang) {
-              return this;
-            }
+          const runtimeLocaleVersion = getRuntimeLocaleVersion();
+          const storedLocaleVersion = await votStorage.get(
+            "localeVersion",
+            ""
+          );
+          if (!force && storedLocaleVersion === runtimeLocaleVersion) {
+            return this;
           }
           const hash = await this.checkUpdates(force);
           if (hash === null) {
             return this;
           }
           if (!hash) {
-            await votStorage.set("localeUpdatedAt", timestamp);
             return this;
           }
-          debug.log("Updating locale...");
+          const timestamp = getTimestamp();
           try {
             const res = await GM_fetch(
               this.buildUrl(this.localesUrl, `/${this.lang}.json`, force)
@@ -9371,6 +9765,7 @@ locale;
               votStorage.set("localePhrases", text),
               votStorage.set("localeHash", hash),
               votStorage.set("localeLang", this.lang),
+              votStorage.set("localeVersion", runtimeLocaleVersion),
               votStorage.set("localeUpdatedAt", timestamp)
             ]);
           } catch (err) {
@@ -9448,10 +9843,18 @@ locale;
             dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
             extractVideoId: (url) => url.pathname.split("/").at(-2) ?? null,
             responseFormatter: (videoId, data) => `${typeof data === "string" ? data : ""}:${videoId}`
+          },
+          "https://www.dailymotion.com": {
+            targetOrigin: "https://geo.dailymotion.com",
+            dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
+            extractVideoId: (url) => {
+              return /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1];
+            },
+            responseFormatter: (videoId) => `getVideoId:${videoId}`
           }
         };
         const currentConfig = Object.entries(configs).find(
-          ([origin]) => globalThis.location.origin === origin && (origin !== "https://dev.epicgames.com" || globalThis.location.pathname.includes("/community/learning/"))
+          ([origin]) => globalThis.location.origin === origin
         )?.[1];
         if (!currentConfig) return;
         globalThis.addEventListener("message", (event) => {
@@ -9507,10 +9910,8 @@ locale;
           runtimeActivationPromise = null;
         }
       }
-      let observerListenersBound = false;
+      const boundObservers = new WeakSet();
       function bindObserverListeners(options) {
-        if (observerListenersBound) return;
-        observerListenersBound = true;
         const {
           videoObserver: videoObserver2,
           videosWrappers: videosWrappers2,
@@ -9519,6 +9920,8 @@ locale;
           findContainer: findContainer2,
           createVideoHandler
         } = options;
+        if (boundObservers.has(videoObserver2)) return;
+        boundObservers.add(videoObserver2);
         const initializingVideos = new WeakSet();
         const containerOwners = new WeakMap();
         const videoContainers = new WeakMap();
@@ -9536,6 +9939,32 @@ locale;
             return;
           }
           pendingVideoByContainer.delete(container);
+        };
+        const releaseVideoHandler = async (video, reason) => {
+          const videoHandler = videosWrappers2.get(video);
+          if (!videoHandler) {
+            return;
+          }
+          try {
+            await videoHandler.release();
+          } catch (error2) {
+            console.error(`[VOT] Failed to release videoHandler (${reason})`, error2);
+          } finally {
+            videosWrappers2.delete(video);
+          }
+        };
+        const getMatchedSiteAndContainer = (video) => {
+          for (const candidate of getServicesCached2()) {
+            const container = findContainer2(candidate, video);
+            if (container) {
+              return { site: candidate, container };
+            }
+          }
+          return null;
+        };
+        const withRuntimeSiteUrl = (site) => {
+          const host = String(site.host);
+          return host === "peertube" || host === "directlink" ? { ...site, url: globalThis.location.origin } : site;
         };
         const promotePendingVideo = async (container) => {
           if (!container) {
@@ -9561,32 +9990,25 @@ locale;
               console.error("[VOT] Failed to activate runtime", err);
               return;
             }
-            let container = null;
-            const site = getServicesCached2().find((candidate) => {
-              container = findContainer2(candidate, video);
-              return Boolean(container);
-            });
-            if (!site || !container) {
+            const match = getMatchedSiteAndContainer(video);
+            if (!match) {
               return;
             }
+            const { site, container } = match;
             const activeVideoForContainer = containerOwners.get(container);
             if (activeVideoForContainer && activeVideoForContainer !== video) {
               if (activeVideoForContainer.isConnected) {
                 pendingVideoByContainer.set(container, video);
                 return;
               }
-              try {
-                await videosWrappers2.get(activeVideoForContainer)?.release();
-              } catch (err) {
-                console.error("[VOT] Failed to release stale videoHandler", err);
-              }
-              videosWrappers2.delete(activeVideoForContainer);
+              await releaseVideoHandler(activeVideoForContainer, "stale container");
               clearContainerOwner(activeVideoForContainer);
             }
-            if (["peertube", "directlink"].includes(site.host)) {
-              site.url = globalThis.location.origin;
-            }
-            const videoHandler = createVideoHandler(video, container, site);
+            const videoHandler = createVideoHandler(
+              video,
+              container,
+              withRuntimeSiteUrl(site)
+            );
             videosWrappers2.set(video, videoHandler);
             videoContainers.set(video, container);
             containerOwners.set(container, video);
@@ -9602,15 +10024,13 @@ locale;
               }
             } catch (err) {
               if (videosWrappers2.get(video) === videoHandler) {
-                videosWrappers2.delete(video);
+                await releaseVideoHandler(video, "init failed");
                 const container2 = clearContainerOwner(video);
                 clearPendingVideo(container2);
                 await promotePendingVideo(container2);
               }
-              throw err;
+              console.error("[VOT] Failed to initialize videoHandler", err);
             }
-          } catch (err) {
-            console.error("[VOT] Failed to initialize videoHandler", err);
           } finally {
             initializingVideos.delete(video);
           }
@@ -9618,10 +10038,7 @@ locale;
         videoObserver2.onVideoAdded.addListener(handleVideoAdded);
         videoObserver2.onVideoRemoved.addListener(async (video) => {
           const container = clearContainerOwner(video);
-          if (videosWrappers2.has(video)) {
-            await videosWrappers2.get(video)?.release();
-            videosWrappers2.delete(video);
-          }
+          await releaseVideoHandler(video, "video removed");
           initializingVideos.delete(video);
           if (container && pendingVideoByContainer.get(container) === video) {
             clearPendingVideo(container);
@@ -9642,74 +10059,6 @@ locale;
         }
         return "top-full";
       }
-      const YANDEX_TTL_MS = 2 * 60 * 60 * 1e3;
-      const EXPIRY_FIELD_BY_FIELD = {
-        translation: "translationExpiresAt",
-        subtitles: "subtitlesExpiresAt"
-      };
-      class CacheManager {
-        cache = new Map();
-clear() {
-          this.cache.clear();
-        }
-        getTranslation(key) {
-          return this.getValue(key, "translation");
-        }
-        setTranslation(key, translation) {
-          this.setValue(key, "translation", translation);
-        }
-        getSubtitles(key) {
-          return this.getValue(key, "subtitles");
-        }
-        setSubtitles(key, subtitles) {
-          this.setValue(key, "subtitles", subtitles);
-        }
-        deleteSubtitles(key) {
-          this.deleteValue(key, "subtitles");
-        }
-        getValue(key, field) {
-          const now2 = Date.now();
-          const entry = this.cache.get(key);
-          if (!entry) return void 0;
-          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-          const expiresAt = entry[expiryField];
-          if (expiresAt !== void 0 && expiresAt <= now2) {
-            entry[field] = void 0;
-            entry[expiryField] = void 0;
-            this.evictIfEmpty(key, entry);
-            return void 0;
-          }
-          return entry[field];
-        }
-        setValue(key, field, value) {
-          const now2 = Date.now();
-          const entry = this.getOrCreateEntry(key);
-          const expiresAt = now2 + YANDEX_TTL_MS;
-          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-          entry[field] = value;
-          entry[expiryField] = expiresAt;
-        }
-        deleteValue(key, field) {
-          const entry = this.cache.get(key);
-          if (!entry) return;
-          const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-          entry[field] = void 0;
-          entry[expiryField] = void 0;
-          this.evictIfEmpty(key, entry);
-        }
-        evictIfEmpty(key, entry) {
-          if (entry.translation === void 0 && entry.subtitles === void 0) {
-            this.cache.delete(key);
-          }
-        }
-        getOrCreateEntry(key) {
-          const existing = this.cache.get(key);
-          if (existing) return existing;
-          const entry = {};
-          this.cache.set(key, entry);
-          return entry;
-        }
-      }
       function getComposableParent(node) {
         if (!node) return null;
         if (typeof ShadowRoot !== "undefined" && node instanceof ShadowRoot) {
@@ -9724,6 +10073,24 @@ clear() {
           node = getComposableParent(node);
         }
         return false;
+      }
+      function isDocumentViewportElement(element) {
+        return element === document.body || element === document.documentElement;
+      }
+      function resolveScopedFullscreenElement(fullscreenEl, anchors, options = {}) {
+        const { allowDocumentViewport = false } = options;
+        if (!(fullscreenEl instanceof HTMLElement)) {
+          return null;
+        }
+        if (isDocumentViewportElement(fullscreenEl) && !allowDocumentViewport) {
+          return null;
+        }
+        for (const anchor of anchors) {
+          if (anchor && (containsCrossShadow(fullscreenEl, anchor) || containsCrossShadow(anchor, fullscreenEl))) {
+            return fullscreenEl;
+          }
+        }
+        return null;
       }
       function closestCrossShadow(element, selector) {
         if (!element || !selector) return null;
@@ -9770,6 +10137,19 @@ clear() {
           return matched;
         }
         return null;
+      }
+      function resolveOverlayBaseContainer(container, site) {
+        return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
+      }
+      function resolveOverlayMountTargets(input) {
+        const base = resolveOverlayBaseContainer(input.container, input.site);
+        const root = input.fullscreenRoot ?? base;
+        return {
+          base,
+          root,
+          portalContainer: base,
+          subtitlesMountContainer: root
+        };
       }
       class EventImpl {
         listeners = new Set();
@@ -9834,10 +10214,6 @@ clear() {
         const normalizedMimeType = normalizeMimeType(mimeType);
         return normalizedMimeType.includes("audio/") && !normalizedMimeType.includes("video/");
       }
-      function isPreferredAdaptiveAudioMimeType(mimeType) {
-        const normalizedMimeType = normalizeMimeType(mimeType);
-        return normalizedMimeType.includes("opus") || normalizedMimeType.includes("mp4a.");
-      }
       function isMp4aAdaptiveAudioMimeType(mimeType) {
         const normalizedMimeType = normalizeMimeType(mimeType);
         return normalizedMimeType.includes("audio/mp4") && normalizedMimeType.includes("mp4a.");
@@ -9851,16 +10227,11 @@ clear() {
           return "mp4a.40.2";
         }
         const codecsMatch = /codecs="([^"]+)"/i.exec(mimeType);
-        if (!codecsMatch) {
+        if (!codecsMatch?.[1]) {
           return "mp4a.40.2";
         }
-        const codecBlock = codecsMatch[1];
-        if (!codecBlock) {
-          return "mp4a.40.2";
-        }
-        const codecs = codecBlock.split(",").map((value) => value.trim());
-        const firstCodec = codecs[0];
-        return codecs.find((value) => value.toLowerCase().startsWith("mp4a.")) ?? firstCodec ?? "mp4a.40.2";
+        const codecs = codecsMatch[1].split(",").map((value) => value.trim());
+        return codecs.find((value) => value.toLowerCase().startsWith("mp4a.")) ?? codecs[0] ?? "mp4a.40.2";
       }
       function pickByBitrate(formats, direction) {
         let selected = null;
@@ -9881,30 +10252,39 @@ clear() {
         if (!audioFormats.length) {
           throw new Error("No adaptive audio formats were found in player response");
         }
-        const preferredMp4aFormats = audioFormats.filter(
-          (format) => isMp4aAdaptiveAudioMimeType(format.mimeType)
-        );
-        const preferredOpusFormats = audioFormats.filter(
-          (format) => isOpusAdaptiveAudioMimeType(format.mimeType)
-        );
-        const preferredFormats = audioFormats.filter(
-          (format) => isPreferredAdaptiveAudioMimeType(format.mimeType)
-        );
-        const preferredCandidates = quality === "bestefficiency" ? [preferredOpusFormats, preferredFormats, audioFormats] : [
-          preferredMp4aFormats,
-          preferredOpusFormats,
-          preferredFormats,
+        const pickDirection = quality === "bestefficiency" ? "min" : "max";
+        const candidateGroups = quality === "bestefficiency" ? [
+          audioFormats.filter(
+            (format) => isOpusAdaptiveAudioMimeType(format.mimeType)
+          ),
+          audioFormats
+        ] : [
+          audioFormats.filter(
+            (format) => isMp4aAdaptiveAudioMimeType(format.mimeType)
+          ),
+          audioFormats.filter(
+            (format) => isOpusAdaptiveAudioMimeType(format.mimeType)
+          ),
           audioFormats
         ];
-        const candidates = preferredCandidates.find((formats2) => formats2.length > 0) ?? audioFormats;
-        const selected = pickByBitrate(
-          candidates,
-          quality === "bestefficiency" ? "min" : "max"
-        );
-        if (!selected) {
-          throw new Error("No adaptive audio formats were found in player response");
+        for (const candidates of candidateGroups) {
+          if (!candidates.length) {
+            continue;
+          }
+          const selected = pickByBitrate(candidates, pickDirection);
+          if (selected) {
+            return selected;
+          }
         }
-        return selected;
+        throw new Error("No adaptive audio formats were found in player response");
+      }
+      class YtWatchContextForbiddenError extends Error {
+        status;
+        constructor(status = 403) {
+          super(`Failed to load watch page: ${status}`);
+          this.name = "YtWatchContextForbiddenError";
+          this.status = status;
+        }
       }
       const VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
       const YT_BASE = "https://www.youtube.com";
@@ -10043,10 +10423,6 @@ clear() {
         return void 0;
       }
       async function readResponseBytes(response) {
-        const byteReader = response.bytes;
-        if (typeof byteReader === "function") {
-          return byteReader.call(response);
-        }
         return new Uint8Array(await response.arrayBuffer());
       }
       function makeCPN(length = 16) {
@@ -10082,15 +10458,52 @@ clear() {
         const matched = /\/(\d+)\s*$/i.exec(contentRange);
         return parsePositiveInteger(matched?.[1]);
       }
-      function addRangeToStreamUrl(streamUrl, start, end, requestNumber) {
-        const url = new URL(streamUrl);
-        url.searchParams.set("range", `${start}-${end}`);
-        if (requestNumber > 0) {
-          url.searchParams.set("rn", String(requestNumber));
-        } else {
-          url.searchParams.delete("rn");
+      function parseContentRangeHeader(contentRange) {
+        if (!contentRange) {
+          return null;
         }
-        return url.toString();
+        const matched = /^bytes\s+(\d+)-(\d+)\/(?:\d+|\*)$/i.exec(
+          contentRange.trim()
+        );
+        if (!matched) {
+          return null;
+        }
+        const start = Number.parseInt(matched[1] ?? "", 10);
+        const end = Number.parseInt(matched[2] ?? "", 10);
+        if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start) {
+          return null;
+        }
+        return { start, end };
+      }
+      function getExpectedRangeLength(start, end) {
+        return end - start + 1;
+      }
+      function isValidRangeChunkResponse(response, bytes, start, end) {
+        const expectedLength = getExpectedRangeLength(start, end);
+        if (expectedLength <= 0) {
+          return false;
+        }
+        if (bytes.byteLength <= 0 || bytes.byteLength > expectedLength) {
+          return false;
+        }
+        const contentRange = parseContentRangeHeader(
+          response.headers.get("content-range")
+        );
+        if (contentRange) {
+          return contentRange.start === start && contentRange.end === start + bytes.byteLength - 1;
+        }
+        if (response.status === 206) {
+          return bytes.byteLength === expectedLength;
+        }
+        if (response.status === 200) {
+          return start === 0 && bytes.byteLength === expectedLength;
+        }
+        return false;
+      }
+      function describeRangeChunkResponse(response, bytes) {
+        const contentRange = response.headers.get("content-range") ?? "none";
+        const contentLength = response.headers.get("content-length") ?? "none";
+        return `status=${response.status}; bytes=${bytes.byteLength}; content-range=${contentRange}; content-length=${contentLength}`;
       }
       function getAudioMimeType(mimeType) {
         const normalizedMimeType = mimeType?.toLowerCase() ?? "";
@@ -10118,41 +10531,23 @@ clear() {
         constructor(options = {}) {
           this.fetchFn = options.fetchImplementation ?? fetch;
         }
-        async fetchRangeChunk(streamUrl, start, end, signal, requestNumber) {
-          const rangeUrl = addRangeToStreamUrl(streamUrl, start, end, requestNumber);
+        async fetchRangeChunk(streamUrl, start, end, signal) {
           const rangeHeader = `bytes=${start}-${end}`;
-          let queryResponseStatus = "fetch_error";
-          try {
-            const queryResponse = await this.fetchFn(rangeUrl, {
-              headers: DEFAULT_HEADERS,
-              ...withSignal(signal)
-            });
-            queryResponseStatus = queryResponse.status;
-            if (queryResponse.ok) {
-              const bytes2 = await readResponseBytes(queryResponse);
-              if (!bytes2.byteLength) {
-                throw new Error("Received empty stream chunk");
-              }
-              return bytes2;
-            }
-          } catch (error2) {
-            queryResponseStatus = error2 instanceof Error ? error2.message : "fetch_error";
-          }
-          const headerResponse = await this.fetchFn(streamUrl, {
+          const response = await this.fetchFn(streamUrl, {
             headers: {
               ...DEFAULT_HEADERS,
               range: rangeHeader
             },
             ...withSignal(signal)
           });
-          if (!headerResponse.ok) {
-            throw new Error(
-              `Failed to download stream chunk: query=${queryResponseStatus}; header=${headerResponse.status}`
-            );
+          if (!response.ok) {
+            throw new Error(`Failed to download stream chunk: ${response.status}`);
           }
-          const bytes = await readResponseBytes(headerResponse);
-          if (!bytes.byteLength) {
-            throw new Error("Received empty stream chunk");
+          const bytes = await readResponseBytes(response);
+          if (!isValidRangeChunkResponse(response, bytes, start, end)) {
+            throw new Error(
+              `Received unexpected stream chunk payload: ${describeRangeChunkResponse(response, bytes)}`
+            );
           }
           return bytes;
         }
@@ -10165,15 +10560,9 @@ clear() {
           );
           const merged = new Uint8Array(fileSize);
           let offset = 0;
-          for (let start = 0, index = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE, index++) {
+          for (let start = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE) {
             const end = Math.min(fileSize - 1, start + RANGE_FALLBACK_CHUNK_SIZE - 1);
-            const chunk = await this.fetchRangeChunk(
-              streamUrl,
-              start,
-              end,
-              signal,
-              index + 1
-            );
+            const chunk = await this.fetchRangeChunk(streamUrl, start, end, signal);
             if (offset + chunk.byteLength > merged.byteLength) {
               throw new Error(
                 "Downloaded stream chunk exceeds probed stream content length"
@@ -10187,77 +10576,20 @@ clear() {
           }
           return merged.slice(0, offset);
         }
-        async downloadStreamBytes(streamUrl, contentLengthHint, signal, options = {}) {
-          if (options.preferRangeFirst) {
-            try {
-              return await this.downloadStreamByRanges(
-                streamUrl,
-                contentLengthHint,
-                signal
-              );
-            } catch (rangeError) {
-              const rangeMessage = rangeError instanceof Error ? rangeError.message : String(rangeError);
-              throw new Error(`Failed to download stream by ranges: ${rangeMessage}`);
-            }
-          }
-          let fullResponseStatus = "fetch_error";
-          try {
-            const streamResponse = await this.fetchFn(streamUrl, {
-              headers: DEFAULT_HEADERS,
-              ...withSignal(signal)
-            });
-            fullResponseStatus = streamResponse.status;
-            if (streamResponse.ok) {
-              const bytes = await readResponseBytes(streamResponse);
-              if (!bytes.byteLength) {
-                throw new Error("Received empty stream");
-              }
-              return bytes;
-            }
-          } catch (error2) {
-            fullResponseStatus = error2 instanceof Error ? error2.message : "fetch_error";
-          }
-          try {
-            return await this.downloadStreamByRanges(
-              streamUrl,
-              contentLengthHint,
-              signal
-            );
-          } catch (rangeError) {
-            const rangeMessage = rangeError instanceof Error ? rangeError.message : String(rangeError);
-            throw new Error(
-              `Failed to download stream: full=${fullResponseStatus}; range=${rangeMessage}`
-            );
-          }
-        }
         async downloadAudioToChunkStream(request, options) {
           if (options.chunkSize <= 0) {
             throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
           }
-          const videoId = getRequiredVideoId(request);
-          const { signal } = request;
-          const watchContext = await this.fetchWatchContext(videoId, signal);
-          const quality = request.videoQuality ?? "best";
-          const clientAttempts = buildClientAttemptOrder(request.client);
-          const attemptErrors = [];
-          for (const client of clientAttempts) {
-            try {
-              const resolved = await this.resolvePlayableFormatForClient({
-                videoId,
-                watchContext,
-                client,
-                quality,
-                signal
-              });
-              if (!isAudioOnlyMimeType(resolved.chosenFormat.mimeType)) {
-                throw new Error(
-                  "Chunk mode requires an adaptive audio stream format"
-                );
-              }
+          return this.withResolvedPlayableAudioFormat(
+            request,
+            request.videoQuality ?? "best",
+            "Chunk mode requires an adaptive audio stream format",
+            "Unable to resolve streamable format for chunk mode",
+            async ({ resolved, signal }) => {
               const fileSize = await this.resolveStreamContentLength(
                 resolved.streamUrl,
                 resolved.chosenFormat.contentLength,
-                request.signal,
+                signal,
                 true
               );
               const mediaPartsLength = Math.max(
@@ -10277,20 +10609,13 @@ clear() {
                       resolved.streamUrl,
                       start,
                       end,
-                      request.signal,
-                      index + 1
+                      signal
                     );
                     yield bytes;
                   }
                 }).bind(this)
               };
-            } catch (error2) {
-              const message = error2 instanceof Error ? error2.message : String(error2);
-              attemptErrors.push(`${client}: ${message}`);
             }
-          }
-          throw new Error(
-            `Unable to resolve streamable format for chunk mode. Attempts: ${attemptErrors.join(" | ")}`
           );
         }
         async downloadAudioToUint8Array(request) {
@@ -10314,10 +10639,34 @@ clear() {
           };
         }
         async extractAndWriteAudio(request, sink) {
+          return this.withResolvedPlayableAudioFormat(
+            request,
+            request.videoQuality ?? "bestefficiency",
+            "Selected stream is not audio-only",
+            "Unable to download playable stream format",
+            async ({ resolved, signal }) => {
+              const streamBytes = await this.downloadStreamByRanges(
+                resolved.streamUrl,
+                resolved.chosenFormat.contentLength,
+                signal
+              );
+              const hints = this.getExtractionHints(resolved.chosenFormat);
+              await sink.write(streamBytes);
+              return {
+                videoId: resolved.videoId,
+                bytesWritten: streamBytes.byteLength,
+                mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
+                codec: hints.codec,
+                sampleRate: hints.sampleRate,
+                channels: hints.channels
+              };
+            }
+          );
+        }
+        async withResolvedPlayableAudioFormat(request, quality, audioOnlyErrorMessage, failurePrefix, onResolved) {
           const videoId = getRequiredVideoId(request);
           const { signal } = request;
           const watchContext = await this.fetchWatchContext(videoId, signal);
-          const quality = request.videoQuality ?? "bestefficiency";
           const clientAttempts = buildClientAttemptOrder(request.client);
           const attemptErrors = [];
           for (const client of clientAttempts) {
@@ -10329,39 +10678,16 @@ clear() {
                 quality,
                 signal
               });
-              const isAudioOnly = isAudioOnlyMimeType(resolved.chosenFormat.mimeType);
-              const streamBytes = await this.downloadStreamBytes(
-                resolved.streamUrl,
-                resolved.chosenFormat.contentLength,
-                request.signal,
-                {
-
-preferRangeFirst: isAudioOnly
-                }
-              );
-              const hints = this.getExtractionHints(resolved.chosenFormat);
-              if (isAudioOnly) {
-                await sink.write(streamBytes);
-                return {
-                  videoId: resolved.videoId,
-                  bytesWritten: streamBytes.byteLength,
-                  mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
-                  codec: hints.codec,
-                  sampleRate: hints.sampleRate,
-                  channels: hints.channels
-                };
+              if (!isAudioOnlyMimeType(resolved.chosenFormat.mimeType)) {
+                throw new Error(audioOnlyErrorMessage);
               }
-              throw new Error(
-                "Selected stream is not audio-only. Video-based fallback is disabled."
-              );
+              return await onResolved({ resolved, signal });
             } catch (error2) {
               const message = error2 instanceof Error ? error2.message : String(error2);
               attemptErrors.push(`${client}: ${message}`);
             }
           }
-          throw new Error(
-            `Unable to download playable stream format. Attempts: ${attemptErrors.join(" | ")}`
-          );
+          throw new Error(`${failurePrefix}. Attempts: ${attemptErrors.join(" | ")}`);
         }
         async resolvePlayableFormatForClient({
           videoId,
@@ -10380,25 +10706,21 @@ preferRangeFirst: isAudioOnly
           const directAdaptiveFormats = adaptiveFormats.filter(
             (format) => Boolean(format.url)
           );
-          let chosenFormat = null;
-          if (directAdaptiveFormats.length) {
-            try {
-              chosenFormat = pickAdaptiveAudioFormat(directAdaptiveFormats, quality);
-            } catch {
-            }
-          }
-          if (!chosenFormat) {
+          if (!directAdaptiveFormats.length) {
             throw new Error(
               "Player response did not contain direct adaptive audio stream URLs"
             );
           }
+          const chosenFormat = pickAdaptiveAudioFormat(
+            directAdaptiveFormats,
+            quality
+          );
           const streamUrl = this.resolveFormatUrl(
             chosenFormat,
             watchContext.clientVersion
           );
           return {
             videoId,
-            client,
             chosenFormat,
             streamUrl
           };
@@ -10408,39 +10730,21 @@ preferRangeFirst: isAudioOnly
           if (hintedLength !== null && !forceProbe) {
             return hintedLength;
           }
-          const probeUrl = addRangeToStreamUrl(streamUrl, 0, 0, 0);
-          let probeResponse = null;
-          let probeQueryStatus = "fetch_error";
+          let probeResponse;
           try {
-            const queryProbeResponse = await this.fetchFn(probeUrl, {
-              headers: DEFAULT_HEADERS,
-              ...withSignal(signal)
-            });
-            probeQueryStatus = queryProbeResponse.status;
-            if (queryProbeResponse.ok) {
-              probeResponse = queryProbeResponse;
-            }
-          } catch (error2) {
-            probeQueryStatus = error2 instanceof Error ? error2.message : "fetch_error";
-          }
-          if (!probeResponse) {
-            const headerProbeResponse = await this.fetchFn(streamUrl, {
+            probeResponse = await this.fetchFn(streamUrl, {
               headers: {
                 ...DEFAULT_HEADERS,
                 range: "bytes=0-0"
               },
               ...withSignal(signal)
             });
-            if (headerProbeResponse.ok) {
-              probeResponse = headerProbeResponse;
-            } else {
-              if (hintedLength !== null) {
-                return hintedLength;
-              }
-              throw new Error(
-                `Failed to probe stream content length: query=${probeQueryStatus}; header=${headerProbeResponse.status}`
-              );
+          } catch (error2) {
+            if (hintedLength !== null) {
+              return hintedLength;
             }
+            const message = error2 instanceof Error ? error2.message : String(error2);
+            throw new Error(`Failed to probe stream content length: ${message}`);
           }
           if (!probeResponse.ok) {
             if (hintedLength !== null) {
@@ -10497,6 +10801,9 @@ preferRangeFirst: isAudioOnly
             ...withSignal(signal)
           });
           if (!response.ok) {
+            if (response.status === 403) {
+              throw new YtWatchContextForbiddenError(response.status);
+            }
             throw new Error(`Failed to load watch page: ${response.status}`);
           }
           const html = await response.text();
@@ -10590,18 +10897,6 @@ preferRangeFirst: isAudioOnly
           throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
         }
       }
-      function splitAudioIntoChunks(bytes, chunkSize) {
-        if (bytes.byteLength <= chunkSize) {
-          return [bytes];
-        }
-        const chunks = [];
-        for (let start = 0; start < bytes.byteLength; start += chunkSize) {
-          chunks.push(
-            bytes.subarray(start, Math.min(start + chunkSize, bytes.length))
-          );
-        }
-        return chunks;
-      }
       function createYtAudioFetch({
         signal,
         timeoutMs
@@ -10613,6 +10908,12 @@ preferRangeFirst: isAudioOnly
           timeout: timeoutMs
         });
       }
+      function isWatchContextForbiddenError(error2) {
+        if (error2 instanceof YtWatchContextForbiddenError) {
+          return true;
+        }
+        return error2 instanceof Error && /failed to load watch page:\s*403/i.test(error2.message);
+      }
       async function getAudioFromYtAudio({ videoId, signal }, deps = {}) {
         const chunkSize = deps.chunkSize ?? votConfig.minChunkSize;
         assertValidChunkSize(chunkSize);
@@ -10621,33 +10922,33 @@ preferRangeFirst: isAudioOnly
           timeoutMs: deps.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
         });
         const downloader = deps.createDownloader?.(fetchImplementation) ?? new AudioDownloader$1({ fetchImplementation });
-        const streamingDownload = typeof downloader.downloadAudioToChunkStream === "function" ? downloader.downloadAudioToChunkStream.bind(downloader) : void 0;
-        if (typeof streamingDownload === "function") {
-          try {
-            const streamResult = await streamingDownload(
-              {
-                videoId,
-                videoQuality: DEFAULT_YT_AUDIO_QUALITY,
-                signal
-              },
-              { chunkSize }
-            );
-            return {
-              fileId: makeFileId(
-                AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
-                streamResult.itag,
-                String(streamResult.fileSize),
-                chunkSize
-              ),
-              mediaPartsLength: streamResult.mediaPartsLength,
-              getMediaBuffers: streamResult.getMediaBuffers
-            };
-          } catch (error2) {
-            console.warn(
-              "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
-              error2
-            );
+        try {
+          const streamResult = await downloader.downloadAudioToChunkStream(
+            {
+              videoId,
+              videoQuality: DEFAULT_YT_AUDIO_QUALITY,
+              signal
+            },
+            { chunkSize }
+          );
+          return {
+            fileId: makeFileId(
+              AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
+              streamResult.itag,
+              String(streamResult.fileSize),
+              chunkSize
+            ),
+            mediaPartsLength: streamResult.mediaPartsLength,
+            getMediaBuffers: streamResult.getMediaBuffers
+          };
+        } catch (error2) {
+          if (isWatchContextForbiddenError(error2)) {
+            throw error2;
           }
+          console.warn(
+            "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
+            error2
+          );
         }
         const result = await downloader.downloadAudioToUint8Array({
           videoId,
@@ -10658,10 +10959,7 @@ preferRangeFirst: isAudioOnly
         if (!bytes || bytes.byteLength === 0) {
           throw new Error("Audio downloader. ytAudio. Empty audio");
         }
-        const chunks = splitAudioIntoChunks(bytes, chunkSize);
-        if (!chunks.length) {
-          throw new Error("Audio downloader. ytAudio. Can not split audio");
-        }
+        const mediaPartsLength = Math.max(1, Math.ceil(bytes.byteLength / chunkSize));
         const fileId = makeFileId(
           AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
           0,
@@ -10670,10 +10968,11 @@ preferRangeFirst: isAudioOnly
         );
         return {
           fileId,
-          mediaPartsLength: chunks.length,
+          mediaPartsLength,
           async *getMediaBuffers() {
-            for (const chunk of chunks) {
-              yield chunk;
+            for (let start = 0; start < bytes.byteLength; start += chunkSize) {
+              const end = Math.min(start + chunkSize, bytes.byteLength);
+              yield bytes.subarray(start, end);
             }
           }
         };
@@ -10751,9 +11050,6 @@ preferRangeFirst: isAudioOnly
         strategy;
         constructor(strategy = YT_AUDIO_STRATEGY) {
           this.strategy = strategy;
-          debug.log("Audio downloader created", {
-            strategy
-          });
         }
         async runAudioDownload(videoId, translationId, signal) {
           try {
@@ -10984,9 +11280,7 @@ requestedFailAudio = new Set();
           this.audioDownloader.addEventListener("downloadedAudio", this.onDownloadedAudio).addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio).addEventListener("downloadAudioError", this.onDownloadAudioError);
         }
         onDownloadedAudio = async (translationId, data) => {
-          debug.log("downloadedAudio", data);
           if (!this.downloading) {
-            debug.log("skip downloadedAudio");
             return;
           }
           const { videoId, fileId, audioData } = data;
@@ -11001,7 +11295,6 @@ requestedFailAudio = new Set();
               }
             );
           } catch (error2) {
-            debug.error("Failed to upload downloaded audio", error2);
             this.finishDownloadFailure(
               new Error("Audio downloader failed while uploading full audio")
             );
@@ -11010,9 +11303,7 @@ requestedFailAudio = new Set();
           this.finishDownloadSuccess();
         };
         onDownloadedPartialAudio = async (translationId, data) => {
-          debug.log("downloadedPartialAudio", data);
           if (!this.downloading) {
-            debug.log("skip downloadedPartialAudio");
             return;
           }
           const { audioData, fileId, videoId, amount, version, index } = data;
@@ -11032,7 +11323,6 @@ requestedFailAudio = new Set();
               }
             );
           } catch (error2) {
-            debug.error("Failed to upload downloaded audio chunk", error2);
             this.finishDownloadFailure(
               new Error("Audio downloader failed while uploading chunk")
             );
@@ -11044,10 +11334,8 @@ requestedFailAudio = new Set();
         };
         onDownloadAudioError = async (videoId) => {
           if (!this.downloading) {
-            debug.log("skip downloadAudioError");
             return;
           }
-          debug.log(`Failed to download audio ${videoId}`);
           const videoUrl = this.getCanonicalUrl(videoId);
           const shouldUseFallback = this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload);
           if (!shouldUseFallback) {
@@ -11066,7 +11354,6 @@ requestedFailAudio = new Set();
             }
             this.finishDownloadSuccess();
           } catch (error2) {
-            debug.error("fail-audio-js request failed", error2);
             this.finishDownloadFailure(
               new VOTLocalizedError("VOTFailedDownloadAudio")
             );
@@ -11130,10 +11417,6 @@ isLivelyVoiceUnavailableError(value) {
           const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
             requestLang,
             responseLang
-          );
-          debug.log(
-            videoData,
-            `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`
           );
           let livelyDisabled = disableLivelyVoice;
           try {
@@ -11221,7 +11504,6 @@ isLivelyVoiceUnavailableError(value) {
             }
           } catch (err) {
             if (isAbortError(err)) {
-              debug.log("aborted video translation");
               return null;
             }
             const uiError = mapVotClientErrorForUi(err);
@@ -11323,7 +11605,6 @@ isLivelyVoiceUnavailableError(value) {
         }
         setState(next) {
           this.state = next;
-          debug.log("[TranslationOrchestrator] state", next);
         }
         reset() {
           this.setState({ status: "idle" });
@@ -11336,14 +11617,8 @@ isLivelyVoiceUnavailableError(value) {
             return;
           }
           if (this.deps.isMobileYouTubeMuted?.()) {
-            debug.log(
-              "[TranslationOrchestrator] Mobile YouTube video is muted, deferring auto-translate"
-            );
             this.setState({ status: "deferred", reason: "muted" });
             this.deps.setMuteWatcher?.(() => {
-              debug.log(
-                "[TranslationOrchestrator] Video unmuted, running deferred auto-translate"
-              );
               this.setState({ status: "idle" });
               void this.runAutoTranslationIfEligible();
             });
@@ -11351,8 +11626,8 @@ isLivelyVoiceUnavailableError(value) {
           }
           this.setState({ status: "pending", reason: "auto" });
           try {
-            this.deps.setFirstPlay(false);
             await this.deps.scheduleAutoTranslate();
+            this.deps.setFirstPlay(false);
             this.reset();
           } catch (err) {
             this.setState({ status: "error", message: err });
@@ -11421,7 +11696,6 @@ isLivelyVoiceUnavailableError(value) {
           this.lifecycleGeneration += 1;
           const sessionId = this.lifecycleGeneration;
           this.resetActions(`[VideoLifecycle][session:${sessionId}] ${reason}`);
-          debug.log(`[VideoLifecycle][session:${sessionId}] started`, { reason });
           return sessionId;
         }
         shouldAbortHandleSrcChanged(callId, stage) {
@@ -11433,6 +11707,11 @@ isLivelyVoiceUnavailableError(value) {
           );
           return true;
         }
+        showOverlayButton(overlayView) {
+          overlayView.votButton.container.hidden = false;
+          overlayView.votButton.opacity = 1;
+          this.host.queueOverlayAutoHide?.();
+        }
         teardown() {
           this.setCanPlayRequested = false;
           this.invalidateActiveSession("teardown");
@@ -11442,9 +11721,6 @@ isLivelyVoiceUnavailableError(value) {
           if (this.host.site.host === "youtube") {
             const path = globalThis.location.pathname;
             const stableUrlKey = `${globalThis.location.origin}${path}${globalThis.location.search}`;
-            if (path.startsWith("/shorts/")) {
-              return `${stableUrlKey}||${hasSrcObject}`;
-            }
             return `${stableUrlKey}||${hasSrcObject}`;
           }
           const src = this.host.video.currentSrc || this.host.video.src || "";
@@ -11472,10 +11748,6 @@ isLivelyVoiceUnavailableError(value) {
               this.invalidateActiveSession(
                 "setCanPlay source changed while previous trigger is running"
               );
-            } else {
-              debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", {
-                sourceKey: incomingSourceKey
-              });
             }
             return await this.setCanPlayLoopPromise;
           }
@@ -11497,29 +11769,24 @@ isLivelyVoiceUnavailableError(value) {
         async runSetCanPlayOnce() {
           const sourceKey = this.getCurrentSourceKey();
           if (this.host.videoData?.videoId && sourceKey === this.lastSetCanPlaySourceKey) {
-            debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", {
-              sourceKey
-            });
             return;
           }
+          let nextVideoData;
           try {
-            this.host.videoData = await this.host.getVideoData();
+            nextVideoData = await this.host.getVideoData();
           } catch (err) {
-            debug.log(
-              `[VideoLifecycle] getVideoData failed for source ${sourceKey}`,
-              err
-            );
             this.host.videoData = void 0;
             hideLifecycleOverlay(this.host.uiManager.votOverlayView, {
               hideMenu: true
             });
             return;
           }
+          if (this.getCurrentSourceKey() !== sourceKey) {
+            return;
+          }
+          this.host.videoData = nextVideoData;
           this.activeSetCanPlaySourceKey = sourceKey;
           const currentId = this.startSession(`setCanPlay (source: ${sourceKey})`);
-          debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay started`, {
-            sourceKey
-          });
           try {
             await this.handleSrcChanged(currentId, sourceKey);
             if (this.isStale(currentId)) {
@@ -11557,10 +11824,6 @@ isLivelyVoiceUnavailableError(value) {
           try {
             await this.host.enableSubtitlesForCurrentLangPair();
           } catch (err) {
-            debug.log(
-              `[VideoLifecycle][session:${sessionId}] auto-subtitles failed`,
-              err
-            );
           }
         }
         async handleSrcChanged(callId, expectedSourceKey) {
@@ -11569,9 +11832,6 @@ isLivelyVoiceUnavailableError(value) {
           if (this.shouldAbortHandleSrcChanged(sessionId, "before start")) {
             return;
           }
-          debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, {
-            sourceKey
-          });
           this.host.translationOrchestrator.reset();
           this.host.firstPlay = true;
           const overlayView = this.host.uiManager.votOverlayView;
@@ -11587,16 +11847,11 @@ isLivelyVoiceUnavailableError(value) {
           if (this.shouldAbortHandleSrcChanged(sessionId, "before getVideoData")) {
             return;
           }
-          overlayView.votButton.container.hidden = false;
-          overlayView.votButton.opacity = 1;
-          this.host.queueOverlayAutoHide?.();
+          this.showOverlayButton(overlayView);
           if (this.shouldAbortHandleSrcChanged(sessionId, "after getVideoData")) {
             return;
           }
           if (!this.host.videoData?.videoId) {
-            debug.log(
-              `[VideoLifecycle][session:${sessionId}] No videoId resolved, hiding overlay`
-            );
             hideLifecycleOverlay(overlayView, { hideMenu: true });
             return;
           }
@@ -11605,7 +11860,9 @@ isLivelyVoiceUnavailableError(value) {
             this.host.videoData.detectedLanguage,
             this.host.videoData.responseLanguage
           );
-          this.host.subtitles = this.host.cacheManager.getSubtitles(cacheKey) ?? [];
+          const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
+          this.host.subtitles = cachedSubtitles ?? [];
+          this.host.subtitlesCacheKey = cachedSubtitles !== void 0 ? cacheKey : null;
           await this.host.updateSubtitlesLangSelect();
           if (this.shouldAbortHandleSrcChanged(sessionId, "after subtitles update")) {
             return;
@@ -11615,41 +11872,44 @@ isLivelyVoiceUnavailableError(value) {
             this.host.videoData.detectedLanguage,
             this.host.videoData.responseLanguage
           );
-          overlayView.votButton.container.hidden = false;
-          overlayView.votButton.opacity = 1;
-          this.host.queueOverlayAutoHide?.();
+          this.showOverlayButton(overlayView);
           this.lastSetCanPlaySourceKey = sourceKey;
-          debug.log(`[VideoLifecycle][session:${sessionId}] src handling finished`);
         }
       }
-      const URL_FILTER = /\b(?:https?:\/\/|www\.)\S+/gi;
-      const HASHTAG_FILTER = /#[^\s#]+/g;
-      const YOUTUBE_META_FILTER = /auto-generated\s+by\s+youtube|provided\s+to\s+youtube\s+by|released\s+on/gi;
-      const PAYPAL_FILTER = /paypal?/gi;
-      const ETH_ADDRESS_FILTER = /0x[\da-f]{40}/gi;
-      const BTC_ADDRESS_FILTER = /[13][1-9a-z]{25,34}/gi;
-      const BTC_BECH32_FILTER = /4[\dab][1-9a-z]{93}/gi;
-      const TON_ADDRESS_FILTER = /t[1-9a-z]{33}/gi;
-      const TEXT_FILTERS = [
-        URL_FILTER,
-        HASHTAG_FILTER,
-        YOUTUBE_META_FILTER,
-        PAYPAL_FILTER,
-        ETH_ADDRESS_FILTER,
-        BTC_ADDRESS_FILTER,
-        BTC_BECH32_FILTER,
-        TON_ADDRESS_FILTER
-      ];
+      const MAX_TEXT_LENGTH = 450;
+      const REMOVABLE_TOKEN_FILTER = new RegExp(
+        [
+String.raw`(?:https?:\/\/|www\.)\S+`,
+          String.raw`#[^\s#]+`,
+          String.raw`auto-generated\s+by\s+youtube`,
+          String.raw`provided\s+to\s+youtube\s+by`,
+          String.raw`released\s+on`,
+          String.raw`\bpaypal\b`,
+          String.raw`\b0x[a-f0-9]{40}\b`,
+String.raw`\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b`,
+String.raw`\b(?:bc1|tb1|bcrt1)[ac-hj-np-z02-9]{11,71}\b`,
+String.raw`\b(?:-1|0):[a-f0-9]{64}\b`
+        ].join("|"),
+        "giu"
+      );
+      const NOISE_CHARACTER_FILTER = /[\p{N}\p{P}\p{S}]+/gu;
+      const WHITESPACE_FILTER = /\s+/g;
+      const LETTER_FILTER = new RegExp("\\p{L}", "u");
+      function trimToMaxLength(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.slice(0, maxLength).trimEnd();
+      }
       function cleanText(title, description) {
         const raw = `${title ?? ""} ${description ?? ""}`.trim();
         if (!raw) return "";
-        let cleaned = raw;
-        for (const filter of TEXT_FILTERS) {
-          cleaned = cleaned.replaceAll(filter, "");
+        const cleaned = raw.normalize("NFKC").replace(REMOVABLE_TOKEN_FILTER, " ").replace(NOISE_CHARACTER_FILTER, " ").replace(WHITESPACE_FILTER, " ").trim();
+        if (!LETTER_FILTER.test(cleaned)) {
+          return "";
         }
-        return cleaned.replaceAll(/[\p{P}\p{S}]+/gu, " ").replaceAll(/\s+/g, " ").trim().slice(0, 450);
+        return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
       }
       const SETTINGS_CACHE_TTL_MS = 5e3;
+      const IMMUTABLE_API_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
       let cachedTranslationService = null;
       let cachedTranslationServiceAt = 0;
       let cachedDetectService = null;
@@ -11686,6 +11946,11 @@ isLivelyVoiceUnavailableError(value) {
           try {
             const res = await GM_fetch(`${foswlyTranslateUrl}${path}`, {
               timeout: 3e3,
+              responseCache: {
+                ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+                cacheName: "vot-foswly-api-v1",
+                allowStaleOnError: true
+              },
               ...opts
             });
             const data = await res.json();
@@ -11743,7 +12008,12 @@ isLivelyVoiceUnavailableError(value) {
             const response = await GM_fetch(detectRustServerUrl, {
               method: "POST",
               body: text,
-              timeout: 3e3
+              timeout: 3e3,
+              responseCache: {
+                ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+                cacheName: "vot-rust-detect-v1",
+                allowStaleOnError: true
+              }
             });
             return await response.text();
           } catch (error2) {
@@ -11755,6 +12025,9 @@ isLivelyVoiceUnavailableError(value) {
         }
       };
       async function translate(text, fromLang = "", toLang = "ru") {
+        if (fromLang && toLang && fromLang === toLang) {
+          return text;
+        }
         const service = await getTranslationServiceCached();
         switch (service) {
           case "yandexbrowser":
@@ -11869,6 +12142,8 @@ isLivelyVoiceUnavailableError(value) {
         zdf: "de"
       };
       const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
+      const MIN_DETECT_TEXT_LENGTH = 35;
+      const MAX_SHARED_LANGUAGE_STATES = 500;
       const REQUEST_LANG_SET = new Set(
         availableLangs
       );
@@ -11880,17 +12155,14 @@ isLivelyVoiceUnavailableError(value) {
         }
         const createdState = {};
         sharedLanguageStateByVideoId.set(videoId, createdState);
-        return createdState;
-      }
-      function pickFirstNonEmptyString(...values) {
-        for (const value of values) {
-          if (typeof value !== "string") continue;
-          const trimmed = value.trim();
-          if (trimmed) {
-            return trimmed;
+        while (sharedLanguageStateByVideoId.size > MAX_SHARED_LANGUAGE_STATES) {
+          const oldestVideoId = sharedLanguageStateByVideoId.keys().next().value;
+          if (typeof oldestVideoId !== "string") {
+            break;
           }
+          sharedLanguageStateByVideoId.delete(oldestVideoId);
         }
-        return void 0;
+        return createdState;
       }
       function normalizeToRequestLang(value) {
         if (typeof value !== "string") return void 0;
@@ -11900,14 +12172,10 @@ isLivelyVoiceUnavailableError(value) {
       function isResolvedLanguage(value) {
         return Boolean(value && value !== "auto");
       }
-      function buildDetectText(title, localizedTitle, description) {
-        const textTitle = pickFirstNonEmptyString(
-          title,
-          localizedTitle,
-          document.title
-        );
+      function buildDetectText(title, description) {
+        const textTitle = typeof title === "string" ? title : "";
         const textDescription = typeof description === "string" ? description : void 0;
-        return cleanText(textTitle ?? "", textDescription);
+        return cleanText(textTitle, textDescription);
       }
       function resolveHostDetectedLanguage(host) {
         const forcedDetectedLanguage = FORCED_DETECTED_LANGUAGE_BY_HOST[host];
@@ -11919,6 +12187,83 @@ isLivelyVoiceUnavailableError(value) {
           return normalizeToRequestLang(trackLang);
         }
         return void 0;
+      }
+      function resolveYoutubeDetectedLanguageFromSubtitles(subtitles) {
+        if (!Array.isArray(subtitles) || subtitles.length === 0) {
+          return void 0;
+        }
+        const pickLanguage = (preferManual) => {
+          for (const subtitle of subtitles) {
+            if (!subtitle || typeof subtitle !== "object") {
+              continue;
+            }
+            const candidate = subtitle;
+            if (candidate.source !== "youtube") {
+              continue;
+            }
+            if (typeof candidate.translatedFromLanguage === "string") {
+              continue;
+            }
+            if (preferManual && candidate.isAutoGenerated === true) {
+              continue;
+            }
+            const language = normalizeToRequestLang(candidate.language);
+            if (isResolvedLanguage(language)) {
+              return language;
+            }
+          }
+          return void 0;
+        };
+        return pickLanguage(true) ?? pickLanguage(false);
+      }
+      async function resolveDetectedLanguageForVideo(options) {
+        if (options.isStream) {
+          return { detectedLanguage: "auto" };
+        }
+        if (options.userOverrideLanguage) {
+          return { detectedLanguage: options.userOverrideLanguage };
+        }
+        const hostDetectedLanguage = resolveHostDetectedLanguage(options.host);
+        if (isResolvedLanguage(hostDetectedLanguage)) {
+          return {
+            detectedLanguage: hostDetectedLanguage,
+            cacheLanguage: hostDetectedLanguage
+          };
+        }
+        const normalizedPossibleLanguage = normalizeToRequestLang(
+          options.possibleLanguage
+        );
+        if (isResolvedLanguage(normalizedPossibleLanguage)) {
+          return {
+            detectedLanguage: normalizedPossibleLanguage,
+            cacheLanguage: normalizedPossibleLanguage
+          };
+        }
+        const youtubeSubtitleDetectedLanguage = options.host === "youtube" ? resolveYoutubeDetectedLanguageFromSubtitles(options.subtitles) : void 0;
+        if (isResolvedLanguage(youtubeSubtitleDetectedLanguage)) {
+          return {
+            detectedLanguage: youtubeSubtitleDetectedLanguage,
+            cacheLanguage: youtubeSubtitleDetectedLanguage
+          };
+        }
+        if (options.cachedDetectedLanguage) {
+          return { detectedLanguage: options.cachedDetectedLanguage };
+        }
+        if (!options.allowTextLanguageDetection) {
+          return { detectedLanguage: "auto" };
+        }
+        const text = buildDetectText(options.title, options.description);
+        if (!text || text.length < MIN_DETECT_TEXT_LENGTH) {
+          return { detectedLanguage: "auto" };
+        }
+        const detectedLanguage = await options.detectLanguage(text);
+        if (!detectedLanguage) {
+          return { detectedLanguage: "auto" };
+        }
+        return {
+          detectedLanguage,
+          cacheLanguage: detectedLanguage
+        };
       }
       function getAriaValueNowPercent(selector) {
         const el = document.querySelector(selector);
@@ -11938,11 +12283,7 @@ isLivelyVoiceUnavailableError(value) {
           this.videoHandler = videoHandler;
         }
         setDetectedLanguageCache(videoId, language) {
-          const normalizedLanguage = normalizeToRequestLang(language);
-          if (!isResolvedLanguage(normalizedLanguage)) {
-            return;
-          }
-          getSharedLanguageState(videoId).detectedLanguage = normalizedLanguage;
+          getSharedLanguageState(videoId).detectedLanguage = language;
         }
         rememberUserLanguageSelection(videoId, language) {
           const normalizedLanguage = normalizeToRequestLang(language);
@@ -11962,7 +12303,7 @@ isLivelyVoiceUnavailableError(value) {
           if (!isResolvedLanguage(normalizedLanguage)) {
             return;
           }
-          getSharedLanguageState(videoId).detectedLanguage = normalizedLanguage;
+          this.setDetectedLanguageCache(videoId, normalizedLanguage);
           if (this.videoHandler.videoData?.videoId === videoId) {
             this.videoHandler.videoData.detectedLanguage = normalizedLanguage;
           }
@@ -11974,7 +12315,6 @@ isLivelyVoiceUnavailableError(value) {
             return inFlightDetect;
           }
           const task = (async () => {
-            debug.log(`Detecting language text: ${text}`);
             const language = normalizeToRequestLang(await detect(text));
             return isResolvedLanguage(language) ? language : void 0;
           })();
@@ -11985,6 +12325,34 @@ isLivelyVoiceUnavailableError(value) {
             if (sharedLanguageState.detectInFlight === task) {
               delete sharedLanguageState.detectInFlight;
             }
+          }
+        }
+        async ensureDetectedLanguageForTranslation(videoData) {
+          if (!videoData?.videoId || videoData.detectedLanguage !== "auto") {
+            return;
+          }
+          const sharedLanguageState = getSharedLanguageState(videoData.videoId);
+          const { detectedLanguage, cacheLanguage } = await resolveDetectedLanguageForVideo({
+            isStream: videoData.isStream,
+            host: this.videoHandler.site.host,
+            possibleLanguage: videoData.detectedLanguage,
+            subtitles: videoData.subtitles,
+            userOverrideLanguage: sharedLanguageState.userLanguageOverride,
+            cachedDetectedLanguage: sharedLanguageState.detectedLanguage,
+            title: videoData.title,
+            description: videoData.description,
+            allowTextLanguageDetection: true,
+            detectLanguage: async (text) => await this.detectLanguageSingleFlight(videoData.videoId, text)
+          });
+          if (cacheLanguage) {
+            this.setDetectedLanguageCache(videoData.videoId, cacheLanguage);
+          }
+          if (detectedLanguage === "auto") {
+            return;
+          }
+          videoData.detectedLanguage = detectedLanguage;
+          if (this.videoHandler.translateFromLang === "auto") {
+            this.videoHandler.translateFromLang = detectedLanguage;
           }
         }
         async getVideoData() {
@@ -12006,29 +12374,20 @@ isLivelyVoiceUnavailableError(value) {
             language: localizationProvider.lang
           });
           const sharedLanguageState = getSharedLanguageState(videoId);
-          const userOverrideLanguage = sharedLanguageState.userLanguageOverride;
-          const cachedDetectedLanguage = sharedLanguageState.detectedLanguage;
-          const normalizedPossibleLanguage = normalizeToRequestLang(possibleLanguage);
-          let detectedLanguage = userOverrideLanguage ?? normalizedPossibleLanguage ?? cachedDetectedLanguage ?? "auto";
-          if (!userOverrideLanguage && !normalizedPossibleLanguage && !cachedDetectedLanguage) {
-            const text = buildDetectText(title, localizedTitle, description);
-            if (text) {
-              const language = await this.detectLanguageSingleFlight(videoId, text);
-              if (language) {
-                detectedLanguage = language;
-                this.setDetectedLanguageCache(videoId, language);
-              }
-            }
-          }
-          if (!userOverrideLanguage && normalizedPossibleLanguage) {
-            this.setDetectedLanguageCache(videoId, normalizedPossibleLanguage);
-          }
-          const hostDetectedLanguage = resolveHostDetectedLanguage(
-            this.videoHandler.site.host
-          );
-          if (hostDetectedLanguage && !userOverrideLanguage) {
-            detectedLanguage = hostDetectedLanguage;
-            this.setDetectedLanguageCache(videoId, hostDetectedLanguage);
+          const { detectedLanguage, cacheLanguage } = await resolveDetectedLanguageForVideo({
+            isStream,
+            host: this.videoHandler.site.host,
+            possibleLanguage,
+            subtitles,
+            userOverrideLanguage: sharedLanguageState.userLanguageOverride,
+            cachedDetectedLanguage: sharedLanguageState.detectedLanguage,
+            title,
+            description,
+            allowTextLanguageDetection: false,
+            detectLanguage: async (text) => await this.detectLanguageSingleFlight(videoId, text)
+          });
+          if (cacheLanguage) {
+            this.setDetectedLanguageCache(videoId, cacheLanguage);
           }
           const videoData = {
             translationHelp,
@@ -12137,6 +12496,7 @@ syncVideoVolumeSlider() {
           overlayView.languagePairSelect.toSelect.selectTitle = localizationProvider.getLangLabel(to);
           overlayView.languagePairSelect.fromSelect.setSelectedValue(normalizedFrom);
           overlayView.languagePairSelect.toSelect.setSelectedValue(to);
+          return this;
         }
       }
       const t = globalThis, i = (t2) => t2, s = t.trustedTypes, e = s ? s.createPolicy("lit-html", { createHTML: (t2) => t2 }) : void 0, h = "$lit$", o = `lit$${Math.random().toFixed(9).slice(2)}$`, n = "?" + o, r = `<${n}>`, l = document, c = () => l.createComment(""), a = (t2) => null === t2 || "object" != typeof t2 && "function" != typeof t2, u = Array.isArray, d = (t2) => u(t2) || "function" == typeof t2?.[Symbol.iterator], f = "[ 	\n\f\r]", v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, _ = /-->/g, m = />/g, p = RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ 	
@@ -12363,7 +12723,7 @@ syncVideoVolumeSlider() {
         }
         return h2._$AI(t2), h2;
       };
-      const mainScss = '.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{word-break:break-word;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:""!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme),inset -1px 0 var(--vot-helper-theme),inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (min-resolution:.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:"";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:"";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:""!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb),.5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb),.87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0),.06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb),.03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb),.72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard),background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb),.04)!important;color:rgba(var(--vot-helper-onsurface-rgb),.9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb),.55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb),.7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;position:absolute;top:5rem;left:50%;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb),.1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{top:12.5vh;left:50px}.vot-segmented-button[data-position=right]{top:12.5vh;left:auto;right:0}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;position:absolute;top:calc(5rem + 48px);left:50%;overflow:hidden;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{transform-origin:0;top:12.5vh;left:240px}.vot-menu[data-position=right]{transform-origin:100%;top:12.5vh;left:auto;right:-80px}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px),100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media(max-width:480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));max-width:var(--vot-subtitles-max-width,70vw);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, 2.2vw, 36px)) * var(--vot-subtitles-scale-compensation,1));text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #0009, 0 2px 8px #00000059);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;margin:0 auto;display:block}.vot-subtitles.vot-subtitles--multiline{text-align:center}.vot-subtitles{text-wrap:wrap;white-space:normal;overflow-wrap:break-word}.vot-subtitles-widget{box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset: calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px) ;left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;max-width:var(--vot-subtitles-max-width,70vw);pointer-events:none;will-change:left,top,transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{flex-direction:column;gap:2px;display:flex;padding:6px!important}.vot-subtitles-info-service{color:var(--vot-subtitles-context-color,#86919b);margin-bottom:8px!important;font-size:10px!important;line-height:1!important}.vot-subtitles-info-header{color:var(--vot-subtitles-header-color,#fff);margin-bottom:6px!important;font-size:20px!important;font-weight:500!important;line-height:1!important}.vot-subtitles-info-context{color:var(--vot-subtitles-context-color,#86919b);font-size:12px!important;line-height:1.2!important}.vot-subtitles span{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span.passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span:before{content:"";z-index:-1;width:100%;height:100%;position:absolute;inset:2px -2px;border-radius:4px!important;padding:0 2px!important}.vot-subtitles span:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span.selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}@media(max-width:900px)and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}:-webkit-any(:-webkit-full-screen .vot-subtitles,:-webkit-full-screen .vot-subtitles){max-width:var(--vot-subtitles-max-width,80vw);font-size:calc(var(--vot-subtitles-font-size,clamp(18px, 2vw, 34px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}:is(:fullscreen .vot-subtitles){max-width:var(--vot-subtitles-max-width,80vw);font-size:calc(var(--vot-subtitles-font-size,clamp(18px, 2vw, 34px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}@media(prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:inline}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}';
+      const mainScss = '.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{word-break:break-word;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:""!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme),inset -1px 0 var(--vot-helper-theme),inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (min-resolution:.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:"";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:"";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:""!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb),.5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb),.87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0),.06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb),.03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb),.72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard),background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb),.04)!important;color:rgba(var(--vot-helper-onsurface-rgb),.9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb),.55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb),.7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;position:absolute;top:5rem;left:50%;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb),.1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{top:12.5vh;left:50px}.vot-segmented-button[data-position=right]{top:12.5vh;left:auto;right:0}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;position:absolute;top:calc(5rem + 48px);left:50%;overflow:hidden;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{transform-origin:0;top:12.5vh;left:240px}.vot-menu[data-position=right]{transform-origin:100%;top:12.5vh;left:auto;right:-80px}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px),100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media(max-width:480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:"<number>";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:"<number>";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);width:max-content;background:var(--vot-subtitles-background,#2e2f34cc);inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;margin:0 auto;display:block}.vot-subtitles.vot-subtitles--clamped{overflow:hidden}@supports (line-clamp:2){.vot-subtitles.vot-subtitles--clamped{line-clamp:2}}@supports not (line-clamp:2){.vot-subtitles.vot-subtitles--clamped{-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box}}.vot-subtitles{text-wrap:balance;white-space:normal;overflow-wrap:anywhere}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:42ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.68;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset: calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px) ;left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left,top,transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{flex-direction:column;gap:2px;max-width:100%;display:flex;padding:6px!important}.vot-subtitles-info-service,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;word-break:break-word;white-space:normal!important}.vot-subtitles-info-service{color:var(--vot-subtitles-context-color,#86919b);margin-bottom:8px!important;font-size:10px!important;line-height:1!important}.vot-subtitles-info-header{color:var(--vot-subtitles-header-color,#fff);margin-bottom:6px!important;font-size:20px!important;font-weight:500!important;line-height:1!important}.vot-subtitles-info-context{color:var(--vot-subtitles-context-color,#86919b);font-size:12px!important;line-height:1.2!important}.vot-subtitles span[data-vot-token="1"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token="1"].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token="1"]:before{content:"";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token="1"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token="1"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic="1"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold="1"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline="1"]{text-decoration:underline!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243),.7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243),.12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media(max-aspect-ratio:1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media(min-aspect-ratio:1)and (max-aspect-ratio:7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media(max-width:900px)and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}:-webkit-any(:-webkit-full-screen .vot-subtitles-widget,:-webkit-full-screen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:-webkit-any(:-webkit-full-screen .vot-subtitles,:-webkit-full-screen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}:is(:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}@media(prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:inline}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}';
       importCSS(mainScss);
       function initKeyboardNavigationMode() {
         if (globalThis.__votKeyboardNavInitialized) return;
@@ -12664,7 +13024,7 @@ updateMount({
             this.globalOffsetX = 0;
             this.globalOffsetY = 0;
           } else {
-            const { left, top } = this.parentElement.getBoundingClientRect();
+            const { left, top } = this.layoutRoot.getBoundingClientRect();
             this.globalOffsetX = left;
             this.globalOffsetY = top;
           }
@@ -12886,12 +13246,16 @@ updateMount({
               coords = { top: 0, left: 0 };
           }
           this.position = resolvedPosition;
-          return coords;
+          return {
+            top: coords.top + this.globalOffsetY,
+            left: coords.left + this.globalOffsetX
+          };
         }
         destroy(instant = false) {
           if (!this.container) {
             return this;
           }
+          const container = this.container;
           this.cancelPositionUpdate();
           this.clearDestroyFallbackTimer();
           this.showed = false;
@@ -12900,11 +13264,10 @@ updateMount({
           this.intersectionObserver?.disconnect();
           this.detachScrollListener();
           if (instant) {
-            this.container.remove();
+            container.remove();
             this.container = void 0;
             return this;
           }
-          const container = this.container;
           container.removeEventListener("mouseleave", this.onTooltipMouseLeave);
           container.style.pointerEvents = "none";
           container.style.opacity = "0";
@@ -12978,6 +13341,239 @@ updateMount({
           });
         }
       }
+      const subtitleFormats = ["srt", "vtt", "ass", "json"];
+      const subtitleFontFamilies = [
+        "default-sans",
+        "arial",
+        "helvetica",
+        "roboto",
+        "verdana",
+        "open-sans",
+        "poppins",
+        "lato",
+        "montserrat",
+        "barlow"
+      ];
+      const subtitleFontFamilyCss = {
+        "default-sans": `"Roboto", "Segoe UI", system-ui, sans-serif`,
+        arial: `Arial, "Helvetica Neue", Helvetica, sans-serif`,
+        helvetica: `"Helvetica Neue", Helvetica, Arial, sans-serif`,
+        roboto: `"Roboto", "Segoe UI", system-ui, sans-serif`,
+        verdana: `Verdana, Geneva, sans-serif`,
+        "open-sans": `"Open Sans", "Segoe UI", system-ui, sans-serif`,
+        poppins: `"Poppins", "Segoe UI", system-ui, sans-serif`,
+        lato: `"Lato", "Segoe UI", system-ui, sans-serif`,
+        montserrat: `"Montserrat", "Segoe UI", system-ui, sans-serif`,
+        barlow: `"Barlow", "Segoe UI", system-ui, sans-serif`
+      };
+      function isBuiltInSubtitleFontFamily(fontFamily) {
+        return subtitleFontFamilies.includes(fontFamily);
+      }
+      const GOOGLE_SUBTITLE_FONT_PREFIX = "google:";
+      const GOOGLE_FONTS_CSS_API_URL = "https://fonts.googleapis.com/css2";
+      const GOOGLE_FONTS_METADATA_URL = "https://fonts.google.com/metadata/fonts";
+      const subtitleGoogleFontFamilyNames = {
+        roboto: "Roboto",
+        "open-sans": "Open Sans",
+        poppins: "Poppins",
+        lato: "Lato",
+        montserrat: "Montserrat",
+        barlow: "Barlow"
+      };
+      const loadedSubtitleGoogleFonts = new Set();
+      const pendingSubtitleGoogleFonts = new Map();
+      let googleFontsCatalogPromise = null;
+      function toGoogleSubtitleFontFamily(familyName) {
+        return `${GOOGLE_SUBTITLE_FONT_PREFIX}${familyName}`;
+      }
+      function getGoogleSubtitleFontFamilyName(fontFamily) {
+        if (fontFamily.startsWith(GOOGLE_SUBTITLE_FONT_PREFIX)) {
+          const familyName = fontFamily.slice(GOOGLE_SUBTITLE_FONT_PREFIX.length).trim();
+          return familyName.length > 0 ? familyName : null;
+        }
+        return subtitleGoogleFontFamilyNames[fontFamily] ?? null;
+      }
+      function getSubtitleFontFamilyCssValue(fontFamily) {
+        if (isBuiltInSubtitleFontFamily(fontFamily)) {
+          return subtitleFontFamilyCss[fontFamily];
+        }
+        const googleFontFamilyName = getGoogleSubtitleFontFamilyName(fontFamily);
+        if (googleFontFamilyName) {
+          return `"${googleFontFamilyName}", "Segoe UI", system-ui, sans-serif`;
+        }
+        return subtitleFontFamilyCss["default-sans"];
+      }
+      function buildGoogleFontsCssUrl(fontFamily) {
+        const googleFontFamily = getGoogleSubtitleFontFamilyName(fontFamily);
+        if (!googleFontFamily) {
+          return null;
+        }
+        const familyQuery = googleFontFamily.trim().replaceAll(/\s+/g, "+");
+        return `${GOOGLE_FONTS_CSS_API_URL}?family=${familyQuery}&display=swap`;
+      }
+      function injectFontStylesheet(fontFamily, cssText) {
+        const styleId = `vot-google-font-${fontFamily}`;
+        if (document.getElementById(styleId)) {
+          return;
+        }
+        const gmAddStyle = globalThis.GM_addStyle;
+        const styleElement = typeof gmAddStyle === "function" ? gmAddStyle(cssText) : document.createElement("style");
+        if (!(styleElement instanceof HTMLElement)) {
+          return;
+        }
+        styleElement.id = styleId;
+        if (!styleElement.textContent) {
+          styleElement.textContent = cssText;
+        }
+        if (!styleElement.parentElement) {
+          (document.head || document.documentElement).appendChild(styleElement);
+        }
+      }
+      async function ensureGoogleSubtitleFontLoaded(fontFamily, options = {}) {
+        if (loadedSubtitleGoogleFonts.has(fontFamily)) {
+          return;
+        }
+        const existingLoad = pendingSubtitleGoogleFonts.get(fontFamily);
+        if (existingLoad !== void 0) {
+          await existingLoad;
+          return;
+        }
+        const cssUrl = buildGoogleFontsCssUrl(fontFamily);
+        if (!cssUrl) {
+          loadedSubtitleGoogleFonts.add(fontFamily);
+          return;
+        }
+        const googleFontFamily = getGoogleSubtitleFontFamilyName(fontFamily);
+        const loadPromise = (async () => {
+          try {
+            const response = await GM_fetch(cssUrl, {
+              timeout: 1e4,
+              forceGmXhr: options.forceGmXhr ?? true,
+              headers: {
+                Accept: "text/css,*/*;q=0.1"
+              }
+            });
+            if (!response.ok) {
+              throw new Error(
+                `Google Fonts CSS request failed with ${response.status}`
+              );
+            }
+            const cssText = await response.text();
+            if (!cssText.trim()) {
+              throw new Error("Google Fonts CSS response is empty");
+            }
+            injectFontStylesheet(fontFamily, cssText);
+            loadedSubtitleGoogleFonts.add(fontFamily);
+            if (document.fonts && googleFontFamily) {
+              await document.fonts.load(`500 20px "${googleFontFamily}"`);
+            }
+            options.onLoaded?.();
+          } catch (error2) {
+          } finally {
+            pendingSubtitleGoogleFonts.delete(fontFamily);
+          }
+        })();
+        pendingSubtitleGoogleFonts.set(fontFamily, loadPromise);
+        await loadPromise;
+      }
+      async function loadGoogleFontsCatalog() {
+        if (googleFontsCatalogPromise !== null) {
+          return await googleFontsCatalogPromise;
+        }
+        googleFontsCatalogPromise = (async () => {
+          const response = await GM_fetch(GOOGLE_FONTS_METADATA_URL, {
+            timeout: 15e3,
+            forceGmXhr: isSupportGMXhr
+          });
+          if (!response.ok) {
+            throw new Error(
+              `Google Fonts metadata request failed with ${response.status}`
+            );
+          }
+          const rawText = await response.text();
+          const sanitizedText = rawText.replace(/^\)\]\}'\n?/, "");
+          const payload = JSON.parse(sanitizedText);
+          const fontFamilies = payload.familyMetadataList?.map((entry) => entry.family?.trim() ?? "").filter((familyName) => familyName.length > 0);
+          return Array.from(new Set(fontFamilies)).sort(
+            (left, right) => left.localeCompare(right)
+          );
+        })().catch((error2) => {
+          googleFontsCatalogPromise = null;
+          return [];
+        });
+        return await googleFontsCatalogPromise;
+      }
+      class FullscreenLayerController {
+        video;
+        container;
+        fullscreenLayer = null;
+        constructor({ video, container }) {
+          this.video = video;
+          this.container = container;
+        }
+        updateContainer(container) {
+          this.container = container;
+        }
+        getWidgetParentElement() {
+          return this.shouldUseFullscreenViewportLayer() ? this.ensureFullscreenLayer() : this.container;
+        }
+        getLayoutRootElement() {
+          return this.fullscreenLayer?.isConnected ? this.fullscreenLayer : this.container;
+        }
+        syncWidgetContainer(widgetContainer) {
+          const widgetParent = this.getWidgetParentElement();
+          if (widgetParent === this.container && getComputedStyle(this.container).position === "static") {
+            this.container.style.position = "relative";
+          }
+          if (widgetContainer && widgetContainer.parentElement !== widgetParent) {
+            widgetParent.appendChild(widgetContainer);
+          }
+          if (widgetParent === this.container && this.fullscreenLayer?.parentElement) {
+            this.fullscreenLayer.remove();
+            this.fullscreenLayer = null;
+          }
+        }
+        release() {
+          if (!this.fullscreenLayer) return;
+          this.fullscreenLayer.remove();
+          this.fullscreenLayer = null;
+        }
+        getActiveFullscreenElement() {
+          const doc = document;
+          const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+          return resolveScopedFullscreenElement(
+            fullscreenEl,
+            [this.container, this.video],
+            {
+              allowDocumentViewport: true
+            }
+          );
+        }
+        isCurrentVideoInFullscreenSession() {
+          const fullscreenEl = this.getActiveFullscreenElement();
+          if (!fullscreenEl) return false;
+          if (fullscreenEl === this.container || fullscreenEl.contains(this.container) || this.container.contains(fullscreenEl)) {
+            return true;
+          }
+          return Boolean(
+            this.video && (fullscreenEl === this.video || fullscreenEl.contains(this.video) || this.video.contains(fullscreenEl))
+          );
+        }
+        shouldUseFullscreenViewportLayer() {
+          return this.isCurrentVideoInFullscreenSession();
+        }
+        ensureFullscreenLayer() {
+          if (!this.fullscreenLayer) {
+            const layer = document.createElement("vot-block");
+            layer.classList.add("vot-subtitles-layer");
+            this.fullscreenLayer = layer;
+          }
+          if (this.fullscreenLayer.parentElement !== this.container) {
+            this.container.appendChild(this.fullscreenLayer);
+          }
+          return this.fullscreenLayer;
+        }
+      }
       function isTimeInLine(time, line) {
         return time >= line.startMs && time < line.startMs + line.durationMs;
       }
@@ -12996,9 +13592,6 @@ updateMount({
           }
         }
         return -1;
-      }
-      function getLayoutAffectingKey(subtitleTokensKey, wrapKey, variantKey = 0) {
-        return `${subtitleTokensKey}:${wrapKey}:${variantKey}`;
       }
       function clampToRange(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -13034,6 +13627,158 @@ updateMount({
         nextAnchorY = clampToRange(nextAnchorY, minAnchorY, maxAnchorY);
         return { anchorX: nextAnchorX, anchorY: nextAnchorY };
       }
+      function snapValueToNearestCandidate({
+        current,
+        candidates,
+        thresholdPx
+      }) {
+        let closestValue = current;
+        let closestDistance = Number.POSITIVE_INFINITY;
+        for (const candidate of candidates) {
+          const distance = Math.abs(candidate - current);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestValue = candidate;
+          }
+        }
+        if (!Number.isFinite(closestDistance) || closestDistance > thresholdPx) {
+          return { snapped: false, value: current };
+        }
+        return { snapped: true, value: closestValue };
+      }
+      const stylesEqual$1 = (left, right) => Boolean(left?.italic) === Boolean(right?.italic) && Boolean(left?.bold) === Boolean(right?.bold) && Boolean(left?.underline) === Boolean(right?.underline);
+      function buildSubtitleRenderPlan(tokens, renderEndTokenIndex, breakAfterTokenIndexSet) {
+        const plan = [];
+        let pendingPrefix = "";
+        let pendingPrefixStyle;
+        for (let i2 = 0; i2 <= renderEndTokenIndex; ) {
+          const token = tokens[i2];
+          const tokenText = token?.text ?? "";
+          if (!tokenText) {
+            i2 += 1;
+            continue;
+          }
+          if (tokenText === "\n") {
+            if (pendingPrefix) {
+              plan.push({
+                kind: "text",
+                text: pendingPrefix,
+                style: pendingPrefixStyle
+              });
+              pendingPrefix = "";
+              pendingPrefixStyle = void 0;
+            }
+            plan.push({ kind: "break" });
+            i2 += 1;
+            continue;
+          }
+          if (token.isWordLike) {
+            let text = pendingPrefix + tokenText;
+            const style = pendingPrefix ? pendingPrefixStyle : token.style;
+            pendingPrefix = "";
+            pendingPrefixStyle = void 0;
+            let endIndex = i2;
+            const hasBreakAfterWord = Boolean(breakAfterTokenIndexSet?.has(i2));
+            let breakTokenIndex = hasBreakAfterWord ? i2 : null;
+            while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
+              const next = tokens[endIndex + 1];
+              if (!next || next.isWordLike || next.text === "\n" || !stylesEqual$1(next.style, style))
+                break;
+              text += next.text;
+              endIndex += 1;
+              if (breakAfterTokenIndexSet?.has(endIndex)) {
+                breakTokenIndex = endIndex;
+                break;
+              }
+            }
+            if (breakTokenIndex !== null) {
+              plan.push(
+                {
+                  kind: "word",
+                  text,
+                  style
+                },
+                { kind: "break" }
+              );
+              i2 = breakTokenIndex + 1;
+              while (i2 <= renderEndTokenIndex && !tokens[i2]?.isWordLike && !tokens[i2]?.text.trim()) {
+                i2 += 1;
+              }
+              continue;
+            }
+            plan.push({
+              kind: "word",
+              text,
+              style
+            });
+            i2 = endIndex + 1;
+            continue;
+          }
+          const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i2));
+          const isWhitespaceOnly = tokenText.trim().length === 0;
+          if (!isWhitespaceOnly) {
+            if (hasBreakAfter) {
+              plan.push(
+                {
+                  kind: "text",
+                  text: pendingPrefix + tokenText,
+                  style: pendingPrefix ? pendingPrefixStyle : token.style
+                },
+                { kind: "break" }
+              );
+              pendingPrefix = "";
+              pendingPrefixStyle = void 0;
+            } else {
+              if (pendingPrefix && !stylesEqual$1(pendingPrefixStyle, token.style)) {
+                plan.push({
+                  kind: "text",
+                  text: pendingPrefix,
+                  style: pendingPrefixStyle
+                });
+                pendingPrefix = "";
+              }
+              pendingPrefix += tokenText;
+              pendingPrefixStyle = token.style;
+            }
+            i2 += 1;
+            continue;
+          }
+          if (pendingPrefix) {
+            plan.push({
+              kind: "text",
+              text: pendingPrefix,
+              style: pendingPrefixStyle
+            });
+            pendingPrefix = "";
+            pendingPrefixStyle = void 0;
+          }
+          if (hasBreakAfter) {
+            plan.push(
+              {
+                kind: "text",
+                text: tokenText,
+                style: token.style
+              },
+              { kind: "break" }
+            );
+          } else {
+            plan.push({
+              kind: "text",
+              text: tokenText,
+              style: token.style
+            });
+          }
+          i2 += 1;
+        }
+        if (pendingPrefix) {
+          plan.push({
+            kind: "text",
+            text: pendingPrefix,
+            style: pendingPrefixStyle
+          });
+        }
+        return plan;
+      }
       const EST_CHAR_WIDTH_RATIO = 0.55;
       function clamp$1(value, min, max) {
         if (Number.isNaN(value)) return min;
@@ -13044,52 +13789,22 @@ updateMount({
         if (aspect < 1.4) return 32;
         return 42;
       }
-      function computeGuidelineMaxWidthRatio(aspect) {
-        if (!Number.isFinite(aspect) || aspect <= 0) return 0.9;
-        if (aspect >= 1.4) return 0.68;
-        if (aspect >= 1.2) return 0.9;
-        return 0.92;
-      }
-      function computeSmartFontSizePx(anchorBox) {
+      function computeSmartLayoutForBox(anchorBox, cssMetrics) {
         const w2 = Math.max(1, anchorBox.w);
         const h2 = Math.max(1, anchorBox.h);
         const aspect = w2 / h2;
-        const guidelineMaxWidthRatio = computeGuidelineMaxWidthRatio(aspect);
-        const guidelineMaxWidthPx = w2 * guidelineMaxWidthRatio;
-        const targetCPL = targetCharsPerLine(aspect);
-        const targetPxAt1080 = 36;
-        const baseFontRatioLandscape = targetPxAt1080 / 1080;
-        const portraitScale = 0.89;
-        const baseFontRatio = aspect < 1 ? baseFontRatioLandscape * portraitScale : baseFontRatioLandscape;
-        const minFontPx = 18;
-        const maxFontPx = 50;
-        const pivotH = 1080;
-        const pivotFont = pivotH * baseFontRatio;
-        const flattenExponent = 0.35;
-        const heightBasedPx = h2 <= pivotH ? h2 * baseFontRatio : pivotFont * (h2 / pivotH) ** flattenExponent;
-        const maxByWidthPx = guidelineMaxWidthPx / (targetCPL * EST_CHAR_WIDTH_RATIO);
-        const fontSizePx = Math.round(Math.min(heightBasedPx, maxByWidthPx));
-        return clamp$1(fontSizePx, minFontPx, maxFontPx);
-      }
-      function computeSmartLayoutForBox(anchorBox) {
-        const w2 = Math.max(1, anchorBox.w);
-        const h2 = Math.max(1, anchorBox.h);
-        const aspect = w2 / h2;
-        const fontSizePx = computeSmartFontSizePx(anchorBox);
-        const guidelineMaxWidthRatio = computeGuidelineMaxWidthRatio(aspect);
-        const guidelineMaxWidthPx = w2 * guidelineMaxWidthRatio;
-        const targetCPL = targetCharsPerLine(aspect);
-        const estCharW = fontSizePx * EST_CHAR_WIDTH_RATIO;
-        const targetMaxWidth = targetCPL * estCharW;
-        const minWidthPx = w2 * (aspect < 1 ? 0.8 : 0.55);
-        const maxWidthPx = clamp$1(targetMaxWidth, minWidthPx, guidelineMaxWidthPx);
-        const computedCPL = maxWidthPx / estCharW;
+        let computedCPL = targetCharsPerLine(aspect);
+        if (cssMetrics) {
+          const { fontSizePx, maxWidthPx } = cssMetrics;
+          if (Number.isFinite(fontSizePx) && Number.isFinite(maxWidthPx) && fontSizePx > 0 && maxWidthPx > 0) {
+            const estCharW = fontSizePx * EST_CHAR_WIDTH_RATIO;
+            if (estCharW > 0) {
+              computedCPL = maxWidthPx / estCharW;
+            }
+          }
+        }
         const maxLength = clamp$1(Math.round(computedCPL * 2), 50, 180);
-        return {
-          fontSizePx,
-          maxWidthPx,
-          maxLength
-        };
+        return { maxLength };
       }
       const isWordToken = (token) => Boolean(token?.isWordLike && token.text?.trim());
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -13098,65 +13813,55 @@ updateMount({
         return prefix2[end + 1] - prefix2[start];
       };
       const sentenceEndingWordRegexp = /[.!?\u2026]+(?:["'`)\]}\u00BB\u201D\u2019]+)?$/u;
-      function resolveBreakAfterTokenIndex(tokens, wordTokenIndex) {
-        let breakTokenIndex = wordTokenIndex;
-        let cursor = wordTokenIndex + 1;
-        let seenTrailingPunctuation = false;
-        while (cursor < tokens.length) {
-          const token = tokens[cursor];
-          if (!token || isWordToken(token)) break;
-          if (!token.text.trim()) {
-            if (seenTrailingPunctuation) break;
-            cursor += 1;
-            continue;
-          }
-          breakTokenIndex = cursor;
-          seenTrailingPunctuation = true;
-          cursor += 1;
-        }
-        return breakTokenIndex;
-      }
       function buildWordSlices(tokens) {
-        const wordTokenIndices = [];
-        for (let i2 = 0; i2 < tokens.length; i2 += 1) {
-          if (isWordToken(tokens[i2])) {
-            wordTokenIndices.push(i2);
-          }
-        }
         const slices = [];
-        const keyParts = [];
-        for (let i2 = 0; i2 < wordTokenIndices.length; i2 += 1) {
-          const tokenIndex = wordTokenIndices[i2];
-          const nextWordTokenIndex = i2 + 1 < wordTokenIndices.length ? wordTokenIndices[i2 + 1] : tokens.length;
-          const rawBreakAfterTokenIndex = resolveBreakAfterTokenIndex(
-            tokens,
-            tokenIndex
-          );
-          const breakAfterTokenIndex = clamp(
-            rawBreakAfterTokenIndex,
-            tokenIndex,
-            nextWordTokenIndex - 1
-          );
-          let textToNextWord = "";
-          let trailingGapAfterBreakText = "";
-          for (let cursor = tokenIndex; cursor < nextWordTokenIndex; cursor += 1) {
-            const tokenText = tokens[cursor]?.text ?? "";
-            textToNextWord += tokenText;
-            if (cursor > breakAfterTokenIndex) {
-              trailingGapAfterBreakText += tokenText;
+        let key = "";
+        for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
+          const token = tokens[tokenIndex];
+          if (!isWordToken(token)) continue;
+          let textToNextWord = token.text;
+          let breakAfterTokenIndex = tokenIndex;
+          let breakTextLength = token.text.length;
+          let cursor = tokenIndex + 1;
+          let seenTrailingPunctuation = false;
+          let punctuationAttachmentClosed = false;
+          while (cursor < tokens.length) {
+            const nextToken = tokens[cursor];
+            if (!nextToken) {
+              cursor += 1;
+              continue;
             }
+            if (isWordToken(nextToken)) break;
+            if (nextToken.text === "\n") {
+              breakAfterTokenIndex = cursor;
+              break;
+            }
+            const tokenText = nextToken.text ?? "";
+            textToNextWord += tokenText;
+            if (!tokenText.trim()) {
+              if (seenTrailingPunctuation) {
+                punctuationAttachmentClosed = true;
+              }
+              cursor += 1;
+              continue;
+            }
+            if (!punctuationAttachmentClosed) {
+              breakAfterTokenIndex = cursor;
+              seenTrailingPunctuation = true;
+              breakTextLength = textToNextWord.length;
+            }
+            cursor += 1;
           }
+          const trailingGapAfterBreakText = textToNextWord.slice(breakTextLength);
           slices.push({
             tokenIndex,
             breakAfterTokenIndex,
             textToNextWord,
             trailingGapAfterBreakText
           });
-          keyParts.push(
-            `${textToNextWord}${trailingGapAfterBreakText}${breakAfterTokenIndex}`
-          );
+          if (key) key += "";
+          key += `${textToNextWord}${trailingGapAfterBreakText}${breakAfterTokenIndex}`;
         }
-        const key = keyParts.join("");
         return {
           slices,
           key
@@ -13177,8 +13882,8 @@ updateMount({
           const trailingGapAfterBreakText = slices[i2].trailingGapAfterBreakText;
           const width = measure(textToNextWord);
           const charCount = textToNextWord.length;
-          const trailingWidth = measure(trailingGapAfterBreakText);
           const trailingCharCount = trailingGapAfterBreakText.length;
+          const trailingWidth = trailingCharCount ? measure(trailingGapAfterBreakText) : 0;
           widths[i2] = width;
           chars[i2] = charCount;
           trailingGapWidths[i2] = trailingWidth;
@@ -13218,12 +13923,18 @@ updateMount({
         const start = clamp(startWord, 0, metrics.widths.length - 1);
         const end = clamp(endWord, 0, metrics.widths.length - 1);
         if (end < start) return true;
-        if (getWordRangeWidthUnsafe(metrics, start, end) <= maxWidth) {
+        const prefixWidths = metrics.prefixWidths;
+        const trailingGapWidths = metrics.trailingGapWidths;
+        const startPrefix = prefixWidths[start];
+        const endPrefix = prefixWidths[end + 1];
+        const endTrailingGapWidth = trailingGapWidths[end] ?? 0;
+        if (endPrefix - startPrefix - endTrailingGapWidth <= maxWidth) {
           return true;
         }
         for (let k2 = start; k2 < end; k2 += 1) {
-          const top = getWordRangeWidthUnsafe(metrics, start, k2);
-          const bottom = getWordRangeWidthUnsafe(metrics, k2 + 1, end);
+          const splitPrefix = prefixWidths[k2 + 1];
+          const top = splitPrefix - startPrefix - (trailingGapWidths[k2] ?? 0);
+          const bottom = endPrefix - splitPrefix - endTrailingGapWidth;
           if (top <= maxWidth && bottom <= maxWidth) {
             return true;
           }
@@ -13254,12 +13965,18 @@ updateMount({
         const start = clamp(startWord, 0, metrics.widths.length - 1);
         const end = clamp(endWord, 0, metrics.widths.length - 1);
         if (end <= start) return null;
+        const prefixWidths = metrics.prefixWidths;
+        const trailingGapWidths = metrics.trailingGapWidths;
+        const startPrefix = prefixWidths[start];
+        const endPrefix = prefixWidths[end + 1];
+        const endTrailingGapWidth = trailingGapWidths[end] ?? 0;
         let bestBreak = null;
         let bestCost = Number.POSITIVE_INFINITY;
         const wordsInRange = end - start + 1;
         for (let k2 = start; k2 < end; k2 += 1) {
-          const w1 = getWordRangeWidthUnsafe(metrics, start, k2);
-          const w2 = getWordRangeWidthUnsafe(metrics, k2 + 1, end);
+          const splitPrefix = prefixWidths[k2 + 1];
+          const w1 = splitPrefix - startPrefix - (trailingGapWidths[k2] ?? 0);
+          const w2 = endPrefix - splitPrefix - endTrailingGapWidth;
           if (w1 > maxWidth || w2 > maxWidth) continue;
           const count1 = k2 - start + 1;
           const count2 = end - k2;
@@ -13453,15 +14170,29 @@ updateMount({
           next.startWord = nextStartWord;
         }
       };
+      const resolveSegmentStartToken = (tokens, words, startWordIndex) => {
+        const startWord = words[startWordIndex];
+        if (!startWord) return 0;
+        const previousBreakAfterTokenIndex = startWordIndex > 0 ? words[startWordIndex - 1]?.breakAfterTokenIndex ?? startWord.tokenIndex - 1 : -1;
+        let startToken = clamp(
+          previousBreakAfterTokenIndex + 1,
+          0,
+          startWord.tokenIndex
+        );
+        while (startToken < startWord.tokenIndex && !tokens[startToken]?.text.trim()) {
+          startToken += 1;
+        }
+        return startToken;
+      };
       const mapWordRangesToTimedSegments = (wordRanges, words, tokens) => {
         const segments = [];
         for (const range of wordRanges) {
           const startWord = words[range.startWord];
           const endWord = words[range.endWord];
           if (!startWord || !endWord) continue;
-          const startToken = startWord.tokenIndex;
+          const startToken = resolveSegmentStartToken(tokens, words, range.startWord);
           const endToken = endWord.breakAfterTokenIndex + 1;
-          const startMs = tokens[startToken]?.startMs ?? 0;
+          const startMs = tokens[startWord.tokenIndex]?.startMs ?? tokens[startToken]?.startMs ?? 0;
           const endTokenStartMs = tokens[endWord.tokenIndex]?.startMs ?? startMs;
           const endTokenDurationMs = tokens[endWord.tokenIndex]?.durationMs ?? 0;
           const nextWord = words[range.endWord + 1];
@@ -13492,11 +14223,6 @@ updateMount({
         applySentenceBoundarySplits(wordRanges, tokens, words, isRangeAllowed);
         return mapWordRangesToTimedSegments(wordRanges, words, tokens);
       }
-      function shouldShowSmartEllipsis(smartLayoutEnabled, truncateAfterTokenIndex, tokensLength) {
-        if (!smartLayoutEnabled) return false;
-        if (typeof truncateAfterTokenIndex !== "number") return false;
-        return truncateAfterTokenIndex >= 0 && truncateAfterTokenIndex < tokensLength - 1;
-      }
       const WRAP_WIDTH_GUARD_PX = 8;
       const WRAP_WIDTH_GUARD_RATIO = 0.97;
       const MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
@@ -13510,7 +14236,7 @@ updateMount({
       class SubtitlesWidget {
         video;
         container;
-        portal;
+        fullscreenLayerController;
         tooltipLayoutRoot;
         subtitlesContainer = null;
         subtitlesBlock = null;
@@ -13523,11 +14249,14 @@ updateMount({
         highlightWords = false;
         fontSize = 20;
         fontSizeOverridden = false;
+        fontFamily = "default-sans";
         manualMaxLength = 300;
         smartLayoutEnabled = true;
         smartFontSizePx = 0;
         smartMaxWidthPx = 0;
         smartMaxLength = 0;
+        smartAnchorWidthPx = 0;
+        smartAnchorHeightPx = 0;
         lastSmartLayoutKey = null;
         lastSmartLayoutCheckTs = 0;
         opacity = "0.2";
@@ -13552,16 +14281,17 @@ updateMount({
         lastWrapTokens = null;
         measureCanvas = null;
         measureCtx = null;
-        lastMultilineMeasureSignature = null;
-        lastLayoutAffectingKey = null;
         tokenProcessingMemo = null;
         tokenPrecomputeMemo = null;
         lineMeasureMemo = null;
         lastSegmentIndex = 0;
+        lastAppliedLeftPct = null;
+        lastAppliedTopPct = null;
         position = {
           left: 50,
           top: 100
         };
+        positionPreset = "bottom-center";
         dragging = {
           pointerId: null,
           candidate: false,
@@ -13575,6 +14305,7 @@ updateMount({
           }
         };
         dragStartThresholdPx = 4;
+        snapThresholdPx = 18;
         suppressTokenClicksUntil = 0;
         abortController = new AbortController();
         resizeObserver;
@@ -13585,11 +14316,16 @@ updateMount({
         edgePunctuationTrimRe = /(?:^[\p{P}\p{S}]+|[\p{P}\p{S}]+$)/gu;
         strTokens = "";
         strTranslatedTokens = "";
+        passedStateKey = null;
+        passedThresholds = [];
         normalizeTokenTextForTranslation(raw) {
           return raw.trim().replace(this.edgePunctuationTrimRe, "");
         }
         bottomInsetCachedPx = 0;
-bottomInsetByMode = {
+safeAreaBottomInsetCachedPx = 0;
+        containerPaddingBottomCachedPx = 0;
+        insetCacheReady = false;
+        bottomInsetByMode = {
           normal: {
             ratio: 0.1,
             minPx: 56,
@@ -13604,16 +14340,22 @@ bottomInsetByMode = {
           }
         };
         safeAreaProbeEl = null;
+        guidesLayer = null;
+        verticalGuide = null;
+        horizontalGuide = null;
         onPointerDownBound;
         onPointerUpBound;
         onPointerMoveBound;
         onTimeUpdateBound;
         onPlaybackStateChangeBound;
         onVisualViewportChangeBound;
-        constructor(video, container, portal, intervalIdleChecker, tooltipLayoutRoot = void 0) {
+        constructor(video, container, intervalIdleChecker, tooltipLayoutRoot = void 0) {
           this.video = video;
           this.container = container;
-          this.portal = portal;
+          this.fullscreenLayerController = new FullscreenLayerController({
+            video,
+            container
+          });
           this.intervalIdleChecker = intervalIdleChecker;
           this.tooltipLayoutRoot = tooltipLayoutRoot;
           this.useVideoFrameCallbacks = !!this.video && typeof this.video.requestVideoFrameCallback === "function";
@@ -13628,8 +14370,29 @@ bottomInsetByMode = {
           });
           this.bindEvents();
         }
-        setPortal(portal) {
-          this.portal = portal;
+        updateMount({
+          container,
+          tooltipLayoutRoot
+        }) {
+          const containerChanged = this.container !== container;
+          const tooltipRootChanged = this.tooltipLayoutRoot !== tooltipLayoutRoot;
+          this.container = container;
+          this.fullscreenLayerController.updateContainer(container);
+          this.tooltipLayoutRoot = tooltipLayoutRoot;
+          this.syncWidgetMount();
+          if (containerChanged || tooltipRootChanged) {
+            this.tokenTooltip?.updateMount({
+              parentElement: this.getTokenTooltipParentElement(),
+              layoutRoot: this.tooltipLayoutRoot ?? document.documentElement
+            });
+          }
+          if (this.subtitles) {
+            this.insetCacheReady = false;
+            this.lastAppliedLeftPct = null;
+            this.lastAppliedTopPct = null;
+            this.updateContainerRect();
+            this.requestUpdate();
+          }
         }
         resetTranslationContext(releaseTooltip = false) {
           this.strTranslatedTokens = "";
@@ -13650,8 +14413,6 @@ bottomInsetByMode = {
         }
         resetRenderMemo() {
           this.lastRenderKey = null;
-          this.lastMultilineMeasureSignature = null;
-          this.lastLayoutAffectingKey = null;
         }
         computeAnchorBoxLayout(layout) {
           const fallback = {
@@ -13678,34 +14439,47 @@ bottomInsetByMode = {
           const top = maxTop >= 0 ? clampToRange(rawTop, 0, maxTop) : (layout.h - h2) / 2;
           return { left, top, w: w2, h: h2 };
         }
+        readSmartCssMetrics() {
+          const block = this.subtitlesBlock;
+          if (!block) return null;
+          const cs = getComputedStyle(block);
+          const fontSizePx = Number.parseFloat(cs.fontSize);
+          const maxWidthRawPx = Number.parseFloat(cs.maxWidth);
+          if (!Number.isFinite(fontSizePx) || !Number.isFinite(maxWidthRawPx) || fontSizePx <= 0 || maxWidthRawPx <= 0) {
+            return null;
+          }
+          this.subtitleMaxWidthPx = maxWidthRawPx;
+          const paddingLeft = Number.parseFloat(cs.paddingLeft) || 0;
+          const paddingRight = Number.parseFloat(cs.paddingRight) || 0;
+          const maxWidthPx = Math.max(0, maxWidthRawPx - paddingLeft - paddingRight);
+          if (maxWidthPx <= 0) return null;
+          return { fontSizePx, maxWidthPx };
+        }
         ensureSmartLayout(anchorBox) {
           if (!this.smartLayoutEnabled) {
             this.maxLength = this.manualMaxLength;
             return null;
           }
-          const next = computeSmartLayoutForBox(anchorBox);
-          const nextKey = `${Math.round(next.fontSizePx)}|${Math.round(
-      next.maxWidthPx
+          const cssMetrics = this.readSmartCssMetrics();
+          const nextFontSizePx = cssMetrics?.fontSizePx ?? this.smartFontSizePx;
+          const nextMaxWidthPx = cssMetrics?.maxWidthPx ?? this.smartMaxWidthPx;
+          const next = computeSmartLayoutForBox(anchorBox, cssMetrics);
+          const nextKey = `${Math.round(nextFontSizePx)}|${Math.round(
+      nextMaxWidthPx
     )}|${next.maxLength}`;
-          const fontChanged = next.fontSizePx !== this.smartFontSizePx;
-          const widthChanged = Math.abs(next.maxWidthPx - this.smartMaxWidthPx) > 0.5;
+          const fontChanged = Math.abs(nextFontSizePx - this.smartFontSizePx) > 0.5;
+          const widthChanged = Math.abs(nextMaxWidthPx - this.smartMaxWidthPx) > 0.5;
           const lengthChanged = next.maxLength !== this.smartMaxLength;
           if (nextKey !== this.lastSmartLayoutKey) {
             this.lastSmartLayoutKey = nextKey;
-            this.smartFontSizePx = next.fontSizePx;
-            this.smartMaxWidthPx = next.maxWidthPx;
+            this.smartFontSizePx = nextFontSizePx;
+            this.smartMaxWidthPx = nextMaxWidthPx;
             this.smartMaxLength = next.maxLength;
           }
           if (lengthChanged) {
             this.maxLength = next.maxLength;
             this.resetRenderMemo();
             this.resetSegmentationMemo();
-          }
-          if (fontChanged && this.subtitlesBlock) {
-            this.subtitlesBlock.style.setProperty(
-              "--vot-subtitles-font-size",
-              `${next.fontSizePx}px`
-            );
           }
           if ((fontChanged || widthChanged) && this.lastWrapTokens) {
             this.lastWrapKey = null;
@@ -13721,22 +14495,135 @@ bottomInsetByMode = {
           this.intervalIdleChecker.markActivity("subtitles-reposition");
           this.intervalIdleChecker.requestImmediateTick();
         }
+        setSubtitlesContainerVar(name, value) {
+          const container = this.subtitlesContainer;
+          if (!container) return;
+          if (value === null) {
+            container.style.removeProperty(name);
+            return;
+          }
+          container.style.setProperty(name, value);
+        }
+        applyOpacityStyle() {
+          this.setSubtitlesContainerVar("--vot-subtitles-opacity", this.opacity);
+        }
+        applyManualFontSizeStyle() {
+          if (!this.smartLayoutEnabled && this.fontSizeOverridden) {
+            this.setSubtitlesContainerVar(
+              "--vot-subtitles-font-size",
+              `${this.fontSize}px`
+            );
+            return;
+          }
+          this.setSubtitlesContainerVar("--vot-subtitles-font-size", null);
+        }
+        applyFontFamilyStyle() {
+          const fontFamily = this.fontFamily;
+          this.setSubtitlesContainerVar(
+            "--vot-subtitles-font-family-custom",
+            getSubtitleFontFamilyCssValue(fontFamily)
+          );
+          void ensureGoogleSubtitleFontLoaded(fontFamily, {
+            forceGmXhr: true,
+            onLoaded: () => {
+              if (this.fontFamily !== fontFamily) {
+                return;
+              }
+              this.lastWrapKey = null;
+              this.resetSegmentationMemo();
+              this.scheduleWrapRecompute();
+              this.scheduleReposition();
+            }
+          });
+        }
+        syncVisualStyleVars() {
+          this.applyOpacityStyle();
+          this.applyManualFontSizeStyle();
+          this.applyFontFamilyStyle();
+        }
+        ensureGuidesLayer() {
+          if (this.guidesLayer) {
+            return this.guidesLayer;
+          }
+          const layer = document.createElement("vot-block");
+          layer.classList.add("vot-subtitles-guides");
+          const verticalGuide = document.createElement("vot-block");
+          verticalGuide.classList.add(
+            "vot-subtitles-guide",
+            "vot-subtitles-guide--vertical"
+          );
+          const horizontalGuide = document.createElement("vot-block");
+          horizontalGuide.classList.add(
+            "vot-subtitles-guide",
+            "vot-subtitles-guide--horizontal"
+          );
+          layer.append(verticalGuide, horizontalGuide);
+          this.guidesLayer = layer;
+          this.verticalGuide = verticalGuide;
+          this.horizontalGuide = horizontalGuide;
+          this.hideSnapGuides();
+          return layer;
+        }
+        hideSnapGuides() {
+          this.verticalGuide?.removeAttribute("data-visible");
+          this.horizontalGuide?.removeAttribute("data-visible");
+        }
+        updateSnapGuides(anchorBox, options) {
+          const { showVerticalCenter = false, showHorizontalCenter = false } = options;
+          const layer = this.ensureGuidesLayer();
+          if (!layer.isConnected) {
+            this.syncGuideLayerMount();
+          }
+          if (this.verticalGuide) {
+            this.verticalGuide.style.left = `${anchorBox.left + anchorBox.w / 2}px`;
+            this.verticalGuide.style.top = `${anchorBox.top}px`;
+            this.verticalGuide.style.height = `${anchorBox.h}px`;
+            if (showVerticalCenter) {
+              this.verticalGuide.dataset.visible = "true";
+            } else {
+              delete this.verticalGuide.dataset.visible;
+            }
+          }
+          if (this.horizontalGuide) {
+            this.horizontalGuide.style.left = `${anchorBox.left}px`;
+            this.horizontalGuide.style.top = `${anchorBox.top + anchorBox.h / 2}px`;
+            this.horizontalGuide.style.width = `${anchorBox.w}px`;
+            if (showHorizontalCenter) {
+              this.horizontalGuide.dataset.visible = "true";
+            } else {
+              delete this.horizontalGuide.dataset.visible;
+            }
+          }
+        }
+        syncGuideLayerMount() {
+          const widgetParent = this.fullscreenLayerController.getWidgetParentElement();
+          const guidesLayer = this.ensureGuidesLayer();
+          if (guidesLayer.parentElement !== widgetParent) {
+            widgetParent.appendChild(guidesLayer);
+          }
+        }
+        syncWidgetMount() {
+          this.fullscreenLayerController.syncWidgetContainer(this.subtitlesContainer);
+          this.syncGuideLayerMount();
+        }
+        getTokenTooltipParentElement() {
+          const widgetParent = this.fullscreenLayerController.getWidgetParentElement();
+          return widgetParent === this.container ? document.documentElement : widgetParent;
+        }
         createSubtitlesContainer() {
           if (this.subtitlesContainer) {
             return this.subtitlesContainer;
           }
-          if (getComputedStyle(this.container).position === "static") {
-            this.container.style.position = "relative";
-          }
           const container = document.createElement("vot-block");
           container.classList.add("vot-subtitles-widget");
-          this.container.appendChild(container);
           this.subtitlesContainer = container;
+          this.syncWidgetMount();
           container.addEventListener("pointerdown", this.onPointerDownBound, {
             signal: this.abortController.signal,
             passive: true
           });
-          container.style.transform = "translate(-50%, -100%)";
+          this.syncVisualStyleVars();
+          this.insetCacheReady = false;
           this.updateContainerRect();
           return container;
         }
@@ -13875,6 +14762,7 @@ bottomInsetByMode = {
           document.removeEventListener("pointercancel", this.onPointerUpBound);
         }
         onResize() {
+          this.syncWidgetMount();
           this.scheduleReposition();
         }
         updateContainerRect() {
@@ -13886,9 +14774,10 @@ bottomInsetByMode = {
           this.applySubtitlePositionWithLayout(layout, anchorBox);
         }
         getLayoutSize() {
-          const rect = this.container.getBoundingClientRect();
-          const w2 = this.container.clientWidth || rect.width;
-          const h2 = this.container.clientHeight || rect.height;
+          const layoutRoot = this.fullscreenLayerController.getLayoutRootElement();
+          const rect = layoutRoot.getBoundingClientRect();
+          const w2 = layoutRoot.clientWidth || rect.width;
+          const h2 = layoutRoot.clientHeight || rect.height;
           const scaleX = rect.width && w2 ? rect.width / w2 : 1;
           const scaleY = rect.height && h2 ? rect.height / h2 : 1;
           return { w: w2, h: h2, rect, scaleX, scaleY };
@@ -13912,6 +14801,12 @@ bottomInsetByMode = {
           if (!this.safeAreaProbeEl) return 0;
           const h2 = this.safeAreaProbeEl.offsetHeight || 0;
           return h2;
+        }
+        refreshInsetCache() {
+          const layoutRoot = this.fullscreenLayerController.getLayoutRootElement();
+          this.safeAreaBottomInsetCachedPx = this.getSafeAreaBottomInsetPx();
+          this.containerPaddingBottomCachedPx = Number.parseFloat(getComputedStyle(layoutRoot).paddingBottom || "0") || 0;
+          this.insetCacheReady = true;
         }
         isMobileViewport() {
           if (typeof globalThis.matchMedia !== "function") return false;
@@ -13938,6 +14833,7 @@ bottomInsetByMode = {
           return clampToRange(raw, preset.minPx, preset.maxPx);
         }
         refreshBottomInsetNow(layout, anchorBox) {
+          this.refreshInsetCache();
           const anchorH = anchorBox?.h ?? this.computeAnchorBoxLayout(layout ?? this.getLayoutSize()).h;
           if (!anchorH) {
             this.bottomInsetCachedPx = 0;
@@ -13950,11 +14846,12 @@ bottomInsetByMode = {
           );
         }
         getBottomInsetPx(layout, anchorBox) {
+          if (!this.insetCacheReady) {
+            this.refreshInsetCache();
+          }
           const preset = this.getBottomInsetPreset();
-          const safeAreaBottom = this.getSafeAreaBottomInsetPx();
-          const paddingBottom = Number.parseFloat(
-            getComputedStyle(this.container).paddingBottom || "0"
-          ) || 0;
+          const safeAreaBottom = this.safeAreaBottomInsetCachedPx;
+          const paddingBottom = this.containerPaddingBottomCachedPx;
           if (this.isMobileViewport()) {
             return Math.max(paddingBottom, safeAreaBottom);
           }
@@ -13990,6 +14887,7 @@ bottomInsetByMode = {
           this.dragging.startClientY = event.clientY;
           this.dragging.offset.x = anchorX - pointerX;
           this.dragging.offset.y = anchorY - pointerY;
+          this.hideSnapGuides();
           this.attachDragDocumentListeners();
           const captureEl = this.subtitlesBlock ?? (target instanceof Element ? target : null);
           try {
@@ -14007,6 +14905,7 @@ bottomInsetByMode = {
           this.dragging.candidate = false;
           this.dragging.active = false;
           this.dragging.moved = false;
+          this.hideSnapGuides();
           this.detachDragDocumentListeners();
         }
         onPointerMove(event) {
@@ -14044,6 +14943,23 @@ bottomInsetByMode = {
           const elW = this.subtitlesContainer?.offsetWidth ?? 0;
           const elH = this.subtitlesContainer?.offsetHeight ?? 0;
           const bottomInset = this.getBottomInsetPx(layout, anchorBox);
+          const snappedX = snapValueToNearestCandidate({
+            current: anchorX,
+            candidates: [anchorBox.w / 2],
+            thresholdPx: this.snapThresholdPx
+          });
+          if (snappedX.snapped) {
+            anchorX = snappedX.value;
+          }
+          const verticalCenterAnchor = anchorBox.h / 2 + elH / 2;
+          const snappedY = snapValueToNearestCandidate({
+            current: anchorY,
+            candidates: [verticalCenterAnchor],
+            thresholdPx: this.snapThresholdPx
+          });
+          if (snappedY.snapped) {
+            anchorY = snappedY.value;
+          }
           ({ anchorX, anchorY } = clampAnchorWithinBox({
             anchorX,
             anchorY,
@@ -14053,8 +14969,13 @@ bottomInsetByMode = {
             boxHeight: anchorBox.h,
             bottomInset
           }));
+          this.positionPreset = "custom";
           this.position.left = anchorX / anchorBox.w * 100;
           this.position.top = anchorY / anchorBox.h * 100;
+          this.updateSnapGuides(anchorBox, {
+            showVerticalCenter: snappedX.snapped,
+            showHorizontalCenter: snappedY.snapped
+          });
           this.applySubtitlePositionWithLayout(layout, anchorBox);
         }
         applySubtitlePosition() {
@@ -14081,27 +15002,49 @@ bottomInsetByMode = {
               compensate.toFixed(3)
             );
           }
-          let desiredMaxWidthPx = 0;
-          if (this.smartLayoutEnabled) {
-            const smart = this.ensureSmartLayout(anchorBox);
-            desiredMaxWidthPx = smart ? Math.max(0, smart.maxWidthPx) : Math.max(0, anchorBox.w * 0.7);
-          } else {
-            desiredMaxWidthPx = Math.max(0, anchorBox.w * 0.7);
-          }
-          if (Math.abs(desiredMaxWidthPx - this.subtitleMaxWidthPx) > 0.5) {
-            this.subtitleMaxWidthPx = desiredMaxWidthPx;
+          const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
+          const anchorHeightPx = Math.max(1, Math.round(anchorBox.h));
+          const anchorDimsChanged = anchorWidthPx !== this.smartAnchorWidthPx || anchorHeightPx !== this.smartAnchorHeightPx;
+          if (anchorDimsChanged) {
+            this.smartAnchorWidthPx = anchorWidthPx;
+            this.smartAnchorHeightPx = anchorHeightPx;
             subtitlesContainer.style.setProperty(
-              "--vot-subtitles-max-width",
-              `${Math.round(desiredMaxWidthPx)}px`
+              "--vot-subtitles-anchor-width",
+              `${anchorWidthPx}px`
             );
-            this.resetSegmentationMemo();
-            this.scheduleWrapRecompute();
+            subtitlesContainer.style.setProperty(
+              "--vot-subtitles-anchor-height",
+              `${anchorHeightPx}px`
+            );
+            if (this.lastWrapTokens) {
+              this.lastWrapKey = null;
+              this.resetSegmentationMemo();
+              this.scheduleWrapRecompute();
+            }
           }
+          if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
           const elW = subtitlesContainer.offsetWidth;
           const elH = subtitlesContainer.offsetHeight;
           const bottomInset = this.getBottomInsetPx(layout, anchorBox);
           let anchorX = this.position.left / 100 * anchorBox.w;
           let anchorY = this.position.top / 100 * anchorBox.h;
+          if (this.positionPreset !== "custom") {
+            const presetPosition = this.resolvePresetAnchorPosition({
+              preset: this.positionPreset,
+              anchorBox,
+              elementWidth: elW,
+              elementHeight: elH,
+              bottomInset
+            });
+            anchorX = presetPosition.anchorX;
+            anchorY = presetPosition.anchorY;
+            if (anchorBox.w > 0) {
+              this.position.left = anchorX / anchorBox.w * 100;
+            }
+            if (anchorBox.h > 0) {
+              this.position.top = anchorY / anchorBox.h * 100;
+            }
+          }
           let leftPx = anchorX - elW / 2;
           let topPx = anchorY - elH;
           const maxLeftPx = anchorBox.w - elW;
@@ -14122,10 +15065,48 @@ bottomInsetByMode = {
           const containerAnchorY = anchorBox.top + anchorY;
           const leftPct = containerAnchorX / layout.w * 100;
           const topPct = containerAnchorY / layout.h * 100;
-          subtitlesContainer.style.left = `${leftPct}%`;
-          subtitlesContainer.style.top = `${topPct}%`;
-          subtitlesContainer.style.transform = "translate(-50%, -100%)";
+          if (this.lastAppliedLeftPct === null || Math.abs(leftPct - this.lastAppliedLeftPct) >= 0.01) {
+            subtitlesContainer.style.left = `${leftPct}%`;
+            this.lastAppliedLeftPct = leftPct;
+          }
+          if (this.lastAppliedTopPct === null || Math.abs(topPct - this.lastAppliedTopPct) >= 0.01) {
+            subtitlesContainer.style.top = `${topPct}%`;
+            this.lastAppliedTopPct = topPct;
+          }
           this.tokenTooltip?.updatePos();
+        }
+        resolvePresetAnchorPosition({
+          preset,
+          anchorBox,
+          elementWidth,
+          elementHeight,
+          bottomInset
+        }) {
+          let anchorX = anchorBox.w / 2;
+          let anchorY = anchorBox.h - bottomInset;
+          switch (preset) {
+            case "top-center":
+              anchorY = elementHeight;
+              break;
+            case "center":
+              anchorY = anchorBox.h / 2 + elementHeight / 2;
+              break;
+            case "bottom-left":
+              anchorX = elementWidth / 2;
+              break;
+            case "bottom-right":
+              anchorX = anchorBox.w - elementWidth / 2;
+              break;
+          }
+          return clampAnchorWithinBox({
+            anchorX,
+            anchorY,
+            elementWidth,
+            elementHeight,
+            boxWidth: anchorBox.w,
+            boxHeight: anchorBox.h,
+            bottomInset
+          });
         }
         applyPositionAfterContentRender() {
           const layout = this.getLayoutSize();
@@ -14228,6 +15209,9 @@ bottomInsetByMode = {
             const paddingLeft = Number.parseFloat(cs.paddingLeft) || 0;
             const paddingRight = Number.parseFloat(cs.paddingRight) || 0;
             const baseMaxWidth2 = Number.isFinite(cssMaxWidth) ? cssMaxWidth : this.subtitleMaxWidthPx || globalThis.innerWidth * 0.8;
+            if (Number.isFinite(baseMaxWidth2) && baseMaxWidth2 > 0) {
+              this.subtitleMaxWidthPx = baseMaxWidth2;
+            }
             return {
               fontKey: fontKey2,
               maxWidthPx: Math.max(0, baseMaxWidth2 - paddingLeft - paddingRight)
@@ -14241,7 +15225,7 @@ bottomInsetByMode = {
             this.subtitleMaxWidthPx || globalThis.innerWidth * cssFallbackVw
           );
           const fontSizePx = this.fontSizeOverridden ? this.fontSize : Math.min(24, Math.max(14, globalThis.innerWidth * 0.016));
-          const fontKey = `normal normal 500 ${fontSizePx}px Roboto, "Segoe UI", system-ui, sans-serif`;
+          const fontKey = `normal normal 500 ${fontSizePx}px ${getSubtitleFontFamilyCssValue(this.fontFamily)}`;
           ctx.font = fontKey;
           return {
             fontKey,
@@ -14438,6 +15422,16 @@ bottomInsetByMode = {
           this.resetWrapMemo();
           this.lastWrapTokens = null;
           this.subtitleMaxWidthPx = 0;
+          this.smartAnchorWidthPx = 0;
+          this.smartAnchorHeightPx = 0;
+          this.smartFontSizePx = 0;
+          this.smartMaxWidthPx = 0;
+          this.lastAppliedLeftPct = null;
+          this.lastAppliedTopPct = null;
+          this.passedStateKey = null;
+          this.passedThresholds.length = 0;
+          this.insetCacheReady = false;
+          this.hideSnapGuides();
           this.resetSegmentationMemo();
           this.clearPendingSchedulerState();
           if (this.subtitlesContainer) {
@@ -14474,13 +15468,20 @@ bottomInsetByMode = {
             this.strTranslatedTokens || this.strTokens,
             service
           );
+          const tooltipMaxWidth = Math.max(
+            this.subtitleMaxWidthPx,
+            this.subtitlesContainer?.offsetWidth ?? 0,
+            this.subtitlesBlock?.offsetWidth ?? 0,
+            Math.min(globalThis.innerWidth * 0.6, 320)
+          );
           const tooltip = new Tooltip({
             target,
             anchor: this.subtitlesBlock ?? target,
             layoutRoot: this.tooltipLayoutRoot,
             content: subtitlesInfo.container,
-            parentElement: this.portal,
-            maxWidth: this.subtitlesBlock?.offsetWidth ?? this.subtitlesContainer?.offsetWidth,
+            parentElement: this.getTokenTooltipParentElement(),
+            offset: { x: 4, y: 12 },
+            maxWidth: tooltipMaxWidth,
             borderRadius: 12,
             bordered: false,
             position: "top",
@@ -14497,84 +15498,58 @@ bottomInsetByMode = {
           subtitlesInfo.context.textContent = translated[0];
           tooltip.setContent(subtitlesInfo.container);
         };
-        buildPassedState(tokens, time) {
-          const flags = this.passedFlagsBuffer;
-          let wordIndex = 0;
-          for (const token of tokens) {
-            if (!token.isWordLike) continue;
-            const halfway = token.startMs + token.durationMs / 2;
-            const passed = time > halfway || time > token.startMs - 100 && halfway - time < 275;
-            flags[wordIndex] = passed;
-            wordIndex += 1;
+        buildPassedState(tokens, time, stateKey) {
+          if (this.passedStateKey !== stateKey) {
+            this.passedStateKey = stateKey;
+            this.passedThresholds.length = 0;
+            for (const token of tokens) {
+              if (!token.isWordLike) continue;
+              const halfway = token.startMs + token.durationMs / 2;
+              const earlyPassThreshold = Math.max(token.startMs - 100, halfway - 275);
+              this.passedThresholds.push(Math.min(halfway, earlyPassThreshold));
+            }
           }
-          flags.length = wordIndex;
+          const flags = this.passedFlagsBuffer;
+          const thresholds = this.passedThresholds;
+          for (let i2 = 0; i2 < thresholds.length; i2 += 1) {
+            flags[i2] = time > thresholds[i2];
+          }
+          flags.length = thresholds.length;
           return flags;
         }
         renderTokens(tokens) {
           const breakAfter = this.breakAfterTokenIndexSet;
-          const truncateAfterTokenIndex = typeof this.smartTruncateAfterTokenIndex === "number" ? Math.max(
-            0,
-            Math.min(this.smartTruncateAfterTokenIndex, tokens.length - 1)
-          ) : null;
-          const hasSmartTruncation = shouldShowSmartEllipsis(
-            this.smartLayoutEnabled,
-            truncateAfterTokenIndex,
-            tokens.length
-          );
-          const renderEndTokenIndex = hasSmartTruncation ? truncateAfterTokenIndex ?? tokens.length - 1 : tokens.length - 1;
           const out = [];
-          for (let i2 = 0; i2 <= renderEndTokenIndex; ) {
-            const token = tokens[i2];
-            if (!token.text) {
-              i2 += 1;
-              continue;
-            }
-            if (token.isWordLike) {
-              let text = token.text;
-              let endIndex = i2;
-              const hasBreakAfterWord = Boolean(breakAfter?.has(i2));
-              let breakTokenIndex = hasBreakAfterWord ? i2 : null;
-              while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
-                const next = tokens[endIndex + 1];
-                if (!next || next.isWordLike) break;
-                text += next.text;
-                endIndex += 1;
-                if (breakAfter?.has(endIndex)) {
-                  breakTokenIndex = endIndex;
-                  break;
-                }
-              }
+          const plan = buildSubtitleRenderPlan(tokens, tokens.length - 1, breakAfter);
+          for (const part of plan) {
+            if (part.kind === "word") {
               out.push(
                 b`<span
             data-vot-token="1"
-            >${text}</span
+            data-vot-style-italic=${part.style?.italic ? "1" : "0"}
+            data-vot-style-bold=${part.style?.bold ? "1" : "0"}
+            data-vot-style-underline=${part.style?.underline ? "1" : "0"}
+            >${part.text}</span
           >`
               );
-              if (breakTokenIndex !== null) {
-                out.push(b`<br class="vot-subtitles-br" />`);
-                i2 = breakTokenIndex + 1;
-                while (i2 <= renderEndTokenIndex && !tokens[i2]?.isWordLike && !tokens[i2]?.text.trim()) {
-                  i2 += 1;
-                }
-                continue;
-              }
-              i2 = endIndex + 1;
-            } else {
-              out.push(token.text);
-              if (breakAfter?.has(i2)) {
-                out.push(b`<br class="vot-subtitles-br" />`);
-              }
-              i2 += 1;
+              continue;
             }
-          }
-          if (hasSmartTruncation) {
-            const last = out.at(-1);
-            if (typeof last === "string") {
-              const trimmed = last.replace(/\s+$/u, "");
-              if (trimmed) out[out.length - 1] = trimmed;
-              else out.pop();
+            if (part.kind === "break") {
+              out.push(b`<br class="vot-subtitles-br" />`);
+              continue;
             }
-            out.push("…");
+            if (part.style) {
+              out.push(
+                b`<span
+            data-vot-style-italic=${part.style.italic ? "1" : "0"}
+            data-vot-style-bold=${part.style.bold ? "1" : "0"}
+            data-vot-style-underline=${part.style.underline ? "1" : "0"}
+            >${part.text}</span
+          >`
+              );
+              continue;
+            }
+            out.push(part.text);
           }
           return out;
         }
@@ -14740,29 +15715,19 @@ bottomInsetByMode = {
           }
           this.update();
         }
-        applyManualFontSizeStyle() {
-          if (!this.subtitlesBlock) return;
-          if (this.fontSizeOverridden) {
-            this.subtitlesBlock.style.setProperty(
-              "--vot-subtitles-font-size",
-              `${this.fontSize}px`
-            );
-            return;
-          }
-          this.subtitlesBlock.style.removeProperty("--vot-subtitles-font-size");
-        }
         setSmartLayout(enabled) {
           const next = enabled !== false;
           if (next === this.smartLayoutEnabled) return;
           this.smartLayoutEnabled = next;
+          this.subtitlesContainer?.style.removeProperty("--vot-subtitles-max-width");
           this.lastSmartLayoutKey = null;
           this.resetWrapMemo();
           this.resetRenderMemo();
           this.resetSegmentationMemo();
           if (!this.smartLayoutEnabled) {
             this.maxLength = this.manualMaxLength;
-            this.applyManualFontSizeStyle();
           }
+          this.applyManualFontSizeStyle();
           this.update();
           this.scheduleWrapRecompute();
           this.scheduleReposition();
@@ -14778,16 +15743,19 @@ bottomInsetByMode = {
             this.scheduleReposition();
           }
         }
+        setFontFamily(fontFamily) {
+          this.fontFamily = fontFamily;
+          this.applyFontFamilyStyle();
+          this.lastWrapKey = null;
+          this.resetSegmentationMemo();
+          this.scheduleWrapRecompute();
+          this.scheduleReposition();
+        }
         setOpacity(rate) {
           const numericRate = Number(rate);
           const clampedRate = Number.isFinite(numericRate) ? clampToRange(numericRate, 0, 100) : 0;
           this.opacity = ((100 - clampedRate) / 100).toFixed(2);
-          if (this.subtitlesBlock) {
-            this.subtitlesBlock.style.setProperty(
-              "--vot-subtitles-opacity",
-              this.opacity
-            );
-          }
+          this.applyOpacityStyle();
         }
         stringifyTokens(tokens) {
           let out = "";
@@ -14795,38 +15763,6 @@ bottomInsetByMode = {
             out += token.text;
           }
           return out;
-        }
-        updateMultilineAlignmentIfNeeded(layoutAffectingKey) {
-          const block = this.subtitlesBlock;
-          if (!block) return;
-          if (layoutAffectingKey === this.lastLayoutAffectingKey) return;
-          const cs = getComputedStyle(block);
-          const measureSignature = `${layoutAffectingKey}|${cs.fontSize}|${Math.round(
-      block.clientWidth
-    )}`;
-          this.updateMultilineAlignmentClass(measureSignature);
-          this.lastLayoutAffectingKey = layoutAffectingKey;
-        }
-updateMultilineAlignmentClass(measureSignature) {
-          const block = this.subtitlesBlock;
-          if (!block) return;
-          if (measureSignature === this.lastMultilineMeasureSignature) return;
-          this.lastMultilineMeasureSignature = measureSignature;
-          const cs = getComputedStyle(block);
-          const lineHeightPx = Number.parseFloat(cs.lineHeight);
-          if (!Number.isFinite(lineHeightPx) || lineHeightPx <= 0) {
-            block.classList.remove("vot-subtitles--multiline");
-            return;
-          }
-          const paddingTop = Number.parseFloat(cs.paddingTop) || 0;
-          const paddingBottom = Number.parseFloat(cs.paddingBottom) || 0;
-          const contentHeightPx = Math.max(
-            0,
-            block.clientHeight - paddingTop - paddingBottom
-          );
-          const lines = Math.max(1, Math.round(contentHeightPx / lineHeightPx));
-          if (lines > 1) block.classList.add("vot-subtitles--multiline");
-          else block.classList.remove("vot-subtitles--multiline");
         }
         update() {
           if (!this.video || !this.subtitles) return;
@@ -14876,6 +15812,7 @@ updateMultilineAlignmentClass(measureSignature) {
           }
           const tokens = this.processTokens(line.tokens, time);
           this.lastWrapTokens = tokens;
+          const hasSmartTruncation = this.smartLayoutEnabled && typeof this.smartTruncateAfterTokenIndex === "number" && this.smartTruncateAfterTokenIndex >= 0 && this.smartTruncateAfterTokenIndex < tokens.length - 1;
           const strTokens = this.stringifyTokens(tokens);
           const tokensChanged = strTokens !== this.strTokens;
           if (tokensChanged) {
@@ -14884,41 +15821,23 @@ updateMultilineAlignmentClass(measureSignature) {
             this.resetTranslationContext();
             this.resetWrapMemo();
           }
-          const passedFlags = this.highlightWords ? this.buildPassedState(tokens, time) : null;
+          const passedStateKey = `${lineIndex}:${strTokens}`;
+          const passedFlags = this.highlightWords ? this.buildPassedState(tokens, time, passedStateKey) : null;
           const wrapKey = `${this.breakAfterTokenIndices.join(",")}|${this.smartTruncateAfterTokenIndex ?? ""}`;
-          let effectiveFontSizeKey = 0;
-          if (this.smartLayoutEnabled) {
-            effectiveFontSizeKey = Math.round(this.smartFontSizePx);
-          } else if (this.fontSizeOverridden) {
-            effectiveFontSizeKey = this.fontSize;
-          }
-          const layoutAffectingKey = getLayoutAffectingKey(
-            strTokens,
-            wrapKey,
-            effectiveFontSizeKey
-          );
           const renderKey = `${lineIndex}:${strTokens}:${wrapKey}`;
           if (renderKey === this.lastRenderKey) {
             if (this.highlightWords && !tokensChanged && passedFlags) {
               this.updatePassedClasses(passedFlags);
             }
-            this.updateMultilineAlignmentIfNeeded(layoutAffectingKey);
             this.maybeRefreshPosition();
             return;
           }
           this.lastRenderKey = renderKey;
           this.subtitlesContainer = this.subtitlesContainer ?? this.createSubtitlesContainer();
-          const styleParts = [`--vot-subtitles-opacity: ${this.opacity}`];
-          if (this.smartLayoutEnabled) {
-            if (this.smartFontSizePx > 0)
-              styleParts.push(`--vot-subtitles-font-size: ${this.smartFontSizePx}px`);
-          } else if (this.fontSizeOverridden) {
-            styleParts.push(`--vot-subtitles-font-size: ${this.fontSize}px`);
-          }
+          const subtitlesClass = hasSmartTruncation ? "vot-subtitles vot-subtitles--clamped" : "vot-subtitles";
           D(
             b`<vot-block
-        class="vot-subtitles"
-        style="${styleParts.join("; ")}"
+        class="${subtitlesClass}"
         @click=${this.onClick}
       >
         ${this.renderTokens(tokens)}
@@ -14935,7 +15854,6 @@ updateMultilineAlignmentClass(measureSignature) {
           if (this.highlightWords && passedFlags) {
             this.updatePassedClasses(passedFlags);
           }
-          this.updateMultilineAlignmentIfNeeded(layoutAffectingKey);
           if (tokensChanged) {
             this.applyPositionAfterContentRender();
             this.scheduleWrapRecompute(tokens);
@@ -14957,14 +15875,775 @@ updateMultilineAlignmentClass(measureSignature) {
             this.subtitlesContainer.remove();
             this.subtitlesContainer = null;
           }
+          this.fullscreenLayerController.release();
           if (this.safeAreaProbeEl) {
             this.safeAreaProbeEl.remove();
             this.safeAreaProbeEl = null;
           }
+          if (this.guidesLayer) {
+            this.guidesLayer.remove();
+            this.guidesLayer = null;
+            this.verticalGuide = null;
+            this.horizontalGuide = null;
+          }
           this.measureCtx = null;
           this.measureCanvas = null;
+          this.lastAppliedLeftPct = null;
+          this.lastAppliedTopPct = null;
+          this.passedStateKey = null;
+          this.passedThresholds.length = 0;
+          this.insetCacheReady = false;
         }
       }
+      const HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)(?:[.\s][^>]*)?>/iu;
+      const ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
+      const LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
+      const toTokenStyle = (style) => {
+        const tokenStyle = {};
+        if (style.italic) tokenStyle.italic = true;
+        if (style.bold) tokenStyle.bold = true;
+        if (style.underline) tokenStyle.underline = true;
+        return Object.keys(tokenStyle).length > 0 ? tokenStyle : void 0;
+      };
+      const stylesEqual = (left, right) => Boolean(left?.italic) === Boolean(right?.italic) && Boolean(left?.bold) === Boolean(right?.bold) && Boolean(left?.underline) === Boolean(right?.underline);
+      const pushSegment = (segments, text, style) => {
+        if (!text) return;
+        const tokenStyle = toTokenStyle(style);
+        const previous = segments.at(-1);
+        if (previous && stylesEqual(previous.style, tokenStyle)) {
+          previous.text += text;
+          return;
+        }
+        segments.push({
+          text,
+          style: tokenStyle
+        });
+      };
+      const applyAssStyleDirective = (directive, style) => {
+        const match = /^\\([ibu])([01])$/u.exec(directive.trim());
+        if (!match) return;
+        const enabled = match[2] === "1";
+        if (match[1] === "i") {
+          style.italic = enabled;
+          return;
+        }
+        if (match[1] === "b") {
+          style.bold = enabled;
+          return;
+        }
+        if (match[1] === "u") {
+          style.underline = enabled;
+        }
+      };
+      const normalizeLeadingSpeakerMarker = (segments) => {
+        for (const segment of segments) {
+          if (!segment.text) continue;
+          const normalized = segment.text.replace(LEADING_SPEAKER_MARKER_RE, "$1");
+          segment.text = normalized;
+          if (normalized.length > 0) {
+            break;
+          }
+        }
+        while (segments[0]?.text === "") {
+          segments.shift();
+        }
+      };
+      const buildStyledDisplayModel = (rawText) => {
+        const segments = [];
+        const activeStyle = {
+          italic: false,
+          bold: false,
+          underline: false
+        };
+        let cursor = 0;
+        while (cursor < rawText.length) {
+          const remainder = rawText.slice(cursor);
+          if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
+            pushSegment(segments, "\n", activeStyle);
+            cursor += 2;
+            continue;
+          }
+          if (remainder.startsWith("\\h")) {
+            pushSegment(segments, " ", activeStyle);
+            cursor += 2;
+            continue;
+          }
+          if (remainder[0] === "\n") {
+            pushSegment(segments, "\n", activeStyle);
+            cursor += 1;
+            continue;
+          }
+          const assMatch = ASS_OVERRIDE_RE.exec(remainder);
+          if (assMatch) {
+            const directives = assMatch[1].match(/\\[ibu][01]/gu) ?? [];
+            for (const directive of directives) {
+              applyAssStyleDirective(directive, activeStyle);
+            }
+            cursor += assMatch[0].length;
+            continue;
+          }
+          const htmlMatch = HTML_TAG_RE.exec(remainder);
+          if (htmlMatch) {
+            const isClosing = htmlMatch[1] === "/";
+            const tagName = htmlMatch[2].toLowerCase();
+            if (tagName === "br") {
+              pushSegment(segments, "\n", activeStyle);
+            } else if (tagName === "i") {
+              activeStyle.italic = !isClosing;
+            } else if (tagName === "b") {
+              activeStyle.bold = !isClosing;
+            } else if (tagName === "u") {
+              activeStyle.underline = !isClosing;
+            }
+            cursor += htmlMatch[0].length;
+            continue;
+          }
+          pushSegment(segments, remainder[0], activeStyle);
+          cursor += 1;
+        }
+        normalizeLeadingSpeakerMarker(segments);
+        const styledSpans = [];
+        let text = "";
+        for (const segment of segments) {
+          if (!segment.text) continue;
+          const start = text.length;
+          text += segment.text;
+          const end = text.length;
+          styledSpans.push({
+            start,
+            end,
+            style: segment.style
+          });
+        }
+        const normalizedText = text.replaceAll(" ", " ");
+        const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
+        const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
+        const trimmedEnd = Math.max(
+          leadingTrim,
+          normalizedText.length - trailingTrim
+        );
+        const finalText = normalizedText.slice(leadingTrim, trimmedEnd);
+        const finalSpans = styledSpans.map((span) => ({
+          start: Math.max(0, span.start - leadingTrim),
+          end: Math.max(0, span.end - leadingTrim),
+          style: span.style
+        })).filter((span) => span.end > span.start && span.start < finalText.length).map((span) => ({
+          ...span,
+          end: Math.min(span.end, finalText.length)
+        }));
+        return {
+          text: finalText,
+          styledSpans: finalSpans
+        };
+      };
+      const getStyleForRange = (styledSpans, start, end) => {
+        if (!styledSpans?.length || end <= start) {
+          return void 0;
+        }
+        const overlap = styledSpans.find(
+          (span) => start < span.end && end > span.start && span.style
+        );
+        return overlap?.style;
+      };
+      const BOM = "\uFEFF";
+      const ASS_OVERRIDE_TAG_RE = /\{[^}]*\}/gu;
+      const SRT_TIMING_RE = /^\s*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*$/u;
+      const VTT_TIMING_RE = /^(?<start>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})\s+-->\s+(?<end>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})(?<settings>(?:[ \t]+.+)?)$/u;
+      const normalizeNewlines = (value) => value.replace(BOM, "").replaceAll(/\r\n?/gu, "\n");
+      const padMilliseconds = (value) => value.length >= 3 ? value.slice(0, 3) : value.padEnd(3, "0");
+      const parseClockTime = (value, millisecondsLength) => {
+        const parts = value.trim().split(":");
+        if (parts.length < 2 || parts.length > 3) {
+          return null;
+        }
+        const normalizedParts = parts.length === 2 ? ["00", ...parts] : parts;
+        const [hoursRaw, minutesRaw, secondsRaw] = normalizedParts;
+        const [secondsPart, millisecondsPart = "0"] = secondsRaw.split(/[.,]/u);
+        if (!/^\d+$/u.test(hoursRaw) || !/^\d{2}$/u.test(minutesRaw) || !/^\d{2}$/u.test(secondsPart) || !/^\d+$/u.test(millisecondsPart)) {
+          return null;
+        }
+        const hours = Number(hoursRaw);
+        const minutes = Number(minutesRaw);
+        const seconds = Number(secondsPart);
+        const milliseconds = Number(
+          padMilliseconds(millisecondsPart).slice(0, millisecondsLength)
+        );
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds) || minutes > 59 || seconds > 59) {
+          return null;
+        }
+        return ((hours * 60 + minutes) * 60 + seconds) * 1e3 + milliseconds;
+      };
+      const formatClockTime = (totalMs, {
+        delimiter,
+        allowOptionalHours,
+        fractionDigits
+      }) => {
+        const safeMs = Math.max(0, Math.round(totalMs));
+        const hours = Math.floor(safeMs / 36e5);
+        const minutes = Math.floor(safeMs % 36e5 / 6e4);
+        const seconds = Math.floor(safeMs % 6e4 / 1e3);
+        const milliseconds = safeMs % 1e3;
+        const fraction = milliseconds.toString().padStart(3, "0").slice(0, fractionDigits);
+        const hourPart = allowOptionalHours && hours === 0 ? "" : `${hours.toString().padStart(2, "0")}:`;
+        return `${hourPart}${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}${delimiter}${fraction}`;
+      };
+      const formatAssTime = (totalMs) => {
+        const safeMs = Math.max(0, Math.round(totalMs));
+        const hours = Math.floor(safeMs / 36e5);
+        const minutes = Math.floor(safeMs % 36e5 / 6e4);
+        const seconds = Math.floor(safeMs % 6e4 / 1e3);
+        const centiseconds = Math.floor(safeMs % 1e3 / 10);
+        return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
+      };
+      const parseAssTime = (value) => {
+        const match = /^(?<hours>\d+):(?<minutes>\d{2}):(?<seconds>\d{2})\.(?<centiseconds>\d{2})$/u.exec(
+          value.trim()
+        );
+        if (!match?.groups) return null;
+        const hours = Number(match.groups.hours);
+        const minutes = Number(match.groups.minutes);
+        const seconds = Number(match.groups.seconds);
+        const centiseconds = Number(match.groups.centiseconds);
+        if (minutes > 59 || seconds > 59 || !Number.isFinite(hours) || !Number.isFinite(centiseconds)) {
+          return null;
+        }
+        return ((hours * 60 + minutes) * 60 + seconds) * 1e3 + centiseconds * 10;
+      };
+      const normalizeSubtitleTextForDisplay = (value) => buildStyledDisplayModel(value).text;
+      const toComparableSubtitleOrder = (subtitles) => subtitles.sort((left, right) => {
+        const startDiff = left.line.startMs - right.line.startMs;
+        if (startDiff !== 0) return startDiff;
+        const endDiff = left.line.startMs + Math.max(0, left.line.durationMs) - (right.line.startMs + Math.max(0, right.line.durationMs));
+        if (endDiff !== 0) return endDiff;
+        return left.index - right.index;
+      }).map(({ line }) => line);
+      const trimEmptyBoundaryLines = (lines) => {
+        let start = 0;
+        let end = lines.length;
+        while (start < end && lines[start] === "") {
+          start += 1;
+        }
+        while (end > start && lines[end - 1] === "") {
+          end -= 1;
+        }
+        return lines.slice(start, end);
+      };
+      const parseCueSettings = (rawSettings) => {
+        const raw = rawSettings.trim();
+        if (!raw) return void 0;
+        const values = {};
+        for (const token of raw.split(/\s+/u)) {
+          const separatorIndex = token.indexOf(":");
+          if (separatorIndex <= 0) continue;
+          values[token.slice(0, separatorIndex)] = token.slice(separatorIndex + 1);
+        }
+        return {
+          raw,
+          values
+        };
+      };
+      const extractVttVoice = (payload) => {
+        const match = /^\s*<v(?:\.[^ >]+)?(?:\s+([^>]*?))?>/iu.exec(payload) ?? /^\s*<v\s+([^>]*?)>/iu.exec(payload);
+        const voice = match?.[1]?.trim();
+        return voice ? voice : void 0;
+      };
+      const toSrtDisplayText = (payload) => normalizeSubtitleTextForDisplay(payload);
+      const toVttDisplayText = (payload) => normalizeSubtitleTextForDisplay(payload);
+      const toAssDisplayText = (rawText) => normalizeSubtitleTextForDisplay(rawText);
+      const parseSrt = (text) => {
+        const normalized = normalizeNewlines(text);
+        const lines = normalized.split("\n");
+        const cues = [];
+        const isSrtCueStart = (index) => {
+          const current = lines[index]?.trim() ?? "";
+          const next = lines[index + 1]?.trim() ?? "";
+          return SRT_TIMING_RE.test(current) || /^\d+$/u.test(current) && SRT_TIMING_RE.test(next);
+        };
+        let cursor = 0;
+        let cueIndex = 0;
+        while (cursor < lines.length) {
+          while (cursor < lines.length && lines[cursor].trim() === "") {
+            cursor += 1;
+          }
+          if (cursor >= lines.length) break;
+          let timingLineIndex = cursor;
+          if (/^\d+$/u.test(lines[cursor].trim()) && SRT_TIMING_RE.test(lines[cursor + 1]?.trim() ?? "")) {
+            timingLineIndex = cursor + 1;
+          }
+          const timingMatch = SRT_TIMING_RE.exec(
+            lines[timingLineIndex]?.trim() ?? ""
+          );
+          if (!timingMatch?.groups) {
+            cursor += 1;
+            continue;
+          }
+          const startMs = parseClockTime(timingMatch.groups.start, 3);
+          const endMs = parseClockTime(timingMatch.groups.end, 3);
+          if (startMs == null || endMs == null || endMs < startMs) {
+            cursor = timingLineIndex + 1;
+            continue;
+          }
+          cursor = timingLineIndex + 1;
+          const payloadLines = [];
+          while (cursor < lines.length) {
+            if (lines[cursor].trim() === "") {
+              const nextCursor = cursor + 1;
+              if (isSrtCueStart(nextCursor)) {
+                break;
+              }
+              cursor += 1;
+              continue;
+            }
+            if (payloadLines.length > 0 && isSrtCueStart(cursor)) {
+              break;
+            }
+            payloadLines.push(lines[cursor]);
+            cursor += 1;
+          }
+          const rawText = trimEmptyBoundaryLines(payloadLines).join("\n");
+          const displayModel = buildStyledDisplayModel(rawText);
+          cues.push({
+            index: cueIndex,
+            line: {
+              text: toSrtDisplayText(rawText),
+              startMs,
+              durationMs: Math.max(0, endMs - startMs),
+              speakerId: "0",
+              tokens: [],
+              metadata: {
+                rawText,
+                styledSpans: displayModel.styledSpans
+              }
+            }
+          });
+          cueIndex += 1;
+        }
+        return {
+          format: "srt",
+          subtitles: toComparableSubtitleOrder(cues)
+        };
+      };
+      const resolveSerializedText = (processed, line, format) => {
+        if (processed.format === format) {
+          return line.metadata?.rawText ?? line.text;
+        }
+        if (format === "ass") {
+          return line.text.replaceAll("\n", "\\N");
+        }
+        return line.text;
+      };
+      const serializeSrt = (processed) => processed.subtitles.map((line, index) => {
+        const rawText = resolveSerializedText(processed, line, "srt");
+        const endMs = line.startMs + Math.max(0, line.durationMs);
+        return [
+          String(index + 1),
+          `${formatClockTime(line.startMs, {
+      delimiter: ",",
+      allowOptionalHours: false,
+      fractionDigits: 3
+    })} --> ${formatClockTime(endMs, {
+      delimiter: ",",
+      allowOptionalHours: false,
+      fractionDigits: 3
+    })}`,
+          rawText
+        ].join("\n");
+      }).join("\n\n");
+      const pushWebVttBlock = (blocks, cueIndex, lines) => {
+        blocks.push({
+          cueIndex,
+          lines
+        });
+      };
+      const parseVtt = (text) => {
+        const normalized = normalizeNewlines(text);
+        const lines = normalized.split("\n");
+        const headerLine = lines[0] ?? "";
+        if (!headerLine.startsWith("WEBVTT")) {
+          return {
+            format: "vtt",
+            subtitles: [],
+            metadata: {
+              vtt: {
+                headerText: "",
+                blocks: []
+              }
+            }
+          };
+        }
+        const metadata = {
+          headerText: headerLine.slice("WEBVTT".length).trim(),
+          blocks: []
+        };
+        const cues = [];
+        let cursor = 1;
+        while (cursor < lines.length) {
+          while (cursor < lines.length && lines[cursor].trim() === "") {
+            cursor += 1;
+          }
+          if (cursor >= lines.length) break;
+          if (lines[cursor].startsWith("NOTE") || lines[cursor] === "STYLE" || lines[cursor] === "REGION") {
+            const blockLines = [];
+            while (cursor < lines.length && lines[cursor].trim() !== "") {
+              blockLines.push(lines[cursor]);
+              cursor += 1;
+            }
+            pushWebVttBlock(metadata.blocks, cues.length, blockLines);
+            continue;
+          }
+          let cueId;
+          if (!VTT_TIMING_RE.test(lines[cursor] ?? "") && VTT_TIMING_RE.test(lines[cursor + 1] ?? "")) {
+            cueId = lines[cursor];
+            cursor += 1;
+          }
+          const timingMatch = VTT_TIMING_RE.exec(lines[cursor] ?? "");
+          if (!timingMatch?.groups) {
+            cursor += 1;
+            continue;
+          }
+          const startMs = parseClockTime(timingMatch.groups.start, 3);
+          const endMs = parseClockTime(timingMatch.groups.end, 3);
+          if (startMs == null || endMs == null || endMs < startMs) {
+            cursor += 1;
+            continue;
+          }
+          cursor += 1;
+          const payloadLines = [];
+          while (cursor < lines.length && lines[cursor].trim() !== "") {
+            payloadLines.push(lines[cursor]);
+            cursor += 1;
+          }
+          const rawText = payloadLines.join("\n");
+          const displayModel = buildStyledDisplayModel(rawText);
+          const voice = extractVttVoice(rawText);
+          cues.push({
+            index: cues.length,
+            line: {
+              text: toVttDisplayText(rawText),
+              startMs,
+              durationMs: Math.max(0, endMs - startMs),
+              speakerId: voice ?? "0",
+              tokens: [],
+              metadata: {
+                rawText,
+                styledSpans: displayModel.styledSpans,
+                vtt: {
+                  cueId,
+                  settings: parseCueSettings(timingMatch.groups.settings ?? ""),
+                  voice,
+                  rawPayload: payloadLines
+                }
+              }
+            }
+          });
+        }
+        return {
+          format: "vtt",
+          subtitles: toComparableSubtitleOrder(cues),
+          metadata: {
+            vtt: metadata
+          }
+        };
+      };
+      const serializeVttTiming = (line) => {
+        const endMs = line.startMs + Math.max(0, line.durationMs);
+        const settings = line.metadata?.vtt?.settings?.raw;
+        return `${formatClockTime(line.startMs, {
+    delimiter: ".",
+    allowOptionalHours: true,
+    fractionDigits: 3
+  })} --> ${formatClockTime(endMs, {
+    delimiter: ".",
+    allowOptionalHours: true,
+    fractionDigits: 3
+  })}${settings ? ` ${settings}` : ""}`;
+      };
+      const serializeVtt = (processed) => {
+        const metadata = processed.metadata?.vtt;
+        const sections = [
+          `WEBVTT${metadata?.headerText ? ` ${metadata.headerText}` : ""}`
+        ];
+        const blocksByIndex = new Map();
+        for (const block of metadata?.blocks ?? []) {
+          const existing = blocksByIndex.get(block.cueIndex) ?? [];
+          existing.push(block.lines);
+          blocksByIndex.set(block.cueIndex, existing);
+        }
+        const emitBlocks = (cueIndex) => {
+          for (const lines of blocksByIndex.get(cueIndex) ?? []) {
+            sections.push(lines.join("\n"));
+          }
+        };
+        emitBlocks(0);
+        processed.subtitles.forEach((line, index) => {
+          const cueId = line.metadata?.vtt?.cueId;
+          const cueSections = [
+            ...cueId ? [cueId] : [],
+            serializeVttTiming(line),
+            (processed.format === "vtt" ? line.metadata?.vtt?.rawPayload : line.text.split("\n"))?.join("\n") ?? line.text
+          ];
+          sections.push(cueSections.join("\n"));
+          emitBlocks(index + 1);
+        });
+        return sections.filter(Boolean).join("\n\n");
+      };
+      const splitAssFields = (value, fieldCount) => {
+        if (fieldCount <= 1) {
+          return [value];
+        }
+        const fields = [];
+        let cursor = 0;
+        for (let i2 = 0; i2 < fieldCount - 1; i2 += 1) {
+          const separatorIndex = value.indexOf(",", cursor);
+          if (separatorIndex < 0) {
+            fields.push(value.slice(cursor).trim());
+            cursor = value.length;
+            break;
+          }
+          fields.push(value.slice(cursor, separatorIndex).trim());
+          cursor = separatorIndex + 1;
+        }
+        fields.push(value.slice(cursor).trim());
+        return fields;
+      };
+      const createEmptyAssMetadata = () => ({
+        scriptInfoLines: [],
+        styleFormat: "",
+        styleLines: [],
+        eventFormat: "",
+        preEventLines: [],
+        commentLines: []
+      });
+      const createDefaultAssMetadata = (title = "Exported subtitles") => ({
+        scriptInfoLines: [
+          `Title: ${title}`,
+          "ScriptType: v4.00+",
+          "WrapStyle: 0",
+          "ScaledBorderAndShadow: yes"
+        ],
+        styleFormat: "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+        styleLines: [
+          "Style: Default,Arial,42,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,0,2,20,20,20,1"
+        ],
+        eventFormat: "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+        preEventLines: [],
+        commentLines: []
+      });
+      const parseAss = (text) => {
+        const normalized = normalizeNewlines(text);
+        const lines = normalized.split("\n");
+        const metadata = createEmptyAssMetadata();
+        const cues = [];
+        let currentSection = "";
+        let eventFields = [];
+        lines.forEach((line, index) => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          const sectionMatch = /^\[(.+)\]$/u.exec(trimmed);
+          if (sectionMatch) {
+            currentSection = sectionMatch[1];
+            return;
+          }
+          if (currentSection === "Script Info") {
+            metadata.scriptInfoLines.push(line);
+            return;
+          }
+          if (currentSection === "V4+ Styles" || currentSection === "V4 Styles") {
+            if (line.startsWith("Format:")) {
+              metadata.styleFormat = line;
+              return;
+            }
+            if (line.startsWith("Style:")) {
+              metadata.styleLines.push(line);
+              return;
+            }
+            metadata.preEventLines.push(line);
+            return;
+          }
+          if (currentSection === "Events") {
+            if (line.startsWith("Format:")) {
+              metadata.eventFormat = line;
+              eventFields = line.slice("Format:".length).split(",").map((field) => field.trim());
+              return;
+            }
+            if (!line.includes(":")) {
+              metadata.preEventLines.push(line);
+              return;
+            }
+            const separatorIndex = line.indexOf(":");
+            const kind = line.slice(0, separatorIndex).trim();
+            const value = line.slice(separatorIndex + 1).trim();
+            if (!eventFields.length && metadata.eventFormat) {
+              eventFields = metadata.eventFormat.slice("Format:".length).split(",").map((field) => field.trim());
+            }
+            const values = splitAssFields(value, eventFields.length);
+            const event = Object.fromEntries(
+              eventFields.map((field, fieldIndex) => [
+                field,
+                values[fieldIndex] ?? ""
+              ])
+            );
+            if (kind === "Comment") {
+              metadata.commentLines.push(line);
+              return;
+            }
+            if (kind !== "Dialogue") {
+              metadata.preEventLines.push(line);
+              return;
+            }
+            const startMs = parseAssTime(event.Start ?? "");
+            const endMs = parseAssTime(event.End ?? "");
+            if (startMs == null || endMs == null || endMs < startMs) {
+              return;
+            }
+            const rawText = event.Text ?? "";
+            const displayModel = buildStyledDisplayModel(rawText);
+            const assMetadata = {
+              kind: "dialogue",
+              layer: event.Layer ?? "0",
+              style: event.Style ?? "Default",
+              name: event.Name ?? "",
+              marginL: event.MarginL ?? "0",
+              marginR: event.MarginR ?? "0",
+              marginV: event.MarginV ?? "0",
+              effect: event.Effect ?? "",
+              rawText,
+              overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? []
+            };
+            cues.push({
+              index,
+              line: {
+                text: toAssDisplayText(rawText),
+                startMs,
+                durationMs: Math.max(0, endMs - startMs),
+                speakerId: assMetadata.name || "0",
+                tokens: [],
+                metadata: {
+                  rawText,
+                  styledSpans: displayModel.styledSpans,
+                  ass: assMetadata
+                }
+              }
+            });
+          }
+        });
+        return {
+          format: "ass",
+          subtitles: toComparableSubtitleOrder(cues),
+          metadata: {
+            ass: metadata
+          }
+        };
+      };
+      const serializeAssDialogue = (line) => {
+        const ass = line.metadata?.ass;
+        const endMs = line.startMs + Math.max(0, line.durationMs);
+        const rawText = ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", "\\N");
+        return [
+          ass?.kind === "comment" ? "Comment" : "Dialogue",
+          ": ",
+          [
+            ass?.layer ?? "0",
+            formatAssTime(line.startMs),
+            formatAssTime(endMs),
+            ass?.style ?? "Default",
+            ass?.name ?? "",
+            ass?.marginL ?? "0",
+            ass?.marginR ?? "0",
+            ass?.marginV ?? "0",
+            ass?.effect ?? "",
+            rawText
+          ].join(",")
+        ].join("");
+      };
+      const withAssTitle = (metadata, assTitle) => {
+        if (!assTitle) {
+          return metadata;
+        }
+        const titleLine = `Title: ${assTitle}`;
+        const scriptInfoLines = [...metadata.scriptInfoLines];
+        const existingIndex = scriptInfoLines.findIndex(
+          (line) => line.startsWith("Title:")
+        );
+        if (existingIndex >= 0) {
+          if (scriptInfoLines[existingIndex] === "Title: Exported subtitles") {
+            scriptInfoLines[existingIndex] = titleLine;
+          }
+        } else {
+          scriptInfoLines.unshift(titleLine);
+        }
+        return {
+          ...metadata,
+          scriptInfoLines
+        };
+      };
+      const serializeAss = (processed, options) => {
+        const sourceMetadata = processed.metadata?.ass;
+        const metadataBase = sourceMetadata && sourceMetadata.scriptInfoLines.length > 0 && sourceMetadata.styleFormat && sourceMetadata.styleLines.length > 0 && sourceMetadata.eventFormat ? sourceMetadata : createDefaultAssMetadata(options?.assTitle);
+        const metadata = withAssTitle(metadataBase, options?.assTitle);
+        const sections = [
+          "[Script Info]",
+          ...metadata.scriptInfoLines,
+          "",
+          "[V4+ Styles]",
+          metadata.styleFormat,
+          ...metadata.styleLines,
+          ...metadata.preEventLines,
+          "",
+          "[Events]",
+          metadata.eventFormat,
+          ...metadata.commentLines,
+          ...processed.subtitles.map(
+            (line) => serializeAssDialogue({
+              ...line,
+              metadata: processed.format === "ass" ? line.metadata : {
+                ...line.metadata,
+                rawText: resolveSerializedText(processed, line, "ass")
+              }
+            })
+          )
+        ];
+        return sections.join("\n").trim();
+      };
+      const parseSubtitleText = (text, format) => {
+        if (format === "srt") return parseSrt(text);
+        if (format === "vtt") return parseVtt(text);
+        return parseAss(text);
+      };
+      const sortProcessedSubtitles = (processed) => ({
+        ...processed,
+        subtitles: toComparableSubtitleOrder(
+          processed.subtitles.map((line, index) => ({
+            index,
+            line
+          }))
+        )
+      });
+      const toSubtitlesData = (processed) => {
+        const subtitles = processed.subtitles.map((line) => ({
+          text: line.text,
+          startMs: line.startMs,
+          durationMs: line.durationMs,
+          speakerId: line.speakerId,
+          tokens: line.tokens.map((token) => ({
+            text: token.text,
+            startMs: token.startMs,
+            durationMs: token.durationMs
+          }))
+        }));
+        return {
+          containsTokens: subtitles.some((line) => line.tokens.length > 0),
+          subtitles
+        };
+      };
+      const serializeProcessedSubtitles = (processed, format, options) => {
+        if (format === "json") {
+          return toSubtitlesData(processed);
+        }
+        if (format === "srt") return serializeSrt(processed);
+        if (format === "vtt") return serializeVtt(processed);
+        return serializeAss(processed, options);
+      };
       function toUint32BE(value) {
         return new Uint8Array([
           value >>> 24 & 255,
@@ -15050,6 +16729,19 @@ updateMultilineAlignmentClass(measureSignature) {
         onProgress(100);
         return addTitleId3Tag(arrayBuffer, filename);
       }
+      function isSameOverlayMount(previous, next) {
+        return previous.root === next.root && previous.portalContainer === next.portalContainer && previous.subtitlesMountContainer === next.subtitlesMountContainer && previous.tooltipLayoutRoot === next.tooltipLayoutRoot;
+      }
+      function applyOverlayMountUpdate(previous, next, onChanged) {
+        if (isSameOverlayMount(previous, next)) {
+          return previous;
+        }
+        onChanged(next);
+        return next;
+      }
+      function didTooltipMountContextChange(previous, next) {
+        return previous.root !== next.root || previous.tooltipLayoutRoot !== next.tooltipLayoutRoot;
+      }
       const TRANSLATE_ICON_SVG = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
   <path
     id="vot-translate-icon"
@@ -15128,165 +16820,6 @@ updateMultilineAlignmentClass(measureSignature) {
       }
       function getHiddenState(element) {
         return element.hidden;
-      }
-      class VOTButton {
-        container;
-        translateButton;
-        separator;
-        pipButton;
-        separator2;
-        menuButton;
-        label;
-
-_opacity = 1;
-        _position;
-        _direction;
-        _status;
-_labelText;
-        constructor({
-          position: position2 = "default",
-          direction = "default",
-          status = "none",
-          labelHtml = ""
-        }) {
-          this._position = position2;
-          this._direction = direction;
-          this._status = status;
-          this._labelText = labelHtml;
-          const elements = this.createElements();
-          this.container = elements.container;
-          this.translateButton = elements.translateButton;
-          this.separator = elements.separator;
-          this.pipButton = elements.pipButton;
-          this.separator2 = elements.separator2;
-          this.menuButton = elements.menuButton;
-          this.label = elements.label;
-        }
-        static calcPosition(percentX, isBigContainer) {
-          if (!isBigContainer) {
-            return "default";
-          }
-          if (percentX <= 44) {
-            return "left";
-          }
-          if (percentX >= 66) {
-            return "right";
-          }
-          return "default";
-        }
-        static calcDirection(position2) {
-          return ["default", "top"].includes(position2) ? "row" : "column";
-        }
-        createElements() {
-          const container = UI.createEl("vot-block", ["vot-segmented-button"]);
-          container.dataset.position = this._position;
-          container.dataset.direction = this._direction;
-          container.dataset.status = this._status;
-          const translateButton = UI.createEl("vot-block", [
-            "vot-segment",
-            "vot-translate-button"
-          ]);
-          translateButton.setAttribute("role", "button");
-          translateButton.tabIndex = 0;
-          translateButton.setAttribute("aria-label", this._labelText || "Translate");
-          D(TRANSLATE_ICON_SVG, translateButton);
-          const label = UI.createEl("span", ["vot-segment-label"]);
-          label.textContent = this._labelText;
-          translateButton.appendChild(label);
-          const separator = UI.createEl("vot-block", ["vot-separator"]);
-          const pipButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
-          pipButton.setAttribute("role", "button");
-          pipButton.tabIndex = 0;
-          pipButton.setAttribute("aria-label", "Picture in picture");
-          D(PIP_ICON_SVG, pipButton);
-          const separator2 = UI.createEl("vot-block", ["vot-separator"]);
-          const menuButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
-          menuButton.setAttribute("role", "button");
-          menuButton.tabIndex = 0;
-          menuButton.setAttribute("aria-label", "Menu");
-          menuButton.setAttribute("aria-haspopup", "dialog");
-          menuButton.setAttribute("aria-expanded", "false");
-          D(MENU_ICON, menuButton);
-          container.append(
-            translateButton,
-            separator,
-            pipButton,
-            separator2,
-            menuButton
-          );
-          return {
-            container,
-            translateButton,
-            separator,
-            pipButton,
-            separator2,
-            menuButton,
-            label
-          };
-        }
-        showPiPButton(visible) {
-          this.separator2.hidden = this.pipButton.hidden = !visible;
-          return this;
-        }
-        setText(labelText) {
-          this._labelText = labelText;
-          this.label.textContent = labelText;
-          this.translateButton.setAttribute("aria-label", labelText || "Translate");
-          return this;
-        }
-        remove() {
-          this.container.remove();
-          return this;
-        }
-        get tooltipPos() {
-          switch (this.position) {
-            case "left":
-              return "right";
-            case "right":
-              return "left";
-            default:
-              return "bottom";
-          }
-        }
-        set status(status) {
-          this._status = this.container.dataset.status = status;
-        }
-        get status() {
-          return this._status;
-        }
-        set loading(isLoading) {
-          this.container.dataset.loading = isLoading.toString();
-        }
-        get loading() {
-          return this.container.dataset.loading === "true";
-        }
-        set hidden(isHidden) {
-          setHiddenState(this.container, isHidden);
-        }
-        get hidden() {
-          return getHiddenState(this.container);
-        }
-        get position() {
-          return this._position;
-        }
-        set position(position2) {
-          this._position = this.container.dataset.position = position2;
-        }
-        get direction() {
-          return this._direction;
-        }
-        set direction(direction) {
-          this._direction = this.container.dataset.direction = direction;
-        }
-        set opacity(opacity) {
-          const o2 = Number.isFinite(opacity) ? opacity : 1;
-          this._opacity = o2;
-          const isHidden = o2 <= 0.01;
-          this.container.classList.toggle("vot-segmented-button--hidden", isHidden);
-        }
-        get opacity() {
-          return this._opacity;
-        }
       }
       class DownloadButton {
         button;
@@ -15791,9 +17324,12 @@ set value(val) {
         _selectTitle;
         _dialogTitle;
         multiSelect;
+        baseItems;
         _items;
+        searchItemsProvider;
         isLoading = false;
         isDialogOpen = false;
+        searchRequestId = 0;
         onSelectItem = new EventImpl();
         onBeforeOpen = new EventImpl();
         events = {
@@ -15809,13 +17345,16 @@ set value(val) {
           selectTitle,
           dialogTitle,
           items,
+          searchItemsProvider,
           labelElement,
           dialogParent = document.documentElement,
           multiSelect
         }) {
           this._selectTitle = selectTitle;
           this._dialogTitle = dialogTitle;
-          this._items = items;
+          this.baseItems = this.cloneItems(items);
+          this._items = this.cloneItems(items);
+          this.searchItemsProvider = searchItemsProvider;
           this.multiSelect = multiSelect ?? false;
           this.labelElement = labelElement;
           this.dialogParent = dialogParent;
@@ -15825,6 +17364,9 @@ set value(val) {
           this.outer = elements.outer;
           this.arrowIcon = elements.arrowIcon;
           this.title = elements.title;
+        }
+        cloneItems(items) {
+          return items.map((item) => ({ ...item }));
         }
         static genLanguageItems(langs2, conditionString) {
           return langs2.map((lang2) => {
@@ -15845,6 +17387,7 @@ set value(val) {
             this.selectedValues.add(value);
           }
           this.syncItemsSelectionState();
+          this.syncItemsSelectionState(this.baseItems);
           this.updateSelectedState();
           this.onSelectItem.dispatch(Array.from(this.selectedValues));
         };
@@ -15852,6 +17395,7 @@ set value(val) {
           const value = item.value;
           this.selectedValues = new Set([value]);
           this.syncItemsSelectionState();
+          this.syncItemsSelectionState(this.baseItems);
           this.updateSelectedState();
           this.onSelectItem.dispatch(value);
         };
@@ -15879,10 +17423,15 @@ set value(val) {
           }
           this.singleSelectItemHandle(item);
         };
-        syncItemsSelectionState() {
-          for (const item of this._items) {
+        syncItemsSelectionState(items = this._items) {
+          for (const item of items) {
             item.selected = this.selectedValues.has(item.value);
           }
+        }
+        restoreBaseItems() {
+          this._items = this.cloneItems(this.baseItems);
+          this.syncItemsSelectionState();
+          this.updateSelectedState();
         }
         createDialogContentList() {
           const contentList = UI.createEl("vot-block", ["vot-select-content-list"]);
@@ -15939,7 +17488,15 @@ set value(val) {
               const votSearchLangTextfield = new Textfield({
                 labelHtml: localizationProvider.get("searchField")
               });
-              votSearchLangTextfield.addEventListener("input", (searchText) => {
+              votSearchLangTextfield.addEventListener("input", async (searchText) => {
+                const requestId = ++this.searchRequestId;
+                if (this.searchItemsProvider) {
+                  const providedItems = await this.searchItemsProvider(searchText);
+                  if (requestId !== this.searchRequestId) {
+                    return;
+                  }
+                  this.updateItems(providedItems, { persist: false });
+                }
                 const normalizedSearchText = searchText.toLowerCase();
                 for (const contentItem of this.selectedItems) {
                   const searchableText = contentItem.dataset[this.contentItemSearchDatasetKey] ?? "";
@@ -15953,6 +17510,7 @@ set value(val) {
               );
               tempDialog.addEventListener("close", () => {
                 this.isDialogOpen = false;
+                this.restoreBaseItems();
                 this.selectedItems = [];
                 this.contentList = void 0;
                 outer.setAttribute("aria-expanded", "false");
@@ -16010,11 +17568,17 @@ set value(val) {
           }
           this.selectedValues = new Set(selectedValues);
           this.syncItemsSelectionState();
+          this.syncItemsSelectionState(this.baseItems);
           this.updateSelectedState();
           return this;
         }
-updateItems(newItems) {
-          this._items = newItems;
+updateItems(newItems, options = {}) {
+          const { persist = true } = options;
+          const nextItems = this.cloneItems(newItems);
+          if (persist) {
+            this.baseItems = this.cloneItems(nextItems);
+          }
+          this._items = nextItems;
           this.selectedValues = this.calcSelectedValues();
           this.updateSelectedState();
           const dialogContainer = this.contentList?.parentElement;
@@ -16313,6 +17877,165 @@ set value(val) {
           return getHiddenState(this.container);
         }
       }
+      class VOTButton {
+        container;
+        translateButton;
+        separator;
+        pipButton;
+        separator2;
+        menuButton;
+        label;
+
+_opacity = 1;
+        _position;
+        _direction;
+        _status;
+_labelText;
+        constructor({
+          position: position2 = "default",
+          direction = "default",
+          status = "none",
+          labelHtml = ""
+        }) {
+          this._position = position2;
+          this._direction = direction;
+          this._status = status;
+          this._labelText = labelHtml;
+          const elements = this.createElements();
+          this.container = elements.container;
+          this.translateButton = elements.translateButton;
+          this.separator = elements.separator;
+          this.pipButton = elements.pipButton;
+          this.separator2 = elements.separator2;
+          this.menuButton = elements.menuButton;
+          this.label = elements.label;
+        }
+        static calcPosition(percentX, isBigContainer) {
+          if (!isBigContainer) {
+            return "default";
+          }
+          if (percentX <= 44) {
+            return "left";
+          }
+          if (percentX >= 66) {
+            return "right";
+          }
+          return "default";
+        }
+        static calcDirection(position2) {
+          return ["default", "top"].includes(position2) ? "row" : "column";
+        }
+        createElements() {
+          const container = UI.createEl("vot-block", ["vot-segmented-button"]);
+          container.dataset.position = this._position;
+          container.dataset.direction = this._direction;
+          container.dataset.status = this._status;
+          const translateButton = UI.createEl("vot-block", [
+            "vot-segment",
+            "vot-translate-button"
+          ]);
+          translateButton.setAttribute("role", "button");
+          translateButton.tabIndex = 0;
+          translateButton.setAttribute("aria-label", this._labelText || "Translate");
+          D(TRANSLATE_ICON_SVG, translateButton);
+          const label = UI.createEl("span", ["vot-segment-label"]);
+          label.textContent = this._labelText;
+          translateButton.appendChild(label);
+          const separator = UI.createEl("vot-block", ["vot-separator"]);
+          const pipButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
+          pipButton.setAttribute("role", "button");
+          pipButton.tabIndex = 0;
+          pipButton.setAttribute("aria-label", "Picture in picture");
+          D(PIP_ICON_SVG, pipButton);
+          const separator2 = UI.createEl("vot-block", ["vot-separator"]);
+          const menuButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
+          menuButton.setAttribute("role", "button");
+          menuButton.tabIndex = 0;
+          menuButton.setAttribute("aria-label", "Menu");
+          menuButton.setAttribute("aria-haspopup", "dialog");
+          menuButton.setAttribute("aria-expanded", "false");
+          D(MENU_ICON, menuButton);
+          container.append(
+            translateButton,
+            separator,
+            pipButton,
+            separator2,
+            menuButton
+          );
+          return {
+            container,
+            translateButton,
+            separator,
+            pipButton,
+            separator2,
+            menuButton,
+            label
+          };
+        }
+        showPiPButton(visible) {
+          this.separator2.hidden = this.pipButton.hidden = !visible;
+          return this;
+        }
+        setText(labelText) {
+          this._labelText = labelText;
+          this.label.textContent = labelText;
+          this.translateButton.setAttribute("aria-label", labelText || "Translate");
+          return this;
+        }
+        remove() {
+          this.container.remove();
+          return this;
+        }
+        get tooltipPos() {
+          switch (this.position) {
+            case "left":
+              return "right";
+            case "right":
+              return "left";
+            default:
+              return "bottom";
+          }
+        }
+        set status(status) {
+          this._status = this.container.dataset.status = status;
+        }
+        get status() {
+          return this._status;
+        }
+        set loading(isLoading) {
+          this.container.dataset.loading = isLoading.toString();
+        }
+        get loading() {
+          return this.container.dataset.loading === "true";
+        }
+        set hidden(isHidden) {
+          setHiddenState(this.container, isHidden);
+        }
+        get hidden() {
+          return getHiddenState(this.container);
+        }
+        get position() {
+          return this._position;
+        }
+        set position(position2) {
+          this._position = this.container.dataset.position = position2;
+        }
+        get direction() {
+          return this._direction;
+        }
+        set direction(direction) {
+          this._direction = this.container.dataset.direction = direction;
+        }
+        set opacity(opacity) {
+          const o2 = Number.isFinite(opacity) ? opacity : 1;
+          this._opacity = o2;
+          const isHidden = o2 <= 0.01;
+          this.container.classList.toggle("vot-segmented-button--hidden", isHidden);
+        }
+        get opacity() {
+          return this._opacity;
+        }
+      }
       class VOTMenu {
         container;
         contentWrapper;
@@ -16433,7 +18156,6 @@ menuId = typeof crypto !== "undefined" && "randomUUID" in crypto ? `vot-menu-${c
           "select:toLanguage": new EventImpl(),
           "select:subtitles": new EventImpl()
         };
-votOverlayPortal;
 votButton;
         votButtonTooltip;
 votMenu;
@@ -16472,16 +18194,11 @@ votMenu;
 updateMount(nextMount) {
           const prevRoot = this.mount.root;
           const nextRoot = nextMount.root;
-          const prevPortal = this.mount.portalContainer;
-          const nextPortal = nextMount.portalContainer;
           const prevTooltipRoot = this.mount.tooltipLayoutRoot;
           const nextTooltipRoot = nextMount.tooltipLayoutRoot;
           this.mount = nextMount;
           if (!this.isInitialized()) {
             return this;
-          }
-          if (this.votOverlayPortal && prevPortal !== nextPortal) {
-            nextPortal.appendChild(this.votOverlayPortal);
           }
           if (prevRoot !== nextRoot) {
             if (this.votButton) {
@@ -16491,7 +18208,15 @@ updateMount(nextMount) {
               nextRoot.appendChild(this.votMenu.container);
             }
           }
-          if (this.votButtonTooltip && prevTooltipRoot !== nextTooltipRoot) {
+          if (this.votButtonTooltip && didTooltipMountContextChange(
+            {
+              root: prevRoot,
+              portalContainer: this.mount.portalContainer,
+              subtitlesMountContainer: this.mount.subtitlesMountContainer,
+              tooltipLayoutRoot: prevTooltipRoot
+            },
+            nextMount
+          )) {
             this.votButtonTooltip.updateMount({
               layoutRoot: nextTooltipRoot ?? document.documentElement
             });
@@ -16546,8 +18271,6 @@ updateMount(nextMount) {
           }
           this.initialized = true;
           const { position: position2, direction } = this.calcButtonLayout(buttonPosition2);
-          this.votOverlayPortal = UI.createPortal(true);
-          this.portalContainer.appendChild(this.votOverlayPortal);
           this.votButton = new VOTButton({
             position: position2,
             direction,
@@ -16567,7 +18290,7 @@ updateMount(nextMount) {
 autoLayout: false,
             hidden: direction === "row",
             bordered: false,
-            parentElement: this.votOverlayPortal,
+            parentElement: this.globalPortal,
             layoutRoot: this.tooltipLayoutRoot
           });
           this.votMenu = new VOTMenu({
@@ -16608,7 +18331,8 @@ selectTitle: localizationProvider.get(
                 `langs.${responseLanguage}`
               ),
               items: Select.genLanguageItems(availableTTS, responseLanguage)
-            }
+            },
+            dialogParent: this.globalPortal
           });
           this.subtitlesSelectLabel = new Label({
             labelText: localizationProvider.get("VOTSubtitles")
@@ -16870,7 +18594,11 @@ selectTitle: localizationProvider.get(
               this.videoHandler.videoData.detectedLanguage,
               this.videoHandler.videoData.responseLanguage
             );
-            if (this.videoHandler.cacheManager.getSubtitles(cacheKey)) {
+            if (this.videoHandler.subtitlesCacheKey === cacheKey) {
+              return;
+            }
+            if (this.videoHandler.cacheManager.getSubtitles(cacheKey) !== void 0) {
+              await this.videoHandler.ensureSubtitlesForCurrentLangPair();
               return;
             }
             const prevLoading = this.votButton?.loading ?? false;
@@ -16881,7 +18609,7 @@ selectTitle: localizationProvider.get(
             loadingEl.style.margin = "0 auto";
             dialog.footerContainer.appendChild(loadingEl);
             try {
-              await this.videoHandler.loadSubtitles();
+              await this.videoHandler.ensureSubtitlesForCurrentLangPair();
             } finally {
               loadingEl.remove();
               if (this.votButton) {
@@ -17062,7 +18790,6 @@ onTouchDragStart = (event) => {
           this.votButton?.remove();
           this.votMenu?.remove();
           this.votButtonTooltip?.release();
-          this.votOverlayPortal?.remove();
         }
         doReleaseUIEvents() {
           this.abortController?.abort();
@@ -17074,22 +18801,6 @@ onTouchDragStart = (event) => {
           for (const event of Object.values(this.events)) {
             event.clear();
           }
-        }
-        releaseUI(initialized = false) {
-          if (!this.isInitialized()) {
-            throw new Error("[VOT] OverlayView isn't initialized");
-          }
-          this.doReleaseUI();
-          this.initialized = initialized;
-          return this;
-        }
-        releaseUIEvents(initialized = false) {
-          if (!this.isInitialized()) {
-            throw new Error("[VOT] OverlayView isn't initialized");
-          }
-          this.doReleaseUIEvents();
-          this.initialized = initialized;
-          return this;
         }
         release() {
           if (!this.isInitialized()) {
@@ -19915,6 +21626,7 @@ set key(newKey) {
         "change:useLivelyVoice",
         "change:subtitlesHighlightWords",
         "change:subtitlesSmartLayout",
+        "select:subtitlesFontFamily",
         "change:proxyWorkerHost",
         "change:useNewAudioPlayer",
         "change:onlyBypassMediaCSP",
@@ -19934,6 +21646,25 @@ set key(newKey) {
           events[key] = new EventImpl();
         }
         return events;
+      }
+      const GOOGLE_FONTS_SEARCH_LIMIT = 30;
+      const subtitleFontFamilyLabels = {
+        "default-sans": "Default Sans",
+        arial: "Arial",
+        helvetica: "Helvetica",
+        roboto: "Roboto",
+        verdana: "Verdana",
+        "open-sans": "Open Sans",
+        poppins: "Poppins",
+        lato: "Lato",
+        montserrat: "Montserrat",
+        barlow: "Barlow"
+      };
+      function getSubtitleFontFamilyLabel(fontFamily) {
+        if (isBuiltInSubtitleFontFamily(fontFamily)) {
+          return subtitleFontFamilyLabels[fontFamily];
+        }
+        return getGoogleSubtitleFontFamilyName(fontFamily) ?? "Default Sans";
       }
       class SettingsView {
         static PERSIST_DELAY_MS = 250;
@@ -19975,6 +21706,8 @@ set key(newKey) {
         subtitlesMaxLengthSlider;
         subtitlesFontSizeSliderLabel;
         subtitlesFontSizeSlider;
+        subtitlesFontFamilySelectLabel;
+        subtitlesFontFamilySelect;
         subtitlesBackgroundOpacitySliderLabel;
         subtitlesBackgroundOpacitySlider;
         translateHotkeyButton;
@@ -20048,7 +21781,6 @@ set key(newKey) {
         setSubtitlesSmartLayout(checked) {
           this.data.subtitlesSmartLayout = checked;
           void votStorage.set("subtitlesSmartLayout", checked);
-          debug.log("subtitlesSmartLayout value changed. New value:", checked);
           if (this.subtitlesSmartLayoutCheckbox?.checked !== checked) {
             this.suppressSubtitlesSmartLayoutCheckboxChange = true;
             this.subtitlesSmartLayoutCheckbox.checked = checked;
@@ -20093,7 +21825,6 @@ set key(newKey) {
           control.addEventListener(event, async (value) => {
             apply(value);
             await votStorage.set(storageKey, readPersistedValue());
-            debug.log(`${logLabel} value changed. New value:`, value);
             if (afterPersist) {
               await afterPersist(value);
             }
@@ -20304,7 +22035,7 @@ set key(newKey) {
             dialogTitle: localizationProvider.get("VOTSubtitlesDownloadFormat"),
             dialogParent: this.globalPortal,
             labelElement: this.subtitlesDownloadFormatSelectLabel.container,
-            items: subtitlesFormats.map((format) => ({
+            items: subtitleFormats.map((format) => ({
               label: format.toUpperCase(),
               value: format,
               selected: format === this.data.subtitlesDownloadFormat
@@ -20345,6 +22076,70 @@ set key(newKey) {
             min: 8,
             max: 50
           });
+          const storedSubtitlesFontFamily = typeof this.data.subtitlesFontFamily === "string" ? this.data.subtitlesFontFamily : void 0;
+          const subtitlesFontFamily = storedSubtitlesFontFamily && (isBuiltInSubtitleFontFamily(storedSubtitlesFontFamily) || getGoogleSubtitleFontFamilyName(storedSubtitlesFontFamily)) ? storedSubtitlesFontFamily : "default-sans";
+          const buildSubtitleFontItems = (selectedFontFamily, dynamicFontFamilies = []) => {
+            const items = subtitleFontFamilies.map(
+              (fontFamily) => ({
+                label: subtitleFontFamilyLabels[fontFamily],
+                value: fontFamily,
+                selected: fontFamily === selectedFontFamily
+              })
+            );
+            const dynamicItems = dynamicFontFamilies.filter((familyName) => {
+              const lowerFamilyName = familyName.toLowerCase();
+              return !items.some(
+                (item) => item.label.toLowerCase() === lowerFamilyName
+              );
+            }).map((familyName) => {
+              const fontValue = toGoogleSubtitleFontFamily(familyName);
+              return {
+                label: familyName,
+                value: fontValue,
+                selected: fontValue === selectedFontFamily
+              };
+            });
+            if (!isBuiltInSubtitleFontFamily(selectedFontFamily) && !dynamicItems.some((item) => item.value === selectedFontFamily)) {
+              const currentGoogleFontFamily = getGoogleSubtitleFontFamilyName(selectedFontFamily);
+              if (currentGoogleFontFamily) {
+                dynamicItems.unshift({
+                  label: currentGoogleFontFamily,
+                  value: selectedFontFamily,
+                  selected: true
+                });
+              }
+            }
+            return [...items, ...dynamicItems];
+          };
+          this.subtitlesFontFamilySelectLabel = new Label({
+            labelText: localizationProvider.get("VOTSubtitlesFont")
+          });
+          this.subtitlesFontFamilySelect = new Select({
+            selectTitle: getSubtitleFontFamilyLabel(subtitlesFontFamily),
+            dialogTitle: localizationProvider.get("VOTSubtitlesFont"),
+            dialogParent: this.globalPortal,
+            labelElement: this.subtitlesFontFamilySelectLabel.container,
+            items: buildSubtitleFontItems(subtitlesFontFamily),
+            searchItemsProvider: async (query) => {
+              const activeFontFamily = Array.from(this.subtitlesFontFamilySelect?.selectedValues ?? [])[0] ?? subtitlesFontFamily;
+              const normalizedQuery = query.trim().toLowerCase();
+              if (!normalizedQuery) {
+                return buildSubtitleFontItems(activeFontFamily);
+              }
+              const googleFontsCatalog = await loadGoogleFontsCatalog();
+              const matchingGoogleFonts = googleFontsCatalog.filter(
+                (familyName) => familyName.toLowerCase().includes(normalizedQuery)
+              ).slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
+              return buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
+            }
+          });
+          this.subtitlesFontFamilySelect.addEventListener("selectItem", (item) => {
+            if (!this.subtitlesFontFamilySelect) {
+              return;
+            }
+            this.subtitlesFontFamilySelect.updateItems(buildSubtitleFontItems(item));
+            this.subtitlesFontFamilySelect.selectTitle = getSubtitleFontFamilyLabel(item);
+          });
           const subtitlesOpacity = this.data.subtitlesOpacity ?? 20;
           this.subtitlesBackgroundOpacitySliderLabel = new SliderLabel({
             labelText: localizationProvider.get("VOTSubtitlesOpacity"),
@@ -20360,6 +22155,7 @@ set key(newKey) {
           });
           subtitlesSection.content.append(
             this.subtitlesDownloadFormatSelect.container,
+            this.subtitlesFontFamilySelect.container,
             this.subtitlesHighlightWordsCheckbox.container,
             this.subtitlesSmartLayoutCheckbox.container,
             this.subtitlesMaxLengthSlider.container,
@@ -20700,10 +22496,6 @@ set key(newKey) {
                 "enabledDontTranslateLanguages",
                 this.data.enabledDontTranslateLanguages
               );
-              debug.log(
-                "enabledDontTranslateLanguages value changed. New value:",
-                checked
-              );
             }
           );
           this.dontTranslateLanguagesSelect.addEventListener(
@@ -20714,7 +22506,6 @@ set key(newKey) {
                 "dontTranslateLanguages",
                 this.data.dontTranslateLanguages
               );
-              debug.log("dontTranslateLanguages value changed. New value:", values);
             }
           );
           this.bindPersistedSetting({
@@ -20865,7 +22656,6 @@ set key(newKey) {
               "subtitlesMaxLength",
               this.data.subtitlesMaxLength
             );
-            debug.log("subtitlesMaxLength value changed. New value:", value);
             this.events["input:subtitlesMaxLength"].dispatch(value);
           });
           this.subtitlesFontSizeSlider.addEventListener("input", (value) => {
@@ -20878,7 +22668,6 @@ set key(newKey) {
               "subtitlesFontSize",
               this.data.subtitlesFontSize
             );
-            debug.log("subtitlesFontSize value changed. New value:", value);
             this.events["input:subtitlesFontSize"].dispatch(value);
           });
           this.subtitlesBackgroundOpacitySlider.addEventListener("input", (value) => {
@@ -20888,8 +22677,18 @@ set key(newKey) {
               "subtitlesOpacity",
               this.data.subtitlesOpacity
             );
-            debug.log("subtitlesOpacity value changed. New value:", value);
             this.events["input:subtitlesBackgroundOpacity"].dispatch(value);
+          });
+          this.bindPersistedSetting({
+            control: this.subtitlesFontFamilySelect,
+            event: "selectItem",
+            apply: (item) => {
+              this.data.subtitlesFontFamily = item;
+            },
+            storageKey: "subtitlesFontFamily",
+            readPersistedValue: () => this.data.subtitlesFontFamily,
+            logLabel: "subtitlesFontFamily",
+            dispatch: (item) => this.events["select:subtitlesFontFamily"].dispatch(item)
           });
           this.bindPersistedSetting({
             control: this.translateHotkeyButton,
@@ -21007,7 +22806,6 @@ set key(newKey) {
           this.autoHideButtonDelaySlider.addEventListener("input", (value) => {
             this.autoHideButtonDelaySliderLabel.value = value;
             const newDelay = Math.round(value * 1e3);
-            debug.log("autoHideButtonDelay value changed. New value:", newDelay);
             this.data.autoHideButtonDelay = newDelay;
             this.scheduleStoragePersist(
               "autoHideButtonDelay",
@@ -21071,20 +22869,6 @@ set key(newKey) {
           this.flushStoragePersists();
           for (const event of Object.values(this.events)) event.clear();
         }
-        releaseUI(initialized = false) {
-          if (!this.isInitialized())
-            throw new Error("[VOT] SettingsView isn't initialized");
-          this.doReleaseUI();
-          this.initialized = initialized;
-          return this;
-        }
-        releaseUIEvents(initialized = false) {
-          if (!this.isInitialized())
-            throw new Error("[VOT] SettingsView isn't initialized");
-          this.doReleaseUIEvents();
-          this.initialized = initialized;
-          return this;
-        }
         release() {
           if (!this.isInitialized()) return this;
           this.doReleaseUIEvents();
@@ -21114,23 +22898,6 @@ set key(newKey) {
           return this.dialog.close();
         }
       }
-      const mapProcessedSubtitlesToSharedData = (data) => {
-        const subtitles = data.subtitles.map((line) => ({
-          text: line.text,
-          startMs: line.startMs,
-          durationMs: line.durationMs,
-          speakerId: line.speakerId,
-          tokens: line.tokens.map((token) => ({
-            text: token.text,
-            startMs: token.startMs,
-            durationMs: token.durationMs
-          }))
-        }));
-        return {
-          containsTokens: subtitles.some((line) => line.tokens.length > 0),
-          subtitles
-        };
-      };
       class UIManager {
         mount;
         initialized = false;
@@ -21169,7 +22936,7 @@ votSettingsView;
           }
           this.initialized = true;
           this.votGlobalPortal = UI.createPortal();
-          document.documentElement.appendChild(this.votGlobalPortal);
+          this.getGlobalPortalHost(this.mount).appendChild(this.votGlobalPortal);
           this.votOverlayView = new OverlayView({
             mount: this.mount,
             globalPortal: this.votGlobalPortal,
@@ -21187,9 +22954,28 @@ votSettingsView;
           return this;
         }
         updateMount(mount) {
-          this.mount = mount;
-          this.votOverlayView?.updateMount?.(mount);
+          const globalPortalHost = this.getGlobalPortalHost(mount);
+          if (this.votGlobalPortal?.parentElement !== globalPortalHost) {
+            globalPortalHost.appendChild(this.votGlobalPortal);
+          }
+          this.mount = applyOverlayMountUpdate(this.mount, mount, (nextMount) => {
+            this.votOverlayView?.updateMount(nextMount);
+          });
+          this.videoHandler?.subtitlesWidget?.updateMount({
+            container: mount.subtitlesMountContainer,
+            tooltipLayoutRoot: mount.tooltipLayoutRoot
+          });
           return this;
+        }
+        getGlobalPortalHost(mount) {
+          const doc = document;
+          const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+          const isCurrentVideoFullscreen = Boolean(
+            resolveScopedFullscreenElement(fullscreenEl, [mount.root], {
+              allowDocumentViewport: true
+            })
+          );
+          return isCurrentVideoFullscreen ? mount.root : document.documentElement;
         }
         initUIEvents() {
           if (!this.isInitialized()) {
@@ -21215,14 +23001,12 @@ votSettingsView;
               const isPiPActive = this.videoHandler.video === document.pictureInPictureElement;
               await (isPiPActive ? document.exitPictureInPicture() : this.videoHandler.video.requestPictureInPicture());
             } catch (err) {
-              debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
             }
           }).addEventListener("click:settings", async () => {
             this.videoHandler?.subtitlesWidget?.releaseTooltip();
             this.videoHandler?.overlayVisibility?.cancel();
             this.videoHandler?.overlayVisibility?.show();
             this.votSettingsView.open();
-            await exitFullscreen();
           }).addEventListener("click:downloadTranslation", async () => {
             await this.handleDownloadTranslationClick();
           }).addEventListener("click:downloadSubtitles", async () => {
@@ -21356,6 +23140,14 @@ votSettingsView;
                 widget.setFontSize(nextValue);
               }
             );
+          }).addEventListener("select:subtitlesFontFamily", (item) => {
+            this.updateSubtitlesWidgetSetting(
+              item,
+              this.data.subtitlesFontFamily,
+              (widget, nextValue) => {
+                widget.setFontFamily(nextValue);
+              }
+            );
           }).addEventListener("input:subtitlesBackgroundOpacity", (value) => {
             this.updateSubtitlesWidgetSetting(
               value,
@@ -21399,11 +23191,9 @@ votSettingsView;
             });
           }).addEventListener("select:buttonPosition", (item) => {
             this.withInitializedOverlayView((overlayView) => {
-              const newPosition = this.data.buttonPos ?? item;
-              overlayView.updateButtonLayout(
-                newPosition,
-                VOTButton.calcDirection(newPosition)
-              );
+              const preferredPosition = this.data.buttonPos ?? item;
+              const { position: position2, direction } = overlayView.calcButtonLayout(preferredPosition);
+              overlayView.updateButtonLayout(position2, direction);
             });
           }).addEventListener("select:menuLanguage", async () => {
             await this.reloadMenu();
@@ -21468,9 +23258,12 @@ votSettingsView;
             return;
           }
           const subsFormat = this.data.subtitlesDownloadFormat ?? "json";
-          const subsContent = convertSubs(
-            mapProcessedSubtitlesToSharedData(videoHandler.yandexSubtitles),
-            subsFormat
+          const subsContent = serializeProcessedSubtitles(
+            videoHandler.yandexSubtitles,
+            subsFormat,
+            {
+              assTitle: videoHandler.videoData.localizedTitle ?? videoHandler.videoData.title ?? videoHandler.videoData.downloadTitle
+            }
           );
           const blob = new Blob(
             [
@@ -21509,27 +23302,20 @@ votSettingsView;
             this.votOverlayView.votButton.container.hidden = prevButtonHidden;
             this.votOverlayView.votButton.opacity = prevButtonOpacity;
           } catch (err) {
-            debug.warn(
-              "[VOT] Failed to restore overlay state after menu reload",
-              err
-            );
           }
           try {
             this.videoHandler.rebindOverlayVisibilityTargets();
           } catch (err) {
-            debug.warn("[VOT] Failed to rebind overlay visibility targets", err);
           }
           if (settingsWasOpen) {
             try {
               this.votSettingsView?.open();
             } catch (err) {
-              debug.warn("[VOT] Failed to reopen settings after menu reload", err);
             }
           }
           await this.videoHandler.updateSubtitlesLangSelect();
           const widget = this.videoHandler.subtitlesWidget;
           if (widget) {
-            widget.setPortal(this.votOverlayView.votOverlayPortal);
             widget.resetTranslationContext(true);
           }
           return this;
@@ -21542,9 +23328,7 @@ votSettingsView;
           if (!videoHandler) {
             return this;
           }
-          debug.log("[handleTranslationBtnClick] click translationBtn");
           if (videoHandler.hasActiveSource()) {
-            debug.log("[handleTranslationBtnClick] video has active source");
             await videoHandler.stopTranslation();
             return this;
           }
@@ -21552,9 +23336,6 @@ votSettingsView;
             this.transformBtn("none", localizationProvider.get("translateVideo"));
           }
           if (this.votOverlayView.votButton.status !== "none" || this.votOverlayView.votButton.loading) {
-            debug.log(
-              "[handleTranslationBtnClick] translationBtn isn't in none state"
-            );
             videoHandler.actionsAbortController.abort();
             await videoHandler.stopTranslation();
             return this;
@@ -21562,6 +23343,9 @@ votSettingsView;
           try {
             debug.log("[handleTranslationBtnClick] trying execute translation");
             const videoData = await this.getVideoDataForTranslation(videoHandler);
+            await videoHandler.videoManager.ensureDetectedLanguageForTranslation(
+              videoData
+            );
             debug.log(
               "[handleTranslationBtnClick] Run translateFunc",
               videoData.videoId
@@ -21620,25 +23404,6 @@ votSettingsView;
           this.votOverlayView.votButtonTooltip.setContent(text);
           return this;
         }
-        releaseUI(initialized = false) {
-          if (!this.isInitialized()) {
-            throw new Error("[VOT] UIManager isn't initialized");
-          }
-          this.votOverlayView.releaseUI(true);
-          this.votSettingsView.releaseUI(true);
-          this.votGlobalPortal.remove();
-          this.initialized = initialized;
-          return this;
-        }
-        releaseUIEvents(initialized = false) {
-          if (!this.isInitialized()) {
-            throw new Error("[VOT] UIManager isn't initialized");
-          }
-          this.votOverlayView.releaseUIEvents(false);
-          this.votSettingsView.releaseUIEvents(false);
-          this.initialized = initialized;
-          return this;
-        }
         release() {
           if (!this.isInitialized()) {
             return this;
@@ -21669,7 +23434,6 @@ votSettingsView;
         }
         runDetached(task, errorMessage) {
           void task.catch((err) => {
-            debug.warn(`[VOT] ${errorMessage}`, err);
           });
         }
         triggerUrlDownload(url, filename) {
@@ -21706,7 +23470,6 @@ votSettingsView;
             await videoHandler.stopTranslate();
             videoHandler.createPlayer();
           } catch (err) {
-            debug.warn("[VOT] Failed to restart audio player", err);
           }
         }
       }
@@ -21809,7 +23572,6 @@ scheduleHide(event) {
             active = document.activeElement;
           }
           if (active && this.deps.isInteractiveNode(active)) {
-            debug.log("[OverlayVisibility] skip hide (focus inside overlay)");
             return;
           }
           const view = this.getView();
@@ -21847,33 +23609,11 @@ scheduleHide(event) {
         }
         return Math.max(0, Math.trunc(value));
       }
-      function normalizeOptionalPositiveMs(value) {
-        if (typeof value !== "number" || !Number.isFinite(value)) {
-          return null;
-        }
-        return Math.max(1, Math.trunc(value));
-      }
-      function resolveLegacyCheckIntervalMs(profile) {
-        const hidden = normalizeOptionalPositiveMs(profile.hiddenIntervalMs);
-        if (hidden !== null) {
-          return hidden;
-        }
-        const idle = normalizeOptionalPositiveMs(profile.idleIntervalMs);
-        if (idle !== null) {
-          return idle;
-        }
-        const active = normalizeOptionalPositiveMs(profile.activeIntervalMs);
-        if (active !== null) {
-          return active;
-        }
-        return null;
-      }
       function normalizeProfile(profile = {}) {
-        const legacyCheckIntervalMs = resolveLegacyCheckIntervalMs(profile);
         return {
           checkIntervalMs: normalizePositiveMs(
             profile.checkIntervalMs,
-            legacyCheckIntervalMs ?? DEFAULT_PROFILE.checkIntervalMs
+            DEFAULT_PROFILE.checkIntervalMs
           ),
           idleAfterMs: normalizeNonNegativeMs(
             profile.idleAfterMs,
@@ -22109,7 +23849,6 @@ scheduleHide(event) {
             return true;
           }
         } catch (err) {
-          debug.log("[notify] userscript api error", err);
         }
         return false;
       }
@@ -22131,7 +23870,6 @@ scheduleHide(event) {
               debug.log("[notify] unavailable", normalized);
             }
           } catch (err) {
-            debug.log("[notify] send error", err);
           }
         }
         translationCompleted(host) {
@@ -22228,7 +23966,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
             try {
               sub(root);
             } catch (error2) {
-              debug.error("attachShadow subscriber failed", error2);
             }
           }
           return root;
@@ -22364,7 +24101,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           if (this.isAdRelated(video)) return false;
           if (this.isInsideAd(video)) return false;
           if (!this.hasAudio(video)) {
-            debug.log("Ignoring video without audio:", video);
             return false;
           }
           return true;
@@ -22793,7 +24529,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         if (options.skipYouTubeLikeHosts && isYouTubeLikeHost(self.site.host)) {
           return;
         }
-        if (typeof self.smartVolumeDuckingInterval === "number") return;
+        if (self.smartVolumeDuckingInterval !== void 0) return;
         if (!self.data?.syncVolume || !self.audioPlayer?.player?.src) return;
         if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
         self.syncVolumeWrapper("video", videoPercent);
@@ -22841,17 +24577,26 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
       }
       function bindOverlayLayoutEvents(ctx) {
         const { self, overlayView, addMany } = ctx;
+        const syncMountAndLayout = () => {
+          self.refreshOverlayMount();
+          applyOverlayLayout(self, overlayView);
+        };
         self.resizeObserver = new ResizeObserver((entries) => {
           for (const entry of entries) {
             applyOverlayLayout(self, overlayView, entry.contentRect.height);
           }
         });
         self.resizeObserver.observe(self.video);
-        applyOverlayLayout(self, overlayView);
+        syncMountAndLayout();
         addMany(
           document,
           ["fullscreenchange", "webkitfullscreenchange"],
-          () => applyOverlayLayout(self, overlayView)
+          () => syncMountAndLayout()
+        );
+        addMany(
+          self.video,
+          ["webkitbeginfullscreen", "webkitendfullscreen"],
+          () => syncMountAndLayout()
         );
       }
       function bindYouTubeVolumeSync(ctx) {
@@ -22931,7 +24676,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
               }
             }
           } catch (error2) {
-            debug.log("[VOT] Failed to sync audio track language", error2);
           }
         };
         const player2 = YoutubeHelper.getPlayer();
@@ -22941,7 +24685,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
             try {
               player2.addEventListener(eventName, syncAudioTrackLanguage);
             } catch (error2) {
-              debug.log(`[VOT] Failed to bind ${eventName}`, error2);
             }
           }
         }
@@ -22954,7 +24697,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
               try {
                 player2.removeEventListener(eventName, syncAudioTrackLanguage);
               } catch (error2) {
-                debug.log(`[VOT] Failed to unbind ${eventName}`, error2);
               }
             }
           },
@@ -22973,9 +24715,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           const isVideo = target ? self.container.contains(target) : false;
           const isSettings = target && settings ? settings.contains(target) : false;
           const isTempDialog = target instanceof Element && target.closest(".vot-dialog-temp") instanceof Element;
-          debug.log(
-            `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`
-          );
           if (isButton || isMenu || isSettings || isTempDialog) return;
           if (!isVideo) overlayView.updateButtonOpacity(0);
           if (menu && !menu.hidden) {
@@ -22988,7 +24727,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         const clearUserPressedKeys = () => userPressedKeys.clear();
         const runHotkeyAction = (action, actionName) => {
           void action().catch((error2) => {
-            debug.log(`[VOT] ${actionName} hotkey action failed`, error2);
           });
         };
         add(document, "keydown", (event) => {
@@ -23006,8 +24744,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           )) {
             clearUserPressedKeys();
             runHotkeyAction(
-              () => self.uiManager.handleTranslationBtnClick(),
-              "Translation"
+              () => self.uiManager.handleTranslationBtnClick()
             );
             return;
           }
@@ -23017,8 +24754,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           )) {
             clearUserPressedKeys();
             runHotkeyAction(
-              () => self.toggleSubtitlesForCurrentLangPair(),
-              "Subtitles"
+              () => self.toggleSubtitlesForCurrentLangPair()
             );
           }
         });
@@ -23070,7 +24806,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           try {
             await self.setCanPlay();
           } catch (err) {
-            debug.log("[VOT] setCanPlay() failed", err);
           }
         };
         let setCanPlayQueued = false;
@@ -23094,12 +24829,10 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
               video: self.video
             });
           } catch (error2) {
-            debug.log("[VOT] Failed to resolve video id on emptied", error2);
           }
           if (self.videoData && videoId && videoId === self.videoData.videoId) {
             return;
           }
-          debug.log("lipsync mode is emptied");
           resetAndHideLifecycle(self, overlayView, {
             clearVideoData: true,
             hideMenu: true
@@ -23107,7 +24840,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         };
         add(self.video, "emptied", () => {
           void handleVideoEmptied().catch((error2) => {
-            debug.log("[VOT] Failed to handle emptied lifecycle event", error2);
           });
         });
         if (!isMuteSyncDisabledHost(self.site.host)) {
@@ -23125,7 +24857,6 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
         }
         if (self.site.host === "youtube" && !self.site.additionalData) {
           add(document, "yt-page-data-updated", () => {
-            debug.log("yt-page-data-updated");
             if (!globalThis.location.pathname.startsWith("/shorts/")) return;
             queueSetCanPlay();
           });
@@ -23227,6 +24958,7 @@ tag: `VOTtranslationFailed_${videoId || "unknown"}`,
           subtitlesSmartLayout: true,
           highlightWords: false,
           subtitlesFontSize: 20,
+          subtitlesFontFamily: "default-sans",
           subtitlesOpacity: 20,
           subtitlesDownloadFormat: "srt",
           responseLanguage: calculatedResLang,
@@ -23281,8 +25013,7 @@ useAudioDownload: isSupportGMXhr,
           this.data.translateProxyEnabled,
           this.data.translateProxyEnabledDefault
         );
-        debug.log("Extension compatibility passed...");
-        this.initVOTClient();
+        await this.initVOTClient();
         this.uiManager.initUI();
         this.uiManager.initUIEvents();
         if (this.uiManager.votOverlayView?.votButton?.container) {
@@ -23298,69 +25029,178 @@ useAudioDownload: isSupportGMXhr,
           (_2, reject) => setTimeout(() => reject(new Error(message)), ms)
         );
       }
-      const DEFAULT_LOCALE = "und";
-      const segmenterCache = new Map();
-      const hasNativeSegmenter = () => typeof Intl !== "undefined" && typeof Intl.Segmenter === "function";
-      const splitTextRegexp = /[\p{L}\p{N}]+|[^\p{L}\p{N}]+/gu;
-      const wordLikeRegexp = /[\p{L}\p{N}]/u;
+      const DEFAULT_CACHE_LOCALE = "und";
+      const wordSegmenterCache = new Map();
+      const sentenceSegmenterCache = new Map();
       const canonicalizeLocale = (locale) => {
-        if (typeof Intl === "undefined") return DEFAULT_LOCALE;
-        if (!locale) return DEFAULT_LOCALE;
+        if (!locale) return void 0;
         try {
-          const canonical = Intl.getCanonicalLocales(locale)[0];
-          return canonical || DEFAULT_LOCALE;
+          return Intl.getCanonicalLocales(locale)[0];
         } catch {
-          return DEFAULT_LOCALE;
+          return void 0;
         }
       };
       const resolveSegmenterLocale = (locale) => {
         const canonicalLocale = canonicalizeLocale(locale);
-        if (canonicalLocale === DEFAULT_LOCALE) return void 0;
-        const supported = Intl.Segmenter.supportedLocalesOf([canonicalLocale]);
-        return supported[0];
+        if (!canonicalLocale) return void 0;
+        return Intl.Segmenter.supportedLocalesOf([canonicalLocale])[0];
       };
-      const getSegmenter = (locale) => {
-        if (!hasNativeSegmenter()) return null;
+      const getSegmenter = (locale, granularity) => {
         const resolvedLocale = resolveSegmenterLocale(locale);
-        const cacheKey = resolvedLocale ?? DEFAULT_LOCALE;
+        const cacheKey = `${granularity}:${resolvedLocale ?? DEFAULT_CACHE_LOCALE}`;
+        const segmenterCache = granularity === "sentence" ? sentenceSegmenterCache : wordSegmenterCache;
         const cached = segmenterCache.get(cacheKey);
         if (cached) return cached;
-        const segmenter = new Intl.Segmenter(resolvedLocale, { granularity: "word" });
+        const segmenter = new Intl.Segmenter(resolvedLocale, { granularity });
         segmenterCache.set(cacheKey, segmenter);
         return segmenter;
       };
-      const segmentTextFallback = (text) => {
-        const result = [];
-        splitTextRegexp.lastIndex = 0;
-        for (const match of text.matchAll(splitTextRegexp)) {
-          const segment = match[0];
-          if (!segment) continue;
-          result.push({
-            text: segment,
-            index: match.index ?? 0,
-            isWordLike: wordLikeRegexp.test(segment)
-          });
-        }
-        return result;
-      };
       const segmentText = (text, locale) => {
         if (!text) return [];
-        const segmenter = getSegmenter(locale);
-        if (!segmenter) {
-          return segmentTextFallback(text);
-        }
-        const segments = segmenter.segment(text);
-        const result = [];
-        for (const part of segments) {
-          result.push({
-            text: part.segment,
-            index: part.index,
-            isWordLike: Boolean(part.isWordLike)
-          });
-        }
-        return result;
+        return Array.from(getSegmenter(locale, "word").segment(text), (part) => ({
+          text: part.segment,
+          index: part.index,
+          isWordLike: Boolean(part.isWordLike)
+        }));
       };
-      const isSubtitleFormat = (value) => value === "json" || value === "srt" || value === "vtt";
+      const segmentSentences = (text, locale) => {
+        if (!text) return [];
+        return Array.from(getSegmenter(locale, "sentence").segment(text), (part) => ({
+          text: part.segment,
+          index: part.index
+        }));
+      };
+      const WHITESPACE_RE = /\s/u;
+      const NO_SPACE_BEFORE_RE = /^[,.:;!?%)\]}>В»]/u;
+      const NO_SPACE_AFTER_RE = /[([{'"В«вЂћ-]$/u;
+      const CJK_CHAR_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+      const hasVisibleText = (value) => Boolean(value.trim());
+      const shouldInsertSpaceBetween = (leftText, rightText) => {
+        const leftLastChar = leftText.at(-1) ?? "";
+        const rightFirstChar = rightText[0] ?? "";
+        if (!leftLastChar || !rightFirstChar) return false;
+        if (WHITESPACE_RE.test(leftLastChar) || WHITESPACE_RE.test(rightFirstChar)) {
+          return false;
+        }
+        if (NO_SPACE_AFTER_RE.test(leftText) || NO_SPACE_BEFORE_RE.test(rightText)) {
+          return false;
+        }
+        if (CJK_CHAR_RE.test(leftLastChar) && CJK_CHAR_RE.test(rightFirstChar)) {
+          return false;
+        }
+        return true;
+      };
+      const buildNormalizedLineSpans = (lines) => {
+        let streamText = "";
+        let previousText = "";
+        const spans = [];
+        for (const line of lines) {
+          const normalizedText = line.text.trim();
+          if (!normalizedText) continue;
+          if (streamText && shouldInsertSpaceBetween(previousText, normalizedText)) {
+            streamText += " ";
+          }
+          const start = streamText.length;
+          streamText += normalizedText;
+          const end = streamText.length;
+          spans.push({
+            line: {
+              ...line,
+              text: normalizedText
+            },
+            text: normalizedText,
+            start,
+            end
+          });
+          previousText = normalizedText;
+        }
+        return { streamText, spans };
+      };
+      const trimSentenceRange = (streamText, start, end) => {
+        let trimmedStart = start;
+        let trimmedEnd = end;
+        while (trimmedStart < trimmedEnd && WHITESPACE_RE.test(streamText[trimmedStart] ?? "")) {
+          trimmedStart += 1;
+        }
+        while (trimmedEnd > trimmedStart && WHITESPACE_RE.test(streamText[trimmedEnd - 1] ?? "")) {
+          trimmedEnd -= 1;
+        }
+        if (trimmedStart >= trimmedEnd) {
+          return null;
+        }
+        return {
+          start: trimmedStart,
+          end: trimmedEnd
+        };
+      };
+      const sliceLineToken = (span, rangeStart, rangeEnd) => {
+        const overlapStart = Math.max(rangeStart, span.start);
+        const overlapEnd = Math.min(rangeEnd, span.end);
+        if (overlapStart >= overlapEnd) {
+          return null;
+        }
+        const localStart = overlapStart - span.start;
+        const localEnd = overlapEnd - span.start;
+        const text = span.text.slice(localStart, localEnd);
+        if (!text) {
+          return null;
+        }
+        const textLength = Math.max(span.text.length, 1);
+        const startMs = span.line.startMs + Math.round(span.line.durationMs * localStart / textLength);
+        const endMs = span.line.startMs + Math.round(span.line.durationMs * localEnd / textLength);
+        return {
+          text,
+          startMs,
+          durationMs: Math.max(0, endMs - startMs),
+          isWordLike: hasVisibleText(text)
+        };
+      };
+      const buildSentenceLine = (streamText, spans, segment) => {
+        const rawStart = segment.index;
+        const rawEnd = rawStart + segment.text.length;
+        const trimmedRange = trimSentenceRange(streamText, rawStart, rawEnd);
+        if (!trimmedRange) {
+          return null;
+        }
+        const text = streamText.slice(trimmedRange.start, trimmedRange.end);
+        if (!hasVisibleText(text)) {
+          return null;
+        }
+        const tokens = [];
+        let speakerId = "0";
+        for (const span of spans) {
+          const token = sliceLineToken(span, trimmedRange.start, trimmedRange.end);
+          if (!token) continue;
+          if (tokens.length === 0) {
+            speakerId = span.line.speakerId;
+          }
+          tokens.push(token);
+        }
+        if (!tokens.length) {
+          return null;
+        }
+        const startMs = Math.min(...tokens.map((token) => token.startMs));
+        const endMs = Math.max(
+          ...tokens.map((token) => token.startMs + Math.max(0, token.durationMs))
+        );
+        return {
+          text,
+          startMs,
+          durationMs: Math.max(0, endMs - startMs),
+          speakerId,
+          tokens
+        };
+      };
+      const mergeAutoGeneratedSubtitleLines = (lines, locale) => {
+        const { streamText, spans } = buildNormalizedLineSpans(lines);
+        if (!streamText || !spans.length) {
+          return [];
+        }
+        const segments = segmentSentences(streamText, locale);
+        const sentenceLines = segments.map((segment) => buildSentenceLine(streamText, spans, segment)).filter((line) => line !== null);
+        return sentenceLines.length ? sentenceLines : spans.map(({ line }) => line);
+      };
+      const isSubtitleFormat = (value) => value === "json" || value === "srt" || value === "vtt" || value === "ass";
       const isRecord$1 = (value) => Boolean(value && typeof value === "object");
       const toFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
       const toNonNegativeNumber = (value) => Math.max(0, toFiniteNumber(value));
@@ -23543,11 +25383,11 @@ useAudioDownload: isSupportGMXhr,
       };
       const ensureProcessedSubtitles = (input) => {
         if (!input || typeof input !== "object") {
-          return { subtitles: [] };
+          return { format: "json", subtitles: [] };
         }
         const payload = input;
         const subtitles = Array.isArray(payload.subtitles) ? payload.subtitles.map(sanitizeLine) : [];
-        return { subtitles };
+        return { format: payload.format ?? "json", subtitles };
       };
       const VK_INLINE_TIMESTAMP_RE = /<(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?>/gu;
       const VK_DUPLICATE_MAX_GAP_MS = 120;
@@ -23556,10 +25396,14 @@ useAudioDownload: isSupportGMXhr,
       const VK_MULTIPLE_SPACES_RE = /[ \t]{2,}/gu;
       const VK_EXCESS_NEWLINES_RE = /\n{3,}/gu;
       const VK_COMPARABLE_SPACING_RE = /\s+/gu;
+      let htmlStripTemplate = null;
       const stripHtmlToText = (value) => {
         if (!value.includes("<")) return value;
         if (typeof document !== "undefined") {
-          const template = document.createElement("template");
+          if (!htmlStripTemplate) {
+            htmlStripTemplate = document.createElement("template");
+          }
+          const template = htmlStripTemplate;
           template.innerHTML = value;
           return template.content.textContent ?? "";
         }
@@ -23614,9 +25458,11 @@ useAudioDownload: isSupportGMXhr,
       };
       const hasPositiveDuration = (token) => token.durationMs > 0;
       const normalizeLineText = (line) => {
-        if (line.text) return line.text;
+        if (line.text) return normalizeSubtitleTextForDisplay(line.text);
         if (!line.tokens.length) return "";
-        return line.tokens.map((token) => token.text).join("");
+        return normalizeSubtitleTextForDisplay(
+          line.tokens.map((token) => token.text).join("")
+        );
       };
       const allocateTimingsByLength = (texts, startMs, durationMs) => {
         if (!texts.length) return [];
@@ -23638,11 +25484,46 @@ useAudioDownload: isSupportGMXhr,
         }
         return timings;
       };
+      const splitSegmentText = (text) => {
+        const slices = [];
+        let sliceStart = 0;
+        for (let index = 0; index < text.length; index += 1) {
+          if (text[index] !== "\n") continue;
+          if (sliceStart < index) {
+            slices.push({
+              text: text.slice(sliceStart, index),
+              startOffset: sliceStart,
+              endOffset: index
+            });
+          }
+          slices.push({
+            text: "\n",
+            startOffset: index,
+            endOffset: index + 1
+          });
+          sliceStart = index + 1;
+        }
+        if (sliceStart < text.length) {
+          slices.push({
+            text: text.slice(sliceStart),
+            startOffset: sliceStart,
+            endOffset: text.length
+          });
+        }
+        return slices.length ? slices : [
+          {
+            text,
+            startOffset: 0,
+            endOffset: text.length
+          }
+        ];
+      };
       const collectSourceTimedWords = (sourceTokens, locale) => {
         const timedWords = [];
         for (const token of sourceTokens) {
-          if (!token.text || !hasPositiveDuration(token)) continue;
-          const segmentedWords = segmentText(token.text, locale).filter(
+          const normalizedTokenText = normalizeSubtitleTextForDisplay(token.text);
+          if (!normalizedTokenText || !hasPositiveDuration(token)) continue;
+          const segmentedWords = segmentText(normalizedTokenText, locale).filter(
             (segment) => segment.isWordLike && segment.text.trim()
           );
           if (!segmentedWords.length) continue;
@@ -23658,6 +25539,7 @@ useAudioDownload: isSupportGMXhr,
       const buildLineTokens = (line, descriptor, lineText) => {
         if (!lineText) return [];
         const locale = descriptor.language;
+        const styledSpans = line.metadata?.styledSpans ?? buildStyledDisplayModel(line.metadata?.rawText ?? line.text ?? lineText).styledSpans;
         const segments = segmentText(lineText, locale);
         if (!segments.length) return [];
         const baseTimings = allocateTimingsByLength(
@@ -23665,12 +25547,47 @@ useAudioDownload: isSupportGMXhr,
           line.startMs,
           line.durationMs
         );
-        const nextTokens = segments.map((segment, index) => ({
-          text: segment.text,
-          startMs: baseTimings[index]?.startMs ?? line.startMs,
-          durationMs: baseTimings[index]?.durationMs ?? 0,
-          isWordLike: segment.isWordLike
-        }));
+        const nextTokens = [];
+        for (let index = 0; index < segments.length; index += 1) {
+          const segment = segments[index];
+          const segmentStartMs = baseTimings[index]?.startMs ?? line.startMs;
+          const segmentDurationMs = baseTimings[index]?.durationMs ?? 0;
+          const slices = splitSegmentText(segment.text);
+          if (slices.length === 1 && slices[0].text === segment.text) {
+            nextTokens.push({
+              text: segment.text,
+              startMs: segmentStartMs,
+              durationMs: segmentDurationMs,
+              isWordLike: segment.isWordLike,
+              style: getStyleForRange(
+                styledSpans,
+                segment.index,
+                segment.index + segment.text.length
+              )
+            });
+            continue;
+          }
+          const sliceTimings = allocateTimingsByLength(
+            slices.map((slice) => slice.text === "\n" ? "" : slice.text),
+            segmentStartMs,
+            segmentDurationMs
+          );
+          for (let sliceIndex = 0; sliceIndex < slices.length; sliceIndex += 1) {
+            const slice = slices[sliceIndex];
+            const isLineBreak = slice.text === "\n";
+            nextTokens.push({
+              text: slice.text,
+              startMs: sliceTimings[sliceIndex]?.startMs ?? segmentStartMs,
+              durationMs: isLineBreak ? 0 : sliceTimings[sliceIndex]?.durationMs ?? 0,
+              isWordLike: !isLineBreak && segment.isWordLike,
+              style: isLineBreak ? void 0 : getStyleForRange(
+                styledSpans,
+                segment.index + slice.startOffset,
+                segment.index + slice.endOffset
+              )
+            });
+          }
+        }
         const sourceTimedWords = collectSourceTimedWords(line.tokens, locale);
         if (!sourceTimedWords.length) return nextTokens;
         const wordIndices = nextTokens.reduce((indices, token, index) => {
@@ -23695,9 +25612,9 @@ useAudioDownload: isSupportGMXhr,
       };
       const fetchRawSubtitles = async (url, format) => {
         const response = await GM_fetch(url, { timeout: 7e3 });
-        if (format === "vtt" || format === "srt") {
+        if (format === "vtt" || format === "srt" || format === "ass") {
           const text = await response.text();
-          return convertSubs(text, "json");
+          return parseSubtitleText(text, format);
         }
         return response.json();
       };
@@ -23708,15 +25625,22 @@ useAudioDownload: isSupportGMXhr,
             Boolean(descriptor.isAutoGenerated)
           );
         }
+        if (descriptor.format === "srt" || descriptor.format === "vtt" || descriptor.format === "ass") {
+          return sortProcessedSubtitles(ensureProcessedSubtitles(rawSubtitles));
+        }
         const normalized = ensureProcessedSubtitles(rawSubtitles);
         if (descriptor.source === "vk") {
           return SubtitlesProcessor.cleanJsonSubtitles(normalized);
         }
-        return normalized;
+        return sortProcessedSubtitles(normalized);
       };
-      const processFetchedSubtitles = (subtitles, descriptor) => ({
-        subtitles: SubtitlesProcessor.processTokens(subtitles, descriptor)
-      });
+      const processFetchedSubtitles = (subtitles, descriptor) => {
+        const maybeMerged = SubtitlesProcessor.autoMerge(subtitles, descriptor);
+        return {
+          ...maybeMerged,
+          subtitles: SubtitlesProcessor.processTokens(maybeMerged, descriptor)
+        };
+      };
       const buildYandexSubtitles = (response) => {
         const subtitles = [];
         const seenOriginal = new Set();
@@ -23759,7 +25683,7 @@ useAudioDownload: isSupportGMXhr,
           const events = subtitles.events ?? [];
           if (!events.length) {
             console.error("[VOT] Invalid YouTube subtitles format:", subtitles);
-            return { subtitles: [] };
+            return { format: "json", subtitles: [] };
           }
           const processed = [];
           for (let i2 = 0; i2 < events.length; i2 += 1) {
@@ -23783,7 +25707,25 @@ useAudioDownload: isSupportGMXhr,
               tokens: isAsr ? sourceTokens : []
             });
           }
-          return { subtitles: processed };
+          return {
+            format: "json",
+            subtitles: processed
+          };
+        },
+        autoMerge(subtitles, descriptor) {
+          if (!descriptor.isAutoGenerated) {
+            return subtitles;
+          }
+          if (subtitles.subtitles.length < 2 || !subtitles.subtitles.some((line) => line.tokens.length > 0)) {
+            return subtitles;
+          }
+          return {
+            ...subtitles,
+            subtitles: mergeAutoGeneratedSubtitleLines(
+              subtitles.subtitles,
+              descriptor.language
+            )
+          };
         },
         cleanJsonSubtitles(subtitles) {
           const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
@@ -23794,9 +25736,7 @@ useAudioDownload: isSupportGMXhr,
             }
             return totalLength;
           };
-          const cleanedLines = [];
-          const comparableTexts = [];
-          const tokensLengths = [];
+          const cleanedEntries = [];
           for (const line of subtitles.subtitles) {
             const normalizedLineText = normalizeSubtitleText(line.text);
             if (!normalizedLineText) continue;
@@ -23809,55 +25749,54 @@ useAudioDownload: isSupportGMXhr,
                 text: normalizedTokenText
               });
             }
-            cleanedLines.push({
-              ...line,
-              text: normalizedLineText,
-              tokens: normalizedTokens
+            cleanedEntries.push({
+              line: {
+                ...line,
+                text: normalizedLineText,
+                tokens: normalizedTokens
+              },
+              comparableText: normalizeComparableText(normalizedLineText),
+              tokensTextLength: tokensTextLength(normalizedTokens)
             });
-            comparableTexts.push(normalizeComparableText(normalizedLineText));
-            tokensLengths.push(tokensTextLength(normalizedTokens));
           }
-          const mergedLines = [];
-          const mergedComparable = [];
-          const mergedTokensLength = [];
-          for (let i2 = 0; i2 < cleanedLines.length; i2 += 1) {
-            const line = cleanedLines[i2];
-            const currentComparable = comparableTexts[i2];
+          const mergedEntries = [];
+          for (const entry of cleanedEntries) {
+            const {
+              line,
+              comparableText: currentComparable,
+              tokensTextLength: currentTokensLength
+            } = entry;
             if (!currentComparable) continue;
-            const previous = mergedLines.at(-1);
+            const previous = mergedEntries.at(-1);
             if (!previous) {
-              mergedLines.push(line);
-              mergedComparable.push(currentComparable);
-              mergedTokensLength.push(tokensLengths[i2]);
+              mergedEntries.push(entry);
               continue;
             }
-            const previousComparable = mergedComparable.at(-1);
-            const previousEnd = lineEndMs(previous);
+            const previousEnd = lineEndMs(previous.line);
             const currentEnd = lineEndMs(line);
-            const isDuplicateText = previousComparable === currentComparable;
+            const isDuplicateText = previous.comparableText === currentComparable;
             const isNearPrevious = line.startMs <= previousEnd + VK_DUPLICATE_MAX_GAP_MS;
             if (!isDuplicateText || !isNearPrevious) {
-              mergedLines.push(line);
+              mergedEntries.push(entry);
               continue;
             }
-            const mergedStart = Math.min(previous.startMs, line.startMs);
+            const mergedStart = Math.min(previous.line.startMs, line.startMs);
             const mergedEnd = Math.max(previousEnd, currentEnd);
-            const previousTokensLength = mergedTokensLength.at(-1) ?? 0;
-            const currentTokensLength = tokensLengths[i2];
-            const mergedTokens = currentTokensLength >= previousTokensLength ? line.tokens : previous.tokens;
-            mergedLines[mergedLines.length - 1] = {
-              ...previous,
+            const mergedTokens = currentTokensLength >= previous.tokensTextLength ? line.tokens : previous.line.tokens;
+            previous.line = {
+              ...previous.line,
               startMs: mergedStart,
               durationMs: Math.max(0, mergedEnd - mergedStart),
               tokens: mergedTokens
             };
-            mergedTokensLength[mergedTokensLength.length - 1] = Math.max(
-              previousTokensLength,
+            previous.tokensTextLength = Math.max(
+              previous.tokensTextLength,
               currentTokensLength
             );
           }
           return {
-            subtitles: mergedLines
+            ...subtitles,
+            subtitles: mergedEntries.map(({ line }) => line)
           };
         },
         async fetchSubtitles(descriptorOrVideoData, requestLang, spokenLang) {
@@ -23867,7 +25806,7 @@ useAudioDownload: isSupportGMXhr,
             spokenLang
           );
           if (!descriptor) {
-            return { subtitles: [] };
+            return { format: "json", subtitles: [] };
           }
           const { source, format } = descriptor;
           let { url } = descriptor;
@@ -23885,7 +25824,7 @@ useAudioDownload: isSupportGMXhr,
             return subtitlesWithTokens;
           } catch (error2) {
             console.error("[VOT] Failed to process subtitles:", error2);
-            return { subtitles: [] };
+            return { format: "json", subtitles: [] };
           }
         },
         async getSubtitles(client, videoData) {
@@ -23980,10 +25919,22 @@ useAudioDownload: isSupportGMXhr,
       const VALID_SUBTITLE_FORMATS = new Set([
         "srt",
         "vtt",
+        "ass",
         "json"
       ]);
       const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
       const subtitlesSelectionRequestVersion = new WeakMap();
+      function getCurrentSubtitlesCacheKey(handler) {
+        const videoData = handler.videoData;
+        if (!videoData?.videoId) {
+          return null;
+        }
+        return handler.getSubtitlesCacheKey(
+          videoData.videoId,
+          videoData.detectedLanguage,
+          videoData.responseLanguage
+        );
+      }
       function isRecord(value) {
         return value !== null && typeof value === "object";
       }
@@ -24146,7 +26097,6 @@ useAudioDownload: isSupportGMXhr,
         return null;
       }
       async function changeSubtitlesLang(subs) {
-        debug.log("[onchange] subtitles", subs);
         const requestVersion = nextSubtitlesSelectionRequestVersion(this);
         const overlayView = this.uiManager.votOverlayView;
         if (!overlayView?.subtitlesSelect || !overlayView.downloadSubtitlesButton) {
@@ -24192,7 +26142,7 @@ useAudioDownload: isSupportGMXhr,
             ...subtitlesObj,
             url: proxiedSubtitlesUrl
           };
-          debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
+          console.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
         }
         const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
         if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) {
@@ -24216,15 +26166,39 @@ useAudioDownload: isSupportGMXhr,
         overlayView.subtitlesSelect.updateItems(updatedOptions);
         await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
       }
+      async function ensureSubtitlesForCurrentLangPair() {
+        const cacheKey = getCurrentSubtitlesCacheKey(this);
+        if (!cacheKey) {
+          if (this.subtitlesCacheKey !== null || this.subtitles.length > 0) {
+            this.subtitles = [];
+            this.subtitlesCacheKey = null;
+            await this.updateSubtitlesLangSelect();
+          }
+          return this;
+        }
+        if (this.subtitlesCacheKey === cacheKey) {
+          const hasCachedSubtitles = this.cacheManager.getSubtitles(cacheKey) !== void 0;
+          if (this.subtitles.length > 0 || hasCachedSubtitles) {
+            return this;
+          }
+        }
+        const cachedSubs = this.cacheManager.getSubtitles(cacheKey);
+        if (cachedSubs !== void 0) {
+          this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
+          this.subtitlesCacheKey = cacheKey;
+          await this.updateSubtitlesLangSelect();
+          return this;
+        }
+        await this.loadSubtitles();
+        return this;
+      }
       async function enableSubtitlesForCurrentLangPair() {
         const overlayView = this.uiManager.votOverlayView;
         if (!overlayView?.subtitlesSelect) return this;
-        if (!Array.isArray(this.subtitles) || this.subtitles.length === 0) {
-          try {
-            await this.loadSubtitles();
-          } catch {
-            return this;
-          }
+        try {
+          await ensureSubtitlesForCurrentLangPair.call(this);
+        } catch {
+          return this;
         }
         const fromLang = this.videoData?.detectedLanguage ?? this.translateFromLang;
         const toLang = this.videoData?.responseLanguage ?? this.translateToLang;
@@ -24264,6 +26238,7 @@ useAudioDownload: isSupportGMXhr,
             `[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`
           );
           this.subtitles = [];
+          this.subtitlesCacheKey = null;
           return;
         }
         const cacheKey = this.getSubtitlesCacheKey(
@@ -24293,9 +26268,11 @@ useAudioDownload: isSupportGMXhr,
             }
           }
           this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
+          this.subtitlesCacheKey = cacheKey;
         } catch (error2) {
           console.error("[VOT] Failed to load subtitles:", error2);
           this.subtitles = [];
+          this.subtitlesCacheKey = null;
         }
         await this.updateSubtitlesLangSelect();
       }
@@ -24493,7 +26470,6 @@ useAudioDownload: isSupportGMXhr,
             await ctx.resume();
             return "resumed";
           } catch (err) {
-            debug.log("[updateTranslation] Failed to resume AudioContext", err);
             return "failed";
           }
         })();
@@ -24504,11 +26480,6 @@ useAudioDownload: isSupportGMXhr,
         const result = await Promise.race([resumePromise, timeoutPromise]);
         if (timeoutId !== void 0) {
           clearTimeout(timeoutId);
-        }
-        if (result === "resumed") {
-          debug.log("[updateTranslation] AudioContext resumed");
-        } else if (result === "timeout") {
-          debug.log("[updateTranslation] AudioContext resume timeout");
         }
         return result;
       }
@@ -24528,7 +26499,6 @@ useAudioDownload: isSupportGMXhr,
           player2.src = "";
           debug.log("[updateTranslation] cleared stale partially-applied source");
         } catch (err) {
-          debug.log("[updateTranslation] failed to clear stale source", err);
         }
       }
       function getSmartDuckingAudioContext(handler) {
@@ -24585,7 +26555,6 @@ useAudioDownload: isSupportGMXhr,
           return source;
         } catch (err) {
           state.mediaSourceCreationFailed = true;
-          debug.log("[SmartDucking] failed to create media source", err);
           return void 0;
         }
       }
@@ -24626,7 +26595,6 @@ useAudioDownload: isSupportGMXhr,
             inputNode.connect(analyser);
             state.connectedInputNode = inputNode;
           } catch (err) {
-            debug.log("[SmartDucking] failed to connect analyser", err);
             return void 0;
           }
         }
@@ -24656,7 +26624,7 @@ useAudioDownload: isSupportGMXhr,
       }
       function stopSmartVolumeDucking(handler, options = {}) {
         const { restoreVolume } = options;
-        if (typeof handler.smartVolumeDuckingInterval === "number") {
+        if (handler.smartVolumeDuckingInterval !== void 0) {
           clearTimeout(handler.smartVolumeDuckingInterval);
           handler.smartVolumeDuckingInterval = void 0;
         }
@@ -24672,23 +26640,22 @@ useAudioDownload: isSupportGMXhr,
       }
       function scheduleNextSmartDuckingTick(handler) {
         if (typeof globalThis === "undefined") return;
-        if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+        if (handler.smartVolumeDuckingInterval === void 0) return;
         handler.smartVolumeDuckingInterval = globalThis.setTimeout(() => {
-          if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+          if (handler.smartVolumeDuckingInterval === void 0) return;
           try {
             smartDuckingTick(handler);
           } catch (err) {
-            debug.log("[SmartDucking] tick failed, stopping smart ducking", err);
             stopSmartVolumeDucking(handler);
             return;
           }
-          if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+          if (handler.smartVolumeDuckingInterval === void 0) return;
           scheduleNextSmartDuckingTick(handler);
         }, SMART_DUCKING_TICK_MS);
       }
       function startSmartVolumeDucking(handler) {
         if (typeof globalThis === "undefined") return;
-        if (typeof handler.smartVolumeDuckingInterval === "number") return;
+        if (handler.smartVolumeDuckingInterval !== void 0) return;
         if (getAutoVolumeMode(handler) !== "smart") return;
         const currentVideoVolume = handler.getVideoVolume();
         const baseline = typeof handler.smartVolumeDuckingBaseline === "number" ? handler.smartVolumeDuckingBaseline : currentVideoVolume;
@@ -24701,7 +26668,9 @@ useAudioDownload: isSupportGMXhr,
           runtime.lastSoundAt = now2;
         }
         writeSmartDuckingRuntime(handler, runtime);
-        handler.smartVolumeDuckingInterval = 0;
+        handler.smartVolumeDuckingInterval = globalThis.setTimeout(() => {
+        }, 0);
+        clearTimeout(handler.smartVolumeDuckingInterval);
         scheduleNextSmartDuckingTick(handler);
       }
       function getTranslatedAudioRms(handler, media) {
@@ -24786,21 +26755,34 @@ useAudioDownload: isSupportGMXhr,
             throw new TypeError("Unhandled smart ducking decision");
         }
       }
-      function wait(ms) {
+      function waitForProbeRetry(delayMs, signal) {
+        if (signal.aborted) {
+          return Promise.resolve();
+        }
         return new Promise((resolve) => {
-          setTimeout(resolve, ms);
+          const timeoutId = setTimeout(() => {
+            signal.removeEventListener("abort", onAbort);
+            resolve();
+          }, delayMs);
+          const onAbort = () => {
+            clearTimeout(timeoutId);
+            signal.removeEventListener("abort", onAbort);
+            resolve();
+          };
+          signal.addEventListener("abort", onAbort, { once: true });
         });
       }
       async function probeAudioUrl(handler, audioUrl, actionContext) {
+        const signal = handler.actionsAbortController.signal;
         const fetchOpts = handler.isMultiMethodS3(audioUrl) ? {
           method: "HEAD",
-          signal: handler.actionsAbortController.signal,
+          signal,
           timeout: AUDIO_PROBE_TIMEOUT_MS
         } : {
 headers: {
             range: "bytes=0-0"
           },
-          signal: handler.actionsAbortController.signal,
+          signal,
           timeout: AUDIO_PROBE_TIMEOUT_MS
         };
         for (let attempt = 1; attempt <= AUDIO_PROBE_MAX_ATTEMPTS; attempt++) {
@@ -24816,13 +26798,18 @@ headers: {
             });
             if (response.ok) return true;
           } catch (err) {
-            if (handler.isActionStale(actionContext) || handler.actionsAbortController.signal.aborted) {
+            if (handler.isActionStale(actionContext) || signal.aborted) {
               return false;
             }
-            debug.log("[validateAudioUrl] probe error", { audioUrl, attempt, err });
           }
           if (attempt < AUDIO_PROBE_MAX_ATTEMPTS) {
-            await wait(AUDIO_PROBE_RETRY_DELAY_MS);
+            if (handler.isActionStale(actionContext) || signal.aborted) {
+              return false;
+            }
+            await waitForProbeRetry(AUDIO_PROBE_RETRY_DELAY_MS, signal);
+            if (handler.isActionStale(actionContext) || signal.aborted) {
+              return false;
+            }
           }
         }
         return false;
@@ -24841,7 +26828,6 @@ headers: {
             actionContext
           );
           if (isDirectUrlValid) {
-            debug.log("[validateAudioUrl] switching to direct audio URL after probe");
             return directUrl;
           }
         }
@@ -24856,7 +26842,6 @@ headers: {
         const refreshDelayMs = Math.max(3e4, YANDEX_TTL_MS - 5 * 60 * 1e3);
         this.translationRefreshTimeout = setTimeout(() => {
           this.refreshTranslationAudio().catch((error2) => {
-            debug.log("[scheduleTranslationRefresh] refresh failed", error2);
           });
         }, refreshDelayMs);
       }
@@ -24935,16 +26920,12 @@ headers: {
           translateProxyEnabled: this.data?.translateProxyEnabled,
           proxyWorkerHost: this.data?.proxyWorkerHost
         });
-        if (proxiedAudioUrl !== audioUrl) {
-          debug.log(`[VOT] Audio proxied via ${proxiedAudioUrl}`);
-        }
         return proxiedAudioUrl;
       }
       function unproxifyAudio(audioUrl) {
         return unproxifyYandexAudioUrl(audioUrl);
       }
       async function handleProxySettingsChanged(reason = "proxySettingsChanged") {
-        debug.log(`[VOT] ${reason}: clearing translation/subtitles cache`);
         try {
           this.cacheManager.clear();
           this.activeTranslation = null;
@@ -24954,6 +26935,7 @@ headers: {
           await this.stopTranslation();
         } catch {
         }
+        await this.initVOTClient();
       }
       function isMultiMethodS3(url) {
         return isYandexAudioUrlOrProxy(url, {
@@ -25024,7 +27006,6 @@ headers: {
           this.createPlayer();
         }
         if (this.audioPlayer.audioContext?.state === "closed") {
-          debug.log("[updateTranslation] AudioContext is closed, recreating player");
           this.createPlayer();
         }
         const normalizedTargetUrl = normalizeManagedAudioUrl(this, audioUrl);
@@ -25093,21 +27074,18 @@ headers: {
       }
       async function translateFunc(VIDEO_ID, _isStream, requestLang, responseLang, translationHelp) {
         await this.waitForPendingStopTranslate();
-        debug.log("Run videoValidator");
         await this.videoValidator();
         if (this.actionsAbortController?.signal?.aborted) {
           this.resetActionsAbortController("translateFunc");
         }
         const overlayView = this.uiManager.votOverlayView;
         if (!overlayView?.votButton) {
-          debug.log("[translateFunc] Overlay view missing, skipping translation");
           return;
         }
         overlayView.votButton.loading = true;
         this.hadAsyncWait = false;
         this.volumeOnStart = this.getVideoVolume();
         if (!VIDEO_ID) {
-          debug.log("Skip translation - no VIDEO_ID resolved yet");
           await this.updateTranslationErrorMsg(
             new VOTLocalizedError("VOTNoVideoIDFound"),
             this.actionsAbortController.signal
@@ -25131,7 +27109,6 @@ headers: {
         );
         const activeKey = `video_${cacheKey}`;
         if (this.activeTranslation?.key === activeKey) {
-          debug.log("[translateFunc] Reusing in-flight translation");
           await this.activeTranslation.promise;
           return;
         }
@@ -25141,7 +27118,6 @@ headers: {
         };
         const translationPromise = (async () => {
           if (this.isActionStale(actionContext)) {
-            debug.log("[translateFunc] Stale translation task - skipping");
             return;
           }
           const reqLang = requestLang;
@@ -25157,7 +27133,6 @@ headers: {
           if (cachedEntry?.url) {
             const updated = await applyTranslationUrl(cachedEntry.url);
             if (!updated) return;
-            debug.log("[translateFunc] Cached translation was received");
             return;
           }
           const translateRes = await requestApplyAndCacheTranslation(this, {
@@ -25182,12 +27157,11 @@ headers: {
               )) {
                 if (subsCacheKey) this.cacheManager.deleteSubtitles(subsCacheKey);
                 this.subtitles = [];
+                this.subtitlesCacheKey = null;
               }
             }
           });
-          debug.log("[translateRes]", translateRes);
           if (!translateRes) {
-            debug.log("Skip translation");
             return;
           }
         })();
@@ -25213,7 +27187,6 @@ headers: {
           }
           const overlayBtn = this.uiManager.votOverlayView?.votButton;
           if (!this.activeTranslation && overlayBtn?.loading && !this.hasActiveSource()) {
-            debug.log("[translateFunc] clearing stale loading state");
             this.transformBtn("none", localizationProvider.get("translateVideo"));
           }
         }
@@ -25241,7 +27214,7 @@ headers: {
           startSmartVolumeDucking(this);
           return;
         }
-        if (typeof this.smartVolumeDuckingInterval === "number") {
+        if (this.smartVolumeDuckingInterval !== void 0) {
           clearTimeout(this.smartVolumeDuckingInterval);
           this.smartVolumeDuckingInterval = void 0;
         }
@@ -25276,6 +27249,7 @@ translateFromLang = "auto";
 actionsGeneration = 0;
         notifier = new Notifier();
         cacheManager;
+        votSessionStorage = new VOTSessionStorageCache();
 subtitlesLoadPromises = new Map();
         downloadTranslationUrl = null;
         translationRefreshTimeout;
@@ -25308,6 +27282,7 @@ smartVolumeSpeechGateOpen = false;
         hadAsyncWait = false;
 
 subtitles = [];
+        subtitlesCacheKey = null;
         subtitlesWidget;
         activeTranslation = null;
 stopTranslatePromise = null;
@@ -25325,23 +27300,44 @@ resizeObserver;
 initialized = false;
 mountCache;
 errorTranslationCache = new Map();
+getFullscreenOverlayRoot() {
+          const doc = document;
+          const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+          return resolveScopedFullscreenElement(fullscreenEl, [this.container]);
+        }
         getOverlayMountPoints(container = this.container) {
-          const base = this.site.host === "youtube" && this.site.additionalData !== "mobile" ? container.parentElement ?? container : container;
+          const fullscreenRoot = this.getFullscreenOverlayRoot();
+          const { base, root, portalContainer, subtitlesMountContainer } = resolveOverlayMountTargets({
+            container,
+            site: this.site,
+            fullscreenRoot
+          });
           const cache = this.mountCache;
-          if (cache?.container === container && cache.base === base && (cache.root.isConnected ?? document.documentElement.contains(cache.root))) {
-            return { root: cache.root, portalContainer: cache.portalContainer };
+          if (cache?.container === container && cache.base === base && cache.subtitlesMountContainer === subtitlesMountContainer && cache.fullscreenRoot === fullscreenRoot && (cache.root.isConnected ?? document.documentElement.contains(cache.root))) {
+            return {
+              root: cache.root,
+              portalContainer: cache.portalContainer,
+              subtitlesMountContainer: cache.subtitlesMountContainer,
+              fullscreenRoot: cache.fullscreenRoot
+            };
           }
-          const root = base;
-          const portalContainer = root;
-          this.mountCache = { container, base, root, portalContainer };
-          return { root, portalContainer };
+          this.mountCache = {
+            container,
+            base,
+            root,
+            portalContainer,
+            subtitlesMountContainer,
+            fullscreenRoot
+          };
+          return { root, portalContainer, subtitlesMountContainer, fullscreenRoot };
         }
         getOverlayMount(container = this.container) {
-          const { root, portalContainer } = this.getOverlayMountPoints(container);
+          const { root, portalContainer, subtitlesMountContainer, fullscreenRoot } = this.getOverlayMountPoints(container);
           return {
             root,
             portalContainer,
-            tooltipLayoutRoot: this.tooltipLayoutRoot
+            subtitlesMountContainer,
+            tooltipLayoutRoot: fullscreenRoot ?? this.tooltipLayoutRoot
           };
         }
 getTranslationCacheKey(videoId, from, to, translationHelp) {
@@ -25361,6 +27357,13 @@ getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage) {
           if (!actionContext) return false;
           return this.actionsGeneration !== actionContext.gen || this.videoData?.videoId !== actionContext.videoId;
         }
+        updateVOTClientRequestSignal() {
+          if (!this.votClient) return;
+          this.votClient.fetchOpts = {
+            ...this.votClient.fetchOpts ?? {},
+            signal: this.actionsAbortController.signal
+          };
+        }
         resetActionsAbortController(reason) {
           try {
             this.actionsAbortController?.abort(reason);
@@ -25368,24 +27371,15 @@ getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage) {
           }
           this.actionsAbortController = new AbortController();
           this.actionsGeneration++;
-          if (this.data) {
-            this.initVOTClient();
-          }
+          this.updateVOTClientRequestSignal();
         }
 constructor(video, container, site) {
-          debug.log(
-            "[VideoHandler] add video:",
-            video,
-            "container:",
-            container,
-            this
-          );
           this.video = video;
           this.container = container;
           this.site = site;
           this.abortController = new AbortController();
           this.actionsAbortController = new AbortController();
-          this.cacheManager = new CacheManager();
+          this.cacheManager = new InMemoryCacheManager();
           this.interactionChecker = createIntervalIdleChecker();
           this.interactionChecker.start();
           const self = () => this;
@@ -25445,6 +27439,9 @@ constructor(video, container, site) {
               return self().container;
             },
             set container(value) {
+              if (self().container === value) {
+                return;
+              }
               self().container = value;
               self().uiManager.updateMount(self().getOverlayMount(value));
             },
@@ -25460,7 +27457,7 @@ constructor(video, container, site) {
             },
             getVideoData: () => this.getVideoData(),
             cacheManager: {
-              getSubtitles: (key) => self().cacheManager.getSubtitles(key) ?? []
+              getSubtitles: (key) => self().cacheManager.getSubtitles(key)
             },
             getSubtitlesCacheKey: (videoId, detectedLanguage, responseLanguage) => this.getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage),
             updateSubtitlesLangSelect: () => this.updateSubtitlesLangSelect(),
@@ -25480,6 +27477,12 @@ constructor(video, container, site) {
             },
             set subtitles(value) {
               self().subtitles = value;
+            },
+            get subtitlesCacheKey() {
+              return self().subtitlesCacheKey;
+            },
+            set subtitlesCacheKey(value) {
+              self().subtitlesCacheKey = value;
             },
             get videoData() {
               return self().videoData;
@@ -25505,16 +27508,10 @@ constructor(video, container, site) {
         }
 getSubtitlesWidget() {
           if (!this.subtitlesWidget) {
-            const overlayPortal = this.uiManager.votOverlayView?.votOverlayPortal;
-            if (!overlayPortal) {
-              throw new Error(
-                "VOT UI is not initialized yet (missing overlay portal)"
-              );
-            }
+            const { subtitlesMountContainer } = this.getOverlayMountPoints();
             this.subtitlesWidget = new SubtitlesWidget(
               this.video,
-              this.portalContainer,
-              overlayPortal,
+              subtitlesMountContainer,
               this.interactionChecker,
               this.tooltipLayoutRoot
             );
@@ -25530,6 +27527,11 @@ getSubtitlesWidget() {
               }
               if (typeof this.data.subtitlesFontSize === "number") {
                 this.subtitlesWidget.setFontSize(this.data.subtitlesFontSize);
+              }
+              if (typeof this.data.subtitlesFontFamily === "string") {
+                this.subtitlesWidget.setFontFamily(
+                  this.data.subtitlesFontFamily
+                );
               }
               if (typeof this.data.subtitlesOpacity === "number") {
                 this.subtitlesWidget.setOpacity(this.data.subtitlesOpacity);
@@ -25598,7 +27600,6 @@ getPreferAudio() {
         }
 createPlayer() {
           const preferAudio = this.getPreferAudio();
-          debug.log("preferAudio:", preferAudio);
           this.audioPlayer = new Chaimu({
             video: this.video,
 debug: Boolean(false),
@@ -25642,7 +27643,8 @@ isLikelyInternalVideoVolumeChange(observedPercent) {
 init() {
           return init.call(this);
         }
-initVOTClient() {
+async initVOTClient() {
+          const transportHost = this.data?.translateProxyEnabled ? this.data?.proxyWorkerHost ?? proxyWorkerHost : workerHost;
           this.votOpts = {
             fetchFn: GM_fetch,
             fetchOpts: {
@@ -25650,9 +27652,22 @@ initVOTClient() {
             },
             apiToken: this.data?.account?.token,
             hostVOT: votBackendUrl,
-            host: this.data?.translateProxyEnabled ? this.data?.proxyWorkerHost ?? proxyWorkerHost : workerHost
+            host: transportHost
           };
           this.votClient = new (this.data?.translateProxyEnabled ? VOTWorkerClient2 : VOTClient2)(this.votOpts);
+          this.votClient.sessions = await this.votSessionStorage.restore(
+            transportHost,
+            this.votClient.sessions
+          );
+          const originalGetSession = this.votClient.getSession.bind(this.votClient);
+          this.votClient.getSession = async (module) => {
+            const session = await originalGetSession(module);
+            await this.votSessionStorage.persist(
+              transportHost,
+              this.votClient.sessions
+            );
+            return session;
+          };
           return this;
         }
 transformBtn(status, text) {
@@ -25664,6 +27679,16 @@ hasActiveSource() {
         }
 initExtraEvents() {
           return this.callModule(initExtraEvents);
+        }
+refreshOverlayMount() {
+          this.mountCache = void 0;
+          const nextMount = this.getOverlayMount(this.container);
+          const mountChanged = !isSameOverlayMount(this.uiManager.mount, nextMount);
+          this.uiManager.updateMount(nextMount);
+          if (!mountChanged) {
+            return;
+          }
+          this.rebindOverlayVisibilityTargets();
         }
 rebindOverlayVisibilityTargets = rebindOverlayVisibilityTargets;
 setCanPlay() {
@@ -25677,6 +27702,7 @@ getAutoHideDelay() {
         }
 changeSubtitlesLang = changeSubtitlesLang;
 updateSubtitlesLangSelect = updateSubtitlesLangSelect;
+ensureSubtitlesForCurrentLangPair = ensureSubtitlesForCurrentLangPair;
 loadSubtitles = loadSubtitles;
 enableSubtitlesForCurrentLangPair() {
           return this.callModuleAsync(enableSubtitlesForCurrentLangPair);
@@ -25810,7 +27836,6 @@ stopTranslate() {
                 this.audioPlayer.player.src = "";
                 await this.audioPlayer.player.clear();
               } catch (err) {
-                debug.log("[stopTranslate] audioPlayer cleanup error", err);
               }
               debug.log("audioPlayer after stopTranslate", this.audioPlayer);
             }
@@ -25867,7 +27892,6 @@ async updateTranslationErrorMsg(errorMessage, signal) {
           if (this.longWaitingResCount > minLongWaitingCount) {
             errorMessage = new VOTLocalizedError("TranslationDelayed");
           }
-          debug.log("updateTranslationErrorMsg message", errorMessage);
           if (errorMessage?.name === "VOTLocalizedError") {
             this.transformBtn("error", errorMessage.localizedMessage);
           } else if (errorMessage instanceof Error) {
@@ -25999,12 +28023,10 @@ handleSrcChanged() {
           return this.lifecycleController.handleSrcChanged();
         }
 async release() {
-          debug.log("[VideoHandler] release");
           this.initialized = false;
           try {
             await this.stopTranslation();
           } catch (err) {
-            debug.log("[VideoHandler] stopTranslation failed during release", err);
           }
           this.lifecycleController?.teardown();
           this.abortController?.abort();
@@ -26076,17 +28098,11 @@ releaseExtraEvents = releaseExtraEvents;
         return servicesCache;
       }
       function findContainer(site, video) {
-        debug.log("findContainer", site, video);
         if (!site.selector) {
-          debug.log("findContainer without selector, using parentElement");
           return video.parentElement;
         }
         const matched = findConnectedContainerBySelector(video, site.selector);
-        if (site.shadowRoot) {
-          debug.log("findContainer with site.shadowRoot", matched);
-        } else {
-          debug.log("findContainer without shadowRoot", matched);
-        }
+        if (site.shadowRoot) ;
         return matched;
       }
       async function main() {

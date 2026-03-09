@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "ٹوکن کے ذریعے لاگ ان کریں",
   "subtitlesSmartLayout": "اسمارٹ سب ٹائٹل لے آؤٹ",
   "smartDucking": "انکولی حجم",
-  "VOTAutoSubtitles": "اوپن پر سب ٹائٹلز"
+  "VOTAutoSubtitles": "اوپن پر سب ٹائٹلز",
+  "VOTSubtitlesFont": "ذیلی عنوان فونٹ"
 }

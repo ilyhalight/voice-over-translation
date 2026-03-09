@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Logi sisse tokeni kaudu",
   "subtitlesSmartLayout": "Nutikas subtiitrite paigutus",
   "smartDucking": "Adaptiivne maht",
-  "VOTAutoSubtitles": "Subtiitrid avatud"
+  "VOTAutoSubtitles": "Subtiitrid avatud",
+  "VOTSubtitlesFont": "Subtiitrite font"
 }

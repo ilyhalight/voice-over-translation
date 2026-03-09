@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Kirjaudu Tokenin kautta",
   "subtitlesSmartLayout": "Älykäs tekstityksen asettelu",
   "smartDucking": "Mukautuva äänenvoimakkuus",
-  "VOTAutoSubtitles": "Tekstitys auki"
+  "VOTAutoSubtitles": "Tekstitys auki",
+  "VOTSubtitlesFont": "Tekstityksen kirjasin"
 }

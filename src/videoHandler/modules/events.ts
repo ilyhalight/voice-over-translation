@@ -136,7 +136,7 @@ function syncAudioTranslationVolumeFromVideo(
   }
   // While smart ducking is active, the script drives video volume itself.
   // Ignore observer-driven sync to avoid feedback loops/jitter.
-  if (typeof self.smartVolumeDuckingInterval === "number") return;
+  if (self.smartVolumeDuckingInterval !== undefined) return;
   if (!self.data?.syncVolume || !self.audioPlayer?.player?.src) return;
   if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
   self.syncVolumeWrapper("video", videoPercent);
@@ -200,15 +200,22 @@ function isHotkeyMatch(
 }
 function bindOverlayLayoutEvents(ctx: ExtraEventsContext): void {
   const { self, overlayView, addMany } = ctx;
+  const syncMountAndLayout = () => {
+    self.refreshOverlayMount();
+    applyOverlayLayout(self, overlayView);
+  };
   self.resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       applyOverlayLayout(self, overlayView, entry.contentRect.height);
     }
   });
   self.resizeObserver.observe(self.video);
-  applyOverlayLayout(self, overlayView);
+  syncMountAndLayout();
   addMany(document, ["fullscreenchange", "webkitfullscreenchange"], () =>
-    applyOverlayLayout(self, overlayView),
+    syncMountAndLayout(),
+  );
+  addMany(self.video, ["webkitbeginfullscreen", "webkitendfullscreen"], () =>
+    syncMountAndLayout(),
   );
 }
 function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {

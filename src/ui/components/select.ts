@@ -6,6 +6,7 @@ import type {
   LanguageSelectKey,
   SelectItem,
   SelectProps,
+  SelectUpdateItemsOptions,
 } from "../../types/components/select";
 import type { Phrase } from "../../types/localization";
 import UI from "../../ui";
@@ -34,10 +35,16 @@ export default class Select<
   private _selectTitle: string;
   private readonly _dialogTitle: string;
   private readonly multiSelect: MultiSelect;
+  private baseItems: SelectItem<T>[];
   private _items: SelectItem<T>[];
+  private readonly searchItemsProvider?: SelectProps<
+    T,
+    MultiSelect
+  >["searchItemsProvider"];
 
   private isLoading = false;
   private isDialogOpen = false;
+  private searchRequestId = 0;
   private readonly onSelectItem = new EventImpl();
   private readonly onBeforeOpen = new EventImpl();
   private readonly events = {
@@ -55,13 +62,16 @@ export default class Select<
     selectTitle,
     dialogTitle,
     items,
+    searchItemsProvider,
     labelElement,
     dialogParent = document.documentElement,
     multiSelect,
   }: SelectProps<T, MultiSelect>) {
     this._selectTitle = selectTitle;
     this._dialogTitle = dialogTitle;
-    this._items = items;
+    this.baseItems = this.cloneItems(items);
+    this._items = this.cloneItems(items);
+    this.searchItemsProvider = searchItemsProvider;
     this.multiSelect = (multiSelect ?? false) as MultiSelect;
     this.labelElement = labelElement;
     this.dialogParent = dialogParent;
@@ -72,6 +82,12 @@ export default class Select<
     this.outer = elements.outer;
     this.arrowIcon = elements.arrowIcon;
     this.title = elements.title;
+  }
+
+  private cloneItems<U extends string>(
+    items: SelectItem<U>[],
+  ): SelectItem<U>[] {
+    return items.map((item) => ({ ...item }));
   }
 
   static genLanguageItems<T extends LanguageSelectKey = LanguageSelectKey>(
@@ -98,6 +114,7 @@ export default class Select<
     }
 
     this.syncItemsSelectionState();
+    this.syncItemsSelectionState(this.baseItems);
     this.updateSelectedState();
     this.onSelectItem.dispatch(Array.from(this.selectedValues));
   };
@@ -106,6 +123,7 @@ export default class Select<
     const value = item.value;
     this.selectedValues = new Set([value]);
     this.syncItemsSelectionState();
+    this.syncItemsSelectionState(this.baseItems);
     this.updateSelectedState();
     this.onSelectItem.dispatch(value);
   };
@@ -144,10 +162,16 @@ export default class Select<
     this.singleSelectItemHandle(item);
   };
 
-  private syncItemsSelectionState() {
-    for (const item of this._items) {
+  private syncItemsSelectionState(items: SelectItem<T>[] = this._items) {
+    for (const item of items) {
       item.selected = this.selectedValues.has(item.value);
     }
+  }
+
+  private restoreBaseItems() {
+    this._items = this.cloneItems(this.baseItems);
+    this.syncItemsSelectionState();
+    this.updateSelectedState();
   }
 
   private createDialogContentList() {
@@ -223,7 +247,16 @@ export default class Select<
           labelHtml: localizationProvider.get("searchField"),
         });
 
-        votSearchLangTextfield.addEventListener("input", (searchText) => {
+        votSearchLangTextfield.addEventListener("input", async (searchText) => {
+          const requestId = ++this.searchRequestId;
+          if (this.searchItemsProvider) {
+            const providedItems = await this.searchItemsProvider(searchText);
+            if (requestId !== this.searchRequestId) {
+              return;
+            }
+            this.updateItems(providedItems, { persist: false });
+          }
+
           const normalizedSearchText = searchText.toLowerCase();
           for (const contentItem of this.selectedItems) {
             const searchableText =
@@ -240,6 +273,7 @@ export default class Select<
 
         tempDialog.addEventListener("close", () => {
           this.isDialogOpen = false;
+          this.restoreBaseItems();
           this.selectedItems = [];
           this.contentList = undefined;
           outer.setAttribute("aria-expanded", "false");
@@ -332,6 +366,7 @@ export default class Select<
     }
     this.selectedValues = new Set<T>(selectedValues);
     this.syncItemsSelectionState();
+    this.syncItemsSelectionState(this.baseItems);
 
     this.updateSelectedState();
     return this;
@@ -340,8 +375,16 @@ export default class Select<
   /**
    * @warning Use chaining with this method or reassign to variable to get the updated type of instance
    */
-  updateItems<U extends string = string>(newItems: SelectItem<U>[]): Select<U> {
-    this._items = newItems as unknown as SelectItem<T>[];
+  updateItems<U extends string = string>(
+    newItems: SelectItem<U>[],
+    options: SelectUpdateItemsOptions = {},
+  ): Select<U> {
+    const { persist = true } = options;
+    const nextItems = this.cloneItems(newItems as unknown as SelectItem<T>[]);
+    if (persist) {
+      this.baseItems = this.cloneItems(nextItems);
+    }
+    this._items = nextItems;
     this.selectedValues = this.calcSelectedValues();
     this.updateSelectedState();
 

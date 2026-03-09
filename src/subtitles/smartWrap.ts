@@ -49,73 +49,61 @@ const rangeSum = (prefix: number[], start: number, end: number): number => {
 const sentenceEndingWordRegexp =
   /[.!?\u2026]+(?:["'`)\]}\u00BB\u201D\u2019]+)?$/u;
 
-function resolveBreakAfterTokenIndex(
-  tokens: SubtitleToken[],
-  wordTokenIndex: number,
-): number {
-  let breakTokenIndex = wordTokenIndex;
-  let cursor = wordTokenIndex + 1;
-  let seenTrailingPunctuation = false;
-
-  while (cursor < tokens.length) {
-    const token = tokens[cursor];
-    if (!token || isWordToken(token)) break;
-
-    if (!token.text.trim()) {
-      // Some subtitle providers emit punctuation with a leading space:
-      // "word , next". Keep scanning so punctuation still stays with the
-      // preceding word, then stop once punctuation was already attached.
-      if (seenTrailingPunctuation) break;
-      cursor += 1;
-      continue;
-    }
-
-    breakTokenIndex = cursor;
-    seenTrailingPunctuation = true;
-    cursor += 1;
-  }
-
-  return breakTokenIndex;
-}
-
 export function buildWordSlices(tokens: SubtitleToken[]): {
   slices: WordSlice[];
   key: string;
 } {
-  const wordTokenIndices: number[] = [];
-  for (let i = 0; i < tokens.length; i += 1) {
-    if (isWordToken(tokens[i])) {
-      wordTokenIndices.push(i);
-    }
-  }
-
   const slices: WordSlice[] = [];
-  const keyParts: string[] = [];
+  let key = "";
 
-  for (let i = 0; i < wordTokenIndices.length; i += 1) {
-    const tokenIndex = wordTokenIndices[i];
-    const nextWordTokenIndex =
-      i + 1 < wordTokenIndices.length ? wordTokenIndices[i + 1] : tokens.length;
+  for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
+    const token = tokens[tokenIndex];
+    if (!isWordToken(token)) continue;
 
-    const rawBreakAfterTokenIndex = resolveBreakAfterTokenIndex(
-      tokens,
-      tokenIndex,
-    );
-    const breakAfterTokenIndex = clamp(
-      rawBreakAfterTokenIndex,
-      tokenIndex,
-      nextWordTokenIndex - 1,
-    );
+    let textToNextWord = token.text;
+    let breakAfterTokenIndex = tokenIndex;
+    let breakTextLength = token.text.length;
+    let cursor = tokenIndex + 1;
+    let seenTrailingPunctuation = false;
+    let punctuationAttachmentClosed = false;
 
-    let textToNextWord = "";
-    let trailingGapAfterBreakText = "";
-    for (let cursor = tokenIndex; cursor < nextWordTokenIndex; cursor += 1) {
-      const tokenText = tokens[cursor]?.text ?? "";
-      textToNextWord += tokenText;
-      if (cursor > breakAfterTokenIndex) {
-        trailingGapAfterBreakText += tokenText;
+    while (cursor < tokens.length) {
+      const nextToken = tokens[cursor];
+      if (!nextToken) {
+        cursor += 1;
+        continue;
       }
+      if (isWordToken(nextToken)) break;
+
+      if (nextToken.text === "\n") {
+        breakAfterTokenIndex = cursor;
+        break;
+      }
+
+      const tokenText = nextToken.text ?? "";
+      textToNextWord += tokenText;
+
+      if (!tokenText.trim()) {
+        // Some subtitle providers emit punctuation with a leading space:
+        // "word , next". Keep scanning so punctuation still stays with the
+        // preceding word, but stop attaching punctuation after we saw a
+        // whitespace gap after attached punctuation.
+        if (seenTrailingPunctuation) {
+          punctuationAttachmentClosed = true;
+        }
+        cursor += 1;
+        continue;
+      }
+
+      if (!punctuationAttachmentClosed) {
+        breakAfterTokenIndex = cursor;
+        seenTrailingPunctuation = true;
+        breakTextLength = textToNextWord.length;
+      }
+      cursor += 1;
     }
+
+    const trailingGapAfterBreakText = textToNextWord.slice(breakTextLength);
 
     slices.push({
       tokenIndex,
@@ -123,12 +111,10 @@ export function buildWordSlices(tokens: SubtitleToken[]): {
       textToNextWord,
       trailingGapAfterBreakText,
     });
-    keyParts.push(
-      `${textToNextWord}\u0002${trailingGapAfterBreakText}\u0002${breakAfterTokenIndex}`,
-    );
-  }
 
-  const key = keyParts.join("\u0001");
+    if (key) key += "\u0001";
+    key += `${textToNextWord}\u0002${trailingGapAfterBreakText}\u0002${breakAfterTokenIndex}`;
+  }
 
   return {
     slices,
@@ -156,8 +142,10 @@ export function measureWordSlices(
 
     const width = measure(textToNextWord);
     const charCount = textToNextWord.length;
-    const trailingWidth = measure(trailingGapAfterBreakText);
     const trailingCharCount = trailingGapAfterBreakText.length;
+    const trailingWidth = trailingCharCount
+      ? measure(trailingGapAfterBreakText)
+      : 0;
 
     widths[i] = width;
     chars[i] = charCount;
@@ -210,21 +198,6 @@ const getWordRangeCharsUnsafe = (
   return total - (metrics.trailingGapChars[endWord] ?? 0);
 };
 
-export function getWordRangeChars(
-  metrics: WordMetrics,
-  startWord: number,
-  endWord: number,
-): number {
-  if (endWord < startWord) return 0;
-  if (!metrics.chars.length) return 0;
-
-  const start = clamp(startWord, 0, metrics.chars.length - 1);
-  const end = clamp(endWord, 0, metrics.chars.length - 1);
-  if (end < start) return 0;
-
-  return getWordRangeCharsUnsafe(metrics, start, end);
-}
-
 export function fitsInTwoLines(
   metrics: WordMetrics,
   startWord: number,
@@ -239,13 +212,20 @@ export function fitsInTwoLines(
   const end = clamp(endWord, 0, metrics.widths.length - 1);
   if (end < start) return true;
 
-  if (getWordRangeWidthUnsafe(metrics, start, end) <= maxWidth) {
+  const prefixWidths = metrics.prefixWidths;
+  const trailingGapWidths = metrics.trailingGapWidths;
+  const startPrefix = prefixWidths[start];
+  const endPrefix = prefixWidths[end + 1];
+  const endTrailingGapWidth = trailingGapWidths[end] ?? 0;
+
+  if (endPrefix - startPrefix - endTrailingGapWidth <= maxWidth) {
     return true;
   }
 
   for (let k = start; k < end; k += 1) {
-    const top = getWordRangeWidthUnsafe(metrics, start, k);
-    const bottom = getWordRangeWidthUnsafe(metrics, k + 1, end);
+    const splitPrefix = prefixWidths[k + 1];
+    const top = splitPrefix - startPrefix - (trailingGapWidths[k] ?? 0);
+    const bottom = endPrefix - splitPrefix - endTrailingGapWidth;
     if (top <= maxWidth && bottom <= maxWidth) {
       return true;
     }
@@ -308,13 +288,20 @@ function computeBestTwoLineBreak(
   const end = clamp(endWord, 0, metrics.widths.length - 1);
   if (end <= start) return null;
 
+  const prefixWidths = metrics.prefixWidths;
+  const trailingGapWidths = metrics.trailingGapWidths;
+  const startPrefix = prefixWidths[start];
+  const endPrefix = prefixWidths[end + 1];
+  const endTrailingGapWidth = trailingGapWidths[end] ?? 0;
+
   let bestBreak: number | null = null;
   let bestCost = Number.POSITIVE_INFINITY;
   const wordsInRange = end - start + 1;
 
   for (let k = start; k < end; k += 1) {
-    const w1 = getWordRangeWidthUnsafe(metrics, start, k);
-    const w2 = getWordRangeWidthUnsafe(metrics, k + 1, end);
+    const splitPrefix = prefixWidths[k + 1];
+    const w1 = splitPrefix - startPrefix - (trailingGapWidths[k] ?? 0);
+    const w2 = endPrefix - splitPrefix - endTrailingGapWidth;
     if (w1 > maxWidth || w2 > maxWidth) continue;
 
     const count1 = k - start + 1;
@@ -594,6 +581,36 @@ const applySentenceBoundarySplits = (
   }
 };
 
+const resolveSegmentStartToken = (
+  tokens: SubtitleToken[],
+  words: SegmentWord[],
+  startWordIndex: number,
+): number => {
+  const startWord = words[startWordIndex];
+  if (!startWord) return 0;
+
+  const previousBreakAfterTokenIndex =
+    startWordIndex > 0
+      ? (words[startWordIndex - 1]?.breakAfterTokenIndex ??
+        startWord.tokenIndex - 1)
+      : -1;
+
+  let startToken = clamp(
+    previousBreakAfterTokenIndex + 1,
+    0,
+    startWord.tokenIndex,
+  );
+
+  while (
+    startToken < startWord.tokenIndex &&
+    !tokens[startToken]?.text.trim()
+  ) {
+    startToken += 1;
+  }
+
+  return startToken;
+};
+
 const mapWordRangesToTimedSegments = (
   wordRanges: WordRange[],
   words: SegmentWord[],
@@ -606,9 +623,10 @@ const mapWordRangesToTimedSegments = (
     const endWord = words[range.endWord];
     if (!startWord || !endWord) continue;
 
-    const startToken = startWord.tokenIndex;
+    const startToken = resolveSegmentStartToken(tokens, words, range.startWord);
     const endToken = endWord.breakAfterTokenIndex + 1;
-    const startMs = tokens[startToken]?.startMs ?? 0;
+    const startMs =
+      tokens[startWord.tokenIndex]?.startMs ?? tokens[startToken]?.startMs ?? 0;
     const endTokenStartMs = tokens[endWord.tokenIndex]?.startMs ?? startMs;
     const endTokenDurationMs = tokens[endWord.tokenIndex]?.durationMs ?? 0;
     const nextWord = words[range.endWord + 1];
@@ -654,16 +672,4 @@ export function computeTwoLineSegments(
   rebalanceSingletonRanges(wordRanges, isRangeAllowed);
   applySentenceBoundarySplits(wordRanges, tokens, words, isRangeAllowed);
   return mapWordRangesToTimedSegments(wordRanges, words, tokens);
-}
-
-export function shouldShowSmartEllipsis(
-  smartLayoutEnabled: boolean,
-  truncateAfterTokenIndex: number | null,
-  tokensLength: number,
-): boolean {
-  if (!smartLayoutEnabled) return false;
-  if (typeof truncateAfterTokenIndex !== "number") return false;
-  return (
-    truncateAfterTokenIndex >= 0 && truncateAfterTokenIndex < tokensLength - 1
-  );
 }

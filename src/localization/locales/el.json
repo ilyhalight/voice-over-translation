@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Σύνδεση μέσω διακριτικού",
   "subtitlesSmartLayout": "Έξυπνη διάταξη υποτίτλων",
   "smartDucking": "Προσαρμοστικός όγκος",
-  "VOTAutoSubtitles": "Υπότιτλοι σε ανοιχτό"
+  "VOTAutoSubtitles": "Υπότιτλοι σε ανοιχτό",
+  "VOTSubtitlesFont": "Γραμματοσειρά υποτίτλων"
 }

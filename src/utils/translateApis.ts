@@ -13,6 +13,8 @@ import { votStorage } from "./storage";
 // Settings rarely change during a session, but `translate()`/`detect()` can be
 // called from retry/error flows where every call used to hit storage.
 const SETTINGS_CACHE_TTL_MS = 5_000;
+// Immutable translation/detection results are safe to cache "forever".
+const IMMUTABLE_API_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
 
 let cachedTranslationService: string | null = null;
 let cachedTranslationServiceAt = 0;
@@ -77,6 +79,11 @@ const FOSWLYTranslateAPI = new (class {
     try {
       const res = await GM_fetch(`${foswlyTranslateUrl}${path}`, {
         timeout: 3000,
+        responseCache: {
+          ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+          cacheName: "vot-foswly-api-v1",
+          allowStaleOnError: true,
+        },
         ...opts,
       });
 
@@ -150,6 +157,11 @@ const RustServerAPI = {
         method: "POST",
         body: text,
         timeout: 3000,
+        responseCache: {
+          ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+          cacheName: "vot-rust-detect-v1",
+          allowStaleOnError: true,
+        },
       });
 
       return await response.text();
@@ -169,6 +181,10 @@ async function translate(
   fromLang = "",
   toLang = "ru",
 ) {
+  if (fromLang && toLang && fromLang === toLang) {
+    return text;
+  }
+
   const service = await getTranslationServiceCached();
   switch (service) {
     case "yandexbrowser":

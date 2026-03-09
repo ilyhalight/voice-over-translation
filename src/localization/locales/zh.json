@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "通过令牌登录",
   "subtitlesSmartLayout": "智能字幕布局",
   "smartDucking": "自适应音量",
-  "VOTAutoSubtitles": "公开字幕"
+  "VOTAutoSubtitles": "公开字幕",
+  "VOTSubtitlesFont": "字幕字体"
 }

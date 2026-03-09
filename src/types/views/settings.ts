@@ -1,5 +1,6 @@
 import type { VideoHandler } from "../..";
 import type { LangOverride } from "../../localization/localizationProvider";
+import type { SubtitleFontFamily } from "../../subtitles/types";
 import type { Position } from "../components/votButton";
 import type { Account, StorageData } from "../storage";
 import type { TranslateService } from "../translateApis";
@@ -22,6 +23,7 @@ export type SettingsViewEventMap = {
   "change:useLivelyVoice": [checked: boolean];
   "change:subtitlesHighlightWords": [checked: boolean];
   "change:subtitlesSmartLayout": [checked: boolean];
+  "select:subtitlesFontFamily": [item: SubtitleFontFamily];
   "change:proxyWorkerHost": [value: string];
   "change:useNewAudioPlayer": [checked: boolean];
   "change:onlyBypassMediaCSP": [checked: boolean];

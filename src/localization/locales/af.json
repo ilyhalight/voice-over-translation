@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Teken in via token",
   "subtitlesSmartLayout": "Slim onderskrif uitleg",
   "smartDucking": "Aanpasbare volume",
-  "VOTAutoSubtitles": "Onderskrifte op open"
+  "VOTAutoSubtitles": "Onderskrifte op open",
+  "VOTSubtitlesFont": "Onderskrif skrif tipe"
 }

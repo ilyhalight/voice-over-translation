@@ -25,6 +25,7 @@ import Tooltip from "../components/tooltip";
 import VOTButton from "../components/votButton";
 import VOTMenu from "../components/votMenu";
 import { SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
+import { didTooltipMountContextChange } from "../mount";
 
 export class OverlayView {
   private static readonly BIG_CONTAINER_WIDTH_PX = 550;
@@ -32,7 +33,7 @@ export class OverlayView {
   mount: OverlayMount;
   globalPortal: HTMLElement;
   private abortController: AbortController | null = null;
-  private defaultVolumePersistTimer: number | undefined;
+  private defaultVolumePersistTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly defaultVolumePersistDelayMs = 250;
 
   private dragging = false;
@@ -80,8 +81,6 @@ export class OverlayView {
     >(),
   };
 
-  // shared
-  votOverlayPortal?: HTMLElement;
   // button
   votButton?: VOTButton;
   votButtonTooltip?: Tooltip;
@@ -125,14 +124,12 @@ export class OverlayView {
   }
 
   /**
-   * Update mount points (root/portal/tooltipLayoutRoot) when the player container changes.
+   * Update mount points (root/tooltipLayoutRoot) when the player container changes.
    * Moves already-mounted UI nodes and rebinds root-bound listeners (dragging).
    */
   updateMount(nextMount: OverlayMount): this {
     const prevRoot = this.mount.root;
     const nextRoot = nextMount.root;
-    const prevPortal = this.mount.portalContainer;
-    const nextPortal = nextMount.portalContainer;
     const prevTooltipRoot = this.mount.tooltipLayoutRoot;
     const nextTooltipRoot = nextMount.tooltipLayoutRoot;
 
@@ -143,10 +140,6 @@ export class OverlayView {
     }
 
     // Move mounted nodes to new containers.
-    if (this.votOverlayPortal && prevPortal !== nextPortal) {
-      nextPortal.appendChild(this.votOverlayPortal);
-    }
-
     if (prevRoot !== nextRoot) {
       if (this.votButton) {
         nextRoot.appendChild(this.votButton.container);
@@ -156,8 +149,21 @@ export class OverlayView {
       }
     }
 
-    // Tooltip layout may depend on a different root when container changes.
-    if (this.votButtonTooltip && prevTooltipRoot !== nextTooltipRoot) {
+    // Tooltip geometry depends on both the layout root and the overlay root:
+    // some fullscreen transitions only reparent the button/root while keeping
+    // the same tooltipLayoutRoot, so force a refresh for either change.
+    if (
+      this.votButtonTooltip &&
+      didTooltipMountContextChange(
+        {
+          root: prevRoot,
+          portalContainer: this.mount.portalContainer,
+          subtitlesMountContainer: this.mount.subtitlesMountContainer,
+          tooltipLayoutRoot: prevTooltipRoot,
+        },
+        nextMount,
+      )
+    ) {
       // If tooltipLayoutRoot becomes undefined, fall back to documentElement.
       this.votButtonTooltip.updateMount({
         layoutRoot: nextTooltipRoot ?? document.documentElement,
@@ -168,9 +174,6 @@ export class OverlayView {
   }
 
   isInitialized(): this is {
-    // #region Shared type
-    votOverlayPortal: HTMLElement;
-    // #endregion Shared type
     // #region Button type
     votButton: VOTButton;
     votButtonTooltip: Tooltip;
@@ -256,9 +259,6 @@ export class OverlayView {
     // #region Shared logic
     const { position, direction } = this.calcButtonLayout(buttonPosition);
 
-    this.votOverlayPortal = ui.createPortal(true);
-    this.portalContainer.appendChild(this.votOverlayPortal);
-
     // #endregion Shared logic
     // #region VOT Button
     this.votButton = new VOTButton({
@@ -281,7 +281,7 @@ export class OverlayView {
       autoLayout: false,
       hidden: direction === "row",
       bordered: false,
-      parentElement: this.votOverlayPortal,
+      parentElement: this.globalPortal,
       layoutRoot: this.tooltipLayoutRoot,
     });
 
@@ -339,6 +339,7 @@ export class OverlayView {
         ),
         items: Select.genLanguageItems(availableTTS, responseLanguage),
       },
+      dialogParent: this.globalPortal,
     });
 
     this.subtitlesSelectLabel = new Label({
@@ -719,7 +720,12 @@ export class OverlayView {
         this.videoHandler.videoData.detectedLanguage,
         this.videoHandler.videoData.responseLanguage,
       );
-      if (this.videoHandler.cacheManager.getSubtitles(cacheKey)) {
+      if (this.videoHandler.subtitlesCacheKey === cacheKey) {
+        return;
+      }
+
+      if (this.videoHandler.cacheManager.getSubtitles(cacheKey) !== undefined) {
+        await this.videoHandler.ensureSubtitlesForCurrentLangPair();
         return;
       }
 
@@ -731,7 +737,7 @@ export class OverlayView {
       loadingEl.style.margin = "0 auto";
       dialog.footerContainer.appendChild(loadingEl);
       try {
-        await this.videoHandler.loadSubtitles();
+        await this.videoHandler.ensureSubtitlesForCurrentLangPair();
       } finally {
         loadingEl.remove();
         if (this.votButton) {
@@ -978,7 +984,6 @@ export class OverlayView {
     this.votButton?.remove();
     this.votMenu?.remove();
     this.votButtonTooltip?.release();
-    this.votOverlayPortal?.remove();
   }
 
   private doReleaseUIEvents(): void {
@@ -993,28 +998,6 @@ export class OverlayView {
     for (const event of Object.values(this.events)) {
       event.clear();
     }
-  }
-
-  releaseUI(initialized = false) {
-    if (!this.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
-    }
-
-    this.doReleaseUI();
-
-    this.initialized = initialized;
-    return this;
-  }
-
-  releaseUIEvents(initialized = false) {
-    if (!this.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
-    }
-
-    this.doReleaseUIEvents();
-
-    this.initialized = initialized;
-    return this;
   }
 
   release() {

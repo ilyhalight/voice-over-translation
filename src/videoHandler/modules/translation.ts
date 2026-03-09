@@ -369,7 +369,7 @@ export function stopSmartVolumeDucking(
 ): void {
   const { restoreVolume } = options;
 
-  if (typeof handler.smartVolumeDuckingInterval === "number") {
+  if (handler.smartVolumeDuckingInterval !== undefined) {
     clearTimeout(handler.smartVolumeDuckingInterval);
     handler.smartVolumeDuckingInterval = undefined;
   }
@@ -399,10 +399,10 @@ export function stopSmartVolumeDucking(
 
 function scheduleNextSmartDuckingTick(handler: VideoHandler): void {
   if (typeof globalThis === "undefined") return;
-  if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+  if (handler.smartVolumeDuckingInterval === undefined) return;
 
   handler.smartVolumeDuckingInterval = globalThis.setTimeout(() => {
-    if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+    if (handler.smartVolumeDuckingInterval === undefined) return;
 
     try {
       smartDuckingTick(handler);
@@ -412,14 +412,14 @@ function scheduleNextSmartDuckingTick(handler: VideoHandler): void {
       return;
     }
 
-    if (typeof handler.smartVolumeDuckingInterval !== "number") return;
+    if (handler.smartVolumeDuckingInterval === undefined) return;
     scheduleNextSmartDuckingTick(handler);
   }, SMART_DUCKING_TICK_MS);
 }
 
 function startSmartVolumeDucking(handler: VideoHandler): void {
   if (typeof globalThis === "undefined") return;
-  if (typeof handler.smartVolumeDuckingInterval === "number") return;
+  if (handler.smartVolumeDuckingInterval !== undefined) return;
   if (getAutoVolumeMode(handler) !== "smart") return;
 
   const currentVideoVolume = handler.getVideoVolume();
@@ -446,7 +446,8 @@ function startSmartVolumeDucking(handler: VideoHandler): void {
 
   writeSmartDuckingRuntime(handler, runtime);
 
-  handler.smartVolumeDuckingInterval = 0;
+  handler.smartVolumeDuckingInterval = globalThis.setTimeout(() => {}, 0);
+  clearTimeout(handler.smartVolumeDuckingInterval);
   scheduleNextSmartDuckingTick(handler);
 }
 
@@ -564,9 +565,27 @@ function smartDuckingTick(handler: VideoHandler): void {
   }
 }
 
-function wait(ms: number): Promise<void> {
+function waitForProbeRetry(
+  delayMs: number,
+  signal: AbortSignal,
+): Promise<void> {
+  if (delayMs <= 0 || signal.aborted) {
+    return Promise.resolve();
+  }
+
   return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+    const timeoutId = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    };
+
+    signal.addEventListener("abort", onAbort, { once: true });
   });
 }
 
@@ -575,10 +594,11 @@ async function probeAudioUrl(
   audioUrl: string,
   actionContext?: ActionContext,
 ): Promise<boolean> {
+  const signal = handler.actionsAbortController.signal;
   const fetchOpts = handler.isMultiMethodS3(audioUrl)
     ? {
         method: "HEAD",
-        signal: handler.actionsAbortController.signal,
+        signal,
         timeout: AUDIO_PROBE_TIMEOUT_MS,
       }
     : {
@@ -586,7 +606,7 @@ async function probeAudioUrl(
         headers: {
           range: "bytes=0-0",
         },
-        signal: handler.actionsAbortController.signal,
+        signal,
         timeout: AUDIO_PROBE_TIMEOUT_MS,
       };
 
@@ -603,17 +623,22 @@ async function probeAudioUrl(
       });
       if (response.ok) return true;
     } catch (err: unknown) {
-      if (
-        handler.isActionStale(actionContext) ||
-        handler.actionsAbortController.signal.aborted
-      ) {
+      if (handler.isActionStale(actionContext) || signal.aborted) {
         return false;
       }
       debug.log("[validateAudioUrl] probe error", { audioUrl, attempt, err });
     }
 
     if (attempt < AUDIO_PROBE_MAX_ATTEMPTS) {
-      await wait(AUDIO_PROBE_RETRY_DELAY_MS);
+      if (handler.isActionStale(actionContext) || signal.aborted) {
+        return false;
+      }
+
+      await waitForProbeRetry(AUDIO_PROBE_RETRY_DELAY_MS, signal);
+
+      if (handler.isActionStale(actionContext) || signal.aborted) {
+        return false;
+      }
     }
   }
 
@@ -790,6 +815,10 @@ export async function handleProxySettingsChanged(
   } catch {
     // ignore
   }
+
+  // Proxy mode/host affects the request target. Recreate client with fresh
+  // transport options while keeping normal action resets session-safe.
+  await this.initVOTClient();
 }
 
 export function isMultiMethodS3(this: VideoHandler, url: string): boolean {
@@ -1080,6 +1109,7 @@ export async function translateFunc(
         ) {
           if (subsCacheKey) this.cacheManager.deleteSubtitles(subsCacheKey);
           this.subtitles = [];
+          this.subtitlesCacheKey = null;
         }
       },
     });
@@ -1159,7 +1189,7 @@ export function setupAudioSettings(this: VideoHandler) {
   }
 
   // Smart ducking disabled -> fall back to classic constant ducking.
-  if (typeof this.smartVolumeDuckingInterval === "number") {
+  if (this.smartVolumeDuckingInterval !== undefined) {
     clearTimeout(this.smartVolumeDuckingInterval);
     this.smartVolumeDuckingInterval = undefined;
   }

@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "ಟೋಕನ್ ಮೂಲಕ ಲಾಗಿನ್ ಮಾಡಿ",
   "subtitlesSmartLayout": "ಸ್ಮಾರ್ಟ್ ಉಪಶೀರ್ಷಿಕೆ ಲೇಔಟ್",
   "smartDucking": "ಹೊಂದಾಣಿಕೆಯ ಪರಿಮಾಣ",
-  "VOTAutoSubtitles": "ತೆರೆಯ ಮೇಲೆ ಉಪಶೀರ್ಷಿಕೆಗಳು"
+  "VOTAutoSubtitles": "ತೆರೆಯ ಮೇಲೆ ಉಪಶೀರ್ಷಿಕೆಗಳು",
+  "VOTSubtitlesFont": "ಉಪಶೀರ್ಷಿಕೆ ಫಾಂಟ್"
 }

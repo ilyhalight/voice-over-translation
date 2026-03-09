@@ -14,6 +14,17 @@ export const srcDir = path.join(rootDir, "src");
 export const outBase = path.join(rootDir, "dist-ext");
 export const outTmp = path.join(outBase, "_tmp");
 
+const DEFAULT_EXTENSION_NAME = "Voice Over Translation";
+const DEFAULT_EXTENSION_DESCRIPTION = "Voice Over Translation";
+const DEFAULT_EXTENSION_VERSION = "0.0.0";
+const EXTENSION_ICON_SIZES = [16, 32, 48, 64, 96, 128, 256] as const;
+const EXTENSION_ASSET_FILES = [
+  "bridge.js",
+  "prelude.js",
+  "content.js",
+  "content.css",
+] as const;
+
 const GITHUB_DIST_EXT_RAW_BASE =
   "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
 const CHROME_UPDATES_MANIFEST_FILE = "vot-extension-chrome-updates.xml";
@@ -86,6 +97,79 @@ export async function exists(filePath: string): Promise<boolean> {
   }
 }
 
+function parseNumericVersionParts(version: string): number[] | null {
+  const parts = String(version)
+    .trim()
+    .split(".")
+    .map((part) => part.trim());
+
+  if (!parts.length || parts.some((part) => !/^\d+$/.test(part))) {
+    return null;
+  }
+
+  return parts.map(Number);
+}
+
+function compareVersions(left: string, right: string): number {
+  const leftNumeric = parseNumericVersionParts(left);
+  const rightNumeric = parseNumericVersionParts(right);
+
+  if (leftNumeric && rightNumeric) {
+    const maxLength = Math.max(leftNumeric.length, rightNumeric.length);
+    for (let index = 0; index < maxLength; index += 1) {
+      const leftPart = leftNumeric[index] ?? 0;
+      const rightPart = rightNumeric[index] ?? 0;
+      if (leftPart > rightPart) return 1;
+      if (leftPart < rightPart) return -1;
+    }
+    return 0;
+  }
+
+  return left.localeCompare(right, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function cleanupOlderVersionedArtifacts({
+  artifactPrefix,
+  fileExtension,
+  currentVersion,
+}: {
+  artifactPrefix: string;
+  fileExtension: string;
+  currentVersion: string;
+}): Promise<string[]> {
+  const removedFiles: string[] = [];
+  const versionedArtifactPattern = new RegExp(
+    `^${escapeRegExp(artifactPrefix)}-(.+)${escapeRegExp(fileExtension)}$`,
+  );
+
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(outBase);
+  } catch {
+    return removedFiles;
+  }
+
+  for (const entry of entries) {
+    const match = versionedArtifactPattern.exec(entry);
+    if (!match) continue;
+
+    const artifactVersion = match[1];
+    if (compareVersions(artifactVersion, currentVersion) >= 0) continue;
+
+    await fs.rm(path.join(outBase, entry), { force: true });
+    removedFiles.push(entry);
+  }
+
+  return removedFiles;
+}
+
 export async function readJson<T>(filePath: string): Promise<T> {
   return JSON.parse(await fs.readFile(filePath, "utf8")) as T;
 }
@@ -144,9 +228,7 @@ async function buildEntry({
   await viteBuild({
     root: rootDir,
     configFile: false,
-    define: {
-      ...define,
-    },
+    define,
     css: {
       transformer: "lightningcss",
     },
@@ -183,16 +265,14 @@ export async function buildExtensionBundles({
     IS_EXTENSION: "true",
     AVAILABLE_LOCALES: JSON.stringify(context.availableLocales),
     REPO_BRANCH: JSON.stringify(context.repoBranch),
+    VOT_VERSION: JSON.stringify(String(headers.version || "")),
     VOT_AUTHORS: JSON.stringify(String(headers.author || "")),
   };
 
   await ensureCleanDir(outTmp);
   for (const entry of extensionEntries) {
     await buildEntry({
-      entry: entry.entry,
-      format: entry.format,
-      fileName: entry.fileName,
-      emptyOutDir: entry.emptyOutDir,
+      ...entry,
       define: defineMeta,
     });
   }
@@ -218,13 +298,7 @@ async function copyExtensionFiles(
 ): Promise<void> {
   await fs.mkdir(targetDir, { recursive: true });
 
-  const filesToCopy = [
-    "bridge.js",
-    "prelude.js",
-    "content.js",
-    "content.css",
-  ];
-  for (const fileName of filesToCopy) {
+  for (const fileName of EXTENSION_ASSET_FILES) {
     await fs.copyFile(path.join(outTmp, fileName), path.join(targetDir, fileName));
   }
 
@@ -262,11 +336,10 @@ function normalizeHostPermission(entry: string | undefined | null): string | nul
 }
 
 function normalizeHostPermissions(list: string[] = []): string[] {
-  const normalized: string[] = [];
-  for (const item of list) {
-    const value = normalizeHostPermission(item);
-    if (value) normalized.push(value);
-  }
+  const normalized = list
+    .map((item) => normalizeHostPermission(item))
+    .filter((value): value is string => Boolean(value));
+
   return [...new Set(normalized)];
 }
 
@@ -292,6 +365,53 @@ function splitMatchesForOriginFallback(matches: string[] = []): {
   return { originFallbackMatches, directMatches };
 }
 
+function buildIconsMap(sizes: readonly number[]): Record<number, string> {
+  return Object.fromEntries(
+    sizes.map((size) => [size, `icons/icon-${size}.png`]),
+  ) as Record<number, string>;
+}
+
+function createContentScriptEntries({
+  matches,
+  excludeMatches,
+  includeWorld,
+  matchOriginAsFallback = false,
+}: {
+  matches: string[];
+  excludeMatches: string[];
+  includeWorld: boolean;
+  matchOriginAsFallback?: boolean;
+}): Record<string, unknown>[] {
+  if (!matches.length) return [];
+
+  const fallbackConfig = matchOriginAsFallback
+    ? { match_origin_as_fallback: true }
+    : {};
+
+  return [
+    {
+      matches,
+      exclude_matches: excludeMatches,
+      js: ["bridge.js"],
+      all_frames: true,
+      match_about_blank: true,
+      run_at: "document_start",
+      ...fallbackConfig,
+    },
+    {
+      matches,
+      exclude_matches: excludeMatches,
+      js: ["prelude.js", "content.js"],
+      css: ["content.css"],
+      all_frames: true,
+      match_about_blank: true,
+      run_at: "document_idle",
+      ...(includeWorld ? { world: "MAIN" } : {}),
+      ...fallbackConfig,
+    },
+  ];
+}
+
 function buildManifestChrome({
   headers,
   includeWorld,
@@ -299,64 +419,27 @@ function buildManifestChrome({
   headers: ExtensionHeaders;
   includeWorld: boolean;
 }): Record<string, unknown> {
-  const name = headers.name || "Voice Over Translation";
-  const description = headers.description || "Voice Over Translation";
-  const version = headers.version || "0.0.0";
+  const name = headers.name || DEFAULT_EXTENSION_NAME;
+  const description = headers.description || DEFAULT_EXTENSION_DESCRIPTION;
+  const version = headers.version || DEFAULT_EXTENSION_VERSION;
   const matches = headers.match || [];
   const excludeMatches = headers.exclude || [];
   const { originFallbackMatches, directMatches } =
     splitMatchesForOriginFallback(matches);
   const hostPermissions = normalizeHostPermissions(headers.connect || []);
-
-  const bridgeScript = {
-    js: ["bridge.js"],
-    all_frames: true,
-    match_about_blank: true,
-    run_at: "document_start",
-  };
-
-  const mainWorldScripts: Record<string, unknown> = {
-    js: ["prelude.js", "content.js"],
-    css: ["content.css"],
-    all_frames: true,
-    match_about_blank: true,
-    run_at: "document_idle",
-    ...(includeWorld ? { world: "MAIN" } : {}),
-  };
-
-  const contentScripts: Record<string, unknown>[] = [];
-
-  if (originFallbackMatches.length) {
-    contentScripts.push(
-      {
-        matches: originFallbackMatches,
-        exclude_matches: excludeMatches,
-        ...bridgeScript,
-        match_origin_as_fallback: true,
-      },
-      {
-        matches: originFallbackMatches,
-        exclude_matches: excludeMatches,
-        ...mainWorldScripts,
-        match_origin_as_fallback: true,
-      },
-    );
-  }
-
-  if (directMatches.length) {
-    contentScripts.push(
-      {
-        matches: directMatches,
-        exclude_matches: excludeMatches,
-        ...bridgeScript,
-      },
-      {
-        matches: directMatches,
-        exclude_matches: excludeMatches,
-        ...mainWorldScripts,
-      },
-    );
-  }
+  const contentScripts = [
+    ...createContentScriptEntries({
+      matches: originFallbackMatches,
+      excludeMatches,
+      includeWorld,
+      matchOriginAsFallback: true,
+    }),
+    ...createContentScriptEntries({
+      matches: directMatches,
+      excludeMatches,
+      includeWorld,
+    }),
+  ];
 
   return {
     manifest_version: 3,
@@ -365,10 +448,7 @@ function buildManifestChrome({
     version,
     action: {
       default_title: name,
-      default_icon: {
-        16: "icons/icon-16.png",
-        32: "icons/icon-32.png",
-      },
+      default_icon: buildIconsMap([16, 32]),
     },
     permissions: [
       "storage",
@@ -381,15 +461,7 @@ function buildManifestChrome({
       service_worker: "background.js",
       type: "module",
     },
-    icons: {
-      16: "icons/icon-16.png",
-      32: "icons/icon-32.png",
-      48: "icons/icon-48.png",
-      64: "icons/icon-64.png",
-      96: "icons/icon-96.png",
-      128: "icons/icon-128.png",
-      256: "icons/icon-256.png",
-    },
+    icons: buildIconsMap(EXTENSION_ICON_SIZES),
     content_scripts: contentScripts,
   };
 }
@@ -406,8 +478,31 @@ function getFirefoxStrictMinVersion(): string {
   return process.env.FIREFOX_STRICT_MIN_VERSION || "140.0";
 }
 
-function getFirefoxAndroidStrictMinVersion(): string {
-  return process.env.FIREFOX_ANDROID_STRICT_MIN_VERSION || "142.0";
+function compareFirefoxVersions(left: string, right: string): number {
+  const leftParts = left.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const rightParts = right
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const length = Math.max(leftParts.length, rightParts.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const diff = (leftParts[index] || 0) - (rightParts[index] || 0);
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+
+  return 0;
+}
+
+function getFirefoxAndroidSettings(): Record<string, string> {
+  const strictMinVersion = process.env.FIREFOX_ANDROID_STRICT_MIN_VERSION?.trim();
+  const strictMaxVersion = process.env.FIREFOX_ANDROID_STRICT_MAX_VERSION?.trim();
+
+  return {
+    ...(strictMinVersion ? { strict_min_version: strictMinVersion } : {}),
+    ...(strictMaxVersion ? { strict_max_version: strictMaxVersion } : {}),
+  };
 }
 
 function getFirefoxDataCollectionPermissions(): {
@@ -432,6 +527,27 @@ function getFirefoxDataCollectionPermissions(): {
   };
 }
 
+function getFirefoxAndroidSettingsForDataCollectionPermissions(): Record<
+  string,
+  string
+> {
+  const androidSettings = getFirefoxAndroidSettings();
+  const androidMinVersion = androidSettings.strict_min_version?.trim();
+  const requiredAndroidMinVersion = "142.0";
+
+  if (
+    !androidMinVersion ||
+    compareFirefoxVersions(androidMinVersion, requiredAndroidMinVersion) < 0
+  ) {
+    return {
+      ...androidSettings,
+      strict_min_version: requiredAndroidMinVersion,
+    };
+  }
+
+  return androidSettings;
+}
+
 function getFirefoxXpiRawUrl(version: string): string {
   return `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-firefox-${version}.xpi`;
 }
@@ -444,6 +560,7 @@ function buildManifestFirefox({
   includeWorld: boolean;
 }): Record<string, unknown> {
   const manifest = buildManifestChrome({ headers, includeWorld });
+  const dataCollectionPermissions = getFirefoxDataCollectionPermissions();
 
   const action = manifest.action as Record<string, unknown> | undefined;
   const defaultIcon = action?.default_icon as Record<string, unknown> | undefined;
@@ -461,11 +578,13 @@ function buildManifestFirefox({
       id: getFirefoxAddonId(),
       update_url: FIREFOX_UPDATES_MANIFEST_URL,
       strict_min_version: getFirefoxStrictMinVersion(),
-      data_collection_permissions: getFirefoxDataCollectionPermissions(),
+      data_collection_permissions: dataCollectionPermissions,
     },
-    gecko_android: {
-      strict_min_version: getFirefoxAndroidStrictMinVersion(),
-    },
+    gecko_android:
+      dataCollectionPermissions.required.length ||
+      dataCollectionPermissions.optional?.length
+        ? getFirefoxAndroidSettingsForDataCollectionPermissions()
+        : getFirefoxAndroidSettings(),
   };
 
   return manifest;
@@ -674,6 +793,16 @@ async function verifyOne(browserName: "chrome" | "firefox"): Promise<void> {
       `${browserName}: expected browser_specific_settings.gecko.update_url to be ${FIREFOX_UPDATES_MANIFEST_URL}, got ${manifest.browser_specific_settings?.gecko?.update_url}`,
     );
   }
+  if (
+    browserName === "firefox" &&
+    (!manifest.browser_specific_settings?.gecko_android ||
+      typeof manifest.browser_specific_settings.gecko_android !== "object" ||
+      Array.isArray(manifest.browser_specific_settings.gecko_android))
+  ) {
+    throw new Error(
+      `${browserName}: expected browser_specific_settings.gecko_android to be an object`,
+    );
+  }
 
   assertValidPatterns(
     "host_permissions",
@@ -713,18 +842,9 @@ async function verifyOne(browserName: "chrome" | "firefox"): Promise<void> {
   }
 
   const requiredFiles = [
-    "bridge.js",
-    "prelude.js",
-    "content.js",
-    "content.css",
+    ...EXTENSION_ASSET_FILES,
     "background.js",
-    "icons/icon-16.png",
-    "icons/icon-32.png",
-    "icons/icon-48.png",
-    "icons/icon-64.png",
-    "icons/icon-96.png",
-    "icons/icon-128.png",
-    "icons/icon-256.png",
+    ...EXTENSION_ICON_SIZES.map((size) => `icons/icon-${size}.png`),
   ];
 
   for (const relPath of requiredFiles) {
@@ -797,6 +917,58 @@ export async function verifyExtensionOutputs(
   console.log("\nExtension verification complete.");
 }
 
+interface BrowserBuildResult {
+  outDir: string;
+  packagePath: string;
+  removedPackages: string[];
+  updatesPath?: string;
+}
+
+async function buildBrowserArtifacts({
+  browserDir,
+  artifactPrefix,
+  fileExtension,
+  backgroundSrc,
+  headers,
+  version,
+  includeWorld,
+  buildManifest,
+  afterPackage,
+}: {
+  browserDir: "chrome" | "firefox";
+  artifactPrefix: string;
+  fileExtension: ".zip" | ".xpi";
+  backgroundSrc: string;
+  headers: ExtensionHeaders;
+  version: string;
+  includeWorld: boolean;
+  buildManifest: (args: {
+    headers: ExtensionHeaders;
+    includeWorld: boolean;
+  }) => Record<string, unknown>;
+  afterPackage?: () => Promise<string>;
+}): Promise<BrowserBuildResult> {
+  const removedPackages = await cleanupOlderVersionedArtifacts({
+    artifactPrefix,
+    fileExtension,
+    currentVersion: version,
+  });
+
+  const outDir = path.join(outBase, browserDir);
+  await ensureCleanDir(outDir);
+  await copyExtensionFiles(outDir, {
+    backgroundSrc,
+    backgroundDst: "background.js",
+  });
+  await writeManifest(outDir, buildManifest({ headers, includeWorld }));
+
+  const packagePath = path.join(outBase, `${artifactPrefix}-${version}${fileExtension}`);
+  await zipDir(outDir, packagePath);
+
+  const updatesPath = afterPackage ? await afterPackage() : undefined;
+  return { outDir, packagePath, removedPackages, updatesPath };
+}
+
 export async function finalizeExtensionBuildArtifacts(
   target: ExtensionBuildTarget = "all",
 ): Promise<void> {
@@ -810,60 +982,62 @@ export async function finalizeExtensionBuildArtifacts(
     await fs.rm(path.join(outBase, CHROME_UPDATES_MANIFEST_FILE), { force: true });
   }
 
-  const version = headers.version || "0.0.0";
-  let outChrome: string | null = null;
-  let chromeZip: string | null = null;
-  let outFirefox: string | null = null;
-  let firefoxXpi: string | null = null;
-  let firefoxUpdatesManifestPath: string | null = null;
+  const version = headers.version || DEFAULT_EXTENSION_VERSION;
+  let chromeBuild: BrowserBuildResult | null = null;
+  let firefoxBuild: BrowserBuildResult | null = null;
 
   if (shouldBuildChrome) {
-    outChrome = path.join(outBase, "chrome");
-    await ensureCleanDir(outChrome);
-    await copyExtensionFiles(outChrome, {
+    chromeBuild = await buildBrowserArtifacts({
+      browserDir: "chrome",
+      artifactPrefix: "vot-extension-chrome",
+      fileExtension: ".zip",
       backgroundSrc: "background.js",
-      backgroundDst: "background.js",
+      headers,
+      version,
+      includeWorld,
+      buildManifest: buildManifestChrome,
     });
-    await writeManifest(
-      outChrome,
-      buildManifestChrome({ headers, includeWorld }),
-    );
-
-    chromeZip = path.join(outBase, `vot-extension-chrome-${version}.zip`);
-    await zipDir(outChrome, chromeZip);
   }
 
   if (shouldBuildFirefox) {
-    outFirefox = path.join(outBase, "firefox");
-    await ensureCleanDir(outFirefox);
-    await copyExtensionFiles(outFirefox, {
+    firefoxBuild = await buildBrowserArtifacts({
+      browserDir: "firefox",
+      artifactPrefix: "vot-extension-firefox",
+      fileExtension: ".xpi",
       backgroundSrc: "background-ff.js",
-      backgroundDst: "background.js",
-    });
-    await writeManifest(
-      outFirefox,
-      buildManifestFirefox({ headers, includeWorld }),
-    );
-
-    firefoxXpi = path.join(outBase, `vot-extension-firefox-${version}.xpi`);
-    await zipDir(outFirefox, firefoxXpi);
-    firefoxUpdatesManifestPath = await writeFirefoxUpdatesManifest({
+      headers,
       version,
-      addonId: getFirefoxAddonId(),
+      includeWorld,
+      buildManifest: buildManifestFirefox,
+      afterPackage: async () =>
+        writeFirefoxUpdatesManifest({
+          version,
+          addonId: getFirefoxAddonId(),
+        }),
     });
   }
 
   await verifyExtensionOutputs(target);
 
   console.log("Extension build complete:");
-  if (outChrome) {
-    console.log(`- Chrome:  ${outChrome}`);
-    console.log(`  - Package: ${chromeZip}`);
+  if (chromeBuild) {
+    console.log(`- Chrome:  ${chromeBuild.outDir}`);
+    console.log(`  - Package: ${chromeBuild.packagePath}`);
+    if (chromeBuild.removedPackages.length) {
+      console.log(
+        `  - Removed old packages: ${chromeBuild.removedPackages.join(", ")}`,
+      );
+    }
   }
-  if (outFirefox) {
-    console.log(`- Firefox: ${outFirefox}`);
-    console.log(`  - Package: ${firefoxXpi}`);
-    console.log(`  - Updates: ${firefoxUpdatesManifestPath}`);
+  if (firefoxBuild) {
+    console.log(`- Firefox: ${firefoxBuild.outDir}`);
+    console.log(`  - Package: ${firefoxBuild.packagePath}`);
+    console.log(`  - Updates: ${firefoxBuild.updatesPath}`);
+    if (firefoxBuild.removedPackages.length) {
+      console.log(
+        `  - Removed old packages: ${firefoxBuild.removedPackages.join(", ")}`,
+      );
+    }
   }
 }
 

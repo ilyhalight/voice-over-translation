@@ -247,7 +247,7 @@ class VOTStorage {
     );
   }
 
-  private syncGet<T = unknown>(
+  private syncGetByName<T = unknown>(
     name: string,
     def: T | undefined,
     support: StorageSupport,
@@ -268,13 +268,17 @@ class VOTStorage {
     }
   }
 
-  async get<T = unknown>(name: StorageKey, def?: T): Promise<T> {
+  async getRaw<T = unknown>(name: string, def?: T): Promise<T> {
     const support = this.resolveSupport();
     if (support.promiseGet && GM.getValue) {
       return await GM.getValue(name, def);
     }
 
-    return this.syncGet<T>(name, def, support);
+    return this.syncGetByName<T>(name, def, support);
+  }
+
+  async get<T = unknown>(name: StorageKey, def?: T): Promise<T> {
+    return this.getRaw<T>(name, def);
   }
 
   async getValues<
@@ -301,11 +305,14 @@ class VOTStorage {
     }
 
     return Object.fromEntries(
-      entries.map(([key, value]) => [key, this.syncGet(key, value, support)]),
+      entries.map(([key, value]) => [
+        key,
+        this.syncGetByName(key, value, support),
+      ]),
     ) as T;
   }
 
-  private syncSet(
+  private syncSetByName(
     name: string,
     value: KeysOrDefaultValue,
     support: StorageSupport,
@@ -317,8 +324,8 @@ class VOTStorage {
     return globalThis.localStorage.setItem(name, JSON.stringify(value));
   }
 
-  async set<T extends KeysOrDefaultValue = undefined>(
-    name: StorageKey,
+  async setRaw<T extends KeysOrDefaultValue = undefined>(
+    name: string,
     value: T,
   ): Promise<void> {
     const support = this.resolveSupport();
@@ -326,10 +333,17 @@ class VOTStorage {
       return await GM.setValue(name, value);
     }
 
-    return this.syncSet(name, value, support);
+    return this.syncSetByName(name, value, support);
   }
 
-  private syncDelete(name: string, support: StorageSupport) {
+  async set<T extends KeysOrDefaultValue = undefined>(
+    name: StorageKey,
+    value: T,
+  ): Promise<void> {
+    return this.setRaw(name, value);
+  }
+
+  private syncDeleteByName(name: string, support: StorageSupport) {
     if (support.legacyDelete) {
       return GM_deleteValue(name);
     }
@@ -337,13 +351,17 @@ class VOTStorage {
     return globalThis.localStorage.removeItem(name);
   }
 
-  async delete(name: StorageKey): Promise<void> {
+  async deleteRaw(name: string): Promise<void> {
     const support = this.resolveSupport();
     if (support.promiseDelete && GM.deleteValue) {
       return await GM.deleteValue(name);
     }
 
-    return this.syncDelete(name, support);
+    return this.syncDeleteByName(name, support);
+  }
+
+  async delete(name: StorageKey): Promise<void> {
+    return this.deleteRaw(name);
   }
 
   private syncList(support: StorageSupport): readonly StorageKey[] {

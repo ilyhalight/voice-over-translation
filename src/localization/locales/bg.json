@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Вход чрез токен",
   "subtitlesSmartLayout": "Интелигентно оформление на субтитрите",
   "smartDucking": "Адаптивен обем",
-  "VOTAutoSubtitles": "Субтитри на открито"
+  "VOTAutoSubtitles": "Субтитри на открито",
+  "VOTSubtitlesFont": "Шрифт за субтитрите"
 }

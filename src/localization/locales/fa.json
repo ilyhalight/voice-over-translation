@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "ورود از طریق توکن",
   "subtitlesSmartLayout": "طرح زیرنویس هوشمند",
   "smartDucking": "حجم سازگاری",
-  "VOTAutoSubtitles": "زیرنویس در open"
+  "VOTAutoSubtitles": "زیرنویس در open",
+  "VOTSubtitlesFont": "فونت زیرنویس"
 }

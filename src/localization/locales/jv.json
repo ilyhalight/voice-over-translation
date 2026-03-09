@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Mlebu liwat token",
   "subtitlesSmartLayout": "Tata letak subtitle pinter",
   "smartDucking": "Volume adaptif",
-  "VOTAutoSubtitles": "Subtitle ing mbukak"
+  "VOTAutoSubtitles": "Subtitle ing mbukak",
+  "VOTSubtitlesFont": "Font Subtitle"
 }

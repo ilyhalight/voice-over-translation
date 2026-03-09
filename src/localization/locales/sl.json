@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Prijava prek žetona",
   "subtitlesSmartLayout": "Pametna postavitev podnapisov",
   "smartDucking": "Prilagodljiva prostornina",
-  "VOTAutoSubtitles": "Podnapisi na odprtem"
+  "VOTAutoSubtitles": "Podnapisi na odprtem",
+  "VOTSubtitlesFont": "Pisava podnapisov"
 }

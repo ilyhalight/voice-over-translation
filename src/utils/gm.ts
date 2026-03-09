@@ -12,6 +12,7 @@ type HttpMethod =
   | "TRACE";
 
 import { nonProxyExtensions } from "../config/config";
+import { executeWithResponseCache } from "../core/cacheManager";
 import type { FetchOpts } from "../types/utils/gm";
 import { createTimeoutSignal } from "./abort";
 import debug from "./debug";
@@ -88,6 +89,19 @@ function toRequestUrl(url: string | URL | Request): string {
     return url.href;
   }
   return url.url;
+}
+
+function resolveRequestMethod(
+  url: string | URL | Request,
+  method?: string,
+): string {
+  if (method) {
+    return method.toUpperCase();
+  }
+  if (url instanceof Request) {
+    return (url.method || "GET").toUpperCase();
+  }
+  return "GET";
 }
 
 function parseResponseHeaders(rawHeaders: unknown): Record<string, string> {
@@ -212,36 +226,61 @@ export async function GM_fetch(
   url: string | URL | Request,
   opts: FetchOpts = {},
 ): Promise<Response> {
-  const { timeout = 15_000, forceGmXhr = false, ...fetchOptions } = opts;
+  const {
+    timeout = 15_000,
+    forceGmXhr = false,
+    responseCache,
+    ...fetchOptions
+  } = opts;
   const urlStr = toRequestUrl(url);
   const host = getRequestHost(urlStr);
+  const method = resolveRequestMethod(url, fetchOptions.method);
 
-  if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
-    debug.log("GM_fetch: routing request via GM_xmlhttpRequest", {
-      host: host ?? "unknown",
-      reason: forceGmXhr ? "forced" : "host-policy",
-      url: urlStr,
-    });
-    return await gmXhrFetch(urlStr, timeout, fetchOptions);
-  }
-
-  const { signal, cleanup } = createTimeoutSignal(timeout, fetchOptions.signal);
-  try {
-    return await fetch(url, {
-      ...fetchOptions,
-      signal,
-    });
-  } catch (err) {
-    if (signal.aborted || isAbortError(err)) {
-      throw err;
+  const performRequest = async (): Promise<Response> => {
+    if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
+      debug.log("GM_fetch: routing request via GM_xmlhttpRequest", {
+        host: host ?? "unknown",
+        reason: forceGmXhr ? "forced" : "host-policy",
+        url: urlStr,
+      });
+      return await gmXhrFetch(urlStr, timeout, fetchOptions);
     }
-    // If fetch fails, retry via GM_xmlhttpRequest.
-    debug.log(
-      "GM_fetch preventing CORS by GM_xmlhttpRequest",
-      getErrorMessage(err) || "Unknown error",
+
+    const { signal, cleanup } = createTimeoutSignal(
+      timeout,
+      fetchOptions.signal,
     );
-    return await gmXhrFetch(urlStr, timeout, fetchOptions);
-  } finally {
-    cleanup();
+    try {
+      return await fetch(url, {
+        ...fetchOptions,
+        signal,
+      });
+    } catch (err) {
+      if (signal.aborted || isAbortError(err)) {
+        throw err;
+      }
+      // If fetch fails, retry via GM_xmlhttpRequest.
+      debug.log(
+        "GM_fetch preventing CORS by GM_xmlhttpRequest",
+        getErrorMessage(err) || "Unknown error",
+      );
+      return await gmXhrFetch(urlStr, timeout, fetchOptions);
+    } finally {
+      cleanup();
+    }
+  };
+
+  if (!responseCache) {
+    return await performRequest();
   }
+
+  return await executeWithResponseCache(
+    {
+      url: urlStr,
+      method,
+      body: fetchOptions.body as BodyInit | null | undefined,
+    },
+    responseCache,
+    performRequest,
+  );
 }

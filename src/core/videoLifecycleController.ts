@@ -35,6 +35,7 @@ interface VideoLifecycleHost {
   translateToLang: ResponseLang | string;
   data: Partial<StorageData>;
   subtitles: VideoDataSubtitle[];
+  subtitlesCacheKey: string | null;
   videoData?: VideoData;
   actionsAbortController?: AbortController;
   resetActionsAbortController?(reason?: unknown): void;
@@ -104,6 +105,12 @@ export class VideoLifecycleController {
     return true;
   }
 
+  private showOverlayButton(overlayView: LifecycleOverlayView): void {
+    overlayView.votButton.container.hidden = false;
+    overlayView.votButton.opacity = 1;
+    this.host.queueOverlayAutoHide?.();
+  }
+
   teardown() {
     this.setCanPlayRequested = false;
     this.invalidateActiveSession("teardown");
@@ -114,14 +121,8 @@ export class VideoLifecycleController {
     if (this.host.site.host === "youtube") {
       const path = globalThis.location.pathname;
       const stableUrlKey = `${globalThis.location.origin}${path}${globalThis.location.search}`;
-      if (path.startsWith("/shorts/")) {
-        // Shorts frequently rotate blob src values for the same logical video.
-        // Use pathname to keep lifecycle keys stable and avoid duplicate runs.
-        return `${stableUrlKey}||${hasSrcObject}`;
-      }
-
-      // On regular YouTube pages, changing playback quality can reload media
-      // and rotate `currentSrc` without changing the logical video.
+      // YouTube can rotate media src values without changing the logical video:
+      // Shorts often swap blob URLs, and regular pages can do the same on quality changes.
       // Keep lifecycle key URL-based so quality switches don't reset state.
       return `${stableUrlKey}||${hasSrcObject}`;
     }
@@ -198,8 +199,9 @@ export class VideoLifecycleController {
       return;
     }
 
+    let nextVideoData: VideoData | undefined;
     try {
-      this.host.videoData = await this.host.getVideoData();
+      nextVideoData = await this.host.getVideoData();
     } catch (err) {
       debug.log(
         `[VideoLifecycle] getVideoData failed for source ${sourceKey}`,
@@ -212,6 +214,15 @@ export class VideoLifecycleController {
       return;
     }
 
+    if (this.getCurrentSourceKey() !== sourceKey) {
+      debug.log(
+        "[VideoLifecycle] discarded stale getVideoData result after source change",
+        { sourceKey },
+      );
+      return;
+    }
+
+    this.host.videoData = nextVideoData;
     this.activeSetCanPlaySourceKey = sourceKey;
     const currentId = this.startSession(`setCanPlay (source: ${sourceKey})`);
     debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay started`, {
@@ -308,10 +319,7 @@ export class VideoLifecycleController {
       return;
     }
 
-    // Show the button immediately while metadata is resolving.
-    overlayView.votButton.container.hidden = false;
-    overlayView.votButton.opacity = 1;
-    this.host.queueOverlayAutoHide?.();
+    this.showOverlayButton(overlayView);
 
     if (this.shouldAbortHandleSrcChanged(sessionId, "after getVideoData")) {
       return;
@@ -331,7 +339,10 @@ export class VideoLifecycleController {
       this.host.videoData.responseLanguage,
     );
 
-    this.host.subtitles = this.host.cacheManager.getSubtitles(cacheKey) ?? [];
+    const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
+    this.host.subtitles = cachedSubtitles ?? [];
+    this.host.subtitlesCacheKey =
+      cachedSubtitles !== undefined ? cacheKey : null;
 
     await this.host.updateSubtitlesLangSelect();
     if (this.shouldAbortHandleSrcChanged(sessionId, "after subtitles update")) {
@@ -344,9 +355,7 @@ export class VideoLifecycleController {
       this.host.videoData.responseLanguage,
     );
 
-    overlayView.votButton.container.hidden = false;
-    overlayView.votButton.opacity = 1;
-    this.host.queueOverlayAutoHide?.();
+    this.showOverlayButton(overlayView);
     this.lastSetCanPlaySourceKey = sourceKey;
     debug.log(`[VideoLifecycle][session:${sessionId}] src handling finished`);
   }

@@ -8,6 +8,7 @@ import {
   type AudioChunkStreamResult,
   type AudioStreamRequest,
   AudioDownloader as YtAudioDownloader,
+  YtWatchContextForbiddenError,
 } from "./index";
 
 const DEFAULT_YT_AUDIO_QUALITY = "bestefficiency";
@@ -17,7 +18,7 @@ type YtAudioDownloaderLike = {
   downloadAudioToUint8Array: (
     request: AudioStreamRequest,
   ) => Promise<{ bytes: Uint8Array }>;
-  downloadAudioToChunkStream?: (
+  downloadAudioToChunkStream: (
     request: AudioStreamRequest,
     options: { chunkSize: number },
   ) => Promise<AudioChunkStreamResult>;
@@ -37,24 +38,6 @@ function assertValidChunkSize(chunkSize: number): void {
   }
 }
 
-function splitAudioIntoChunks(
-  bytes: Uint8Array,
-  chunkSize: number,
-): Uint8Array[] {
-  if (bytes.byteLength <= chunkSize) {
-    return [bytes];
-  }
-
-  const chunks: Uint8Array[] = [];
-  for (let start = 0; start < bytes.byteLength; start += chunkSize) {
-    chunks.push(
-      bytes.subarray(start, Math.min(start + chunkSize, bytes.length)),
-    );
-  }
-
-  return chunks;
-}
-
 function createYtAudioFetch({
   signal,
   timeoutMs,
@@ -69,6 +52,17 @@ function createYtAudioFetch({
       forceGmXhr: true,
       timeout: timeoutMs,
     });
+}
+
+function isWatchContextForbiddenError(error: unknown): boolean {
+  if (error instanceof YtWatchContextForbiddenError) {
+    return true;
+  }
+
+  return (
+    error instanceof Error &&
+    /failed to load watch page:\s*403/i.test(error.message)
+  );
 }
 
 export async function getAudioFromYtAudio(
@@ -86,37 +80,38 @@ export async function getAudioFromYtAudio(
     deps.createDownloader?.(fetchImplementation) ??
     new YtAudioDownloader({ fetchImplementation });
 
-  const streamingDownload =
-    typeof downloader.downloadAudioToChunkStream === "function"
-      ? downloader.downloadAudioToChunkStream.bind(downloader)
-      : undefined;
-  if (typeof streamingDownload === "function") {
-    try {
-      const streamResult = await streamingDownload(
-        {
-          videoId,
-          videoQuality: DEFAULT_YT_AUDIO_QUALITY,
-          signal,
-        },
-        { chunkSize },
-      );
+  try {
+    const streamResult = await downloader.downloadAudioToChunkStream(
+      {
+        videoId,
+        videoQuality: DEFAULT_YT_AUDIO_QUALITY,
+        signal,
+      },
+      { chunkSize },
+    );
 
-      return {
-        fileId: makeFileId(
-          AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
-          streamResult.itag,
-          String(streamResult.fileSize),
-          chunkSize,
-        ),
-        mediaPartsLength: streamResult.mediaPartsLength,
-        getMediaBuffers: streamResult.getMediaBuffers,
-      };
-    } catch (error) {
-      console.warn(
-        "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
-        error,
-      );
+    return {
+      fileId: makeFileId(
+        AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
+        streamResult.itag,
+        String(streamResult.fileSize),
+        chunkSize,
+      ),
+      mediaPartsLength: streamResult.mediaPartsLength,
+      getMediaBuffers: streamResult.getMediaBuffers,
+    };
+  } catch (error) {
+    if (isWatchContextForbiddenError(error)) {
+      // 403 on watch-page key fetch is not recoverable in current context.
+      // Skip buffered fallback so upper layer can immediately trigger
+      // fail-audio-js instead of spending time on redundant retries.
+      throw error;
     }
+
+    console.warn(
+      "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
+      error,
+    );
   }
 
   const result = await downloader.downloadAudioToUint8Array({
@@ -129,11 +124,7 @@ export async function getAudioFromYtAudio(
   if (!bytes || bytes.byteLength === 0) {
     throw new Error("Audio downloader. ytAudio. Empty audio");
   }
-
-  const chunks = splitAudioIntoChunks(bytes, chunkSize);
-  if (!chunks.length) {
-    throw new Error("Audio downloader. ytAudio. Can not split audio");
-  }
+  const mediaPartsLength = Math.max(1, Math.ceil(bytes.byteLength / chunkSize));
 
   const fileId = makeFileId(
     AudioDownloadType.WEB_API_STEAL_SIG_AND_N,
@@ -144,10 +135,11 @@ export async function getAudioFromYtAudio(
 
   return {
     fileId,
-    mediaPartsLength: chunks.length,
+    mediaPartsLength,
     async *getMediaBuffers(): AsyncGenerator<Uint8Array> {
-      for (const chunk of chunks) {
-        yield chunk;
+      for (let start = 0; start < bytes.byteLength; start += chunkSize) {
+        const end = Math.min(start + chunkSize, bytes.byteLength);
+        yield bytes.subarray(start, end);
       }
     },
   };

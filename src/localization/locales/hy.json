@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Մուտք գործեք նշանի հետ",
   "subtitlesSmartLayout": "Մտածված ենթագրերի դասավորություն",
   "smartDucking": "Հարմարվողական ծավալ",
-  "VOTAutoSubtitles": "Ենթագրերը բացելիս"
+  "VOTAutoSubtitles": "Ենթագրերը բացելիս",
+  "VOTSubtitlesFont": "Ենթագրերի տառատեսակ"
 }

@@ -3,6 +3,7 @@ import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
 import { availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import Chaimu from "chaimu/client";
 import { initAudioContext } from "chaimu/player";
 import { getOrCreateBootState } from "./bootstrap/bootState";
@@ -15,20 +16,24 @@ import {
   workerHost,
 } from "./config/config";
 import { resolveBootstrapMode } from "./core/bootstrapPolicy";
-import { CacheManager } from "./core/cacheManager";
+import { CacheManager, VOTSessionStorageCache } from "./core/cacheManager";
 import { findConnectedContainerBySelector } from "./core/containerResolution";
+import { resolveOverlayMountTargets } from "./core/overlayMountTargets";
 import { VOTTranslationHandler } from "./core/translationHandler";
 import { TranslationOrchestrator } from "./core/translationOrchestrator";
 import { VideoLifecycleController } from "./core/videoLifecycleController";
 import { VOTVideoManager } from "./core/videoManager";
 import { localizationProvider } from "./localization/localizationProvider";
 import type { ProcessedSubtitles } from "./subtitles/processor";
+import type { SubtitleFontFamily } from "./subtitles/types";
 import { SubtitlesWidget } from "./subtitles/widget";
 import type { StorageData } from "./types/storage";
 import type { OverlayMount } from "./types/uiManager";
 import { UIManager } from "./ui/manager";
+import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
 import debug from "./utils/debug";
+import { resolveScopedFullscreenElement } from "./utils/dom";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
 import { GM_fetch } from "./utils/gm";
 import { isIframe } from "./utils/iframeConnector";
@@ -40,6 +45,7 @@ import { Notifier } from "./utils/notify";
 import { translate } from "./utils/translateApis";
 import {
   calculatedResLang,
+  type DocumentWithFullscreen,
   fnv1a32ToKeyPart,
   stableStringify,
 } from "./utils/utils";
@@ -68,6 +74,7 @@ import { init as initVideoHandler } from "./videoHandler/modules/init";
 import {
   changeSubtitlesLang as changeSubtitlesLangImpl,
   enableSubtitlesForCurrentLangPair as enableSubtitlesForCurrentLangPairImpl,
+  ensureSubtitlesForCurrentLangPair as ensureSubtitlesForCurrentLangPairImpl,
   loadSubtitles as loadSubtitlesImpl,
   toggleSubtitlesForCurrentLangPair as toggleSubtitlesForCurrentLangPairImpl,
   updateSubtitlesLangSelect as updateSubtitlesLangSelectImpl,
@@ -138,6 +145,7 @@ export class VideoHandler {
   notifier: Notifier = new Notifier();
 
   cacheManager!: CacheManager;
+  votSessionStorage = new VOTSessionStorageCache();
   /**
    * In-flight subtitles list requests, keyed by subtitles cache key.
    *
@@ -177,7 +185,7 @@ export class VideoHandler {
 
   // Smart auto-volume ducking state. Used to lower the original video volume
   // only while the translated track has audible sound (not during silence).
-  smartVolumeDuckingInterval?: number;
+  smartVolumeDuckingInterval?: ReturnType<typeof setTimeout>;
   smartVolumeDuckingTarget = 0.2;
   smartVolumeDuckingBaseline?: number;
   smartVolumeLastApplied?: number;
@@ -204,6 +212,7 @@ export class VideoHandler {
   // Available subtitle tracks for the current video. The subtitles UI widget
   // maintains its own internal line/token representation.
   subtitles: any[] = [];
+  subtitlesCacheKey: string | null = null;
   subtitlesWidget?: SubtitlesWidget;
 
   activeTranslation: { key: string; promise: Promise<unknown> } | null = null;
@@ -242,6 +251,8 @@ export class VideoHandler {
     base: HTMLElement;
     root: HTMLElement;
     portalContainer: HTMLElement;
+    subtitlesMountContainer: HTMLElement;
+    fullscreenRoot: HTMLElement | null;
   };
 
   /**
@@ -251,39 +262,67 @@ export class VideoHandler {
    */
   private readonly errorTranslationCache = new Map<string, string>();
 
+  /**
+   * Returns fullscreen root for overlay if the active fullscreen session belongs
+   * to the current video/container. Otherwise returns null.
+   */
+  private getFullscreenOverlayRoot(): HTMLElement | null {
+    const doc = document as DocumentWithFullscreen;
+    const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+    return resolveScopedFullscreenElement(fullscreenEl, [this.container]);
+  }
+
   private getOverlayMountPoints(container: HTMLElement = this.container): {
     root: HTMLElement;
     portalContainer: HTMLElement;
+    subtitlesMountContainer: HTMLElement;
+    fullscreenRoot: HTMLElement | null;
   } {
-    const base =
-      this.site.host === "youtube" && this.site.additionalData !== "mobile"
-        ? (container.parentElement ?? container)
-        : container;
+    const fullscreenRoot = this.getFullscreenOverlayRoot();
+    const { base, root, portalContainer, subtitlesMountContainer } =
+      resolveOverlayMountTargets({
+        container,
+        site: this.site,
+        fullscreenRoot,
+      });
 
     const cache = this.mountCache;
     if (
       cache?.container === container &&
       cache.base === base &&
+      cache.subtitlesMountContainer === subtitlesMountContainer &&
+      cache.fullscreenRoot === fullscreenRoot &&
       (cache.root.isConnected ?? document.documentElement.contains(cache.root))
     ) {
-      return { root: cache.root, portalContainer: cache.portalContainer };
+      return {
+        root: cache.root,
+        portalContainer: cache.portalContainer,
+        subtitlesMountContainer: cache.subtitlesMountContainer,
+        fullscreenRoot: cache.fullscreenRoot,
+      };
     }
 
-    const root = base;
-    const portalContainer = root;
-
-    this.mountCache = { container, base, root, portalContainer };
-    return { root, portalContainer };
+    this.mountCache = {
+      container,
+      base,
+      root,
+      portalContainer,
+      subtitlesMountContainer,
+      fullscreenRoot,
+    };
+    return { root, portalContainer, subtitlesMountContainer, fullscreenRoot };
   }
 
   private getOverlayMount(
     container: HTMLElement = this.container,
   ): OverlayMount {
-    const { root, portalContainer } = this.getOverlayMountPoints(container);
+    const { root, portalContainer, subtitlesMountContainer, fullscreenRoot } =
+      this.getOverlayMountPoints(container);
     return {
       root,
       portalContainer,
-      tooltipLayoutRoot: this.tooltipLayoutRoot,
+      subtitlesMountContainer,
+      tooltipLayoutRoot: fullscreenRoot ?? this.tooltipLayoutRoot,
     };
   }
 
@@ -342,6 +381,14 @@ export class VideoHandler {
     );
   }
 
+  private updateVOTClientRequestSignal(): void {
+    if (!this.votClient) return;
+    this.votClient.fetchOpts = {
+      ...(this.votClient.fetchOpts ?? {}),
+      signal: this.actionsAbortController.signal,
+    };
+  }
+
   resetActionsAbortController(reason?: any): void {
     try {
       this.actionsAbortController?.abort(reason);
@@ -350,10 +397,8 @@ export class VideoHandler {
     }
     this.actionsAbortController = new AbortController();
     this.actionsGeneration++;
-    // VOT client embeds the signal in its fetch options, so refresh it.
-    if (this.data) {
-      this.initVOTClient();
-    }
+    // Keep client sessions intact and update only per-request abort signal.
+    this.updateVOTClientRequestSignal();
   }
 
   /**
@@ -451,6 +496,9 @@ export class VideoHandler {
         return self().container;
       },
       set container(value: HTMLElement) {
+        if (self().container === value) {
+          return;
+        }
         self().container = value;
         self().uiManager.updateMount(self().getOverlayMount(value));
       },
@@ -466,8 +514,7 @@ export class VideoHandler {
       },
       getVideoData: () => this.getVideoData(),
       cacheManager: {
-        getSubtitles: (key: string) =>
-          self().cacheManager.getSubtitles(key) ?? [],
+        getSubtitles: (key: string) => self().cacheManager.getSubtitles(key),
       },
       getSubtitlesCacheKey: (
         videoId: string,
@@ -494,6 +541,12 @@ export class VideoHandler {
       },
       set subtitles(value: any[]) {
         self().subtitles = value;
+      },
+      get subtitlesCacheKey() {
+        return self().subtitlesCacheKey;
+      },
+      set subtitlesCacheKey(value: string | null) {
+        self().subtitlesCacheKey = value;
       },
       get videoData() {
         return self().videoData;
@@ -525,17 +578,10 @@ export class VideoHandler {
    */
   getSubtitlesWidget() {
     if (!this.subtitlesWidget) {
-      const overlayPortal = this.uiManager.votOverlayView?.votOverlayPortal;
-      if (!overlayPortal) {
-        throw new Error(
-          "VOT UI is not initialized yet (missing overlay portal)",
-        );
-      }
-
+      const { subtitlesMountContainer } = this.getOverlayMountPoints();
       this.subtitlesWidget = new SubtitlesWidget(
         this.video,
-        this.portalContainer,
-        overlayPortal,
+        subtitlesMountContainer,
         this.interactionChecker,
         this.tooltipLayoutRoot,
       );
@@ -556,6 +602,11 @@ export class VideoHandler {
         }
         if (typeof this.data.subtitlesFontSize === "number") {
           this.subtitlesWidget.setFontSize(this.data.subtitlesFontSize);
+        }
+        if (typeof this.data.subtitlesFontFamily === "string") {
+          this.subtitlesWidget.setFontFamily(
+            this.data.subtitlesFontFamily as SubtitleFontFamily,
+          );
         }
         if (typeof this.data.subtitlesOpacity === "number") {
           this.subtitlesWidget.setOpacity(this.data.subtitlesOpacity);
@@ -753,7 +804,10 @@ export class VideoHandler {
    * Initializes the VOT client.
    * @returns {VideoHandler} This instance.
    */
-  initVOTClient() {
+  async initVOTClient() {
+    const transportHost = this.data?.translateProxyEnabled
+      ? (this.data?.proxyWorkerHost ?? proxyWorkerHost)
+      : workerHost;
     this.votOpts = {
       fetchFn: GM_fetch,
       fetchOpts: {
@@ -761,13 +815,28 @@ export class VideoHandler {
       },
       apiToken: this.data?.account?.token,
       hostVOT: votBackendUrl,
-      host: this.data?.translateProxyEnabled
-        ? (this.data?.proxyWorkerHost ?? proxyWorkerHost)
-        : workerHost,
+      host: transportHost,
     };
     this.votClient = new (
       this.data?.translateProxyEnabled ? VOTWorkerClient : VOTClient
     )(this.votOpts);
+    this.votClient.sessions = await this.votSessionStorage.restore(
+      transportHost,
+      this.votClient.sessions,
+    );
+
+    const originalGetSession = this.votClient.getSession.bind(this.votClient);
+    this.votClient.getSession = async (
+      module: SessionModule,
+    ): Promise<ClientSession> => {
+      const session = await originalGetSession(module);
+      await this.votSessionStorage.persist(
+        transportHost,
+        this.votClient.sessions,
+      );
+      return session;
+    };
+
     return this;
   }
 
@@ -797,6 +866,23 @@ export class VideoHandler {
    */
   initExtraEvents() {
     return this.callModule(initExtraEventsImpl);
+  }
+
+  /**
+   * Recomputes overlay mount points and rebinds interaction targets.
+   *
+   * Used when fullscreen state changes without changing `this.container`
+   * (common for players inside Shadow DOM).
+   */
+  refreshOverlayMount(): void {
+    this.mountCache = undefined;
+    const nextMount = this.getOverlayMount(this.container);
+    const mountChanged = !isSameOverlayMount(this.uiManager.mount, nextMount);
+    this.uiManager.updateMount(nextMount);
+    if (!mountChanged) {
+      return;
+    }
+    this.rebindOverlayVisibilityTargets();
   }
 
   /**
@@ -836,6 +922,11 @@ export class VideoHandler {
    * Updates the subtitles selection options.
    */
   updateSubtitlesLangSelect = updateSubtitlesLangSelectImpl;
+
+  /**
+   * Ensures the in-memory subtitles list matches the current language-pair cache key.
+   */
+  ensureSubtitlesForCurrentLangPair = ensureSubtitlesForCurrentLangPairImpl;
 
   /**
    * Loads subtitles for the current video.

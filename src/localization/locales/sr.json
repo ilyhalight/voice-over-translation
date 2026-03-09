@@ -241,5 +241,6 @@
   "VOTLoginViaToken": "Пријавите се помоћу токена",
   "subtitlesSmartLayout": "Паметан изглед титлова",
   "smartDucking": "Адаптивна јачина звука",
-  "VOTAutoSubtitles": "Титлови приликом отварања"
+  "VOTAutoSubtitles": "Титлови приликом отварања",
+  "VOTSubtitlesFont": "Фонт титлова"
 }

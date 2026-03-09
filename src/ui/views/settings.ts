@@ -14,6 +14,7 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "change:useLivelyVoice",
   "change:subtitlesHighlightWords",
   "change:subtitlesSmartLayout",
+  "select:subtitlesFontFamily",
   "change:proxyWorkerHost",
   "change:useNewAudioPlayer",
   "change:onlyBypassMediaCSP",
@@ -41,8 +42,7 @@ function createSettingsEvents(): {
   return events;
 }
 
-import { availableLangs, subtitlesFormats } from "@vot.js/shared/consts";
-import type { SubtitleFormat } from "@vot.js/shared/types/subs";
+import { availableLangs } from "@vot.js/shared/consts";
 import { html } from "lit-html";
 import { countryCode, type VideoHandler } from "../..";
 import {
@@ -59,6 +59,19 @@ import {
   type LangOverride,
   localizationProvider,
 } from "../../localization/localizationProvider";
+import {
+  getGoogleSubtitleFontFamilyName,
+  loadGoogleFontsCatalog,
+  toGoogleSubtitleFontFamily,
+} from "../../subtitles/fonts";
+import {
+  type BuiltInSubtitleFontFamily,
+  isBuiltInSubtitleFontFamily,
+  type SubtitleFontFamily,
+  type SubtitleFormat,
+  subtitleFontFamilies,
+  subtitleFormats as subtitlesFormats,
+} from "../../subtitles/types";
 import type {
   LanguageSelectKey,
   SelectItem,
@@ -96,6 +109,30 @@ import SliderLabel from "../components/sliderLabel";
 import Textfield from "../components/textfield";
 import Tooltip from "../components/tooltip";
 import { HELP_ICON, WARNING_ICON } from "../icons";
+
+const GOOGLE_FONTS_SEARCH_LIMIT = 30;
+
+const subtitleFontFamilyLabels: Record<BuiltInSubtitleFontFamily, string> = {
+  "default-sans": "Default Sans",
+  arial: "Arial",
+  helvetica: "Helvetica",
+  roboto: "Roboto",
+  verdana: "Verdana",
+  "open-sans": "Open Sans",
+  poppins: "Poppins",
+  lato: "Lato",
+  montserrat: "Montserrat",
+  barlow: "Barlow",
+};
+
+function getSubtitleFontFamilyLabel(fontFamily: SubtitleFontFamily): string {
+  if (isBuiltInSubtitleFontFamily(fontFamily)) {
+    return subtitleFontFamilyLabels[fontFamily];
+  }
+
+  return getGoogleSubtitleFontFamilyName(fontFamily) ?? "Default Sans";
+}
+
 export class SettingsView {
   private static readonly PERSIST_DELAY_MS = 250;
   globalPortal: HTMLElement;
@@ -112,7 +149,7 @@ export class SettingsView {
       | "subtitlesFontSize"
       | "subtitlesOpacity"
       | "autoHideButtonDelay",
-      number
+      ReturnType<typeof setTimeout>
     >
   > = {};
   dialog?: Dialog;
@@ -146,6 +183,8 @@ export class SettingsView {
   subtitlesMaxLengthSlider?: Slider;
   subtitlesFontSizeSliderLabel?: SliderLabel;
   subtitlesFontSizeSlider?: Slider;
+  subtitlesFontFamilySelectLabel?: Label;
+  subtitlesFontFamilySelect?: Select<SubtitleFontFamily>;
   subtitlesBackgroundOpacitySliderLabel?: SliderLabel;
   subtitlesBackgroundOpacitySlider?: Slider;
   translateHotkeyButton?: HotkeyButton;
@@ -563,6 +602,97 @@ export class SettingsView {
       min: 8,
       max: 50,
     });
+    const storedSubtitlesFontFamily =
+      typeof this.data.subtitlesFontFamily === "string"
+        ? (this.data.subtitlesFontFamily as SubtitleFontFamily)
+        : undefined;
+    const subtitlesFontFamily =
+      storedSubtitlesFontFamily &&
+      (isBuiltInSubtitleFontFamily(storedSubtitlesFontFamily) ||
+        getGoogleSubtitleFontFamilyName(storedSubtitlesFontFamily))
+        ? storedSubtitlesFontFamily
+        : "default-sans";
+    const buildSubtitleFontItems = (
+      selectedFontFamily: SubtitleFontFamily,
+      dynamicFontFamilies: string[] = [],
+    ): SelectItem<SubtitleFontFamily>[] => {
+      const items = subtitleFontFamilies.map<SelectItem<SubtitleFontFamily>>(
+        (fontFamily) => ({
+          label: subtitleFontFamilyLabels[fontFamily],
+          value: fontFamily,
+          selected: fontFamily === selectedFontFamily,
+        }),
+      );
+
+      const dynamicItems = dynamicFontFamilies
+        .filter((familyName) => {
+          const lowerFamilyName = familyName.toLowerCase();
+          return !items.some(
+            (item) => item.label.toLowerCase() === lowerFamilyName,
+          );
+        })
+        .map<SelectItem<SubtitleFontFamily>>((familyName) => {
+          const fontValue = toGoogleSubtitleFontFamily(familyName);
+          return {
+            label: familyName,
+            value: fontValue,
+            selected: fontValue === selectedFontFamily,
+          };
+        });
+
+      if (
+        !isBuiltInSubtitleFontFamily(selectedFontFamily) &&
+        !dynamicItems.some((item) => item.value === selectedFontFamily)
+      ) {
+        const currentGoogleFontFamily =
+          getGoogleSubtitleFontFamilyName(selectedFontFamily);
+        if (currentGoogleFontFamily) {
+          dynamicItems.unshift({
+            label: currentGoogleFontFamily,
+            value: selectedFontFamily,
+            selected: true,
+          });
+        }
+      }
+
+      return [...items, ...dynamicItems];
+    };
+    this.subtitlesFontFamilySelectLabel = new Label({
+      labelText: localizationProvider.get("VOTSubtitlesFont" as any),
+    });
+    this.subtitlesFontFamilySelect = new Select<SubtitleFontFamily>({
+      selectTitle: getSubtitleFontFamilyLabel(subtitlesFontFamily),
+      dialogTitle: localizationProvider.get("VOTSubtitlesFont" as any),
+      dialogParent: this.globalPortal,
+      labelElement: this.subtitlesFontFamilySelectLabel.container,
+      items: buildSubtitleFontItems(subtitlesFontFamily),
+      searchItemsProvider: async (query) => {
+        const activeFontFamily =
+          Array.from(this.subtitlesFontFamilySelect?.selectedValues ?? [])[0] ??
+          subtitlesFontFamily;
+        const normalizedQuery = query.trim().toLowerCase();
+        if (!normalizedQuery) {
+          return buildSubtitleFontItems(activeFontFamily);
+        }
+
+        const googleFontsCatalog = await loadGoogleFontsCatalog();
+        const matchingGoogleFonts = googleFontsCatalog
+          .filter((familyName) =>
+            familyName.toLowerCase().includes(normalizedQuery),
+          )
+          .slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
+
+        return buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
+      },
+    });
+    this.subtitlesFontFamilySelect.addEventListener("selectItem", (item) => {
+      if (!this.subtitlesFontFamilySelect) {
+        return;
+      }
+      this.subtitlesFontFamilySelect.updateItems(buildSubtitleFontItems(item));
+      this.subtitlesFontFamilySelect.selectTitle =
+        getSubtitleFontFamilyLabel(item);
+    });
     const subtitlesOpacity = this.data.subtitlesOpacity ?? 20;
     this.subtitlesBackgroundOpacitySliderLabel = new SliderLabel({
       labelText: localizationProvider.get("VOTSubtitlesOpacity"),
@@ -578,6 +708,7 @@ export class SettingsView {
     });
     subtitlesSection.content.append(
       this.subtitlesDownloadFormatSelect.container,
+      this.subtitlesFontFamilySelect.container,
       this.subtitlesHighlightWordsCheckbox.container,
       this.subtitlesSmartLayoutCheckbox.container,
       this.subtitlesMaxLengthSlider.container,
@@ -1133,6 +1264,18 @@ export class SettingsView {
       this.events["input:subtitlesBackgroundOpacity"].dispatch(value);
     });
     this.bindPersistedSetting({
+      control: this.subtitlesFontFamilySelect,
+      event: "selectItem",
+      apply: (item) => {
+        this.data.subtitlesFontFamily = item;
+      },
+      storageKey: "subtitlesFontFamily",
+      readPersistedValue: () => this.data.subtitlesFontFamily,
+      logLabel: "subtitlesFontFamily",
+      dispatch: (item) =>
+        this.events["select:subtitlesFontFamily"].dispatch(item),
+    });
+    this.bindPersistedSetting({
       control: this.translateHotkeyButton,
       event: "change",
       apply: (key) => {
@@ -1320,20 +1463,6 @@ export class SettingsView {
   private doReleaseUIEvents(): void {
     this.flushStoragePersists();
     for (const event of Object.values(this.events)) event.clear();
-  }
-  releaseUI(initialized = false) {
-    if (!this.isInitialized())
-      throw new Error("[VOT] SettingsView isn't initialized");
-    this.doReleaseUI();
-    this.initialized = initialized;
-    return this;
-  }
-  releaseUIEvents(initialized = false) {
-    if (!this.isInitialized())
-      throw new Error("[VOT] SettingsView isn't initialized");
-    this.doReleaseUIEvents();
-    this.initialized = initialized;
-    return this;
   }
   release() {
     if (!this.isInitialized()) return this;

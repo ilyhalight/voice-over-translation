@@ -18,15 +18,6 @@ export type IntervalIdleProfile = {
    * Inactivity threshold after which mode switches to `"idle"`.
    */
   idleAfterMs: number;
-  /**
-   * @deprecated Legacy aliases kept for backward compatibility with previous
-   * adaptive scheduler config. Used only when `checkIntervalMs` is omitted.
-   */
-  activeIntervalMs?: number;
-  /** @deprecated See `activeIntervalMs`. */
-  idleIntervalMs?: number;
-  /** @deprecated See `activeIntervalMs`. */
-  hiddenIntervalMs?: number;
 };
 
 type IntervalIdleSubscriber = (ctx: IntervalIdleTickContext) => void;
@@ -70,41 +61,13 @@ function normalizeNonNegativeMs(
   return Math.max(0, Math.trunc(value));
 }
 
-function normalizeOptionalPositiveMs(value: number | undefined): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return null;
-  }
-  return Math.max(1, Math.trunc(value));
-}
-
-function resolveLegacyCheckIntervalMs(
-  profile: Partial<IntervalIdleProfile>,
-): number | null {
-  // Prefer `hiddenIntervalMs` because the old defaults used it as the most
-  // conservative cadence and it matches the interval-checker strategy best.
-  const hidden = normalizeOptionalPositiveMs(profile.hiddenIntervalMs);
-  if (hidden !== null) {
-    return hidden;
-  }
-  const idle = normalizeOptionalPositiveMs(profile.idleIntervalMs);
-  if (idle !== null) {
-    return idle;
-  }
-  const active = normalizeOptionalPositiveMs(profile.activeIntervalMs);
-  if (active !== null) {
-    return active;
-  }
-  return null;
-}
-
 function normalizeProfile(
   profile: Partial<IntervalIdleProfile> = {},
 ): IntervalIdleProfile {
-  const legacyCheckIntervalMs = resolveLegacyCheckIntervalMs(profile);
   return {
     checkIntervalMs: normalizePositiveMs(
       profile.checkIntervalMs,
-      legacyCheckIntervalMs ?? DEFAULT_PROFILE.checkIntervalMs,
+      DEFAULT_PROFILE.checkIntervalMs,
     ),
     idleAfterMs: normalizeNonNegativeMs(
       profile.idleAfterMs,

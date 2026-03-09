@@ -41,7 +41,7 @@ export default class Tooltip {
 
   private scrollListening = false;
   private positionRafId: number | null = null;
-  private destroyFallbackTimerId: number | undefined;
+  private destroyFallbackTimerId: ReturnType<typeof setTimeout> | undefined;
   private static readonly DESTROY_FALLBACK_MS = 700;
 
   // Accessibility: link trigger -> tooltip via aria-describedby.
@@ -221,11 +221,15 @@ export default class Tooltip {
   }
 
   updatePageSize() {
+    // Layout bounds may be computed against a player container while the
+    // tooltip itself is mounted into a portal attached elsewhere in the DOM.
+    // We therefore calculate in layout-root coordinates and later convert
+    // back to viewport coordinates for the rendered tooltip.
     if (this.layoutRoot === document.documentElement) {
       this.globalOffsetX = 0;
       this.globalOffsetY = 0;
     } else {
-      const { left, top } = this.parentElement.getBoundingClientRect();
+      const { left, top } = this.layoutRoot.getBoundingClientRect();
       this.globalOffsetX = left;
       this.globalOffsetY = top;
     }
@@ -234,6 +238,7 @@ export default class Tooltip {
       this.layoutRoot.clientWidth || document.documentElement.clientWidth;
     this.pageHeight =
       this.layoutRoot.clientHeight || document.documentElement.clientHeight;
+
     return this;
   }
 
@@ -372,6 +377,7 @@ export default class Tooltip {
     this.container.style.transform = `translate(${left}px, ${top}px)`;
     this.container.dataset.position = this.position;
     this.container.style.maxWidth = `${maxWidth}px`;
+
     return this;
   }
 
@@ -486,13 +492,18 @@ export default class Tooltip {
     }
 
     this.position = resolvedPosition;
-    return coords;
+    return {
+      top: coords.top + this.globalOffsetY,
+      left: coords.left + this.globalOffsetX,
+    };
   }
 
   private destroy(instant = false) {
     if (!this.container) {
       return this;
     }
+
+    const container = this.container;
 
     this.cancelPositionUpdate();
     this.clearDestroyFallbackTimer();
@@ -503,12 +514,11 @@ export default class Tooltip {
     this.intersectionObserver?.disconnect();
     this.detachScrollListener();
     if (instant) {
-      this.container.remove();
+      container.remove();
       this.container = undefined;
       return this;
     }
 
-    const container = this.container;
     container.removeEventListener("mouseleave", this.onTooltipMouseLeave);
     container.style.pointerEvents = "none";
     container.style.opacity = "0";
