@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.3
+// @version         1.11.3.1
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -8443,11 +8443,11 @@ string() {
         constructor(storage = votStorage) {
           this.storage = storage;
         }
-        getStorageKey(host) {
+        getStorageKey() {
           return VOT_SESSION_STORAGE_KEY;
         }
-        async restore(host, currentSessions = {}) {
-          const storageKey = this.getStorageKey(host);
+        async restore(_host, currentSessions = {}) {
+          const storageKey = this.getStorageKey();
           const rawStoredSession = await this.storage.getRaw(storageKey);
           if (!isStoredVOTSession(rawStoredSession)) {
             return currentSessions;
@@ -8471,8 +8471,8 @@ string() {
             }
           };
         }
-        async persist(host, sessions) {
-          const storageKey = this.getStorageKey(host);
+        async persist(_host, sessions) {
+          const storageKey = this.getStorageKey();
           const translationSession = sanitizeVOTSessions(sessions)["video-translation"];
           if (!translationSession) {
             await this.storage.deleteRaw(storageKey);
@@ -8568,81 +8568,134 @@ clear() {
           const dedupe = options.dedupe !== false;
           const allowStaleOnError = options.allowStaleOnError !== false;
           const nowMs = Date.now();
-          let staleFallback;
-          if (useMemory) {
-            const memoryHit = this.readMemoryCache(key, nowMs);
-            if (memoryHit.fresh) {
-              return memoryHit.fresh;
-            }
-            staleFallback = memoryHit.stale ?? staleFallback;
+          const staleFallback = await this.readCachedResponse({
+            key,
+            nowMs,
+            useMemory,
+            useCacheApi,
+            cacheName,
+            url: context.url,
+            cacheApiKey,
+            ttlMs,
+            allowStaleOnError
+          });
+          if (staleFallback.fresh) {
+            return staleFallback.fresh;
           }
-          if (useCacheApi) {
-            const cacheApiHit = await this.readCacheApi(
-              cacheName,
-              context.url,
-              cacheApiKey,
-              ttlMs,
-              nowMs,
-              allowStaleOnError
-            );
-            if (cacheApiHit.fresh) {
-              if (useMemory) {
-                this.writeMemoryCache(
-                  key,
-                  cacheApiHit.fresh.clone(),
-                  cacheApiHit.expiresAt ?? nowMs + ttlMs
-                );
-              }
-              return cacheApiHit.fresh;
-            }
-            staleFallback = staleFallback ?? cacheApiHit.stale;
-          }
-          const runNetworkRequest = async () => {
-            const response = await fetcher();
-            if (!response.ok) {
-              return response;
-            }
-            const createdAtMs = Date.now();
-            const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
-            if (useMemory) {
-              this.writeMemoryCache(key, response.clone(), expiresAt);
-            }
-            if (useCacheApi) {
-              const storable = this.toStorableResponse(response.clone(), createdAtMs);
-              await this.writeCacheApi(cacheName, context.url, cacheApiKey, storable);
-            }
-            return response;
-          };
           if (!dedupe) {
-            try {
-              return await runNetworkRequest();
-            } catch (err) {
-              if (allowStaleOnError && staleFallback) {
-                return staleFallback;
-              }
-              throw err;
-            }
+            return await this.runNetworkRequestWithFallback(
+              {
+                key,
+                cacheName,
+                url: context.url,
+                cacheApiKey,
+                ttlMs,
+                useMemory,
+                useCacheApi
+              },
+              fetcher,
+              allowStaleOnError ? staleFallback.stale : void 0
+            );
           }
           const inFlight = this.inFlightRequests.get(key);
           if (inFlight !== void 0) {
             return (await inFlight).clone();
           }
-          const networkPromise = (async () => {
-            try {
-              return await runNetworkRequest();
-            } catch (err) {
-              if (allowStaleOnError && staleFallback) {
-                return staleFallback.clone();
-              }
-              throw err;
-            }
-          })();
+          const networkPromise = this.runNetworkRequestWithFallback(
+            {
+              key,
+              cacheName,
+              url: context.url,
+              cacheApiKey,
+              ttlMs,
+              useMemory,
+              useCacheApi
+            },
+            fetcher,
+            allowStaleOnError ? staleFallback.stale?.clone() : void 0
+          );
           this.inFlightRequests.set(key, networkPromise);
           try {
             return (await networkPromise).clone();
           } finally {
             this.inFlightRequests.delete(key);
           }
+        }
+        async readCachedResponse({
+          key,
+          nowMs,
+          useMemory,
+          useCacheApi,
+          cacheName,
+          url,
+          cacheApiKey,
+          ttlMs,
+          allowStaleOnError
+        }) {
+          let staleFallback;
+          if (useMemory) {
+            const memoryHit = this.readMemoryCache(key, nowMs);
+            if (memoryHit.fresh) {
+              return { fresh: memoryHit.fresh };
+            }
+            staleFallback = memoryHit.stale;
+          }
+          if (!useCacheApi) {
+            return { stale: staleFallback };
+          }
+          const cacheApiHit = await this.readCacheApi(
+            cacheName,
+            url,
+            cacheApiKey,
+            ttlMs,
+            nowMs,
+            allowStaleOnError
+          );
+          if (cacheApiHit.fresh) {
+            if (useMemory) {
+              this.writeMemoryCache(
+                key,
+                cacheApiHit.fresh.clone(),
+                cacheApiHit.expiresAt ?? nowMs + ttlMs
+              );
+            }
+            return { fresh: cacheApiHit.fresh };
+          }
+          return { stale: staleFallback ?? cacheApiHit.stale };
+        }
+        async runNetworkRequestWithFallback(cacheConfig, fetcher, staleFallback) {
+          try {
+            return await this.runNetworkRequest(cacheConfig, fetcher);
+          } catch (err) {
+            if (staleFallback) {
+              return staleFallback;
+            }
+            throw err;
+          }
+        }
+        async runNetworkRequest({
+          key,
+          cacheName,
+          url,
+          cacheApiKey,
+          ttlMs,
+          useMemory,
+          useCacheApi
+        }, fetcher) {
+          const response = await fetcher();
+          if (!response.ok) {
+            return response;
+          }
+          const createdAtMs = Date.now();
+          const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+          if (useMemory) {
+            this.writeMemoryCache(key, response.clone(), expiresAt);
+          }
+          if (useCacheApi) {
+            const storable = this.toStorableResponse(response.clone(), createdAtMs);
+            await this.writeCacheApi(cacheName, url, cacheApiKey, storable);
+          }
+          return response;
         }
         computeExpiresAt(createdAtMs, ttlMs) {
           if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
@@ -8665,7 +8718,7 @@ clear() {
         }
         buildDefaultCacheKey(context) {
           const method = this.normalizeMethod(context.method);
-          if (method === "GET" || method === "HEAD") {
+          if (method === "GET") {
             return `${method}:${context.url}`;
           }
           const bodyKey = this.resolveBodyKey(context.body);
@@ -8814,6 +8867,43 @@ clear() {
           return null;
         }
       }
+      function extractNestedMessage(error2) {
+        const candidates = [
+          error2?.data?.message,
+          error2?.error?.message,
+          error2?.message
+        ];
+        for (const candidate of candidates) {
+          if (typeof candidate === "string" && candidate) {
+            return candidate;
+          }
+        }
+        return null;
+      }
+      function formatObjectError(error2, fallback) {
+        const nestedMessage = extractNestedMessage(error2);
+        if (nestedMessage) {
+          return nestedMessage;
+        }
+        const serialized = stringifyUnknownObject(error2);
+        if (serialized && serialized !== "{}") {
+          return serialized;
+        }
+        const ctorName = error2.constructor?.name;
+        return ctorName ? `[${ctorName}]` : fallback;
+      }
+      function formatPrimitiveError(error2, fallback) {
+        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
+          return `${error2}`;
+        }
+        if (typeof error2 === "symbol") {
+          return error2.description ? `Symbol(${error2.description})` : "Symbol";
+        }
+        if (typeof error2 === "function") {
+          return error2.name ? `[Function ${error2.name}]` : "[Function]";
+        }
+        return fallback;
+      }
       function toErrorMessage(error2, fallback = "Unknown error") {
         if (error2 instanceof Error) {
           return error2.message || fallback;
@@ -8825,33 +8915,9 @@ clear() {
           return fallback;
         }
         if (typeof error2 === "object") {
-          const anyErr = error2;
-          if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
-            return anyErr.data.message;
-          }
-          if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
-            return anyErr.error.message;
-          }
-          if (typeof anyErr?.message === "string" && anyErr.message) {
-            return anyErr.message;
-          }
-          const serialized = stringifyUnknownObject(error2);
-          if (serialized && serialized !== "{}") {
-            return serialized;
-          }
-          const ctorName = error2.constructor?.name;
-          return ctorName ? `[${ctorName}]` : fallback;
+          return formatObjectError(error2, fallback);
         }
-        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
-          return `${error2}`;
-        }
-        if (typeof error2 === "symbol") {
-          return error2.description ? `Symbol(${error2.description})` : "Symbol";
-        }
-        if (typeof error2 === "function") {
-          return error2.name ? `[Function ${error2.name}]` : "[Function]";
-        }
-        return fallback;
+        return formatPrimitiveError(error2, fallback);
       }
       function getErrorMessage(error2) {
         return toErrorMessage(error2, "");
@@ -9661,7 +9727,7 @@ get isSupportOnlyLS() {
         return buildVersion || scriptVersion || "unknown";
       }
       function getRuntimeLocaleVersion() {
-        const buildVersion = String("1.11.3");
+        const buildVersion = String("1.11.3.1");
         const scriptVersion = typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "";
         return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
       }
@@ -10095,38 +10161,44 @@ locale;
       function closestCrossShadow(element, selector) {
         if (!element || !selector) return null;
         const origin = element instanceof Document ? null : element;
-        const walk = (current) => {
-          if (!current) return null;
-          if (current instanceof Document) {
-            if (origin) {
-              const matches = current.querySelectorAll(selector);
-              for (const match of matches) {
-                if (containsCrossShadow(match, origin)) {
-                  return match;
-                }
-              }
-              return null;
-            }
-            return current.querySelector(selector);
+        return walkCrossShadow(element, selector, origin);
+      }
+      function findMatchingDocumentElement(current, selector, origin) {
+        if (!origin) {
+          return current.querySelector(selector);
+        }
+        const matches = current.querySelectorAll(selector);
+        for (const match of matches) {
+          if (containsCrossShadow(match, origin)) {
+            return match;
           }
-          const closest = current.closest(selector);
-          if (closest) return closest;
-          const root = current.getRootNode();
-          if (root instanceof ShadowRoot) {
-            return walk(root.host);
+        }
+        return null;
+      }
+      function getNextCrossShadowTarget(current) {
+        const root = current.getRootNode();
+        if (root instanceof ShadowRoot) {
+          return root.host;
+        }
+        if (root instanceof Document) {
+          return root;
+        }
+        if (root !== current) {
+          const parent = getComposableParent(root);
+          if (parent && parent !== current && parent instanceof Element) {
+            return parent;
           }
-          if (root instanceof Document) {
-            return walk(root);
-          }
-          if (root !== current) {
-            const parent = getComposableParent(root);
-            if (parent && parent !== current && parent instanceof Element) {
-              return walk(parent);
-            }
-          }
-          return null;
-        };
-        return walk(element);
+        }
+        return null;
+      }
+      function walkCrossShadow(current, selector, origin) {
+        if (!current) return null;
+        if (current instanceof Document) {
+          return findMatchingDocumentElement(current, selector, origin);
+        }
+        const closest = current.closest(selector);
+        if (closest) return closest;
+        return walkCrossShadow(getNextCrossShadowTarget(current), selector, origin);
       }
       function findConnectedContainerBySelector(video, selector) {
         if (!selector) {
@@ -10377,31 +10449,32 @@ locale;
         }
         const hostname = url.hostname.toLowerCase();
         if (hostname === "youtu.be" || hostname.endsWith(".youtu.be")) {
-          const id = url.pathname.split("/").find(Boolean);
+          return getValidatedVideoId(url.pathname.split("/").find(Boolean), input);
+        }
+        const searchId = url.searchParams.get("v");
+        if (searchId && VIDEO_ID_PATTERN.test(searchId)) return searchId;
+        const pathSegments = url.pathname.split("/").filter(Boolean);
+        const pathId = getVideoIdFromPathSegments(pathSegments);
+        if (pathId) return pathId;
+        throw new Error(`Cannot extract YouTube video id from: ${input}`);
+      }
+      function getValidatedVideoId(id, input) {
+        if (id && VIDEO_ID_PATTERN.test(id)) {
+          return id;
+        }
+        throw new Error(`Cannot extract YouTube video id from: ${input}`);
+      }
+      function getVideoIdFromPathSegments(pathSegments) {
+        const pathMarkers = ["shorts", "embed"];
+        for (const marker of pathMarkers) {
+          const markerIndex = pathSegments.indexOf(marker);
+          if (markerIndex === -1) continue;
+          const id = pathSegments[markerIndex + 1];
           if (id && VIDEO_ID_PATTERN.test(id)) {
             return id;
           }
         }
-        const searchId = url.searchParams.get("v");
-        if (searchId && VIDEO_ID_PATTERN.test(searchId)) {
-          return searchId;
-        }
-        const pathSegments = url.pathname.split("/").filter(Boolean);
-        const shortsIndex = pathSegments.indexOf("shorts");
-        if (shortsIndex !== -1) {
-          const shortsId = pathSegments[shortsIndex + 1];
-          if (shortsId && VIDEO_ID_PATTERN.test(shortsId)) {
-            return shortsId;
-          }
-        }
-        const embedIndex = pathSegments.indexOf("embed");
-        if (embedIndex !== -1) {
-          const embedId = pathSegments[embedIndex + 1];
-          if (embedId && VIDEO_ID_PATTERN.test(embedId)) {
-            return embedId;
-          }
-        }
-        throw new Error(`Cannot extract YouTube video id from: ${input}`);
+        return null;
       }
       function decodeEscapedJsonString(input) {
         return input.replaceAll("\\u0026", "&").replaceAll("\\/", "/");
@@ -11425,45 +11498,18 @@ isLivelyVoiceUnavailableError(value) {
               requestLangForApi,
               responseLang
             );
-            let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && Boolean(this.videoHandler.data?.useLivelyVoice);
-            let res;
-            for (let attempt = 0; attempt < 2; attempt++) {
-              try {
-                res = await this.videoHandler.votClient.translateVideo({
-                  videoData,
-                  requestLang: requestLangForApi,
-                  responseLang,
-                  translationHelp,
-                  extraOpts: {
-                    useLivelyVoice,
-                    videoTitle: this.videoHandler.videoData?.title
-                  },
-                  shouldSendFailedAudio
-                });
-              } catch (err) {
-                if (useLivelyVoice && this.isLivelyVoiceUnavailableError(err)) {
-                  debug.log(
-                    "[translateVideoImpl] Lively voices are unavailable. Falling back to standard translation.",
-                    err
-                  );
-                  livelyDisabled = true;
-                  useLivelyVoice = false;
-                  continue;
-                }
-                throw err;
-              }
-              if (useLivelyVoice && this.isLivelyVoiceUnavailableError(res)) {
-                debug.log(
-                  "[translateVideoImpl] Server responded that lively voices are unavailable. Falling back to standard translation.",
-                  res
-                );
-                livelyDisabled = true;
-                useLivelyVoice = false;
-                res = void 0;
-                continue;
-              }
-              break;
-            }
+            const translationAttempt = await this.requestTranslationWithLivelyFallback({
+              videoData,
+              requestLangForApi,
+              responseLang,
+              translationHelp,
+              shouldSendFailedAudio,
+              livelyDisabled,
+              livelyVoiceAllowed
+            });
+            livelyDisabled = translationAttempt.livelyDisabled;
+            const useLivelyVoice = translationAttempt.useLivelyVoice;
+            const res = translationAttempt.response;
             if (!res) {
               throw new Error("Failed to get translation response");
             }
@@ -11540,6 +11586,62 @@ isLivelyVoiceUnavailableError(value) {
             2e4,
             signal
           );
+        }
+        async requestTranslationWithLivelyFallback({
+          videoData,
+          requestLangForApi,
+          responseLang,
+          translationHelp,
+          shouldSendFailedAudio,
+          livelyDisabled,
+          livelyVoiceAllowed
+        }) {
+          let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && Boolean(this.videoHandler.data?.useLivelyVoice);
+          let response;
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            response = await this.tryTranslateVideoRequest({
+              videoData,
+              requestLangForApi,
+              responseLang,
+              translationHelp,
+              shouldSendFailedAudio,
+              useLivelyVoice
+            });
+            if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+              break;
+            }
+            livelyDisabled = true;
+            useLivelyVoice = false;
+            response = void 0;
+          }
+          return { response, useLivelyVoice, livelyDisabled };
+        }
+        async tryTranslateVideoRequest({
+          videoData,
+          requestLangForApi,
+          responseLang,
+          translationHelp,
+          shouldSendFailedAudio,
+          useLivelyVoice
+        }) {
+          try {
+            return await this.videoHandler.votClient.translateVideo({
+              videoData,
+              requestLang: requestLangForApi,
+              responseLang,
+              translationHelp,
+              extraOpts: {
+                useLivelyVoice,
+                videoTitle: this.videoHandler.videoData?.title
+              },
+              shouldSendFailedAudio
+            });
+          } catch (err) {
+            if (useLivelyVoice && this.isLivelyVoiceUnavailableError(err)) {
+              return void 0;
+            }
+            throw err;
+          }
         }
         waitForAudioDownloadCompletion(signal, timeoutMs) {
           if (!this.downloading) {
@@ -13163,93 +13265,115 @@ updateMount({
           const right = anchorRight - this.globalOffsetX;
           const top = anchorTop - this.globalOffsetY;
           const bottom = anchorBottom - this.globalOffsetY;
-          let resolvedPosition = position2;
-          if (autoLayout) {
-            switch (position2) {
-              case "top": {
-                const pTop = clamp$2(top - height - this.offsetY, 0, this.pageHeight);
-                if (pTop + this.offsetY < height) {
-                  resolvedPosition = "bottom";
-                }
-                break;
-              }
-              case "right": {
-                const pLeft = clamp$2(right + this.offsetX, 0, this.pageWidth - width);
-                if (pLeft + width > this.pageWidth - this.offsetX) {
-                  resolvedPosition = "left";
-                }
-                break;
-              }
-              case "bottom": {
-                const pTop = clamp$2(
-                  bottom + this.offsetY,
-                  0,
-                  this.pageHeight - height
-                );
-                if (pTop + height > this.pageHeight - this.offsetY) {
-                  resolvedPosition = "top";
-                }
-                break;
-              }
-              case "left": {
-                const pLeft = Math.max(0, left - width - this.offsetX);
-                if (pLeft + width > left - this.offsetX) {
-                  resolvedPosition = "right";
-                }
-                break;
-              }
-            }
-          }
-          let coords;
-          switch (resolvedPosition) {
-            case "top":
-              coords = {
-                top: clamp$2(top - height - this.offsetY, 0, this.pageHeight),
-                left: clamp$2(
-                  left - width / 2 + anchorWidth / 2,
-                  this.offsetX,
-                  this.pageWidth - width - this.offsetX
-                )
-              };
-              break;
-            case "right":
-              coords = {
-                top: clamp$2(
-                  top + (anchorHeight - height) / 2,
-                  this.offsetY,
-                  this.pageHeight - height - this.offsetY
-                ),
-                left: clamp$2(right + this.offsetX, 0, this.pageWidth - width)
-              };
-              break;
-            case "bottom":
-              coords = {
-                top: clamp$2(bottom + this.offsetY, 0, this.pageHeight - height),
-                left: clamp$2(
-                  left - width / 2 + anchorWidth / 2,
-                  this.offsetX,
-                  this.pageWidth - width - this.offsetX
-                )
-              };
-              break;
-            case "left":
-              coords = {
-                top: clamp$2(
-                  top + (anchorHeight - height) / 2,
-                  this.offsetY,
-                  this.pageHeight - height - this.offsetY
-                ),
-                left: Math.max(0, left - width - this.offsetX)
-              };
-              break;
-            default:
-              coords = { top: 0, left: 0 };
-          }
+          const anchorBox = { left, right, top, bottom, anchorWidth, anchorHeight };
+          const size = { width, height };
+          const resolvedPosition = this.resolveTooltipPosition(
+            anchorBox,
+            size,
+            position2,
+            autoLayout
+          );
+          const coords = this.getTooltipCoordinates(
+            anchorBox,
+            size,
+            resolvedPosition
+          );
           this.position = resolvedPosition;
           return {
             top: coords.top + this.globalOffsetY,
             left: coords.left + this.globalOffsetX
           };
+        }
+        resolveTooltipPosition(anchorBox, size, position2, autoLayout) {
+          if (!autoLayout) {
+            return position2;
+          }
+          switch (position2) {
+            case "top": {
+              const pTop = clamp$2(
+                anchorBox.top - size.height - this.offsetY,
+                0,
+                this.pageHeight
+              );
+              return pTop + this.offsetY < size.height ? "bottom" : "top";
+            }
+            case "right": {
+              const pLeft = clamp$2(
+                anchorBox.right + this.offsetX,
+                0,
+                this.pageWidth - size.width
+              );
+              return pLeft + size.width > this.pageWidth - this.offsetX ? "left" : "right";
+            }
+            case "bottom": {
+              const pTop = clamp$2(
+                anchorBox.bottom + this.offsetY,
+                0,
+                this.pageHeight - size.height
+              );
+              return pTop + size.height > this.pageHeight - this.offsetY ? "top" : "bottom";
+            }
+            case "left": {
+              const pLeft = Math.max(0, anchorBox.left - size.width - this.offsetX);
+              return pLeft + size.width > anchorBox.left - this.offsetX ? "right" : "left";
+            }
+            default:
+              return position2;
+          }
+        }
+        getTooltipCoordinates(anchorBox, size, position2) {
+          switch (position2) {
+            case "top":
+              return {
+                top: clamp$2(
+                  anchorBox.top - size.height - this.offsetY,
+                  0,
+                  this.pageHeight
+                ),
+                left: clamp$2(
+                  anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
+                  this.offsetX,
+                  this.pageWidth - size.width - this.offsetX
+                )
+              };
+            case "right":
+              return {
+                top: clamp$2(
+                  anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
+                  this.offsetY,
+                  this.pageHeight - size.height - this.offsetY
+                ),
+                left: clamp$2(
+                  anchorBox.right + this.offsetX,
+                  0,
+                  this.pageWidth - size.width
+                )
+              };
+            case "bottom":
+              return {
+                top: clamp$2(
+                  anchorBox.bottom + this.offsetY,
+                  0,
+                  this.pageHeight - size.height
+                ),
+                left: clamp$2(
+                  anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
+                  this.offsetX,
+                  this.pageWidth - size.width - this.offsetX
+                )
+              };
+            case "left":
+              return {
+                top: clamp$2(
+                  anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
+                  this.offsetY,
+                  this.pageHeight - size.height - this.offsetY
+                ),
+                left: Math.max(0, anchorBox.left - size.width - this.offsetX)
+              };
+            default:
+              return { top: 0, left: 0 };
+          }
         }
         destroy(instant = false) {
           if (!this.container) {
@@ -13647,10 +13771,91 @@ updateMount({
         return { snapped: true, value: closestValue };
       }
       const stylesEqual$1 = (left, right) => Boolean(left?.italic) === Boolean(right?.italic) && Boolean(left?.bold) === Boolean(right?.bold) && Boolean(left?.underline) === Boolean(right?.underline);
+      const pushTextPart = (plan, text, style, withBreak = false) => {
+        plan.push({
+          kind: "text",
+          text,
+          style
+        });
+        if (withBreak) {
+          plan.push({ kind: "break" });
+        }
+      };
+      const flushPendingPrefix = (plan, pendingPrefix) => {
+        if (!pendingPrefix.text) {
+          return;
+        }
+        pushTextPart(plan, pendingPrefix.text, pendingPrefix.style);
+        pendingPrefix.text = "";
+        pendingPrefix.style = void 0;
+      };
+      const skipWhitespaceTokens = (tokens, startIndex, renderEndTokenIndex) => {
+        let index = startIndex;
+        while (index <= renderEndTokenIndex && !tokens[index]?.isWordLike && !tokens[index]?.text.trim()) {
+          index += 1;
+        }
+        return index;
+      };
+      const consumeWordToken = (plan, tokens, startIndex, renderEndTokenIndex, breakAfterTokenIndexSet, pendingPrefix) => {
+        const token = tokens[startIndex];
+        let text = pendingPrefix.text + token.text;
+        const style = pendingPrefix.text ? pendingPrefix.style : token.style;
+        pendingPrefix.text = "";
+        pendingPrefix.style = void 0;
+        let endIndex = startIndex;
+        let breakTokenIndex = breakAfterTokenIndexSet?.has(startIndex) ? startIndex : null;
+        while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
+          const next = tokens[endIndex + 1];
+          if (!next || next.isWordLike || next.text === "\n" || !stylesEqual$1(next.style, style)) {
+            break;
+          }
+          text += next.text;
+          endIndex += 1;
+          if (breakAfterTokenIndexSet?.has(endIndex)) {
+            breakTokenIndex = endIndex;
+          }
+        }
+        plan.push({
+          kind: "word",
+          text,
+          style
+        });
+        if (breakTokenIndex === null) {
+          return endIndex + 1;
+        }
+        plan.push({ kind: "break" });
+        return skipWhitespaceTokens(tokens, breakTokenIndex + 1, renderEndTokenIndex);
+      };
+      const consumeTextToken = (plan, token, tokenText, hasBreakAfter, pendingPrefix) => {
+        const isWhitespaceOnly = tokenText.trim().length === 0;
+        if (isWhitespaceOnly) {
+          flushPendingPrefix(plan, pendingPrefix);
+          pushTextPart(plan, tokenText, token.style, hasBreakAfter);
+          return;
+        }
+        if (hasBreakAfter) {
+          pushTextPart(
+            plan,
+            pendingPrefix.text + tokenText,
+            pendingPrefix.text ? pendingPrefix.style : token.style,
+            true
+          );
+          pendingPrefix.text = "";
+          pendingPrefix.style = void 0;
+          return;
+        }
+        if (pendingPrefix.text && !stylesEqual$1(pendingPrefix.style, token.style)) {
+          flushPendingPrefix(plan, pendingPrefix);
+        }
+        pendingPrefix.text += tokenText;
+        pendingPrefix.style = token.style;
+      };
       function buildSubtitleRenderPlan(tokens, renderEndTokenIndex, breakAfterTokenIndexSet) {
         const plan = [];
-        let pendingPrefix = "";
-        let pendingPrefixStyle;
+        const pendingPrefix = {
+          text: "",
+          style: void 0
+        };
         for (let i2 = 0; i2 <= renderEndTokenIndex; ) {
           const token = tokens[i2];
           const tokenText = token?.text ?? "";
@@ -13659,124 +13864,27 @@ updateMount({
             continue;
           }
           if (tokenText === "\n") {
-            if (pendingPrefix) {
-              plan.push({
-                kind: "text",
-                text: pendingPrefix,
-                style: pendingPrefixStyle
-              });
-              pendingPrefix = "";
-              pendingPrefixStyle = void 0;
-            }
+            flushPendingPrefix(plan, pendingPrefix);
             plan.push({ kind: "break" });
             i2 += 1;
             continue;
           }
           if (token.isWordLike) {
-            let text = pendingPrefix + tokenText;
-            const style = pendingPrefix ? pendingPrefixStyle : token.style;
-            pendingPrefix = "";
-            pendingPrefixStyle = void 0;
-            let endIndex = i2;
-            const hasBreakAfterWord = Boolean(breakAfterTokenIndexSet?.has(i2));
-            let breakTokenIndex = hasBreakAfterWord ? i2 : null;
-            while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
-              const next = tokens[endIndex + 1];
-              if (!next || next.isWordLike || next.text === "\n" || !stylesEqual$1(next.style, style))
-                break;
-              text += next.text;
-              endIndex += 1;
-              if (breakAfterTokenIndexSet?.has(endIndex)) {
-                breakTokenIndex = endIndex;
-                break;
-              }
-            }
-            if (breakTokenIndex !== null) {
-              plan.push(
-                {
-                  kind: "word",
-                  text,
-                  style
-                },
-                { kind: "break" }
-              );
-              i2 = breakTokenIndex + 1;
-              while (i2 <= renderEndTokenIndex && !tokens[i2]?.isWordLike && !tokens[i2]?.text.trim()) {
-                i2 += 1;
-              }
-              continue;
-            }
-            plan.push({
-              kind: "word",
-              text,
-              style
-            });
-            i2 = endIndex + 1;
+            i2 = consumeWordToken(
+              plan,
+              tokens,
+              i2,
+              renderEndTokenIndex,
+              breakAfterTokenIndexSet,
+              pendingPrefix
+            );
             continue;
           }
           const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i2));
-          const isWhitespaceOnly = tokenText.trim().length === 0;
-          if (!isWhitespaceOnly) {
-            if (hasBreakAfter) {
-              plan.push(
-                {
-                  kind: "text",
-                  text: pendingPrefix + tokenText,
-                  style: pendingPrefix ? pendingPrefixStyle : token.style
-                },
-                { kind: "break" }
-              );
-              pendingPrefix = "";
-              pendingPrefixStyle = void 0;
-            } else {
-              if (pendingPrefix && !stylesEqual$1(pendingPrefixStyle, token.style)) {
-                plan.push({
-                  kind: "text",
-                  text: pendingPrefix,
-                  style: pendingPrefixStyle
-                });
-                pendingPrefix = "";
-              }
-              pendingPrefix += tokenText;
-              pendingPrefixStyle = token.style;
-            }
-            i2 += 1;
-            continue;
-          }
-          if (pendingPrefix) {
-            plan.push({
-              kind: "text",
-              text: pendingPrefix,
-              style: pendingPrefixStyle
-            });
-            pendingPrefix = "";
-            pendingPrefixStyle = void 0;
-          }
-          if (hasBreakAfter) {
-            plan.push(
-              {
-                kind: "text",
-                text: tokenText,
-                style: token.style
-              },
-              { kind: "break" }
-            );
-          } else {
-            plan.push({
-              kind: "text",
-              text: tokenText,
-              style: token.style
-            });
-          }
+          consumeTextToken(plan, token, tokenText, hasBreakAfter, pendingPrefix);
           i2 += 1;
         }
-        if (pendingPrefix) {
-          plan.push({
-            kind: "text",
-            text: pendingPrefix,
-            style: pendingPrefixStyle
-          });
-        }
+        flushPendingPrefix(plan, pendingPrefix);
         return plan;
       }
       const EST_CHAR_WIDTH_RATIO = 0.55;
@@ -13813,54 +13921,58 @@ updateMount({
         return prefix2[end + 1] - prefix2[start];
       };
       const sentenceEndingWordRegexp = /[.!?\u2026]+(?:["'`)\]}\u00BB\u201D\u2019]+)?$/u;
+      const buildSliceForWord = (tokens, tokenIndex) => {
+        const token = tokens[tokenIndex];
+        let textToNextWord = token.text;
+        let breakAfterTokenIndex = tokenIndex;
+        let breakTextLength = token.text.length;
+        let cursor = tokenIndex + 1;
+        let seenTrailingPunctuation = false;
+        let punctuationAttachmentClosed = false;
+        while (cursor < tokens.length) {
+          const nextToken = tokens[cursor];
+          if (!nextToken) {
+            cursor += 1;
+            continue;
+          }
+          if (isWordToken(nextToken)) break;
+          if (nextToken.text === "\n") {
+            breakAfterTokenIndex = cursor;
+            break;
+          }
+          const tokenText = nextToken.text ?? "";
+          textToNextWord += tokenText;
+          if (!tokenText.trim()) {
+            if (seenTrailingPunctuation) {
+              punctuationAttachmentClosed = true;
+            }
+            cursor += 1;
+            continue;
+          }
+          if (!punctuationAttachmentClosed) {
+            breakAfterTokenIndex = cursor;
+            seenTrailingPunctuation = true;
+            breakTextLength = textToNextWord.length;
+          }
+          cursor += 1;
+        }
+        return {
+          tokenIndex,
+          breakAfterTokenIndex,
+          textToNextWord,
+          trailingGapAfterBreakText: textToNextWord.slice(breakTextLength)
+        };
+      };
       function buildWordSlices(tokens) {
         const slices = [];
         let key = "";
         for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
           const token = tokens[tokenIndex];
           if (!isWordToken(token)) continue;
-          let textToNextWord = token.text;
-          let breakAfterTokenIndex = tokenIndex;
-          let breakTextLength = token.text.length;
-          let cursor = tokenIndex + 1;
-          let seenTrailingPunctuation = false;
-          let punctuationAttachmentClosed = false;
-          while (cursor < tokens.length) {
-            const nextToken = tokens[cursor];
-            if (!nextToken) {
-              cursor += 1;
-              continue;
-            }
-            if (isWordToken(nextToken)) break;
-            if (nextToken.text === "\n") {
-              breakAfterTokenIndex = cursor;
-              break;
-            }
-            const tokenText = nextToken.text ?? "";
-            textToNextWord += tokenText;
-            if (!tokenText.trim()) {
-              if (seenTrailingPunctuation) {
-                punctuationAttachmentClosed = true;
-              }
-              cursor += 1;
-              continue;
-            }
-            if (!punctuationAttachmentClosed) {
-              breakAfterTokenIndex = cursor;
-              seenTrailingPunctuation = true;
-              breakTextLength = textToNextWord.length;
-            }
-            cursor += 1;
-          }
-          const trailingGapAfterBreakText = textToNextWord.slice(breakTextLength);
-          slices.push({
-            tokenIndex,
-            breakAfterTokenIndex,
-            textToNextWord,
-            trailingGapAfterBreakText
-          });
+          const slice = buildSliceForWord(tokens, tokenIndex);
+          slices.push(slice);
           if (key) key += "";
-          key += `${textToNextWord}${trailingGapAfterBreakText}${breakAfterTokenIndex}`;
+          key += `${slice.textToNextWord}${slice.trailingGapAfterBreakText}${slice.breakAfterTokenIndex}`;
         }
         return {
           slices,
@@ -14990,81 +15102,108 @@ safeAreaBottomInsetCachedPx = 0;
         applySubtitlePositionWithLayout(layout, anchorBox) {
           const subtitlesContainer = this.subtitlesContainer;
           if (!subtitlesContainer) return;
+          this.applyScaleCompensation(subtitlesContainer, layout);
+          this.syncAnchorDimensions(subtitlesContainer, anchorBox);
+          if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
+          const elW = subtitlesContainer.offsetWidth;
+          const elH = subtitlesContainer.offsetHeight;
+          const bottomInset = this.getBottomInsetPx(layout, anchorBox);
+          const anchorPosition = this.resolveCurrentAnchorPosition(
+            anchorBox,
+            elW,
+            elH,
+            bottomInset
+          );
+          const containerPosition = this.clampContainerPosition(
+            anchorBox,
+            anchorPosition.anchorX,
+            anchorPosition.anchorY,
+            elW,
+            elH,
+            bottomInset
+          );
+          const anchorX = containerPosition.anchorX;
+          const anchorY = containerPosition.anchorY;
+          const containerAnchorX = anchorBox.left + anchorX;
+          const containerAnchorY = anchorBox.top + anchorY;
+          const leftPct = containerAnchorX / layout.w * 100;
+          const topPct = containerAnchorY / layout.h * 100;
+          this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
+          this.tokenTooltip?.updatePos();
+        }
+        applyScaleCompensation(subtitlesContainer, layout) {
           const visualScale = Math.min(layout.scaleX || 1, layout.scaleY || 1);
           const compensate = visualScale > 0 && visualScale < 0.999 ? Math.min(1 / visualScale, 3) : 1;
           if (Math.abs(compensate - 1) < 1e-3) {
             subtitlesContainer.style.removeProperty(
               "--vot-subtitles-scale-compensation"
             );
-          } else {
-            subtitlesContainer.style.setProperty(
-              "--vot-subtitles-scale-compensation",
-              compensate.toFixed(3)
-            );
+            return;
           }
+          subtitlesContainer.style.setProperty(
+            "--vot-subtitles-scale-compensation",
+            compensate.toFixed(3)
+          );
+        }
+        syncAnchorDimensions(subtitlesContainer, anchorBox) {
           const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
           const anchorHeightPx = Math.max(1, Math.round(anchorBox.h));
           const anchorDimsChanged = anchorWidthPx !== this.smartAnchorWidthPx || anchorHeightPx !== this.smartAnchorHeightPx;
-          if (anchorDimsChanged) {
-            this.smartAnchorWidthPx = anchorWidthPx;
-            this.smartAnchorHeightPx = anchorHeightPx;
-            subtitlesContainer.style.setProperty(
-              "--vot-subtitles-anchor-width",
-              `${anchorWidthPx}px`
-            );
-            subtitlesContainer.style.setProperty(
-              "--vot-subtitles-anchor-height",
-              `${anchorHeightPx}px`
-            );
-            if (this.lastWrapTokens) {
-              this.lastWrapKey = null;
-              this.resetSegmentationMemo();
-              this.scheduleWrapRecompute();
-            }
+          if (!anchorDimsChanged) {
+            return;
           }
-          if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
-          const elW = subtitlesContainer.offsetWidth;
-          const elH = subtitlesContainer.offsetHeight;
-          const bottomInset = this.getBottomInsetPx(layout, anchorBox);
+          this.smartAnchorWidthPx = anchorWidthPx;
+          this.smartAnchorHeightPx = anchorHeightPx;
+          subtitlesContainer.style.setProperty(
+            "--vot-subtitles-anchor-width",
+            `${anchorWidthPx}px`
+          );
+          subtitlesContainer.style.setProperty(
+            "--vot-subtitles-anchor-height",
+            `${anchorHeightPx}px`
+          );
+          if (this.lastWrapTokens) {
+            this.lastWrapKey = null;
+            this.resetSegmentationMemo();
+            this.scheduleWrapRecompute();
+          }
+        }
+        resolveCurrentAnchorPosition(anchorBox, elementWidth, elementHeight, bottomInset) {
           let anchorX = this.position.left / 100 * anchorBox.w;
           let anchorY = this.position.top / 100 * anchorBox.h;
-          if (this.positionPreset !== "custom") {
-            const presetPosition = this.resolvePresetAnchorPosition({
-              preset: this.positionPreset,
-              anchorBox,
-              elementWidth: elW,
-              elementHeight: elH,
-              bottomInset
-            });
-            anchorX = presetPosition.anchorX;
-            anchorY = presetPosition.anchorY;
-            if (anchorBox.w > 0) {
-              this.position.left = anchorX / anchorBox.w * 100;
-            }
-            if (anchorBox.h > 0) {
-              this.position.top = anchorY / anchorBox.h * 100;
-            }
+          if (this.positionPreset === "custom") {
+            return { anchorX, anchorY };
           }
-          let leftPx = anchorX - elW / 2;
-          let topPx = anchorY - elH;
-          const maxLeftPx = anchorBox.w - elW;
-          const maxTopPx = anchorBox.h - bottomInset - elH;
-          if (maxLeftPx >= 0) {
-            leftPx = clampToRange(leftPx, 0, maxLeftPx);
-          } else {
-            leftPx = maxLeftPx / 2;
+          const presetPosition = this.resolvePresetAnchorPosition({
+            preset: this.positionPreset,
+            anchorBox,
+            elementWidth,
+            elementHeight,
+            bottomInset
+          });
+          anchorX = presetPosition.anchorX;
+          anchorY = presetPosition.anchorY;
+          if (anchorBox.w > 0) {
+            this.position.left = anchorX / anchorBox.w * 100;
           }
-          if (maxTopPx >= 0) {
-            topPx = clampToRange(topPx, 0, maxTopPx);
-          } else {
-            topPx = 0;
+          if (anchorBox.h > 0) {
+            this.position.top = anchorY / anchorBox.h * 100;
           }
-          anchorX = leftPx + elW / 2;
-          anchorY = topPx + elH;
-          const containerAnchorX = anchorBox.left + anchorX;
-          const containerAnchorY = anchorBox.top + anchorY;
-          const leftPct = containerAnchorX / layout.w * 100;
-          const topPct = containerAnchorY / layout.h * 100;
+          return { anchorX, anchorY };
+        }
+        clampContainerPosition(anchorBox, anchorX, anchorY, elementWidth, elementHeight, bottomInset) {
+          let leftPx = anchorX - elementWidth / 2;
+          let topPx = anchorY - elementHeight;
+          const maxLeftPx = anchorBox.w - elementWidth;
+          const maxTopPx = anchorBox.h - bottomInset - elementHeight;
+          leftPx = maxLeftPx >= 0 ? clampToRange(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
+          topPx = maxTopPx >= 0 ? clampToRange(topPx, 0, maxTopPx) : 0;
+          return {
+            anchorX: leftPx + elementWidth / 2,
+            anchorY: topPx + elementHeight
+          };
+        }
+        updateContainerPosition(subtitlesContainer, leftPct, topPct) {
           if (this.lastAppliedLeftPct === null || Math.abs(leftPct - this.lastAppliedLeftPct) >= 0.01) {
             subtitlesContainer.style.left = `${leftPct}%`;
             this.lastAppliedLeftPct = leftPct;
@@ -15073,7 +15212,6 @@ safeAreaBottomInsetCachedPx = 0;
             subtitlesContainer.style.top = `${topPct}%`;
             this.lastAppliedTopPct = topPct;
           }
-          this.tokenTooltip?.updatePos();
         }
         resolvePresetAnchorPosition({
           preset,
@@ -15446,9 +15584,7 @@ safeAreaBottomInsetCachedPx = 0;
           }
           const target = this.resolveTokenSpanFromClick(event);
           if (!target) return;
-          if (this.tokenTooltip?.target === target && this.tokenTooltip?.container) {
-            if (this.tokenTooltip.showed) target.classList.add("selected");
-            else target.classList.remove("selected");
+          if (this.toggleCurrentTooltipTarget(target)) {
             return;
           }
           this.releaseTooltip();
@@ -15468,17 +15604,42 @@ safeAreaBottomInsetCachedPx = 0;
             this.strTranslatedTokens || this.strTokens,
             service
           );
+          const tooltip = this.createTokenTooltip(target, subtitlesInfo.container);
+          this.tokenTooltip = tooltip;
+          tooltip.onClick();
+          const strTokens = this.strTokens;
+          const translated = await this.translateStrTokens(text);
+          if (requestId !== this.tooltipTranslationRequestId) return;
+          if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) {
+            return;
+          }
+          subtitlesInfo.header.textContent = translated[1];
+          subtitlesInfo.context.textContent = translated[0];
+          tooltip.setContent(subtitlesInfo.container);
+        };
+        toggleCurrentTooltipTarget(target) {
+          if (this.tokenTooltip?.target !== target || !this.tokenTooltip?.container) {
+            return false;
+          }
+          if (this.tokenTooltip.showed) {
+            target.classList.add("selected");
+          } else {
+            target.classList.remove("selected");
+          }
+          return true;
+        }
+        createTokenTooltip(target, content) {
           const tooltipMaxWidth = Math.max(
             this.subtitleMaxWidthPx,
             this.subtitlesContainer?.offsetWidth ?? 0,
             this.subtitlesBlock?.offsetWidth ?? 0,
             Math.min(globalThis.innerWidth * 0.6, 320)
           );
-          const tooltip = new Tooltip({
+          return new Tooltip({
             target,
             anchor: this.subtitlesBlock ?? target,
             layoutRoot: this.tooltipLayoutRoot,
-            content: subtitlesInfo.container,
+            content,
             parentElement: this.getTokenTooltipParentElement(),
             offset: { x: 4, y: 12 },
             maxWidth: tooltipMaxWidth,
@@ -15487,17 +15648,10 @@ safeAreaBottomInsetCachedPx = 0;
             position: "top",
             trigger: "click"
           });
-          this.tokenTooltip = tooltip;
-          tooltip.onClick();
-          const strTokens = this.strTokens;
-          const translated = await this.translateStrTokens(text);
-          if (requestId !== this.tooltipTranslationRequestId) return;
-          if (strTokens !== this.strTokens || this.tokenTooltip !== tooltip || tooltip.target !== target || !tooltip.showed)
-            return;
-          subtitlesInfo.header.textContent = translated[1];
-          subtitlesInfo.context.textContent = translated[0];
-          tooltip.setContent(subtitlesInfo.container);
-        };
+        }
+        shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens) {
+          return requestId !== this.tooltipTranslationRequestId || strTokens !== this.strTokens || this.tokenTooltip !== tooltip || tooltip.target !== target || !tooltip.showed;
+        }
         buildPassedState(tokens, time, stateKey) {
           if (this.passedStateKey !== stateKey) {
             this.passedStateKey = stateKey;
@@ -15522,36 +15676,32 @@ safeAreaBottomInsetCachedPx = 0;
           const out = [];
           const plan = buildSubtitleRenderPlan(tokens, tokens.length - 1, breakAfter);
           for (const part of plan) {
-            if (part.kind === "word") {
-              out.push(
-                b`<span
-            data-vot-token="1"
-            data-vot-style-italic=${part.style?.italic ? "1" : "0"}
-            data-vot-style-bold=${part.style?.bold ? "1" : "0"}
-            data-vot-style-underline=${part.style?.underline ? "1" : "0"}
-            >${part.text}</span
-          >`
-              );
-              continue;
-            }
-            if (part.kind === "break") {
-              out.push(b`<br class="vot-subtitles-br" />`);
-              continue;
-            }
-            if (part.style) {
-              out.push(
-                b`<span
-            data-vot-style-italic=${part.style.italic ? "1" : "0"}
-            data-vot-style-bold=${part.style.bold ? "1" : "0"}
-            data-vot-style-underline=${part.style.underline ? "1" : "0"}
-            >${part.text}</span
-          >`
-              );
-              continue;
-            }
-            out.push(part.text);
+            out.push(this.renderPlanPart(part));
           }
           return out;
+        }
+        renderPlanPart(part) {
+          if (part.kind === "break") {
+            return b`<br class="vot-subtitles-br" />`;
+          }
+          if (part.kind === "word") {
+            return b`<span
+        data-vot-token="1"
+        data-vot-style-italic=${part.style?.italic ? "1" : "0"}
+        data-vot-style-bold=${part.style?.bold ? "1" : "0"}
+        data-vot-style-underline=${part.style?.underline ? "1" : "0"}
+        >${part.text}</span
+      >`;
+          }
+          if (part.style) {
+            return b`<span
+        data-vot-style-italic=${part.style.italic ? "1" : "0"}
+        data-vot-style-bold=${part.style.bold ? "1" : "0"}
+        data-vot-style-underline=${part.style.underline ? "1" : "0"}
+        >${part.text}</span
+      >`;
+          }
+          return part.text;
         }
         updatePassedClasses(passedFlags) {
           const tokenEls = this.renderedTokenEls;
@@ -15764,52 +15914,54 @@ safeAreaBottomInsetCachedPx = 0;
           }
           return out;
         }
-        update() {
-          if (!this.video || !this.subtitles) return;
-          const time = this.video.currentTime * 1e3;
-          const subtitlesList = this.subtitles.subtitles;
-          let line;
-          let lineIndex = -1;
+        resolveActiveLine(time, subtitlesList) {
           const lastIndex = this.lastActiveLineIndex;
           if (typeof lastIndex === "number" && lastIndex >= 0 && lastIndex < subtitlesList.length) {
             const candidate = subtitlesList[lastIndex];
             if (isTimeInLine(time, candidate)) {
-              line = candidate;
-              lineIndex = lastIndex;
+              return {
+                line: candidate,
+                lineIndex: lastIndex
+              };
             }
           }
-          if (!line) {
-            const index = findActiveSubtitleLineIndex(time, subtitlesList);
-            if (index !== -1) {
-              line = subtitlesList[index];
-              lineIndex = index;
-            }
+          const lineIndex = findActiveSubtitleLineIndex(time, subtitlesList);
+          if (lineIndex === -1) {
+            return null;
           }
-          if (!line) {
-            this.lastActiveLineIndex = null;
-            if (this.subtitlesBlock || this.lastRenderKey !== null || this.strTokens) {
-              this.clearRenderedContent({ releaseTooltip: true });
-            } else {
-              this.releaseTooltip();
-            }
+          return {
+            line: subtitlesList[lineIndex],
+            lineIndex
+          };
+        }
+        clearInactiveLineState() {
+          this.lastActiveLineIndex = null;
+          if (this.subtitlesBlock || this.lastRenderKey !== null || this.strTokens) {
+            this.clearRenderedContent({ releaseTooltip: true });
             return;
           }
-          this.lastActiveLineIndex = lineIndex;
-          if (this.smartLayoutEnabled) {
-            const now2 = performance.now();
-            if (this.lastSmartLayoutKey === null || now2 - this.lastSmartLayoutCheckTs > 500) {
-              this.lastSmartLayoutCheckTs = now2;
-              const layout = this.getLayoutSize();
-              if (layout.w && layout.h) {
-                const anchorBox = this.computeAnchorBoxLayout(layout);
-                if (anchorBox.w && anchorBox.h) {
-                  this.ensureSmartLayout(anchorBox);
-                }
-              }
-            }
-          } else {
+          this.releaseTooltip();
+        }
+        refreshSmartLayoutIfNeeded() {
+          if (!this.smartLayoutEnabled) {
             this.maxLength = this.manualMaxLength;
+            return;
           }
+          const now2 = performance.now();
+          if (this.lastSmartLayoutKey !== null && now2 - this.lastSmartLayoutCheckTs <= 500) {
+            return;
+          }
+          this.lastSmartLayoutCheckTs = now2;
+          const layout = this.getLayoutSize();
+          if (!layout.w || !layout.h) {
+            return;
+          }
+          const anchorBox = this.computeAnchorBoxLayout(layout);
+          if (anchorBox.w && anchorBox.h) {
+            this.ensureSmartLayout(anchorBox);
+          }
+        }
+        getRenderState(line, lineIndex, time) {
           const tokens = this.processTokens(line.tokens, time);
           this.lastWrapTokens = tokens;
           const hasSmartTruncation = this.smartLayoutEnabled && typeof this.smartTruncateAfterTokenIndex === "number" && this.smartTruncateAfterTokenIndex >= 0 && this.smartTruncateAfterTokenIndex < tokens.length - 1;
@@ -15824,15 +15976,15 @@ safeAreaBottomInsetCachedPx = 0;
           const passedStateKey = `${lineIndex}:${strTokens}`;
           const passedFlags = this.highlightWords ? this.buildPassedState(tokens, time, passedStateKey) : null;
           const wrapKey = `${this.breakAfterTokenIndices.join(",")}|${this.smartTruncateAfterTokenIndex ?? ""}`;
-          const renderKey = `${lineIndex}:${strTokens}:${wrapKey}`;
-          if (renderKey === this.lastRenderKey) {
-            if (this.highlightWords && !tokensChanged && passedFlags) {
-              this.updatePassedClasses(passedFlags);
-            }
-            this.maybeRefreshPosition();
-            return;
-          }
-          this.lastRenderKey = renderKey;
+          return {
+            tokens,
+            tokensChanged,
+            hasSmartTruncation,
+            passedFlags,
+            renderKey: `${lineIndex}:${strTokens}:${wrapKey}`
+          };
+        }
+        syncRenderedTokens(tokens, hasSmartTruncation) {
           this.subtitlesContainer = this.subtitlesContainer ?? this.createSubtitlesContainer();
           const subtitlesClass = hasSmartTruncation ? "vot-subtitles vot-subtitles--clamped" : "vot-subtitles";
           D(
@@ -15851,6 +16003,39 @@ safeAreaBottomInsetCachedPx = 0;
               'span[data-vot-token="1"]'
             )
           ) : [];
+        }
+        update() {
+          if (!this.video || !this.subtitles) return;
+          const time = this.video.currentTime * 1e3;
+          const subtitlesList = this.subtitles.subtitles;
+          const activeLine = this.resolveActiveLine(time, subtitlesList);
+          if (!activeLine) {
+            this.clearInactiveLineState();
+            return;
+          }
+          this.lastActiveLineIndex = activeLine.lineIndex;
+          this.refreshSmartLayoutIfNeeded();
+          const renderState = this.getRenderState(
+            activeLine.line,
+            activeLine.lineIndex,
+            time
+          );
+          const {
+            tokens,
+            tokensChanged,
+            hasSmartTruncation,
+            passedFlags,
+            renderKey
+          } = renderState;
+          if (renderKey === this.lastRenderKey) {
+            if (this.highlightWords && !tokensChanged && passedFlags) {
+              this.updatePassedClasses(passedFlags);
+            }
+            this.maybeRefreshPosition();
+            return;
+          }
+          this.lastRenderKey = renderKey;
+          this.syncRenderedTokens(tokens, hasSmartTruncation);
           if (this.highlightWords && passedFlags) {
             this.updatePassedClasses(passedFlags);
           }
@@ -15948,73 +16133,70 @@ safeAreaBottomInsetCachedPx = 0;
           segments.shift();
         }
       };
-      const buildStyledDisplayModel = (rawText) => {
-        const segments = [];
-        const activeStyle = {
-          italic: false,
-          bold: false,
-          underline: false
-        };
-        let cursor = 0;
-        while (cursor < rawText.length) {
-          const remainder = rawText.slice(cursor);
-          if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
-            pushSegment(segments, "\n", activeStyle);
-            cursor += 2;
-            continue;
-          }
-          if (remainder.startsWith("\\h")) {
-            pushSegment(segments, " ", activeStyle);
-            cursor += 2;
-            continue;
-          }
-          if (remainder[0] === "\n") {
-            pushSegment(segments, "\n", activeStyle);
-            cursor += 1;
-            continue;
-          }
-          const assMatch = ASS_OVERRIDE_RE.exec(remainder);
-          if (assMatch) {
-            const directives = assMatch[1].match(/\\[ibu][01]/gu) ?? [];
-            for (const directive of directives) {
-              applyAssStyleDirective(directive, activeStyle);
-            }
-            cursor += assMatch[0].length;
-            continue;
-          }
-          const htmlMatch = HTML_TAG_RE.exec(remainder);
-          if (htmlMatch) {
-            const isClosing = htmlMatch[1] === "/";
-            const tagName = htmlMatch[2].toLowerCase();
-            if (tagName === "br") {
-              pushSegment(segments, "\n", activeStyle);
-            } else if (tagName === "i") {
-              activeStyle.italic = !isClosing;
-            } else if (tagName === "b") {
-              activeStyle.bold = !isClosing;
-            } else if (tagName === "u") {
-              activeStyle.underline = !isClosing;
-            }
-            cursor += htmlMatch[0].length;
-            continue;
-          }
-          pushSegment(segments, remainder[0], activeStyle);
-          cursor += 1;
+      const consumeDisplayControlToken = (rawText, cursor, segments, activeStyle) => {
+        const remainder = rawText.slice(cursor);
+        if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
+          pushSegment(segments, "\n", activeStyle);
+          return cursor + 2;
         }
-        normalizeLeadingSpeakerMarker(segments);
+        if (remainder.startsWith("\\h")) {
+          pushSegment(segments, " ", activeStyle);
+          return cursor + 2;
+        }
+        if (remainder[0] === "\n") {
+          pushSegment(segments, "\n", activeStyle);
+          return cursor + 1;
+        }
+        const assMatch = ASS_OVERRIDE_RE.exec(remainder);
+        if (assMatch) {
+          const directives = assMatch[1].match(/\\[ibu][01]/gu) ?? [];
+          for (const directive of directives) {
+            applyAssStyleDirective(directive, activeStyle);
+          }
+          return cursor + assMatch[0].length;
+        }
+        const htmlMatch = HTML_TAG_RE.exec(remainder);
+        if (!htmlMatch) {
+          return null;
+        }
+        applyHtmlTagStyle(htmlMatch, segments, activeStyle);
+        return cursor + htmlMatch[0].length;
+      };
+      const applyHtmlTagStyle = (htmlMatch, segments, activeStyle) => {
+        const isClosing = htmlMatch[1] === "/";
+        const tagName = htmlMatch[2].toLowerCase();
+        if (tagName === "br") {
+          pushSegment(segments, "\n", activeStyle);
+          return;
+        }
+        if (tagName === "i") {
+          activeStyle.italic = !isClosing;
+          return;
+        }
+        if (tagName === "b") {
+          activeStyle.bold = !isClosing;
+          return;
+        }
+        if (tagName === "u") {
+          activeStyle.underline = !isClosing;
+        }
+      };
+      const buildStyledSpans = (segments) => {
         const styledSpans = [];
         let text = "";
         for (const segment of segments) {
           if (!segment.text) continue;
           const start = text.length;
           text += segment.text;
-          const end = text.length;
           styledSpans.push({
             start,
-            end,
+            end: text.length,
             style: segment.style
           });
         }
+        return { text, styledSpans };
+      };
+      const trimStyledDisplayResult = (text, styledSpans) => {
         const normalizedText = text.replaceAll(" ", " ");
         const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
         const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
@@ -16035,6 +16217,32 @@ safeAreaBottomInsetCachedPx = 0;
           text: finalText,
           styledSpans: finalSpans
         };
+      };
+      const buildStyledDisplayModel = (rawText) => {
+        const segments = [];
+        const activeStyle = {
+          italic: false,
+          bold: false,
+          underline: false
+        };
+        let cursor = 0;
+        while (cursor < rawText.length) {
+          const nextCursor = consumeDisplayControlToken(
+            rawText,
+            cursor,
+            segments,
+            activeStyle
+          );
+          if (nextCursor !== null) {
+            cursor = nextCursor;
+            continue;
+          }
+          pushSegment(segments, rawText[cursor], activeStyle);
+          cursor += 1;
+        }
+        normalizeLeadingSpeakerMarker(segments);
+        const built = buildStyledSpans(segments);
+        return trimStyledDisplayResult(built.text, built.styledSpans);
       };
       const getStyleForRange = (styledSpans, start, end) => {
         if (!styledSpans?.length || end <= start) {
@@ -16147,18 +16355,202 @@ safeAreaBottomInsetCachedPx = 0;
         const voice = match?.[1]?.trim();
         return voice ? voice : void 0;
       };
-      const toSrtDisplayText = (payload) => normalizeSubtitleTextForDisplay(payload);
       const toVttDisplayText = (payload) => normalizeSubtitleTextForDisplay(payload);
       const toAssDisplayText = (rawText) => normalizeSubtitleTextForDisplay(rawText);
+      const isSrtCueStart = (lines, index) => {
+        const current = lines[index]?.trim() ?? "";
+        const next = lines[index + 1]?.trim() ?? "";
+        return SRT_TIMING_RE.test(current) || /^\d+$/u.test(current) && SRT_TIMING_RE.test(next);
+      };
+      const getSrtTimingLineIndex = (lines, cursor) => /^\d+$/u.test(lines[cursor]?.trim() ?? "") && SRT_TIMING_RE.test(lines[cursor + 1]?.trim() ?? "") ? cursor + 1 : cursor;
+      const parseSrtTiming = (lines, timingLineIndex) => {
+        const timingMatch = SRT_TIMING_RE.exec(lines[timingLineIndex]?.trim() ?? "");
+        if (!timingMatch?.groups) {
+          return null;
+        }
+        const startMs = parseClockTime(timingMatch.groups.start, 3);
+        const endMs = parseClockTime(timingMatch.groups.end, 3);
+        return startMs == null || endMs == null || endMs < startMs ? null : { startMs, endMs };
+      };
+      const readSrtPayload = (lines, startCursor) => {
+        let cursor = startCursor;
+        const payloadLines = [];
+        while (cursor < lines.length) {
+          if (lines[cursor].trim() === "") {
+            const nextCursor = cursor + 1;
+            if (isSrtCueStart(lines, nextCursor)) {
+              break;
+            }
+            cursor += 1;
+            continue;
+          }
+          if (payloadLines.length > 0 && isSrtCueStart(lines, cursor)) {
+            break;
+          }
+          payloadLines.push(lines[cursor]);
+          cursor += 1;
+        }
+        return {
+          rawText: trimEmptyBoundaryLines(payloadLines).join("\n"),
+          nextCursor: cursor
+        };
+      };
+      const createStyledCueDraft = (index, rawText, startMs, endMs, speakerId, metadata) => ({
+        index,
+        line: {
+          text: normalizeSubtitleTextForDisplay(rawText),
+          startMs,
+          durationMs: Math.max(0, endMs - startMs),
+          speakerId,
+          tokens: [],
+          metadata
+        }
+      });
+      const createEmptyVttResult = () => ({
+        format: "vtt",
+        subtitles: [],
+        metadata: {
+          vtt: {
+            headerText: "",
+            blocks: []
+          }
+        }
+      });
+      const isWebVttDocumentBlock = (line) => line.startsWith("NOTE") || line === "STYLE" || line === "REGION";
+      const readVttBlockLines = (lines, startCursor) => {
+        const blockLines = [];
+        let cursor = startCursor;
+        while (cursor < lines.length && lines[cursor].trim() !== "") {
+          blockLines.push(lines[cursor]);
+          cursor += 1;
+        }
+        return { blockLines, nextCursor: cursor };
+      };
+      const resolveVttCueIdentity = (lines, cursor) => {
+        if (!VTT_TIMING_RE.test(lines[cursor] ?? "") && VTT_TIMING_RE.test(lines[cursor + 1] ?? "")) {
+          return {
+            cueId: lines[cursor],
+            timingCursor: cursor + 1
+          };
+        }
+        return {
+          cueId: void 0,
+          timingCursor: cursor
+        };
+      };
+      const parseVttTiming = (line) => {
+        const timingMatch = VTT_TIMING_RE.exec(line);
+        if (!timingMatch?.groups) {
+          return null;
+        }
+        const startMs = parseClockTime(timingMatch.groups.start, 3);
+        const endMs = parseClockTime(timingMatch.groups.end, 3);
+        if (startMs == null || endMs == null || endMs < startMs) {
+          return null;
+        }
+        return {
+          startMs,
+          endMs,
+          settingsRaw: timingMatch.groups.settings ?? ""
+        };
+      };
+      const readVttPayloadLines = (lines, startCursor) => {
+        const payloadLines = [];
+        let cursor = startCursor;
+        while (cursor < lines.length && lines[cursor].trim() !== "") {
+          payloadLines.push(lines[cursor]);
+          cursor += 1;
+        }
+        return { payloadLines, nextCursor: cursor };
+      };
+      const parseAssEventFormatFields = (formatLine) => formatLine.slice("Format:".length).split(",").map((field) => field.trim());
+      const ensureAssEventFields = (eventFields, metadata) => eventFields.length || !metadata.eventFormat ? eventFields : parseAssEventFormatFields(metadata.eventFormat);
+      const buildAssEventRecord = (eventFields, value) => {
+        const values = splitAssFields(value, eventFields.length);
+        return Object.fromEntries(
+          eventFields.map((field, fieldIndex) => [field, values[fieldIndex] ?? ""])
+        );
+      };
+      const applyAssStyleSectionLine = (metadata, line) => {
+        if (line.startsWith("Format:")) {
+          metadata.styleFormat = line;
+          return;
+        }
+        if (line.startsWith("Style:")) {
+          metadata.styleLines.push(line);
+          return;
+        }
+        metadata.preEventLines.push(line);
+      };
+      const createAssCueDraft = (index, event) => {
+        const startMs = parseAssTime(event.Start ?? "");
+        const endMs = parseAssTime(event.End ?? "");
+        if (startMs == null || endMs == null || endMs < startMs) {
+          return null;
+        }
+        const rawText = event.Text ?? "";
+        const displayModel = buildStyledDisplayModel(rawText);
+        const assMetadata = {
+          kind: "dialogue",
+          layer: event.Layer ?? "0",
+          style: event.Style ?? "Default",
+          name: event.Name ?? "",
+          marginL: event.MarginL ?? "0",
+          marginR: event.MarginR ?? "0",
+          marginV: event.MarginV ?? "0",
+          effect: event.Effect ?? "",
+          rawText,
+          overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? []
+        };
+        return {
+          index,
+          line: {
+            text: toAssDisplayText(rawText),
+            startMs,
+            durationMs: Math.max(0, endMs - startMs),
+            speakerId: assMetadata.name || "0",
+            tokens: [],
+            metadata: {
+              rawText,
+              styledSpans: displayModel.styledSpans,
+              ass: assMetadata
+            }
+          }
+        };
+      };
+      const processAssEventLine = (metadata, line, index, eventFields) => {
+        if (line.startsWith("Format:")) {
+          return {
+            eventFields: parseAssEventFormatFields(line),
+            cue: null
+          };
+        }
+        if (!line.includes(":")) {
+          metadata.preEventLines.push(line);
+          return { eventFields, cue: null };
+        }
+        const separatorIndex = line.indexOf(":");
+        const kind = line.slice(0, separatorIndex).trim();
+        const value = line.slice(separatorIndex + 1).trim();
+        const resolvedEventFields = ensureAssEventFields(eventFields, metadata);
+        const event = buildAssEventRecord(resolvedEventFields, value);
+        if (kind === "Comment") {
+          metadata.commentLines.push(line);
+          return { eventFields: resolvedEventFields, cue: null };
+        }
+        if (kind !== "Dialogue") {
+          metadata.preEventLines.push(line);
+          return { eventFields: resolvedEventFields, cue: null };
+        }
+        return {
+          eventFields: resolvedEventFields,
+          cue: createAssCueDraft(index, event)
+        };
+      };
       const parseSrt = (text) => {
         const normalized = normalizeNewlines(text);
         const lines = normalized.split("\n");
         const cues = [];
-        const isSrtCueStart = (index) => {
-          const current = lines[index]?.trim() ?? "";
-          const next = lines[index + 1]?.trim() ?? "";
-          return SRT_TIMING_RE.test(current) || /^\d+$/u.test(current) && SRT_TIMING_RE.test(next);
-        };
         let cursor = 0;
         let cueIndex = 0;
         while (cursor < lines.length) {
@@ -16166,56 +16558,29 @@ safeAreaBottomInsetCachedPx = 0;
             cursor += 1;
           }
           if (cursor >= lines.length) break;
-          let timingLineIndex = cursor;
-          if (/^\d+$/u.test(lines[cursor].trim()) && SRT_TIMING_RE.test(lines[cursor + 1]?.trim() ?? "")) {
-            timingLineIndex = cursor + 1;
-          }
-          const timingMatch = SRT_TIMING_RE.exec(
-            lines[timingLineIndex]?.trim() ?? ""
-          );
-          if (!timingMatch?.groups) {
+          const timingLineIndex = getSrtTimingLineIndex(lines, cursor);
+          const timing = parseSrtTiming(lines, timingLineIndex);
+          if (!timing) {
             cursor += 1;
             continue;
           }
-          const startMs = parseClockTime(timingMatch.groups.start, 3);
-          const endMs = parseClockTime(timingMatch.groups.end, 3);
-          if (startMs == null || endMs == null || endMs < startMs) {
-            cursor = timingLineIndex + 1;
-            continue;
-          }
-          cursor = timingLineIndex + 1;
-          const payloadLines = [];
-          while (cursor < lines.length) {
-            if (lines[cursor].trim() === "") {
-              const nextCursor = cursor + 1;
-              if (isSrtCueStart(nextCursor)) {
-                break;
-              }
-              cursor += 1;
-              continue;
-            }
-            if (payloadLines.length > 0 && isSrtCueStart(cursor)) {
-              break;
-            }
-            payloadLines.push(lines[cursor]);
-            cursor += 1;
-          }
-          const rawText = trimEmptyBoundaryLines(payloadLines).join("\n");
+          const payload = readSrtPayload(lines, timingLineIndex + 1);
+          cursor = payload.nextCursor;
+          const rawText = payload.rawText;
           const displayModel = buildStyledDisplayModel(rawText);
-          cues.push({
-            index: cueIndex,
-            line: {
-              text: toSrtDisplayText(rawText),
-              startMs,
-              durationMs: Math.max(0, endMs - startMs),
-              speakerId: "0",
-              tokens: [],
-              metadata: {
+          cues.push(
+            createStyledCueDraft(
+              cueIndex,
+              rawText,
+              timing.startMs,
+              timing.endMs,
+              "0",
+              {
                 rawText,
                 styledSpans: displayModel.styledSpans
               }
-            }
-          });
+            )
+          );
           cueIndex += 1;
         }
         return {
@@ -16260,16 +16625,7 @@ safeAreaBottomInsetCachedPx = 0;
         const lines = normalized.split("\n");
         const headerLine = lines[0] ?? "";
         if (!headerLine.startsWith("WEBVTT")) {
-          return {
-            format: "vtt",
-            subtitles: [],
-            metadata: {
-              vtt: {
-                headerText: "",
-                blocks: []
-              }
-            }
-          };
+          return createEmptyVttResult();
         }
         const metadata = {
           headerText: headerLine.slice("WEBVTT".length).trim(),
@@ -16282,37 +16638,21 @@ safeAreaBottomInsetCachedPx = 0;
             cursor += 1;
           }
           if (cursor >= lines.length) break;
-          if (lines[cursor].startsWith("NOTE") || lines[cursor] === "STYLE" || lines[cursor] === "REGION") {
-            const blockLines = [];
-            while (cursor < lines.length && lines[cursor].trim() !== "") {
-              blockLines.push(lines[cursor]);
-              cursor += 1;
-            }
-            pushWebVttBlock(metadata.blocks, cues.length, blockLines);
+          if (isWebVttDocumentBlock(lines[cursor])) {
+            const block = readVttBlockLines(lines, cursor);
+            cursor = block.nextCursor;
+            pushWebVttBlock(metadata.blocks, cues.length, block.blockLines);
             continue;
           }
-          let cueId;
-          if (!VTT_TIMING_RE.test(lines[cursor] ?? "") && VTT_TIMING_RE.test(lines[cursor + 1] ?? "")) {
-            cueId = lines[cursor];
-            cursor += 1;
-          }
-          const timingMatch = VTT_TIMING_RE.exec(lines[cursor] ?? "");
-          if (!timingMatch?.groups) {
+          const identity = resolveVttCueIdentity(lines, cursor);
+          const timing = parseVttTiming(lines[identity.timingCursor] ?? "");
+          if (!timing) {
             cursor += 1;
             continue;
           }
-          const startMs = parseClockTime(timingMatch.groups.start, 3);
-          const endMs = parseClockTime(timingMatch.groups.end, 3);
-          if (startMs == null || endMs == null || endMs < startMs) {
-            cursor += 1;
-            continue;
-          }
-          cursor += 1;
-          const payloadLines = [];
-          while (cursor < lines.length && lines[cursor].trim() !== "") {
-            payloadLines.push(lines[cursor]);
-            cursor += 1;
-          }
+          const payload = readVttPayloadLines(lines, identity.timingCursor + 1);
+          cursor = payload.nextCursor;
+          const payloadLines = payload.payloadLines;
           const rawText = payloadLines.join("\n");
           const displayModel = buildStyledDisplayModel(rawText);
           const voice = extractVttVoice(rawText);
@@ -16320,16 +16660,16 @@ safeAreaBottomInsetCachedPx = 0;
             index: cues.length,
             line: {
               text: toVttDisplayText(rawText),
-              startMs,
-              durationMs: Math.max(0, endMs - startMs),
+              startMs: timing.startMs,
+              durationMs: Math.max(0, timing.endMs - timing.startMs),
               speakerId: voice ?? "0",
               tokens: [],
               metadata: {
                 rawText,
                 styledSpans: displayModel.styledSpans,
                 vtt: {
-                  cueId,
-                  settings: parseCueSettings(timingMatch.groups.settings ?? ""),
+                  cueId: identity.cueId,
+                  settings: parseCueSettings(timing.settingsRaw),
                   voice,
                   rawPayload: payloadLines
                 }
@@ -16348,6 +16688,7 @@ safeAreaBottomInsetCachedPx = 0;
       const serializeVttTiming = (line) => {
         const endMs = line.startMs + Math.max(0, line.durationMs);
         const settings = line.metadata?.vtt?.settings?.raw;
+        const settingsSuffix = settings ? ` ${settings}` : "";
         return `${formatClockTime(line.startMs, {
     delimiter: ".",
     allowOptionalHours: true,
@@ -16356,13 +16697,12 @@ safeAreaBottomInsetCachedPx = 0;
     delimiter: ".",
     allowOptionalHours: true,
     fractionDigits: 3
-  })}${settings ? ` ${settings}` : ""}`;
+  })}${settingsSuffix}`;
       };
       const serializeVtt = (processed) => {
         const metadata = processed.metadata?.vtt;
-        const sections = [
-          `WEBVTT${metadata?.headerText ? ` ${metadata.headerText}` : ""}`
-        ];
+        const headerSuffix = metadata?.headerText ? ` ${metadata.headerText}` : "";
+        const sections = [`WEBVTT${headerSuffix}`];
         const blocksByIndex = new Map();
         for (const block of metadata?.blocks ?? []) {
           const existing = blocksByIndex.get(block.cueIndex) ?? [];
@@ -16449,82 +16789,18 @@ safeAreaBottomInsetCachedPx = 0;
             return;
           }
           if (currentSection === "V4+ Styles" || currentSection === "V4 Styles") {
-            if (line.startsWith("Format:")) {
-              metadata.styleFormat = line;
-              return;
-            }
-            if (line.startsWith("Style:")) {
-              metadata.styleLines.push(line);
-              return;
-            }
-            metadata.preEventLines.push(line);
+            applyAssStyleSectionLine(metadata, line);
             return;
           }
           if (currentSection === "Events") {
             if (line.startsWith("Format:")) {
               metadata.eventFormat = line;
-              eventFields = line.slice("Format:".length).split(",").map((field) => field.trim());
-              return;
             }
-            if (!line.includes(":")) {
-              metadata.preEventLines.push(line);
-              return;
+            const result = processAssEventLine(metadata, line, index, eventFields);
+            eventFields = result.eventFields;
+            if (result.cue) {
+              cues.push(result.cue);
             }
-            const separatorIndex = line.indexOf(":");
-            const kind = line.slice(0, separatorIndex).trim();
-            const value = line.slice(separatorIndex + 1).trim();
-            if (!eventFields.length && metadata.eventFormat) {
-              eventFields = metadata.eventFormat.slice("Format:".length).split(",").map((field) => field.trim());
-            }
-            const values = splitAssFields(value, eventFields.length);
-            const event = Object.fromEntries(
-              eventFields.map((field, fieldIndex) => [
-                field,
-                values[fieldIndex] ?? ""
-              ])
-            );
-            if (kind === "Comment") {
-              metadata.commentLines.push(line);
-              return;
-            }
-            if (kind !== "Dialogue") {
-              metadata.preEventLines.push(line);
-              return;
-            }
-            const startMs = parseAssTime(event.Start ?? "");
-            const endMs = parseAssTime(event.End ?? "");
-            if (startMs == null || endMs == null || endMs < startMs) {
-              return;
-            }
-            const rawText = event.Text ?? "";
-            const displayModel = buildStyledDisplayModel(rawText);
-            const assMetadata = {
-              kind: "dialogue",
-              layer: event.Layer ?? "0",
-              style: event.Style ?? "Default",
-              name: event.Name ?? "",
-              marginL: event.MarginL ?? "0",
-              marginR: event.MarginR ?? "0",
-              marginV: event.MarginV ?? "0",
-              effect: event.Effect ?? "",
-              rawText,
-              overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? []
-            };
-            cues.push({
-              index,
-              line: {
-                text: toAssDisplayText(rawText),
-                startMs,
-                durationMs: Math.max(0, endMs - startMs),
-                speakerId: assMetadata.name || "0",
-                tokens: [],
-                metadata: {
-                  rawText,
-                  styledSpans: displayModel.styledSpans,
-                  ass: assMetadata
-                }
-              }
-            });
           }
         });
         return {
@@ -16679,6 +16955,26 @@ safeAreaBottomInsetCachedPx = 0;
         out.set(audioBytes, header.length + frame.length);
         return new Blob([out], { type: "audio/mpeg" });
       }
+      function appendChunkToOutputBuffer(out, value, loaded) {
+        const needed = loaded + value.byteLength;
+        let nextOut = out;
+        if (needed > nextOut.length) {
+          const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
+          grown.set(nextOut.subarray(0, loaded));
+          nextOut = grown;
+        }
+        nextOut.set(value, loaded);
+        return { out: nextOut, loaded: needed };
+      }
+      function mergeChunks(chunks, loaded) {
+        const merged = new Uint8Array(loaded);
+        let offset = 0;
+        for (const chunk of chunks) {
+          merged.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        return merged.buffer;
+      }
       async function readResponseArrayBuffer(res, onProgress) {
         const total = Number(res.headers.get("Content-Length") ?? 0);
         if (!res.body) return res.arrayBuffer();
@@ -16691,14 +16987,9 @@ safeAreaBottomInsetCachedPx = 0;
           if (done) break;
           if (!value || value.byteLength === 0) continue;
           if (out) {
-            const needed = loaded + value.byteLength;
-            if (needed > out.length) {
-              const grown = new Uint8Array(Math.max(needed, out.length * 2));
-              grown.set(out.subarray(0, loaded));
-              out = grown;
-            }
-            out.set(value, loaded);
-            loaded = needed;
+            const appended = appendChunkToOutputBuffer(out, value, loaded);
+            out = appended.out;
+            loaded = appended.loaded;
           } else {
             chunks.push(value);
             loaded += value.byteLength;
@@ -16710,13 +17001,7 @@ safeAreaBottomInsetCachedPx = 0;
         if (out) {
           return out.buffer.slice(0, loaded);
         }
-        const merged = new Uint8Array(loaded);
-        let offset = 0;
-        for (const c2 of chunks) {
-          merged.set(c2, offset);
-          offset += c2.byteLength;
-        }
-        return merged.buffer;
+        return mergeChunks(chunks, loaded);
       }
       async function downloadTranslation(res, filename, onProgress = () => {
       }, saveOptions = {}) {
@@ -21831,53 +22116,37 @@ set key(newKey) {
             dispatch?.(value);
           });
         }
-        initUI() {
-          if (this.isInitialized()) {
-            throw new Error("[VOT] SettingsView is already initialized");
-          }
-          this.dialog = new Dialog({
-            titleHtml: localizationProvider.get("VOTSettings")
-          });
-          this.globalPortal.appendChild(this.dialog.container);
-          const accountSection = this.createAccordionSection(
-            localizationProvider.get("VOTMyAccount"),
-            { open: true }
-          );
-          const translationSection = this.createAccordionSection(
-            localizationProvider.get("translationSettings"),
-            { open: true }
-          );
-          const subtitlesSection = this.createAccordionSection(
-            localizationProvider.get("subtitlesSettings")
-          );
-          const hotkeysSection = this.createAccordionSection(
-            localizationProvider.get("hotkeysSettings")
-          );
-          const proxySection = this.createAccordionSection(
-            localizationProvider.get("proxySettings")
-          );
-          const miscSection = this.createAccordionSection(
-            localizationProvider.get("miscSettings")
-          );
-          const appearanceSection = this.createAccordionSection(
-            localizationProvider.get("appearance")
-          );
-          const aboutSection = this.createAccordionSection(
-            localizationProvider.get("aboutExtension")
-          );
+        createSettingsSections() {
           const sections = [
-            accountSection,
-            translationSection,
-            subtitlesSection,
-            hotkeysSection,
-            proxySection,
-            miscSection,
-            appearanceSection,
-            aboutSection
+            this.createAccordionSection(localizationProvider.get("VOTMyAccount"), {
+              open: true
+            }),
+            this.createAccordionSection(
+              localizationProvider.get("translationSettings"),
+              { open: true }
+            ),
+            this.createAccordionSection(
+              localizationProvider.get("subtitlesSettings")
+            ),
+            this.createAccordionSection(localizationProvider.get("hotkeysSettings")),
+            this.createAccordionSection(localizationProvider.get("proxySettings")),
+            this.createAccordionSection(localizationProvider.get("miscSettings")),
+            this.createAccordionSection(localizationProvider.get("appearance")),
+            this.createAccordionSection(localizationProvider.get("aboutExtension"))
           ];
-          this.dialog.bodyContainer.append(
-            ...sections.map((section) => section.container)
-          );
+          return {
+            accountSection: sections[0],
+            translationSection: sections[1],
+            subtitlesSection: sections[2],
+            hotkeysSection: sections[3],
+            proxySection: sections[4],
+            miscSection: sections[5],
+            appearanceSection: sections[6],
+            aboutSection: sections[7],
+            sections
+          };
+        }
+        initAccountControls() {
           this.accountButton = new AccountButton({
             avatarId: this.data.account?.avatarId,
             username: this.data.account?.username,
@@ -21902,6 +22171,75 @@ set key(newKey) {
             backgroundColor: "var(--vot-helper-ondialog)",
             parentElement: this.globalPortal
           });
+        }
+        buildSubtitleFontItems(selectedFontFamily, dynamicFontFamilies = []) {
+          const items = subtitleFontFamilies.map(
+            (fontFamily) => ({
+              label: subtitleFontFamilyLabels[fontFamily],
+              value: fontFamily,
+              selected: fontFamily === selectedFontFamily
+            })
+          );
+          const dynamicItems = dynamicFontFamilies.filter((familyName) => {
+            const lowerFamilyName = familyName.toLowerCase();
+            return !items.some(
+              (item) => item.label.toLowerCase() === lowerFamilyName
+            );
+          }).map((familyName) => {
+            const fontValue = toGoogleSubtitleFontFamily(familyName);
+            return {
+              label: familyName,
+              value: fontValue,
+              selected: fontValue === selectedFontFamily
+            };
+          });
+          if (!isBuiltInSubtitleFontFamily(selectedFontFamily) && !dynamicItems.some((item) => item.value === selectedFontFamily)) {
+            const currentGoogleFontFamily = getGoogleSubtitleFontFamilyName(selectedFontFamily);
+            if (currentGoogleFontFamily) {
+              dynamicItems.unshift({
+                label: currentGoogleFontFamily,
+                value: selectedFontFamily,
+                selected: true
+              });
+            }
+          }
+          return [...items, ...dynamicItems];
+        }
+        async searchSubtitleFontItems(query, fallbackFontFamily) {
+          const activeFontFamily = Array.from(this.subtitlesFontFamilySelect?.selectedValues ?? [])[0] ?? fallbackFontFamily;
+          const normalizedQuery = query.trim().toLowerCase();
+          if (!normalizedQuery) {
+            return this.buildSubtitleFontItems(activeFontFamily);
+          }
+          const googleFontsCatalog = await loadGoogleFontsCatalog();
+          const matchingGoogleFonts = googleFontsCatalog.filter(
+            (familyName) => familyName.toLowerCase().includes(normalizedQuery)
+          ).slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
+          return this.buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
+        }
+        initUI() {
+          if (this.isInitialized()) {
+            throw new Error("[VOT] SettingsView is already initialized");
+          }
+          this.dialog = new Dialog({
+            titleHtml: localizationProvider.get("VOTSettings")
+          });
+          this.globalPortal.appendChild(this.dialog.container);
+          const {
+            accountSection,
+            translationSection,
+            subtitlesSection,
+            hotkeysSection,
+            proxySection,
+            miscSection,
+            appearanceSection,
+            aboutSection,
+            sections
+          } = this.createSettingsSections();
+          this.dialog.bodyContainer.append(
+            ...sections.map((section) => section.container)
+          );
+          this.initAccountControls();
           this.autoTranslateCheckbox = new Checkbox({
             labelHtml: localizationProvider.get("VOTAutoTranslate"),
             checked: this.data.autoTranslate
@@ -22078,39 +22416,6 @@ set key(newKey) {
           });
           const storedSubtitlesFontFamily = typeof this.data.subtitlesFontFamily === "string" ? this.data.subtitlesFontFamily : void 0;
           const subtitlesFontFamily = storedSubtitlesFontFamily && (isBuiltInSubtitleFontFamily(storedSubtitlesFontFamily) || getGoogleSubtitleFontFamilyName(storedSubtitlesFontFamily)) ? storedSubtitlesFontFamily : "default-sans";
-          const buildSubtitleFontItems = (selectedFontFamily, dynamicFontFamilies = []) => {
-            const items = subtitleFontFamilies.map(
-              (fontFamily) => ({
-                label: subtitleFontFamilyLabels[fontFamily],
-                value: fontFamily,
-                selected: fontFamily === selectedFontFamily
-              })
-            );
-            const dynamicItems = dynamicFontFamilies.filter((familyName) => {
-              const lowerFamilyName = familyName.toLowerCase();
-              return !items.some(
-                (item) => item.label.toLowerCase() === lowerFamilyName
-              );
-            }).map((familyName) => {
-              const fontValue = toGoogleSubtitleFontFamily(familyName);
-              return {
-                label: familyName,
-                value: fontValue,
-                selected: fontValue === selectedFontFamily
-              };
-            });
-            if (!isBuiltInSubtitleFontFamily(selectedFontFamily) && !dynamicItems.some((item) => item.value === selectedFontFamily)) {
-              const currentGoogleFontFamily = getGoogleSubtitleFontFamilyName(selectedFontFamily);
-              if (currentGoogleFontFamily) {
-                dynamicItems.unshift({
-                  label: currentGoogleFontFamily,
-                  value: selectedFontFamily,
-                  selected: true
-                });
-              }
-            }
-            return [...items, ...dynamicItems];
-          };
           this.subtitlesFontFamilySelectLabel = new Label({
             labelText: localizationProvider.get("VOTSubtitlesFont")
           });
@@ -22119,25 +22424,16 @@ set key(newKey) {
             dialogTitle: localizationProvider.get("VOTSubtitlesFont"),
             dialogParent: this.globalPortal,
             labelElement: this.subtitlesFontFamilySelectLabel.container,
-            items: buildSubtitleFontItems(subtitlesFontFamily),
-            searchItemsProvider: async (query) => {
-              const activeFontFamily = Array.from(this.subtitlesFontFamilySelect?.selectedValues ?? [])[0] ?? subtitlesFontFamily;
-              const normalizedQuery = query.trim().toLowerCase();
-              if (!normalizedQuery) {
-                return buildSubtitleFontItems(activeFontFamily);
-              }
-              const googleFontsCatalog = await loadGoogleFontsCatalog();
-              const matchingGoogleFonts = googleFontsCatalog.filter(
-                (familyName) => familyName.toLowerCase().includes(normalizedQuery)
-              ).slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
-              return buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
-            }
+            items: this.buildSubtitleFontItems(subtitlesFontFamily),
+            searchItemsProvider: (query) => this.searchSubtitleFontItems(query, subtitlesFontFamily)
           });
           this.subtitlesFontFamilySelect.addEventListener("selectItem", (item) => {
             if (!this.subtitlesFontFamilySelect) {
               return;
             }
-            this.subtitlesFontFamilySelect.updateItems(buildSubtitleFontItems(item));
+            this.subtitlesFontFamilySelect.updateItems(
+              this.buildSubtitleFontItems(item)
+            );
             this.subtitlesFontFamilySelect.selectTitle = getSubtitleFontFamilyLabel(item);
           });
           const subtitlesOpacity = this.data.subtitlesOpacity ?? 20;
@@ -23804,30 +24100,38 @@ scheduleHide(event) {
           return null;
         }
       }
-      function resolveLocalizedErrorMessage(message) {
-        if (message && typeof message === "object") {
-          const localizedError = message;
-          if (localizedError.name === "VOTLocalizedError") {
-            if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) {
-              return localizedError.localizedMessage;
-            }
-            if (typeof localizedError.unlocalizedMessage === "string") {
-              const byPhraseKey = localizePhraseText(
-                localizedError.unlocalizedMessage
-              );
-              if (byPhraseKey) return byPhraseKey;
-            }
-          }
+      function resolveLocalizedErrorFromObject(message) {
+        if (!message || typeof message !== "object") {
+          return null;
         }
+        const localizedError = message;
+        if (localizedError.name !== "VOTLocalizedError") {
+          return null;
+        }
+        if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) {
+          return localizedError.localizedMessage;
+        }
+        if (typeof localizedError.unlocalizedMessage === "string") {
+          return localizePhraseText(localizedError.unlocalizedMessage);
+        }
+        return null;
+      }
+      function localizeExtractedErrorMessage(message) {
+        const extracted = getErrorMessage(message);
+        if (!extracted) {
+          return null;
+        }
+        return localizePhraseText(extracted) || extracted;
+      }
+      function resolveLocalizedErrorMessage(message) {
+        const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
+        if (localizedObjectMessage) return localizedObjectMessage;
         if (typeof message === "string") {
           const byPhraseKey = localizePhraseText(message);
           if (byPhraseKey) return byPhraseKey;
         }
-        const extracted = getErrorMessage(message);
-        if (extracted) {
-          const byPhraseKey = localizePhraseText(extracted);
-          return byPhraseKey || extracted;
-        }
+        const extractedMessage = localizeExtractedErrorMessage(message);
+        if (extractedMessage) return extractedMessage;
         return safeL10n("requestTranslationFailed", "Translation failed");
       }
       function trySendViaUserscriptApi(details) {
@@ -25536,6 +25840,78 @@ useAudioDownload: isSupportGMXhr,
         }
         return timedWords;
       };
+      const buildDirectSegmentToken = (segment, segmentStartMs, segmentDurationMs, styledSpans) => ({
+        text: segment.text,
+        startMs: segmentStartMs,
+        durationMs: segmentDurationMs,
+        isWordLike: segment.isWordLike,
+        style: getStyleForRange(
+          styledSpans,
+          segment.index,
+          segment.index + segment.text.length
+        )
+      });
+      const buildSegmentSliceTokens = (segment, segmentStartMs, segmentDurationMs, styledSpans) => {
+        const slices = splitSegmentText(segment.text);
+        if (slices.length === 1 && slices[0].text === segment.text) {
+          return [
+            buildDirectSegmentToken(
+              segment,
+              segmentStartMs,
+              segmentDurationMs,
+              styledSpans
+            )
+          ];
+        }
+        const sliceTimings = allocateTimingsByLength(
+          slices.map((slice) => slice.text === "\n" ? "" : slice.text),
+          segmentStartMs,
+          segmentDurationMs
+        );
+        return slices.map((slice, sliceIndex) => {
+          const isLineBreak = slice.text === "\n";
+          return {
+            text: slice.text,
+            startMs: sliceTimings[sliceIndex]?.startMs ?? segmentStartMs,
+            durationMs: isLineBreak ? 0 : sliceTimings[sliceIndex]?.durationMs ?? 0,
+            isWordLike: !isLineBreak && segment.isWordLike,
+            style: isLineBreak ? void 0 : getStyleForRange(
+              styledSpans,
+              segment.index + slice.startOffset,
+              segment.index + slice.endOffset
+            )
+          };
+        });
+      };
+      const collectWordIndices = (tokens) => tokens.reduce((indices, token, index) => {
+        if (token.isWordLike && token.text.trim()) {
+          indices.push(index);
+        }
+        return indices;
+      }, []);
+      const applySourceWordTimings = (tokens, sourceTimedWords) => {
+        if (!sourceTimedWords.length) {
+          return tokens;
+        }
+        const wordIndices = collectWordIndices(tokens);
+        if (!wordIndices.length) {
+          return tokens;
+        }
+        const totalTargetWords = wordIndices.length;
+        for (let i2 = 0; i2 < totalTargetWords; i2 += 1) {
+          const targetIndex = wordIndices[i2];
+          const sourceIndex = Math.floor(
+            i2 * sourceTimedWords.length / totalTargetWords
+          );
+          const sourceTiming = sourceTimedWords[Math.min(sourceIndex, sourceTimedWords.length - 1)];
+          tokens[targetIndex] = {
+            ...tokens[targetIndex],
+            startMs: sourceTiming.startMs,
+            durationMs: sourceTiming.durationMs
+          };
+        }
+        return tokens;
+      };
       const buildLineTokens = (line, descriptor, lineText) => {
         if (!lineText) return [];
         const locale = descriptor.language;
@@ -25552,63 +25928,75 @@ useAudioDownload: isSupportGMXhr,
           const segment = segments[index];
           const segmentStartMs = baseTimings[index]?.startMs ?? line.startMs;
           const segmentDurationMs = baseTimings[index]?.durationMs ?? 0;
-          const slices = splitSegmentText(segment.text);
-          if (slices.length === 1 && slices[0].text === segment.text) {
-            nextTokens.push({
-              text: segment.text,
-              startMs: segmentStartMs,
-              durationMs: segmentDurationMs,
-              isWordLike: segment.isWordLike,
-              style: getStyleForRange(
-                styledSpans,
-                segment.index,
-                segment.index + segment.text.length
-              )
-            });
-            continue;
-          }
-          const sliceTimings = allocateTimingsByLength(
-            slices.map((slice) => slice.text === "\n" ? "" : slice.text),
-            segmentStartMs,
-            segmentDurationMs
+          nextTokens.push(
+            ...buildSegmentSliceTokens(
+              segment,
+              segmentStartMs,
+              segmentDurationMs,
+              styledSpans
+            )
           );
-          for (let sliceIndex = 0; sliceIndex < slices.length; sliceIndex += 1) {
-            const slice = slices[sliceIndex];
-            const isLineBreak = slice.text === "\n";
-            nextTokens.push({
-              text: slice.text,
-              startMs: sliceTimings[sliceIndex]?.startMs ?? segmentStartMs,
-              durationMs: isLineBreak ? 0 : sliceTimings[sliceIndex]?.durationMs ?? 0,
-              isWordLike: !isLineBreak && segment.isWordLike,
-              style: isLineBreak ? void 0 : getStyleForRange(
-                styledSpans,
-                segment.index + slice.startOffset,
-                segment.index + slice.endOffset
-              )
-            });
-          }
         }
         const sourceTimedWords = collectSourceTimedWords(line.tokens, locale);
-        if (!sourceTimedWords.length) return nextTokens;
-        const wordIndices = nextTokens.reduce((indices, token, index) => {
-          if (token.isWordLike && token.text.trim()) indices.push(index);
-          return indices;
-        }, []);
-        if (!wordIndices.length) return nextTokens;
-        const totalTargetWords = wordIndices.length;
-        for (let i2 = 0; i2 < totalTargetWords; i2 += 1) {
-          const targetIndex = wordIndices[i2];
-          const sourceIndex = Math.floor(
-            i2 * sourceTimedWords.length / totalTargetWords
-          );
-          const sourceTiming = sourceTimedWords[Math.min(sourceIndex, sourceTimedWords.length - 1)];
-          nextTokens[targetIndex] = {
-            ...nextTokens[targetIndex],
-            startMs: sourceTiming.startMs,
-            durationMs: sourceTiming.durationMs
-          };
+        return applySourceWordTimings(nextTokens, sourceTimedWords);
+      };
+      const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
+      const getTokensTextLength = (tokens) => {
+        let totalLength = 0;
+        for (const token of tokens) {
+          totalLength += token.text.length;
         }
-        return nextTokens;
+        return totalLength;
+      };
+      const normalizeCleanSubtitleEntry = (line) => {
+        const normalizedLineText = normalizeSubtitleText(line.text);
+        if (!normalizedLineText) {
+          return null;
+        }
+        const normalizedTokens = [];
+        for (const token of line.tokens) {
+          const normalizedTokenText = normalizeSubtitleText(token.text);
+          if (!normalizedTokenText) continue;
+          normalizedTokens.push({
+            ...token,
+            text: normalizedTokenText
+          });
+        }
+        return {
+          line: {
+            ...line,
+            text: normalizedLineText,
+            tokens: normalizedTokens
+          },
+          comparableText: normalizeComparableText(normalizedLineText),
+          tokensTextLength: getTokensTextLength(normalizedTokens)
+        };
+      };
+      const mergeDuplicateCleanEntry = (previous, entry) => {
+        if (!previous || !entry.comparableText) {
+          return false;
+        }
+        const previousEnd = lineEndMs(previous.line);
+        const currentEnd = lineEndMs(entry.line);
+        const isDuplicateText = previous.comparableText === entry.comparableText;
+        const isNearPrevious = entry.line.startMs <= previousEnd + VK_DUPLICATE_MAX_GAP_MS;
+        if (!isDuplicateText || !isNearPrevious) {
+          return false;
+        }
+        const mergedStart = Math.min(previous.line.startMs, entry.line.startMs);
+        const mergedEnd = Math.max(previousEnd, currentEnd);
+        const mergedTokens = entry.tokensTextLength >= previous.tokensTextLength ? entry.line.tokens : previous.line.tokens;
+        previous.line = {
+          ...previous.line,
+          startMs: mergedStart,
+          durationMs: Math.max(0, mergedEnd - mergedStart),
+          tokens: mergedTokens
+        };
+        previous.tokensTextLength = Math.max(
+          previous.tokensTextLength,
+          entry.tokensTextLength
+        );
+        return true;
       };
       const fetchRawSubtitles = async (url, format) => {
         const response = await GM_fetch(url, { timeout: 7e3 });
@@ -25728,71 +26116,19 @@ useAudioDownload: isSupportGMXhr,
           };
         },
         cleanJsonSubtitles(subtitles) {
-          const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
-          const tokensTextLength = (tokens) => {
-            let totalLength = 0;
-            for (const token of tokens) {
-              totalLength += token.text.length;
-            }
-            return totalLength;
-          };
           const cleanedEntries = [];
           for (const line of subtitles.subtitles) {
-            const normalizedLineText = normalizeSubtitleText(line.text);
-            if (!normalizedLineText) continue;
-            const normalizedTokens = [];
-            for (const token of line.tokens) {
-              const normalizedTokenText = normalizeSubtitleText(token.text);
-              if (!normalizedTokenText) continue;
-              normalizedTokens.push({
-                ...token,
-                text: normalizedTokenText
-              });
+            const normalizedEntry = normalizeCleanSubtitleEntry(line);
+            if (normalizedEntry) {
+              cleanedEntries.push(normalizedEntry);
             }
-            cleanedEntries.push({
-              line: {
-                ...line,
-                text: normalizedLineText,
-                tokens: normalizedTokens
-              },
-              comparableText: normalizeComparableText(normalizedLineText),
-              tokensTextLength: tokensTextLength(normalizedTokens)
-            });
           }
           const mergedEntries = [];
           for (const entry of cleanedEntries) {
-            const {
-              line,
-              comparableText: currentComparable,
-              tokensTextLength: currentTokensLength
-            } = entry;
-            if (!currentComparable) continue;
             const previous = mergedEntries.at(-1);
-            if (!previous) {
+            if (!mergeDuplicateCleanEntry(previous, entry)) {
               mergedEntries.push(entry);
-              continue;
             }
-            const previousEnd = lineEndMs(previous.line);
-            const currentEnd = lineEndMs(line);
-            const isDuplicateText = previous.comparableText === currentComparable;
-            const isNearPrevious = line.startMs <= previousEnd + VK_DUPLICATE_MAX_GAP_MS;
-            if (!isDuplicateText || !isNearPrevious) {
-              mergedEntries.push(entry);
-              continue;
-            }
-            const mergedStart = Math.min(previous.line.startMs, line.startMs);
-            const mergedEnd = Math.max(previousEnd, currentEnd);
-            const mergedTokens = currentTokensLength >= previous.tokensTextLength ? line.tokens : previous.line.tokens;
-            previous.line = {
-              ...previous.line,
-              startMs: mergedStart,
-              durationMs: Math.max(0, mergedEnd - mergedStart),
-              tokens: mergedTokens
-            };
-            previous.tokensTextLength = Math.max(
-              previous.tokensTextLength,
-              currentTokensLength
-            );
           }
           return {
             ...subtitles,
@@ -26311,6 +26647,84 @@ useAudioDownload: isSupportGMXhr,
       function resetSmartDuckingRuntime() {
         return initSmartDuckingRuntime();
       }
+      function updateSpeechGate(input, runtime, config2, now2, hasRms) {
+        const gateOpen = runtime.speechGateOpen;
+        if (input.audioIsPlaying && !hasRms) {
+          runtime.rmsMissingSinceAt ??= now2;
+          if (gateOpen) {
+            runtime.lastSoundAt = now2;
+          }
+          if (runtime.rmsMissingSinceAt !== null && now2 - runtime.rmsMissingSinceAt >= config2.rmsMissingGraceMs) {
+            runtime.lastSoundAt = now2;
+            return true;
+          }
+          return gateOpen;
+        }
+        runtime.rmsMissingSinceAt = null;
+        if (!input.audioIsPlaying) {
+          return gateOpen && now2 - runtime.lastSoundAt <= config2.holdMs;
+        }
+        if (!gateOpen && runtime.rmsEnvelope >= config2.thresholdOnRms) {
+          runtime.lastSoundAt = now2;
+          return true;
+        }
+        if (gateOpen && runtime.rmsEnvelope >= config2.thresholdOffRms) {
+          runtime.lastSoundAt = now2;
+          return true;
+        }
+        return gateOpen && now2 - runtime.lastSoundAt <= config2.holdMs;
+      }
+      function resolveBaseline(runtime, currentVideoVolume, volumeOnStart, config2) {
+        if (runtime.isDucked && isFiniteNumber(runtime.lastApplied) && Math.abs(currentVideoVolume - runtime.lastApplied) > config2.externalBaselineDelta01) {
+          runtime.baseline = currentVideoVolume;
+        }
+        if (!runtime.isDucked) {
+          runtime.baseline = currentVideoVolume;
+        }
+        const baseline = runtime.baseline ?? volumeOnStart ?? currentVideoVolume;
+        runtime.baseline = baseline;
+        return baseline;
+      }
+      function resolveDesiredVolume(runtime, gateOpen, currentVideoVolume, baseline, duckingTarget01, config2) {
+        const duckedTarget = Math.min(baseline, duckingTarget01);
+        if (gateOpen) {
+          runtime.isDucked = true;
+          return duckedTarget;
+        }
+        if (runtime.isDucked && Math.abs(baseline - currentVideoVolume) < config2.unduckTolerance01) {
+          runtime.isDucked = false;
+        }
+        return baseline;
+      }
+      function smoothVolumeChange(desired, currentVideoVolume, dtMs, dtSec, config2) {
+        const smoothingTauMs = desired < currentVideoVolume ? config2.attackTauMs : config2.releaseTauMs;
+        const smoothingAlpha = smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
+        let nextVolume = currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
+        const maxDelta = (desired < currentVideoVolume ? config2.maxDownPerSec : config2.maxUpPerSec) * dtSec;
+        if (maxDelta > 0) {
+          nextVolume = clamp$2(
+            nextVolume,
+            currentVideoVolume - maxDelta,
+            currentVideoVolume + maxDelta
+          );
+        }
+        return clamp$2(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
+      }
+      function buildVolumeDecision(runtime, currentVideoVolume, quantized, applyDeltaThreshold01) {
+        if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
+          runtime.lastApplied = quantized;
+          return { kind: "noop", runtime };
+        }
+        if (!isFiniteNumber(runtime.lastApplied) || Math.abs(quantized - runtime.lastApplied) >= applyDeltaThreshold01) {
+          runtime.lastApplied = quantized;
+          return {
+            kind: "apply",
+            runtime,
+            volume01: quantized
+          };
+        }
+        return { kind: "noop", runtime };
+      }
       function computeSmartDuckingStep(input, runtime, config2 = SMART_DUCKING_DEFAULT_CONFIG) {
         const nextRuntime = normalizeRuntime(runtime);
         const volumeOnStart = normalizeVolume01(input.volumeOnStart);
@@ -26336,69 +26750,38 @@ useAudioDownload: isSupportGMXhr,
           VOLUME_MIN_01,
           VOLUME_MAX_01
         );
-        let gateOpen = nextRuntime.speechGateOpen;
-        if (input.audioIsPlaying && !hasRms) {
-          nextRuntime.rmsMissingSinceAt ??= now2;
-          if (gateOpen) {
-            nextRuntime.lastSoundAt = now2;
-          }
-          if (nextRuntime.rmsMissingSinceAt !== null && now2 - nextRuntime.rmsMissingSinceAt >= config2.rmsMissingGraceMs) {
-            gateOpen = true;
-            nextRuntime.lastSoundAt = now2;
-          }
-        } else {
-          nextRuntime.rmsMissingSinceAt = null;
-          if (!gateOpen) {
-            if (input.audioIsPlaying && nextRuntime.rmsEnvelope >= config2.thresholdOnRms) {
-              gateOpen = true;
-              nextRuntime.lastSoundAt = now2;
-            }
-          } else if (input.audioIsPlaying && nextRuntime.rmsEnvelope >= config2.thresholdOffRms) {
-            nextRuntime.lastSoundAt = now2;
-          } else if (now2 - nextRuntime.lastSoundAt > config2.holdMs) {
-            gateOpen = false;
-          }
-        }
+        const gateOpen = updateSpeechGate(input, nextRuntime, config2, now2, hasRms);
         nextRuntime.speechGateOpen = gateOpen;
         const currentVideoVolume = normalizeVolume01(input.currentVideoVolume);
         if (!isFiniteNumber(currentVideoVolume)) {
           return { kind: "noop", runtime: nextRuntime };
         }
-        if (nextRuntime.isDucked && isFiniteNumber(nextRuntime.lastApplied) && Math.abs(currentVideoVolume - nextRuntime.lastApplied) > config2.externalBaselineDelta01) {
-          nextRuntime.baseline = currentVideoVolume;
-        }
-        if (!nextRuntime.isDucked) {
-          nextRuntime.baseline = currentVideoVolume;
-        }
-        const baseline = nextRuntime.baseline ?? volumeOnStart ?? currentVideoVolume;
-        nextRuntime.baseline = baseline;
+        const baseline = resolveBaseline(
+          nextRuntime,
+          currentVideoVolume,
+          volumeOnStart,
+          config2
+        );
         if (!input.hostVideoActive) {
           nextRuntime.lastApplied = currentVideoVolume;
           return { kind: "noop", runtime: nextRuntime };
         }
         const duckingTarget01 = normalizeVolume01(input.duckingTarget01) ?? baseline;
-        const duckedTarget = Math.min(baseline, duckingTarget01);
-        let desired = baseline;
-        if (gateOpen) {
-          if (!nextRuntime.isDucked) {
-            nextRuntime.isDucked = true;
-          }
-          desired = duckedTarget;
-        } else if (nextRuntime.isDucked && Math.abs(baseline - currentVideoVolume) < config2.unduckTolerance01) {
-          nextRuntime.isDucked = false;
-        }
-        const smoothingTauMs = desired < currentVideoVolume ? config2.attackTauMs : config2.releaseTauMs;
-        const smoothingAlpha = smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
-        let nextVolume = currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
-        const maxDelta = (desired < currentVideoVolume ? config2.maxDownPerSec : config2.maxUpPerSec) * dtSec;
-        if (maxDelta > 0) {
-          nextVolume = clamp$2(
-            nextVolume,
-            currentVideoVolume - maxDelta,
-            currentVideoVolume + maxDelta
-          );
-        }
-        nextVolume = clamp$2(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
+        const desired = resolveDesiredVolume(
+          nextRuntime,
+          gateOpen,
+          currentVideoVolume,
+          baseline,
+          duckingTarget01,
+          config2
+        );
+        const nextVolume = smoothVolumeChange(
+          desired,
+          currentVideoVolume,
+          dtMs,
+          dtSec,
+          config2
+        );
         const quantized = snapVolume01Towards(
           nextVolume,
           currentVideoVolume,
@@ -26406,19 +26789,12 @@ useAudioDownload: isSupportGMXhr,
           config2.volumeStep01
         );
         const applyDeltaThreshold01 = config2.applyDeltaThreshold01;
-        if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
-          nextRuntime.lastApplied = quantized;
-          return { kind: "noop", runtime: nextRuntime };
-        }
-        if (!isFiniteNumber(nextRuntime.lastApplied) || Math.abs(quantized - nextRuntime.lastApplied) >= applyDeltaThreshold01) {
-          nextRuntime.lastApplied = quantized;
-          return {
-            kind: "apply",
-            runtime: nextRuntime,
-            volume01: quantized
-          };
-        }
-        return { kind: "noop", runtime: nextRuntime };
+        return buildVolumeDecision(
+          nextRuntime,
+          currentVideoVolume,
+          quantized,
+          applyDeltaThreshold01
+        );
       }
       function normalizeRuntime(runtime) {
         return {
@@ -26774,22 +27150,18 @@ useAudioDownload: isSupportGMXhr,
       }
       async function probeAudioUrl(handler, audioUrl, actionContext) {
         const signal = handler.actionsAbortController.signal;
-        const fetchOpts = handler.isMultiMethodS3(audioUrl) ? {
-          method: "HEAD",
-          signal,
-          timeout: AUDIO_PROBE_TIMEOUT_MS
-        } : {
-headers: {
+        const fetchOpts = {
+          headers: {
             range: "bytes=0-0"
           },
           signal,
           timeout: AUDIO_PROBE_TIMEOUT_MS
         };
         for (let attempt = 1; attempt <= AUDIO_PROBE_MAX_ATTEMPTS; attempt++) {
-          if (handler.isActionStale(actionContext)) return false;
+          if (isProbeCancelled(handler, actionContext, signal)) return false;
           try {
             const response = await GM_fetch(audioUrl, fetchOpts);
-            if (handler.isActionStale(actionContext)) return false;
+            if (isProbeCancelled(handler, actionContext, signal)) return false;
             debug.log("[validateAudioUrl] probe response", {
               audioUrl,
               attempt,
@@ -26798,21 +27170,26 @@ headers: {
             });
             if (response.ok) return true;
           } catch (err) {
-            if (handler.isActionStale(actionContext) || signal.aborted) {
-              return false;
-            }
+            if (isProbeCancelled(handler, actionContext, signal)) return false;
           }
-          if (attempt < AUDIO_PROBE_MAX_ATTEMPTS) {
-            if (handler.isActionStale(actionContext) || signal.aborted) {
-              return false;
-            }
-            await waitForProbeRetry(AUDIO_PROBE_RETRY_DELAY_MS, signal);
-            if (handler.isActionStale(actionContext) || signal.aborted) {
-              return false;
-            }
+          if (!await shouldRetryAudioProbe(attempt, handler, actionContext, signal)) {
+            return false;
           }
         }
         return false;
+      }
+      function isProbeCancelled(handler, actionContext, signal) {
+        return handler.isActionStale(actionContext) || signal.aborted;
+      }
+      async function shouldRetryAudioProbe(attempt, handler, actionContext, signal) {
+        if (attempt >= AUDIO_PROBE_MAX_ATTEMPTS) {
+          return true;
+        }
+        if (isProbeCancelled(handler, actionContext, signal)) {
+          return false;
+        }
+        await waitForProbeRetry(AUDIO_PROBE_RETRY_DELAY_MS, signal);
+        return !isProbeCancelled(handler, actionContext, signal);
       }
       async function validateAudioUrl(audioUrl, actionContext) {
         if (this.isActionStale(actionContext)) return audioUrl;
@@ -27011,55 +27388,16 @@ headers: {
         const normalizedTargetUrl = normalizeManagedAudioUrl(this, audioUrl);
         const currentSource = this.audioPlayer.player.currentSrc || this.audioPlayer.player.src || "";
         const normalizedCurrentUrl = normalizeManagedAudioUrl(this, currentSource);
-        let nextAudioUrl = normalizedTargetUrl;
-        if (normalizedTargetUrl !== normalizedCurrentUrl) {
-          nextAudioUrl = await this.validateAudioUrl(
-            normalizedTargetUrl,
-            actionContext
-          );
-        }
+        const nextAudioUrl = normalizedTargetUrl !== normalizedCurrentUrl ? await this.validateAudioUrl(normalizedTargetUrl, actionContext) : normalizedTargetUrl;
         if (this.isActionStale(actionContext)) return;
-        let applyResult = await applyTranslationSource(
+        const resolvedSource = await applyTranslationWithDirectFallback(
           this,
           nextAudioUrl,
           actionContext
         );
-        let appliedSourceUrl = applyResult.appliedSourceUrl;
-        if (applyResult.status === "error" && applyResult.didSetSource && !this.isActionStale(actionContext)) {
-          const directUrl = this.unproxifyAudio(nextAudioUrl);
-          if (directUrl !== nextAudioUrl) {
-            try {
-              debug.log(
-                "[updateTranslation] proxied audio init failed, retrying direct URL"
-              );
-              const validatedDirectUrl = await this.validateAudioUrl(
-                directUrl,
-                actionContext
-              );
-              if (this.isActionStale(actionContext)) {
-                await rollbackStaleAppliedSourceIfStillCurrent(
-                  this,
-                  appliedSourceUrl
-                );
-                return;
-              }
-              nextAudioUrl = validatedDirectUrl;
-              applyResult = await applyTranslationSource(
-                this,
-                validatedDirectUrl,
-                actionContext
-              );
-              appliedSourceUrl = applyResult.appliedSourceUrl;
-            } catch (fallbackErr) {
-              applyResult = {
-                status: "error",
-                didSetSource: true,
-                appliedSourceUrl,
-                error: fallbackErr
-              };
-            }
-          }
-        }
+        const resolvedAudioUrl = resolvedSource.nextAudioUrl;
+        const applyResult = resolvedSource.applyResult;
+        const appliedSourceUrl = applyResult.appliedSourceUrl;
         if (applyResult.status === "stale") return;
         if (applyResult.status === "error") {
           debug.log("this.audioPlayer.init() error", applyResult.error);
@@ -27070,7 +27408,74 @@ headers: {
         }
         this.setupAudioSettings();
         this.transformBtn("success", localizationProvider.get("disableTranslate"));
-        this.afterUpdateTranslation(nextAudioUrl);
+        this.afterUpdateTranslation(resolvedAudioUrl);
+      }
+      async function applyTranslationWithDirectFallback(handler, audioUrl, actionContext) {
+        const nextAudioUrl = audioUrl;
+        const applyResult = await applyTranslationSource(
+          handler,
+          nextAudioUrl,
+          actionContext
+        );
+        if (!shouldRetryTranslationSource(
+          handler,
+          applyResult,
+          actionContext,
+          nextAudioUrl
+        )) {
+          return { nextAudioUrl, applyResult };
+        }
+        const retried = await retryTranslationWithDirectSource(
+          handler,
+          nextAudioUrl,
+          applyResult.appliedSourceUrl,
+          actionContext
+        );
+        if (retried) {
+          return retried;
+        }
+        return { nextAudioUrl, applyResult };
+      }
+      function shouldRetryTranslationSource(handler, applyResult, actionContext, audioUrl) {
+        return applyResult.status === "error" && applyResult.didSetSource && !handler.isActionStale(actionContext) && handler.unproxifyAudio(audioUrl) !== audioUrl;
+      }
+      async function retryTranslationWithDirectSource(handler, audioUrl, appliedSourceUrl, actionContext) {
+        const directUrl = handler.unproxifyAudio(audioUrl);
+        try {
+          const validatedDirectUrl = await handler.validateAudioUrl(
+            directUrl,
+            actionContext
+          );
+          if (handler.isActionStale(actionContext)) {
+            await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+            return {
+              nextAudioUrl: validatedDirectUrl,
+              applyResult: {
+                status: "stale",
+                didSetSource: true,
+                appliedSourceUrl
+              }
+            };
+          }
+          return {
+            nextAudioUrl: validatedDirectUrl,
+            applyResult: await applyTranslationSource(
+              handler,
+              validatedDirectUrl,
+              actionContext
+            )
+          };
+        } catch (fallbackErr) {
+          return {
+            nextAudioUrl: audioUrl,
+            applyResult: {
+              status: "error",
+              didSetSource: true,
+              appliedSourceUrl,
+              error: fallbackErr
+            }
+          };
+        }
       }
       async function translateFunc(VIDEO_ID, _isStream, requestLang, responseLang, translationHelp) {
         await this.waitForPendingStopTranslate();
@@ -27135,7 +27540,7 @@ headers: {
             if (!updated) return;
             return;
           }
-          const translateRes = await requestApplyAndCacheTranslation(this, {
+          await requestApplyAndCacheTranslation(this, {
             videoData,
             requestLang: reqLang,
             responseLang: resLang,
@@ -27161,9 +27566,6 @@ headers: {
               }
             }
           });
-          if (!translateRes) {
-            return;
-          }
         })();
         this.activeTranslation = {
           key: activeKey,
@@ -27360,7 +27762,7 @@ getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage) {
         updateVOTClientRequestSignal() {
           if (!this.votClient) return;
           this.votClient.fetchOpts = {
-            ...this.votClient.fetchOpts ?? {},
+            ...this.votClient.fetchOpts,
             signal: this.actionsAbortController.signal
           };
         }
@@ -27515,30 +27917,32 @@ getSubtitlesWidget() {
               this.interactionChecker,
               this.tooltipLayoutRoot
             );
-            if (this.data) {
-              this.subtitlesWidget.setSmartLayout(
-                typeof this.data.subtitlesSmartLayout === "boolean" ? this.data.subtitlesSmartLayout : true
-              );
-              if (typeof this.data.subtitlesMaxLength === "number") {
-                this.subtitlesWidget.setMaxLength(this.data.subtitlesMaxLength);
-              }
-              if (typeof this.data.highlightWords === "boolean") {
-                this.subtitlesWidget.setHighlightWords(this.data.highlightWords);
-              }
-              if (typeof this.data.subtitlesFontSize === "number") {
-                this.subtitlesWidget.setFontSize(this.data.subtitlesFontSize);
-              }
-              if (typeof this.data.subtitlesFontFamily === "string") {
-                this.subtitlesWidget.setFontFamily(
-                  this.data.subtitlesFontFamily
-                );
-              }
-              if (typeof this.data.subtitlesOpacity === "number") {
-                this.subtitlesWidget.setOpacity(this.data.subtitlesOpacity);
-              }
-            }
+            this.applySavedSubtitlesWidgetSettings(this.subtitlesWidget);
           }
           return this.subtitlesWidget;
+        }
+        applySavedSubtitlesWidgetSettings(widget) {
+          if (!this.data) {
+            return;
+          }
+          widget.setSmartLayout(
+            typeof this.data.subtitlesSmartLayout === "boolean" ? this.data.subtitlesSmartLayout : true
+          );
+          if (typeof this.data.subtitlesMaxLength === "number") {
+            widget.setMaxLength(this.data.subtitlesMaxLength);
+          }
+          if (typeof this.data.highlightWords === "boolean") {
+            widget.setHighlightWords(this.data.highlightWords);
+          }
+          if (typeof this.data.subtitlesFontSize === "number") {
+            widget.setFontSize(this.data.subtitlesFontSize);
+          }
+          if (typeof this.data.subtitlesFontFamily === "string") {
+            widget.setFontFamily(this.data.subtitlesFontFamily);
+          }
+          if (typeof this.data.subtitlesOpacity === "number") {
+            widget.setOpacity(this.data.subtitlesOpacity);
+          }
         }
 hasSubtitlesWidget() {
           return Boolean(this.subtitlesWidget);
@@ -27892,41 +28296,16 @@ async updateTranslationErrorMsg(errorMessage, signal) {
           if (this.longWaitingResCount > minLongWaitingCount) {
             errorMessage = new VOTLocalizedError("TranslationDelayed");
           }
-          if (errorMessage?.name === "VOTLocalizedError") {
-            this.transformBtn("error", errorMessage.localizedMessage);
-          } else if (errorMessage instanceof Error) {
-            this.transformBtn("error", errorMessage?.message);
-          } else if (this.data?.translateAPIErrors && lang2 !== "ru" && !errorMessage?.includes(translationTake2)) {
-            const overlayView = this.uiManager.votOverlayView;
-            if (!overlayView?.votButton) {
-              return;
-            }
-            const messageStr = Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage);
-            const cacheKey = `${lang2}:${messageStr}`;
-            const cached = this.errorTranslationCache.get(cacheKey);
-            if (cached) {
-              this.transformBtn("error", cached);
-            } else {
-              overlayView.votButton.loading = true;
-              const translatedMessage = await translate(messageStr, "ru", lang2);
-              const translatedText = Array.isArray(translatedMessage) ? translatedMessage.join("\n") : String(translatedMessage);
-              if (signal?.aborted) {
-                return;
-              }
-              this.errorTranslationCache.set(cacheKey, translatedText);
-              if (this.errorTranslationCache.size > 50) {
-                const oldestKey = this.errorTranslationCache.keys().next().value;
-                if (oldestKey) this.errorTranslationCache.delete(oldestKey);
-              }
-              this.transformBtn("error", translatedText);
-            }
-            if (signal?.aborted) {
-              return;
-            }
-          } else {
-            const msg = Array.isArray(errorMessage) ? errorMessage.join("\n") : String(errorMessage ?? "");
-            this.transformBtn("error", msg);
+          const resolvedMessage = await this.resolveTranslationErrorDisplayMessage(
+            errorMessage,
+            translationTake2,
+            lang2,
+            signal
+          );
+          if (signal?.aborted || resolvedMessage === null) {
+            return;
           }
+          this.transformBtn("error", resolvedMessage);
           if (signal?.aborted) {
             return;
           }
@@ -27939,6 +28318,54 @@ async updateTranslationErrorMsg(errorMessage, signal) {
             if (this.uiManager.votOverlayView?.votButton) {
               this.uiManager.votOverlayView.votButton.loading = true;
             }
+          }
+        }
+        async resolveTranslationErrorDisplayMessage(errorMessage, translationTake2, lang2, signal) {
+          if (errorMessage?.name === "VOTLocalizedError") {
+            return errorMessage.localizedMessage;
+          }
+          if (errorMessage instanceof Error) {
+            return errorMessage.message;
+          }
+          if (!this.shouldTranslateErrorMessage(errorMessage, translationTake2, lang2)) {
+            return this.stringifyTranslationError(errorMessage);
+          }
+          return await this.getTranslatedErrorMessage(errorMessage, lang2, signal);
+        }
+        shouldTranslateErrorMessage(errorMessage, translationTake2, lang2) {
+          return Boolean(this.data?.translateAPIErrors) && lang2 !== "ru" && !errorMessage?.includes(translationTake2);
+        }
+        stringifyTranslationError(errorMessage) {
+          return Array.isArray(errorMessage) ? errorMessage.join("\n") : String(errorMessage ?? "");
+        }
+        async getTranslatedErrorMessage(errorMessage, lang2, signal) {
+          const overlayView = this.uiManager.votOverlayView;
+          if (!overlayView?.votButton) {
+            return null;
+          }
+          const messageStr = Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage);
+          const cacheKey = `${lang2}:${messageStr}`;
+          const cached = this.errorTranslationCache.get(cacheKey);
+          if (cached) {
+            return cached;
+          }
+          overlayView.votButton.loading = true;
+          const translatedMessage = await translate(messageStr, "ru", lang2);
+          if (signal?.aborted) {
+            return null;
+          }
+          const translatedText = Array.isArray(translatedMessage) ? translatedMessage.join("\n") : String(translatedMessage);
+          this.errorTranslationCache.set(cacheKey, translatedText);
+          this.trimErrorTranslationCache();
+          return translatedText;
+        }
+        trimErrorTranslationCache() {
+          if (this.errorTranslationCache.size <= 50) {
+            return;
+          }
+          const oldestKey = this.errorTranslationCache.keys().next().value;
+          if (oldestKey) {
+            this.errorTranslationCache.delete(oldestKey);
           }
         }
 afterUpdateTranslation(audioUrl) {
