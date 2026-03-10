@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.3.1
+// @version         1.11.3.2
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -9727,7 +9727,7 @@ get isSupportOnlyLS() {
         return buildVersion || scriptVersion || "unknown";
       }
       function getRuntimeLocaleVersion() {
-        const buildVersion = String("1.11.3.1");
+        const buildVersion = String("1.11.3.2");
         const scriptVersion = typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "";
         return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
       }
@@ -11339,6 +11339,8 @@ localizedMessage;
         }
         return error2;
       }
+      const INITIAL_VIDEO_TRANSLATION_RETRY_DELAY_MS = 75e3;
+      const SUBSEQUENT_VIDEO_TRANSLATION_RETRY_DELAY_MS = 25e3;
       class VOTTranslationHandler {
         videoHandler;
         audioDownloader;
@@ -11484,7 +11486,10 @@ isLivelyVoiceUnavailableError(value) {
             }
           });
         }
-        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false) {
+        getVideoTranslationRetryDelayMs(retryAttempt) {
+          return retryAttempt === 0 ? INITIAL_VIDEO_TRANSLATION_RETRY_DELAY_MS : SUBSEQUENT_VIDEO_TRANSLATION_RETRY_DELAY_MS;
+        }
+        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false, retryAttempt = 0) {
           clearTimeout(this.videoHandler.autoRetry);
           this.finishDownloadSuccess();
           const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
@@ -11545,7 +11550,8 @@ isLivelyVoiceUnavailableError(value) {
                 translationHelp,
                 true,
                 signal,
-                livelyDisabled
+                livelyDisabled,
+                retryAttempt
               );
             }
           } catch (err) {
@@ -11581,9 +11587,10 @@ isLivelyVoiceUnavailableError(value) {
               translationHelp,
               shouldSendFailedAudio,
               signal,
-              livelyDisabled
+              livelyDisabled,
+              retryAttempt + 1
             ),
-            2e4,
+            this.getVideoTranslationRetryDelayMs(retryAttempt),
             signal
           );
         }
