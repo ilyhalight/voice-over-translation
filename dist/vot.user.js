@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.3.2
+// @version         1.11.3.3
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -8149,7 +8149,6 @@ string() {
       const minLongWaitingCount = 5;
       const defaultTranslationService = "yandexbrowser";
       const defaultDetectService = "yandexbrowser";
-      const nonProxyExtensions = ["Tampermonkey", "Violentmonkey"];
       const proxyOnlyCountries = ["UA", "LV", "LT"];
       const defaultAutoHideDelay = 1e3;
       const actualCompatVersion = "2025-05-09";
@@ -8999,12 +8998,21 @@ clear() {
       const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
       const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
       const scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
-      const isProxyOnlyExtension = (
-
-!(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && !!scriptHandler && !nonProxyExtensions.includes(scriptHandler)
-      );
-      const isSupportGM4 = typeof GM !== "undefined";
-      const isSupportGMXhr = typeof GM_xmlhttpRequest !== "undefined";
+      function getCallbackGmXhr() {
+        const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
+        return typeof gmXhr === "function" ? gmXhr : void 0;
+      }
+      function getPromiseGmXhr() {
+        const gm = typeof GM === "undefined" ? globalThis.GM : GM;
+        const gmXhr = gm?.xmlHttpRequest ?? gm?.xmlhttpRequest;
+        return typeof gmXhr === "function" ? gmXhr.bind(gm) : void 0;
+      }
+      function hasSupportedGmXhr() {
+        return !!(getCallbackGmXhr() || getPromiseGmXhr());
+      }
+      const isProxyOnlyExtension = !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && !!scriptHandler && !hasSupportedGmXhr();
+      const isSupportGM4 = typeof GM !== "undefined" || typeof globalThis.GM !== "undefined";
+      const isSupportGMXhr = hasSupportedGmXhr();
       function getRequestHost(url) {
         const normalizedUrl = url.trim();
         try {
@@ -9076,66 +9084,112 @@ clear() {
       }
       async function gmXhrFetch(urlStr, timeout2, fetchOptions) {
         const headers = getHeaders(fetchOptions.headers);
-        return await new Promise((resolve, reject) => {
-          const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
-          if (typeof gmXhr !== "function") {
-            reject(new TypeError("GM_xmlhttpRequest is not available"));
-            return;
-          }
-          let settled = false;
-          let onAbort;
-          const cleanupAbort = () => {
-            if (onAbort) {
-              fetchOptions.signal?.removeEventListener("abort", onAbort);
-            }
-          };
-          const failOnce = (error2) => {
-            if (settled) return;
-            settled = true;
-            cleanupAbort();
-            reject(error2);
-          };
-          const request = gmXhr({
-            method: fetchOptions.method || "GET",
-            url: urlStr,
-            responseType: "blob",
-            data: fetchOptions.body,
-            timeout: timeout2,
-            headers,
-            onload: (resp) => {
+        const callbackGmXhr = getCallbackGmXhr();
+        const promiseGmXhr = getPromiseGmXhr();
+        if (callbackGmXhr) {
+          return await new Promise((resolve, reject) => {
+            let settled = false;
+            let onAbort;
+            const cleanupAbort = () => {
+              if (onAbort) {
+                fetchOptions.signal?.removeEventListener("abort", onAbort);
+              }
+            };
+            const failOnce = (error2) => {
               if (settled) return;
               settled = true;
               cleanupAbort();
-              const responseHeaders = parseResponseHeaders(resp.responseHeaders);
-              const response = new Response(resp.response, {
-                status: resp.status,
-                statusText: typeof resp.statusText === "string" ? resp.statusText : "",
-                headers: responseHeaders
-              });
-              Object.defineProperty(response, "url", {
-                value: resp.finalUrl ?? urlStr
-              });
-              resolve(response);
-            },
-            ontimeout: () => failOnce(new Error("Timeout")),
-            onerror: (error2) => failOnce(new Error(getGmXhrErrorMessage(error2))),
-            onabort: () => failOnce(makeAbortError())
-          });
-          onAbort = () => {
-            try {
-              request?.abort?.();
-            } catch {
+              reject(error2);
+            };
+            const request2 = callbackGmXhr({
+              method: fetchOptions.method || "GET",
+              url: urlStr,
+              responseType: "blob",
+              data: fetchOptions.body,
+              timeout: timeout2,
+              headers,
+              onload: (resp) => {
+                if (settled) return;
+                settled = true;
+                cleanupAbort();
+                const responseHeaders = parseResponseHeaders(resp.responseHeaders);
+                const response = new Response(resp.response, {
+                  status: resp.status,
+                  statusText: typeof resp.statusText === "string" ? resp.statusText : "",
+                  headers: responseHeaders
+                });
+                Object.defineProperty(response, "url", {
+                  value: resp.finalUrl ?? urlStr
+                });
+                resolve(response);
+              },
+              ontimeout: () => failOnce(new Error("Timeout")),
+              onerror: (error2) => failOnce(new Error(getGmXhrErrorMessage(error2))),
+              onabort: () => failOnce(makeAbortError())
+            });
+            onAbort = () => {
+              try {
+                request2?.abort?.();
+              } catch {
+              }
+              failOnce(makeAbortError());
+            };
+            if (fetchOptions.signal) {
+              fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
+              if (fetchOptions.signal.aborted) {
+                onAbort();
+                return;
+              }
             }
-            failOnce(makeAbortError());
-          };
-          if (fetchOptions.signal) {
-            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
-            if (fetchOptions.signal.aborted) {
-              onAbort();
+          });
+        }
+        if (!promiseGmXhr) {
+          throw new TypeError("GM_xmlhttpRequest is not available");
+        }
+        const request = promiseGmXhr({
+          method: fetchOptions.method || "GET",
+          url: urlStr,
+          responseType: "blob",
+          data: fetchOptions.body,
+          timeout: timeout2,
+          headers
+        });
+        let abortHandler;
+        try {
+          const abortPromise = new Promise((_2, reject) => {
+            if (!fetchOptions.signal) {
               return;
             }
+            abortHandler = () => {
+              try {
+                request.abort?.();
+              } catch {
+              }
+              reject(makeAbortError());
+            };
+            fetchOptions.signal.addEventListener("abort", abortHandler, {
+              once: true
+            });
+            if (fetchOptions.signal.aborted) {
+              abortHandler();
+            }
+          });
+          const resp = await Promise.race([request, abortPromise]);
+          const responseHeaders = parseResponseHeaders(resp.responseHeaders);
+          const response = new Response(resp.response, {
+            status: resp.status,
+            statusText: typeof resp.statusText === "string" ? resp.statusText : "",
+            headers: responseHeaders
+          });
+          Object.defineProperty(response, "url", {
+            value: resp.finalUrl ?? urlStr
+          });
+          return response;
+        } finally {
+          if (abortHandler) {
+            fetchOptions.signal?.removeEventListener("abort", abortHandler);
           }
-        });
+        }
       }
       async function GM_fetch(url, opts = {}) {
         const {
@@ -9727,7 +9781,7 @@ get isSupportOnlyLS() {
         return buildVersion || scriptVersion || "unknown";
       }
       function getRuntimeLocaleVersion() {
-        const buildVersion = String("1.11.3.2");
+        const buildVersion = String("1.11.3.3");
         const scriptVersion = typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "";
         return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
       }
@@ -11339,8 +11393,6 @@ localizedMessage;
         }
         return error2;
       }
-      const INITIAL_VIDEO_TRANSLATION_RETRY_DELAY_MS = 75e3;
-      const SUBSEQUENT_VIDEO_TRANSLATION_RETRY_DELAY_MS = 25e3;
       class VOTTranslationHandler {
         videoHandler;
         audioDownloader;
@@ -11486,8 +11538,11 @@ isLivelyVoiceUnavailableError(value) {
             }
           });
         }
-        getVideoTranslationRetryDelayMs(retryAttempt) {
-          return retryAttempt === 0 ? INITIAL_VIDEO_TRANSLATION_RETRY_DELAY_MS : SUBSEQUENT_VIDEO_TRANSLATION_RETRY_DELAY_MS;
+        getVideoTranslationRetryDelayMs(retryAttempt, videoDurationSeconds) {
+          if (retryAttempt > 0) {
+            return 25e3;
+          }
+          return videoDurationSeconds <= 10 * 60 ? 6e4 : 75e3;
         }
         async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false, retryAttempt = 0) {
           clearTimeout(this.videoHandler.autoRetry);
@@ -11590,7 +11645,7 @@ isLivelyVoiceUnavailableError(value) {
               livelyDisabled,
               retryAttempt + 1
             ),
-            this.getVideoTranslationRetryDelayMs(retryAttempt),
+            this.getVideoTranslationRetryDelayMs(retryAttempt, videoData.duration),
             signal
           );
         }
@@ -13473,6 +13528,30 @@ updateMount({
         }
       }
       const subtitleFormats = ["srt", "vtt", "ass", "json"];
+      const subtitleFormatsSet = new Set(subtitleFormats);
+      function isSubtitleFormat(value) {
+        return typeof value === "string" && subtitleFormatsSet.has(value);
+      }
+      function isRecord(value) {
+        return value !== null && typeof value === "object";
+      }
+      function parseSubtitleDescriptor(value) {
+        if (!isRecord(value)) {
+          return null;
+        }
+        const format = value.format;
+        if (typeof value.source !== "string" || typeof value.language !== "string" || typeof value.url !== "string" || !isSubtitleFormat(format)) {
+          return null;
+        }
+        return {
+          source: value.source,
+          format,
+          language: value.language,
+          url: value.url,
+          translatedFromLanguage: typeof value.translatedFromLanguage === "string" ? value.translatedFromLanguage : void 0,
+          isAutoGenerated: typeof value.isAutoGenerated === "boolean" ? value.isAutoGenerated : void 0
+        };
+      }
       const subtitleFontFamilies = [
         "default-sans",
         "arial",
@@ -13902,24 +13981,45 @@ updateMount({
       function targetCharsPerLine(aspect) {
         if (aspect < 1) return 28;
         if (aspect < 1.4) return 32;
-        return 42;
+        return 48;
+      }
+      function widthRatiosForAspect(aspect) {
+        if (aspect < 1) {
+          return { min: 0.8, max: 0.92 };
+        }
+        if (aspect < 1.4) {
+          return { min: 0.55, max: 0.9 };
+        }
+        return { min: 0.6, max: 0.82 };
       }
       function computeSmartLayoutForBox(anchorBox, cssMetrics) {
         const w2 = Math.max(1, anchorBox.w);
         const h2 = Math.max(1, anchorBox.h);
         const aspect = w2 / h2;
-        let computedCPL = targetCharsPerLine(aspect);
+        const targetChars = targetCharsPerLine(aspect);
+        const widthRatios = widthRatiosForAspect(aspect);
+        let computedCPL = targetChars;
+        let maxWidthPx = Math.round(w2 * widthRatios.max);
         if (cssMetrics) {
-          const { fontSizePx, maxWidthPx } = cssMetrics;
-          if (Number.isFinite(fontSizePx) && Number.isFinite(maxWidthPx) && fontSizePx > 0 && maxWidthPx > 0) {
+          const { fontSizePx, maxWidthPx: currentCssMaxWidthPx } = cssMetrics;
+          if (Number.isFinite(fontSizePx) && Number.isFinite(currentCssMaxWidthPx) && fontSizePx > 0 && currentCssMaxWidthPx > 0) {
             const estCharW = fontSizePx * EST_CHAR_WIDTH_RATIO;
             if (estCharW > 0) {
-              computedCPL = maxWidthPx / estCharW;
+              const desiredWidthPx = targetChars * estCharW;
+              const minWidthPx = w2 * widthRatios.min;
+              const hardMaxWidthPx = w2 * widthRatios.max;
+              const resolvedMaxWidthPx = clamp$1(
+                Math.round(desiredWidthPx),
+                Math.round(minWidthPx),
+                Math.round(hardMaxWidthPx)
+              );
+              maxWidthPx = resolvedMaxWidthPx;
+              computedCPL = resolvedMaxWidthPx / estCharW;
             }
           }
         }
         const maxLength = clamp$1(Math.round(computedCPL * 2), 50, 180);
-        return { maxLength };
+        return { maxLength, maxWidthPx };
       }
       const isWordToken = (token) => Boolean(token?.isWordLike && token.text?.trim());
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -14581,11 +14681,11 @@ safeAreaBottomInsetCachedPx = 0;
           }
           const cssMetrics = this.readSmartCssMetrics();
           const nextFontSizePx = cssMetrics?.fontSizePx ?? this.smartFontSizePx;
-          const nextMaxWidthPx = cssMetrics?.maxWidthPx ?? this.smartMaxWidthPx;
           const next = computeSmartLayoutForBox(anchorBox, cssMetrics);
+          const nextMaxWidthPx = next.maxWidthPx ?? this.smartMaxWidthPx;
           const nextKey = `${Math.round(nextFontSizePx)}|${Math.round(
       nextMaxWidthPx
-    )}|${next.maxLength}`;
+    )}|${next.maxLength}|${Math.round(next.maxWidthPx ?? 0)}`;
           const fontChanged = Math.abs(nextFontSizePx - this.smartFontSizePx) > 0.5;
           const widthChanged = Math.abs(nextMaxWidthPx - this.smartMaxWidthPx) > 0.5;
           const lengthChanged = next.maxLength !== this.smartMaxLength;
@@ -14600,6 +14700,10 @@ safeAreaBottomInsetCachedPx = 0;
             this.resetRenderMemo();
             this.resetSegmentationMemo();
           }
+          this.setSubtitlesContainerVar(
+            "--vot-subtitles-max-width",
+            next.maxWidthPx && next.maxWidthPx > 0 ? `${next.maxWidthPx}px` : null
+          );
           if ((fontChanged || widthChanged) && this.lastWrapTokens) {
             this.lastWrapKey = null;
             this.scheduleWrapRecompute();
@@ -16090,6 +16194,7 @@ safeAreaBottomInsetCachedPx = 0;
       const HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)(?:[.\s][^>]*)?>/iu;
       const ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
       const LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
+      const ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;
       const toTokenStyle = (style) => {
         const tokenStyle = {};
         if (style.italic) tokenStyle.italic = true;
@@ -16138,6 +16243,12 @@ safeAreaBottomInsetCachedPx = 0;
         }
         while (segments[0]?.text === "") {
           segments.shift();
+        }
+      };
+      const normalizeAttachedTimeExpressions = (segments) => {
+        for (const segment of segments) {
+          if (!segment.text) continue;
+          segment.text = segment.text.replaceAll(ATTACHED_TIME_WORD_RE, "$1 ");
         }
       };
       const consumeDisplayControlToken = (rawText, cursor, segments, activeStyle) => {
@@ -16248,6 +16359,7 @@ safeAreaBottomInsetCachedPx = 0;
           cursor += 1;
         }
         normalizeLeadingSpeakerMarker(segments);
+        normalizeAttachedTimeExpressions(segments);
         const built = buildStyledSpans(segments);
         return trimStyledDisplayResult(built.text, built.styledSpans);
       };
@@ -16293,21 +16405,29 @@ safeAreaBottomInsetCachedPx = 0;
         allowOptionalHours,
         fractionDigits
       }) => {
-        const safeMs = Math.max(0, Math.round(totalMs));
-        const hours = Math.floor(safeMs / 36e5);
-        const minutes = Math.floor(safeMs % 36e5 / 6e4);
-        const seconds = Math.floor(safeMs % 6e4 / 1e3);
-        const milliseconds = safeMs % 1e3;
+        const { hours, minutes, seconds, milliseconds } = splitTimestampParts(
+          totalMs,
+          Math.round
+        );
         const fraction = milliseconds.toString().padStart(3, "0").slice(0, fractionDigits);
         const hourPart = allowOptionalHours && hours === 0 ? "" : `${hours.toString().padStart(2, "0")}:`;
         return `${hourPart}${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}${delimiter}${fraction}`;
       };
+      const splitTimestampParts = (totalMs, normalizeMs) => {
+        const safeMs = Math.max(0, normalizeMs(totalMs));
+        return {
+          hours: Math.floor(safeMs / 36e5),
+          minutes: Math.floor(safeMs % 36e5 / 6e4),
+          seconds: Math.floor(safeMs % 6e4 / 1e3),
+          milliseconds: safeMs % 1e3
+        };
+      };
       const formatAssTime = (totalMs) => {
-        const safeMs = Math.max(0, Math.round(totalMs));
-        const hours = Math.floor(safeMs / 36e5);
-        const minutes = Math.floor(safeMs % 36e5 / 6e4);
-        const seconds = Math.floor(safeMs % 6e4 / 1e3);
-        const centiseconds = Math.floor(safeMs % 1e3 / 10);
+        const { hours, minutes, seconds, milliseconds } = splitTimestampParts(
+          totalMs,
+          Math.round
+        );
+        const centiseconds = Math.floor(milliseconds / 10);
         return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
       };
       const parseAssTime = (value) => {
@@ -16325,10 +16445,12 @@ safeAreaBottomInsetCachedPx = 0;
         return ((hours * 60 + minutes) * 60 + seconds) * 1e3 + centiseconds * 10;
       };
       const normalizeSubtitleTextForDisplay = (value) => buildStyledDisplayModel(value).text;
+      const getSubtitleLineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
+      const getCueDurationMs = (startMs, endMs) => Math.max(0, endMs - startMs);
       const toComparableSubtitleOrder = (subtitles) => subtitles.sort((left, right) => {
         const startDiff = left.line.startMs - right.line.startMs;
         if (startDiff !== 0) return startDiff;
-        const endDiff = left.line.startMs + Math.max(0, left.line.durationMs) - (right.line.startMs + Math.max(0, right.line.durationMs));
+        const endDiff = getSubtitleLineEndMs(left.line) - getSubtitleLineEndMs(right.line);
         if (endDiff !== 0) return endDiff;
         return left.index - right.index;
       }).map(({ line }) => line);
@@ -16362,8 +16484,6 @@ safeAreaBottomInsetCachedPx = 0;
         const voice = match?.[1]?.trim();
         return voice ? voice : void 0;
       };
-      const toVttDisplayText = (payload) => normalizeSubtitleTextForDisplay(payload);
-      const toAssDisplayText = (rawText) => normalizeSubtitleTextForDisplay(rawText);
       const isSrtCueStart = (lines, index) => {
         const current = lines[index]?.trim() ?? "";
         const next = lines[index + 1]?.trim() ?? "";
@@ -16402,15 +16522,26 @@ safeAreaBottomInsetCachedPx = 0;
           nextCursor: cursor
         };
       };
-      const createStyledCueDraft = (index, rawText, startMs, endMs, speakerId, metadata) => ({
+      const createStyledCueDraft = (index, {
+        rawText,
+        startMs,
+        endMs,
+        speakerId,
+        displayModel,
+        metadata
+      }) => ({
         index,
         line: {
-          text: normalizeSubtitleTextForDisplay(rawText),
+          text: displayModel.text,
           startMs,
-          durationMs: Math.max(0, endMs - startMs),
+          durationMs: getCueDurationMs(startMs, endMs),
           speakerId,
           tokens: [],
-          metadata
+          metadata: {
+            rawText,
+            styledSpans: displayModel.styledSpans,
+            ...metadata
+          }
         }
       });
       const createEmptyVttResult = () => ({
@@ -16511,18 +16642,16 @@ safeAreaBottomInsetCachedPx = 0;
         };
         return {
           index,
-          line: {
-            text: toAssDisplayText(rawText),
+          line: createStyledCueDraft(index, {
+            rawText,
             startMs,
-            durationMs: Math.max(0, endMs - startMs),
+            endMs,
             speakerId: assMetadata.name || "0",
-            tokens: [],
+            displayModel,
             metadata: {
-              rawText,
-              styledSpans: displayModel.styledSpans,
               ass: assMetadata
             }
-          }
+          }).line
         };
       };
       const processAssEventLine = (metadata, line, index, eventFields) => {
@@ -16576,17 +16705,13 @@ safeAreaBottomInsetCachedPx = 0;
           const rawText = payload.rawText;
           const displayModel = buildStyledDisplayModel(rawText);
           cues.push(
-            createStyledCueDraft(
-              cueIndex,
+            createStyledCueDraft(cueIndex, {
               rawText,
-              timing.startMs,
-              timing.endMs,
-              "0",
-              {
-                rawText,
-                styledSpans: displayModel.styledSpans
-              }
-            )
+              startMs: timing.startMs,
+              endMs: timing.endMs,
+              speakerId: "0",
+              displayModel
+            })
           );
           cueIndex += 1;
         }
@@ -16606,7 +16731,7 @@ safeAreaBottomInsetCachedPx = 0;
       };
       const serializeSrt = (processed) => processed.subtitles.map((line, index) => {
         const rawText = resolveSerializedText(processed, line, "srt");
-        const endMs = line.startMs + Math.max(0, line.durationMs);
+        const endMs = getSubtitleLineEndMs(line);
         return [
           String(index + 1),
           `${formatClockTime(line.startMs, {
@@ -16665,15 +16790,13 @@ safeAreaBottomInsetCachedPx = 0;
           const voice = extractVttVoice(rawText);
           cues.push({
             index: cues.length,
-            line: {
-              text: toVttDisplayText(rawText),
+            line: createStyledCueDraft(cues.length, {
+              rawText,
               startMs: timing.startMs,
-              durationMs: Math.max(0, timing.endMs - timing.startMs),
+              endMs: timing.endMs,
               speakerId: voice ?? "0",
-              tokens: [],
+              displayModel,
               metadata: {
-                rawText,
-                styledSpans: displayModel.styledSpans,
                 vtt: {
                   cueId: identity.cueId,
                   settings: parseCueSettings(timing.settingsRaw),
@@ -16681,7 +16804,7 @@ safeAreaBottomInsetCachedPx = 0;
                   rawPayload: payloadLines
                 }
               }
-            }
+            }).line
           });
         }
         return {
@@ -16693,7 +16816,7 @@ safeAreaBottomInsetCachedPx = 0;
         };
       };
       const serializeVttTiming = (line) => {
-        const endMs = line.startMs + Math.max(0, line.durationMs);
+        const endMs = getSubtitleLineEndMs(line);
         const settings = line.metadata?.vtt?.settings?.raw;
         const settingsSuffix = settings ? ` ${settings}` : "";
         return `${formatClockTime(line.startMs, {
@@ -16820,7 +16943,7 @@ safeAreaBottomInsetCachedPx = 0;
       };
       const serializeAssDialogue = (line) => {
         const ass = line.metadata?.ass;
-        const endMs = line.startMs + Math.max(0, line.durationMs);
+        const endMs = getSubtitleLineEndMs(line);
         const rawText = ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", "\\N");
         return [
           ass?.kind === "comment" ? "Comment" : "Dialogue",
@@ -25381,19 +25504,18 @@ useAudioDownload: isSupportGMXhr,
           index: part.index
         }));
       };
-      const WHITESPACE_RE = /\s/u;
-      const NO_SPACE_BEFORE_RE = /^[,.:;!?%)\]}>В»]/u;
-      const NO_SPACE_AFTER_RE = /[([{'"В«вЂћ-]$/u;
+      const WHITESPACE_RE$1 = /\s/u;
+      const NO_SPACE_BEFORE_RE = /^[,.:;!?%)\]}>»]/u;
+      const NO_SPACE_AFTER_RE = /[([{<«'"-]$/u;
       const CJK_CHAR_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
-      const hasVisibleText = (value) => Boolean(value.trim());
-      const shouldInsertSpaceBetween = (leftText, rightText) => {
+      const shouldInsertSpaceBetweenTextFragments = (leftText, rightText) => {
         const leftLastChar = leftText.at(-1) ?? "";
         const rightFirstChar = rightText[0] ?? "";
         if (!leftLastChar || !rightFirstChar) return false;
-        if (WHITESPACE_RE.test(leftLastChar) || WHITESPACE_RE.test(rightFirstChar)) {
+        if (WHITESPACE_RE$1.test(leftLastChar) || WHITESPACE_RE$1.test(rightFirstChar)) {
           return false;
         }
-        if (NO_SPACE_AFTER_RE.test(leftText) || NO_SPACE_BEFORE_RE.test(rightText)) {
+        if (NO_SPACE_AFTER_RE.test(leftLastChar) || NO_SPACE_BEFORE_RE.test(rightFirstChar)) {
           return false;
         }
         if (CJK_CHAR_RE.test(leftLastChar) && CJK_CHAR_RE.test(rightFirstChar)) {
@@ -25401,6 +25523,8 @@ useAudioDownload: isSupportGMXhr,
         }
         return true;
       };
+      const WHITESPACE_RE = /\s/u;
+      const hasVisibleText = (value) => Boolean(value.trim());
       const buildNormalizedLineSpans = (lines) => {
         let streamText = "";
         let previousText = "";
@@ -25408,7 +25532,7 @@ useAudioDownload: isSupportGMXhr,
         for (const line of lines) {
           const normalizedText = line.text.trim();
           if (!normalizedText) continue;
-          if (streamText && shouldInsertSpaceBetween(previousText, normalizedText)) {
+          if (streamText && shouldInsertSpaceBetweenTextFragments(previousText, normalizedText)) {
             streamText += " ";
           }
           const start = streamText.length;
@@ -25511,14 +25635,8 @@ useAudioDownload: isSupportGMXhr,
         const sentenceLines = segments.map((segment) => buildSentenceLine(streamText, spans, segment)).filter((line) => line !== null);
         return sentenceLines.length ? sentenceLines : spans.map(({ line }) => line);
       };
-      const isSubtitleFormat = (value) => value === "json" || value === "srt" || value === "vtt" || value === "ass";
-      const isRecord$1 = (value) => Boolean(value && typeof value === "object");
       const toFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
       const toNonNegativeNumber = (value) => Math.max(0, toFiniteNumber(value));
-      const isSubtitleDescriptor = (arg) => {
-        if (!isRecord$1(arg)) return false;
-        return typeof arg.source === "string" && isSubtitleFormat(arg.format) && typeof arg.language === "string" && typeof arg.url === "string" && (arg.translatedFromLanguage === void 0 || typeof arg.translatedFromLanguage === "string") && (arg.isAutoGenerated === void 0 || typeof arg.isAutoGenerated === "boolean");
-      };
       const pickDescriptorFromVideoData = (videoData, requestLang, spokenLang) => {
         const list = videoData.subtitles;
         if (!Array.isArray(list) || list.length === 0) return null;
@@ -25533,6 +25651,7 @@ useAudioDownload: isSupportGMXhr,
         }
         return list[0] ?? null;
       };
+      const isVideoDataForSubtitles = (value) => "host" in value && "videoId" in value && "detectedLanguage" in value && "duration" in value && typeof value.host === "string" && typeof value.videoId === "string" && typeof value.detectedLanguage === "string" && typeof value.duration === "number";
       const appendYoutubePoTokenParams = (inputUrl) => {
         const poToken = YoutubeHelper.getPoToken();
         if (!poToken) return inputUrl;
@@ -25700,36 +25819,6 @@ useAudioDownload: isSupportGMXhr,
         const subtitles = Array.isArray(payload.subtitles) ? payload.subtitles.map(sanitizeLine) : [];
         return { format: payload.format ?? "json", subtitles };
       };
-      const VK_INLINE_TIMESTAMP_RE = /<(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?>/gu;
-      const VK_DUPLICATE_MAX_GAP_MS = 120;
-      const VK_PUNCTUATION_SPACING_RE = /\s+([,.:;!?])/gu;
-      const VK_AROUND_NEWLINE_SPACING_RE = /[ \t]*\n[ \t]*/gu;
-      const VK_MULTIPLE_SPACES_RE = /[ \t]{2,}/gu;
-      const VK_EXCESS_NEWLINES_RE = /\n{3,}/gu;
-      const VK_COMPARABLE_SPACING_RE = /\s+/gu;
-      let htmlStripTemplate = null;
-      const stripHtmlToText = (value) => {
-        if (!value.includes("<")) return value;
-        if (typeof document !== "undefined") {
-          if (!htmlStripTemplate) {
-            htmlStripTemplate = document.createElement("template");
-          }
-          const template = htmlStripTemplate;
-          template.innerHTML = value;
-          return template.content.textContent ?? "";
-        }
-        return value.replaceAll(/<\/?[^>]+>/gu, "");
-      };
-      const normalizeSubtitleText = (value) => {
-        let normalized = value;
-        if (normalized.includes("<")) {
-          normalized = stripHtmlToText(
-            normalized.replaceAll(VK_INLINE_TIMESTAMP_RE, "")
-          );
-        }
-        return normalized.replaceAll(VK_PUNCTUATION_SPACING_RE, "$1").replaceAll(VK_AROUND_NEWLINE_SPACING_RE, "\n").replaceAll(VK_MULTIPLE_SPACES_RE, " ").replaceAll(VK_EXCESS_NEWLINES_RE, "\n\n").trim();
-      };
-      const normalizeComparableText = (value) => value.toLowerCase().replaceAll(VK_COMPARABLE_SPACING_RE, " ").trim();
       const getYoutubeEventDurationMs = (event, nextEvent) => {
         if (!nextEvent) return Math.max(0, event.dDurationMs);
         if (event.tStartMs + event.dDurationMs <= nextEvent.tStartMs) {
@@ -25741,6 +25830,7 @@ useAudioDownload: isSupportGMXhr,
         const sourceTokens = [];
         let text = "";
         let remainingDuration = durationMs;
+        let previousRawText = "";
         for (let j = 0; j < segs.length; j += 1) {
           const segment = segs[j];
           const rawText = typeof segment.utf8 === "string" ? segment.utf8 : "";
@@ -25757,6 +25847,15 @@ useAudioDownload: isSupportGMXhr,
           if (nextSegment) {
             tokenDuration = Math.max(0, segmentDuration);
           }
+          if (text && shouldInsertSpaceBetweenTextFragments(previousRawText, rawText)) {
+            sourceTokens.push({
+              text: " ",
+              startMs: event.tStartMs + offset,
+              durationMs: 0,
+              isWordLike: false
+            });
+            text += " ";
+          }
           sourceTokens.push({
             text: rawText,
             startMs: event.tStartMs + offset,
@@ -25764,6 +25863,7 @@ useAudioDownload: isSupportGMXhr,
             isWordLike: Boolean(rawText.trim())
           });
           text += rawText;
+          previousRawText = rawText;
         }
         return { text, sourceTokens };
       };
@@ -25947,64 +26047,6 @@ useAudioDownload: isSupportGMXhr,
         const sourceTimedWords = collectSourceTimedWords(line.tokens, locale);
         return applySourceWordTimings(nextTokens, sourceTimedWords);
       };
-      const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
-      const getTokensTextLength = (tokens) => {
-        let totalLength = 0;
-        for (const token of tokens) {
-          totalLength += token.text.length;
-        }
-        return totalLength;
-      };
-      const normalizeCleanSubtitleEntry = (line) => {
-        const normalizedLineText = normalizeSubtitleText(line.text);
-        if (!normalizedLineText) {
-          return null;
-        }
-        const normalizedTokens = [];
-        for (const token of line.tokens) {
-          const normalizedTokenText = normalizeSubtitleText(token.text);
-          if (!normalizedTokenText) continue;
-          normalizedTokens.push({
-            ...token,
-            text: normalizedTokenText
-          });
-        }
-        return {
-          line: {
-            ...line,
-            text: normalizedLineText,
-            tokens: normalizedTokens
-          },
-          comparableText: normalizeComparableText(normalizedLineText),
-          tokensTextLength: getTokensTextLength(normalizedTokens)
-        };
-      };
-      const mergeDuplicateCleanEntry = (previous, entry) => {
-        if (!previous || !entry.comparableText) {
-          return false;
-        }
-        const previousEnd = lineEndMs(previous.line);
-        const currentEnd = lineEndMs(entry.line);
-        const isDuplicateText = previous.comparableText === entry.comparableText;
-        const isNearPrevious = entry.line.startMs <= previousEnd + VK_DUPLICATE_MAX_GAP_MS;
-        if (!isDuplicateText || !isNearPrevious) {
-          return false;
-        }
-        const mergedStart = Math.min(previous.line.startMs, entry.line.startMs);
-        const mergedEnd = Math.max(previousEnd, currentEnd);
-        const mergedTokens = entry.tokensTextLength >= previous.tokensTextLength ? entry.line.tokens : previous.line.tokens;
-        previous.line = {
-          ...previous.line,
-          startMs: mergedStart,
-          durationMs: Math.max(0, mergedEnd - mergedStart),
-          tokens: mergedTokens
-        };
-        previous.tokensTextLength = Math.max(
-          previous.tokensTextLength,
-          entry.tokensTextLength
-        );
-        return true;
-      };
       const fetchRawSubtitles = async (url, format) => {
         const response = await GM_fetch(url, { timeout: 7e3 });
         if (format === "vtt" || format === "srt" || format === "ass") {
@@ -26024,9 +26066,6 @@ useAudioDownload: isSupportGMXhr,
           return sortProcessedSubtitles(ensureProcessedSubtitles(rawSubtitles));
         }
         const normalized = ensureProcessedSubtitles(rawSubtitles);
-        if (descriptor.source === "vk") {
-          return SubtitlesProcessor.cleanJsonSubtitles(normalized);
-        }
         return sortProcessedSubtitles(normalized);
       };
       const processFetchedSubtitles = (subtitles, descriptor) => {
@@ -26122,32 +26161,15 @@ useAudioDownload: isSupportGMXhr,
             )
           };
         },
-        cleanJsonSubtitles(subtitles) {
-          const cleanedEntries = [];
-          for (const line of subtitles.subtitles) {
-            const normalizedEntry = normalizeCleanSubtitleEntry(line);
-            if (normalizedEntry) {
-              cleanedEntries.push(normalizedEntry);
-            }
-          }
-          const mergedEntries = [];
-          for (const entry of cleanedEntries) {
-            const previous = mergedEntries.at(-1);
-            if (!mergeDuplicateCleanEntry(previous, entry)) {
-              mergedEntries.push(entry);
-            }
-          }
-          return {
-            ...subtitles,
-            subtitles: mergedEntries.map(({ line }) => line)
-          };
-        },
         async fetchSubtitles(descriptorOrVideoData, requestLang, spokenLang) {
-          const descriptor = isSubtitleDescriptor(descriptorOrVideoData) ? descriptorOrVideoData : pickDescriptorFromVideoData(
-            descriptorOrVideoData,
-            requestLang,
-            spokenLang
-          );
+          let descriptor = parseSubtitleDescriptor(descriptorOrVideoData);
+          if (!descriptor && isVideoDataForSubtitles(descriptorOrVideoData)) {
+            descriptor = pickDescriptorFromVideoData(
+              descriptorOrVideoData,
+              requestLang,
+              spokenLang
+            );
+          }
           if (!descriptor) {
             return { format: "json", subtitles: [] };
           }
@@ -26259,46 +26281,8 @@ useAudioDownload: isSupportGMXhr,
         return `https://${getProxyHost(config2.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
       }
       const DISABLED_SUBTITLES_VALUE = "disabled";
-      const VALID_SUBTITLE_FORMATS = new Set([
-        "srt",
-        "vtt",
-        "ass",
-        "json"
-      ]);
       const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
-      const subtitlesSelectionRequestVersion = new WeakMap();
-      function getCurrentSubtitlesCacheKey(handler) {
-        const videoData = handler.videoData;
-        if (!videoData?.videoId) {
-          return null;
-        }
-        return handler.getSubtitlesCacheKey(
-          videoData.videoId,
-          videoData.detectedLanguage,
-          videoData.responseLanguage
-        );
-      }
-      function isRecord(value) {
-        return value !== null && typeof value === "object";
-      }
-      function asSubtitleDescriptor(value) {
-        if (!isRecord(value)) {
-          return null;
-        }
-        const descriptor = value;
-        const format = descriptor.format;
-        if (typeof descriptor.source !== "string" || typeof descriptor.language !== "string" || typeof descriptor.url !== "string" || typeof format !== "string" || !VALID_SUBTITLE_FORMATS.has(format)) {
-          return null;
-        }
-        return {
-          source: descriptor.source,
-          format,
-          language: descriptor.language,
-          url: descriptor.url,
-          translatedFromLanguage: typeof descriptor.translatedFromLanguage === "string" ? descriptor.translatedFromLanguage : void 0,
-          isAutoGenerated: typeof descriptor.isAutoGenerated === "boolean" ? descriptor.isAutoGenerated : void 0
-        };
-      }
+      const asSubtitleDescriptor = parseSubtitleDescriptor;
       function getIndexedSubtitleDescriptors(subtitles) {
         const descriptors = [];
         for (let index = 0; index < subtitles.length; index += 1) {
@@ -26329,14 +26313,6 @@ useAudioDownload: isSupportGMXhr,
         }
         return asSubtitleDescriptor(subtitles[index]);
       }
-      function nextSubtitlesSelectionRequestVersion(handler) {
-        const nextVersion = (subtitlesSelectionRequestVersion.get(handler) ?? 0) + 1;
-        subtitlesSelectionRequestVersion.set(handler, nextVersion);
-        return nextVersion;
-      }
-      function isCurrentSubtitlesSelectionRequest(handler, requestVersion) {
-        return subtitlesSelectionRequestVersion.get(handler) === requestVersion;
-      }
       function createDisabledSubtitlesOption() {
         return {
           label: localizationProvider.get("VOTSubtitlesDisabled"),
@@ -26344,6 +26320,15 @@ useAudioDownload: isSupportGMXhr,
           selected: true,
           disabled: false
         };
+      }
+      function buildSubtitleLabel(subtitle) {
+        const languageLabel = localizationProvider.getLangLabel(subtitle.language);
+        const translatedFromLabel = subtitle.translatedFromLanguage ? ` ${localizationProvider.get("VOTTranslatedFrom")} ${localizationProvider.getLangLabel(
+    subtitle.translatedFromLanguage
+  )}` : "";
+        const sourceSuffix = subtitle.source === "yandex" ? "" : `, ${globalThis.location.hostname}`;
+        const autogeneratedSuffix = subtitle.isAutoGenerated ? ` (${localizationProvider.get("VOTAutogenerated")})` : "";
+        return `${languageLabel}${translatedFromLabel}${sourceSuffix}${autogeneratedSuffix}`;
       }
       function buildSubtitlesSelectOptions(subtitleDescriptors) {
         const options = [createDisabledSubtitlesOption()];
@@ -26361,15 +26346,6 @@ useAudioDownload: isSupportGMXhr,
         const iterator = selectedValues[Symbol.iterator]();
         const first = iterator.next();
         return first.done ? void 0 : first.value;
-      }
-      function buildSubtitleLabel(subtitle) {
-        const languageLabel = localizationProvider.getLangLabel(subtitle.language);
-        const translatedFromLabel = subtitle.translatedFromLanguage ? ` ${localizationProvider.get("VOTTranslatedFrom")} ${localizationProvider.getLangLabel(
-    subtitle.translatedFromLanguage
-  )}` : "";
-        const sourceSuffix = subtitle.source === "yandex" ? "" : `, ${globalThis.location.hostname}`;
-        const autogeneratedSuffix = subtitle.isAutoGenerated ? ` (${localizationProvider.get("VOTAutogenerated")})` : "";
-        return `${languageLabel}${translatedFromLabel}${sourceSuffix}${autogeneratedSuffix}`;
       }
       function normalizeLang(lang2) {
         return (lang2 ?? "").toLowerCase();
@@ -26391,53 +26367,87 @@ useAudioDownload: isSupportGMXhr,
         const fromIsAuto = from === "auto" || from === "";
         const fromBase = baseLang(from);
         const toBase = baseLang(to);
-        const isYandex = (s2) => s2.source === "yandex";
-        const isAutoGenerated = (s2) => Boolean(s2.isAutoGenerated);
-        const matchesPair = (s2, wantFrom, wantTo) => {
-          if (!langMatches(s2.language, wantTo)) return false;
+        const isYandex = (descriptor) => descriptor.source === "yandex";
+        const isAutoGenerated = (descriptor) => Boolean(descriptor.isAutoGenerated);
+        const matchesPair = (descriptor, wantFrom, wantTo) => {
+          if (!langMatches(descriptor.language, wantTo)) return false;
           if (fromIsAuto) return true;
-          return langMatches(s2.translatedFromLanguage, wantFrom);
+          return langMatches(descriptor.translatedFromLanguage, wantFrom);
         };
-        const isSameLangOriginal = (s2, lang2) => {
-          if (!langMatches(s2.language, lang2)) return false;
-          if (!s2.translatedFromLanguage) return true;
-          return langMatches(s2.translatedFromLanguage, lang2);
+        const isSameLangOriginal = (descriptor, lang2) => {
+          if (!langMatches(descriptor.language, lang2)) return false;
+          if (!descriptor.translatedFromLanguage) return true;
+          return langMatches(descriptor.translatedFromLanguage, lang2);
         };
         const find = (predicate) => subtitles.find(({ descriptor }) => predicate(descriptor))?.index ?? null;
         const findOtherTarget = () => {
           const otherTargetManual = find(
-            (s2) => !isYandex(s2) && langMatches(s2.language, to) && !isAutoGenerated(s2)
+            (descriptor) => !isYandex(descriptor) && langMatches(descriptor.language, to) && !isAutoGenerated(descriptor)
           );
           if (otherTargetManual != null) return otherTargetManual;
           return find(
-            (s2) => !isYandex(s2) && langMatches(s2.language, to) && isAutoGenerated(s2)
+            (descriptor) => !isYandex(descriptor) && langMatches(descriptor.language, to) && isAutoGenerated(descriptor)
           );
         };
-        const yandexPair = find((s2) => isYandex(s2) && matchesPair(s2, from, to));
+        const yandexPair = find(
+          (descriptor) => isYandex(descriptor) && matchesPair(descriptor, from, to)
+        );
         if (yandexPair != null) return yandexPair;
         if (!fromIsAuto && fromBase && toBase && fromBase === toBase) {
           const nativeManual = find(
-            (s2) => isSameLangOriginal(s2, to) && !isAutoGenerated(s2)
+            (descriptor) => isSameLangOriginal(descriptor, to) && !isAutoGenerated(descriptor)
           );
           if (nativeManual != null) return nativeManual;
           const nativeAuto = find(
-            (s2) => isSameLangOriginal(s2, to) && isAutoGenerated(s2)
+            (descriptor) => isSameLangOriginal(descriptor, to) && isAutoGenerated(descriptor)
           );
           if (nativeAuto != null) return nativeAuto;
           const otherTarget2 = findOtherTarget();
           if (otherTarget2 != null) return otherTarget2;
           const yandexTargetSameLang = find(
-            (s2) => isYandex(s2) && langMatches(s2.language, to)
+            (descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to)
           );
           if (yandexTargetSameLang != null) return yandexTargetSameLang;
         }
-        const yandexTarget = find((s2) => isYandex(s2) && langMatches(s2.language, to));
+        const yandexTarget = find(
+          (descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to)
+        );
         if (yandexTarget != null) return yandexTarget;
-        const otherPair = find((s2) => !isYandex(s2) && matchesPair(s2, from, to));
+        const otherPair = find(
+          (descriptor) => !isYandex(descriptor) && matchesPair(descriptor, from, to)
+        );
         if (otherPair != null) return otherPair;
         const otherTarget = findOtherTarget();
         if (otherTarget != null) return otherTarget;
         return null;
+      }
+      const subtitlesSelectionRequestVersion = new WeakMap();
+      function getCurrentSubtitlesCacheKey(handler) {
+        const videoData = handler.videoData;
+        if (!videoData?.videoId) {
+          return null;
+        }
+        return handler.getSubtitlesCacheKey(
+          videoData.videoId,
+          videoData.detectedLanguage,
+          videoData.responseLanguage
+        );
+      }
+      function nextSubtitlesSelectionRequestVersion(handler) {
+        const nextVersion = (subtitlesSelectionRequestVersion.get(handler) ?? 0) + 1;
+        subtitlesSelectionRequestVersion.set(handler, nextVersion);
+        return nextVersion;
+      }
+      function isCurrentSubtitlesSelectionRequest(handler, requestVersion) {
+        return subtitlesSelectionRequestVersion.get(handler) === requestVersion;
+      }
+      function clearSelectedSubtitles(handler, overlayView) {
+        if (handler.hasSubtitlesWidget()) {
+          handler.subtitlesWidget?.setContent(null);
+        }
+        overlayView.downloadSubtitlesButton.hidden = true;
+        handler.yandexSubtitles = null;
+        return handler;
       }
       async function changeSubtitlesLang(subs) {
         const requestVersion = nextSubtitlesSelectionRequestVersion(this);
@@ -26447,33 +26457,18 @@ useAudioDownload: isSupportGMXhr,
         }
         overlayView.subtitlesSelect.setSelectedValue(subs);
         if (subs === DISABLED_SUBTITLES_VALUE) {
-          if (this.hasSubtitlesWidget()) {
-            this.subtitlesWidget?.setContent(null);
-          }
-          overlayView.downloadSubtitlesButton.hidden = true;
-          this.yandexSubtitles = null;
-          return this;
+          return clearSelectedSubtitles(this, overlayView);
         }
         const subtitlesIndex = parseSubtitlesOptionIndex(subs);
         if (subtitlesIndex == null) {
-          if (this.hasSubtitlesWidget()) {
-            this.subtitlesWidget?.setContent(null);
-          }
-          overlayView.downloadSubtitlesButton.hidden = true;
-          this.yandexSubtitles = null;
-          return this;
+          return clearSelectedSubtitles(this, overlayView);
         }
         const descriptor = getSubtitleDescriptorAtIndex(
           this.subtitles,
           subtitlesIndex
         );
         if (!descriptor) {
-          if (this.hasSubtitlesWidget()) {
-            this.subtitlesWidget?.setContent(null);
-          }
-          overlayView.downloadSubtitlesButton.hidden = true;
-          this.yandexSubtitles = null;
-          return this;
+          return clearSelectedSubtitles(this, overlayView);
         }
         let subtitlesObj = { ...descriptor };
         const proxiedSubtitlesUrl = proxifyYandexSubtitlesUrl(subtitlesObj.url, {
