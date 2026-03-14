@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.3.4
+// @version         1.11.3.5
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -148,6 +148,7 @@
 // @match           *://iframe.mediadelivery.net/*
 // @match           *://video.bunnycdn.com/*
 // @match           *://*.weibo.com/*
+// @match           *://*.jove.com/v/*
 // @match           *://*/*.mp4*
 // @match           *://*/*.webm*
 // @match           *://*.yewtu.be/*
@@ -3437,6 +3438,7 @@ string() {
         VideoService2["coursehunterLike"] = "coursehunterLike";
         VideoService2["sap"] = "sap";
         VideoService2["watchpornto"] = "watchpornto";
+        VideoService2["jove"] = "jove";
         VideoService2["linkedin"] = "linkedin";
         VideoService2["incestflix"] = "incestflix";
         VideoService2["porntn"] = "porntn";
@@ -4091,7 +4093,7 @@ string() {
       });
       const sharedSelectors = {
         bilibiliPlayer: ".bpx-player-video-wrap, div.player-mobile-box.player-mobile-autoplay",
-        flowplayer: ".fp-player",
+        flowplayer: ".fp-player, div.flowplayer",
         idPlayer: "#player",
         jwPlayer: ".jwplayer, .jw-media",
         player: ".player",
@@ -4539,6 +4541,12 @@ string() {
           host: VideoService.watchpornto,
           url: "https://watchporn.to/",
           match: /^watchporn.to$/,
+          selector: sharedSelectors.flowplayer
+        },
+        {
+          host: VideoService.jove,
+          url: "https://app.jove.com/",
+          match: (url) => /(?:^|\.)jove\.com$/i.test(url.hostname) && /^\/(?:[a-z]{2}\/)?v\/\d+\/[^/?#]+\/?$/i.test(url.pathname),
           selector: sharedSelectors.flowplayer
         },
         {
@@ -5446,6 +5454,16 @@ string() {
         }
         async getVideoId(url) {
           return /\/watch\/([^/]+)/.exec(url.pathname)?.[1];
+        }
+      }
+      class JoveHelper extends BaseHelper {
+        async getVideoId(url) {
+          const groups = /^\/(?:[a-z]{2}\/)?v\/(?<id>\d+)\/(?<slug>[^/]+)\/?$/i.exec(url.pathname)?.groups;
+          if (!groups) {
+            return void 0;
+          }
+          const { id, slug } = groups;
+          return `v/${id}/${slug}`;
         }
       }
       class KickHelper extends BaseHelper {
@@ -7440,6 +7458,7 @@ string() {
         [VideoService.coursehunterLike]: CoursehunterLikeHelper,
         [VideoService.twitch]: TwitchHelper,
         [VideoService.sap]: SapHelper,
+        [VideoService.jove]: JoveHelper,
         [VideoService.linkedin]: LinkedinHelper,
         [VideoService.vimeo]: VimeoHelper,
         [VideoService.yandexdisk]: YandexDiskHelper,
@@ -8135,6 +8154,7 @@ string() {
       }
       const workerHost = "api.browser.yandex.ru";
       const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
+      const proxyWorkerHostMode1 = "vot-new.toil-dump.workers.dev";
       const proxyWorkerHost = "vot-worker.kload.workers.dev";
       const votBackendUrl = "https://vot.toil.cc/v1";
       const foswlyTranslateUrl = "https://translate-backend.transly.workers.dev/v2";
@@ -9781,7 +9801,7 @@ get isSupportOnlyLS() {
         return buildVersion || scriptVersion || "unknown";
       }
       function getRuntimeLocaleVersion() {
-        const buildVersion = String("1.11.3.4");
+        const buildVersion = String("1.11.3.5");
         const scriptVersion = typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "";
         return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
       }
@@ -9863,14 +9883,14 @@ locale;
             "localeVersion",
             ""
           );
-          if (!force && storedLocaleVersion === runtimeLocaleVersion) {
-            return this;
-          }
           const hash = await this.checkUpdates(force);
           if (hash === null) {
             return this;
           }
           if (!hash) {
+            if (storedLocaleVersion !== runtimeLocaleVersion) {
+              await votStorage.set("localeVersion", runtimeLocaleVersion);
+            }
             return this;
           }
           const timestamp = getTimestamp();
@@ -25858,6 +25878,59 @@ useAudioDownload: isSupportGMXhr,
         this.initExtraEvents();
         this.initialized = true;
       }
+      const AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
+      const AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
+      const SUBTITLE_SOURCE_PREFIX = "https://brosubs.s3-private.mds.yandex.net/vtrans/";
+      const SUBTITLE_PROXY_PATH_PREFIX = "/video-subtitles/subtitles-proxy/";
+      function resolveProxyWorkerHost(host) {
+        return host ?? proxyWorkerHost;
+      }
+      function isProxyClientEnabled(config2) {
+        return Boolean(config2.translateProxyEnabled);
+      }
+      function isProxyRoutingEnabled(config2) {
+        return config2.translateProxyEnabled === 2;
+      }
+      function shouldForceProxyClientGmXhr(config2) {
+        return Boolean(config2.gmXhrSupported && isProxyClientEnabled(config2));
+      }
+      function proxifyYandexAudioUrl(audioUrl, config2) {
+        if (!isProxyRoutingEnabled(config2) || !audioUrl.startsWith(AUDIO_SOURCE_PREFIX)) {
+          return audioUrl;
+        }
+        return audioUrl.replace(
+          AUDIO_SOURCE_PREFIX,
+          `https://${resolveProxyWorkerHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
+        );
+      }
+      function unproxifyYandexAudioUrl(audioUrl) {
+        const str = String(audioUrl || "");
+        if (!str) return str;
+        try {
+          const url = new URL(str);
+          if (!url.pathname.startsWith(AUDIO_PROXY_PATH_PREFIX)) {
+            return str;
+          }
+          url.host = "vtrans.s3-private.mds.yandex.net";
+          url.pathname = `/tts/prod/${url.pathname.slice(AUDIO_PROXY_PATH_PREFIX.length).replace(/^\/+/, "")}`;
+          url.protocol = "https:";
+          return url.toString();
+        } catch {
+          return str;
+        }
+      }
+      function isYandexAudioUrlOrProxy(url, config2) {
+        return url.startsWith(AUDIO_SOURCE_PREFIX) || url.startsWith(
+          `https://${resolveProxyWorkerHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
+        );
+      }
+      function proxifyYandexSubtitlesUrl(subtitlesUrl, config2) {
+        if (!isProxyRoutingEnabled(config2) || !subtitlesUrl.startsWith(SUBTITLE_SOURCE_PREFIX)) {
+          return subtitlesUrl;
+        }
+        const subtitlesPath = subtitlesUrl.slice(SUBTITLE_SOURCE_PREFIX.length);
+        return `https://${resolveProxyWorkerHost(config2.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
+      }
       function timeout(ms, message = "Operation timed out") {
         return new Promise(
           (_2, reject) => setTimeout(() => reject(new Error(message)), ms)
@@ -26672,53 +26745,6 @@ useAudioDownload: isSupportGMXhr,
           }
         }
       };
-      const AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
-      const AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
-      const SUBTITLE_SOURCE_PREFIX = "https://brosubs.s3-private.mds.yandex.net/vtrans/";
-      const SUBTITLE_PROXY_PATH_PREFIX = "/video-subtitles/subtitles-proxy/";
-      function getProxyHost(host) {
-        return host ?? proxyWorkerHost;
-      }
-      function isProxyRoutingEnabled(config2) {
-        return config2.translateProxyEnabled === 2;
-      }
-      function proxifyYandexAudioUrl(audioUrl, config2) {
-        if (!isProxyRoutingEnabled(config2) || !audioUrl.startsWith(AUDIO_SOURCE_PREFIX)) {
-          return audioUrl;
-        }
-        return audioUrl.replace(
-          AUDIO_SOURCE_PREFIX,
-          `https://${getProxyHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
-        );
-      }
-      function unproxifyYandexAudioUrl(audioUrl) {
-        const str = String(audioUrl || "");
-        if (!str) return str;
-        try {
-          const url = new URL(str);
-          if (!url.pathname.startsWith(AUDIO_PROXY_PATH_PREFIX)) {
-            return str;
-          }
-          url.host = "vtrans.s3-private.mds.yandex.net";
-          url.pathname = `/tts/prod/${url.pathname.slice(AUDIO_PROXY_PATH_PREFIX.length).replace(/^\/+/, "")}`;
-          url.protocol = "https:";
-          return url.toString();
-        } catch {
-          return str;
-        }
-      }
-      function isYandexAudioUrlOrProxy(url, config2) {
-        return url.startsWith(AUDIO_SOURCE_PREFIX) || url.startsWith(
-          `https://${getProxyHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
-        );
-      }
-      function proxifyYandexSubtitlesUrl(subtitlesUrl, config2) {
-        if (!isProxyRoutingEnabled(config2) || !subtitlesUrl.startsWith(SUBTITLE_SOURCE_PREFIX)) {
-          return subtitlesUrl;
-        }
-        const subtitlesPath = subtitlesUrl.slice(SUBTITLE_SOURCE_PREFIX.length);
-        return `https://${getProxyHost(config2.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
-      }
       const DISABLED_SUBTITLES_VALUE = "disabled";
       const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
       function getIndexedSubtitleDescriptors(subtitles) {
@@ -28488,20 +28514,25 @@ init() {
           return init.call(this);
         }
 async initVOTClient() {
-          const transportHost = this.data?.translateProxyEnabled ? this.data?.proxyWorkerHost ?? proxyWorkerHost : workerHost;
-          const forceProxyTransportViaGmXhr = isSupportGMXhr && Boolean(this.data?.translateProxyEnabled);
+          const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
+          const transportHost = this.data?.translateProxyEnabled === 1 ? proxyWorkerHostMode1 : proxyClientEnabled ? resolveProxyWorkerHost(this.data?.proxyWorkerHost) : workerHost;
           this.votOpts = {
             fetchFn: GM_fetch,
             fetchOpts: {
               signal: this.actionsAbortController.signal,
 
-forceGmXhr: forceProxyTransportViaGmXhr
+forceGmXhr: shouldForceProxyClientGmXhr({
+                ...this.data,
+                gmXhrSupported: isSupportGMXhr
+              })
             },
             apiToken: this.data?.account?.token,
             hostVOT: votBackendUrl,
             host: transportHost
           };
-          this.votClient = new (this.data?.translateProxyEnabled ? VOTWorkerClient2 : VOTClient2)(this.votOpts);
+          this.votClient = new (proxyClientEnabled ? VOTWorkerClient2 : VOTClient2)(
+            this.votOpts
+          );
           this.votClient.sessions = await this.votSessionStorage.restore(
             transportHost,
             this.votClient.sessions
