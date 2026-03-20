@@ -43,7 +43,8 @@
     "dev": "vite dev",
     "format": "bunx @biomejs/biome check --write --unsafe ./src",
     "gen:wiki": "bun run ./scripts/wiki-gen/index.js",
-    "localize": "bunx \"@toil/localize-tui\""
+    "localize": "bunx \"@toil/localize-tui\"",
+    "postinstall": "node patches/apply-datacamp.mjs"
   },
   "dependencies": {
     "@toil/gm-types": "^1.0.4",

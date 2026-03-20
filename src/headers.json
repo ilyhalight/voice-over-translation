@@ -133,9 +133,12 @@
     "*://video.bunnycdn.com/*",
     "*://*.weibo.com/*",
     "*://*/*.mp4*",
-    "*://*/*.webm*"
+    "*://*/*.webm*",
+    "*://projector.datacamp.com/*"
   ],
-  "grant": ["window.focus"],
+  "grant": [
+    "window.focus"
+  ],
   "exclude": [
     "file://*/*.mp4*",
     "file://*/*.webm*",
