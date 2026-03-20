@@ -218,6 +218,10 @@ bun install
 
 Userscript artifacts are generated in `dist/`, native extension artifacts in `dist-ext/`.
 
+4. Install the locally built userscript:
+   - Open your userscript manager (e.g., Tampermonkey) and navigate to the **"Utilities"** tab.
+   - Under **"Install from file"**, select `dist/vot.user.js` and confirm the installation.
+
 ## Customization of appearance:
 
 The extension supports appearance customization via Stylus, Stylish, and similar tools.
