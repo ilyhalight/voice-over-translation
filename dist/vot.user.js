@@ -7,7 +7,7 @@
 // @name:ru         [VOT] - Закадровый перевод видео
 // @name:zh         [VOT] - 画外音视频翻译
 // @namespace       vot
-// @version         1.11.3.5
+// @version         1.11.3
 // @author          Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description     A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de  Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -148,18 +148,47 @@
 // @match           *://iframe.mediadelivery.net/*
 // @match           *://video.bunnycdn.com/*
 // @match           *://*.weibo.com/*
-// @match           *://*.jove.com/v/*
 // @match           *://*/*.mp4*
 // @match           *://*/*.webm*
+// @match           *://projector.datacamp.com/*
 // @match           *://*.yewtu.be/*
-// @match           *://inv.nadeko.net/*
-// @match           *://invidious.nerdvpn.de/*
-// @match           *://invidious.protokolla.fi/*
-// @match           *://invidious.materialio.us/*
+// @match           *://yt.artemislena.eu/*
+// @match           *://invidious.flokinet.to/*
 // @match           *://iv.melmac.space/*
+// @match           *://inv.nadeko.net/*
+// @match           *://inv.tux.pizza/*
+// @match           *://invidious.private.coffee/*
+// @match           *://yt.drgnz.club/*
+// @match           *://vid.puffyan.us/*
+// @match           *://invidious.dhusch.de/*
 // @match           *://*.piped.video/*
-// @match           *://piped.kavin.rocks/*
-// @match           *://piped.private.coffee/*
+// @match           *://piped.tokhmi.xyz/*
+// @match           *://piped.moomoo.me/*
+// @match           *://piped.syncpundit.io/*
+// @match           *://piped.mha.fi/*
+// @match           *://watch.whatever.social/*
+// @match           *://piped.garudalinux.org/*
+// @match           *://efy.piped.pages.dev/*
+// @match           *://watch.leptons.xyz/*
+// @match           *://piped.lunar.icu/*
+// @match           *://yt.dc09.ru/*
+// @match           *://piped.mint.lgbt/*
+// @match           *://*.il.ax/*
+// @match           *://piped.privacy.com.de/*
+// @match           *://piped.esmailelbob.xyz/*
+// @match           *://piped.projectsegfau.lt/*
+// @match           *://piped.in.projectsegfau.lt/*
+// @match           *://piped.us.projectsegfau.lt/*
+// @match           *://piped.privacydev.net/*
+// @match           *://piped.palveluntarjoaja.eu/*
+// @match           *://piped.smnz.de/*
+// @match           *://piped.adminforge.de/*
+// @match           *://piped.qdi.fi/*
+// @match           *://piped.hostux.net/*
+// @match           *://piped.chauvet.pro/*
+// @match           *://piped.jotoma.de/*
+// @match           *://piped.pfcd.me/*
+// @match           *://piped.frontendfriendly.xyz/*
 // @match           *://proxitok.pabloferreiro.es/*
 // @match           *://proxitok.pussthecat.org/*
 // @match           *://tok.habedieeh.re/*
@@ -171,24 +200,24 @@
 // @match           *://cringe.whatever.social/*
 // @match           *://proxitok.lunar.icu/*
 // @match           *://proxitok.privacy.com.de/*
-// @match           *://peertube.tmp.rcp.tf/*
-// @match           *://*.dalek.zone/*
-// @match           *://video.sadmin.io/*
-// @match           *://videos.viorsan.com/*
 // @match           *://peertube.1312.media/*
 // @match           *://tube.shanti.cafe/*
 // @match           *://*.bee-tube.fr/*
-// @match           *://video.blender.org/*
-// @match           *://*.beetoons.tv/*
-// @match           *://*.makertube.net/*
-// @match           *://*.peertube.tv/*
-// @match           *://*.framatube.org/*
-// @match           *://*.tilvids.com/*
-// @match           *://*.diode.zone/*
-// @match           *://*.fedimovie.com/*
-// @match           *://video.hardlimit.com/*
-// @match           *://*.share.tube/*
+// @match           *://video.sadmin.io/*
+// @match           *://*.dalek.zone/*
+// @match           *://review.peertube.biz/*
 // @match           *://*.peervideo.club/*
+// @match           *://tube.la-dina.net/*
+// @match           *://peertube.tmp.rcp.tf/*
+// @match           *://*.peertube.su/*
+// @match           *://video.blender.org/*
+// @match           *://videos.viorsan.com/*
+// @match           *://tube-sciences-technologies.apps.education.fr/*
+// @match           *://tube-numerique-educatif.apps.education.fr/*
+// @match           *://tube-arts-lettres-sciences-humaines.apps.education.fr/*
+// @match           *://*.beetoons.tv/*
+// @match           *://comics.peertube.biz/*
+// @match           *://*.makertube.net/*
 // @match           *://*.coursehunter.net/*
 // @match           *://*.coursetrain.net/*
 // @exclude         file://*/*.mp4*
@@ -253,18 +282,56 @@ System.register("./__entry.js", [], (function (exports, module) {
       const t$1=new Set;const importCSS = async e=>{t$1.has(e)||(t$1.add(e),(a=>GM_addStyle(a))(e));};
 
       const votConfig = {
-        "host": "api.browser.yandex.ru",
-        "hostVOT": "vot.toil.cc/v1",
-        "hostWorker": "vot-worker.toil.cc",
-        "mediaProxy": "media-proxy.toil.cc",
-        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 YaBrowser/25.12.0.0 Safari/537.36",
-        "componentVersion": "25.12.4.1198",
-        "hmac": "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
-        "defaultDuration": 343,
-        "minChunkSize": 5295308,
-        "loggerLevel": 1,
-        "version": "2.4.14"
+        host: "api.browser.yandex.ru",
+        hostVOT: "vot.toil.cc/v1",
+        hostWorker: "vot-worker.toil.cc",
+        mediaProxy: "media-proxy.toil.cc",
+        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
+        componentVersion: "25.6.0.2259",
+        hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
+        defaultDuration: 343,
+        minChunkSize: 5295308,
+        loggerLevel: 1,
+        version: "2.4.12"
       };
+      var LoggerLevel;
+      (function(LoggerLevel2) {
+        LoggerLevel2[LoggerLevel2["DEBUG"] = 0] = "DEBUG";
+        LoggerLevel2[LoggerLevel2["INFO"] = 1] = "INFO";
+        LoggerLevel2[LoggerLevel2["WARN"] = 2] = "WARN";
+        LoggerLevel2[LoggerLevel2["ERROR"] = 3] = "ERROR";
+        LoggerLevel2[LoggerLevel2["SILENCE"] = 4] = "SILENCE";
+      })(LoggerLevel || (LoggerLevel = {}));
+      class Logger {
+        static prefix = `[vot.js v${votConfig.version}]`;
+        static canLog(level) {
+          return votConfig.loggerLevel <= level;
+        }
+        static log(...messages) {
+          if (!Logger.canLog(LoggerLevel.DEBUG)) {
+            return;
+          }
+          console.log(Logger.prefix, ...messages);
+        }
+        static info(...messages) {
+          if (!Logger.canLog(LoggerLevel.INFO)) {
+            return;
+          }
+          console.info(Logger.prefix, ...messages);
+        }
+        static warn(...messages) {
+          if (!Logger.canLog(LoggerLevel.WARN)) {
+            return;
+          }
+          console.warn(Logger.prefix, ...messages);
+        }
+        static error(...messages) {
+          if (!Logger.canLog(LoggerLevel.ERROR)) {
+            return;
+          }
+          console.error(Logger.prefix, ...messages);
+        }
+      }
       function varint64read() {
         let lowBits = 0;
         let highBits = 0;
@@ -447,9 +514,12 @@ System.register("./__entry.js", [], (function (exports, module) {
       const protoInt64 = makeInt64Support();
       function makeInt64Support() {
         const dv = new DataView(new ArrayBuffer(8));
-        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
+        const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || typeof process != "object" || typeof define_process_env_default != "object" || define_process_env_default.BUF_BIGINT_DISABLE !== "1");
         if (ok) {
-          const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
+          const MIN = BigInt("-9223372036854775808");
+          const MAX = BigInt("9223372036854775807");
+          const UMIN = BigInt("0");
+          const UMAX = BigInt("18446744073709551615");
           return {
             zero: BigInt(0),
             supported: true,
@@ -558,7 +628,7 @@ System.register("./__entry.js", [], (function (exports, module) {
               try {
                 encodeURIComponent(text);
                 return true;
-              } catch (e2) {
+              } catch (_2) {
                 return false;
               }
             }
@@ -705,12 +775,12 @@ int64(value) {
           return this;
         }
 sint64(value) {
-          let tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+          const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
           varint64write(lo, hi, this.buf);
           return this;
         }
 uint64(value) {
-          let tc = protoInt64.uEnc(value);
+          const tc = protoInt64.uEnc(value);
           varint64write(tc.lo, tc.hi, this.buf);
           return this;
         }
@@ -738,10 +808,9 @@ skip(wireType, fieldNo) {
               while (this.buf[this.pos++] & 128) {
               }
               break;
-
 case WireType.Bit64:
               this.pos += 4;
-case WireType.Bit32:
+            case WireType.Bit32:
               this.pos += 4;
               break;
             case WireType.LengthDelimited:
@@ -844,7 +913,7 @@ string() {
         if (typeof arg == "string") {
           const o2 = arg;
           arg = Number(arg);
-          if (isNaN(arg) && o2 !== "NaN") {
+          if (Number.isNaN(arg) && o2 !== "NaN") {
             throw new Error("invalid float32: " + o2);
           }
         } else if (typeof arg != "number") {
@@ -2961,49 +3030,6 @@ string() {
           return baseModule().catch(handlePreloadError);
         });
       };
-      var LoggerLevel;
-      (function(LoggerLevel2) {
-        LoggerLevel2[LoggerLevel2["DEBUG"] = 0] = "DEBUG";
-        LoggerLevel2[LoggerLevel2["INFO"] = 1] = "INFO";
-        LoggerLevel2[LoggerLevel2["WARN"] = 2] = "WARN";
-        LoggerLevel2[LoggerLevel2["ERROR"] = 3] = "ERROR";
-        LoggerLevel2[LoggerLevel2["SILENCE"] = 4] = "SILENCE";
-      })(LoggerLevel || (LoggerLevel = {}));
-      const prefix = `[vot.js v${votConfig.version}]`;
-      function canLog(level) {
-        return votConfig.loggerLevel <= level;
-      }
-      function log$1(...messages) {
-        if (!canLog(LoggerLevel.DEBUG)) {
-          return;
-        }
-        console.log(prefix, ...messages);
-      }
-      function info(...messages) {
-        if (!canLog(LoggerLevel.INFO)) {
-          return;
-        }
-        console.info(prefix, ...messages);
-      }
-      function warn$1(...messages) {
-        if (!canLog(LoggerLevel.WARN)) {
-          return;
-        }
-        console.warn(prefix, ...messages);
-      }
-      function error$1(...messages) {
-        if (!canLog(LoggerLevel.ERROR)) {
-          return;
-        }
-        console.error(prefix, ...messages);
-      }
-      const Logger = {
-        canLog,
-        log: log$1,
-        info,
-        warn: warn$1,
-        error: error$1
-      };
       const { componentVersion } = votConfig;
       async function getCrypto() {
         if (typeof window !== "undefined" && window.crypto) {
@@ -3032,9 +3058,6 @@ string() {
             [`X-${secType}-Token`]: `${tokenSign}:${token}`
           };
         }
-        if (!body) {
-          throw new TypeError(`Body is required for sec type ${secType}`);
-        }
         const sign = await getSignature(body);
         return {
           [`${secType}-Signature`]: sign,
@@ -3062,8 +3085,8 @@ string() {
         }
       }
       const browserSecHeaders = {
-        "sec-ch-ua": `"Chromium";v="142", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="24", "Yowser";v="2.5"`,
-        "sec-ch-ua-full-version-list": `"Chromium";v="142.0.7444.59", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="24.0.0.0", "Yowser";v="2.5"`,
+        "sec-ch-ua": `"Chromium";v="134", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="24", "Yowser";v="2.5"`,
+        "sec-ch-ua-full-version-list": `"Chromium";v="134.0.6998.543", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="24.0.0.0", "Yowser";v="2.5"`,
         "Sec-Fetch-Mode": "no-cors"
       };
       const iso6392to6391 = {
@@ -3189,37 +3212,15 @@ string() {
           "User-Agent": votConfig.userAgent
         }
       }) {
-        const { timeout: timeout2 = 3e3, signal, ...fetchOptions } = options;
-        if (!signal && (!timeout2 || timeout2 <= 0)) {
-          return await fetch(url, fetchOptions);
-        }
+        const { timeout: timeout2 = 3e3, ...fetchOptions } = options;
         const controller = new AbortController();
-        const abort = (reason) => {
-          if (!controller.signal.aborted) {
-            controller.abort(reason);
-          }
-        };
-        if (signal) {
-          if (signal.aborted) {
-            abort(signal.reason);
-          } else {
-            signal.addEventListener("abort", () => abort(signal.reason), { once: true });
-          }
-        }
-        let timeoutId;
-        if (timeout2 && timeout2 > 0) {
-          timeoutId = setTimeout(() => abort(new Error("Fetch timeout")), timeout2);
-        }
-        try {
-          return await fetch(url, {
-            ...fetchOptions,
-            signal: controller.signal
-          });
-        } finally {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-        }
+        const timeoutId = setTimeout(() => controller.abort(), timeout2);
+        const response = await fetch(url, {
+          signal: controller.signal,
+          ...fetchOptions
+        });
+        clearTimeout(timeoutId);
+        return response;
       }
       function getTimestamp$1() {
         return Math.floor(Date.now() / 1e3);
@@ -3237,127 +3238,101 @@ string() {
         }
         return `${generalUrl}&url=${btoa(url.href)}&origin=${url.origin}&referer=${url.origin}`;
       }
-      function buildVkVideoUrl$1(videoId, sourceUrl) {
-        const cleanedVideoId = videoId.replace(/^\/+/, "");
-        const out = new URL("https://vk.com/video");
-        out.searchParams.set("z", cleanedVideoId);
-        for (const key of ["list", "access_key"]) {
-          const value = sourceUrl.searchParams.get(key);
-          if (value) {
-            out.searchParams.set(key, value);
-          }
+      class YandexVOTProtobuf {
+        static encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
+          return VideoTranslationRequest.encode({
+            url,
+            firstRequest,
+            duration,
+            unknown0: 1,
+            language: requestLang,
+            forceSourceLang,
+            unknown1: 0,
+            translationHelp: translationHelp ?? [],
+            responseLanguage: responseLang,
+            wasStream,
+            unknown2: 1,
+            unknown3: 2,
+            bypassCache,
+            useLivelyVoice,
+            videoTitle
+          }).finish();
         }
-        return out.toString();
-      }
-      function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
-        return VideoTranslationRequest.encode({
-          url,
-          firstRequest,
-          duration,
-          unknown0: 1,
-          language: requestLang,
-          forceSourceLang,
-          unknown1: 0,
-          translationHelp: translationHelp ?? [],
-          responseLanguage: responseLang,
-          wasStream,
-          unknown2: 1,
-          unknown3: 2,
-          bypassCache,
-          useLivelyVoice,
-          videoTitle
-        }).finish();
-      }
-      function decodeTranslationResponse(response) {
-        return VideoTranslationResponse.decode(new Uint8Array(response));
-      }
-      function encodeTranslationCacheRequest(url, duration, requestLang, responseLang) {
-        return VideoTranslationCacheRequest.encode({
-          url,
-          duration,
-          language: requestLang,
-          responseLanguage: responseLang
-        }).finish();
-      }
-      function decodeTranslationCacheResponse(response) {
-        return VideoTranslationCacheResponse.decode(new Uint8Array(response));
-      }
-      function isPartialAudioBuffer(audioBuffer) {
-        return "chunkId" in audioBuffer;
-      }
-      function encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) {
-        if (partialAudio && isPartialAudioBuffer(audioBuffer)) {
+        static decodeTranslationResponse(response) {
+          return VideoTranslationResponse.decode(new Uint8Array(response));
+        }
+        static encodeTranslationCacheRequest(url, duration, requestLang, responseLang) {
+          return VideoTranslationCacheRequest.encode({
+            url,
+            duration,
+            language: requestLang,
+            responseLanguage: responseLang
+          }).finish();
+        }
+        static decodeTranslationCacheResponse(response) {
+          return VideoTranslationCacheResponse.decode(new Uint8Array(response));
+        }
+        static isPartialAudioBuffer(audioBuffer) {
+          return "chunkId" in audioBuffer;
+        }
+        static encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) {
+          if (partialAudio && YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
+            return VideoTranslationAudioRequest.encode({
+              url,
+              translationId,
+              partialAudioInfo: {
+                ...partialAudio,
+                audioBuffer
+              }
+            }).finish();
+          }
           return VideoTranslationAudioRequest.encode({
             url,
             translationId,
-            partialAudioInfo: {
-              ...partialAudio,
-              audioBuffer
-            }
+            audioInfo: audioBuffer
           }).finish();
         }
-        return VideoTranslationAudioRequest.encode({
-          url,
-          translationId,
-          audioInfo: audioBuffer
-        }).finish();
+        static decodeTranslationAudioResponse(response) {
+          return VideoTranslationAudioResponse.decode(new Uint8Array(response));
+        }
+        static encodeSubtitlesRequest(url, requestLang) {
+          return SubtitlesRequest.encode({
+            url,
+            language: requestLang
+          }).finish();
+        }
+        static decodeSubtitlesResponse(response) {
+          return SubtitlesResponse.decode(new Uint8Array(response));
+        }
+        static encodeStreamPingRequest(pingId) {
+          return StreamPingRequest.encode({
+            pingId
+          }).finish();
+        }
+        static encodeStreamRequest(url, requestLang, responseLang) {
+          return StreamTranslationRequest.encode({
+            url,
+            language: requestLang,
+            responseLanguage: responseLang,
+            unknown0: 1,
+            unknown1: 0
+          }).finish();
+        }
+        static decodeStreamResponse(response) {
+          return StreamTranslationResponse.decode(new Uint8Array(response));
+        }
       }
-      function decodeTranslationAudioResponse(response) {
-        return VideoTranslationAudioResponse.decode(new Uint8Array(response));
+      class YandexSessionProtobuf {
+        static encodeSessionRequest(uuid, module) {
+          return YandexSessionRequest.encode({
+            uuid,
+            module
+          }).finish();
+        }
+        static decodeSessionResponse(response) {
+          return YandexSessionResponse.decode(new Uint8Array(response));
+        }
       }
-      function encodeSubtitlesRequest(url, requestLang) {
-        return SubtitlesRequest.encode({
-          url,
-          language: requestLang
-        }).finish();
-      }
-      function decodeSubtitlesResponse(response) {
-        return SubtitlesResponse.decode(new Uint8Array(response));
-      }
-      function encodeStreamPingRequest(pingId) {
-        return StreamPingRequest.encode({
-          pingId
-        }).finish();
-      }
-      function encodeStreamRequest(url, requestLang, responseLang) {
-        return StreamTranslationRequest.encode({
-          url,
-          language: requestLang,
-          responseLanguage: responseLang,
-          unknown0: 1,
-          unknown1: 0
-        }).finish();
-      }
-      function decodeStreamResponse(response) {
-        return StreamTranslationResponse.decode(new Uint8Array(response));
-      }
-      const YandexVOTProtobuf = {
-        encodeTranslationRequest,
-        decodeTranslationResponse,
-        encodeTranslationCacheRequest,
-        decodeTranslationCacheResponse,
-        isPartialAudioBuffer,
-        encodeTranslationAudioRequest,
-        decodeTranslationAudioResponse,
-        encodeSubtitlesRequest,
-        decodeSubtitlesResponse,
-        encodeStreamPingRequest,
-        encodeStreamRequest,
-        decodeStreamResponse
-      };
-      function encodeSessionRequest(uuid, module) {
-        return YandexSessionRequest.encode({
-          uuid,
-          module
-        }).finish();
-      }
-      function decodeSessionResponse(response) {
-        return YandexSessionResponse.decode(new Uint8Array(response));
-      }
-      const YandexSessionProtobuf = {
-        encodeSessionRequest,
-        decodeSessionResponse
-      };
       var VideoTranslationStatus;
       (function(VideoTranslationStatus2) {
         VideoTranslationStatus2[VideoTranslationStatus2["FAILED"] = 0] = "FAILED";
@@ -3387,7 +3362,6 @@ string() {
         VideoService2["youtube"] = "youtube";
         VideoService2["piped"] = "piped";
         VideoService2["invidious"] = "invidious";
-        VideoService2["niconico"] = "niconico";
         VideoService2["vk"] = "vk";
         VideoService2["nine_gag"] = "nine_gag";
         VideoService2["gag"] = "nine_gag";
@@ -3396,11 +3370,6 @@ string() {
         VideoService2["tiktok"] = "tiktok";
         VideoService2["vimeo"] = "vimeo";
         VideoService2["xvideos"] = "xvideos";
-        VideoService2["xhamster"] = "xhamster";
-        VideoService2["spankbang"] = "spankbang";
-        VideoService2["rule34video"] = "rule34video";
-        VideoService2["picarto"] = "picarto";
-        VideoService2["olympicsreplay"] = "olympics_replay";
         VideoService2["pornhub"] = "pornhub";
         VideoService2["twitter"] = "twitter";
         VideoService2["x"] = "twitter";
@@ -3422,7 +3391,6 @@ string() {
         VideoService2["googledrive"] = "googledrive";
         VideoService2["bannedvideo"] = "bannedvideo";
         VideoService2["weverse"] = "weverse";
-        VideoService2["weibo"] = "weibo";
         VideoService2["newgrounds"] = "newgrounds";
         VideoService2["egghead"] = "egghead";
         VideoService2["youku"] = "youku";
@@ -3433,24 +3401,23 @@ string() {
         VideoService2["kick"] = "kick";
         VideoService2["apple_developer"] = "apple_developer";
         VideoService2["appledeveloper"] = "apple_developer";
+        VideoService2["poketube"] = "poketube";
         VideoService2["epicgames"] = "epicgames";
         VideoService2["odysee"] = "odysee";
         VideoService2["coursehunterLike"] = "coursehunterLike";
         VideoService2["sap"] = "sap";
         VideoService2["watchpornto"] = "watchpornto";
-        VideoService2["jove"] = "jove";
         VideoService2["linkedin"] = "linkedin";
+        VideoService2["ricktube"] = "ricktube";
         VideoService2["incestflix"] = "incestflix";
         VideoService2["porntn"] = "porntn";
         VideoService2["dzen"] = "dzen";
-        VideoService2["bunnystream"] = "bunnystream";
         VideoService2["cloudflarestream"] = "cloudflarestream";
         VideoService2["loom"] = "loom";
         VideoService2["rtnews"] = "rtnews";
         VideoService2["bitview"] = "bitview";
         VideoService2["thisvid"] = "thisvid";
         VideoService2["ign"] = "ign";
-        VideoService2["zdf"] = "zdf";
         VideoService2["bunkr"] = "bunkr";
         VideoService2["imdb"] = "imdb";
         VideoService2["telegram"] = "telegram";
@@ -3473,6 +3440,7 @@ string() {
           super(message);
           this.data = data;
           this.name = "VOTJSError";
+          this.message = message;
         }
       }
       class MinimalClient {
@@ -3680,7 +3648,7 @@ string() {
                 translationId,
                 translated: false,
                 status,
-                remainingTime: translationData.remainingTime ?? -1
+                remainingTime: translationData.remainingTime
               };
             case VideoTranslationStatus.AUDIO_REQUESTED:
               if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
@@ -3762,15 +3730,7 @@ string() {
         }
         async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
           const session = await this.getSession("video-translation");
-          let body;
-          if (YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
-            if (!partialAudio) {
-              throw new VOTJSError("Partial audio metadata is required for partial audio buffer", audioBuffer);
-            }
-            body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio);
-          } else {
-            body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
-          }
+          const body = YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer) ? YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) : YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
           const path = this.paths.videoTranslationAudio;
           const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
           const res = await this.request(path, body, {
@@ -3931,9 +3891,6 @@ string() {
                 message: interval === StreamInterval.NO_CONNECTION ? "streamNoConnectionToServer" : "translationTakeFewMinutes"
               };
             case StreamInterval.STREAMING: {
-              if (translateResponse.pingId === void 0) {
-                throw new VOTJSError("Stream ping id wasn't received from Yandex response", translateResponse);
-              }
               return {
                 translated: true,
                 interval,
@@ -4026,21 +3983,51 @@ string() {
         constructor(message) {
           super(message);
           this.name = "VideoDataError";
+          this.message = message;
         }
       }
       const localLinkRe = /(file:\/\/(\/)?|(http(s)?:\/\/)(127\.0\.0\.1|localhost|192\.168\.(\d){1,3}\.(\d){1,3}))/;
       const sitesInvidious = [
         "yewtu.be",
+        "yt.artemislena.eu",
+        "invidious.flokinet.to",
+        "iv.melmac.space",
         "inv.nadeko.net",
-        "invidious.nerdvpn.de",
-        "invidious.protokolla.fi",
-        "invidious.materialio.us",
-        "iv.melmac.space"
+        "inv.tux.pizza",
+        "invidious.private.coffee",
+        "yt.drgnz.club",
+        "vid.puffyan.us",
+        "invidious.dhusch.de"
       ];
       const sitesPiped = [
         "piped.video",
-        "piped.kavin.rocks",
-        "piped.private.coffee"
+        "piped.tokhmi.xyz",
+        "piped.moomoo.me",
+        "piped.syncpundit.io",
+        "piped.mha.fi",
+        "watch.whatever.social",
+        "piped.garudalinux.org",
+        "efy.piped.pages.dev",
+        "watch.leptons.xyz",
+        "piped.lunar.icu",
+        "yt.dc09.ru",
+        "piped.mint.lgbt",
+        "il.ax",
+        "piped.privacy.com.de",
+        "piped.esmailelbob.xyz",
+        "piped.projectsegfau.lt",
+        "piped.in.projectsegfau.lt",
+        "piped.us.projectsegfau.lt",
+        "piped.privacydev.net",
+        "piped.palveluntarjoaja.eu",
+        "piped.smnz.de",
+        "piped.adminforge.de",
+        "piped.qdi.fi",
+        "piped.hostux.net",
+        "piped.chauvet.pro",
+        "piped.jotoma.de",
+        "piped.pfcd.me",
+        "piped.frontendfriendly.xyz"
       ];
       const sitesProxiTok = [
         "proxitok.pabloferreiro.es",
@@ -4056,25 +4043,33 @@ string() {
         "proxitok.privacy.com.de"
       ];
       const sitesPeertube = [
-        "peertube.tmp.rcp.tf",
-        "dalek.zone",
-        "video.sadmin.io",
-        "videos.viorsan.com",
         "peertube.1312.media",
         "tube.shanti.cafe",
         "bee-tube.fr",
+        "video.sadmin.io",
+        "dalek.zone",
+        "review.peertube.biz",
+        "peervideo.club",
+        "tube.la-dina.net",
+        "peertube.tmp.rcp.tf",
+        "peertube.su",
         "video.blender.org",
+        "videos.viorsan.com",
+        "tube-sciences-technologies.apps.education.fr",
+        "tube-numerique-educatif.apps.education.fr",
+        "tube-arts-lettres-sciences-humaines.apps.education.fr",
         "beetoons.tv",
-        "makertube.net",
-        "peertube.tv",
-        "framatube.org",
-        "tilvids.com",
-        "diode.zone",
-        "fedimovie.com",
-        "video.hardlimit.com",
-        "share.tube",
-        "peervideo.club"
+        "comics.peertube.biz",
+        "makertube.net"
       ];
+      const sitesPoketube = [
+        "poketube.fun",
+        "pt.sudovanilla.org",
+        "poke.ggtyler.dev",
+        "poke.uk2.littlekai.co.uk",
+        "poke.blahai.gay"
+      ];
+      const sitesRicktube = ["ricktube.ru"];
       const sitesCoursehunterLike = ["coursehunter.net", "coursetrain.net"];
       var ExtVideoService;
       (function(ExtVideoService2) {
@@ -4086,20 +4081,12 @@ string() {
         ExtVideoService2["oraclelearn"] = "oraclelearn";
         ExtVideoService2["deeplearningai"] = "deeplearningai";
         ExtVideoService2["netacad"] = "netacad";
+        ExtVideoService2["datacamp"] = "datacamp";
       })(ExtVideoService || (ExtVideoService = {}));
       ({
         ...VideoService,
         ...ExtVideoService
       });
-      const sharedSelectors = {
-        bilibiliPlayer: ".bpx-player-video-wrap, div.player-mobile-box.player-mobile-autoplay",
-        flowplayer: ".fp-player, div.flowplayer",
-        idPlayer: "#player",
-        jwPlayer: ".jwplayer, .jw-media",
-        player: ".player",
-        videoJsUniversal: "[id^='vjs_video_']:not([id*='_html5_api']):not(video), video-js:not([id*='_html5_api']), .video-js:not(video):not([id*='_html5_api']), .vjs-player:not([id*='_html5_api']), [data-vjs-player]:not([id*='_html5_api'])",
-        vkVideoPlayer: ".videoplayer_media, vk-video-player"
-      };
       const sites = [
         {
           additionalData: "mobile",
@@ -4107,13 +4094,6 @@ string() {
           url: "https://youtu.be/",
           match: /^m.youtube.com$/,
           selector: ".player-container",
-          needExtraData: true
-        },
-        {
-          host: VideoService.youtube,
-          url: "https://youtu.be/",
-          match: (enteredUrl) => /^(www.)?youtube(-nocookie|kids)?.com$/.test(enteredUrl.hostname) && enteredUrl.pathname.startsWith("/tv"),
-          selector: "#container",
           needExtraData: true
         },
         {
@@ -4127,7 +4107,7 @@ string() {
           host: VideoService.invidious,
           url: "https://youtu.be/",
           match: sitesInvidious,
-          selector: sharedSelectors.idPlayer,
+          selector: "#player",
           needBypassCSP: true
         },
         {
@@ -4138,23 +4118,23 @@ string() {
           needBypassCSP: true
         },
         {
-          host: VideoService.zdf,
-          url: "https://www.zdf.de/play/",
-          match: [/^zdf.de$/, /^(www.)?zdf.de$/],
-          selector: "div.zdfplayer-app.zdfplayer-desktop, div.zdfplayer-app"
+          host: VideoService.poketube,
+          url: "https://youtu.be/",
+          match: sitesPoketube,
+          selector: ".video-player-container"
         },
         {
-          host: VideoService.niconico,
-          url: "https://www.nicovideo.jp/watch/",
-          match: [/^(www\.|sp\.)?nicovideo\.jp$/, /^nico\.ms$/],
-          selector: `[class*="grid-area_[player]"] > div`
+          host: VideoService.ricktube,
+          url: "https://youtu.be/",
+          match: sitesRicktube,
+          selector: "#oframeplayer > pjsdiv:has(video)"
         },
         {
           additionalData: "mobile",
           host: VideoService.vk,
           url: "https://vk.com/video?z=",
           match: [/^m.vk.(com|ru)$/, /^m.vkvideo.ru$/],
-          selector: sharedSelectors.vkVideoPlayer,
+          selector: "vk-video-player",
           shadowRoot: true,
           needExtraData: true
         },
@@ -4169,8 +4149,8 @@ string() {
         {
           host: VideoService.vk,
           url: "https://vk.com/video?z=",
-          match: [/^(www\.|m\.)?vk\.(com|ru)$/, /^(.*\.)?vkvideo\.ru$/],
-          selector: sharedSelectors.vkVideoPlayer,
+          match: [/^(www.|m.)?vk.(com|ru)$/, /^(www.|m.)?vkvideo.ru$/],
+          selector: ".videoplayer_media",
           needExtraData: true
         },
         {
@@ -4215,9 +4195,9 @@ string() {
         {
           host: VideoService.vimeo,
           url: "https://vimeo.com/",
-          match: /^(www\.|m\.)?vimeo.com$/,
+          match: /^vimeo.com$/,
           needExtraData: true,
-          selector: sharedSelectors.player
+          selector: ".player"
         },
         {
           host: VideoService.vimeo,
@@ -4226,7 +4206,7 @@ string() {
           additionalData: "embed",
           needExtraData: true,
           needBypassCSP: true,
-          selector: sharedSelectors.player
+          selector: ".player"
         },
         {
           host: VideoService.xvideos,
@@ -4240,36 +4220,6 @@ string() {
           needBypassCSP: true
         },
         {
-          host: VideoService.xhamster,
-          url: "https://xhamster.com/",
-          match: (url) => /^(?:[^.]+\.)?(?:xhamster\.(?:com|desi)|xhamster\d+\.(?:com|desi)|xhvid\.com)$/.test(url.host) && /\/(?:videos\/[^/]+-[\dA-Za-z]+)\/?$/.test(url.pathname),
-          selector: "#player-container"
-        },
-        {
-          host: VideoService.spankbang,
-          url: "https://spankbang.com/",
-          match: (url) => /^(?:[^.]+\.)?spankbang\.com$/.test(url.host) && /\/(?:[\da-z]+\/(?:video|play|embed)(?:\/[^/]+)?|[\da-z]+-[\da-z]+\/playlist\/[^/?#&]+)\/?$/i.test(url.pathname),
-          selector: "#main_video_player"
-        },
-        {
-          host: VideoService.rule34video,
-          url: "https://rule34video.com/video/",
-          match: (url) => /^(www\.)?rule34video\.com$/.test(url.host) && /\/videos?\/\d+/.test(url.pathname),
-          selector: sharedSelectors.flowplayer
-        },
-        {
-          host: VideoService.picarto,
-          url: "https://picarto.tv/",
-          match: (url) => /^(www\.)?picarto\.tv$/.test(url.host) && /^(?:\/[^/]+\/(?:profile\/)?videos\/[^/?#&]+|\/videopopout\/[^/?#&]+|\/[^/#?]+\/?)$/.test(url.pathname),
-          selector: `[class*="VideosTab__PlayerWrapper"]`
-        },
-        {
-          host: VideoService.olympicsreplay,
-          url: "https://olympics.com/",
-          match: (url) => /^(www\.)?olympics\.com$/.test(url.host) && /^\/[a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+\/?$/i.test(url.pathname),
-          selector: sharedSelectors.videoJsUniversal
-        },
-        {
           host: VideoService.pornhub,
           url: "https://rt.pornhub.com/view_video.php?viewkey=",
           match: /^[a-z]+.pornhub.(com|org)$/,
@@ -4281,7 +4231,7 @@ string() {
           host: VideoService.pornhub,
           url: "https://rt.pornhub.com/view_video.php?viewkey=",
           match: (url) => /^[a-z]+.pornhub.(com|org)$/.exec(url.host) && url.pathname.startsWith("/embed/"),
-          selector: sharedSelectors.idPlayer
+          selector: "#player"
         },
         {
           host: VideoService.twitter,
@@ -4329,13 +4279,7 @@ string() {
           host: VideoService.bilibili,
           url: "https://www.bilibili.com/",
           match: /^(www|m|player).bilibili.com$/,
-          selector: sharedSelectors.bilibiliPlayer
-        },
-        {
-          host: VideoService.bilibili,
-          url: "https://www.bilibili.tv/",
-          match: /^(?:www\.|m\.)?bilibili\.tv$/,
-          selector: sharedSelectors.bilibiliPlayer
+          selector: ".bpx-player-video-wrap"
         },
         {
           additionalData: "old",
@@ -4354,25 +4298,25 @@ string() {
           host: VideoService.bitchute,
           url: "https://www.bitchute.com/video/",
           match: /^(www.)?bitchute.com$/,
-          selector: sharedSelectors.videoJsUniversal
+          selector: ".video-js"
         },
         {
           host: VideoService.eporner,
           url: "https://www.eporner.com/",
           match: /^(www.)?eporner.com$/,
-          selector: sharedSelectors.videoJsUniversal
+          selector: ".vjs-v7"
         },
         {
           host: VideoService.peertube,
           url: "stub",
           match: sitesPeertube,
-          selector: sharedSelectors.videoJsUniversal
+          selector: ".vjs-v7"
         },
         {
           host: VideoService.dailymotion,
-          url: "https://www.dailymotion.com/video/",
-          match: /^((www\.|player\.)?dailymotion\.com|geo(\d+)?\.dailymotion\.com|dai\.ly)$/,
-          selector: sharedSelectors.player
+          url: "https://dai.ly/",
+          match: /^geo([\d]+)?.dailymotion.com$/,
+          selector: ".player"
         },
         {
           host: VideoService.trovo,
@@ -4393,7 +4337,7 @@ string() {
           host: VideoService.okru,
           url: "https://ok.ru/video/",
           match: /^ok.ru$/,
-          selector: sharedSelectors.vkVideoPlayer,
+          selector: "vk-video-player",
           shadowRoot: true
         },
         {
@@ -4406,7 +4350,7 @@ string() {
           host: VideoService.bannedvideo,
           url: "https://madmaxworld.tv/watch?id=",
           match: /^(www.)?banned.video|madmaxworld.tv$/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v7",
           needExtraData: true
         },
         {
@@ -4415,12 +4359,6 @@ string() {
           match: /^weverse.io$/,
           selector: ".webplayer-internal-source-wrapper",
           needExtraData: true
-        },
-        {
-          host: VideoService.weibo,
-          url: "https://weibo.com/",
-          match: (url) => /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/(?:\d+\/[A-Za-z0-9]+|0\/[A-Za-z0-9]+|tv\/show\/\d+:(?:[\da-f]{32}|\d{16,}))\/?$/.test(url.pathname) || /^video\.weibo\.com$/.test(url.host) && /^\/show\/?$/.test(url.pathname) && /^\d+:(?:[\da-f]{32}|\d{16,})$/i.test(url.searchParams.get("fid") ?? "") || /^(?:www\.)?weibo\.com$/.test(url.host) && /^\/newlogin\/?$/.test(url.pathname) && (url.searchParams.has("url") || /^[A-Za-z0-9]+$/.test(url.searchParams.get("layerid") ?? "")),
-          selector: sharedSelectors.videoJsUniversal
         },
         {
           host: VideoService.newgrounds,
@@ -4444,13 +4382,13 @@ string() {
           host: VideoService.archive,
           url: "https://archive.org/details/",
           match: /^archive.org$/,
-          selector: sharedSelectors.jwPlayer
+          selector: ".jw-media"
         },
         {
           host: VideoService.kodik,
           url: "stub",
           match: /^kodik.(info|biz|cc)$/,
-          selector: sharedSelectors.flowplayer,
+          selector: ".fp-player",
           needExtraData: true
         },
         {
@@ -4497,14 +4435,14 @@ string() {
           host: VideoService.epicgames,
           url: "https://dev.epicgames.com/community/learning/",
           match: /^dev.epicgames.com$/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v7",
           needExtraData: true
         },
         {
           host: VideoService.odysee,
           url: "stub",
           match: /^odysee.com$/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v7",
           needExtraData: true
         },
         {
@@ -4534,26 +4472,20 @@ string() {
           host: ExtVideoService.coursera,
           url: "https://www.coursera.org/",
           match: /coursera.org$/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v8",
           needExtraData: true
         },
         {
           host: VideoService.watchpornto,
           url: "https://watchporn.to/",
           match: /^watchporn.to$/,
-          selector: sharedSelectors.flowplayer
-        },
-        {
-          host: VideoService.jove,
-          url: "https://app.jove.com/",
-          match: (url) => /(?:^|\.)jove\.com$/i.test(url.hostname) && /^\/(?:[a-z]{2}\/)?v\/\d+\/[^/?#]+\/?$/i.test(url.pathname),
-          selector: sharedSelectors.flowplayer
+          selector: ".fp-player"
         },
         {
           host: VideoService.linkedin,
           url: "https://www.linkedin.com/learning/",
           match: /^(www.)?linkedin.com$/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v7",
           needExtraData: true,
           needBypassCSP: true
         },
@@ -4568,24 +4500,14 @@ string() {
           host: VideoService.porntn,
           url: "https://porntn.com/videos/",
           match: /^porntn.com$/,
-          selector: sharedSelectors.flowplayer,
+          selector: ".fp-player",
           needExtraData: true
         },
         {
           host: VideoService.dzen,
           url: "https://dzen.ru/video/watch/",
           match: /^dzen.ru$/,
-          selector: `[class*="player__playerWrap"] > div`
-        },
-        {
-          host: VideoService.bunnystream,
-          url: "stub",
-          match: [
-            /^video\.bunnycdn\.com$/,
-            /^iframe\.mediadelivery\.net$/,
-            /^(?:[^.]+\.)*b-cdn\.net$/
-          ],
-          selector: null
+          selector: ".zen-ui-video-video-player"
         },
         {
           host: VideoService.cloudflarestream,
@@ -4605,14 +4527,14 @@ string() {
           host: ExtVideoService.artstation,
           url: "https://www.artstation.com/learning/",
           match: /^(www.)?artstation.com$/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v7",
           needExtraData: true
         },
         {
           host: VideoService.rtnews,
           url: "https://www.rt.com/",
           match: /^(www.)?rt.com$/,
-          selector: sharedSelectors.jwPlayer,
+          selector: ".jw-media",
           needExtraData: true
         },
         {
@@ -4633,7 +4555,7 @@ string() {
           host: VideoService.thisvid,
           url: "https://thisvid.com/",
           match: /^(www.)?thisvid.com$/,
-          selector: sharedSelectors.flowplayer
+          selector: ".fp-player"
         },
         {
           additionalData: "regional",
@@ -4647,7 +4569,7 @@ string() {
           host: VideoService.ign,
           url: "https://www.ign.com/",
           match: /^(www.)?ign.com$/,
-          selector: sharedSelectors.player,
+          selector: ".player",
           needExtraData: true
         },
         {
@@ -4661,7 +4583,7 @@ string() {
           host: VideoService.imdb,
           url: "https://www.imdb.com/video/",
           match: /^(www\.)?imdb\.com$/,
-          selector: sharedSelectors.jwPlayer
+          selector: ".jw-media"
         },
         {
           host: VideoService.telegram,
@@ -4673,7 +4595,7 @@ string() {
           host: ExtVideoService.oraclelearn,
           url: "https://mylearn.oracle.com/ou/course/",
           match: /^mylearn\.oracle\.com/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v7",
           needExtraData: true,
           needBypassCSP: true
         },
@@ -4688,7 +4610,14 @@ string() {
           host: ExtVideoService.netacad,
           url: "https://www.netacad.com/",
           match: /^(www\.)?netacad\.com/,
-          selector: sharedSelectors.videoJsUniversal,
+          selector: ".vjs-v8",
+          needExtraData: true
+        },
+        {
+          host: ExtVideoService.datacamp,
+          url: "https://campus.datacamp.com/courses/",
+          match: /^projector\.datacamp\.com$/,
+          selector: ".video-player.js-player",
           needExtraData: true
         },
         {
@@ -4701,7 +4630,8 @@ string() {
       class VideoHelperError extends Error {
         constructor(message) {
           super(message);
-          this.name = "VideoHelperError";
+          this.name = "VideoHelper";
+          this.message = message;
         }
       }
       class BaseHelper {
@@ -4722,11 +4652,11 @@ string() {
           this.video = video;
           this.language = language;
         }
-        getVideoData(_videoId) {
-          return Promise.resolve(void 0);
+        async getVideoData(_videoId) {
+          return void 0;
         }
-        getVideoId(_url) {
-          return Promise.resolve(void 0);
+        async getVideoId(_url) {
+          return void 0;
         }
         returnBaseData(videoId) {
           if (!this.service) {
@@ -4772,12 +4702,11 @@ string() {
         }
         async getCourseInfo(courseId) {
           try {
-            const csrfToken = this.getCSRFToken();
             const res = await this.fetch(`${this.API_ORIGIN}/courses/${courseId}/autoplay.json`, {
               method: "POST",
-              headers: csrfToken ? {
-                "PUBLIC-CSRF-TOKEN": csrfToken
-              } : {}
+              headers: {
+                "PUBLIC-CSRF-TOKEN": this.getCSRFToken()
+              }
             });
             return await res.json();
           } catch (err) {
@@ -4889,10 +4818,6 @@ string() {
           if (bvid) {
             return `video/${bvid}`;
           }
-          const intlId = /^\/(?:[a-z]{2}\/)?((?:play\/\d+(?:\/\d+)?|video\/\d+))\/?$/i.exec(url.pathname)?.[1];
-          if (intlId) {
-            return intlId;
-          }
           let vid = /video\/([^/]+)/.exec(url.pathname)?.[0];
           if (vid && url.searchParams.get("p") !== null) {
             vid += `/?p=${url.searchParams.get("p")}`;
@@ -4936,11 +4861,6 @@ string() {
         }
         async getVideoId(url) {
           return /\/f\/([^/]+)/.exec(url.pathname)?.[1];
-        }
-      }
-      class BunnyStreamHelper extends BaseHelper {
-        async getVideoId(url) {
-          return url.pathname + url.search;
         }
       }
       class CloudflareStreamHelper extends BaseHelper {
@@ -5008,6 +4928,42 @@ string() {
           return courseId ? courseId + url.search : void 0;
         }
       }
+      class VideoJSHelper extends BaseHelper {
+        SUBTITLE_SOURCE = "videojs";
+        SUBTITLE_FORMAT = "vtt";
+        static getPlayer() {
+          return document.querySelector(".video-js")?.player;
+        }
+        getVideoDataByPlayer(videoId) {
+          try {
+            const player2 = VideoJSHelper.getPlayer();
+            if (!player2) {
+              throw new Error(`Video player doesn't have player option, videoId ${videoId}`);
+            }
+            const duration = player2.duration();
+            const sources = Array.isArray(player2.currentSources) ? player2.currentSources : player2.getCache()?.sources;
+            const { tracks_: tracks } = player2.textTracks();
+            const videoUrl = sources.find((source) => source.type === "video/mp4" || source.type === "video/webm");
+            if (!videoUrl) {
+              throw new Error(`Failed to find video url for videoID ${videoId}`);
+            }
+            const subtitles = tracks.filter((track) => track.src && track.kind !== "metadata").map((track) => ({
+              language: normalizeLang$1(track.language),
+              source: this.SUBTITLE_SOURCE,
+              format: this.SUBTITLE_FORMAT,
+              url: track.src
+            }));
+            return {
+              url: videoUrl.src,
+              duration,
+              subtitles
+            };
+          } catch (err) {
+            Logger.error("Failed to get videojs video data", err.message);
+            return void 0;
+          }
+        }
+      }
       const availableLangs = [
         "auto",
         "ru",
@@ -5024,84 +4980,6 @@ string() {
         "ja"
       ];
       const availableTTS = ["ru", "en", "kk"];
-      class VideoJSHelper extends BaseHelper {
-        SUBTITLE_SOURCE = "videojs";
-        SUBTITLE_FORMAT = "vtt";
-        static getPlayer() {
-          const vjs = window.videojs;
-          const techEl = document.querySelector("video.vjs-tech[id], video[id$='_html5_api']");
-          const derivedPlayerId = techEl?.id?.endsWith("_html5_api") ? techEl.id.slice(0, -"_html5_api".length) : void 0;
-          if (vjs?.getPlayer) {
-            if (derivedPlayerId) {
-              const p2 = vjs.getPlayer(derivedPlayerId);
-              if (p2)
-                return p2;
-            }
-            if (techEl) {
-              const p2 = vjs.getPlayer(techEl);
-              if (p2)
-                return p2;
-            }
-          }
-          const players = (typeof vjs?.getPlayers === "function" ? vjs.getPlayers() : vjs?.players) ?? {};
-          for (const p2 of Object.values(players)) {
-            const player2 = p2;
-            const el = typeof player2.el === "function" ? player2.el() : null;
-            const innerVideo = el?.querySelector?.("video.vjs-tech, video") ?? null;
-            if (innerVideo && techEl && innerVideo === techEl) {
-              return p2;
-            }
-            if (derivedPlayerId && typeof player2.id === "function" && player2.id() === derivedPlayerId) {
-              return p2;
-            }
-          }
-          return void 0;
-        }
-        getVideoDataByPlayer(videoId) {
-          try {
-            const player2 = VideoJSHelper.getPlayer();
-            const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video[src]");
-            if (!player2 && !techEl) {
-              throw new Error(`Video player/video element not found, videoId ${videoId}`);
-            }
-            const duration = player2?.duration?.() ?? techEl?.duration;
-            let url;
-            if (player2) {
-              const sources = typeof player2.currentSources === "function" ? player2.currentSources() : player2.getCache?.()?.sources;
-              const videoUrl = Array.isArray(sources) ? sources.find((source) => source?.type === "video/mp4" || source?.type === "video/webm" || source?.src) : void 0;
-              url = videoUrl?.src;
-            }
-            url ??= techEl?.currentSrc || techEl?.src || techEl?.getAttribute?.("src") || void 0;
-            if (!url) {
-              throw new Error(`Failed to find video url for videoID ${videoId}`);
-            }
-            const trackEls = techEl ? Array.from(techEl.querySelectorAll("track[src]")) : [];
-            const subtitles = trackEls.filter((t2) => t2.kind !== "metadata").flatMap((t2) => {
-              const src = t2.getAttribute("src");
-              if (!src) {
-                return [];
-              }
-              const absUrl = new URL(src, window.location.href).toString();
-              return [
-                {
-                  language: normalizeLang$1(t2.srclang || ""),
-                  source: this.SUBTITLE_SOURCE,
-                  format: this.SUBTITLE_FORMAT,
-                  url: absUrl
-                }
-              ];
-            });
-            return {
-              url,
-              duration,
-              subtitles
-            };
-          } catch (err) {
-            Logger.error("Failed to get videojs video data", err.message);
-            return void 0;
-          }
-        }
-      }
       class CourseraHelper extends VideoJSHelper {
         API_ORIGIN = "https://www.coursera.org/api";
         SUBTITLE_SOURCE = "coursera";
@@ -5179,40 +5057,10 @@ string() {
         }
       }
       class DailymotionHelper extends BaseHelper {
-        getVideoIdFromUrl(url) {
-          const videoIdFromQuery = url.searchParams.get("video");
-          if (videoIdFromQuery) {
-            return videoIdFromQuery;
-          }
-        }
-        resolveVideoIdViaPostMessage() {
-          return new Promise((resolve) => {
-            const origin = "https://www.dailymotion.com";
-            const timeout2 = setTimeout(() => {
-              window.removeEventListener("message", onMessage);
-              resolve(void 0);
-            }, 3e3);
-            const onMessage = (e2) => {
-              if (e2.origin !== origin) {
-                return;
-              }
-              if (!(typeof e2.data === "string" && e2.data.startsWith("getVideoId:"))) {
-                return;
-              }
-              clearTimeout(timeout2);
-              window.removeEventListener("message", onMessage);
-              resolve(e2.data.replace("getVideoId:", ""));
-            };
-            window.addEventListener("message", onMessage);
-            window.top?.postMessage("getVideoId:", origin);
-          });
-        }
-        async getVideoId(url) {
-          if (window.self !== window.top) {
-            return await this.resolveVideoIdViaPostMessage();
-          } else {
-            return this.getVideoIdFromUrl(url);
-          }
+        async getVideoId(_url) {
+          const plainPlayerConfig = Array.from(document.querySelectorAll("*")).filter((s2) => s2.innerHTML.trim().includes(".m3u8"));
+          const videoUrl = plainPlayerConfig?.[1]?.lastChild?.src;
+          return videoUrl ? /\/video\/(\w+)\.m3u8/.exec(videoUrl)?.[1] : void 0;
         }
       }
       class DeeplearningAIHelper extends BaseHelper {
@@ -5307,7 +5155,7 @@ string() {
             };
           }
           try {
-            subtitlesString = `${subtitlesString.replace(/src:(\s)+?(videoUrl)/g, 'src:"removed"').substring(0, subtitlesString.lastIndexOf("},"))}]`.split("\n").map((line) => line.replace(/([^\s]+):\s?(?!.*\1)/, '"$1":')).join("\n");
+            subtitlesString = (subtitlesString.replace(/src:(\s)+?(videoUrl)/g, 'src:"removed"').substring(0, subtitlesString.lastIndexOf("},")) + "]").split("\n").map((line) => line.replace(/([^\s]+):\s?(?!.*\1)/, '"$1":')).join("\n");
             const subtitlesObj = JSON.parse(subtitlesString);
             const subtitles = subtitlesObj.filter((sub) => sub.type === "captions");
             return {
@@ -5360,7 +5208,7 @@ string() {
               const videoId = e2.data.replace("getVideoId:", "");
               return resolve(videoId);
             });
-            window.top?.postMessage(`getVideoId:${reqId}`, origin);
+            window.top.postMessage(`getVideoId:${reqId}`, origin);
           });
         }
       }
@@ -5377,7 +5225,7 @@ string() {
       class GoogleDriveHelper extends BaseHelper {
         getPlayerData() {
           const playerEl = document.querySelector("#movie_player");
-          return playerEl?.getVideoData?.() ?? void 0;
+          return playerEl?.getVideoData?.call() ?? void 0;
         }
         async getVideoId(_url) {
           return this.getPlayerData()?.video_id;
@@ -5454,16 +5302,6 @@ string() {
         }
         async getVideoId(url) {
           return /\/watch\/([^/]+)/.exec(url.pathname)?.[1];
-        }
-      }
-      class JoveHelper extends BaseHelper {
-        async getVideoId(url) {
-          const groups = /^\/(?:[a-z]{2}\/)?v\/(?<id>\d+)\/(?<slug>[^/]+)\/?$/i.exec(url.pathname)?.groups;
-          if (!groups) {
-            return void 0;
-          }
-          const { id, slug } = groups;
-          return `v/${id}/${slug}`;
         }
       }
       class KickHelper extends BaseHelper {
@@ -5551,11 +5389,7 @@ string() {
             if (!secureScript.length) {
               throw new VideoHelperError("Failed to find secure script");
             }
-            const secureScriptContent = secureScript[0]?.textContent?.trim();
-            if (!secureScriptContent) {
-              throw new VideoHelperError("Secure script content is empty");
-            }
-            const secureContent = /'{[^']+}'/.exec(secureScriptContent)?.[0];
+            const secureContent = /'{[^']+}'/.exec(secureScript[0].textContent.trim())?.[0];
             if (!secureContent) {
               throw new VideoHelperError("Secure json wasn't found in secure script");
             }
@@ -5592,7 +5426,7 @@ string() {
         async getFtor(secureData) {
           const { videoType, videoId: id, hash, d: d2, d_sign, pd, pd_sign, ref, ref_sign } = secureData;
           try {
-            const res = await this.fetch(`${this.API_ORIGIN}/ftor`, {
+            const res = await this.fetch(this.API_ORIGIN + "/ftor", {
               method: "POST",
               headers: {
                 "User-Agent": votConfig.userAgent,
@@ -5621,12 +5455,12 @@ string() {
           }
         }
         decryptUrl(encryptedUrl) {
-          const decryptedUrl = atob(encryptedUrl.replace(/[a-zA-Z]/g, (e2) => {
+          const decryptedUrl = atob(encryptedUrl.replace(/[a-zA-Z]/g, function(e2) {
             const charCode = e2.charCodeAt(0) + 18;
             const pos = e2 <= "Z" ? 90 : 122;
             return String.fromCharCode(pos >= charCode ? charCode : charCode - 26);
           }));
-          return `https:${decryptedUrl}`;
+          return "https:" + decryptedUrl;
         }
         async getVideoData(videoId) {
           const secureData = this.getSecureData(videoId);
@@ -5707,7 +5541,7 @@ string() {
               throw new VideoHelperError(data.message);
             }
             return {
-              url: this.service?.url + videoId,
+              url: this.service.url + videoId,
               subtitles: [
                 {
                   format: "vtt",
@@ -5730,7 +5564,7 @@ string() {
         API_ORIGIN = "https://my.mail.ru";
         async getVideoMeta(videoId) {
           try {
-            const res = await this.fetch(`${this.API_ORIGIN}/+/video/meta/${videoId}?xemail=&ajax_call=1&func_name=&mna=&mnb=&ext=1&_=${Date.now()}`);
+            const res = await this.fetch(`${this.API_ORIGIN}/+/video/meta/${videoId}?xemail=&ajax_call=1&func_name=&mna=&mnb=&ext=1&_=${( new Date()).getTime()}`);
             return await res.json();
           } catch (err) {
             Logger.error("Failed to get mail.ru video data", err.message);
@@ -5771,17 +5605,67 @@ string() {
           return url.pathname + url.search;
         }
       }
+      class DataCampHelper extends VideoJSHelper {
+        SUBTITLE_SOURCE = "datacamp";
+        SUBTITLE_FORMAT = "vtt";
+        getVideoDataFromInput() {
+          try {
+            const input = document.getElementById("videoData");
+            if (!input || !input.value) {
+              return null;
+            }
+            return JSON.parse(input.value);
+          } catch (err) {
+            Logger.error("Failed to parse DataCamp videoData input", err.message);
+            return null;
+          }
+        }
+        async getVideoData(videoId) {
+          const meta = this.getVideoDataFromInput();
+          if (meta) {
+            const videoUrl = meta.plain_video_mp4_link || meta.plain_video_hls_link || meta.video_mp4_link || meta.video_hls_link;
+            if (videoUrl) {
+              const subtitles = [];
+              if (meta.subtitle_vtt_link) {
+                subtitles.push({
+                  language: normalizeLang$1("en"),
+                  source: this.SUBTITLE_SOURCE,
+                  format: this.SUBTITLE_FORMAT,
+                  url: meta.subtitle_vtt_link
+                });
+              }
+              if (meta.audio_language_variants && typeof meta.audio_language_variants === "object") {
+                for (const [langCode, variant] of Object.entries(meta.audio_language_variants)) {
+                  if (variant && variant.subtitle_vtt_link) {
+                    subtitles.push({
+                      language: normalizeLang$1(langCode.split("-")[0]),
+                      source: this.SUBTITLE_SOURCE,
+                      format: this.SUBTITLE_FORMAT,
+                      url: variant.subtitle_vtt_link
+                    });
+                  }
+                }
+              }
+              return {
+                url: videoUrl,
+                duration: void 0,
+                subtitles
+              };
+            }
+          }
+          return this.getVideoDataByPlayer(videoId);
+        }
+        async getVideoId(url) {
+          const key = url.searchParams.get("projector_key");
+          if (key) {
+            return key;
+          }
+          return url.pathname + url.search;
+        }
+      }
       class NewgroundsHelper extends BaseHelper {
         async getVideoId(url) {
           return /([^/]+)\/(view)\/([^/]+)/.exec(url.pathname)?.[0];
-        }
-      }
-      class NicoNicoHelper extends BaseHelper {
-        async getVideoId(url) {
-          if (url.hostname === "nico.ms") {
-            return url.pathname.replace(/^\//, "").split("/")[0] || void 0;
-          }
-          return /\/watch\/([^/?#]+)/.exec(url.pathname)?.[1];
         }
       }
       class NineGAGHelper extends BaseHelper {
@@ -5838,11 +5722,6 @@ string() {
       class OKRuHelper extends BaseHelper {
         async getVideoId(url) {
           return /\/video\/(\d+)/.exec(url.pathname)?.[1];
-        }
-      }
-      class OlympicsReplayHelper extends BaseHelper {
-        async getVideoId(url) {
-          return /\/([a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+)\/?$/i.exec(url.pathname)?.[1];
         }
       }
       class OracleLearnHelper extends VideoJSHelper {
@@ -5912,21 +5791,7 @@ string() {
       }
       class PeertubeHelper extends BaseHelper {
         async getVideoId(url) {
-          const normalizedPathname = url.pathname.replace(/\/+$/, "");
-          const watchVideoId = /\/videos\/watch\/([^/]+)/.exec(normalizedPathname)?.[1];
-          if (watchVideoId) {
-            return `/videos/watch/${watchVideoId}`;
-          }
-          const shortVideoId = /\/w\/([^/]+)/.exec(normalizedPathname)?.[1];
-          if (shortVideoId) {
-            return `/videos/watch/${shortVideoId}`;
-          }
-          return void 0;
-        }
-      }
-      class PicartoHelper extends BaseHelper {
-        async getVideoId(url) {
-          return /\/((?:videopopout|[^/]+(?:\/profile)?\/videos)\/[^/?#&/]+)\/?$/.exec(url.pathname)?.[1] ?? /^\/([^/#?]+)\/?$/.exec(url.pathname)?.[1];
+          return /\/w\/([^/]+)/.exec(url.pathname)?.[0];
         }
       }
       class PornhubHelper extends BaseHelper {
@@ -5968,9 +5833,7 @@ string() {
         API_ORIGIN = "https://www.reddit.com";
         async getContentUrl(_videoId) {
           if (this.service?.additionalData !== "old") {
-            const player2 = document.querySelector("shreddit-player-2, shreddit-player");
-            const src = player2?.getAttribute("src") ?? player2?.querySelector('source[type="application/vnd.apple.mpegURL"]')?.getAttribute("src");
-            return src?.replaceAll("&amp;", "&");
+            return document.querySelector("shreddit-player-2")?.src;
           }
           const playerEl = document.querySelector("[data-hls-url]");
           return playerEl?.dataset.hlsUrl?.replaceAll("&amp;", "&");
@@ -6013,16 +5876,6 @@ string() {
         }
         async getVideoId(url) {
           return url.pathname.slice(1);
-        }
-      }
-      class Rule34VideoHelper extends BaseHelper {
-        async getVideoId(url) {
-          const parts = /\/videos?\/(\d+)(?:\/(.+))?\/?$/.exec(url.pathname);
-          if (!parts) {
-            return void 0;
-          }
-          const [, id, tail] = parts;
-          return tail ? `${id}/${tail.replace(/\/+$/, "")}/` : id;
         }
       }
       class RumbleHelper extends BaseHelper {
@@ -6143,11 +5996,6 @@ string() {
           return /((courses|learning-journeys)\/([^/]+)(\/[^/]+)?)/.exec(url.pathname)?.[1];
         }
       }
-      class SpankBangHelper extends BaseHelper {
-        async getVideoId(url) {
-          return /\/([\da-z]+\/(?:video|play|embed)(?:\/[^/]+)?)\/?$/i.exec(url.pathname)?.[1] ?? /\/([\da-z]+-[\da-z]+\/playlist\/[^/]+)\/?$/i.exec(url.pathname)?.[1];
-        }
-      }
       class TelegramHelper extends BaseHelper {
         static getMediaViewer() {
           if (typeof appMediaViewer === "undefined") {
@@ -6225,7 +6073,7 @@ string() {
           const title = document.querySelector('[data-a-target="stream-title"], [data-test-selector="stream-info-card-component__subtitle"]')?.innerText;
           const isStream = !!document.querySelector('[data-a-target="animated-channel-viewers-count"], .channel-status-info--live, .top-bar--pointer-enabled .tw-channel-status-text-indicator');
           return {
-            url: this.service?.url + videoId,
+            url: this.service.url + videoId,
             isStream,
             title
           };
@@ -6268,151 +6116,27 @@ string() {
           return newLink ? /status\/([^/]+)/.exec(newLink)?.[1] : void 0;
         }
       }
-      function isObject(value) {
-        return typeof value === "object" && value !== null;
-      }
-      function isUrlCandidate(value) {
-        return typeof value === "object" && value !== null;
-      }
-      function getUrlCandidates(data) {
-        if (Array.isArray(data)) {
-          return data.filter(isUrlCandidate);
-        }
-        if (typeof data !== "object" || data === null) {
-          return [];
-        }
-        const source = data;
-        const values = Array.isArray(source.Video) ? source.Video : Array.isArray(source.video) ? source.video : [];
-        return values.filter(isUrlCandidate);
-      }
-      function getOutputCandidates(data) {
-        if (!isObject(data)) {
-          return [];
-        }
-        const result = [];
-        for (const [fallbackLabel, value] of Object.entries(data)) {
-          if (!isObject(value) || typeof value.url !== "string") {
-            continue;
-          }
-          result.push({
-            src: value.url,
-            type: typeof value.type === "string" ? value.type : void 0,
-            label: typeof value.height === "number" || typeof value.height === "string" ? value.height : fallbackLabel
-          });
-        }
-        return result;
-      }
-      function getQualityValue(value) {
-        if (typeof value === "number" && Number.isFinite(value)) {
-          return value;
-        }
-        const match = String(value ?? "").match(/(\d{3,4})/);
-        return Number(match?.[1] ?? 0);
-      }
-      function getCandidateUrl(candidate) {
-        if (typeof candidate.file === "string") {
-          return candidate.file;
-        }
-        if (typeof candidate.src === "string") {
-          return candidate.src;
-        }
-        return void 0;
-      }
-      function isM3U8(type, url) {
-        return type.includes("mpegurl") || /\.m3u8(?:$|[?#])/i.test(url);
-      }
-      function isDash(type, url) {
-        return type.includes("dash") || /\.mpd(?:$|[?#])/i.test(url);
-      }
       class UdemyHelper extends BaseHelper {
-        API_ORIGIN = `${window.location.origin}/api-2.0`;
+        API_ORIGIN = "https://www.udemy.com/api-2.0";
         getModuleData() {
-          const appLoaderEl = document.querySelector(".ud-app-loader[data-module-id='course-taking']") ?? document.querySelector("[data-module-id='course-taking']");
+          const appLoaderEl = document.querySelector(".ud-app-loader[data-module-id='course-taking']");
           const moduleData = appLoaderEl?.dataset?.moduleArgs;
           if (!moduleData) {
             return void 0;
           }
-          try {
-            return JSON.parse(moduleData);
-          } catch {
-            return void 0;
-          }
+          return JSON.parse(moduleData);
         }
-        getLectureId(videoId) {
-          const lectureIdRe = /(?:\/learn\/(?:v4\/t\/)?lecture\/|#\/?lecture\/|\/lecture\/view\/\?(?:[^#]*?&)*lecture(?:_|)id=)(\d+)/i;
-          return lectureIdRe.exec(window.location.href)?.[1] ?? (videoId ? lectureIdRe.exec(`/${videoId}`)?.[1] : void 0);
-        }
-        getCourseId(moduleData) {
-          const moduleDataWithExtra = moduleData;
-          const moduleCourseId = this.normalizeId(moduleDataWithExtra?.courseId ?? moduleDataWithExtra?.course_id ?? moduleDataWithExtra?.course?.id);
-          if (moduleCourseId) {
-            return moduleCourseId;
-          }
-          const attrCourseId = this.normalizeId(document.querySelector("[data-course-id]")?.getAttribute("data-course-id"));
-          if (attrCourseId) {
-            return attrCourseId;
-          }
-          const pageHtml = document.documentElement?.innerHTML ?? "";
-          return /data-course-id=["'](\d+)/i.exec(pageHtml)?.[1] ?? /&quot;courseId&quot;\s*:\s*(\d+)/i.exec(pageHtml)?.[1] ?? /"courseId"\s*:\s*(\d+)/i.exec(pageHtml)?.[1];
-        }
-        normalizeId(value) {
-          if (typeof value === "number" && Number.isFinite(value)) {
-            return String(value);
-          }
-          if (typeof value === "string") {
-            return /^\d+$/.test(value) ? value : void 0;
-          }
-          return void 0;
-        }
-        parseJson(value) {
-          try {
-            return JSON.parse(value);
-          } catch {
-            const normalized = value.replaceAll("&quot;", '"').replaceAll("&#34;", '"').replaceAll("&apos;", "'").replaceAll("&#39;", "'");
-            try {
-              return JSON.parse(normalized);
-            } catch {
-              return void 0;
-            }
-          }
-        }
-        getViewHtmlCandidates(viewHtml) {
-          if (typeof viewHtml !== "string" || !viewHtml.trim()) {
-            return [];
-          }
-          const doc = new DOMParser().parseFromString(viewHtml, "text/html");
-          const candidates = [];
-          for (const sourceEl of Array.from(doc.querySelectorAll("source"))) {
-            const src = sourceEl.getAttribute("src");
-            if (!src) {
-              continue;
-            }
-            candidates.push({
-              src,
-              type: sourceEl.getAttribute("type") ?? void 0,
-              label: sourceEl.getAttribute("data-res") ?? void 0
-            });
-          }
-          for (const setupDataEl of Array.from(doc.querySelectorAll("[videojs-setup-data]"))) {
-            const setupDataRaw = setupDataEl.getAttribute("videojs-setup-data");
-            if (!setupDataRaw) {
-              continue;
-            }
-            const setupData = this.parseJson(setupDataRaw);
-            if (setupData) {
-              candidates.push(...getUrlCandidates(setupData.sources));
-            }
-          }
-          return candidates;
+        getLectureId() {
+          return /learn\/lecture\/([^/]+)/.exec(window.location.pathname)?.[1];
         }
         isErrorData(data) {
-          return Object.hasOwn(data, "error") || Object.hasOwn(data, "detail") && !Object.hasOwn(data, "_class");
+          return Object.hasOwn(data, "error");
         }
         async getLectureData(courseId, lectureId) {
           try {
             const res = await this.fetch(`${this.API_ORIGIN}/users/me/subscribed-courses/${courseId}/lectures/${lectureId}/?` + new URLSearchParams({
-              "fields[lecture]": "title,description,view_html,asset,download_url,is_free,last_watched_second",
-              "fields[asset]": "asset_type,length,stream_url,media_sources,stream_urls,download_urls,external_url,captions,data,thumbnail_sprite,slides,slide_urls,course_is_drmed,media_license_token"
+              "fields[lecture]": "title,description,asset",
+              "fields[asset]": "length,media_sources,captions"
             }).toString());
             const data = await res.json();
             if (this.isErrorData(data)) {
@@ -6430,128 +6154,49 @@ string() {
               "fields[course]": "locale"
             }).toString());
             const data = await res.json();
-            if (!this.isErrorData(data)) {
-              return data;
+            if (this.isErrorData(data)) {
+              throw new VideoHelperError(data.detail ?? "unknown error");
             }
-            const res2 = await this.fetch(`${this.API_ORIGIN}/courses/${courseId}/?` + new URLSearchParams({
-              "fields[course]": "locale"
-            }).toString());
-            const data2 = await res2.json();
-            if (this.isErrorData(data2)) {
-              throw new VideoHelperError(data2.detail ?? "unknown error");
-            }
-            return data2;
+            return data;
           } catch (err) {
             Logger.error(`Failed to get course lang by courseId: ${courseId}`, err.message);
             return void 0;
           }
         }
-        findVideoUrl(sources, streamUrls, downloadUrls, streamUrl, externalUrl, outputs, viewHtml) {
-          const allCandidates = [];
-          const mediaSources = Array.isArray(sources) ? sources : [];
-          for (const source of mediaSources) {
-            allCandidates.push({
-              src: source.src,
-              type: source.type,
-              label: source.label
-            });
-          }
-          allCandidates.push(...getUrlCandidates(streamUrls));
-          allCandidates.push(...getUrlCandidates(downloadUrls));
-          allCandidates.push(...getOutputCandidates(outputs));
-          if (typeof viewHtml === "string") {
-            allCandidates.push(...this.getViewHtmlCandidates(viewHtml));
-          }
-          if (typeof streamUrl === "string") {
-            allCandidates.push({ src: streamUrl });
-          }
-          if (typeof externalUrl === "string") {
-            allCandidates.push({ src: externalUrl });
-          }
-          const playerSrc = this.video?.currentSrc || this.video?.src;
-          if (typeof playerSrc === "string" && playerSrc) {
-            allCandidates.push({ src: playerSrc });
-          }
-          const dedupCandidates = new Map();
-          for (const candidate of allCandidates) {
-            const url = getCandidateUrl(candidate);
-            if (!url || /^javascript:/i.test(url)) {
-              continue;
-            }
-            const quality = getQualityValue(candidate.label ?? candidate.quality ?? candidate.height);
-            const type = String(candidate.type ?? "").toLowerCase();
-            const prev = dedupCandidates.get(url);
-            if (!prev || quality > prev.quality) {
-              dedupCandidates.set(url, {
-                url,
-                type,
-                quality,
-                isYouTubeWatch: /:\/\/(?:www\.)?youtube\.com\/watch\?/i.test(url)
-              });
-            }
-          }
-          const candidates = Array.from(dedupCandidates.values());
-          if (!candidates.length) {
-            return void 0;
-          }
-          const mp4Candidates = candidates.filter((item) => item.type.includes("mp4") || /\.mp4(?:$|[?#])/i.test(item.url));
-          if (mp4Candidates.length) {
-            mp4Candidates.sort((a2, b2) => b2.quality - a2.quality);
-            return mp4Candidates[0]?.url;
-          }
-          const hlsUrl = candidates.find((item) => isM3U8(item.type, item.url))?.url;
-          if (hlsUrl) {
-            return hlsUrl;
-          }
-          const dashUrl = candidates.find((item) => isDash(item.type, item.url))?.url;
-          if (dashUrl) {
-            return dashUrl;
-          }
-          const nonYoutube = candidates.find((item) => !item.isYouTubeWatch)?.url;
-          if (nonYoutube) {
-            return nonYoutube;
-          }
-          return candidates[0]?.url;
-        }
-        getCaptionLocale(caption) {
-          const localeId = typeof caption.locale_id === "string" ? caption.locale_id : typeof caption.locale?.locale === "string" ? caption.locale.locale : void 0;
-          return localeId ? normalizeLang$1(localeId) : void 0;
+        findVideoUrl(sources) {
+          return sources?.find((src) => src.type === "video/mp4")?.src;
         }
         findSubtitleUrl(captions, detectedLanguage) {
-          if (!Array.isArray(captions)) {
-            return void 0;
-          }
-          const captionsWithDownload = captions.filter((caption) => isObject(caption) && (typeof caption.url === "string" || typeof caption.download_url === "string"));
-          const subtitle = captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === detectedLanguage) ?? captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === "en") ?? captionsWithDownload[0];
-          return subtitle?.url ?? subtitle?.download_url;
+          const subtitle = captions?.find((caption) => normalizeLang$1(caption.locale_id) === detectedLanguage) ?? captions?.find((caption) => normalizeLang$1(caption.locale_id) === "en") ?? captions?.[0];
+          return subtitle?.url;
         }
         async getVideoData(videoId) {
           const moduleData = this.getModuleData();
-          const courseId = this.getCourseId(moduleData);
-          const lectureId = this.getLectureId(videoId);
+          if (!moduleData) {
+            return void 0;
+          }
+          const { courseId } = moduleData;
+          const lectureId = this.getLectureId();
           Logger.log(`[Udemy] courseId: ${courseId}, lectureId: ${lectureId}`);
-          if (!lectureId || !courseId) {
+          if (!lectureId) {
             return void 0;
           }
           const lectureData = await this.getLectureData(courseId, lectureId);
           if (!lectureData) {
             return void 0;
           }
-          const { title, description, asset, view_html } = lectureData;
+          const { title, description, asset } = lectureData;
           const { length: duration, media_sources, captions } = asset;
-          const assetWithExtraUrls = asset;
-          const streamUrls = assetWithExtraUrls.stream_urls;
-          const downloadUrls = assetWithExtraUrls.download_urls;
-          const videoUrl = this.findVideoUrl(media_sources, streamUrls, downloadUrls, assetWithExtraUrls.stream_url ?? assetWithExtraUrls.streamUrl, assetWithExtraUrls.external_url, assetWithExtraUrls.data?.outputs, view_html);
+          const videoUrl = this.findVideoUrl(media_sources);
           if (!videoUrl) {
-            Logger.log("Failed to find video file in asset sources", asset);
+            Logger.log("Failed to find .mp4 video file in media_sources", media_sources);
             return void 0;
           }
           let courseLang = "en";
           const courseLangData = await this.getCourseLang(courseId);
-          const courseLocale = courseLangData?.locale?.locale;
-          if (typeof courseLocale === "string") {
-            courseLang = normalizeLang$1(courseLocale);
+          if (courseLangData) {
+            const { locale: { locale: courseLocale } } = courseLangData;
+            courseLang = courseLocale ? normalizeLang$1(courseLocale) : courseLang;
           }
           if (!availableLangs.includes(courseLang)) {
             courseLang = "en";
@@ -6596,36 +6241,6 @@ string() {
         }
         isPrivatePlayer() {
           return this.referer && !this.referer.includes("vimeo.com") && this.origin.endsWith("player.vimeo.com");
-        }
-        toPublicUrl(videoId) {
-          const [id, hash] = videoId.split(":", 2);
-          return hash ? `${this.DEFAULT_SITE_ORIGIN}/${id}/${hash}` : `${this.DEFAULT_SITE_ORIGIN}/${id}`;
-        }
-        returnPublicBaseData(videoId) {
-          const baseData = this.returnBaseData(videoId);
-          if (!baseData) {
-            return void 0;
-          }
-          return {
-            ...baseData,
-            url: this.toPublicUrl(videoId)
-          };
-        }
-        normalizePublicVideoUrl(url, videoId) {
-          try {
-            const parsed = new URL(url);
-            if (parsed.hostname === "player.vimeo.com") {
-              return this.toPublicUrl(videoId);
-            }
-            if (parsed.hostname.endsWith("vimeo.com")) {
-              const colonMatch = /^\/(\d+):([a-z0-9]+)$/i.exec(parsed.pathname);
-              if (colonMatch) {
-                return `${this.DEFAULT_SITE_ORIGIN}/${colonMatch[1]}/${colonMatch[2]}`;
-              }
-            }
-          } catch {
-          }
-          return url;
         }
         async getViewerData() {
           try {
@@ -6742,7 +6357,7 @@ string() {
               language: normalizeLang$1(sub.lang),
               source: "vimeo",
               format: "vtt",
-              url: new URL(sub.url, this.SITE_ORIGIN).href,
+              url: this.SITE_ORIGIN + sub.url,
               isAutoGenerated: sub.lang.includes("autogenerated")
             }));
             const translationHelp = subtitles2.length ? [
@@ -6762,18 +6377,18 @@ string() {
             };
           }
           if (!this.extraInfo) {
-            return this.returnPublicBaseData(videoId);
+            return this.returnBaseData(videoId);
           }
           if (videoId.includes("/")) {
             videoId = videoId.replace("/", ":");
           }
           const viewerData = await this.getViewerData();
           if (!viewerData) {
-            return this.returnPublicBaseData(videoId);
+            return this.returnBaseData(videoId);
           }
           const videoInfo = await this.getVideoInfo(videoId);
           if (!videoInfo) {
-            return this.returnPublicBaseData(videoId);
+            return this.returnBaseData(videoId);
           }
           const subsData = await this.getSubsInfo(videoId);
           const subtitles = subsData.map((caption) => ({
@@ -6783,8 +6398,7 @@ string() {
             url: caption.link,
             isAutoGenerated: caption.language.includes("autogen")
           }));
-          const { link, duration, name: title, description } = videoInfo;
-          const url = this.normalizePublicVideoUrl(link, videoId);
+          const { link: url, duration, name: title, description } = videoInfo;
           return {
             url,
             title,
@@ -6794,8 +6408,7 @@ string() {
           };
         }
         async getVideoId(url) {
-          const normalizedPathname = url.pathname.replace(/\/+$/, "");
-          const embedId = /video\/[^/]+$/.exec(normalizedPathname)?.[0];
+          const embedId = /video\/[^/]+$/.exec(url.pathname)?.[0];
           if (this.isPrivatePlayer()) {
             return embedId;
           }
@@ -6804,11 +6417,11 @@ string() {
             const videoId = embedId.replace("video/", "");
             return hash ? `${videoId}/${hash}` : videoId;
           }
-          const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(normalizedPathname)?.[2];
+          const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(url.pathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(url.pathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(url.pathname)?.[2];
           if (categoriesVideoId) {
             return categoriesVideoId;
           }
-          return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
+          return /([^/]+\/)?[^/]+$/.exec(url.pathname)?.[0];
         }
       }
       class VKHelper extends BaseHelper {
@@ -6816,18 +6429,12 @@ string() {
           if (typeof Videoview === "undefined") {
             return void 0;
           }
-          try {
-            return Videoview?.getPlayerObject?.();
-          } catch {
-            return void 0;
-          }
+          return Videoview?.getPlayerObject?.call(void 0);
         }
         async getVideoData(videoId) {
-          const currentUrl = new URL(window.location.href);
           const player2 = VKHelper.getPlayer();
           if (!player2) {
-            const base = this.returnBaseData(videoId);
-            return base ? { ...base, url: buildVkVideoUrl$1(videoId, currentUrl) } : base;
+            return this.returnBaseData(videoId);
           }
           try {
             const { description: descriptionHTML, duration, md_title: title } = player2.vars;
@@ -6845,7 +6452,7 @@ string() {
               }));
             }
             return {
-              url: buildVkVideoUrl$1(videoId, currentUrl),
+              url: this.service.url + videoId,
               title,
               description,
               duration,
@@ -6853,16 +6460,15 @@ string() {
             };
           } catch (err) {
             Logger.error(`Failed to get VK video data, because: ${err.message}`);
-            const base = this.returnBaseData(videoId);
-            return base ? { ...base, url: buildVkVideoUrl$1(videoId, currentUrl) } : base;
+            return this.returnBaseData(videoId);
           }
         }
         async getVideoId(url) {
-          const pathID = /^\/((?:video|clip)-?\d+_\d+)(?:\/)?$/.exec(url.pathname);
+          const pathID = /^\/(video|clip)-?\d{8,9}_\d{9}$/.exec(url.pathname);
           if (pathID) {
-            return pathID[1];
+            return pathID[0].slice(1);
           }
-          const idInsidePlaylist = /\/playlist\/[^/]+\/(video-?\d+_\d+)/.exec(url.pathname);
+          const idInsidePlaylist = /\/playlist\/[^/]+\/(video-?\d{8,9}_\d{9})/.exec(url.pathname);
           if (idInsidePlaylist) {
             return idInsidePlaylist[1];
           }
@@ -6873,10 +6479,7 @@ string() {
           const paramOID = url.searchParams.get("oid");
           const paramID = url.searchParams.get("id");
           if (paramOID && paramID) {
-            const ownerId = Math.abs(Number.parseInt(paramOID, 10));
-            if (!Number.isNaN(ownerId)) {
-              return `video-${ownerId}_${paramID}`;
-            }
+            return `video-${Math.abs(parseInt(paramOID))}_${paramID}`;
           }
           return void 0;
         }
@@ -6884,45 +6487,6 @@ string() {
       class WatchPornToHelper extends BaseHelper {
         async getVideoId(url) {
           return /(video|embed)\/(\d+)(\/[^/]+\/)?/.exec(url.pathname)?.[0];
-        }
-      }
-      const weiboVideoIdRe = /^\d+:(?:[\da-f]{32}|\d{16,})$/i;
-      const weiboLayerIdRe = /^[A-Za-z0-9]+$/;
-      const weiboHostRe = /^(?:www\.)?weibo\.com$/;
-      const weiboLoginPathRe = /^\/newlogin\/?$/;
-      class WeiboHelper extends BaseHelper {
-        async getVideoId(url) {
-          if (url.hostname === "video.weibo.com") {
-            const fid = url.searchParams.get("fid");
-            if (!fid || !weiboVideoIdRe.test(fid)) {
-              return void 0;
-            }
-            return `tv/show/${fid}`;
-          }
-          if (weiboHostRe.test(url.host) && weiboLoginPathRe.test(url.pathname)) {
-            const nestedUrl = url.searchParams.get("url");
-            if (nestedUrl) {
-              try {
-                const parsedNestedUrl = new URL(nestedUrl, url.origin);
-                if (parsedNestedUrl.href !== url.href) {
-                  const nestedVideoId = await this.getVideoId(parsedNestedUrl);
-                  if (nestedVideoId) {
-                    return nestedVideoId;
-                  }
-                }
-              } catch {
-              }
-            }
-            const layerId = url.searchParams.get("layerid");
-            if (layerId && weiboLayerIdRe.test(layerId)) {
-              return `0/${layerId}`;
-            }
-          }
-          const normalizedPath = url.pathname.replace(/\/+$/, "");
-          if (/^\/\d+\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/0\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/tv\/show\/\d+:(?:[\da-f]{32}|\d{16,})$/i.test(normalizedPath)) {
-            return normalizedPath.slice(1);
-          }
-          return void 0;
         }
       }
       class WeverseHelper extends BaseHelper {
@@ -6966,7 +6530,7 @@ string() {
           }).toString();
           try {
             const urlParams = await this.getHashURLParams(pathname);
-            const res = await this.fetch(`${this.API_ORIGIN + pathname}&${urlParams}`, {
+            const res = await this.fetch(this.API_ORIGIN + pathname + "&" + urlParams, {
               headers: this.HEADERS
             });
             return await res.json();
@@ -6982,7 +6546,7 @@ string() {
           }).toString();
           try {
             const urlParams = await this.getHashURLParams(pathname);
-            const res = await this.fetch(`${this.API_ORIGIN + pathname}&${urlParams}`, {
+            const res = await this.fetch(this.API_ORIGIN + pathname + "&" + urlParams, {
               method: "POST",
               headers: this.HEADERS
             });
@@ -7055,11 +6619,6 @@ string() {
           return /([^/]+)\/(live|media)\/([^/]+)/.exec(url.pathname)?.[3];
         }
       }
-      class XHamsterHelper extends BaseHelper {
-        async getVideoId(url) {
-          return /\/(videos\/[^/]+-[\dA-Za-z]+)\/?$/.exec(url.pathname)?.[1];
-        }
-      }
       class XVideosHelper extends BaseHelper {
         async getVideoId(url) {
           return /[^/]+\/[^/]+$/.exec(url.pathname)?.[0];
@@ -7086,7 +6645,7 @@ string() {
           try {
             const preloadedData = JSON.parse(preloadedScript.innerText);
             const { idClient, sk } = preloadedData.config;
-            const res = await this.fetch(`${this.API_ORIGIN}/models-v2?m=mpfs/info`, {
+            const res = await this.fetch(this.API_ORIGIN + "/models-v2?m=mpfs/info", {
               method: "POST",
               body: JSON.stringify({
                 apiMethod: "mpfs/info",
@@ -7138,7 +6697,7 @@ string() {
         }
         async fetchList(dirHash, sk) {
           const body = this.getBodyHash(dirHash, sk);
-          const res = await this.fetch(`${this.API_ORIGIN}/public/api/fetch-list`, {
+          const res = await this.fetch(this.API_ORIGIN + "/public/api/fetch-list", {
             method: "POST",
             body
           });
@@ -7150,7 +6709,7 @@ string() {
         }
         async getDownloadUrl(fileHash, sk) {
           const body = this.getBodyHash(fileHash, sk);
-          const res = await this.fetch(`${this.API_ORIGIN}/public/api/download-url`, {
+          const res = await this.fetch(this.API_ORIGIN + "/public/api/download-url", {
             method: "POST",
             body
           });
@@ -7213,7 +6772,7 @@ string() {
         async getVideoData(videoId) {
           if (videoId.startsWith(this.INLINE_PREFIX) || /^\/d\/([^/]+)$/.exec(videoId)) {
             return {
-              url: this.service?.url + videoId.slice(1)
+              url: this.service.url + videoId.slice(1)
             };
           }
           videoId = decodeURIComponent(videoId);
@@ -7241,38 +6800,6 @@ string() {
       class YoutubeHelper extends BaseHelper {
         static isMobile() {
           return /^m\.youtube\.com$/.test(window.location.hostname);
-        }
-        static extractVideoId(url) {
-          const rawHash = url.hash.replace(/^#/, "");
-          if (rawHash) {
-            const normalizedHash = rawHash.startsWith("!") ? rawHash.slice(1) : rawHash;
-            let decodedHash = normalizedHash;
-            try {
-              decodedHash = decodeURIComponent(normalizedHash);
-            } catch {
-            }
-            try {
-              const hashUrl = decodedHash.startsWith("http") ? new URL(decodedHash) : new URL(decodedHash.startsWith("/") ? decodedHash : `/${decodedHash}`, url.origin);
-              const hashVideoId = YoutubeHelper.extractVideoId(hashUrl);
-              if (hashVideoId) {
-                return hashVideoId;
-              }
-            } catch {
-              const hashVideoId = /(?:^|[?&#])v=([^&#]+)/.exec(decodedHash)?.[1];
-              if (hashVideoId) {
-                return hashVideoId;
-              }
-            }
-          }
-          if (url.hostname === "youtu.be") {
-            const id = url.pathname.replace(/^\/+/, "").split("/")[0];
-            return id || void 0;
-          }
-          const pathVideoId = /\/(?:watch|embed|shorts|live|v|e)\/([^/?#]+)/.exec(url.pathname)?.[1] ?? void 0;
-          if (pathVideoId) {
-            return pathVideoId;
-          }
-          return url.searchParams.get("v") ?? void 0;
         }
         static getPlayer() {
           if (window.location.pathname.startsWith("/shorts/") && !YoutubeHelper.isMobile()) {
@@ -7414,7 +6941,7 @@ string() {
           }
           const duration = YoutubeHelper.getPlayer()?.getDuration?.call(void 0) ?? void 0;
           return {
-            url: this.service?.url + videoId,
+            url: this.service.url + videoId,
             isStream,
             title,
             localizedTitle,
@@ -7425,28 +6952,20 @@ string() {
           };
         }
         async getVideoId(url) {
+          if (url.hostname === "youtu.be") {
+            url.search = `?v=${url.pathname.replace("/", "")}`;
+            url.pathname = "/watch";
+          }
           if (url.searchParams.has("enablejsapi")) {
             const videoUrl = YoutubeHelper.getPlayer()?.getVideoUrl();
             url = videoUrl ? new URL(videoUrl) : url;
           }
-          return YoutubeHelper.extractVideoId(url);
-        }
-      }
-      const zdfPlayPathRe = /^\/play\/([^/?#]+)\/([^/?#]+)\/([^/?#]+)\/?$/i;
-      class ZDFHelper extends BaseHelper {
-        async getVideoId(url) {
-          const match = zdfPlayPathRe.exec(url.pathname);
-          if (!match) {
-            return void 0;
-          }
-          const [, publicationForm, collectionCanonical, videoCanonical] = match;
-          return `${publicationForm}/${collectionCanonical}/${videoCanonical}`;
+          return /(?:watch|embed|shorts|live)\/([^/]+)/.exec(url.pathname)?.[1] ?? url.searchParams.get("v");
         }
       }
       const availableHelpers = {
         [VideoService.mailru]: MailRuHelper,
         [VideoService.weverse]: WeverseHelper,
-        [VideoService.weibo]: WeiboHelper,
         [VideoService.kodik]: KodikHelper,
         [VideoService.patreon]: PatreonHelper,
         [VideoService.reddit]: RedditHelper,
@@ -7458,7 +6977,6 @@ string() {
         [VideoService.coursehunterLike]: CoursehunterLikeHelper,
         [VideoService.twitch]: TwitchHelper,
         [VideoService.sap]: SapHelper,
-        [VideoService.jove]: JoveHelper,
         [VideoService.linkedin]: LinkedinHelper,
         [VideoService.vimeo]: VimeoHelper,
         [VideoService.yandexdisk]: YandexDiskHelper,
@@ -7469,11 +6987,6 @@ string() {
         [VideoService.googledrive]: GoogleDriveHelper,
         [VideoService.bilibili]: BilibiliHelper,
         [VideoService.xvideos]: XVideosHelper,
-        [VideoService.xhamster]: XHamsterHelper,
-        [VideoService.spankbang]: SpankBangHelper,
-        [VideoService.rule34video]: Rule34VideoHelper,
-        [VideoService.picarto]: PicartoHelper,
-        [VideoService.olympicsreplay]: OlympicsReplayHelper,
         [VideoService.watchpornto]: WatchPornToHelper,
         [VideoService.archive]: ArchiveHelper,
         [VideoService.dailymotion]: DailymotionHelper,
@@ -7493,11 +7006,11 @@ string() {
         [VideoService.proxitok]: TikTokHelper,
         [VideoService.nine_gag]: NineGAGHelper,
         [VideoService.youtube]: YoutubeHelper,
+        [VideoService.ricktube]: YoutubeHelper,
         [VideoService.invidious]: YoutubeHelper,
+        [VideoService.poketube]: YoutubeHelper,
         [VideoService.piped]: YoutubeHelper,
-        [VideoService.zdf]: ZDFHelper,
         [VideoService.dzen]: DzenHelper,
-        [VideoService.bunnystream]: BunnyStreamHelper,
         [VideoService.cloudflarestream]: CloudflareStreamHelper,
         [VideoService.loom]: LoomHelper,
         [VideoService.rtnews]: RtNewsHelper,
@@ -7507,7 +7020,6 @@ string() {
         [VideoService.bunkr]: BunkrHelper,
         [VideoService.imdb]: IMDbHelper,
         [VideoService.telegram]: TelegramHelper,
-        [VideoService.niconico]: NicoNicoHelper,
         [ExtVideoService.udemy]: UdemyHelper,
         [ExtVideoService.coursera]: CourseraHelper,
         [ExtVideoService.douyin]: DouyinHelper,
@@ -7515,7 +7027,8 @@ string() {
         [ExtVideoService.kickstarter]: KickstarterHelper,
         [ExtVideoService.oraclelearn]: OracleLearnHelper,
         [ExtVideoService.deeplearningai]: DeeplearningAIHelper,
-        [ExtVideoService.netacad]: NetacadHelper
+        [ExtVideoService.netacad]: NetacadHelper,
+        [ExtVideoService.datacamp]: DataCampHelper
       };
       class VideoHelper {
         helpersData;
@@ -7525,21 +7038,6 @@ string() {
         getHelper(service) {
           return new availableHelpers[service](this.helpersData);
         }
-      }
-      function hasHelper(host) {
-        return host in availableHelpers;
-      }
-      function buildVkVideoUrl(videoId, sourceUrl) {
-        const cleanedVideoId = videoId.replace(/^\/+/, "");
-        const out = new URL("https://vk.com/video");
-        out.searchParams.set("z", cleanedVideoId);
-        for (const key of ["list", "access_key"]) {
-          const value = sourceUrl.searchParams.get(key);
-          if (value) {
-            out.searchParams.set(key, value);
-          }
-        }
-        return out.toString();
       }
       function getService() {
         if (localLinkRe.exec(window.location.href)) {
@@ -7558,29 +7056,27 @@ string() {
           return false;
         };
         return sites.filter((e2) => {
-          return !!e2.match && (Array.isArray(e2.match) ? e2.match.some(isMatches) : isMatches(e2.match)) && e2.host && e2.url;
+          return (Array.isArray(e2.match) ? e2.match.some(isMatches) : isMatches(e2.match)) && e2.host && e2.url;
         });
       }
       async function getVideoID(service, opts = {}) {
         const url = new URL(window.location.href);
         const serviceHost = service.host;
-        if (hasHelper(serviceHost)) {
+        if (Object.keys(availableHelpers).includes(serviceHost)) {
           const helper = new VideoHelper(opts).getHelper(serviceHost);
           return await helper.getVideoId(url);
         }
         return serviceHost === VideoService.custom ? url.href : void 0;
       }
       async function getVideoData(service, opts = {}) {
-        const currentUrl = new URL(window.location.href);
         const videoId = await getVideoID(service, opts);
         if (!videoId) {
           throw new VideoDataError(`Entered unsupported link: "${service.host}"`);
         }
-        const origin = currentUrl.origin;
+        const origin = window.location.origin;
         if ([
           VideoService.peertube,
           VideoService.coursehunterLike,
-          VideoService.bunnystream,
           VideoService.cloudflarestream
         ].includes(service.host)) {
           service.url = origin;
@@ -7594,23 +7090,12 @@ string() {
           };
         }
         if (!service.needExtraData) {
-          if (service.host === VideoService.vk) {
-            return {
-              url: buildVkVideoUrl(videoId, currentUrl),
-              videoId,
-              host: service.host,
-              duration: void 0
-            };
-          }
           return {
             url: service.url + videoId,
             videoId,
             host: service.host,
             duration: void 0
           };
-        }
-        if (!hasHelper(service.host)) {
-          throw new VideoDataError(`No helper is available for "${service.host}"`);
         }
         const helper = new VideoHelper({
           ...opts,
@@ -7623,7 +7108,6 @@ string() {
         }
         return {
           ...result,
-          url: service.host === VideoService.vk ? buildVkVideoUrl(videoId, currentUrl) : result.url,
           videoId,
           host: service.host
         };
@@ -8154,7 +7638,6 @@ string() {
       }
       const workerHost = "api.browser.yandex.ru";
       const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
-      const proxyWorkerHostMode1 = "vot-new.toil-dump.workers.dev";
       const proxyWorkerHost = "vot-worker.kload.workers.dev";
       const votBackendUrl = "https://vot.toil.cc/v1";
       const foswlyTranslateUrl = "https://translate-backend.transly.workers.dev/v2";
@@ -8169,6 +7652,7 @@ string() {
       const minLongWaitingCount = 5;
       const defaultTranslationService = "yandexbrowser";
       const defaultDetectService = "yandexbrowser";
+      const nonProxyExtensions = ["Tampermonkey", "Violentmonkey"];
       const proxyOnlyCountries = ["UA", "LV", "LT"];
       const defaultAutoHideDelay = 1e3;
       const actualCompatVersion = "2025-05-09";
@@ -8462,11 +7946,11 @@ string() {
         constructor(storage = votStorage) {
           this.storage = storage;
         }
-        getStorageKey() {
+        getStorageKey(host) {
           return VOT_SESSION_STORAGE_KEY;
         }
-        async restore(_host, currentSessions = {}) {
-          const storageKey = this.getStorageKey();
+        async restore(host, currentSessions = {}) {
+          const storageKey = this.getStorageKey(host);
           const rawStoredSession = await this.storage.getRaw(storageKey);
           if (!isStoredVOTSession(rawStoredSession)) {
             return currentSessions;
@@ -8490,8 +7974,8 @@ string() {
             }
           };
         }
-        async persist(_host, sessions) {
-          const storageKey = this.getStorageKey();
+        async persist(host, sessions) {
+          const storageKey = this.getStorageKey(host);
           const translationSession = sanitizeVOTSessions(sessions)["video-translation"];
           if (!translationSession) {
             await this.storage.deleteRaw(storageKey);
@@ -8587,134 +8071,81 @@ clear() {
           const dedupe = options.dedupe !== false;
           const allowStaleOnError = options.allowStaleOnError !== false;
           const nowMs = Date.now();
-          const staleFallback = await this.readCachedResponse({
-            key,
-            nowMs,
-            useMemory,
-            useCacheApi,
-            cacheName,
-            url: context.url,
-            cacheApiKey,
-            ttlMs,
-            allowStaleOnError
-          });
-          if (staleFallback.fresh) {
-            return staleFallback.fresh;
+          let staleFallback;
+          if (useMemory) {
+            const memoryHit = this.readMemoryCache(key, nowMs);
+            if (memoryHit.fresh) {
+              return memoryHit.fresh;
+            }
+            staleFallback = memoryHit.stale ?? staleFallback;
           }
-          if (!dedupe) {
-            return await this.runNetworkRequestWithFallback(
-              {
-                key,
-                cacheName,
-                url: context.url,
-                cacheApiKey,
-                ttlMs,
-                useMemory,
-                useCacheApi
-              },
-              fetcher,
-              allowStaleOnError ? staleFallback.stale : void 0
+          if (useCacheApi) {
+            const cacheApiHit = await this.readCacheApi(
+              cacheName,
+              context.url,
+              cacheApiKey,
+              ttlMs,
+              nowMs,
+              allowStaleOnError
             );
+            if (cacheApiHit.fresh) {
+              if (useMemory) {
+                this.writeMemoryCache(
+                  key,
+                  cacheApiHit.fresh.clone(),
+                  cacheApiHit.expiresAt ?? nowMs + ttlMs
+                );
+              }
+              return cacheApiHit.fresh;
+            }
+            staleFallback = staleFallback ?? cacheApiHit.stale;
+          }
+          const runNetworkRequest = async () => {
+            const response = await fetcher();
+            if (!response.ok) {
+              return response;
+            }
+            const createdAtMs = Date.now();
+            const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+            if (useMemory) {
+              this.writeMemoryCache(key, response.clone(), expiresAt);
+            }
+            if (useCacheApi) {
+              const storable = this.toStorableResponse(response.clone(), createdAtMs);
+              await this.writeCacheApi(cacheName, context.url, cacheApiKey, storable);
+            }
+            return response;
+          };
+          if (!dedupe) {
+            try {
+              return await runNetworkRequest();
+            } catch (err) {
+              if (allowStaleOnError && staleFallback) {
+                return staleFallback;
+              }
+              throw err;
+            }
           }
           const inFlight = this.inFlightRequests.get(key);
           if (inFlight !== void 0) {
             return (await inFlight).clone();
           }
-          const networkPromise = this.runNetworkRequestWithFallback(
-            {
-              key,
-              cacheName,
-              url: context.url,
-              cacheApiKey,
-              ttlMs,
-              useMemory,
-              useCacheApi
-            },
-            fetcher,
-            allowStaleOnError ? staleFallback.stale?.clone() : void 0
-          );
+          const networkPromise = (async () => {
+            try {
+              return await runNetworkRequest();
+            } catch (err) {
+              if (allowStaleOnError && staleFallback) {
+                return staleFallback.clone();
+              }
+              throw err;
+            }
+          })();
           this.inFlightRequests.set(key, networkPromise);
           try {
             return (await networkPromise).clone();
           } finally {
             this.inFlightRequests.delete(key);
           }
-        }
-        async readCachedResponse({
-          key,
-          nowMs,
-          useMemory,
-          useCacheApi,
-          cacheName,
-          url,
-          cacheApiKey,
-          ttlMs,
-          allowStaleOnError
-        }) {
-          let staleFallback;
-          if (useMemory) {
-            const memoryHit = this.readMemoryCache(key, nowMs);
-            if (memoryHit.fresh) {
-              return { fresh: memoryHit.fresh };
-            }
-            staleFallback = memoryHit.stale;
-          }
-          if (!useCacheApi) {
-            return { stale: staleFallback };
-          }
-          const cacheApiHit = await this.readCacheApi(
-            cacheName,
-            url,
-            cacheApiKey,
-            ttlMs,
-            nowMs,
-            allowStaleOnError
-          );
-          if (cacheApiHit.fresh) {
-            if (useMemory) {
-              this.writeMemoryCache(
-                key,
-                cacheApiHit.fresh.clone(),
-                cacheApiHit.expiresAt ?? nowMs + ttlMs
-              );
-            }
-            return { fresh: cacheApiHit.fresh };
-          }
-          return { stale: staleFallback ?? cacheApiHit.stale };
-        }
-        async runNetworkRequestWithFallback(cacheConfig, fetcher, staleFallback) {
-          try {
-            return await this.runNetworkRequest(cacheConfig, fetcher);
-          } catch (err) {
-            if (staleFallback) {
-              return staleFallback;
-            }
-            throw err;
-          }
-        }
-        async runNetworkRequest({
-          key,
-          cacheName,
-          url,
-          cacheApiKey,
-          ttlMs,
-          useMemory,
-          useCacheApi
-        }, fetcher) {
-          const response = await fetcher();
-          if (!response.ok) {
-            return response;
-          }
-          const createdAtMs = Date.now();
-          const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
-          if (useMemory) {
-            this.writeMemoryCache(key, response.clone(), expiresAt);
-          }
-          if (useCacheApi) {
-            const storable = this.toStorableResponse(response.clone(), createdAtMs);
-            await this.writeCacheApi(cacheName, url, cacheApiKey, storable);
-          }
-          return response;
         }
         computeExpiresAt(createdAtMs, ttlMs) {
           if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
@@ -8737,7 +8168,7 @@ clear() {
         }
         buildDefaultCacheKey(context) {
           const method = this.normalizeMethod(context.method);
-          if (method === "GET") {
+          if (method === "GET" || method === "HEAD") {
             return `${method}:${context.url}`;
           }
           const bodyKey = this.resolveBodyKey(context.body);
@@ -8886,43 +8317,6 @@ clear() {
           return null;
         }
       }
-      function extractNestedMessage(error2) {
-        const candidates = [
-          error2?.data?.message,
-          error2?.error?.message,
-          error2?.message
-        ];
-        for (const candidate of candidates) {
-          if (typeof candidate === "string" && candidate) {
-            return candidate;
-          }
-        }
-        return null;
-      }
-      function formatObjectError(error2, fallback) {
-        const nestedMessage = extractNestedMessage(error2);
-        if (nestedMessage) {
-          return nestedMessage;
-        }
-        const serialized = stringifyUnknownObject(error2);
-        if (serialized && serialized !== "{}") {
-          return serialized;
-        }
-        const ctorName = error2.constructor?.name;
-        return ctorName ? `[${ctorName}]` : fallback;
-      }
-      function formatPrimitiveError(error2, fallback) {
-        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
-          return `${error2}`;
-        }
-        if (typeof error2 === "symbol") {
-          return error2.description ? `Symbol(${error2.description})` : "Symbol";
-        }
-        if (typeof error2 === "function") {
-          return error2.name ? `[Function ${error2.name}]` : "[Function]";
-        }
-        return fallback;
-      }
       function toErrorMessage(error2, fallback = "Unknown error") {
         if (error2 instanceof Error) {
           return error2.message || fallback;
@@ -8934,9 +8328,33 @@ clear() {
           return fallback;
         }
         if (typeof error2 === "object") {
-          return formatObjectError(error2, fallback);
+          const anyErr = error2;
+          if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
+            return anyErr.data.message;
+          }
+          if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
+            return anyErr.error.message;
+          }
+          if (typeof anyErr?.message === "string" && anyErr.message) {
+            return anyErr.message;
+          }
+          const serialized = stringifyUnknownObject(error2);
+          if (serialized && serialized !== "{}") {
+            return serialized;
+          }
+          const ctorName = error2.constructor?.name;
+          return ctorName ? `[${ctorName}]` : fallback;
         }
-        return formatPrimitiveError(error2, fallback);
+        if (typeof error2 === "number" || typeof error2 === "boolean" || typeof error2 === "bigint") {
+          return `${error2}`;
+        }
+        if (typeof error2 === "symbol") {
+          return error2.description ? `Symbol(${error2.description})` : "Symbol";
+        }
+        if (typeof error2 === "function") {
+          return error2.name ? `[Function ${error2.name}]` : "[Function]";
+        }
+        return fallback;
       }
       function getErrorMessage(error2) {
         return toErrorMessage(error2, "");
@@ -9018,21 +8436,12 @@ clear() {
       const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
       const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
       const scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
-      function getCallbackGmXhr() {
-        const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
-        return typeof gmXhr === "function" ? gmXhr : void 0;
-      }
-      function getPromiseGmXhr() {
-        const gm = typeof GM === "undefined" ? globalThis.GM : GM;
-        const gmXhr = gm?.xmlHttpRequest ?? gm?.xmlhttpRequest;
-        return typeof gmXhr === "function" ? gmXhr.bind(gm) : void 0;
-      }
-      function hasSupportedGmXhr() {
-        return !!(getCallbackGmXhr() || getPromiseGmXhr());
-      }
-      const isProxyOnlyExtension = !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && !!scriptHandler && !hasSupportedGmXhr();
-      const isSupportGM4 = typeof GM !== "undefined" || typeof globalThis.GM !== "undefined";
-      const isSupportGMXhr = hasSupportedGmXhr();
+      const isProxyOnlyExtension = (
+
+!(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && !!scriptHandler && !nonProxyExtensions.includes(scriptHandler)
+      );
+      const isSupportGM4 = typeof GM !== "undefined";
+      const isSupportGMXhr = typeof GM_xmlhttpRequest !== "undefined";
       function getRequestHost(url) {
         const normalizedUrl = url.trim();
         try {
@@ -9104,112 +8513,66 @@ clear() {
       }
       async function gmXhrFetch(urlStr, timeout2, fetchOptions) {
         const headers = getHeaders(fetchOptions.headers);
-        const callbackGmXhr = getCallbackGmXhr();
-        const promiseGmXhr = getPromiseGmXhr();
-        if (callbackGmXhr) {
-          return await new Promise((resolve, reject) => {
-            let settled = false;
-            let onAbort;
-            const cleanupAbort = () => {
-              if (onAbort) {
-                fetchOptions.signal?.removeEventListener("abort", onAbort);
-              }
-            };
-            const failOnce = (error2) => {
+        return await new Promise((resolve, reject) => {
+          const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
+          if (typeof gmXhr !== "function") {
+            reject(new TypeError("GM_xmlhttpRequest is not available"));
+            return;
+          }
+          let settled = false;
+          let onAbort;
+          const cleanupAbort = () => {
+            if (onAbort) {
+              fetchOptions.signal?.removeEventListener("abort", onAbort);
+            }
+          };
+          const failOnce = (error2) => {
+            if (settled) return;
+            settled = true;
+            cleanupAbort();
+            reject(error2);
+          };
+          const request = gmXhr({
+            method: fetchOptions.method || "GET",
+            url: urlStr,
+            responseType: "blob",
+            data: fetchOptions.body,
+            timeout: timeout2,
+            headers,
+            onload: (resp) => {
               if (settled) return;
               settled = true;
               cleanupAbort();
-              reject(error2);
-            };
-            const request2 = callbackGmXhr({
-              method: fetchOptions.method || "GET",
-              url: urlStr,
-              responseType: "blob",
-              data: fetchOptions.body,
-              timeout: timeout2,
-              headers,
-              onload: (resp) => {
-                if (settled) return;
-                settled = true;
-                cleanupAbort();
-                const responseHeaders = parseResponseHeaders(resp.responseHeaders);
-                const response = new Response(resp.response, {
-                  status: resp.status,
-                  statusText: typeof resp.statusText === "string" ? resp.statusText : "",
-                  headers: responseHeaders
-                });
-                Object.defineProperty(response, "url", {
-                  value: resp.finalUrl ?? urlStr
-                });
-                resolve(response);
-              },
-              ontimeout: () => failOnce(new Error("Timeout")),
-              onerror: (error2) => failOnce(new Error(getGmXhrErrorMessage(error2))),
-              onabort: () => failOnce(makeAbortError())
-            });
-            onAbort = () => {
-              try {
-                request2?.abort?.();
-              } catch {
-              }
-              failOnce(makeAbortError());
-            };
-            if (fetchOptions.signal) {
-              fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
-              if (fetchOptions.signal.aborted) {
-                onAbort();
-                return;
-              }
-            }
+              const responseHeaders = parseResponseHeaders(resp.responseHeaders);
+              const response = new Response(resp.response, {
+                status: resp.status,
+                statusText: typeof resp.statusText === "string" ? resp.statusText : "",
+                headers: responseHeaders
+              });
+              Object.defineProperty(response, "url", {
+                value: resp.finalUrl ?? urlStr
+              });
+              resolve(response);
+            },
+            ontimeout: () => failOnce(new Error("Timeout")),
+            onerror: (error2) => failOnce(new Error(getGmXhrErrorMessage(error2))),
+            onabort: () => failOnce(makeAbortError())
           });
-        }
-        if (!promiseGmXhr) {
-          throw new TypeError("GM_xmlhttpRequest is not available");
-        }
-        const request = promiseGmXhr({
-          method: fetchOptions.method || "GET",
-          url: urlStr,
-          responseType: "blob",
-          data: fetchOptions.body,
-          timeout: timeout2,
-          headers
-        });
-        let abortHandler;
-        try {
-          const abortPromise = new Promise((_2, reject) => {
-            if (!fetchOptions.signal) {
+          onAbort = () => {
+            try {
+              request?.abort?.();
+            } catch {
+            }
+            failOnce(makeAbortError());
+          };
+          if (fetchOptions.signal) {
+            fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
+            if (fetchOptions.signal.aborted) {
+              onAbort();
               return;
             }
-            abortHandler = () => {
-              try {
-                request.abort?.();
-              } catch {
-              }
-              reject(makeAbortError());
-            };
-            fetchOptions.signal.addEventListener("abort", abortHandler, {
-              once: true
-            });
-            if (fetchOptions.signal.aborted) {
-              abortHandler();
-            }
-          });
-          const resp = await Promise.race([request, abortPromise]);
-          const responseHeaders = parseResponseHeaders(resp.responseHeaders);
-          const response = new Response(resp.response, {
-            status: resp.status,
-            statusText: typeof resp.statusText === "string" ? resp.statusText : "",
-            headers: responseHeaders
-          });
-          Object.defineProperty(response, "url", {
-            value: resp.finalUrl ?? urlStr
-          });
-          return response;
-        } finally {
-          if (abortHandler) {
-            fetchOptions.signal?.removeEventListener("abort", abortHandler);
           }
-        }
+        });
       }
       async function GM_fetch(url, opts = {}) {
         const {
@@ -9801,7 +9164,7 @@ get isSupportOnlyLS() {
         return buildVersion || scriptVersion || "unknown";
       }
       function getRuntimeLocaleVersion() {
-        const buildVersion = String("1.11.3.5");
+        const buildVersion = String("1.11.3");
         const scriptVersion = typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "";
         return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
       }
@@ -9883,14 +9246,14 @@ locale;
             "localeVersion",
             ""
           );
+          if (!force && storedLocaleVersion === runtimeLocaleVersion) {
+            return this;
+          }
           const hash = await this.checkUpdates(force);
           if (hash === null) {
             return this;
           }
           if (!hash) {
-            if (storedLocaleVersion !== runtimeLocaleVersion) {
-              await votStorage.set("localeVersion", runtimeLocaleVersion);
-            }
             return this;
           }
           const timestamp = getTimestamp();
@@ -10235,44 +9598,38 @@ locale;
       function closestCrossShadow(element, selector) {
         if (!element || !selector) return null;
         const origin = element instanceof Document ? null : element;
-        return walkCrossShadow(element, selector, origin);
-      }
-      function findMatchingDocumentElement(current, selector, origin) {
-        if (!origin) {
-          return current.querySelector(selector);
-        }
-        const matches = current.querySelectorAll(selector);
-        for (const match of matches) {
-          if (containsCrossShadow(match, origin)) {
-            return match;
+        const walk = (current) => {
+          if (!current) return null;
+          if (current instanceof Document) {
+            if (origin) {
+              const matches = current.querySelectorAll(selector);
+              for (const match of matches) {
+                if (containsCrossShadow(match, origin)) {
+                  return match;
+                }
+              }
+              return null;
+            }
+            return current.querySelector(selector);
           }
-        }
-        return null;
-      }
-      function getNextCrossShadowTarget(current) {
-        const root = current.getRootNode();
-        if (root instanceof ShadowRoot) {
-          return root.host;
-        }
-        if (root instanceof Document) {
-          return root;
-        }
-        if (root !== current) {
-          const parent = getComposableParent(root);
-          if (parent && parent !== current && parent instanceof Element) {
-            return parent;
+          const closest = current.closest(selector);
+          if (closest) return closest;
+          const root = current.getRootNode();
+          if (root instanceof ShadowRoot) {
+            return walk(root.host);
           }
-        }
-        return null;
-      }
-      function walkCrossShadow(current, selector, origin) {
-        if (!current) return null;
-        if (current instanceof Document) {
-          return findMatchingDocumentElement(current, selector, origin);
-        }
-        const closest = current.closest(selector);
-        if (closest) return closest;
-        return walkCrossShadow(getNextCrossShadowTarget(current), selector, origin);
+          if (root instanceof Document) {
+            return walk(root);
+          }
+          if (root !== current) {
+            const parent = getComposableParent(root);
+            if (parent && parent !== current && parent instanceof Element) {
+              return walk(parent);
+            }
+          }
+          return null;
+        };
+        return walk(element);
       }
       function findConnectedContainerBySelector(video, selector) {
         if (!selector) {
@@ -10523,32 +9880,31 @@ locale;
         }
         const hostname = url.hostname.toLowerCase();
         if (hostname === "youtu.be" || hostname.endsWith(".youtu.be")) {
-          return getValidatedVideoId(url.pathname.split("/").find(Boolean), input);
-        }
-        const searchId = url.searchParams.get("v");
-        if (searchId && VIDEO_ID_PATTERN.test(searchId)) return searchId;
-        const pathSegments = url.pathname.split("/").filter(Boolean);
-        const pathId = getVideoIdFromPathSegments(pathSegments);
-        if (pathId) return pathId;
-        throw new Error(`Cannot extract YouTube video id from: ${input}`);
-      }
-      function getValidatedVideoId(id, input) {
-        if (id && VIDEO_ID_PATTERN.test(id)) {
-          return id;
-        }
-        throw new Error(`Cannot extract YouTube video id from: ${input}`);
-      }
-      function getVideoIdFromPathSegments(pathSegments) {
-        const pathMarkers = ["shorts", "embed"];
-        for (const marker of pathMarkers) {
-          const markerIndex = pathSegments.indexOf(marker);
-          if (markerIndex === -1) continue;
-          const id = pathSegments[markerIndex + 1];
+          const id = url.pathname.split("/").find(Boolean);
           if (id && VIDEO_ID_PATTERN.test(id)) {
             return id;
           }
         }
-        return null;
+        const searchId = url.searchParams.get("v");
+        if (searchId && VIDEO_ID_PATTERN.test(searchId)) {
+          return searchId;
+        }
+        const pathSegments = url.pathname.split("/").filter(Boolean);
+        const shortsIndex = pathSegments.indexOf("shorts");
+        if (shortsIndex !== -1) {
+          const shortsId = pathSegments[shortsIndex + 1];
+          if (shortsId && VIDEO_ID_PATTERN.test(shortsId)) {
+            return shortsId;
+          }
+        }
+        const embedIndex = pathSegments.indexOf("embed");
+        if (embedIndex !== -1) {
+          const embedId = pathSegments[embedIndex + 1];
+          if (embedId && VIDEO_ID_PATTERN.test(embedId)) {
+            return embedId;
+          }
+        }
+        throw new Error(`Cannot extract YouTube video id from: ${input}`);
       }
       function decodeEscapedJsonString(input) {
         return input.replaceAll("\\u0026", "&").replaceAll("\\/", "/");
@@ -11558,13 +10914,7 @@ isLivelyVoiceUnavailableError(value) {
             }
           });
         }
-        getVideoTranslationRetryDelayMs(retryAttempt, videoDurationSeconds) {
-          if (retryAttempt > 0) {
-            return 25e3;
-          }
-          return videoDurationSeconds <= 10 * 60 ? 6e4 : 75e3;
-        }
-        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false, retryAttempt = 0) {
+        async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, disableLivelyVoice = false) {
           clearTimeout(this.videoHandler.autoRetry);
           this.finishDownloadSuccess();
           const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
@@ -11578,18 +10928,45 @@ isLivelyVoiceUnavailableError(value) {
               requestLangForApi,
               responseLang
             );
-            const translationAttempt = await this.requestTranslationWithLivelyFallback({
-              videoData,
-              requestLangForApi,
-              responseLang,
-              translationHelp,
-              shouldSendFailedAudio,
-              livelyDisabled,
-              livelyVoiceAllowed
-            });
-            livelyDisabled = translationAttempt.livelyDisabled;
-            const useLivelyVoice = translationAttempt.useLivelyVoice;
-            const res = translationAttempt.response;
+            let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && Boolean(this.videoHandler.data?.useLivelyVoice);
+            let res;
+            for (let attempt = 0; attempt < 2; attempt++) {
+              try {
+                res = await this.videoHandler.votClient.translateVideo({
+                  videoData,
+                  requestLang: requestLangForApi,
+                  responseLang,
+                  translationHelp,
+                  extraOpts: {
+                    useLivelyVoice,
+                    videoTitle: this.videoHandler.videoData?.title
+                  },
+                  shouldSendFailedAudio
+                });
+              } catch (err) {
+                if (useLivelyVoice && this.isLivelyVoiceUnavailableError(err)) {
+                  debug.log(
+                    "[translateVideoImpl] Lively voices are unavailable. Falling back to standard translation.",
+                    err
+                  );
+                  livelyDisabled = true;
+                  useLivelyVoice = false;
+                  continue;
+                }
+                throw err;
+              }
+              if (useLivelyVoice && this.isLivelyVoiceUnavailableError(res)) {
+                debug.log(
+                  "[translateVideoImpl] Server responded that lively voices are unavailable. Falling back to standard translation.",
+                  res
+                );
+                livelyDisabled = true;
+                useLivelyVoice = false;
+                res = void 0;
+                continue;
+              }
+              break;
+            }
             if (!res) {
               throw new Error("Failed to get translation response");
             }
@@ -11625,8 +11002,7 @@ isLivelyVoiceUnavailableError(value) {
                 translationHelp,
                 true,
                 signal,
-                livelyDisabled,
-                retryAttempt
+                livelyDisabled
               );
             }
           } catch (err) {
@@ -11662,68 +11038,11 @@ isLivelyVoiceUnavailableError(value) {
               translationHelp,
               shouldSendFailedAudio,
               signal,
-              livelyDisabled,
-              retryAttempt + 1
+              livelyDisabled
             ),
-            this.getVideoTranslationRetryDelayMs(retryAttempt, videoData.duration),
+            2e4,
             signal
           );
-        }
-        async requestTranslationWithLivelyFallback({
-          videoData,
-          requestLangForApi,
-          responseLang,
-          translationHelp,
-          shouldSendFailedAudio,
-          livelyDisabled,
-          livelyVoiceAllowed
-        }) {
-          let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && Boolean(this.videoHandler.data?.useLivelyVoice);
-          let response;
-          for (let attempt = 0; attempt < 2; attempt += 1) {
-            response = await this.tryTranslateVideoRequest({
-              videoData,
-              requestLangForApi,
-              responseLang,
-              translationHelp,
-              shouldSendFailedAudio,
-              useLivelyVoice
-            });
-            if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
-              break;
-            }
-            livelyDisabled = true;
-            useLivelyVoice = false;
-            response = void 0;
-          }
-          return { response, useLivelyVoice, livelyDisabled };
-        }
-        async tryTranslateVideoRequest({
-          videoData,
-          requestLangForApi,
-          responseLang,
-          translationHelp,
-          shouldSendFailedAudio,
-          useLivelyVoice
-        }) {
-          try {
-            return await this.videoHandler.votClient.translateVideo({
-              videoData,
-              requestLang: requestLangForApi,
-              responseLang,
-              translationHelp,
-              extraOpts: {
-                useLivelyVoice,
-                videoTitle: this.videoHandler.videoData?.title
-              },
-              shouldSendFailedAudio
-            });
-          } catch (err) {
-            if (useLivelyVoice && this.isLivelyVoiceUnavailableError(err)) {
-              return void 0;
-            }
-            throw err;
-          }
         }
         waitForAudioDownloadCompletion(signal, timeoutMs) {
           if (!this.downloading) {
@@ -12907,7 +12226,7 @@ syncVideoVolumeSlider() {
         }
         return h2._$AI(t2), h2;
       };
-      const mainScss = '.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{word-break:break-word;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:""!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme),inset -1px 0 var(--vot-helper-theme),inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (min-resolution:.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:"";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:"";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:""!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb),.5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb),.87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0),.06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb),.03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb),.72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard),background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb),.04)!important;color:rgba(var(--vot-helper-onsurface-rgb),.9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb),.55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb),.7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;position:absolute;top:5rem;left:50%;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb),.1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{top:12.5vh;left:50px}.vot-segmented-button[data-position=right]{top:12.5vh;left:auto;right:0}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;position:absolute;top:calc(5rem + 48px);left:50%;overflow:hidden;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{transform-origin:0;top:12.5vh;left:240px}.vot-menu[data-position=right]{transform-origin:100%;top:12.5vh;left:auto;right:-80px}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px),100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media(max-width:480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:"<number>";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:"<number>";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);width:max-content;background:var(--vot-subtitles-background,#2e2f34cc);inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles.vot-subtitles--clamped{overflow:hidden}@supports (line-clamp:2){.vot-subtitles.vot-subtitles--clamped{line-clamp:2}}@supports not (line-clamp:2){.vot-subtitles.vot-subtitles--clamped{-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box}}.vot-subtitles{text-wrap:balance;white-space:normal;overflow-wrap:anywhere}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset: calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px) ;left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left,top,transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{flex-direction:column;gap:2px;max-width:100%;display:flex;padding:6px!important}.vot-subtitles-info-service,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;word-break:break-word;white-space:normal!important}.vot-subtitles-info-service{color:var(--vot-subtitles-context-color,#86919b);margin-bottom:8px!important;font-size:10px!important;line-height:1!important}.vot-subtitles-info-header{color:var(--vot-subtitles-header-color,#fff);margin-bottom:6px!important;font-size:20px!important;font-weight:500!important;line-height:1!important}.vot-subtitles-info-context{color:var(--vot-subtitles-context-color,#86919b);font-size:12px!important;line-height:1.2!important}.vot-subtitles span[data-vot-token="1"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token="1"].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token="1"]:before{content:"";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token="1"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token="1"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic="1"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold="1"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline="1"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color="1"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243),.7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243),.12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media(max-aspect-ratio:1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media(min-aspect-ratio:1)and (max-aspect-ratio:7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media(max-width:900px)and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media(prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:-webkit-any(:-webkit-full-screen .vot-subtitles-widget,:-webkit-full-screen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:-webkit-any(:-webkit-full-screen .vot-subtitles,:-webkit-full-screen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}:is(:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}@media(prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:inline}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}';
+      const mainScss = '.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{word-break:break-word;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:""!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme),inset -1px 0 var(--vot-helper-theme),inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (min-resolution:.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:"";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:"";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:""!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243),.24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243),.1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0),.38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb),.5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb),.87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb),.87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0),.06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb),.03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb),.72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard),background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb),.04)!important;color:rgba(var(--vot-helper-onsurface-rgb),.9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb),.55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb),.7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;position:absolute;top:5rem;left:50%;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb),.1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard),background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{top:12.5vh;left:50px}.vot-segmented-button[data-position=right]{top:12.5vh;left:auto;right:0}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;position:absolute;top:calc(5rem + 48px);left:50%;overflow:hidden;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{transform-origin:0;top:12.5vh;left:240px}.vot-menu[data-position=right]{transform-origin:100%;top:12.5vh;left:auto;right:-80px}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px),100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard),transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb),.1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb),.1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media(max-width:480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg),var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:"<number>";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:"<number>";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);width:max-content;background:var(--vot-subtitles-background,#2e2f34cc);inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;margin:0 auto;display:block}.vot-subtitles.vot-subtitles--clamped{overflow:hidden}@supports (line-clamp:2){.vot-subtitles.vot-subtitles--clamped{line-clamp:2}}@supports not (line-clamp:2){.vot-subtitles.vot-subtitles--clamped{-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box}}.vot-subtitles{text-wrap:balance;white-space:normal;overflow-wrap:anywhere}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:42ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.68;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset: calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px) ;left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left,top,transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{flex-direction:column;gap:2px;max-width:100%;display:flex;padding:6px!important}.vot-subtitles-info-service,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;word-break:break-word;white-space:normal!important}.vot-subtitles-info-service{color:var(--vot-subtitles-context-color,#86919b);margin-bottom:8px!important;font-size:10px!important;line-height:1!important}.vot-subtitles-info-header{color:var(--vot-subtitles-header-color,#fff);margin-bottom:6px!important;font-size:20px!important;font-weight:500!important;line-height:1!important}.vot-subtitles-info-context{color:var(--vot-subtitles-context-color,#86919b);font-size:12px!important;line-height:1.2!important}.vot-subtitles span[data-vot-token="1"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token="1"].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token="1"]:before{content:"";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token="1"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token="1"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic="1"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold="1"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline="1"]{text-decoration:underline!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243),.7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243),.12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media(max-aspect-ratio:1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media(min-aspect-ratio:1)and (max-aspect-ratio:7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media(max-width:900px)and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}:-webkit-any(:-webkit-full-screen .vot-subtitles-widget,:-webkit-full-screen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:-webkit-any(:-webkit-full-screen .vot-subtitles,:-webkit-full-screen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}:is(:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring),var(--vot-focus-ring-offset)!important}}@media(prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:inline}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}';
       importCSS(mainScss);
       function initKeyboardNavigationMode() {
         if (globalThis.__votKeyboardNavInitialized) return;
@@ -13347,115 +12666,93 @@ updateMount({
           const right = anchorRight - this.globalOffsetX;
           const top = anchorTop - this.globalOffsetY;
           const bottom = anchorBottom - this.globalOffsetY;
-          const anchorBox = { left, right, top, bottom, anchorWidth, anchorHeight };
-          const size = { width, height };
-          const resolvedPosition = this.resolveTooltipPosition(
-            anchorBox,
-            size,
-            position2,
-            autoLayout
-          );
-          const coords = this.getTooltipCoordinates(
-            anchorBox,
-            size,
-            resolvedPosition
-          );
+          let resolvedPosition = position2;
+          if (autoLayout) {
+            switch (position2) {
+              case "top": {
+                const pTop = clamp$2(top - height - this.offsetY, 0, this.pageHeight);
+                if (pTop + this.offsetY < height) {
+                  resolvedPosition = "bottom";
+                }
+                break;
+              }
+              case "right": {
+                const pLeft = clamp$2(right + this.offsetX, 0, this.pageWidth - width);
+                if (pLeft + width > this.pageWidth - this.offsetX) {
+                  resolvedPosition = "left";
+                }
+                break;
+              }
+              case "bottom": {
+                const pTop = clamp$2(
+                  bottom + this.offsetY,
+                  0,
+                  this.pageHeight - height
+                );
+                if (pTop + height > this.pageHeight - this.offsetY) {
+                  resolvedPosition = "top";
+                }
+                break;
+              }
+              case "left": {
+                const pLeft = Math.max(0, left - width - this.offsetX);
+                if (pLeft + width > left - this.offsetX) {
+                  resolvedPosition = "right";
+                }
+                break;
+              }
+            }
+          }
+          let coords;
+          switch (resolvedPosition) {
+            case "top":
+              coords = {
+                top: clamp$2(top - height - this.offsetY, 0, this.pageHeight),
+                left: clamp$2(
+                  left - width / 2 + anchorWidth / 2,
+                  this.offsetX,
+                  this.pageWidth - width - this.offsetX
+                )
+              };
+              break;
+            case "right":
+              coords = {
+                top: clamp$2(
+                  top + (anchorHeight - height) / 2,
+                  this.offsetY,
+                  this.pageHeight - height - this.offsetY
+                ),
+                left: clamp$2(right + this.offsetX, 0, this.pageWidth - width)
+              };
+              break;
+            case "bottom":
+              coords = {
+                top: clamp$2(bottom + this.offsetY, 0, this.pageHeight - height),
+                left: clamp$2(
+                  left - width / 2 + anchorWidth / 2,
+                  this.offsetX,
+                  this.pageWidth - width - this.offsetX
+                )
+              };
+              break;
+            case "left":
+              coords = {
+                top: clamp$2(
+                  top + (anchorHeight - height) / 2,
+                  this.offsetY,
+                  this.pageHeight - height - this.offsetY
+                ),
+                left: Math.max(0, left - width - this.offsetX)
+              };
+              break;
+            default:
+              coords = { top: 0, left: 0 };
+          }
           this.position = resolvedPosition;
           return {
             top: coords.top + this.globalOffsetY,
             left: coords.left + this.globalOffsetX
           };
-        }
-        resolveTooltipPosition(anchorBox, size, position2, autoLayout) {
-          if (!autoLayout) {
-            return position2;
-          }
-          switch (position2) {
-            case "top": {
-              const pTop = clamp$2(
-                anchorBox.top - size.height - this.offsetY,
-                0,
-                this.pageHeight
-              );
-              return pTop + this.offsetY < size.height ? "bottom" : "top";
-            }
-            case "right": {
-              const pLeft = clamp$2(
-                anchorBox.right + this.offsetX,
-                0,
-                this.pageWidth - size.width
-              );
-              return pLeft + size.width > this.pageWidth - this.offsetX ? "left" : "right";
-            }
-            case "bottom": {
-              const pTop = clamp$2(
-                anchorBox.bottom + this.offsetY,
-                0,
-                this.pageHeight - size.height
-              );
-              return pTop + size.height > this.pageHeight - this.offsetY ? "top" : "bottom";
-            }
-            case "left": {
-              const pLeft = Math.max(0, anchorBox.left - size.width - this.offsetX);
-              return pLeft + size.width > anchorBox.left - this.offsetX ? "right" : "left";
-            }
-            default:
-              return position2;
-          }
-        }
-        getTooltipCoordinates(anchorBox, size, position2) {
-          switch (position2) {
-            case "top":
-              return {
-                top: clamp$2(
-                  anchorBox.top - size.height - this.offsetY,
-                  0,
-                  this.pageHeight
-                ),
-                left: clamp$2(
-                  anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
-                  this.offsetX,
-                  this.pageWidth - size.width - this.offsetX
-                )
-              };
-            case "right":
-              return {
-                top: clamp$2(
-                  anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
-                  this.offsetY,
-                  this.pageHeight - size.height - this.offsetY
-                ),
-                left: clamp$2(
-                  anchorBox.right + this.offsetX,
-                  0,
-                  this.pageWidth - size.width
-                )
-              };
-            case "bottom":
-              return {
-                top: clamp$2(
-                  anchorBox.bottom + this.offsetY,
-                  0,
-                  this.pageHeight - size.height
-                ),
-                left: clamp$2(
-                  anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
-                  this.offsetX,
-                  this.pageWidth - size.width - this.offsetX
-                )
-              };
-            case "left":
-              return {
-                top: clamp$2(
-                  anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
-                  this.offsetY,
-                  this.pageHeight - size.height - this.offsetY
-                ),
-                left: Math.max(0, anchorBox.left - size.width - this.offsetX)
-              };
-            default:
-              return { top: 0, left: 0 };
-          }
         }
         destroy(instant = false) {
           if (!this.container) {
@@ -13547,182 +12844,7 @@ updateMount({
           });
         }
       }
-      function isTimeInLine(time, line) {
-        return time >= line.startMs && time < line.startMs + line.durationMs;
-      }
-      const createFallbackTokens = (line) => {
-        if (line.tokens.length) {
-          return line.tokens;
-        }
-        const text = line.text.trim();
-        if (!text) {
-          return [];
-        }
-        return [
-          {
-            text,
-            startMs: line.startMs,
-            durationMs: line.durationMs,
-            isWordLike: Boolean(text)
-          }
-        ];
-      };
-      const toRenderableTextKey = (line) => {
-        const text = line.text || createFallbackTokens(line).map((token) => token.text).join("");
-        return text.replace(/\s+/gu, " ").trim();
-      };
-      const linesOverlapInTime = (left, right) => {
-        const leftEnd = left.startMs + Math.max(0, left.durationMs);
-        const rightEnd = right.startMs + Math.max(0, right.durationMs);
-        return left.startMs < rightEnd && right.startMs < leftEnd;
-      };
-      const dedupeActiveLines = (lines) => {
-        const deduped = [];
-        for (const entry of lines) {
-          const textKey = toRenderableTextKey(entry.line);
-          if (!textKey) continue;
-          const isDuplicate = deduped.some((existing) => {
-            return textKey === toRenderableTextKey(existing.line) && existing.line.speakerId === entry.line.speakerId && linesOverlapInTime(existing.line, entry.line);
-          });
-          if (!isDuplicate) {
-            deduped.push(entry);
-          }
-        }
-        return deduped;
-      };
-      const findLastCueIndexStartingAtOrBefore = (time, subtitlesList) => {
-        let low = 0;
-        let high = subtitlesList.length - 1;
-        let candidate = -1;
-        while (low <= high) {
-          const mid = low + high >> 1;
-          const line = subtitlesList[mid];
-          if (line.startMs <= time) {
-            candidate = mid;
-            low = mid + 1;
-            continue;
-          }
-          high = mid - 1;
-        }
-        return candidate;
-      };
-      const findActiveSubtitleLineIndices = (time, subtitlesList, maxCueDurationMs = Number.POSITIVE_INFINITY) => {
-        const lastCueIndex = findLastCueIndexStartingAtOrBefore(time, subtitlesList);
-        if (lastCueIndex < 0) return [];
-        const minStartMs = Number.isFinite(maxCueDurationMs) ? Math.max(0, time - Math.max(0, maxCueDurationMs)) : Number.NEGATIVE_INFINITY;
-        const activeLineIndices = [];
-        for (let index = lastCueIndex; index >= 0; index -= 1) {
-          const line = subtitlesList[index];
-          if (line.startMs < minStartMs) {
-            break;
-          }
-          if (isTimeInLine(time, line)) {
-            activeLineIndices.push(index);
-          }
-        }
-        activeLineIndices.reverse();
-        return activeLineIndices;
-      };
-      const buildActiveSubtitleRenderLine = (time, subtitlesList, maxCueDurationMs = Number.POSITIVE_INFINITY) => {
-        const activeLineIndices = findActiveSubtitleLineIndices(
-          time,
-          subtitlesList,
-          maxCueDurationMs
-        );
-        if (!activeLineIndices.length) {
-          return null;
-        }
-        const activeEntries = dedupeActiveLines(
-          activeLineIndices.map((index) => ({
-            index,
-            line: subtitlesList[index]
-          }))
-        );
-        if (!activeEntries.length) {
-          return null;
-        }
-        if (activeEntries.length === 1) {
-          const [entry] = activeEntries;
-          return {
-            line: entry.line,
-            lineKey: `${entry.index}`,
-            lineIndices: [entry.index]
-          };
-        }
-        const tokens = [];
-        const textParts = [];
-        const rawTextParts = [];
-        const lineIndices = [];
-        let earliestStartMs = Number.POSITIVE_INFINITY;
-        let latestEndMs = 0;
-        for (let index = 0; index < activeEntries.length; index += 1) {
-          const entry = activeEntries[index];
-          const lineTokens = createFallbackTokens(entry.line);
-          if (!lineTokens.length) continue;
-          if (tokens.length > 0) {
-            const breakStartMs = Math.max(earliestStartMs, entry.line.startMs);
-            tokens.push({
-              text: "\n",
-              startMs: breakStartMs,
-              durationMs: 0,
-              isWordLike: false
-            });
-          }
-          tokens.push(...lineTokens);
-          textParts.push(
-            entry.line.text || lineTokens.map((token) => token.text).join("")
-          );
-          rawTextParts.push(entry.line.metadata?.rawText ?? entry.line.text);
-          lineIndices.push(entry.index);
-          earliestStartMs = Math.min(earliestStartMs, entry.line.startMs);
-          latestEndMs = Math.max(
-            latestEndMs,
-            entry.line.startMs + Math.max(0, entry.line.durationMs)
-          );
-        }
-        if (!tokens.length || !lineIndices.length) {
-          return null;
-        }
-        return {
-          line: {
-            text: textParts.join("\n"),
-            startMs: earliestStartMs,
-            durationMs: Math.max(0, latestEndMs - earliestStartMs),
-            speakerId: activeEntries[0]?.line.speakerId ?? "0",
-            tokens,
-            metadata: rawTextParts.length ? {
-              rawText: rawTextParts.join("\n")
-            } : void 0
-          },
-          lineKey: lineIndices.join(","),
-          lineIndices
-        };
-      };
       const subtitleFormats = ["srt", "vtt", "ass", "json"];
-      const subtitleFormatsSet = new Set(subtitleFormats);
-      function isSubtitleFormat(value) {
-        return typeof value === "string" && subtitleFormatsSet.has(value);
-      }
-      function isRecord(value) {
-        return value !== null && typeof value === "object";
-      }
-      function parseSubtitleDescriptor(value) {
-        if (!isRecord(value)) {
-          return null;
-        }
-        const format = value.format;
-        if (typeof value.source !== "string" || typeof value.language !== "string" || typeof value.url !== "string" || !isSubtitleFormat(format)) {
-          return null;
-        }
-        return {
-          source: value.source,
-          format,
-          language: value.language,
-          url: value.url,
-          translatedFromLanguage: typeof value.translatedFromLanguage === "string" ? value.translatedFromLanguage : void 0,
-          isAutoGenerated: typeof value.isAutoGenerated === "boolean" ? value.isAutoGenerated : void 0
-        };
-      }
       const subtitleFontFamilies = [
         "default-sans",
         "arial",
@@ -13955,74 +13077,25 @@ updateMount({
           return this.fullscreenLayer;
         }
       }
-      const SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
-      const SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
-      const SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/+-]+\)$/iu;
-      const SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
-      const normalizeClassNames = (classes) => {
-        if (!classes?.length) return void 0;
-        const normalized = Array.from(
-          new Set(
-            classes.map((value) => value.trim()).filter((value) => value && SAFE_CLASS_NAME_RE.test(value))
-          )
-        ).sort((left, right) => left.localeCompare(right));
-        return normalized.length ? normalized : void 0;
-      };
-      const normalizeCssColorValue = (value) => {
-        const normalized = value.trim();
-        if (!normalized) return void 0;
-        if (SAFE_HEX_COLOR_RE.test(normalized)) {
-          return normalized.toLowerCase();
+      function isTimeInLine(time, line) {
+        return time >= line.startMs && time < line.startMs + line.durationMs;
+      }
+      function findActiveSubtitleLineIndex(time, subtitlesList) {
+        let low = 0;
+        let high = subtitlesList.length - 1;
+        while (low <= high) {
+          const mid = low + high >> 1;
+          const line = subtitlesList[mid];
+          if (time < line.startMs) {
+            high = mid - 1;
+          } else if (time >= line.startMs + line.durationMs) {
+            low = mid + 1;
+          } else {
+            return mid;
+          }
         }
-        if (SAFE_CSS_COLOR_NAME_RE.test(normalized)) {
-          return normalized.toLowerCase();
-        }
-        if (SAFE_CSS_FUNCTION_COLOR_RE.test(normalized)) {
-          return normalized;
-        }
-        return void 0;
-      };
-      const normalizeSubtitleInlineStyle = (style) => {
-        if (!style) return void 0;
-        const normalized = {};
-        if (style.italic) normalized.italic = true;
-        if (style.bold) normalized.bold = true;
-        if (style.underline) normalized.underline = true;
-        const normalizedColor = typeof style.color === "string" ? normalizeCssColorValue(style.color) : void 0;
-        if (normalizedColor) {
-          normalized.color = normalizedColor;
-        }
-        const normalizedClasses = normalizeClassNames(style.classes);
-        if (normalizedClasses) {
-          normalized.classes = normalizedClasses;
-        }
-        return Object.keys(normalized).length ? normalized : void 0;
-      };
-      const sanitizeSubtitleInlineStyle = (value) => {
-        if (!value || typeof value !== "object") return void 0;
-        const raw = value;
-        return normalizeSubtitleInlineStyle({
-          italic: raw.italic === true,
-          bold: raw.bold === true,
-          underline: raw.underline === true,
-          color: typeof raw.color === "string" ? raw.color : void 0,
-          classes: Array.isArray(raw.classes) ? raw.classes.filter(
-            (entry) => typeof entry === "string"
-          ) : void 0
-        });
-      };
-      const subtitleInlineStylesEqual = (left, right) => {
-        const leftNormalized = normalizeSubtitleInlineStyle(left);
-        const rightNormalized = normalizeSubtitleInlineStyle(right);
-        const leftClasses = leftNormalized?.classes ?? [];
-        const rightClasses = rightNormalized?.classes ?? [];
-        return Boolean(leftNormalized?.italic) === Boolean(rightNormalized?.italic) && Boolean(leftNormalized?.bold) === Boolean(rightNormalized?.bold) && Boolean(leftNormalized?.underline) === Boolean(rightNormalized?.underline) && (leftNormalized?.color ?? "") === (rightNormalized?.color ?? "") && leftClasses.length === rightClasses.length && leftClasses.every((value, index) => value === rightClasses[index]);
-      };
-      const buildSubtitleInlineStyleCssText = (style) => {
-        const normalized = normalizeSubtitleInlineStyle(style);
-        if (!normalized?.color) return "";
-        return `--vot-subtitles-inline-color:${normalized.color};`;
-      };
+        return -1;
+      }
       function clampToRange(value, min, max) {
         return Math.max(min, Math.min(value, max));
       }
@@ -14076,92 +13149,11 @@ updateMount({
         }
         return { snapped: true, value: closestValue };
       }
-      const stylesEqual = subtitleInlineStylesEqual;
-      const pushTextPart = (plan, text, style, withBreak = false) => {
-        plan.push({
-          kind: "text",
-          text,
-          style
-        });
-        if (withBreak) {
-          plan.push({ kind: "break" });
-        }
-      };
-      const flushPendingPrefix = (plan, pendingPrefix) => {
-        if (!pendingPrefix.text) {
-          return;
-        }
-        pushTextPart(plan, pendingPrefix.text, pendingPrefix.style);
-        pendingPrefix.text = "";
-        pendingPrefix.style = void 0;
-      };
-      const skipWhitespaceTokens = (tokens, startIndex, renderEndTokenIndex) => {
-        let index = startIndex;
-        while (index <= renderEndTokenIndex && !tokens[index]?.isWordLike && !tokens[index]?.text.trim()) {
-          index += 1;
-        }
-        return index;
-      };
-      const consumeWordToken = (plan, tokens, startIndex, renderEndTokenIndex, breakAfterTokenIndexSet, pendingPrefix) => {
-        const token = tokens[startIndex];
-        let text = pendingPrefix.text + token.text;
-        const style = pendingPrefix.text ? pendingPrefix.style : token.style;
-        pendingPrefix.text = "";
-        pendingPrefix.style = void 0;
-        let endIndex = startIndex;
-        let breakTokenIndex = breakAfterTokenIndexSet?.has(startIndex) ? startIndex : null;
-        while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
-          const next = tokens[endIndex + 1];
-          if (!next || next.isWordLike || next.text === "\n" || !stylesEqual(next.style, style)) {
-            break;
-          }
-          text += next.text;
-          endIndex += 1;
-          if (breakAfterTokenIndexSet?.has(endIndex)) {
-            breakTokenIndex = endIndex;
-          }
-        }
-        plan.push({
-          kind: "word",
-          text,
-          style
-        });
-        if (breakTokenIndex === null) {
-          return endIndex + 1;
-        }
-        plan.push({ kind: "break" });
-        return skipWhitespaceTokens(tokens, breakTokenIndex + 1, renderEndTokenIndex);
-      };
-      const consumeTextToken = (plan, token, tokenText, hasBreakAfter, pendingPrefix) => {
-        const isWhitespaceOnly = tokenText.trim().length === 0;
-        if (isWhitespaceOnly) {
-          flushPendingPrefix(plan, pendingPrefix);
-          pushTextPart(plan, tokenText, token.style, hasBreakAfter);
-          return;
-        }
-        if (hasBreakAfter) {
-          pushTextPart(
-            plan,
-            pendingPrefix.text + tokenText,
-            pendingPrefix.text ? pendingPrefix.style : token.style,
-            true
-          );
-          pendingPrefix.text = "";
-          pendingPrefix.style = void 0;
-          return;
-        }
-        if (pendingPrefix.text && !stylesEqual(pendingPrefix.style, token.style)) {
-          flushPendingPrefix(plan, pendingPrefix);
-        }
-        pendingPrefix.text += tokenText;
-        pendingPrefix.style = token.style;
-      };
+      const stylesEqual$1 = (left, right) => Boolean(left?.italic) === Boolean(right?.italic) && Boolean(left?.bold) === Boolean(right?.bold) && Boolean(left?.underline) === Boolean(right?.underline);
       function buildSubtitleRenderPlan(tokens, renderEndTokenIndex, breakAfterTokenIndexSet) {
         const plan = [];
-        const pendingPrefix = {
-          text: "",
-          style: void 0
-        };
+        let pendingPrefix = "";
+        let pendingPrefixStyle;
         for (let i2 = 0; i2 <= renderEndTokenIndex; ) {
           const token = tokens[i2];
           const tokenText = token?.text ?? "";
@@ -14170,152 +13162,208 @@ updateMount({
             continue;
           }
           if (tokenText === "\n") {
-            flushPendingPrefix(plan, pendingPrefix);
+            if (pendingPrefix) {
+              plan.push({
+                kind: "text",
+                text: pendingPrefix,
+                style: pendingPrefixStyle
+              });
+              pendingPrefix = "";
+              pendingPrefixStyle = void 0;
+            }
             plan.push({ kind: "break" });
             i2 += 1;
             continue;
           }
           if (token.isWordLike) {
-            i2 = consumeWordToken(
-              plan,
-              tokens,
-              i2,
-              renderEndTokenIndex,
-              breakAfterTokenIndexSet,
-              pendingPrefix
-            );
+            let text = pendingPrefix + tokenText;
+            const style = pendingPrefix ? pendingPrefixStyle : token.style;
+            pendingPrefix = "";
+            pendingPrefixStyle = void 0;
+            let endIndex = i2;
+            const hasBreakAfterWord = Boolean(breakAfterTokenIndexSet?.has(i2));
+            let breakTokenIndex = hasBreakAfterWord ? i2 : null;
+            while (breakTokenIndex === null && endIndex + 1 <= renderEndTokenIndex) {
+              const next = tokens[endIndex + 1];
+              if (!next || next.isWordLike || next.text === "\n" || !stylesEqual$1(next.style, style))
+                break;
+              text += next.text;
+              endIndex += 1;
+              if (breakAfterTokenIndexSet?.has(endIndex)) {
+                breakTokenIndex = endIndex;
+                break;
+              }
+            }
+            if (breakTokenIndex !== null) {
+              plan.push(
+                {
+                  kind: "word",
+                  text,
+                  style
+                },
+                { kind: "break" }
+              );
+              i2 = breakTokenIndex + 1;
+              while (i2 <= renderEndTokenIndex && !tokens[i2]?.isWordLike && !tokens[i2]?.text.trim()) {
+                i2 += 1;
+              }
+              continue;
+            }
+            plan.push({
+              kind: "word",
+              text,
+              style
+            });
+            i2 = endIndex + 1;
             continue;
           }
           const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i2));
-          consumeTextToken(plan, token, tokenText, hasBreakAfter, pendingPrefix);
+          const isWhitespaceOnly = tokenText.trim().length === 0;
+          if (!isWhitespaceOnly) {
+            if (hasBreakAfter) {
+              plan.push(
+                {
+                  kind: "text",
+                  text: pendingPrefix + tokenText,
+                  style: pendingPrefix ? pendingPrefixStyle : token.style
+                },
+                { kind: "break" }
+              );
+              pendingPrefix = "";
+              pendingPrefixStyle = void 0;
+            } else {
+              if (pendingPrefix && !stylesEqual$1(pendingPrefixStyle, token.style)) {
+                plan.push({
+                  kind: "text",
+                  text: pendingPrefix,
+                  style: pendingPrefixStyle
+                });
+                pendingPrefix = "";
+              }
+              pendingPrefix += tokenText;
+              pendingPrefixStyle = token.style;
+            }
+            i2 += 1;
+            continue;
+          }
+          if (pendingPrefix) {
+            plan.push({
+              kind: "text",
+              text: pendingPrefix,
+              style: pendingPrefixStyle
+            });
+            pendingPrefix = "";
+            pendingPrefixStyle = void 0;
+          }
+          if (hasBreakAfter) {
+            plan.push(
+              {
+                kind: "text",
+                text: tokenText,
+                style: token.style
+              },
+              { kind: "break" }
+            );
+          } else {
+            plan.push({
+              kind: "text",
+              text: tokenText,
+              style: token.style
+            });
+          }
           i2 += 1;
         }
-        flushPendingPrefix(plan, pendingPrefix);
+        if (pendingPrefix) {
+          plan.push({
+            kind: "text",
+            text: pendingPrefix,
+            style: pendingPrefixStyle
+          });
+        }
         return plan;
       }
       const EST_CHAR_WIDTH_RATIO = 0.55;
-      const TARGET_CPL_MIN = 26;
-      const TARGET_CPL_MAX = 54;
-      const TARGET_CPL_BASE = 32;
-      const TARGET_CPL_ASPECT_GAIN = 10;
-      const TARGET_CPL_WIDTH_GAIN = 10;
-      const TARGET_CPL_WIDTH_BASE_PX = 540;
-      const TARGET_CPL_WIDTH_LOG_CAP = 1.8;
       function clamp$1(value, min, max) {
         if (Number.isNaN(value)) return min;
         return Math.min(max, Math.max(min, value));
       }
-      function targetCharsPerLine(anchorBox) {
-        const w2 = Math.max(1, anchorBox.w);
-        const h2 = Math.max(1, anchorBox.h);
-        const aspect = w2 / h2;
-        const aspectContribution = Math.log(Math.max(0.5, aspect));
-        const widthContribution = clamp$1(
-          Math.log2(w2 / TARGET_CPL_WIDTH_BASE_PX),
-          0,
-          TARGET_CPL_WIDTH_LOG_CAP
-        );
-        const rawTarget = TARGET_CPL_BASE + aspectContribution * TARGET_CPL_ASPECT_GAIN + widthContribution * TARGET_CPL_WIDTH_GAIN;
-        return clamp$1(Math.round(rawTarget), TARGET_CPL_MIN, TARGET_CPL_MAX);
-      }
-      function widthRatiosForAspect(aspect) {
-        if (aspect < 1) {
-          return { min: 0.8, max: 0.92 };
-        }
-        if (aspect < 1.4) {
-          return { min: 0.55, max: 0.9 };
-        }
-        return { min: 0.68, max: 0.84 };
+      function targetCharsPerLine(aspect) {
+        if (aspect < 1) return 28;
+        if (aspect < 1.4) return 32;
+        return 42;
       }
       function computeSmartLayoutForBox(anchorBox, cssMetrics) {
         const w2 = Math.max(1, anchorBox.w);
         const h2 = Math.max(1, anchorBox.h);
         const aspect = w2 / h2;
-        const targetChars = targetCharsPerLine(anchorBox);
-        const widthRatios = widthRatiosForAspect(aspect);
-        let computedCPL = targetChars;
-        let maxWidthPx = Math.round(w2 * widthRatios.max);
+        let computedCPL = targetCharsPerLine(aspect);
         if (cssMetrics) {
-          const { fontSizePx, maxWidthPx: currentCssMaxWidthPx } = cssMetrics;
-          if (Number.isFinite(fontSizePx) && Number.isFinite(currentCssMaxWidthPx) && fontSizePx > 0 && currentCssMaxWidthPx > 0) {
+          const { fontSizePx, maxWidthPx } = cssMetrics;
+          if (Number.isFinite(fontSizePx) && Number.isFinite(maxWidthPx) && fontSizePx > 0 && maxWidthPx > 0) {
             const estCharW = fontSizePx * EST_CHAR_WIDTH_RATIO;
             if (estCharW > 0) {
-              const desiredWidthPx = targetChars * estCharW;
-              const minWidthPx = w2 * widthRatios.min;
-              const hardMaxWidthPx = w2 * widthRatios.max;
-              const resolvedMaxWidthPx = clamp$1(
-                Math.round(desiredWidthPx),
-                Math.round(minWidthPx),
-                Math.round(hardMaxWidthPx)
-              );
-              maxWidthPx = resolvedMaxWidthPx;
-              computedCPL = resolvedMaxWidthPx / estCharW;
+              computedCPL = maxWidthPx / estCharW;
             }
           }
         }
         const maxLength = clamp$1(Math.round(computedCPL * 2), 50, 180);
-        return { maxLength, maxWidthPx };
+        return { maxLength };
       }
       const isWordToken = (token) => Boolean(token?.isWordLike && token.text?.trim());
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-      const rangeSum = (prefix2, start, end) => {
+      const rangeSum = (prefix, start, end) => {
         if (end < start) return 0;
-        return prefix2[end + 1] - prefix2[start];
+        return prefix[end + 1] - prefix[start];
       };
       const sentenceEndingWordRegexp = /[.!?\u2026]+(?:["'`)\]}\u00BB\u201D\u2019]+)?$/u;
-      const hasExplicitLineBreakToken = (tokens) => tokens.some((token) => token.text === "\n");
-      const buildSliceForWord = (tokens, tokenIndex) => {
-        const token = tokens[tokenIndex];
-        let textToNextWord = token.text;
-        let breakAfterTokenIndex = tokenIndex;
-        let breakTextLength = token.text.length;
-        let cursor = tokenIndex + 1;
-        let seenTrailingPunctuation = false;
-        let punctuationAttachmentClosed = false;
-        while (cursor < tokens.length) {
-          const nextToken = tokens[cursor];
-          if (!nextToken) {
-            cursor += 1;
-            continue;
-          }
-          if (isWordToken(nextToken)) break;
-          if (nextToken.text === "\n") {
-            breakAfterTokenIndex = cursor;
-            break;
-          }
-          const tokenText = nextToken.text ?? "";
-          textToNextWord += tokenText;
-          if (!tokenText.trim()) {
-            if (seenTrailingPunctuation) {
-              punctuationAttachmentClosed = true;
-            }
-            cursor += 1;
-            continue;
-          }
-          if (!punctuationAttachmentClosed) {
-            breakAfterTokenIndex = cursor;
-            seenTrailingPunctuation = true;
-            breakTextLength = textToNextWord.length;
-          }
-          cursor += 1;
-        }
-        return {
-          tokenIndex,
-          breakAfterTokenIndex,
-          textToNextWord,
-          trailingGapAfterBreakText: textToNextWord.slice(breakTextLength)
-        };
-      };
       function buildWordSlices(tokens) {
         const slices = [];
         let key = "";
         for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
           const token = tokens[tokenIndex];
           if (!isWordToken(token)) continue;
-          const slice = buildSliceForWord(tokens, tokenIndex);
-          slices.push(slice);
+          let textToNextWord = token.text;
+          let breakAfterTokenIndex = tokenIndex;
+          let breakTextLength = token.text.length;
+          let cursor = tokenIndex + 1;
+          let seenTrailingPunctuation = false;
+          let punctuationAttachmentClosed = false;
+          while (cursor < tokens.length) {
+            const nextToken = tokens[cursor];
+            if (!nextToken) {
+              cursor += 1;
+              continue;
+            }
+            if (isWordToken(nextToken)) break;
+            if (nextToken.text === "\n") {
+              breakAfterTokenIndex = cursor;
+              break;
+            }
+            const tokenText = nextToken.text ?? "";
+            textToNextWord += tokenText;
+            if (!tokenText.trim()) {
+              if (seenTrailingPunctuation) {
+                punctuationAttachmentClosed = true;
+              }
+              cursor += 1;
+              continue;
+            }
+            if (!punctuationAttachmentClosed) {
+              breakAfterTokenIndex = cursor;
+              seenTrailingPunctuation = true;
+              breakTextLength = textToNextWord.length;
+            }
+            cursor += 1;
+          }
+          const trailingGapAfterBreakText = textToNextWord.slice(breakTextLength);
+          slices.push({
+            tokenIndex,
+            breakAfterTokenIndex,
+            textToNextWord,
+            trailingGapAfterBreakText
+          });
           if (key) key += "";
-          key += `${slice.textToNextWord}${slice.trailingGapAfterBreakText}${slice.breakAfterTokenIndex}`;
+          key += `${textToNextWord}${trailingGapAfterBreakText}${breakAfterTokenIndex}`;
         }
         return {
           slices,
@@ -14359,6 +13407,14 @@ updateMount({
         const total = rangeSum(metrics.prefixWidths, startWord, endWord);
         return total - (metrics.trailingGapWidths[endWord] ?? 0);
       };
+      function getWordRangeWidth(metrics, startWord, endWord) {
+        if (endWord < startWord) return 0;
+        if (!metrics.widths.length) return 0;
+        const start = clamp(startWord, 0, metrics.widths.length - 1);
+        const end = clamp(endWord, 0, metrics.widths.length - 1);
+        if (end < start) return 0;
+        return getWordRangeWidthUnsafe(metrics, start, end);
+      }
       const getWordRangeCharsUnsafe = (metrics, startWord, endWord) => {
         const total = rangeSum(metrics.prefixChars, startWord, endWord);
         return total - (metrics.trailingGapChars[endWord] ?? 0);
@@ -14450,85 +13506,6 @@ updateMount({
         }
         const breakIndex = computeBestTwoLineBreak(metrics, 0, n2 - 1, maxWidth);
         return breakIndex === null ? [] : [breakIndex];
-      }
-      const buildWrapPlanForSegment = (tokens, measure, maxWidthPx, allowTruncation) => {
-        const { slices } = buildWordSlices(tokens);
-        if (slices.length <= 1 || maxWidthPx <= 0) {
-          return {
-            breakAfterTokenIndices: [],
-            truncateAfterTokenIndex: null
-          };
-        }
-        const words = slices.map((slice) => ({
-          tokenIndex: slice.tokenIndex,
-          breakAfterTokenIndex: slice.breakAfterTokenIndex
-        }));
-        const metrics = measureWordSlices(slices, measure);
-        if (getWordRangeWidthUnsafe(metrics, 0, metrics.widths.length - 1) <= maxWidthPx) {
-          return {
-            breakAfterTokenIndices: [],
-            truncateAfterTokenIndex: null
-          };
-        }
-        const breakWordIndices = computeBalancedBreaks(metrics, maxWidthPx);
-        if (breakWordIndices.length) {
-          return {
-            breakAfterTokenIndices: breakWordIndices.map(
-              (wordIndex) => words[wordIndex].breakAfterTokenIndex
-            ),
-            truncateAfterTokenIndex: null
-          };
-        }
-        if (!allowTruncation) {
-          return {
-            breakAfterTokenIndices: [],
-            truncateAfterTokenIndex: null
-          };
-        }
-        const strict = resolveStrictTwoLineLayout(metrics, maxWidthPx);
-        return {
-          breakAfterTokenIndices: strict.breakAfterWordIndices.map(
-            (wordIndex) => words[wordIndex].breakAfterTokenIndex
-          ),
-          truncateAfterTokenIndex: strict.truncateAfterWordIndex === null ? null : words[strict.truncateAfterWordIndex]?.breakAfterTokenIndex ?? null
-        };
-      };
-      function computeTokenWrapPlan(tokens, measure, maxWidthPx, allowTruncation = true) {
-        if (!tokens.length || maxWidthPx <= 0) {
-          return {
-            breakAfterTokenIndices: [],
-            truncateAfterTokenIndex: null
-          };
-        }
-        const breakAfterTokenIndices = [];
-        let truncateAfterTokenIndex = null;
-        let segmentStart = 0;
-        const hasExplicitLineBreak = hasExplicitLineBreakToken(tokens);
-        for (let index = 0; index <= tokens.length; index += 1) {
-          const isExplicitBreak = index === tokens.length || tokens[index]?.text === "\n";
-          if (!isExplicitBreak) continue;
-          if (segmentStart < index) {
-            const segmentPlan = buildWrapPlanForSegment(
-              tokens.slice(segmentStart, index),
-              measure,
-              maxWidthPx,
-              allowTruncation && !hasExplicitLineBreak
-            );
-            breakAfterTokenIndices.push(
-              ...segmentPlan.breakAfterTokenIndices.map(
-                (tokenIndex) => segmentStart + tokenIndex
-              )
-            );
-            if (truncateAfterTokenIndex === null && segmentPlan.truncateAfterTokenIndex !== null && !hasExplicitLineBreak) {
-              truncateAfterTokenIndex = segmentStart + segmentPlan.truncateAfterTokenIndex;
-            }
-          }
-          segmentStart = index + 1;
-        }
-        return {
-          breakAfterTokenIndices,
-          truncateAfterTokenIndex: hasExplicitLineBreak ? null : truncateAfterTokenIndex
-        };
       }
       function findLongestPrefixFittingTwoLines(metrics, maxWidth) {
         const n2 = metrics.widths.length;
@@ -14771,8 +13748,7 @@ updateMount({
         subtitles = null;
         subtitleLang;
         lastRenderKey = null;
-        lastActiveLineKey = null;
-        maxActiveCueLookbackMs = 0;
+        lastActiveLineIndex = null;
         highlightWords = false;
         fontSize = 20;
         fontSizeOverridden = false;
@@ -14989,11 +13965,11 @@ safeAreaBottomInsetCachedPx = 0;
           }
           const cssMetrics = this.readSmartCssMetrics();
           const nextFontSizePx = cssMetrics?.fontSizePx ?? this.smartFontSizePx;
+          const nextMaxWidthPx = cssMetrics?.maxWidthPx ?? this.smartMaxWidthPx;
           const next = computeSmartLayoutForBox(anchorBox, cssMetrics);
-          const nextMaxWidthPx = next.maxWidthPx ?? this.smartMaxWidthPx;
           const nextKey = `${Math.round(nextFontSizePx)}|${Math.round(
       nextMaxWidthPx
-    )}|${next.maxLength}|${Math.round(next.maxWidthPx ?? 0)}`;
+    )}|${next.maxLength}`;
           const fontChanged = Math.abs(nextFontSizePx - this.smartFontSizePx) > 0.5;
           const widthChanged = Math.abs(nextMaxWidthPx - this.smartMaxWidthPx) > 0.5;
           const lengthChanged = next.maxLength !== this.smartMaxLength;
@@ -15008,10 +13984,6 @@ safeAreaBottomInsetCachedPx = 0;
             this.resetRenderMemo();
             this.resetSegmentationMemo();
           }
-          this.setSubtitlesContainerVar(
-            "--vot-subtitles-max-width",
-            next.maxWidthPx && next.maxWidthPx > 0 ? `${next.maxWidthPx}px` : null
-          );
           if ((fontChanged || widthChanged) && this.lastWrapTokens) {
             this.lastWrapKey = null;
             this.scheduleWrapRecompute();
@@ -15521,108 +14493,81 @@ safeAreaBottomInsetCachedPx = 0;
         applySubtitlePositionWithLayout(layout, anchorBox) {
           const subtitlesContainer = this.subtitlesContainer;
           if (!subtitlesContainer) return;
-          this.applyScaleCompensation(subtitlesContainer, layout);
-          this.syncAnchorDimensions(subtitlesContainer, anchorBox);
-          if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
-          const elW = subtitlesContainer.offsetWidth;
-          const elH = subtitlesContainer.offsetHeight;
-          const bottomInset = this.getBottomInsetPx(layout, anchorBox);
-          const anchorPosition = this.resolveCurrentAnchorPosition(
-            anchorBox,
-            elW,
-            elH,
-            bottomInset
-          );
-          const containerPosition = this.clampContainerPosition(
-            anchorBox,
-            anchorPosition.anchorX,
-            anchorPosition.anchorY,
-            elW,
-            elH,
-            bottomInset
-          );
-          const anchorX = containerPosition.anchorX;
-          const anchorY = containerPosition.anchorY;
-          const containerAnchorX = anchorBox.left + anchorX;
-          const containerAnchorY = anchorBox.top + anchorY;
-          const leftPct = containerAnchorX / layout.w * 100;
-          const topPct = containerAnchorY / layout.h * 100;
-          this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
-          this.tokenTooltip?.updatePos();
-        }
-        applyScaleCompensation(subtitlesContainer, layout) {
           const visualScale = Math.min(layout.scaleX || 1, layout.scaleY || 1);
           const compensate = visualScale > 0 && visualScale < 0.999 ? Math.min(1 / visualScale, 3) : 1;
           if (Math.abs(compensate - 1) < 1e-3) {
             subtitlesContainer.style.removeProperty(
               "--vot-subtitles-scale-compensation"
             );
-            return;
+          } else {
+            subtitlesContainer.style.setProperty(
+              "--vot-subtitles-scale-compensation",
+              compensate.toFixed(3)
+            );
           }
-          subtitlesContainer.style.setProperty(
-            "--vot-subtitles-scale-compensation",
-            compensate.toFixed(3)
-          );
-        }
-        syncAnchorDimensions(subtitlesContainer, anchorBox) {
           const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
           const anchorHeightPx = Math.max(1, Math.round(anchorBox.h));
           const anchorDimsChanged = anchorWidthPx !== this.smartAnchorWidthPx || anchorHeightPx !== this.smartAnchorHeightPx;
-          if (!anchorDimsChanged) {
-            return;
+          if (anchorDimsChanged) {
+            this.smartAnchorWidthPx = anchorWidthPx;
+            this.smartAnchorHeightPx = anchorHeightPx;
+            subtitlesContainer.style.setProperty(
+              "--vot-subtitles-anchor-width",
+              `${anchorWidthPx}px`
+            );
+            subtitlesContainer.style.setProperty(
+              "--vot-subtitles-anchor-height",
+              `${anchorHeightPx}px`
+            );
+            if (this.lastWrapTokens) {
+              this.lastWrapKey = null;
+              this.resetSegmentationMemo();
+              this.scheduleWrapRecompute();
+            }
           }
-          this.smartAnchorWidthPx = anchorWidthPx;
-          this.smartAnchorHeightPx = anchorHeightPx;
-          subtitlesContainer.style.setProperty(
-            "--vot-subtitles-anchor-width",
-            `${anchorWidthPx}px`
-          );
-          subtitlesContainer.style.setProperty(
-            "--vot-subtitles-anchor-height",
-            `${anchorHeightPx}px`
-          );
-          if (this.lastWrapTokens) {
-            this.lastWrapKey = null;
-            this.resetSegmentationMemo();
-            this.scheduleWrapRecompute();
-          }
-        }
-        resolveCurrentAnchorPosition(anchorBox, elementWidth, elementHeight, bottomInset) {
+          if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
+          const elW = subtitlesContainer.offsetWidth;
+          const elH = subtitlesContainer.offsetHeight;
+          const bottomInset = this.getBottomInsetPx(layout, anchorBox);
           let anchorX = this.position.left / 100 * anchorBox.w;
           let anchorY = this.position.top / 100 * anchorBox.h;
-          if (this.positionPreset === "custom") {
-            return { anchorX, anchorY };
+          if (this.positionPreset !== "custom") {
+            const presetPosition = this.resolvePresetAnchorPosition({
+              preset: this.positionPreset,
+              anchorBox,
+              elementWidth: elW,
+              elementHeight: elH,
+              bottomInset
+            });
+            anchorX = presetPosition.anchorX;
+            anchorY = presetPosition.anchorY;
+            if (anchorBox.w > 0) {
+              this.position.left = anchorX / anchorBox.w * 100;
+            }
+            if (anchorBox.h > 0) {
+              this.position.top = anchorY / anchorBox.h * 100;
+            }
           }
-          const presetPosition = this.resolvePresetAnchorPosition({
-            preset: this.positionPreset,
-            anchorBox,
-            elementWidth,
-            elementHeight,
-            bottomInset
-          });
-          anchorX = presetPosition.anchorX;
-          anchorY = presetPosition.anchorY;
-          if (anchorBox.w > 0) {
-            this.position.left = anchorX / anchorBox.w * 100;
+          let leftPx = anchorX - elW / 2;
+          let topPx = anchorY - elH;
+          const maxLeftPx = anchorBox.w - elW;
+          const maxTopPx = anchorBox.h - bottomInset - elH;
+          if (maxLeftPx >= 0) {
+            leftPx = clampToRange(leftPx, 0, maxLeftPx);
+          } else {
+            leftPx = maxLeftPx / 2;
           }
-          if (anchorBox.h > 0) {
-            this.position.top = anchorY / anchorBox.h * 100;
+          if (maxTopPx >= 0) {
+            topPx = clampToRange(topPx, 0, maxTopPx);
+          } else {
+            topPx = 0;
           }
-          return { anchorX, anchorY };
-        }
-        clampContainerPosition(anchorBox, anchorX, anchorY, elementWidth, elementHeight, bottomInset) {
-          let leftPx = anchorX - elementWidth / 2;
-          let topPx = anchorY - elementHeight;
-          const maxLeftPx = anchorBox.w - elementWidth;
-          const maxTopPx = anchorBox.h - bottomInset - elementHeight;
-          leftPx = maxLeftPx >= 0 ? clampToRange(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
-          topPx = maxTopPx >= 0 ? clampToRange(topPx, 0, maxTopPx) : 0;
-          return {
-            anchorX: leftPx + elementWidth / 2,
-            anchorY: topPx + elementHeight
-          };
-        }
-        updateContainerPosition(subtitlesContainer, leftPct, topPct) {
+          anchorX = leftPx + elW / 2;
+          anchorY = topPx + elH;
+          const containerAnchorX = anchorBox.left + anchorX;
+          const containerAnchorY = anchorBox.top + anchorY;
+          const leftPct = containerAnchorX / layout.w * 100;
+          const topPct = containerAnchorY / layout.h * 100;
           if (this.lastAppliedLeftPct === null || Math.abs(leftPct - this.lastAppliedLeftPct) >= 0.01) {
             subtitlesContainer.style.left = `${leftPct}%`;
             this.lastAppliedLeftPct = leftPct;
@@ -15631,6 +14576,7 @@ safeAreaBottomInsetCachedPx = 0;
             subtitlesContainer.style.top = `${topPct}%`;
             this.lastAppliedTopPct = topPct;
           }
+          this.tokenTooltip?.updatePos();
         }
         resolvePresetAnchorPosition({
           preset,
@@ -15790,8 +14736,8 @@ safeAreaBottomInsetCachedPx = 0;
           };
         }
         getActiveLineKey(tokens) {
-          if (this.lastActiveLineKey !== null) {
-            return this.lastActiveLineKey;
+          if (this.lastActiveLineIndex !== null) {
+            return `${this.lastActiveLineIndex}`;
           }
           return `${tokens[0]?.startMs ?? 0}:${tokens[0]?.durationMs ?? 0}:${tokens.length}`;
         }
@@ -15971,7 +14917,7 @@ safeAreaBottomInsetCachedPx = 0;
         } = {}) {
           if (releaseTooltip) this.releaseTooltip();
           this.resetRenderMemo();
-          this.lastActiveLineKey = null;
+          this.lastActiveLineIndex = null;
           this.strTokens = "";
           this.resetTranslationContext();
           this.subtitlesBlock = null;
@@ -16003,7 +14949,9 @@ safeAreaBottomInsetCachedPx = 0;
           }
           const target = this.resolveTokenSpanFromClick(event);
           if (!target) return;
-          if (this.toggleCurrentTooltipTarget(target)) {
+          if (this.tokenTooltip?.target === target && this.tokenTooltip?.container) {
+            if (this.tokenTooltip.showed) target.classList.add("selected");
+            else target.classList.remove("selected");
             return;
           }
           this.releaseTooltip();
@@ -16023,42 +14971,17 @@ safeAreaBottomInsetCachedPx = 0;
             this.strTranslatedTokens || this.strTokens,
             service
           );
-          const tooltip = this.createTokenTooltip(target, subtitlesInfo.container);
-          this.tokenTooltip = tooltip;
-          tooltip.onClick();
-          const strTokens = this.strTokens;
-          const translated = await this.translateStrTokens(text);
-          if (requestId !== this.tooltipTranslationRequestId) return;
-          if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) {
-            return;
-          }
-          subtitlesInfo.header.textContent = translated[1];
-          subtitlesInfo.context.textContent = translated[0];
-          tooltip.setContent(subtitlesInfo.container);
-        };
-        toggleCurrentTooltipTarget(target) {
-          if (this.tokenTooltip?.target !== target || !this.tokenTooltip?.container) {
-            return false;
-          }
-          if (this.tokenTooltip.showed) {
-            target.classList.add("selected");
-          } else {
-            target.classList.remove("selected");
-          }
-          return true;
-        }
-        createTokenTooltip(target, content) {
           const tooltipMaxWidth = Math.max(
             this.subtitleMaxWidthPx,
             this.subtitlesContainer?.offsetWidth ?? 0,
             this.subtitlesBlock?.offsetWidth ?? 0,
             Math.min(globalThis.innerWidth * 0.6, 320)
           );
-          return new Tooltip({
+          const tooltip = new Tooltip({
             target,
             anchor: this.subtitlesBlock ?? target,
             layoutRoot: this.tooltipLayoutRoot,
-            content,
+            content: subtitlesInfo.container,
             parentElement: this.getTokenTooltipParentElement(),
             offset: { x: 4, y: 12 },
             maxWidth: tooltipMaxWidth,
@@ -16067,10 +14990,17 @@ safeAreaBottomInsetCachedPx = 0;
             position: "top",
             trigger: "click"
           });
-        }
-        shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens) {
-          return requestId !== this.tooltipTranslationRequestId || strTokens !== this.strTokens || this.tokenTooltip !== tooltip || tooltip.target !== target || !tooltip.showed;
-        }
+          this.tokenTooltip = tooltip;
+          tooltip.onClick();
+          const strTokens = this.strTokens;
+          const translated = await this.translateStrTokens(text);
+          if (requestId !== this.tooltipTranslationRequestId) return;
+          if (strTokens !== this.strTokens || this.tokenTooltip !== tooltip || tooltip.target !== target || !tooltip.showed)
+            return;
+          subtitlesInfo.header.textContent = translated[1];
+          subtitlesInfo.context.textContent = translated[0];
+          tooltip.setContent(subtitlesInfo.container);
+        };
         buildPassedState(tokens, time, stateKey) {
           if (this.passedStateKey !== stateKey) {
             this.passedStateKey = stateKey;
@@ -16095,37 +15025,36 @@ safeAreaBottomInsetCachedPx = 0;
           const out = [];
           const plan = buildSubtitleRenderPlan(tokens, tokens.length - 1, breakAfter);
           for (const part of plan) {
-            out.push(this.renderPlanPart(part));
+            if (part.kind === "word") {
+              out.push(
+                b`<span
+            data-vot-token="1"
+            data-vot-style-italic=${part.style?.italic ? "1" : "0"}
+            data-vot-style-bold=${part.style?.bold ? "1" : "0"}
+            data-vot-style-underline=${part.style?.underline ? "1" : "0"}
+            >${part.text}</span
+          >`
+              );
+              continue;
+            }
+            if (part.kind === "break") {
+              out.push(b`<br class="vot-subtitles-br" />`);
+              continue;
+            }
+            if (part.style) {
+              out.push(
+                b`<span
+            data-vot-style-italic=${part.style.italic ? "1" : "0"}
+            data-vot-style-bold=${part.style.bold ? "1" : "0"}
+            data-vot-style-underline=${part.style.underline ? "1" : "0"}
+            >${part.text}</span
+          >`
+              );
+              continue;
+            }
+            out.push(part.text);
           }
           return out;
-        }
-        renderPlanPart(part) {
-          if (part.kind === "break") {
-            return b`<br class="vot-subtitles-br" />`;
-          }
-          const inlineStyle = buildSubtitleInlineStyleCssText(part.style);
-          if (part.kind === "word") {
-            return b`<span
-        data-vot-token="1"
-        data-vot-style-italic=${part.style?.italic ? "1" : "0"}
-        data-vot-style-bold=${part.style?.bold ? "1" : "0"}
-        data-vot-style-underline=${part.style?.underline ? "1" : "0"}
-        data-vot-style-color=${part.style?.color ? "1" : "0"}
-        style=${inlineStyle}
-        >${part.text}</span
-      >`;
-          }
-          if (part.style) {
-            return b`<span
-        data-vot-style-italic=${part.style.italic ? "1" : "0"}
-        data-vot-style-bold=${part.style.bold ? "1" : "0"}
-        data-vot-style-underline=${part.style.underline ? "1" : "0"}
-        data-vot-style-color=${part.style.color ? "1" : "0"}
-        style=${inlineStyle}
-        >${part.text}</span
-      >`;
-          }
-          return part.text;
         }
         updatePassedClasses(passedFlags) {
           const tokenEls = this.renderedTokenEls;
@@ -16193,31 +15122,54 @@ safeAreaBottomInsetCachedPx = 0;
           const tokens = this.lastWrapTokens;
           const block = this.subtitlesBlock;
           if (!tokens || !block) return;
-          const ctx = this.getMeasureContext();
-          if (!ctx) return;
-          const { fontKey, maxWidthPx } = this.getTokenLayoutInputs(ctx);
-          if (!Number.isFinite(maxWidthPx) || maxWidthPx < 50) return;
+          const lineMeasure = this.getLineMeasureMemo(
+            tokens,
+            this.getActiveLineKey(tokens)
+          );
+          if (!lineMeasure || lineMeasure.maxWidthPx < 50) return;
+          const { words, metrics, maxWidthPx } = lineMeasure;
           const safeMaxWidthPx = applyWrapWidthGuard(maxWidthPx);
-          if (safeMaxWidthPx < 50) return;
-          const wrapKey = `${this.getActiveLineKey(tokens)}|${fontKey}|${Math.round(
-      safeMaxWidthPx
-    )}|${this.stringifyTokens(tokens)}`;
+          if (words.length <= 1) {
+            if (this.breakAfterTokenIndices.length || this.smartTruncateAfterTokenIndex !== null) {
+              this.resetWrapMemo();
+              this.resetRenderMemo();
+              this.update();
+            }
+            return;
+          }
+          const wrapKey = lineMeasure.key;
           if (wrapKey === this.lastWrapKey) return;
           this.lastWrapKey = wrapKey;
-          const next = computeTokenWrapPlan(
-            tokens,
-            (text) => ctx.measureText(text).width,
-            safeMaxWidthPx,
-            this.smartLayoutEnabled
-          );
+          let nextBreakAfterTokens = [];
+          let nextSmartTruncateAfterTokenIndex = null;
+          const lineFitsOneLine = getWordRangeWidth(metrics, 0, words.length - 1) <= safeMaxWidthPx;
+          if (!lineFitsOneLine) {
+            const breakWordIndices = computeBalancedBreaks(
+              metrics,
+              safeMaxWidthPx
+            );
+            if (breakWordIndices.length) {
+              nextBreakAfterTokens = breakWordIndices.map(
+                (wordIdx) => words[wordIdx].breakAfterTokenIndex
+              );
+            } else if (this.smartLayoutEnabled) {
+              const strict = resolveStrictTwoLineLayout(metrics, safeMaxWidthPx);
+              nextBreakAfterTokens = strict.breakAfterWordIndices.map(
+                (wordIdx) => words[wordIdx].breakAfterTokenIndex
+              );
+              if (strict.truncateAfterWordIndex !== null) {
+                nextSmartTruncateAfterTokenIndex = words[strict.truncateAfterWordIndex]?.breakAfterTokenIndex ?? null;
+              }
+            }
+          }
           const breaksChanged = !this.arraysEqual(
-            next.breakAfterTokenIndices,
+            nextBreakAfterTokens,
             this.breakAfterTokenIndices
           );
-          const truncateChanged = next.truncateAfterTokenIndex !== this.smartTruncateAfterTokenIndex;
+          const truncateChanged = nextSmartTruncateAfterTokenIndex !== this.smartTruncateAfterTokenIndex;
           if (breaksChanged || truncateChanged) {
-            this.setBreakAfterTokenIndices(next.breakAfterTokenIndices);
-            this.smartTruncateAfterTokenIndex = next.truncateAfterTokenIndex;
+            this.setBreakAfterTokenIndices(nextBreakAfterTokens);
+            this.smartTruncateAfterTokenIndex = nextSmartTruncateAfterTokenIndex;
             this.resetRenderMemo();
             this.update();
           }
@@ -16228,7 +15180,6 @@ safeAreaBottomInsetCachedPx = 0;
           if (!subtitles || !this.video) {
             this.clearRenderedContent();
             this.subtitles = null;
-            this.maxActiveCueLookbackMs = 0;
             this.clearPendingSchedulerState();
             this.video?.removeEventListener("timeupdate", this.onTimeUpdateBound);
             this.stopVideoFrameLoop();
@@ -16237,11 +15188,7 @@ safeAreaBottomInsetCachedPx = 0;
           }
           this.createSubtitlesContainer();
           this.subtitles = subtitles;
-          this.maxActiveCueLookbackMs = subtitles.subtitles.reduce(
-            (maxDurationMs, line) => Math.max(maxDurationMs, Math.max(0, line.durationMs)),
-            0
-          );
-          this.lastActiveLineKey = null;
+          this.lastActiveLineIndex = null;
           if (!this.useVideoFrameCallbacks) {
             this.video.addEventListener("timeupdate", this.onTimeUpdateBound, {
               signal: this.abortController.signal
@@ -16320,41 +15267,52 @@ safeAreaBottomInsetCachedPx = 0;
           }
           return out;
         }
-        resolveActiveLine(time, subtitlesList) {
-          return buildActiveSubtitleRenderLine(
-            time,
-            subtitlesList,
-            this.maxActiveCueLookbackMs
-          );
-        }
-        clearInactiveLineState() {
-          this.lastActiveLineKey = null;
-          if (this.subtitlesBlock || this.lastRenderKey !== null || this.strTokens) {
-            this.clearRenderedContent({ releaseTooltip: true });
+        update() {
+          if (!this.video || !this.subtitles) return;
+          const time = this.video.currentTime * 1e3;
+          const subtitlesList = this.subtitles.subtitles;
+          let line;
+          let lineIndex = -1;
+          const lastIndex = this.lastActiveLineIndex;
+          if (typeof lastIndex === "number" && lastIndex >= 0 && lastIndex < subtitlesList.length) {
+            const candidate = subtitlesList[lastIndex];
+            if (isTimeInLine(time, candidate)) {
+              line = candidate;
+              lineIndex = lastIndex;
+            }
+          }
+          if (!line) {
+            const index = findActiveSubtitleLineIndex(time, subtitlesList);
+            if (index !== -1) {
+              line = subtitlesList[index];
+              lineIndex = index;
+            }
+          }
+          if (!line) {
+            this.lastActiveLineIndex = null;
+            if (this.subtitlesBlock || this.lastRenderKey !== null || this.strTokens) {
+              this.clearRenderedContent({ releaseTooltip: true });
+            } else {
+              this.releaseTooltip();
+            }
             return;
           }
-          this.releaseTooltip();
-        }
-        refreshSmartLayoutIfNeeded() {
-          if (!this.smartLayoutEnabled) {
+          this.lastActiveLineIndex = lineIndex;
+          if (this.smartLayoutEnabled) {
+            const now2 = performance.now();
+            if (this.lastSmartLayoutKey === null || now2 - this.lastSmartLayoutCheckTs > 500) {
+              this.lastSmartLayoutCheckTs = now2;
+              const layout = this.getLayoutSize();
+              if (layout.w && layout.h) {
+                const anchorBox = this.computeAnchorBoxLayout(layout);
+                if (anchorBox.w && anchorBox.h) {
+                  this.ensureSmartLayout(anchorBox);
+                }
+              }
+            }
+          } else {
             this.maxLength = this.manualMaxLength;
-            return;
           }
-          const now2 = performance.now();
-          if (this.lastSmartLayoutKey !== null && now2 - this.lastSmartLayoutCheckTs <= 500) {
-            return;
-          }
-          this.lastSmartLayoutCheckTs = now2;
-          const layout = this.getLayoutSize();
-          if (!layout.w || !layout.h) {
-            return;
-          }
-          const anchorBox = this.computeAnchorBoxLayout(layout);
-          if (anchorBox.w && anchorBox.h) {
-            this.ensureSmartLayout(anchorBox);
-          }
-        }
-        getRenderState(line, activeLineKey, time) {
           const tokens = this.processTokens(line.tokens, time);
           this.lastWrapTokens = tokens;
           const hasSmartTruncation = this.smartLayoutEnabled && typeof this.smartTruncateAfterTokenIndex === "number" && this.smartTruncateAfterTokenIndex >= 0 && this.smartTruncateAfterTokenIndex < tokens.length - 1;
@@ -16366,25 +15324,23 @@ safeAreaBottomInsetCachedPx = 0;
             this.resetTranslationContext();
             this.resetWrapMemo();
           }
-          const passedStateKey = `${activeLineKey}:${strTokens}`;
+          const passedStateKey = `${lineIndex}:${strTokens}`;
           const passedFlags = this.highlightWords ? this.buildPassedState(tokens, time, passedStateKey) : null;
           const wrapKey = `${this.breakAfterTokenIndices.join(",")}|${this.smartTruncateAfterTokenIndex ?? ""}`;
-          return {
-            tokens,
-            tokensChanged,
-            hasSmartTruncation,
-            passedFlags,
-            renderKey: `${activeLineKey}:${strTokens}:${wrapKey}`
-          };
-        }
-        syncRenderedTokens(tokens, hasSmartTruncation) {
+          const renderKey = `${lineIndex}:${strTokens}:${wrapKey}`;
+          if (renderKey === this.lastRenderKey) {
+            if (this.highlightWords && !tokensChanged && passedFlags) {
+              this.updatePassedClasses(passedFlags);
+            }
+            this.maybeRefreshPosition();
+            return;
+          }
+          this.lastRenderKey = renderKey;
           this.subtitlesContainer = this.subtitlesContainer ?? this.createSubtitlesContainer();
           const subtitlesClass = hasSmartTruncation ? "vot-subtitles vot-subtitles--clamped" : "vot-subtitles";
           D(
             b`<vot-block
         class="${subtitlesClass}"
-        dir="auto"
-        lang=${this.subtitleLang ?? ""}
         @click=${this.onClick}
       >
         ${this.renderTokens(tokens)}
@@ -16398,39 +15354,6 @@ safeAreaBottomInsetCachedPx = 0;
               'span[data-vot-token="1"]'
             )
           ) : [];
-        }
-        update() {
-          if (!this.video || !this.subtitles) return;
-          const time = this.video.currentTime * 1e3;
-          const subtitlesList = this.subtitles.subtitles;
-          const activeLine = this.resolveActiveLine(time, subtitlesList);
-          if (!activeLine) {
-            this.clearInactiveLineState();
-            return;
-          }
-          this.lastActiveLineKey = activeLine.lineKey;
-          this.refreshSmartLayoutIfNeeded();
-          const renderState = this.getRenderState(
-            activeLine.line,
-            activeLine.lineKey,
-            time
-          );
-          const {
-            tokens,
-            tokensChanged,
-            hasSmartTruncation,
-            passedFlags,
-            renderKey
-          } = renderState;
-          if (renderKey === this.lastRenderKey) {
-            if (this.highlightWords && !tokensChanged && passedFlags) {
-              this.updatePassedClasses(passedFlags);
-            }
-            this.maybeRefreshPosition();
-            return;
-          }
-          this.lastRenderKey = renderKey;
-          this.syncRenderedTokens(tokens, hasSmartTruncation);
           if (this.highlightWords && passedFlags) {
             this.updatePassedClasses(passedFlags);
           }
@@ -16475,48 +15398,22 @@ safeAreaBottomInsetCachedPx = 0;
           this.insetCacheReady = false;
         }
       }
-      const HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)([^>]*)>/iu;
+      const HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)(?:[.\s][^>]*)?>/iu;
       const ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
       const LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
-      const ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;
-      const GLUED_WORD_NUMBER_RE = /([\p{L}\p{M}]+)(\d+)|(\d+)([\p{L}\p{M}]+)/gu;
-      const ASS_DIRECTIVE_RE = /\\[^\\]+/gu;
-      const ASS_STYLE_TOGGLE_RE = /^\\([ibu])([01])$/u;
-      const ASS_PRIMARY_COLOR_RE = /^\\(?:1?c|c)&H([0-9a-f]{6,8})&$/iu;
-      const ASS_STYLE_RESET_RE = /^\\r(?:[^\\}]*)?$/u;
-      const cloneMutableInlineStyle = (style) => ({
-        italic: style.italic,
-        bold: style.bold,
-        underline: style.underline,
-        color: style.color,
-        classes: [...style.classes]
-      });
-      const assignMutableInlineStyle = (target, source) => {
-        target.italic = source.italic;
-        target.bold = source.bold;
-        target.underline = source.underline;
-        target.color = source.color;
-        target.classes = [...source.classes];
+      const toTokenStyle = (style) => {
+        const tokenStyle = {};
+        if (style.italic) tokenStyle.italic = true;
+        if (style.bold) tokenStyle.bold = true;
+        if (style.underline) tokenStyle.underline = true;
+        return Object.keys(tokenStyle).length > 0 ? tokenStyle : void 0;
       };
-      const resetMutableInlineStyle = (style) => {
-        style.italic = false;
-        style.bold = false;
-        style.underline = false;
-        style.color = void 0;
-        style.classes = [];
-      };
-      const toTokenStyle = (style) => normalizeSubtitleInlineStyle({
-        italic: style.italic,
-        bold: style.bold,
-        underline: style.underline,
-        color: style.color,
-        classes: style.classes
-      });
+      const stylesEqual = (left, right) => Boolean(left?.italic) === Boolean(right?.italic) && Boolean(left?.bold) === Boolean(right?.bold) && Boolean(left?.underline) === Boolean(right?.underline);
       const pushSegment = (segments, text, style) => {
         if (!text) return;
         const tokenStyle = toTokenStyle(style);
         const previous = segments.at(-1);
-        if (previous && subtitleInlineStylesEqual(previous.style, tokenStyle)) {
+        if (previous && stylesEqual(previous.style, tokenStyle)) {
           previous.text += text;
           return;
         }
@@ -16525,47 +15422,20 @@ safeAreaBottomInsetCachedPx = 0;
           style: tokenStyle
         });
       };
-      const parseAssColorToCssHex = (value) => {
-        const normalized = value.trim();
-        if (!/^[0-9a-f]{6,8}$/iu.test(normalized)) {
-          return void 0;
-        }
-        const bgr = normalized.slice(-6);
-        const blue = bgr.slice(0, 2);
-        const green = bgr.slice(2, 4);
-        const red = bgr.slice(4, 6);
-        return normalizeCssColorValue(`#${red}${green}${blue}`);
-      };
       const applyAssStyleDirective = (directive, style) => {
-        const toggleMatch = ASS_STYLE_TOGGLE_RE.exec(directive.trim());
-        if (toggleMatch) {
-          const enabled = toggleMatch[2] === "1";
-          if (toggleMatch[1] === "i") {
-            style.italic = enabled;
-            return;
-          }
-          if (toggleMatch[1] === "b") {
-            style.bold = enabled;
-            return;
-          }
-          if (toggleMatch[1] === "u") {
-            style.underline = enabled;
-            return;
-          }
-        }
-        if (ASS_STYLE_RESET_RE.test(directive.trim())) {
-          resetMutableInlineStyle(style);
+        const match = /^\\([ibu])([01])$/u.exec(directive.trim());
+        if (!match) return;
+        const enabled = match[2] === "1";
+        if (match[1] === "i") {
+          style.italic = enabled;
           return;
         }
-        const colorMatch = ASS_PRIMARY_COLOR_RE.exec(directive.trim());
-        if (colorMatch) {
-          style.color = parseAssColorToCssHex(colorMatch[1]);
+        if (match[1] === "b") {
+          style.bold = enabled;
+          return;
         }
-      };
-      const applyAssOverrideBlock = (rawDirectives, style) => {
-        const directives = rawDirectives.match(ASS_DIRECTIVE_RE) ?? [];
-        for (const directive of directives) {
-          applyAssStyleDirective(directive, style);
+        if (match[1] === "u") {
+          style.underline = enabled;
         }
       };
       const normalizeLeadingSpeakerMarker = (segments) => {
@@ -16581,155 +15451,73 @@ safeAreaBottomInsetCachedPx = 0;
           segments.shift();
         }
       };
-      const normalizeAttachedTimeExpressions = (segments) => {
-        for (const segment of segments) {
-          if (!segment.text) continue;
-          segment.text = segment.text.replaceAll(ATTACHED_TIME_WORD_RE, "$1 ");
-        }
-      };
-      const normalizeAttachedWordNumberExpressions = (segments) => {
-        for (const segment of segments) {
-          if (!segment.text) continue;
-          segment.text = segment.text.replaceAll(
-            GLUED_WORD_NUMBER_RE,
-            (match, leftLetters, leftDigits, rightDigits, rightLetters) => {
-              const letters = leftLetters ?? rightLetters ?? "";
-              const digits = leftDigits ?? rightDigits ?? "";
-              const isCodeLike = /^[A-Za-z]{1,3}$/u.test(letters) || letters.length === 1 && letters === letters.toLocaleUpperCase() && letters !== letters.toLocaleLowerCase();
-              if (isCodeLike) {
-                return match;
-              }
-              return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
-            }
-          );
-        }
-      };
-      const extractHtmlTagClasses = (attrsRaw) => {
-        const normalized = attrsRaw.trim();
-        if (!normalized.startsWith(".")) {
-          return void 0;
-        }
-        const classNames = normalized.split(/\s+/u, 1)[0].split(".").filter(Boolean);
-        return classNames.length ? classNames : void 0;
-      };
-      const extractHtmlFontColor = (attrsRaw) => {
-        const match = /\bcolor\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/iu.exec(
-          attrsRaw
-        );
-        const rawColor = match?.[1] ?? match?.[2] ?? match?.[3];
-        return rawColor ? normalizeCssColorValue(rawColor) : void 0;
-      };
-      const popHtmlStyleFrame = (tagName, stack, activeStyle) => {
-        for (let i2 = stack.length - 1; i2 >= 0; i2 -= 1) {
-          if (stack[i2].tagName !== tagName) continue;
-          const [frame] = stack.splice(i2, 1);
-          if (!frame) return;
-          assignMutableInlineStyle(activeStyle, frame.previousStyle);
-          return;
-        }
-        if (tagName === "b") {
-          activeStyle.bold = false;
-          return;
-        }
-        if (tagName === "i") {
-          activeStyle.italic = false;
-          return;
-        }
-        if (tagName === "u") {
-          activeStyle.underline = false;
-          return;
-        }
-        if (tagName === "font") {
-          activeStyle.color = void 0;
-          return;
-        }
-        if (tagName === "c") {
-          activeStyle.classes = [];
-        }
-      };
-      const applyHtmlTagStyle = (htmlMatch, segments, activeStyle, styleStack) => {
-        const isClosing = htmlMatch[1] === "/";
-        const tagName = htmlMatch[2].toLowerCase();
-        const attrsRaw = htmlMatch[3] ?? "";
-        if (tagName === "br") {
-          pushSegment(segments, "\n", activeStyle);
-          return;
-        }
-        if (isClosing) {
-          popHtmlStyleFrame(tagName, styleStack, activeStyle);
-          return;
-        }
-        if (!["b", "i", "u", "font", "c"].includes(tagName)) {
-          return;
-        }
-        styleStack.push({
-          tagName,
-          previousStyle: cloneMutableInlineStyle(activeStyle)
-        });
-        if (tagName === "b") {
-          activeStyle.bold = true;
-          return;
-        }
-        if (tagName === "i") {
-          activeStyle.italic = true;
-          return;
-        }
-        if (tagName === "u") {
-          activeStyle.underline = true;
-          return;
-        }
-        if (tagName === "font") {
-          const color = extractHtmlFontColor(attrsRaw);
-          if (color) {
-            activeStyle.color = color;
+      const buildStyledDisplayModel = (rawText) => {
+        const segments = [];
+        const activeStyle = {
+          italic: false,
+          bold: false,
+          underline: false
+        };
+        let cursor = 0;
+        while (cursor < rawText.length) {
+          const remainder = rawText.slice(cursor);
+          if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
+            pushSegment(segments, "\n", activeStyle);
+            cursor += 2;
+            continue;
           }
-          return;
+          if (remainder.startsWith("\\h")) {
+            pushSegment(segments, " ", activeStyle);
+            cursor += 2;
+            continue;
+          }
+          if (remainder[0] === "\n") {
+            pushSegment(segments, "\n", activeStyle);
+            cursor += 1;
+            continue;
+          }
+          const assMatch = ASS_OVERRIDE_RE.exec(remainder);
+          if (assMatch) {
+            const directives = assMatch[1].match(/\\[ibu][01]/gu) ?? [];
+            for (const directive of directives) {
+              applyAssStyleDirective(directive, activeStyle);
+            }
+            cursor += assMatch[0].length;
+            continue;
+          }
+          const htmlMatch = HTML_TAG_RE.exec(remainder);
+          if (htmlMatch) {
+            const isClosing = htmlMatch[1] === "/";
+            const tagName = htmlMatch[2].toLowerCase();
+            if (tagName === "br") {
+              pushSegment(segments, "\n", activeStyle);
+            } else if (tagName === "i") {
+              activeStyle.italic = !isClosing;
+            } else if (tagName === "b") {
+              activeStyle.bold = !isClosing;
+            } else if (tagName === "u") {
+              activeStyle.underline = !isClosing;
+            }
+            cursor += htmlMatch[0].length;
+            continue;
+          }
+          pushSegment(segments, remainder[0], activeStyle);
+          cursor += 1;
         }
-        const classes = extractHtmlTagClasses(attrsRaw);
-        activeStyle.classes = classes ?? [];
-      };
-      const consumeDisplayControlToken = (rawText, cursor, segments, activeStyle, styleStack) => {
-        const remainder = rawText.slice(cursor);
-        if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
-          pushSegment(segments, "\n", activeStyle);
-          return cursor + 2;
-        }
-        if (remainder.startsWith("\\h")) {
-          pushSegment(segments, " ", activeStyle);
-          return cursor + 2;
-        }
-        if (remainder[0] === "\n") {
-          pushSegment(segments, "\n", activeStyle);
-          return cursor + 1;
-        }
-        const assMatch = ASS_OVERRIDE_RE.exec(remainder);
-        if (assMatch) {
-          applyAssOverrideBlock(assMatch[1], activeStyle);
-          return cursor + assMatch[0].length;
-        }
-        const htmlMatch = HTML_TAG_RE.exec(remainder);
-        if (!htmlMatch) {
-          return null;
-        }
-        applyHtmlTagStyle(htmlMatch, segments, activeStyle, styleStack);
-        return cursor + htmlMatch[0].length;
-      };
-      const buildStyledSpans = (segments) => {
+        normalizeLeadingSpeakerMarker(segments);
         const styledSpans = [];
         let text = "";
         for (const segment of segments) {
           if (!segment.text) continue;
           const start = text.length;
           text += segment.text;
+          const end = text.length;
           styledSpans.push({
             start,
-            end: text.length,
+            end,
             style: segment.style
           });
         }
-        return { text, styledSpans };
-      };
-      const trimStyledDisplayResult = (text, styledSpans) => {
         const normalizedText = text.replaceAll(" ", " ");
         const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
         const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
@@ -16750,38 +15538,6 @@ safeAreaBottomInsetCachedPx = 0;
           text: finalText,
           styledSpans: finalSpans
         };
-      };
-      const buildStyledDisplayModel = (rawText) => {
-        const segments = [];
-        const activeStyle = {
-          italic: false,
-          bold: false,
-          underline: false,
-          color: void 0,
-          classes: []
-        };
-        const styleStack = [];
-        let cursor = 0;
-        while (cursor < rawText.length) {
-          const nextCursor = consumeDisplayControlToken(
-            rawText,
-            cursor,
-            segments,
-            activeStyle,
-            styleStack
-          );
-          if (nextCursor !== null) {
-            cursor = nextCursor;
-            continue;
-          }
-          pushSegment(segments, rawText[cursor], activeStyle);
-          cursor += 1;
-        }
-        normalizeLeadingSpeakerMarker(segments);
-        normalizeAttachedTimeExpressions(segments);
-        normalizeAttachedWordNumberExpressions(segments);
-        const built = buildStyledSpans(segments);
-        return trimStyledDisplayResult(built.text, built.styledSpans);
       };
       const getStyleForRange = (styledSpans, start, end) => {
         if (!styledSpans?.length || end <= start) {
@@ -16825,29 +15581,21 @@ safeAreaBottomInsetCachedPx = 0;
         allowOptionalHours,
         fractionDigits
       }) => {
-        const { hours, minutes, seconds, milliseconds } = splitTimestampParts(
-          totalMs,
-          Math.round
-        );
+        const safeMs = Math.max(0, Math.round(totalMs));
+        const hours = Math.floor(safeMs / 36e5);
+        const minutes = Math.floor(safeMs % 36e5 / 6e4);
+        const seconds = Math.floor(safeMs % 6e4 / 1e3);
+        const milliseconds = safeMs % 1e3;
         const fraction = milliseconds.toString().padStart(3, "0").slice(0, fractionDigits);
         const hourPart = allowOptionalHours && hours === 0 ? "" : `${hours.toString().padStart(2, "0")}:`;
         return `${hourPart}${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}${delimiter}${fraction}`;
       };
-      const splitTimestampParts = (totalMs, normalizeMs) => {
-        const safeMs = Math.max(0, normalizeMs(totalMs));
-        return {
-          hours: Math.floor(safeMs / 36e5),
-          minutes: Math.floor(safeMs % 36e5 / 6e4),
-          seconds: Math.floor(safeMs % 6e4 / 1e3),
-          milliseconds: safeMs % 1e3
-        };
-      };
       const formatAssTime = (totalMs) => {
-        const { hours, minutes, seconds, milliseconds } = splitTimestampParts(
-          totalMs,
-          Math.round
-        );
-        const centiseconds = Math.floor(milliseconds / 10);
+        const safeMs = Math.max(0, Math.round(totalMs));
+        const hours = Math.floor(safeMs / 36e5);
+        const minutes = Math.floor(safeMs % 36e5 / 6e4);
+        const seconds = Math.floor(safeMs % 6e4 / 1e3);
+        const centiseconds = Math.floor(safeMs % 1e3 / 10);
         return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
       };
       const parseAssTime = (value) => {
@@ -16865,12 +15613,10 @@ safeAreaBottomInsetCachedPx = 0;
         return ((hours * 60 + minutes) * 60 + seconds) * 1e3 + centiseconds * 10;
       };
       const normalizeSubtitleTextForDisplay = (value) => buildStyledDisplayModel(value).text;
-      const getSubtitleLineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
-      const getCueDurationMs = (startMs, endMs) => Math.max(0, endMs - startMs);
       const toComparableSubtitleOrder = (subtitles) => subtitles.sort((left, right) => {
         const startDiff = left.line.startMs - right.line.startMs;
         if (startDiff !== 0) return startDiff;
-        const endDiff = getSubtitleLineEndMs(left.line) - getSubtitleLineEndMs(right.line);
+        const endDiff = left.line.startMs + Math.max(0, left.line.durationMs) - (right.line.startMs + Math.max(0, right.line.durationMs));
         if (endDiff !== 0) return endDiff;
         return left.index - right.index;
       }).map(({ line }) => line);
@@ -16904,209 +15650,18 @@ safeAreaBottomInsetCachedPx = 0;
         const voice = match?.[1]?.trim();
         return voice ? voice : void 0;
       };
-      const isSrtCueStart = (lines, index) => {
-        const current = lines[index]?.trim() ?? "";
-        const next = lines[index + 1]?.trim() ?? "";
-        return SRT_TIMING_RE.test(current) || /^\d+$/u.test(current) && SRT_TIMING_RE.test(next);
-      };
-      const getSrtTimingLineIndex = (lines, cursor) => /^\d+$/u.test(lines[cursor]?.trim() ?? "") && SRT_TIMING_RE.test(lines[cursor + 1]?.trim() ?? "") ? cursor + 1 : cursor;
-      const parseSrtTiming = (lines, timingLineIndex) => {
-        const timingMatch = SRT_TIMING_RE.exec(lines[timingLineIndex]?.trim() ?? "");
-        if (!timingMatch?.groups) {
-          return null;
-        }
-        const startMs = parseClockTime(timingMatch.groups.start, 3);
-        const endMs = parseClockTime(timingMatch.groups.end, 3);
-        return startMs == null || endMs == null || endMs < startMs ? null : { startMs, endMs };
-      };
-      const readSrtPayload = (lines, startCursor) => {
-        let cursor = startCursor;
-        const payloadLines = [];
-        while (cursor < lines.length) {
-          if (lines[cursor].trim() === "") {
-            const nextCursor = cursor + 1;
-            if (isSrtCueStart(lines, nextCursor)) {
-              break;
-            }
-            cursor += 1;
-            continue;
-          }
-          if (payloadLines.length > 0 && isSrtCueStart(lines, cursor)) {
-            break;
-          }
-          payloadLines.push(lines[cursor]);
-          cursor += 1;
-        }
-        return {
-          rawText: trimEmptyBoundaryLines(payloadLines).join("\n"),
-          nextCursor: cursor
-        };
-      };
-      const createStyledCueDraft = (index, {
-        rawText,
-        startMs,
-        endMs,
-        speakerId,
-        displayModel,
-        metadata
-      }) => ({
-        index,
-        line: {
-          text: displayModel.text,
-          startMs,
-          durationMs: getCueDurationMs(startMs, endMs),
-          speakerId,
-          tokens: [],
-          metadata: {
-            rawText,
-            styledSpans: displayModel.styledSpans,
-            ...metadata
-          }
-        }
-      });
-      const createEmptyVttResult = () => ({
-        format: "vtt",
-        subtitles: [],
-        metadata: {
-          vtt: {
-            headerText: "",
-            blocks: []
-          }
-        }
-      });
-      const isWebVttDocumentBlock = (line) => line.startsWith("NOTE") || line === "STYLE" || line === "REGION";
-      const readVttBlockLines = (lines, startCursor) => {
-        const blockLines = [];
-        let cursor = startCursor;
-        while (cursor < lines.length && lines[cursor].trim() !== "") {
-          blockLines.push(lines[cursor]);
-          cursor += 1;
-        }
-        return { blockLines, nextCursor: cursor };
-      };
-      const resolveVttCueIdentity = (lines, cursor) => {
-        if (!VTT_TIMING_RE.test(lines[cursor] ?? "") && VTT_TIMING_RE.test(lines[cursor + 1] ?? "")) {
-          return {
-            cueId: lines[cursor],
-            timingCursor: cursor + 1
-          };
-        }
-        return {
-          cueId: void 0,
-          timingCursor: cursor
-        };
-      };
-      const parseVttTiming = (line) => {
-        const timingMatch = VTT_TIMING_RE.exec(line);
-        if (!timingMatch?.groups) {
-          return null;
-        }
-        const startMs = parseClockTime(timingMatch.groups.start, 3);
-        const endMs = parseClockTime(timingMatch.groups.end, 3);
-        if (startMs == null || endMs == null || endMs < startMs) {
-          return null;
-        }
-        return {
-          startMs,
-          endMs,
-          settingsRaw: timingMatch.groups.settings ?? ""
-        };
-      };
-      const readVttPayloadLines = (lines, startCursor) => {
-        const payloadLines = [];
-        let cursor = startCursor;
-        while (cursor < lines.length && lines[cursor].trim() !== "") {
-          payloadLines.push(lines[cursor]);
-          cursor += 1;
-        }
-        return { payloadLines, nextCursor: cursor };
-      };
-      const parseAssEventFormatFields = (formatLine) => formatLine.slice("Format:".length).split(",").map((field) => field.trim());
-      const ensureAssEventFields = (eventFields, metadata) => eventFields.length || !metadata.eventFormat ? eventFields : parseAssEventFormatFields(metadata.eventFormat);
-      const buildAssEventRecord = (eventFields, value) => {
-        const values = splitAssFields(value, eventFields.length);
-        return Object.fromEntries(
-          eventFields.map((field, fieldIndex) => [field, values[fieldIndex] ?? ""])
-        );
-      };
-      const applyAssStyleSectionLine = (metadata, line) => {
-        if (line.startsWith("Format:")) {
-          metadata.styleFormat = line;
-          return;
-        }
-        if (line.startsWith("Style:")) {
-          metadata.styleLines.push(line);
-          return;
-        }
-        metadata.preEventLines.push(line);
-      };
-      const createAssCueDraft = (index, event) => {
-        const startMs = parseAssTime(event.Start ?? "");
-        const endMs = parseAssTime(event.End ?? "");
-        if (startMs == null || endMs == null || endMs < startMs) {
-          return null;
-        }
-        const rawText = event.Text ?? "";
-        const displayModel = buildStyledDisplayModel(rawText);
-        const assMetadata = {
-          kind: "dialogue",
-          layer: event.Layer ?? "0",
-          style: event.Style ?? "Default",
-          name: event.Name ?? "",
-          marginL: event.MarginL ?? "0",
-          marginR: event.MarginR ?? "0",
-          marginV: event.MarginV ?? "0",
-          effect: event.Effect ?? "",
-          rawText,
-          overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? []
-        };
-        return {
-          index,
-          line: createStyledCueDraft(index, {
-            rawText,
-            startMs,
-            endMs,
-            speakerId: assMetadata.name || "0",
-            displayModel,
-            metadata: {
-              ass: assMetadata
-            }
-          }).line
-        };
-      };
-      const processAssEventLine = (metadata, line, index, eventFields) => {
-        if (line.startsWith("Format:")) {
-          return {
-            eventFields: parseAssEventFormatFields(line),
-            cue: null
-          };
-        }
-        if (!line.includes(":")) {
-          metadata.preEventLines.push(line);
-          return { eventFields, cue: null };
-        }
-        const separatorIndex = line.indexOf(":");
-        const kind = line.slice(0, separatorIndex).trim();
-        const value = line.slice(separatorIndex + 1).trim();
-        const resolvedEventFields = ensureAssEventFields(eventFields, metadata);
-        const event = buildAssEventRecord(resolvedEventFields, value);
-        if (kind === "Comment") {
-          metadata.commentLines.push(line);
-          return { eventFields: resolvedEventFields, cue: null };
-        }
-        if (kind !== "Dialogue") {
-          metadata.preEventLines.push(line);
-          return { eventFields: resolvedEventFields, cue: null };
-        }
-        return {
-          eventFields: resolvedEventFields,
-          cue: createAssCueDraft(index, event)
-        };
-      };
+      const toSrtDisplayText = (payload) => normalizeSubtitleTextForDisplay(payload);
+      const toVttDisplayText = (payload) => normalizeSubtitleTextForDisplay(payload);
+      const toAssDisplayText = (rawText) => normalizeSubtitleTextForDisplay(rawText);
       const parseSrt = (text) => {
         const normalized = normalizeNewlines(text);
         const lines = normalized.split("\n");
         const cues = [];
+        const isSrtCueStart = (index) => {
+          const current = lines[index]?.trim() ?? "";
+          const next = lines[index + 1]?.trim() ?? "";
+          return SRT_TIMING_RE.test(current) || /^\d+$/u.test(current) && SRT_TIMING_RE.test(next);
+        };
         let cursor = 0;
         let cueIndex = 0;
         while (cursor < lines.length) {
@@ -17114,25 +15669,56 @@ safeAreaBottomInsetCachedPx = 0;
             cursor += 1;
           }
           if (cursor >= lines.length) break;
-          const timingLineIndex = getSrtTimingLineIndex(lines, cursor);
-          const timing = parseSrtTiming(lines, timingLineIndex);
-          if (!timing) {
+          let timingLineIndex = cursor;
+          if (/^\d+$/u.test(lines[cursor].trim()) && SRT_TIMING_RE.test(lines[cursor + 1]?.trim() ?? "")) {
+            timingLineIndex = cursor + 1;
+          }
+          const timingMatch = SRT_TIMING_RE.exec(
+            lines[timingLineIndex]?.trim() ?? ""
+          );
+          if (!timingMatch?.groups) {
             cursor += 1;
             continue;
           }
-          const payload = readSrtPayload(lines, timingLineIndex + 1);
-          cursor = payload.nextCursor;
-          const rawText = payload.rawText;
+          const startMs = parseClockTime(timingMatch.groups.start, 3);
+          const endMs = parseClockTime(timingMatch.groups.end, 3);
+          if (startMs == null || endMs == null || endMs < startMs) {
+            cursor = timingLineIndex + 1;
+            continue;
+          }
+          cursor = timingLineIndex + 1;
+          const payloadLines = [];
+          while (cursor < lines.length) {
+            if (lines[cursor].trim() === "") {
+              const nextCursor = cursor + 1;
+              if (isSrtCueStart(nextCursor)) {
+                break;
+              }
+              cursor += 1;
+              continue;
+            }
+            if (payloadLines.length > 0 && isSrtCueStart(cursor)) {
+              break;
+            }
+            payloadLines.push(lines[cursor]);
+            cursor += 1;
+          }
+          const rawText = trimEmptyBoundaryLines(payloadLines).join("\n");
           const displayModel = buildStyledDisplayModel(rawText);
-          cues.push(
-            createStyledCueDraft(cueIndex, {
-              rawText,
-              startMs: timing.startMs,
-              endMs: timing.endMs,
+          cues.push({
+            index: cueIndex,
+            line: {
+              text: toSrtDisplayText(rawText),
+              startMs,
+              durationMs: Math.max(0, endMs - startMs),
               speakerId: "0",
-              displayModel
-            })
-          );
+              tokens: [],
+              metadata: {
+                rawText,
+                styledSpans: displayModel.styledSpans
+              }
+            }
+          });
           cueIndex += 1;
         }
         return {
@@ -17151,7 +15737,7 @@ safeAreaBottomInsetCachedPx = 0;
       };
       const serializeSrt = (processed) => processed.subtitles.map((line, index) => {
         const rawText = resolveSerializedText(processed, line, "srt");
-        const endMs = getSubtitleLineEndMs(line);
+        const endMs = line.startMs + Math.max(0, line.durationMs);
         return [
           String(index + 1),
           `${formatClockTime(line.startMs, {
@@ -17177,7 +15763,16 @@ safeAreaBottomInsetCachedPx = 0;
         const lines = normalized.split("\n");
         const headerLine = lines[0] ?? "";
         if (!headerLine.startsWith("WEBVTT")) {
-          return createEmptyVttResult();
+          return {
+            format: "vtt",
+            subtitles: [],
+            metadata: {
+              vtt: {
+                headerText: "",
+                blocks: []
+              }
+            }
+          };
         }
         const metadata = {
           headerText: headerLine.slice("WEBVTT".length).trim(),
@@ -17190,41 +15785,59 @@ safeAreaBottomInsetCachedPx = 0;
             cursor += 1;
           }
           if (cursor >= lines.length) break;
-          if (isWebVttDocumentBlock(lines[cursor])) {
-            const block = readVttBlockLines(lines, cursor);
-            cursor = block.nextCursor;
-            pushWebVttBlock(metadata.blocks, cues.length, block.blockLines);
+          if (lines[cursor].startsWith("NOTE") || lines[cursor] === "STYLE" || lines[cursor] === "REGION") {
+            const blockLines = [];
+            while (cursor < lines.length && lines[cursor].trim() !== "") {
+              blockLines.push(lines[cursor]);
+              cursor += 1;
+            }
+            pushWebVttBlock(metadata.blocks, cues.length, blockLines);
             continue;
           }
-          const identity = resolveVttCueIdentity(lines, cursor);
-          const timing = parseVttTiming(lines[identity.timingCursor] ?? "");
-          if (!timing) {
+          let cueId;
+          if (!VTT_TIMING_RE.test(lines[cursor] ?? "") && VTT_TIMING_RE.test(lines[cursor + 1] ?? "")) {
+            cueId = lines[cursor];
+            cursor += 1;
+          }
+          const timingMatch = VTT_TIMING_RE.exec(lines[cursor] ?? "");
+          if (!timingMatch?.groups) {
             cursor += 1;
             continue;
           }
-          const payload = readVttPayloadLines(lines, identity.timingCursor + 1);
-          cursor = payload.nextCursor;
-          const payloadLines = payload.payloadLines;
+          const startMs = parseClockTime(timingMatch.groups.start, 3);
+          const endMs = parseClockTime(timingMatch.groups.end, 3);
+          if (startMs == null || endMs == null || endMs < startMs) {
+            cursor += 1;
+            continue;
+          }
+          cursor += 1;
+          const payloadLines = [];
+          while (cursor < lines.length && lines[cursor].trim() !== "") {
+            payloadLines.push(lines[cursor]);
+            cursor += 1;
+          }
           const rawText = payloadLines.join("\n");
           const displayModel = buildStyledDisplayModel(rawText);
           const voice = extractVttVoice(rawText);
           cues.push({
             index: cues.length,
-            line: createStyledCueDraft(cues.length, {
-              rawText,
-              startMs: timing.startMs,
-              endMs: timing.endMs,
+            line: {
+              text: toVttDisplayText(rawText),
+              startMs,
+              durationMs: Math.max(0, endMs - startMs),
               speakerId: voice ?? "0",
-              displayModel,
+              tokens: [],
               metadata: {
+                rawText,
+                styledSpans: displayModel.styledSpans,
                 vtt: {
-                  cueId: identity.cueId,
-                  settings: parseCueSettings(timing.settingsRaw),
+                  cueId,
+                  settings: parseCueSettings(timingMatch.groups.settings ?? ""),
                   voice,
                   rawPayload: payloadLines
                 }
               }
-            }).line
+            }
           });
         }
         return {
@@ -17236,9 +15849,8 @@ safeAreaBottomInsetCachedPx = 0;
         };
       };
       const serializeVttTiming = (line) => {
-        const endMs = getSubtitleLineEndMs(line);
+        const endMs = line.startMs + Math.max(0, line.durationMs);
         const settings = line.metadata?.vtt?.settings?.raw;
-        const settingsSuffix = settings ? ` ${settings}` : "";
         return `${formatClockTime(line.startMs, {
     delimiter: ".",
     allowOptionalHours: true,
@@ -17247,12 +15859,13 @@ safeAreaBottomInsetCachedPx = 0;
     delimiter: ".",
     allowOptionalHours: true,
     fractionDigits: 3
-  })}${settingsSuffix}`;
+  })}${settings ? ` ${settings}` : ""}`;
       };
       const serializeVtt = (processed) => {
         const metadata = processed.metadata?.vtt;
-        const headerSuffix = metadata?.headerText ? ` ${metadata.headerText}` : "";
-        const sections = [`WEBVTT${headerSuffix}`];
+        const sections = [
+          `WEBVTT${metadata?.headerText ? ` ${metadata.headerText}` : ""}`
+        ];
         const blocksByIndex = new Map();
         for (const block of metadata?.blocks ?? []) {
           const existing = blocksByIndex.get(block.cueIndex) ?? [];
@@ -17339,18 +15952,82 @@ safeAreaBottomInsetCachedPx = 0;
             return;
           }
           if (currentSection === "V4+ Styles" || currentSection === "V4 Styles") {
-            applyAssStyleSectionLine(metadata, line);
+            if (line.startsWith("Format:")) {
+              metadata.styleFormat = line;
+              return;
+            }
+            if (line.startsWith("Style:")) {
+              metadata.styleLines.push(line);
+              return;
+            }
+            metadata.preEventLines.push(line);
             return;
           }
           if (currentSection === "Events") {
             if (line.startsWith("Format:")) {
               metadata.eventFormat = line;
+              eventFields = line.slice("Format:".length).split(",").map((field) => field.trim());
+              return;
             }
-            const result = processAssEventLine(metadata, line, index, eventFields);
-            eventFields = result.eventFields;
-            if (result.cue) {
-              cues.push(result.cue);
+            if (!line.includes(":")) {
+              metadata.preEventLines.push(line);
+              return;
             }
+            const separatorIndex = line.indexOf(":");
+            const kind = line.slice(0, separatorIndex).trim();
+            const value = line.slice(separatorIndex + 1).trim();
+            if (!eventFields.length && metadata.eventFormat) {
+              eventFields = metadata.eventFormat.slice("Format:".length).split(",").map((field) => field.trim());
+            }
+            const values = splitAssFields(value, eventFields.length);
+            const event = Object.fromEntries(
+              eventFields.map((field, fieldIndex) => [
+                field,
+                values[fieldIndex] ?? ""
+              ])
+            );
+            if (kind === "Comment") {
+              metadata.commentLines.push(line);
+              return;
+            }
+            if (kind !== "Dialogue") {
+              metadata.preEventLines.push(line);
+              return;
+            }
+            const startMs = parseAssTime(event.Start ?? "");
+            const endMs = parseAssTime(event.End ?? "");
+            if (startMs == null || endMs == null || endMs < startMs) {
+              return;
+            }
+            const rawText = event.Text ?? "";
+            const displayModel = buildStyledDisplayModel(rawText);
+            const assMetadata = {
+              kind: "dialogue",
+              layer: event.Layer ?? "0",
+              style: event.Style ?? "Default",
+              name: event.Name ?? "",
+              marginL: event.MarginL ?? "0",
+              marginR: event.MarginR ?? "0",
+              marginV: event.MarginV ?? "0",
+              effect: event.Effect ?? "",
+              rawText,
+              overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? []
+            };
+            cues.push({
+              index,
+              line: {
+                text: toAssDisplayText(rawText),
+                startMs,
+                durationMs: Math.max(0, endMs - startMs),
+                speakerId: assMetadata.name || "0",
+                tokens: [],
+                metadata: {
+                  rawText,
+                  styledSpans: displayModel.styledSpans,
+                  ass: assMetadata
+                }
+              }
+            });
           }
         });
         return {
@@ -17363,7 +16040,7 @@ safeAreaBottomInsetCachedPx = 0;
       };
       const serializeAssDialogue = (line) => {
         const ass = line.metadata?.ass;
-        const endMs = getSubtitleLineEndMs(line);
+        const endMs = line.startMs + Math.max(0, line.durationMs);
         const rawText = ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", "\\N");
         return [
           ass?.kind === "comment" ? "Comment" : "Dialogue",
@@ -17505,26 +16182,6 @@ safeAreaBottomInsetCachedPx = 0;
         out.set(audioBytes, header.length + frame.length);
         return new Blob([out], { type: "audio/mpeg" });
       }
-      function appendChunkToOutputBuffer(out, value, loaded) {
-        const needed = loaded + value.byteLength;
-        let nextOut = out;
-        if (needed > nextOut.length) {
-          const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
-          grown.set(nextOut.subarray(0, loaded));
-          nextOut = grown;
-        }
-        nextOut.set(value, loaded);
-        return { out: nextOut, loaded: needed };
-      }
-      function mergeChunks(chunks, loaded) {
-        const merged = new Uint8Array(loaded);
-        let offset = 0;
-        for (const chunk of chunks) {
-          merged.set(chunk, offset);
-          offset += chunk.byteLength;
-        }
-        return merged.buffer;
-      }
       async function readResponseArrayBuffer(res, onProgress) {
         const total = Number(res.headers.get("Content-Length") ?? 0);
         if (!res.body) return res.arrayBuffer();
@@ -17537,9 +16194,14 @@ safeAreaBottomInsetCachedPx = 0;
           if (done) break;
           if (!value || value.byteLength === 0) continue;
           if (out) {
-            const appended = appendChunkToOutputBuffer(out, value, loaded);
-            out = appended.out;
-            loaded = appended.loaded;
+            const needed = loaded + value.byteLength;
+            if (needed > out.length) {
+              const grown = new Uint8Array(Math.max(needed, out.length * 2));
+              grown.set(out.subarray(0, loaded));
+              out = grown;
+            }
+            out.set(value, loaded);
+            loaded = needed;
           } else {
             chunks.push(value);
             loaded += value.byteLength;
@@ -17551,7 +16213,13 @@ safeAreaBottomInsetCachedPx = 0;
         if (out) {
           return out.buffer.slice(0, loaded);
         }
-        return mergeChunks(chunks, loaded);
+        const merged = new Uint8Array(loaded);
+        let offset = 0;
+        for (const c2 of chunks) {
+          merged.set(c2, offset);
+          offset += c2.byteLength;
+        }
+        return merged.buffer;
       }
       async function downloadTranslation(res, filename, onProgress = () => {
       }, saveOptions = {}) {
@@ -22666,37 +21334,53 @@ set key(newKey) {
             dispatch?.(value);
           });
         }
-        createSettingsSections() {
+        initUI() {
+          if (this.isInitialized()) {
+            throw new Error("[VOT] SettingsView is already initialized");
+          }
+          this.dialog = new Dialog({
+            titleHtml: localizationProvider.get("VOTSettings")
+          });
+          this.globalPortal.appendChild(this.dialog.container);
+          const accountSection = this.createAccordionSection(
+            localizationProvider.get("VOTMyAccount"),
+            { open: true }
+          );
+          const translationSection = this.createAccordionSection(
+            localizationProvider.get("translationSettings"),
+            { open: true }
+          );
+          const subtitlesSection = this.createAccordionSection(
+            localizationProvider.get("subtitlesSettings")
+          );
+          const hotkeysSection = this.createAccordionSection(
+            localizationProvider.get("hotkeysSettings")
+          );
+          const proxySection = this.createAccordionSection(
+            localizationProvider.get("proxySettings")
+          );
+          const miscSection = this.createAccordionSection(
+            localizationProvider.get("miscSettings")
+          );
+          const appearanceSection = this.createAccordionSection(
+            localizationProvider.get("appearance")
+          );
+          const aboutSection = this.createAccordionSection(
+            localizationProvider.get("aboutExtension")
+          );
           const sections = [
-            this.createAccordionSection(localizationProvider.get("VOTMyAccount"), {
-              open: true
-            }),
-            this.createAccordionSection(
-              localizationProvider.get("translationSettings"),
-              { open: true }
-            ),
-            this.createAccordionSection(
-              localizationProvider.get("subtitlesSettings")
-            ),
-            this.createAccordionSection(localizationProvider.get("hotkeysSettings")),
-            this.createAccordionSection(localizationProvider.get("proxySettings")),
-            this.createAccordionSection(localizationProvider.get("miscSettings")),
-            this.createAccordionSection(localizationProvider.get("appearance")),
-            this.createAccordionSection(localizationProvider.get("aboutExtension"))
+            accountSection,
+            translationSection,
+            subtitlesSection,
+            hotkeysSection,
+            proxySection,
+            miscSection,
+            appearanceSection,
+            aboutSection
           ];
-          return {
-            accountSection: sections[0],
-            translationSection: sections[1],
-            subtitlesSection: sections[2],
-            hotkeysSection: sections[3],
-            proxySection: sections[4],
-            miscSection: sections[5],
-            appearanceSection: sections[6],
-            aboutSection: sections[7],
-            sections
-          };
-        }
-        initAccountControls() {
+          this.dialog.bodyContainer.append(
+            ...sections.map((section) => section.container)
+          );
           this.accountButton = new AccountButton({
             avatarId: this.data.account?.avatarId,
             username: this.data.account?.username,
@@ -22721,75 +21405,6 @@ set key(newKey) {
             backgroundColor: "var(--vot-helper-ondialog)",
             parentElement: this.globalPortal
           });
-        }
-        buildSubtitleFontItems(selectedFontFamily, dynamicFontFamilies = []) {
-          const items = subtitleFontFamilies.map(
-            (fontFamily) => ({
-              label: subtitleFontFamilyLabels[fontFamily],
-              value: fontFamily,
-              selected: fontFamily === selectedFontFamily
-            })
-          );
-          const dynamicItems = dynamicFontFamilies.filter((familyName) => {
-            const lowerFamilyName = familyName.toLowerCase();
-            return !items.some(
-              (item) => item.label.toLowerCase() === lowerFamilyName
-            );
-          }).map((familyName) => {
-            const fontValue = toGoogleSubtitleFontFamily(familyName);
-            return {
-              label: familyName,
-              value: fontValue,
-              selected: fontValue === selectedFontFamily
-            };
-          });
-          if (!isBuiltInSubtitleFontFamily(selectedFontFamily) && !dynamicItems.some((item) => item.value === selectedFontFamily)) {
-            const currentGoogleFontFamily = getGoogleSubtitleFontFamilyName(selectedFontFamily);
-            if (currentGoogleFontFamily) {
-              dynamicItems.unshift({
-                label: currentGoogleFontFamily,
-                value: selectedFontFamily,
-                selected: true
-              });
-            }
-          }
-          return [...items, ...dynamicItems];
-        }
-        async searchSubtitleFontItems(query, fallbackFontFamily) {
-          const activeFontFamily = Array.from(this.subtitlesFontFamilySelect?.selectedValues ?? [])[0] ?? fallbackFontFamily;
-          const normalizedQuery = query.trim().toLowerCase();
-          if (!normalizedQuery) {
-            return this.buildSubtitleFontItems(activeFontFamily);
-          }
-          const googleFontsCatalog = await loadGoogleFontsCatalog();
-          const matchingGoogleFonts = googleFontsCatalog.filter(
-            (familyName) => familyName.toLowerCase().includes(normalizedQuery)
-          ).slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
-          return this.buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
-        }
-        initUI() {
-          if (this.isInitialized()) {
-            throw new Error("[VOT] SettingsView is already initialized");
-          }
-          this.dialog = new Dialog({
-            titleHtml: localizationProvider.get("VOTSettings")
-          });
-          this.globalPortal.appendChild(this.dialog.container);
-          const {
-            accountSection,
-            translationSection,
-            subtitlesSection,
-            hotkeysSection,
-            proxySection,
-            miscSection,
-            appearanceSection,
-            aboutSection,
-            sections
-          } = this.createSettingsSections();
-          this.dialog.bodyContainer.append(
-            ...sections.map((section) => section.container)
-          );
-          this.initAccountControls();
           this.autoTranslateCheckbox = new Checkbox({
             labelHtml: localizationProvider.get("VOTAutoTranslate"),
             checked: this.data.autoTranslate
@@ -22966,6 +21581,39 @@ set key(newKey) {
           });
           const storedSubtitlesFontFamily = typeof this.data.subtitlesFontFamily === "string" ? this.data.subtitlesFontFamily : void 0;
           const subtitlesFontFamily = storedSubtitlesFontFamily && (isBuiltInSubtitleFontFamily(storedSubtitlesFontFamily) || getGoogleSubtitleFontFamilyName(storedSubtitlesFontFamily)) ? storedSubtitlesFontFamily : "default-sans";
+          const buildSubtitleFontItems = (selectedFontFamily, dynamicFontFamilies = []) => {
+            const items = subtitleFontFamilies.map(
+              (fontFamily) => ({
+                label: subtitleFontFamilyLabels[fontFamily],
+                value: fontFamily,
+                selected: fontFamily === selectedFontFamily
+              })
+            );
+            const dynamicItems = dynamicFontFamilies.filter((familyName) => {
+              const lowerFamilyName = familyName.toLowerCase();
+              return !items.some(
+                (item) => item.label.toLowerCase() === lowerFamilyName
+              );
+            }).map((familyName) => {
+              const fontValue = toGoogleSubtitleFontFamily(familyName);
+              return {
+                label: familyName,
+                value: fontValue,
+                selected: fontValue === selectedFontFamily
+              };
+            });
+            if (!isBuiltInSubtitleFontFamily(selectedFontFamily) && !dynamicItems.some((item) => item.value === selectedFontFamily)) {
+              const currentGoogleFontFamily = getGoogleSubtitleFontFamilyName(selectedFontFamily);
+              if (currentGoogleFontFamily) {
+                dynamicItems.unshift({
+                  label: currentGoogleFontFamily,
+                  value: selectedFontFamily,
+                  selected: true
+                });
+              }
+            }
+            return [...items, ...dynamicItems];
+          };
           this.subtitlesFontFamilySelectLabel = new Label({
             labelText: localizationProvider.get("VOTSubtitlesFont")
           });
@@ -22974,16 +21622,25 @@ set key(newKey) {
             dialogTitle: localizationProvider.get("VOTSubtitlesFont"),
             dialogParent: this.globalPortal,
             labelElement: this.subtitlesFontFamilySelectLabel.container,
-            items: this.buildSubtitleFontItems(subtitlesFontFamily),
-            searchItemsProvider: (query) => this.searchSubtitleFontItems(query, subtitlesFontFamily)
+            items: buildSubtitleFontItems(subtitlesFontFamily),
+            searchItemsProvider: async (query) => {
+              const activeFontFamily = Array.from(this.subtitlesFontFamilySelect?.selectedValues ?? [])[0] ?? subtitlesFontFamily;
+              const normalizedQuery = query.trim().toLowerCase();
+              if (!normalizedQuery) {
+                return buildSubtitleFontItems(activeFontFamily);
+              }
+              const googleFontsCatalog = await loadGoogleFontsCatalog();
+              const matchingGoogleFonts = googleFontsCatalog.filter(
+                (familyName) => familyName.toLowerCase().includes(normalizedQuery)
+              ).slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
+              return buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
+            }
           });
           this.subtitlesFontFamilySelect.addEventListener("selectItem", (item) => {
             if (!this.subtitlesFontFamilySelect) {
               return;
             }
-            this.subtitlesFontFamilySelect.updateItems(
-              this.buildSubtitleFontItems(item)
-            );
+            this.subtitlesFontFamilySelect.updateItems(buildSubtitleFontItems(item));
             this.subtitlesFontFamilySelect.selectTitle = getSubtitleFontFamilyLabel(item);
           });
           const subtitlesOpacity = this.data.subtitlesOpacity ?? 20;
@@ -24650,38 +23307,30 @@ scheduleHide(event) {
           return null;
         }
       }
-      function resolveLocalizedErrorFromObject(message) {
-        if (!message || typeof message !== "object") {
-          return null;
-        }
-        const localizedError = message;
-        if (localizedError.name !== "VOTLocalizedError") {
-          return null;
-        }
-        if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) {
-          return localizedError.localizedMessage;
-        }
-        if (typeof localizedError.unlocalizedMessage === "string") {
-          return localizePhraseText(localizedError.unlocalizedMessage);
-        }
-        return null;
-      }
-      function localizeExtractedErrorMessage(message) {
-        const extracted = getErrorMessage(message);
-        if (!extracted) {
-          return null;
-        }
-        return localizePhraseText(extracted) || extracted;
-      }
       function resolveLocalizedErrorMessage(message) {
-        const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
-        if (localizedObjectMessage) return localizedObjectMessage;
+        if (message && typeof message === "object") {
+          const localizedError = message;
+          if (localizedError.name === "VOTLocalizedError") {
+            if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) {
+              return localizedError.localizedMessage;
+            }
+            if (typeof localizedError.unlocalizedMessage === "string") {
+              const byPhraseKey = localizePhraseText(
+                localizedError.unlocalizedMessage
+              );
+              if (byPhraseKey) return byPhraseKey;
+            }
+          }
+        }
         if (typeof message === "string") {
           const byPhraseKey = localizePhraseText(message);
           if (byPhraseKey) return byPhraseKey;
         }
-        const extractedMessage = localizeExtractedErrorMessage(message);
-        if (extractedMessage) return extractedMessage;
+        const extracted = getErrorMessage(message);
+        if (extracted) {
+          const byPhraseKey = localizePhraseText(extracted);
+          return byPhraseKey || extracted;
+        }
         return safeL10n("requestTranslationFailed", "Translation failed");
       }
       function trySendViaUserscriptApi(details) {
@@ -25878,59 +24527,6 @@ useAudioDownload: isSupportGMXhr,
         this.initExtraEvents();
         this.initialized = true;
       }
-      const AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
-      const AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
-      const SUBTITLE_SOURCE_PREFIX = "https://brosubs.s3-private.mds.yandex.net/vtrans/";
-      const SUBTITLE_PROXY_PATH_PREFIX = "/video-subtitles/subtitles-proxy/";
-      function resolveProxyWorkerHost(host) {
-        return host ?? proxyWorkerHost;
-      }
-      function isProxyClientEnabled(config2) {
-        return Boolean(config2.translateProxyEnabled);
-      }
-      function isProxyRoutingEnabled(config2) {
-        return config2.translateProxyEnabled === 2;
-      }
-      function shouldForceProxyClientGmXhr(config2) {
-        return Boolean(config2.gmXhrSupported && isProxyClientEnabled(config2));
-      }
-      function proxifyYandexAudioUrl(audioUrl, config2) {
-        if (!isProxyRoutingEnabled(config2) || !audioUrl.startsWith(AUDIO_SOURCE_PREFIX)) {
-          return audioUrl;
-        }
-        return audioUrl.replace(
-          AUDIO_SOURCE_PREFIX,
-          `https://${resolveProxyWorkerHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
-        );
-      }
-      function unproxifyYandexAudioUrl(audioUrl) {
-        const str = String(audioUrl || "");
-        if (!str) return str;
-        try {
-          const url = new URL(str);
-          if (!url.pathname.startsWith(AUDIO_PROXY_PATH_PREFIX)) {
-            return str;
-          }
-          url.host = "vtrans.s3-private.mds.yandex.net";
-          url.pathname = `/tts/prod/${url.pathname.slice(AUDIO_PROXY_PATH_PREFIX.length).replace(/^\/+/, "")}`;
-          url.protocol = "https:";
-          return url.toString();
-        } catch {
-          return str;
-        }
-      }
-      function isYandexAudioUrlOrProxy(url, config2) {
-        return url.startsWith(AUDIO_SOURCE_PREFIX) || url.startsWith(
-          `https://${resolveProxyWorkerHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
-        );
-      }
-      function proxifyYandexSubtitlesUrl(subtitlesUrl, config2) {
-        if (!isProxyRoutingEnabled(config2) || !subtitlesUrl.startsWith(SUBTITLE_SOURCE_PREFIX)) {
-          return subtitlesUrl;
-        }
-        const subtitlesPath = subtitlesUrl.slice(SUBTITLE_SOURCE_PREFIX.length);
-        return `https://${resolveProxyWorkerHost(config2.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
-      }
       function timeout(ms, message = "Operation timed out") {
         return new Promise(
           (_2, reject) => setTimeout(() => reject(new Error(message)), ms)
@@ -25977,18 +24573,19 @@ useAudioDownload: isSupportGMXhr,
           index: part.index
         }));
       };
-      const WHITESPACE_RE$1 = /\s/u;
-      const NO_SPACE_BEFORE_RE = /^[,.:;!?%)\]}>»]/u;
-      const NO_SPACE_AFTER_RE = /[([{<«'"-]$/u;
+      const WHITESPACE_RE = /\s/u;
+      const NO_SPACE_BEFORE_RE = /^[,.:;!?%)\]}>В»]/u;
+      const NO_SPACE_AFTER_RE = /[([{'"В«вЂћ-]$/u;
       const CJK_CHAR_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
-      const shouldInsertSpaceBetweenTextFragments = (leftText, rightText) => {
+      const hasVisibleText = (value) => Boolean(value.trim());
+      const shouldInsertSpaceBetween = (leftText, rightText) => {
         const leftLastChar = leftText.at(-1) ?? "";
         const rightFirstChar = rightText[0] ?? "";
         if (!leftLastChar || !rightFirstChar) return false;
-        if (WHITESPACE_RE$1.test(leftLastChar) || WHITESPACE_RE$1.test(rightFirstChar)) {
+        if (WHITESPACE_RE.test(leftLastChar) || WHITESPACE_RE.test(rightFirstChar)) {
           return false;
         }
-        if (NO_SPACE_AFTER_RE.test(leftLastChar) || NO_SPACE_BEFORE_RE.test(rightFirstChar)) {
+        if (NO_SPACE_AFTER_RE.test(leftText) || NO_SPACE_BEFORE_RE.test(rightText)) {
           return false;
         }
         if (CJK_CHAR_RE.test(leftLastChar) && CJK_CHAR_RE.test(rightFirstChar)) {
@@ -25996,8 +24593,6 @@ useAudioDownload: isSupportGMXhr,
         }
         return true;
       };
-      const WHITESPACE_RE = /\s/u;
-      const hasVisibleText = (value) => Boolean(value.trim());
       const buildNormalizedLineSpans = (lines) => {
         let streamText = "";
         let previousText = "";
@@ -26005,7 +24600,7 @@ useAudioDownload: isSupportGMXhr,
         for (const line of lines) {
           const normalizedText = line.text.trim();
           if (!normalizedText) continue;
-          if (streamText && shouldInsertSpaceBetweenTextFragments(previousText, normalizedText)) {
+          if (streamText && shouldInsertSpaceBetween(previousText, normalizedText)) {
             streamText += " ";
           }
           const start = streamText.length;
@@ -26108,8 +24703,14 @@ useAudioDownload: isSupportGMXhr,
         const sentenceLines = segments.map((segment) => buildSentenceLine(streamText, spans, segment)).filter((line) => line !== null);
         return sentenceLines.length ? sentenceLines : spans.map(({ line }) => line);
       };
+      const isSubtitleFormat = (value) => value === "json" || value === "srt" || value === "vtt" || value === "ass";
+      const isRecord$1 = (value) => Boolean(value && typeof value === "object");
       const toFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
       const toNonNegativeNumber = (value) => Math.max(0, toFiniteNumber(value));
+      const isSubtitleDescriptor = (arg) => {
+        if (!isRecord$1(arg)) return false;
+        return typeof arg.source === "string" && isSubtitleFormat(arg.format) && typeof arg.language === "string" && typeof arg.url === "string" && (arg.translatedFromLanguage === void 0 || typeof arg.translatedFromLanguage === "string") && (arg.isAutoGenerated === void 0 || typeof arg.isAutoGenerated === "boolean");
+      };
       const pickDescriptorFromVideoData = (videoData, requestLang, spokenLang) => {
         const list = videoData.subtitles;
         if (!Array.isArray(list) || list.length === 0) return null;
@@ -26124,7 +24725,6 @@ useAudioDownload: isSupportGMXhr,
         }
         return list[0] ?? null;
       };
-      const isVideoDataForSubtitles = (value) => "host" in value && "videoId" in value && "detectedLanguage" in value && "duration" in value && typeof value.host === "string" && typeof value.videoId === "string" && typeof value.detectedLanguage === "string" && typeof value.duration === "number";
       const appendYoutubePoTokenParams = (inputUrl) => {
         const poToken = YoutubeHelper.getPoToken();
         if (!poToken) return inputUrl;
@@ -26246,43 +24846,6 @@ useAudioDownload: isSupportGMXhr,
         if (typeof value === "boolean") return value;
         return Boolean(text.trim());
       };
-      const sanitizeStyledSpan = (span) => {
-        if (!span || typeof span !== "object") {
-          return null;
-        }
-        const raw = span;
-        const start = toNonNegativeNumber(raw.start);
-        const end = toNonNegativeNumber(raw.end);
-        if (end <= start) {
-          return null;
-        }
-        return {
-          start,
-          end,
-          style: sanitizeSubtitleInlineStyle(raw.style)
-        };
-      };
-      const sanitizeLineMetadata = (value) => {
-        if (!value || typeof value !== "object") {
-          return void 0;
-        }
-        const raw = value;
-        const metadata = {};
-        if (typeof raw.rawText === "string") {
-          metadata.rawText = raw.rawText;
-        }
-        const styledSpans = Array.isArray(raw.styledSpans) ? raw.styledSpans.map(sanitizeStyledSpan).filter((span) => span !== null) : [];
-        if (styledSpans.length) {
-          metadata.styledSpans = styledSpans;
-        }
-        if (raw.vtt && typeof raw.vtt === "object") {
-          metadata.vtt = raw.vtt;
-        }
-        if (raw.ass && typeof raw.ass === "object") {
-          metadata.ass = raw.ass;
-        }
-        return Object.keys(metadata).length ? metadata : void 0;
-      };
       const sanitizeToken = (token) => {
         if (!token || typeof token !== "object") {
           return {
@@ -26298,8 +24861,7 @@ useAudioDownload: isSupportGMXhr,
           text,
           startMs: toNonNegativeNumber(raw.startMs),
           durationMs: toNonNegativeNumber(raw.durationMs),
-          isWordLike: resolveTokenWordLike(raw.isWordLike, text),
-          style: sanitizeSubtitleInlineStyle(raw.style)
+          isWordLike: resolveTokenWordLike(raw.isWordLike, text)
         };
       };
       const sanitizeLine = (line) => {
@@ -26319,8 +24881,7 @@ useAudioDownload: isSupportGMXhr,
           startMs: toNonNegativeNumber(raw.startMs),
           durationMs: toNonNegativeNumber(raw.durationMs),
           speakerId: typeof raw.speakerId === "string" ? raw.speakerId : "0",
-          tokens,
-          metadata: sanitizeLineMetadata(raw.metadata)
+          tokens
         };
       };
       const ensureProcessedSubtitles = (input) => {
@@ -26331,6 +24892,36 @@ useAudioDownload: isSupportGMXhr,
         const subtitles = Array.isArray(payload.subtitles) ? payload.subtitles.map(sanitizeLine) : [];
         return { format: payload.format ?? "json", subtitles };
       };
+      const VK_INLINE_TIMESTAMP_RE = /<(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?>/gu;
+      const VK_DUPLICATE_MAX_GAP_MS = 120;
+      const VK_PUNCTUATION_SPACING_RE = /\s+([,.:;!?])/gu;
+      const VK_AROUND_NEWLINE_SPACING_RE = /[ \t]*\n[ \t]*/gu;
+      const VK_MULTIPLE_SPACES_RE = /[ \t]{2,}/gu;
+      const VK_EXCESS_NEWLINES_RE = /\n{3,}/gu;
+      const VK_COMPARABLE_SPACING_RE = /\s+/gu;
+      let htmlStripTemplate = null;
+      const stripHtmlToText = (value) => {
+        if (!value.includes("<")) return value;
+        if (typeof document !== "undefined") {
+          if (!htmlStripTemplate) {
+            htmlStripTemplate = document.createElement("template");
+          }
+          const template = htmlStripTemplate;
+          template.innerHTML = value;
+          return template.content.textContent ?? "";
+        }
+        return value.replaceAll(/<\/?[^>]+>/gu, "");
+      };
+      const normalizeSubtitleText = (value) => {
+        let normalized = value;
+        if (normalized.includes("<")) {
+          normalized = stripHtmlToText(
+            normalized.replaceAll(VK_INLINE_TIMESTAMP_RE, "")
+          );
+        }
+        return normalized.replaceAll(VK_PUNCTUATION_SPACING_RE, "$1").replaceAll(VK_AROUND_NEWLINE_SPACING_RE, "\n").replaceAll(VK_MULTIPLE_SPACES_RE, " ").replaceAll(VK_EXCESS_NEWLINES_RE, "\n\n").trim();
+      };
+      const normalizeComparableText = (value) => value.toLowerCase().replaceAll(VK_COMPARABLE_SPACING_RE, " ").trim();
       const getYoutubeEventDurationMs = (event, nextEvent) => {
         if (!nextEvent) return Math.max(0, event.dDurationMs);
         if (event.tStartMs + event.dDurationMs <= nextEvent.tStartMs) {
@@ -26342,7 +24933,6 @@ useAudioDownload: isSupportGMXhr,
         const sourceTokens = [];
         let text = "";
         let remainingDuration = durationMs;
-        let previousRawText = "";
         for (let j = 0; j < segs.length; j += 1) {
           const segment = segs[j];
           const rawText = typeof segment.utf8 === "string" ? segment.utf8 : "";
@@ -26359,15 +24949,6 @@ useAudioDownload: isSupportGMXhr,
           if (nextSegment) {
             tokenDuration = Math.max(0, segmentDuration);
           }
-          if (text && shouldInsertSpaceBetweenTextFragments(previousRawText, rawText)) {
-            sourceTokens.push({
-              text: " ",
-              startMs: event.tStartMs + offset,
-              durationMs: 0,
-              isWordLike: false
-            });
-            text += " ";
-          }
           sourceTokens.push({
             text: rawText,
             startMs: event.tStartMs + offset,
@@ -26375,7 +24956,6 @@ useAudioDownload: isSupportGMXhr,
             isWordLike: Boolean(rawText.trim())
           });
           text += rawText;
-          previousRawText = rawText;
         }
         return { text, sourceTokens };
       };
@@ -26459,78 +25039,6 @@ useAudioDownload: isSupportGMXhr,
         }
         return timedWords;
       };
-      const buildDirectSegmentToken = (segment, segmentStartMs, segmentDurationMs, styledSpans) => ({
-        text: segment.text,
-        startMs: segmentStartMs,
-        durationMs: segmentDurationMs,
-        isWordLike: segment.isWordLike,
-        style: getStyleForRange(
-          styledSpans,
-          segment.index,
-          segment.index + segment.text.length
-        )
-      });
-      const buildSegmentSliceTokens = (segment, segmentStartMs, segmentDurationMs, styledSpans) => {
-        const slices = splitSegmentText(segment.text);
-        if (slices.length === 1 && slices[0].text === segment.text) {
-          return [
-            buildDirectSegmentToken(
-              segment,
-              segmentStartMs,
-              segmentDurationMs,
-              styledSpans
-            )
-          ];
-        }
-        const sliceTimings = allocateTimingsByLength(
-          slices.map((slice) => slice.text === "\n" ? "" : slice.text),
-          segmentStartMs,
-          segmentDurationMs
-        );
-        return slices.map((slice, sliceIndex) => {
-          const isLineBreak = slice.text === "\n";
-          return {
-            text: slice.text,
-            startMs: sliceTimings[sliceIndex]?.startMs ?? segmentStartMs,
-            durationMs: isLineBreak ? 0 : sliceTimings[sliceIndex]?.durationMs ?? 0,
-            isWordLike: !isLineBreak && segment.isWordLike,
-            style: isLineBreak ? void 0 : getStyleForRange(
-              styledSpans,
-              segment.index + slice.startOffset,
-              segment.index + slice.endOffset
-            )
-          };
-        });
-      };
-      const collectWordIndices = (tokens) => tokens.reduce((indices, token, index) => {
-        if (token.isWordLike && token.text.trim()) {
-          indices.push(index);
-        }
-        return indices;
-      }, []);
-      const applySourceWordTimings = (tokens, sourceTimedWords) => {
-        if (!sourceTimedWords.length) {
-          return tokens;
-        }
-        const wordIndices = collectWordIndices(tokens);
-        if (!wordIndices.length) {
-          return tokens;
-        }
-        const totalTargetWords = wordIndices.length;
-        for (let i2 = 0; i2 < totalTargetWords; i2 += 1) {
-          const targetIndex = wordIndices[i2];
-          const sourceIndex = Math.floor(
-            i2 * sourceTimedWords.length / totalTargetWords
-          );
-          const sourceTiming = sourceTimedWords[Math.min(sourceIndex, sourceTimedWords.length - 1)];
-          tokens[targetIndex] = {
-            ...tokens[targetIndex],
-            startMs: sourceTiming.startMs,
-            durationMs: sourceTiming.durationMs
-          };
-        }
-        return tokens;
-      };
       const buildLineTokens = (line, descriptor, lineText) => {
         if (!lineText) return [];
         const locale = descriptor.language;
@@ -26547,17 +25055,63 @@ useAudioDownload: isSupportGMXhr,
           const segment = segments[index];
           const segmentStartMs = baseTimings[index]?.startMs ?? line.startMs;
           const segmentDurationMs = baseTimings[index]?.durationMs ?? 0;
-          nextTokens.push(
-            ...buildSegmentSliceTokens(
-              segment,
-              segmentStartMs,
-              segmentDurationMs,
-              styledSpans
-            )
+          const slices = splitSegmentText(segment.text);
+          if (slices.length === 1 && slices[0].text === segment.text) {
+            nextTokens.push({
+              text: segment.text,
+              startMs: segmentStartMs,
+              durationMs: segmentDurationMs,
+              isWordLike: segment.isWordLike,
+              style: getStyleForRange(
+                styledSpans,
+                segment.index,
+                segment.index + segment.text.length
+              )
+            });
+            continue;
+          }
+          const sliceTimings = allocateTimingsByLength(
+            slices.map((slice) => slice.text === "\n" ? "" : slice.text),
+            segmentStartMs,
+            segmentDurationMs
           );
+          for (let sliceIndex = 0; sliceIndex < slices.length; sliceIndex += 1) {
+            const slice = slices[sliceIndex];
+            const isLineBreak = slice.text === "\n";
+            nextTokens.push({
+              text: slice.text,
+              startMs: sliceTimings[sliceIndex]?.startMs ?? segmentStartMs,
+              durationMs: isLineBreak ? 0 : sliceTimings[sliceIndex]?.durationMs ?? 0,
+              isWordLike: !isLineBreak && segment.isWordLike,
+              style: isLineBreak ? void 0 : getStyleForRange(
+                styledSpans,
+                segment.index + slice.startOffset,
+                segment.index + slice.endOffset
+              )
+            });
+          }
         }
         const sourceTimedWords = collectSourceTimedWords(line.tokens, locale);
-        return applySourceWordTimings(nextTokens, sourceTimedWords);
+        if (!sourceTimedWords.length) return nextTokens;
+        const wordIndices = nextTokens.reduce((indices, token, index) => {
+          if (token.isWordLike && token.text.trim()) indices.push(index);
+          return indices;
+        }, []);
+        if (!wordIndices.length) return nextTokens;
+        const totalTargetWords = wordIndices.length;
+        for (let i2 = 0; i2 < totalTargetWords; i2 += 1) {
+          const targetIndex = wordIndices[i2];
+          const sourceIndex = Math.floor(
+            i2 * sourceTimedWords.length / totalTargetWords
+          );
+          const sourceTiming = sourceTimedWords[Math.min(sourceIndex, sourceTimedWords.length - 1)];
+          nextTokens[targetIndex] = {
+            ...nextTokens[targetIndex],
+            startMs: sourceTiming.startMs,
+            durationMs: sourceTiming.durationMs
+          };
+        }
+        return nextTokens;
       };
       const fetchRawSubtitles = async (url, format) => {
         const response = await GM_fetch(url, { timeout: 7e3 });
@@ -26578,6 +25132,9 @@ useAudioDownload: isSupportGMXhr,
           return sortProcessedSubtitles(ensureProcessedSubtitles(rawSubtitles));
         }
         const normalized = ensureProcessedSubtitles(rawSubtitles);
+        if (descriptor.source === "vk") {
+          return SubtitlesProcessor.cleanJsonSubtitles(normalized);
+        }
         return sortProcessedSubtitles(normalized);
       };
       const processFetchedSubtitles = (subtitles, descriptor) => {
@@ -26673,15 +25230,84 @@ useAudioDownload: isSupportGMXhr,
             )
           };
         },
-        async fetchSubtitles(descriptorOrVideoData, requestLang, spokenLang) {
-          let descriptor = parseSubtitleDescriptor(descriptorOrVideoData);
-          if (!descriptor && isVideoDataForSubtitles(descriptorOrVideoData)) {
-            descriptor = pickDescriptorFromVideoData(
-              descriptorOrVideoData,
-              requestLang,
-              spokenLang
+        cleanJsonSubtitles(subtitles) {
+          const lineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
+          const tokensTextLength = (tokens) => {
+            let totalLength = 0;
+            for (const token of tokens) {
+              totalLength += token.text.length;
+            }
+            return totalLength;
+          };
+          const cleanedEntries = [];
+          for (const line of subtitles.subtitles) {
+            const normalizedLineText = normalizeSubtitleText(line.text);
+            if (!normalizedLineText) continue;
+            const normalizedTokens = [];
+            for (const token of line.tokens) {
+              const normalizedTokenText = normalizeSubtitleText(token.text);
+              if (!normalizedTokenText) continue;
+              normalizedTokens.push({
+                ...token,
+                text: normalizedTokenText
+              });
+            }
+            cleanedEntries.push({
+              line: {
+                ...line,
+                text: normalizedLineText,
+                tokens: normalizedTokens
+              },
+              comparableText: normalizeComparableText(normalizedLineText),
+              tokensTextLength: tokensTextLength(normalizedTokens)
+            });
+          }
+          const mergedEntries = [];
+          for (const entry of cleanedEntries) {
+            const {
+              line,
+              comparableText: currentComparable,
+              tokensTextLength: currentTokensLength
+            } = entry;
+            if (!currentComparable) continue;
+            const previous = mergedEntries.at(-1);
+            if (!previous) {
+              mergedEntries.push(entry);
+              continue;
+            }
+            const previousEnd = lineEndMs(previous.line);
+            const currentEnd = lineEndMs(line);
+            const isDuplicateText = previous.comparableText === currentComparable;
+            const isNearPrevious = line.startMs <= previousEnd + VK_DUPLICATE_MAX_GAP_MS;
+            if (!isDuplicateText || !isNearPrevious) {
+              mergedEntries.push(entry);
+              continue;
+            }
+            const mergedStart = Math.min(previous.line.startMs, line.startMs);
+            const mergedEnd = Math.max(previousEnd, currentEnd);
+            const mergedTokens = currentTokensLength >= previous.tokensTextLength ? line.tokens : previous.line.tokens;
+            previous.line = {
+              ...previous.line,
+              startMs: mergedStart,
+              durationMs: Math.max(0, mergedEnd - mergedStart),
+              tokens: mergedTokens
+            };
+            previous.tokensTextLength = Math.max(
+              previous.tokensTextLength,
+              currentTokensLength
             );
           }
+          return {
+            ...subtitles,
+            subtitles: mergedEntries.map(({ line }) => line)
+          };
+        },
+        async fetchSubtitles(descriptorOrVideoData, requestLang, spokenLang) {
+          const descriptor = isSubtitleDescriptor(descriptorOrVideoData) ? descriptorOrVideoData : pickDescriptorFromVideoData(
+            descriptorOrVideoData,
+            requestLang,
+            spokenLang
+          );
           if (!descriptor) {
             return { format: "json", subtitles: [] };
           }
@@ -26745,12 +25371,98 @@ useAudioDownload: isSupportGMXhr,
           }
         }
       };
+      const AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
+      const AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
+      const SUBTITLE_SOURCE_PREFIX = "https://brosubs.s3-private.mds.yandex.net/vtrans/";
+      const SUBTITLE_PROXY_PATH_PREFIX = "/video-subtitles/subtitles-proxy/";
+      function getProxyHost(host) {
+        return host ?? proxyWorkerHost;
+      }
+      function isProxyRoutingEnabled(config2) {
+        return config2.translateProxyEnabled === 2;
+      }
+      function proxifyYandexAudioUrl(audioUrl, config2) {
+        if (!isProxyRoutingEnabled(config2) || !audioUrl.startsWith(AUDIO_SOURCE_PREFIX)) {
+          return audioUrl;
+        }
+        return audioUrl.replace(
+          AUDIO_SOURCE_PREFIX,
+          `https://${getProxyHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
+        );
+      }
+      function unproxifyYandexAudioUrl(audioUrl) {
+        const str = String(audioUrl || "");
+        if (!str) return str;
+        try {
+          const url = new URL(str);
+          if (!url.pathname.startsWith(AUDIO_PROXY_PATH_PREFIX)) {
+            return str;
+          }
+          url.host = "vtrans.s3-private.mds.yandex.net";
+          url.pathname = `/tts/prod/${url.pathname.slice(AUDIO_PROXY_PATH_PREFIX.length).replace(/^\/+/, "")}`;
+          url.protocol = "https:";
+          return url.toString();
+        } catch {
+          return str;
+        }
+      }
+      function isYandexAudioUrlOrProxy(url, config2) {
+        return url.startsWith(AUDIO_SOURCE_PREFIX) || url.startsWith(
+          `https://${getProxyHost(config2.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`
+        );
+      }
+      function proxifyYandexSubtitlesUrl(subtitlesUrl, config2) {
+        if (!isProxyRoutingEnabled(config2) || !subtitlesUrl.startsWith(SUBTITLE_SOURCE_PREFIX)) {
+          return subtitlesUrl;
+        }
+        const subtitlesPath = subtitlesUrl.slice(SUBTITLE_SOURCE_PREFIX.length);
+        return `https://${getProxyHost(config2.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
+      }
       const DISABLED_SUBTITLES_VALUE = "disabled";
+      const VALID_SUBTITLE_FORMATS = new Set([
+        "srt",
+        "vtt",
+        "ass",
+        "json"
+      ]);
       const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
+      const subtitlesSelectionRequestVersion = new WeakMap();
+      function getCurrentSubtitlesCacheKey(handler) {
+        const videoData = handler.videoData;
+        if (!videoData?.videoId) {
+          return null;
+        }
+        return handler.getSubtitlesCacheKey(
+          videoData.videoId,
+          videoData.detectedLanguage,
+          videoData.responseLanguage
+        );
+      }
+      function isRecord(value) {
+        return value !== null && typeof value === "object";
+      }
+      function asSubtitleDescriptor(value) {
+        if (!isRecord(value)) {
+          return null;
+        }
+        const descriptor = value;
+        const format = descriptor.format;
+        if (typeof descriptor.source !== "string" || typeof descriptor.language !== "string" || typeof descriptor.url !== "string" || typeof format !== "string" || !VALID_SUBTITLE_FORMATS.has(format)) {
+          return null;
+        }
+        return {
+          source: descriptor.source,
+          format,
+          language: descriptor.language,
+          url: descriptor.url,
+          translatedFromLanguage: typeof descriptor.translatedFromLanguage === "string" ? descriptor.translatedFromLanguage : void 0,
+          isAutoGenerated: typeof descriptor.isAutoGenerated === "boolean" ? descriptor.isAutoGenerated : void 0
+        };
+      }
       function getIndexedSubtitleDescriptors(subtitles) {
         const descriptors = [];
         for (let index = 0; index < subtitles.length; index += 1) {
-          const descriptor = parseSubtitleDescriptor(subtitles[index]);
+          const descriptor = asSubtitleDescriptor(subtitles[index]);
           if (!descriptor) {
             continue;
           }
@@ -26775,7 +25487,15 @@ useAudioDownload: isSupportGMXhr,
         if (!Number.isInteger(index) || index < 0 || index >= subtitles.length) {
           return null;
         }
-        return parseSubtitleDescriptor(subtitles[index]);
+        return asSubtitleDescriptor(subtitles[index]);
+      }
+      function nextSubtitlesSelectionRequestVersion(handler) {
+        const nextVersion = (subtitlesSelectionRequestVersion.get(handler) ?? 0) + 1;
+        subtitlesSelectionRequestVersion.set(handler, nextVersion);
+        return nextVersion;
+      }
+      function isCurrentSubtitlesSelectionRequest(handler, requestVersion) {
+        return subtitlesSelectionRequestVersion.get(handler) === requestVersion;
       }
       function createDisabledSubtitlesOption() {
         return {
@@ -26784,15 +25504,6 @@ useAudioDownload: isSupportGMXhr,
           selected: true,
           disabled: false
         };
-      }
-      function buildSubtitleLabel(subtitle) {
-        const languageLabel = localizationProvider.getLangLabel(subtitle.language);
-        const translatedFromLabel = subtitle.translatedFromLanguage ? ` ${localizationProvider.get("VOTTranslatedFrom")} ${localizationProvider.getLangLabel(
-    subtitle.translatedFromLanguage
-  )}` : "";
-        const sourceSuffix = subtitle.source === "yandex" ? "" : `, ${globalThis.location.hostname}`;
-        const autogeneratedSuffix = subtitle.isAutoGenerated ? ` (${localizationProvider.get("VOTAutogenerated")})` : "";
-        return `${languageLabel}${translatedFromLabel}${sourceSuffix}${autogeneratedSuffix}`;
       }
       function buildSubtitlesSelectOptions(subtitleDescriptors) {
         const options = [createDisabledSubtitlesOption()];
@@ -26810,6 +25521,15 @@ useAudioDownload: isSupportGMXhr,
         const iterator = selectedValues[Symbol.iterator]();
         const first = iterator.next();
         return first.done ? void 0 : first.value;
+      }
+      function buildSubtitleLabel(subtitle) {
+        const languageLabel = localizationProvider.getLangLabel(subtitle.language);
+        const translatedFromLabel = subtitle.translatedFromLanguage ? ` ${localizationProvider.get("VOTTranslatedFrom")} ${localizationProvider.getLangLabel(
+    subtitle.translatedFromLanguage
+  )}` : "";
+        const sourceSuffix = subtitle.source === "yandex" ? "" : `, ${globalThis.location.hostname}`;
+        const autogeneratedSuffix = subtitle.isAutoGenerated ? ` (${localizationProvider.get("VOTAutogenerated")})` : "";
+        return `${languageLabel}${translatedFromLabel}${sourceSuffix}${autogeneratedSuffix}`;
       }
       function normalizeLang(lang2) {
         return (lang2 ?? "").toLowerCase();
@@ -26831,87 +25551,53 @@ useAudioDownload: isSupportGMXhr,
         const fromIsAuto = from === "auto" || from === "";
         const fromBase = baseLang(from);
         const toBase = baseLang(to);
-        const isYandex = (descriptor) => descriptor.source === "yandex";
-        const isAutoGenerated = (descriptor) => Boolean(descriptor.isAutoGenerated);
-        const matchesPair = (descriptor, wantFrom, wantTo) => {
-          if (!langMatches(descriptor.language, wantTo)) return false;
+        const isYandex = (s2) => s2.source === "yandex";
+        const isAutoGenerated = (s2) => Boolean(s2.isAutoGenerated);
+        const matchesPair = (s2, wantFrom, wantTo) => {
+          if (!langMatches(s2.language, wantTo)) return false;
           if (fromIsAuto) return true;
-          return langMatches(descriptor.translatedFromLanguage, wantFrom);
+          return langMatches(s2.translatedFromLanguage, wantFrom);
         };
-        const isSameLangOriginal = (descriptor, lang2) => {
-          if (!langMatches(descriptor.language, lang2)) return false;
-          if (!descriptor.translatedFromLanguage) return true;
-          return langMatches(descriptor.translatedFromLanguage, lang2);
+        const isSameLangOriginal = (s2, lang2) => {
+          if (!langMatches(s2.language, lang2)) return false;
+          if (!s2.translatedFromLanguage) return true;
+          return langMatches(s2.translatedFromLanguage, lang2);
         };
         const find = (predicate) => subtitles.find(({ descriptor }) => predicate(descriptor))?.index ?? null;
         const findOtherTarget = () => {
           const otherTargetManual = find(
-            (descriptor) => !isYandex(descriptor) && langMatches(descriptor.language, to) && !isAutoGenerated(descriptor)
+            (s2) => !isYandex(s2) && langMatches(s2.language, to) && !isAutoGenerated(s2)
           );
           if (otherTargetManual != null) return otherTargetManual;
           return find(
-            (descriptor) => !isYandex(descriptor) && langMatches(descriptor.language, to) && isAutoGenerated(descriptor)
+            (s2) => !isYandex(s2) && langMatches(s2.language, to) && isAutoGenerated(s2)
           );
         };
-        const yandexPair = find(
-          (descriptor) => isYandex(descriptor) && matchesPair(descriptor, from, to)
-        );
+        const yandexPair = find((s2) => isYandex(s2) && matchesPair(s2, from, to));
         if (yandexPair != null) return yandexPair;
         if (!fromIsAuto && fromBase && toBase && fromBase === toBase) {
           const nativeManual = find(
-            (descriptor) => isSameLangOriginal(descriptor, to) && !isAutoGenerated(descriptor)
+            (s2) => isSameLangOriginal(s2, to) && !isAutoGenerated(s2)
           );
           if (nativeManual != null) return nativeManual;
           const nativeAuto = find(
-            (descriptor) => isSameLangOriginal(descriptor, to) && isAutoGenerated(descriptor)
+            (s2) => isSameLangOriginal(s2, to) && isAutoGenerated(s2)
           );
           if (nativeAuto != null) return nativeAuto;
           const otherTarget2 = findOtherTarget();
           if (otherTarget2 != null) return otherTarget2;
           const yandexTargetSameLang = find(
-            (descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to)
+            (s2) => isYandex(s2) && langMatches(s2.language, to)
           );
           if (yandexTargetSameLang != null) return yandexTargetSameLang;
         }
-        const yandexTarget = find(
-          (descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to)
-        );
+        const yandexTarget = find((s2) => isYandex(s2) && langMatches(s2.language, to));
         if (yandexTarget != null) return yandexTarget;
-        const otherPair = find(
-          (descriptor) => !isYandex(descriptor) && matchesPair(descriptor, from, to)
-        );
+        const otherPair = find((s2) => !isYandex(s2) && matchesPair(s2, from, to));
         if (otherPair != null) return otherPair;
         const otherTarget = findOtherTarget();
         if (otherTarget != null) return otherTarget;
         return null;
-      }
-      const subtitlesSelectionRequestVersion = new WeakMap();
-      function getCurrentSubtitlesCacheKey(handler) {
-        const videoData = handler.videoData;
-        if (!videoData?.videoId) {
-          return null;
-        }
-        return handler.getSubtitlesCacheKey(
-          videoData.videoId,
-          videoData.detectedLanguage,
-          videoData.responseLanguage
-        );
-      }
-      function nextSubtitlesSelectionRequestVersion(handler) {
-        const nextVersion = (subtitlesSelectionRequestVersion.get(handler) ?? 0) + 1;
-        subtitlesSelectionRequestVersion.set(handler, nextVersion);
-        return nextVersion;
-      }
-      function isCurrentSubtitlesSelectionRequest(handler, requestVersion) {
-        return subtitlesSelectionRequestVersion.get(handler) === requestVersion;
-      }
-      function clearSelectedSubtitles(handler, overlayView) {
-        if (handler.hasSubtitlesWidget()) {
-          handler.subtitlesWidget?.setContent(null);
-        }
-        overlayView.downloadSubtitlesButton.hidden = true;
-        handler.yandexSubtitles = null;
-        return handler;
       }
       async function changeSubtitlesLang(subs) {
         const requestVersion = nextSubtitlesSelectionRequestVersion(this);
@@ -26921,18 +25607,33 @@ useAudioDownload: isSupportGMXhr,
         }
         overlayView.subtitlesSelect.setSelectedValue(subs);
         if (subs === DISABLED_SUBTITLES_VALUE) {
-          return clearSelectedSubtitles(this, overlayView);
+          if (this.hasSubtitlesWidget()) {
+            this.subtitlesWidget?.setContent(null);
+          }
+          overlayView.downloadSubtitlesButton.hidden = true;
+          this.yandexSubtitles = null;
+          return this;
         }
         const subtitlesIndex = parseSubtitlesOptionIndex(subs);
         if (subtitlesIndex == null) {
-          return clearSelectedSubtitles(this, overlayView);
+          if (this.hasSubtitlesWidget()) {
+            this.subtitlesWidget?.setContent(null);
+          }
+          overlayView.downloadSubtitlesButton.hidden = true;
+          this.yandexSubtitles = null;
+          return this;
         }
         const descriptor = getSubtitleDescriptorAtIndex(
           this.subtitles,
           subtitlesIndex
         );
         if (!descriptor) {
-          return clearSelectedSubtitles(this, overlayView);
+          if (this.hasSubtitlesWidget()) {
+            this.subtitlesWidget?.setContent(null);
+          }
+          overlayView.downloadSubtitlesButton.hidden = true;
+          this.yandexSubtitles = null;
+          return this;
         }
         let subtitlesObj = { ...descriptor };
         const proxiedSubtitlesUrl = proxifyYandexSubtitlesUrl(subtitlesObj.url, {
@@ -27113,84 +25814,6 @@ useAudioDownload: isSupportGMXhr,
       function resetSmartDuckingRuntime() {
         return initSmartDuckingRuntime();
       }
-      function updateSpeechGate(input, runtime, config2, now2, hasRms) {
-        const gateOpen = runtime.speechGateOpen;
-        if (input.audioIsPlaying && !hasRms) {
-          runtime.rmsMissingSinceAt ??= now2;
-          if (gateOpen) {
-            runtime.lastSoundAt = now2;
-          }
-          if (runtime.rmsMissingSinceAt !== null && now2 - runtime.rmsMissingSinceAt >= config2.rmsMissingGraceMs) {
-            runtime.lastSoundAt = now2;
-            return true;
-          }
-          return gateOpen;
-        }
-        runtime.rmsMissingSinceAt = null;
-        if (!input.audioIsPlaying) {
-          return gateOpen && now2 - runtime.lastSoundAt <= config2.holdMs;
-        }
-        if (!gateOpen && runtime.rmsEnvelope >= config2.thresholdOnRms) {
-          runtime.lastSoundAt = now2;
-          return true;
-        }
-        if (gateOpen && runtime.rmsEnvelope >= config2.thresholdOffRms) {
-          runtime.lastSoundAt = now2;
-          return true;
-        }
-        return gateOpen && now2 - runtime.lastSoundAt <= config2.holdMs;
-      }
-      function resolveBaseline(runtime, currentVideoVolume, volumeOnStart, config2) {
-        if (runtime.isDucked && isFiniteNumber(runtime.lastApplied) && Math.abs(currentVideoVolume - runtime.lastApplied) > config2.externalBaselineDelta01) {
-          runtime.baseline = currentVideoVolume;
-        }
-        if (!runtime.isDucked) {
-          runtime.baseline = currentVideoVolume;
-        }
-        const baseline = runtime.baseline ?? volumeOnStart ?? currentVideoVolume;
-        runtime.baseline = baseline;
-        return baseline;
-      }
-      function resolveDesiredVolume(runtime, gateOpen, currentVideoVolume, baseline, duckingTarget01, config2) {
-        const duckedTarget = Math.min(baseline, duckingTarget01);
-        if (gateOpen) {
-          runtime.isDucked = true;
-          return duckedTarget;
-        }
-        if (runtime.isDucked && Math.abs(baseline - currentVideoVolume) < config2.unduckTolerance01) {
-          runtime.isDucked = false;
-        }
-        return baseline;
-      }
-      function smoothVolumeChange(desired, currentVideoVolume, dtMs, dtSec, config2) {
-        const smoothingTauMs = desired < currentVideoVolume ? config2.attackTauMs : config2.releaseTauMs;
-        const smoothingAlpha = smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
-        let nextVolume = currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
-        const maxDelta = (desired < currentVideoVolume ? config2.maxDownPerSec : config2.maxUpPerSec) * dtSec;
-        if (maxDelta > 0) {
-          nextVolume = clamp$2(
-            nextVolume,
-            currentVideoVolume - maxDelta,
-            currentVideoVolume + maxDelta
-          );
-        }
-        return clamp$2(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
-      }
-      function buildVolumeDecision(runtime, currentVideoVolume, quantized, applyDeltaThreshold01) {
-        if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
-          runtime.lastApplied = quantized;
-          return { kind: "noop", runtime };
-        }
-        if (!isFiniteNumber(runtime.lastApplied) || Math.abs(quantized - runtime.lastApplied) >= applyDeltaThreshold01) {
-          runtime.lastApplied = quantized;
-          return {
-            kind: "apply",
-            runtime,
-            volume01: quantized
-          };
-        }
-        return { kind: "noop", runtime };
-      }
       function computeSmartDuckingStep(input, runtime, config2 = SMART_DUCKING_DEFAULT_CONFIG) {
         const nextRuntime = normalizeRuntime(runtime);
         const volumeOnStart = normalizeVolume01(input.volumeOnStart);
@@ -27216,38 +25839,69 @@ useAudioDownload: isSupportGMXhr,
           VOLUME_MIN_01,
           VOLUME_MAX_01
         );
-        const gateOpen = updateSpeechGate(input, nextRuntime, config2, now2, hasRms);
+        let gateOpen = nextRuntime.speechGateOpen;
+        if (input.audioIsPlaying && !hasRms) {
+          nextRuntime.rmsMissingSinceAt ??= now2;
+          if (gateOpen) {
+            nextRuntime.lastSoundAt = now2;
+          }
+          if (nextRuntime.rmsMissingSinceAt !== null && now2 - nextRuntime.rmsMissingSinceAt >= config2.rmsMissingGraceMs) {
+            gateOpen = true;
+            nextRuntime.lastSoundAt = now2;
+          }
+        } else {
+          nextRuntime.rmsMissingSinceAt = null;
+          if (!gateOpen) {
+            if (input.audioIsPlaying && nextRuntime.rmsEnvelope >= config2.thresholdOnRms) {
+              gateOpen = true;
+              nextRuntime.lastSoundAt = now2;
+            }
+          } else if (input.audioIsPlaying && nextRuntime.rmsEnvelope >= config2.thresholdOffRms) {
+            nextRuntime.lastSoundAt = now2;
+          } else if (now2 - nextRuntime.lastSoundAt > config2.holdMs) {
+            gateOpen = false;
+          }
+        }
         nextRuntime.speechGateOpen = gateOpen;
         const currentVideoVolume = normalizeVolume01(input.currentVideoVolume);
         if (!isFiniteNumber(currentVideoVolume)) {
           return { kind: "noop", runtime: nextRuntime };
         }
-        const baseline = resolveBaseline(
-          nextRuntime,
-          currentVideoVolume,
-          volumeOnStart,
-          config2
-        );
+        if (nextRuntime.isDucked && isFiniteNumber(nextRuntime.lastApplied) && Math.abs(currentVideoVolume - nextRuntime.lastApplied) > config2.externalBaselineDelta01) {
+          nextRuntime.baseline = currentVideoVolume;
+        }
+        if (!nextRuntime.isDucked) {
+          nextRuntime.baseline = currentVideoVolume;
+        }
+        const baseline = nextRuntime.baseline ?? volumeOnStart ?? currentVideoVolume;
+        nextRuntime.baseline = baseline;
         if (!input.hostVideoActive) {
           nextRuntime.lastApplied = currentVideoVolume;
           return { kind: "noop", runtime: nextRuntime };
         }
         const duckingTarget01 = normalizeVolume01(input.duckingTarget01) ?? baseline;
-        const desired = resolveDesiredVolume(
-          nextRuntime,
-          gateOpen,
-          currentVideoVolume,
-          baseline,
-          duckingTarget01,
-          config2
-        );
-        const nextVolume = smoothVolumeChange(
-          desired,
-          currentVideoVolume,
-          dtMs,
-          dtSec,
-          config2
-        );
+        const duckedTarget = Math.min(baseline, duckingTarget01);
+        let desired = baseline;
+        if (gateOpen) {
+          if (!nextRuntime.isDucked) {
+            nextRuntime.isDucked = true;
+          }
+          desired = duckedTarget;
+        } else if (nextRuntime.isDucked && Math.abs(baseline - currentVideoVolume) < config2.unduckTolerance01) {
+          nextRuntime.isDucked = false;
+        }
+        const smoothingTauMs = desired < currentVideoVolume ? config2.attackTauMs : config2.releaseTauMs;
+        const smoothingAlpha = smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
+        let nextVolume = currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
+        const maxDelta = (desired < currentVideoVolume ? config2.maxDownPerSec : config2.maxUpPerSec) * dtSec;
+        if (maxDelta > 0) {
+          nextVolume = clamp$2(
+            nextVolume,
+            currentVideoVolume - maxDelta,
+            currentVideoVolume + maxDelta
+          );
+        }
+        nextVolume = clamp$2(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
         const quantized = snapVolume01Towards(
           nextVolume,
           currentVideoVolume,
@@ -27255,12 +25909,19 @@ useAudioDownload: isSupportGMXhr,
           config2.volumeStep01
         );
         const applyDeltaThreshold01 = config2.applyDeltaThreshold01;
-        return buildVolumeDecision(
-          nextRuntime,
-          currentVideoVolume,
-          quantized,
-          applyDeltaThreshold01
-        );
+        if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
+          nextRuntime.lastApplied = quantized;
+          return { kind: "noop", runtime: nextRuntime };
+        }
+        if (!isFiniteNumber(nextRuntime.lastApplied) || Math.abs(quantized - nextRuntime.lastApplied) >= applyDeltaThreshold01) {
+          nextRuntime.lastApplied = quantized;
+          return {
+            kind: "apply",
+            runtime: nextRuntime,
+            volume01: quantized
+          };
+        }
+        return { kind: "noop", runtime: nextRuntime };
       }
       function normalizeRuntime(runtime) {
         return {
@@ -27616,18 +26277,22 @@ useAudioDownload: isSupportGMXhr,
       }
       async function probeAudioUrl(handler, audioUrl, actionContext) {
         const signal = handler.actionsAbortController.signal;
-        const fetchOpts = {
-          headers: {
+        const fetchOpts = handler.isMultiMethodS3(audioUrl) ? {
+          method: "HEAD",
+          signal,
+          timeout: AUDIO_PROBE_TIMEOUT_MS
+        } : {
+headers: {
             range: "bytes=0-0"
           },
           signal,
           timeout: AUDIO_PROBE_TIMEOUT_MS
         };
         for (let attempt = 1; attempt <= AUDIO_PROBE_MAX_ATTEMPTS; attempt++) {
-          if (isProbeCancelled(handler, actionContext, signal)) return false;
+          if (handler.isActionStale(actionContext)) return false;
           try {
             const response = await GM_fetch(audioUrl, fetchOpts);
-            if (isProbeCancelled(handler, actionContext, signal)) return false;
+            if (handler.isActionStale(actionContext)) return false;
             debug.log("[validateAudioUrl] probe response", {
               audioUrl,
               attempt,
@@ -27636,26 +26301,21 @@ useAudioDownload: isSupportGMXhr,
             });
             if (response.ok) return true;
           } catch (err) {
-            if (isProbeCancelled(handler, actionContext, signal)) return false;
+            if (handler.isActionStale(actionContext) || signal.aborted) {
+              return false;
+            }
           }
-          if (!await shouldRetryAudioProbe(attempt, handler, actionContext, signal)) {
-            return false;
+          if (attempt < AUDIO_PROBE_MAX_ATTEMPTS) {
+            if (handler.isActionStale(actionContext) || signal.aborted) {
+              return false;
+            }
+            await waitForProbeRetry(AUDIO_PROBE_RETRY_DELAY_MS, signal);
+            if (handler.isActionStale(actionContext) || signal.aborted) {
+              return false;
+            }
           }
         }
         return false;
-      }
-      function isProbeCancelled(handler, actionContext, signal) {
-        return handler.isActionStale(actionContext) || signal.aborted;
-      }
-      async function shouldRetryAudioProbe(attempt, handler, actionContext, signal) {
-        if (attempt >= AUDIO_PROBE_MAX_ATTEMPTS) {
-          return true;
-        }
-        if (isProbeCancelled(handler, actionContext, signal)) {
-          return false;
-        }
-        await waitForProbeRetry(AUDIO_PROBE_RETRY_DELAY_MS, signal);
-        return !isProbeCancelled(handler, actionContext, signal);
       }
       async function validateAudioUrl(audioUrl, actionContext) {
         if (this.isActionStale(actionContext)) return audioUrl;
@@ -27854,16 +26514,55 @@ useAudioDownload: isSupportGMXhr,
         const normalizedTargetUrl = normalizeManagedAudioUrl(this, audioUrl);
         const currentSource = this.audioPlayer.player.currentSrc || this.audioPlayer.player.src || "";
         const normalizedCurrentUrl = normalizeManagedAudioUrl(this, currentSource);
-        const nextAudioUrl = normalizedTargetUrl !== normalizedCurrentUrl ? await this.validateAudioUrl(normalizedTargetUrl, actionContext) : normalizedTargetUrl;
+        let nextAudioUrl = normalizedTargetUrl;
+        if (normalizedTargetUrl !== normalizedCurrentUrl) {
+          nextAudioUrl = await this.validateAudioUrl(
+            normalizedTargetUrl,
+            actionContext
+          );
+        }
         if (this.isActionStale(actionContext)) return;
-        const resolvedSource = await applyTranslationWithDirectFallback(
+        let applyResult = await applyTranslationSource(
           this,
           nextAudioUrl,
           actionContext
         );
-        const resolvedAudioUrl = resolvedSource.nextAudioUrl;
-        const applyResult = resolvedSource.applyResult;
-        const appliedSourceUrl = applyResult.appliedSourceUrl;
+        let appliedSourceUrl = applyResult.appliedSourceUrl;
+        if (applyResult.status === "error" && applyResult.didSetSource && !this.isActionStale(actionContext)) {
+          const directUrl = this.unproxifyAudio(nextAudioUrl);
+          if (directUrl !== nextAudioUrl) {
+            try {
+              debug.log(
+                "[updateTranslation] proxied audio init failed, retrying direct URL"
+              );
+              const validatedDirectUrl = await this.validateAudioUrl(
+                directUrl,
+                actionContext
+              );
+              if (this.isActionStale(actionContext)) {
+                await rollbackStaleAppliedSourceIfStillCurrent(
+                  this,
+                  appliedSourceUrl
+                );
+                return;
+              }
+              nextAudioUrl = validatedDirectUrl;
+              applyResult = await applyTranslationSource(
+                this,
+                validatedDirectUrl,
+                actionContext
+              );
+              appliedSourceUrl = applyResult.appliedSourceUrl;
+            } catch (fallbackErr) {
+              applyResult = {
+                status: "error",
+                didSetSource: true,
+                appliedSourceUrl,
+                error: fallbackErr
+              };
+            }
+          }
+        }
         if (applyResult.status === "stale") return;
         if (applyResult.status === "error") {
           debug.log("this.audioPlayer.init() error", applyResult.error);
@@ -27874,74 +26573,7 @@ useAudioDownload: isSupportGMXhr,
         }
         this.setupAudioSettings();
         this.transformBtn("success", localizationProvider.get("disableTranslate"));
-        this.afterUpdateTranslation(resolvedAudioUrl);
-      }
-      async function applyTranslationWithDirectFallback(handler, audioUrl, actionContext) {
-        const nextAudioUrl = audioUrl;
-        const applyResult = await applyTranslationSource(
-          handler,
-          nextAudioUrl,
-          actionContext
-        );
-        if (!shouldRetryTranslationSource(
-          handler,
-          applyResult,
-          actionContext,
-          nextAudioUrl
-        )) {
-          return { nextAudioUrl, applyResult };
-        }
-        const retried = await retryTranslationWithDirectSource(
-          handler,
-          nextAudioUrl,
-          applyResult.appliedSourceUrl,
-          actionContext
-        );
-        if (retried) {
-          return retried;
-        }
-        return { nextAudioUrl, applyResult };
-      }
-      function shouldRetryTranslationSource(handler, applyResult, actionContext, audioUrl) {
-        return applyResult.status === "error" && applyResult.didSetSource && !handler.isActionStale(actionContext) && handler.unproxifyAudio(audioUrl) !== audioUrl;
-      }
-      async function retryTranslationWithDirectSource(handler, audioUrl, appliedSourceUrl, actionContext) {
-        const directUrl = handler.unproxifyAudio(audioUrl);
-        try {
-          const validatedDirectUrl = await handler.validateAudioUrl(
-            directUrl,
-            actionContext
-          );
-          if (handler.isActionStale(actionContext)) {
-            await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
-            return {
-              nextAudioUrl: validatedDirectUrl,
-              applyResult: {
-                status: "stale",
-                didSetSource: true,
-                appliedSourceUrl
-              }
-            };
-          }
-          return {
-            nextAudioUrl: validatedDirectUrl,
-            applyResult: await applyTranslationSource(
-              handler,
-              validatedDirectUrl,
-              actionContext
-            )
-          };
-        } catch (fallbackErr) {
-          return {
-            nextAudioUrl: audioUrl,
-            applyResult: {
-              status: "error",
-              didSetSource: true,
-              appliedSourceUrl,
-              error: fallbackErr
-            }
-          };
-        }
+        this.afterUpdateTranslation(nextAudioUrl);
       }
       async function translateFunc(VIDEO_ID, _isStream, requestLang, responseLang, translationHelp) {
         await this.waitForPendingStopTranslate();
@@ -28006,7 +26638,7 @@ useAudioDownload: isSupportGMXhr,
             if (!updated) return;
             return;
           }
-          await requestApplyAndCacheTranslation(this, {
+          const translateRes = await requestApplyAndCacheTranslation(this, {
             videoData,
             requestLang: reqLang,
             responseLang: resLang,
@@ -28032,6 +26664,9 @@ useAudioDownload: isSupportGMXhr,
               }
             }
           });
+          if (!translateRes) {
+            return;
+          }
         })();
         this.activeTranslation = {
           key: activeKey,
@@ -28228,7 +26863,7 @@ getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage) {
         updateVOTClientRequestSignal() {
           if (!this.votClient) return;
           this.votClient.fetchOpts = {
-            ...this.votClient.fetchOpts,
+            ...this.votClient.fetchOpts ?? {},
             signal: this.actionsAbortController.signal
           };
         }
@@ -28383,32 +27018,30 @@ getSubtitlesWidget() {
               this.interactionChecker,
               this.tooltipLayoutRoot
             );
-            this.applySavedSubtitlesWidgetSettings(this.subtitlesWidget);
+            if (this.data) {
+              this.subtitlesWidget.setSmartLayout(
+                typeof this.data.subtitlesSmartLayout === "boolean" ? this.data.subtitlesSmartLayout : true
+              );
+              if (typeof this.data.subtitlesMaxLength === "number") {
+                this.subtitlesWidget.setMaxLength(this.data.subtitlesMaxLength);
+              }
+              if (typeof this.data.highlightWords === "boolean") {
+                this.subtitlesWidget.setHighlightWords(this.data.highlightWords);
+              }
+              if (typeof this.data.subtitlesFontSize === "number") {
+                this.subtitlesWidget.setFontSize(this.data.subtitlesFontSize);
+              }
+              if (typeof this.data.subtitlesFontFamily === "string") {
+                this.subtitlesWidget.setFontFamily(
+                  this.data.subtitlesFontFamily
+                );
+              }
+              if (typeof this.data.subtitlesOpacity === "number") {
+                this.subtitlesWidget.setOpacity(this.data.subtitlesOpacity);
+              }
+            }
           }
           return this.subtitlesWidget;
-        }
-        applySavedSubtitlesWidgetSettings(widget) {
-          if (!this.data) {
-            return;
-          }
-          widget.setSmartLayout(
-            typeof this.data.subtitlesSmartLayout === "boolean" ? this.data.subtitlesSmartLayout : true
-          );
-          if (typeof this.data.subtitlesMaxLength === "number") {
-            widget.setMaxLength(this.data.subtitlesMaxLength);
-          }
-          if (typeof this.data.highlightWords === "boolean") {
-            widget.setHighlightWords(this.data.highlightWords);
-          }
-          if (typeof this.data.subtitlesFontSize === "number") {
-            widget.setFontSize(this.data.subtitlesFontSize);
-          }
-          if (typeof this.data.subtitlesFontFamily === "string") {
-            widget.setFontFamily(this.data.subtitlesFontFamily);
-          }
-          if (typeof this.data.subtitlesOpacity === "number") {
-            widget.setOpacity(this.data.subtitlesOpacity);
-          }
         }
 hasSubtitlesWidget() {
           return Boolean(this.subtitlesWidget);
@@ -28514,25 +27147,17 @@ init() {
           return init.call(this);
         }
 async initVOTClient() {
-          const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
-          const transportHost = this.data?.translateProxyEnabled === 1 ? proxyWorkerHostMode1 : proxyClientEnabled ? resolveProxyWorkerHost(this.data?.proxyWorkerHost) : workerHost;
+          const transportHost = this.data?.translateProxyEnabled ? this.data?.proxyWorkerHost ?? proxyWorkerHost : workerHost;
           this.votOpts = {
             fetchFn: GM_fetch,
             fetchOpts: {
-              signal: this.actionsAbortController.signal,
-
-forceGmXhr: shouldForceProxyClientGmXhr({
-                ...this.data,
-                gmXhrSupported: isSupportGMXhr
-              })
+              signal: this.actionsAbortController.signal
             },
             apiToken: this.data?.account?.token,
             hostVOT: votBackendUrl,
             host: transportHost
           };
-          this.votClient = new (proxyClientEnabled ? VOTWorkerClient2 : VOTClient2)(
-            this.votOpts
-          );
+          this.votClient = new (this.data?.translateProxyEnabled ? VOTWorkerClient2 : VOTClient2)(this.votOpts);
           this.votClient.sessions = await this.votSessionStorage.restore(
             transportHost,
             this.votClient.sessions
@@ -28770,16 +27395,41 @@ async updateTranslationErrorMsg(errorMessage, signal) {
           if (this.longWaitingResCount > minLongWaitingCount) {
             errorMessage = new VOTLocalizedError("TranslationDelayed");
           }
-          const resolvedMessage = await this.resolveTranslationErrorDisplayMessage(
-            errorMessage,
-            translationTake2,
-            lang2,
-            signal
-          );
-          if (signal?.aborted || resolvedMessage === null) {
-            return;
+          if (errorMessage?.name === "VOTLocalizedError") {
+            this.transformBtn("error", errorMessage.localizedMessage);
+          } else if (errorMessage instanceof Error) {
+            this.transformBtn("error", errorMessage?.message);
+          } else if (this.data?.translateAPIErrors && lang2 !== "ru" && !errorMessage?.includes(translationTake2)) {
+            const overlayView = this.uiManager.votOverlayView;
+            if (!overlayView?.votButton) {
+              return;
+            }
+            const messageStr = Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage);
+            const cacheKey = `${lang2}:${messageStr}`;
+            const cached = this.errorTranslationCache.get(cacheKey);
+            if (cached) {
+              this.transformBtn("error", cached);
+            } else {
+              overlayView.votButton.loading = true;
+              const translatedMessage = await translate(messageStr, "ru", lang2);
+              const translatedText = Array.isArray(translatedMessage) ? translatedMessage.join("\n") : String(translatedMessage);
+              if (signal?.aborted) {
+                return;
+              }
+              this.errorTranslationCache.set(cacheKey, translatedText);
+              if (this.errorTranslationCache.size > 50) {
+                const oldestKey = this.errorTranslationCache.keys().next().value;
+                if (oldestKey) this.errorTranslationCache.delete(oldestKey);
+              }
+              this.transformBtn("error", translatedText);
+            }
+            if (signal?.aborted) {
+              return;
+            }
+          } else {
+            const msg = Array.isArray(errorMessage) ? errorMessage.join("\n") : String(errorMessage ?? "");
+            this.transformBtn("error", msg);
           }
-          this.transformBtn("error", resolvedMessage);
           if (signal?.aborted) {
             return;
           }
@@ -28792,54 +27442,6 @@ async updateTranslationErrorMsg(errorMessage, signal) {
             if (this.uiManager.votOverlayView?.votButton) {
               this.uiManager.votOverlayView.votButton.loading = true;
             }
-          }
-        }
-        async resolveTranslationErrorDisplayMessage(errorMessage, translationTake2, lang2, signal) {
-          if (errorMessage?.name === "VOTLocalizedError") {
-            return errorMessage.localizedMessage;
-          }
-          if (errorMessage instanceof Error) {
-            return errorMessage.message;
-          }
-          if (!this.shouldTranslateErrorMessage(errorMessage, translationTake2, lang2)) {
-            return this.stringifyTranslationError(errorMessage);
-          }
-          return await this.getTranslatedErrorMessage(errorMessage, lang2, signal);
-        }
-        shouldTranslateErrorMessage(errorMessage, translationTake2, lang2) {
-          return Boolean(this.data?.translateAPIErrors) && lang2 !== "ru" && !errorMessage?.includes(translationTake2);
-        }
-        stringifyTranslationError(errorMessage) {
-          return Array.isArray(errorMessage) ? errorMessage.join("\n") : String(errorMessage ?? "");
-        }
-        async getTranslatedErrorMessage(errorMessage, lang2, signal) {
-          const overlayView = this.uiManager.votOverlayView;
-          if (!overlayView?.votButton) {
-            return null;
-          }
-          const messageStr = Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage);
-          const cacheKey = `${lang2}:${messageStr}`;
-          const cached = this.errorTranslationCache.get(cacheKey);
-          if (cached) {
-            return cached;
-          }
-          overlayView.votButton.loading = true;
-          const translatedMessage = await translate(messageStr, "ru", lang2);
-          if (signal?.aborted) {
-            return null;
-          }
-          const translatedText = Array.isArray(translatedMessage) ? translatedMessage.join("\n") : String(translatedMessage);
-          this.errorTranslationCache.set(cacheKey, translatedText);
-          this.trimErrorTranslationCache();
-          return translatedText;
-        }
-        trimErrorTranslationCache() {
-          if (this.errorTranslationCache.size <= 50) {
-            return;
-          }
-          const oldestKey = this.errorTranslationCache.keys().next().value;
-          if (oldestKey) {
-            this.errorTranslationCache.delete(oldestKey);
           }
         }
 afterUpdateTranslation(audioUrl) {
@@ -28942,17 +27544,17 @@ async release() {
           this.uiManager.release();
         }
 collectReportInfo() {
-          const info2 = getEnvironmentInfo();
+          const info = getEnvironmentInfo();
           const detectedLanguage = this.videoData?.detectedLanguage ?? "unknown";
           const responseLanguage = this.videoData?.responseLanguage ?? "unknown";
           const additionalInfo = `<details>
 <summary>Autogenerated by VOT:</summary>
 <ul>
-  <li>OS: ${info2.os}</li>
-  <li>Browser: ${info2.browser}</li>
-  <li>Loader: ${info2.loader}</li>
-  <li>Script version: ${info2.scriptVersion}</li>
-  <li>URL: <code>${info2.url}</code></li>
+  <li>OS: ${info.os}</li>
+  <li>Browser: ${info.browser}</li>
+  <li>Loader: ${info.loader}</li>
+  <li>Script version: ${info.scriptVersion}</li>
+  <li>URL: <code>${info.url}</code></li>
   <li>Lang: <code>${detectedLanguage}</code> -> <code>${responseLanguage}</code> (Lively voice: ${this.data?.useLivelyVoice ?? false} | Audio download: ${this.data?.useAudioDownload ?? false})</li>
   <li>Player: ${this.data?.newAudioPlayer ? "New" : "Old"} (CSP only: ${this.data?.onlyBypassMediaCSP ?? false})</li>
   <li>Proxying mode: ${this.data?.translateProxyEnabled ?? 0}</li>
@@ -28962,8 +27564,8 @@ collectReportInfo() {
           return {
             assignees: "ilyhalight",
             template,
-            os: info2.os,
-            "script-version": info2.scriptVersion,
+            os: info.os,
+            "script-version": info.scriptVersion,
             "additional-info": additionalInfo
           };
         }
