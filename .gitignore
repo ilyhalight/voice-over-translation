@@ -147,3 +147,4 @@ dist/*.proxy.user.js
 .pnp.*
 
 .idea
+package-lock.json
