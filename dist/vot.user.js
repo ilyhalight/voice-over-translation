@@ -4527,7 +4527,7 @@ string() {
           host: ExtVideoService.udemy,
           url: "https://www.udemy.com/",
           match: /udemy.com$/,
-          selector: 'div[data-purpose="curriculum-item-viewer-content"] > section > div > div > div > div:nth-of-type(2)',
+          selector: ".shaka-video-container, [id^=\"shaka-video-container-\"]",
           needExtraData: true
         },
         {
