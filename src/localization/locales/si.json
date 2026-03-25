@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "ස්මාර්ට් උපසිරැසි සැකැස්ම",
   "smartDucking": "අනුවර්තන පරිමාව",
   "VOTAutoSubtitles": "විවෘත උපසිරැසි",
-  "VOTSubtitlesFont": "උපසිරැසි අකුරු"
+  "VOTSubtitlesFont": "උපසිරැසි අකුරු",
+  "VOTDefaultSubtitlesLanguage": "පෙරනිමි උපසිරැසි භාෂාව",
+  "VOTOriginalVideoLanguage": "මුල් වීඩියෝ භාෂාව"
 }

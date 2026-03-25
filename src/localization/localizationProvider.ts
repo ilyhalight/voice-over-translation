@@ -1,5 +1,5 @@
 import { contentUrl } from "../config/config";
-import type { FlatPhrases, Locale, Phrase } from "../types/localization";
+import type { FlatPhrases, LangOverride, Phrase } from "../types/localization";
 import type { LocaleStorageKey } from "../types/storage";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
@@ -8,7 +8,7 @@ import { votStorage } from "../utils/storage";
 import { getTimestamp, toFlatObj } from "../utils/utils";
 import rawDefaultLocale from "./locales/en.json";
 
-export type LangOverride = "auto" | Locale;
+export type { LangOverride } from "../types/localization";
 
 const LOCALE_STORAGE_KEYS: readonly LocaleStorageKey[] = [
   "localePhrases",
@@ -156,10 +156,6 @@ class LocalizationProvider {
       "",
     );
 
-    if (!force && storedLocaleVersion === runtimeLocaleVersion) {
-      return this;
-    }
-
     const hash = await this.checkUpdates(force);
     if (hash === null) {
       // Do not update localeUpdatedAt on transient failures.
@@ -168,6 +164,9 @@ class LocalizationProvider {
     }
 
     if (!hash) {
+      if (storedLocaleVersion !== runtimeLocaleVersion) {
+        await votStorage.set("localeVersion", runtimeLocaleVersion);
+      }
       return this;
     }
 
@@ -273,8 +272,9 @@ class LocalizationProvider {
 export const localizationProvider = new LocalizationProvider();
 /**
  * In the userscript build, SystemJS wrapping allowed a top-level await.
- * For the extension build we emit classic scripts (IIFE), so we must avoid
- * top-level await and instead expose an explicit lazy ready Promise.
+ * For the extension build we bootstrap through loader scripts and keep the
+ * runtime initialization explicit, so avoid top-level await and expose a lazy
+ * ready Promise instead.
  */
 let localizationProviderReadyPromise: Promise<LocalizationProvider> | null =
   null;

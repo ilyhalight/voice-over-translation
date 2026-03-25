@@ -1,12 +1,12 @@
-import debug from "../utils/debug";
-import { GM_fetch, isSupportGMXhr } from "../utils/gm";
 import {
   type BuiltInSubtitleFontFamily,
   type GoogleSubtitleFontFamily,
-  isBuiltInSubtitleFontFamily,
   type SubtitleFontFamily,
   subtitleFontFamilyCss,
-} from "./types";
+} from "../types/subtitles";
+import debug from "../utils/debug";
+import { GM_fetch, isSupportGMXhr } from "../utils/gm";
+import { isBuiltInSubtitleFontFamily } from "./types";
 
 const GOOGLE_SUBTITLE_FONT_PREFIX = "google:";
 const GOOGLE_FONTS_CSS_API_URL = "https://fonts.googleapis.com/css2";
@@ -35,7 +35,7 @@ type GoogleFontsMetadataResponse = {
 export function toGoogleSubtitleFontFamily(
   familyName: string,
 ): GoogleSubtitleFontFamily {
-  return `${GOOGLE_SUBTITLE_FONT_PREFIX}${familyName}` as GoogleSubtitleFontFamily;
+  return `${GOOGLE_SUBTITLE_FONT_PREFIX}${familyName}`;
 }
 
 export function getGoogleSubtitleFontFamilyName(

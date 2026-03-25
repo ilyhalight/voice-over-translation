@@ -1,5 +1,4 @@
 import type { SubtitlesData } from "@vot.js/shared/types/subs";
-import { buildStyledDisplayModel } from "./displayModel";
 import type {
   AssCueMetadata,
   AssDocumentMetadata,
@@ -9,7 +8,8 @@ import type {
   WebVttCueMetadata,
   WebVttDocumentBlock,
   WebVttDocumentMetadata,
-} from "./types";
+} from "../types/subtitles";
+import { buildStyledDisplayModel } from "./displayModel";
 
 const BOM = "\uFEFF";
 const ASS_OVERRIDE_TAG_RE = /\{[^}]*\}/gu;
@@ -26,6 +26,8 @@ type TimedCueDraft = {
 export type SubtitleSerializeOptions = {
   assTitle?: string;
 };
+
+type StyledCueMetadata = NonNullable<SubtitleLine["metadata"]>;
 
 const normalizeNewlines = (value: string): string =>
   value.replace(BOM, "").replaceAll(/\r\n?/gu, "\n");
@@ -87,11 +89,10 @@ const formatClockTime = (
     fractionDigits: number;
   },
 ): string => {
-  const safeMs = Math.max(0, Math.round(totalMs));
-  const hours = Math.floor(safeMs / 3_600_000);
-  const minutes = Math.floor((safeMs % 3_600_000) / 60_000);
-  const seconds = Math.floor((safeMs % 60_000) / 1000);
-  const milliseconds = safeMs % 1000;
+  const { hours, minutes, seconds, milliseconds } = splitTimestampParts(
+    totalMs,
+    Math.round,
+  );
   const fraction = milliseconds
     .toString()
     .padStart(3, "0")
@@ -107,12 +108,30 @@ const formatClockTime = (
     .padStart(2, "0")}${delimiter}${fraction}`;
 };
 
+const splitTimestampParts = (
+  totalMs: number,
+  normalizeMs: (value: number) => number,
+): {
+  hours: number;
+  minutes: number;
+  seconds: number;
+  milliseconds: number;
+} => {
+  const safeMs = Math.max(0, normalizeMs(totalMs));
+  return {
+    hours: Math.floor(safeMs / 3_600_000),
+    minutes: Math.floor((safeMs % 3_600_000) / 60_000),
+    seconds: Math.floor((safeMs % 60_000) / 1000),
+    milliseconds: safeMs % 1000,
+  };
+};
+
 const formatAssTime = (totalMs: number): string => {
-  const safeMs = Math.max(0, Math.round(totalMs));
-  const hours = Math.floor(safeMs / 3_600_000);
-  const minutes = Math.floor((safeMs % 3_600_000) / 60_000);
-  const seconds = Math.floor((safeMs % 60_000) / 1000);
-  const centiseconds = Math.floor((safeMs % 1000) / 10);
+  const { hours, minutes, seconds, milliseconds } = splitTimestampParts(
+    totalMs,
+    Math.round,
+  );
+  const centiseconds = Math.floor(milliseconds / 10);
   return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
     .toString()
     .padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
@@ -145,6 +164,12 @@ const parseAssTime = (value: string): number | null => {
 export const normalizeSubtitleTextForDisplay = (value: string): string =>
   buildStyledDisplayModel(value).text;
 
+const getSubtitleLineEndMs = (line: SubtitleLine): number =>
+  line.startMs + Math.max(0, line.durationMs);
+
+const getCueDurationMs = (startMs: number, endMs: number): number =>
+  Math.max(0, endMs - startMs);
+
 const toComparableSubtitleOrder = (
   subtitles: TimedCueDraft[],
 ): SubtitleLine[] =>
@@ -154,9 +179,7 @@ const toComparableSubtitleOrder = (
       if (startDiff !== 0) return startDiff;
 
       const endDiff =
-        left.line.startMs +
-        Math.max(0, left.line.durationMs) -
-        (right.line.startMs + Math.max(0, right.line.durationMs));
+        getSubtitleLineEndMs(left.line) - getSubtitleLineEndMs(right.line);
       if (endDiff !== 0) return endDiff;
 
       return left.index - right.index;
@@ -204,28 +227,328 @@ const extractVttVoice = (payload: string): string | undefined => {
   return voice ? voice : undefined;
 };
 
-const toSrtDisplayText = (payload: string): string =>
-  normalizeSubtitleTextForDisplay(payload);
+const isSrtCueStart = (lines: string[], index: number): boolean => {
+  const current = lines[index]?.trim() ?? "";
+  const next = lines[index + 1]?.trim() ?? "";
+  return (
+    SRT_TIMING_RE.test(current) ||
+    (/^\d+$/u.test(current) && SRT_TIMING_RE.test(next))
+  );
+};
 
-const toVttDisplayText = (payload: string): string =>
-  normalizeSubtitleTextForDisplay(payload);
+const getSrtTimingLineIndex = (lines: string[], cursor: number): number =>
+  /^\d+$/u.test(lines[cursor]?.trim() ?? "") &&
+  SRT_TIMING_RE.test(lines[cursor + 1]?.trim() ?? "")
+    ? cursor + 1
+    : cursor;
 
-const toAssDisplayText = (rawText: string): string =>
-  normalizeSubtitleTextForDisplay(rawText);
+const parseSrtTiming = (
+  lines: string[],
+  timingLineIndex: number,
+): { startMs: number; endMs: number } | null => {
+  const timingMatch = SRT_TIMING_RE.exec(lines[timingLineIndex]?.trim() ?? "");
+  if (!timingMatch?.groups) {
+    return null;
+  }
+
+  const startMs = parseClockTime(timingMatch.groups.start, 3);
+  const endMs = parseClockTime(timingMatch.groups.end, 3);
+  return startMs == null || endMs == null || endMs < startMs
+    ? null
+    : { startMs, endMs };
+};
+
+const readSrtPayload = (
+  lines: string[],
+  startCursor: number,
+): {
+  rawText: string;
+  nextCursor: number;
+} => {
+  let cursor = startCursor;
+  const payloadLines: string[] = [];
+
+  while (cursor < lines.length) {
+    if (lines[cursor].trim() === "") {
+      const nextCursor = cursor + 1;
+      if (isSrtCueStart(lines, nextCursor)) {
+        break;
+      }
+      cursor += 1;
+      continue;
+    }
+
+    if (payloadLines.length > 0 && isSrtCueStart(lines, cursor)) {
+      break;
+    }
+
+    payloadLines.push(lines[cursor]);
+    cursor += 1;
+  }
+
+  return {
+    rawText: trimEmptyBoundaryLines(payloadLines).join("\n"),
+    nextCursor: cursor,
+  };
+};
+
+const createStyledCueDraft = (
+  index: number,
+  {
+    rawText,
+    startMs,
+    endMs,
+    speakerId,
+    displayModel,
+    metadata,
+  }: {
+    rawText: string;
+    startMs: number;
+    endMs: number;
+    speakerId: string;
+    displayModel: ReturnType<typeof buildStyledDisplayModel>;
+    metadata?: Omit<StyledCueMetadata, "rawText" | "styledSpans">;
+  },
+): TimedCueDraft => ({
+  index,
+  line: {
+    text: displayModel.text,
+    startMs,
+    durationMs: getCueDurationMs(startMs, endMs),
+    speakerId,
+    tokens: [],
+    metadata: {
+      rawText,
+      styledSpans: displayModel.styledSpans,
+      ...metadata,
+    },
+  },
+});
+
+const createEmptyVttResult = (): ProcessedSubtitles => ({
+  format: "vtt",
+  subtitles: [],
+  metadata: {
+    vtt: {
+      headerText: "",
+      blocks: [],
+    },
+  },
+});
+
+const isWebVttDocumentBlock = (line: string): boolean =>
+  line.startsWith("NOTE") || line === "STYLE" || line === "REGION";
+
+const readVttBlockLines = (
+  lines: string[],
+  startCursor: number,
+): {
+  blockLines: string[];
+  nextCursor: number;
+} => {
+  const blockLines: string[] = [];
+  let cursor = startCursor;
+  while (cursor < lines.length && lines[cursor].trim() !== "") {
+    blockLines.push(lines[cursor]);
+    cursor += 1;
+  }
+
+  return { blockLines, nextCursor: cursor };
+};
+
+const resolveVttCueIdentity = (
+  lines: string[],
+  cursor: number,
+): {
+  cueId: string | undefined;
+  timingCursor: number;
+} => {
+  if (
+    !VTT_TIMING_RE.test(lines[cursor] ?? "") &&
+    VTT_TIMING_RE.test(lines[cursor + 1] ?? "")
+  ) {
+    return {
+      cueId: lines[cursor],
+      timingCursor: cursor + 1,
+    };
+  }
+
+  return {
+    cueId: undefined,
+    timingCursor: cursor,
+  };
+};
+
+const parseVttTiming = (
+  line: string,
+): {
+  startMs: number;
+  endMs: number;
+  settingsRaw: string;
+} | null => {
+  const timingMatch = VTT_TIMING_RE.exec(line);
+  if (!timingMatch?.groups) {
+    return null;
+  }
+
+  const startMs = parseClockTime(timingMatch.groups.start, 3);
+  const endMs = parseClockTime(timingMatch.groups.end, 3);
+  if (startMs == null || endMs == null || endMs < startMs) {
+    return null;
+  }
+
+  return {
+    startMs,
+    endMs,
+    settingsRaw: timingMatch.groups.settings ?? "",
+  };
+};
+
+const readVttPayloadLines = (
+  lines: string[],
+  startCursor: number,
+): {
+  payloadLines: string[];
+  nextCursor: number;
+} => {
+  const payloadLines: string[] = [];
+  let cursor = startCursor;
+  while (cursor < lines.length && lines[cursor].trim() !== "") {
+    payloadLines.push(lines[cursor]);
+    cursor += 1;
+  }
+
+  return { payloadLines, nextCursor: cursor };
+};
+
+const parseAssEventFormatFields = (formatLine: string): string[] =>
+  formatLine
+    .slice("Format:".length)
+    .split(",")
+    .map((field) => field.trim());
+
+const ensureAssEventFields = (
+  eventFields: string[],
+  metadata: AssDocumentMetadata,
+): string[] =>
+  eventFields.length || !metadata.eventFormat
+    ? eventFields
+    : parseAssEventFormatFields(metadata.eventFormat);
+
+const buildAssEventRecord = (
+  eventFields: string[],
+  value: string,
+): Record<string, string> => {
+  const values = splitAssFields(value, eventFields.length);
+  return Object.fromEntries(
+    eventFields.map((field, fieldIndex) => [field, values[fieldIndex] ?? ""]),
+  );
+};
+
+const applyAssStyleSectionLine = (
+  metadata: AssDocumentMetadata,
+  line: string,
+): void => {
+  if (line.startsWith("Format:")) {
+    metadata.styleFormat = line;
+    return;
+  }
+
+  if (line.startsWith("Style:")) {
+    metadata.styleLines.push(line);
+    return;
+  }
+
+  metadata.preEventLines.push(line);
+};
+
+const createAssCueDraft = (
+  index: number,
+  event: Record<string, string>,
+): TimedCueDraft | null => {
+  const startMs = parseAssTime(event.Start ?? "");
+  const endMs = parseAssTime(event.End ?? "");
+  if (startMs == null || endMs == null || endMs < startMs) {
+    return null;
+  }
+
+  const rawText = event.Text ?? "";
+  const displayModel = buildStyledDisplayModel(rawText);
+  const assMetadata: AssCueMetadata = {
+    kind: "dialogue",
+    layer: event.Layer ?? "0",
+    style: event.Style ?? "Default",
+    name: event.Name ?? "",
+    marginL: event.MarginL ?? "0",
+    marginR: event.MarginR ?? "0",
+    marginV: event.MarginV ?? "0",
+    effect: event.Effect ?? "",
+    rawText,
+    overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? [],
+  };
+
+  return {
+    index,
+    line: createStyledCueDraft(index, {
+      rawText,
+      startMs,
+      endMs,
+      speakerId: assMetadata.name || "0",
+      displayModel,
+      metadata: {
+        ass: assMetadata,
+      },
+    }).line,
+  };
+};
+
+const processAssEventLine = (
+  metadata: AssDocumentMetadata,
+  line: string,
+  index: number,
+  eventFields: string[],
+): {
+  eventFields: string[];
+  cue: TimedCueDraft | null;
+} => {
+  if (line.startsWith("Format:")) {
+    return {
+      eventFields: parseAssEventFormatFields(line),
+      cue: null,
+    };
+  }
+
+  if (!line.includes(":")) {
+    metadata.preEventLines.push(line);
+    return { eventFields, cue: null };
+  }
+
+  const separatorIndex = line.indexOf(":");
+  const kind = line.slice(0, separatorIndex).trim();
+  const value = line.slice(separatorIndex + 1).trim();
+  const resolvedEventFields = ensureAssEventFields(eventFields, metadata);
+  const event = buildAssEventRecord(resolvedEventFields, value);
+
+  if (kind === "Comment") {
+    metadata.commentLines.push(line);
+    return { eventFields: resolvedEventFields, cue: null };
+  }
+
+  if (kind !== "Dialogue") {
+    metadata.preEventLines.push(line);
+    return { eventFields: resolvedEventFields, cue: null };
+  }
+
+  return {
+    eventFields: resolvedEventFields,
+    cue: createAssCueDraft(index, event),
+  };
+};
 
 const parseSrt = (text: string): ProcessedSubtitles => {
   const normalized = normalizeNewlines(text);
   const lines = normalized.split("\n");
   const cues: TimedCueDraft[] = [];
-
-  const isSrtCueStart = (index: number): boolean => {
-    const current = lines[index]?.trim() ?? "";
-    const next = lines[index + 1]?.trim() ?? "";
-    return (
-      SRT_TIMING_RE.test(current) ||
-      (/^\d+$/u.test(current) && SRT_TIMING_RE.test(next))
-    );
-  };
 
   let cursor = 0;
   let cueIndex = 0;
@@ -235,66 +558,27 @@ const parseSrt = (text: string): ProcessedSubtitles => {
     }
     if (cursor >= lines.length) break;
 
-    let timingLineIndex = cursor;
-    if (
-      /^\d+$/u.test(lines[cursor].trim()) &&
-      SRT_TIMING_RE.test(lines[cursor + 1]?.trim() ?? "")
-    ) {
-      timingLineIndex = cursor + 1;
-    }
-
-    const timingMatch = SRT_TIMING_RE.exec(
-      lines[timingLineIndex]?.trim() ?? "",
-    );
-    if (!timingMatch?.groups) {
+    const timingLineIndex = getSrtTimingLineIndex(lines, cursor);
+    const timing = parseSrtTiming(lines, timingLineIndex);
+    if (!timing) {
       cursor += 1;
       continue;
     }
 
-    const startMs = parseClockTime(timingMatch.groups.start, 3);
-    const endMs = parseClockTime(timingMatch.groups.end, 3);
-    if (startMs == null || endMs == null || endMs < startMs) {
-      cursor = timingLineIndex + 1;
-      continue;
-    }
-
-    cursor = timingLineIndex + 1;
-    const payloadLines: string[] = [];
-    while (cursor < lines.length) {
-      if (lines[cursor].trim() === "") {
-        const nextCursor = cursor + 1;
-        if (isSrtCueStart(nextCursor)) {
-          break;
-        }
-        cursor += 1;
-        continue;
-      }
-
-      if (payloadLines.length > 0 && isSrtCueStart(cursor)) {
-        break;
-      }
-
-      payloadLines.push(lines[cursor]);
-      cursor += 1;
-    }
-
-    const rawText = trimEmptyBoundaryLines(payloadLines).join("\n");
+    const payload = readSrtPayload(lines, timingLineIndex + 1);
+    cursor = payload.nextCursor;
+    const rawText = payload.rawText;
     const displayModel = buildStyledDisplayModel(rawText);
 
-    cues.push({
-      index: cueIndex,
-      line: {
-        text: toSrtDisplayText(rawText),
-        startMs,
-        durationMs: Math.max(0, endMs - startMs),
+    cues.push(
+      createStyledCueDraft(cueIndex, {
+        rawText,
+        startMs: timing.startMs,
+        endMs: timing.endMs,
         speakerId: "0",
-        tokens: [],
-        metadata: {
-          rawText,
-          styledSpans: displayModel.styledSpans,
-        },
-      },
-    });
+        displayModel,
+      }),
+    );
     cueIndex += 1;
   }
 
@@ -322,7 +606,7 @@ const serializeSrt = (processed: ProcessedSubtitles): string =>
   processed.subtitles
     .map((line, index) => {
       const rawText = resolveSerializedText(processed, line, "srt");
-      const endMs = line.startMs + Math.max(0, line.durationMs);
+      const endMs = getSubtitleLineEndMs(line);
       return [
         String(index + 1),
         `${formatClockTime(line.startMs, {
@@ -355,16 +639,7 @@ const parseVtt = (text: string): ProcessedSubtitles => {
   const lines = normalized.split("\n");
   const headerLine = lines[0] ?? "";
   if (!headerLine.startsWith("WEBVTT")) {
-    return {
-      format: "vtt",
-      subtitles: [],
-      metadata: {
-        vtt: {
-          headerText: "",
-          blocks: [],
-        },
-      },
-    };
+    return createEmptyVttResult();
   }
 
   const metadata: WebVttDocumentMetadata = {
@@ -380,71 +655,43 @@ const parseVtt = (text: string): ProcessedSubtitles => {
     }
     if (cursor >= lines.length) break;
 
-    if (
-      lines[cursor].startsWith("NOTE") ||
-      lines[cursor] === "STYLE" ||
-      lines[cursor] === "REGION"
-    ) {
-      const blockLines: string[] = [];
-      while (cursor < lines.length && lines[cursor].trim() !== "") {
-        blockLines.push(lines[cursor]);
-        cursor += 1;
-      }
-      pushWebVttBlock(metadata.blocks, cues.length, blockLines);
+    if (isWebVttDocumentBlock(lines[cursor])) {
+      const block = readVttBlockLines(lines, cursor);
+      cursor = block.nextCursor;
+      pushWebVttBlock(metadata.blocks, cues.length, block.blockLines);
       continue;
     }
 
-    let cueId: string | undefined;
-    if (
-      !VTT_TIMING_RE.test(lines[cursor] ?? "") &&
-      VTT_TIMING_RE.test(lines[cursor + 1] ?? "")
-    ) {
-      cueId = lines[cursor];
-      cursor += 1;
-    }
-
-    const timingMatch = VTT_TIMING_RE.exec(lines[cursor] ?? "");
-    if (!timingMatch?.groups) {
+    const identity = resolveVttCueIdentity(lines, cursor);
+    const timing = parseVttTiming(lines[identity.timingCursor] ?? "");
+    if (!timing) {
       cursor += 1;
       continue;
     }
 
-    const startMs = parseClockTime(timingMatch.groups.start, 3);
-    const endMs = parseClockTime(timingMatch.groups.end, 3);
-    if (startMs == null || endMs == null || endMs < startMs) {
-      cursor += 1;
-      continue;
-    }
-
-    cursor += 1;
-    const payloadLines: string[] = [];
-    while (cursor < lines.length && lines[cursor].trim() !== "") {
-      payloadLines.push(lines[cursor]);
-      cursor += 1;
-    }
-
+    const payload = readVttPayloadLines(lines, identity.timingCursor + 1);
+    cursor = payload.nextCursor;
+    const payloadLines = payload.payloadLines;
     const rawText = payloadLines.join("\n");
     const displayModel = buildStyledDisplayModel(rawText);
     const voice = extractVttVoice(rawText);
     cues.push({
       index: cues.length,
-      line: {
-        text: toVttDisplayText(rawText),
-        startMs,
-        durationMs: Math.max(0, endMs - startMs),
+      line: createStyledCueDraft(cues.length, {
+        rawText,
+        startMs: timing.startMs,
+        endMs: timing.endMs,
         speakerId: voice ?? "0",
-        tokens: [],
+        displayModel,
         metadata: {
-          rawText,
-          styledSpans: displayModel.styledSpans,
           vtt: {
-            cueId,
-            settings: parseCueSettings(timingMatch.groups.settings ?? ""),
+            cueId: identity.cueId,
+            settings: parseCueSettings(timing.settingsRaw),
             voice,
             rawPayload: payloadLines,
           },
         },
-      },
+      }).line,
     });
   }
 
@@ -458,8 +705,9 @@ const parseVtt = (text: string): ProcessedSubtitles => {
 };
 
 const serializeVttTiming = (line: SubtitleLine): string => {
-  const endMs = line.startMs + Math.max(0, line.durationMs);
+  const endMs = getSubtitleLineEndMs(line);
   const settings = line.metadata?.vtt?.settings?.raw;
+  const settingsSuffix = settings ? ` ${settings}` : "";
   return `${formatClockTime(line.startMs, {
     delimiter: ".",
     allowOptionalHours: true,
@@ -468,14 +716,13 @@ const serializeVttTiming = (line: SubtitleLine): string => {
     delimiter: ".",
     allowOptionalHours: true,
     fractionDigits: 3,
-  })}${settings ? ` ${settings}` : ""}`;
+  })}${settingsSuffix}`;
 };
 
 const serializeVtt = (processed: ProcessedSubtitles): string => {
   const metadata = processed.metadata?.vtt;
-  const sections: string[] = [
-    `WEBVTT${metadata?.headerText ? ` ${metadata.headerText}` : ""}`,
-  ];
+  const headerSuffix = metadata?.headerText ? ` ${metadata.headerText}` : "";
+  const sections: string[] = [`WEBVTT${headerSuffix}`];
 
   const blocksByIndex = new Map<number, string[][]>();
   for (const block of metadata?.blocks ?? []) {
@@ -582,97 +829,20 @@ const parseAss = (text: string): ProcessedSubtitles => {
     }
 
     if (currentSection === "V4+ Styles" || currentSection === "V4 Styles") {
-      if (line.startsWith("Format:")) {
-        metadata.styleFormat = line;
-        return;
-      }
-      if (line.startsWith("Style:")) {
-        metadata.styleLines.push(line);
-        return;
-      }
-      metadata.preEventLines.push(line);
+      applyAssStyleSectionLine(metadata, line);
       return;
     }
 
     if (currentSection === "Events") {
       if (line.startsWith("Format:")) {
         metadata.eventFormat = line;
-        eventFields = line
-          .slice("Format:".length)
-          .split(",")
-          .map((field) => field.trim());
-        return;
       }
 
-      if (!line.includes(":")) {
-        metadata.preEventLines.push(line);
-        return;
+      const result = processAssEventLine(metadata, line, index, eventFields);
+      eventFields = result.eventFields;
+      if (result.cue) {
+        cues.push(result.cue);
       }
-
-      const separatorIndex = line.indexOf(":");
-      const kind = line.slice(0, separatorIndex).trim();
-      const value = line.slice(separatorIndex + 1).trim();
-      if (!eventFields.length && metadata.eventFormat) {
-        eventFields = metadata.eventFormat
-          .slice("Format:".length)
-          .split(",")
-          .map((field) => field.trim());
-      }
-
-      const values = splitAssFields(value, eventFields.length);
-      const event = Object.fromEntries(
-        eventFields.map((field, fieldIndex) => [
-          field,
-          values[fieldIndex] ?? "",
-        ]),
-      );
-
-      if (kind === "Comment") {
-        metadata.commentLines.push(line);
-        return;
-      }
-
-      if (kind !== "Dialogue") {
-        metadata.preEventLines.push(line);
-        return;
-      }
-
-      const startMs = parseAssTime(event.Start ?? "");
-      const endMs = parseAssTime(event.End ?? "");
-      if (startMs == null || endMs == null || endMs < startMs) {
-        return;
-      }
-
-      const rawText = event.Text ?? "";
-      const displayModel = buildStyledDisplayModel(rawText);
-      const assMetadata: AssCueMetadata = {
-        kind: "dialogue",
-        layer: event.Layer ?? "0",
-        style: event.Style ?? "Default",
-        name: event.Name ?? "",
-        marginL: event.MarginL ?? "0",
-        marginR: event.MarginR ?? "0",
-        marginV: event.MarginV ?? "0",
-        effect: event.Effect ?? "",
-        rawText,
-        overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? [],
-      };
-
-      cues.push({
-        index,
-        line: {
-          text: toAssDisplayText(rawText),
-          startMs,
-          durationMs: Math.max(0, endMs - startMs),
-          speakerId: assMetadata.name || "0",
-          tokens: [],
-          metadata: {
-            rawText,
-            styledSpans: displayModel.styledSpans,
-            ass: assMetadata,
-          },
-        },
-      });
     }
   });
 
@@ -687,7 +857,7 @@ const parseAss = (text: string): ProcessedSubtitles => {
 
 const serializeAssDialogue = (line: SubtitleLine): string => {
   const ass = line.metadata?.ass;
-  const endMs = line.startMs + Math.max(0, line.durationMs);
+  const endMs = getSubtitleLineEndMs(line);
   const rawText =
     ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", "\\N");
   return [

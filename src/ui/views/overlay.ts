@@ -42,6 +42,7 @@ export class OverlayView {
   private dragStartX = 0;
   private dragStartY = 0;
   private currentClientX = 0;
+  private activePointerId: number | null = null;
   private readonly dragThresholdPx = 6;
   private containerRect: DOMRect | null = null;
   private dragIsBigContainer: boolean | null = null;
@@ -383,7 +384,8 @@ export class OverlayView {
     this.translationVolumeSlider = new Slider({
       labelHtml: this.translationVolumeSliderLabel.container,
       value: defaultVolume,
-      max: this.data.audioBooster ? maxAudioVolume : 100,
+      max:
+        this.data.audioBooster && !this.data.syncVolume ? maxAudioVolume : 100,
     });
     this.translationVolumeSlider.hidden = this.votButton.status !== "success";
 
@@ -516,11 +518,8 @@ export class OverlayView {
     );
 
     // #region [Events] VOT Button Dragging
-    // Enable cross-platform dragging:
-    // - Pointer Events on desktop/pen
-    // - Touch Events fallback on mobile
-    // Also set `touch-action: none` so browsers don't treat the gesture as a
-    // scroll/pinch action.
+    // Pointer capture keeps drag updates routed to the button even when the
+    // pointer leaves the overlay bounds.
     const touchAction = "none";
     this.votButton.container.style.touchAction = touchAction;
     // `touch-action` is not inherited, so ensure child segments are also covered.
@@ -532,9 +531,22 @@ export class OverlayView {
       signal,
     });
     this.votButton.container.addEventListener(
-      "touchstart",
-      this.onTouchDragStart,
-      { signal, passive: false },
+      "pointermove",
+      this.onPointerMove,
+      {
+        signal,
+      },
+    );
+    this.votButton.container.addEventListener("pointerup", this.onDragEnd, {
+      signal,
+    });
+    this.votButton.container.addEventListener("pointercancel", this.onDragEnd, {
+      signal,
+    });
+    this.votButton.container.addEventListener(
+      "lostpointercapture",
+      this.onDragEnd,
+      { signal },
     );
 
     // #endregion [Events] VOT Button Dragging
@@ -715,10 +727,18 @@ export class OverlayView {
         return;
       }
 
+      const subtitleLanguage = this.videoHandler.getPreferredSubtitlesLanguage(
+        this.videoHandler.videoData.detectedLanguage,
+        this.videoHandler.videoData.responseLanguage,
+      );
+      if (!subtitleLanguage) {
+        return;
+      }
+
       const cacheKey = this.videoHandler.getSubtitlesCacheKey(
         this.videoHandler.videoData.videoId,
         this.videoHandler.videoData.detectedLanguage,
-        this.videoHandler.videoData.responseLanguage,
+        subtitleLanguage,
       );
       if (this.videoHandler.subtitlesCacheKey === cacheKey) {
         return;
@@ -872,58 +892,38 @@ export class OverlayView {
 
   onDragStart = (event: PointerEvent) => {
     // Only start drag on the primary pointer and the "primary" button.
-    // (For touch pointers, `button` is 0.)
     if (!event.isPrimary || event.button !== 0) return;
 
-    // On touch devices we prefer Touch Events for dragging (better compatibility
-    // with browser gesture handling and passive listener defaults).
-    if (event.pointerType === "touch") return;
-
     event.preventDefault();
+    this.activePointerId = event.pointerId;
 
     this.startDragSession(event.clientX, event.clientY, "overlay-pointer-down");
-
-    document.addEventListener("pointermove", this.onGlobalPointerMove, {
-      passive: true,
-    });
-    document.addEventListener("pointerup", this.onDragEnd);
-    document.addEventListener("pointercancel", this.onDragEnd);
   };
 
-  // Touch fallback for browsers/environments that don't deliver Pointer Events
-  // reliably on mobile. We only use the first active touch.
-  onTouchDragStart = (event: TouchEvent) => {
-    if (!event.touches || event.touches.length === 0) return;
-
-    const touch = event.touches[0];
-    this.startDragSession(touch.clientX, touch.clientY, "overlay-touch-start");
-
-    // Register non-passive move listener so we can call preventDefault()
-    // once we detect an actual drag.
-    document.addEventListener("touchmove", this.onGlobalTouchMove, {
-      passive: false,
-    });
-    document.addEventListener("touchend", this.onDragEnd);
-    document.addEventListener("touchcancel", this.onDragEnd);
-  };
-
-  onGlobalTouchMove = (event: TouchEvent) => {
-    if (!event.touches || event.touches.length === 0) return;
-    const t = event.touches[0];
-    this.updateDragFromMove(t.clientX, t.clientY, "overlay-touch-move");
-
-    // Only prevent page scrolling once we're sure the user is dragging.
-    if (this.dragging) {
-      event.preventDefault();
+  onPointerMove = (event: PointerEvent) => {
+    if (this.activePointerId !== event.pointerId) {
+      return;
     }
-  };
 
-  onGlobalPointerMove = (event: PointerEvent) => {
+    const wasDragging = this.dragging;
+
     this.updateDragFromMove(
       event.clientX,
       event.clientY,
       "overlay-pointer-move",
     );
+
+    if (!wasDragging && this.dragging) {
+      try {
+        this.votButton?.container.setPointerCapture(event.pointerId);
+      } catch {
+        // ignore; drag still works via regular pointer events
+      }
+    }
+
+    if (this.dragging) {
+      event.preventDefault();
+    }
   };
 
   private readonly applyDragFromState = () => {
@@ -946,14 +946,26 @@ export class OverlayView {
     this.applyDragFromState();
   };
 
-  onDragEnd = () => {
-    document.removeEventListener("pointermove", this.onGlobalPointerMove);
-    document.removeEventListener("pointerup", this.onDragEnd);
-    document.removeEventListener("pointercancel", this.onDragEnd);
+  onDragEnd = (event?: PointerEvent) => {
+    if (
+      event &&
+      this.activePointerId !== null &&
+      event.pointerId !== this.activePointerId
+    ) {
+      return;
+    }
 
-    document.removeEventListener("touchmove", this.onGlobalTouchMove);
-    document.removeEventListener("touchend", this.onDragEnd);
-    document.removeEventListener("touchcancel", this.onDragEnd);
+    const pointerId = this.activePointerId;
+    if (pointerId !== null) {
+      try {
+        if (this.votButton?.container.hasPointerCapture(pointerId)) {
+          this.votButton.container.releasePointerCapture(pointerId);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     this.applyDragFromState();
 
     const isBigContainer = this.dragIsBigContainer ?? this.isBigContainer;
@@ -966,6 +978,7 @@ export class OverlayView {
     this.dragDirty = false;
     this.containerRect = null;
     this.dragIsBigContainer = null;
+    this.activePointerId = null;
   };
 
   updateButtonOpacity(opacity: number) {

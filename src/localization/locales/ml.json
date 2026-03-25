@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "സ്മാർട്ട് സബ്ടൈറ്റിൽ ലേഔട്ട്",
   "smartDucking": "അഡാപ്റ്റീവ് വോള്യം",
   "VOTAutoSubtitles": "സബ്ടൈറ്റിലുകൾ ഓപ്പൺ",
-  "VOTSubtitlesFont": "സബ്ടൈറ്റില് അക്ഷരസഞ്ചയം"
+  "VOTSubtitlesFont": "സബ്ടൈറ്റില് അക്ഷരസഞ്ചയം",
+  "VOTDefaultSubtitlesLanguage": "സ്വതവേയുള്ള സബ്ടൈറ്റില് ഭാഷ",
+  "VOTOriginalVideoLanguage": "യഥാർത്ഥ വീഡിയോ ഭാഷ"
 }

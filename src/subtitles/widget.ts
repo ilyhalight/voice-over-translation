@@ -1,67 +1,55 @@
-import { html, render, type TemplateResult } from "lit-html";
+import { html, nothing, render, type TemplateResult } from "lit-html";
 import { defaultTranslationService } from "../config/config";
 import { localizationProvider } from "../localization/localizationProvider";
+import type {
+  ProcessedSubtitles,
+  SubtitleFontFamily,
+  SubtitleInlineStyle,
+  SubtitleLine,
+  SubtitlePositionPreset,
+  SubtitleToken,
+} from "../types/subtitles";
 import UI from "../ui";
 import Tooltip from "../ui/components/tooltip";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import { translate } from "../utils/translateApis";
+import { buildActiveSubtitleRenderLine } from "./activeCues";
 import {
   ensureGoogleSubtitleFontLoaded,
   getSubtitleFontFamilyCssValue,
 } from "./fonts";
 import { FullscreenLayerController } from "./fullscreenLayerController";
-import { findActiveSubtitleLineIndex, isTimeInLine } from "./layoutController";
+import { buildSubtitleInlineStyleCssText } from "./inlineStyle";
 import {
+  type CapturedVerticalAnchorState,
+  captureCustomVerticalAnchorState,
   clampAnchorWithinBox,
   clampToRange,
   hasDragThresholdBeenExceeded,
+  resolveCustomVerticalAnchor,
   snapValueToNearestCandidate,
 } from "./positionController";
-import { buildSubtitleRenderPlan } from "./renderPlan";
+import {
+  buildSubtitleRenderPlan,
+  type SubtitleRenderPlanPart,
+} from "./renderPlan";
 import {
   computeSmartLayoutForBox as computeSmartLayoutForBoxUtil,
   type SmartCssMetrics,
 } from "./smartLayout";
 import {
   buildWordSlices,
-  computeBalancedBreaks as computeBalancedBreaksUtil,
+  computeTokenWrapPlan as computeTokenWrapPlanUtil,
   computeTwoLineSegments as computeTwoLineSegmentsUtil,
-  getWordRangeWidth,
+  type LineMeasureMemo,
   measureWordSlices,
-  resolveStrictTwoLineLayout,
-  type SegmentWord,
   type TimedTokenSegment,
-  type WordMetrics,
-  type WordSlice,
+  type TokenPrecomputeInput,
+  type TokenPrecomputeMemo,
+  type TokenProcessingMemo,
 } from "./smartWrap";
-import type {
-  ProcessedSubtitles,
-  SubtitleFontFamily,
-  SubtitleLine,
-  SubtitlePositionPreset,
-  SubtitleToken,
-} from "./types";
 
-type TokenProcessingMemo = {
-  key: string;
-  segmentRanges: TimedTokenSegment[];
-};
-type TokenPrecomputeInput = {
-  words: SegmentWord[];
-  wordSlices: WordSlice[];
-  normalizedWordsKey: string;
-};
-type TokenPrecomputeMemo = {
-  tokens: SubtitleToken[];
-  value: TokenPrecomputeInput;
-};
-type LineMeasureMemo = {
-  key: string;
-  words: SegmentWord[];
-  metrics: WordMetrics;
-  maxWidthPx: number;
-};
 type DraggingState = {
   /** active pointer id while the pointer is down inside the subtitles */
   pointerId: number | null;
@@ -117,27 +105,26 @@ export class SubtitlesWidget {
   private tooltipLayoutRoot?: HTMLElement;
   private subtitlesContainer: HTMLElement | null = null;
   private subtitlesBlock: HTMLElement | null = null;
-  private renderedTokenEls: HTMLSpanElement[] = [];
+  private renderedHighlightEls: HTMLSpanElement[] = [];
   private readonly passedFlagsBuffer: boolean[] = [];
   private subtitles: ProcessedSubtitles | null = null;
   private subtitleLang?: string;
   private lastRenderKey: string | null = null;
-  private lastActiveLineIndex: number | null = null;
+  private lastActiveLineKey: string | null = null;
+  private maxActiveCueLookbackMs = 0;
   private highlightWords = false;
   private fontSize = 20;
   private fontSizeOverridden = false;
   private fontFamily: SubtitleFontFamily = "default-sans";
-  private manualMaxLength = 300;
+  private maxLength = 300;
   private smartLayoutEnabled = true;
   private smartFontSizePx = 0;
   private smartMaxWidthPx = 0;
-  private smartMaxLength = 0;
   private smartAnchorWidthPx = 0;
   private smartAnchorHeightPx = 0;
   private lastSmartLayoutKey: string | null = null;
   private lastSmartLayoutCheckTs = 0;
   private opacity = "0.2";
-  private maxLength = 300;
   private repositionPending = false;
   private positionRefreshPending = false;
   private updatePending = false;
@@ -146,13 +133,13 @@ export class SubtitlesWidget {
   private readonly updateMinIntervalHighlightMs = 33;
   private readonly useVideoFrameCallbacks: boolean;
   private videoFrameRequestId: number | null = null;
+  private lastPlaybackTimeMs: number | null = null;
   private dragDocListenersAttached = false;
   private lastPositionRefreshTs = 0;
   private readonly positionRefreshIntervalMs = 250;
   private subtitleMaxWidthPx = 0;
   private breakAfterTokenIndices: number[] = [];
   private breakAfterTokenIndexSet: Set<number> | null = null;
-  private smartTruncateAfterTokenIndex: number | null = null;
   private wrapPending = false;
   private lastWrapKey: string | null = null;
   private lastWrapTokens: SubtitleToken[] | null = null;
@@ -168,6 +155,7 @@ export class SubtitlesWidget {
     left: 50,
     top: 100,
   };
+  private customVerticalAnchorState: CapturedVerticalAnchorState | null = null;
   private positionPreset: SubtitlePositionPreset = "bottom-center";
   private readonly dragging: DraggingState = {
     pointerId: null,
@@ -224,7 +212,6 @@ export class SubtitlesWidget {
   private readonly onPointerDownBound: (event: PointerEvent) => void;
   private readonly onPointerUpBound: (event: PointerEvent) => void;
   private readonly onPointerMoveBound: (event: PointerEvent) => void;
-  private readonly onTimeUpdateBound: () => void;
   private readonly onPlaybackStateChangeBound: () => void;
   private readonly onVisualViewportChangeBound: () => void;
   constructor(
@@ -247,7 +234,6 @@ export class SubtitlesWidget {
     this.onPointerDownBound = (event) => this.onPointerDown(event);
     this.onPointerUpBound = (event) => this.onPointerUp(event);
     this.onPointerMoveBound = (event) => this.onPointerMove(event);
-    this.onTimeUpdateBound = () => this.requestUpdate();
     this.onPlaybackStateChangeBound = () => this.handlePlaybackStateChange();
     this.onVisualViewportChangeBound = () => this.scheduleReposition();
     this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
@@ -300,7 +286,6 @@ export class SubtitlesWidget {
   }
   private resetWrapMemo(): void {
     this.setBreakAfterTokenIndices([]);
-    this.smartTruncateAfterTokenIndex = null;
     this.lastWrapKey = null;
   }
   private resetRenderMemo(): void {
@@ -359,37 +344,34 @@ export class SubtitlesWidget {
     return { fontSizePx, maxWidthPx };
   }
   private ensureSmartLayout(anchorBox: AnchorBoxLayout): {
-    maxLength: number;
+    maxWidthPx: number | null;
   } | null {
     if (!this.smartLayoutEnabled) {
-      this.maxLength = this.manualMaxLength;
       return null;
     }
     const cssMetrics = this.readSmartCssMetrics();
     const nextFontSizePx = cssMetrics?.fontSizePx ?? this.smartFontSizePx;
-    const nextMaxWidthPx = cssMetrics?.maxWidthPx ?? this.smartMaxWidthPx;
     const next = computeSmartLayoutForBoxUtil(anchorBox, cssMetrics);
+    const nextMaxWidthPx = next.maxWidthPx ?? this.smartMaxWidthPx;
     const nextKey = `${Math.round(nextFontSizePx)}|${Math.round(
       nextMaxWidthPx,
-    )}|${next.maxLength}`;
+    )}|${Math.round(next.maxWidthPx ?? 0)}`;
     const fontChanged = Math.abs(nextFontSizePx - this.smartFontSizePx) > 0.5;
     const widthChanged = Math.abs(nextMaxWidthPx - this.smartMaxWidthPx) > 0.5;
-    const lengthChanged = next.maxLength !== this.smartMaxLength;
     if (nextKey !== this.lastSmartLayoutKey) {
       this.lastSmartLayoutKey = nextKey;
       this.smartFontSizePx = nextFontSizePx;
       this.smartMaxWidthPx = nextMaxWidthPx;
-      this.smartMaxLength = next.maxLength;
-    }
-    if (lengthChanged) {
-      this.maxLength = next.maxLength;
       this.resetRenderMemo();
-      this.resetSegmentationMemo();
     }
+    this.setSubtitlesContainerVar(
+      "--vot-subtitles-max-width",
+      next.maxWidthPx && next.maxWidthPx > 0 ? `${next.maxWidthPx}px` : null,
+    );
     if ((fontChanged || widthChanged) && this.lastWrapTokens) {
       this.lastWrapKey = null;
-      this.scheduleWrapRecompute();
       this.resetSegmentationMemo();
+      this.scheduleWrapRecompute();
     }
     return next;
   }
@@ -587,14 +569,31 @@ export class SubtitlesWidget {
       ? this.updateMinIntervalHighlightMs
       : this.updateMinIntervalMs;
   }
-  private requestUpdate(now: number = performance.now()): void {
+  private requestUpdate(
+    playbackTimeMs?: number,
+    now: number = performance.now(),
+  ): void {
     if (this.abortController.signal.aborted) return;
     if (!this.subtitles) return;
+    if (typeof playbackTimeMs === "number" && Number.isFinite(playbackTimeMs)) {
+      this.lastPlaybackTimeMs = Math.max(0, playbackTimeMs);
+    } else if (this.video) {
+      this.lastPlaybackTimeMs = Math.max(0, this.video.currentTime * 1000);
+    }
     const minInterval = this.getUpdateMinIntervalMs();
     if (now - this.lastUpdateRequestTs < minInterval) return;
     this.lastUpdateRequestTs = now;
     this.updatePending = true;
     this.intervalIdleChecker.requestImmediateTick();
+  }
+  private resolvePlaybackTimeMs(): number {
+    if (
+      typeof this.lastPlaybackTimeMs === "number" &&
+      Number.isFinite(this.lastPlaybackTimeMs)
+    ) {
+      return this.lastPlaybackTimeMs;
+    }
+    return this.video ? Math.max(0, this.video.currentTime * 1000) : 0;
   }
   private handlePlaybackStateChange(): void {
     if (!this.subtitles) {
@@ -602,7 +601,9 @@ export class SubtitlesWidget {
       return;
     }
     this.scheduleReposition();
-    this.requestUpdate();
+    this.requestUpdate(
+      this.video ? Math.max(0, this.video.currentTime * 1000) : 0,
+    );
     this.syncVideoFrameLoop();
   }
   private syncVideoFrameLoop(): void {
@@ -636,14 +637,19 @@ export class SubtitlesWidget {
   }
   private readonly onVideoFrame = (
     now: DOMHighResTimeStamp,
-    _metadata: VideoFrameCallbackMetadata,
+    metadata: VideoFrameCallbackMetadata,
   ): void => {
     this.videoFrameRequestId = null;
     if (this.abortController.signal.aborted) return;
     const video = this.video;
     if (!video || video.paused || video.ended) return;
     if (!this.subtitles) return;
-    this.requestUpdate(now);
+    const playbackTimeMs =
+      typeof metadata.mediaTime === "number" &&
+      Number.isFinite(metadata.mediaTime)
+        ? metadata.mediaTime * 1000
+        : undefined;
+    this.requestUpdate(playbackTimeMs, now);
     this.startVideoFrameLoop();
   };
   private onCheckerTick(): void {
@@ -926,6 +932,12 @@ export class SubtitlesWidget {
       bottomInset,
     }));
     this.positionPreset = "custom";
+    this.customVerticalAnchorState = captureCustomVerticalAnchorState({
+      anchorY,
+      elementHeight: elH,
+      boxHeight: anchorBox.h,
+      bottomInset,
+    });
     this.position.left = (anchorX / anchorBox.w) * 100;
     this.position.top = (anchorY / anchorBox.h) * 100;
     this.updateSnapGuides(anchorBox, {
@@ -949,6 +961,40 @@ export class SubtitlesWidget {
   ): void {
     const subtitlesContainer = this.subtitlesContainer;
     if (!subtitlesContainer) return;
+    this.applyScaleCompensation(subtitlesContainer, layout);
+    this.syncAnchorDimensions(subtitlesContainer, anchorBox);
+    if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
+    const elW = subtitlesContainer.offsetWidth;
+    const elH = subtitlesContainer.offsetHeight;
+    const bottomInset = this.getBottomInsetPx(layout, anchorBox);
+    const anchorPosition = this.resolveCurrentAnchorPosition(
+      anchorBox,
+      elW,
+      elH,
+      bottomInset,
+    );
+    const containerPosition = this.clampContainerPosition(
+      anchorBox,
+      anchorPosition.anchorX,
+      anchorPosition.anchorY,
+      elW,
+      elH,
+      bottomInset,
+    );
+    const anchorX = containerPosition.anchorX;
+    const anchorY = containerPosition.anchorY;
+    const containerAnchorX = anchorBox.left + anchorX;
+    const containerAnchorY = anchorBox.top + anchorY;
+    const leftPct = (containerAnchorX / layout.w) * 100;
+    const topPct = (containerAnchorY / layout.h) * 100;
+    this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
+    this.tokenTooltip?.updatePos();
+  }
+
+  private applyScaleCompensation(
+    subtitlesContainer: HTMLElement,
+    layout: LayoutMetrics,
+  ): void {
     const visualScale = Math.min(layout.scaleX || 1, layout.scaleY || 1);
     const compensate =
       visualScale > 0 && visualScale < 0.999 ? Math.min(1 / visualScale, 3) : 1;
@@ -956,77 +1002,108 @@ export class SubtitlesWidget {
       subtitlesContainer.style.removeProperty(
         "--vot-subtitles-scale-compensation",
       );
-    } else {
-      subtitlesContainer.style.setProperty(
-        "--vot-subtitles-scale-compensation",
-        compensate.toFixed(3),
-      );
+      return;
     }
+
+    subtitlesContainer.style.setProperty(
+      "--vot-subtitles-scale-compensation",
+      compensate.toFixed(3),
+    );
+  }
+
+  private syncAnchorDimensions(
+    subtitlesContainer: HTMLElement,
+    anchorBox: AnchorBoxLayout,
+  ): void {
     const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
     const anchorHeightPx = Math.max(1, Math.round(anchorBox.h));
     const anchorDimsChanged =
       anchorWidthPx !== this.smartAnchorWidthPx ||
       anchorHeightPx !== this.smartAnchorHeightPx;
-    if (anchorDimsChanged) {
-      this.smartAnchorWidthPx = anchorWidthPx;
-      this.smartAnchorHeightPx = anchorHeightPx;
-      subtitlesContainer.style.setProperty(
-        "--vot-subtitles-anchor-width",
-        `${anchorWidthPx}px`,
-      );
-      subtitlesContainer.style.setProperty(
-        "--vot-subtitles-anchor-height",
-        `${anchorHeightPx}px`,
-      );
-      if (this.lastWrapTokens) {
-        this.lastWrapKey = null;
-        this.resetSegmentationMemo();
-        this.scheduleWrapRecompute();
-      }
+    if (!anchorDimsChanged) {
+      return;
     }
-    if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
-    const elW = subtitlesContainer.offsetWidth;
-    const elH = subtitlesContainer.offsetHeight;
-    const bottomInset = this.getBottomInsetPx(layout, anchorBox);
+
+    this.smartAnchorWidthPx = anchorWidthPx;
+    this.smartAnchorHeightPx = anchorHeightPx;
+    subtitlesContainer.style.setProperty(
+      "--vot-subtitles-anchor-width",
+      `${anchorWidthPx}px`,
+    );
+    subtitlesContainer.style.setProperty(
+      "--vot-subtitles-anchor-height",
+      `${anchorHeightPx}px`,
+    );
+    if (this.lastWrapTokens) {
+      this.lastWrapKey = null;
+      this.resetSegmentationMemo();
+      this.scheduleWrapRecompute();
+    }
+  }
+
+  private resolveCurrentAnchorPosition(
+    anchorBox: AnchorBoxLayout,
+    elementWidth: number,
+    elementHeight: number,
+    bottomInset: number,
+  ): { anchorX: number; anchorY: number } {
     let anchorX = (this.position.left / 100) * anchorBox.w;
     let anchorY = (this.position.top / 100) * anchorBox.h;
-    if (this.positionPreset !== "custom") {
-      const presetPosition = this.resolvePresetAnchorPosition({
-        preset: this.positionPreset,
-        anchorBox,
-        elementWidth: elW,
-        elementHeight: elH,
+    if (this.positionPreset === "custom") {
+      anchorY = resolveCustomVerticalAnchor({
+        state: this.customVerticalAnchorState,
+        elementHeight,
+        boxHeight: anchorBox.h,
         bottomInset,
       });
-      anchorX = presetPosition.anchorX;
-      anchorY = presetPosition.anchorY;
-      if (anchorBox.w > 0) {
-        this.position.left = (anchorX / anchorBox.w) * 100;
-      }
-      if (anchorBox.h > 0) {
-        this.position.top = (anchorY / anchorBox.h) * 100;
-      }
+      return { anchorX, anchorY };
     }
-    let leftPx = anchorX - elW / 2;
-    let topPx = anchorY - elH;
-    const maxLeftPx = anchorBox.w - elW;
-    const maxTopPx = anchorBox.h - bottomInset - elH;
-    if (maxLeftPx >= 0) {
-      leftPx = clampToRange(leftPx, 0, maxLeftPx);
-    } else {
-      leftPx = maxLeftPx / 2;
+
+    const presetPosition = this.resolvePresetAnchorPosition({
+      preset: this.positionPreset,
+      anchorBox,
+      elementWidth,
+      elementHeight,
+      bottomInset,
+    });
+    anchorX = presetPosition.anchorX;
+    anchorY = presetPosition.anchorY;
+    if (anchorBox.w > 0) {
+      this.position.left = (anchorX / anchorBox.w) * 100;
     }
-    if (maxTopPx >= 0) {
-      topPx = clampToRange(topPx, 0, maxTopPx);
-    } else {
-      topPx = 0;
+    if (anchorBox.h > 0) {
+      this.position.top = (anchorY / anchorBox.h) * 100;
     }
-    anchorX = leftPx + elW / 2;
-    anchorY = topPx + elH;
-    const containerAnchorX = anchorBox.left + anchorX;
-    const containerAnchorY = anchorBox.top + anchorY;
-    const leftPct = (containerAnchorX / layout.w) * 100;
-    const topPct = (containerAnchorY / layout.h) * 100;
+    return { anchorX, anchorY };
+  }
+
+  private clampContainerPosition(
+    anchorBox: AnchorBoxLayout,
+    anchorX: number,
+    anchorY: number,
+    elementWidth: number,
+    elementHeight: number,
+    bottomInset: number,
+  ): { anchorX: number; anchorY: number } {
+    let leftPx = anchorX - elementWidth / 2;
+    let topPx = anchorY - elementHeight;
+    const maxLeftPx = anchorBox.w - elementWidth;
+    const maxTopPx = anchorBox.h - bottomInset - elementHeight;
+    leftPx =
+      maxLeftPx >= 0 ? clampToRange(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
+    topPx = maxTopPx >= 0 ? clampToRange(topPx, 0, maxTopPx) : 0;
+
+    return {
+      anchorX: leftPx + elementWidth / 2,
+      anchorY: topPx + elementHeight,
+    };
+  }
+
+  private updateContainerPosition(
+    subtitlesContainer: HTMLElement,
+    leftPct: number,
+    topPct: number,
+  ): void {
     if (
       this.lastAppliedLeftPct === null ||
       Math.abs(leftPct - this.lastAppliedLeftPct) >= 0.01
@@ -1041,7 +1118,6 @@ export class SubtitlesWidget {
       subtitlesContainer.style.top = `${topPct}%`;
       this.lastAppliedTopPct = topPct;
     }
-    this.tokenTooltip?.updatePos();
   }
   private resolvePresetAnchorPosition({
     preset,
@@ -1167,12 +1243,7 @@ export class SubtitlesWidget {
       return cached.value;
     }
     const { slices, key } = buildWordSlices(tokens);
-    const words = slices.map((slice) => ({
-      tokenIndex: slice.tokenIndex,
-      breakAfterTokenIndex: slice.breakAfterTokenIndex,
-    }));
     const value: TokenPrecomputeInput = {
-      words,
       wordSlices: slices,
       normalizedWordsKey: key,
     };
@@ -1225,8 +1296,8 @@ export class SubtitlesWidget {
     };
   }
   private getActiveLineKey(tokens: SubtitleToken[]): string {
-    if (this.lastActiveLineIndex !== null) {
-      return `${this.lastActiveLineIndex}`;
+    if (this.lastActiveLineKey !== null) {
+      return this.lastActiveLineKey;
     }
     return `${tokens[0]?.startMs ?? 0}:${tokens[0]?.durationMs ?? 0}:${tokens.length}`;
   }
@@ -1234,9 +1305,9 @@ export class SubtitlesWidget {
     tokens: SubtitleToken[],
     activeLineKey: string,
   ): LineMeasureMemo | null {
-    const { words, wordSlices, normalizedWordsKey } =
+    const { wordSlices, normalizedWordsKey } =
       this.buildTokenPrecomputeInput(tokens);
-    if (!words.length) return null;
+    if (!wordSlices.length) return null;
     const ctx = this.getMeasureContext();
     if (!ctx) return null;
     const { fontKey, maxWidthPx } = this.getTokenLayoutInputs(ctx);
@@ -1255,7 +1326,6 @@ export class SubtitlesWidget {
     );
     const memo: LineMeasureMemo = {
       key,
-      words,
       metrics,
       maxWidthPx,
     };
@@ -1275,7 +1345,6 @@ export class SubtitlesWidget {
     const safeMaxWidthPx = applyWrapWidthGuard(lineMeasure.maxWidthPx);
     const segmentRanges = computeTwoLineSegmentsUtil(
       tokens,
-      lineMeasure.words,
       lineMeasure.metrics,
       safeMaxWidthPx,
       this.maxLength,
@@ -1432,11 +1501,11 @@ export class SubtitlesWidget {
   }: ClearRenderedContentOptions = {}): void {
     if (releaseTooltip) this.releaseTooltip();
     this.resetRenderMemo();
-    this.lastActiveLineIndex = null;
+    this.lastActiveLineKey = null;
     this.strTokens = "";
     this.resetTranslationContext();
     this.subtitlesBlock = null;
-    this.renderedTokenEls = [];
+    this.renderedHighlightEls = [];
     this.resetWrapMemo();
     this.lastWrapTokens = null;
     this.subtitleMaxWidthPx = 0;
@@ -1464,9 +1533,7 @@ export class SubtitlesWidget {
     }
     const target = this.resolveTokenSpanFromClick(event);
     if (!target) return;
-    if (this.tokenTooltip?.target === target && this.tokenTooltip?.container) {
-      if (this.tokenTooltip.showed) target.classList.add("selected");
-      else target.classList.remove("selected");
+    if (this.toggleCurrentTooltipTarget(target)) {
       return;
     }
     this.releaseTooltip();
@@ -1486,17 +1553,47 @@ export class SubtitlesWidget {
       this.strTranslatedTokens || this.strTokens,
       service,
     );
+    const tooltip = this.createTokenTooltip(target, subtitlesInfo.container);
+    this.tokenTooltip = tooltip;
+    tooltip.onClick();
+    const strTokens = this.strTokens;
+    const translated = await this.translateStrTokens(text);
+    if (requestId !== this.tooltipTranslationRequestId) return;
+    if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) {
+      return;
+    }
+    subtitlesInfo.header.textContent = translated[1];
+    subtitlesInfo.context.textContent = translated[0];
+    tooltip.setContent(subtitlesInfo.container);
+  };
+  private toggleCurrentTooltipTarget(target: HTMLElement): boolean {
+    if (this.tokenTooltip?.target !== target || !this.tokenTooltip?.container) {
+      return false;
+    }
+
+    if (this.tokenTooltip.showed) {
+      target.classList.add("selected");
+    } else {
+      target.classList.remove("selected");
+    }
+    return true;
+  }
+  private createTokenTooltip(
+    target: HTMLElement,
+    content: HTMLElement,
+  ): Tooltip {
     const tooltipMaxWidth = Math.max(
       this.subtitleMaxWidthPx,
       this.subtitlesContainer?.offsetWidth ?? 0,
       this.subtitlesBlock?.offsetWidth ?? 0,
       Math.min(globalThis.innerWidth * 0.6, 320),
     );
-    const tooltip = new Tooltip({
+
+    return new Tooltip({
       target,
       anchor: this.subtitlesBlock ?? target,
       layoutRoot: this.tooltipLayoutRoot,
-      content: subtitlesInfo.container,
+      content,
       parentElement: this.getTokenTooltipParentElement(),
       offset: { x: 4, y: 12 },
       maxWidth: tooltipMaxWidth,
@@ -1505,22 +1602,21 @@ export class SubtitlesWidget {
       position: "top",
       trigger: "click",
     });
-    this.tokenTooltip = tooltip;
-    tooltip.onClick();
-    const strTokens = this.strTokens;
-    const translated = await this.translateStrTokens(text);
-    if (requestId !== this.tooltipTranslationRequestId) return;
-    if (
+  }
+  private shouldSkipTooltipUpdate(
+    requestId: number,
+    tooltip: Tooltip,
+    target: HTMLElement,
+    strTokens: string,
+  ): boolean {
+    return (
+      requestId !== this.tooltipTranslationRequestId ||
       strTokens !== this.strTokens ||
       this.tokenTooltip !== tooltip ||
       tooltip.target !== target ||
       !tooltip.showed
-    )
-      return;
-    subtitlesInfo.header.textContent = translated[1];
-    subtitlesInfo.context.textContent = translated[0];
-    tooltip.setContent(subtitlesInfo.container);
-  };
+    );
+  }
   private buildPassedState(
     tokens: SubtitleToken[],
     time: number,
@@ -1548,53 +1644,65 @@ export class SubtitlesWidget {
   private renderTokens(
     tokens: SubtitleToken[],
   ): Array<TemplateResult | string> {
-    const breakAfter = this.breakAfterTokenIndexSet;
-    const out: Array<TemplateResult | string> = [];
-    const plan = buildSubtitleRenderPlan(tokens, tokens.length - 1, breakAfter);
-    for (const part of plan) {
-      if (part.kind === "word") {
-        out.push(
-          html`<span
-            data-vot-token="1"
-            data-vot-style-italic=${part.style?.italic ? "1" : "0"}
-            data-vot-style-bold=${part.style?.bold ? "1" : "0"}
-            data-vot-style-underline=${part.style?.underline ? "1" : "0"}
-            >${part.text}</span
-          >`,
-        );
-        continue;
-      }
-      if (part.kind === "break") {
-        out.push(html`<br class="vot-subtitles-br" />`);
-        continue;
-      }
-      if (part.style) {
-        out.push(
-          html`<span
-            data-vot-style-italic=${part.style.italic ? "1" : "0"}
-            data-vot-style-bold=${part.style.bold ? "1" : "0"}
-            data-vot-style-underline=${part.style.underline ? "1" : "0"}
-            >${part.text}</span
-          >`,
-        );
-        continue;
-      }
-      out.push(part.text);
+    return buildSubtitleRenderPlan(
+      tokens,
+      tokens.length - 1,
+      this.breakAfterTokenIndexSet,
+    ).map((part) => this.renderPlanPart(part));
+  }
+
+  private renderStyledSpan(
+    text: string,
+    style: SubtitleInlineStyle | undefined,
+    isWordToken = false,
+    highlightIndex?: number,
+  ): TemplateResult | string {
+    if (!style && !isWordToken && highlightIndex === undefined) {
+      return text;
     }
-    return out;
+
+    return html`<span
+      data-vot-token=${isWordToken ? "1" : nothing}
+      data-vot-highlight-index=${highlightIndex ?? nothing}
+      data-vot-style-italic=${style?.italic ? "1" : "0"}
+      data-vot-style-bold=${style?.bold ? "1" : "0"}
+      data-vot-style-underline=${style?.underline ? "1" : "0"}
+      data-vot-style-color=${style?.color ? "1" : "0"}
+      style=${buildSubtitleInlineStyleCssText(style)}
+      >${text}</span
+    >`;
+  }
+
+  private renderPlanPart(
+    part: SubtitleRenderPlanPart,
+  ): TemplateResult | string {
+    if (part.kind === "break") {
+      return html`<br class="vot-subtitles-br" />`;
+    }
+    return this.renderStyledSpan(
+      part.text,
+      part.style,
+      part.kind === "word",
+      part.highlightIndex,
+    );
   }
   private updatePassedClasses(passedFlags: boolean[]): void {
-    const tokenEls = this.renderedTokenEls;
-    const len = Math.min(tokenEls.length, passedFlags.length);
-    for (let i = 0; i < len; i += 1) {
-      tokenEls[i].classList.toggle("passed", passedFlags[i]);
-    }
-    for (let i = len; i < tokenEls.length; i += 1) {
-      tokenEls[i].classList.remove("passed");
+    for (const tokenEl of this.renderedHighlightEls) {
+      const highlightIndex = Number.parseInt(
+        tokenEl.dataset.votHighlightIndex ?? "",
+        10,
+      );
+      const isPassed =
+        Number.isInteger(highlightIndex) &&
+        highlightIndex >= 0 &&
+        highlightIndex < passedFlags.length
+          ? passedFlags[highlightIndex]
+          : false;
+      tokenEl.classList.toggle("passed", isPassed);
     }
   }
   private clearPassedClasses(): void {
-    for (const tokenEl of this.renderedTokenEls) {
+    for (const tokenEl of this.renderedHighlightEls) {
       tokenEl.classList.remove("passed");
     }
   }
@@ -1654,60 +1762,29 @@ export class SubtitlesWidget {
     const tokens = this.lastWrapTokens;
     const block = this.subtitlesBlock;
     if (!tokens || !block) return;
-    const lineMeasure = this.getLineMeasureMemo(
-      tokens,
-      this.getActiveLineKey(tokens),
-    );
-    if (!lineMeasure || lineMeasure.maxWidthPx < 50) return;
-    const { words, metrics, maxWidthPx } = lineMeasure;
+    const ctx = this.getMeasureContext();
+    if (!ctx) return;
+    const { fontKey, maxWidthPx } = this.getTokenLayoutInputs(ctx);
+    if (!Number.isFinite(maxWidthPx) || maxWidthPx < 50) return;
     const safeMaxWidthPx = applyWrapWidthGuard(maxWidthPx);
-    if (words.length <= 1) {
-      if (
-        this.breakAfterTokenIndices.length ||
-        this.smartTruncateAfterTokenIndex !== null
-      ) {
-        this.resetWrapMemo();
-        this.resetRenderMemo();
-        this.update();
-      }
-      return;
-    }
-    const wrapKey = lineMeasure.key;
+    if (safeMaxWidthPx < 50) return;
+    const wrapKey = `${this.getActiveLineKey(tokens)}|${fontKey}|${Math.round(
+      safeMaxWidthPx,
+    )}|${this.stringifyTokens(tokens)}`;
     if (wrapKey === this.lastWrapKey) return;
     this.lastWrapKey = wrapKey;
-    let nextBreakAfterTokens: number[] = [];
-    let nextSmartTruncateAfterTokenIndex: number | null = null;
-    const lineFitsOneLine =
-      getWordRangeWidth(metrics, 0, words.length - 1) <= safeMaxWidthPx;
-    if (!lineFitsOneLine) {
-      const breakWordIndices = computeBalancedBreaksUtil(
-        metrics,
-        safeMaxWidthPx,
-      );
-      if (breakWordIndices.length) {
-        nextBreakAfterTokens = breakWordIndices.map(
-          (wordIdx) => words[wordIdx].breakAfterTokenIndex,
-        );
-      } else if (this.smartLayoutEnabled) {
-        const strict = resolveStrictTwoLineLayout(metrics, safeMaxWidthPx);
-        nextBreakAfterTokens = strict.breakAfterWordIndices.map(
-          (wordIdx) => words[wordIdx].breakAfterTokenIndex,
-        );
-        if (strict.truncateAfterWordIndex !== null) {
-          nextSmartTruncateAfterTokenIndex =
-            words[strict.truncateAfterWordIndex]?.breakAfterTokenIndex ?? null;
-        }
-      }
-    }
+
+    const next = computeTokenWrapPlanUtil(
+      tokens,
+      (text) => ctx.measureText(text).width,
+      safeMaxWidthPx,
+    );
     const breaksChanged = !this.arraysEqual(
-      nextBreakAfterTokens,
+      next.breakAfterTokenIndices,
       this.breakAfterTokenIndices,
     );
-    const truncateChanged =
-      nextSmartTruncateAfterTokenIndex !== this.smartTruncateAfterTokenIndex;
-    if (breaksChanged || truncateChanged) {
-      this.setBreakAfterTokenIndices(nextBreakAfterTokens);
-      this.smartTruncateAfterTokenIndex = nextSmartTruncateAfterTokenIndex;
+    if (breaksChanged) {
+      this.setBreakAfterTokenIndices(next.breakAfterTokenIndices);
       this.resetRenderMemo();
       this.update();
     }
@@ -1721,20 +1798,22 @@ export class SubtitlesWidget {
     if (!subtitles || !this.video) {
       this.clearRenderedContent();
       this.subtitles = null;
+      this.maxActiveCueLookbackMs = 0;
+      this.lastPlaybackTimeMs = null;
       this.clearPendingSchedulerState();
-      this.video?.removeEventListener("timeupdate", this.onTimeUpdateBound);
       this.stopVideoFrameLoop();
       this.detachDragDocumentListeners();
       return;
     }
     this.createSubtitlesContainer();
     this.subtitles = subtitles;
-    this.lastActiveLineIndex = null;
-    if (!this.useVideoFrameCallbacks) {
-      this.video.addEventListener("timeupdate", this.onTimeUpdateBound, {
-        signal: this.abortController.signal,
-      });
-    }
+    this.maxActiveCueLookbackMs = subtitles.subtitles.reduce(
+      (maxDurationMs, line) =>
+        Math.max(maxDurationMs, Math.max(0, line.durationMs)),
+      0,
+    );
+    this.lastPlaybackTimeMs = Math.max(0, this.video.currentTime * 1000);
+    this.lastActiveLineKey = null;
     this.syncVideoFrameLoop();
     this.updateContainerRect();
     this.update();
@@ -1742,13 +1821,10 @@ export class SubtitlesWidget {
   }
   setMaxLength(len: number): void {
     if (typeof len === "number" && len > 0) {
-      this.manualMaxLength = len;
-      if (!this.smartLayoutEnabled) {
-        this.maxLength = len;
-        this.resetSegmentationMemo();
-        this.update();
-        this.scheduleReposition();
-      }
+      this.maxLength = len;
+      this.resetSegmentationMemo();
+      this.update();
+      this.scheduleReposition();
     }
   }
   setHighlightWords(value: unknown): void {
@@ -1768,9 +1844,6 @@ export class SubtitlesWidget {
     this.resetWrapMemo();
     this.resetRenderMemo();
     this.resetSegmentationMemo();
-    if (!this.smartLayoutEnabled) {
-      this.maxLength = this.manualMaxLength;
-    }
     this.applyManualFontSizeStyle();
     this.update();
     this.scheduleWrapRecompute();
@@ -1810,70 +1883,62 @@ export class SubtitlesWidget {
     }
     return out;
   }
-  update(): void {
-    if (!this.video || !this.subtitles) return;
-    const time = this.video.currentTime * 1000;
-    const subtitlesList = this.subtitles.subtitles;
-    let line: SubtitleLine | undefined;
-    let lineIndex = -1;
-    const lastIndex = this.lastActiveLineIndex;
-    if (
-      typeof lastIndex === "number" &&
-      lastIndex >= 0 &&
-      lastIndex < subtitlesList.length
-    ) {
-      const candidate = subtitlesList[lastIndex];
-      if (isTimeInLine(time, candidate)) {
-        line = candidate;
-        lineIndex = lastIndex;
-      }
-    }
-    if (!line) {
-      const index = findActiveSubtitleLineIndex(time, subtitlesList);
-      if (index !== -1) {
-        line = subtitlesList[index];
-        lineIndex = index;
-      }
-    }
-    if (!line) {
-      this.lastActiveLineIndex = null;
-      if (
-        this.subtitlesBlock ||
-        this.lastRenderKey !== null ||
-        this.strTokens
-      ) {
-        this.clearRenderedContent({ releaseTooltip: true });
-      } else {
-        this.releaseTooltip();
-      }
+  private resolveActiveLine(
+    time: number,
+    subtitlesList: SubtitleLine[],
+  ): { line: SubtitleLine; lineKey: string } | null {
+    return buildActiveSubtitleRenderLine(
+      time,
+      subtitlesList,
+      this.maxActiveCueLookbackMs,
+    );
+  }
+  private clearInactiveLineState(): void {
+    this.lastActiveLineKey = null;
+    if (this.subtitlesBlock || this.lastRenderKey !== null || this.strTokens) {
+      this.clearRenderedContent({ releaseTooltip: true });
       return;
     }
-    this.lastActiveLineIndex = lineIndex;
-    if (this.smartLayoutEnabled) {
-      const now = performance.now();
-      if (
-        this.lastSmartLayoutKey === null ||
-        now - this.lastSmartLayoutCheckTs > 500
-      ) {
-        this.lastSmartLayoutCheckTs = now;
-        const layout = this.getLayoutSize();
-        if (layout.w && layout.h) {
-          const anchorBox = this.computeAnchorBoxLayout(layout);
-          if (anchorBox.w && anchorBox.h) {
-            this.ensureSmartLayout(anchorBox);
-          }
-        }
-      }
-    } else {
-      this.maxLength = this.manualMaxLength;
+
+    this.releaseTooltip();
+  }
+  private refreshSmartLayoutIfNeeded(): void {
+    if (!this.smartLayoutEnabled) {
+      return;
     }
+
+    const now = performance.now();
+    if (
+      this.lastSmartLayoutKey !== null &&
+      now - this.lastSmartLayoutCheckTs <= 500
+    ) {
+      return;
+    }
+
+    this.lastSmartLayoutCheckTs = now;
+    const layout = this.getLayoutSize();
+    if (!layout.w || !layout.h) {
+      return;
+    }
+
+    const anchorBox = this.computeAnchorBoxLayout(layout);
+    if (anchorBox.w && anchorBox.h) {
+      this.ensureSmartLayout(anchorBox);
+    }
+  }
+  private getRenderState(
+    line: SubtitleLine,
+    activeLineKey: string,
+    time: number,
+  ): {
+    tokens: SubtitleToken[];
+    tokensChanged: boolean;
+    passedFlags: boolean[] | null;
+    renderKey: string;
+  } {
     const tokens = this.processTokens(line.tokens, time);
     this.lastWrapTokens = tokens;
-    const hasSmartTruncation =
-      this.smartLayoutEnabled &&
-      typeof this.smartTruncateAfterTokenIndex === "number" &&
-      this.smartTruncateAfterTokenIndex >= 0 &&
-      this.smartTruncateAfterTokenIndex < tokens.length - 1;
+
     const strTokens = this.stringifyTokens(tokens);
     const tokensChanged = strTokens !== this.strTokens;
     if (tokensChanged) {
@@ -1882,14 +1947,67 @@ export class SubtitlesWidget {
       this.resetTranslationContext();
       this.resetWrapMemo();
     }
-    const passedStateKey = `${lineIndex}:${strTokens}`;
+
+    const passedStateKey = `${activeLineKey}:${strTokens}`;
     const passedFlags = this.highlightWords
       ? this.buildPassedState(tokens, time, passedStateKey)
       : null;
-    const wrapKey = `${this.breakAfterTokenIndices.join(",")}|${
-      this.smartTruncateAfterTokenIndex ?? ""
-    }`;
-    const renderKey = `${lineIndex}:${strTokens}:${wrapKey}`;
+    const wrapKey = this.breakAfterTokenIndices.join(",");
+
+    return {
+      tokens,
+      tokensChanged,
+      passedFlags,
+      renderKey: `${activeLineKey}:${strTokens}:${wrapKey}`,
+    };
+  }
+  private syncRenderedTokens(tokens: SubtitleToken[]): void {
+    this.subtitlesContainer =
+      this.subtitlesContainer ?? this.createSubtitlesContainer();
+    render(
+      html`<vot-block
+        class="vot-subtitles"
+        dir="auto"
+        lang=${this.subtitleLang ?? ""}
+        @click=${this.onClick}
+      >
+        ${this.renderTokens(tokens)}
+      </vot-block>`,
+      this.subtitlesContainer,
+    );
+
+    const firstChild = this.subtitlesContainer.firstElementChild;
+    this.subtitlesBlock =
+      firstChild instanceof HTMLElement &&
+      firstChild.classList.contains("vot-subtitles")
+        ? firstChild
+        : null;
+    this.renderedHighlightEls = this.subtitlesBlock
+      ? Array.from(
+          this.subtitlesBlock.querySelectorAll<HTMLSpanElement>(
+            "span[data-vot-highlight-index]",
+          ),
+        )
+      : [];
+  }
+  update(): void {
+    if (!this.video || !this.subtitles) return;
+    const time = this.resolvePlaybackTimeMs();
+    const subtitlesList = this.subtitles.subtitles;
+    const activeLine = this.resolveActiveLine(time, subtitlesList);
+    if (!activeLine) {
+      this.clearInactiveLineState();
+      return;
+    }
+
+    this.lastActiveLineKey = activeLine.lineKey;
+    this.refreshSmartLayoutIfNeeded();
+    const renderState = this.getRenderState(
+      activeLine.line,
+      activeLine.lineKey,
+      time,
+    );
+    const { tokens, tokensChanged, passedFlags, renderKey } = renderState;
     if (renderKey === this.lastRenderKey) {
       if (this.highlightWords && !tokensChanged && passedFlags) {
         this.updatePassedClasses(passedFlags);
@@ -1897,34 +2015,9 @@ export class SubtitlesWidget {
       this.maybeRefreshPosition();
       return;
     }
+
     this.lastRenderKey = renderKey;
-    this.subtitlesContainer =
-      this.subtitlesContainer ?? this.createSubtitlesContainer();
-    const subtitlesClass = hasSmartTruncation
-      ? "vot-subtitles vot-subtitles--clamped"
-      : "vot-subtitles";
-    render(
-      html`<vot-block
-        class="${subtitlesClass}"
-        @click=${this.onClick}
-      >
-        ${this.renderTokens(tokens)}
-      </vot-block>`,
-      this.subtitlesContainer,
-    );
-    const firstChild = this.subtitlesContainer.firstElementChild;
-    this.subtitlesBlock =
-      firstChild instanceof HTMLElement &&
-      firstChild.classList.contains("vot-subtitles")
-        ? firstChild
-        : null;
-    this.renderedTokenEls = this.subtitlesBlock
-      ? Array.from(
-          this.subtitlesBlock.querySelectorAll<HTMLSpanElement>(
-            'span[data-vot-token="1"]',
-          ),
-        )
-      : [];
+    this.syncRenderedTokens(tokens);
     if (this.highlightWords && passedFlags) {
       this.updatePassedClasses(passedFlags);
     }

@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Cynllun is-deitl Smart",
   "smartDucking": "Cyfrol addasol",
   "VOTAutoSubtitles": "Isdeitlau ar agor",
-  "VOTSubtitlesFont": "Ffont isdeitlau"
+  "VOTSubtitlesFont": "Ffont isdeitlau",
+  "VOTDefaultSubtitlesLanguage": "Iaith isdeitlau rhagosodedig",
+  "VOTOriginalVideoLanguage": "Iaith fideo gwreiddiol"
 }

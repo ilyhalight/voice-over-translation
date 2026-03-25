@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Inteligentné rozloženie titulkov",
   "smartDucking": "Adaptívny objem",
   "VOTAutoSubtitles": "Titulky otvorené",
-  "VOTSubtitlesFont": "Písmo titulkov"
+  "VOTSubtitlesFont": "Písmo titulkov",
+  "VOTDefaultSubtitlesLanguage": "Predvolený jazyk titulkov",
+  "VOTOriginalVideoLanguage": "Pôvodný jazyk videa"
 }

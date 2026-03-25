@@ -30,6 +30,8 @@
   "VOTNoVideoIDFound": "Не найден идентификатор (ID) видео",
   "VOTSubtitles": "Субтитры",
   "VOTSubtitlesDisabled": "Отключены",
+  "VOTDefaultSubtitlesLanguage": "Язык субтитров по умолчанию",
+  "VOTOriginalVideoLanguage": "Язык оригинального видео",
   "VOTSubtitlesMaxLength": "Максимальная длина субтитров",
   "VOTHighlightWords": "Подсвечивать слова",
   "VOTTranslatedFrom": "переведено с",

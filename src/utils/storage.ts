@@ -21,6 +21,13 @@ type KeysOrDefaultValue =
   | Record<string, unknown>
   | unknown[];
 
+type StorageValueChangeListener<T = unknown> = (
+  key: string,
+  oldValue: T | undefined,
+  newValue: T | undefined,
+  remote: boolean,
+) => void;
+
 const compatMay2025Data = {
   numToBool: [
     ["autoTranslate"],
@@ -136,6 +143,18 @@ function areStorageValuesEqual(a: unknown, b: unknown): boolean {
   return Object.is(a, b);
 }
 
+function parseStoredValue(rawValue: string | null): unknown {
+  if (rawValue === null) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(rawValue);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function updateConfig<T>(
   data: Record<string, unknown>,
 ): Promise<T> {
@@ -194,31 +213,71 @@ type StorageSupport = Readonly<{
   legacySet: boolean;
   legacyDelete: boolean;
   legacyList: boolean;
+  legacyAddValueChangeListener: boolean;
+  legacyRemoveValueChangeListener: boolean;
   promiseGet: boolean;
   promiseGetValues: boolean;
   promiseSet: boolean;
   promiseDelete: boolean;
   promiseList: boolean;
+  promiseAddValueChangeListener: boolean;
+  promiseRemoveValueChangeListener: boolean;
 }>;
 
 class VOTStorage {
   private support: StorageSupport | null = null;
+  private readonly localStorageListeners = new Map<
+    StorageKey,
+    Set<StorageValueChangeListener<unknown>>
+  >();
+
+  private shouldUseSyntheticListeners(support: StorageSupport): boolean {
+    return (
+      !support.promiseAddValueChangeListener &&
+      !support.legacyAddValueChangeListener
+    );
+  }
+
+  private getGMRuntime(): Record<string, unknown> | undefined {
+    if (typeof GM !== "undefined") {
+      return GM as unknown as Record<string, unknown>;
+    }
+
+    return (globalThis as { GM?: Record<string, unknown> }).GM;
+  }
 
   private resolveSupport(): StorageSupport {
     if (this.support) {
       return this.support;
     }
 
+    const gm = this.getGMRuntime();
     const support: StorageSupport = {
       legacyGet: typeof GM_getValue === "function",
       legacySet: typeof GM_setValue === "function",
       legacyDelete: typeof GM_deleteValue === "function",
       legacyList: typeof GM_listValues === "function",
-      promiseGet: isSupportGM4 && typeof GM?.getValue === "function",
-      promiseGetValues: isSupportGM4 && typeof GM?.getValues === "function",
-      promiseSet: isSupportGM4 && typeof GM?.setValue === "function",
-      promiseDelete: isSupportGM4 && typeof GM?.deleteValue === "function",
-      promiseList: isSupportGM4 && typeof GM?.listValues === "function",
+      legacyAddValueChangeListener:
+        typeof (
+          globalThis as {
+            GM_addValueChangeListener?: unknown;
+          }
+        ).GM_addValueChangeListener === "function",
+      legacyRemoveValueChangeListener:
+        typeof (
+          globalThis as {
+            GM_removeValueChangeListener?: unknown;
+          }
+        ).GM_removeValueChangeListener === "function",
+      promiseGet: isSupportGM4 && typeof gm?.getValue === "function",
+      promiseGetValues: isSupportGM4 && typeof gm?.getValues === "function",
+      promiseSet: isSupportGM4 && typeof gm?.setValue === "function",
+      promiseDelete: isSupportGM4 && typeof gm?.deleteValue === "function",
+      promiseList: isSupportGM4 && typeof gm?.listValues === "function",
+      promiseAddValueChangeListener:
+        isSupportGM4 && typeof gm?.addValueChangeListener === "function",
+      promiseRemoveValueChangeListener:
+        isSupportGM4 && typeof gm?.removeValueChangeListener === "function",
     };
     this.support = support;
 
@@ -258,13 +317,13 @@ class VOTStorage {
 
     const val = globalThis.localStorage.getItem(name);
     if (val === null) {
-      return def as T;
+      return def;
     }
 
     try {
       return JSON.parse(val);
     } catch {
-      return def as T;
+      return def;
     }
   }
 
@@ -329,11 +388,22 @@ class VOTStorage {
     value: T,
   ): Promise<void> {
     const support = this.resolveSupport();
-    if (support.promiseSet && GM.setValue) {
-      return await GM.setValue(name, value);
-    }
+    const storageKey = name as StorageKey;
+    const shouldNotify = this.shouldUseSyntheticListeners(support);
+    const oldValue = shouldNotify
+      ? await this.getRaw<T | undefined>(name)
+      : undefined;
 
-    return this.syncSetByName(name, value, support);
+    if (support.promiseSet && GM.setValue) {
+      await GM.setValue(name, value);
+      if (shouldNotify) {
+        this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
+      }
+      return;
+    }
+    const setResult = this.syncSetByName(name, value, support);
+    this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
+    return setResult;
   }
 
   async set<T extends KeysOrDefaultValue = undefined>(
@@ -353,15 +423,155 @@ class VOTStorage {
 
   async deleteRaw(name: string): Promise<void> {
     const support = this.resolveSupport();
-    if (support.promiseDelete && GM.deleteValue) {
-      return await GM.deleteValue(name);
-    }
+    const storageKey = name as StorageKey;
+    const shouldNotify = this.shouldUseSyntheticListeners(support);
+    const oldValue = shouldNotify ? await this.getRaw(name) : undefined;
 
-    return this.syncDeleteByName(name, support);
+    if (support.promiseDelete && GM.deleteValue) {
+      await GM.deleteValue(name);
+      if (shouldNotify) {
+        this.notifyLocalStorageListeners(
+          storageKey,
+          oldValue,
+          undefined,
+          false,
+        );
+      }
+      return;
+    }
+    const deleteResult = this.syncDeleteByName(name, support);
+    this.notifyLocalStorageListeners(storageKey, oldValue, undefined, false);
+    return deleteResult;
   }
 
   async delete(name: StorageKey): Promise<void> {
     return this.deleteRaw(name);
+  }
+
+  addValueChangeListener<T = unknown>(
+    name: StorageKey,
+    listener: StorageValueChangeListener<T>,
+  ): () => void {
+    const support = this.resolveSupport();
+    const gm = this.getGMRuntime();
+
+    if (support.promiseAddValueChangeListener) {
+      const addListener = gm?.addValueChangeListener as
+        | ((
+            key: string,
+            callback: StorageValueChangeListener<unknown>,
+          ) => unknown)
+        | undefined;
+      const removeListener = support.promiseRemoveValueChangeListener
+        ? (gm?.removeValueChangeListener as
+            | ((id: unknown) => unknown)
+            | undefined)
+        : undefined;
+
+      if (typeof addListener === "function") {
+        const gmListener = this.createTypedListener(listener);
+        const listenerId = addListener(name, gmListener);
+        return () => {
+          if (typeof removeListener === "function") {
+            removeListener(listenerId);
+          }
+        };
+      }
+    }
+
+    if (support.legacyAddValueChangeListener) {
+      const addListener = (
+        globalThis as unknown as {
+          GM_addValueChangeListener?: (
+            key: string,
+            callback: StorageValueChangeListener<unknown>,
+          ) => unknown;
+        }
+      ).GM_addValueChangeListener;
+      const removeListener = support.legacyRemoveValueChangeListener
+        ? (
+            globalThis as {
+              GM_removeValueChangeListener?: (id: unknown) => unknown;
+            }
+          ).GM_removeValueChangeListener
+        : undefined;
+
+      if (typeof addListener === "function") {
+        const gmListener = this.createTypedListener(listener);
+        const listenerId = addListener(name, gmListener);
+        return () => {
+          if (typeof removeListener === "function") {
+            removeListener(listenerId);
+          }
+        };
+      }
+    }
+
+    const listeners = this.getLocalStorageListeners(name);
+    const typedListener = listener as StorageValueChangeListener<unknown>;
+    listeners.add(typedListener);
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.storageArea !== globalThis.localStorage || event.key !== name) {
+        return;
+      }
+
+      typedListener(
+        name,
+        parseStoredValue(event.oldValue),
+        parseStoredValue(event.newValue),
+        true,
+      );
+    };
+
+    globalThis.addEventListener("storage", onStorage);
+    return () => {
+      listeners.delete(typedListener);
+      if (listeners.size === 0) {
+        this.localStorageListeners.delete(name);
+      }
+      globalThis.removeEventListener("storage", onStorage);
+    };
+  }
+
+  private createTypedListener<T>(
+    listener: StorageValueChangeListener<T>,
+  ): StorageValueChangeListener<unknown> {
+    return (key, oldValue, newValue, remote) => {
+      listener(
+        key,
+        oldValue as T | undefined,
+        newValue as T | undefined,
+        remote,
+      );
+    };
+  }
+
+  private getLocalStorageListeners(name: StorageKey) {
+    const existing = this.localStorageListeners.get(name);
+    if (existing) {
+      return existing;
+    }
+
+    const created = new Set<StorageValueChangeListener<unknown>>();
+    this.localStorageListeners.set(name, created);
+    return created;
+  }
+
+  private notifyLocalStorageListeners(
+    name: StorageKey,
+    oldValue: unknown,
+    newValue: unknown,
+    remote: boolean,
+  ): void {
+    const listeners = this.localStorageListeners.get(name);
+    if (!listeners || listeners.size === 0) {
+      return;
+    }
+
+    for (const listener of listeners) {
+      listener(name, oldValue, newValue, remote);
+    }
   }
 
   private syncList(support: StorageSupport): readonly StorageKey[] {

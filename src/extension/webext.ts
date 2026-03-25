@@ -57,6 +57,13 @@ export const ext: WebExtNamespace | null =
   browserNamespace ?? chromeNamespace ?? null;
 
 const isBrowserNamespace = !!browserNamespace && ext === browserNamespace;
+const isFirefoxLike =
+  typeof (browserNamespace?.runtime as { getBrowserInfo?: unknown } | undefined)
+    ?.getBrowserInfo === "function";
+
+export const runtimeMessagesUseStructuredClone = isFirefoxLike;
+export const runtimeMessagesUseJsonSerialization =
+  !runtimeMessagesUseStructuredClone;
 
 export function lastErrorMessage(): string | null {
   // `runtime.lastError` is a Chromium callback-era mechanism.
@@ -103,7 +110,28 @@ async function callAsync<T>(
 export async function storageGet<T = Record<string, unknown>>(
   keys: unknown,
 ): Promise<T> {
-  const area = ext?.storage?.local;
+  const chromeArea = isFirefoxLike
+    ? undefined
+    : chromeNamespace?.storage?.local;
+  if (chromeArea && typeof chromeArea.get === "function") {
+    return await new Promise<T>((resolve, reject) => {
+      try {
+        chromeArea.get(keys, (items: unknown) => {
+          const err = lastErrorMessage();
+          if (err) {
+            reject(new Error(err));
+            return;
+          }
+
+          resolve(items as T);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
   return await callAsync<T>(
     area?.get?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
     [keys],
@@ -113,7 +141,29 @@ export async function storageGet<T = Record<string, unknown>>(
 export async function storageSet(
   items: Record<string, unknown>,
 ): Promise<void> {
-  const area = ext?.storage?.local;
+  const chromeArea = isFirefoxLike
+    ? undefined
+    : chromeNamespace?.storage?.local;
+  if (chromeArea && typeof chromeArea.set === "function") {
+    await new Promise<void>((resolve, reject) => {
+      try {
+        chromeArea.set(items, () => {
+          const err = lastErrorMessage();
+          if (err) {
+            reject(new Error(err));
+            return;
+          }
+
+          resolve();
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+    return;
+  }
+
+  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
   await callAsync<void>(
     area?.set?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
     [items],
@@ -124,7 +174,29 @@ export async function storageSet(
 }
 
 export async function storageRemove(keys: string | string[]): Promise<void> {
-  const area = ext?.storage?.local;
+  const chromeArea = isFirefoxLike
+    ? undefined
+    : chromeNamespace?.storage?.local;
+  if (chromeArea && typeof chromeArea.remove === "function") {
+    await new Promise<void>((resolve, reject) => {
+      try {
+        chromeArea.remove(keys, () => {
+          const err = lastErrorMessage();
+          if (err) {
+            reject(new Error(err));
+            return;
+          }
+
+          resolve();
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+    return;
+  }
+
+  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
   await callAsync<void>(
     area?.remove?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
     [keys],

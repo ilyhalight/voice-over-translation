@@ -21,42 +21,42 @@ function stringifyUnknownObject(value: object): string | null {
   }
 }
 
-export function toErrorMessage(
-  error: unknown,
-  fallback = "Unknown error",
+function extractNestedMessage(error: Record<string, any>): string | null {
+  const candidates = [
+    error?.data?.message,
+    error?.error?.message,
+    error?.message,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function formatObjectError(error: object, fallback: string): string {
+  const nestedMessage = extractNestedMessage(error as Record<string, any>);
+  if (nestedMessage) {
+    return nestedMessage;
+  }
+
+  const serialized = stringifyUnknownObject(error);
+  if (serialized && serialized !== "{}") {
+    return serialized;
+  }
+
+  const ctorName = (error as { constructor?: { name?: string } }).constructor
+    ?.name;
+  return ctorName ? `[${ctorName}]` : fallback;
+}
+
+function formatPrimitiveError(
+  error: Exclude<unknown, object | string | null | undefined>,
+  fallback: string,
 ): string {
-  if (error instanceof Error) {
-    return error.message || fallback;
-  }
-  if (typeof error === "string") {
-    return error || fallback;
-  }
-  if (error === null || error === undefined) {
-    return fallback;
-  }
-
-  if (typeof error === "object") {
-    const anyErr = error as any;
-    if (typeof anyErr?.data?.message === "string" && anyErr.data.message) {
-      return anyErr.data.message;
-    }
-    if (typeof anyErr?.error?.message === "string" && anyErr.error.message) {
-      return anyErr.error.message;
-    }
-    if (typeof anyErr?.message === "string" && anyErr.message) {
-      return anyErr.message;
-    }
-
-    const serialized = stringifyUnknownObject(error);
-    if (serialized && serialized !== "{}") {
-      return serialized;
-    }
-
-    const ctorName = (error as { constructor?: { name?: string } }).constructor
-      ?.name;
-    return ctorName ? `[${ctorName}]` : fallback;
-  }
-
   if (
     typeof error === "number" ||
     typeof error === "boolean" ||
@@ -72,6 +72,27 @@ export function toErrorMessage(
   }
 
   return fallback;
+}
+
+export function toErrorMessage(
+  error: unknown,
+  fallback = "Unknown error",
+): string {
+  if (error instanceof Error) {
+    return error.message || fallback;
+  }
+  if (typeof error === "string") {
+    return error || fallback;
+  }
+  if (error === null || error === undefined) {
+    return fallback;
+  }
+
+  if (typeof error === "object") {
+    return formatObjectError(error, fallback);
+  }
+
+  return formatPrimitiveError(error, fallback);
 }
 
 /**

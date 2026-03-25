@@ -5,7 +5,7 @@ const DEBUG_MODE: boolean;
  * Use `typeof IS_EXTENSION !== "undefined"` checks before reading.
  */
 const IS_EXTENSION: boolean;
-const AVAILABLE_LOCALES: import("./localization/localizationProvider").LangOverride[];
+const AVAILABLE_LOCALES: import("./types/localization").LangOverride[];
 const REPO_BRANCH: "master" | "dev";
 
 /**
@@ -30,6 +30,8 @@ declare const GM: {
   setValue?<T>(key: string, value: T): Promise<void>;
   deleteValue?(key: string): Promise<void>;
   listValues?<T extends string = string>(): Promise<T[]>;
+  xmlHttpRequest?(details: any): Promise<any> & { abort?: () => void };
+  xmlhttpRequest?(details: any): Promise<any> & { abort?: () => void };
   // Some managers expose more APIs, but we only rely on the above.
 };
 declare function GM_getValue<T>(key: string, defaultValue?: T): T;
@@ -48,5 +50,9 @@ interface Window {
   webkitAudioContext?: typeof AudioContext;
 }
 
-// Allow side-effect style imports for styles in TS files (e.g. `import "./styles/main.scss"`).
+// Allow style imports in TS files, including Vite's inline CSS string mode.
 declare module "*.scss";
+declare module "*.scss?inline" {
+  const content: string;
+  export default content;
+}

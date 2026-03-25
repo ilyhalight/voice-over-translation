@@ -35,12 +35,18 @@ export function syncTranslationLinkSnapshot(
   state: VolumeLinkState,
   volumePercent: number,
 ): void {
-  const numeric = Number(volumePercent);
-  if (!Number.isFinite(numeric)) {
-    return;
-  }
-  const normalized = Math.max(0, Math.round(numeric));
+  const normalized = clampPercentInt(volumePercent);
   state.lastTranslationPercent = normalized;
+}
+
+function getSharedTranslationRange(
+  translationMin: number,
+  translationMax: number,
+): { min: number; max: number } {
+  const min = clampPercentInt(translationMin);
+  const max = clampPercentInt(Math.min(100, translationMax), min, 100);
+
+  return { min, max };
 }
 
 /**
@@ -62,9 +68,18 @@ export function applyVolumeLinkDelta({
   translationMin,
   translationMax,
 }: ApplyVolumeLinkDeltaInput): ApplyVolumeLinkDeltaResult {
+  const sharedTranslationRange = getSharedTranslationRange(
+    translationMin,
+    translationMax,
+  );
+
   if (!state.initialized) {
-    state.lastVideoPercent = Number(currentVideo);
-    state.lastTranslationPercent = Number(currentTranslation);
+    state.lastVideoPercent = clampPercentInt(currentVideo);
+    state.lastTranslationPercent = clampInt(
+      Number(currentTranslation),
+      sharedTranslationRange.min,
+      sharedTranslationRange.max,
+    );
     state.initialized = true;
   }
 
@@ -74,8 +89,8 @@ export function applyVolumeLinkDelta({
     state.lastVideoPercent = normalizedVideo;
     const nextTranslation = clampInt(
       state.lastTranslationPercent + delta,
-      translationMin,
-      translationMax,
+      sharedTranslationRange.min,
+      sharedTranslationRange.max,
     );
     state.lastTranslationPercent = nextTranslation;
     return { nextTranslation };
@@ -83,8 +98,8 @@ export function applyVolumeLinkDelta({
 
   const normalizedTranslation = clampInt(
     Number.isFinite(newVolume) ? newVolume : currentTranslation,
-    translationMin,
-    translationMax,
+    sharedTranslationRange.min,
+    sharedTranslationRange.max,
   );
   const delta = normalizedTranslation - state.lastTranslationPercent;
   state.lastTranslationPercent = normalizedTranslation;

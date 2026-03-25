@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Ukuhlelwa kwesihlokwana esihlakaniphile",
   "smartDucking": "Umthamo wokuzivumelanisa nezimo",
   "VOTAutoSubtitles": "Izihlokwana ezivulekile",
-  "VOTSubtitlesFont": "Ifonti yesihlokwana"
+  "VOTSubtitlesFont": "Ifonti yesihlokwana",
+  "VOTDefaultSubtitlesLanguage": "Ulimi lwezihlokwana oluzenzakalelayo",
+  "VOTOriginalVideoLanguage": "Ulimi lwevidiyo lwangempela"
 }

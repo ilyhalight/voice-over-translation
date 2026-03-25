@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Layout intelligente dei sottotitoli",
   "smartDucking": "Volume adattivo",
   "VOTAutoSubtitles": "Sottotitoli su open",
-  "VOTSubtitlesFont": "Carattere sottotitoli"
+  "VOTSubtitlesFont": "Carattere sottotitoli",
+  "VOTDefaultSubtitlesLanguage": "Lingua predefinita dei sottotitoli",
+  "VOTOriginalVideoLanguage": "Lingua video originale"
 }

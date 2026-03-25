@@ -1,3 +1,5 @@
+import { isDocumentHidden } from "./environment";
+
 export type IntervalIdleMode = "active" | "idle" | "hidden";
 
 export type IntervalIdleTickSource = "start" | "interval" | "immediate";
@@ -27,7 +29,6 @@ type IntervalIdleRuntime = {
   setInterval: typeof setInterval;
   clearInterval: typeof clearInterval;
   queueMicrotask: (fn: () => void) => void;
-  isDocumentHidden: () => boolean;
   onVisibilityChange: (listener: () => void) => () => void;
 };
 
@@ -92,10 +93,6 @@ function getDefaultRuntime(): IntervalIdleRuntime {
       }
       Promise.resolve().then(fn);
     },
-    isDocumentHidden: () =>
-      typeof document !== "undefined" && typeof document.hidden === "boolean"
-        ? document.hidden
-        : false,
     onVisibilityChange: (listener) => {
       if (
         typeof document === "undefined" ||
@@ -130,7 +127,7 @@ export class IntervalIdleChecker {
   private readonly onVisibilityChangeHandler = (): void => {
     if (this.destroyed || !this.running) return;
 
-    if (this.runtime.isDocumentHidden()) {
+    if (isDocumentHidden()) {
       this.clearIntervalTimer();
     } else {
       this.armInterval();
@@ -202,7 +199,7 @@ export class IntervalIdleChecker {
   }
 
   private resolveMode(nowMs: number): IntervalIdleMode {
-    if (this.runtime.isDocumentHidden()) {
+    if (isDocumentHidden()) {
       return "hidden";
     }
     const inactiveFor = nowMs - this.lastActivityAt;

@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Aspect inteligent de subtitrare",
   "smartDucking": "Volum adaptiv",
   "VOTAutoSubtitles": "Subtitrari pe open",
-  "VOTSubtitlesFont": "Font subtitrare"
+  "VOTSubtitlesFont": "Font subtitrare",
+  "VOTDefaultSubtitlesLanguage": "Limba implicită pentru subtitrare",
+  "VOTOriginalVideoLanguage": "Limba video originală"
 }

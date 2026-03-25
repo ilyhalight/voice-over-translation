@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Մտածված ենթագրերի դասավորություն",
   "smartDucking": "Հարմարվողական ծավալ",
   "VOTAutoSubtitles": "Ենթագրերը բացելիս",
-  "VOTSubtitlesFont": "Ենթագրերի տառատեսակ"
+  "VOTSubtitlesFont": "Ենթագրերի տառատեսակ",
+  "VOTDefaultSubtitlesLanguage": "Ենթագրերի լռելյայն լեզու",
+  "VOTOriginalVideoLanguage": "Բնօրինակ տեսանյութի լեզուն"
 }

@@ -1,5 +1,6 @@
 import type { Account } from "../types/storage";
 import { votStorage } from "../utils/storage";
+import { notifyAuthOpener } from "./authRefreshMessage";
 
 type AuthProfilePayload = {
   avatar_id: string;
@@ -51,6 +52,7 @@ async function handleAuthCallbackPage() {
     username: undefined,
     avatarId: undefined,
   });
+  notifyAuthOpener();
 }
 
 async function handleProfilePage() {
@@ -70,6 +72,7 @@ async function handleProfilePage() {
     username,
     avatarId,
   });
+  notifyAuthOpener();
 }
 
 export async function initAuth() {

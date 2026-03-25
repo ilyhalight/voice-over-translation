@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Düşüncəli Altyazı düzeni",
   "smartDucking": "Adaptiv həcm",
   "VOTAutoSubtitles": "Açıldıqda altyazılar",
-  "VOTSubtitlesFont": "Altyazı şrifti"
+  "VOTSubtitlesFont": "Altyazı şrifti",
+  "VOTDefaultSubtitlesLanguage": "Varsayılan Altyazı dili",
+  "VOTOriginalVideoLanguage": "Orijinal videonun dili"
 }

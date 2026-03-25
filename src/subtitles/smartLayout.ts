@@ -1,6 +1,4 @@
-/** Smart subtitle layout helpers. */
-
-type AnchorBoxLayout = {
+export type SmartLayoutBox = {
   w: number;
   h: number;
 };
@@ -10,52 +8,125 @@ export type SmartCssMetrics = {
   maxWidthPx: number;
 };
 
-type SmartLayout = {
-  maxLength: number;
+export type SmartLayoutResult = {
+  fontSizePx: number;
+  maxWidthPx: number | null;
 };
 
-// Note: character width varies by font and language. We keep this as a
-// conservative average for proportional sans fonts.
-const EST_CHAR_WIDTH_RATIO = 0.55;
+const clampNumber = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
 
-function clamp(value: number, min: number, max: number): number {
-  if (Number.isNaN(value)) return min;
-  return Math.min(max, Math.max(min, value));
-}
+const roundToInt = (value: number): number => Math.round(value);
 
-function targetCharsPerLine(aspect: number): number {
-  // Common caption/subtitle guidance uses ~32 chars/line for 4:3 and ~42 for
-  // widescreen. Portrait layouts need shorter lines to avoid tall blocks.
-  if (aspect < 1) return 28;
-  if (aspect < 1.4) return 32;
-  return 42;
-}
-
-export function computeSmartLayoutForBox(
-  anchorBox: AnchorBoxLayout,
-  cssMetrics?: SmartCssMetrics | null,
-): SmartLayout {
-  const w = Math.max(1, anchorBox.w);
-  const h = Math.max(1, anchorBox.h);
-  const aspect = w / h;
-
-  let computedCPL = targetCharsPerLine(aspect);
-
-  if (cssMetrics) {
-    const { fontSizePx, maxWidthPx } = cssMetrics;
-    if (
-      Number.isFinite(fontSizePx) &&
-      Number.isFinite(maxWidthPx) &&
-      fontSizePx > 0 &&
-      maxWidthPx > 0
-    ) {
-      const estCharW = fontSizePx * EST_CHAR_WIDTH_RATIO;
-      if (estCharW > 0) {
-        computedCPL = maxWidthPx / estCharW;
-      }
-    }
+const resolveAspectBand = (
+  aspect: number,
+): {
+  widthRatio: number;
+  charsPerLine: number;
+  fontHeightRatio: number;
+} => {
+  if (aspect < 0.8) {
+    return {
+      widthRatio: 0.9,
+      charsPerLine: 27,
+      fontHeightRatio: 0.03,
+    };
   }
 
-  const maxLength = clamp(Math.round(computedCPL * 2), 50, 180);
-  return { maxLength };
+  if (aspect < 1.1) {
+    return {
+      widthRatio: 0.84,
+      charsPerLine: 31,
+      fontHeightRatio: 0.031,
+    };
+  }
+
+  if (aspect < 1.5) {
+    return {
+      widthRatio: 0.76,
+      charsPerLine: 36,
+      fontHeightRatio: 0.033,
+    };
+  }
+
+  if (aspect < 1.95) {
+    return {
+      widthRatio: 0.72,
+      charsPerLine: 40,
+      fontHeightRatio: 0.034,
+    };
+  }
+
+  return {
+    widthRatio: 0.68,
+    charsPerLine: 44,
+    fontHeightRatio: 0.035,
+  };
+};
+
+const resolveWidthBoost = (
+  width: number,
+): {
+  extraChars: number;
+  widthScale: number;
+} => {
+  if (width >= 1920) {
+    return { extraChars: 4, widthScale: 1.04 };
+  }
+
+  if (width >= 1440) {
+    return { extraChars: 3, widthScale: 1.03 };
+  }
+
+  if (width >= 960) {
+    return { extraChars: 2, widthScale: 1.02 };
+  }
+
+  if (width >= 640) {
+    return { extraChars: 1, widthScale: 1.01 };
+  }
+
+  return { extraChars: 0, widthScale: 1 };
+};
+
+const estimateAverageGlyphWidth = (fontSizePx: number): number =>
+  Math.max(7, fontSizePx * 0.56);
+
+export function computeSmartLayoutForBox(
+  box: SmartLayoutBox,
+  cssMetrics: SmartCssMetrics | null = null,
+): SmartLayoutResult {
+  const width = Number.isFinite(box.w) ? Math.max(0, box.w) : 0;
+  const height = Number.isFinite(box.h) ? Math.max(0, box.h) : 0;
+
+  if (width <= 0 || height <= 0) {
+    return {
+      fontSizePx: cssMetrics?.fontSizePx ?? 20,
+      maxWidthPx: cssMetrics?.maxWidthPx ?? null,
+    };
+  }
+
+  const aspect = width / height;
+  const { widthRatio, charsPerLine, fontHeightRatio } =
+    resolveAspectBand(aspect);
+  const { extraChars, widthScale } = resolveWidthBoost(width);
+
+  const derivedFontSizePx = clampNumber(height * fontHeightRatio, 16, 42);
+  const fontSizePx = cssMetrics?.fontSizePx ?? derivedFontSizePx;
+  const averageGlyphWidth = estimateAverageGlyphWidth(fontSizePx);
+
+  const minWidthPx = width * Math.min(0.92, widthRatio);
+  const maxWidthPx = width * clampNumber(widthRatio * widthScale, 0.66, 0.92);
+  const preferredCharsPerLine = clampNumber(charsPerLine + extraChars, 25, 48);
+  const widthFromChars = preferredCharsPerLine * averageGlyphWidth;
+  const resolvedMaxWidthPx = clampNumber(
+    widthFromChars,
+    minWidthPx,
+    maxWidthPx,
+  );
+
+  return {
+    fontSizePx,
+    maxWidthPx: roundToInt(resolvedMaxWidthPx),
+  };
 }

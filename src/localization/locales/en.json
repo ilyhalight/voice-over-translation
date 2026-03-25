@@ -32,6 +32,8 @@
   "VOTNoVideoIDFound": "No video ID found",
   "VOTSubtitles": "Subtitles",
   "VOTSubtitlesDisabled": "Disabled",
+  "VOTDefaultSubtitlesLanguage": "Default subtitle language",
+  "VOTOriginalVideoLanguage": "Original video language",
   "VOTSubtitlesMaxLength": "Subtitles max length",
   "VOTHighlightWords": "Highlight words",
   "VOTTranslatedFrom": "translated from",

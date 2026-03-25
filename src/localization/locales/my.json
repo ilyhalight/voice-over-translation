@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "စမတ်စာတန်းထိုး layout ကို",
   "smartDucking": "အလိုက်သင့်ပြောင်းလဲနိုင်သောပမာဏ",
   "VOTAutoSubtitles": "Open မှာစာတန်းထိုးထားတယ်။",
-  "VOTSubtitlesFont": "စာတန်းထိုးစာလုံး"
+  "VOTSubtitlesFont": "စာတန်းထိုးစာလုံး",
+  "VOTDefaultSubtitlesLanguage": "မူလစာတန်းထိုးဘာသာစကား",
+  "VOTOriginalVideoLanguage": "မူရင်းဗီဒီယိုဘာသာစကား"
 }

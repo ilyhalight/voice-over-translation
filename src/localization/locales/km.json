@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "ប្លង់ចំណងជើងរងរបស់ Smart",
   "smartDucking": "កម្រិតសំឡេងសម្របសម្រួល",
   "VOTAutoSubtitles": "បើកចំណងជើងរង",
-  "VOTSubtitlesFont": "ពុម្ពអក្សរចំណងជើងរង"
+  "VOTSubtitlesFont": "ពុម្ពអក្សរចំណងជើងរង",
+  "VOTDefaultSubtitlesLanguage": "ភាសាចំណងជើងរងលំនាំដើម",
+  "VOTOriginalVideoLanguage": "ភាសាវីដេអូដើម"
 }

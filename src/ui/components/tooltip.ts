@@ -407,95 +407,148 @@ export default class Tooltip {
     const top = anchorTop - this.globalOffsetY;
     const bottom = anchorBottom - this.globalOffsetY;
 
-    let resolvedPosition = position;
-    if (autoLayout) {
-      switch (position) {
-        case "top": {
-          const pTop = clamp(top - height - this.offsetY, 0, this.pageHeight);
-          if (pTop + this.offsetY < height) {
-            resolvedPosition = "bottom";
-          }
-          break;
-        }
-        case "right": {
-          const pLeft = clamp(right + this.offsetX, 0, this.pageWidth - width);
-          if (pLeft + width > this.pageWidth - this.offsetX) {
-            resolvedPosition = "left";
-          }
-          break;
-        }
-        case "bottom": {
-          const pTop = clamp(
-            bottom + this.offsetY,
-            0,
-            this.pageHeight - height,
-          );
-          if (pTop + height > this.pageHeight - this.offsetY) {
-            resolvedPosition = "top";
-          }
-          break;
-        }
-        case "left": {
-          const pLeft = Math.max(0, left - width - this.offsetX);
-          if (pLeft + width > left - this.offsetX) {
-            resolvedPosition = "right";
-          }
-          break;
-        }
-      }
-    }
-
-    let coords: PagePosition;
-    switch (resolvedPosition) {
-      case "top":
-        coords = {
-          top: clamp(top - height - this.offsetY, 0, this.pageHeight),
-          left: clamp(
-            left - width / 2 + anchorWidth / 2,
-            this.offsetX,
-            this.pageWidth - width - this.offsetX,
-          ),
-        };
-        break;
-      case "right":
-        coords = {
-          top: clamp(
-            top + (anchorHeight - height) / 2,
-            this.offsetY,
-            this.pageHeight - height - this.offsetY,
-          ),
-          left: clamp(right + this.offsetX, 0, this.pageWidth - width),
-        };
-        break;
-      case "bottom":
-        coords = {
-          top: clamp(bottom + this.offsetY, 0, this.pageHeight - height),
-          left: clamp(
-            left - width / 2 + anchorWidth / 2,
-            this.offsetX,
-            this.pageWidth - width - this.offsetX,
-          ),
-        };
-        break;
-      case "left":
-        coords = {
-          top: clamp(
-            top + (anchorHeight - height) / 2,
-            this.offsetY,
-            this.pageHeight - height - this.offsetY,
-          ),
-          left: Math.max(0, left - width - this.offsetX),
-        };
-        break;
-      default:
-        coords = { top: 0, left: 0 };
-    }
+    const anchorBox = { left, right, top, bottom, anchorWidth, anchorHeight };
+    const size = { width, height };
+    const resolvedPosition = this.resolveTooltipPosition(
+      anchorBox,
+      size,
+      position,
+      autoLayout,
+    );
+    const coords = this.getTooltipCoordinates(
+      anchorBox,
+      size,
+      resolvedPosition,
+    );
 
     this.position = resolvedPosition;
     return {
       top: coords.top + this.globalOffsetY,
       left: coords.left + this.globalOffsetX,
     };
+  }
+
+  private resolveTooltipPosition(
+    anchorBox: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      anchorWidth: number;
+      anchorHeight: number;
+    },
+    size: { width: number; height: number },
+    position: Position,
+    autoLayout: boolean,
+  ): Position {
+    if (!autoLayout) {
+      return position;
+    }
+
+    switch (position) {
+      case "top": {
+        const pTop = clamp(
+          anchorBox.top - size.height - this.offsetY,
+          0,
+          this.pageHeight,
+        );
+        return pTop + this.offsetY < size.height ? "bottom" : "top";
+      }
+      case "right": {
+        const pLeft = clamp(
+          anchorBox.right + this.offsetX,
+          0,
+          this.pageWidth - size.width,
+        );
+        return pLeft + size.width > this.pageWidth - this.offsetX
+          ? "left"
+          : "right";
+      }
+      case "bottom": {
+        const pTop = clamp(
+          anchorBox.bottom + this.offsetY,
+          0,
+          this.pageHeight - size.height,
+        );
+        return pTop + size.height > this.pageHeight - this.offsetY
+          ? "top"
+          : "bottom";
+      }
+      case "left": {
+        const pLeft = Math.max(0, anchorBox.left - size.width - this.offsetX);
+        return pLeft + size.width > anchorBox.left - this.offsetX
+          ? "right"
+          : "left";
+      }
+      default:
+        return position;
+    }
+  }
+
+  private getTooltipCoordinates(
+    anchorBox: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      anchorWidth: number;
+      anchorHeight: number;
+    },
+    size: { width: number; height: number },
+    position: Position,
+  ): PagePosition {
+    switch (position) {
+      case "top":
+        return {
+          top: clamp(
+            anchorBox.top - size.height - this.offsetY,
+            0,
+            this.pageHeight,
+          ),
+          left: clamp(
+            anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
+            this.offsetX,
+            this.pageWidth - size.width - this.offsetX,
+          ),
+        };
+      case "right":
+        return {
+          top: clamp(
+            anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
+            this.offsetY,
+            this.pageHeight - size.height - this.offsetY,
+          ),
+          left: clamp(
+            anchorBox.right + this.offsetX,
+            0,
+            this.pageWidth - size.width,
+          ),
+        };
+      case "bottom":
+        return {
+          top: clamp(
+            anchorBox.bottom + this.offsetY,
+            0,
+            this.pageHeight - size.height,
+          ),
+          left: clamp(
+            anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
+            this.offsetX,
+            this.pageWidth - size.width - this.offsetX,
+          ),
+        };
+      case "left":
+        return {
+          top: clamp(
+            anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
+            this.offsetY,
+            this.pageHeight - size.height - this.offsetY,
+          ),
+          left: Math.max(0, anchorBox.left - size.width - this.offsetX),
+        };
+      default:
+        return { top: 0, left: 0 };
+    }
   }
 
   private destroy(instant = false) {

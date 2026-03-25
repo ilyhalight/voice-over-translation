@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "اسمارٹ سب ٹائٹل لے آؤٹ",
   "smartDucking": "انکولی حجم",
   "VOTAutoSubtitles": "اوپن پر سب ٹائٹلز",
-  "VOTSubtitlesFont": "ذیلی عنوان فونٹ"
+  "VOTSubtitlesFont": "ذیلی عنوان فونٹ",
+  "VOTDefaultSubtitlesLanguage": "ڈیفالٹ ذیلی عنوان زبان",
+  "VOTOriginalVideoLanguage": "اصل ویڈیو زبان"
 }

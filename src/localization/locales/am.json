@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "ዘመናዊ ንዑስ ርዕስ አቀማመጥ",
   "smartDucking": "የመላመድ ድምጽ",
   "VOTAutoSubtitles": "ክፍት ላይ ንዑስ ርዕሶች",
-  "VOTSubtitlesFont": "የፊደል ቅርጽ"
+  "VOTSubtitlesFont": "የፊደል ቅርጽ",
+  "VOTDefaultSubtitlesLanguage": "ነባሪ የትርጉም ቋንቋ",
+  "VOTOriginalVideoLanguage": "የመጀመሪያው የቪዲዮ ቋንቋ"
 }

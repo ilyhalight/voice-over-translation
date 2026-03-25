@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Pametna postavitev podnapisov",
   "smartDucking": "Prilagodljiva prostornina",
   "VOTAutoSubtitles": "Podnapisi na odprtem",
-  "VOTSubtitlesFont": "Pisava podnapisov"
+  "VOTSubtitlesFont": "Pisava podnapisov",
+  "VOTDefaultSubtitlesLanguage": "Privzeti jezik podnapisov",
+  "VOTOriginalVideoLanguage": "Izvirni video jezik"
 }

@@ -1,5 +1,5 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
-import type { SubtitleFontFamily, SubtitleFormat } from "../subtitles/types";
+import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
 import type { LanguageSelectKey } from "./components/select";
 import type { Position } from "./components/votButton";
 import type { DetectService, TranslateService } from "./translateApis";
@@ -11,6 +11,13 @@ export type LocaleStorageKey =
   | "localeVersion"
   | "localeUpdatedAt"
   | "localeLangOverride";
+
+export const subtitleResponseLanguageModes = ["auto", "original"] as const;
+export type SubtitleResponseLanguageMode =
+  (typeof subtitleResponseLanguageModes)[number];
+export type ResponseLanguageSubtitles =
+  | SubtitleResponseLanguageMode
+  | Exclude<LanguageSelectKey, "auto">;
 
 export type ConvertCategory = "numToBool" | "number" | "array" | "string";
 export type ConvertDataItem = [oldName: string, newName?: string];
@@ -37,6 +44,7 @@ export const storageKeys = [
   "subtitlesOpacity",
   "subtitlesDownloadFormat",
   "responseLanguage",
+  "responseLanguageSubtitles",
   "defaultVolume",
   "onlyBypassMediaCSP",
   "newAudioPlayer",
@@ -105,6 +113,7 @@ export type StorageData = {
   subtitlesOpacity: number;
   subtitlesDownloadFormat: SubtitleFormat;
   responseLanguage: ResponseLang;
+  responseLanguageSubtitles: ResponseLanguageSubtitles;
   defaultVolume: number;
   onlyBypassMediaCSP: boolean;
   newAudioPlayer: boolean;

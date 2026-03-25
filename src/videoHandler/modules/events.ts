@@ -14,6 +14,7 @@ import debug from "../../utils/debug";
 import { GM_fetch } from "../../utils/gm";
 import { getPlatformEventConfig } from "../../utils/platformEvents";
 import { clampPercentInt } from "../../utils/volume";
+import { handlePlaybackResumedTranslationRefresh } from "./translation";
 
 type ScopedAddListener = (
   element: EventTarget,
@@ -446,6 +447,32 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     self.container.draggable = false;
   }
 }
+export function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
+  const { self, add } = ctx;
+  let wasPausedSinceLastPlay = false;
+
+  const resetPauseState = () => {
+    wasPausedSinceLastPlay = false;
+  };
+
+  add(self.video, "pause", () => {
+    wasPausedSinceLastPlay = true;
+  });
+
+  add(self.video, "playing", () => {
+    if (!wasPausedSinceLastPlay) return;
+    wasPausedSinceLastPlay = false;
+    void handlePlaybackResumedTranslationRefresh.call(self).catch((error) => {
+      debug.log(
+        "[VOT] Failed to refresh translation after playback resumed",
+        error,
+      );
+    });
+  });
+
+  add(self.video, "loadstart", resetPauseState);
+  add(self.video, "emptied", resetPauseState);
+}
 function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
   const { self, overlayView, add } = ctx;
   const safeSetCanPlay = async () => {
@@ -526,6 +553,7 @@ export function initExtraEvents(this: VideoHandler) {
     add,
     addMany,
   };
+  bindPlaybackRefreshOnResume(ctx);
   bindOverlayLayoutEvents(ctx);
   bindYouTubeVolumeSync(ctx);
   bindAudioTrackLanguageSync(ctx);

@@ -63,7 +63,7 @@ export type Locale =
   | "zh"
   | "zu";
 
-export type Hashes = Record<Locale, string>;
+export type LangOverride = "auto" | Locale;
 
 export type Phrase =
   | "recommended"
@@ -99,6 +99,8 @@ export type Phrase =
   | "VOTNoVideoIDFound"
   | "VOTSubtitles"
   | "VOTSubtitlesDisabled"
+  | "VOTDefaultSubtitlesLanguage"
+  | "VOTOriginalVideoLanguage"
   | "VOTSubtitlesMaxLength"
   | "VOTHighlightWords"
   | "VOTTranslatedFrom"
@@ -340,6 +342,8 @@ export type Phrases = {
   VOTNoVideoIDFound: string;
   VOTSubtitles: string;
   VOTSubtitlesDisabled: string;
+  VOTDefaultSubtitlesLanguage: string;
+  VOTOriginalVideoLanguage: string;
   VOTSubtitlesMaxLength: string;
   VOTHighlightWords: string;
   VOTTranslatedFrom: string;

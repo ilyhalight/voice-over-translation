@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Disseny de subtítols intel ligent",
   "smartDucking": "Volum adaptatiu",
   "VOTAutoSubtitles": "Subtítols en obert",
-  "VOTSubtitlesFont": "Tipus de lletra dels subtítols"
+  "VOTSubtitlesFont": "Tipus de lletra dels subtítols",
+  "VOTDefaultSubtitlesLanguage": "Idioma predeterminat dels subtítols",
+  "VOTOriginalVideoLanguage": "Idioma original del vídeo"
 }

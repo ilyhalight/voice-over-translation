@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Smart subtitle layout",
   "smartDucking": "Adaptief volume",
   "VOTAutoSubtitles": "Ondertitels op open",
-  "VOTSubtitlesFont": "Ondertiteling lettertype"
+  "VOTSubtitlesFont": "Ondertiteling lettertype",
+  "VOTDefaultSubtitlesLanguage": "Standaard ondertiteltaal",
+  "VOTOriginalVideoLanguage": "Originele videotaal"
 }

@@ -5,7 +5,14 @@ type IframeConfig = {
   responseFormatter: (videoId: string, data: unknown) => unknown;
 };
 
+let iframeInteractorInitialized = false;
+
 export function initIframeInteractor(): void {
+  if (iframeInteractorInitialized) {
+    return;
+  }
+  iframeInteractorInitialized = true;
+
   const configs: Record<string, IframeConfig> = {
     "https://dev.epicgames.com": {
       targetOrigin: "https://dev.epicgames.com",

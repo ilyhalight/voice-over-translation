@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Nutikas subtiitrite paigutus",
   "smartDucking": "Adaptiivne maht",
   "VOTAutoSubtitles": "Subtiitrid avatud",
-  "VOTSubtitlesFont": "Subtiitrite font"
+  "VOTSubtitlesFont": "Subtiitrite font",
+  "VOTDefaultSubtitlesLanguage": "Vaikimisi Subtiitrite keel",
+  "VOTOriginalVideoLanguage": "Originaal video keel"
 }

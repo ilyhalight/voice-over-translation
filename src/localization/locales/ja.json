@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "スマート字幕レイアウト",
   "smartDucking": "適応ボリューム",
   "VOTAutoSubtitles": "オープン時の字幕",
-  "VOTSubtitlesFont": "字幕フォント"
+  "VOTSubtitlesFont": "字幕フォント",
+  "VOTDefaultSubtitlesLanguage": "デフォルトの字幕言語",
+  "VOTOriginalVideoLanguage": "オリジナルビデオ言語"
 }

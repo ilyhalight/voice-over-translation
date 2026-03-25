@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Älykäs tekstityksen asettelu",
   "smartDucking": "Mukautuva äänenvoimakkuus",
   "VOTAutoSubtitles": "Tekstitys auki",
-  "VOTSubtitlesFont": "Tekstityksen kirjasin"
+  "VOTSubtitlesFont": "Tekstityksen kirjasin",
+  "VOTDefaultSubtitlesLanguage": "Tekstityksen oletuskieli",
+  "VOTOriginalVideoLanguage": "Alkuperäinen videon kieli"
 }

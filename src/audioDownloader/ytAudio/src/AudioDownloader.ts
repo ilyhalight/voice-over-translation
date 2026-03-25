@@ -206,35 +206,41 @@ export function extractVideoId(input: string): string {
 
   const hostname = url.hostname.toLowerCase();
   if (hostname === "youtu.be" || hostname.endsWith(".youtu.be")) {
-    const id = url.pathname.split("/").find(Boolean);
+    return getValidatedVideoId(url.pathname.split("/").find(Boolean), input);
+  }
+
+  const searchId = url.searchParams.get("v");
+  if (searchId && VIDEO_ID_PATTERN.test(searchId)) return searchId;
+
+  const pathSegments = url.pathname.split("/").filter(Boolean);
+  const pathId = getVideoIdFromPathSegments(pathSegments);
+  if (pathId) return pathId;
+
+  throw new Error(`Cannot extract YouTube video id from: ${input}`);
+}
+
+function getValidatedVideoId(id: string | undefined, input: string): string {
+  if (id && VIDEO_ID_PATTERN.test(id)) {
+    return id;
+  }
+
+  throw new Error(`Cannot extract YouTube video id from: ${input}`);
+}
+
+function getVideoIdFromPathSegments(pathSegments: string[]): string | null {
+  const pathMarkers = ["shorts", "embed"] as const;
+
+  for (const marker of pathMarkers) {
+    const markerIndex = pathSegments.indexOf(marker);
+    if (markerIndex === -1) continue;
+
+    const id = pathSegments[markerIndex + 1];
     if (id && VIDEO_ID_PATTERN.test(id)) {
       return id;
     }
   }
 
-  const searchId = url.searchParams.get("v");
-  if (searchId && VIDEO_ID_PATTERN.test(searchId)) {
-    return searchId;
-  }
-
-  const pathSegments = url.pathname.split("/").filter(Boolean);
-  const shortsIndex = pathSegments.indexOf("shorts");
-  if (shortsIndex !== -1) {
-    const shortsId = pathSegments[shortsIndex + 1];
-    if (shortsId && VIDEO_ID_PATTERN.test(shortsId)) {
-      return shortsId;
-    }
-  }
-
-  const embedIndex = pathSegments.indexOf("embed");
-  if (embedIndex !== -1) {
-    const embedId = pathSegments[embedIndex + 1];
-    if (embedId && VIDEO_ID_PATTERN.test(embedId)) {
-      return embedId;
-    }
-  }
-
-  throw new Error(`Cannot extract YouTube video id from: ${input}`);
+  return null;
 }
 
 function decodeEscapedJsonString(input: string): string {

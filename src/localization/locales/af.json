@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Slim onderskrif uitleg",
   "smartDucking": "Aanpasbare volume",
   "VOTAutoSubtitles": "Onderskrifte op open",
-  "VOTSubtitlesFont": "Onderskrif skrif tipe"
+  "VOTSubtitlesFont": "Onderskrif skrif tipe",
+  "VOTDefaultSubtitlesLanguage": "Verstek ondertiteltaal",
+  "VOTOriginalVideoLanguage": "Oorspronklike video taal"
 }

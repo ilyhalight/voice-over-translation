@@ -9,7 +9,6 @@ import { votStorage } from "../utils/storage";
 import { fnv1a32ToKeyPart } from "../utils/utils";
 
 export const YANDEX_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
-export const VOT_SESSION_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
 const RESPONSE_CACHE_KEY_HEADER = "x-vot-cache-key";
 const DEFAULT_RESPONSE_CACHE_NAME = "vot-http-cache-v1";
@@ -46,13 +45,7 @@ type CacheReadResult = {
   expiresAt?: number;
 };
 
-type VOTSession = ClientSession;
-type VOTSessions = Partial<Record<SessionModule, VOTSession>>;
-type StoredVOTSession = {
-  secretKey: string;
-  uuid: string;
-  expiresAt: number;
-};
+type VOTSessions = Partial<Record<SessionModule, ClientSession>>;
 type VOTSessionStorage = Pick<
   typeof votStorage,
   "getRaw" | "setRaw" | "deleteRaw"
@@ -62,7 +55,7 @@ function getCurrentUnixTimestampSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
 
-function isVOTSession(value: unknown): value is VOTSession {
+function isClientSession(value: unknown): value is ClientSession {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -94,7 +87,7 @@ function sanitizeVOTSessions(value: unknown): VOTSessions {
   const now = getCurrentUnixTimestampSeconds();
   const entries = Object.entries(value as Record<string, unknown>).flatMap(
     ([module, session]) => {
-      if (!isVOTSession(session)) {
+      if (!isClientSession(session)) {
         return [];
       }
 
@@ -109,85 +102,49 @@ function sanitizeVOTSessions(value: unknown): VOTSessions {
   return Object.fromEntries(entries) as VOTSessions;
 }
 
-function isStoredVOTSession(value: unknown): value is StoredVOTSession {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as {
-    expiresAt?: unknown;
-    secretKey?: unknown;
-    uuid?: unknown;
-  };
-
-  return (
-    typeof candidate.expiresAt === "number" &&
-    Number.isFinite(candidate.expiresAt) &&
-    typeof candidate.secretKey === "string" &&
-    candidate.secretKey.length > 0 &&
-    typeof candidate.uuid === "string" &&
-    candidate.uuid.length > 0
-  );
+function hasSessions(sessions: VOTSessions): boolean {
+  return Object.keys(sessions).length > 0;
 }
 
 export class VOTSessionStorageCache {
   constructor(private readonly storage: VOTSessionStorage = votStorage) {}
 
-  private getStorageKey(host: string): string {
-    void host;
+  private getStorageKey(): string {
     return VOT_SESSION_STORAGE_KEY;
   }
 
   async restore(
-    host: string,
+    _host: string,
     currentSessions: VOTSessions = {},
   ): Promise<VOTSessions> {
-    const storageKey = this.getStorageKey(host);
+    const storageKey = this.getStorageKey();
     const rawStoredSession = await this.storage.getRaw<unknown>(storageKey);
-    if (!isStoredVOTSession(rawStoredSession)) {
+    const restoredSessions = sanitizeVOTSessions(rawStoredSession);
+    if (!hasSessions(restoredSessions)) {
+      if (rawStoredSession !== undefined) {
+        await this.storage.deleteRaw(storageKey);
+      }
       return currentSessions;
     }
 
-    const nowMs = Date.now();
-    if (rawStoredSession.expiresAt <= nowMs) {
-      await this.storage.deleteRaw(storageKey);
-      return currentSessions;
-    }
-
-    const remainingSeconds = Math.max(
-      1,
-      Math.ceil((rawStoredSession.expiresAt - nowMs) / 1000),
-    );
     return {
       ...currentSessions,
-      "video-translation": {
-        secretKey: rawStoredSession.secretKey,
-        uuid: rawStoredSession.uuid,
-        expires: remainingSeconds,
-        timestamp: Math.floor(nowMs / 1000),
-      },
+      ...restoredSessions,
     };
   }
 
   async persist(
-    host: string,
+    _host: string,
     sessions: VOTSessions | undefined,
   ): Promise<void> {
-    void host;
-    const storageKey = this.getStorageKey(host);
-    const translationSession =
-      sanitizeVOTSessions(sessions)["video-translation"];
-    if (!translationSession) {
+    const storageKey = this.getStorageKey();
+    const sanitizedSessions = sanitizeVOTSessions(sessions);
+    if (!hasSessions(sanitizedSessions)) {
       await this.storage.deleteRaw(storageKey);
       return;
     }
 
-    await this.storage.setRaw(storageKey, {
-      secretKey: translationSession.secretKey,
-      uuid: translationSession.uuid,
-      expiresAt:
-        (translationSession.timestamp + translationSession.expires) * 1000,
-    } satisfies StoredVOTSession);
+    await this.storage.setRaw(storageKey, sanitizedSessions);
   }
 }
 
@@ -322,67 +279,35 @@ class ResponseCacheManager {
     const allowStaleOnError = options.allowStaleOnError !== false;
     const nowMs = Date.now();
 
-    let staleFallback: Response | undefined;
-
-    if (useMemory) {
-      const memoryHit = this.readMemoryCache(key, nowMs);
-      if (memoryHit.fresh) {
-        return memoryHit.fresh;
-      }
-      staleFallback = memoryHit.stale ?? staleFallback;
+    const staleFallback = await this.readCachedResponse({
+      key,
+      nowMs,
+      useMemory,
+      useCacheApi,
+      cacheName,
+      url: context.url,
+      cacheApiKey,
+      ttlMs,
+      allowStaleOnError,
+    });
+    if (staleFallback.fresh) {
+      return staleFallback.fresh;
     }
-
-    if (useCacheApi) {
-      const cacheApiHit = await this.readCacheApi(
-        cacheName,
-        context.url,
-        cacheApiKey,
-        ttlMs,
-        nowMs,
-        allowStaleOnError,
-      );
-      if (cacheApiHit.fresh) {
-        if (useMemory) {
-          this.writeMemoryCache(
-            key,
-            cacheApiHit.fresh.clone(),
-            cacheApiHit.expiresAt ?? nowMs + ttlMs,
-          );
-        }
-        return cacheApiHit.fresh;
-      }
-      staleFallback = staleFallback ?? cacheApiHit.stale;
-    }
-
-    const runNetworkRequest = async (): Promise<Response> => {
-      const response = await fetcher();
-      if (!response.ok) {
-        return response;
-      }
-
-      const createdAtMs = Date.now();
-      const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
-
-      if (useMemory) {
-        this.writeMemoryCache(key, response.clone(), expiresAt);
-      }
-      if (useCacheApi) {
-        const storable = this.toStorableResponse(response.clone(), createdAtMs);
-        await this.writeCacheApi(cacheName, context.url, cacheApiKey, storable);
-      }
-
-      return response;
-    };
 
     if (!dedupe) {
-      try {
-        return await runNetworkRequest();
-      } catch (err) {
-        if (allowStaleOnError && staleFallback) {
-          return staleFallback;
-        }
-        throw err;
-      }
+      return await this.runNetworkRequestWithFallback(
+        {
+          key,
+          cacheName,
+          url: context.url,
+          cacheApiKey,
+          ttlMs,
+          useMemory,
+          useCacheApi,
+        },
+        fetcher,
+        allowStaleOnError ? staleFallback.stale : undefined,
+      );
     }
 
     const inFlight = this.inFlightRequests.get(key);
@@ -390,16 +315,19 @@ class ResponseCacheManager {
       return (await inFlight).clone();
     }
 
-    const networkPromise = (async (): Promise<Response> => {
-      try {
-        return await runNetworkRequest();
-      } catch (err) {
-        if (allowStaleOnError && staleFallback) {
-          return staleFallback.clone();
-        }
-        throw err;
-      }
-    })();
+    const networkPromise = this.runNetworkRequestWithFallback(
+      {
+        key,
+        cacheName,
+        url: context.url,
+        cacheApiKey,
+        ttlMs,
+        useMemory,
+        useCacheApi,
+      },
+      fetcher,
+      allowStaleOnError ? staleFallback.stale?.clone() : undefined,
+    );
     this.inFlightRequests.set(key, networkPromise);
 
     try {
@@ -407,6 +335,126 @@ class ResponseCacheManager {
     } finally {
       this.inFlightRequests.delete(key);
     }
+  }
+
+  private async readCachedResponse({
+    key,
+    nowMs,
+    useMemory,
+    useCacheApi,
+    cacheName,
+    url,
+    cacheApiKey,
+    ttlMs,
+    allowStaleOnError,
+  }: {
+    key: string;
+    nowMs: number;
+    useMemory: boolean;
+    useCacheApi: boolean;
+    cacheName: string;
+    url: string;
+    cacheApiKey: string;
+    ttlMs: number;
+    allowStaleOnError: boolean;
+  }): Promise<{ fresh?: Response; stale?: Response }> {
+    let staleFallback: Response | undefined;
+
+    if (useMemory) {
+      const memoryHit = this.readMemoryCache(key, nowMs);
+      if (memoryHit.fresh) {
+        return { fresh: memoryHit.fresh };
+      }
+      staleFallback = memoryHit.stale;
+    }
+
+    if (!useCacheApi) {
+      return { stale: staleFallback };
+    }
+
+    const cacheApiHit = await this.readCacheApi(
+      cacheName,
+      url,
+      cacheApiKey,
+      ttlMs,
+      nowMs,
+      allowStaleOnError,
+    );
+    if (cacheApiHit.fresh) {
+      if (useMemory) {
+        this.writeMemoryCache(
+          key,
+          cacheApiHit.fresh.clone(),
+          cacheApiHit.expiresAt ?? nowMs + ttlMs,
+        );
+      }
+
+      return { fresh: cacheApiHit.fresh };
+    }
+
+    return { stale: staleFallback ?? cacheApiHit.stale };
+  }
+
+  private async runNetworkRequestWithFallback(
+    cacheConfig: {
+      key: string;
+      cacheName: string;
+      url: string;
+      cacheApiKey: string;
+      ttlMs: number;
+      useMemory: boolean;
+      useCacheApi: boolean;
+    },
+    fetcher: () => Promise<Response>,
+    staleFallback?: Response,
+  ): Promise<Response> {
+    try {
+      return await this.runNetworkRequest(cacheConfig, fetcher);
+    } catch (err) {
+      if (staleFallback) {
+        return staleFallback;
+      }
+      throw err;
+    }
+  }
+
+  private async runNetworkRequest(
+    {
+      key,
+      cacheName,
+      url,
+      cacheApiKey,
+      ttlMs,
+      useMemory,
+      useCacheApi,
+    }: {
+      key: string;
+      cacheName: string;
+      url: string;
+      cacheApiKey: string;
+      ttlMs: number;
+      useMemory: boolean;
+      useCacheApi: boolean;
+    },
+    fetcher: () => Promise<Response>,
+  ): Promise<Response> {
+    const response = await fetcher();
+    if (!response.ok) {
+      return response;
+    }
+
+    const createdAtMs = Date.now();
+    const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+
+    if (useMemory) {
+      this.writeMemoryCache(key, response.clone(), expiresAt);
+    }
+    if (useCacheApi) {
+      const storable = this.toStorableResponse(response.clone(), createdAtMs);
+      await this.writeCacheApi(cacheName, url, cacheApiKey, storable);
+    }
+
+    return response;
   }
 
   private computeExpiresAt(createdAtMs: number, ttlMs: number): number {
@@ -437,7 +485,7 @@ class ResponseCacheManager {
     context: RequestCacheContext,
   ): string | undefined {
     const method = this.normalizeMethod(context.method);
-    if (method === "GET" || method === "HEAD") {
+    if (method === "GET") {
       return `${method}:${context.url}`;
     }
 

@@ -4,18 +4,6 @@ import type { LanguageSelectKey } from "../components/select";
 import type { StorageData } from "../storage";
 import type { OverlayMount } from "../uiManager";
 
-export type OverlayEventType =
-  | "click:settings"
-  | "click:pip"
-  | "click:downloadTranslation"
-  | "click:downloadSubtitles"
-  | "click:translate"
-  | "input:videoVolume"
-  | "input:translationVolume"
-  | "select:fromLanguage"
-  | "select:toLanguage"
-  | "select:subtitles";
-
 export type OverlayViewProps = {
   mount: OverlayMount;
   globalPortal: HTMLElement;

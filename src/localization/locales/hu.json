@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Intelligens felirat elrendezés",
   "smartDucking": "Adaptív kötet",
   "VOTAutoSubtitles": "Feliratok nyitva",
-  "VOTSubtitlesFont": "Felirat betűtípus"
+  "VOTSubtitlesFont": "Felirat betűtípus",
+  "VOTDefaultSubtitlesLanguage": "Alapértelmezett felirat nyelv",
+  "VOTOriginalVideoLanguage": "Eredeti videó nyelv"
 }

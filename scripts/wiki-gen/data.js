@@ -321,4 +321,4 @@ const extraData = {
 
 const sitesBlackList = ["porntn"];
 
-export { siteData, extraData, sitesBlackList };
+export { extraData, siteData, sitesBlackList };

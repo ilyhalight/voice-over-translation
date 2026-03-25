@@ -108,6 +108,161 @@ export function resetSmartDuckingRuntime(): SmartDuckingRuntime {
   return initSmartDuckingRuntime();
 }
 
+function updateSpeechGate(
+  input: SmartDuckingInput,
+  runtime: SmartDuckingRuntime,
+  config: SmartDuckingConfig,
+  now: number,
+  hasRms: boolean,
+): boolean {
+  const gateOpen = runtime.speechGateOpen;
+
+  if (!input.smartEnabled) {
+    runtime.lastSoundAt = now;
+    runtime.rmsMissingSinceAt = null;
+    return true;
+  }
+
+  if (input.audioIsPlaying && !hasRms) {
+    runtime.rmsMissingSinceAt ??= now;
+
+    if (gateOpen) {
+      runtime.lastSoundAt = now;
+    }
+
+    if (
+      runtime.rmsMissingSinceAt !== null &&
+      now - runtime.rmsMissingSinceAt >= config.rmsMissingGraceMs
+    ) {
+      runtime.lastSoundAt = now;
+      return true;
+    }
+
+    return gateOpen;
+  }
+
+  runtime.rmsMissingSinceAt = null;
+
+  if (!input.audioIsPlaying) {
+    return gateOpen && now - runtime.lastSoundAt <= config.holdMs;
+  }
+
+  if (!gateOpen && runtime.rmsEnvelope >= config.thresholdOnRms) {
+    runtime.lastSoundAt = now;
+    return true;
+  }
+
+  if (gateOpen && runtime.rmsEnvelope >= config.thresholdOffRms) {
+    runtime.lastSoundAt = now;
+    return true;
+  }
+
+  return gateOpen && now - runtime.lastSoundAt <= config.holdMs;
+}
+
+function resolveBaseline(
+  runtime: SmartDuckingRuntime,
+  currentVideoVolume: number,
+  volumeOnStart: number | null | undefined,
+  config: SmartDuckingConfig,
+): number {
+  if (
+    runtime.isDucked &&
+    isFiniteNumber(runtime.lastApplied) &&
+    Math.abs(currentVideoVolume - runtime.lastApplied) >
+      config.externalBaselineDelta01
+  ) {
+    runtime.baseline = currentVideoVolume;
+  }
+
+  if (!runtime.isDucked) {
+    runtime.baseline = currentVideoVolume;
+  }
+
+  const baseline = runtime.baseline ?? volumeOnStart ?? currentVideoVolume;
+  runtime.baseline = baseline;
+  return baseline;
+}
+
+function resolveDesiredVolume(
+  runtime: SmartDuckingRuntime,
+  gateOpen: boolean,
+  currentVideoVolume: number,
+  baseline: number,
+  duckingTarget01: number,
+  config: SmartDuckingConfig,
+): number {
+  const duckedTarget = Math.min(baseline, duckingTarget01);
+
+  if (gateOpen) {
+    runtime.isDucked = true;
+    return duckedTarget;
+  }
+
+  if (
+    runtime.isDucked &&
+    Math.abs(baseline - currentVideoVolume) < config.unduckTolerance01
+  ) {
+    runtime.isDucked = false;
+  }
+
+  return baseline;
+}
+
+function smoothVolumeChange(
+  desired: number,
+  currentVideoVolume: number,
+  dtMs: number,
+  dtSec: number,
+  config: SmartDuckingConfig,
+): number {
+  const smoothingTauMs =
+    desired < currentVideoVolume ? config.attackTauMs : config.releaseTauMs;
+  const smoothingAlpha =
+    smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
+  let nextVolume =
+    currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
+
+  const maxDelta =
+    (desired < currentVideoVolume ? config.maxDownPerSec : config.maxUpPerSec) *
+    dtSec;
+  if (maxDelta > 0) {
+    nextVolume = clamp(
+      nextVolume,
+      currentVideoVolume - maxDelta,
+      currentVideoVolume + maxDelta,
+    );
+  }
+
+  return clamp(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
+}
+
+function buildVolumeDecision(
+  runtime: SmartDuckingRuntime,
+  currentVideoVolume: number,
+  quantized: number,
+  applyDeltaThreshold01: number,
+): SmartDuckingDecision {
+  if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
+    runtime.lastApplied = quantized;
+    return { kind: "noop", runtime };
+  }
+
+  if (
+    !isFiniteNumber(runtime.lastApplied) ||
+    Math.abs(quantized - runtime.lastApplied) >= applyDeltaThreshold01
+  ) {
+    runtime.lastApplied = quantized;
+    return {
+      kind: "apply",
+      runtime,
+      volume01: quantized,
+    };
+  }
+
+  return { kind: "noop", runtime };
+}
+
 export function computeSmartDuckingStep(
   input: SmartDuckingInput,
   runtime: SmartDuckingRuntime,
@@ -142,46 +297,7 @@ export function computeSmartDuckingStep(
     VOLUME_MAX_01,
   );
 
-  let gateOpen = nextRuntime.speechGateOpen;
-  if (!input.smartEnabled) {
-    gateOpen = true;
-    nextRuntime.lastSoundAt = now;
-    nextRuntime.rmsMissingSinceAt = null;
-  } else if (input.audioIsPlaying && !hasRms) {
-    nextRuntime.rmsMissingSinceAt ??= now;
-
-    if (gateOpen) {
-      // Preserve an already-open gate during short analyser gaps.
-      nextRuntime.lastSoundAt = now;
-    }
-
-    if (
-      nextRuntime.rmsMissingSinceAt !== null &&
-      now - nextRuntime.rmsMissingSinceAt >= config.rmsMissingGraceMs
-    ) {
-      gateOpen = true;
-      nextRuntime.lastSoundAt = now;
-    }
-  } else {
-    nextRuntime.rmsMissingSinceAt = null;
-
-    if (!gateOpen) {
-      if (
-        input.audioIsPlaying &&
-        nextRuntime.rmsEnvelope >= config.thresholdOnRms
-      ) {
-        gateOpen = true;
-        nextRuntime.lastSoundAt = now;
-      }
-    } else if (
-      input.audioIsPlaying &&
-      nextRuntime.rmsEnvelope >= config.thresholdOffRms
-    ) {
-      nextRuntime.lastSoundAt = now;
-    } else if (now - nextRuntime.lastSoundAt > config.holdMs) {
-      gateOpen = false;
-    }
-  }
+  const gateOpen = updateSpeechGate(input, nextRuntime, config, now, hasRms);
   nextRuntime.speechGateOpen = gateOpen;
 
   const currentVideoVolume = normalizeVolume01(input.currentVideoVolume);
@@ -189,21 +305,12 @@ export function computeSmartDuckingStep(
     return { kind: "noop", runtime: nextRuntime };
   }
 
-  if (
-    nextRuntime.isDucked &&
-    isFiniteNumber(nextRuntime.lastApplied) &&
-    Math.abs(currentVideoVolume - nextRuntime.lastApplied) >
-      config.externalBaselineDelta01
-  ) {
-    nextRuntime.baseline = currentVideoVolume;
-  }
-
-  if (!nextRuntime.isDucked) {
-    nextRuntime.baseline = currentVideoVolume;
-  }
-
-  const baseline = nextRuntime.baseline ?? volumeOnStart ?? currentVideoVolume;
-  nextRuntime.baseline = baseline;
+  const baseline = resolveBaseline(
+    nextRuntime,
+    currentVideoVolume,
+    volumeOnStart,
+    config,
+  );
 
   if (!input.hostVideoActive) {
     nextRuntime.lastApplied = currentVideoVolume;
@@ -211,39 +318,21 @@ export function computeSmartDuckingStep(
   }
 
   const duckingTarget01 = normalizeVolume01(input.duckingTarget01) ?? baseline;
-  const duckedTarget = Math.min(baseline, duckingTarget01);
-  let desired = baseline;
-
-  if (gateOpen) {
-    if (!nextRuntime.isDucked) {
-      nextRuntime.isDucked = true;
-    }
-    desired = duckedTarget;
-  } else if (
-    nextRuntime.isDucked &&
-    Math.abs(baseline - currentVideoVolume) < config.unduckTolerance01
-  ) {
-    nextRuntime.isDucked = false;
-  }
-
-  const smoothingTauMs =
-    desired < currentVideoVolume ? config.attackTauMs : config.releaseTauMs;
-  const smoothingAlpha =
-    smoothingTauMs > 0 ? -Math.expm1(-dtMs / smoothingTauMs) : 1;
-  let nextVolume =
-    currentVideoVolume + (desired - currentVideoVolume) * smoothingAlpha;
-
-  const maxDelta =
-    (desired < currentVideoVolume ? config.maxDownPerSec : config.maxUpPerSec) *
-    dtSec;
-  if (maxDelta > 0) {
-    nextVolume = clamp(
-      nextVolume,
-      currentVideoVolume - maxDelta,
-      currentVideoVolume + maxDelta,
-    );
-  }
-  nextVolume = clamp(nextVolume, VOLUME_MIN_01, VOLUME_MAX_01);
+  const desired = resolveDesiredVolume(
+    nextRuntime,
+    gateOpen,
+    currentVideoVolume,
+    baseline,
+    duckingTarget01,
+    config,
+  );
+  const nextVolume = smoothVolumeChange(
+    desired,
+    currentVideoVolume,
+    dtMs,
+    dtSec,
+    config,
+  );
 
   const quantized = snapVolume01Towards(
     nextVolume,
@@ -253,25 +342,12 @@ export function computeSmartDuckingStep(
   );
 
   const applyDeltaThreshold01 = config.applyDeltaThreshold01;
-
-  if (Math.abs(quantized - currentVideoVolume) < applyDeltaThreshold01) {
-    nextRuntime.lastApplied = quantized;
-    return { kind: "noop", runtime: nextRuntime };
-  }
-
-  if (
-    !isFiniteNumber(nextRuntime.lastApplied) ||
-    Math.abs(quantized - nextRuntime.lastApplied) >= applyDeltaThreshold01
-  ) {
-    nextRuntime.lastApplied = quantized;
-    return {
-      kind: "apply",
-      runtime: nextRuntime,
-      volume01: quantized,
-    };
-  }
-
-  return { kind: "noop", runtime: nextRuntime };
+  return buildVolumeDecision(
+    nextRuntime,
+    currentVideoVolume,
+    quantized,
+    applyDeltaThreshold01,
+  );
 }
 
 function normalizeRuntime(runtime: SmartDuckingRuntime): SmartDuckingRuntime {
