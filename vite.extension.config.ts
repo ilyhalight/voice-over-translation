@@ -1,11 +1,11 @@
-import type { Plugin, UserConfig } from "vite";
+import type { Plugin } from "vite";
 import { defineConfig } from "vite";
-
+import { createViteConfig } from "./vite.base.config";
 import {
   buildExtensionBundles,
   cleanupExtensionTmpDir,
-  type ExtensionBuildTarget,
   createExtensionBuildContext,
+  type ExtensionBuildTarget,
   finalizeExtensionBuildArtifacts,
   getExtensionHeaders,
   outBase,
@@ -68,22 +68,24 @@ function verifyVirtualEntryPlugin(): Plugin {
 
 export default defineConfig(async ({ mode }) => {
   const target = resolveBuildTarget(mode);
-  const config: UserConfig = {
+  return createViteConfig({
     root: rootDir,
     plugins: [
       verifyVirtualEntryPlugin(),
-      mode === "verify" ? verifyOnlyPlugin("all") : extensionPipelinePlugin(target),
+      mode === "verify"
+        ? verifyOnlyPlugin("all")
+        : extensionPipelinePlugin(target),
     ],
     build: {
       outDir: outBase,
       emptyOutDir: false,
+      copyPublicDir: false,
+      reportCompressedSize: false,
       write: false,
       minify: false,
-      rollupOptions: {
+      rolldownOptions: {
         input: verifyVirtualEntry,
       },
     },
-  };
-
-  return config;
+  });
 });

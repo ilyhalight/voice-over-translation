@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Mpangilio wa manukuu mahiri",
   "smartDucking": "Kiasi cha kubadilika",
   "VOTAutoSubtitles": "Subtitles juu ya wazi",
-  "VOTSubtitlesFont": "Fonti ya kichwa kidogo"
+  "VOTSubtitlesFont": "Fonti ya kichwa kidogo",
+  "VOTDefaultSubtitlesLanguage": "Default lugha ya kichwa kidogo",
+  "VOTOriginalVideoLanguage": "Lugha ya awali ya video"
 }

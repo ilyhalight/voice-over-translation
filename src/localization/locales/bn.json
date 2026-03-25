@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "স্মার্ট সাবটাইটেল বিন্যাস",
   "smartDucking": "অভিযোজিত ভলিউম",
   "VOTAutoSubtitles": "সাবটাইটেল খোলা",
-  "VOTSubtitlesFont": "সাবটাইটেল ফন্ট"
+  "VOTSubtitlesFont": "সাবটাইটেল ফন্ট",
+  "VOTDefaultSubtitlesLanguage": "ডিফল্ট সাবটাইটেল ভাষা",
+  "VOTOriginalVideoLanguage": "মূল ভিডিও ভাষা"
 }

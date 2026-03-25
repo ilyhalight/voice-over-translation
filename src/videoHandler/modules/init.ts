@@ -71,6 +71,7 @@ export async function init(this: VideoHandler) {
     subtitlesOpacity: 20,
     subtitlesDownloadFormat: "srt",
     responseLanguage: calculatedResLang,
+    responseLanguageSubtitles: "auto",
     defaultVolume: 100,
     onlyBypassMediaCSP: audioContextSupported,
     newAudioPlayer: audioContextSupported,

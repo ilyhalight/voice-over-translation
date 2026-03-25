@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Susun atur sari kata pintar",
   "smartDucking": "Isipadu adaptif",
   "VOTAutoSubtitles": "Subtitle di buka",
-  "VOTSubtitlesFont": "Font subtajuk"
+  "VOTSubtitlesFont": "Font subtajuk",
+  "VOTDefaultSubtitlesLanguage": "Bahasa sari kata lalai",
+  "VOTOriginalVideoLanguage": "Bahasa video asal"
 }

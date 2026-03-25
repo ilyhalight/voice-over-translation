@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Bố cục phụ đề thông minh",
   "smartDucking": "Khối lượng thích ứng",
   "VOTAutoSubtitles": "Phụ đề mở",
-  "VOTSubtitlesFont": "Phông chữ phụ đề"
+  "VOTSubtitlesFont": "Phông chữ phụ đề",
+  "VOTDefaultSubtitlesLanguage": "Ngôn ngữ phụ đề mặc định",
+  "VOTOriginalVideoLanguage": "Ngôn ngữ video gốc"
 }

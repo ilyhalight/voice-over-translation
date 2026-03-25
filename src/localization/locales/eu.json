@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Azpitituluen diseinu adimenduna",
   "smartDucking": "Bolumen egokitzailea",
   "VOTAutoSubtitles": "Azpitituluak irekita",
-  "VOTSubtitlesFont": "Azpitituluaren letra-tipoa"
+  "VOTSubtitlesFont": "Azpitituluaren letra-tipoa",
+  "VOTDefaultSubtitlesLanguage": "Azpitituluen hizkuntza lehenetsia",
+  "VOTOriginalVideoLanguage": "Jatorrizko bideo hizkuntza"
 }

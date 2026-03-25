@@ -1,9 +1,6 @@
 import debug from "../utils/debug";
 import { toErrorMessage } from "../utils/errors";
-import {
-  serializeBodyForPort,
-  summarizeBodyForDebug,
-} from "./bodySerialization";
+import { summarizeBodyForDebug } from "./bodySerialization";
 import { toBridgeMessage } from "./bridgeTransport";
 import {
   type AnyObject,
@@ -224,34 +221,17 @@ function toSerializableXhrDetails(details: AnyObject): AnyObject {
   };
 }
 
-async function toBridgeXhrDetails(details: AnyObject): Promise<AnyObject> {
-  const sourceBodySummary = summarizeBodyForDebug(details.data);
-  const serializedData = await serializeBodyForPort(details.data);
-  const serializedBodySummary = summarizeBodyForDebug(serializedData);
-  debug.log("[VOT EXT][prelude] GM_xmlhttpRequest body serialized", {
+function toBridgeXhrDetails(details: AnyObject): AnyObject {
+  debug.log("[VOT EXT][prelude] GM_xmlhttpRequest body passthrough", {
     url: details.url,
     method: details.method,
-    from: sourceBodySummary,
-    to: serializedBodySummary,
+    body: summarizeBodyForDebug(details.data),
   });
-
-  if (
-    typeof serializedData === "string" &&
-    /^\[object [^\]]+\]$/.test(serializedData.trim())
-  ) {
-    debug.warn("[VOT EXT][prelude] suspicious serialized body string", {
-      url: details.url,
-      method: details.method,
-      serializedBody: serializedData,
-      sourceBody: sourceBodySummary,
-    });
-  }
-
   return {
     method: details.method,
     url: details.url,
     headers: details.headers,
-    data: serializedData,
+    data: details.data,
     timeout: details.timeout,
     responseType: details.responseType,
     anonymous: details.anonymous,
@@ -285,7 +265,7 @@ function makeXhrTerminalErrorPayload(
   };
 }
 
-function installPageGmPolyfills() {
+export function installPageGmPolyfills() {
   // Legacy GM_notification (callback-based). Used by src/utils/notify.ts.
   (globalThis as any).GM_notification = (details: unknown) => {
     try {
@@ -330,15 +310,14 @@ function installPageGmPolyfills() {
       details: toSerializableXhrDetails(callbacks),
     });
 
-    const startRequest = async () => {
+    const startRequest = () => {
       try {
         if (!active || !xhrCallbacks.has(requestId)) return;
 
-        // Serialize in MAIN world before crossing into the isolated bridge.
-        // This prevents Blob/TypedArray bodies from degrading during
-        // cross-world structured clone and turning into "[object Object]".
-        const requestDetails = await toBridgeXhrDetails(callbacks);
-        if (!active || !xhrCallbacks.has(requestId)) return;
+        // `window.postMessage()` already uses structured clone, so keep native
+        // bodies intact here and serialize only once at the runtime messaging
+        // boundary inside the isolated-world bridge.
+        const requestDetails = toBridgeXhrDetails(callbacks);
 
         debug.log("[VOT EXT][prelude] GM_xmlhttpRequest post TYPE_XHR_START", {
           requestId,
@@ -477,7 +456,7 @@ function installPageGmPolyfills() {
   };
 }
 
-function wireMessageHandlers() {
+export function wireMessageHandlers() {
   globalThis.addEventListener("message", (event) => {
     if (event.source !== globalThis.window) return;
     const data = event.data;
@@ -610,29 +589,32 @@ function handleXhrEvent(data: AnyObject): void {
   });
 }
 
-const preludeGlobal = globalThis as Record<string, unknown>;
-if (preludeGlobal[PRELUDE_BOOT_KEY]) {
-  debug.log("[VOT EXT][prelude] already initialized");
-} else {
-  preludeGlobal[PRELUDE_BOOT_KEY] = true;
+export async function initializePrelude(): Promise<void> {
+  installPageGmPolyfills();
+  wireMessageHandlers();
 
-  const initializePrelude = async () => {
-    installPageGmPolyfills();
-    wireMessageHandlers();
-
-    // Best-effort handshake to populate GM_info with real manifest metadata.
-    try {
-      const { manifest } = await request<{ manifest: AnyObject }>("handshake");
-      const gmInfo = (globalThis as any).GM_info as AnyObject;
-      if (manifest?.name) gmInfo.script.name = manifest.name;
-      if (manifest?.version) {
-        gmInfo.script.version = manifest.version;
-        gmInfo.version = manifest.version;
-      }
-    } catch {
-      // ignore
+  // Best-effort handshake to populate GM_info with real manifest metadata.
+  try {
+    const { manifest } = await request<{ manifest: AnyObject }>("handshake");
+    const gmInfo = (globalThis as any).GM_info as AnyObject;
+    if (manifest?.name) gmInfo.script.name = manifest.name;
+    if (manifest?.version) {
+      gmInfo.script.version = manifest.version;
+      gmInfo.version = manifest.version;
     }
-  };
+  } catch {
+    // ignore
+  }
+}
+
+export function bootstrapExtensionPrelude(): void {
+  const preludeGlobal = globalThis as Record<string, unknown>;
+  if (preludeGlobal[PRELUDE_BOOT_KEY]) {
+    debug.log("[VOT EXT][prelude] already initialized");
+    return;
+  }
+
+  preludeGlobal[PRELUDE_BOOT_KEY] = true;
 
   void (async () => {
     try {
@@ -642,3 +624,5 @@ if (preludeGlobal[PRELUDE_BOOT_KEY]) {
     }
   })();
 }
+
+bootstrapExtensionPrelude();

@@ -16,6 +16,10 @@ const joinParts = (...parts: Array<string | undefined | null>) => {
   return value || UNKNOWN_VALUE;
 };
 
+export function isDocumentHidden(): boolean {
+  return typeof document !== "undefined" && document.hidden;
+}
+
 export function getEnvironmentInfo(): EnvironmentInfo {
   const os = joinParts(browserInfo.os?.name, browserInfo.os?.version);
   const browser = joinParts(

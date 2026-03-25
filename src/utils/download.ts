@@ -42,6 +42,36 @@ function addTitleId3Tag(mp3Buffer: ArrayBufferLike, title: string): Blob {
   return new Blob([out], { type: "audio/mpeg" });
 }
 
+function appendChunkToOutputBuffer(
+  out: Uint8Array,
+  value: Uint8Array,
+  loaded: number,
+): { out: Uint8Array; loaded: number } {
+  const needed = loaded + value.byteLength;
+  let nextOut = out;
+
+  if (needed > nextOut.length) {
+    const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
+    grown.set(nextOut.subarray(0, loaded));
+    nextOut = grown;
+  }
+
+  nextOut.set(value, loaded);
+  return { out: nextOut, loaded: needed };
+}
+
+function mergeChunks(chunks: Uint8Array[], loaded: number): ArrayBuffer {
+  const merged = new Uint8Array(loaded);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return merged.buffer;
+}
+
 async function readResponseArrayBuffer(
   res: Response,
   onProgress: (progress: number) => void,
@@ -63,14 +93,9 @@ async function readResponseArrayBuffer(
     if (!value || value.byteLength === 0) continue;
 
     if (out) {
-      const needed = loaded + value.byteLength;
-      if (needed > out.length) {
-        const grown = new Uint8Array(Math.max(needed, out.length * 2));
-        grown.set(out.subarray(0, loaded));
-        out = grown;
-      }
-      out.set(value, loaded);
-      loaded = needed;
+      const appended = appendChunkToOutputBuffer(out, value, loaded);
+      out = appended.out;
+      loaded = appended.loaded;
     } else {
       chunks.push(value);
       loaded += value.byteLength;
@@ -85,14 +110,7 @@ async function readResponseArrayBuffer(
     return out.buffer.slice(0, loaded);
   }
 
-  const merged = new Uint8Array(loaded);
-  let offset = 0;
-  for (const c of chunks) {
-    merged.set(c, offset);
-    offset += c.byteLength;
-  }
-
-  return merged.buffer;
+  return mergeChunks(chunks, loaded);
 }
 
 /**
@@ -109,7 +127,7 @@ export async function downloadTranslation(
   return await downloadBlob(blob, `${filename}.mp3`, saveOptions);
 }
 
-export async function buildTranslationBlob(
+async function buildTranslationBlob(
   res: Response,
   filename: string,
   onProgress: (progress: number) => void = () => {},

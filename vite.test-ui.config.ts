@@ -1,57 +1,65 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-import type { UserConfig } from "vite";
 import { defineConfig } from "vite";
-import type { MonkeyUserScript } from "vite-plugin-monkey";
-import monkey from "vite-plugin-monkey";
+import {
+  createViteConfig,
+  defineConstants,
+  distDir,
+  testsDir,
+} from "./vite.base.config";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const testsDir = path.resolve(__dirname, "tests");
-const distDir = path.resolve(__dirname, "dist");
 const headersPath = path.resolve(testsDir, "headers.json");
+
+type UserscriptHeader = Record<string, unknown>;
 
 const testMeta = JSON.parse(
   fs.readFileSync(headersPath, "utf8"),
-) as MonkeyUserScript;
+) as UserscriptHeader;
+
+function formatUserscriptHeader(header: UserscriptHeader): string {
+  const lines = ["// ==UserScript=="];
+
+  for (const [key, value] of Object.entries(header)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        lines.push(`// @${key} ${item}`);
+      }
+      continue;
+    }
+
+    lines.push(`// @${key} ${value}`);
+  }
+
+  lines.push("// ==/UserScript==\n");
+  return lines.join("\n");
+}
 
 export default defineConfig(() => {
-  const config: UserConfig = {
+  return createViteConfig({
     define: {
-      DEBUG_MODE: "true",
-      IS_BETA_VERSION: "false",
-      REPO_BRANCH: JSON.stringify("master"),
-    },
-    resolve: {
-      extensions: [".js", ".ts"],
-    },
-    css: {
-      transformer: "lightningcss",
+      ...defineConstants({
+        DEBUG_MODE: true,
+        REPO_BRANCH: "master",
+      }),
     },
     build: {
       outDir: distDir,
       emptyOutDir: false,
+      lib: {
+        entry: path.resolve(testsDir, "ui.js"),
+        name: "testUi",
+        formats: ["iife"],
+        fileName: () => "test-ui.user.js",
+      },
       minify: false,
       sourcemap: false,
+      rolldownOptions: {
+        output: {
+          postBanner: formatUserscriptHeader(testMeta),
+        },
+      },
     },
-    plugins: [
-      ...monkey({
-        entry: path.resolve(testsDir, "ui.js"),
-        userscript: testMeta,
-        server: {
-          mountGmApi: true,
-        },
-        build: {
-          fileName: "test-ui.user.js",
-          metaFileName: false,
-          cssSideEffects: "(css)=>GM_addStyle(css)",
-          autoGrant: true,
-        },
-      }),
-    ],
-  };
-
-  return config;
+  });
 });

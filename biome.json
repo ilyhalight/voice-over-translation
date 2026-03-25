@@ -6,11 +6,7 @@
     "useIgnoreFile": false
   },
   "files": {
-    "includes": [
-      "**",
-      "!**/dist/**/*.js",
-      "!**/*.d.ts"
-    ]
+    "includes": ["**", "!**/dist/**/*.js", "!**/*.d.ts"]
   },
   "formatter": {
     "enabled": true,

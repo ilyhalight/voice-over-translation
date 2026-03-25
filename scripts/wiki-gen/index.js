@@ -43,9 +43,9 @@ function normalizeDomain(domain) {
   return domain
     .trim()
     .toLowerCase()
-    .replaceAll(String.raw`\.`,".")
-    .replaceAll(String.raw`\-`,"-")
-    .replaceAll(String.raw`\/`,"/")
+    .replaceAll(String.raw`\.`, ".")
+    .replaceAll(String.raw`\-`, "-")
+    .replaceAll(String.raw`\/`, "/")
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "")
     .replaceAll(/[()]/g, "")
@@ -152,27 +152,13 @@ function parseCharClass(regexSource, startIndex) {
     }
 
     if (char === "\\") {
-      const escaped = regexSource[index + 1];
-      if (!escaped) {
-        canExpand = false;
-        index += 1;
-        continue;
-      }
-
-      if ("dDsSwW".includes(escaped)) {
-        canExpand = false;
-      } else {
-        chars.push(escaped);
-      }
-      index += 2;
+      const escapedResult = parseCharClassEscape(regexSource, index, chars);
+      canExpand = canExpand && escapedResult.canExpand;
+      index = escapedResult.index;
       continue;
     }
 
-    if (
-      regexSource[index + 1] === "-" &&
-      regexSource[index + 2] &&
-      regexSource[index + 2] !== "]"
-    ) {
+    if (isCharClassRange(regexSource, index)) {
       canExpand = false;
       index += 3;
       continue;
@@ -189,6 +175,61 @@ function parseCharClass(regexSource, startIndex) {
   return { variants: unique(chars), index };
 }
 
+function parseCharClassEscape(regexSource, index, chars) {
+  const escaped = regexSource[index + 1];
+  if (!escaped) {
+    return {
+      canExpand: false,
+      index: index + 1,
+    };
+  }
+
+  if ("dDsSwW".includes(escaped)) {
+    return {
+      canExpand: false,
+      index: index + 2,
+    };
+  }
+
+  chars.push(escaped);
+  return {
+    canExpand: true,
+    index: index + 2,
+  };
+}
+
+function isCharClassRange(regexSource, index) {
+  return (
+    regexSource[index + 1] === "-" &&
+    regexSource[index + 2] &&
+    regexSource[index + 2] !== "]"
+  );
+}
+
+function consumeLazySuffix(regexSource, index) {
+  if (regexSource[index] === "?") {
+    return index + 1;
+  }
+
+  return index;
+}
+
+function buildSimpleQuantifierResult(startIndex, min, max, regexSource) {
+  return {
+    min,
+    max,
+    index: consumeLazySuffix(regexSource, startIndex + 1),
+  };
+}
+
+function buildRangeQuantifierResult(closeIndex, min, max, regexSource) {
+  return {
+    min,
+    max,
+    index: consumeLazySuffix(regexSource, closeIndex + 1),
+  };
+}
+
 function parseQuantifier(regexSource, startIndex) {
   if (startIndex >= regexSource.length) {
     return null;
@@ -196,27 +237,25 @@ function parseQuantifier(regexSource, startIndex) {
 
   const quantifier = regexSource[startIndex];
   if (quantifier === "?") {
-    let index = startIndex + 1;
-    if (regexSource[index] === "?") {
-      index += 1;
-    }
-    return { min: 0, max: 1, index };
+    return buildSimpleQuantifierResult(startIndex, 0, 1, regexSource);
   }
 
   if (quantifier === "+") {
-    let index = startIndex + 1;
-    if (regexSource[index] === "?") {
-      index += 1;
-    }
-    return { min: 1, max: Number.POSITIVE_INFINITY, index };
+    return buildSimpleQuantifierResult(
+      startIndex,
+      1,
+      Number.POSITIVE_INFINITY,
+      regexSource,
+    );
   }
 
   if (quantifier === "*") {
-    let index = startIndex + 1;
-    if (regexSource[index] === "?") {
-      index += 1;
-    }
-    return { min: 0, max: Number.POSITIVE_INFINITY, index };
+    return buildSimpleQuantifierResult(
+      startIndex,
+      0,
+      Number.POSITIVE_INFINITY,
+      regexSource,
+    );
   }
 
   if (quantifier !== "{") {
@@ -234,11 +273,7 @@ function parseQuantifier(regexSource, startIndex) {
 
   if (exactMatch) {
     const value = Number(exactMatch[1]);
-    let index = closeIndex + 1;
-    if (regexSource[index] === "?") {
-      index += 1;
-    }
-    return { min: value, max: value, index };
+    return buildRangeQuantifierResult(closeIndex, value, value, regexSource);
   }
 
   if (rangeMatch) {
@@ -247,11 +282,7 @@ function parseQuantifier(regexSource, startIndex) {
       rangeMatch[2] === undefined
         ? Number.POSITIVE_INFINITY
         : Number(rangeMatch[2]);
-    let index = closeIndex + 1;
-    if (regexSource[index] === "?") {
-      index += 1;
-    }
-    return { min, max, index };
+    return buildRangeQuantifierResult(closeIndex, min, max, regexSource);
   }
 
   return null;
@@ -323,20 +354,44 @@ function parseSequence(regexSource, startIndex) {
   return { variants, index };
 }
 
+function parseEscapedAtom(regexSource, startIndex) {
+  const escaped = regexSource[startIndex + 1];
+  if (!escaped) {
+    return { variants: [""], index: startIndex + 1 };
+  }
+
+  if ("dDsSwW".includes(escaped)) {
+    return { variants: ["*"], index: startIndex + 2 };
+  }
+
+  return { variants: [escaped], index: startIndex + 2 };
+}
+
+function parseGroupAtom(regexSource, startIndex) {
+  let index = startIndex + 1;
+  if (regexSource[index] === "?" && regexSource[index + 1] === ":") {
+    index += 2;
+  } else if (regexSource[index] === "?") {
+    const closeIndex = findGroupEnd(regexSource, startIndex);
+    return {
+      variants: ["*"],
+      index: closeIndex === -1 ? regexSource.length : closeIndex + 1,
+    };
+  }
+
+  const parsedGroup = parseExpression(regexSource, index);
+  if (regexSource[parsedGroup.index] !== ")") {
+    return { variants: ["*"], index: parsedGroup.index };
+  }
+
+  return { variants: parsedGroup.variants, index: parsedGroup.index + 1 };
+}
+
 function parseAtom(regexSource, startIndex) {
   const char = regexSource[startIndex];
 
   if (char === "\\") {
-    const escaped = regexSource[startIndex + 1];
-    if (!escaped) {
-      return { variants: [""], index: startIndex + 1 };
-    }
-
-    if ("dDsSwW".includes(escaped)) {
-      return { variants: ["*"], index: startIndex + 2 };
-    }
-
-    return { variants: [escaped], index: startIndex + 2 };
+    return parseEscapedAtom(regexSource, startIndex);
   }
 
   if (char === "[") {
@@ -344,25 +399,13 @@ function parseAtom(regexSource, startIndex) {
   }
 
   if (char === "(") {
-    let index = startIndex + 1;
-    if (regexSource[index] === "?" && regexSource[index + 1] === ":") {
-      index += 2;
-    } else if (regexSource[index] === "?") {
-      const closeIndex = findGroupEnd(regexSource, startIndex);
-      return {
-        variants: ["*"],
-        index: closeIndex === -1 ? regexSource.length : closeIndex + 1,
-      };
-    }
-
-    const parsedGroup = parseExpression(regexSource, index);
-    if (regexSource[parsedGroup.index] !== ")") {
-      return { variants: ["*"], index: parsedGroup.index };
-    }
-
-    return { variants: parsedGroup.variants, index: parsedGroup.index + 1 };
+    return parseGroupAtom(regexSource, startIndex);
   }
 
+  return parseLiteralAtom(char, startIndex);
+}
+
+function parseLiteralAtom(char, startIndex) {
   if (char === ".") {
     return { variants: ["."], index: startIndex + 1 };
   }
@@ -420,7 +463,9 @@ function extractDomainsFromRegex(regex) {
   const parsed = parseExpression(source, 0);
   const variants = parsed.variants.length ? parsed.variants : [source];
 
-  return unique(variants.map((domain) => normalizeDomain(domain)).filter(Boolean));
+  return unique(
+    variants.map((domain) => normalizeDomain(domain)).filter(Boolean),
+  );
 }
 
 function parseRegexLiteral(literal) {
@@ -510,7 +555,8 @@ function mergeByHost(supportedSites) {
       domains: new Set(),
     };
 
-    existing.needBypassCSP = existing.needBypassCSP || Boolean(site.needBypassCSP);
+    existing.needBypassCSP =
+      existing.needBypassCSP || Boolean(site.needBypassCSP);
     for (const domain of extractDomainsFromMatch(site.match)) {
       existing.domains.add(domain);
     }
@@ -564,7 +610,9 @@ ${locales.availabledDomains[lang]}:
 }
 
 function genMarkdown(supportedSites, lang = "ru") {
-  return mergeByHost(supportedSites).map((site) => renderSiteMarkdown(site, lang));
+  return mergeByHost(supportedSites).map((site) =>
+    renderSiteMarkdown(site, lang),
+  );
 }
 
 function getSupportedSites() {
@@ -576,7 +624,9 @@ function getSupportedSites() {
       host,
       match: host === "custom" ? "any" : site.match,
       status: hasExtraData ? extraData[host].status : "✅",
-      statusPhrase: hasExtraData ? extraData[host].statusPhrase : locales.working,
+      statusPhrase: hasExtraData
+        ? extraData[host].statusPhrase
+        : locales.working,
       needBypassCSP: site.needBypassCSP,
     };
   });

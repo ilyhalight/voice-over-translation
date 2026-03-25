@@ -1,26 +1,13 @@
 export { calculatedResLang } from "./localization";
 
 const DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 30_000;
+const ASCII_CONTROL_CHARS_RE = /\p{Cc}/gu;
 const INVALID_FILENAME_CHARS_RE = /[\\/:*?"'<>|]+/g;
 const URL_PROTOCOL_RE = /^https?:\/\//i;
 const MULTIPLE_DASHES_RE = /-{2,}/g;
 const EDGE_FILE_CHARS_RE = /^[.\s-]+|[.\s-]+$/g;
 
 type PlainRecord = Record<string, unknown>;
-type SaveFilePickerWindow = Window & {
-  showSaveFilePicker?: (
-    options?: SaveFilePickerOptions,
-  ) => Promise<DownloadFileHandle>;
-};
-type SaveFilePickerOptions = {
-  suggestedName?: string;
-  types?: SaveFilePickerAcceptType[];
-  excludeAcceptAllOption?: boolean;
-};
-type SaveFilePickerAcceptType = {
-  description?: string;
-  accept: Record<string, string[]>;
-};
 type NavigatorWithShare = Navigator & {
   canShare?: (data?: ShareData) => boolean;
 };
@@ -36,29 +23,13 @@ export type DownloadBlobOptions = {
   fileHandle?: DownloadFileHandle | null;
   preferShare?: boolean;
 };
-export type RequestFileSaveHandleOptions = {
-  mimeType?: string;
-  extension?: string;
-  description?: string;
-};
-export type RequestFileSaveHandleResult = {
-  handle: DownloadFileHandle | null;
-  cancelled: boolean;
-};
 
 function getDateFallbackFilename(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 function stripAsciiControlChars(value: string): string {
-  let out = "";
-  for (let index = 0; index < value.length; index++) {
-    const code = value.codePointAt(index) ?? 0;
-    if (code >= 0x20 && code !== 0x7f) {
-      out += value[index];
-    }
-  }
-  return out;
+  return value.replace(ASCII_CONTROL_CHARS_RE, "");
 }
 
 /**
@@ -81,9 +52,7 @@ export function stableStringify(value: unknown): string {
       }
 
       const sorted: PlainRecord = {};
-      const keys = Object.keys(val as PlainRecord).sort((a, b) =>
-        a.localeCompare(b),
-      );
+      const keys = Object.keys(val as PlainRecord).sort();
       for (const key of keys) {
         sorted[key] = (val as PlainRecord)[key];
       }
@@ -119,58 +88,6 @@ export interface DocumentWithFullscreen extends Document {
 }
 
 export const isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
-
-function normalizeExtension(extension?: string): string | null {
-  if (!extension) return null;
-
-  const trimmed = extension.trim();
-  if (!trimmed) return null;
-
-  return trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
-}
-
-function buildPickerAcceptType(
-  options: RequestFileSaveHandleOptions,
-): SaveFilePickerAcceptType | null {
-  if (!options.mimeType) return null;
-
-  const extension = normalizeExtension(options.extension);
-  if (!extension) return null;
-
-  return {
-    description: options.description,
-    accept: {
-      [options.mimeType]: [extension],
-    },
-  };
-}
-
-export async function requestFileSaveHandle(
-  filename: string,
-  options: RequestFileSaveHandleOptions = {},
-): Promise<RequestFileSaveHandleResult> {
-  const pickerHost = globalThis as typeof globalThis & SaveFilePickerWindow;
-  if (typeof pickerHost.showSaveFilePicker !== "function") {
-    return { handle: null, cancelled: false };
-  }
-
-  const acceptType = buildPickerAcceptType(options);
-  const pickerOptions: SaveFilePickerOptions = {
-    suggestedName: filename,
-    ...(acceptType ? { types: [acceptType] } : {}),
-  };
-
-  try {
-    const handle = await pickerHost.showSaveFilePicker(pickerOptions);
-    return { handle, cancelled: false };
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      return { handle: null, cancelled: true };
-    }
-
-    return { handle: null, cancelled: false };
-  }
-}
 
 async function writeBlobToHandle(
   handle: DownloadFileHandle,
@@ -262,15 +179,13 @@ export async function downloadBlob(
 
   if (options.preferShare) {
     const shareResult = await shareBlob(blob, filename);
-    if (shareResult === "shared") {
-      return true;
-    }
+    return shareResult === "shared";
   }
 
   return triggerBlobDownload(blob, filename);
 }
 
-export function revokeObjectUrlLater(
+function revokeObjectUrlLater(
   url: string,
   delayMs = DEFAULT_OBJECT_URL_REVOKE_DELAY_MS,
 ): void {
@@ -288,9 +203,9 @@ export function clearFileName(filename: string): string {
 
   const sanitized = stripAsciiControlChars(trimmed)
     .replace(URL_PROTOCOL_RE, "")
-    .replaceAll(INVALID_FILENAME_CHARS_RE, "-")
-    .replaceAll(MULTIPLE_DASHES_RE, "-")
-    .replaceAll(EDGE_FILE_CHARS_RE, "");
+    .replace(INVALID_FILENAME_CHARS_RE, "-")
+    .replace(MULTIPLE_DASHES_RE, "-")
+    .replace(EDGE_FILE_CHARS_RE, "");
 
   return sanitized || getDateFallbackFilename();
 }
@@ -298,7 +213,7 @@ export function clearFileName(filename: string): string {
 export const getTimestamp = () => Math.floor(Date.now() / 1000);
 
 export const getHeaders = (headers?: HeadersInit): Record<string, string> =>
-  headers ? Object.fromEntries(new Headers(headers).entries()) : {};
+  headers ? Object.fromEntries(new Headers(headers)) : {};
 
 export function clamp(value: number, min = 0, max = 100): number {
   const lower = Math.min(min, max);

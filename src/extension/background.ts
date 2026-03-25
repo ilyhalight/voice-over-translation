@@ -10,8 +10,12 @@
  */
 
 import debug from "../utils/debug";
-import { arrayBufferToBase64, base64ToBytes, bytesToBase64 } from "./base64";
+import { registerBackgroundNotifications } from "./backgroundNotifications";
+import { registerBackgroundStorageBridge } from "./backgroundStorage";
 import {
+  arrayBufferToBase64,
+  base64ToBytes,
+  bytesToBase64,
   coerceBodyToBytes,
   decodeSerializedBody,
   summarizeBodyForDebug,
@@ -20,10 +24,7 @@ import { PORT_NAME } from "./constants";
 import {
   ext,
   lastErrorMessage,
-  notificationsClear,
-  notificationsCreate,
-  tabsUpdate,
-  windowsUpdate,
+  runtimeMessagesUseStructuredClone,
 } from "./webext";
 import {
   filterYandexHeadersForDnr,
@@ -56,6 +57,9 @@ type XhrAbortMessage = { type: "abort" };
 
 type XhrPortMessage = XhrStartMessage | XhrAbortMessage;
 const MAX_INLINE_BINARY_RESPONSE_BYTES = 512 * 1024;
+const PROTOBUF_CONTENT_TYPE_RE =
+  /application\/(?:x-)?protobuf|application\/octet-stream/;
+const STRICT_BASE64_PAYLOAD_RE = /^(?=.*[+/=_-])[A-Za-z0-9+/=_-]+$/;
 
 // -----------------------------
 // declarativeNetRequest helper
@@ -139,15 +143,23 @@ function updateSessionRules(args: {
 }
 
 function isForbiddenToSetViaFetch(headerName: string): boolean {
-  const n = normalizeHeaderName(headerName).toLowerCase();
-  if (!n) return false;
-  // Fetch "forbidden header names" (subset) that matter for VOT.
-  if (n.startsWith("sec-")) return true;
-  if (n.startsWith("proxy-")) return true;
-  if (n === "user-agent") return true;
-  if (n === "origin") return true;
-  if (n === "referer") return true;
-  return false;
+  const normalized = normalizeHeaderName(headerName).toLowerCase();
+  if (!normalized) return false;
+
+  switch (normalized[0]) {
+    case "s":
+      return normalized.startsWith("sec-");
+    case "p":
+      return normalized.startsWith("proxy-");
+    case "u":
+      return normalized === "user-agent";
+    case "o":
+      return normalized === "origin";
+    case "r":
+      return normalized === "referer";
+    default:
+      return false;
+  }
 }
 
 function signatureFromDnrRequestHeaders(
@@ -400,13 +412,13 @@ type XhrResponse = {
   status: number;
   statusText: string;
   responseHeaders: string;
-  // Extra metadata to help the content-script bridge reconstruct binary bodies
-  // without having to ship non-JSON types through extension messaging.
+  // Extra metadata to help the content-script bridge reconstruct binary bodies.
+  // Chromium still needs a JSON-safe fallback, while Firefox-like runtimes can
+  // carry native ArrayBuffer payloads over the port directly.
   responseType?: string;
   contentType?: string;
-  // Optional fallback for binary payloads in terminal messages.
-  responseB64?: string;
   response?: unknown;
+  responseB64?: string;
   responseText?: string;
   error?: string;
 };
@@ -424,6 +436,38 @@ function createTerminalXhrError(url: string, error: string): XhrResponse {
   };
 }
 
+function cloneArrayBufferView(view: Uint8Array): ArrayBuffer {
+  const out = new Uint8Array(view.byteLength);
+  out.set(view);
+  return out.buffer;
+}
+
+function encodeProgressChunkForPort(chunk: Uint8Array): {
+  chunk?: ArrayBuffer;
+  chunkB64?: string;
+} {
+  if (runtimeMessagesUseStructuredClone) {
+    return { chunk: cloneArrayBufferView(chunk) };
+  }
+
+  return { chunkB64: bytesToBase64(chunk) };
+}
+
+function encodeBinaryResponseForPort(ab: ArrayBuffer): {
+  response?: ArrayBuffer;
+  responseB64?: string;
+} {
+  if (runtimeMessagesUseStructuredClone) {
+    return { response: ab };
+  }
+
+  if (ab.byteLength <= 0) {
+    return {};
+  }
+
+  return { responseB64: arrayBufferToBase64(ab) };
+}
+
 function getHeader(
   headers: Record<string, string>,
   name: string,
@@ -436,21 +480,13 @@ function getHeader(
 }
 
 function isProtobufContentType(contentType: string | undefined): boolean {
-  const ct = String(contentType || "").toLowerCase();
-  if (!ct) return false;
-  return (
-    ct.includes("application/x-protobuf") ||
-    ct.includes("application/protobuf") ||
-    ct.includes("application/octet-stream")
-  );
+  return PROTOBUF_CONTENT_TYPE_RE.test(String(contentType ?? "").toLowerCase());
 }
 
 function tryDecodeStrictBase64Payload(s: string): Uint8Array | null {
-  const str = String(s || "");
-  if (!str || /\s/.test(str)) return null;
-  if (!/^[A-Za-z0-9+/=_-]+$/.test(str)) return null;
+  const str = String(s ?? "");
   // Require explicit base64/base64url markers to avoid decoding plain tokens.
-  if (!/[+/=_-]/.test(str)) return null;
+  if (!STRICT_BASE64_PAYLOAD_RE.test(str)) return null;
 
   const normalized = str.replaceAll("-", "+").replaceAll("_", "/");
   const remainder = normalized.length % 4;
@@ -525,38 +561,26 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
     debug.warn("[VOT EXT][background][xhr] port disconnected", {
       xhrSessionId,
     });
+    requestAbort();
+  });
+
+  const requestAbort = () => {
     try {
       controller?.abort();
     } catch {
       // ignore
     }
-  });
+  };
 
-  typedPort.onMessage.addListener(async (msg: XhrPortMessage) => {
-    if (!msg || typeof msg !== "object") return;
+  const handleAbortMessage = () => {
+    abortedByUser = true;
+    debug.warn("[VOT EXT][background][xhr] abort requested", {
+      xhrSessionId,
+    });
+    requestAbort();
+  };
 
-    if (msg.type === "abort") {
-      abortedByUser = true;
-      debug.warn("[VOT EXT][background][xhr] abort requested", {
-        xhrSessionId,
-      });
-      try {
-        controller?.abort();
-      } catch {
-        // ignore
-      }
-      return;
-    }
-
-    if (msg.type !== "start") return;
-    // Preserve "abort-before-start" semantics only when no request has been
-    // started on this port yet. Otherwise, allow the next request to proceed.
-    const shouldAbortImmediately = abortedByUser && controller === null;
-    abortedByUser = false;
-
-    const { details } = msg;
-    const url = details.url;
-    const method = (details.method || "GET").toUpperCase();
+  const splitRequestHeaders = (details: XhrStartMessage["details"]) => {
     const allHeaders = toHeaderRecord(details.headers);
     const headers: Record<string, string> = {};
     const forbiddenHeaders: Record<string, string> = {};
@@ -564,6 +588,332 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
       if (isForbiddenToSetViaFetch(k)) forbiddenHeaders[k] = v;
       else headers[k] = v;
     }
+    return { allHeaders, headers, forbiddenHeaders };
+  };
+
+  const postAbortBeforeStart = (url: string) => {
+    const errorObj: XhrResponse = {
+      finalUrl: url,
+      readyState: 4,
+      status: 0,
+      statusText: "",
+      responseHeaders: "",
+      response: null,
+      responseText: "",
+      error: "Aborted",
+    };
+    try {
+      safePostMessage({ type: "abort", state: "terminal", error: errorObj });
+    } catch {
+      // ignore
+    }
+  };
+
+  const resolveFetchCredentials = (
+    details: XhrStartMessage["details"],
+  ): RequestCredentials =>
+    details.anonymous || details.withCredentials === false ? "omit" : "include";
+
+  const resolveFetchCache = (
+    details: XhrStartMessage["details"],
+  ): RequestCache | undefined => {
+    if (details.nocache) return "no-store";
+    if (details.revalidate) return "no-cache";
+    return undefined;
+  };
+
+  const normalizeRequestBody = (
+    details: XhrStartMessage["details"],
+    method: string,
+    allHeaders: Record<string, string>,
+    url: string,
+  ): BodyInit | undefined => {
+    const isBodyAllowed = method !== "GET";
+    if (!isBodyAllowed) {
+      return undefined;
+    }
+
+    let body = decodeSerializedBody(details.data);
+    let recoveredBodyFromDetails: Uint8Array | null | undefined;
+    const getRecoveredBodyFromDetails = (): Uint8Array | null => {
+      if (recoveredBodyFromDetails !== undefined) {
+        return recoveredBodyFromDetails;
+      }
+      recoveredBodyFromDetails = coerceBodyToBytes(details.data);
+      return recoveredBodyFromDetails;
+    };
+    const contentType = getHeader(allHeaders, "content-type");
+    const isProtobufRequest = isProtobufContentType(contentType);
+
+    debug.log("[VOT EXT][background][xhr] body decoded", {
+      xhrSessionId,
+      url,
+      method,
+      contentType: contentType ?? null,
+      isProtobufRequest,
+      sourceBody: summarizeBodyForDebug(details.data),
+      decodedBody: summarizeBodyForDebug(body),
+    });
+
+    if (isProtobufRequest && (body === undefined || body === null)) {
+      const recovered = getRecoveredBodyFromDetails();
+      if (recovered) {
+        body = recovered as unknown as BodyInit;
+        debug.warn(
+          "[VOT EXT][background][xhr] protobuf body recovered from raw payload",
+          {
+            xhrSessionId,
+            url,
+            method,
+            recoveredBody: summarizeBodyForDebug(body),
+          },
+        );
+      }
+    }
+
+    // Preserve Protobuf request bodies that were built as binary strings,
+    // which fetch() would otherwise UTF-8 re-encode and corrupt.
+    if (typeof body === "string" && isProtobufRequest) {
+      if (looksLikeObjectToStringPayload(body)) {
+        const recovered = getRecoveredBodyFromDetails();
+        if (recovered) {
+          body = recovered as unknown as BodyInit;
+          debug.warn(
+            "[VOT EXT][background][xhr] recovered protobuf body from object-like string fallback",
+            {
+              xhrSessionId,
+              url,
+              method,
+              sourceBody: summarizeBodyForDebug(details.data),
+              recoveredBody: summarizeBodyForDebug(recovered),
+            },
+          );
+        }
+      }
+
+      if (typeof body === "string") {
+        const maybeBase64Bytes = tryDecodeStrictBase64Payload(body);
+        body = (maybeBase64Bytes ??
+          latin1StringToBytes(body)) as unknown as BodyInit;
+        debug.log(
+          "[VOT EXT][background][xhr] protobuf string converted to bytes",
+          {
+            xhrSessionId,
+            url,
+            method,
+            strategy: maybeBase64Bytes ? "base64" : "latin1",
+            convertedBody: summarizeBodyForDebug(body),
+          },
+        );
+      }
+    }
+
+    return body;
+  };
+
+  const createRequestInit = (params: {
+    method: string;
+    headers: Record<string, string>;
+    redirect: RequestRedirect;
+    credentials: RequestCredentials;
+    body: BodyInit | undefined;
+    cache: RequestCache | undefined;
+  }): RequestInit => {
+    const requestInit: RequestInit = {
+      method: params.method,
+      headers: params.headers,
+      redirect: params.redirect,
+      credentials: params.credentials,
+      signal: controller?.signal,
+    };
+    if (params.body !== undefined) {
+      requestInit.body = params.body;
+    }
+    if (params.cache !== undefined) {
+      requestInit.cache = params.cache;
+    }
+    return requestInit;
+  };
+
+  const handleFetchSuccess = async (params: {
+    url: string;
+    method: string;
+    responseType: string;
+    res: Response;
+  }) => {
+    const { url, method, responseType, res } = params;
+    debug.log("[VOT EXT][background][xhr] fetch response received", {
+      xhrSessionId,
+      url: res.url || url,
+      method,
+      status: res.status,
+      statusText: res.statusText,
+      responseType,
+      contentType: res.headers.get("content-type") || null,
+      contentLength: res.headers.get("content-length") || null,
+    });
+
+    const responseHeaders = formatHeaders(res.headers);
+    const finalUrl = res.url || url;
+    const responseContentType = res.headers.get("content-type") || "";
+    const makeBase = (
+      readyState: number,
+    ): Omit<
+      XhrResponse,
+      "response" | "responseText" | "error" | "responseB64"
+    > => ({
+      finalUrl,
+      readyState,
+      status: res.status,
+      statusText: res.statusText,
+      responseHeaders,
+    });
+
+    const wantBinary =
+      responseType === "arraybuffer" ||
+      responseType === "blob" ||
+      responseType === "stream";
+
+    let response: unknown;
+    let responseText: string | undefined;
+    let responseB64: string | undefined;
+
+    if (wantBinary) {
+      const contentLength = Number(res.headers.get("content-length") || 0);
+      const shouldStreamBinary =
+        !!res.body &&
+        (!Number.isFinite(contentLength) ||
+          contentLength > MAX_INLINE_BINARY_RESPONSE_BYTES);
+
+      if (shouldStreamBinary) {
+        let loaded = 0;
+        const total = Number.isFinite(contentLength) ? contentLength : 0;
+        const reader = res.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!value) continue;
+
+          loaded += value.byteLength;
+          safePostMessage({
+            type: "progress",
+            state: "in_flight",
+            progress: {
+              ...makeBase(3),
+              loaded,
+              total,
+              lengthComputable: total > 0,
+              ...encodeProgressChunkForPort(value),
+            },
+          });
+        }
+      } else {
+        const ab = await res.arrayBuffer();
+        const binaryResponse = encodeBinaryResponseForPort(ab);
+        response = binaryResponse.response;
+        responseB64 = binaryResponse.responseB64;
+      }
+    } else if (responseType === "json") {
+      responseText = await res.text();
+      try {
+        response = JSON.parse(responseText);
+      } catch {
+        response = null;
+      }
+    } else {
+      responseText = await res.text();
+      response = responseText;
+    }
+
+    cleanup();
+    debug.log("[VOT EXT][background][xhr] terminal", {
+      xhrSessionId,
+      state: "terminal",
+      kind: "load",
+      url: finalUrl,
+      status: res.status,
+      responseType,
+      responseBody: summarizeBodyForDebug(response),
+      responseTextLength: responseText?.length ?? 0,
+      responseB64Length: responseB64?.length ?? 0,
+    });
+    safePostMessage({
+      type: "load",
+      state: "terminal",
+      response: {
+        ...makeBase(4),
+        responseType,
+        ...(responseContentType ? { contentType: responseContentType } : {}),
+        ...(responseB64 ? { responseB64 } : {}),
+        response,
+        ...(typeof responseText === "string" ? { responseText } : {}),
+      } satisfies XhrResponse,
+    });
+  };
+
+  const handleFetchFailure = (
+    url: string,
+    method: string,
+    responseType: string,
+    err: unknown,
+  ) => {
+    cleanup();
+    const isAbort =
+      abortedByUser ||
+      timedOut ||
+      (err instanceof DOMException && err.name === "AbortError");
+
+    if (isAbort) {
+      const kind: "abort" | "timeout" = timedOut ? "timeout" : "abort";
+      const errorObj = createTerminalXhrError(
+        url,
+        kind === "timeout" ? "Timeout" : "Aborted",
+      );
+
+      try {
+        safePostMessage({ type: kind, state: "terminal", error: errorObj });
+      } catch {
+        // ignore
+      }
+      debug.warn("[VOT EXT][background][xhr] terminal", {
+        xhrSessionId,
+        state: "terminal",
+        kind,
+        url,
+        method,
+        responseType,
+      });
+      return;
+    }
+
+    const errorObj = createTerminalXhrError(url, asErrorMessage(err));
+    safePostMessage({
+      type: "error",
+      state: "terminal",
+      error: errorObj,
+    });
+    debug.error("[VOT EXT][background][xhr] terminal", {
+      xhrSessionId,
+      state: "terminal",
+      kind: "error",
+      url,
+      method,
+      responseType,
+      error: errorObj.error,
+    });
+  };
+
+  const handleStartMessage = async (
+    msg: Extract<XhrPortMessage, { type: "start" }>,
+  ) => {
+    const shouldAbortImmediately = abortedByUser && controller === null;
+    abortedByUser = false;
+
+    const { details } = msg;
+    const url = details.url;
+    const method = (details.method || "GET").toUpperCase();
+    const { allHeaders, headers, forbiddenHeaders } =
+      splitRequestHeaders(details);
     const timeout = Number(details.timeout || 0);
     const responseType = String(details.responseType || "text").toLowerCase();
     debug.log("[VOT EXT][background][xhr] start", {
@@ -579,24 +929,8 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
       body: summarizeBodyForDebug(details.data),
     });
 
-    // If the caller aborted before we even received the start payload,
-    // respond immediately without starting a network request.
     if (shouldAbortImmediately) {
-      const errorObj: XhrResponse = {
-        finalUrl: url,
-        readyState: 4,
-        status: 0,
-        statusText: "",
-        responseHeaders: "",
-        response: null,
-        responseText: "",
-        error: "Aborted",
-      };
-      try {
-        safePostMessage({ type: "abort", state: "terminal", error: errorObj });
-      } catch {
-        // ignore
-      }
+      postAbortBeforeStart(url);
       return;
     }
 
@@ -606,36 +940,18 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
     if (timeout > 0) {
       timeoutId = setTimeout(() => {
         timedOut = true;
-        try {
-          controller?.abort();
-        } catch {
-          // ignore
-        }
+        requestAbort();
       }, timeout) as unknown as number;
     }
 
-    let credentials: RequestCredentials = "include";
-    if (details.anonymous || details.withCredentials === false) {
-      credentials = "omit";
-    }
+    const credentials = resolveFetchCredentials(details);
+    const cache = resolveFetchCache(details);
+    const redirect: RequestRedirect =
+      details.redirect === "error" || details.redirect === "manual"
+        ? details.redirect
+        : "follow";
 
     try {
-      let cache: RequestCache | undefined;
-      if (details.nocache) {
-        cache = "no-store";
-      } else if (details.revalidate) {
-        cache = "no-cache";
-      }
-
-      const redirect: RequestRedirect =
-        details.redirect === "error" || details.redirect === "manual"
-          ? details.redirect
-          : "follow";
-
-      const isBodyAllowed = method !== "GET" && method !== "HEAD";
-      // Make sure "forbidden" headers (Sec-*, User-Agent, ... ) are applied.
-      // Without this, no-proxy mode cannot faithfully emulate the userscript
-      // manager's GM_xmlhttpRequest and Yandex endpoints reject the request.
       try {
         await ensureDnrStripRuleForGooglevideo(url);
         await ensureDnrOriginStripRuleForYoutubei(url);
@@ -647,88 +963,7 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         );
       }
 
-      let body: BodyInit | undefined = isBodyAllowed
-        ? decodeSerializedBody(details.data)
-        : undefined;
-      let recoveredBodyFromDetails: Uint8Array | null | undefined;
-      const getRecoveredBodyFromDetails = (): Uint8Array | null => {
-        if (recoveredBodyFromDetails !== undefined) {
-          return recoveredBodyFromDetails;
-        }
-        recoveredBodyFromDetails = coerceBodyToBytes(details.data);
-        return recoveredBodyFromDetails;
-      };
-      const contentType = getHeader(allHeaders, "content-type");
-      const isProtobufRequest = isProtobufContentType(contentType);
-
-      debug.log("[VOT EXT][background][xhr] body decoded", {
-        xhrSessionId,
-        url,
-        method,
-        contentType: contentType ?? null,
-        isProtobufRequest,
-        sourceBody: summarizeBodyForDebug(details.data),
-        decodedBody: summarizeBodyForDebug(body),
-      });
-
-      if (
-        isBodyAllowed &&
-        isProtobufRequest &&
-        (body === undefined || body === null)
-      ) {
-        const recovered = getRecoveredBodyFromDetails();
-        if (recovered) {
-          body = recovered as unknown as BodyInit;
-          debug.warn(
-            "[VOT EXT][background][xhr] protobuf body recovered from raw payload",
-            {
-              xhrSessionId,
-              url,
-              method,
-              recoveredBody: summarizeBodyForDebug(body),
-            },
-          );
-        }
-      }
-
-      // Preserve Protobuf request bodies that were built as "binary strings"
-      // (Latin-1/byte-per-code-unit), which would otherwise be UTF-8 re-encoded
-      // by fetch() and corrupt the payload.
-      if (isBodyAllowed && typeof body === "string" && isProtobufRequest) {
-        if (looksLikeObjectToStringPayload(body)) {
-          const recovered = getRecoveredBodyFromDetails();
-          if (recovered) {
-            body = recovered as unknown as BodyInit;
-            debug.warn(
-              "[VOT EXT][background][xhr] recovered protobuf body from object-like string fallback",
-              {
-                xhrSessionId,
-                url,
-                method,
-                sourceBody: summarizeBodyForDebug(details.data),
-                recoveredBody: summarizeBodyForDebug(recovered),
-              },
-            );
-          }
-        }
-
-        if (typeof body === "string") {
-          const maybeBase64Bytes = tryDecodeStrictBase64Payload(body);
-          body = (maybeBase64Bytes ??
-            latin1StringToBytes(body)) as unknown as BodyInit;
-          debug.log(
-            "[VOT EXT][background][xhr] protobuf string converted to bytes",
-            {
-              xhrSessionId,
-              url,
-              method,
-              strategy: maybeBase64Bytes ? "base64" : "latin1",
-              convertedBody: summarizeBodyForDebug(body),
-            },
-          );
-        }
-      }
-
+      const body = normalizeRequestBody(details, method, allHeaders, url);
       debug.log("[VOT EXT][background][xhr] fetch dispatch", {
         xhrSessionId,
         url,
@@ -739,347 +974,31 @@ ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
         body: summarizeBodyForDebug(body),
       });
 
-      const requestInit: RequestInit = {
+      const requestInit = createRequestInit({
         method,
         headers,
         redirect,
         credentials,
-        signal: controller.signal,
-      };
-      if (body !== undefined) {
-        requestInit.body = body;
-      }
-      if (cache !== undefined) {
-        requestInit.cache = cache;
-      }
-
+        body,
+        cache,
+      });
       const res = await fetch(url, requestInit);
-
-      debug.log("[VOT EXT][background][xhr] fetch response received", {
-        xhrSessionId,
-        url: res.url || url,
-        method,
-        status: res.status,
-        statusText: res.statusText,
-        responseType,
-        contentType: res.headers.get("content-type") || null,
-        contentLength: res.headers.get("content-length") || null,
-      });
-
-      const responseHeaders = formatHeaders(res.headers);
-      const finalUrl = res.url || url;
-      const responseContentType = res.headers.get("content-type") || "";
-
-      const makeBase = (
-        readyState: number,
-      ): Omit<
-        XhrResponse,
-        "response" | "responseText" | "error" | "responseB64"
-      > => ({
-        finalUrl,
-        readyState,
-        status: res.status,
-        statusText: res.statusText,
-        responseHeaders,
-      });
-
-      const wantBinary =
-        responseType === "arraybuffer" ||
-        responseType === "blob" ||
-        responseType === "stream";
-
-      let response: unknown;
-      let responseText: string | undefined;
-      let responseB64: string | undefined;
-
-      if (wantBinary) {
-        const contentLength = Number(res.headers.get("content-length") || 0);
-        const shouldStreamBinary =
-          !!res.body &&
-          (!Number.isFinite(contentLength) ||
-            contentLength > MAX_INLINE_BINARY_RESPONSE_BYTES);
-
-        if (shouldStreamBinary) {
-          // Large binaries are streamed as progress chunks to avoid one huge
-          // base64 payload in extension messaging.
-          let loaded = 0;
-          const total = Number.isFinite(contentLength) ? contentLength : 0;
-          const reader = res.body.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (!value) continue;
-
-            loaded += value.byteLength;
-            safePostMessage({
-              type: "progress",
-              state: "in_flight",
-              progress: {
-                ...makeBase(3),
-                loaded,
-                total,
-                lengthComputable: total > 0,
-                chunkB64: bytesToBase64(value),
-              },
-            });
-          }
-          response = undefined;
-        } else {
-          // Small binaries can be delivered in one terminal payload.
-          const ab = await res.arrayBuffer();
-          if (ab.byteLength > 0) {
-            responseB64 = arrayBufferToBase64(ab);
-          }
-          response = undefined;
-        }
-      } else if (responseType === "json") {
-        responseText = await res.text();
-        try {
-          response = JSON.parse(responseText);
-        } catch {
-          response = null;
-        }
-      } else {
-        responseText = await res.text();
-        response = responseText;
-      }
-
-      cleanup();
-      debug.log("[VOT EXT][background][xhr] terminal", {
-        xhrSessionId,
-        state: "terminal",
-        kind: "load",
-        url: finalUrl,
-        status: res.status,
-        responseType,
-        responseBody: summarizeBodyForDebug(response),
-        responseTextLength: responseText?.length ?? 0,
-        responseB64Length: responseB64?.length ?? 0,
-      });
-      safePostMessage({
-        type: "load",
-        state: "terminal",
-        response: {
-          ...makeBase(4),
-          responseType,
-          ...(responseContentType ? { contentType: responseContentType } : {}),
-          ...(responseB64 ? { responseB64 } : {}),
-          response,
-          ...(typeof responseText === "string" ? { responseText } : {}),
-        } satisfies XhrResponse,
-      });
+      await handleFetchSuccess({ url, method, responseType, res });
     } catch (err) {
-      cleanup();
-
-      const isAbort =
-        abortedByUser ||
-        timedOut ||
-        (err instanceof DOMException && err.name === "AbortError");
-
-      if (isAbort) {
-        let kind: "abort" | "timeout";
-        if (timedOut) {
-          kind = "timeout";
-        } else {
-          kind = "abort";
-        }
-        const errorObj = createTerminalXhrError(
-          url,
-          kind === "timeout" ? "Timeout" : "Aborted",
-        );
-
-        try {
-          safePostMessage({ type: kind, state: "terminal", error: errorObj });
-        } catch {
-          // ignore
-        }
-        debug.warn("[VOT EXT][background][xhr] terminal", {
-          xhrSessionId,
-          state: "terminal",
-          kind,
-          url,
-          method,
-          responseType,
-        });
-        return;
-      }
-
-      const errorObj = createTerminalXhrError(url, asErrorMessage(err));
-
-      safePostMessage({
-        type: "error",
-        state: "terminal",
-        error: errorObj,
-      });
-      debug.error("[VOT EXT][background][xhr] terminal", {
-        xhrSessionId,
-        state: "terminal",
-        kind: "error",
-        url,
-        method,
-        responseType,
-        error: errorObj.error,
-      });
+      handleFetchFailure(url, method, responseType, err);
     }
+  };
+
+  typedPort.onMessage.addListener(async (msg: XhrPortMessage) => {
+    if (!msg || typeof msg !== "object") return;
+    if (msg.type === "abort") {
+      handleAbortMessage();
+      return;
+    }
+    if (msg.type !== "start") return;
+    await handleStartMessage(msg);
   });
 });
 
-// -----------------------------
-// GM_notification bridge
-// -----------------------------
-
-type GmNotificationSender = {
-  tab?: {
-    id?: number;
-    windowId?: number;
-  };
-};
-
-type GmNotificationDetails = {
-  title: string;
-  text: string;
-  silent: boolean;
-  timeout: number;
-};
-
-type GmNotificationMessage = {
-  type: "gm_notification";
-  details?: unknown;
-};
-
-export function isGmNotificationMessage(
-  msg: unknown,
-): msg is GmNotificationMessage {
-  if (!msg || typeof msg !== "object") return false;
-  return (msg as { type?: unknown }).type === "gm_notification";
-}
-
-export function normalizeGmNotificationDetails(
-  details: unknown,
-): GmNotificationDetails {
-  const raw =
-    details && typeof details === "object"
-      ? (details as Record<string, unknown>)
-      : {};
-
-  const timeoutRaw = Number(raw.timeout ?? 0);
-  return {
-    title: raw.title != null ? String(raw.title) : "",
-    text: raw.text != null ? String(raw.text) : "",
-    silent: Boolean(raw.silent),
-    timeout: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? timeoutRaw : 0,
-  };
-}
-
-export function createBridgeNotificationId(
-  sender: GmNotificationSender,
-): string {
-  const tabId = sender.tab?.id;
-  const windowId = sender.tab?.windowId;
-
-  const safeTab = typeof tabId === "number" ? tabId : -1;
-  const safeWin = typeof windowId === "number" ? windowId : -1;
-
-  const nonce =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}:${Math.random().toString(36).slice(2)}`;
-
-  return `vot:${safeTab}:${safeWin}:${nonce}`;
-}
-
-export function createBridgeNotificationOptions(
-  details: GmNotificationDetails,
-): Record<string, unknown> {
-  const isFirefox =
-    typeof (ext?.runtime as { getBrowserInfo?: unknown })?.getBrowserInfo ===
-    "function";
-  const iconUrl = ext?.runtime?.getURL
-    ? ext.runtime.getURL("icons/icon-128.png")
-    : "icons/icon-128.png";
-
-  // Firefox's notifications API does not support some Chrome-only fields
-  // (e.g. `silent`). Passing unsupported fields can cause the call to throw
-  // and the notification to never show.
-  const options: Record<string, unknown> = {
-    type: "basic",
-    iconUrl,
-    title: details.title || "VOT",
-    message: details.text,
-  };
-  if (!isFirefox) {
-    options.silent = details.silent;
-  }
-  return options;
-}
-
-function sendNotificationResponse(
-  sendResponse: ((value: unknown) => void) | undefined,
-  payload: unknown,
-): void {
-  if (typeof sendResponse !== "function") return;
-  try {
-    sendResponse(payload);
-  } catch {
-    // ignore
-  }
-}
-
-ext?.runtime?.onMessage?.addListener?.(
-  (
-    msg: unknown,
-    sender: GmNotificationSender,
-    sendResponse: ((value: unknown) => void) | undefined,
-  ) => {
-    if (!isGmNotificationMessage(msg)) return;
-
-    const details = normalizeGmNotificationDetails(msg.details);
-    const notificationId = createBridgeNotificationId(sender);
-    const options = createBridgeNotificationOptions(details);
-
-    void (async () => {
-      try {
-        await notificationsCreate(notificationId, options);
-
-        if (details.timeout > 0) {
-          setTimeout(() => {
-            void notificationsClear(notificationId);
-          }, details.timeout);
-        }
-
-        sendNotificationResponse(sendResponse, { ok: true });
-      } catch (error) {
-        // Avoid crashing the background service worker on notification API errors.
-        debug.error(
-          "[VOT EXT][background] Failed to create notification",
-          error,
-        );
-        sendNotificationResponse(sendResponse, {
-          ok: false,
-          error: asErrorMessage(error),
-        });
-      }
-    })();
-
-    // Keep the channel alive while notification creation finishes in MV3 SW.
-    return true;
-  },
-);
-
-ext?.notifications?.onClicked?.addListener?.((notificationId: string) => {
-  if (!notificationId.startsWith("vot:")) return;
-  const parts = notificationId.split(":");
-  if (parts.length < 3) return;
-
-  const tabId = Number(parts[1]);
-  const windowId = Number(parts[2]);
-
-  // Focus the originating tab/globalThis when possible.
-  if (Number.isFinite(windowId) && windowId >= 0) {
-    void windowsUpdate(windowId, { focused: true });
-  }
-
-  if (Number.isFinite(tabId) && tabId >= 0) {
-    void tabsUpdate(tabId, { active: true });
-  }
-});
+registerBackgroundStorageBridge();
+registerBackgroundNotifications();

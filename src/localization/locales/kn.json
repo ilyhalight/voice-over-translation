@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "ಸ್ಮಾರ್ಟ್ ಉಪಶೀರ್ಷಿಕೆ ಲೇಔಟ್",
   "smartDucking": "ಹೊಂದಾಣಿಕೆಯ ಪರಿಮಾಣ",
   "VOTAutoSubtitles": "ತೆರೆಯ ಮೇಲೆ ಉಪಶೀರ್ಷಿಕೆಗಳು",
-  "VOTSubtitlesFont": "ಉಪಶೀರ್ಷಿಕೆ ಫಾಂಟ್"
+  "VOTSubtitlesFont": "ಉಪಶೀರ್ಷಿಕೆ ಫಾಂಟ್",
+  "VOTDefaultSubtitlesLanguage": "ಡೀಫಾಲ್ಟ್ ಉಪಶೀರ್ಷಿಕೆ ಭಾಷೆ",
+  "VOTOriginalVideoLanguage": "ಮೂಲ ವೀಡಿಯೊ ಭಾಷೆ"
 }

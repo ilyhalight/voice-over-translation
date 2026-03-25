@@ -77,7 +77,7 @@ export function buildTranslationCacheValue(options: {
   };
 }
 
-export async function updateTranslationAndSchedule(options: {
+export async function updateTranslationIfFresh(options: {
   url: string;
   actionContext?: TranslationActionContext;
   isActionStale(actionContext?: TranslationActionContext): boolean;
@@ -85,7 +85,6 @@ export async function updateTranslationAndSchedule(options: {
     url: string,
     actionContext?: TranslationActionContext,
   ): Promise<void>;
-  scheduleTranslationRefresh(): void;
 }): Promise<boolean> {
   if (options.isActionStale(options.actionContext)) {
     return false;
@@ -96,8 +95,6 @@ export async function updateTranslationAndSchedule(options: {
   if (options.isActionStale(options.actionContext)) {
     return false;
   }
-
-  options.scheduleTranslationRefresh();
   return true;
 }
 
@@ -117,7 +114,6 @@ export async function requestAndApplyTranslation(options: {
     url: string,
     actionContext?: TranslationActionContext,
   ): Promise<void>;
-  scheduleTranslationRefresh(): void;
 }): Promise<TranslationAudioResult | null> {
   const translateRes = await requestTranslationAudio(options.requester, {
     videoData: options.request.videoData,
@@ -131,12 +127,11 @@ export async function requestAndApplyTranslation(options: {
     return null;
   }
 
-  const updated = await updateTranslationAndSchedule({
+  const updated = await updateTranslationIfFresh({
     url: translateRes.url,
     actionContext: options.actionContext,
     isActionStale: options.isActionStale,
     updateTranslation: options.updateTranslation,
-    scheduleTranslationRefresh: options.scheduleTranslationRefresh,
   });
   if (!updated || options.isActionStale(options.actionContext)) {
     return null;

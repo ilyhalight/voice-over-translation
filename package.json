@@ -16,17 +16,16 @@
   ],
   "devDependencies": {
     "@toil/translate": "^1.0.8",
-    "@types/bun": "^1.3.9",
+    "@types/bun": "^1.3.11",
     "@vot.js/core": "^2.4.12",
+    "sass": "^1.98.0",
     "crx3": "^2.0.0",
-    "lefthook": "^2.1.1",
-    "lightningcss": "^1.31.1",
+    "lefthook": "^2.1.4",
+    "lightningcss": "^1.32.0",
     "npm-run-all2": "^8.0.4",
-    "sass": "^1.97.3",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "vite-plugin-monkey": "^7.1.9",
-    "zip-a-folder": "^4.0.4"
+    "vite": "^8.0.1",
+    "zip-a-folder": "^6.1.0"
   },
   "scripts": {
     "test": "bun test",
@@ -35,12 +34,12 @@
     "test:ui": "vite build --config vite.test-ui.config.ts",
     "build": "vite build --config vite.config.ts",
     "build:min": "vite build --mode minify --config vite.config.ts",
-    "build:all": "npx run-p build build:min",
+    "build:all": "run-p build build:min",
     "build:ext": "vite build --config vite.extension.config.ts",
     "build:chrome": "vite build --mode chrome --config vite.extension.config.ts",
     "build:firefox": "vite build --mode firefox --config vite.extension.config.ts",
     "build:dev": "vite build --mode development --config vite.config.ts",
-    "dev": "vite dev",
+    "dev": "vite build --watch --mode development --config vite.config.ts",
     "format": "bunx @biomejs/biome check --write --unsafe ./src",
     "gen:wiki": "bun run ./scripts/wiki-gen/index.js",
     "localize": "bunx \"@toil/localize-tui\""

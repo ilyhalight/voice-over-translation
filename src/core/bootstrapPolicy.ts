@@ -1,9 +1,10 @@
-export type BootstrapMode = "skip" | "top-full" | "iframe-lazy";
+export type BootstrapMode = "skip" | "auth-eager" | "lazy";
 
 export type BootstrapPolicyInput = {
   isIframe: boolean;
   href: string;
   origin: string;
+  authOrigin: string;
 };
 
 export function shouldSkipIframeBootstrap(
@@ -23,8 +24,8 @@ export function resolveBootstrapMode(
   if (shouldSkipIframeBootstrap(input)) {
     return "skip";
   }
-  if (input.isIframe) {
-    return "iframe-lazy";
+  if (!input.isIframe && input.origin === input.authOrigin) {
+    return "auth-eager";
   }
-  return "top-full";
+  return "lazy";
 }

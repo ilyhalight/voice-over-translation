@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Promišljeni izgled titlova",
   "smartDucking": "Prilagodljiva glasnoća",
   "VOTAutoSubtitles": "Titlovi prilikom otvaranja",
-  "VOTSubtitlesFont": "Font titlova"
+  "VOTSubtitlesFont": "Font titlova",
+  "VOTDefaultSubtitlesLanguage": "Zadani jezik titlova",
+  "VOTOriginalVideoLanguage": "Jezik izvornog videa"
 }

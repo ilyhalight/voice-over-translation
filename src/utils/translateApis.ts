@@ -215,8 +215,8 @@ async function detect(text: string) {
 const detectServices = [...foswlyServices, "rust-server"] as const;
 
 export {
-  translate,
   detect,
-  foswlyServices as translateServices,
   detectServices,
+  foswlyServices as translateServices,
+  translate,
 };

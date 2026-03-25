@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "ຮູບແບບຄໍາບັນຍາຍອັດສະລິຍະ",
   "smartDucking": "ປະລິມານການປັບຕົວ",
   "VOTAutoSubtitles": "ຄໍາບັນຍາຍເປີດ",
-  "VOTSubtitlesFont": "ຕົວອັກສອນບັນຍາຍ"
+  "VOTSubtitlesFont": "ຕົວອັກສອນບັນຍາຍ",
+  "VOTDefaultSubtitlesLanguage": "ພາສາຄໍາບັນຍາຍໃນຕອນຕົ້ນ",
+  "VOTOriginalVideoLanguage": "ພາສາວິດີໂອຕົ້ນສະບັບ"
 }

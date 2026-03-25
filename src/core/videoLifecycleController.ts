@@ -18,7 +18,7 @@ interface LifecycleUIManager {
   votOverlayView: LifecycleOverlayView;
 }
 
-interface VideoLifecycleHost {
+export interface VideoLifecycleHost {
   video: HTMLVideoElement;
   site: ServiceConf<VideoService>;
   container: HTMLElement;
@@ -42,8 +42,12 @@ interface VideoLifecycleHost {
   getSubtitlesCacheKey(
     videoId: string,
     detectedLanguage: RequestLang,
-    responseLanguage: ResponseLang,
+    subtitleLanguage: string,
   ): string;
+  getPreferredSubtitlesLanguage(
+    detectedLanguage?: string,
+    responseLanguage?: string,
+  ): string | undefined;
   translationOrchestrator: {
     reset(): void;
     runAutoTranslationIfEligible(): Promise<void>;
@@ -333,16 +337,25 @@ export class VideoLifecycleController {
       return;
     }
 
-    const cacheKey = this.host.getSubtitlesCacheKey(
-      this.host.videoData.videoId,
+    const subtitleLanguage = this.host.getPreferredSubtitlesLanguage(
       this.host.videoData.detectedLanguage,
       this.host.videoData.responseLanguage,
     );
+    if (subtitleLanguage) {
+      const cacheKey = this.host.getSubtitlesCacheKey(
+        this.host.videoData.videoId,
+        this.host.videoData.detectedLanguage,
+        subtitleLanguage,
+      );
 
-    const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
-    this.host.subtitles = cachedSubtitles ?? [];
-    this.host.subtitlesCacheKey =
-      cachedSubtitles !== undefined ? cacheKey : null;
+      const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
+      this.host.subtitles = cachedSubtitles ?? [];
+      this.host.subtitlesCacheKey =
+        cachedSubtitles !== undefined ? cacheKey : null;
+    } else {
+      this.host.subtitles = [];
+      this.host.subtitlesCacheKey = null;
+    }
 
     await this.host.updateSubtitlesLangSelect();
     if (this.shouldAbortHandleSrcChanged(sessionId, "after subtitles update")) {

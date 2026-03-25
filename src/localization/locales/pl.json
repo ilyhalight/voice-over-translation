@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Inteligentny układ napisów",
   "smartDucking": "Adaptacyjna objętość",
   "VOTAutoSubtitles": "Napisy na open",
-  "VOTSubtitlesFont": "Czcionka napisów"
+  "VOTSubtitlesFont": "Czcionka napisów",
+  "VOTDefaultSubtitlesLanguage": "Domyślny język napisów",
+  "VOTOriginalVideoLanguage": "Oryginalny język wideo"
 }

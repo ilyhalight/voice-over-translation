@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "ਸਮਾਰਟ ਉਪਸਿਰਲੇਖ ਲੇਆਉਟ",
   "smartDucking": "ਅਨੁਕੂਲ ਵਾਲੀਅਮ",
   "VOTAutoSubtitles": "ਓਪਨ ' ਤੇ ਉਪਸਿਰਲੇਖ",
-  "VOTSubtitlesFont": "ਉਪਸਿਰਲੇਖ ਫੋਂਟ"
+  "VOTSubtitlesFont": "ਉਪਸਿਰਲੇਖ ਫੋਂਟ",
+  "VOTDefaultSubtitlesLanguage": "ਮੂਲ ਉਪਸਿਰਲੇਖ ਭਾਸ਼ਾ",
+  "VOTOriginalVideoLanguage": "ਮੂਲ ਵੀਡੀਓ ਭਾਸ਼ਾ"
 }

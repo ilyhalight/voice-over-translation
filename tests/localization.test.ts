@@ -75,4 +75,3 @@ describe("secs to str time", () => {
     expect(result).toBe(expected);
   });
 });
-

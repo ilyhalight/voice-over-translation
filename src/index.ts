@@ -7,11 +7,13 @@ import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import Chaimu from "chaimu/client";
 import { initAudioContext } from "chaimu/player";
 import { getOrCreateBootState } from "./bootstrap/bootState";
+import { initIframeInteractor } from "./bootstrap/iframeInteractor";
 import { ensureRuntimeActivated } from "./bootstrap/runtimeActivation";
 import { bindObserverListeners } from "./bootstrap/videoObserverBinding";
 import {
+  authServerUrl,
   minLongWaitingCount,
-  proxyWorkerHost,
+  proxyWorkerHostMode1,
   votBackendUrl,
   workerHost,
 } from "./config/config";
@@ -22,12 +24,12 @@ import { resolveOverlayMountTargets } from "./core/overlayMountTargets";
 import { VOTTranslationHandler } from "./core/translationHandler";
 import { TranslationOrchestrator } from "./core/translationOrchestrator";
 import { VideoLifecycleController } from "./core/videoLifecycleController";
+import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
 import { VOTVideoManager } from "./core/videoManager";
 import { localizationProvider } from "./localization/localizationProvider";
 import type { ProcessedSubtitles } from "./subtitles/processor";
-import type { SubtitleFontFamily } from "./subtitles/types";
 import { SubtitlesWidget } from "./subtitles/widget";
-import type { StorageData } from "./types/storage";
+import type { ResponseLanguageSubtitles, StorageData } from "./types/storage";
 import type { OverlayMount } from "./types/uiManager";
 import { UIManager } from "./ui/manager";
 import { isSameOverlayMount } from "./ui/mount";
@@ -35,7 +37,7 @@ import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
 import debug from "./utils/debug";
 import { resolveScopedFullscreenElement } from "./utils/dom";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
-import { GM_fetch } from "./utils/gm";
+import { GM_fetch, isSupportGMXhr } from "./utils/gm";
 import { isIframe } from "./utils/iframeConnector";
 import {
   createIntervalIdleChecker,
@@ -72,14 +74,21 @@ import {
 // dedicated modules for cohesion.
 import { init as initVideoHandler } from "./videoHandler/modules/init";
 import {
+  isProxyClientEnabled,
+  resolveProxyWorkerHost,
+  shouldForceProxyClientGmXhr,
+} from "./videoHandler/modules/proxyShared";
+import {
   changeSubtitlesLang as changeSubtitlesLangImpl,
   enableSubtitlesForCurrentLangPair as enableSubtitlesForCurrentLangPairImpl,
   ensureSubtitlesForCurrentLangPair as ensureSubtitlesForCurrentLangPairImpl,
   loadSubtitles as loadSubtitlesImpl,
+  resolveSubtitlesLanguage,
   toggleSubtitlesForCurrentLangPair as toggleSubtitlesForCurrentLangPairImpl,
   updateSubtitlesLangSelect as updateSubtitlesLangSelectImpl,
 } from "./videoHandler/modules/subtitles";
 import {
+  applyManualVideoVolumeOverride as applyManualVideoVolumeOverrideImpl,
   handleProxySettingsChanged as handleProxySettingsChangedImpl,
   isMultiMethodS3 as isMultiMethodS3Impl,
   isYouTubeHosts as isYouTubeHostsImpl,
@@ -102,9 +111,7 @@ export { getEnvironmentInfo } from "./utils/environment";
 export type { VideoData } from "./videoHandler/shared";
 export { countryCode } from "./videoHandler/shared";
 
-const RESPONSE_LANG_SET = new Set<string>(availableTTS as readonly string[]);
-const isResponseLang = (value: string): value is ResponseLang =>
-  RESPONSE_LANG_SET.has(value);
+const _RESPONSE_LANG_SET = new Set<string>(availableTTS as readonly string[]);
 const RESOLVED_VOID_PROMISE: Promise<void> = Promise.resolve();
 
 type InternalVideoVolumeSetHistoryEntry = {
@@ -155,7 +162,6 @@ export class VideoHandler {
   subtitlesLoadPromises = new Map<string, Promise<any[]>>();
   downloadTranslationUrl: string | null = null;
 
-  translationRefreshTimeout?: ReturnType<typeof setTimeout>;
   isRefreshingTranslation = false;
 
   autoRetry?: ReturnType<typeof setTimeout>;
@@ -363,14 +369,28 @@ export class VideoHandler {
    * Bugfix: subtitles cache key must match the key used by loadSubtitles().
    * @param {string} videoId
    * @param {string} detectedLanguage
-   * @param {string} responseLanguage
+   * @param {string} subtitleLanguage
    */
   getSubtitlesCacheKey(
     videoId: string,
     detectedLanguage: string,
-    responseLanguage: string,
+    subtitleLanguage: string,
   ): string {
-    return `${videoId}_${detectedLanguage}_${responseLanguage}_${Boolean(this.data?.useLivelyVoice)}`;
+    return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${Boolean(this.data?.useLivelyVoice)}`;
+  }
+
+  getPreferredSubtitlesLanguage(
+    detectedLanguage: string = this.videoData?.detectedLanguage ?? "auto",
+    responseLanguage: string = this.videoData?.responseLanguage ??
+      this.translateToLang,
+    preference: ResponseLanguageSubtitles | undefined = this.data
+      ?.responseLanguageSubtitles,
+  ): string | undefined {
+    return resolveSubtitlesLanguage(
+      preference,
+      detectedLanguage,
+      responseLanguage,
+    );
   }
 
   isActionStale(actionContext?: { gen: number; videoId: string }): boolean {
@@ -384,7 +404,7 @@ export class VideoHandler {
   private updateVOTClientRequestSignal(): void {
     if (!this.votClient) return;
     this.votClient.fetchOpts = {
-      ...(this.votClient.fetchOpts ?? {}),
+      ...this.votClient.fetchOpts,
       signal: this.actionsAbortController.signal,
     };
   }
@@ -427,7 +447,6 @@ export class VideoHandler {
     this.cacheManager = new CacheManager();
     this.interactionChecker = createIntervalIdleChecker();
     this.interactionChecker.start();
-    const self = () => this;
     // Create helper instances
     const mount = this.getOverlayMount(container);
     this.uiManager = new UIManager({
@@ -485,89 +504,9 @@ export class VideoHandler {
         });
       },
     });
-    const lifecycleHost = {
-      get video() {
-        return self().video;
-      },
-      get site() {
-        return self().site;
-      },
-      get container() {
-        return self().container;
-      },
-      set container(value: HTMLElement) {
-        if (self().container === value) {
-          return;
-        }
-        self().container = value;
-        self().uiManager.updateMount(self().getOverlayMount(value));
-      },
-      get firstPlay() {
-        return self().firstPlay;
-      },
-      set firstPlay(value: boolean) {
-        self().firstPlay = value;
-      },
-      stopTranslation: () => this.stopTranslation(),
-      get uiManager() {
-        return self().uiManager as any;
-      },
-      getVideoData: () => this.getVideoData(),
-      cacheManager: {
-        getSubtitles: (key: string) => self().cacheManager.getSubtitles(key),
-      },
-      getSubtitlesCacheKey: (
-        videoId: string,
-        detectedLanguage: string,
-        responseLanguage: string,
-      ) =>
-        this.getSubtitlesCacheKey(videoId, detectedLanguage, responseLanguage),
-      updateSubtitlesLangSelect: () => this.updateSubtitlesLangSelect(),
-      enableSubtitlesForCurrentLangPair: () =>
-        this.enableSubtitlesForCurrentLangPair(),
-      setSelectMenuValues: (from: string, to: string) =>
-        this.setSelectMenuValues(from, to),
-      get translateToLang() {
-        return self().translateToLang;
-      },
-      set translateToLang(value: string) {
-        if (isResponseLang(value)) self().translateToLang = value;
-      },
-      get data() {
-        return self().data ?? {};
-      },
-      get subtitles() {
-        return self().subtitles;
-      },
-      set subtitles(value: any[]) {
-        self().subtitles = value;
-      },
-      get subtitlesCacheKey() {
-        return self().subtitlesCacheKey;
-      },
-      set subtitlesCacheKey(value: string | null) {
-        self().subtitlesCacheKey = value;
-      },
-      get videoData() {
-        return self().videoData;
-      },
-      set videoData(value: any) {
-        self().videoData = value;
-      },
-      get actionsAbortController() {
-        return self().actionsAbortController;
-      },
-      set actionsAbortController(value: AbortController) {
-        self().actionsAbortController = value;
-      },
-      resetActionsAbortController: (reason?: unknown) =>
-        this.resetActionsAbortController(reason),
-      initVOTClient: () => this.initVOTClient(),
-      translationOrchestrator: this.translationOrchestrator,
-      resetSubtitlesWidget: () => this.resetSubtitlesWidget(),
-      queueOverlayAutoHide: () => this.overlayVisibility?.queueAutoHide(),
-    };
-    this.lifecycleController = new VideoLifecycleController(lifecycleHost);
+    this.lifecycleController = new VideoLifecycleController(
+      createVideoLifecycleHost(this, (value) => this.getOverlayMount(value)),
+    );
     this.translationHandler = new VOTTranslationHandler(this);
     this.videoManager = new VOTVideoManager(this);
   }
@@ -585,35 +524,39 @@ export class VideoHandler {
         this.interactionChecker,
         this.tooltipLayoutRoot,
       );
-
-      if (this.data) {
-        // Smart layout is enabled by default for new users.
-        // When enabled, the widget will compute font-size / line length based on player size.
-        this.subtitlesWidget.setSmartLayout(
-          typeof this.data.subtitlesSmartLayout === "boolean"
-            ? this.data.subtitlesSmartLayout
-            : true,
-        );
-        if (typeof this.data.subtitlesMaxLength === "number") {
-          this.subtitlesWidget.setMaxLength(this.data.subtitlesMaxLength);
-        }
-        if (typeof this.data.highlightWords === "boolean") {
-          this.subtitlesWidget.setHighlightWords(this.data.highlightWords);
-        }
-        if (typeof this.data.subtitlesFontSize === "number") {
-          this.subtitlesWidget.setFontSize(this.data.subtitlesFontSize);
-        }
-        if (typeof this.data.subtitlesFontFamily === "string") {
-          this.subtitlesWidget.setFontFamily(
-            this.data.subtitlesFontFamily as SubtitleFontFamily,
-          );
-        }
-        if (typeof this.data.subtitlesOpacity === "number") {
-          this.subtitlesWidget.setOpacity(this.data.subtitlesOpacity);
-        }
-      }
+      this.applySavedSubtitlesWidgetSettings(this.subtitlesWidget);
     }
     return this.subtitlesWidget;
+  }
+
+  private applySavedSubtitlesWidgetSettings(widget: SubtitlesWidget): void {
+    if (!this.data) {
+      return;
+    }
+
+    // Smart layout is enabled by default for new users.
+    // When enabled, the widget will compute font-size / line length based on player size.
+    widget.setSmartLayout(
+      typeof this.data.subtitlesSmartLayout === "boolean"
+        ? this.data.subtitlesSmartLayout
+        : true,
+    );
+
+    if (typeof this.data.subtitlesMaxLength === "number") {
+      widget.setMaxLength(this.data.subtitlesMaxLength);
+    }
+    if (typeof this.data.highlightWords === "boolean") {
+      widget.setHighlightWords(this.data.highlightWords);
+    }
+    if (typeof this.data.subtitlesFontSize === "number") {
+      widget.setFontSize(this.data.subtitlesFontSize);
+    }
+    if (typeof this.data.subtitlesFontFamily === "string") {
+      widget.setFontFamily(this.data.subtitlesFontFamily);
+    }
+    if (typeof this.data.subtitlesOpacity === "number") {
+      widget.setOpacity(this.data.subtitlesOpacity);
+    }
   }
 
   /**
@@ -805,21 +748,31 @@ export class VideoHandler {
    * @returns {VideoHandler} This instance.
    */
   async initVOTClient() {
-    const transportHost = this.data?.translateProxyEnabled
-      ? (this.data?.proxyWorkerHost ?? proxyWorkerHost)
-      : workerHost;
+    const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
+    const transportHost =
+      this.data?.translateProxyEnabled === 1
+        ? proxyWorkerHostMode1
+        : proxyClientEnabled
+          ? resolveProxyWorkerHost(this.data?.proxyWorkerHost)
+          : workerHost;
     this.votOpts = {
       fetchFn: GM_fetch,
       fetchOpts: {
         signal: this.actionsAbortController.signal,
+        // Proxy mode routes requests through the worker/backend where page-world
+        // fetch() adds an avoidable CORS preflight. GM transport skips that hop.
+        forceGmXhr: shouldForceProxyClientGmXhr({
+          ...this.data,
+          gmXhrSupported: isSupportGMXhr,
+        }),
       },
       apiToken: this.data?.account?.token,
       hostVOT: votBackendUrl,
       host: transportHost,
     };
-    this.votClient = new (
-      this.data?.translateProxyEnabled ? VOTWorkerClient : VOTClient
-    )(this.votOpts);
+    this.votClient = new (proxyClientEnabled ? VOTWorkerClient : VOTClient)(
+      this.votOpts,
+    );
     this.votClient.sessions = await this.votSessionStorage.restore(
       transportHost,
       this.votClient.sessions,
@@ -1093,6 +1046,12 @@ export class VideoHandler {
     this.volumeLinkState.initialized = true;
   }
 
+  clearVolumeLinkState(): void {
+    this.volumeLinkState.initialized = false;
+    this.volumeLinkState.lastVideoPercent = 0;
+    this.volumeLinkState.lastTranslationPercent = 0;
+  }
+
   /**
    * Checks if the video is muted.
    * @returns {boolean} True if muted.
@@ -1123,10 +1082,9 @@ export class VideoHandler {
   /**
    * Keeps translation and video sliders linked (syncVolume option).
    *
-   * The implementation is delta-based: when the user changes one slider, the
-   * other slider moves by the same delta. This preserves the relative
-   * difference between volumes and works with "audio booster" (translation can
-   * exceed 100%).
+   * The implementation is delta-based inside the shared 0..100 link range.
+   * Translation booster values above 100 remain available only while link mode
+   * is disabled.
    */
   syncVolumeWrapper(
     fromType: "translation" | "video",
@@ -1234,10 +1192,6 @@ export class VideoHandler {
         clearTimeout(this.autoRetry);
         this.autoRetry = undefined;
       }
-      if (this.translationRefreshTimeout !== undefined) {
-        clearTimeout(this.translationRefreshTimeout);
-        this.translationRefreshTimeout = undefined;
-      }
       // Cancel in-flight translation work.
       this.resetActionsAbortController("stopTranslate");
     };
@@ -1278,52 +1232,17 @@ export class VideoHandler {
       errorMessage = new VOTLocalizedError("TranslationDelayed");
     }
     debug.log("updateTranslationErrorMsg message", errorMessage);
-    if (errorMessage?.name === "VOTLocalizedError") {
-      this.transformBtn("error", errorMessage.localizedMessage);
-    } else if (errorMessage instanceof Error) {
-      this.transformBtn("error", errorMessage?.message);
-    } else if (
-      this.data?.translateAPIErrors &&
-      lang !== "ru" &&
-      !errorMessage?.includes(translationTake)
-    ) {
-      const overlayView = this.uiManager.votOverlayView;
-      if (!overlayView?.votButton) {
-        return;
-      }
-      const messageStr = Array.isArray(errorMessage)
-        ? errorMessage.join(" ")
-        : String(errorMessage);
-      const cacheKey = `${lang}:${messageStr}`;
-      const cached = this.errorTranslationCache.get(cacheKey);
-      if (cached) {
-        this.transformBtn("error", cached);
-      } else {
-        overlayView.votButton.loading = true;
-        const translatedMessage = await translate(messageStr, "ru", lang);
-        const translatedText = Array.isArray(translatedMessage)
-          ? translatedMessage.join("\n")
-          : String(translatedMessage);
-        if (signal?.aborted) {
-          return;
-        }
-        this.errorTranslationCache.set(cacheKey, translatedText);
-        // Prevent unbounded growth.
-        if (this.errorTranslationCache.size > 50) {
-          const oldestKey = this.errorTranslationCache.keys().next().value;
-          if (oldestKey) this.errorTranslationCache.delete(oldestKey);
-        }
-        this.transformBtn("error", translatedText);
-      }
-      if (signal?.aborted) {
-        return;
-      }
-    } else {
-      const msg = Array.isArray(errorMessage)
-        ? errorMessage.join("\n")
-        : String(errorMessage ?? "");
-      this.transformBtn("error", msg);
+    const resolvedMessage = await this.resolveTranslationErrorDisplayMessage(
+      errorMessage,
+      translationTake,
+      lang,
+      signal,
+    );
+    if (signal?.aborted || resolvedMessage === null) {
+      return;
     }
+    this.transformBtn("error", resolvedMessage);
+
     if (signal?.aborted) {
       return;
     }
@@ -1338,6 +1257,90 @@ export class VideoHandler {
       if (this.uiManager.votOverlayView?.votButton) {
         this.uiManager.votOverlayView.votButton.loading = true;
       }
+    }
+  }
+
+  private async resolveTranslationErrorDisplayMessage(
+    errorMessage: any,
+    translationTake: string,
+    lang: string,
+    signal?: AbortSignal,
+  ): Promise<string | null> {
+    if (errorMessage?.name === "VOTLocalizedError") {
+      return errorMessage.localizedMessage;
+    }
+    if (errorMessage instanceof Error) {
+      return errorMessage.message;
+    }
+
+    if (
+      !this.shouldTranslateErrorMessage(errorMessage, translationTake, lang)
+    ) {
+      return this.stringifyTranslationError(errorMessage);
+    }
+
+    return await this.getTranslatedErrorMessage(errorMessage, lang, signal);
+  }
+
+  private shouldTranslateErrorMessage(
+    errorMessage: any,
+    translationTake: string,
+    lang: string,
+  ): boolean {
+    return (
+      Boolean(this.data?.translateAPIErrors) &&
+      lang !== "ru" &&
+      !errorMessage?.includes(translationTake)
+    );
+  }
+
+  private stringifyTranslationError(errorMessage: any): string {
+    return Array.isArray(errorMessage)
+      ? errorMessage.join("\n")
+      : String(errorMessage ?? "");
+  }
+
+  private async getTranslatedErrorMessage(
+    errorMessage: any,
+    lang: string,
+    signal?: AbortSignal,
+  ): Promise<string | null> {
+    const overlayView = this.uiManager.votOverlayView;
+    if (!overlayView?.votButton) {
+      return null;
+    }
+
+    const messageStr = Array.isArray(errorMessage)
+      ? errorMessage.join(" ")
+      : String(errorMessage);
+    const cacheKey = `${lang}:${messageStr}`;
+    const cached = this.errorTranslationCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    overlayView.votButton.loading = true;
+    const translatedMessage = await translate(messageStr, "ru", lang);
+    if (signal?.aborted) {
+      return null;
+    }
+
+    const translatedText = Array.isArray(translatedMessage)
+      ? translatedMessage.join("\n")
+      : String(translatedMessage);
+    this.errorTranslationCache.set(cacheKey, translatedText);
+    this.trimErrorTranslationCache();
+    return translatedText;
+  }
+
+  private trimErrorTranslationCache(): void {
+    if (this.errorTranslationCache.size <= 50) {
+      return;
+    }
+
+    const oldestKey = this.errorTranslationCache.keys().next().value;
+    if (oldestKey) {
+      this.errorTranslationCache.delete(oldestKey);
     }
   }
 
@@ -1484,6 +1487,10 @@ export class VideoHandler {
    */
   setupAudioSettings() {
     return this.callModule(setupAudioSettingsImpl);
+  }
+
+  applyManualVideoVolumeOverride(volume: number) {
+    return this.callModule(applyManualVideoVolumeOverrideImpl, volume);
   }
 
   /**
@@ -1636,6 +1643,7 @@ async function main(): Promise<void> {
     isIframe: isIframe(),
     href: String(globalThis.location.href || ""),
     origin: globalThis.location.origin,
+    authOrigin: authServerUrl,
   });
 
   if (bootstrapMode === "skip") {
@@ -1643,11 +1651,15 @@ async function main(): Promise<void> {
     return;
   }
 
-  logBootstrap("Loading extension");
-  if (bootstrapMode === "top-full") {
-    await ensureRuntimeActivated("top-frame", logBootstrap);
+  // Some hosts exchange iframe video identifiers via postMessage before a
+  // playable <video> is observed, so keep this bridge available eagerly.
+  initIframeInteractor();
+
+  logBootstrap("Loading extension", { mode: bootstrapMode });
+  if (bootstrapMode === "auth-eager") {
+    await ensureRuntimeActivated("auth-page", logBootstrap);
   } else {
-    logBootstrap("Lazy iframe bootstrap enabled; waiting for video detection");
+    logBootstrap("Lazy bootstrap enabled; waiting for video detection");
   }
 
   bindObserverListeners({
@@ -1663,11 +1675,14 @@ async function main(): Promise<void> {
   videoObserver.enable();
 }
 
-if (bootState.status === "booting" || bootState.status === "booted") {
-  logBootstrap("bootstrap already initialized, skipping duplicate run", {
-    status: bootState.status,
-  });
-} else {
+export function bootstrapContentScript(): Promise<void> {
+  if (bootState.status === "booting" || bootState.status === "booted") {
+    logBootstrap("bootstrap already initialized, skipping duplicate run", {
+      status: bootState.status,
+    });
+    return bootState.promise ?? Promise.resolve();
+  }
+
   const runBootstrap = async () => {
     try {
       await main();
@@ -1681,4 +1696,7 @@ if (bootState.status === "booting" || bootState.status === "booted") {
 
   bootState.status = "booting";
   bootState.promise = runBootstrap();
+  return bootState.promise;
 }
+
+void bootstrapContentScript();

@@ -41,7 +41,7 @@ export class EventImpl<Args extends unknown[] = unknown[]> {
     for (const handler of this.listeners) {
       try {
         const result = handler(...args);
-        if (result && typeof (result as Promise<void>).then === "function") {
+        if (result && typeof result.then === "function") {
           pending.push(Promise.resolve(result));
         }
       } catch (exception) {

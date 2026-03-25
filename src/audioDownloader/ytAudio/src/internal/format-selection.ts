@@ -54,7 +54,7 @@ export function extractAudioCodecFromMimeType(
   );
 }
 
-export function pickByBitrate<T extends ProgressiveFormatCandidate>(
+function pickByBitrate<T extends ProgressiveFormatCandidate>(
   formats: readonly T[],
   direction: "max" | "min",
 ): T | null {

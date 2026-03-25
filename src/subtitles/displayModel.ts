@@ -1,4 +1,12 @@
-import type { SubtitleInlineStyle, SubtitleStyledSpan } from "./types";
+import type {
+  SubtitleInlineStyle,
+  SubtitleStyledSpan,
+} from "../types/subtitles";
+import {
+  normalizeCssColorValue,
+  normalizeSubtitleInlineStyle,
+  subtitleInlineStylesEqual,
+} from "./inlineStyle";
 
 type StyledTextSegment = {
   text: string;
@@ -9,29 +17,64 @@ type MutableInlineStyle = {
   italic: boolean;
   bold: boolean;
   underline: boolean;
+  color?: string;
+  classes: string[];
 };
 
-const HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)(?:[.\s][^>]*)?>/iu;
+type HtmlStyleFrame = {
+  tagName: string;
+  previousStyle: MutableInlineStyle;
+};
+
+const HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)([^>]*)>/iu;
 const ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
 const LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
+const ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;
+const GLUED_WORD_NUMBER_RE = /([\p{L}\p{M}]+)(\d+)|(\d+)([\p{L}\p{M}]+)/gu;
+const ASS_DIRECTIVE_RE = /\\[^\\]+/gu;
+const ASS_STYLE_TOGGLE_RE = /^\\([ibu])([01])$/u;
+const ASS_PRIMARY_COLOR_RE = /^\\(?:1?c|c)&H([0-9a-f]{6,8})&$/iu;
+const ASS_STYLE_RESET_RE = /^\\r(?:[^\\}]*)?$/u;
+
+const cloneMutableInlineStyle = (
+  style: MutableInlineStyle,
+): MutableInlineStyle => ({
+  italic: style.italic,
+  bold: style.bold,
+  underline: style.underline,
+  color: style.color,
+  classes: [...style.classes],
+});
+
+const assignMutableInlineStyle = (
+  target: MutableInlineStyle,
+  source: MutableInlineStyle,
+): void => {
+  target.italic = source.italic;
+  target.bold = source.bold;
+  target.underline = source.underline;
+  target.color = source.color;
+  target.classes = [...source.classes];
+};
+
+const resetMutableInlineStyle = (style: MutableInlineStyle): void => {
+  style.italic = false;
+  style.bold = false;
+  style.underline = false;
+  style.color = undefined;
+  style.classes = [];
+};
 
 const toTokenStyle = (
   style: MutableInlineStyle,
-): SubtitleInlineStyle | undefined => {
-  const tokenStyle: SubtitleInlineStyle = {};
-  if (style.italic) tokenStyle.italic = true;
-  if (style.bold) tokenStyle.bold = true;
-  if (style.underline) tokenStyle.underline = true;
-  return Object.keys(tokenStyle).length > 0 ? tokenStyle : undefined;
-};
-
-const stylesEqual = (
-  left: SubtitleInlineStyle | undefined,
-  right: SubtitleInlineStyle | undefined,
-): boolean =>
-  Boolean(left?.italic) === Boolean(right?.italic) &&
-  Boolean(left?.bold) === Boolean(right?.bold) &&
-  Boolean(left?.underline) === Boolean(right?.underline);
+): SubtitleInlineStyle | undefined =>
+  normalizeSubtitleInlineStyle({
+    italic: style.italic,
+    bold: style.bold,
+    underline: style.underline,
+    color: style.color,
+    classes: style.classes,
+  });
 
 const pushSegment = (
   segments: StyledTextSegment[],
@@ -42,7 +85,7 @@ const pushSegment = (
 
   const tokenStyle = toTokenStyle(style);
   const previous = segments.at(-1);
-  if (previous && stylesEqual(previous.style, tokenStyle)) {
+  if (previous && subtitleInlineStylesEqual(previous.style, tokenStyle)) {
     previous.text += text;
     return;
   }
@@ -53,24 +96,58 @@ const pushSegment = (
   });
 };
 
+const parseAssColorToCssHex = (value: string): string | undefined => {
+  const normalized = value.trim();
+  if (!/^[0-9a-f]{6,8}$/iu.test(normalized)) {
+    return undefined;
+  }
+
+  const bgr = normalized.slice(-6);
+  const blue = bgr.slice(0, 2);
+  const green = bgr.slice(2, 4);
+  const red = bgr.slice(4, 6);
+  return normalizeCssColorValue(`#${red}${green}${blue}`);
+};
+
 const applyAssStyleDirective = (
   directive: string,
   style: MutableInlineStyle,
 ) => {
-  const match = /^\\([ibu])([01])$/u.exec(directive.trim());
-  if (!match) return;
+  const toggleMatch = ASS_STYLE_TOGGLE_RE.exec(directive.trim());
+  if (toggleMatch) {
+    const enabled = toggleMatch[2] === "1";
+    if (toggleMatch[1] === "i") {
+      style.italic = enabled;
+      return;
+    }
+    if (toggleMatch[1] === "b") {
+      style.bold = enabled;
+      return;
+    }
+    if (toggleMatch[1] === "u") {
+      style.underline = enabled;
+      return;
+    }
+  }
 
-  const enabled = match[2] === "1";
-  if (match[1] === "i") {
-    style.italic = enabled;
+  if (ASS_STYLE_RESET_RE.test(directive.trim())) {
+    resetMutableInlineStyle(style);
     return;
   }
-  if (match[1] === "b") {
-    style.bold = enabled;
-    return;
+
+  const colorMatch = ASS_PRIMARY_COLOR_RE.exec(directive.trim());
+  if (colorMatch) {
+    style.color = parseAssColorToCssHex(colorMatch[1]);
   }
-  if (match[1] === "u") {
-    style.underline = enabled;
+};
+
+const applyAssOverrideBlock = (
+  rawDirectives: string,
+  style: MutableInlineStyle,
+): void => {
+  const directives = rawDirectives.match(ASS_DIRECTIVE_RE) ?? [];
+  for (const directive of directives) {
+    applyAssStyleDirective(directive, style);
   }
 };
 
@@ -90,88 +167,218 @@ const normalizeLeadingSpeakerMarker = (segments: StyledTextSegment[]) => {
   }
 };
 
-export const buildStyledDisplayModel = (
-  rawText: string,
-): {
-  text: string;
-  styledSpans: SubtitleStyledSpan[];
-} => {
-  const segments: StyledTextSegment[] = [];
-  const activeStyle: MutableInlineStyle = {
-    italic: false,
-    bold: false,
-    underline: false,
-  };
+const normalizeAttachedTimeExpressions = (segments: StyledTextSegment[]) => {
+  for (const segment of segments) {
+    if (!segment.text) continue;
+    segment.text = segment.text.replaceAll(ATTACHED_TIME_WORD_RE, "$1 ");
+  }
+};
 
-  let cursor = 0;
-  while (cursor < rawText.length) {
-    const remainder = rawText.slice(cursor);
+const normalizeAttachedWordNumberExpressions = (
+  segments: StyledTextSegment[],
+) => {
+  for (const segment of segments) {
+    if (!segment.text) continue;
 
-    if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
-      pushSegment(segments, "\n", activeStyle);
-      cursor += 2;
-      continue;
-    }
+    segment.text = segment.text.replaceAll(
+      GLUED_WORD_NUMBER_RE,
+      (
+        match,
+        leftLetters?: string,
+        leftDigits?: string,
+        rightDigits?: string,
+        rightLetters?: string,
+      ) => {
+        const letters = leftLetters ?? rightLetters ?? "";
+        const digits = leftDigits ?? rightDigits ?? "";
+        const isCodeLike =
+          /^[A-Za-z]{1,3}$/u.test(letters) ||
+          (letters.length === 1 &&
+            letters === letters.toLocaleUpperCase() &&
+            letters !== letters.toLocaleLowerCase());
 
-    if (remainder.startsWith("\\h")) {
-      pushSegment(segments, " ", activeStyle);
-      cursor += 2;
-      continue;
-    }
+        if (isCodeLike) {
+          return match;
+        }
 
-    if (remainder[0] === "\n") {
-      pushSegment(segments, "\n", activeStyle);
-      cursor += 1;
-      continue;
-    }
+        return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
+      },
+    );
+  }
+};
 
-    const assMatch = ASS_OVERRIDE_RE.exec(remainder);
-    if (assMatch) {
-      const directives = assMatch[1].match(/\\[ibu][01]/gu) ?? [];
-      for (const directive of directives) {
-        applyAssStyleDirective(directive, activeStyle);
-      }
-      cursor += assMatch[0].length;
-      continue;
-    }
-
-    const htmlMatch = HTML_TAG_RE.exec(remainder);
-    if (htmlMatch) {
-      const isClosing = htmlMatch[1] === "/";
-      const tagName = htmlMatch[2].toLowerCase();
-      if (tagName === "br") {
-        pushSegment(segments, "\n", activeStyle);
-      } else if (tagName === "i") {
-        activeStyle.italic = !isClosing;
-      } else if (tagName === "b") {
-        activeStyle.bold = !isClosing;
-      } else if (tagName === "u") {
-        activeStyle.underline = !isClosing;
-      }
-      cursor += htmlMatch[0].length;
-      continue;
-    }
-
-    pushSegment(segments, remainder[0], activeStyle);
-    cursor += 1;
+const extractHtmlTagClasses = (attrsRaw: string): string[] | undefined => {
+  const normalized = attrsRaw.trim();
+  if (!normalized.startsWith(".")) {
+    return undefined;
   }
 
-  normalizeLeadingSpeakerMarker(segments);
+  const classNames = normalized.split(/\s+/u, 1)[0].split(".").filter(Boolean);
+  return classNames.length ? classNames : undefined;
+};
 
+const extractHtmlFontColor = (attrsRaw: string): string | undefined => {
+  const match = /\bcolor\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/iu.exec(
+    attrsRaw,
+  );
+  const rawColor = match?.[1] ?? match?.[2] ?? match?.[3];
+  return rawColor ? normalizeCssColorValue(rawColor) : undefined;
+};
+
+const popHtmlStyleFrame = (
+  tagName: string,
+  stack: HtmlStyleFrame[],
+  activeStyle: MutableInlineStyle,
+): void => {
+  for (let i = stack.length - 1; i >= 0; i -= 1) {
+    if (stack[i].tagName !== tagName) continue;
+    const [frame] = stack.splice(i, 1);
+    if (!frame) return;
+    assignMutableInlineStyle(activeStyle, frame.previousStyle);
+    return;
+  }
+
+  if (tagName === "b") {
+    activeStyle.bold = false;
+    return;
+  }
+  if (tagName === "i") {
+    activeStyle.italic = false;
+    return;
+  }
+  if (tagName === "u") {
+    activeStyle.underline = false;
+    return;
+  }
+  if (tagName === "font") {
+    activeStyle.color = undefined;
+    return;
+  }
+  if (tagName === "c") {
+    activeStyle.classes = [];
+  }
+};
+
+const applyHtmlTagStyle = (
+  htmlMatch: RegExpExecArray,
+  segments: StyledTextSegment[],
+  activeStyle: MutableInlineStyle,
+  styleStack: HtmlStyleFrame[],
+): void => {
+  const isClosing = htmlMatch[1] === "/";
+  const tagName = htmlMatch[2].toLowerCase();
+  const attrsRaw = htmlMatch[3] ?? "";
+
+  if (tagName === "br") {
+    pushSegment(segments, "\n", activeStyle);
+    return;
+  }
+
+  if (isClosing) {
+    popHtmlStyleFrame(tagName, styleStack, activeStyle);
+    return;
+  }
+
+  if (!["b", "i", "u", "font", "c"].includes(tagName)) {
+    return;
+  }
+
+  styleStack.push({
+    tagName,
+    previousStyle: cloneMutableInlineStyle(activeStyle),
+  });
+
+  if (tagName === "b") {
+    activeStyle.bold = true;
+    return;
+  }
+
+  if (tagName === "i") {
+    activeStyle.italic = true;
+    return;
+  }
+
+  if (tagName === "u") {
+    activeStyle.underline = true;
+    return;
+  }
+
+  if (tagName === "font") {
+    const color = extractHtmlFontColor(attrsRaw);
+    if (color) {
+      activeStyle.color = color;
+    }
+    return;
+  }
+
+  const classes = extractHtmlTagClasses(attrsRaw);
+  activeStyle.classes = classes ?? [];
+};
+
+const consumeDisplayControlToken = (
+  rawText: string,
+  cursor: number,
+  segments: StyledTextSegment[],
+  activeStyle: MutableInlineStyle,
+  styleStack: HtmlStyleFrame[],
+): number | null => {
+  const remainder = rawText.slice(cursor);
+
+  if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
+    pushSegment(segments, "\n", activeStyle);
+    return cursor + 2;
+  }
+
+  if (remainder.startsWith("\\h")) {
+    pushSegment(segments, " ", activeStyle);
+    return cursor + 2;
+  }
+
+  if (remainder[0] === "\n") {
+    pushSegment(segments, "\n", activeStyle);
+    return cursor + 1;
+  }
+
+  const assMatch = ASS_OVERRIDE_RE.exec(remainder);
+  if (assMatch) {
+    applyAssOverrideBlock(assMatch[1], activeStyle);
+    return cursor + assMatch[0].length;
+  }
+
+  const htmlMatch = HTML_TAG_RE.exec(remainder);
+  if (!htmlMatch) {
+    return null;
+  }
+
+  applyHtmlTagStyle(htmlMatch, segments, activeStyle, styleStack);
+  return cursor + htmlMatch[0].length;
+};
+
+const buildStyledSpans = (segments: StyledTextSegment[]) => {
   const styledSpans: SubtitleStyledSpan[] = [];
   let text = "";
+
   for (const segment of segments) {
     if (!segment.text) continue;
     const start = text.length;
     text += segment.text;
-    const end = text.length;
     styledSpans.push({
       start,
-      end,
+      end: text.length,
       style: segment.style,
     });
   }
 
+  return { text, styledSpans };
+};
+
+const trimStyledDisplayResult = (
+  text: string,
+  styledSpans: SubtitleStyledSpan[],
+): {
+  text: string;
+  styledSpans: SubtitleStyledSpan[];
+} => {
   const normalizedText = text.replaceAll("\u00A0", " ");
   const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
   const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
@@ -196,6 +403,47 @@ export const buildStyledDisplayModel = (
     text: finalText,
     styledSpans: finalSpans,
   };
+};
+
+export const buildStyledDisplayModel = (
+  rawText: string,
+): {
+  text: string;
+  styledSpans: SubtitleStyledSpan[];
+} => {
+  const segments: StyledTextSegment[] = [];
+  const activeStyle: MutableInlineStyle = {
+    italic: false,
+    bold: false,
+    underline: false,
+    color: undefined,
+    classes: [],
+  };
+  const styleStack: HtmlStyleFrame[] = [];
+
+  let cursor = 0;
+  while (cursor < rawText.length) {
+    const nextCursor = consumeDisplayControlToken(
+      rawText,
+      cursor,
+      segments,
+      activeStyle,
+      styleStack,
+    );
+    if (nextCursor !== null) {
+      cursor = nextCursor;
+      continue;
+    }
+
+    pushSegment(segments, rawText[cursor], activeStyle);
+    cursor += 1;
+  }
+
+  normalizeLeadingSpeakerMarker(segments);
+  normalizeAttachedTimeExpressions(segments);
+  normalizeAttachedWordNumberExpressions(segments);
+  const built = buildStyledSpans(segments);
+  return trimStyledDisplayResult(built.text, built.styledSpans);
 };
 
 export const getStyleForRange = (

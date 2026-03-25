@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Паметан изглед титлова",
   "smartDucking": "Адаптивна јачина звука",
   "VOTAutoSubtitles": "Титлови приликом отварања",
-  "VOTSubtitlesFont": "Фонт титлова"
+  "VOTSubtitlesFont": "Фонт титлова",
+  "VOTDefaultSubtitlesLanguage": "Подразумевани језик титлова",
+  "VOTOriginalVideoLanguage": "Језик оригиналног видеа"
 }

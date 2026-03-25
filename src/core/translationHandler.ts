@@ -102,6 +102,11 @@ type DownloadWaiter = {
   reject: (error: Error) => void;
 };
 
+type TranslateVideoImplOptions = {
+  disableLivelyVoice?: boolean;
+  retryAttempt?: number;
+};
+
 export class VOTTranslationHandler {
   readonly videoHandler: VideoHandler;
   readonly audioDownloader: AudioDownloader;
@@ -308,6 +313,17 @@ export class VOTTranslationHandler {
     });
   }
 
+  private getVideoTranslationRetryDelayMs(
+    retryAttempt: number,
+    videoDurationSeconds: number,
+  ): number {
+    if (retryAttempt > 0) {
+      return 25_000;
+    }
+
+    return videoDurationSeconds <= 10 * 60 ? 60_000 : 75_000;
+  }
+
   async translateVideoImpl(
     videoData: VideoData,
     requestLang: RequestLang,
@@ -315,10 +331,11 @@ export class VOTTranslationHandler {
     translationHelp: TranslationHelp[] | null = null,
     shouldSendFailedAudio = false,
     signal = NEVER_ABORTED_SIGNAL,
-    disableLivelyVoice = false,
+    options: TranslateVideoImplOptions = {},
   ): Promise<
     (TranslatedVideoTranslationResponse & { usedLivelyVoice: boolean }) | null
   > {
+    const { disableLivelyVoice = false, retryAttempt = 0 } = options;
     clearTimeout(this.videoHandler.autoRetry);
     this.finishDownloadSuccess();
     const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
@@ -339,53 +356,19 @@ export class VOTTranslationHandler {
         requestLangForApi,
         responseLang,
       );
-      let useLivelyVoice =
-        !livelyDisabled &&
-        livelyVoiceAllowed &&
-        Boolean(this.videoHandler.data?.useLivelyVoice);
-
-      let res: VideoTranslationResponse | undefined;
-
-      // If server says lively voices are unavailable, immediately retry once
-      // without lively voices and keep that choice for subsequent retries.
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          res = await this.videoHandler.votClient.translateVideo({
-            videoData,
-            requestLang: requestLangForApi,
-            responseLang,
-            translationHelp,
-            extraOpts: {
-              useLivelyVoice,
-              videoTitle: this.videoHandler.videoData?.title,
-            },
-            shouldSendFailedAudio,
-          });
-        } catch (err) {
-          if (useLivelyVoice && this.isLivelyVoiceUnavailableError(err)) {
-            debug.log(
-              "[translateVideoImpl] Lively voices are unavailable. Falling back to standard translation.",
-              err,
-            );
-            livelyDisabled = true;
-            useLivelyVoice = false;
-            continue;
-          }
-          throw err;
-        }
-
-        if (useLivelyVoice && this.isLivelyVoiceUnavailableError(res)) {
-          debug.log(
-            "[translateVideoImpl] Server responded that lively voices are unavailable. Falling back to standard translation.",
-            res,
-          );
-          livelyDisabled = true;
-          useLivelyVoice = false;
-          res = undefined;
-          continue;
-        }
-        break;
-      }
+      const translationAttempt =
+        await this.requestTranslationWithLivelyFallback({
+          videoData,
+          requestLangForApi,
+          responseLang,
+          translationHelp,
+          shouldSendFailedAudio,
+          livelyDisabled,
+          livelyVoiceAllowed,
+        });
+      livelyDisabled = translationAttempt.livelyDisabled;
+      const useLivelyVoice = translationAttempt.useLivelyVoice;
+      const res = translationAttempt.response;
 
       if (!res) {
         throw new Error("Failed to get translation response");
@@ -439,7 +422,10 @@ export class VOTTranslationHandler {
           translationHelp,
           true,
           signal,
-          livelyDisabled,
+          {
+            disableLivelyVoice: livelyDisabled,
+            retryAttempt,
+          },
         );
       }
     } catch (err) {
@@ -487,11 +473,78 @@ export class VOTTranslationHandler {
           translationHelp,
           shouldSendFailedAudio,
           signal,
-          livelyDisabled,
+          {
+            disableLivelyVoice: livelyDisabled,
+            retryAttempt: retryAttempt + 1,
+          },
         ),
-      20000,
+      this.getVideoTranslationRetryDelayMs(retryAttempt, videoData.duration),
       signal,
     );
+  }
+
+  private async requestTranslationWithLivelyFallback({
+    videoData,
+    requestLangForApi,
+    responseLang,
+    translationHelp,
+    shouldSendFailedAudio,
+    livelyDisabled,
+    livelyVoiceAllowed,
+  }: {
+    videoData: VideoData;
+    requestLangForApi: RequestLang;
+    responseLang: ResponseLang;
+    translationHelp: TranslationHelp[] | null;
+    shouldSendFailedAudio: boolean;
+    livelyDisabled: boolean;
+    livelyVoiceAllowed: boolean;
+  }): Promise<{
+    response?: VideoTranslationResponse;
+    useLivelyVoice: boolean;
+    livelyDisabled: boolean;
+  }> {
+    let useLivelyVoice =
+      !livelyDisabled &&
+      livelyVoiceAllowed &&
+      Boolean(this.videoHandler.data?.useLivelyVoice);
+
+    while (true) {
+      try {
+        const response = await this.videoHandler.votClient.translateVideo({
+          videoData,
+          requestLang: requestLangForApi,
+          responseLang,
+          translationHelp,
+          extraOpts: {
+            useLivelyVoice,
+            videoTitle: this.videoHandler.videoData?.title,
+          },
+          shouldSendFailedAudio,
+        });
+
+        if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+          return { response, useLivelyVoice, livelyDisabled };
+        }
+
+        debug.log(
+          "[translateVideoImpl] Server responded that lively voices are unavailable. Falling back to standard translation.",
+          response,
+        );
+      } catch (err) {
+        if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(err)) {
+          throw err;
+        }
+
+        debug.log(
+          "[translateVideoImpl] Lively voices are unavailable. Falling back to standard translation.",
+          err,
+        );
+      }
+
+      livelyDisabled = true;
+      useLivelyVoice = false;
+    }
   }
 
   private waitForAudioDownloadCompletion(

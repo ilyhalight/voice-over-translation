@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Aqlli subtitr tartibi",
   "smartDucking": "Moslashuvchan hajm",
   "VOTAutoSubtitles": "Ochiq subtitrlar",
-  "VOTSubtitlesFont": "Subtitr shrifti"
+  "VOTSubtitlesFont": "Subtitr shrifti",
+  "VOTDefaultSubtitlesLanguage": "Andoza subtitr tili",
+  "VOTOriginalVideoLanguage": "Asl video tili"
 }

@@ -22,8 +22,8 @@ import {
   type DownloadBlobOptions,
   downloadBlob,
 } from "../utils/utils";
-import VOTLocalizedError from "../utils/VOTLocalizedError";
 import { applyOverlayMountUpdate } from "./mount";
+import { handleTranslationButtonCommand } from "./translationCommands";
 import { OverlayView } from "./views/overlay";
 import { SettingsView } from "./views/settings";
 
@@ -193,7 +193,9 @@ export class UIManager {
           return;
         }
 
-        this.videoHandler.setVideoVolume(volume / 100);
+        const nextVolume01 = volume / 100;
+        this.videoHandler.setVideoVolume(nextVolume01);
+        this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
         if (!this.data.syncVolume) {
           this.videoHandler.onVideoVolumeSliderSynced(volume);
           return;
@@ -255,6 +257,16 @@ export class UIManager {
 
         await this.videoHandler.enableSubtitlesForCurrentLangPair();
       })
+      .addEventListener("select:responseLanguageSubtitles", async () => {
+        if (
+          !this.videoHandler?.data.autoSubtitles ||
+          !this.videoHandler.videoData
+        ) {
+          return;
+        }
+
+        await this.videoHandler.enableSubtitlesForCurrentLangPair();
+      })
       .addEventListener("change:showVideoVolume", () => {
         this.withInitializedOverlayView((overlayView) => {
           if (!overlayView.videoVolumeSlider || !overlayView.votButton) {
@@ -273,7 +285,10 @@ export class UIManager {
           }
 
           const currentVolume = overlayView.translationVolumeSlider.value;
-          const maxVolume = this.data.audioBooster ? maxAudioVolume : 100;
+          const maxVolume =
+            this.data.audioBooster && !this.data.syncVolume
+              ? maxAudioVolume
+              : 100;
           overlayView.translationVolumeSlider.max = maxVolume;
           const nextVolume = clamp(currentVolume, 0, maxVolume);
           overlayView.translationVolumeSlider.value = nextVolume;
@@ -285,9 +300,6 @@ export class UIManager {
           return;
         }
         this.videoHandler.setupAudioSettings();
-        if (!checked) {
-          return;
-        }
 
         this.withInitializedOverlayView((overlayView) => {
           const videoSlider = overlayView.videoVolumeSlider;
@@ -296,9 +308,20 @@ export class UIManager {
             return;
           }
 
+          const maxVolume =
+            this.data.audioBooster && !checked ? maxAudioVolume : 100;
+          translationSlider.max = maxVolume;
+          const nextTranslation = clamp(translationSlider.value, 0, maxVolume);
+          translationSlider.value = nextTranslation;
+          this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
+
+          if (!checked) {
+            return;
+          }
+
           this.videoHandler.resetVolumeLinkState(
             Number(videoSlider.value),
-            Number(translationSlider.value),
+            nextTranslation,
           );
         });
       })
@@ -609,104 +632,15 @@ export class UIManager {
       throw new Error("[VOT] OverlayView isn't initialized");
     }
 
-    const videoHandler = this.videoHandler;
-    if (!videoHandler) {
-      return this;
-    }
-
-    debug.log("[handleTranslationBtnClick] click translationBtn");
-    if (videoHandler.hasActiveSource()) {
-      debug.log("[handleTranslationBtnClick] video has active source");
-      await videoHandler.stopTranslation();
-      return this;
-    }
-
-    if (
-      this.votOverlayView.votButton.status === "error" &&
-      !this.votOverlayView.votButton.loading
-    ) {
-      this.transformBtn("none", localizationProvider.get("translateVideo"));
-    }
-
-    if (
-      this.votOverlayView.votButton.status !== "none" ||
-      this.votOverlayView.votButton.loading
-    ) {
-      debug.log(
-        "[handleTranslationBtnClick] translationBtn isn't in none state",
-      );
-      videoHandler.actionsAbortController.abort();
-      await videoHandler.stopTranslation();
-      return this;
-    }
-
-    try {
-      debug.log("[handleTranslationBtnClick] trying execute translation");
-      const videoData = await this.getVideoDataForTranslation(videoHandler);
-      await videoHandler.videoManager.ensureDetectedLanguageForTranslation(
-        videoData,
-      );
-
-      debug.log(
-        "[handleTranslationBtnClick] Run translateFunc",
-        videoData.videoId,
-      );
-      await videoHandler.translateFunc(
-        videoData.videoId,
-        videoData.isStream,
-        videoData.detectedLanguage,
-        videoData.responseLanguage,
-        videoData.translationHelp,
-      );
-    } catch (err) {
-      // Check if this is an abort error and handle silently
-      if (this.isAbortError(err)) {
-        this.transformBtn("none", localizationProvider.get("translateVideo"));
-        return this;
-      }
-
-      console.error("[VOT]", err);
-      if (!(err instanceof Error)) {
-        this.transformBtn("error", String(err));
-        return this;
-      }
-
-      const message =
-        err.name === "VOTLocalizedError"
-          ? (err as VOTLocalizedError).localizedMessage
-          : err.message;
-      this.transformBtn("error", message);
-    }
-
+    await handleTranslationButtonCommand({
+      videoHandler: this.videoHandler,
+      currentStatus: this.votOverlayView.votButton.status,
+      currentLoading: this.votOverlayView.votButton.loading,
+      transformBtn: (status, text) => {
+        this.transformBtn(status, text);
+      },
+    });
     return this;
-  }
-
-  private async getVideoDataForTranslation(videoHandler: VideoHandler) {
-    if (!videoHandler.videoData?.videoId) {
-      throw new VOTLocalizedError("VOTNoVideoIDFound");
-    }
-
-    if (this.shouldRefreshVideoDataBeforeTranslation(videoHandler)) {
-      videoHandler.videoData = await videoHandler.getVideoData();
-    }
-
-    if (!videoHandler.videoData?.videoId) {
-      throw new VOTLocalizedError("VOTNoVideoIDFound");
-    }
-
-    return videoHandler.videoData;
-  }
-
-  private shouldRefreshVideoDataBeforeTranslation(videoHandler: VideoHandler) {
-    return (
-      (videoHandler.site.host === "vk" &&
-        videoHandler.site.additionalData === "clips") ||
-      videoHandler.site.host === "douyin"
-    );
-  }
-
-  private isAbortError(error: unknown) {
-    return error instanceof Error && error.name === "AbortError";
   }
 
   private isLoadingText(text: string) {

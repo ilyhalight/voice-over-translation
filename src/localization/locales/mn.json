@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Smart subtitle зохион байгуулалт",
   "smartDucking": "Дасан зохицох хэмжээ",
   "VOTAutoSubtitles": "Нээлттэй дээр хадмалтай",
-  "VOTSubtitlesFont": "Хадмал үсгийн фонт"
+  "VOTSubtitlesFont": "Хадмал үсгийн фонт",
+  "VOTDefaultSubtitlesLanguage": "Анхдагч хадмал хэл",
+  "VOTOriginalVideoLanguage": "Анхны Видео хэл"
 }

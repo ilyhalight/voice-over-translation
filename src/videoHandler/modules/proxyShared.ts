@@ -8,17 +8,29 @@ const SUBTITLE_SOURCE_PREFIX =
   "https://brosubs.s3-private.mds.yandex.net/vtrans/";
 const SUBTITLE_PROXY_PATH_PREFIX = "/video-subtitles/subtitles-proxy/";
 
-type ProxyConfig = {
+export type ProxyConfig = {
   translateProxyEnabled?: number | null;
   proxyWorkerHost?: string | null;
 };
 
-function getProxyHost(host?: string | null): string {
+export function resolveProxyWorkerHost(host?: string | null): string {
   return host ?? proxyWorkerHost;
 }
 
-function isProxyRoutingEnabled(config: ProxyConfig): boolean {
+export function isProxyClientEnabled(config: ProxyConfig): boolean {
+  return Boolean(config.translateProxyEnabled);
+}
+
+export function isProxyRoutingEnabled(config: ProxyConfig): boolean {
   return config.translateProxyEnabled === 2;
+}
+
+export function shouldForceProxyClientGmXhr(
+  config: ProxyConfig & {
+    gmXhrSupported?: boolean | null;
+  },
+): boolean {
+  return Boolean(config.gmXhrSupported && isProxyClientEnabled(config));
 }
 
 export function proxifyYandexAudioUrl(
@@ -34,7 +46,7 @@ export function proxifyYandexAudioUrl(
 
   return audioUrl.replace(
     AUDIO_SOURCE_PREFIX,
-    `https://${getProxyHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`,
+    `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`,
   );
 }
 
@@ -68,7 +80,7 @@ export function isYandexAudioUrlOrProxy(
   return (
     url.startsWith(AUDIO_SOURCE_PREFIX) ||
     url.startsWith(
-      `https://${getProxyHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`,
+      `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`,
     )
   );
 }
@@ -85,5 +97,5 @@ export function proxifyYandexSubtitlesUrl(
   }
 
   const subtitlesPath = subtitlesUrl.slice(SUBTITLE_SOURCE_PREFIX.length);
-  return `https://${getProxyHost(config.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
+  return `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
 }

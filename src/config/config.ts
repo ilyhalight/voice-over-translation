@@ -12,6 +12,7 @@ export const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
 /**
  * @see https://github.com/FOSWLY/vot-worker
  */
+export const proxyWorkerHostMode1 = "vot-new.toil-dump.workers.dev";
 export const proxyWorkerHost = "vot-worker.kload.workers.dev"; // vot-worker.toil.cc
 
 export const votBackendUrl = "https://vot.toil.cc/v1";
@@ -52,7 +53,6 @@ export const defaultTranslationService: "yandexbrowser" | "msedge" =
 export const defaultDetectService: "yandexbrowser" | "msedge" | "rust-server" =
   "yandexbrowser";
 
-export const nonProxyExtensions: string[] = ["Tampermonkey", "Violentmonkey"];
 export const proxyOnlyCountries: string[] = ["UA", "LV", "LT"];
 
 /**

@@ -103,21 +103,8 @@
   // Use normal inline layout to make wrapping/line-breaking predictable.
   display: block;
   text-align: center;
+  unicode-bidi: plaintext;
   margin: 0 auto;
-
-  &.vot-subtitles--clamped {
-    overflow: hidden;
-
-    @supports (line-clamp: 2) {
-      line-clamp: 2;
-    }
-
-    @supports not (line-clamp: 2) {
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-    }
-  }
 
   // Captions are short blocks; MDN recommends `balance` for short text spans
   // such as captions/headings.
@@ -137,9 +124,9 @@
     // CSS-only responsive presets:
     // - target width uses `ch` to approximate characters per line
     // - min/max guards use anchor-box-relative ratios
-    --vot-subtitles-smart-target-width: 42ch;
-    --vot-subtitles-smart-min-width-ratio: 0.55;
-    --vot-subtitles-smart-max-width-ratio: 0.68;
+    --vot-subtitles-smart-target-width: 48ch;
+    --vot-subtitles-smart-min-width-ratio: 0.62;
+    --vot-subtitles-smart-max-width-ratio: 0.78;
     // needs to adjust max subtitle length.
     --vot-subtitles-smart-font-preferred: calc(
       var(--vot-subtitles-anchor-height) * 0.0333
@@ -221,6 +208,12 @@
     }
   }
 
+  & span[data-vot-highlight-index] {
+    &.passed {
+      color: var(--vot-subtitles-passed-color, rgb(33, 150, 243));
+    }
+  }
+
   & span[data-vot-token="1"] {
     position: relative;
     cursor: pointer;
@@ -234,10 +227,6 @@
     white-space: normal;
     overflow-wrap: inherit;
     word-break: normal;
-
-    &.passed {
-      color: var(--vot-subtitles-passed-color, rgb(33, 150, 243));
-    }
 
     &::before {
       content: "";
@@ -266,6 +255,10 @@
 
   & span[data-vot-style-underline="1"] {
     text-decoration: underline !important;
+  }
+
+  & span[data-vot-style-color="1"] {
+    color: var(--vot-subtitles-inline-color) !important;
   }
 }
 
@@ -333,6 +326,14 @@
 @media (max-width: 900px) and (pointer: coarse) {
   .vot-subtitles-widget {
     --vot-subtitles-fallback-bottom-inset: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .vot-subtitles {
+    --vot-subtitles-background: rgba(var(--vot-surface-rgb, 46, 47, 52), 0.92);
+    --vot-subtitles-text-stroke-width: max(2px, 0.1em);
+    --vot-subtitles-text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
   }
 }
 

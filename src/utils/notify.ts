@@ -92,35 +92,50 @@ function localizePhraseText(message: string): string | null {
   }
 }
 
-function resolveLocalizedErrorMessage(message: unknown): string {
-  if (message && typeof message === "object") {
-    const localizedError = message as LocalizedErrorLike;
-    if (localizedError.name === "VOTLocalizedError") {
-      if (
-        typeof localizedError.localizedMessage === "string" &&
-        localizedError.localizedMessage.trim()
-      ) {
-        return localizedError.localizedMessage;
-      }
-      if (typeof localizedError.unlocalizedMessage === "string") {
-        const byPhraseKey = localizePhraseText(
-          localizedError.unlocalizedMessage,
-        );
-        if (byPhraseKey) return byPhraseKey;
-      }
-    }
+function resolveLocalizedErrorFromObject(message: unknown): string | null {
+  if (!message || typeof message !== "object") {
+    return null;
   }
+
+  const localizedError = message as LocalizedErrorLike;
+  if (localizedError.name !== "VOTLocalizedError") {
+    return null;
+  }
+
+  if (
+    typeof localizedError.localizedMessage === "string" &&
+    localizedError.localizedMessage.trim()
+  ) {
+    return localizedError.localizedMessage;
+  }
+
+  if (typeof localizedError.unlocalizedMessage === "string") {
+    return localizePhraseText(localizedError.unlocalizedMessage);
+  }
+
+  return null;
+}
+
+function localizeExtractedErrorMessage(message: unknown): string | null {
+  const extracted = getErrorMessage(message);
+  if (!extracted) {
+    return null;
+  }
+
+  return localizePhraseText(extracted) || extracted;
+}
+
+function resolveLocalizedErrorMessage(message: unknown): string {
+  const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
+  if (localizedObjectMessage) return localizedObjectMessage;
 
   if (typeof message === "string") {
     const byPhraseKey = localizePhraseText(message);
     if (byPhraseKey) return byPhraseKey;
   }
 
-  const extracted = getErrorMessage(message);
-  if (extracted) {
-    const byPhraseKey = localizePhraseText(extracted);
-    return byPhraseKey || extracted;
-  }
+  const extractedMessage = localizeExtractedErrorMessage(message);
+  if (extractedMessage) return extractedMessage;
 
   return safeL10n("requestTranslationFailed", "Translation failed");
 }

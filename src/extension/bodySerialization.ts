@@ -1,4 +1,102 @@
-import { base64ToBytes, bytesToBase64 } from "./base64";
+type FromBase64Options = {
+  alphabet?: "base64" | "base64url";
+  lastChunkHandling?: "loose" | "strict" | "stop-before-partial";
+};
+
+type Uint8ArrayPrototypeWithBase64 = {
+  toBase64?: (this: Uint8Array) => string;
+};
+
+type Uint8ArrayConstructorWithBase64 = Uint8ArrayConstructor & {
+  fromBase64?: (input: string, options?: FromBase64Options) => Uint8Array;
+};
+
+const nativeToBase64 =
+  typeof (Uint8Array.prototype as Uint8ArrayPrototypeWithBase64).toBase64 ===
+  "function"
+    ? (Uint8Array.prototype as Uint8ArrayPrototypeWithBase64).toBase64
+    : null;
+const nativeFromBase64 = (Uint8Array as Uint8ArrayConstructorWithBase64)
+  .fromBase64;
+const BASE64_URL_ALPHABET_RE = /[-_]/;
+
+function normalizeBase64Input(input: string): string {
+  const withoutWhitespace = String(input).replaceAll(/\s+/g, "");
+  const remainder = withoutWhitespace.length % 4;
+  if (remainder === 1) {
+    throw new TypeError("Invalid base64 input.");
+  }
+  if (remainder === 0) return withoutWhitespace;
+  return withoutWhitespace + "=".repeat(4 - remainder);
+}
+
+function bytesToBinaryString(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return binary;
+}
+
+function bytesViewToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const { buffer, byteOffset, byteLength } = bytes;
+
+  if (buffer instanceof ArrayBuffer) {
+    if (byteOffset === 0 && byteLength === buffer.byteLength) return buffer;
+    return buffer.slice(byteOffset, byteOffset + byteLength);
+  }
+
+  const out = new ArrayBuffer(byteLength);
+  new Uint8Array(out).set(bytes);
+  return out;
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof nativeToBase64 === "function") {
+    return nativeToBase64.call(bytes);
+  }
+
+  const btoaFn = globalThis.btoa;
+  if (typeof btoaFn !== "function") {
+    throw new TypeError("Base64 encoder is not available in this environment.");
+  }
+  return btoaFn(bytesToBinaryString(bytes));
+}
+
+export function arrayBufferToBase64(ab: ArrayBuffer): string {
+  return bytesToBase64(new Uint8Array(ab));
+}
+
+export function base64ToBytes(input: string): Uint8Array {
+  const normalized = normalizeBase64Input(input);
+  const normalizedStandard = normalized
+    .replaceAll("-", "+")
+    .replaceAll("_", "/");
+
+  if (typeof nativeFromBase64 === "function") {
+    const hasUrlAlphabet = BASE64_URL_ALPHABET_RE.test(normalized);
+    return nativeFromBase64(
+      hasUrlAlphabet ? normalizedStandard : normalized,
+      hasUrlAlphabet ? { alphabet: "base64" } : undefined,
+    );
+  }
+
+  const atobFn = globalThis.atob;
+  if (typeof atobFn !== "function") {
+    throw new TypeError("Base64 decoder is not available in this environment.");
+  }
+
+  const binary = atobFn(normalizedStandard);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
+}
+
+export function base64ToArrayBuffer(b64: string): ArrayBuffer {
+  return bytesViewToArrayBuffer(base64ToBytes(b64));
+}
 
 /**
  * Shared helpers for serializing request bodies across the extension layers.
@@ -134,11 +232,7 @@ function toUint8FromNumericArray(
 }
 
 function viewAsBytes(view: ArrayBufferView): Uint8Array {
-  return new Uint8Array(
-    view.buffer as ArrayBufferLike,
-    view.byteOffset,
-    view.byteLength,
-  );
+  return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
 }
 
 function copyArrayBufferView(view: ArrayBufferView): Uint8Array {
@@ -249,119 +343,140 @@ function tryCoerceByteLikeObjectToUint8Array(
     return toUint8FromNumericArray(v as unknown[]);
   }
 
-  // Node.js Buffer JSON form: { type: "Buffer", data: number[] }
-  if (obj.type === "Buffer" && Array.isArray(obj.data)) {
-    const fromBufferJson = toUint8FromNumericArray(obj.data);
-    if (fromBufferJson) return fromBufferJson;
-  }
+  const wrappedBytes = tryReadWrappedBytes(obj);
+  if (wrappedBytes) return wrappedBytes;
 
-  // Some runtimes wrap bytes as { data: number[] } / { bytes: number[] }.
-  if (Array.isArray(obj.data)) {
-    const fromData = toUint8FromNumericArray(obj.data);
-    if (fromData) return fromData;
-  }
-
-  if (Array.isArray(obj.bytes)) {
-    const fromBytes = toUint8FromNumericArray(obj.bytes);
-    if (fromBytes) return fromBytes;
-  }
-
-  // Base64 wrappers seen in bridge payloads.
-  if (typeof obj.b64 === "string") {
-    try {
-      return base64ToBytes(obj.b64);
-    } catch {
-      // ignore and continue
-    }
-  }
-
-  if (typeof obj.base64 === "string") {
-    try {
-      return base64ToBytes(obj.base64);
-    } catch {
-      // ignore and continue
-    }
-  }
+  const base64WrappedBytes = tryDecodeWrappedBase64(obj);
+  if (base64WrappedBytes) return base64WrappedBytes;
 
   // TypedArray-like wrapper: { buffer, byteOffset, byteLength }.
-  const byteLength = toSafeLength(obj.byteLength);
-  const byteOffset = toSafeLength(obj.byteOffset ?? 0);
-  if (byteLength !== null && byteOffset !== null) {
-    const rawBuffer = obj.buffer;
-
-    if (isArrayBufferLike(rawBuffer)) {
-      try {
-        return new Uint8Array(
-          rawBuffer as ArrayBuffer,
-          byteOffset,
-          byteLength,
-        ).slice();
-      } catch {
-        // ignore and continue
-      }
-    }
-
-    // In some cross-world cases `buffer` itself is coerced to a plain object.
-    if (rawBuffer && rawBuffer !== v) {
-      const recoveredBuffer = tryCoerceByteLikeObjectToUint8Array(
-        rawBuffer,
-        depth + 1,
-      );
-      if (recoveredBuffer) {
-        if (byteOffset > recoveredBuffer.byteLength) return null;
-        const end = Math.min(
-          recoveredBuffer.byteLength,
-          byteOffset + byteLength,
-        );
-        return recoveredBuffer.slice(byteOffset, end);
-      }
-    }
-  }
+  const typedArrayBytes = tryReadTypedArrayLikeObject(obj, v, depth);
+  if (typedArrayBytes) return typedArrayBytes;
 
   // Array-like wrappers with numeric indexes + length.
-  const length = toSafeLength(obj.length);
-  if (length !== null) {
-    const indexed = obj as Record<number, unknown>;
-    const out = new Uint8Array(length);
-    for (let i = 0; i < length; i += 1) {
-      const byte = toByte(indexed[i]);
-      if (byte === null) {
-        // Not a true numeric array-like container.
-        return null;
-      }
-      out[i] = byte;
-    }
-    return out;
-  }
+  const arrayLikeBytes = tryReadArrayLikeObject(obj);
+  if (arrayLikeBytes) return arrayLikeBytes;
 
   // A plain object with numeric keys: {"0": 10, "1": 20, ...}
   if (isPlainObject(v)) {
-    const keys = Object.keys(obj);
-    if (!keys.length) return null;
-
-    // Only consider objects whose keys are all non-negative integers.
-    const indexes = new Array<number>(keys.length);
-    let max = -1;
-    for (let i = 0; i < keys.length; i += 1) {
-      const idx = parseNonNegativeIntegerKey(keys[i]);
-      if (idx === null || idx > MAX_RECOVERABLE_BYTES) return null;
-      indexes[i] = idx;
-      if (idx > max) max = idx;
-    }
-
-    // Sparse numeric object where only a few indexes are present.
-    // Keep old behavior for compatibility with prior bridge payloads.
-    const out = new Uint8Array(max + 1);
-    for (let i = 0; i < keys.length; i += 1) {
-      const key = keys[i];
-      const byte = toByte(obj[key]);
-      if (byte === null) return null;
-      out[indexes[i]] = byte;
-    }
-    return out;
+    return tryReadSparseNumericObject(obj);
   }
 
   return null;
+}
+
+function tryReadWrappedBytes(obj: Record<string, any>): Uint8Array | null {
+  const numericArrays = [
+    obj.type === "Buffer" && Array.isArray(obj.data) ? obj.data : null,
+    Array.isArray(obj.data) ? obj.data : null,
+    Array.isArray(obj.bytes) ? obj.bytes : null,
+  ];
+
+  for (const source of numericArrays) {
+    if (!source) continue;
+    const bytes = toUint8FromNumericArray(source);
+    if (bytes) return bytes;
+  }
+
+  return null;
+}
+
+function tryDecodeWrappedBase64(obj: Record<string, any>): Uint8Array | null {
+  const candidates = [obj.b64, obj.base64];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue;
+    try {
+      return base64ToBytes(candidate);
+    } catch {
+      // ignore and continue
+    }
+  }
+
+  return null;
+}
+
+function tryReadTypedArrayLikeObject(
+  obj: Record<string, any>,
+  originalValue: unknown,
+  depth: number,
+): Uint8Array | null {
+  const byteLength = toSafeLength(obj.byteLength);
+  const byteOffset = toSafeLength(obj.byteOffset ?? 0);
+  if (byteLength === null || byteOffset === null) {
+    return null;
+  }
+
+  const rawBuffer = obj.buffer;
+  if (isArrayBufferLike(rawBuffer)) {
+    try {
+      return new Uint8Array(rawBuffer, byteOffset, byteLength).slice();
+    } catch {
+      // ignore and continue
+    }
+  }
+
+  if (!rawBuffer || rawBuffer === originalValue) {
+    return null;
+  }
+
+  const recoveredBuffer = tryCoerceByteLikeObjectToUint8Array(
+    rawBuffer,
+    depth + 1,
+  );
+  if (!recoveredBuffer) {
+    return null;
+  }
+  if (byteOffset > recoveredBuffer.byteLength) {
+    return null;
+  }
+
+  const end = Math.min(recoveredBuffer.byteLength, byteOffset + byteLength);
+  return recoveredBuffer.slice(byteOffset, end);
+}
+
+function tryReadArrayLikeObject(obj: Record<string, any>): Uint8Array | null {
+  const length = toSafeLength(obj.length);
+  if (length === null) {
+    return null;
+  }
+
+  const indexed = obj as Record<number, unknown>;
+  const out = new Uint8Array(length);
+  for (let i = 0; i < length; i += 1) {
+    const byte = toByte(indexed[i]);
+    if (byte === null) {
+      return null;
+    }
+    out[i] = byte;
+  }
+
+  return out;
+}
+
+function tryReadSparseNumericObject(
+  obj: Record<string, any>,
+): Uint8Array | null {
+  const keys = Object.keys(obj);
+  if (!keys.length) return null;
+
+  const indexes = new Array<number>(keys.length);
+  let max = -1;
+  for (let i = 0; i < keys.length; i += 1) {
+    const idx = parseNonNegativeIntegerKey(keys[i]);
+    if (idx === null || idx > MAX_RECOVERABLE_BYTES) return null;
+    indexes[i] = idx;
+    if (idx > max) max = idx;
+  }
+
+  const out = new Uint8Array(max + 1);
+  for (let i = 0; i < keys.length; i += 1) {
+    const byte = toByte(obj[keys[i]]);
+    if (byte === null) return null;
+    out[indexes[i]] = byte;
+  }
+
+  return out;
 }
 
 export function coerceBodyToBytes(body: any): Uint8Array | null {
@@ -373,65 +488,14 @@ export function summarizeBodyForDebug(body: any): BodyDebugSummary {
   const tag = safeObjectTag(body);
   const ctor = safeConstructorName(body);
 
-  if (body === null || body === undefined) {
-    return { kind: "empty", jsType, tag, ctor };
-  }
+  const primitiveSummary = summarizePrimitiveBody(body, jsType, tag, ctor);
+  if (primitiveSummary) return primitiveSummary;
 
-  if (typeof body === "string") {
-    return { kind: "string", jsType, tag, ctor, textLength: body.length };
-  }
+  const serializedSummary = summarizeSerializedBody(body, jsType, tag, ctor);
+  if (serializedSummary) return serializedSummary;
 
-  if (isSerializedBodyEnvelope(body)) {
-    const kind =
-      typeof body.kind === "string" && body.kind ? body.kind : "bytes";
-    return {
-      kind: `serialized:${kind}`,
-      jsType,
-      tag,
-      ctor,
-      base64Length: body.b64.length,
-      mime: safeStringProp(body, "mime"),
-    };
-  }
-
-  if (isArrayBufferLike(body)) {
-    return {
-      kind: "ArrayBuffer",
-      jsType,
-      tag,
-      ctor,
-      byteLength: (body as ArrayBuffer).byteLength,
-    };
-  }
-
-  try {
-    if (ArrayBuffer.isView(body)) {
-      const view = body as ArrayBufferView;
-      return {
-        kind: ctor ? `TypedArray:${ctor}` : "TypedArray",
-        jsType,
-        tag,
-        ctor,
-        byteLength: view.byteLength,
-      };
-    }
-  } catch {
-    // ignore and continue
-  }
-
-  if (isBlobLike(body)) {
-    return {
-      kind: "BlobLike",
-      jsType,
-      tag,
-      ctor,
-      byteLength:
-        typeof (body as any).size === "number"
-          ? Number((body as any).size)
-          : -1,
-      mime: safeStringProp(body, "type"),
-    };
-  }
+  const binarySummary = summarizeBinaryBody(body, jsType, tag, ctor);
+  if (binarySummary) return binarySummary;
 
   const coerced = coerceBodyToBytes(body);
   if (coerced) {
@@ -457,6 +521,89 @@ export function summarizeBodyForDebug(body: any): BodyDebugSummary {
   }
 
   return { kind: "primitive", jsType, tag, ctor };
+}
+
+function summarizePrimitiveBody(
+  body: any,
+  jsType: string,
+  tag: string,
+  ctor: string,
+): BodyDebugSummary | null {
+  if (body === null || body === undefined) {
+    return { kind: "empty", jsType, tag, ctor };
+  }
+
+  if (typeof body === "string") {
+    return { kind: "string", jsType, tag, ctor, textLength: body.length };
+  }
+
+  return null;
+}
+
+function summarizeSerializedBody(
+  body: any,
+  jsType: string,
+  tag: string,
+  ctor: string,
+): BodyDebugSummary | null {
+  if (!isSerializedBodyEnvelope(body)) {
+    return null;
+  }
+
+  const kind = typeof body.kind === "string" && body.kind ? body.kind : "bytes";
+  return {
+    kind: `serialized:${kind}`,
+    jsType,
+    tag,
+    ctor,
+    base64Length: body.b64.length,
+    mime: safeStringProp(body, "mime"),
+  };
+}
+
+function summarizeBinaryBody(
+  body: any,
+  jsType: string,
+  tag: string,
+  ctor: string,
+): BodyDebugSummary | null {
+  if (isArrayBufferLike(body)) {
+    return {
+      kind: "ArrayBuffer",
+      jsType,
+      tag,
+      ctor,
+      byteLength: body.byteLength,
+    };
+  }
+
+  try {
+    if (ArrayBuffer.isView(body)) {
+      return {
+        kind: ctor ? `TypedArray:${ctor}` : "TypedArray",
+        jsType,
+        tag,
+        ctor,
+        byteLength: body.byteLength,
+      };
+    }
+  } catch {
+    // ignore and continue
+  }
+
+  if (!isBlobLike(body)) {
+    return null;
+  }
+
+  return {
+    kind: "BlobLike",
+    jsType,
+    tag,
+    ctor,
+    byteLength:
+      typeof (body as any).size === "number" ? Number((body as any).size) : -1,
+    mime: safeStringProp(body, "type"),
+  };
 }
 
 /**
@@ -540,18 +687,24 @@ export function decodeSerializedBody(body: any): BodyInit | undefined {
   if (body === null || body === undefined) return undefined;
   if (typeof body === "string") return body;
 
-  if (isSerializedBodyEnvelope(body)) {
-    const bytes = base64ToBytes(body.b64);
-    const kind =
-      typeof body.kind === "string" && body.kind ? body.kind : "bytes";
-    if (kind === "blob") {
-      const mime = body.mime;
-      const ab = bytes.buffer as ArrayBuffer;
-      return typeof mime === "string" && mime
-        ? new Blob([ab], { type: mime })
-        : new Blob([ab]);
+  if (isArrayBufferLike(body)) {
+    return body as unknown as BodyInit;
+  }
+
+  try {
+    if (ArrayBuffer.isView(body)) {
+      return viewAsBytes(body) as unknown as BodyInit;
     }
-    return bytes as unknown as BodyInit;
+  } catch {
+    // ignore and continue
+  }
+
+  if (isBlobLike(body)) {
+    return body as unknown as BodyInit;
+  }
+
+  if (isSerializedBodyEnvelope(body)) {
+    return decodeSerializedEnvelope(body);
   }
 
   // Recovery for unexpected cross-world payload shapes.
@@ -566,4 +719,18 @@ export function decodeSerializedBody(body: any): BodyInit | undefined {
   }
 
   return String(body);
+}
+
+function decodeSerializedEnvelope(body: SerializedBodyEnvelope): BodyInit {
+  const bytes = base64ToBytes(body.b64);
+  const kind = typeof body.kind === "string" && body.kind ? body.kind : "bytes";
+  if (kind !== "blob") {
+    return bytes as unknown as BodyInit;
+  }
+
+  const mime = body.mime;
+  const ab = bytes.buffer as ArrayBuffer;
+  return typeof mime === "string" && mime
+    ? new Blob([ab], { type: mime })
+    : new Blob([ab]);
 }

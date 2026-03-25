@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Smart undertekstlayout",
   "smartDucking": "Adaptiv volumen",
   "VOTAutoSubtitles": "Undertekster på åben",
-  "VOTSubtitlesFont": "Undertekstfont"
+  "VOTSubtitlesFont": "Undertekstfont",
+  "VOTDefaultSubtitlesLanguage": "Standard undertekstsprog",
+  "VOTOriginalVideoLanguage": "Original video sprog"
 }

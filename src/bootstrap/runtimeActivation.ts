@@ -6,7 +6,6 @@ import {
 } from "../localization/localizationProvider";
 import debug from "../utils/debug";
 import { isIframe } from "../utils/iframeConnector";
-import { initIframeInteractor } from "./iframeInteractor";
 
 type LogBootstrap = (
   message: string,
@@ -15,7 +14,6 @@ type LogBootstrap = (
 
 let runtimeActivated = false;
 let runtimeActivationPromise: Promise<void> | null = null;
-let iframeInteractorBound = false;
 
 export async function ensureRuntimeActivated(
   reason: string,
@@ -41,11 +39,6 @@ export async function ensureRuntimeActivated(
       await localizationProvider.update();
     }
     debug.log(`Selected menu language: ${localizationProvider.lang}`);
-
-    if (!iframeInteractorBound) {
-      iframeInteractorBound = true;
-      initIframeInteractor();
-    }
 
     runtimeActivated = true;
   })();

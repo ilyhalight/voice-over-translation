@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "تخطيط الترجمة الذكية",
   "smartDucking": "حجم التكيف",
   "VOTAutoSubtitles": "ترجمات على فتح",
-  "VOTSubtitlesFont": "خط الترجمة"
+  "VOTSubtitlesFont": "خط الترجمة",
+  "VOTDefaultSubtitlesLanguage": "لغة الترجمة الافتراضية",
+  "VOTOriginalVideoLanguage": "لغة الفيديو الأصلية"
 }

@@ -1,5 +1,6 @@
+import type { SubtitleLine, SubtitleToken } from "../types/subtitles";
 import { segmentSentences } from "./segmenter";
-import type { SubtitleLine, SubtitleToken } from "./types";
+import { shouldInsertSpaceBetweenTextFragments } from "./textSpacing";
 
 type NormalizedLineSpan = {
   line: SubtitleLine;
@@ -9,33 +10,8 @@ type NormalizedLineSpan = {
 };
 
 const WHITESPACE_RE = /\s/u;
-const NO_SPACE_BEFORE_RE = /^[,.:;!?%)\]}>В»]/u;
-const NO_SPACE_AFTER_RE = /[([{'"В«вЂћ-]$/u;
-const CJK_CHAR_RE =
-  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
 const hasVisibleText = (value: string): boolean => Boolean(value.trim());
-
-const shouldInsertSpaceBetween = (
-  leftText: string,
-  rightText: string,
-): boolean => {
-  const leftLastChar = leftText.at(-1) ?? "";
-  const rightFirstChar = rightText[0] ?? "";
-
-  if (!leftLastChar || !rightFirstChar) return false;
-  if (WHITESPACE_RE.test(leftLastChar) || WHITESPACE_RE.test(rightFirstChar)) {
-    return false;
-  }
-  if (NO_SPACE_AFTER_RE.test(leftText) || NO_SPACE_BEFORE_RE.test(rightText)) {
-    return false;
-  }
-  if (CJK_CHAR_RE.test(leftLastChar) && CJK_CHAR_RE.test(rightFirstChar)) {
-    return false;
-  }
-
-  return true;
-};
 
 const buildNormalizedLineSpans = (
   lines: readonly SubtitleLine[],
@@ -51,7 +27,10 @@ const buildNormalizedLineSpans = (
     const normalizedText = line.text.trim();
     if (!normalizedText) continue;
 
-    if (streamText && shouldInsertSpaceBetween(previousText, normalizedText)) {
+    if (
+      streamText &&
+      shouldInsertSpaceBetweenTextFragments(previousText, normalizedText)
+    ) {
       streamText += " ";
     }
 

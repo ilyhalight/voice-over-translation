@@ -242,5 +242,7 @@
   "subtitlesSmartLayout": "Tata letak subtitle cerdas",
   "smartDucking": "Volume adaptif",
   "VOTAutoSubtitles": "Subtitle terbuka",
-  "VOTSubtitlesFont": "Font teks terjemahan"
+  "VOTSubtitlesFont": "Font teks terjemahan",
+  "VOTDefaultSubtitlesLanguage": "Bahasa subtitle default",
+  "VOTOriginalVideoLanguage": "Bahasa video asli"
 }
