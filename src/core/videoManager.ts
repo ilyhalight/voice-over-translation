@@ -12,6 +12,8 @@ import { cleanText } from "../utils/text";
 import { detect } from "../utils/translateApis";
 import VOTLocalizedError from "../utils/VOTLocalizedError";
 import {
+  clampPercentInt,
+  percentToVolume01,
   snapVolume01,
   volume01ToPercent,
 } from "../utils/volume";
@@ -30,6 +32,7 @@ const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
   zdf: "de",
 };
 
+const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
 const MIN_DETECT_TEXT_LENGTH = 35;
 const MAX_SHARED_LANGUAGE_STATES = 500;
 const REQUEST_LANG_SET = new Set<RequestLang>(
@@ -227,6 +230,21 @@ export async function resolveDetectedLanguageForVideo(
     detectedLanguage,
     cacheLanguage: detectedLanguage,
   };
+}
+
+function getAriaValueNowPercent(selector: string): number | null {
+  const el = document.querySelector(selector);
+  const rawNow = el?.getAttribute("aria-valuenow");
+  const rawMax = el?.getAttribute("aria-valuemax");
+  const now = rawNow == null ? Number.NaN : Number.parseFloat(rawNow);
+  const max = rawMax == null ? Number.NaN : Number.parseFloat(rawMax);
+
+  if (!Number.isFinite(now)) return null;
+  if (Number.isFinite(max) && max > 0) {
+    return clampPercentInt((now / max) * 100);
+  }
+
+  return clampPercentInt(now);
 }
 
 export class VOTVideoManager {
@@ -435,6 +453,20 @@ export class VOTVideoManager {
     const video = this.videoHandler.video;
     if (!video) return undefined;
 
+    // For external players (YouTube / Google Drive), prefer the UI's aria values
+    // when available. This avoids float drift and off-by-one issues like 100% -> 99%.
+    if (isExternalVolumeHost(this.videoHandler.site.host)) {
+      const ariaPercent = getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR);
+      if (ariaPercent != null) {
+        return percentToVolume01(ariaPercent);
+      }
+
+      const extVolume = YoutubeHelper.getVolume();
+      if (typeof extVolume === "number" && Number.isFinite(extVolume)) {
+        return snapVolume01(extVolume);
+      }
+    }
+
     return snapVolume01(video.volume);
   }
 
@@ -443,32 +475,25 @@ export class VOTVideoManager {
    */
   setVideoVolume(volume: number) {
     const snapped = snapVolume01(volume);
-    const shouldUnmute = snapped > 0;
 
     if (!isExternalVolumeHost(this.videoHandler.site.host)) {
-      if (shouldUnmute) {
-        this.videoHandler.video.muted = false;
-      }
       this.videoHandler.video.volume = snapped;
       return this;
     }
 
+    // YoutubeHelper.setVolume() historically returned either a boolean or a number.
+    // Do NOT use a truthy check here, or setting volume to 0 (0%) will be treated
+    // as a failure.
     try {
-      const player = YoutubeHelper.getPlayer() as
-        | { unMute?: () => void }
-        | undefined;
-      YoutubeHelper.setVolume(snapped);
-      if (shouldUnmute) {
-        player?.unMute?.();
-        this.videoHandler.video.muted = false;
-      }
+      const result = YoutubeHelper.setVolume(snapped) as unknown;
+      const ok =
+        (typeof result === "boolean" && result) ||
+        (typeof result === "number" && Number.isFinite(result));
+      if (ok) return this;
     } catch {
       // ignore - fall back to setting the HTMLMediaElement volume below.
     }
 
-    if (shouldUnmute) {
-      this.videoHandler.video.muted = false;
-    }
     this.videoHandler.video.volume = snapped;
     return this;
   }
@@ -489,9 +514,13 @@ export class VOTVideoManager {
     const overlayView = this.videoHandler.uiManager.votOverlayView;
     if (!overlayView?.isInitialized()) return this;
 
+    const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host)
+      ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR)
+      : null;
+
     const volumePercent = this.isMuted()
       ? 0
-      : volume01ToPercent(this.getVideoVolume() ?? 0);
+      : (ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0));
 
     overlayView.videoVolumeSlider.value = volumePercent;
 
