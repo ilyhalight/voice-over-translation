@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.4
+// @version        1.11.4.1
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -6554,7 +6554,7 @@ var vot = (function(exports) {
 		static setVolume(volume) {
 			const player = YoutubeHelper.getPlayer();
 			if (player?.setVolume) {
-				player.setVolume(Math.round(volume * 100));
+				player.setVolume(volume * 100);
 				return true;
 			}
 			return false;
@@ -9113,7 +9113,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.4"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.4.1"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -11100,9 +11100,6 @@ var vot = (function(exports) {
 	function volume01ToPercent(volume01) {
 		return clampPercentInt(clampNumber$2(volume01, 0, 1) * 100);
 	}
-	function percentToVolume01(percent) {
-		return clampPercentInt(percent) / 100;
-	}
 	function quantizeToStep(value, step, direction) {
 		if (!Number.isFinite(value)) return value;
 		if (!Number.isFinite(step) || step <= 0) return value;
@@ -11168,7 +11165,6 @@ var vot = (function(exports) {
 		weibo: "zh",
 		zdf: "de"
 	};
-	var YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
 	var MIN_DETECT_TEXT_LENGTH = 35;
 	var MAX_SHARED_LANGUAGE_STATES = 500;
 	var REQUEST_LANG_SET = new Set(availableLangs);
@@ -11255,16 +11251,6 @@ var vot = (function(exports) {
 			detectedLanguage,
 			cacheLanguage: detectedLanguage
 		};
-	}
-	function getAriaValueNowPercent(selector) {
-		const el = document.querySelector(selector);
-		const rawNow = el?.getAttribute("aria-valuenow");
-		const rawMax = el?.getAttribute("aria-valuemax");
-		const now = rawNow == null ? NaN : Number.parseFloat(rawNow);
-		const max = rawMax == null ? NaN : Number.parseFloat(rawMax);
-		if (!Number.isFinite(now)) return null;
-		if (Number.isFinite(max) && max > 0) return clampPercentInt(now / max * 100);
-		return clampPercentInt(now);
 	}
 	var VOTVideoManager = class {
 		videoHandler;
@@ -11383,12 +11369,6 @@ var vot = (function(exports) {
 		getVideoVolume() {
 			const video = this.videoHandler.video;
 			if (!video) return void 0;
-			if (isExternalVolumeHost(this.videoHandler.site.host)) {
-				const ariaPercent = getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR);
-				if (ariaPercent != null) return percentToVolume01(ariaPercent);
-				const extVolume = YoutubeHelper.getVolume();
-				if (typeof extVolume === "number" && Number.isFinite(extVolume)) return snapVolume01(extVolume);
-			}
 			return snapVolume01(video.volume);
 		}
 		/**
@@ -11404,12 +11384,11 @@ var vot = (function(exports) {
 			}
 			try {
 				const player = YoutubeHelper.getPlayer();
-				const result = YoutubeHelper.setVolume(snapped);
+				YoutubeHelper.setVolume(snapped);
 				if (shouldUnmute) {
 					player?.unMute?.();
 					this.videoHandler.video.muted = false;
 				}
-				if (typeof result === "boolean" && result || typeof result === "number" && Number.isFinite(result)) return this;
 			} catch {}
 			if (shouldUnmute) this.videoHandler.video.muted = false;
 			this.videoHandler.video.volume = snapped;
@@ -11427,8 +11406,7 @@ var vot = (function(exports) {
 		syncVideoVolumeSlider() {
 			const overlayView = this.videoHandler.uiManager.votOverlayView;
 			if (!overlayView?.isInitialized()) return this;
-			const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host) ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR) : null;
-			const volumePercent = this.isMuted() ? 0 : ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0);
+			const volumePercent = this.isMuted() ? 0 : volume01ToPercent(this.getVideoVolume() ?? 0);
 			overlayView.videoVolumeSlider.value = volumePercent;
 			this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
 			return this;
@@ -23053,20 +23031,15 @@ var vot = (function(exports) {
 		self.syncVolumeObserver = new MutationObserver((mutations) => {
 			if (!self.audioPlayer?.player?.src) return;
 			let hasVolumeMutation = false;
-			let lastObservedAriaValue = null;
 			for (const mutation of mutations) {
 				if (mutation.type !== "attributes" || mutation.attributeName !== "aria-valuenow") continue;
 				hasVolumeMutation = true;
-				const ariaValueNow = mutation.target instanceof Element ? mutation.target.getAttribute("aria-valuenow") : null;
-				const parsedAriaValue = ariaValueNow != null ? Number.parseFloat(ariaValueNow) : NaN;
-				if (Number.isFinite(parsedAriaValue)) lastObservedAriaValue = parsedAriaValue;
 			}
 			if (!hasVolumeMutation) return;
-			let videoPercent;
-			if (lastObservedAriaValue != null) videoPercent = toPercentInt(lastObservedAriaValue);
-			else videoPercent = toPercentInt((self.isMuted() ? 0 : self.getVideoVolume()) * 100);
 			self.syncVideoVolumeSlider();
-			syncAudioTranslationVolumeFromVideo(self, videoPercent);
+			const activeOverlayView = self.uiManager.votOverlayView;
+			if (!activeOverlayView?.isInitialized()) return;
+			syncAudioTranslationVolumeFromVideo(self, toPercentInt(activeOverlayView.videoVolumeSlider.value));
 		});
 		const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
 		if (!ytpVolumePanel) return;

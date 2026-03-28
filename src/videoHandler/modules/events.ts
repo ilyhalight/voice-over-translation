@@ -225,7 +225,6 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
   self.syncVolumeObserver = new MutationObserver((mutations) => {
     if (!self.audioPlayer?.player?.src) return;
     let hasVolumeMutation = false;
-    let lastObservedAriaValue: number | null = null;
     for (const mutation of mutations) {
       if (
         mutation.type !== "attributes" ||
@@ -234,25 +233,12 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
         continue;
       }
       hasVolumeMutation = true;
-      const ariaValueNow =
-        mutation.target instanceof Element
-          ? mutation.target.getAttribute("aria-valuenow")
-          : null;
-      const parsedAriaValue =
-        ariaValueNow != null ? Number.parseFloat(ariaValueNow) : Number.NaN;
-      if (Number.isFinite(parsedAriaValue)) {
-        lastObservedAriaValue = parsedAriaValue;
-      }
     }
     if (!hasVolumeMutation) return;
-    let videoPercent: number;
-    if (lastObservedAriaValue != null) {
-      videoPercent = toPercentInt(lastObservedAriaValue);
-    } else {
-      const fallbackVolume = self.isMuted() ? 0 : self.getVideoVolume();
-      videoPercent = toPercentInt(fallbackVolume * 100);
-    }
     self.syncVideoVolumeSlider();
+    const activeOverlayView = self.uiManager.votOverlayView;
+    if (!activeOverlayView?.isInitialized()) return;
+    const videoPercent = toPercentInt(activeOverlayView.videoVolumeSlider.value);
     syncAudioTranslationVolumeFromVideo(self, videoPercent);
   });
   const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
