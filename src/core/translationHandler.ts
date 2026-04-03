@@ -107,6 +107,17 @@ type TranslateVideoImplOptions = {
   retryAttempt?: number;
 };
 
+function summarizeTranslationResponse(
+  response: VideoTranslationResponse,
+): Record<string, unknown> {
+  return {
+    status: response.status,
+    translated: response.translated,
+    remainingTime: response.remainingTime,
+    translationId: response.translationId,
+  };
+}
+
 export class VOTTranslationHandler {
   readonly videoHandler: VideoHandler;
   readonly audioDownloader: AudioDownloader;
@@ -342,6 +353,17 @@ export class VOTTranslationHandler {
       requestLang,
       responseLang,
     );
+    debug.log("[Translation] translateVideoImpl start", {
+      videoId: videoData.videoId,
+      duration: videoData.duration,
+      requestLang,
+      requestLangForApi,
+      responseLang,
+      retryAttempt,
+      disableLivelyVoice,
+      shouldSendFailedAudio,
+      translationHelpCount: translationHelp?.length ?? 0,
+    });
     debug.log(
       videoData,
       `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`,
@@ -374,16 +396,30 @@ export class VOTTranslationHandler {
         throw new Error("Failed to get translation response");
       }
 
-      debug.log("Translate video result", res);
+      debug.log("[Translation] translateVideoImpl response", {
+        videoId: videoData.videoId,
+        useLivelyVoice,
+        ...summarizeTranslationResponse(res),
+      });
       throwIfAborted(signal);
 
       if (res.translated && res.remainingTime < 1) {
-        debug.log("Video translation finished with this data: ", res);
+        debug.log("[Translation] translation finished", {
+          videoId: videoData.videoId,
+          useLivelyVoice,
+          ...summarizeTranslationResponse(res),
+        });
         return { ...res, usedLivelyVoice: useLivelyVoice };
       }
 
       const message =
         res.message ?? localizationProvider.get("translationTakeFewMinutes");
+      debug.log("[Translation] translation still processing", {
+        videoId: videoData.videoId,
+        useLivelyVoice,
+        ...summarizeTranslationResponse(res),
+        message,
+      });
       await this.videoHandler.updateTranslationErrorMsg(
         res.remainingTime > 0
           ? formatTranslationEta(
@@ -401,7 +437,10 @@ export class VOTTranslationHandler {
       ) {
         this.videoHandler.hadAsyncWait = true;
 
-        debug.log("Start audio download");
+        debug.log("[Translation] audio download started", {
+          videoId: videoData.videoId,
+          translationId: res.translationId,
+        });
         this.downloading = true;
 
         await this.audioDownloader.runAudioDownload(
@@ -410,7 +449,11 @@ export class VOTTranslationHandler {
           signal,
         );
 
-        debug.log("waiting downloading finish");
+        debug.log("[Translation] waiting for audio download completion", {
+          videoId: videoData.videoId,
+          translationId: res.translationId,
+          timeoutMs: 15_000,
+        });
         // 15000 is fetch timeout, so there's no point in waiting longer
         await this.waitForAudioDownloadCompletion(signal, 15000);
 
@@ -430,11 +473,20 @@ export class VOTTranslationHandler {
       }
     } catch (err) {
       if (isAbortError(err)) {
-        debug.log("aborted video translation");
+        debug.log("[Translation] translation aborted", {
+          videoId: videoData.videoId,
+          retryAttempt,
+        });
         return null;
       }
 
       const uiError = mapVotClientErrorForUi(err);
+      debug.error("[Translation] translation failed", {
+        videoId: videoData.videoId,
+        retryAttempt,
+        error: err,
+        mappedError: uiError,
+      });
 
       await this.videoHandler.updateTranslationErrorMsg(
         getServerErrorMessage(uiError) ?? uiError,
@@ -458,11 +510,21 @@ export class VOTTranslationHandler {
         notify: (params) =>
           this.videoHandler.notifier.translationFailed(params),
       });
-      console.error("[VOT]", err);
       return null;
     }
 
     this.videoHandler.hadAsyncWait = true;
+
+    const retryDelayMs = this.getVideoTranslationRetryDelayMs(
+      retryAttempt,
+      videoData.duration,
+    );
+    debug.log("[Translation] scheduling translation retry", {
+      videoId: videoData.videoId,
+      retryAttempt,
+      retryDelayMs,
+      duration: videoData.duration,
+    });
 
     return this.scheduleRetry(
       () =>
@@ -478,7 +540,7 @@ export class VOTTranslationHandler {
             retryAttempt: retryAttempt + 1,
           },
         ),
-      this.getVideoTranslationRetryDelayMs(retryAttempt, videoData.duration),
+      retryDelayMs,
       signal,
     );
   }
@@ -509,8 +571,27 @@ export class VOTTranslationHandler {
       livelyVoiceAllowed &&
       Boolean(this.videoHandler.data?.useLivelyVoice);
 
+    debug.log("[Translation] requesting translation from VOT client", {
+      videoId: videoData.videoId,
+      requestLangForApi,
+      responseLang,
+      shouldSendFailedAudio,
+      livelyDisabled,
+      livelyVoiceAllowed,
+      useLivelyVoice,
+      translationHelpCount: translationHelp?.length ?? 0,
+    });
+
     while (true) {
       try {
+        debug.log("[Translation] votClient.translateVideo call", {
+          videoId: videoData.videoId,
+          requestLangForApi,
+          responseLang,
+          useLivelyVoice,
+          shouldSendFailedAudio,
+          translationHelpCount: translationHelp?.length ?? 0,
+        });
         const response = await this.videoHandler.votClient.translateVideo({
           videoData,
           requestLang: requestLangForApi,
@@ -524,26 +605,38 @@ export class VOTTranslationHandler {
         });
 
         if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+          debug.log("[Translation] votClient.translateVideo resolved", {
+            videoId: videoData.videoId,
+            useLivelyVoice,
+            ...summarizeTranslationResponse(response),
+          });
           return { response, useLivelyVoice, livelyDisabled };
         }
 
-        debug.log(
-          "[translateVideoImpl] Server responded that lively voices are unavailable. Falling back to standard translation.",
-          response,
-        );
+        debug.warn("[Translation] lively voice unavailable in response", {
+          videoId: videoData.videoId,
+          useLivelyVoice,
+          ...summarizeTranslationResponse(response),
+        });
       } catch (err) {
         if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(err)) {
           throw err;
         }
 
-        debug.log(
-          "[translateVideoImpl] Lively voices are unavailable. Falling back to standard translation.",
-          err,
-        );
+        debug.warn("[Translation] lively voice unavailable in error", {
+          videoId: videoData.videoId,
+          useLivelyVoice,
+          error: err,
+        });
       }
 
       livelyDisabled = true;
       useLivelyVoice = false;
+      debug.log("[Translation] retrying translation without lively voice", {
+        videoId: videoData.videoId,
+        requestLangForApi,
+        responseLang,
+      });
     }
   }
 

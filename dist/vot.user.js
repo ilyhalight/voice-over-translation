@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.4.3
+// @version        1.11.4.4
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -3684,8 +3684,16 @@ var vot = (function(exports) {
 		{
 			host: VideoService$1.youtube,
 			url: "https://youtu.be/",
-			match: /^(www.)?youtube(-nocookie|kids)?.com$/,
+			match: (url) => /^(www.)?youtube(-nocookie|kids)?.com$/.test(url.host) && !url.pathname.startsWith("/embed/"),
 			selector: ".html5-video-container:not(#inline-player *)",
+			needExtraData: true
+		},
+		{
+			host: VideoService$1.youtube,
+			url: "https://youtu.be/",
+			additionalData: "embed",
+			match: (url) => /^(www.)?youtube(-nocookie|kids)?.com$/.test(url.host) && url.pathname.startsWith("/embed/"),
+			selector: "html",
 			needExtraData: true
 		},
 		{
@@ -3971,7 +3979,7 @@ var vot = (function(exports) {
 			host: VideoService$1.googledrive,
 			url: "https://drive.google.com/file/d/",
 			match: /^youtube.googleapis.com$/,
-			selector: ".html5-video-container"
+			selector: "html"
 		},
 		{
 			host: VideoService$1.bannedvideo,
@@ -6554,7 +6562,7 @@ var vot = (function(exports) {
 		static setVolume(volume) {
 			const player = YoutubeHelper.getPlayer();
 			if (player?.setVolume) {
-				player.setVolume(volume * 100);
+				player.setVolume(Math.round(volume * 100));
 				return true;
 			}
 			return false;
@@ -6949,6 +6957,7 @@ var vot = (function(exports) {
 		gainNode;
 		audioSource;
 		gainValue = 1;
+		pendingPlay;
 		constructor(chaimu, src) {
 			super(chaimu, src);
 			this.updateAudio();
@@ -6989,6 +6998,9 @@ var vot = (function(exports) {
 		audioErrorHandle = (e) => {
 			console.error("[AudioPlayer]", e);
 		};
+		isPlayInterruptedError(error) {
+			return error instanceof DOMException && error.name === "AbortError";
+		}
 		syncAudioToVideo() {
 			if (!this.chaimu.video) return false;
 			this.audio.currentTime = this.chaimu.video.currentTime;
@@ -7019,12 +7031,31 @@ var vot = (function(exports) {
 		}
 		async play() {
 			debug_default.log("[AudioPlayer] play called");
-			if (this.audio) await this.audio.play().catch(this.audioErrorHandle);
+			if (this.audio) {
+				if (!this.audio.paused) return this;
+				const playPromise = this.audio.play();
+				this.pendingPlay = playPromise;
+				try {
+					await playPromise;
+				} catch (error) {
+					if (this.isPlayInterruptedError(error)) debug_default.log("[AudioPlayer] play interrupted by pause");
+					else this.audioErrorHandle(error);
+				} finally {
+					if (this.pendingPlay === playPromise) this.pendingPlay = void 0;
+				}
+			}
 			return this;
 		}
 		async pause() {
 			debug_default.log("[AudioPlayer] pause called");
-			if (this.audio) this.audio.pause();
+			if (this.audio) {
+				this.audio.pause();
+				if (this.pendingPlay) try {
+					await this.pendingPlay;
+				} catch (error) {
+					if (!this.isPlayInterruptedError(error)) this.audioErrorHandle(error);
+				}
+			}
 			return this;
 		}
 		set src(url) {
@@ -8121,8 +8152,15 @@ var vot = (function(exports) {
 	}
 	async function gmXhrFetch(urlStr, timeout, fetchOptions) {
 		const headers = getHeaders(fetchOptions.headers);
+		const method = (fetchOptions.method || "GET").toUpperCase();
 		const callbackGmXhr = getCallbackGmXhr();
 		const promiseGmXhr = getPromiseGmXhr();
+		debug.log("[GM_fetch] GM_xmlhttpRequest start", {
+			url: urlStr,
+			method,
+			timeout,
+			headerCount: Object.keys(headers).length
+		});
 		if (callbackGmXhr) return await new Promise((resolve, reject) => {
 			let settled = false;
 			let onAbort;
@@ -8153,11 +8191,38 @@ var vot = (function(exports) {
 						headers: responseHeaders
 					});
 					Object.defineProperty(response, "url", { value: resp.finalUrl ?? urlStr });
+					debug.log("[GM_fetch] GM_xmlhttpRequest completed", {
+						url: response.url,
+						method,
+						status: response.status,
+						statusText: response.statusText
+					});
 					resolve(response);
 				},
-				ontimeout: () => failOnce(/* @__PURE__ */ new Error("Timeout")),
-				onerror: (error) => failOnce(new Error(getGmXhrErrorMessage(error))),
-				onabort: () => failOnce(makeAbortError())
+				ontimeout: () => {
+					debug.warn("[GM_fetch] GM_xmlhttpRequest timed out", {
+						url: urlStr,
+						method,
+						timeout
+					});
+					failOnce(/* @__PURE__ */ new Error("Timeout"));
+				},
+				onerror: (error) => {
+					const message = getGmXhrErrorMessage(error);
+					debug.warn("[GM_fetch] GM_xmlhttpRequest failed", {
+						url: urlStr,
+						method,
+						error: message
+					});
+					failOnce(new Error(message));
+				},
+				onabort: () => {
+					debug.warn("[GM_fetch] GM_xmlhttpRequest aborted", {
+						url: urlStr,
+						method
+					});
+					failOnce(makeAbortError());
+				}
 			});
 			onAbort = () => {
 				try {
@@ -8175,7 +8240,7 @@ var vot = (function(exports) {
 		});
 		if (!promiseGmXhr) throw new TypeError("GM_xmlhttpRequest is not available");
 		const request = promiseGmXhr({
-			method: fetchOptions.method || "GET",
+			method,
 			url: urlStr,
 			responseType: "blob",
 			data: fetchOptions.body,
@@ -8203,6 +8268,12 @@ var vot = (function(exports) {
 				headers: responseHeaders
 			});
 			Object.defineProperty(response, "url", { value: resp.finalUrl ?? urlStr });
+			debug.log("[GM_fetch] GM.xmlHttpRequest completed", {
+				url: response.url,
+				method,
+				status: response.status,
+				statusText: response.statusText
+			});
 			return response;
 		} finally {
 			if (abortHandler) fetchOptions.signal?.removeEventListener("abort", abortHandler);
@@ -8213,12 +8284,29 @@ var vot = (function(exports) {
 		const urlStr = toRequestUrl(url);
 		const host = getRequestHost(urlStr);
 		const method = resolveRequestMethod(url, fetchOptions.method);
+		const useGmXhr = shouldUseGmXhr(host, urlStr, forceGmXhr);
+		debug.log("[GM_fetch] request", {
+			url: urlStr,
+			method,
+			host: host ?? "unknown",
+			timeout,
+			transport: useGmXhr ? "GM_xmlhttpRequest" : "fetch",
+			forced: forceGmXhr,
+			responseCache: responseCache ? {
+				ttlMs: responseCache.ttlMs,
+				key: responseCache.key ?? null,
+				useMemory: responseCache.useMemory ?? true,
+				useCacheApi: responseCache.useCacheApi ?? true,
+				dedupe: responseCache.dedupe ?? true
+			} : null
+		});
 		const performRequest = async () => {
-			if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
-				debug.log("GM_fetch: routing request via GM_xmlhttpRequest", {
+			if (useGmXhr) {
+				debug.log("[GM_fetch] using GM_xmlhttpRequest transport", {
+					url: urlStr,
+					method,
 					host: host ?? "unknown",
-					reason: forceGmXhr ? "forced" : "host-policy",
-					url: urlStr
+					reason: forceGmXhr ? "forced" : "host-policy"
 				});
 				return await gmXhrFetch(urlStr, timeout, fetchOptions);
 			}
@@ -8230,7 +8318,12 @@ var vot = (function(exports) {
 				});
 			} catch (err) {
 				if (signal.aborted || isAbortError$1(err)) throw err;
-				debug.log("GM_fetch preventing CORS by GM_xmlhttpRequest", getErrorMessage(err) || "Unknown error");
+				debug.warn("[GM_fetch] fetch failed, retrying via GM_xmlhttpRequest", {
+					url: urlStr,
+					method,
+					host: host ?? "unknown",
+					error: getErrorMessage(err) || "Unknown error"
+				});
 				return await gmXhrFetch(urlStr, timeout, fetchOptions);
 			} finally {
 				cleanup();
@@ -8981,7 +9074,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.4.3"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.4.4"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -9035,6 +9128,11 @@ var vot = (function(exports) {
 		async checkUpdates(force = false) {
 			debug.log("Check locale updates...");
 			try {
+				const runtimeLocaleVersion = getRuntimeLocaleVersion();
+				if (!force) {
+					const storedLocaleVersion = await votStorage.get("localeVersion", "");
+					if (runtimeLocaleVersion !== "unknown" && storedLocaleVersion === runtimeLocaleVersion) return false;
+				}
 				const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
 				if (!res.ok) throw res.status;
 				const hashes = await res.json();
@@ -10196,6 +10294,14 @@ var vot = (function(exports) {
 		if (message === "Audio link wasn't received" || message === "Audio link wasn't received from VOT response") return new VOTLocalizedError("audioNotReceived");
 		return error;
 	}
+	function summarizeTranslationResponse(response) {
+		return {
+			status: response.status,
+			translated: response.translated,
+			remainingTime: response.remainingTime,
+			translationId: response.translationId
+		};
+	}
 	var VOTTranslationHandler = class {
 		videoHandler;
 		audioDownloader;
@@ -10335,6 +10441,17 @@ var vot = (function(exports) {
 			clearTimeout(this.videoHandler.autoRetry);
 			this.finishDownloadSuccess();
 			const requestLangForApi = this.videoHandler.getRequestLangForTranslation(requestLang, responseLang);
+			debug.log("[Translation] translateVideoImpl start", {
+				videoId: videoData.videoId,
+				duration: videoData.duration,
+				requestLang,
+				requestLangForApi,
+				responseLang,
+				retryAttempt,
+				disableLivelyVoice,
+				shouldSendFailedAudio,
+				translationHelpCount: translationHelp?.length ?? 0
+			});
 			debug.log(videoData, `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`);
 			let livelyDisabled = disableLivelyVoice;
 			try {
@@ -10353,23 +10470,44 @@ var vot = (function(exports) {
 				const useLivelyVoice = translationAttempt.useLivelyVoice;
 				const res = translationAttempt.response;
 				if (!res) throw new Error("Failed to get translation response");
-				debug.log("Translate video result", res);
+				debug.log("[Translation] translateVideoImpl response", {
+					videoId: videoData.videoId,
+					useLivelyVoice,
+					...summarizeTranslationResponse(res)
+				});
 				throwIfAborted(signal);
 				if (res.translated && res.remainingTime < 1) {
-					debug.log("Video translation finished with this data: ", res);
+					debug.log("[Translation] translation finished", {
+						videoId: videoData.videoId,
+						useLivelyVoice,
+						...summarizeTranslationResponse(res)
+					});
 					return {
 						...res,
 						usedLivelyVoice: useLivelyVoice
 					};
 				}
 				const message = res.message ?? localizationProvider.get("translationTakeFewMinutes");
+				debug.log("[Translation] translation still processing", {
+					videoId: videoData.videoId,
+					useLivelyVoice,
+					...summarizeTranslationResponse(res),
+					message
+				});
 				await this.videoHandler.updateTranslationErrorMsg(res.remainingTime > 0 ? formatTranslationEta(res.remainingTime, (key) => localizationProvider.get(key)) : message, signal);
 				if (res.status === VideoTranslationStatus.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
 					this.videoHandler.hadAsyncWait = true;
-					debug.log("Start audio download");
+					debug.log("[Translation] audio download started", {
+						videoId: videoData.videoId,
+						translationId: res.translationId
+					});
 					this.downloading = true;
 					await this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal);
-					debug.log("waiting downloading finish");
+					debug.log("[Translation] waiting for audio download completion", {
+						videoId: videoData.videoId,
+						translationId: res.translationId,
+						timeoutMs: 15e3
+					});
 					await this.waitForAudioDownloadCompletion(signal, 15e3);
 					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
 						disableLivelyVoice: livelyDisabled,
@@ -10378,10 +10516,19 @@ var vot = (function(exports) {
 				}
 			} catch (err) {
 				if (isAbortError$1(err)) {
-					debug.log("aborted video translation");
+					debug.log("[Translation] translation aborted", {
+						videoId: videoData.videoId,
+						retryAttempt
+					});
 					return null;
 				}
 				const uiError = mapVotClientErrorForUi(err);
+				debug.error("[Translation] translation failed", {
+					videoId: videoData.videoId,
+					retryAttempt,
+					error: err,
+					mappedError: uiError
+				});
 				await this.videoHandler.updateTranslationErrorMsg(getServerErrorMessage(uiError) ?? uiError, signal);
 				this.videoHandler.hadAsyncWait = notifyTranslationFailureIfNeeded({
 					aborted: Boolean(this.videoHandler.actionsAbortController?.signal?.aborted),
@@ -10391,19 +10538,43 @@ var vot = (function(exports) {
 					error: err,
 					notify: (params) => this.videoHandler.notifier.translationFailed(params)
 				});
-				console.error("[VOT]", err);
 				return null;
 			}
 			this.videoHandler.hadAsyncWait = true;
+			const retryDelayMs = this.getVideoTranslationRetryDelayMs(retryAttempt, videoData.duration);
+			debug.log("[Translation] scheduling translation retry", {
+				videoId: videoData.videoId,
+				retryAttempt,
+				retryDelayMs,
+				duration: videoData.duration
+			});
 			return this.scheduleRetry(() => this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, shouldSendFailedAudio, signal, {
 				disableLivelyVoice: livelyDisabled,
 				retryAttempt: retryAttempt + 1
-			}), this.getVideoTranslationRetryDelayMs(retryAttempt, videoData.duration), signal);
+			}), retryDelayMs, signal);
 		}
 		async requestTranslationWithLivelyFallback({ videoData, requestLangForApi, responseLang, translationHelp, shouldSendFailedAudio, livelyDisabled, livelyVoiceAllowed }) {
 			let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && Boolean(this.videoHandler.data?.useLivelyVoice);
+			debug.log("[Translation] requesting translation from VOT client", {
+				videoId: videoData.videoId,
+				requestLangForApi,
+				responseLang,
+				shouldSendFailedAudio,
+				livelyDisabled,
+				livelyVoiceAllowed,
+				useLivelyVoice,
+				translationHelpCount: translationHelp?.length ?? 0
+			});
 			while (true) {
 				try {
+					debug.log("[Translation] votClient.translateVideo call", {
+						videoId: videoData.videoId,
+						requestLangForApi,
+						responseLang,
+						useLivelyVoice,
+						shouldSendFailedAudio,
+						translationHelpCount: translationHelp?.length ?? 0
+					});
 					const response = await this.videoHandler.votClient.translateVideo({
 						videoData,
 						requestLang: requestLangForApi,
@@ -10415,18 +10586,38 @@ var vot = (function(exports) {
 						},
 						shouldSendFailedAudio
 					});
-					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) return {
-						response,
+					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+						debug.log("[Translation] votClient.translateVideo resolved", {
+							videoId: videoData.videoId,
+							useLivelyVoice,
+							...summarizeTranslationResponse(response)
+						});
+						return {
+							response,
+							useLivelyVoice,
+							livelyDisabled
+						};
+					}
+					debug.warn("[Translation] lively voice unavailable in response", {
+						videoId: videoData.videoId,
 						useLivelyVoice,
-						livelyDisabled
-					};
-					debug.log("[translateVideoImpl] Server responded that lively voices are unavailable. Falling back to standard translation.", response);
+						...summarizeTranslationResponse(response)
+					});
 				} catch (err) {
 					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(err)) throw err;
-					debug.log("[translateVideoImpl] Lively voices are unavailable. Falling back to standard translation.", err);
+					debug.warn("[Translation] lively voice unavailable in error", {
+						videoId: videoData.videoId,
+						useLivelyVoice,
+						error: err
+					});
 				}
 				livelyDisabled = true;
 				useLivelyVoice = false;
+				debug.log("[Translation] retrying translation without lively voice", {
+					videoId: videoData.videoId,
+					requestLangForApi,
+					responseLang
+				});
 			}
 		}
 		waitForAudioDownloadCompletion(signal, timeoutMs) {
@@ -20604,6 +20795,9 @@ var vot = (function(exports) {
 					return;
 				}
 				this.videoHandler.syncVolumeWrapper("translation", nextVolume);
+			}).addEventListener("select:fromLanguage", async () => {
+				if (!this.videoHandler) return;
+				await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
 			}).addEventListener("select:subtitles", (data) => {
 				if (!this.videoHandler) return;
 				this.runDetached(this.videoHandler.changeSubtitlesLang(data), "Failed to change subtitles language");
@@ -20620,10 +20814,10 @@ var vot = (function(exports) {
 				if (checked && videoHandler && !videoHandler.hasActiveSource()) await this.handleTranslationBtnClick();
 			}).addEventListener("change:autoSubtitles", async (checked) => {
 				if (!checked || !this.videoHandler?.videoData?.videoId) return;
-				await this.videoHandler.enableSubtitlesForCurrentLangPair();
+				await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
 			}).addEventListener("select:responseLanguageSubtitles", async () => {
 				if (!this.videoHandler?.data.autoSubtitles || !this.videoHandler.videoData) return;
-				await this.videoHandler.enableSubtitlesForCurrentLangPair();
+				await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
 			}).addEventListener("change:showVideoVolume", () => {
 				this.withInitializedOverlayView((overlayView) => {
 					if (!overlayView.videoVolumeSlider || !overlayView.votButton) return;
@@ -22843,9 +23037,12 @@ var vot = (function(exports) {
 		};
 	}
 	function bindOverlayHoverFocusEvents(addMany, target, overlayVisibility) {
-		addMany(target, ["pointerenter", "focusin"], (event) => overlayVisibility.handleOverlayInteraction(event));
+		addMany(target, ["focusin"], (event) => overlayVisibility.handleOverlayInteraction(event));
+		addMany(target, ["focusout"], (event) => overlayVisibility.scheduleHide(event));
+		if (isIframe() && typeof globalThis.window !== "undefined") return;
+		addMany(target, ["pointerenter"], (event) => overlayVisibility.handleOverlayInteraction(event));
 		addMany(target, ["pointermove"], (event) => overlayVisibility.handleOverlayInteraction(event), { passive: true });
-		addMany(target, ["pointerleave", "focusout"], (event) => overlayVisibility.scheduleHide(event));
+		addMany(target, ["pointerleave"], (event) => overlayVisibility.scheduleHide(event));
 	}
 	function toPercentInt(value, fallback = 0) {
 		const numeric = typeof value === "number" ? value : Number(value);
@@ -23031,9 +23228,16 @@ var vot = (function(exports) {
 		add(globalThis, "blur", clearUserPressedKeys);
 		const eventContainer = self.getEventContainer();
 		if (eventContainer) {
-			addMany(eventContainer, ["pointerenter", "pointerdown"], (event) => self.overlayVisibility.handleHostInteraction(event));
-			add(eventContainer, "pointermove", (event) => self.overlayVisibility.handleHostInteraction(event), { passive: true });
-			add(eventContainer, "pointerleave", (event) => self.overlayVisibility.scheduleHide(event));
+			const useWindowEvents = isIframe() && typeof globalThis.window !== "undefined";
+			const interactionTarget = useWindowEvents ? globalThis.window : eventContainer;
+			if (useWindowEvents) {
+				addMany(interactionTarget, ["pointermove", "pointerdown"], (event) => self.overlayVisibility.handleHostInteraction(event), { passive: true });
+				add(interactionTarget, "blur", () => self.overlayVisibility.scheduleHide());
+			} else {
+				addMany(interactionTarget, ["pointerenter", "pointerdown"], (event) => self.overlayVisibility.handleHostInteraction(event));
+				add(interactionTarget, "pointermove", (event) => self.overlayVisibility.handleHostInteraction(event), { passive: true });
+				add(interactionTarget, "pointerleave", (event) => self.overlayVisibility.scheduleHide(event));
+			}
 		}
 		self.rebindOverlayVisibilityTargets();
 		if (platformConfig.allowTouchMoveHandler) add(document, "touchmove", (event) => self.overlayVisibility.handleHostInteraction(event), { passive: true });
@@ -23940,22 +24144,22 @@ var vot = (function(exports) {
 	var subtitlesSelectionRequestVersion = /* @__PURE__ */ new WeakMap();
 	function getPreferredSubtitlesLanguage(handler) {
 		const videoData = handler.videoData;
-		return handler.getPreferredSubtitlesLanguage(videoData?.detectedLanguage, videoData?.responseLanguage);
+		return handler.getPreferredSubtitlesLanguage(videoData?.detectedLanguage, videoData?.responseLanguage) ?? videoData?.responseLanguage ?? handler.translateToLang;
+	}
+	function getCacheDetectedLanguage(handler) {
+		const videoData = handler.videoData;
+		const detectedLanguage = videoData?.detectedLanguage?.toLowerCase();
+		if (detectedLanguage && detectedLanguage !== "auto") return detectedLanguage;
+		return videoData?.responseLanguage?.toLowerCase() ?? handler.translateToLang;
 	}
 	function getCurrentSubtitlesCacheKey(handler) {
 		const videoData = handler.videoData;
 		if (!videoData?.videoId) return null;
-		const detectedLanguage = videoData.detectedLanguage?.toLowerCase();
-		if (!detectedLanguage || detectedLanguage === "auto") return null;
+		const detectedLanguage = getCacheDetectedLanguage(handler);
+		if (!detectedLanguage) return null;
 		const subtitleLanguage = getPreferredSubtitlesLanguage(handler);
 		if (!subtitleLanguage) return null;
 		return handler.getSubtitlesCacheKey(videoData.videoId, detectedLanguage, subtitleLanguage);
-	}
-	async function ensureResolvedVideoLanguageForSubtitles(handler) {
-		if (!handler.videoData?.videoId) return false;
-		await handler.videoManager.ensureDetectedLanguageForTranslation(handler.videoData);
-		const detectedLanguage = handler.videoData.detectedLanguage?.toLowerCase();
-		return Boolean(detectedLanguage && detectedLanguage !== "auto");
 	}
 	function buildSubtitleDescriptorKey(descriptor) {
 		return [
@@ -24041,14 +24245,6 @@ var vot = (function(exports) {
 		await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
 	}
 	async function ensureSubtitlesForCurrentLangPair() {
-		if (!await ensureResolvedVideoLanguageForSubtitles(this)) {
-			if (this.subtitlesCacheKey !== null || this.subtitles.length > 0) {
-				this.subtitles = [];
-				this.subtitlesCacheKey = null;
-				await this.updateSubtitlesLangSelect();
-			}
-			return this;
-		}
 		const cacheKey = getCurrentSubtitlesCacheKey(this);
 		if (!cacheKey) {
 			if (this.subtitlesCacheKey !== null || this.subtitles.length > 0) {
@@ -24097,6 +24293,15 @@ var vot = (function(exports) {
 		return this;
 	}
 	/**
+	* Re-evaluates the active subtitles track for the currently selected language
+	* pair, but only when auto-subtitles are enabled.
+	*/
+	async function refreshAutoSubtitlesForCurrentLangPair() {
+		if (!this.data?.autoSubtitles || !this.videoData?.videoId) return this;
+		await this.enableSubtitlesForCurrentLangPair();
+		return this;
+	}
+	/**
 	* Hotkey helper: toggles subtitles.
 	*
 	* - If subtitles are currently enabled (any non-"disabled" value), disable them.
@@ -24119,12 +24324,6 @@ var vot = (function(exports) {
 			console.error(`[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`);
 			this.subtitles = [];
 			this.subtitlesCacheKey = null;
-			return;
-		}
-		if (!await ensureResolvedVideoLanguageForSubtitles(this)) {
-			this.subtitles = [];
-			this.subtitlesCacheKey = null;
-			await this.updateSubtitlesLangSelect();
 			return;
 		}
 		const subtitleLanguage = getPreferredSubtitlesLanguage(this);
@@ -24337,7 +24536,7 @@ var vot = (function(exports) {
 			return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${Boolean(this.data?.useLivelyVoice)}`;
 		}
 		getPreferredSubtitlesLanguage(detectedLanguage = this.videoData?.detectedLanguage ?? "auto", responseLanguage = this.videoData?.responseLanguage ?? this.translateToLang, preference = this.data?.responseLanguageSubtitles) {
-			return resolveSubtitlesLanguage(preference, detectedLanguage, responseLanguage);
+			return resolveSubtitlesLanguage(preference, detectedLanguage, responseLanguage) ?? responseLanguage ?? detectedLanguage;
 		}
 		isActionStale(actionContext) {
 			if (!actionContext) return false;
@@ -24684,6 +24883,13 @@ var vot = (function(exports) {
 		*/
 		enableSubtitlesForCurrentLangPair() {
 			return this.callModuleAsync(enableSubtitlesForCurrentLangPair);
+		}
+		/**
+		* Re-evaluates the active subtitles track for the current language pair,
+		* but only when auto-subtitles are enabled.
+		*/
+		refreshAutoSubtitlesForCurrentLangPair() {
+			return this.callModuleAsync(refreshAutoSubtitlesForCurrentLangPair);
 		}
 		/**
 		* Toggles subtitles for the current video.
@@ -25140,7 +25346,7 @@ var vot = (function(exports) {
 	* @returns {HTMLElement|null} The matching parent element.
 	*/
 	function findContainer(site, video) {
-		debug.log("findContainer", site, video);
+		debug.log("findContainer", site, site.selector, video);
 		if (!site.selector) {
 			debug.log("findContainer without selector, using parentElement");
 			return video.parentElement;

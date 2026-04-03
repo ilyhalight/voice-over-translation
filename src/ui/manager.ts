@@ -218,6 +218,13 @@ export class UIManager {
         }
         this.videoHandler.syncVolumeWrapper("translation", nextVolume);
       })
+      .addEventListener("select:fromLanguage", async () => {
+        if (!this.videoHandler) {
+          return;
+        }
+
+        await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
+      })
       .addEventListener("select:subtitles", (data) => {
         if (!this.videoHandler) {
           return;
@@ -255,7 +262,7 @@ export class UIManager {
           return;
         }
 
-        await this.videoHandler.enableSubtitlesForCurrentLangPair();
+        await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
       })
       .addEventListener("select:responseLanguageSubtitles", async () => {
         if (
@@ -265,7 +272,7 @@ export class UIManager {
           return;
         }
 
-        await this.videoHandler.enableSubtitlesForCurrentLangPair();
+        await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
       })
       .addEventListener("change:showVideoVolume", () => {
         this.withInitializedOverlayView((overlayView) => {

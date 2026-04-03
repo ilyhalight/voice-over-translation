@@ -84,6 +84,7 @@ import {
   ensureSubtitlesForCurrentLangPair as ensureSubtitlesForCurrentLangPairImpl,
   loadSubtitles as loadSubtitlesImpl,
   resolveSubtitlesLanguage,
+  refreshAutoSubtitlesForCurrentLangPair as refreshAutoSubtitlesForCurrentLangPairImpl,
   toggleSubtitlesForCurrentLangPair as toggleSubtitlesForCurrentLangPairImpl,
   updateSubtitlesLangSelect as updateSubtitlesLangSelectImpl,
 } from "./videoHandler/modules/subtitles";
@@ -386,10 +387,14 @@ export class VideoHandler {
     preference: ResponseLanguageSubtitles | undefined = this.data
       ?.responseLanguageSubtitles,
   ): string | undefined {
-    return resolveSubtitlesLanguage(
-      preference,
-      detectedLanguage,
-      responseLanguage,
+    return (
+      resolveSubtitlesLanguage(
+        preference,
+        detectedLanguage,
+        responseLanguage,
+      ) ??
+      responseLanguage ??
+      detectedLanguage
     );
   }
 
@@ -894,6 +899,16 @@ export class VideoHandler {
    */
   enableSubtitlesForCurrentLangPair() {
     return this.callModuleAsync(enableSubtitlesForCurrentLangPairImpl);
+  }
+
+  /**
+   * Re-evaluates the active subtitles track for the current language pair,
+   * but only when auto-subtitles are enabled.
+   */
+  refreshAutoSubtitlesForCurrentLangPair() {
+    return this.callModuleAsync(
+      refreshAutoSubtitlesForCurrentLangPairImpl,
+    );
   }
 
   /**
@@ -1618,7 +1633,7 @@ function findContainer(
   site: ServiceConf,
   video: HTMLVideoElement,
 ): HTMLElement | null {
-  debug.log("findContainer", site, video);
+  debug.log("findContainer", site, site.selector, video);
   if (!site.selector) {
     debug.log("findContainer without selector, using parentElement");
     return video.parentElement;

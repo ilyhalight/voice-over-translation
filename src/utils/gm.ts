@@ -171,8 +171,15 @@ async function gmXhrFetch(
   fetchOptions: Omit<FetchOpts, "timeout">,
 ): Promise<Response> {
   const headers = getHeaders(fetchOptions.headers);
+  const method = (fetchOptions.method || "GET").toUpperCase();
   const callbackGmXhr = getCallbackGmXhr();
   const promiseGmXhr = getPromiseGmXhr();
+  debug.log("[GM_fetch] GM_xmlhttpRequest start", {
+    url: urlStr,
+    method,
+    timeout,
+    headerCount: Object.keys(headers).length,
+  });
 
   if (callbackGmXhr) {
     return await new Promise((resolve, reject) => {
@@ -214,12 +221,38 @@ async function gmXhrFetch(
             value: resp.finalUrl ?? urlStr,
           });
 
+          debug.log("[GM_fetch] GM_xmlhttpRequest completed", {
+            url: response.url,
+            method,
+            status: response.status,
+            statusText: response.statusText,
+          });
           resolve(response);
         },
-        ontimeout: () => failOnce(new Error("Timeout")),
-        onerror: (error: unknown) =>
-          failOnce(new Error(getGmXhrErrorMessage(error))),
-        onabort: () => failOnce(makeAbortError()),
+        ontimeout: () => {
+          debug.warn("[GM_fetch] GM_xmlhttpRequest timed out", {
+            url: urlStr,
+            method,
+            timeout,
+          });
+          failOnce(new Error("Timeout"));
+        },
+        onerror: (error: unknown) => {
+          const message = getGmXhrErrorMessage(error);
+          debug.warn("[GM_fetch] GM_xmlhttpRequest failed", {
+            url: urlStr,
+            method,
+            error: message,
+          });
+          failOnce(new Error(message));
+        },
+        onabort: () => {
+          debug.warn("[GM_fetch] GM_xmlhttpRequest aborted", {
+            url: urlStr,
+            method,
+          });
+          failOnce(makeAbortError());
+        },
       });
 
       onAbort = () => {
@@ -246,7 +279,7 @@ async function gmXhrFetch(
   }
 
   const request = promiseGmXhr({
-    method: (fetchOptions.method || "GET") as HttpMethod,
+    method: method as HttpMethod,
     url: urlStr,
     responseType: "blob" as any,
     data: fetchOptions.body as any,
@@ -291,6 +324,12 @@ async function gmXhrFetch(
       value: resp.finalUrl ?? urlStr,
     });
 
+    debug.log("[GM_fetch] GM.xmlHttpRequest completed", {
+      url: response.url,
+      method,
+      status: response.status,
+      statusText: response.statusText,
+    });
     return response;
   } finally {
     if (abortHandler) {
@@ -312,13 +351,33 @@ export async function GM_fetch(
   const urlStr = toRequestUrl(url);
   const host = getRequestHost(urlStr);
   const method = resolveRequestMethod(url, fetchOptions.method);
+  const useGmXhr = shouldUseGmXhr(host, urlStr, forceGmXhr);
+
+  debug.log("[GM_fetch] request", {
+    url: urlStr,
+    method,
+    host: host ?? "unknown",
+    timeout,
+    transport: useGmXhr ? "GM_xmlhttpRequest" : "fetch",
+    forced: forceGmXhr,
+    responseCache: responseCache
+      ? {
+          ttlMs: responseCache.ttlMs,
+          key: responseCache.key ?? null,
+          useMemory: responseCache.useMemory ?? true,
+          useCacheApi: responseCache.useCacheApi ?? true,
+          dedupe: responseCache.dedupe ?? true,
+        }
+      : null,
+  });
 
   const performRequest = async (): Promise<Response> => {
-    if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
-      debug.log("GM_fetch: routing request via GM_xmlhttpRequest", {
+    if (useGmXhr) {
+      debug.log("[GM_fetch] using GM_xmlhttpRequest transport", {
+        url: urlStr,
+        method,
         host: host ?? "unknown",
         reason: forceGmXhr ? "forced" : "host-policy",
-        url: urlStr,
       });
       return await gmXhrFetch(urlStr, timeout, fetchOptions);
     }
@@ -337,10 +396,12 @@ export async function GM_fetch(
         throw err;
       }
       // If fetch fails, retry via GM_xmlhttpRequest.
-      debug.log(
-        "GM_fetch preventing CORS by GM_xmlhttpRequest",
-        getErrorMessage(err) || "Unknown error",
-      );
+      debug.warn("[GM_fetch] fetch failed, retrying via GM_xmlhttpRequest", {
+        url: urlStr,
+        method,
+        host: host ?? "unknown",
+        error: getErrorMessage(err) || "Unknown error",
+      });
       return await gmXhrFetch(urlStr, timeout, fetchOptions);
     } finally {
       cleanup();

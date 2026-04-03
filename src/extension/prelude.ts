@@ -24,6 +24,7 @@ const REQUEST_ID_PREFIX =
 
 type UnknownRecord = Record<string, unknown>;
 type PendingRequest = {
+  action: string;
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
   timeoutId: number;
@@ -94,10 +95,20 @@ function request<T = unknown>(
     // Safety timeout so calls don't hang forever if the bridge isn't available.
     const timeoutId = globalThis.setTimeout(() => {
       pending.delete(id);
+      debug.warn("[VOT EXT][prelude] GM API timeout", {
+        requestId: id,
+        action,
+      });
       reject(new Error(`VOT bridge timeout for ${action}`));
     }, BRIDGE_REQUEST_TIMEOUT_MS);
 
+    debug.log("[VOT EXT][prelude] GM API request", {
+      requestId: id,
+      action,
+      payload,
+    });
     pending.set(id, {
+      action,
       resolve: (value) => resolve(value as T),
       reject,
       timeoutId,
@@ -477,8 +488,26 @@ function handlePromiseResponse(data: AnyObject): boolean {
 
   pending.delete(id);
   clearTimeout(item.timeoutId);
-  if (data.ok) item.resolve(data.result);
-  else item.reject(new Error(toErrorMessage(data.error ?? "Bridge error")));
+  if (data.ok) {
+    debug.log("[VOT EXT][prelude] GM API response", {
+      requestId: id,
+      action: item.action,
+      ok: true,
+      resultType: Array.isArray(data.result)
+        ? "array"
+        : typeof data.result,
+    });
+    item.resolve(data.result);
+  } else {
+    const errorMessage = toErrorMessage(data.error ?? "Bridge error");
+    debug.warn("[VOT EXT][prelude] GM API response", {
+      requestId: id,
+      action: item.action,
+      ok: false,
+      error: errorMessage,
+    });
+    item.reject(new Error(errorMessage));
+  }
   return true;
 }
 

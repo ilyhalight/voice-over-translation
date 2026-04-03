@@ -125,6 +125,22 @@ class LocalizationProvider {
   async checkUpdates(force = false): Promise<false | null | string> {
     debug.log("Check locale updates...");
     try {
+      const runtimeLocaleVersion = getRuntimeLocaleVersion();
+      if (!force) {
+        const storedLocaleVersion = await votStorage.get<string>(
+          "localeVersion",
+          "",
+        );
+        // Locale files are versioned with the extension build. If the runtime
+        // version has not changed, the cached locale hash is still valid.
+        if (
+          runtimeLocaleVersion !== "unknown" &&
+          storedLocaleVersion === runtimeLocaleVersion
+        ) {
+          return false;
+        }
+      }
+
       const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
       if (!res.ok) throw res.status;
 

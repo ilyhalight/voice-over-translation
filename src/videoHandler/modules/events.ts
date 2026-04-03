@@ -11,6 +11,7 @@ import {
 import { resetAndHideLifecycle } from "../../core/lifecycleShared";
 import type { VideoHandler } from "../../index";
 import debug from "../../utils/debug";
+import { isIframe } from "../../utils/iframeConnector";
 import { GM_fetch } from "../../utils/gm";
 import { getPlatformEventConfig } from "../../utils/platformEvents";
 import { clampPercentInt } from "../../utils/volume";
@@ -108,7 +109,18 @@ function bindOverlayHoverFocusEvents(
   target: EventTarget,
   overlayVisibility: NonNullable<VideoHandler["overlayVisibility"]>,
 ): void {
-  addMany(target, ["pointerenter", "focusin"], (event) =>
+  addMany(target, ["focusin"], (event) =>
+    overlayVisibility.handleOverlayInteraction(event),
+  );
+  addMany(target, ["focusout"], (event) =>
+    overlayVisibility.scheduleHide(event),
+  );
+
+  if (isIframe() && typeof globalThis.window !== "undefined") {
+    return;
+  }
+
+  addMany(target, ["pointerenter"], (event) =>
     overlayVisibility.handleOverlayInteraction(event),
   );
   addMany(
@@ -117,10 +129,11 @@ function bindOverlayHoverFocusEvents(
     (event) => overlayVisibility.handleOverlayInteraction(event),
     { passive: true },
   );
-  addMany(target, ["pointerleave", "focusout"], (event) =>
+  addMany(target, ["pointerleave"], (event) =>
     overlayVisibility.scheduleHide(event),
   );
 }
+
 function toPercentInt(value: unknown, fallback = 0): number {
   const numeric = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numeric) ? clampPercentInt(numeric) : fallback;
@@ -407,18 +420,34 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
   add(globalThis, "blur", clearUserPressedKeys);
   const eventContainer = self.getEventContainer();
   if (eventContainer) {
-    addMany(eventContainer, ["pointerenter", "pointerdown"], (event) =>
-      self.overlayVisibility.handleHostInteraction(event),
-    );
-    add(
-      eventContainer,
-      "pointermove",
-      (event) => self.overlayVisibility.handleHostInteraction(event),
-      { passive: true },
-    );
-    add(eventContainer, "pointerleave", (event) =>
-      self.overlayVisibility.scheduleHide(event),
-    );
+    const useWindowEvents =
+      isIframe() && typeof globalThis.window !== "undefined";
+    const interactionTarget = useWindowEvents
+      ? globalThis.window
+      : eventContainer;
+
+    if (useWindowEvents) {
+      addMany(
+        interactionTarget,
+        ["pointermove", "pointerdown"],
+        (event) => self.overlayVisibility.handleHostInteraction(event),
+        { passive: true },
+      );
+      add(interactionTarget, "blur", () => self.overlayVisibility.scheduleHide());
+    } else {
+      addMany(interactionTarget, ["pointerenter", "pointerdown"], (event) =>
+        self.overlayVisibility.handleHostInteraction(event),
+      );
+      add(
+        interactionTarget,
+        "pointermove",
+        (event) => self.overlayVisibility.handleHostInteraction(event),
+        { passive: true },
+      );
+      add(interactionTarget, "pointerleave", (event) =>
+        self.overlayVisibility.scheduleHide(event),
+      );
+    }
   }
   self.rebindOverlayVisibilityTargets();
   if (platformConfig.allowTouchMoveHandler) {
