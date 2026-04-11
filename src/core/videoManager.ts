@@ -475,12 +475,8 @@ export class VOTVideoManager {
    */
   setVideoVolume(volume: number) {
     const snapped = snapVolume01(volume);
-    const shouldUnmute = snapped > 0;
 
     if (!isExternalVolumeHost(this.videoHandler.site.host)) {
-      if (shouldUnmute) {
-        this.videoHandler.video.muted = false;
-      }
       this.videoHandler.video.volume = snapped;
       return this;
     }
@@ -489,14 +485,7 @@ export class VOTVideoManager {
     // Do NOT use a truthy check here, or setting volume to 0 (0%) will be treated
     // as a failure.
     try {
-      const player = YoutubeHelper.getPlayer() as
-        | { unMute?: () => void }
-        | undefined;
       const result = YoutubeHelper.setVolume(snapped) as unknown;
-      if (shouldUnmute) {
-        player?.unMute?.();
-        this.videoHandler.video.muted = false;
-      }
       const ok =
         (typeof result === "boolean" && result) ||
         (typeof result === "number" && Number.isFinite(result));
@@ -505,9 +494,6 @@ export class VOTVideoManager {
       // ignore - fall back to setting the HTMLMediaElement volume below.
     }
 
-    if (shouldUnmute) {
-      this.videoHandler.video.muted = false;
-    }
     this.videoHandler.video.volume = snapped;
     return this;
   }

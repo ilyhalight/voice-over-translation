@@ -197,15 +197,9 @@ async function executeCallbackGmXhr(
   method: string,
   headers: Record<string, string>,
 ): Promise<Response> {
-<<<<<<< Updated upstream
-  const headers = getHeaders(fetchOptions.headers);
-  const callbackGmXhr = getCallbackGmXhr();
-  const promiseGmXhr = getPromiseGmXhr();
-=======
   return new Promise((resolve, reject) => {
     let settled = false;
     let onAbort: (() => void) | undefined;
->>>>>>> Stashed changes
 
     const cleanupAbort = () => {
       if (onAbort) {
@@ -232,21 +226,6 @@ async function executeCallbackGmXhr(
         settled = true;
         cleanupAbort();
 
-<<<<<<< Updated upstream
-          resolve(response);
-        },
-        ontimeout: () => failOnce(new Error("Timeout")),
-        onerror: (error: unknown) =>
-          failOnce(new Error(getGmXhrErrorMessage(error))),
-        onabort: () => failOnce(makeAbortError()),
-      });
-
-      onAbort = () => {
-        try {
-          request?.abort?.();
-        } catch {
-          // ignore abort races
-=======
         try {
           const response = buildResponse(resp, urlStr);
           debug.log("[GM_fetch] GM_xmlhttpRequest completed", {
@@ -270,7 +249,6 @@ async function executeCallbackGmXhr(
               ? buildErr
               : new Error(getErrorMessage(buildErr)),
           );
->>>>>>> Stashed changes
         }
       },
       ontimeout: () => {
@@ -307,10 +285,6 @@ async function executeCallbackGmXhr(
       failOnce(makeAbortError());
     };
 
-<<<<<<< Updated upstream
-  const request = promiseGmXhr({
-    method: (fetchOptions.method || "GET") as HttpMethod,
-=======
     if (fetchOptions.signal) {
       fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
       if (fetchOptions.signal.aborted) {
@@ -331,7 +305,6 @@ async function executePromiseGmXhr(
 ): Promise<Response> {
   const request = gmXhr({
     method: method as HttpMethod,
->>>>>>> Stashed changes
     url: urlStr,
     responseType: "blob" as any,
     data: fetchOptions.body as any,
@@ -365,6 +338,12 @@ async function executePromiseGmXhr(
 
     const response = buildResponse(resp, urlStr);
 
+    debug.log("[GM_fetch] GM.xmlHttpRequest completed", {
+      url: response.url,
+      method,
+      status: response.status,
+      statusText: response.statusText,
+    });
     return response;
   } finally {
     if (abortHandler) {
@@ -448,13 +427,33 @@ export async function GM_fetch(
   const urlStr = toRequestUrl(url);
   const host = getRequestHost(urlStr);
   const method = resolveRequestMethod(url, fetchOptions.method);
+  const useGmXhr = shouldUseGmXhr(host, urlStr, forceGmXhr);
+
+  debug.log("[GM_fetch] request", {
+    url: urlStr,
+    method,
+    host: host ?? "unknown",
+    timeout,
+    transport: useGmXhr ? "GM_xmlhttpRequest" : "fetch",
+    forced: forceGmXhr,
+    responseCache: responseCache
+      ? {
+          ttlMs: responseCache.ttlMs,
+          key: responseCache.key ?? null,
+          useMemory: responseCache.useMemory ?? true,
+          useCacheApi: responseCache.useCacheApi ?? true,
+          dedupe: responseCache.dedupe ?? true,
+        }
+      : null,
+  });
 
   const performRequest = async (): Promise<Response> => {
-    if (shouldUseGmXhr(host, urlStr, forceGmXhr)) {
-      debug.log("GM_fetch: routing request via GM_xmlhttpRequest", {
+    if (useGmXhr) {
+      debug.log("[GM_fetch] using GM_xmlhttpRequest transport", {
+        url: urlStr,
+        method,
         host: host ?? "unknown",
         reason: forceGmXhr ? "forced" : "host-policy",
-        url: urlStr,
       });
       try {
         return await gmXhrFetch(urlStr, timeout, fetchOptions);
@@ -498,20 +497,12 @@ export async function GM_fetch(
       if (signal.aborted || isAbortError(err)) {
         throw err;
       }
-<<<<<<< Updated upstream
-      // If fetch fails, retry via GM_xmlhttpRequest.
-      debug.log(
-        "GM_fetch preventing CORS by GM_xmlhttpRequest",
-        getErrorMessage(err) || "Unknown error",
-      );
-=======
       debug.warn("[GM_fetch] fetch failed, retrying via GM_xmlhttpRequest", {
         url: urlStr,
         method,
         host: host ?? "unknown",
         error: getErrorMessage(err) || "Unknown error",
       });
->>>>>>> Stashed changes
       return await gmXhrFetch(urlStr, timeout, fetchOptions);
     } finally {
       cleanup();

@@ -3,13 +3,8 @@
       "vot-extension@firefox": {
          "updates": [
             {
-<<<<<<< Updated upstream
-               "version": "1.11.4",
-               "update_link": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext/vot-extension-firefox-1.11.4.xpi"
-=======
                "version": "1.11.5",
                "update_link": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext/vot-extension-firefox-1.11.5.xpi"
->>>>>>> Stashed changes
             }
          ]
       }

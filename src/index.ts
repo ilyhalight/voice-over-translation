@@ -82,10 +82,7 @@ import {
   enableSubtitlesForCurrentLangPair as enableSubtitlesForCurrentLangPairImpl,
   ensureSubtitlesForCurrentLangPair as ensureSubtitlesForCurrentLangPairImpl,
   loadSubtitles as loadSubtitlesImpl,
-<<<<<<< Updated upstream
-=======
   refreshAutoSubtitlesForCurrentLangPair as refreshAutoSubtitlesForCurrentLangPairImpl,
->>>>>>> Stashed changes
   resolveSubtitlesLanguage,
   toggleSubtitlesForCurrentLangPair as toggleSubtitlesForCurrentLangPairImpl,
   updateSubtitlesLangSelect as updateSubtitlesLangSelectImpl,
@@ -393,10 +390,14 @@ export class VideoHandler {
     preference: ResponseLanguageSubtitles | undefined = this.data
       ?.responseLanguageSubtitles,
   ): string | undefined {
-    return resolveSubtitlesLanguage(
-      preference,
-      detectedLanguage,
-      responseLanguage,
+    return (
+      resolveSubtitlesLanguage(
+        preference,
+        detectedLanguage,
+        responseLanguage,
+      ) ??
+      responseLanguage ??
+      detectedLanguage
     );
   }
 
@@ -885,8 +886,6 @@ export class VideoHandler {
   }
 
   /**
-<<<<<<< Updated upstream
-=======
    * Re-evaluates the active subtitles track for the current language pair,
    * but only when auto-subtitles are enabled.
    */
@@ -895,7 +894,6 @@ export class VideoHandler {
   }
 
   /**
->>>>>>> Stashed changes
    * Toggles subtitles for the current video.
    *
    * - If subtitles are enabled, this disables them.
@@ -1617,7 +1615,7 @@ function findContainer(
   site: ServiceConf,
   video: HTMLVideoElement,
 ): HTMLElement | null {
-  debug.log("findContainer", site, video);
+  debug.log("findContainer", site, site.selector, video);
   if (!site.selector) {
     debug.log("findContainer without selector, using parentElement");
     return video.parentElement;

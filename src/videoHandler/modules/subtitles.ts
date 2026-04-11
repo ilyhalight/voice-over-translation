@@ -26,11 +26,6 @@ function getPreferredSubtitlesLanguage(
   handler: VideoHandler,
 ): string | undefined {
   const videoData = handler.videoData;
-<<<<<<< Updated upstream
-  return handler.getPreferredSubtitlesLanguage(
-    videoData?.detectedLanguage,
-    videoData?.responseLanguage,
-=======
   return (
     handler.getPreferredSubtitlesLanguage(
       videoData?.detectedLanguage,
@@ -38,8 +33,17 @@ function getPreferredSubtitlesLanguage(
     ) ??
     videoData?.responseLanguage ??
     handler.translateToLang
->>>>>>> Stashed changes
   );
+}
+
+function getCacheDetectedLanguage(handler: VideoHandler): string | undefined {
+  const videoData = handler.videoData;
+  const detectedLanguage = videoData?.detectedLanguage?.toLowerCase();
+  if (detectedLanguage && detectedLanguage !== "auto") {
+    return detectedLanguage;
+  }
+
+  return videoData?.responseLanguage?.toLowerCase() ?? handler.translateToLang;
 }
 
 function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
@@ -48,8 +52,8 @@ function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
     return null;
   }
 
-  const detectedLanguage = videoData.detectedLanguage?.toLowerCase();
-  if (!detectedLanguage || detectedLanguage === "auto") {
+  const detectedLanguage = getCacheDetectedLanguage(handler);
+  if (!detectedLanguage) {
     return null;
   }
 
@@ -63,21 +67,6 @@ function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
     detectedLanguage,
     subtitleLanguage,
   );
-}
-
-async function ensureResolvedVideoLanguageForSubtitles(
-  handler: VideoHandler,
-): Promise<boolean> {
-  if (!handler.videoData?.videoId) {
-    return false;
-  }
-
-  await handler.videoManager.ensureDetectedLanguageForTranslation(
-    handler.videoData,
-  );
-
-  const detectedLanguage = handler.videoData.detectedLanguage?.toLowerCase();
-  return Boolean(detectedLanguage && detectedLanguage !== "auto");
 }
 
 function buildSubtitleDescriptorKey(descriptor: SubtitleDescriptor): string {
@@ -232,15 +221,6 @@ export async function updateSubtitlesLangSelect(this: VideoHandler) {
 }
 
 export async function ensureSubtitlesForCurrentLangPair(this: VideoHandler) {
-  if (!(await ensureResolvedVideoLanguageForSubtitles(this))) {
-    if (this.subtitlesCacheKey !== null || this.subtitles.length > 0) {
-      this.subtitles = [];
-      this.subtitlesCacheKey = null;
-      await this.updateSubtitlesLangSelect();
-    }
-    return this;
-  }
-
   const cacheKey = getCurrentSubtitlesCacheKey(this);
 
   if (!cacheKey) {
@@ -319,6 +299,21 @@ export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
 }
 
 /**
+ * Re-evaluates the active subtitles track for the currently selected language
+ * pair, but only when auto-subtitles are enabled.
+ */
+export async function refreshAutoSubtitlesForCurrentLangPair(
+  this: VideoHandler,
+) {
+  if (!this.data?.autoSubtitles || !this.videoData?.videoId) {
+    return this;
+  }
+
+  await this.enableSubtitlesForCurrentLangPair();
+  return this;
+}
+
+/**
  * Hotkey helper: toggles subtitles.
  *
  * - If subtitles are currently enabled (any non-"disabled" value), disable them.
@@ -349,13 +344,6 @@ export async function loadSubtitles(this: VideoHandler) {
     );
     this.subtitles = [];
     this.subtitlesCacheKey = null;
-    return;
-  }
-
-  if (!(await ensureResolvedVideoLanguageForSubtitles(this))) {
-    this.subtitles = [];
-    this.subtitlesCacheKey = null;
-    await this.updateSubtitlesLangSelect();
     return;
   }
 

@@ -11,10 +11,7 @@ import {
 import { resetAndHideLifecycle } from "../../core/lifecycleShared";
 import type { VideoHandler } from "../../index";
 import debug from "../../utils/debug";
-<<<<<<< Updated upstream
-=======
 import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
->>>>>>> Stashed changes
 import { GM_fetch } from "../../utils/gm";
 import { isIframe } from "../../utils/iframeConnector";
 import { getPlatformEventConfig } from "../../utils/platformEvents";
@@ -113,7 +110,18 @@ function bindOverlayHoverFocusEvents(
   target: EventTarget,
   overlayVisibility: NonNullable<VideoHandler["overlayVisibility"]>,
 ): void {
-  addMany(target, ["pointerenter", "focusin"], (event) =>
+  addMany(target, ["focusin"], (event) =>
+    overlayVisibility.handleOverlayInteraction(event),
+  );
+  addMany(target, ["focusout"], (event) =>
+    overlayVisibility.scheduleHide(event),
+  );
+
+  if (isIframe() && typeof globalThis.window !== "undefined") {
+    return;
+  }
+
+  addMany(target, ["pointerenter"], (event) =>
     overlayVisibility.handleOverlayInteraction(event),
   );
   addMany(
@@ -122,10 +130,11 @@ function bindOverlayHoverFocusEvents(
     (event) => overlayVisibility.handleOverlayInteraction(event),
     { passive: true },
   );
-  addMany(target, ["pointerleave", "focusout"], (event) =>
+  addMany(target, ["pointerleave"], (event) =>
     overlayVisibility.scheduleHide(event),
   );
 }
+
 function toPercentInt(value: unknown, fallback = 0): number {
   const numeric = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numeric) ? clampPercentInt(numeric) : fallback;
@@ -230,7 +239,6 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
   self.syncVolumeObserver = new MutationObserver((mutations) => {
     if (!self.audioPlayer?.player?.src) return;
     let hasVolumeMutation = false;
-    let lastObservedAriaValue: number | null = null;
     for (const mutation of mutations) {
       if (
         mutation.type !== "attributes" ||
@@ -239,33 +247,14 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
         continue;
       }
       hasVolumeMutation = true;
-      const ariaValueNow =
-        mutation.target instanceof Element
-          ? mutation.target.getAttribute("aria-valuenow")
-          : null;
-      const parsedAriaValue =
-        ariaValueNow != null ? Number.parseFloat(ariaValueNow) : Number.NaN;
-      if (Number.isFinite(parsedAriaValue)) {
-        lastObservedAriaValue = parsedAriaValue;
-      }
     }
     if (!hasVolumeMutation) return;
-    let videoPercent: number;
-    if (lastObservedAriaValue != null) {
-      videoPercent = toPercentInt(lastObservedAriaValue);
-    } else {
-      const fallbackVolume = self.isMuted() ? 0 : self.getVideoVolume();
-      videoPercent = toPercentInt(fallbackVolume * 100);
-    }
     self.syncVideoVolumeSlider();
-<<<<<<< Updated upstream
-=======
     const activeOverlayView = self.uiManager.votOverlayView;
     if (!activeOverlayView?.isInitialized()) return;
     const videoPercent = toPercentInt(
       activeOverlayView.videoVolumeSlider.value,
     );
->>>>>>> Stashed changes
     syncAudioTranslationVolumeFromVideo(self, videoPercent);
   });
   const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
@@ -434,20 +423,6 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
   add(globalThis, "blur", clearUserPressedKeys);
   const eventContainer = self.getEventContainer();
   if (eventContainer) {
-<<<<<<< Updated upstream
-    addMany(eventContainer, ["pointerenter", "pointerdown"], (event) =>
-      self.overlayVisibility.handleHostInteraction(event),
-    );
-    add(
-      eventContainer,
-      "pointermove",
-      (event) => self.overlayVisibility.handleHostInteraction(event),
-      { passive: true },
-    );
-    add(eventContainer, "pointerleave", (event) =>
-      self.overlayVisibility.scheduleHide(event),
-    );
-=======
     const useWindowEvents =
       isIframe() && typeof globalThis.window !== "undefined";
     const interactionTarget = useWindowEvents
@@ -478,7 +453,6 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
         self.overlayVisibility.scheduleHide(event),
       );
     }
->>>>>>> Stashed changes
   }
   self.rebindOverlayVisibilityTargets();
   if (platformConfig.allowTouchMoveHandler) {
