@@ -9,9 +9,7 @@ import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
 import type { StorageData } from "../types/storage";
 import type { OverlayMount, UIManagerProps } from "../types/uiManager";
-import ui from "../ui";
 import debug from "../utils/debug";
-import { resolveScopedFullscreenElement } from "../utils/dom";
 import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
@@ -23,6 +21,12 @@ import {
   downloadBlob,
 } from "../utils/utils";
 import { applyOverlayMountUpdate } from "./mount";
+import {
+  createShadowMount,
+  destroyShadowMount,
+  reparentShadowMount,
+  type ShadowMount,
+} from "./shadowMount";
 import { handleTranslationButtonCommand } from "./translationCommands";
 import { OverlayView } from "./views/overlay";
 import { SettingsView } from "./views/settings";
@@ -36,6 +40,7 @@ export class UIManager {
   data: Partial<StorageData>;
 
   votGlobalPortal?: HTMLElement;
+  private globalPortalMount?: ShadowMount;
   /**
    * Contains all elements over video player e.g. button, menu and etc
    */
@@ -65,8 +70,8 @@ export class UIManager {
     return this.mount.portalContainer;
   }
 
-  get tooltipLayoutRoot(): HTMLElement | undefined {
-    return this.mount.tooltipLayoutRoot;
+  getSubtitlesMountContainer(): HTMLElement {
+    return this.votOverlayView?.root ?? this.mount.subtitlesMountContainer;
   }
 
   isInitialized(): this is {
@@ -84,8 +89,11 @@ export class UIManager {
 
     this.initialized = true;
 
-    this.votGlobalPortal = ui.createPortal();
-    this.getGlobalPortalHost(this.mount).appendChild(this.votGlobalPortal);
+    this.globalPortalMount = createShadowMount({
+      parent: this.getGlobalPortalHost(this.mount),
+      rootClasses: ["vot-portal"],
+    });
+    this.votGlobalPortal = this.globalPortalMount.root;
 
     this.votOverlayView = new OverlayView({
       mount: this.mount,
@@ -105,22 +113,25 @@ export class UIManager {
     });
     this.votSettingsView.initUI();
 
+    this.videoHandler?.subtitlesWidget?.updateMount({
+      container: this.getSubtitlesMountContainer(),
+    });
+
     return this;
   }
 
   updateMount(mount: OverlayMount) {
-    const globalPortalHost = this.getGlobalPortalHost(mount);
-    if (this.votGlobalPortal?.parentElement !== globalPortalHost) {
-      globalPortalHost.appendChild(this.votGlobalPortal);
-    }
+    reparentShadowMount(
+      this.globalPortalMount,
+      this.getGlobalPortalHost(mount),
+    );
 
     this.mount = applyOverlayMountUpdate(this.mount, mount, (nextMount) => {
       this.votOverlayView?.updateMount(nextMount);
     });
 
     this.videoHandler?.subtitlesWidget?.updateMount({
-      container: mount.subtitlesMountContainer,
-      tooltipLayoutRoot: mount.tooltipLayoutRoot,
+      container: this.getSubtitlesMountContainer(),
     });
 
     return this;
@@ -131,11 +142,11 @@ export class UIManager {
       webkitFullscreenElement?: Element | null;
     };
     const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-    const isCurrentVideoFullscreen = Boolean(
-      resolveScopedFullscreenElement(fullscreenEl, [mount.root], {
-        allowDocumentViewport: true,
-      }),
-    );
+    const isCurrentVideoFullscreen =
+      fullscreenEl instanceof HTMLElement &&
+      (fullscreenEl === mount.root ||
+        fullscreenEl.contains(mount.root) ||
+        mount.root.contains(fullscreenEl));
     return isCurrentVideoFullscreen ? mount.root : document.documentElement;
   }
 
@@ -167,11 +178,13 @@ export class UIManager {
         }
 
         try {
-          const isPiPActive =
-            this.videoHandler.video === document.pictureInPictureElement;
-          await (isPiPActive
-            ? document.exitPictureInPicture()
-            : this.videoHandler.video.requestPictureInPicture());
+          // this.videoHandler.video.disablePictureInPicture = false;
+          const inPiP = document.pictureInPictureElement != null;
+          if (inPiP) {
+            await document.exitPictureInPicture();
+          } else {
+            await this.videoHandler.video.requestPictureInPicture();
+          }
         } catch (err) {
           debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
         }
@@ -682,7 +695,9 @@ export class UIManager {
     // Each view is now idempotent and releases events before DOM.
     this.votOverlayView.release();
     this.votSettingsView.release();
-    this.votGlobalPortal.remove();
+    destroyShadowMount(this.globalPortalMount);
+    this.globalPortalMount = undefined;
+    this.votGlobalPortal = undefined;
 
     this.initialized = false;
     return this;

@@ -30,7 +30,9 @@ function getPreferredSubtitlesLanguage(
     handler.getPreferredSubtitlesLanguage(
       videoData?.detectedLanguage,
       videoData?.responseLanguage,
-    ) ?? videoData?.responseLanguage ?? handler.translateToLang
+    ) ??
+    videoData?.responseLanguage ??
+    handler.translateToLang
   );
 }
 

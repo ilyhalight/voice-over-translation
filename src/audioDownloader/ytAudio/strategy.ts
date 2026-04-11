@@ -8,7 +8,6 @@ import {
   type AudioChunkStreamResult,
   type AudioStreamRequest,
   AudioDownloader as YtAudioDownloader,
-  YtWatchContextForbiddenError,
 } from "./index";
 
 const DEFAULT_YT_AUDIO_QUALITY = "bestefficiency";
@@ -54,17 +53,6 @@ function createYtAudioFetch({
     });
 }
 
-function isWatchContextForbiddenError(error: unknown): boolean {
-  if (error instanceof YtWatchContextForbiddenError) {
-    return true;
-  }
-
-  return (
-    error instanceof Error &&
-    /failed to load watch page:\s*403/i.test(error.message)
-  );
-}
-
 export async function getAudioFromYtAudio(
   { videoId, signal }: GetAudioFromAPIOptions,
   deps: YtAudioStrategyDeps = {},
@@ -84,7 +72,7 @@ export async function getAudioFromYtAudio(
     const streamResult = await downloader.downloadAudioToChunkStream(
       {
         videoId,
-        videoQuality: DEFAULT_YT_AUDIO_QUALITY,
+        audioQuality: DEFAULT_YT_AUDIO_QUALITY,
         signal,
       },
       { chunkSize },
@@ -101,13 +89,6 @@ export async function getAudioFromYtAudio(
       getMediaBuffers: streamResult.getMediaBuffers,
     };
   } catch (error) {
-    if (isWatchContextForbiddenError(error)) {
-      // 403 on watch-page key fetch is not recoverable in current context.
-      // Skip buffered fallback so upper layer can immediately trigger
-      // fail-audio-js instead of spending time on redundant retries.
-      throw error;
-    }
-
     console.warn(
       "[VOT] ytAudio streaming mode failed, falling back to buffered mode",
       error,
@@ -116,7 +97,7 @@ export async function getAudioFromYtAudio(
 
   const result = await downloader.downloadAudioToUint8Array({
     videoId,
-    videoQuality: DEFAULT_YT_AUDIO_QUALITY,
+    audioQuality: DEFAULT_YT_AUDIO_QUALITY,
     signal,
   });
 

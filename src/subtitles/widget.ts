@@ -11,6 +11,12 @@ import type {
 } from "../types/subtitles";
 import UI from "../ui";
 import Tooltip from "../ui/components/tooltip";
+import {
+  createShadowMount,
+  destroyShadowMount,
+  reparentShadowMount,
+  type ShadowMount,
+} from "../ui/shadowMount";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import { translate } from "../utils/translateApis";
@@ -102,7 +108,7 @@ export class SubtitlesWidget {
   private readonly video?: HTMLVideoElement;
   private container: HTMLElement;
   private readonly fullscreenLayerController: FullscreenLayerController;
-  private tooltipLayoutRoot?: HTMLElement;
+  private tooltipMount?: ShadowMount;
   private subtitlesContainer: HTMLElement | null = null;
   private subtitlesBlock: HTMLElement | null = null;
   private renderedHighlightEls: HTMLSpanElement[] = [];
@@ -218,16 +224,13 @@ export class SubtitlesWidget {
     video: HTMLVideoElement | undefined,
     container: HTMLElement,
     intervalIdleChecker: IntervalIdleChecker,
-    tooltipLayoutRoot: HTMLElement | undefined = undefined,
   ) {
     this.video = video;
     this.container = container;
     this.fullscreenLayerController = new FullscreenLayerController({
-      video,
       container,
     });
     this.intervalIdleChecker = intervalIdleChecker;
-    this.tooltipLayoutRoot = tooltipLayoutRoot;
     this.useVideoFrameCallbacks =
       !!this.video &&
       typeof this.video.requestVideoFrameCallback === "function";
@@ -241,26 +244,19 @@ export class SubtitlesWidget {
     });
     this.bindEvents();
   }
-  public updateMount({
-    container,
-    tooltipLayoutRoot,
-  }: {
-    container: HTMLElement;
-    tooltipLayoutRoot?: HTMLElement;
-  }): void {
+  public updateMount({ container }: { container: HTMLElement }): void {
     const containerChanged = this.container !== container;
-    const tooltipRootChanged = this.tooltipLayoutRoot !== tooltipLayoutRoot;
 
     this.container = container;
     this.fullscreenLayerController.updateContainer(container);
-    this.tooltipLayoutRoot = tooltipLayoutRoot;
 
     this.syncWidgetMount();
 
-    if (containerChanged || tooltipRootChanged) {
+    if (containerChanged) {
+      const parentElement = this.getTokenTooltipParentElement();
       this.tokenTooltip?.updateMount({
-        parentElement: this.getTokenTooltipParentElement(),
-        layoutRoot: this.tooltipLayoutRoot ?? document.documentElement,
+        parentElement,
+        layoutRoot: this.tooltipMount?.host,
       });
     }
 
@@ -491,23 +487,51 @@ export class SubtitlesWidget {
     }
   }
   private syncGuideLayerMount(): void {
-    const widgetParent =
-      this.fullscreenLayerController.getWidgetParentElement();
     const guidesLayer = this.ensureGuidesLayer();
-    if (guidesLayer.parentElement !== widgetParent) {
-      widgetParent.appendChild(guidesLayer);
+    if (guidesLayer.parentElement !== this.container) {
+      this.container.appendChild(guidesLayer);
     }
   }
   private syncWidgetMount(): void {
-    this.fullscreenLayerController.syncWidgetContainer(this.subtitlesContainer);
+    this.fullscreenLayerController.syncWidgetContainer(null);
+    if (
+      this.subtitlesContainer &&
+      this.subtitlesContainer.parentElement !== this.container
+    ) {
+      this.container.appendChild(this.subtitlesContainer);
+    }
+    if (this.tooltipMount) {
+      reparentShadowMount(this.tooltipMount, this.container);
+    }
     this.syncGuideLayerMount();
   }
+  private ensureTooltipMount(): ShadowMount {
+    if (!this.tooltipMount) {
+      this.tooltipMount = createShadowMount({
+        parent: this.container,
+        rootClasses: ["vot-portal-local"],
+        hostStyles: {
+          position: "absolute",
+          inset: "0",
+          display: "block",
+          "pointer-events": "none",
+        },
+        rootStyles: {
+          position: "relative",
+          display: "block",
+          width: "100%",
+          height: "100%",
+          "pointer-events": "none",
+        },
+      });
+    } else {
+      reparentShadowMount(this.tooltipMount, this.container);
+    }
+
+    return this.tooltipMount;
+  }
   private getTokenTooltipParentElement(): HTMLElement {
-    const widgetParent =
-      this.fullscreenLayerController.getWidgetParentElement();
-    return widgetParent === this.container
-      ? document.documentElement
-      : widgetParent;
+    return this.ensureTooltipMount().root;
   }
   private createSubtitlesContainer(): HTMLElement {
     if (this.subtitlesContainer) {
@@ -519,7 +543,8 @@ export class SubtitlesWidget {
     this.syncWidgetMount();
     container.addEventListener("pointerdown", this.onPointerDownBound, {
       signal: this.abortController.signal,
-      passive: true,
+      passive: false,
+      capture: true,
     });
     this.syncVisualStyleVars();
     this.insetCacheReady = false;
@@ -677,16 +702,17 @@ export class SubtitlesWidget {
     this.dragDocListenersAttached = true;
     document.addEventListener("pointermove", this.onPointerMoveBound, {
       passive: false,
+      capture: true,
     });
-    document.addEventListener("pointerup", this.onPointerUpBound);
-    document.addEventListener("pointercancel", this.onPointerUpBound);
+    document.addEventListener("pointerup", this.onPointerUpBound, true);
+    document.addEventListener("pointercancel", this.onPointerUpBound, true);
   }
   private detachDragDocumentListeners(): void {
     if (!this.dragDocListenersAttached) return;
     this.dragDocListenersAttached = false;
-    document.removeEventListener("pointermove", this.onPointerMoveBound);
-    document.removeEventListener("pointerup", this.onPointerUpBound);
-    document.removeEventListener("pointercancel", this.onPointerUpBound);
+    document.removeEventListener("pointermove", this.onPointerMoveBound, true);
+    document.removeEventListener("pointerup", this.onPointerUpBound, true);
+    document.removeEventListener("pointercancel", this.onPointerUpBound, true);
   }
   private onResize(): void {
     this.syncWidgetMount();
@@ -822,6 +848,7 @@ export class SubtitlesWidget {
       return;
     if (!event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.stopPropagation();
     const layout = this.getLayoutSize();
     const { rect: containerRect, w, h, scaleX, scaleY } = layout;
     if (!w || !h) return;
@@ -849,11 +876,6 @@ export class SubtitlesWidget {
     this.dragging.offset.y = anchorY - pointerY;
     this.hideSnapGuides();
     this.attachDragDocumentListeners();
-    const captureEl: Element | null =
-      this.subtitlesBlock ?? (target instanceof Element ? target : null);
-    try {
-      (captureEl as HTMLElement | null)?.setPointerCapture(event.pointerId);
-    } catch {}
   }
   private onPointerUp(event: PointerEvent): void {
     if (this.dragging.pointerId === null) return;
@@ -886,6 +908,9 @@ export class SubtitlesWidget {
       this.dragging.moved = true;
       this.suppressTokenClicksUntil = performance.now() + 450;
       this.releaseTooltip();
+      try {
+        this.subtitlesContainer?.setPointerCapture(event.pointerId);
+      } catch {}
     } else {
       this.dragging.moved = true;
     }
@@ -1488,6 +1513,8 @@ export class SubtitlesWidget {
     }
     this.tokenTooltip?.release();
     this.tokenTooltip = undefined;
+    destroyShadowMount(this.tooltipMount);
+    this.tooltipMount = undefined;
     return this;
   }
   private clearPendingSchedulerState(): void {
@@ -1588,13 +1615,14 @@ export class SubtitlesWidget {
       this.subtitlesBlock?.offsetWidth ?? 0,
       Math.min(globalThis.innerWidth * 0.6, 320),
     );
+    const tooltipMount = this.ensureTooltipMount();
 
     return new Tooltip({
       target,
       anchor: this.subtitlesBlock ?? target,
-      layoutRoot: this.tooltipLayoutRoot,
       content,
-      parentElement: this.getTokenTooltipParentElement(),
+      parentElement: tooltipMount.root,
+      layoutRoot: tooltipMount.host,
       offset: { x: 4, y: 12 },
       maxWidth: tooltipMaxWidth,
       borderRadius: 12,
@@ -2042,6 +2070,8 @@ export class SubtitlesWidget {
       this.subtitlesContainer.remove();
       this.subtitlesContainer = null;
     }
+    destroyShadowMount(this.tooltipMount);
+    this.tooltipMount = undefined;
     this.fullscreenLayerController.release();
     if (this.safeAreaProbeEl) {
       this.safeAreaProbeEl.remove();

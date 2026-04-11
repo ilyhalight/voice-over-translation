@@ -35,7 +35,6 @@ import { UIManager } from "./ui/manager";
 import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
 import debug from "./utils/debug";
-import { resolveScopedFullscreenElement } from "./utils/dom";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
 import { GM_fetch, isSupportGMXhr } from "./utils/gm";
 import { isIframe } from "./utils/iframeConnector";
@@ -83,8 +82,8 @@ import {
   enableSubtitlesForCurrentLangPair as enableSubtitlesForCurrentLangPairImpl,
   ensureSubtitlesForCurrentLangPair as ensureSubtitlesForCurrentLangPairImpl,
   loadSubtitles as loadSubtitlesImpl,
-  resolveSubtitlesLanguage,
   refreshAutoSubtitlesForCurrentLangPair as refreshAutoSubtitlesForCurrentLangPairImpl,
+  resolveSubtitlesLanguage,
   toggleSubtitlesForCurrentLangPair as toggleSubtitlesForCurrentLangPairImpl,
   updateSubtitlesLangSelect as updateSubtitlesLangSelectImpl,
 } from "./videoHandler/modules/subtitles";
@@ -276,7 +275,12 @@ export class VideoHandler {
   private getFullscreenOverlayRoot(): HTMLElement | null {
     const doc = document as DocumentWithFullscreen;
     const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-    return resolveScopedFullscreenElement(fullscreenEl, [this.container]);
+    return fullscreenEl instanceof HTMLElement &&
+      (fullscreenEl === this.container ||
+        fullscreenEl.contains(this.container) ||
+        this.container.contains(fullscreenEl))
+      ? fullscreenEl
+      : null;
   }
 
   private getOverlayMountPoints(container: HTMLElement = this.container): {
@@ -323,13 +327,12 @@ export class VideoHandler {
   private getOverlayMount(
     container: HTMLElement = this.container,
   ): OverlayMount {
-    const { root, portalContainer, subtitlesMountContainer, fullscreenRoot } =
+    const { root, portalContainer, subtitlesMountContainer } =
       this.getOverlayMountPoints(container);
     return {
       root,
       portalContainer,
       subtitlesMountContainer,
-      tooltipLayoutRoot: fullscreenRoot ?? this.tooltipLayoutRoot,
     };
   }
 
@@ -525,9 +528,8 @@ export class VideoHandler {
       const { subtitlesMountContainer } = this.getOverlayMountPoints();
       this.subtitlesWidget = new SubtitlesWidget(
         this.video,
-        subtitlesMountContainer,
+        this.uiManager.votOverlayView?.root ?? subtitlesMountContainer,
         this.interactionChecker,
-        this.tooltipLayoutRoot,
       );
       this.applySavedSubtitlesWidgetSettings(this.subtitlesWidget);
     }
@@ -593,24 +595,6 @@ export class VideoHandler {
    */
   get portalContainer() {
     return this.getOverlayMountPoints().portalContainer;
-  }
-
-  /**
-   * Determines the root element used for tooltip layout calculations.
-   * @returns {HTMLElement | undefined}
-   */
-  get tooltipLayoutRoot() {
-    switch (this.site.host) {
-      case "kickstarter": {
-        return document.getElementById("react-project-header") ?? undefined;
-      }
-      case "custom": {
-        return undefined;
-      }
-      default: {
-        return this.container;
-      }
-    }
   }
 
   /**
@@ -906,9 +890,7 @@ export class VideoHandler {
    * but only when auto-subtitles are enabled.
    */
   refreshAutoSubtitlesForCurrentLangPair() {
-    return this.callModuleAsync(
-      refreshAutoSubtitlesForCurrentLangPairImpl,
-    );
+    return this.callModuleAsync(refreshAutoSubtitlesForCurrentLangPairImpl);
   }
 
   /**

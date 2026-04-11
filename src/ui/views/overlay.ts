@@ -25,7 +25,12 @@ import Tooltip from "../components/tooltip";
 import VOTButton from "../components/votButton";
 import VOTMenu from "../components/votMenu";
 import { SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
-import { didTooltipMountContextChange } from "../mount";
+import {
+  createShadowMount,
+  destroyShadowMount,
+  reparentShadowMount,
+  type ShadowMount,
+} from "../shadowMount";
 
 export class OverlayView {
   private static readonly BIG_CONTAINER_WIDTH_PX = 550;
@@ -52,6 +57,7 @@ export class OverlayView {
   private readonly data: Partial<StorageData>;
   private readonly videoHandler?: VideoHandler;
   private readonly intervalIdleChecker: IntervalIdleChecker;
+  private overlayMount?: ShadowMount;
 
   private readonly events: {
     [K in keyof OverlayViewEventMap]: EventImpl<OverlayViewEventMap[K]>;
@@ -113,26 +119,20 @@ export class OverlayView {
   }
 
   get root(): HTMLElement {
-    return this.mount.root;
+    return this.overlayMount?.root ?? this.mount.root;
   }
 
   get portalContainer(): HTMLElement {
     return this.mount.portalContainer;
   }
 
-  get tooltipLayoutRoot(): HTMLElement | undefined {
-    return this.mount.tooltipLayoutRoot;
-  }
-
   /**
-   * Update mount points (root/tooltipLayoutRoot) when the player container changes.
+   * Update mount points when the player container changes.
    * Moves already-mounted UI nodes and rebinds root-bound listeners (dragging).
    */
   updateMount(nextMount: OverlayMount): this {
     const prevRoot = this.mount.root;
     const nextRoot = nextMount.root;
-    const prevTooltipRoot = this.mount.tooltipLayoutRoot;
-    const nextTooltipRoot = nextMount.tooltipLayoutRoot;
 
     this.mount = nextMount;
 
@@ -140,34 +140,23 @@ export class OverlayView {
       return this;
     }
 
-    // Move mounted nodes to new containers.
     if (prevRoot !== nextRoot) {
-      if (this.votButton) {
-        nextRoot.appendChild(this.votButton.container);
-      }
-      if (this.votMenu) {
-        nextRoot.appendChild(this.votMenu.container);
+      if (this.overlayMount) {
+        reparentShadowMount(this.overlayMount, nextRoot);
+      } else {
+        if (this.votButton) {
+          nextRoot.appendChild(this.votButton.container);
+        }
+        if (this.votMenu) {
+          nextRoot.appendChild(this.votMenu.container);
+        }
       }
     }
 
-    // Tooltip geometry depends on both the layout root and the overlay root:
-    // some fullscreen transitions only reparent the button/root while keeping
-    // the same tooltipLayoutRoot, so force a refresh for either change.
-    if (
-      this.votButtonTooltip &&
-      didTooltipMountContextChange(
-        {
-          root: prevRoot,
-          portalContainer: this.mount.portalContainer,
-          subtitlesMountContainer: this.mount.subtitlesMountContainer,
-          tooltipLayoutRoot: prevTooltipRoot,
-        },
-        nextMount,
-      )
-    ) {
-      // If tooltipLayoutRoot becomes undefined, fall back to documentElement.
+    if (this.votButtonTooltip && prevRoot !== nextRoot) {
       this.votButtonTooltip.updateMount({
-        layoutRoot: nextTooltipRoot ?? document.documentElement,
+        parentElement: this.root,
+        layoutRoot: this.overlayMount?.host,
       });
     }
 
@@ -256,6 +245,23 @@ export class OverlayView {
     }
 
     this.initialized = true;
+    this.overlayMount = createShadowMount({
+      parent: this.mount.root,
+      rootClasses: ["vot-overlay-root"],
+      hostStyles: {
+        position: "absolute",
+        inset: "0",
+        display: "block",
+        "pointer-events": "none",
+      },
+      rootStyles: {
+        position: "relative",
+        display: "block",
+        width: "100%",
+        height: "100%",
+        "pointer-events": "none",
+      },
+    });
 
     // #region Shared logic
     const { position, direction } = this.calcButtonLayout(buttonPosition);
@@ -282,8 +288,8 @@ export class OverlayView {
       autoLayout: false,
       hidden: direction === "row",
       bordered: false,
-      parentElement: this.globalPortal,
-      layoutRoot: this.tooltipLayoutRoot,
+      parentElement: this.root,
+      layoutRoot: this.overlayMount.host,
     });
 
     // #endregion VOT Button
@@ -598,9 +604,11 @@ export class OverlayView {
 
         // Keep menu open while interacting with dialogs spawned from it
         // (language picker, etc.).
-        const isInsideDialog =
-          target instanceof HTMLElement &&
-          !!target.closest(".vot-dialog-container");
+        const isInsideDialog = path.some(
+          (node) =>
+            node instanceof HTMLElement &&
+            node.classList.contains("vot-dialog-container"),
+        );
 
         if (
           isInsideMenu ||
@@ -997,6 +1005,8 @@ export class OverlayView {
     this.votButton?.remove();
     this.votMenu?.remove();
     this.votButtonTooltip?.release();
+    destroyShadowMount(this.overlayMount);
+    this.overlayMount = undefined;
   }
 
   private doReleaseUIEvents(): void {

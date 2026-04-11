@@ -176,3 +176,15 @@ html.vot-keyboard-nav vot-block *:focus-visible {
     z-index: 2147483647;
   }
 }
+
+// The overlay mount itself stays click-through so host-page controls remain
+// usable around the injected UI. Explicitly re-enable hit-testing for the
+// actual interactive overlay surfaces inside the shadow root.
+.vot-overlay-root {
+  pointer-events: none;
+
+  & > .vot-segmented-button,
+  & > .vot-menu {
+    pointer-events: auto;
+  }
+}

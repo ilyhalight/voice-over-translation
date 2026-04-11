@@ -12,7 +12,6 @@ export type OverlayMount = {
   root: HTMLElement;
   portalContainer: HTMLElement;
   subtitlesMountContainer: HTMLElement;
-  tooltipLayoutRoot?: HTMLElement;
 };
 
 export type UIManagerProps = {

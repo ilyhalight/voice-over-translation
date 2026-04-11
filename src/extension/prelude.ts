@@ -493,9 +493,7 @@ function handlePromiseResponse(data: AnyObject): boolean {
       requestId: id,
       action: item.action,
       ok: true,
-      resultType: Array.isArray(data.result)
-        ? "array"
-        : typeof data.result,
+      resultType: Array.isArray(data.result) ? "array" : typeof data.result,
     });
     item.resolve(data.result);
   } else {

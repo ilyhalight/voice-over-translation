@@ -16,8 +16,8 @@ Use `AudioDownloader.downloadAudioToUint8Array(...)`:
 const downloader = new AudioDownloader({ fetchImplementation });
 const result = await downloader.downloadAudioToUint8Array({
   videoId: "memM8flkwrA",
-  client: "ANDROID",
-  videoQuality: "bestefficiency",
+  client: "ANDROID_VR",
+  audioQuality: "bestefficiency",
   signal,
 });
 
@@ -27,6 +27,6 @@ const result = await downloader.downloadAudioToUint8Array({
 The module is intended to run in browser context and returns audio bytes for
 further chunking/upload by the parent audio downloader strategy.
 
-Supported `videoQuality` values:
+Supported `audioQuality` values:
 - `best`
 - `bestefficiency`

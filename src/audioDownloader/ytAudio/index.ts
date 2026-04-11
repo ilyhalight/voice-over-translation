@@ -10,5 +10,4 @@ export {
   AudioDownloader,
   buildClientAttemptOrder,
   extractVideoId,
-  YtWatchContextForbiddenError,
 } from "./src/AudioDownloader";

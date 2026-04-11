@@ -11,8 +11,9 @@ import {
 import { resetAndHideLifecycle } from "../../core/lifecycleShared";
 import type { VideoHandler } from "../../index";
 import debug from "../../utils/debug";
-import { isIframe } from "../../utils/iframeConnector";
+import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
 import { GM_fetch } from "../../utils/gm";
+import { isIframe } from "../../utils/iframeConnector";
 import { getPlatformEventConfig } from "../../utils/platformEvents";
 import { clampPercentInt } from "../../utils/volume";
 import { handlePlaybackResumedTranslationRefresh } from "./translation";
@@ -251,7 +252,9 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
     self.syncVideoVolumeSlider();
     const activeOverlayView = self.uiManager.votOverlayView;
     if (!activeOverlayView?.isInitialized()) return;
-    const videoPercent = toPercentInt(activeOverlayView.videoVolumeSlider.value);
+    const videoPercent = toPercentInt(
+      activeOverlayView.videoVolumeSlider.value,
+    );
     syncAudioTranslationVolumeFromVideo(self, videoPercent);
   });
   const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
@@ -377,7 +380,7 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     const keyboardEvent = event as KeyboardEvent;
     if (keyboardEvent.repeat) return;
     userPressedKeys.add(keyboardEvent.code);
-    const activeElement = document.activeElement as HTMLElement | null;
+    const activeElement = getDeepActiveElement(document) as HTMLElement | null;
     const activeTag = activeElement?.tagName?.toLowerCase?.() ?? "";
     const isInputElement =
       ["input", "textarea"].includes(activeTag) ||
@@ -433,7 +436,9 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
         (event) => self.overlayVisibility.handleHostInteraction(event),
         { passive: true },
       );
-      add(interactionTarget, "blur", () => self.overlayVisibility.scheduleHide());
+      add(interactionTarget, "blur", () =>
+        self.overlayVisibility.scheduleHide(),
+      );
     } else {
       addMany(interactionTarget, ["pointerenter", "pointerdown"], (event) =>
         self.overlayVisibility.handleHostInteraction(event),
@@ -477,7 +482,7 @@ export function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
   add(self.video, "playing", () => {
     if (!wasPausedSinceLastPlay) return;
     wasPausedSinceLastPlay = false;
-    void handlePlaybackResumedTranslationRefresh.call(self).catch((error) => {
+    handlePlaybackResumedTranslationRefresh.call(self).catch((error) => {
       debug.log(
         "[VOT] Failed to refresh translation after playback resumed",
         error,
@@ -596,8 +601,9 @@ export function isOverlayInteractiveNode(
   const buttonContainer = overlayView?.votButton?.container;
   const menuContainer = overlayView?.votMenu?.container;
   return (
-    (buttonContainer instanceof Node && buttonContainer.contains(node)) ||
-    (menuContainer instanceof Node && menuContainer.contains(node))
+    (buttonContainer instanceof Node &&
+      containsCrossShadow(buttonContainer, node)) ||
+    (menuContainer instanceof Node && containsCrossShadow(menuContainer, node))
   );
 }
 export function getAutoHideDelay(this: VideoHandler): number {

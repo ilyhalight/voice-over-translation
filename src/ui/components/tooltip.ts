@@ -30,6 +30,8 @@ export default class Tooltip {
   pageHeight!: number;
   globalOffsetX!: number;
   globalOffsetY!: number;
+  renderOffsetX!: number;
+  renderOffsetY!: number;
   maxWidth?: number;
   backgroundColor?: string;
   borderRadius?: number;
@@ -224,7 +226,7 @@ export default class Tooltip {
     // Layout bounds may be computed against a player container while the
     // tooltip itself is mounted into a portal attached elsewhere in the DOM.
     // We therefore calculate in layout-root coordinates and later convert
-    // back to viewport coordinates for the rendered tooltip.
+    // back into the tooltip parent's coordinate space before rendering.
     if (this.layoutRoot === document.documentElement) {
       this.globalOffsetX = 0;
       this.globalOffsetY = 0;
@@ -233,6 +235,11 @@ export default class Tooltip {
       this.globalOffsetX = left;
       this.globalOffsetY = top;
     }
+
+    const { left: parentLeft, top: parentTop } =
+      this.parentElement.getBoundingClientRect();
+    this.renderOffsetX = parentLeft;
+    this.renderOffsetY = parentTop;
 
     this.pageWidth =
       this.layoutRoot.clientWidth || document.documentElement.clientWidth;
@@ -423,8 +430,8 @@ export default class Tooltip {
 
     this.position = resolvedPosition;
     return {
-      top: coords.top + this.globalOffsetY,
-      left: coords.left + this.globalOffsetX,
+      top: coords.top + this.globalOffsetY - this.renderOffsetY,
+      left: coords.left + this.globalOffsetX - this.renderOffsetX,
     };
   }
 
