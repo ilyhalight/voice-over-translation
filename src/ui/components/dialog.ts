@@ -1,6 +1,7 @@
 import { EventImpl } from "../../core/eventImpl";
 import type { DialogProps } from "../../types/components/dialog";
 import UI from "../../ui";
+import { getDeepActiveElement } from "../../utils/dom";
 import { CLOSE_ICON } from "../icons";
 import {
   addComponentEventListener,
@@ -156,7 +157,7 @@ export default class Dialog {
 
   open() {
     // Temp dialogs are created visible; still run focus/keyboard setup.
-    this.previouslyFocused ??= document.activeElement;
+    this.previouslyFocused ??= getDeepActiveElement(document);
 
     this.hidden = false;
     this.attachKeydownTrap();
@@ -340,7 +341,9 @@ export default class Dialog {
 
       const first = focusables[0];
       const last = focusables.at(-1) ?? first;
-      const active = document.activeElement;
+      const active = getDeepActiveElement(
+        this.container.getRootNode() as Document | ShadowRoot,
+      );
 
       if (e.shiftKey) {
         if (active === first || active === this.box) {

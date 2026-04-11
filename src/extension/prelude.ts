@@ -477,8 +477,29 @@ function handlePromiseResponse(data: AnyObject): boolean {
 
   pending.delete(id);
   clearTimeout(item.timeoutId);
+<<<<<<< Updated upstream
   if (data.ok) item.resolve(data.result);
   else item.reject(new Error(toErrorMessage(data.error ?? "Bridge error")));
+=======
+  if (data.ok) {
+    debug.log("[VOT EXT][prelude] GM API response", {
+      requestId: id,
+      action: item.action,
+      ok: true,
+      resultType: Array.isArray(data.result) ? "array" : typeof data.result,
+    });
+    item.resolve(data.result);
+  } else {
+    const errorMessage = toErrorMessage(data.error ?? "Bridge error");
+    debug.warn("[VOT EXT][prelude] GM API response", {
+      requestId: id,
+      action: item.action,
+      ok: false,
+      error: errorMessage,
+    });
+    item.reject(new Error(errorMessage));
+  }
+>>>>>>> Stashed changes
   return true;
 }
 

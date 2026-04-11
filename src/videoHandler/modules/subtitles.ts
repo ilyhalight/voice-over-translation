@@ -26,9 +26,19 @@ function getPreferredSubtitlesLanguage(
   handler: VideoHandler,
 ): string | undefined {
   const videoData = handler.videoData;
+<<<<<<< Updated upstream
   return handler.getPreferredSubtitlesLanguage(
     videoData?.detectedLanguage,
     videoData?.responseLanguage,
+=======
+  return (
+    handler.getPreferredSubtitlesLanguage(
+      videoData?.detectedLanguage,
+      videoData?.responseLanguage,
+    ) ??
+    videoData?.responseLanguage ??
+    handler.translateToLang
+>>>>>>> Stashed changes
   );
 }
 

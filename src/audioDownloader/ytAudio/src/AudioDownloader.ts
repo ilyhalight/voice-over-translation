@@ -6,27 +6,13 @@ import {
 } from "./internal/format-selection";
 
 export type AudioDownloadQuality = ProgressiveQuality;
-export type AudioDownloadClient =
-  | "IOS"
-  | "WEB"
-  | "MWEB"
-  | "ANDROID"
-  | "ANDROID_VR"
-  | "YTMUSIC"
-  | "YTMUSIC_ANDROID"
-  | "YTSTUDIO_ANDROID"
-  | "TV"
-  | "TV_SIMPLY"
-  | "TV_EMBEDDED"
-  | "YTKIDS"
-  | "WEB_EMBEDDED"
-  | "WEB_CREATOR";
+export type AudioDownloadClient = "ANDROID_VR";
 
 export interface AudioStreamRequest {
   videoId?: string;
   videoUrl?: string;
   client?: AudioDownloadClient;
-  videoQuality?: AudioDownloadQuality;
+  audioQuality?: AudioDownloadQuality;
   signal?: AbortSignal;
 }
 
@@ -57,16 +43,6 @@ export interface AudioChunkStreamResult {
 
 export interface AudioDownloaderOptions {
   fetchImplementation?: typeof fetch;
-}
-
-export class YtWatchContextForbiddenError extends Error {
-  readonly status: number;
-
-  constructor(status = 403) {
-    super(`Failed to load watch page: ${status}`);
-    this.name = "YtWatchContextForbiddenError";
-    this.status = status;
-  }
 }
 
 interface WatchContext {
@@ -108,16 +84,8 @@ interface ResolvedPlayableFormat {
 
 const VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
 const YT_BASE = "https://www.youtube.com";
-const ANDROID_CLIENT_VERSION = "19.44.38";
 const ANDROID_VR_CLIENT_VERSION = "1.60.19";
-const IOS_CLIENT_VERSION = "19.45.4";
-const CLIENT_FALLBACK_ORDER: readonly AudioDownloadClient[] = [
-  "ANDROID_VR",
-  "ANDROID",
-  "IOS",
-  "WEB",
-  "MWEB",
-];
+const CLIENTS: readonly AudioDownloadClient[] = ["ANDROID_VR"];
 const DEFAULT_HEADERS = {
   accept: "*/*",
   origin: YT_BASE,
@@ -131,64 +99,21 @@ function withSignal(signal: AbortSignal | undefined): RequestInit {
 
 function resolveInnertubeClient(
   requestedClient: AudioDownloadClient | undefined,
-  watchContext: WatchContext,
-  videoId: string,
 ): Record<string, unknown> {
-  switch (requestedClient) {
-    case "ANDROID":
-    case "YTMUSIC_ANDROID":
-    case "YTSTUDIO_ANDROID":
-      return {
-        clientName: "ANDROID",
-        clientVersion: ANDROID_CLIENT_VERSION,
-        hl: "en",
-        gl: "US",
-        androidSdkVersion: 34,
-        osName: "Android",
-        osVersion: "14",
-        platform: "MOBILE",
-      };
-    case "ANDROID_VR":
-      return {
-        clientName: "ANDROID_VR",
-        clientVersion: ANDROID_VR_CLIENT_VERSION,
-        hl: "en",
-        gl: "US",
-        androidSdkVersion: 31,
-        osName: "Android",
-        osVersion: "12",
-        platform: "MOBILE",
-      };
-    case "IOS":
-      return {
-        clientName: "IOS",
-        clientVersion: IOS_CLIENT_VERSION,
-        hl: "en",
-        gl: "US",
-        platform: "MOBILE",
-        osName: "iPhone",
-        osVersion: "18.0.0.22A3354",
-        deviceMake: "Apple",
-        deviceModel: "iPhone16,2",
-      };
-    case "MWEB":
-      return {
-        clientName: "MWEB",
-        clientVersion: watchContext.clientVersion,
-        hl: "en",
-        gl: "US",
-        originalUrl: `${YT_BASE}/watch?v=${videoId}`,
-      };
-    default:
-      return {
-        clientName: "WEB",
-        clientVersion: watchContext.clientVersion,
-        hl: "en",
-        gl: "US",
-        utcOffsetMinutes: 0,
-        originalUrl: `${YT_BASE}/watch?v=${videoId}`,
-      };
+  if (requestedClient !== undefined && requestedClient !== "ANDROID_VR") {
+    throw new Error(`Unsupported Innertube client: ${requestedClient}`);
   }
+
+  return {
+    clientName: "ANDROID_VR",
+    clientVersion: ANDROID_VR_CLIENT_VERSION,
+    hl: "en",
+    gl: "US",
+    androidSdkVersion: 31,
+    osName: "Android",
+    osVersion: "12",
+    platform: "MOBILE",
+  };
 }
 
 export function extractVideoId(input: string): string {
@@ -416,8 +341,8 @@ export function buildClientAttemptOrder(
   requestedClient: AudioDownloadClient | undefined,
 ): AudioDownloadClient[] {
   const ordered = requestedClient
-    ? [requestedClient, ...CLIENT_FALLBACK_ORDER]
-    : [...CLIENT_FALLBACK_ORDER];
+    ? [requestedClient, ...CLIENTS]
+    : [...CLIENTS];
   const seen = new Set<AudioDownloadClient>();
 
   return ordered.filter((client) => {
@@ -507,7 +432,7 @@ export class AudioDownloader {
 
     return this.withResolvedPlayableAudioFormat(
       request,
-      request.videoQuality ?? "best",
+      request.audioQuality ?? "best",
       "Chunk mode requires an adaptive audio stream format",
       "Unable to resolve streamable format for chunk mode",
       async ({ resolved, signal }) => {
@@ -577,7 +502,7 @@ export class AudioDownloader {
   ): Promise<AudioStreamResult> {
     return this.withResolvedPlayableAudioFormat(
       request,
-      request.videoQuality ?? "bestefficiency",
+      request.audioQuality ?? "bestefficiency",
       "Selected stream is not audio-only",
       "Unable to download playable stream format",
       async ({ resolved, signal }) => {
@@ -673,10 +598,7 @@ export class AudioDownloader {
       quality,
     );
 
-    const streamUrl = this.resolveFormatUrl(
-      chosenFormat,
-      watchContext.clientVersion,
-    );
+    const streamUrl = this.resolveFormatUrl(chosenFormat);
 
     return {
       videoId,
@@ -766,19 +688,11 @@ export class AudioDownloader {
     };
   }
 
-  private resolveFormatUrl(
-    format: InnertubeFormat,
-    clientVersion: string,
-  ): string {
+  private resolveFormatUrl(format: InnertubeFormat): string {
     if (!format.url) {
       throw new Error("Selected format does not contain a direct stream URL");
     }
     const streamUrl = new URL(format.url);
-
-    const client = streamUrl.searchParams.get("c");
-    if (client === "WEB") {
-      streamUrl.searchParams.set("cver", clientVersion);
-    }
 
     streamUrl.searchParams.set("cpn", makeCPN());
     return streamUrl.toString();
@@ -794,9 +708,6 @@ export class AudioDownloader {
       ...withSignal(signal),
     });
     if (!response.ok) {
-      if (response.status === 403) {
-        throw new YtWatchContextForbiddenError(response.status);
-      }
       throw new Error(`Failed to load watch page: ${response.status}`);
     }
 
@@ -847,11 +758,7 @@ export class AudioDownloader {
     requestedClient: AudioDownloadClient | undefined,
     signal?: AbortSignal,
   ): Promise<InnertubePlayerResponse> {
-    const client = resolveInnertubeClient(
-      requestedClient,
-      watchContext,
-      videoId,
-    );
+    const client = resolveInnertubeClient(requestedClient);
     if (watchContext.visitorData) {
       client.visitorData = watchContext.visitorData;
     }

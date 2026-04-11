@@ -8,6 +8,22 @@ function getComposableParent(node: Node | null): Node | null {
   return node.parentNode ?? null;
 }
 
+export function getDeepActiveElement(
+  root: Document | ShadowRoot = document,
+): Element | null {
+  let activeElement: Element | null = root.activeElement;
+
+  while (activeElement instanceof HTMLElement && activeElement.shadowRoot) {
+    const nestedActiveElement = activeElement.shadowRoot.activeElement;
+    if (!nestedActiveElement) {
+      break;
+    }
+    activeElement = nestedActiveElement;
+  }
+
+  return activeElement;
+}
+
 /**
  * Checks whether `target` is a descendant of `container` in the composed tree
  * (crossing ShadowRoot boundaries via hosts).

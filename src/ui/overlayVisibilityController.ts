@@ -1,4 +1,5 @@
 import debug from "../utils/debug";
+import { containsCrossShadow, getDeepActiveElement } from "../utils/dom";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import type { OverlayView } from "./views/overlay";
 
@@ -140,7 +141,7 @@ export class OverlayVisibilityController {
 
     if (
       relatedNode &&
-      (currentNode?.contains(relatedNode) ||
+      ((currentNode && containsCrossShadow(currentNode, relatedNode)) ||
         this.deps.isInteractiveNode(relatedNode))
     ) {
       return;
@@ -164,7 +165,7 @@ export class OverlayVisibilityController {
       typeof document !== "undefined" &&
       typeof document.hasFocus === "function";
     if (canCheckFocus && document.hasFocus()) {
-      active = document.activeElement;
+      active = getDeepActiveElement(document);
     }
     if (active && this.deps.isInteractiveNode(active)) {
       debug.log("[OverlayVisibility] skip hide (focus inside overlay)");

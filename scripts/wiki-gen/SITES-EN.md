@@ -73,6 +73,14 @@ Limitations:
 - Doesn't work in the video preview
 - To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
+## Preservetube
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `preservetube.com`
+
 ## Zdf
 
 Status: [✅] Working
@@ -510,6 +518,7 @@ Available (sub)domains:
 
 - `dailymotion.com`
 - `www.dailymotion.com`
+- `player.dailymotion.com`
 - `geo*.dailymotion.com` (embedded player, on www.dailymotion.com it works)
 - `dai.ly`
 
@@ -694,9 +703,7 @@ Status: [✅] Working
 
 Available (sub)domains:
 
-- `kodik.info`
-- `kodik.biz`
-- `kodik.cc`
+- `kodikplayer.com`
 
 ## Patreon
 
@@ -829,6 +836,16 @@ Limitations:
 
 - You must be logged in to the site
 
+## Datacamp
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `datacamp.com`
+- `campus.datacamp.com`
+- `projector.datacamp.com`
+
 ## Coursera
 
 Status: [✅] Working
@@ -858,6 +875,15 @@ Available paths:
 
 - /video/VIDEO_ID/VIDEO_NAME
 - /embed/VIDEO_ID
+
+## Jove
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `app.jove.com`
+- `www.jove.com`
 
 ## Linkedin
 
@@ -904,6 +930,16 @@ Available (sub)domains:
 Available paths:
 
 - /video/watch/VIDEO_ID
+
+## Bunnystream
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `video.bunnycdn.com`
+- `iframe.mediadelivery.net`
+- `*b-cdn.net`
 
 ## Cloudflarestream
 
@@ -1107,6 +1143,15 @@ Available (sub)domains:
 Available paths:
 
 - /content/i2cs/*
+
+## Mediafile
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `mediafile.cc`
+- `www.mediafile.cc`
 
 ## Direct link to MP4/WEBM
 

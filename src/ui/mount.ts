@@ -13,8 +13,7 @@ export function isSameOverlayMount(
   return (
     previous.root === next.root &&
     previous.portalContainer === next.portalContainer &&
-    previous.subtitlesMountContainer === next.subtitlesMountContainer &&
-    previous.tooltipLayoutRoot === next.tooltipLayoutRoot
+    previous.subtitlesMountContainer === next.subtitlesMountContainer
   );
 }
 
@@ -33,18 +32,4 @@ export function applyOverlayMountUpdate(
 
   onChanged(next);
   return next;
-}
-
-/**
- * Tooltip geometry must be refreshed when either the button/root is reparented
- * or the layout root itself changes.
- */
-export function didTooltipMountContextChange(
-  previous: OverlayMount,
-  next: OverlayMount,
-): boolean {
-  return (
-    previous.root !== next.root ||
-    previous.tooltipLayoutRoot !== next.tooltipLayoutRoot
-  );
 }

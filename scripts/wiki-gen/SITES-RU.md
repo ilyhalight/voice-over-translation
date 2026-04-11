@@ -73,6 +73,14 @@
 - Не работает в предпросмотре видео
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
+## Preservetube
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `preservetube.com`
+
 ## Zdf
 
 Статус: [✅] Работает
@@ -510,6 +518,7 @@
 
 - `dailymotion.com`
 - `www.dailymotion.com`
+- `player.dailymotion.com`
 - `geo*.dailymotion.com` (встраиваемый плеер, на www.dailymotion.com работает)
 - `dai.ly`
 
@@ -694,9 +703,7 @@
 
 Доступные (под)домены:
 
-- `kodik.info`
-- `kodik.biz`
-- `kodik.cc`
+- `kodikplayer.com`
 
 ## Patreon
 
@@ -829,6 +836,16 @@
 
 - Необходимо быть авторизованным на сайте
 
+## Datacamp
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `datacamp.com`
+- `campus.datacamp.com`
+- `projector.datacamp.com`
+
 ## Coursera
 
 Статус: [✅] Работает
@@ -858,6 +875,15 @@
 
 - /video/VIDEO_ID/VIDEO_NAME
 - /embed/VIDEO_ID
+
+## Jove
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `app.jove.com`
+- `www.jove.com`
 
 ## Linkedin
 
@@ -904,6 +930,16 @@
 Доступные пути:
 
 - /video/watch/VIDEO_ID
+
+## Bunnystream
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `video.bunnycdn.com`
+- `iframe.mediadelivery.net`
+- `*b-cdn.net`
 
 ## Cloudflarestream
 
@@ -1107,6 +1143,15 @@
 Доступные пути:
 
 - /content/i2cs/*
+
+## Mediafile
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `mediafile.cc`
+- `www.mediafile.cc`
 
 ## Direct link to MP4/WEBM
 

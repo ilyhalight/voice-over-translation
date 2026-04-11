@@ -179,9 +179,10 @@ export async function downloadBlob(
 
   if (options.preferShare) {
     const shareResult = await shareBlob(blob, filename);
-    return shareResult === "shared";
+    if (shareResult === "shared") {
+      return true;
+    }
   }
-
   return triggerBlobDownload(blob, filename);
 }
 

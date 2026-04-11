@@ -1,5 +1,3 @@
-// Minimal HTTP method type for GM_xmlhttpRequest compatibility.
-// (Avoid pulling external typings just for this union.)
 type HttpMethod =
   | "GET"
   | "POST"
@@ -13,6 +11,7 @@ type HttpMethod =
 import { executeWithResponseCache } from "../core/cacheManager";
 import type { FetchOpts } from "../types/utils/gm";
 import { createTimeoutSignal } from "./abort";
+import { browserInfo } from "./browserInfo";
 import debug from "./debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "./errors";
 import { getHeaders } from "./utils";
@@ -20,11 +19,13 @@ import { getHeaders } from "./utils";
 const YANDEX_API_HOST = "api.browser.yandex.ru";
 const GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
 const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
+// Matches statusText reason-phrase: printable ASCII except control chars
 const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+
 type RequestUrlLike = string | URL | Request;
 type GmXhrResponse = {
   finalUrl?: string;
-  response?: Blob;
+  response?: Blob | null;
   responseHeaders?: string;
   status?: number;
   statusText?: string;
@@ -61,8 +62,8 @@ function hasSupportedGmXhr(): boolean {
 
 export const isProxyOnlyExtension =
   !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) &&
-  !!scriptHandler &&
-  !hasSupportedGmXhr();
+  (browserInfo.browser?.name === "Safari" ||
+    !["Tampermonkey", "Violentmonkey"].includes(scriptHandler));
 export const isSupportGM4 =
   typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
 export const isSupportGMXhr = hasSupportedGmXhr();
@@ -75,9 +76,7 @@ function getRequestHost(url: string): string | undefined {
     if (!URL_SCHEME_RE.test(normalizedUrl)) {
       try {
         return new URL(`https://${normalizedUrl}`).hostname.toLowerCase();
-      } catch {
-        // fall through
-      }
+      } catch {}
     }
     return undefined;
   }
@@ -104,8 +103,6 @@ function shouldUseGmXhr(
     );
   }
 
-  // These endpoints are routinely blocked by page-world CORS. Going through
-  // native fetch first only adds noisy console errors and an extra failed hop.
   return (
     isHostOrSubdomain(host, YANDEX_API_HOST) ||
     isHostOrSubdomain(host, GOOGLEVIDEO_HOST_SUFFIX)
@@ -155,65 +152,87 @@ function getGmXhrErrorMessage(error: unknown): string {
     error?: unknown;
     statusText?: unknown;
   };
-  if (typeof maybeError?.error === "string") {
+  if (
+    typeof maybeError?.error === "string" &&
+    maybeError.error.trim().length > 0
+  ) {
     return maybeError.error;
   }
-  if (typeof maybeError?.statusText === "string") {
+  if (
+    typeof maybeError?.statusText === "string" &&
+    maybeError.statusText.trim().length > 0 &&
+    maybeError.statusText !== '""' &&
+    maybeError.statusText !== "''"
+  ) {
     return maybeError.statusText;
   }
 
-  return getErrorMessage(error) || "Unknown error";
+  return getErrorMessage(error) || "Unknown GM XHR error";
 }
 
-async function gmXhrFetch(
+function buildResponse(resp: GmXhrResponse, urlStr: string): Response {
+  const status = resp.status;
+  const statusText = typeof resp.statusText === "string" ? resp.statusText : "";
+  const body = resp.response instanceof Blob ? resp.response : null;
+  const responseHeaders = parseResponseHeaders(resp.responseHeaders);
+
+  const response = new Response(body, {
+    status,
+    statusText,
+    headers: responseHeaders,
+  });
+
+  Object.defineProperty(response, "url", {
+    value: resp.finalUrl ?? urlStr,
+  });
+
+  return response;
+}
+
+async function executeCallbackGmXhr(
+  gmXhr: GmXhrCallbackApi,
   urlStr: string,
   timeout: number,
   fetchOptions: Omit<FetchOpts, "timeout">,
+  method: string,
+  headers: Record<string, string>,
 ): Promise<Response> {
+<<<<<<< Updated upstream
   const headers = getHeaders(fetchOptions.headers);
   const callbackGmXhr = getCallbackGmXhr();
   const promiseGmXhr = getPromiseGmXhr();
+=======
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let onAbort: (() => void) | undefined;
+>>>>>>> Stashed changes
 
-  if (callbackGmXhr) {
-    return await new Promise((resolve, reject) => {
-      let settled = false;
-      let onAbort: (() => void) | undefined;
-      const cleanupAbort = () => {
-        if (onAbort) {
-          fetchOptions.signal?.removeEventListener("abort", onAbort);
-        }
-      };
-      const failOnce = (error: Error) => {
+    const cleanupAbort = () => {
+      if (onAbort) {
+        fetchOptions.signal?.removeEventListener("abort", onAbort);
+      }
+    };
+
+    const failOnce = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanupAbort();
+      reject(error);
+    };
+
+    const request = gmXhr({
+      method: method as HttpMethod,
+      url: urlStr,
+      responseType: "blob" as any,
+      data: fetchOptions.body as any,
+      timeout,
+      headers,
+      onload: (resp: GmXhrResponse) => {
         if (settled) return;
         settled = true;
         cleanupAbort();
-        reject(error);
-      };
 
-      const request = callbackGmXhr({
-        method: (fetchOptions.method || "GET") as HttpMethod,
-        url: urlStr,
-        responseType: "blob" as any,
-        data: fetchOptions.body as any,
-        timeout,
-        headers,
-        onload: (resp: GmXhrResponse) => {
-          if (settled) return;
-          settled = true;
-          cleanupAbort();
-          const responseHeaders = parseResponseHeaders(resp.responseHeaders);
-
-          const response = new Response(resp.response as Blob, {
-            status: resp.status,
-            statusText:
-              typeof resp.statusText === "string" ? resp.statusText : "",
-            headers: responseHeaders,
-          });
-
-          Object.defineProperty(response, "url", {
-            value: resp.finalUrl ?? urlStr,
-          });
-
+<<<<<<< Updated upstream
           resolve(response);
         },
         ontimeout: () => failOnce(new Error("Timeout")),
@@ -227,26 +246,92 @@ async function gmXhrFetch(
           request?.abort?.();
         } catch {
           // ignore abort races
+=======
+        try {
+          const response = buildResponse(resp, urlStr);
+          debug.log("[GM_fetch] GM_xmlhttpRequest completed", {
+            url: response.url,
+            method,
+            status: response.status,
+            statusText: response.statusText,
+          });
+          resolve(response);
+        } catch (buildErr) {
+          // Constructing Response failed even after sanitization — surface error
+          debug.warn("[GM_fetch] GM_xmlhttpRequest response build failed", {
+            url: urlStr,
+            method,
+            error: getErrorMessage(buildErr),
+            rawStatus: resp.status,
+            rawStatusText: resp.statusText,
+          });
+          reject(
+            buildErr instanceof Error
+              ? buildErr
+              : new Error(getErrorMessage(buildErr)),
+          );
+>>>>>>> Stashed changes
         }
+      },
+      ontimeout: () => {
+        debug.warn("[GM_fetch] GM_xmlhttpRequest timed out", {
+          url: urlStr,
+          method,
+          timeout,
+        });
+        failOnce(new Error("Timeout"));
+      },
+      onerror: (error: unknown) => {
+        // Safari can deliver an empty-string error — fall back to generic message
+        const message = getGmXhrErrorMessage(error);
+        debug.warn("[GM_fetch] GM_xmlhttpRequest failed", {
+          url: urlStr,
+          method,
+          error: message,
+        });
+        failOnce(new Error(message));
+      },
+      onabort: () => {
+        debug.warn("[GM_fetch] GM_xmlhttpRequest aborted", {
+          url: urlStr,
+          method,
+        });
         failOnce(makeAbortError());
-      };
-
-      if (fetchOptions.signal) {
-        fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
-        if (fetchOptions.signal.aborted) {
-          onAbort();
-          return;
-        }
-      }
+      },
     });
-  }
 
-  if (!promiseGmXhr) {
-    throw new TypeError("GM_xmlhttpRequest is not available");
-  }
+    onAbort = () => {
+      try {
+        request?.abort?.();
+      } catch {}
+      failOnce(makeAbortError());
+    };
 
+<<<<<<< Updated upstream
   const request = promiseGmXhr({
     method: (fetchOptions.method || "GET") as HttpMethod,
+=======
+    if (fetchOptions.signal) {
+      fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
+      if (fetchOptions.signal.aborted) {
+        onAbort();
+        return;
+      }
+    }
+  });
+}
+
+async function executePromiseGmXhr(
+  gmXhr: GmXhrPromiseApi,
+  urlStr: string,
+  timeout: number,
+  fetchOptions: Omit<FetchOpts, "timeout">,
+  method: string,
+  headers: Record<string, string>,
+): Promise<Response> {
+  const request = gmXhr({
+    method: method as HttpMethod,
+>>>>>>> Stashed changes
     url: urlStr,
     responseType: "blob" as any,
     data: fetchOptions.body as any,
@@ -264,9 +349,7 @@ async function gmXhrFetch(
       abortHandler = () => {
         try {
           request.abort?.();
-        } catch {
-          // ignore abort races
-        }
+        } catch {}
         reject(makeAbortError());
       };
 
@@ -279,17 +362,8 @@ async function gmXhrFetch(
     });
 
     const resp = (await Promise.race([request, abortPromise])) as GmXhrResponse;
-    const responseHeaders = parseResponseHeaders(resp.responseHeaders);
 
-    const response = new Response(resp.response as Blob, {
-      status: resp.status,
-      statusText: typeof resp.statusText === "string" ? resp.statusText : "",
-      headers: responseHeaders,
-    });
-
-    Object.defineProperty(response, "url", {
-      value: resp.finalUrl ?? urlStr,
-    });
+    const response = buildResponse(resp, urlStr);
 
     return response;
   } finally {
@@ -297,6 +371,68 @@ async function gmXhrFetch(
       fetchOptions.signal?.removeEventListener("abort", abortHandler);
     }
   }
+}
+
+async function gmXhrFetch(
+  urlStr: string,
+  timeout: number,
+  fetchOptions: Omit<FetchOpts, "timeout">,
+): Promise<Response> {
+  const headers = getHeaders(fetchOptions.headers);
+  const method = (fetchOptions.method || "GET").toUpperCase();
+  debug.log("[GM_fetch] GM_xmlhttpRequest start", {
+    url: urlStr,
+    method,
+    timeout,
+    headerCount: Object.keys(headers).length,
+  });
+
+  const callbackGmXhr = getCallbackGmXhr();
+  if (callbackGmXhr) {
+    debug.log("[GM_fetch] attempting callback-style GM_xmlhttpRequest");
+    try {
+      return await executeCallbackGmXhr(
+        callbackGmXhr,
+        urlStr,
+        timeout,
+        fetchOptions,
+        method,
+        headers,
+      );
+    } catch (error) {
+      if (isAbortError(error)) throw error;
+      debug.warn("[GM_fetch] callback-style GM_xmlhttpRequest failed", {
+        url: urlStr,
+        method,
+        error: getGmXhrErrorMessage(error),
+      });
+    }
+  }
+
+  const promiseGmXhr = getPromiseGmXhr();
+  if (promiseGmXhr) {
+    debug.log("[GM_fetch] attempting promise-style GM.xmlHttpRequest");
+    try {
+      return await executePromiseGmXhr(
+        promiseGmXhr,
+        urlStr,
+        timeout,
+        fetchOptions,
+        method,
+        headers,
+      );
+    } catch (error) {
+      if (isAbortError(error)) throw error;
+      debug.warn("[GM_fetch] promise-style GM.xmlHttpRequest failed", {
+        url: urlStr,
+        method,
+        error: getGmXhrErrorMessage(error),
+      });
+    }
+  }
+
+  debug.warn("[GM_fetch] none of the GM approaches worked");
+  throw new Error("All GM approaches failed");
 }
 
 export async function GM_fetch(
@@ -320,7 +456,33 @@ export async function GM_fetch(
         reason: forceGmXhr ? "forced" : "host-policy",
         url: urlStr,
       });
-      return await gmXhrFetch(urlStr, timeout, fetchOptions);
+      try {
+        return await gmXhrFetch(urlStr, timeout, fetchOptions);
+      } catch (err) {
+        if (isAbortError(err)) throw err;
+        if (forceGmXhr || shouldUseGmXhr(host, urlStr)) throw err;
+        debug.warn(
+          "[GM_fetch] all GM approaches failed, falling back to native fetch",
+          {
+            url: urlStr,
+            method,
+            host: host ?? "unknown",
+            error: getErrorMessage(err) || "Unknown error",
+          },
+        );
+        const { signal, cleanup } = createTimeoutSignal(
+          timeout,
+          fetchOptions.signal,
+        );
+        try {
+          return await fetch(url, {
+            ...fetchOptions,
+            signal,
+          });
+        } finally {
+          cleanup();
+        }
+      }
     }
 
     const { signal, cleanup } = createTimeoutSignal(
@@ -336,11 +498,20 @@ export async function GM_fetch(
       if (signal.aborted || isAbortError(err)) {
         throw err;
       }
+<<<<<<< Updated upstream
       // If fetch fails, retry via GM_xmlhttpRequest.
       debug.log(
         "GM_fetch preventing CORS by GM_xmlhttpRequest",
         getErrorMessage(err) || "Unknown error",
       );
+=======
+      debug.warn("[GM_fetch] fetch failed, retrying via GM_xmlhttpRequest", {
+        url: urlStr,
+        method,
+        host: host ?? "unknown",
+        error: getErrorMessage(err) || "Unknown error",
+      });
+>>>>>>> Stashed changes
       return await gmXhrFetch(urlStr, timeout, fetchOptions);
     } finally {
       cleanup();

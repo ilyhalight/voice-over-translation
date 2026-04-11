@@ -635,7 +635,7 @@ function getSupportedSites() {
 async function main() {
   const supportedSites = getSupportedSites();
   const langs = ["ru", "en"];
-  for await (const lang of langs) {
+  for (const lang of langs) {
     const mdText = `${genMarkdown(supportedSites, lang).join("\n\n")}\n`;
 
     await Bun.write(

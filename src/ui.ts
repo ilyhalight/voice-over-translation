@@ -1,27 +1,7 @@
 import type { TemplateResult } from "lit-html";
 import { render } from "lit-html";
 import { localizationProvider } from "./localization/localizationProvider";
-import mainScss from "./styles/main.scss?inline";
 import type { LitHtml } from "./types/components/shared";
-
-function injectMainStyles(css: string): HTMLStyleElement | HTMLElement {
-  const gmAddStyle = (
-    globalThis as typeof globalThis & {
-      GM_addStyle?: (styleText: string) => HTMLStyleElement | HTMLElement;
-    }
-  ).GM_addStyle;
-
-  if (typeof gmAddStyle === "function") {
-    return gmAddStyle(css);
-  }
-
-  const style = document.createElement("style");
-  style.textContent = css;
-  (document.head || document.documentElement).appendChild(style);
-  return style;
-}
-
-injectMainStyles(mainScss);
 
 declare global {
   interface Window {
