@@ -210,8 +210,22 @@ function ensureSmartDuckingAnalyser(
     }
 
     try {
+      analyser.disconnect();
+    } catch {
+      // ignore
+    }
+
+    try {
       inputNode.connect(analyser);
       state.connectedInputNode = inputNode;
+
+      if (state.createdMediaSource === inputNode) {
+        try {
+          analyser.connect(audioContext.destination);
+        } catch (err) {
+          debug.log("[SmartDucking] failed to bridge analyser output", err);
+        }
+      }
     } catch (err) {
       debug.log("[SmartDucking] failed to connect analyser", err);
       return undefined;
