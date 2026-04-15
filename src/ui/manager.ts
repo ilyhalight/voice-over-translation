@@ -313,6 +313,7 @@ export class UIManager {
           const nextVolume = clamp(currentVolume, 0, maxVolume);
           overlayView.translationVolumeSlider.value = nextVolume;
           this.videoHandler?.onTranslationVolumeSliderSynced(nextVolume);
+          this.videoHandler?.syncTranslationPlaybackVolume();
         });
       })
       .addEventListener("change:syncVolume", (checked) => {
@@ -334,6 +335,7 @@ export class UIManager {
           const nextTranslation = clamp(translationSlider.value, 0, maxVolume);
           translationSlider.value = nextTranslation;
           this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
+          this.videoHandler.syncTranslationPlaybackVolume();
 
           if (!checked) {
             return;

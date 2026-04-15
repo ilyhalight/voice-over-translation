@@ -6,6 +6,7 @@ import { localizationProvider } from "../../localization/localizationProvider";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
 import { GM_fetch } from "../../utils/gm";
+import { applyTranslationPlaybackVolume } from "../../utils/translationVolume";
 import VOTLocalizedError from "../../utils/VOTLocalizedError";
 import type { VideoData } from "../shared";
 import {
@@ -507,6 +508,13 @@ export async function updateTranslation(
   this.setupAudioSettings();
   this.transformBtn("success", localizationProvider.get("disableTranslate"));
   this.afterUpdateTranslation(resolvedAudioUrl);
+}
+
+export function syncTranslationPlaybackVolume(this: VideoHandler): void {
+  const player = this.audioPlayer?.player;
+  const overlayView = this.uiManager.votOverlayView;
+  const nextVolume = overlayView?.translationVolumeSlider?.value;
+  applyTranslationPlaybackVolume(player, nextVolume, this.data?.defaultVolume);
 }
 
 async function applyTranslationWithDirectFallback(

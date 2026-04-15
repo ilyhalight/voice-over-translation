@@ -97,6 +97,7 @@ import {
   scheduleTranslationRefresh as scheduleTranslationRefreshImpl,
   setupAudioSettings as setupAudioSettingsImpl,
   stopSmartVolumeDucking as stopSmartVolumeDuckingImpl,
+  syncTranslationPlaybackVolume as syncTranslationPlaybackVolumeImpl,
   translateFunc as translateFuncImpl,
   unproxifyAudio as unproxifyAudioImpl,
   updateTranslation as updateTranslationImpl,
@@ -1383,6 +1384,7 @@ export class VideoHandler {
       "afterUpdateTranslation downloadTranslationUrl",
       this.downloadTranslationUrl,
     );
+    this.syncTranslationPlaybackVolume();
     if (this.data?.sendNotifyOnComplete && this.hadAsyncWait && isSuccess) {
       this.notifier.translationCompleted(globalThis.location.hostname);
       this.hadAsyncWait = false;
@@ -1446,6 +1448,10 @@ export class VideoHandler {
    * @param {string} audioUrl The audio URL.
    */
   updateTranslation = updateTranslationImpl;
+
+  syncTranslationPlaybackVolume() {
+    return this.callModule(syncTranslationPlaybackVolumeImpl);
+  }
 
   /**
    * Translates the video/audio.

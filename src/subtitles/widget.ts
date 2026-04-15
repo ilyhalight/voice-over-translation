@@ -667,13 +667,15 @@ export class SubtitlesWidget {
     this.videoFrameRequestId = null;
     if (this.abortController.signal.aborted) return;
     const video = this.video;
-    if (!video || video.paused || video.ended) return;
-    if (!this.subtitles) return;
-    const playbackTimeMs =
-      typeof metadata.mediaTime === "number" &&
-      Number.isFinite(metadata.mediaTime)
-        ? metadata.mediaTime * 1000
-        : undefined;
+    if (!video || video.paused || video.ended || !this.subtitles) return;
+
+    const mediaTime = Number.isFinite(metadata.mediaTime)
+      ? metadata.mediaTime
+      : null;
+    const rawTime =
+      mediaTime === 0 && video.currentTime > 0 ? video.currentTime : mediaTime; // #1657
+    const playbackTimeMs = rawTime != null ? rawTime * 1000 : undefined;
+
     this.requestUpdate(playbackTimeMs, now);
     this.startVideoFrameLoop();
   };

@@ -11,6 +11,7 @@ export {
   proxifyAudio,
   refreshTranslationAudio,
   scheduleTranslationRefresh,
+  syncTranslationPlaybackVolume,
   translateFunc,
   unproxifyAudio,
   updateTranslation,

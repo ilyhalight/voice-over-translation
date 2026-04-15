@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.5.1
+// @version        1.11.5.2
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -4788,7 +4788,7 @@ var vot = (function(exports) {
 	var DeeplearningAIHelper = class extends BaseHelper {
 		async getVideoData(_videoId) {
 			if (!this.video) return;
-			const sourceUrl = this.video.querySelector("source[type=\"application/x-mpegurl\"]")?.src;
+			const sourceUrl = this.video.querySelector("source[type=\"application/x-mpegurl\"]")?.src.replace(/\.m3u8/, "_360p.mp4");
 			if (!sourceUrl) return;
 			return { url: sourceUrl };
 		}
@@ -10999,7 +10999,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.5.1"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.5.2"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -15512,9 +15512,10 @@ var vot = (function(exports) {
 			this.videoFrameRequestId = null;
 			if (this.abortController.signal.aborted) return;
 			const video = this.video;
-			if (!video || video.paused || video.ended) return;
-			if (!this.subtitles) return;
-			const playbackTimeMs = typeof metadata.mediaTime === "number" && Number.isFinite(metadata.mediaTime) ? metadata.mediaTime * 1e3 : void 0;
+			if (!video || video.paused || video.ended || !this.subtitles) return;
+			const mediaTime = Number.isFinite(metadata.mediaTime) ? metadata.mediaTime : null;
+			const rawTime = mediaTime === 0 && video.currentTime > 0 ? video.currentTime : mediaTime;
+			const playbackTimeMs = rawTime != null ? rawTime * 1e3 : void 0;
 			this.requestUpdate(playbackTimeMs, now);
 			this.startVideoFrameLoop();
 		};
@@ -21034,6 +21035,7 @@ var vot = (function(exports) {
 					const nextVolume = clamp(currentVolume, 0, maxVolume);
 					overlayView.translationVolumeSlider.value = nextVolume;
 					this.videoHandler?.onTranslationVolumeSliderSynced(nextVolume);
+					this.videoHandler?.syncTranslationPlaybackVolume();
 				});
 			}).addEventListener("change:syncVolume", (checked) => {
 				if (!this.videoHandler) return;
@@ -21047,6 +21049,7 @@ var vot = (function(exports) {
 					const nextTranslation = clamp(translationSlider.value, 0, maxVolume);
 					translationSlider.value = nextTranslation;
 					this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
+					this.videoHandler.syncTranslationPlaybackVolume();
 					if (!checked) return;
 					this.videoHandler.resetVolumeLinkState(Number(videoSlider.value), nextTranslation);
 				});
@@ -22607,6 +22610,13 @@ var vot = (function(exports) {
 		this.smartVolumeLastApplied = nextVolume;
 	}
 	//#endregion
+	//#region src/utils/translationVolume.ts
+	function applyTranslationPlaybackVolume(player, volumePercent, fallbackVolumePercent) {
+		const nextVolume = typeof volumePercent === "number" && Number.isFinite(volumePercent) ? volumePercent : fallbackVolumePercent;
+		if (!player || typeof nextVolume !== "number" || !Number.isFinite(nextVolume)) return;
+		player.volume = nextVolume / 100;
+	}
+	//#endregion
 	//#region src/videoHandler/modules/proxyShared.ts
 	var AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
 	var AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
@@ -23051,6 +23061,11 @@ var vot = (function(exports) {
 		this.setupAudioSettings();
 		this.transformBtn("success", localizationProvider.get("disableTranslate"));
 		this.afterUpdateTranslation(resolvedAudioUrl);
+	}
+	function syncTranslationPlaybackVolume() {
+		const player = this.audioPlayer?.player;
+		const nextVolume = this.uiManager.votOverlayView?.translationVolumeSlider?.value;
+		applyTranslationPlaybackVolume(player, nextVolume, this.data?.defaultVolume);
 	}
 	async function applyTranslationWithDirectFallback(handler, audioUrl, actionContext) {
 		const nextAudioUrl = audioUrl;
@@ -25366,6 +25381,7 @@ var vot = (function(exports) {
 				this.downloadTranslationUrl = audioUrl;
 			}
 			debug.log("afterUpdateTranslation downloadTranslationUrl", this.downloadTranslationUrl);
+			this.syncTranslationPlaybackVolume();
 			if (this.data?.sendNotifyOnComplete && this.hadAsyncWait && isSuccess) {
 				this.notifier.translationCompleted(globalThis.location.hostname);
 				this.hadAsyncWait = false;
@@ -25418,6 +25434,9 @@ var vot = (function(exports) {
 		* @param {string} audioUrl The audio URL.
 		*/
 		updateTranslation = updateTranslation;
+		syncTranslationPlaybackVolume() {
+			return this.callModule(syncTranslationPlaybackVolume);
+		}
 		/**
 		* Translates the video/audio.
 		* @param {string} VIDEO_ID The video ID.
