@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.5.2
+// @version        1.11.5.3
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -149,6 +149,7 @@
 // @match          *://*.jove.com/*
 // @match          *://*.preservetube.com/*
 // @match          *://*.mediafile.cc/*
+// @match          *://*.skilljar.com/*
 // @match          *://projector.datacamp.com/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
@@ -3637,6 +3638,7 @@ var vot = (function(exports) {
 		ExtVideoService["deeplearningai"] = "deeplearningai";
 		ExtVideoService["netacad"] = "netacad";
 		ExtVideoService["mediafile"] = "mediafile";
+		ExtVideoService["skilljar"] = "skilljar";
 	})(ExtVideoService || (ExtVideoService = {}));
 	({
 		...VideoService$1,
@@ -4271,6 +4273,13 @@ var vot = (function(exports) {
 			url: "https://mediafile.cc/",
 			match: /^(www\.)?mediafile\.cc$/,
 			selector: "div#playerContainer",
+			needExtraData: true
+		},
+		{
+			host: ExtVideoService.skilljar,
+			url: "https://anthropic.skilljar.com/",
+			match: /skilljar\.com$/,
+			selector: sharedSelectors.jwPlayer,
 			needExtraData: true
 		},
 		{
@@ -5655,6 +5664,38 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/skilljar.js
+	var SkilljarHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.pathname.slice(1);
+		}
+		async getVideoData(videoId) {
+			try {
+				if (typeof jwplayer === "undefined") throw new Error("JW Player not found on page");
+				const player = jwplayer();
+				if (!player || typeof player.getDuration !== "function") throw new Error("JW Player instance not ready");
+				const item = player.getPlaylistItem ? player.getPlaylistItem() : null;
+				if (!item) throw new Error("No playlist item found");
+				const duration = player.getDuration ? player.getDuration() : item.duration ?? 0;
+				const validSources = (item.allSources ?? []).filter((s) => typeof s.height === "number" && s.height > 0);
+				if (validSources.length === 0) throw new Error("No sources with height > 0 found");
+				validSources.sort((a, b) => (a.height ?? 0) - (b.height ?? 0));
+				return {
+					url: videoId,
+					duration,
+					translationHelp: [{
+						target: "video_file_url",
+						targetUrl: validSources[0].file
+					}],
+					subtitles: []
+				};
+			} catch (err) {
+				console.error("[VOT] SkilljarHelper error:", err instanceof Error ? err.message : String(err));
+				return;
+			}
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/spankbang.js
 	var SpankBangHelper = class extends BaseHelper {
 		async getVideoId(url) {
@@ -6745,7 +6786,8 @@ var vot = (function(exports) {
 		[ExtVideoService.oraclelearn]: OracleLearnHelper,
 		[ExtVideoService.deeplearningai]: DeeplearningAIHelper,
 		[ExtVideoService.netacad]: NetacadHelper,
-		[ExtVideoService.mediafile]: MediafileHelper
+		[ExtVideoService.mediafile]: MediafileHelper,
+		[ExtVideoService.skilljar]: SkilljarHelper
 	};
 	var VideoHelper = class {
 		helpersData;
@@ -10999,7 +11041,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.5.2"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.5.3"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -17468,6 +17510,29 @@ var vot = (function(exports) {
 		return addTitleId3Tag(arrayBuffer, filename);
 	}
 	//#endregion
+	//#region src/utils/translationVolume.ts
+	function safeSetPlayerVolume(player, volume) {
+		const gainNode = player.gainNode;
+		if (volume > 1 && gainNode?.gain) try {
+			player.volume = 1;
+			gainNode.gain.value = volume;
+			return;
+		} catch {}
+		try {
+			player.volume = volume;
+		} catch {
+			player.volume = Math.max(0, Math.min(1, volume));
+		}
+		if (gainNode?.gain && volume <= 1) try {
+			gainNode.gain.value = 1;
+		} catch {}
+	}
+	function applyTranslationPlaybackVolume(player, volumePercent, fallbackVolumePercent) {
+		const nextVolume = typeof volumePercent === "number" && Number.isFinite(volumePercent) ? volumePercent : fallbackVolumePercent;
+		if (!player || typeof nextVolume !== "number" || !Number.isFinite(nextVolume)) return;
+		safeSetPlayerVolume(player, nextVolume / 100);
+	}
+	//#endregion
 	//#region src/ui/mount.ts
 	/**
 	* Compare overlay mount points by DOM identity.
@@ -20992,7 +21057,7 @@ var vot = (function(exports) {
 			}).addEventListener("input:translationVolume", (volume) => {
 				if (!this.videoHandler) return;
 				const nextVolume = volume ?? this.data.defaultVolume ?? 100;
-				this.videoHandler.audioPlayer.player.volume = nextVolume / 100;
+				safeSetPlayerVolume(this.videoHandler.audioPlayer.player, nextVolume / 100);
 				if (!this.data.syncVolume) {
 					this.videoHandler.onTranslationVolumeSliderSynced(nextVolume);
 					return;
@@ -22579,7 +22644,7 @@ var vot = (function(exports) {
 		}
 	}
 	function setupAudioSettings() {
-		if (typeof this.data?.defaultVolume === "number") this.audioPlayer.player.volume = this.data.defaultVolume / 100;
+		if (typeof this.data?.defaultVolume === "number") safeSetPlayerVolume(this.audioPlayer.player, this.data.defaultVolume / 100);
 		const autoVolumeMode = getAutoVolumeMode(this);
 		if (autoVolumeMode === "off") {
 			stopSmartVolumeDucking(this, { restoreVolume: this.smartVolumeDuckingBaseline ?? this.volumeOnStart });
@@ -22598,7 +22663,8 @@ var vot = (function(exports) {
 		}
 		if (typeof this.smartVolumeDuckingBaseline !== "number") this.smartVolumeDuckingBaseline = this.getVideoVolume();
 		const baseline = this.smartVolumeDuckingBaseline ?? this.getVideoVolume();
-		this.setVideoVolume(Math.min(baseline, targetVolume));
+		const nextVolume = Math.min(baseline, targetVolume);
+		this.setVideoVolume(nextVolume);
 		writeSmartDuckingRuntime(this, initSmartDuckingRuntime(this.smartVolumeDuckingBaseline));
 		this.smartVolumeIsDucked = true;
 	}
@@ -22608,13 +22674,6 @@ var vot = (function(exports) {
 		this.smartVolumeDuckingTarget = nextVolume;
 		this.smartVolumeDuckingBaseline = nextVolume;
 		this.smartVolumeLastApplied = nextVolume;
-	}
-	//#endregion
-	//#region src/utils/translationVolume.ts
-	function applyTranslationPlaybackVolume(player, volumePercent, fallbackVolumePercent) {
-		const nextVolume = typeof volumePercent === "number" && Number.isFinite(volumePercent) ? volumePercent : fallbackVolumePercent;
-		if (!player || typeof nextVolume !== "number" || !Number.isFinite(nextVolume)) return;
-		player.volume = nextVolume / 100;
 	}
 	//#endregion
 	//#region src/videoHandler/modules/proxyShared.ts
@@ -24941,6 +25000,7 @@ var vot = (function(exports) {
 		*/
 		createPlayer() {
 			const preferAudio = this.getPreferAudio();
+			const audioContext = this.getAudioContext();
 			debug.log("preferAudio:", preferAudio);
 			this.audioPlayer = new Chaimu({
 				video: this.video,
@@ -24949,6 +25009,7 @@ var vot = (function(exports) {
 				fetchOpts: { timeout: 0 },
 				preferAudio
 			});
+			if (preferAudio && audioContext) this.audioPlayer.audioContext = audioContext;
 			return this;
 		}
 		/**
@@ -25236,7 +25297,7 @@ var vot = (function(exports) {
 			});
 			if (typeof nextTranslation === "number") {
 				translationSlider.value = nextTranslation;
-				if (this.audioPlayer?.player) this.audioPlayer.player.volume = nextTranslation / 100;
+				if (this.audioPlayer?.player) safeSetPlayerVolume(this.audioPlayer.player, nextTranslation / 100);
 				return;
 			}
 			if (typeof nextVideo === "number") {

@@ -1,6 +1,7 @@
 import { defaultAutoVolume } from "../../config/config";
 import type { VideoHandler } from "../../index";
 import debug from "../../utils/debug";
+import { safeSetPlayerVolume } from "../../utils/translationVolume";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
 import {
@@ -456,7 +457,7 @@ function smartDuckingTick(handler: VideoHandler): void {
 
 export function setupAudioSettings(this: VideoHandler) {
   if (typeof this.data?.defaultVolume === "number") {
-    this.audioPlayer.player.volume = this.data.defaultVolume / 100;
+    safeSetPlayerVolume(this.audioPlayer.player, this.data.defaultVolume / 100);
   }
 
   const autoVolumeMode = getAutoVolumeMode(this);
@@ -491,7 +492,8 @@ export function setupAudioSettings(this: VideoHandler) {
   }
 
   const baseline = this.smartVolumeDuckingBaseline ?? this.getVideoVolume();
-  this.setVideoVolume(Math.min(baseline, targetVolume));
+  const nextVolume = Math.min(baseline, targetVolume);
+  this.setVideoVolume(nextVolume);
 
   writeSmartDuckingRuntime(
     this,

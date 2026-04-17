@@ -400,7 +400,8 @@ async function applyTranslationSource(
   sourceUrl: string,
   actionContext?: ActionContext,
 ): Promise<ApplyTranslationSourceResult> {
-  const didSetSource = handler.audioPlayer.player.src !== sourceUrl;
+  const currentSrc = handler.audioPlayer.player.src;
+  const didSetSource = currentSrc !== sourceUrl;
   let appliedSourceUrl: string | null = null;
 
   if (didSetSource) {

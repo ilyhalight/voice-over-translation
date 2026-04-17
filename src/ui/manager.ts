@@ -14,6 +14,7 @@ import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
+import { safeSetPlayerVolume } from "../utils/translationVolume";
 import {
   clamp,
   clearFileName,
@@ -224,7 +225,10 @@ export class UIManager {
         // Prefer the actual event payload (the overlay also updates `data`, but
         // using the payload is simpler and avoids accidental desyncs).
         const nextVolume = volume ?? this.data.defaultVolume ?? 100;
-        this.videoHandler.audioPlayer.player.volume = nextVolume / 100;
+        safeSetPlayerVolume(
+          this.videoHandler.audioPlayer.player,
+          nextVolume / 100,
+        );
         if (!this.data.syncVolume) {
           this.videoHandler.onTranslationVolumeSliderSynced(nextVolume);
           return;

@@ -44,6 +44,7 @@ import {
 } from "./utils/intervalIdleChecker";
 import { Notifier } from "./utils/notify";
 import { translate } from "./utils/translateApis";
+import { safeSetPlayerVolume } from "./utils/translationVolume";
 import {
   calculatedResLang,
   type DocumentWithFullscreen,
@@ -662,6 +663,7 @@ export class VideoHandler {
    */
   createPlayer() {
     const preferAudio = this.getPreferAudio();
+    const audioContext = this.getAudioContext();
     debug.log("preferAudio:", preferAudio);
     this.audioPlayer = new Chaimu({
       video: this.video,
@@ -673,6 +675,9 @@ export class VideoHandler {
       },
       preferAudio,
     });
+    if (preferAudio && audioContext) {
+      (this.audioPlayer as any).audioContext = audioContext;
+    }
     return this;
   }
 
@@ -1112,7 +1117,7 @@ export class VideoHandler {
     if (typeof nextTranslation === "number") {
       translationSlider.value = nextTranslation;
       if (this.audioPlayer?.player) {
-        this.audioPlayer.player.volume = nextTranslation / 100;
+        safeSetPlayerVolume(this.audioPlayer.player, nextTranslation / 100);
       }
       return;
     }
