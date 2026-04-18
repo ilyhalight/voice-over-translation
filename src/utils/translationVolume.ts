@@ -18,7 +18,7 @@ export function safeSetPlayerVolume(
   }
   if (gainNode?.gain && volume <= 1) {
     try {
-      gainNode.gain.value = 1;
+      gainNode.gain.value = volume;
     } catch {}
   }
 }

@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.5.3
+// @version        1.11.5.4
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -11041,7 +11041,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.5.3"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.5.4"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -17524,7 +17524,7 @@ var vot = (function(exports) {
 			player.volume = Math.max(0, Math.min(1, volume));
 		}
 		if (gainNode?.gain && volume <= 1) try {
-			gainNode.gain.value = 1;
+			gainNode.gain.value = volume;
 		} catch {}
 	}
 	function applyTranslationPlaybackVolume(player, volumePercent, fallbackVolumePercent) {
