@@ -1,32 +1,38 @@
 type FullscreenLayerControllerOptions = {
-  container: HTMLElement;
+  container: HTMLElement | ShadowRoot;
 };
 
 export class FullscreenLayerController {
-  private container: HTMLElement;
+  private container: HTMLElement | ShadowRoot;
 
   constructor({ container }: FullscreenLayerControllerOptions) {
     this.container = container;
   }
 
-  updateContainer(container: HTMLElement): void {
+  updateContainer(container: HTMLElement | ShadowRoot): void {
     this.container = container;
   }
 
-  getWidgetParentElement(): HTMLElement {
+  getWidgetParentElement(): HTMLElement | ShadowRoot {
     return this.container;
   }
 
   getLayoutRootElement(): HTMLElement {
-    return this.container;
+    return this.container instanceof ShadowRoot
+      ? (this.container.host as HTMLElement)
+      : this.container;
   }
 
   syncWidgetContainer(widgetContainer: HTMLElement | null): void {
-    if (getComputedStyle(this.container).position === "static") {
-      this.container.style.position = "relative";
+    const containerEl =
+      this.container instanceof ShadowRoot
+        ? (this.container.host as HTMLElement)
+        : this.container;
+    if (getComputedStyle(containerEl).position === "static") {
+      containerEl.style.position = "relative";
     }
 
-    if (widgetContainer && widgetContainer.parentElement !== this.container) {
+    if (widgetContainer && widgetContainer.parentNode !== this.container) {
       this.container.appendChild(widgetContainer);
     }
   }

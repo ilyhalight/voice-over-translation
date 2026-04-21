@@ -316,10 +316,7 @@ async function tryReadBlobBody(
   return null;
 }
 
-function tryCoerceByteLikeObjectToUint8Array(
-  v: unknown,
-  depth = 0,
-): Uint8Array | null {
+export function coerceBodyToBytes(v: unknown, depth = 0): Uint8Array | null {
   if (depth > MAX_COERCE_DEPTH) return null;
 
   if (!isObjectLike(v)) return null;
@@ -420,10 +417,7 @@ function tryReadTypedArrayLikeObject(
     return null;
   }
 
-  const recoveredBuffer = tryCoerceByteLikeObjectToUint8Array(
-    rawBuffer,
-    depth + 1,
-  );
+  const recoveredBuffer = coerceBodyToBytes(rawBuffer, depth + 1);
   if (!recoveredBuffer) {
     return null;
   }
@@ -477,10 +471,6 @@ function tryReadSparseNumericObject(
   }
 
   return out;
-}
-
-export function coerceBodyToBytes(body: any): Uint8Array | null {
-  return tryCoerceByteLikeObjectToUint8Array(body);
 }
 
 export function summarizeBodyForDebug(body: any): BodyDebugSummary {

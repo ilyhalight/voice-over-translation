@@ -63,7 +63,7 @@ export class UIManager {
     this.intervalIdleChecker = intervalIdleChecker;
   }
 
-  get root(): HTMLElement {
+  get root(): HTMLElement | ShadowRoot {
     return this.mount.root;
   }
 
@@ -71,7 +71,7 @@ export class UIManager {
     return this.mount.portalContainer;
   }
 
-  getSubtitlesMountContainer(): HTMLElement {
+  getSubtitlesMountContainer(): HTMLElement | ShadowRoot {
     return this.votOverlayView?.root ?? this.mount.subtitlesMountContainer;
   }
 
@@ -138,17 +138,15 @@ export class UIManager {
     return this;
   }
 
-  private getGlobalPortalHost(mount: OverlayMount): HTMLElement {
-    const doc = document as Document & {
-      webkitFullscreenElement?: Element | null;
-    };
-    const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-    const isCurrentVideoFullscreen =
-      fullscreenEl instanceof HTMLElement &&
-      (fullscreenEl === mount.root ||
-        fullscreenEl.contains(mount.root) ||
-        mount.root.contains(fullscreenEl));
-    return isCurrentVideoFullscreen ? mount.root : document.documentElement;
+  private getGlobalPortalHost(_mount: OverlayMount): HTMLElement | ShadowRoot {
+    const fullscreenInfo =
+      this.videoHandler?.fullscreenHelper?.getFullscreenInfo();
+
+    if (fullscreenInfo?.element && fullscreenInfo.belongsToCurrentVideo) {
+      return fullscreenInfo.shadowRoot ?? fullscreenInfo.element;
+    }
+
+    return document.documentElement;
   }
 
   initUIEvents() {
@@ -179,7 +177,6 @@ export class UIManager {
         }
 
         try {
-          // this.videoHandler.video.disablePictureInPicture = false;
           const inPiP = document.pictureInPictureElement != null;
           if (inPiP) {
             await document.exitPictureInPicture();
@@ -233,7 +230,15 @@ export class UIManager {
           this.videoHandler.onTranslationVolumeSliderSynced(nextVolume);
           return;
         }
-        this.videoHandler.syncVolumeWrapper("translation", nextVolume);
+        const syncResult = this.videoHandler.syncVolumeWrapper(
+          "translation",
+          nextVolume,
+        );
+        if (typeof syncResult?.nextVideo === "number") {
+          this.videoHandler.applyManualVideoVolumeOverride(
+            syncResult.nextVideo / 100,
+          );
+        }
       })
       .addEventListener("select:fromLanguage", async () => {
         if (!this.videoHandler) {
@@ -442,10 +447,10 @@ export class UIManager {
         );
       })
       .addEventListener("change:useNewAudioPlayer", () => {
-        this.restartAudioPlayer();
+        void this.restartAudioPlayer();
       })
       .addEventListener("change:onlyBypassMediaCSP", () => {
-        this.restartAudioPlayer();
+        void this.restartAudioPlayer();
       })
       .addEventListener("select:translationTextService", () => {
         this.withSubtitlesWidget((widget) => {
@@ -779,11 +784,7 @@ export class UIManager {
     );
   }
 
-  private restartAudioPlayer() {
-    void this.restartAudioPlayerSafely();
-  }
-
-  private async restartAudioPlayerSafely() {
+  private async restartAudioPlayer() {
     const videoHandler = this.videoHandler;
     if (!videoHandler) {
       return;

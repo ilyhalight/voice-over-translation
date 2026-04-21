@@ -1,26 +1,62 @@
+type GainBackedPlayer = {
+  volume: number;
+  gainNode?: GainNode;
+};
+
+function normalizeMediaElementVolume(volume: number): number {
+  if (!Number.isFinite(volume)) return 0;
+  return Math.max(0, Math.min(1, volume));
+}
+
+function normalizeGainVolume(volume: number): number {
+  if (!Number.isFinite(volume)) return 0;
+  return Math.max(0, volume);
+}
+
+function setAudioParamInstant(
+  param: AudioParam,
+  value: number,
+  context: BaseAudioContext | undefined,
+): void {
+  const now = context?.currentTime;
+  const hasNow = typeof now === "number" && Number.isFinite(now);
+
+  if (hasNow) {
+    try {
+      if (typeof param.cancelAndHoldAtTime === "function") {
+        param.cancelAndHoldAtTime(now);
+      } else if (typeof param.cancelScheduledValues === "function") {
+        param.cancelScheduledValues(now);
+      }
+    } catch {
+      // Some engines reject canceling when no automation exists yet.
+    }
+
+    if (typeof param.setValueAtTime === "function") {
+      param.setValueAtTime(value, now);
+      return;
+    }
+  }
+
+  param.value = value;
+}
+
 // #1650
 export function safeSetPlayerVolume(
-  player: { volume: number; gainNode?: GainNode },
+  player: GainBackedPlayer,
   volume: number,
 ): void {
   const gainNode = player.gainNode;
-  if (volume > 1 && gainNode?.gain) {
-    try {
-      player.volume = 1;
-      gainNode.gain.value = volume;
-      return;
-    } catch {}
+  if (gainNode?.gain) {
+    setAudioParamInstant(
+      gainNode.gain,
+      normalizeGainVolume(volume),
+      gainNode.context,
+    );
+    return;
   }
-  try {
-    player.volume = volume;
-  } catch {
-    player.volume = Math.max(0, Math.min(1, volume));
-  }
-  if (gainNode?.gain && volume <= 1) {
-    try {
-      gainNode.gain.value = volume;
-    } catch {}
-  }
+
+  player.volume = normalizeMediaElementVolume(volume);
 }
 
 export function applyTranslationPlaybackVolume(

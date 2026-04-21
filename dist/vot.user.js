@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.5.4
+// @version        1.11.5.5
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -7617,6 +7617,7 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/utils/localization.ts
 	function getNavigatorLang() {
+		if (typeof navigator === "undefined") return "en";
 		return navigator.language?.substring(0, 2).toLowerCase() || "en";
 	}
 	var slavicLangs = new Set([
@@ -7666,7 +7667,7 @@ var vot = (function(exports) {
 				seen.add(val);
 				if (Array.isArray(val)) return val;
 				const sorted = {};
-				const keys = Object.keys(val).sort();
+				const keys = Object.keys(val).sort((a, b) => a.localeCompare(b));
 				for (const key of keys) sorted[key] = val[key];
 				return sorted;
 			}
@@ -10081,6 +10082,7 @@ var vot = (function(exports) {
 				cleanupAbort();
 				reject(error);
 			};
+			const redirectMode = fetchOptions.redirect;
 			const request = gmXhr({
 				method,
 				url: urlStr,
@@ -10088,6 +10090,7 @@ var vot = (function(exports) {
 				data: fetchOptions.body,
 				timeout,
 				headers,
+				...redirectMode && { redirect: redirectMode },
 				onload: (resp) => {
 					if (settled) return;
 					settled = true;
@@ -10153,13 +10156,15 @@ var vot = (function(exports) {
 		});
 	}
 	async function executePromiseGmXhr(gmXhr, urlStr, timeout, fetchOptions, method, headers) {
+		const redirectMode = fetchOptions.redirect;
 		const request = gmXhr({
 			method,
 			url: urlStr,
 			responseType: "blob",
 			data: fetchOptions.body,
 			timeout,
-			headers
+			headers,
+			...redirectMode && { redirect: redirectMode }
 		});
 		let abortHandler;
 		try {
@@ -11041,7 +11046,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.5.4"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.5.5"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -11545,28 +11550,42 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/audioDownloader/ytAudio/src/AudioDownloader.ts
 	var VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
-	var YT_BASE = "https://www.youtube.com";
-	var ANDROID_VR_CLIENT_VERSION = "1.60.19";
+	var CLIENT_CONFIG = { ANDROID_VR: {
+		baseUrl: "https://m.youtube.com",
+		clientName: "ANDROID_VR",
+		clientVersion: "1.65.10",
+		clientNameId: "28",
+		deviceMake: "Oculus",
+		deviceModel: "Quest 3",
+		androidSdkVersion: 32,
+		osName: "Android",
+		osVersion: "12L",
+		userAgent: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"
+	} };
 	var CLIENTS = ["ANDROID_VR"];
-	var DEFAULT_HEADERS = {
-		accept: "*/*",
-		origin: YT_BASE,
-		referer: `${YT_BASE}/`
-	};
-	var RANGE_FALLBACK_CHUNK_SIZE = 256 * 1024;
+	function getClientHeaders(client) {
+		const cfg = CLIENT_CONFIG[client];
+		return {
+			accept: "*/*",
+			origin: cfg.baseUrl,
+			referer: `${cfg.baseUrl}/`,
+			"user-agent": cfg.userAgent
+		};
+	}
 	function withSignal(signal) {
 		return signal ? { signal } : {};
 	}
 	function resolveInnertubeClient(requestedClient) {
-		if (requestedClient !== void 0 && requestedClient !== "ANDROID_VR") throw new Error(`Unsupported Innertube client: ${requestedClient}`);
+		const cfg = CLIENT_CONFIG[requestedClient ?? "ANDROID_VR"];
+		if (!cfg) throw new Error(`Unsupported Innertube client: ${requestedClient}`);
 		return {
-			clientName: "ANDROID_VR",
-			clientVersion: ANDROID_VR_CLIENT_VERSION,
+			clientName: cfg.clientName,
+			clientVersion: cfg.clientVersion,
 			hl: "en",
 			gl: "US",
-			androidSdkVersion: 31,
-			osName: "Android",
-			osVersion: "12",
+			androidSdkVersion: cfg.androidSdkVersion,
+			osName: cfg.osName,
+			osVersion: cfg.osVersion,
 			platform: "MOBILE"
 		};
 	}
@@ -11635,10 +11654,6 @@ var vot = (function(exports) {
 		if (!Number.isFinite(parsed) || parsed <= 0) return null;
 		return parsed;
 	}
-	function parseContentLengthFromContentRange(contentRange) {
-		if (!contentRange) return null;
-		return parsePositiveInteger(/\/(\d+)\s*$/i.exec(contentRange)?.[1]);
-	}
 	function parseContentRangeHeader(contentRange) {
 		if (!contentRange) return null;
 		const matched = /^bytes\s+(\d+)-(\d+)\/(?:\d+|\*)$/i.exec(contentRange.trim());
@@ -11693,7 +11708,7 @@ var vot = (function(exports) {
 			const rangeHeader = `bytes=${start}-${end}`;
 			const response = await this.fetchFn(streamUrl, {
 				headers: {
-					...DEFAULT_HEADERS,
+					...getClientHeaders("ANDROID_VR"),
 					range: rangeHeader
 				},
 				...withSignal(signal)
@@ -11701,26 +11716,20 @@ var vot = (function(exports) {
 			if (!response.ok) throw new Error(`Failed to download stream chunk: ${response.status}`);
 			const bytes = await readResponseBytes(response);
 			if (!isValidRangeChunkResponse(response, bytes, start, end)) throw new Error(`Received unexpected stream chunk payload: ${describeRangeChunkResponse(response, bytes)}`);
-			return bytes;
+			return {
+				bytes,
+				resolvedUrl: response.status === 206 ? response.url : null
+			};
 		}
 		async downloadStreamByRanges(streamUrl, contentLengthHint, signal) {
-			const fileSize = await this.resolveStreamContentLength(streamUrl, contentLengthHint, signal, true);
-			const merged = new Uint8Array(fileSize);
-			let offset = 0;
-			for (let start = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE) {
-				const end = Math.min(fileSize - 1, start + RANGE_FALLBACK_CHUNK_SIZE - 1);
-				const chunk = await this.fetchRangeChunk(streamUrl, start, end, signal);
-				if (offset + chunk.byteLength > merged.byteLength) throw new Error("Downloaded stream chunk exceeds probed stream content length");
-				merged.set(chunk, offset);
-				offset += chunk.byteLength;
-			}
-			if (offset === merged.byteLength) return merged;
-			return merged.slice(0, offset);
+			const fileSize = this.resolveStreamContentLength(contentLengthHint);
+			const { bytes } = await this.fetchRangeChunk(streamUrl, 0, fileSize - 1, signal);
+			return bytes;
 		}
 		async downloadAudioToChunkStream(request, options) {
 			if (options.chunkSize <= 0) throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
 			return this.withResolvedPlayableAudioFormat(request, request.audioQuality ?? "best", "Chunk mode requires an adaptive audio stream format", "Unable to resolve streamable format for chunk mode", async ({ resolved, signal }) => {
-				const fileSize = await this.resolveStreamContentLength(resolved.streamUrl, resolved.chosenFormat.contentLength, signal, true);
+				const fileSize = this.resolveStreamContentLength(resolved.chosenFormat.contentLength);
 				const mediaPartsLength = Math.max(1, Math.ceil(fileSize / options.chunkSize));
 				return {
 					videoId: resolved.videoId,
@@ -11728,10 +11737,13 @@ var vot = (function(exports) {
 					itag: resolved.chosenFormat.itag ?? 0,
 					mediaPartsLength,
 					getMediaBuffers: async function* () {
+						let actualStreamUrl = resolved.streamUrl;
 						for (let index = 0; index < mediaPartsLength; index++) {
 							const start = index * options.chunkSize;
 							const end = Math.min(fileSize - 1, start + options.chunkSize - 1);
-							yield await this.fetchRangeChunk(resolved.streamUrl, start, end, signal);
+							const { bytes, resolvedUrl } = await this.fetchRangeChunk(actualStreamUrl, start, end, signal);
+							if (resolvedUrl) actualStreamUrl = resolvedUrl;
+							yield bytes;
 						}
 					}.bind(this)
 				};
@@ -11805,36 +11817,10 @@ var vot = (function(exports) {
 				streamUrl: this.resolveFormatUrl(chosenFormat)
 			};
 		}
-		async resolveStreamContentLength(streamUrl, contentLengthHint, signal, forceProbe = false) {
-			const hintedLength = parsePositiveInteger(contentLengthHint);
-			if (hintedLength !== null && !forceProbe) return hintedLength;
-			let probeResponse;
-			try {
-				probeResponse = await this.fetchFn(streamUrl, {
-					headers: {
-						...DEFAULT_HEADERS,
-						range: "bytes=0-0"
-					},
-					...withSignal(signal)
-				});
-			} catch (error) {
-				if (hintedLength !== null) return hintedLength;
-				const message = error instanceof Error ? error.message : String(error);
-				throw new Error(`Failed to probe stream content length: ${message}`);
-			}
-			if (!probeResponse.ok) {
-				if (hintedLength !== null) return hintedLength;
-				throw new Error(`Failed to probe stream content length: ${probeResponse.status}`);
-			}
-			const contentRangeLength = parseContentLengthFromContentRange(probeResponse.headers.get("content-range"));
-			const storedLength = parsePositiveInteger(probeResponse.headers.get("x-goog-stored-content-length"));
-			const contentLength = parsePositiveInteger(probeResponse.headers.get("content-length"));
-			if (typeof probeResponse.body?.cancel === "function") try {
-				await probeResponse.body.cancel();
-			} catch {}
-			return contentRangeLength ?? storedLength ?? hintedLength ?? contentLength ?? (() => {
-				throw new Error("Failed to resolve stream content length");
-			})();
+		resolveStreamContentLength(contentLengthHint) {
+			const contentLength = parsePositiveInteger(contentLengthHint);
+			if (contentLength !== null) return contentLength;
+			throw new Error("Failed to resolve stream content length: contentLength not found in format");
 		}
 		getExtractionHints(format) {
 			const codec = extractAudioCodecFromMimeType(format.mimeType);
@@ -11852,9 +11838,9 @@ var vot = (function(exports) {
 			return streamUrl.toString();
 		}
 		async fetchWatchContext(videoId, signal) {
-			const watchUrl = `${YT_BASE}/watch?v=${encodeURIComponent(videoId)}&hl=en`;
+			const watchUrl = `${CLIENT_CONFIG.ANDROID_VR.baseUrl}/watch?v=${encodeURIComponent(videoId)}&hl=en`;
 			const response = await this.fetchFn(watchUrl, {
-				headers: DEFAULT_HEADERS,
+				headers: getClientHeaders("ANDROID_VR"),
 				...withSignal(signal)
 			});
 			if (!response.ok) throw new Error(`Failed to load watch page: ${response.status}`);
@@ -11887,11 +11873,11 @@ var vot = (function(exports) {
 				racyCheckOk: true
 			};
 			if (watchContext.signatureTimestamp) body.playbackContext = { contentPlaybackContext: { signatureTimestamp: watchContext.signatureTimestamp } };
-			const endpoint = `${YT_BASE}/youtubei/v1/player?key=${encodeURIComponent(watchContext.apiKey)}`;
+			const endpoint = `${CLIENT_CONFIG.ANDROID_VR.baseUrl}/youtubei/v1/player?key=${encodeURIComponent(watchContext.apiKey)}`;
 			const response = await this.fetchFn(endpoint, {
 				method: "POST",
 				headers: {
-					...DEFAULT_HEADERS,
+					...getClientHeaders("ANDROID_VR"),
 					"content-type": "application/json",
 					...watchContext.visitorData ? { "x-goog-visitor-id": watchContext.visitorData } : {}
 				},
@@ -12204,7 +12190,7 @@ var vot = (function(exports) {
 			translationId: response.translationId
 		};
 	}
-	var VOTTranslationHandler = class {
+	var VOTTranslationHandler = class VOTTranslationHandler {
 		videoHandler;
 		audioDownloader;
 		downloading;
@@ -12334,9 +12320,15 @@ var vot = (function(exports) {
 				if (timeoutId !== null) this.videoHandler.autoRetry = timeoutId;
 			});
 		}
-		getVideoTranslationRetryDelayMs(retryAttempt, videoDurationSeconds) {
-			if (retryAttempt > 0) return 25e3;
-			return videoDurationSeconds <= 600 ? 6e4 : 75e3;
+		static MAX_INITIAL_WAIT_SEC = 180;
+		static LONG_WAIT_MS = 12e4;
+		static RETRY_INTERVAL_MS = 3e4;
+		getRetryDelayMs(retryAttempt, remainingTimeSeconds) {
+			if (retryAttempt > 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
+			const eta = remainingTimeSeconds ?? 0;
+			if (eta <= 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
+			if (eta <= VOTTranslationHandler.MAX_INITIAL_WAIT_SEC) return eta * 1e3;
+			return VOTTranslationHandler.LONG_WAIT_MS;
 		}
 		async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, options = {}) {
 			const { disableLivelyVoice = false, retryAttempt = 0 } = options;
@@ -12356,6 +12348,7 @@ var vot = (function(exports) {
 			});
 			debug.log(videoData, `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`);
 			let livelyDisabled = disableLivelyVoice;
+			let translationResponse;
 			try {
 				throwIfAborted(signal);
 				const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(requestLangForApi, responseLang);
@@ -12371,6 +12364,7 @@ var vot = (function(exports) {
 				livelyDisabled = translationAttempt.livelyDisabled;
 				const useLivelyVoice = translationAttempt.useLivelyVoice;
 				const res = translationAttempt.response;
+				translationResponse = res;
 				if (!res) throw new Error("Failed to get translation response");
 				debug.log("[Translation] translateVideoImpl response", {
 					videoId: videoData.videoId,
@@ -12443,12 +12437,12 @@ var vot = (function(exports) {
 				return null;
 			}
 			this.videoHandler.hadAsyncWait = true;
-			const retryDelayMs = this.getVideoTranslationRetryDelayMs(retryAttempt, videoData.duration);
+			const retryDelayMs = this.getRetryDelayMs(retryAttempt, translationResponse?.remainingTime ?? null);
 			debug.log("[Translation] scheduling translation retry", {
 				videoId: videoData.videoId,
 				retryAttempt,
 				retryDelayMs,
-				duration: videoData.duration
+				remainingTime: translationResponse?.remainingTime
 			});
 			return this.scheduleRetry(() => this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, shouldSendFailedAudio, signal, {
 				disableLivelyVoice: livelyDisabled,
@@ -13662,6 +13656,45 @@ var vot = (function(exports) {
 		return h._$AI(t), h;
 	};
 	//#endregion
+	//#region src/ui/components/componentShared.ts
+	function addComponentEventListener(events, type, listener) {
+		events[type].addListener(listener);
+	}
+	function removeComponentEventListener(events, type, listener) {
+		events[type].removeListener(listener);
+	}
+	function setHiddenState(element, isHidden) {
+		element.hidden = isHidden;
+	}
+	function getHiddenState(element) {
+		return element.hidden;
+	}
+	function setInteractiveHiddenState(element, isHidden) {
+		setHiddenState(element, isHidden);
+		element.setAttribute("aria-hidden", isHidden ? "true" : "false");
+		element.toggleAttribute("inert", isHidden);
+	}
+	function setDisabledState(element, isDisabled) {
+		if (isDisabled) {
+			element.setAttribute("disabled", "true");
+			return;
+		}
+		element.removeAttribute("disabled");
+	}
+	function isPrimaryPointerAction(event) {
+		return event.isPrimary && event.button === 0;
+	}
+	function isKeyboardActivation(event) {
+		return event.key === "Enter" || event.key === " ";
+	}
+	function addKeyboardActivationListener(element, handler, options) {
+		element.addEventListener("keydown", (event) => {
+			if (!isKeyboardActivation(event)) return;
+			event.preventDefault();
+			handler();
+		}, options);
+	}
+	//#endregion
 	//#region src/ui.ts
 	function initKeyboardNavigationMode() {
 		if (globalThis.__votKeyboardNavInitialized) return;
@@ -13703,12 +13736,9 @@ var vot = (function(exports) {
 				attributeFilter: ["disabled"]
 			});
 			if (ariaLabel) el.setAttribute("aria-label", ariaLabel);
-			el.addEventListener("keydown", (e) => {
+			addKeyboardActivationListener(el, () => {
 				if (el.getAttribute("disabled") === "true" || el.getAttribute("aria-disabled") === "true") return;
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					el.click();
-				}
+				el.click();
 			});
 			return el;
 		},
@@ -13922,7 +13952,7 @@ var vot = (function(exports) {
 				this.globalOffsetX = left;
 				this.globalOffsetY = top;
 			}
-			const { left: parentLeft, top: parentTop } = this.parentElement.getBoundingClientRect();
+			const { left: parentLeft, top: parentTop } = (this.parentElement instanceof ShadowRoot ? this.parentElement.host : this.parentElement).getBoundingClientRect();
 			this.renderOffsetX = parentLeft;
 			this.renderOffsetY = parentTop;
 			this.pageWidth = this.layoutRoot.clientWidth || document.documentElement.clientWidth;
@@ -14152,9 +14182,13 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/ui/shadowMount.ts
 	var shadowScopedCssText = scopeCssForShadowRoots(".vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{word-break:break-word;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:\"\";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:\"\";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:\"\"!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb), .5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb), .87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb), .72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard), background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb), .04)!important;color:rgba(var(--vot-helper-onsurface-rgb), .9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb), .55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb), .7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;position:absolute;top:5rem;left:50%;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{top:12.5vh;left:50px}.vot-segmented-button[data-position=right]{top:12.5vh;left:auto;right:0}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;position:absolute;top:calc(5rem + 48px);left:50%;overflow:hidden;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{transform-origin:0;top:12.5vh;left:240px}.vot-menu[data-position=right]{transform-origin:100%;top:12.5vh;left:auto;right:-80px}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{flex-direction:column;gap:2px;max-width:100%;display:flex;padding:6px!important}.vot-subtitles-info-service,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;word-break:break-word;white-space:normal!important}.vot-subtitles-info-service{color:var(--vot-subtitles-context-color,#86919b);margin-bottom:8px!important;font-size:10px!important;line-height:1!important}.vot-subtitles-info-header{color:var(--vot-subtitles-header-color,#fff);margin-bottom:6px!important;font-size:20px!important;font-weight:500!important;line-height:1!important}.vot-subtitles-info-context{color:var(--vot-subtitles-context-color,#86919b);font-size:12px!important;line-height:1.2!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:inline}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-overlay-root{pointer-events:none}.vot-overlay-root>.vot-segmented-button,.vot-overlay-root>.vot-menu{pointer-events:auto}");
-	var sharedShadowStyleSheet;
+	var sharedShadowStyleSheet = null;
+	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
 		return cssText.replace(/:root\b/g, ":host").replace(/html\.vot-keyboard-nav/g, ":host-context(.vot-keyboard-nav)").replace(/:fullscreen(?=\s|,)/g, ":host-context(:fullscreen)").replace(/:-webkit-full-screen(?=\s|,)/g, ":host-context(:-webkit-full-screen)");
+	}
+	function applyClasses(element, classes) {
+		if (classes?.length) element.classList.add(...classes);
 	}
 	function applyInlineStyles(element, styles) {
 		if (!styles) return;
@@ -14163,12 +14197,16 @@ var vot = (function(exports) {
 			element.style.setProperty(name, value);
 		}
 	}
+	function createMountElement({ tag, classes = [], styles }) {
+		const element = document.createElement(tag);
+		applyClasses(element, classes);
+		applyInlineStyles(element, styles);
+		return element;
+	}
 	function getSharedShadowStyleSheet() {
-		if (sharedShadowStyleSheet !== void 0) return sharedShadowStyleSheet;
-		if (!(typeof CSSStyleSheet !== "undefined" && typeof CSSStyleSheet.prototype.replaceSync === "function")) {
-			sharedShadowStyleSheet = null;
-			return sharedShadowStyleSheet;
-		}
+		if (sharedShadowStyleSheetReady) return sharedShadowStyleSheet;
+		sharedShadowStyleSheetReady = true;
+		if (!(typeof CSSStyleSheet !== "undefined" && typeof CSSStyleSheet.prototype.replaceSync === "function")) return null;
 		const sheet = new CSSStyleSheet();
 		sheet.replaceSync(shadowScopedCssText);
 		sharedShadowStyleSheet = sheet;
@@ -14185,17 +14223,21 @@ var vot = (function(exports) {
 		shadowRoot.append(style);
 	}
 	function createShadowMount({ parent, hostTag = "vot-shadow-host", rootTag = "vot-block", hostClasses = [], rootClasses = [], hostStyles, rootStyles, delegatesFocus = false }) {
-		const host = document.createElement(hostTag);
-		if (hostClasses.length > 0) host.classList.add(...hostClasses);
-		applyInlineStyles(host, hostStyles);
+		const host = createMountElement({
+			tag: hostTag,
+			classes: hostClasses,
+			styles: hostStyles
+		});
 		const shadowRoot = host.attachShadow({
 			mode: "open",
 			delegatesFocus
 		});
 		adoptScopedStyles(shadowRoot);
-		const root = document.createElement(rootTag);
-		if (rootClasses.length > 0) root.classList.add(...rootClasses);
-		applyInlineStyles(root, rootStyles);
+		const root = createMountElement({
+			tag: rootTag,
+			classes: rootClasses,
+			styles: rootStyles
+		});
 		shadowRoot.append(root);
 		parent.append(host);
 		return {
@@ -14206,7 +14248,7 @@ var vot = (function(exports) {
 	}
 	function reparentShadowMount(mount, parent) {
 		if (!mount) return;
-		if (mount.host.parentElement !== parent) parent.append(mount.host);
+		if (mount.host.parentNode !== parent) parent.append(mount.host);
 	}
 	function destroyShadowMount(mount) {
 		mount?.host.remove();
@@ -14504,11 +14546,12 @@ var vot = (function(exports) {
 			return this.container;
 		}
 		getLayoutRootElement() {
-			return this.container;
+			return this.container instanceof ShadowRoot ? this.container.host : this.container;
 		}
 		syncWidgetContainer(widgetContainer) {
-			if (getComputedStyle(this.container).position === "static") this.container.style.position = "relative";
-			if (widgetContainer && widgetContainer.parentElement !== this.container) this.container.appendChild(widgetContainer);
+			const containerEl = this.container instanceof ShadowRoot ? this.container.host : this.container;
+			if (getComputedStyle(containerEl).position === "static") containerEl.style.position = "relative";
+			if (widgetContainer && widgetContainer.parentNode !== this.container) this.container.appendChild(widgetContainer);
 		}
 		release() {}
 	};
@@ -14838,6 +14881,23 @@ var vot = (function(exports) {
 	var DISCOURAGED_LINE_START_RE = /^\s*[\p{Pe}\p{Pf},.;:!?%‰…]/u;
 	var DISCOURAGED_LINE_END_RE = /\s*[\p{Ps}\p{Pi}¿¡([{«“"'`-]\s*$/u;
 	var normalizeTokenText = (text) => text.replaceAll(/\s+/gu, " ").trim();
+	var buildTokenTextBuffer = (tokens) => {
+		const offsets = new Array(tokens.length + 1);
+		offsets[0] = 0;
+		let fullText = "";
+		for (let index = 0; index < tokens.length; index += 1) {
+			fullText += tokens[index]?.text ?? "";
+			offsets[index + 1] = fullText.length;
+		}
+		return {
+			fullText,
+			offsets
+		};
+	};
+	var getBufferedTokenText = (buffer, startToken, endToken) => {
+		if (endToken <= startToken) return "";
+		return buffer.fullText.slice(buffer.offsets[startToken], buffer.offsets[endToken]);
+	};
 	var resolveBoundary = (text) => {
 		if (STRONG_BREAK_RE.test(text)) return "strong";
 		if (SOFT_BREAK_RE.test(text)) return "soft";
@@ -14878,12 +14938,12 @@ var vot = (function(exports) {
 			forcesLineBreak: true
 		};
 	};
-	var buildSliceFromWord = (tokens, wordTokenIndex) => {
+	var buildSliceFromWord = (tokens, wordTokenIndex, textBuffer) => {
 		let startToken = wordTokenIndex;
 		while (startToken > 0 && tokens[startToken - 1]?.text !== "\n" && !isWordToken(tokens[startToken - 1])) startToken -= 1;
 		let endToken = wordTokenIndex + 1;
 		while (endToken < tokens.length && tokens[endToken]?.text !== "\n" && !isWordToken(tokens[endToken])) endToken += 1;
-		const text = tokens.slice(startToken, endToken).map((token) => token.text).join("");
+		const text = getBufferedTokenText(textBuffer, startToken, endToken);
 		return {
 			text,
 			tokenIndex: wordTokenIndex,
@@ -14898,6 +14958,7 @@ var vot = (function(exports) {
 		};
 	};
 	function buildWordSlices(tokens) {
+		const textBuffer = buildTokenTextBuffer(tokens);
 		const slices = [];
 		const keyParts = [];
 		let index = 0;
@@ -14918,13 +14979,13 @@ var vot = (function(exports) {
 				index += 1;
 				continue;
 			}
-			const slice = buildSliceFromWord(tokens, index);
+			const slice = buildSliceFromWord(tokens, index, textBuffer);
 			slices.push(slice);
 			keyParts.push(normalizeTokenText(slice.text));
 			index = slice.breakAfterTokenIndex + 1;
 		}
 		if (!slices.length && tokens.length) {
-			const text = tokens.map((token) => token.text).join("");
+			const text = textBuffer.fullText;
 			slices.push({
 				text,
 				tokenIndex: 0,
@@ -14967,8 +15028,8 @@ var vot = (function(exports) {
 	};
 	function computeTwoLineSegments(tokens, metrics, maxWidthPx, maxLength) {
 		if (!metrics.length || !tokens.length) return [];
-		const maxWidth = Math.max(1, maxWidthPx);
-		const charBudget = Math.max(1, maxLength);
+		const maxWidth = Math.max(1, Number.isFinite(maxWidthPx) ? maxWidthPx : 0);
+		const charBudget = Math.max(1, Number.isFinite(maxLength) ? maxLength : 0);
 		const segments = [];
 		let segmentStartToken = metrics[0].startToken;
 		let segmentCharLength = 0;
@@ -15027,16 +15088,16 @@ var vot = (function(exports) {
 		if (last) last.endMs = Math.max(last.endMs, getRangeEndMs(tokens, last.startToken, last.endToken));
 		return segments.filter((segment) => segment.endToken > segment.startToken);
 	}
-	var measureTokenRange = (tokens, startToken, endToken, measureText) => {
+	var measureTokenRange = (textBuffer, startToken, endToken, measureText) => {
 		if (endToken <= startToken) return 0;
-		return measureText(tokens.slice(startToken, endToken).map((token) => token.text).join(""));
+		return measureText(getBufferedTokenText(textBuffer, startToken, endToken));
 	};
 	var resolveSafeBreakAfterTokenIndex = (tokens, breakAfterTokenIndex) => {
 		let safeBreakIndex = breakAfterTokenIndex;
 		while (safeBreakIndex + 1 < tokens.length && tokens[safeBreakIndex + 1]?.text !== "\n" && !tokens[safeBreakIndex + 1]?.isWordLike) safeBreakIndex += 1;
 		return safeBreakIndex;
 	};
-	var findFallbackBreakAfterTokenIndex = (tokens, measureText, maxWidthPx) => {
+	var findFallbackBreakAfterTokenIndex = (tokens, textBuffer, measureText, maxWidthPx) => {
 		let bestBreakAfterTokenIndex = null;
 		let bestScore = Number.POSITIVE_INFINITY;
 		for (let index = 0; index < tokens.length - 1; index += 1) {
@@ -15047,10 +15108,10 @@ var vot = (function(exports) {
 			if (candidateBreakAfterTokenIndex >= tokens.length - 1) continue;
 			const firstEndToken = candidateBreakAfterTokenIndex + 1;
 			const secondStartToken = firstEndToken;
-			const firstWidth = measureTokenRange(tokens, 0, firstEndToken, measureText);
-			const secondWidth = measureTokenRange(tokens, secondStartToken, tokens.length, measureText);
-			const firstText = tokens.slice(0, firstEndToken).map((currentToken) => currentToken.text).join("");
-			const secondText = tokens.slice(secondStartToken).map((currentToken) => currentToken.text).join("");
+			const firstWidth = measureTokenRange(textBuffer, 0, firstEndToken, measureText);
+			const secondWidth = measureTokenRange(textBuffer, secondStartToken, tokens.length, measureText);
+			const firstText = getBufferedTokenText(textBuffer, 0, firstEndToken);
+			const secondText = getBufferedTokenText(textBuffer, secondStartToken, tokens.length);
 			const score = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12 + Math.abs(secondWidth - firstWidth) * .4 + (startsWithDiscouragedLineStart(secondText) ? 260 : 0) + (endsWithDiscouragedLineEnd(firstText) ? 70 : 0);
 			if (score < bestScore) {
 				bestScore = score;
@@ -15071,11 +15132,14 @@ var vot = (function(exports) {
 	};
 	function computeTokenWrapPlan(tokens, measureText, maxWidthPx) {
 		if (!tokens.length) return { breakAfterTokenIndices: [] };
-		if (tokens.reduce((count, token) => count + Number(token.text === "\n"), 0) > 0) return { breakAfterTokenIndices: [] };
+		for (const token of tokens) if (token.text === "\n") return { breakAfterTokenIndices: [] };
+		const textBuffer = buildTokenTextBuffer(tokens);
+		const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
+		if (safeMaxWidthPx <= 0) return { breakAfterTokenIndices: [] };
 		const { slices } = buildWordSlices(tokens);
 		const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
 		if (!measurableSlices.length) return { breakAfterTokenIndices: [] };
-		if (measureTokenRange(tokens, 0, tokens.length, measureText) <= maxWidthPx) return { breakAfterTokenIndices: [] };
+		if (measureTokenRange(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return { breakAfterTokenIndices: [] };
 		let bestBreakAfterTokenIndex = null;
 		let bestScore = Number.POSITIVE_INFINITY;
 		for (let index = 0; index < measurableSlices.length - 1; index += 1) {
@@ -15085,13 +15149,13 @@ var vot = (function(exports) {
 			const firstEndToken = candidateBreakAfterTokenIndex + 1;
 			const secondStartToken = nextSlice.tokenIndex;
 			const score = scoreBreakCandidate({
-				firstWidth: measureTokenRange(tokens, 0, firstEndToken, measureText),
-				secondWidth: measureTokenRange(tokens, secondStartToken, tokens.length, measureText),
-				firstText: tokens.slice(0, firstEndToken).map((token) => token.text).join(""),
-				secondText: tokens.slice(secondStartToken).map((token) => token.text).join(""),
+				firstWidth: measureTokenRange(textBuffer, 0, firstEndToken, measureText),
+				secondWidth: measureTokenRange(textBuffer, secondStartToken, tokens.length, measureText),
+				firstText: getBufferedTokenText(textBuffer, 0, firstEndToken),
+				secondText: getBufferedTokenText(textBuffer, secondStartToken, tokens.length),
 				firstWordCount: index + 1,
 				secondWordCount: measurableSlices.length - (index + 1),
-				maxWidthPx,
+				maxWidthPx: safeMaxWidthPx,
 				boundary: slice.boundary
 			});
 			if (score < bestScore) {
@@ -15100,7 +15164,7 @@ var vot = (function(exports) {
 			}
 		}
 		if (bestBreakAfterTokenIndex !== null) return { breakAfterTokenIndices: [bestBreakAfterTokenIndex] };
-		const fallbackBreakAfterTokenIndex = findFallbackBreakAfterTokenIndex(tokens, measureText, maxWidthPx);
+		const fallbackBreakAfterTokenIndex = findFallbackBreakAfterTokenIndex(tokens, textBuffer, measureText, safeMaxWidthPx);
 		if (fallbackBreakAfterTokenIndex !== null) return { breakAfterTokenIndices: [fallbackBreakAfterTokenIndex] };
 		return { breakAfterTokenIndices: [] };
 	}
@@ -15491,7 +15555,8 @@ var vot = (function(exports) {
 			this.video?.addEventListener("seeked", this.onPlaybackStateChangeBound, opts);
 			this.video?.addEventListener("ended", this.onPlaybackStateChangeBound, opts);
 			this.resizeObserver = new ResizeObserver(() => this.onResize());
-			this.resizeObserver.observe(this.container);
+			const resizeTarget = this.container instanceof ShadowRoot ? this.container.host : this.container;
+			this.resizeObserver.observe(resizeTarget);
 			if (this.video) this.resizeObserver.observe(this.video);
 			globalThis.visualViewport?.addEventListener("resize", this.onVisualViewportChangeBound, opts);
 			globalThis.visualViewport?.addEventListener("scroll", this.onVisualViewportChangeBound, opts);
@@ -16538,6 +16603,7 @@ var vot = (function(exports) {
 	var ASS_STYLE_TOGGLE_RE = /^\\([ibu])([01])$/u;
 	var ASS_PRIMARY_COLOR_RE = /^\\(?:1?c|c)&H([0-9a-f]{6,8})&$/iu;
 	var ASS_STYLE_RESET_RE = /^\\r(?:[^\\}]*)?$/u;
+	var COMPLEX_DISPLAY_CONTROL_RE = /[<{\\]/u;
 	var cloneMutableInlineStyle = (style) => ({
 		italic: style.italic,
 		bold: style.bold,
@@ -16633,14 +16699,15 @@ var vot = (function(exports) {
 	var normalizeAttachedWordNumberExpressions = (segments) => {
 		for (const segment of segments) {
 			if (!segment.text) continue;
-			segment.text = segment.text.replaceAll(GLUED_WORD_NUMBER_RE, (match, leftLetters, leftDigits, rightDigits, rightLetters) => {
-				const letters = leftLetters ?? rightLetters ?? "";
-				const digits = leftDigits ?? rightDigits ?? "";
-				if (/^[A-Za-z]{1,3}$/u.test(letters) || letters.length === 1 && letters === letters.toLocaleUpperCase() && letters !== letters.toLocaleLowerCase()) return match;
-				return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
-			});
+			segment.text = normalizeAttachedWordNumberExpression(segment.text);
 		}
 	};
+	var normalizeAttachedWordNumberExpression = (text) => text.replaceAll(GLUED_WORD_NUMBER_RE, (match, leftLetters, leftDigits, rightDigits, rightLetters) => {
+		const letters = leftLetters ?? rightLetters ?? "";
+		const digits = leftDigits ?? rightDigits ?? "";
+		if (/^[A-Za-z]{1,3}$/u.test(letters) || letters.length === 1 && letters === letters.toLocaleUpperCase() && letters !== letters.toLocaleLowerCase()) return match;
+		return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
+	});
 	var extractHtmlTagClasses = (attrsRaw) => {
 		const normalized = attrsRaw.trim();
 		if (!normalized.startsWith(".")) return;
@@ -16730,7 +16797,7 @@ var vot = (function(exports) {
 			pushSegment(segments, " ", activeStyle);
 			return cursor + 2;
 		}
-		if (remainder[0] === "\n") {
+		if (remainder.startsWith("\n")) {
 			pushSegment(segments, "\n", activeStyle);
 			return cursor + 1;
 		}
@@ -16780,7 +16847,23 @@ var vot = (function(exports) {
 			}))
 		};
 	};
+	var trimPlainDisplayText = (text) => {
+		const normalizedText = text.replaceAll("\xA0", " ");
+		const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
+		const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
+		const trimmedEnd = Math.max(leadingTrim, normalizedText.length - trailingTrim);
+		return normalizedText.slice(leadingTrim, trimmedEnd);
+	};
+	var buildPlainDisplayModel = (rawText) => ({
+		text: trimPlainDisplayText(normalizeAttachedWordNumberExpression(rawText.replace(LEADING_SPEAKER_MARKER_RE, "$1").replaceAll(ATTACHED_TIME_WORD_RE, "$1 "))),
+		styledSpans: []
+	});
 	var buildStyledDisplayModel = (rawText) => {
+		if (!rawText) return {
+			text: "",
+			styledSpans: []
+		};
+		if (!COMPLEX_DISPLAY_CONTROL_RE.test(rawText)) return buildPlainDisplayModel(rawText);
 		const segments = [];
 		const activeStyle = {
 			italic: false,
@@ -16863,7 +16946,7 @@ var vot = (function(exports) {
 	var normalizeSubtitleTextForDisplay = (value) => buildStyledDisplayModel(value).text;
 	var getSubtitleLineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
 	var getCueDurationMs = (startMs, endMs) => Math.max(0, endMs - startMs);
-	var toComparableSubtitleOrder = (subtitles) => subtitles.sort((left, right) => {
+	var toComparableSubtitleOrder = (subtitles) => subtitles.toSorted((left, right) => {
 		const startDiff = left.line.startMs - right.line.startMs;
 		if (startDiff !== 0) return startDiff;
 		const endDiff = getSubtitleLineEndMs(left.line) - getSubtitleLineEndMs(right.line);
@@ -17511,21 +17594,35 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/utils/translationVolume.ts
+	function normalizeMediaElementVolume(volume) {
+		if (!Number.isFinite(volume)) return 0;
+		return Math.max(0, Math.min(1, volume));
+	}
+	function normalizeGainVolume(volume) {
+		if (!Number.isFinite(volume)) return 0;
+		return Math.max(0, volume);
+	}
+	function setAudioParamInstant(param, value, context) {
+		const now = context?.currentTime;
+		if (typeof now === "number" && Number.isFinite(now)) {
+			try {
+				if (typeof param.cancelAndHoldAtTime === "function") param.cancelAndHoldAtTime(now);
+				else if (typeof param.cancelScheduledValues === "function") param.cancelScheduledValues(now);
+			} catch {}
+			if (typeof param.setValueAtTime === "function") {
+				param.setValueAtTime(value, now);
+				return;
+			}
+		}
+		param.value = value;
+	}
 	function safeSetPlayerVolume(player, volume) {
 		const gainNode = player.gainNode;
-		if (volume > 1 && gainNode?.gain) try {
-			player.volume = 1;
-			gainNode.gain.value = volume;
+		if (gainNode?.gain) {
+			setAudioParamInstant(gainNode.gain, normalizeGainVolume(volume), gainNode.context);
 			return;
-		} catch {}
-		try {
-			player.volume = volume;
-		} catch {
-			player.volume = Math.max(0, Math.min(1, volume));
 		}
-		if (gainNode?.gain && volume <= 1) try {
-			gainNode.gain.value = volume;
-		} catch {}
+		player.volume = normalizeMediaElementVolume(volume);
 	}
 	function applyTranslationPlaybackVolume(player, volumePercent, fallbackVolumePercent) {
 		const nextVolume = typeof volumePercent === "number" && Number.isFinite(volumePercent) ? volumePercent : fallbackVolumePercent;
@@ -17603,6 +17700,151 @@ var vot = (function(exports) {
 		}
 	}
 	//#endregion
+	//#region src/utils/fullscreenHelper.ts
+	var FullscreenHelper = class {
+		container;
+		video;
+		fullscreenChangeListeners = /* @__PURE__ */ new Set();
+		constructor({ container, video }) {
+			this.container = container;
+			this.video = video;
+		}
+		/**
+		* Gets the current fullscreen element with proper ShadowDOM support
+		*/
+		getFullscreenElement() {
+			const doc = document;
+			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+			if (!(fullscreenEl instanceof HTMLElement)) return null;
+			return fullscreenEl;
+		}
+		/**
+		* Gets comprehensive fullscreen information including ShadowDOM details
+		*/
+		getFullscreenInfo() {
+			const element = this.getFullscreenElement();
+			const isFullscreen = Boolean(element);
+			if (!element) return {
+				element: null,
+				shadowRoot: null,
+				isFullscreen: false,
+				belongsToCurrentVideo: false
+			};
+			return {
+				element,
+				shadowRoot: element.shadowRoot ?? null,
+				isFullscreen,
+				belongsToCurrentVideo: this.isElementBelongsToCurrentVideo(element)
+			};
+		}
+		/**
+		* Checks if the given element belongs to the current video/container
+		*/
+		isElementBelongsToCurrentVideo(element) {
+			return element === this.container || containsCrossShadow(element, this.container) || containsCrossShadow(this.container, element) || this.video && (element === this.video || containsCrossShadow(element, this.video) || containsCrossShadow(this.video, element));
+		}
+		/**
+		* Gets the appropriate root element for overlay mounting in fullscreen mode
+		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
+		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
+		*/
+		getOverlayRoot() {
+			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
+			if (!element || !belongsToCurrentVideo) return null;
+			return shadowRoot ?? element;
+		}
+		/**
+		* Gets the appropriate element for ResizeObserver to watch for size changes
+		* Handles both regular DOM and ShadowDOM scenarios
+		*/
+		getResizeObserverTarget() {
+			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
+			if (element && belongsToCurrentVideo) return shadowRoot?.host ?? element;
+			return this.container;
+		}
+		/**
+		* Checks if the current container should be considered "big" for button positioning
+		* Takes into account fullscreen state and ShadowDOM
+		*/
+		isBigContainer(threshold = 550) {
+			const target = this.getResizeObserverTarget();
+			const rect = target.getBoundingClientRect();
+			if (rect.width > 0) return rect.width > threshold;
+			return target.clientWidth > threshold;
+		}
+		/**
+		* Adds a listener for fullscreen changes
+		*/
+		addFullscreenChangeListener(listener) {
+			this.fullscreenChangeListeners.add(listener);
+			if (this.fullscreenChangeListeners.size === 1) this.setupFullscreenListeners();
+		}
+		/**
+		* Removes a fullscreen change listener
+		*/
+		removeFullscreenChangeListener(listener) {
+			this.fullscreenChangeListeners.delete(listener);
+			if (this.fullscreenChangeListeners.size === 0) this.cleanupFullscreenListeners();
+		}
+		/**
+		* Sets up native fullscreen event listeners
+		*/
+		setupFullscreenListeners() {
+			const handleFullscreenChange = () => {
+				this.notifyFullscreenChange();
+			};
+			document.addEventListener("fullscreenchange", handleFullscreenChange);
+			document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+			if (this.video) {
+				this.video.addEventListener("webkitbeginfullscreen", handleFullscreenChange);
+				this.video.addEventListener("webkitendfullscreen", handleFullscreenChange);
+			}
+		}
+		/**
+		* Cleans up fullscreen event listeners
+		*/
+		cleanupFullscreenListeners() {
+			const handleFullscreenChange = () => {
+				this.notifyFullscreenChange();
+			};
+			document.removeEventListener("fullscreenchange", handleFullscreenChange);
+			document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+			if (this.video) {
+				this.video.removeEventListener("webkitbeginfullscreen", handleFullscreenChange);
+				this.video.removeEventListener("webkitendfullscreen", handleFullscreenChange);
+			}
+		}
+		/**
+		* Notifies all listeners about fullscreen state changes
+		*/
+		notifyFullscreenChange() {
+			for (const listener of this.fullscreenChangeListeners) try {
+				listener();
+			} catch (error) {
+				console.warn("[FullscreenHelper] Error in fullscreen change listener:", error);
+			}
+		}
+		/**
+		* Updates the container reference (useful when video container changes)
+		*/
+		updateContainer(container) {
+			this.container = container;
+		}
+		/**
+		* Updates the video reference
+		*/
+		updateVideo(video) {
+			this.video = video;
+		}
+		/**
+		* Cleans up all resources
+		*/
+		destroy() {
+			this.cleanupFullscreenListeners();
+			this.fullscreenChangeListeners.clear();
+		}
+	};
+	//#endregion
 	//#region src/ui/icons.ts
 	var TRANSLATE_ICON_SVG = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
   <path
@@ -17671,20 +17913,6 @@ var vot = (function(exports) {
 	var KEY_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
   <path fill="currentColor" d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"/>
   </svg>`;
-	//#endregion
-	//#region src/ui/components/componentShared.ts
-	function addComponentEventListener(events, type, listener) {
-		events[type].addListener(listener);
-	}
-	function removeComponentEventListener(events, type, listener) {
-		events[type].removeListener(listener);
-	}
-	function setHiddenState(element, isHidden) {
-		element.hidden = isHidden;
-	}
-	function getHiddenState(element) {
-		return element.hidden;
-	}
 	//#endregion
 	//#region src/ui/components/downloadButton.ts
 	var DownloadButton = class {
@@ -17834,8 +18062,7 @@ var vot = (function(exports) {
 			const container = UI.createEl("vot-block", ["vot-dialog-container"]);
 			if (this._isTemp) container.classList.add("vot-dialog-temp");
 			container.hidden = !this._isTemp;
-			container.setAttribute("aria-hidden", container.hidden ? "true" : "false");
-			container.toggleAttribute("inert", container.hidden);
+			setInteractiveHiddenState(container, container.hidden);
 			const backdrop = UI.createEl("vot-block", ["vot-dialog-backdrop"]);
 			const box = UI.createEl("vot-block", ["vot-dialog"]);
 			box.dataset.verticalAlign = "center";
@@ -18024,9 +18251,7 @@ var vot = (function(exports) {
 			this.keydownListener = void 0;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
-			this.container.setAttribute("aria-hidden", isHidden ? "true" : "false");
-			this.container.toggleAttribute("inert", isHidden);
+			setInteractiveHiddenState(this.container, isHidden);
 		}
 		get hidden() {
 			return getHiddenState(this.container);
@@ -18367,11 +18592,7 @@ var vot = (function(exports) {
 			return this.outer.getAttribute("disabled") === "true" || this.outer.getAttribute("aria-disabled") === "true";
 		}
 		set disabled(isDisabled) {
-			if (isDisabled) {
-				this.outer.setAttribute("disabled", "true");
-				return;
-			}
-			this.outer.removeAttribute("disabled");
+			setDisabledState(this.outer, isDisabled);
 		}
 	};
 	//#endregion
@@ -18787,8 +19008,7 @@ var vot = (function(exports) {
 			container.dataset.position = this._position;
 			container.setAttribute("role", "dialog");
 			container.setAttribute("aria-modal", "false");
-			container.setAttribute("aria-hidden", "true");
-			container.toggleAttribute("inert", true);
+			setInteractiveHiddenState(container, true);
 			const contentWrapper = UI.createEl("vot-block", ["vot-menu-content-wrapper"]);
 			container.appendChild(contentWrapper);
 			const headerContainer = UI.createEl("vot-block", ["vot-menu-header-container"]);
@@ -18821,9 +19041,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
-			this.container.setAttribute("aria-hidden", isHidden ? "true" : "false");
-			this.container.toggleAttribute("inert", isHidden);
+			setInteractiveHiddenState(this.container, isHidden);
 		}
 		get hidden() {
 			return getHiddenState(this.container);
@@ -18839,6 +19057,9 @@ var vot = (function(exports) {
 	//#region src/ui/views/overlay.ts
 	var OverlayView = class OverlayView {
 		static BIG_CONTAINER_WIDTH_PX = 550;
+		resizeObserver;
+		lastIsBigContainer = false;
+		fullscreenHelper;
 		mount;
 		globalPortal;
 		abortController = null;
@@ -18891,6 +19112,10 @@ var vot = (function(exports) {
 			this.data = data;
 			this.videoHandler = videoHandler;
 			this.intervalIdleChecker = intervalIdleChecker;
+			this.fullscreenHelper = new FullscreenHelper({
+				container: videoHandler?.container || mount.root,
+				video: videoHandler?.video
+			});
 		}
 		get root() {
 			return this.overlayMount?.root ?? this.mount.root;
@@ -18913,7 +19138,7 @@ var vot = (function(exports) {
 				if (this.votMenu) nextRoot.appendChild(this.votMenu.container);
 			}
 			if (this.votButtonTooltip && prevRoot !== nextRoot) this.votButtonTooltip.updateMount({
-				parentElement: this.root,
+				parentElement: this.root instanceof ShadowRoot ? this.root.host : this.root,
 				layoutRoot: this.overlayMount?.host
 			});
 			return this;
@@ -18946,6 +19171,19 @@ var vot = (function(exports) {
 				this.flushDefaultVolumePersist();
 			}, this.defaultVolumePersistDelayMs);
 		}
+		bindPrimaryAction(element, handler, signal, options = {}) {
+			element.addEventListener("pointerdown", (event) => {
+				if (!isPrimaryPointerAction(event)) return;
+				if (options.preventPointerDefault) event.preventDefault();
+				handler();
+			}, { signal });
+			addKeyboardActivationListener(element, handler, { signal });
+		}
+		isEventInside(event, element) {
+			const target = event.target;
+			if (target && element.contains(target)) return true;
+			return typeof event.composedPath === "function" && event.composedPath().includes(element);
+		}
 		flushDefaultVolumePersist() {
 			if (this.defaultVolumePersistTimer !== void 0) {
 				globalThis.clearTimeout(this.defaultVolumePersistTimer);
@@ -18957,6 +19195,7 @@ var vot = (function(exports) {
 		initUI(buttonPosition = "default") {
 			if (this.isInitialized()) throw new Error("[VOT] OverlayView is already initialized");
 			this.initialized = true;
+			this.lastIsBigContainer = this.isBigContainer;
 			this.overlayMount = createShadowMount({
 				parent: this.mount.root,
 				rootClasses: ["vot-overlay-root"],
@@ -18991,7 +19230,7 @@ var vot = (function(exports) {
 				autoLayout: false,
 				hidden: direction === "row",
 				bordered: false,
-				parentElement: this.root,
+				parentElement: this.root instanceof ShadowRoot ? this.root.host : this.root,
 				layoutRoot: this.overlayMount.host
 			});
 			this.votMenu = new VOTMenu({
@@ -18999,6 +19238,7 @@ var vot = (function(exports) {
 				position
 			});
 			this.root.appendChild(this.votMenu.container);
+			this.setupResizeObserver();
 			this.votButton.menuButton.setAttribute("aria-controls", this.votMenu.container.id);
 			this.downloadTranslationButton = new DownloadButton();
 			this.downloadTranslationButton.hidden = true;
@@ -19068,13 +19308,6 @@ var vot = (function(exports) {
 				e.stopPropagation();
 				e.stopImmediatePropagation();
 			}, { signal });
-			const activateOnKey = (handler) => (e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					handler();
-				}
-			};
-			const isPrimaryActionPointer = (event) => event.isPrimary && event.button === 0;
 			const setMenuOpen = (open, { returnFocusToToggle = false } = {}) => {
 				if (!this.isInitialized()) return;
 				this.votMenu.hidden = !open;
@@ -19086,30 +19319,15 @@ var vot = (function(exports) {
 			};
 			const toggleMenu = () => setMenuOpen(this.votMenu.hidden);
 			const closeMenu = (returnFocusToToggle = false) => setMenuOpen(false, { returnFocusToToggle });
-			this.votButton.translateButton.addEventListener("pointerdown", (event) => {
-				if (!isPrimaryActionPointer(event)) return;
+			this.bindPrimaryAction(this.votButton.translateButton, () => {
 				closeMenu();
 				this.events["click:translate"].dispatch();
-			}, { signal });
-			this.votButton.translateButton.addEventListener("keydown", activateOnKey(() => {
-				closeMenu();
-				this.events["click:translate"].dispatch();
-			}), { signal });
-			this.votButton.pipButton.addEventListener("pointerdown", (event) => {
-				if (!isPrimaryActionPointer(event)) return;
+			}, signal);
+			this.bindPrimaryAction(this.votButton.pipButton, () => {
 				closeMenu();
 				this.events["click:pip"].dispatch();
-			}, { signal });
-			this.votButton.pipButton.addEventListener("keydown", activateOnKey(() => {
-				closeMenu();
-				this.events["click:pip"].dispatch();
-			}), { signal });
-			this.votButton.menuButton.addEventListener("pointerdown", (e) => {
-				if (!isPrimaryActionPointer(e)) return;
-				e.preventDefault();
-				toggleMenu();
-			}, { signal });
-			this.votButton.menuButton.addEventListener("keydown", activateOnKey(toggleMenu), { signal });
+			}, signal);
+			this.bindPrimaryAction(this.votButton.menuButton, toggleMenu, signal, { preventPointerDefault: true });
 			const touchAction = "none";
 			this.votButton.container.style.touchAction = touchAction;
 			this.votButton.translateButton.style.touchAction = touchAction;
@@ -19130,13 +19348,8 @@ var vot = (function(exports) {
 			}, { signal });
 			document.addEventListener("pointerdown", (e) => {
 				if (this.votMenu.hidden) return;
-				const target = e.target;
-				const path = typeof e.composedPath === "function" ? e.composedPath() : [];
-				const isInsideMenu = target && this.votMenu.container.contains(target) || path.includes(this.votMenu.container);
-				const isInsideToggle = target && this.votButton.menuButton.contains(target) || path.includes(this.votButton.menuButton);
-				const isInsideButton = target && this.votButton.container.contains(target) || path.includes(this.votButton.container);
-				const isInsideDialog = path.some((node) => node instanceof HTMLElement && node.classList.contains("vot-dialog-container"));
-				if (isInsideMenu || isInsideToggle || isInsideButton || isInsideDialog) return;
+				const isInsideDialog = (typeof e.composedPath === "function" ? e.composedPath() : []).some((node) => node instanceof HTMLElement && node.classList.contains("vot-dialog-container"));
+				if (this.isEventInside(e, this.votMenu.container) || this.isEventInside(e, this.votButton.menuButton) || this.isEventInside(e, this.votButton.container) || isInsideDialog) return;
 				closeMenu(false);
 			}, {
 				signal,
@@ -19247,7 +19460,7 @@ var vot = (function(exports) {
 			this.dragStartX = clientX;
 			this.dragStartY = clientY;
 			this.currentClientX = clientX;
-			this.containerRect = this.root.getBoundingClientRect();
+			this.containerRect = (this.root instanceof ShadowRoot ? this.root.host : this.root).getBoundingClientRect();
 			this.dragIsBigContainer = this.isBigContainer;
 			this.dragDirty = false;
 			this.intervalIdleChecker.markActivity(activitySource);
@@ -19320,6 +19533,11 @@ var vot = (function(exports) {
 			this.votButton?.remove();
 			this.votMenu?.remove();
 			this.votButtonTooltip?.release();
+			if (this.resizeObserver) {
+				this.resizeObserver.disconnect();
+				this.resizeObserver = void 0;
+			}
+			this.fullscreenHelper.destroy();
 			destroyShadowMount(this.overlayMount);
 			this.overlayMount = void 0;
 		}
@@ -19340,11 +19558,43 @@ var vot = (function(exports) {
 			return this;
 		}
 		get isBigContainer() {
-			const widthFromVideo = this.videoHandler?.video?.getBoundingClientRect?.().width;
-			if (typeof widthFromVideo === "number" && Number.isFinite(widthFromVideo)) return widthFromVideo > OverlayView.BIG_CONTAINER_WIDTH_PX;
-			const widthFromContainer = this.videoHandler?.container?.getBoundingClientRect?.().width;
-			if (typeof widthFromContainer === "number" && Number.isFinite(widthFromContainer)) return widthFromContainer > OverlayView.BIG_CONTAINER_WIDTH_PX;
-			return this.root.clientWidth > OverlayView.BIG_CONTAINER_WIDTH_PX;
+			return this.fullscreenHelper.isBigContainer(OverlayView.BIG_CONTAINER_WIDTH_PX);
+		}
+		setupResizeObserver() {
+			if (this.resizeObserver) return;
+			this.resizeObserver = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					const { width } = entry.contentRect;
+					const currentIsBigContainer = width > OverlayView.BIG_CONTAINER_WIDTH_PX;
+					if (this.lastIsBigContainer !== currentIsBigContainer) {
+						this.lastIsBigContainer = currentIsBigContainer;
+						this.handleContainerSizeChange(currentIsBigContainer);
+					}
+					this.updateMenuHeight(entry.contentRect.height);
+				}
+			});
+			const target = this.fullscreenHelper.getResizeObserverTarget();
+			this.resizeObserver.observe(target);
+		}
+		updateMenuHeight(containerHeight) {
+			if (!this.isInitialized() || !this.votMenu?.container) return;
+			let height;
+			if (containerHeight && containerHeight > 200) height = containerHeight;
+			else {
+				const target = this.fullscreenHelper.getResizeObserverTarget();
+				height = target.getBoundingClientRect().height || target.clientHeight || window.innerHeight * .75;
+			}
+			if (!height || height < 200) height = window.innerHeight * .75;
+			this.votMenu.container.style.setProperty("--vot-container-height", `${height}px`);
+		}
+		handleContainerSizeChange(isBigContainer) {
+			if (!this.isInitialized()) return;
+			const currentPosition = this.votButton.position;
+			const newPosition = isBigContainer ? currentPosition : "default";
+			if (currentPosition !== newPosition) {
+				const direction = VOTButton.calcDirection(newPosition);
+				this.updateButtonLayout(newPosition, direction);
+			}
 		}
 		get pipButtonVisible() {
 			return isPiPAvailable() && !!this.data.showPiPButton;
@@ -19838,7 +20088,7 @@ var vot = (function(exports) {
 		return getGoogleSubtitleFontFamilyName(fontFamily) ?? "Default Sans";
 	}
 	function getAvailableSubtitleLanguages() {
-		return Object.keys(localizationProvider.defaultLocale).filter((key) => key.startsWith("langs.") && key !== "langs.auto").map((key) => key.slice(6)).sort((left, right) => localizationProvider.getLangLabel(left).localeCompare(localizationProvider.getLangLabel(right)));
+		return Object.keys(localizationProvider.defaultLocale).filter((key) => key.startsWith("langs.") && key !== "langs.auto").map((key) => key.slice(6)).toSorted((left, right) => localizationProvider.getLangLabel(left).localeCompare(localizationProvider.getLangLabel(right)));
 	}
 	function getSubtitleLanguageSettingLabel(value) {
 		if (value === ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1) return localizationProvider.get("VOTOriginalVideoLanguage");
@@ -20016,6 +20266,17 @@ var vot = (function(exports) {
 				await votStorage.set(storageKey, readPersistedValue());
 				debug.log(`${logLabel} value changed. New value:`, value);
 				if (afterPersist) await afterPersist(value);
+				dispatch?.(value);
+			});
+		}
+		bindBufferedNumericSetting({ control, label, storageKey, logLabel, toStoredValue = (value) => value, beforeApply, dispatch }) {
+			control.addEventListener("input", (value) => {
+				label.value = value;
+				beforeApply?.();
+				const storedValue = toStoredValue(value);
+				this.data[storageKey] = storedValue;
+				this.scheduleStoragePersist(storageKey, storedValue);
+				debug.log(`${logLabel} value changed. New value:`, storedValue);
 				dispatch?.(value);
 			});
 		}
@@ -20725,28 +20986,31 @@ var vot = (function(exports) {
 				if (this.suppressSubtitlesSmartLayoutCheckboxChange) return;
 				this.setSubtitlesSmartLayout(checked);
 			});
-			this.subtitlesMaxLengthSlider.addEventListener("input", (value) => {
-				this.subtitlesMaxLengthSliderLabel.value = value;
+			const disableSmartLayout = () => {
 				if ((this.data.subtitlesSmartLayout ?? true) === true) this.setSubtitlesSmartLayout(false);
-				this.data.subtitlesMaxLength = value;
-				this.scheduleStoragePersist("subtitlesMaxLength", this.data.subtitlesMaxLength);
-				debug.log("subtitlesMaxLength value changed. New value:", value);
-				this.events["input:subtitlesMaxLength"].dispatch(value);
+			};
+			this.bindBufferedNumericSetting({
+				control: this.subtitlesMaxLengthSlider,
+				label: this.subtitlesMaxLengthSliderLabel,
+				storageKey: "subtitlesMaxLength",
+				logLabel: "subtitlesMaxLength",
+				beforeApply: disableSmartLayout,
+				dispatch: (value) => this.events["input:subtitlesMaxLength"].dispatch(value)
 			});
-			this.subtitlesFontSizeSlider.addEventListener("input", (value) => {
-				this.subtitlesFontSizeSliderLabel.value = value;
-				if ((this.data.subtitlesSmartLayout ?? true) === true) this.setSubtitlesSmartLayout(false);
-				this.data.subtitlesFontSize = value;
-				this.scheduleStoragePersist("subtitlesFontSize", this.data.subtitlesFontSize);
-				debug.log("subtitlesFontSize value changed. New value:", value);
-				this.events["input:subtitlesFontSize"].dispatch(value);
+			this.bindBufferedNumericSetting({
+				control: this.subtitlesFontSizeSlider,
+				label: this.subtitlesFontSizeSliderLabel,
+				storageKey: "subtitlesFontSize",
+				logLabel: "subtitlesFontSize",
+				beforeApply: disableSmartLayout,
+				dispatch: (value) => this.events["input:subtitlesFontSize"].dispatch(value)
 			});
-			this.subtitlesBackgroundOpacitySlider.addEventListener("input", (value) => {
-				this.subtitlesBackgroundOpacitySliderLabel.value = value;
-				this.data.subtitlesOpacity = value;
-				this.scheduleStoragePersist("subtitlesOpacity", this.data.subtitlesOpacity);
-				debug.log("subtitlesOpacity value changed. New value:", value);
-				this.events["input:subtitlesBackgroundOpacity"].dispatch(value);
+			this.bindBufferedNumericSetting({
+				control: this.subtitlesBackgroundOpacitySlider,
+				label: this.subtitlesBackgroundOpacitySliderLabel,
+				storageKey: "subtitlesOpacity",
+				logLabel: "subtitlesOpacity",
+				dispatch: (value) => this.events["input:subtitlesBackgroundOpacity"].dispatch(value)
 			});
 			this.bindPersistedSetting({
 				control: this.subtitlesFontFamilySelect,
@@ -20857,13 +21121,13 @@ var vot = (function(exports) {
 				logLabel: "showPiPButton",
 				dispatch: (checked) => this.events["change:showPiPButton"].dispatch(checked)
 			});
-			this.autoHideButtonDelaySlider.addEventListener("input", (value) => {
-				this.autoHideButtonDelaySliderLabel.value = value;
-				const newDelay = Math.round(value * 1e3);
-				debug.log("autoHideButtonDelay value changed. New value:", newDelay);
-				this.data.autoHideButtonDelay = newDelay;
-				this.scheduleStoragePersist("autoHideButtonDelay", this.data.autoHideButtonDelay);
-				this.events["input:autoHideButtonDelay"].dispatch(value);
+			this.bindBufferedNumericSetting({
+				control: this.autoHideButtonDelaySlider,
+				label: this.autoHideButtonDelaySliderLabel,
+				storageKey: "autoHideButtonDelay",
+				logLabel: "autoHideButtonDelay",
+				toStoredValue: (value) => Math.round(value * 1e3),
+				dispatch: (value) => this.events["input:autoHideButtonDelay"].dispatch(value)
 			});
 			this.bindPersistedSetting({
 				control: this.buttonPositionSelect,
@@ -21010,10 +21274,10 @@ var vot = (function(exports) {
 			this.videoHandler?.subtitlesWidget?.updateMount({ container: this.getSubtitlesMountContainer() });
 			return this;
 		}
-		getGlobalPortalHost(mount) {
-			const doc = document;
-			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-			return fullscreenEl instanceof HTMLElement && (fullscreenEl === mount.root || fullscreenEl.contains(mount.root) || mount.root.contains(fullscreenEl)) ? mount.root : document.documentElement;
+		getGlobalPortalHost(_mount) {
+			const fullscreenInfo = this.videoHandler?.fullscreenHelper?.getFullscreenInfo();
+			if (fullscreenInfo?.element && fullscreenInfo.belongsToCurrentVideo) return fullscreenInfo.shadowRoot ?? fullscreenInfo.element;
+			return document.documentElement;
 		}
 		initUIEvents() {
 			if (!this.isInitialized()) throw new Error("[VOT] UIManager isn't initialized");
@@ -21062,7 +21326,8 @@ var vot = (function(exports) {
 					this.videoHandler.onTranslationVolumeSliderSynced(nextVolume);
 					return;
 				}
-				this.videoHandler.syncVolumeWrapper("translation", nextVolume);
+				const syncResult = this.videoHandler.syncVolumeWrapper("translation", nextVolume);
+				if (typeof syncResult?.nextVideo === "number") this.videoHandler.applyManualVideoVolumeOverride(syncResult.nextVideo / 100);
 			}).addEventListener("select:fromLanguage", async () => {
 				if (!this.videoHandler) return;
 				await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
@@ -21325,10 +21590,7 @@ var vot = (function(exports) {
 			if (this.videoHandler?.site.additionalData === "mobile") return true;
 			return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
 		}
-		restartAudioPlayer() {
-			this.restartAudioPlayerSafely();
-		}
-		async restartAudioPlayerSafely() {
+		async restartAudioPlayer() {
 			const videoHandler = this.videoHandler;
 			if (!videoHandler) return;
 			try {
@@ -21754,6 +22016,53 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region src/utils/domTraversal.ts
+	function getComposedParentElement(node) {
+		if (!node) return null;
+		const parentElement = node.parentElement ?? null;
+		if (parentElement) return parentElement;
+		if (typeof node.getRootNode !== "function") return null;
+		const root = node.getRootNode();
+		if (root && "host" in root) return root.host ?? null;
+		return null;
+	}
+	function someComposedAncestor(node, predicate) {
+		for (let parent = getComposedParentElement(node); parent; parent = getComposedParentElement(parent)) if (predicate(parent)) return true;
+		return false;
+	}
+	function isArrayLikeChildren(children) {
+		return "length" in children;
+	}
+	function walkShadowIncludingSubtree(root, adapter, visit) {
+		const stack = [root];
+		const { getChildren, getShadowRoot } = adapter;
+		let stackSize = 1;
+		while (stackSize > 0) {
+			const node = stack[stackSize - 1];
+			stackSize -= 1;
+			visit(node);
+			const children = getChildren(node);
+			if (isArrayLikeChildren(children)) {
+				const arrayLike = children;
+				for (let index = 0; index < arrayLike.length; index += 1) {
+					const child = arrayLike[index];
+					if (child !== void 0 && child !== null) {
+						stack[stackSize] = child;
+						stackSize += 1;
+					}
+				}
+			} else for (const child of children) if (child !== void 0 && child !== null) {
+				stack[stackSize] = child;
+				stackSize += 1;
+			}
+			const shadowRoot = getShadowRoot(node);
+			if (shadowRoot) {
+				stack[stackSize] = shadowRoot;
+				stackSize += 1;
+			}
+		}
+	}
+	//#endregion
 	//#region src/utils/VideoObserver.ts
 	var AD_ATTRS = [
 		"class",
@@ -21863,8 +22172,7 @@ var vot = (function(exports) {
 			return false;
 		}
 		isInsideAd(video) {
-			for (let p = video.parentElement; p; p = p.parentElement) if (this.isAdRelated(p)) return true;
-			return false;
+			return someComposedAncestor(video, (p) => this.isAdRelated(p));
 		}
 		getCapturedAudioTrackCount(video) {
 			const candidate = video;
@@ -21920,30 +22228,24 @@ var vot = (function(exports) {
 				subtree: true
 			});
 		}
+		static domAdapter = {
+			getChildren: (node) => Array.from(node.children ?? []),
+			getShadowRoot: (node) => node.shadowRoot
+		};
 		scan(root) {
 			if (root instanceof HTMLVideoElement) {
 				this.trackVideo(root);
 				return;
 			}
 			if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
-			const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, { acceptNode: (node) => {
-				const el = node;
-				const isVideo = el.tagName === "VIDEO";
-				const hasShadowRoot = Boolean(el.shadowRoot);
-				return isVideo || hasShadowRoot ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
-			} });
-			while (walker.nextNode()) {
-				const el = walker.currentNode;
+			walkShadowIncludingSubtree(root, VideoObserver.domAdapter, (el) => {
 				if (el instanceof HTMLVideoElement) {
 					this.trackVideo(el);
-					continue;
+					return;
 				}
 				const sr = el.shadowRoot;
-				if (sr) {
-					this.observeRoot(sr);
-					this.scan(sr);
-				}
-			}
+				if (sr) this.observeRoot(sr);
+			});
 		}
 		getVideoListenerSignal(video) {
 			const existingController = this.videoListenerControllers.get(video);
@@ -22006,15 +22308,11 @@ var vot = (function(exports) {
 		}
 		collectVideos(node) {
 			const set = /* @__PURE__ */ new Set();
-			const addAll = (videos) => {
-				for (const v of videos) set.add(v);
-			};
 			if (node instanceof HTMLVideoElement) set.add(node);
-			if (node instanceof Document || node instanceof DocumentFragment || node instanceof Element) addAll(node.querySelectorAll("video"));
-			if (node instanceof Element) {
-				const shadowRoot = node.shadowRoot;
-				if (shadowRoot) addAll(shadowRoot.querySelectorAll("video"));
-			}
+			if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return Array.from(set);
+			walkShadowIncludingSubtree(node, VideoObserver.domAdapter, (el) => {
+				if (el instanceof HTMLVideoElement) set.add(el);
+			});
 			return Array.from(set);
 		}
 		getNowMs() {
@@ -22257,9 +22555,6 @@ var vot = (function(exports) {
 			rmsMissingSinceAt: null
 		};
 	}
-	function resetSmartDuckingRuntime() {
-		return initSmartDuckingRuntime();
-	}
 	function updateSpeechGate(input, runtime, config, now, hasRms) {
 		const gateOpen = runtime.speechGateOpen;
 		if (!input.smartEnabled) {
@@ -22439,7 +22734,6 @@ var vot = (function(exports) {
 		smartDuckingAnalyserState.delete(handler);
 	}
 	function resolveSmartDuckingInputNode(player, media, audioContext, state) {
-		if (isAudioNode(player?.gainNode)) return player.gainNode;
 		if (isAudioNode(player?.audioSource)) return player.audioSource;
 		if (isAudioNode(player?.mediaElementSource)) return player.mediaElementSource;
 		if (state.mediaSourceCreationFailed && state.mediaElement === media && state.audioContext === audioContext) return;
@@ -22532,7 +22826,7 @@ var vot = (function(exports) {
 			handler.setVideoVolume(baseline);
 		} catch {}
 		releaseSmartDuckingAnalyser(handler);
-		writeSmartDuckingRuntime(handler, resetSmartDuckingRuntime());
+		writeSmartDuckingRuntime(handler, initSmartDuckingRuntime());
 	}
 	function scheduleNextSmartDuckingTick(handler) {
 		if (typeof globalThis === "undefined") return;
@@ -22615,7 +22909,6 @@ var vot = (function(exports) {
 		const hostVideo = handler.video;
 		const hostVideoActive = !(hostVideo && (hostVideo.paused || hostVideo.ended));
 		const dynamicDuckingTarget = clamp(handler.data?.autoVolume ?? 15, 0, 100) / 100;
-		handler.smartVolumeDuckingTarget = dynamicDuckingTarget;
 		const rms = audioIsPlaying && media ? getTranslatedAudioRms(handler, media) : 0;
 		const decision = computeSmartDuckingStep({
 			nowMs: now,
@@ -22651,7 +22944,6 @@ var vot = (function(exports) {
 			return;
 		}
 		const targetVolume = clamp(this.data.autoVolume ?? 15, 0, 100) / 100;
-		this.smartVolumeDuckingTarget = targetVolume;
 		if (!this.hasActiveSource()) return;
 		if (autoVolumeMode === "smart") {
 			startSmartVolumeDucking(this);
@@ -22671,7 +22963,6 @@ var vot = (function(exports) {
 	function applyManualVideoVolumeOverride(volume01) {
 		if (!this.data?.enabledAutoVolume || !this.hasActiveSource()) return;
 		const nextVolume = snapVolume01(volume01);
-		this.smartVolumeDuckingTarget = nextVolume;
 		this.smartVolumeDuckingBaseline = nextVolume;
 		this.smartVolumeLastApplied = nextVolume;
 	}
@@ -23325,7 +23616,7 @@ var vot = (function(exports) {
 	function bindOverlayHoverFocusEvents(addMany, target, overlayVisibility) {
 		addMany(target, ["focusin"], (event) => overlayVisibility.handleOverlayInteraction(event));
 		addMany(target, ["focusout"], (event) => overlayVisibility.scheduleHide(event));
-		if (isIframe() && typeof globalThis.window !== "undefined") return;
+		if (isIframe() && globalThis.window !== void 0) return;
 		addMany(target, ["pointerenter"], (event) => overlayVisibility.handleOverlayInteraction(event));
 		addMany(target, ["pointermove"], (event) => overlayVisibility.handleOverlayInteraction(event), { passive: true });
 		addMany(target, ["pointerleave"], (event) => overlayVisibility.scheduleHide(event));
@@ -23344,7 +23635,13 @@ var vot = (function(exports) {
 	function applyOverlayLayout(self, overlayView, heightPx) {
 		const menu = overlayView.votMenu?.container;
 		if (menu) {
-			const height = heightPx ?? self.video.getBoundingClientRect().height;
+			let height;
+			if (heightPx) height = heightPx;
+			else if (self.fullscreenHelper) {
+				const target = self.fullscreenHelper.getResizeObserverTarget();
+				height = target.getBoundingClientRect().height || target.clientHeight || window.innerHeight * .75;
+			} else height = self.video.getBoundingClientRect().height;
+			if (!height || height < 200) height = window.innerHeight * .75;
 			menu.style.setProperty("--vot-container-height", `${height}px`);
 		}
 		const { position, direction } = overlayView.calcButtonLayout(self.data?.buttonPos ?? "default");
@@ -23514,7 +23811,7 @@ var vot = (function(exports) {
 		add(globalThis, "blur", clearUserPressedKeys);
 		const eventContainer = self.getEventContainer();
 		if (eventContainer) {
-			const useWindowEvents = isIframe() && typeof globalThis.window !== "undefined";
+			const useWindowEvents = isIframe() && globalThis.window !== void 0;
 			const interactionTarget = useWindowEvents ? globalThis.window : eventContainer;
 			if (useWindowEvents) {
 				addMany(interactionTarget, ["pointermove", "pointerdown"], (event) => self.overlayVisibility.handleHostInteraction(event), { passive: true });
@@ -23755,6 +24052,7 @@ var vot = (function(exports) {
 	var DEFAULT_CACHE_LOCALE = "und";
 	var wordSegmenterCache = /* @__PURE__ */ new Map();
 	var sentenceSegmenterCache = /* @__PURE__ */ new Map();
+	var resolvedLocaleCache = /* @__PURE__ */ new Map();
 	var canonicalizeLocale = (locale) => {
 		if (!locale) return void 0;
 		try {
@@ -23764,9 +24062,16 @@ var vot = (function(exports) {
 		}
 	};
 	var resolveSegmenterLocale = (locale) => {
+		const cacheKey = locale ?? DEFAULT_CACHE_LOCALE;
+		if (resolvedLocaleCache.has(cacheKey)) return resolvedLocaleCache.get(cacheKey);
 		const canonicalLocale = canonicalizeLocale(locale);
-		if (!canonicalLocale) return void 0;
-		return Intl.Segmenter.supportedLocalesOf([canonicalLocale])[0];
+		if (!canonicalLocale) {
+			resolvedLocaleCache.set(cacheKey, void 0);
+			return;
+		}
+		const resolvedLocale = Intl.Segmenter.supportedLocalesOf([canonicalLocale])[0];
+		resolvedLocaleCache.set(cacheKey, resolvedLocale);
+		return resolvedLocale;
 	};
 	var getSegmenter = (locale, granularity) => {
 		const resolvedLocale = resolveSegmenterLocale(locale);
@@ -24648,7 +24953,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/index.ts
-	new Set(availableTTS);
 	var RESOLVED_VOID_PROMISE = Promise.resolve();
 	var VideoHandler = class {
 		video;
@@ -24700,7 +25004,6 @@ var vot = (function(exports) {
 		internalVideoVolumeSetHistory = [];
 		internalVideoVolumeSetHistoryLimit = 48;
 		smartVolumeDuckingInterval;
-		smartVolumeDuckingTarget = .2;
 		smartVolumeDuckingBaseline;
 		smartVolumeLastApplied;
 		smartVolumeLastTickAt = 0;
@@ -24751,13 +25054,18 @@ var vot = (function(exports) {
 		*/
 		errorTranslationCache = /* @__PURE__ */ new Map();
 		/**
+		* Fullscreen helper for proper ShadowDOM support
+		*/
+		fullscreenHelper;
+		/**
 		* Returns fullscreen root for overlay if the active fullscreen session belongs
 		* to the current video/container. Otherwise returns null.
+		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
+		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
 		*/
 		getFullscreenOverlayRoot() {
-			const doc = document;
-			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-			return fullscreenEl instanceof HTMLElement && (fullscreenEl === this.container || fullscreenEl.contains(this.container) || this.container.contains(fullscreenEl)) ? fullscreenEl : null;
+			if (!this.fullscreenHelper) return null;
+			return this.fullscreenHelper.getOverlayRoot();
 		}
 		getOverlayMountPoints(container = this.container) {
 			const fullscreenRoot = this.getFullscreenOverlayRoot();
@@ -24900,6 +25208,13 @@ var vot = (function(exports) {
 			this.lifecycleController = new VideoLifecycleController(createVideoLifecycleHost(this, (value) => this.getOverlayMount(value)));
 			this.translationHandler = new VOTTranslationHandler(this);
 			this.videoManager = new VOTVideoManager(this);
+			this.fullscreenHelper = new FullscreenHelper({
+				container: this.container,
+				video: this.video
+			});
+			this.fullscreenHelper.addFullscreenChangeListener(() => {
+				this.refreshOverlayMount();
+			});
 		}
 		/**
 		* Lazily creates the subtitles widget.
@@ -24940,7 +25255,8 @@ var vot = (function(exports) {
 		* that disable pointer events on inner layers.
 		*/
 		get uiRoot() {
-			return this.getOverlayMountPoints().root;
+			const root = this.getOverlayMountPoints().root;
+			return root instanceof ShadowRoot ? root.host : root;
 		}
 		/**
 		* Determines the DOM container used for overlay portals.
@@ -25034,12 +25350,6 @@ var vot = (function(exports) {
 			if (now - this.internalVideoVolumeSetAt > this.internalVideoVolumeSuppressionMs) return false;
 			return Math.abs(observedPercent - this.internalVideoVolumeSetPercent) <= 1;
 		}
-		callModule(impl, ...args) {
-			return impl.call(this, ...args);
-		}
-		callModuleAsync(impl, ...args) {
-			return impl.call(this, ...args);
-		}
 		/**
 		* Initializes the VideoHandler: loads settings, UI, video data, events, etc.
 		* @returns {Promise<void>}
@@ -25097,7 +25407,7 @@ var vot = (function(exports) {
 		* Initializes extra event listeners (resize, click outside, keydown, etc.).
 		*/
 		initExtraEvents() {
-			return this.callModule(initExtraEvents);
+			return initExtraEvents.call(this);
 		}
 		/**
 		* Recomputes overlay mount points and rebinds interaction targets.
@@ -25107,6 +25417,10 @@ var vot = (function(exports) {
 		*/
 		refreshOverlayMount() {
 			this.mountCache = void 0;
+			if (this.fullscreenHelper) {
+				this.fullscreenHelper.updateContainer(this.container);
+				this.fullscreenHelper.updateVideo(this.video);
+			}
 			const nextMount = this.getOverlayMount(this.container);
 			const mountChanged = !isSameOverlayMount(this.uiManager.mount, nextMount);
 			this.uiManager.updateMount(nextMount);
@@ -25123,17 +25437,15 @@ var vot = (function(exports) {
 		/**
 		* Called when the video can play.
 		*/
-		setCanPlay() {
-			return this.lifecycleController.setCanPlay();
-		}
+		setCanPlay = () => this.lifecycleController.setCanPlay();
 		isOverlayInteractiveNode(node) {
-			return this.callModule(isOverlayInteractiveNode, node);
+			return isOverlayInteractiveNode.call(this, node);
 		}
 		/**
 		* Schedules hiding the overlay button with guard checks for internal navigation.
 		*/
 		getAutoHideDelay() {
-			return this.callModule(getAutoHideDelay);
+			return getAutoHideDelay.call(this);
 		}
 		/**
 		* Changes subtitles language based on user selection.
@@ -25159,14 +25471,14 @@ var vot = (function(exports) {
 		* then falls back to any captions in the target language.
 		*/
 		enableSubtitlesForCurrentLangPair() {
-			return this.callModuleAsync(enableSubtitlesForCurrentLangPair);
+			return enableSubtitlesForCurrentLangPair.call(this);
 		}
 		/**
 		* Re-evaluates the active subtitles track for the current language pair,
 		* but only when auto-subtitles are enabled.
 		*/
 		refreshAutoSubtitlesForCurrentLangPair() {
-			return this.callModuleAsync(refreshAutoSubtitlesForCurrentLangPair);
+			return refreshAutoSubtitlesForCurrentLangPair.call(this);
 		}
 		/**
 		* Toggles subtitles for the current video.
@@ -25176,7 +25488,7 @@ var vot = (function(exports) {
 		*   current language pair.
 		*/
 		toggleSubtitlesForCurrentLangPair() {
-			return this.callModuleAsync(toggleSubtitlesForCurrentLangPair);
+			return toggleSubtitlesForCurrentLangPair.call(this);
 		}
 		getRequestLangForTranslation(requestLang, responseLang) {
 			if (this.data?.useLivelyVoice && this.data?.account?.token && responseLang === "ru") return "en";
@@ -25191,9 +25503,7 @@ var vot = (function(exports) {
 		* Gets the video volume.
 		* @returns {number} The video volume (0.0 - 1.0).
 		*/
-		getVideoVolume() {
-			return this.videoManager.getVideoVolume();
-		}
+		getVideoVolume = () => this.videoManager.getVideoVolume();
 		/**
 		* Sets the video volume.
 		* @param {number} volume A number between 0 and 1.
@@ -25232,10 +25542,6 @@ var vot = (function(exports) {
 		* temporarily disabled, so re-enabling link mode does not apply stale deltas.
 		*/
 		onTranslationVolumeSliderSynced(volumePercent) {
-			if (!this.volumeLinkState.initialized) {
-				syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
-				return;
-			}
 			syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
 		}
 		/**
@@ -25256,23 +25562,19 @@ var vot = (function(exports) {
 		* Checks if the video is muted.
 		* @returns {boolean} True if muted.
 		*/
-		isMuted() {
-			return this.videoManager.isMuted();
-		}
+		isMuted = () => this.videoManager.isMuted();
 		/**
 		* Syncs the video volume slider.
 		*/
-		syncVideoVolumeSlider() {
-			this.videoManager.syncVideoVolumeSlider();
-		}
+		syncVideoVolumeSlider = () => this.videoManager.syncVideoVolumeSlider();
 		/**
 		* Sets language select menu values.
 		* @param {string} from Source language.
 		* @param {string} to Target language.
 		*/
-		setSelectMenuValues(from, to) {
+		setSelectMenuValues = (from, to) => {
 			this.videoManager.setSelectMenuValues(from, to);
-		}
+		};
 		/**
 		* Keeps translation and video sliders linked (syncVolume option).
 		*
@@ -25286,7 +25588,7 @@ var vot = (function(exports) {
 			const videoSlider = overlayView.videoVolumeSlider;
 			const translationSlider = overlayView.translationVolumeSlider;
 			if (!videoSlider || !translationSlider) return;
-			const { nextVideo, nextTranslation } = applyVolumeLinkDelta({
+			const result = applyVolumeLinkDelta({
 				state: this.volumeLinkState,
 				fromType,
 				newVolume,
@@ -25295,30 +25597,27 @@ var vot = (function(exports) {
 				translationMin: translationSlider.min,
 				translationMax: translationSlider.max
 			});
+			const { nextVideo, nextTranslation } = result;
 			if (typeof nextTranslation === "number") {
 				translationSlider.value = nextTranslation;
-				if (this.audioPlayer?.player) safeSetPlayerVolume(this.audioPlayer.player, nextTranslation / 100);
-				return;
+				return result;
 			}
 			if (typeof nextVideo === "number") {
 				videoSlider.value = nextVideo;
 				this.setVideoVolume(nextVideo / 100);
 			}
+			return result;
 		}
 		/**
 		* Retrieves video data.
 		* @returns {Promise<Object>} The video data object.
 		*/
-		getVideoData() {
-			return this.videoManager.getVideoData();
-		}
+		getVideoData = () => this.videoManager.getVideoData();
 		/**
 		* Validates the video.
 		* @returns {Promise<boolean>} True if valid.
 		*/
-		videoValidator() {
-			return this.videoManager.videoValidator();
-		}
+		videoValidator = () => this.videoManager.videoValidator();
 		/**
 		* Stops translation and resets UI elements.
 		*/
@@ -25454,10 +25753,10 @@ var vot = (function(exports) {
 		* @returns {Promise<string>} The valid audio URL.
 		*/
 		validateAudioUrl(audioUrl, actionContext) {
-			return this.callModuleAsync(validateAudioUrl, audioUrl, actionContext);
+			return validateAudioUrl.call(this, audioUrl, actionContext);
 		}
 		scheduleTranslationRefresh() {
-			this.callModule(scheduleTranslationRefresh);
+			scheduleTranslationRefresh.call(this);
 		}
 		refreshTranslationAudio = refreshTranslationAudio;
 		/**
@@ -25466,7 +25765,7 @@ var vot = (function(exports) {
 		* @returns {string} The proxified audio URL.
 		*/
 		proxifyAudio(audioUrl) {
-			return this.callModule(proxifyAudio, audioUrl);
+			return proxifyAudio.call(this, audioUrl);
 		}
 		/**
 		* Reverts a previously proxified audio URL back to the original Yandex S3 URL.
@@ -25476,7 +25775,7 @@ var vot = (function(exports) {
 		* src.
 		*/
 		unproxifyAudio(audioUrl) {
-			return this.callModule(unproxifyAudio, audioUrl);
+			return unproxifyAudio.call(this, audioUrl);
 		}
 		/**
 		* Called when proxy-related settings are changed at runtime.
@@ -25488,7 +25787,7 @@ var vot = (function(exports) {
 		*/
 		handleProxySettingsChanged = handleProxySettingsChanged;
 		isMultiMethodS3(url) {
-			return this.callModule(isMultiMethodS3, url);
+			return isMultiMethodS3.call(this, url);
 		}
 		/**
 		* Updates the translation audio source.
@@ -25496,7 +25795,7 @@ var vot = (function(exports) {
 		*/
 		updateTranslation = updateTranslation;
 		syncTranslationPlaybackVolume() {
-			return this.callModule(syncTranslationPlaybackVolume);
+			return syncTranslationPlaybackVolume.call(this);
 		}
 		/**
 		* Translates the video/audio.
@@ -25513,16 +25812,16 @@ var vot = (function(exports) {
 		* used for enable audio downloader on this hosts
 		*/
 		isYouTubeHosts() {
-			return this.callModule(isYouTubeHosts);
+			return isYouTubeHosts.call(this);
 		}
 		/**
 		* Configures audio settings such as volume.
 		*/
 		setupAudioSettings() {
-			return this.callModule(setupAudioSettings);
+			return setupAudioSettings.call(this);
 		}
 		applyManualVideoVolumeOverride(volume) {
-			return this.callModule(applyManualVideoVolumeOverride, volume);
+			return applyManualVideoVolumeOverride.call(this, volume);
 		}
 		/**
 		* Stops translation and synchronizes volume.
@@ -25536,9 +25835,7 @@ var vot = (function(exports) {
 		/**
 		* Handles video source change events.
 		*/
-		handleSrcChanged() {
-			return this.lifecycleController.handleSrcChanged();
-		}
+		handleSrcChanged = () => this.lifecycleController.handleSrcChanged();
 		/**
 		* Releases resources and removes event listeners.
 		*/
@@ -25553,6 +25850,8 @@ var vot = (function(exports) {
 			this.lifecycleController?.teardown();
 			this.abortController?.abort();
 			this.abortController = new AbortController();
+			this.fullscreenHelper?.destroy();
+			this.fullscreenHelper = void 0;
 			this.overlayVisibility?.release();
 			this.releaseExtraEvents();
 			if (this.hasSubtitlesWidget()) {

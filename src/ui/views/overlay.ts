@@ -12,9 +12,14 @@ import type {
   OverlayViewProps,
 } from "../../types/views/overlay";
 import ui from "../../ui";
+import { FullscreenHelper } from "../../utils/fullscreenHelper";
 import type { IntervalIdleChecker } from "../../utils/intervalIdleChecker";
 import { votStorage } from "../../utils/storage";
 import { isPiPAvailable } from "../../utils/utils";
+import {
+  addKeyboardActivationListener,
+  isPrimaryPointerAction,
+} from "../components/componentShared";
 import DownloadButton from "../components/downloadButton";
 import Label from "../components/label";
 import LanguagePairSelect from "../components/languagePairSelect";
@@ -34,6 +39,9 @@ import {
 
 export class OverlayView {
   private static readonly BIG_CONTAINER_WIDTH_PX = 550;
+  private resizeObserver?: ResizeObserver;
+  private lastIsBigContainer = false;
+  private fullscreenHelper: FullscreenHelper;
 
   mount: OverlayMount;
   globalPortal: HTMLElement;
@@ -116,9 +124,14 @@ export class OverlayView {
     this.data = data;
     this.videoHandler = videoHandler;
     this.intervalIdleChecker = intervalIdleChecker;
+
+    this.fullscreenHelper = new FullscreenHelper({
+      container: videoHandler?.container || (mount.root as HTMLElement),
+      video: videoHandler?.video,
+    });
   }
 
-  get root(): HTMLElement {
+  get root(): HTMLElement | ShadowRoot {
     return this.overlayMount?.root ?? this.mount.root;
   }
 
@@ -155,7 +168,10 @@ export class OverlayView {
 
     if (this.votButtonTooltip && prevRoot !== nextRoot) {
       this.votButtonTooltip.updateMount({
-        parentElement: this.root,
+        parentElement:
+          this.root instanceof ShadowRoot
+            ? (this.root.host as HTMLElement)
+            : this.root,
         layoutRoot: this.overlayMount?.host,
       });
     }
@@ -226,6 +242,38 @@ export class OverlayView {
     }, this.defaultVolumePersistDelayMs);
   }
 
+  private bindPrimaryAction(
+    element: HTMLElement,
+    handler: () => void,
+    signal: AbortSignal,
+    options: { preventPointerDefault?: boolean } = {},
+  ): void {
+    element.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (!isPrimaryPointerAction(event)) return;
+        if (options.preventPointerDefault) {
+          event.preventDefault();
+        }
+        handler();
+      },
+      { signal },
+    );
+    addKeyboardActivationListener(element, handler, { signal });
+  }
+
+  private isEventInside(event: Event, element: HTMLElement): boolean {
+    const target = event.target as Node | null;
+    if (target && element.contains(target)) {
+      return true;
+    }
+
+    return (
+      typeof event.composedPath === "function" &&
+      event.composedPath().includes(element)
+    );
+  }
+
   private flushDefaultVolumePersist(): void {
     if (this.defaultVolumePersistTimer !== undefined) {
       globalThis.clearTimeout(this.defaultVolumePersistTimer);
@@ -245,6 +293,7 @@ export class OverlayView {
     }
 
     this.initialized = true;
+    this.lastIsBigContainer = this.isBigContainer;
     this.overlayMount = createShadowMount({
       parent: this.mount.root,
       rootClasses: ["vot-overlay-root"],
@@ -288,7 +337,10 @@ export class OverlayView {
       autoLayout: false,
       hidden: direction === "row",
       bordered: false,
-      parentElement: this.root,
+      parentElement:
+        this.root instanceof ShadowRoot
+          ? (this.root.host as HTMLElement)
+          : this.root,
       layoutRoot: this.overlayMount.host,
     });
 
@@ -299,6 +351,8 @@ export class OverlayView {
       position,
     });
     this.root.appendChild(this.votMenu.container);
+
+    this.setupResizeObserver();
 
     // A11y: link the menu toggle button to the popover.
     this.votButton.menuButton.setAttribute(
@@ -431,16 +485,6 @@ export class OverlayView {
       { signal },
     );
 
-    // Keyboard support for custom elements.
-    const activateOnKey = (handler: () => void) => (e: KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        handler();
-      }
-    };
-    const isPrimaryActionPointer = (event: PointerEvent) =>
-      event.isPrimary && event.button === 0;
-
     // Quick settings popover state helpers.
     const setMenuOpen = (
       open: boolean,
@@ -471,57 +515,27 @@ export class OverlayView {
     const closeMenu = (returnFocusToToggle = false) =>
       setMenuOpen(false, { returnFocusToToggle });
 
-    this.votButton.translateButton.addEventListener(
-      "pointerdown",
-      (event) => {
-        if (!isPrimaryActionPointer(event)) return;
+    this.bindPrimaryAction(
+      this.votButton.translateButton,
+      () => {
         closeMenu();
         this.events["click:translate"].dispatch();
       },
-      { signal },
+      signal,
     );
 
-    this.votButton.translateButton.addEventListener(
-      "keydown",
-      activateOnKey(() => {
-        closeMenu();
-        this.events["click:translate"].dispatch();
-      }),
-      { signal },
-    );
-
-    this.votButton.pipButton.addEventListener(
-      "pointerdown",
-      (event) => {
-        if (!isPrimaryActionPointer(event)) return;
+    this.bindPrimaryAction(
+      this.votButton.pipButton,
+      () => {
         closeMenu();
         this.events["click:pip"].dispatch();
       },
-      { signal },
-    );
-    this.votButton.pipButton.addEventListener(
-      "keydown",
-      activateOnKey(() => {
-        closeMenu();
-        this.events["click:pip"].dispatch();
-      }),
-      { signal },
+      signal,
     );
 
-    this.votButton.menuButton.addEventListener(
-      "pointerdown",
-      (e) => {
-        if (!isPrimaryActionPointer(e)) return;
-        e.preventDefault();
-        toggleMenu();
-      },
-      { signal },
-    );
-    this.votButton.menuButton.addEventListener(
-      "keydown",
-      activateOnKey(toggleMenu),
-      { signal },
-    );
+    this.bindPrimaryAction(this.votButton.menuButton, toggleMenu, signal, {
+      preventPointerDefault: true,
+    });
 
     // #region [Events] VOT Button Dragging
     // Pointer capture keeps drag updates routed to the button even when the
@@ -586,21 +600,10 @@ export class OverlayView {
       (e) => {
         if (this.votMenu.hidden) return;
 
-        const target = e.target as Node | null;
         const path =
           typeof e.composedPath === "function"
             ? (e.composedPath() as unknown as EventTarget[])
             : [];
-
-        const isInsideMenu =
-          (target && this.votMenu.container.contains(target)) ||
-          path.includes(this.votMenu.container);
-        const isInsideToggle =
-          (target && this.votButton.menuButton.contains(target)) ||
-          path.includes(this.votButton.menuButton);
-        const isInsideButton =
-          (target && this.votButton.container.contains(target)) ||
-          path.includes(this.votButton.container);
 
         // Keep menu open while interacting with dialogs spawned from it
         // (language picker, etc.).
@@ -611,9 +614,9 @@ export class OverlayView {
         );
 
         if (
-          isInsideMenu ||
-          isInsideToggle ||
-          isInsideButton ||
+          this.isEventInside(e, this.votMenu.container) ||
+          this.isEventInside(e, this.votButton.menuButton) ||
+          this.isEventInside(e, this.votButton.container) ||
           isInsideDialog
         ) {
           return;
@@ -857,7 +860,8 @@ export class OverlayView {
     this.dragStartY = clientY;
     this.currentClientX = clientX;
 
-    this.containerRect = this.root.getBoundingClientRect();
+    const rootEl = this.root instanceof ShadowRoot ? this.root.host : this.root;
+    this.containerRect = rootEl.getBoundingClientRect();
     this.dragIsBigContainer = this.isBigContainer;
     this.dragDirty = false;
     this.intervalIdleChecker.markActivity(activitySource);
@@ -1005,6 +1009,14 @@ export class OverlayView {
     this.votButton?.remove();
     this.votMenu?.remove();
     this.votButtonTooltip?.release();
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = undefined;
+    }
+
+    this.fullscreenHelper.destroy();
+
     destroyShadowMount(this.overlayMount);
     this.overlayMount = undefined;
   }
@@ -1037,22 +1049,72 @@ export class OverlayView {
   }
 
   get isBigContainer() {
-    const widthFromVideo =
-      this.videoHandler?.video?.getBoundingClientRect?.().width;
-    if (typeof widthFromVideo === "number" && Number.isFinite(widthFromVideo)) {
-      return widthFromVideo > OverlayView.BIG_CONTAINER_WIDTH_PX;
+    return this.fullscreenHelper.isBigContainer(
+      OverlayView.BIG_CONTAINER_WIDTH_PX,
+    );
+  }
+
+  private setupResizeObserver(): void {
+    if (this.resizeObserver) {
+      return;
     }
 
-    const widthFromContainer =
-      this.videoHandler?.container?.getBoundingClientRect?.().width;
-    if (
-      typeof widthFromContainer === "number" &&
-      Number.isFinite(widthFromContainer)
-    ) {
-      return widthFromContainer > OverlayView.BIG_CONTAINER_WIDTH_PX;
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width } = entry.contentRect;
+        const currentIsBigContainer =
+          width > OverlayView.BIG_CONTAINER_WIDTH_PX;
+
+        if (this.lastIsBigContainer !== currentIsBigContainer) {
+          this.lastIsBigContainer = currentIsBigContainer;
+          this.handleContainerSizeChange(currentIsBigContainer);
+        }
+
+        this.updateMenuHeight(entry.contentRect.height);
+      }
+    });
+
+    const target = this.fullscreenHelper.getResizeObserverTarget();
+    this.resizeObserver.observe(target);
+  }
+
+  private updateMenuHeight(containerHeight?: number): void {
+    if (!this.isInitialized() || !this.votMenu?.container) {
+      return;
     }
 
-    return this.root.clientWidth > OverlayView.BIG_CONTAINER_WIDTH_PX;
+    let height: number;
+
+    if (containerHeight && containerHeight > 200) {
+      height = containerHeight;
+    } else {
+      const target = this.fullscreenHelper.getResizeObserverTarget();
+      const rect = target.getBoundingClientRect();
+      height = rect.height || target.clientHeight || window.innerHeight * 0.75;
+    }
+
+    if (!height || height < 200) {
+      height = window.innerHeight * 0.75;
+    }
+
+    this.votMenu.container.style.setProperty(
+      "--vot-container-height",
+      `${height}px`,
+    );
+  }
+
+  private handleContainerSizeChange(isBigContainer: boolean): void {
+    if (!this.isInitialized()) {
+      return;
+    }
+
+    const currentPosition = this.votButton.position;
+    const newPosition = isBigContainer ? currentPosition : "default";
+
+    if (currentPosition !== newPosition) {
+      const direction = VOTButton.calcDirection(newPosition);
+      this.updateButtonLayout(newPosition, direction);
+    }
   }
 
   get pipButtonVisible() {

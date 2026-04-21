@@ -38,4 +38,11 @@ export type FetchOpts = RequestInit & {
   timeout?: number;
   forceGmXhr?: boolean;
   responseCache?: ResponseCacheOptions;
+  /**
+   * Control redirect behavior for GM_xhr.
+   * "follow" - automatically follow redirects (default)
+   * "manual" - return 302 response with Location header
+   * "error" - throw error on redirect
+   */
+  redirect?: "follow" | "manual" | "error";
 };

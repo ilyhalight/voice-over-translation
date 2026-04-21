@@ -24,20 +24,16 @@ function getTransferables(payload: AnyObject): Transferable[] {
   return [progressChunk, responseBody];
 }
 
-function markMessage(payload: AnyObject): BridgeMarkedMessage {
+export function toBridgeMessage(payload: AnyObject): BridgeMarkedMessage {
   // Always force the marker at the final write position.
   return { ...payload, [MARK]: true };
-}
-
-export function toBridgeMessage(payload: AnyObject): BridgeMarkedMessage {
-  return markMessage(payload);
 }
 
 export function toPageMessage(payload: AnyObject): {
   message: BridgeMarkedMessage;
   transfer: Transferable[];
 } {
-  const message = markMessage(payload);
+  const message = toBridgeMessage(payload);
   return {
     message,
     transfer: getTransferables(payload),

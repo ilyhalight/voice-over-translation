@@ -2,9 +2,9 @@ import type { ServiceConf } from "@vot.js/ext/types/service";
 
 export type OverlayMountTargets = {
   base: HTMLElement;
-  root: HTMLElement;
+  root: HTMLElement | ShadowRoot;
   portalContainer: HTMLElement;
-  subtitlesMountContainer: HTMLElement;
+  subtitlesMountContainer: HTMLElement | ShadowRoot;
 };
 
 export function resolveOverlayBaseContainer(
@@ -19,7 +19,7 @@ export function resolveOverlayBaseContainer(
 export function resolveOverlayMountTargets(input: {
   container: HTMLElement;
   site: ServiceConf;
-  fullscreenRoot: HTMLElement | null;
+  fullscreenRoot: HTMLElement | ShadowRoot | null;
 }): OverlayMountTargets {
   const base = resolveOverlayBaseContainer(input.container, input.site);
   const root = input.fullscreenRoot ?? base;

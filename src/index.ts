@@ -1,7 +1,6 @@
 import VOTClient, { VOTWorkerClient } from "@vot.js/ext/client";
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
-import { availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import Chaimu from "chaimu/client";
@@ -36,6 +35,7 @@ import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
 import debug from "./utils/debug";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
+import { FullscreenHelper } from "./utils/fullscreenHelper";
 import { GM_fetch, isSupportGMXhr } from "./utils/gm";
 import { isIframe } from "./utils/iframeConnector";
 import {
@@ -44,10 +44,8 @@ import {
 } from "./utils/intervalIdleChecker";
 import { Notifier } from "./utils/notify";
 import { translate } from "./utils/translateApis";
-import { safeSetPlayerVolume } from "./utils/translationVolume";
 import {
   calculatedResLang,
-  type DocumentWithFullscreen,
   fnv1a32ToKeyPart,
   stableStringify,
 } from "./utils/utils";
@@ -59,6 +57,7 @@ import {
   volume01ToPercent,
 } from "./utils/volume";
 import {
+  type ApplyVolumeLinkDeltaResult,
   applyVolumeLinkDelta,
   syncTranslationLinkSnapshot,
   syncVideoLinkSnapshot,
@@ -113,7 +112,6 @@ export { getEnvironmentInfo } from "./utils/environment";
 export type { VideoData } from "./videoHandler/shared";
 export { countryCode } from "./videoHandler/shared";
 
-const _RESPONSE_LANG_SET = new Set<string>(availableTTS as readonly string[]);
 const RESOLVED_VOID_PROMISE: Promise<void> = Promise.resolve();
 
 type InternalVideoVolumeSetHistoryEntry = {
@@ -194,7 +192,6 @@ export class VideoHandler {
   // Smart auto-volume ducking state. Used to lower the original video volume
   // only while the translated track has audible sound (not during silence).
   smartVolumeDuckingInterval?: ReturnType<typeof setTimeout>;
-  smartVolumeDuckingTarget = 0.2;
   smartVolumeDuckingBaseline?: number;
   smartVolumeLastApplied?: number;
 
@@ -257,10 +254,10 @@ export class VideoHandler {
   private mountCache?: {
     container: HTMLElement;
     base: HTMLElement;
-    root: HTMLElement;
+    root: HTMLElement | ShadowRoot;
     portalContainer: HTMLElement;
-    subtitlesMountContainer: HTMLElement;
-    fullscreenRoot: HTMLElement | null;
+    subtitlesMountContainer: HTMLElement | ShadowRoot;
+    fullscreenRoot: HTMLElement | ShadowRoot | null;
   };
 
   /**
@@ -271,25 +268,28 @@ export class VideoHandler {
   private readonly errorTranslationCache = new Map<string, string>();
 
   /**
+   * Fullscreen helper for proper ShadowDOM support
+   */
+  fullscreenHelper?: FullscreenHelper;
+
+  /**
    * Returns fullscreen root for overlay if the active fullscreen session belongs
    * to the current video/container. Otherwise returns null.
+   * For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
+   * to ensure UI is mounted inside the shadow tree, not in the light DOM.
    */
-  private getFullscreenOverlayRoot(): HTMLElement | null {
-    const doc = document as DocumentWithFullscreen;
-    const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-    return fullscreenEl instanceof HTMLElement &&
-      (fullscreenEl === this.container ||
-        fullscreenEl.contains(this.container) ||
-        this.container.contains(fullscreenEl))
-      ? fullscreenEl
-      : null;
+  private getFullscreenOverlayRoot(): HTMLElement | ShadowRoot | null {
+    if (!this.fullscreenHelper) {
+      return null;
+    }
+    return this.fullscreenHelper.getOverlayRoot();
   }
 
   private getOverlayMountPoints(container: HTMLElement = this.container): {
-    root: HTMLElement;
+    root: HTMLElement | ShadowRoot;
     portalContainer: HTMLElement;
-    subtitlesMountContainer: HTMLElement;
-    fullscreenRoot: HTMLElement | null;
+    subtitlesMountContainer: HTMLElement | ShadowRoot;
+    fullscreenRoot: HTMLElement | ShadowRoot | null;
   } {
     const fullscreenRoot = this.getFullscreenOverlayRoot();
     const { base, root, portalContainer, subtitlesMountContainer } =
@@ -519,6 +519,15 @@ export class VideoHandler {
     );
     this.translationHandler = new VOTTranslationHandler(this);
     this.videoManager = new VOTVideoManager(this);
+
+    this.fullscreenHelper = new FullscreenHelper({
+      container: this.container,
+      video: this.video,
+    });
+
+    this.fullscreenHelper.addFullscreenChangeListener(() => {
+      this.refreshOverlayMount();
+    });
   }
 
   /**
@@ -588,7 +597,8 @@ export class VideoHandler {
    * that disable pointer events on inner layers.
    */
   get uiRoot(): HTMLElement {
-    return this.getOverlayMountPoints().root;
+    const root = this.getOverlayMountPoints().root;
+    return root instanceof ShadowRoot ? (root.host as HTMLElement) : root;
   }
 
   /**
@@ -716,20 +726,6 @@ export class VideoHandler {
     return Math.abs(observedPercent - this.internalVideoVolumeSetPercent) <= 1;
   }
 
-  private callModule<TArgs extends unknown[], TResult>(
-    impl: (this: VideoHandler, ...args: TArgs) => TResult,
-    ...args: TArgs
-  ): TResult {
-    return impl.call(this, ...args);
-  }
-
-  private callModuleAsync<TArgs extends unknown[], TResult>(
-    impl: (this: VideoHandler, ...args: TArgs) => Promise<TResult>,
-    ...args: TArgs
-  ): Promise<TResult> {
-    return impl.call(this, ...args);
-  }
-
   /**
    * Initializes the VideoHandler: loads settings, UI, video data, events, etc.
    * @returns {Promise<void>}
@@ -813,7 +809,7 @@ export class VideoHandler {
    * Initializes extra event listeners (resize, click outside, keydown, etc.).
    */
   initExtraEvents() {
-    return this.callModule(initExtraEventsImpl);
+    return initExtraEventsImpl.call(this);
   }
 
   /**
@@ -824,6 +820,12 @@ export class VideoHandler {
    */
   refreshOverlayMount(): void {
     this.mountCache = undefined;
+
+    if (this.fullscreenHelper) {
+      this.fullscreenHelper.updateContainer(this.container);
+      this.fullscreenHelper.updateVideo(this.video);
+    }
+
     const nextMount = this.getOverlayMount(this.container);
     const mountChanged = !isSameOverlayMount(this.uiManager.mount, nextMount);
     this.uiManager.updateMount(nextMount);
@@ -844,19 +846,17 @@ export class VideoHandler {
   /**
    * Called when the video can play.
    */
-  setCanPlay() {
-    return this.lifecycleController.setCanPlay();
-  }
+  setCanPlay = () => this.lifecycleController.setCanPlay();
 
   isOverlayInteractiveNode(node: unknown): boolean {
-    return this.callModule(isOverlayInteractiveNodeImpl, node);
+    return isOverlayInteractiveNodeImpl.call(this, node);
   }
 
   /**
    * Schedules hiding the overlay button with guard checks for internal navigation.
    */
   getAutoHideDelay(): number {
-    return this.callModule(getAutoHideDelayImpl);
+    return getAutoHideDelayImpl.call(this);
   }
 
   /**
@@ -888,7 +888,7 @@ export class VideoHandler {
    * then falls back to any captions in the target language.
    */
   enableSubtitlesForCurrentLangPair() {
-    return this.callModuleAsync(enableSubtitlesForCurrentLangPairImpl);
+    return enableSubtitlesForCurrentLangPairImpl.call(this);
   }
 
   /**
@@ -896,7 +896,7 @@ export class VideoHandler {
    * but only when auto-subtitles are enabled.
    */
   refreshAutoSubtitlesForCurrentLangPair() {
-    return this.callModuleAsync(refreshAutoSubtitlesForCurrentLangPairImpl);
+    return refreshAutoSubtitlesForCurrentLangPairImpl.call(this);
   }
 
   /**
@@ -907,7 +907,7 @@ export class VideoHandler {
    *   current language pair.
    */
   toggleSubtitlesForCurrentLangPair() {
-    return this.callModuleAsync(toggleSubtitlesForCurrentLangPairImpl);
+    return toggleSubtitlesForCurrentLangPairImpl.call(this);
   }
 
   getRequestLangForTranslation(
@@ -952,9 +952,7 @@ export class VideoHandler {
    * Gets the video volume.
    * @returns {number} The video volume (0.0 - 1.0).
    */
-  getVideoVolume() {
-    return this.videoManager.getVideoVolume();
-  }
+  getVideoVolume = () => this.videoManager.getVideoVolume();
 
   /**
    * Sets the video volume.
@@ -1031,11 +1029,6 @@ export class VideoHandler {
    * temporarily disabled, so re-enabling link mode does not apply stale deltas.
    */
   onTranslationVolumeSliderSynced(volumePercent: number) {
-    if (!this.volumeLinkState.initialized) {
-      syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
-      return;
-    }
-
     syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
   }
 
@@ -1059,28 +1052,24 @@ export class VideoHandler {
    * Checks if the video is muted.
    * @returns {boolean} True if muted.
    */
-  isMuted() {
-    return this.videoManager.isMuted();
-  }
+  isMuted = () => this.videoManager.isMuted();
 
   /**
    * Syncs the video volume slider.
    */
-  syncVideoVolumeSlider() {
-    this.videoManager.syncVideoVolumeSlider();
-  }
+  syncVideoVolumeSlider = () => this.videoManager.syncVideoVolumeSlider();
 
   /**
    * Sets language select menu values.
    * @param {string} from Source language.
    * @param {string} to Target language.
    */
-  setSelectMenuValues(from: string, to: string): void {
+  setSelectMenuValues = (from: string, to: string): void => {
     this.videoManager.setSelectMenuValues(
       from as RequestLang,
       to as ResponseLang,
     );
-  }
+  };
 
   /**
    * Keeps translation and video sliders linked (syncVolume option).
@@ -1092,19 +1081,20 @@ export class VideoHandler {
   syncVolumeWrapper(
     fromType: "translation" | "video",
     newVolume: number,
-  ): void {
+  ): ApplyVolumeLinkDeltaResult | undefined {
     const overlayView = this.uiManager.votOverlayView;
     if (!overlayView?.isInitialized()) {
-      return;
+      return undefined;
     }
 
     const videoSlider = overlayView.videoVolumeSlider;
     const translationSlider = overlayView.translationVolumeSlider;
 
     if (!videoSlider || !translationSlider) {
-      return;
+      return undefined;
     }
-    const { nextVideo, nextTranslation } = applyVolumeLinkDelta({
+
+    const result = applyVolumeLinkDelta({
       state: this.volumeLinkState,
       fromType,
       newVolume,
@@ -1114,35 +1104,32 @@ export class VideoHandler {
       translationMax: translationSlider.max,
     });
 
+    const { nextVideo, nextTranslation } = result;
+
     if (typeof nextTranslation === "number") {
       translationSlider.value = nextTranslation;
-      if (this.audioPlayer?.player) {
-        safeSetPlayerVolume(this.audioPlayer.player, nextTranslation / 100);
-      }
-      return;
+      return result;
     }
 
     if (typeof nextVideo === "number") {
       videoSlider.value = nextVideo;
       this.setVideoVolume(nextVideo / 100);
     }
+
+    return result;
   }
 
   /**
    * Retrieves video data.
    * @returns {Promise<Object>} The video data object.
    */
-  getVideoData() {
-    return this.videoManager.getVideoData();
-  }
+  getVideoData = () => this.videoManager.getVideoData();
 
   /**
    * Validates the video.
    * @returns {Promise<boolean>} True if valid.
    */
-  videoValidator() {
-    return this.videoManager.videoValidator();
-  }
+  videoValidator = () => this.videoManager.videoValidator();
 
   /**
    * Stops translation and resets UI elements.
@@ -1405,11 +1392,11 @@ export class VideoHandler {
     audioUrl: string,
     actionContext?: { gen: number; videoId: string },
   ): Promise<string> {
-    return this.callModuleAsync(validateAudioUrlImpl, audioUrl, actionContext);
+    return validateAudioUrlImpl.call(this, audioUrl, actionContext);
   }
 
   scheduleTranslationRefresh(): void {
-    this.callModule(scheduleTranslationRefreshImpl);
+    scheduleTranslationRefreshImpl.call(this);
   }
 
   refreshTranslationAudio = refreshTranslationAudioImpl;
@@ -1420,7 +1407,7 @@ export class VideoHandler {
    * @returns {string} The proxified audio URL.
    */
   proxifyAudio(audioUrl: string): string {
-    return this.callModule(proxifyAudioImpl, audioUrl);
+    return proxifyAudioImpl.call(this, audioUrl);
   }
 
   /**
@@ -1431,7 +1418,7 @@ export class VideoHandler {
    * src.
    */
   unproxifyAudio(audioUrl: string): string {
-    return this.callModule(unproxifyAudioImpl, audioUrl);
+    return unproxifyAudioImpl.call(this, audioUrl);
   }
 
   /**
@@ -1445,7 +1432,7 @@ export class VideoHandler {
   handleProxySettingsChanged = handleProxySettingsChangedImpl;
 
   isMultiMethodS3(url: string): boolean {
-    return this.callModule(isMultiMethodS3Impl, url);
+    return isMultiMethodS3Impl.call(this, url);
   }
 
   /**
@@ -1455,7 +1442,7 @@ export class VideoHandler {
   updateTranslation = updateTranslationImpl;
 
   syncTranslationPlaybackVolume() {
-    return this.callModule(syncTranslationPlaybackVolumeImpl);
+    return syncTranslationPlaybackVolumeImpl.call(this);
   }
 
   /**
@@ -1487,18 +1474,18 @@ export class VideoHandler {
    * used for enable audio downloader on this hosts
    */
   isYouTubeHosts() {
-    return this.callModule(isYouTubeHostsImpl);
+    return isYouTubeHostsImpl.call(this);
   }
 
   /**
    * Configures audio settings such as volume.
    */
   setupAudioSettings() {
-    return this.callModule(setupAudioSettingsImpl);
+    return setupAudioSettingsImpl.call(this);
   }
 
   applyManualVideoVolumeOverride(volume: number) {
-    return this.callModule(applyManualVideoVolumeOverrideImpl, volume);
+    return applyManualVideoVolumeOverrideImpl.call(this, volume);
   }
 
   /**
@@ -1514,9 +1501,7 @@ export class VideoHandler {
   /**
    * Handles video source change events.
    */
-  handleSrcChanged() {
-    return this.lifecycleController.handleSrcChanged();
-  }
+  handleSrcChanged = () => this.lifecycleController.handleSrcChanged();
 
   /**
    * Releases resources and removes event listeners.
@@ -1532,6 +1517,10 @@ export class VideoHandler {
     this.lifecycleController?.teardown();
     this.abortController?.abort();
     this.abortController = new AbortController();
+
+    this.fullscreenHelper?.destroy();
+    this.fullscreenHelper = undefined;
+
     this.overlayVisibility?.release();
     this.releaseExtraEvents();
     if (this.hasSubtitlesWidget()) {

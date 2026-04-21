@@ -7,7 +7,7 @@ import {
   addComponentEventListener,
   getHiddenState,
   removeComponentEventListener,
-  setHiddenState,
+  setInteractiveHiddenState,
 } from "./componentShared";
 
 export default class Dialog {
@@ -72,8 +72,7 @@ export default class Dialog {
 
     container.hidden = !this._isTemp;
     // A11y: avoid focus/interaction on hidden dialogs.
-    container.setAttribute("aria-hidden", container.hidden ? "true" : "false");
-    container.toggleAttribute("inert", container.hidden);
+    setInteractiveHiddenState(container, container.hidden);
 
     const backdrop = UI.createEl("vot-block", ["vot-dialog-backdrop"]);
     const box = UI.createEl("vot-block", ["vot-dialog"]);
@@ -369,9 +368,7 @@ export default class Dialog {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
-    this.container.setAttribute("aria-hidden", isHidden ? "true" : "false");
-    this.container.toggleAttribute("inert", isHidden);
+    setInteractiveHiddenState(this.container, isHidden);
   }
 
   get hidden() {

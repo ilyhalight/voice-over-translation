@@ -1,7 +1,7 @@
 import type { Position } from "../../types/components/votButton";
 import type { VOTMenuProps } from "../../types/components/votMenu";
 import UI from "../../ui";
-import { getHiddenState, setHiddenState } from "./componentShared";
+import { getHiddenState, setInteractiveHiddenState } from "./componentShared";
 
 export default class VOTMenu {
   container: HTMLElement;
@@ -49,9 +49,7 @@ export default class VOTMenu {
     // Treat the quick settings menu as a non-modal dialog/popover.
     container.setAttribute("role", "dialog");
     container.setAttribute("aria-modal", "false");
-    container.setAttribute("aria-hidden", "true");
-    // Prevent keyboard focus from reaching hidden content.
-    container.toggleAttribute("inert", true);
+    setInteractiveHiddenState(container, true);
 
     const contentWrapper = UI.createEl("vot-block", [
       "vot-menu-content-wrapper",
@@ -102,10 +100,7 @@ export default class VOTMenu {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
-    this.container.setAttribute("aria-hidden", isHidden ? "true" : "false");
-    // `inert` prevents focus & interaction when hidden.
-    this.container.toggleAttribute("inert", isHidden);
+    setInteractiveHiddenState(this.container, isHidden);
   }
 
   get hidden() {

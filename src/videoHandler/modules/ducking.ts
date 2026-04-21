@@ -104,10 +104,6 @@ export function initSmartDuckingRuntime(
   };
 }
 
-export function resetSmartDuckingRuntime(): SmartDuckingRuntime {
-  return initSmartDuckingRuntime();
-}
-
 function updateSpeechGate(
   input: SmartDuckingInput,
   runtime: SmartDuckingRuntime,

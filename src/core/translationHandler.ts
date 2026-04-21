@@ -324,15 +324,28 @@ export class VOTTranslationHandler {
     });
   }
 
-  private getVideoTranslationRetryDelayMs(
+  private static readonly MAX_INITIAL_WAIT_SEC = 180;
+  private static readonly LONG_WAIT_MS = 120_000;
+  private static readonly RETRY_INTERVAL_MS = 30_000;
+
+  private getRetryDelayMs(
     retryAttempt: number,
-    videoDurationSeconds: number,
+    remainingTimeSeconds: number | null,
   ): number {
     if (retryAttempt > 0) {
-      return 25_000;
+      return VOTTranslationHandler.RETRY_INTERVAL_MS;
     }
 
-    return videoDurationSeconds <= 10 * 60 ? 60_000 : 75_000;
+    const eta = remainingTimeSeconds ?? 0;
+    if (eta <= 0) {
+      return VOTTranslationHandler.RETRY_INTERVAL_MS;
+    }
+
+    if (eta <= VOTTranslationHandler.MAX_INITIAL_WAIT_SEC) {
+      return eta * 1000;
+    }
+
+    return VOTTranslationHandler.LONG_WAIT_MS;
   }
 
   async translateVideoImpl(
@@ -370,6 +383,7 @@ export class VOTTranslationHandler {
     );
 
     let livelyDisabled = disableLivelyVoice;
+    let translationResponse: VideoTranslationResponse | undefined;
 
     try {
       throwIfAborted(signal);
@@ -391,6 +405,7 @@ export class VOTTranslationHandler {
       livelyDisabled = translationAttempt.livelyDisabled;
       const useLivelyVoice = translationAttempt.useLivelyVoice;
       const res = translationAttempt.response;
+      translationResponse = res;
 
       if (!res) {
         throw new Error("Failed to get translation response");
@@ -515,15 +530,15 @@ export class VOTTranslationHandler {
 
     this.videoHandler.hadAsyncWait = true;
 
-    const retryDelayMs = this.getVideoTranslationRetryDelayMs(
+    const retryDelayMs = this.getRetryDelayMs(
       retryAttempt,
-      videoData.duration,
+      translationResponse?.remainingTime ?? null,
     );
     debug.log("[Translation] scheduling translation retry", {
       videoId: videoData.videoId,
       retryAttempt,
       retryDelayMs,
-      duration: videoData.duration,
+      remainingTime: translationResponse?.remainingTime,
     });
 
     return this.scheduleRetry(

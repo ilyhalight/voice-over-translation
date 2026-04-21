@@ -106,7 +106,7 @@ function applyWrapWidthGuard(maxWidthPx: number): number {
 }
 export class SubtitlesWidget {
   private readonly video?: HTMLVideoElement;
-  private container: HTMLElement;
+  private container: HTMLElement | ShadowRoot;
   private readonly fullscreenLayerController: FullscreenLayerController;
   private tooltipMount?: ShadowMount;
   private subtitlesContainer: HTMLElement | null = null;
@@ -222,7 +222,7 @@ export class SubtitlesWidget {
   private readonly onVisualViewportChangeBound: () => void;
   constructor(
     video: HTMLVideoElement | undefined,
-    container: HTMLElement,
+    container: HTMLElement | ShadowRoot,
     intervalIdleChecker: IntervalIdleChecker,
   ) {
     this.video = video;
@@ -244,7 +244,11 @@ export class SubtitlesWidget {
     });
     this.bindEvents();
   }
-  public updateMount({ container }: { container: HTMLElement }): void {
+  public updateMount({
+    container,
+  }: {
+    container: HTMLElement | ShadowRoot;
+  }): void {
     const containerChanged = this.container !== container;
 
     this.container = container;
@@ -576,7 +580,11 @@ export class SubtitlesWidget {
       opts,
     );
     this.resizeObserver = new ResizeObserver(() => this.onResize());
-    this.resizeObserver.observe(this.container);
+    const resizeTarget =
+      this.container instanceof ShadowRoot
+        ? this.container.host
+        : this.container;
+    this.resizeObserver.observe(resizeTarget);
     if (this.video) this.resizeObserver.observe(this.video);
     globalThis.visualViewport?.addEventListener(
       "resize",

@@ -1,6 +1,11 @@
 import { EventImpl } from "../core/eventImpl";
 import debug from "./debug";
 import {
+  type ShadowTreeTraversalAdapter,
+  someComposedAncestor,
+  walkShadowIncludingSubtree,
+} from "./domTraversal";
+import {
   createIntervalIdleChecker,
   type IntervalIdleChecker,
 } from "./intervalIdleChecker";
@@ -191,10 +196,7 @@ export class VideoObserver {
   }
 
   private isInsideAd(video: HTMLVideoElement): boolean {
-    for (let p = video.parentElement; p; p = p.parentElement) {
-      if (this.isAdRelated(p)) return true;
-    }
-    return false;
+    return someComposedAncestor(video, (p) => this.isAdRelated(p as Element));
   }
 
   private getCapturedAudioTrackCount(video: HTMLVideoElement): number | null {
@@ -294,6 +296,11 @@ export class VideoObserver {
     this.observer.observe(root, { childList: true, subtree: true });
   }
 
+  private static readonly domAdapter: ShadowTreeTraversalAdapter<Node> = {
+    getChildren: (node) => Array.from((node as Element).children ?? []),
+    getShadowRoot: (node) => (node as HTMLElement).shadowRoot as Node | null,
+  };
+
   private scan(root: Node): void {
     if (root instanceof HTMLVideoElement) {
       this.trackVideo(root);
@@ -308,31 +315,19 @@ export class VideoObserver {
       return;
     }
 
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-      acceptNode: (node) => {
-        const el = node as Element;
-        const isVideo = el.tagName === "VIDEO";
-        const hasShadowRoot = Boolean((el as HTMLElement).shadowRoot);
-        return isVideo || hasShadowRoot
-          ? NodeFilter.FILTER_ACCEPT
-          : NodeFilter.FILTER_SKIP;
-      },
-    });
+    const elementRoot = root as Element;
 
-    while (walker.nextNode()) {
-      const el = walker.currentNode as Element;
-
+    walkShadowIncludingSubtree(elementRoot, VideoObserver.domAdapter, (el) => {
       if (el instanceof HTMLVideoElement) {
         this.trackVideo(el);
-        continue;
+        return;
       }
 
       const sr = (el as HTMLElement).shadowRoot;
       if (sr) {
         this.observeRoot(sr);
-        this.scan(sr);
       }
-    }
+    });
   }
 
   private getVideoListenerSignal(video: HTMLVideoElement): AbortSignal {
@@ -418,24 +413,25 @@ export class VideoObserver {
   private collectVideos(node: Node): HTMLVideoElement[] {
     const set = new Set<HTMLVideoElement>();
 
-    const addAll = (videos: Iterable<HTMLVideoElement>) => {
-      for (const v of videos) set.add(v);
-    };
-
-    if (node instanceof HTMLVideoElement) set.add(node);
+    if (node instanceof HTMLVideoElement) {
+      set.add(node);
+    }
 
     if (
-      node instanceof Document ||
-      node instanceof DocumentFragment ||
-      node instanceof Element
+      node.nodeType !== Node.ELEMENT_NODE &&
+      node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE &&
+      node.nodeType !== Node.DOCUMENT_NODE
     ) {
-      addAll(node.querySelectorAll("video"));
+      return Array.from(set);
     }
 
-    if (node instanceof Element) {
-      const shadowRoot = (node as HTMLElement).shadowRoot;
-      if (shadowRoot) addAll(shadowRoot.querySelectorAll("video"));
-    }
+    const elementNode = node as Element;
+
+    walkShadowIncludingSubtree(elementNode, VideoObserver.domAdapter, (el) => {
+      if (el instanceof HTMLVideoElement) {
+        set.add(el);
+      }
+    });
 
     return Array.from(set);
   }

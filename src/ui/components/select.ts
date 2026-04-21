@@ -15,6 +15,7 @@ import {
   addComponentEventListener,
   getHiddenState,
   removeComponentEventListener,
+  setDisabledState,
   setHiddenState,
 } from "./componentShared";
 import Dialog from "./dialog";
@@ -435,11 +436,6 @@ export default class Select<
   }
 
   set disabled(isDisabled: boolean) {
-    if (isDisabled) {
-      this.outer.setAttribute("disabled", "true");
-      return;
-    }
-
-    this.outer.removeAttribute("disabled");
+    setDisabledState(this.outer, isDisabled);
   }
 }

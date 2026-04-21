@@ -2,6 +2,7 @@ import type { TemplateResult } from "lit-html";
 import { render } from "lit-html";
 import { localizationProvider } from "./localization/localizationProvider";
 import type { LitHtml } from "./types/components/shared";
+import { addKeyboardActivationListener } from "./ui/components/componentShared";
 
 declare global {
   interface Window {
@@ -100,17 +101,12 @@ const UI = {
       el.setAttribute("aria-label", ariaLabel);
     }
 
-    // Keyboard activation (Enter/Space).
-    el.addEventListener("keydown", (e: KeyboardEvent) => {
+    addKeyboardActivationListener(el, () => {
       const disabled =
         el.getAttribute("disabled") === "true" ||
         el.getAttribute("aria-disabled") === "true";
       if (disabled) return;
-
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        el.click();
-      }
+      el.click();
     });
 
     return el;

@@ -19,7 +19,7 @@ export default class Tooltip {
   position: Position;
   preferredPosition: Position;
   trigger: Trigger;
-  parentElement: HTMLElement;
+  parentElement: HTMLElement | ShadowRoot;
   layoutRoot: HTMLElement;
   offsetX: number;
   offsetY: number;
@@ -137,7 +137,7 @@ export default class Tooltip {
     parentElement,
     layoutRoot,
   }: {
-    parentElement?: HTMLElement;
+    parentElement?: HTMLElement | ShadowRoot;
     layoutRoot?: HTMLElement;
   }) {
     if (parentElement && this.parentElement !== parentElement) {
@@ -236,8 +236,12 @@ export default class Tooltip {
       this.globalOffsetY = top;
     }
 
+    const parentEl =
+      this.parentElement instanceof ShadowRoot
+        ? this.parentElement.host
+        : this.parentElement;
     const { left: parentLeft, top: parentTop } =
-      this.parentElement.getBoundingClientRect();
+      parentEl.getBoundingClientRect();
     this.renderOffsetX = parentLeft;
     this.renderOffsetY = parentTop;
 

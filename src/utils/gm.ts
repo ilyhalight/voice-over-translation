@@ -214,6 +214,7 @@ async function executeCallbackGmXhr(
       reject(error);
     };
 
+    const redirectMode = fetchOptions.redirect;
     const request = gmXhr({
       method: method as HttpMethod,
       url: urlStr,
@@ -221,6 +222,7 @@ async function executeCallbackGmXhr(
       data: fetchOptions.body as any,
       timeout,
       headers,
+      ...(redirectMode && { redirect: redirectMode }),
       onload: (resp: GmXhrResponse) => {
         if (settled) return;
         settled = true;
@@ -303,6 +305,7 @@ async function executePromiseGmXhr(
   method: string,
   headers: Record<string, string>,
 ): Promise<Response> {
+  const redirectMode = fetchOptions.redirect;
   const request = gmXhr({
     method: method as HttpMethod,
     url: urlStr,
@@ -310,6 +313,7 @@ async function executePromiseGmXhr(
     data: fetchOptions.body as any,
     timeout,
     headers,
+    ...(redirectMode && { redirect: redirectMode }),
   });
 
   let abortHandler: (() => void) | undefined;

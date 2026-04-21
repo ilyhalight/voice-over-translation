@@ -52,7 +52,9 @@ export function stableStringify(value: unknown): string {
       }
 
       const sorted: PlainRecord = {};
-      const keys = Object.keys(val as PlainRecord).sort();
+      const keys = Object.keys(val as PlainRecord).sort((a, b) =>
+        a.localeCompare(b),
+      );
       for (const key of keys) {
         sorted[key] = (val as PlainRecord)[key];
       }

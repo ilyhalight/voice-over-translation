@@ -35,6 +35,7 @@ const ASS_DIRECTIVE_RE = /\\[^\\]+/gu;
 const ASS_STYLE_TOGGLE_RE = /^\\([ibu])([01])$/u;
 const ASS_PRIMARY_COLOR_RE = /^\\(?:1?c|c)&H([0-9a-f]{6,8})&$/iu;
 const ASS_STYLE_RESET_RE = /^\\r(?:[^\\}]*)?$/u;
+const COMPLEX_DISPLAY_CONTROL_RE = /[<{\\]/u;
 
 const cloneMutableInlineStyle = (
   style: MutableInlineStyle,
@@ -180,32 +181,35 @@ const normalizeAttachedWordNumberExpressions = (
   for (const segment of segments) {
     if (!segment.text) continue;
 
-    segment.text = segment.text.replaceAll(
-      GLUED_WORD_NUMBER_RE,
-      (
-        match,
-        leftLetters?: string,
-        leftDigits?: string,
-        rightDigits?: string,
-        rightLetters?: string,
-      ) => {
-        const letters = leftLetters ?? rightLetters ?? "";
-        const digits = leftDigits ?? rightDigits ?? "";
-        const isCodeLike =
-          /^[A-Za-z]{1,3}$/u.test(letters) ||
-          (letters.length === 1 &&
-            letters === letters.toLocaleUpperCase() &&
-            letters !== letters.toLocaleLowerCase());
-
-        if (isCodeLike) {
-          return match;
-        }
-
-        return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
-      },
-    );
+    segment.text = normalizeAttachedWordNumberExpression(segment.text);
   }
 };
+
+const normalizeAttachedWordNumberExpression = (text: string): string =>
+  text.replaceAll(
+    GLUED_WORD_NUMBER_RE,
+    (
+      match,
+      leftLetters?: string,
+      leftDigits?: string,
+      rightDigits?: string,
+      rightLetters?: string,
+    ) => {
+      const letters = leftLetters ?? rightLetters ?? "";
+      const digits = leftDigits ?? rightDigits ?? "";
+      const isCodeLike =
+        /^[A-Za-z]{1,3}$/u.test(letters) ||
+        (letters.length === 1 &&
+          letters === letters.toLocaleUpperCase() &&
+          letters !== letters.toLocaleLowerCase());
+
+      if (isCodeLike) {
+        return match;
+      }
+
+      return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
+    },
+  );
 
 const extractHtmlTagClasses = (attrsRaw: string): string[] | undefined => {
   const normalized = attrsRaw.trim();
@@ -334,7 +338,7 @@ const consumeDisplayControlToken = (
     return cursor + 2;
   }
 
-  if (remainder[0] === "\n") {
+  if (remainder.startsWith("\n")) {
     pushSegment(segments, "\n", activeStyle);
     return cursor + 1;
   }
@@ -405,12 +409,47 @@ const trimStyledDisplayResult = (
   };
 };
 
+const trimPlainDisplayText = (text: string): string => {
+  const normalizedText = text.replaceAll("\u00A0", " ");
+  const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
+  const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
+  const trimmedEnd = Math.max(
+    leadingTrim,
+    normalizedText.length - trailingTrim,
+  );
+  return normalizedText.slice(leadingTrim, trimmedEnd);
+};
+
+const buildPlainDisplayModel = (
+  rawText: string,
+): {
+  text: string;
+  styledSpans: SubtitleStyledSpan[];
+} => ({
+  text: trimPlainDisplayText(
+    normalizeAttachedWordNumberExpression(
+      rawText
+        .replace(LEADING_SPEAKER_MARKER_RE, "$1")
+        .replaceAll(ATTACHED_TIME_WORD_RE, "$1 "),
+    ),
+  ),
+  styledSpans: [],
+});
+
 export const buildStyledDisplayModel = (
   rawText: string,
 ): {
   text: string;
   styledSpans: SubtitleStyledSpan[];
 } => {
+  if (!rawText) {
+    return { text: "", styledSpans: [] };
+  }
+
+  if (!COMPLEX_DISPLAY_CONTROL_RE.test(rawText)) {
+    return buildPlainDisplayModel(rawText);
+  }
+
   const segments: StyledTextSegment[] = [];
   const activeStyle: MutableInlineStyle = {
     italic: false,

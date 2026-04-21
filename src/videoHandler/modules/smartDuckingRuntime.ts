@@ -7,7 +7,6 @@ import { snapVolume01 } from "../../utils/volume";
 import {
   computeSmartDuckingStep,
   initSmartDuckingRuntime,
-  resetSmartDuckingRuntime,
   SMART_DUCKING_DEFAULT_CONFIG,
   type SmartDuckingRuntime,
 } from "./ducking";
@@ -18,7 +17,6 @@ type AutoVolumeMode = "off" | "classic" | "smart";
 type AudioPlayerLike = {
   audio?: HTMLMediaElement;
   audioElement?: HTMLMediaElement;
-  gainNode?: AudioNode;
   audioSource?: AudioNode;
   mediaElementSource?: AudioNode;
 };
@@ -130,7 +128,6 @@ function resolveSmartDuckingInputNode(
   audioContext: AudioContext,
   state: SmartDuckingAnalyserState,
 ): AudioNode | undefined {
-  if (isAudioNode(player?.gainNode)) return player.gainNode;
   if (isAudioNode(player?.audioSource)) return player.audioSource;
   if (isAudioNode(player?.mediaElementSource)) return player.mediaElementSource;
 
@@ -291,7 +288,7 @@ export function stopSmartVolumeDucking(
   }
 
   releaseSmartDuckingAnalyser(handler);
-  writeSmartDuckingRuntime(handler, resetSmartDuckingRuntime());
+  writeSmartDuckingRuntime(handler, initSmartDuckingRuntime());
 }
 
 function scheduleNextSmartDuckingTick(handler: VideoHandler): void {
@@ -416,7 +413,6 @@ function smartDuckingTick(handler: VideoHandler): void {
   const hostVideoActive = !(hostVideo && (hostVideo.paused || hostVideo.ended));
   const dynamicDuckingTarget =
     clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
-  handler.smartVolumeDuckingTarget = dynamicDuckingTarget;
   const rms =
     audioIsPlaying && media ? getTranslatedAudioRms(handler, media) : 0;
 
@@ -471,7 +467,6 @@ export function setupAudioSettings(this: VideoHandler) {
 
   const targetVolume =
     clamp(this.data.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
-  this.smartVolumeDuckingTarget = targetVolume;
 
   if (!this.hasActiveSource()) {
     return;
@@ -511,7 +506,6 @@ export function applyManualVideoVolumeOverride(
   }
 
   const nextVolume = snapVolume01(volume01);
-  this.smartVolumeDuckingTarget = nextVolume;
   this.smartVolumeDuckingBaseline = nextVolume;
   this.smartVolumeLastApplied = nextVolume;
 }

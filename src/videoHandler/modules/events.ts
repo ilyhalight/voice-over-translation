@@ -117,7 +117,7 @@ function bindOverlayHoverFocusEvents(
     overlayVisibility.scheduleHide(event),
   );
 
-  if (isIframe() && typeof globalThis.window !== "undefined") {
+  if (isIframe() && globalThis.window !== undefined) {
     return;
   }
 
@@ -163,7 +163,22 @@ function applyOverlayLayout(
 ): void {
   const menu = overlayView.votMenu?.container;
   if (menu) {
-    const height = heightPx ?? self.video.getBoundingClientRect().height;
+    let height: number;
+
+    if (heightPx) {
+      height = heightPx;
+    } else if (self.fullscreenHelper) {
+      const target = self.fullscreenHelper.getResizeObserverTarget();
+      const rect = target.getBoundingClientRect();
+      height = rect.height || target.clientHeight || window.innerHeight * 0.75;
+    } else {
+      height = self.video.getBoundingClientRect().height;
+    }
+
+    if (!height || height < 200) {
+      height = window.innerHeight * 0.75;
+    }
+
     menu.style.setProperty("--vot-container-height", `${height}px`);
   }
   const { position, direction } = overlayView.calcButtonLayout(
@@ -423,8 +438,7 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
   add(globalThis, "blur", clearUserPressedKeys);
   const eventContainer = self.getEventContainer();
   if (eventContainer) {
-    const useWindowEvents =
-      isIframe() && typeof globalThis.window !== "undefined";
+    const useWindowEvents = isIframe() && globalThis.window !== undefined;
     const interactionTarget = useWindowEvents
       ? globalThis.window
       : eventContainer;

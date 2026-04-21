@@ -9,9 +9,9 @@ export type ButtonLayout = {
 };
 
 export type OverlayMount = {
-  root: HTMLElement;
+  root: HTMLElement | ShadowRoot;
   portalContainer: HTMLElement;
-  subtitlesMountContainer: HTMLElement;
+  subtitlesMountContainer: HTMLElement | ShadowRoot;
 };
 
 export type UIManagerProps = {
