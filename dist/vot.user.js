@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.5.5
+// @version        1.11.5.6
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -2592,7 +2592,7 @@ var vot = (function(exports) {
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
 	}
-	function log$1(...messages) {
+	function log(...messages) {
 		if (!canLog(LoggerLevel.DEBUG)) return;
 		console.log(prefix, ...messages);
 	}
@@ -2600,20 +2600,20 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.INFO)) return;
 		console.info(prefix, ...messages);
 	}
-	function warn$1(...messages) {
+	function warn(...messages) {
 		if (!canLog(LoggerLevel.WARN)) return;
 		console.warn(prefix, ...messages);
 	}
-	function error$1(...messages) {
+	function error(...messages) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
 	var Logger = {
 		canLog,
-		log: log$1,
+		log,
 		info,
-		warn: warn$1,
-		error: error$1
+		warn,
+		error
 	};
 	//#endregion
 	//#region src/shims/nodeCrypto.ts
@@ -7531,6 +7531,7 @@ var vot = (function(exports) {
 	var foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2";
 	var detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
 	var authServerUrl = "https://rust-server-531j.onrender.com";
+	var authLoginUrl = `${authServerUrl}/v1/auth/handle`;
 	var avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
 	var repoPath = "ilyhalight/voice-over-translation";
 	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
@@ -7600,19 +7601,11 @@ var vot = (function(exports) {
 	];
 	//#endregion
 	//#region src/utils/debug.ts
-	var log = (...text) => {
-		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
-	};
-	var warn = (...text) => {
-		console.warn("%c[VOT DEBUG]", "background: #e1ff00ff; color: #fff; padding: 5px;", ...text);
-	};
-	var error = (...text) => {
-		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
-	};
+	var noop = () => {};
 	var debug = {
-		log,
-		warn,
-		error
+		log: noop,
+		warn: noop,
+		error: noop
 	};
 	//#endregion
 	//#region src/utils/localization.ts
@@ -11046,7 +11039,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.5.5"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.5.6"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -12874,7 +12867,9 @@ var vot = (function(exports) {
 				return self().videoData;
 			},
 			set videoData(value) {
-				self().videoData = value;
+				const handler = self();
+				if (handler.videoData?.videoId !== value?.videoId) handler.downloadTranslation = null;
+				handler.videoData = value;
 			},
 			get actionsAbortController() {
 				return self().actionsAbortController;
@@ -13124,6 +13119,7 @@ var vot = (function(exports) {
 		zdf: "de"
 	};
 	var YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
+	var YT_PLAYER_VOLUME_STORAGE_KEY = "yt-player-volume";
 	var MIN_DETECT_TEXT_LENGTH = 35;
 	var MAX_SHARED_LANGUAGE_STATES = 500;
 	var REQUEST_LANG_SET = new Set(availableLangs);
@@ -13181,6 +13177,34 @@ var vot = (function(exports) {
 			}
 		};
 		return pickLanguage(true) ?? pickLanguage(false);
+	}
+	function getYoutubeVolumeStorageSnapshot() {
+		try {
+			const storage = globalThis.localStorage;
+			return {
+				storage,
+				value: storage.getItem(YT_PLAYER_VOLUME_STORAGE_KEY)
+			};
+		} catch {
+			return null;
+		}
+	}
+	function restoreYoutubeVolumeStorageSnapshot(snapshot) {
+		if (!snapshot) return;
+		try {
+			if (snapshot.value === null) snapshot.storage.removeItem(YT_PLAYER_VOLUME_STORAGE_KEY);
+			else snapshot.storage.setItem(YT_PLAYER_VOLUME_STORAGE_KEY, snapshot.value);
+		} catch {}
+	}
+	function preserveYoutubeVolumeStorage(action) {
+		const snapshot = getYoutubeVolumeStorageSnapshot();
+		const restoreSnapshot = () => restoreYoutubeVolumeStorageSnapshot(snapshot);
+		try {
+			return action();
+		} finally {
+			restoreSnapshot();
+			if (snapshot && typeof globalThis.setTimeout === "function") globalThis.setTimeout(restoreSnapshot, 0);
+		}
 	}
 	async function resolveDetectedLanguageForVideo(options) {
 		if (options.isStream) return { detectedLanguage: "auto" };
@@ -13317,7 +13341,7 @@ var vot = (function(exports) {
 				downloadTitle: localizedTitle ?? title ?? document.title ?? videoId
 			};
 			if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
-				console.log("[VOT] Detected language:", detectedLanguage);
+				debug.log("[VOT] Detected language:", detectedLanguage);
 				sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
 			}
 			return videoData;
@@ -13349,24 +13373,39 @@ var vot = (function(exports) {
 		/**
 		* Sets the video volume
 		*/
-		setVideoVolume(volume) {
+		setVideoVolume(volume, options = {}) {
 			const snapped = snapVolume01(volume);
 			if (!isExternalVolumeHost(this.videoHandler.site.host)) {
 				this.videoHandler.video.volume = snapped;
 				return this;
 			}
 			try {
-				const result = YoutubeHelper.setVolume(snapped);
+				const setExternalVolume = () => YoutubeHelper.setVolume(snapped);
+				const result = options.preserveYoutubeVolumeStorage ? preserveYoutubeVolumeStorage(setExternalVolume) : setExternalVolume();
 				if (typeof result === "boolean" && result || typeof result === "number" && Number.isFinite(result)) return this;
 			} catch {}
 			this.videoHandler.video.volume = snapped;
+			return this;
+		}
+		setVideoMuted(muted, options = {}) {
+			if (isExternalVolumeHost(this.videoHandler.site.host)) {
+				const player = YoutubeHelper.getPlayer();
+				const method = muted ? player?.mute : player?.unMute;
+				if (typeof method === "function") try {
+					const setExternalMuted = () => method.call(player);
+					if (options.preserveYoutubeVolumeStorage) preserveYoutubeVolumeStorage(setExternalMuted);
+					else setExternalMuted();
+				} catch {}
+			}
+			if (this.videoHandler.video) this.videoHandler.video.muted = muted;
 			return this;
 		}
 		/**
 		* Checks if the video is muted
 		*/
 		isMuted() {
-			return isExternalVolumeHost(this.videoHandler.site.host) ? YoutubeHelper.isMuted() : this.videoHandler.video?.muted;
+			if (!isExternalVolumeHost(this.videoHandler.site.host)) return this.videoHandler.video?.muted;
+			return YoutubeHelper.isMuted() || Boolean(this.videoHandler.video?.muted);
 		}
 		/**
 		* Syncs the video volume slider with the actual video volume.
@@ -13387,7 +13426,7 @@ var vot = (function(exports) {
 			const langPairLogKey = `${normalizedFrom}->${to}`;
 			const sharedLanguageState = getSharedLanguageState(videoData.videoId);
 			if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
-				console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+				debug.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
 				sharedLanguageState.lastLoggedLangPair = langPairLogKey;
 			}
 			videoData.detectedLanguage = normalizedFrom;
@@ -17705,6 +17744,10 @@ var vot = (function(exports) {
 		container;
 		video;
 		fullscreenChangeListeners = /* @__PURE__ */ new Set();
+		handleFullscreenChange = () => {
+			this.notifyFullscreenChange();
+		};
+		nativeFullscreenListenersActive = false;
 		constructor({ container, video }) {
 			this.container = container;
 			this.video = video;
@@ -17790,29 +17833,27 @@ var vot = (function(exports) {
 		* Sets up native fullscreen event listeners
 		*/
 		setupFullscreenListeners() {
-			const handleFullscreenChange = () => {
-				this.notifyFullscreenChange();
-			};
-			document.addEventListener("fullscreenchange", handleFullscreenChange);
-			document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+			if (this.nativeFullscreenListenersActive) return;
+			document.addEventListener("fullscreenchange", this.handleFullscreenChange);
+			document.addEventListener("webkitfullscreenchange", this.handleFullscreenChange);
 			if (this.video) {
-				this.video.addEventListener("webkitbeginfullscreen", handleFullscreenChange);
-				this.video.addEventListener("webkitendfullscreen", handleFullscreenChange);
+				this.video.addEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
+				this.video.addEventListener("webkitendfullscreen", this.handleFullscreenChange);
 			}
+			this.nativeFullscreenListenersActive = true;
 		}
 		/**
 		* Cleans up fullscreen event listeners
 		*/
 		cleanupFullscreenListeners() {
-			const handleFullscreenChange = () => {
-				this.notifyFullscreenChange();
-			};
-			document.removeEventListener("fullscreenchange", handleFullscreenChange);
-			document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+			if (!this.nativeFullscreenListenersActive) return;
+			document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
+			document.removeEventListener("webkitfullscreenchange", this.handleFullscreenChange);
 			if (this.video) {
-				this.video.removeEventListener("webkitbeginfullscreen", handleFullscreenChange);
-				this.video.removeEventListener("webkitendfullscreen", handleFullscreenChange);
+				this.video.removeEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
+				this.video.removeEventListener("webkitendfullscreen", this.handleFullscreenChange);
 			}
+			this.nativeFullscreenListenersActive = false;
 		}
 		/**
 		* Notifies all listeners about fullscreen state changes
@@ -17834,7 +17875,10 @@ var vot = (function(exports) {
 		* Updates the video reference
 		*/
 		updateVideo(video) {
+			const shouldRebind = this.nativeFullscreenListenersActive && this.video !== video;
+			if (shouldRebind) this.cleanupFullscreenListeners();
 			this.video = video;
+			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setupFullscreenListeners();
 		}
 		/**
 		* Cleans up all resources
@@ -20126,6 +20170,12 @@ var vot = (function(exports) {
 			if (!isAuthRefreshMessage(event.data)) return;
 			this.refreshAccountFromStorage();
 		};
+		refreshAccountOnFocus = () => {
+			this.refreshAccountFromStorage();
+		};
+		refreshAccountOnVisibilityChange = () => {
+			if (document.visibilityState === "visible") this.refreshAccountFromStorage();
+		};
 		dialog;
 		accountButton;
 		accountButtonRefreshTooltip;
@@ -20769,6 +20819,8 @@ var vot = (function(exports) {
 		initUIEvents() {
 			if (!this.isInitialized()) throw new Error("[VOT] SettingsView isn't initialized");
 			globalThis.addEventListener("message", this.onAuthRefreshMessage);
+			globalThis.addEventListener("focus", this.refreshAccountOnFocus);
+			document.addEventListener("visibilitychange", this.refreshAccountOnVisibilityChange);
 			this.accountButton.addEventListener("click", async () => {
 				if (votStorage.isSupportOnlyLS) return;
 				if (this.accountButton.loggedIn) {
@@ -20776,7 +20828,7 @@ var vot = (function(exports) {
 					this.data.account = {};
 					return this.updateAccountInfo();
 				}
-				globalThis.open(authServerUrl, "_blank")?.focus();
+				globalThis.open(authLoginUrl, "_blank")?.focus();
 			});
 			this.accountButton.addEventListener("click:secret", async () => {
 				const dialog = new Dialog({
@@ -21176,6 +21228,8 @@ var vot = (function(exports) {
 			this.accountStorageListenerCleanup?.();
 			this.accountStorageListenerCleanup = void 0;
 			globalThis.removeEventListener("message", this.onAuthRefreshMessage);
+			globalThis.removeEventListener("focus", this.refreshAccountOnFocus);
+			document.removeEventListener("visibilitychange", this.refreshAccountOnVisibilityChange);
 			this.flushStoragePersists();
 			for (const event of Object.values(this.events)) event.clear();
 		}
@@ -21451,10 +21505,13 @@ var vot = (function(exports) {
 		async handleDownloadTranslationClick() {
 			const overlayView = this.votOverlayView;
 			const videoHandler = this.videoHandler;
-			if (!overlayView?.isInitialized() || !videoHandler?.downloadTranslationUrl || !videoHandler.videoData) return;
+			const download = videoHandler?.downloadTranslation;
+			if (!overlayView?.isInitialized() || !download || !videoHandler.videoData) return;
+			const downloadVideoData = await this.getDownloadVideoData(videoHandler, download.videoId);
+			if (!downloadVideoData) return;
 			const downloadButton = overlayView.downloadTranslationButton;
-			const downloadUrl = videoHandler.downloadTranslationUrl;
-			const filename = this.data.downloadWithName ? clearFileName(videoHandler.videoData.downloadTitle) : `translation_${videoHandler.videoData.videoId}`;
+			const downloadUrl = download.url;
+			const filename = this.data.downloadWithName ? clearFileName(downloadVideoData.downloadTitle) : `translation_${downloadVideoData.videoId}`;
 			const saveOptions = { preferShare: this.isLikelyMobileDownloadContext() };
 			const setProgress = (progress) => {
 				if (downloadButton) downloadButton.progress = progress;
@@ -21468,6 +21525,29 @@ var vot = (function(exports) {
 			} finally {
 				setProgress(0);
 			}
+		}
+		async getDownloadVideoData(videoHandler, downloadVideoId) {
+			if (videoHandler.videoData?.videoId !== downloadVideoId) {
+				this.clearDownloadTranslation(videoHandler);
+				return null;
+			}
+			let videoData;
+			try {
+				videoData = await videoHandler.getVideoData();
+			} catch (err) {
+				debug.log("[VOT] Failed to refresh video data before download", err);
+				return null;
+			}
+			if (videoData.videoId !== downloadVideoId) {
+				this.clearDownloadTranslation(videoHandler);
+				return null;
+			}
+			videoHandler.videoData = videoData;
+			return videoData;
+		}
+		clearDownloadTranslation(videoHandler) {
+			videoHandler.downloadTranslation = null;
+			if (this.votOverlayView?.downloadTranslationButton) this.votOverlayView.downloadTranslationButton.hidden = true;
 		}
 		async downloadTranslationAudio(downloadUrl, filename, onProgress, saveOptions) {
 			const response = await GM_fetch(downloadUrl, { timeout: 0 });
@@ -22815,6 +22895,13 @@ var vot = (function(exports) {
 		handler.smartVolumeLastSoundAt = runtime.lastSoundAt;
 		handler.smartVolumeRmsMissingSinceAt = runtime.rmsMissingSinceAt;
 	}
+	function restoreAutoVolumeMute(handler) {
+		if (typeof handler.autoVolumeMutedOnStart !== "boolean") return;
+		try {
+			handler.setVideoMuted(handler.autoVolumeMutedOnStart);
+		} catch {}
+		handler.autoVolumeMutedOnStart = void 0;
+	}
 	function stopSmartVolumeDucking(handler, options = {}) {
 		const { restoreVolume } = options;
 		if (handler.smartVolumeDuckingInterval !== void 0) {
@@ -22825,6 +22912,7 @@ var vot = (function(exports) {
 		if (typeof baseline === "number" && (typeof restoreVolume === "number" || handler.smartVolumeIsDucked)) try {
 			handler.setVideoVolume(baseline);
 		} catch {}
+		restoreAutoVolumeMute(handler);
 		releaseSmartDuckingAnalyser(handler);
 		writeSmartDuckingRuntime(handler, initSmartDuckingRuntime());
 	}
@@ -22927,7 +23015,7 @@ var vot = (function(exports) {
 				stopSmartVolumeDucking(handler, { restoreVolume: decision.restoreVolume });
 				return;
 			case "apply":
-				handler.setVideoVolume(decision.volume01);
+				handler.setVideoVolume(decision.volume01, { preserveYoutubeVolumeStorage: true });
 				writeSmartDuckingRuntime(handler, decision.runtime);
 				return;
 			case "noop":
@@ -22945,6 +23033,20 @@ var vot = (function(exports) {
 		}
 		const targetVolume = clamp(this.data.autoVolume ?? 15, 0, 100) / 100;
 		if (!this.hasActiveSource()) return;
+		if (targetVolume === 0) {
+			if (this.smartVolumeDuckingInterval !== void 0) {
+				clearTimeout(this.smartVolumeDuckingInterval);
+				this.smartVolumeDuckingInterval = void 0;
+			}
+			if (typeof this.smartVolumeDuckingBaseline !== "number") this.smartVolumeDuckingBaseline = this.getVideoVolume();
+			if (typeof this.autoVolumeMutedOnStart !== "boolean") this.autoVolumeMutedOnStart = Boolean(this.isMuted());
+			this.setVideoVolume(0, { preserveYoutubeVolumeStorage: true });
+			this.setVideoMuted(true, { preserveYoutubeVolumeStorage: true });
+			writeSmartDuckingRuntime(this, initSmartDuckingRuntime(this.smartVolumeDuckingBaseline));
+			this.smartVolumeIsDucked = true;
+			return;
+		}
+		restoreAutoVolumeMute(this);
 		if (autoVolumeMode === "smart") {
 			startSmartVolumeDucking(this);
 			return;
@@ -22956,7 +23058,7 @@ var vot = (function(exports) {
 		if (typeof this.smartVolumeDuckingBaseline !== "number") this.smartVolumeDuckingBaseline = this.getVideoVolume();
 		const baseline = this.smartVolumeDuckingBaseline ?? this.getVideoVolume();
 		const nextVolume = Math.min(baseline, targetVolume);
-		this.setVideoVolume(nextVolume);
+		this.setVideoVolume(nextVolume, { preserveYoutubeVolumeStorage: true });
 		writeSmartDuckingRuntime(this, initSmartDuckingRuntime(this.smartVolumeDuckingBaseline));
 		this.smartVolumeIsDucked = true;
 	}
@@ -23278,7 +23380,7 @@ var vot = (function(exports) {
 			requestLang: options.cacheRequestLang,
 			responseLang: options.cacheResponseLang,
 			fallbackUrl: translateRes.url,
-			downloadTranslationUrl: self.downloadTranslationUrl,
+			downloadTranslationUrl: self.downloadTranslation?.url,
 			usedLivelyVoice: translateRes.usedLivelyVoice
 		});
 		return translateRes;
@@ -24819,7 +24921,7 @@ var vot = (function(exports) {
 				...subtitlesObj,
 				url: proxiedSubtitlesUrl
 			};
-			console.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
+			debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
 		}
 		const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
 		if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) return this;
@@ -24980,11 +25082,12 @@ var vot = (function(exports) {
 		* before the first request resolves.
 		*/
 		subtitlesLoadPromises = /* @__PURE__ */ new Map();
-		downloadTranslationUrl = null;
+		downloadTranslation = null;
 		isRefreshingTranslation = false;
 		autoRetry;
 		votOpts;
 		volumeOnStart;
+		autoVolumeMutedOnStart;
 		/**
 		* syncVolume (link translation and video volume) runtime state.
 		* We keep last-known slider values to apply deltas reliably.
@@ -25522,7 +25625,11 @@ var vot = (function(exports) {
 				suppressMs: suppressSyncMs
 			});
 			if (this.internalVideoVolumeSetHistory.length > this.internalVideoVolumeSetHistoryLimit) this.internalVideoVolumeSetHistory.splice(0, this.internalVideoVolumeSetHistory.length - this.internalVideoVolumeSetHistoryLimit);
-			this.videoManager.setVideoVolume(snapped);
+			this.videoManager.setVideoVolume(snapped, { preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage });
+			return this;
+		}
+		setVideoMuted(muted, options = {}) {
+			this.videoManager.setVideoMuted(muted, { preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage });
 			return this;
 		}
 		/**
@@ -25641,7 +25748,7 @@ var vot = (function(exports) {
 					if (overlayView.translationVolumeSlider) overlayView.translationVolumeSlider.hidden = true;
 					if (overlayView.downloadTranslationButton) overlayView.downloadTranslationButton.hidden = true;
 				}
-				this.downloadTranslationUrl = null;
+				this.downloadTranslation = null;
 				this.longWaitingResCount = 0;
 				this.hadAsyncWait = false;
 				this.transformBtn("none", localizationProvider.get("translateVideo"));
@@ -25649,6 +25756,7 @@ var vot = (function(exports) {
 				const restoreVolume = typeof this.smartVolumeDuckingBaseline === "number" ? this.smartVolumeDuckingBaseline : this.volumeOnStart;
 				stopSmartVolumeDucking(this, { restoreVolume });
 				this.volumeOnStart = void 0;
+				this.autoVolumeMutedOnStart = void 0;
 				if (this.autoRetry !== void 0) {
 					clearTimeout(this.autoRetry);
 					this.autoRetry = void 0;
@@ -25738,9 +25846,12 @@ var vot = (function(exports) {
 			} else this.volumeLinkState.initialized = false;
 			if (this.videoData && !this.videoData.isStream) {
 				if (overlayView.downloadTranslationButton) overlayView.downloadTranslationButton.hidden = false;
-				this.downloadTranslationUrl = audioUrl;
+				this.downloadTranslation = {
+					url: audioUrl,
+					videoId: this.videoData.videoId
+				};
 			}
-			debug.log("afterUpdateTranslation downloadTranslationUrl", this.downloadTranslationUrl);
+			debug.log("afterUpdateTranslation downloadTranslation", this.downloadTranslation);
 			this.syncTranslationPlaybackVolume();
 			if (this.data?.sendNotifyOnComplete && this.hadAsyncWait && isSuccess) {
 				this.notifier.translationCompleted(globalThis.location.hostname);
@@ -25913,7 +26024,7 @@ var vot = (function(exports) {
 			path: ctx.path
 		};
 		if (details) Object.assign(payload, details);
-		console.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
+		debug.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
 	}
 	function getServicesCached() {
 		if (!servicesCache) servicesCache = getService();
