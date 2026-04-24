@@ -260,6 +260,19 @@ function writeSmartDuckingRuntime(
   handler.smartVolumeRmsMissingSinceAt = runtime.rmsMissingSinceAt;
 }
 
+function restoreAutoVolumeMute(handler: VideoHandler): void {
+  if (typeof handler.autoVolumeMutedOnStart !== "boolean") {
+    return;
+  }
+
+  try {
+    handler.setVideoMuted(handler.autoVolumeMutedOnStart);
+  } catch {
+    // ignore
+  }
+  handler.autoVolumeMutedOnStart = undefined;
+}
+
 export function stopSmartVolumeDucking(
   handler: VideoHandler,
   options: StopSmartVolumeDuckingOptions = {},
@@ -286,6 +299,7 @@ export function stopSmartVolumeDucking(
       // ignore
     }
   }
+  restoreAutoVolumeMute(handler);
 
   releaseSmartDuckingAnalyser(handler);
   writeSmartDuckingRuntime(handler, initSmartDuckingRuntime());
@@ -440,7 +454,9 @@ function smartDuckingTick(handler: VideoHandler): void {
       });
       return;
     case "apply":
-      handler.setVideoVolume(decision.volume01);
+      handler.setVideoVolume(decision.volume01, {
+        preserveYoutubeVolumeStorage: true,
+      });
       writeSmartDuckingRuntime(handler, decision.runtime);
       return;
     case "noop":
@@ -472,6 +488,31 @@ export function setupAudioSettings(this: VideoHandler) {
     return;
   }
 
+  if (targetVolume === 0) {
+    if (this.smartVolumeDuckingInterval !== undefined) {
+      clearTimeout(this.smartVolumeDuckingInterval);
+      this.smartVolumeDuckingInterval = undefined;
+    }
+
+    if (typeof this.smartVolumeDuckingBaseline !== "number") {
+      this.smartVolumeDuckingBaseline = this.getVideoVolume();
+    }
+    if (typeof this.autoVolumeMutedOnStart !== "boolean") {
+      this.autoVolumeMutedOnStart = Boolean(this.isMuted());
+    }
+
+    this.setVideoVolume(0, { preserveYoutubeVolumeStorage: true });
+    this.setVideoMuted(true, { preserveYoutubeVolumeStorage: true });
+    writeSmartDuckingRuntime(
+      this,
+      initSmartDuckingRuntime(this.smartVolumeDuckingBaseline),
+    );
+    this.smartVolumeIsDucked = true;
+    return;
+  }
+
+  restoreAutoVolumeMute(this);
+
   if (autoVolumeMode === "smart") {
     startSmartVolumeDucking(this);
     return;
@@ -488,7 +529,7 @@ export function setupAudioSettings(this: VideoHandler) {
 
   const baseline = this.smartVolumeDuckingBaseline ?? this.getVideoVolume();
   const nextVolume = Math.min(baseline, targetVolume);
-  this.setVideoVolume(nextVolume);
+  this.setVideoVolume(nextVolume, { preserveYoutubeVolumeStorage: true });
 
   writeSmartDuckingRuntime(
     this,

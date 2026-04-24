@@ -190,7 +190,7 @@ export async function changeSubtitlesLang(
       ...subtitlesObj,
       url: proxiedSubtitlesUrl,
     };
-    console.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
+    debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
   }
 
   const fetchedSubtitles =

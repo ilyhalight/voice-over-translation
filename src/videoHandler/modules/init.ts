@@ -123,7 +123,7 @@ export async function init(this: VideoHandler) {
 
   this.uiManager.data = this.data;
   // Translation volume starts from the user's saved default volume.
-  console.log("[VOT] data from db:", this.data);
+  debug.log("[VOT] data from db:", this.data);
 
   // Enable translate proxy if extension isn't compatible with GM_xmlhttpRequest
   if (!this.data.translateProxyEnabled && isProxyOnlyExtension) {

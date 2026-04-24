@@ -21,6 +21,10 @@ export class FullscreenHelper {
   private container: HTMLElement;
   private video?: HTMLVideoElement;
   private fullscreenChangeListeners: Set<() => void> = new Set();
+  private readonly handleFullscreenChange = () => {
+    this.notifyFullscreenChange();
+  };
+  private nativeFullscreenListenersActive = false;
 
   constructor({ container, video }: FullscreenHelperOptions) {
     this.container = container;
@@ -160,49 +164,59 @@ export class FullscreenHelper {
    * Sets up native fullscreen event listeners
    */
   private setupFullscreenListeners(): void {
-    const handleFullscreenChange = () => {
-      this.notifyFullscreenChange();
-    };
+    if (this.nativeFullscreenListenersActive) {
+      return;
+    }
 
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("fullscreenchange", this.handleFullscreenChange);
+    document.addEventListener(
+      "webkitfullscreenchange",
+      this.handleFullscreenChange,
+    );
 
     if (this.video) {
       this.video.addEventListener(
         "webkitbeginfullscreen",
-        handleFullscreenChange,
+        this.handleFullscreenChange,
       );
       this.video.addEventListener(
         "webkitendfullscreen",
-        handleFullscreenChange,
+        this.handleFullscreenChange,
       );
     }
+
+    this.nativeFullscreenListenersActive = true;
   }
 
   /**
    * Cleans up fullscreen event listeners
    */
   private cleanupFullscreenListeners(): void {
-    const handleFullscreenChange = () => {
-      this.notifyFullscreenChange();
-    };
+    if (!this.nativeFullscreenListenersActive) {
+      return;
+    }
 
-    document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    document.removeEventListener(
+      "fullscreenchange",
+      this.handleFullscreenChange,
+    );
     document.removeEventListener(
       "webkitfullscreenchange",
-      handleFullscreenChange,
+      this.handleFullscreenChange,
     );
 
     if (this.video) {
       this.video.removeEventListener(
         "webkitbeginfullscreen",
-        handleFullscreenChange,
+        this.handleFullscreenChange,
       );
       this.video.removeEventListener(
         "webkitendfullscreen",
-        handleFullscreenChange,
+        this.handleFullscreenChange,
       );
     }
+
+    this.nativeFullscreenListenersActive = false;
   }
 
   /**
@@ -232,7 +246,15 @@ export class FullscreenHelper {
    * Updates the video reference
    */
   updateVideo(video: HTMLVideoElement | undefined): void {
+    const shouldRebind =
+      this.nativeFullscreenListenersActive && this.video !== video;
+    if (shouldRebind) {
+      this.cleanupFullscreenListeners();
+    }
     this.video = video;
+    if (shouldRebind && this.fullscreenChangeListeners.size > 0) {
+      this.setupFullscreenListeners();
+    }
   }
 
   /**

@@ -47,7 +47,7 @@ import { availableLangs } from "@vot.js/shared/consts";
 import { html } from "lit-html";
 import { countryCode, type VideoHandler } from "../..";
 import {
-  authServerUrl,
+  authLoginUrl,
   defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
@@ -211,6 +211,14 @@ export class SettingsView {
     }
 
     void this.refreshAccountFromStorage();
+  };
+  private readonly refreshAccountOnFocus = () => {
+    void this.refreshAccountFromStorage();
+  };
+  private readonly refreshAccountOnVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      void this.refreshAccountFromStorage();
+    }
   };
   dialog?: Dialog;
   accountButton?: AccountButton;
@@ -1144,6 +1152,11 @@ export class SettingsView {
       throw new Error("[VOT] SettingsView isn't initialized");
     }
     globalThis.addEventListener("message", this.onAuthRefreshMessage);
+    globalThis.addEventListener("focus", this.refreshAccountOnFocus);
+    document.addEventListener(
+      "visibilitychange",
+      this.refreshAccountOnVisibilityChange,
+    );
     this.accountButton.addEventListener("click", async () => {
       if (votStorage.isSupportOnlyLS) return;
       if (this.accountButton.loggedIn) {
@@ -1151,7 +1164,7 @@ export class SettingsView {
         this.data.account = {};
         return this.updateAccountInfo();
       }
-      globalThis.open(authServerUrl, "_blank")?.focus();
+      globalThis.open(authLoginUrl, "_blank")?.focus();
     });
     this.accountButton.addEventListener("click:secret", async () => {
       const dialog = new Dialog({
@@ -1626,6 +1639,11 @@ export class SettingsView {
     this.accountStorageListenerCleanup?.();
     this.accountStorageListenerCleanup = undefined;
     globalThis.removeEventListener("message", this.onAuthRefreshMessage);
+    globalThis.removeEventListener("focus", this.refreshAccountOnFocus);
+    document.removeEventListener(
+      "visibilitychange",
+      this.refreshAccountOnVisibilityChange,
+    );
     this.flushStoragePersists();
     for (const event of Object.values(this.events)) event.clear();
   }

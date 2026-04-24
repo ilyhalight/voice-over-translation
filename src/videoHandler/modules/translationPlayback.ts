@@ -301,7 +301,7 @@ async function requestApplyAndCacheTranslation(
     requestLang: options.cacheRequestLang,
     responseLang: options.cacheResponseLang,
     fallbackUrl: translateRes.url,
-    downloadTranslationUrl: self.downloadTranslationUrl,
+    downloadTranslationUrl: self.downloadTranslation?.url,
     usedLivelyVoice: translateRes.usedLivelyVoice,
   });
 

@@ -120,6 +120,11 @@ type InternalVideoVolumeSetHistoryEntry = {
   suppressMs: number;
 };
 
+type DownloadTranslationState = {
+  url: string;
+  videoId: string;
+};
+
 /*─────────────────────────────────────────────────────────────*/
 /*                        Main class: VideoHandler             */
 /*  Composes the helper classes and retains full functionality.  */
@@ -160,7 +165,7 @@ export class VideoHandler {
    * before the first request resolves.
    */
   subtitlesLoadPromises = new Map<string, Promise<any[]>>();
-  downloadTranslationUrl: string | null = null;
+  downloadTranslation: DownloadTranslationState | null = null;
 
   isRefreshingTranslation = false;
 
@@ -168,6 +173,7 @@ export class VideoHandler {
   // streamPing?: ReturnType<typeof setInterval>;
   votOpts?: Record<string, unknown>;
   volumeOnStart?: number;
+  autoVolumeMutedOnStart?: boolean;
 
   /**
    * syncVolume (link translation and video volume) runtime state.
@@ -961,7 +967,10 @@ export class VideoHandler {
    */
   setVideoVolume(
     volume: number,
-    options: { suppressSyncMs?: number } = {},
+    options: {
+      preserveYoutubeVolumeStorage?: boolean;
+      suppressSyncMs?: number;
+    } = {},
   ): this {
     const snapped = snapVolume01(volume);
     const suppressSyncMs =
@@ -993,7 +1002,19 @@ export class VideoHandler {
       );
     }
 
-    this.videoManager.setVideoVolume(snapped);
+    this.videoManager.setVideoVolume(snapped, {
+      preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage,
+    });
+    return this;
+  }
+
+  setVideoMuted(
+    muted: boolean,
+    options: { preserveYoutubeVolumeStorage?: boolean } = {},
+  ): this {
+    this.videoManager.setVideoMuted(muted, {
+      preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage,
+    });
     return this;
   }
 
@@ -1163,7 +1184,7 @@ export class VideoHandler {
           overlayView.downloadTranslationButton.hidden = true;
         }
       }
-      this.downloadTranslationUrl = null;
+      this.downloadTranslation = null;
       this.longWaitingResCount = 0;
       this.hadAsyncWait = false;
       this.transformBtn("none", localizationProvider.get("translateVideo"));
@@ -1178,6 +1199,7 @@ export class VideoHandler {
 
       stopSmartVolumeDuckingImpl(this, { restoreVolume });
       this.volumeOnStart = undefined;
+      this.autoVolumeMutedOnStart = undefined;
       if (this.autoRetry !== undefined) {
         clearTimeout(this.autoRetry);
         this.autoRetry = undefined;
@@ -1370,11 +1392,14 @@ export class VideoHandler {
       if (overlayView.downloadTranslationButton) {
         overlayView.downloadTranslationButton.hidden = false;
       }
-      this.downloadTranslationUrl = audioUrl;
+      this.downloadTranslation = {
+        url: audioUrl,
+        videoId: this.videoData.videoId,
+      };
     }
     debug.log(
-      "afterUpdateTranslation downloadTranslationUrl",
-      this.downloadTranslationUrl,
+      "afterUpdateTranslation downloadTranslation",
+      this.downloadTranslation,
     );
     this.syncTranslationPlaybackVolume();
     if (this.data?.sendNotifyOnComplete && this.hadAsyncWait && isSuccess) {
@@ -1595,7 +1620,7 @@ function logBootstrap(
     Object.assign(payload, details);
   }
 
-  console.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
+  debug.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
 }
 
 function getServicesCached(): ServiceConf[] {
