@@ -33,6 +33,7 @@ const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
 };
 
 const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
+const YT_PLAYER_VOLUME_STORAGE_KEY = "yt-player-volume";
 const MIN_DETECT_TEXT_LENGTH = 35;
 const MAX_SHARED_LANGUAGE_STATES = 500;
 const REQUEST_LANG_SET = new Set<RequestLang>(
@@ -64,6 +65,20 @@ type ResolveDetectedLanguageOptions = {
 type ResolveDetectedLanguageResult = {
   detectedLanguage: RequestLang;
   cacheLanguage?: ResolvedRequestLang;
+};
+
+type YoutubeVolumeStorageSnapshot = {
+  storage: Storage;
+  value: string | null;
+};
+
+type YoutubePlayerWithMute = {
+  mute?: () => void;
+  unMute?: () => void;
+};
+
+type ExternalPlaybackWriteOptions = {
+  preserveYoutubeVolumeStorage?: boolean;
 };
 
 /**
@@ -166,6 +181,50 @@ function resolveYoutubeDetectedLanguageFromSubtitles(
   };
 
   return pickLanguage(true) ?? pickLanguage(false);
+}
+
+function getYoutubeVolumeStorageSnapshot(): YoutubeVolumeStorageSnapshot | null {
+  try {
+    const storage = globalThis.localStorage;
+    return {
+      storage,
+      value: storage.getItem(YT_PLAYER_VOLUME_STORAGE_KEY),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function restoreYoutubeVolumeStorageSnapshot(
+  snapshot: YoutubeVolumeStorageSnapshot | null,
+): void {
+  if (!snapshot) {
+    return;
+  }
+
+  try {
+    if (snapshot.value === null) {
+      snapshot.storage.removeItem(YT_PLAYER_VOLUME_STORAGE_KEY);
+    } else {
+      snapshot.storage.setItem(YT_PLAYER_VOLUME_STORAGE_KEY, snapshot.value);
+    }
+  } catch {
+    // localStorage can be blocked in some frames. Playback control should still work.
+  }
+}
+
+function preserveYoutubeVolumeStorage<T>(action: () => T): T {
+  const snapshot = getYoutubeVolumeStorageSnapshot();
+  const restoreSnapshot = () => restoreYoutubeVolumeStorageSnapshot(snapshot);
+
+  try {
+    return action();
+  } finally {
+    restoreSnapshot();
+    if (snapshot && typeof globalThis.setTimeout === "function") {
+      globalThis.setTimeout(restoreSnapshot, 0);
+    }
+  }
 }
 
 export async function resolveDetectedLanguageForVideo(
@@ -412,7 +471,7 @@ export class VOTVideoManager {
     } satisfies RuntimeVideoData;
 
     if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
-      console.log("[VOT] Detected language:", detectedLanguage);
+      debug.log("[VOT] Detected language:", detectedLanguage);
       sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
     }
     return videoData;
@@ -473,7 +532,7 @@ export class VOTVideoManager {
   /**
    * Sets the video volume
    */
-  setVideoVolume(volume: number) {
+  setVideoVolume(volume: number, options: ExternalPlaybackWriteOptions = {}) {
     const snapped = snapVolume01(volume);
 
     if (!isExternalVolumeHost(this.videoHandler.site.host)) {
@@ -485,7 +544,11 @@ export class VOTVideoManager {
     // Do NOT use a truthy check here, or setting volume to 0 (0%) will be treated
     // as a failure.
     try {
-      const result = YoutubeHelper.setVolume(snapped) as unknown;
+      const setExternalVolume = () =>
+        YoutubeHelper.setVolume(snapped) as unknown;
+      const result = options.preserveYoutubeVolumeStorage
+        ? preserveYoutubeVolumeStorage(setExternalVolume)
+        : setExternalVolume();
       const ok =
         (typeof result === "boolean" && result) ||
         (typeof result === "number" && Number.isFinite(result));
@@ -498,13 +561,42 @@ export class VOTVideoManager {
     return this;
   }
 
+  setVideoMuted(muted: boolean, options: ExternalPlaybackWriteOptions = {}) {
+    if (isExternalVolumeHost(this.videoHandler.site.host)) {
+      const player = YoutubeHelper.getPlayer() as
+        | (YoutubePlayerWithMute & Element)
+        | null;
+      const method = muted ? player?.mute : player?.unMute;
+      if (typeof method === "function") {
+        try {
+          const setExternalMuted = () => method.call(player);
+          if (options.preserveYoutubeVolumeStorage) {
+            preserveYoutubeVolumeStorage(setExternalMuted);
+          } else {
+            setExternalMuted();
+          }
+        } catch {
+          // ignore - fall back to the HTMLMediaElement muted flag below.
+        }
+      }
+    }
+
+    if (this.videoHandler.video) {
+      this.videoHandler.video.muted = muted;
+    }
+
+    return this;
+  }
+
   /**
    * Checks if the video is muted
    */
   isMuted() {
-    return isExternalVolumeHost(this.videoHandler.site.host)
-      ? YoutubeHelper.isMuted()
-      : this.videoHandler.video?.muted;
+    if (!isExternalVolumeHost(this.videoHandler.site.host)) {
+      return this.videoHandler.video?.muted;
+    }
+
+    return YoutubeHelper.isMuted() || Boolean(this.videoHandler.video?.muted);
   }
 
   /**
@@ -539,7 +631,7 @@ export class VOTVideoManager {
     const langPairLogKey = `${normalizedFrom}->${to}`;
     const sharedLanguageState = getSharedLanguageState(videoData.videoId);
     if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
-      console.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+      debug.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
       sharedLanguageState.lastLoggedLangPair = langPairLogKey;
     }
     videoData.detectedLanguage = normalizedFrom;

@@ -82,7 +82,13 @@ export function createVideoLifecycleHost(
       return self().videoData;
     },
     set videoData(value: any) {
-      self().videoData = value;
+      const handler = self();
+      const previousVideoId = handler.videoData?.videoId;
+      const nextVideoId = value?.videoId;
+      if (previousVideoId !== nextVideoId) {
+        handler.downloadTranslation = null;
+      }
+      handler.videoData = value;
     },
     get actionsAbortController() {
       return self().actionsAbortController;

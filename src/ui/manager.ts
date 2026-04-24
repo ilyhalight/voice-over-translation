@@ -1,4 +1,4 @@
-import type { VideoHandler } from "..";
+import type { VideoData, VideoHandler } from "..";
 import {
   actualCompatVersion,
   maxAudioVolume,
@@ -504,19 +504,24 @@ export class UIManager {
   private async handleDownloadTranslationClick() {
     const overlayView = this.votOverlayView;
     const videoHandler = this.videoHandler;
-    if (
-      !overlayView?.isInitialized() ||
-      !videoHandler?.downloadTranslationUrl ||
-      !videoHandler.videoData
-    ) {
+    const download = videoHandler?.downloadTranslation;
+    if (!overlayView?.isInitialized() || !download || !videoHandler.videoData) {
+      return;
+    }
+
+    const downloadVideoData = await this.getDownloadVideoData(
+      videoHandler,
+      download.videoId,
+    );
+    if (!downloadVideoData) {
       return;
     }
 
     const downloadButton = overlayView.downloadTranslationButton;
-    const downloadUrl = videoHandler.downloadTranslationUrl;
+    const downloadUrl = download.url;
     const filename = this.data.downloadWithName
-      ? clearFileName(videoHandler.videoData.downloadTitle)
-      : `translation_${videoHandler.videoData.videoId}`;
+      ? clearFileName(downloadVideoData.downloadTitle)
+      : `translation_${downloadVideoData.videoId}`;
     const isMobile = this.isLikelyMobileDownloadContext();
     const saveOptions: DownloadBlobOptions = { preferShare: isMobile };
 
@@ -541,6 +546,39 @@ export class UIManager {
       }
     } finally {
       setProgress(0);
+    }
+  }
+
+  private async getDownloadVideoData(
+    videoHandler: VideoHandler,
+    downloadVideoId: string,
+  ): Promise<VideoData | null> {
+    if (videoHandler.videoData?.videoId !== downloadVideoId) {
+      this.clearDownloadTranslation(videoHandler);
+      return null;
+    }
+
+    let videoData: VideoData;
+    try {
+      videoData = await videoHandler.getVideoData();
+    } catch (err) {
+      debug.log("[VOT] Failed to refresh video data before download", err);
+      return null;
+    }
+
+    if (videoData.videoId !== downloadVideoId) {
+      this.clearDownloadTranslation(videoHandler);
+      return null;
+    }
+
+    videoHandler.videoData = videoData;
+    return videoData;
+  }
+
+  private clearDownloadTranslation(videoHandler: VideoHandler): void {
+    videoHandler.downloadTranslation = null;
+    if (this.votOverlayView?.downloadTranslationButton) {
+      this.votOverlayView.downloadTranslationButton.hidden = true;
     }
   }
 
