@@ -212,14 +212,6 @@ export class SettingsView {
 
     void this.refreshAccountFromStorage();
   };
-  private readonly refreshAccountOnFocus = () => {
-    void this.refreshAccountFromStorage();
-  };
-  private readonly refreshAccountOnVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      void this.refreshAccountFromStorage();
-    }
-  };
   dialog?: Dialog;
   accountButton?: AccountButton;
   accountButtonRefreshTooltip?: Tooltip;
@@ -1152,11 +1144,6 @@ export class SettingsView {
       throw new Error("[VOT] SettingsView isn't initialized");
     }
     globalThis.addEventListener("message", this.onAuthRefreshMessage);
-    globalThis.addEventListener("focus", this.refreshAccountOnFocus);
-    document.addEventListener(
-      "visibilitychange",
-      this.refreshAccountOnVisibilityChange,
-    );
     this.accountButton.addEventListener("click", async () => {
       if (votStorage.isSupportOnlyLS) return;
       if (this.accountButton.loggedIn) {
@@ -1639,11 +1626,6 @@ export class SettingsView {
     this.accountStorageListenerCleanup?.();
     this.accountStorageListenerCleanup = undefined;
     globalThis.removeEventListener("message", this.onAuthRefreshMessage);
-    globalThis.removeEventListener("focus", this.refreshAccountOnFocus);
-    document.removeEventListener(
-      "visibilitychange",
-      this.refreshAccountOnVisibilityChange,
-    );
     this.flushStoragePersists();
     for (const event of Object.values(this.events)) event.clear();
   }
