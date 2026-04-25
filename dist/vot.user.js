@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.5.6
+// @version        1.11.5.7
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -4756,8 +4756,10 @@ var vot = (function(exports) {
 			});
 		}
 		async getVideoId(url) {
+			const videoIdFromUrl = this.getVideoIdFromUrl(url);
+			if (videoIdFromUrl) return videoIdFromUrl;
 			if (window.self !== window.top) return await this.resolveVideoIdViaPostMessage();
-			else return this.getVideoIdFromUrl(url);
+			return url.hostname === "dai.ly" ? url.pathname.slice(1) : /video\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
 	//#endregion
@@ -7608,6 +7610,16 @@ var vot = (function(exports) {
 		error: noop
 	};
 	//#endregion
+	//#region src/utils/number.ts
+	function clampNumber$1(value, min, max) {
+		if (!Number.isFinite(value)) return min;
+		if (max < min) return min;
+		return Math.max(min, Math.min(max, value));
+	}
+	function clampNumberWithSortedBounds(value, min, max) {
+		return Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
+	}
+	//#endregion
 	//#region src/utils/localization.ts
 	function getNavigatorLang() {
 		if (typeof navigator === "undefined") return "en";
@@ -7758,7 +7770,7 @@ var vot = (function(exports) {
 	var getTimestamp = () => Math.floor(Date.now() / 1e3);
 	var getHeaders = (headers) => headers ? Object.fromEntries(new Headers(headers)) : {};
 	function clamp(value, min = 0, max = 100) {
-		return Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
+		return clampNumberWithSortedBounds(value, min, max);
 	}
 	function toFlatObj(data) {
 		const out = {};
@@ -8185,7 +8197,7 @@ var vot = (function(exports) {
 	function getErrorMessage(error) {
 		return toErrorMessage(error, "");
 	}
-	function isAbortError$1(err) {
+	function isAbortError(err) {
 		const anyErr = err;
 		return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
 	}
@@ -8220,7 +8232,7 @@ var vot = (function(exports) {
 			maybeThrow.call(signal);
 			return;
 		} catch (e) {
-			if (signal.aborted || isAbortError$1(e)) throw makeAbortError();
+			if (signal.aborted || isAbortError(e)) throw makeAbortError();
 			throw e instanceof Error ? e : new Error(String(e));
 		}
 		if (signal.aborted) throw makeAbortError();
@@ -10199,7 +10211,7 @@ var vot = (function(exports) {
 			try {
 				return await executeCallbackGmXhr(callbackGmXhr, urlStr, timeout, fetchOptions, method, headers);
 			} catch (error) {
-				if (isAbortError$1(error)) throw error;
+				if (isAbortError(error)) throw error;
 				debug.warn("[GM_fetch] callback-style GM_xmlhttpRequest failed", {
 					url: urlStr,
 					method,
@@ -10213,7 +10225,7 @@ var vot = (function(exports) {
 			try {
 				return await executePromiseGmXhr(promiseGmXhr, urlStr, timeout, fetchOptions, method, headers);
 			} catch (error) {
-				if (isAbortError$1(error)) throw error;
+				if (isAbortError(error)) throw error;
 				debug.warn("[GM_fetch] promise-style GM.xmlHttpRequest failed", {
 					url: urlStr,
 					method,
@@ -10256,7 +10268,7 @@ var vot = (function(exports) {
 				try {
 					return await gmXhrFetch(urlStr, timeout, fetchOptions);
 				} catch (err) {
-					if (isAbortError$1(err)) throw err;
+					if (isAbortError(err)) throw err;
 					if (forceGmXhr || shouldUseGmXhr(host, urlStr)) throw err;
 					debug.warn("[GM_fetch] all GM approaches failed, falling back to native fetch", {
 						url: urlStr,
@@ -10282,7 +10294,7 @@ var vot = (function(exports) {
 					signal
 				});
 			} catch (err) {
-				if (signal.aborted || isAbortError$1(err)) throw err;
+				if (signal.aborted || isAbortError(err)) throw err;
 				debug.warn("[GM_fetch] fetch failed, retrying via GM_xmlhttpRequest", {
 					url: urlStr,
 					method,
@@ -11039,7 +11051,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.5.6"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.5.7"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -12404,7 +12416,7 @@ var vot = (function(exports) {
 					});
 				}
 			} catch (err) {
-				if (isAbortError$1(err)) {
+				if (isAbortError(err)) {
 					debug.log("[Translation] translation aborted", {
 						videoId: videoData.videoId,
 						retryAttempt
@@ -13035,20 +13047,15 @@ var vot = (function(exports) {
 	var VIDEO_VOLUME_MAX_PERCENT = 100;
 	var VIDEO_VOLUME_STEP_01 = .01;
 	var EPS = 1e-6;
-	function clampNumber$2(value, min, max) {
-		if (!Number.isFinite(value)) return min;
-		if (max < min) return min;
-		return Math.max(min, Math.min(max, value));
-	}
 	function clampInt(value, min, max) {
-		return Math.trunc(clampNumber$2(value, min, max));
+		return Math.trunc(clampNumber$1(value, min, max));
 	}
 	function clampPercentInt(value, min = VIDEO_VOLUME_MIN_PERCENT, max = VIDEO_VOLUME_MAX_PERCENT) {
 		if (!Number.isFinite(value)) return min;
 		return clampInt(Math.round(value), min, max);
 	}
 	function volume01ToPercent(volume01) {
-		return clampPercentInt(clampNumber$2(volume01, 0, 1) * 100);
+		return clampPercentInt(clampNumber$1(volume01, 0, 1) * 100);
 	}
 	function percentToVolume01(percent) {
 		return clampPercentInt(percent) / 100;
@@ -13065,11 +13072,11 @@ var vot = (function(exports) {
 		}
 	}
 	function snapVolume01(volume01, direction = "nearest", step = VIDEO_VOLUME_STEP_01) {
-		return clampNumber$2(quantizeToStep(clampNumber$2(volume01, 0, 1), step, direction), 0, 1);
+		return clampNumber$1(quantizeToStep(clampNumber$1(volume01, 0, 1), step, direction), 0, 1);
 	}
 	function snapVolume01Towards(next, current, desired, step = VIDEO_VOLUME_STEP_01) {
-		const cur = clampNumber$2(current, 0, 1);
-		const des = clampNumber$2(desired, 0, 1);
+		const cur = clampNumber$1(current, 0, 1);
+		const des = clampNumber$1(desired, 0, 1);
 		if (des < cur) {
 			const q = snapVolume01(next, "down", step);
 			return Math.max(des, q);
@@ -13696,29 +13703,18 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/components/componentShared.ts
-	function addComponentEventListener(events, type, listener) {
-		events[type].addListener(listener);
-	}
-	function removeComponentEventListener(events, type, listener) {
-		events[type].removeListener(listener);
-	}
-	function setHiddenState(element, isHidden) {
-		element.hidden = isHidden;
-	}
-	function getHiddenState(element) {
-		return element.hidden;
-	}
 	function setInteractiveHiddenState(element, isHidden) {
-		setHiddenState(element, isHidden);
+		element.hidden = isHidden;
 		element.setAttribute("aria-hidden", isHidden ? "true" : "false");
 		element.toggleAttribute("inert", isHidden);
 	}
-	function setDisabledState(element, isDisabled) {
-		if (isDisabled) {
-			element.setAttribute("disabled", "true");
-			return;
-		}
-		element.removeAttribute("disabled");
+	function createDomId(prefix) {
+		return `${prefix}-${typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
+	}
+	function isEventInside(event, element) {
+		const target = event.target;
+		if (target instanceof Node && element.contains(target)) return true;
+		return typeof event.composedPath === "function" && event.composedPath().includes(element);
 	}
 	function isPrimaryPointerAction(event) {
 		return event.isPrimary && event.button === 0;
@@ -13884,7 +13880,7 @@ var vot = (function(exports) {
 		positionRafId = null;
 		destroyFallbackTimerId;
 		static DESTROY_FALLBACK_MS = 700;
-		tooltipId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `vot-tooltip-${Math.random().toString(36).slice(2)}`;
+		tooltipId = createDomId("vot-tooltip");
 		prevAriaDescribedBy = null;
 		constructor({ target, anchor = void 0, content = "", position = "top", trigger = "hover", offset = 4, maxWidth = void 0, hidden = false, autoLayout = true, backgroundColor = void 0, borderRadius = void 0, bordered = true, parentElement = document.body, layoutRoot = document.documentElement }) {
 			if (!(target instanceof HTMLElement)) throw new TypeError("target must be a valid HTMLElement");
@@ -13951,6 +13947,11 @@ var vot = (function(exports) {
 		};
 		onClick = () => {
 			this.showed ? this.destroy() : this.create();
+		};
+		onDocumentPointerDown = (event) => {
+			if (!this.showed) return;
+			if (isEventInside(event, this.target) || this.container && isEventInside(event, this.container)) return;
+			this.destroy();
 		};
 		onTargetKeyDown = (event) => {
 			if (event.key !== "Escape" || !this.showed) return;
@@ -14069,6 +14070,10 @@ var vot = (function(exports) {
 			else this.syncAriaDescribedBy(true);
 			this.container.style.opacity = "1";
 			if (this.trigger === "hover") this.container.addEventListener("mouseleave", this.onTooltipMouseLeave);
+			else document.addEventListener("pointerdown", this.onDocumentPointerDown, {
+				capture: true,
+				passive: true
+			});
 			this.attachScrollListener();
 			this.onResizeObserver?.observe(this.layoutRoot);
 			if (this.anchor !== this.layoutRoot) this.onResizeObserver?.observe(this.anchor);
@@ -14158,6 +14163,7 @@ var vot = (function(exports) {
 			this.onResizeObserver?.disconnect();
 			this.intersectionObserver?.disconnect();
 			this.detachScrollListener();
+			this.detachOutsidePointerListener();
 			if (instant) {
 				container.remove();
 				this.container = void 0;
@@ -14175,6 +14181,9 @@ var vot = (function(exports) {
 			container.addEventListener("transitioncancel", handleTransitionDone, { once: true });
 			this.destroyFallbackTimerId = globalThis.setTimeout(handleTransitionDone, Tooltip.DESTROY_FALLBACK_MS);
 			return this;
+		}
+		detachOutsidePointerListener() {
+			document.removeEventListener("pointerdown", this.onDocumentPointerDown, { capture: true });
 		}
 		syncAriaDescribedBy(isShowing) {
 			const existing = this.target.getAttribute("aria-describedby");
@@ -14842,7 +14851,7 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/subtitles/smartLayout.ts
-	var clampNumber$1 = (value, min, max) => Math.min(max, Math.max(min, value));
+	var clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
 	var roundToInt = (value) => Math.round(value);
 	var resolveAspectBand = (aspect) => {
 		if (aspect < .8) return {
@@ -14903,23 +14912,45 @@ var vot = (function(exports) {
 		};
 		const { widthRatio, charsPerLine, fontHeightRatio } = resolveAspectBand(width / height);
 		const { extraChars, widthScale } = resolveWidthBoost(width);
-		const derivedFontSizePx = clampNumber$1(height * fontHeightRatio, 16, 42);
+		const derivedFontSizePx = clampNumber(height * fontHeightRatio, 16, 42);
 		const fontSizePx = cssMetrics?.fontSizePx ?? derivedFontSizePx;
 		const averageGlyphWidth = estimateAverageGlyphWidth(fontSizePx);
 		const minWidthPx = width * Math.min(.92, widthRatio);
-		const maxWidthPx = width * clampNumber$1(widthRatio * widthScale, .66, .92);
+		const maxWidthPx = width * clampNumber(widthRatio * widthScale, .66, .92);
 		return {
 			fontSizePx,
-			maxWidthPx: roundToInt(clampNumber$1(clampNumber$1(charsPerLine + extraChars, 25, 48) * averageGlyphWidth, minWidthPx, maxWidthPx))
+			maxWidthPx: roundToInt(clampNumber(clampNumber(charsPerLine + extraChars, 25, 48) * averageGlyphWidth, minWidthPx, maxWidthPx))
 		};
 	}
 	//#endregion
 	//#region src/subtitles/smartWrap.ts
 	var STRONG_BREAK_RE = /[.!?…:;][)"'\]»”]*\s*$/u;
 	var SOFT_BREAK_RE = /[,،、][)"'\]»”]*\s*$/u;
-	var DISCOURAGED_LINE_START_RE = /^\s*[\p{Pe}\p{Pf},.;:!?%‰…]/u;
-	var DISCOURAGED_LINE_END_RE = /\s*[\p{Ps}\p{Pi}¿¡([{«“"'`-]\s*$/u;
+	var WHITESPACE_CHAR_RE = /\s/u;
+	var DISCOURAGED_LINE_START_CHAR_RE = /^[\p{Pe}\p{Pf},.;:!?%\u2030\u2026]$/u;
+	var DISCOURAGED_LINE_END_CHAR_RE = /^[\p{Ps}\p{Pi}\u00BF\u00A1([{\u00AB\u201C"'`-]$/u;
 	var normalizeTokenText = (text) => text.replaceAll(/\s+/gu, " ").trim();
+	var getNextChar = (text, index) => {
+		if (index >= text.length) return null;
+		const codePoint = text.codePointAt(index);
+		if (codePoint === void 0) return null;
+		const char = String.fromCodePoint(codePoint);
+		return {
+			char,
+			nextIndex: index + char.length
+		};
+	};
+	var getPreviousChar = (text, index) => {
+		if (index <= 0) return null;
+		let start = index - 1;
+		const lastCodeUnit = text.charCodeAt(start);
+		if (lastCodeUnit >= 56320 && lastCodeUnit <= 57343 && start > 0) start -= 1;
+		return {
+			char: text.slice(start, index),
+			previousIndex: start
+		};
+	};
+	var isWhitespaceChar = (char) => WHITESPACE_CHAR_RE.test(char);
 	var buildTokenTextBuffer = (tokens) => {
 		const offsets = new Array(tokens.length + 1);
 		offsets[0] = 0;
@@ -14942,8 +14973,28 @@ var vot = (function(exports) {
 		if (SOFT_BREAK_RE.test(text)) return "soft";
 		return "neutral";
 	};
-	var startsWithDiscouragedLineStart = (text) => DISCOURAGED_LINE_START_RE.test(text);
-	var endsWithDiscouragedLineEnd = (text) => DISCOURAGED_LINE_END_RE.test(text);
+	var rangeStartsWithDiscouragedLineStart = (buffer, startToken, endToken) => {
+		let index = buffer.offsets[startToken];
+		const end = buffer.offsets[endToken];
+		while (index < end) {
+			const next = getNextChar(buffer.fullText, index);
+			if (!next) return false;
+			if (!isWhitespaceChar(next.char)) return DISCOURAGED_LINE_START_CHAR_RE.test(next.char);
+			index = next.nextIndex;
+		}
+		return false;
+	};
+	var rangeEndsWithDiscouragedLineEnd = (buffer, startToken, endToken) => {
+		const start = buffer.offsets[startToken];
+		let index = buffer.offsets[endToken];
+		while (index > start) {
+			const previous = getPreviousChar(buffer.fullText, index);
+			if (!previous) return false;
+			if (!isWhitespaceChar(previous.char)) return DISCOURAGED_LINE_END_CHAR_RE.test(previous.char);
+			index = previous.previousIndex;
+		}
+		return false;
+	};
 	var isWordToken = (token) => Boolean(token?.isWordLike && token.text.trim());
 	var getTokenStartMs = (token) => token && Number.isFinite(token.startMs) ? token.startMs : 0;
 	var getTokenEndMs = (token) => token ? getTokenStartMs(token) + Math.max(0, token.durationMs) : 0;
@@ -14977,7 +15028,7 @@ var vot = (function(exports) {
 			forcesLineBreak: true
 		};
 	};
-	var buildSliceFromWord = (tokens, wordTokenIndex, textBuffer) => {
+	var buildSliceFromWord = (tokens, wordTokenIndex, textBuffer, includeMetrics) => {
 		let startToken = wordTokenIndex;
 		while (startToken > 0 && tokens[startToken - 1]?.text !== "\n" && !isWordToken(tokens[startToken - 1])) startToken -= 1;
 		let endToken = wordTokenIndex + 1;
@@ -14989,17 +15040,16 @@ var vot = (function(exports) {
 			breakAfterTokenIndex: endToken - 1,
 			startToken,
 			endToken,
-			charLength: normalizeTokenText(text).length,
-			startMs: getRangeStartMs(tokens, startToken, endToken),
-			endMs: getRangeEndMs(tokens, startToken, endToken),
+			charLength: includeMetrics ? normalizeTokenText(text).length : 0,
+			startMs: includeMetrics ? getRangeStartMs(tokens, startToken, endToken) : 0,
+			endMs: includeMetrics ? getRangeEndMs(tokens, startToken, endToken) : 0,
 			boundary: resolveBoundary(text),
 			forcesLineBreak: false
 		};
 	};
-	function buildWordSlices(tokens) {
-		const textBuffer = buildTokenTextBuffer(tokens);
+	function buildWordSlicesFromBuffer(tokens, textBuffer, collectKey) {
 		const slices = [];
-		const keyParts = [];
+		const keyParts = collectKey ? [] : null;
 		let index = 0;
 		while (index < tokens.length) {
 			const token = tokens[index];
@@ -15010,7 +15060,7 @@ var vot = (function(exports) {
 			if (token.text === "\n") {
 				const slice = createForcedBreakSlice(tokens, index);
 				slices.push(slice);
-				keyParts.push("\n");
+				keyParts?.push("\n");
 				index += 1;
 				continue;
 			}
@@ -15018,9 +15068,9 @@ var vot = (function(exports) {
 				index += 1;
 				continue;
 			}
-			const slice = buildSliceFromWord(tokens, index, textBuffer);
+			const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
 			slices.push(slice);
-			keyParts.push(normalizeTokenText(slice.text));
+			keyParts?.push(normalizeTokenText(slice.text));
 			index = slice.breakAfterTokenIndex + 1;
 		}
 		if (!slices.length && tokens.length) {
@@ -15031,18 +15081,21 @@ var vot = (function(exports) {
 				breakAfterTokenIndex: tokens.length - 1,
 				startToken: 0,
 				endToken: tokens.length,
-				charLength: normalizeTokenText(text).length,
-				startMs: getRangeStartMs(tokens, 0, tokens.length),
-				endMs: getRangeEndMs(tokens, 0, tokens.length),
+				charLength: collectKey ? normalizeTokenText(text).length : 0,
+				startMs: collectKey ? getRangeStartMs(tokens, 0, tokens.length) : 0,
+				endMs: collectKey ? getRangeEndMs(tokens, 0, tokens.length) : 0,
 				boundary: resolveBoundary(text),
 				forcesLineBreak: false
 			});
-			keyParts.push(normalizeTokenText(text));
+			keyParts?.push(normalizeTokenText(text));
 		}
 		return {
 			slices,
-			key: keyParts.join("|")
+			key: keyParts?.join("|") ?? ""
 		};
+	}
+	function buildWordSlices(tokens) {
+		return buildWordSlicesFromBuffer(tokens, buildTokenTextBuffer(tokens), true);
 	}
 	function measureWordSlices(wordSlices, measureText) {
 		return wordSlices.map((slice) => ({
@@ -15149,9 +15202,7 @@ var vot = (function(exports) {
 			const secondStartToken = firstEndToken;
 			const firstWidth = measureTokenRange(textBuffer, 0, firstEndToken, measureText);
 			const secondWidth = measureTokenRange(textBuffer, secondStartToken, tokens.length, measureText);
-			const firstText = getBufferedTokenText(textBuffer, 0, firstEndToken);
-			const secondText = getBufferedTokenText(textBuffer, secondStartToken, tokens.length);
-			const score = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12 + Math.abs(secondWidth - firstWidth) * .4 + (startsWithDiscouragedLineStart(secondText) ? 260 : 0) + (endsWithDiscouragedLineEnd(firstText) ? 70 : 0);
+			const score = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12 + Math.abs(secondWidth - firstWidth) * .4 + (rangeStartsWithDiscouragedLineStart(textBuffer, secondStartToken, tokens.length) ? 260 : 0) + (rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0);
 			if (score < bestScore) {
 				bestScore = score;
 				bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
@@ -15159,13 +15210,11 @@ var vot = (function(exports) {
 		}
 		return bestBreakAfterTokenIndex;
 	};
-	var scoreBreakCandidate = ({ firstWidth, secondWidth, firstText, secondText, firstWordCount, secondWordCount, maxWidthPx, boundary }) => {
+	var scoreBreakCandidate = ({ firstWidth, secondWidth, lineStartPenalty, lineEndPenalty, firstWordCount, secondWordCount, maxWidthPx, boundary }) => {
 		const overflowPenalty = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12;
 		const balancePenalty = Math.abs(secondWidth / Math.max(firstWidth, 1) - 1.08) * 120;
 		const shortTopPenalty = firstWordCount < 2 ? 80 : 0;
 		const orphanPenalty = secondWordCount < 2 ? 80 : 0;
-		const lineStartPenalty = startsWithDiscouragedLineStart(secondText) ? 260 : 0;
-		const lineEndPenalty = endsWithDiscouragedLineEnd(firstText) ? 70 : 0;
 		const boundaryBonus = boundary === "strong" ? -28 : boundary === "soft" ? -14 : 0;
 		return overflowPenalty + balancePenalty + shortTopPenalty + orphanPenalty + lineStartPenalty + lineEndPenalty + boundaryBonus;
 	};
@@ -15175,7 +15224,7 @@ var vot = (function(exports) {
 		const textBuffer = buildTokenTextBuffer(tokens);
 		const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
 		if (safeMaxWidthPx <= 0) return { breakAfterTokenIndices: [] };
-		const { slices } = buildWordSlices(tokens);
+		const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
 		const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
 		if (!measurableSlices.length) return { breakAfterTokenIndices: [] };
 		if (measureTokenRange(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return { breakAfterTokenIndices: [] };
@@ -15190,8 +15239,8 @@ var vot = (function(exports) {
 			const score = scoreBreakCandidate({
 				firstWidth: measureTokenRange(textBuffer, 0, firstEndToken, measureText),
 				secondWidth: measureTokenRange(textBuffer, secondStartToken, tokens.length, measureText),
-				firstText: getBufferedTokenText(textBuffer, 0, firstEndToken),
-				secondText: getBufferedTokenText(textBuffer, secondStartToken, tokens.length),
+				lineStartPenalty: rangeStartsWithDiscouragedLineStart(textBuffer, secondStartToken, tokens.length) ? 260 : 0,
+				lineEndPenalty: rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0,
 				firstWordCount: index + 1,
 				secondWordCount: measurableSlices.length - (index + 1),
 				maxWidthPx: safeMaxWidthPx,
@@ -15254,7 +15303,7 @@ var vot = (function(exports) {
 		useVideoFrameCallbacks;
 		videoFrameRequestId = null;
 		lastPlaybackTimeMs = null;
-		dragDocListenersAttached = false;
+		dragAbortController = null;
 		lastPositionRefreshTs = 0;
 		positionRefreshIntervalMs = 250;
 		subtitleMaxWidthPx = 0;
@@ -15588,11 +15637,13 @@ var vot = (function(exports) {
 		bindEvents() {
 			const { signal } = this.abortController;
 			const opts = { signal };
-			this.video?.addEventListener("play", this.onPlaybackStateChangeBound, opts);
-			this.video?.addEventListener("pause", this.onPlaybackStateChangeBound, opts);
-			this.video?.addEventListener("seeking", this.onPlaybackStateChangeBound, opts);
-			this.video?.addEventListener("seeked", this.onPlaybackStateChangeBound, opts);
-			this.video?.addEventListener("ended", this.onPlaybackStateChangeBound, opts);
+			for (const eventName of [
+				"play",
+				"pause",
+				"seeking",
+				"seeked",
+				"ended"
+			]) this.video?.addEventListener(eventName, this.onPlaybackStateChangeBound, opts);
 			this.resizeObserver = new ResizeObserver(() => this.onResize());
 			const resizeTarget = this.container instanceof ShadowRoot ? this.container.host : this.container;
 			this.resizeObserver.observe(resizeTarget);
@@ -15686,21 +15737,27 @@ var vot = (function(exports) {
 			}
 		}
 		attachDragDocumentListeners() {
-			if (this.dragDocListenersAttached) return;
-			this.dragDocListenersAttached = true;
+			if (this.dragAbortController) return;
+			const dragAbortController = new AbortController();
+			const { signal } = dragAbortController;
 			document.addEventListener("pointermove", this.onPointerMoveBound, {
+				signal,
 				passive: false,
 				capture: true
 			});
-			document.addEventListener("pointerup", this.onPointerUpBound, true);
-			document.addEventListener("pointercancel", this.onPointerUpBound, true);
+			document.addEventListener("pointerup", this.onPointerUpBound, {
+				signal,
+				capture: true
+			});
+			document.addEventListener("pointercancel", this.onPointerUpBound, {
+				signal,
+				capture: true
+			});
+			this.dragAbortController = dragAbortController;
 		}
 		detachDragDocumentListeners() {
-			if (!this.dragDocListenersAttached) return;
-			this.dragDocListenersAttached = false;
-			document.removeEventListener("pointermove", this.onPointerMoveBound, true);
-			document.removeEventListener("pointerup", this.onPointerUpBound, true);
-			document.removeEventListener("pointercancel", this.onPointerUpBound, true);
+			this.dragAbortController?.abort();
+			this.dragAbortController = null;
 		}
 		onResize() {
 			this.syncWidgetMount();
@@ -15753,8 +15810,7 @@ var vot = (function(exports) {
 			this.insetCacheReady = true;
 		}
 		isMobileViewport() {
-			if (typeof globalThis.matchMedia !== "function") return false;
-			return globalThis.matchMedia("(max-width: 900px) and (pointer: coarse)").matches;
+			return globalThis.matchMedia?.("(max-width: 900px) and (pointer: coarse)")?.matches ?? false;
 		}
 		getBottomInsetPreset() {
 			const doc = document;
@@ -16209,32 +16265,23 @@ var vot = (function(exports) {
 			this.strTranslatedTokens = context;
 			return [context, current];
 		}
-		isTokenSpanElement(el) {
-			return el instanceof HTMLSpanElement && el.dataset.votToken === "1";
-		}
-		findTokenSpanInPath(path, root) {
-			for (const node of path) if (this.isTokenSpanElement(node) && root.contains(node)) return node;
-			return null;
-		}
-		findTokenSpanByPoint(x, y, root) {
-			const hit = document.elementFromPoint(x, y);
-			if (this.isTokenSpanElement(hit) && root.contains(hit)) return hit;
-			if (!(hit instanceof Element)) return null;
-			const closest = hit.closest("span[data-vot-token=\"1\"]");
-			if (closest instanceof HTMLSpanElement && root.contains(closest)) return closest;
-			return null;
+		findTokenSpan(candidate, root) {
+			const token = (candidate instanceof Element ? candidate : candidate instanceof Text ? candidate.parentElement : null)?.closest("span[data-vot-token=\"1\"]");
+			return token instanceof HTMLSpanElement && root.contains(token) ? token : null;
 		}
 		resolveTokenSpanFromClick(event) {
 			const root = this.subtitlesBlock ?? this.subtitlesContainer;
 			if (!root) return null;
-			if (this.isTokenSpanElement(event.target) && root.contains(event.target)) return event.target;
+			const fromTarget = this.findTokenSpan(event.target, root);
+			if (fromTarget) return fromTarget;
 			const path = typeof event.composedPath === "function" ? event.composedPath() : [];
-			const fromPath = this.findTokenSpanInPath(path, root);
-			if (fromPath) return fromPath;
+			for (const node of path) {
+				const fromPath = this.findTokenSpan(node, root);
+				if (fromPath) return fromPath;
+			}
 			const x = event.clientX;
 			const y = event.clientY;
-			if (Number.isFinite(x) && Number.isFinite(y)) return this.findTokenSpanByPoint(x, y, root);
-			return null;
+			return Number.isFinite(x) && Number.isFinite(y) ? this.findTokenSpan(document.elementFromPoint(x, y), root) : null;
 		}
 		releaseTooltip() {
 			this.tooltipTranslationRequestId += 1;
@@ -16410,12 +16457,6 @@ var vot = (function(exports) {
 			if (typeof font === "string" && font) this.measureCtx.font = font;
 			return this.measureCtx;
 		}
-		arraysEqual(a, b) {
-			if (a === b) return true;
-			if (a.length !== b.length) return false;
-			for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
-			return true;
-		}
 		recomputeWrapNow() {
 			const tokens = this.lastWrapTokens;
 			const block = this.subtitlesBlock;
@@ -16430,7 +16471,7 @@ var vot = (function(exports) {
 			if (wrapKey === this.lastWrapKey) return;
 			this.lastWrapKey = wrapKey;
 			const next = computeTokenWrapPlan(tokens, (text) => ctx.measureText(text).width, safeMaxWidthPx);
-			if (!this.arraysEqual(next.breakAfterTokenIndices, this.breakAfterTokenIndices)) {
+			if (next.breakAfterTokenIndices.length !== this.breakAfterTokenIndices.length || next.breakAfterTokenIndices.some((value, index) => value !== this.breakAfterTokenIndices[index])) {
 				this.setBreakAfterTokenIndices(next.breakAfterTokenIndices);
 				this.resetRenderMemo();
 				this.update();
@@ -16512,9 +16553,7 @@ var vot = (function(exports) {
 			this.applyOpacityStyle();
 		}
 		stringifyTokens(tokens) {
-			let out = "";
-			for (const token of tokens) out += token.text;
-			return out;
+			return tokens.map((token) => token.text).join("");
 		}
 		resolveActiveLine(time, subtitlesList) {
 			return buildActiveSubtitleRenderLine(time, subtitlesList, this.maxActiveCueLookbackMs);
@@ -17690,9 +17729,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/ui/translationCommands.ts
-	function isAbortError(error) {
-		return error instanceof Error && error.name === "AbortError";
-	}
 	async function getVideoDataForTranslation(videoHandler) {
 		if (!videoHandler.videoData?.videoId) throw new VOTLocalizedError("VOTNoVideoIDFound");
 		if (shouldRefreshVideoDataBeforeTranslation(videoHandler)) videoHandler.videoData = await videoHandler.getVideoData();
@@ -17964,7 +18000,6 @@ var vot = (function(exports) {
 		loaderMain;
 		loaderCircle;
 		onClick = new EventImpl();
-		events = { click: this.onClick };
 		_progress = 0;
 		constructor() {
 			const elements = this.createElements();
@@ -17989,11 +18024,11 @@ var vot = (function(exports) {
 			};
 		}
 		addEventListener(_type, listener) {
-			addComponentEventListener(this.events, "click", listener);
+			this.onClick.addListener(listener);
 			return this;
 		}
 		removeEventListener(_type, listener) {
-			removeComponentEventListener(this.events, "click", listener);
+			this.onClick.removeListener(listener);
 			return this;
 		}
 		get progress() {
@@ -18014,16 +18049,15 @@ var vot = (function(exports) {
 			return 2 * Math.PI * radius;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.button, isHidden);
+			this.button.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.button);
+			return this.button.hidden;
 		}
 	};
 	function clampProgress(value) {
 		if (!Number.isFinite(value)) return 0;
-		const asPercent = value < 1 ? value * 100 : value;
-		return Math.max(0, Math.min(100, Math.round(asPercent)));
+		return clampPercentInt(value < 1 ? value * 100 : value);
 	}
 	//#endregion
 	//#region src/ui/components/label.ts
@@ -18056,10 +18090,10 @@ var vot = (function(exports) {
 			};
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 	};
 	//#endregion
@@ -18076,7 +18110,6 @@ var vot = (function(exports) {
 		bodyContainer;
 		footerContainer;
 		onClose = new EventImpl();
-		events = { close: this.onClose };
 		previouslyFocused = null;
 		keydownListener;
 		adaptiveAlignObserver;
@@ -18084,7 +18117,7 @@ var vot = (function(exports) {
 		handleViewportChange = () => {
 			this.scheduleAdaptiveVerticalAlign();
 		};
-		titleId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `vot-dialog-title-${Math.random().toString(36).slice(2)}`;
+		titleId = createDomId("vot-dialog-title");
 		_titleHtml;
 		_isTemp;
 		constructor({ titleHtml, isTemp = false }) {
@@ -18152,11 +18185,11 @@ var vot = (function(exports) {
 			};
 		}
 		addEventListener(_type, listener) {
-			addComponentEventListener(this.events, "close", listener);
+			this.onClose.addListener(listener);
 			return this;
 		}
 		removeEventListener(_type, listener) {
-			removeComponentEventListener(this.events, "close", listener);
+			this.onClose.removeListener(listener);
 			return this;
 		}
 		open() {
@@ -18298,7 +18331,7 @@ var vot = (function(exports) {
 			setInteractiveHiddenState(this.container, isHidden);
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 		get isDialogOpen() {
 			return !this.container.hidden;
@@ -18354,11 +18387,11 @@ var vot = (function(exports) {
 			};
 		}
 		addEventListener(type, listener) {
-			addComponentEventListener(this.events, type, listener);
+			this.events[type].addListener(listener);
 			return this;
 		}
 		removeEventListener(type, listener) {
-			removeComponentEventListener(this.events, type, listener);
+			this.events[type].removeListener(listener);
 			return this;
 		}
 		get value() {
@@ -18385,10 +18418,10 @@ var vot = (function(exports) {
 			this.input.disabled = isDisabled;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 	};
 	//#endregion
@@ -18570,11 +18603,11 @@ var vot = (function(exports) {
 			return new Set(this._items.filter((item) => item.selected).map((item) => item.value));
 		}
 		addEventListener(type, listener) {
-			addComponentEventListener(this.events, type, listener);
+			this.events[type].addListener(listener);
 			return this;
 		}
 		removeEventListener(type, listener) {
-			removeComponentEventListener(this.events, type, listener);
+			this.events[type].removeListener(listener);
 			return this;
 		}
 		updateTitle() {
@@ -18627,16 +18660,17 @@ var vot = (function(exports) {
 			this.updateTitle();
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 		get disabled() {
 			return this.outer.getAttribute("disabled") === "true" || this.outer.getAttribute("aria-disabled") === "true";
 		}
 		set disabled(isDisabled) {
-			setDisabledState(this.outer, isDisabled);
+			if (isDisabled) this.outer.setAttribute("disabled", "true");
+			else this.outer.removeAttribute("disabled");
 		}
 	};
 	//#endregion
@@ -18778,7 +18812,7 @@ var vot = (function(exports) {
 		* If you set a different new value, it will trigger the input event
 		*/
 		set value(val) {
-			this._value = clampNumber(val, this._min, this._max);
+			this._value = clampNumber$1(val, this._min, this._max);
 			this.input.value = this._value.toString();
 			this.updateProgress();
 			this.onInput.dispatch(this._value, true);
@@ -18789,7 +18823,7 @@ var vot = (function(exports) {
 		set min(val) {
 			this._min = val;
 			this.input.min = this._min.toString();
-			this._value = clampNumber(this._value, this._min, this._max);
+			this._value = clampNumber$1(this._value, this._min, this._max);
 			this.input.value = this._value.toString();
 			this.updateProgress();
 		}
@@ -18799,7 +18833,7 @@ var vot = (function(exports) {
 		set max(val) {
 			this._max = val;
 			this.input.max = this._max.toString();
-			this._value = clampNumber(this._value, this._min, this._max);
+			this._value = clampNumber$1(this._value, this._min, this._max);
 			this.input.value = this._value.toString();
 			this.updateProgress();
 		}
@@ -18817,17 +18851,12 @@ var vot = (function(exports) {
 			this.input.disabled = isDisabled;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 	};
-	function clampNumber(value, min, max) {
-		if (!Number.isFinite(value)) return min;
-		if (max < min) return min;
-		return Math.max(min, Math.min(max, value));
-	}
 	//#endregion
 	//#region src/ui/components/sliderLabel.ts
 	var SliderLabel = class {
@@ -18875,10 +18904,10 @@ var vot = (function(exports) {
 			this.strong.textContent = this.valueText;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 	};
 	//#endregion
@@ -18992,10 +19021,10 @@ var vot = (function(exports) {
 			return this.container.dataset.loading === "true";
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 		get position() {
 			return this._position;
@@ -19031,8 +19060,8 @@ var vot = (function(exports) {
 		title;
 		_position;
 		_titleHtml;
-		menuId = typeof crypto !== "undefined" && "randomUUID" in crypto ? `vot-menu-${crypto.randomUUID()}` : `vot-menu-${Math.random().toString(36).slice(2)}`;
-		titleId = typeof crypto !== "undefined" && "randomUUID" in crypto ? `vot-menu-title-${crypto.randomUUID()}` : `vot-menu-title-${Math.random().toString(36).slice(2)}`;
+		menuId = createDomId("vot-menu");
+		titleId = createDomId("vot-menu-title");
 		constructor({ position = "default", titleHtml = "" }) {
 			this._position = position;
 			this._titleHtml = titleHtml;
@@ -19088,7 +19117,7 @@ var vot = (function(exports) {
 			setInteractiveHiddenState(this.container, isHidden);
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 		get position() {
 			return this._position;
@@ -19222,11 +19251,6 @@ var vot = (function(exports) {
 				handler();
 			}, { signal });
 			addKeyboardActivationListener(element, handler, { signal });
-		}
-		isEventInside(event, element) {
-			const target = event.target;
-			if (target && element.contains(target)) return true;
-			return typeof event.composedPath === "function" && event.composedPath().includes(element);
 		}
 		flushDefaultVolumePersist() {
 			if (this.defaultVolumePersistTimer !== void 0) {
@@ -19393,7 +19417,7 @@ var vot = (function(exports) {
 			document.addEventListener("pointerdown", (e) => {
 				if (this.votMenu.hidden) return;
 				const isInsideDialog = (typeof e.composedPath === "function" ? e.composedPath() : []).some((node) => node instanceof HTMLElement && node.classList.contains("vot-dialog-container"));
-				if (this.isEventInside(e, this.votMenu.container) || this.isEventInside(e, this.votButton.menuButton) || this.isEventInside(e, this.votButton.container) || isInsideDialog) return;
+				if (isEventInside(e, this.votMenu.container) || isEventInside(e, this.votButton.menuButton) || isEventInside(e, this.votButton.container) || isInsideDialog) return;
 				closeMenu(false);
 			}, {
 				signal,
@@ -19758,11 +19782,11 @@ var vot = (function(exports) {
 			};
 		}
 		addEventListener(type, listener) {
-			addComponentEventListener(this.events, type, listener);
+			this.events[type].addListener(listener);
 			return this;
 		}
 		removeEventListener(type, listener) {
-			removeComponentEventListener(this.events, type, listener);
+			this.events[type].removeListener(listener);
 			return this;
 		}
 		get buttonText() {
@@ -19792,10 +19816,10 @@ var vot = (function(exports) {
 			this.usernameEl.textContent = this._username;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 	};
 	//#endregion
@@ -19805,7 +19829,6 @@ var vot = (function(exports) {
 		input;
 		label;
 		onChange = new EventImpl();
-		events = { change: this.onChange };
 		_labelHtml;
 		_checked;
 		_isSubCheckbox;
@@ -19838,18 +19861,18 @@ var vot = (function(exports) {
 			};
 		}
 		addEventListener(_type, listener) {
-			addComponentEventListener(this.events, "change", listener);
+			this.onChange.addListener(listener);
 			return this;
 		}
 		removeEventListener(_type, listener) {
-			removeComponentEventListener(this.events, "change", listener);
+			this.onChange.removeListener(listener);
 			return this;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 		get disabled() {
 			return this.input.disabled;
@@ -19876,7 +19899,6 @@ var vot = (function(exports) {
 		header;
 		arrowIcon;
 		onClick = new EventImpl();
-		events = { click: this.onClick };
 		_titleHtml;
 		constructor({ titleHtml }) {
 			this._titleHtml = titleHtml;
@@ -19903,18 +19925,18 @@ var vot = (function(exports) {
 			};
 		}
 		addEventListener(_type, listener) {
-			addComponentEventListener(this.events, "click", listener);
+			this.onClick.addListener(listener);
 			return this;
 		}
 		removeEventListener(_type, listener) {
-			removeComponentEventListener(this.events, "click", listener);
+			this.onClick.removeListener(listener);
 			return this;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 	};
 	//#endregion
@@ -19923,7 +19945,6 @@ var vot = (function(exports) {
 		container;
 		button;
 		onChange = new EventImpl();
-		events = { change: this.onChange };
 		_labelHtml;
 		_key;
 		pressedKeys;
@@ -20003,18 +20024,18 @@ var vot = (function(exports) {
 			};
 		}
 		addEventListener(_type, listener) {
-			addComponentEventListener(this.events, "change", listener);
+			this.onChange.addListener(listener);
 			return this;
 		}
 		removeEventListener(_type, listener) {
-			removeComponentEventListener(this.events, "change", listener);
+			this.onChange.removeListener(listener);
 			return this;
 		}
 		set hidden(isHidden) {
-			setHiddenState(this.container, isHidden);
+			this.container.hidden = isHidden;
 		}
 		get hidden() {
-			return getHiddenState(this.container);
+			return this.container.hidden;
 		}
 		get key() {
 			return this._key;
@@ -20170,12 +20191,6 @@ var vot = (function(exports) {
 			if (!isAuthRefreshMessage(event.data)) return;
 			this.refreshAccountFromStorage();
 		};
-		refreshAccountOnFocus = () => {
-			this.refreshAccountFromStorage();
-		};
-		refreshAccountOnVisibilityChange = () => {
-			if (document.visibilityState === "visible") this.refreshAccountFromStorage();
-		};
 		dialog;
 		accountButton;
 		accountButtonRefreshTooltip;
@@ -20252,9 +20267,9 @@ var vot = (function(exports) {
 			const section = UI.createEl("vot-block", ["vot-settings-section"]);
 			const header = new Details({ titleHtml: title });
 			header.container.classList.add("vot-settings-section-header");
-			const sectionId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-			const headerId = `vot-settings-section-header-${sectionId}`;
-			const contentId = `vot-settings-section-content-${sectionId}`;
+			const sectionId = createDomId("vot-settings-section");
+			const headerId = `${sectionId}-header`;
+			const contentId = `${sectionId}-content`;
 			header.container.id = headerId;
 			const content = UI.createEl("vot-block", ["vot-settings-section-content"]);
 			content.id = contentId;
@@ -20819,8 +20834,6 @@ var vot = (function(exports) {
 		initUIEvents() {
 			if (!this.isInitialized()) throw new Error("[VOT] SettingsView isn't initialized");
 			globalThis.addEventListener("message", this.onAuthRefreshMessage);
-			globalThis.addEventListener("focus", this.refreshAccountOnFocus);
-			document.addEventListener("visibilitychange", this.refreshAccountOnVisibilityChange);
 			this.accountButton.addEventListener("click", async () => {
 				if (votStorage.isSupportOnlyLS) return;
 				if (this.accountButton.loggedIn) {
@@ -21228,8 +21241,6 @@ var vot = (function(exports) {
 			this.accountStorageListenerCleanup?.();
 			this.accountStorageListenerCleanup = void 0;
 			globalThis.removeEventListener("message", this.onAuthRefreshMessage);
-			globalThis.removeEventListener("focus", this.refreshAccountOnFocus);
-			document.removeEventListener("visibilitychange", this.refreshAccountOnVisibilityChange);
 			this.flushStoragePersists();
 			for (const event of Object.values(this.events)) event.clear();
 		}
@@ -22075,7 +22086,7 @@ var vot = (function(exports) {
 		}
 		translationFailed(params) {
 			const { videoId, message } = params;
-			if (isAbortError$1(message)) return;
+			if (isAbortError(message)) return;
 			const msg = resolveLocalizedErrorMessage(message);
 			const title = getScriptTitle();
 			this.send({
@@ -23674,37 +23685,27 @@ var vot = (function(exports) {
 	//#region src/videoHandler/modules/events.ts
 	function mergeListenerSignals(primary, secondary) {
 		if (!secondary || secondary === primary) return primary;
-		if (primary.aborted) return primary;
-		if (secondary.aborted) return secondary;
-		if (typeof AbortSignal !== "undefined" && "any" in AbortSignal) return AbortSignal.any([primary, secondary]);
+		const signals = [primary, secondary];
+		if (typeof AbortSignal.any === "function") return AbortSignal.any(signals);
 		const controller = new AbortController();
-		const cleanup = () => {
-			primary.removeEventListener("abort", onPrimaryAbort);
-			secondary.removeEventListener("abort", onSecondaryAbort);
-		};
-		const onPrimaryAbort = () => {
-			cleanup();
-			controller.abort(primary.reason);
-		};
-		const onSecondaryAbort = () => {
-			cleanup();
-			controller.abort(secondary.reason);
-		};
-		primary.addEventListener("abort", onPrimaryAbort, { once: true });
-		secondary.addEventListener("abort", onSecondaryAbort, { once: true });
+		for (const signal of signals) {
+			const abort = () => controller.abort(signal.reason);
+			if (signal.aborted) {
+				abort();
+				break;
+			}
+			signal.addEventListener("abort", abort, {
+				once: true,
+				signal: controller.signal
+			});
+		}
 		return controller.signal;
 	}
 	function createScopedListeners(signal) {
 		const add = (element, event, handler, options) => {
-			const mergedSignal = mergeListenerSignals(signal, options?.signal);
-			if (!options) {
-				element.addEventListener(event, handler, { signal: mergedSignal });
-				return;
-			}
-			const { signal: _ignoredSignal, ...restOptions } = options;
 			element.addEventListener(event, handler, {
-				...restOptions,
-				signal: mergedSignal
+				...options,
+				signal: mergeListenerSignals(signal, options?.signal)
 			});
 		};
 		const addMany = (element, events, handler, options) => {
@@ -23716,12 +23717,16 @@ var vot = (function(exports) {
 		};
 	}
 	function bindOverlayHoverFocusEvents(addMany, target, overlayVisibility) {
-		addMany(target, ["focusin"], (event) => overlayVisibility.handleOverlayInteraction(event));
-		addMany(target, ["focusout"], (event) => overlayVisibility.scheduleHide(event));
-		if (isIframe() && globalThis.window !== void 0) return;
-		addMany(target, ["pointerenter"], (event) => overlayVisibility.handleOverlayInteraction(event));
-		addMany(target, ["pointermove"], (event) => overlayVisibility.handleOverlayInteraction(event), { passive: true });
-		addMany(target, ["pointerleave"], (event) => overlayVisibility.scheduleHide(event));
+		const handleInteraction = (event) => overlayVisibility.handleOverlayInteraction(event);
+		const scheduleHide = (event) => overlayVisibility.scheduleHide(event);
+		if (isIframe() && globalThis.window !== void 0) {
+			addMany(target, ["focusin"], handleInteraction);
+			addMany(target, ["focusout"], scheduleHide);
+			return;
+		}
+		addMany(target, ["focusin", "pointerenter"], handleInteraction);
+		addMany(target, ["pointermove"], handleInteraction, { passive: true });
+		addMany(target, ["focusout", "pointerleave"], scheduleHide);
 	}
 	function toPercentInt(value, fallback = 0) {
 		const numeric = typeof value === "number" ? value : Number(value);
@@ -23866,10 +23871,12 @@ var vot = (function(exports) {
 			const button = overlayView.votButton?.container;
 			const menu = overlayView.votMenu?.container;
 			const settings = self.uiManager.votSettingsView?.dialog?.container;
-			const isButton = target && button ? button.contains(target) : false;
-			const isMenu = target && menu ? menu.contains(target) : false;
-			const isVideo = target ? self.container.contains(target) : false;
-			const isSettings = target && settings ? settings.contains(target) : false;
+			const path = event.composedPath();
+			const isInPath = (element) => Boolean(element && path.includes(element));
+			const isButton = isInPath(button);
+			const isMenu = isInPath(menu);
+			const isVideo = isInPath(self.container);
+			const isSettings = isInPath(settings);
 			const isTempDialog = target instanceof Element && target.closest(".vot-dialog-temp") instanceof Element;
 			debug.log(`[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`);
 			if (isButton || isMenu || isSettings || isTempDialog) return;

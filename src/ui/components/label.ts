@@ -2,7 +2,6 @@ import { render } from "lit-html";
 import type { LabelProps } from "../../types/components/label";
 import type { LitHtml } from "../../types/components/shared";
 import UI from "../../ui";
-import { getHiddenState, setHiddenState } from "./componentShared";
 
 export default class Label {
   container: HTMLElement;
@@ -51,10 +50,10 @@ export default class Label {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 }

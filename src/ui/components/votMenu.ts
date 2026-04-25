@@ -1,7 +1,7 @@
 import type { Position } from "../../types/components/votButton";
 import type { VOTMenuProps } from "../../types/components/votMenu";
 import UI from "../../ui";
-import { getHiddenState, setInteractiveHiddenState } from "./componentShared";
+import { createDomId, setInteractiveHiddenState } from "./componentShared";
 
 export default class VOTMenu {
   container: HTMLElement;
@@ -16,15 +16,9 @@ export default class VOTMenu {
   private _titleHtml: string;
 
   // A11y: stable ids for aria-controls / aria-labelledby.
-  private readonly menuId =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? `vot-menu-${crypto.randomUUID()}`
-      : `vot-menu-${Math.random().toString(36).slice(2)}`;
+  private readonly menuId = createDomId("vot-menu");
 
-  private readonly titleId =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? `vot-menu-title-${crypto.randomUUID()}`
-      : `vot-menu-title-${Math.random().toString(36).slice(2)}`;
+  private readonly titleId = createDomId("vot-menu-title");
 
   constructor({ position = "default", titleHtml = "" }: VOTMenuProps) {
     this._position = position;
@@ -104,7 +98,7 @@ export default class VOTMenu {
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 
   get position() {

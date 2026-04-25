@@ -103,6 +103,7 @@ import { detectServices, translateServices } from "../../utils/translateApis";
 import { isPiPAvailable } from "../../utils/utils";
 import AccountButton from "../components/accountButton";
 import Checkbox from "../components/checkbox";
+import { createDomId } from "../components/componentShared";
 import Details from "../components/details";
 import Dialog from "../components/dialog";
 import HotkeyButton from "../components/hotkeyButton";
@@ -298,12 +299,9 @@ export class SettingsView {
     const section = ui.createEl("vot-block", ["vot-settings-section"]);
     const header = new Details({ titleHtml: title });
     header.container.classList.add("vot-settings-section-header");
-    const sectionId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const headerId = `vot-settings-section-header-${sectionId}`;
-    const contentId = `vot-settings-section-content-${sectionId}`;
+    const sectionId = createDomId("vot-settings-section");
+    const headerId = `${sectionId}-header`;
+    const contentId = `${sectionId}-content`;
     header.container.id = headerId;
     const content = ui.createEl("vot-block", ["vot-settings-section-content"]);
     content.id = contentId;

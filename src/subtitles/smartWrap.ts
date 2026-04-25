@@ -63,11 +63,56 @@ type TokenTextBuffer = {
 
 const STRONG_BREAK_RE = /[.!?…:;][)"'\]»”]*\s*$/u;
 const SOFT_BREAK_RE = /[,،、][)"'\]»”]*\s*$/u;
-const DISCOURAGED_LINE_START_RE = /^\s*[\p{Pe}\p{Pf},.;:!?%‰…]/u;
-const DISCOURAGED_LINE_END_RE = /\s*[\p{Ps}\p{Pi}¿¡([{«“"'`-]\s*$/u;
+const WHITESPACE_CHAR_RE = /\s/u;
+const DISCOURAGED_LINE_START_CHAR_RE = /^[\p{Pe}\p{Pf},.;:!?%\u2030\u2026]$/u;
+const DISCOURAGED_LINE_END_CHAR_RE =
+  /^[\p{Ps}\p{Pi}\u00BF\u00A1([{\u00AB\u201C"'`-]$/u;
 
 const normalizeTokenText = (text: string): string =>
   text.replaceAll(/\s+/gu, " ").trim();
+
+const getNextChar = (
+  text: string,
+  index: number,
+): {
+  char: string;
+  nextIndex: number;
+} | null => {
+  if (index >= text.length) return null;
+
+  const codePoint = text.codePointAt(index);
+  if (codePoint === undefined) return null;
+
+  const char = String.fromCodePoint(codePoint);
+  return {
+    char,
+    nextIndex: index + char.length,
+  };
+};
+
+const getPreviousChar = (
+  text: string,
+  index: number,
+): {
+  char: string;
+  previousIndex: number;
+} | null => {
+  if (index <= 0) return null;
+
+  let start = index - 1;
+  const lastCodeUnit = text.charCodeAt(start);
+  if (lastCodeUnit >= 0xdc00 && lastCodeUnit <= 0xdfff && start > 0) {
+    start -= 1;
+  }
+
+  return {
+    char: text.slice(start, index),
+    previousIndex: start,
+  };
+};
+
+const isWhitespaceChar = (char: string): boolean =>
+  WHITESPACE_CHAR_RE.test(char);
 
 const buildTokenTextBuffer = (tokens: SubtitleToken[]): TokenTextBuffer => {
   const offsets = new Array(tokens.length + 1);
@@ -100,11 +145,45 @@ const resolveBoundary = (text: string): BoundaryKind => {
   return "neutral";
 };
 
-const startsWithDiscouragedLineStart = (text: string): boolean =>
-  DISCOURAGED_LINE_START_RE.test(text);
+const rangeStartsWithDiscouragedLineStart = (
+  buffer: TokenTextBuffer,
+  startToken: number,
+  endToken: number,
+): boolean => {
+  let index = buffer.offsets[startToken];
+  const end = buffer.offsets[endToken];
 
-const endsWithDiscouragedLineEnd = (text: string): boolean =>
-  DISCOURAGED_LINE_END_RE.test(text);
+  while (index < end) {
+    const next = getNextChar(buffer.fullText, index);
+    if (!next) return false;
+    if (!isWhitespaceChar(next.char)) {
+      return DISCOURAGED_LINE_START_CHAR_RE.test(next.char);
+    }
+    index = next.nextIndex;
+  }
+
+  return false;
+};
+
+const rangeEndsWithDiscouragedLineEnd = (
+  buffer: TokenTextBuffer,
+  startToken: number,
+  endToken: number,
+): boolean => {
+  const start = buffer.offsets[startToken];
+  let index = buffer.offsets[endToken];
+
+  while (index > start) {
+    const previous = getPreviousChar(buffer.fullText, index);
+    if (!previous) return false;
+    if (!isWhitespaceChar(previous.char)) {
+      return DISCOURAGED_LINE_END_CHAR_RE.test(previous.char);
+    }
+    index = previous.previousIndex;
+  }
+
+  return false;
+};
 
 const isWordToken = (token: SubtitleToken | undefined): boolean =>
   Boolean(token?.isWordLike && token.text.trim());
@@ -170,6 +249,7 @@ const buildSliceFromWord = (
   tokens: SubtitleToken[],
   wordTokenIndex: number,
   textBuffer: TokenTextBuffer,
+  includeMetrics: boolean,
 ): WordSlice => {
   let startToken = wordTokenIndex;
   while (
@@ -197,21 +277,24 @@ const buildSliceFromWord = (
     breakAfterTokenIndex: endToken - 1,
     startToken,
     endToken,
-    charLength: normalizeTokenText(text).length,
-    startMs: getRangeStartMs(tokens, startToken, endToken),
-    endMs: getRangeEndMs(tokens, startToken, endToken),
+    charLength: includeMetrics ? normalizeTokenText(text).length : 0,
+    startMs: includeMetrics ? getRangeStartMs(tokens, startToken, endToken) : 0,
+    endMs: includeMetrics ? getRangeEndMs(tokens, startToken, endToken) : 0,
     boundary: resolveBoundary(text),
     forcesLineBreak: false,
   };
 };
 
-export function buildWordSlices(tokens: SubtitleToken[]): {
+function buildWordSlicesFromBuffer(
+  tokens: SubtitleToken[],
+  textBuffer: TokenTextBuffer,
+  collectKey: boolean,
+): {
   slices: WordSlice[];
   key: string;
 } {
-  const textBuffer = buildTokenTextBuffer(tokens);
   const slices: WordSlice[] = [];
-  const keyParts: string[] = [];
+  const keyParts: string[] | null = collectKey ? [] : null;
 
   let index = 0;
   while (index < tokens.length) {
@@ -224,7 +307,7 @@ export function buildWordSlices(tokens: SubtitleToken[]): {
     if (token.text === "\n") {
       const slice = createForcedBreakSlice(tokens, index);
       slices.push(slice);
-      keyParts.push("\n");
+      keyParts?.push("\n");
       index += 1;
       continue;
     }
@@ -234,9 +317,9 @@ export function buildWordSlices(tokens: SubtitleToken[]): {
       continue;
     }
 
-    const slice = buildSliceFromWord(tokens, index, textBuffer);
+    const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
     slices.push(slice);
-    keyParts.push(normalizeTokenText(slice.text));
+    keyParts?.push(normalizeTokenText(slice.text));
     index = slice.breakAfterTokenIndex + 1;
   }
 
@@ -248,19 +331,26 @@ export function buildWordSlices(tokens: SubtitleToken[]): {
       breakAfterTokenIndex: tokens.length - 1,
       startToken: 0,
       endToken: tokens.length,
-      charLength: normalizeTokenText(text).length,
-      startMs: getRangeStartMs(tokens, 0, tokens.length),
-      endMs: getRangeEndMs(tokens, 0, tokens.length),
+      charLength: collectKey ? normalizeTokenText(text).length : 0,
+      startMs: collectKey ? getRangeStartMs(tokens, 0, tokens.length) : 0,
+      endMs: collectKey ? getRangeEndMs(tokens, 0, tokens.length) : 0,
       boundary: resolveBoundary(text),
       forcesLineBreak: false,
     });
-    keyParts.push(normalizeTokenText(text));
+    keyParts?.push(normalizeTokenText(text));
   }
 
   return {
     slices,
-    key: keyParts.join("|"),
+    key: keyParts?.join("|") ?? "",
   };
+}
+
+export function buildWordSlices(tokens: SubtitleToken[]): {
+  slices: WordSlice[];
+  key: string;
+} {
+  return buildWordSlicesFromBuffer(tokens, buildTokenTextBuffer(tokens), true);
 }
 
 export function measureWordSlices(
@@ -462,18 +552,18 @@ const findFallbackBreakAfterTokenIndex = (
       tokens.length,
       measureText,
     );
-    const firstText = getBufferedTokenText(textBuffer, 0, firstEndToken);
-    const secondText = getBufferedTokenText(
-      textBuffer,
-      secondStartToken,
-      tokens.length,
-    );
     const score =
       Math.max(0, firstWidth - maxWidthPx) * 12 +
       Math.max(0, secondWidth - maxWidthPx) * 12 +
       Math.abs(secondWidth - firstWidth) * 0.4 +
-      (startsWithDiscouragedLineStart(secondText) ? 260 : 0) +
-      (endsWithDiscouragedLineEnd(firstText) ? 70 : 0);
+      (rangeStartsWithDiscouragedLineStart(
+        textBuffer,
+        secondStartToken,
+        tokens.length,
+      )
+        ? 260
+        : 0) +
+      (rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0);
 
     if (score < bestScore) {
       bestScore = score;
@@ -487,8 +577,8 @@ const findFallbackBreakAfterTokenIndex = (
 const scoreBreakCandidate = ({
   firstWidth,
   secondWidth,
-  firstText,
-  secondText,
+  lineStartPenalty,
+  lineEndPenalty,
   firstWordCount,
   secondWordCount,
   maxWidthPx,
@@ -496,8 +586,8 @@ const scoreBreakCandidate = ({
 }: {
   firstWidth: number;
   secondWidth: number;
-  firstText: string;
-  secondText: string;
+  lineStartPenalty: number;
+  lineEndPenalty: number;
   firstWordCount: number;
   secondWordCount: number;
   maxWidthPx: number;
@@ -511,8 +601,6 @@ const scoreBreakCandidate = ({
     Math.abs(secondWidth / Math.max(firstWidth, 1) - balanceTarget) * 120;
   const shortTopPenalty = firstWordCount < 2 ? 80 : 0;
   const orphanPenalty = secondWordCount < 2 ? 80 : 0;
-  const lineStartPenalty = startsWithDiscouragedLineStart(secondText) ? 260 : 0;
-  const lineEndPenalty = endsWithDiscouragedLineEnd(firstText) ? 70 : 0;
   const boundaryBonus =
     boundary === "strong" ? -28 : boundary === "soft" ? -14 : 0;
 
@@ -554,7 +642,7 @@ export function computeTokenWrapPlan(
     };
   }
 
-  const { slices } = buildWordSlices(tokens);
+  const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
   const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
   if (!measurableSlices.length) {
     return {
@@ -598,17 +686,23 @@ export function computeTokenWrapPlan(
       tokens.length,
       measureText,
     );
-    const firstText = getBufferedTokenText(textBuffer, 0, firstEndToken);
-    const secondText = getBufferedTokenText(
-      textBuffer,
-      secondStartToken,
-      tokens.length,
-    );
     const score = scoreBreakCandidate({
       firstWidth,
       secondWidth,
-      firstText,
-      secondText,
+      lineStartPenalty: rangeStartsWithDiscouragedLineStart(
+        textBuffer,
+        secondStartToken,
+        tokens.length,
+      )
+        ? 260
+        : 0,
+      lineEndPenalty: rangeEndsWithDiscouragedLineEnd(
+        textBuffer,
+        0,
+        firstEndToken,
+      )
+        ? 70
+        : 0,
       firstWordCount: index + 1,
       secondWordCount: measurableSlices.length - (index + 1),
       maxWidthPx: safeMaxWidthPx,

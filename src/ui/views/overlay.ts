@@ -18,6 +18,7 @@ import { votStorage } from "../../utils/storage";
 import { isPiPAvailable } from "../../utils/utils";
 import {
   addKeyboardActivationListener,
+  isEventInside,
   isPrimaryPointerAction,
 } from "../components/componentShared";
 import DownloadButton from "../components/downloadButton";
@@ -260,18 +261,6 @@ export class OverlayView {
       { signal },
     );
     addKeyboardActivationListener(element, handler, { signal });
-  }
-
-  private isEventInside(event: Event, element: HTMLElement): boolean {
-    const target = event.target as Node | null;
-    if (target && element.contains(target)) {
-      return true;
-    }
-
-    return (
-      typeof event.composedPath === "function" &&
-      event.composedPath().includes(element)
-    );
   }
 
   private flushDefaultVolumePersist(): void {
@@ -614,9 +603,9 @@ export class OverlayView {
         );
 
         if (
-          this.isEventInside(e, this.votMenu.container) ||
-          this.isEventInside(e, this.votButton.menuButton) ||
-          this.isEventInside(e, this.votButton.container) ||
+          isEventInside(e, this.votMenu.container) ||
+          isEventInside(e, this.votButton.menuButton) ||
+          isEventInside(e, this.votButton.container) ||
           isInsideDialog
         ) {
           return;

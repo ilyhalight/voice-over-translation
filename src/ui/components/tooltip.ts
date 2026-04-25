@@ -8,6 +8,7 @@ import {
 } from "../../types/components/tooltip";
 import UI from "../../ui";
 import { clamp } from "../../utils/utils";
+import { createDomId, isEventInside } from "./componentShared";
 
 export default class Tooltip {
   /** Whether tooltip element is currently mounted. */
@@ -47,10 +48,7 @@ export default class Tooltip {
   private static readonly DESTROY_FALLBACK_MS = 700;
 
   // Accessibility: link trigger -> tooltip via aria-describedby.
-  private readonly tooltipId =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `vot-tooltip-${Math.random().toString(36).slice(2)}`;
+  private readonly tooltipId = createDomId("vot-tooltip");
   private prevAriaDescribedBy: string | null = null;
 
   constructor({
@@ -162,6 +160,21 @@ export default class Tooltip {
 
   onClick = () => {
     this.showed ? this.destroy() : this.create();
+  };
+
+  onDocumentPointerDown = (event: PointerEvent) => {
+    if (!this.showed) {
+      return;
+    }
+
+    if (
+      isEventInside(event, this.target) ||
+      (this.container && isEventInside(event, this.container))
+    ) {
+      return;
+    }
+
+    this.destroy();
   };
 
   onTargetKeyDown = (event: KeyboardEvent) => {
@@ -366,6 +379,11 @@ export default class Tooltip {
     this.container.style.opacity = "1";
     if (this.trigger === "hover") {
       this.container.addEventListener("mouseleave", this.onTooltipMouseLeave);
+    } else {
+      document.addEventListener("pointerdown", this.onDocumentPointerDown, {
+        capture: true,
+        passive: true,
+      });
     }
     this.attachScrollListener();
     this.onResizeObserver?.observe(this.layoutRoot);
@@ -577,6 +595,7 @@ export default class Tooltip {
     this.onResizeObserver?.disconnect();
     this.intersectionObserver?.disconnect();
     this.detachScrollListener();
+    this.detachOutsidePointerListener();
     if (instant) {
       container.remove();
       this.container = undefined;
@@ -607,6 +626,12 @@ export default class Tooltip {
     );
 
     return this;
+  }
+
+  private detachOutsidePointerListener() {
+    document.removeEventListener("pointerdown", this.onDocumentPointerDown, {
+      capture: true,
+    });
   }
 
   private syncAriaDescribedBy(isShowing: boolean) {

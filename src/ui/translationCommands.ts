@@ -2,6 +2,7 @@ import type { VideoHandler } from "../index";
 import { localizationProvider } from "../localization/localizationProvider";
 import type { Status } from "../types/components/votButton";
 import debug from "../utils/debug";
+import { isAbortError } from "../utils/errors";
 import VOTLocalizedError from "../utils/VOTLocalizedError";
 
 type TranslationButtonCommandDeps = {
@@ -10,10 +11,6 @@ type TranslationButtonCommandDeps = {
   currentLoading: boolean;
   transformBtn(status: Status, text: string): void;
 };
-
-function isAbortError(error: unknown) {
-  return error instanceof Error && error.name === "AbortError";
-}
 
 async function getVideoDataForTranslation(videoHandler: VideoHandler) {
   if (!videoHandler.videoData?.videoId) {

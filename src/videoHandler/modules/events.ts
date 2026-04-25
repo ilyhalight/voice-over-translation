@@ -42,42 +42,22 @@ function mergeListenerSignals(
   primary: AbortSignal,
   secondary?: AbortSignal,
 ): AbortSignal {
-  if (!secondary || secondary === primary) {
-    return primary;
-  }
-
-  if (primary.aborted) {
-    return primary;
-  }
-
-  if (secondary.aborted) {
-    return secondary;
-  }
-
-  const canCombine = typeof AbortSignal !== "undefined" && "any" in AbortSignal;
-  if (canCombine) {
-    return (AbortSignal as any).any([primary, secondary]) as AbortSignal;
-  }
+  if (!secondary || secondary === primary) return primary;
+  const signals = [primary, secondary];
+  if (typeof AbortSignal.any === "function") return AbortSignal.any(signals);
 
   const controller = new AbortController();
-
-  const cleanup = () => {
-    primary.removeEventListener("abort", onPrimaryAbort);
-    secondary.removeEventListener("abort", onSecondaryAbort);
-  };
-
-  const onPrimaryAbort = () => {
-    cleanup();
-    controller.abort(primary.reason);
-  };
-  const onSecondaryAbort = () => {
-    cleanup();
-    controller.abort(secondary.reason);
-  };
-
-  primary.addEventListener("abort", onPrimaryAbort, { once: true });
-  secondary.addEventListener("abort", onSecondaryAbort, { once: true });
-
+  for (const signal of signals) {
+    const abort = () => controller.abort(signal.reason);
+    if (signal.aborted) {
+      abort();
+      break;
+    }
+    signal.addEventListener("abort", abort, {
+      once: true,
+      signal: controller.signal,
+    });
+  }
   return controller.signal;
 }
 
@@ -86,16 +66,9 @@ function createScopedListeners(signal: AbortSignal): {
   addMany: ScopedAddListeners;
 } {
   const add: ScopedAddListener = (element, event, handler, options) => {
-    const mergedSignal = mergeListenerSignals(signal, options?.signal);
-    if (!options) {
-      element.addEventListener(event, handler, { signal: mergedSignal });
-      return;
-    }
-
-    const { signal: _ignoredSignal, ...restOptions } = options;
     element.addEventListener(event, handler, {
-      ...restOptions,
-      signal: mergedSignal,
+      ...options,
+      signal: mergeListenerSignals(signal, options?.signal),
     });
   };
   const addMany: ScopedAddListeners = (element, events, handler, options) => {
@@ -110,29 +83,19 @@ function bindOverlayHoverFocusEvents(
   target: EventTarget,
   overlayVisibility: NonNullable<VideoHandler["overlayVisibility"]>,
 ): void {
-  addMany(target, ["focusin"], (event) =>
-    overlayVisibility.handleOverlayInteraction(event),
-  );
-  addMany(target, ["focusout"], (event) =>
-    overlayVisibility.scheduleHide(event),
-  );
+  const handleInteraction = (event: Event) =>
+    overlayVisibility.handleOverlayInteraction(event);
+  const scheduleHide = (event: Event) => overlayVisibility.scheduleHide(event);
 
   if (isIframe() && globalThis.window !== undefined) {
+    addMany(target, ["focusin"], handleInteraction);
+    addMany(target, ["focusout"], scheduleHide);
     return;
   }
 
-  addMany(target, ["pointerenter"], (event) =>
-    overlayVisibility.handleOverlayInteraction(event),
-  );
-  addMany(
-    target,
-    ["pointermove"],
-    (event) => overlayVisibility.handleOverlayInteraction(event),
-    { passive: true },
-  );
-  addMany(target, ["pointerleave"], (event) =>
-    overlayVisibility.scheduleHide(event),
-  );
+  addMany(target, ["focusin", "pointerenter"], handleInteraction);
+  addMany(target, ["pointermove"], handleInteraction, { passive: true });
+  addMany(target, ["focusout", "pointerleave"], scheduleHide);
 }
 
 function toPercentInt(value: unknown, fallback = 0): number {
@@ -363,10 +326,13 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     const button = overlayView.votButton?.container;
     const menu = overlayView.votMenu?.container;
     const settings = self.uiManager.votSettingsView?.dialog?.container;
-    const isButton = target && button ? button.contains(target) : false;
-    const isMenu = target && menu ? menu.contains(target) : false;
-    const isVideo = target ? self.container.contains(target) : false;
-    const isSettings = target && settings ? settings.contains(target) : false;
+    const path = event.composedPath();
+    const isInPath = (element?: EventTarget | null) =>
+      Boolean(element && path.includes(element));
+    const isButton = isInPath(button);
+    const isMenu = isInPath(menu);
+    const isVideo = isInPath(self.container);
+    const isSettings = isInPath(settings);
     const isTempDialog =
       target instanceof Element &&
       target.closest(".vot-dialog-temp") instanceof Element;

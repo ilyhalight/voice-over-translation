@@ -1,6 +1,5 @@
 import type { SliderLabelProps } from "../../types/components/sliderLabel";
 import UI from "../../ui";
-import { getHiddenState, setHiddenState } from "./componentShared";
 
 export default class SliderLabel {
   container: HTMLSpanElement;
@@ -70,10 +69,10 @@ export default class SliderLabel {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 }

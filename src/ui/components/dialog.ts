@@ -3,12 +3,7 @@ import type { DialogProps } from "../../types/components/dialog";
 import UI from "../../ui";
 import { getDeepActiveElement } from "../../utils/dom";
 import { CLOSE_ICON } from "../icons";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setInteractiveHiddenState,
-} from "./componentShared";
+import { createDomId, setInteractiveHiddenState } from "./componentShared";
 
 export default class Dialog {
   container: HTMLElement;
@@ -23,9 +18,6 @@ export default class Dialog {
   footerContainer: HTMLElement;
 
   private readonly onClose = new EventImpl();
-  private readonly events = {
-    close: this.onClose,
-  };
 
   // Focus management for accessibility.
   private previouslyFocused: Element | null = null;
@@ -38,10 +30,7 @@ export default class Dialog {
     this.scheduleAdaptiveVerticalAlign();
   };
 
-  private readonly titleId =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `vot-dialog-title-${Math.random().toString(36).slice(2)}`;
+  private readonly titleId = createDomId("vot-dialog-title");
 
   private readonly _titleHtml: HTMLElement | string;
   private readonly _isTemp: boolean;
@@ -143,13 +132,13 @@ export default class Dialog {
   }
 
   addEventListener(_type: "close", listener: () => void): this {
-    addComponentEventListener(this.events, "close", listener);
+    this.onClose.addListener(listener);
 
     return this;
   }
 
   removeEventListener(_type: "close", listener: () => void): this {
-    removeComponentEventListener(this.events, "close", listener);
+    this.onClose.removeListener(listener);
 
     return this;
   }
@@ -372,7 +361,7 @@ export default class Dialog {
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 
   get isDialogOpen() {

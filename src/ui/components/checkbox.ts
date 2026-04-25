@@ -4,12 +4,6 @@ import { EventImpl } from "../../core/eventImpl";
 import type { CheckboxProps } from "../../types/components/checkbox";
 import type { LitHtml } from "../../types/components/shared";
 import UI from "../../ui";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setHiddenState,
-} from "./componentShared";
 
 export default class Checkbox {
   container: HTMLElement;
@@ -17,9 +11,6 @@ export default class Checkbox {
   label: HTMLSpanElement;
 
   private readonly onChange = new EventImpl<[boolean]>();
-  private readonly events = {
-    change: this.onChange,
-  };
 
   private readonly _labelHtml: LitHtml;
   private _checked: boolean;
@@ -65,7 +56,7 @@ export default class Checkbox {
     _type: "change",
     listener: (checked: boolean) => void,
   ): this {
-    addComponentEventListener(this.events, "change", listener);
+    this.onChange.addListener(listener);
 
     return this;
   }
@@ -74,17 +65,17 @@ export default class Checkbox {
     _type: "change",
     listener: (checked: boolean) => void,
   ): this {
-    removeComponentEventListener(this.events, "change", listener);
+    this.onChange.removeListener(listener);
 
     return this;
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 
   get disabled() {
