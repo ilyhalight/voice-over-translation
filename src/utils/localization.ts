@@ -2,6 +2,10 @@ import { availableTTS } from "@vot.js/shared/consts";
 import type { ResponseLang } from "@vot.js/shared/types/data";
 
 function getNavigatorLang() {
+  if (typeof navigator === "undefined") {
+    return "en";
+  }
+
   return navigator.language?.substring(0, 2).toLowerCase() || "en";
 }
 

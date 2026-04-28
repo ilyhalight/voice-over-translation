@@ -9,12 +9,3 @@ export type CacheTranslationSuccess = {
 };
 
 export type CacheSubtitle = VideoDataSubtitle;
-
-export type CacheVideoById = {
-  translation?: CacheTranslationSuccess;
-  subtitles?: CacheSubtitle[];
-
-  /** Internal: expiration timestamps (ms since epoch). */
-  translationExpiresAt?: number;
-  subtitlesExpiresAt?: number;
-};

@@ -212,6 +212,73 @@ describe("smart ducking engine", () => {
     expect(state.currentVolume).toBe(0.1);
   });
 
+  test("zero auto-volume mutes the original track and restores mute state", async () => {
+    (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
+    const { setupAudioSettings, stopSmartVolumeDucking } = await import(
+      "../src/videoHandler/modules/smartDuckingRuntime.ts"
+    );
+    const volumeWrites: Array<{
+      volume: number;
+      preserveStorage: boolean | undefined;
+    }> = [];
+    const muteWrites: Array<{
+      muted: boolean;
+      preserveStorage: boolean | undefined;
+    }> = [];
+    let currentVolume = 0.7;
+    let currentMuted = false;
+    const handler = {
+      data: {
+        autoVolume: 0,
+        enabledAutoVolume: true,
+        enabledSmartDucking: true,
+        syncVolume: false,
+      },
+      audioPlayer: { player: { volume: 1 } },
+      hasActiveSource: () => true,
+      getVideoVolume: () => currentVolume,
+      isMuted: () => currentMuted,
+      setVideoVolume: (
+        volume: number,
+        options?: { preserveYoutubeVolumeStorage?: boolean },
+      ) => {
+        currentVolume = volume;
+        volumeWrites.push({
+          volume,
+          preserveStorage: options?.preserveYoutubeVolumeStorage,
+        });
+      },
+      setVideoMuted: (
+        muted: boolean,
+        options?: { preserveYoutubeVolumeStorage?: boolean },
+      ) => {
+        currentMuted = muted;
+        muteWrites.push({
+          muted,
+          preserveStorage: options?.preserveYoutubeVolumeStorage,
+        });
+      },
+    } as any;
+
+    setupAudioSettings.call(handler);
+
+    expect(volumeWrites).toEqual([{ volume: 0, preserveStorage: true }]);
+    expect(muteWrites).toEqual([{ muted: true, preserveStorage: true }]);
+    expect(handler.smartVolumeDuckingBaseline).toBe(0.7);
+    expect(handler.autoVolumeMutedOnStart).toBe(false);
+
+    stopSmartVolumeDucking(handler);
+
+    expect(volumeWrites.at(-1)).toEqual({
+      volume: 0.7,
+      preserveStorage: undefined,
+    });
+    expect(muteWrites.at(-1)).toEqual({
+      muted: false,
+      preserveStorage: undefined,
+    });
+  });
+
   test("stop decision returns restore volume from baseline or volumeOnStart", () => {
     const withBaseline = computeSmartDuckingStep(
       {

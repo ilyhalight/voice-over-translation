@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // Build-time globals injected by Vite define config.
 const DEBUG_MODE: boolean;
 /**

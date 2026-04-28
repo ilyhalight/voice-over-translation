@@ -83,15 +83,36 @@ interface ResolvedPlayableFormat {
 }
 
 const VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
-const YT_BASE = "https://www.youtube.com";
-const ANDROID_VR_CLIENT_VERSION = "1.60.19";
-const CLIENTS: readonly AudioDownloadClient[] = ["ANDROID_VR"];
-const DEFAULT_HEADERS = {
-  accept: "*/*",
-  origin: YT_BASE,
-  referer: `${YT_BASE}/`,
+
+const CLIENT_CONFIG = {
+  ANDROID_VR: {
+    baseUrl: "https://m.youtube.com",
+    clientName: "ANDROID_VR",
+    clientVersion: "1.65.10",
+    clientNameId: "28",
+    deviceMake: "Oculus",
+    deviceModel: "Quest 3",
+    androidSdkVersion: 32,
+    osName: "Android",
+    osVersion: "12L",
+    userAgent:
+      "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+  },
 } as const;
-const RANGE_FALLBACK_CHUNK_SIZE = 256 * 1024;
+
+type ClientType = keyof typeof CLIENT_CONFIG;
+
+const CLIENTS: readonly AudioDownloadClient[] = ["ANDROID_VR"];
+
+function getClientHeaders(client: ClientType): Record<string, string> {
+  const cfg = CLIENT_CONFIG[client];
+  return {
+    accept: "*/*",
+    origin: cfg.baseUrl,
+    referer: `${cfg.baseUrl}/`,
+    "user-agent": cfg.userAgent,
+  };
+}
 
 function withSignal(signal: AbortSignal | undefined): RequestInit {
   return signal ? { signal } : {};
@@ -100,18 +121,19 @@ function withSignal(signal: AbortSignal | undefined): RequestInit {
 function resolveInnertubeClient(
   requestedClient: AudioDownloadClient | undefined,
 ): Record<string, unknown> {
-  if (requestedClient !== undefined && requestedClient !== "ANDROID_VR") {
+  const client = (requestedClient ?? "ANDROID_VR") as ClientType;
+  const cfg = CLIENT_CONFIG[client];
+  if (!cfg) {
     throw new Error(`Unsupported Innertube client: ${requestedClient}`);
   }
-
   return {
-    clientName: "ANDROID_VR",
-    clientVersion: ANDROID_VR_CLIENT_VERSION,
+    clientName: cfg.clientName,
+    clientVersion: cfg.clientVersion,
     hl: "en",
     gl: "US",
-    androidSdkVersion: 31,
-    osName: "Android",
-    osVersion: "12",
+    androidSdkVersion: cfg.androidSdkVersion,
+    osName: cfg.osName,
+    osVersion: cfg.osVersion,
     platform: "MOBILE",
   };
 }
@@ -231,17 +253,6 @@ function parsePositiveInteger(value: string | null | undefined): number | null {
   }
 
   return parsed;
-}
-
-function parseContentLengthFromContentRange(
-  contentRange: string | null,
-): number | null {
-  if (!contentRange) {
-    return null;
-  }
-
-  const matched = /\/(\d+)\s*$/i.exec(contentRange);
-  return parsePositiveInteger(matched?.[1]);
 }
 
 function parseContentRangeHeader(
@@ -366,15 +377,16 @@ export class AudioDownloader {
     start: number,
     end: number,
     signal: AbortSignal | undefined,
-  ): Promise<Uint8Array> {
+  ): Promise<{ bytes: Uint8Array; resolvedUrl: string | null }> {
     const rangeHeader = `bytes=${start}-${end}`;
     const response = await this.fetchFn(streamUrl, {
       headers: {
-        ...DEFAULT_HEADERS,
+        ...getClientHeaders("ANDROID_VR"),
         range: rangeHeader,
       },
       ...withSignal(signal),
     });
+
     if (!response.ok) {
       throw new Error(`Failed to download stream chunk: ${response.status}`);
     }
@@ -385,7 +397,8 @@ export class AudioDownloader {
         `Received unexpected stream chunk payload: ${describeRangeChunkResponse(response, bytes)}`,
       );
     }
-    return bytes;
+    const resolvedUrl = response.status === 206 ? response.url : null;
+    return { bytes, resolvedUrl };
   }
 
   private async downloadStreamByRanges(
@@ -393,33 +406,14 @@ export class AudioDownloader {
     contentLengthHint: string | undefined,
     signal: AbortSignal | undefined,
   ): Promise<Uint8Array> {
-    const fileSize = await this.resolveStreamContentLength(
+    const fileSize = this.resolveStreamContentLength(contentLengthHint);
+    const { bytes } = await this.fetchRangeChunk(
       streamUrl,
-      contentLengthHint,
+      0,
+      fileSize - 1,
       signal,
-      true,
     );
-    const merged = new Uint8Array(fileSize);
-    let offset = 0;
-
-    for (let start = 0; start < fileSize; start += RANGE_FALLBACK_CHUNK_SIZE) {
-      const end = Math.min(fileSize - 1, start + RANGE_FALLBACK_CHUNK_SIZE - 1);
-      const chunk = await this.fetchRangeChunk(streamUrl, start, end, signal);
-      if (offset + chunk.byteLength > merged.byteLength) {
-        throw new Error(
-          "Downloaded stream chunk exceeds probed stream content length",
-        );
-      }
-      merged.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-
-    if (offset === merged.byteLength) {
-      return merged;
-    }
-
-    // Server-side content-length probes can be stale for some streams.
-    return merged.slice(0, offset);
+    return bytes;
   }
 
   async downloadAudioToChunkStream(
@@ -436,11 +430,8 @@ export class AudioDownloader {
       "Chunk mode requires an adaptive audio stream format",
       "Unable to resolve streamable format for chunk mode",
       async ({ resolved, signal }) => {
-        const fileSize = await this.resolveStreamContentLength(
-          resolved.streamUrl,
+        const fileSize = this.resolveStreamContentLength(
           resolved.chosenFormat.contentLength,
-          signal,
-          true,
         );
         const mediaPartsLength = Math.max(
           1,
@@ -453,15 +444,19 @@ export class AudioDownloader {
           itag: resolved.chosenFormat.itag ?? 0,
           mediaPartsLength,
           getMediaBuffers: async function* () {
+            let actualStreamUrl = resolved.streamUrl;
             for (let index = 0; index < mediaPartsLength; index++) {
               const start = index * options.chunkSize;
               const end = Math.min(fileSize - 1, start + options.chunkSize - 1);
-              const bytes = await this.fetchRangeChunk(
-                resolved.streamUrl,
+              const { bytes, resolvedUrl } = await this.fetchRangeChunk(
+                actualStreamUrl,
                 start,
                 end,
                 signal,
               );
+              if (resolvedUrl) {
+                actualStreamUrl = resolvedUrl;
+              }
               yield bytes;
             }
           }.bind(this),
@@ -607,69 +602,16 @@ export class AudioDownloader {
     };
   }
 
-  private async resolveStreamContentLength(
-    streamUrl: string,
+  private resolveStreamContentLength(
     contentLengthHint: string | undefined,
-    signal: AbortSignal | undefined,
-    forceProbe = false,
-  ): Promise<number> {
-    const hintedLength = parsePositiveInteger(contentLengthHint);
-    if (hintedLength !== null && !forceProbe) {
-      return hintedLength;
+  ): number {
+    const contentLength = parsePositiveInteger(contentLengthHint);
+    if (contentLength !== null) {
+      return contentLength;
     }
 
-    let probeResponse: Response;
-    try {
-      probeResponse = await this.fetchFn(streamUrl, {
-        headers: {
-          ...DEFAULT_HEADERS,
-          range: "bytes=0-0",
-        },
-        ...withSignal(signal),
-      });
-    } catch (error) {
-      if (hintedLength !== null) {
-        return hintedLength;
-      }
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to probe stream content length: ${message}`);
-    }
-
-    if (!probeResponse.ok) {
-      if (hintedLength !== null) {
-        return hintedLength;
-      }
-      throw new Error(
-        `Failed to probe stream content length: ${probeResponse.status}`,
-      );
-    }
-
-    const contentRangeLength = parseContentLengthFromContentRange(
-      probeResponse.headers.get("content-range"),
-    );
-    const storedLength = parsePositiveInteger(
-      probeResponse.headers.get("x-goog-stored-content-length"),
-    );
-    const contentLength = parsePositiveInteger(
-      probeResponse.headers.get("content-length"),
-    );
-
-    if (typeof probeResponse.body?.cancel === "function") {
-      try {
-        await probeResponse.body.cancel();
-      } catch {
-        // Ignore cancellation errors in environments without readable stream cancellation.
-      }
-    }
-
-    return (
-      contentRangeLength ??
-      storedLength ??
-      hintedLength ??
-      contentLength ??
-      (() => {
-        throw new Error("Failed to resolve stream content length");
-      })()
+    throw new Error(
+      "Failed to resolve stream content length: contentLength not found in format",
     );
   }
 
@@ -702,9 +644,10 @@ export class AudioDownloader {
     videoId: string,
     signal?: AbortSignal,
   ): Promise<WatchContext> {
-    const watchUrl = `${YT_BASE}/watch?v=${encodeURIComponent(videoId)}&hl=en`;
+    const baseUrl = CLIENT_CONFIG.ANDROID_VR.baseUrl;
+    const watchUrl = `${baseUrl}/watch?v=${encodeURIComponent(videoId)}&hl=en`;
     const response = await this.fetchFn(watchUrl, {
-      headers: DEFAULT_HEADERS,
+      headers: getClientHeaders("ANDROID_VR"),
       ...withSignal(signal),
     });
     if (!response.ok) {
@@ -780,11 +723,12 @@ export class AudioDownloader {
       };
     }
 
-    const endpoint = `${YT_BASE}/youtubei/v1/player?key=${encodeURIComponent(watchContext.apiKey)}`;
+    const baseUrl = CLIENT_CONFIG.ANDROID_VR.baseUrl;
+    const endpoint = `${baseUrl}/youtubei/v1/player?key=${encodeURIComponent(watchContext.apiKey)}`;
     const response = await this.fetchFn(endpoint, {
       method: "POST",
       headers: {
-        ...DEFAULT_HEADERS,
+        ...getClientHeaders("ANDROID_VR"),
         "content-type": "application/json",
         ...(watchContext.visitorData
           ? { "x-goog-visitor-id": watchContext.visitorData }

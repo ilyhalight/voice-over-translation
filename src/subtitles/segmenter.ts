@@ -12,6 +12,7 @@ export type SentenceSegment = {
 const DEFAULT_CACHE_LOCALE = "und";
 const wordSegmenterCache = new Map<string, Intl.Segmenter>();
 const sentenceSegmenterCache = new Map<string, Intl.Segmenter>();
+const resolvedLocaleCache = new Map<string, string | undefined>();
 
 const canonicalizeLocale = (locale?: string): string | undefined => {
   if (!locale) return undefined;
@@ -24,10 +25,22 @@ const canonicalizeLocale = (locale?: string): string | undefined => {
 };
 
 const resolveSegmenterLocale = (locale?: string): string | undefined => {
-  const canonicalLocale = canonicalizeLocale(locale);
-  if (!canonicalLocale) return undefined;
+  const cacheKey = locale ?? DEFAULT_CACHE_LOCALE;
+  if (resolvedLocaleCache.has(cacheKey)) {
+    return resolvedLocaleCache.get(cacheKey);
+  }
 
-  return Intl.Segmenter.supportedLocalesOf([canonicalLocale])[0];
+  const canonicalLocale = canonicalizeLocale(locale);
+  if (!canonicalLocale) {
+    resolvedLocaleCache.set(cacheKey, undefined);
+    return undefined;
+  }
+
+  const resolvedLocale = Intl.Segmenter.supportedLocalesOf([
+    canonicalLocale,
+  ])[0];
+  resolvedLocaleCache.set(cacheKey, resolvedLocale);
+  return resolvedLocale;
 };
 
 const getSegmenter = (

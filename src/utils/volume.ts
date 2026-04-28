@@ -1,3 +1,5 @@
+import { clampNumber } from "./number";
+
 /**
  * Volume utilities.
  *
@@ -13,12 +15,6 @@ const VIDEO_VOLUME_MAX_PERCENT = 100;
 export const VIDEO_VOLUME_STEP_01 = 0.01;
 
 const EPS = 1e-6;
-
-function clampNumber(value: number, min: number, max: number): number {
-  if (!Number.isFinite(value)) return min;
-  if (max < min) return min;
-  return Math.max(min, Math.min(max, value));
-}
 
 export function clampInt(value: number, min: number, max: number): number {
   return Math.trunc(clampNumber(value, min, max));

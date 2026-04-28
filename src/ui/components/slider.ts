@@ -4,7 +4,7 @@ import { EventImpl } from "../../core/eventImpl";
 import type { LitHtml } from "../../types/components/shared";
 import type { SliderProps } from "../../types/components/slider";
 import UI from "../../ui";
-import { getHiddenState, setHiddenState } from "./componentShared";
+import { clampNumber } from "../../utils/number";
 
 export default class Slider {
   container: HTMLElement;
@@ -155,16 +155,10 @@ export default class Slider {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
-}
-
-function clampNumber(value: number, min: number, max: number): number {
-  if (!Number.isFinite(value)) return min;
-  if (max < min) return min;
-  return Math.max(min, Math.min(max, value));
 }

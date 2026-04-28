@@ -1,12 +1,12 @@
 import { defaultAutoVolume } from "../../config/config";
 import type { VideoHandler } from "../../index";
 import debug from "../../utils/debug";
+import { safeSetPlayerVolume } from "../../utils/translationVolume";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
 import {
   computeSmartDuckingStep,
   initSmartDuckingRuntime,
-  resetSmartDuckingRuntime,
   SMART_DUCKING_DEFAULT_CONFIG,
   type SmartDuckingRuntime,
 } from "./ducking";
@@ -17,7 +17,6 @@ type AutoVolumeMode = "off" | "classic" | "smart";
 type AudioPlayerLike = {
   audio?: HTMLMediaElement;
   audioElement?: HTMLMediaElement;
-  gainNode?: AudioNode;
   audioSource?: AudioNode;
   mediaElementSource?: AudioNode;
 };
@@ -129,7 +128,6 @@ function resolveSmartDuckingInputNode(
   audioContext: AudioContext,
   state: SmartDuckingAnalyserState,
 ): AudioNode | undefined {
-  if (isAudioNode(player?.gainNode)) return player.gainNode;
   if (isAudioNode(player?.audioSource)) return player.audioSource;
   if (isAudioNode(player?.mediaElementSource)) return player.mediaElementSource;
 
@@ -210,8 +208,22 @@ function ensureSmartDuckingAnalyser(
     }
 
     try {
+      analyser.disconnect();
+    } catch {
+      // ignore
+    }
+
+    try {
       inputNode.connect(analyser);
       state.connectedInputNode = inputNode;
+
+      if (state.createdMediaSource === inputNode) {
+        try {
+          analyser.connect(audioContext.destination);
+        } catch (err) {
+          debug.log("[SmartDucking] failed to bridge analyser output", err);
+        }
+      }
     } catch (err) {
       debug.log("[SmartDucking] failed to connect analyser", err);
       return undefined;
@@ -248,6 +260,19 @@ function writeSmartDuckingRuntime(
   handler.smartVolumeRmsMissingSinceAt = runtime.rmsMissingSinceAt;
 }
 
+function restoreAutoVolumeMute(handler: VideoHandler): void {
+  if (typeof handler.autoVolumeMutedOnStart !== "boolean") {
+    return;
+  }
+
+  try {
+    handler.setVideoMuted(handler.autoVolumeMutedOnStart);
+  } catch {
+    // ignore
+  }
+  handler.autoVolumeMutedOnStart = undefined;
+}
+
 export function stopSmartVolumeDucking(
   handler: VideoHandler,
   options: StopSmartVolumeDuckingOptions = {},
@@ -274,9 +299,10 @@ export function stopSmartVolumeDucking(
       // ignore
     }
   }
+  restoreAutoVolumeMute(handler);
 
   releaseSmartDuckingAnalyser(handler);
-  writeSmartDuckingRuntime(handler, resetSmartDuckingRuntime());
+  writeSmartDuckingRuntime(handler, initSmartDuckingRuntime());
 }
 
 function scheduleNextSmartDuckingTick(handler: VideoHandler): void {
@@ -401,7 +427,6 @@ function smartDuckingTick(handler: VideoHandler): void {
   const hostVideoActive = !(hostVideo && (hostVideo.paused || hostVideo.ended));
   const dynamicDuckingTarget =
     clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
-  handler.smartVolumeDuckingTarget = dynamicDuckingTarget;
   const rms =
     audioIsPlaying && media ? getTranslatedAudioRms(handler, media) : 0;
 
@@ -429,7 +454,9 @@ function smartDuckingTick(handler: VideoHandler): void {
       });
       return;
     case "apply":
-      handler.setVideoVolume(decision.volume01);
+      handler.setVideoVolume(decision.volume01, {
+        preserveYoutubeVolumeStorage: true,
+      });
       writeSmartDuckingRuntime(handler, decision.runtime);
       return;
     case "noop":
@@ -442,7 +469,7 @@ function smartDuckingTick(handler: VideoHandler): void {
 
 export function setupAudioSettings(this: VideoHandler) {
   if (typeof this.data?.defaultVolume === "number") {
-    this.audioPlayer.player.volume = this.data.defaultVolume / 100;
+    safeSetPlayerVolume(this.audioPlayer.player, this.data.defaultVolume / 100);
   }
 
   const autoVolumeMode = getAutoVolumeMode(this);
@@ -456,11 +483,35 @@ export function setupAudioSettings(this: VideoHandler) {
 
   const targetVolume =
     clamp(this.data.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
-  this.smartVolumeDuckingTarget = targetVolume;
 
   if (!this.hasActiveSource()) {
     return;
   }
+
+  if (targetVolume === 0) {
+    if (this.smartVolumeDuckingInterval !== undefined) {
+      clearTimeout(this.smartVolumeDuckingInterval);
+      this.smartVolumeDuckingInterval = undefined;
+    }
+
+    if (typeof this.smartVolumeDuckingBaseline !== "number") {
+      this.smartVolumeDuckingBaseline = this.getVideoVolume();
+    }
+    if (typeof this.autoVolumeMutedOnStart !== "boolean") {
+      this.autoVolumeMutedOnStart = Boolean(this.isMuted());
+    }
+
+    this.setVideoVolume(0, { preserveYoutubeVolumeStorage: true });
+    this.setVideoMuted(true, { preserveYoutubeVolumeStorage: true });
+    writeSmartDuckingRuntime(
+      this,
+      initSmartDuckingRuntime(this.smartVolumeDuckingBaseline),
+    );
+    this.smartVolumeIsDucked = true;
+    return;
+  }
+
+  restoreAutoVolumeMute(this);
 
   if (autoVolumeMode === "smart") {
     startSmartVolumeDucking(this);
@@ -477,7 +528,8 @@ export function setupAudioSettings(this: VideoHandler) {
   }
 
   const baseline = this.smartVolumeDuckingBaseline ?? this.getVideoVolume();
-  this.setVideoVolume(Math.min(baseline, targetVolume));
+  const nextVolume = Math.min(baseline, targetVolume);
+  this.setVideoVolume(nextVolume, { preserveYoutubeVolumeStorage: true });
 
   writeSmartDuckingRuntime(
     this,
@@ -495,7 +547,6 @@ export function applyManualVideoVolumeOverride(
   }
 
   const nextVolume = snapVolume01(volume01);
-  this.smartVolumeDuckingTarget = nextVolume;
   this.smartVolumeDuckingBaseline = nextVolume;
   this.smartVolumeLastApplied = nextVolume;
 }

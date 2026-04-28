@@ -4,12 +4,6 @@ import { EventImpl } from "../../core/eventImpl";
 import type { DetailsProps } from "../../types/components/details";
 import UI from "../../ui";
 import { CHEVRON_ICON } from "../icons";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setHiddenState,
-} from "./componentShared";
 
 export default class Details {
   container: HTMLElement;
@@ -17,9 +11,6 @@ export default class Details {
   arrowIcon: HTMLElement;
 
   private readonly onClick = new EventImpl();
-  private readonly events = {
-    click: this.onClick,
-  };
 
   private readonly _titleHtml: HTMLElement | string;
 
@@ -56,22 +47,22 @@ export default class Details {
   }
 
   addEventListener(_type: "click", listener: () => void): this {
-    addComponentEventListener(this.events, "click", listener);
+    this.onClick.addListener(listener);
 
     return this;
   }
 
   removeEventListener(_type: "click", listener: () => void): this {
-    removeComponentEventListener(this.events, "click", listener);
+    this.onClick.removeListener(listener);
 
     return this;
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 }

@@ -4,12 +4,6 @@ import { localizationProvider } from "../../localization/localizationProvider";
 import type { AccountButtonProps } from "../../types/components/accountButton";
 import UI from "../../ui";
 import { KEY_ICON, REFRESH_ICON } from "../icons";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setHiddenState,
-} from "./componentShared";
 
 export default class AccountButton {
   container: HTMLElement;
@@ -114,7 +108,7 @@ export default class AccountButton {
     type: "click" | "click:secret" | "refresh",
     listener: () => void,
   ): this {
-    addComponentEventListener(this.events, type, listener);
+    this.events[type].addListener(listener);
 
     return this;
   }
@@ -123,7 +117,7 @@ export default class AccountButton {
     type: "click" | "click:secret" | "refresh",
     listener: () => void,
   ): this {
-    removeComponentEventListener(this.events, type, listener);
+    this.events[type].removeListener(listener);
 
     return this;
   }
@@ -164,10 +158,10 @@ export default class AccountButton {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 }

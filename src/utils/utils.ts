@@ -1,3 +1,5 @@
+import { clampNumberWithSortedBounds } from "./number";
+
 export { calculatedResLang } from "./localization";
 
 const DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 30_000;
@@ -52,7 +54,9 @@ export function stableStringify(value: unknown): string {
       }
 
       const sorted: PlainRecord = {};
-      const keys = Object.keys(val as PlainRecord).sort();
+      const keys = Object.keys(val as PlainRecord).sort((a, b) =>
+        a.localeCompare(b),
+      );
       for (const key of keys) {
         sorted[key] = (val as PlainRecord)[key];
       }
@@ -217,9 +221,7 @@ export const getHeaders = (headers?: HeadersInit): Record<string, string> =>
   headers ? Object.fromEntries(new Headers(headers)) : {};
 
 export function clamp(value: number, min = 0, max = 100): number {
-  const lower = Math.min(min, max);
-  const upper = Math.max(min, max);
-  return Math.min(Math.max(value, lower), upper);
+  return clampNumberWithSortedBounds(value, min, max);
 }
 
 export function toFlatObj<T extends Record<string, unknown>>(

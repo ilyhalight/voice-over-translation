@@ -7,20 +7,20 @@ export type BootstrapState = {
 };
 
 const MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
+const BOOTSTRAP_STATUSES = new Set<BootstrapStatus>([
+  "idle",
+  "booting",
+  "booted",
+  "failed",
+]);
 
 function isBootstrapStatus(value: unknown): value is BootstrapStatus {
-  return (
-    value === "idle" ||
-    value === "booting" ||
-    value === "booted" ||
-    value === "failed"
-  );
+  return BOOTSTRAP_STATUSES.has(value as BootstrapStatus);
 }
 
 function isBootstrapState(value: unknown): value is BootstrapState {
   if (!value || typeof value !== "object") return false;
-  const candidate = value as Record<string, unknown>;
-  return isBootstrapStatus(candidate.status);
+  return isBootstrapStatus((value as BootstrapState).status);
 }
 
 export function getOrCreateBootState(bootKey = MAIN_BOOT_KEY): BootstrapState {

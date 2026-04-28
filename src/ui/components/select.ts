@@ -11,12 +11,6 @@ import type {
 import type { Phrase } from "../../types/localization";
 import UI from "../../ui";
 import { CHEVRON_ICON } from "../icons";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setHiddenState,
-} from "./componentShared";
 import Dialog from "./dialog";
 import Textfield from "./textfield";
 
@@ -313,7 +307,7 @@ export default class Select<
     type: "beforeOpen" | "selectItem",
     listener: (...data: any[]) => void,
   ): this {
-    addComponentEventListener(this.events, type, listener);
+    this.events[type].addListener(listener);
 
     return this;
   }
@@ -330,7 +324,7 @@ export default class Select<
     type: "selectItem" | "beforeOpen",
     listener: (...data: any[]) => void,
   ): this {
-    removeComponentEventListener(this.events, type, listener);
+    this.events[type].removeListener(listener);
 
     return this;
   }
@@ -420,11 +414,11 @@ export default class Select<
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 
   get disabled() {
@@ -437,9 +431,8 @@ export default class Select<
   set disabled(isDisabled: boolean) {
     if (isDisabled) {
       this.outer.setAttribute("disabled", "true");
-      return;
+    } else {
+      this.outer.removeAttribute("disabled");
     }
-
-    this.outer.removeAttribute("disabled");
   }
 }

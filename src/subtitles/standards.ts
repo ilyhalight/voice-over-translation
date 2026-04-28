@@ -174,7 +174,7 @@ const toComparableSubtitleOrder = (
   subtitles: TimedCueDraft[],
 ): SubtitleLine[] =>
   subtitles
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       const startDiff = left.line.startMs - right.line.startMs;
       if (startDiff !== 0) return startDiff;
 

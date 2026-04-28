@@ -47,7 +47,7 @@ import { availableLangs } from "@vot.js/shared/consts";
 import { html } from "lit-html";
 import { countryCode, type VideoHandler } from "../..";
 import {
-  authServerUrl,
+  authLoginUrl,
   defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
@@ -103,6 +103,7 @@ import { detectServices, translateServices } from "../../utils/translateApis";
 import { isPiPAvailable } from "../../utils/utils";
 import AccountButton from "../components/accountButton";
 import Checkbox from "../components/checkbox";
+import { createDomId } from "../components/componentShared";
 import Details from "../components/details";
 import Dialog from "../components/dialog";
 import HotkeyButton from "../components/hotkeyButton";
@@ -117,6 +118,11 @@ import { HELP_ICON, WARNING_ICON } from "../icons";
 const GOOGLE_FONTS_SEARCH_LIMIT = 30;
 const [AUTO_SUBTITLE_LANGUAGE_VALUE, ORIGINAL_SUBTITLE_LANGUAGE_VALUE] =
   subtitleResponseLanguageModes;
+type BufferedNumericStorageKey =
+  | "subtitlesMaxLength"
+  | "subtitlesFontSize"
+  | "subtitlesOpacity"
+  | "autoHideButtonDelay";
 
 const subtitleFontFamilyLabels: Record<BuiltInSubtitleFontFamily, string> = {
   "default-sans": "Default Sans",
@@ -146,7 +152,7 @@ function getAvailableSubtitleLanguages(): Exclude<LanguageSelectKey, "auto">[] {
         key.startsWith("langs.") && key !== "langs.auto",
     )
     .map((key) => key.slice(6) as Exclude<LanguageSelectKey, "auto">)
-    .sort((left, right) =>
+    .toSorted((left, right) =>
       localizationProvider
         .getLangLabel(left)
         .localeCompare(localizationProvider.getLangLabel(right)),
@@ -198,13 +204,7 @@ export class SettingsView {
     [K in keyof SettingsViewEventMap]: EventImpl<SettingsViewEventMap[K]>;
   } = createSettingsEvents();
   private persistTimerIds: Partial<
-    Record<
-      | "subtitlesMaxLength"
-      | "subtitlesFontSize"
-      | "subtitlesOpacity"
-      | "autoHideButtonDelay",
-      ReturnType<typeof setTimeout>
-    >
+    Record<BufferedNumericStorageKey, ReturnType<typeof setTimeout>>
   > = {};
   private readonly onAuthRefreshMessage = (event: MessageEvent<unknown>) => {
     if (!isAuthRefreshMessage(event.data)) {
@@ -299,12 +299,9 @@ export class SettingsView {
     const section = ui.createEl("vot-block", ["vot-settings-section"]);
     const header = new Details({ titleHtml: title });
     header.container.classList.add("vot-settings-section-header");
-    const sectionId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const headerId = `vot-settings-section-header-${sectionId}`;
-    const contentId = `vot-settings-section-content-${sectionId}`;
+    const sectionId = createDomId("vot-settings-section");
+    const headerId = `${sectionId}-header`;
+    const contentId = `${sectionId}-content`;
     header.container.id = headerId;
     const content = ui.createEl("vot-block", ["vot-settings-section-content"]);
     content.id = contentId;
@@ -344,11 +341,7 @@ export class SettingsView {
     this.events["change:subtitlesSmartLayout"].dispatch(checked);
   }
   private scheduleStoragePersist(
-    key:
-      | "subtitlesMaxLength"
-      | "subtitlesFontSize"
-      | "subtitlesOpacity"
-      | "autoHideButtonDelay",
+    key: BufferedNumericStorageKey,
     value: number,
   ): void {
     const prevTimerId = this.persistTimerIds[key];
@@ -407,6 +400,34 @@ export class SettingsView {
       if (afterPersist) {
         await afterPersist(value);
       }
+      dispatch?.(value);
+    });
+  }
+
+  private bindBufferedNumericSetting({
+    control,
+    label,
+    storageKey,
+    logLabel,
+    toStoredValue = (value) => value,
+    beforeApply,
+    dispatch,
+  }: {
+    control: Slider;
+    label: SliderLabel;
+    storageKey: BufferedNumericStorageKey;
+    logLabel: string;
+    toStoredValue?: (value: number) => number;
+    beforeApply?: () => void;
+    dispatch?: (value: number) => void;
+  }): void {
+    control.addEventListener("input", (value) => {
+      label.value = value;
+      beforeApply?.();
+      const storedValue = toStoredValue(value);
+      this.data[storageKey] = storedValue;
+      this.scheduleStoragePersist(storageKey, storedValue);
+      debug.log(`${logLabel} value changed. New value:`, storedValue);
       dispatch?.(value);
     });
   }
@@ -1128,7 +1149,7 @@ export class SettingsView {
         this.data.account = {};
         return this.updateAccountInfo();
       }
-      globalThis.open(authServerUrl, "_blank")?.focus();
+      globalThis.open(authLoginUrl, "_blank")?.focus();
     });
     this.accountButton.addEventListener("click:secret", async () => {
       const dialog = new Dialog({
@@ -1373,41 +1394,36 @@ export class SettingsView {
       if (this.suppressSubtitlesSmartLayoutCheckboxChange) return;
       this.setSubtitlesSmartLayout(checked);
     });
-    this.subtitlesMaxLengthSlider.addEventListener("input", (value) => {
-      this.subtitlesMaxLengthSliderLabel.value = value;
+    const disableSmartLayout = () => {
       if ((this.data.subtitlesSmartLayout ?? true) === true) {
         this.setSubtitlesSmartLayout(false);
       }
-      this.data.subtitlesMaxLength = value;
-      this.scheduleStoragePersist(
-        "subtitlesMaxLength",
-        this.data.subtitlesMaxLength,
-      );
-      debug.log("subtitlesMaxLength value changed. New value:", value);
-      this.events["input:subtitlesMaxLength"].dispatch(value);
+    };
+    this.bindBufferedNumericSetting({
+      control: this.subtitlesMaxLengthSlider,
+      label: this.subtitlesMaxLengthSliderLabel,
+      storageKey: "subtitlesMaxLength",
+      logLabel: "subtitlesMaxLength",
+      beforeApply: disableSmartLayout,
+      dispatch: (value) =>
+        this.events["input:subtitlesMaxLength"].dispatch(value),
     });
-    this.subtitlesFontSizeSlider.addEventListener("input", (value) => {
-      this.subtitlesFontSizeSliderLabel.value = value;
-      if ((this.data.subtitlesSmartLayout ?? true) === true) {
-        this.setSubtitlesSmartLayout(false);
-      }
-      this.data.subtitlesFontSize = value;
-      this.scheduleStoragePersist(
-        "subtitlesFontSize",
-        this.data.subtitlesFontSize,
-      );
-      debug.log("subtitlesFontSize value changed. New value:", value);
-      this.events["input:subtitlesFontSize"].dispatch(value);
+    this.bindBufferedNumericSetting({
+      control: this.subtitlesFontSizeSlider,
+      label: this.subtitlesFontSizeSliderLabel,
+      storageKey: "subtitlesFontSize",
+      logLabel: "subtitlesFontSize",
+      beforeApply: disableSmartLayout,
+      dispatch: (value) =>
+        this.events["input:subtitlesFontSize"].dispatch(value),
     });
-    this.subtitlesBackgroundOpacitySlider.addEventListener("input", (value) => {
-      this.subtitlesBackgroundOpacitySliderLabel.value = value;
-      this.data.subtitlesOpacity = value;
-      this.scheduleStoragePersist(
-        "subtitlesOpacity",
-        this.data.subtitlesOpacity,
-      );
-      debug.log("subtitlesOpacity value changed. New value:", value);
-      this.events["input:subtitlesBackgroundOpacity"].dispatch(value);
+    this.bindBufferedNumericSetting({
+      control: this.subtitlesBackgroundOpacitySlider,
+      label: this.subtitlesBackgroundOpacitySliderLabel,
+      storageKey: "subtitlesOpacity",
+      logLabel: "subtitlesOpacity",
+      dispatch: (value) =>
+        this.events["input:subtitlesBackgroundOpacity"].dispatch(value),
     });
     this.bindPersistedSetting({
       control: this.subtitlesFontFamilySelect,
@@ -1539,16 +1555,14 @@ export class SettingsView {
       dispatch: (checked) =>
         this.events["change:showPiPButton"].dispatch(checked),
     });
-    this.autoHideButtonDelaySlider.addEventListener("input", (value) => {
-      this.autoHideButtonDelaySliderLabel.value = value;
-      const newDelay = Math.round(value * 1000);
-      debug.log("autoHideButtonDelay value changed. New value:", newDelay);
-      this.data.autoHideButtonDelay = newDelay;
-      this.scheduleStoragePersist(
-        "autoHideButtonDelay",
-        this.data.autoHideButtonDelay,
-      );
-      this.events["input:autoHideButtonDelay"].dispatch(value);
+    this.bindBufferedNumericSetting({
+      control: this.autoHideButtonDelaySlider,
+      label: this.autoHideButtonDelaySliderLabel,
+      storageKey: "autoHideButtonDelay",
+      logLabel: "autoHideButtonDelay",
+      toStoredValue: (value) => Math.round(value * 1000),
+      dispatch: (value) =>
+        this.events["input:autoHideButtonDelay"].dispatch(value),
     });
     this.bindPersistedSetting({
       control: this.buttonPositionSelect,

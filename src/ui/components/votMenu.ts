@@ -1,7 +1,7 @@
 import type { Position } from "../../types/components/votButton";
 import type { VOTMenuProps } from "../../types/components/votMenu";
 import UI from "../../ui";
-import { getHiddenState, setHiddenState } from "./componentShared";
+import { createDomId, setInteractiveHiddenState } from "./componentShared";
 
 export default class VOTMenu {
   container: HTMLElement;
@@ -16,15 +16,9 @@ export default class VOTMenu {
   private _titleHtml: string;
 
   // A11y: stable ids for aria-controls / aria-labelledby.
-  private readonly menuId =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? `vot-menu-${crypto.randomUUID()}`
-      : `vot-menu-${Math.random().toString(36).slice(2)}`;
+  private readonly menuId = createDomId("vot-menu");
 
-  private readonly titleId =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? `vot-menu-title-${crypto.randomUUID()}`
-      : `vot-menu-title-${Math.random().toString(36).slice(2)}`;
+  private readonly titleId = createDomId("vot-menu-title");
 
   constructor({ position = "default", titleHtml = "" }: VOTMenuProps) {
     this._position = position;
@@ -49,9 +43,7 @@ export default class VOTMenu {
     // Treat the quick settings menu as a non-modal dialog/popover.
     container.setAttribute("role", "dialog");
     container.setAttribute("aria-modal", "false");
-    container.setAttribute("aria-hidden", "true");
-    // Prevent keyboard focus from reaching hidden content.
-    container.toggleAttribute("inert", true);
+    setInteractiveHiddenState(container, true);
 
     const contentWrapper = UI.createEl("vot-block", [
       "vot-menu-content-wrapper",
@@ -102,14 +94,11 @@ export default class VOTMenu {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
-    this.container.setAttribute("aria-hidden", isHidden ? "true" : "false");
-    // `inert` prevents focus & interaction when hidden.
-    this.container.toggleAttribute("inert", isHidden);
+    setInteractiveHiddenState(this.container, isHidden);
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 
   get position() {

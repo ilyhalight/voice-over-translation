@@ -1,4 +1,4 @@
-import type { VideoHandler } from "..";
+import type { VideoData, VideoHandler } from "..";
 import {
   actualCompatVersion,
   maxAudioVolume,
@@ -14,6 +14,7 @@ import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
+import { safeSetPlayerVolume } from "../utils/translationVolume";
 import {
   clamp,
   clearFileName,
@@ -62,7 +63,7 @@ export class UIManager {
     this.intervalIdleChecker = intervalIdleChecker;
   }
 
-  get root(): HTMLElement {
+  get root(): HTMLElement | ShadowRoot {
     return this.mount.root;
   }
 
@@ -70,7 +71,7 @@ export class UIManager {
     return this.mount.portalContainer;
   }
 
-  getSubtitlesMountContainer(): HTMLElement {
+  getSubtitlesMountContainer(): HTMLElement | ShadowRoot {
     return this.votOverlayView?.root ?? this.mount.subtitlesMountContainer;
   }
 
@@ -137,17 +138,15 @@ export class UIManager {
     return this;
   }
 
-  private getGlobalPortalHost(mount: OverlayMount): HTMLElement {
-    const doc = document as Document & {
-      webkitFullscreenElement?: Element | null;
-    };
-    const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-    const isCurrentVideoFullscreen =
-      fullscreenEl instanceof HTMLElement &&
-      (fullscreenEl === mount.root ||
-        fullscreenEl.contains(mount.root) ||
-        mount.root.contains(fullscreenEl));
-    return isCurrentVideoFullscreen ? mount.root : document.documentElement;
+  private getGlobalPortalHost(_mount: OverlayMount): HTMLElement | ShadowRoot {
+    const fullscreenInfo =
+      this.videoHandler?.fullscreenHelper?.getFullscreenInfo();
+
+    if (fullscreenInfo?.element && fullscreenInfo.belongsToCurrentVideo) {
+      return fullscreenInfo.shadowRoot ?? fullscreenInfo.element;
+    }
+
+    return document.documentElement;
   }
 
   initUIEvents() {
@@ -178,7 +177,6 @@ export class UIManager {
         }
 
         try {
-          // this.videoHandler.video.disablePictureInPicture = false;
           const inPiP = document.pictureInPictureElement != null;
           if (inPiP) {
             await document.exitPictureInPicture();
@@ -224,12 +222,23 @@ export class UIManager {
         // Prefer the actual event payload (the overlay also updates `data`, but
         // using the payload is simpler and avoids accidental desyncs).
         const nextVolume = volume ?? this.data.defaultVolume ?? 100;
-        this.videoHandler.audioPlayer.player.volume = nextVolume / 100;
+        safeSetPlayerVolume(
+          this.videoHandler.audioPlayer.player,
+          nextVolume / 100,
+        );
         if (!this.data.syncVolume) {
           this.videoHandler.onTranslationVolumeSliderSynced(nextVolume);
           return;
         }
-        this.videoHandler.syncVolumeWrapper("translation", nextVolume);
+        const syncResult = this.videoHandler.syncVolumeWrapper(
+          "translation",
+          nextVolume,
+        );
+        if (typeof syncResult?.nextVideo === "number") {
+          this.videoHandler.applyManualVideoVolumeOverride(
+            syncResult.nextVideo / 100,
+          );
+        }
       })
       .addEventListener("select:fromLanguage", async () => {
         if (!this.videoHandler) {
@@ -313,6 +322,7 @@ export class UIManager {
           const nextVolume = clamp(currentVolume, 0, maxVolume);
           overlayView.translationVolumeSlider.value = nextVolume;
           this.videoHandler?.onTranslationVolumeSliderSynced(nextVolume);
+          this.videoHandler?.syncTranslationPlaybackVolume();
         });
       })
       .addEventListener("change:syncVolume", (checked) => {
@@ -334,6 +344,7 @@ export class UIManager {
           const nextTranslation = clamp(translationSlider.value, 0, maxVolume);
           translationSlider.value = nextTranslation;
           this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
+          this.videoHandler.syncTranslationPlaybackVolume();
 
           if (!checked) {
             return;
@@ -436,10 +447,10 @@ export class UIManager {
         );
       })
       .addEventListener("change:useNewAudioPlayer", () => {
-        this.restartAudioPlayer();
+        void this.restartAudioPlayer();
       })
       .addEventListener("change:onlyBypassMediaCSP", () => {
-        this.restartAudioPlayer();
+        void this.restartAudioPlayer();
       })
       .addEventListener("select:translationTextService", () => {
         this.withSubtitlesWidget((widget) => {
@@ -493,19 +504,24 @@ export class UIManager {
   private async handleDownloadTranslationClick() {
     const overlayView = this.votOverlayView;
     const videoHandler = this.videoHandler;
-    if (
-      !overlayView?.isInitialized() ||
-      !videoHandler?.downloadTranslationUrl ||
-      !videoHandler.videoData
-    ) {
+    const download = videoHandler?.downloadTranslation;
+    if (!overlayView?.isInitialized() || !download || !videoHandler.videoData) {
+      return;
+    }
+
+    const downloadVideoData = await this.getDownloadVideoData(
+      videoHandler,
+      download.videoId,
+    );
+    if (!downloadVideoData) {
       return;
     }
 
     const downloadButton = overlayView.downloadTranslationButton;
-    const downloadUrl = videoHandler.downloadTranslationUrl;
+    const downloadUrl = download.url;
     const filename = this.data.downloadWithName
-      ? clearFileName(videoHandler.videoData.downloadTitle)
-      : `translation_${videoHandler.videoData.videoId}`;
+      ? clearFileName(downloadVideoData.downloadTitle)
+      : `translation_${downloadVideoData.videoId}`;
     const isMobile = this.isLikelyMobileDownloadContext();
     const saveOptions: DownloadBlobOptions = { preferShare: isMobile };
 
@@ -530,6 +546,39 @@ export class UIManager {
       }
     } finally {
       setProgress(0);
+    }
+  }
+
+  private async getDownloadVideoData(
+    videoHandler: VideoHandler,
+    downloadVideoId: string,
+  ): Promise<VideoData | null> {
+    if (videoHandler.videoData?.videoId !== downloadVideoId) {
+      this.clearDownloadTranslation(videoHandler);
+      return null;
+    }
+
+    let videoData: VideoData;
+    try {
+      videoData = await videoHandler.getVideoData();
+    } catch (err) {
+      debug.log("[VOT] Failed to refresh video data before download", err);
+      return null;
+    }
+
+    if (videoData.videoId !== downloadVideoId) {
+      this.clearDownloadTranslation(videoHandler);
+      return null;
+    }
+
+    videoHandler.videoData = videoData;
+    return videoData;
+  }
+
+  private clearDownloadTranslation(videoHandler: VideoHandler): void {
+    videoHandler.downloadTranslation = null;
+    if (this.votOverlayView?.downloadTranslationButton) {
+      this.votOverlayView.downloadTranslationButton.hidden = true;
     }
   }
 
@@ -773,11 +822,7 @@ export class UIManager {
     );
   }
 
-  private restartAudioPlayer() {
-    void this.restartAudioPlayerSafely();
-  }
-
-  private async restartAudioPlayerSafely() {
+  private async restartAudioPlayer() {
     const videoHandler = this.videoHandler;
     if (!videoHandler) {
       return;

@@ -46,6 +46,15 @@ type WebExtNamespace = {
   };
 };
 
+type WebExtCallbackFn = (...args: unknown[]) => unknown;
+type WebExtCallbackOptions<T> = {
+  // Some callbacks return multiple values, most return a single `result`.
+  mapCbArgs?: (...cbArgs: unknown[]) => T;
+  // If false, don't treat runtime.lastError as fatal.
+  rejectOnLastError?: boolean;
+};
+type StorageLocalMethod = "get" | "set" | "remove";
+
 const browserNamespace = (globalThis as Record<string, unknown>).browser as
   | WebExtNamespace
   | undefined;
@@ -71,15 +80,47 @@ export function lastErrorMessage(): string | null {
   return err?.message ? String(err.message) : null;
 }
 
-async function callAsync<T>(
-  fn: ((...args: unknown[]) => unknown) | undefined,
+function getPreferredStorageArea():
+  | NonNullable<NonNullable<WebExtNamespace["storage"]>["local"]>
+  | undefined {
+  return isFirefoxLike
+    ? (browserNamespace?.storage?.local ?? ext?.storage?.local)
+    : (chromeNamespace?.storage?.local ??
+        browserNamespace?.storage?.local ??
+        ext?.storage?.local);
+}
+
+function isChromeStorageArea(
+  area: NonNullable<NonNullable<WebExtNamespace["storage"]>["local"]>,
+): boolean {
+  return !isFirefoxLike && area === chromeNamespace?.storage?.local;
+}
+
+async function callCallbackApi<T>(
+  fn: WebExtCallbackFn,
   args: unknown[] = [],
-  opts: {
-    // Some callbacks return multiple values, most return a single `result`.
-    mapCbArgs?: (...cbArgs: unknown[]) => T;
-    // If false, don't treat runtime.lastError as fatal.
-    rejectOnLastError?: boolean;
-  } = {},
+  opts: WebExtCallbackOptions<T> = {},
+): Promise<T> {
+  const mapCbArgs = opts.mapCbArgs;
+  const rejectOnLastError = opts.rejectOnLastError !== false;
+
+  return await new Promise<T>((resolve, reject) => {
+    try {
+      fn(...args, (...cbArgs: unknown[]) => {
+        const err = rejectOnLastError ? lastErrorMessage() : null;
+        if (err) reject(new Error(err));
+        else resolve(mapCbArgs ? mapCbArgs(...cbArgs) : (cbArgs[0] as T));
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+async function callAsync<T>(
+  fn: WebExtCallbackFn | undefined,
+  args: unknown[] = [],
+  opts: WebExtCallbackOptions<T> = {},
 ): Promise<T> {
   if (typeof fn !== "function") {
     throw new TypeError("WebExtension API is not available");
@@ -94,116 +135,47 @@ async function callAsync<T>(
   }
 
   // Callback-based fallback (Chromium).
-  return await new Promise<T>((resolve, reject) => {
-    try {
-      fn(...args, (...cbArgs: unknown[]) => {
-        const err = rejectOnLastError ? lastErrorMessage() : null;
-        if (err) reject(new Error(err));
-        else resolve(mapCbArgs ? mapCbArgs(...cbArgs) : (cbArgs[0] as T));
-      });
-    } catch (e) {
-      reject(e);
-    }
+  return await callCallbackApi(fn, args, {
+    mapCbArgs,
+    rejectOnLastError,
   });
+}
+
+async function callStorageLocal<T>(
+  method: StorageLocalMethod,
+  args: unknown[] = [],
+  opts: WebExtCallbackOptions<T> = {},
+): Promise<T> {
+  const area = getPreferredStorageArea();
+  const fn = area?.[method]?.bind(area) as WebExtCallbackFn | undefined;
+
+  if (!area || typeof fn !== "function") {
+    throw new TypeError("WebExtension API is not available");
+  }
+
+  return isChromeStorageArea(area)
+    ? await callCallbackApi<T>(fn, args, opts)
+    : await callAsync<T>(fn, args, opts);
 }
 
 export async function storageGet<T = Record<string, unknown>>(
   keys: unknown,
 ): Promise<T> {
-  const chromeArea = isFirefoxLike
-    ? undefined
-    : chromeNamespace?.storage?.local;
-  if (chromeArea && typeof chromeArea.get === "function") {
-    return await new Promise<T>((resolve, reject) => {
-      try {
-        chromeArea.get(keys, (items: unknown) => {
-          const err = lastErrorMessage();
-          if (err) {
-            reject(new Error(err));
-            return;
-          }
-
-          resolve(items as T);
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
-  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
-  return await callAsync<T>(
-    area?.get?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
-    [keys],
-  );
+  return await callStorageLocal<T>("get", [keys]);
 }
 
 export async function storageSet(
   items: Record<string, unknown>,
 ): Promise<void> {
-  const chromeArea = isFirefoxLike
-    ? undefined
-    : chromeNamespace?.storage?.local;
-  if (chromeArea && typeof chromeArea.set === "function") {
-    await new Promise<void>((resolve, reject) => {
-      try {
-        chromeArea.set(items, () => {
-          const err = lastErrorMessage();
-          if (err) {
-            reject(new Error(err));
-            return;
-          }
-
-          resolve();
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-    return;
-  }
-
-  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
-  await callAsync<void>(
-    area?.set?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
-    [items],
-    {
-      mapCbArgs: () => undefined,
-    },
-  );
+  await callStorageLocal<void>("set", [items], {
+    mapCbArgs: () => undefined,
+  });
 }
 
 export async function storageRemove(keys: string | string[]): Promise<void> {
-  const chromeArea = isFirefoxLike
-    ? undefined
-    : chromeNamespace?.storage?.local;
-  if (chromeArea && typeof chromeArea.remove === "function") {
-    await new Promise<void>((resolve, reject) => {
-      try {
-        chromeArea.remove(keys, () => {
-          const err = lastErrorMessage();
-          if (err) {
-            reject(new Error(err));
-            return;
-          }
-
-          resolve();
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-    return;
-  }
-
-  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
-  await callAsync<void>(
-    area?.remove?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
-    [keys],
-    {
-      mapCbArgs: () => undefined,
-    },
-  );
+  await callStorageLocal<void>("remove", [keys], {
+    mapCbArgs: () => undefined,
+  });
 }
 
 export async function notificationsCreate(

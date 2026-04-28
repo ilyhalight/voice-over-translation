@@ -2,21 +2,12 @@ import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { HotkeyButtonProps } from "../../types/components/hotkeyButton";
 import UI from "../../ui";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setHiddenState,
-} from "./componentShared";
 
 export default class HotkeyButton {
   container: HTMLElement;
   button: HTMLElement;
 
   private readonly onChange = new EventImpl<[string | null]>();
-  private readonly events = {
-    change: this.onChange,
-  };
 
   private readonly _labelHtml: string;
   private _key: string | null;
@@ -130,7 +121,7 @@ export default class HotkeyButton {
     _type: "change",
     listener: (key: string | null) => void,
   ): this {
-    addComponentEventListener(this.events, "change", listener);
+    this.onChange.addListener(listener);
 
     return this;
   }
@@ -139,17 +130,17 @@ export default class HotkeyButton {
     _type: "change",
     listener: (key: string | null) => void,
   ): this {
-    removeComponentEventListener(this.events, "change", listener);
+    this.onChange.removeListener(listener);
 
     return this;
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 
   get key() {

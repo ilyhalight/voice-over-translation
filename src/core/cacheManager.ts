@@ -2,7 +2,6 @@ import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import type {
   CacheSubtitle,
   CacheTranslationSuccess,
-  CacheVideoById,
 } from "../types/core/cacheManager";
 import type { ResponseCacheOptions } from "../types/utils/gm";
 import { votStorage } from "../utils/storage";
@@ -12,21 +11,7 @@ export const YANDEX_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
 const RESPONSE_CACHE_KEY_HEADER = "x-vot-cache-key";
 const DEFAULT_RESPONSE_CACHE_NAME = "vot-http-cache-v1";
-const MAX_MEMORY_CACHE_ENTRIES = 500;
 const VOT_SESSION_STORAGE_KEY = "VOTSession";
-
-type CacheField = "translation" | "subtitles";
-type CacheExpiryField = "translationExpiresAt" | "subtitlesExpiresAt";
-
-type CacheValueByField = {
-  translation: CacheTranslationSuccess;
-  subtitles: CacheSubtitle[];
-};
-
-const EXPIRY_FIELD_BY_FIELD: Record<CacheField, CacheExpiryField> = {
-  translation: "translationExpiresAt",
-  subtitles: "subtitlesExpiresAt",
-};
 
 type RequestCacheContext = {
   url: string;
@@ -34,9 +19,9 @@ type RequestCacheContext = {
   body?: BodyInit | null;
 };
 
-type MemoryResponseCacheEntry = {
+type TimedCacheEntry<T> = {
   expiresAt: number;
-  response: Response;
+  value: T;
 };
 
 type CacheReadResult = {
@@ -53,6 +38,26 @@ type VOTSessionStorage = Pick<
 
 function getCurrentUnixTimestampSeconds(): number {
   return Math.floor(Date.now() / 1000);
+}
+
+function computeExpiresAt(createdAtMs: number, ttlMs: number): number {
+  if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
+    return createdAtMs;
+  }
+
+  const maxAdd = Number.MAX_SAFE_INTEGER - createdAtMs;
+  return ttlMs >= maxAdd ? Number.MAX_SAFE_INTEGER : createdAtMs + ttlMs;
+}
+
+function normalizeMethod(method?: string): string {
+  return (method || "GET").toUpperCase();
+}
+
+function resolveBodyKey(body: BodyInit | null | undefined): string | undefined {
+  if (body == null) return "";
+  if (typeof body === "string") return body;
+  if (body instanceof URLSearchParams) return body.toString();
+  return undefined;
 }
 
 function isClientSession(value: unknown): value is ClientSession {
@@ -154,7 +159,14 @@ export class VOTSessionStorageCache {
  * The cache is keyed by a stable key built by VideoHandler.
  */
 class InMemoryCacheManager {
-  private readonly cache = new Map<string, CacheVideoById>();
+  private readonly translations = new Map<
+    string,
+    TimedCacheEntry<CacheTranslationSuccess>
+  >();
+  private readonly subtitles = new Map<
+    string,
+    TimedCacheEntry<CacheSubtitle[]>
+  >();
 
   /**
    * Clears all cached entries.
@@ -163,93 +175,60 @@ class InMemoryCacheManager {
    * translation URLs and especially previous failures can become stale.
    */
   clear(): void {
-    this.cache.clear();
+    this.translations.clear();
+    this.subtitles.clear();
   }
 
   getTranslation(key: string): CacheTranslationSuccess | undefined {
-    return this.getValue(key, "translation");
+    return this.getFreshValue(this.translations, key);
   }
 
   setTranslation(key: string, translation: CacheTranslationSuccess): void {
-    this.setValue(key, "translation", translation);
+    this.setFreshValue(this.translations, key, translation);
   }
 
   getSubtitles(key: string): CacheSubtitle[] | undefined {
-    return this.getValue(key, "subtitles");
+    return this.getFreshValue(this.subtitles, key);
   }
 
   setSubtitles(key: string, subtitles: CacheSubtitle[]): void {
-    this.setValue(key, "subtitles", subtitles);
+    this.setFreshValue(this.subtitles, key, subtitles);
   }
 
   deleteSubtitles(key: string): void {
-    this.deleteValue(key, "subtitles");
+    this.subtitles.delete(key);
   }
 
-  private getValue<K extends CacheField>(
+  private getFreshValue<T>(
+    cache: Map<string, TimedCacheEntry<T>>,
     key: string,
-    field: K,
-  ): CacheValueByField[K] | undefined {
-    const now = Date.now();
-    const entry = this.cache.get(key);
+  ): T | undefined {
+    const entry = cache.get(key);
     if (!entry) return undefined;
 
-    const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-    const expiresAt = entry[expiryField];
-    if (expiresAt !== undefined && expiresAt <= now) {
-      entry[field] = undefined;
-      entry[expiryField] = undefined;
-      this.evictIfEmpty(key, entry);
+    if (entry.expiresAt <= Date.now()) {
+      cache.delete(key);
       return undefined;
     }
 
-    return entry[field] as CacheValueByField[K] | undefined;
+    return entry.value;
   }
 
-  private setValue<K extends CacheField>(
+  private setFreshValue<T>(
+    cache: Map<string, TimedCacheEntry<T>>,
     key: string,
-    field: K,
-    value: CacheValueByField[K],
+    value: T,
   ): void {
-    const now = Date.now();
-
-    const entry = this.getOrCreateEntry(key);
-    const expiresAt = now + YANDEX_TTL_MS;
-    const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-
-    entry[field] = value as CacheVideoById[K];
-    entry[expiryField] = expiresAt;
-  }
-
-  private deleteValue(key: string, field: CacheField): void {
-    const entry = this.cache.get(key);
-    if (!entry) return;
-
-    const expiryField = EXPIRY_FIELD_BY_FIELD[field];
-    entry[field] = undefined;
-    entry[expiryField] = undefined;
-    this.evictIfEmpty(key, entry);
-  }
-
-  private evictIfEmpty(key: string, entry: CacheVideoById): void {
-    if (entry.translation === undefined && entry.subtitles === undefined) {
-      this.cache.delete(key);
-    }
-  }
-
-  private getOrCreateEntry(key: string): CacheVideoById {
-    const existing = this.cache.get(key);
-    if (existing) return existing;
-    const entry: CacheVideoById = {};
-    this.cache.set(key, entry);
-    return entry;
+    cache.set(key, {
+      value,
+      expiresAt: computeExpiresAt(Date.now(), YANDEX_TTL_MS),
+    });
   }
 }
 
 export { InMemoryCacheManager as CacheManager };
 
 class ResponseCacheManager {
-  private readonly memoryCache = new Map<string, MemoryResponseCacheEntry>();
   private readonly inFlightRequests = new Map<string, Promise<Response>>();
 
   async execute(
@@ -261,15 +240,14 @@ class ResponseCacheManager {
       return fetcher();
     }
 
+    const method = normalizeMethod(context.method);
     const key = options.key ?? this.buildDefaultCacheKey(context);
     if (!key) {
       return fetcher();
     }
 
-    const method = this.normalizeMethod(context.method);
     const ttlMs = options.ttlMs;
     const cacheName = options.cacheName || DEFAULT_RESPONSE_CACHE_NAME;
-    const useMemory = options.useMemory !== false;
     const useCacheApi =
       options.useCacheApi !== false &&
       method === "GET" &&
@@ -277,37 +255,35 @@ class ResponseCacheManager {
     const cacheApiKey = useCacheApi ? fnv1a32ToKeyPart(key) : "";
     const dedupe = options.dedupe !== false;
     const allowStaleOnError = options.allowStaleOnError !== false;
-    const nowMs = Date.now();
 
-    const staleFallback = await this.readCachedResponse({
-      key,
-      nowMs,
-      useMemory,
-      useCacheApi,
-      cacheName,
-      url: context.url,
-      cacheApiKey,
-      ttlMs,
-      allowStaleOnError,
-    });
-    if (staleFallback.fresh) {
-      return staleFallback.fresh;
+    const cached = useCacheApi
+      ? await this.readCacheApi(
+          cacheName,
+          context.url,
+          cacheApiKey,
+          ttlMs,
+          Date.now(),
+          allowStaleOnError,
+        )
+      : {};
+    if (cached.fresh) {
+      return cached.fresh;
     }
 
-    if (!dedupe) {
-      return await this.runNetworkRequestWithFallback(
+    const networkRequest = () =>
+      this.runNetworkRequestWithFallback(
         {
-          key,
           cacheName,
           url: context.url,
           cacheApiKey,
-          ttlMs,
-          useMemory,
           useCacheApi,
         },
         fetcher,
-        allowStaleOnError ? staleFallback.stale : undefined,
+        allowStaleOnError ? cached.stale : undefined,
       );
+
+    if (!dedupe) {
+      return await networkRequest();
     }
 
     const inFlight = this.inFlightRequests.get(key);
@@ -315,19 +291,7 @@ class ResponseCacheManager {
       return (await inFlight).clone();
     }
 
-    const networkPromise = this.runNetworkRequestWithFallback(
-      {
-        key,
-        cacheName,
-        url: context.url,
-        cacheApiKey,
-        ttlMs,
-        useMemory,
-        useCacheApi,
-      },
-      fetcher,
-      allowStaleOnError ? staleFallback.stale?.clone() : undefined,
-    );
+    const networkPromise = networkRequest();
     this.inFlightRequests.set(key, networkPromise);
 
     try {
@@ -337,72 +301,11 @@ class ResponseCacheManager {
     }
   }
 
-  private async readCachedResponse({
-    key,
-    nowMs,
-    useMemory,
-    useCacheApi,
-    cacheName,
-    url,
-    cacheApiKey,
-    ttlMs,
-    allowStaleOnError,
-  }: {
-    key: string;
-    nowMs: number;
-    useMemory: boolean;
-    useCacheApi: boolean;
-    cacheName: string;
-    url: string;
-    cacheApiKey: string;
-    ttlMs: number;
-    allowStaleOnError: boolean;
-  }): Promise<{ fresh?: Response; stale?: Response }> {
-    let staleFallback: Response | undefined;
-
-    if (useMemory) {
-      const memoryHit = this.readMemoryCache(key, nowMs);
-      if (memoryHit.fresh) {
-        return { fresh: memoryHit.fresh };
-      }
-      staleFallback = memoryHit.stale;
-    }
-
-    if (!useCacheApi) {
-      return { stale: staleFallback };
-    }
-
-    const cacheApiHit = await this.readCacheApi(
-      cacheName,
-      url,
-      cacheApiKey,
-      ttlMs,
-      nowMs,
-      allowStaleOnError,
-    );
-    if (cacheApiHit.fresh) {
-      if (useMemory) {
-        this.writeMemoryCache(
-          key,
-          cacheApiHit.fresh.clone(),
-          cacheApiHit.expiresAt ?? nowMs + ttlMs,
-        );
-      }
-
-      return { fresh: cacheApiHit.fresh };
-    }
-
-    return { stale: staleFallback ?? cacheApiHit.stale };
-  }
-
   private async runNetworkRequestWithFallback(
     cacheConfig: {
-      key: string;
       cacheName: string;
       url: string;
       cacheApiKey: string;
-      ttlMs: number;
-      useMemory: boolean;
       useCacheApi: boolean;
     },
     fetcher: () => Promise<Response>,
@@ -420,20 +323,14 @@ class ResponseCacheManager {
 
   private async runNetworkRequest(
     {
-      key,
       cacheName,
       url,
       cacheApiKey,
-      ttlMs,
-      useMemory,
       useCacheApi,
     }: {
-      key: string;
       cacheName: string;
       url: string;
       cacheApiKey: string;
-      ttlMs: number;
-      useMemory: boolean;
       useCacheApi: boolean;
     },
     fetcher: () => Promise<Response>,
@@ -444,11 +341,7 @@ class ResponseCacheManager {
     }
 
     const createdAtMs = Date.now();
-    const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
 
-    if (useMemory) {
-      this.writeMemoryCache(key, response.clone(), expiresAt);
-    }
     if (useCacheApi) {
       const storable = this.toStorableResponse(response.clone(), createdAtMs);
       await this.writeCacheApi(cacheName, url, cacheApiKey, storable);
@@ -457,39 +350,15 @@ class ResponseCacheManager {
     return response;
   }
 
-  private computeExpiresAt(createdAtMs: number, ttlMs: number): number {
-    if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
-      return createdAtMs;
-    }
-    const maxAdd = Number.MAX_SAFE_INTEGER - createdAtMs;
-    if (ttlMs >= maxAdd) {
-      return Number.MAX_SAFE_INTEGER;
-    }
-    return createdAtMs + ttlMs;
-  }
-
-  private normalizeMethod(method?: string): string {
-    return (method || "GET").toUpperCase();
-  }
-
-  private resolveBodyKey(
-    body: BodyInit | null | undefined,
-  ): string | undefined {
-    if (body == null) return "";
-    if (typeof body === "string") return body;
-    if (body instanceof URLSearchParams) return body.toString();
-    return undefined;
-  }
-
   private buildDefaultCacheKey(
     context: RequestCacheContext,
   ): string | undefined {
-    const method = this.normalizeMethod(context.method);
+    const method = normalizeMethod(context.method);
     if (method === "GET") {
       return `${method}:${context.url}`;
     }
 
-    const bodyKey = this.resolveBodyKey(context.body);
+    const bodyKey = resolveBodyKey(context.body);
     if (bodyKey === undefined) return undefined;
 
     return `${method}:${context.url}#${fnv1a32ToKeyPart(bodyKey)}`;
@@ -536,53 +405,6 @@ class ResponseCacheManager {
     });
   }
 
-  private readMemoryCache(key: string, nowMs: number): CacheReadResult {
-    const entry = this.memoryCache.get(key);
-    if (!entry) return {};
-
-    if (entry.expiresAt > nowMs) {
-      this.touchMemoryCache(key, entry);
-      return {
-        fresh: entry.response.clone(),
-        expiresAt: entry.expiresAt,
-      };
-    }
-
-    this.memoryCache.delete(key);
-    return {
-      stale: entry.response.clone(),
-      expiresAt: entry.expiresAt,
-    };
-  }
-
-  private touchMemoryCache(key: string, entry: MemoryResponseCacheEntry): void {
-    this.memoryCache.delete(key);
-    this.memoryCache.set(key, entry);
-  }
-
-  private trimMemoryCache(): void {
-    while (this.memoryCache.size > MAX_MEMORY_CACHE_ENTRIES) {
-      const first = this.memoryCache.keys().next().value;
-      if (typeof first !== "string") break;
-      this.memoryCache.delete(first);
-    }
-  }
-
-  private writeMemoryCache(
-    key: string,
-    response: Response,
-    expiresAt: number,
-  ): void {
-    if (this.memoryCache.has(key)) {
-      this.memoryCache.delete(key);
-    }
-    this.memoryCache.set(key, {
-      response,
-      expiresAt,
-    });
-    this.trimMemoryCache();
-  }
-
   private async readCacheApi(
     cacheName: string,
     url: string,
@@ -608,7 +430,7 @@ class ResponseCacheManager {
         return {};
       }
 
-      const expiresAt = this.computeExpiresAt(createdAtMs, ttlMs);
+      const expiresAt = computeExpiresAt(createdAtMs, ttlMs);
       if (expiresAt > nowMs) {
         return {
           fresh: cached.clone(),

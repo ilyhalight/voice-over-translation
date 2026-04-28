@@ -31,6 +31,7 @@ type SiteContainerMatch = {
 };
 
 const boundObservers = new WeakSet<VideoObserver>();
+const RUNTIME_URL_HOSTS = new Set(["peertube", "directlink"]);
 
 export function bindObserverListeners(
   options: BindObserverListenersOptions,
@@ -61,13 +62,6 @@ export function bindObserverListeners(
     }
     videoContainers.delete(video);
     return container ?? undefined;
-  };
-
-  const clearPendingVideo = (container?: HTMLElement): void => {
-    if (!container) {
-      return;
-    }
-    pendingVideoByContainer.delete(container);
   };
 
   const releaseVideoHandler = async (
@@ -102,8 +96,7 @@ export function bindObserverListeners(
   };
 
   const withRuntimeSiteUrl = (site: ServiceConf): ServiceConf => {
-    const host = String(site.host);
-    return host === "peertube" || host === "directlink"
+    return RUNTIME_URL_HOSTS.has(String(site.host))
       ? { ...site, url: globalThis.location.origin }
       : site;
   };
@@ -111,11 +104,7 @@ export function bindObserverListeners(
   const promotePendingVideo = async (
     container?: HTMLElement,
   ): Promise<void> => {
-    if (!container) {
-      return;
-    }
-
-    const pendingVideo = pendingVideoByContainer.get(container);
+    const pendingVideo = container && pendingVideoByContainer.get(container);
     if (!pendingVideo) {
       return;
     }
@@ -135,12 +124,8 @@ export function bindObserverListeners(
     initializingVideos.add(video);
 
     try {
-      try {
-        await ensureRuntimeActivated("video-detected");
-      } catch (err) {
-        console.error("[VOT] Failed to activate runtime", err);
-        return;
-      }
+      const runtimeReady = await ensureRuntimeReady();
+      if (!runtimeReady) return;
 
       const match = getMatchedSiteAndContainer(video);
       if (!match) {
@@ -183,13 +168,25 @@ export function bindObserverListeners(
         if (videosWrappers.get(video) === videoHandler) {
           await releaseVideoHandler(video, "init failed");
           const container = clearContainerOwner(video);
-          clearPendingVideo(container);
+          if (container) {
+            pendingVideoByContainer.delete(container);
+          }
           await promotePendingVideo(container);
         }
         console.error("[VOT] Failed to initialize videoHandler", err);
       }
     } finally {
       initializingVideos.delete(video);
+    }
+  };
+
+  const ensureRuntimeReady = async (): Promise<boolean> => {
+    try {
+      await ensureRuntimeActivated("video-detected");
+      return true;
+    } catch (err) {
+      console.error("[VOT] Failed to activate runtime", err);
+      return false;
     }
   };
 
@@ -200,7 +197,7 @@ export function bindObserverListeners(
     await releaseVideoHandler(video, "video removed");
     initializingVideos.delete(video);
     if (container && pendingVideoByContainer.get(container) === video) {
-      clearPendingVideo(container);
+      pendingVideoByContainer.delete(container);
     }
     await promotePendingVideo(container);
   });

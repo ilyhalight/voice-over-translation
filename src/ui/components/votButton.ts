@@ -8,7 +8,6 @@ import type {
 } from "../../types/components/votButton";
 import UI from "../../ui";
 import { MENU_ICON, PIP_ICON_SVG, TRANSLATE_ICON_SVG } from "../icons";
-import { getHiddenState, setHiddenState } from "./componentShared";
 
 export default class VOTButton {
   container: HTMLElement;
@@ -167,11 +166,11 @@ export default class VOTButton {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 
   get position() {

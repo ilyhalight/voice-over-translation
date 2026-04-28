@@ -12,20 +12,20 @@ export const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
 /**
  * @see https://github.com/FOSWLY/vot-worker
  */
-export const proxyWorkerHostMode1 = "vot-new.toil-dump.workers.dev";
-export const proxyWorkerHost = "vot-worker.kload.workers.dev"; // vot-worker.toil.cc
+export const proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
+export const proxyWorkerHost = "vot-worker.eu.cc"; // vot-worker.toil.cc
 
 export const votBackendUrl = "https://vot.toil.cc/v1";
 
 /**
  * @see https://github.com/FOSWLY/translate-backend
  */
-export const foswlyTranslateUrl =
-  "https://translate-backend.transly.workers.dev/v2"; // "https://translate.toil.cc/v2"
+export const foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2"; // "https://translate.toil.cc/v2"
 
 export const detectRustServerUrl =
   "https://rust-server-531j.onrender.com/detect";
 export const authServerUrl = "https://rust-server-531j.onrender.com";
+export const authLoginUrl = `${authServerUrl}/v1/auth/handle`;
 export const avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
 
 const repoPath = "ilyhalight/voice-over-translation";

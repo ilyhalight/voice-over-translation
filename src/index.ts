@@ -1,7 +1,6 @@
 import VOTClient, { VOTWorkerClient } from "@vot.js/ext/client";
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
-import { availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import Chaimu from "chaimu/client";
@@ -36,6 +35,7 @@ import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
 import debug from "./utils/debug";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
+import { FullscreenHelper } from "./utils/fullscreenHelper";
 import { GM_fetch, isSupportGMXhr } from "./utils/gm";
 import { isIframe } from "./utils/iframeConnector";
 import {
@@ -46,7 +46,6 @@ import { Notifier } from "./utils/notify";
 import { translate } from "./utils/translateApis";
 import {
   calculatedResLang,
-  type DocumentWithFullscreen,
   fnv1a32ToKeyPart,
   stableStringify,
 } from "./utils/utils";
@@ -58,6 +57,7 @@ import {
   volume01ToPercent,
 } from "./utils/volume";
 import {
+  type ApplyVolumeLinkDeltaResult,
   applyVolumeLinkDelta,
   syncTranslationLinkSnapshot,
   syncVideoLinkSnapshot,
@@ -97,6 +97,7 @@ import {
   scheduleTranslationRefresh as scheduleTranslationRefreshImpl,
   setupAudioSettings as setupAudioSettingsImpl,
   stopSmartVolumeDucking as stopSmartVolumeDuckingImpl,
+  syncTranslationPlaybackVolume as syncTranslationPlaybackVolumeImpl,
   translateFunc as translateFuncImpl,
   unproxifyAudio as unproxifyAudioImpl,
   updateTranslation as updateTranslationImpl,
@@ -111,13 +112,23 @@ export { getEnvironmentInfo } from "./utils/environment";
 export type { VideoData } from "./videoHandler/shared";
 export { countryCode } from "./videoHandler/shared";
 
-const _RESPONSE_LANG_SET = new Set<string>(availableTTS as readonly string[]);
 const RESOLVED_VOID_PROMISE: Promise<void> = Promise.resolve();
+const TRANSLATION_LOADING_MESSAGES = new Set([
+  "Подготавливаем перевод",
+  "Видео передано в обработку",
+  "Ожидаем перевод видео",
+  "Загружаем переведенное аудио",
+]);
 
 type InternalVideoVolumeSetHistoryEntry = {
   at: number;
   percent: number;
   suppressMs: number;
+};
+
+type DownloadTranslationState = {
+  url: string;
+  videoId: string;
 };
 
 /*─────────────────────────────────────────────────────────────*/
@@ -160,7 +171,7 @@ export class VideoHandler {
    * before the first request resolves.
    */
   subtitlesLoadPromises = new Map<string, Promise<any[]>>();
-  downloadTranslationUrl: string | null = null;
+  downloadTranslation: DownloadTranslationState | null = null;
 
   isRefreshingTranslation = false;
 
@@ -168,6 +179,7 @@ export class VideoHandler {
   // streamPing?: ReturnType<typeof setInterval>;
   votOpts?: Record<string, unknown>;
   volumeOnStart?: number;
+  autoVolumeMutedOnStart?: boolean;
 
   /**
    * syncVolume (link translation and video volume) runtime state.
@@ -192,7 +204,6 @@ export class VideoHandler {
   // Smart auto-volume ducking state. Used to lower the original video volume
   // only while the translated track has audible sound (not during silence).
   smartVolumeDuckingInterval?: ReturnType<typeof setTimeout>;
-  smartVolumeDuckingTarget = 0.2;
   smartVolumeDuckingBaseline?: number;
   smartVolumeLastApplied?: number;
 
@@ -255,10 +266,10 @@ export class VideoHandler {
   private mountCache?: {
     container: HTMLElement;
     base: HTMLElement;
-    root: HTMLElement;
+    root: HTMLElement | ShadowRoot;
     portalContainer: HTMLElement;
-    subtitlesMountContainer: HTMLElement;
-    fullscreenRoot: HTMLElement | null;
+    subtitlesMountContainer: HTMLElement | ShadowRoot;
+    fullscreenRoot: HTMLElement | ShadowRoot | null;
   };
 
   /**
@@ -269,25 +280,25 @@ export class VideoHandler {
   private readonly errorTranslationCache = new Map<string, string>();
 
   /**
+   * Fullscreen helper for proper ShadowDOM support
+   */
+  fullscreenHelper?: FullscreenHelper;
+
+  /**
    * Returns fullscreen root for overlay if the active fullscreen session belongs
    * to the current video/container. Otherwise returns null.
+   * For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
+   * to ensure UI is mounted inside the shadow tree, not in the light DOM.
    */
-  private getFullscreenOverlayRoot(): HTMLElement | null {
-    const doc = document as DocumentWithFullscreen;
-    const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-    return fullscreenEl instanceof HTMLElement &&
-      (fullscreenEl === this.container ||
-        fullscreenEl.contains(this.container) ||
-        this.container.contains(fullscreenEl))
-      ? fullscreenEl
-      : null;
+  private getFullscreenOverlayRoot(): HTMLElement | ShadowRoot | null {
+    return this.fullscreenHelper?.getOverlayRoot() ?? null;
   }
 
   private getOverlayMountPoints(container: HTMLElement = this.container): {
-    root: HTMLElement;
+    root: HTMLElement | ShadowRoot;
     portalContainer: HTMLElement;
-    subtitlesMountContainer: HTMLElement;
-    fullscreenRoot: HTMLElement | null;
+    subtitlesMountContainer: HTMLElement | ShadowRoot;
+    fullscreenRoot: HTMLElement | ShadowRoot | null;
   } {
     const fullscreenRoot = this.getFullscreenOverlayRoot();
     const { base, root, portalContainer, subtitlesMountContainer } =
@@ -517,6 +528,15 @@ export class VideoHandler {
     );
     this.translationHandler = new VOTTranslationHandler(this);
     this.videoManager = new VOTVideoManager(this);
+
+    this.fullscreenHelper = new FullscreenHelper({
+      container: this.container,
+      video: this.video,
+    });
+
+    this.fullscreenHelper.addFullscreenChangeListener(() => {
+      this.refreshOverlayMount();
+    });
   }
 
   /**
@@ -586,7 +606,8 @@ export class VideoHandler {
    * that disable pointer events on inner layers.
    */
   get uiRoot(): HTMLElement {
-    return this.getOverlayMountPoints().root;
+    const root = this.getOverlayMountPoints().root;
+    return root instanceof ShadowRoot ? (root.host as HTMLElement) : root;
   }
 
   /**
@@ -661,6 +682,7 @@ export class VideoHandler {
    */
   createPlayer() {
     const preferAudio = this.getPreferAudio();
+    const audioContext = this.getAudioContext();
     debug.log("preferAudio:", preferAudio);
     this.audioPlayer = new Chaimu({
       video: this.video,
@@ -672,6 +694,9 @@ export class VideoHandler {
       },
       preferAudio,
     });
+    if (preferAudio && audioContext) {
+      (this.audioPlayer as any).audioContext = audioContext;
+    }
     return this;
   }
 
@@ -683,23 +708,14 @@ export class VideoHandler {
     const now = Date.now();
     const history = this.internalVideoVolumeSetHistory;
     if (history.length > 0) {
-      let writeIndex = 0;
-      let matchFound = false;
-
-      for (const entry of history) {
-        if (now - entry.at > entry.suppressMs) {
-          continue;
-        }
-
-        history[writeIndex++] = entry;
-        // Allow a 1% tolerance to account for hosts that quantize volume.
-        if (!matchFound && Math.abs(observedPercent - entry.percent) <= 1) {
-          matchFound = true;
-        }
-      }
-
-      history.length = writeIndex;
-      return matchFound;
+      const recentHistory = history.filter(
+        (entry) => now - entry.at <= entry.suppressMs,
+      );
+      history.splice(0, history.length, ...recentHistory);
+      // Allow a 1% tolerance to account for hosts that quantize volume.
+      return recentHistory.some(
+        (entry) => Math.abs(observedPercent - entry.percent) <= 1,
+      );
     }
 
     if (this.internalVideoVolumeSetPercent === null) return false;
@@ -708,20 +724,6 @@ export class VideoHandler {
     if (ageMs > this.internalVideoVolumeSuppressionMs) return false;
 
     return Math.abs(observedPercent - this.internalVideoVolumeSetPercent) <= 1;
-  }
-
-  private callModule<TArgs extends unknown[], TResult>(
-    impl: (this: VideoHandler, ...args: TArgs) => TResult,
-    ...args: TArgs
-  ): TResult {
-    return impl.call(this, ...args);
-  }
-
-  private callModuleAsync<TArgs extends unknown[], TResult>(
-    impl: (this: VideoHandler, ...args: TArgs) => Promise<TResult>,
-    ...args: TArgs
-  ): Promise<TResult> {
-    return impl.call(this, ...args);
   }
 
   /**
@@ -807,7 +809,7 @@ export class VideoHandler {
    * Initializes extra event listeners (resize, click outside, keydown, etc.).
    */
   initExtraEvents() {
-    return this.callModule(initExtraEventsImpl);
+    return initExtraEventsImpl.call(this);
   }
 
   /**
@@ -818,6 +820,12 @@ export class VideoHandler {
    */
   refreshOverlayMount(): void {
     this.mountCache = undefined;
+
+    if (this.fullscreenHelper) {
+      this.fullscreenHelper.updateContainer(this.container);
+      this.fullscreenHelper.updateVideo(this.video);
+    }
+
     const nextMount = this.getOverlayMount(this.container);
     const mountChanged = !isSameOverlayMount(this.uiManager.mount, nextMount);
     this.uiManager.updateMount(nextMount);
@@ -838,19 +846,17 @@ export class VideoHandler {
   /**
    * Called when the video can play.
    */
-  setCanPlay() {
-    return this.lifecycleController.setCanPlay();
-  }
+  setCanPlay = () => this.lifecycleController.setCanPlay();
 
   isOverlayInteractiveNode(node: unknown): boolean {
-    return this.callModule(isOverlayInteractiveNodeImpl, node);
+    return isOverlayInteractiveNodeImpl.call(this, node);
   }
 
   /**
    * Schedules hiding the overlay button with guard checks for internal navigation.
    */
   getAutoHideDelay(): number {
-    return this.callModule(getAutoHideDelayImpl);
+    return getAutoHideDelayImpl.call(this);
   }
 
   /**
@@ -882,7 +888,7 @@ export class VideoHandler {
    * then falls back to any captions in the target language.
    */
   enableSubtitlesForCurrentLangPair() {
-    return this.callModuleAsync(enableSubtitlesForCurrentLangPairImpl);
+    return enableSubtitlesForCurrentLangPairImpl.call(this);
   }
 
   /**
@@ -890,7 +896,7 @@ export class VideoHandler {
    * but only when auto-subtitles are enabled.
    */
   refreshAutoSubtitlesForCurrentLangPair() {
-    return this.callModuleAsync(refreshAutoSubtitlesForCurrentLangPairImpl);
+    return refreshAutoSubtitlesForCurrentLangPairImpl.call(this);
   }
 
   /**
@@ -901,7 +907,7 @@ export class VideoHandler {
    *   current language pair.
    */
   toggleSubtitlesForCurrentLangPair() {
-    return this.callModuleAsync(toggleSubtitlesForCurrentLangPairImpl);
+    return toggleSubtitlesForCurrentLangPairImpl.call(this);
   }
 
   getRequestLangForTranslation(
@@ -946,9 +952,7 @@ export class VideoHandler {
    * Gets the video volume.
    * @returns {number} The video volume (0.0 - 1.0).
    */
-  getVideoVolume() {
-    return this.videoManager.getVideoVolume();
-  }
+  getVideoVolume = () => this.videoManager.getVideoVolume();
 
   /**
    * Sets the video volume.
@@ -957,7 +961,10 @@ export class VideoHandler {
    */
   setVideoVolume(
     volume: number,
-    options: { suppressSyncMs?: number } = {},
+    options: {
+      preserveYoutubeVolumeStorage?: boolean;
+      suppressSyncMs?: number;
+    } = {},
   ): this {
     const snapped = snapVolume01(volume);
     const suppressSyncMs =
@@ -978,18 +985,28 @@ export class VideoHandler {
       percent,
       suppressMs: suppressSyncMs,
     });
-    if (
-      this.internalVideoVolumeSetHistory.length >
-      this.internalVideoVolumeSetHistoryLimit
-    ) {
-      this.internalVideoVolumeSetHistory.splice(
+    this.internalVideoVolumeSetHistory.splice(
+      0,
+      Math.max(
         0,
         this.internalVideoVolumeSetHistory.length -
           this.internalVideoVolumeSetHistoryLimit,
-      );
-    }
+      ),
+    );
 
-    this.videoManager.setVideoVolume(snapped);
+    this.videoManager.setVideoVolume(snapped, {
+      preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage,
+    });
+    return this;
+  }
+
+  setVideoMuted(
+    muted: boolean,
+    options: { preserveYoutubeVolumeStorage?: boolean } = {},
+  ): this {
+    this.videoManager.setVideoMuted(muted, {
+      preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage,
+    });
     return this;
   }
 
@@ -1025,11 +1042,6 @@ export class VideoHandler {
    * temporarily disabled, so re-enabling link mode does not apply stale deltas.
    */
   onTranslationVolumeSliderSynced(volumePercent: number) {
-    if (!this.volumeLinkState.initialized) {
-      syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
-      return;
-    }
-
     syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
   }
 
@@ -1053,28 +1065,24 @@ export class VideoHandler {
    * Checks if the video is muted.
    * @returns {boolean} True if muted.
    */
-  isMuted() {
-    return this.videoManager.isMuted();
-  }
+  isMuted = () => this.videoManager.isMuted();
 
   /**
    * Syncs the video volume slider.
    */
-  syncVideoVolumeSlider() {
-    this.videoManager.syncVideoVolumeSlider();
-  }
+  syncVideoVolumeSlider = () => this.videoManager.syncVideoVolumeSlider();
 
   /**
    * Sets language select menu values.
    * @param {string} from Source language.
    * @param {string} to Target language.
    */
-  setSelectMenuValues(from: string, to: string): void {
+  setSelectMenuValues = (from: string, to: string): void => {
     this.videoManager.setSelectMenuValues(
       from as RequestLang,
       to as ResponseLang,
     );
-  }
+  };
 
   /**
    * Keeps translation and video sliders linked (syncVolume option).
@@ -1086,19 +1094,20 @@ export class VideoHandler {
   syncVolumeWrapper(
     fromType: "translation" | "video",
     newVolume: number,
-  ): void {
+  ): ApplyVolumeLinkDeltaResult | undefined {
     const overlayView = this.uiManager.votOverlayView;
     if (!overlayView?.isInitialized()) {
-      return;
+      return undefined;
     }
 
     const videoSlider = overlayView.videoVolumeSlider;
     const translationSlider = overlayView.translationVolumeSlider;
 
     if (!videoSlider || !translationSlider) {
-      return;
+      return undefined;
     }
-    const { nextVideo, nextTranslation } = applyVolumeLinkDelta({
+
+    const result = applyVolumeLinkDelta({
       state: this.volumeLinkState,
       fromType,
       newVolume,
@@ -1108,35 +1117,32 @@ export class VideoHandler {
       translationMax: translationSlider.max,
     });
 
+    const { nextVideo, nextTranslation } = result;
+
     if (typeof nextTranslation === "number") {
       translationSlider.value = nextTranslation;
-      if (this.audioPlayer?.player) {
-        this.audioPlayer.player.volume = nextTranslation / 100;
-      }
-      return;
+      return result;
     }
 
     if (typeof nextVideo === "number") {
       videoSlider.value = nextVideo;
       this.setVideoVolume(nextVideo / 100);
     }
+
+    return result;
   }
 
   /**
    * Retrieves video data.
    * @returns {Promise<Object>} The video data object.
    */
-  getVideoData() {
-    return this.videoManager.getVideoData();
-  }
+  getVideoData = () => this.videoManager.getVideoData();
 
   /**
    * Validates the video.
    * @returns {Promise<boolean>} True if valid.
    */
-  videoValidator() {
-    return this.videoManager.videoValidator();
-  }
+  videoValidator = () => this.videoManager.videoValidator();
 
   /**
    * Stops translation and resets UI elements.
@@ -1160,17 +1166,15 @@ export class VideoHandler {
       this.activeTranslation = null;
       const overlayView = this.uiManager.votOverlayView;
       if (overlayView) {
-        if (overlayView.videoVolumeSlider) {
-          overlayView.videoVolumeSlider.hidden = true;
-        }
-        if (overlayView.translationVolumeSlider) {
-          overlayView.translationVolumeSlider.hidden = true;
-        }
-        if (overlayView.downloadTranslationButton) {
-          overlayView.downloadTranslationButton.hidden = true;
+        for (const control of [
+          overlayView.videoVolumeSlider,
+          overlayView.translationVolumeSlider,
+          overlayView.downloadTranslationButton,
+        ]) {
+          if (control) control.hidden = true;
         }
       }
-      this.downloadTranslationUrl = null;
+      this.downloadTranslation = null;
       this.longWaitingResCount = 0;
       this.hadAsyncWait = false;
       this.transformBtn("none", localizationProvider.get("translateVideo"));
@@ -1185,6 +1189,7 @@ export class VideoHandler {
 
       stopSmartVolumeDuckingImpl(this, { restoreVolume });
       this.volumeOnStart = undefined;
+      this.autoVolumeMutedOnStart = undefined;
       if (this.autoRetry !== undefined) {
         clearTimeout(this.autoRetry);
         this.autoRetry = undefined;
@@ -1243,14 +1248,7 @@ export class VideoHandler {
     if (signal?.aborted) {
       return;
     }
-    if (
-      [
-        "Подготавливаем перевод",
-        "Видео передано в обработку",
-        "Ожидаем перевод видео",
-        "Загружаем переведенное аудио",
-      ].includes(errorMessage)
-    ) {
+    if (TRANSLATION_LOADING_MESSAGES.has(errorMessage)) {
       if (this.uiManager.votOverlayView?.votButton) {
         this.uiManager.votOverlayView.votButton.loading = true;
       }
@@ -1362,13 +1360,10 @@ export class VideoHandler {
 
     // Re-initialize delta-based syncVolume state when translation becomes active.
     if (overlayView.videoVolumeSlider && overlayView.translationVolumeSlider) {
-      this.volumeLinkState.lastVideoPercent = Number(
-        overlayView.videoVolumeSlider.value,
+      this.resetVolumeLinkState(
+        Number(overlayView.videoVolumeSlider.value),
+        Number(overlayView.translationVolumeSlider.value),
       );
-      this.volumeLinkState.lastTranslationPercent = Number(
-        overlayView.translationVolumeSlider.value,
-      );
-      this.volumeLinkState.initialized = true;
     } else {
       this.volumeLinkState.initialized = false;
     }
@@ -1377,12 +1372,16 @@ export class VideoHandler {
       if (overlayView.downloadTranslationButton) {
         overlayView.downloadTranslationButton.hidden = false;
       }
-      this.downloadTranslationUrl = audioUrl;
+      this.downloadTranslation = {
+        url: audioUrl,
+        videoId: this.videoData.videoId,
+      };
     }
     debug.log(
-      "afterUpdateTranslation downloadTranslationUrl",
-      this.downloadTranslationUrl,
+      "afterUpdateTranslation downloadTranslation",
+      this.downloadTranslation,
     );
+    this.syncTranslationPlaybackVolume();
     if (this.data?.sendNotifyOnComplete && this.hadAsyncWait && isSuccess) {
       this.notifier.translationCompleted(globalThis.location.hostname);
       this.hadAsyncWait = false;
@@ -1390,19 +1389,20 @@ export class VideoHandler {
   }
 
   /**
-   * Validates the audio URL by sending a request.
-   * @param {string} audioUrl The audio URL to validate.
-   * @returns {Promise<string>} The valid audio URL.
+   * Keeps the historical async hook for audio URL preparation.
+   * Playback errors are handled by the native audio player path.
+   * @param {string} audioUrl The audio URL.
+   * @returns {Promise<string>} The prepared audio URL.
    */
   validateAudioUrl(
     audioUrl: string,
     actionContext?: { gen: number; videoId: string },
   ): Promise<string> {
-    return this.callModuleAsync(validateAudioUrlImpl, audioUrl, actionContext);
+    return validateAudioUrlImpl.call(this, audioUrl, actionContext);
   }
 
   scheduleTranslationRefresh(): void {
-    this.callModule(scheduleTranslationRefreshImpl);
+    scheduleTranslationRefreshImpl.call(this);
   }
 
   refreshTranslationAudio = refreshTranslationAudioImpl;
@@ -1413,7 +1413,7 @@ export class VideoHandler {
    * @returns {string} The proxified audio URL.
    */
   proxifyAudio(audioUrl: string): string {
-    return this.callModule(proxifyAudioImpl, audioUrl);
+    return proxifyAudioImpl.call(this, audioUrl);
   }
 
   /**
@@ -1424,7 +1424,7 @@ export class VideoHandler {
    * src.
    */
   unproxifyAudio(audioUrl: string): string {
-    return this.callModule(unproxifyAudioImpl, audioUrl);
+    return unproxifyAudioImpl.call(this, audioUrl);
   }
 
   /**
@@ -1438,7 +1438,7 @@ export class VideoHandler {
   handleProxySettingsChanged = handleProxySettingsChangedImpl;
 
   isMultiMethodS3(url: string): boolean {
-    return this.callModule(isMultiMethodS3Impl, url);
+    return isMultiMethodS3Impl.call(this, url);
   }
 
   /**
@@ -1446,6 +1446,10 @@ export class VideoHandler {
    * @param {string} audioUrl The audio URL.
    */
   updateTranslation = updateTranslationImpl;
+
+  syncTranslationPlaybackVolume() {
+    return syncTranslationPlaybackVolumeImpl.call(this);
+  }
 
   /**
    * Translates the video/audio.
@@ -1476,18 +1480,18 @@ export class VideoHandler {
    * used for enable audio downloader on this hosts
    */
   isYouTubeHosts() {
-    return this.callModule(isYouTubeHostsImpl);
+    return isYouTubeHostsImpl.call(this);
   }
 
   /**
    * Configures audio settings such as volume.
    */
   setupAudioSettings() {
-    return this.callModule(setupAudioSettingsImpl);
+    return setupAudioSettingsImpl.call(this);
   }
 
   applyManualVideoVolumeOverride(volume: number) {
-    return this.callModule(applyManualVideoVolumeOverrideImpl, volume);
+    return applyManualVideoVolumeOverrideImpl.call(this, volume);
   }
 
   /**
@@ -1503,9 +1507,7 @@ export class VideoHandler {
   /**
    * Handles video source change events.
    */
-  handleSrcChanged() {
-    return this.lifecycleController.handleSrcChanged();
-  }
+  handleSrcChanged = () => this.lifecycleController.handleSrcChanged();
 
   /**
    * Releases resources and removes event listeners.
@@ -1521,6 +1523,10 @@ export class VideoHandler {
     this.lifecycleController?.teardown();
     this.abortController?.abort();
     this.abortController = new AbortController();
+
+    this.fullscreenHelper?.destroy();
+    this.fullscreenHelper = undefined;
+
     this.overlayVisibility?.release();
     this.releaseExtraEvents();
     if (this.hasSubtitlesWidget()) {
@@ -1590,18 +1596,14 @@ function logBootstrap(
   const payload: Record<string, unknown> = {
     host: ctx.host,
     path: ctx.path,
+    ...details,
   };
-  if (details) {
-    Object.assign(payload, details);
-  }
 
-  console.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
+  debug.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
 }
 
 function getServicesCached(): ServiceConf[] {
-  if (!servicesCache) {
-    servicesCache = getService();
-  }
+  servicesCache ??= getService();
   return servicesCache;
 }
 

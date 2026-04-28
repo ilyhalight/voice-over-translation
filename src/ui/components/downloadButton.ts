@@ -1,12 +1,7 @@
 import { EventImpl } from "../../core/eventImpl";
 import UI from "../../ui";
+import { clampPercentInt } from "../../utils/volume";
 import { DOWNLOAD_ICON } from "../icons";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setHiddenState,
-} from "./componentShared";
 
 export default class DownloadButton {
   button: HTMLElement;
@@ -14,9 +9,6 @@ export default class DownloadButton {
   loaderCircle: SVGCircleElement;
 
   private readonly onClick = new EventImpl();
-  private readonly events = {
-    click: this.onClick,
-  };
   private _progress = 0;
 
   constructor() {
@@ -49,13 +41,13 @@ export default class DownloadButton {
   }
 
   addEventListener(_type: "click", listener: () => void): this {
-    addComponentEventListener(this.events, "click", listener);
+    this.onClick.addListener(listener);
 
     return this;
   }
 
   removeEventListener(_type: "click", listener: () => void): this {
-    removeComponentEventListener(this.events, "click", listener);
+    this.onClick.removeListener(listener);
 
     return this;
   }
@@ -83,11 +75,11 @@ export default class DownloadButton {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.button, isHidden);
+    this.button.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.button);
+    return this.button.hidden;
   }
 }
 
@@ -97,5 +89,5 @@ function clampProgress(value: number): number {
   // `1` is ambiguous (could mean 1% or 100%). Our download code reports
   // integer percentages, so `1` should be treated as 1%.
   const asPercent = value < 1 ? value * 100 : value;
-  return Math.max(0, Math.min(100, Math.round(asPercent)));
+  return clampPercentInt(asPercent);
 }

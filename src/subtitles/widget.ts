@@ -106,7 +106,7 @@ function applyWrapWidthGuard(maxWidthPx: number): number {
 }
 export class SubtitlesWidget {
   private readonly video?: HTMLVideoElement;
-  private container: HTMLElement;
+  private container: HTMLElement | ShadowRoot;
   private readonly fullscreenLayerController: FullscreenLayerController;
   private tooltipMount?: ShadowMount;
   private subtitlesContainer: HTMLElement | null = null;
@@ -140,7 +140,7 @@ export class SubtitlesWidget {
   private readonly useVideoFrameCallbacks: boolean;
   private videoFrameRequestId: number | null = null;
   private lastPlaybackTimeMs: number | null = null;
-  private dragDocListenersAttached = false;
+  private dragAbortController: AbortController | null = null;
   private lastPositionRefreshTs = 0;
   private readonly positionRefreshIntervalMs = 250;
   private subtitleMaxWidthPx = 0;
@@ -222,7 +222,7 @@ export class SubtitlesWidget {
   private readonly onVisualViewportChangeBound: () => void;
   constructor(
     video: HTMLVideoElement | undefined,
-    container: HTMLElement,
+    container: HTMLElement | ShadowRoot,
     intervalIdleChecker: IntervalIdleChecker,
   ) {
     this.video = video;
@@ -244,7 +244,11 @@ export class SubtitlesWidget {
     });
     this.bindEvents();
   }
-  public updateMount({ container }: { container: HTMLElement }): void {
+  public updateMount({
+    container,
+  }: {
+    container: HTMLElement | ShadowRoot;
+  }): void {
     const containerChanged = this.container !== container;
 
     this.container = container;
@@ -554,29 +558,25 @@ export class SubtitlesWidget {
   private bindEvents(): void {
     const { signal } = this.abortController;
     const opts = { signal } as AddEventListenerOptions;
-    this.video?.addEventListener("play", this.onPlaybackStateChangeBound, opts);
-    this.video?.addEventListener(
+    for (const eventName of [
+      "play",
       "pause",
-      this.onPlaybackStateChangeBound,
-      opts,
-    );
-    this.video?.addEventListener(
       "seeking",
-      this.onPlaybackStateChangeBound,
-      opts,
-    );
-    this.video?.addEventListener(
       "seeked",
-      this.onPlaybackStateChangeBound,
-      opts,
-    );
-    this.video?.addEventListener(
       "ended",
-      this.onPlaybackStateChangeBound,
-      opts,
-    );
+    ] as const) {
+      this.video?.addEventListener(
+        eventName,
+        this.onPlaybackStateChangeBound,
+        opts,
+      );
+    }
     this.resizeObserver = new ResizeObserver(() => this.onResize());
-    this.resizeObserver.observe(this.container);
+    const resizeTarget =
+      this.container instanceof ShadowRoot
+        ? this.container.host
+        : this.container;
+    this.resizeObserver.observe(resizeTarget);
     if (this.video) this.resizeObserver.observe(this.video);
     globalThis.visualViewport?.addEventListener(
       "resize",
@@ -667,13 +667,15 @@ export class SubtitlesWidget {
     this.videoFrameRequestId = null;
     if (this.abortController.signal.aborted) return;
     const video = this.video;
-    if (!video || video.paused || video.ended) return;
-    if (!this.subtitles) return;
-    const playbackTimeMs =
-      typeof metadata.mediaTime === "number" &&
-      Number.isFinite(metadata.mediaTime)
-        ? metadata.mediaTime * 1000
-        : undefined;
+    if (!video || video.paused || video.ended || !this.subtitles) return;
+
+    const mediaTime = Number.isFinite(metadata.mediaTime)
+      ? metadata.mediaTime
+      : null;
+    const rawTime =
+      mediaTime === 0 && video.currentTime > 0 ? video.currentTime : mediaTime; // #1657
+    const playbackTimeMs = rawTime != null ? rawTime * 1000 : undefined;
+
     this.requestUpdate(playbackTimeMs, now);
     this.startVideoFrameLoop();
   };
@@ -698,21 +700,27 @@ export class SubtitlesWidget {
     }
   }
   private attachDragDocumentListeners(): void {
-    if (this.dragDocListenersAttached) return;
-    this.dragDocListenersAttached = true;
+    if (this.dragAbortController) return;
+    const dragAbortController = new AbortController();
+    const { signal } = dragAbortController;
     document.addEventListener("pointermove", this.onPointerMoveBound, {
+      signal,
       passive: false,
       capture: true,
     });
-    document.addEventListener("pointerup", this.onPointerUpBound, true);
-    document.addEventListener("pointercancel", this.onPointerUpBound, true);
+    document.addEventListener("pointerup", this.onPointerUpBound, {
+      signal,
+      capture: true,
+    });
+    document.addEventListener("pointercancel", this.onPointerUpBound, {
+      signal,
+      capture: true,
+    });
+    this.dragAbortController = dragAbortController;
   }
   private detachDragDocumentListeners(): void {
-    if (!this.dragDocListenersAttached) return;
-    this.dragDocListenersAttached = false;
-    document.removeEventListener("pointermove", this.onPointerMoveBound, true);
-    document.removeEventListener("pointerup", this.onPointerUpBound, true);
-    document.removeEventListener("pointercancel", this.onPointerUpBound, true);
+    this.dragAbortController?.abort();
+    this.dragAbortController = null;
   }
   private onResize(): void {
     this.syncWidgetMount();
@@ -763,9 +771,10 @@ export class SubtitlesWidget {
     this.insetCacheReady = true;
   }
   private isMobileViewport(): boolean {
-    if (typeof globalThis.matchMedia !== "function") return false;
-    return globalThis.matchMedia("(max-width: 900px) and (pointer: coarse)")
-      .matches;
+    return (
+      globalThis.matchMedia?.("(max-width: 900px) and (pointer: coarse)")
+        ?.matches ?? false
+    );
   }
   private getBottomInsetPreset() {
     const doc = document as Document & {
@@ -1456,55 +1465,42 @@ export class SubtitlesWidget {
     this.strTranslatedTokens = context;
     return [context, current];
   }
-  private isTokenSpanElement(el: unknown): el is HTMLSpanElement {
-    return el instanceof HTMLSpanElement && el.dataset.votToken === "1";
-  }
-  private findTokenSpanInPath(
-    path: EventTarget[],
+  private findTokenSpan(
+    candidate: EventTarget | null,
     root: HTMLElement,
   ): HTMLSpanElement | null {
-    for (const node of path) {
-      if (this.isTokenSpanElement(node) && root.contains(node)) {
-        return node;
-      }
-    }
-    return null;
-  }
-  private findTokenSpanByPoint(
-    x: number,
-    y: number,
-    root: HTMLElement,
-  ): HTMLSpanElement | null {
-    const hit = document.elementFromPoint(x, y);
-    if (this.isTokenSpanElement(hit) && root.contains(hit)) {
-      return hit;
-    }
-    if (!(hit instanceof Element)) return null;
-    const closest = hit.closest('span[data-vot-token="1"]');
-    if (closest instanceof HTMLSpanElement && root.contains(closest)) {
-      return closest;
-    }
-    return null;
+    const element =
+      candidate instanceof Element
+        ? candidate
+        : candidate instanceof Text
+          ? candidate.parentElement
+          : null;
+    const token = element?.closest<HTMLSpanElement>('span[data-vot-token="1"]');
+    return token instanceof HTMLSpanElement && root.contains(token)
+      ? token
+      : null;
   }
   private resolveTokenSpanFromClick(event: MouseEvent): HTMLSpanElement | null {
     const root: HTMLElement | null =
       this.subtitlesBlock ?? this.subtitlesContainer;
     if (!root) return null;
-    if (this.isTokenSpanElement(event.target) && root.contains(event.target)) {
-      return event.target;
+    const fromTarget = this.findTokenSpan(event.target, root);
+    if (fromTarget) {
+      return fromTarget;
     }
     const path =
       typeof event.composedPath === "function" ? event.composedPath() : [];
-    const fromPath = this.findTokenSpanInPath(path, root);
-    if (fromPath) {
-      return fromPath;
+    for (const node of path) {
+      const fromPath = this.findTokenSpan(node, root);
+      if (fromPath) {
+        return fromPath;
+      }
     }
     const x = event.clientX;
     const y = event.clientY;
-    if (Number.isFinite(x) && Number.isFinite(y)) {
-      return this.findTokenSpanByPoint(x, y, root);
-    }
-    return null;
+    return Number.isFinite(x) && Number.isFinite(y)
+      ? this.findTokenSpan(document.elementFromPoint(x, y), root)
+      : null;
   }
   releaseTooltip(): this {
     this.tooltipTranslationRequestId += 1;
@@ -1778,14 +1774,6 @@ export class SubtitlesWidget {
     }
     return this.measureCtx;
   }
-  private arraysEqual(a: number[], b: number[]): boolean {
-    if (a === b) return true;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i += 1) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
-  }
   private recomputeWrapNow(): void {
     const tokens = this.lastWrapTokens;
     const block = this.subtitlesBlock;
@@ -1807,10 +1795,12 @@ export class SubtitlesWidget {
       (text) => ctx.measureText(text).width,
       safeMaxWidthPx,
     );
-    const breaksChanged = !this.arraysEqual(
-      next.breakAfterTokenIndices,
-      this.breakAfterTokenIndices,
-    );
+    const breaksChanged =
+      next.breakAfterTokenIndices.length !==
+        this.breakAfterTokenIndices.length ||
+      next.breakAfterTokenIndices.some(
+        (value, index) => value !== this.breakAfterTokenIndices[index],
+      );
     if (breaksChanged) {
       this.setBreakAfterTokenIndices(next.breakAfterTokenIndices);
       this.resetRenderMemo();
@@ -1905,11 +1895,7 @@ export class SubtitlesWidget {
     this.applyOpacityStyle();
   }
   private stringifyTokens(tokens: SubtitleToken[]): string {
-    let out = "";
-    for (const token of tokens) {
-      out += token.text;
-    }
-    return out;
+    return tokens.map((token) => token.text).join("");
   }
   private resolveActiveLine(
     time: number,

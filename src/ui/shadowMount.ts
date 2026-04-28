@@ -1,6 +1,11 @@
 import mainScss from "../styles/main.scss?inline";
 
 type InlineStyleMap = Partial<Record<string, string>>;
+type ElementConfig = {
+  tag: string;
+  classes?: string[];
+  styles?: InlineStyleMap;
+};
 
 export type ShadowMount = {
   host: HTMLElement;
@@ -9,7 +14,7 @@ export type ShadowMount = {
 };
 
 type CreateShadowMountOptions = {
-  parent: HTMLElement;
+  parent: HTMLElement | ShadowRoot;
   hostTag?: string;
   rootTag?: string;
   hostClasses?: string[];
@@ -20,7 +25,8 @@ type CreateShadowMountOptions = {
 };
 
 const shadowScopedCssText = scopeCssForShadowRoots(mainScss);
-let sharedShadowStyleSheet: CSSStyleSheet | null | undefined;
+let sharedShadowStyleSheet: CSSStyleSheet | null = null;
+let sharedShadowStyleSheetReady = false;
 
 function scopeCssForShadowRoots(cssText: string): string {
   return cssText
@@ -31,6 +37,15 @@ function scopeCssForShadowRoots(cssText: string): string {
       /:-webkit-full-screen(?=\s|,)/g,
       ":host-context(:-webkit-full-screen)",
     );
+}
+
+function applyClasses(
+  element: HTMLElement,
+  classes: string[] | undefined,
+): void {
+  if (classes?.length) {
+    element.classList.add(...classes);
+  }
 }
 
 function applyInlineStyles(
@@ -49,18 +64,30 @@ function applyInlineStyles(
   }
 }
 
+function createMountElement({
+  tag,
+  classes = [],
+  styles,
+}: ElementConfig): HTMLElement {
+  const element = document.createElement(tag);
+  applyClasses(element, classes);
+  applyInlineStyles(element, styles);
+  return element;
+}
+
 function getSharedShadowStyleSheet(): CSSStyleSheet | null {
-  if (sharedShadowStyleSheet !== undefined) {
+  if (sharedShadowStyleSheetReady) {
     return sharedShadowStyleSheet;
   }
+
+  sharedShadowStyleSheetReady = true;
 
   const canUseConstructableSheets =
     typeof CSSStyleSheet !== "undefined" &&
     typeof CSSStyleSheet.prototype.replaceSync === "function";
 
   if (!canUseConstructableSheets) {
-    sharedShadowStyleSheet = null;
-    return sharedShadowStyleSheet;
+    return null;
   }
 
   const sheet = new CSSStyleSheet();
@@ -96,11 +123,11 @@ export function createShadowMount({
   rootStyles,
   delegatesFocus = false,
 }: CreateShadowMountOptions): ShadowMount {
-  const host = document.createElement(hostTag);
-  if (hostClasses.length > 0) {
-    host.classList.add(...hostClasses);
-  }
-  applyInlineStyles(host, hostStyles);
+  const host = createMountElement({
+    tag: hostTag,
+    classes: hostClasses,
+    styles: hostStyles,
+  });
 
   const shadowRoot = host.attachShadow({
     mode: "open",
@@ -108,11 +135,11 @@ export function createShadowMount({
   });
   adoptScopedStyles(shadowRoot);
 
-  const root = document.createElement(rootTag);
-  if (rootClasses.length > 0) {
-    root.classList.add(...rootClasses);
-  }
-  applyInlineStyles(root, rootStyles);
+  const root = createMountElement({
+    tag: rootTag,
+    classes: rootClasses,
+    styles: rootStyles,
+  });
   shadowRoot.append(root);
 
   parent.append(host);
@@ -126,13 +153,13 @@ export function createShadowMount({
 
 export function reparentShadowMount(
   mount: ShadowMount | undefined,
-  parent: HTMLElement,
+  parent: HTMLElement | ShadowRoot,
 ): void {
   if (!mount) {
     return;
   }
 
-  if (mount.host.parentElement !== parent) {
+  if (mount.host.parentNode !== parent) {
     parent.append(mount.host);
   }
 }

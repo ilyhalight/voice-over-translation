@@ -1,12 +1,6 @@
 import { EventImpl } from "../../core/eventImpl";
 import type { TextfieldProps } from "../../types/components/textfield";
 import UI from "../../ui";
-import {
-  addComponentEventListener,
-  getHiddenState,
-  removeComponentEventListener,
-  setHiddenState,
-} from "./componentShared";
 
 export default class Textfield {
   container: HTMLElement;
@@ -77,7 +71,7 @@ export default class Textfield {
     type: "input" | "change",
     listener: (value: string) => void,
   ): this {
-    addComponentEventListener(this.events, type, listener);
+    this.events[type].addListener(listener);
 
     return this;
   }
@@ -86,7 +80,7 @@ export default class Textfield {
     type: "input" | "change",
     listener: (value: string) => void,
   ): this {
-    removeComponentEventListener(this.events, type, listener);
+    this.events[type].removeListener(listener);
 
     return this;
   }
@@ -124,10 +118,10 @@ export default class Textfield {
   }
 
   set hidden(isHidden: boolean) {
-    setHiddenState(this.container, isHidden);
+    this.container.hidden = isHidden;
   }
 
   get hidden() {
-    return getHiddenState(this.container);
+    return this.container.hidden;
   }
 }
