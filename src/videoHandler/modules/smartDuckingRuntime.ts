@@ -381,8 +381,8 @@ function getTranslatedAudioRms(
       analyser.getFloatTimeDomainData(floatData);
 
       let sum = 0;
-      for (const value of floatData) {
-        sum += value * value;
+      for (let i = 0; i < floatData.length; i++) {
+        sum += floatData[i] * floatData[i];
       }
       return clamp(Math.sqrt(sum / floatData.length), 0, 1);
     }
@@ -396,8 +396,8 @@ function getTranslatedAudioRms(
     analyser.getByteTimeDomainData(data);
 
     let sum = 0;
-    for (const rawValue of data) {
-      const normalizedValue = (rawValue - 128) / 128;
+    for (let i = 0; i < data.length; i++) {
+      const normalizedValue = (data[i] - 128) / 128;
       sum += normalizedValue * normalizedValue;
     }
     return clamp(Math.sqrt(sum / data.length), 0, 1);
