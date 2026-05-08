@@ -225,6 +225,7 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
         continue;
       }
       hasVolumeMutation = true;
+      break;
     }
     if (!hasVolumeMutation) return;
     self.syncVideoVolumeSlider();
