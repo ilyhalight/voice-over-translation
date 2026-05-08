@@ -176,7 +176,7 @@ async function shouldRetryAudioProbe(
   signal: AbortSignal,
 ): Promise<boolean> {
   if (attempt >= AUDIO_PROBE_MAX_ATTEMPTS) {
-    return true;
+    return false;
   }
   if (isProbeCancelled(handler, actionContext, signal)) {
     return false;
