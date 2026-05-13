@@ -85,12 +85,8 @@ export class OverlayVisibilityController {
     if (type.startsWith("pointer")) {
       this.cancel();
       this.show();
-      this.deps.checker.markActivity("overlay-interaction");
       event.stopPropagation?.();
-      return;
     }
-
-    this.handleHostInteraction(event);
   }
 
   /**
@@ -106,14 +102,28 @@ export class OverlayVisibilityController {
     }
 
     if (type.startsWith("pointer")) {
-      const target = (event as PointerEvent).target;
+      const target =
+        event.composedPath?.()[0] ?? (event as PointerEvent).target;
       if (this.deps.isInteractiveNode(target)) {
         event.stopPropagation?.();
+        this.cancel();
+        this.show();
+        return;
       }
       this.deps.checker.markActivity("overlay-host-pointer");
     }
 
     this.queueAutoHide();
+  }
+
+  /**
+   * Hides overlay immediately without delay.
+   */
+  hide(): void {
+    this.hideArmed = false;
+    this.hideDeadlineMs = 0;
+    const view = this.getView();
+    view?.updateButtonOpacity(0);
   }
 
   /**
@@ -124,26 +134,36 @@ export class OverlayVisibilityController {
       return;
     }
 
-    const currentTarget = event?.currentTarget;
-    let relatedTarget: EventTarget | null =
-      (event as unknown as { relatedTarget?: EventTarget | null })
-        ?.relatedTarget ?? null;
+    // For pointerleave, hide immediately without delay
+    if (event?.type === "pointerleave") {
+      const pointerType = (event as PointerEvent).pointerType;
+      if (pointerType === "touch") {
+        this.queueAutoHide();
+        return;
+      }
 
-    if (!relatedTarget && typeof event?.composedPath === "function") {
-      // Some ambient typings (e.g. Bun/Node) can describe composedPath as a
-      // tuple, which makes destructuring brittle. Treat it as an array.
-      const path = event.composedPath() as unknown as EventTarget[];
-      relatedTarget = path[1] ?? null;
-    }
+      const currentTarget = event?.currentTarget;
+      let relatedTarget: EventTarget | null =
+        (event as unknown as { relatedTarget?: EventTarget | null })
+          ?.relatedTarget ?? null;
 
-    const relatedNode = relatedTarget instanceof Node ? relatedTarget : null;
-    const currentNode = currentTarget instanceof Node ? currentTarget : null;
+      if (!relatedTarget && typeof event?.composedPath === "function") {
+        const path = event.composedPath() as unknown as EventTarget[];
+        relatedTarget = path[1] ?? null;
+      }
 
-    if (
-      relatedNode &&
-      ((currentNode && containsCrossShadow(currentNode, relatedNode)) ||
-        this.deps.isInteractiveNode(relatedNode))
-    ) {
+      const relatedNode = relatedTarget instanceof Node ? relatedTarget : null;
+      const currentNode = currentTarget instanceof Node ? currentTarget : null;
+
+      if (
+        relatedNode &&
+        ((currentNode && containsCrossShadow(currentNode, relatedNode)) ||
+          this.deps.isInteractiveNode(relatedNode))
+      ) {
+        return;
+      }
+
+      this.hide();
       return;
     }
 

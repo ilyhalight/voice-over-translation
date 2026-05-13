@@ -39,5 +39,4 @@ export type TooltipOpts = {
    */
   bordered?: boolean;
   parentElement?: HTMLElement;
-  layoutRoot?: HTMLElement;
 };

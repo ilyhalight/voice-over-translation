@@ -154,17 +154,8 @@ export class OverlayView {
       return this;
     }
 
-    if (prevRoot !== nextRoot) {
-      if (this.overlayMount) {
-        reparentShadowMount(this.overlayMount, nextRoot);
-      } else {
-        if (this.votButton) {
-          nextRoot.appendChild(this.votButton.container);
-        }
-        if (this.votMenu) {
-          nextRoot.appendChild(this.votMenu.container);
-        }
-      }
+    if (prevRoot !== nextRoot && this.overlayMount) {
+      reparentShadowMount(this.overlayMount, nextRoot);
     }
 
     if (this.votButtonTooltip && prevRoot !== nextRoot) {
@@ -330,7 +321,6 @@ export class OverlayView {
         this.root instanceof ShadowRoot
           ? (this.root.host as HTMLElement)
           : this.root,
-      layoutRoot: this.overlayMount.host,
     });
 
     // #endregion VOT Button
@@ -571,8 +561,7 @@ export class OverlayView {
       { signal },
     );
 
-    // don't change mousedown, otherwise it may break on youtube
-    for (const event of ["pointerdown", "mousedown"]) {
+    for (const event of ["pointerdown"]) {
       this.votMenu.container.addEventListener(
         event,
         (e) => {

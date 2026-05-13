@@ -3,7 +3,7 @@
 // Build-time globals injected by Vite define config.
 const DEBUG_MODE: boolean;
 /**
- * Defined only in the extension build (see vite.extension.config.ts).
+ * Defined only in the extension build (see vite/vite.extension.config.ts).
  * Use `typeof IS_EXTENSION !== "undefined"` checks before reading.
  */
 const IS_EXTENSION: boolean;

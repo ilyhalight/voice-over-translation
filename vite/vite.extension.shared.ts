@@ -1155,7 +1155,6 @@ async function buildBrowserArtifacts({
     backgroundDst: "background.js",
   });
   await writeManifest(outDir, buildManifest({ headers, includeWorld }));
-
   const packagePath = path.join(
     outBase,
     `${artifactPrefix}-${version}${fileExtension}`,

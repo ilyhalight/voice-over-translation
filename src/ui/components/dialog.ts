@@ -92,7 +92,8 @@ export default class Dialog {
       ariaLabel: "Close",
     });
     closeButton.classList.add("vot-dialog-close-button");
-    backdrop.addEventListener("click", () => {
+    backdrop.addEventListener("click", (e) => {
+      e.stopPropagation();
       this.close();
     });
     closeButton.addEventListener("click", () => {

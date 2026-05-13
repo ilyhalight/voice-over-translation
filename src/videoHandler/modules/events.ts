@@ -564,8 +564,10 @@ export function rebindOverlayVisibilityTargets(this: VideoHandler) {
   this.overlayVisibilityTargetsAbortController?.abort();
   this.overlayVisibilityTargetsAbortController = new AbortController();
   const { signal } = this.overlayVisibilityTargetsAbortController;
-  const overlayButton = this.uiManager?.votOverlayView?.votButton?.container;
-  const overlayMenu = this.uiManager?.votOverlayView?.votMenu?.container;
+  const overlayView = this.uiManager?.votOverlayView;
+  const overlayButton = overlayView?.votButton?.container;
+  const overlayMenu = overlayView?.votMenu?.container;
+
   if (!overlayButton || !overlayMenu || !this.overlayVisibility) return;
   const overlayVisibility = this.overlayVisibility;
   const { addMany } = createScopedListeners(signal);

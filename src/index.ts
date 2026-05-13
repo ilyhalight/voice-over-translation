@@ -623,7 +623,13 @@ export class VideoHandler {
    * @returns {HTMLElement} The event container.
    */
   getEventContainer() {
-    if (!this.site.eventSelector) return this.container;
+    if (!this.site.eventSelector) {
+      const { width: cW, height: cH } = this.container.getBoundingClientRect();
+      const { width: vW, height: vH } = this.video.getBoundingClientRect();
+
+      if (cW < vW || cH < vH) return this.video;
+      return this.container;
+    }
     return (
       (document.querySelector(this.site.eventSelector) as HTMLElement | null) ??
       this.container

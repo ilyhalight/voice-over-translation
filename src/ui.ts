@@ -30,7 +30,7 @@ function initKeyboardNavigationMode(): void {
   );
 
   // Any pointer interaction switches back to pointer mode.
-  for (const evt of ["pointerdown", "mousedown", "touchstart"] as const) {
+  for (const evt of ["pointerdown", "touchstart"] as const) {
     globalThis.addEventListener(evt, disable, {
       capture: true,
       passive: true,

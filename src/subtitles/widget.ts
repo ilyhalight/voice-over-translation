@@ -260,7 +260,6 @@ export class SubtitlesWidget {
       const parentElement = this.getTokenTooltipParentElement();
       this.tokenTooltip?.updateMount({
         parentElement,
-        layoutRoot: this.tooltipMount?.host,
       });
     }
 
@@ -555,6 +554,15 @@ export class SubtitlesWidget {
     this.updateContainerRect();
     return container;
   }
+  private onGlobalPointerDown = (event: PointerEvent): void => {
+    if (
+      this.subtitlesContainer &&
+      !this.subtitlesContainer.contains(event.target as Node)
+    ) {
+      this.releaseTooltip();
+    }
+  };
+
   private bindEvents(): void {
     const { signal } = this.abortController;
     const opts = { signal } as AddEventListenerOptions;
@@ -588,6 +596,7 @@ export class SubtitlesWidget {
       this.onVisualViewportChangeBound,
       opts,
     );
+    globalThis.addEventListener("pointerdown", this.onGlobalPointerDown);
   }
   private getUpdateMinIntervalMs(): number {
     return this.highlightWords
@@ -1480,7 +1489,9 @@ export class SubtitlesWidget {
       ? token
       : null;
   }
-  private resolveTokenSpanFromClick(event: MouseEvent): HTMLSpanElement | null {
+  private resolveTokenSpanFromClick(
+    event: PointerEvent,
+  ): HTMLSpanElement | null {
     const root: HTMLElement | null =
       this.subtitlesBlock ?? this.subtitlesContainer;
     if (!root) return null;
@@ -1548,14 +1559,17 @@ export class SubtitlesWidget {
       render(null, this.subtitlesContainer);
     }
   }
-  onClick = async (event: MouseEvent): Promise<void> => {
+  onClick = async (event: PointerEvent): Promise<void> => {
     if (performance.now() < this.suppressTokenClicksUntil) {
       event.preventDefault();
       event.stopPropagation();
       return;
     }
     const target = this.resolveTokenSpanFromClick(event);
-    if (!target) return;
+    if (!target) {
+      this.releaseTooltip();
+      return;
+    }
     if (this.toggleCurrentTooltipTarget(target)) {
       return;
     }
@@ -1578,7 +1592,7 @@ export class SubtitlesWidget {
     );
     const tooltip = this.createTokenTooltip(target, subtitlesInfo.container);
     this.tokenTooltip = tooltip;
-    tooltip.onClick();
+    tooltip.create();
     const strTokens = this.strTokens;
     const translated = await this.translateStrTokens(text);
     if (requestId !== this.tooltipTranslationRequestId) return;
@@ -1618,7 +1632,6 @@ export class SubtitlesWidget {
       anchor: this.subtitlesBlock ?? target,
       content,
       parentElement: tooltipMount.root,
-      layoutRoot: tooltipMount.host,
       offset: { x: 4, y: 12 },
       maxWidth: tooltipMaxWidth,
       borderRadius: 12,

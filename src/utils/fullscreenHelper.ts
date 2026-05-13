@@ -128,14 +128,17 @@ export class FullscreenHelper {
   isBigContainer(threshold: number = 550): boolean {
     const target = this.getResizeObserverTarget();
     const rect = target.getBoundingClientRect();
+    const videoRect = this.video?.getBoundingClientRect();
 
-    // Try width from rect first (most reliable)
-    if (rect.width > 0) {
-      return rect.width > threshold;
-    }
+    // Use video rect if available and smaller than container
+    const width =
+      videoRect && videoRect.width < rect.width
+        ? videoRect.width
+        : rect.width > 0
+          ? rect.width
+          : target.clientWidth;
 
-    // Fallback to clientWidth
-    return target.clientWidth > threshold;
+    return width > threshold;
   }
 
   /**
