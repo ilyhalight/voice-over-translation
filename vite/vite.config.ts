@@ -9,7 +9,7 @@ import {
 } from "@vot.js/shared/alternativeUrls";
 import ts from "typescript";
 import { defineConfig } from "vite";
-import { contentUrl, repositoryUrl } from "./src/config/config";
+import { contentUrl, repositoryUrl } from "../src/config/config";
 import {
   createViteConfig,
   defineConstants,

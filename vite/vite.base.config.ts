@@ -11,7 +11,7 @@ type DefineValue =
   | readonly DefineValue[]
   | { readonly [key: string]: DefineValue };
 
-export const rootDir = fileURLToPath(new URL(".", import.meta.url));
+export const rootDir = fileURLToPath(new URL("..", import.meta.url));
 export const srcDir = path.resolve(rootDir, "src");
 export const distDir = path.resolve(rootDir, "dist");
 export const testsDir = path.resolve(rootDir, "tests");
