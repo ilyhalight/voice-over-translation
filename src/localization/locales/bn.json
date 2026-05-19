@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "ভিডিও ভলিউম স্লাইডার প্রদর্শন",
   "hotkeysSettings": "হটকি সেটিংস",
   "None": "কোনটিই নয়",
-  "VOTUseLivelyVoice": "প্রাণবন্ত কণ্ঠ ব্যবহার করুন. স্পিকার নেটিভ রাশিয়ান মত শব্দ.",
   "miscSettings": "বিবিধ সেটিংস",
   "services": {
     "yandexbrowser": "ইয়ানডেক্স ব্রাউজার",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "সাবটাইটেল খোলা",
   "VOTSubtitlesFont": "সাবটাইটেল ফন্ট",
   "VOTDefaultSubtitlesLanguage": "ডিফল্ট সাবটাইটেল ভাষা",
-  "VOTOriginalVideoLanguage": "মূল ভিডিও ভাষা"
+  "VOTOriginalVideoLanguage": "মূল ভিডিও ভাষা",
+  "VOTStandardVoicesTitle": "স্ট্যান্ডার্ড ভয়েস স্ট্যান্ডার্ড ভয়েসেস",
+  "VOTStandardVoicesSubtitle": "দ্রুত এবং উচ্চ মানের ভয়েসওভার",
+  "VOTLiveVoicesTitle": "লাইভ ভয়েসেস",
+  "VOTLiveVoicesSubtitle": "সর্বাধিক সাদৃশ্য. যেন সবাই রাশিয়ান জানে"
 }

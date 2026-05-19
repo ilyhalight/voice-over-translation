@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Прикажите клизач за јачину звука видео записа",
   "hotkeysSettings": "Подешавања интервентних тастера",
   "None": "Нико",
-  "VOTUseLivelyVoice": "Користите гласове уживо. Говорници говоре као аутохтони Руси.",
   "miscSettings": "Различита подешавања",
   "services": {
     "yandexbrowser": "Иандек Претраживач",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Титлови приликом отварања",
   "VOTSubtitlesFont": "Фонт титлова",
   "VOTDefaultSubtitlesLanguage": "Подразумевани језик титлова",
-  "VOTOriginalVideoLanguage": "Језик оригиналног видеа"
+  "VOTOriginalVideoLanguage": "Језик оригиналног видеа",
+  "VOTStandardVoicesTitle": "Стандардни гласови стандардни гласови",
+  "VOTStandardVoicesSubtitle": "Брзо и квалитетно гласање",
+  "VOTLiveVoicesTitle": "Живи гласови",
+  "VOTLiveVoicesSubtitle": "Максимална сличност. Као да сви знају руски"
 }

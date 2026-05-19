@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Mostra el control lliscant del volum del vídeo",
   "hotkeysSettings": "Arranjament de les tecles d ' accés ràpid",
   "None": "Cap",
-  "VOTUseLivelyVoice": "Utilitzeu veus animades. Els parlants sonen Com Russos nadius.",
   "miscSettings": "Arranjaments diversos",
   "services": {
     "yandexbrowser": "Navegador Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Subtítols en obert",
   "VOTSubtitlesFont": "Tipus de lletra dels subtítols",
   "VOTDefaultSubtitlesLanguage": "Idioma predeterminat dels subtítols",
-  "VOTOriginalVideoLanguage": "Idioma original del vídeo"
+  "VOTOriginalVideoLanguage": "Idioma original del vídeo",
+  "VOTStandardVoicesTitle": "Veus normalsveus estàndard",
+  "VOTStandardVoicesSubtitle": "Veu en off ràpida i d'alta qualitat",
+  "VOTLiveVoicesTitle": "Veus en directe",
+  "VOTLiveVoicesSubtitle": "Màxima similitud. Com si tothom conegués el rus"
 }

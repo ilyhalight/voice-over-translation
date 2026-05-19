@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Vis skyderen video volume",
   "hotkeysSettings": "Genvejstaster indstillinger",
   "None": "Ingen",
-  "VOTUseLivelyVoice": "Brug livlige stemmer. Højttalere lyder som indfødte russere.",
   "miscSettings": "Diverse indstillinger",
   "services": {
     "yandexbrowser": "Danish Krone (DKK)",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Undertekster på åben",
   "VOTSubtitlesFont": "Undertekstfont",
   "VOTDefaultSubtitlesLanguage": "Standard undertekstsprog",
-  "VOTOriginalVideoLanguage": "Original video sprog"
+  "VOTOriginalVideoLanguage": "Original video sprog",
+  "VOTStandardVoicesTitle": "Standard voicesStandard voices",
+  "VOTStandardVoicesSubtitle": "Hurtig og høj kvalitet voiceover",
+  "VOTLiveVoicesTitle": "Levende stemmer",
+  "VOTLiveVoicesSubtitle": "Maksimal lighed. Som om alle kender russisk"
 }

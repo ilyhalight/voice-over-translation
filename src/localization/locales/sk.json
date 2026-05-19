@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Zobrazenie posúvača hlasitosti videa",
   "hotkeysSettings": "Nastavenia klávesových skratiek",
   "None": "Nikto",
-  "VOTUseLivelyVoice": "Používajte živé hlasy. Reproduktory znejú ako rodení Rusi.",
   "miscSettings": "Rôzne nastavenia",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Titulky otvorené",
   "VOTSubtitlesFont": "Písmo titulkov",
   "VOTDefaultSubtitlesLanguage": "Predvolený jazyk titulkov",
-  "VOTOriginalVideoLanguage": "Pôvodný jazyk videa"
+  "VOTOriginalVideoLanguage": "Pôvodný jazyk videa",
+  "VOTStandardVoicesTitle": "Štandardné hlasyštandardné hlasy",
+  "VOTStandardVoicesSubtitle": "Rýchly a kvalitný voiceover",
+  "VOTLiveVoicesTitle": "Živé hlasy",
+  "VOTLiveVoicesSubtitle": "Maximálna podobnosť. Ako keby každý vedel rusky"
 }

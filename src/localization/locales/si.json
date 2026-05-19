@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "වීඩියෝ පරිමාව ස්ලයිඩරය පෙන්වන්න",
   "hotkeysSettings": "හොට්කීස් සැකසුම්",
   "None": "කිසිවක් නැත",
-  "VOTUseLivelyVoice": "සජීවී හඬවල් භාවිතා කරන්න. කථිකයන් රුසියානු ජාතිකයන් වගේ.",
   "miscSettings": "විවිධ සැකසුම්",
   "services": {
     "yandexbrowser": "යාන්ඩෙක්ස් බ්රව්සරය",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "විවෘත උපසිරැසි",
   "VOTSubtitlesFont": "උපසිරැසි අකුරු",
   "VOTDefaultSubtitlesLanguage": "පෙරනිමි උපසිරැසි භාෂාව",
-  "VOTOriginalVideoLanguage": "මුල් වීඩියෝ භාෂාව"
+  "VOTOriginalVideoLanguage": "මුල් වීඩියෝ භාෂාව",
+  "VOTStandardVoicesTitle": "සම්මත හඬවල් සම්මත හඬවල්",
+  "VOTStandardVoicesSubtitle": "වේගවත් හා උසස් තත්ත්වයේ කටහඬ",
+  "VOTLiveVoicesTitle": "සජීවී හඬවල්",
+  "VOTLiveVoicesSubtitle": "උපරිම සමානතාවය. හැමෝම රුසියානු දන්නවා වගේ"
 }

@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "ਵਿਡੀਓ ਵਾਲੀਅਮ ਸਲਾਈਡਰ ਵੇਖਾਓ",
   "hotkeysSettings": "ਹੌਟਕੀਜ਼ ਸੈਟਿੰਗ",
   "None": "ਕੋਈ ਨਹੀਂ",
-  "VOTUseLivelyVoice": "ਜੀਵੰਤ ਆਵਾਜ਼ ਵਰਤੋ. ਬੋਲਣ ਵਾਲੇ ਮੂਲ ਰੂਸੀ ਵਰਗੇ ਆਵਾਜ਼.",
   "miscSettings": "ਫੁਟਕਲ ਸੈਟਿੰਗ",
   "services": {
     "yandexbrowser": "ਯਾਂਡੇਕਸ ਬਰਾਊਜ਼ਰ",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "ਓਪਨ ' ਤੇ ਉਪਸਿਰਲੇਖ",
   "VOTSubtitlesFont": "ਉਪਸਿਰਲੇਖ ਫੋਂਟ",
   "VOTDefaultSubtitlesLanguage": "ਮੂਲ ਉਪਸਿਰਲੇਖ ਭਾਸ਼ਾ",
-  "VOTOriginalVideoLanguage": "ਮੂਲ ਵੀਡੀਓ ਭਾਸ਼ਾ"
+  "VOTOriginalVideoLanguage": "ਮੂਲ ਵੀਡੀਓ ਭਾਸ਼ਾ",
+  "VOTStandardVoicesTitle": "ਮਿਆਰੀ ਆਵਾਜ਼ਾਂ ਮਿਆਰੀ ਆਵਾਜ਼ਾਂ",
+  "VOTStandardVoicesSubtitle": "ਤੇਜ਼ ਅਤੇ ਉੱਚ ਗੁਣਵੱਤਾ ਵਾਲੀ ਆਵਾਜ਼",
+  "VOTLiveVoicesTitle": "ਲਾਈਵ ਆਵਾਜ਼ਾਂ",
+  "VOTLiveVoicesSubtitle": "ਵੱਧ ਤੋਂ ਵੱਧ ਸਮਾਨਤਾ ਜਿਵੇਂ ਕਿ ਹਰ ਕੋਈ ਰੂਸੀ ਜਾਣਦਾ ਹੈ"
 }

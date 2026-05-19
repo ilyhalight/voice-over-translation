@@ -1,7 +1,7 @@
 {
   "name": "[VOT] - Voice Over Translation",
   "description": "A small extension that adds a Yandex Browser video translation to other browsers",
-  "version": "1.11.5.7",
+  "version": "1.11.6.1",
   "author": "Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng",
   "namespace": "vot",
   "icon": "https://translate.yandex.ru/icons/favicon.ico",
@@ -45,6 +45,8 @@
     "*://*.eporner.com/*",
     "*://*.dailymotion.com/*",
     "*://*.ok.ru/*",
+    "*://drive.google.com/file/d/*/view*",
+    "*://drive.google.com/drive/folders/*",
     "*://trovo.live/*",
     "*://disk.yandex.ru/*",
     "*://disk.yandex.kz/*",

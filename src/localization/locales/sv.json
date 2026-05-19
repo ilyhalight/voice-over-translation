@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Visa reglaget för videovolym",
   "hotkeysSettings": "Snabbtangenter inställningar",
   "None": "Ingen",
-  "VOTUseLivelyVoice": "Använd livliga röster. Högtalare låter som inhemska ryssar.",
   "miscSettings": "Övriga inställningar",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Undertexter på open",
   "VOTSubtitlesFont": "Textning teckensnitt",
   "VOTDefaultSubtitlesLanguage": "Standard undertextspråk",
-  "VOTOriginalVideoLanguage": "Original video språk"
+  "VOTOriginalVideoLanguage": "Original video språk",
+  "VOTStandardVoicesTitle": "Standardrösterstandardröster",
+  "VOTStandardVoicesSubtitle": "Snabb och högkvalitativ voiceover",
+  "VOTLiveVoicesTitle": "Levande röster",
+  "VOTLiveVoicesSubtitle": "Maximal likhet. Som om alla vet ryska"
 }

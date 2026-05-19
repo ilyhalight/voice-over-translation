@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "ویڈیو حجم سلائیڈر دکھائیں",
   "hotkeysSettings": "ہاٹکیز کی ترتیبات",
   "None": "کوئی نہیں",
-  "VOTUseLivelyVoice": "زندہ آوازیں استعمال کریں ۔  بولنے والے مقامی روسیوں کی طرح آواز دیتے ہیں ۔ ",
   "miscSettings": "متفرق ترتیبات",
   "services": {
     "yandexbrowser": "Yandex براؤزر",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "اوپن پر سب ٹائٹلز",
   "VOTSubtitlesFont": "ذیلی عنوان فونٹ",
   "VOTDefaultSubtitlesLanguage": "ڈیفالٹ ذیلی عنوان زبان",
-  "VOTOriginalVideoLanguage": "اصل ویڈیو زبان"
+  "VOTOriginalVideoLanguage": "اصل ویڈیو زبان",
+  "VOTStandardVoicesTitle": "معیاری آوازیں معیاری آوازیں",
+  "VOTStandardVoicesSubtitle": "تیز اور اعلی معیار کی آواز",
+  "VOTLiveVoicesTitle": "لائیو آوازیں",
+  "VOTLiveVoicesSubtitle": "زیادہ سے زیادہ مماثلت. گویا ہر کوئی روسی جانتا ہے ۔ "
 }

@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "نمایش اسلایدر حجم فیلم",
   "hotkeysSettings": "تنظیمات کلید های میانبر",
   "None": "هیچ",
-  "VOTUseLivelyVoice": "از صداهای پر جنب و جوش استفاده کنید. گویندگان مانند روس های بومی صدا می کنند.",
   "miscSettings": "تنظیمات Misc",
   "services": {
     "yandexbrowser": "مرورگر Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "زیرنویس در open",
   "VOTSubtitlesFont": "فونت زیرنویس",
   "VOTDefaultSubtitlesLanguage": "زبان زیرنویس پیش فرض",
-  "VOTOriginalVideoLanguage": "زبان اصلی ویدئو"
+  "VOTOriginalVideoLanguage": "زبان اصلی ویدئو",
+  "VOTStandardVoicesTitle": "استاندارد voicesStandard صدای",
+  "VOTStandardVoicesSubtitle": "صدای سریع و با کیفیت",
+  "VOTLiveVoicesTitle": "صداهای زنده",
+  "VOTLiveVoicesSubtitle": "حداکثر شباهت. گویی همه روسی می دانند"
 }

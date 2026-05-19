@@ -1,6 +1,8 @@
 export type ResponseCacheOptions = {
   /**
    * Time-to-live in milliseconds.
+   * Cache API storage applies to GET requests only; other methods use in-flight
+   * request deduplication when enabled.
    */
   ttlMs: number;
   /**
@@ -12,11 +14,6 @@ export type ResponseCacheOptions = {
    * CacheStorage bucket name.
    */
   cacheName?: string;
-  /**
-   * Enable in-memory cache layer.
-   * Defaults to `true`.
-   */
-  useMemory?: boolean;
   /**
    * Enable Cache API layer (GET only, when available).
    * Defaults to `true`.

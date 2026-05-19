@@ -113,6 +113,12 @@ export type { VideoData } from "./videoHandler/shared";
 export { countryCode } from "./videoHandler/shared";
 
 const RESOLVED_VOID_PROMISE: Promise<void> = Promise.resolve();
+const TRANSLATION_LOADING_MESSAGES = new Set([
+  "Подготавливаем перевод",
+  "Видео передано в обработку",
+  "Ожидаем перевод видео",
+  "Загружаем переведенное аудио",
+]);
 
 type InternalVideoVolumeSetHistoryEntry = {
   at: number;
@@ -285,10 +291,7 @@ export class VideoHandler {
    * to ensure UI is mounted inside the shadow tree, not in the light DOM.
    */
   private getFullscreenOverlayRoot(): HTMLElement | ShadowRoot | null {
-    if (!this.fullscreenHelper) {
-      return null;
-    }
-    return this.fullscreenHelper.getOverlayRoot();
+    return this.fullscreenHelper?.getOverlayRoot() ?? null;
   }
 
   private getOverlayMountPoints(container: HTMLElement = this.container): {
@@ -620,7 +623,13 @@ export class VideoHandler {
    * @returns {HTMLElement} The event container.
    */
   getEventContainer() {
-    if (!this.site.eventSelector) return this.container;
+    if (!this.site.eventSelector) {
+      const { width: cW, height: cH } = this.container.getBoundingClientRect();
+      const { width: vW, height: vH } = this.video.getBoundingClientRect();
+
+      if (cW < vW || cH < vH) return this.video;
+      return this.container;
+    }
     return (
       (document.querySelector(this.site.eventSelector) as HTMLElement | null) ??
       this.container
@@ -705,23 +714,14 @@ export class VideoHandler {
     const now = Date.now();
     const history = this.internalVideoVolumeSetHistory;
     if (history.length > 0) {
-      let writeIndex = 0;
-      let matchFound = false;
-
-      for (const entry of history) {
-        if (now - entry.at > entry.suppressMs) {
-          continue;
-        }
-
-        history[writeIndex++] = entry;
-        // Allow a 1% tolerance to account for hosts that quantize volume.
-        if (!matchFound && Math.abs(observedPercent - entry.percent) <= 1) {
-          matchFound = true;
-        }
-      }
-
-      history.length = writeIndex;
-      return matchFound;
+      const recentHistory = history.filter(
+        (entry) => now - entry.at <= entry.suppressMs,
+      );
+      history.splice(0, history.length, ...recentHistory);
+      // Allow a 1% tolerance to account for hosts that quantize volume.
+      return recentHistory.some(
+        (entry) => Math.abs(observedPercent - entry.percent) <= 1,
+      );
     }
 
     if (this.internalVideoVolumeSetPercent === null) return false;
@@ -991,16 +991,14 @@ export class VideoHandler {
       percent,
       suppressMs: suppressSyncMs,
     });
-    if (
-      this.internalVideoVolumeSetHistory.length >
-      this.internalVideoVolumeSetHistoryLimit
-    ) {
-      this.internalVideoVolumeSetHistory.splice(
+    this.internalVideoVolumeSetHistory.splice(
+      0,
+      Math.max(
         0,
         this.internalVideoVolumeSetHistory.length -
           this.internalVideoVolumeSetHistoryLimit,
-      );
-    }
+      ),
+    );
 
     this.videoManager.setVideoVolume(snapped, {
       preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage,
@@ -1174,14 +1172,12 @@ export class VideoHandler {
       this.activeTranslation = null;
       const overlayView = this.uiManager.votOverlayView;
       if (overlayView) {
-        if (overlayView.videoVolumeSlider) {
-          overlayView.videoVolumeSlider.hidden = true;
-        }
-        if (overlayView.translationVolumeSlider) {
-          overlayView.translationVolumeSlider.hidden = true;
-        }
-        if (overlayView.downloadTranslationButton) {
-          overlayView.downloadTranslationButton.hidden = true;
+        for (const control of [
+          overlayView.videoVolumeSlider,
+          overlayView.translationVolumeSlider,
+          overlayView.downloadTranslationButton,
+        ]) {
+          if (control) control.hidden = true;
         }
       }
       this.downloadTranslation = null;
@@ -1258,14 +1254,7 @@ export class VideoHandler {
     if (signal?.aborted) {
       return;
     }
-    if (
-      [
-        "Подготавливаем перевод",
-        "Видео передано в обработку",
-        "Ожидаем перевод видео",
-        "Загружаем переведенное аудио",
-      ].includes(errorMessage)
-    ) {
+    if (TRANSLATION_LOADING_MESSAGES.has(errorMessage)) {
       if (this.uiManager.votOverlayView?.votButton) {
         this.uiManager.votOverlayView.votButton.loading = true;
       }
@@ -1377,13 +1366,10 @@ export class VideoHandler {
 
     // Re-initialize delta-based syncVolume state when translation becomes active.
     if (overlayView.videoVolumeSlider && overlayView.translationVolumeSlider) {
-      this.volumeLinkState.lastVideoPercent = Number(
-        overlayView.videoVolumeSlider.value,
+      this.resetVolumeLinkState(
+        Number(overlayView.videoVolumeSlider.value),
+        Number(overlayView.translationVolumeSlider.value),
       );
-      this.volumeLinkState.lastTranslationPercent = Number(
-        overlayView.translationVolumeSlider.value,
-      );
-      this.volumeLinkState.initialized = true;
     } else {
       this.volumeLinkState.initialized = false;
     }
@@ -1409,9 +1395,10 @@ export class VideoHandler {
   }
 
   /**
-   * Validates the audio URL by sending a request.
-   * @param {string} audioUrl The audio URL to validate.
-   * @returns {Promise<string>} The valid audio URL.
+   * Keeps the historical async hook for audio URL preparation.
+   * Playback errors are handled by the native audio player path.
+   * @param {string} audioUrl The audio URL.
+   * @returns {Promise<string>} The prepared audio URL.
    */
   validateAudioUrl(
     audioUrl: string,
@@ -1615,18 +1602,14 @@ function logBootstrap(
   const payload: Record<string, unknown> = {
     host: ctx.host,
     path: ctx.path,
+    ...details,
   };
-  if (details) {
-    Object.assign(payload, details);
-  }
 
   debug.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
 }
 
 function getServicesCached(): ServiceConf[] {
-  if (!servicesCache) {
-    servicesCache = getService();
-  }
+  servicesCache ??= getService();
   return servicesCache;
 }
 
@@ -1667,6 +1650,19 @@ async function main(): Promise<void> {
     origin: globalThis.location.origin,
     authOrigin: authServerUrl,
   });
+
+  // FIX: Drive video player UI from blocking pointer events
+  if (globalThis.location.hostname === "drive.google.com") {
+    GM_addStyle(`
+        section[data-fullscreen-control-supported="true"] {
+            pointer-events: none !important;
+        }
+        section[data-fullscreen-control-supported="true"] > div[data-volume-slider-control-supported="true"],
+        section[data-fullscreen-control-supported="true"] > div[data-playback-rate-setting-supported="true"] {
+            pointer-events: auto !important;
+        }
+    `);
+  }
 
   if (bootstrapMode === "skip") {
     logBootstrap("Skipping bootstrap for non-runnable iframe");

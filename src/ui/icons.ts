@@ -79,3 +79,25 @@ export const REFRESH_ICON = svg`<svg xmlns="http://www.w3.org/2000/svg" width="2
 export const KEY_ICON = svg`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
   <path fill="currentColor" d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"/>
   </svg>`;
+
+/**
+ * Animated equalizer icon for "Standard voices" (gray dots / bars).
+ * Three bars that animate up and down like an audio waveform.
+ */
+export const STANDARD_VOICE_ICON = svg`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="vot-voice-icon vot-voice-icon--standard" aria-hidden="true">
+  <rect class="vot-eq-bar vot-eq-bar--1" x="2" y="10" width="3" height="8" rx="1.5"/>
+  <rect class="vot-eq-bar vot-eq-bar--2" x="8.5" y="6" width="3" height="12" rx="1.5"/>
+  <rect class="vot-eq-bar vot-eq-bar--3" x="15" y="10" width="3" height="8" rx="1.5"/>
+</svg>`;
+
+/**
+ * Animated equalizer icon for "Live voices" (pink/magenta bars).
+ * Five bars that animate like a lively audio equalizer.
+ */
+export const LIVE_VOICE_ICON = svg`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="vot-voice-icon vot-voice-icon--live" aria-hidden="true">
+  <rect class="vot-eq-bar vot-eq-bar--1" x="1" y="11" width="2.5" height="7" rx="1.25"/>
+  <rect class="vot-eq-bar vot-eq-bar--2" x="5.25" y="7" width="2.5" height="11" rx="1.25"/>
+  <rect class="vot-eq-bar vot-eq-bar--3" x="9.5" y="4" width="2.5" height="14" rx="1.25"/>
+  <rect class="vot-eq-bar vot-eq-bar--4" x="13.75" y="7" width="2.5" height="11" rx="1.25"/>
+  <rect class="vot-eq-bar vot-eq-bar--5" x="17.5" y="11" width="2.5" height="7" rx="1.25"/>
+</svg>`;

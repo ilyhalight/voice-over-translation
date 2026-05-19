@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "वीडियो वॉल्यूम स्लाइडर प्रदर्शित करें",
   "hotkeysSettings": "हॉटकी सेटिंग्स",
   "None": "कोई नहीं",
-  "VOTUseLivelyVoice": "जीवंत आवाजों का प्रयोग करें ।  वक्ताओं देशी रूसी की तरह लगते हैं । ",
   "miscSettings": "विविध सेटिंग्स",
   "services": {
     "yandexbrowser": "यांडेक्स ब्राउज़र",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "उपशीर्षक पर खुला",
   "VOTSubtitlesFont": "उपशीर्षक फ़ॉन्ट",
   "VOTDefaultSubtitlesLanguage": "डिफ़ॉल्ट उपशीर्षक भाषा",
-  "VOTOriginalVideoLanguage": "मूल वीडियो भाषा"
+  "VOTOriginalVideoLanguage": "मूल वीडियो भाषा",
+  "VOTStandardVoicesTitle": "मानक आवाजमानक आवाज",
+  "VOTStandardVoicesSubtitle": "तेज और उच्च गुणवत्ता वाला वॉयसओवर",
+  "VOTLiveVoicesTitle": "लाइव आवाज",
+  "VOTLiveVoicesSubtitle": "अधिकतम समानता। जैसे कि हर कोई रूसी जानता है"
 }

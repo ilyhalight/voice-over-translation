@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "عرض شريط تمرير حجم الفيديو",
   "hotkeysSettings": "إعدادات مفاتيح الاختصار",
   "None": "لا يوجد",
-  "VOTUseLivelyVoice": "استخدم أصواتا حية. مكبرات الصوت تبدو مثل الروس الأصليين.",
   "miscSettings": "إعدادات متفرقات",
   "services": {
     "yandexbrowser": "متصفح ياندكس",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "ترجمات على فتح",
   "VOTSubtitlesFont": "خط الترجمة",
   "VOTDefaultSubtitlesLanguage": "لغة الترجمة الافتراضية",
-  "VOTOriginalVideoLanguage": "لغة الفيديو الأصلية"
+  "VOTOriginalVideoLanguage": "لغة الفيديو الأصلية",
+  "VOTStandardVoicesTitle": "الأصوات القياسيةأصوات قياسية",
+  "VOTStandardVoicesSubtitle": "تعليق صوتي سريع وعالي الجودة",
+  "VOTLiveVoicesTitle": "أصوات حية",
+  "VOTLiveVoicesSubtitle": "التشابه الأقصى. كما لو أن الجميع يعرف الروسية"
 }

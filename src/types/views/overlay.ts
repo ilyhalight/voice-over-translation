@@ -15,6 +15,7 @@ export type OverlayViewProps = {
 export type OverlayViewEventMap = {
   "click:settings": [];
   "click:pip": [];
+  "click:subtitles": [];
   "click:downloadTranslation": [];
   "click:downloadSubtitles": [];
   "click:translate": [];
@@ -23,4 +24,5 @@ export type OverlayViewEventMap = {
   "select:fromLanguage": [item: LanguageSelectKey];
   "select:toLanguage": [item: LanguageSelectKey];
   "select:subtitles": [item: string];
+  "select:voiceType": [useLive: boolean];
 };

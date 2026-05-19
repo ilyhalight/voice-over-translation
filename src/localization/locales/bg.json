@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Показване на слайдер за силата на звука",
   "hotkeysSettings": "Настройки на клавишните комбинации",
   "None": "Няма",
-  "VOTUseLivelyVoice": "Използвайте живи гласове. Говорителите звучат като местни руснаци.",
   "miscSettings": "Настройки на различни",
   "services": {
     "yandexbrowser": "Яндекс Браузър",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Субтитри на открито",
   "VOTSubtitlesFont": "Шрифт за субтитрите",
   "VOTDefaultSubtitlesLanguage": "Език на субтитрите по подразбиране",
-  "VOTOriginalVideoLanguage": "Оригинален видео език"
+  "VOTOriginalVideoLanguage": "Оригинален видео език",
+  "VOTStandardVoicesTitle": "Стандартни гласовестандартни гласове",
+  "VOTStandardVoicesSubtitle": "Бързо и висококачествено озвучаване",
+  "VOTLiveVoicesTitle": "Живи гласове",
+  "VOTLiveVoicesSubtitle": "Максимално сходство. Сякаш всички знаят руски."
 }

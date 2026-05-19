@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "비디오 볼륨 슬라이더 표시",
   "hotkeysSettings": "단축키 설정",
   "None": "없지",
-  "VOTUseLivelyVoice": "활기찬 목소리를 사용하십시오. 스피커는 네이티브 러시아인 같은 소리.",
   "miscSettings": "기타 설정",
   "services": {
     "yandexbrowser": "브라우저",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "자막 열기",
   "VOTSubtitlesFont": "자막 글꼴",
   "VOTDefaultSubtitlesLanguage": "기본 자막 언어",
-  "VOTOriginalVideoLanguage": "원본 비디오 언어"
+  "VOTOriginalVideoLanguage": "원본 비디오 언어",
+  "VOTStandardVoicesTitle": "표준 음성표준 음성",
+  "VOTStandardVoicesSubtitle": "빠르고 고품질의 보이스 오버",
+  "VOTLiveVoicesTitle": "라이브 보이스",
+  "VOTLiveVoicesSubtitle": "최대 유사성. 모두가 러시아어를 알고있는 것처럼"
 }

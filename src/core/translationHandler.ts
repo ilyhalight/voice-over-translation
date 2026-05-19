@@ -107,6 +107,43 @@ type TranslateVideoImplOptions = {
   retryAttempt?: number;
 };
 
+type TimeoutId = ReturnType<typeof setTimeout>;
+
+function waitForAbortableTimeout(
+  delayMs: number,
+  signal: AbortSignal,
+  onScheduled?: (timeoutId: TimeoutId) => void,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    let timeoutId: TimeoutId | undefined;
+
+    const cleanup = () => {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
+      signal.removeEventListener("abort", onAbort);
+    };
+
+    const onAbort = () => {
+      cleanup();
+      reject(makeAbortError());
+    };
+
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+
+    timeoutId = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, delayMs);
+    onScheduled?.(timeoutId);
+  });
+}
+
 function summarizeTranslationResponse(
   response: VideoTranslationResponse,
 ): Record<string, unknown> {
@@ -251,12 +288,12 @@ export class VOTTranslationHandler {
 
   private finishDownloadSuccess() {
     this.downloading = false;
-    this.resolveDownloadWaiters();
+    this.settleDownloadWaiters();
   }
 
   private finishDownloadFailure(error: Error) {
     this.downloading = false;
-    this.rejectDownloadWaiters(error);
+    this.settleDownloadWaiters(error);
   }
 
   private getCanonicalUrl(videoId: string) {
@@ -274,54 +311,15 @@ export class VOTTranslationHandler {
     return !!msg && msg.toLowerCase().includes("обычная озвучка");
   }
 
-  private scheduleRetry<T>(
+  private async scheduleRetry<T>(
     fn: () => Promise<T>,
     delayMs: number,
     signal: AbortSignal,
   ): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      // Avoid a micro-race where the signal gets aborted between checking
-      // `signal.aborted` and attaching the abort listener.
-      let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-      const cleanup = () => {
-        if (timeoutId !== null) {
-          clearTimeout(timeoutId);
-        }
-        signal.removeEventListener("abort", onAbort);
-      };
-
-      const onAbort = () => {
-        cleanup();
-        reject(makeAbortError());
-      };
-
-      // Attach the listener first, then check `aborted` to close the race.
-      signal.addEventListener("abort", onAbort, { once: true });
-      if (signal.aborted) {
-        onAbort();
-        return;
-      }
-
-      timeoutId = setTimeout(async () => {
-        if (signal.aborted) {
-          onAbort();
-          return;
-        }
-        cleanup();
-        try {
-          const result = await fn();
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      }, delayMs);
-
-      // Keep old behavior: allow caller to clear retries via the host.
-      if (timeoutId !== null) {
-        this.videoHandler.autoRetry = timeoutId;
-      }
+    await waitForAbortableTimeout(delayMs, signal, (timeoutId) => {
+      this.videoHandler.autoRetry = timeoutId;
     });
+    return await fn();
   }
 
   private static readonly MAX_INITIAL_WAIT_SEC = 180;
@@ -702,15 +700,7 @@ export class VOTTranslationHandler {
     });
   }
 
-  private resolveDownloadWaiters() {
-    this.forEachDownloadWaiter((waiter) => waiter.resolve());
-  }
-
-  private rejectDownloadWaiters(error: Error) {
-    this.forEachDownloadWaiter((waiter) => waiter.reject(error));
-  }
-
-  private forEachDownloadWaiter(handler: (waiter: DownloadWaiter) => void) {
+  private settleDownloadWaiters(error?: Error) {
     if (!this.downloadWaiters.size) {
       return;
     }
@@ -718,7 +708,11 @@ export class VOTTranslationHandler {
     const waiters = Array.from(this.downloadWaiters);
     this.downloadWaiters.clear();
     for (const waiter of waiters) {
-      handler(waiter);
+      if (error) {
+        waiter.reject(error);
+      } else {
+        waiter.resolve();
+      }
     }
   }
 }

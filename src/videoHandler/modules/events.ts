@@ -85,7 +85,7 @@ function bindOverlayHoverFocusEvents(
 ): void {
   const handleInteraction = (event: Event) =>
     overlayVisibility.handleOverlayInteraction(event);
-  const scheduleHide = (event: Event) => overlayVisibility.scheduleHide(event);
+  const scheduleHide = (_event: Event) => overlayVisibility.scheduleHide();
 
   if (isIframe() && globalThis.window !== undefined) {
     addMany(target, ["focusin"], handleInteraction);
@@ -429,9 +429,6 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
         (event) => self.overlayVisibility.handleHostInteraction(event),
         { passive: true },
       );
-      add(interactionTarget, "pointerleave", (event) =>
-        self.overlayVisibility.scheduleHide(event),
-      );
     }
   }
   self.rebindOverlayVisibilityTargets();
@@ -564,13 +561,27 @@ export function rebindOverlayVisibilityTargets(this: VideoHandler) {
   this.overlayVisibilityTargetsAbortController?.abort();
   this.overlayVisibilityTargetsAbortController = new AbortController();
   const { signal } = this.overlayVisibilityTargetsAbortController;
-  const overlayButton = this.uiManager?.votOverlayView?.votButton?.container;
-  const overlayMenu = this.uiManager?.votOverlayView?.votMenu?.container;
+  const overlayView = this.uiManager?.votOverlayView;
+  const overlayButton = overlayView?.votButton?.container;
+  const overlayMenu = overlayView?.votMenu?.container;
+
   if (!overlayButton || !overlayMenu || !this.overlayVisibility) return;
   const overlayVisibility = this.overlayVisibility;
   const { addMany } = createScopedListeners(signal);
   bindOverlayHoverFocusEvents(addMany, overlayButton, overlayVisibility);
   bindOverlayHoverFocusEvents(addMany, overlayMenu, overlayVisibility);
+
+  // Keep the overlay visible while the voice popover is hovered/focused.
+  // Popover is portaled next to the menu under the overlay root (not under the
+  // button subtree), so visibility logic must treat it like the menu.
+  const voicePopoverContainer = overlayView?.voicePopover?.container;
+  if (voicePopoverContainer) {
+    bindOverlayHoverFocusEvents(
+      addMany,
+      voicePopoverContainer,
+      overlayVisibility,
+    );
+  }
 }
 export function isOverlayInteractiveNode(
   this: VideoHandler,
@@ -580,10 +591,14 @@ export function isOverlayInteractiveNode(
   const overlayView = this.uiManager?.votOverlayView;
   const buttonContainer = overlayView?.votButton?.container;
   const menuContainer = overlayView?.votMenu?.container;
+  const voicePopoverContainer = overlayView?.voicePopover?.container;
   return (
     (buttonContainer instanceof Node &&
       containsCrossShadow(buttonContainer, node)) ||
-    (menuContainer instanceof Node && containsCrossShadow(menuContainer, node))
+    (menuContainer instanceof Node &&
+      containsCrossShadow(menuContainer, node)) ||
+    (voicePopoverContainer instanceof Node &&
+      containsCrossShadow(voicePopoverContainer, node))
   );
 }
 export function getAutoHideDelay(this: VideoHandler): number {

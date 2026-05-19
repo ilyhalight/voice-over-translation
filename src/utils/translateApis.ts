@@ -13,8 +13,9 @@ import { votStorage } from "./storage";
 // Settings rarely change during a session, but `translate()`/`detect()` can be
 // called from retry/error flows where every call used to hit storage.
 const SETTINGS_CACHE_TTL_MS = 5_000;
-// Immutable translation/detection results are safe to cache "forever".
-const IMMUTABLE_API_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
+// Immutable GET lookups are safe to keep in Cache API until browser eviction.
+// Non-GET callers still use the same option object for in-flight deduplication.
+const IMMUTABLE_LOOKUP_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
 
 let cachedTranslationService: string | null = null;
 let cachedTranslationServiceAt = 0;
@@ -80,7 +81,7 @@ const FOSWLYTranslateAPI = new (class {
       const res = await GM_fetch(`${foswlyTranslateUrl}${path}`, {
         timeout: 3000,
         responseCache: {
-          ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+          ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
           cacheName: "vot-foswly-api-v1",
           allowStaleOnError: true,
         },
@@ -158,7 +159,7 @@ const RustServerAPI = {
         body: text,
         timeout: 3000,
         responseCache: {
-          ttlMs: IMMUTABLE_API_CACHE_TTL_MS,
+          ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
           cacheName: "vot-rust-detect-v1",
           allowStaleOnError: true,
         },

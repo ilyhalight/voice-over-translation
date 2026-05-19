@@ -63,7 +63,7 @@ export type Locale =
   | "zh"
   | "zu";
 
-export type LangOverride = "auto" | Locale;
+export type Hashes = Record<Locale, string>;
 
 export type Phrase =
   | "recommended"
@@ -278,7 +278,10 @@ export type Phrase =
   | "showVideoVolumeSlider"
   | "hotkeysSettings"
   | "None"
-  | "VOTUseLivelyVoice"
+  | "VOTStandardVoicesTitle"
+  | "VOTStandardVoicesSubtitle"
+  | "VOTLiveVoicesTitle"
+  | "VOTLiveVoicesSubtitle"
   | "miscSettings"
   | "services.yandexbrowser"
   | "services.msedge"
@@ -523,7 +526,10 @@ export type Phrases = {
   showVideoVolumeSlider: string;
   hotkeysSettings: string;
   None: string;
-  VOTUseLivelyVoice: string;
+  VOTStandardVoicesTitle: string;
+  VOTStandardVoicesSubtitle: string;
+  VOTLiveVoicesTitle: string;
+  VOTLiveVoicesSubtitle: string;
   miscSettings: string;
   services: {
     yandexbrowser: string;

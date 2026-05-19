@@ -7,36 +7,32 @@ type IframeConfig = {
 
 let iframeInteractorInitialized = false;
 
+const IFRAME_CONFIGS: Record<string, IframeConfig> = {
+  "https://dev.epicgames.com": {
+    targetOrigin: "https://dev.epicgames.com",
+    dataFilter: (data: unknown) =>
+      typeof data === "string" && data.startsWith("getVideoId:"),
+    extractVideoId: (url: URL) => url.pathname.split("/").at(-2) ?? null,
+    responseFormatter: (videoId: string, data: unknown) =>
+      `${typeof data === "string" ? data : ""}:${videoId}`,
+  },
+  "https://www.dailymotion.com": {
+    targetOrigin: "https://geo.dailymotion.com",
+    dataFilter: (data: unknown) =>
+      typeof data === "string" && data.startsWith("getVideoId:"),
+    extractVideoId: (url: URL) =>
+      /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? null,
+    responseFormatter: (videoId: string) => `getVideoId:${videoId}`,
+  },
+};
+
 export function initIframeInteractor(): void {
   if (iframeInteractorInitialized) {
     return;
   }
   iframeInteractorInitialized = true;
 
-  const configs: Record<string, IframeConfig> = {
-    "https://dev.epicgames.com": {
-      targetOrigin: "https://dev.epicgames.com",
-      dataFilter: (data: unknown) =>
-        typeof data === "string" && data.startsWith("getVideoId:"),
-      extractVideoId: (url: URL) => url.pathname.split("/").at(-2) ?? null,
-      responseFormatter: (videoId: string, data: unknown) =>
-        `${typeof data === "string" ? data : ""}:${videoId}`,
-    },
-    "https://www.dailymotion.com": {
-      targetOrigin: "https://geo.dailymotion.com",
-      dataFilter: (data: unknown) =>
-        typeof data === "string" && data.startsWith("getVideoId:"),
-      extractVideoId: (url: URL) => {
-        return /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1];
-      },
-      responseFormatter: (videoId: string) => `getVideoId:${videoId}`,
-    },
-  };
-
-  const currentConfig = Object.entries(configs).find(
-    ([origin]) => globalThis.location.origin === origin,
-  )?.[1];
-
+  const currentConfig = IFRAME_CONFIGS[globalThis.location.origin];
   if (!currentConfig) return;
 
   globalThis.addEventListener("message", (event) => {
@@ -51,12 +47,10 @@ export function initIframeInteractor(): void {
 
       const response = currentConfig.responseFormatter(videoId, event.data);
 
-      if (event.source && "postMessage" in event.source) {
-        (event.source as Window).postMessage(
-          response,
-          currentConfig.targetOrigin,
-        );
-      }
+      (event.source as Window | null)?.postMessage(
+        response,
+        currentConfig.targetOrigin,
+      );
     } catch (error) {
       console.error("Iframe communication error:", error);
     }

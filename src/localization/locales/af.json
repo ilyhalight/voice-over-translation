@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Vertoon die video volume skuifbalk",
   "hotkeysSettings": "Sneltoetse instellings",
   "None": "Geen",
-  "VOTUseLivelyVoice": "Gebruik lewendige stemme. Sprekers klink soos Inheemse Russe.",
   "miscSettings": "Verskeie instellings",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Onderskrifte op open",
   "VOTSubtitlesFont": "Onderskrif skrif tipe",
   "VOTDefaultSubtitlesLanguage": "Verstek ondertiteltaal",
-  "VOTOriginalVideoLanguage": "Oorspronklike video taal"
+  "VOTOriginalVideoLanguage": "Oorspronklike video taal",
+  "VOTStandardVoicesTitle": "Standaard voicesStandard stemme",
+  "VOTStandardVoicesSubtitle": "Vinnige en hoë kwaliteit voiceover",
+  "VOTLiveVoicesTitle": "Lewendige stemme",
+  "VOTLiveVoicesSubtitle": "Maksimum ooreenkoms. Asof almal russies ken"
 }

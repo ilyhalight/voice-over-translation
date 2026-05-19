@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Dangos y llithrydd cyfrol fideo",
   "hotkeysSettings": "Gosodiadau Hotkeys",
   "None": "Dim",
-  "VOTUseLivelyVoice": "Defnyddio lleisiau bywiog. Mae siaradwyr Yn swnio fel Rwsiaid brodorol.",
   "miscSettings": "Gosodiadau amrywiol",
   "services": {
     "yandexbrowser": "Porwr Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Isdeitlau ar agor",
   "VOTSubtitlesFont": "Ffont isdeitlau",
   "VOTDefaultSubtitlesLanguage": "Iaith isdeitlau rhagosodedig",
-  "VOTOriginalVideoLanguage": "Iaith fideo gwreiddiol"
+  "VOTOriginalVideoLanguage": "Iaith fideo gwreiddiol",
+  "VOTStandardVoicesTitle": "Lleisiau safonol",
+  "VOTStandardVoicesSubtitle": "Trosleisio cyflym ac o ansawdd uchel",
+  "VOTLiveVoicesTitle": "Lleisiau byw",
+  "VOTLiveVoicesSubtitle": "Tebygrwydd mwyaf. Fel pe bai pawb yn gwybod rwsieg"
 }

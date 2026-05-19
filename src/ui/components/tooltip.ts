@@ -11,108 +11,81 @@ import { clamp } from "../../utils/utils";
 import { createDomId, isEventInside } from "./componentShared";
 
 export default class Tooltip {
-  /** Whether tooltip element is currently mounted. */
   showed = false;
-
   target: HTMLElement;
   anchor: HTMLElement;
   content: string | HTMLElement;
   position: Position;
   preferredPosition: Position;
   trigger: Trigger;
-  parentElement: HTMLElement | ShadowRoot;
-  layoutRoot: HTMLElement;
   offsetX: number;
   offsetY: number;
   private _hidden: boolean;
   autoLayout: boolean;
-
-  pageWidth!: number;
-  pageHeight!: number;
-  globalOffsetX!: number;
-  globalOffsetY!: number;
-  renderOffsetX!: number;
-  renderOffsetY!: number;
   maxWidth?: number;
   backgroundColor?: string;
   borderRadius?: number;
   private _bordered: boolean;
-
+  portal: HTMLElement | ShadowRoot;
   container?: HTMLElement;
-  onResizeObserver?: ResizeObserver;
-  intersectionObserver?: IntersectionObserver;
-
+  private resizeObserver?: ResizeObserver;
+  private intersectionObserver?: IntersectionObserver;
   private scrollListening = false;
   private positionRafId: number | null = null;
   private destroyFallbackTimerId: ReturnType<typeof setTimeout> | undefined;
   private static readonly DESTROY_FALLBACK_MS = 700;
-
-  // Accessibility: link trigger -> tooltip via aria-describedby.
   private readonly tooltipId = createDomId("vot-tooltip");
   private prevAriaDescribedBy: string | null = null;
 
-  constructor({
-    target,
-    anchor = undefined,
-    content = "",
-    position = "top",
-    trigger = "hover",
-    offset = 4,
-    maxWidth = undefined,
-    hidden = false,
-    autoLayout = true,
-    backgroundColor = undefined,
-    borderRadius = undefined,
-    bordered = true,
-    parentElement = document.body,
-    layoutRoot = document.documentElement,
-  }: TooltipOpts) {
+  constructor(opts: TooltipOpts) {
+    const target = opts.target;
     if (!(target instanceof HTMLElement)) {
       throw new TypeError("target must be a valid HTMLElement");
     }
-
     this.target = target;
-    this.anchor = anchor instanceof HTMLElement ? anchor : target;
-    this.content = content;
+    this.anchor = opts.anchor instanceof HTMLElement ? opts.anchor : target;
+    this.content = opts.content ?? "";
+    const offset = opts.offset ?? 4;
     if (typeof offset === "number") {
       this.offsetY = this.offsetX = offset;
     } else {
       this.offsetX = offset.x;
       this.offsetY = offset.y;
     }
-    this._hidden = hidden;
-    this.autoLayout = autoLayout;
-    this.trigger = Tooltip.validateTrigger(trigger) ? trigger : "hover";
-    this.position = Tooltip.validatePos(position) ? position : "top";
+    this._hidden = opts.hidden ?? false;
+    this.autoLayout = opts.autoLayout ?? true;
+    this.trigger = triggers.includes(opts.trigger as Trigger)
+      ? (opts.trigger as Trigger)
+      : "hover";
+    this.position = positions.includes(opts.position as Position)
+      ? (opts.position as Position)
+      : "top";
     this.preferredPosition = this.position;
-    this.parentElement = parentElement;
-    this.layoutRoot = layoutRoot;
-    this.borderRadius = borderRadius;
-    this._bordered = bordered;
-    this.maxWidth = maxWidth;
-    this.backgroundColor = backgroundColor;
-    this.updatePageSize();
+    this.portal = opts.parentElement ?? document.body;
+    this.borderRadius = opts.borderRadius;
+    this._bordered = opts.bordered ?? true;
+    this.maxWidth = opts.maxWidth;
+    this.backgroundColor = opts.backgroundColor;
     this.init();
   }
 
-  static validatePos(position: Position) {
+  static validatePos(position: Position): boolean {
     return positions.includes(position);
   }
 
-  static validateTrigger(trigger: Trigger) {
+  static validateTrigger(trigger: Trigger): boolean {
     return triggers.includes(trigger);
   }
 
-  setPosition(position: Position) {
+  setPosition(position: Position): this {
     this.preferredPosition = Tooltip.validatePos(position) ? position : "top";
     this.position = this.preferredPosition;
     this.schedulePositionUpdate();
     return this;
   }
 
-  setContent(content: string | HTMLElement) {
+  setContent(content: string | HTMLElement): this {
     this.content = content;
-    // If mounted, update in place to avoid flicker (important for dynamic status updates).
     if (this.container) {
       this.container.replaceChildren();
       if (typeof content === "string") {
@@ -121,9 +94,27 @@ export default class Tooltip {
         this.container.append(content);
       }
       this.schedulePositionUpdate();
+    }
+    return this;
+  }
+
+  /** Remove tooltip DOM immediately (no fade). Use when switching UI modes. */
+  dismissImmediate(): this {
+    return this.destroy(true);
+  }
+
+  /**
+   * After enabling the tooltip while the pointer never left the target,
+   * `pointerenter` does not fire again — call this to show immediately.
+   */
+  revealIfHovered(): this {
+    if (this._hidden || this.trigger !== "hover") return this;
+    try {
+      if (!this.target.matches(":hover")) return this;
+    } catch {
       return this;
     }
-
+    this.create();
     return this;
   }
 
@@ -133,252 +124,181 @@ export default class Tooltip {
    */
   updateMount({
     parentElement,
-    layoutRoot,
   }: {
     parentElement?: HTMLElement | ShadowRoot;
     layoutRoot?: HTMLElement;
-  }) {
-    if (parentElement && this.parentElement !== parentElement) {
-      this.parentElement = parentElement;
+  }): this {
+    if (parentElement && this.portal !== parentElement) {
+      this.portal = parentElement;
       if (this.container?.isConnected) {
         parentElement.appendChild(this.container);
+        this.schedulePositionUpdate();
       }
     }
-
-    if (layoutRoot && this.layoutRoot !== layoutRoot) {
-      this.layoutRoot = layoutRoot;
-    }
-
-    // Recompute positions with updated roots.
-    this.schedulePositionUpdate();
     return this;
   }
 
-  onResize = () => {
+  private onResize = (): void => {
     this.schedulePositionUpdate();
   };
 
-  onClick = () => {
+  private onScroll = (): void => {
+    this.schedulePositionUpdate();
+  };
+
+  private onClick = (): void => {
     this.showed ? this.destroy() : this.create();
   };
 
-  onDocumentPointerDown = (event: PointerEvent) => {
-    if (!this.showed) {
-      return;
-    }
-
+  private onDocumentPointerDown = (event: PointerEvent): void => {
+    if (!this.showed) return;
     if (
       isEventInside(event, this.target) ||
       (this.container && isEventInside(event, this.container))
     ) {
       return;
     }
-
     this.destroy();
   };
 
-  onTargetKeyDown = (event: KeyboardEvent) => {
-    if (event.key !== "Escape" || !this.showed) {
-      return;
+  private onTargetKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === "Escape" && this.showed) {
+      this.destroy();
     }
-
-    this.destroy();
   };
 
-  onScroll = () => {
-    this.schedulePositionUpdate();
-  };
-
-  onHoverPointerDown = (e: PointerEvent) => {
-    if (e.pointerType === "mouse") {
-      return;
-    }
-
+  private onPointerEnter = (_e: PointerEvent): void => {
     this.create();
   };
 
-  onHoverPointerUp = (e: PointerEvent) => {
-    if (e.pointerType === "mouse") {
-      return;
+  private onPointerLeave = (e: PointerEvent): void => {
+    if (!this.isInTooltipContext(e.relatedTarget)) {
+      this.destroy();
     }
-
-    this.destroy();
   };
 
-  onMouseEnter = () => {
-    this.create();
+  private onTooltipPointerLeave = (e: PointerEvent): void => {
+    if (!this.isInTooltipContext(e.relatedTarget)) {
+      this.destroy();
+    }
   };
 
-  onMouseLeave = (event: MouseEvent | FocusEvent) => {
-    if (this.isInTooltipContext(event.relatedTarget)) {
-      return;
+  private onTouchPointerDown = (e: PointerEvent): void => {
+    if (e.pointerType === "touch") {
+      this.create();
     }
-
-    this.destroy();
   };
 
-  onTooltipMouseLeave = (event: MouseEvent) => {
-    if (this.isInTooltipContext(event.relatedTarget)) {
-      return;
+  private onTouchPointerUp = (e: PointerEvent): void => {
+    if (e.pointerType === "touch") {
+      this.destroy();
     }
-
-    this.destroy();
   };
 
   private isInTooltipContext(nextTarget: EventTarget | null): boolean {
-    if (!(nextTarget instanceof Node)) {
-      return false;
-    }
-
+    if (!(nextTarget instanceof Node)) return false;
     return (
       this.target.contains(nextTarget) || this.container?.contains(nextTarget)
     );
   }
 
-  updatePageSize() {
-    // Layout bounds may be computed against a player container while the
-    // tooltip itself is mounted into a portal attached elsewhere in the DOM.
-    // We therefore calculate in layout-root coordinates and later convert
-    // back into the tooltip parent's coordinate space before rendering.
-    if (this.layoutRoot === document.documentElement) {
-      this.globalOffsetX = 0;
-      this.globalOffsetY = 0;
-    } else {
-      const { left, top } = this.layoutRoot.getBoundingClientRect();
-      this.globalOffsetX = left;
-      this.globalOffsetY = top;
-    }
-
-    const parentEl =
-      this.parentElement instanceof ShadowRoot
-        ? this.parentElement.host
-        : this.parentElement;
-    const { left: parentLeft, top: parentTop } =
-      parentEl.getBoundingClientRect();
-    this.renderOffsetX = parentLeft;
-    this.renderOffsetY = parentTop;
-
-    this.pageWidth =
-      this.layoutRoot.clientWidth || document.documentElement.clientWidth;
-    this.pageHeight =
-      this.layoutRoot.clientHeight || document.documentElement.clientHeight;
-
-    return this;
-  }
-
-  onIntersect = ([entry]: IntersectionObserverEntry[]) => {
-    if (!entry.isIntersecting) {
-      return this.destroy(true);
-    }
-  };
-
-  init() {
-    this.onResizeObserver = new ResizeObserver(this.onResize);
-    this.intersectionObserver = new IntersectionObserver(this.onIntersect);
+  private init(): void {
+    this.resizeObserver = new ResizeObserver(this.onResize);
+    this.intersectionObserver = new IntersectionObserver(
+      this.onIntersect.bind(this),
+    );
     this.target.addEventListener("keydown", this.onTargetKeyDown);
 
     if (this.trigger === "click") {
       this.target.addEventListener("pointerdown", this.onClick);
-      return this;
+      return;
     }
 
-    this.target.addEventListener("mouseenter", this.onMouseEnter);
-    this.target.addEventListener("mouseleave", this.onMouseLeave);
-    // Keyboard access: show on focus, hide on blur.
-    this.target.addEventListener("focusin", this.onMouseEnter);
-    this.target.addEventListener("focusout", this.onMouseLeave);
-    this.target.addEventListener("pointerdown", this.onHoverPointerDown);
-    this.target.addEventListener("pointerup", this.onHoverPointerUp);
-
-    return this;
+    this.target.addEventListener("pointerenter", this.onPointerEnter);
+    this.target.addEventListener("pointerleave", this.onPointerLeave);
+    this.target.addEventListener("pointerdown", this.onTouchPointerDown);
+    this.target.addEventListener("pointerup", this.onTouchPointerUp);
   }
 
-  release() {
-    this.destroy(true);
+  private onIntersect(entries: IntersectionObserverEntry[]): void {
+    const entry = entries[0];
+    if (!entry?.isIntersecting) {
+      this.destroy(true);
+    }
+  }
 
-    // In case tooltip was mounted while releasing.
+  release(): this {
+    this.destroy(true);
     this.detachScrollListener();
     this.target.removeEventListener("keydown", this.onTargetKeyDown);
+
     if (this.trigger === "click") {
       this.target.removeEventListener("pointerdown", this.onClick);
-      return this;
+    } else {
+      this.target.removeEventListener("pointerenter", this.onPointerEnter);
+      this.target.removeEventListener("pointerleave", this.onPointerLeave);
+      this.target.removeEventListener("pointerdown", this.onTouchPointerDown);
+      this.target.removeEventListener("pointerup", this.onTouchPointerUp);
     }
 
-    this.target.removeEventListener("mouseenter", this.onMouseEnter);
-    this.target.removeEventListener("mouseleave", this.onMouseLeave);
-    this.target.removeEventListener("focusin", this.onMouseEnter);
-    this.target.removeEventListener("focusout", this.onMouseLeave);
-    this.target.removeEventListener("pointerdown", this.onHoverPointerDown);
-    this.target.removeEventListener("pointerup", this.onHoverPointerUp);
     return this;
   }
 
-  private schedulePositionUpdate() {
-    if (!this.container) {
-      return;
-    }
-
-    if (this.positionRafId !== null) {
-      return;
-    }
-
+  private schedulePositionUpdate(): void {
+    if (!this.container || this.positionRafId !== null) return;
     this.positionRafId = requestAnimationFrame(() => {
       this.positionRafId = null;
-      this.updatePageSize();
       this.updatePos();
     });
   }
 
-  private cancelPositionUpdate() {
-    if (this.positionRafId === null) {
-      return;
+  private cancelPositionUpdate(): void {
+    if (this.positionRafId !== null) {
+      cancelAnimationFrame(this.positionRafId);
+      this.positionRafId = null;
     }
-
-    cancelAnimationFrame(this.positionRafId);
-    this.positionRafId = null;
   }
 
-  private clearDestroyFallbackTimer() {
-    if (this.destroyFallbackTimerId === undefined) {
-      return;
+  private clearDestroyFallbackTimer(): void {
+    if (this.destroyFallbackTimerId !== undefined) {
+      globalThis.clearTimeout(this.destroyFallbackTimerId);
+      this.destroyFallbackTimerId = undefined;
     }
-
-    globalThis.clearTimeout(this.destroyFallbackTimerId);
-    this.destroyFallbackTimerId = undefined;
   }
 
-  private create() {
+  create(): this {
     this.destroy(true);
     this.showed = true;
     this.container = UI.createEl("vot-block", ["vot-tooltip"], this.content);
-    if (this.bordered) {
+    if (this._bordered) {
       this.container.classList.add("vot-tooltip-bordered");
     }
-
     this.container.setAttribute("role", "tooltip");
     this.container.id = this.tooltipId;
     this.container.dataset.trigger = this.trigger;
     this.container.dataset.position = this.position;
-    this.parentElement.appendChild(this.container);
-
-    this.schedulePositionUpdate();
-    if (this.backgroundColor !== undefined) {
+    this.container.style.position = "fixed";
+    this.container.style.top = "0";
+    this.container.style.left = "0";
+    this.container.style.margin = "0";
+    this.portal.appendChild(this.container);
+    if (this.backgroundColor) {
       this.container.style.backgroundColor = this.backgroundColor;
     }
-
     if (this.borderRadius !== undefined) {
       this.container.style.borderRadius = `${this.borderRadius}px`;
     }
-
-    if (this.hidden) {
+    if (this._hidden) {
       this.container.hidden = true;
     } else {
       this.syncAriaDescribedBy(true);
     }
-
     this.container.style.opacity = "1";
     if (this.trigger === "hover") {
-      this.container.addEventListener("mouseleave", this.onTooltipMouseLeave);
+      this.container.addEventListener(
+        "pointerleave",
+        this.onTooltipPointerLeave,
+      );
     } else {
       document.addEventListener("pointerdown", this.onDocumentPointerDown, {
         capture: true,
@@ -386,213 +306,152 @@ export default class Tooltip {
       });
     }
     this.attachScrollListener();
-    this.onResizeObserver?.observe(this.layoutRoot);
-    if (this.anchor !== this.layoutRoot) {
-      this.onResizeObserver?.observe(this.anchor);
-    }
+    this.resizeObserver?.observe(this.anchor);
     this.intersectionObserver?.observe(this.target);
+    this.updatePos();
     return this;
   }
 
-  updatePos() {
-    if (!this.container) {
-      return this;
-    }
-
-    const { top, left } = this.calcPos(this.autoLayout, this.preferredPosition);
-    const availableWidth = Math.max(0, this.pageWidth - this.offsetX * 2);
+  updatePos(): this {
+    if (!this.container) return this;
+    const { top, left } = this.computePosition(
+      this.autoLayout,
+      this.preferredPosition,
+    );
+    const viewportWidth = window.innerWidth;
+    const availableWidth = Math.max(0, viewportWidth - this.offsetX * 2);
     const maxWidth = clamp(this.maxWidth ?? availableWidth, 0, availableWidth);
-
     this.container.style.transform = `translate(${left}px, ${top}px)`;
     this.container.dataset.position = this.position;
     this.container.style.maxWidth = `${maxWidth}px`;
-
     return this;
   }
 
-  calcPos(
-    autoLayout = true,
-    position: Position = this.preferredPosition,
+  private computePosition(
+    autoLayout: boolean,
+    preferred: Position,
   ): PagePosition {
-    if (!this.container) {
-      return { top: 0, left: 0 };
-    }
-
-    const {
-      left: anchorLeft,
-      right: anchorRight,
-      top: anchorTop,
-      bottom: anchorBottom,
-      width: anchorWidth,
-      height: anchorHeight,
-    } = this.anchor.getBoundingClientRect();
-    const { width: containerWidth, height: containerHeight } =
-      this.container.getBoundingClientRect();
-
-    const width = clamp(containerWidth, 0, this.pageWidth);
-    const height = clamp(containerHeight, 0, this.pageHeight);
-    const left = anchorLeft - this.globalOffsetX;
-    const right = anchorRight - this.globalOffsetX;
-    const top = anchorTop - this.globalOffsetY;
-    const bottom = anchorBottom - this.globalOffsetY;
-
-    const anchorBox = { left, right, top, bottom, anchorWidth, anchorHeight };
-    const size = { width, height };
-    const resolvedPosition = this.resolveTooltipPosition(
-      anchorBox,
-      size,
-      position,
-      autoLayout,
-    );
-    const coords = this.getTooltipCoordinates(
-      anchorBox,
-      size,
-      resolvedPosition,
-    );
-
-    this.position = resolvedPosition;
+    const anchorRect = this.anchor.getBoundingClientRect();
+    const tooltipRect = this.container?.getBoundingClientRect();
+    const anchor = {
+      left: anchorRect.left,
+      right: anchorRect.right,
+      top: anchorRect.top,
+      bottom: anchorRect.bottom,
+      width: anchorRect.width,
+      height: anchorRect.height,
+    };
+    const tooltip = {
+      width: tooltipRect.width || 100,
+      height: tooltipRect.height || 40,
+    };
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+    const position = autoLayout
+      ? this.resolvePosition(anchor, tooltip, viewport, preferred)
+      : preferred;
+    const coords = this.getCoordinates(anchor, tooltip, position);
+    const padding = this.offsetX;
+    this.position = position;
     return {
-      top: coords.top + this.globalOffsetY - this.renderOffsetY,
-      left: coords.left + this.globalOffsetX - this.renderOffsetX,
+      top: clamp(
+        coords.top,
+        padding,
+        viewport.height - tooltip.height - padding,
+      ),
+      left: clamp(
+        coords.left,
+        padding,
+        viewport.width - tooltip.width - padding,
+      ),
     };
   }
 
-  private resolveTooltipPosition(
-    anchorBox: {
+  private resolvePosition(
+    anchor: {
       left: number;
       right: number;
       top: number;
       bottom: number;
-      anchorWidth: number;
-      anchorHeight: number;
+      width: number;
+      height: number;
     },
-    size: { width: number; height: number },
-    position: Position,
-    autoLayout: boolean,
+    tooltip: { width: number; height: number },
+    viewport: { width: number; height: number },
+    preferred: Position,
   ): Position {
-    if (!autoLayout) {
-      return position;
-    }
-
-    switch (position) {
+    switch (preferred) {
       case "top": {
-        const pTop = clamp(
-          anchorBox.top - size.height - this.offsetY,
-          0,
-          this.pageHeight,
-        );
-        return pTop + this.offsetY < size.height ? "bottom" : "top";
-      }
-      case "right": {
-        const pLeft = clamp(
-          anchorBox.right + this.offsetX,
-          0,
-          this.pageWidth - size.width,
-        );
-        return pLeft + size.width > this.pageWidth - this.offsetX
-          ? "left"
-          : "right";
+        const spaceAbove = anchor.top;
+        const fitsAbove = spaceAbove >= tooltip.height + this.offsetY;
+        return fitsAbove ? "top" : "bottom";
       }
       case "bottom": {
-        const pTop = clamp(
-          anchorBox.bottom + this.offsetY,
-          0,
-          this.pageHeight - size.height,
-        );
-        return pTop + size.height > this.pageHeight - this.offsetY
-          ? "top"
-          : "bottom";
+        const spaceBelow = viewport.height - anchor.bottom;
+        const fitsBelow = spaceBelow >= tooltip.height + this.offsetY;
+        return fitsBelow ? "bottom" : "top";
       }
       case "left": {
-        const pLeft = Math.max(0, anchorBox.left - size.width - this.offsetX);
-        return pLeft + size.width > anchorBox.left - this.offsetX
-          ? "right"
-          : "left";
+        const spaceLeft = anchor.left;
+        const fitsLeft = spaceLeft >= tooltip.width + this.offsetX;
+        return fitsLeft ? "left" : "right";
       }
-      default:
-        return position;
+      case "right": {
+        const spaceRight = viewport.width - anchor.right;
+        const fitsRight = spaceRight >= tooltip.width + this.offsetX;
+        return fitsRight ? "right" : "left";
+      }
     }
   }
 
-  private getTooltipCoordinates(
-    anchorBox: {
+  private getCoordinates(
+    anchor: {
       left: number;
       right: number;
       top: number;
       bottom: number;
-      anchorWidth: number;
-      anchorHeight: number;
+      width: number;
+      height: number;
     },
-    size: { width: number; height: number },
+    tooltip: { width: number; height: number },
     position: Position,
   ): PagePosition {
+    const centerX = anchor.left + anchor.width / 2;
+    const centerY = anchor.top + anchor.height / 2;
     switch (position) {
       case "top":
         return {
-          top: clamp(
-            anchorBox.top - size.height - this.offsetY,
-            0,
-            this.pageHeight,
-          ),
-          left: clamp(
-            anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
-            this.offsetX,
-            this.pageWidth - size.width - this.offsetX,
-          ),
-        };
-      case "right":
-        return {
-          top: clamp(
-            anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
-            this.offsetY,
-            this.pageHeight - size.height - this.offsetY,
-          ),
-          left: clamp(
-            anchorBox.right + this.offsetX,
-            0,
-            this.pageWidth - size.width,
-          ),
+          top: anchor.top - tooltip.height - this.offsetY,
+          left: centerX - tooltip.width / 2,
         };
       case "bottom":
         return {
-          top: clamp(
-            anchorBox.bottom + this.offsetY,
-            0,
-            this.pageHeight - size.height,
-          ),
-          left: clamp(
-            anchorBox.left - size.width / 2 + anchorBox.anchorWidth / 2,
-            this.offsetX,
-            this.pageWidth - size.width - this.offsetX,
-          ),
+          top: anchor.bottom + this.offsetY,
+          left: centerX - tooltip.width / 2,
         };
       case "left":
         return {
-          top: clamp(
-            anchorBox.top + (anchorBox.anchorHeight - size.height) / 2,
-            this.offsetY,
-            this.pageHeight - size.height - this.offsetY,
-          ),
-          left: Math.max(0, anchorBox.left - size.width - this.offsetX),
+          top: centerY - tooltip.height / 2,
+          left: anchor.left - tooltip.width - this.offsetX,
         };
-      default:
-        return { top: 0, left: 0 };
+      case "right":
+        return {
+          top: centerY - tooltip.height / 2,
+          left: anchor.right + this.offsetX,
+        };
     }
   }
 
-  private destroy(instant = false) {
-    if (!this.container) {
-      return this;
-    }
-
+  private destroy(instant = false): this {
+    if (!this.container) return this;
     const container = this.container;
-
     this.cancelPositionUpdate();
     this.clearDestroyFallbackTimer();
-
     this.showed = false;
     this.syncAriaDescribedBy(false);
-    this.onResizeObserver?.disconnect();
+    this.resizeObserver?.disconnect();
     this.intersectionObserver?.disconnect();
     this.detachScrollListener();
     this.detachOutsidePointerListener();
@@ -601,19 +460,16 @@ export default class Tooltip {
       this.container = undefined;
       return this;
     }
-
-    container.removeEventListener("mouseleave", this.onTooltipMouseLeave);
+    container.removeEventListener("pointerleave", this.onTooltipPointerLeave);
     container.style.pointerEvents = "none";
     container.style.opacity = "0";
-
-    const handleTransitionDone = () => {
+    const handleTransitionDone = (): void => {
       this.clearDestroyFallbackTimer();
       container?.remove();
       if (this.container === container) {
         this.container = undefined;
       }
     };
-
     container.addEventListener("transitionend", handleTransitionDone, {
       once: true,
     });
@@ -624,64 +480,59 @@ export default class Tooltip {
       handleTransitionDone,
       Tooltip.DESTROY_FALLBACK_MS,
     );
-
     return this;
   }
 
-  private detachOutsidePointerListener() {
+  private detachOutsidePointerListener(): void {
     document.removeEventListener("pointerdown", this.onDocumentPointerDown, {
       capture: true,
     });
   }
 
-  private syncAriaDescribedBy(isShowing: boolean) {
-    // Follow ARIA tooltip pattern: trigger references tooltip via aria-describedby.
+  private syncAriaDescribedBy(isShowing: boolean): void {
     const existing = this.target.getAttribute("aria-describedby");
     this.prevAriaDescribedBy ??= existing;
-
     if (!isShowing) {
       if (this.prevAriaDescribedBy === null) {
         this.target.removeAttribute("aria-describedby");
       } else {
         this.target.setAttribute("aria-describedby", this.prevAriaDescribedBy);
       }
-      // Allow subsequent show/hide cycles to preserve whatever is current.
       this.prevAriaDescribedBy = null;
       return;
     }
-
     const tokens = new Set((existing ?? "").split(/\s+/).filter(Boolean));
     tokens.add(this.tooltipId);
     this.target.setAttribute("aria-describedby", Array.from(tokens).join(" "));
   }
 
-  set bordered(isBordered: boolean) {
-    this._bordered = isBordered;
-    this.container?.classList.toggle("vot-tooltip-bordered", isBordered);
+  set bordered(value: boolean) {
+    this._bordered = value;
+    this.container?.classList.toggle("vot-tooltip-bordered", value);
   }
 
-  get bordered() {
+  get bordered(): boolean {
     return this._bordered;
   }
 
-  set hidden(isHidden: boolean) {
-    this._hidden = isHidden;
+  set hidden(value: boolean) {
+    this._hidden = value;
     if (this.container) {
-      this.container.hidden = isHidden;
+      this.container.hidden = value;
     }
 
     // Keep aria-describedby in sync: if tooltip is effectively disabled,
     // do not leave a describedby reference hanging.
     if (this.showed) {
-      this.syncAriaDescribedBy(!isHidden);
+      this.syncAriaDescribedBy(!value);
     }
   }
 
-  get hidden() {
+  get hidden(): boolean {
     return this._hidden;
   }
 
-  private attachScrollListener() {
+  private attachScrollListener(): void {
     if (this.scrollListening) return;
     this.scrollListening = true;
     document.addEventListener("scroll", this.onScroll, {
@@ -690,7 +541,7 @@ export default class Tooltip {
     });
   }
 
-  private detachScrollListener() {
+  private detachScrollListener(): void {
     if (!this.scrollListening) return;
     this.scrollListening = false;
     document.removeEventListener("scroll", this.onScroll, {

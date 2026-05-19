@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Visualizzare il cursore del volume video",
   "hotkeysSettings": "Impostazioni tasti di scelta rapida",
   "None": "Nessuno",
-  "VOTUseLivelyVoice": "Usa voci vivaci. Gli altoparlanti suonano come russi nativi.",
   "miscSettings": "Varie impostazioni",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Sottotitoli su open",
   "VOTSubtitlesFont": "Carattere sottotitoli",
   "VOTDefaultSubtitlesLanguage": "Lingua predefinita dei sottotitoli",
-  "VOTOriginalVideoLanguage": "Lingua video originale"
+  "VOTOriginalVideoLanguage": "Lingua video originale",
+  "VOTStandardVoicesTitle": "Voci standard Voci standard",
+  "VOTStandardVoicesSubtitle": "Voiceover veloce e di alta qualità",
+  "VOTLiveVoicesTitle": "Voci dal vivo",
+  "VOTLiveVoicesSubtitle": "Massima somiglianza. Come se tutti conoscessero il russo"
 }

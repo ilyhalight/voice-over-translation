@@ -5,7 +5,6 @@ import type { VideoHandler } from "../../index";
 import { localizationProvider } from "../../localization/localizationProvider";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
-import { GM_fetch } from "../../utils/gm";
 import { applyTranslationPlaybackVolume } from "../../utils/translationVolume";
 import VOTLocalizedError from "../../utils/VOTLocalizedError";
 import type { VideoData } from "../shared";
@@ -29,10 +28,6 @@ import type {
   ActionContext,
   ApplyTranslationSourceResult,
 } from "./translationTypes";
-
-const AUDIO_PROBE_TIMEOUT_MS = 5_000;
-const AUDIO_PROBE_RETRY_DELAY_MS = 150;
-const AUDIO_PROBE_MAX_ATTEMPTS = 2;
 
 async function resumePlayerAudioContextIfNeeded(
   handler: VideoHandler,
@@ -96,121 +91,12 @@ async function rollbackStaleAppliedSourceIfStillCurrent(
   }
 }
 
-function waitForProbeRetry(
-  delayMs: number,
-  signal: AbortSignal,
-): Promise<void> {
-  if (delayMs <= 0 || signal.aborted) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve) => {
-    const timeoutId = setTimeout(() => {
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    }, delayMs);
-
-    const onAbort = () => {
-      clearTimeout(timeoutId);
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    };
-
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
-async function probeAudioUrl(
-  handler: VideoHandler,
-  audioUrl: string,
-  actionContext?: ActionContext,
-): Promise<boolean> {
-  const signal = handler.actionsAbortController.signal;
-  const fetchOpts = {
-    headers: {
-      range: "bytes=0-0",
-    },
-    signal,
-    timeout: AUDIO_PROBE_TIMEOUT_MS,
-  };
-
-  for (let attempt = 1; attempt <= AUDIO_PROBE_MAX_ATTEMPTS; attempt++) {
-    if (isProbeCancelled(handler, actionContext, signal)) return false;
-    try {
-      const response = await GM_fetch(audioUrl, fetchOpts);
-      if (isProbeCancelled(handler, actionContext, signal)) return false;
-      debug.log("[validateAudioUrl] probe response", {
-        audioUrl,
-        attempt,
-        ok: response.ok,
-        status: response.status,
-      });
-      if (response.ok) return true;
-    } catch (err: unknown) {
-      if (isProbeCancelled(handler, actionContext, signal)) return false;
-      debug.log("[validateAudioUrl] probe error", { audioUrl, attempt, err });
-    }
-
-    if (
-      !(await shouldRetryAudioProbe(attempt, handler, actionContext, signal))
-    ) {
-      return false;
-    }
-  }
-
-  return false;
-}
-
-function isProbeCancelled(
-  handler: VideoHandler,
-  actionContext: ActionContext | undefined,
-  signal: AbortSignal,
-): boolean {
-  return handler.isActionStale(actionContext) || signal.aborted;
-}
-
-async function shouldRetryAudioProbe(
-  attempt: number,
-  handler: VideoHandler,
-  actionContext: ActionContext | undefined,
-  signal: AbortSignal,
-): Promise<boolean> {
-  if (attempt >= AUDIO_PROBE_MAX_ATTEMPTS) {
-    return true;
-  }
-  if (isProbeCancelled(handler, actionContext, signal)) {
-    return false;
-  }
-
-  await waitForProbeRetry(AUDIO_PROBE_RETRY_DELAY_MS, signal);
-  return !isProbeCancelled(handler, actionContext, signal);
-}
-
 export async function validateAudioUrl(
   this: VideoHandler,
   audioUrl: string,
   actionContext?: ActionContext,
 ): Promise<string> {
   if (this.isActionStale(actionContext)) return audioUrl;
-
-  const isPrimaryUrlValid = await probeAudioUrl(this, audioUrl, actionContext);
-  if (isPrimaryUrlValid) {
-    return audioUrl;
-  }
-
-  const directUrl = this.unproxifyAudio(audioUrl);
-  if (directUrl !== audioUrl) {
-    const isDirectUrlValid = await probeAudioUrl(
-      this,
-      directUrl,
-      actionContext,
-    );
-    if (isDirectUrlValid) {
-      debug.log("[validateAudioUrl] switching to direct audio URL after probe");
-      return directUrl;
-    }
-  }
-
   return audioUrl;
 }
 
@@ -477,18 +363,10 @@ export async function updateTranslation(
   }
 
   const normalizedTargetUrl = normalizeManagedAudioUrl(this, audioUrl);
-  const currentSource =
-    this.audioPlayer.player.currentSrc || this.audioPlayer.player.src || "";
-  const normalizedCurrentUrl = normalizeManagedAudioUrl(this, currentSource);
-
-  const nextAudioUrl =
-    normalizedTargetUrl !== normalizedCurrentUrl
-      ? await this.validateAudioUrl(normalizedTargetUrl, actionContext)
-      : normalizedTargetUrl;
   if (this.isActionStale(actionContext)) return;
   const resolvedSource = await applyTranslationWithDirectFallback(
     this,
-    nextAudioUrl,
+    normalizedTargetUrl,
     actionContext,
   );
   const resolvedAudioUrl = resolvedSource.nextAudioUrl;
@@ -590,14 +468,10 @@ async function retryTranslationWithDirectSource(
   );
 
   try {
-    const validatedDirectUrl = await handler.validateAudioUrl(
-      directUrl,
-      actionContext,
-    );
     if (handler.isActionStale(actionContext)) {
       await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
       return {
-        nextAudioUrl: validatedDirectUrl,
+        nextAudioUrl: directUrl,
         applyResult: {
           status: "stale",
           didSetSource: true,
@@ -607,10 +481,10 @@ async function retryTranslationWithDirectSource(
     }
 
     return {
-      nextAudioUrl: validatedDirectUrl,
+      nextAudioUrl: directUrl,
       applyResult: await applyTranslationSource(
         handler,
-        validatedDirectUrl,
+        directUrl,
         actionContext,
       ),
     };

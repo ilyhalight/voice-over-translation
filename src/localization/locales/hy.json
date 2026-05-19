@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Displayուցադրել տեսանյութի ծավալի սահիչը",
   "hotkeysSettings": "Թեժ ստեղնաշարի կարգավորումներ",
   "None": "Ոչ ոք",
-  "VOTUseLivelyVoice": "Օգտագործեք կենդանի ձայներ: Խոսողները խոսում են բնիկ ռուսների պես:",
   "miscSettings": "Տարբեր պարամետրեր",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Ենթագրերը բացելիս",
   "VOTSubtitlesFont": "Ենթագրերի տառատեսակ",
   "VOTDefaultSubtitlesLanguage": "Ենթագրերի լռելյայն լեզու",
-  "VOTOriginalVideoLanguage": "Բնօրինակ տեսանյութի լեզուն"
+  "VOTOriginalVideoLanguage": "Բնօրինակ տեսանյութի լեզուն",
+  "VOTStandardVoicesTitle": "Ստանդարտ ձայներ ստանդարտ ձայներ",
+  "VOTStandardVoicesSubtitle": "Արագ և որակյալ ձայնային կատարում",
+  "VOTLiveVoicesTitle": "Կենդանի ձայներ",
+  "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն"
 }

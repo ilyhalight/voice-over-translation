@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Prikažite klizač glasnoće videozapisa",
   "hotkeysSettings": "Postavke prečaca",
   "None": "Nitko",
-  "VOTUseLivelyVoice": "Koristite glasove uživo. Govornici govore kao autohtoni Rusi.",
   "miscSettings": "Različite postavke",
   "services": {
     "yandexbrowser": "Jandeks Preglednik",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Titlovi prilikom otvaranja",
   "VOTSubtitlesFont": "Font titlova",
   "VOTDefaultSubtitlesLanguage": "Zadani jezik titlova",
-  "VOTOriginalVideoLanguage": "Jezik izvornog videa"
+  "VOTOriginalVideoLanguage": "Jezik izvornog videa",
+  "VOTStandardVoicesTitle": "Standardni glasovi standardni glasovi",
+  "VOTStandardVoicesSubtitle": "Brza i kvalitetna glasovna gluma",
+  "VOTLiveVoicesTitle": "Živi glasovi",
+  "VOTLiveVoicesSubtitle": "Maksimalna sličnost. Kao da svi znaju ruski"
 }

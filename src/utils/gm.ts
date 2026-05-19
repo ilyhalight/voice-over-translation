@@ -444,9 +444,9 @@ export async function GM_fetch(
       ? {
           ttlMs: responseCache.ttlMs,
           key: responseCache.key ?? null,
-          useMemory: responseCache.useMemory ?? true,
           useCacheApi: responseCache.useCacheApi ?? true,
           dedupe: responseCache.dedupe ?? true,
+          allowStaleOnError: responseCache.allowStaleOnError ?? true,
         }
       : null,
   });

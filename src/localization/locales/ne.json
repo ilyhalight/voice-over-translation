@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "भिडियो भोल्युम स्लाइडर प्रदर्शन गर्नुहोस्",
   "hotkeysSettings": "हटकी सेटिङ",
   "None": "कुनै पनि",
-  "VOTUseLivelyVoice": "जीवन्त आवाज प्रयोग गर्नुहोस् ।  स्पिकरहरू मूल निवासी रुसीहरू जस्तै सुनिन्छन् । ",
   "miscSettings": "विविध सेटिङ",
   "services": {
     "yandexbrowser": "यान्डेक्स ब्राउजर",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "उपशीर्षकहरू खोल्नुहोस्",
   "VOTSubtitlesFont": "उपशीर्षक फन्ट",
   "VOTDefaultSubtitlesLanguage": "पूर्वनिर्धारित उपशीर्षक भाषा",
-  "VOTOriginalVideoLanguage": "मूल भिडियो भाषा"
+  "VOTOriginalVideoLanguage": "मूल भिडियो भाषा",
+  "VOTStandardVoicesTitle": "मानक आवाजहरू मानक आवाजहरू",
+  "VOTStandardVoicesSubtitle": "छिटो र उच्च-गुणवत्ता पार्श्वस्वर",
+  "VOTLiveVoicesTitle": "प्रत्यक्ष आवाजहरू",
+  "VOTLiveVoicesSubtitle": "अधिकतम समानता मानौं सबैलाई रुसी भाषा थाहा छ"
 }

@@ -211,7 +211,10 @@
   "showVideoVolumeSlider": "Отображать ползунок громкости видео",
   "hotkeysSettings": "Настройки горячих клавиш",
   "None": "Нет",
-  "VOTUseLivelyVoice": "Использовать живые голоса. Будто все знают русский.",
+  "VOTStandardVoicesTitle": "Стандартные голоса Стандартные голоса",
+  "VOTStandardVoicesSubtitle": "Быстрое и качественное озвучивание",
+  "VOTLiveVoicesTitle": "Живые голоса",
+  "VOTLiveVoicesSubtitle": "Максимальное сходство. Будто все знают русский",
   "miscSettings": "Другие настройки",
   "services": {
     "yandexbrowser": "Яндекс Браузер",

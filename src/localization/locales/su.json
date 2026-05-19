@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Témbongkeun slaider volume video",
   "hotkeysSettings": "Hotkeys setélan",
   "None": "Teu aya",
-  "VOTUseLivelyVoice": "Ngagunakeun sora nu hirup. Nu nyarita disada Kawas urang Rusia asli.",
   "miscSettings": "Setélan Misc",
   "services": {
     "yandexbrowser": "Browser Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Subjudul dina buka",
   "VOTSubtitlesFont": "Font subjudul",
   "VOTDefaultSubtitlesLanguage": "Basa subjudul standar",
-  "VOTOriginalVideoLanguage": "Basa video asli"
+  "VOTOriginalVideoLanguage": "Basa video asli",
+  "VOTStandardVoicesTitle": "Sora standar sora standar",
+  "VOTStandardVoicesSubtitle": "Sora gancang jeung kualitas luhur",
+  "VOTLiveVoicesTitle": "Sora nu hirup",
+  "VOTLiveVoicesSubtitle": "Kamiripan maksimum. Seolah olah semuanya tahu rusia"
 }

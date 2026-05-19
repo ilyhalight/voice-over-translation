@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Afișați glisorul de volum video",
   "hotkeysSettings": "Setări taste rapide",
   "None": "Niciuna",
-  "VOTUseLivelyVoice": "Folosiți voci pline de viață. Vorbitorii sună ca rușii nativi.",
   "miscSettings": "Setări diverse",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Subtitrari pe open",
   "VOTSubtitlesFont": "Font subtitrare",
   "VOTDefaultSubtitlesLanguage": "Limba implicită pentru subtitrare",
-  "VOTOriginalVideoLanguage": "Limba video originală"
+  "VOTOriginalVideoLanguage": "Limba video originală",
+  "VOTStandardVoicesTitle": "Voci standardvoce standard",
+  "VOTStandardVoicesSubtitle": "Voiceover rapid și de înaltă calitate",
+  "VOTLiveVoicesTitle": "Voci Live",
+  "VOTLiveVoicesSubtitle": "Similitudine maximă. Ca și cum toată lumea știe limba rusă"
 }

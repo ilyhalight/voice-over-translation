@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "បង្ហាញគ្រាប់រំកិលកម្រិតសំឡេងវីដេអូ",
   "hotkeysSettings": "ការកំណត់គ្រាប់ចុចចង",
   "None": "គ្មាន",
-  "VOTUseLivelyVoice": "ប្រើសំឡេងយ៉ាងរស់រវើក។ វាគ្មិនសំឡេងដូចជាជនជាតិដើមរុស្ស៊ី.",
   "miscSettings": "ការកំណត់ផ្សេងៗ",
   "services": {
     "yandexbrowser": "កម្មវិធីរុករក Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "បើកចំណងជើងរង",
   "VOTSubtitlesFont": "ពុម្ពអក្សរចំណងជើងរង",
   "VOTDefaultSubtitlesLanguage": "ភាសាចំណងជើងរងលំនាំដើម",
-  "VOTOriginalVideoLanguage": "ភាសាវីដេអូដើម"
+  "VOTOriginalVideoLanguage": "ភាសាវីដេអូដើម",
+  "VOTStandardVoicesTitle": "សំឡេងស្តង់ដារ",
+  "VOTStandardVoicesSubtitle": "Voiceover ដែលមានល្បឿនលឿននិងមានគុណភាពខ្ពស់",
+  "VOTLiveVoicesTitle": "សំឡេងផ្ទាល់",
+  "VOTLiveVoicesSubtitle": "ភាពស្រដៀងគ្នាអតិបរមា។ ដូចជាប្រសិនបើអ្នករាល់គ្នាដឹងរុស្ស៊ី"
 }

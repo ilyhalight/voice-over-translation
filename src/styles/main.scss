@@ -17,6 +17,7 @@
 @use "components/segmented-button.scss";
 @use "components/tooltip.scss";
 @use "components/menu.scss";
+@use "components/voice-popover.scss";
 @use "components/dialog.scss";
 @use "components/loader.scss";
 @use "components/label.scss";
@@ -168,7 +169,8 @@ html.vot-keyboard-nav vot-block *:focus-visible {
 }
 
 .vot-portal {
-  display: inline;
+  display: contents;
+
   &-local {
     position: fixed;
     left: 0;
@@ -180,11 +182,7 @@ html.vot-keyboard-nav vot-block *:focus-visible {
 // The overlay mount itself stays click-through so host-page controls remain
 // usable around the injected UI. Explicitly re-enable hit-testing for the
 // actual interactive overlay surfaces inside the shadow root.
-.vot-overlay-root {
-  pointer-events: none;
-
-  & > .vot-segmented-button,
-  & > .vot-menu {
-    pointer-events: auto;
-  }
+.vot-segmented-button,
+.vot-menu {
+  pointer-events: auto;
 }

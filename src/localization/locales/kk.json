@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Бейне дыбыс деңгейі сырғытпасын көрсету",
   "hotkeysSettings": "Жылдам пернелердің параметрлері",
   "None": "Жоқ",
-  "VOTUseLivelyVoice": "Жанды дауыстарды қолданыңыз. Спикерлер жергілікті Орыстар сияқты естіледі.",
   "miscSettings": "Misc параметрлері",
   "services": {
     "yandexbrowser": "Яндекс Браузері",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Ашық субтитрлер",
   "VOTSubtitlesFont": "Субтитр қаріпі",
   "VOTDefaultSubtitlesLanguage": "Әдепкі субтитр тілі",
-  "VOTOriginalVideoLanguage": "Түпнұсқа бейне тілі"
+  "VOTOriginalVideoLanguage": "Түпнұсқа бейне тілі",
+  "VOTStandardVoicesTitle": "Стандартты дауыстарстандартты дауыстар",
+  "VOTStandardVoicesSubtitle": "Жылдам және сапалы дауыс беру",
+  "VOTLiveVoicesTitle": "Тірі дауыстар",
+  "VOTLiveVoicesSubtitle": "Максималды ұқсастық. Барлығы орыс тілін білетін сияқты"
 }

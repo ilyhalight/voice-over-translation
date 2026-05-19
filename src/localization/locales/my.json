@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "ဗီဒီယို volume slider ကိုပြသပါ",
   "hotkeysSettings": "Hotkeys setting များ",
   "None": "ဘာမှမရှိဘူး။",
-  "VOTUseLivelyVoice": "အသက်ဝင်တဲ့အသံတွေသုံးပါ။ ရုရှားလိုအသံထွက်တယ်။",
   "miscSettings": "Misc setting များ",
   "services": {
     "yandexbrowser": "Yandex ဘရောက်ဇာ",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Open မှာစာတန်းထိုးထားတယ်။",
   "VOTSubtitlesFont": "စာတန်းထိုးစာလုံး",
   "VOTDefaultSubtitlesLanguage": "မူလစာတန်းထိုးဘာသာစကား",
-  "VOTOriginalVideoLanguage": "မူရင်းဗီဒီယိုဘာသာစကား"
+  "VOTOriginalVideoLanguage": "မူရင်းဗီဒီယိုဘာသာစကား",
+  "VOTStandardVoicesTitle": "စံအသံစံအသံများ",
+  "VOTStandardVoicesSubtitle": "မြန်ဆန်ပြီးအရည်အသွေးမြင့်အသံဖမ်းခြင်း",
+  "VOTLiveVoicesTitle": "တိုက်ရိုက်အသံများ",
+  "VOTLiveVoicesSubtitle": "အများဆုံးတူညီမှုပါ။ လူတိုင်းကရုရှားလိုသိနေသလိုပေါ့။"
 }

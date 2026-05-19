@@ -206,7 +206,6 @@
   "showVideoVolumeSlider": "Exibir o controle deslizante de volume do vídeo",
   "hotkeysSettings": "Definições das teclas de atalho",
   "None": "Nenhum",
-  "VOTUseLivelyVoice": "Use vozes vivas. Os falantes soam como russos nativos.",
   "miscSettings": "Configurações diversas",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -243,5 +242,9 @@
   "VOTAutoSubtitles": "Legendas em aberto",
   "VOTSubtitlesFont": "Fonte do subtítulo",
   "VOTDefaultSubtitlesLanguage": "Idioma predefinido das legendas",
-  "VOTOriginalVideoLanguage": "Língua do vídeo Original"
+  "VOTOriginalVideoLanguage": "Língua do vídeo Original",
+  "VOTStandardVoicesTitle": "Vozes padrão vozes padrão",
+  "VOTStandardVoicesSubtitle": "Narração rápida e de alta qualidade",
+  "VOTLiveVoicesTitle": "Vozes ao vivo",
+  "VOTLiveVoicesSubtitle": "O máximo de semelhança. Como se todos soubessem russo"
 }

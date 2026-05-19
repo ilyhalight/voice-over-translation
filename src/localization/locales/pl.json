@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Wyświetl suwak głośności wideo",
   "hotkeysSettings": "Ustawienia skrótów klawiszowych",
   "None": "Brak",
-  "VOTUseLivelyVoice": "Używaj żywych głosów. Głośniki brzmią jak rodzimi Rosjanie.",
   "miscSettings": "Różne ustawienia",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Napisy na open",
   "VOTSubtitlesFont": "Czcionka napisów",
   "VOTDefaultSubtitlesLanguage": "Domyślny język napisów",
-  "VOTOriginalVideoLanguage": "Oryginalny język wideo"
+  "VOTOriginalVideoLanguage": "Oryginalny język wideo",
+  "VOTStandardVoicesTitle": "Głosy standardowestandardowe głosy",
+  "VOTStandardVoicesSubtitle": "Szybki i wysokiej jakości lektor",
+  "VOTLiveVoicesTitle": "Głosy na żywo",
+  "VOTLiveVoicesSubtitle": "Maksymalne podobieństwo. Jakby wszyscy znali rosyjski"
 }

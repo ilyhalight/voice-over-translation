@@ -11,6 +11,9 @@
   position: absolute;
   left: 50%;
   top: calc(5rem + 48px);
+  @media (pointer: coarse) {  
+    top: calc(3rem + 48px)
+  }
   user-select: none;
   background-color: var(--vot-helper-surface);
   color: var(--vot-helper-onsurface);

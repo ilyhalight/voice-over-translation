@@ -187,6 +187,13 @@ export class UIManager {
           debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
         }
       })
+      .addEventListener("click:subtitles", async () => {
+        if (!this.videoHandler) {
+          return;
+        }
+
+        await this.videoHandler.toggleSubtitlesForCurrentLangPair();
+      })
       .addEventListener("click:settings", async () => {
         this.videoHandler?.subtitlesWidget?.releaseTooltip();
         this.videoHandler?.overlayVisibility?.cancel();
@@ -255,6 +262,23 @@ export class UIManager {
         this.runDetached(
           this.videoHandler.changeSubtitlesLang(data),
           "Failed to change subtitles language",
+        );
+      })
+      .addEventListener("select:voiceType", () => {
+        if (!this.videoHandler) {
+          return;
+        }
+
+        const wasActive = this.videoHandler.hasActiveSource();
+        this.runDetached(
+          (async () => {
+            await this.videoHandler?.stopTranslate();
+            // Restart translation with the new voice mode if it was playing.
+            if (wasActive) {
+              await this.handleTranslationBtnClick();
+            }
+          })(),
+          "Failed to restart translation after voice mode change",
         );
       });
   }
@@ -355,16 +379,6 @@ export class UIManager {
             nextTranslation,
           );
         });
-      })
-      .addEventListener("change:useLivelyVoice", () => {
-        if (!this.videoHandler) {
-          return;
-        }
-
-        this.runDetached(
-          this.videoHandler.stopTranslate(),
-          "Failed to stop translation after voice mode change",
-        );
       })
       .addEventListener("change:subtitlesHighlightWords", (checked) => {
         this.updateSubtitlesWidgetSetting(
@@ -732,6 +746,27 @@ export class UIManager {
       status === "error" && this.isLoadingText(text);
     this.votOverlayView.votButton.setText(text);
     this.votOverlayView.votButtonTooltip.setContent(text);
+
+    const { voicePopover, votButtonTooltip } = this.votOverlayView;
+    const centered = this.votOverlayView.votButton.direction !== "column";
+
+    if (status === "error") {
+      if (!centered) {
+        voicePopover?.cancelShow();
+        voicePopover?.hideNow();
+        this.votOverlayView.votButton.dropdownArrow.setAttribute(
+          "aria-expanded",
+          "false",
+        );
+      }
+      votButtonTooltip.dismissImmediate();
+      this.votOverlayView.syncTranslateButtonTooltip();
+    } else {
+      votButtonTooltip.dismissImmediate();
+      this.votOverlayView.syncTranslateButtonTooltip();
+      this.votOverlayView.rescheduleVoicePopoverIfHovered();
+    }
+
     return this;
   }
 

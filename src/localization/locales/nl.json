@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "De schuifregelaar videovolume weergeven",
   "hotkeysSettings": "Sneltoetsen instellingen",
   "None": "Niemand",
-  "VOTUseLivelyVoice": "Gebruik levendige stemmen. Sprekers klinken als inheemse Russen.",
   "miscSettings": "Overige instellingen",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Ondertitels op open",
   "VOTSubtitlesFont": "Ondertiteling lettertype",
   "VOTDefaultSubtitlesLanguage": "Standaard ondertiteltaal",
-  "VOTOriginalVideoLanguage": "Originele videotaal"
+  "VOTOriginalVideoLanguage": "Originele videotaal",
+  "VOTStandardVoicesTitle": "Standard voicesStandard voices",
+  "VOTStandardVoicesSubtitle": "Snelle en hoogwaardige voiceover",
+  "VOTLiveVoicesTitle": "Live voices",
+  "VOTLiveVoicesSubtitle": "Maximale gelijkenis. Alsof iedereen Russisch kent"
 }

@@ -15,37 +15,37 @@ type LogBootstrap = (
 let runtimeActivated = false;
 let runtimeActivationPromise: Promise<void> | null = null;
 
+async function activateRuntime(
+  reason: string,
+  logBootstrap: LogBootstrap,
+): Promise<void> {
+  logBootstrap("Activating runtime", { reason });
+
+  if (globalThis.location.origin === authServerUrl) {
+    await initAuth();
+    runtimeActivated = true;
+    return;
+  }
+
+  await ensureLocalizationProviderReady();
+  if (!isIframe()) {
+    await localizationProvider.update();
+  }
+  debug.log(`Selected menu language: ${localizationProvider.lang}`);
+
+  runtimeActivated = true;
+}
+
 export async function ensureRuntimeActivated(
   reason: string,
   logBootstrap: LogBootstrap,
 ): Promise<void> {
   if (runtimeActivated) return;
-  if (runtimeActivationPromise !== null) {
-    await runtimeActivationPromise;
-    return;
-  }
+  runtimeActivationPromise ??= activateRuntime(reason, logBootstrap).finally(
+    () => {
+      runtimeActivationPromise = null;
+    },
+  );
 
-  runtimeActivationPromise = (async () => {
-    logBootstrap("Activating runtime", { reason });
-
-    if (globalThis.location.origin === authServerUrl) {
-      await initAuth();
-      runtimeActivated = true;
-      return;
-    }
-
-    await ensureLocalizationProviderReady();
-    if (!isIframe()) {
-      await localizationProvider.update();
-    }
-    debug.log(`Selected menu language: ${localizationProvider.lang}`);
-
-    runtimeActivated = true;
-  })();
-
-  try {
-    await runtimeActivationPromise;
-  } finally {
-    runtimeActivationPromise = null;
-  }
+  await runtimeActivationPromise;
 }

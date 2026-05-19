@@ -213,7 +213,10 @@
   "showVideoVolumeSlider": "Display the video volume slider",
   "hotkeysSettings": "Hotkeys settings",
   "None": "None",
-  "VOTUseLivelyVoice": "Use lively voices. Speakers sound like native Russians.",
+  "VOTStandardVoicesTitle": "Standard voices",
+  "VOTStandardVoicesSubtitle": "Fast and high-quality voiceover",
+  "VOTLiveVoicesTitle": "Live voices",
+  "VOTLiveVoicesSubtitle": "Maximum similarity. As if everyone knows Russian",
   "miscSettings": "Misc settings",
   "services": {
     "yandexbrowser": "Yandex Browser",
