@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Video ses kaydırıcısını görüntüleme",
   "hotkeysSettings": "Kısayol tuşları ayarları",
   "None": "Hiçbiri",
-  "VOTUseLivelyVoice": "Canlı sesler kullanın. Konuşmacılar yerli Ruslar gibi geliyor.",
   "miscSettings": "Çeşitli ayarlar",
   "services": {
     "yandexbrowser": "Yandex Tarayıcı",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Altyazılar açık",
   "VOTSubtitlesFont": "Altyazı yazı tipi",
   "VOTDefaultSubtitlesLanguage": "Varsayılan altyazı dili",
-  "VOTOriginalVideoLanguage": "Orijinal video dili"
+  "VOTOriginalVideoLanguage": "Orijinal video dili",
+  "VOTStandardVoicesTitle": "Standart seslerStandart sesler",
+  "VOTStandardVoicesSubtitle": "Hızlı ve kaliteli seslendirme",
+  "VOTLiveVoicesTitle": "Canlı sesler",
+  "VOTLiveVoicesSubtitle": "Maksimum benzerlik. Sanki herkes Rusça biliyormuş gibi"
 }

@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Hiển thị thanh trượt âm lượng video",
   "hotkeysSettings": "Cài đặt phím nóng",
   "None": "Không",
-  "VOTUseLivelyVoice": "Sử dụng giọng nói sống động. Loa nghe giống như người nga bản địa.",
   "miscSettings": "Cài đặt linh tinh",
   "services": {
     "yandexbrowser": "Trình Duyệt Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Phụ đề mở",
   "VOTSubtitlesFont": "Phông chữ phụ đề",
   "VOTDefaultSubtitlesLanguage": "Ngôn ngữ phụ đề mặc định",
-  "VOTOriginalVideoLanguage": "Ngôn ngữ video gốc"
+  "VOTOriginalVideoLanguage": "Ngôn ngữ video gốc",
+  "VOTStandardVoicesTitle": "Giọng nói tiêu chuẩn giọng nói tiêu chuẩn",
+  "VOTStandardVoicesSubtitle": "Lồng tiếng nhanh và chất lượng cao",
+  "VOTLiveVoicesTitle": "Giọng nói trực tiếp",
+  "VOTLiveVoicesSubtitle": "Sự tương đồng tối đa. Như thể mọi người đều biết tiếng nga"
 }

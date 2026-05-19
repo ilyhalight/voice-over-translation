@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Tampilkan penggeser volume video",
   "hotkeysSettings": "Pengaturan hotkey",
   "None": "Tidak ada",
-  "VOTUseLivelyVoice": "Gunakan suara yang hidup. Pembicara terdengar seperti orang Rusia asli.",
   "miscSettings": "Pengaturan lain-lain",
   "services": {
     "yandexbrowser": "Browser Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Subtitle terbuka",
   "VOTSubtitlesFont": "Font teks terjemahan",
   "VOTDefaultSubtitlesLanguage": "Bahasa subtitle default",
-  "VOTOriginalVideoLanguage": "Bahasa video asli"
+  "VOTOriginalVideoLanguage": "Bahasa video asli",
+  "VOTStandardVoicesTitle": "Suara standarsuara standar",
+  "VOTStandardVoicesSubtitle": "Sulih suara yang cepat dan berkualitas tinggi",
+  "VOTLiveVoicesTitle": "Suara langsung",
+  "VOTLiveVoicesSubtitle": "Kesamaan maksimum. Seolah-olah semua orang tahu bahasa Rusia"
 }

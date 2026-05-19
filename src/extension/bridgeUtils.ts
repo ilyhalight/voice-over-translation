@@ -25,15 +25,3 @@ export function sendBridgeResponse(
     // ignore
   }
 }
-
-export function toStringRecord(input: unknown): Record<string, string> {
-  if (!input || typeof input !== "object") return {};
-
-  return Object.fromEntries(
-    Object.entries(input as Record<string, unknown>)
-      .filter(([, value]) =>
-        ["string", "number", "boolean"].includes(typeof value),
-      )
-      .map(([key, value]) => [String(key), String(value)]),
-  );
-}

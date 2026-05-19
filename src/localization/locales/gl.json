@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Mostrar o deslizador de volume de vídeo",
   "hotkeysSettings": "Configuración de teclas quentes",
   "None": "Ningunha",
-  "VOTUseLivelyVoice": "Usa voces vivas. Os falantes soan Como Rusos nativos.",
   "miscSettings": "Configuración do Misc",
   "services": {
     "yandexbrowser": "Navegador Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Subtítulos en open",
   "VOTSubtitlesFont": "Fonte de subtítulos",
   "VOTDefaultSubtitlesLanguage": "Linguaxe de subtítulos predeterminada",
-  "VOTOriginalVideoLanguage": "Linguaxe de vídeo orixinal"
+  "VOTOriginalVideoLanguage": "Linguaxe de vídeo orixinal",
+  "VOTStandardVoicesTitle": "Voces estándar",
+  "VOTStandardVoicesSubtitle": "Voz en off rápida e de alta calidade",
+  "VOTLiveVoicesTitle": "Voces en directo",
+  "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego"
 }

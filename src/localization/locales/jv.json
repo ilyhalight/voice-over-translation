@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Tampilan geser volume video",
   "hotkeysSettings": "Setelan Hotkeys",
   "None": "Ora ana",
-  "VOTUseLivelyVoice": "Gunakna swara sing nyenengké. Para pamicara kaya wong Rusia asli.",
   "miscSettings": "Setelan Misc",
   "services": {
     "yandexbrowser": "Browser Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Subtitle ing mbukak",
   "VOTSubtitlesFont": "Font Subtitle",
   "VOTDefaultSubtitlesLanguage": "Basa subtitle standar",
-  "VOTOriginalVideoLanguage": "Basa video asli"
+  "VOTOriginalVideoLanguage": "Basa video asli",
+  "VOTStandardVoicesTitle": "Swara standar swara standar",
+  "VOTStandardVoicesSubtitle": "Swara cepet lan kualitas dhuwur",
+  "VOTLiveVoicesTitle": "Swara urip",
+  "VOTLiveVoicesSubtitle": "Kamiripan maksimal. Kaya-kaya kabèh wong ngerti basa rusia"
 }

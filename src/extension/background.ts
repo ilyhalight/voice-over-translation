@@ -20,7 +20,6 @@ import {
   decodeSerializedBody,
   summarizeBodyForDebug,
 } from "./bodySerialization";
-import { asErrorMessage, toStringRecord } from "./bridgeUtils";
 import { PORT_NAME } from "./constants";
 import {
   ext,
@@ -366,6 +365,22 @@ async function ensureDnrStripRuleForGooglevideo(url: string): Promise<void> {
   );
 }
 
+function asErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return Object.prototype.toString.call(err);
+    }
+  }
+  try {
+    return String(err);
+  } catch {
+    return "Unknown error";
+  }
+}
+
 function formatHeaders(headers: Headers): string {
   // Tampermonkey's GM_xmlhttpRequest returns a raw header string.
   return Array.from(headers.entries())
@@ -376,7 +391,19 @@ function formatHeaders(headers: Headers): string {
 function toHeaderRecord(
   input: Record<string, unknown> | undefined,
 ): Record<string, string> {
-  return toStringRecord(input);
+  const out: Record<string, string> = {};
+  if (!input) return out;
+  for (const [k, v] of Object.entries(input)) {
+    if (v === undefined) continue;
+    if (
+      typeof v === "string" ||
+      typeof v === "number" ||
+      typeof v === "boolean"
+    ) {
+      out[String(k)] = String(v);
+    }
+  }
+  return out;
 }
 
 type XhrResponse = {
@@ -410,7 +437,9 @@ function createTerminalXhrError(url: string, error: string): XhrResponse {
 }
 
 function cloneArrayBufferView(view: Uint8Array): ArrayBuffer {
-  return view.slice().buffer;
+  const out = new Uint8Array(view.byteLength);
+  out.set(view);
+  return out.buffer;
 }
 
 function encodeProgressChunkForPort(chunk: Uint8Array): {
@@ -444,9 +473,10 @@ function getHeader(
   name: string,
 ): string | undefined {
   const needle = name.toLowerCase();
-  return Object.entries(headers).find(
-    ([key]) => String(key).toLowerCase() === needle,
-  )?.[1];
+  for (const [k, v] of Object.entries(headers)) {
+    if (String(k).toLowerCase() === needle) return String(v);
+  }
+  return undefined;
 }
 
 function isProtobufContentType(contentType: string | undefined): boolean {

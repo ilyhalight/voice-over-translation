@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Εμφάνιση του Ρυθμιστικού έντασης βίντεο",
   "hotkeysSettings": "Ρυθμίσεις πλήκτρων πρόσβασης",
   "None": "Καμία",
-  "VOTUseLivelyVoice": "Χρησιμοποιήστε ζωντανές φωνές. Οι ομιλητές ακούγονται σαν γηγενείς Ρωσική.",
   "miscSettings": "Διάφορες ρυθμίσεις",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Υπότιτλοι σε ανοιχτό",
   "VOTSubtitlesFont": "Γραμματοσειρά υποτίτλων",
   "VOTDefaultSubtitlesLanguage": "Προεπιλεγμένη γλώσσα υποτίτλων",
-  "VOTOriginalVideoLanguage": "Αρχική γλώσσα βίντεο"
+  "VOTOriginalVideoLanguage": "Αρχική γλώσσα βίντεο",
+  "VOTStandardVoicesTitle": "Τυπικές φωνέςπρότυπες φωνές",
+  "VOTStandardVoicesSubtitle": "Γρήγορη και υψηλής ποιότητας φωνή",
+  "VOTLiveVoicesTitle": "Ζωντανές φωνές",
+  "VOTLiveVoicesSubtitle": "Μέγιστη ομοιότητα. Σαν να γνωρίζουν όλοι ρωσική"
 }

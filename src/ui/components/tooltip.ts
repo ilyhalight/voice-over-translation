@@ -98,6 +98,26 @@ export default class Tooltip {
     return this;
   }
 
+  /** Remove tooltip DOM immediately (no fade). Use when switching UI modes. */
+  dismissImmediate(): this {
+    return this.destroy(true);
+  }
+
+  /**
+   * After enabling the tooltip while the pointer never left the target,
+   * `pointerenter` does not fire again — call this to show immediately.
+   */
+  revealIfHovered(): this {
+    if (this._hidden || this.trigger !== "hover") return this;
+    try {
+      if (!this.target.matches(":hover")) return this;
+    } catch {
+      return this;
+    }
+    this.create();
+    return this;
+  }
+
   /**
    * Update tooltip mount dependencies.
    * If the tooltip is currently rendered, it will be moved to the new parent.

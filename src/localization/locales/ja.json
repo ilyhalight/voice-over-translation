@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "ビデオの音量スライダを表示する",
   "hotkeysSettings": "ホットキーの設定",
   "None": "なし",
-  "VOTUseLivelyVoice": "生き生きとした声を使う。 スピーカーはネイティブロシア人のように聞こえます。",
   "miscSettings": "その他の設定",
   "services": {
     "yandexbrowser": "Yandexブラウザ",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "オープン時の字幕",
   "VOTSubtitlesFont": "字幕フォント",
   "VOTDefaultSubtitlesLanguage": "デフォルトの字幕言語",
-  "VOTOriginalVideoLanguage": "オリジナルビデオ言語"
+  "VOTOriginalVideoLanguage": "オリジナルビデオ言語",
+  "VOTStandardVoicesTitle": "標準的な声標準的な声",
+  "VOTStandardVoicesSubtitle": "高速で高品質のボイスオーバー",
+  "VOTLiveVoicesTitle": "ライブボイス",
+  "VOTLiveVoicesSubtitle": "最大の類似性。 誰もがロシア語を知っているかのように"
 }

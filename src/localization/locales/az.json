@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Video həcmi kaydırıcısını göstərin",
   "hotkeysSettings": "İsti düymə parametrləri",
   "None": "Heç kim",
-  "VOTUseLivelyVoice": "Canlı səslərdən istifadə edin. Natiqlər yerli ruslar kimi danışırlar.",
   "miscSettings": "Müxtəlif parametrlər",
   "services": {
     "yandexbrowser": "Yandex Brauzeri",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Açıldıqda altyazılar",
   "VOTSubtitlesFont": "Altyazı şrifti",
   "VOTDefaultSubtitlesLanguage": "Varsayılan Altyazı dili",
-  "VOTOriginalVideoLanguage": "Orijinal videonun dili"
+  "VOTOriginalVideoLanguage": "Orijinal videonun dili",
+  "VOTStandardVoicesTitle": "Standart səslər standart səslər",
+  "VOTStandardVoicesSubtitle": "Sürətli və keyfiyyətli səs",
+  "VOTLiveVoicesTitle": "Canlı səslər",
+  "VOTLiveVoicesSubtitle": "Maksimum oxşarlıq. Sanki hamı rus dilini bilir"
 }

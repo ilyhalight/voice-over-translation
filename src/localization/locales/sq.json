@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Shfaqni rrëshqitësin e vëllimit të videos",
   "hotkeysSettings": "Cilësimet e Hotkeys",
   "None": "Asnjë",
-  "VOTUseLivelyVoice": "Përdorni zëra të gjallë. Folësit tingëllojnë si Rusë vendas.",
   "miscSettings": "Cilësimet e Misc",
   "services": {
     "yandexbrowser": "Shfletuesi Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Titra në open",
   "VOTSubtitlesFont": "Shkronja e titrave",
   "VOTDefaultSubtitlesLanguage": "Gjuha e parazgjedhur e titrave",
-  "VOTOriginalVideoLanguage": "Gjuha origjinale e videos"
+  "VOTOriginalVideoLanguage": "Gjuha origjinale e videos",
+  "VOTStandardVoicesTitle": "Zërat standardë zërat standardë",
+  "VOTStandardVoicesSubtitle": "Zëri i shpejtë dhe me cilësi të lartë",
+  "VOTLiveVoicesTitle": "Zërat e gjallë",
+  "VOTLiveVoicesSubtitle": "Ngjashmëria maksimale. Sikur të gjithë e dinë rusisht"
 }

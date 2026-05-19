@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "വീഡിയോ വോള്യം സ്ലൈഡര് കാണിക്കുക",
   "hotkeysSettings": "ഹോട്ട്കീകൾ ക്രമീകരണങ്ങൾ",
   "None": "ഒന്നുമില്ല",
-  "VOTUseLivelyVoice": "സജീവമായ ശബ്ദങ്ങൾ ഉപയോഗിക്കുക. സ്പീക്കറുകൾ റഷ്യൻ സ്വദേശികളെപ്പോലെയാണ്.",
   "miscSettings": "എംസിസി ക്രമീകരണങ്ങൾ",
   "services": {
     "yandexbrowser": "യാൻഡെക്സ് ബ്രൗസർ",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "സബ്ടൈറ്റിലുകൾ ഓപ്പൺ",
   "VOTSubtitlesFont": "സബ്ടൈറ്റില് അക്ഷരസഞ്ചയം",
   "VOTDefaultSubtitlesLanguage": "സ്വതവേയുള്ള സബ്ടൈറ്റില് ഭാഷ",
-  "VOTOriginalVideoLanguage": "യഥാർത്ഥ വീഡിയോ ഭാഷ"
+  "VOTOriginalVideoLanguage": "യഥാർത്ഥ വീഡിയോ ഭാഷ",
+  "VOTStandardVoicesTitle": "സ്റ്റാൻഡേർഡ് ശബ്ദങ്ങൾ സ്റ്റാൻഡേർഡ് ശബ്ദങ്ങൾ",
+  "VOTStandardVoicesSubtitle": "വേഗതയേറിയതും ഉയർന്ന നിലവാരമുള്ളതുമായ വോയ്സ് ഓവർ",
+  "VOTLiveVoicesTitle": "ലൈവ് ശബ്ദങ്ങൾ",
+  "VOTLiveVoicesSubtitle": "പരമാവധി സമാനത. എല്ലാവരും റഷ്യൻ അറിയുന്നു പോലെ"
 }

@@ -10,12 +10,18 @@ function getTransferables(payload: AnyObject): Transferable[] {
   if (payload.type !== TYPE_XHR_EVENT) return [];
 
   const eventPayload = payload.payload as AnyObject | undefined;
-  const transferables = [
-    eventPayload?.progress?.chunk,
-    eventPayload?.response?.response,
-  ].filter(isArrayBuffer);
+  const progressChunk = eventPayload?.progress?.chunk;
+  const responseBody = eventPayload?.response?.response;
 
-  return [...new Set(transferables)];
+  if (!isArrayBuffer(progressChunk)) {
+    return isArrayBuffer(responseBody) ? [responseBody] : [];
+  }
+
+  if (!isArrayBuffer(responseBody) || responseBody === progressChunk) {
+    return [progressChunk];
+  }
+
+  return [progressChunk, responseBody];
 }
 
 export function toBridgeMessage(payload: AnyObject): BridgeMarkedMessage {

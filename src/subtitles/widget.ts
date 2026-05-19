@@ -55,6 +55,7 @@ import {
   type TokenPrecomputeMemo,
   type TokenProcessingMemo,
 } from "./smartWrap";
+import "../shims/rvfc-polyfill";
 
 type DraggingState = {
   /** active pointer id while the pointer is down inside the subtitles */

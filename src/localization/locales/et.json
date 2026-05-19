@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Video helitugevuse liuguri kuvamine",
   "hotkeysSettings": "Kiirklahvide Seaded",
   "None": "Ükski",
-  "VOTUseLivelyVoice": "Kasutage elavaid hääli. Kõlarid kõlavad nagu kohalikud venelased.",
   "miscSettings": "Muud seaded",
   "services": {
     "yandexbrowser": "Yandexi Brauser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Subtiitrid avatud",
   "VOTSubtitlesFont": "Subtiitrite font",
   "VOTDefaultSubtitlesLanguage": "Vaikimisi Subtiitrite keel",
-  "VOTOriginalVideoLanguage": "Originaal video keel"
+  "VOTOriginalVideoLanguage": "Originaal video keel",
+  "VOTStandardVoicesTitle": "Standardsed hääledstandardsed hääled",
+  "VOTStandardVoicesSubtitle": "Kiire ja kvaliteetne voiceover",
+  "VOTLiveVoicesTitle": "Elavad hääled",
+  "VOTLiveVoicesSubtitle": "Maksimaalne sarnasus. Nagu kõik teaksid vene keelt"
 }

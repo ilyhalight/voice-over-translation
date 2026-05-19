@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Bistaratu bideo-bolumenaren graduatzailea",
   "hotkeysSettings": "Laster-teklen ezarpenak",
   "None": "Bat ere ez",
-  "VOTUseLivelyVoice": "Erabili ahots biziak. Hizlariek errusiar natiboak dirudite.",
   "miscSettings": "Misc ezarpenak",
   "services": {
     "yandexbrowser": "Yandex Arakatzailea",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Azpitituluak irekita",
   "VOTSubtitlesFont": "Azpitituluaren letra-tipoa",
   "VOTDefaultSubtitlesLanguage": "Azpitituluen hizkuntza lehenetsia",
-  "VOTOriginalVideoLanguage": "Jatorrizko bideo hizkuntza"
+  "VOTOriginalVideoLanguage": "Jatorrizko bideo hizkuntza",
+  "VOTStandardVoicesTitle": "Ahots estandarrak",
+  "VOTStandardVoicesSubtitle": "Ahots azkarra eta kalitate handikoa",
+  "VOTLiveVoicesTitle": "Bizi ahotsak",
+  "VOTLiveVoicesSubtitle": "Antzekotasun handiena. Denek errusiera dakite"
 }

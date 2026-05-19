@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "ವೀಡಿಯೊ ಪರಿಮಾಣ ಸ್ಲೈಡರ್ ಪ್ರದರ್ಶಿಸಿ",
   "hotkeysSettings": "ಹಾಟ್ಕೀ ಸೆಟ್ಟಿಂಗ್ಗಳು",
   "None": "ಯಾವುದೂ ಇಲ್ಲ",
-  "VOTUseLivelyVoice": "ಉತ್ಸಾಹಭರಿತ ಧ್ವನಿಗಳನ್ನು ಬಳಸಿ. ಸ್ಪೀಕರ್ಗಳು ಸ್ಥಳೀಯ ರಷ್ಯನ್ನರಂತೆ ಧ್ವನಿಸುತ್ತದೆ.",
   "miscSettings": "Misc ಸೆಟ್ಟಿಂಗ್ಗಳು",
   "services": {
     "yandexbrowser": "Yandex ಬ್ರೌಸರ್",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "ತೆರೆಯ ಮೇಲೆ ಉಪಶೀರ್ಷಿಕೆಗಳು",
   "VOTSubtitlesFont": "ಉಪಶೀರ್ಷಿಕೆ ಫಾಂಟ್",
   "VOTDefaultSubtitlesLanguage": "ಡೀಫಾಲ್ಟ್ ಉಪಶೀರ್ಷಿಕೆ ಭಾಷೆ",
-  "VOTOriginalVideoLanguage": "ಮೂಲ ವೀಡಿಯೊ ಭಾಷೆ"
+  "VOTOriginalVideoLanguage": "ಮೂಲ ವೀಡಿಯೊ ಭಾಷೆ",
+  "VOTStandardVoicesTitle": "ಪ್ರಮಾಣಿತ ಧ್ವನಿಗಳು ಪ್ರಮಾಣಿತ ಧ್ವನಿಗಳು",
+  "VOTStandardVoicesSubtitle": "ವೇಗದ ಮತ್ತು ಉತ್ತಮ ಗುಣಮಟ್ಟದ ಧ್ವನಿ ಓವರ್",
+  "VOTLiveVoicesTitle": "ಲೈವ್ ಧ್ವನಿಗಳು",
+  "VOTLiveVoicesSubtitle": "ಗರಿಷ್ಠ ಹೋಲಿಕೆ. ಎಲ್ಲರಿಗೂ ರಷ್ಯನ್ ತಿಳಿದಿರುವಂತೆ"
 }

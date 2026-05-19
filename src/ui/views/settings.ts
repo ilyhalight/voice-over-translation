@@ -11,7 +11,6 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "change:showVideoVolume",
   "change:audioBooster",
   "change:syncVolume",
-  "change:useLivelyVoice",
   "change:subtitlesHighlightWords",
   "change:subtitlesSmartLayout",
   "select:responseLanguageSubtitles",
@@ -232,8 +231,6 @@ export class SettingsView {
   syncVolumeCheckbox?: Checkbox;
   downloadWithNameCheckbox?: Checkbox;
   sendNotifyOnCompleteCheckbox?: Checkbox;
-  useLivelyVoiceCheckbox?: Checkbox;
-  useLivelyVoiceTooltip?: Tooltip;
   useAudioDownloadCheckbox?: Checkbox;
   useAudioDownloadCheckboxLabel?: Label;
   useAudioDownloadCheckboxTooltip?: Tooltip;
@@ -696,21 +693,6 @@ export class SettingsView {
       labelHtml: localizationProvider.get("VOTSendNotifyOnComplete"),
       checked: this.data.sendNotifyOnComplete,
     });
-    this.useLivelyVoiceCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTUseLivelyVoice"),
-      checked: this.data.useLivelyVoice,
-    });
-    this.useLivelyVoiceTooltip = new Tooltip({
-      target: this.useLivelyVoiceCheckbox.container,
-      content: localizationProvider.get("VOTAccountRequired"),
-      position: "bottom",
-      backgroundColor: "var(--vot-helper-ondialog)",
-      parentElement: this.globalPortal,
-      hidden: !!this.data.account?.token,
-    });
-    if (!this.data.account?.token) {
-      this.useLivelyVoiceCheckbox.disabled = true;
-    }
     this.useAudioDownloadCheckboxLabel = new Label({
       labelText: localizationProvider.get("VOTUseAudioDownload"),
       icon: WARNING_ICON,
@@ -741,7 +723,6 @@ export class SettingsView {
       this.syncVolumeCheckbox.container,
       this.downloadWithNameCheckbox.container,
       this.sendNotifyOnCompleteCheckbox.container,
-      this.useLivelyVoiceCheckbox.container,
       this.useAudioDownloadCheckbox.container,
     );
     this.subtitlesDownloadFormatSelectLabel = new Label({
@@ -1328,18 +1309,6 @@ export class SettingsView {
       logLabel: "sendNotifyOnComplete",
     });
     this.bindPersistedSetting({
-      control: this.useLivelyVoiceCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.useLivelyVoice = checked;
-      },
-      storageKey: "useLivelyVoice",
-      readPersistedValue: () => this.data.useLivelyVoice,
-      logLabel: "useLivelyVoice",
-      dispatch: (checked) =>
-        this.events["change:useLivelyVoice"].dispatch(checked),
-    });
-    this.bindPersistedSetting({
       control: this.useAudioDownloadCheckbox,
       event: "change",
       apply: (checked) => {
@@ -1609,7 +1578,6 @@ export class SettingsView {
       this.accountButtonRefreshTooltip,
       this.accountButtonTokenTooltip,
       this.audioBoosterTooltip,
-      this.useLivelyVoiceTooltip,
       this.useAudioDownloadCheckboxTooltip,
       this.useNewAudioPlayerTooltip,
       this.onlyBypassMediaCSPTooltip,
@@ -1639,9 +1607,8 @@ export class SettingsView {
       throw new Error("[VOT] SettingsView isn't initialized");
     const loggedIn = !!this.data.account?.token;
     this.accountButton.avatarId = this.data.account?.avatarId;
-    this.useLivelyVoiceTooltip.hidden = this.accountButton.loggedIn = loggedIn;
+    this.accountButton.loggedIn = loggedIn;
     this.accountButton.username = this.data.account?.username;
-    this.useLivelyVoiceCheckbox.disabled = !loggedIn;
     this.events["update:account"].dispatch(this.data.account);
     return this;
   }

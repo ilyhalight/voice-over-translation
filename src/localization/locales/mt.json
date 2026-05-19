@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Ay s-slider tal-volum tal-vidjo",
   "hotkeysSettings": "Settings tal-Hotkeys",
   "None": "Xejn",
-  "VOTUseLivelyVoice": "Uża vuċijiet vivaċi. Il-kelliema jinstemgħu bħal Russi indiġeni.",
   "miscSettings": "Settings Misc",
   "services": {
     "yandexbrowser": "Browser Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Sottotitoli fuq miftuħa",
   "VOTSubtitlesFont": "Font tas-sottotitolu",
   "VOTDefaultSubtitlesLanguage": "Lingwa tas-sottotitolu Default",
-  "VOTOriginalVideoLanguage": "Lingwa tal-vidjo oriġinali"
+  "VOTOriginalVideoLanguage": "Lingwa tal-vidjo oriġinali",
+  "VOTStandardVoicesTitle": "Vuċijiet standardvuċijiet standard",
+  "VOTStandardVoicesSubtitle": "Vuċi veloċi u ta'kwalità għolja",
+  "VOTLiveVoicesTitle": "Vuċijiet ħajjin",
+  "VOTLiveVoicesSubtitle": "Xebh massimu. Bħallikieku kulħadd jaf ir russu"
 }

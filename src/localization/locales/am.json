@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "የቪዲዮ ጥራዝ ተንሸራታች አሳይ",
   "hotkeysSettings": "Hotkeys ቅንብሮች",
   "None": "ምንም",
-  "VOTUseLivelyVoice": "ሕያው ድምጾችን ይጠቀሙ. ተናጋሪዎች እንደ ሩሲያውያን ይመስላሉ።",
   "miscSettings": "ኤስሲ ቅንብሮች",
   "services": {
     "yandexbrowser": "Yandex መቃኛ",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "ክፍት ላይ ንዑስ ርዕሶች",
   "VOTSubtitlesFont": "የፊደል ቅርጽ",
   "VOTDefaultSubtitlesLanguage": "ነባሪ የትርጉም ቋንቋ",
-  "VOTOriginalVideoLanguage": "የመጀመሪያው የቪዲዮ ቋንቋ"
+  "VOTOriginalVideoLanguage": "የመጀመሪያው የቪዲዮ ቋንቋ",
+  "VOTStandardVoicesTitle": "መደበኛ ድምፆችየመደበኛ ድምፆች",
+  "VOTStandardVoicesSubtitle": "ፈጣን እና ከፍተኛ ጥራት ያለው የድምፅ ድምጽ",
+  "VOTLiveVoicesTitle": "የቀጥታ ድምጾች",
+  "VOTLiveVoicesSubtitle": "ከፍተኛው ተመሳሳይነት. ሁሉም ሰው ሩሲያኛ ያውቃል ከሆነ እንደ"
 }

@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "ສະແດງແຖບເລື່ອນປະລິມານວິດີໂອ",
   "hotkeysSettings": "ການຕັ້ງຄ່າ Hotkeys",
   "None": "ບໍ່ມີ",
-  "VOTUseLivelyVoice": "ໃຊ້ສຽງທີ່ມີຊີວິດຊີວາ. ລໍາໂພງສຽງຄ້າຍຄືຊາວລັດເຊຍພື້ນເມືອງ.",
   "miscSettings": "ການຕັ້ງຄ່າ Misc",
   "services": {
     "yandexbrowser": "ຕົວທ່ອງເວັບ Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "ຄໍາບັນຍາຍເປີດ",
   "VOTSubtitlesFont": "ຕົວອັກສອນບັນຍາຍ",
   "VOTDefaultSubtitlesLanguage": "ພາສາຄໍາບັນຍາຍໃນຕອນຕົ້ນ",
-  "VOTOriginalVideoLanguage": "ພາສາວິດີໂອຕົ້ນສະບັບ"
+  "VOTOriginalVideoLanguage": "ພາສາວິດີໂອຕົ້ນສະບັບ",
+  "VOTStandardVoicesTitle": "ສຽງມາດຕະຖານສຽງມາດຕະຖານ",
+  "VOTStandardVoicesSubtitle": "Voiceover ໄວແລະຄຸນນະພາບສູງ",
+  "VOTLiveVoicesTitle": "ສຽງສົດ",
+  "VOTLiveVoicesSubtitle": "ຄວາມຄ້າຍຄືກັນສູງສຸດ. ຄືກັບວ່າທຸກຄົນຮູ້ພາສາລັດເຊຍ"
 }

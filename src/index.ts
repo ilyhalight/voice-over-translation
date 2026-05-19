@@ -1651,6 +1651,19 @@ async function main(): Promise<void> {
     authOrigin: authServerUrl,
   });
 
+  // FIX: Drive video player UI from blocking pointer events
+  if (globalThis.location.hostname === "drive.google.com") {
+    GM_addStyle(`
+        section[data-fullscreen-control-supported="true"] {
+            pointer-events: none !important;
+        }
+        section[data-fullscreen-control-supported="true"] > div[data-volume-slider-control-supported="true"],
+        section[data-fullscreen-control-supported="true"] > div[data-playback-rate-setting-supported="true"] {
+            pointer-events: auto !important;
+        }
+    `);
+  }
+
   if (bootstrapMode === "skip") {
     logBootstrap("Skipping bootstrap for non-runnable iframe");
     return;

@@ -1,5 +1,5 @@
 import debug from "../utils/debug";
-import { containsCrossShadow, getDeepActiveElement } from "../utils/dom";
+import { getDeepActiveElement } from "../utils/dom";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import type { OverlayView } from "./views/overlay";
 
@@ -129,43 +129,43 @@ export class OverlayVisibilityController {
   /**
    * Schedules hide if focus leaves overlay tree entirely.
    */
-  scheduleHide(event?: Event) {
+  scheduleHide() {
     if (!this.getView()) {
       return;
     }
 
     // For pointerleave, hide immediately without delay
-    if (event?.type === "pointerleave") {
-      const pointerType = (event as PointerEvent).pointerType;
-      if (pointerType === "touch") {
-        this.queueAutoHide();
-        return;
-      }
+    // if (event?.type === "pointerleave") {
+    //   const pointerType = (event as PointerEvent).pointerType;
+    //   if (pointerType === "touch") {
+    //     this.queueAutoHide();
+    //     return;
+    //   }
 
-      const currentTarget = event?.currentTarget;
-      let relatedTarget: EventTarget | null =
-        (event as unknown as { relatedTarget?: EventTarget | null })
-          ?.relatedTarget ?? null;
+    //   const currentTarget = event?.currentTarget;
+    //   let relatedTarget: EventTarget | null =
+    //     (event as unknown as { relatedTarget?: EventTarget | null })
+    //       ?.relatedTarget ?? null;
 
-      if (!relatedTarget && typeof event?.composedPath === "function") {
-        const path = event.composedPath() as unknown as EventTarget[];
-        relatedTarget = path[1] ?? null;
-      }
+    //   if (!relatedTarget && typeof event?.composedPath === "function") {
+    //     const path = event.composedPath() as unknown as EventTarget[];
+    //     relatedTarget = path[1] ?? null;
+    //   }
 
-      const relatedNode = relatedTarget instanceof Node ? relatedTarget : null;
-      const currentNode = currentTarget instanceof Node ? currentTarget : null;
+    //   const relatedNode = relatedTarget instanceof Node ? relatedTarget : null;
+    //   const currentNode = currentTarget instanceof Node ? currentTarget : null;
 
-      if (
-        relatedNode &&
-        ((currentNode && containsCrossShadow(currentNode, relatedNode)) ||
-          this.deps.isInteractiveNode(relatedNode))
-      ) {
-        return;
-      }
+    //   if (
+    //     relatedNode &&
+    //     ((currentNode && containsCrossShadow(currentNode, relatedNode)) ||
+    //       this.deps.isInteractiveNode(relatedNode))
+    //   ) {
+    //     return;
+    //   }
 
-      this.hide();
-      return;
-    }
+    //   this.hide();
+    //   return;
+    // }
 
     this.queueAutoHide();
   }

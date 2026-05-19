@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Bonisa ividiyo ivolumu slider",
   "hotkeysSettings": "Hotkeys izilungiselelo",
   "None": "Ayikho",
-  "VOTUseLivelyVoice": "Sebenzisa amazwi aphilayo. Izikhulumi zizwakala Njengabantu bomdabu Baserussia.",
   "miscSettings": "Izilungiselelo ze-Misc",
   "services": {
     "yandexbrowser": "Isiphequluli Se-Yandex",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Izihlokwana ezivulekile",
   "VOTSubtitlesFont": "Ifonti yesihlokwana",
   "VOTDefaultSubtitlesLanguage": "Ulimi lwezihlokwana oluzenzakalelayo",
-  "VOTOriginalVideoLanguage": "Ulimi lwevidiyo lwangempela"
+  "VOTOriginalVideoLanguage": "Ulimi lwevidiyo lwangempela",
+  "VOTStandardVoicesTitle": "Amazwi ajwayelekile amazwi ajwayelekile",
+  "VOTStandardVoicesSubtitle": "Voiceover fast and eliphezulu",
+  "VOTLiveVoicesTitle": "Amazwi aphilayo",
+  "VOTLiveVoicesSubtitle": "Ukufana okuphezulu. Njengokungathi wonke umuntu uyazi isirashiya"
 }

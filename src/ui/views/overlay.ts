@@ -1,7 +1,7 @@
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { VideoHandler } from "../..";
-import { maxAudioVolume } from "../../config/config";
+import { authLoginUrl, maxAudioVolume } from "../../config/config";
 import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { Direction, Position } from "../../types/components/votButton";
@@ -28,6 +28,7 @@ import Select from "../components/select";
 import Slider from "../components/slider";
 import SliderLabel from "../components/sliderLabel";
 import Tooltip from "../components/tooltip";
+import VoicePopover, { type VoiceType } from "../components/voicePopover";
 import VOTButton from "../components/votButton";
 import VOTMenu from "../components/votMenu";
 import { SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
@@ -73,6 +74,7 @@ export class OverlayView {
   } = {
     "click:settings": new EventImpl<OverlayViewEventMap["click:settings"]>(),
     "click:pip": new EventImpl<OverlayViewEventMap["click:pip"]>(),
+    "click:subtitles": new EventImpl<OverlayViewEventMap["click:subtitles"]>(),
     "click:downloadTranslation": new EventImpl<
       OverlayViewEventMap["click:downloadTranslation"]
     >(),
@@ -95,11 +97,16 @@ export class OverlayView {
     "select:subtitles": new EventImpl<
       OverlayViewEventMap["select:subtitles"]
     >(),
+    "select:voiceType": new EventImpl<
+      OverlayViewEventMap["select:voiceType"]
+    >(),
   };
 
   // button
   votButton?: VOTButton;
   votButtonTooltip?: Tooltip;
+  subtitlesButtonTooltip?: Tooltip;
+  voicePopover?: VoicePopover;
   // menu
   votMenu?: VOTMenu;
   downloadTranslationButton?: DownloadButton;
@@ -175,6 +182,7 @@ export class OverlayView {
     // #region Button type
     votButton: VOTButton;
     votButtonTooltip: Tooltip;
+    voicePopover: VoicePopover;
     // #endregion Button type
     // #region Menu type
     votMenu: VOTMenu;
@@ -205,6 +213,71 @@ export class OverlayView {
       direction: "row",
       position: "default",
     };
+  }
+
+  /** Centered bar uses dropdown arrow; side layout uses translate segment hover. */
+  private isCenteredButtonLayout(): boolean {
+    return this.votButton?.direction !== "column";
+  }
+
+  /** Side layout blocks voice popover on error (tooltip instead). Centered bar always allows dropdown. */
+  private allowsVoicePopover(): boolean {
+    if (!this.votButton) return false;
+    if (this.isCenteredButtonLayout()) return true;
+    return this.votButton.status !== "error";
+  }
+
+  /** Error tooltip only on side layout — centered bar uses dropdown + button label. */
+  syncTranslateButtonTooltip(): this {
+    if (!this.isInitialized()) return this;
+
+    const tooltip = this.votButtonTooltip;
+    const showErrorTooltip =
+      this.votButton.status === "error" && !this.isCenteredButtonLayout();
+
+    tooltip.hidden = !showErrorTooltip;
+    tooltip.dismissImmediate();
+
+    if (showErrorTooltip) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => tooltip.revealIfHovered());
+      });
+    }
+
+    return this;
+  }
+
+  /**
+   * When status leaves `error`, pointer may still sit on translate segment or
+   * chevron — no new `pointerenter` fires, so re-arm the hover popover here.
+   */
+  rescheduleVoicePopoverIfHovered(): this {
+    if (!this.isInitialized()) return this;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!this.isInitialized() || !this.allowsVoicePopover()) return;
+        const vp = this.voicePopover;
+        if (!vp || vp.isOpen) return;
+
+        const hovered = (el: HTMLElement | null): boolean => {
+          if (!el?.isConnected) return false;
+          try {
+            return el.matches(":hover");
+          } catch {
+            return false;
+          }
+        };
+
+        if (this.votButton.direction === "column") {
+          if (hovered(this.votButton.translateButton)) {
+            vp.scheduleShow(this.votButton.translateButton);
+          }
+        } else if (hovered(this.votButton.dropdownArrow)) {
+          vp.scheduleShow(this.votButton.dropdownArrow);
+        }
+      });
+    });
+    return this;
   }
 
   addEventListener<K extends keyof OverlayViewEventMap>(
@@ -307,15 +380,43 @@ export class OverlayView {
     if (!this.pipButtonVisible) {
       this.votButton.showPiPButton(false);
     }
+    // Subtitles button is always visible for now, as requested.
+    this.votButton.showSubtitlesButton(true);
     this.root.appendChild(this.votButton.container);
+    this.votButton.syncDropdownArrowPlacement();
+
+    // Translate label tooltip: hidden during normal use (voice popover instead).
     this.votButtonTooltip = new Tooltip({
       target: this.votButton.translateButton,
       content: localizationProvider.get("translateVideo"),
       position: this.votButton.tooltipPos,
-      // Keep side-tooltip direction stable for the moved button (left/right)
-      // so status/error text does not mirror to the opposite side.
       autoLayout: false,
-      hidden: direction === "row",
+      hidden: true,
+      bordered: false,
+      parentElement:
+        this.root instanceof ShadowRoot
+          ? (this.root.host as HTMLElement)
+          : this.root,
+    });
+
+    // Voice type popover — shown on hover over the translate button.
+    const activeVoice: VoiceType = this.data.useLivelyVoice
+      ? "live"
+      : "standard";
+    this.voicePopover = new VoicePopover({
+      activeVoice,
+      layoutRoot: this.root as HTMLElement,
+      onTranslate: () => {
+        this.events["click:translate"].dispatch();
+      },
+    });
+    this.root.appendChild(this.voicePopover.container);
+    this.syncTranslateButtonTooltip();
+    this.subtitlesButtonTooltip = new Tooltip({
+      target: this.votButton.subtitlesButton,
+      content: localizationProvider.get("VOTSubtitles"),
+      position: this.votButton.tooltipPos,
+      autoLayout: false,
       bordered: false,
       parentElement:
         this.root instanceof ShadowRoot
@@ -474,13 +575,6 @@ export class OverlayView {
       this.votMenu.hidden = !open;
       this.votButton.menuButton.setAttribute("aria-expanded", open.toString());
 
-      // The translate button tooltip is helpful when the menu is closed, but
-      // becomes visual noise when the menu is open.
-      if (this.votButtonTooltip) {
-        this.votButtonTooltip.hidden =
-          open || this.votButton.direction === "row";
-      }
-
       if (open) {
         queueMicrotask(() => this.openSettingsButton?.focus?.());
       } else if (returnFocusToToggle) {
@@ -503,11 +597,101 @@ export class OverlayView {
       signal,
     );
 
+    // Voice popover: show on hover over the translate button (desktop),
+    // toggle on tap (touch/mobile).
+    this.votButton.translateButton.addEventListener(
+      "pointerenter",
+      (e) => {
+        if (e.pointerType === "touch") return;
+        // In row/default layout the dropdown arrow handles the popover.
+        if (this.votButton.direction !== "column") return;
+        if (!this.allowsVoicePopover()) return;
+        this.voicePopover?.scheduleShow(this.votButton.translateButton);
+      },
+      { signal },
+    );
+    this.votButton.translateButton.addEventListener(
+      "pointerleave",
+      (e) => {
+        if (e.pointerType === "touch") return;
+        if (this.votButton.direction !== "column") return;
+        this.voicePopover?.scheduleHide();
+      },
+      { signal },
+    );
+    this.votButton.translateButton.addEventListener(
+      "pointerdown",
+      (e) => {
+        if (e.pointerType !== "touch") return;
+        // On touch in side layout, toggle the popover instead of translating.
+        if (this.votButton.direction !== "column") return;
+        if (!this.allowsVoicePopover()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        this.voicePopover?.toggleForTouch(this.votButton.translateButton);
+      },
+      { signal },
+    );
+
+    // Dropdown arrow (row/default layout only): click toggles the voice popover.
+    this.bindPrimaryAction(
+      this.votButton.dropdownArrow,
+      () => {
+        if (!this.allowsVoicePopover()) return;
+        const arrow = this.votButton.dropdownArrow;
+        const isOpen = this.voicePopover?.isOpen;
+        if (isOpen) {
+          this.voicePopover?.hideNow();
+          arrow.setAttribute("aria-expanded", "false");
+        } else {
+          this.voicePopover?.cancelHide();
+          this.voicePopover?.scheduleShow(arrow);
+          arrow.setAttribute("aria-expanded", "true");
+        }
+      },
+      signal,
+      { preventPointerDefault: true },
+    );
+    // Keep the arrow's aria-expanded in sync when the popover closes externally.
+    this.voicePopover.addEventListener(() => {
+      // Called on voice selection — popover will close shortly.
+      this.votButton.dropdownArrow.setAttribute("aria-expanded", "false");
+    });
+
+    // Voice popover selection handler.
+    this.voicePopover.addEventListener((voice) => {
+      const useLive = voice === "live";
+
+      // If the user picks live voices but isn't logged in, redirect to auth.
+      if (useLive && !this.data.account?.token) {
+        globalThis.open(authLoginUrl, "_blank")?.focus();
+        // Reset the popover back to standard since auth hasn't happened yet.
+        if (this.voicePopover) {
+          this.voicePopover.activeVoice = "standard";
+        }
+        return;
+      }
+
+      if (this.data.useLivelyVoice === useLive) return;
+      this.data.useLivelyVoice = useLive;
+      void votStorage.set("useLivelyVoice", useLive);
+      this.events["select:voiceType"].dispatch(useLive);
+    });
+
     this.bindPrimaryAction(
       this.votButton.pipButton,
       () => {
         closeMenu();
         this.events["click:pip"].dispatch();
+      },
+      signal,
+    );
+
+    this.bindPrimaryAction(
+      this.votButton.subtitlesButton,
+      () => {
+        closeMenu();
+        this.events["click:subtitles"].dispatch();
       },
       signal,
     );
@@ -523,6 +707,7 @@ export class OverlayView {
     this.votButton.container.style.touchAction = touchAction;
     // `touch-action` is not inherited, so ensure child segments are also covered.
     this.votButton.translateButton.style.touchAction = touchAction;
+    this.votButton.subtitlesButton.style.touchAction = touchAction;
     this.votButton.pipButton.style.touchAction = touchAction;
     this.votButton.menuButton.style.touchAction = touchAction;
 
@@ -802,10 +987,27 @@ export class OverlayView {
 
     this.votButton.position = position;
     this.votButton.direction = direction;
+    this.votButton.syncDropdownArrowPlacement();
 
-    this.votButtonTooltip.hidden = direction === "row";
     this.votButtonTooltip.setPosition(this.votButton.tooltipPos);
+    this.subtitlesButtonTooltip.setPosition(this.votButton.tooltipPos);
 
+    if (this.voicePopover?.isOpen) {
+      this.voicePopover.hideNow();
+      this.votButton.dropdownArrow.setAttribute("aria-expanded", "false");
+    }
+
+    this.syncTranslateButtonTooltip();
+
+    return this;
+  }
+
+  /** Sync the voice popover's active state with the current data. */
+  syncVoicePopoverState(): this {
+    if (!this.isInitialized()) return this;
+    this.voicePopover.activeVoice = this.data.useLivelyVoice
+      ? "live"
+      : "standard";
     return this;
   }
 
@@ -979,6 +1181,11 @@ export class OverlayView {
     // Avoid redundant style writes on high-frequency interaction events.
     if (Math.abs(this.votButton.opacity - opacity) > 0.01) {
       this.votButton.opacity = opacity;
+      // If the button is fading out, immediately close the voice popover so it
+      // doesn't float in the void after the anchor disappears.
+      if (opacity <= 0.01) {
+        this.voicePopover?.hideNow();
+      }
     }
     return this;
   }
@@ -987,6 +1194,8 @@ export class OverlayView {
     this.votButton?.remove();
     this.votMenu?.remove();
     this.votButtonTooltip?.release();
+    this.subtitlesButtonTooltip?.release();
+    this.voicePopover?.release();
 
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();

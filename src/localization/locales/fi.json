@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "Näytä videon äänenvoimakkuuden liukusäädin",
   "hotkeysSettings": "Pikanäppäinten asetukset",
   "None": "Kukaan",
-  "VOTUseLivelyVoice": "Käytä eloisia ääniä. Puhujat kuulostavat syntyperäisiltä venäläisiltä.",
   "miscSettings": "Muut asetukset",
   "services": {
     "yandexbrowser": "Yandex-Selain",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Tekstitys auki",
   "VOTSubtitlesFont": "Tekstityksen kirjasin",
   "VOTDefaultSubtitlesLanguage": "Tekstityksen oletuskieli",
-  "VOTOriginalVideoLanguage": "Alkuperäinen videon kieli"
+  "VOTOriginalVideoLanguage": "Alkuperäinen videon kieli",
+  "VOTStandardVoicesTitle": "Vakioäänetstandardit äänet",
+  "VOTStandardVoicesSubtitle": "Nopea ja laadukas ääni",
+  "VOTLiveVoicesTitle": "Live voices",
+  "VOTLiveVoicesSubtitle": "Suurin samankaltaisuus. Aivan kuin kaikki osaisivat Venäjää"
 }

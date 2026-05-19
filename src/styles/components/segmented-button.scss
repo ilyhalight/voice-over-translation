@@ -20,6 +20,10 @@
   left: 50%;
   top: 5rem;
   transform: translate(-50%);
+  @media (pointer: coarse) {  
+    top: 3rem;  
+  }  
+ transform: translate(-50%);
   user-select: none;
   display: flex;
   align-items: center;

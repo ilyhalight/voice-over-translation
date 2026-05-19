@@ -7,7 +7,6 @@ import {
   summarizeBodyForDebug,
 } from "./bodySerialization";
 import { toPageMessage } from "./bridgeTransport";
-import { toStringRecord } from "./bridgeUtils";
 import type { AnyObject } from "./constants";
 import { PORT_NAME, TYPE_XHR_ACK, TYPE_XHR_EVENT } from "./constants";
 import { ext, runtimeMessagesUseStructuredClone } from "./webext";
@@ -133,9 +132,18 @@ function ensureHeadersObject(details: AnyObject): Record<string, string> {
     return headers;
   }
 
-  const headers = toStringRecord(raw);
+  const headers = raw as Record<string, unknown>;
+  for (const [name, value] of Object.entries(headers)) {
+    if (typeof value === "string") continue;
+    if (typeof value === "number" || typeof value === "boolean") {
+      headers[name] = String(value);
+      continue;
+    }
+    delete headers[name];
+  }
+
   details.headers = headers;
-  return headers;
+  return headers as Record<string, string>;
 }
 
 function stripYandexHeaders(headers: Record<string, string>): void {
@@ -150,9 +158,10 @@ function mergeHeadersIfMissing(
   headers: Record<string, string>,
   additions: Readonly<Record<string, string>>,
 ): void {
-  const existingNames = new Set(
-    Object.keys(headers).map((name) => name.toLowerCase()),
-  );
+  const existingNames = new Set<string>();
+  for (const name of Object.keys(headers)) {
+    existingNames.add(name.toLowerCase());
+  }
 
   for (const [name, value] of Object.entries(additions)) {
     if (!value) continue;

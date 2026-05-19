@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "A videó hangerő csúszkájának megjelenítése",
   "hotkeysSettings": "Gyorsbillentyűk beállításai",
   "None": "Nincs",
-  "VOTUseLivelyVoice": "Használjon élénk hangokat. A hangszórók úgy hangzik, mint a natív oroszok.",
   "miscSettings": "Egyéb beállítások",
   "services": {
     "yandexbrowser": "Yandex Browser",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "Feliratok nyitva",
   "VOTSubtitlesFont": "Felirat betűtípus",
   "VOTDefaultSubtitlesLanguage": "Alapértelmezett felirat nyelv",
-  "VOTOriginalVideoLanguage": "Eredeti videó nyelv"
+  "VOTOriginalVideoLanguage": "Eredeti videó nyelv",
+  "VOTStandardVoicesTitle": "Normál hangokstandard hangok",
+  "VOTStandardVoicesSubtitle": "Gyors és kiváló minőségű voiceover",
+  "VOTLiveVoicesTitle": "Élő hangok",
+  "VOTLiveVoicesSubtitle": "Maximális hasonlóság. Mint ha mindenki tudja, orosz"
 }

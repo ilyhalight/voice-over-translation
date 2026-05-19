@@ -1,5 +1,6 @@
 import { render } from "lit-html";
 
+import { localizationProvider } from "../../localization/localizationProvider";
 import type {
   Direction,
   Position,
@@ -7,12 +8,21 @@ import type {
   VOTButtonProps,
 } from "../../types/components/votButton";
 import UI from "../../ui";
-import { MENU_ICON, PIP_ICON_SVG, TRANSLATE_ICON_SVG } from "../icons";
+import {
+  CHEVRON_ICON,
+  MENU_ICON,
+  PIP_ICON_SVG,
+  SUBTITLES_ICON,
+  TRANSLATE_ICON_SVG,
+} from "../icons";
 
 export default class VOTButton {
   container: HTMLElement;
   translateButton: HTMLElement;
+  dropdownArrow: HTMLElement;
   separator: HTMLElement;
+  subtitlesButton: HTMLElement;
+  separator3: HTMLElement;
   pipButton: HTMLElement;
   separator2: HTMLElement;
   menuButton: HTMLElement;
@@ -42,7 +52,10 @@ export default class VOTButton {
     const elements = this.createElements();
     this.container = elements.container;
     this.translateButton = elements.translateButton;
+    this.dropdownArrow = elements.dropdownArrow;
     this.separator = elements.separator;
+    this.subtitlesButton = elements.subtitlesButton;
+    this.separator3 = elements.separator3;
     this.pipButton = elements.pipButton;
     this.separator2 = elements.separator2;
     this.menuButton = elements.menuButton;
@@ -86,7 +99,34 @@ export default class VOTButton {
     label.textContent = this._labelText;
     translateButton.appendChild(label);
 
+    // Dropdown arrow — only for centered bar; side positions drop it in DOM via syncDropdownArrowPlacement.
+    const dropdownArrow = UI.createEl("vot-block", [
+      "vot-segment",
+      "vot-dropdown-arrow",
+    ]);
+    dropdownArrow.setAttribute("role", "button");
+    dropdownArrow.tabIndex = 0;
+    dropdownArrow.setAttribute(
+      "aria-label",
+      localizationProvider.get("VOTSelectVoice" as any) ?? "Select voice",
+    );
+    dropdownArrow.setAttribute("aria-haspopup", "menu");
+    dropdownArrow.setAttribute("aria-expanded", "false");
+    render(CHEVRON_ICON, dropdownArrow);
+
     const separator = UI.createEl("vot-block", ["vot-separator"]);
+
+    const subtitlesButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
+    subtitlesButton.setAttribute("role", "button");
+    subtitlesButton.tabIndex = 0;
+    subtitlesButton.setAttribute(
+      "aria-label",
+      localizationProvider.get("VOTSubtitles"),
+    );
+    render(SUBTITLES_ICON, subtitlesButton);
+
+    const separator3 = UI.createEl("vot-block", ["vot-separator"]);
+
     const pipButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
     pipButton.setAttribute("role", "button");
     pipButton.tabIndex = 0;
@@ -105,7 +145,10 @@ export default class VOTButton {
 
     container.append(
       translateButton,
+      dropdownArrow,
       separator,
+      subtitlesButton,
+      separator3,
       pipButton,
       separator2,
       menuButton,
@@ -113,12 +156,20 @@ export default class VOTButton {
     return {
       container,
       translateButton,
+      dropdownArrow,
       separator,
+      subtitlesButton,
+      separator3,
       pipButton,
       separator2,
       menuButton,
       label,
     };
+  }
+
+  showSubtitlesButton(visible: boolean) {
+    this.separator3.hidden = this.subtitlesButton.hidden = !visible;
+    return this;
   }
 
   showPiPButton(visible: boolean) {
@@ -187,6 +238,21 @@ export default class VOTButton {
 
   set direction(direction: Direction) {
     this._direction = this.container.dataset.direction = direction;
+  }
+
+  /**
+   * Voice popover chevron exists only for centered (horizontal) bar layout.
+   * For left/right docked buttons the segment is omitted from the DOM.
+   */
+  syncDropdownArrowPlacement(): void {
+    const onSide = this._position === "left" || this._position === "right";
+    if (onSide) {
+      this.dropdownArrow.remove();
+      return;
+    }
+    if (this.dropdownArrow.parentElement !== this.container) {
+      this.container.insertBefore(this.dropdownArrow, this.separator);
+    }
   }
 
   set opacity(opacity: number) {

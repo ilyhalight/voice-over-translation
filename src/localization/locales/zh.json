@@ -207,7 +207,6 @@
   "showVideoVolumeSlider": "显示视频音量滑块",
   "hotkeysSettings": "热键设置",
   "None": "无",
-  "VOTUseLivelyVoice": "用活泼的声音。 说话的人听起来像土生土长的俄罗斯人。",
   "miscSettings": "Misc设置",
   "services": {
     "yandexbrowser": "Yandex浏览器",
@@ -244,5 +243,9 @@
   "VOTAutoSubtitles": "公开字幕",
   "VOTSubtitlesFont": "字幕字体",
   "VOTDefaultSubtitlesLanguage": "默认字幕语言",
-  "VOTOriginalVideoLanguage": "原始视频语言"
+  "VOTOriginalVideoLanguage": "原始视频语言",
+  "VOTStandardVoicesTitle": "标准的声音标准的声音",
+  "VOTStandardVoicesSubtitle": "快速、高质量的画外音",
+  "VOTLiveVoicesTitle": "现场声音",
+  "VOTLiveVoicesSubtitle": "最大相似度。 好像每个人都知道俄语"
 }
