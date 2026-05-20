@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.6.1
+// @version        1.11.6.2
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -2594,7 +2594,7 @@ var vot = (function(exports) {
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
 	}
-	function log$1(...messages) {
+	function log(...messages) {
 		if (!canLog(LoggerLevel.DEBUG)) return;
 		console.log(prefix, ...messages);
 	}
@@ -2602,20 +2602,20 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.INFO)) return;
 		console.info(prefix, ...messages);
 	}
-	function warn$1(...messages) {
+	function warn(...messages) {
 		if (!canLog(LoggerLevel.WARN)) return;
 		console.warn(prefix, ...messages);
 	}
-	function error$1(...messages) {
+	function error(...messages) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
 	var Logger = {
 		canLog,
-		log: log$1,
+		log,
 		info,
-		warn: warn$1,
-		error: error$1
+		warn,
+		error
 	};
 	//#endregion
 	//#region src/shims/nodeCrypto.ts
@@ -3687,6 +3687,14 @@ var vot = (function(exports) {
 			additionalData: "embed",
 			match: (url) => /^(www.)?youtube(-nocookie|kids)?.com$/.test(url.host) && url.pathname.startsWith("/embed/"),
 			selector: "html",
+			needExtraData: true
+		},
+		{
+			host: VideoService$1.youtube,
+			url: "https://youtu.be/",
+			match: (url) => /^music\.youtube\.com$/.test(url.host),
+			selector: "#song-video",
+			eventSelector: "#player",
 			needExtraData: true
 		},
 		{
@@ -5170,7 +5178,8 @@ var vot = (function(exports) {
 			if (!videoData) return;
 			const videoLink = Object.entries(videoData.links[videoData.default.toString()]).find(([, data]) => data.type === "application/x-mpegURL")?.[1];
 			if (!videoLink) return;
-			const videoUrl = videoLink.src.startsWith("//") ? `${videoLink.src}` : this.decryptUrl(videoLink.src);
+			let videoUrl = videoLink.src.startsWith("//") ? videoLink.src : this.decryptUrl(videoLink.src);
+			if (videoUrl.startsWith("//")) videoUrl = `https:${videoUrl}`;
 			return {
 				url: videoId,
 				video_url: videoUrl,
@@ -7675,19 +7684,11 @@ var vot = (function(exports) {
 	];
 	//#endregion
 	//#region src/utils/debug.ts
-	var log = (...text) => {
-		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
-	};
-	var warn = (...text) => {
-		console.warn("%c[VOT DEBUG]", "background: #e1ff00ff; color: #fff; padding: 5px;", ...text);
-	};
-	var error = (...text) => {
-		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
-	};
+	var noop = () => {};
 	var debug = {
-		log,
-		warn,
-		error
+		log: noop,
+		warn: noop,
+		error: noop
 	};
 	//#endregion
 	//#region src/utils/number.ts
@@ -11030,7 +11031,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.6.1"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.6.2"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
 	}
 	var LocalizationProvider = class {
 		/**
@@ -25791,12 +25792,7 @@ var vot = (function(exports) {
 		* @returns {HTMLElement} The event container.
 		*/
 		getEventContainer() {
-			if (!this.site.eventSelector) {
-				const { width: cW, height: cH } = this.container.getBoundingClientRect();
-				const { width: vW, height: vH } = this.video.getBoundingClientRect();
-				if (cW < vW || cH < vH) return this.video;
-				return this.container;
-			}
+			if (!this.site.eventSelector) return this.container;
 			return document.querySelector(this.site.eventSelector) ?? this.container;
 		}
 		/**
