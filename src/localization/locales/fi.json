@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Vakioäänetstandardit äänet",
   "VOTStandardVoicesSubtitle": "Nopea ja laadukas ääni",
   "VOTLiveVoicesTitle": "Live voices",
-  "VOTLiveVoicesSubtitle": "Suurin samankaltaisuus. Aivan kuin kaikki osaisivat Venäjää"
+  "VOTLiveVoicesSubtitle": "Suurin samankaltaisuus. Aivan kuin kaikki osaisivat Venäjää",
+  "VOTYandexTokenExpired": "Istunto päättyi. Kirjaudu sisään uudelleen"
 }

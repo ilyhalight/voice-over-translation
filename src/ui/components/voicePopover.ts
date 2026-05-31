@@ -20,7 +20,7 @@ export default class VoicePopover {
   private readonly layoutRoot: HTMLElement;
   private _activeVoice: VoiceType;
   private onTranslate?: () => void;
-  private listeners: Array<(voice: VoiceType) => void> = [];
+  private listeners: Array<(voice: VoiceType) => boolean | undefined> = [];
 
   private showTimer: ReturnType<typeof setTimeout> | null = null;
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -62,12 +62,14 @@ export default class VoicePopover {
     return !this.hidden;
   }
 
-  addEventListener(listener: (voice: VoiceType) => void): this {
+  addEventListener(listener: (voice: VoiceType) => boolean | undefined): this {
     this.listeners.push(listener);
     return this;
   }
 
-  removeEventListener(listener: (voice: VoiceType) => void): this {
+  removeEventListener(
+    listener: (voice: VoiceType) => boolean | undefined,
+  ): this {
     this.listeners = this.listeners.filter((l) => l !== listener);
     return this;
   }
@@ -237,10 +239,13 @@ export default class VoicePopover {
       this.hideTimer = null;
       this.close();
     }, 400);
+    let shouldTranslate = true;
     for (const listener of this.listeners) {
-      listener(voice);
+      if (listener(voice) === false) {
+        shouldTranslate = false;
+      }
     }
-    if (this.onTranslate) {
+    if (shouldTranslate && this.onTranslate) {
       this.onTranslate();
     }
   }
@@ -269,8 +274,18 @@ export default class VoicePopover {
     if (!this.isOpen) return;
 
     const rootRect = this.layoutRoot.getBoundingClientRect();
-    const popoverRect = this.container.getBoundingClientRect();
     const gap = 8;
+    const maxRootWidth = Math.max(160, rootRect.width - gap * 2);
+    const maxRootHeight = Math.max(96, rootRect.height - gap * 2);
+
+    this.container.style.setProperty(
+      "--vot-voice-popover-max-width",
+      `${Math.min(310, maxRootWidth)}px`,
+    );
+    this.container.style.setProperty(
+      "--vot-voice-popover-max-height",
+      `${maxRootHeight}px`,
+    );
 
     const buttonContainer = anchor.closest("[data-direction]") ?? anchor;
     const containerRect = buttonContainer.getBoundingClientRect();
@@ -281,23 +296,44 @@ export default class VoicePopover {
 
     let left: number;
     let top: number;
+    let placement: "left" | "right" | "top" | "bottom";
+    let popoverRect: DOMRect;
 
     if (direction === "column") {
+      const spaceLeft = containerRect.left - rootRect.left - gap;
+      const spaceRight = rootRect.right - containerRect.right - gap;
+      const preferLeft = position === "right";
+      placement =
+        (preferLeft && spaceLeft >= 160) || spaceLeft >= spaceRight
+          ? "left"
+          : "right";
+
+      this.container.style.setProperty(
+        "--vot-voice-popover-max-width",
+        `${Math.max(160, Math.min(310, placement === "left" ? spaceLeft : spaceRight))}px`,
+      );
+      popoverRect = this.container.getBoundingClientRect();
       top =
         containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
 
-      if (position === "right") {
+      if (placement === "left") {
         left = containerRect.left - popoverRect.width - gap;
       } else {
         left = containerRect.right + gap;
       }
     } else {
+      const spaceAbove = containerRect.top - rootRect.top - gap;
+      const spaceBelow = rootRect.bottom - containerRect.bottom - gap;
+      placement = spaceAbove >= spaceBelow ? "top" : "bottom";
+      this.container.style.setProperty(
+        "--vot-voice-popover-max-height",
+        `${Math.max(96, placement === "top" ? spaceAbove : spaceBelow)}px`,
+      );
+      popoverRect = this.container.getBoundingClientRect();
       left =
         containerRect.left + containerRect.width / 2 - popoverRect.width / 2;
 
-      const spaceAbove = containerRect.top - gap;
-      const spaceBelow = rootRect.bottom - containerRect.bottom - gap;
-      if (spaceAbove >= popoverRect.height || spaceAbove >= spaceBelow) {
+      if (placement === "top") {
         top = containerRect.top - popoverRect.height - gap;
       } else {
         top = containerRect.bottom + gap;
@@ -316,6 +352,7 @@ export default class VoicePopover {
     left -= rootRect.left;
     top -= rootRect.top;
 
+    this.container.dataset.placement = placement;
     this.container.style.left = `${left}px`;
     this.container.style.top = `${top}px`;
   }

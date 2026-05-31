@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Suara Standard suara standard",
   "VOTStandardVoicesSubtitle": "Voiceover yang pantas dan berkualiti tinggi",
   "VOTLiveVoicesTitle": "Hidup suara-suara",
-  "VOTLiveVoicesSubtitle": "Persamaan maksimum. Seolah-olah semua orang tahu Rusia"
+  "VOTLiveVoicesSubtitle": "Persamaan maksimum. Seolah-olah semua orang tahu Rusia",
+  "VOTYandexTokenExpired": "Sesi tamat. Log masuk lagi"
 }

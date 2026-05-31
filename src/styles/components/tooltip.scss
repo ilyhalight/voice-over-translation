@@ -32,6 +32,17 @@
     user-select: text;
   }
 
+  &[data-mode="follow"] {
+    align-items: stretch;
+    pointer-events: auto;
+    user-select: text;
+
+    &,
+    & * {
+      user-select: text !important;
+    }
+  }
+
   &.vot-tooltip-bordered {
     border: 1px solid var(--vot-helper-border);
   }

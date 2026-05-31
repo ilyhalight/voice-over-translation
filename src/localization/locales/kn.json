@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "ಪ್ರಮಾಣಿತ ಧ್ವನಿಗಳು ಪ್ರಮಾಣಿತ ಧ್ವನಿಗಳು",
   "VOTStandardVoicesSubtitle": "ವೇಗದ ಮತ್ತು ಉತ್ತಮ ಗುಣಮಟ್ಟದ ಧ್ವನಿ ಓವರ್",
   "VOTLiveVoicesTitle": "ಲೈವ್ ಧ್ವನಿಗಳು",
-  "VOTLiveVoicesSubtitle": "ಗರಿಷ್ಠ ಹೋಲಿಕೆ. ಎಲ್ಲರಿಗೂ ರಷ್ಯನ್ ತಿಳಿದಿರುವಂತೆ"
+  "VOTLiveVoicesSubtitle": "ಗರಿಷ್ಠ ಹೋಲಿಕೆ. ಎಲ್ಲರಿಗೂ ರಷ್ಯನ್ ತಿಳಿದಿರುವಂತೆ",
+  "VOTYandexTokenExpired": "ಅಧಿವೇಶನ ಮುಗಿದಿದೆ. ಮತ್ತೆ ಲಾಗ್ ಇನ್ ಮಾಡಿ"
 }

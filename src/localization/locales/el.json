@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Τυπικές φωνέςπρότυπες φωνές",
   "VOTStandardVoicesSubtitle": "Γρήγορη και υψηλής ποιότητας φωνή",
   "VOTLiveVoicesTitle": "Ζωντανές φωνές",
-  "VOTLiveVoicesSubtitle": "Μέγιστη ομοιότητα. Σαν να γνωρίζουν όλοι ρωσική"
+  "VOTLiveVoicesSubtitle": "Μέγιστη ομοιότητα. Σαν να γνωρίζουν όλοι ρωσική",
+  "VOTYandexTokenExpired": "Η συνεδρία έληξε. Συνδεθείτε ξανά"
 }

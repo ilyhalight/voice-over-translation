@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Suara standarsuara standar",
   "VOTStandardVoicesSubtitle": "Sulih suara yang cepat dan berkualitas tinggi",
   "VOTLiveVoicesTitle": "Suara langsung",
-  "VOTLiveVoicesSubtitle": "Kesamaan maksimum. Seolah-olah semua orang tahu bahasa Rusia"
+  "VOTLiveVoicesSubtitle": "Kesamaan maksimum. Seolah-olah semua orang tahu bahasa Rusia",
+  "VOTYandexTokenExpired": "Sesi berakhir. Masuk lagi"
 }

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Swara standar swara standar",
   "VOTStandardVoicesSubtitle": "Swara cepet lan kualitas dhuwur",
   "VOTLiveVoicesTitle": "Swara urip",
-  "VOTLiveVoicesSubtitle": "Kamiripan maksimal. Kaya-kaya kabèh wong ngerti basa rusia"
+  "VOTLiveVoicesSubtitle": "Kamiripan maksimal. Kaya-kaya kabèh wong ngerti basa rusia",
+  "VOTYandexTokenExpired": "Sesi wis kadaluwarsa. Mlebu maneh"
 }

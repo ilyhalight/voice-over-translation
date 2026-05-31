@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Ստանդարտ ձայներ ստանդարտ ձայներ",
   "VOTStandardVoicesSubtitle": "Արագ և որակյալ ձայնային կատարում",
   "VOTLiveVoicesTitle": "Կենդանի ձայներ",
-  "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն"
+  "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն",
+  "VOTYandexTokenExpired": "Նիստը լրացավ: Կրկին մուտք գործեք համակարգ"
 }

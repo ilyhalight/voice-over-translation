@@ -1,8 +1,11 @@
+import { authLoginUrl } from "../config/config";
 import type { VideoHandler } from "../index";
 import { localizationProvider } from "../localization/localizationProvider";
 import type { Status } from "../types/components/votButton";
+import { deleteExpiredAccount, hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
 import { isAbortError } from "../utils/errors";
+import { votStorage } from "../utils/storage";
 import VOTLocalizedError from "../utils/VOTLocalizedError";
 
 type TranslationButtonCommandDeps = {
@@ -36,6 +39,41 @@ function shouldRefreshVideoDataBeforeTranslation(videoHandler: VideoHandler) {
   );
 }
 
+function redirectToAuth(): void {
+  globalThis.open(authLoginUrl, "_blank")?.focus();
+}
+
+async function switchToStandardVoice(
+  videoHandler: VideoHandler,
+): Promise<void> {
+  if (!videoHandler.data?.useLivelyVoice) {
+    return;
+  }
+
+  videoHandler.data.useLivelyVoice = false;
+  await votStorage.set("useLivelyVoice", false);
+  videoHandler.uiManager?.votOverlayView?.syncVoicePopoverState();
+}
+
+async function ensureAuthStateForTranslation(
+  videoHandler: VideoHandler,
+): Promise<void> {
+  if (await deleteExpiredAccount(videoHandler)) {
+    await switchToStandardVoice(videoHandler);
+    redirectToAuth();
+    throw new VOTLocalizedError("VOTYandexTokenExpired");
+  }
+
+  if (
+    videoHandler.data?.useLivelyVoice &&
+    !hasAccountToken(videoHandler.data.account)
+  ) {
+    await switchToStandardVoice(videoHandler);
+    redirectToAuth();
+    throw new VOTLocalizedError("VOTAccountRequired");
+  }
+}
+
 export async function handleTranslationButtonCommand(
   deps: TranslationButtonCommandDeps,
 ) {
@@ -63,6 +101,8 @@ export async function handleTranslationButtonCommand(
   }
 
   try {
+    await ensureAuthStateForTranslation(videoHandler);
+
     debug.log("[handleTranslationBtnClick] trying execute translation");
     const videoData = await getVideoDataForTranslation(videoHandler);
     await videoHandler.videoManager.ensureDetectedLanguageForTranslation(

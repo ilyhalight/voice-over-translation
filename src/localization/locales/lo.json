@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "ສຽງມາດຕະຖານສຽງມາດຕະຖານ",
   "VOTStandardVoicesSubtitle": "Voiceover ໄວແລະຄຸນນະພາບສູງ",
   "VOTLiveVoicesTitle": "ສຽງສົດ",
-  "VOTLiveVoicesSubtitle": "ຄວາມຄ້າຍຄືກັນສູງສຸດ. ຄືກັບວ່າທຸກຄົນຮູ້ພາສາລັດເຊຍ"
+  "VOTLiveVoicesSubtitle": "ຄວາມຄ້າຍຄືກັນສູງສຸດ. ຄືກັບວ່າທຸກຄົນຮູ້ພາສາລັດເຊຍ",
+  "VOTYandexTokenExpired": "ກອງປະຊຸມຫມົດອາຍຸ. ເຂົ້າສູ່ລະບົບອີກຄັ້ງ"
 }

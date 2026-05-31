@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "សំឡេងស្តង់ដារ",
   "VOTStandardVoicesSubtitle": "Voiceover ដែលមានល្បឿនលឿននិងមានគុណភាពខ្ពស់",
   "VOTLiveVoicesTitle": "សំឡេងផ្ទាល់",
-  "VOTLiveVoicesSubtitle": "ភាពស្រដៀងគ្នាអតិបរមា។ ដូចជាប្រសិនបើអ្នករាល់គ្នាដឹងរុស្ស៊ី"
+  "VOTLiveVoicesSubtitle": "ភាពស្រដៀងគ្នាអតិបរមា។ ដូចជាប្រសិនបើអ្នករាល់គ្នាដឹងរុស្ស៊ី",
+  "VOTYandexTokenExpired": "សម័យដែលបានផុតកំណត់. ចូលម្តងទៀត"
 }

@@ -33,7 +33,7 @@ async function resumePlayerAudioContextIfNeeded(
   handler: VideoHandler,
 ): Promise<"not-needed" | "resumed" | "timeout" | "failed"> {
   const ctx = handler.audioPlayer?.audioContext;
-  if (!ctx || ctx.state !== "suspended") return "not-needed";
+  if (ctx?.state !== "suspended") return "not-needed";
 
   const RESUME_TIMEOUT_MS = 1500;
 

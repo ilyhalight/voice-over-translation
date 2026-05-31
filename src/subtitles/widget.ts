@@ -556,6 +556,16 @@ export class SubtitlesWidget {
     return container;
   }
   private onGlobalPointerDown = (event: PointerEvent): void => {
+    const eventPath =
+      typeof event.composedPath === "function" ? event.composedPath() : [];
+    if (
+      this.tokenTooltip?.container &&
+      (this.tokenTooltip.container.contains(event.target as Node) ||
+        eventPath.includes(this.tokenTooltip.container))
+    ) {
+      return;
+    }
+
     if (
       this.subtitlesContainer &&
       !this.subtitlesContainer.contains(event.target as Node)
@@ -926,7 +936,6 @@ export class SubtitlesWidget {
       this.dragging.active = true;
       this.dragging.moved = true;
       this.suppressTokenClicksUntil = performance.now() + 450;
-      this.releaseTooltip();
       try {
         this.subtitlesContainer?.setPointerCapture(event.pointerId);
       } catch {}
@@ -1635,6 +1644,7 @@ export class SubtitlesWidget {
       parentElement: tooltipMount.root,
       offset: { x: 4, y: 12 },
       maxWidth: tooltipMaxWidth,
+      mode: "follow",
       borderRadius: 12,
       bordered: false,
       position: "top",

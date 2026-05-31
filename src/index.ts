@@ -33,6 +33,7 @@ import type { OverlayMount } from "./types/uiManager";
 import { UIManager } from "./ui/manager";
 import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
+import { hasValidAccountToken } from "./utils/account";
 import debug from "./utils/debug";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
 import { FullscreenHelper } from "./utils/fullscreenHelper";
@@ -757,7 +758,9 @@ export class VideoHandler {
           gmXhrSupported: isSupportGMXhr,
         }),
       },
-      apiToken: this.data?.account?.token,
+      apiToken: hasValidAccountToken(this.data?.account)
+        ? this.data?.account?.token
+        : undefined,
       hostVOT: votBackendUrl,
       host: transportHost,
     };
@@ -914,11 +917,7 @@ export class VideoHandler {
     requestLang: RequestLang,
     responseLang: ResponseLang,
   ): RequestLang {
-    if (
-      this.data?.useLivelyVoice &&
-      this.data?.account?.token &&
-      responseLang === "ru"
-    ) {
+    if (this.data?.useLivelyVoice && responseLang === "ru") {
       // Keep menu selection intact, but force English in API requests
       // when lively voices are enabled.
       return "en";

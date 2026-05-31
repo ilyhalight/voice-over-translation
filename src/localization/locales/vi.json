@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Giọng nói tiêu chuẩn giọng nói tiêu chuẩn",
   "VOTStandardVoicesSubtitle": "Lồng tiếng nhanh và chất lượng cao",
   "VOTLiveVoicesTitle": "Giọng nói trực tiếp",
-  "VOTLiveVoicesSubtitle": "Sự tương đồng tối đa. Như thể mọi người đều biết tiếng nga"
+  "VOTLiveVoicesSubtitle": "Sự tương đồng tối đa. Như thể mọi người đều biết tiếng nga",
+  "VOTYandexTokenExpired": "Phiên hết hạn. Đăng nhập lại"
 }

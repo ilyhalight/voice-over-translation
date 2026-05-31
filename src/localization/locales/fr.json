@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Voix Standardvoix standard",
   "VOTStandardVoicesSubtitle": "Voix off rapide et de haute qualité",
   "VOTLiveVoicesTitle": "Voix en direct",
-  "VOTLiveVoicesSubtitle": "Similitude maximale. Comme si tout le monde connaissait le russe"
+  "VOTLiveVoicesSubtitle": "Similitude maximale. Comme si tout le monde connaissait le russe",
+  "VOTYandexTokenExpired": "La session a expiré. Connectez-vous à nouveau"
 }

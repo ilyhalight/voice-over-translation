@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Lleisiau safonol",
   "VOTStandardVoicesSubtitle": "Trosleisio cyflym ac o ansawdd uchel",
   "VOTLiveVoicesTitle": "Lleisiau byw",
-  "VOTLiveVoicesSubtitle": "Tebygrwydd mwyaf. Fel pe bai pawb yn gwybod rwsieg"
+  "VOTLiveVoicesSubtitle": "Tebygrwydd mwyaf. Fel pe bai pawb yn gwybod rwsieg",
+  "VOTYandexTokenExpired": "Daeth y sesiwn i ben. Mewngofnodi eto"
 }

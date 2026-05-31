@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standaard voicesStandard stemme",
   "VOTStandardVoicesSubtitle": "Vinnige en hoë kwaliteit voiceover",
   "VOTLiveVoicesTitle": "Lewendige stemme",
-  "VOTLiveVoicesSubtitle": "Maksimum ooreenkoms. Asof almal russies ken"
+  "VOTLiveVoicesSubtitle": "Maksimum ooreenkoms. Asof almal russies ken",
+  "VOTYandexTokenExpired": "Sessie verstryk het. Meld weer aan"
 }

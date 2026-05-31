@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "标准的声音标准的声音",
   "VOTStandardVoicesSubtitle": "快速、高质量的画外音",
   "VOTLiveVoicesTitle": "现场声音",
-  "VOTLiveVoicesSubtitle": "最大相似度。 好像每个人都知道俄语"
+  "VOTLiveVoicesSubtitle": "最大相似度。 好像每个人都知道俄语",
+  "VOTYandexTokenExpired": "会话过期。 再次登入"
 }

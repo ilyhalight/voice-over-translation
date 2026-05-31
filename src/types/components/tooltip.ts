@@ -4,6 +4,9 @@ export type Position = (typeof positions)[number];
 export const triggers = ["hover", "click"] as const;
 export type Trigger = (typeof triggers)[number];
 
+export const tooltipModes = ["default", "follow"] as const;
+export type TooltipMode = (typeof tooltipModes)[number];
+
 export type Offset = {
   x: number;
   y: number;
@@ -27,6 +30,12 @@ export type TooltipOpts = {
   content?: string | HTMLElement;
   position?: Position;
   trigger?: Trigger;
+  /**
+   * `follow` keeps tooltip in the same coordinate space as moving content and
+   * enables text selection. Used by subtitle token translations.
+   * @default "default"
+   */
+  mode?: TooltipMode;
   offset?: number | Offset;
   hidden?: boolean;
   autoLayout?: boolean;
@@ -38,5 +47,5 @@ export type TooltipOpts = {
    * @default true
    */
   bordered?: boolean;
-  parentElement?: HTMLElement;
+  parentElement?: HTMLElement | ShadowRoot;
 };

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "標準的な声標準的な声",
   "VOTStandardVoicesSubtitle": "高速で高品質のボイスオーバー",
   "VOTLiveVoicesTitle": "ライブボイス",
-  "VOTLiveVoicesSubtitle": "最大の類似性。 誰もがロシア語を知っているかのように"
+  "VOTLiveVoicesSubtitle": "最大の類似性。 誰もがロシア語を知っているかのように",
+  "VOTYandexTokenExpired": "セッションの有効期限が切れました。 もう一度ログインします"
 }

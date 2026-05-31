@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Стандартты дауыстарстандартты дауыстар",
   "VOTStandardVoicesSubtitle": "Жылдам және сапалы дауыс беру",
   "VOTLiveVoicesTitle": "Тірі дауыстар",
-  "VOTLiveVoicesSubtitle": "Максималды ұқсастық. Барлығы орыс тілін білетін сияқты"
+  "VOTLiveVoicesSubtitle": "Максималды ұқсастық. Барлығы орыс тілін білетін сияқты",
+  "VOTYandexTokenExpired": "Сессияның мерзімі аяқталды. Қайта кіріңіз"
 }

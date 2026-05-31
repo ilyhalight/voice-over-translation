@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standart seslerStandart sesler",
   "VOTStandardVoicesSubtitle": "Hızlı ve kaliteli seslendirme",
   "VOTLiveVoicesTitle": "Canlı sesler",
-  "VOTLiveVoicesSubtitle": "Maksimum benzerlik. Sanki herkes Rusça biliyormuş gibi"
+  "VOTLiveVoicesSubtitle": "Maksimum benzerlik. Sanki herkes Rusça biliyormuş gibi",
+  "VOTYandexTokenExpired": "Oturumun süresi doldu. Tekrar giriş yap"
 }

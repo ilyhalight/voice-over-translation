@@ -309,7 +309,8 @@ export type Phrase =
   | "VOTYandexToken"
   | "VOTYandexTokenInfo"
   | "VOTLoginViaToken"
-  | "smartDucking";
+  | "smartDucking"
+  | "VOTYandexTokenExpired";
 
 export type Phrases = {
   recommended: string;
@@ -562,6 +563,7 @@ export type Phrases = {
   VOTYandexTokenInfo: string;
   VOTLoginViaToken: string;
   smartDucking: string;
+  VOTYandexTokenExpired: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Стандартни гласовестандартни гласове",
   "VOTStandardVoicesSubtitle": "Бързо и висококачествено озвучаване",
   "VOTLiveVoicesTitle": "Живи гласове",
-  "VOTLiveVoicesSubtitle": "Максимално сходство. Сякаш всички знаят руски."
+  "VOTLiveVoicesSubtitle": "Максимално сходство. Сякаш всички знаят руски.",
+  "VOTYandexTokenExpired": "Сесията изтече. Влезте отново"
 }

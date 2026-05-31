@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "मानक आवाजमानक आवाज",
   "VOTStandardVoicesSubtitle": "तेज और उच्च गुणवत्ता वाला वॉयसओवर",
   "VOTLiveVoicesTitle": "लाइव आवाज",
-  "VOTLiveVoicesSubtitle": "अधिकतम समानता। जैसे कि हर कोई रूसी जानता है"
+  "VOTLiveVoicesSubtitle": "अधिकतम समानता। जैसे कि हर कोई रूसी जानता है",
+  "VOTYandexTokenExpired": "सत्र समाप्त हो गया ।  फिर से लॉग इन करें"
 }

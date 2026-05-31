@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "표준 음성표준 음성",
   "VOTStandardVoicesSubtitle": "빠르고 고품질의 보이스 오버",
   "VOTLiveVoicesTitle": "라이브 보이스",
-  "VOTLiveVoicesSubtitle": "최대 유사성. 모두가 러시아어를 알고있는 것처럼"
+  "VOTLiveVoicesSubtitle": "최대 유사성. 모두가 러시아어를 알고있는 것처럼",
+  "VOTYandexTokenExpired": "세션이 만료되었습니다. 다시 로그인"
 }

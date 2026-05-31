@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Sauti za kawaida sauti za kawaida",
   "VOTStandardVoicesSubtitle": "Sauti ya haraka na ya hali ya juu",
   "VOTLiveVoicesTitle": "Sauti za moja kwa moja",
-  "VOTLiveVoicesSubtitle": "Kufanana kwa kiwango cha juu. Kama kila mtu anajua kirusi"
+  "VOTLiveVoicesSubtitle": "Kufanana kwa kiwango cha juu. Kama kila mtu anajua kirusi",
+  "VOTYandexTokenExpired": "Kipindi kiliisha. Ingia tena"
 }

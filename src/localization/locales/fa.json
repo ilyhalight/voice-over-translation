@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "استاندارد voicesStandard صدای",
   "VOTStandardVoicesSubtitle": "صدای سریع و با کیفیت",
   "VOTLiveVoicesTitle": "صداهای زنده",
-  "VOTLiveVoicesSubtitle": "حداکثر شباهت. گویی همه روسی می دانند"
+  "VOTLiveVoicesSubtitle": "حداکثر شباهت. گویی همه روسی می دانند",
+  "VOTYandexTokenExpired": "جلسه منقضی شد. دوباره وارد شوید"
 }

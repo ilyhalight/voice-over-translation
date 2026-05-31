@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Vuċijiet standardvuċijiet standard",
   "VOTStandardVoicesSubtitle": "Vuċi veloċi u ta'kwalità għolja",
   "VOTLiveVoicesTitle": "Vuċijiet ħajjin",
-  "VOTLiveVoicesSubtitle": "Xebh massimu. Bħallikieku kulħadd jaf ir russu"
+  "VOTLiveVoicesSubtitle": "Xebh massimu. Bħallikieku kulħadd jaf ir russu",
+  "VOTYandexTokenExpired": "Sessjoni skada. Idħol mill-ġdid"
 }

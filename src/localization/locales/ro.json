@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Voci standardvoce standard",
   "VOTStandardVoicesSubtitle": "Voiceover rapid și de înaltă calitate",
   "VOTLiveVoicesTitle": "Voci Live",
-  "VOTLiveVoicesSubtitle": "Similitudine maximă. Ca și cum toată lumea știe limba rusă"
+  "VOTLiveVoicesSubtitle": "Similitudine maximă. Ca și cum toată lumea știe limba rusă",
+  "VOTYandexTokenExpired": "Sesiunea a expirat. Conectați-vă din nou"
 }

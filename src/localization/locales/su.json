@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Sora standar sora standar",
   "VOTStandardVoicesSubtitle": "Sora gancang jeung kualitas luhur",
   "VOTLiveVoicesTitle": "Sora nu hirup",
-  "VOTLiveVoicesSubtitle": "Kamiripan maksimum. Seolah olah semuanya tahu rusia"
+  "VOTLiveVoicesSubtitle": "Kamiripan maksimum. Seolah olah semuanya tahu rusia",
+  "VOTYandexTokenExpired": "Sesi kadaluarsa. Asup deui"
 }

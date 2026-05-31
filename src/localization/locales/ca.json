@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Veus normalsveus estàndard",
   "VOTStandardVoicesSubtitle": "Veu en off ràpida i d'alta qualitat",
   "VOTLiveVoicesTitle": "Veus en directe",
-  "VOTLiveVoicesSubtitle": "Màxima similitud. Com si tothom conegués el rus"
+  "VOTLiveVoicesSubtitle": "Màxima similitud. Com si tothom conegués el rus",
+  "VOTYandexTokenExpired": "Sessió expirada. Inicia sessió de nou"
 }

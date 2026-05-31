@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Voces estándar",
   "VOTStandardVoicesSubtitle": "Voz en off rápida e de alta calidade",
   "VOTLiveVoicesTitle": "Voces en directo",
-  "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego"
+  "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego",
+  "VOTYandexTokenExpired": "A sesión rematou. Entra de novo"
 }

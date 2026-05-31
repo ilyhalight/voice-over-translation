@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standardni glasovi standardni glasovi",
   "VOTStandardVoicesSubtitle": "Brza i kvalitetna glasovna gluma",
   "VOTLiveVoicesTitle": "Živi glasovi",
-  "VOTLiveVoicesSubtitle": "Maksimalna sličnost. Kao da svi znaju ruski"
+  "VOTLiveVoicesSubtitle": "Maksimalna sličnost. Kao da svi znaju ruski",
+  "VOTYandexTokenExpired": "Sesija je istekla. Ponovno se prijavite"
 }

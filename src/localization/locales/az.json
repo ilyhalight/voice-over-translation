@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standart səslər standart səslər",
   "VOTStandardVoicesSubtitle": "Sürətli və keyfiyyətli səs",
   "VOTLiveVoicesTitle": "Canlı səslər",
-  "VOTLiveVoicesSubtitle": "Maksimum oxşarlıq. Sanki hamı rus dilini bilir"
+  "VOTLiveVoicesSubtitle": "Maksimum oxşarlıq. Sanki hamı rus dilini bilir",
+  "VOTYandexTokenExpired": "Sessiya bitdi. Yenidən daxil olun"
 }

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "স্ট্যান্ডার্ড ভয়েস স্ট্যান্ডার্ড ভয়েসেস",
   "VOTStandardVoicesSubtitle": "দ্রুত এবং উচ্চ মানের ভয়েসওভার",
   "VOTLiveVoicesTitle": "লাইভ ভয়েসেস",
-  "VOTLiveVoicesSubtitle": "সর্বাধিক সাদৃশ্য. যেন সবাই রাশিয়ান জানে"
+  "VOTLiveVoicesSubtitle": "সর্বাধিক সাদৃশ্য. যেন সবাই রাশিয়ান জানে",
+  "VOTYandexTokenExpired": "অধিবেশন শেষ আবার লগ ইন করুন"
 }

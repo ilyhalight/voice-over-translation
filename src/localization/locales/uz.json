@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standart ovozlarstandart ovozlar",
   "VOTStandardVoicesSubtitle": "Tez va sifatli ovozli ovoz",
   "VOTLiveVoicesTitle": "Jonli ovozlar",
-  "VOTLiveVoicesSubtitle": "Maksimal o'xshashlik. Go'yo hamma rus tilini biladi"
+  "VOTLiveVoicesSubtitle": "Maksimal o'xshashlik. Go'yo hamma rus tilini biladi",
+  "VOTYandexTokenExpired": "Sessiya muddati tugadi. Qayta kiring"
 }

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standard voicesStandard voices",
   "VOTStandardVoicesSubtitle": "Snelle en hoogwaardige voiceover",
   "VOTLiveVoicesTitle": "Live voices",
-  "VOTLiveVoicesSubtitle": "Maximale gelijkenis. Alsof iedereen Russisch kent"
+  "VOTLiveVoicesSubtitle": "Maximale gelijkenis. Alsof iedereen Russisch kent",
+  "VOTYandexTokenExpired": "Sessie verlopen. Opnieuw inloggen"
 }

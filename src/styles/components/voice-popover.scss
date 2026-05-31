@@ -161,11 +161,14 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
   overflow: hidden;
 
   min-width: 230px;
-  max-width: 310px;
+  max-width: var(--vot-voice-popover-max-width, 310px);
+  max-height: var(--vot-voice-popover-max-height, calc(100vh - 16px));
   width: max-content;
 
   cursor: default;
   user-select: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 
   transform-origin: top left;
 
@@ -212,6 +215,22 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
     }
   }
 
+  &[data-placement="top"] {
+    transform-origin: bottom center;
+  }
+
+  &[data-placement="bottom"] {
+    transform-origin: top center;
+  }
+
+  &[data-placement="left"] {
+    transform-origin: right center;
+  }
+
+  &[data-placement="right"] {
+    transform-origin: left center;
+  }
+
   &.is-closing {
     opacity: 0;
 
@@ -242,6 +261,7 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
     gap: 12px;
 
     padding: 14px 44px 14px 16px !important;
+    min-height: 62px;
 
     cursor: pointer;
 

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "معیاری آوازیں معیاری آوازیں",
   "VOTStandardVoicesSubtitle": "تیز اور اعلی معیار کی آواز",
   "VOTLiveVoicesTitle": "لائیو آوازیں",
-  "VOTLiveVoicesSubtitle": "زیادہ سے زیادہ مماثلت. گویا ہر کوئی روسی جانتا ہے ۔ "
+  "VOTLiveVoicesSubtitle": "زیادہ سے زیادہ مماثلت. گویا ہر کوئی روسی جانتا ہے ۔ ",
+  "VOTYandexTokenExpired": "سیشن ختم ہو گیا. دوبارہ لاگ ان کریں"
 }

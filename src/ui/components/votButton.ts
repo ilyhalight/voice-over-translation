@@ -35,6 +35,7 @@ export default class VOTButton {
   private _position: Position;
   private _direction: Direction;
   private _status: Status;
+  private _subtitlesActive = false;
   /** Text shown next to the translate icon (plain text, not HTML). */
   private _labelText: string;
 
@@ -123,6 +124,7 @@ export default class VOTButton {
       "aria-label",
       localizationProvider.get("VOTSubtitles"),
     );
+    subtitlesButton.setAttribute("aria-pressed", "false");
     render(SUBTITLES_ICON, subtitlesButton);
 
     const separator3 = UI.createEl("vot-block", ["vot-separator"]);
@@ -214,6 +216,10 @@ export default class VOTButton {
 
   get loading() {
     return this.container.dataset.loading === "true";
+  }
+
+  get subtitlesActive() {
+    return this._subtitlesActive;
   }
 
   set hidden(isHidden: boolean) {

@@ -2,8 +2,10 @@ import {
   type PagePosition,
   type Position,
   positions,
+  type TooltipMode,
   type TooltipOpts,
   type Trigger,
+  tooltipModes,
   triggers,
 } from "../../types/components/tooltip";
 import UI from "../../ui";
@@ -23,6 +25,7 @@ export default class Tooltip {
   private _hidden: boolean;
   autoLayout: boolean;
   maxWidth?: number;
+  mode: TooltipMode;
   backgroundColor?: string;
   borderRadius?: number;
   private _bordered: boolean;
@@ -65,6 +68,9 @@ export default class Tooltip {
     this.borderRadius = opts.borderRadius;
     this._bordered = opts.bordered ?? true;
     this.maxWidth = opts.maxWidth;
+    this.mode = tooltipModes.includes(opts.mode as TooltipMode)
+      ? (opts.mode as TooltipMode)
+      : "default";
     this.backgroundColor = opts.backgroundColor;
     this.init();
   }
@@ -154,7 +160,8 @@ export default class Tooltip {
     if (!this.showed) return;
     if (
       isEventInside(event, this.target) ||
-      (this.container && isEventInside(event, this.container))
+      (this.container && isEventInside(event, this.container)) ||
+      (this.mode === "follow" && isEventInside(event, this.anchor))
     ) {
       return;
     }
@@ -276,8 +283,11 @@ export default class Tooltip {
     this.container.setAttribute("role", "tooltip");
     this.container.id = this.tooltipId;
     this.container.dataset.trigger = this.trigger;
+    this.container.dataset.mode = this.mode;
     this.container.dataset.position = this.position;
-    this.container.style.position = "fixed";
+    this.container.style.position = this.usesPortalCoordinates()
+      ? "absolute"
+      : "fixed";
     this.container.style.top = "0";
     this.container.style.left = "0";
     this.container.style.margin = "0";
@@ -314,17 +324,46 @@ export default class Tooltip {
 
   updatePos(): this {
     if (!this.container) return this;
+    const viewportWidth = window.innerWidth;
+    const availableWidth = Math.max(0, viewportWidth - this.offsetX * 2);
+    const maxWidth = clamp(this.maxWidth ?? availableWidth, 0, availableWidth);
+    this.container.style.maxWidth = `${maxWidth}px`;
     const { top, left } = this.computePosition(
       this.autoLayout,
       this.preferredPosition,
     );
-    const viewportWidth = window.innerWidth;
-    const availableWidth = Math.max(0, viewportWidth - this.offsetX * 2);
-    const maxWidth = clamp(this.maxWidth ?? availableWidth, 0, availableWidth);
-    this.container.style.transform = `translate(${left}px, ${top}px)`;
+    const offset = this.getPortalViewportOffset();
+    this.container.style.transform = `translate(${left - offset.left}px, ${
+      top - offset.top
+    }px)`;
     this.container.dataset.position = this.position;
-    this.container.style.maxWidth = `${maxWidth}px`;
     return this;
+  }
+
+  private usesPortalCoordinates(): boolean {
+    if (this.portal instanceof ShadowRoot) return true;
+    if (
+      this.portal === document.body ||
+      this.portal === document.documentElement
+    ) {
+      return false;
+    }
+    if (this.portal.classList.contains("vot-portal")) return false;
+    return true;
+  }
+
+  private getPortalViewportOffset(): PagePosition {
+    if (!this.usesPortalCoordinates()) {
+      return { top: 0, left: 0 };
+    }
+
+    const element =
+      this.portal instanceof ShadowRoot ? this.portal.host : this.portal;
+    const rect = element.getBoundingClientRect();
+    return {
+      top: rect.top,
+      left: rect.left,
+    };
   }
 
   private computePosition(
@@ -345,27 +384,53 @@ export default class Tooltip {
       width: tooltipRect.width || 100,
       height: tooltipRect.height || 40,
     };
-    const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    };
+    const viewport = this.getPositionBoundary();
     const position = autoLayout
       ? this.resolvePosition(anchor, tooltip, viewport, preferred)
       : preferred;
     const coords = this.getCoordinates(anchor, tooltip, position);
-    const padding = this.offsetX;
     this.position = position;
     return {
-      top: clamp(
-        coords.top,
-        padding,
-        viewport.height - tooltip.height - padding,
-      ),
-      left: clamp(
-        coords.left,
-        padding,
-        viewport.width - tooltip.width - padding,
-      ),
+      top: clamp(coords.top, viewport.top, viewport.bottom - tooltip.height),
+      left: clamp(coords.left, viewport.left, viewport.right - tooltip.width),
+    };
+  }
+
+  private getPositionBoundary(): {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+    width: number;
+    height: number;
+  } {
+    const fallback = {
+      left: this.offsetX,
+      right: window.innerWidth - this.offsetX,
+      top: this.offsetX,
+      bottom: window.innerHeight - this.offsetX,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+
+    if (this.mode !== "follow" || !this.usesPortalCoordinates()) {
+      return fallback;
+    }
+
+    const element =
+      this.portal instanceof ShadowRoot ? this.portal.host : this.portal;
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return fallback;
+    }
+
+    return {
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height,
     };
   }
 
@@ -379,31 +444,91 @@ export default class Tooltip {
       height: number;
     },
     tooltip: { width: number; height: number },
-    viewport: { width: number; height: number },
+    viewport: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      width: number;
+      height: number;
+    },
     preferred: Position,
   ): Position {
+    if (this.mode === "follow") {
+      return this.resolveFollowPosition(anchor, tooltip, viewport, preferred);
+    }
+
     switch (preferred) {
       case "top": {
-        const spaceAbove = anchor.top;
+        const spaceAbove = anchor.top - viewport.top;
         const fitsAbove = spaceAbove >= tooltip.height + this.offsetY;
         return fitsAbove ? "top" : "bottom";
       }
       case "bottom": {
-        const spaceBelow = viewport.height - anchor.bottom;
+        const spaceBelow = viewport.bottom - anchor.bottom;
         const fitsBelow = spaceBelow >= tooltip.height + this.offsetY;
         return fitsBelow ? "bottom" : "top";
       }
       case "left": {
-        const spaceLeft = anchor.left;
+        const spaceLeft = anchor.left - viewport.left;
         const fitsLeft = spaceLeft >= tooltip.width + this.offsetX;
         return fitsLeft ? "left" : "right";
       }
       case "right": {
-        const spaceRight = viewport.width - anchor.right;
+        const spaceRight = viewport.right - anchor.right;
         const fitsRight = spaceRight >= tooltip.width + this.offsetX;
         return fitsRight ? "right" : "left";
       }
     }
+  }
+
+  private resolveFollowPosition(
+    anchor: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      width: number;
+      height: number;
+    },
+    tooltip: { width: number; height: number },
+    viewport: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      width: number;
+      height: number;
+    },
+    preferred: Position,
+  ): Position {
+    if (preferred === "top" || preferred === "bottom") {
+      const topWouldClamp =
+        anchor.top - tooltip.height - this.offsetY < viewport.top;
+      const bottomWouldClamp =
+        anchor.bottom + this.offsetY + tooltip.height > viewport.bottom;
+
+      if (preferred === "top") {
+        if (!topWouldClamp || bottomWouldClamp) return "top";
+        return "bottom";
+      }
+
+      if (!bottomWouldClamp || topWouldClamp) return "bottom";
+      return "top";
+    }
+
+    const leftWouldClamp =
+      anchor.left - tooltip.width - this.offsetX < viewport.left;
+    const rightWouldClamp =
+      anchor.right + this.offsetX + tooltip.width > viewport.right;
+
+    if (preferred === "left") {
+      if (!leftWouldClamp || rightWouldClamp) return "left";
+      return "right";
+    }
+
+    if (!rightWouldClamp || leftWouldClamp) return "right";
+    return "left";
   }
 
   private getCoordinates(

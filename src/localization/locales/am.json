@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "መደበኛ ድምፆችየመደበኛ ድምፆች",
   "VOTStandardVoicesSubtitle": "ፈጣን እና ከፍተኛ ጥራት ያለው የድምፅ ድምጽ",
   "VOTLiveVoicesTitle": "የቀጥታ ድምጾች",
-  "VOTLiveVoicesSubtitle": "ከፍተኛው ተመሳሳይነት. ሁሉም ሰው ሩሲያኛ ያውቃል ከሆነ እንደ"
+  "VOTLiveVoicesSubtitle": "ከፍተኛው ተመሳሳይነት. ሁሉም ሰው ሩሲያኛ ያውቃል ከሆነ እንደ",
+  "VOTYandexTokenExpired": "ስብሰባው አብቅቷል። እንደገና ይግቡ"
 }

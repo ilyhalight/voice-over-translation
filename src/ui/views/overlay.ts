@@ -1,7 +1,7 @@
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { VideoHandler } from "../..";
-import { authLoginUrl, maxAudioVolume } from "../../config/config";
+import { maxAudioVolume } from "../../config/config";
 import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { Direction, Position } from "../../types/components/votButton";
@@ -661,16 +661,6 @@ export class OverlayView {
     // Voice popover selection handler.
     this.voicePopover.addEventListener((voice) => {
       const useLive = voice === "live";
-
-      // If the user picks live voices but isn't logged in, redirect to auth.
-      if (useLive && !this.data.account?.token) {
-        globalThis.open(authLoginUrl, "_blank")?.focus();
-        // Reset the popover back to standard since auth hasn't happened yet.
-        if (this.voicePopover) {
-          this.voicePopover.activeVoice = "standard";
-        }
-        return;
-      }
 
       if (this.data.useLivelyVoice === useLive) return;
       this.data.useLivelyVoice = useLive;

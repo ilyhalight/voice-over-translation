@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "සම්මත හඬවල් සම්මත හඬවල්",
   "VOTStandardVoicesSubtitle": "වේගවත් හා උසස් තත්ත්වයේ කටහඬ",
   "VOTLiveVoicesTitle": "සජීවී හඬවල්",
-  "VOTLiveVoicesSubtitle": "උපරිම සමානතාවය. හැමෝම රුසියානු දන්නවා වගේ"
+  "VOTLiveVoicesSubtitle": "උපරිම සමානතාවය. හැමෝම රුසියානු දන්නවා වගේ",
+  "VOTYandexTokenExpired": "සැසිය කල් ඉකුත් විය. නැවත පිවිසෙන්න"
 }

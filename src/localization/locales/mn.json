@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Стандарт voicesStandard дуу хоолой",
   "VOTStandardVoicesSubtitle": "Хурдан, өндөр чанартай voiceover",
   "VOTLiveVoicesTitle": "Амьд дуу хоолой",
-  "VOTLiveVoicesSubtitle": "Хамгийн их төстэй. Хэрэв хүн бүр мэддэг орос"
+  "VOTLiveVoicesSubtitle": "Хамгийн их төстэй. Хэрэв хүн бүр мэддэг орос",
+  "VOTYandexTokenExpired": "Хуралдаан дууссан. Дахин нэвтрэх"
 }

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standardni glasistandardni glasovi",
   "VOTStandardVoicesSubtitle": "Hiter in kakovosten voiceover",
   "VOTLiveVoicesTitle": "Glasovi v živo",
-  "VOTLiveVoicesSubtitle": "Največja podobnost. Kot da vsi vedo rusko"
+  "VOTLiveVoicesSubtitle": "Največja podobnost. Kot da vsi vedo rusko",
+  "VOTYandexTokenExpired": "Seja je potekla. Ponovno se prijavite"
 }

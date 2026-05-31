@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "الأصوات القياسيةأصوات قياسية",
   "VOTStandardVoicesSubtitle": "تعليق صوتي سريع وعالي الجودة",
   "VOTLiveVoicesTitle": "أصوات حية",
-  "VOTLiveVoicesSubtitle": "التشابه الأقصى. كما لو أن الجميع يعرف الروسية"
+  "VOTLiveVoicesSubtitle": "التشابه الأقصى. كما لو أن الجميع يعرف الروسية",
+  "VOTYandexTokenExpired": "انتهت الجلسة. تسجيل الدخول مرة أخرى"
 }

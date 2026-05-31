@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Zërat standardë zërat standardë",
   "VOTStandardVoicesSubtitle": "Zëri i shpejtë dhe me cilësi të lartë",
   "VOTLiveVoicesTitle": "Zërat e gjallë",
-  "VOTLiveVoicesSubtitle": "Ngjashmëria maksimale. Sikur të gjithë e dinë rusisht"
+  "VOTLiveVoicesSubtitle": "Ngjashmëria maksimale. Sikur të gjithë e dinë rusisht",
+  "VOTYandexTokenExpired": "Seanca skadoi. Hyni përsëri"
 }

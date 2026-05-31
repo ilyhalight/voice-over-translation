@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standardní hlasystandardní hlasy",
   "VOTStandardVoicesSubtitle": "Rychlý a vysoce kvalitní voiceover",
   "VOTLiveVoicesTitle": "Živé hlasy",
-  "VOTLiveVoicesSubtitle": "Maximální podobnost. Jako by každý věděl rusky"
+  "VOTLiveVoicesSubtitle": "Maximální podobnost. Jako by každý věděl rusky",
+  "VOTYandexTokenExpired": "Relace vypršela. Přihlásit se znovu"
 }

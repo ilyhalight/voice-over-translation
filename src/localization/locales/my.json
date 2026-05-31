@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "စံအသံစံအသံများ",
   "VOTStandardVoicesSubtitle": "မြန်ဆန်ပြီးအရည်အသွေးမြင့်အသံဖမ်းခြင်း",
   "VOTLiveVoicesTitle": "တိုက်ရိုက်အသံများ",
-  "VOTLiveVoicesSubtitle": "အများဆုံးတူညီမှုပါ။ လူတိုင်းကရုရှားလိုသိနေသလိုပေါ့။"
+  "VOTLiveVoicesSubtitle": "အများဆုံးတူညီမှုပါ။ လူတိုင်းကရုရှားလိုသိနေသလိုပေါ့။",
+  "VOTYandexTokenExpired": "အစည်းအဝေးကပြီးသွားပြီ။ နောက်တစ်ကြိမ်ပြန်လည်ဝင်ရောက်"
 }

@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standardstimmenstandardstimmen",
   "VOTStandardVoicesSubtitle": "Schnelles und hochwertiges Voiceover",
   "VOTLiveVoicesTitle": "Live Stimmen",
-  "VOTLiveVoicesSubtitle": "Maximale Ähnlichkeit. Als ob jeder Russisch kann"
+  "VOTLiveVoicesSubtitle": "Maximale Ähnlichkeit. Als ob jeder Russisch kann",
+  "VOTYandexTokenExpired": "Sitzung abgelaufen. Erneut anmelden"
 }

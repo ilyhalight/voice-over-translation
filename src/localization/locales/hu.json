@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Normál hangokstandard hangok",
   "VOTStandardVoicesSubtitle": "Gyors és kiváló minőségű voiceover",
   "VOTLiveVoicesTitle": "Élő hangok",
-  "VOTLiveVoicesSubtitle": "Maximális hasonlóság. Mint ha mindenki tudja, orosz"
+  "VOTLiveVoicesSubtitle": "Maximális hasonlóság. Mint ha mindenki tudja, orosz",
+  "VOTYandexTokenExpired": "A munkamenet lejárt. Jelentkezzen be újra"
 }

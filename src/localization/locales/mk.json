@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Стандардни гласовистандардни гласови",
   "VOTStandardVoicesSubtitle": "Брз и висококвалитетен глас",
   "VOTLiveVoicesTitle": "Гласови во живо",
-  "VOTLiveVoicesSubtitle": "Максимална сличност. Како секој да знае руски"
+  "VOTLiveVoicesSubtitle": "Максимална сличност. Како секој да знае руски",
+  "VOTYandexTokenExpired": "Сесијата истече. Пријавете се повторно"
 }

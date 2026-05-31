@@ -247,5 +247,6 @@
   "VOTStandardVoicesTitle": "Standardsed hääledstandardsed hääled",
   "VOTStandardVoicesSubtitle": "Kiire ja kvaliteetne voiceover",
   "VOTLiveVoicesTitle": "Elavad hääled",
-  "VOTLiveVoicesSubtitle": "Maksimaalne sarnasus. Nagu kõik teaksid vene keelt"
+  "VOTLiveVoicesSubtitle": "Maksimaalne sarnasus. Nagu kõik teaksid vene keelt",
+  "VOTYandexTokenExpired": "Seanss on aegunud. Logi uuesti sisse"
 }
