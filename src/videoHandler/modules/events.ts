@@ -470,6 +470,28 @@ export function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
   add(self.video, "loadstart", resetPauseState);
   add(self.video, "emptied", resetPauseState);
 }
+
+// Fallback playback-rate sync. chaimu already syncs on the native `ratechange`
+// event, but some speed controllers (e.g. Video Speed Controller) set
+// `playbackRate` directly and suppress that event, so we also reconcile on
+// `timeupdate` (not suppressed, fires during playback).
+export function bindPlaybackRateFallbackSync(ctx: ExtraEventsContext): void {
+  const { self, add } = ctx;
+
+  const syncRate = () => {
+    if (!self.hasActiveSource() || !self.audioPlayer?.player) return;
+    if (
+      Math.abs(self.audioPlayer.player.playbackRate - self.video.playbackRate) <
+      0.01
+    )
+      return;
+
+    self.audioPlayer.player.lipSync("ratechange");
+  };
+
+  add(self.video, "timeupdate", syncRate);
+}
+
 function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
   const { self, overlayView, add } = ctx;
   const safeSetCanPlay = async () => {
@@ -551,6 +573,7 @@ export function initExtraEvents(this: VideoHandler) {
     addMany,
   };
   bindPlaybackRefreshOnResume(ctx);
+  bindPlaybackRateFallbackSync(ctx);
   bindOverlayLayoutEvents(ctx);
   bindYouTubeVolumeSync(ctx);
   bindAudioTrackLanguageSync(ctx);
