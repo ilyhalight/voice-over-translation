@@ -20,6 +20,7 @@ export type SettingsViewEventMap = {
   "click:resetSettings": [];
   "update:account": [account: Partial<Account> | undefined];
   "change:autoTranslate": [checked: boolean];
+  "change:autoPauseOnTranslate": [checked: boolean];
   "change:autoSubtitles": [checked: boolean];
   "change:showVideoVolume": [checked: boolean];
   "change:audioBooster": [checked: boolean];

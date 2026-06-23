@@ -89,6 +89,7 @@ export type Phrase =
   | "VOTFailedDownloadAudio"
   | "audioFormatNotSupported"
   | "VOTAutoTranslate"
+  | "VOTAutoPauseOnTranslate"
   | "VOTAutoSubtitles"
   | "VOTDontTranslateYourLang"
   | "VOTVolume"
@@ -339,6 +340,7 @@ export type Phrases = {
   VOTFailedDownloadAudio: string;
   audioFormatNotSupported: string;
   VOTAutoTranslate: string;
+  VOTAutoPauseOnTranslate: string;
   VOTAutoSubtitles: string;
   VOTDontTranslateYourLang: string;
   VOTVolume: string;
@@ -575,3 +577,9 @@ export type Phrases = {
 };
 
 export type FlatPhrases = Record<Phrase, string>;
+
+/**
+ * Language override for the extension menu.
+ * `"auto"` means use the browser's language.
+ */
+export type LangOverride = "auto" | Locale;

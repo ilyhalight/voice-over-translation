@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "现场声音",
   "VOTLiveVoicesSubtitle": "最大相似度。 好像每个人都知道俄语",
   "VOTYandexTokenExpired": "会话过期。 再次登入",
-  "VOTVoiceSelection": "选择配音"
+  "VOTVoiceSelection": "选择配音",
+  "VOTAutoPauseOnTranslate": "暂停视频，直到翻译准备好"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Bizi ahotsak",
   "VOTLiveVoicesSubtitle": "Antzekotasun handiena. Denek errusiera dakite",
   "VOTYandexTokenExpired": "Saioa amaitu da. Saioa hasi berriro",
-  "VOTVoiceSelection": "Aukeratu bikoizketa"
+  "VOTVoiceSelection": "Aukeratu bikoizketa",
+  "VOTAutoPauseOnTranslate": "Pausatu bideoa itzulpena prest dagoen arte"
 }

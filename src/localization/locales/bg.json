@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Живи гласове",
   "VOTLiveVoicesSubtitle": "Максимално сходство. Сякаш всички знаят руски.",
   "VOTYandexTokenExpired": "Сесията изтече. Влезте отново",
-  "VOTVoiceSelection": "Изберете дублаж"
+  "VOTVoiceSelection": "Изберете дублаж",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Live Stimmen",
   "VOTLiveVoicesSubtitle": "Maximale Ähnlichkeit. Als ob jeder Russisch kann",
   "VOTYandexTokenExpired": "Sitzung abgelaufen. Erneut anmelden",
-  "VOTVoiceSelection": "Wählen Sie Synchronisation"
+  "VOTVoiceSelection": "Wählen Sie Synchronisation",
+  "VOTAutoPauseOnTranslate": "Video anhalten, bis die Übersetzung fertig ist"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Canlı səslər",
   "VOTLiveVoicesSubtitle": "Maksimum oxşarlıq. Sanki hamı rus dilini bilir",
   "VOTYandexTokenExpired": "Sessiya bitdi. Yenidən daxil olun",
-  "VOTVoiceSelection": "Dublyaj seçin"
+  "VOTVoiceSelection": "Dublyaj seçin",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

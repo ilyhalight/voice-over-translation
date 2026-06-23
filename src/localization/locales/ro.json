@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Voci Live",
   "VOTLiveVoicesSubtitle": "Similitudine maximă. Ca și cum toată lumea știe limba rusă",
   "VOTYandexTokenExpired": "Sesiunea a expirat. Conectați-vă din nou",
-  "VOTVoiceSelection": "Alegeți dublarea"
+  "VOTVoiceSelection": "Alegeți dublarea",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

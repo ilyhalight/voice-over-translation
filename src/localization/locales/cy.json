@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Lleisiau byw",
   "VOTLiveVoicesSubtitle": "Tebygrwydd mwyaf. Fel pe bai pawb yn gwybod rwsieg",
   "VOTYandexTokenExpired": "Daeth y sesiwn i ben. Mewngofnodi eto",
-  "VOTVoiceSelection": "Dewiswch dybio"
+  "VOTVoiceSelection": "Dewiswch dybio",
+  "VOTAutoPauseOnTranslate": "Seibio fideo nes bod y cyfieithiad yn barod"
 }

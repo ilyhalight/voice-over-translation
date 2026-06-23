@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "ライブボイス",
   "VOTLiveVoicesSubtitle": "最大の類似性。 誰もがロシア語を知っているかのように",
   "VOTYandexTokenExpired": "セッションの有効期限が切れました。 もう一度ログインします",
-  "VOTVoiceSelection": "ダビングを選ぶ"
+  "VOTVoiceSelection": "ダビングを選ぶ",
+  "VOTAutoPauseOnTranslate": "翻訳の準備が整うまでビデオを一時停止します"
 }

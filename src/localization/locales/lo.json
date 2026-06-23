@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "ສຽງສົດ",
   "VOTLiveVoicesSubtitle": "ຄວາມຄ້າຍຄືກັນສູງສຸດ. ຄືກັບວ່າທຸກຄົນຮູ້ພາສາລັດເຊຍ",
   "VOTYandexTokenExpired": "ກອງປະຊຸມຫມົດອາຍຸ. ເຂົ້າສູ່ລະບົບອີກຄັ້ງ",
-  "VOTVoiceSelection": "ເລືອກ dubbing"
+  "VOTVoiceSelection": "ເລືອກ dubbing",
+  "VOTAutoPauseOnTranslate": "ຢຸດວິດີໂອຈົນກ່ວາການແປພາສາແມ່ນກຽມພ້ອມ"
 }

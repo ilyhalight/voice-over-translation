@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Lewendige stemme",
   "VOTLiveVoicesSubtitle": "Maksimum ooreenkoms. Asof almal russies ken",
   "VOTYandexTokenExpired": "Sessie verstryk het. Meld weer aan",
-  "VOTVoiceSelection": "Kies dubbing"
+  "VOTVoiceSelection": "Kies dubbing",
+  "VOTAutoPauseOnTranslate": "Pouse video totdat vertaling gereed is"
 }

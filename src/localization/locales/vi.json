@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Giọng nói trực tiếp",
   "VOTLiveVoicesSubtitle": "Sự tương đồng tối đa. Như thể mọi người đều biết tiếng nga",
   "VOTYandexTokenExpired": "Phiên hết hạn. Đăng nhập lại",
-  "VOTVoiceSelection": "Chọn lồng tiếng"
+  "VOTVoiceSelection": "Chọn lồng tiếng",
+  "VOTAutoPauseOnTranslate": "Tạm dừng video cho đến khi bản dịch đã sẵn sàng"
 }

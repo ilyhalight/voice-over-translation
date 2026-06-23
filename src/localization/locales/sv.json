@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Levande röster",
   "VOTLiveVoicesSubtitle": "Maximal likhet. Som om alla vet ryska",
   "VOTYandexTokenExpired": "Sessionen har gått ut. Logga in igen",
-  "VOTVoiceSelection": "Välj dubbning"
+  "VOTVoiceSelection": "Välj dubbning",
+  "VOTAutoPauseOnTranslate": "Pausa videon Tills översättningen är klar"
 }
