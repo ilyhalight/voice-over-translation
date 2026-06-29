@@ -40,7 +40,7 @@ export interface ExtensionBuildContext {
 
 interface ExtensionEntry {
   entry: string;
-  format: "iife" | "es";
+  format: "es";
   fileName: string;
   emptyOutDir: boolean;
 }
@@ -60,7 +60,7 @@ const extensionEntries: ExtensionEntry[] = [
   },
   {
     entry: "src/extension/bridge.ts",
-    format: "iife",
+    format: "es",
     fileName: "bridge.js",
     emptyOutDir: false,
   },
@@ -72,7 +72,7 @@ const extensionEntries: ExtensionEntry[] = [
   },
   {
     entry: "src/extension/background.ts",
-    format: "iife",
+    format: "es",
     fileName: "background-ff.js",
     emptyOutDir: false,
   },
@@ -146,7 +146,7 @@ async function buildEntry({
   define,
 }: {
   entry: string;
-  format: "iife" | "es";
+  format: "es";
   fileName: string;
   emptyOutDir: boolean;
   define: ViteDefine;
@@ -620,26 +620,6 @@ async function verifyBundleSources(dir: string): Promise<void> {
     if (!(await exists(path.join(dir, importedFile)))) {
       throw new Error(
         `firefox: missing module dependency referenced by extension bundle: ${importedFile}`,
-      );
-    }
-  }
-
-  const legacyIifePrefixes = [
-    "var VOT = (function",
-    "var VOT = (() =>",
-    "(function () {",
-    "(() => {",
-  ];
-  for (const [fileName, source] of [
-    ["prelude.module.js", preludeModule],
-    ["content.module.js", contentModule],
-  ] as const) {
-    const normalizedSource = source.trimStart();
-    if (
-      legacyIifePrefixes.some((prefix) => normalizedSource.startsWith(prefix))
-    ) {
-      throw new Error(
-        `firefox: expected ${fileName} to avoid legacy IIFE wrapping`,
       );
     }
   }

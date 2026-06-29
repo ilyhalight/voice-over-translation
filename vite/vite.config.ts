@@ -530,7 +530,7 @@ export default defineConfig(async ({ command, mode }) => {
       lib: {
         entry: path.resolve(srcDir, "index.ts"),
         name: "vot",
-        formats: ["iife"],
+        formats: ["es"],
         fileName: () => `${filename}.user.js`,
       },
       minify: buildMinified ? "oxc" : false,

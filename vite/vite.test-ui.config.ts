@@ -50,7 +50,7 @@ export default defineConfig(() => {
       lib: {
         entry: path.resolve(testsDir, "ui.js"),
         name: "testUi",
-        formats: ["iife"],
+        formats: ["es"],
         fileName: () => "test-ui.user.js",
       },
       minify: false,
