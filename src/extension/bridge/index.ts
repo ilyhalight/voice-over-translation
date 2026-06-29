@@ -55,7 +55,7 @@ function sendResponse(
   postToPage({ type: TYPE_RES, id, ok, result, error });
 }
 
-export function bootstrapExtensionBridge(): void {
+function bootstrapExtensionBridge(): void {
   const bridgeGlobal = globalThis as Record<string, unknown>;
   if (bridgeGlobal[BRIDGE_BOOT_KEY]) {
     debug.log("[VOT EXT][bridge] already initialized");
