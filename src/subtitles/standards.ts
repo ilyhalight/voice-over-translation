@@ -222,7 +222,7 @@ const parseCueSettings = (
 const extractVttVoice = (payload: string): string | undefined => {
   const match = /^[ \t]*<v(?:\.[^ >]+)?(?:[ \t]+([^>]*))?>/iu.exec(payload);
   const voice = match?.[1]?.trim();
-  return voice ? voice : undefined;
+  return voice || undefined;
 };
 
 const isSrtCueStart = (lines: string[], index: number): boolean => {

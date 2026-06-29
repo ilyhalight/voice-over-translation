@@ -63,6 +63,8 @@ export type Locale =
   | "zh"
   | "zu";
 
+export type LangOverride = Locale | "auto";
+
 export type Hashes = Record<Locale, string>;
 
 export type Phrase =

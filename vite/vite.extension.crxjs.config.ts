@@ -112,6 +112,10 @@ export default defineConfig(async () => {
     build: {
       outDir: "dist-ext/chrome",
       emptyOutDir: true,
+      chunkSizeWarningLimit: 700,
+      rolldownOptions: {
+        treeshake: true,
+      },
     },
   };
 });

@@ -28,6 +28,7 @@ const sharedConfig = {
   build: {
     copyPublicDir: false,
     reportCompressedSize: false,
+    cssCodeSplit: false,
     cssMinify: "lightningcss",
   },
 } satisfies UserConfig;

@@ -298,7 +298,7 @@ async function parseBinaryResponse(
         },
       });
     }
-    return {};
+    return { response: undefined };
   }
 
   const ab = await res.arrayBuffer();
@@ -334,7 +334,7 @@ export function registerXhrPortListener(): void {
     };
 
     xhrSessionSeq += 1;
-    const xhrSessionId = xhrSessionSeq;
+    const xhrSessionId = String(xhrSessionSeq);
 
     let controller: AbortController | null = null;
     let timeoutId: number | null = null;

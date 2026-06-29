@@ -86,7 +86,7 @@ export async function init(this: VideoHandler) {
     translateProxyEnabled: 0,
     translateProxyEnabledDefault: true,
     audioBooster: false,
-    useLivelyVoice: true,
+    useLivelyVoice: false,
     autoHideButtonDelay: defaultAutoHideDelay,
     // Audio download now uses direct network requests (GM_fetch/GM_xmlhttpRequest).
     useAudioDownload: isSupportGMXhr,
@@ -132,9 +132,10 @@ export async function init(this: VideoHandler) {
   // Determine country for proxy purposes
   await ensureCountryCode();
 
+  const countryCode = getCountryCode();
   if (
-    getCountryCode() &&
-    proxyOnlyCountries.includes(getCountryCode()!) &&
+    countryCode !== null &&
+    proxyOnlyCountries.includes(countryCode) &&
     this.data.translateProxyEnabledDefault
   ) {
     this.data.translateProxyEnabled = 2;

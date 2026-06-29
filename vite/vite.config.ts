@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import fsPromises from "node:fs/promises";
 import path from "node:path";
 import {
   sitesCoursehunterLike,
@@ -60,6 +61,9 @@ interface LocaleHeadersFile {
   description: string;
 }
 
+// Cached alt-URL match patterns — site lists are static across builds.
+let cachedAltMatchPatterns: string[] | null = null;
+
 const legacyIdentifierGrantMap = new Map<string, string>([
   ["GM_addStyle", "GM_addStyle"],
   ["GM_deleteValue", "GM_deleteValue"],
@@ -88,6 +92,10 @@ function readJsonFile<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
 }
 
+async function readJsonFileAsync<T>(filePath: string): Promise<T> {
+  return JSON.parse(await fsPromises.readFile(filePath, "utf8")) as T;
+}
+
 function getHeaders<T = UserscriptHeader>(lang?: string) {
   const headersPath = lang
     ? path.resolve(localeHeadersDir, `${lang}.json`)
@@ -95,18 +103,24 @@ function getHeaders<T = UserscriptHeader>(lang?: string) {
   return readJsonFile<T>(headersPath);
 }
 
-function getLocaleHeaderEntries(): Array<[string, LocaleHeadersFile]> {
-  return fs
-    .readdirSync(localeHeadersDir)
-    .sort((left, right) => left.localeCompare(right))
-    .map((file) => [
-      file.substring(0, 2),
-      readJsonFile<LocaleHeadersFile>(path.resolve(localeHeadersDir, file)),
-    ]);
+async function getLocaleHeaderEntriesAsync(): Promise<
+  Array<[string, LocaleHeadersFile]>
+> {
+  const files = await fsPromises.readdir(localeHeadersDir);
+  const sorted = files.sort((left, right) => left.localeCompare(right));
+  const entries = await Promise.all(
+    sorted.map(async (file) => {
+      const data = await readJsonFileAsync<LocaleHeadersFile>(
+        path.resolve(localeHeadersDir, file),
+      );
+      return [file.substring(0, 2), data] as [string, LocaleHeadersFile];
+    }),
+  );
+  return entries;
 }
 
 async function getAvailableLocales(): Promise<string[]> {
-  const hashesRaw = await fs.promises.readFile(hashesPath, "utf8");
+  const hashesRaw = await fsPromises.readFile(hashesPath, "utf8");
   const hashes = JSON.parse(hashesRaw) as HashesJSON;
   const locales = Object.keys(hashes).filter(
     (locale) => !priorityLocales.includes(locale as PriorityLocale),
@@ -114,8 +128,10 @@ async function getAvailableLocales(): Promise<string[]> {
   return [...priorityLocales, ...locales];
 }
 
-function altUrlsToMatch(): string[] {
-  return [
+function getAltMatchPatterns(): string[] {
+  if (cachedAltMatchPatterns) return cachedAltMatchPatterns;
+
+  cachedAltMatchPatterns = [
     sitesInvidious,
     sitesPiped,
     sitesProxiTok,
@@ -128,6 +144,8 @@ function altUrlsToMatch(): string[] {
       return `*://${isSubdomain ? "" : "*."}${site}/*`;
     }),
   );
+
+  return cachedAltMatchPatterns;
 }
 
 function sortGrantSet(grants: Iterable<string>): string[] {
@@ -280,8 +298,11 @@ function resolveLocalModule(
   ];
 
   for (const candidate of candidates) {
-    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-      return candidate;
+    try {
+      const stat = fs.statSync(candidate);
+      if (stat.isFile()) return candidate;
+    } catch {
+      // file does not exist — try next candidate
     }
   }
 
@@ -327,7 +348,9 @@ function collectLocalDependencies(
   return [...dependencies];
 }
 
-function collectUsedUserscriptGrantsFromEntry(entryFilePath: string): string[] {
+async function collectUsedUserscriptGrantsFromEntry(
+  entryFilePath: string,
+): Promise<string[]> {
   const pendingFiles = [path.resolve(entryFilePath)];
   const visitedFiles = new Set<string>();
   const detectedGrants = new Set<string>();
@@ -348,7 +371,7 @@ function collectUsedUserscriptGrantsFromEntry(entryFilePath: string): string[] {
       continue;
     }
 
-    const source = fs.readFileSync(currentFilePath, "utf8");
+    const source = await fsPromises.readFile(currentFilePath, "utf8");
     const parsed = ts.createSourceFile(
       currentFilePath,
       source,
@@ -372,21 +395,16 @@ function collectUsedUserscriptGrantsFromEntry(entryFilePath: string): string[] {
   return sortGrantSet(detectedGrants);
 }
 
-function toArray<T>(value: T | T[] | undefined | null): T[] {
-  if (Array.isArray(value)) return value;
-  if (value != null) return [value];
-  return [];
-}
-
 function mergeUserscriptGrants(
   autoDetectedGrants: readonly string[],
   manualGrants?: string | readonly string[],
 ): string[] {
   const merged = new Set<string>(autoDetectedGrants);
-  const manualGrantList = toArray(manualGrants);
-
-  for (const grant of manualGrantList) {
-    merged.add(grant);
+  if (manualGrants) {
+    const list = Array.isArray(manualGrants) ? manualGrants : [manualGrants];
+    for (const grant of list) {
+      merged.add(grant);
+    }
   }
 
   return sortGrantSet(merged);
@@ -396,13 +414,14 @@ function buildUserscriptMeta(
   filename: string,
   repoBranch: UserscriptBranch,
   repoUpdateBranch: UserscriptBranch,
+  localeEntries: Array<[string, LocaleHeadersFile]>,
 ): UserscriptHeader {
   const baseMeta = getHeaders<UserscriptHeader>();
   const finalUrl = `${contentUrl}/${repoUpdateBranch}/dist/${filename}.user.js`;
   const baseMatch = Array.isArray(baseMeta.match)
     ? baseMeta.match
     : [baseMeta.match];
-  const match = Array.from(new Set([...baseMatch, ...altUrlsToMatch()]));
+  const match = Array.from(new Set([...baseMatch, ...getAltMatchPatterns()]));
   const userscript: UserscriptHeader = {
     ...baseMeta,
     match,
@@ -412,19 +431,24 @@ function buildUserscriptMeta(
     supportURL: `${repositoryUrl}/issues`,
   };
 
-  for (const file of fs.readdirSync(localeHeadersDir)) {
-    const localeHeaders = readJsonFile<LocaleHeadersFile>(
-      path.resolve(localeHeadersDir, file),
-    );
-    const locale = file.substring(0, 2);
-    userscript[`name:${locale}`] = localeHeaders.name;
-    userscript[`description:${locale}`] = localeHeaders.description;
+  // Reuse pre-read locale data instead of reading from disk again.
+  for (const [locale, headers] of localeEntries) {
+    userscript[`name:${locale}`] = headers.name;
+    userscript[`description:${locale}`] = headers.description;
   }
 
   if (repoBranch === "dev") {
-    const baseConnect = toArray(userscript.connect);
+    const baseConnect = userscript.connect;
+    let existing: string[];
+    if (Array.isArray(baseConnect)) {
+      existing = baseConnect;
+    } else if (baseConnect == null) {
+      existing = [];
+    } else {
+      existing = [baseConnect];
+    }
     userscript.connect = Array.from(
-      new Set([...baseConnect, "raw.githubusercontent.com"]),
+      new Set([...existing, "raw.githubusercontent.com"]),
     );
   }
 
@@ -435,14 +459,17 @@ function formatUserscriptHeader(
   filename: string,
   repoBranch: UserscriptBranch,
   repoUpdateBranch: UserscriptBranch,
+  localeEntries: Array<[string, LocaleHeadersFile]>,
   grantsOverride?: readonly string[],
 ): string {
-  const meta = buildUserscriptMeta(filename, repoBranch, repoUpdateBranch);
-  const localeEntries = getLocaleHeaderEntries();
+  const meta = buildUserscriptMeta(
+    filename,
+    repoBranch,
+    repoUpdateBranch,
+    localeEntries,
+  );
   const sourceUrl = `${repositoryUrl}.git`;
-  const grants = grantsOverride
-    ? [...grantsOverride]
-    : toArray(meta.grant);
+  const grants = grantsOverride ? [...grantsOverride] : meta.grant;
   const orderedEntries: Array<[string, HeaderFieldValue]> = [
     ["name", meta.name],
     ...localeEntries.map(([locale, value]): [string, string] => [
@@ -471,8 +498,12 @@ function formatUserscriptHeader(
     ["grant", grants],
   ];
 
-  const maxKeyLength =
-    Math.max(...orderedEntries.map(([key]) => key.length)) + 1;
+  let maxKeyLength = 0;
+  for (const [key] of orderedEntries) {
+    if (key.length > maxKeyLength) maxKeyLength = key.length;
+  }
+  maxKeyLength += 1;
+
   const lines = ["// ==UserScript=="];
 
   for (const [key, value] of orderedEntries) {
@@ -502,16 +533,24 @@ export default defineConfig(async ({ command, mode }) => {
     debugMode || isBetaVersion ? "dev" : "master";
   const repoUpdateBranch: UserscriptBranch = isBetaVersion ? "dev" : "master";
   const filename = buildMinified ? "vot-min" : "vot";
-  const availableLocales = await getAvailableLocales();
-  const grants = mergeUserscriptGrants(
+
+  // Read locale data once and reuse in both grant collection and header formatting.
+  const [availableLocales, localeEntries, grants] = await Promise.all([
+    getAvailableLocales(),
+    getLocaleHeaderEntriesAsync(),
     collectUsedUserscriptGrantsFromEntry(path.resolve(srcDir, "index.ts")),
-    (mainHeaders as UserscriptHeader).grant,
+  ]);
+
+  const mergedGrants = mergeUserscriptGrants(
+    grants,
+    mainHeaders.grant,
   );
   const banner = formatUserscriptHeader(
     filename,
     repoBranch,
     repoUpdateBranch,
-    grants,
+    localeEntries,
+    mergedGrants,
   );
 
   return createViteConfig({
@@ -537,11 +576,12 @@ export default defineConfig(async ({ command, mode }) => {
       },
       minify: buildMinified ? "oxc" : false,
       sourcemap: debugMode,
+      chunkSizeWarningLimit: 600,
       rolldownOptions: {
 		treeshake: true,
         output: {
           postBanner: banner,
-		  codeSplitting: false
+          codeSplitting: false,
         },
         onwarn(warning, warn) {
           if (warning.code === "CIRCULAR_DEPENDENCY") return;

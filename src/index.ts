@@ -146,6 +146,15 @@ type DownloadTranslationState = {
 /*  Composes the helper classes and retains full functionality.  */
 /*─────────────────────────────────────────────────────────────*/
 
+type MountCache = {
+  container: HTMLElement;
+  base: HTMLElement;
+  root: HTMLElement | ShadowRoot;
+  portalContainer: HTMLElement;
+  subtitlesMountContainer: HTMLElement | ShadowRoot;
+  fullscreenRoot: HTMLElement | ShadowRoot | null;
+};
+
 export class VideoHandler {
   video!: HTMLVideoElement;
   container!: HTMLElement;
@@ -273,14 +282,7 @@ export class VideoHandler {
    * Cached overlay mount points (root/portal). Recomputed when container changes.
    * Avoids doing the same DOM/style walks multiple times per lifecycle update.
    */
-  private mountCache?: {
-    container: HTMLElement;
-    base: HTMLElement;
-    root: HTMLElement | ShadowRoot;
-    portalContainer: HTMLElement;
-    subtitlesMountContainer: HTMLElement | ShadowRoot;
-    fullscreenRoot: HTMLElement | ShadowRoot | null;
-  };
+  private mountCache?: MountCache;
 
   /**
    * In-memory cache for translated error strings (RU -> UI language).
@@ -1757,10 +1759,11 @@ async function waitForPreludeReady(): Promise<void> {
 // bridge so polyfills are already available — skip the wait.
 const isCrxjsBuild = typeof __CRXJS_BUILD__ !== "undefined" && __CRXJS_BUILD__;
 
-const preludePromise = isCrxjsBuild ? waitForPreludeReady() : Promise.resolve();
-
-preludePromise
-  .then(() => bootstrapContentScript())
-  .catch((err: unknown) => {
-    console.error("[VOT] Initialization error:", err);
-  });
+try {
+  if (isCrxjsBuild) {
+    await waitForPreludeReady();
+  }
+  bootstrapContentScript();
+} catch (err: unknown) {
+  console.error("[VOT] Initialization error:", err);
+}

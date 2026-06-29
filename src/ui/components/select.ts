@@ -429,10 +429,6 @@ export default class Select<
   }
 
   set disabled(isDisabled: boolean) {
-    if (isDisabled) {
-      this.outer.setAttribute("disabled", "true");
-    } else {
-      this.outer.removeAttribute("disabled");
-    }
+    this.outer.toggleAttribute("disabled", isDisabled);
   }
 }

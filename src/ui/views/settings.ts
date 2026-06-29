@@ -926,8 +926,9 @@ export class SettingsView {
       localizationProvider.get("VOTTranslateProxyEverything"),
     ];
     const translateProxyEnabled = this.data.translateProxyEnabled ?? 0;
+    const countryCode = getCountryCode();
     const isTranslateProxyRequired =
-      getCountryCode() && proxyOnlyCountries.includes(getCountryCode()!);
+      countryCode !== null && proxyOnlyCountries.includes(countryCode);
     this.proxyTranslationStatusSelectLabel = new Label({
       icon: isTranslateProxyRequired ? WARNING_ICON : undefined,
       labelText: localizationProvider.get("VOTTranslateProxyStatus"),

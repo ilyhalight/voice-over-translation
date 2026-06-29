@@ -746,7 +746,7 @@ export class OverlayView {
     );
 
     // Voice popover selection handler.
-    this.voicePopover.addEventListener((voice) => {
+    this.voicePopover.addEventListener((voice): boolean | undefined => {
       const useLive = voice === "live";
 
       if (this.data.useLivelyVoice === useLive) {
@@ -1116,8 +1116,9 @@ export class OverlayView {
     return this;
   }
 
-  private getOverlayRootElement(): HTMLElement | ShadowRoot {
-    return this.tooltipParentElement;
+  private getOverlayRootElement(): HTMLElement {
+    const root = this.tooltipParentElement;
+    return root instanceof ShadowRoot ? (root.host as HTMLElement) : root;
   }
 
   private shouldSuppressPointerAction(): boolean {

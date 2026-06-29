@@ -29,7 +29,7 @@ function formatUserscriptHeader(header: UserscriptHeader): string {
       continue;
     }
 
-    lines.push(`// @${key} ${value}`);
+    lines.push(`// @${key} ${String(value)}`);
   }
 
   lines.push("// ==/UserScript==\n");
@@ -56,6 +56,7 @@ export default defineConfig(() => {
       minify: false,
       sourcemap: false,
       rolldownOptions: {
+        treeshake: true,
         output: {
           postBanner: formatUserscriptHeader(testMeta),
         },

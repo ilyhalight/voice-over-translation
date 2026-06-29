@@ -177,12 +177,22 @@ const consumeTextToken = (
   tokenIndex: number,
   tokens: SubtitleToken[],
   renderEndTokenIndex: number,
-  token: SubtitleToken,
-  tokenText: string,
-  hasBreakAfter: boolean,
-  lastWordHighlightIndex: number | null,
-  nextWordHighlightIndex: number,
+  options: {
+    token: SubtitleToken;
+    tokenText: string;
+    hasBreakAfter: boolean;
+    lastWordHighlightIndex: number | null;
+    nextWordHighlightIndex: number;
+  },
 ): number => {
+  const {
+    token,
+    tokenText,
+    hasBreakAfter,
+    lastWordHighlightIndex,
+    nextWordHighlightIndex,
+  } = options;
+
   const fallbackHighlightIndex =
     lastWordHighlightIndex ??
     (hasFutureWordToken(tokens, tokenIndex + 1, renderEndTokenIndex)
@@ -253,17 +263,13 @@ export function buildSubtitleRenderPlan(
     }
 
     const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i));
-    i = consumeTextToken(
-      plan,
-      i,
-      tokens,
-      renderEndTokenIndex,
+    i = consumeTextToken(plan, i, tokens, renderEndTokenIndex, {
       token,
       tokenText,
       hasBreakAfter,
       lastWordHighlightIndex,
-      wordHighlightIndex,
-    );
+      nextWordHighlightIndex: wordHighlightIndex,
+    });
   }
 
   return plan;

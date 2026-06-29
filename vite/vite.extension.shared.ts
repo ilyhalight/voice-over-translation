@@ -189,16 +189,22 @@ export async function buildExtensionBundles({
   });
 
   await ensureCleanDir(outTmp);
-  for (const entry of extensionEntries) {
-    await buildEntry({
-      ...entry,
-      define: defineMeta,
-    });
-  }
+
+  // The first entry (content.module.js) has emptyOutDir: true; all others have false.
+  // Build it first, then build the rest in parallel.
+  const [firstEntry, ...restEntries] = extensionEntries;
+  await buildEntry({ ...firstEntry, define: defineMeta });
+  await Promise.all(
+    restEntries.map((entry) => buildEntry({ ...entry, define: defineMeta })),
+  );
 }
 
 async function copyExtensionFiles(targetDir: string): Promise<void> {
-  await fs.mkdir(targetDir, { recursive: true });
+  const iconsDstDir = path.join(targetDir, "icons");
+  await Promise.all([
+    fs.mkdir(targetDir, { recursive: true }),
+    fs.mkdir(iconsDstDir, { recursive: true }),
+  ]);
 
   const bundleFiles = await fs.readdir(outTmp);
   const frontEndJsFiles = bundleFiles.filter((fileName) => {
@@ -206,36 +212,32 @@ async function copyExtensionFiles(targetDir: string): Promise<void> {
     return !["background.js", "background-ff.js"].includes(fileName);
   });
 
-  for (const fileName of frontEndJsFiles) {
-    await fs.copyFile(
-      path.join(outTmp, fileName),
-      path.join(targetDir, fileName),
-    );
-  }
-
-  for (const fileName of EXTENSION_LOADER_FILES) {
-    await fs.writeFile(
-      path.join(targetDir, fileName),
-      "\n",
-      "utf8",
-    );
-  }
-
-  await fs.copyFile(
-    path.join(outTmp, "background-ff.js"),
-    path.join(targetDir, "background.js"),
-  );
-
   const iconsSrcDir = path.join(srcDir, "extension", "icons");
-  const iconsDstDir = path.join(targetDir, "icons");
-  await fs.mkdir(iconsDstDir, { recursive: true });
   const iconFiles = await fs.readdir(iconsSrcDir);
-  for (const iconFile of iconFiles) {
-    await fs.copyFile(
-      path.join(iconsSrcDir, iconFile),
-      path.join(iconsDstDir, iconFile),
-    );
-  }
+
+  // All copies are independent — run in parallel.
+  await Promise.all([
+    // Front-end JS bundles
+    ...frontEndJsFiles.map((fileName) =>
+      fs.copyFile(path.join(outTmp, fileName), path.join(targetDir, fileName)),
+    ),
+    // Empty loader stubs
+    ...EXTENSION_LOADER_FILES.map((fileName) =>
+      fs.writeFile(path.join(targetDir, fileName), "\n", "utf8"),
+    ),
+    // Firefox background (renamed from background-ff.js)
+    fs.copyFile(
+      path.join(outTmp, "background-ff.js"),
+      path.join(targetDir, "background.js"),
+    ),
+    // Icon files
+    ...iconFiles.map((iconFile) =>
+      fs.copyFile(
+        path.join(iconsSrcDir, iconFile),
+        path.join(iconsDstDir, iconFile),
+      ),
+    ),
+  ]);
 }
 
 // ----------------------------------------------------------------
@@ -554,27 +556,32 @@ async function verifyRequiredOutputFiles(dir: string): Promise<void> {
     ...EXTENSION_ICON_SIZES.map((size) => `icons/icon-${size}.png`),
   ];
 
-  for (const relPath of requiredFiles) {
-    const fullPath = path.join(dir, relPath);
-    if (!(await exists(fullPath))) {
+  const results = await Promise.all(
+    requiredFiles.map(async (relPath) => ({
+      relPath,
+      exists: await exists(path.join(dir, relPath)),
+    })),
+  );
+
+  for (const { relPath, exists: fileExists } of results) {
+    if (!fileExists) {
       throw new Error(`firefox: missing required file: ${relPath}`);
     }
   }
 }
 
 async function verifyBundleSources(dir: string): Promise<void> {
-  const bridge = await fs.readFile(path.join(dir, "bridge.js"), "utf8");
-  const prelude = await fs.readFile(path.join(dir, "prelude.js"), "utf8");
-  const preludeModule = await fs.readFile(
-    path.join(dir, "prelude.module.js"),
-    "utf8",
-  );
-  const content = await fs.readFile(path.join(dir, "content.js"), "utf8");
-  const contentModule = await fs.readFile(
-    path.join(dir, "content.module.js"),
-    "utf8",
-  );
-  const background = await fs.readFile(path.join(dir, "background.js"), "utf8");
+  // Read all bundle files in parallel.
+  const [bridge, prelude, preludeModule, content, contentModule, background] =
+    await Promise.all([
+      fs.readFile(path.join(dir, "bridge.js"), "utf8"),
+      fs.readFile(path.join(dir, "prelude.js"), "utf8"),
+      fs.readFile(path.join(dir, "prelude.module.js"), "utf8"),
+      fs.readFile(path.join(dir, "content.js"), "utf8"),
+      fs.readFile(path.join(dir, "content.module.js"), "utf8"),
+      fs.readFile(path.join(dir, "background.js"), "utf8"),
+    ]);
+
   const combined = `${bridge}\n${prelude}\n${preludeModule}\n${content}\n${contentModule}\n${background}`;
 
   const forbiddenSnippets = [
@@ -616,8 +623,16 @@ async function verifyBundleSources(dir: string): Promise<void> {
         .map((pathValue) => pathValue.replace(/^\.\//, "")),
     ),
   );
-  for (const importedFile of moduleImportTargets) {
-    if (!(await exists(path.join(dir, importedFile)))) {
+
+  const importResults = await Promise.all(
+    moduleImportTargets.map(async (importedFile) => ({
+      importedFile,
+      exists: await exists(path.join(dir, importedFile)),
+    })),
+  );
+
+  for (const { importedFile, exists: fileExists } of importResults) {
+    if (!fileExists) {
       throw new Error(
         `firefox: missing module dependency referenced by extension bundle: ${importedFile}`,
       );
@@ -627,15 +642,27 @@ async function verifyBundleSources(dir: string): Promise<void> {
 
 async function verifyBodySerializationGuards(): Promise<void> {
   const bridgeSrcPath = path.join(rootDir, "src/extension/bridge/index.ts");
-  const bridgeXhrSrcPath = path.join(rootDir, "src/extension/bridge/xhr-bridge.ts");
+  const bridgeXhrSrcPath = path.join(
+    rootDir,
+    "src/extension/bridge/xhr-bridge.ts",
+  );
   const serializationSrcPath = path.join(
     rootDir,
     "src/extension/shared/bodySerialization.ts",
   );
+
+  // Check existence of all three paths in parallel.
+  const [hasSerial, hasBridge, hasXhr] = await Promise.all([
+    exists(serializationSrcPath),
+    exists(bridgeSrcPath),
+    exists(bridgeXhrSrcPath),
+  ]);
+
+  // Read the primary source to verify Blob/FileReader handling.
   let sourceToCheck: string | null = null;
-  if (await exists(serializationSrcPath)) {
+  if (hasSerial) {
     sourceToCheck = await fs.readFile(serializationSrcPath, "utf8");
-  } else if (await exists(bridgeSrcPath)) {
+  } else if (hasBridge) {
     sourceToCheck = await fs.readFile(bridgeSrcPath, "utf8");
   }
 
@@ -645,9 +672,16 @@ async function verifyBodySerializationGuards(): Promise<void> {
     );
   }
 
-  for (const sourcePath of [bridgeXhrSrcPath, bridgeSrcPath]) {
-    if (!(await exists(sourcePath))) continue;
-    const source = await fs.readFile(sourcePath, "utf8");
+  // Read XHR and bridge sources in parallel to check for serializeBodyForPort.
+  const pathsToCheck = [bridgeXhrSrcPath, bridgeSrcPath].filter(
+    (p) => (p === bridgeXhrSrcPath && hasXhr) || (p === bridgeSrcPath && hasBridge),
+  );
+
+  const sources = await Promise.all(
+    pathsToCheck.map((p) => fs.readFile(p, "utf8")),
+  );
+
+  for (const source of sources) {
     if (/await\s+serializeBodyForPort\(/.test(source)) return;
   }
 
@@ -661,9 +695,13 @@ async function verifyFirefoxOutputs(): Promise<void> {
   const manifest = await verifyManifest(path.join(dir, "manifest.json"));
   verifyFirefoxManifestFields(manifest);
   verifyContentScripts(manifest);
-  await verifyRequiredOutputFiles(dir);
-  await verifyBundleSources(dir);
-  await verifyBodySerializationGuards();
+
+  // File-level checks are independent — run in parallel.
+  await Promise.all([
+    verifyRequiredOutputFiles(dir),
+    verifyBundleSources(dir),
+    verifyBodySerializationGuards(),
+  ]);
 
   console.log("OK firefox: basic structure checks passed");
 
