@@ -1757,7 +1757,10 @@ async function waitForPreludeReady(): Promise<void> {
 // bridge so polyfills are already available — skip the wait.
 const isCrxjsBuild = typeof __CRXJS_BUILD__ !== "undefined" && __CRXJS_BUILD__;
 
-if (isCrxjsBuild) {
-  await waitForPreludeReady();
-}
-await bootstrapContentScript();
+const preludePromise = isCrxjsBuild ? waitForPreludeReady() : Promise.resolve();
+
+preludePromise
+  .then(() => bootstrapContentScript())
+  .catch((err: unknown) => {
+    console.error("[VOT] Initialization error:", err);
+  });

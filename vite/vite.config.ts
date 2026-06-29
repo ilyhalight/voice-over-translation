@@ -518,6 +518,8 @@ export default defineConfig(async ({ command, mode }) => {
     define: {
       ...defineConstants({
         DEBUG_MODE: debugMode,
+		IS_EXTENSION: false,
+        __CRXJS_BUILD__: false,
         AVAILABLE_LOCALES: availableLocales,
         REPO_BRANCH: repoBranch,
         VOT_VERSION: String(mainHeaders.version || ""),
@@ -530,14 +532,16 @@ export default defineConfig(async ({ command, mode }) => {
       lib: {
         entry: path.resolve(srcDir, "index.ts"),
         name: "vot",
-        formats: ["es"],
+        formats: ["iife"],
         fileName: () => `${filename}.user.js`,
       },
       minify: buildMinified ? "oxc" : false,
       sourcemap: debugMode,
       rolldownOptions: {
+		treeshake: true,
         output: {
           postBanner: banner,
+		  codeSplitting: false
         },
         onwarn(warning, warn) {
           if (warning.code === "CIRCULAR_DEPENDENCY") return;
