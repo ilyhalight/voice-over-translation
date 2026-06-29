@@ -1,15 +1,16 @@
-import { asErrorMessage, sendBridgeResponse } from "./bridgeUtils";
-import { ext, storageGet, storageRemove, storageSet } from "./webext";
+import { BG_MSG_STORAGE } from "../shared/constants";
+import { asErrorMessage, sendBridgeResponse } from "../shared/utils";
+import { ext, storageGet, storageRemove, storageSet } from "../shared/webext";
 
 type GmStorageMessage = {
-  type: "gm_storage";
+  type: string;
   action?: string;
   payload?: Record<string, unknown>;
 };
 
 function isGmStorageMessage(msg: unknown): msg is GmStorageMessage {
   if (!msg || typeof msg !== "object") return false;
-  return (msg as { type?: unknown }).type === "gm_storage";
+  return (msg as { type?: unknown }).type === BG_MSG_STORAGE;
 }
 
 function normalizeStorageRequestKey(value: unknown): string {

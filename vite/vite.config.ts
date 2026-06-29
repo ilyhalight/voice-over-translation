@@ -255,7 +255,7 @@ function visitGrantNodes(
 }
 
 function normalizeImportSpecifier(specifier: string): string {
-  return specifier.replace(/[?#].*$/, "");
+  return specifier.replace(/[?#].*/, "");
 }
 
 function resolveLocalModule(
@@ -372,17 +372,18 @@ function collectUsedUserscriptGrantsFromEntry(entryFilePath: string): string[] {
   return sortGrantSet(detectedGrants);
 }
 
+function toArray<T>(value: T | T[] | undefined | null): T[] {
+  if (Array.isArray(value)) return value;
+  if (value != null) return [value];
+  return [];
+}
+
 function mergeUserscriptGrants(
   autoDetectedGrants: readonly string[],
   manualGrants?: string | readonly string[],
 ): string[] {
   const merged = new Set<string>(autoDetectedGrants);
-  const manualGrantList =
-    typeof manualGrants === "string"
-      ? [manualGrants]
-      : Array.isArray(manualGrants)
-        ? manualGrants
-        : [];
+  const manualGrantList = toArray(manualGrants);
 
   for (const grant of manualGrantList) {
     merged.add(grant);
@@ -421,11 +422,7 @@ function buildUserscriptMeta(
   }
 
   if (repoBranch === "dev") {
-    const baseConnect = Array.isArray(userscript.connect)
-      ? userscript.connect
-      : userscript.connect
-        ? [userscript.connect]
-        : [];
+    const baseConnect = toArray(userscript.connect);
     userscript.connect = Array.from(
       new Set([...baseConnect, "raw.githubusercontent.com"]),
     );
@@ -445,11 +442,7 @@ function formatUserscriptHeader(
   const sourceUrl = `${repositoryUrl}.git`;
   const grants = grantsOverride
     ? [...grantsOverride]
-    : Array.isArray(meta.grant)
-      ? [...meta.grant]
-      : meta.grant
-        ? [meta.grant]
-        : [];
+    : toArray(meta.grant);
   const orderedEntries: Array<[string, HeaderFieldValue]> = [
     ["name", meta.name],
     ...localeEntries.map(([locale, value]): [string, string] => [

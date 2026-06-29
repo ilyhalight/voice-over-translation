@@ -47,6 +47,31 @@ function isArrayLikeChildren<T>(children: Iterable<T>): boolean {
   return "length" in children;
 }
 
+function pushChildrenToStack<T>(
+  stack: T[],
+  stackSize: number,
+  children: Iterable<T>,
+): number {
+  if (isArrayLikeChildren(children)) {
+    const arrayLike = children as unknown as ArrayLike<T | null | undefined>;
+    for (let index = 0; index < arrayLike.length; index += 1) {
+      const child = arrayLike[index];
+      if (child !== undefined && child !== null) {
+        stack[stackSize] = child;
+        stackSize += 1;
+      }
+    }
+  } else {
+    for (const child of children) {
+      if (child !== undefined && child !== null) {
+        stack[stackSize] = child;
+        stackSize += 1;
+      }
+    }
+  }
+  return stackSize;
+}
+
 export function walkShadowIncludingSubtree<T>(
   root: T,
   adapter: ShadowTreeTraversalAdapter<T>,
@@ -61,24 +86,7 @@ export function walkShadowIncludingSubtree<T>(
     stackSize -= 1;
     visit(node);
 
-    const children = getChildren(node);
-    if (isArrayLikeChildren(children)) {
-      const arrayLike = children as unknown as ArrayLike<T | null | undefined>;
-      for (let index = 0; index < arrayLike.length; index += 1) {
-        const child = arrayLike[index];
-        if (child !== undefined && child !== null) {
-          stack[stackSize] = child;
-          stackSize += 1;
-        }
-      }
-    } else {
-      for (const child of children) {
-        if (child !== undefined && child !== null) {
-          stack[stackSize] = child;
-          stackSize += 1;
-        }
-      }
-    }
+    stackSize = pushChildrenToStack(stack, stackSize, getChildren(node));
 
     const shadowRoot = getShadowRoot(node);
     if (shadowRoot) {

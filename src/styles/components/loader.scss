@@ -7,7 +7,10 @@
       rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38) 94%,
       transparent
     );
-  background: var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg),
+  background:
+    var(--vot-loader-bg),
+    var(--vot-loader-bg),
+    var(--vot-loader-bg),
     var(--vot-loader-bg);
   background-size: 20% 100%;
   animation:
@@ -31,11 +34,7 @@
 @keyframes dotsSlide {
   0%,
   10% {
-    background-position:
-      0 0,
-      0 0,
-      0 0,
-      0 0;
+    background-position: 0 0, 0 0, 0 0, 0 0;
   }
   33% {
     background-position:
@@ -53,11 +52,7 @@
   }
   90%,
   100% {
-    background-position:
-      0 0,
-      calc(100% / 3) 0,
-      calc(2 * 100% / 3) 0,
-      100% 0;
+    background-position: 0 0, calc(100% / 3) 0, calc(2 * 100% / 3) 0, 100% 0;
   }
 }
 

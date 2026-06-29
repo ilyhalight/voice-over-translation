@@ -2,10 +2,7 @@
   --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
   --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87);
   --vot-helper-safari1: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.6);
-  --vot-helper-safari2: rgba(
-    var(--vot-onsurface-rgb, 0, 0, 0),
-    0.87
-  );
+  --vot-helper-safari2: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.87);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -55,7 +52,7 @@
     white-space: nowrap;
     font-family: inherit;
   }
-  
+
   &-arrow-icon {
     width: 20px;
     height: 32px;

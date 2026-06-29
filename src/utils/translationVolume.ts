@@ -1,16 +1,16 @@
+﻿import { clampNumber } from "./number";
+
 type GainBackedPlayer = {
   volume: number;
   gainNode?: GainNode;
 };
 
 function normalizeMediaElementVolume(volume: number): number {
-  if (!Number.isFinite(volume)) return 0;
-  return Math.max(0, Math.min(1, volume));
+  return clampNumber(volume, 0, 1);
 }
 
 function normalizeGainVolume(volume: number): number {
-  if (!Number.isFinite(volume)) return 0;
-  return Math.max(0, volume);
+  return clampNumber(volume, 0, Infinity);
 }
 
 function setAudioParamInstant(

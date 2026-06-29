@@ -293,6 +293,8 @@ export type Phrase =
   | "position.right"
   | "position.top"
   | "position.default"
+  | "position.leftCenter"
+  | "position.rightCenter"
   | "secs"
   | "autoHideButtonDelay"
   | "notFound"
@@ -309,7 +311,9 @@ export type Phrase =
   | "VOTYandexToken"
   | "VOTYandexTokenInfo"
   | "VOTLoginViaToken"
-  | "smartDucking";
+  | "smartDucking"
+  | "VOTYandexTokenExpired"
+  | "VOTVoiceSelection";
 
 export type Phrases = {
   recommended: string;
@@ -544,6 +548,8 @@ export type Phrases = {
     right: string;
     top: string;
     default: string;
+    leftCenter: string;
+    rightCenter: string;
   };
   secs: string;
   autoHideButtonDelay: string;
@@ -562,6 +568,8 @@ export type Phrases = {
   VOTYandexTokenInfo: string;
   VOTLoginViaToken: string;
   smartDucking: string;
+  VOTYandexTokenExpired: string;
+  VOTVoiceSelection: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

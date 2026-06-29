@@ -18,7 +18,7 @@ import { getHeaders } from "./utils";
 
 const YANDEX_API_HOST = "api.browser.yandex.ru";
 const GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
-const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
+const HEADER_LINE_RE = /^(\w[\w-]*):\s*(.+)$/;
 // Matches statusText reason-phrase: printable ASCII except control chars
 const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
@@ -64,9 +64,26 @@ export const isProxyOnlyExtension =
   !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) &&
   (browserInfo.browser?.name === "Safari" ||
     !["Tampermonkey", "Violentmonkey"].includes(scriptHandler));
-export const isSupportGM4 =
-  typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
-export const isSupportGMXhr = hasSupportedGmXhr();
+/**
+ * Returns true when the GM4 promise-based API is available.
+ *
+ * IMPORTANT: This must be a **function**, not a module-level `const`,
+ * because in the CRXJS Chrome build the prelude installs GM globals
+ * asynchronously after the content-script module graph has been
+ * evaluated.  A `const` would capture the pre-polyfill state (`false`)
+ * and never update.
+ */
+export function isGM4Supported(): boolean {
+  return typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
+}
+
+/**
+ * @deprecated Use `isGM4Supported()` instead — the `const` form is stale
+ * in CRXJS builds where GM polyfills are installed after module evaluation.
+ */
+export const isSupportGM4 = isGM4Supported;
+export const isSupportGMXhr =
+  (typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) || hasSupportedGmXhr();
 
 function getRequestHost(url: string): string | undefined {
   const normalizedUrl = url.trim();

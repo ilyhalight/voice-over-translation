@@ -230,7 +230,9 @@
     "left": "Left",
     "right": "Right",
     "top": "Top",
-    "default": "Default"
+    "default": "Default",
+    "leftCenter": "Left centered",
+    "rightCenter": "Right centered"
   },
   "secs": "secs",
   "autoHideButtonDelay": "Delay before hiding the translate button",
@@ -248,5 +250,7 @@
   "VOTYandexToken": "Enter the Yandex OAuth Token",
   "VOTYandexTokenInfo": "You can manually set the account token in this field. Please note that we don't check its validity before sending a translate request",
   "VOTLoginViaToken": "Login via token",
-  "smartDucking": "Adaptive volume"
+  "smartDucking": "Adaptive volume",
+  "VOTYandexTokenExpired": "Session expired. Log in again",
+  "VOTVoiceSelection": "Choose dubbing"
 }

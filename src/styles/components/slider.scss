@@ -167,8 +167,12 @@
     // The global `html.vot-keyboard-nav` class is toggled by JS only on Tab.
     // We scope the styles to our own slider to avoid affecting host-page ranges.
     @at-root {
-      html.vot-keyboard-nav .vot-slider > input:focus-visible::-webkit-slider-thumb,
-      html.vot-keyboard-nav .vot-slider > input:focus-visible::-moz-range-thumb {
+      html.vot-keyboard-nav
+        .vot-slider
+        > input:focus-visible::-webkit-slider-thumb,
+      html.vot-keyboard-nav
+        .vot-slider
+        > input:focus-visible::-moz-range-thumb {
         box-shadow: 0 0 0 2px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.24) !important;
       }
 

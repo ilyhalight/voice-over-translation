@@ -220,7 +220,9 @@
     "left": "Αριστερά",
     "right": "Δικαίωμα",
     "top": "Κορυφή",
-    "default": "Προεπιλεγμένη"
+    "default": "Προεπιλεγμένη",
+    "leftCenter": "Αριστερά στο κέντρο",
+    "rightCenter": "Δεξιά στο κέντρο"
   },
   "secs": "δευτ.",
   "autoHideButtonDelay": "Καθυστέρηση πριν από την απόκρυψη του κουμπιού μετάφρασης",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "Τυπικές φωνέςπρότυπες φωνές",
   "VOTStandardVoicesSubtitle": "Γρήγορη και υψηλής ποιότητας φωνή",
   "VOTLiveVoicesTitle": "Ζωντανές φωνές",
-  "VOTLiveVoicesSubtitle": "Μέγιστη ομοιότητα. Σαν να γνωρίζουν όλοι ρωσική"
+  "VOTLiveVoicesSubtitle": "Μέγιστη ομοιότητα. Σαν να γνωρίζουν όλοι ρωσική",
+  "VOTYandexTokenExpired": "Η συνεδρία έληξε. Συνδεθείτε ξανά",
+  "VOTVoiceSelection": "Επιλέξτε μεταγλώττιση"
 }

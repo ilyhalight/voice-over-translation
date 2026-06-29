@@ -1,6 +1,6 @@
-export function clampToRange(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(value, max));
-}
+﻿import { clampNumber } from "../utils/number";
+
+export const clampToRange = clampNumber;
 
 export function hasDragThresholdBeenExceeded(
   startClientX: number,

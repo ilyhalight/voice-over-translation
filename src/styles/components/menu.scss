@@ -7,13 +7,47 @@
   --vot-helper-onsurface: rgba(var(--vot-helper-onsurface-rgb), 0.87);
   --vot-settings-control-width: clamp(120px, 45%, 200px);
 
+  --vot-menu-default-top: calc(5rem + 48px);
+  --vot-menu-top-offset: max(64px, calc(env(safe-area-inset-top, 0px) + 56px));
+  --vot-menu-side-offset: max(
+    76px,
+    calc(env(safe-area-inset-left, 0px) + 64px)
+  );
+  --vot-menu-side-offset-right: max(
+    76px,
+    calc(env(safe-area-inset-right, 0px) + 64px)
+  );
+  --vot-menu-side-top-offset: max(
+    clamp(56px, 12.5vh, 136px),
+    calc(env(safe-area-inset-top, 0px) + 8px)
+  );
+
   overflow: hidden;
   position: absolute;
   left: 50%;
-  top: calc(5rem + 48px);
-  @media (pointer: coarse) {  
-    top: calc(3rem + 48px)
+  right: auto;
+  top: var(--vot-menu-default-top);
+
+  @media (pointer: coarse) {
+    --vot-menu-default-top: calc(3rem + 48px);
+    --vot-menu-top-offset: max(
+      56px,
+      calc(env(safe-area-inset-top, 0px) + 48px)
+    );
+    --vot-menu-side-offset: max(
+      64px,
+      calc(env(safe-area-inset-left, 0px) + 54px)
+    );
+    --vot-menu-side-offset-right: max(
+      64px,
+      calc(env(safe-area-inset-right, 0px) + 54px)
+    );
+    --vot-menu-side-top-offset: max(
+      clamp(50px, 12.5vh, 120px),
+      calc(env(safe-area-inset-top, 0px) + 8px)
+    );
   }
+
   user-select: none;
   background-color: var(--vot-helper-surface);
   color: var(--vot-helper-onsurface);
@@ -126,15 +160,44 @@
   }
 
   &[data-position="left"] {
-    left: 240px;
-    top: 12.5vh;
-    transform-origin: left;
+    left: var(--vot-menu-side-offset);
+    right: auto;
+    top: var(--vot-menu-side-top-offset);
+    transform-origin: left top;
+    transform: scale(1);
   }
 
   &[data-position="right"] {
-    right: -80px;
     left: auto;
-    top: 12.5vh;
+    right: var(--vot-menu-side-offset-right);
+    top: var(--vot-menu-side-top-offset);
+    transform-origin: right top;
+    transform: scale(1);
+  }
+
+  &[data-position="leftCenter"] {
+    left: var(--vot-menu-side-offset);
+    right: auto;
+    top: 50%;
+    transform-origin: left;
+    transform: translateY(-50%) scale(1);
+  }
+
+  &[data-position="rightCenter"] {
+    left: auto;
+    right: var(--vot-menu-side-offset-right);
+    top: 50%;
     transform-origin: right;
+    transform: translateY(-50%) scale(1);
+  }
+
+  &[data-position="left"][hidden],
+  &[data-position="right"][hidden] {
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  &[data-position="leftCenter"][hidden],
+  &[data-position="rightCenter"][hidden] {
+    transform: translateY(calc(-50% - 4px)) scale(0.98);
   }
 }

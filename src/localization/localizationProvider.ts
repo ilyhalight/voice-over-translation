@@ -45,11 +45,11 @@ export function resolveRuntimeLocaleVersion(
 
 function getRuntimeLocaleVersion() {
   const buildVersion =
-    typeof VOT_VERSION !== "undefined" ? String(VOT_VERSION || "") : "";
+    typeof VOT_VERSION === "undefined" ? "" : String(VOT_VERSION || "");
   const scriptVersion =
-    typeof GM_info !== "undefined"
-      ? String(GM_info?.script?.version || "")
-      : "";
+    typeof GM_info === "undefined"
+      ? ""
+      : String(GM_info?.script?.version || "");
 
   return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
 }
@@ -92,7 +92,7 @@ class LocalizationProvider {
   }
 
   getLang(): string {
-    return this.langOverride !== "auto" ? this.langOverride : lang;
+    return this.langOverride === "auto" ? lang : this.langOverride;
   }
 
   getAvailableLangs(): LangOverride[] {

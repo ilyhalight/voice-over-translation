@@ -14,12 +14,12 @@ import debug from "../../utils/debug";
 import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
-import { countryCode, setCountryCode } from "../shared";
+import { getCountryCode, setCountryCode } from "../shared";
 
 let countryCodeRequestInFlight: Promise<void> | null = null;
 
 async function ensureCountryCode(): Promise<void> {
-  if (countryCode) {
+  if (getCountryCode()) {
     return;
   }
 
@@ -86,7 +86,7 @@ export async function init(this: VideoHandler) {
     translateProxyEnabled: 0,
     translateProxyEnabledDefault: true,
     audioBooster: false,
-    useLivelyVoice: false,
+    useLivelyVoice: true,
     autoHideButtonDelay: defaultAutoHideDelay,
     // Audio download now uses direct network requests (GM_fetch/GM_xmlhttpRequest).
     useAudioDownload: isSupportGMXhr,
@@ -133,8 +133,8 @@ export async function init(this: VideoHandler) {
   await ensureCountryCode();
 
   if (
-    countryCode &&
-    proxyOnlyCountries.includes(countryCode) &&
+    getCountryCode() &&
+    proxyOnlyCountries.includes(getCountryCode()!) &&
     this.data.translateProxyEnabledDefault
   ) {
     this.data.translateProxyEnabled = 2;

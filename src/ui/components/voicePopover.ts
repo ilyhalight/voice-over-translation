@@ -2,7 +2,11 @@ import { render } from "lit-html";
 import { localizationProvider } from "../../localization/localizationProvider";
 import UI from "../../ui";
 import { LIVE_VOICE_ICON, STANDARD_VOICE_ICON } from "../icons";
-import { createDomId, setInteractiveHiddenState } from "./componentShared";
+import {
+  createDomId,
+  isEventInside,
+  setInteractiveHiddenState,
+} from "./componentShared";
 
 export type VoiceType = "standard" | "live";
 
@@ -11,7 +15,10 @@ export interface VoicePopoverProps {
   /** Overlay root — popover positions in this element's coordinate space. */
   layoutRoot: HTMLElement;
   onTranslate?: () => void;
+  onOpenChange?: (isOpen: boolean) => void;
 }
+
+type VoiceChangeListener = (voice: VoiceType) => boolean | undefined;
 
 export default class VoicePopover {
   container: HTMLElement;
@@ -19,13 +26,15 @@ export default class VoicePopover {
   private readonly id = createDomId("vot-voice-popover");
   private readonly layoutRoot: HTMLElement;
   private _activeVoice: VoiceType;
-  private onTranslate?: () => void;
-  private listeners: Array<(voice: VoiceType) => void> = [];
+  private readonly onTranslate?: () => void;
+  private listeners: Array<VoiceChangeListener> = [];
+  private visibilityListeners: Array<(isOpen: boolean) => void> = [];
+  private lastVisibilityState = false;
 
   private showTimer: ReturnType<typeof setTimeout> | null = null;
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
-  private static readonly SHOW_DELAY_MS = 120;
-  private static readonly HIDE_DELAY_MS = 150;
+  private static readonly SHOW_DELAY_MS = 80;
+  private static readonly HIDE_DELAY_MS = 80;
 
   private positionRafId: number | null = null;
   private anchorEl: HTMLElement | null = null;
@@ -38,10 +47,18 @@ export default class VoicePopover {
     }
   };
 
-  constructor({ activeVoice, layoutRoot, onTranslate }: VoicePopoverProps) {
+  constructor({
+    activeVoice,
+    layoutRoot,
+    onTranslate,
+    onOpenChange,
+  }: VoicePopoverProps) {
     this._activeVoice = activeVoice;
     this.layoutRoot = layoutRoot;
     this.onTranslate = onTranslate;
+    if (onOpenChange) {
+      this.visibilityListeners.push(onOpenChange);
+    }
     this.container = this.createContainer();
   }
 
@@ -62,19 +79,37 @@ export default class VoicePopover {
     return !this.hidden;
   }
 
-  addEventListener(listener: (voice: VoiceType) => void): this {
+  addEventListener(listener: VoiceChangeListener): this {
     this.listeners.push(listener);
     return this;
   }
 
-  removeEventListener(listener: (voice: VoiceType) => void): this {
+  removeEventListener(listener: VoiceChangeListener): this {
     this.listeners = this.listeners.filter((l) => l !== listener);
+    return this;
+  }
+
+  addVisibilityListener(listener: (isOpen: boolean) => void): this {
+    this.visibilityListeners.push(listener);
+    return this;
+  }
+
+  removeVisibilityListener(listener: (isOpen: boolean) => void): this {
+    this.visibilityListeners = this.visibilityListeners.filter(
+      (l) => l !== listener,
+    );
     return this;
   }
 
   scheduleShow(anchor: HTMLElement): void {
     this.cancelHide();
-    if (this.isOpen) return;
+    this.cancelShow();
+    if (this.isOpen) {
+      this.anchorEl = anchor;
+      this.updatePosition(anchor);
+      this.emitVisibilityChange(true);
+      return;
+    }
     this.showTimer = setTimeout(() => {
       this.showTimer = null;
       this.open(anchor);
@@ -90,13 +125,22 @@ export default class VoicePopover {
     }, VoicePopover.HIDE_DELAY_MS);
   }
 
-  toggleForTouch(anchor: HTMLElement): void {
+  showNow(anchor: HTMLElement): void {
+    this.cancelShow();
+    this.cancelHide();
+    this.open(anchor);
+  }
+
+  toggle(anchor: HTMLElement): void {
     if (this.isOpen) {
       this.hideNow();
     } else {
-      this.cancelHide();
-      this.open(anchor);
+      this.showNow(anchor);
     }
+  }
+
+  toggleForTouch(anchor: HTMLElement): void {
+    this.toggle(anchor);
   }
 
   cancelShow(): void {
@@ -125,6 +169,7 @@ export default class VoicePopover {
     this.close();
     this.container.remove();
     this.listeners = [];
+    this.visibilityListeners = [];
   }
 
   private createContainer(): HTMLElement {
@@ -208,17 +253,26 @@ export default class VoicePopover {
   }
 
   private open(anchor: HTMLElement): void {
-    if (this.isOpen) return;
+    if (this.isOpen) {
+      this.anchorEl = anchor;
+      this.updatePosition(anchor);
+      this.emitVisibilityChange(true);
+      return;
+    }
     this.anchorEl = anchor;
     setInteractiveHiddenState(this.container, false);
     this.updateActiveState();
-    this.schedulePositionUpdate(anchor);
+    this.updatePosition(anchor);
     this.attachLayoutListeners();
     this.attachOutsideTapListener();
+    this.emitVisibilityChange(true);
   }
 
   private close(): void {
-    if (this.hidden) return;
+    if (this.hidden) {
+      this.emitVisibilityChange(false);
+      return;
+    }
     setInteractiveHiddenState(this.container, true);
     this.detachLayoutListeners();
     this.detachOutsideTapListener();
@@ -227,22 +281,31 @@ export default class VoicePopover {
       cancelAnimationFrame(this.positionRafId);
       this.positionRafId = null;
     }
+    this.emitVisibilityChange(false);
+  }
+
+  private emitVisibilityChange(isOpen: boolean): void {
+    if (this.lastVisibilityState === isOpen) return;
+    this.lastVisibilityState = isOpen;
+    for (const listener of this.visibilityListeners) {
+      listener(isOpen);
+    }
   }
 
   private handleSelect(voice: VoiceType): void {
     this._activeVoice = voice;
     this.updateActiveState();
     this.cancelHide();
-    this.hideTimer = setTimeout(() => {
-      this.hideTimer = null;
-      this.close();
-    }, 400);
+    let shouldTranslate = true;
     for (const listener of this.listeners) {
-      listener(voice);
+      if (listener(voice) === false) {
+        shouldTranslate = false;
+      }
     }
-    if (this.onTranslate) {
+    if (shouldTranslate && this.onTranslate) {
       this.onTranslate();
     }
+    this.hideNow();
   }
 
   private updateActiveState(): void {
@@ -258,19 +321,80 @@ export default class VoicePopover {
   private schedulePositionUpdate(anchor: HTMLElement): void {
     if (this.positionRafId !== null) return;
     this.positionRafId = requestAnimationFrame(() => {
-      this.positionRafId = requestAnimationFrame(() => {
-        this.positionRafId = null;
-        this.updatePosition(anchor);
-      });
+      this.positionRafId = null;
+      this.updatePosition(anchor);
     });
+  }
+
+  private positionColumn(
+    containerRect: DOMRect,
+    rootRect: DOMRect,
+    gap: number,
+    position: string,
+  ): { left: number; top: number; placement: "left" | "right" } {
+    const spaceLeft = containerRect.left - rootRect.left - gap;
+    const spaceRight = rootRect.right - containerRect.right - gap;
+    const preferLeft = position === "right" || position === "rightCenter";
+    const placement: "left" | "right" =
+      (preferLeft && spaceLeft >= 160) || spaceLeft >= spaceRight
+        ? "left"
+        : "right";
+
+    this.container.style.setProperty(
+      "--vot-voice-popover-max-width",
+      `${Math.max(160, Math.min(310, placement === "left" ? spaceLeft : spaceRight))}px`,
+    );
+    const popoverRect = this.container.getBoundingClientRect();
+    const top =
+      containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
+    const left =
+      placement === "left"
+        ? containerRect.left - popoverRect.width - gap
+        : containerRect.right + gap;
+
+    return { left, top, placement };
+  }
+
+  private positionRow(
+    containerRect: DOMRect,
+    rootRect: DOMRect,
+    gap: number,
+  ): { left: number; top: number; placement: "top" | "bottom" } {
+    const spaceAbove = containerRect.top - rootRect.top - gap;
+    const spaceBelow = rootRect.bottom - containerRect.bottom - gap;
+    const placement: "top" | "bottom" =
+      spaceAbove >= spaceBelow ? "top" : "bottom";
+    this.container.style.setProperty(
+      "--vot-voice-popover-max-height",
+      `${Math.max(96, placement === "top" ? spaceAbove : spaceBelow)}px`,
+    );
+    const popoverRect = this.container.getBoundingClientRect();
+    const left =
+      containerRect.left + containerRect.width / 2 - popoverRect.width / 2;
+    const top =
+      placement === "top"
+        ? containerRect.top - popoverRect.height - gap
+        : containerRect.bottom + gap;
+
+    return { left, top, placement };
   }
 
   private updatePosition(anchor: HTMLElement): void {
     if (!this.isOpen) return;
 
     const rootRect = this.layoutRoot.getBoundingClientRect();
-    const popoverRect = this.container.getBoundingClientRect();
     const gap = 8;
+    const maxRootWidth = Math.max(160, rootRect.width - gap * 2);
+    const maxRootHeight = Math.max(96, rootRect.height - gap * 2);
+
+    this.container.style.setProperty(
+      "--vot-voice-popover-max-width",
+      `${Math.min(310, maxRootWidth)}px`,
+    );
+    this.container.style.setProperty(
+      "--vot-voice-popover-max-height",
+      `${maxRootHeight}px`,
+    );
 
     const buttonContainer = anchor.closest("[data-direction]") ?? anchor;
     const containerRect = buttonContainer.getBoundingClientRect();
@@ -279,43 +403,25 @@ export default class VoicePopover {
     const position =
       (buttonContainer as HTMLElement).dataset?.position ?? "default";
 
-    let left: number;
-    let top: number;
+    const result =
+      direction === "column"
+        ? this.positionColumn(containerRect, rootRect, gap, position)
+        : this.positionRow(containerRect, rootRect, gap);
 
-    if (direction === "column") {
-      top =
-        containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
-
-      if (position === "right") {
-        left = containerRect.left - popoverRect.width - gap;
-      } else {
-        left = containerRect.right + gap;
-      }
-    } else {
-      left =
-        containerRect.left + containerRect.width / 2 - popoverRect.width / 2;
-
-      const spaceAbove = containerRect.top - gap;
-      const spaceBelow = rootRect.bottom - containerRect.bottom - gap;
-      if (spaceAbove >= popoverRect.height || spaceAbove >= spaceBelow) {
-        top = containerRect.top - popoverRect.height - gap;
-      } else {
-        top = containerRect.bottom + gap;
-      }
-    }
-
-    left = Math.max(
+    const popoverRect = this.container.getBoundingClientRect();
+    let left = Math.max(
       gap,
-      Math.min(left, rootRect.right - popoverRect.width - gap),
+      Math.min(result.left, rootRect.right - popoverRect.width - gap),
     );
-    top = Math.max(
+    let top = Math.max(
       gap,
-      Math.min(top, rootRect.bottom - popoverRect.height - gap),
+      Math.min(result.top, rootRect.bottom - popoverRect.height - gap),
     );
 
     left -= rootRect.left;
     top -= rootRect.top;
 
+    this.container.dataset.placement = result.placement;
     this.container.style.left = `${left}px`;
     this.container.style.top = `${top}px`;
   }
@@ -347,8 +453,8 @@ export default class VoicePopover {
   private attachOutsideTapListener(): void {
     this.detachOutsideTapListener();
     this.outsideTapHandler = (e: PointerEvent) => {
-      if (e.pointerType !== "touch") return;
-      if (this.container.contains(e.target as Node)) return;
+      if (isEventInside(e, this.container)) return;
+      if (this.anchorEl && isEventInside(e, this.anchorEl)) return;
       this.hideNow();
     };
     document.addEventListener("pointerdown", this.outsideTapHandler, {

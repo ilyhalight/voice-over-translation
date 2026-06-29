@@ -1,16 +1,19 @@
-import debug from "../utils/debug";
-import { toErrorMessage } from "../utils/errors";
+import debug from "../../utils/debug";
+import { toErrorMessage } from "../../utils/errors";
 import {
   base64ToArrayBuffer,
   isBodySerializedForPort,
   serializeBodyForPort,
   summarizeBodyForDebug,
-} from "./bodySerialization";
-import { toPageMessage } from "./bridgeTransport";
-import type { AnyObject } from "./constants";
-import { PORT_NAME, TYPE_XHR_ACK, TYPE_XHR_EVENT } from "./constants";
-import { ext, runtimeMessagesUseStructuredClone } from "./webext";
-import { isYandexApiHostname, shouldStripYandexHeader } from "./yandexHeaders";
+} from "../shared/bodySerialization";
+import type { AnyObject } from "../shared/constants";
+import { PORT_NAME, TYPE_XHR_ACK, TYPE_XHR_EVENT } from "../shared/constants";
+import { toPageMessage } from "../shared/transport";
+import { ext, runtimeMessagesUseStructuredClone } from "../shared/webext";
+import {
+  isYandexApiHostname,
+  shouldStripYandexHeader,
+} from "../shared/yandexHeaders";
 
 type UaBrandVersion = { brand: string; version: string };
 type XhrPortState = {
@@ -174,11 +177,12 @@ function mergeHeadersIfMissing(
 
 function postToPage(payload: AnyObject) {
   const { message, transfer } = toPageMessage(payload);
+  const targetOrigin = globalThis.location.origin;
   if (transfer.length) {
-    globalThis.postMessage(message, "*", transfer);
+    globalThis.postMessage(message, targetOrigin, transfer);
     return;
   }
-  globalThis.postMessage(message, "*");
+  globalThis.postMessage(message, targetOrigin);
 }
 
 function settleXhrPort(requestId: string, state: XhrPortState): void {

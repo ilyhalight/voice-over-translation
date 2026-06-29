@@ -1,10 +1,15 @@
 /**
  * Shared constants for the MV3 extension build.
  *
- * These strings must be identical across:
- *  - prelude.ts (MAIN world)
- *  - bridge.ts  (ISOLATED world)
- *  - background.ts (service worker port name)
+ * These strings MUST be identical across:
+ *  - prelude (MAIN world)
+ *  - bridge  (ISOLATED world)
+ *  - background (service worker port name)
+ *
+ * CRXJS creates a separate internal Rollup build for each content-script
+ * entry and the service worker, so shared code is duplicated per entry.
+ * If tree-shaking/minification diverges, string constants would diverge
+ * and break the postMessage bridge — keep them literal and centralized.
  */
 
 export type AnyObject = Record<string, any>;
@@ -25,6 +30,10 @@ export const TYPE_NOTIFY = "VOT_EXT_NOTIFY";
 
 // Background port name (bridge <-> service worker)
 export const PORT_NAME = "vot_gm_xhr";
+
+// Background runtime message types (bridge <-> service worker, one-off)
+export const BG_MSG_STORAGE = "gm_storage";
+export const BG_MSG_NOTIFICATION = "gm_notification";
 
 type BridgeMarked = { [MARK]: true };
 

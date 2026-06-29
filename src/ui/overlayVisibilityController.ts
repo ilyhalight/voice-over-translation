@@ -1,5 +1,5 @@
 import debug from "../utils/debug";
-import { getDeepActiveElement } from "../utils/dom";
+import { containsCrossShadow, getDeepActiveElement } from "../utils/dom";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import type { OverlayView } from "./views/overlay";
 
@@ -13,6 +13,18 @@ export interface OverlayVisibilityDependencies {
 
 type OverlayEvent = FocusEvent | PointerEvent | Event | undefined;
 
+function isDomNode(value: unknown): value is Node {
+  return typeof Node !== "undefined" && value instanceof Node;
+}
+
+function isPointerEventType(type: string): boolean {
+  return type.startsWith("pointer");
+}
+
+function isHoverPointerEvent(event: OverlayEvent): boolean {
+  return (event as PointerEvent | undefined)?.pointerType !== "touch";
+}
+
 /**
  * Centralizes overlay visibility behavior: showing, hiding and deadline checks.
  */
@@ -20,6 +32,7 @@ export class OverlayVisibilityController {
   private readonly deps: OverlayVisibilityDependencies;
   private hideDeadlineMs = 0;
   private hideArmed = false;
+  private pointerInsideOverlay = false;
   private readonly unsubscribeChecker: () => void;
 
   constructor(deps: OverlayVisibilityDependencies) {
@@ -51,6 +64,7 @@ export class OverlayVisibilityController {
 
   release() {
     this.cancel();
+    this.pointerInsideOverlay = false;
     this.unsubscribeChecker();
   }
 
@@ -58,7 +72,13 @@ export class OverlayVisibilityController {
    * Schedules overlay auto-hide after configured delay.
    */
   queueAutoHide() {
-    if (!this.show()) {
+    const view = this.show();
+    if (!view) {
+      return;
+    }
+
+    if (this.isOverlayHoverActive(view)) {
+      this.cancel();
       return;
     }
 
@@ -82,7 +102,8 @@ export class OverlayVisibilityController {
       return;
     }
 
-    if (type.startsWith("pointer")) {
+    if (isPointerEventType(type)) {
+      this.pointerInsideOverlay = isHoverPointerEvent(event);
       this.cancel();
       this.show();
       event.stopPropagation?.();
@@ -101,15 +122,17 @@ export class OverlayVisibilityController {
       return;
     }
 
-    if (type.startsWith("pointer")) {
+    if (isPointerEventType(type)) {
       const target =
         event.composedPath?.()[0] ?? (event as PointerEvent).target;
       if (this.deps.isInteractiveNode(target)) {
+        this.pointerInsideOverlay = isHoverPointerEvent(event);
         event.stopPropagation?.();
         this.cancel();
         this.show();
         return;
       }
+      this.pointerInsideOverlay = false;
       this.deps.checker.markActivity("overlay-host-pointer");
     }
 
@@ -122,50 +145,30 @@ export class OverlayVisibilityController {
   hide(): void {
     this.hideArmed = false;
     this.hideDeadlineMs = 0;
+    this.pointerInsideOverlay = false;
     const view = this.getView();
     view?.updateButtonOpacity(0);
   }
 
   /**
-   * Schedules hide if focus leaves overlay tree entirely.
+   * Schedules hide if focus/pointer leaves overlay tree entirely.
    */
-  scheduleHide() {
+  scheduleHide(event?: OverlayEvent) {
     if (!this.getView()) {
       return;
     }
 
-    // For pointerleave, hide immediately without delay
-    // if (event?.type === "pointerleave") {
-    //   const pointerType = (event as PointerEvent).pointerType;
-    //   if (pointerType === "touch") {
-    //     this.queueAutoHide();
-    //     return;
-    //   }
+    const type = event?.type;
+    if (type === "pointerleave") {
+      if (this.isLeaveInsideOverlay(event)) {
+        return;
+      }
+      this.pointerInsideOverlay = false;
+    }
 
-    //   const currentTarget = event?.currentTarget;
-    //   let relatedTarget: EventTarget | null =
-    //     (event as unknown as { relatedTarget?: EventTarget | null })
-    //       ?.relatedTarget ?? null;
-
-    //   if (!relatedTarget && typeof event?.composedPath === "function") {
-    //     const path = event.composedPath() as unknown as EventTarget[];
-    //     relatedTarget = path[1] ?? null;
-    //   }
-
-    //   const relatedNode = relatedTarget instanceof Node ? relatedTarget : null;
-    //   const currentNode = currentTarget instanceof Node ? currentTarget : null;
-
-    //   if (
-    //     relatedNode &&
-    //     ((currentNode && containsCrossShadow(currentNode, relatedNode)) ||
-    //       this.deps.isInteractiveNode(relatedNode))
-    //   ) {
-    //     return;
-    //   }
-
-    //   this.hide();
-    //   return;
-    // }
+    if (type === "focusout" && this.isFocusMovingInsideOverlay(event)) {
+      return;
+    }
 
     this.queueAutoHide();
   }
@@ -175,6 +178,19 @@ export class OverlayVisibilityController {
 
     const now = this.nowMs();
     if (now + 2 < this.hideDeadlineMs) {
+      return;
+    }
+
+    const view = this.getView();
+    if (!view) {
+      this.hideArmed = false;
+      return;
+    }
+
+    if (this.isOverlayHoverActive(view)) {
+      debug.log("[OverlayVisibility] skip hide (pointer inside overlay)");
+      this.cancel();
+      view.updateButtonOpacity(1);
       return;
     }
 
@@ -188,12 +204,25 @@ export class OverlayVisibilityController {
       active = getDeepActiveElement(document);
     }
     if (active && this.deps.isInteractiveNode(active)) {
-      debug.log("[OverlayVisibility] skip hide (focus inside overlay)");
-      return;
+      const keyboardNav =
+        document.documentElement.classList.contains("vot-keyboard-nav");
+
+      if (keyboardNav) {
+        debug.log(
+          "[OverlayVisibility] skip hide (keyboard focus inside overlay)",
+        );
+        return;
+      }
+
+      // Pointer/touch activation leaves focus on custom toolbar buttons in some
+      // browsers. Do not let that focus permanently disarm auto-hide after the
+      // pointer has already left the overlay.
+      if (active instanceof HTMLElement) {
+        active.blur();
+      }
     }
 
-    const view = this.getView();
-    view?.updateButtonOpacity(0);
+    view.updateButtonOpacity(0);
   }
 
   private handleFocusIn() {
@@ -205,6 +234,42 @@ export class OverlayVisibilityController {
   private getView(): OverlayView | null {
     const view = this.deps.getOverlayView();
     return view?.isInitialized() ? view : null;
+  }
+
+  private isOverlayHoverActive(view: OverlayView | null = this.getView()) {
+    return Boolean(
+      view &&
+        (this.pointerInsideOverlay || view.shouldKeepVisibleForInteraction()),
+    );
+  }
+
+  private getRelatedNode(event: OverlayEvent): Node | null {
+    const relatedTarget =
+      (event as unknown as { relatedTarget?: EventTarget | null })
+        ?.relatedTarget ?? null;
+    return isDomNode(relatedTarget) ? relatedTarget : null;
+  }
+
+  private isLeaveInsideOverlay(event: OverlayEvent): boolean {
+    const relatedNode = this.getRelatedNode(event);
+    if (!relatedNode) {
+      return false;
+    }
+
+    if (this.deps.isInteractiveNode(relatedNode)) {
+      return true;
+    }
+
+    const currentTarget = event?.currentTarget;
+    const currentNode = isDomNode(currentTarget) ? currentTarget : null;
+    return Boolean(
+      currentNode && containsCrossShadow(currentNode, relatedNode),
+    );
+  }
+
+  private isFocusMovingInsideOverlay(event: OverlayEvent): boolean {
+    const relatedNode = this.getRelatedNode(event);
+    return Boolean(relatedNode && this.deps.isInteractiveNode(relatedNode));
   }
 
   private nowMs(): number {

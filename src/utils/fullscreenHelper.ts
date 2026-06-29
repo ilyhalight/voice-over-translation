@@ -20,7 +20,7 @@ export interface FullscreenHelperOptions {
 export class FullscreenHelper {
   private container: HTMLElement;
   private video?: HTMLVideoElement;
-  private fullscreenChangeListeners: Set<() => void> = new Set();
+  private readonly fullscreenChangeListeners: Set<() => void> = new Set();
   private readonly handleFullscreenChange = () => {
     this.notifyFullscreenChange();
   };
@@ -131,12 +131,13 @@ export class FullscreenHelper {
     const videoRect = this.video?.getBoundingClientRect();
 
     // Use video rect if available and smaller than container
-    const width =
-      videoRect && videoRect.width < rect.width
-        ? videoRect.width
-        : rect.width > 0
-          ? rect.width
-          : target.clientWidth;
+    let width = target.clientWidth;
+    if (rect.width > 0) {
+      width = rect.width;
+    }
+    if (videoRect && videoRect.width < rect.width) {
+      width = videoRect.width;
+    }
 
     return width > threshold;
   }

@@ -220,7 +220,9 @@
     "left": "Esquerda",
     "right": "Dereita",
     "top": "Cima",
-    "default": "Predeterminado"
+    "default": "Predeterminado",
+    "leftCenter": "Esquerda centrada",
+    "rightCenter": "Dereita centrada"
   },
   "secs": "secs",
   "autoHideButtonDelay": "Atraso antes de ocultar o botón traducir",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "Voces estándar",
   "VOTStandardVoicesSubtitle": "Voz en off rápida e de alta calidade",
   "VOTLiveVoicesTitle": "Voces en directo",
-  "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego"
+  "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego",
+  "VOTYandexTokenExpired": "A sesión rematou. Entra de novo",
+  "VOTVoiceSelection": "Escoller o doblaxe"
 }

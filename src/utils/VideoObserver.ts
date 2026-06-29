@@ -607,8 +607,7 @@ export class VideoObserver {
 
     this.onDocumentReady = onReady;
     document.addEventListener("readystatechange", onReady);
-    if (typeof queueMicrotask === "function") queueMicrotask(onReady);
-    else void Promise.resolve().then(onReady);
+    queueMicrotask(onReady);
   }
 
   disable() {

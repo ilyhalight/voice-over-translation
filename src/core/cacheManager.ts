@@ -311,40 +311,29 @@ class ResponseCacheManager {
     fetcher: () => Promise<Response>,
     staleFallback?: Response,
   ): Promise<Response> {
+    let response: Response;
     try {
-      return await this.runNetworkRequest(cacheConfig, fetcher);
+      response = await fetcher();
     } catch (err) {
       if (staleFallback) {
         return staleFallback;
       }
       throw err;
     }
-  }
 
-  private async runNetworkRequest(
-    {
-      cacheName,
-      url,
-      cacheApiKey,
-      useCacheApi,
-    }: {
-      cacheName: string;
-      url: string;
-      cacheApiKey: string;
-      useCacheApi: boolean;
-    },
-    fetcher: () => Promise<Response>,
-  ): Promise<Response> {
-    const response = await fetcher();
     if (!response.ok) {
       return response;
     }
 
-    const createdAtMs = Date.now();
-
-    if (useCacheApi) {
+    if (cacheConfig.useCacheApi) {
+      const createdAtMs = Date.now();
       const storable = this.toStorableResponse(response.clone(), createdAtMs);
-      await this.writeCacheApi(cacheName, url, cacheApiKey, storable);
+      await this.writeCacheApi(
+        cacheConfig.cacheName,
+        cacheConfig.url,
+        cacheConfig.cacheApiKey,
+        storable,
+      );
     }
 
     return response;

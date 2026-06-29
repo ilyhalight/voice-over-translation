@@ -1,7 +1,7 @@
-import type { AnyObject } from "./constants";
-import { ext } from "./webext";
+import type { AnyObject } from "../shared/constants";
+import { ext } from "../shared/webext";
 
-export const GM_STORAGE_MESSAGE_TYPE = "gm_storage";
+const GM_STORAGE_MESSAGE_TYPE = "gm_storage";
 
 async function sendRuntimeMessage<T = unknown>(message: AnyObject): Promise<T> {
   const sendMessage = ext?.runtime?.sendMessage;
@@ -27,10 +27,17 @@ async function sendRuntimeMessage<T = unknown>(message: AnyObject): Promise<T> {
       });
 
       if (
-        maybePromise &&
+        maybePromise != null &&
         typeof (maybePromise as Promise<T>).then === "function"
       ) {
-        void (maybePromise as Promise<T>).then(resolve, reject);
+        // MV3: sendMessage returned a Promise; forward its settlement.
+        (async () => {
+          try {
+            resolve(await (maybePromise as Promise<T>));
+          } catch (error) {
+            reject(error);
+          }
+        })();
       }
     } catch (error) {
       reject(error);

@@ -21,6 +21,7 @@ import {
   type DownloadBlobOptions,
   downloadBlob,
 } from "../utils/utils";
+import { normalizeButtonPosition } from "./buttonPlacement";
 import { applyOverlayMountUpdate } from "./mount";
 import {
   createShadowMount,
@@ -105,7 +106,7 @@ export class UIManager {
     });
     // Preserve the user's last chosen button position across UI reloads
     // (e.g. when changing the menu language).
-    this.votOverlayView.initUI(this.data.buttonPos ?? "default");
+    this.votOverlayView.initUI(normalizeButtonPosition(this.data.buttonPos));
 
     this.votSettingsView = new SettingsView({
       globalPortal: this.votGlobalPortal,
@@ -484,7 +485,9 @@ export class UIManager {
       })
       .addEventListener("select:buttonPosition", (item) => {
         this.withInitializedOverlayView((overlayView) => {
-          const preferredPosition = this.data.buttonPos ?? item;
+          const preferredPosition = normalizeButtonPosition(
+            this.data.buttonPos ?? item,
+          );
           const { position, direction } =
             overlayView.calcButtonLayout(preferredPosition);
           overlayView.updateButtonLayout(position, direction);
@@ -658,7 +661,7 @@ export class UIManager {
     const prevButtonOpacity = this.votOverlayView.votButton.opacity;
     const prevButtonHidden = this.votOverlayView.votButton.container.hidden;
     const prevMenuHidden = this.votOverlayView.votMenu.hidden;
-    const prevButtonPos = this.data.buttonPos ?? "default";
+    const prevButtonPos = normalizeButtonPosition(this.data.buttonPos);
     const settingsWasOpen =
       this.votSettingsView?.dialog?.container?.hidden === false;
 
@@ -754,10 +757,7 @@ export class UIManager {
       if (!centered) {
         voicePopover?.cancelShow();
         voicePopover?.hideNow();
-        this.votOverlayView.votButton.dropdownArrow.setAttribute(
-          "aria-expanded",
-          "false",
-        );
+        this.votOverlayView.votButton.setVoiceMenuOpen(false);
       }
       votButtonTooltip.dismissImmediate();
       this.votOverlayView.syncTranslateButtonTooltip();

@@ -1,12 +1,12 @@
-/**
+﻿/*
  * Minimal cross-browser WebExtension API access.
  *
  * - Chromium exposes APIs under `chrome` (callback-based).
  * - Firefox exposes APIs under `browser` (Promise-based) and often also
  *   provides a `chrome` alias.
  *
- * We keep a tiny wrapper so the rest of the codebase can use `await` even when
- * running on Chromium.
+ * We keep a tiny wrapper so the rest of the codebase can use `await` even
+ * when running on Chromium.
  */
 
 type WebExtRuntimeLike = {
@@ -56,14 +56,13 @@ const chromeNamespace = (globalThis as Record<string, unknown>).chrome as
 export const ext: WebExtNamespace | null =
   browserNamespace ?? chromeNamespace ?? null;
 
-const isBrowserNamespace = !!browserNamespace && ext === browserNamespace;
+export const isBrowserNamespace =
+  !!browserNamespace && ext === browserNamespace;
 const isFirefoxLike =
   typeof (browserNamespace?.runtime as { getBrowserInfo?: unknown } | undefined)
     ?.getBrowserInfo === "function";
 
 export const runtimeMessagesUseStructuredClone = isFirefoxLike;
-export const runtimeMessagesUseJsonSerialization =
-  !runtimeMessagesUseStructuredClone;
 
 export function lastErrorMessage(): string | null {
   // `runtime.lastError` is a Chromium callback-era mechanism.
@@ -107,6 +106,34 @@ async function callAsync<T>(
   });
 }
 
+/**
+ * Wraps a Chromium callback-style API call into a Promise.
+ *
+ * Chromium extension APIs use (arg1, arg2, ..., callback) signatures
+ * where chrome.runtime.lastError signals failure. This helper
+ * eliminates the repeated try/catch + lastError check pattern.
+ */
+function callChromeCallback<T>(
+  fn: (...args: unknown[]) => void,
+  args: unknown[],
+  mapResult?: (...cbArgs: unknown[]) => T,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    try {
+      fn(...args, (...cbArgs: unknown[]) => {
+        const err = lastErrorMessage();
+        if (err) {
+          reject(new Error(err));
+          return;
+        }
+        resolve(mapResult ? mapResult(...cbArgs) : (cbArgs[0] as T));
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 export async function storageGet<T = Record<string, unknown>>(
   keys: unknown,
 ): Promise<T> {
@@ -114,21 +141,7 @@ export async function storageGet<T = Record<string, unknown>>(
     ? undefined
     : chromeNamespace?.storage?.local;
   if (chromeArea && typeof chromeArea.get === "function") {
-    return await new Promise<T>((resolve, reject) => {
-      try {
-        chromeArea.get(keys, (items: unknown) => {
-          const err = lastErrorMessage();
-          if (err) {
-            reject(new Error(err));
-            return;
-          }
-
-          resolve(items as T);
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
+    return await callChromeCallback<T>(chromeArea.get.bind(chromeArea), [keys]);
   }
 
   const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
@@ -145,21 +158,11 @@ export async function storageSet(
     ? undefined
     : chromeNamespace?.storage?.local;
   if (chromeArea && typeof chromeArea.set === "function") {
-    await new Promise<void>((resolve, reject) => {
-      try {
-        chromeArea.set(items, () => {
-          const err = lastErrorMessage();
-          if (err) {
-            reject(new Error(err));
-            return;
-          }
-
-          resolve();
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
+    await callChromeCallback<void>(
+      chromeArea.set.bind(chromeArea),
+      [items],
+      () => undefined,
+    );
     return;
   }
 
@@ -178,21 +181,11 @@ export async function storageRemove(keys: string | string[]): Promise<void> {
     ? undefined
     : chromeNamespace?.storage?.local;
   if (chromeArea && typeof chromeArea.remove === "function") {
-    await new Promise<void>((resolve, reject) => {
-      try {
-        chromeArea.remove(keys, () => {
-          const err = lastErrorMessage();
-          if (err) {
-            reject(new Error(err));
-            return;
-          }
-
-          resolve();
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
+    await callChromeCallback<void>(
+      chromeArea.remove.bind(chromeArea),
+      [keys],
+      () => undefined,
+    );
     return;
   }
 

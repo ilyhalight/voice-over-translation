@@ -6,8 +6,12 @@ export type {
 /**
  * Country code used for proxy settings. Populated lazily during init.
  */
-export let countryCode: string | undefined;
+let _countryCode: string | undefined;
+
+export function getCountryCode(): string | undefined {
+  return _countryCode;
+}
 
 export function setCountryCode(next: string | undefined) {
-  countryCode = next;
+  _countryCode = next;
 }

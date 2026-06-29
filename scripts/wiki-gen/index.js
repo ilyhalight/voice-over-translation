@@ -47,7 +47,7 @@ function normalizeDomain(domain) {
     .replaceAll(String.raw`\-`, "-")
     .replaceAll(String.raw`\/`, "/")
     .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
+    .replace(/\/.*/, "")
     .replaceAll(/[()]/g, "")
     .replace(/^\./, "")
     .replace(/\.$/, "")
@@ -469,7 +469,7 @@ function extractDomainsFromRegex(regex) {
 }
 
 function parseRegexLiteral(literal) {
-  if (!literal || literal[0] !== "/") {
+  if (!literal?.startsWith?.("/")) {
     return null;
   }
 

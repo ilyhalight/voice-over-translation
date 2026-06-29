@@ -1,7 +1,7 @@
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { VideoHandler } from "../..";
-import { authLoginUrl, maxAudioVolume } from "../../config/config";
+import { maxAudioVolume } from "../../config/config";
 import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { Direction, Position } from "../../types/components/votButton";
@@ -12,10 +12,17 @@ import type {
   OverlayViewProps,
 } from "../../types/views/overlay";
 import ui from "../../ui";
+import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
 import { FullscreenHelper } from "../../utils/fullscreenHelper";
+import { hasTouchScreen, isTouchFirstInput } from "../../utils/inputDevice";
 import type { IntervalIdleChecker } from "../../utils/intervalIdleChecker";
 import { votStorage } from "../../utils/storage";
 import { isPiPAvailable } from "../../utils/utils";
+import {
+  normalizeButtonPosition,
+  resolveButtonLayout,
+  resolveButtonPositionFromPointer,
+} from "../buttonPlacement";
 import {
   addKeyboardActivationListener,
   isEventInside,
@@ -39,11 +46,24 @@ import {
   type ShadowMount,
 } from "../shadowMount";
 
+type ButtonDragState = {
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  clientX: number;
+  clientY: number;
+  rootRect: DOMRect;
+  active: boolean;
+  initialPosition: Position;
+  targetPosition: Position;
+  frameId: number | null;
+};
+
 export class OverlayView {
   private static readonly BIG_CONTAINER_WIDTH_PX = 550;
   private resizeObserver?: ResizeObserver;
   private lastIsBigContainer = false;
-  private fullscreenHelper: FullscreenHelper;
+  private readonly fullscreenHelper: FullscreenHelper;
 
   mount: OverlayMount;
   globalPortal: HTMLElement;
@@ -51,17 +71,11 @@ export class OverlayView {
   private defaultVolumePersistTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly defaultVolumePersistDelayMs = 250;
 
-  private dragging = false;
-  private dragCandidate = false;
-  private dragDirty = false;
-  private dragStartX = 0;
-  private dragStartY = 0;
-  private currentClientX = 0;
-  private activePointerId: number | null = null;
   private readonly dragThresholdPx = 6;
-  private containerRect: DOMRect | null = null;
-  private dragIsBigContainer: boolean | null = null;
-  private checkerUnsubscribe: (() => void) | null = null;
+  private readonly dragActionSuppressMs = 350;
+  private dragState: ButtonDragState | null = null;
+  private dockPreview: HTMLElement | null = null;
+  private lastButtonDragEndAt = 0;
 
   private initialized = false;
   private readonly data: Partial<StorageData>;
@@ -106,6 +120,7 @@ export class OverlayView {
   votButton?: VOTButton;
   votButtonTooltip?: Tooltip;
   subtitlesButtonTooltip?: Tooltip;
+  voiceMenuButtonTooltip?: Tooltip;
   voicePopover?: VoicePopover;
   // menu
   votMenu?: VOTMenu;
@@ -147,6 +162,12 @@ export class OverlayView {
     return this.mount.portalContainer;
   }
 
+  private get tooltipParentElement(): HTMLElement | ShadowRoot {
+    return this.root instanceof ShadowRoot
+      ? (this.root.host as HTMLElement)
+      : this.root;
+  }
+
   /**
    * Update mount points when the player container changes.
    * Moves already-mounted UI nodes and rebinds root-bound listeners (dragging).
@@ -165,14 +186,14 @@ export class OverlayView {
       reparentShadowMount(this.overlayMount, nextRoot);
     }
 
-    if (this.votButtonTooltip && prevRoot !== nextRoot) {
-      this.votButtonTooltip.updateMount({
-        parentElement:
-          this.root instanceof ShadowRoot
-            ? (this.root.host as HTMLElement)
-            : this.root,
-        layoutRoot: this.overlayMount?.host,
-      });
+    if (prevRoot !== nextRoot) {
+      for (const tooltip of [
+        this.votButtonTooltip,
+        this.subtitlesButtonTooltip,
+        this.voiceMenuButtonTooltip,
+      ]) {
+        tooltip?.updateMount({ parentElement: this.tooltipParentElement });
+      }
     }
 
     return this;
@@ -182,6 +203,8 @@ export class OverlayView {
     // #region Button type
     votButton: VOTButton;
     votButtonTooltip: Tooltip;
+    subtitlesButtonTooltip: Tooltip;
+    voiceMenuButtonTooltip: Tooltip;
     voicePopover: VoicePopover;
     // #endregion Button type
     // #region Menu type
@@ -201,18 +224,8 @@ export class OverlayView {
     return this.initialized;
   }
 
-  calcButtonLayout(position: Position): ButtonLayout {
-    if (this.isBigContainer && isSidePosition(position)) {
-      return {
-        direction: "column",
-        position,
-      };
-    }
-
-    return {
-      direction: "row",
-      position: "default",
-    };
+  calcButtonLayout(position: string): ButtonLayout {
+    return resolveButtonLayout(this.isBigContainer, position);
   }
 
   /** Centered bar uses dropdown arrow; side layout uses translate segment hover. */
@@ -225,6 +238,14 @@ export class OverlayView {
     if (!this.votButton) return false;
     if (this.isCenteredButtonLayout()) return true;
     return this.votButton.status !== "error";
+  }
+
+  private shouldUseTouchVoiceInteraction(event?: PointerEvent): boolean {
+    return event?.pointerType === "touch" || isTouchFirstInput();
+  }
+
+  private shouldUseHoverVoiceInteraction(event?: PointerEvent): boolean {
+    return event?.pointerType !== "touch" && !isTouchFirstInput();
   }
 
   /** Error tooltip only on side layout — centered bar uses dropdown + button label. */
@@ -252,7 +273,7 @@ export class OverlayView {
    * chevron — no new `pointerenter` fires, so re-arm the hover popover here.
    */
   rescheduleVoicePopoverIfHovered(): this {
-    if (!this.isInitialized()) return this;
+    if (!this.isInitialized() || isTouchFirstInput()) return this;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (!this.isInitialized() || !this.allowsVoicePopover()) return;
@@ -311,20 +332,33 @@ export class OverlayView {
     element: HTMLElement,
     handler: () => void,
     signal: AbortSignal,
-    options: { preventPointerDefault?: boolean } = {},
+    options: {
+      preventPointerDefault?: boolean;
+      shouldHandlePointer?: (event: PointerEvent) => boolean;
+    } = {},
   ): void {
     element.addEventListener(
-      "pointerdown",
+      "pointerup",
       (event) => {
         if (!isPrimaryPointerAction(event)) return;
+        if (this.shouldSuppressPointerAction()) return;
+        if (options.shouldHandlePointer?.(event) === false) return;
         if (options.preventPointerDefault) {
           event.preventDefault();
         }
         handler();
+        queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
       },
       { signal },
     );
-    addKeyboardActivationListener(element, handler, { signal });
+    addKeyboardActivationListener(
+      element,
+      () => {
+        handler();
+        queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+      },
+      { signal },
+    );
   }
 
   private flushDefaultVolumePersist(): void {
@@ -340,7 +374,7 @@ export class OverlayView {
     void votStorage.set("defaultVolume", this.data.defaultVolume);
   }
 
-  initUI(buttonPosition: Position = "default") {
+  initUI(buttonPosition: string = "default") {
     if (this.isInitialized()) {
       throw new Error("[VOT] OverlayView is already initialized");
     }
@@ -393,16 +427,12 @@ export class OverlayView {
       autoLayout: false,
       hidden: true,
       bordered: false,
-      parentElement:
-        this.root instanceof ShadowRoot
-          ? (this.root.host as HTMLElement)
-          : this.root,
+      parentElement: this.tooltipParentElement,
     });
 
     // Voice type popover — shown on hover over the translate button.
-    const activeVoice: VoiceType = this.data.useLivelyVoice
-      ? "live"
-      : "standard";
+    const activeVoice: VoiceType =
+      this.data.useLivelyVoice === false ? "standard" : "live";
     this.voicePopover = new VoicePopover({
       activeVoice,
       layoutRoot: this.root as HTMLElement,
@@ -410,6 +440,10 @@ export class OverlayView {
         this.events["click:translate"].dispatch();
       },
     });
+    this.voicePopover.addVisibilityListener((isOpen) => {
+      this.votButton?.setVoiceMenuOpen(isOpen);
+    });
+    this.votButton.container.dataset.voiceType = activeVoice;
     this.root.appendChild(this.voicePopover.container);
     this.syncTranslateButtonTooltip();
     this.subtitlesButtonTooltip = new Tooltip({
@@ -418,11 +452,20 @@ export class OverlayView {
       position: this.votButton.tooltipPos,
       autoLayout: false,
       bordered: false,
-      parentElement:
-        this.root instanceof ShadowRoot
-          ? (this.root.host as HTMLElement)
-          : this.root,
+      parentElement: this.tooltipParentElement,
     });
+
+    this.voiceMenuButtonTooltip = new Tooltip({
+      target: this.votButton.dropdownArrow,
+      anchor: this.votButton.dropdownArrow,
+      edgeAnchor: this.votButton.translateButton,
+      content: localizationProvider.get("VOTVoiceSelection"),
+      position: this.votButton.tooltipPos,
+      autoLayout: false,
+      bordered: false,
+      parentElement: this.tooltipParentElement,
+    });
+    this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
 
     // #endregion VOT Button
     // #region VOT Menu
@@ -548,11 +591,6 @@ export class OverlayView {
 
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
-    this.checkerUnsubscribe?.();
-    this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
-      this.onCheckerTick();
-    });
-
     // #region [Events] VOT Button
     // Prevent button click events from propagating.
     this.votButton.container.addEventListener(
@@ -588,6 +626,63 @@ export class OverlayView {
     const closeMenu = (returnFocusToToggle = false) =>
       setMenuOpen(false, { returnFocusToToggle });
 
+    const toggleVoicePopover = () => {
+      if (!this.allowsVoicePopover()) return;
+      const arrow = this.votButton.dropdownArrow;
+      this.voiceMenuButtonTooltip?.dismissImmediate();
+
+      if (this.voicePopover?.isOpen) {
+        this.voicePopover.hideNow();
+        this.votButton.setVoiceMenuOpen(false);
+        queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+        return;
+      }
+
+      this.voicePopover?.showNow(arrow);
+    };
+
+    // The chevron is inside the translate segment. Handle it explicitly and
+    // stop propagation so a chevron tap neither starts drag nor triggers
+    // translation through the parent segment. Toggling on pointerdown keeps
+    // repeated clicks symmetric: open -> close -> open.
+    this.votButton.dropdownArrow.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (!isPrimaryPointerAction(event)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (this.shouldSuppressPointerAction()) return;
+        toggleVoicePopover();
+      },
+      { signal, capture: true },
+    );
+    this.votButton.dropdownArrow.addEventListener(
+      "pointerup",
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      { signal, capture: true },
+    );
+    this.votButton.dropdownArrow.addEventListener(
+      "click",
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      { signal, capture: true },
+    );
+    this.votButton.dropdownArrow.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        toggleVoicePopover();
+      },
+      { signal, capture: true },
+    );
+
     this.bindPrimaryAction(
       this.votButton.translateButton,
       () => {
@@ -595,6 +690,14 @@ export class OverlayView {
         this.events["click:translate"].dispatch();
       },
       signal,
+      {
+        shouldHandlePointer: (event) =>
+          !(
+            this.votButton.direction === "column" &&
+            this.allowsVoicePopover() &&
+            this.shouldUseTouchVoiceInteraction(event)
+          ),
+      },
     );
 
     // Voice popover: show on hover over the translate button (desktop),
@@ -602,7 +705,7 @@ export class OverlayView {
     this.votButton.translateButton.addEventListener(
       "pointerenter",
       (e) => {
-        if (e.pointerType === "touch") return;
+        if (!this.shouldUseHoverVoiceInteraction(e)) return;
         // In row/default layout the dropdown arrow handles the popover.
         if (this.votButton.direction !== "column") return;
         if (!this.allowsVoicePopover()) return;
@@ -613,69 +716,49 @@ export class OverlayView {
     this.votButton.translateButton.addEventListener(
       "pointerleave",
       (e) => {
-        if (e.pointerType === "touch") return;
+        if (!this.shouldUseHoverVoiceInteraction(e)) return;
         if (this.votButton.direction !== "column") return;
         this.voicePopover?.scheduleHide();
       },
       { signal },
     );
     this.votButton.translateButton.addEventListener(
-      "pointerdown",
+      "pointerup",
       (e) => {
-        if (e.pointerType !== "touch") return;
+        if (!this.shouldUseTouchVoiceInteraction(e)) return;
         // On touch in side layout, toggle the popover instead of translating.
         if (this.votButton.direction !== "column") return;
+        if (this.shouldSuppressPointerAction()) return;
         if (!this.allowsVoicePopover()) return;
         e.preventDefault();
         e.stopPropagation();
-        this.voicePopover?.toggleForTouch(this.votButton.translateButton);
+
+        if (this.voicePopover?.isOpen) {
+          this.voicePopover.hideNow();
+          this.votButton.setVoiceMenuOpen(false);
+          queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+          return;
+        }
+
+        this.voicePopover?.showNow(this.votButton.translateButton);
       },
       { signal },
     );
-
-    // Dropdown arrow (row/default layout only): click toggles the voice popover.
-    this.bindPrimaryAction(
-      this.votButton.dropdownArrow,
-      () => {
-        if (!this.allowsVoicePopover()) return;
-        const arrow = this.votButton.dropdownArrow;
-        const isOpen = this.voicePopover?.isOpen;
-        if (isOpen) {
-          this.voicePopover?.hideNow();
-          arrow.setAttribute("aria-expanded", "false");
-        } else {
-          this.voicePopover?.cancelHide();
-          this.voicePopover?.scheduleShow(arrow);
-          arrow.setAttribute("aria-expanded", "true");
-        }
-      },
-      signal,
-      { preventPointerDefault: true },
-    );
-    // Keep the arrow's aria-expanded in sync when the popover closes externally.
-    this.voicePopover.addEventListener(() => {
-      // Called on voice selection — popover will close shortly.
-      this.votButton.dropdownArrow.setAttribute("aria-expanded", "false");
-    });
 
     // Voice popover selection handler.
     this.voicePopover.addEventListener((voice) => {
       const useLive = voice === "live";
 
-      // If the user picks live voices but isn't logged in, redirect to auth.
-      if (useLive && !this.data.account?.token) {
-        globalThis.open(authLoginUrl, "_blank")?.focus();
-        // Reset the popover back to standard since auth hasn't happened yet.
-        if (this.voicePopover) {
-          this.voicePopover.activeVoice = "standard";
-        }
+      if (this.data.useLivelyVoice === useLive) {
+        queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
         return;
       }
 
-      if (this.data.useLivelyVoice === useLive) return;
       this.data.useLivelyVoice = useLive;
       void votStorage.set("useLivelyVoice", useLive);
+      this.syncVoicePopoverState();
       this.events["select:voiceType"].dispatch(useLive);
+      queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
     });
 
     this.bindPrimaryAction(
@@ -701,35 +784,37 @@ export class OverlayView {
     });
 
     // #region [Events] VOT Button Dragging
-    // Pointer capture keeps drag updates routed to the button even when the
-    // pointer leaves the overlay bounds.
+    // `touch-action` is not inherited, so cover every segment that can become
+    // a drag handle. This keeps Pointer Events flowing instead of being
+    // cancelled by browser pan/zoom gestures.
     const touchAction = "none";
     this.votButton.container.style.touchAction = touchAction;
-    // `touch-action` is not inherited, so ensure child segments are also covered.
     this.votButton.translateButton.style.touchAction = touchAction;
+    this.votButton.dropdownArrow.style.touchAction = touchAction;
     this.votButton.subtitlesButton.style.touchAction = touchAction;
     this.votButton.pipButton.style.touchAction = touchAction;
     this.votButton.menuButton.style.touchAction = touchAction;
 
-    this.votButton.container.addEventListener("pointerdown", this.onDragStart, {
-      signal,
-    });
     this.votButton.container.addEventListener(
-      "pointermove",
-      this.onPointerMove,
-      {
-        signal,
-      },
+      "pointerdown",
+      this.onButtonDragPointerDown,
+      { signal },
     );
-    this.votButton.container.addEventListener("pointerup", this.onDragEnd, {
+    document.addEventListener("pointermove", this.onButtonDragPointerMove, {
       signal,
+      capture: true,
     });
-    this.votButton.container.addEventListener("pointercancel", this.onDragEnd, {
+    document.addEventListener("pointerup", this.onButtonDragPointerUp, {
       signal,
+      capture: true,
+    });
+    document.addEventListener("pointercancel", this.onButtonDragPointerCancel, {
+      signal,
+      capture: true,
     });
     this.votButton.container.addEventListener(
       "lostpointercapture",
-      this.onDragEnd,
+      this.onButtonDragPointerCancel,
       { signal },
     );
 
@@ -978,7 +1063,11 @@ export class OverlayView {
     return this;
   }
 
-  updateButtonLayout(position: Position, direction: Direction) {
+  updateButtonLayout(
+    position: Position,
+    direction: Direction,
+    options: { keepVoicePopover?: boolean } = {},
+  ) {
     if (!this.isInitialized()) {
       return this;
     }
@@ -991,10 +1080,13 @@ export class OverlayView {
 
     this.votButtonTooltip.setPosition(this.votButton.tooltipPos);
     this.subtitlesButtonTooltip.setPosition(this.votButton.tooltipPos);
+    this.voiceMenuButtonTooltip.setPosition(this.votButton.tooltipPos);
+    this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
 
-    if (this.voicePopover?.isOpen) {
+    if (!options.keepVoicePopover && this.voicePopover?.isOpen) {
       this.voicePopover.hideNow();
-      this.votButton.dropdownArrow.setAttribute("aria-expanded", "false");
+      this.voiceMenuButtonTooltip?.dismissImmediate();
+      this.votButton.setVoiceMenuOpen(false);
     }
 
     this.syncTranslateButtonTooltip();
@@ -1005,172 +1097,430 @@ export class OverlayView {
   /** Sync the voice popover's active state with the current data. */
   syncVoicePopoverState(): this {
     if (!this.isInitialized()) return this;
-    this.voicePopover.activeVoice = this.data.useLivelyVoice
-      ? "live"
-      : "standard";
+    const activeVoice =
+      this.data.useLivelyVoice === false ? "standard" : "live";
+    this.voicePopover.activeVoice = activeVoice;
+    this.votButton.container.dataset.voiceType = activeVoice;
     return this;
   }
 
-  moveButton(percentX: number) {
+  syncSubtitlesButtonState(isActive?: boolean): this {
+    if (!this.isInitialized()) return this;
+
+    const active =
+      isActive ??
+      Array.from(this.subtitlesSelect?.selectedValues ?? []).some(
+        (value) => value !== "disabled",
+      );
+    this.votButton.subtitlesActive = active;
+    return this;
+  }
+
+  private getOverlayRootElement(): HTMLElement | ShadowRoot {
+    return this.tooltipParentElement;
+  }
+
+  private shouldSuppressPointerAction(): boolean {
+    return (
+      Boolean(this.dragState?.active) ||
+      Date.now() - this.lastButtonDragEndAt < this.dragActionSuppressMs
+    );
+  }
+
+  private closeFloatingButtonUI(): void {
+    if (!this.isInitialized()) return;
+    this.votMenu.hidden = true;
+    this.votButton.menuButton.setAttribute("aria-expanded", "false");
+    this.voicePopover?.hideNow();
+    this.voiceMenuButtonTooltip?.dismissImmediate();
+    this.votButton.setVoiceMenuOpen(false);
+  }
+
+  private isElementHovered(element: HTMLElement | null | undefined): boolean {
+    if (!element?.isConnected) return false;
+
+    try {
+      return element.matches(":hover");
+    } catch {
+      return false;
+    }
+  }
+
+  private getFloatingInteractionTargets(): HTMLElement[] {
+    if (!this.isInitialized()) return [];
+
+    return [
+      this.votButton.container,
+      this.votMenu.container,
+      this.voicePopover.container,
+    ].filter((element) => element.isConnected);
+  }
+
+  private isKeyboardFocusWithinFloatingUI(): boolean {
+    if (
+      typeof document === "undefined" ||
+      typeof document.hasFocus !== "function" ||
+      !document.hasFocus() ||
+      !document.documentElement.classList.contains("vot-keyboard-nav")
+    ) {
+      return false;
+    }
+
+    const active = getDeepActiveElement(document);
+    if (!(active instanceof Node)) return false;
+
+    return this.getFloatingInteractionTargets().some((target) =>
+      containsCrossShadow(target, active),
+    );
+  }
+
+  shouldKeepVisibleForInteraction(): boolean {
+    if (!this.isInitialized()) return false;
+
+    const hoverActive =
+      !isTouchFirstInput() &&
+      this.getFloatingInteractionTargets().some((target) =>
+        this.isElementHovered(target),
+      );
+
+    return (
+      this.hasOpenFloatingButtonUI() ||
+      hoverActive ||
+      this.isKeyboardFocusWithinFloatingUI()
+    );
+  }
+
+  private blurPointerFocusInsideButton(): void {
+    if (!this.isInitialized()) return;
+    if (document.documentElement.classList.contains("vot-keyboard-nav")) return;
+
+    const active = getDeepActiveElement(document);
+    if (
+      active instanceof HTMLElement &&
+      containsCrossShadow(this.votButton.container, active)
+    ) {
+      active.blur();
+    }
+  }
+
+  private hasOpenFloatingButtonUI(): boolean {
+    if (!this.isInitialized()) return false;
+    return !this.votMenu.hidden || Boolean(this.voicePopover?.isOpen);
+  }
+
+  private queueButtonAutoHideAfterInteraction(): void {
+    if (!this.isInitialized()) return;
+
+    if (this.shouldKeepVisibleForInteraction()) {
+      this.videoHandler?.overlayVisibility?.cancel?.();
+      return;
+    }
+
+    this.blurPointerFocusInsideButton();
+
+    if (this.shouldKeepVisibleForInteraction()) {
+      this.videoHandler?.overlayVisibility?.cancel?.();
+      return;
+    }
+
+    this.videoHandler?.overlayVisibility?.queueAutoHide?.();
+  }
+
+  private ensureDockPreview(): HTMLElement | null {
     if (!this.isInitialized()) {
-      return this;
+      return null;
     }
 
-    const isBigContainer = this.dragIsBigContainer ?? this.isBigContainer;
-    const position = VOTButton.calcPosition(percentX, isBigContainer);
-    if (position === this.votButton.position) {
-      return this;
+    if (this.dockPreview?.isConnected) {
+      return this.dockPreview;
     }
 
-    const direction = VOTButton.calcDirection(position);
-    this.data.buttonPos = position;
-    this.updateButtonLayout(position, direction);
+    const preview = this.votButton.container.cloneNode(true) as HTMLElement;
+    preview.classList.add("vot-segmented-button--dock-preview");
+    preview.classList.remove(
+      "vot-segmented-button--dragging",
+      "vot-segmented-button--hidden",
+    );
+    preview.removeAttribute("id");
+    preview.removeAttribute("aria-grabbed");
+    preview.setAttribute("aria-hidden", "true");
+    preview.querySelectorAll<HTMLElement>("[tabindex]").forEach((element) => {
+      element.tabIndex = -1;
+    });
 
-    return this;
+    this.root.appendChild(preview);
+    this.dockPreview = preview;
+    return preview;
   }
 
-  private startDragSession(
-    clientX: number,
-    clientY: number,
-    activitySource: string,
-  ): void {
-    this.dragCandidate = true;
-    this.dragging = false;
-    this.dragStartX = clientX;
-    this.dragStartY = clientY;
-    this.currentClientX = clientX;
-
-    const rootEl = this.root instanceof ShadowRoot ? this.root.host : this.root;
-    this.containerRect = rootEl.getBoundingClientRect();
-    this.dragIsBigContainer = this.isBigContainer;
-    this.dragDirty = false;
-    this.intervalIdleChecker.markActivity(activitySource);
-    this.intervalIdleChecker.requestImmediateTick();
+  private removeDockPreview(): void {
+    this.dockPreview?.remove();
+    this.dockPreview = null;
   }
 
-  private queueDragTick(activitySource: string): void {
-    if (this.dragDirty) {
-      return;
-    }
+  private syncDockPreview(position: Position, direction: Direction): void {
+    const preview = this.ensureDockPreview();
+    if (!preview) return;
 
-    this.dragDirty = true;
-    this.intervalIdleChecker.markActivity(activitySource);
-    this.intervalIdleChecker.requestImmediateTick();
-  }
-
-  private updateDragFromMove(
-    clientX: number,
-    clientY: number,
-    activitySource: string,
-  ): void {
-    this.currentClientX = clientX;
-
-    if (!this.dragCandidate) return;
-
-    if (!this.dragging) {
-      const dx = Math.abs(this.currentClientX - this.dragStartX);
-      const dy = Math.abs(clientY - this.dragStartY);
-      if (dx + dy >= this.dragThresholdPx) {
-        this.dragging = true;
-      }
-    }
-
-    if (!this.dragging) {
-      return;
-    }
-
-    this.queueDragTick(activitySource);
-  }
-
-  onDragStart = (event: PointerEvent) => {
-    // Only start drag on the primary pointer and the "primary" button.
-    if (!event.isPrimary || event.button !== 0) return;
-
-    event.preventDefault();
-    this.activePointerId = event.pointerId;
-
-    this.startDragSession(event.clientX, event.clientY, "overlay-pointer-down");
-  };
-
-  onPointerMove = (event: PointerEvent) => {
-    if (this.activePointerId !== event.pointerId) {
-      return;
-    }
-
-    const wasDragging = this.dragging;
-
-    this.updateDragFromMove(
-      event.clientX,
-      event.clientY,
-      "overlay-pointer-move",
+    preview.dataset.position = position;
+    preview.dataset.direction = direction;
+    preview.dataset.status = this.votButton.status;
+    preview.dataset.loading = this.votButton.loading.toString();
+    preview.dataset.dragTarget = "true";
+    preview.classList.toggle(
+      "vot-segmented-button--dock-preview-side",
+      direction === "column",
     );
 
-    if (!wasDragging && this.dragging) {
+    preview
+      .querySelectorAll<HTMLElement>("[aria-expanded]")
+      .forEach((element) => {
+        element.setAttribute("aria-expanded", "false");
+      });
+
+    const arrow = preview.querySelector<HTMLElement>(".vot-dropdown-arrow");
+    if (arrow) {
+      arrow.hidden = direction === "column";
+      arrow.setAttribute("aria-hidden", (direction === "column").toString());
+    }
+  }
+
+  private updateDraggingButtonPosition(): void {
+    const state = this.dragState;
+    if (!this.isInitialized() || !state?.active) return;
+
+    const rootRect = this.getOverlayRootElement().getBoundingClientRect();
+    state.rootRect = rootRect;
+
+    const buttonRect = this.votButton.container.getBoundingClientRect();
+    const maxLeft = Math.max(0, rootRect.width - buttonRect.width);
+    const maxTop = Math.max(0, rootRect.height - buttonRect.height);
+    const nextLeft = Math.max(
+      0,
+      Math.min(state.clientX - rootRect.left - buttonRect.width / 2, maxLeft),
+    );
+    const nextTop = Math.max(
+      0,
+      Math.min(state.clientY - rootRect.top - buttonRect.height / 2, maxTop),
+    );
+
+    this.votButton.container.style.setProperty(
+      "--vot-button-drag-left",
+      `${nextLeft}px`,
+    );
+    this.votButton.container.style.setProperty(
+      "--vot-button-drag-top",
+      `${nextTop}px`,
+    );
+  }
+
+  private startActiveButtonDrag(): void {
+    if (!this.isInitialized() || !this.dragState?.active) return;
+
+    this.closeFloatingButtonUI();
+    this.updateDraggingButtonPosition();
+    this.votButton.container.classList.add("vot-segmented-button--dragging");
+    this.votButton.container.dataset.dragging = "true";
+    this.votButton.container.setAttribute("aria-grabbed", "true");
+    this.updateDragTarget(
+      resolveButtonPositionFromPointer(
+        this.dragState.clientX,
+        this.dragState.clientY,
+        this.dragState.rootRect,
+        this.isBigContainer,
+      ),
+    );
+  }
+
+  private updateDragTarget(position: Position): void {
+    if (!this.isInitialized() || !this.dragState) return;
+
+    const { position: layoutPosition, direction } = resolveButtonLayout(
+      this.isBigContainer,
+      position,
+    );
+
+    if (this.dragState.targetPosition !== layoutPosition) {
+      this.dragState.targetPosition = layoutPosition;
+    }
+
+    this.syncDockPreview(layoutPosition, direction);
+  }
+
+  private applyButtonDragFrame(): void {
+    const state = this.dragState;
+    if (!this.isInitialized() || !state?.active) {
+      return;
+    }
+
+    state.frameId = null;
+    this.updateDraggingButtonPosition();
+
+    const nextPosition = resolveButtonPositionFromPointer(
+      state.clientX,
+      state.clientY,
+      state.rootRect,
+      this.isBigContainer,
+    );
+    this.updateDragTarget(nextPosition);
+  }
+
+  private requestButtonDragFrame(): void {
+    const state = this.dragState;
+    if (!state?.active || state.frameId !== null) {
+      return;
+    }
+
+    state.frameId = requestAnimationFrame(() => this.applyButtonDragFrame());
+  }
+
+  private finishButtonDrag(commit: boolean): void {
+    const state = this.dragState;
+    if (!state) {
+      return;
+    }
+
+    if (state.frameId !== null) {
+      cancelAnimationFrame(state.frameId);
+      state.frameId = null;
+    }
+
+    const pointerId = state.pointerId;
+    const wasActive = state.active;
+    const shouldCommit = commit && wasActive && this.isInitialized();
+    const targetPosition = shouldCommit
+      ? state.targetPosition
+      : state.initialPosition;
+
+    if (wasActive) {
+      this.lastButtonDragEndAt = Date.now();
+    }
+
+    this.dragState = null;
+
+    try {
+      if (this.votButton?.container.hasPointerCapture(pointerId)) {
+        this.votButton.container.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // Ignore pointer-capture races during teardown.
+    }
+
+    if (this.isInitialized()) {
+      this.votButton.container.classList.remove(
+        "vot-segmented-button--dragging",
+      );
+      delete this.votButton.container.dataset.dragging;
+      this.votButton.container.style.removeProperty("--vot-button-drag-left");
+      this.votButton.container.style.removeProperty("--vot-button-drag-top");
+      this.votButton.container.removeAttribute("aria-grabbed");
+      this.removeDockPreview();
+
+      if (wasActive) {
+        const { position, direction } = this.calcButtonLayout(targetPosition);
+        this.updateButtonLayout(position, direction);
+
+        if (shouldCommit) {
+          this.data.buttonPos = targetPosition;
+          void votStorage.set("buttonPos", targetPosition);
+        }
+
+        this.queueButtonAutoHideAfterInteraction();
+      }
+    } else {
+      this.removeDockPreview();
+    }
+  }
+
+  private beginButtonDragCandidate(event: PointerEvent): void {
+    if (!this.isInitialized()) return;
+
+    const rootRect = this.getOverlayRootElement().getBoundingClientRect();
+    const initialPosition = normalizeButtonPosition(
+      this.data.buttonPos ?? this.votButton.position,
+    );
+    this.dragState = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      rootRect,
+      active: false,
+      initialPosition,
+      targetPosition: initialPosition,
+      frameId: null,
+    };
+
+    this.intervalIdleChecker.markActivity("overlay-button-drag-start");
+  }
+
+  onButtonDragPointerDown = (event: PointerEvent) => {
+    if (!event.isPrimary || event.button !== 0 || this.dragState) return;
+
+    this.beginButtonDragCandidate(event);
+  };
+
+  onButtonDragPointerMove = (event: PointerEvent) => {
+    const state = this.dragState;
+    if (state?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    state.clientX = event.clientX;
+    state.clientY = event.clientY;
+
+    if (!state.active) {
+      const moved = Math.hypot(
+        event.clientX - state.startClientX,
+        event.clientY - state.startClientY,
+      );
+      if (moved < this.dragThresholdPx) {
+        return;
+      }
+
+      state.active = true;
       try {
         this.votButton?.container.setPointerCapture(event.pointerId);
       } catch {
-        // ignore; drag still works via regular pointer events
+        // Drag still works without capture while the pointer stays over the UI.
       }
+      this.startActiveButtonDrag();
     }
 
-    if (this.dragging) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.intervalIdleChecker.markActivity("overlay-button-drag-move");
+    this.requestButtonDragFrame();
+  };
+
+  onButtonDragPointerUp = (event: PointerEvent) => {
+    const state = this.dragState;
+    if (state?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    state.clientX = event.clientX;
+    state.clientY = event.clientY;
+    if (state.active) {
       event.preventDefault();
+      event.stopImmediatePropagation();
+      this.applyButtonDragFrame();
     }
+    this.finishButtonDrag(true);
   };
 
-  private readonly applyDragFromState = () => {
-    if (!this.dragging || !this.dragDirty || !this.containerRect) return;
-
-    const width = this.containerRect.width;
-    if (!(width > 0 && Number.isFinite(width))) {
+  onButtonDragPointerCancel = (event: PointerEvent) => {
+    const state = this.dragState;
+    if (state?.pointerId !== event.pointerId) {
       return;
     }
 
-    this.dragDirty = false;
-    const x = this.currentClientX - this.containerRect.left;
-    const clampedX = Math.max(0, Math.min(x, width));
-    const percentX = (clampedX / width) * 100;
-
-    this.moveButton(percentX);
-  };
-
-  private readonly onCheckerTick = () => {
-    this.applyDragFromState();
-  };
-
-  onDragEnd = (event?: PointerEvent) => {
-    if (
-      event &&
-      this.activePointerId !== null &&
-      event.pointerId !== this.activePointerId
-    ) {
-      return;
+    if (state.active) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
     }
-
-    const pointerId = this.activePointerId;
-    if (pointerId !== null) {
-      try {
-        if (this.votButton?.container.hasPointerCapture(pointerId)) {
-          this.votButton.container.releasePointerCapture(pointerId);
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    this.applyDragFromState();
-
-    const isBigContainer = this.dragIsBigContainer ?? this.isBigContainer;
-    if (this.dragging && isBigContainer && this.data.buttonPos) {
-      void votStorage.set("buttonPos", this.data.buttonPos);
-    }
-
-    this.dragging = false;
-    this.dragCandidate = false;
-    this.dragDirty = false;
-    this.containerRect = null;
-    this.dragIsBigContainer = null;
-    this.activePointerId = null;
+    this.finishButtonDrag(false);
   };
 
   updateButtonOpacity(opacity: number) {
@@ -1178,12 +1528,19 @@ export class OverlayView {
       return this;
     }
 
+    const nextOpacity =
+      opacity <= 0.01 && this.voicePopover?.isOpen && hasTouchScreen()
+        ? 1
+        : opacity;
+
     // Avoid redundant style writes on high-frequency interaction events.
-    if (Math.abs(this.votButton.opacity - opacity) > 0.01) {
-      this.votButton.opacity = opacity;
+    if (Math.abs(this.votButton.opacity - nextOpacity) > 0.01) {
+      this.votButton.opacity = nextOpacity;
       // If the button is fading out, immediately close the voice popover so it
-      // doesn't float in the void after the anchor disappears.
-      if (opacity <= 0.01) {
+      // doesn't float in the void after the anchor disappears. Touch screens
+      // keep the button visible while the popover is open because there is no
+      // stable hover state to keep the overlay alive.
+      if (nextOpacity <= 0.01) {
         this.voicePopover?.hideNow();
       }
     }
@@ -1195,6 +1552,7 @@ export class OverlayView {
     this.votMenu?.remove();
     this.votButtonTooltip?.release();
     this.subtitlesButtonTooltip?.release();
+    this.voiceMenuButtonTooltip?.release();
     this.voicePopover?.release();
 
     if (this.resizeObserver) {
@@ -1211,10 +1569,8 @@ export class OverlayView {
   private doReleaseUIEvents(): void {
     this.abortController?.abort();
     this.abortController = null;
-    this.checkerUnsubscribe?.();
-    this.checkerUnsubscribe = null;
 
-    this.onDragEnd();
+    this.finishButtonDrag(false);
     this.flushDefaultVolumePersist();
 
     for (const event of Object.values(this.events)) {
@@ -1295,20 +1651,23 @@ export class OverlayView {
       return;
     }
 
-    const currentPosition = this.votButton.position;
-    const newPosition = isBigContainer ? currentPosition : "default";
+    const preferredPosition = normalizeButtonPosition(
+      this.data.buttonPos ?? this.votButton.position,
+    );
+    const { position, direction } = resolveButtonLayout(
+      isBigContainer,
+      preferredPosition,
+    );
 
-    if (currentPosition !== newPosition) {
-      const direction = VOTButton.calcDirection(newPosition);
-      this.updateButtonLayout(newPosition, direction);
+    if (
+      position !== this.votButton.position ||
+      direction !== this.votButton.direction
+    ) {
+      this.updateButtonLayout(position, direction);
     }
   }
 
   get pipButtonVisible() {
     return isPiPAvailable() && !!this.data.showPiPButton;
   }
-}
-
-function isSidePosition(position: Position): position is "left" | "right" {
-  return position === "left" || position === "right";
 }

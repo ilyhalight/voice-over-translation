@@ -33,6 +33,7 @@ import type { OverlayMount } from "./types/uiManager";
 import { UIManager } from "./ui/manager";
 import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
+import { hasValidAccountToken } from "./utils/account";
 import debug from "./utils/debug";
 import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
 import { FullscreenHelper } from "./utils/fullscreenHelper";
@@ -110,7 +111,7 @@ import type { VideoData } from "./videoHandler/shared";
 // and are re-exported from src/videoHandler/shared.ts.
 export { getEnvironmentInfo } from "./utils/environment";
 export type { VideoData } from "./videoHandler/shared";
-export { countryCode } from "./videoHandler/shared";
+export { getCountryCode } from "./videoHandler/shared";
 
 const RESOLVED_VOID_PROMISE: Promise<void> = Promise.resolve();
 const TRANSLATION_LOADING_MESSAGES = new Set([
@@ -119,6 +120,15 @@ const TRANSLATION_LOADING_MESSAGES = new Set([
   "Ожидаем перевод видео",
   "Загружаем переведенное аудио",
 ]);
+
+export type UpdateTranslationErrorMsgOptions = {
+  /**
+   * Only fresh server responses should increment the long-wait counter.
+   * Local countdown ticks reuse the last ETA and must not be treated as new
+   * backend confirmations.
+   */
+  countLongWait?: boolean;
+};
 
 type InternalVideoVolumeSetHistoryEntry = {
   at: number;
@@ -391,7 +401,7 @@ export class VideoHandler {
     detectedLanguage: string,
     subtitleLanguage: string,
   ): string {
-    return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${Boolean(this.data?.useLivelyVoice)}`;
+    return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${this.data?.useLivelyVoice !== false}`;
   }
 
   getPreferredSubtitlesLanguage(
@@ -623,13 +633,7 @@ export class VideoHandler {
    * @returns {HTMLElement} The event container.
    */
   getEventContainer() {
-    if (!this.site.eventSelector) {
-      const { width: cW, height: cH } = this.container.getBoundingClientRect();
-      const { width: vW, height: vH } = this.video.getBoundingClientRect();
-
-      if (cW < vW || cH < vH) return this.video;
-      return this.container;
-    }
+    if (!this.site.eventSelector) return this.container;
     return (
       (document.querySelector(this.site.eventSelector) as HTMLElement | null) ??
       this.container
@@ -746,12 +750,12 @@ export class VideoHandler {
    */
   async initVOTClient() {
     const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
-    const transportHost =
-      this.data?.translateProxyEnabled === 1
-        ? proxyWorkerHostMode1
-        : proxyClientEnabled
-          ? resolveProxyWorkerHost(this.data?.proxyWorkerHost)
-          : workerHost;
+    let transportHost = workerHost;
+    if (this.data?.translateProxyEnabled === 1) {
+      transportHost = proxyWorkerHostMode1;
+    } else if (proxyClientEnabled) {
+      transportHost = resolveProxyWorkerHost(this.data?.proxyWorkerHost);
+    }
     this.votOpts = {
       fetchFn: GM_fetch,
       fetchOpts: {
@@ -763,7 +767,9 @@ export class VideoHandler {
           gmXhrSupported: isSupportGMXhr,
         }),
       },
-      apiToken: this.data?.account?.token,
+      apiToken: hasValidAccountToken(this.data?.account)
+        ? this.data?.account?.token
+        : undefined,
       hostVOT: votBackendUrl,
       host: transportHost,
     };
@@ -920,11 +926,7 @@ export class VideoHandler {
     requestLang: RequestLang,
     responseLang: ResponseLang,
   ): RequestLang {
-    if (
-      this.data?.useLivelyVoice &&
-      this.data?.account?.token &&
-      responseLang === "ru"
-    ) {
+    if (this.data?.useLivelyVoice && responseLang === "ru") {
       // Keep menu selection intact, but force English in API requests
       // when lively voices are enabled.
       return "en";
@@ -943,11 +945,6 @@ export class VideoHandler {
     );
     // allowed only en -> ru pair
     if (requestLangForApi !== "en" || responseLang !== "ru") {
-      return false;
-    }
-
-    // allowed only with auth
-    if (!this.data?.account?.token) {
       return false;
     }
 
@@ -1183,6 +1180,7 @@ export class VideoHandler {
       this.downloadTranslation = null;
       this.longWaitingResCount = 0;
       this.hadAsyncWait = false;
+      this.translationHandler?.stopTranslationEtaCountdown();
       this.transformBtn("none", localizationProvider.get("translateVideo"));
       debug.log(`Volume on start: ${this.volumeOnStart}`);
 
@@ -1225,19 +1223,22 @@ export class VideoHandler {
   async updateTranslationErrorMsg(
     errorMessage: any,
     signal?: AbortSignal,
+    options: UpdateTranslationErrorMsgOptions = {},
   ): Promise<void> {
     if (signal?.aborted) {
       return;
     }
     const translationTake = localizationProvider.get("translationTake");
     const lang = localizationProvider.lang;
-    this.longWaitingResCount =
-      errorMessage === localizationProvider.get("translationTakeAboutMinute")
-        ? this.longWaitingResCount + 1
-        : 0;
-    debug.log("longWaitingResCount", this.longWaitingResCount);
-    if (this.longWaitingResCount > minLongWaitingCount) {
-      errorMessage = new VOTLocalizedError("TranslationDelayed");
+    if (options.countLongWait !== false) {
+      this.longWaitingResCount =
+        errorMessage === localizationProvider.get("translationTakeAboutMinute")
+          ? this.longWaitingResCount + 1
+          : 0;
+      debug.log("longWaitingResCount", this.longWaitingResCount);
+      if (this.longWaitingResCount > minLongWaitingCount) {
+        errorMessage = new VOTLocalizedError("TranslationDelayed");
+      }
     }
     debug.log("updateTranslationErrorMsg message", errorMessage);
     const resolvedMessage = await this.resolveTranslationErrorDisplayMessage(
@@ -1717,4 +1718,46 @@ export function bootstrapContentScript(): Promise<void> {
   return bootState.promise;
 }
 
-void bootstrapContentScript();
+/**
+ * In CRXJS builds the prelude (MAIN world) and content scripts are loaded
+ * as separate async modules.  The prelude installs GM_* / GM.* polyfills
+ * **synchronously** at its module evaluation time, but because both
+ * modules are loaded via independent `await import()` calls there is no
+ * guarantee that the prelude module has finished evaluating before this
+ * content module starts.
+ *
+ * We poll for the readiness flag that `prelude.ts` sets synchronously
+ * after installing its polyfills.  A hard 3 s timeout prevents a
+ * deadlock if the prelude is missing or fails to load.
+ */
+async function waitForPreludeReady(): Promise<void> {
+  // Fast path — already ready (common when prelude evaluates first).
+  if ((globalThis as Record<string, unknown>).__VOT_PRELUDE_READY__) {
+    return;
+  }
+
+  const deadline = Date.now() + 3_000;
+  return new Promise<void>((resolve) => {
+    const poll = () => {
+      if (
+        (globalThis as Record<string, unknown>).__VOT_PRELUDE_READY__ ||
+        Date.now() > deadline
+      ) {
+        resolve();
+        return;
+      }
+      setTimeout(poll, 10);
+    };
+    poll();
+  });
+}
+
+// In CRXJS builds, wait for prelude polyfills before bootstrapping.
+// In non-CRXJS (Firefox) builds the prelude is injected inline by the
+// bridge so polyfills are already available — skip the wait.
+const isCrxjsBuild = typeof __CRXJS_BUILD__ !== "undefined" && __CRXJS_BUILD__;
+
+if (isCrxjsBuild) {
+  await waitForPreludeReady();
+}
+await bootstrapContentScript();

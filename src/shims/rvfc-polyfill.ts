@@ -28,9 +28,9 @@ type VideoWithLegacyQuality = HTMLVideoElement & {
 };
 
 const VidProto =
-  typeof HTMLVideoElement !== "undefined"
-    ? HTMLVideoElement.prototype
-    : ({} as Partial<HTMLVideoElement>);
+  typeof HTMLVideoElement === "undefined"
+    ? ({} as Partial<HTMLVideoElement>)
+    : HTMLVideoElement.prototype;
 
 const hasQuality =
   "getVideoPlaybackQuality" in VidProto ||

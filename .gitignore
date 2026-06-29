@@ -1,5 +1,7 @@
 arch*.txt
 
+keys/
+
 dist/test-ui.user.js
 dist/*.txt
 dist/main.user.js

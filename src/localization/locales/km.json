@@ -220,7 +220,9 @@
     "left": "ឆ្វេង",
     "right": "ស្តាំ",
     "top": "កំពូល",
-    "default": "លំនាំដើម"
+    "default": "លំនាំដើម",
+    "leftCenter": "កណ្ដាលឆ្វេង",
+    "rightCenter": "កណ្ដាលខាងស្ដាំ"
   },
   "secs": "វិ.",
   "autoHideButtonDelay": "ពន្យារពេលមុនពេលលាក់ប៊ូតុងបកប្រែ",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "សំឡេងស្តង់ដារ",
   "VOTStandardVoicesSubtitle": "Voiceover ដែលមានល្បឿនលឿននិងមានគុណភាពខ្ពស់",
   "VOTLiveVoicesTitle": "សំឡេងផ្ទាល់",
-  "VOTLiveVoicesSubtitle": "ភាពស្រដៀងគ្នាអតិបរមា។ ដូចជាប្រសិនបើអ្នករាល់គ្នាដឹងរុស្ស៊ី"
+  "VOTLiveVoicesSubtitle": "ភាពស្រដៀងគ្នាអតិបរមា។ ដូចជាប្រសិនបើអ្នករាល់គ្នាដឹងរុស្ស៊ី",
+  "VOTYandexTokenExpired": "សម័យដែលបានផុតកំណត់. ចូលម្តងទៀត",
+  "VOTVoiceSelection": "ជ្រើស dubbing"
 }

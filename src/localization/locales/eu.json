@@ -220,7 +220,9 @@
     "left": "Ezkerrera",
     "right": "Ezta",
     "top": "Goian",
-    "default": "Lehenetsia"
+    "default": "Lehenetsia",
+    "leftCenter": "Ezkerrean zentratuta",
+    "rightCenter": "Eskuinera zentratuta"
   },
   "secs": "segundoak",
   "autoHideButtonDelay": "Atzerapena itzultzeko botoia ezkutatu aurretik",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "Ahots estandarrak",
   "VOTStandardVoicesSubtitle": "Ahots azkarra eta kalitate handikoa",
   "VOTLiveVoicesTitle": "Bizi ahotsak",
-  "VOTLiveVoicesSubtitle": "Antzekotasun handiena. Denek errusiera dakite"
+  "VOTLiveVoicesSubtitle": "Antzekotasun handiena. Denek errusiera dakite",
+  "VOTYandexTokenExpired": "Saioa amaitu da. Saioa hasi berriro",
+  "VOTVoiceSelection": "Aukeratu bikoizketa"
 }

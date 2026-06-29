@@ -10,7 +10,7 @@
   flex-wrap: wrap;
   &-label {
     max-width: 80%;
-    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 }
 

@@ -220,7 +220,9 @@
     "left": "Ձախ",
     "right": "Ճիշտ",
     "top": "Գագաթ",
-    "default": "Լռելյայն"
+    "default": "Լռելյայն",
+    "leftCenter": "Ձախ կենտրոնում",
+    "rightCenter": "Կենտրոն աջ կողմում"
   },
   "secs": "Սեկ",
   "autoHideButtonDelay": "Հետաձգեք թարգմանության կոճակը թաքցնելուց առաջ",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "Ստանդարտ ձայներ ստանդարտ ձայներ",
   "VOTStandardVoicesSubtitle": "Արագ և որակյալ ձայնային կատարում",
   "VOTLiveVoicesTitle": "Կենդանի ձայներ",
-  "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն"
+  "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն",
+  "VOTYandexTokenExpired": "Նիստը լրացավ: Կրկին մուտք գործեք համակարգ",
+  "VOTVoiceSelection": "Ընտրեք կրկնօրինակ"
 }

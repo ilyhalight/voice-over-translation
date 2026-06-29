@@ -351,7 +351,7 @@ export class VideoLifecycleController {
       const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
       this.host.subtitles = cachedSubtitles ?? [];
       this.host.subtitlesCacheKey =
-        cachedSubtitles !== undefined ? cacheKey : null;
+        cachedSubtitles === undefined ? null : cacheKey;
     } else {
       this.host.subtitles = [];
       this.host.subtitlesCacheKey = null;

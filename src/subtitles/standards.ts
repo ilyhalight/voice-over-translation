@@ -14,9 +14,9 @@ import { buildStyledDisplayModel } from "./displayModel";
 const BOM = "\uFEFF";
 const ASS_OVERRIDE_TAG_RE = /\{[^}]*\}/gu;
 const SRT_TIMING_RE =
-  /^\s*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*$/u;
+  /^[ \t]*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*-->[ \t]*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*$/u;
 const VTT_TIMING_RE =
-  /^(?<start>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})\s+-->\s+(?<end>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})(?<settings>(?:[ \t]+.+)?)$/u;
+  /^(?<start>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})[ \t]+-->[ \t]+(?<end>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})[ \t]*(?<settings>[^\n]*)$/u;
 
 type TimedCueDraft = {
   index: number;
@@ -220,9 +220,7 @@ const parseCueSettings = (
 };
 
 const extractVttVoice = (payload: string): string | undefined => {
-  const match =
-    /^\s*<v(?:\.[^ >]+)?(?:\s+([^>]*?))?>/iu.exec(payload) ??
-    /^\s*<v\s+([^>]*?)>/iu.exec(payload);
+  const match = /^[ \t]*<v(?:\.[^ >]+)?(?:[ \t]+([^>]*))?>/iu.exec(payload);
   const voice = match?.[1]?.trim();
   return voice ? voice : undefined;
 };
@@ -597,7 +595,7 @@ const resolveSerializedText = (
     return line.metadata?.rawText ?? line.text;
   }
   if (format === "ass") {
-    return line.text.replaceAll("\n", "\\N");
+    return line.text.replaceAll("\n", String.raw`\N`);
   }
   return line.text;
 };
@@ -859,7 +857,9 @@ const serializeAssDialogue = (line: SubtitleLine): string => {
   const ass = line.metadata?.ass;
   const endMs = getSubtitleLineEndMs(line);
   const rawText =
-    ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", "\\N");
+    ass?.rawText ??
+    line.metadata?.rawText ??
+    line.text.replaceAll("\n", String.raw`\N`);
   return [
     ass?.kind === "comment" ? "Comment" : "Dialogue",
     ": ",

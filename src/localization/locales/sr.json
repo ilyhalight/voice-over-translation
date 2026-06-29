@@ -220,7 +220,9 @@
     "left": "Лево",
     "right": "Тачно",
     "top": "Горњи",
-    "default": "Подразумевано"
+    "default": "Подразумевано",
+    "leftCenter": "Лево у центру",
+    "rightCenter": "Центар десно"
   },
   "secs": "сек",
   "autoHideButtonDelay": "Кашњење пре скривања дугмета за превод",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "Стандардни гласови стандардни гласови",
   "VOTStandardVoicesSubtitle": "Брзо и квалитетно гласање",
   "VOTLiveVoicesTitle": "Живи гласови",
-  "VOTLiveVoicesSubtitle": "Максимална сличност. Као да сви знају руски"
+  "VOTLiveVoicesSubtitle": "Максимална сличност. Као да сви знају руски",
+  "VOTYandexTokenExpired": "Сесија је истекла. Поново се пријавите",
+  "VOTVoiceSelection": "Изаберите дуб"
 }

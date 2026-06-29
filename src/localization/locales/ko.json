@@ -220,7 +220,9 @@
     "left": "왼쪽",
     "right": "오른쪽",
     "top": "상단",
-    "default": "기본값"
+    "default": "기본값",
+    "leftCenter": "왼쪽 가운데",
+    "rightCenter": "오른쪽 가운데"
   },
   "secs": "초",
   "autoHideButtonDelay": "번역 버튼을 숨기기 전에 지연",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "표준 음성표준 음성",
   "VOTStandardVoicesSubtitle": "빠르고 고품질의 보이스 오버",
   "VOTLiveVoicesTitle": "라이브 보이스",
-  "VOTLiveVoicesSubtitle": "최대 유사성. 모두가 러시아어를 알고있는 것처럼"
+  "VOTLiveVoicesSubtitle": "최대 유사성. 모두가 러시아어를 알고있는 것처럼",
+  "VOTYandexTokenExpired": "세션이 만료되었습니다. 다시 로그인",
+  "VOTVoiceSelection": "더빙 선택"
 }

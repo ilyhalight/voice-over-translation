@@ -1,4 +1,4 @@
-import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import type { VideoHandler } from "../../index";
@@ -20,9 +20,11 @@ import {
 import {
   normalizeTranslationHelp,
   notifyTranslationFailureIfNeeded,
-  requestAndApplyTranslation,
+  requestTranslationAudio,
   setTranslationCacheValue,
   type TranslationAudioResult,
+  updateTranslationIfFresh,
+  withStaleGuard,
 } from "./translationShared";
 import type {
   ActionContext,
@@ -33,7 +35,7 @@ async function resumePlayerAudioContextIfNeeded(
   handler: VideoHandler,
 ): Promise<"not-needed" | "resumed" | "timeout" | "failed"> {
   const ctx = handler.audioPlayer?.audioContext;
-  if (!ctx || ctx.state !== "suspended") return "not-needed";
+  if (ctx?.state !== "suspended") return "not-needed";
 
   const RESUME_TIMEOUT_MS = 1500;
 
@@ -159,21 +161,25 @@ async function requestApplyAndCacheTranslation(
     onBeforeCache?: (result: TranslationAudioResult) => Promise<void> | void;
   },
 ): Promise<TranslationAudioResult | null> {
-  const translateRes = await requestAndApplyTranslation({
-    requester: self.translationHandler,
-    request: {
-      videoData: options.videoData,
-      requestLang: options.requestLang,
-      responseLang: options.responseLang,
-      translationHelp: options.translationHelp,
-      useAudioDownload: Boolean(self.data?.useAudioDownload),
-      signal: self.actionsAbortController.signal,
-    },
-    actionContext: options.actionContext,
-    isActionStale: (ctx) => self.isActionStale(ctx),
-    updateTranslation: (url, ctx) => self.updateTranslation(url, ctx),
+  const translateRes = await requestTranslationAudio(self.translationHandler, {
+    videoData: options.videoData,
+    requestLang: options.requestLang,
+    responseLang: options.responseLang,
+    translationHelp: options.translationHelp,
+    useAudioDownload: Boolean(self.data?.useAudioDownload),
+    signal: self.actionsAbortController.signal,
   });
   if (!translateRes) return null;
+
+  const updated = await updateTranslationIfFresh({
+    url: translateRes.url,
+    actionContext: options.actionContext,
+    usedLivelyVoice: translateRes.usedLivelyVoice,
+    isActionStale: (ctx) => self.isActionStale(ctx),
+    updateTranslation: (url, ctx, usedLivelyVoice) =>
+      self.updateTranslation(url, ctx, usedLivelyVoice),
+  });
+  if (!updated) return null;
 
   if (options.onBeforeCache) {
     await options.onBeforeCache(translateRes);
@@ -347,10 +353,17 @@ async function applyTranslationSource(
   }
 }
 
+function getTranslationActiveVoiceLabel(usedLivelyVoice?: boolean): string {
+  return localizationProvider.get(
+    usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle",
+  );
+}
+
 export async function updateTranslation(
   this: VideoHandler,
   audioUrl: string,
   actionContext?: ActionContext,
+  usedLivelyVoice = this.data?.useLivelyVoice !== false,
 ): Promise<void> {
   await this.waitForPendingStopTranslate();
   if (this.isActionStale(actionContext)) return;
@@ -385,7 +398,7 @@ export async function updateTranslation(
 
   this.clearVolumeLinkState();
   this.setupAudioSettings();
-  this.transformBtn("success", localizationProvider.get("disableTranslate"));
+  this.transformBtn("success", getTranslationActiveVoiceLabel(usedLivelyVoice));
   this.afterUpdateTranslation(resolvedAudioUrl);
 }
 
@@ -567,11 +580,18 @@ export async function translateFunc(
     }
     const reqLang = requestLang as RequestLang;
     const resLang = responseLang as ResponseLang;
-    const applyTranslationUrl = async (url: string) =>
-      await this.updateTranslation(url, actionContext);
+    const applyTranslationUrl = async (
+      url: string,
+      usedLivelyVoice?: boolean,
+    ) => await this.updateTranslation(url, actionContext, usedLivelyVoice);
     const cachedEntry = this.cacheManager.getTranslation(cacheKey);
     if (cachedEntry?.url) {
-      await applyTranslationUrl(cachedEntry.url);
+      const applied = await withStaleGuard(
+        actionContext,
+        (ctx) => this.isActionStale(ctx),
+        () => applyTranslationUrl(cachedEntry.url, cachedEntry.useLivelyVoice),
+      );
+      if (!applied) return;
       debug.log("[translateFunc] Cached translation was received");
       return;
     }

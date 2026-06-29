@@ -26,7 +26,7 @@ type HtmlStyleFrame = {
   previousStyle: MutableInlineStyle;
 };
 
-const HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)([^>]*)>/iu;
+const HTML_TAG_RE = /^<[ \t]*(\/[ \t]*)?([a-z0-9]+)([^>]*)>/iu;
 const ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
 const LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
 const ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;
@@ -34,7 +34,7 @@ const GLUED_WORD_NUMBER_RE = /([\p{L}\p{M}]+)(\d+)|(\d+)([\p{L}\p{M}]+)/gu;
 const ASS_DIRECTIVE_RE = /\\[^\\]+/gu;
 const ASS_STYLE_TOGGLE_RE = /^\\([ibu])([01])$/u;
 const ASS_PRIMARY_COLOR_RE = /^\\(?:1?c|c)&H([0-9a-f]{6,8})&$/iu;
-const ASS_STYLE_RESET_RE = /^\\r(?:[^\\}]*)?$/u;
+const ASS_STYLE_RESET_RE = /^\\r[^\\}]*$/u;
 const COMPLEX_DISPLAY_CONTROL_RE = /[<{\\]/u;
 
 const cloneMutableInlineStyle = (
@@ -269,7 +269,7 @@ const applyHtmlTagStyle = (
   activeStyle: MutableInlineStyle,
   styleStack: HtmlStyleFrame[],
 ): void => {
-  const isClosing = htmlMatch[1] === "/";
+  const isClosing = htmlMatch[1] != null;
   const tagName = htmlMatch[2].toLowerCase();
   const attrsRaw = htmlMatch[3] ?? "";
 
@@ -328,12 +328,15 @@ const consumeDisplayControlToken = (
 ): number | null => {
   const remainder = rawText.slice(cursor);
 
-  if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
+  if (
+    remainder.startsWith(String.raw`\N`) ||
+    remainder.startsWith(String.raw`\n`)
+  ) {
     pushSegment(segments, "\n", activeStyle);
     return cursor + 2;
   }
 
-  if (remainder.startsWith("\\h")) {
+  if (remainder.startsWith(String.raw`\h`)) {
     pushSegment(segments, " ", activeStyle);
     return cursor + 2;
   }
@@ -384,8 +387,8 @@ const trimStyledDisplayResult = (
   styledSpans: SubtitleStyledSpan[];
 } => {
   const normalizedText = text.replaceAll("\u00A0", " ");
-  const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
-  const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
+  const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
+  const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
   const trimmedEnd = Math.max(
     leadingTrim,
     normalizedText.length - trailingTrim,
@@ -411,8 +414,8 @@ const trimStyledDisplayResult = (
 
 const trimPlainDisplayText = (text: string): string => {
   const normalizedText = text.replaceAll("\u00A0", " ");
-  const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
-  const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
+  const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
+  const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
   const trimmedEnd = Math.max(
     leadingTrim,
     normalizedText.length - trailingTrim,

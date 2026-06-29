@@ -220,7 +220,9 @@
     "left": "Зүүн",
     "right": "Зөв",
     "top": "Дээд",
-    "default": "Анхдагч"
+    "default": "Анхдагч",
+    "leftCenter": "Зүүн төвтэй",
+    "rightCenter": "Зөв төвтэй"
   },
   "secs": "секц",
   "autoHideButtonDelay": "Орчуулах товчийг нуухаасаа өмнө хойшлуул",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "Стандарт voicesStandard дуу хоолой",
   "VOTStandardVoicesSubtitle": "Хурдан, өндөр чанартай voiceover",
   "VOTLiveVoicesTitle": "Амьд дуу хоолой",
-  "VOTLiveVoicesSubtitle": "Хамгийн их төстэй. Хэрэв хүн бүр мэддэг орос"
+  "VOTLiveVoicesSubtitle": "Хамгийн их төстэй. Хэрэв хүн бүр мэддэг орос",
+  "VOTYandexTokenExpired": "Хуралдаан дууссан. Дахин нэвтрэх",
+  "VOTVoiceSelection": "Дубляж сонгох"
 }

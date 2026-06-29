@@ -1,6 +1,8 @@
 import type { VideoHandler } from "../index";
 import { localizationProvider } from "../localization/localizationProvider";
 import type { Status } from "../types/components/votButton";
+import { deleteExpiredAccount } from "../utils/account";
+import { openAuthWindow } from "../utils/authWindow";
 import debug from "../utils/debug";
 import { isAbortError } from "../utils/errors";
 import VOTLocalizedError from "../utils/VOTLocalizedError";
@@ -36,6 +38,22 @@ function shouldRefreshVideoDataBeforeTranslation(videoHandler: VideoHandler) {
   );
 }
 
+async function prepareAuthStateForTranslation(
+  videoHandler: VideoHandler,
+): Promise<void> {
+  // Missing account and expired session are different states. Live voices may be
+  // requested without an account, but an expired saved session should be shown to
+  // the user explicitly instead of falling through to a generic login-required
+  // backend response.
+  const expired = await deleteExpiredAccount(videoHandler);
+  if (!expired) {
+    return;
+  }
+
+  openAuthWindow();
+  throw new VOTLocalizedError("VOTYandexTokenExpired");
+}
+
 export async function handleTranslationButtonCommand(
   deps: TranslationButtonCommandDeps,
 ) {
@@ -63,6 +81,8 @@ export async function handleTranslationButtonCommand(
   }
 
   try {
+    await prepareAuthStateForTranslation(videoHandler);
+
     debug.log("[handleTranslationBtnClick] trying execute translation");
     const videoData = await getVideoDataForTranslation(videoHandler);
     await videoHandler.videoManager.ensureDetectedLanguageForTranslation(

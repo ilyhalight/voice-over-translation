@@ -8,7 +8,7 @@ import {
   storageKeys,
 } from "../types/storage";
 import debug from "./debug";
-import { isSupportGM4 } from "./gm";
+import { isGM4Supported } from "./gm";
 
 // Minimal "GM storage" value union. We intentionally keep this wide because
 // userscript managers store arbitrary JSON-like values.
@@ -269,15 +269,15 @@ class VOTStorage {
             GM_removeValueChangeListener?: unknown;
           }
         ).GM_removeValueChangeListener === "function",
-      promiseGet: isSupportGM4 && typeof gm?.getValue === "function",
-      promiseGetValues: isSupportGM4 && typeof gm?.getValues === "function",
-      promiseSet: isSupportGM4 && typeof gm?.setValue === "function",
-      promiseDelete: isSupportGM4 && typeof gm?.deleteValue === "function",
-      promiseList: isSupportGM4 && typeof gm?.listValues === "function",
+      promiseGet: isGM4Supported() && typeof gm?.getValue === "function",
+      promiseGetValues: isGM4Supported() && typeof gm?.getValues === "function",
+      promiseSet: isGM4Supported() && typeof gm?.setValue === "function",
+      promiseDelete: isGM4Supported() && typeof gm?.deleteValue === "function",
+      promiseList: isGM4Supported() && typeof gm?.listValues === "function",
       promiseAddValueChangeListener:
-        isSupportGM4 && typeof gm?.addValueChangeListener === "function",
+        isGM4Supported() && typeof gm?.addValueChangeListener === "function",
       promiseRemoveValueChangeListener:
-        isSupportGM4 && typeof gm?.removeValueChangeListener === "function",
+        isGM4Supported() && typeof gm?.removeValueChangeListener === "function",
     };
     this.support = support;
 

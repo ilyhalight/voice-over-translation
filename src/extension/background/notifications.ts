@@ -1,12 +1,13 @@
-import debug from "../utils/debug";
-import { asErrorMessage, sendBridgeResponse } from "./bridgeUtils";
+import debug from "../../utils/debug";
+import { BG_MSG_NOTIFICATION } from "../shared/constants";
+import { asErrorMessage, sendBridgeResponse } from "../shared/utils";
 import {
   ext,
   notificationsClear,
   notificationsCreate,
   tabsUpdate,
   windowsUpdate,
-} from "./webext";
+} from "../shared/webext";
 
 type GmNotificationSender = {
   tab?: {
@@ -23,18 +24,16 @@ type GmNotificationDetails = {
 };
 
 type GmNotificationMessage = {
-  type: "gm_notification";
+  type: string;
   details?: unknown;
 };
 
-export function isGmNotificationMessage(
-  msg: unknown,
-): msg is GmNotificationMessage {
+function isGmNotificationMessage(msg: unknown): msg is GmNotificationMessage {
   if (!msg || typeof msg !== "object") return false;
-  return (msg as { type?: unknown }).type === "gm_notification";
+  return (msg as { type?: unknown }).type === BG_MSG_NOTIFICATION;
 }
 
-export function normalizeGmNotificationDetails(
+function normalizeGmNotificationDetails(
   details: unknown,
 ): GmNotificationDetails {
   const raw =
@@ -44,16 +43,14 @@ export function normalizeGmNotificationDetails(
 
   const timeoutRaw = Number(raw.timeout ?? 0);
   return {
-    title: raw.title != null ? String(raw.title) : "",
-    text: raw.text != null ? String(raw.text) : "",
+    title: raw.title == null ? "" : String(raw.title),
+    text: raw.text == null ? "" : String(raw.text),
     silent: Boolean(raw.silent),
     timeout: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? timeoutRaw : 0,
   };
 }
 
-export function createBridgeNotificationId(
-  sender: GmNotificationSender,
-): string {
+function createBridgeNotificationId(sender: GmNotificationSender): string {
   const tabId = sender.tab?.id;
   const windowId = sender.tab?.windowId;
 
@@ -68,15 +65,15 @@ export function createBridgeNotificationId(
   return `vot:${safeTab}:${safeWin}:${nonce}`;
 }
 
-export function createBridgeNotificationOptions(
+function createBridgeNotificationOptions(
   details: GmNotificationDetails,
 ): Record<string, unknown> {
   const isFirefox =
     typeof (ext?.runtime as { getBrowserInfo?: unknown })?.getBrowserInfo ===
     "function";
   const iconUrl = ext?.runtime?.getURL
-    ? ext.runtime.getURL("icons/icon-128.png")
-    : "icons/icon-128.png";
+    ? ext.runtime.getURL("src/extension/icons/icon-128.png")
+    : "src/extension/icons/icon-128.png";
 
   const options: Record<string, unknown> = {
     type: "basic",

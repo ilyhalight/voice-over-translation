@@ -13,50 +13,24 @@ import type {
   DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
-import { NEVER_ABORTED_SIGNAL, throwIfAborted } from "../utils/abort";
+import {
+  createAbortableDelay,
+  createAbortableWaiter,
+  NEVER_ABORTED_SIGNAL,
+  throwIfAborted,
+} from "../utils/abort";
+import { deleteAccount, hasAccountToken } from "../utils/account";
+import { openAuthWindow } from "../utils/authWindow";
 import debug from "../utils/debug";
-import { getErrorMessage, isAbortError, makeAbortError } from "../utils/errors";
-import { formatTranslationEta } from "../utils/timeFormatting";
+import { getErrorMessage, isAbortError, safeNestedGet } from "../utils/errors";
 import VOTLocalizedError from "../utils/VOTLocalizedError";
 import { notifyTranslationFailureIfNeeded } from "../videoHandler/modules/translationShared";
-
-type VotClientErrorShape = {
-  name?: unknown;
-  message?: unknown;
-  data?: {
-    message?: unknown;
-  };
-};
-
-function asVotClientErrorShape(value: unknown): VotClientErrorShape | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const candidate = value as {
-    name?: unknown;
-    message?: unknown;
-    data?: unknown;
-  };
-  const data =
-    candidate.data && typeof candidate.data === "object"
-      ? (candidate.data as { message?: unknown })
-      : undefined;
-
-  return {
-    name: candidate.name,
-    message: candidate.message,
-    data,
-  };
-}
-
-function getServerErrorMessage(value: unknown): string | undefined {
-  const err = asVotClientErrorShape(value);
-  const message = err?.data?.message;
-  return typeof message === "string" && message.length > 0
-    ? message
-    : undefined;
-}
+import {
+  getTranslationAuthErrorKind,
+  getTranslationServerErrorMessage,
+  isTranslationAuthError,
+} from "./translationAuthError";
+import { TranslationEtaCountdown } from "./translationEtaCountdown";
 
 /**
  * Historically we used `patch-package` to make `@vot.js/core` throw
@@ -65,18 +39,38 @@ function getServerErrorMessage(value: unknown): string | undefined {
  * We now keep the dependency unpatched and instead map known error messages
  * coming from the VOT client to the corresponding localized UI errors.
  */
-function mapVotClientErrorForUi(error: unknown): unknown {
-  const err = asVotClientErrorShape(error);
-  if (!err) {
-    return error;
+function mapVotClientErrorForUi(
+  error: unknown,
+  hasProvidedAccountToken = false,
+): unknown {
+  const authErrorKind = getTranslationAuthErrorKind(error, {
+    hasAccountToken: hasProvidedAccountToken,
+  });
+  if (authErrorKind) {
+    return new VOTLocalizedError(
+      authErrorKind === "session-expired"
+        ? "VOTYandexTokenExpired"
+        : "VOTAccountRequired",
+    );
   }
-  if (err.name !== "VOTJSError") {
+
+  // Only VOT client errors (objects with name === "VOTJSError") need mapping.
+  if (!error || typeof error !== "object") {
     return error;
   }
 
-  const message = typeof err.message === "string" ? err.message : "";
+  const errName = safeNestedGet(error, ["name"]);
+  if (errName !== "VOTJSError") {
+    return error;
+  }
+
+  const message =
+    typeof safeNestedGet(error, ["message"]) === "string"
+      ? (safeNestedGet(error, ["message"]) as string)
+      : "";
+  const serverMessage = safeNestedGet(error, ["data", "message"]);
   const hasServerMessage =
-    typeof err.data?.message === "string" && err.data.message.length > 0;
+    typeof serverMessage === "string" && serverMessage.length > 0;
 
   // Keep server-provided messages when available.
   if (message === "Yandex couldn't translate video" && !hasServerMessage) {
@@ -97,52 +91,10 @@ function mapVotClientErrorForUi(error: unknown): unknown {
   return error;
 }
 
-type DownloadWaiter = {
-  resolve: () => void;
-  reject: (error: Error) => void;
-};
-
 type TranslateVideoImplOptions = {
   disableLivelyVoice?: boolean;
   retryAttempt?: number;
 };
-
-type TimeoutId = ReturnType<typeof setTimeout>;
-
-function waitForAbortableTimeout(
-  delayMs: number,
-  signal: AbortSignal,
-  onScheduled?: (timeoutId: TimeoutId) => void,
-): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    let timeoutId: TimeoutId | undefined;
-
-    const cleanup = () => {
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-        timeoutId = undefined;
-      }
-      signal.removeEventListener("abort", onAbort);
-    };
-
-    const onAbort = () => {
-      cleanup();
-      reject(makeAbortError());
-    };
-
-    signal.addEventListener("abort", onAbort, { once: true });
-    if (signal.aborted) {
-      onAbort();
-      return;
-    }
-
-    timeoutId = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, delayMs);
-    onScheduled?.(timeoutId);
-  });
-}
 
 function summarizeTranslationResponse(
   response: VideoTranslationResponse,
@@ -159,7 +111,11 @@ export class VOTTranslationHandler {
   readonly videoHandler: VideoHandler;
   readonly audioDownloader: AudioDownloader;
   downloading: boolean;
-  private readonly downloadWaiters = new Set<DownloadWaiter>();
+  private readonly downloadSettlers = new Set<{
+    resolve: () => void;
+    reject: (error: Error) => void;
+  }>();
+  private readonly etaCountdown: TranslationEtaCountdown;
 
   // Avoid spamming the fail-audio-js fallback for the same video URL.
   // In normal operation we should upload audio from the direct ytAudio path.
@@ -169,6 +125,10 @@ export class VOTTranslationHandler {
     this.videoHandler = videoHandler;
     this.audioDownloader = new AudioDownloader();
     this.downloading = false;
+    this.etaCountdown = new TranslationEtaCountdown(
+      (message, signal, options) =>
+        this.videoHandler.updateTranslationErrorMsg(message, signal, options),
+    );
 
     this.audioDownloader
       .addEventListener("downloadedAudio", this.onDownloadedAudio)
@@ -189,18 +149,22 @@ export class VOTTranslationHandler {
     const { videoId, fileId, audioData } = data;
     const videoUrl = this.getCanonicalUrl(videoId);
     try {
-      await this.videoHandler.votClient.requestVtransAudio(
-        videoUrl,
-        translationId,
-        {
-          audioFile: audioData,
-          fileId,
-        },
+      await this.retryAudioUpload(() =>
+        this.videoHandler.votClient.requestVtransAudio(
+          videoUrl,
+          translationId,
+          {
+            audioFile: audioData,
+            fileId,
+          },
+        ),
       );
     } catch (error) {
       debug.error("Failed to upload downloaded audio", error);
       this.finishDownloadFailure(
-        new Error("Audio downloader failed while uploading full audio"),
+        error instanceof Error
+          ? error
+          : new Error("Audio downloader failed while uploading full audio"),
       );
       return;
     }
@@ -220,18 +184,20 @@ export class VOTTranslationHandler {
     const { audioData, fileId, videoId, amount, version, index } = data;
     const videoUrl = this.getCanonicalUrl(videoId);
     try {
-      await this.videoHandler.votClient.requestVtransAudio(
-        videoUrl,
-        translationId,
-        {
-          audioFile: audioData,
-          chunkId: index,
-        },
-        {
-          audioPartsLength: amount,
-          fileId,
-          version,
-        },
+      await this.retryAudioUpload(() =>
+        this.videoHandler.votClient.requestVtransAudio(
+          videoUrl,
+          translationId,
+          {
+            audioFile: audioData,
+            chunkId: index,
+          },
+          {
+            audioPartsLength: amount,
+            fileId,
+            version,
+          },
+        ),
       );
     } catch (error) {
       debug.error("Failed to upload downloaded audio chunk", error);
@@ -300,6 +266,31 @@ export class VOTTranslationHandler {
     return `https://youtu.be/${videoId}`;
   }
 
+  private static readonly AUDIO_UPLOAD_MAX_RETRIES = 2;
+  private static readonly AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
+
+  private async retryAudioUpload<T>(fn: () => Promise<T>): Promise<T> {
+    const maxRetries = VOTTranslationHandler.AUDIO_UPLOAD_MAX_RETRIES;
+    const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        debug.log(
+          `[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+    throw lastError;
+  }
+
   // Cancellation helpers live in utils/abort.ts.
 
   /**
@@ -307,6 +298,10 @@ export class VOTTranslationHandler {
    * "Lively/Live voices" are unavailable (unsupported language pair).
    */
   private isLivelyVoiceUnavailableError(value: unknown): boolean {
+    if (isTranslationAuthError(value)) {
+      return false;
+    }
+
     const msg = getErrorMessage(value);
     return !!msg && msg.toLowerCase().includes("обычная озвучка");
   }
@@ -316,8 +311,10 @@ export class VOTTranslationHandler {
     delayMs: number,
     signal: AbortSignal,
   ): Promise<T> {
-    await waitForAbortableTimeout(delayMs, signal, (timeoutId) => {
-      this.videoHandler.autoRetry = timeoutId;
+    await createAbortableDelay(delayMs, signal, {
+      onScheduled: (timeoutId) => {
+        this.videoHandler.autoRetry = timeoutId;
+      },
     });
     return await fn();
   }
@@ -328,7 +325,7 @@ export class VOTTranslationHandler {
 
   private getRetryDelayMs(
     retryAttempt: number,
-    remainingTimeSeconds: number | null,
+    remainingTimeSeconds: number | null = 0,
   ): number {
     if (retryAttempt > 0) {
       return VOTTranslationHandler.RETRY_INTERVAL_MS;
@@ -344,6 +341,17 @@ export class VOTTranslationHandler {
     }
 
     return VOTTranslationHandler.LONG_WAIT_MS;
+  }
+
+  private async handleTranslationUiError(uiError: unknown): Promise<void> {
+    if (!(uiError instanceof VOTLocalizedError)) return;
+
+    if (uiError.unlocalizedMessage === "VOTYandexTokenExpired") {
+      await deleteAccount(this.videoHandler);
+      openAuthWindow();
+    } else if (uiError.unlocalizedMessage === "VOTAccountRequired") {
+      openAuthWindow();
+    }
   }
 
   async translateVideoImpl(
@@ -409,6 +417,17 @@ export class VOTTranslationHandler {
         throw new Error("Failed to get translation response");
       }
 
+      if (
+        isTranslationAuthError(res, {
+          hasAccountToken: hasAccountToken(this.videoHandler.data?.account),
+        })
+      ) {
+        throw mapVotClientErrorForUi(
+          res,
+          hasAccountToken(this.videoHandler.data?.account),
+        );
+      }
+
       debug.log("[Translation] translateVideoImpl response", {
         videoId: videoData.videoId,
         useLivelyVoice,
@@ -417,6 +436,7 @@ export class VOTTranslationHandler {
       throwIfAborted(signal);
 
       if (res.translated && res.remainingTime < 1) {
+        this.etaCountdown.stop();
         debug.log("[Translation] translation finished", {
           videoId: videoData.videoId,
           useLivelyVoice,
@@ -433,16 +453,14 @@ export class VOTTranslationHandler {
         ...summarizeTranslationResponse(res),
         message,
       });
-      await this.videoHandler.updateTranslationErrorMsg(
-        res.remainingTime > 0
-          ? formatTranslationEta(
-              res.remainingTime,
-              // The formatter expects a small set of keys; those keys exist in our phrase set.
-              (key) => localizationProvider.get(key),
-            )
-          : message,
-        signal,
-      );
+      if (res.remainingTime > 0) {
+        await this.etaCountdown.sync(res.remainingTime, signal, {
+          countLongWaitOnFirstRender: true,
+        });
+      } else {
+        this.etaCountdown.stop();
+        await this.videoHandler.updateTranslationErrorMsg(message, signal);
+      }
 
       if (
         res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
@@ -465,10 +483,9 @@ export class VOTTranslationHandler {
         debug.log("[Translation] waiting for audio download completion", {
           videoId: videoData.videoId,
           translationId: res.translationId,
-          timeoutMs: 15_000,
+          timeoutMs: 30_000,
         });
-        // 15000 is fetch timeout, so there's no point in waiting longer
-        await this.waitForAudioDownloadCompletion(signal, 15000);
+        await this.waitForAudioDownloadCompletion(signal, 30_000);
 
         // for get instant result on download end
         return await this.translateVideoImpl(
@@ -486,6 +503,7 @@ export class VOTTranslationHandler {
       }
     } catch (err) {
       if (isAbortError(err)) {
+        this.etaCountdown.stop();
         debug.log("[Translation] translation aborted", {
           videoId: videoData.videoId,
           retryAttempt,
@@ -493,7 +511,11 @@ export class VOTTranslationHandler {
         return null;
       }
 
-      const uiError = mapVotClientErrorForUi(err);
+      this.etaCountdown.stop();
+      const uiError = mapVotClientErrorForUi(
+        err,
+        hasAccountToken(this.videoHandler.data?.account),
+      );
       debug.error("[Translation] translation failed", {
         videoId: videoData.videoId,
         retryAttempt,
@@ -501,8 +523,10 @@ export class VOTTranslationHandler {
         mappedError: uiError,
       });
 
+      await this.handleTranslationUiError(uiError);
+
       await this.videoHandler.updateTranslationErrorMsg(
-        getServerErrorMessage(uiError) ?? uiError,
+        getTranslationServerErrorMessage(uiError) ?? uiError,
         signal,
       );
 
@@ -558,6 +582,10 @@ export class VOTTranslationHandler {
     );
   }
 
+  stopTranslationEtaCountdown(): void {
+    this.etaCountdown.stop();
+  }
+
   private async requestTranslationWithLivelyFallback({
     videoData,
     requestLangForApi,
@@ -582,7 +610,7 @@ export class VOTTranslationHandler {
     let useLivelyVoice =
       !livelyDisabled &&
       livelyVoiceAllowed &&
-      Boolean(this.videoHandler.data?.useLivelyVoice);
+      this.videoHandler.data?.useLivelyVoice !== false;
 
     debug.log("[Translation] requesting translation from VOT client", {
       videoId: videoData.videoId,
@@ -661,57 +689,23 @@ export class VOTTranslationHandler {
       return Promise.resolve();
     }
 
-    return new Promise<void>((resolve, reject) => {
-      let entry!: DownloadWaiter;
-
-      const onAbort = () => {
-        cleanup();
-        reject(makeAbortError());
-      };
-
-      const timeoutId = setTimeout(() => {
-        cleanup();
-        resolve();
-      }, timeoutMs);
-
-      const cleanup = () => {
-        clearTimeout(timeoutId);
-        signal.removeEventListener("abort", onAbort);
-        this.downloadWaiters.delete(entry);
-      };
-
-      entry = {
-        resolve: () => {
-          cleanup();
-          resolve();
-        },
-        reject: (error: Error) => {
-          cleanup();
-          reject(error);
-        },
-      };
-
-      this.downloadWaiters.add(entry);
-
-      signal.addEventListener("abort", onAbort, { once: true });
-      if (signal.aborted) {
-        onAbort();
-      }
-    });
+    const { promise, settle } = createAbortableWaiter(signal, timeoutMs);
+    this.downloadSettlers.add(settle);
+    return promise;
   }
 
   private settleDownloadWaiters(error?: Error) {
-    if (!this.downloadWaiters.size) {
+    if (!this.downloadSettlers.size) {
       return;
     }
 
-    const waiters = Array.from(this.downloadWaiters);
-    this.downloadWaiters.clear();
-    for (const waiter of waiters) {
+    const settlers = Array.from(this.downloadSettlers);
+    this.downloadSettlers.clear();
+    for (const settle of settlers) {
       if (error) {
-        waiter.reject(error);
+        settle.reject(error);
       } else {
-        waiter.resolve();
+        settle.resolve();
       }
     }
   }

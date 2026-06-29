@@ -47,11 +47,11 @@
     font-size: inherit !important;
     line-height: inherit !important;
     caret-color: var(--vot-helper-theme) !important;
-    transition:
-      border 0.2s,
-      box-shadow 0.2s !important;
+    transition: border 0.2s, box-shadow 0.2s !important;
 
-    &:not(:focus):not(:is(.vot-show-placeholder, .vot-show-placeholer))::placeholder {
+    &:not(:focus):not(
+        :is(.vot-show-placeholder, .vot-show-placeholer)
+      )::placeholder {
       color: transparent !important;
     }
 
@@ -73,10 +73,7 @@
       font-family: inherit;
       line-height: 15px !important;
       cursor: text !important;
-      transition:
-        color 0.2s,
-        font-size 0.2s,
-        line-height 0.2s !important;
+      transition: color 0.2s, font-size 0.2s, line-height 0.2s !important;
       pointer-events: none !important;
     }
 
@@ -100,9 +97,7 @@
       height: 8px !important;
       pointer-events: none !important;
       box-shadow: inset 0 1px transparent !important;
-      transition:
-        border 0.2s,
-        box-shadow 0.2s !important;
+      transition: border 0.2s, box-shadow 0.2s !important;
     }
 
     & + span::before {

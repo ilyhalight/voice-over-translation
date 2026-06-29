@@ -85,7 +85,7 @@ function bindOverlayHoverFocusEvents(
 ): void {
   const handleInteraction = (event: Event) =>
     overlayVisibility.handleOverlayInteraction(event);
-  const scheduleHide = (_event: Event) => overlayVisibility.scheduleHide();
+  const scheduleHide = (event: Event) => overlayVisibility.scheduleHide(event);
 
   if (isIframe() && globalThis.window !== undefined) {
     addMany(target, ["focusin"], handleInteraction);

@@ -148,6 +148,7 @@ function clearSelectedSubtitles(
     handler.subtitlesWidget?.setContent(null);
   }
   overlayView.downloadSubtitlesButton.hidden = true;
+  overlayView.syncSubtitlesButtonState(false);
   handler.yandexSubtitles = null;
   return handler;
 }
@@ -163,6 +164,7 @@ export async function changeSubtitlesLang(
     return this;
   }
   overlayView.subtitlesSelect.setSelectedValue(subs);
+  overlayView.syncSubtitlesButtonState(subs !== DISABLED_SUBTITLES_VALUE);
   if (subs === DISABLED_SUBTITLES_VALUE) {
     return clearSelectedSubtitles(this, overlayView);
   }
@@ -205,6 +207,7 @@ export async function changeSubtitlesLang(
     subtitlesObj.language,
   );
   overlayView.downloadSubtitlesButton.hidden = false;
+  overlayView.syncSubtitlesButtonState(true);
   return this;
 }
 

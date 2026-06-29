@@ -30,8 +30,8 @@ let sharedShadowStyleSheetReady = false;
 
 function scopeCssForShadowRoots(cssText: string): string {
   return cssText
-    .replace(/:root\b/g, ":host")
-    .replace(/html\.vot-keyboard-nav/g, ":host-context(.vot-keyboard-nav)")
+    .replaceAll(":root", ":host")
+    .replaceAll("html.vot-keyboard-nav", ":host-context(.vot-keyboard-nav)")
     .replace(/:fullscreen(?=\s|,)/g, ":host-context(:fullscreen)")
     .replace(
       /:-webkit-full-screen(?=\s|,)/g,

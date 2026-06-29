@@ -325,19 +325,20 @@ function buildWordSlicesFromBuffer(
 
   if (!slices.length && tokens.length) {
     const text = textBuffer.fullText;
+    const normalized = normalizeTokenText(text);
     slices.push({
       text,
       tokenIndex: 0,
       breakAfterTokenIndex: tokens.length - 1,
       startToken: 0,
       endToken: tokens.length,
-      charLength: collectKey ? normalizeTokenText(text).length : 0,
+      charLength: collectKey ? normalized.length : 0,
       startMs: collectKey ? getRangeStartMs(tokens, 0, tokens.length) : 0,
       endMs: collectKey ? getRangeEndMs(tokens, 0, tokens.length) : 0,
       boundary: resolveBoundary(text),
       forcesLineBreak: false,
     });
-    keyParts?.push(normalizeTokenText(text));
+    keyParts?.push(normalized);
   }
 
   return {

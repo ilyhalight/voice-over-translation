@@ -5,49 +5,28 @@ import {
   buildExtensionBundles,
   cleanupExtensionTmpDir,
   createExtensionBuildContext,
-  type ExtensionBuildTarget,
-  finalizeExtensionBuildArtifacts,
+  finalizeFirefoxBuild,
   getExtensionHeaders,
   outBase,
   rootDir,
-  verifyExtensionOutputs,
 } from "./vite.extension.shared";
 
 const verifyVirtualEntry = "virtual:vot-extension-verify";
 const verifyVirtualEntryResolved = "\0virtual:vot-extension-verify";
 
-function resolveBuildTarget(mode: string): ExtensionBuildTarget {
-  if (mode === "chrome") return "chrome";
-  if (mode === "firefox") return "firefox";
-  return "all";
-}
-
-function extensionPipelinePlugin(target: ExtensionBuildTarget): Plugin {
+function firefoxPipelinePlugin(): Plugin {
   return {
-    name: "vot-extension-build-pipeline",
+    name: "vot-firefox-build-pipeline",
     apply: "build",
     async closeBundle() {
       const context = await createExtensionBuildContext();
       const headers = await getExtensionHeaders();
       try {
-        await buildExtensionBundles({
-          context,
-          headers,
-        });
-        await finalizeExtensionBuildArtifacts(target);
+        await buildExtensionBundles({ context, headers });
+        await finalizeFirefoxBuild();
       } finally {
         await cleanupExtensionTmpDir();
       }
-    },
-  };
-}
-
-function verifyOnlyPlugin(target: ExtensionBuildTarget): Plugin {
-  return {
-    name: "vot-extension-verify-only",
-    apply: "build",
-    async closeBundle() {
-      await verifyExtensionOutputs(target);
     },
   };
 }
@@ -66,15 +45,12 @@ function verifyVirtualEntryPlugin(): Plugin {
   };
 }
 
-export default defineConfig(async ({ mode }) => {
-  const target = resolveBuildTarget(mode);
+export default defineConfig(async () => {
   return createViteConfig({
     root: rootDir,
     plugins: [
       verifyVirtualEntryPlugin(),
-      mode === "verify"
-        ? verifyOnlyPlugin("all")
-        : extensionPipelinePlugin(target),
+      firefoxPipelinePlugin(),
     ],
     build: {
       outDir: outBase,

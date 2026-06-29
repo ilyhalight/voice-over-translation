@@ -220,7 +220,9 @@
     "left": "बायाँ",
     "right": "दायाँ",
     "top": "माथि",
-    "default": "पूर्वनिर्धारित"
+    "default": "पूर्वनिर्धारित",
+    "leftCenter": "बायाँ केन्द्रित",
+    "rightCenter": "दायाँ केन्द्रित"
   },
   "secs": "सेकेन्ड",
   "autoHideButtonDelay": "अनुवाद बटन लुकाउनु अघि ढिलाइ",
@@ -247,5 +249,7 @@
   "VOTStandardVoicesTitle": "मानक आवाजहरू मानक आवाजहरू",
   "VOTStandardVoicesSubtitle": "छिटो र उच्च-गुणवत्ता पार्श्वस्वर",
   "VOTLiveVoicesTitle": "प्रत्यक्ष आवाजहरू",
-  "VOTLiveVoicesSubtitle": "अधिकतम समानता मानौं सबैलाई रुसी भाषा थाहा छ"
+  "VOTLiveVoicesSubtitle": "अधिकतम समानता मानौं सबैलाई रुसी भाषा थाहा छ",
+  "VOTYandexTokenExpired": "सत्र समाप्त भयो ।  फेरि लग इन गर्नुहोस्",
+  "VOTVoiceSelection": "डबिंग रोज्नुहोस्"
 }

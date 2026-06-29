@@ -49,7 +49,11 @@
   }
 
   &::after {
-    background: radial-gradient(circle at center, currentColor 1%, transparent 1%)
+    background: radial-gradient(
+        circle at center,
+        currentColor 1%,
+        transparent 1%
+      )
       center / 10000% 10000% no-repeat;
     transition:
       opacity var(--vot-duration-slow) var(--vot-easing-standard),

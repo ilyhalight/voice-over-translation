@@ -1,7 +1,8 @@
-import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import type { CacheTranslationSuccess } from "../../types/core/cacheManager";
 import type { VideoData } from "../shared";
+import type { ActionContext } from "./translationTypes";
 
 export type TranslationAudioResult = {
   url: string;
@@ -17,11 +18,6 @@ type TranslationRequester = {
     shouldSendFailedAudio: boolean,
     signal: AbortSignal,
   ): Promise<TranslationAudioResult | null>;
-};
-
-export type TranslationActionContext = {
-  gen: number;
-  videoId: string;
 };
 
 export function normalizeTranslationHelp(
@@ -77,67 +73,42 @@ export function buildTranslationCacheValue(options: {
   };
 }
 
-export async function updateTranslationIfFresh(options: {
-  url: string;
-  actionContext?: TranslationActionContext;
-  isActionStale(actionContext?: TranslationActionContext): boolean;
-  updateTranslation(
-    url: string,
-    actionContext?: TranslationActionContext,
-  ): Promise<void>;
-}): Promise<boolean> {
-  if (options.isActionStale(options.actionContext)) {
-    return false;
-  }
-
-  await options.updateTranslation(options.url, options.actionContext);
-
-  if (options.isActionStale(options.actionContext)) {
-    return false;
-  }
-  return true;
+/**
+ * Executes an async action with staleness guards before and after.
+ * Returns true if the action completed without becoming stale.
+ *
+ * Centralizes the "check stale -> act -> re-check stale" pattern that was
+ * previously duplicated across updateTranslationIfFresh and
+ * requestAndApplyTranslation.
+ */
+export async function withStaleGuard(
+  actionContext: ActionContext | undefined,
+  isActionStale: (ctx?: ActionContext) => boolean,
+  action: () => Promise<void>,
+): Promise<boolean> {
+  if (isActionStale(actionContext)) return false;
+  await action();
+  return !isActionStale(actionContext);
 }
 
-export async function requestAndApplyTranslation(options: {
-  requester: TranslationRequester;
-  request: {
-    videoData: VideoData;
-    requestLang: RequestLang;
-    responseLang: ResponseLang;
-    translationHelp: VideoData["translationHelp"] | undefined;
-    useAudioDownload?: boolean;
-    signal: AbortSignal;
-  };
-  actionContext?: TranslationActionContext;
-  isActionStale(actionContext?: TranslationActionContext): boolean;
+export async function updateTranslationIfFresh(options: {
+  url: string;
+  actionContext?: ActionContext;
+  usedLivelyVoice?: boolean;
+  isActionStale(actionContext?: ActionContext): boolean;
   updateTranslation(
     url: string,
-    actionContext?: TranslationActionContext,
+    actionContext?: ActionContext,
+    usedLivelyVoice?: boolean,
   ): Promise<void>;
-}): Promise<TranslationAudioResult | null> {
-  const translateRes = await requestTranslationAudio(options.requester, {
-    videoData: options.request.videoData,
-    requestLang: options.request.requestLang,
-    responseLang: options.request.responseLang,
-    translationHelp: options.request.translationHelp,
-    useAudioDownload: options.request.useAudioDownload,
-    signal: options.request.signal,
-  });
-  if (!translateRes) {
-    return null;
-  }
-
-  const updated = await updateTranslationIfFresh({
-    url: translateRes.url,
-    actionContext: options.actionContext,
-    isActionStale: options.isActionStale,
-    updateTranslation: options.updateTranslation,
-  });
-  if (!updated || options.isActionStale(options.actionContext)) {
-    return null;
-  }
-
-  return translateRes;
+}): Promise<boolean> {
+  return withStaleGuard(options.actionContext, options.isActionStale, () =>
+    options.updateTranslation(
+      options.url,
+      options.actionContext,
+      options.usedLivelyVoice,
+    ),
+  );
 }
 
 export function setTranslationCacheValue(options: {
@@ -171,11 +142,11 @@ export function notifyTranslationFailureIfNeeded(options: {
   error: unknown;
   notify(params: { videoId?: string; message?: unknown }): void;
 }): boolean {
-  if (
-    options.aborted ||
-    !options.translateApiErrorsEnabled ||
-    !options.hadAsyncWait
-  ) {
+  if (options.aborted) {
+    return false;
+  }
+
+  if (!options.translateApiErrorsEnabled || !options.hadAsyncWait) {
     return options.hadAsyncWait;
   }
 

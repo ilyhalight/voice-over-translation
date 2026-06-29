@@ -7,6 +7,12 @@ const DEBUG_MODE: boolean;
  * Use `typeof IS_EXTENSION !== "undefined"` checks before reading.
  */
 const IS_EXTENSION: boolean;
+/**
+ * Defined as `true` only in the CRXJS Chrome build
+ * (see vite/vite.extension.crxjs.config.ts).
+ * Absent in Firefox and userscript builds.
+ */
+const __CRXJS_BUILD__: boolean;
 const AVAILABLE_LOCALES: import("./types/localization").LangOverride[];
 const REPO_BRANCH: "master" | "dev";
 
