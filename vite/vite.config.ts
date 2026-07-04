@@ -541,10 +541,7 @@ export default defineConfig(async ({ command, mode }) => {
     collectUsedUserscriptGrantsFromEntry(path.resolve(srcDir, "index.ts")),
   ]);
 
-  const mergedGrants = mergeUserscriptGrants(
-    grants,
-    mainHeaders.grant,
-  );
+  const mergedGrants = mergeUserscriptGrants(grants, mainHeaders.grant);
   const banner = formatUserscriptHeader(
     filename,
     repoBranch,
@@ -557,13 +554,13 @@ export default defineConfig(async ({ command, mode }) => {
     define: {
       ...defineConstants({
         DEBUG_MODE: debugMode,
-		IS_EXTENSION: false,
-        __CRXJS_BUILD__: false,
+        IS_EXTENSION: false,
         AVAILABLE_LOCALES: availableLocales,
         REPO_BRANCH: repoBranch,
         VOT_VERSION: String(mainHeaders.version || ""),
         VOT_AUTHORS: String(mainHeaders.author || ""),
       }),
+      "import.meta.env.VITE_CRXJS_BUILD": '"false"',
     },
     build: {
       outDir: distDir,
@@ -578,7 +575,7 @@ export default defineConfig(async ({ command, mode }) => {
       sourcemap: debugMode,
       chunkSizeWarningLimit: 600,
       rolldownOptions: {
-		treeshake: true,
+        treeshake: true,
         output: {
           postBanner: banner,
           codeSplitting: false,

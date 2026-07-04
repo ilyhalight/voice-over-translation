@@ -1,4 +1,4 @@
-﻿import { clampNumber } from "./number";
+﻿import { clampNumber } from "../utils/number";
 
 type GainBackedPlayer = {
   volume: number;

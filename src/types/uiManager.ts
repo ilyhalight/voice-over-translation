@@ -1,5 +1,5 @@
-import type { VideoHandler } from "..";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
+import type { VideoHandler } from "../VideoHandler";
 import type { Direction, Position } from "./components/votButton";
 import type { StorageData } from "./storage";
 

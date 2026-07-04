@@ -18,7 +18,7 @@ const srcPathStrategy: ManifestPathStrategy = {
   scriptPathFn: (distJs) => {
     const srcMap: Record<string, string> = {
       "bridge.js": "src/extension/bridge.ts",
-      "prelude.js": "src/extension/prelude.ts",
+      "prelude.js": "src/extension/prelude.iife.ts",
       "content.js": "src/index.ts",
     };
     return srcMap[distJs] ?? distJs;

@@ -16,7 +16,7 @@ const ASS_OVERRIDE_TAG_RE = /\{[^}]*\}/gu;
 const SRT_TIMING_RE =
   /^[ \t]*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*-->[ \t]*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*$/u;
 const VTT_TIMING_RE =
-  /^(?<start>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})[ \t]+-->[ \t]+(?<end>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})[ \t]*(?<settings>[^\n]*)$/u;
+  /^(?<start>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})[ \t]+-->[ \t]+(?<end>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})(?:[ \t]+(?<settings>\S[^\n]*))?$/u;
 
 type TimedCueDraft = {
   index: number;
@@ -220,7 +220,7 @@ const parseCueSettings = (
 };
 
 const extractVttVoice = (payload: string): string | undefined => {
-  const match = /^[ \t]*<v(?:\.[^ >]+)?(?:[ \t]+([^>]*))?>/iu.exec(payload);
+  const match = /^[ \t]*<v(?:\.\S+)?(?:[ \t]+(\S[^>]*))?>/iu.exec(payload);
   const voice = match?.[1]?.trim();
   return voice || undefined;
 };

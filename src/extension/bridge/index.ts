@@ -71,7 +71,7 @@ function bootstrapExtensionBridge(): void {
 
   // In CRXJS builds, prelude and content are injected as MAIN world
   // content scripts via the manifest — no manual injection needed.
-  if (typeof __CRXJS_BUILD__ === "undefined" || !__CRXJS_BUILD__) {
+  if (import.meta.env.VITE_CRXJS_BUILD !== "true") {
     injectPageModule("prelude.module.js");
     injectPageModule("content.module.js");
   }

@@ -185,7 +185,17 @@ export function createContentScriptEntries({
     {
       matches,
       exclude_matches: excludeMatches,
-      js: ["prelude.js", "content.js"].map(resolveScript),
+      js: [resolveScript("prelude.js")],
+      all_frames: true,
+      match_about_blank: true,
+      run_at: "document_start",
+      ...(includeWorld ? { world: "MAIN" } : {}),
+      ...fallbackConfig,
+    },
+    {
+      matches,
+      exclude_matches: excludeMatches,
+      js: [resolveScript("content.js")],
       all_frames: true,
       match_about_blank: true,
       run_at: "document_end",
@@ -215,8 +225,7 @@ export function buildManifestChrome({
   chromeOptions?: ChromeManifestOptions;
 }): Record<string, unknown> {
   const iconPathFn =
-    pathStrategy?.iconPathFn ??
-    ((size: number) => `icons/icon-${size}.png`);
+    pathStrategy?.iconPathFn ?? ((size: number) => `icons/icon-${size}.png`);
   const scriptPathFn = pathStrategy?.scriptPathFn ?? ((s: string) => s);
 
   const name = headers.name || DEFAULT_EXTENSION_NAME;
@@ -252,7 +261,9 @@ export function buildManifestChrome({
     name,
     description,
     version,
-    ...(chromeOptions?.versionName && { version_name: chromeOptions.versionName }),
+    ...(chromeOptions?.versionName && {
+      version_name: chromeOptions.versionName,
+    }),
     action: {
       default_title: name,
       default_icon: Object.fromEntries(

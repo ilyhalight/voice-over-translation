@@ -6,8 +6,8 @@ import {
   detectRustServerUrl,
   foswlyTranslateUrl,
 } from "../config/config";
-import { GM_fetch } from "./gm";
-import { votStorage } from "./storage";
+import { GM_fetch } from "../utils/gm";
+import { votStorage } from "../utils/storage";
 
 // Small in-memory caches to avoid repeated async storage reads.
 // Settings rarely change during a session, but `translate()`/`detect()` can be

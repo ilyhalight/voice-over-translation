@@ -1,5 +1,5 @@
-import { localizationProvider } from "../localization/localizationProvider";
-import type { Phrase } from "../types/localization";
+import { localizationProvider } from "./localization/localizationProvider";
+import type { Phrase } from "./types/localization";
 
 class VOTLocalizedError extends Error {
   override name = "VOTLocalizedError";

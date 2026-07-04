@@ -300,7 +300,6 @@ export class VideoLifecycleController {
     debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, {
       sourceKey,
     });
-    this.host.translationOrchestrator.reset();
     this.host.firstPlay = true;
 
     const overlayView = this.host.uiManager.votOverlayView;

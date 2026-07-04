@@ -1,8 +1,8 @@
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-import type { VideoHandler } from "../..";
 import { maxAudioVolume } from "../../config/config";
 import { EventImpl } from "../../core/eventImpl";
+import { FullscreenHelper } from "../../core/fullscreenHelper";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { Direction, Position } from "../../types/components/votButton";
 import type { StorageData } from "../../types/storage";
@@ -13,11 +13,11 @@ import type {
 } from "../../types/views/overlay";
 import ui from "../../ui";
 import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
-import { FullscreenHelper } from "../../utils/fullscreenHelper";
 import { hasTouchScreen, isTouchFirstInput } from "../../utils/inputDevice";
 import type { IntervalIdleChecker } from "../../utils/intervalIdleChecker";
 import { votStorage } from "../../utils/storage";
 import { isPiPAvailable } from "../../utils/utils";
+import type { VideoHandler } from "../../VideoHandler";
 import {
   normalizeButtonPosition,
   resolveButtonLayout,

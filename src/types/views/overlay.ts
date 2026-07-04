@@ -1,5 +1,5 @@
-import type { VideoHandler } from "../..";
 import type { IntervalIdleChecker } from "../../utils/intervalIdleChecker";
+import type { VideoHandler } from "../../VideoHandler";
 import type { LanguageSelectKey } from "../components/select";
 import type { StorageData } from "../storage";
 import type { OverlayMount } from "../uiManager";

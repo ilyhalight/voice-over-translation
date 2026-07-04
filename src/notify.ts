@@ -1,7 +1,7 @@
-import { localizationProvider } from "../localization/localizationProvider";
-import type { Phrase } from "../types/localization";
-import debug from "./debug";
-import { getErrorMessage, isAbortError } from "./errors";
+import { localizationProvider } from "./localization/localizationProvider";
+import type { Phrase } from "./types/localization";
+import debug from "./utils/debug";
+import { getErrorMessage, isAbortError } from "./utils/errors";
 
 export type NotifyDetails = {
   text: string;

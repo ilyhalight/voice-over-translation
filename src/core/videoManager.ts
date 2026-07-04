@@ -3,22 +3,21 @@ import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-
-import type { VideoHandler } from "..";
 import { localizationProvider } from "../localization/localizationProvider";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
 import { cleanText } from "../utils/text";
-import { detect } from "../utils/translateApis";
-import VOTLocalizedError from "../utils/VOTLocalizedError";
 import {
   clampPercentInt,
   percentToVolume01,
   snapVolume01,
   volume01ToPercent,
 } from "../utils/volume";
+import type { VideoHandler } from "../VideoHandler";
+import VOTLocalizedError from "../VOTLocalizedError";
 import type { VideoData as RuntimeVideoData } from "../videoHandler/shared";
 import { isExternalVolumeHost } from "./hostPolicies";
+import { detect } from "./translateApis";
 
 const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
   rutube: "ru",

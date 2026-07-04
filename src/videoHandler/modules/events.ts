@@ -9,13 +9,13 @@ import {
   isYouTubeLikeHost,
 } from "../../core/hostPolicies";
 import { resetAndHideLifecycle } from "../../core/lifecycleShared";
-import type { VideoHandler } from "../../index";
+import { getPlatformEventConfig } from "../../core/platformEvents";
 import debug from "../../utils/debug";
 import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
 import { GM_fetch } from "../../utils/gm";
 import { isIframe } from "../../utils/iframeConnector";
-import { getPlatformEventConfig } from "../../utils/platformEvents";
 import { clampPercentInt } from "../../utils/volume";
+import type { VideoHandler } from "../../VideoHandler";
 import { handlePlaybackResumedTranslationRefresh } from "./translation";
 
 type ScopedAddListener = (
@@ -488,11 +488,15 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
       await safeSetCanPlay();
     });
   };
+  let emptiedHandled = false;
   add(self.video, "canplay", () => {
+    emptiedHandled = false;
     if (self.site.host === "rutube" && self.video.src) return;
     queueSetCanPlay();
   });
   const handleVideoEmptied = async () => {
+    if (emptiedHandled) return;
+    emptiedHandled = true;
     let videoId: string | undefined;
     try {
       videoId = await getVideoID(self.site, {
@@ -504,7 +508,8 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
     }
     if (self.videoData && videoId && videoId === self.videoData.videoId) {
       // Quality changes can trigger media reload (`emptied`) for the same
-      // logical video. Keep translation state intact in this case.
+      // logical video. Re-arm the guard and keep state intact.
+      emptiedHandled = false;
       return;
     }
     debug.log("lipsync mode is emptied");

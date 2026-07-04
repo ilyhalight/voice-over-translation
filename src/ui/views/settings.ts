@@ -44,7 +44,6 @@ function createSettingsEvents(): {
 
 import { availableLangs } from "@vot.js/shared/consts";
 import { html } from "lit-html";
-import { getCountryCode, type VideoHandler } from "../..";
 import {
   defaultAutoHideDelay,
   defaultAutoVolume,
@@ -54,7 +53,9 @@ import {
   proxyWorkerHost,
 } from "../../config/config";
 import { isAuthRefreshMessage } from "../../core/authRefreshMessage";
+import { openAuthWindow } from "../../core/authWindow";
 import { EventImpl } from "../../core/eventImpl";
+import { detectServices, translateServices } from "../../core/translateApis";
 import {
   type LangOverride,
   localizationProvider,
@@ -93,13 +94,13 @@ import type {
   SettingsViewProps,
 } from "../../types/views/settings";
 import ui from "../../ui";
-import { openAuthWindow } from "../../utils/authWindow";
 import debug from "../../utils/debug";
 import { getEnvironmentInfo } from "../../utils/environment";
 import { isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
-import { detectServices, translateServices } from "../../utils/translateApis";
 import { isPiPAvailable } from "../../utils/utils";
+import type { VideoHandler } from "../../VideoHandler";
+import { getCountryCode } from "../../videoHandler/shared";
 import { normalizeButtonPosition } from "../buttonPlacement";
 import AccountButton from "../components/accountButton";
 import Checkbox from "../components/checkbox";

@@ -1,13 +1,14 @@
 ﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
-import type { VideoHandler } from "../../index";
+import { notifyTranslationFailureIfNeeded } from "../../core/translationErrors";
 import { localizationProvider } from "../../localization/localizationProvider";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
-import { applyTranslationPlaybackVolume } from "../../utils/translationVolume";
-import VOTLocalizedError from "../../utils/VOTLocalizedError";
+import type { VideoHandler } from "../../VideoHandler";
+import VOTLocalizedError from "../../VOTLocalizedError";
 import type { VideoData } from "../shared";
+import { applyTranslationPlaybackVolume } from "../translationVolume";
 import {
   isYandexAudioUrlOrProxy,
   proxifyYandexAudioUrl,
@@ -19,7 +20,6 @@ import {
 } from "./subtitlesShared";
 import {
   normalizeTranslationHelp,
-  notifyTranslationFailureIfNeeded,
   requestTranslationAudio,
   setTranslationCacheValue,
   type TranslationAudioResult,

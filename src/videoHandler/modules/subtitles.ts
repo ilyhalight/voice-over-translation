@@ -1,5 +1,4 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
-import type { VideoHandler } from "../../index";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { SubtitlesProcessor } from "../../subtitles/processor";
 import type {
@@ -7,6 +6,7 @@ import type {
   VideoDataForSubtitles,
 } from "../../subtitles/types";
 import debug from "../../utils/debug";
+import type { VideoHandler } from "../../VideoHandler";
 import { proxifyYandexSubtitlesUrl } from "./proxyShared";
 import {
   buildSubtitlesSelectOptions,

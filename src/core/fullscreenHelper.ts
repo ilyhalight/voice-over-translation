@@ -1,4 +1,4 @@
-import { containsCrossShadow } from "./dom";
+import { containsCrossShadow } from "../utils/dom";
 
 export interface DocumentWithFullscreen extends Document {
   webkitFullscreenElement?: Element | null;

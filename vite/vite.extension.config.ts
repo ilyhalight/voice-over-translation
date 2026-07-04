@@ -48,10 +48,7 @@ function verifyVirtualEntryPlugin(): Plugin {
 export default defineConfig(async () => {
   return createViteConfig({
     root: rootDir,
-    plugins: [
-      verifyVirtualEntryPlugin(),
-      firefoxPipelinePlugin(),
-    ],
+    plugins: [verifyVirtualEntryPlugin(), firefoxPipelinePlugin()],
     build: {
       outDir: outBase,
       emptyOutDir: false,

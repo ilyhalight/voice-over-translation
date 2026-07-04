@@ -1,6 +1,6 @@
-import type { VideoHandler } from "../..";
 import type { LangOverride } from "../../types/localization";
 import type { SubtitleFontFamily } from "../../types/subtitles";
+import type { VideoHandler } from "../../VideoHandler";
 import type { Position } from "../components/votButton";
 import type {
   Account,

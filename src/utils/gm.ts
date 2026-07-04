@@ -8,17 +8,17 @@ type HttpMethod =
   | "CONNECT"
   | "TRACE";
 
-import { executeWithResponseCache } from "../core/cacheManager";
 import type { FetchOpts } from "../types/utils/gm";
 import { createTimeoutSignal } from "./abort";
 import { browserInfo } from "./browserInfo";
 import debug from "./debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "./errors";
+import { executeWithResponseCache } from "./responseCache";
 import { getHeaders } from "./utils";
 
 const YANDEX_API_HOST = "api.browser.yandex.ru";
 const GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
-const HEADER_LINE_RE = /^(\w[\w-]*):\s*(.+)$/;
+const HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
 // Matches statusText reason-phrase: printable ASCII except control chars
 const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
@@ -67,21 +67,15 @@ export const isProxyOnlyExtension =
 /**
  * Returns true when the GM4 promise-based API is available.
  *
- * IMPORTANT: This must be a **function**, not a module-level `const`,
- * because in the CRXJS Chrome build the prelude installs GM globals
- * asynchronously after the content-script module graph has been
- * evaluated.  A `const` would capture the pre-polyfill state (`false`)
- * and never update.
+ * Safe to read as a module-level const because:
+ * - CRXJS Chrome: the IIFE prelude installs GM globals synchronously at
+ *   document_start, before this module evaluates at document_end.
+ * - Firefox: the bridge injects prelude.module.js before content.module.js.
+ * - Userscript managers inject GM before the script runs.
  */
-export function isGM4Supported(): boolean {
-  return typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
-}
+export const isGM4Supported: boolean =
+  typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
 
-/**
- * @deprecated Use `isGM4Supported()` instead — the `const` form is stale
- * in CRXJS builds where GM polyfills are installed after module evaluation.
- */
-export const isSupportGM4 = isGM4Supported;
 export const isSupportGMXhr =
   (typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) || hasSupportedGmXhr();
 

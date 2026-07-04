@@ -1,11 +1,9 @@
-import type { VideoData, VideoHandler } from "..";
 import {
   actualCompatVersion,
   maxAudioVolume,
   repositoryUrl,
 } from "../config/config";
 import { localizationProvider } from "../localization/localizationProvider";
-import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
 import type { StorageData } from "../types/storage";
 import type { OverlayMount, UIManagerProps } from "../types/uiManager";
@@ -13,14 +11,17 @@ import debug from "../utils/debug";
 import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
+import { serializeProcessedSubtitles } from "../utils/serializeSubtitles";
 import { votStorage } from "../utils/storage";
-import { safeSetPlayerVolume } from "../utils/translationVolume";
 import {
   clamp,
   clearFileName,
   type DownloadBlobOptions,
   downloadBlob,
 } from "../utils/utils";
+import type { VideoHandler } from "../VideoHandler";
+import type { VideoData } from "../videoHandler/shared";
+import { safeSetPlayerVolume } from "../videoHandler/translationVolume";
 import { normalizeButtonPosition } from "./buttonPlacement";
 import { applyOverlayMountUpdate } from "./mount";
 import {

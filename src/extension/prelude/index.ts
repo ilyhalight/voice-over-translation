@@ -4,28 +4,45 @@ import { installPageGmPolyfills, request } from "./gm-polyfills";
 import { wireMessageHandlers } from "./message-handlers";
 
 const PRELUDE_BOOT_KEY = "__VOT_EXT_PRELUDE_BOOTED__";
+
 /**
- * Set on globalThis synchronously after GM polyfills are installed.
- * Content scripts poll this flag before bootstrapping to guarantee
- * that GM_* / GM.* globals are available (CRXJS loads prelude and content
- * as separate async modules which can race).
+ * Returns true when the content script is running inside an
+ * about:blank / about:srcdoc iframe injected via match_about_blank.
+ *
+ * In those contexts the async handshake should not fire because
+ * the iframe is not a runnable page — it exists only as a transient
+ * container.  Keeping the synchronous polyfill install is fine (the
+ * content script may still need GM globals), but the background
+ * handshake would produce a duplicate UUID and pollute the message
+ * channel.
  */
-const PRELUDE_READY_KEY = "__VOT_PRELUDE_READY__";
+function shouldSkipFrame(): boolean {
+  try {
+    const href = globalThis.location?.href;
+    if (href === "about:blank" || href?.startsWith("about:srcdoc")) {
+      return true;
+    }
+    const isIframe = globalThis.self !== globalThis.top;
+    if (isIframe && globalThis.location?.origin === "null") {
+      return true;
+    }
+  } catch {
+    // cross-origin access to .top may throw — treat as top frame
+  }
+  return false;
+}
 
 /**
  * Installs GM polyfills and message handlers **synchronously**.
  *
- * In CRXJS builds the prelude and content scripts are loaded as separate
- * async modules (each via `await import()`). Deferring the polyfill
- * installation to a microtask (e.g. inside an `async () => {}` IIFE)
- * creates a race where the content module may evaluate before the
- * polyfills are on `globalThis`.  By running this synchronously at module
- * top-level we guarantee the GM_* / GM.* globals exist the moment the
- * prelude module finishes evaluation — before any later module can use
- * them.
+ * In CRXJS builds the prelude is an IIFE emitted as a standalone bundle
+ * (prelude.iife.ts). Chrome runs it synchronously at document_start, so
+ * GM_* / GM.* globals are on globalThis before any MAIN-world content
+ * script evaluates.
  *
- * Also sets `globalThis.__VOT_PRELUDE_READY__ = true` so that the
- * content script (`index.ts`) can await this flag before bootstrapping.
+ * In Firefox builds the bridge injects prelude.module.js as a
+ * <script type="module"> before content.module.js, giving the same
+ * ordering guarantee.
  */
 export function installPreludeSynchronous(): void {
   const preludeGlobal = globalThis as Record<string, unknown>;
@@ -38,9 +55,6 @@ export function installPreludeSynchronous(): void {
 
   installPageGmPolyfills();
   wireMessageHandlers();
-
-  // Signal readiness immediately — content scripts poll this.
-  preludeGlobal[PRELUDE_READY_KEY] = true;
 }
 
 /**
@@ -70,7 +84,22 @@ async function performHandshake(): Promise<void> {
  */
 export function bootstrapExtensionPrelude(): void {
   installPreludeSynchronous();
+
+  // Skip the async handshake in about:blank / about:srcdoc iframes.
+  // The polyfills are still installed synchronously above so the
+  // content script can use GM globals if it needs them, but the
+  // handshake would just produce a duplicate UUID in a transient frame.
+  if (shouldSkipFrame()) {
+    debug.log("[VOT EXT][prelude] skipping handshake in transient frame");
+    return;
+  }
+
   void performHandshake();
 }
 
-bootstrapExtensionPrelude();
+// Auto-init in non-CRXJS builds (Firefox extension).
+// CRXJS (Chrome) uses prelude.iife.ts which calls bootstrapExtensionPrelude()
+// directly as a synchronous IIFE — no loader, no race condition.
+if (import.meta.env.VITE_CRXJS_BUILD !== "true") {
+  bootstrapExtensionPrelude();
+}

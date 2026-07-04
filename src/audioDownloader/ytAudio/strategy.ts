@@ -3,7 +3,7 @@ import { config } from "@vot.js/shared";
 
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
 import { GM_fetch } from "../../utils/gm";
-import { makeFileId } from "../strategies/fileId";
+import { makeFileId } from "../fileId";
 import {
   type AudioChunkStreamResult,
   type AudioStreamRequest,

@@ -1,9 +1,9 @@
 import { defaultAutoVolume } from "../../config/config";
-import type { VideoHandler } from "../../index";
 import debug from "../../utils/debug";
-import { safeSetPlayerVolume } from "../../utils/translationVolume";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
+import type { VideoHandler } from "../../VideoHandler";
+import { safeSetPlayerVolume } from "../translationVolume";
 import {
   computeSmartDuckingStep,
   initSmartDuckingRuntime,

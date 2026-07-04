@@ -10,23 +10,13 @@ export const NEVER_ABORTED_SIGNAL = new AbortController().signal;
  * `AbortError` so callers can reliably use `isAbortError()`.
  */
 export function throwIfAborted(signal: AbortSignal): void {
-  const maybeThrow = (signal as any).throwIfAborted as undefined | (() => void);
-
-  if (typeof maybeThrow === "function") {
-    try {
-      maybeThrow.call(signal);
-      return;
-    } catch (e) {
-      if (signal.aborted || isAbortError(e)) {
-        throw makeAbortError();
-      }
-
-      throw e instanceof Error ? e : new Error(String(e));
+  try {
+    signal.throwIfAborted();
+  } catch (e) {
+    if (signal.aborted || isAbortError(e)) {
+      throw makeAbortError();
     }
-  }
-
-  if (signal.aborted) {
-    throw makeAbortError();
+    throw e instanceof Error ? e : new Error(String(e));
   }
 }
 

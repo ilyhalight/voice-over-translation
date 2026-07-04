@@ -1,11 +1,11 @@
-import type { VideoHandler } from "../index";
+import { openAuthWindow } from "../core/authWindow";
 import { localizationProvider } from "../localization/localizationProvider";
 import type { Status } from "../types/components/votButton";
 import { deleteExpiredAccount } from "../utils/account";
-import { openAuthWindow } from "../utils/authWindow";
 import debug from "../utils/debug";
 import { isAbortError } from "../utils/errors";
-import VOTLocalizedError from "../utils/VOTLocalizedError";
+import type { VideoHandler } from "../VideoHandler";
+import VOTLocalizedError from "../VOTLocalizedError";
 
 type TranslationButtonCommandDeps = {
   videoHandler?: VideoHandler;

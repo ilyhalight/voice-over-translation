@@ -1,8 +1,7 @@
-import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
 import fs from "node:fs/promises";
 import path from "node:path";
-
 import { build as viteBuild } from "vite";
+import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
 import {
   createViteConfig,
   defineConstants,
@@ -91,7 +90,6 @@ export async function exists(filePath: string): Promise<boolean> {
   }
 }
 
-
 export async function readJson<T>(filePath: string): Promise<T> {
   return JSON.parse(await fs.readFile(filePath, "utf8")) as T;
 }
@@ -179,14 +177,17 @@ export async function buildExtensionBundles({
   context: ExtensionBuildContext;
   headers: ExtensionHeaders;
 }): Promise<void> {
-  const defineMeta = defineConstants({
-    DEBUG_MODE: false,
-    IS_EXTENSION: true,
-    AVAILABLE_LOCALES: context.availableLocales,
-    REPO_BRANCH: context.repoBranch,
-    VOT_VERSION: String(headers.version || ""),
-    VOT_AUTHORS: String(headers.author || ""),
-  });
+  const defineMeta = {
+    ...defineConstants({
+      DEBUG_MODE: false,
+      IS_EXTENSION: true,
+      AVAILABLE_LOCALES: context.availableLocales,
+      REPO_BRANCH: context.repoBranch,
+      VOT_VERSION: String(headers.version || ""),
+      VOT_AUTHORS: String(headers.author || ""),
+    }),
+    "import.meta.env.VITE_CRXJS_BUILD": '"false"',
+  };
 
   await ensureCleanDir(outTmp);
 
@@ -436,10 +437,7 @@ function isValidMatchPattern(pattern: string): boolean {
   );
 }
 
-function assertValidPatterns(
-  label: string,
-  patterns: string[] = [],
-): void {
+function assertValidPatterns(label: string, patterns: string[] = []): void {
   for (const pattern of patterns) {
     if (!isValidMatchPattern(pattern)) {
       throw new Error(
@@ -478,9 +476,7 @@ async function verifyManifest(
   return manifest;
 }
 
-function verifyFirefoxManifestFields(
-  manifest: Record<string, any>,
-): void {
+function verifyFirefoxManifestFields(manifest: Record<string, any>): void {
   const permissions = new Set(manifest.permissions || []);
   if (
     !permissions.has("declarativeNetRequestWithHostAccess") &&
@@ -674,7 +670,8 @@ async function verifyBodySerializationGuards(): Promise<void> {
 
   // Read XHR and bridge sources in parallel to check for serializeBodyForPort.
   const pathsToCheck = [bridgeXhrSrcPath, bridgeSrcPath].filter(
-    (p) => (p === bridgeXhrSrcPath && hasXhr) || (p === bridgeSrcPath && hasBridge),
+    (p) =>
+      (p === bridgeXhrSrcPath && hasXhr) || (p === bridgeSrcPath && hasBridge),
   );
 
   const sources = await Promise.all(
@@ -727,7 +724,10 @@ export async function finalizeFirefoxBuild(): Promise<void> {
   const outDir = path.join(outBase, "firefox");
   await ensureCleanDir(outDir);
   await copyExtensionFiles(outDir);
-  await writeManifest(outDir, buildManifestFirefox({ headers, includeWorld: true }));
+  await writeManifest(
+    outDir,
+    buildManifestFirefox({ headers, includeWorld: true }),
+  );
 
   await zipDir(outDir, path.join(outBase, "vot-extension-firefox.xpi"));
 

@@ -269,15 +269,15 @@ class VOTStorage {
             GM_removeValueChangeListener?: unknown;
           }
         ).GM_removeValueChangeListener === "function",
-      promiseGet: isGM4Supported() && typeof gm?.getValue === "function",
-      promiseGetValues: isGM4Supported() && typeof gm?.getValues === "function",
-      promiseSet: isGM4Supported() && typeof gm?.setValue === "function",
-      promiseDelete: isGM4Supported() && typeof gm?.deleteValue === "function",
-      promiseList: isGM4Supported() && typeof gm?.listValues === "function",
+      promiseGet: isGM4Supported && typeof gm?.getValue === "function",
+      promiseGetValues: isGM4Supported && typeof gm?.getValues === "function",
+      promiseSet: isGM4Supported && typeof gm?.setValue === "function",
+      promiseDelete: isGM4Supported && typeof gm?.deleteValue === "function",
+      promiseList: isGM4Supported && typeof gm?.listValues === "function",
       promiseAddValueChangeListener:
-        isGM4Supported() && typeof gm?.addValueChangeListener === "function",
+        isGM4Supported && typeof gm?.addValueChangeListener === "function",
       promiseRemoveValueChangeListener:
-        isGM4Supported() && typeof gm?.removeValueChangeListener === "function",
+        isGM4Supported && typeof gm?.removeValueChangeListener === "function",
     };
     this.support = support;
 

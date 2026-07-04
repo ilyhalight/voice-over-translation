@@ -1,5 +1,6 @@
 import { html, nothing, render, type TemplateResult } from "lit-html";
 import { defaultTranslationService } from "../config/config";
+import { translate } from "../core/translateApis";
 import { localizationProvider } from "../localization/localizationProvider";
 import type {
   ProcessedSubtitles,
@@ -19,7 +20,6 @@ import {
 } from "../ui/shadowMount";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
-import { translate } from "../utils/translateApis";
 import { buildActiveSubtitleRenderLine } from "./activeCues";
 import {
   ensureGoogleSubtitleFontLoaded,

@@ -1,17 +1,15 @@
-import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
 import fs from "node:fs/promises";
 import path from "node:path";
-
 import { crx } from "@crxjs/vite-plugin";
 import { defineConfig } from "vite";
-
+import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
+import manifest from "../manifest.config";
 import { defineConstants, rootDir, srcDir } from "./vite.base.config";
 import {
+  getExtensionHeaders,
   getLocaleCodes,
   getRepoBranch,
-  getExtensionHeaders,
 } from "./vite.extension.shared";
-import manifest from "../manifest.config";
 
 const outBase = path.join(rootDir, "dist-ext");
 
@@ -65,15 +63,17 @@ export default defineConfig(async () => {
   const branch = getRepoBranch();
 
   return {
-    define: defineConstants({
-      DEBUG_MODE: false,
-      IS_EXTENSION: true,
-      __CRXJS_BUILD__: true,
-      AVAILABLE_LOCALES: locales,
-      REPO_BRANCH: branch,
-      VOT_VERSION: String(headers.version || ""),
-      VOT_AUTHORS: String(headers.author || ""),
-    }),
+    define: {
+      ...defineConstants({
+        DEBUG_MODE: false,
+        IS_EXTENSION: true,
+        AVAILABLE_LOCALES: locales,
+        REPO_BRANCH: branch,
+        VOT_VERSION: String(headers.version || ""),
+        VOT_AUTHORS: String(headers.author || ""),
+      }),
+      "import.meta.env.VITE_CRXJS_BUILD": '"true"',
+    },
     resolve: {
       alias: {
         // CRXJS creates its own internal Rollup/Vite builds for each content-script

@@ -1,4 +1,4 @@
-import { clampInt, clampPercentInt } from "./volume";
+import { clampInt, clampPercentInt } from "../utils/volume";
 
 export type VolumeLinkState = {
   initialized: boolean;

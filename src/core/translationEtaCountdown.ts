@@ -1,6 +1,6 @@
 import { localizationProvider } from "../localization/localizationProvider";
 import { formatTranslationEta } from "../utils/timeFormatting";
-import VOTLocalizedError from "../utils/VOTLocalizedError";
+import VOTLocalizedError from "../VOTLocalizedError";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 

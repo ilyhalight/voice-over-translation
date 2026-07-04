@@ -26,7 +26,7 @@ type HtmlStyleFrame = {
   previousStyle: MutableInlineStyle;
 };
 
-const HTML_TAG_RE = /^<[ \t]*(\/[ \t]*)?([a-z0-9]+)([^>]*)>/iu;
+const HTML_TAG_RE = /^<[ \t]*(\/[ \t]*)?([a-z0-9]+)([^>]*?)>/iu;
 const ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
 const LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
 const ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;

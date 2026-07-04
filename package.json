@@ -15,14 +15,14 @@
     "voice-over-translation"
   ],
   "devDependencies": {
-    "@crxjs/vite-plugin": "^2.6.1",
+    "@crxjs/vite-plugin": "^2.7.0",
     "@toil/translate": "^1.0.8",
     "@vot.js/core": "^2.4.12",
-    "lefthook": "^2.1.8",
-    "npm-run-all2": "^8.0.4",
-    "sass": "^1.99.0",
-    "typescript": "^5.9.3",
-    "vite": "^8.0.13",
+    "lefthook": "^2.1.9",
+    "npm-run-all2": "^9.0.2",
+    "sass": "^1.101.0",
+    "typescript": "^5.8.2",
+    "vite": "^8.1.1",
     "zip-a-folder": "^6.1.1"
   },
   "scripts": {
@@ -38,13 +38,13 @@
     "build:firefox": "vite build --config vite/vite.extension.config.ts",
     "build:dev": "vite build --mode development --config vite/vite.config.ts",
     "dev": "vite build --watch --mode development --config vite/vite.config.ts",
-    "format": "bunx @biomejs/biome check --write --unsafe ./src",
+    "format": "bunx @biomejs/biome check --write --unsafe ./src ./vite ./scripts",
     "gen:wiki": "bun run ./scripts/wiki-gen/index.js",
     "localize": "bunx \"@toil/localize-tui\""
   },
   "dependencies": {
-    "@types/bun": "^1.3.14",
     "@toil/gm-types": "^1.0.4",
+    "@types/bun": "^1.3.14",
     "@vot.js/ext": "^2.4.12",
     "@vot.js/shared": "^2.4.12",
     "bowser": "^2.14.1",

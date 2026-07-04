@@ -1,10 +1,10 @@
-import { EventImpl } from "../core/eventImpl";
 import debug from "./debug";
 import {
   type ShadowTreeTraversalAdapter,
   someComposedAncestor,
   walkShadowIncludingSubtree,
 } from "./domTraversal";
+import { EventImpl } from "./eventImpl";
 import {
   createIntervalIdleChecker,
   type IntervalIdleChecker,

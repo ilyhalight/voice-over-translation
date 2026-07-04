@@ -5,8 +5,6 @@ import {
   VideoTranslationStatus,
 } from "@vot.js/core/types/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-
-import type { VideoData, VideoHandler } from "..";
 import { AudioDownloader } from "../audioDownloader";
 import { localizationProvider } from "../localization/localizationProvider";
 import type {
@@ -20,16 +18,18 @@ import {
   throwIfAborted,
 } from "../utils/abort";
 import { deleteAccount, hasAccountToken } from "../utils/account";
-import { openAuthWindow } from "../utils/authWindow";
 import debug from "../utils/debug";
 import { getErrorMessage, isAbortError, safeNestedGet } from "../utils/errors";
-import VOTLocalizedError from "../utils/VOTLocalizedError";
-import { notifyTranslationFailureIfNeeded } from "../videoHandler/modules/translationShared";
+import type { VideoHandler } from "../VideoHandler";
+import VOTLocalizedError from "../VOTLocalizedError";
+import type { VideoData } from "../videoHandler/shared";
+import { openAuthWindow } from "./authWindow";
 import {
   getTranslationAuthErrorKind,
   getTranslationServerErrorMessage,
   isTranslationAuthError,
 } from "./translationAuthError";
+import { notifyTranslationFailureIfNeeded } from "./translationErrors";
 import { TranslationEtaCountdown } from "./translationEtaCountdown";
 
 /**
