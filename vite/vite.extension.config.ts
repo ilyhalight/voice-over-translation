@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { buildDefine } from "./lib/env";
 import {
   buildExtensionBundles,
@@ -8,32 +8,37 @@ import {
   getExtensionHeaders,
   getFirefoxBuildEnv,
 } from "./lib/extension/firefox-pipeline";
-import { distExtDir, sharedBuild } from "./lib/paths";
+import { distExtDir } from "./lib/paths";
+import { createBaseViteConfig } from "./lib/vite-base-config";
 
-const verifyVirtualEntry = "virtual:vot-extension-verify";
-const verifyVirtualEntryResolved = "\0virtual:vot-extension-verify";
+const FIREFOX_PIPELINE_ENTRY = "virtual:vot-firefox-extension-pipeline";
+const RESOLVED_FIREFOX_PIPELINE_ENTRY = `\0${FIREFOX_PIPELINE_ENTRY}`;
 
-function verifyVirtualEntryPlugin() {
+function firefoxPipelineEntryPlugin(): Plugin {
   return {
-    name: "vot-extension-verify-virtual-entry",
-    resolveId(source: string) {
-      if (source === verifyVirtualEntry) return verifyVirtualEntryResolved;
-      return null;
+    name: "vot-firefox-pipeline-entry",
+    resolveId(id) {
+      return id === FIREFOX_PIPELINE_ENTRY
+        ? RESOLVED_FIREFOX_PIPELINE_ENTRY
+        : null;
     },
-    load(id: string) {
-      if (id !== verifyVirtualEntryResolved) return null;
-      return "globalThis.__VOT_EXTENSION_VERIFY_ENTRY__ = true;";
+    load(id) {
+      if (id !== RESOLVED_FIREFOX_PIPELINE_ENTRY) return null;
+      return "export default true;";
     },
   };
 }
 
-function firefoxPipelinePlugin() {
+function firefoxBuildPipelinePlugin(): Plugin {
   return {
     name: "vot-firefox-build-pipeline",
-    apply: "build" as const,
+    apply: "build",
     async closeBundle() {
-      const context = await createExtensionBuildContext();
-      const headers = await getExtensionHeaders();
+      const [context, headers] = await Promise.all([
+        createExtensionBuildContext(),
+        getExtensionHeaders(),
+      ]);
+
       try {
         await buildExtensionBundles({ context, headers });
         await finalizeFirefoxBuild();
@@ -45,19 +50,22 @@ function firefoxPipelinePlugin() {
 }
 
 export default defineConfig(async () => {
+  const baseConfig = createBaseViteConfig({ cacheName: "firefox-extension" });
   const env = await getFirefoxBuildEnv();
 
   return {
+    ...baseConfig,
     define: buildDefine(env),
-    plugins: [verifyVirtualEntryPlugin(), firefoxPipelinePlugin()],
+    plugins: [firefoxPipelineEntryPlugin(), firefoxBuildPipelinePlugin()],
     build: {
-      ...sharedBuild,
+      ...baseConfig.build,
       outDir: distExtDir,
       emptyOutDir: false,
       write: false,
+      sourcemap: false,
       minify: false,
       rolldownOptions: {
-        input: verifyVirtualEntry,
+        input: FIREFOX_PIPELINE_ENTRY,
       },
     },
   };

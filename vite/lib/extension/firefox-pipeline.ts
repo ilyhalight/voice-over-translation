@@ -1,10 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { build as viteBuild } from "vite";
+import { type UserConfig, build as viteBuild } from "vite";
 import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
 import { type BuildEnvMeta, buildDefine } from "../env";
-import { distExtDir, outTmp, rootDir, srcDir } from "../paths";
-import { createViteConfig } from "../vite-base-config";
+import {
+  distExtDir,
+  outTmp,
+  rootDir,
+  singleFileBuildOptions,
+  srcDir,
+} from "../paths";
+import { createBaseViteConfig } from "../vite-base-config";
 import {
   buildManifestChrome,
   EXTENSION_ICON_SIZES,
@@ -33,7 +39,6 @@ export interface ExtensionBuildContext {
 
 interface ExtensionEntry {
   entry: string;
-  format: "es";
   fileName: string;
   emptyOutDir: boolean;
 }
@@ -41,31 +46,26 @@ interface ExtensionEntry {
 const extensionEntries: ExtensionEntry[] = [
   {
     entry: "src/index.ts",
-    format: "es",
     fileName: "content.module.js",
     emptyOutDir: true,
   },
   {
     entry: "src/extension/prelude.ts",
-    format: "es",
     fileName: "prelude.module.js",
     emptyOutDir: false,
   },
   {
     entry: "src/extension/bridge.ts",
-    format: "es",
     fileName: "bridge.js",
     emptyOutDir: false,
   },
   {
     entry: "src/extension/background.ts",
-    format: "es",
     fileName: "background.js",
     emptyOutDir: false,
   },
   {
     entry: "src/extension/background.ts",
-    format: "es",
     fileName: "background-ff.js",
     emptyOutDir: false,
   },
@@ -146,32 +146,40 @@ export async function getFirefoxBuildEnv(): Promise<BuildEnvMeta> {
 // Firefox bundle building
 // ----------------------------------------------------------------
 
-async function buildEntryRaw(
-  entry: string,
-  format: "es",
-  fileName: string,
-  emptyOutDir: boolean,
-  define: any,
-): Promise<void> {
-  await viteBuild(
-    createViteConfig({
-      root: rootDir,
-      configFile: false,
-      define,
-      build: {
-        outDir: outTmp,
-        emptyOutDir,
-        sourcemap: false,
-        minify: "oxc",
-        lib: {
-          entry: path.join(rootDir, entry),
-          name: "VOT",
-          formats: [format],
-          fileName: () => fileName,
-        },
+function createExtensionEntryConfig(
+  entry: ExtensionEntry,
+  define: UserConfig["define"],
+): UserConfig {
+  const baseConfig = createBaseViteConfig({
+    cacheName: "firefox-extension-bundles",
+  });
+
+  return {
+    ...baseConfig,
+    configFile: false,
+    define,
+    build: {
+      ...baseConfig.build,
+      ...singleFileBuildOptions,
+      outDir: outTmp,
+      emptyOutDir: entry.emptyOutDir,
+      sourcemap: false,
+      minify: "oxc",
+      lib: {
+        entry: path.join(rootDir, entry.entry),
+        name: "VOT",
+        formats: ["es"],
+        fileName: () => entry.fileName,
       },
-    }),
-  );
+    },
+  };
+}
+
+async function buildEntry(
+  entry: ExtensionEntry,
+  define: UserConfig["define"],
+): Promise<void> {
+  await viteBuild(createExtensionEntryConfig(entry, define));
 }
 
 export async function buildExtensionBundles({
@@ -193,25 +201,9 @@ export async function buildExtensionBundles({
 
   await ensureCleanDir(outTmp);
 
-  const [firstEntry, ...restEntries] = extensionEntries;
-  await buildEntryRaw(
-    firstEntry.entry,
-    firstEntry.format,
-    firstEntry.fileName,
-    firstEntry.emptyOutDir,
-    define,
-  );
-  await Promise.all(
-    restEntries.map((entry) =>
-      buildEntryRaw(
-        entry.entry,
-        entry.format,
-        entry.fileName,
-        entry.emptyOutDir,
-        define,
-      ),
-    ),
-  );
+  for (const entry of extensionEntries) {
+    await buildEntry(entry, define);
+  }
 }
 
 async function copyExtensionFiles(targetDir: string): Promise<void> {

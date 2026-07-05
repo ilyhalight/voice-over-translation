@@ -1,6 +1,7 @@
 import debug from "../../utils/debug";
 import {
   type AnyObject,
+  BG_MSG_NOTIFICATION,
   type BridgeWireMessage,
   isOurMessage,
   TYPE_NOTIFY,
@@ -9,9 +10,13 @@ import {
   TYPE_XHR_ABORT,
   TYPE_XHR_START,
 } from "../shared/constants";
-import { toPageMessage } from "../shared/transport";
+import {
+  getSameWindowPostMessageTargetOrigin,
+  isSameWindowBridgeEvent,
+  toPageMessage,
+} from "../shared/transport";
 import { asErrorMessage } from "../shared/utils";
-import { ext } from "../shared/webext";
+import { ext, runtimeSendMessage } from "../shared/webext";
 import { handleBridgeRequest } from "./request-handler";
 import { abortBridgeXhr, startBridgeXhr } from "./xhr-bridge";
 
@@ -26,7 +31,9 @@ function injectPageModule(fileName: string): void {
 
   const script = document.createElement("script");
   script.type = "module";
-  script.src = ext.runtime?.getURL(fileName);
+  script.async = false;
+  script.src = ext.runtime?.getURL(fileName) ?? "";
+  script.dataset.votExtensionModule = fileName;
   script.addEventListener(
     "error",
     () => {
@@ -39,7 +46,7 @@ function injectPageModule(fileName: string): void {
 
 function postToPage(payload: AnyObject) {
   const { message, transfer } = toPageMessage(payload);
-  const targetOrigin = globalThis.location.origin;
+  const targetOrigin = getSameWindowPostMessageTargetOrigin();
   if (transfer.length) {
     globalThis.postMessage(message, targetOrigin, transfer);
     return;
@@ -78,8 +85,7 @@ function bootstrapExtensionBridge(): void {
   }
 
   globalThis.addEventListener("message", async (event) => {
-    if (event.source !== globalThis.window) return;
-    if (event.origin !== globalThis.location.origin) return;
+    if (!isSameWindowBridgeEvent(event)) return;
     const data = event.data as BridgeWireMessage;
     if (!isOurMessage(data)) return;
 
@@ -94,9 +100,11 @@ function bootstrapExtensionBridge(): void {
       }
 
       if (data.type === TYPE_NOTIFY) {
-        ext?.runtime?.sendMessage?.({
-          type: "gm_notification",
+        void runtimeSendMessage({
+          type: BG_MSG_NOTIFICATION,
           details: data.details,
+        }).catch((error) => {
+          debug.warn("[VOT EXT][bridge] notification dispatch failed", error);
         });
         return;
       }

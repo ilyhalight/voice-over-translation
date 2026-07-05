@@ -1,18 +1,11 @@
 import path from "node:path";
 import { defineConfig } from "vite";
 import { buildDefine } from "./lib/env";
-import {
-  distDir,
-  sharedBuild,
-  sharedCss,
-  sharedResolveAlias,
-  srcDir,
-} from "./lib/paths";
+import { distDir, singleFileBuildOptions, srcDir } from "./lib/paths";
 import {
   collectUsedUserscriptGrantsFromEntry,
   getHeaders,
   mergeUserscriptGrants,
-  type UserscriptBranch,
   type UserscriptHeader,
 } from "./lib/userscript/grants";
 import { formatUserscriptHeader } from "./lib/userscript/headers";
@@ -20,62 +13,90 @@ import {
   getAvailableLocales,
   getLocaleHeaderEntriesAsync,
 } from "./lib/userscript/locales";
+import { createBaseViteConfig } from "./lib/vite-base-config";
+
+const USERSCRIPT_ENTRY = path.resolve(srcDir, "index.ts");
+const USERSCRIPT_GLOBAL_NAME = "vot";
+
+type UserscriptBranch = "dev" | "master";
+
+function isDebugBuild(command: string, mode: string): boolean {
+  return command === "serve" || mode === "development";
+}
+
+function getUserscriptBranches({
+  debug,
+  version,
+}: {
+  debug: boolean;
+  version: string;
+}): {
+  repoBranch: UserscriptBranch;
+  repoUpdateBranch: UserscriptBranch;
+} {
+  const isBeta = version.includes("beta");
+
+  return {
+    repoBranch: debug || isBeta ? "dev" : "master",
+    repoUpdateBranch: isBeta ? "dev" : "master",
+  };
+}
 
 export default defineConfig(async ({ command, mode }) => {
-  const debugMode = command === "serve" || mode === "development";
-  const buildMinified = mode === "minify";
-  const mainHeaders = getHeaders<UserscriptHeader>();
-  const isBeta = String(mainHeaders.version).includes("beta");
-  const repoBranch: UserscriptBranch = debugMode || isBeta ? "dev" : "master";
-  const repoUpdateBranch: UserscriptBranch = isBeta ? "dev" : "master";
-  const filename = buildMinified ? "vot-min" : "vot";
+  const baseConfig = createBaseViteConfig({ cacheName: "userscript" });
+  const debug = isDebugBuild(command, mode);
+  const minified = mode === "minify";
+  const headers = getHeaders<UserscriptHeader>();
+  const version = String(headers.version || "");
+  const authors = String(headers.author || "");
+  const filename = minified ? "vot-min" : "vot";
+  const { repoBranch, repoUpdateBranch } = getUserscriptBranches({
+    debug,
+    version,
+  });
 
-  const [availableLocales, localeEntries, grants] = await Promise.all([
+  const [availableLocales, localeEntries, detectedGrants] = await Promise.all([
     getAvailableLocales(),
     getLocaleHeaderEntriesAsync(),
-    collectUsedUserscriptGrantsFromEntry(path.resolve(srcDir, "index.ts")),
+    collectUsedUserscriptGrantsFromEntry(USERSCRIPT_ENTRY),
   ]);
-  const mergedGrants = mergeUserscriptGrants(grants, mainHeaders.grant);
 
   const banner = formatUserscriptHeader({
     filename,
     repoBranch,
     repoUpdateBranch,
     localeEntries,
-    grants: mergedGrants,
+    grants: mergeUserscriptGrants(detectedGrants, headers.grant),
   });
 
   return {
-    resolve: { alias: sharedResolveAlias },
-    css: sharedCss,
+    ...baseConfig,
     define: buildDefine({
-      debug: debugMode,
+      debug,
       isExtension: false,
       availableLocales,
       repoBranch,
-      version: String(mainHeaders.version || ""),
-      authors: String(mainHeaders.author || ""),
+      version,
+      authors,
       crxjsBuild: false,
     }),
     build: {
-      ...sharedBuild,
+      ...baseConfig.build,
+      ...singleFileBuildOptions,
       outDir: distDir,
-      // emptyOutDir:false because build:all runs build and build:min sequentially
-      // (run-s in package.json). Each build writes a uniquely-named file
-      // (vot.user.js vs vot-min.user.js), so neither overwrites the other.
       emptyOutDir: false,
+      sourcemap: debug,
+      minify: minified ? "oxc" : false,
       lib: {
-        entry: path.resolve(srcDir, "index.ts"),
-        name: "vot",
+        entry: USERSCRIPT_ENTRY,
+        name: USERSCRIPT_GLOBAL_NAME,
         formats: ["iife"],
         fileName: () => `${filename}.user.js`,
       },
-      minify: buildMinified,
-      sourcemap: debugMode,
-      // Higher threshold for userscript (single IIFE bundle); default is 500
-      chunkSizeWarningLimit: 600,
       rolldownOptions: {
-        output: { postBanner: banner },
+        output: {
+          postBanner: banner,
+        },
       },
     },
   };

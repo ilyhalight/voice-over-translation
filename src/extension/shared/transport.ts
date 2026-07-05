@@ -29,6 +29,27 @@ export function toBridgeMessage(payload: AnyObject): BridgeMarkedMessage {
   return { ...payload, [MARK]: true };
 }
 
+export function getSameWindowPostMessageTargetOrigin(): string {
+  const origin = globalThis.location?.origin;
+
+  // Opaque origins (about:blank, about:srcdoc, sandboxed frames) expose
+  // location.origin as "null". That string is not a valid postMessage
+  // target origin, so the only valid target is "*". The bridge still
+  // verifies event.source and the private marker before accepting messages.
+  return !origin || origin === "null" ? "*" : origin;
+}
+
+export function isSameWindowBridgeEvent(event: MessageEvent): boolean {
+  if (event.source !== globalThis.window) return false;
+
+  const origin = globalThis.location?.origin;
+  if (!origin || origin === "null") {
+    return event.origin === "null" || event.origin === origin;
+  }
+
+  return event.origin === origin;
+}
+
 export function toPageMessage(payload: AnyObject): {
   message: BridgeMarkedMessage;
   transfer: Transferable[];

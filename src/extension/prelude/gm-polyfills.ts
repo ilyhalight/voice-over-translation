@@ -8,7 +8,10 @@ import {
   TYPE_XHR_ABORT,
   TYPE_XHR_START,
 } from "../shared/constants";
-import { toBridgeMessage } from "../shared/transport";
+import {
+  getSameWindowPostMessageTargetOrigin,
+  toBridgeMessage,
+} from "../shared/transport";
 import { callXhrCallback } from "../shared/utils";
 
 const XHR_FALLBACK_TIMEOUT_GRACE_MS = 1_000;
@@ -37,7 +40,10 @@ function toFiniteNumber(value: unknown): number | undefined {
 }
 
 function postToBridge(payload: AnyObject) {
-  globalThis.postMessage(toBridgeMessage(payload), globalThis.location.origin);
+  globalThis.postMessage(
+    toBridgeMessage(payload),
+    getSameWindowPostMessageTargetOrigin(),
+  );
 }
 
 // Notifications cannot transport functions (onclick/ondone) over postMessage.

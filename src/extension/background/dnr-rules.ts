@@ -1,5 +1,5 @@
 import debug from "../../utils/debug";
-import { ext } from "../shared/webext";
+import { dnrUpdateSessionRules, ext } from "../shared/webext";
 import {
   filterYandexHeadersForDnr,
   isYandexApiHostname,
@@ -30,15 +30,11 @@ function hasDnr(): boolean {
   return Boolean(ext?.declarativeNetRequest?.updateSessionRules);
 }
 
-function updateSessionRules(args: {
+async function updateSessionRules(args: {
   addRules?: unknown[];
   removeRuleIds?: number[];
 }): Promise<void> {
-  const result = ext?.declarativeNetRequest?.updateSessionRules({
-    addRules: args.addRules ?? [],
-    removeRuleIds: args.removeRuleIds ?? [],
-  });
-  return (result as Promise<void> | undefined) ?? Promise.resolve();
+  await dnrUpdateSessionRules(args);
 }
 
 const FORBIDDEN_HEADERS = new Set(["user-agent", "origin", "referer"]);

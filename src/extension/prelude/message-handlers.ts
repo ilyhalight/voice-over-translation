@@ -7,6 +7,7 @@ import {
   TYPE_XHR_ACK,
   TYPE_XHR_EVENT,
 } from "../shared/constants";
+import { isSameWindowBridgeEvent } from "../shared/transport";
 import { callXhrCallback } from "../shared/utils";
 import {
   armXhrFallbackWatchdog,
@@ -18,8 +19,7 @@ import {
 
 export function wireMessageHandlers() {
   globalThis.addEventListener("message", (event) => {
-    if (event.source !== globalThis.window) return;
-    if (event.origin !== globalThis.location.origin) return;
+    if (!isSameWindowBridgeEvent(event)) return;
     const data = event.data;
     if (!isOurMessage(data)) return;
 

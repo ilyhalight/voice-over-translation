@@ -2,23 +2,21 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { defineConfig } from "vite";
 import { buildDefine } from "./lib/env";
-import {
-  distDir,
-  sharedBuild,
-  sharedCss,
-  sharedResolveAlias,
-  testsDir,
-} from "./lib/paths";
+import { distDir, singleFileBuildOptions, testsDir } from "./lib/paths";
 import { formatSimpleUserscriptHeader } from "./lib/userscript/headers";
+import { createBaseViteConfig } from "./lib/vite-base-config";
+
+const TEST_UI_ENTRY = path.resolve(testsDir, "ui.js");
+const TEST_UI_HEADERS_PATH = path.resolve(testsDir, "headers.json");
 
 export default defineConfig(async () => {
+  const baseConfig = createBaseViteConfig({ cacheName: "test-ui" });
   const testMeta = JSON.parse(
-    await fs.readFile(path.resolve(testsDir, "headers.json"), "utf8"),
+    await fs.readFile(TEST_UI_HEADERS_PATH, "utf8"),
   ) as Record<string, unknown>;
 
   return {
-    resolve: { alias: sharedResolveAlias },
-    css: sharedCss,
+    ...baseConfig,
     define: buildDefine({
       debug: true,
       isExtension: false,
@@ -29,19 +27,22 @@ export default defineConfig(async () => {
       crxjsBuild: false,
     }),
     build: {
-      ...sharedBuild,
+      ...baseConfig.build,
+      ...singleFileBuildOptions,
       outDir: distDir,
       emptyOutDir: false,
+      sourcemap: false,
+      minify: false,
       lib: {
-        entry: path.resolve(testsDir, "ui.js"),
+        entry: TEST_UI_ENTRY,
         name: "testUi",
         formats: ["iife"],
         fileName: () => "test-ui.user.js",
       },
-      minify: false,
-      sourcemap: false,
       rolldownOptions: {
-        output: { postBanner: formatSimpleUserscriptHeader(testMeta) },
+        output: {
+          postBanner: formatSimpleUserscriptHeader(testMeta),
+        },
       },
     },
   };

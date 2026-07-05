@@ -199,6 +199,37 @@ export async function storageRemove(keys: string | string[]): Promise<void> {
   );
 }
 
+export async function runtimeSendMessage<T = unknown>(
+  message: unknown,
+): Promise<T> {
+  const api = ext?.runtime;
+  const sendMessage = api?.sendMessage;
+  return await callAsync<T>(
+    sendMessage?.bind(api) as ((...args: unknown[]) => unknown) | undefined,
+    [message],
+  );
+}
+
+export async function dnrUpdateSessionRules(args: {
+  addRules?: unknown[];
+  removeRuleIds?: number[];
+}): Promise<void> {
+  const api = ext?.declarativeNetRequest;
+  const updateSessionRules = api?.updateSessionRules;
+  if (!api || typeof updateSessionRules !== "function") return;
+
+  await callAsync<void>(
+    updateSessionRules.bind(api) as (...args: unknown[]) => unknown,
+    [
+      {
+        addRules: args.addRules ?? [],
+        removeRuleIds: args.removeRuleIds ?? [],
+      },
+    ],
+    { mapCbArgs: () => undefined },
+  );
+}
+
 export async function notificationsCreate(
   notificationId: string,
   options: Record<string, unknown>,

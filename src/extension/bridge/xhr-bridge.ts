@@ -8,7 +8,10 @@ import {
 } from "../shared/bodySerialization";
 import type { AnyObject } from "../shared/constants";
 import { PORT_NAME, TYPE_XHR_ACK, TYPE_XHR_EVENT } from "../shared/constants";
-import { toPageMessage } from "../shared/transport";
+import {
+  getSameWindowPostMessageTargetOrigin,
+  toPageMessage,
+} from "../shared/transport";
 import { ext, runtimeMessagesUseStructuredClone } from "../shared/webext";
 import {
   isYandexApiHostname,
@@ -177,7 +180,7 @@ function mergeHeadersIfMissing(
 
 function postToPage(payload: AnyObject) {
   const { message, transfer } = toPageMessage(payload);
-  const targetOrigin = globalThis.location.origin;
+  const targetOrigin = getSameWindowPostMessageTargetOrigin();
   if (transfer.length) {
     globalThis.postMessage(message, targetOrigin, transfer);
     return;

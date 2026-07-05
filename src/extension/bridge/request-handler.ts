@@ -1,55 +1,19 @@
 import type { AnyObject } from "../shared/constants";
-import { ext } from "../shared/webext";
+import { ext, runtimeSendMessage } from "../shared/webext";
 
 const GM_STORAGE_MESSAGE_TYPE = "gm_storage";
 
-async function sendRuntimeMessage<T = unknown>(message: AnyObject): Promise<T> {
-  const sendMessage = ext?.runtime?.sendMessage;
-  if (typeof sendMessage !== "function") {
-    throw new TypeError("runtime.sendMessage is not available");
-  }
-
-  return await new Promise<T>((resolve, reject) => {
-    try {
-      const maybePromise = sendMessage(message, (response: unknown) => {
-        const runtimeError =
-          (
-            globalThis as {
-              chrome?: { runtime?: { lastError?: { message?: string } } };
-            }
-          ).chrome?.runtime?.lastError?.message ?? null;
-        if (runtimeError) {
-          reject(new Error(runtimeError));
-          return;
-        }
-
-        resolve(response as T);
-      });
-
-      if (
-        maybePromise != null &&
-        typeof (maybePromise as Promise<T>).then === "function"
-      ) {
-        // MV3: sendMessage returned a Promise; forward its settlement.
-        (async () => {
-          try {
-            resolve(await (maybePromise as Promise<T>));
-          } catch (error) {
-            reject(error);
-          }
-        })();
-      }
-    } catch (error) {
-      reject(error);
-    }
-  });
+async function sendBridgeRuntimeMessage<T = unknown>(
+  message: AnyObject,
+): Promise<T> {
+  return await runtimeSendMessage<T>(message);
 }
 
 async function requestStorage(
   action: string,
   payload: AnyObject,
 ): Promise<unknown> {
-  const response = await sendRuntimeMessage<{
+  const response = await sendBridgeRuntimeMessage<{
     ok?: boolean;
     result?: unknown;
     error?: string;
