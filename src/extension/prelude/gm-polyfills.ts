@@ -43,16 +43,23 @@ function postToBridge(payload: AnyObject) {
 // Notifications cannot transport functions (onclick/ondone) over postMessage.
 // We strip non-serializable fields here and handle click behaviour in the
 // background script (see background/notifications.ts).
+const NOTIFICATION_STRING_FIELDS = ["title", "text", "image", "tag"] as const;
+
 function sanitizeNotificationDetails(details: unknown): AnyObject {
   const d = asRecord(details);
-  return {
-    title: d.title == null ? undefined : String(d.title),
-    text: d.text == null ? undefined : String(d.text),
-    image: d.image == null ? undefined : String(d.image),
+  const sanitized: AnyObject = {
     silent: !!d.silent,
     timeout: toFiniteNumber(d.timeout),
-    tag: d.tag == null ? undefined : String(d.tag),
   };
+
+  for (const field of NOTIFICATION_STRING_FIELDS) {
+    const value = d[field];
+    if (typeof value === "string") {
+      sanitized[field] = value;
+    }
+  }
+
+  return sanitized;
 }
 
 // Request/response plumbing for GM.* promises API.

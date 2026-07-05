@@ -57,6 +57,32 @@ import {
 } from "./smartWrap";
 import "../shims/rvfc-polyfill";
 
+const EDGE_PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
+
+const isEdgePunctuationOrSymbol = (char: string): boolean =>
+  EDGE_PUNCTUATION_OR_SYMBOL_RE.test(char);
+
+const trimEdgePunctuation = (value: string): string => {
+  const chars = Array.from(value);
+  let startIndex = 0;
+  let endIndex = chars.length;
+
+  while (
+    startIndex < endIndex &&
+    isEdgePunctuationOrSymbol(chars[startIndex])
+  ) {
+    startIndex += 1;
+  }
+  while (
+    endIndex > startIndex &&
+    isEdgePunctuationOrSymbol(chars[endIndex - 1])
+  ) {
+    endIndex -= 1;
+  }
+
+  return chars.slice(startIndex, endIndex).join("");
+};
+
 type DraggingState = {
   /** active pointer id while the pointer is down inside the subtitles */
   pointerId: number | null;
@@ -185,13 +211,12 @@ export class SubtitlesWidget {
   private tooltipTranslationRequestId = 0;
   private readonly intervalIdleChecker: IntervalIdleChecker;
   private checkerUnsubscribe: (() => void) | null = null;
-  private readonly edgePunctuationTrimRe = /^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu;
   private strTokens = "";
   private strTranslatedTokens = "";
   private passedStateKey: string | null = null;
   private readonly passedThresholds: number[] = [];
   private normalizeTokenTextForTranslation(raw: string): string {
-    return raw.trim().replace(this.edgePunctuationTrimRe, "");
+    return trimEdgePunctuation(raw.trim());
   }
   private bottomInsetCachedPx = 0; // layout px
   private safeAreaBottomInsetCachedPx = 0;

@@ -26,11 +26,17 @@ type HtmlStyleFrame = {
   previousStyle: MutableInlineStyle;
 };
 
-const HTML_TAG_RE = /^<[ \t]*(\/[ \t]*)?([a-z0-9]+)([^>]*?)>/iu;
-const ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
+type HtmlTagToken = {
+  tagName: string;
+  attrsRaw: string;
+  isClosing: boolean;
+  length: number;
+};
+
 const LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
 const ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;
-const GLUED_WORD_NUMBER_RE = /([\p{L}\p{M}]+)(\d+)|(\d+)([\p{L}\p{M}]+)/gu;
+const LETTER_OR_MARK_RUN_RE = /[\p{L}\p{M}]+/uy;
+const DIGIT_RUN_RE = /\d+/y;
 const ASS_DIRECTIVE_RE = /\\[^\\]+/gu;
 const ASS_STYLE_TOGGLE_RE = /^\\([ibu])([01])$/u;
 const ASS_PRIMARY_COLOR_RE = /^\\(?:1?c|c)&H([0-9a-f]{6,8})&$/iu;
@@ -95,6 +101,57 @@ const pushSegment = (
     text,
     style: tokenStyle,
   });
+};
+
+const isHtmlTagSpace = (char: string): boolean => char === " " || char === "\t";
+
+const isAsciiAlphaNumeric = (char: string): boolean => {
+  const code = char.charCodeAt(0);
+  return (
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122)
+  );
+};
+
+const parseHtmlTagToken = (text: string): HtmlTagToken | null => {
+  if (!text.startsWith("<")) {
+    return null;
+  }
+
+  let index = 1;
+  while (isHtmlTagSpace(text[index] ?? "")) {
+    index += 1;
+  }
+
+  const isClosing = text[index] === "/";
+  if (isClosing) {
+    index += 1;
+    while (isHtmlTagSpace(text[index] ?? "")) {
+      index += 1;
+    }
+  }
+
+  const tagNameStart = index;
+  while (isAsciiAlphaNumeric(text[index] ?? "")) {
+    index += 1;
+  }
+
+  if (index === tagNameStart) {
+    return null;
+  }
+
+  const tagEndIndex = text.indexOf(">", index);
+  if (tagEndIndex < 0) {
+    return null;
+  }
+
+  return {
+    tagName: text.slice(tagNameStart, index).toLowerCase(),
+    attrsRaw: text.slice(index, tagEndIndex),
+    isClosing,
+    length: tagEndIndex + 1,
+  };
 };
 
 const parseAssColorToCssHex = (value: string): string | undefined => {
@@ -185,31 +242,91 @@ const normalizeAttachedWordNumberExpressions = (
   }
 };
 
-const normalizeAttachedWordNumberExpression = (text: string): string =>
-  text.replaceAll(
-    GLUED_WORD_NUMBER_RE,
-    (
-      match,
-      leftLetters?: string,
-      leftDigits?: string,
-      rightDigits?: string,
-      rightLetters?: string,
-    ) => {
-      const letters = leftLetters ?? rightLetters ?? "";
-      const digits = leftDigits ?? rightDigits ?? "";
-      const isCodeLike =
-        /^[A-Za-z]{1,3}$/u.test(letters) ||
-        (letters.length === 1 &&
-          letters === letters.toLocaleUpperCase() &&
-          letters !== letters.toLocaleLowerCase());
+const isAsciiCodeLike = (letters: string): boolean =>
+  /^[A-Za-z]{1,3}$/u.test(letters) ||
+  (letters.length === 1 &&
+    letters === letters.toLocaleUpperCase() &&
+    letters !== letters.toLocaleLowerCase());
 
-      if (isCodeLike) {
-        return match;
+const readRunEndIndex = (
+  text: string,
+  startIndex: number,
+  regex: RegExp,
+): number => {
+  regex.lastIndex = startIndex;
+  const match = regex.exec(text);
+  return match ? regex.lastIndex : startIndex;
+};
+
+const getNextCodePointIndex = (text: string, startIndex: number): number => {
+  const codePoint = text.codePointAt(startIndex) ?? 0;
+  return startIndex + (codePoint > 0xffff ? 2 : 1);
+};
+
+const formatAttachedWordNumberMatch = (
+  match: string,
+  letters: string,
+  digits: string,
+  lettersFirst: boolean,
+): string => {
+  if (isAsciiCodeLike(letters)) {
+    return match;
+  }
+
+  return lettersFirst ? `${letters} ${digits}` : `${digits} ${letters}`;
+};
+
+const normalizeAttachedWordNumberExpression = (text: string): string => {
+  const parts: string[] = [];
+
+  for (let index = 0; index < text.length; ) {
+    const lettersEnd = readRunEndIndex(text, index, LETTER_OR_MARK_RUN_RE);
+    if (lettersEnd > index) {
+      const digitsEnd = readRunEndIndex(text, lettersEnd, DIGIT_RUN_RE);
+      if (digitsEnd > lettersEnd) {
+        const letters = text.slice(index, lettersEnd);
+        const digits = text.slice(lettersEnd, digitsEnd);
+        const match = text.slice(index, digitsEnd);
+        parts.push(formatAttachedWordNumberMatch(match, letters, digits, true));
+        index = digitsEnd;
+        continue;
       }
 
-      return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
-    },
-  );
+      parts.push(text.slice(index, lettersEnd));
+      index = lettersEnd;
+      continue;
+    } else {
+      const digitsEnd = readRunEndIndex(text, index, DIGIT_RUN_RE);
+      if (digitsEnd > index) {
+        const lettersEndAfterDigits = readRunEndIndex(
+          text,
+          digitsEnd,
+          LETTER_OR_MARK_RUN_RE,
+        );
+        if (lettersEndAfterDigits > digitsEnd) {
+          const digits = text.slice(index, digitsEnd);
+          const letters = text.slice(digitsEnd, lettersEndAfterDigits);
+          const match = text.slice(index, lettersEndAfterDigits);
+          parts.push(
+            formatAttachedWordNumberMatch(match, letters, digits, false),
+          );
+          index = lettersEndAfterDigits;
+          continue;
+        }
+
+        parts.push(text.slice(index, digitsEnd));
+        index = digitsEnd;
+        continue;
+      }
+    }
+
+    const nextIndex = getNextCodePointIndex(text, index);
+    parts.push(text.slice(index, nextIndex));
+    index = nextIndex;
+  }
+
+  return parts.join("");
+};
 
 const extractHtmlTagClasses = (attrsRaw: string): string[] | undefined => {
   const normalized = attrsRaw.trim();
@@ -264,14 +381,12 @@ const popHtmlStyleFrame = (
 };
 
 const applyHtmlTagStyle = (
-  htmlMatch: RegExpExecArray,
+  htmlTag: HtmlTagToken,
   segments: StyledTextSegment[],
   activeStyle: MutableInlineStyle,
   styleStack: HtmlStyleFrame[],
 ): void => {
-  const isClosing = htmlMatch[1] != null;
-  const tagName = htmlMatch[2].toLowerCase();
-  const attrsRaw = htmlMatch[3] ?? "";
+  const { attrsRaw, isClosing, tagName } = htmlTag;
 
   if (tagName === "br") {
     pushSegment(segments, "\n", activeStyle);
@@ -346,19 +461,24 @@ const consumeDisplayControlToken = (
     return cursor + 1;
   }
 
-  const assMatch = ASS_OVERRIDE_RE.exec(remainder);
-  if (assMatch) {
-    applyAssOverrideBlock(assMatch[1], activeStyle);
-    return cursor + assMatch[0].length;
+  if (remainder.startsWith("{")) {
+    const assOverrideEndIndex = remainder.indexOf("}", 1);
+    if (assOverrideEndIndex > 0) {
+      applyAssOverrideBlock(
+        remainder.slice(1, assOverrideEndIndex),
+        activeStyle,
+      );
+      return cursor + assOverrideEndIndex + 1;
+    }
   }
 
-  const htmlMatch = HTML_TAG_RE.exec(remainder);
-  if (!htmlMatch) {
+  const htmlTag = parseHtmlTagToken(remainder);
+  if (!htmlTag) {
     return null;
   }
 
-  applyHtmlTagStyle(htmlMatch, segments, activeStyle, styleStack);
-  return cursor + htmlMatch[0].length;
+  applyHtmlTagStyle(htmlTag, segments, activeStyle, styleStack);
+  return cursor + htmlTag.length;
 };
 
 const buildStyledSpans = (segments: StyledTextSegment[]) => {

@@ -1,19 +1,8 @@
-export function asErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (err && typeof err === "object") {
-    try {
-      return JSON.stringify(err);
-    } catch {
-      return Object.prototype.toString.call(err);
-    }
-  }
-  try {
-    return String(err);
-  } catch {
-    return "Unknown error";
-  }
-}
+import { toErrorMessage } from "../../utils/errors";
 
+export function asErrorMessage(err: unknown): string {
+  return toErrorMessage(err);
+}
 export function callXhrCallback(fn: unknown, arg: unknown): void {
   try {
     if (typeof fn === "function") {

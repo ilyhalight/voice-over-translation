@@ -1,66 +1,48 @@
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
-
 import { defineConfig } from "vite";
+import { buildDefine } from "./lib/env";
 import {
-  createViteConfig,
-  defineConstants,
   distDir,
+  sharedBuild,
+  sharedCss,
+  sharedResolveAlias,
   testsDir,
-} from "./vite.base.config";
+} from "./lib/paths";
+import { formatSimpleUserscriptHeader } from "./lib/userscript/headers";
 
-const headersPath = path.resolve(testsDir, "headers.json");
+export default defineConfig(async () => {
+  const testMeta = JSON.parse(
+    await fs.readFile(path.resolve(testsDir, "headers.json"), "utf8"),
+  ) as Record<string, unknown>;
 
-type UserscriptHeader = Record<string, unknown>;
-
-const testMeta = JSON.parse(
-  fs.readFileSync(headersPath, "utf8"),
-) as UserscriptHeader;
-
-function formatUserscriptHeader(header: UserscriptHeader): string {
-  const lines = ["// ==UserScript=="];
-
-  for (const [key, value] of Object.entries(header)) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        lines.push(`// @${key} ${item}`);
-      }
-      continue;
-    }
-
-    lines.push(`// @${key} ${String(value)}`);
-  }
-
-  lines.push("// ==/UserScript==\n");
-  return lines.join("\n");
-}
-
-export default defineConfig(() => {
-  return createViteConfig({
-    define: {
-      ...defineConstants({
-        DEBUG_MODE: true,
-        REPO_BRANCH: "master",
-      }),
-    },
+  return {
+    resolve: { alias: sharedResolveAlias },
+    css: sharedCss,
+    define: buildDefine({
+      debug: true,
+      isExtension: false,
+      availableLocales: [],
+      repoBranch: "master",
+      version: "",
+      authors: "",
+      crxjsBuild: false,
+    }),
     build: {
+      ...sharedBuild,
       outDir: distDir,
       emptyOutDir: false,
       lib: {
         entry: path.resolve(testsDir, "ui.js"),
         name: "testUi",
-        formats: ["es"],
+        formats: ["iife"],
         fileName: () => "test-ui.user.js",
       },
       minify: false,
       sourcemap: false,
       rolldownOptions: {
-        treeshake: true,
-        output: {
-          postBanner: formatUserscriptHeader(testMeta),
-        },
+        output: { postBanner: formatSimpleUserscriptHeader(testMeta) },
       },
     },
-  });
+  };
 });

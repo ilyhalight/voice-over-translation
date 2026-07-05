@@ -958,13 +958,8 @@ export class VideoHandler {
     return this;
   }
 
-  setVideoMuted(
-    muted: boolean,
-    options: { preserveYoutubeVolumeStorage?: boolean } = {},
-  ): this {
-    this.videoManager.setVideoMuted(muted, {
-      preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage,
-    });
+  setVideoMuted(muted: boolean): this {
+    this.videoManager.setVideoMuted(muted);
     return this;
   }
 

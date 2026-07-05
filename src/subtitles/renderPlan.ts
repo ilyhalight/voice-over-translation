@@ -17,10 +17,38 @@ export type SubtitleRenderPlanPart =
       kind: "break";
     };
 
-const LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
-const TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
-const PUNCTUATION_ONLY_RE = /^[\p{P}\p{S}]+$/u;
+const PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
 const TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
+
+const isPunctuationOrSymbol = (char: string): boolean =>
+  PUNCTUATION_OR_SYMBOL_RE.test(char);
+
+const getLeadingPunctuation = (value: string): string => {
+  let endIndex = 0;
+  for (const char of value) {
+    if (!isPunctuationOrSymbol(char)) {
+      break;
+    }
+    endIndex += char.length;
+  }
+  return value.slice(0, endIndex);
+};
+
+const getTrailingPunctuation = (value: string): string => {
+  const chars = Array.from(value);
+  let length = 0;
+  for (let index = chars.length - 1; index >= 0; index -= 1) {
+    const char = chars[index];
+    if (!isPunctuationOrSymbol(char)) {
+      break;
+    }
+    length += char.length;
+  }
+  return length > 0 ? value.slice(value.length - length) : "";
+};
+
+const isPunctuationOnly = (value: string): boolean =>
+  value.length > 0 && Array.from(value).every(isPunctuationOrSymbol);
 
 const pushTextPart = (
   plan: SubtitleRenderPlanPart[],
@@ -71,14 +99,16 @@ const hasFutureWordToken = (
     }
 
     const withoutLeadingWhitespace = tokenText.trimStart();
-    const withoutLeadingPunctuation = withoutLeadingWhitespace.replace(
-      LEADING_PUNCTUATION_RE,
-      "",
+    const leadingPunctuation = getLeadingPunctuation(withoutLeadingWhitespace);
+    const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(
+      leadingPunctuation.length,
     );
-    const withoutTrailingPunctuation = withoutLeadingPunctuation.replace(
-      TRAILING_PUNCTUATION_RE,
-      "",
+    const trailingPunctuation = getTrailingPunctuation(
+      withoutLeadingPunctuation,
     );
+    const withoutTrailingPunctuation = trailingPunctuation
+      ? withoutLeadingPunctuation.slice(0, -trailingPunctuation.length)
+      : withoutLeadingPunctuation;
     if (withoutTrailingPunctuation) {
       return true;
     }
@@ -102,10 +132,11 @@ const consumeWordToken = (
     pushTextPart(plan, leadingWhitespace, token.style);
   }
 
-  const leadingPunctuation = LEADING_PUNCTUATION_RE.exec(body)?.[0] ?? "";
+  const leadingPunctuation = getLeadingPunctuation(body);
   const bodyWithoutLeadingPunctuation = body.slice(leadingPunctuation.length);
-  const trailingPunctuation =
-    TRAILING_PUNCTUATION_RE.exec(bodyWithoutLeadingPunctuation)?.[0] ?? "";
+  const trailingPunctuation = getTrailingPunctuation(
+    bodyWithoutLeadingPunctuation,
+  );
   const wordText = trailingPunctuation
     ? bodyWithoutLeadingPunctuation.slice(
         0,
@@ -202,7 +233,7 @@ const consumeTextToken = (
   const textParts = tokenText.match(TEXT_TOKEN_SLICE_RE) ?? [tokenText];
   for (const textPart of textParts) {
     pushTextPart(plan, textPart, token.style, {
-      highlightIndex: PUNCTUATION_ONLY_RE.test(textPart)
+      highlightIndex: isPunctuationOnly(textPart)
         ? fallbackHighlightIndex
         : undefined,
     });

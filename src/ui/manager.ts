@@ -213,9 +213,17 @@ export class UIManager {
           return;
         }
 
-        const nextVolume01 = volume / 100;
-        this.videoHandler.setVideoVolume(nextVolume01);
-        this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
+        if (volume === 0) {
+          this.videoHandler.setVideoMuted(true);
+        } else {
+          if (this.videoHandler.isMuted()) {
+            this.videoHandler.setVideoMuted(false);
+          }
+          const nextVolume01 = volume / 100;
+          this.videoHandler.setVideoVolume(nextVolume01);
+          this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
+        }
+
         if (!this.data.syncVolume) {
           this.videoHandler.onVideoVolumeSliderSynced(volume);
           return;

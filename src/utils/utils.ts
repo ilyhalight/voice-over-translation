@@ -7,7 +7,24 @@ const ASCII_CONTROL_CHARS_RE = /\p{Cc}/gu;
 const INVALID_FILENAME_CHARS_RE = /[\\/:*?"'<>|]+/g;
 const URL_PROTOCOL_RE = /^https?:\/\//i;
 const MULTIPLE_DASHES_RE = /-{2,}/g;
-const EDGE_FILE_CHARS_RE = /^[.\s-]+|[.\s-]+$/g;
+const FILENAME_EDGE_WHITESPACE_RE = /^\s$/u;
+
+const isFilenameEdgeChar = (char: string): boolean =>
+  char === "." || char === "-" || FILENAME_EDGE_WHITESPACE_RE.test(char);
+
+const trimFilenameEdgeChars = (value: string): string => {
+  let startIndex = 0;
+  let endIndex = value.length;
+
+  while (startIndex < endIndex && isFilenameEdgeChar(value[startIndex])) {
+    startIndex += 1;
+  }
+  while (endIndex > startIndex && isFilenameEdgeChar(value[endIndex - 1])) {
+    endIndex -= 1;
+  }
+
+  return value.slice(startIndex, endIndex);
+};
 
 type PlainRecord = Record<string, unknown>;
 type NavigatorWithShare = Navigator & {
@@ -206,11 +223,11 @@ export function clearFileName(filename: string): string {
   const trimmed = filename.trim();
   if (!trimmed) return getDateFallbackFilename();
 
-  const sanitized = stripAsciiControlChars(trimmed)
+  const normalized = stripAsciiControlChars(trimmed)
     .replace(URL_PROTOCOL_RE, "")
     .replace(INVALID_FILENAME_CHARS_RE, "-")
-    .replace(MULTIPLE_DASHES_RE, "-")
-    .replace(EDGE_FILE_CHARS_RE, "");
+    .replace(MULTIPLE_DASHES_RE, "-");
+  const sanitized = trimFilenameEdgeChars(normalized);
 
   return sanitized || getDateFallbackFilename();
 }

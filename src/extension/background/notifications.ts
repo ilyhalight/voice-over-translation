@@ -43,8 +43,8 @@ function normalizeGmNotificationDetails(
 
   const timeoutRaw = Number(raw.timeout ?? 0);
   return {
-    title: raw.title == null ? "" : String(raw.title),
-    text: raw.text == null ? "" : String(raw.text),
+    title: typeof raw.title === "string" ? raw.title : "",
+    text: typeof raw.text === "string" ? raw.text : "",
     silent: Boolean(raw.silent),
     timeout: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? timeoutRaw : 0,
   };

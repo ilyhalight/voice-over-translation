@@ -1,7 +1,7 @@
 /**
  * Pure manifest-building helpers shared between:
- * - vite.extension.shared.ts (old Firefox/Chrome pipeline)
- * - manifest.config.ts (CRXJS Chrome pipeline)
+ * - vite/lib/extension/firefox-pipeline.ts (Firefox build pipeline)
+ * - vite/lib/extension/manifest.config.ts (CRXJS Chrome manifest)
  *
  * No fs/build dependencies — only string/array transforms.
  */

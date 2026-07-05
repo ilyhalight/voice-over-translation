@@ -10,6 +10,7 @@ import {
   TYPE_XHR_START,
 } from "../shared/constants";
 import { toPageMessage } from "../shared/transport";
+import { asErrorMessage } from "../shared/utils";
 import { ext } from "../shared/webext";
 import { handleBridgeRequest } from "./request-handler";
 import { abortBridgeXhr, startBridgeXhr } from "./xhr-bridge";
@@ -115,7 +116,7 @@ function bootstrapExtensionBridge(): void {
           String(data.id ?? ""),
           false,
           undefined,
-          err instanceof Error ? err.message : String(err),
+          asErrorMessage(err),
         );
       } else {
         console.error("[VOT Extension] bridge error", err);

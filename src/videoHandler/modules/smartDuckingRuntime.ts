@@ -525,7 +525,7 @@ export function setupAudioSettings(this: VideoHandler) {
     }
 
     this.setVideoVolume(0, { preserveYoutubeVolumeStorage: true });
-    this.setVideoMuted(true, { preserveYoutubeVolumeStorage: true });
+    this.setVideoMuted(true);
     writeSmartDuckingRuntime(
       this,
       initSmartDuckingRuntime(this.smartVolumeDuckingBaseline),

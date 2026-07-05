@@ -2,23 +2,17 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { build as viteBuild } from "vite";
 import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
-import {
-  createViteConfig,
-  defineConstants,
-  rootDir,
-  type ViteDefine,
-} from "./vite.base.config";
+import { type BuildEnvMeta, buildDefine } from "../env";
+import { distExtDir, outTmp, rootDir, srcDir } from "../paths";
+import { createViteConfig } from "../vite-base-config";
 import {
   buildManifestChrome,
   EXTENSION_ICON_SIZES,
   type ExtensionHeaders,
-} from "./vite.extension.manifest-helpers";
+} from "./manifest-helpers";
 
-export { rootDir } from "./vite.base.config";
-export type { ExtensionHeaders } from "./vite.extension.manifest-helpers";
-export const srcDir = path.join(rootDir, "src");
-export const outBase = path.join(rootDir, "dist-ext");
-export const outTmp = path.join(outBase, "_tmp");
+export { distExtDir, outTmp, srcDir } from "../paths";
+export type { ExtensionHeaders } from "./manifest-helpers";
 
 const DEFAULT_EXTENSION_VERSION = "0.0.0";
 const EXTENSION_LOADER_FILES = ["prelude.js", "content.js"] as const;
@@ -132,23 +126,33 @@ export async function getExtensionHeaders(): Promise<ExtensionHeaders> {
   return readJson<ExtensionHeaders>(path.join(srcDir, "headers.json"));
 }
 
+export async function getFirefoxBuildEnv(): Promise<BuildEnvMeta> {
+  const headers = await getExtensionHeaders();
+  const locales = await getLocaleCodes();
+  const branch = getRepoBranch();
+
+  return {
+    debug: false,
+    isExtension: true,
+    availableLocales: locales,
+    repoBranch: branch,
+    version: String(headers.version || ""),
+    authors: String(headers.author || ""),
+    crxjsBuild: false,
+  };
+}
+
 // ----------------------------------------------------------------
 // Firefox bundle building
 // ----------------------------------------------------------------
 
-async function buildEntry({
-  entry,
-  format,
-  fileName,
-  emptyOutDir,
-  define,
-}: {
-  entry: string;
-  format: "es";
-  fileName: string;
-  emptyOutDir: boolean;
-  define: ViteDefine;
-}): Promise<void> {
+async function buildEntryRaw(
+  entry: string,
+  format: "es",
+  fileName: string,
+  emptyOutDir: boolean,
+  define: any,
+): Promise<void> {
   await viteBuild(
     createViteConfig({
       root: rootDir,
@@ -177,26 +181,36 @@ export async function buildExtensionBundles({
   context: ExtensionBuildContext;
   headers: ExtensionHeaders;
 }): Promise<void> {
-  const defineMeta = {
-    ...defineConstants({
-      DEBUG_MODE: false,
-      IS_EXTENSION: true,
-      AVAILABLE_LOCALES: context.availableLocales,
-      REPO_BRANCH: context.repoBranch,
-      VOT_VERSION: String(headers.version || ""),
-      VOT_AUTHORS: String(headers.author || ""),
-    }),
-    "import.meta.env.VITE_CRXJS_BUILD": '"false"',
-  };
+  const define = buildDefine({
+    debug: false,
+    isExtension: true,
+    availableLocales: context.availableLocales,
+    repoBranch: context.repoBranch,
+    version: String(headers.version || ""),
+    authors: String(headers.author || ""),
+    crxjsBuild: false,
+  });
 
   await ensureCleanDir(outTmp);
 
-  // The first entry (content.module.js) has emptyOutDir: true; all others have false.
-  // Build it first, then build the rest in parallel.
   const [firstEntry, ...restEntries] = extensionEntries;
-  await buildEntry({ ...firstEntry, define: defineMeta });
+  await buildEntryRaw(
+    firstEntry.entry,
+    firstEntry.format,
+    firstEntry.fileName,
+    firstEntry.emptyOutDir,
+    define,
+  );
   await Promise.all(
-    restEntries.map((entry) => buildEntry({ ...entry, define: defineMeta })),
+    restEntries.map((entry) =>
+      buildEntryRaw(
+        entry.entry,
+        entry.format,
+        entry.fileName,
+        entry.emptyOutDir,
+        define,
+      ),
+    ),
   );
 }
 
@@ -216,7 +230,6 @@ async function copyExtensionFiles(targetDir: string): Promise<void> {
   const iconsSrcDir = path.join(srcDir, "extension", "icons");
   const iconFiles = await fs.readdir(iconsSrcDir);
 
-  // All copies are independent — run in parallel.
   await Promise.all([
     // Front-end JS bundles
     ...frontEndJsFiles.map((fileName) =>
@@ -391,7 +404,10 @@ async function writeFirefoxUpdatesManifest({
   version: string;
   addonId: string;
 }): Promise<string> {
-  const updatesManifestPath = path.join(outBase, FIREFOX_UPDATES_MANIFEST_FILE);
+  const updatesManifestPath = path.join(
+    distExtDir,
+    FIREFOX_UPDATES_MANIFEST_FILE,
+  );
   const updatesManifest = {
     addons: {
       [addonId]: {
@@ -637,14 +653,11 @@ async function verifyBundleSources(dir: string): Promise<void> {
 }
 
 async function verifyBodySerializationGuards(): Promise<void> {
-  const bridgeSrcPath = path.join(rootDir, "src/extension/bridge/index.ts");
-  const bridgeXhrSrcPath = path.join(
-    rootDir,
-    "src/extension/bridge/xhr-bridge.ts",
-  );
+  const bridgeSrcPath = path.join(srcDir, "extension/bridge/index.ts");
+  const bridgeXhrSrcPath = path.join(srcDir, "extension/bridge/xhr-bridge.ts");
   const serializationSrcPath = path.join(
-    rootDir,
-    "src/extension/shared/bodySerialization.ts",
+    srcDir,
+    "extension/shared/bodySerialization.ts",
   );
 
   // Check existence of all three paths in parallel.
@@ -687,8 +700,8 @@ async function verifyBodySerializationGuards(): Promise<void> {
   );
 }
 
-async function verifyFirefoxOutputs(): Promise<void> {
-  const dir = path.join(outBase, "firefox");
+export async function verifyFirefoxOutputs(): Promise<void> {
+  const dir = path.join(distExtDir, "firefox");
   const manifest = await verifyManifest(path.join(dir, "manifest.json"));
   verifyFirefoxManifestFields(manifest);
   verifyContentScripts(manifest);
@@ -703,7 +716,7 @@ async function verifyFirefoxOutputs(): Promise<void> {
   console.log("OK firefox: basic structure checks passed");
 
   const firefoxUpdatesManifestPath = path.join(
-    outBase,
+    distExtDir,
     FIREFOX_UPDATES_MANIFEST_FILE,
   );
   if (!(await exists(firefoxUpdatesManifestPath))) {
@@ -721,7 +734,7 @@ export async function finalizeFirefoxBuild(): Promise<void> {
   const headers = await getExtensionHeaders();
   const version = headers.version || DEFAULT_EXTENSION_VERSION;
 
-  const outDir = path.join(outBase, "firefox");
+  const outDir = path.join(distExtDir, "firefox");
   await ensureCleanDir(outDir);
   await copyExtensionFiles(outDir);
   await writeManifest(
@@ -729,7 +742,7 @@ export async function finalizeFirefoxBuild(): Promise<void> {
     buildManifestFirefox({ headers, includeWorld: true }),
   );
 
-  await zipDir(outDir, path.join(outBase, "vot-extension-firefox.xpi"));
+  await zipDir(outDir, path.join(distExtDir, "vot-extension-firefox.xpi"));
 
   const updatesPath = await writeFirefoxUpdatesManifest({
     version,
