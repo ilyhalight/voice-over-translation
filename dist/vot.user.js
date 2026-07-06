@@ -11341,6 +11341,34 @@ var vot = (function(exports) {
 				url: globalThis.location.origin
 			} : site;
 		};
+		const reuseHandlerOnNewElement = async (handler, oldEl, newEl, container) => {
+			debug.log("[VOT] Same video reconnected, reusing handler (old element replaced)");
+			handler.video = newEl;
+			if (handler.audioPlayer) {
+				handler.audioPlayer.video = newEl;
+				// Re-subscribe video events on the new element
+				try { handler.audioPlayer.player.addVideoEvents(); } catch {}
+				// Sync audio position to new video and attempt resume
+				try { handler.audioPlayer.player.lipSync("seeked"); } catch {}
+			}
+			videosWrappers.set(newEl, handler);
+			videoContainers.set(newEl, container);
+			containerOwners.set(container, newEl);
+			if (oldEl !== newEl) {
+				videosWrappers.delete(oldEl);
+				videoContainers.delete(oldEl);
+			}
+			handler.lifecycleController?.teardown();
+			handler.releaseExtraEvents();
+			if (handler.abortController) {
+				try { handler.abortController.abort(); } catch {}
+				handler.abortController = new AbortController();
+			}
+			handler.initExtraEvents();
+			try { await handler.setCanPlay(); }
+			catch (err) { console.error("[VOT] Failed to get video data after reconnection", err); }
+			return true;
+		};
 		const promotePendingVideo = async (container) => {
 			const pendingVideo = container && pendingVideoByContainer.get(container);
 			if (!pendingVideo) return;
@@ -11361,6 +11389,17 @@ var vot = (function(exports) {
 					if (activeVideoForContainer.isConnected) {
 						pendingVideoByContainer.set(container, video);
 						return;
+					}
+					// Element replacement for the same video (Firefox long seek):
+					// reuse existing handler instead of resetting translation.
+					const oldHandler = videosWrappers.get(activeVideoForContainer);
+					if (oldHandler?.hasActiveSource() && oldHandler.videoData?.videoId) {
+						try {
+							const newId = await getVideoID(site, { fetchFn: GM_fetch, video });
+							if (newId === oldHandler.videoData.videoId) {
+								if (await reuseHandlerOnNewElement(oldHandler, activeVideoForContainer, video, container)) return;
+							}
+						} catch { debug.log("[VOT] Failed to check video IDs during element replacement"); }
 					}
 					await releaseVideoHandler(activeVideoForContainer, "stale container");
 					clearContainerOwner(activeVideoForContainer);
@@ -11402,6 +11441,36 @@ var vot = (function(exports) {
 		videoObserver.onVideoAdded.addListener(handleVideoAdded);
 		videoObserver.onVideoRemoved.addListener(async (video) => {
 			const container = clearContainerOwner(video);
+			const oldHandler = videosWrappers.get(video);
+			// Check all element-replacement scenarios for the same video:
+			// (pending from handleVideoAdded, or unvalidated candidate from the same mutation batch):
+			const maybeReuse = async () => {
+				if (!oldHandler?.hasActiveSource() || !oldHandler.videoData?.videoId || !container) return false;
+				// Pending replacement (already validated via handleVideoAdded)
+				const pv = pendingVideoByContainer.get(container);
+				if (pv && pv !== video) {
+					try {
+						const pid = await getVideoID(oldHandler.site, { fetchFn: GM_fetch, video: pv });
+						if (pid === oldHandler.videoData.videoId) {
+							pendingVideoByContainer.delete(container);
+							return reuseHandlerOnNewElement(oldHandler, video, pv, container);
+						}
+					} catch {}
+				}
+				// Unvalidated <video> in container (just added, loadeddata not yet fired)
+				const els = container.querySelectorAll("video");
+				for (const candidate of els) {
+					if (candidate === video || !candidate.isConnected || videosWrappers.has(candidate)) continue;
+					try {
+						const cid = await getVideoID(oldHandler.site, { fetchFn: GM_fetch, video: candidate });
+						if (cid === oldHandler.videoData.videoId) {
+							return reuseHandlerOnNewElement(oldHandler, video, candidate, container);
+						}
+					} catch {}
+				}
+				return false;
+			};
+			if (await maybeReuse()) return;
 			await releaseVideoHandler(video, "video removed");
 			initializingVideos.delete(video);
 			if (container && pendingVideoByContainer.get(container) === video) pendingVideoByContainer.delete(container);
@@ -24595,7 +24664,8 @@ var vot = (function(exports) {
 					video: self.video
 				});
 			} catch (error) {
-				debug.log("[VOT] Failed to resolve video id on emptied", error);
+				debug.log("[VOT] Failed to resolve video id on emptied (transient state), keeping current translation", error);
+				return;
 			}
 			if (self.videoData && videoId && videoId === self.videoData.videoId) return;
 			debug.log("lipsync mode is emptied");
@@ -26599,10 +26669,11 @@ var vot = (function(exports) {
 		async release() {
 			debug.log("[VideoHandler] release");
 			this.initialized = false;
-			try {
-				await this.stopTranslation();
-			} catch (err) {
-				debug.log("[VideoHandler] stopTranslation failed during release", err);
+			// Unsubscribe video events from the old element but keep the audio
+			// player alive — prevents translation reset on transient <video> replacement (Firefox).
+			if (this.audioPlayer?.player) {
+				try { this.audioPlayer.player.removeVideoEvents(); }
+				catch {}
 			}
 			this.lifecycleController?.teardown();
 			this.abortController?.abort();
