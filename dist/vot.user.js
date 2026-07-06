@@ -7040,7 +7040,8 @@ var vot = (function(exports) {
 		"seeking",
 		"pause",
 		"ended",
-		"seeked"
+		"seeked",
+		"canplay"
 	];
 	var BUFFERING_PAUSE_DELAY_MS = 250;
 	var SYNC_DRIFT_TOLERANCE_SEC = .15;
@@ -7259,6 +7260,7 @@ var vot = (function(exports) {
 				case "play":
 				case "playing":
 				case "seeked":
+				case "canplay":
 					this.cancelBufferingPause();
 					this.isBuffering = false;
 					if (!this.chaimu.video.paused) this.syncPlay();
@@ -7444,6 +7446,7 @@ var vot = (function(exports) {
 				case "playing":
 				case "ratechange":
 				case "seeked":
+				case "canplay":
 					this.cancelBufferingPause();
 					this.isBuffering = false;
 					if (!this.chaimu.video.paused) this.start();
@@ -12738,10 +12741,15 @@ var vot = (function(exports) {
 			const hasSrcObject = this.host.video.srcObject ? "1" : "0";
 			if (this.host.site.host === "youtube") {
 				const path = globalThis.location.pathname;
-				return `${`${globalThis.location.origin}${path}${globalThis.location.search}`}||${hasSrcObject}`;
+				const u = new URL(globalThis.location.href);
+				u.searchParams.delete("t");
+				const cleaned = u.origin + path + (u.search || "");
+				return `${cleaned}||${hasSrcObject}`;
 			}
 			const src = this.host.video.currentSrc || this.host.video.src || "";
-			return `${globalThis.location.href}||${src}||${hasSrcObject}`;
+			const u = new URL(globalThis.location.href);
+			for (const p of ["t","start","end","time"]) u.searchParams.delete(p);
+			return `${u.href}||${src}||${hasSrcObject}`;
 		}
 		resolveContainer() {
 			const { site, video, container } = this.host;
