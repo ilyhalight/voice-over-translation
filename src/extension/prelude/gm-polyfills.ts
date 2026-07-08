@@ -418,9 +418,13 @@ export function installPageGmPolyfills() {
   };
 
   // Provide GM_info so the core code can report environment information.
+  const buildVersion =
+    typeof VOT_VERSION === "undefined"
+      ? "0.0.0"
+      : String(VOT_VERSION || "0.0.0");
   (globalThis as any).GM_info = {
-    script: { name: "VOT Extension", version: "0.0.0" },
+    script: { name: "VOT Extension", version: buildVersion },
     scriptHandler: "VOT Extension",
-    version: "0.0.0",
+    version: buildVersion,
   };
 }
