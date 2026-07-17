@@ -71,6 +71,7 @@
   transform-origin: top left;
 
   @include shared.vot-font-family;
+  text-align: left !important;
 
   &,
   & * {
