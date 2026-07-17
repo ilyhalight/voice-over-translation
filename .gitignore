@@ -8,10 +8,6 @@ dist/main.user.js
 dist-ext/chrome/
 dist-ext/firefox/
 
-src/localization/locales/generate_phrase.py
-src/localization/locales/regenerate_locales.py
-src/localization/locales/remove_phrase.py
-
 .vscode
 .pytest_cache
 .husky
