@@ -887,7 +887,11 @@ export class VideoHandler {
     requestLang: RequestLang,
     responseLang: ResponseLang,
   ): RequestLang {
-    if (this.data?.useLivelyVoice && responseLang === "ru") {
+    if (
+      this.data?.useLivelyVoice &&
+      requestLang === "auto" &&
+      responseLang === "ru"
+    ) {
       return "en";
     }
     return requestLang;
@@ -902,7 +906,7 @@ export class VideoHandler {
       requestLang,
       responseLang,
     );
-    if (requestLangForApi !== "en" || responseLang !== "ru") {
+    if (requestLangForApi === "auto" || responseLang !== "ru") {
       return false;
     }
 
