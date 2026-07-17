@@ -72,7 +72,7 @@ export default class VoicePopover {
   }
 
   get hidden(): boolean {
-    return this.container.hidden;
+    return !!this.container.hidden;
   }
 
   get isOpen(): boolean {
