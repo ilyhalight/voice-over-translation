@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FullscreenHelper } from "../src/utils/fullscreenHelper.ts";
+import { FullscreenHelper } from "../src/core/fullscreenHelper.ts";
 
 function createListenerTarget() {
   const listeners = new Map<string, Set<EventListener>>();
