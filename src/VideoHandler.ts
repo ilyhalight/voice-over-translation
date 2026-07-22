@@ -1461,6 +1461,22 @@ export class VideoHandler {
    */
   handleSrcChanged = () => this.lifecycleController.handleSrcChanged();
 
+  /** Rebinds an active handler when the page replaces its video element. */
+  async replaceVideo(video: HTMLVideoElement): Promise<void> {
+    if (this.video === video) return;
+
+    debug.log("[VideoHandler] replaceVideo", video);
+    await this.audioPlayer.replaceVideo(video);
+    this.abortController.abort();
+    this.releaseExtraEvents();
+
+    this.video = video;
+    this.abortController = new AbortController();
+    this.fullscreenHelper?.updateVideo(video);
+    this.resetSubtitlesWidget();
+    this.initExtraEvents();
+  }
+
   /**
    * Releases resources and removes event listeners.
    */
