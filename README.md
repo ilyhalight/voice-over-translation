@@ -99,14 +99,14 @@
 
 #### Из GitHub Releases
 
-2. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome-<версия>.zip`
-3. Откройте страницу расширений:
+1. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome.zip`
+2. Откройте страницу расширений:
    - Chrome: `chrome://extensions`
    - Edge: `edge://extensions`
    - Brave: `brave://extensions`
    - Opera: `opera://extensions`
-4. Включите **«Режим разработчика»**
-5. Перетащите скачанный `.zip`-файл на страницу расширений
+3. Включите **«Режим разработчика»**
+4. Перетащите скачанный `.zip`-файл на страницу расширений
 
 ### Установка нативного расширения для Firefox
 
@@ -116,7 +116,7 @@
 
 #### Из GitHub Releases
 
-Откройте [Releases][vot-releases], нажмите на `vot-extension-firefox-<версия>.xpi` и подтвердите установку в Firefox
+Откройте [Releases][vot-releases], нажмите на `vot-extension-firefox.xpi` и подтвердите установку в Firefox
 
 ## Возможности
 

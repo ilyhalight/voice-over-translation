@@ -99,7 +99,7 @@ Open [Chrome WebStore][vot-chrome-store] and click "Install"
 
 #### From GitHub Releases
 
-1. Open [Releases][vot-releases] and download `vot-extension-chrome-<version>.zip`
+1. Open [Releases][vot-releases] and download `vot-extension-chrome.zip`
 2. Open your extensions page:
    - Chrome: `chrome://extensions`
    - Edge: `edge://extensions`
@@ -116,7 +116,7 @@ Open [Firefox Add-ons][vot-firefox-store] and click "Add to Firefox"
 
 #### From GitHub Releases
 
-Open [Releases][vot-releases], click `vot-extension-firefox-<version>.xpi`, and confirm installation in Firefox
+Open [Releases][vot-releases], click `vot-extension-firefox.xpi`, and confirm installation in Firefox
 
 ## Features
 
