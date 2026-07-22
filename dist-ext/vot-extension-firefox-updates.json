@@ -1,6 +1,6 @@
 {
   "addons": {
-    "vot-ext-store@firefox": {
+    "vot-ext@firefox": {
       "updates": [
         {
           "version": "1.11.7",
