@@ -56,8 +56,8 @@ jobs:
         with:
           name: vot-extension-${{ matrix.node-version }}
           path: |
-            dist-ext/vot-extension-chrome-*.zip
-            dist-ext/vot-extension-firefox-*.xpi
+            dist-ext/vot-extension-chrome*.zip
+            dist-ext/vot-extension-firefox*.xpi
 
   bun:
     runs-on: ubuntu-latest
