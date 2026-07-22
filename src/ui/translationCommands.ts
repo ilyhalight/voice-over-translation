@@ -1,12 +1,11 @@
-import { authLoginUrl } from "../config/config";
-import type { VideoHandler } from "../index";
+import { openAuthWindow } from "../core/authWindow";
 import { localizationProvider } from "../localization/localizationProvider";
 import type { Status } from "../types/components/votButton";
-import { deleteExpiredAccount, hasAccountToken } from "../utils/account";
+import { deleteExpiredAccount } from "../utils/account";
 import debug from "../utils/debug";
 import { isAbortError } from "../utils/errors";
-import { votStorage } from "../utils/storage";
-import VOTLocalizedError from "../utils/VOTLocalizedError";
+import type { VideoHandler } from "../VideoHandler";
+import VOTLocalizedError from "../VOTLocalizedError";
 
 type TranslationButtonCommandDeps = {
   videoHandler?: VideoHandler;
@@ -39,39 +38,20 @@ function shouldRefreshVideoDataBeforeTranslation(videoHandler: VideoHandler) {
   );
 }
 
-function redirectToAuth(): void {
-  globalThis.open(authLoginUrl, "_blank")?.focus();
-}
-
-async function switchToStandardVoice(
+async function prepareAuthStateForTranslation(
   videoHandler: VideoHandler,
 ): Promise<void> {
-  if (!videoHandler.data?.useLivelyVoice) {
+  // Missing account and expired session are different states. Live voices may be
+  // requested without an account, but an expired saved session should be shown to
+  // the user explicitly instead of falling through to a generic login-required
+  // backend response.
+  const expired = await deleteExpiredAccount(videoHandler);
+  if (!expired) {
     return;
   }
 
-  videoHandler.data.useLivelyVoice = false;
-  await votStorage.set("useLivelyVoice", false);
-  videoHandler.uiManager?.votOverlayView?.syncVoicePopoverState();
-}
-
-async function ensureAuthStateForTranslation(
-  videoHandler: VideoHandler,
-): Promise<void> {
-  if (await deleteExpiredAccount(videoHandler)) {
-    await switchToStandardVoice(videoHandler);
-    redirectToAuth();
-    throw new VOTLocalizedError("VOTYandexTokenExpired");
-  }
-
-  if (
-    videoHandler.data?.useLivelyVoice &&
-    !hasAccountToken(videoHandler.data.account)
-  ) {
-    await switchToStandardVoice(videoHandler);
-    redirectToAuth();
-    throw new VOTLocalizedError("VOTAccountRequired");
-  }
+  openAuthWindow();
+  throw new VOTLocalizedError("VOTYandexTokenExpired");
 }
 
 export async function handleTranslationButtonCommand(
@@ -101,7 +81,7 @@ export async function handleTranslationButtonCommand(
   }
 
   try {
-    await ensureAuthStateForTranslation(videoHandler);
+    await prepareAuthStateForTranslation(videoHandler);
 
     debug.log("[handleTranslationBtnClick] trying execute translation");
     const videoData = await getVideoDataForTranslation(videoHandler);

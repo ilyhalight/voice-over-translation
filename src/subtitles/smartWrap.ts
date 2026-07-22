@@ -285,6 +285,32 @@ const buildSliceFromWord = (
   };
 };
 
+const appendNextWordSlice = (
+  slices: WordSlice[],
+  keyParts: string[] | null,
+  tokens: SubtitleToken[],
+  textBuffer: TokenTextBuffer,
+  collectKey: boolean,
+  index: number,
+): number => {
+  const token = tokens[index];
+  if (!token?.text) return index + 1;
+
+  if (token.text === "\n") {
+    const slice = createForcedBreakSlice(tokens, index);
+    slices.push(slice);
+    keyParts?.push("\n");
+    return index + 1;
+  }
+
+  if (!isWordToken(token)) return index + 1;
+
+  const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
+  slices.push(slice);
+  keyParts?.push(normalizeTokenText(slice.text));
+  return slice.breakAfterTokenIndex + 1;
+};
+
 function buildWordSlicesFromBuffer(
   tokens: SubtitleToken[],
   textBuffer: TokenTextBuffer,
@@ -298,46 +324,14 @@ function buildWordSlicesFromBuffer(
 
   let index = 0;
   while (index < tokens.length) {
-    const token = tokens[index];
-    if (!token?.text) {
-      index += 1;
-      continue;
-    }
-
-    if (token.text === "\n") {
-      const slice = createForcedBreakSlice(tokens, index);
-      slices.push(slice);
-      keyParts?.push("\n");
-      index += 1;
-      continue;
-    }
-
-    if (!isWordToken(token)) {
-      index += 1;
-      continue;
-    }
-
-    const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
-    slices.push(slice);
-    keyParts?.push(normalizeTokenText(slice.text));
-    index = slice.breakAfterTokenIndex + 1;
-  }
-
-  if (!slices.length && tokens.length) {
-    const text = textBuffer.fullText;
-    slices.push({
-      text,
-      tokenIndex: 0,
-      breakAfterTokenIndex: tokens.length - 1,
-      startToken: 0,
-      endToken: tokens.length,
-      charLength: collectKey ? normalizeTokenText(text).length : 0,
-      startMs: collectKey ? getRangeStartMs(tokens, 0, tokens.length) : 0,
-      endMs: collectKey ? getRangeEndMs(tokens, 0, tokens.length) : 0,
-      boundary: resolveBoundary(text),
-      forcesLineBreak: false,
-    });
-    keyParts?.push(normalizeTokenText(text));
+    index = appendNextWordSlice(
+      slices,
+      keyParts,
+      tokens,
+      textBuffer,
+      collectKey,
+      index,
+    );
   }
 
   return {
@@ -390,6 +384,137 @@ const finalizeSegment = (
   });
 };
 
+type SegmentBuildState = {
+  segmentStartToken: number;
+  segmentCharLength: number;
+  currentLineWidth: number;
+  currentLineCount: number;
+  lastTokenInSegment: number;
+};
+
+const createSegmentBuildState = (
+  metrics: MeasuredWordSlice[],
+): SegmentBuildState => ({
+  segmentStartToken: metrics[0].startToken,
+  segmentCharLength: 0,
+  currentLineWidth: 0,
+  currentLineCount: 1,
+  lastTokenInSegment: metrics[0].startToken,
+});
+
+const handleForcedBreakMetric = (
+  state: SegmentBuildState,
+  segments: TimedTokenSegment[],
+  tokens: SubtitleToken[],
+  metric: MeasuredWordSlice,
+): void => {
+  state.currentLineCount += 1;
+  state.currentLineWidth = 0;
+  state.lastTokenInSegment = metric.endToken;
+
+  if (state.currentLineCount > 2) {
+    const splitToken = Math.max(metric.startToken, metric.tokenIndex);
+    finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
+    state.segmentStartToken = splitToken;
+    state.segmentCharLength = 0;
+    state.lastTokenInSegment = state.segmentStartToken;
+  }
+};
+
+const appendMetricToCurrentLine = (
+  state: SegmentBuildState,
+  metric: MeasuredWordSlice,
+  nextCharLength: number,
+): void => {
+  state.currentLineWidth += metric.width;
+  state.segmentCharLength = nextCharLength;
+  state.lastTokenInSegment = metric.endToken;
+};
+
+const startSecondLineWithMetric = (
+  state: SegmentBuildState,
+  metric: MeasuredWordSlice,
+  nextCharLength: number,
+): void => {
+  state.currentLineCount = 2;
+  state.currentLineWidth = metric.width;
+  state.segmentCharLength = nextCharLength;
+  state.lastTokenInSegment = metric.endToken;
+};
+
+const startNewSegmentWithMetric = (
+  state: SegmentBuildState,
+  segments: TimedTokenSegment[],
+  tokens: SubtitleToken[],
+  metric: MeasuredWordSlice,
+): void => {
+  const splitToken = Math.max(metric.startToken, metric.tokenIndex);
+  finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
+  state.segmentStartToken = splitToken;
+  state.segmentCharLength = metric.charLength;
+  state.currentLineWidth = metric.width;
+  state.currentLineCount = 1;
+  state.lastTokenInSegment = metric.endToken;
+};
+
+const handleMeasuredWordMetric = (
+  state: SegmentBuildState,
+  segments: TimedTokenSegment[],
+  tokens: SubtitleToken[],
+  metric: MeasuredWordSlice,
+  maxWidth: number,
+  charBudget: number,
+): void => {
+  const nextCharLength = state.segmentCharLength + metric.charLength;
+  const fitsCurrentLine =
+    state.currentLineWidth === 0 ||
+    state.currentLineWidth + metric.width <= maxWidth;
+
+  if (fitsCurrentLine && nextCharLength <= charBudget) {
+    appendMetricToCurrentLine(state, metric, nextCharLength);
+    return;
+  }
+
+  if (state.currentLineCount === 1) {
+    startSecondLineWithMetric(state, metric, nextCharLength);
+    return;
+  }
+
+  startNewSegmentWithMetric(state, segments, tokens, metric);
+};
+
+const alignSegmentEndTimes = (segments: TimedTokenSegment[]): void => {
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    const current = segments[index];
+    const next = segments[index + 1];
+    if (next.startMs > current.startMs) {
+      current.endMs = next.startMs;
+    }
+  }
+};
+
+const extendLastSegmentEndTime = (
+  tokens: SubtitleToken[],
+  segments: TimedTokenSegment[],
+): void => {
+  const last = segments.at(-1);
+  if (!last) return;
+
+  last.endMs = Math.max(
+    last.endMs,
+    getRangeEndMs(tokens, last.startToken, last.endToken),
+  );
+};
+
+const finalizeComputedSegments = (
+  tokens: SubtitleToken[],
+  segments: TimedTokenSegment[],
+): TimedTokenSegment[] => {
+  alignSegmentEndTimes(segments);
+  extendLastSegmentEndTime(tokens, segments);
+  return segments.filter((segment) => segment.endToken > segment.startToken);
+};
+
 export function computeTwoLineSegments(
   tokens: SubtitleToken[],
   metrics: MeasuredWordSlice[],
@@ -403,87 +528,31 @@ export function computeTwoLineSegments(
   const maxWidth = Math.max(1, Number.isFinite(maxWidthPx) ? maxWidthPx : 0);
   const charBudget = Math.max(1, Number.isFinite(maxLength) ? maxLength : 0);
   const segments: TimedTokenSegment[] = [];
-
-  let segmentStartToken = metrics[0].startToken;
-  let segmentCharLength = 0;
-  let currentLineWidth = 0;
-  let currentLineCount = 1;
-  let lastTokenInSegment = segmentStartToken;
+  const state = createSegmentBuildState(metrics);
 
   for (const metric of metrics) {
     if (metric.forcesLineBreak) {
-      currentLineCount += 1;
-      currentLineWidth = 0;
-      lastTokenInSegment = metric.endToken;
-
-      if (currentLineCount > 2) {
-        const splitToken = Math.max(metric.startToken, metric.tokenIndex);
-        finalizeSegment(segments, tokens, segmentStartToken, splitToken);
-        segmentStartToken = splitToken;
-        segmentCharLength = 0;
-        lastTokenInSegment = segmentStartToken;
-      }
+      handleForcedBreakMetric(state, segments, tokens, metric);
       continue;
     }
 
-    const nextCharLength = segmentCharLength + metric.charLength;
-    const fitsCurrentLine =
-      currentLineWidth === 0 || currentLineWidth + metric.width <= maxWidth;
-
-    if (fitsCurrentLine && nextCharLength <= charBudget) {
-      currentLineWidth += metric.width;
-      segmentCharLength = nextCharLength;
-      lastTokenInSegment = metric.endToken;
-      continue;
-    }
-
-    if (currentLineCount === 1) {
-      currentLineCount = 2;
-      currentLineWidth = metric.width;
-      segmentCharLength = nextCharLength;
-      lastTokenInSegment = metric.endToken;
-      continue;
-    }
-
-    const splitToken = Math.max(metric.startToken, metric.tokenIndex);
-    finalizeSegment(segments, tokens, segmentStartToken, splitToken);
-    segmentStartToken = splitToken;
-    segmentCharLength = metric.charLength;
-    currentLineWidth = metric.width;
-    currentLineCount = 1;
-    lastTokenInSegment = metric.endToken;
-  }
-
-  finalizeSegment(segments, tokens, segmentStartToken, lastTokenInSegment);
-
-  if (!segments.length) {
-    return [
-      {
-        startToken: 0,
-        endToken: tokens.length,
-        startMs: getRangeStartMs(tokens, 0, tokens.length),
-        endMs: getRangeEndMs(tokens, 0, tokens.length),
-      },
-    ];
-  }
-
-  for (let index = 0; index < segments.length - 1; index += 1) {
-    const current = segments[index];
-    const next = segments[index + 1];
-    if (next.startMs > current.startMs) {
-      current.endMs = next.startMs;
-    }
-  }
-
-  const last = segments.at(-1);
-  if (last) {
-    last.endMs = Math.max(
-      last.endMs,
-      getRangeEndMs(tokens, last.startToken, last.endToken),
+    handleMeasuredWordMetric(
+      state,
+      segments,
+      tokens,
+      metric,
+      maxWidth,
+      charBudget,
     );
   }
 
-  return segments.filter((segment) => segment.endToken > segment.startToken);
+  finalizeSegment(
+    segments,
+    tokens,
+    state.segmentStartToken,
+    state.lastTokenInSegment,
+  );
+  return finalizeComputedSegments(tokens, segments);
 }
 
 const measureTokenRange = (
@@ -495,83 +564,6 @@ const measureTokenRange = (
   if (endToken <= startToken) return 0;
 
   return measureText(getBufferedTokenText(textBuffer, startToken, endToken));
-};
-
-const resolveSafeBreakAfterTokenIndex = (
-  tokens: SubtitleToken[],
-  breakAfterTokenIndex: number,
-): number => {
-  let safeBreakIndex = breakAfterTokenIndex;
-
-  while (
-    safeBreakIndex + 1 < tokens.length &&
-    tokens[safeBreakIndex + 1]?.text !== "\n" &&
-    !tokens[safeBreakIndex + 1]?.isWordLike
-  ) {
-    safeBreakIndex += 1;
-  }
-
-  return safeBreakIndex;
-};
-
-const findFallbackBreakAfterTokenIndex = (
-  tokens: SubtitleToken[],
-  textBuffer: TokenTextBuffer,
-  measureText: MeasureText,
-  maxWidthPx: number,
-): number | null => {
-  let bestBreakAfterTokenIndex: number | null = null;
-  let bestScore = Number.POSITIVE_INFINITY;
-
-  for (let index = 0; index < tokens.length - 1; index += 1) {
-    const token = tokens[index];
-    const nextToken = tokens[index + 1];
-    if (!token?.text || !nextToken?.text || nextToken.text === "\n") {
-      continue;
-    }
-
-    const candidateBreakAfterTokenIndex = resolveSafeBreakAfterTokenIndex(
-      tokens,
-      index,
-    );
-    if (candidateBreakAfterTokenIndex >= tokens.length - 1) {
-      continue;
-    }
-
-    const firstEndToken = candidateBreakAfterTokenIndex + 1;
-    const secondStartToken = firstEndToken;
-    const firstWidth = measureTokenRange(
-      textBuffer,
-      0,
-      firstEndToken,
-      measureText,
-    );
-    const secondWidth = measureTokenRange(
-      textBuffer,
-      secondStartToken,
-      tokens.length,
-      measureText,
-    );
-    const score =
-      Math.max(0, firstWidth - maxWidthPx) * 12 +
-      Math.max(0, secondWidth - maxWidthPx) * 12 +
-      Math.abs(secondWidth - firstWidth) * 0.4 +
-      (rangeStartsWithDiscouragedLineStart(
-        textBuffer,
-        secondStartToken,
-        tokens.length,
-      )
-        ? 260
-        : 0) +
-      (rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0);
-
-    if (score < bestScore) {
-      bestScore = score;
-      bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
-    }
-  }
-
-  return bestBreakAfterTokenIndex;
 };
 
 const scoreBreakCandidate = ({
@@ -601,8 +593,12 @@ const scoreBreakCandidate = ({
     Math.abs(secondWidth / Math.max(firstWidth, 1) - balanceTarget) * 120;
   const shortTopPenalty = firstWordCount < 2 ? 80 : 0;
   const orphanPenalty = secondWordCount < 2 ? 80 : 0;
-  const boundaryBonus =
-    boundary === "strong" ? -28 : boundary === "soft" ? -14 : 0;
+  let boundaryBonus = 0;
+  if (boundary === "strong") {
+    boundaryBonus = -28;
+  } else if (boundary === "soft") {
+    boundaryBonus = -14;
+  }
 
   return (
     overflowPenalty +
@@ -615,53 +611,26 @@ const scoreBreakCandidate = ({
   );
 };
 
-export function computeTokenWrapPlan(
+const emptyTokenWrapPlan = (): TokenWrapPlan => ({
+  breakAfterTokenIndices: [],
+});
+
+const singleBreakTokenWrapPlan = (
+  breakAfterTokenIndex: number,
+): TokenWrapPlan => ({
+  breakAfterTokenIndices: [breakAfterTokenIndex],
+});
+
+const hasForcedLineBreakToken = (tokens: SubtitleToken[]): boolean =>
+  tokens.some((token) => token.text === "\n");
+
+const findBestWordBreakAfterTokenIndex = (
   tokens: SubtitleToken[],
+  textBuffer: TokenTextBuffer,
+  measurableSlices: WordSlice[],
   measureText: MeasureText,
   maxWidthPx: number,
-): TokenWrapPlan {
-  if (!tokens.length) {
-    return {
-      breakAfterTokenIndices: [],
-    };
-  }
-
-  for (const token of tokens) {
-    if (token.text === "\n") {
-      return {
-        breakAfterTokenIndices: [],
-      };
-    }
-  }
-
-  const textBuffer = buildTokenTextBuffer(tokens);
-  const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
-  if (safeMaxWidthPx <= 0) {
-    return {
-      breakAfterTokenIndices: [],
-    };
-  }
-
-  const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
-  const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
-  if (!measurableSlices.length) {
-    return {
-      breakAfterTokenIndices: [],
-    };
-  }
-
-  const singleLineWidth = measureTokenRange(
-    textBuffer,
-    0,
-    tokens.length,
-    measureText,
-  );
-  if (singleLineWidth <= safeMaxWidthPx) {
-    return {
-      breakAfterTokenIndices: [],
-    };
-  }
-
+): number | null => {
   let bestBreakAfterTokenIndex: number | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
 
@@ -705,7 +674,7 @@ export function computeTokenWrapPlan(
         : 0,
       firstWordCount: index + 1,
       secondWordCount: measurableSlices.length - (index + 1),
-      maxWidthPx: safeMaxWidthPx,
+      maxWidthPx,
       boundary: slice.boundary,
     });
 
@@ -715,25 +684,50 @@ export function computeTokenWrapPlan(
     }
   }
 
-  if (bestBreakAfterTokenIndex !== null) {
-    return {
-      breakAfterTokenIndices: [bestBreakAfterTokenIndex],
-    };
+  return bestBreakAfterTokenIndex;
+};
+
+export function computeTokenWrapPlan(
+  tokens: SubtitleToken[],
+  measureText: MeasureText,
+  maxWidthPx: number,
+): TokenWrapPlan {
+  if (!tokens.length || hasForcedLineBreakToken(tokens)) {
+    return emptyTokenWrapPlan();
   }
 
-  const fallbackBreakAfterTokenIndex = findFallbackBreakAfterTokenIndex(
+  const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
+  if (safeMaxWidthPx <= 0) {
+    return emptyTokenWrapPlan();
+  }
+
+  const textBuffer = buildTokenTextBuffer(tokens);
+  const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
+  const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
+  if (!measurableSlices.length) {
+    return emptyTokenWrapPlan();
+  }
+
+  const singleLineWidth = measureTokenRange(
+    textBuffer,
+    0,
+    tokens.length,
+    measureText,
+  );
+  if (singleLineWidth <= safeMaxWidthPx) {
+    return emptyTokenWrapPlan();
+  }
+
+  const bestBreakAfterTokenIndex = findBestWordBreakAfterTokenIndex(
     tokens,
     textBuffer,
+    measurableSlices,
     measureText,
     safeMaxWidthPx,
   );
-  if (fallbackBreakAfterTokenIndex !== null) {
-    return {
-      breakAfterTokenIndices: [fallbackBreakAfterTokenIndex],
-    };
+  if (bestBreakAfterTokenIndex !== null) {
+    return singleBreakTokenWrapPlan(bestBreakAfterTokenIndex);
   }
 
-  return {
-    breakAfterTokenIndices: [],
-  };
+  return emptyTokenWrapPlan();
 }

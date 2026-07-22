@@ -220,7 +220,9 @@
     "left": "چپ",
     "right": "درسته ؟ ",
     "top": "بالا",
-    "default": "پیش فرض"
+    "default": "پیش فرض",
+    "leftCenter": "چپ مرکز",
+    "rightCenter": "راست محور"
   },
   "secs": "ثانیه",
   "autoHideButtonDelay": "تاخیر قبل از پنهان کردن دکمه ترجمه",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "صدای سریع و با کیفیت",
   "VOTLiveVoicesTitle": "صداهای زنده",
   "VOTLiveVoicesSubtitle": "حداکثر شباهت. گویی همه روسی می دانند",
-  "VOTYandexTokenExpired": "جلسه منقضی شد. دوباره وارد شوید"
+  "VOTYandexTokenExpired": "جلسه منقضی شد. دوباره وارد شوید",
+  "VOTVoiceSelection": "دوبله را انتخاب کنید"
 }

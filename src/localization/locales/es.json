@@ -220,7 +220,9 @@
     "left": "Izquierda",
     "right": "Correcto",
     "top": "Arriba",
-    "default": "Por defecto"
+    "default": "Por defecto",
+    "leftCenter": "Centrado a la izquierda",
+    "rightCenter": "Centrado a la derecha"
   },
   "secs": "sec",
   "autoHideButtonDelay": "Demora antes de ocultar el botón traducir",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Voz en off rápida y de alta calidad",
   "VOTLiveVoicesTitle": "Voces en vivo",
   "VOTLiveVoicesSubtitle": "Máxima similitud. Como si todo el mundo supiera ruso",
-  "VOTYandexTokenExpired": "La sesión expiró. Inicie sesión de nuevo"
+  "VOTYandexTokenExpired": "La sesión expiró. Inicie sesión de nuevo",
+  "VOTVoiceSelection": "Elegir doblaje"
 }

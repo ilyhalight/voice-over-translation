@@ -8,18 +8,18 @@ import {
   proxyOnlyCountries,
   proxyWorkerHost,
 } from "../../config/config";
-import type { VideoHandler } from "../../index";
 import type { LanguageSelectKey } from "../../types/components/select";
 import debug from "../../utils/debug";
 import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
-import { countryCode, setCountryCode } from "../shared";
+import type { VideoHandler } from "../../VideoHandler";
+import { getCountryCode, setCountryCode } from "../shared";
 
 let countryCodeRequestInFlight: Promise<void> | null = null;
 
 async function ensureCountryCode(): Promise<void> {
-  if (countryCode) {
+  if (getCountryCode()) {
     return;
   }
 
@@ -132,8 +132,9 @@ export async function init(this: VideoHandler) {
   // Determine country for proxy purposes
   await ensureCountryCode();
 
+  const countryCode = getCountryCode();
   if (
-    countryCode &&
+    countryCode !== null &&
     proxyOnlyCountries.includes(countryCode) &&
     this.data.translateProxyEnabledDefault
   ) {

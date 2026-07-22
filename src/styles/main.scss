@@ -56,9 +56,7 @@
   --vot-border-color: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.14);
   --vot-border-color-hover: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.22);
 
-  --vot-shadow-1:
-    0 1px 2px rgba(0, 0, 0, 0.18),
-    0 8px 24px rgba(0, 0, 0, 0.14);
+  --vot-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.14);
   --vot-shadow-2:
     0 2px 4px rgba(0, 0, 0, 0.22),
     0 12px 32px rgba(0, 0, 0, 0.22);
@@ -70,7 +68,8 @@
 
   --vot-focus-ring-color: rgba(var(--vot-primary-rgb, 139, 180, 245), 0.9);
   --vot-focus-ring: 0 0 0 2px var(--vot-focus-ring-color);
-  --vot-focus-ring-offset: 0 0 0 4px rgba(var(--vot-surface-rgb, 32, 33, 36), 0.9);
+  --vot-focus-ring-offset: 0 0 0 4px
+    rgba(var(--vot-surface-rgb, 32, 33, 36), 0.9);
 }
 
 // ------------------------------

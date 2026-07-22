@@ -1,0 +1,1543 @@
+import VOTClient, { VOTWorkerClient } from "@vot.js/ext/client";
+import type { ServiceConf } from "@vot.js/ext/types/service";
+import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
+import Chaimu from "chaimu/client";
+import { initAudioContext } from "chaimu/player";
+import {
+  minLongWaitingCount,
+  proxyWorkerHostMode1,
+  votBackendUrl,
+  workerHost,
+} from "./config/config";
+import { CacheManager, VOTSessionStorageCache } from "./core/cacheManager";
+import { FullscreenHelper } from "./core/fullscreenHelper";
+import { resolveOverlayMountTargets } from "./core/overlayMountTargets";
+import { translate } from "./core/translateApis";
+import { VOTTranslationHandler } from "./core/translationHandler";
+import { TranslationOrchestrator } from "./core/translationOrchestrator";
+import { VideoLifecycleController } from "./core/videoLifecycleController";
+import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
+import { VOTVideoManager } from "./core/videoManager";
+import { localizationProvider } from "./localization/localizationProvider";
+import { Notifier } from "./notify";
+import type { ProcessedSubtitles } from "./subtitles/processor";
+import { SubtitlesWidget } from "./subtitles/widget";
+import type { ResponseLanguageSubtitles, StorageData } from "./types/storage";
+import type { OverlayMount } from "./types/uiManager";
+import { UIManager } from "./ui/manager";
+import { isSameOverlayMount } from "./ui/mount";
+import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
+import { hasValidAccountToken } from "./utils/account";
+import debug from "./utils/debug";
+import { getEnvironmentInfo as getEnvironmentInfoImpl } from "./utils/environment";
+import { GM_fetch, isSupportGMXhr } from "./utils/gm";
+import {
+  createIntervalIdleChecker,
+  type IntervalIdleChecker,
+} from "./utils/intervalIdleChecker";
+import {
+  calculatedResLang,
+  fnv1a32ToKeyPart,
+  stableStringify,
+} from "./utils/utils";
+import {
+  clampPercentInt,
+  snapVolume01,
+  volume01ToPercent,
+} from "./utils/volume";
+import VOTLocalizedError from "./VOTLocalizedError";
+import {
+  getAutoHideDelay as getAutoHideDelayImpl,
+  initExtraEvents as initExtraEventsImpl,
+  isOverlayInteractiveNode as isOverlayInteractiveNodeImpl,
+  rebindOverlayVisibilityTargets as rebindOverlayVisibilityTargetsImpl,
+  releaseExtraEvents as releaseExtraEventsImpl,
+} from "./videoHandler/modules/events";
+import { init as initVideoHandler } from "./videoHandler/modules/init";
+import {
+  isProxyClientEnabled,
+  resolveProxyWorkerHost,
+  shouldForceProxyClientGmXhr,
+} from "./videoHandler/modules/proxyShared";
+import {
+  changeSubtitlesLang as changeSubtitlesLangImpl,
+  enableSubtitlesForCurrentLangPair as enableSubtitlesForCurrentLangPairImpl,
+  ensureSubtitlesForCurrentLangPair as ensureSubtitlesForCurrentLangPairImpl,
+  loadSubtitles as loadSubtitlesImpl,
+  refreshAutoSubtitlesForCurrentLangPair as refreshAutoSubtitlesForCurrentLangPairImpl,
+  resolveSubtitlesLanguage,
+  toggleSubtitlesForCurrentLangPair as toggleSubtitlesForCurrentLangPairImpl,
+  updateSubtitlesLangSelect as updateSubtitlesLangSelectImpl,
+} from "./videoHandler/modules/subtitles";
+import {
+  applyManualVideoVolumeOverride as applyManualVideoVolumeOverrideImpl,
+  handleProxySettingsChanged as handleProxySettingsChangedImpl,
+  isMultiMethodS3 as isMultiMethodS3Impl,
+  isYouTubeHosts as isYouTubeHostsImpl,
+  proxifyAudio as proxifyAudioImpl,
+  refreshTranslationAudio as refreshTranslationAudioImpl,
+  scheduleTranslationRefresh as scheduleTranslationRefreshImpl,
+  setupAudioSettings as setupAudioSettingsImpl,
+  stopSmartVolumeDucking as stopSmartVolumeDuckingImpl,
+  syncTranslationPlaybackVolume as syncTranslationPlaybackVolumeImpl,
+  translateFunc as translateFuncImpl,
+  unproxifyAudio as unproxifyAudioImpl,
+  updateTranslation as updateTranslationImpl,
+  validateAudioUrl as validateAudioUrlImpl,
+} from "./videoHandler/modules/translation";
+import type { VideoData } from "./videoHandler/shared";
+import {
+  type ApplyVolumeLinkDeltaResult,
+  applyVolumeLinkDelta,
+  syncTranslationLinkSnapshot,
+  syncVideoLinkSnapshot,
+} from "./videoHandler/volumeLink";
+
+const RESOLVED_VOID_PROMISE: Promise<void> = Promise.resolve();
+const TRANSLATION_LOADING_MESSAGES = new Set([
+  "Подготавливаем перевод",
+  "Видео передано в обработку",
+  "Ожидаем перевод видео",
+  "Загружаем переведенное аудио",
+]);
+
+export type UpdateTranslationErrorMsgOptions = {
+  /**
+   * Only fresh server responses should increment the long-wait counter.
+   * Local countdown ticks reuse the last ETA and must not be treated as new
+   * backend confirmations.
+   */
+  countLongWait?: boolean;
+};
+
+type InternalVideoVolumeSetHistoryEntry = {
+  at: number;
+  percent: number;
+  suppressMs: number;
+};
+
+type DownloadTranslationState = {
+  url: string;
+  videoId: string;
+};
+
+type MountCache = {
+  container: HTMLElement;
+  base: HTMLElement;
+  root: HTMLElement | ShadowRoot;
+  portalContainer: HTMLElement;
+  subtitlesMountContainer: HTMLElement | ShadowRoot;
+  fullscreenRoot: HTMLElement | ShadowRoot | null;
+};
+
+export class VideoHandler {
+  video!: HTMLVideoElement;
+  container!: HTMLElement;
+  site!: ServiceConf;
+
+  translateFromLang: RequestLang = "auto";
+  translateToLang: ResponseLang = calculatedResLang;
+
+  data?: Partial<StorageData>;
+  videoData?: VideoData;
+
+  firstPlay = true;
+  audioContext?: AudioContext;
+
+  votClient!: VOTClient | VOTWorkerClient;
+  audioPlayer!: Chaimu;
+
+  abortController!: AbortController;
+  actionsAbortController!: AbortController;
+
+  /** Increments whenever we reset/abort translation actions to invalidate stale async work */
+  actionsGeneration = 0;
+
+  notifier: Notifier = new Notifier();
+
+  cacheManager!: CacheManager;
+  votSessionStorage = new VOTSessionStorageCache();
+  /**
+   * In-flight subtitles list requests, keyed by subtitles cache key.
+   *
+   * Prevents duplicate parallel requests when the subtitles hotkey is spammed
+   * before the first request resolves.
+   */
+  subtitlesLoadPromises = new Map<string, Promise<any[]>>();
+  downloadTranslation: DownloadTranslationState | null = null;
+
+  isRefreshingTranslation = false;
+
+  autoRetry?: ReturnType<typeof setTimeout>;
+  // streamPing?: ReturnType<typeof setInterval>;
+  votOpts?: Record<string, unknown>;
+  volumeOnStart?: number;
+  autoVolumeMutedOnStart?: boolean;
+
+  /**
+   * syncVolume (link translation and video volume) runtime state.
+   * We keep last-known slider values to apply deltas reliably.
+   */
+  volumeLinkState = {
+    initialized: false,
+    lastVideoPercent: 0,
+    lastTranslationPercent: 0,
+  };
+
+  /**
+   * Used to ignore our own programmatic video-volume updates when observing
+   * external UIs (e.g. YouTube volume panel aria mutations).
+   */
+  internalVideoVolumeSetAt = 0;
+  internalVideoVolumeSetPercent: number | null = null;
+  internalVideoVolumeSuppressionMs = 250;
+  internalVideoVolumeSetHistory: InternalVideoVolumeSetHistoryEntry[] = [];
+  internalVideoVolumeSetHistoryLimit = 48;
+
+  // Smart auto-volume ducking state. Used to lower the original video volume
+  // only while the translated track has audible sound (not during silence).
+  smartVolumeDuckingInterval?: ReturnType<typeof setTimeout>;
+  smartVolumeDuckingBaseline?: number;
+  smartVolumeLastApplied?: number;
+
+  // Internal smoothing state for Smart Auto-Volume ducking.
+  smartVolumeLastTickAt = 0;
+  smartVolumeLastSoundAt = 0;
+  smartVolumeRmsMissingSinceAt: number | null = null;
+
+  /** Smoothed translated-track RMS envelope (0..1). */
+  smartVolumeRmsEnvelope = 0;
+
+  /**
+   * Internal speech gate state for Smart Auto-Volume ducking.
+   *
+   * This is a debounced/hysteresis-based boolean that tracks whether the
+   * translated track is considered "audible" for the purpose of ducking.
+   */
+  smartVolumeSpeechGateOpen = false;
+  smartVolumeIsDucked = false;
+  longWaitingResCount = 0;
+  hadAsyncWait = false;
+
+  // Available subtitle tracks for the current video. The subtitles UI widget
+  // maintains its own internal line/token representation.
+  subtitles: any[] = [];
+  subtitlesCacheKey: string | null = null;
+  subtitlesWidget?: SubtitlesWidget;
+
+  activeTranslation: { key: string; promise: Promise<unknown> } | null = null;
+  /**
+   * In-flight async teardown for translation/audio player cleanup.
+   * New translation starts should wait for this to avoid clear/init races.
+   */
+  stopTranslatePromise: Promise<void> | null = null;
+
+  // Managers
+  interactionChecker!: IntervalIdleChecker;
+  uiManager!: UIManager;
+  overlayVisibility!: OverlayVisibilityController;
+  overlayVisibilityTargetsAbortController?: AbortController;
+  translationOrchestrator!: TranslationOrchestrator;
+  lifecycleController!: VideoLifecycleController;
+  translationHandler!: VOTTranslationHandler;
+  videoManager!: VOTVideoManager;
+
+  // Subtitles received directly from API (Yandex) when available
+  yandexSubtitles: ProcessedSubtitles | null = null;
+
+  // Observers / listeners
+  resizeObserver?: ResizeObserver;
+  syncVolumeObserver?: MutationObserver;
+
+  // Init guard
+  initialized = false;
+
+  /**
+   * Cached overlay mount points (root/portal). Recomputed when container changes.
+   * Avoids doing the same DOM/style walks multiple times per lifecycle update.
+   */
+  private mountCache?: MountCache;
+
+  /**
+   * In-memory cache for translated error strings (RU -> UI language).
+   * This avoids repeated translation API calls during retry loops when the
+   * same backend message is emitted multiple times.
+   */
+  private readonly errorTranslationCache = new Map<string, string>();
+
+  /**
+   * Fullscreen helper for proper ShadowDOM support
+   */
+  fullscreenHelper?: FullscreenHelper;
+
+  /**
+   * Returns fullscreen root for overlay if the active fullscreen session belongs
+   * to the current video/container. Otherwise returns null.
+   * For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
+   * to ensure UI is mounted inside the shadow tree, not in the light DOM.
+   */
+  private getFullscreenOverlayRoot(): HTMLElement | ShadowRoot | null {
+    return this.fullscreenHelper?.getOverlayRoot() ?? null;
+  }
+
+  private getOverlayMountPoints(container: HTMLElement = this.container): {
+    root: HTMLElement | ShadowRoot;
+    portalContainer: HTMLElement;
+    subtitlesMountContainer: HTMLElement | ShadowRoot;
+    fullscreenRoot: HTMLElement | ShadowRoot | null;
+  } {
+    const fullscreenRoot = this.getFullscreenOverlayRoot();
+    const { base, root, portalContainer, subtitlesMountContainer } =
+      resolveOverlayMountTargets({
+        container,
+        site: this.site,
+        fullscreenRoot,
+      });
+
+    const cache = this.mountCache;
+    if (
+      cache?.container === container &&
+      cache.base === base &&
+      cache.subtitlesMountContainer === subtitlesMountContainer &&
+      cache.fullscreenRoot === fullscreenRoot &&
+      (cache.root.isConnected ?? document.documentElement.contains(cache.root))
+    ) {
+      return {
+        root: cache.root,
+        portalContainer: cache.portalContainer,
+        subtitlesMountContainer: cache.subtitlesMountContainer,
+        fullscreenRoot: cache.fullscreenRoot,
+      };
+    }
+
+    this.mountCache = {
+      container,
+      base,
+      root,
+      portalContainer,
+      subtitlesMountContainer,
+      fullscreenRoot,
+    };
+    return { root, portalContainer, subtitlesMountContainer, fullscreenRoot };
+  }
+
+  private getOverlayMount(
+    container: HTMLElement = this.container,
+  ): OverlayMount {
+    const { root, portalContainer, subtitlesMountContainer } =
+      this.getOverlayMountPoints(container);
+    return {
+      root,
+      portalContainer,
+      subtitlesMountContainer,
+    };
+  }
+
+  /**
+   * Builds a stable cache key for translations.
+   *
+   * NOTE: Keep this in sync with CacheManager expectations.
+   * @param {string} videoId
+   * @param {string} from
+   * @param {string} to
+   */
+  getTranslationCacheKey(
+    videoId: string,
+    from: string,
+    to: string,
+    translationHelp?: unknown,
+  ): string {
+    const requestLangForApi = this.getRequestLangForTranslation(
+      from as RequestLang,
+      to as ResponseLang,
+    );
+    const useLivelyVoice =
+      this.isLivelyVoiceAllowed(requestLangForApi, to as ResponseLang) &&
+      this.data?.useLivelyVoice;
+    const helpStr =
+      translationHelp === undefined || translationHelp === null
+        ? ""
+        : stableStringify(translationHelp);
+    const helpHash = helpStr ? fnv1a32ToKeyPart(helpStr) : "0";
+    return `${videoId}_${requestLangForApi}_${to}_${useLivelyVoice}_${helpHash}`;
+  }
+
+  /**
+   * Builds a stable cache key for subtitles.
+   *
+   * Bugfix: subtitles cache key must match the key used by loadSubtitles().
+   * @param {string} videoId
+   * @param {string} detectedLanguage
+   * @param {string} subtitleLanguage
+   */
+  getSubtitlesCacheKey(
+    videoId: string,
+    detectedLanguage: string,
+    subtitleLanguage: string,
+  ): string {
+    return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${this.data?.useLivelyVoice !== false}`;
+  }
+
+  getPreferredSubtitlesLanguage(
+    detectedLanguage: string = this.videoData?.detectedLanguage ?? "auto",
+    responseLanguage: string = this.videoData?.responseLanguage ??
+      this.translateToLang,
+    preference: ResponseLanguageSubtitles | undefined = this.data
+      ?.responseLanguageSubtitles,
+  ): string | undefined {
+    return (
+      resolveSubtitlesLanguage(
+        preference,
+        detectedLanguage,
+        responseLanguage,
+      ) ??
+      responseLanguage ??
+      detectedLanguage
+    );
+  }
+
+  isActionStale(actionContext?: { gen: number; videoId: string }): boolean {
+    if (!actionContext) return false;
+    return (
+      this.actionsGeneration !== actionContext.gen ||
+      this.videoData?.videoId !== actionContext.videoId
+    );
+  }
+
+  private updateVOTClientRequestSignal(): void {
+    if (!this.votClient) return;
+    this.votClient.fetchOpts = {
+      ...this.votClient.fetchOpts,
+      signal: this.actionsAbortController.signal,
+    };
+  }
+
+  resetActionsAbortController(reason?: any): void {
+    try {
+      this.actionsAbortController?.abort(reason);
+    } catch {
+      // ignore
+    }
+    this.actionsAbortController = new AbortController();
+    this.actionsGeneration++;
+    this.updateVOTClientRequestSignal();
+  }
+
+  /**
+   * Constructs a new VideoHandler instance.
+   * @param {HTMLVideoElement} video The video element to handle.
+   * @param {HTMLElement} container The container element for the video.
+   * @param {Object} site The site object associated with the video.
+   */
+  constructor(
+    video: HTMLVideoElement,
+    container: HTMLElement,
+    site: ServiceConf,
+  ) {
+    debug.log(
+      "[VideoHandler] add video:",
+      video,
+      "container:",
+      container,
+      this,
+    );
+    this.video = video;
+    this.container = container;
+    this.site = site;
+    this.abortController = new AbortController();
+    this.actionsAbortController = new AbortController();
+    this.cacheManager = new CacheManager();
+    this.interactionChecker = createIntervalIdleChecker();
+    this.interactionChecker.start();
+    // Create helper instances
+    const mount = this.getOverlayMount(container);
+    this.uiManager = new UIManager({
+      mount,
+      data: this.data,
+      videoHandler: this,
+      intervalIdleChecker: this.interactionChecker,
+    });
+    this.overlayVisibility = new OverlayVisibilityController({
+      checker: this.interactionChecker,
+      getOverlayView: () => this.uiManager.votOverlayView ?? null,
+      getAutoHideDelay: () => this.getAutoHideDelay(),
+      isInteractiveNode: (node: Node) => this.isOverlayInteractiveNode(node),
+    });
+    this.translationOrchestrator = new TranslationOrchestrator({
+      isFirstPlay: () => this.firstPlay,
+      setFirstPlay: (next: boolean) => {
+        this.firstPlay = next;
+      },
+      isAutoTranslateEnabled: () => Boolean(this.data?.autoTranslate),
+      getVideoId: () => this.videoData?.videoId,
+      scheduleAutoTranslate: () => this.runAutoTranslate(),
+      isMobileYouTubeMuted: () =>
+        this.site.host === "youtube" &&
+        this.site.additionalData === "mobile" &&
+        this.video.muted,
+      setMuteWatcher: (callback: () => void) => {
+        let done = false;
+        const fireOnce = () => {
+          if (done) return;
+          done = true;
+          this.video.removeEventListener("volumechange", onVolumeChange);
+          callback();
+        };
+
+        const onVolumeChange = () => {
+          if (!this.video.muted) {
+            fireOnce();
+          }
+        };
+
+        this.video.addEventListener("volumechange", onVolumeChange, {
+          signal: this.abortController.signal,
+        });
+
+        queueMicrotask(() => {
+          if (!this.video.muted) {
+            fireOnce();
+          }
+        });
+      },
+    });
+    this.lifecycleController = new VideoLifecycleController(
+      createVideoLifecycleHost(this, (value) => this.getOverlayMount(value)),
+    );
+    this.translationHandler = new VOTTranslationHandler(this);
+    this.videoManager = new VOTVideoManager(this);
+
+    this.fullscreenHelper = new FullscreenHelper({
+      container: this.container,
+      video: this.video,
+    });
+
+    this.fullscreenHelper.addFullscreenChangeListener(() => {
+      this.refreshOverlayMount();
+    });
+  }
+
+  /**
+   * Lazily creates the subtitles widget.
+   * @returns {SubtitlesWidget}
+   */
+  getSubtitlesWidget() {
+    if (!this.subtitlesWidget) {
+      const { subtitlesMountContainer } = this.getOverlayMountPoints();
+      this.subtitlesWidget = new SubtitlesWidget(
+        this.video,
+        this.uiManager.votOverlayView?.root ?? subtitlesMountContainer,
+        this.interactionChecker,
+      );
+      this.applySavedSubtitlesWidgetSettings(this.subtitlesWidget);
+    }
+    return this.subtitlesWidget;
+  }
+
+  private applySavedSubtitlesWidgetSettings(widget: SubtitlesWidget): void {
+    if (!this.data) {
+      return;
+    }
+
+    widget.setSmartLayout(
+      typeof this.data.subtitlesSmartLayout === "boolean"
+        ? this.data.subtitlesSmartLayout
+        : true,
+    );
+
+    if (typeof this.data.subtitlesMaxLength === "number") {
+      widget.setMaxLength(this.data.subtitlesMaxLength);
+    }
+    if (typeof this.data.highlightWords === "boolean") {
+      widget.setHighlightWords(this.data.highlightWords);
+    }
+    if (typeof this.data.subtitlesFontSize === "number") {
+      widget.setFontSize(this.data.subtitlesFontSize);
+    }
+    if (typeof this.data.subtitlesFontFamily === "string") {
+      widget.setFontFamily(this.data.subtitlesFontFamily);
+    }
+    if (typeof this.data.subtitlesOpacity === "number") {
+      widget.setOpacity(this.data.subtitlesOpacity);
+    }
+  }
+
+  /**
+   * Determines whether subtitles widget is initialized\.
+   * @returns {boolean}
+   */
+  hasSubtitlesWidget() {
+    return Boolean(this.subtitlesWidget);
+  }
+
+  resetSubtitlesWidget() {
+    if (this.hasSubtitlesWidget()) {
+      this.subtitlesWidget?.release();
+      this.subtitlesWidget = undefined;
+    }
+  }
+
+  /**
+   * Root element for overlay UI (buttons/menu) so it remains clickable on players
+   * that disable pointer events on inner layers.
+   */
+  get uiRoot(): HTMLElement {
+    const root = this.getOverlayMountPoints().root;
+    return root instanceof ShadowRoot ? (root.host as HTMLElement) : root;
+  }
+
+  /**
+   * Determines the DOM container used for overlay portals.
+   * @returns {HTMLElement}
+   */
+  get portalContainer() {
+    return this.getOverlayMountPoints().portalContainer;
+  }
+
+  /**
+   * Returns the container element for event listeners.
+   * @returns {HTMLElement} The event container.
+   */
+  getEventContainer() {
+    if (!this.site.eventSelector) return this.container;
+    return (
+      (document.querySelector(this.site.eventSelector) as HTMLElement | null) ??
+      this.container
+    );
+  }
+
+  /**
+   * Run auto translate using orchestrator dependencies.
+   */
+  async runAutoTranslate() {
+    await this.videoManager.videoValidator();
+    await this.uiManager.handleTranslationBtnClick();
+  }
+
+  /**
+   * Lazily initializes and returns the AudioContext.
+   * @returns {AudioContext | undefined}
+   */
+  getAudioContext() {
+    if (this.audioContext) return this.audioContext;
+    if (!this.isAudioContextSupported) return undefined;
+    try {
+      this.audioContext = initAudioContext();
+      return this.audioContext;
+    } catch (err) {
+      console.warn("[VOT] Failed to init AudioContext, falling back:", err);
+      return undefined;
+    }
+  }
+
+  get isAudioContextSupported() {
+    return (
+      globalThis.AudioContext !== undefined ||
+      (globalThis as any).webkitAudioContext !== undefined
+    );
+  }
+
+  /**
+   * Determines if audio should be preferred.
+   * @returns {boolean} True if audio is preferred.
+   */
+  getPreferAudio() {
+    if (!this.getAudioContext()) return true;
+    if (!this.data) return true;
+    if (!this.data.newAudioPlayer) return true;
+    if (this.videoData?.isStream) return true;
+    if (this.data.newAudioPlayer && !this.data.onlyBypassMediaCSP) return false;
+    return !this.site.needBypassCSP;
+  }
+
+  /**
+   * Creates the audio player.
+   * @returns {VideoHandler} The VideoHandler instance.
+   */
+  createPlayer() {
+    const preferAudio = this.getPreferAudio();
+    const audioContext = this.getAudioContext();
+    debug.log("preferAudio:", preferAudio);
+    this.audioPlayer = new Chaimu({
+      video: this.video,
+      debug: Boolean(DEBUG_MODE),
+      fetchFn: GM_fetch,
+      fetchOpts: {
+        timeout: 0,
+      },
+      preferAudio,
+    });
+    if (preferAudio && audioContext) {
+      (this.audioPlayer as any).audioContext = audioContext;
+    }
+    return this;
+  }
+
+  /**
+   * Returns true if a detected external volume update is very likely caused by
+   * our own recent programmatic setVideoVolume call.
+   */
+  isLikelyInternalVideoVolumeChange(observedPercent: number) {
+    const now = Date.now();
+    const history = this.internalVideoVolumeSetHistory;
+    if (history.length > 0) {
+      const recentHistory = history.filter(
+        (entry) => now - entry.at <= entry.suppressMs,
+      );
+      history.splice(0, history.length, ...recentHistory);
+      return recentHistory.some(
+        (entry) => Math.abs(observedPercent - entry.percent) <= 1,
+      );
+    }
+
+    if (this.internalVideoVolumeSetPercent === null) return false;
+
+    const ageMs = now - this.internalVideoVolumeSetAt;
+    if (ageMs > this.internalVideoVolumeSuppressionMs) return false;
+
+    return Math.abs(observedPercent - this.internalVideoVolumeSetPercent) <= 1;
+  }
+
+  /**
+   * Initializes the VideoHandler: loads settings, UI, video data, events, etc.
+   * @returns {Promise<void>}
+   */
+  init(): Promise<void> {
+    return initVideoHandler.call(this);
+  }
+
+  /**
+   * Initializes the VOT client.
+   * @returns {VideoHandler} This instance.
+   */
+  async initVOTClient() {
+    const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
+    let transportHost = workerHost;
+    if (this.data?.translateProxyEnabled === 1) {
+      transportHost = proxyWorkerHostMode1;
+    } else if (proxyClientEnabled) {
+      transportHost = resolveProxyWorkerHost(this.data?.proxyWorkerHost);
+    }
+    this.votOpts = {
+      fetchFn: GM_fetch,
+      fetchOpts: {
+        signal: this.actionsAbortController.signal,
+        forceGmXhr: shouldForceProxyClientGmXhr({
+          ...this.data,
+          gmXhrSupported: isSupportGMXhr,
+        }),
+      },
+      apiToken: hasValidAccountToken(this.data?.account)
+        ? this.data?.account?.token
+        : undefined,
+      hostVOT: votBackendUrl,
+      host: transportHost,
+    };
+    this.votClient = new (proxyClientEnabled ? VOTWorkerClient : VOTClient)(
+      this.votOpts,
+    );
+    this.votClient.sessions = await this.votSessionStorage.restore(
+      transportHost,
+      this.votClient.sessions,
+    );
+
+    const originalGetSession = this.votClient.getSession.bind(this.votClient);
+    this.votClient.getSession = async (
+      module: SessionModule,
+    ): Promise<ClientSession> => {
+      const session = await originalGetSession(module);
+      await this.votSessionStorage.persist(
+        transportHost,
+        this.votClient.sessions,
+      );
+      return session;
+    };
+
+    return this;
+  }
+
+  /**
+   * Sets the translation button state and text.
+   * @param {string} status The new status.
+   * @param {string} text The text to display.
+   * @returns {VideoHandler} This instance.
+   */
+  transformBtn(
+    status: "none" | "loading" | "success" | "error",
+    text: string,
+  ): this {
+    this.uiManager.transformBtn(status, text);
+    return this;
+  }
+
+  /**
+   * @returns {boolean} True if the extension audio player has active audio source
+   */
+  hasActiveSource() {
+    return !!this.audioPlayer?.player?.src;
+  }
+
+  /**
+   * Initializes extra event listeners (resize, click outside, keydown, etc.).
+   */
+  initExtraEvents() {
+    return initExtraEventsImpl.call(this);
+  }
+
+  /**
+   * Recomputes overlay mount points and rebinds interaction targets.
+   *
+   * Used when fullscreen state changes without changing `this.container`
+   * (common for players inside Shadow DOM).
+   */
+  refreshOverlayMount(): void {
+    this.mountCache = undefined;
+
+    if (this.fullscreenHelper) {
+      this.fullscreenHelper.updateContainer(this.container);
+      this.fullscreenHelper.updateVideo(this.video);
+    }
+
+    const nextMount = this.getOverlayMount(this.container);
+    const mountChanged = !isSameOverlayMount(this.uiManager.mount, nextMount);
+    this.uiManager.updateMount(nextMount);
+    if (!mountChanged) {
+      return;
+    }
+    this.rebindOverlayVisibilityTargets();
+  }
+
+  /**
+   * Re-attach overlayVisibility listeners to the *current* overlay button/menu elements.
+   *
+   * The overlay UI gets recreated in some flows (e.g. menu language change),
+   * so listeners that were attached to the old DOM nodes must be re-bound.
+   */
+  rebindOverlayVisibilityTargets = rebindOverlayVisibilityTargetsImpl;
+
+  /**
+   * Called when the video can play.
+   */
+  setCanPlay = () => this.lifecycleController.setCanPlay();
+
+  isOverlayInteractiveNode(node: unknown): boolean {
+    return isOverlayInteractiveNodeImpl.call(this, node);
+  }
+
+  /**
+   * Schedules hiding the overlay button with guard checks for internal navigation.
+   */
+  getAutoHideDelay(): number {
+    return getAutoHideDelayImpl.call(this);
+  }
+
+  /**
+   * Changes subtitles language based on user selection.
+   * @param {string} subs The subtitles selection value.
+   */
+  changeSubtitlesLang: (subs: string) => Promise<this> =
+    changeSubtitlesLangImpl as unknown as (subs: string) => Promise<this>;
+
+  /**
+   * Updates the subtitles selection options.
+   */
+  updateSubtitlesLangSelect = updateSubtitlesLangSelectImpl;
+
+  /**
+   * Ensures the in-memory subtitles list matches the current language-pair cache key.
+   */
+  ensureSubtitlesForCurrentLangPair = ensureSubtitlesForCurrentLangPairImpl;
+
+  /**
+   * Loads subtitles for the current video.
+   */
+  loadSubtitles = loadSubtitlesImpl;
+
+  /**
+   * Enables subtitles that match the currently selected language pair (from -> to).
+   *
+   * Used by the subtitles hotkey: prefers Yandex captions for the exact pair,
+   * then falls back to any captions in the target language.
+   */
+  enableSubtitlesForCurrentLangPair() {
+    return enableSubtitlesForCurrentLangPairImpl.call(this);
+  }
+
+  /**
+   * Re-evaluates the active subtitles track for the current language pair,
+   * but only when auto-subtitles are enabled.
+   */
+  refreshAutoSubtitlesForCurrentLangPair() {
+    return refreshAutoSubtitlesForCurrentLangPairImpl.call(this);
+  }
+
+  /**
+   * Toggles subtitles for the current video.
+   *
+   * - If subtitles are enabled, this disables them.
+   * - If subtitles are disabled, this enables the best subtitles track for the
+   *   current language pair.
+   */
+  toggleSubtitlesForCurrentLangPair() {
+    return toggleSubtitlesForCurrentLangPairImpl.call(this);
+  }
+
+  getRequestLangForTranslation(
+    requestLang: RequestLang,
+    responseLang: ResponseLang,
+  ): RequestLang {
+    if (
+      this.data?.useLivelyVoice &&
+      requestLang === "auto" &&
+      responseLang === "ru"
+    ) {
+      return "en";
+    }
+    return requestLang;
+  }
+
+  isLivelyVoiceAllowed(
+    requestLang: RequestLang = this.videoData?.detectedLanguage ?? "auto",
+    responseLang: ResponseLang = this.videoData?.responseLanguage ??
+      this.translateToLang,
+  ) {
+    const requestLangForApi = this.getRequestLangForTranslation(
+      requestLang,
+      responseLang,
+    );
+    if (requestLangForApi === "auto" || responseLang !== "ru") {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Gets the video volume.
+   * @returns {number} The video volume (0.0 - 1.0).
+   */
+  getVideoVolume = () => this.videoManager.getVideoVolume();
+
+  /**
+   * Sets the video volume.
+   * @param {number} volume A number between 0 and 1.
+   * @returns {VideoHandler} This instance.
+   */
+  setVideoVolume(
+    volume: number,
+    options: {
+      preserveYoutubeVolumeStorage?: boolean;
+      suppressSyncMs?: number;
+    } = {},
+  ): this {
+    const snapped = snapVolume01(volume);
+    const suppressSyncMs =
+      typeof options.suppressSyncMs === "number" &&
+      Number.isFinite(options.suppressSyncMs)
+        ? Math.max(0, options.suppressSyncMs)
+        : this.internalVideoVolumeSuppressionMs;
+    const now = Date.now();
+    const percent = volume01ToPercent(snapped);
+
+    this.internalVideoVolumeSetAt = now;
+    this.internalVideoVolumeSetPercent = percent;
+    this.internalVideoVolumeSetHistory.push({
+      at: now,
+      percent,
+      suppressMs: suppressSyncMs,
+    });
+    this.internalVideoVolumeSetHistory.splice(
+      0,
+      Math.max(
+        0,
+        this.internalVideoVolumeSetHistory.length -
+          this.internalVideoVolumeSetHistoryLimit,
+      ),
+    );
+
+    this.videoManager.setVideoVolume(snapped, {
+      preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage,
+    });
+    return this;
+  }
+
+  setVideoMuted(muted: boolean): this {
+    this.videoManager.setVideoMuted(muted);
+    return this;
+  }
+
+  /**
+   * Keeps internal syncVolume state aligned with observed/programmatic video-volume changes.
+   */
+  onVideoVolumeSliderSynced(volumePercent: number) {
+    const normalized = clampPercentInt(volumePercent);
+
+    if (!this.volumeLinkState.initialized) {
+      syncVideoLinkSnapshot(this.volumeLinkState, normalized);
+      return;
+    }
+
+    if (
+      this.data?.syncVolume &&
+      this.hasActiveSource() &&
+      !this.isLikelyInternalVideoVolumeChange(normalized)
+    ) {
+      return;
+    }
+
+    syncVideoLinkSnapshot(this.volumeLinkState, normalized);
+  }
+
+  /**
+   * Keeps internal translation-volume snapshot aligned when syncVolume is
+   * temporarily disabled, so re-enabling link mode does not apply stale deltas.
+   */
+  onTranslationVolumeSliderSynced(volumePercent: number) {
+    syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
+  }
+
+  /**
+   * Re-seeds syncVolume baseline from current UI slider values.
+   * Useful when toggling syncVolume on/off to avoid stale delta state.
+   */
+  resetVolumeLinkState(videoPercent: number, translationPercent: number): void {
+    syncVideoLinkSnapshot(this.volumeLinkState, videoPercent);
+    syncTranslationLinkSnapshot(this.volumeLinkState, translationPercent);
+    this.volumeLinkState.initialized = true;
+  }
+
+  clearVolumeLinkState(): void {
+    this.volumeLinkState.initialized = false;
+    this.volumeLinkState.lastVideoPercent = 0;
+    this.volumeLinkState.lastTranslationPercent = 0;
+  }
+
+  /**
+   * Checks if the video is muted.
+   * @returns {boolean} True if muted.
+   */
+  isMuted = () => this.videoManager.isMuted();
+
+  /**
+   * Syncs the video volume slider.
+   */
+  syncVideoVolumeSlider = () => this.videoManager.syncVideoVolumeSlider();
+
+  /**
+   * Sets language select menu values.
+   * @param {string} from Source language.
+   * @param {string} to Target language.
+   */
+  setSelectMenuValues = (from: string, to: string): void => {
+    this.videoManager.setSelectMenuValues(
+      from as RequestLang,
+      to as ResponseLang,
+    );
+  };
+
+  /**
+   * Keeps translation and video sliders linked (syncVolume option).
+   *
+   * The implementation is delta-based inside the shared 0..100 link range.
+   * Translation booster values above 100 remain available only while link mode
+   * is disabled.
+   */
+  syncVolumeWrapper(
+    fromType: "translation" | "video",
+    newVolume: number,
+  ): ApplyVolumeLinkDeltaResult | undefined {
+    const overlayView = this.uiManager.votOverlayView;
+    if (!overlayView?.isInitialized()) {
+      return undefined;
+    }
+
+    const videoSlider = overlayView.videoVolumeSlider;
+    const translationSlider = overlayView.translationVolumeSlider;
+
+    if (!videoSlider || !translationSlider) {
+      return undefined;
+    }
+
+    const result = applyVolumeLinkDelta({
+      state: this.volumeLinkState,
+      fromType,
+      newVolume,
+      currentVideo: Number(videoSlider.value),
+      currentTranslation: Number(translationSlider.value),
+      translationMin: translationSlider.min,
+      translationMax: translationSlider.max,
+    });
+
+    const { nextVideo, nextTranslation } = result;
+
+    if (typeof nextTranslation === "number") {
+      translationSlider.value = nextTranslation;
+      return result;
+    }
+
+    if (typeof nextVideo === "number") {
+      videoSlider.value = nextVideo;
+      this.setVideoVolume(nextVideo / 100);
+    }
+
+    return result;
+  }
+
+  /**
+   * Retrieves video data.
+   * @returns {Promise<Object>} The video data object.
+   */
+  getVideoData = () => this.videoManager.getVideoData();
+
+  /**
+   * Validates the video.
+   * @returns {Promise<boolean>} True if valid.
+   */
+  videoValidator = () => this.videoManager.videoValidator();
+
+  /**
+   * Stops translation and resets UI elements.
+   */
+  stopTranslate(): Promise<void> {
+    if (this.stopTranslatePromise !== null) {
+      return this.stopTranslatePromise;
+    }
+
+    const cleanup = async () => {
+      if (this.audioPlayer?.player) {
+        try {
+          this.audioPlayer.player.removeVideoEvents();
+          this.audioPlayer.player.src = "";
+          await this.audioPlayer.player.clear();
+        } catch (err) {
+          debug.log("[stopTranslate] audioPlayer cleanup error", err);
+        }
+        debug.log("audioPlayer after stopTranslate", this.audioPlayer);
+      }
+      this.activeTranslation = null;
+      const overlayView = this.uiManager.votOverlayView;
+      if (overlayView) {
+        for (const control of [
+          overlayView.videoVolumeSlider,
+          overlayView.translationVolumeSlider,
+          overlayView.downloadTranslationButton,
+        ]) {
+          if (control) control.hidden = true;
+        }
+      }
+      this.downloadTranslation = null;
+      this.longWaitingResCount = 0;
+      this.hadAsyncWait = false;
+      this.translationHandler?.stopTranslationEtaCountdown();
+      this.transformBtn("none", localizationProvider.get("translateVideo"));
+      debug.log(`Volume on start: ${this.volumeOnStart}`);
+
+      const restoreVolume =
+        typeof this.smartVolumeDuckingBaseline === "number"
+          ? this.smartVolumeDuckingBaseline
+          : this.volumeOnStart;
+
+      stopSmartVolumeDuckingImpl(this, { restoreVolume });
+      this.volumeOnStart = undefined;
+      this.autoVolumeMutedOnStart = undefined;
+      if (this.autoRetry !== undefined) {
+        clearTimeout(this.autoRetry);
+        this.autoRetry = undefined;
+      }
+      this.resetActionsAbortController("stopTranslate");
+    };
+
+    const inFlight = cleanup().finally(() => {
+      if (this.stopTranslatePromise === inFlight) {
+        this.stopTranslatePromise = null;
+      }
+    });
+
+    this.stopTranslatePromise = inFlight;
+    return inFlight;
+  }
+
+  waitForPendingStopTranslate(): Promise<void> {
+    return this.stopTranslatePromise ?? RESOLVED_VOID_PROMISE;
+  }
+
+  /**
+   * Updates the translation error message on the UI.
+   * @param {string|Error} errorMessage The error message.
+   */
+  async updateTranslationErrorMsg(
+    errorMessage: any,
+    signal?: AbortSignal,
+    options: UpdateTranslationErrorMsgOptions = {},
+  ): Promise<void> {
+    if (signal?.aborted) {
+      return;
+    }
+    const translationTake = localizationProvider.get("translationTake");
+    const lang = localizationProvider.lang;
+    if (options.countLongWait !== false) {
+      this.longWaitingResCount =
+        errorMessage === localizationProvider.get("translationTakeAboutMinute")
+          ? this.longWaitingResCount + 1
+          : 0;
+      debug.log("longWaitingResCount", this.longWaitingResCount);
+      if (this.longWaitingResCount > minLongWaitingCount) {
+        errorMessage = new VOTLocalizedError("TranslationDelayed");
+      }
+    }
+    debug.log("updateTranslationErrorMsg message", errorMessage);
+    const resolvedMessage = await this.resolveTranslationErrorDisplayMessage(
+      errorMessage,
+      translationTake,
+      lang,
+      signal,
+    );
+    if (signal?.aborted || resolvedMessage === null) {
+      return;
+    }
+    this.transformBtn("error", resolvedMessage);
+
+    if (signal?.aborted) {
+      return;
+    }
+    if (TRANSLATION_LOADING_MESSAGES.has(errorMessage)) {
+      if (this.uiManager.votOverlayView?.votButton) {
+        this.uiManager.votOverlayView.votButton.loading = true;
+      }
+    }
+  }
+
+  private async resolveTranslationErrorDisplayMessage(
+    errorMessage: any,
+    translationTake: string,
+    lang: string,
+    signal?: AbortSignal,
+  ): Promise<string | null> {
+    if (errorMessage?.name === "VOTLocalizedError") {
+      return errorMessage.localizedMessage;
+    }
+    if (errorMessage instanceof Error) {
+      return errorMessage.message;
+    }
+
+    if (
+      !this.shouldTranslateErrorMessage(errorMessage, translationTake, lang)
+    ) {
+      return this.stringifyTranslationError(errorMessage);
+    }
+
+    return await this.getTranslatedErrorMessage(errorMessage, lang, signal);
+  }
+
+  private shouldTranslateErrorMessage(
+    errorMessage: any,
+    translationTake: string,
+    lang: string,
+  ): boolean {
+    return (
+      Boolean(this.data?.translateAPIErrors) &&
+      lang !== "ru" &&
+      !errorMessage?.includes(translationTake)
+    );
+  }
+
+  private stringifyTranslationError(errorMessage: any): string {
+    return Array.isArray(errorMessage)
+      ? errorMessage.join("\n")
+      : String(errorMessage ?? "");
+  }
+
+  private async getTranslatedErrorMessage(
+    errorMessage: any,
+    lang: string,
+    signal?: AbortSignal,
+  ): Promise<string | null> {
+    const overlayView = this.uiManager.votOverlayView;
+    if (!overlayView?.votButton) {
+      return null;
+    }
+
+    const messageStr = Array.isArray(errorMessage)
+      ? errorMessage.join(" ")
+      : String(errorMessage);
+    const cacheKey = `${lang}:${messageStr}`;
+    const cached = this.errorTranslationCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    overlayView.votButton.loading = true;
+    const translatedMessage = await translate(messageStr, "ru", lang);
+    if (signal?.aborted) {
+      return null;
+    }
+
+    const translatedText = Array.isArray(translatedMessage)
+      ? translatedMessage.join("\n")
+      : String(translatedMessage);
+    this.errorTranslationCache.set(cacheKey, translatedText);
+    this.trimErrorTranslationCache();
+    return translatedText;
+  }
+
+  private trimErrorTranslationCache(): void {
+    if (this.errorTranslationCache.size <= 50) {
+      return;
+    }
+
+    const oldestKey = this.errorTranslationCache.keys().next().value;
+    if (oldestKey) {
+      this.errorTranslationCache.delete(oldestKey);
+    }
+  }
+
+  /**
+   * Called after translation is updated.
+   * @param {string} audioUrl The URL of the translation audio.
+   */
+  afterUpdateTranslation(audioUrl) {
+    const overlayView = this.uiManager.votOverlayView;
+    if (!overlayView?.votButton) {
+      return;
+    }
+    const isSuccess =
+      overlayView.votButton.container.dataset.status === "success";
+    if (overlayView.videoVolumeSlider) {
+      overlayView.videoVolumeSlider.hidden =
+        !this.data?.showVideoSlider || !isSuccess;
+    }
+    if (overlayView.translationVolumeSlider) {
+      overlayView.translationVolumeSlider.hidden = !isSuccess;
+    }
+
+    if (overlayView.videoVolumeSlider && overlayView.translationVolumeSlider) {
+      this.resetVolumeLinkState(
+        Number(overlayView.videoVolumeSlider.value),
+        Number(overlayView.translationVolumeSlider.value),
+      );
+    } else {
+      this.volumeLinkState.initialized = false;
+    }
+
+    if (this.videoData && !this.videoData.isStream) {
+      if (overlayView.downloadTranslationButton) {
+        overlayView.downloadTranslationButton.hidden = false;
+      }
+      this.downloadTranslation = {
+        url: audioUrl,
+        videoId: this.videoData.videoId,
+      };
+    }
+    debug.log(
+      "afterUpdateTranslation downloadTranslation",
+      this.downloadTranslation,
+    );
+    this.syncTranslationPlaybackVolume();
+    if (this.data?.sendNotifyOnComplete && this.hadAsyncWait && isSuccess) {
+      this.notifier.translationCompleted(globalThis.location.hostname);
+      this.hadAsyncWait = false;
+    }
+  }
+
+  /**
+   * Keeps the historical async hook for audio URL preparation.
+   * Playback errors are handled by the native audio player path.
+   * @param {string} audioUrl The audio URL.
+   * @returns {Promise<string>} The prepared audio URL.
+   */
+  validateAudioUrl(
+    audioUrl: string,
+    actionContext?: { gen: number; videoId: string },
+  ): Promise<string> {
+    return validateAudioUrlImpl.call(this, audioUrl, actionContext);
+  }
+
+  scheduleTranslationRefresh(): void {
+    scheduleTranslationRefreshImpl.call(this);
+  }
+
+  refreshTranslationAudio = refreshTranslationAudioImpl;
+
+  /**
+   * Proxifies the audio URL if needed.
+   * @param {string} audioUrl The original audio URL.
+   * @returns {string} The proxified audio URL.
+   */
+  proxifyAudio(audioUrl: string): string {
+    return proxifyAudioImpl.call(this, audioUrl);
+  }
+
+  /**
+   * Reverts a previously proxified audio URL back to the original Yandex S3 URL.
+   *
+   * This allows us to re-apply proxy settings when the proxy host/mode changes
+   * without permanently "locking in" the old proxy host in the current player
+   * src.
+   */
+  unproxifyAudio(audioUrl: string): string {
+    return unproxifyAudioImpl.call(this, audioUrl);
+  }
+
+  /**
+   * Called when proxy-related settings are changed at runtime.
+   *
+   * - Clears in-memory caches so old failures/URLs don't persist.
+   * - Cancels any in-flight translation work.
+   * - Best-effort refreshes the active audio source so the new proxy host/mode
+   *   takes effect immediately.
+   */
+  handleProxySettingsChanged = handleProxySettingsChangedImpl;
+
+  isMultiMethodS3(url: string): boolean {
+    return isMultiMethodS3Impl.call(this, url);
+  }
+
+  /**
+   * Updates the translation audio source.
+   * @param {string} audioUrl The audio URL.
+   */
+  updateTranslation = updateTranslationImpl;
+
+  syncTranslationPlaybackVolume() {
+    return syncTranslationPlaybackVolumeImpl.call(this);
+  }
+
+  /**
+   * Translates the video/audio.
+   * @param {string} VIDEO_ID The video ID.
+   * @param {boolean} isStream Whether the video is a stream.
+   * @param {string} requestLang Source language.
+   * @param {string} responseLang Target language.
+   * @param {any} translationHelp Optional translation helper data.
+   */
+  translateFunc(
+    VIDEO_ID: string,
+    isStream: boolean,
+    requestLang: string,
+    responseLang: string,
+    translationHelp?: any,
+  ): Promise<void> {
+    return translateFuncImpl.call(
+      this,
+      VIDEO_ID,
+      isStream,
+      requestLang,
+      responseLang,
+      translationHelp,
+    );
+  }
+
+  /**
+   * used for enable audio downloader on this hosts
+   */
+  isYouTubeHosts() {
+    return isYouTubeHostsImpl.call(this);
+  }
+
+  /**
+   * Configures audio settings such as volume.
+   */
+  setupAudioSettings() {
+    return setupAudioSettingsImpl.call(this);
+  }
+
+  applyManualVideoVolumeOverride(volume: number) {
+    return applyManualVideoVolumeOverrideImpl.call(this, volume);
+  }
+
+  /**
+   * Stops translation and synchronizes volume.
+   */
+  stopTranslation = async () => {
+    this.translationOrchestrator?.reset();
+    this.overlayVisibility?.cancel();
+    await this.stopTranslate();
+    this.syncVideoVolumeSlider();
+  };
+
+  /**
+   * Handles video source change events.
+   */
+  handleSrcChanged = () => this.lifecycleController.handleSrcChanged();
+
+  /** Rebinds an active handler when the page replaces its video element. */
+  async replaceVideo(video: HTMLVideoElement): Promise<void> {
+    if (this.video === video) return;
+
+    debug.log("[VideoHandler] replaceVideo", video);
+    await this.audioPlayer.replaceVideo(video);
+    this.abortController.abort();
+    this.releaseExtraEvents();
+
+    this.video = video;
+    this.abortController = new AbortController();
+    this.fullscreenHelper?.updateVideo(video);
+    this.resetSubtitlesWidget();
+    this.initExtraEvents();
+  }
+
+  /**
+   * Releases resources and removes event listeners.
+   */
+  async release() {
+    debug.log("[VideoHandler] release");
+    this.initialized = false;
+    try {
+      await this.stopTranslation();
+    } catch (err) {
+      debug.log("[VideoHandler] stopTranslation failed during release", err);
+    }
+    this.lifecycleController?.teardown();
+    this.abortController?.abort();
+    this.abortController = new AbortController();
+
+    this.fullscreenHelper?.destroy();
+    this.fullscreenHelper = undefined;
+
+    this.overlayVisibility?.release();
+    this.releaseExtraEvents();
+    if (this.hasSubtitlesWidget()) {
+      this.subtitlesWidget?.release();
+      this.subtitlesWidget = undefined;
+    }
+    this.interactionChecker?.destroy();
+    this.uiManager.release();
+  }
+
+  /**
+   * Collects report information for bug reporting.
+   * @returns {Object} Report info object.
+   */
+  collectReportInfo() {
+    const info = getEnvironmentInfoImpl();
+    const detectedLanguage = this.videoData?.detectedLanguage ?? "unknown";
+    const responseLanguage = this.videoData?.responseLanguage ?? "unknown";
+    const additionalInfo = `<details>
+<summary>Autogenerated by VOT:</summary>
+<ul>
+  <li>OS: ${info.os}</li>
+  <li>Browser: ${info.browser}</li>
+  <li>Loader: ${info.loader}</li>
+  <li>Script version: ${info.scriptVersion}</li>
+  <li>URL: <code>${info.url}</code></li>
+  <li>Lang: <code>${detectedLanguage}</code> -> <code>${responseLanguage}</code> (Lively voice: ${this.data?.useLivelyVoice ?? false} | Audio download: ${this.data?.useAudioDownload ?? false})</li>
+  <li>Player: ${this.data?.newAudioPlayer ? "New" : "Old"} (CSP only: ${this.data?.onlyBypassMediaCSP ?? false})</li>
+  <li>Proxying mode: ${this.data?.translateProxyEnabled ?? 0}</li>
+</ul>
+</details>`;
+    const template = `1-bug-report-${localizationProvider.lang === "ru" ? "ru" : "en"}.yml`;
+    return {
+      assignees: "ilyhalight",
+      template,
+      os: info.os,
+      "script-version": info.scriptVersion,
+      "additional-info": additionalInfo,
+    };
+  }
+
+  /**
+   * Releases extra event listeners.
+   */
+  releaseExtraEvents = releaseExtraEventsImpl;
+}

@@ -11,6 +11,14 @@ const AVAILABLE_LOCALES: import("./types/localization").LangOverride[];
 const REPO_BRANCH: "master" | "dev";
 
 /**
+ * Build-time injected CRXJS Chrome build flag.
+ * "true" in Chrome CRXJS builds, "false" in Firefox/userscript.
+ */
+interface ImportMetaEnv {
+  readonly VITE_CRXJS_BUILD: string;
+}
+
+/**
  * Build-time injected comma-separated author list (from `src/headers.json`).
  * Present in both userscript and extension builds.
  */
@@ -23,7 +31,8 @@ const VOT_VERSION: string;
 
 // --- Userscript globals (Tampermonkey / Violentmonkey / etc.) ---
 // These are injected at runtime by the userscript manager or by our extension
-// prelude. Keep them loosely typed.
+// prelude.  GM is installed synchronously at document_start before any
+// content-script code evaluates.
 declare const GM_info: any;
 declare const GM: {
   // Promise-based GM API (supported by most userscript managers).

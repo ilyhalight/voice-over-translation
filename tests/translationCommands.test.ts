@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { authLoginUrl } from "../src/config/config";
-import { localizationProvider } from "../src/localization/localizationProvider";
 import { handleTranslationButtonCommand } from "../src/ui/translationCommands";
 
 type StoredValues = Record<string, string>;
+type OpenCall = {
+  url?: string;
+  target?: string;
+  features?: string;
+};
 
 const storedValues: StoredValues = {};
-const openedUrls: string[] = [];
+const openCalls: OpenCall[] = [];
 
 Object.defineProperty(globalThis, "DEBUG_MODE", {
   configurable: true,
@@ -30,8 +33,8 @@ Object.defineProperty(globalThis, "localStorage", {
 Object.defineProperty(globalThis, "open", {
   configurable: true,
   writable: true,
-  value: (url: string) => {
-    openedUrls.push(url);
+  value: (url?: string, target?: string, features?: string) => {
+    openCalls.push({ url, target, features });
     return {
       focus() {
         return undefined;
@@ -41,21 +44,23 @@ Object.defineProperty(globalThis, "open", {
 });
 
 function createVideoHandler(account?: { token?: string; expires?: number }) {
+  const calls = {
+    ensureDetectedLanguage: 0,
+    translateFunc: 0,
+  };
+
   return {
+    calls,
     data: {
       account,
       useLivelyVoice: true,
     },
+    site: {
+      host: "youtube",
+      additionalData: undefined,
+    },
     votClient: {
       apiToken: account?.token,
-    },
-    uiManager: {
-      votOverlayView: {
-        syncVoicePopoverStateCalls: 0,
-        syncVoicePopoverState() {
-          this.syncVoicePopoverStateCalls += 1;
-        },
-      },
     },
     actionsAbortController: new AbortController(),
     hasActiveSource: () => false,
@@ -68,12 +73,14 @@ function createVideoHandler(account?: { token?: string; expires?: number }) {
     getVideoData: async () => {
       throw new Error("getVideoData should not run");
     },
+    stopTranslation: async () => undefined,
+    stopTranslate: async () => undefined,
     translateFunc: async () => {
-      throw new Error("translateFunc should not run");
+      calls.translateFunc += 1;
     },
     videoManager: {
       ensureDetectedLanguageForTranslation: async () => {
-        throw new Error("ensureDetectedLanguageForTranslation should not run");
+        calls.ensureDetectedLanguage += 1;
       },
     },
   };
@@ -81,13 +88,13 @@ function createVideoHandler(account?: { token?: string; expires?: number }) {
 
 describe("translation auth command", () => {
   beforeEach(() => {
-    openedUrls.length = 0;
+    openCalls.length = 0;
     for (const key of Object.keys(storedValues)) {
       delete storedValues[key];
     }
   });
 
-  test("expires live voice auth, falls back to standard voice and opens auth", async () => {
+  test("shows expired session separately from login-required live voice state", async () => {
     const videoHandler = createVideoHandler({
       token: "token",
       expires: Date.now() - 1,
@@ -103,20 +110,17 @@ describe("translation auth command", () => {
       },
     });
 
-    expect(videoHandler.data.useLivelyVoice).toBe(false);
+    expect(videoHandler.data.useLivelyVoice).toBe(true);
     expect(videoHandler.data.account).toEqual({});
     expect(videoHandler.votClient.apiToken).toBeUndefined();
-    expect(storedValues.useLivelyVoice).toBe("false");
-    expect(openedUrls).toEqual([authLoginUrl]);
-    expect(buttonStates).toEqual([
-      ["error", localizationProvider.get("VOTYandexTokenExpired")],
-    ]);
-    expect(
-      videoHandler.uiManager.votOverlayView.syncVoicePopoverStateCalls,
-    ).toBe(1);
+    expect(storedValues.useLivelyVoice).toBeUndefined();
+    expect(openCalls).toHaveLength(1);
+    expect(buttonStates).toEqual([["error", "Session expired. Log in again"]]);
+    expect(videoHandler.calls.ensureDetectedLanguage).toBe(0);
+    expect(videoHandler.calls.translateFunc).toBe(0);
   });
 
-  test("requires auth for live voice without token and opens auth", async () => {
+  test("requests live voice translation without token and without pre-auth", async () => {
     const videoHandler = createVideoHandler();
     const buttonStates: Array<[string, string]> = [];
 
@@ -129,14 +133,11 @@ describe("translation auth command", () => {
       },
     });
 
-    expect(videoHandler.data.useLivelyVoice).toBe(false);
-    expect(storedValues.useLivelyVoice).toBe("false");
-    expect(openedUrls).toEqual([authLoginUrl]);
-    expect(buttonStates).toEqual([
-      ["error", localizationProvider.get("VOTAccountRequired")],
-    ]);
-    expect(
-      videoHandler.uiManager.votOverlayView.syncVoicePopoverStateCalls,
-    ).toBe(1);
+    expect(videoHandler.data.useLivelyVoice).toBe(true);
+    expect(storedValues.useLivelyVoice).toBeUndefined();
+    expect(openCalls).toEqual([]);
+    expect(buttonStates).toEqual([]);
+    expect(videoHandler.calls.ensureDetectedLanguage).toBe(1);
+    expect(videoHandler.calls.translateFunc).toBe(1);
   });
 });

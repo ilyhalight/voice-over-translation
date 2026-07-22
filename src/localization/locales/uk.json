@@ -220,7 +220,9 @@
     "left": "Зліва",
     "right": "Праворуч",
     "top": "Верхній",
-    "default": "За замовчуванням"
+    "default": "За замовчуванням",
+    "leftCenter": "Зліва по центру",
+    "rightCenter": "По центру праворуч"
   },
   "secs": "січ",
   "autoHideButtonDelay": "Затримайтеся, перш ніж приховувати кнопку перекладу",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Швидке і якісне озвучування",
   "VOTLiveVoicesTitle": "Живі голоси",
   "VOTLiveVoicesSubtitle": "Максимальна схожість. Наче всі знають російську",
-  "VOTYandexTokenExpired": "Сеанс закінчився. Увійдіть ще раз"
+  "VOTYandexTokenExpired": "Сеанс закінчився. Увійдіть ще раз",
+  "VOTVoiceSelection": "Виберіть дубляж"
 }

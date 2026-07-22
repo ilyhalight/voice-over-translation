@@ -1,11 +1,9 @@
-import type { VideoData, VideoHandler } from "..";
 import {
   actualCompatVersion,
   maxAudioVolume,
   repositoryUrl,
 } from "../config/config";
 import { localizationProvider } from "../localization/localizationProvider";
-import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
 import type { StorageData } from "../types/storage";
 import type { OverlayMount, UIManagerProps } from "../types/uiManager";
@@ -13,14 +11,18 @@ import debug from "../utils/debug";
 import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
+import { serializeProcessedSubtitles } from "../utils/serializeSubtitles";
 import { votStorage } from "../utils/storage";
-import { safeSetPlayerVolume } from "../utils/translationVolume";
 import {
   clamp,
   clearFileName,
   type DownloadBlobOptions,
   downloadBlob,
 } from "../utils/utils";
+import type { VideoHandler } from "../VideoHandler";
+import type { VideoData } from "../videoHandler/shared";
+import { safeSetPlayerVolume } from "../videoHandler/translationVolume";
+import { normalizeButtonPosition } from "./buttonPlacement";
 import { applyOverlayMountUpdate } from "./mount";
 import {
   createShadowMount,
@@ -105,7 +107,7 @@ export class UIManager {
     });
     // Preserve the user's last chosen button position across UI reloads
     // (e.g. when changing the menu language).
-    this.votOverlayView.initUI(this.data.buttonPos ?? "default");
+    this.votOverlayView.initUI(normalizeButtonPosition(this.data.buttonPos));
 
     this.votSettingsView = new SettingsView({
       globalPortal: this.votGlobalPortal,
@@ -211,9 +213,17 @@ export class UIManager {
           return;
         }
 
-        const nextVolume01 = volume / 100;
-        this.videoHandler.setVideoVolume(nextVolume01);
-        this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
+        if (volume === 0) {
+          this.videoHandler.setVideoMuted(true);
+        } else {
+          if (this.videoHandler.isMuted()) {
+            this.videoHandler.setVideoMuted(false);
+          }
+          const nextVolume01 = volume / 100;
+          this.videoHandler.setVideoVolume(nextVolume01);
+          this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
+        }
+
         if (!this.data.syncVolume) {
           this.videoHandler.onVideoVolumeSliderSynced(volume);
           return;
@@ -484,7 +494,9 @@ export class UIManager {
       })
       .addEventListener("select:buttonPosition", (item) => {
         this.withInitializedOverlayView((overlayView) => {
-          const preferredPosition = this.data.buttonPos ?? item;
+          const preferredPosition = normalizeButtonPosition(
+            this.data.buttonPos ?? item,
+          );
           const { position, direction } =
             overlayView.calcButtonLayout(preferredPosition);
           overlayView.updateButtonLayout(position, direction);
@@ -658,7 +670,7 @@ export class UIManager {
     const prevButtonOpacity = this.votOverlayView.votButton.opacity;
     const prevButtonHidden = this.votOverlayView.votButton.container.hidden;
     const prevMenuHidden = this.votOverlayView.votMenu.hidden;
-    const prevButtonPos = this.data.buttonPos ?? "default";
+    const prevButtonPos = normalizeButtonPosition(this.data.buttonPos);
     const settingsWasOpen =
       this.votSettingsView?.dialog?.container?.hidden === false;
 
@@ -754,10 +766,7 @@ export class UIManager {
       if (!centered) {
         voicePopover?.cancelShow();
         voicePopover?.hideNow();
-        this.votOverlayView.votButton.dropdownArrow.setAttribute(
-          "aria-expanded",
-          "false",
-        );
+        this.votOverlayView.votButton.setVoiceMenuOpen(false);
       }
       votButtonTooltip.dismissImmediate();
       this.votOverlayView.syncTranslateButtonTooltip();

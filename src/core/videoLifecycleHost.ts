@@ -1,7 +1,6 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
-
-import type { VideoHandler } from "../index";
 import type { OverlayMount } from "../types/uiManager";
+import type { VideoHandler } from "../VideoHandler";
 import type { VideoLifecycleHost } from "./videoLifecycleController";
 
 export function createVideoLifecycleHost(

@@ -87,11 +87,7 @@ function getDefaultRuntime(): IntervalIdleRuntime {
     setInterval: globalThis.setInterval.bind(globalThis),
     clearInterval: globalThis.clearInterval.bind(globalThis),
     queueMicrotask: (fn) => {
-      if (typeof globalThis.queueMicrotask === "function") {
-        globalThis.queueMicrotask(fn);
-        return;
-      }
-      Promise.resolve().then(fn);
+      globalThis.queueMicrotask(fn);
     },
     onVisibilityChange: (listener) => {
       if (

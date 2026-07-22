@@ -8,17 +8,17 @@ type HttpMethod =
   | "CONNECT"
   | "TRACE";
 
-import { executeWithResponseCache } from "../core/cacheManager";
 import type { FetchOpts } from "../types/utils/gm";
 import { createTimeoutSignal } from "./abort";
 import { browserInfo } from "./browserInfo";
 import debug from "./debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "./errors";
+import { executeWithResponseCache } from "./responseCache";
 import { getHeaders } from "./utils";
 
 const YANDEX_API_HOST = "api.browser.yandex.ru";
 const GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
-const HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
+const HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
 // Matches statusText reason-phrase: printable ASCII except control chars
 const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
@@ -64,9 +64,20 @@ export const isProxyOnlyExtension =
   !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) &&
   (browserInfo.browser?.name === "Safari" ||
     !["Tampermonkey", "Violentmonkey"].includes(scriptHandler));
-export const isSupportGM4 =
+/**
+ * Returns true when the GM4 promise-based API is available.
+ *
+ * Safe to read as a module-level const because:
+ * - CRXJS Chrome: the IIFE prelude installs GM globals synchronously at
+ *   document_start, before this module evaluates at document_end.
+ * - Firefox: the bridge injects prelude.module.js before content.module.js.
+ * - Userscript managers inject GM before the script runs.
+ */
+export const isGM4Supported: boolean =
   typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
-export const isSupportGMXhr = hasSupportedGmXhr();
+
+export const isSupportGMXhr =
+  (typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) || hasSupportedGmXhr();
 
 function getRequestHost(url: string): string | undefined {
   const normalizedUrl = url.trim();

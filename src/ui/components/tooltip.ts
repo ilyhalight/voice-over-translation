@@ -12,10 +12,34 @@ import UI from "../../ui";
 import { clamp } from "../../utils/utils";
 import { createDomId, isEventInside } from "./componentShared";
 
+type AnchorBox = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  centerX: number;
+  centerY: number;
+};
+
+type TooltipSize = {
+  width: number;
+  height: number;
+};
+
+type PositionBoundary = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  width: number;
+  height: number;
+};
+
 export default class Tooltip {
   showed = false;
   target: HTMLElement;
   anchor: HTMLElement;
+  edgeAnchor: HTMLElement;
   content: string | HTMLElement;
   position: Position;
   preferredPosition: Position;
@@ -47,6 +71,8 @@ export default class Tooltip {
     }
     this.target = target;
     this.anchor = opts.anchor instanceof HTMLElement ? opts.anchor : target;
+    this.edgeAnchor =
+      opts.edgeAnchor instanceof HTMLElement ? opts.edgeAnchor : this.anchor;
     this.content = opts.content ?? "";
     const offset = opts.offset ?? 4;
     if (typeof offset === "number") {
@@ -90,6 +116,18 @@ export default class Tooltip {
     return this;
   }
 
+  private syncContentClass(): void {
+    if (!this.container) return;
+    const isSubtitlesInfo =
+      this.content instanceof HTMLElement &&
+      this.content.classList.contains("vot-subtitles-info");
+
+    this.container.classList.toggle(
+      "vot-tooltip--subtitles-info",
+      isSubtitlesInfo,
+    );
+  }
+
   setContent(content: string | HTMLElement): this {
     this.content = content;
     if (this.container) {
@@ -99,6 +137,7 @@ export default class Tooltip {
       } else {
         this.container.append(content);
       }
+      this.syncContentClass();
       this.schedulePositionUpdate();
     }
     return this;
@@ -132,7 +171,6 @@ export default class Tooltip {
     parentElement,
   }: {
     parentElement?: HTMLElement | ShadowRoot;
-    layoutRoot?: HTMLElement;
   }): this {
     if (parentElement && this.portal !== parentElement) {
       this.portal = parentElement;
@@ -144,19 +182,19 @@ export default class Tooltip {
     return this;
   }
 
-  private onResize = (): void => {
+  private readonly onResize = (): void => {
     this.schedulePositionUpdate();
   };
 
-  private onScroll = (): void => {
+  private readonly onScroll = (): void => {
     this.schedulePositionUpdate();
   };
 
-  private onClick = (): void => {
+  private readonly onClick = (): void => {
     this.showed ? this.destroy() : this.create();
   };
 
-  private onDocumentPointerDown = (event: PointerEvent): void => {
+  private readonly onDocumentPointerDown = (event: PointerEvent): void => {
     if (!this.showed) return;
     if (
       isEventInside(event, this.target) ||
@@ -168,35 +206,35 @@ export default class Tooltip {
     this.destroy();
   };
 
-  private onTargetKeyDown = (event: KeyboardEvent): void => {
+  private readonly onTargetKeyDown = (event: KeyboardEvent): void => {
     if (event.key === "Escape" && this.showed) {
       this.destroy();
     }
   };
 
-  private onPointerEnter = (_e: PointerEvent): void => {
+  private readonly onPointerEnter = (_e: PointerEvent): void => {
     this.create();
   };
 
-  private onPointerLeave = (e: PointerEvent): void => {
+  private readonly onPointerLeave = (e: PointerEvent): void => {
     if (!this.isInTooltipContext(e.relatedTarget)) {
       this.destroy();
     }
   };
 
-  private onTooltipPointerLeave = (e: PointerEvent): void => {
+  private readonly onTooltipPointerLeave = (e: PointerEvent): void => {
     if (!this.isInTooltipContext(e.relatedTarget)) {
       this.destroy();
     }
   };
 
-  private onTouchPointerDown = (e: PointerEvent): void => {
+  private readonly onTouchPointerDown = (e: PointerEvent): void => {
     if (e.pointerType === "touch") {
       this.create();
     }
   };
 
-  private onTouchPointerUp = (e: PointerEvent): void => {
+  private readonly onTouchPointerUp = (e: PointerEvent): void => {
     if (e.pointerType === "touch") {
       this.destroy();
     }
@@ -277,6 +315,7 @@ export default class Tooltip {
     this.destroy(true);
     this.showed = true;
     this.container = UI.createEl("vot-block", ["vot-tooltip"], this.content);
+    this.syncContentClass();
     if (this._bordered) {
       this.container.classList.add("vot-tooltip-bordered");
     }
@@ -317,6 +356,9 @@ export default class Tooltip {
     }
     this.attachScrollListener();
     this.resizeObserver?.observe(this.anchor);
+    if (this.edgeAnchor !== this.anchor) {
+      this.resizeObserver?.observe(this.edgeAnchor);
+    }
     this.intersectionObserver?.observe(this.target);
     this.updatePos();
     return this;
@@ -370,16 +412,8 @@ export default class Tooltip {
     autoLayout: boolean,
     preferred: Position,
   ): PagePosition {
-    const anchorRect = this.anchor.getBoundingClientRect();
+    const anchor = this.getAnchorBox();
     const tooltipRect = this.container?.getBoundingClientRect();
-    const anchor = {
-      left: anchorRect.left,
-      right: anchorRect.right,
-      top: anchorRect.top,
-      bottom: anchorRect.bottom,
-      width: anchorRect.width,
-      height: anchorRect.height,
-    };
     const tooltip = {
       width: tooltipRect.width || 100,
       height: tooltipRect.height || 40,
@@ -396,19 +430,25 @@ export default class Tooltip {
     };
   }
 
-  private getPositionBoundary(): {
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
-    width: number;
-    height: number;
-  } {
+  private getAnchorBox(): AnchorBox {
+    const anchorRect = this.anchor.getBoundingClientRect();
+    const edgeRect = this.edgeAnchor.getBoundingClientRect();
+    return {
+      left: edgeRect.left,
+      right: edgeRect.right,
+      top: edgeRect.top,
+      bottom: edgeRect.bottom,
+      centerX: anchorRect.left + anchorRect.width / 2,
+      centerY: anchorRect.top + anchorRect.height / 2,
+    };
+  }
+
+  private getPositionBoundary(): PositionBoundary {
     const fallback = {
       left: this.offsetX,
       right: window.innerWidth - this.offsetX,
-      top: this.offsetX,
-      bottom: window.innerHeight - this.offsetX,
+      top: this.offsetY,
+      bottom: window.innerHeight - this.offsetY,
       width: window.innerWidth,
       height: window.innerHeight,
     };
@@ -435,23 +475,9 @@ export default class Tooltip {
   }
 
   private resolvePosition(
-    anchor: {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-      width: number;
-      height: number;
-    },
-    tooltip: { width: number; height: number },
-    viewport: {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-      width: number;
-      height: number;
-    },
+    anchor: AnchorBox,
+    tooltip: TooltipSize,
+    viewport: PositionBoundary,
     preferred: Position,
   ): Position {
     if (this.mode === "follow") {
@@ -483,23 +509,9 @@ export default class Tooltip {
   }
 
   private resolveFollowPosition(
-    anchor: {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-      width: number;
-      height: number;
-    },
-    tooltip: { width: number; height: number },
-    viewport: {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-      width: number;
-      height: number;
-    },
+    anchor: AnchorBox,
+    tooltip: TooltipSize,
+    viewport: PositionBoundary,
     preferred: Position,
   ): Position {
     if (preferred === "top" || preferred === "bottom") {
@@ -532,38 +544,29 @@ export default class Tooltip {
   }
 
   private getCoordinates(
-    anchor: {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-      width: number;
-      height: number;
-    },
-    tooltip: { width: number; height: number },
+    anchor: AnchorBox,
+    tooltip: TooltipSize,
     position: Position,
   ): PagePosition {
-    const centerX = anchor.left + anchor.width / 2;
-    const centerY = anchor.top + anchor.height / 2;
     switch (position) {
       case "top":
         return {
           top: anchor.top - tooltip.height - this.offsetY,
-          left: centerX - tooltip.width / 2,
+          left: anchor.centerX - tooltip.width / 2,
         };
       case "bottom":
         return {
           top: anchor.bottom + this.offsetY,
-          left: centerX - tooltip.width / 2,
+          left: anchor.centerX - tooltip.width / 2,
         };
       case "left":
         return {
-          top: centerY - tooltip.height / 2,
+          top: anchor.centerY - tooltip.height / 2,
           left: anchor.left - tooltip.width - this.offsetX,
         };
       case "right":
         return {
-          top: centerY - tooltip.height / 2,
+          top: anchor.centerY - tooltip.height / 2,
           left: anchor.right + this.offsetX,
         };
     }

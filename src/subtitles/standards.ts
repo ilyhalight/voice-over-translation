@@ -12,11 +12,101 @@ import type {
 import { buildStyledDisplayModel } from "./displayModel";
 
 const BOM = "\uFEFF";
-const ASS_OVERRIDE_TAG_RE = /\{[^}]*\}/gu;
 const SRT_TIMING_RE =
-  /^\s*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*$/u;
-const VTT_TIMING_RE =
-  /^(?<start>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})\s+-->\s+(?<end>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})(?<settings>(?:[ \t]+.+)?)$/u;
+  /^[ \t]*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*-->[ \t]*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*$/u;
+const VTT_TIMESTAMP_RE = /^(?:\d{2}:)?\d{2}:\d{2}\.\d{3}$/u;
+
+const isSpaceOrTab = (char: string): boolean => char === " " || char === "\t";
+
+const indexOfSpaceOrTab = (value: string): number => {
+  const spaceIndex = value.indexOf(" ");
+  const tabIndex = value.indexOf("\t");
+  if (spaceIndex === -1) {
+    return tabIndex;
+  }
+  if (tabIndex === -1) {
+    return spaceIndex;
+  }
+  return Math.min(spaceIndex, tabIndex);
+};
+
+const trimStartSpaceOrTab = (value: string): string => {
+  let startIndex = 0;
+  while (startIndex < value.length && isSpaceOrTab(value[startIndex])) {
+    startIndex += 1;
+  }
+  return value.slice(startIndex);
+};
+
+type VttTimingParts = {
+  start: string;
+  end: string;
+  settings: string;
+};
+
+const parseVttTimingParts = (line: string): VttTimingParts | null => {
+  const arrowIndex = line.indexOf("-->");
+  if (arrowIndex <= 0) {
+    return null;
+  }
+
+  const beforeArrow = line.slice(0, arrowIndex);
+  if (!isSpaceOrTab(beforeArrow.at(-1) ?? "")) {
+    return null;
+  }
+
+  const start = beforeArrow.trimEnd();
+  const afterArrow = line.slice(arrowIndex + 3);
+  if (!isSpaceOrTab(afterArrow[0] ?? "")) {
+    return null;
+  }
+
+  const endAndSettings = trimStartSpaceOrTab(afterArrow);
+  const settingsSeparatorIndex = indexOfSpaceOrTab(endAndSettings);
+  const end =
+    settingsSeparatorIndex === -1
+      ? endAndSettings
+      : endAndSettings.slice(0, settingsSeparatorIndex);
+  const settings =
+    settingsSeparatorIndex === -1
+      ? ""
+      : trimStartSpaceOrTab(endAndSettings.slice(settingsSeparatorIndex));
+
+  if (
+    !VTT_TIMESTAMP_RE.test(start) ||
+    !VTT_TIMESTAMP_RE.test(end) ||
+    (settingsSeparatorIndex !== -1 && (!settings || /^\s/u.test(settings)))
+  ) {
+    return null;
+  }
+
+  return { start, end, settings };
+};
+
+const isVttTimingLine = (line: string): boolean =>
+  parseVttTimingParts(line) != null;
+
+const extractAssOverrideTags = (rawText: string): string[] => {
+  const overrideTags: string[] = [];
+  let cursor = 0;
+
+  while (cursor < rawText.length) {
+    const startIndex = rawText.indexOf("{", cursor);
+    if (startIndex === -1) {
+      break;
+    }
+
+    const endIndex = rawText.indexOf("}", startIndex + 1);
+    if (endIndex === -1) {
+      break;
+    }
+
+    overrideTags.push(rawText.slice(startIndex, endIndex + 1));
+    cursor = endIndex + 1;
+  }
+
+  return overrideTags;
+};
 
 type TimedCueDraft = {
   index: number;
@@ -220,11 +310,9 @@ const parseCueSettings = (
 };
 
 const extractVttVoice = (payload: string): string | undefined => {
-  const match =
-    /^\s*<v(?:\.[^ >]+)?(?:\s+([^>]*?))?>/iu.exec(payload) ??
-    /^\s*<v\s+([^>]*?)>/iu.exec(payload);
+  const match = /^[ \t]*<v(?:\.\S+)?(?:[ \t]+(\S[^>]*))?>/iu.exec(payload);
   const voice = match?.[1]?.trim();
-  return voice ? voice : undefined;
+  return voice || undefined;
 };
 
 const isSrtCueStart = (lines: string[], index: number): boolean => {
@@ -364,8 +452,8 @@ const resolveVttCueIdentity = (
   timingCursor: number;
 } => {
   if (
-    !VTT_TIMING_RE.test(lines[cursor] ?? "") &&
-    VTT_TIMING_RE.test(lines[cursor + 1] ?? "")
+    !isVttTimingLine(lines[cursor] ?? "") &&
+    isVttTimingLine(lines[cursor + 1] ?? "")
   ) {
     return {
       cueId: lines[cursor],
@@ -386,13 +474,13 @@ const parseVttTiming = (
   endMs: number;
   settingsRaw: string;
 } | null => {
-  const timingMatch = VTT_TIMING_RE.exec(line);
-  if (!timingMatch?.groups) {
+  const timingParts = parseVttTimingParts(line);
+  if (!timingParts) {
     return null;
   }
 
-  const startMs = parseClockTime(timingMatch.groups.start, 3);
-  const endMs = parseClockTime(timingMatch.groups.end, 3);
+  const startMs = parseClockTime(timingParts.start, 3);
+  const endMs = parseClockTime(timingParts.end, 3);
   if (startMs == null || endMs == null || endMs < startMs) {
     return null;
   }
@@ -400,7 +488,7 @@ const parseVttTiming = (
   return {
     startMs,
     endMs,
-    settingsRaw: timingMatch.groups.settings ?? "",
+    settingsRaw: timingParts.settings,
   };
 };
 
@@ -484,7 +572,7 @@ const createAssCueDraft = (
     marginV: event.MarginV ?? "0",
     effect: event.Effect ?? "",
     rawText,
-    overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? [],
+    overrideTags: extractAssOverrideTags(rawText),
   };
 
   return {
@@ -597,7 +685,7 @@ const resolveSerializedText = (
     return line.metadata?.rawText ?? line.text;
   }
   if (format === "ass") {
-    return line.text.replaceAll("\n", "\\N");
+    return line.text.replaceAll("\n", String.raw`\N`);
   }
   return line.text;
 };
@@ -859,7 +947,9 @@ const serializeAssDialogue = (line: SubtitleLine): string => {
   const ass = line.metadata?.ass;
   const endMs = getSubtitleLineEndMs(line);
   const rawText =
-    ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", "\\N");
+    ass?.rawText ??
+    line.metadata?.rawText ??
+    line.text.replaceAll("\n", String.raw`\N`);
   return [
     ass?.kind === "comment" ? "Comment" : "Dialogue",
     ": ",

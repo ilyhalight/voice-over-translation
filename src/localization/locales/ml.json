@@ -220,7 +220,9 @@
     "left": "ഇടത്",
     "right": "ശരിയാണ്",
     "top": "മുകളിൽ",
-    "default": "സ്ഥിരസ്ഥിതി"
+    "default": "സ്ഥിരസ്ഥിതി",
+    "leftCenter": "ഇടത് കേന്ദ്രം",
+    "rightCenter": "വലത് കേന്ദ്രം"
   },
   "secs": "സെക്കന്റുകൾ",
   "autoHideButtonDelay": "വിവർത്തനം ബട്ടൺ മറയ്ക്കുന്നതിന് മുമ്പ് കാലതാമസം",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "വേഗതയേറിയതും ഉയർന്ന നിലവാരമുള്ളതുമായ വോയ്സ് ഓവർ",
   "VOTLiveVoicesTitle": "ലൈവ് ശബ്ദങ്ങൾ",
   "VOTLiveVoicesSubtitle": "പരമാവധി സമാനത. എല്ലാവരും റഷ്യൻ അറിയുന്നു പോലെ",
-  "VOTYandexTokenExpired": "സെഷൻ അവസാനിച്ചു. വീണ്ടും ലോഗിൻ ചെയ്യുക"
+  "VOTYandexTokenExpired": "സെഷൻ അവസാനിച്ചു. വീണ്ടും ലോഗിൻ ചെയ്യുക",
+  "VOTVoiceSelection": "ഡബ്ബിംഗ് തിരഞ്ഞെടുക്കുക"
 }

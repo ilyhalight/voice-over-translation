@@ -220,7 +220,9 @@
     "left": "Trái",
     "right": "Phải không",
     "top": "Hàng đầu",
-    "default": "Mặc định"
+    "default": "Mặc định",
+    "leftCenter": "Trái trung tâm",
+    "rightCenter": "Trung tâm bên phải"
   },
   "secs": "sk",
   "autoHideButtonDelay": "Trì hoãn trước khi ẩn nút dịch",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Lồng tiếng nhanh và chất lượng cao",
   "VOTLiveVoicesTitle": "Giọng nói trực tiếp",
   "VOTLiveVoicesSubtitle": "Sự tương đồng tối đa. Như thể mọi người đều biết tiếng nga",
-  "VOTYandexTokenExpired": "Phiên hết hạn. Đăng nhập lại"
+  "VOTYandexTokenExpired": "Phiên hết hạn. Đăng nhập lại",
+  "VOTVoiceSelection": "Chọn lồng tiếng"
 }

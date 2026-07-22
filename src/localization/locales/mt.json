@@ -220,7 +220,9 @@
     "left": "Xellug",
     "right": "Dritt",
     "top": "Fuq",
-    "default": "Inadempjenza"
+    "default": "Inadempjenza",
+    "leftCenter": "Xellug iċċentrat",
+    "rightCenter": "Dritt iċċentrat"
   },
   "secs": "seks",
   "autoHideButtonDelay": "Dewmien qabel ma taħbi l-buttuna ittraduċi",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Vuċi veloċi u ta'kwalità għolja",
   "VOTLiveVoicesTitle": "Vuċijiet ħajjin",
   "VOTLiveVoicesSubtitle": "Xebh massimu. Bħallikieku kulħadd jaf ir russu",
-  "VOTYandexTokenExpired": "Sessjoni skada. Idħol mill-ġdid"
+  "VOTYandexTokenExpired": "Sessjoni skada. Idħol mill-ġdid",
+  "VOTVoiceSelection": "Agħżel id-doppjaġġ"
 }

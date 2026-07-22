@@ -3,8 +3,7 @@ import type { SubtitleInlineStyle } from "../types/subtitles";
 const SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
 const SAFE_HEX_COLOR_RE =
   /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
-const SAFE_CSS_FUNCTION_COLOR_RE =
-  /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/+-]+\)$/iu;
+const SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
 const SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
 
 const normalizeClassNames = (

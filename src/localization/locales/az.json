@@ -220,7 +220,9 @@
     "left": "Solda",
     "right": "Düzgün",
     "top": "Üst",
-    "default": "Default"
+    "default": "Default",
+    "leftCenter": "Sol mərkəz",
+    "rightCenter": "Sağ mərkəzdə"
   },
   "secs": "sec",
   "autoHideButtonDelay": "Tərcümə düyməsini gizlətmədən əvvəl Saxlayın",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Sürətli və keyfiyyətli səs",
   "VOTLiveVoicesTitle": "Canlı səslər",
   "VOTLiveVoicesSubtitle": "Maksimum oxşarlıq. Sanki hamı rus dilini bilir",
-  "VOTYandexTokenExpired": "Sessiya bitdi. Yenidən daxil olun"
+  "VOTYandexTokenExpired": "Sessiya bitdi. Yenidən daxil olun",
+  "VOTVoiceSelection": "Dublyaj seçin"
 }

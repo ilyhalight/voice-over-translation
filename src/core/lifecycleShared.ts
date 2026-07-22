@@ -7,11 +7,11 @@ export type LifecycleTranslationResetHost = {
 export type LifecycleOverlayViewLike = {
   votButton?: {
     container?: {
-      hidden: boolean;
+      hidden: boolean | string;
     };
   };
   votMenu?: {
-    hidden: boolean;
+    hidden: boolean | string;
   };
 };
 

@@ -44,9 +44,7 @@ function createSettingsEvents(): {
 
 import { availableLangs } from "@vot.js/shared/consts";
 import { html } from "lit-html";
-import { countryCode, type VideoHandler } from "../..";
 import {
-  authLoginUrl,
   defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
@@ -55,7 +53,9 @@ import {
   proxyWorkerHost,
 } from "../../config/config";
 import { isAuthRefreshMessage } from "../../core/authRefreshMessage";
+import { openAuthWindow } from "../../core/authWindow";
 import { EventImpl } from "../../core/eventImpl";
+import { detectServices, translateServices } from "../../core/translateApis";
 import {
   type LangOverride,
   localizationProvider,
@@ -98,8 +98,10 @@ import debug from "../../utils/debug";
 import { getEnvironmentInfo } from "../../utils/environment";
 import { isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
-import { detectServices, translateServices } from "../../utils/translateApis";
 import { isPiPAvailable } from "../../utils/utils";
+import type { VideoHandler } from "../../VideoHandler";
+import { getCountryCode } from "../../videoHandler/shared";
+import { normalizeButtonPosition } from "../buttonPlacement";
 import AccountButton from "../components/accountButton";
 import Checkbox from "../components/checkbox";
 import { createDomId } from "../components/componentShared";
@@ -585,6 +587,64 @@ export class SettingsView {
     return this.buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
   }
 
+  private buildAboutSectionContent(aboutSection: {
+    content: HTMLElement;
+  }): void {
+    const envInfo = getEnvironmentInfo();
+    const safeGMInfo = typeof GM_info === "undefined" ? undefined : GM_info;
+    const versionInfo = ui.createInformation(
+      `${localizationProvider.get("VOTVersion")}:`,
+      envInfo.scriptVersion === "unknown"
+        ? safeGMInfo?.script?.version || localizationProvider.get("notFound")
+        : envInfo.scriptVersion,
+    );
+    const buildAuthors =
+      typeof VOT_AUTHORS === "undefined" ? "" : String(VOT_AUTHORS);
+    const authorsInfo = ui.createInformation(
+      `${localizationProvider.get("VOTAuthors")}:`,
+      (safeGMInfo?.script as TMInfoScriptMeta | undefined)?.author ||
+        buildAuthors ||
+        localizationProvider.get("notFound"),
+    );
+    const loaderInfo = ui.createInformation(
+      `${localizationProvider.get("VOTLoader")}:`,
+      envInfo.loader,
+    );
+    const userBrowserInfo = ui.createInformation(
+      `${localizationProvider.get("VOTBrowser")}:`,
+      `${envInfo.browser} (${envInfo.os})`,
+    );
+    const localeUpdatedAt = new Date(
+      (this.data.localeUpdatedAt ?? 0) * 1000,
+    ).toLocaleString();
+    const localeHashValue =
+      this.data.localeHash ?? localizationProvider.get("notFound");
+    const localeInfoValue = html`${localeHashValue}<br />(${localizationProvider.get(
+      "VOTUpdatedAt",
+    )}
+      ${localeUpdatedAt})`;
+    const localeInfo = ui.createInformation(
+      `${localizationProvider.get("VOTLocaleHash")}:`,
+      localeInfoValue,
+    );
+    const updateLocaleFilesButton = ui.createOutlinedButton(
+      localizationProvider.get("VOTUpdateLocaleFiles"),
+    );
+    updateLocaleFilesButton.addEventListener("click", async () => {
+      await votStorage.set("localeHash", "");
+      await localizationProvider.update(true);
+      globalThis.location.reload();
+    });
+    aboutSection.content.append(
+      versionInfo.container,
+      authorsInfo.container,
+      loaderInfo.container,
+      userBrowserInfo.container,
+      localeInfo.container,
+      updateLocaleFilesButton,
+    );
+  }
+
   initUI() {
     if (this.isInitialized()) {
       throw new Error("[VOT] SettingsView is already initialized");
@@ -867,8 +927,9 @@ export class SettingsView {
       localizationProvider.get("VOTTranslateProxyEverything"),
     ];
     const translateProxyEnabled = this.data.translateProxyEnabled ?? 0;
+    const countryCode = getCountryCode();
     const isTranslateProxyRequired =
-      countryCode && proxyOnlyCountries.includes(countryCode);
+      countryCode !== null && proxyOnlyCountries.includes(countryCode);
     this.proxyTranslationStatusSelectLabel = new Label({
       icon: isTranslateProxyRequired ? WARNING_ICON : undefined,
       labelText: localizationProvider.get("VOTTranslateProxyStatus"),
@@ -1004,7 +1065,7 @@ export class SettingsView {
       labelText: localizationProvider.get("buttonPosition"),
       icon: HELP_ICON,
     });
-    const buttonPos = this.data.buttonPos ?? "default";
+    const buttonPos = normalizeButtonPosition(this.data.buttonPos);
     this.buttonPositionSelect = new Select<Position>({
       selectTitle: localizationProvider.get(`position.${buttonPos}`),
       dialogTitle: localizationProvider.get("buttonPosition"),
@@ -1059,58 +1120,7 @@ export class SettingsView {
       this.buttonPositionSelect.container,
       this.menuLanguageSelect.container,
     );
-    const envInfo = getEnvironmentInfo();
-    const versionInfo = ui.createInformation(
-      `${localizationProvider.get("VOTVersion")}:`,
-      envInfo.scriptVersion ||
-        GM_info.script.version ||
-        localizationProvider.get("notFound"),
-    );
-    const buildAuthors =
-      typeof VOT_AUTHORS === "undefined" ? "" : String(VOT_AUTHORS);
-    const authorsInfo = ui.createInformation(
-      `${localizationProvider.get("VOTAuthors")}:`,
-      (GM_info.script as TMInfoScriptMeta).author ||
-        buildAuthors ||
-        localizationProvider.get("notFound"),
-    );
-    const loaderInfo = ui.createInformation(
-      `${localizationProvider.get("VOTLoader")}:`,
-      envInfo.loader,
-    );
-    const userBrowserInfo = ui.createInformation(
-      `${localizationProvider.get("VOTBrowser")}:`,
-      `${envInfo.browser} (${envInfo.os})`,
-    );
-    const localeUpdatedAt = new Date(
-      (this.data.localeUpdatedAt ?? 0) * 1000,
-    ).toLocaleString();
-    const localeHashValue =
-      this.data.localeHash ?? localizationProvider.get("notFound");
-    const localeInfoValue = html`${localeHashValue}<br />(${localizationProvider.get(
-      "VOTUpdatedAt",
-    )}
-      ${localeUpdatedAt})`;
-    const localeInfo = ui.createInformation(
-      `${localizationProvider.get("VOTLocaleHash")}:`,
-      localeInfoValue,
-    );
-    const updateLocaleFilesButton = ui.createOutlinedButton(
-      localizationProvider.get("VOTUpdateLocaleFiles"),
-    );
-    updateLocaleFilesButton.addEventListener("click", async () => {
-      await votStorage.set("localeHash", "");
-      await localizationProvider.update(true);
-      globalThis.location.reload();
-    });
-    aboutSection.content.append(
-      versionInfo.container,
-      authorsInfo.container,
-      loaderInfo.container,
-      userBrowserInfo.container,
-      localeInfo.container,
-      updateLocaleFilesButton,
-    );
+    this.buildAboutSectionContent(aboutSection);
     this.dialog.footerContainer.append(
       this.bugReportButton,
       this.resetSettingsButton,
@@ -1130,7 +1140,7 @@ export class SettingsView {
         this.data.account = {};
         return this.updateAccountInfo();
       }
-      globalThis.open(authLoginUrl, "_blank")?.focus();
+      openAuthWindow();
     });
     this.accountButton.addEventListener("click:secret", async () => {
       const dialog = new Dialog({

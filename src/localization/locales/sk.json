@@ -220,7 +220,9 @@
     "left": "Ľavý",
     "right": "Právo",
     "top": "Hornej",
-    "default": "Predvolený"
+    "default": "Predvolený",
+    "leftCenter": "Vľavo v strede",
+    "rightCenter": "Pravý stred"
   },
   "secs": "secs",
   "autoHideButtonDelay": "Oneskorenie pred skrytím tlačidla preložiť",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Rýchly a kvalitný voiceover",
   "VOTLiveVoicesTitle": "Živé hlasy",
   "VOTLiveVoicesSubtitle": "Maximálna podobnosť. Ako keby každý vedel rusky",
-  "VOTYandexTokenExpired": "Platnosť relácie vypršala. Prihlásiť sa"
+  "VOTYandexTokenExpired": "Platnosť relácie vypršala. Prihlásiť sa",
+  "VOTVoiceSelection": "Vyberte dabing"
 }

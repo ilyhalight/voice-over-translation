@@ -2,7 +2,6 @@ export type BootstrapStatus = "idle" | "booting" | "booted" | "failed";
 
 export type BootstrapState = {
   status: BootstrapStatus;
-  promise: Promise<void> | null;
   error: unknown;
 };
 
@@ -33,7 +32,6 @@ export function getOrCreateBootState(bootKey = MAIN_BOOT_KEY): BootstrapState {
 
   const created: BootstrapState = {
     status: "idle",
-    promise: null,
     error: null,
   };
   scope[bootKey] = created;

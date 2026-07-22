@@ -63,6 +63,8 @@ export type Locale =
   | "zh"
   | "zu";
 
+export type LangOverride = Locale | "auto";
+
 export type Hashes = Record<Locale, string>;
 
 export type Phrase =
@@ -293,6 +295,8 @@ export type Phrase =
   | "position.right"
   | "position.top"
   | "position.default"
+  | "position.leftCenter"
+  | "position.rightCenter"
   | "secs"
   | "autoHideButtonDelay"
   | "notFound"
@@ -310,7 +314,8 @@ export type Phrase =
   | "VOTYandexTokenInfo"
   | "VOTLoginViaToken"
   | "smartDucking"
-  | "VOTYandexTokenExpired";
+  | "VOTYandexTokenExpired"
+  | "VOTVoiceSelection";
 
 export type Phrases = {
   recommended: string;
@@ -545,6 +550,8 @@ export type Phrases = {
     right: string;
     top: string;
     default: string;
+    leftCenter: string;
+    rightCenter: string;
   };
   secs: string;
   autoHideButtonDelay: string;
@@ -564,6 +571,7 @@ export type Phrases = {
   VOTLoginViaToken: string;
   smartDucking: string;
   VOTYandexTokenExpired: string;
+  VOTVoiceSelection: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

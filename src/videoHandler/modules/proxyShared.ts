@@ -1,4 +1,4 @@
-import { proxyWorkerHost } from "../../config/config";
+﻿import { proxyWorkerHost } from "../../config/config";
 
 const AUDIO_SOURCE_PREFIX =
   "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
@@ -33,20 +33,38 @@ export function shouldForceProxyClientGmXhr(
   return Boolean(config.gmXhrSupported && isProxyClientEnabled(config));
 }
 
+/**
+ * Generic proxy URL rewriter. Replaces a known source prefix with the
+ * proxy-worker host + path when proxy routing is enabled.
+ *
+ * Centralizes the shared logic previously duplicated across
+ * proxifyYandexAudioUrl and proxifyYandexSubtitlesUrl.
+ */
+function proxifyUrl(
+  url: string,
+  config: ProxyConfig,
+  sourcePrefix: string,
+  proxyPathPrefix: string,
+): string {
+  if (!isProxyRoutingEnabled(config) || !url.startsWith(sourcePrefix)) {
+    return url;
+  }
+
+  return url.replace(
+    sourcePrefix,
+    `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${proxyPathPrefix}`,
+  );
+}
+
 export function proxifyYandexAudioUrl(
   audioUrl: string,
   config: ProxyConfig,
 ): string {
-  if (
-    !isProxyRoutingEnabled(config) ||
-    !audioUrl.startsWith(AUDIO_SOURCE_PREFIX)
-  ) {
-    return audioUrl;
-  }
-
-  return audioUrl.replace(
+  return proxifyUrl(
+    audioUrl,
+    config,
     AUDIO_SOURCE_PREFIX,
-    `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`,
+    AUDIO_PROXY_PATH_PREFIX,
   );
 }
 
@@ -89,13 +107,10 @@ export function proxifyYandexSubtitlesUrl(
   subtitlesUrl: string,
   config: ProxyConfig,
 ): string {
-  if (
-    !isProxyRoutingEnabled(config) ||
-    !subtitlesUrl.startsWith(SUBTITLE_SOURCE_PREFIX)
-  ) {
-    return subtitlesUrl;
-  }
-
-  const subtitlesPath = subtitlesUrl.slice(SUBTITLE_SOURCE_PREFIX.length);
-  return `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
+  return proxifyUrl(
+    subtitlesUrl,
+    config,
+    SUBTITLE_SOURCE_PREFIX,
+    SUBTITLE_PROXY_PATH_PREFIX,
+  );
 }

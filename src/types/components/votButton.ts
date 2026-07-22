@@ -1,5 +1,12 @@
-export const positions = ["default", "top", "left", "right"] as const;
+export const positions = [
+  "default",
+  "left",
+  "right",
+  "leftCenter",
+  "rightCenter",
+] as const;
 export type Position = (typeof positions)[number];
+export type LegacyPosition = Position | "top";
 
 export const directions = ["default", "row", "column"] as const;
 export type Direction = (typeof directions)[number];

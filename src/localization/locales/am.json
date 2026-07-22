@@ -220,7 +220,9 @@
     "left": "ግራ",
     "right": "ቀኝ",
     "top": "ከፍተኛ",
-    "default": "የነበረው"
+    "default": "የነበረው",
+    "leftCenter": "ግራ ማዕከል",
+    "rightCenter": "ቀኝ ማዕከል"
   },
   "secs": "ሰከንዶች",
   "autoHideButtonDelay": "የትርጉም አዝራሩን ከመደበቅ በፊት መዘግየት",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "ፈጣን እና ከፍተኛ ጥራት ያለው የድምፅ ድምጽ",
   "VOTLiveVoicesTitle": "የቀጥታ ድምጾች",
   "VOTLiveVoicesSubtitle": "ከፍተኛው ተመሳሳይነት. ሁሉም ሰው ሩሲያኛ ያውቃል ከሆነ እንደ",
-  "VOTYandexTokenExpired": "ስብሰባው አብቅቷል። እንደገና ይግቡ"
+  "VOTYandexTokenExpired": "ስብሰባው አብቅቷል። እንደገና ይግቡ",
+  "VOTVoiceSelection": "ዱባይን ይምረጡ"
 }

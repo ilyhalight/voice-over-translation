@@ -211,18 +211,21 @@ const UI = {
         .get("VOTTranslatedBy")
         .replace("{0}", translationService),
     );
-    const header = UI.createEl(
-      "vot-block",
-      ["vot-subtitles-info-header"],
-      word,
-    );
+    translatedWith.hidden = true;
+
+    const title = UI.createEl("vot-block", ["vot-subtitles-info-title"]);
+    const source = UI.createEl("span", ["vot-subtitles-info-source"], word);
+    const divider = UI.createEl("span", ["vot-subtitles-info-divider"], "—");
+    const header = UI.createEl("span", ["vot-subtitles-info-header"], word);
+    title.append(source, divider, header);
+
     const context = UI.createEl(
       "vot-block",
       ["vot-subtitles-info-context"],
       desc,
     );
 
-    container.append(translatedWith, header, context);
+    container.append(title, context);
 
     return {
       container,

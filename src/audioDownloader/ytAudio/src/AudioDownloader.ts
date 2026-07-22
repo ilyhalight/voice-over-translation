@@ -191,7 +191,9 @@ function getVideoIdFromPathSegments(pathSegments: string[]): string | null {
 }
 
 function decodeEscapedJsonString(input: string): string {
-  return input.replaceAll("\\u0026", "&").replaceAll("\\/", "/");
+  return input
+    .replaceAll(String.raw`\u0026`, "&")
+    .replaceAll(String.raw`\/`, "/");
 }
 
 function getRequiredVideoId(request: AudioStreamRequest): string {

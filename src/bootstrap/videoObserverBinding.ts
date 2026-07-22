@@ -1,11 +1,16 @@
 import type { ServiceConf } from "@vot.js/ext/types/service";
+import { getVideoID } from "@vot.js/ext/utils/videoData";
+import { GM_fetch } from "../utils/gm";
 import type { VideoObserver } from "../utils/VideoObserver";
 
 type VideoHandlerLike = {
   init(): Promise<void>;
   setCanPlay(): Promise<void>;
   getVideoData(): Promise<unknown>;
-  videoData?: unknown;
+  hasActiveSource(): boolean;
+  replaceVideo(video: HTMLVideoElement): Promise<void>;
+  site: ServiceConf;
+  videoData?: { videoId?: string };
   release(): Promise<void> | void;
 };
 
@@ -23,6 +28,10 @@ type BindObserverListenersOptions = {
     container: HTMLElement,
     site: ServiceConf,
   ) => VideoHandlerLike;
+  resolveVideoId?: (
+    site: ServiceConf,
+    video: HTMLVideoElement,
+  ) => Promise<string | undefined>;
 };
 
 type SiteContainerMatch = {
@@ -43,6 +52,8 @@ export function bindObserverListeners(
     getServicesCached,
     findContainer,
     createVideoHandler,
+    resolveVideoId = (site, video) =>
+      getVideoID(site, { fetchFn: GM_fetch, video }),
   } = options;
 
   if (boundObservers.has(videoObserver)) return;
@@ -78,7 +89,9 @@ export function bindObserverListeners(
     } catch (error) {
       console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
     } finally {
-      videosWrappers.delete(video);
+      if (videosWrappers.get(video) === videoHandler) {
+        videosWrappers.delete(video);
+      }
     }
   };
 
@@ -99,6 +112,37 @@ export function bindObserverListeners(
     return RUNTIME_URL_HOSTS.has(String(site.host))
       ? { ...site, url: globalThis.location.origin }
       : site;
+  };
+
+  const tryReplaceVideo = async (
+    oldVideo: HTMLVideoElement,
+    newVideo: HTMLVideoElement,
+    container: HTMLElement,
+  ): Promise<boolean> => {
+    const videoHandler = videosWrappers.get(oldVideo);
+    const previousVideoId = videoHandler?.videoData?.videoId;
+    if (!videoHandler?.hasActiveSource() || !previousVideoId) {
+      return false;
+    }
+
+    try {
+      const nextVideoId = await resolveVideoId(videoHandler.site, newVideo);
+      if (nextVideoId !== previousVideoId) return false;
+      await videoHandler.replaceVideo(newVideo);
+    } catch (error) {
+      console.error("[VOT] Failed to replace video element", error);
+      return false;
+    }
+
+    if (videosWrappers.get(oldVideo) !== videoHandler) {
+      return videosWrappers.get(newVideo) === videoHandler;
+    }
+    videosWrappers.delete(oldVideo);
+    videoContainers.delete(oldVideo);
+    videosWrappers.set(newVideo, videoHandler);
+    videoContainers.set(newVideo, container);
+    containerOwners.set(container, newVideo);
+    return true;
   };
 
   const promotePendingVideo = async (
@@ -137,6 +181,10 @@ export function bindObserverListeners(
       if (activeVideoForContainer && activeVideoForContainer !== video) {
         if (activeVideoForContainer.isConnected) {
           pendingVideoByContainer.set(container, video);
+          return;
+        }
+
+        if (await tryReplaceVideo(activeVideoForContainer, video, container)) {
           return;
         }
 
@@ -193,7 +241,22 @@ export function bindObserverListeners(
   videoObserver.onVideoAdded.addListener(handleVideoAdded);
 
   videoObserver.onVideoRemoved.addListener(async (video) => {
-    const container = clearContainerOwner(video);
+    const container = videoContainers.get(video);
+    const replacement =
+      container &&
+      Array.from(container.querySelectorAll("video")).find(
+        (candidate) => candidate !== video && candidate.isConnected,
+      );
+    if (
+      container &&
+      replacement &&
+      (await tryReplaceVideo(video, replacement, container))
+    ) {
+      initializingVideos.delete(video);
+      return;
+    }
+
+    clearContainerOwner(video);
     await releaseVideoHandler(video, "video removed");
     initializingVideos.delete(video);
     if (container && pendingVideoByContainer.get(container) === video) {

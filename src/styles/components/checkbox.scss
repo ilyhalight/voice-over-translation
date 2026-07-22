@@ -51,9 +51,7 @@
     height: 18px;
     outline: none;
     cursor: pointer;
-    transition:
-      border-color 0.2s,
-      background-color 0.2s;
+    transition: border-color 0.2s, background-color 0.2s;
 
     & + span {
       position: relative;
@@ -78,9 +76,7 @@
         opacity: 0;
         transform: scale(1);
         pointer-events: none;
-        transition:
-          opacity 0.3s,
-          transform 0.2s;
+        transition: opacity 0.3s, transform 0.2s;
       }
 
       &::after {
@@ -146,9 +142,7 @@
       & + span::before {
         opacity: 1;
         transform: scale(0);
-        transition:
-          transform 0s,
-          opacity 0s;
+        transition: transform 0s, opacity 0s;
       }
     }
   }
@@ -183,7 +177,9 @@
 
   @supports not selector(:focus-visible) {
     html.vot-keyboard-nav .vot-checkbox > input:focus {
-      box-shadow: var(--vot-focus-ring), var(--vot-focus-ring-offset) !important;
+      box-shadow:
+        var(--vot-focus-ring),
+        var(--vot-focus-ring-offset) !important;
     }
   }
 }

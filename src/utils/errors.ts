@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Small error helpers used across the project.
  */
 
@@ -127,4 +127,29 @@ export function makeAbortError(message = "Aborted"): Error {
     (err as any).name = "AbortError";
     return err;
   }
+}
+
+/**
+ * Safely reads a nested field from an unknown value.
+ *
+ * Returns `undefined` when any intermediate property is missing or not an
+ * object, eliminating the repetitive null-check → cast → access pattern
+ * that was scattered across error-handling code.
+ *
+ * @example
+ * safeNestedGet(err, ["data", "message"])  // err?.data?.message
+ * safeNestedGet(err, ["status"])           // err?.status
+ */
+export function safeNestedGet(
+  value: unknown,
+  path: [string, ...string[]],
+): unknown {
+  let current: unknown = value;
+  for (const key of path) {
+    if (current == null || typeof current !== "object") {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
 }

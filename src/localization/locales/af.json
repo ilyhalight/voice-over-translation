@@ -220,7 +220,9 @@
     "left": "Links",
     "right": "Regs",
     "top": "Boonste",
-    "default": "Verstek"
+    "default": "Verstek",
+    "leftCenter": "Links gesentreer",
+    "rightCenter": "Regs gesentreer"
   },
   "secs": "sek",
   "autoHideButtonDelay": "Vertraag voordat u die translate-knoppie wegsteek",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Vinnige en hoë kwaliteit voiceover",
   "VOTLiveVoicesTitle": "Lewendige stemme",
   "VOTLiveVoicesSubtitle": "Maksimum ooreenkoms. Asof almal russies ken",
-  "VOTYandexTokenExpired": "Sessie verstryk het. Meld weer aan"
+  "VOTYandexTokenExpired": "Sessie verstryk het. Meld weer aan",
+  "VOTVoiceSelection": "Kies dubbing"
 }

@@ -1,3 +1,5 @@
+﻿import { clampNumber } from "../utils/number";
+
 export type SmartLayoutBox = {
   w: number;
   h: number;
@@ -12,9 +14,6 @@ export type SmartLayoutResult = {
   fontSizePx: number;
   maxWidthPx: number | null;
 };
-
-const clampNumber = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
 
 const roundToInt = (value: number): number => Math.round(value);
 

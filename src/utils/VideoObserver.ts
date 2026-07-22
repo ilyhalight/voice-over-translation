@@ -1,10 +1,10 @@
-import { EventImpl } from "../core/eventImpl";
 import debug from "./debug";
 import {
   type ShadowTreeTraversalAdapter,
   someComposedAncestor,
   walkShadowIncludingSubtree,
 } from "./domTraversal";
+import { EventImpl } from "./eventImpl";
 import {
   createIntervalIdleChecker,
   type IntervalIdleChecker,
@@ -607,8 +607,7 @@ export class VideoObserver {
 
     this.onDocumentReady = onReady;
     document.addEventListener("readystatechange", onReady);
-    if (typeof queueMicrotask === "function") queueMicrotask(onReady);
-    else void Promise.resolve().then(onReady);
+    queueMicrotask(onReady);
   }
 
   disable() {

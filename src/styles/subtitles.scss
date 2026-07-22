@@ -55,9 +55,9 @@
   // Base size is CSS-driven with clamp; JS only overrides when manual size is enabled.
   font-size: calc(
     var(
-        --vot-subtitles-font-size,
-        clamp(18px, var(--vot-subtitles-smart-font-preferred, 2.2vw), 50px)
-      ) *
+      --vot-subtitles-font-size,
+      clamp(18px, var(--vot-subtitles-smart-font-preferred, 2.2vw), 50px)
+    ) *
       var(--vot-subtitles-scale-compensation, 1)
   );
   // Increase specificity (class repeated) + !important to win against aggressive host CSS.
@@ -174,37 +174,66 @@
   &-info {
     display: flex;
     flex-direction: column;
-    padding: 6px !important;
-    gap: 2px;
-    max-width: 100%;
+    gap: 10px;
+    min-width: min(360px, calc(100vw - 32px));
+    max-width: min(720px, calc(100vw - 32px));
+    padding: 18px 22px 20px !important;
+    color: rgb(245, 247, 250);
+    background: rgba(31, 32, 35, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px !important;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34), 0 4px 16px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    text-align: start;
 
-    &-service,
+    &-service {
+      display: none !important;
+    }
+
+    &-title {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      max-width: 100%;
+      min-width: 0;
+      line-height: 1.18 !important;
+      font-size: clamp(18px, 2.4vw, 26px) !important;
+      letter-spacing: -0.01em;
+    }
+
+    &-source,
+    &-divider,
     &-header,
     &-context {
       white-space: normal !important;
       overflow-wrap: anywhere;
-      word-break: break-word;
     }
 
-    &-service {
-      line-height: 1 !important;
-      font-size: 10px !important;
-      margin-bottom: 8px !important;
-      color: var(--vot-subtitles-context-color, rgb(134, 145, 155));
+    &-source {
+      flex: 0 1 auto;
+      color: rgba(245, 247, 250, 0.68);
+      font-weight: 650 !important;
+    }
+
+    &-divider {
+      flex: 0 0 auto;
+      color: rgba(245, 247, 250, 0.38);
+      font-weight: 500 !important;
     }
 
     &-header {
-      line-height: 1 !important;
-      font-size: 20px !important;
-      font-weight: 500 !important;
-      margin-bottom: 6px !important;
-      color: var(--vot-subtitles-header-color, rgb(255, 255, 255));
+      flex: 1 1 auto;
+      min-width: 0;
+      color: rgb(255, 255, 255);
+      font-weight: 750 !important;
     }
 
     &-context {
-      line-height: 1.2 !important;
-      font-size: 12px !important;
-      color: var(--vot-subtitles-context-color, rgb(134, 145, 155));
+      max-width: 100%;
+      line-height: 1.42 !important;
+      font-size: clamp(14px, 1.45vw, 17px) !important;
+      color: rgba(222, 228, 236, 0.72);
     }
   }
 
@@ -346,10 +375,11 @@
 :-webkit-full-screen .vot-subtitles {
   font-size: calc(
     var(
-        --vot-subtitles-font-size,
-        clamp(18px, var(--vot-subtitles-smart-font-preferred, 2vw), 50px)
-      ) *
-      var(--vot-subtitles-fullscreen-scale, 1) * 0.95 *
+      --vot-subtitles-font-size,
+      clamp(18px, var(--vot-subtitles-smart-font-preferred, 2vw), 50px)
+    ) *
+      var(--vot-subtitles-fullscreen-scale, 1) *
+      0.95 *
       var(--vot-subtitles-scale-compensation, 1)
   );
 }

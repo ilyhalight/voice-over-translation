@@ -220,7 +220,9 @@
     "left": "Kiwa",
     "right": "Ya wis",
     "top": "Ndhuwur",
-    "default": "Gagal"
+    "default": "Gagal",
+    "leftCenter": "Pusat kiwa",
+    "rightCenter": "Pusat tengen"
   },
   "secs": "sèk",
   "autoHideButtonDelay": "Tundha sadurunge ndhelikake tombol translate",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Swara cepet lan kualitas dhuwur",
   "VOTLiveVoicesTitle": "Swara urip",
   "VOTLiveVoicesSubtitle": "Kamiripan maksimal. Kaya-kaya kabèh wong ngerti basa rusia",
-  "VOTYandexTokenExpired": "Sesi wis kadaluwarsa. Mlebu maneh"
+  "VOTYandexTokenExpired": "Sesi wis kadaluwarsa. Mlebu maneh",
+  "VOTVoiceSelection": "Milih dubbing"
 }

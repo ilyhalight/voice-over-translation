@@ -220,7 +220,9 @@
     "left": "Levo",
     "right": "Desno",
     "top": "Vrh",
-    "default": "Privzeto"
+    "default": "Privzeto",
+    "leftCenter": "Levo središče",
+    "rightCenter": "Desno centrirano"
   },
   "secs": "sec",
   "autoHideButtonDelay": "Zakasnitev, preden skrijete gumb za prevajanje",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Hiter in kakovosten voiceover",
   "VOTLiveVoicesTitle": "Glasovi v živo",
   "VOTLiveVoicesSubtitle": "Največja podobnost. Kot da vsi vedo rusko",
-  "VOTYandexTokenExpired": "Seja je potekla. Ponovno se prijavite"
+  "VOTYandexTokenExpired": "Seja je potekla. Ponovno se prijavite",
+  "VOTVoiceSelection": "Izberite sinhronizacijo"
 }

@@ -1,9 +1,9 @@
 import { defaultAutoVolume } from "../../config/config";
-import type { VideoHandler } from "../../index";
 import debug from "../../utils/debug";
-import { safeSetPlayerVolume } from "../../utils/translationVolume";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
+import type { VideoHandler } from "../../VideoHandler";
+import { safeSetPlayerVolume } from "../translationVolume";
 import {
   computeSmartDuckingStep,
   initSmartDuckingRuntime,
@@ -159,6 +159,56 @@ function resolveSmartDuckingInputNode(
   }
 }
 
+function ensureAnalyserNode(
+  state: SmartDuckingAnalyserState,
+  audioContext: AudioContext,
+): AnalyserNode {
+  if (!state.analyser) {
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    state.analyser = analyser;
+  }
+  return state.analyser;
+}
+
+function reconnectAnalyser(
+  inputNode: AudioNode,
+  analyser: AnalyserNode,
+  state: SmartDuckingAnalyserState,
+  audioContext: AudioContext,
+): boolean {
+  if (state.connectedInputNode) {
+    try {
+      state.connectedInputNode.disconnect(analyser);
+    } catch {
+      // ignore
+    }
+  }
+
+  try {
+    analyser.disconnect();
+  } catch {
+    // ignore
+  }
+
+  try {
+    inputNode.connect(analyser);
+    state.connectedInputNode = inputNode;
+
+    if (state.createdMediaSource === inputNode) {
+      try {
+        analyser.connect(audioContext.destination);
+      } catch (err) {
+        debug.log("[SmartDucking] failed to bridge analyser output", err);
+      }
+    }
+    return true;
+  } catch (err) {
+    debug.log("[SmartDucking] failed to connect analyser", err);
+    return false;
+  }
+}
+
 function ensureSmartDuckingAnalyser(
   handler: VideoHandler,
   player: AudioPlayerLike | undefined,
@@ -183,11 +233,7 @@ function ensureSmartDuckingAnalyser(
   state.mediaElement = media;
   state.audioContext = audioContext;
 
-  if (!state.analyser) {
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 512;
-    state.analyser = analyser;
-  }
+  const analyser = ensureAnalyserNode(state, audioContext);
 
   const inputNode = resolveSmartDuckingInputNode(
     player,
@@ -195,39 +241,16 @@ function ensureSmartDuckingAnalyser(
     audioContext,
     state,
   );
-  const analyser = state.analyser;
-  if (!inputNode || !analyser) return undefined;
+  if (!inputNode) return undefined;
 
   if (state.connectedInputNode !== inputNode) {
-    if (state.connectedInputNode) {
-      try {
-        state.connectedInputNode.disconnect(analyser);
-      } catch {
-        // ignore
-      }
-    }
-
-    try {
-      analyser.disconnect();
-    } catch {
-      // ignore
-    }
-
-    try {
-      inputNode.connect(analyser);
-      state.connectedInputNode = inputNode;
-
-      if (state.createdMediaSource === inputNode) {
-        try {
-          analyser.connect(audioContext.destination);
-        } catch (err) {
-          debug.log("[SmartDucking] failed to bridge analyser output", err);
-        }
-      }
-    } catch (err) {
-      debug.log("[SmartDucking] failed to connect analyser", err);
-      return undefined;
-    }
+    const connected = reconnectAnalyser(
+      inputNode,
+      analyser,
+      state,
+      audioContext,
+    );
+    if (!connected) return undefined;
   }
 
   return { analyser, state };
@@ -502,7 +525,7 @@ export function setupAudioSettings(this: VideoHandler) {
     }
 
     this.setVideoVolume(0, { preserveYoutubeVolumeStorage: true });
-    this.setVideoMuted(true, { preserveYoutubeVolumeStorage: true });
+    this.setVideoMuted(true);
     writeSmartDuckingRuntime(
       this,
       initSmartDuckingRuntime(this.smartVolumeDuckingBaseline),

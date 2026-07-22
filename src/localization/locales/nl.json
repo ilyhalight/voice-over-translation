@@ -220,7 +220,9 @@
     "left": "Links",
     "right": "Recht",
     "top": "Top",
-    "default": "Standaard"
+    "default": "Standaard",
+    "leftCenter": "Links gecentreerd",
+    "rightCenter": "Rechts gecentreerd"
   },
   "secs": "secs",
   "autoHideButtonDelay": "Vertraging voordat u de vertaal knop verbergt",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Snelle en hoogwaardige voiceover",
   "VOTLiveVoicesTitle": "Live voices",
   "VOTLiveVoicesSubtitle": "Maximale gelijkenis. Alsof iedereen Russisch kent",
-  "VOTYandexTokenExpired": "Sessie verlopen. Opnieuw inloggen"
+  "VOTYandexTokenExpired": "Sessie verlopen. Opnieuw inloggen",
+  "VOTVoiceSelection": "Kies dubbing"
 }

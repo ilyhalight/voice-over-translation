@@ -1,39 +1,5 @@
 @use "../mixins" as shared;
 
-$popover-enter-duration: 200ms;
-$popover-exit-duration: 180ms;
-
-$popover-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-$popover-ease-in: cubic-bezier(0.4, 0, 0.2, 1);
-
-$item-transition-duration: 160ms;
-
-$eq-duration: 1200ms;
-$eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
-
-@keyframes vot-eq-wave {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0)
-      scaleY(var(--vot-eq-min, 0.68));
-  }
-
-  30% {
-    transform: translate3d(0, 0, 0)
-      scaleY(calc(var(--vot-eq-max, 1) * 0.9));
-  }
-
-  50% {
-    transform: translate3d(0, 0, 0)
-      scaleY(var(--vot-eq-max, 1));
-  }
-
-  72% {
-    transform: translate3d(0, 0, 0)
-      scaleY(calc(var(--vot-eq-max, 1) * 0.82));
-  }
-}
-
 .vot-voice-icon {
   display: block;
   overflow: visible;
@@ -41,52 +7,11 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
   .vot-eq-bar {
     transform-origin: 50% 100%;
     transform-box: fill-box;
-
-    animation:
-      vot-eq-wave
-      $eq-duration
-      $eq-ease
-      infinite
-      both;
-
-    will-change: transform;
-  }
-
-  .vot-eq-bar--1 {
-    --vot-eq-min: 0.68;
-    --vot-eq-max: 1;
-    animation-delay: 0ms;
-  }
-
-  .vot-eq-bar--2 {
-    --vot-eq-min: 0.72;
-    --vot-eq-max: 0.96;
-    animation-delay: -140ms;
-  }
-
-  .vot-eq-bar--3 {
-    --vot-eq-min: 0.7;
-    --vot-eq-max: 0.92;
-    animation-delay: -280ms;
-  }
-
-  .vot-eq-bar--4 {
-    --vot-eq-min: 0.74;
-    --vot-eq-max: 0.98;
-    animation-delay: -420ms;
-  }
-
-  .vot-eq-bar--5 {
-    --vot-eq-min: 0.7;
-    --vot-eq-max: 0.94;
-    animation-delay: -210ms;
+    transform: scaleY(1);
   }
 
   &--standard .vot-eq-bar {
-    fill: rgba(
-      var(--vot-onsurface-rgb, 227, 227, 227),
-      0.4
-    );
+    fill: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.4);
   }
 
   &--live .vot-eq-bar {
@@ -95,49 +20,24 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
 }
 
 .vot-voice-popover {
-  --vot-helper-surface-rgb: var(
-    --vot-surface-rgb,
-    32,
-    33,
-    36
-  );
+  --vot-helper-surface-rgb: var(--vot-surface-rgb, 32, 33, 36);
 
-  --vot-helper-surface: rgb(
-    var(--vot-helper-surface-rgb)
-  );
+  --vot-helper-surface: rgb(var(--vot-helper-surface-rgb));
 
-  --vot-helper-onsurface-rgb: var(
-    --vot-onsurface-rgb,
-    227,
-    227,
-    227
-  );
+  --vot-helper-onsurface-rgb: var(--vot-onsurface-rgb, 227, 227, 227);
 
-  --vot-helper-onsurface: rgba(
-    var(--vot-helper-onsurface-rgb),
-    0.87
-  );
+  --vot-helper-onsurface: rgba(var(--vot-helper-onsurface-rgb), 0.87);
 
-  --vot-helper-onsurface-secondary: rgba(
-    var(--vot-helper-onsurface-rgb),
-    0.55
-  );
+  --vot-helper-onsurface-secondary: rgba(var(--vot-helper-onsurface-rgb), 0.55);
 
   --vot-voice-active-standard-bg: rgba(
     var(--vot-primary-rgb, 139, 180, 245),
     0.1
   );
 
-  --vot-voice-active-standard-fg: rgb(
-    var(--vot-primary-rgb, 139, 180, 245)
-  );
+  --vot-voice-active-standard-fg: rgb(var(--vot-primary-rgb, 139, 180, 245));
 
-  --vot-voice-active-live-bg: rgba(
-    224,
-    64,
-    160,
-    0.1
-  );
+  --vot-voice-active-live-bg: rgba(224, 64, 160, 0.1);
 
   --vot-voice-active-live-fg: #e040a0;
 
@@ -146,8 +46,6 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
   left: 0;
 
   z-index: 2147483647;
-
-  pointer-events: auto;
   display: block;
 
   background: var(--vot-helper-surface);
@@ -173,26 +71,22 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
   transform-origin: top left;
 
   @include shared.vot-font-family;
+  text-align: left !important;
 
   &,
   & * {
     box-sizing: border-box !important;
   }
 
-  will-change: opacity, transform;
-
   opacity: 0;
 
-  transform: translate3d(0, 6px, 0);
+  transform: none;
 
   visibility: hidden;
 
   pointer-events: none;
 
-  transition:
-    opacity $popover-enter-duration $popover-ease-out,
-    transform $popover-enter-duration $popover-ease-out,
-    visibility 0s linear $popover-exit-duration;
+  transition: none;
 
   &[hidden] {
     display: none !important;
@@ -203,16 +97,11 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
   &[aria-hidden="false"] {
     opacity: 1;
 
-    transform: translate3d(0, 0, 0);
+    transform: none;
 
     visibility: visible;
 
     pointer-events: auto;
-
-    @starting-style {
-      opacity: 0;
-      transform: translate3d(0, 6px, 0);
-    }
   }
 
   &[data-placement="top"] {
@@ -234,21 +123,11 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
   &.is-closing {
     opacity: 0;
 
-    transform: translate3d(0, 3px, 0);
+    transform: none;
 
     visibility: visible;
 
     pointer-events: none;
-  }
-
-  @supports (transition-behavior: allow-discrete) {
-    transition-behavior: allow-discrete;
-
-    transition:
-      opacity $popover-exit-duration $popover-ease-out,
-      transform $popover-exit-duration $popover-ease-out,
-      visibility 0s linear $popover-exit-duration,
-      display 0s linear $popover-exit-duration allow-discrete;
   }
 
   &__item {
@@ -269,15 +148,7 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
 
     outline: none;
 
-    will-change: transform;
-
-    transition:
-      transform $item-transition-duration
-        var(--vot-easing-standard, #{$popover-ease-in}),
-      color $item-transition-duration
-        var(--vot-easing-standard, #{$popover-ease-in}),
-      box-shadow $item-transition-duration
-        var(--vot-easing-standard, #{$popover-ease-in});
+    transition: none;
 
     &::before {
       content: "";
@@ -289,33 +160,20 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
 
       pointer-events: none;
 
-      background:
-        linear-gradient(
-          180deg,
-          rgba(
-            var(--vot-helper-onsurface-rgb),
-            0.045
-          ),
-          rgba(
-            var(--vot-helper-onsurface-rgb),
-            0.06
-          )
-        );
+      background: linear-gradient(
+        180deg,
+        rgba(var(--vot-helper-onsurface-rgb), 0.045),
+        rgba(var(--vot-helper-onsurface-rgb), 0.06)
+      );
 
-      transition:
-        opacity $item-transition-duration
-          var(--vot-easing-standard, #{$popover-ease-in});
+      transition: none;
     }
 
     &:hover,
     &:focus-visible {
-      transform: translate3d(0, -2px, 0);
-
       box-shadow:
-        inset 0 1px 0
-          rgba(255, 255, 255, 0.03),
-        inset 0 -1px 0
-          rgba(0, 0, 0, 0.04);
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.04);
     }
 
     &:hover::before,
@@ -323,17 +181,9 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
       opacity: 1;
     }
 
-    &:active {
-      transform: translate3d(0, -1px, 0);
-    }
-
     &:focus-visible {
-      box-shadow:
-        inset 0 0 0 1px
-          rgba(
-            var(--vot-primary-rgb, 139, 180, 245),
-            0.18
-          );
+      box-shadow: inset 0 0 0 1px
+        rgba(var(--vot-primary-rgb, 139, 180, 245), 0.18);
     }
 
     &::after {
@@ -349,24 +199,16 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
 
       opacity: 0;
 
-      transform:
-        translateY(-50%)
-        scale(0.88);
+      transform: translateY(-50%) scale(0.88);
 
-      transition:
-        opacity $item-transition-duration
-          var(--vot-easing-standard, #{$popover-ease-in}),
-        transform $item-transition-duration
-          var(--vot-easing-standard, #{$popover-ease-in});
+      transition: none;
 
       background-color: currentColor;
 
-      -webkit-mask:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
         center / contain no-repeat;
 
-      mask:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
         center / contain no-repeat;
     }
 
@@ -376,19 +218,15 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
       &::after {
         opacity: 1;
 
-        transform:
-          translateY(-50%)
-          scale(1);
+        transform: translateY(-50%) scale(1);
       }
     }
   }
 
   &__item[data-voice="standard"].vot-voice-popover__item--active {
-    background-color:
-      var(--vot-voice-active-standard-bg);
+    background-color: var(--vot-voice-active-standard-bg);
 
-    color:
-      var(--vot-voice-active-standard-fg);
+    color: var(--vot-voice-active-standard-fg);
 
     .vot-voice-popover__item-title {
       color: inherit;
@@ -400,11 +238,9 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
   }
 
   &__item[data-voice="live"].vot-voice-popover__item--active {
-    background-color:
-      var(--vot-voice-active-live-bg);
+    background-color: var(--vot-voice-active-live-bg);
 
-    color:
-      var(--vot-voice-active-live-fg);
+    color: var(--vot-voice-active-live-fg);
 
     .vot-voice-popover__item-title {
       color: inherit;
@@ -449,9 +285,7 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
 
     white-space: nowrap;
 
-    transition:
-      color $item-transition-duration
-        var(--vot-easing-standard, #{$popover-ease-in});
+    transition: none;
   }
 
   &__item-subtitle {
@@ -459,8 +293,7 @@ $eq-ease: cubic-bezier(0.45, 0, 0.25, 1);
 
     line-height: 1.4;
 
-    color:
-      var(--vot-helper-onsurface-secondary);
+    color: var(--vot-helper-onsurface-secondary);
 
     white-space: normal;
   }

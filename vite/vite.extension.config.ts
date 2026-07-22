@@ -1,40 +1,52 @@
-import type { Plugin } from "vite";
-import { defineConfig } from "vite";
-import { createViteConfig } from "./vite.base.config";
+import { defineConfig, type Plugin } from "vite";
+import {
+  type BuildConfig,
+  buildDefine,
+  getBuildConfig,
+  isStoreBuild,
+} from "./lib/env";
 import {
   buildExtensionBundles,
   cleanupExtensionTmpDir,
   createExtensionBuildContext,
-  type ExtensionBuildTarget,
-  finalizeExtensionBuildArtifacts,
+  finalizeFirefoxBuild,
   getExtensionHeaders,
-  outBase,
-  rootDir,
-  verifyExtensionOutputs,
-} from "./vite.extension.shared";
+  getFirefoxBuildEnv,
+} from "./lib/extension/firefox-pipeline";
+import { distExtDir } from "./lib/paths";
+import { createBaseViteConfig } from "./lib/vite-base-config";
 
-const verifyVirtualEntry = "virtual:vot-extension-verify";
-const verifyVirtualEntryResolved = "\0virtual:vot-extension-verify";
+const FIREFOX_PIPELINE_ENTRY = "virtual:vot-firefox-extension-pipeline";
+const RESOLVED_FIREFOX_PIPELINE_ENTRY = `\0${FIREFOX_PIPELINE_ENTRY}`;
 
-function resolveBuildTarget(mode: string): ExtensionBuildTarget {
-  if (mode === "chrome") return "chrome";
-  if (mode === "firefox") return "firefox";
-  return "all";
+function firefoxPipelineEntryPlugin(): Plugin {
+  return {
+    name: "vot-firefox-pipeline-entry",
+    resolveId(id) {
+      return id === FIREFOX_PIPELINE_ENTRY
+        ? RESOLVED_FIREFOX_PIPELINE_ENTRY
+        : null;
+    },
+    load(id) {
+      if (id !== RESOLVED_FIREFOX_PIPELINE_ENTRY) return null;
+      return "export default true;";
+    },
+  };
 }
 
-function extensionPipelinePlugin(target: ExtensionBuildTarget): Plugin {
+function firefoxBuildPipelinePlugin(config: BuildConfig): Plugin {
   return {
-    name: "vot-extension-build-pipeline",
+    name: "vot-firefox-build-pipeline",
     apply: "build",
     async closeBundle() {
-      const context = await createExtensionBuildContext();
-      const headers = await getExtensionHeaders();
+      const [context, headers] = await Promise.all([
+        createExtensionBuildContext(config),
+        getExtensionHeaders(),
+      ]);
+
       try {
-        await buildExtensionBundles({
-          context,
-          headers,
-        });
-        await finalizeExtensionBuildArtifacts(target);
+        await buildExtensionBundles({ context, headers });
+        await finalizeFirefoxBuild(config);
       } finally {
         await cleanupExtensionTmpDir();
       }
@@ -42,50 +54,31 @@ function extensionPipelinePlugin(target: ExtensionBuildTarget): Plugin {
   };
 }
 
-function verifyOnlyPlugin(target: ExtensionBuildTarget): Plugin {
-  return {
-    name: "vot-extension-verify-only",
-    apply: "build",
-    async closeBundle() {
-      await verifyExtensionOutputs(target);
-    },
-  };
-}
-
-function verifyVirtualEntryPlugin(): Plugin {
-  return {
-    name: "vot-extension-verify-virtual-entry",
-    resolveId(source) {
-      if (source === verifyVirtualEntry) return verifyVirtualEntryResolved;
-      return null;
-    },
-    load(id) {
-      if (id !== verifyVirtualEntryResolved) return null;
-      return "globalThis.__VOT_EXTENSION_VERIFY_ENTRY__ = true;";
-    },
-  };
-}
-
 export default defineConfig(async ({ mode }) => {
-  const target = resolveBuildTarget(mode);
-  return createViteConfig({
-    root: rootDir,
+  const buildConfig = getBuildConfig(mode);
+  console.log(
+    `Building extension with store mode? ${buildConfig.IS_STORE_BUILD}`,
+  );
+  const baseConfig = createBaseViteConfig({ cacheName: "firefox-extension" });
+  const env = await getFirefoxBuildEnv(buildConfig);
+
+  return {
+    ...baseConfig,
+    define: buildDefine(env),
     plugins: [
-      verifyVirtualEntryPlugin(),
-      mode === "verify"
-        ? verifyOnlyPlugin("all")
-        : extensionPipelinePlugin(target),
+      firefoxPipelineEntryPlugin(),
+      firefoxBuildPipelinePlugin(buildConfig),
     ],
     build: {
-      outDir: outBase,
+      ...baseConfig.build,
+      outDir: distExtDir,
       emptyOutDir: false,
-      copyPublicDir: false,
-      reportCompressedSize: false,
       write: false,
+      sourcemap: false,
       minify: false,
       rolldownOptions: {
-        input: verifyVirtualEntry,
+        input: FIREFOX_PIPELINE_ENTRY,
       },
     },
-  });
+  };
 });

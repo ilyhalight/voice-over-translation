@@ -11,6 +11,7 @@ Available (sub)domains:
 - `www.youtube.com`
 - `www.youtube-nocookie.com`
 - `www.youtubekids.com`
+- `music.youtube.com`
 
 Available paths:
 
@@ -992,6 +993,15 @@ Available (sub)domains:
 - `rt.com`
 - `www.rt.com`
 
+## Noodlemagazine
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `noodlemagazine.com`
+- `hot.noodlemagazine.com`
+
 ## Bitview
 
 Status: [✅] Working
@@ -1152,6 +1162,14 @@ Available (sub)domains:
 
 - `mediafile.cc`
 - `www.mediafile.cc`
+
+## Skilljar
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `skilljar.com`
 
 ## Direct link to MP4/WEBM
 

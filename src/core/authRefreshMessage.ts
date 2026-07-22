@@ -34,5 +34,5 @@ export function notifyAuthOpener(
     return;
   }
 
-  target.postMessage(createAuthRefreshMessage(), "*");
+  target.postMessage(createAuthRefreshMessage(), globalThis.location.origin);
 }

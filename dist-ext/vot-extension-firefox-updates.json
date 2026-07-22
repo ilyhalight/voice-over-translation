@@ -1,12 +1,12 @@
 {
-   "addons": {
-      "vot-extension@firefox": {
-         "updates": [
-            {
-               "version": "1.11.6.3",
-               "update_link": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext/vot-extension-firefox-1.11.6.3.xpi"
-            }
-         ]
-      }
-   }
+  "addons": {
+    "vot-ext@firefox": {
+      "updates": [
+        {
+          "version": "1.11.7",
+          "update_link": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext/vot-extension-firefox.xpi"
+        }
+      ]
+    }
+  }
 }

@@ -220,7 +220,9 @@
     "left": "Лево",
     "right": "Така",
     "top": "Врвот",
-    "default": "Стандардно"
+    "default": "Стандардно",
+    "leftCenter": "Лево центрирано",
+    "rightCenter": "Десен центар"
   },
   "secs": "секс",
   "autoHideButtonDelay": "Одложување пред да го скриете копчето преведи",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Брз и висококвалитетен глас",
   "VOTLiveVoicesTitle": "Гласови во живо",
   "VOTLiveVoicesSubtitle": "Максимална сличност. Како секој да знае руски",
-  "VOTYandexTokenExpired": "Сесијата истече. Пријавете се повторно"
+  "VOTYandexTokenExpired": "Сесијата истече. Пријавете се повторно",
+  "VOTVoiceSelection": "Изберете синхронизација"
 }

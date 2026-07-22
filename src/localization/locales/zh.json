@@ -220,7 +220,9 @@
     "left": "左图",
     "right": "对",
     "top": "顶部",
-    "default": "违约情况"
+    "default": "违约情况",
+    "leftCenter": "左居中",
+    "rightCenter": "右居中"
   },
   "secs": "secs",
   "autoHideButtonDelay": "隐藏翻译按钮之前延迟",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "快速、高质量的画外音",
   "VOTLiveVoicesTitle": "现场声音",
   "VOTLiveVoicesSubtitle": "最大相似度。 好像每个人都知道俄语",
-  "VOTYandexTokenExpired": "会话过期。 再次登入"
+  "VOTYandexTokenExpired": "会话过期。 再次登入",
+  "VOTVoiceSelection": "选择配音"
 }

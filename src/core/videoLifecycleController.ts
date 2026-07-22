@@ -7,15 +7,29 @@ import debug from "../utils/debug";
 import { containsCrossShadow } from "../utils/dom";
 import type { VideoData } from "../videoHandler/shared";
 import { findConnectedContainerBySelector } from "./containerResolution";
-import { hideLifecycleOverlay, resetAndHideLifecycle } from "./lifecycleShared";
+import {
+  hideLifecycleOverlay,
+  type LifecycleOverlayViewLike,
+  resetAndHideLifecycle,
+} from "./lifecycleShared";
 
-interface LifecycleOverlayView {
+interface LifecycleOverlayView extends LifecycleOverlayViewLike {
   votButton: { container: HTMLElement; opacity: number };
   votMenu: { container: HTMLElement; hidden: boolean };
 }
 
 interface LifecycleUIManager {
   votOverlayView: LifecycleOverlayView;
+}
+
+const YOUTUBE_TIMESTAMP_PARAMS = ["t", "start", "time_continue"];
+
+export function getYouTubeSourceKey(url: URL, hasSrcObject: "1" | "0"): string {
+  const stableUrl = new URL(url);
+  for (const param of YOUTUBE_TIMESTAMP_PARAMS) {
+    stableUrl.searchParams.delete(param);
+  }
+  return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
 }
 
 export interface VideoLifecycleHost {
@@ -123,12 +137,13 @@ export class VideoLifecycleController {
   private getCurrentSourceKey(): string {
     const hasSrcObject = this.host.video.srcObject ? "1" : "0";
     if (this.host.site.host === "youtube") {
-      const path = globalThis.location.pathname;
-      const stableUrlKey = `${globalThis.location.origin}${path}${globalThis.location.search}`;
       // YouTube can rotate media src values without changing the logical video:
       // Shorts often swap blob URLs, and regular pages can do the same on quality changes.
-      // Keep lifecycle key URL-based so quality switches don't reset state.
-      return `${stableUrlKey}||${hasSrcObject}`;
+      // Ignore seek parameters so URL timestamper extensions do not reset state.
+      return getYouTubeSourceKey(
+        new URL(globalThis.location.href),
+        hasSrcObject,
+      );
     }
 
     const src = this.host.video.currentSrc || this.host.video.src || "";
@@ -300,7 +315,6 @@ export class VideoLifecycleController {
     debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, {
       sourceKey,
     });
-    this.host.translationOrchestrator.reset();
     this.host.firstPlay = true;
 
     const overlayView = this.host.uiManager.votOverlayView;
@@ -351,7 +365,7 @@ export class VideoLifecycleController {
       const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
       this.host.subtitles = cachedSubtitles ?? [];
       this.host.subtitlesCacheKey =
-        cachedSubtitles !== undefined ? cacheKey : null;
+        cachedSubtitles === undefined ? null : cacheKey;
     } else {
       this.host.subtitles = [];
       this.host.subtitlesCacheKey = null;

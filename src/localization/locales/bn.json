@@ -220,7 +220,9 @@
     "left": "বাম",
     "right": "ঠিক আছে",
     "top": "শীর্ষ",
-    "default": "ডিফল্ট"
+    "default": "ডিফল্ট",
+    "leftCenter": "বাম কেন্দ্রিক",
+    "rightCenter": "ডান কেন্দ্রিক"
   },
   "secs": "সেকেন্ড",
   "autoHideButtonDelay": "অনুবাদ বোতামটি লুকানোর আগে বিলম্ব করুন",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "দ্রুত এবং উচ্চ মানের ভয়েসওভার",
   "VOTLiveVoicesTitle": "লাইভ ভয়েসেস",
   "VOTLiveVoicesSubtitle": "সর্বাধিক সাদৃশ্য. যেন সবাই রাশিয়ান জানে",
-  "VOTYandexTokenExpired": "অধিবেশন শেষ আবার লগ ইন করুন"
+  "VOTYandexTokenExpired": "অধিবেশন শেষ আবার লগ ইন করুন",
+  "VOTVoiceSelection": "ডাবিং চয়ন করুন"
 }

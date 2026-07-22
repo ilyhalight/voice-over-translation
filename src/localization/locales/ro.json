@@ -220,7 +220,9 @@
     "left": "Stânga",
     "right": "Dreapta",
     "top": "Sus",
-    "default": "Implicit"
+    "default": "Implicit",
+    "leftCenter": "Stânga centrat",
+    "rightCenter": "Dreapta centrat"
   },
   "secs": "sec",
   "autoHideButtonDelay": "Întârziere înainte de a ascunde butonul de traducere",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Voiceover rapid și de înaltă calitate",
   "VOTLiveVoicesTitle": "Voci Live",
   "VOTLiveVoicesSubtitle": "Similitudine maximă. Ca și cum toată lumea știe limba rusă",
-  "VOTYandexTokenExpired": "Sesiunea a expirat. Conectați-vă din nou"
+  "VOTYandexTokenExpired": "Sesiunea a expirat. Conectați-vă din nou",
+  "VOTVoiceSelection": "Alegeți dublarea"
 }

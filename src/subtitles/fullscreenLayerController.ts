@@ -36,5 +36,8 @@ export class FullscreenLayerController {
       this.container.appendChild(widgetContainer);
     }
   }
-  release(): void {}
+  release(): void {
+    // No resources to release: the controller holds only a DOM container
+    // reference that is managed by the caller.
+  }
 }

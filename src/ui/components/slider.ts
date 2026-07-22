@@ -1,4 +1,4 @@
-import { render } from "lit-html";
+﻿import { render } from "lit-html";
 
 import { EventImpl } from "../../core/eventImpl";
 import type { LitHtml } from "../../types/components/shared";
@@ -42,7 +42,7 @@ export default class Slider {
   private updateProgress() {
     const range = this._max - this._min;
     const raw = range <= 0 ? 0 : (this._value - this._min) / range;
-    const progress = Math.max(0, Math.min(1, raw));
+    const progress = clampNumber(raw, 0, 1);
     this.container.style.setProperty("--vot-progress", progress.toString());
     return this;
   }

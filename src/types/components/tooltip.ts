@@ -23,10 +23,17 @@ export type TooltipOpts = {
    */
   target: HTMLElement;
   /**
-   * element for calculating position
+   * Element used for the tooltip center line.
    * @default undefined (equal to target)
    */
   anchor?: HTMLElement;
+  /**
+   * Element used for the edge on the main placement axis.
+   * This keeps a tooltip centered on a small nested control while aligning its
+   * top/bottom/left/right edge with a larger visual button.
+   * @default undefined (equal to anchor)
+   */
+  edgeAnchor?: HTMLElement;
   content?: string | HTMLElement;
   position?: Position;
   trigger?: Trigger;

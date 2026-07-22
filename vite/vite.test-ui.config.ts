@@ -1,65 +1,49 @@
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
-
 import { defineConfig } from "vite";
-import {
-  createViteConfig,
-  defineConstants,
-  distDir,
-  testsDir,
-} from "./vite.base.config";
+import { buildDefine } from "./lib/env";
+import { distDir, singleFileBuildOptions, testsDir } from "./lib/paths";
+import { formatSimpleUserscriptHeader } from "./lib/userscript/headers";
+import { createBaseViteConfig } from "./lib/vite-base-config";
 
-const headersPath = path.resolve(testsDir, "headers.json");
+const TEST_UI_ENTRY = path.resolve(testsDir, "ui.js");
+const TEST_UI_HEADERS_PATH = path.resolve(testsDir, "headers.json");
 
-type UserscriptHeader = Record<string, unknown>;
+export default defineConfig(async () => {
+  const baseConfig = createBaseViteConfig({ cacheName: "test-ui" });
+  const testMeta = JSON.parse(
+    await fs.readFile(TEST_UI_HEADERS_PATH, "utf8"),
+  ) as Record<string, unknown>;
 
-const testMeta = JSON.parse(
-  fs.readFileSync(headersPath, "utf8"),
-) as UserscriptHeader;
-
-function formatUserscriptHeader(header: UserscriptHeader): string {
-  const lines = ["// ==UserScript=="];
-
-  for (const [key, value] of Object.entries(header)) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        lines.push(`// @${key} ${item}`);
-      }
-      continue;
-    }
-
-    lines.push(`// @${key} ${value}`);
-  }
-
-  lines.push("// ==/UserScript==\n");
-  return lines.join("\n");
-}
-
-export default defineConfig(() => {
-  return createViteConfig({
-    define: {
-      ...defineConstants({
-        DEBUG_MODE: true,
-        REPO_BRANCH: "master",
-      }),
-    },
+  return {
+    ...baseConfig,
+    define: buildDefine({
+      debug: true,
+      isExtension: false,
+      availableLocales: [],
+      repoBranch: "master",
+      version: "",
+      authors: "",
+      crxjsBuild: false,
+    }),
     build: {
+      ...baseConfig.build,
+      ...singleFileBuildOptions,
       outDir: distDir,
       emptyOutDir: false,
+      sourcemap: false,
+      minify: false,
       lib: {
-        entry: path.resolve(testsDir, "ui.js"),
+        entry: TEST_UI_ENTRY,
         name: "testUi",
         formats: ["iife"],
         fileName: () => "test-ui.user.js",
       },
-      minify: false,
-      sourcemap: false,
       rolldownOptions: {
         output: {
-          postBanner: formatUserscriptHeader(testMeta),
+          postBanner: formatSimpleUserscriptHeader(testMeta),
         },
       },
     },
-  });
+  };
 });

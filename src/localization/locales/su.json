@@ -220,7 +220,9 @@
     "left": "Kénca",
     "right": "Katuhu",
     "top": "Puncak",
-    "default": "Standar"
+    "default": "Standar",
+    "leftCenter": "Kénca dipuseurkeun",
+    "rightCenter": "Puseur katuhu"
   },
   "secs": "detik",
   "autoHideButtonDelay": "Reureuh saméméh nyumputkeun tombol tarjamah",
@@ -248,5 +250,6 @@
   "VOTStandardVoicesSubtitle": "Sora gancang jeung kualitas luhur",
   "VOTLiveVoicesTitle": "Sora nu hirup",
   "VOTLiveVoicesSubtitle": "Kamiripan maksimum. Seolah olah semuanya tahu rusia",
-  "VOTYandexTokenExpired": "Sesi kadaluarsa. Asup deui"
+  "VOTYandexTokenExpired": "Sesi kadaluarsa. Asup deui",
+  "VOTVoiceSelection": "Pilih dubbing"
 }
