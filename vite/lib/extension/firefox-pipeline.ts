@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { type UserConfig, build as viteBuild } from "vite";
 import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
-import { type BuildEnvMeta, buildDefine } from "../env";
+import { type BuildConfig, type BuildEnvMeta, buildDefine } from "../env";
 import {
   distExtDir,
   outTmp,
@@ -111,14 +111,12 @@ export async function getLocaleCodes(): Promise<string[]> {
   return [...new Set(normalized)];
 }
 
-export function getRepoBranch(): string {
-  return process.env.GITHUB_REF_NAME || process.env.REPO_BRANCH || "master";
-}
-
-export async function createExtensionBuildContext(): Promise<ExtensionBuildContext> {
+export async function createExtensionBuildContext(
+  config: BuildConfig,
+): Promise<ExtensionBuildContext> {
   return {
     availableLocales: await getLocaleCodes(),
-    repoBranch: getRepoBranch(),
+    repoBranch: config.REPO_BRANCH,
   };
 }
 
@@ -126,16 +124,17 @@ export async function getExtensionHeaders(): Promise<ExtensionHeaders> {
   return readJson<ExtensionHeaders>(path.join(srcDir, "headers.json"));
 }
 
-export async function getFirefoxBuildEnv(): Promise<BuildEnvMeta> {
+export async function getFirefoxBuildEnv(
+  config: BuildConfig,
+): Promise<BuildEnvMeta> {
   const headers = await getExtensionHeaders();
   const locales = await getLocaleCodes();
-  const branch = getRepoBranch();
 
   return {
     debug: false,
     isExtension: true,
     availableLocales: locales,
-    repoBranch: branch,
+    repoBranch: config.REPO_BRANCH,
     version: String(headers.version || ""),
     authors: String(headers.author || ""),
     crxjsBuild: false,
@@ -250,18 +249,6 @@ async function copyExtensionFiles(targetDir: string): Promise<void> {
 // Firefox manifest
 // ----------------------------------------------------------------
 
-function getFirefoxAddonId(): string {
-  return (
-    process.env.FIREFOX_ADDON_ID ||
-    process.env.GECKO_ID ||
-    "vot-extension@firefox"
-  );
-}
-
-function getFirefoxStrictMinVersion(): string {
-  return process.env.FIREFOX_STRICT_MIN_VERSION || "140.0";
-}
-
 function compareFirefoxVersions(left: string, right: string): number {
   const leftParts = left
     .split(".")
@@ -279,11 +266,13 @@ function compareFirefoxVersions(left: string, right: string): number {
   return 0;
 }
 
-function getFirefoxAndroidSettings(): Record<string, string> {
-  const strictMinVersion =
-    process.env.FIREFOX_ANDROID_STRICT_MIN_VERSION?.trim();
-  const strictMaxVersion =
-    process.env.FIREFOX_ANDROID_STRICT_MAX_VERSION?.trim();
+function getFirefoxAndroidSettings(
+  config: BuildConfig,
+): Record<string, string> {
+  const {
+    FIREFOX_ANDROID_STRICT_MIN_VERSION: strictMinVersion,
+    FIREFOX_ANDROID_STRICT_MAX_VERSION: strictMaxVersion,
+  } = config;
 
   return {
     ...(strictMinVersion ? { strict_min_version: strictMinVersion } : {}),
@@ -291,18 +280,20 @@ function getFirefoxAndroidSettings(): Record<string, string> {
   };
 }
 
-function getFirefoxDataCollectionPermissions(): {
+const parseList = (raw: string): string[] =>
+  String(raw)
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+function getFirefoxDataCollectionPermissions(config: BuildConfig): {
   required: string[];
   optional?: string[];
 } {
-  const requiredRaw = process.env.FIREFOX_DATA_COLLECTION_REQUIRED;
-  const optionalRaw = process.env.FIREFOX_DATA_COLLECTION_OPTIONAL;
-
-  const parseList = (raw: string): string[] =>
-    String(raw)
-      .split(",")
-      .map((entry) => entry.trim())
-      .filter(Boolean);
+  const {
+    FIREFOX_DATA_COLLECTION_REQUIRED: requiredRaw,
+    FIREFOX_DATA_COLLECTION_OPTIONAL: optionalRaw,
+  } = config;
 
   const required = requiredRaw ? parseList(requiredRaw) : ["none"];
   const optional = optionalRaw ? parseList(optionalRaw) : null;
@@ -313,13 +304,12 @@ function getFirefoxDataCollectionPermissions(): {
   };
 }
 
-function getFirefoxAndroidSettingsForDataCollectionPermissions(): Record<
-  string,
-  string
-> {
-  const androidSettings = getFirefoxAndroidSettings();
+function getFirefoxAndroidSettingsForDataCollectionPermissions(
+  config: BuildConfig,
+): Record<string, string> {
+  const androidSettings = getFirefoxAndroidSettings(config);
   const androidMinVersion = androidSettings.strict_min_version?.trim();
-  const requiredAndroidMinVersion = "142.0";
+  const { REQUIRED_ANDROID_MIN_VERSION: requiredAndroidMinVersion } = config;
 
   if (
     !androidMinVersion ||
@@ -338,15 +328,36 @@ function getFirefoxXpiRawUrl(): string {
   return `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-firefox.xpi`;
 }
 
+function getFirefoxSpecificSettings(config: BuildConfig) {
+  const dataCollectionPermissions = getFirefoxDataCollectionPermissions(config);
+
+  return {
+    gecko: {
+      id: config.FIREFOX_ADDON_ID,
+      strict_min_version: config.FIREFOX_STRICT_MIN_VERSION,
+      data_collection_permissions: dataCollectionPermissions,
+      ...(config.IS_STORE_BUILD
+        ? {}
+        : { update_url: FIREFOX_UPDATES_MANIFEST_URL }),
+    },
+    gecko_android:
+      dataCollectionPermissions.required.length ||
+      dataCollectionPermissions.optional?.length
+        ? getFirefoxAndroidSettingsForDataCollectionPermissions(config)
+        : getFirefoxAndroidSettings(config),
+  };
+}
+
 function buildManifestFirefox({
   headers,
   includeWorld,
+  config,
 }: {
   headers: ExtensionHeaders;
   includeWorld: boolean;
+  config: BuildConfig;
 }): Record<string, unknown> {
   const manifest = buildManifestChrome({ headers, includeWorld });
-  const dataCollectionPermissions = getFirefoxDataCollectionPermissions();
 
   const action = manifest.action as Record<string, unknown> | undefined;
   const defaultIcon = action?.default_icon as
@@ -361,19 +372,7 @@ function buildManifestFirefox({
   manifest.background = {
     scripts: ["background.js"],
   };
-  manifest.browser_specific_settings = {
-    gecko: {
-      id: getFirefoxAddonId(),
-      update_url: FIREFOX_UPDATES_MANIFEST_URL,
-      strict_min_version: getFirefoxStrictMinVersion(),
-      data_collection_permissions: dataCollectionPermissions,
-    },
-    gecko_android:
-      dataCollectionPermissions.required.length ||
-      dataCollectionPermissions.optional?.length
-        ? getFirefoxAndroidSettingsForDataCollectionPermissions()
-        : getFirefoxAndroidSettings(),
-  };
+  manifest.browser_specific_settings = getFirefoxSpecificSettings(config);
 
   return manifest;
 }
@@ -484,7 +483,10 @@ async function verifyManifest(
   return manifest;
 }
 
-function verifyFirefoxManifestFields(manifest: Record<string, any>): void {
+function verifyFirefoxManifestFields(
+  manifest: Record<string, any>,
+  storeBuild: boolean,
+): void {
   const permissions = new Set(manifest.permissions || []);
   if (
     !permissions.has("declarativeNetRequestWithHostAccess") &&
@@ -501,12 +503,16 @@ function verifyFirefoxManifestFields(manifest: Record<string, any>): void {
   ) {
     throw new Error("firefox: expected background.scripts[]");
   }
+  const updateUrl = manifest.browser_specific_settings?.gecko?.update_url;
   if (
-    manifest.browser_specific_settings?.gecko?.update_url !==
-    FIREFOX_UPDATES_MANIFEST_URL
+    storeBuild
+      ? updateUrl !== undefined
+      : updateUrl !== FIREFOX_UPDATES_MANIFEST_URL
   ) {
     throw new Error(
-      `firefox: expected browser_specific_settings.gecko.update_url to be ${FIREFOX_UPDATES_MANIFEST_URL}`,
+      storeBuild
+        ? "firefox: store manifest must not contain browser_specific_settings.gecko.update_url"
+        : `firefox: expected browser_specific_settings.gecko.update_url to be ${FIREFOX_UPDATES_MANIFEST_URL}`,
     );
   }
   if (
@@ -692,10 +698,10 @@ async function verifyBodySerializationGuards(): Promise<void> {
   );
 }
 
-export async function verifyFirefoxOutputs(): Promise<void> {
+export async function verifyFirefoxOutputs(config: BuildConfig): Promise<void> {
   const dir = path.join(distExtDir, "firefox");
   const manifest = await verifyManifest(path.join(dir, "manifest.json"));
-  verifyFirefoxManifestFields(manifest);
+  verifyFirefoxManifestFields(manifest, config.IS_STORE_BUILD);
   verifyContentScripts(manifest);
 
   // File-level checks are independent — run in parallel.
@@ -722,7 +728,7 @@ export async function verifyFirefoxOutputs(): Promise<void> {
 // Firefox build pipeline
 // ----------------------------------------------------------------
 
-export async function finalizeFirefoxBuild(): Promise<void> {
+export async function finalizeFirefoxBuild(config: BuildConfig): Promise<void> {
   const headers = await getExtensionHeaders();
   const version = headers.version || DEFAULT_EXTENSION_VERSION;
 
@@ -731,17 +737,17 @@ export async function finalizeFirefoxBuild(): Promise<void> {
   await copyExtensionFiles(outDir);
   await writeManifest(
     outDir,
-    buildManifestFirefox({ headers, includeWorld: true }),
+    buildManifestFirefox({ headers, includeWorld: true, config }),
   );
 
   await zipDir(outDir, path.join(distExtDir, "vot-extension-firefox.xpi"));
 
   const updatesPath = await writeFirefoxUpdatesManifest({
     version,
-    addonId: getFirefoxAddonId(),
+    addonId: config.FIREFOX_ADDON_ID,
   });
 
-  await verifyFirefoxOutputs();
+  await verifyFirefoxOutputs(config);
 
   console.log("Extension build complete:");
   console.log(`- Firefox: ${outDir}`);

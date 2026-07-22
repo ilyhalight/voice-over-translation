@@ -1,6 +1,7 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 
 import headers from "../../../src/headers.json";
+import { getBuildConfig } from "../env";
 import {
   buildManifestChrome,
   type ChromeManifestOptions,
@@ -44,8 +45,18 @@ const manifest = buildManifestChrome({
   chromeOptions,
 }) as Record<string, unknown>;
 
-export default defineManifest({
-  ...manifest,
-  update_url: `${GITHUB_DIST_EXT_RAW_BASE}/update.xml`,
-  key: CHROME_EXTENSION_KEY,
-} as Parameters<typeof defineManifest>[0]);
+export default defineManifest(({ mode }) => {
+  const BUILD_COFNIG = getBuildConfig(mode);
+
+  const updateManifest = BUILD_COFNIG.IS_STORE_BUILD
+    ? {}
+    : {
+        update_url: `${GITHUB_DIST_EXT_RAW_BASE}/update.xml`,
+        key: CHROME_EXTENSION_KEY,
+      };
+
+  return {
+    ...manifest,
+    ...updateManifest,
+  } as Parameters<typeof defineManifest>[0];
+});

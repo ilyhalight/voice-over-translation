@@ -1,15 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
+import type { BuildConfig } from "../env";
 import { distExtDir } from "../paths";
 
 const GITHUB_DIST_EXT_RAW_BASE =
   "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
 const CHROME_CRX_RAW_URL = `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-chrome.zip`;
-
-export function getChromeExtensionId(): string {
-  return process.env.CHROME_EXTENSION_ID || "EXTENSION_ID";
-}
 
 async function zipDir(
   sourceDirPath: string,
@@ -43,10 +40,13 @@ export async function writeChromeUpdatesManifest({
   return updatesManifestPath;
 }
 
-export async function finalizeChromeBuild(headers: {
-  version?: string;
-  author?: string;
-}): Promise<void> {
+export async function finalizeChromeBuild(
+  config: BuildConfig,
+  headers: {
+    version?: string;
+    author?: string;
+  },
+): Promise<void> {
   const chromeDir = path.join(distExtDir, "chrome");
   const version = String(headers.version || "");
 
@@ -55,25 +55,24 @@ export async function finalizeChromeBuild(headers: {
 
   const updatesPath = await writeChromeUpdatesManifest({
     version,
-    extensionId: getChromeExtensionId(),
+    extensionId: config.CHROME_EXTENSION_ID,
   });
 
   console.log(`Chrome package: ${zipPath}`);
   console.log(`Chrome updates: ${updatesPath}`);
 }
 
-export async function getChromeExtensionBuildEnv(): Promise<{
+export async function getChromeExtensionBuildEnv(config: BuildConfig): Promise<{
   headers: { version?: string; author?: string };
   locales: string[];
   branch: string;
 }> {
-  const { getExtensionHeaders, getLocaleCodes, getRepoBranch } = await import(
+  const { getExtensionHeaders, getLocaleCodes } = await import(
     "./firefox-pipeline"
   );
   const [headers, locales] = await Promise.all([
     getExtensionHeaders(),
     getLocaleCodes(),
   ]);
-  const branch = getRepoBranch();
-  return { headers, locales, branch };
+  return { headers, locales, branch: config.REPO_BRANCH };
 }

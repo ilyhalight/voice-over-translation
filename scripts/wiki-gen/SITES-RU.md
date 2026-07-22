@@ -11,6 +11,7 @@
 - `www.youtube.com`
 - `www.youtube-nocookie.com`
 - `www.youtubekids.com`
+- `music.youtube.com`
 
 Доступные пути:
 
@@ -992,6 +993,15 @@
 - `rt.com`
 - `www.rt.com`
 
+## Noodlemagazine
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `noodlemagazine.com`
+- `hot.noodlemagazine.com`
+
 ## Bitview
 
 Статус: [✅] Работает
@@ -1152,6 +1162,14 @@
 
 - `mediafile.cc`
 - `www.mediafile.cc`
+
+## Skilljar
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `skilljar.com`
 
 ## Direct link to MP4/WEBM
 

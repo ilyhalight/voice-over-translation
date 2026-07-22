@@ -1,7 +1,7 @@
 import path from "node:path";
 import { crx } from "@crxjs/vite-plugin";
 import { defineConfig, type Plugin } from "vite";
-import { buildDefine } from "./lib/env";
+import { type BuildConfig, buildDefine, getBuildConfig } from "./lib/env";
 import {
   finalizeChromeBuild,
   getChromeExtensionBuildEnv,
@@ -10,27 +10,32 @@ import manifest from "./lib/extension/manifest.config";
 import { distExtDir } from "./lib/paths";
 import { createBaseViteConfig } from "./lib/vite-base-config";
 
-function chromePackagePlugin(headers: {
-  version?: string;
-  author?: string;
-}): Plugin {
+function chromePackagePlugin(
+  config: BuildConfig,
+  headers: {
+    version?: string;
+    author?: string;
+  },
+): Plugin {
   return {
     name: "vot-chrome-package",
     apply: "build",
     enforce: "post",
     async closeBundle() {
-      await finalizeChromeBuild(headers);
+      await finalizeChromeBuild(config, headers);
     },
   };
 }
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ mode }) => {
+  const buildConfig = getBuildConfig(mode);
   const baseConfig = createBaseViteConfig({ cacheName: "chrome-extension" });
-  const { headers, locales, branch } = await getChromeExtensionBuildEnv();
+  const { headers, locales, branch } =
+    await getChromeExtensionBuildEnv(buildConfig);
 
   return {
     ...baseConfig,
-    plugins: [crx({ manifest }), chromePackagePlugin(headers)],
+    plugins: [crx({ manifest }), chromePackagePlugin(buildConfig, headers)],
     define: buildDefine({
       debug: false,
       isExtension: true,

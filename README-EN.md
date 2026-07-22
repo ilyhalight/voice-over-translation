@@ -33,6 +33,11 @@
 [badge-en]: https://img.shields.io/badge/lang-English%20%F0%9F%87%AC%F0%9F%87%A7-white
 [badge-ru]: https://img.shields.io/badge/%D1%8F%D0%B7%D1%8B%D0%BA-%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9%20%F0%9F%87%B7%F0%9F%87%BA-white
 
+<!-- Stores -->
+
+[vot-chrome-store]: https://chromewebstore.google.com/detail/dnioaagdjgpcokckfpokpndoblenmfcg
+[vot-firefox-store]: https://addons.mozilla.org/ru/firefox/addon/voice-over-translation/
+
 <!-- Other -->
 
 [vot-readme-ru]: README.md
@@ -88,6 +93,12 @@ Thanks to the **[Yandex.Translate][yatranslate-link]** and **[Yandex.Browser][ya
 
 ### Install Native Extension for Chrome / Chromium
 
+#### From Chrome WebStore
+
+Open [Chrome WebStore][vot-chrome-store] and click "Install"
+
+#### From GitHub Releases
+
 1. Open [Releases][vot-releases] and download `vot-extension-chrome-<version>.zip`
 2. Open your extensions page:
    - Chrome: `chrome://extensions`
@@ -99,7 +110,13 @@ Thanks to the **[Yandex.Translate][yatranslate-link]** and **[Yandex.Browser][ya
 
 ### Install Native Extension for Firefox
 
-1. Open [Releases][vot-releases], click `vot-extension-firefox-<version>.xpi`, and confirm installation in Firefox
+#### From Firefox Add-ons
+
+Open [Firefox Add-ons][vot-firefox-store] and click "Add to Firefox"
+
+#### From GitHub Releases
+
+Open [Releases][vot-releases], click `vot-extension-firefox-<version>.xpi`, and confirm installation in Firefox
 
 ## Features
 

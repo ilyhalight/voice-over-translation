@@ -1,5 +1,10 @@
 import { defineConfig, type Plugin } from "vite";
-import { buildDefine } from "./lib/env";
+import {
+  type BuildConfig,
+  buildDefine,
+  getBuildConfig,
+  isStoreBuild,
+} from "./lib/env";
 import {
   buildExtensionBundles,
   cleanupExtensionTmpDir,
@@ -29,19 +34,19 @@ function firefoxPipelineEntryPlugin(): Plugin {
   };
 }
 
-function firefoxBuildPipelinePlugin(): Plugin {
+function firefoxBuildPipelinePlugin(config: BuildConfig): Plugin {
   return {
     name: "vot-firefox-build-pipeline",
     apply: "build",
     async closeBundle() {
       const [context, headers] = await Promise.all([
-        createExtensionBuildContext(),
+        createExtensionBuildContext(config),
         getExtensionHeaders(),
       ]);
 
       try {
         await buildExtensionBundles({ context, headers });
-        await finalizeFirefoxBuild();
+        await finalizeFirefoxBuild(config);
       } finally {
         await cleanupExtensionTmpDir();
       }
@@ -49,14 +54,21 @@ function firefoxBuildPipelinePlugin(): Plugin {
   };
 }
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ mode }) => {
+  const buildConfig = getBuildConfig(mode);
+  console.log(
+    `Building extension with store mode? ${buildConfig.IS_STORE_BUILD}`,
+  );
   const baseConfig = createBaseViteConfig({ cacheName: "firefox-extension" });
-  const env = await getFirefoxBuildEnv();
+  const env = await getFirefoxBuildEnv(buildConfig);
 
   return {
     ...baseConfig,
     define: buildDefine(env),
-    plugins: [firefoxPipelineEntryPlugin(), firefoxBuildPipelinePlugin()],
+    plugins: [
+      firefoxPipelineEntryPlugin(),
+      firefoxBuildPipelinePlugin(buildConfig),
+    ],
     build: {
       ...baseConfig.build,
       outDir: distExtDir,

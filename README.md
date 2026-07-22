@@ -33,6 +33,11 @@
 [badge-en]: https://img.shields.io/badge/lang-English%20%F0%9F%87%AC%F0%9F%87%A7-white
 [badge-ru]: https://img.shields.io/badge/%D1%8F%D0%B7%D1%8B%D0%BA-%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9%20%F0%9F%87%B7%F0%9F%87%BA-white
 
+<!-- Stores -->
+
+[vot-chrome-store]: https://chromewebstore.google.com/detail/dnioaagdjgpcokckfpokpndoblenmfcg
+[vot-firefox-store]: https://addons.mozilla.org/ru/firefox/addon/voice-over-translation/
+
 <!-- Other -->
 
 [vot-readme-ru]: README.md
@@ -88,18 +93,30 @@
 
 ### Установка нативного расширения для Chrome / Chromium
 
-1. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome-<версия>.zip`
-2. Откройте страницу расширений:
+#### Из Chrome WebStore
+
+Откройте [Chrome WebStore][vot-chrome-store] и нажмите «Установить»
+
+#### Из GitHub Releases
+
+2. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome-<версия>.zip`
+3. Откройте страницу расширений:
    - Chrome: `chrome://extensions`
    - Edge: `edge://extensions`
    - Brave: `brave://extensions`
    - Opera: `opera://extensions`
-3. Включите **«Режим разработчика»**
-4. Перетащите скачанный `.zip`-файл на страницу расширений
+4. Включите **«Режим разработчика»**
+5. Перетащите скачанный `.zip`-файл на страницу расширений
 
 ### Установка нативного расширения для Firefox
 
-1. Откройте [Releases][vot-releases], нажмите на `vot-extension-firefox-<версия>.xpi` и подтвердите установку в Firefox
+#### Из Firefox Add-ons
+
+Откройте [Firefox Add-ons][vot-firefox-store] и нажмите «Добавить в Firefox»
+
+#### Из GitHub Releases
+
+Откройте [Releases][vot-releases], нажмите на `vot-extension-firefox-<версия>.xpi` и подтвердите установку в Firefox
 
 ## Возможности
 

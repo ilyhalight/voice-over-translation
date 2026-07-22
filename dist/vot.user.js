@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 画外音视频翻译
 // @namespace      vot
-// @version        1.11.6.1
+// @version        1.11.7
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    A small extension that adds a Yandex Browser video translation to other browsers
 // @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
@@ -153,6 +153,7 @@
 // @match          *://*.mediafile.cc/*
 // @match          *://*.skilljar.com/*
 // @match          *://projector.datacamp.com/*
+// @match          *://hot.noodlemagazine.com/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
@@ -257,8 +258,15 @@ var vot = (function(exports) {
 	var __getOwnPropNames = Object.getOwnPropertyNames;
 	var __getProtoOf = Object.getPrototypeOf;
 	var __hasOwnProp = Object.prototype.hasOwnProperty;
-	var __esmMin = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
-	var __commonJSMin = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+	var __esmMin = (fn, res, err) => () => {
+		if (err) throw err[0];
+		try {
+			return fn && (res = fn(fn = 0)), res;
+		} catch (e) {
+			throw err = [e], e;
+		}
+	};
+	var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
 	var __exportAll = (all, no_symbols) => {
 		let target = {};
 		for (var name in all) __defProp(target, name, {
@@ -282,2699 +290,6 @@ var vot = (function(exports) {
 		value: mod,
 		enumerable: true
 	}) : target, mod));
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/data/config.js
-	var config_default$1 = {
-		"host": "api.browser.yandex.ru",
-		"hostVOT": "vot.toil.cc/v1",
-		"hostWorker": "vot-worker.toil.cc",
-		"mediaProxy": "media-proxy.transly.eu.cc",
-		"userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 YaBrowser/26.4.1.1026 Yowser/2.5 Safari/537.36",
-		"componentVersion": "26.4.1.1026",
-		"hmac": "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
-		"defaultDuration": 310,
-		"minChunkSize": 5295308,
-		"loggerLevel": 1,
-		"version": "2.4.17"
-	};
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
-	/**
-	* Read a 64 bit varint as two JS numbers.
-	*
-	* Returns tuple:
-	* [0]: low bits
-	* [1]: high bits
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
-	*/
-	function varint64read() {
-		let lowBits = 0;
-		let highBits = 0;
-		for (let shift = 0; shift < 28; shift += 7) {
-			let b = this.buf[this.pos++];
-			lowBits |= (b & 127) << shift;
-			if ((b & 128) == 0) {
-				this.assertBounds();
-				return [lowBits, highBits];
-			}
-		}
-		let middleByte = this.buf[this.pos++];
-		lowBits |= (middleByte & 15) << 28;
-		highBits = (middleByte & 112) >> 4;
-		if ((middleByte & 128) == 0) {
-			this.assertBounds();
-			return [lowBits, highBits];
-		}
-		for (let shift = 3; shift <= 31; shift += 7) {
-			let b = this.buf[this.pos++];
-			highBits |= (b & 127) << shift;
-			if ((b & 128) == 0) {
-				this.assertBounds();
-				return [lowBits, highBits];
-			}
-		}
-		throw new Error("invalid varint");
-	}
-	/**
-	* Write a 64 bit varint, given as two JS numbers, to the given bytes array.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
-	*/
-	function varint64write(lo, hi, bytes) {
-		for (let i = 0; i < 28; i = i + 7) {
-			const shift = lo >>> i;
-			const hasNext = !(shift >>> 7 == 0 && hi == 0);
-			const byte = (hasNext ? shift | 128 : shift) & 255;
-			bytes.push(byte);
-			if (!hasNext) return;
-		}
-		const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
-		const hasMoreBits = !(hi >> 3 == 0);
-		bytes.push((hasMoreBits ? splitBits | 128 : splitBits) & 255);
-		if (!hasMoreBits) return;
-		for (let i = 3; i < 31; i = i + 7) {
-			const shift = hi >>> i;
-			const hasNext = !(shift >>> 7 == 0);
-			const byte = (hasNext ? shift | 128 : shift) & 255;
-			bytes.push(byte);
-			if (!hasNext) return;
-		}
-		bytes.push(hi >>> 31 & 1);
-	}
-	var TWO_PWR_32_DBL = 4294967296;
-	/**
-	* Parse decimal string of 64 bit integer value as two JS numbers.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
-	*/
-	function int64FromString(dec) {
-		const minus = dec[0] === "-";
-		if (minus) dec = dec.slice(1);
-		const base = 1e6;
-		let lowBits = 0;
-		let highBits = 0;
-		function add1e6digit(begin, end) {
-			const digit1e6 = Number(dec.slice(begin, end));
-			highBits *= base;
-			lowBits = lowBits * base + digit1e6;
-			if (lowBits >= TWO_PWR_32_DBL) {
-				highBits = highBits + (lowBits / TWO_PWR_32_DBL | 0);
-				lowBits = lowBits % TWO_PWR_32_DBL;
-			}
-		}
-		add1e6digit(-24, -18);
-		add1e6digit(-18, -12);
-		add1e6digit(-12, -6);
-		add1e6digit(-6);
-		return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
-	}
-	/**
-	* Losslessly converts a 64-bit signed integer in 32:32 split representation
-	* into a decimal string.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
-	*/
-	function int64ToString(lo, hi) {
-		let bits = newBits(lo, hi);
-		const negative = bits.hi & 2147483648;
-		if (negative) bits = negate(bits.lo, bits.hi);
-		const result = uInt64ToString(bits.lo, bits.hi);
-		return negative ? "-" + result : result;
-	}
-	/**
-	* Losslessly converts a 64-bit unsigned integer in 32:32 split representation
-	* into a decimal string.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
-	*/
-	function uInt64ToString(lo, hi) {
-		({lo, hi} = toUnsigned(lo, hi));
-		if (hi <= 2097151) return String(TWO_PWR_32_DBL * hi + lo);
-		const low = lo & 16777215;
-		const mid = (lo >>> 24 | hi << 8) & 16777215;
-		const high = hi >> 16 & 65535;
-		let digitA = low + mid * 6777216 + high * 6710656;
-		let digitB = mid + high * 8147497;
-		let digitC = high * 2;
-		const base = 1e7;
-		if (digitA >= base) {
-			digitB += Math.floor(digitA / base);
-			digitA %= base;
-		}
-		if (digitB >= base) {
-			digitC += Math.floor(digitB / base);
-			digitB %= base;
-		}
-		return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) + decimalFrom1e7WithLeadingZeros(digitA);
-	}
-	function toUnsigned(lo, hi) {
-		return {
-			lo: lo >>> 0,
-			hi: hi >>> 0
-		};
-	}
-	function newBits(lo, hi) {
-		return {
-			lo: lo | 0,
-			hi: hi | 0
-		};
-	}
-	/**
-	* Returns two's compliment negation of input.
-	* @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#Signed_32-bit_integers
-	*/
-	function negate(lowBits, highBits) {
-		highBits = ~highBits;
-		if (lowBits) lowBits = ~lowBits + 1;
-		else highBits += 1;
-		return newBits(lowBits, highBits);
-	}
-	/**
-	* Returns decimal representation of digit1e7 with leading zeros.
-	*/
-	var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
-		const partial = String(digit1e7);
-		return "0000000".slice(partial.length) + partial;
-	};
-	/**
-	* Write a 32 bit varint, signed or unsigned. Same as `varint64write(0, value, bytes)`
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
-	*/
-	function varint32write(value, bytes) {
-		if (value >= 0) {
-			while (value > 127) {
-				bytes.push(value & 127 | 128);
-				value = value >>> 7;
-			}
-			bytes.push(value);
-		} else {
-			for (let i = 0; i < 9; i++) {
-				bytes.push(value & 127 | 128);
-				value = value >> 7;
-			}
-			bytes.push(1);
-		}
-	}
-	/**
-	* Read an unsigned 32 bit varint.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L220
-	*/
-	function varint32read() {
-		let b = this.buf[this.pos++];
-		let result = b & 127;
-		if ((b & 128) == 0) {
-			this.assertBounds();
-			return result;
-		}
-		b = this.buf[this.pos++];
-		result |= (b & 127) << 7;
-		if ((b & 128) == 0) {
-			this.assertBounds();
-			return result;
-		}
-		b = this.buf[this.pos++];
-		result |= (b & 127) << 14;
-		if ((b & 128) == 0) {
-			this.assertBounds();
-			return result;
-		}
-		b = this.buf[this.pos++];
-		result |= (b & 127) << 21;
-		if ((b & 128) == 0) {
-			this.assertBounds();
-			return result;
-		}
-		b = this.buf[this.pos++];
-		result |= (b & 15) << 28;
-		for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
-		if ((b & 128) != 0) throw new Error("invalid varint");
-		this.assertBounds();
-		return result >>> 0;
-	}
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
-	/**
-	* Int64Support for the current environment.
-	*/
-	var protoInt64 = /* @__PURE__ */ makeInt64Support();
-	function makeInt64Support() {
-		const dv = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
-		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
-			const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
-			return {
-				zero: BigInt(0),
-				supported: true,
-				parse(value) {
-					const bi = typeof value == "bigint" ? value : BigInt(value);
-					if (bi > MAX || bi < MIN) throw new Error(`invalid int64: ${value}`);
-					return bi;
-				},
-				uParse(value) {
-					const bi = typeof value == "bigint" ? value : BigInt(value);
-					if (bi > UMAX || bi < UMIN) throw new Error(`invalid uint64: ${value}`);
-					return bi;
-				},
-				enc(value) {
-					dv.setBigInt64(0, this.parse(value), true);
-					return {
-						lo: dv.getInt32(0, true),
-						hi: dv.getInt32(4, true)
-					};
-				},
-				uEnc(value) {
-					dv.setBigInt64(0, this.uParse(value), true);
-					return {
-						lo: dv.getInt32(0, true),
-						hi: dv.getInt32(4, true)
-					};
-				},
-				dec(lo, hi) {
-					dv.setInt32(0, lo, true);
-					dv.setInt32(4, hi, true);
-					return dv.getBigInt64(0, true);
-				},
-				uDec(lo, hi) {
-					dv.setInt32(0, lo, true);
-					dv.setInt32(4, hi, true);
-					return dv.getBigUint64(0, true);
-				}
-			};
-		}
-		return {
-			zero: "0",
-			supported: false,
-			parse(value) {
-				if (typeof value != "string") value = value.toString();
-				assertInt64String(value);
-				return value;
-			},
-			uParse(value) {
-				if (typeof value != "string") value = value.toString();
-				assertUInt64String(value);
-				return value;
-			},
-			enc(value) {
-				if (typeof value != "string") value = value.toString();
-				assertInt64String(value);
-				return int64FromString(value);
-			},
-			uEnc(value) {
-				if (typeof value != "string") value = value.toString();
-				assertUInt64String(value);
-				return int64FromString(value);
-			},
-			dec(lo, hi) {
-				return int64ToString(lo, hi);
-			},
-			uDec(lo, hi) {
-				return uInt64ToString(lo, hi);
-			}
-		};
-	}
-	function assertInt64String(value) {
-		if (!/^-?[0-9]+$/.test(value)) throw new Error("invalid int64: " + value);
-	}
-	function assertUInt64String(value) {
-		if (!/^[0-9]+$/.test(value)) throw new Error("invalid uint64: " + value);
-	}
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
-	var symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
-	function getTextEncoding() {
-		if (globalThis[symbol] == void 0) {
-			const te = new globalThis.TextEncoder();
-			const td = new globalThis.TextDecoder();
-			globalThis[symbol] = {
-				encodeUtf8(text) {
-					return te.encode(text);
-				},
-				decodeUtf8(bytes) {
-					return td.decode(bytes);
-				},
-				checkUtf8(text) {
-					try {
-						return true;
-					} catch (e) {
-						return false;
-					}
-				}
-			};
-		}
-		return globalThis[symbol];
-	}
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
-	/**
-	* Protobuf binary format wire types.
-	*
-	* A wire type provides just enough information to find the length of the
-	* following value.
-	*
-	* See https://developers.google.com/protocol-buffers/docs/encoding#structure
-	*/
-	var WireType;
-	(function(WireType) {
-		/**
-		* Used for int32, int64, uint32, uint64, sint32, sint64, bool, enum
-		*/
-		WireType[WireType["Varint"] = 0] = "Varint";
-		/**
-		* Used for fixed64, sfixed64, double.
-		* Always 8 bytes with little-endian byte order.
-		*/
-		WireType[WireType["Bit64"] = 1] = "Bit64";
-		/**
-		* Used for string, bytes, embedded messages, packed repeated fields
-		*
-		* Only repeated numeric types (types which use the varint, 32-bit,
-		* or 64-bit wire types) can be packed. In proto3, such fields are
-		* packed by default.
-		*/
-		WireType[WireType["LengthDelimited"] = 2] = "LengthDelimited";
-		/**
-		* Start of a tag-delimited aggregate, such as a proto2 group, or a message
-		* in editions with message_encoding = DELIMITED.
-		*/
-		WireType[WireType["StartGroup"] = 3] = "StartGroup";
-		/**
-		* End of a tag-delimited aggregate.
-		*/
-		WireType[WireType["EndGroup"] = 4] = "EndGroup";
-		/**
-		* Used for fixed32, sfixed32, float.
-		* Always 4 bytes with little-endian byte order.
-		*/
-		WireType[WireType["Bit32"] = 5] = "Bit32";
-	})(WireType || (WireType = {}));
-	var BinaryWriter = class {
-		constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
-			this.encodeUtf8 = encodeUtf8;
-			/**
-			* Previous fork states.
-			*/
-			this.stack = [];
-			this.chunks = [];
-			this.buf = [];
-		}
-		/**
-		* Return all bytes written and reset this writer.
-		*/
-		finish() {
-			if (this.buf.length) {
-				this.chunks.push(new Uint8Array(this.buf));
-				this.buf = [];
-			}
-			let len = 0;
-			for (let i = 0; i < this.chunks.length; i++) len += this.chunks[i].length;
-			let bytes = new Uint8Array(len);
-			let offset = 0;
-			for (let i = 0; i < this.chunks.length; i++) {
-				bytes.set(this.chunks[i], offset);
-				offset += this.chunks[i].length;
-			}
-			this.chunks = [];
-			return bytes;
-		}
-		/**
-		* Start a new fork for length-delimited data like a message
-		* or a packed repeated field.
-		*
-		* Must be joined later with `join()`.
-		*/
-		fork() {
-			this.stack.push({
-				chunks: this.chunks,
-				buf: this.buf
-			});
-			this.chunks = [];
-			this.buf = [];
-			return this;
-		}
-		/**
-		* Join the last fork. Write its length and bytes, then
-		* return to the previous state.
-		*/
-		join() {
-			let chunk = this.finish();
-			let prev = this.stack.pop();
-			if (!prev) throw new Error("invalid state, fork stack empty");
-			this.chunks = prev.chunks;
-			this.buf = prev.buf;
-			this.uint32(chunk.byteLength);
-			return this.raw(chunk);
-		}
-		/**
-		* Writes a tag (field number and wire type).
-		*
-		* Equivalent to `uint32( (fieldNo << 3 | type) >>> 0 )`.
-		*
-		* Generated code should compute the tag ahead of time and call `uint32()`.
-		*/
-		tag(fieldNo, type) {
-			return this.uint32((fieldNo << 3 | type) >>> 0);
-		}
-		/**
-		* Write a chunk of raw bytes.
-		*/
-		raw(chunk) {
-			if (this.buf.length) {
-				this.chunks.push(new Uint8Array(this.buf));
-				this.buf = [];
-			}
-			this.chunks.push(chunk);
-			return this;
-		}
-		/**
-		* Write a `uint32` value, an unsigned 32 bit varint.
-		*/
-		uint32(value) {
-			assertUInt32(value);
-			while (value > 127) {
-				this.buf.push(value & 127 | 128);
-				value = value >>> 7;
-			}
-			this.buf.push(value);
-			return this;
-		}
-		/**
-		* Write a `int32` value, a signed 32 bit varint.
-		*/
-		int32(value) {
-			assertInt32(value);
-			varint32write(value, this.buf);
-			return this;
-		}
-		/**
-		* Write a `bool` value, a variant.
-		*/
-		bool(value) {
-			this.buf.push(value ? 1 : 0);
-			return this;
-		}
-		/**
-		* Write a `bytes` value, length-delimited arbitrary data.
-		*/
-		bytes(value) {
-			this.uint32(value.byteLength);
-			return this.raw(value);
-		}
-		/**
-		* Write a `string` value, length-delimited data converted to UTF-8 text.
-		*/
-		string(value) {
-			let chunk = this.encodeUtf8(value);
-			this.uint32(chunk.byteLength);
-			return this.raw(chunk);
-		}
-		/**
-		* Write a `float` value, 32-bit floating point number.
-		*/
-		float(value) {
-			assertFloat32(value);
-			let chunk = new Uint8Array(4);
-			new DataView(chunk.buffer).setFloat32(0, value, true);
-			return this.raw(chunk);
-		}
-		/**
-		* Write a `double` value, a 64-bit floating point number.
-		*/
-		double(value) {
-			let chunk = new Uint8Array(8);
-			new DataView(chunk.buffer).setFloat64(0, value, true);
-			return this.raw(chunk);
-		}
-		/**
-		* Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
-		*/
-		fixed32(value) {
-			assertUInt32(value);
-			let chunk = new Uint8Array(4);
-			new DataView(chunk.buffer).setUint32(0, value, true);
-			return this.raw(chunk);
-		}
-		/**
-		* Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
-		*/
-		sfixed32(value) {
-			assertInt32(value);
-			let chunk = new Uint8Array(4);
-			new DataView(chunk.buffer).setInt32(0, value, true);
-			return this.raw(chunk);
-		}
-		/**
-		* Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
-		*/
-		sint32(value) {
-			assertInt32(value);
-			value = (value << 1 ^ value >> 31) >>> 0;
-			varint32write(value, this.buf);
-			return this;
-		}
-		/**
-		* Write a `fixed64` value, a signed, fixed-length 64-bit integer.
-		*/
-		sfixed64(value) {
-			let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
-			view.setInt32(0, tc.lo, true);
-			view.setInt32(4, tc.hi, true);
-			return this.raw(chunk);
-		}
-		/**
-		* Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
-		*/
-		fixed64(value) {
-			let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
-			view.setInt32(0, tc.lo, true);
-			view.setInt32(4, tc.hi, true);
-			return this.raw(chunk);
-		}
-		/**
-		* Write a `int64` value, a signed 64-bit varint.
-		*/
-		int64(value) {
-			let tc = protoInt64.enc(value);
-			varint64write(tc.lo, tc.hi, this.buf);
-			return this;
-		}
-		/**
-		* Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
-		*/
-		sint64(value) {
-			let tc = protoInt64.enc(value), sign = tc.hi >> 31;
-			varint64write(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
-			return this;
-		}
-		/**
-		* Write a `uint64` value, an unsigned 64-bit varint.
-		*/
-		uint64(value) {
-			let tc = protoInt64.uEnc(value);
-			varint64write(tc.lo, tc.hi, this.buf);
-			return this;
-		}
-	};
-	var BinaryReader = class {
-		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
-			this.decodeUtf8 = decodeUtf8;
-			this.varint64 = varint64read;
-			/**
-			* Read a `uint32` field, an unsigned 32 bit varint.
-			*/
-			this.uint32 = varint32read;
-			this.buf = buf;
-			this.len = buf.length;
-			this.pos = 0;
-			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-		}
-		/**
-		* Reads a tag - field number and wire type.
-		*/
-		tag() {
-			let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
-			if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
-			return [fieldNo, wireType];
-		}
-		/**
-		* Skip one element and return the skipped data.
-		*
-		* When skipping StartGroup, provide the tags field number to check for
-		* matching field number in the EndGroup tag.
-		*/
-		skip(wireType, fieldNo) {
-			let start = this.pos;
-			switch (wireType) {
-				case WireType.Varint:
-					while (this.buf[this.pos++] & 128);
-					break;
-				case WireType.Bit64: this.pos += 4;
-				case WireType.Bit32:
-					this.pos += 4;
-					break;
-				case WireType.LengthDelimited:
-					let len = this.uint32();
-					this.pos += len;
-					break;
-				case WireType.StartGroup:
-					for (;;) {
-						const [fn, wt] = this.tag();
-						if (wt === WireType.EndGroup) {
-							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
-							break;
-						}
-						this.skip(wt, fn);
-					}
-					break;
-				default: throw new Error("cant skip wire type " + wireType);
-			}
-			this.assertBounds();
-			return this.buf.subarray(start, this.pos);
-		}
-		/**
-		* Throws error if position in byte array is out of range.
-		*/
-		assertBounds() {
-			if (this.pos > this.len) throw new RangeError("premature EOF");
-		}
-		/**
-		* Read a `int32` field, a signed 32 bit varint.
-		*/
-		int32() {
-			return this.uint32() | 0;
-		}
-		/**
-		* Read a `sint32` field, a signed, zigzag-encoded 32-bit varint.
-		*/
-		sint32() {
-			let zze = this.uint32();
-			return zze >>> 1 ^ -(zze & 1);
-		}
-		/**
-		* Read a `int64` field, a signed 64-bit varint.
-		*/
-		int64() {
-			return protoInt64.dec(...this.varint64());
-		}
-		/**
-		* Read a `uint64` field, an unsigned 64-bit varint.
-		*/
-		uint64() {
-			return protoInt64.uDec(...this.varint64());
-		}
-		/**
-		* Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
-		*/
-		sint64() {
-			let [lo, hi] = this.varint64();
-			let s = -(lo & 1);
-			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
-			hi = hi >>> 1 ^ s;
-			return protoInt64.dec(lo, hi);
-		}
-		/**
-		* Read a `bool` field, a variant.
-		*/
-		bool() {
-			let [lo, hi] = this.varint64();
-			return lo !== 0 || hi !== 0;
-		}
-		/**
-		* Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
-		*/
-		fixed32() {
-			return this.view.getUint32((this.pos += 4) - 4, true);
-		}
-		/**
-		* Read a `sfixed32` field, a signed, fixed-length 32-bit integer.
-		*/
-		sfixed32() {
-			return this.view.getInt32((this.pos += 4) - 4, true);
-		}
-		/**
-		* Read a `fixed64` field, an unsigned, fixed-length 64 bit integer.
-		*/
-		fixed64() {
-			return protoInt64.uDec(this.sfixed32(), this.sfixed32());
-		}
-		/**
-		* Read a `fixed64` field, a signed, fixed-length 64-bit integer.
-		*/
-		sfixed64() {
-			return protoInt64.dec(this.sfixed32(), this.sfixed32());
-		}
-		/**
-		* Read a `float` field, 32-bit floating point number.
-		*/
-		float() {
-			return this.view.getFloat32((this.pos += 4) - 4, true);
-		}
-		/**
-		* Read a `double` field, a 64-bit floating point number.
-		*/
-		double() {
-			return this.view.getFloat64((this.pos += 8) - 8, true);
-		}
-		/**
-		* Read a `bytes` field, length-delimited arbitrary data.
-		*/
-		bytes() {
-			let len = this.uint32(), start = this.pos;
-			this.pos += len;
-			this.assertBounds();
-			return this.buf.subarray(start, start + len);
-		}
-		/**
-		* Read a `string` field, length-delimited data converted to UTF-8 text.
-		*/
-		string() {
-			return this.decodeUtf8(this.bytes());
-		}
-	};
-	/**
-	* Assert a valid signed protobuf 32-bit integer as a number or string.
-	*/
-	function assertInt32(arg) {
-		if (typeof arg == "string") arg = Number(arg);
-		else if (typeof arg != "number") throw new Error("invalid int32: " + typeof arg);
-		if (!Number.isInteger(arg) || arg > 2147483647 || arg < -2147483648) throw new Error("invalid int32: " + arg);
-	}
-	/**
-	* Assert a valid unsigned protobuf 32-bit integer as a number or string.
-	*/
-	function assertUInt32(arg) {
-		if (typeof arg == "string") arg = Number(arg);
-		else if (typeof arg != "number") throw new Error("invalid uint32: " + typeof arg);
-		if (!Number.isInteger(arg) || arg > 4294967295 || arg < 0) throw new Error("invalid uint32: " + arg);
-	}
-	/**
-	* Assert a valid protobuf float value as a number or string.
-	*/
-	function assertFloat32(arg) {
-		if (typeof arg == "string") {
-			const o = arg;
-			arg = Number(arg);
-			if (isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
-		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
-		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
-	}
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/protos/yandex.js
-	var StreamInterval;
-	(function(StreamInterval) {
-		StreamInterval[StreamInterval["NO_CONNECTION"] = 0] = "NO_CONNECTION";
-		StreamInterval[StreamInterval["TRANSLATING"] = 10] = "TRANSLATING";
-		StreamInterval[StreamInterval["STREAMING"] = 20] = "STREAMING";
-		StreamInterval[StreamInterval["UNRECOGNIZED"] = -1] = "UNRECOGNIZED";
-	})(StreamInterval || (StreamInterval = {}));
-	function streamIntervalFromJSON(object) {
-		switch (object) {
-			case 0:
-			case "NO_CONNECTION": return StreamInterval.NO_CONNECTION;
-			case 10:
-			case "TRANSLATING": return StreamInterval.TRANSLATING;
-			case 20:
-			case "STREAMING": return StreamInterval.STREAMING;
-			default: return StreamInterval.UNRECOGNIZED;
-		}
-	}
-	function streamIntervalToJSON(object) {
-		switch (object) {
-			case StreamInterval.NO_CONNECTION: return "NO_CONNECTION";
-			case StreamInterval.TRANSLATING: return "TRANSLATING";
-			case StreamInterval.STREAMING: return "STREAMING";
-			case StreamInterval.UNRECOGNIZED:
-			default: return "UNRECOGNIZED";
-		}
-	}
-	function createBaseVideoTranslationHelpObject() {
-		return {
-			target: "",
-			targetUrl: ""
-		};
-	}
-	var VideoTranslationHelpObject = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.target !== "") writer.uint32(10).string(message.target);
-			if (message.targetUrl !== "") writer.uint32(18).string(message.targetUrl);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationHelpObject();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.target = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.targetUrl = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				target: isSet(object.target) ? globalThis.String(object.target) : "",
-				targetUrl: isSet(object.targetUrl) ? globalThis.String(object.targetUrl) : ""
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.target !== "") obj.target = message.target;
-			if (message.targetUrl !== "") obj.targetUrl = message.targetUrl;
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationHelpObject.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationHelpObject();
-			message.target = object.target ?? "";
-			message.targetUrl = object.targetUrl ?? "";
-			return message;
-		}
-	};
-	function createBaseVideoTranslationRequest() {
-		return {
-			url: "",
-			deviceId: void 0,
-			firstRequest: false,
-			duration: 0,
-			unknown0: 0,
-			language: "",
-			forceSourceLang: false,
-			unknown1: 0,
-			translationHelp: [],
-			wasStream: false,
-			responseLanguage: "",
-			unknown2: 0,
-			unknown3: 0,
-			bypassCache: false,
-			useLivelyVoice: false,
-			videoTitle: ""
-		};
-	}
-	var VideoTranslationRequest = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.url !== "") writer.uint32(26).string(message.url);
-			if (message.deviceId !== void 0) writer.uint32(34).string(message.deviceId);
-			if (message.firstRequest !== false) writer.uint32(40).bool(message.firstRequest);
-			if (message.duration !== 0) writer.uint32(49).double(message.duration);
-			if (message.unknown0 !== 0) writer.uint32(56).int32(message.unknown0);
-			if (message.language !== "") writer.uint32(66).string(message.language);
-			if (message.forceSourceLang !== false) writer.uint32(72).bool(message.forceSourceLang);
-			if (message.unknown1 !== 0) writer.uint32(80).int32(message.unknown1);
-			for (const v of message.translationHelp) VideoTranslationHelpObject.encode(v, writer.uint32(90).fork()).join();
-			if (message.wasStream !== false) writer.uint32(104).bool(message.wasStream);
-			if (message.responseLanguage !== "") writer.uint32(114).string(message.responseLanguage);
-			if (message.unknown2 !== 0) writer.uint32(120).int32(message.unknown2);
-			if (message.unknown3 !== 0) writer.uint32(128).int32(message.unknown3);
-			if (message.bypassCache !== false) writer.uint32(136).bool(message.bypassCache);
-			if (message.useLivelyVoice !== false) writer.uint32(144).bool(message.useLivelyVoice);
-			if (message.videoTitle !== "") writer.uint32(154).string(message.videoTitle);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 3:
-						if (tag !== 26) break;
-						message.url = reader.string();
-						continue;
-					case 4:
-						if (tag !== 34) break;
-						message.deviceId = reader.string();
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.firstRequest = reader.bool();
-						continue;
-					case 6:
-						if (tag !== 49) break;
-						message.duration = reader.double();
-						continue;
-					case 7:
-						if (tag !== 56) break;
-						message.unknown0 = reader.int32();
-						continue;
-					case 8:
-						if (tag !== 66) break;
-						message.language = reader.string();
-						continue;
-					case 9:
-						if (tag !== 72) break;
-						message.forceSourceLang = reader.bool();
-						continue;
-					case 10:
-						if (tag !== 80) break;
-						message.unknown1 = reader.int32();
-						continue;
-					case 11:
-						if (tag !== 90) break;
-						message.translationHelp.push(VideoTranslationHelpObject.decode(reader, reader.uint32()));
-						continue;
-					case 13:
-						if (tag !== 104) break;
-						message.wasStream = reader.bool();
-						continue;
-					case 14:
-						if (tag !== 114) break;
-						message.responseLanguage = reader.string();
-						continue;
-					case 15:
-						if (tag !== 120) break;
-						message.unknown2 = reader.int32();
-						continue;
-					case 16:
-						if (tag !== 128) break;
-						message.unknown3 = reader.int32();
-						continue;
-					case 17:
-						if (tag !== 136) break;
-						message.bypassCache = reader.bool();
-						continue;
-					case 18:
-						if (tag !== 144) break;
-						message.useLivelyVoice = reader.bool();
-						continue;
-					case 19:
-						if (tag !== 154) break;
-						message.videoTitle = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				deviceId: isSet(object.deviceId) ? globalThis.String(object.deviceId) : void 0,
-				firstRequest: isSet(object.firstRequest) ? globalThis.Boolean(object.firstRequest) : false,
-				duration: isSet(object.duration) ? globalThis.Number(object.duration) : 0,
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
-				language: isSet(object.language) ? globalThis.String(object.language) : "",
-				forceSourceLang: isSet(object.forceSourceLang) ? globalThis.Boolean(object.forceSourceLang) : false,
-				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0,
-				translationHelp: globalThis.Array.isArray(object?.translationHelp) ? object.translationHelp.map((e) => VideoTranslationHelpObject.fromJSON(e)) : [],
-				wasStream: isSet(object.wasStream) ? globalThis.Boolean(object.wasStream) : false,
-				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : "",
-				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : 0,
-				unknown3: isSet(object.unknown3) ? globalThis.Number(object.unknown3) : 0,
-				bypassCache: isSet(object.bypassCache) ? globalThis.Boolean(object.bypassCache) : false,
-				useLivelyVoice: isSet(object.useLivelyVoice) ? globalThis.Boolean(object.useLivelyVoice) : false,
-				videoTitle: isSet(object.videoTitle) ? globalThis.String(object.videoTitle) : ""
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.url !== "") obj.url = message.url;
-			if (message.deviceId !== void 0) obj.deviceId = message.deviceId;
-			if (message.firstRequest !== false) obj.firstRequest = message.firstRequest;
-			if (message.duration !== 0) obj.duration = message.duration;
-			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
-			if (message.language !== "") obj.language = message.language;
-			if (message.forceSourceLang !== false) obj.forceSourceLang = message.forceSourceLang;
-			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
-			if (message.translationHelp?.length) obj.translationHelp = message.translationHelp.map((e) => VideoTranslationHelpObject.toJSON(e));
-			if (message.wasStream !== false) obj.wasStream = message.wasStream;
-			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
-			if (message.unknown2 !== 0) obj.unknown2 = Math.round(message.unknown2);
-			if (message.unknown3 !== 0) obj.unknown3 = Math.round(message.unknown3);
-			if (message.bypassCache !== false) obj.bypassCache = message.bypassCache;
-			if (message.useLivelyVoice !== false) obj.useLivelyVoice = message.useLivelyVoice;
-			if (message.videoTitle !== "") obj.videoTitle = message.videoTitle;
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationRequest.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationRequest();
-			message.url = object.url ?? "";
-			message.deviceId = object.deviceId ?? void 0;
-			message.firstRequest = object.firstRequest ?? false;
-			message.duration = object.duration ?? 0;
-			message.unknown0 = object.unknown0 ?? 0;
-			message.language = object.language ?? "";
-			message.forceSourceLang = object.forceSourceLang ?? false;
-			message.unknown1 = object.unknown1 ?? 0;
-			message.translationHelp = object.translationHelp?.map((e) => VideoTranslationHelpObject.fromPartial(e)) || [];
-			message.wasStream = object.wasStream ?? false;
-			message.responseLanguage = object.responseLanguage ?? "";
-			message.unknown2 = object.unknown2 ?? 0;
-			message.unknown3 = object.unknown3 ?? 0;
-			message.bypassCache = object.bypassCache ?? false;
-			message.useLivelyVoice = object.useLivelyVoice ?? false;
-			message.videoTitle = object.videoTitle ?? "";
-			return message;
-		}
-	};
-	function createBaseVideoTranslationResponse() {
-		return {
-			url: void 0,
-			duration: void 0,
-			status: 0,
-			remainingTime: void 0,
-			unknown0: void 0,
-			translationId: "",
-			language: void 0,
-			message: void 0,
-			isLivelyVoice: false,
-			unknown2: void 0,
-			shouldRetry: void 0,
-			unknown3: void 0
-		};
-	}
-	var VideoTranslationResponse = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.url !== void 0) writer.uint32(10).string(message.url);
-			if (message.duration !== void 0) writer.uint32(17).double(message.duration);
-			if (message.status !== 0) writer.uint32(32).int32(message.status);
-			if (message.remainingTime !== void 0) writer.uint32(40).int32(message.remainingTime);
-			if (message.unknown0 !== void 0) writer.uint32(48).int32(message.unknown0);
-			if (message.translationId !== "") writer.uint32(58).string(message.translationId);
-			if (message.language !== void 0) writer.uint32(66).string(message.language);
-			if (message.message !== void 0) writer.uint32(74).string(message.message);
-			if (message.isLivelyVoice !== false) writer.uint32(80).bool(message.isLivelyVoice);
-			if (message.unknown2 !== void 0) writer.uint32(88).int32(message.unknown2);
-			if (message.shouldRetry !== void 0) writer.uint32(96).int32(message.shouldRetry);
-			if (message.unknown3 !== void 0) writer.uint32(104).int32(message.unknown3);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationResponse();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.url = reader.string();
-						continue;
-					case 2:
-						if (tag !== 17) break;
-						message.duration = reader.double();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.status = reader.int32();
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.remainingTime = reader.int32();
-						continue;
-					case 6:
-						if (tag !== 48) break;
-						message.unknown0 = reader.int32();
-						continue;
-					case 7:
-						if (tag !== 58) break;
-						message.translationId = reader.string();
-						continue;
-					case 8:
-						if (tag !== 66) break;
-						message.language = reader.string();
-						continue;
-					case 9:
-						if (tag !== 74) break;
-						message.message = reader.string();
-						continue;
-					case 10:
-						if (tag !== 80) break;
-						message.isLivelyVoice = reader.bool();
-						continue;
-					case 11:
-						if (tag !== 88) break;
-						message.unknown2 = reader.int32();
-						continue;
-					case 12:
-						if (tag !== 96) break;
-						message.shouldRetry = reader.int32();
-						continue;
-					case 13:
-						if (tag !== 104) break;
-						message.unknown3 = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				url: isSet(object.url) ? globalThis.String(object.url) : void 0,
-				duration: isSet(object.duration) ? globalThis.Number(object.duration) : void 0,
-				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
-				remainingTime: isSet(object.remainingTime) ? globalThis.Number(object.remainingTime) : void 0,
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : void 0,
-				translationId: isSet(object.translationId) ? globalThis.String(object.translationId) : "",
-				language: isSet(object.language) ? globalThis.String(object.language) : void 0,
-				message: isSet(object.message) ? globalThis.String(object.message) : void 0,
-				isLivelyVoice: isSet(object.isLivelyVoice) ? globalThis.Boolean(object.isLivelyVoice) : false,
-				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : void 0,
-				shouldRetry: isSet(object.shouldRetry) ? globalThis.Number(object.shouldRetry) : void 0,
-				unknown3: isSet(object.unknown3) ? globalThis.Number(object.unknown3) : void 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.url !== void 0) obj.url = message.url;
-			if (message.duration !== void 0) obj.duration = message.duration;
-			if (message.status !== 0) obj.status = Math.round(message.status);
-			if (message.remainingTime !== void 0) obj.remainingTime = Math.round(message.remainingTime);
-			if (message.unknown0 !== void 0) obj.unknown0 = Math.round(message.unknown0);
-			if (message.translationId !== "") obj.translationId = message.translationId;
-			if (message.language !== void 0) obj.language = message.language;
-			if (message.message !== void 0) obj.message = message.message;
-			if (message.isLivelyVoice !== false) obj.isLivelyVoice = message.isLivelyVoice;
-			if (message.unknown2 !== void 0) obj.unknown2 = Math.round(message.unknown2);
-			if (message.shouldRetry !== void 0) obj.shouldRetry = Math.round(message.shouldRetry);
-			if (message.unknown3 !== void 0) obj.unknown3 = Math.round(message.unknown3);
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationResponse.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationResponse();
-			message.url = object.url ?? void 0;
-			message.duration = object.duration ?? void 0;
-			message.status = object.status ?? 0;
-			message.remainingTime = object.remainingTime ?? void 0;
-			message.unknown0 = object.unknown0 ?? void 0;
-			message.translationId = object.translationId ?? "";
-			message.language = object.language ?? void 0;
-			message.message = object.message ?? void 0;
-			message.isLivelyVoice = object.isLivelyVoice ?? false;
-			message.unknown2 = object.unknown2 ?? void 0;
-			message.shouldRetry = object.shouldRetry ?? void 0;
-			message.unknown3 = object.unknown3 ?? void 0;
-			return message;
-		}
-	};
-	function createBaseVideoTranslationCacheItem() {
-		return {
-			status: 0,
-			remainingTime: void 0,
-			message: void 0,
-			unknown0: void 0
-		};
-	}
-	var VideoTranslationCacheItem = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.status !== 0) writer.uint32(8).int32(message.status);
-			if (message.remainingTime !== void 0) writer.uint32(16).int32(message.remainingTime);
-			if (message.message !== void 0) writer.uint32(26).string(message.message);
-			if (message.unknown0 !== void 0) writer.uint32(32).int32(message.unknown0);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationCacheItem();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.status = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.remainingTime = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.message = reader.string();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.unknown0 = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
-				remainingTime: isSet(object.remainingTime) ? globalThis.Number(object.remainingTime) : void 0,
-				message: isSet(object.message) ? globalThis.String(object.message) : void 0,
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : void 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.status !== 0) obj.status = Math.round(message.status);
-			if (message.remainingTime !== void 0) obj.remainingTime = Math.round(message.remainingTime);
-			if (message.message !== void 0) obj.message = message.message;
-			if (message.unknown0 !== void 0) obj.unknown0 = Math.round(message.unknown0);
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationCacheItem.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationCacheItem();
-			message.status = object.status ?? 0;
-			message.remainingTime = object.remainingTime ?? void 0;
-			message.message = object.message ?? void 0;
-			message.unknown0 = object.unknown0 ?? void 0;
-			return message;
-		}
-	};
-	function createBaseVideoTranslationCacheRequest() {
-		return {
-			url: "",
-			duration: 0,
-			language: "",
-			responseLanguage: ""
-		};
-	}
-	var VideoTranslationCacheRequest = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.url !== "") writer.uint32(10).string(message.url);
-			if (message.duration !== 0) writer.uint32(17).double(message.duration);
-			if (message.language !== "") writer.uint32(26).string(message.language);
-			if (message.responseLanguage !== "") writer.uint32(34).string(message.responseLanguage);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationCacheRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.url = reader.string();
-						continue;
-					case 2:
-						if (tag !== 17) break;
-						message.duration = reader.double();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.language = reader.string();
-						continue;
-					case 4:
-						if (tag !== 34) break;
-						message.responseLanguage = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				duration: isSet(object.duration) ? globalThis.Number(object.duration) : 0,
-				language: isSet(object.language) ? globalThis.String(object.language) : "",
-				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : ""
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.url !== "") obj.url = message.url;
-			if (message.duration !== 0) obj.duration = message.duration;
-			if (message.language !== "") obj.language = message.language;
-			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationCacheRequest.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationCacheRequest();
-			message.url = object.url ?? "";
-			message.duration = object.duration ?? 0;
-			message.language = object.language ?? "";
-			message.responseLanguage = object.responseLanguage ?? "";
-			return message;
-		}
-	};
-	function createBaseVideoTranslationCacheResponse() {
-		return {
-			default: void 0,
-			cloning: void 0
-		};
-	}
-	var VideoTranslationCacheResponse = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.default !== void 0) VideoTranslationCacheItem.encode(message.default, writer.uint32(10).fork()).join();
-			if (message.cloning !== void 0) VideoTranslationCacheItem.encode(message.cloning, writer.uint32(18).fork()).join();
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationCacheResponse();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.default = VideoTranslationCacheItem.decode(reader, reader.uint32());
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.cloning = VideoTranslationCacheItem.decode(reader, reader.uint32());
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				default: isSet(object.default) ? VideoTranslationCacheItem.fromJSON(object.default) : void 0,
-				cloning: isSet(object.cloning) ? VideoTranslationCacheItem.fromJSON(object.cloning) : void 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.default !== void 0) obj.default = VideoTranslationCacheItem.toJSON(message.default);
-			if (message.cloning !== void 0) obj.cloning = VideoTranslationCacheItem.toJSON(message.cloning);
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationCacheResponse.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationCacheResponse();
-			message.default = object.default !== void 0 && object.default !== null ? VideoTranslationCacheItem.fromPartial(object.default) : void 0;
-			message.cloning = object.cloning !== void 0 && object.cloning !== null ? VideoTranslationCacheItem.fromPartial(object.cloning) : void 0;
-			return message;
-		}
-	};
-	function createBaseAudioBufferObject() {
-		return {
-			audioFile: new Uint8Array(0),
-			fileId: ""
-		};
-	}
-	var AudioBufferObject = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
-			if (message.fileId !== "") writer.uint32(10).string(message.fileId);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseAudioBufferObject();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 2:
-						if (tag !== 18) break;
-						message.audioFile = reader.bytes();
-						continue;
-					case 1:
-						if (tag !== 10) break;
-						message.fileId = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : new Uint8Array(0),
-				fileId: isSet(object.fileId) ? globalThis.String(object.fileId) : ""
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.audioFile.length !== 0) obj.audioFile = base64FromBytes(message.audioFile);
-			if (message.fileId !== "") obj.fileId = message.fileId;
-			return obj;
-		},
-		create(base) {
-			return AudioBufferObject.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseAudioBufferObject();
-			message.audioFile = object.audioFile ?? new Uint8Array(0);
-			message.fileId = object.fileId ?? "";
-			return message;
-		}
-	};
-	function createBasePartialAudioBufferObject() {
-		return {
-			audioFile: new Uint8Array(0),
-			chunkId: 0
-		};
-	}
-	var PartialAudioBufferObject = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
-			if (message.chunkId !== 0) writer.uint32(8).int32(message.chunkId);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBasePartialAudioBufferObject();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 2:
-						if (tag !== 18) break;
-						message.audioFile = reader.bytes();
-						continue;
-					case 1:
-						if (tag !== 8) break;
-						message.chunkId = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : new Uint8Array(0),
-				chunkId: isSet(object.chunkId) ? globalThis.Number(object.chunkId) : 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.audioFile.length !== 0) obj.audioFile = base64FromBytes(message.audioFile);
-			if (message.chunkId !== 0) obj.chunkId = Math.round(message.chunkId);
-			return obj;
-		},
-		create(base) {
-			return PartialAudioBufferObject.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBasePartialAudioBufferObject();
-			message.audioFile = object.audioFile ?? new Uint8Array(0);
-			message.chunkId = object.chunkId ?? 0;
-			return message;
-		}
-	};
-	function createBaseChunkAudioObject() {
-		return {
-			audioBuffer: void 0,
-			audioPartsLength: 0,
-			fileId: "",
-			version: 0
-		};
-	}
-	var ChunkAudioObject = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.audioBuffer !== void 0) PartialAudioBufferObject.encode(message.audioBuffer, writer.uint32(10).fork()).join();
-			if (message.audioPartsLength !== 0) writer.uint32(16).int32(message.audioPartsLength);
-			if (message.fileId !== "") writer.uint32(26).string(message.fileId);
-			if (message.version !== 0) writer.uint32(32).int32(message.version);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseChunkAudioObject();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.audioBuffer = PartialAudioBufferObject.decode(reader, reader.uint32());
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.audioPartsLength = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.fileId = reader.string();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.version = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				audioBuffer: isSet(object.audioBuffer) ? PartialAudioBufferObject.fromJSON(object.audioBuffer) : void 0,
-				audioPartsLength: isSet(object.audioPartsLength) ? globalThis.Number(object.audioPartsLength) : 0,
-				fileId: isSet(object.fileId) ? globalThis.String(object.fileId) : "",
-				version: isSet(object.version) ? globalThis.Number(object.version) : 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.audioBuffer !== void 0) obj.audioBuffer = PartialAudioBufferObject.toJSON(message.audioBuffer);
-			if (message.audioPartsLength !== 0) obj.audioPartsLength = Math.round(message.audioPartsLength);
-			if (message.fileId !== "") obj.fileId = message.fileId;
-			if (message.version !== 0) obj.version = Math.round(message.version);
-			return obj;
-		},
-		create(base) {
-			return ChunkAudioObject.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseChunkAudioObject();
-			message.audioBuffer = object.audioBuffer !== void 0 && object.audioBuffer !== null ? PartialAudioBufferObject.fromPartial(object.audioBuffer) : void 0;
-			message.audioPartsLength = object.audioPartsLength ?? 0;
-			message.fileId = object.fileId ?? "";
-			message.version = object.version ?? 0;
-			return message;
-		}
-	};
-	function createBaseVideoTranslationAudioRequest() {
-		return {
-			translationId: "",
-			url: "",
-			partialAudioInfo: void 0,
-			audioInfo: void 0
-		};
-	}
-	var VideoTranslationAudioRequest = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.translationId !== "") writer.uint32(10).string(message.translationId);
-			if (message.url !== "") writer.uint32(18).string(message.url);
-			if (message.partialAudioInfo !== void 0) ChunkAudioObject.encode(message.partialAudioInfo, writer.uint32(34).fork()).join();
-			if (message.audioInfo !== void 0) AudioBufferObject.encode(message.audioInfo, writer.uint32(50).fork()).join();
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationAudioRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.translationId = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.url = reader.string();
-						continue;
-					case 4:
-						if (tag !== 34) break;
-						message.partialAudioInfo = ChunkAudioObject.decode(reader, reader.uint32());
-						continue;
-					case 6:
-						if (tag !== 50) break;
-						message.audioInfo = AudioBufferObject.decode(reader, reader.uint32());
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				translationId: isSet(object.translationId) ? globalThis.String(object.translationId) : "",
-				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				partialAudioInfo: isSet(object.partialAudioInfo) ? ChunkAudioObject.fromJSON(object.partialAudioInfo) : void 0,
-				audioInfo: isSet(object.audioInfo) ? AudioBufferObject.fromJSON(object.audioInfo) : void 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.translationId !== "") obj.translationId = message.translationId;
-			if (message.url !== "") obj.url = message.url;
-			if (message.partialAudioInfo !== void 0) obj.partialAudioInfo = ChunkAudioObject.toJSON(message.partialAudioInfo);
-			if (message.audioInfo !== void 0) obj.audioInfo = AudioBufferObject.toJSON(message.audioInfo);
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationAudioRequest.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationAudioRequest();
-			message.translationId = object.translationId ?? "";
-			message.url = object.url ?? "";
-			message.partialAudioInfo = object.partialAudioInfo !== void 0 && object.partialAudioInfo !== null ? ChunkAudioObject.fromPartial(object.partialAudioInfo) : void 0;
-			message.audioInfo = object.audioInfo !== void 0 && object.audioInfo !== null ? AudioBufferObject.fromPartial(object.audioInfo) : void 0;
-			return message;
-		}
-	};
-	function createBaseVideoTranslationAudioResponse() {
-		return {
-			status: 0,
-			remainingChunks: []
-		};
-	}
-	var VideoTranslationAudioResponse = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.status !== 0) writer.uint32(8).int32(message.status);
-			for (const v of message.remainingChunks) writer.uint32(18).string(v);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoTranslationAudioResponse();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.status = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.remainingChunks.push(reader.string());
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
-				remainingChunks: globalThis.Array.isArray(object?.remainingChunks) ? object.remainingChunks.map((e) => globalThis.String(e)) : []
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.status !== 0) obj.status = Math.round(message.status);
-			if (message.remainingChunks?.length) obj.remainingChunks = message.remainingChunks;
-			return obj;
-		},
-		create(base) {
-			return VideoTranslationAudioResponse.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseVideoTranslationAudioResponse();
-			message.status = object.status ?? 0;
-			message.remainingChunks = object.remainingChunks?.map((e) => e) || [];
-			return message;
-		}
-	};
-	function createBaseSubtitlesObject() {
-		return {
-			language: "",
-			url: "",
-			unknown0: 0,
-			translatedLanguage: "",
-			translatedUrl: "",
-			unknown1: 0,
-			unknown2: 0
-		};
-	}
-	var SubtitlesObject = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.language !== "") writer.uint32(10).string(message.language);
-			if (message.url !== "") writer.uint32(18).string(message.url);
-			if (message.unknown0 !== 0) writer.uint32(24).int32(message.unknown0);
-			if (message.translatedLanguage !== "") writer.uint32(34).string(message.translatedLanguage);
-			if (message.translatedUrl !== "") writer.uint32(42).string(message.translatedUrl);
-			if (message.unknown1 !== 0) writer.uint32(48).int32(message.unknown1);
-			if (message.unknown2 !== 0) writer.uint32(56).int32(message.unknown2);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseSubtitlesObject();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.language = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.url = reader.string();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.unknown0 = reader.int32();
-						continue;
-					case 4:
-						if (tag !== 34) break;
-						message.translatedLanguage = reader.string();
-						continue;
-					case 5:
-						if (tag !== 42) break;
-						message.translatedUrl = reader.string();
-						continue;
-					case 6:
-						if (tag !== 48) break;
-						message.unknown1 = reader.int32();
-						continue;
-					case 7:
-						if (tag !== 56) break;
-						message.unknown2 = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				language: isSet(object.language) ? globalThis.String(object.language) : "",
-				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
-				translatedLanguage: isSet(object.translatedLanguage) ? globalThis.String(object.translatedLanguage) : "",
-				translatedUrl: isSet(object.translatedUrl) ? globalThis.String(object.translatedUrl) : "",
-				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0,
-				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.language !== "") obj.language = message.language;
-			if (message.url !== "") obj.url = message.url;
-			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
-			if (message.translatedLanguage !== "") obj.translatedLanguage = message.translatedLanguage;
-			if (message.translatedUrl !== "") obj.translatedUrl = message.translatedUrl;
-			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
-			if (message.unknown2 !== 0) obj.unknown2 = Math.round(message.unknown2);
-			return obj;
-		},
-		create(base) {
-			return SubtitlesObject.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseSubtitlesObject();
-			message.language = object.language ?? "";
-			message.url = object.url ?? "";
-			message.unknown0 = object.unknown0 ?? 0;
-			message.translatedLanguage = object.translatedLanguage ?? "";
-			message.translatedUrl = object.translatedUrl ?? "";
-			message.unknown1 = object.unknown1 ?? 0;
-			message.unknown2 = object.unknown2 ?? 0;
-			return message;
-		}
-	};
-	function createBaseSubtitlesRequest() {
-		return {
-			url: "",
-			language: ""
-		};
-	}
-	var SubtitlesRequest = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.url !== "") writer.uint32(10).string(message.url);
-			if (message.language !== "") writer.uint32(18).string(message.language);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseSubtitlesRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.url = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.language = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				language: isSet(object.language) ? globalThis.String(object.language) : ""
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.url !== "") obj.url = message.url;
-			if (message.language !== "") obj.language = message.language;
-			return obj;
-		},
-		create(base) {
-			return SubtitlesRequest.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseSubtitlesRequest();
-			message.url = object.url ?? "";
-			message.language = object.language ?? "";
-			return message;
-		}
-	};
-	function createBaseSubtitlesResponse() {
-		return {
-			waiting: false,
-			subtitles: []
-		};
-	}
-	var SubtitlesResponse = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.waiting !== false) writer.uint32(8).bool(message.waiting);
-			for (const v of message.subtitles) SubtitlesObject.encode(v, writer.uint32(18).fork()).join();
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseSubtitlesResponse();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.waiting = reader.bool();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.subtitles.push(SubtitlesObject.decode(reader, reader.uint32()));
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				waiting: isSet(object.waiting) ? globalThis.Boolean(object.waiting) : false,
-				subtitles: globalThis.Array.isArray(object?.subtitles) ? object.subtitles.map((e) => SubtitlesObject.fromJSON(e)) : []
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.waiting !== false) obj.waiting = message.waiting;
-			if (message.subtitles?.length) obj.subtitles = message.subtitles.map((e) => SubtitlesObject.toJSON(e));
-			return obj;
-		},
-		create(base) {
-			return SubtitlesResponse.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseSubtitlesResponse();
-			message.waiting = object.waiting ?? false;
-			message.subtitles = object.subtitles?.map((e) => SubtitlesObject.fromPartial(e)) || [];
-			return message;
-		}
-	};
-	function createBaseStreamTranslationObject() {
-		return {
-			url: "",
-			timestamp: ""
-		};
-	}
-	var StreamTranslationObject = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.url !== "") writer.uint32(10).string(message.url);
-			if (message.timestamp !== "") writer.uint32(18).string(message.timestamp);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamTranslationObject();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.url = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.timestamp = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				timestamp: isSet(object.timestamp) ? globalThis.String(object.timestamp) : ""
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.url !== "") obj.url = message.url;
-			if (message.timestamp !== "") obj.timestamp = message.timestamp;
-			return obj;
-		},
-		create(base) {
-			return StreamTranslationObject.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseStreamTranslationObject();
-			message.url = object.url ?? "";
-			message.timestamp = object.timestamp ?? "";
-			return message;
-		}
-	};
-	function createBaseStreamTranslationRequest() {
-		return {
-			url: "",
-			language: "",
-			responseLanguage: "",
-			unknown0: 0,
-			unknown1: 0
-		};
-	}
-	var StreamTranslationRequest = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.url !== "") writer.uint32(10).string(message.url);
-			if (message.language !== "") writer.uint32(18).string(message.language);
-			if (message.responseLanguage !== "") writer.uint32(26).string(message.responseLanguage);
-			if (message.unknown0 !== 0) writer.uint32(40).int32(message.unknown0);
-			if (message.unknown1 !== 0) writer.uint32(48).int32(message.unknown1);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamTranslationRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.url = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.language = reader.string();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.responseLanguage = reader.string();
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.unknown0 = reader.int32();
-						continue;
-					case 6:
-						if (tag !== 48) break;
-						message.unknown1 = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				language: isSet(object.language) ? globalThis.String(object.language) : "",
-				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : "",
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
-				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.url !== "") obj.url = message.url;
-			if (message.language !== "") obj.language = message.language;
-			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
-			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
-			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
-			return obj;
-		},
-		create(base) {
-			return StreamTranslationRequest.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseStreamTranslationRequest();
-			message.url = object.url ?? "";
-			message.language = object.language ?? "";
-			message.responseLanguage = object.responseLanguage ?? "";
-			message.unknown0 = object.unknown0 ?? 0;
-			message.unknown1 = object.unknown1 ?? 0;
-			return message;
-		}
-	};
-	function createBaseStreamTranslationResponse() {
-		return {
-			interval: 0,
-			translatedInfo: void 0,
-			pingId: void 0
-		};
-	}
-	var StreamTranslationResponse = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.interval !== 0) writer.uint32(8).int32(message.interval);
-			if (message.translatedInfo !== void 0) StreamTranslationObject.encode(message.translatedInfo, writer.uint32(18).fork()).join();
-			if (message.pingId !== void 0) writer.uint32(24).int32(message.pingId);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamTranslationResponse();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.interval = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.translatedInfo = StreamTranslationObject.decode(reader, reader.uint32());
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.pingId = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				interval: isSet(object.interval) ? streamIntervalFromJSON(object.interval) : 0,
-				translatedInfo: isSet(object.translatedInfo) ? StreamTranslationObject.fromJSON(object.translatedInfo) : void 0,
-				pingId: isSet(object.pingId) ? globalThis.Number(object.pingId) : void 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.interval !== 0) obj.interval = streamIntervalToJSON(message.interval);
-			if (message.translatedInfo !== void 0) obj.translatedInfo = StreamTranslationObject.toJSON(message.translatedInfo);
-			if (message.pingId !== void 0) obj.pingId = Math.round(message.pingId);
-			return obj;
-		},
-		create(base) {
-			return StreamTranslationResponse.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseStreamTranslationResponse();
-			message.interval = object.interval ?? 0;
-			message.translatedInfo = object.translatedInfo !== void 0 && object.translatedInfo !== null ? StreamTranslationObject.fromPartial(object.translatedInfo) : void 0;
-			message.pingId = object.pingId ?? void 0;
-			return message;
-		}
-	};
-	function createBaseStreamPingRequest() {
-		return { pingId: 0 };
-	}
-	var StreamPingRequest = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.pingId !== 0) writer.uint32(8).int32(message.pingId);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamPingRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.pingId = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return { pingId: isSet(object.pingId) ? globalThis.Number(object.pingId) : 0 };
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.pingId !== 0) obj.pingId = Math.round(message.pingId);
-			return obj;
-		},
-		create(base) {
-			return StreamPingRequest.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseStreamPingRequest();
-			message.pingId = object.pingId ?? 0;
-			return message;
-		}
-	};
-	function createBaseYandexSessionRequest() {
-		return {
-			uuid: "",
-			module: ""
-		};
-	}
-	var YandexSessionRequest = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.uuid !== "") writer.uint32(10).string(message.uuid);
-			if (message.module !== "") writer.uint32(18).string(message.module);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseYandexSessionRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.uuid = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.module = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
-				module: isSet(object.module) ? globalThis.String(object.module) : ""
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.uuid !== "") obj.uuid = message.uuid;
-			if (message.module !== "") obj.module = message.module;
-			return obj;
-		},
-		create(base) {
-			return YandexSessionRequest.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseYandexSessionRequest();
-			message.uuid = object.uuid ?? "";
-			message.module = object.module ?? "";
-			return message;
-		}
-	};
-	function createBaseYandexSessionResponse() {
-		return {
-			secretKey: "",
-			expires: 0
-		};
-	}
-	var YandexSessionResponse = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.secretKey !== "") writer.uint32(10).string(message.secretKey);
-			if (message.expires !== 0) writer.uint32(16).int32(message.expires);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			let end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseYandexSessionResponse();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.secretKey = reader.string();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.expires = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		},
-		fromJSON(object) {
-			return {
-				secretKey: isSet(object.secretKey) ? globalThis.String(object.secretKey) : "",
-				expires: isSet(object.expires) ? globalThis.Number(object.expires) : 0
-			};
-		},
-		toJSON(message) {
-			const obj = {};
-			if (message.secretKey !== "") obj.secretKey = message.secretKey;
-			if (message.expires !== 0) obj.expires = Math.round(message.expires);
-			return obj;
-		},
-		create(base) {
-			return YandexSessionResponse.fromPartial(base ?? {});
-		},
-		fromPartial(object) {
-			const message = createBaseYandexSessionResponse();
-			message.secretKey = object.secretKey ?? "";
-			message.expires = object.expires ?? 0;
-			return message;
-		}
-	};
-	function bytesFromBase64(b64) {
-		if (globalThis.Buffer) return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
-		else {
-			const bin = globalThis.atob(b64);
-			const arr = new Uint8Array(bin.length);
-			for (let i = 0; i < bin.length; ++i) arr[i] = bin.charCodeAt(i);
-			return arr;
-		}
-	}
-	function base64FromBytes(arr) {
-		if (globalThis.Buffer) return globalThis.Buffer.from(arr).toString("base64");
-		else {
-			const bin = [];
-			arr.forEach((byte) => {
-				bin.push(globalThis.String.fromCharCode(byte));
-			});
-			return globalThis.btoa(bin.join(""));
-		}
-	}
-	function isSet(value) {
-		return value !== null && value !== void 0;
-	}
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/types/logger.js
-	var LoggerLevel;
-	(function(LoggerLevel) {
-		LoggerLevel[LoggerLevel["DEBUG"] = 0] = "DEBUG";
-		LoggerLevel[LoggerLevel["INFO"] = 1] = "INFO";
-		LoggerLevel[LoggerLevel["WARN"] = 2] = "WARN";
-		LoggerLevel[LoggerLevel["ERROR"] = 3] = "ERROR";
-		LoggerLevel[LoggerLevel["SILENCE"] = 4] = "SILENCE";
-	})(LoggerLevel || (LoggerLevel = {}));
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/utils/logger.js
-	var prefix = `[vot.js v${config_default$1.version}]`;
-	function canLog(level) {
-		return config_default$1.loggerLevel <= level;
-	}
-	function log$1(...messages) {
-		if (!canLog(LoggerLevel.DEBUG)) return;
-		console.log(prefix, ...messages);
-	}
-	function info(...messages) {
-		if (!canLog(LoggerLevel.INFO)) return;
-		console.info(prefix, ...messages);
-	}
-	function warn$1(...messages) {
-		if (!canLog(LoggerLevel.WARN)) return;
-		console.warn(prefix, ...messages);
-	}
-	function error$1(...messages) {
-		if (!canLog(LoggerLevel.ERROR)) return;
-		console.error(prefix, ...messages);
-	}
-	var Logger = {
-		canLog,
-		log: log$1,
-		info,
-		warn: warn$1,
-		error: error$1
-	};
-	//#endregion
-	//#region src/shims/nodeCrypto.ts
-	var nodeCrypto_exports = /* @__PURE__ */ __exportAll({
-		default: () => webCrypto,
-		getRandomValues: () => getRandomValues,
-		randomUUID: () => randomUUID,
-		subtle: () => subtle
-	});
-	var webCrypto, subtle, getRandomValues, randomUUID;
-	var init_nodeCrypto = __esmMin((() => {
-		webCrypto = globalThis.crypto;
-		if (!webCrypto?.subtle) throw new TypeError("Web Crypto API is not available in this environment.");
-		subtle = webCrypto.subtle;
-		getRandomValues = webCrypto.getRandomValues.bind(webCrypto);
-		randomUUID = typeof webCrypto.randomUUID === "function" ? webCrypto.randomUUID.bind(webCrypto) : void 0;
-	}));
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/secure.js
-	var { componentVersion } = config_default$1;
-	async function getCrypto() {
-		if (typeof window !== "undefined" && window.crypto) return window.crypto;
-		return await Promise.resolve().then(() => (init_nodeCrypto(), nodeCrypto_exports));
-	}
-	var utf8Encoder = new TextEncoder();
-	async function signHMAC(hashName, hmac, data) {
-		const crypto = await getCrypto();
-		const key = await crypto.subtle.importKey("raw", utf8Encoder.encode(hmac), {
-			name: "HMAC",
-			hash: { name: hashName }
-		}, false, ["sign", "verify"]);
-		return await crypto.subtle.sign("HMAC", key, data);
-	}
-	async function getSignature(body) {
-		const signature = await signHMAC("SHA-256", config_default$1.hmac, body);
-		return new Uint8Array(signature).reduce((str, byte) => str + byte.toString(16).padStart(2, "0"), "");
-	}
-	async function getSecYaHeaders(secType, session, body, path) {
-		const { secretKey, uuid } = session;
-		const token = `${uuid}:${path}:${componentVersion}`;
-		const tokenSign = await getSignature(utf8Encoder.encode(token));
-		if (secType === "Ya-Summary") return {
-			[`X-${secType}-Sk`]: secretKey,
-			[`X-${secType}-Token`]: `${tokenSign}:${token}`
-		};
-		if (!body) throw new TypeError(`Body is required for sec type ${secType}`);
-		const sign = await getSignature(body);
-		return {
-			[`${secType}-Signature`]: sign,
-			[`Sec-${secType}-Sk`]: secretKey,
-			[`Sec-${secType}-Token`]: `${tokenSign}:${token}`
-		};
-	}
-	function getUUID() {
-		const hexDigits = "0123456789ABCDEF";
-		let uuid = "";
-		for (let i = 0; i < 32; i++) {
-			const randomDigit = Math.floor(Math.random() * 16);
-			uuid += hexDigits[randomDigit];
-		}
-		return uuid;
-	}
-	async function getHmacSha1(hmacKey, salt) {
-		try {
-			const signature = await signHMAC("SHA-1", hmacKey, utf8Encoder.encode(salt));
-			return btoa(String.fromCharCode(...new Uint8Array(signature)));
-		} catch (err) {
-			Logger.error(err);
-			return false;
-		}
-	}
-	var browserSecHeaders = {
-		"sec-ch-ua": `"Chromium";v="147", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="26", "Yowser";v="2.5"`,
-		"sec-ch-ua-full-version-list": `"Chromium";v="147.0.7727.138", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="26.0.0.0", "Yowser";v="2.5"`,
-		"Sec-Fetch-Mode": "no-cors"
-	};
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/utils/utils.js
-	var iso6392to6391 = {
-		afr: "af",
-		aka: "ak",
-		alb: "sq",
-		amh: "am",
-		ara: "ar",
-		arm: "hy",
-		asm: "as",
-		aym: "ay",
-		aze: "az",
-		baq: "eu",
-		bel: "be",
-		ben: "bn",
-		bos: "bs",
-		bul: "bg",
-		bur: "my",
-		cat: "ca",
-		chi: "zh",
-		cos: "co",
-		cze: "cs",
-		dan: "da",
-		div: "dv",
-		dut: "nl",
-		eng: "en",
-		epo: "eo",
-		est: "et",
-		ewe: "ee",
-		fin: "fi",
-		fre: "fr",
-		fry: "fy",
-		geo: "ka",
-		ger: "de",
-		gla: "gd",
-		gle: "ga",
-		glg: "gl",
-		gre: "el",
-		grn: "gn",
-		guj: "gu",
-		hat: "ht",
-		hau: "ha",
-		hin: "hi",
-		hrv: "hr",
-		hun: "hu",
-		ibo: "ig",
-		ice: "is",
-		ind: "id",
-		ita: "it",
-		jav: "jv",
-		jpn: "ja",
-		kan: "kn",
-		kaz: "kk",
-		khm: "km",
-		kin: "rw",
-		kir: "ky",
-		kor: "ko",
-		kur: "ku",
-		lao: "lo",
-		lat: "la",
-		lav: "lv",
-		lin: "ln",
-		lit: "lt",
-		ltz: "lb",
-		lug: "lg",
-		mac: "mk",
-		mal: "ml",
-		mao: "mi",
-		mar: "mr",
-		may: "ms",
-		mlg: "mg",
-		mlt: "mt",
-		mon: "mn",
-		nep: "ne",
-		nor: "no",
-		nya: "ny",
-		ori: "or",
-		orm: "om",
-		pan: "pa",
-		per: "fa",
-		pol: "pl",
-		por: "pt",
-		pus: "ps",
-		que: "qu",
-		rum: "ro",
-		rus: "ru",
-		san: "sa",
-		sin: "si",
-		slo: "sk",
-		slv: "sl",
-		smo: "sm",
-		sna: "sn",
-		snd: "sd",
-		som: "so",
-		sot: "st",
-		spa: "es",
-		srp: "sr",
-		sun: "su",
-		swa: "sw",
-		swe: "sv",
-		tam: "ta",
-		tat: "tt",
-		tel: "te",
-		tgk: "tg",
-		tha: "th",
-		tir: "ti",
-		tso: "ts",
-		tuk: "tk",
-		tur: "tr",
-		uig: "ug",
-		ukr: "uk",
-		urd: "ur",
-		uzb: "uz",
-		vie: "vi",
-		wel: "cy",
-		xho: "xh",
-		yid: "yi",
-		yor: "yo",
-		zul: "zu"
-	};
-	async function fetchWithTimeout(url, options = { headers: { "User-Agent": config_default$1.userAgent } }) {
-		const { timeout = 3e3, signal, ...fetchOptions } = options;
-		if (!signal && (!timeout || timeout <= 0)) return await fetch(url, fetchOptions);
-		const controller = new AbortController();
-		const abort = (reason) => {
-			if (!controller.signal.aborted) controller.abort(reason);
-		};
-		if (signal) if (signal.aborted) abort(signal.reason);
-		else signal.addEventListener("abort", () => abort(signal.reason), { once: true });
-		let timeoutId;
-		if (timeout && timeout > 0) timeoutId = setTimeout(() => abort(/* @__PURE__ */ new Error("Fetch timeout")), timeout);
-		try {
-			return await fetch(url, {
-				...fetchOptions,
-				signal: controller.signal
-			});
-		} finally {
-			if (timeoutId) clearTimeout(timeoutId);
-		}
-	}
-	function getTimestamp$1() {
-		return Math.floor(Date.now() / 1e3);
-	}
-	function normalizeLang$1(lang) {
-		if (lang.length === 3) return iso6392to6391[lang];
-		return lang.toLowerCase().split(/[_;-]/)[0].trim();
-	}
-	function proxyMedia(url, format = "mp4") {
-		const generalUrl = `https://${config_default$1.mediaProxy}/v1/proxy/video.${format}?format=base64&force=true`;
-		if (!(url instanceof URL)) return `${generalUrl}&url=${btoa(url)}`;
-		return `${generalUrl}&url=${btoa(url.href)}&origin=${url.origin}&referer=${url.origin}`;
-	}
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/protobuf.js
-	function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
-		return VideoTranslationRequest.encode({
-			url,
-			firstRequest,
-			duration,
-			unknown0: 1,
-			language: requestLang,
-			forceSourceLang,
-			unknown1: 0,
-			translationHelp: translationHelp ?? [],
-			responseLanguage: responseLang,
-			wasStream,
-			unknown2: 1,
-			unknown3: 2,
-			bypassCache,
-			useLivelyVoice,
-			videoTitle
-		}).finish();
-	}
-	function decodeTranslationResponse(response) {
-		return VideoTranslationResponse.decode(new Uint8Array(response));
-	}
-	function encodeTranslationCacheRequest(url, duration, requestLang, responseLang) {
-		return VideoTranslationCacheRequest.encode({
-			url,
-			duration,
-			language: requestLang,
-			responseLanguage: responseLang
-		}).finish();
-	}
-	function decodeTranslationCacheResponse(response) {
-		return VideoTranslationCacheResponse.decode(new Uint8Array(response));
-	}
-	function isPartialAudioBuffer(audioBuffer) {
-		return "chunkId" in audioBuffer;
-	}
-	function encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) {
-		if (partialAudio && isPartialAudioBuffer(audioBuffer)) return VideoTranslationAudioRequest.encode({
-			url,
-			translationId,
-			partialAudioInfo: {
-				...partialAudio,
-				audioBuffer
-			}
-		}).finish();
-		return VideoTranslationAudioRequest.encode({
-			url,
-			translationId,
-			audioInfo: audioBuffer
-		}).finish();
-	}
-	function decodeTranslationAudioResponse(response) {
-		return VideoTranslationAudioResponse.decode(new Uint8Array(response));
-	}
-	function encodeSubtitlesRequest(url, requestLang) {
-		return SubtitlesRequest.encode({
-			url,
-			language: requestLang
-		}).finish();
-	}
-	function decodeSubtitlesResponse(response) {
-		return SubtitlesResponse.decode(new Uint8Array(response));
-	}
-	function encodeStreamPingRequest(pingId) {
-		return StreamPingRequest.encode({ pingId }).finish();
-	}
-	function encodeStreamRequest(url, requestLang, responseLang) {
-		return StreamTranslationRequest.encode({
-			url,
-			language: requestLang,
-			responseLanguage: responseLang,
-			unknown0: 1,
-			unknown1: 0
-		}).finish();
-	}
-	function decodeStreamResponse(response) {
-		return StreamTranslationResponse.decode(new Uint8Array(response));
-	}
-	var YandexVOTProtobuf = {
-		encodeTranslationRequest,
-		decodeTranslationResponse,
-		encodeTranslationCacheRequest,
-		decodeTranslationCacheResponse,
-		isPartialAudioBuffer,
-		encodeTranslationAudioRequest,
-		decodeTranslationAudioResponse,
-		encodeSubtitlesRequest,
-		decodeSubtitlesResponse,
-		encodeStreamPingRequest,
-		encodeStreamRequest,
-		decodeStreamResponse
-	};
-	function encodeSessionRequest(uuid, module) {
-		return YandexSessionRequest.encode({
-			uuid,
-			module
-		}).finish();
-	}
-	function decodeSessionResponse(response) {
-		return YandexSessionResponse.decode(new Uint8Array(response));
-	}
-	var YandexSessionProtobuf = {
-		encodeSessionRequest,
-		decodeSessionResponse
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/types/yandex.js
-	var VideoTranslationStatus;
-	(function(VideoTranslationStatus) {
-		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
-		VideoTranslationStatus[VideoTranslationStatus["FINISHED"] = 1] = "FINISHED";
-		VideoTranslationStatus[VideoTranslationStatus["WAITING"] = 2] = "WAITING";
-		VideoTranslationStatus[VideoTranslationStatus["LONG_WAITING"] = 3] = "LONG_WAITING";
-		VideoTranslationStatus[VideoTranslationStatus["PART_CONTENT"] = 5] = "PART_CONTENT";
-		VideoTranslationStatus[VideoTranslationStatus["AUDIO_REQUESTED"] = 6] = "AUDIO_REQUESTED";
-		VideoTranslationStatus[VideoTranslationStatus["SESSION_REQUIRED"] = 7] = "SESSION_REQUIRED";
-	})(VideoTranslationStatus || (VideoTranslationStatus = {}));
-	var AudioDownloadType;
-	(function(AudioDownloadType) {
-		AudioDownloadType["WEB_API_VIDEO_SRC_FROM_IFRAME"] = "web_api_video_src_from_iframe";
-		AudioDownloadType["WEB_API_VIDEO_SRC"] = "web_api_video_src";
-		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME"] = "web_api_get_all_generating_urls_data_from_iframe";
-		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME_TMP_EXP"] = "web_api_get_all_generating_urls_data_from_iframe_tmp_exp";
-		AudioDownloadType["WEB_API_REPLACED_FETCH_INSIDE_IFRAME"] = "web_api_replaced_fetch_inside_iframe";
-		AudioDownloadType["ANDROID_API"] = "android_api";
-		AudioDownloadType["WEB_API_SLOW"] = "web_api_slow";
-		AudioDownloadType["WEB_API_STEAL_SIG_AND_N"] = "web_api_steal_sig_and_n";
-		AudioDownloadType["WEB_API_COMBINED"] = "web_api_get_all_generating_urls_data_from_iframe,web_api_steal_sig_and_n";
-	})(AudioDownloadType || (AudioDownloadType = {}));
 	//#endregion
 	//#region node_modules/@vot.js/core/dist/types/service.js
 	var VideoService$1;
@@ -3048,526 +363,12 @@ var vot = (function(exports) {
 		VideoService["bitview"] = "bitview";
 		VideoService["thisvid"] = "thisvid";
 		VideoService["ign"] = "ign";
+		VideoService["noodlemagazine"] = "noodlemagazine";
 		VideoService["zdf"] = "zdf";
 		VideoService["bunkr"] = "bunkr";
 		VideoService["imdb"] = "imdb";
 		VideoService["telegram"] = "telegram";
 	})(VideoService$1 || (VideoService$1 = {}));
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/utils/vot.js
-	function convertVOT(service, videoId, url) {
-		if (service === VideoService$1.patreon) return {
-			service: "mux",
-			videoId: new URL(url).pathname.slice(1)
-		};
-		return {
-			service,
-			videoId
-		};
-	}
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/client.js
-	var VOTJSError = class extends Error {
-		data;
-		constructor(message, data = void 0) {
-			super(message);
-			this.data = data;
-			this.name = "VOTJSError";
-		}
-	};
-	var MinimalClient = class {
-		host;
-		schema;
-		fetch;
-		fetchOpts;
-		sessions = {};
-		userAgent = config_default$1.userAgent;
-		headers = {
-			"User-Agent": this.userAgent,
-			Accept: "application/x-protobuf",
-			"Accept-Language": "en",
-			"Content-Type": "application/x-protobuf",
-			Pragma: "no-cache",
-			"Cache-Control": "no-cache"
-		};
-		hostSchemaRe = /(http(s)?):\/\//;
-		constructor({ host = config_default$1.host, fetchFn = fetchWithTimeout, fetchOpts = {}, headers = {} } = {}) {
-			const schema = this.hostSchemaRe.exec(host)?.[1];
-			this.host = schema ? host.replace(`${schema}://`, "") : host;
-			this.schema = schema ?? "https";
-			this.fetch = fetchFn;
-			this.fetchOpts = fetchOpts;
-			this.headers = {
-				...this.headers,
-				...headers
-			};
-		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(new Blob([body]), headers, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(body, {
-				"Content-Type": "application/json",
-				...headers
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		getOpts(body, headers = {}, method = "POST") {
-			return {
-				method,
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body,
-				...this.fetchOpts
-			};
-		}
-		async getSession(module) {
-			const timestamp = getTimestamp$1();
-			const session = this.sessions[module];
-			if (session && session.timestamp + session.expires > timestamp) return session;
-			const { secretKey, expires, uuid } = await this.createSession(module);
-			this.sessions[module] = {
-				secretKey,
-				expires,
-				timestamp,
-				uuid
-			};
-			return this.sessions[module];
-		}
-		async createSession(module) {
-			const uuid = getUUID();
-			const body = YandexSessionProtobuf.encodeSessionRequest(uuid, module);
-			const res = await this.request("/session/create", body, { "Vtrans-Signature": await getSignature(body) });
-			if (!res.success) throw new VOTJSError("Failed to request create session", res);
-			return {
-				...YandexSessionProtobuf.decodeSessionResponse(res.data),
-				uuid
-			};
-		}
-	};
-	var VOTClient$1 = class extends MinimalClient {
-		hostVOT;
-		schemaVOT;
-		apiToken;
-		requestLang;
-		responseLang;
-		paths = {
-			videoTranslation: "/video-translation/translate",
-			videoTranslationFailAudio: "/video-translation/fail-audio-js",
-			videoTranslationAudio: "/video-translation/audio",
-			videoTranslationCache: "/video-translation/cache",
-			videoSubtitles: "/video-subtitles/get-subtitles",
-			streamPing: "/stream-translation/ping-stream",
-			streamTranslation: "/stream-translation/translate-stream"
-		};
-		isCustomLink(url) {
-			return !!(/\.(m3u8|m4(a|v)|mpd)/.exec(url) ?? /^https:\/\/cdn\.qstv\.on\.epicgames\.com/.exec(url));
-		}
-		headersVOT = {
-			"User-Agent": `vot.js/${config_default$1.version}`,
-			"Content-Type": "application/json",
-			Pragma: "no-cache",
-			"Cache-Control": "no-cache"
-		};
-		constructor({ host, hostVOT = config_default$1.hostVOT, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
-			super({
-				host,
-				fetchFn,
-				fetchOpts,
-				headers
-			});
-			const schemaVOT = this.hostSchemaRe.exec(hostVOT)?.[1];
-			this.hostVOT = schemaVOT ? hostVOT.replace(`${schemaVOT}://`, "") : hostVOT;
-			this.schemaVOT = schemaVOT ?? "https";
-			this.requestLang = requestLang;
-			this.responseLang = responseLang;
-			this.apiToken = apiToken;
-		}
-		get apiTokenHeader() {
-			if (!this.apiToken) return {};
-			return { Authorization: `OAuth ${this.apiToken}` };
-		}
-		async requestVOT(path, body, headers = {}) {
-			const options = this.getOpts(JSON.stringify(body), {
-				...this.headersVOT,
-				...headers
-			});
-			try {
-				const res = await this.fetch(`${this.schemaVOT}://${this.hostVOT}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async translateVideoYAImpl({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
-			const { url, duration = config_default$1.defaultDuration } = videoData;
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, extraOpts);
-			const path = this.paths.videoTranslation;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const apiTokenHeader = extraOpts.useLivelyVoice ? this.apiTokenHeader : {};
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...apiTokenHeader,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
-			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
-			Logger.log("translateVideo", translationData);
-			const { status, translationId } = translationData;
-			switch (status) {
-				case VideoTranslationStatus.FAILED: throw new VOTJSError("Yandex couldn't translate video", translationData);
-				case VideoTranslationStatus.FINISHED:
-				case VideoTranslationStatus.PART_CONTENT:
-					if (!translationData.url) throw new VOTJSError("Audio link wasn't received from Yandex response", translationData);
-					return {
-						translationId,
-						translated: true,
-						url: translationData.url,
-						status,
-						remainingTime: translationData.remainingTime ?? -1
-					};
-				case VideoTranslationStatus.WAITING:
-				case VideoTranslationStatus.LONG_WAITING: return {
-					translationId,
-					translated: false,
-					status,
-					remainingTime: translationData.remainingTime ?? -1
-				};
-				case VideoTranslationStatus.AUDIO_REQUESTED:
-					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
-						await this.requestVtransFailAudio(url);
-						await this.requestVtransAudio(url, translationData.translationId, {
-							audioFile: new Uint8Array(),
-							fileId: AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME
-						});
-						return await this.translateVideoYAImpl({
-							videoData,
-							requestLang,
-							responseLang,
-							translationHelp,
-							headers,
-							shouldSendFailedAudio: false
-						});
-					}
-					return {
-						translationId,
-						translated: false,
-						status,
-						remainingTime: translationData.remainingTime ?? -1
-					};
-				case VideoTranslationStatus.SESSION_REQUIRED: throw new VOTJSError("Yandex auth required to translate video. See docs for more info", translationData);
-				default:
-					Logger.error("Unknown response", translationData);
-					throw new VOTJSError("Unknown response from Yandex", translationData);
-			}
-		}
-		async translateVideoVOTImpl({ url, videoId, service, requestLang = this.requestLang, responseLang = this.responseLang, headers = {}, provider = "yandex" }) {
-			const votData = convertVOT(service, videoId, url);
-			const res = await this.requestVOT(this.paths.videoTranslation, {
-				provider,
-				service: votData.service,
-				video_id: votData.videoId,
-				from_lang: requestLang,
-				to_lang: responseLang,
-				raw_video: url
-			}, { ...headers });
-			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
-			const translationData = res.data;
-			switch (translationData.status) {
-				case "failed": throw new VOTJSError("Yandex couldn't translate video", translationData);
-				case "success":
-					if (!translationData.translated_url) throw new VOTJSError("Audio link wasn't received from VOT response", translationData);
-					return {
-						translationId: String(translationData.id),
-						translated: true,
-						url: translationData.translated_url,
-						status: 1,
-						remainingTime: -1
-					};
-				case "waiting": return {
-					translationId: "",
-					translated: false,
-					remainingTime: translationData.remaining_time,
-					status: 2,
-					message: translationData.message
-				};
-			}
-		}
-		async requestVtransFailAudio(url) {
-			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), void 0, "PUT");
-			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
-			return res;
-		}
-		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
-			const session = await this.getSession("video-translation");
-			let body;
-			if (YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
-				if (!partialAudio) throw new VOTJSError("Partial audio metadata is required for partial audio buffer", audioBuffer);
-				body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio);
-			} else body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
-			const path = this.paths.videoTranslationAudio;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			}, "PUT");
-			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
-			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
-		}
-		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
-			const { url, duration = config_default$1.defaultDuration } = videoData;
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
-			const path = this.paths.videoTranslationCache;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			}, "POST");
-			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
-			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
-		}
-		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
-			const { url, videoId, host } = videoData;
-			return this.isCustomLink(url) ? await this.translateVideoVOTImpl({
-				url,
-				videoId,
-				service: host,
-				requestLang,
-				responseLang,
-				headers,
-				provider: extraOpts.useLivelyVoice ? "yandex_lively" : "yandex"
-			}) : await this.translateVideoYAImpl({
-				videoData,
-				requestLang,
-				responseLang,
-				translationHelp,
-				headers,
-				extraOpts,
-				shouldSendFailedAudio
-			});
-		}
-		async getSubtitlesYAImpl({ videoData, requestLang = this.requestLang, headers = {} }) {
-			const { url } = videoData;
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
-			const path = this.paths.videoSubtitles;
-			const vsubsHeaders = await getSecYaHeaders("Vsubs", session, body, path);
-			const res = await this.request(path, body, {
-				...vsubsHeaders,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
-			const subtitlesData = YandexVOTProtobuf.decodeSubtitlesResponse(res.data);
-			const subtitles = subtitlesData.subtitles.map((subtitle) => {
-				const { language, url, translatedLanguage, translatedUrl } = subtitle;
-				return {
-					language,
-					url,
-					translatedLanguage,
-					translatedUrl
-				};
-			});
-			return {
-				waiting: subtitlesData.waiting,
-				subtitles
-			};
-		}
-		async getSubtitlesVOTImpl({ url, videoId, service, headers = {} }) {
-			const votData = convertVOT(service, videoId, url);
-			const res = await this.requestVOT(this.paths.videoSubtitles, {
-				provider: "yandex",
-				service: votData.service,
-				video_id: votData.videoId
-			}, headers);
-			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
-			const subtitlesData = res.data;
-			return {
-				waiting: false,
-				subtitles: subtitlesData.reduce((result, subtitle) => {
-					if (!subtitle.lang_from) return result;
-					const originalSubtitle = subtitlesData.find((sub) => sub.lang === subtitle.lang_from);
-					if (!originalSubtitle) return result;
-					result.push({
-						language: originalSubtitle.lang,
-						url: originalSubtitle.subtitle_url,
-						translatedLanguage: subtitle.lang,
-						translatedUrl: subtitle.subtitle_url
-					});
-					return result;
-				}, [])
-			};
-		}
-		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
-			const { url, videoId, host } = videoData;
-			return this.isCustomLink(url) ? await this.getSubtitlesVOTImpl({
-				url,
-				videoId,
-				service: host,
-				headers
-			}) : await this.getSubtitlesYAImpl({
-				videoData,
-				requestLang,
-				headers
-			});
-		}
-		async pingStream({ pingId, headers = {} }) {
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
-			const path = this.paths.streamPing;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request stream ping", res);
-			return true;
-		}
-		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
-			const { url } = videoData;
-			if (this.isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
-			const path = this.paths.streamTranslation;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request stream translation", res);
-			const translateResponse = YandexVOTProtobuf.decodeStreamResponse(res.data);
-			const interval = translateResponse.interval;
-			switch (interval) {
-				case StreamInterval.NO_CONNECTION:
-				case StreamInterval.TRANSLATING: return {
-					translated: false,
-					interval,
-					message: interval === StreamInterval.NO_CONNECTION ? "streamNoConnectionToServer" : "translationTakeFewMinutes"
-				};
-				case StreamInterval.STREAMING:
-					if (translateResponse.pingId === void 0) throw new VOTJSError("Stream ping id wasn't received from Yandex response", translateResponse);
-					return {
-						translated: true,
-						interval,
-						pingId: translateResponse.pingId,
-						result: translateResponse.translatedInfo
-					};
-				default:
-					Logger.error("Unknown response", translateResponse);
-					throw new VOTJSError("Unknown response from Yandex", translateResponse);
-			}
-		}
-	};
-	var VOTWorkerClient$1 = class extends VOTClient$1 {
-		constructor(opts = {}) {
-			opts.host = opts.host ?? config_default$1.hostWorker;
-			super(opts);
-		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body: Array.from(body)
-			}), { "Content-Type": "application/json" }, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					"Content-Type": "application/json",
-					Accept: "application/json",
-					...headers
-				},
-				body
-			}), {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/client.js
-	var VOTClient = class extends VOTClient$1 {
-		constructor(opts) {
-			super(opts);
-			this.headers = {
-				...browserSecHeaders,
-				...this.headers
-			};
-		}
-	};
-	var VOTWorkerClient = class extends VOTWorkerClient$1 {
-		constructor(opts) {
-			super(opts);
-			this.headers = {
-				...browserSecHeaders,
-				...this.headers
-			};
-		}
-	};
 	//#endregion
 	//#region node_modules/@vot.js/core/dist/utils/videoData.js
 	var VideoDataError = class extends Error {
@@ -3687,6 +488,14 @@ var vot = (function(exports) {
 			additionalData: "embed",
 			match: (url) => /^(www.)?youtube(-nocookie|kids)?.com$/.test(url.host) && url.pathname.startsWith("/embed/"),
 			selector: "html",
+			needExtraData: true
+		},
+		{
+			host: VideoService$1.youtube,
+			url: "https://youtu.be/",
+			match: (url) => /^music\.youtube\.com$/.test(url.host),
+			selector: "#song-video",
+			eventSelector: "#player",
 			needExtraData: true
 		},
 		{
@@ -4124,7 +933,8 @@ var vot = (function(exports) {
 			host: VideoService$1.jove,
 			url: "https://jove.com/",
 			match: /^(?:app|www)\.jove\.com$/,
-			selector: sharedSelectors.flowplayer
+			selector: sharedSelectors.flowplayer,
+			needExtraData: true
 		},
 		{
 			host: VideoService$1.linkedin,
@@ -4189,6 +999,13 @@ var vot = (function(exports) {
 			host: VideoService$1.rtnews,
 			url: "https://www.rt.com/",
 			match: /^(www.)?rt.com$/,
+			selector: sharedSelectors.jwPlayer,
+			needExtraData: true
+		},
+		{
+			host: VideoService$1.noodlemagazine,
+			url: "https://hot.noodlemagazine.com/",
+			match: /^(hot\.)?noodlemagazine\.com$/,
 			selector: sharedSelectors.jwPlayer,
 			needExtraData: true
 		},
@@ -4289,6 +1106,212 @@ var vot = (function(exports) {
 			rawResult: true
 		}
 	];
+	//#endregion
+	//#region node_modules/@vot.js/shared/dist/data/config.js
+	var config_default$1 = {
+		host: "api.browser.yandex.ru",
+		hostVOT: "vot.toil.cc/v1",
+		hostWorker: "vot-worker.toil.cc",
+		mediaProxy: "media-proxy.transly.eu.cc",
+		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 YaBrowser/26.6.0.0 Safari/537.36",
+		componentVersion: "26.6.2.938",
+		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
+		defaultDuration: 310,
+		minChunkSize: 5295308,
+		loggerLevel: 1,
+		version: "2.4.20"
+	};
+	//#endregion
+	//#region node_modules/@vot.js/shared/dist/types/logger.js
+	var LoggerLevel;
+	(function(LoggerLevel) {
+		LoggerLevel[LoggerLevel["DEBUG"] = 0] = "DEBUG";
+		LoggerLevel[LoggerLevel["INFO"] = 1] = "INFO";
+		LoggerLevel[LoggerLevel["WARN"] = 2] = "WARN";
+		LoggerLevel[LoggerLevel["ERROR"] = 3] = "ERROR";
+		LoggerLevel[LoggerLevel["SILENCE"] = 4] = "SILENCE";
+	})(LoggerLevel || (LoggerLevel = {}));
+	//#endregion
+	//#region node_modules/@vot.js/shared/dist/utils/logger.js
+	var prefix = `[vot.js v${config_default$1.version}]`;
+	function canLog(level) {
+		return config_default$1.loggerLevel <= level;
+	}
+	function log$1(...messages) {
+		if (!canLog(LoggerLevel.DEBUG)) return;
+		console.log(prefix, ...messages);
+	}
+	function info(...messages) {
+		if (!canLog(LoggerLevel.INFO)) return;
+		console.info(prefix, ...messages);
+	}
+	function warn$1(...messages) {
+		if (!canLog(LoggerLevel.WARN)) return;
+		console.warn(prefix, ...messages);
+	}
+	function error$1(...messages) {
+		if (!canLog(LoggerLevel.ERROR)) return;
+		console.error(prefix, ...messages);
+	}
+	var Logger = {
+		canLog,
+		log: log$1,
+		info,
+		warn: warn$1,
+		error: error$1
+	};
+	//#endregion
+	//#region node_modules/@vot.js/shared/dist/utils/utils.js
+	var iso6392to6391 = {
+		afr: "af",
+		aka: "ak",
+		alb: "sq",
+		amh: "am",
+		ara: "ar",
+		arm: "hy",
+		asm: "as",
+		aym: "ay",
+		aze: "az",
+		baq: "eu",
+		bel: "be",
+		ben: "bn",
+		bos: "bs",
+		bul: "bg",
+		bur: "my",
+		cat: "ca",
+		chi: "zh",
+		cos: "co",
+		cze: "cs",
+		dan: "da",
+		div: "dv",
+		dut: "nl",
+		eng: "en",
+		epo: "eo",
+		est: "et",
+		ewe: "ee",
+		fin: "fi",
+		fre: "fr",
+		fry: "fy",
+		geo: "ka",
+		ger: "de",
+		gla: "gd",
+		gle: "ga",
+		glg: "gl",
+		gre: "el",
+		grn: "gn",
+		guj: "gu",
+		hat: "ht",
+		hau: "ha",
+		hin: "hi",
+		hrv: "hr",
+		hun: "hu",
+		ibo: "ig",
+		ice: "is",
+		ind: "id",
+		ita: "it",
+		jav: "jv",
+		jpn: "ja",
+		kan: "kn",
+		kaz: "kk",
+		khm: "km",
+		kin: "rw",
+		kir: "ky",
+		kor: "ko",
+		kur: "ku",
+		lao: "lo",
+		lat: "la",
+		lav: "lv",
+		lin: "ln",
+		lit: "lt",
+		ltz: "lb",
+		lug: "lg",
+		mac: "mk",
+		mal: "ml",
+		mao: "mi",
+		mar: "mr",
+		may: "ms",
+		mlg: "mg",
+		mlt: "mt",
+		mon: "mn",
+		nep: "ne",
+		nor: "no",
+		nya: "ny",
+		ori: "or",
+		orm: "om",
+		pan: "pa",
+		per: "fa",
+		pol: "pl",
+		por: "pt",
+		pus: "ps",
+		que: "qu",
+		rum: "ro",
+		rus: "ru",
+		san: "sa",
+		sin: "si",
+		slo: "sk",
+		slv: "sl",
+		smo: "sm",
+		sna: "sn",
+		snd: "sd",
+		som: "so",
+		sot: "st",
+		spa: "es",
+		srp: "sr",
+		sun: "su",
+		swa: "sw",
+		swe: "sv",
+		tam: "ta",
+		tat: "tt",
+		tel: "te",
+		tgk: "tg",
+		tha: "th",
+		tir: "ti",
+		tso: "ts",
+		tuk: "tk",
+		tur: "tr",
+		uig: "ug",
+		ukr: "uk",
+		urd: "ur",
+		uzb: "uz",
+		vie: "vi",
+		wel: "cy",
+		xho: "xh",
+		yid: "yi",
+		yor: "yo",
+		zul: "zu"
+	};
+	async function fetchWithTimeout(url, options = { headers: { "User-Agent": config_default$1.userAgent } }) {
+		const { timeout = 3e3, signal, ...fetchOptions } = options;
+		if (!signal && (!timeout || timeout <= 0)) return await fetch(url, fetchOptions);
+		const controller = new AbortController();
+		const abort = (reason) => {
+			if (!controller.signal.aborted) controller.abort(reason);
+		};
+		if (signal) if (signal.aborted) abort(signal.reason);
+		else signal.addEventListener("abort", () => abort(signal.reason), { once: true });
+		let timeoutId;
+		if (timeout && timeout > 0) timeoutId = setTimeout(() => abort(/* @__PURE__ */ new Error("Fetch timeout")), timeout);
+		try {
+			return await fetch(url, {
+				...fetchOptions,
+				signal: controller.signal
+			});
+		} finally {
+			if (timeoutId) clearTimeout(timeoutId);
+		}
+	}
+	function getTimestamp$1() {
+		return Math.floor(Date.now() / 1e3);
+	}
+	function normalizeLang$1(lang) {
+		if (lang.length === 3) return iso6392to6391[lang];
+		return lang.toLowerCase().split(/[_;-]/)[0].trim();
+	}
+	function proxyMedia(url, format = "mp4") {
+		const generalUrl = `https://${config_default$1.mediaProxy}/v1/proxy/video.${format}?format=base64&force=true`;
+		if (!(url instanceof URL)) return `${generalUrl}&url=${btoa(url)}`;
+		return `${generalUrl}&url=${btoa(url.href)}&origin=${url.origin}&referer=${url.origin}`;
+	}
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/base.js
 	var VideoHelperError = class extends Error {
@@ -4475,15 +1498,17 @@ var vot = (function(exports) {
 	//#region node_modules/@vot.js/ext/dist/helpers/bilibili.js
 	var BilibiliHelper = class extends BaseHelper {
 		async getVideoId(url) {
-			const bangumiId = /bangumi\/play\/([^/]+)/.exec(url.pathname)?.[0];
-			if (bangumiId) return bangumiId;
+			const playId = /(?:bangumi|cheese)\/play\/[^/]+/.exec(url.pathname)?.[0];
+			if (playId) return playId;
 			const bvid = url.searchParams.get("bvid");
 			if (bvid) return `video/${bvid}`;
 			const intlId = /^\/(?:[a-z]{2}\/)?((?:play\/\d+(?:\/\d+)?|video\/\d+))\/?$/i.exec(url.pathname)?.[1];
 			if (intlId) return intlId;
-			let vid = /video\/([^/]+)/.exec(url.pathname)?.[0];
-			if (vid && url.searchParams.get("p") !== null) vid += `/?p=${url.searchParams.get("p")}`;
-			return vid;
+			const vid = /video\/[^/]+/.exec(url.pathname)?.[0];
+			if (vid) {
+				const p = url.searchParams.get("p");
+				return p !== null ? `${vid}/?p=${p}` : vid;
+			}
 		}
 	};
 	//#endregion
@@ -4511,15 +1536,89 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region node_modules/@vot.js/ext/dist/players/plyr.js
+	var PlyrHelper = class {
+		SUBTITLE_SOURCE = "plyr";
+		SUBTITLE_FORMAT = "vtt";
+		getPlayer() {
+			const customWindow = window;
+			if (customWindow.player?.media) return customWindow.player;
+			return document.querySelector("video, audio, .plyr video")?.plyr || void 0;
+		}
+		getVideoData(videoId) {
+			try {
+				const player = this.getPlayer();
+				const videoEl = document.querySelector("video, audio, .plyr video");
+				if (!player && !videoEl) throw new Error("Plyr player or media element not found");
+				const duration = player?.duration ?? videoEl?.duration ?? 0;
+				const fileUrl = player?.source || videoEl?.currentSrc || videoEl?.src || videoEl?.querySelector("source")?.getAttribute("src");
+				if (!fileUrl) throw new Error("Failed to find video url");
+				return {
+					url: videoId,
+					duration,
+					translationHelp: [{
+						target: "video_file_url",
+						targetUrl: fileUrl
+					}]
+				};
+			} catch (err) {
+				console.error("[VOT] PlyrHelper error:", err instanceof Error ? err.message : String(err));
+				return;
+			}
+		}
+		getSubtitles() {
+			const subtitles = [];
+			try {
+				const player = this.getPlayer();
+				const videoEl = document.querySelector("video, audio, .plyr video");
+				const rawTracks = [];
+				const searchTargets = [];
+				if (videoEl) searchTargets.push(videoEl);
+				if (player?.elements?.container) searchTargets.push(player.elements.container);
+				for (const target of searchTargets) {
+					const tracks = Array.from(target.querySelectorAll("track[src]"));
+					for (const track of tracks) {
+						const src = track.getAttribute("src");
+						if (src && track.kind !== "metadata") rawTracks.push({
+							src,
+							lang: track.srclang || ""
+						});
+					}
+				}
+				if (player?.config?.tracks && Array.isArray(player.config.tracks)) {
+					const configTracks = player.config.tracks;
+					for (const track of configTracks) if (track?.src && track.kind !== "metadata") rawTracks.push({
+						src: track.src,
+						lang: track.srclang || track.lang || ""
+					});
+				}
+				const seenUrls = /* @__PURE__ */ new Set();
+				for (const { src, lang } of rawTracks) try {
+					const absUrl = new URL(src, window.location.href).toString();
+					if (!seenUrls.has(absUrl)) {
+						seenUrls.add(absUrl);
+						subtitles.push({
+							source: this.SUBTITLE_SOURCE,
+							format: this.SUBTITLE_FORMAT,
+							language: normalizeLang$1(lang),
+							url: absUrl
+						});
+					}
+				} catch {}
+			} catch (err) {
+				console.error("[VOT] PlyrHelper getSubtitles error:", err);
+			}
+			return subtitles;
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/bunkr.js
 	var BunkrHelper = class extends BaseHelper {
-		async getVideoData(_videoId) {
-			const url = document.querySelector("#player > source[type=\"video/mp4\"]")?.src;
-			if (!url) return;
-			return { url };
+		async getVideoData(videoId) {
+			return new PlyrHelper().getVideoData(videoId);
 		}
 		async getVideoId(url) {
-			return /\/f\/([^/]+)/.exec(url.pathname)?.[1];
+			return /\/(?:f|v)\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
 	//#endregion
@@ -4614,7 +1713,7 @@ var vot = (function(exports) {
 		SUBTITLE_FORMAT = "vtt";
 		static getPlayer() {
 			const vjs = window.videojs;
-			const techEl = document.querySelector("video.vjs-tech[id], video[id$='_html5_api']");
+			const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video");
 			const derivedPlayerId = techEl?.id?.endsWith("_html5_api") ? techEl.id.slice(0, -10) : void 0;
 			if (vjs?.getPlayer) {
 				if (derivedPlayerId) {
@@ -4637,7 +1736,7 @@ var vot = (function(exports) {
 		getVideoDataByPlayer(videoId) {
 			try {
 				const player = VideoJSHelper.getPlayer();
-				const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video[src]");
+				const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video[src], video");
 				if (!player && !techEl) throw new Error(`Video player/video element not found, videoId ${videoId}`);
 				const duration = player?.duration?.() ?? techEl?.duration;
 				let url;
@@ -4645,7 +1744,7 @@ var vot = (function(exports) {
 					const sources = typeof player.currentSources === "function" ? player.currentSources() : player.getCache?.()?.sources;
 					url = (Array.isArray(sources) ? sources.find((source) => source?.type === "video/mp4" || source?.type === "video/webm" || source?.src) : void 0)?.src;
 				}
-				url ??= techEl?.currentSrc || techEl?.src || techEl?.getAttribute?.("src") || void 0;
+				url ??= techEl?.currentSrc || techEl?.src || techEl?.querySelector("source")?.src || techEl?.getAttribute?.("src") || void 0;
 				if (!url) throw new Error(`Failed to find video url for videoID ${videoId}`);
 				return {
 					url,
@@ -4658,7 +1757,7 @@ var vot = (function(exports) {
 			}
 		}
 		getSubtitles() {
-			const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video[src]");
+			const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video[src], video");
 			return (techEl ? Array.from(techEl.querySelectorAll("track[src]")) : []).filter((t) => t.kind !== "metadata").flatMap((t) => {
 				const src = t.getAttribute("src");
 				if (!src) return [];
@@ -4677,13 +1776,27 @@ var vot = (function(exports) {
 	var CourseraHelper = class CourseraHelper extends VideoJSHelper {
 		API_ORIGIN = "https://www.coursera.org/api";
 		SUBTITLE_SOURCE = "coursera";
-		async getCourseData(courseId) {
+		async getCourseData(courseIdOrSlug) {
 			try {
-				return (await (await this.fetch(`${this.API_ORIGIN}/onDemandCourses.v1/${courseId}`)).json())?.elements?.[0];
+				const url = typeof courseIdOrSlug === "string" && courseIdOrSlug.includes("-") ? `${this.API_ORIGIN}/onDemandCourses.v1?q=slug&slug=${courseIdOrSlug}` : `${this.API_ORIGIN}/onDemandCourses.v1/${courseIdOrSlug}`;
+				return (await (await this.fetch(url)).json())?.elements?.[0];
 			} catch (err) {
-				Logger.error(`Failed to get course data by courseId: ${courseId}`, err.message);
+				Logger.error(`Failed to get course data: ${courseIdOrSlug}`, err.message);
 				return;
 			}
+		}
+		getCourseSlug() {
+			return (/learn\/([^/]+)\/lecture/.exec(window.location.pathname) ?? /lecture\/([^/]+)\//.exec(window.location.pathname))?.[1];
+		}
+		getCourseId() {
+			const player = CourseraHelper.getPlayer();
+			if (player?.options_?.courseId) return player.options_.courseId;
+			const courseraObj = window.coursera;
+			if (typeof courseraObj?.courseId === "string") return courseraObj.courseId;
+			else if (typeof courseraObj?.courseId === "function") try {
+				return courseraObj.courseId();
+			} catch {}
+			return window.App?.context?.dispatcher?.stores?.CourseStore?.courseId;
 		}
 		static getPlayer() {
 			return VideoJSHelper.getPlayer();
@@ -4691,21 +1804,19 @@ var vot = (function(exports) {
 		async getVideoData(videoId) {
 			const data = this.getVideoDataByPlayer(videoId);
 			if (!data) return;
-			const { options_: options } = CourseraHelper.getPlayer() ?? {};
-			if (!data.subtitles?.length && options) data.subtitles = options.tracks.map((track) => ({
+			const options = CourseraHelper.getPlayer()?.options_;
+			if (!data.subtitles?.length && options?.tracks) data.subtitles = options.tracks.map((track) => ({
 				url: track.src,
 				language: normalizeLang$1(track.srclang),
 				source: this.SUBTITLE_SOURCE,
 				format: this.SUBTITLE_FORMAT
 			}));
-			const courseId = options?.courseId;
-			if (!courseId) return data;
+			const courseIdOrSlug = options?.courseId ?? this.getCourseId() ?? this.getCourseSlug();
 			let courseLang = "en";
-			const courseData = await this.getCourseData(courseId);
-			if (courseData) {
-				const { primaryLanguageCodes: [primaryLangauge] } = courseData;
-				courseLang = primaryLangauge ? normalizeLang$1(primaryLangauge) : "en";
-			}
+			let courseData;
+			if (courseIdOrSlug) courseData = await this.getCourseData(courseIdOrSlug);
+			if (courseData?.primaryLanguageCodes?.[0]) courseLang = normalizeLang$1(courseData.primaryLanguageCodes[0]);
+			else courseLang = normalizeLang$1(document.documentElement.lang || "en");
 			if (!availableLangs.includes(courseLang)) courseLang = "en";
 			const subtitleUrl = (data.subtitles.find((subtitle) => subtitle.language === courseLang) ?? data.subtitles?.[0])?.url;
 			if (!subtitleUrl) Logger.warn("Failed to find any subtitle file");
@@ -4718,13 +1829,8 @@ var vot = (function(exports) {
 				targetUrl: url
 			}] : null;
 			return {
-				...subtitleUrl ? {
-					url: this.service?.url + videoId,
-					translationHelp
-				} : {
-					url,
-					translationHelp
-				},
+				url: subtitleUrl ? this.service?.url + videoId : url,
+				translationHelp,
 				detectedLanguage: courseLang,
 				duration
 			};
@@ -4769,20 +1875,44 @@ var vot = (function(exports) {
 	//#region node_modules/@vot.js/ext/dist/helpers/datacamp.js
 	var DataCampHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "datacamp";
-		getVideoDataFromInput() {
+		getVideoUrlFromInput(input) {
 			try {
-				const input = document.querySelector("#slideDeckData") || document.getElementById("videoData");
-				if (!input || !(input instanceof HTMLInputElement) && !(input instanceof HTMLTextAreaElement) || !input.value) return null;
-				return JSON.parse(input.value);
-			} catch (err) {
-				Logger.error("Failed to parse DataCamp videoData input", err instanceof Error ? err.message : String(err));
+				if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement || input.tagName === "INPUT" || input.tagName === "TEXTAREA")) return null;
+				const value = input.value;
+				if (!value) return null;
+				const meta = JSON.parse(value);
+				const videoUrl = meta?.video_url ?? meta?.plain_video_mp4_link ?? meta?.plain_video_hls_link ?? meta?.video_mp4_link ?? meta?.video_hls_link;
+				return typeof videoUrl === "string" ? videoUrl : null;
+			} catch {
 				return null;
 			}
 		}
+		getVideoUrlFromDocument(doc = document) {
+			const videoDataInput = doc.querySelector("#videoData");
+			if (videoDataInput) {
+				const url = this.getVideoUrlFromInput(videoDataInput);
+				if (url) return url;
+			}
+			const slideDeckInput = doc.querySelector("#slideDeckData");
+			if (slideDeckInput) {
+				const url = this.getVideoUrlFromInput(slideDeckInput);
+				if (url) return url;
+			}
+			return null;
+		}
 		async getVideoData(videoId) {
-			if (!this.getVideoDataByPlayer(videoId)) return;
-			const meta = this.getVideoDataFromInput();
-			const videoUrl = meta?.video_url ?? meta?.plain_video_mp4_link ?? meta?.plain_video_hls_link ?? meta?.video_mp4_link ?? meta?.video_hls_link;
+			const cleanUrl = videoId.split("||")[0];
+			let videoUrl = this.getVideoUrlFromDocument(document);
+			if (!videoUrl) try {
+				const response = await fetch(cleanUrl);
+				if (response.ok) {
+					const html = await response.text();
+					const doc = new DOMParser().parseFromString(html, "text/html");
+					videoUrl = this.getVideoUrlFromDocument(doc);
+				}
+			} catch (err) {
+				Logger.error("Failed to fetch DataCamp page for DOMParser", err instanceof Error ? err.message : String(err));
+			}
 			if (!videoUrl) return;
 			return {
 				url: videoId,
@@ -5011,10 +2141,61 @@ var vot = (function(exports) {
 	//#region node_modules/@vot.js/ext/dist/helpers/jove.js
 	var JoveHelper = class extends BaseHelper {
 		async getVideoId(url) {
-			const groups = /^\/(?:[a-z]{2}\/)?v\/(?<id>\d+)\/(?<slug>[^/?#]+)\/?$/i.exec(url.pathname)?.groups;
-			if (!groups) return;
-			const { id, slug } = groups;
-			return `v/${id}/${slug}`;
+			const match = /^\/(?:[a-z]{2}\/)?v\/(\d+)\/([^/?#]+)/i.exec(url.pathname);
+			return match ? `v/${match[1]}/${match[2]}` : void 0;
+		}
+		async getVideoData(videoId) {
+			if (!videoId) return void 0;
+			let nextData;
+			if (typeof window !== "undefined" && typeof document !== "undefined") {
+				const nextDataEl = document.getElementById("__NEXT_DATA__");
+				if (nextDataEl?.textContent) try {
+					nextData = JSON.parse(nextDataEl.textContent);
+				} catch (err) {
+					throw new VideoHelperError(`Failed to parse DOM __NEXT_DATA__: ${err.message}`);
+				}
+			}
+			const queries = nextData?.props?.pageProps?.dehydratedState?.queries || [];
+			let extracted;
+			for (const q of queries) {
+				const data = q.state?.data;
+				if (!data) continue;
+				for (const target of [data.domain, data]) {
+					const videoObj = target?.videos?.en;
+					if (videoObj?.cdnFile) {
+						extracted = {
+							videoUrl: videoObj.cdnFile,
+							duration: videoObj.lengthSeconds ? parseInt(videoObj.lengthSeconds, 10) : void 0,
+							title: target.title,
+							description: target.titleDescription,
+							subtitles: videoObj.subtitles
+						};
+						break;
+					}
+				}
+				if (extracted) break;
+			}
+			if (!extracted?.videoUrl) throw new VideoHelperError(`Failed to retrieve video URL for ${videoId}`);
+			const { videoUrl, duration, title, description, subtitles: subtitlesObj } = extracted;
+			const subtitles = subtitlesObj ? Object.entries(subtitlesObj).filter(([, url]) => typeof url === "string").map(([lang, url]) => ({
+				language: normalizeLang$1(lang),
+				source: "jove",
+				format: "vtt",
+				url,
+				isAutoGenerated: false
+			})) : [];
+			return {
+				url: `https://www.jove.com/${videoId}`,
+				video_url: videoUrl,
+				title,
+				description,
+				duration,
+				subtitles,
+				translationHelp: [{
+					target: "video_file_url",
+					targetUrl: videoUrl
+				}]
+			};
 		}
 	};
 	//#endregion
@@ -5170,7 +2351,8 @@ var vot = (function(exports) {
 			if (!videoData) return;
 			const videoLink = Object.entries(videoData.links[videoData.default.toString()]).find(([, data]) => data.type === "application/x-mpegURL")?.[1];
 			if (!videoLink) return;
-			const videoUrl = videoLink.src.startsWith("//") ? `${videoLink.src}` : this.decryptUrl(videoLink.src);
+			let videoUrl = videoLink.src.startsWith("//") ? videoLink.src : this.decryptUrl(videoLink.src);
+			if (videoUrl.startsWith("//")) videoUrl = `https:${videoUrl}`;
 			return {
 				url: videoId,
 				video_url: videoUrl,
@@ -5202,6 +2384,2406 @@ var vot = (function(exports) {
 			return /\/learning\/(([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
+	/**
+	* Read a 64 bit varint as two JS numbers.
+	*
+	* Returns tuple:
+	* [0]: low bits
+	* [1]: high bits
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
+	*/
+	function varint64read() {
+		let lowBits = 0;
+		let highBits = 0;
+		for (let shift = 0; shift < 28; shift += 7) {
+			let b = this.buf[this.pos++];
+			lowBits |= (b & 127) << shift;
+			if ((b & 128) == 0) {
+				this.assertBounds();
+				return [lowBits, highBits];
+			}
+		}
+		let middleByte = this.buf[this.pos++];
+		lowBits |= (middleByte & 15) << 28;
+		highBits = (middleByte & 112) >> 4;
+		if ((middleByte & 128) == 0) {
+			this.assertBounds();
+			return [lowBits, highBits];
+		}
+		for (let shift = 3; shift <= 31; shift += 7) {
+			let b = this.buf[this.pos++];
+			highBits |= (b & 127) << shift;
+			if ((b & 128) == 0) {
+				this.assertBounds();
+				return [lowBits, highBits];
+			}
+		}
+		throw new Error("invalid varint");
+	}
+	/**
+	* Write a 64 bit varint, given as two JS numbers, to the given bytes array.
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
+	*/
+	function varint64write(lo, hi, bytes) {
+		for (let i = 0; i < 28; i = i + 7) {
+			const shift = lo >>> i;
+			const hasNext = !(shift >>> 7 == 0 && hi == 0);
+			const byte = (hasNext ? shift | 128 : shift) & 255;
+			bytes.push(byte);
+			if (!hasNext) return;
+		}
+		const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
+		const hasMoreBits = !(hi >> 3 == 0);
+		bytes.push((hasMoreBits ? splitBits | 128 : splitBits) & 255);
+		if (!hasMoreBits) return;
+		for (let i = 3; i < 31; i = i + 7) {
+			const shift = hi >>> i;
+			const hasNext = !(shift >>> 7 == 0);
+			const byte = (hasNext ? shift | 128 : shift) & 255;
+			bytes.push(byte);
+			if (!hasNext) return;
+		}
+		bytes.push(hi >>> 31 & 1);
+	}
+	var TWO_PWR_32_DBL = 4294967296;
+	/**
+	* Parse decimal string of 64 bit integer value as two JS numbers.
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
+	*/
+	function int64FromString(dec) {
+		const minus = dec[0] === "-";
+		if (minus) dec = dec.slice(1);
+		const base = 1e6;
+		let lowBits = 0;
+		let highBits = 0;
+		function add1e6digit(begin, end) {
+			const digit1e6 = Number(dec.slice(begin, end));
+			highBits *= base;
+			lowBits = lowBits * base + digit1e6;
+			if (lowBits >= TWO_PWR_32_DBL) {
+				highBits = highBits + (lowBits / TWO_PWR_32_DBL | 0);
+				lowBits = lowBits % TWO_PWR_32_DBL;
+			}
+		}
+		add1e6digit(-24, -18);
+		add1e6digit(-18, -12);
+		add1e6digit(-12, -6);
+		add1e6digit(-6);
+		return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
+	}
+	/**
+	* Losslessly converts a 64-bit signed integer in 32:32 split representation
+	* into a decimal string.
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
+	*/
+	function int64ToString(lo, hi) {
+		let bits = newBits(lo, hi);
+		const negative = bits.hi & 2147483648;
+		if (negative) bits = negate(bits.lo, bits.hi);
+		const result = uInt64ToString(bits.lo, bits.hi);
+		return negative ? "-" + result : result;
+	}
+	/**
+	* Losslessly converts a 64-bit unsigned integer in 32:32 split representation
+	* into a decimal string.
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
+	*/
+	function uInt64ToString(lo, hi) {
+		({lo, hi} = toUnsigned(lo, hi));
+		if (hi <= 2097151) return String(TWO_PWR_32_DBL * hi + lo);
+		const low = lo & 16777215;
+		const mid = (lo >>> 24 | hi << 8) & 16777215;
+		const high = hi >> 16 & 65535;
+		let digitA = low + mid * 6777216 + high * 6710656;
+		let digitB = mid + high * 8147497;
+		let digitC = high * 2;
+		const base = 1e7;
+		if (digitA >= base) {
+			digitB += Math.floor(digitA / base);
+			digitA %= base;
+		}
+		if (digitB >= base) {
+			digitC += Math.floor(digitB / base);
+			digitB %= base;
+		}
+		return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) + decimalFrom1e7WithLeadingZeros(digitA);
+	}
+	function toUnsigned(lo, hi) {
+		return {
+			lo: lo >>> 0,
+			hi: hi >>> 0
+		};
+	}
+	function newBits(lo, hi) {
+		return {
+			lo: lo | 0,
+			hi: hi | 0
+		};
+	}
+	/**
+	* Returns two's compliment negation of input.
+	* @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#Signed_32-bit_integers
+	*/
+	function negate(lowBits, highBits) {
+		highBits = ~highBits;
+		if (lowBits) lowBits = ~lowBits + 1;
+		else highBits += 1;
+		return newBits(lowBits, highBits);
+	}
+	/**
+	* Returns decimal representation of digit1e7 with leading zeros.
+	*/
+	var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
+		const partial = String(digit1e7);
+		return "0000000".slice(partial.length) + partial;
+	};
+	/**
+	* Write a 32 bit varint, signed or unsigned. Same as `varint64write(0, value, bytes)`
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
+	*/
+	function varint32write(value, bytes) {
+		if (value >= 0) {
+			while (value > 127) {
+				bytes.push(value & 127 | 128);
+				value = value >>> 7;
+			}
+			bytes.push(value);
+		} else {
+			for (let i = 0; i < 9; i++) {
+				bytes.push(value & 127 | 128);
+				value = value >> 7;
+			}
+			bytes.push(1);
+		}
+	}
+	/**
+	* Read an unsigned 32 bit varint.
+	*
+	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L220
+	*/
+	function varint32read() {
+		let b = this.buf[this.pos++];
+		let result = b & 127;
+		if ((b & 128) == 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 7;
+		if ((b & 128) == 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 14;
+		if ((b & 128) == 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 21;
+		if ((b & 128) == 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 15) << 28;
+		for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
+		if ((b & 128) != 0) throw new Error("invalid varint");
+		this.assertBounds();
+		return result >>> 0;
+	}
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+	/**
+	* Int64Support for the current environment.
+	*/
+	var protoInt64 = /*@__PURE__*/ makeInt64Support();
+	function makeInt64Support() {
+		const dv = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
+		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
+			const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
+			return {
+				zero: BigInt(0),
+				supported: true,
+				parse(value) {
+					const bi = typeof value == "bigint" ? value : BigInt(value);
+					if (bi > MAX || bi < MIN) throw new Error(`invalid int64: ${value}`);
+					return bi;
+				},
+				uParse(value) {
+					const bi = typeof value == "bigint" ? value : BigInt(value);
+					if (bi > UMAX || bi < UMIN) throw new Error(`invalid uint64: ${value}`);
+					return bi;
+				},
+				enc(value) {
+					dv.setBigInt64(0, this.parse(value), true);
+					return {
+						lo: dv.getInt32(0, true),
+						hi: dv.getInt32(4, true)
+					};
+				},
+				uEnc(value) {
+					dv.setBigInt64(0, this.uParse(value), true);
+					return {
+						lo: dv.getInt32(0, true),
+						hi: dv.getInt32(4, true)
+					};
+				},
+				dec(lo, hi) {
+					dv.setInt32(0, lo, true);
+					dv.setInt32(4, hi, true);
+					return dv.getBigInt64(0, true);
+				},
+				uDec(lo, hi) {
+					dv.setInt32(0, lo, true);
+					dv.setInt32(4, hi, true);
+					return dv.getBigUint64(0, true);
+				}
+			};
+		}
+		return {
+			zero: "0",
+			supported: false,
+			parse(value) {
+				if (typeof value != "string") value = value.toString();
+				assertInt64String(value);
+				return value;
+			},
+			uParse(value) {
+				if (typeof value != "string") value = value.toString();
+				assertUInt64String(value);
+				return value;
+			},
+			enc(value) {
+				if (typeof value != "string") value = value.toString();
+				assertInt64String(value);
+				return int64FromString(value);
+			},
+			uEnc(value) {
+				if (typeof value != "string") value = value.toString();
+				assertUInt64String(value);
+				return int64FromString(value);
+			},
+			dec(lo, hi) {
+				return int64ToString(lo, hi);
+			},
+			uDec(lo, hi) {
+				return uInt64ToString(lo, hi);
+			}
+		};
+	}
+	function assertInt64String(value) {
+		if (!/^-?[0-9]+$/.test(value)) throw new Error("invalid int64: " + value);
+	}
+	function assertUInt64String(value) {
+		if (!/^[0-9]+$/.test(value)) throw new Error("invalid uint64: " + value);
+	}
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
+	var symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
+	function getTextEncoding() {
+		if (globalThis[symbol] == void 0) {
+			const te = new globalThis.TextEncoder();
+			const td = new globalThis.TextDecoder();
+			globalThis[symbol] = {
+				encodeUtf8(text) {
+					return te.encode(text);
+				},
+				decodeUtf8(bytes) {
+					return td.decode(bytes);
+				},
+				checkUtf8(text) {
+					try {
+						return true;
+					} catch (e) {
+						return false;
+					}
+				}
+			};
+		}
+		return globalThis[symbol];
+	}
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
+	/**
+	* Protobuf binary format wire types.
+	*
+	* A wire type provides just enough information to find the length of the
+	* following value.
+	*
+	* See https://developers.google.com/protocol-buffers/docs/encoding#structure
+	*/
+	var WireType;
+	(function(WireType) {
+		/**
+		* Used for int32, int64, uint32, uint64, sint32, sint64, bool, enum
+		*/
+		WireType[WireType["Varint"] = 0] = "Varint";
+		/**
+		* Used for fixed64, sfixed64, double.
+		* Always 8 bytes with little-endian byte order.
+		*/
+		WireType[WireType["Bit64"] = 1] = "Bit64";
+		/**
+		* Used for string, bytes, embedded messages, packed repeated fields
+		*
+		* Only repeated numeric types (types which use the varint, 32-bit,
+		* or 64-bit wire types) can be packed. In proto3, such fields are
+		* packed by default.
+		*/
+		WireType[WireType["LengthDelimited"] = 2] = "LengthDelimited";
+		/**
+		* Start of a tag-delimited aggregate, such as a proto2 group, or a message
+		* in editions with message_encoding = DELIMITED.
+		*/
+		WireType[WireType["StartGroup"] = 3] = "StartGroup";
+		/**
+		* End of a tag-delimited aggregate.
+		*/
+		WireType[WireType["EndGroup"] = 4] = "EndGroup";
+		/**
+		* Used for fixed32, sfixed32, float.
+		* Always 4 bytes with little-endian byte order.
+		*/
+		WireType[WireType["Bit32"] = 5] = "Bit32";
+	})(WireType || (WireType = {}));
+	var BinaryWriter = class {
+		constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
+			this.encodeUtf8 = encodeUtf8;
+			/**
+			* Previous fork states.
+			*/
+			this.stack = [];
+			this.chunks = [];
+			this.buf = [];
+		}
+		/**
+		* Return all bytes written and reset this writer.
+		*/
+		finish() {
+			if (this.buf.length) {
+				this.chunks.push(new Uint8Array(this.buf));
+				this.buf = [];
+			}
+			let len = 0;
+			for (let i = 0; i < this.chunks.length; i++) len += this.chunks[i].length;
+			let bytes = new Uint8Array(len);
+			let offset = 0;
+			for (let i = 0; i < this.chunks.length; i++) {
+				bytes.set(this.chunks[i], offset);
+				offset += this.chunks[i].length;
+			}
+			this.chunks = [];
+			return bytes;
+		}
+		/**
+		* Start a new fork for length-delimited data like a message
+		* or a packed repeated field.
+		*
+		* Must be joined later with `join()`.
+		*/
+		fork() {
+			this.stack.push({
+				chunks: this.chunks,
+				buf: this.buf
+			});
+			this.chunks = [];
+			this.buf = [];
+			return this;
+		}
+		/**
+		* Join the last fork. Write its length and bytes, then
+		* return to the previous state.
+		*/
+		join() {
+			let chunk = this.finish();
+			let prev = this.stack.pop();
+			if (!prev) throw new Error("invalid state, fork stack empty");
+			this.chunks = prev.chunks;
+			this.buf = prev.buf;
+			this.uint32(chunk.byteLength);
+			return this.raw(chunk);
+		}
+		/**
+		* Writes a tag (field number and wire type).
+		*
+		* Equivalent to `uint32( (fieldNo << 3 | type) >>> 0 )`.
+		*
+		* Generated code should compute the tag ahead of time and call `uint32()`.
+		*/
+		tag(fieldNo, type) {
+			return this.uint32((fieldNo << 3 | type) >>> 0);
+		}
+		/**
+		* Write a chunk of raw bytes.
+		*/
+		raw(chunk) {
+			if (this.buf.length) {
+				this.chunks.push(new Uint8Array(this.buf));
+				this.buf = [];
+			}
+			this.chunks.push(chunk);
+			return this;
+		}
+		/**
+		* Write a `uint32` value, an unsigned 32 bit varint.
+		*/
+		uint32(value) {
+			assertUInt32(value);
+			while (value > 127) {
+				this.buf.push(value & 127 | 128);
+				value = value >>> 7;
+			}
+			this.buf.push(value);
+			return this;
+		}
+		/**
+		* Write a `int32` value, a signed 32 bit varint.
+		*/
+		int32(value) {
+			assertInt32(value);
+			varint32write(value, this.buf);
+			return this;
+		}
+		/**
+		* Write a `bool` value, a variant.
+		*/
+		bool(value) {
+			this.buf.push(value ? 1 : 0);
+			return this;
+		}
+		/**
+		* Write a `bytes` value, length-delimited arbitrary data.
+		*/
+		bytes(value) {
+			this.uint32(value.byteLength);
+			return this.raw(value);
+		}
+		/**
+		* Write a `string` value, length-delimited data converted to UTF-8 text.
+		*/
+		string(value) {
+			let chunk = this.encodeUtf8(value);
+			this.uint32(chunk.byteLength);
+			return this.raw(chunk);
+		}
+		/**
+		* Write a `float` value, 32-bit floating point number.
+		*/
+		float(value) {
+			assertFloat32(value);
+			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			new DataView(chunk.buffer).setFloat32(0, value, true);
+			return this.raw(chunk);
+		}
+		/**
+		* Write a `double` value, a 64-bit floating point number.
+		*/
+		double(value) {
+			let chunk = /* @__PURE__ */ new Uint8Array(8);
+			new DataView(chunk.buffer).setFloat64(0, value, true);
+			return this.raw(chunk);
+		}
+		/**
+		* Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
+		*/
+		fixed32(value) {
+			assertUInt32(value);
+			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			new DataView(chunk.buffer).setUint32(0, value, true);
+			return this.raw(chunk);
+		}
+		/**
+		* Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
+		*/
+		sfixed32(value) {
+			assertInt32(value);
+			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			new DataView(chunk.buffer).setInt32(0, value, true);
+			return this.raw(chunk);
+		}
+		/**
+		* Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
+		*/
+		sint32(value) {
+			assertInt32(value);
+			value = (value << 1 ^ value >> 31) >>> 0;
+			varint32write(value, this.buf);
+			return this;
+		}
+		/**
+		* Write a `fixed64` value, a signed, fixed-length 64-bit integer.
+		*/
+		sfixed64(value) {
+			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
+			view.setInt32(0, tc.lo, true);
+			view.setInt32(4, tc.hi, true);
+			return this.raw(chunk);
+		}
+		/**
+		* Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
+		*/
+		fixed64(value) {
+			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
+			view.setInt32(0, tc.lo, true);
+			view.setInt32(4, tc.hi, true);
+			return this.raw(chunk);
+		}
+		/**
+		* Write a `int64` value, a signed 64-bit varint.
+		*/
+		int64(value) {
+			let tc = protoInt64.enc(value);
+			varint64write(tc.lo, tc.hi, this.buf);
+			return this;
+		}
+		/**
+		* Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
+		*/
+		sint64(value) {
+			let tc = protoInt64.enc(value), sign = tc.hi >> 31;
+			varint64write(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
+			return this;
+		}
+		/**
+		* Write a `uint64` value, an unsigned 64-bit varint.
+		*/
+		uint64(value) {
+			let tc = protoInt64.uEnc(value);
+			varint64write(tc.lo, tc.hi, this.buf);
+			return this;
+		}
+	};
+	var BinaryReader = class {
+		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
+			this.decodeUtf8 = decodeUtf8;
+			this.varint64 = varint64read;
+			/**
+			* Read a `uint32` field, an unsigned 32 bit varint.
+			*/
+			this.uint32 = varint32read;
+			this.buf = buf;
+			this.len = buf.length;
+			this.pos = 0;
+			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+		}
+		/**
+		* Reads a tag - field number and wire type.
+		*/
+		tag() {
+			let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
+			if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+			return [fieldNo, wireType];
+		}
+		/**
+		* Skip one element and return the skipped data.
+		*
+		* When skipping StartGroup, provide the tags field number to check for
+		* matching field number in the EndGroup tag.
+		*/
+		skip(wireType, fieldNo) {
+			let start = this.pos;
+			switch (wireType) {
+				case WireType.Varint:
+					while (this.buf[this.pos++] & 128);
+					break;
+				case WireType.Bit64: this.pos += 4;
+				case WireType.Bit32:
+					this.pos += 4;
+					break;
+				case WireType.LengthDelimited:
+					let len = this.uint32();
+					this.pos += len;
+					break;
+				case WireType.StartGroup:
+					for (;;) {
+						const [fn, wt] = this.tag();
+						if (wt === WireType.EndGroup) {
+							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
+							break;
+						}
+						this.skip(wt, fn);
+					}
+					break;
+				default: throw new Error("cant skip wire type " + wireType);
+			}
+			this.assertBounds();
+			return this.buf.subarray(start, this.pos);
+		}
+		/**
+		* Throws error if position in byte array is out of range.
+		*/
+		assertBounds() {
+			if (this.pos > this.len) throw new RangeError("premature EOF");
+		}
+		/**
+		* Read a `int32` field, a signed 32 bit varint.
+		*/
+		int32() {
+			return this.uint32() | 0;
+		}
+		/**
+		* Read a `sint32` field, a signed, zigzag-encoded 32-bit varint.
+		*/
+		sint32() {
+			let zze = this.uint32();
+			return zze >>> 1 ^ -(zze & 1);
+		}
+		/**
+		* Read a `int64` field, a signed 64-bit varint.
+		*/
+		int64() {
+			return protoInt64.dec(...this.varint64());
+		}
+		/**
+		* Read a `uint64` field, an unsigned 64-bit varint.
+		*/
+		uint64() {
+			return protoInt64.uDec(...this.varint64());
+		}
+		/**
+		* Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
+		*/
+		sint64() {
+			let [lo, hi] = this.varint64();
+			let s = -(lo & 1);
+			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
+			hi = hi >>> 1 ^ s;
+			return protoInt64.dec(lo, hi);
+		}
+		/**
+		* Read a `bool` field, a variant.
+		*/
+		bool() {
+			let [lo, hi] = this.varint64();
+			return lo !== 0 || hi !== 0;
+		}
+		/**
+		* Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
+		*/
+		fixed32() {
+			return this.view.getUint32((this.pos += 4) - 4, true);
+		}
+		/**
+		* Read a `sfixed32` field, a signed, fixed-length 32-bit integer.
+		*/
+		sfixed32() {
+			return this.view.getInt32((this.pos += 4) - 4, true);
+		}
+		/**
+		* Read a `fixed64` field, an unsigned, fixed-length 64 bit integer.
+		*/
+		fixed64() {
+			return protoInt64.uDec(this.sfixed32(), this.sfixed32());
+		}
+		/**
+		* Read a `fixed64` field, a signed, fixed-length 64-bit integer.
+		*/
+		sfixed64() {
+			return protoInt64.dec(this.sfixed32(), this.sfixed32());
+		}
+		/**
+		* Read a `float` field, 32-bit floating point number.
+		*/
+		float() {
+			return this.view.getFloat32((this.pos += 4) - 4, true);
+		}
+		/**
+		* Read a `double` field, a 64-bit floating point number.
+		*/
+		double() {
+			return this.view.getFloat64((this.pos += 8) - 8, true);
+		}
+		/**
+		* Read a `bytes` field, length-delimited arbitrary data.
+		*/
+		bytes() {
+			let len = this.uint32(), start = this.pos;
+			this.pos += len;
+			this.assertBounds();
+			return this.buf.subarray(start, start + len);
+		}
+		/**
+		* Read a `string` field, length-delimited data converted to UTF-8 text.
+		*/
+		string() {
+			return this.decodeUtf8(this.bytes());
+		}
+	};
+	/**
+	* Assert a valid signed protobuf 32-bit integer as a number or string.
+	*/
+	function assertInt32(arg) {
+		if (typeof arg == "string") arg = Number(arg);
+		else if (typeof arg != "number") throw new Error("invalid int32: " + typeof arg);
+		if (!Number.isInteger(arg) || arg > 2147483647 || arg < -2147483648) throw new Error("invalid int32: " + arg);
+	}
+	/**
+	* Assert a valid unsigned protobuf 32-bit integer as a number or string.
+	*/
+	function assertUInt32(arg) {
+		if (typeof arg == "string") arg = Number(arg);
+		else if (typeof arg != "number") throw new Error("invalid uint32: " + typeof arg);
+		if (!Number.isInteger(arg) || arg > 4294967295 || arg < 0) throw new Error("invalid uint32: " + arg);
+	}
+	/**
+	* Assert a valid protobuf float value as a number or string.
+	*/
+	function assertFloat32(arg) {
+		if (typeof arg == "string") {
+			const o = arg;
+			arg = Number(arg);
+			if (isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
+		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
+		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
+	}
+	//#endregion
+	//#region node_modules/@vot.js/shared/dist/protos/yandex.js
+	var StreamInterval;
+	(function(StreamInterval) {
+		StreamInterval[StreamInterval["NO_CONNECTION"] = 0] = "NO_CONNECTION";
+		StreamInterval[StreamInterval["TRANSLATING"] = 10] = "TRANSLATING";
+		StreamInterval[StreamInterval["STREAMING"] = 20] = "STREAMING";
+		StreamInterval[StreamInterval["UNRECOGNIZED"] = -1] = "UNRECOGNIZED";
+	})(StreamInterval || (StreamInterval = {}));
+	function streamIntervalFromJSON(object) {
+		switch (object) {
+			case 0:
+			case "NO_CONNECTION": return StreamInterval.NO_CONNECTION;
+			case 10:
+			case "TRANSLATING": return StreamInterval.TRANSLATING;
+			case 20:
+			case "STREAMING": return StreamInterval.STREAMING;
+			default: return StreamInterval.UNRECOGNIZED;
+		}
+	}
+	function streamIntervalToJSON(object) {
+		switch (object) {
+			case StreamInterval.NO_CONNECTION: return "NO_CONNECTION";
+			case StreamInterval.TRANSLATING: return "TRANSLATING";
+			case StreamInterval.STREAMING: return "STREAMING";
+			case StreamInterval.UNRECOGNIZED:
+			default: return "UNRECOGNIZED";
+		}
+	}
+	function createBaseVideoTranslationHelpObject() {
+		return {
+			target: "",
+			targetUrl: ""
+		};
+	}
+	var VideoTranslationHelpObject = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.target !== "") writer.uint32(10).string(message.target);
+			if (message.targetUrl !== "") writer.uint32(18).string(message.targetUrl);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationHelpObject();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.target = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.targetUrl = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				target: isSet(object.target) ? globalThis.String(object.target) : "",
+				targetUrl: isSet(object.targetUrl) ? globalThis.String(object.targetUrl) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.target !== "") obj.target = message.target;
+			if (message.targetUrl !== "") obj.targetUrl = message.targetUrl;
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationHelpObject.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationHelpObject();
+			message.target = object.target ?? "";
+			message.targetUrl = object.targetUrl ?? "";
+			return message;
+		}
+	};
+	function createBaseVideoTranslationRequest() {
+		return {
+			url: "",
+			deviceId: void 0,
+			firstRequest: false,
+			duration: 0,
+			unknown0: 0,
+			language: "",
+			forceSourceLang: false,
+			unknown1: 0,
+			translationHelp: [],
+			wasStream: false,
+			responseLanguage: "",
+			unknown2: 0,
+			unknown3: 0,
+			bypassCache: false,
+			useLivelyVoice: false,
+			videoTitle: ""
+		};
+	}
+	var VideoTranslationRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== "") writer.uint32(26).string(message.url);
+			if (message.deviceId !== void 0) writer.uint32(34).string(message.deviceId);
+			if (message.firstRequest !== false) writer.uint32(40).bool(message.firstRequest);
+			if (message.duration !== 0) writer.uint32(49).double(message.duration);
+			if (message.unknown0 !== 0) writer.uint32(56).int32(message.unknown0);
+			if (message.language !== "") writer.uint32(66).string(message.language);
+			if (message.forceSourceLang !== false) writer.uint32(72).bool(message.forceSourceLang);
+			if (message.unknown1 !== 0) writer.uint32(80).int32(message.unknown1);
+			for (const v of message.translationHelp) VideoTranslationHelpObject.encode(v, writer.uint32(90).fork()).join();
+			if (message.wasStream !== false) writer.uint32(104).bool(message.wasStream);
+			if (message.responseLanguage !== "") writer.uint32(114).string(message.responseLanguage);
+			if (message.unknown2 !== 0) writer.uint32(120).int32(message.unknown2);
+			if (message.unknown3 !== 0) writer.uint32(128).int32(message.unknown3);
+			if (message.bypassCache !== false) writer.uint32(136).bool(message.bypassCache);
+			if (message.useLivelyVoice !== false) writer.uint32(144).bool(message.useLivelyVoice);
+			if (message.videoTitle !== "") writer.uint32(154).string(message.videoTitle);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 3:
+						if (tag !== 26) break;
+						message.url = reader.string();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.deviceId = reader.string();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.firstRequest = reader.bool();
+						continue;
+					case 6:
+						if (tag !== 49) break;
+						message.duration = reader.double();
+						continue;
+					case 7:
+						if (tag !== 56) break;
+						message.unknown0 = reader.int32();
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.language = reader.string();
+						continue;
+					case 9:
+						if (tag !== 72) break;
+						message.forceSourceLang = reader.bool();
+						continue;
+					case 10:
+						if (tag !== 80) break;
+						message.unknown1 = reader.int32();
+						continue;
+					case 11:
+						if (tag !== 90) break;
+						message.translationHelp.push(VideoTranslationHelpObject.decode(reader, reader.uint32()));
+						continue;
+					case 13:
+						if (tag !== 104) break;
+						message.wasStream = reader.bool();
+						continue;
+					case 14:
+						if (tag !== 114) break;
+						message.responseLanguage = reader.string();
+						continue;
+					case 15:
+						if (tag !== 120) break;
+						message.unknown2 = reader.int32();
+						continue;
+					case 16:
+						if (tag !== 128) break;
+						message.unknown3 = reader.int32();
+						continue;
+					case 17:
+						if (tag !== 136) break;
+						message.bypassCache = reader.bool();
+						continue;
+					case 18:
+						if (tag !== 144) break;
+						message.useLivelyVoice = reader.bool();
+						continue;
+					case 19:
+						if (tag !== 154) break;
+						message.videoTitle = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				deviceId: isSet(object.deviceId) ? globalThis.String(object.deviceId) : void 0,
+				firstRequest: isSet(object.firstRequest) ? globalThis.Boolean(object.firstRequest) : false,
+				duration: isSet(object.duration) ? globalThis.Number(object.duration) : 0,
+				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
+				language: isSet(object.language) ? globalThis.String(object.language) : "",
+				forceSourceLang: isSet(object.forceSourceLang) ? globalThis.Boolean(object.forceSourceLang) : false,
+				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0,
+				translationHelp: globalThis.Array.isArray(object?.translationHelp) ? object.translationHelp.map((e) => VideoTranslationHelpObject.fromJSON(e)) : [],
+				wasStream: isSet(object.wasStream) ? globalThis.Boolean(object.wasStream) : false,
+				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : "",
+				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : 0,
+				unknown3: isSet(object.unknown3) ? globalThis.Number(object.unknown3) : 0,
+				bypassCache: isSet(object.bypassCache) ? globalThis.Boolean(object.bypassCache) : false,
+				useLivelyVoice: isSet(object.useLivelyVoice) ? globalThis.Boolean(object.useLivelyVoice) : false,
+				videoTitle: isSet(object.videoTitle) ? globalThis.String(object.videoTitle) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== "") obj.url = message.url;
+			if (message.deviceId !== void 0) obj.deviceId = message.deviceId;
+			if (message.firstRequest !== false) obj.firstRequest = message.firstRequest;
+			if (message.duration !== 0) obj.duration = message.duration;
+			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
+			if (message.language !== "") obj.language = message.language;
+			if (message.forceSourceLang !== false) obj.forceSourceLang = message.forceSourceLang;
+			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
+			if (message.translationHelp?.length) obj.translationHelp = message.translationHelp.map((e) => VideoTranslationHelpObject.toJSON(e));
+			if (message.wasStream !== false) obj.wasStream = message.wasStream;
+			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
+			if (message.unknown2 !== 0) obj.unknown2 = Math.round(message.unknown2);
+			if (message.unknown3 !== 0) obj.unknown3 = Math.round(message.unknown3);
+			if (message.bypassCache !== false) obj.bypassCache = message.bypassCache;
+			if (message.useLivelyVoice !== false) obj.useLivelyVoice = message.useLivelyVoice;
+			if (message.videoTitle !== "") obj.videoTitle = message.videoTitle;
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationRequest();
+			message.url = object.url ?? "";
+			message.deviceId = object.deviceId ?? void 0;
+			message.firstRequest = object.firstRequest ?? false;
+			message.duration = object.duration ?? 0;
+			message.unknown0 = object.unknown0 ?? 0;
+			message.language = object.language ?? "";
+			message.forceSourceLang = object.forceSourceLang ?? false;
+			message.unknown1 = object.unknown1 ?? 0;
+			message.translationHelp = object.translationHelp?.map((e) => VideoTranslationHelpObject.fromPartial(e)) || [];
+			message.wasStream = object.wasStream ?? false;
+			message.responseLanguage = object.responseLanguage ?? "";
+			message.unknown2 = object.unknown2 ?? 0;
+			message.unknown3 = object.unknown3 ?? 0;
+			message.bypassCache = object.bypassCache ?? false;
+			message.useLivelyVoice = object.useLivelyVoice ?? false;
+			message.videoTitle = object.videoTitle ?? "";
+			return message;
+		}
+	};
+	function createBaseVideoTranslationResponse() {
+		return {
+			url: void 0,
+			duration: void 0,
+			status: 0,
+			remainingTime: void 0,
+			unknown0: void 0,
+			translationId: "",
+			language: void 0,
+			message: void 0,
+			isLivelyVoice: false,
+			unknown2: void 0,
+			shouldRetry: void 0,
+			unknown3: void 0
+		};
+	}
+	var VideoTranslationResponse = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== void 0) writer.uint32(10).string(message.url);
+			if (message.duration !== void 0) writer.uint32(17).double(message.duration);
+			if (message.status !== 0) writer.uint32(32).int32(message.status);
+			if (message.remainingTime !== void 0) writer.uint32(40).int32(message.remainingTime);
+			if (message.unknown0 !== void 0) writer.uint32(48).int32(message.unknown0);
+			if (message.translationId !== "") writer.uint32(58).string(message.translationId);
+			if (message.language !== void 0) writer.uint32(66).string(message.language);
+			if (message.message !== void 0) writer.uint32(74).string(message.message);
+			if (message.isLivelyVoice !== false) writer.uint32(80).bool(message.isLivelyVoice);
+			if (message.unknown2 !== void 0) writer.uint32(88).int32(message.unknown2);
+			if (message.shouldRetry !== void 0) writer.uint32(96).int32(message.shouldRetry);
+			if (message.unknown3 !== void 0) writer.uint32(104).int32(message.unknown3);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationResponse();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+					case 2:
+						if (tag !== 17) break;
+						message.duration = reader.double();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.status = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.remainingTime = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.unknown0 = reader.int32();
+						continue;
+					case 7:
+						if (tag !== 58) break;
+						message.translationId = reader.string();
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.language = reader.string();
+						continue;
+					case 9:
+						if (tag !== 74) break;
+						message.message = reader.string();
+						continue;
+					case 10:
+						if (tag !== 80) break;
+						message.isLivelyVoice = reader.bool();
+						continue;
+					case 11:
+						if (tag !== 88) break;
+						message.unknown2 = reader.int32();
+						continue;
+					case 12:
+						if (tag !== 96) break;
+						message.shouldRetry = reader.int32();
+						continue;
+					case 13:
+						if (tag !== 104) break;
+						message.unknown3 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : void 0,
+				duration: isSet(object.duration) ? globalThis.Number(object.duration) : void 0,
+				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
+				remainingTime: isSet(object.remainingTime) ? globalThis.Number(object.remainingTime) : void 0,
+				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : void 0,
+				translationId: isSet(object.translationId) ? globalThis.String(object.translationId) : "",
+				language: isSet(object.language) ? globalThis.String(object.language) : void 0,
+				message: isSet(object.message) ? globalThis.String(object.message) : void 0,
+				isLivelyVoice: isSet(object.isLivelyVoice) ? globalThis.Boolean(object.isLivelyVoice) : false,
+				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : void 0,
+				shouldRetry: isSet(object.shouldRetry) ? globalThis.Number(object.shouldRetry) : void 0,
+				unknown3: isSet(object.unknown3) ? globalThis.Number(object.unknown3) : void 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== void 0) obj.url = message.url;
+			if (message.duration !== void 0) obj.duration = message.duration;
+			if (message.status !== 0) obj.status = Math.round(message.status);
+			if (message.remainingTime !== void 0) obj.remainingTime = Math.round(message.remainingTime);
+			if (message.unknown0 !== void 0) obj.unknown0 = Math.round(message.unknown0);
+			if (message.translationId !== "") obj.translationId = message.translationId;
+			if (message.language !== void 0) obj.language = message.language;
+			if (message.message !== void 0) obj.message = message.message;
+			if (message.isLivelyVoice !== false) obj.isLivelyVoice = message.isLivelyVoice;
+			if (message.unknown2 !== void 0) obj.unknown2 = Math.round(message.unknown2);
+			if (message.shouldRetry !== void 0) obj.shouldRetry = Math.round(message.shouldRetry);
+			if (message.unknown3 !== void 0) obj.unknown3 = Math.round(message.unknown3);
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationResponse.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationResponse();
+			message.url = object.url ?? void 0;
+			message.duration = object.duration ?? void 0;
+			message.status = object.status ?? 0;
+			message.remainingTime = object.remainingTime ?? void 0;
+			message.unknown0 = object.unknown0 ?? void 0;
+			message.translationId = object.translationId ?? "";
+			message.language = object.language ?? void 0;
+			message.message = object.message ?? void 0;
+			message.isLivelyVoice = object.isLivelyVoice ?? false;
+			message.unknown2 = object.unknown2 ?? void 0;
+			message.shouldRetry = object.shouldRetry ?? void 0;
+			message.unknown3 = object.unknown3 ?? void 0;
+			return message;
+		}
+	};
+	function createBaseVideoTranslationCacheItem() {
+		return {
+			status: 0,
+			remainingTime: void 0,
+			message: void 0,
+			unknown0: void 0
+		};
+	}
+	var VideoTranslationCacheItem = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.status !== 0) writer.uint32(8).int32(message.status);
+			if (message.remainingTime !== void 0) writer.uint32(16).int32(message.remainingTime);
+			if (message.message !== void 0) writer.uint32(26).string(message.message);
+			if (message.unknown0 !== void 0) writer.uint32(32).int32(message.unknown0);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationCacheItem();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.status = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.remainingTime = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.message = reader.string();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.unknown0 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
+				remainingTime: isSet(object.remainingTime) ? globalThis.Number(object.remainingTime) : void 0,
+				message: isSet(object.message) ? globalThis.String(object.message) : void 0,
+				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : void 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.status !== 0) obj.status = Math.round(message.status);
+			if (message.remainingTime !== void 0) obj.remainingTime = Math.round(message.remainingTime);
+			if (message.message !== void 0) obj.message = message.message;
+			if (message.unknown0 !== void 0) obj.unknown0 = Math.round(message.unknown0);
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationCacheItem.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationCacheItem();
+			message.status = object.status ?? 0;
+			message.remainingTime = object.remainingTime ?? void 0;
+			message.message = object.message ?? void 0;
+			message.unknown0 = object.unknown0 ?? void 0;
+			return message;
+		}
+	};
+	function createBaseVideoTranslationCacheRequest() {
+		return {
+			url: "",
+			duration: 0,
+			language: "",
+			responseLanguage: ""
+		};
+	}
+	var VideoTranslationCacheRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== "") writer.uint32(10).string(message.url);
+			if (message.duration !== 0) writer.uint32(17).double(message.duration);
+			if (message.language !== "") writer.uint32(26).string(message.language);
+			if (message.responseLanguage !== "") writer.uint32(34).string(message.responseLanguage);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationCacheRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+					case 2:
+						if (tag !== 17) break;
+						message.duration = reader.double();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.language = reader.string();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.responseLanguage = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				duration: isSet(object.duration) ? globalThis.Number(object.duration) : 0,
+				language: isSet(object.language) ? globalThis.String(object.language) : "",
+				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== "") obj.url = message.url;
+			if (message.duration !== 0) obj.duration = message.duration;
+			if (message.language !== "") obj.language = message.language;
+			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationCacheRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationCacheRequest();
+			message.url = object.url ?? "";
+			message.duration = object.duration ?? 0;
+			message.language = object.language ?? "";
+			message.responseLanguage = object.responseLanguage ?? "";
+			return message;
+		}
+	};
+	function createBaseVideoTranslationCacheResponse() {
+		return {
+			default: void 0,
+			cloning: void 0
+		};
+	}
+	var VideoTranslationCacheResponse = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.default !== void 0) VideoTranslationCacheItem.encode(message.default, writer.uint32(10).fork()).join();
+			if (message.cloning !== void 0) VideoTranslationCacheItem.encode(message.cloning, writer.uint32(18).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationCacheResponse();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.default = VideoTranslationCacheItem.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.cloning = VideoTranslationCacheItem.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				default: isSet(object.default) ? VideoTranslationCacheItem.fromJSON(object.default) : void 0,
+				cloning: isSet(object.cloning) ? VideoTranslationCacheItem.fromJSON(object.cloning) : void 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.default !== void 0) obj.default = VideoTranslationCacheItem.toJSON(message.default);
+			if (message.cloning !== void 0) obj.cloning = VideoTranslationCacheItem.toJSON(message.cloning);
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationCacheResponse.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationCacheResponse();
+			message.default = object.default !== void 0 && object.default !== null ? VideoTranslationCacheItem.fromPartial(object.default) : void 0;
+			message.cloning = object.cloning !== void 0 && object.cloning !== null ? VideoTranslationCacheItem.fromPartial(object.cloning) : void 0;
+			return message;
+		}
+	};
+	function createBaseVideoLangCacheRequest() {
+		return {
+			url: "",
+			title: ""
+		};
+	}
+	var VideoLangCacheRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== "") writer.uint32(10).string(message.url);
+			if (message.title !== "") writer.uint32(18).string(message.title);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoLangCacheRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.title = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				title: isSet(object.title) ? globalThis.String(object.title) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== "") obj.url = message.url;
+			if (message.title !== "") obj.title = message.title;
+			return obj;
+		},
+		create(base) {
+			return VideoLangCacheRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoLangCacheRequest();
+			message.url = object.url ?? "";
+			message.title = object.title ?? "";
+			return message;
+		}
+	};
+	function createBaseVideoLangCacheResponse() {
+		return {
+			url: "",
+			status: 0,
+			unknown1: 0
+		};
+	}
+	var VideoLangCacheResponse = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== "") writer.uint32(10).string(message.url);
+			if (message.status !== 0) writer.uint32(24).int32(message.status);
+			if (message.unknown1 !== 0) writer.uint32(40).int32(message.unknown1);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoLangCacheResponse();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.status = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.unknown1 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
+				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== "") obj.url = message.url;
+			if (message.status !== 0) obj.status = Math.round(message.status);
+			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
+			return obj;
+		},
+		create(base) {
+			return VideoLangCacheResponse.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoLangCacheResponse();
+			message.url = object.url ?? "";
+			message.status = object.status ?? 0;
+			message.unknown1 = object.unknown1 ?? 0;
+			return message;
+		}
+	};
+	function createBaseAudioBufferObject() {
+		return {
+			audioFile: /* @__PURE__ */ new Uint8Array(0),
+			fileId: ""
+		};
+	}
+	var AudioBufferObject = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
+			if (message.fileId !== "") writer.uint32(10).string(message.fileId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseAudioBufferObject();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 2:
+						if (tag !== 18) break;
+						message.audioFile = reader.bytes();
+						continue;
+					case 1:
+						if (tag !== 10) break;
+						message.fileId = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : /* @__PURE__ */ new Uint8Array(0),
+				fileId: isSet(object.fileId) ? globalThis.String(object.fileId) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.audioFile.length !== 0) obj.audioFile = base64FromBytes(message.audioFile);
+			if (message.fileId !== "") obj.fileId = message.fileId;
+			return obj;
+		},
+		create(base) {
+			return AudioBufferObject.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseAudioBufferObject();
+			message.audioFile = object.audioFile ?? /* @__PURE__ */ new Uint8Array(0);
+			message.fileId = object.fileId ?? "";
+			return message;
+		}
+	};
+	function createBasePartialAudioBufferObject() {
+		return {
+			audioFile: /* @__PURE__ */ new Uint8Array(0),
+			chunkId: 0
+		};
+	}
+	var PartialAudioBufferObject = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
+			if (message.chunkId !== 0) writer.uint32(8).int32(message.chunkId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBasePartialAudioBufferObject();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 2:
+						if (tag !== 18) break;
+						message.audioFile = reader.bytes();
+						continue;
+					case 1:
+						if (tag !== 8) break;
+						message.chunkId = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : /* @__PURE__ */ new Uint8Array(0),
+				chunkId: isSet(object.chunkId) ? globalThis.Number(object.chunkId) : 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.audioFile.length !== 0) obj.audioFile = base64FromBytes(message.audioFile);
+			if (message.chunkId !== 0) obj.chunkId = Math.round(message.chunkId);
+			return obj;
+		},
+		create(base) {
+			return PartialAudioBufferObject.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBasePartialAudioBufferObject();
+			message.audioFile = object.audioFile ?? /* @__PURE__ */ new Uint8Array(0);
+			message.chunkId = object.chunkId ?? 0;
+			return message;
+		}
+	};
+	function createBaseChunkAudioObject() {
+		return {
+			audioBuffer: void 0,
+			audioPartsLength: 0,
+			fileId: "",
+			version: 0
+		};
+	}
+	var ChunkAudioObject = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.audioBuffer !== void 0) PartialAudioBufferObject.encode(message.audioBuffer, writer.uint32(10).fork()).join();
+			if (message.audioPartsLength !== 0) writer.uint32(16).int32(message.audioPartsLength);
+			if (message.fileId !== "") writer.uint32(26).string(message.fileId);
+			if (message.version !== 0) writer.uint32(32).int32(message.version);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseChunkAudioObject();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.audioBuffer = PartialAudioBufferObject.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.audioPartsLength = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.fileId = reader.string();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.version = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				audioBuffer: isSet(object.audioBuffer) ? PartialAudioBufferObject.fromJSON(object.audioBuffer) : void 0,
+				audioPartsLength: isSet(object.audioPartsLength) ? globalThis.Number(object.audioPartsLength) : 0,
+				fileId: isSet(object.fileId) ? globalThis.String(object.fileId) : "",
+				version: isSet(object.version) ? globalThis.Number(object.version) : 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.audioBuffer !== void 0) obj.audioBuffer = PartialAudioBufferObject.toJSON(message.audioBuffer);
+			if (message.audioPartsLength !== 0) obj.audioPartsLength = Math.round(message.audioPartsLength);
+			if (message.fileId !== "") obj.fileId = message.fileId;
+			if (message.version !== 0) obj.version = Math.round(message.version);
+			return obj;
+		},
+		create(base) {
+			return ChunkAudioObject.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseChunkAudioObject();
+			message.audioBuffer = object.audioBuffer !== void 0 && object.audioBuffer !== null ? PartialAudioBufferObject.fromPartial(object.audioBuffer) : void 0;
+			message.audioPartsLength = object.audioPartsLength ?? 0;
+			message.fileId = object.fileId ?? "";
+			message.version = object.version ?? 0;
+			return message;
+		}
+	};
+	function createBaseVideoTranslationAudioRequest() {
+		return {
+			translationId: "",
+			url: "",
+			partialAudioInfo: void 0,
+			audioInfo: void 0
+		};
+	}
+	var VideoTranslationAudioRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.translationId !== "") writer.uint32(10).string(message.translationId);
+			if (message.url !== "") writer.uint32(18).string(message.url);
+			if (message.partialAudioInfo !== void 0) ChunkAudioObject.encode(message.partialAudioInfo, writer.uint32(34).fork()).join();
+			if (message.audioInfo !== void 0) AudioBufferObject.encode(message.audioInfo, writer.uint32(50).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationAudioRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.translationId = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.url = reader.string();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.partialAudioInfo = ChunkAudioObject.decode(reader, reader.uint32());
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.audioInfo = AudioBufferObject.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				translationId: isSet(object.translationId) ? globalThis.String(object.translationId) : "",
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				partialAudioInfo: isSet(object.partialAudioInfo) ? ChunkAudioObject.fromJSON(object.partialAudioInfo) : void 0,
+				audioInfo: isSet(object.audioInfo) ? AudioBufferObject.fromJSON(object.audioInfo) : void 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.translationId !== "") obj.translationId = message.translationId;
+			if (message.url !== "") obj.url = message.url;
+			if (message.partialAudioInfo !== void 0) obj.partialAudioInfo = ChunkAudioObject.toJSON(message.partialAudioInfo);
+			if (message.audioInfo !== void 0) obj.audioInfo = AudioBufferObject.toJSON(message.audioInfo);
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationAudioRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationAudioRequest();
+			message.translationId = object.translationId ?? "";
+			message.url = object.url ?? "";
+			message.partialAudioInfo = object.partialAudioInfo !== void 0 && object.partialAudioInfo !== null ? ChunkAudioObject.fromPartial(object.partialAudioInfo) : void 0;
+			message.audioInfo = object.audioInfo !== void 0 && object.audioInfo !== null ? AudioBufferObject.fromPartial(object.audioInfo) : void 0;
+			return message;
+		}
+	};
+	function createBaseVideoTranslationAudioResponse() {
+		return {
+			status: 0,
+			remainingChunks: []
+		};
+	}
+	var VideoTranslationAudioResponse = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.status !== 0) writer.uint32(8).int32(message.status);
+			for (const v of message.remainingChunks) writer.uint32(18).string(v);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoTranslationAudioResponse();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.status = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.remainingChunks.push(reader.string());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
+				remainingChunks: globalThis.Array.isArray(object?.remainingChunks) ? object.remainingChunks.map((e) => globalThis.String(e)) : []
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.status !== 0) obj.status = Math.round(message.status);
+			if (message.remainingChunks?.length) obj.remainingChunks = message.remainingChunks;
+			return obj;
+		},
+		create(base) {
+			return VideoTranslationAudioResponse.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseVideoTranslationAudioResponse();
+			message.status = object.status ?? 0;
+			message.remainingChunks = object.remainingChunks?.map((e) => e) || [];
+			return message;
+		}
+	};
+	function createBaseSubtitlesObject() {
+		return {
+			language: "",
+			url: "",
+			unknown0: 0,
+			translatedLanguage: "",
+			translatedUrl: "",
+			unknown1: 0,
+			unknown2: 0
+		};
+	}
+	var SubtitlesObject = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.language !== "") writer.uint32(10).string(message.language);
+			if (message.url !== "") writer.uint32(18).string(message.url);
+			if (message.unknown0 !== 0) writer.uint32(24).int32(message.unknown0);
+			if (message.translatedLanguage !== "") writer.uint32(34).string(message.translatedLanguage);
+			if (message.translatedUrl !== "") writer.uint32(42).string(message.translatedUrl);
+			if (message.unknown1 !== 0) writer.uint32(48).int32(message.unknown1);
+			if (message.unknown2 !== 0) writer.uint32(56).int32(message.unknown2);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSubtitlesObject();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.language = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.url = reader.string();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.unknown0 = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.translatedLanguage = reader.string();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.translatedUrl = reader.string();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.unknown1 = reader.int32();
+						continue;
+					case 7:
+						if (tag !== 56) break;
+						message.unknown2 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				language: isSet(object.language) ? globalThis.String(object.language) : "",
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
+				translatedLanguage: isSet(object.translatedLanguage) ? globalThis.String(object.translatedLanguage) : "",
+				translatedUrl: isSet(object.translatedUrl) ? globalThis.String(object.translatedUrl) : "",
+				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0,
+				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.language !== "") obj.language = message.language;
+			if (message.url !== "") obj.url = message.url;
+			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
+			if (message.translatedLanguage !== "") obj.translatedLanguage = message.translatedLanguage;
+			if (message.translatedUrl !== "") obj.translatedUrl = message.translatedUrl;
+			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
+			if (message.unknown2 !== 0) obj.unknown2 = Math.round(message.unknown2);
+			return obj;
+		},
+		create(base) {
+			return SubtitlesObject.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseSubtitlesObject();
+			message.language = object.language ?? "";
+			message.url = object.url ?? "";
+			message.unknown0 = object.unknown0 ?? 0;
+			message.translatedLanguage = object.translatedLanguage ?? "";
+			message.translatedUrl = object.translatedUrl ?? "";
+			message.unknown1 = object.unknown1 ?? 0;
+			message.unknown2 = object.unknown2 ?? 0;
+			return message;
+		}
+	};
+	function createBaseSubtitlesRequest() {
+		return {
+			url: "",
+			language: ""
+		};
+	}
+	var SubtitlesRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== "") writer.uint32(10).string(message.url);
+			if (message.language !== "") writer.uint32(18).string(message.language);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSubtitlesRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.language = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				language: isSet(object.language) ? globalThis.String(object.language) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== "") obj.url = message.url;
+			if (message.language !== "") obj.language = message.language;
+			return obj;
+		},
+		create(base) {
+			return SubtitlesRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseSubtitlesRequest();
+			message.url = object.url ?? "";
+			message.language = object.language ?? "";
+			return message;
+		}
+	};
+	function createBaseSubtitlesResponse() {
+		return {
+			waiting: false,
+			subtitles: []
+		};
+	}
+	var SubtitlesResponse = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.waiting !== false) writer.uint32(8).bool(message.waiting);
+			for (const v of message.subtitles) SubtitlesObject.encode(v, writer.uint32(18).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSubtitlesResponse();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.waiting = reader.bool();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.subtitles.push(SubtitlesObject.decode(reader, reader.uint32()));
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				waiting: isSet(object.waiting) ? globalThis.Boolean(object.waiting) : false,
+				subtitles: globalThis.Array.isArray(object?.subtitles) ? object.subtitles.map((e) => SubtitlesObject.fromJSON(e)) : []
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.waiting !== false) obj.waiting = message.waiting;
+			if (message.subtitles?.length) obj.subtitles = message.subtitles.map((e) => SubtitlesObject.toJSON(e));
+			return obj;
+		},
+		create(base) {
+			return SubtitlesResponse.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseSubtitlesResponse();
+			message.waiting = object.waiting ?? false;
+			message.subtitles = object.subtitles?.map((e) => SubtitlesObject.fromPartial(e)) || [];
+			return message;
+		}
+	};
+	function createBaseStreamTranslationObject() {
+		return {
+			url: "",
+			timestamp: ""
+		};
+	}
+	var StreamTranslationObject = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== "") writer.uint32(10).string(message.url);
+			if (message.timestamp !== "") writer.uint32(18).string(message.timestamp);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamTranslationObject();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.timestamp = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				timestamp: isSet(object.timestamp) ? globalThis.String(object.timestamp) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== "") obj.url = message.url;
+			if (message.timestamp !== "") obj.timestamp = message.timestamp;
+			return obj;
+		},
+		create(base) {
+			return StreamTranslationObject.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseStreamTranslationObject();
+			message.url = object.url ?? "";
+			message.timestamp = object.timestamp ?? "";
+			return message;
+		}
+	};
+	function createBaseStreamTranslationRequest() {
+		return {
+			url: "",
+			language: "",
+			responseLanguage: "",
+			unknown0: 0,
+			unknown1: 0
+		};
+	}
+	var StreamTranslationRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== "") writer.uint32(10).string(message.url);
+			if (message.language !== "") writer.uint32(18).string(message.language);
+			if (message.responseLanguage !== "") writer.uint32(26).string(message.responseLanguage);
+			if (message.unknown0 !== 0) writer.uint32(40).int32(message.unknown0);
+			if (message.unknown1 !== 0) writer.uint32(48).int32(message.unknown1);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamTranslationRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.language = reader.string();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.responseLanguage = reader.string();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.unknown0 = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.unknown1 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				url: isSet(object.url) ? globalThis.String(object.url) : "",
+				language: isSet(object.language) ? globalThis.String(object.language) : "",
+				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : "",
+				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
+				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.url !== "") obj.url = message.url;
+			if (message.language !== "") obj.language = message.language;
+			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
+			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
+			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
+			return obj;
+		},
+		create(base) {
+			return StreamTranslationRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseStreamTranslationRequest();
+			message.url = object.url ?? "";
+			message.language = object.language ?? "";
+			message.responseLanguage = object.responseLanguage ?? "";
+			message.unknown0 = object.unknown0 ?? 0;
+			message.unknown1 = object.unknown1 ?? 0;
+			return message;
+		}
+	};
+	function createBaseStreamTranslationResponse() {
+		return {
+			interval: 0,
+			translatedInfo: void 0,
+			pingId: void 0
+		};
+	}
+	var StreamTranslationResponse = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.interval !== 0) writer.uint32(8).int32(message.interval);
+			if (message.translatedInfo !== void 0) StreamTranslationObject.encode(message.translatedInfo, writer.uint32(18).fork()).join();
+			if (message.pingId !== void 0) writer.uint32(24).int32(message.pingId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamTranslationResponse();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.interval = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.translatedInfo = StreamTranslationObject.decode(reader, reader.uint32());
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.pingId = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				interval: isSet(object.interval) ? streamIntervalFromJSON(object.interval) : 0,
+				translatedInfo: isSet(object.translatedInfo) ? StreamTranslationObject.fromJSON(object.translatedInfo) : void 0,
+				pingId: isSet(object.pingId) ? globalThis.Number(object.pingId) : void 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.interval !== 0) obj.interval = streamIntervalToJSON(message.interval);
+			if (message.translatedInfo !== void 0) obj.translatedInfo = StreamTranslationObject.toJSON(message.translatedInfo);
+			if (message.pingId !== void 0) obj.pingId = Math.round(message.pingId);
+			return obj;
+		},
+		create(base) {
+			return StreamTranslationResponse.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseStreamTranslationResponse();
+			message.interval = object.interval ?? 0;
+			message.translatedInfo = object.translatedInfo !== void 0 && object.translatedInfo !== null ? StreamTranslationObject.fromPartial(object.translatedInfo) : void 0;
+			message.pingId = object.pingId ?? void 0;
+			return message;
+		}
+	};
+	function createBaseStreamPingRequest() {
+		return { pingId: 0 };
+	}
+	var StreamPingRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.pingId !== 0) writer.uint32(8).int32(message.pingId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamPingRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.pingId = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return { pingId: isSet(object.pingId) ? globalThis.Number(object.pingId) : 0 };
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.pingId !== 0) obj.pingId = Math.round(message.pingId);
+			return obj;
+		},
+		create(base) {
+			return StreamPingRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseStreamPingRequest();
+			message.pingId = object.pingId ?? 0;
+			return message;
+		}
+	};
+	function createBaseYandexSessionRequest() {
+		return {
+			uuid: "",
+			module: ""
+		};
+	}
+	var YandexSessionRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.uuid !== "") writer.uint32(10).string(message.uuid);
+			if (message.module !== "") writer.uint32(18).string(message.module);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseYandexSessionRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.uuid = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.module = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
+				module: isSet(object.module) ? globalThis.String(object.module) : ""
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.uuid !== "") obj.uuid = message.uuid;
+			if (message.module !== "") obj.module = message.module;
+			return obj;
+		},
+		create(base) {
+			return YandexSessionRequest.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseYandexSessionRequest();
+			message.uuid = object.uuid ?? "";
+			message.module = object.module ?? "";
+			return message;
+		}
+	};
+	function createBaseYandexSessionResponse() {
+		return {
+			secretKey: "",
+			expires: 0
+		};
+	}
+	var YandexSessionResponse = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.secretKey !== "") writer.uint32(10).string(message.secretKey);
+			if (message.expires !== 0) writer.uint32(16).int32(message.expires);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseYandexSessionResponse();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.secretKey = reader.string();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.expires = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		},
+		fromJSON(object) {
+			return {
+				secretKey: isSet(object.secretKey) ? globalThis.String(object.secretKey) : "",
+				expires: isSet(object.expires) ? globalThis.Number(object.expires) : 0
+			};
+		},
+		toJSON(message) {
+			const obj = {};
+			if (message.secretKey !== "") obj.secretKey = message.secretKey;
+			if (message.expires !== 0) obj.expires = Math.round(message.expires);
+			return obj;
+		},
+		create(base) {
+			return YandexSessionResponse.fromPartial(base ?? {});
+		},
+		fromPartial(object) {
+			const message = createBaseYandexSessionResponse();
+			message.secretKey = object.secretKey ?? "";
+			message.expires = object.expires ?? 0;
+			return message;
+		}
+	};
+	function bytesFromBase64(b64) {
+		if (globalThis.Buffer) return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+		else {
+			const bin = globalThis.atob(b64);
+			const arr = new Uint8Array(bin.length);
+			for (let i = 0; i < bin.length; ++i) arr[i] = bin.charCodeAt(i);
+			return arr;
+		}
+	}
+	function base64FromBytes(arr) {
+		if (globalThis.Buffer) return globalThis.Buffer.from(arr).toString("base64");
+		else {
+			const bin = [];
+			arr.forEach((byte) => {
+				bin.push(globalThis.String.fromCharCode(byte));
+			});
+			return globalThis.btoa(bin.join(""));
+		}
+	}
+	function isSet(value) {
+		return value !== null && value !== void 0;
+	}
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/helpers/bannedvideo.js
 	var TypeName;
@@ -5356,6 +4938,128 @@ var vot = (function(exports) {
 		}
 		async getVideoId(url) {
 			return /gag\/([^/]+)/.exec(url.pathname)?.[1];
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/players/jwplayer.js
+	var JWPlayerHelper = class {
+		SUBTITLE_SOURCE = "jwplayer";
+		SUBTITLE_FORMAT = "vtt";
+		getHeight(source) {
+			if (typeof source.height === "number" && source.height > 0) return source.height;
+			const match = source.label?.match(/^(\d+)/);
+			return match ? Number.parseInt(match[1], 10) : 0;
+		}
+		getPlayer() {
+			if (typeof jwplayer === "undefined") return;
+			const playerEl = document.querySelector(".jwplayer");
+			if (playerEl?.id) try {
+				const player = jwplayer(playerEl.id);
+				if (player && typeof player.getPlaylistItem === "function") return player;
+			} catch {}
+			try {
+				return jwplayer();
+			} catch {
+				return;
+			}
+		}
+		getVideoData(videoId) {
+			try {
+				const player = this.getPlayer();
+				if (!player) throw new Error("JW Player instance not ready or not found");
+				let item = player.getPlaylistItem ? player.getPlaylistItem() : null;
+				if (!item && typeof player.getPlaylist === "function") {
+					const playlist = player.getPlaylist();
+					const index = typeof player.getPlaylistIndex === "function" ? player.getPlaylistIndex() : 0;
+					if (Array.isArray(playlist) && playlist[index]) item = playlist[index];
+				}
+				if (!item) throw new Error("No playlist item found");
+				let duration = 0;
+				if (typeof player.getDuration === "function") duration = player.getDuration();
+				if ((typeof duration !== "number" || duration <= 0) && typeof item.duration === "number") duration = item.duration;
+				const sources = [];
+				if (Array.isArray(item.allSources)) sources.push(...item.allSources);
+				if (Array.isArray(item.sources)) {
+					for (const s of item.sources) if (s?.file && !sources.some((existing) => existing.file === s.file)) sources.push(s);
+				}
+				const validSources = sources.filter((s) => s && typeof s.file === "string" && s.file.length > 0);
+				if (validSources.length === 0) if (typeof item.file === "string" && item.file.length > 0) validSources.push({
+					file: item.file,
+					type: "",
+					label: "default"
+				});
+				else throw new Error("No valid sources found");
+				validSources.sort((a, b) => {
+					const heightA = this.getHeight(a);
+					const heightB = this.getHeight(b);
+					if (heightA === 0 && heightB > 0) return 1;
+					if (heightB === 0 && heightA > 0) return -1;
+					return heightA - heightB;
+				});
+				const lowestQuality = validSources[0];
+				return {
+					url: videoId,
+					duration,
+					translationHelp: [{
+						target: "video_file_url",
+						targetUrl: lowestQuality.file
+					}],
+					subtitles: this.getSubtitles()
+				};
+			} catch (err) {
+				console.error("[VOT] JWPlayerHelper error:", err instanceof Error ? err.message : String(err));
+				return;
+			}
+		}
+		getSubtitles() {
+			const subtitles = [];
+			try {
+				const player = this.getPlayer();
+				if (!player) return subtitles;
+				let item = player.getPlaylistItem ? player.getPlaylistItem() : null;
+				if (!item && typeof player.getPlaylist === "function") {
+					const playlist = player.getPlaylist();
+					const index = typeof player.getPlaylistIndex === "function" ? player.getPlaylistIndex() : 0;
+					if (Array.isArray(playlist) && playlist[index]) item = playlist[index];
+				}
+				const tracks = item?.tracks ?? [];
+				const captionsList = typeof player.getCaptionsList === "function" ? player.getCaptionsList() : [];
+				const seenUrls = /* @__PURE__ */ new Set();
+				const addSubtitle = (label, file) => {
+					if (!file) return;
+					try {
+						const absoluteUrl = new URL(file, window.location.href).toString();
+						if (!seenUrls.has(absoluteUrl)) {
+							seenUrls.add(absoluteUrl);
+							subtitles.push({
+								source: this.SUBTITLE_SOURCE,
+								format: this.SUBTITLE_FORMAT,
+								language: normalizeLang$1(label || "en"),
+								url: absoluteUrl
+							});
+						}
+					} catch {}
+				};
+				if (Array.isArray(tracks)) {
+					for (const track of tracks) if (track && (track.kind === "captions" || track.kind === "subtitles") && track.file) addSubtitle(track.label || "en", track.file);
+				}
+				if (Array.isArray(captionsList)) {
+					for (const track of captionsList) if (track && typeof track === "object" && track.file) addSubtitle(track.label || "en", track.file);
+				}
+			} catch (err) {
+				console.error("[VOT] JWPlayerHelper getSubtitles error:", err);
+			}
+			return subtitles;
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/noodlemagazine.js
+	var NoodleMagazineHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.pathname.slice(1);
+		}
+		async getVideoData(videoId) {
+			return new JWPlayerHelper().getVideoData(videoId);
 		}
 	};
 	//#endregion
@@ -5673,62 +5377,6 @@ var vot = (function(exports) {
 		}
 		async getVideoId(url) {
 			return /((courses|learning-journeys)\/([^/]+)(\/[^/]+)?)/.exec(url.pathname)?.[1];
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/players/jwplayer.js
-	var JWPlayerHelper = class {
-		SUBTITLE_SOURCE = "jwplayer";
-		SUBTITLE_FORMAT = "vtt";
-		getPlayer() {
-			if (typeof jwplayer === "undefined") return;
-			return jwplayer();
-		}
-		getVideoData(videoId) {
-			try {
-				const player = this.getPlayer();
-				if (!player || typeof player.getDuration !== "function") throw new Error("JW Player instance not ready");
-				const item = player.getPlaylistItem ? player.getPlaylistItem() : null;
-				if (!item) throw new Error("No playlist item found");
-				const duration = player.getDuration ? player.getDuration() : item.duration ?? 0;
-				const validSources = (item.allSources ?? []).filter((s) => typeof s.height === "number" && s.height > 0);
-				if (validSources.length === 0) throw new Error("No sources with height > 0 found");
-				validSources.sort((a, b) => (a.height ?? 0) - (b.height ?? 0));
-				return {
-					url: videoId,
-					duration,
-					translationHelp: [{
-						target: "video_file_url",
-						targetUrl: validSources[0].file
-					}],
-					subtitles: this.getSubtitles()
-				};
-			} catch (err) {
-				console.error("[VOT] JWPlayerHelper error:", err instanceof Error ? err.message : String(err));
-				return;
-			}
-		}
-		getSubtitles() {
-			const subtitles = [];
-			try {
-				const player = this.getPlayer();
-				if (player?.getPlaylistItem) {
-					const item = player.getPlaylistItem();
-					if (item?.tracks) {
-						for (const track of item.tracks) if (track.kind === "captions" || track.kind === "subtitles") {
-							if (track.file) subtitles.push({
-								source: this.SUBTITLE_SOURCE,
-								format: this.SUBTITLE_FORMAT,
-								language: normalizeLang$1(track.label || "en"),
-								url: new URL(track.file, window.location.href).toString()
-							});
-						}
-					}
-				}
-			} catch (err) {
-				console.error("[VOT] JWPlayerHelper getSubtitles error:", err);
-			}
-			return subtitles;
 		}
 	};
 	//#endregion
@@ -6346,6 +5994,81 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region src/shims/nodeCrypto.ts
+	var nodeCrypto_exports = /* @__PURE__ */ __exportAll({
+		default: () => webCrypto,
+		getRandomValues: () => getRandomValues,
+		randomUUID: () => randomUUID,
+		subtle: () => subtle
+	});
+	var webCrypto, subtle, getRandomValues, randomUUID;
+	var init_nodeCrypto = __esmMin((() => {
+		webCrypto = globalThis.crypto;
+		if (!webCrypto?.subtle) throw new TypeError("Web Crypto API is not available in this environment.");
+		subtle = webCrypto.subtle;
+		getRandomValues = webCrypto.getRandomValues.bind(webCrypto);
+		randomUUID = typeof webCrypto.randomUUID === "function" ? webCrypto.randomUUID.bind(webCrypto) : void 0;
+	}));
+	//#endregion
+	//#region node_modules/@vot.js/shared/dist/secure.js
+	var { componentVersion } = config_default$1;
+	async function getCrypto() {
+		if (typeof window !== "undefined" && window.crypto) return window.crypto;
+		return await Promise.resolve().then(() => (init_nodeCrypto(), nodeCrypto_exports));
+	}
+	var utf8Encoder = new TextEncoder();
+	async function signHMAC(hashName, hmac, data) {
+		const crypto = await getCrypto();
+		const key = await crypto.subtle.importKey("raw", utf8Encoder.encode(hmac), {
+			name: "HMAC",
+			hash: { name: hashName }
+		}, false, ["sign", "verify"]);
+		return await crypto.subtle.sign("HMAC", key, data);
+	}
+	async function getSignature(body) {
+		const signature = await signHMAC("SHA-256", config_default$1.hmac, body);
+		return new Uint8Array(signature).reduce((str, byte) => str + byte.toString(16).padStart(2, "0"), "");
+	}
+	async function getSecYaHeaders(secType, session, body, path) {
+		const { secretKey, uuid } = session;
+		const token = `${uuid}:${path}:${componentVersion}`;
+		const tokenSign = await getSignature(utf8Encoder.encode(token));
+		if (secType === "Ya-Summary") return {
+			[`X-${secType}-Sk`]: secretKey,
+			[`X-${secType}-Token`]: `${tokenSign}:${token}`
+		};
+		if (!body) throw new TypeError(`Body is required for sec type ${secType}`);
+		const sign = await getSignature(body);
+		return {
+			[`${secType}-Signature`]: sign,
+			[`Sec-${secType}-Sk`]: secretKey,
+			[`Sec-${secType}-Token`]: `${tokenSign}:${token}`
+		};
+	}
+	function getUUID() {
+		const hexDigits = "0123456789ABCDEF";
+		let uuid = "";
+		for (let i = 0; i < 32; i++) {
+			const randomDigit = Math.floor(Math.random() * 16);
+			uuid += hexDigits[randomDigit];
+		}
+		return uuid;
+	}
+	async function getHmacSha1(hmacKey, salt) {
+		try {
+			const signature = await signHMAC("SHA-1", hmacKey, utf8Encoder.encode(salt));
+			return btoa(String.fromCharCode(...new Uint8Array(signature)));
+		} catch (err) {
+			Logger.error(err);
+			return false;
+		}
+	}
+	var browserSecHeaders = {
+		"sec-ch-ua": `"Chromium";v="148", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="99", "Yowser";v="2.5"`,
+		"sec-ch-ua-full-version-list": `"Chromium";v="148.0.7778.938", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="99.0.0.0", "Yowser";v="2.5"`,
+		"Sec-Fetch-Mode": "no-cors"
+	};
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/weverse.js
 	var WeverseHelper = class extends BaseHelper {
 		API_ORIGIN = "https://global.apis.naver.com/weverse/wevweb";
@@ -6500,11 +6223,18 @@ var vot = (function(exports) {
 				const { meta: { short_url, video_info }, name } = data;
 				if (!video_info) throw new VideoHelperError("There's no video open right now");
 				if (!short_url) throw new VideoHelperError("Access to the video is limited");
+				const title = this.clearTitle(name);
+				const duration = Math.round(video_info.duration / 1e3);
 				return {
-					url: short_url,
-					title: this.clearTitle(name),
-					duration: Math.round(video_info.duration / 1e3),
-					videoId
+					url: `https://yadi.sk${videoId}`,
+					video_url: short_url,
+					title,
+					duration,
+					videoId: data.path,
+					translationHelp: [{
+						target: "video_file_url",
+						targetUrl: short_url
+					}]
 				};
 			} catch (err) {
 				Logger.error(`Failed to get yandex disk video data by video ID: ${videoId}, because ${err.message}`);
@@ -6577,16 +6307,28 @@ var vot = (function(exports) {
 				const title = this.clearTitle(name);
 				const duration = videoDuration ? Math.round(videoDuration / 1e3) : 0;
 				if (short_url) return {
-					url: short_url,
+					url: `https://yadi.sk${videoId}`,
+					video_url: short_url,
 					duration,
 					title,
-					videoId
+					videoId: path,
+					translationHelp: [{
+						target: "video_file_url",
+						targetUrl: short_url
+					}]
 				};
 				const downloadUrl = await this.getDownloadUrl(path, sk);
+				const proxiedUrl = proxyMedia(new URL(downloadUrl));
 				return {
-					url: proxyMedia(new URL(downloadUrl)),
+					url: `https://yadi.sk${videoId}`,
+					video_url: downloadUrl,
 					duration,
-					title
+					title,
+					videoId: path,
+					translationHelp: [{
+						target: "video_file_url",
+						targetUrl: proxiedUrl
+					}]
 				};
 			} catch (err) {
 				Logger.error(`Failed to get yandex disk video data by disk video ID: ${videoId}`, err.message);
@@ -6594,10 +6336,7 @@ var vot = (function(exports) {
 			}
 		}
 		async getVideoData(videoId) {
-			if (videoId.startsWith(this.INLINE_PREFIX) || /^\/d\/([^/]+)$/.exec(videoId)) return {
-				url: (this.service?.url || "https://disk.yandex.ru") + videoId.slice(1),
-				videoId
-			};
+			if (videoId.startsWith(this.INLINE_PREFIX) || /^\/d\/([^/]+)$/.exec(videoId)) return { url: `https://yadi.sk${videoId}` };
 			videoId = decodeURIComponent(videoId);
 			if (videoId.startsWith(this.CLIENT_PREFIX)) return await this.getClientVideoData(videoId);
 			return await this.getDiskVideoData(videoId);
@@ -6846,6 +6585,7 @@ var vot = (function(exports) {
 		[VideoService$1.imdb]: IMDbHelper,
 		[VideoService$1.telegram]: TelegramHelper,
 		[VideoService$1.niconico]: NicoNicoHelper,
+		[VideoService$1.noodlemagazine]: NoodleMagazineHelper,
 		[ExtVideoService.udemy]: UdemyHelper,
 		[ExtVideoService.coursera]: CourseraHelper,
 		[ExtVideoService.douyin]: DouyinHelper,
@@ -6930,601 +6670,9 @@ var vot = (function(exports) {
 		};
 	}
 	//#endregion
-	//#region node_modules/chaimu/dist/config.js
-	var fetchFn = (...args) => {
-		if (typeof globalThis.fetch !== "function") throw new Error("Fetch API is not available in this environment");
-		return globalThis.fetch(...args);
-	};
-	var config_default = {
-		version: "1.0.6",
-		debug: false,
-		fetchFn
-	};
-	//#endregion
-	//#region node_modules/chaimu/dist/debug.js
-	var debug_default = { log: (...text) => {
-		if (!config_default.debug) return;
-		return console.log(`%c✦ chaimu.js v${config_default.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
-	} };
-	//#endregion
-	//#region node_modules/chaimu/dist/player.js
-	var videoLipSyncEvents = [
-		"playing",
-		"ratechange",
-		"play",
-		"waiting",
-		"stalled",
-		"seeking",
-		"pause",
-		"ended",
-		"seeked"
-	];
-	var BUFFERING_PAUSE_DELAY_MS = 250;
-	var SYNC_DRIFT_TOLERANCE_SEC = .15;
-	function initAudioContext() {
-		if (typeof window === "undefined") return;
-		const audioContext = window.AudioContext ?? window.webkitAudioContext;
-		return audioContext ? new audioContext() : void 0;
-	}
-	var IDLE_SUSPEND_DELAY_MS = 1e4;
-	var BasePlayer = class {
-		static name = "BasePlayer";
-		chaimu;
-		fetch;
-		isBuffering = false;
-		bufferingPauseTimer;
-		_src;
-		fetchOpts;
-		constructor(chaimu, src) {
-			this.chaimu = chaimu;
-			this._src = src;
-			this.fetch = this.chaimu.fetchFn;
-			this.fetchOpts = this.chaimu.fetchOpts;
-		}
-		async init() {
-			return this;
-		}
-		async clear() {
-			return this;
-		}
-		lipSync(_mode = false) {
-			return this;
-		}
-		handleVideoEvent = (event) => {
-			debug_default.log(`handle video ${event.type}`);
-			this.lipSync(event.type);
-			return this;
-		};
-		isPlaybackBlocked() {
-			const video = this.chaimu.video;
-			return this.isBuffering || !video || video.ended || video.seeking || video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA;
-		}
-		handlePlaybackError(action, error) {
-			if (error instanceof DOMException && error.name === "NotAllowedError") {
-				debug_default.log(`[${this.name}] ${action} blocked by autoplay policy`);
-				return;
-			}
-			console.error(`[${this.name}] ${action} failed`, error);
-		}
-		cancelBufferingPause() {
-			if (this.bufferingPauseTimer !== void 0) {
-				clearTimeout(this.bufferingPauseTimer);
-				this.bufferingPauseTimer = void 0;
-			}
-		}
-		resetPlaybackState() {
-			this.cancelBufferingPause();
-			this.isBuffering = false;
-		}
-		shouldPauseForBuffering() {
-			const video = this.chaimu.video;
-			if (!video || video.paused || video.ended) return false;
-			return video.seeking || video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA;
-		}
-		scheduleBufferingPause(onPause) {
-			this.cancelBufferingPause();
-			this.bufferingPauseTimer = setTimeout(() => {
-				this.bufferingPauseTimer = void 0;
-				if (!this.shouldPauseForBuffering()) return;
-				this.isBuffering = true;
-				onPause();
-			}, BUFFERING_PAUSE_DELAY_MS);
-		}
-		async resumeAudioContext() {
-			const audioContext = this.chaimu.audioContext;
-			if (!audioContext) return true;
-			if (audioContext.state === "running") return true;
-			if (audioContext.state === "closed") {
-				this.handlePlaybackError("resume AudioContext", /* @__PURE__ */ new Error("AudioContext is closed"));
-				return false;
-			}
-			try {
-				await audioContext.resume();
-				return true;
-			} catch (error) {
-				this.handlePlaybackError("resume AudioContext", error);
-				return false;
-			}
-		}
-		async suspendAudioContext() {
-			const audioContext = this.chaimu.audioContext;
-			if (!audioContext || audioContext.state !== "running") return;
-			try {
-				await audioContext.suspend();
-			} catch (error) {
-				this.handlePlaybackError("suspend AudioContext", error);
-			}
-		}
-		removeVideoEvents() {
-			for (const e of videoLipSyncEvents) this.chaimu.video?.removeEventListener(e, this.handleVideoEvent);
-			return this;
-		}
-		addVideoEvents() {
-			for (const e of videoLipSyncEvents) this.chaimu.video?.addEventListener(e, this.handleVideoEvent);
-			return this;
-		}
-		async play() {
-			return this;
-		}
-		async pause() {
-			return this;
-		}
-		get name() {
-			return this.constructor.name;
-		}
-		set src(url) {
-			this._src = url;
-		}
-		get src() {
-			return this._src;
-		}
-		get currentSrc() {
-			return this._src;
-		}
-		set volume(_value) {}
-		get volume() {
-			return 0;
-		}
-		get playbackRate() {
-			return 0;
-		}
-		set playbackRate(_value) {}
-		get currentTime() {
-			return 0;
-		}
-	};
-	var AudioPlayer = class extends BasePlayer {
-		static name = "AudioPlayer";
-		audio;
-		gainNode;
-		audioSource;
-		suspendTimer;
-		constructor(chaimu, src) {
-			super(chaimu, src);
-			this.updateAudio();
-		}
-		initAudioBooster() {
-			if (!this.chaimu.audioContext) return this;
-			this.disconnectAudioNodes();
-			const gainNode = this.chaimu.audioContext.createGain();
-			this.gainNode = gainNode;
-			gainNode.connect(this.chaimu.audioContext.destination);
-			this.audioSource = this.chaimu.audioContext.createMediaElementSource(this.audio);
-			this.audioSource.connect(gainNode);
-			return this;
-		}
-		disconnectAudioNodes() {
-			if (this.audioSource) {
-				this.audioSource.disconnect();
-				this.audioSource = void 0;
-			}
-			if (this.gainNode) {
-				this.gainNode.disconnect();
-				this.gainNode = void 0;
-			}
-		}
-		scheduleSuspend() {
-			this.cancelSuspend();
-			this.suspendTimer = setTimeout(async () => {
-				debug_default.log("[AudioPlayer] idle suspend");
-				await this.suspendAudioContext();
-			}, IDLE_SUSPEND_DELAY_MS);
-		}
-		cancelSuspend() {
-			if (this.suspendTimer !== void 0) {
-				clearTimeout(this.suspendTimer);
-				this.suspendTimer = void 0;
-			}
-		}
-		syncAudioToVideo(force = false) {
-			const video = this.chaimu.video;
-			if (!video) return this;
-			this.audio.playbackRate = video.playbackRate;
-			const drift = Math.abs(this.audio.currentTime - video.currentTime);
-			if (force || drift > SYNC_DRIFT_TOLERANCE_SEC) this.audio.currentTime = video.currentTime;
-			return this;
-		}
-		updateAudio() {
-			this.audio = new Audio(this.src);
-			this.audio.crossOrigin = "anonymous";
-			return this;
-		}
-		async init() {
-			this.updateAudio();
-			this.initAudioBooster();
-			return this;
-		}
-		async resumeAndPlayAudio() {
-			if (!this.audio || this.isPlaybackBlocked()) return;
-			this.cancelSuspend();
-			if (!await this.resumeAudioContext() || this.isPlaybackBlocked()) return;
-			try {
-				await this.audio.play();
-			} catch (error) {
-				this.handlePlaybackError("play audio element", error);
-			}
-		}
-		lipSync(mode = false) {
-			debug_default.log("[AudioPlayer] lipsync video", this.chaimu.video);
-			if (!this.chaimu.video) return this;
-			this.syncAudioToVideo(mode === "play" || mode === "seeked" || mode === "seeking");
-			if (!mode) return this;
-			switch (mode) {
-				case "ratechange":
-					this.cancelBufferingPause();
-					return this;
-				case "play":
-				case "playing":
-				case "seeked":
-					this.cancelBufferingPause();
-					this.isBuffering = false;
-					if (!this.chaimu.video.paused) this.syncPlay();
-					return this;
-				case "waiting":
-				case "stalled":
-					this.scheduleBufferingPause(() => {
-						this.audio.pause();
-					});
-					return this;
-				case "seeking":
-					this.cancelBufferingPause();
-					this.isBuffering = true;
-					this.audio.pause();
-					return this;
-				case "pause":
-				case "ended":
-					this.cancelBufferingPause();
-					this.isBuffering = false;
-					this.pause();
-					return this;
-				default: return this;
-			}
-		}
-		async clear() {
-			this.cancelSuspend();
-			this.resetPlaybackState();
-			this.audio.pause();
-			this.audio.src = "";
-			this.audio.removeAttribute("src");
-			this.audio.load();
-			this.disconnectAudioNodes();
-			await this.suspendAudioContext();
-			return this;
-		}
-		syncPlay() {
-			debug_default.log("[AudioPlayer] sync play called");
-			this.resumeAndPlayAudio();
-			return this;
-		}
-		async play() {
-			debug_default.log("[AudioPlayer] play called");
-			await this.resumeAndPlayAudio();
-			return this;
-		}
-		async pause() {
-			debug_default.log("[AudioPlayer] pause called");
-			this.resetPlaybackState();
-			if (this.audio) this.audio.pause();
-			this.scheduleSuspend();
-			return this;
-		}
-		set src(url) {
-			this._src = url;
-			if (!url) {
-				this.clear();
-				return;
-			}
-			this.audio.src = url;
-		}
-		get src() {
-			return this._src;
-		}
-		get currentSrc() {
-			return this.audio.currentSrc;
-		}
-		set volume(value) {
-			if (this.gainNode) {
-				this.gainNode.gain.value = value;
-				return;
-			}
-			this.audio.volume = value;
-		}
-		get volume() {
-			return this.gainNode ? this.gainNode.gain.value : this.audio.volume;
-		}
-		get playbackRate() {
-			return this.audio.playbackRate;
-		}
-		set playbackRate(value) {
-			this.audio.playbackRate = value;
-		}
-		get currentTime() {
-			return this.audio.currentTime;
-		}
-	};
-	var ChaimuPlayer = class extends BasePlayer {
-		static name = "ChaimuPlayer";
-		audioBuffer;
-		audioElement;
-		mediaElementSource;
-		gainNode;
-		blobUrl;
-		isClearing = false;
-		isInitializing = false;
-		clearingPromise;
-		suspendTimer;
-		async fetchAudio() {
-			if (!this._src) throw new Error("No audio source provided");
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			debug_default.log(`[ChaimuPlayer] Fetching audio from ${this._src}...`);
-			let tempBlobUrl;
-			try {
-				const res = await this.fetch(this._src, this.fetchOpts);
-				if (!res.ok) throw new Error(`Response status: ${res.status}`);
-				debug_default.log(`[ChaimuPlayer] Decoding fetched audio...`);
-				const data = await res.arrayBuffer();
-				const blob = new Blob([data]);
-				tempBlobUrl = URL.createObjectURL(blob);
-				this.audioBuffer = await this.chaimu.audioContext.decodeAudioData(data);
-				if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
-				this.blobUrl = tempBlobUrl;
-				tempBlobUrl = void 0;
-			} catch (err) {
-				if (tempBlobUrl) URL.revokeObjectURL(tempBlobUrl);
-				throw new Error(`Failed to fetch audio file, because ${err.message}`);
-			}
-			return this;
-		}
-		initAudioBooster() {
-			if (!this.chaimu.audioContext) return this;
-			this.disconnectAudioNodes();
-			this.gainNode = this.chaimu.audioContext.createGain();
-			return this;
-		}
-		disconnectAudioNodes() {
-			if (this.mediaElementSource) {
-				this.mediaElementSource.disconnect();
-				this.mediaElementSource = void 0;
-			}
-			if (this.gainNode) {
-				this.gainNode.disconnect();
-				this.gainNode = void 0;
-			}
-		}
-		scheduleSuspend() {
-			this.cancelSuspend();
-			this.suspendTimer = setTimeout(async () => {
-				debug_default.log("[ChaimuPlayer] idle suspend");
-				await this.suspendAudioContext();
-			}, IDLE_SUSPEND_DELAY_MS);
-		}
-		cancelSuspend() {
-			if (this.suspendTimer !== void 0) {
-				clearTimeout(this.suspendTimer);
-				this.suspendTimer = void 0;
-			}
-		}
-		async init() {
-			if (this.isInitializing) throw new Error("Initialization already in progress");
-			this.isInitializing = true;
-			try {
-				await this.fetchAudio();
-				this.initAudioBooster();
-				this.createAudioElement();
-				return this;
-			} finally {
-				this.isInitializing = false;
-			}
-		}
-		createAudioElement() {
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			if (!this.blobUrl) throw new Error("No blob URL available.");
-			const audio = new Audio(this.blobUrl);
-			audio.crossOrigin = "anonymous";
-			if ("preservesPitch" in audio) {
-				audio.preservesPitch = true;
-				if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
-				if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = true;
-			}
-			this.audioElement = audio;
-			const gainNode = this.gainNode;
-			if (!gainNode) throw new Error("Audio gain node is missing");
-			this.mediaElementSource = this.chaimu.audioContext.createMediaElementSource(audio);
-			this.mediaElementSource.connect(gainNode);
-			gainNode.connect(this.chaimu.audioContext.destination);
-		}
-		lipSync(mode = false) {
-			debug_default.log("[ChaimuPlayer] lipsync video", this.chaimu.video, this);
-			if (!this.chaimu.video || !mode) return this;
-			switch (mode) {
-				case "play":
-				case "playing":
-				case "ratechange":
-				case "seeked":
-					this.cancelBufferingPause();
-					this.isBuffering = false;
-					if (!this.chaimu.video.paused) this.start();
-					return this;
-				case "waiting":
-				case "stalled":
-					this.scheduleBufferingPause(() => {
-						if (this.audioElement) this.audioElement.pause();
-					});
-					return this;
-				case "seeking":
-					this.cancelBufferingPause();
-					this.isBuffering = true;
-					if (this.audioElement) this.audioElement.pause();
-					return this;
-				case "pause":
-				case "ended":
-					this.cancelBufferingPause();
-					this.isBuffering = false;
-					this.pause();
-					return this;
-				default: return this;
-			}
-		}
-		async reopenCtx() {
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			try {
-				if (this.chaimu.audioContext.state !== "closed") await this.chaimu.audioContext.close();
-			} catch (err) {
-				debug_default.log("[ChaimuPlayer] Failed to close audio context:", err);
-			}
-			this.chaimu.audioContext = initAudioContext();
-			return this;
-		}
-		async clear() {
-			if (this.isClearing && this.clearingPromise) return this.clearingPromise;
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			debug_default.log("clear audio context");
-			this.cancelSuspend();
-			this.resetPlaybackState();
-			this.isClearing = true;
-			this.clearingPromise = (async () => {
-				try {
-					if (this.audioElement) {
-						this.audioElement.pause();
-						this.audioElement = void 0;
-					}
-					if (this.blobUrl) {
-						URL.revokeObjectURL(this.blobUrl);
-						this.blobUrl = void 0;
-					}
-					this.audioBuffer = void 0;
-					const oldVolume = this.gainNode ? this.gainNode.gain.value : 1;
-					this.disconnectAudioNodes();
-					await this.reopenCtx();
-					if (this.chaimu.audioContext) {
-						this.initAudioBooster();
-						this.volume = oldVolume;
-						await this.suspendAudioContext();
-					}
-					return this;
-				} finally {
-					this.isClearing = false;
-					this.clearingPromise = void 0;
-				}
-			})();
-			return this.clearingPromise;
-		}
-		async start() {
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			if (!this.audioElement) throw new Error("Audio element is missing");
-			if (this.isClearing && this.clearingPromise) {
-				debug_default.log("The other cleaner is still running, waiting...");
-				await this.clearingPromise;
-			}
-			if (!this.chaimu.audioContext || !this.audioElement) return this;
-			this.cancelSuspend();
-			if (this.isPlaybackBlocked()) return this;
-			debug_default.log("starting audio via HTMLAudioElement");
-			if (!await this.resumeAudioContext()) return this;
-			if (this.isPlaybackBlocked()) return this;
-			if (this.chaimu.video) {
-				this.audioElement.currentTime = this.chaimu.video.currentTime;
-				this.audioElement.playbackRate = this.chaimu.video.playbackRate;
-			}
-			try {
-				await this.audioElement.play();
-			} catch (error) {
-				this.handlePlaybackError("play audio element", error);
-			}
-			return this;
-		}
-		async pause() {
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			this.resetPlaybackState();
-			if (this.audioElement) this.audioElement.pause();
-			this.scheduleSuspend();
-			return this;
-		}
-		async play() {
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			this.cancelSuspend();
-			await this.resumeAudioContext();
-			return this;
-		}
-		set src(url) {
-			this._src = url;
-		}
-		get src() {
-			return this._src;
-		}
-		get currentSrc() {
-			return this._src;
-		}
-		set volume(value) {
-			if (this.gainNode) this.gainNode.gain.value = value;
-		}
-		get volume() {
-			return this.gainNode ? this.gainNode.gain.value : 0;
-		}
-		set playbackRate(value) {
-			if (this.audioElement) this.audioElement.playbackRate = value;
-		}
-		get playbackRate() {
-			return this.audioElement ? this.audioElement.playbackRate : this.chaimu.video?.playbackRate ?? 1;
-		}
-		get currentTime() {
-			return this.chaimu.video?.currentTime ?? 0;
-		}
-	};
-	//#endregion
-	//#region node_modules/chaimu/dist/client.js
-	var Chaimu = class {
-		_debug = false;
-		audioContext;
-		player;
-		video;
-		fetchFn;
-		fetchOpts;
-		constructor({ url, video, debug = false, fetchFn = config_default.fetchFn, fetchOpts = {}, preferAudio = false }) {
-			this._debug = config_default.debug = debug;
-			this.fetchFn = fetchFn;
-			this.fetchOpts = fetchOpts;
-			this.audioContext = preferAudio ? void 0 : initAudioContext();
-			this.player = this.audioContext && !preferAudio ? new ChaimuPlayer(this, url) : new AudioPlayer(this, url);
-			this.video = video;
-		}
-		async init() {
-			await this.player.init();
-			this.player.addVideoEvents();
-			if (this.video.paused || this.video.ended || this.video.seeking || this.video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) await this.player.pause();
-			else this.player.lipSync("play");
-		}
-		set debug(value) {
-			this._debug = config_default.debug = value;
-		}
-		get debug() {
-			return this._debug;
-		}
-	};
-	//#endregion
 	//#region src/bootstrap/bootState.ts
 	var MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
-	var BOOTSTRAP_STATUSES = new Set([
+	var BOOTSTRAP_STATUSES = /* @__PURE__ */ new Set([
 		"idle",
 		"booting",
 		"booted",
@@ -7543,7 +6691,6 @@ var vot = (function(exports) {
 		if (isBootstrapState(existing)) return existing;
 		const created = {
 			status: "idle",
-			promise: null,
 			error: null
 		};
 		scope[bootKey] = created;
@@ -7690,436 +6837,6 @@ var vot = (function(exports) {
 		error
 	};
 	//#endregion
-	//#region src/utils/number.ts
-	function clampNumber$1(value, min, max) {
-		if (!Number.isFinite(value)) return min;
-		if (max < min) return min;
-		return Math.max(min, Math.min(max, value));
-	}
-	function clampNumberWithSortedBounds(value, min, max) {
-		return Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
-	}
-	//#endregion
-	//#region src/utils/localization.ts
-	function getNavigatorLang() {
-		if (typeof navigator === "undefined") return "en";
-		return navigator.language?.substring(0, 2).toLowerCase() || "en";
-	}
-	var slavicLangs = new Set([
-		"uk",
-		"be",
-		"bg",
-		"mk",
-		"sr",
-		"bs",
-		"hr",
-		"sl",
-		"pl",
-		"sk",
-		"cs"
-	]);
-	function resolveCalculatedResLang(baseLang) {
-		if (availableTTS.includes(baseLang)) return baseLang;
-		if (slavicLangs.has(baseLang)) return "ru";
-		return "en";
-	}
-	var lang = getNavigatorLang();
-	var calculatedResLang = resolveCalculatedResLang(lang);
-	//#endregion
-	//#region src/utils/utils.ts
-	var DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 3e4;
-	var ASCII_CONTROL_CHARS_RE = /\p{Cc}/gu;
-	var INVALID_FILENAME_CHARS_RE = /[\\/:*?"'<>|]+/g;
-	var URL_PROTOCOL_RE = /^https?:\/\//i;
-	var MULTIPLE_DASHES_RE = /-{2,}/g;
-	var EDGE_FILE_CHARS_RE = /^[.\s-]+|[.\s-]+$/g;
-	function getDateFallbackFilename() {
-		return (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-	}
-	function stripAsciiControlChars(value) {
-		return value.replace(ASCII_CONTROL_CHARS_RE, "");
-	}
-	/**
-	* Creates a stable JSON string representation for consistent hashing
-	* @param value The value to stringify
-	* @returns A stable JSON string
-	*/
-	function stableStringify(value) {
-		const seen = /* @__PURE__ */ new WeakSet();
-		return JSON.stringify(value, (_key, val) => {
-			if (val && typeof val === "object") {
-				if (seen.has(val)) return "[Circular]";
-				seen.add(val);
-				if (Array.isArray(val)) return val;
-				const sorted = {};
-				const keys = Object.keys(val).sort((a, b) => a.localeCompare(b));
-				for (const key of keys) sorted[key] = val[key];
-				return sorted;
-			}
-			return val;
-		});
-	}
-	/**
-	* Small, deterministic hash for cache keys. (Not crypto.)
-	* @param str The string to hash
-	* @returns A base36 string representation of the hash
-	*/
-	function fnv1a32ToKeyPart(str) {
-		let hash = 2166136261;
-		let i = 0;
-		while (i < str.length) {
-			const codePoint = str.codePointAt(i) ?? 0;
-			hash ^= codePoint;
-			hash = Math.imul(hash, 16777619);
-			i += codePoint > 65535 ? 2 : 1;
-		}
-		return (hash >>> 0).toString(36);
-	}
-	var isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
-	async function writeBlobToHandle(handle, blob) {
-		try {
-			const writable = await handle.createWritable();
-			await writable.write(blob);
-			await writable.close();
-			return true;
-		} catch {
-			return false;
-		}
-	}
-	async function shareBlob(blob, filename) {
-		const nav = typeof navigator === "undefined" ? void 0 : navigator;
-		if (!nav?.share || typeof File === "undefined") return "unsupported";
-		let file;
-		try {
-			file = new File([blob], filename, { type: blob.type || "application/octet-stream" });
-		} catch {
-			return "unsupported";
-		}
-		if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) return "unsupported";
-		try {
-			await nav.share({
-				files: [file],
-				title: filename
-			});
-			return "shared";
-		} catch (err) {
-			if (err instanceof DOMException && err.name === "AbortError") return "shared";
-			return "error";
-		}
-	}
-	function triggerBlobDownload(blob, filename) {
-		const url = URL.createObjectURL(blob);
-		const anchor = document.createElement("a");
-		anchor.href = url;
-		anchor.download = filename;
-		anchor.rel = "noopener noreferrer";
-		anchor.target = "_blank";
-		anchor.style.position = "fixed";
-		anchor.style.left = "-9999px";
-		anchor.style.top = "0";
-		(document.body ?? document.documentElement).append(anchor);
-		try {
-			anchor.click();
-			return true;
-		} catch {
-			return false;
-		} finally {
-			anchor.remove();
-			revokeObjectUrlLater(url);
-		}
-	}
-	/** Downloads binary file with entered filename */
-	async function downloadBlob(blob, filename, options = {}) {
-		if (options.fileHandle) {
-			if (await writeBlobToHandle(options.fileHandle, blob)) return true;
-		}
-		if (options.preferShare) {
-			if (await shareBlob(blob, filename) === "shared") return true;
-		}
-		return triggerBlobDownload(blob, filename);
-	}
-	function revokeObjectUrlLater(url, delayMs = DEFAULT_OBJECT_URL_REVOKE_DELAY_MS) {
-		const safeDelayMs = Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : DEFAULT_OBJECT_URL_REVOKE_DELAY_MS;
-		globalThis.setTimeout(() => URL.revokeObjectURL(url), safeDelayMs);
-	}
-	function clearFileName(filename) {
-		const trimmed = filename.trim();
-		if (!trimmed) return getDateFallbackFilename();
-		return stripAsciiControlChars(trimmed).replace(URL_PROTOCOL_RE, "").replace(INVALID_FILENAME_CHARS_RE, "-").replace(MULTIPLE_DASHES_RE, "-").replace(EDGE_FILE_CHARS_RE, "") || getDateFallbackFilename();
-	}
-	var getTimestamp = () => Math.floor(Date.now() / 1e3);
-	var getHeaders = (headers) => headers ? Object.fromEntries(new Headers(headers)) : {};
-	function clamp(value, min = 0, max = 100) {
-		return clampNumberWithSortedBounds(value, min, max);
-	}
-	function toFlatObj(data) {
-		const out = {};
-		const stack = Object.entries(data);
-		while (stack.length) {
-			const entry = stack.pop();
-			if (!entry) continue;
-			const [key, val] = entry;
-			if (val === void 0) continue;
-			if (!(val !== null && typeof val === "object" && !Array.isArray(val))) {
-				out[key] = val;
-				continue;
-			}
-			for (const [k, v] of Object.entries(val)) stack.push([`${key}.${k}`, v]);
-		}
-		return out;
-	}
-	//#endregion
-	//#region src/core/cacheManager.ts
-	var YANDEX_TTL_MS = 7200 * 1e3;
-	var RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
-	var RESPONSE_CACHE_KEY_HEADER = "x-vot-cache-key";
-	var DEFAULT_RESPONSE_CACHE_NAME = "vot-http-cache-v1";
-	var VOT_SESSION_STORAGE_KEY = "VOTSession";
-	function getCurrentUnixTimestampSeconds() {
-		return Math.floor(Date.now() / 1e3);
-	}
-	function computeExpiresAt(createdAtMs, ttlMs) {
-		if (!Number.isFinite(ttlMs) || ttlMs <= 0) return createdAtMs;
-		return ttlMs >= Number.MAX_SAFE_INTEGER - createdAtMs ? Number.MAX_SAFE_INTEGER : createdAtMs + ttlMs;
-	}
-	function normalizeMethod(method) {
-		return (method || "GET").toUpperCase();
-	}
-	function resolveBodyKey(body) {
-		if (body == null) return "";
-		if (typeof body === "string") return body;
-		if (body instanceof URLSearchParams) return body.toString();
-	}
-	function isClientSession(value) {
-		if (!value || typeof value !== "object") return false;
-		const candidate = value;
-		return typeof candidate.expires === "number" && Number.isFinite(candidate.expires) && typeof candidate.timestamp === "number" && Number.isFinite(candidate.timestamp) && typeof candidate.uuid === "string" && candidate.uuid.length > 0 && typeof candidate.secretKey === "string" && candidate.secretKey.length > 0;
-	}
-	function sanitizeVOTSessions(value) {
-		if (!value || typeof value !== "object") return {};
-		const now = getCurrentUnixTimestampSeconds();
-		const entries = Object.entries(value).flatMap(([module, session]) => {
-			if (!isClientSession(session)) return [];
-			if (session.timestamp + session.expires <= now) return [];
-			return [[module, session]];
-		});
-		return Object.fromEntries(entries);
-	}
-	function hasSessions(sessions) {
-		return Object.keys(sessions).length > 0;
-	}
-	var VOTSessionStorageCache = class {
-		constructor(storage = votStorage) {
-			this.storage = storage;
-		}
-		getStorageKey() {
-			return VOT_SESSION_STORAGE_KEY;
-		}
-		async restore(_host, currentSessions = {}) {
-			const storageKey = this.getStorageKey();
-			const rawStoredSession = await this.storage.getRaw(storageKey);
-			const restoredSessions = sanitizeVOTSessions(rawStoredSession);
-			if (!hasSessions(restoredSessions)) {
-				if (rawStoredSession !== void 0) await this.storage.deleteRaw(storageKey);
-				return currentSessions;
-			}
-			return {
-				...currentSessions,
-				...restoredSessions
-			};
-		}
-		async persist(_host, sessions) {
-			const storageKey = this.getStorageKey();
-			const sanitizedSessions = sanitizeVOTSessions(sessions);
-			if (!hasSessions(sanitizedSessions)) {
-				await this.storage.deleteRaw(storageKey);
-				return;
-			}
-			await this.storage.setRaw(storageKey, sanitizedSessions);
-		}
-	};
-	/**
-	* Small in-memory cache with TTL for both translations and subtitles.
-	*
-	* The cache is keyed by a stable key built by VideoHandler.
-	*/
-	var InMemoryCacheManager = class {
-		translations = /* @__PURE__ */ new Map();
-		subtitles = /* @__PURE__ */ new Map();
-		/**
-		* Clears all cached entries.
-		*
-		* Used when runtime settings change (e.g. proxy mode/host), because cached
-		* translation URLs and especially previous failures can become stale.
-		*/
-		clear() {
-			this.translations.clear();
-			this.subtitles.clear();
-		}
-		getTranslation(key) {
-			return this.getFreshValue(this.translations, key);
-		}
-		setTranslation(key, translation) {
-			this.setFreshValue(this.translations, key, translation);
-		}
-		getSubtitles(key) {
-			return this.getFreshValue(this.subtitles, key);
-		}
-		setSubtitles(key, subtitles) {
-			this.setFreshValue(this.subtitles, key, subtitles);
-		}
-		deleteSubtitles(key) {
-			this.subtitles.delete(key);
-		}
-		getFreshValue(cache, key) {
-			const entry = cache.get(key);
-			if (!entry) return void 0;
-			if (entry.expiresAt <= Date.now()) {
-				cache.delete(key);
-				return;
-			}
-			return entry.value;
-		}
-		setFreshValue(cache, key, value) {
-			cache.set(key, {
-				value,
-				expiresAt: computeExpiresAt(Date.now(), YANDEX_TTL_MS)
-			});
-		}
-	};
-	var ResponseCacheManager = class {
-		inFlightRequests = /* @__PURE__ */ new Map();
-		async execute(context, options, fetcher) {
-			if (!options || options.ttlMs <= 0) return fetcher();
-			const method = normalizeMethod(context.method);
-			const key = options.key ?? this.buildDefaultCacheKey(context);
-			if (!key) return fetcher();
-			const ttlMs = options.ttlMs;
-			const cacheName = options.cacheName || DEFAULT_RESPONSE_CACHE_NAME;
-			const useCacheApi = options.useCacheApi !== false && method === "GET" && this.supportsCacheApi();
-			const cacheApiKey = useCacheApi ? fnv1a32ToKeyPart(key) : "";
-			const dedupe = options.dedupe !== false;
-			const allowStaleOnError = options.allowStaleOnError !== false;
-			const cached = useCacheApi ? await this.readCacheApi(cacheName, context.url, cacheApiKey, ttlMs, Date.now(), allowStaleOnError) : {};
-			if (cached.fresh) return cached.fresh;
-			const networkRequest = () => this.runNetworkRequestWithFallback({
-				cacheName,
-				url: context.url,
-				cacheApiKey,
-				useCacheApi
-			}, fetcher, allowStaleOnError ? cached.stale : void 0);
-			if (!dedupe) return await networkRequest();
-			const inFlight = this.inFlightRequests.get(key);
-			if (inFlight !== void 0) return (await inFlight).clone();
-			const networkPromise = networkRequest();
-			this.inFlightRequests.set(key, networkPromise);
-			try {
-				return (await networkPromise).clone();
-			} finally {
-				this.inFlightRequests.delete(key);
-			}
-		}
-		async runNetworkRequestWithFallback(cacheConfig, fetcher, staleFallback) {
-			try {
-				return await this.runNetworkRequest(cacheConfig, fetcher);
-			} catch (err) {
-				if (staleFallback) return staleFallback;
-				throw err;
-			}
-		}
-		async runNetworkRequest({ cacheName, url, cacheApiKey, useCacheApi }, fetcher) {
-			const response = await fetcher();
-			if (!response.ok) return response;
-			const createdAtMs = Date.now();
-			if (useCacheApi) {
-				const storable = this.toStorableResponse(response.clone(), createdAtMs);
-				await this.writeCacheApi(cacheName, url, cacheApiKey, storable);
-			}
-			return response;
-		}
-		buildDefaultCacheKey(context) {
-			const method = normalizeMethod(context.method);
-			if (method === "GET") return `${method}:${context.url}`;
-			const bodyKey = resolveBodyKey(context.body);
-			if (bodyKey === void 0) return void 0;
-			return `${method}:${context.url}#${fnv1a32ToKeyPart(bodyKey)}`;
-		}
-		supportsCacheApi() {
-			return typeof caches !== "undefined" && typeof caches.open === "function";
-		}
-		readCreatedAtMs(response) {
-			const raw = response.headers.get(RESPONSE_CACHE_CREATED_AT_HEADER);
-			if (!raw) return null;
-			const value = Number(raw);
-			return Number.isFinite(value) ? value : null;
-		}
-		ensureVaryByCacheKey(headers) {
-			const varyRaw = headers.get("vary");
-			if (!varyRaw) {
-				headers.set("vary", RESPONSE_CACHE_KEY_HEADER);
-				return;
-			}
-			const varyParts = new Set(varyRaw.split(",").map((part) => part.trim().toLowerCase()));
-			if (!varyParts.has("*") && !varyParts.has(RESPONSE_CACHE_KEY_HEADER)) headers.set("vary", `${varyRaw}, ${RESPONSE_CACHE_KEY_HEADER}`);
-		}
-		toStorableResponse(response, createdAtMs) {
-			const headers = new Headers(response.headers);
-			headers.set(RESPONSE_CACHE_CREATED_AT_HEADER, String(createdAtMs));
-			this.ensureVaryByCacheKey(headers);
-			return new Response(response.body, {
-				status: response.status,
-				statusText: response.statusText,
-				headers
-			});
-		}
-		async readCacheApi(cacheName, url, cacheKey, ttlMs, nowMs, allowStaleOnError) {
-			try {
-				const request = new Request(url, {
-					method: "GET",
-					headers: { [RESPONSE_CACHE_KEY_HEADER]: cacheKey }
-				});
-				const cache = await caches.open(cacheName);
-				const cached = await cache.match(request);
-				if (!cached) return {};
-				const createdAtMs = this.readCreatedAtMs(cached);
-				if (createdAtMs === null) {
-					await cache.delete(request);
-					return {};
-				}
-				const expiresAt = computeExpiresAt(createdAtMs, ttlMs);
-				if (expiresAt > nowMs) return {
-					fresh: cached.clone(),
-					expiresAt
-				};
-				if (!allowStaleOnError) {
-					await cache.delete(request);
-					return {};
-				}
-				const stale = cached.clone();
-				await cache.delete(request);
-				return {
-					stale,
-					expiresAt
-				};
-			} catch {
-				return {};
-			}
-		}
-		async writeCacheApi(cacheName, url, cacheKey, response) {
-			try {
-				const request = new Request(url, {
-					method: "GET",
-					headers: { [RESPONSE_CACHE_KEY_HEADER]: cacheKey }
-				});
-				await (await caches.open(cacheName)).put(request, response);
-			} catch {}
-		}
-	};
-	var responseCacheManager = new ResponseCacheManager();
-	async function executeWithResponseCache(context, options, fetcher) {
-		return responseCacheManager.execute(context, options, fetcher);
-	}
-	//#endregion
 	//#region src/utils/errors.ts
 	/**
 	* Small error helpers used across the project.
@@ -8192,6 +6909,25 @@ var vot = (function(exports) {
 			return err;
 		}
 	}
+	/**
+	* Safely reads a nested field from an unknown value.
+	*
+	* Returns `undefined` when any intermediate property is missing or not an
+	* object, eliminating the repetitive null-check → cast → access pattern
+	* that was scattered across error-handling code.
+	*
+	* @example
+	* safeNestedGet(err, ["data", "message"])  // err?.data?.message
+	* safeNestedGet(err, ["status"])           // err?.status
+	*/
+	function safeNestedGet(value, path) {
+		let current = value;
+		for (const key of path) {
+			if (current == null || typeof current !== "object") return;
+			current = current[key];
+		}
+		return current;
+	}
 	//#endregion
 	//#region src/utils/abort.ts
 	var NEVER_ABORTED_SIGNAL = new AbortController().signal;
@@ -8203,15 +6939,12 @@ var vot = (function(exports) {
 	* `AbortError` so callers can reliably use `isAbortError()`.
 	*/
 	function throwIfAborted(signal) {
-		const maybeThrow = signal.throwIfAborted;
-		if (typeof maybeThrow === "function") try {
-			maybeThrow.call(signal);
-			return;
+		try {
+			signal.throwIfAborted();
 		} catch (e) {
 			if (signal.aborted || isAbortError(e)) throw makeAbortError();
 			throw e instanceof Error ? e : new Error(String(e));
 		}
-		if (signal.aborted) throw makeAbortError();
 	}
 	/**
 	* Creates an AbortSignal that auto-aborts after `timeoutMs`.
@@ -8226,29 +6959,137 @@ var vot = (function(exports) {
 		};
 		const controller = new AbortController();
 		let timeoutId;
-		const onExternalAbort = () => {
+		let cleaned = false;
+		const cleanup = () => {
+			if (cleaned) return;
+			cleaned = true;
 			if (timeoutId !== void 0) {
 				clearTimeout(timeoutId);
 				timeoutId = void 0;
 			}
+			external?.removeEventListener("abort", onExternalAbort);
+		};
+		const onExternalAbort = () => {
+			cleanup();
 			controller.abort(external?.reason);
 		};
 		if (external) {
 			external.addEventListener("abort", onExternalAbort, { once: true });
-			if (external.aborted) onExternalAbort();
+			if (external.aborted) {
+				onExternalAbort();
+				return {
+					signal: controller.signal,
+					cleanup
+				};
+			}
 		}
-		if (!controller.signal.aborted) timeoutId = setTimeout(() => {
+		timeoutId = setTimeout(() => {
+			cleanup();
 			controller.abort(makeAbortError("Timeout"));
-			timeoutId = void 0;
 		}, timeoutMs);
 		return {
 			signal: controller.signal,
-			cleanup: () => {
-				if (timeoutId !== void 0) {
-					clearTimeout(timeoutId);
-					timeoutId = void 0;
+			cleanup
+		};
+	}
+	/**
+	* Returns a promise that resolves after `delayMs` and rejects if `signal`
+	* is aborted before the delay elapses.
+	*
+	* Unlike `createAbortableWaiter`, the timeout here is a *delay* — the promise
+	* resolves on expiry so the caller can proceed with the next action (e.g.
+	* a retry). The promise only rejects when the external `signal` is aborted
+	* (i.e. the operation was cancelled).
+	*/
+	function createAbortableDelay(delayMs, signal, options) {
+		return new Promise((resolve, reject) => {
+			if (signal.aborted) {
+				reject(makeAbortError());
+				return;
+			}
+			let settled = false;
+			const timeoutId = setTimeout(() => {
+				if (settled) return;
+				settled = true;
+				signal.removeEventListener("abort", onAbort);
+				resolve();
+			}, delayMs);
+			options?.onScheduled?.(timeoutId);
+			function onAbort() {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timeoutId);
+				reject(makeAbortError());
+			}
+			signal.addEventListener("abort", onAbort, { once: true });
+		});
+	}
+	/**
+	* Generic abortable waiter that unifies the "create a Promise that settles
+	* on timeout, abort-signal, or external event" pattern.
+	*
+	* Previously duplicated between `waitForAbortableTimeout` (timeout-driven)
+	* and `waitForAudioDownloadCompletion` (event-driven with external settle).
+	*
+	* Uses `AbortController` + `AbortSignal.any()` for modern runtimes,
+	* falling back to manual `addEventListener` for older environments.
+	*
+	* @returns The promise and a `settle` handle for external resolve/reject.
+	*/
+	function createAbortableWaiter(signal, timeoutMs, options) {
+		let settled = false;
+		let _resolve;
+		let _reject;
+		const promise = new Promise((res, rej) => {
+			_resolve = res;
+			_reject = rej;
+		});
+		let timeoutId;
+		const cleanup = () => {
+			if (settled) return;
+			settled = true;
+			if (timeoutId !== void 0) {
+				clearTimeout(timeoutId);
+				timeoutId = void 0;
+			}
+			options?.onSettled?.();
+		};
+		if (typeof AbortSignal.any === "function") {
+			const timeoutSignal = AbortSignal.timeout(timeoutMs);
+			options?.onScheduled?.(void 0);
+			const combined = AbortSignal.any([signal, timeoutSignal].filter(Boolean));
+			const onAbort = () => {
+				cleanup();
+				_reject(makeAbortError(timeoutSignal.aborted ? "Timeout" : "Aborted"));
+			};
+			if (combined.aborted) onAbort();
+			else combined.addEventListener("abort", onAbort, { once: true });
+		} else {
+			const onAbort = () => {
+				cleanup();
+				_reject(makeAbortError());
+			};
+			signal.addEventListener("abort", onAbort, { once: true });
+			if (signal.aborted) onAbort();
+			else {
+				timeoutId = setTimeout(() => {
+					cleanup();
+					_reject(makeAbortError("Timeout"));
+				}, timeoutMs);
+				options?.onScheduled?.(timeoutId);
+			}
+		}
+		return {
+			promise,
+			settle: {
+				resolve: () => {
+					cleanup();
+					_resolve();
+				},
+				reject: (error) => {
+					cleanup();
+					_reject(error);
 				}
-				external?.removeEventListener("abort", onExternalAbort);
 			}
 		};
 	}
@@ -9968,10 +8809,344 @@ var vot = (function(exports) {
 		}));
 	})))(), 1)).default.getParser(globalThis.navigator.userAgent).getResult();
 	//#endregion
+	//#region src/utils/number.ts
+	function clampNumber(value, min, max) {
+		if (!Number.isFinite(value)) return min;
+		if (max < min) return min;
+		return Math.max(min, Math.min(max, value));
+	}
+	function clampNumberWithSortedBounds(value, min, max) {
+		return Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
+	}
+	//#endregion
+	//#region src/utils/localization.ts
+	function getNavigatorLang() {
+		if (typeof navigator === "undefined") return "en";
+		return navigator.language?.substring(0, 2).toLowerCase() || "en";
+	}
+	var slavicLangs = /* @__PURE__ */ new Set([
+		"uk",
+		"be",
+		"bg",
+		"mk",
+		"sr",
+		"bs",
+		"hr",
+		"sl",
+		"pl",
+		"sk",
+		"cs"
+	]);
+	function resolveCalculatedResLang(baseLang) {
+		if (availableTTS.includes(baseLang)) return baseLang;
+		if (slavicLangs.has(baseLang)) return "ru";
+		return "en";
+	}
+	var lang = getNavigatorLang();
+	var calculatedResLang = resolveCalculatedResLang(lang);
+	//#endregion
+	//#region src/utils/utils.ts
+	var DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 3e4;
+	var ASCII_CONTROL_CHARS_RE = /\p{Cc}/gu;
+	var INVALID_FILENAME_CHARS_RE = /[\\/:*?"'<>|]+/g;
+	var URL_PROTOCOL_RE = /^https?:\/\//i;
+	var MULTIPLE_DASHES_RE = /-{2,}/g;
+	var FILENAME_EDGE_WHITESPACE_RE = /^\s$/u;
+	var isFilenameEdgeChar = (char) => char === "." || char === "-" || FILENAME_EDGE_WHITESPACE_RE.test(char);
+	var trimFilenameEdgeChars = (value) => {
+		let startIndex = 0;
+		let endIndex = value.length;
+		while (startIndex < endIndex && isFilenameEdgeChar(value[startIndex])) startIndex += 1;
+		while (endIndex > startIndex && isFilenameEdgeChar(value[endIndex - 1])) endIndex -= 1;
+		return value.slice(startIndex, endIndex);
+	};
+	function getDateFallbackFilename() {
+		return (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+	}
+	function stripAsciiControlChars(value) {
+		return value.replace(ASCII_CONTROL_CHARS_RE, "");
+	}
+	/**
+	* Creates a stable JSON string representation for consistent hashing
+	* @param value The value to stringify
+	* @returns A stable JSON string
+	*/
+	function stableStringify(value) {
+		const seen = /* @__PURE__ */ new WeakSet();
+		return JSON.stringify(value, (_key, val) => {
+			if (val && typeof val === "object") {
+				if (seen.has(val)) return "[Circular]";
+				seen.add(val);
+				if (Array.isArray(val)) return val;
+				const sorted = {};
+				const keys = Object.keys(val).sort((a, b) => a.localeCompare(b));
+				for (const key of keys) sorted[key] = val[key];
+				return sorted;
+			}
+			return val;
+		});
+	}
+	/**
+	* Small, deterministic hash for cache keys. (Not crypto.)
+	* @param str The string to hash
+	* @returns A base36 string representation of the hash
+	*/
+	function fnv1a32ToKeyPart(str) {
+		let hash = 2166136261;
+		let i = 0;
+		while (i < str.length) {
+			const codePoint = str.codePointAt(i) ?? 0;
+			hash ^= codePoint;
+			hash = Math.imul(hash, 16777619);
+			i += codePoint > 65535 ? 2 : 1;
+		}
+		return (hash >>> 0).toString(36);
+	}
+	var isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
+	async function writeBlobToHandle(handle, blob) {
+		try {
+			const writable = await handle.createWritable();
+			await writable.write(blob);
+			await writable.close();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+	async function shareBlob(blob, filename) {
+		const nav = typeof navigator === "undefined" ? void 0 : navigator;
+		if (!nav?.share || typeof File === "undefined") return "unsupported";
+		let file;
+		try {
+			file = new File([blob], filename, { type: blob.type || "application/octet-stream" });
+		} catch {
+			return "unsupported";
+		}
+		if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) return "unsupported";
+		try {
+			await nav.share({
+				files: [file],
+				title: filename
+			});
+			return "shared";
+		} catch (err) {
+			if (err instanceof DOMException && err.name === "AbortError") return "shared";
+			return "error";
+		}
+	}
+	function triggerBlobDownload(blob, filename) {
+		const url = URL.createObjectURL(blob);
+		const anchor = document.createElement("a");
+		anchor.href = url;
+		anchor.download = filename;
+		anchor.rel = "noopener noreferrer";
+		anchor.target = "_blank";
+		anchor.style.position = "fixed";
+		anchor.style.left = "-9999px";
+		anchor.style.top = "0";
+		(document.body ?? document.documentElement).append(anchor);
+		try {
+			anchor.click();
+			return true;
+		} catch {
+			return false;
+		} finally {
+			anchor.remove();
+			revokeObjectUrlLater(url);
+		}
+	}
+	/** Downloads binary file with entered filename */
+	async function downloadBlob(blob, filename, options = {}) {
+		if (options.fileHandle) {
+			if (await writeBlobToHandle(options.fileHandle, blob)) return true;
+		}
+		if (options.preferShare) {
+			if (await shareBlob(blob, filename) === "shared") return true;
+		}
+		return triggerBlobDownload(blob, filename);
+	}
+	function revokeObjectUrlLater(url, delayMs = DEFAULT_OBJECT_URL_REVOKE_DELAY_MS) {
+		const safeDelayMs = Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : DEFAULT_OBJECT_URL_REVOKE_DELAY_MS;
+		globalThis.setTimeout(() => URL.revokeObjectURL(url), safeDelayMs);
+	}
+	function clearFileName(filename) {
+		const trimmed = filename.trim();
+		if (!trimmed) return getDateFallbackFilename();
+		return trimFilenameEdgeChars(stripAsciiControlChars(trimmed).replace(URL_PROTOCOL_RE, "").replace(INVALID_FILENAME_CHARS_RE, "-").replace(MULTIPLE_DASHES_RE, "-")) || getDateFallbackFilename();
+	}
+	var getTimestamp = () => Math.floor(Date.now() / 1e3);
+	var getHeaders = (headers) => headers ? Object.fromEntries(new Headers(headers)) : {};
+	function clamp(value, min = 0, max = 100) {
+		return clampNumberWithSortedBounds(value, min, max);
+	}
+	function toFlatObj(data) {
+		const out = {};
+		const stack = Object.entries(data);
+		while (stack.length) {
+			const entry = stack.pop();
+			if (!entry) continue;
+			const [key, val] = entry;
+			if (val === void 0) continue;
+			if (!(val !== null && typeof val === "object" && !Array.isArray(val))) {
+				out[key] = val;
+				continue;
+			}
+			for (const [k, v] of Object.entries(val)) stack.push([`${key}.${k}`, v]);
+		}
+		return out;
+	}
+	//#endregion
+	//#region src/utils/responseCache.ts
+	var RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
+	var RESPONSE_CACHE_KEY_HEADER = "x-vot-cache-key";
+	var DEFAULT_RESPONSE_CACHE_NAME = "vot-http-cache-v1";
+	function computeExpiresAt(createdAtMs, ttlMs) {
+		if (!Number.isFinite(ttlMs) || ttlMs <= 0) return createdAtMs;
+		return ttlMs >= Number.MAX_SAFE_INTEGER - createdAtMs ? Number.MAX_SAFE_INTEGER : createdAtMs + ttlMs;
+	}
+	function normalizeMethod(method) {
+		return (method || "GET").toUpperCase();
+	}
+	function resolveBodyKey(body) {
+		if (body == null) return "";
+		if (typeof body === "string") return body;
+		if (body instanceof URLSearchParams) return body.toString();
+	}
+	var ResponseCacheManager = class {
+		inFlightRequests = /* @__PURE__ */ new Map();
+		async execute(context, options, fetcher) {
+			if (!options || options.ttlMs <= 0) return fetcher();
+			const method = normalizeMethod(context.method);
+			const key = options.key ?? this.buildDefaultCacheKey(context);
+			if (!key) return fetcher();
+			const ttlMs = options.ttlMs;
+			const cacheName = options.cacheName || DEFAULT_RESPONSE_CACHE_NAME;
+			const useCacheApi = options.useCacheApi !== false && method === "GET" && this.supportsCacheApi();
+			const cacheApiKey = useCacheApi ? fnv1a32ToKeyPart(key) : "";
+			const dedupe = options.dedupe !== false;
+			const allowStaleOnError = options.allowStaleOnError !== false;
+			const cached = useCacheApi ? await this.readCacheApi(cacheName, context.url, cacheApiKey, ttlMs, Date.now(), allowStaleOnError) : {};
+			if (cached.fresh) return cached.fresh;
+			const networkRequest = () => this.runNetworkRequestWithFallback({
+				cacheName,
+				url: context.url,
+				cacheApiKey,
+				useCacheApi
+			}, fetcher, allowStaleOnError ? cached.stale : void 0);
+			if (!dedupe) return await networkRequest();
+			const inFlight = this.inFlightRequests.get(key);
+			if (inFlight !== void 0) return (await inFlight).clone();
+			const networkPromise = networkRequest();
+			this.inFlightRequests.set(key, networkPromise);
+			try {
+				return (await networkPromise).clone();
+			} finally {
+				this.inFlightRequests.delete(key);
+			}
+		}
+		async runNetworkRequestWithFallback(cacheConfig, fetcher, staleFallback) {
+			let response;
+			try {
+				response = await fetcher();
+			} catch (err) {
+				if (staleFallback) return staleFallback;
+				throw err;
+			}
+			if (!response.ok) return response;
+			if (cacheConfig.useCacheApi) {
+				const createdAtMs = Date.now();
+				const storable = this.toStorableResponse(response.clone(), createdAtMs);
+				await this.writeCacheApi(cacheConfig.cacheName, cacheConfig.url, cacheConfig.cacheApiKey, storable);
+			}
+			return response;
+		}
+		buildDefaultCacheKey(context) {
+			const method = normalizeMethod(context.method);
+			if (method === "GET") return `${method}:${context.url}`;
+			const bodyKey = resolveBodyKey(context.body);
+			if (bodyKey === void 0) return void 0;
+			return `${method}:${context.url}#${fnv1a32ToKeyPart(bodyKey)}`;
+		}
+		supportsCacheApi() {
+			return typeof caches !== "undefined" && typeof caches.open === "function";
+		}
+		readCreatedAtMs(response) {
+			const raw = response.headers.get(RESPONSE_CACHE_CREATED_AT_HEADER);
+			if (!raw) return null;
+			const value = Number(raw);
+			return Number.isFinite(value) ? value : null;
+		}
+		ensureVaryByCacheKey(headers) {
+			const varyRaw = headers.get("vary");
+			if (!varyRaw) {
+				headers.set("vary", RESPONSE_CACHE_KEY_HEADER);
+				return;
+			}
+			const varyParts = new Set(varyRaw.split(",").map((part) => part.trim().toLowerCase()));
+			if (!varyParts.has("*") && !varyParts.has(RESPONSE_CACHE_KEY_HEADER)) headers.set("vary", `${varyRaw}, ${RESPONSE_CACHE_KEY_HEADER}`);
+		}
+		toStorableResponse(response, createdAtMs) {
+			const headers = new Headers(response.headers);
+			headers.set(RESPONSE_CACHE_CREATED_AT_HEADER, String(createdAtMs));
+			this.ensureVaryByCacheKey(headers);
+			return new Response(response.body, {
+				status: response.status,
+				statusText: response.statusText,
+				headers
+			});
+		}
+		async readCacheApi(cacheName, url, cacheKey, ttlMs, nowMs, allowStaleOnError) {
+			try {
+				const request = new Request(url, {
+					method: "GET",
+					headers: { [RESPONSE_CACHE_KEY_HEADER]: cacheKey }
+				});
+				const cache = await caches.open(cacheName);
+				const cached = await cache.match(request);
+				if (!cached) return {};
+				const createdAtMs = this.readCreatedAtMs(cached);
+				if (createdAtMs === null) {
+					await cache.delete(request);
+					return {};
+				}
+				const expiresAt = computeExpiresAt(createdAtMs, ttlMs);
+				if (expiresAt > nowMs) return {
+					fresh: cached.clone(),
+					expiresAt
+				};
+				if (!allowStaleOnError) {
+					await cache.delete(request);
+					return {};
+				}
+				const stale = cached.clone();
+				await cache.delete(request);
+				return {
+					stale,
+					expiresAt
+				};
+			} catch {
+				return {};
+			}
+		}
+		async writeCacheApi(cacheName, url, cacheKey, response) {
+			try {
+				const request = new Request(url, {
+					method: "GET",
+					headers: { [RESPONSE_CACHE_KEY_HEADER]: cacheKey }
+				});
+				await (await caches.open(cacheName)).put(request, response);
+			} catch {}
+		}
+	};
+	var responseCacheManager = new ResponseCacheManager();
+	async function executeWithResponseCache(context, options, fetcher) {
+		return responseCacheManager.execute(context, options, fetcher);
+	}
+	//#endregion
 	//#region src/utils/gm.ts
 	var YANDEX_API_HOST = "api.browser.yandex.ru";
 	var GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
-	var HEADER_LINE_RE = /^([\w-]+):\s*(.+)$/;
+	var HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
 	var URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 	var scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
 	function getCallbackGmXhr() {
@@ -9986,8 +9161,17 @@ var vot = (function(exports) {
 	function hasSupportedGmXhr() {
 		return !!(getCallbackGmXhr() || getPromiseGmXhr());
 	}
-	var isProxyOnlyExtension = !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) && (browserInfo.browser?.name === "Safari" || !["Tampermonkey", "Violentmonkey"].includes(scriptHandler));
-	var isSupportGM4 = typeof GM !== "undefined" || globalThis.GM !== void 0;
+	var isProxyOnlyExtension = browserInfo.browser?.name === "Safari" || !["Tampermonkey", "Violentmonkey"].includes(scriptHandler);
+	/**
+	* Returns true when the GM4 promise-based API is available.
+	*
+	* Safe to read as a module-level const because:
+	* - CRXJS Chrome: the IIFE prelude installs GM globals synchronously at
+	*   document_start, before this module evaluates at document_end.
+	* - Firefox: the bridge injects prelude.module.js before content.module.js.
+	* - Userscript managers inject GM before the script runs.
+	*/
+	var isGM4Supported = typeof GM !== "undefined" || globalThis.GM !== void 0;
 	var isSupportGMXhr = hasSupportedGmXhr();
 	function getRequestHost(url) {
 		const normalizedUrl = url.trim();
@@ -10364,7 +9548,7 @@ var vot = (function(exports) {
 	}
 	async function updateConfig(data) {
 		if (data.compatVersion === "2025-05-09") return data;
-		const keysToRead = new Set([...Object.keys(data), ...compatKeysToRead]);
+		const keysToRead = /* @__PURE__ */ new Set([...Object.keys(data), ...compatKeysToRead]);
 		const persistedValues = await votStorage.getValues(createUndefinedDefaults(keysToRead));
 		const newData = { ...data };
 		const writeOperations = [];
@@ -10405,13 +9589,13 @@ var vot = (function(exports) {
 				legacyList: typeof GM_listValues === "function",
 				legacyAddValueChangeListener: typeof globalThis.GM_addValueChangeListener === "function",
 				legacyRemoveValueChangeListener: typeof globalThis.GM_removeValueChangeListener === "function",
-				promiseGet: isSupportGM4 && typeof gm?.getValue === "function",
-				promiseGetValues: isSupportGM4 && typeof gm?.getValues === "function",
-				promiseSet: isSupportGM4 && typeof gm?.setValue === "function",
-				promiseDelete: isSupportGM4 && typeof gm?.deleteValue === "function",
-				promiseList: isSupportGM4 && typeof gm?.listValues === "function",
-				promiseAddValueChangeListener: isSupportGM4 && typeof gm?.addValueChangeListener === "function",
-				promiseRemoveValueChangeListener: isSupportGM4 && typeof gm?.removeValueChangeListener === "function"
+				promiseGet: isGM4Supported && typeof gm?.getValue === "function",
+				promiseGetValues: isGM4Supported && typeof gm?.getValues === "function",
+				promiseSet: isGM4Supported && typeof gm?.setValue === "function",
+				promiseDelete: isGM4Supported && typeof gm?.deleteValue === "function",
+				promiseList: isGM4Supported && typeof gm?.listValues === "function",
+				promiseAddValueChangeListener: isGM4Supported && typeof gm?.addValueChangeListener === "function",
+				promiseRemoveValueChangeListener: isGM4Supported && typeof gm?.removeValueChangeListener === "function"
 			};
 			this.support = support;
 			debug.log(`[VOT Storage] GM Promises: ${support.promiseGet} | GM legacy: ${support.legacyGet}`);
@@ -10586,7 +9770,7 @@ var vot = (function(exports) {
 	}
 	function notifyAuthOpener(target = globalThis.opener) {
 		if (!target || typeof target.postMessage !== "function") return;
-		target.postMessage(createAuthRefreshMessage(), "*");
+		target.postMessage(createAuthRefreshMessage(), globalThis.location.origin);
 	}
 	//#endregion
 	//#region src/core/auth.ts
@@ -10862,7 +10046,9 @@ var vot = (function(exports) {
 			"left": "Left",
 			"right": "Right",
 			"top": "Top",
-			"default": "Default"
+			"default": "Default",
+			"leftCenter": "Left centered",
+			"rightCenter": "Right centered"
 		},
 		secs: "secs",
 		autoHideButtonDelay: "Delay before hiding the translate button",
@@ -10880,7 +10066,9 @@ var vot = (function(exports) {
 		VOTYandexToken: "Enter the Yandex OAuth Token",
 		VOTYandexTokenInfo: "You can manually set the account token in this field. Please note that we don't check its validity before sending a translate request",
 		VOTLoginViaToken: "Login via token",
-		smartDucking: "Adaptive volume"
+		smartDucking: "Adaptive volume",
+		VOTYandexTokenExpired: "Session expired. Log in again",
+		VOTVoiceSelection: "Choose dubbing"
 	};
 	//#endregion
 	//#region src/localization/localizationProvider.ts
@@ -11030,7 +10218,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.6.1"), typeof GM_info !== "undefined" ? String(GM_info?.script?.version || "") : "");
+		return resolveRuntimeLocaleVersion(String("1.11.7"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -11061,7 +10249,7 @@ var vot = (function(exports) {
 			return this._langOverride;
 		}
 		getLang() {
-			return this.langOverride !== "auto" ? this.langOverride : lang;
+			return this.langOverride === "auto" ? lang : this.langOverride;
 		}
 		getAvailableLangs() {
 			return [...availableLocales];
@@ -11219,9 +10407,12 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/bootstrap/videoObserverBinding.ts
 	var boundObservers = /* @__PURE__ */ new WeakSet();
-	var RUNTIME_URL_HOSTS = new Set(["peertube", "directlink"]);
+	var RUNTIME_URL_HOSTS = /* @__PURE__ */ new Set(["peertube", "directlink"]);
 	function bindObserverListeners(options) {
-		const { videoObserver, videosWrappers, ensureRuntimeActivated, getServicesCached, findContainer, createVideoHandler } = options;
+		const { videoObserver, videosWrappers, ensureRuntimeActivated, getServicesCached, findContainer, createVideoHandler, resolveVideoId = (site, video) => getVideoID(site, {
+			fetchFn: GM_fetch,
+			video
+		}) } = options;
 		if (boundObservers.has(videoObserver)) return;
 		boundObservers.add(videoObserver);
 		const initializingVideos = /* @__PURE__ */ new WeakSet();
@@ -11242,7 +10433,7 @@ var vot = (function(exports) {
 			} catch (error) {
 				console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
 			} finally {
-				videosWrappers.delete(video);
+				if (videosWrappers.get(video) === videoHandler) videosWrappers.delete(video);
 			}
 		};
 		const getMatchedSiteAndContainer = (video) => {
@@ -11260,6 +10451,25 @@ var vot = (function(exports) {
 				...site,
 				url: globalThis.location.origin
 			} : site;
+		};
+		const tryReplaceVideo = async (oldVideo, newVideo, container) => {
+			const videoHandler = videosWrappers.get(oldVideo);
+			const previousVideoId = videoHandler?.videoData?.videoId;
+			if (!videoHandler?.hasActiveSource() || !previousVideoId) return false;
+			try {
+				if (await resolveVideoId(videoHandler.site, newVideo) !== previousVideoId) return false;
+				await videoHandler.replaceVideo(newVideo);
+			} catch (error) {
+				console.error("[VOT] Failed to replace video element", error);
+				return false;
+			}
+			if (videosWrappers.get(oldVideo) !== videoHandler) return videosWrappers.get(newVideo) === videoHandler;
+			videosWrappers.delete(oldVideo);
+			videoContainers.delete(oldVideo);
+			videosWrappers.set(newVideo, videoHandler);
+			videoContainers.set(newVideo, container);
+			containerOwners.set(container, newVideo);
+			return true;
 		};
 		const promotePendingVideo = async (container) => {
 			const pendingVideo = container && pendingVideoByContainer.get(container);
@@ -11282,6 +10492,7 @@ var vot = (function(exports) {
 						pendingVideoByContainer.set(container, video);
 						return;
 					}
+					if (await tryReplaceVideo(activeVideoForContainer, video, container)) return;
 					await releaseVideoHandler(activeVideoForContainer, "stale container");
 					clearContainerOwner(activeVideoForContainer);
 				}
@@ -11321,7 +10532,13 @@ var vot = (function(exports) {
 		};
 		videoObserver.onVideoAdded.addListener(handleVideoAdded);
 		videoObserver.onVideoRemoved.addListener(async (video) => {
-			const container = clearContainerOwner(video);
+			const container = videoContainers.get(video);
+			const replacement = container && Array.from(container.querySelectorAll("video")).find((candidate) => candidate !== video && candidate.isConnected);
+			if (container && replacement && await tryReplaceVideo(video, replacement, container)) {
+				initializingVideos.delete(video);
+				return;
+			}
+			clearContainerOwner(video);
 			await releaseVideoHandler(video, "video removed");
 			initializingVideos.delete(video);
 			if (container && pendingVideoByContainer.get(container) === video) pendingVideoByContainer.delete(container);
@@ -11403,30 +10620,230 @@ var vot = (function(exports) {
 		return null;
 	}
 	//#endregion
-	//#region src/core/overlayMountTargets.ts
-	function resolveOverlayBaseContainer(container, site) {
-		return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
+	//#region src/utils/environment.ts
+	var UNKNOWN_VALUE = "unknown";
+	var joinParts = (...parts) => {
+		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
+	};
+	function isDocumentHidden() {
+		return typeof document !== "undefined" && document.hidden;
 	}
-	function resolveOverlayMountTargets(input) {
-		const base = resolveOverlayBaseContainer(input.container, input.site);
-		const root = input.fullscreenRoot ?? base;
+	function getEnvironmentInfo() {
 		return {
-			base,
-			root,
-			portalContainer: base,
-			subtitlesMountContainer: root
+			os: joinParts(browserInfo.os?.name, browserInfo.os?.version),
+			browser: joinParts(browserInfo.browser?.name, browserInfo.browser?.version),
+			loader: (() => {
+				const handler = GM_info?.scriptHandler;
+				const version = GM_info?.version;
+				if (handler && version) return `${handler} v${version}`;
+				return handler || version || UNKNOWN_VALUE;
+			})(),
+			scriptVersion: GM_info?.script?.version ?? UNKNOWN_VALUE,
+			scriptName: GM_info?.script?.name ?? UNKNOWN_VALUE,
+			url: globalThis?.location?.href ?? UNKNOWN_VALUE
 		};
 	}
 	//#endregion
-	//#region src/core/eventImpl.ts
-	/**
-	* Tiny, dependency-free event emitter.
-	*
-	* Notes:
-	* - Uses generics so emitted arguments stay strongly typed.
-	* - Adding the same listener twice is a no-op (idempotent).
-	* - Listener errors are isolated so one bad subscriber doesn't break the emitter.
-	*/
+	//#region src/utils/intervalIdleChecker.ts
+	var DEFAULT_PROFILE = {
+		checkIntervalMs: 250,
+		idleAfterMs: 180
+	};
+	function normalizePositiveMs(value, fallback) {
+		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+		return Math.max(1, Math.trunc(value));
+	}
+	function normalizeNonNegativeMs(value, fallback) {
+		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+		return Math.max(0, Math.trunc(value));
+	}
+	function normalizeProfile(profile = {}) {
+		return {
+			checkIntervalMs: normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs),
+			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs)
+		};
+	}
+	function getDefaultRuntime() {
+		return {
+			nowMs: () => typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now(),
+			setInterval: globalThis.setInterval.bind(globalThis),
+			clearInterval: globalThis.clearInterval.bind(globalThis),
+			queueMicrotask: (fn) => {
+				globalThis.queueMicrotask(fn);
+			},
+			onVisibilityChange: (listener) => {
+				if (typeof document === "undefined" || typeof document.addEventListener !== "function") return () => void 0;
+				document.addEventListener("visibilitychange", listener);
+				return () => {
+					if (typeof document.removeEventListener === "function") document.removeEventListener("visibilitychange", listener);
+				};
+			}
+		};
+	}
+	var IntervalIdleChecker = class {
+		profile;
+		runtime;
+		subscribers = /* @__PURE__ */ new Set();
+		intervalId = null;
+		unsubscribeVisibilityChange = null;
+		running = false;
+		destroyed = false;
+		immediateQueued = false;
+		currentMode = "active";
+		lastActivityAt;
+		onVisibilityChangeHandler = () => {
+			if (this.destroyed || !this.running) return;
+			if (isDocumentHidden()) this.clearIntervalTimer();
+			else this.armInterval();
+			this.requestImmediateTick();
+		};
+		constructor(options = {}) {
+			this.profile = normalizeProfile(options.profile);
+			this.runtime = {
+				...getDefaultRuntime(),
+				...options.runtime
+			};
+			this.lastActivityAt = this.runtime.nowMs();
+		}
+		start() {
+			if (this.destroyed || this.running) return;
+			this.running = true;
+			this.lastActivityAt = this.runtime.nowMs();
+			this.subscribeVisibilityChange();
+			this.armInterval();
+			this.runTick("start");
+		}
+		stop() {
+			if (!this.running) return;
+			this.running = false;
+			this.clearIntervalTimer();
+			this.immediateQueued = false;
+			this.unsubscribeFromVisibilityChange();
+		}
+		destroy() {
+			if (this.destroyed) return;
+			this.stop();
+			this.subscribers.clear();
+			this.destroyed = true;
+		}
+		subscribe(fn) {
+			if (this.destroyed) return () => void 0;
+			this.subscribers.add(fn);
+			return () => {
+				this.subscribers.delete(fn);
+			};
+		}
+		markActivity(_source) {
+			if (this.destroyed) return;
+			this.lastActivityAt = this.runtime.nowMs();
+			if (!this.running) return;
+			const nextMode = this.resolveMode(this.lastActivityAt);
+			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+		}
+		requestImmediateTick() {
+			if (this.destroyed || !this.running || this.immediateQueued) return;
+			this.immediateQueued = true;
+			this.runtime.queueMicrotask(() => {
+				this.immediateQueued = false;
+				if (this.destroyed || !this.running) return;
+				this.runTick("immediate");
+			});
+		}
+		resolveMode(nowMs) {
+			if (isDocumentHidden()) return "hidden";
+			return nowMs - this.lastActivityAt >= this.profile.idleAfterMs ? "idle" : "active";
+		}
+		clearIntervalTimer() {
+			if (this.intervalId === null) return;
+			this.runtime.clearInterval(this.intervalId);
+			this.intervalId = null;
+		}
+		armInterval() {
+			if (this.intervalId !== null) return;
+			this.intervalId = this.runtime.setInterval(() => {
+				this.runTick("interval");
+			}, this.profile.checkIntervalMs);
+		}
+		runTick(source) {
+			if (this.destroyed || !this.running) return;
+			if (this.subscribers.size === 0) return;
+			const nowMs = this.runtime.nowMs();
+			const nextMode = this.resolveMode(nowMs);
+			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+			const ctx = {
+				nowMs,
+				mode: nextMode,
+				source
+			};
+			for (const sub of this.subscribers) try {
+				sub(ctx);
+			} catch {}
+		}
+		subscribeVisibilityChange() {
+			if (this.unsubscribeVisibilityChange !== null) return;
+			this.unsubscribeVisibilityChange = this.runtime.onVisibilityChange(this.onVisibilityChangeHandler);
+		}
+		unsubscribeFromVisibilityChange() {
+			if (this.unsubscribeVisibilityChange === null) return;
+			this.unsubscribeVisibilityChange();
+			this.unsubscribeVisibilityChange = null;
+		}
+	};
+	function createIntervalIdleChecker(profile) {
+		return new IntervalIdleChecker({ profile });
+	}
+	//#endregion
+	//#region src/utils/domTraversal.ts
+	function getComposedParentElement(node) {
+		if (!node) return null;
+		const parentElement = node.parentElement ?? null;
+		if (parentElement) return parentElement;
+		if (typeof node.getRootNode !== "function") return null;
+		const root = node.getRootNode();
+		if (root && "host" in root) return root.host ?? null;
+		return null;
+	}
+	function someComposedAncestor(node, predicate) {
+		for (let parent = getComposedParentElement(node); parent; parent = getComposedParentElement(parent)) if (predicate(parent)) return true;
+		return false;
+	}
+	function isArrayLikeChildren(children) {
+		return "length" in children;
+	}
+	function pushChildrenToStack(stack, stackSize, children) {
+		if (isArrayLikeChildren(children)) {
+			const arrayLike = children;
+			for (let index = 0; index < arrayLike.length; index += 1) {
+				const child = arrayLike[index];
+				if (child !== void 0 && child !== null) {
+					stack[stackSize] = child;
+					stackSize += 1;
+				}
+			}
+		} else for (const child of children) if (child !== void 0 && child !== null) {
+			stack[stackSize] = child;
+			stackSize += 1;
+		}
+		return stackSize;
+	}
+	function walkShadowIncludingSubtree(root, adapter, visit) {
+		const stack = [root];
+		const { getChildren, getShadowRoot } = adapter;
+		let stackSize = 1;
+		while (stackSize > 0) {
+			const node = stack[stackSize - 1];
+			stackSize -= 1;
+			visit(node);
+			stackSize = pushChildrenToStack(stack, stackSize, getChildren(node));
+			const shadowRoot = getShadowRoot(node);
+			if (shadowRoot) {
+				stack[stackSize] = shadowRoot;
+				stackSize += 1;
+			}
+		}
+	}
+	//#endregion
+	//#region src/utils/eventImpl.ts
 	var EventImpl = class {
 		listeners = /* @__PURE__ */ new Set();
 		get size() {
@@ -11464,7 +10881,2088 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region src/audioDownloader/strategies/fileId.ts
+	//#region src/utils/VideoObserver.ts
+	var AD_ATTRS = [
+		"class",
+		"id",
+		"title"
+	];
+	var AD_KEYWORD_PATTERN = new RegExp([
+		"advertise",
+		"advertisement",
+		"promo",
+		"sponsor",
+		"banner",
+		"commercial",
+		"preroll",
+		"midroll",
+		"postroll",
+		"ad-container",
+		"sponsored"
+	].map((keyword) => keyword.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)).join("|"));
+	var ATTACH_SHADOW_HOOK_KEY = Symbol.for("vot.attachShadowHook");
+	function getAttachShadowDescriptor() {
+		const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, "attachShadow");
+		if (!descriptor || typeof descriptor.value !== "function") return null;
+		return descriptor;
+	}
+	function getOrInstallAttachShadowHook() {
+		const g = globalThis;
+		const existing = g[ATTACH_SHADOW_HOOK_KEY];
+		if (existing?.descriptor && existing.subscribers instanceof Set) return existing;
+		const descriptor = getAttachShadowDescriptor();
+		if (!descriptor) return null;
+		const original = descriptor.value;
+		const state = {
+			descriptor,
+			subscribers: /* @__PURE__ */ new Set()
+		};
+		const patchedAttachShadow = function(init) {
+			const root = original.call(this, init);
+			for (const sub of state.subscribers) try {
+				sub(root);
+			} catch (error) {
+				debug.error("attachShadow subscriber failed", error);
+			}
+			return root;
+		};
+		try {
+			Object.defineProperty(Element.prototype, "attachShadow", {
+				...descriptor,
+				value: patchedAttachShadow
+			});
+		} catch {
+			return null;
+		}
+		g[ATTACH_SHADOW_HOOK_KEY] = state;
+		return state;
+	}
+	function removeAttachShadowSubscriber(subscriber) {
+		const g = globalThis;
+		const state = g[ATTACH_SHADOW_HOOK_KEY];
+		if (!state) return;
+		state.subscribers.delete(subscriber);
+		if (state.subscribers.size > 0) return;
+		try {
+			Object.defineProperty(Element.prototype, "attachShadow", state.descriptor);
+		} catch {
+			const original = state.descriptor.value;
+			if (typeof original === "function") Element.prototype.attachShadow = original;
+		}
+		delete g[ATTACH_SHADOW_HOOK_KEY];
+	}
+	var VideoObserver = class VideoObserver {
+		seenVideos = /* @__PURE__ */ new WeakSet();
+		activeVideos = /* @__PURE__ */ new WeakSet();
+		observedRoots = /* @__PURE__ */ new WeakSet();
+		videoListenerControllers = /* @__PURE__ */ new Map();
+		pendingAdded = /* @__PURE__ */ new Set();
+		pendingRemoved = /* @__PURE__ */ new Set();
+		flushPending = false;
+		static MAX_FLUSH_BUDGET_MS = 6;
+		static MAX_NODES_PER_SLICE = 120;
+		onVideoAdded = new EventImpl();
+		onVideoRemoved = new EventImpl();
+		observer = new MutationObserver((muts) => this.onMutations(muts));
+		intervalIdleChecker;
+		checkerUnsubscribe = null;
+		enabled = false;
+		attachShadowSubscriber = null;
+		onDocumentReady = null;
+		onPageShow = () => {
+			const root = document.documentElement;
+			if (!root) return;
+			this.pendingAdded.add(root);
+			this.scheduleFlush();
+		};
+		constructor(intervalIdleChecker = createIntervalIdleChecker()) {
+			this.intervalIdleChecker = intervalIdleChecker;
+		}
+		static containsAdKeyword(value) {
+			return value.length > 0 && AD_KEYWORD_PATTERN.test(value);
+		}
+		isAdRelated(element) {
+			for (const attr of AD_ATTRS) {
+				const rawValue = element.getAttribute(attr);
+				if (!rawValue) continue;
+				if (VideoObserver.containsAdKeyword(rawValue.toLowerCase())) return true;
+			}
+			return false;
+		}
+		isInsideAd(video) {
+			return someComposedAncestor(video, (p) => this.isAdRelated(p));
+		}
+		getCapturedAudioTrackCount(video) {
+			const candidate = video;
+			const captureStream = candidate.captureStream ?? candidate.mozCaptureStream;
+			if (typeof captureStream !== "function") return null;
+			try {
+				return captureStream.call(video).getAudioTracks().length;
+			} catch {
+				return null;
+			}
+		}
+		isLikelySilentDecorativeVideo(video) {
+			if (!(video.muted || video.defaultMuted)) return false;
+			if (!video.autoplay || !video.loop) return false;
+			if (video.controls) return false;
+			const v = video;
+			if (typeof v.mozHasAudio === "boolean") return !v.mozHasAudio;
+			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
+				if (v.audioTracks.length > 0) return false;
+				const capturedTrackCount = this.getCapturedAudioTrackCount(video);
+				if (capturedTrackCount !== null) return capturedTrackCount === 0;
+				return true;
+			}
+			const capturedTrackCount = this.getCapturedAudioTrackCount(video);
+			if (capturedTrackCount !== null) return capturedTrackCount === 0;
+			return false;
+		}
+		hasAudio(video) {
+			const v = video;
+			if (video.srcObject instanceof MediaStream) return video.srcObject.getAudioTracks().length > 0;
+			if (typeof v.mozHasAudio === "boolean") return v.mozHasAudio;
+			if (typeof v.webkitAudioDecodedByteCount === "number" && v.webkitAudioDecodedByteCount > 0) return true;
+			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
+				if (v.audioTracks.length > 0) return true;
+			}
+			if (this.isLikelySilentDecorativeVideo(video)) return false;
+			return true;
+		}
+		isValidVideo(video) {
+			if (this.isAdRelated(video)) return false;
+			if (this.isInsideAd(video)) return false;
+			if (!this.hasAudio(video)) {
+				debug.log("Ignoring video without audio:", video);
+				return false;
+			}
+			return true;
+		}
+		observeRoot(root) {
+			if (this.observedRoots.has(root)) return;
+			this.observedRoots.add(root);
+			this.observer.observe(root, {
+				childList: true,
+				subtree: true
+			});
+		}
+		static domAdapter = {
+			getChildren: (node) => Array.from(node.children ?? []),
+			getShadowRoot: (node) => node.shadowRoot
+		};
+		scan(root) {
+			if (root instanceof HTMLVideoElement) {
+				this.trackVideo(root);
+				return;
+			}
+			if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
+			walkShadowIncludingSubtree(root, VideoObserver.domAdapter, (el) => {
+				if (el instanceof HTMLVideoElement) {
+					this.trackVideo(el);
+					return;
+				}
+				const sr = el.shadowRoot;
+				if (sr) this.observeRoot(sr);
+			});
+		}
+		getVideoListenerSignal(video) {
+			const existingController = this.videoListenerControllers.get(video);
+			if (existingController) existingController.abort();
+			const controller = new AbortController();
+			this.videoListenerControllers.set(video, controller);
+			return controller.signal;
+		}
+		cleanupVideoListeners(video) {
+			const controller = this.videoListenerControllers.get(video);
+			if (!controller) return;
+			controller.abort();
+			this.videoListenerControllers.delete(video);
+		}
+		cleanupAllVideoListeners() {
+			for (const controller of this.videoListenerControllers.values()) controller.abort();
+			this.videoListenerControllers.clear();
+		}
+		trackVideo(video) {
+			if (this.seenVideos.has(video)) return;
+			this.seenVideos.add(video);
+			const listenerSignal = this.getVideoListenerSignal(video);
+			const tryValidate = () => {
+				if (this.isValidVideo(video)) {
+					if (!this.activeVideos.has(video)) {
+						this.activeVideos.add(video);
+						this.onVideoAdded.dispatch(video);
+					}
+				}
+			};
+			if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
+			else {
+				video.addEventListener("loadeddata", tryValidate, {
+					once: true,
+					signal: listenerSignal
+				});
+				const handlePlay = () => {
+					if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
+				};
+				video.addEventListener("play", handlePlay, {
+					once: true,
+					passive: true,
+					signal: listenerSignal
+				});
+			}
+			video.addEventListener("emptied", () => {
+				if (!video.isConnected) this.untrackVideo(video);
+			}, {
+				passive: true,
+				signal: listenerSignal
+			});
+		}
+		untrackVideo(video) {
+			this.cleanupVideoListeners(video);
+			if (this.activeVideos.has(video)) {
+				this.onVideoRemoved.dispatch(video);
+				this.activeVideos.delete(video);
+			}
+			this.seenVideos.delete(video);
+		}
+		collectVideos(node) {
+			const set = /* @__PURE__ */ new Set();
+			if (node instanceof HTMLVideoElement) set.add(node);
+			if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return Array.from(set);
+			walkShadowIncludingSubtree(node, VideoObserver.domAdapter, (el) => {
+				if (el instanceof HTMLVideoElement) set.add(el);
+			});
+			return Array.from(set);
+		}
+		getNowMs() {
+			if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
+			return Date.now();
+		}
+		isSliceBudgetReached(startMs, processed) {
+			if (processed >= VideoObserver.MAX_NODES_PER_SLICE) return true;
+			return this.getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
+		}
+		processPendingAdded(startMs) {
+			let processed = 0;
+			while (this.pendingAdded.size > 0) {
+				const next = this.pendingAdded.values().next();
+				if (next.done) break;
+				this.pendingAdded.delete(next.value);
+				this.scan(next.value);
+				processed += 1;
+				if (this.isSliceBudgetReached(startMs, processed)) break;
+			}
+			return processed;
+		}
+		processPendingRemoved(startMs, processed) {
+			let processedCount = processed;
+			while (this.pendingRemoved.size > 0) {
+				if (this.isSliceBudgetReached(startMs, processedCount)) break;
+				const next = this.pendingRemoved.values().next();
+				if (next.done) break;
+				this.pendingRemoved.delete(next.value);
+				for (const video of this.collectVideos(next.value)) if (!video.isConnected) this.untrackVideo(video);
+				processedCount += 1;
+			}
+			return processedCount;
+		}
+		flushSlice = () => {
+			if (!this.enabled) {
+				this.pendingAdded.clear();
+				this.pendingRemoved.clear();
+				this.flushPending = false;
+				return;
+			}
+			const startMs = this.getNowMs();
+			const processedAdded = this.processPendingAdded(startMs);
+			this.processPendingRemoved(startMs, processedAdded);
+			this.flushPending = this.pendingAdded.size > 0 || this.pendingRemoved.size > 0;
+			if (this.flushPending) this.intervalIdleChecker.requestImmediateTick();
+		};
+		onCheckerTick = () => {
+			if (!this.flushPending) return;
+			this.flushSlice();
+		};
+		scheduleFlush = () => {
+			if (!this.enabled) return;
+			this.flushPending = true;
+			this.intervalIdleChecker.requestImmediateTick();
+		};
+		installAttachShadowHook() {
+			if (this.attachShadowSubscriber) return;
+			const state = getOrInstallAttachShadowHook();
+			if (!state) return;
+			const subscriber = (root) => {
+				if (!this.enabled) return;
+				this.observeRoot(root);
+				this.pendingAdded.add(root);
+				this.scheduleFlush();
+			};
+			state.subscribers.add(subscriber);
+			this.attachShadowSubscriber = subscriber;
+		}
+		uninstallAttachShadowHook() {
+			if (!this.attachShadowSubscriber) return;
+			removeAttachShadowSubscriber(this.attachShadowSubscriber);
+			this.attachShadowSubscriber = null;
+		}
+		enqueueAddedNode(node) {
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				const shadowRoot = node.shadowRoot;
+				if (shadowRoot) this.observeRoot(shadowRoot);
+			}
+			this.pendingAdded.add(node);
+		}
+		enqueueMutation(mutation) {
+			for (const node of mutation.addedNodes) this.enqueueAddedNode(node);
+			for (const node of mutation.removedNodes) this.pendingRemoved.add(node);
+		}
+		onMutations(mutations) {
+			for (const mutation of mutations) {
+				if (mutation.type !== "childList") continue;
+				this.enqueueMutation(mutation);
+			}
+			if (this.pendingAdded.size > 0 || this.pendingRemoved.size > 0) this.scheduleFlush();
+		}
+		enable() {
+			if (this.enabled) return;
+			this.enabled = true;
+			this.checkerUnsubscribe?.();
+			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(this.onCheckerTick);
+			this.intervalIdleChecker.start();
+			this.intervalIdleChecker.markActivity("video-observer-enable");
+			this.installAttachShadowHook();
+			globalThis.addEventListener("pageshow", this.onPageShow, { passive: true });
+			const root = document.documentElement;
+			if (root) {
+				this.observeRoot(root);
+				this.scan(root);
+				return;
+			}
+			const onReady = () => {
+				const r = document.documentElement;
+				if (!r) return;
+				document.removeEventListener("readystatechange", onReady);
+				this.onDocumentReady = null;
+				if (!this.enabled) return;
+				this.observeRoot(r);
+				this.scan(r);
+			};
+			this.onDocumentReady = onReady;
+			document.addEventListener("readystatechange", onReady);
+			queueMicrotask(onReady);
+		}
+		disable() {
+			if (!this.enabled) return;
+			this.enabled = false;
+			globalThis.removeEventListener("pageshow", this.onPageShow);
+			if (this.onDocumentReady) {
+				document.removeEventListener("readystatechange", this.onDocumentReady);
+				this.onDocumentReady = null;
+			}
+			this.uninstallAttachShadowHook();
+			this.observer.disconnect();
+			this.cleanupAllVideoListeners();
+			this.flushPending = false;
+			this.checkerUnsubscribe?.();
+			this.checkerUnsubscribe = null;
+			this.intervalIdleChecker.stop();
+			this.pendingAdded.clear();
+			this.pendingRemoved.clear();
+			this.seenVideos = /* @__PURE__ */ new WeakSet();
+			this.activeVideos = /* @__PURE__ */ new WeakSet();
+			this.observedRoots = /* @__PURE__ */ new WeakSet();
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/protobuf.js
+	function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
+		return VideoTranslationRequest.encode({
+			url,
+			firstRequest,
+			duration,
+			unknown0: 1,
+			language: requestLang,
+			forceSourceLang,
+			unknown1: 0,
+			translationHelp: translationHelp ?? [],
+			responseLanguage: responseLang,
+			wasStream,
+			unknown2: 1,
+			unknown3: 2,
+			bypassCache,
+			useLivelyVoice,
+			videoTitle
+		}).finish();
+	}
+	function decodeTranslationResponse(response) {
+		return VideoTranslationResponse.decode(new Uint8Array(response));
+	}
+	function encodeTranslationCacheRequest(url, duration, requestLang, responseLang) {
+		return VideoTranslationCacheRequest.encode({
+			url,
+			duration,
+			language: requestLang,
+			responseLanguage: responseLang
+		}).finish();
+	}
+	function decodeTranslationCacheResponse(response) {
+		return VideoTranslationCacheResponse.decode(new Uint8Array(response));
+	}
+	function isPartialAudioBuffer(audioBuffer) {
+		return "chunkId" in audioBuffer;
+	}
+	function encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) {
+		if (partialAudio && isPartialAudioBuffer(audioBuffer)) return VideoTranslationAudioRequest.encode({
+			url,
+			translationId,
+			partialAudioInfo: {
+				...partialAudio,
+				audioBuffer
+			}
+		}).finish();
+		return VideoTranslationAudioRequest.encode({
+			url,
+			translationId,
+			audioInfo: audioBuffer
+		}).finish();
+	}
+	function decodeTranslationAudioResponse(response) {
+		return VideoTranslationAudioResponse.decode(new Uint8Array(response));
+	}
+	function encodeSubtitlesRequest(url, requestLang) {
+		return SubtitlesRequest.encode({
+			url,
+			language: requestLang
+		}).finish();
+	}
+	function decodeSubtitlesResponse(response) {
+		return SubtitlesResponse.decode(new Uint8Array(response));
+	}
+	function encodeStreamPingRequest(pingId) {
+		return StreamPingRequest.encode({ pingId }).finish();
+	}
+	function encodeStreamRequest(url, requestLang, responseLang) {
+		return StreamTranslationRequest.encode({
+			url,
+			language: requestLang,
+			responseLanguage: responseLang,
+			unknown0: 1,
+			unknown1: 0
+		}).finish();
+	}
+	function decodeStreamResponse(response) {
+		return StreamTranslationResponse.decode(new Uint8Array(response));
+	}
+	function encodeVideoLangCacheRequest(url, title) {
+		return VideoLangCacheRequest.encode({
+			url,
+			title
+		}).finish();
+	}
+	function decodeVideoLangCacheResponse(response) {
+		return VideoLangCacheResponse.decode(new Uint8Array(response));
+	}
+	var YandexVOTProtobuf = {
+		encodeTranslationRequest,
+		decodeTranslationResponse,
+		encodeTranslationCacheRequest,
+		decodeTranslationCacheResponse,
+		isPartialAudioBuffer,
+		encodeTranslationAudioRequest,
+		decodeTranslationAudioResponse,
+		encodeSubtitlesRequest,
+		decodeSubtitlesResponse,
+		encodeStreamPingRequest,
+		encodeStreamRequest,
+		decodeStreamResponse,
+		encodeVideoLangCacheRequest,
+		decodeVideoLangCacheResponse
+	};
+	function encodeSessionRequest(uuid, module) {
+		return YandexSessionRequest.encode({
+			uuid,
+			module
+		}).finish();
+	}
+	function decodeSessionResponse(response) {
+		return YandexSessionResponse.decode(new Uint8Array(response));
+	}
+	var YandexSessionProtobuf = {
+		encodeSessionRequest,
+		decodeSessionResponse
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/types/yandex.js
+	var VideoTranslationStatus;
+	(function(VideoTranslationStatus) {
+		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
+		VideoTranslationStatus[VideoTranslationStatus["FINISHED"] = 1] = "FINISHED";
+		VideoTranslationStatus[VideoTranslationStatus["WAITING"] = 2] = "WAITING";
+		VideoTranslationStatus[VideoTranslationStatus["LONG_WAITING"] = 3] = "LONG_WAITING";
+		VideoTranslationStatus[VideoTranslationStatus["PART_CONTENT"] = 5] = "PART_CONTENT";
+		VideoTranslationStatus[VideoTranslationStatus["AUDIO_REQUESTED"] = 6] = "AUDIO_REQUESTED";
+		VideoTranslationStatus[VideoTranslationStatus["SESSION_REQUIRED"] = 7] = "SESSION_REQUIRED";
+	})(VideoTranslationStatus || (VideoTranslationStatus = {}));
+	var AudioDownloadType;
+	(function(AudioDownloadType) {
+		AudioDownloadType["WEB_API_VIDEO_SRC_FROM_IFRAME"] = "web_api_video_src_from_iframe";
+		AudioDownloadType["WEB_API_VIDEO_SRC"] = "web_api_video_src";
+		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME"] = "web_api_get_all_generating_urls_data_from_iframe";
+		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME_TMP_EXP"] = "web_api_get_all_generating_urls_data_from_iframe_tmp_exp";
+		AudioDownloadType["WEB_API_REPLACED_FETCH_INSIDE_IFRAME"] = "web_api_replaced_fetch_inside_iframe";
+		AudioDownloadType["ANDROID_API"] = "android_api";
+		AudioDownloadType["WEB_API_SLOW"] = "web_api_slow";
+		AudioDownloadType["WEB_API_STEAL_SIG_AND_N"] = "web_api_steal_sig_and_n";
+		AudioDownloadType["WEB_API_COMBINED"] = "web_api_get_all_generating_urls_data_from_iframe,web_api_steal_sig_and_n";
+	})(AudioDownloadType || (AudioDownloadType = {}));
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/utils/vot.js
+	function convertVOT(service, videoId, url) {
+		if (service === VideoService$1.patreon) return {
+			service: "mux",
+			videoId: new URL(url).pathname.slice(1)
+		};
+		return {
+			service,
+			videoId
+		};
+	}
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/client.js
+	var VOTJSError = class extends Error {
+		data;
+		constructor(message, data = void 0) {
+			super(message);
+			this.data = data;
+			this.name = "VOTJSError";
+		}
+	};
+	var MinimalClient = class {
+		host;
+		schema;
+		fetch;
+		fetchOpts;
+		sessions = {};
+		userAgent = config_default$1.userAgent;
+		headers = {
+			"User-Agent": this.userAgent,
+			Accept: "application/x-protobuf",
+			"Accept-Language": "en",
+			"Content-Type": "application/x-protobuf",
+			Pragma: "no-cache",
+			"Cache-Control": "no-cache"
+		};
+		hostSchemaRe = /(http(s)?):\/\//;
+		constructor({ host = config_default$1.host, fetchFn = fetchWithTimeout, fetchOpts = {}, headers = {} } = {}) {
+			const schema = this.hostSchemaRe.exec(host)?.[1];
+			this.host = schema ? host.replace(`${schema}://`, "") : host;
+			this.schema = schema ?? "https";
+			this.fetch = fetchFn;
+			this.fetchOpts = fetchOpts;
+			this.headers = {
+				...this.headers,
+				...headers
+			};
+		}
+		async request(path, body, headers = {}, method = "POST") {
+			const options = this.getOpts(new Blob([body]), headers, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.arrayBuffer();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		async requestJSON(path, body = null, headers = {}, method = "POST") {
+			const options = this.getOpts(body, {
+				"Content-Type": "application/json",
+				...headers
+			}, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		getOpts(body, headers = {}, method = "POST") {
+			return {
+				method,
+				headers: {
+					...this.headers,
+					...headers
+				},
+				body,
+				...this.fetchOpts
+			};
+		}
+		async getSession(module) {
+			const timestamp = getTimestamp$1();
+			const session = this.sessions[module];
+			if (session && session.timestamp + session.expires > timestamp) return session;
+			const { secretKey, expires, uuid } = await this.createSession(module);
+			this.sessions[module] = {
+				secretKey,
+				expires,
+				timestamp,
+				uuid
+			};
+			return this.sessions[module];
+		}
+		async createSession(module) {
+			const uuid = getUUID();
+			const body = YandexSessionProtobuf.encodeSessionRequest(uuid, module);
+			const res = await this.request("/session/create", body, { "Vtrans-Signature": await getSignature(body) });
+			if (!res.success) throw new VOTJSError("Failed to request create session", res);
+			return {
+				...YandexSessionProtobuf.decodeSessionResponse(res.data),
+				uuid
+			};
+		}
+	};
+	var VOTClient$1 = class extends MinimalClient {
+		hostVOT;
+		schemaVOT;
+		apiToken;
+		requestLang;
+		responseLang;
+		paths = {
+			videoTranslation: "/video-translation/translate",
+			videoTranslationFailAudio: "/video-translation/fail-audio-js",
+			videoTranslationAudio: "/video-translation/audio",
+			videoTranslationCache: "/video-translation/cache",
+			videoSubtitles: "/video-subtitles/get-subtitles",
+			streamPing: "/stream-translation/ping-stream",
+			streamTranslation: "/stream-translation/translate-stream"
+		};
+		isCustomLink(url) {
+			return !!(/\.(m3u8|m4(a|v)|mpd)/.exec(url) ?? /^https:\/\/cdn\.qstv\.on\.epicgames\.com/.exec(url));
+		}
+		headersVOT = {
+			"User-Agent": `vot.js/${config_default$1.version}`,
+			"Content-Type": "application/json",
+			Pragma: "no-cache",
+			"Cache-Control": "no-cache"
+		};
+		constructor({ host, hostVOT = config_default$1.hostVOT, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
+			super({
+				host,
+				fetchFn,
+				fetchOpts,
+				headers
+			});
+			const schemaVOT = this.hostSchemaRe.exec(hostVOT)?.[1];
+			this.hostVOT = schemaVOT ? hostVOT.replace(`${schemaVOT}://`, "") : hostVOT;
+			this.schemaVOT = schemaVOT ?? "https";
+			this.requestLang = requestLang;
+			this.responseLang = responseLang;
+			this.apiToken = apiToken;
+		}
+		get apiTokenHeader() {
+			if (!this.apiToken) return {};
+			return { Authorization: `OAuth ${this.apiToken}` };
+		}
+		async requestVOT(path, body, headers = {}) {
+			const options = this.getOpts(JSON.stringify(body), {
+				...this.headersVOT,
+				...headers
+			});
+			try {
+				const res = await this.fetch(`${this.schemaVOT}://${this.hostVOT}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		async translateVideoYAImpl({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
+			const { url, duration = config_default$1.defaultDuration } = videoData;
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, extraOpts);
+			const path = this.paths.videoTranslation;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const apiTokenHeader = extraOpts.useLivelyVoice ? this.apiTokenHeader : {};
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...apiTokenHeader,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
+			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
+			Logger.log("translateVideo", translationData);
+			const { status, translationId } = translationData;
+			switch (status) {
+				case VideoTranslationStatus.FAILED: throw new VOTJSError("Yandex couldn't translate video", translationData);
+				case VideoTranslationStatus.FINISHED:
+				case VideoTranslationStatus.PART_CONTENT:
+					if (!translationData.url) throw new VOTJSError("Audio link wasn't received from Yandex response", translationData);
+					return {
+						translationId,
+						translated: true,
+						url: translationData.url,
+						status,
+						remainingTime: translationData.remainingTime ?? -1
+					};
+				case VideoTranslationStatus.WAITING:
+				case VideoTranslationStatus.LONG_WAITING: return {
+					translationId,
+					translated: false,
+					status,
+					remainingTime: translationData.remainingTime ?? -1
+				};
+				case VideoTranslationStatus.AUDIO_REQUESTED:
+					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
+						await this.requestVtransFailAudio(url);
+						await this.requestVtransAudio(url, translationData.translationId, {
+							audioFile: /* @__PURE__ */ new Uint8Array(),
+							fileId: AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME
+						});
+						return await this.translateVideoYAImpl({
+							videoData,
+							requestLang,
+							responseLang,
+							translationHelp,
+							headers,
+							shouldSendFailedAudio: false
+						});
+					}
+					return {
+						translationId,
+						translated: false,
+						status,
+						remainingTime: translationData.remainingTime ?? -1
+					};
+				case VideoTranslationStatus.SESSION_REQUIRED: throw new VOTJSError("Yandex auth required to translate video. See docs for more info", translationData);
+				default:
+					Logger.error("Unknown response", translationData);
+					throw new VOTJSError("Unknown response from Yandex", translationData);
+			}
+		}
+		async translateVideoVOTImpl({ url, videoId, service, requestLang = this.requestLang, responseLang = this.responseLang, headers = {}, provider = "yandex" }) {
+			const votData = convertVOT(service, videoId, url);
+			const res = await this.requestVOT(this.paths.videoTranslation, {
+				provider,
+				service: votData.service,
+				video_id: votData.videoId,
+				from_lang: requestLang,
+				to_lang: responseLang,
+				raw_video: url
+			}, { ...headers });
+			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
+			const translationData = res.data;
+			switch (translationData.status) {
+				case "failed": throw new VOTJSError("Yandex couldn't translate video", translationData);
+				case "success":
+					if (!translationData.translated_url) throw new VOTJSError("Audio link wasn't received from VOT response", translationData);
+					return {
+						translationId: String(translationData.id),
+						translated: true,
+						url: translationData.translated_url,
+						status: 1,
+						remainingTime: -1
+					};
+				case "waiting": return {
+					translationId: "",
+					translated: false,
+					remainingTime: translationData.remaining_time,
+					status: 2,
+					message: translationData.message
+				};
+			}
+		}
+		async requestVtransFailAudio(url) {
+			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), void 0, "PUT");
+			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
+			return res;
+		}
+		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
+			const session = await this.getSession("video-translation");
+			let body;
+			if (YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
+				if (!partialAudio) throw new VOTJSError("Partial audio metadata is required for partial audio buffer", audioBuffer);
+				body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio);
+			} else body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
+			const path = this.paths.videoTranslationAudio;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			}, "PUT");
+			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
+			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
+		}
+		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+			const { url, duration = config_default$1.defaultDuration } = videoData;
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
+			const path = this.paths.videoTranslationCache;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			}, "POST");
+			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
+			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
+		}
+		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
+			const { url, videoId, host } = videoData;
+			return this.isCustomLink(url) ? await this.translateVideoVOTImpl({
+				url,
+				videoId,
+				service: host,
+				requestLang,
+				responseLang,
+				headers,
+				provider: extraOpts.useLivelyVoice ? "yandex_lively" : "yandex"
+			}) : await this.translateVideoYAImpl({
+				videoData,
+				requestLang,
+				responseLang,
+				translationHelp,
+				headers,
+				extraOpts,
+				shouldSendFailedAudio
+			});
+		}
+		async getSubtitlesYAImpl({ videoData, requestLang = this.requestLang, headers = {} }) {
+			const { url } = videoData;
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
+			const path = this.paths.videoSubtitles;
+			const vsubsHeaders = await getSecYaHeaders("Vsubs", session, body, path);
+			const res = await this.request(path, body, {
+				...vsubsHeaders,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
+			const subtitlesData = YandexVOTProtobuf.decodeSubtitlesResponse(res.data);
+			const subtitles = subtitlesData.subtitles.map((subtitle) => {
+				const { language, url, translatedLanguage, translatedUrl } = subtitle;
+				return {
+					language,
+					url,
+					translatedLanguage,
+					translatedUrl
+				};
+			});
+			return {
+				waiting: subtitlesData.waiting,
+				subtitles
+			};
+		}
+		async getSubtitlesVOTImpl({ url, videoId, service, headers = {} }) {
+			const votData = convertVOT(service, videoId, url);
+			const res = await this.requestVOT(this.paths.videoSubtitles, {
+				provider: "yandex",
+				service: votData.service,
+				video_id: votData.videoId
+			}, headers);
+			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
+			const subtitlesData = res.data;
+			return {
+				waiting: false,
+				subtitles: subtitlesData.reduce((result, subtitle) => {
+					if (!subtitle.lang_from) return result;
+					const originalSubtitle = subtitlesData.find((sub) => sub.lang === subtitle.lang_from);
+					if (!originalSubtitle) return result;
+					result.push({
+						language: originalSubtitle.lang,
+						url: originalSubtitle.subtitle_url,
+						translatedLanguage: subtitle.lang,
+						translatedUrl: subtitle.subtitle_url
+					});
+					return result;
+				}, [])
+			};
+		}
+		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
+			const { url, videoId, host } = videoData;
+			return this.isCustomLink(url) ? await this.getSubtitlesVOTImpl({
+				url,
+				videoId,
+				service: host,
+				headers
+			}) : await this.getSubtitlesYAImpl({
+				videoData,
+				requestLang,
+				headers
+			});
+		}
+		async pingStream({ pingId, headers = {} }) {
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
+			const path = this.paths.streamPing;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request stream ping", res);
+			return true;
+		}
+		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+			const { url } = videoData;
+			if (this.isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
+			const path = this.paths.streamTranslation;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request stream translation", res);
+			const translateResponse = YandexVOTProtobuf.decodeStreamResponse(res.data);
+			const interval = translateResponse.interval;
+			switch (interval) {
+				case StreamInterval.NO_CONNECTION:
+				case StreamInterval.TRANSLATING: return {
+					translated: false,
+					interval,
+					message: interval === StreamInterval.NO_CONNECTION ? "streamNoConnectionToServer" : "translationTakeFewMinutes"
+				};
+				case StreamInterval.STREAMING:
+					if (translateResponse.pingId === void 0) throw new VOTJSError("Stream ping id wasn't received from Yandex response", translateResponse);
+					return {
+						translated: true,
+						interval,
+						pingId: translateResponse.pingId,
+						result: translateResponse.translatedInfo
+					};
+				default:
+					Logger.error("Unknown response", translateResponse);
+					throw new VOTJSError("Unknown response from Yandex", translateResponse);
+			}
+		}
+	};
+	var VOTWorkerClient$1 = class extends VOTClient$1 {
+		constructor(opts = {}) {
+			opts.host = opts.host ?? config_default$1.hostWorker;
+			super(opts);
+		}
+		async request(path, body, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					...headers
+				},
+				body: Array.from(body)
+			}), { "Content-Type": "application/json" }, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.arrayBuffer();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		async requestJSON(path, body = null, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					"Content-Type": "application/json",
+					Accept: "application/json",
+					...headers
+				},
+				body
+			}), {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			}, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/client.js
+	var VOTClient = class extends VOTClient$1 {
+		constructor(opts) {
+			super(opts);
+			this.headers = {
+				...browserSecHeaders,
+				...this.headers
+			};
+		}
+	};
+	var VOTWorkerClient = class extends VOTWorkerClient$1 {
+		constructor(opts) {
+			super(opts);
+			this.headers = {
+				...browserSecHeaders,
+				...this.headers
+			};
+		}
+	};
+	//#endregion
+	//#region ../../chaimu/dist/config.js
+	var config_default = {
+		version: "1.1.0",
+		debug: false,
+		fetchFn: fetch.bind(window)
+	};
+	//#endregion
+	//#region ../../chaimu/dist/debug.js
+	var debug_default = { log: (...text) => {
+		if (!config_default.debug) return;
+		return console.log(`%c✦ chaimu.js v${config_default.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
+	} };
+	//#endregion
+	//#region ../../chaimu/dist/player.js
+	var videoLipSyncEvents = [
+		"playing",
+		"ratechange",
+		"play",
+		"waiting",
+		"pause",
+		"seeked",
+		"ended",
+		"timeupdate"
+	];
+	function initAudioContext() {
+		const audioContext = window.AudioContext || window.webkitAudioContext;
+		return audioContext ? new audioContext() : void 0;
+	}
+	var BasePlayer = class {
+		static name = "BasePlayer";
+		chaimu;
+		fetch;
+		_src;
+		_currentSrc;
+		fetchOpts;
+		isDestroyed = false;
+		destructionPromise;
+		storedVolume = 1;
+		lifecycleGeneration = 0;
+		lifecycleQueue = Promise.resolve();
+		videoWithEvents;
+		constructor(chaimu, src) {
+			this.chaimu = chaimu;
+			this._src = src;
+			this.fetch = this.chaimu.fetchFn;
+			this.fetchOpts = this.chaimu.fetchOpts;
+		}
+		async init() {
+			return this;
+		}
+		async clear() {
+			return this;
+		}
+		destroy() {
+			if (this.destructionPromise) return this.destructionPromise;
+			this.isDestroyed = true;
+			this.removeVideoEvents();
+			this.destructionPromise = (async () => {
+				await this.clear();
+				await this.closeAudioContext();
+				return this;
+			})();
+			return this.destructionPromise;
+		}
+		assertActive() {
+			if (this.isDestroyed) throw new Error(`${this.name} has been destroyed`);
+		}
+		async closeAudioContext() {
+			const audioContext = this.chaimu.audioContext;
+			if (!audioContext) return;
+			try {
+				if (audioContext.state !== "closed") await audioContext.close();
+			} finally {
+				if (this.chaimu.audioContext === audioContext) this.chaimu.audioContext = void 0;
+			}
+		}
+		unloadMediaElement(mediaElement) {
+			if (!mediaElement) return;
+			mediaElement.pause();
+			mediaElement.src = "";
+			mediaElement.removeAttribute("src");
+			mediaElement.load();
+		}
+		composeFetchSignal(lifecycleSignal) {
+			const callerSignal = this.fetchOpts?.signal;
+			if (!(callerSignal instanceof AbortSignal)) return lifecycleSignal;
+			if (!lifecycleSignal || callerSignal === lifecycleSignal) return callerSignal;
+			return AbortSignal.any([callerSignal, lifecycleSignal]);
+		}
+		enqueueLifecycle(operation) {
+			const result = this.lifecycleQueue.then(operation);
+			this.lifecycleQueue = result.then(() => void 0, () => void 0);
+			return result;
+		}
+		isVideoPlaying() {
+			const video = this.chaimu.video;
+			return !video.paused && !video.ended && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+		}
+		lipSync(_mode = false) {
+			return this;
+		}
+		handleVideoEvent = (event) => {
+			if (this.isDestroyed || event.currentTarget !== this.chaimu.video) return this;
+			debug_default.log(`handle video ${event.type}`);
+			if (event.type === "timeupdate") {
+				if (this.playbackRate !== this.chaimu.video.playbackRate) this.playbackRate = this.chaimu.video.playbackRate;
+				return this;
+			}
+			this.lipSync(event.type);
+			return this;
+		};
+		audioErrorHandle = (error) => {
+			console.error(`[${this.name}]`, error);
+		};
+		removeVideoEvents(video = this.videoWithEvents ?? this.chaimu.video) {
+			for (const e of videoLipSyncEvents) video.removeEventListener(e, this.handleVideoEvent);
+			if (this.videoWithEvents === video) this.videoWithEvents = void 0;
+			return this;
+		}
+		addVideoEvents(video = this.chaimu.video) {
+			this.assertActive();
+			if (this.videoWithEvents === video) return this;
+			if (this.videoWithEvents) this.removeVideoEvents(this.videoWithEvents);
+			for (const e of videoLipSyncEvents) video.addEventListener(e, this.handleVideoEvent);
+			this.videoWithEvents = video;
+			return this;
+		}
+		async play() {
+			return this;
+		}
+		async pause() {
+			return this;
+		}
+		get name() {
+			return this.constructor.name;
+		}
+		set src(url) {
+			this._src = url;
+		}
+		get src() {
+			return this._src;
+		}
+		get currentSrc() {
+			return this._currentSrc;
+		}
+		set volume(_value) {}
+		get volume() {
+			return 0;
+		}
+		get playbackRate() {
+			return 0;
+		}
+		set playbackRate(_value) {}
+		get currentTime() {
+			return 0;
+		}
+	};
+	var AudioPlayer = class extends BasePlayer {
+		static name = "AudioPlayer";
+		audio;
+		gainNode;
+		audioSource;
+		constructor(chaimu, src) {
+			super(chaimu, src);
+			this.updateAudio();
+		}
+		initAudioBooster() {
+			if (!this.chaimu.audioContext) return this;
+			this.disconnectAudioNodes();
+			this.gainNode = this.chaimu.audioContext.createGain();
+			this.gainNode.gain.value = this.storedVolume;
+			this.gainNode.connect(this.chaimu.audioContext.destination);
+			this.audioSource = this.chaimu.audioContext.createMediaElementSource(this.audio);
+			this.audioSource.connect(this.gainNode);
+			return this;
+		}
+		disconnectAudioNodes() {
+			if (this.audioSource) {
+				this.audioSource.disconnect();
+				this.audioSource = void 0;
+			}
+			if (this.gainNode) {
+				this.gainNode.disconnect();
+				this.gainNode = void 0;
+			}
+		}
+		updateAudio() {
+			this.lifecycleGeneration += 1;
+			this.disconnectAudioNodes();
+			this.unloadMediaElement(this.audio);
+			this.audio = new Audio(this.src);
+			this.audio.crossOrigin = "anonymous";
+			this.audio.playbackRate = this.chaimu.video.playbackRate;
+			if (!this.chaimu.audioContext) this.audio.volume = this.storedVolume;
+			this._currentSrc = this.src;
+			return this;
+		}
+		async init() {
+			this.assertActive();
+			this.updateAudio();
+			this.initAudioBooster();
+			return this;
+		}
+		lipSync(mode = false) {
+			debug_default.log("[AudioPlayer] lipsync video", this.chaimu.video);
+			if (!this.chaimu.video) return this;
+			if (this._currentSrc) {
+				this.audio.currentTime = this.chaimu.video.currentTime;
+				this.audio.playbackRate = this.chaimu.video.playbackRate;
+			}
+			if (!mode) {
+				debug_default.log("[AudioPlayer] lipsync mode isn't set");
+				return this;
+			}
+			debug_default.log(`[AudioPlayer] lipsync mode is ${mode}`);
+			switch (mode) {
+				case "playing":
+					if (!this.chaimu.video.paused && !this.chaimu.video.ended) this.syncPlay();
+					return this;
+				case "seeked":
+					if (this.isVideoPlaying()) this.syncPlay();
+					else this.pause().catch(this.audioErrorHandle);
+					return this;
+				case "pause":
+				case "waiting":
+				case "ended":
+					this.pause().catch(this.audioErrorHandle);
+					return this;
+				default: return this;
+			}
+		}
+		async clear() {
+			this.lifecycleGeneration += 1;
+			this.disconnectAudioNodes();
+			this.unloadMediaElement(this.audio);
+			this._currentSrc = void 0;
+			return this;
+		}
+		syncPlay() {
+			debug_default.log("[AudioPlayer] sync play called");
+			this.play().catch(this.audioErrorHandle);
+			return this;
+		}
+		async play() {
+			this.assertActive();
+			debug_default.log("[AudioPlayer] play called");
+			if (!this._src) throw new Error("No audio source provided");
+			const generation = this.lifecycleGeneration;
+			return this.enqueueLifecycle(async () => {
+				if (generation !== this.lifecycleGeneration) return this;
+				if (this.chaimu.audioContext?.state === "suspended") await this.chaimu.audioContext.resume();
+				if (generation !== this.lifecycleGeneration) return this;
+				await this.audio.play();
+				return this;
+			});
+		}
+		async pause() {
+			this.assertActive();
+			debug_default.log("[AudioPlayer] pause called");
+			this.lifecycleGeneration += 1;
+			this.audio.pause();
+			return this;
+		}
+		set src(url) {
+			this.assertActive();
+			this._src = url;
+			if (!url) {
+				this.clear();
+				return;
+			}
+			this.updateAudio();
+			if (this.chaimu.audioContext) this.initAudioBooster();
+		}
+		get src() {
+			return this._src;
+		}
+		get currentSrc() {
+			return this._currentSrc;
+		}
+		set volume(value) {
+			this.storedVolume = value;
+			if (this.gainNode) {
+				this.gainNode.gain.value = value;
+				return;
+			}
+			this.audio.volume = value;
+		}
+		get volume() {
+			return this.storedVolume;
+		}
+		get playbackRate() {
+			return this.audio.playbackRate;
+		}
+		set playbackRate(value) {
+			this.audio.playbackRate = value;
+		}
+		get currentTime() {
+			return this._currentSrc ? this.audio.currentTime : 0;
+		}
+	};
+	var ChaimuPlayer = class extends BasePlayer {
+		static name = "ChaimuPlayer";
+		audioBuffer;
+		audioElement;
+		mediaElementSource;
+		gainNode;
+		blobUrl;
+		initializationAbortController;
+		cancelInitialization;
+		clearingPromise;
+		playbackGeneration = 0;
+		sourceGeneration = 0;
+		async fetchAudio(signal) {
+			if (!this._src) throw new Error("No audio source provided");
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			debug_default.log(`[ChaimuPlayer] Fetching audio from ${this._src}...`);
+			let tempBlobUrl;
+			try {
+				const fetchSignal = this.composeFetchSignal(signal);
+				const res = await this.fetch(this._src, {
+					...this.fetchOpts,
+					signal: fetchSignal
+				});
+				fetchSignal?.throwIfAborted();
+				debug_default.log(`[ChaimuPlayer] Decoding fetched audio...`);
+				const data = await res.arrayBuffer();
+				fetchSignal?.throwIfAborted();
+				const blob = new Blob([data]);
+				tempBlobUrl = URL.createObjectURL(blob);
+				const audioBuffer = await this.chaimu.audioContext.decodeAudioData(data);
+				fetchSignal?.throwIfAborted();
+				if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
+				this.audioBuffer = audioBuffer;
+				this.blobUrl = tempBlobUrl;
+				tempBlobUrl = void 0;
+			} catch (err) {
+				if (tempBlobUrl) URL.revokeObjectURL(tempBlobUrl);
+				throw new Error(`Failed to fetch audio file, because ${err.message}`);
+			}
+			return this;
+		}
+		initAudioBooster() {
+			if (!this.chaimu.audioContext) return this;
+			this.disconnectAudioNodes();
+			this.gainNode = this.chaimu.audioContext.createGain();
+			this.gainNode.gain.value = this.storedVolume;
+			return this;
+		}
+		disconnectAudioNodes() {
+			if (this.mediaElementSource) {
+				this.mediaElementSource.disconnect();
+				this.mediaElementSource = void 0;
+			}
+			if (this.gainNode) {
+				this.gainNode.disconnect();
+				this.gainNode = void 0;
+			}
+		}
+		releaseMediaResources() {
+			this.disconnectAudioNodes();
+			this.unloadMediaElement(this.audioElement);
+			this.audioElement = void 0;
+			this.audioBuffer = void 0;
+			if (this.blobUrl) {
+				URL.revokeObjectURL(this.blobUrl);
+				this.blobUrl = void 0;
+			}
+			this._currentSrc = void 0;
+		}
+		async init() {
+			this.assertActive();
+			if (!this._src) return this;
+			const generation = this.lifecycleGeneration;
+			return this.enqueueLifecycle(async () => {
+				if (generation !== this.lifecycleGeneration) return this;
+				this.releaseMediaResources();
+				const abortController = new AbortController();
+				let cancelInitialization;
+				const cancellation = new Promise((resolve) => {
+					cancelInitialization = () => resolve("cancelled");
+				});
+				this.initializationAbortController = abortController;
+				this.cancelInitialization = cancelInitialization;
+				try {
+					const initialization = this.fetchAudio(abortController.signal).then(() => "initialized");
+					if (await Promise.race([initialization, cancellation]) === "cancelled" || generation !== this.lifecycleGeneration) return this;
+					this.initAudioBooster();
+					this.createAudioElement();
+					return this;
+				} finally {
+					if (this.initializationAbortController === abortController) {
+						this.initializationAbortController = void 0;
+						this.cancelInitialization = void 0;
+					}
+				}
+			});
+		}
+		createAudioElement() {
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			if (!this.blobUrl) throw new Error("No blob URL available.");
+			const audio = new Audio(this.blobUrl);
+			audio.crossOrigin = "anonymous";
+			audio.playbackRate = this.chaimu.video.playbackRate;
+			if ("preservesPitch" in audio) {
+				audio.preservesPitch = true;
+				if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
+				if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = true;
+			}
+			this.audioElement = audio;
+			this.mediaElementSource = this.chaimu.audioContext.createMediaElementSource(audio);
+			this.mediaElementSource.connect(this.gainNode);
+			this.gainNode.connect(this.chaimu.audioContext.destination);
+			this._currentSrc = this._src;
+		}
+		lipSync(mode = false) {
+			debug_default.log("[ChaimuPlayer] lipsync video", this.chaimu.video, this);
+			if (!this.chaimu.video) return this;
+			if (this.audioElement) {
+				this.audioElement.currentTime = this.chaimu.video.currentTime;
+				this.audioElement.playbackRate = this.chaimu.video.playbackRate;
+			}
+			if (!mode) {
+				debug_default.log("[ChaimuPlayer] lipsync mode isn't set");
+				return this;
+			}
+			debug_default.log(`[ChaimuPlayer] lipsync mode is ${mode}`);
+			switch (mode) {
+				case "playing":
+					if (!this.chaimu.video.paused && !this.chaimu.video.ended) this.play().catch(this.audioErrorHandle);
+					return this;
+				case "seeked":
+					if (this.isVideoPlaying()) this.play().catch(this.audioErrorHandle);
+					else this.pause().catch(this.audioErrorHandle);
+					return this;
+				case "pause":
+				case "waiting":
+				case "ended":
+					this.pause().catch(this.audioErrorHandle);
+					return this;
+				default: return this;
+			}
+		}
+		async reopenCtx() {
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			try {
+				if (this.chaimu.audioContext.state !== "closed") await this.chaimu.audioContext.close();
+			} catch (err) {
+				debug_default.log("[ChaimuPlayer] Failed to close audio context:", err);
+			}
+			this.chaimu.audioContext = initAudioContext();
+			return this;
+		}
+		async clear() {
+			if (this.isDestroyed) return await this.destructionPromise ?? this;
+			this.sourceGeneration += 1;
+			this._currentSrc = void 0;
+			if (this.clearingPromise) return this.clearingPromise;
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			debug_default.log("clear audio context");
+			this.lifecycleGeneration += 1;
+			this.initializationAbortController?.abort();
+			this.cancelInitialization?.();
+			const clearingPromise = this.enqueueLifecycle(async () => {
+				this.releaseMediaResources();
+				await this.reopenCtx();
+				return this;
+			});
+			this.clearingPromise = clearingPromise;
+			try {
+				return await clearingPromise;
+			} finally {
+				if (this.clearingPromise === clearingPromise) this.clearingPromise = void 0;
+			}
+		}
+		destroy() {
+			if (this.destructionPromise) return this.destructionPromise;
+			this.isDestroyed = true;
+			this.removeVideoEvents();
+			this._currentSrc = void 0;
+			this.sourceGeneration += 1;
+			this.lifecycleGeneration += 1;
+			this.initializationAbortController?.abort();
+			this.cancelInitialization?.();
+			this.destructionPromise = this.enqueueLifecycle(async () => {
+				this.releaseMediaResources();
+				await this.closeAudioContext();
+				return this;
+			});
+			return this.destructionPromise;
+		}
+		async play() {
+			this.assertActive();
+			if (!this._src) throw new Error("No audio source provided");
+			if (this.clearingPromise) await this.clearingPromise;
+			const generation = this.lifecycleGeneration;
+			const playbackGeneration = this.playbackGeneration;
+			return this.enqueueLifecycle(async () => {
+				if (generation !== this.lifecycleGeneration || playbackGeneration !== this.playbackGeneration) return this;
+				if (!this.chaimu.audioContext) throw new Error("No audio context available");
+				if (!this.audioElement) throw new Error("Audio element is missing");
+				debug_default.log("starting audio via HTMLAudioElement");
+				if (this.chaimu.audioContext.state === "suspended") await this.chaimu.audioContext.resume();
+				if (generation !== this.lifecycleGeneration || playbackGeneration !== this.playbackGeneration) return this;
+				const audioElement = this.audioElement;
+				if (!audioElement) return this;
+				if (this.chaimu.video) {
+					audioElement.currentTime = this.chaimu.video.currentTime;
+					audioElement.playbackRate = this.chaimu.video.playbackRate;
+				}
+				await audioElement.play();
+				return this;
+			});
+		}
+		start() {
+			return this.play();
+		}
+		async pause() {
+			this.assertActive();
+			this.playbackGeneration += 1;
+			if (this.audioElement) this.audioElement.pause();
+			return this;
+		}
+		set src(url) {
+			this.assertActive();
+			this._src = url;
+			const clearing = this.clear();
+			const sourceGeneration = this.sourceGeneration;
+			if (!url) {
+				clearing.catch((err) => debug_default.log("[ChaimuPlayer] Failed to clear source:", err));
+				return;
+			}
+			clearing.then(() => {
+				if (sourceGeneration !== this.sourceGeneration || this._src !== url) return this;
+				return this.init();
+			}).catch((err) => debug_default.log("[ChaimuPlayer] Failed to replace source:", err));
+		}
+		get src() {
+			return this._src;
+		}
+		get currentSrc() {
+			return this._currentSrc;
+		}
+		set volume(value) {
+			this.storedVolume = value;
+			if (this.gainNode) this.gainNode.gain.value = value;
+		}
+		get volume() {
+			return this.storedVolume;
+		}
+		set playbackRate(value) {
+			if (this.audioElement) this.audioElement.playbackRate = value;
+		}
+		get playbackRate() {
+			return this.audioElement ? this.audioElement.playbackRate : this.chaimu.video?.playbackRate ?? 1;
+		}
+		get currentTime() {
+			return this.audioElement?.currentTime ?? 0;
+		}
+	};
+	//#endregion
+	//#region ../../chaimu/dist/client.js
+	var Chaimu = class {
+		_debug = false;
+		audioContext;
+		isDestroyed = false;
+		isInitialized = false;
+		destructionPromise;
+		lifecycleQueue;
+		player;
+		video;
+		fetchFn;
+		fetchOpts;
+		constructor({ url, video, debug = false, fetchFn = config_default.fetchFn, fetchOpts = {}, preferAudio = false }) {
+			this._debug = config_default.debug = debug;
+			this.fetchFn = fetchFn;
+			this.fetchOpts = fetchOpts;
+			this.video = video;
+			this.audioContext = initAudioContext();
+			this.player = this.audioContext && !preferAudio ? new ChaimuPlayer(this, url) : new AudioPlayer(this, url);
+		}
+		assertActive() {
+			if (this.isDestroyed) throw new Error("Chaimu has been destroyed");
+		}
+		isVideoPlaying(video) {
+			return !video.paused && !video.ended && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+		}
+		enqueueLifecycle(operation) {
+			let result;
+			if (this.lifecycleQueue) result = this.lifecycleQueue.then(operation);
+			else try {
+				result = Promise.resolve(operation());
+			} catch (error) {
+				result = Promise.reject(error instanceof Error ? error : new Error(String(error)));
+			}
+			const lifecycleQueue = result.then(() => void 0, () => void 0);
+			this.lifecycleQueue = lifecycleQueue;
+			lifecycleQueue.then(() => {
+				if (this.lifecycleQueue === lifecycleQueue) this.lifecycleQueue = void 0;
+			});
+			return result;
+		}
+		async init() {
+			this.assertActive();
+			return this.enqueueLifecycle(async () => {
+				this.assertActive();
+				await this.player.init();
+				if (this.isDestroyed) return;
+				if (this.isVideoPlaying(this.video)) this.player.lipSync("playing");
+				this.player.addVideoEvents();
+				this.isInitialized = true;
+			});
+		}
+		async replaceVideo(newVideo) {
+			this.assertActive();
+			return this.enqueueLifecycle(() => {
+				this.assertActive();
+				if (newVideo === this.video) return this;
+				this.player.removeVideoEvents();
+				this.video = newVideo;
+				if (this.isInitialized) this.player.addVideoEvents();
+				this.player.lipSync(this.isVideoPlaying(newVideo) ? "seeked" : "pause");
+				return this;
+			});
+		}
+		destroy() {
+			if (this.destructionPromise) return this.destructionPromise;
+			this.isDestroyed = true;
+			this.destructionPromise = this.player.destroy().then(() => this);
+			return this.destructionPromise;
+		}
+		get destroyed() {
+			return this.isDestroyed;
+		}
+		set debug(value) {
+			this._debug = config_default.debug = value;
+		}
+		get debug() {
+			return this._debug;
+		}
+	};
+	//#endregion
+	//#region src/core/cacheManager.ts
+	var YANDEX_TTL_MS = 7200 * 1e3;
+	var VOT_SESSION_STORAGE_KEY = "VOTSession";
+	function getCurrentUnixTimestampSeconds() {
+		return Math.floor(Date.now() / 1e3);
+	}
+	function isClientSession(value) {
+		if (!value || typeof value !== "object") return false;
+		const candidate = value;
+		return typeof candidate.expires === "number" && Number.isFinite(candidate.expires) && typeof candidate.timestamp === "number" && Number.isFinite(candidate.timestamp) && typeof candidate.uuid === "string" && candidate.uuid.length > 0 && typeof candidate.secretKey === "string" && candidate.secretKey.length > 0;
+	}
+	function sanitizeVOTSessions(value) {
+		if (!value || typeof value !== "object") return {};
+		const now = getCurrentUnixTimestampSeconds();
+		const entries = Object.entries(value).flatMap(([module, session]) => {
+			if (!isClientSession(session)) return [];
+			if (session.timestamp + session.expires <= now) return [];
+			return [[module, session]];
+		});
+		return Object.fromEntries(entries);
+	}
+	function hasSessions(sessions) {
+		return Object.keys(sessions).length > 0;
+	}
+	var VOTSessionStorageCache = class {
+		storage;
+		constructor(storage = votStorage) {
+			this.storage = storage;
+		}
+		getStorageKey() {
+			return VOT_SESSION_STORAGE_KEY;
+		}
+		async restore(_host, currentSessions = {}) {
+			const storageKey = this.getStorageKey();
+			const rawStoredSession = await this.storage.getRaw(storageKey);
+			const restoredSessions = sanitizeVOTSessions(rawStoredSession);
+			if (!hasSessions(restoredSessions)) {
+				if (rawStoredSession !== void 0) await this.storage.deleteRaw(storageKey);
+				return currentSessions;
+			}
+			return {
+				...currentSessions,
+				...restoredSessions
+			};
+		}
+		async persist(_host, sessions) {
+			const storageKey = this.getStorageKey();
+			const sanitizedSessions = sanitizeVOTSessions(sessions);
+			if (!hasSessions(sanitizedSessions)) {
+				await this.storage.deleteRaw(storageKey);
+				return;
+			}
+			await this.storage.setRaw(storageKey, sanitizedSessions);
+		}
+	};
+	/**
+	* Small in-memory cache with TTL for both translations and subtitles.
+	*
+	* The cache is keyed by a stable key built by VideoHandler.
+	*/
+	var InMemoryCacheManager = class {
+		translations = /* @__PURE__ */ new Map();
+		subtitles = /* @__PURE__ */ new Map();
+		/**
+		* Clears all cached entries.
+		*
+		* Used when runtime settings change (e.g. proxy mode/host), because cached
+		* translation URLs and especially previous failures can become stale.
+		*/
+		clear() {
+			this.translations.clear();
+			this.subtitles.clear();
+		}
+		getTranslation(key) {
+			return this.getFreshValue(this.translations, key);
+		}
+		setTranslation(key, translation) {
+			this.setFreshValue(this.translations, key, translation);
+		}
+		getSubtitles(key) {
+			return this.getFreshValue(this.subtitles, key);
+		}
+		setSubtitles(key, subtitles) {
+			this.setFreshValue(this.subtitles, key, subtitles);
+		}
+		deleteSubtitles(key) {
+			this.subtitles.delete(key);
+		}
+		getFreshValue(cache, key) {
+			const entry = cache.get(key);
+			if (!entry) return void 0;
+			if (entry.expiresAt <= Date.now()) {
+				cache.delete(key);
+				return;
+			}
+			return entry.value;
+		}
+		setFreshValue(cache, key, value) {
+			cache.set(key, {
+				value,
+				expiresAt: computeExpiresAt(Date.now(), YANDEX_TTL_MS)
+			});
+		}
+	};
+	//#endregion
+	//#region src/core/fullscreenHelper.ts
+	var FullscreenHelper = class {
+		container;
+		video;
+		fullscreenChangeListeners = /* @__PURE__ */ new Set();
+		handleFullscreenChange = () => {
+			this.notifyFullscreenChange();
+		};
+		nativeFullscreenListenersActive = false;
+		constructor({ container, video }) {
+			this.container = container;
+			this.video = video;
+		}
+		/**
+		* Gets the current fullscreen element with proper ShadowDOM support
+		*/
+		getFullscreenElement() {
+			const doc = document;
+			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+			if (!(fullscreenEl instanceof HTMLElement)) return null;
+			return fullscreenEl;
+		}
+		/**
+		* Gets comprehensive fullscreen information including ShadowDOM details
+		*/
+		getFullscreenInfo() {
+			const element = this.getFullscreenElement();
+			const isFullscreen = Boolean(element);
+			if (!element) return {
+				element: null,
+				shadowRoot: null,
+				isFullscreen: false,
+				belongsToCurrentVideo: false
+			};
+			return {
+				element,
+				shadowRoot: element.shadowRoot ?? null,
+				isFullscreen,
+				belongsToCurrentVideo: this.isElementBelongsToCurrentVideo(element)
+			};
+		}
+		/**
+		* Checks if the given element belongs to the current video/container
+		*/
+		isElementBelongsToCurrentVideo(element) {
+			return element === this.container || containsCrossShadow(element, this.container) || containsCrossShadow(this.container, element) || this.video && (element === this.video || containsCrossShadow(element, this.video) || containsCrossShadow(this.video, element));
+		}
+		/**
+		* Gets the appropriate root element for overlay mounting in fullscreen mode
+		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
+		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
+		*/
+		getOverlayRoot() {
+			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
+			if (!element || !belongsToCurrentVideo) return null;
+			return shadowRoot ?? element;
+		}
+		/**
+		* Gets the appropriate element for ResizeObserver to watch for size changes
+		* Handles both regular DOM and ShadowDOM scenarios
+		*/
+		getResizeObserverTarget() {
+			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
+			if (element && belongsToCurrentVideo) return shadowRoot?.host ?? element;
+			return this.container;
+		}
+		/**
+		* Checks if the current container should be considered "big" for button positioning
+		* Takes into account fullscreen state and ShadowDOM
+		*/
+		isBigContainer(threshold = 550) {
+			const target = this.getResizeObserverTarget();
+			const rect = target.getBoundingClientRect();
+			const videoRect = this.video?.getBoundingClientRect();
+			let width = target.clientWidth;
+			if (rect.width > 0) width = rect.width;
+			if (videoRect && videoRect.width < rect.width) width = videoRect.width;
+			return width > threshold;
+		}
+		/**
+		* Adds a listener for fullscreen changes
+		*/
+		addFullscreenChangeListener(listener) {
+			this.fullscreenChangeListeners.add(listener);
+			if (this.fullscreenChangeListeners.size === 1) this.setupFullscreenListeners();
+		}
+		/**
+		* Removes a fullscreen change listener
+		*/
+		removeFullscreenChangeListener(listener) {
+			this.fullscreenChangeListeners.delete(listener);
+			if (this.fullscreenChangeListeners.size === 0) this.cleanupFullscreenListeners();
+		}
+		/**
+		* Sets up native fullscreen event listeners
+		*/
+		setupFullscreenListeners() {
+			if (this.nativeFullscreenListenersActive) return;
+			document.addEventListener("fullscreenchange", this.handleFullscreenChange);
+			document.addEventListener("webkitfullscreenchange", this.handleFullscreenChange);
+			if (this.video) {
+				this.video.addEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
+				this.video.addEventListener("webkitendfullscreen", this.handleFullscreenChange);
+			}
+			this.nativeFullscreenListenersActive = true;
+		}
+		/**
+		* Cleans up fullscreen event listeners
+		*/
+		cleanupFullscreenListeners() {
+			if (!this.nativeFullscreenListenersActive) return;
+			document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
+			document.removeEventListener("webkitfullscreenchange", this.handleFullscreenChange);
+			if (this.video) {
+				this.video.removeEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
+				this.video.removeEventListener("webkitendfullscreen", this.handleFullscreenChange);
+			}
+			this.nativeFullscreenListenersActive = false;
+		}
+		/**
+		* Notifies all listeners about fullscreen state changes
+		*/
+		notifyFullscreenChange() {
+			for (const listener of this.fullscreenChangeListeners) try {
+				listener();
+			} catch (error) {
+				console.warn("[FullscreenHelper] Error in fullscreen change listener:", error);
+			}
+		}
+		/**
+		* Updates the container reference (useful when video container changes)
+		*/
+		updateContainer(container) {
+			this.container = container;
+		}
+		/**
+		* Updates the video reference
+		*/
+		updateVideo(video) {
+			const shouldRebind = this.nativeFullscreenListenersActive && this.video !== video;
+			if (shouldRebind) this.cleanupFullscreenListeners();
+			this.video = video;
+			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setupFullscreenListeners();
+		}
+		/**
+		* Cleans up all resources
+		*/
+		destroy() {
+			this.cleanupFullscreenListeners();
+			this.fullscreenChangeListeners.clear();
+		}
+	};
+	//#endregion
+	//#region src/core/overlayMountTargets.ts
+	function resolveOverlayBaseContainer(container, site) {
+		return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
+	}
+	function resolveOverlayMountTargets(input) {
+		const base = resolveOverlayBaseContainer(input.container, input.site);
+		const root = input.fullscreenRoot ?? base;
+		return {
+			base,
+			root,
+			portalContainer: base,
+			subtitlesMountContainer: root
+		};
+	}
+	//#endregion
+	//#region src/core/translateApis.ts
+	var SETTINGS_CACHE_TTL_MS = 5e3;
+	var IMMUTABLE_LOOKUP_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
+	var cachedTranslationService = null;
+	var cachedTranslationServiceAt = 0;
+	var cachedDetectService = null;
+	var cachedDetectServiceAt = 0;
+	async function getTranslationServiceCached() {
+		const now = Date.now();
+		if (cachedTranslationService && now - cachedTranslationServiceAt < SETTINGS_CACHE_TTL_MS) return cachedTranslationService;
+		const service = await votStorage.get("translationService", defaultTranslationService);
+		cachedTranslationService = String(service);
+		cachedTranslationServiceAt = now;
+		return cachedTranslationService;
+	}
+	async function getDetectServiceCached() {
+		const now = Date.now();
+		if (cachedDetectService && now - cachedDetectServiceAt < SETTINGS_CACHE_TTL_MS) return cachedDetectService;
+		const service = await votStorage.get("detectService", defaultDetectService);
+		cachedDetectService = String(service);
+		cachedDetectServiceAt = now;
+		return cachedDetectService;
+	}
+	var foswlyServices = ["yandexbrowser", "msedge"];
+	/**
+	* Limit: 10k symbols for yandex, 50k for msedge
+	*/
+	var FOSWLYTranslateAPI = new class {
+		isFOSWLYError(data) {
+			return Object.hasOwn(data, "error");
+		}
+		async request(path, opts = {}) {
+			try {
+				const data = await (await GM_fetch(`${foswlyTranslateUrl}${path}`, {
+					timeout: 3e3,
+					responseCache: {
+						ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
+						cacheName: "vot-foswly-api-v1",
+						allowStaleOnError: true
+					},
+					...opts
+				})).json();
+				if (this.isFOSWLYError(data)) throw new Error(data.error);
+				return data;
+			} catch (err) {
+				console.error(`[VOT] Failed to get data from FOSWLY Translate API, because ${err instanceof Error ? err.message : String(err)}`);
+				return;
+			}
+		}
+		async translateMultiple(text, lang, service) {
+			const result = await this.request("/translate", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					text,
+					lang,
+					service
+				})
+			});
+			return result ? result.translations : text;
+		}
+		async translate(text, lang, service) {
+			const result = await this.request(`/translate?${new URLSearchParams({
+				text,
+				lang,
+				service
+			})}`);
+			return result ? result.translations[0] : text;
+		}
+		async detect(text, service) {
+			const result = await this.request(`/detect?${new URLSearchParams({
+				text,
+				service
+			})}`);
+			return result ? result.lang : "en";
+		}
+	}();
+	var RustServerAPI = { async detect(text) {
+		try {
+			return await (await GM_fetch(detectRustServerUrl, {
+				method: "POST",
+				body: text,
+				timeout: 3e3,
+				responseCache: {
+					ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
+					cacheName: "vot-rust-detect-v1",
+					allowStaleOnError: true
+				}
+			})).text();
+		} catch (error) {
+			console.error(`[VOT] Error getting lang from text, because ${error.message}`);
+			return "en";
+		}
+	} };
+	async function translate(text, fromLang = "", toLang = "ru") {
+		if (fromLang && toLang && fromLang === toLang) return text;
+		const service = await getTranslationServiceCached();
+		switch (service) {
+			case "yandexbrowser":
+			case "msedge": {
+				const langPair = fromLang && toLang ? `${fromLang}-${toLang}` : toLang;
+				return Array.isArray(text) ? await FOSWLYTranslateAPI.translateMultiple(text, langPair, service) : await FOSWLYTranslateAPI.translate(text, langPair, service);
+			}
+			default: return text;
+		}
+	}
+	async function detect(text) {
+		const service = await getDetectServiceCached();
+		switch (service) {
+			case "yandexbrowser":
+			case "msedge": return await FOSWLYTranslateAPI.detect(text, service);
+			case "rust-server": return await RustServerAPI.detect(text);
+			default: return "en";
+		}
+	}
+	var detectServices = [...foswlyServices, "rust-server"];
+	//#endregion
+	//#region src/audioDownloader/fileId.ts
 	function makeFileId(downloadType, itag, fileSize, minChunkSize) {
 		return JSON.stringify({
 			downloadType,
@@ -11598,7 +13096,7 @@ var vot = (function(exports) {
 		return null;
 	}
 	function decodeEscapedJsonString(input) {
-		return input.replaceAll("\\u0026", "&").replaceAll("\\/", "/");
+		return input.replaceAll(String.raw`\u0026`, "&").replaceAll(String.raw`\/`, "/");
 	}
 	function getRequiredVideoId(request) {
 		const source = request.videoId ?? request.videoUrl;
@@ -12028,6 +13526,102 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region src/utils/account.ts
+	function hasAccountToken(account) {
+		return typeof account?.token === "string" && account.token.length > 0;
+	}
+	function isAccountExpired(account, now = Date.now()) {
+		return hasAccountToken(account) && typeof account?.expires === "number" && Number.isFinite(account.expires) && account.expires <= now;
+	}
+	function hasValidAccountToken(account, now = Date.now()) {
+		return hasAccountToken(account) && !isAccountExpired(account, now);
+	}
+	function clearAccountState(owner) {
+		if (owner?.data) owner.data.account = {};
+		if (owner?.votClient) owner.votClient.apiToken = void 0;
+	}
+	async function deleteAccount(owner) {
+		clearAccountState(owner);
+		await votStorage.delete("account");
+	}
+	async function deleteExpiredAccount(owner, now = Date.now()) {
+		if (!isAccountExpired(owner?.data?.account, now)) return false;
+		await deleteAccount(owner);
+		return true;
+	}
+	//#endregion
+	//#region src/VOTLocalizedError.ts
+	var VOTLocalizedError = class extends Error {
+		name = "VOTLocalizedError";
+		/** Original (non-localized) message key. */
+		unlocalizedMessage;
+		/** Resolved localized message. */
+		localizedMessage;
+		constructor(message) {
+			super(localizationProvider.getDefault(message));
+			this.unlocalizedMessage = message;
+			this.localizedMessage = localizationProvider.get(message);
+		}
+	};
+	//#endregion
+	//#region src/core/authWindow.ts
+	var AUTH_WINDOW_NAME = "votAuthWindow";
+	var AUTH_WINDOW_WIDTH = 520;
+	var AUTH_WINDOW_HEIGHT = 720;
+	function getViewportMetric(name) {
+		const value = globalThis[name];
+		return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+	}
+	function getScreenOffset(name) {
+		const value = globalThis[name];
+		return typeof value === "number" && Number.isFinite(value) ? value : 0;
+	}
+	function getAuthWindowFeatures() {
+		const viewportWidth = getViewportMetric("outerWidth") ?? globalThis.screen?.availWidth ?? AUTH_WINDOW_WIDTH;
+		const viewportHeight = getViewportMetric("outerHeight") ?? globalThis.screen?.availHeight ?? AUTH_WINDOW_HEIGHT;
+		const left = Math.max(0, Math.round(getScreenOffset("screenX") + (viewportWidth - AUTH_WINDOW_WIDTH) / 2));
+		const top = Math.max(0, Math.round(getScreenOffset("screenY") + (viewportHeight - AUTH_WINDOW_HEIGHT) / 2));
+		return [
+			"popup=yes",
+			"resizable=yes",
+			"scrollbars=yes",
+			`width=${AUTH_WINDOW_WIDTH}`,
+			`height=${AUTH_WINDOW_HEIGHT}`,
+			`left=${left}`,
+			`top=${top}`
+		].join(",");
+	}
+	function openAuthWindow() {
+		globalThis.open(authLoginUrl, AUTH_WINDOW_NAME, getAuthWindowFeatures())?.focus?.();
+	}
+	//#endregion
+	//#region src/core/translationAuthError.ts
+	function isSessionRequired(value) {
+		return safeNestedGet(value, ["status"]) === VideoTranslationStatus.SESSION_REQUIRED || safeNestedGet(value, ["data", "status"]) === VideoTranslationStatus.SESSION_REQUIRED;
+	}
+	function getTranslationServerErrorMessage(value) {
+		const msg = safeNestedGet(value, ["data", "message"]);
+		return typeof msg === "string" && msg.length > 0 ? msg : void 0;
+	}
+	function getTranslationAuthErrorKind(value, context = {}) {
+		if (!isSessionRequired(value)) return null;
+		return context.hasAccountToken ? "session-expired" : "account-required";
+	}
+	function isTranslationAuthError(value, context = {}) {
+		return getTranslationAuthErrorKind(value, context) !== null;
+	}
+	//#endregion
+	//#region src/core/translationErrors.ts
+	function notifyTranslationFailureIfNeeded(options) {
+		if (options.aborted) return false;
+		if (!options.translateApiErrorsEnabled || !options.hadAsyncWait) return options.hadAsyncWait;
+		options.notify({
+			videoId: options.videoId,
+			message: options.error
+		});
+		return false;
+	}
+	//#endregion
 	//#region src/utils/timeFormatting.ts
 	var MAX_SECS_FRACTION = .66;
 	function formatTranslationEta(secs, getMessage) {
@@ -12049,99 +13643,82 @@ var vot = (function(exports) {
 		return getMessage("translationTakeApproximatelyMinutes").replace("{0}", minutesStr);
 	}
 	//#endregion
-	//#region src/utils/VOTLocalizedError.ts
-	var VOTLocalizedError = class extends Error {
-		name = "VOTLocalizedError";
-		/** Original (non-localized) message key. */
-		unlocalizedMessage;
-		/** Resolved localized message. */
-		localizedMessage;
-		constructor(message) {
-			super(localizationProvider.getDefault(message));
-			this.unlocalizedMessage = message;
-			this.localizedMessage = localizationProvider.get(message);
+	//#region src/core/translationEtaCountdown.ts
+	var COUNTDOWN_TICK_MS = 1e3;
+	function normalizeRemainingTime(remainingTimeSeconds) {
+		if (!Number.isFinite(remainingTimeSeconds)) return 0;
+		return Math.max(0, Math.ceil(remainingTimeSeconds));
+	}
+	function createEtaMessage(remainingSeconds) {
+		if (remainingSeconds <= 0) return new VOTLocalizedError("TranslationDelayed");
+		return formatTranslationEta(remainingSeconds, (key) => localizationProvider.get(key));
+	}
+	function getMessageIdentity(message) {
+		return message instanceof VOTLocalizedError ? `${message.name}:${message.unlocalizedMessage}` : message;
+	}
+	/**
+	* Keeps the visible translation ETA moving between polling requests.
+	*
+	* Server responses still remain the source of truth: every call to `sync()`
+	* recalculates the deadline from the latest `remainingTime`. Timer ticks only
+	* render the local wall-clock countdown to avoid stale UI while the next poll is
+	* still waiting.
+	*/
+	var TranslationEtaCountdown = class {
+		updateMessage;
+		deadlineMs = 0;
+		generation = 0;
+		lastMessageIdentity = null;
+		signal;
+		timeoutId;
+		constructor(updateMessage) {
+			this.updateMessage = updateMessage;
+		}
+		async sync(remainingTimeSeconds, signal, options = {}) {
+			this.stop();
+			const remainingSeconds = normalizeRemainingTime(remainingTimeSeconds);
+			if (remainingSeconds <= 0 || signal.aborted) return;
+			const generation = ++this.generation;
+			this.deadlineMs = Date.now() + remainingSeconds * 1e3;
+			this.signal = signal;
+			await this.tick(generation, Boolean(options.countLongWaitOnFirstRender));
+		}
+		stop() {
+			this.generation += 1;
+			this.deadlineMs = 0;
+			this.lastMessageIdentity = null;
+			this.signal = void 0;
+			if (this.timeoutId !== void 0) {
+				clearTimeout(this.timeoutId);
+				this.timeoutId = void 0;
+			}
+		}
+		async tick(generation, countLongWait = false) {
+			if (generation !== this.generation) return;
+			const signal = this.signal;
+			if (!signal || signal.aborted) {
+				this.stop();
+				return;
+			}
+			const remainingSeconds = Math.max(0, Math.ceil((this.deadlineMs - Date.now()) / 1e3));
+			const message = createEtaMessage(remainingSeconds);
+			const messageIdentity = getMessageIdentity(message);
+			if (messageIdentity !== this.lastMessageIdentity) {
+				this.lastMessageIdentity = messageIdentity;
+				await this.updateMessage(message, signal, { countLongWait });
+			}
+			if (generation !== this.generation || signal.aborted) return;
+			if (remainingSeconds <= 0) {
+				this.timeoutId = void 0;
+				return;
+			}
+			this.timeoutId = setTimeout(() => {
+				this.tick(generation);
+			}, COUNTDOWN_TICK_MS);
 		}
 	};
 	//#endregion
-	//#region src/videoHandler/modules/translationShared.ts
-	function normalizeTranslationHelp(translationHelp) {
-		return translationHelp ?? null;
-	}
-	async function requestTranslationAudio(requester, options) {
-		const response = await requester.translateVideoImpl(options.videoData, options.requestLang, options.responseLang, normalizeTranslationHelp(options.translationHelp), !options.useAudioDownload, options.signal);
-		if (!response?.url) return null;
-		return {
-			url: response.url,
-			usedLivelyVoice: Boolean(response.usedLivelyVoice)
-		};
-	}
-	function buildTranslationCacheValue(options) {
-		return {
-			videoId: options.videoId,
-			from: options.requestLang,
-			to: options.responseLang,
-			url: options.downloadTranslationUrl ?? options.fallbackUrl,
-			useLivelyVoice: options.usedLivelyVoice
-		};
-	}
-	async function updateTranslationIfFresh(options) {
-		if (options.isActionStale(options.actionContext)) return false;
-		await options.updateTranslation(options.url, options.actionContext);
-		if (options.isActionStale(options.actionContext)) return false;
-		return true;
-	}
-	async function requestAndApplyTranslation(options) {
-		const translateRes = await requestTranslationAudio(options.requester, {
-			videoData: options.request.videoData,
-			requestLang: options.request.requestLang,
-			responseLang: options.request.responseLang,
-			translationHelp: options.request.translationHelp,
-			useAudioDownload: options.request.useAudioDownload,
-			signal: options.request.signal
-		});
-		if (!translateRes) return null;
-		if (!await updateTranslationIfFresh({
-			url: translateRes.url,
-			actionContext: options.actionContext,
-			isActionStale: options.isActionStale,
-			updateTranslation: options.updateTranslation
-		}) || options.isActionStale(options.actionContext)) return null;
-		return translateRes;
-	}
-	function setTranslationCacheValue(options) {
-		options.setTranslation(options.cacheKey, buildTranslationCacheValue({
-			videoId: options.videoId,
-			requestLang: options.requestLang,
-			responseLang: options.responseLang,
-			fallbackUrl: options.fallbackUrl,
-			downloadTranslationUrl: options.downloadTranslationUrl,
-			usedLivelyVoice: options.usedLivelyVoice
-		}));
-	}
-	function notifyTranslationFailureIfNeeded(options) {
-		if (options.aborted || !options.translateApiErrorsEnabled || !options.hadAsyncWait) return options.hadAsyncWait;
-		options.notify({
-			videoId: options.videoId,
-			message: options.error
-		});
-		return false;
-	}
-	//#endregion
 	//#region src/core/translationHandler.ts
-	function asVotClientErrorShape(value) {
-		if (!value || typeof value !== "object") return null;
-		const candidate = value;
-		const data = candidate.data && typeof candidate.data === "object" ? candidate.data : void 0;
-		return {
-			name: candidate.name,
-			message: candidate.message,
-			data
-		};
-	}
-	function getServerErrorMessage(value) {
-		const message = asVotClientErrorShape(value)?.data?.message;
-		return typeof message === "string" && message.length > 0 ? message : void 0;
-	}
 	/**
 	* Historically we used `patch-package` to make `@vot.js/core` throw
 	* `VOTLocalizedError` for a few common failure cases.
@@ -12149,42 +13726,18 @@ var vot = (function(exports) {
 	* We now keep the dependency unpatched and instead map known error messages
 	* coming from the VOT client to the corresponding localized UI errors.
 	*/
-	function mapVotClientErrorForUi(error) {
-		const err = asVotClientErrorShape(error);
-		if (!err) return error;
-		if (err.name !== "VOTJSError") return error;
-		const message = typeof err.message === "string" ? err.message : "";
-		const hasServerMessage = typeof err.data?.message === "string" && err.data.message.length > 0;
+	function mapVotClientErrorForUi(error, hasProvidedAccountToken = false) {
+		const authErrorKind = getTranslationAuthErrorKind(error, { hasAccountToken: hasProvidedAccountToken });
+		if (authErrorKind) return new VOTLocalizedError(authErrorKind === "session-expired" ? "VOTYandexTokenExpired" : "VOTAccountRequired");
+		if (!error || typeof error !== "object") return error;
+		if (safeNestedGet(error, ["name"]) !== "VOTJSError") return error;
+		const message = typeof safeNestedGet(error, ["message"]) === "string" ? safeNestedGet(error, ["message"]) : "";
+		const serverMessage = safeNestedGet(error, ["data", "message"]);
+		const hasServerMessage = typeof serverMessage === "string" && serverMessage.length > 0;
 		if (message === "Yandex couldn't translate video" && !hasServerMessage) return new VOTLocalizedError("requestTranslationFailed");
 		if (message === "Failed to request video translation") return new VOTLocalizedError("requestTranslationFailed");
 		if (message === "Audio link wasn't received" || message === "Audio link wasn't received from VOT response") return new VOTLocalizedError("audioNotReceived");
 		return error;
-	}
-	function waitForAbortableTimeout(delayMs, signal, onScheduled) {
-		return new Promise((resolve, reject) => {
-			let timeoutId;
-			const cleanup = () => {
-				if (timeoutId !== void 0) {
-					clearTimeout(timeoutId);
-					timeoutId = void 0;
-				}
-				signal.removeEventListener("abort", onAbort);
-			};
-			const onAbort = () => {
-				cleanup();
-				reject(makeAbortError());
-			};
-			signal.addEventListener("abort", onAbort, { once: true });
-			if (signal.aborted) {
-				onAbort();
-				return;
-			}
-			timeoutId = setTimeout(() => {
-				cleanup();
-				resolve();
-			}, delayMs);
-			onScheduled?.(timeoutId);
-		});
 	}
 	function summarizeTranslationResponse(response) {
 		return {
@@ -12198,12 +13751,14 @@ var vot = (function(exports) {
 		videoHandler;
 		audioDownloader;
 		downloading;
-		downloadWaiters = /* @__PURE__ */ new Set();
+		downloadSettlers = /* @__PURE__ */ new Set();
+		etaCountdown;
 		requestedFailAudio = /* @__PURE__ */ new Set();
 		constructor(videoHandler) {
 			this.videoHandler = videoHandler;
 			this.audioDownloader = new AudioDownloader();
 			this.downloading = false;
+			this.etaCountdown = new TranslationEtaCountdown((message, signal, options) => this.videoHandler.updateTranslationErrorMsg(message, signal, options));
 			this.audioDownloader.addEventListener("downloadedAudio", this.onDownloadedAudio).addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio).addEventListener("downloadAudioError", this.onDownloadAudioError);
 		}
 		onDownloadedAudio = async (translationId, data) => {
@@ -12215,13 +13770,13 @@ var vot = (function(exports) {
 			const { videoId, fileId, audioData } = data;
 			const videoUrl = this.getCanonicalUrl(videoId);
 			try {
-				await this.videoHandler.votClient.requestVtransAudio(videoUrl, translationId, {
+				await this.retryAudioUpload(() => this.videoHandler.votClient.requestVtransAudio(videoUrl, translationId, {
 					audioFile: audioData,
 					fileId
-				});
+				}));
 			} catch (error) {
 				debug.error("Failed to upload downloaded audio", error);
-				this.finishDownloadFailure(/* @__PURE__ */ new Error("Audio downloader failed while uploading full audio"));
+				this.finishDownloadFailure(error instanceof Error ? error : /* @__PURE__ */ new Error("Audio downloader failed while uploading full audio"));
 				return;
 			}
 			this.finishDownloadSuccess();
@@ -12235,14 +13790,14 @@ var vot = (function(exports) {
 			const { audioData, fileId, videoId, amount, version, index } = data;
 			const videoUrl = this.getCanonicalUrl(videoId);
 			try {
-				await this.videoHandler.votClient.requestVtransAudio(videoUrl, translationId, {
+				await this.retryAudioUpload(() => this.videoHandler.votClient.requestVtransAudio(videoUrl, translationId, {
 					audioFile: audioData,
 					chunkId: index
 				}, {
 					audioPartsLength: amount,
 					fileId,
 					version
-				});
+				}));
 			} catch (error) {
 				debug.error("Failed to upload downloaded audio chunk", error);
 				this.finishDownloadFailure(/* @__PURE__ */ new Error("Audio downloader failed while uploading chunk"));
@@ -12285,29 +13840,53 @@ var vot = (function(exports) {
 		getCanonicalUrl(videoId) {
 			return `https://youtu.be/${videoId}`;
 		}
+		static AUDIO_UPLOAD_MAX_RETRIES = 2;
+		static AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
+		async retryAudioUpload(fn) {
+			const maxRetries = VOTTranslationHandler.AUDIO_UPLOAD_MAX_RETRIES;
+			const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
+			let lastError;
+			for (let attempt = 0; attempt <= maxRetries; attempt++) try {
+				return await fn();
+			} catch (error) {
+				lastError = error;
+				if (attempt === maxRetries) throw error;
+				debug.log(`[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
+				await new Promise((resolve) => setTimeout(resolve, delayMs));
+			}
+			throw lastError;
+		}
 		/**
 		* Detector for cases when server rejects the request because
 		* "Lively/Live voices" are unavailable (unsupported language pair).
 		*/
 		isLivelyVoiceUnavailableError(value) {
+			if (isTranslationAuthError(value)) return false;
 			const msg = getErrorMessage(value);
 			return !!msg && msg.toLowerCase().includes("обычная озвучка");
 		}
 		async scheduleRetry(fn, delayMs, signal) {
-			await waitForAbortableTimeout(delayMs, signal, (timeoutId) => {
+			await createAbortableDelay(delayMs, signal, { onScheduled: (timeoutId) => {
 				this.videoHandler.autoRetry = timeoutId;
-			});
+			} });
 			return await fn();
 		}
 		static MAX_INITIAL_WAIT_SEC = 180;
 		static LONG_WAIT_MS = 12e4;
 		static RETRY_INTERVAL_MS = 3e4;
-		getRetryDelayMs(retryAttempt, remainingTimeSeconds) {
+		getRetryDelayMs(retryAttempt, remainingTimeSeconds = 0) {
 			if (retryAttempt > 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
 			const eta = remainingTimeSeconds ?? 0;
 			if (eta <= 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
 			if (eta <= VOTTranslationHandler.MAX_INITIAL_WAIT_SEC) return eta * 1e3;
 			return VOTTranslationHandler.LONG_WAIT_MS;
+		}
+		async handleTranslationUiError(uiError) {
+			if (!(uiError instanceof VOTLocalizedError)) return;
+			if (uiError.unlocalizedMessage === "VOTYandexTokenExpired") {
+				await deleteAccount(this.videoHandler);
+				openAuthWindow();
+			} else if (uiError.unlocalizedMessage === "VOTAccountRequired") openAuthWindow();
 		}
 		async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, options = {}) {
 			const { disableLivelyVoice = false, retryAttempt = 0 } = options;
@@ -12345,6 +13924,7 @@ var vot = (function(exports) {
 				const res = translationAttempt.response;
 				translationResponse = res;
 				if (!res) throw new Error("Failed to get translation response");
+				if (isTranslationAuthError(res, { hasAccountToken: hasAccountToken(this.videoHandler.data?.account) })) throw mapVotClientErrorForUi(res, hasAccountToken(this.videoHandler.data?.account));
 				debug.log("[Translation] translateVideoImpl response", {
 					videoId: videoData.videoId,
 					useLivelyVoice,
@@ -12352,6 +13932,7 @@ var vot = (function(exports) {
 				});
 				throwIfAborted(signal);
 				if (res.translated && res.remainingTime < 1) {
+					this.etaCountdown.stop();
 					debug.log("[Translation] translation finished", {
 						videoId: videoData.videoId,
 						useLivelyVoice,
@@ -12369,7 +13950,11 @@ var vot = (function(exports) {
 					...summarizeTranslationResponse(res),
 					message
 				});
-				await this.videoHandler.updateTranslationErrorMsg(res.remainingTime > 0 ? formatTranslationEta(res.remainingTime, (key) => localizationProvider.get(key)) : message, signal);
+				if (res.remainingTime > 0) await this.etaCountdown.sync(res.remainingTime, signal, { countLongWaitOnFirstRender: true });
+				else {
+					this.etaCountdown.stop();
+					await this.videoHandler.updateTranslationErrorMsg(message, signal);
+				}
 				if (res.status === VideoTranslationStatus.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
 					this.videoHandler.hadAsyncWait = true;
 					debug.log("[Translation] audio download started", {
@@ -12381,9 +13966,9 @@ var vot = (function(exports) {
 					debug.log("[Translation] waiting for audio download completion", {
 						videoId: videoData.videoId,
 						translationId: res.translationId,
-						timeoutMs: 15e3
+						timeoutMs: 3e4
 					});
-					await this.waitForAudioDownloadCompletion(signal, 15e3);
+					await this.waitForAudioDownloadCompletion(signal, 3e4);
 					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
 						disableLivelyVoice: livelyDisabled,
 						retryAttempt
@@ -12391,20 +13976,23 @@ var vot = (function(exports) {
 				}
 			} catch (err) {
 				if (isAbortError(err)) {
+					this.etaCountdown.stop();
 					debug.log("[Translation] translation aborted", {
 						videoId: videoData.videoId,
 						retryAttempt
 					});
 					return null;
 				}
-				const uiError = mapVotClientErrorForUi(err);
+				this.etaCountdown.stop();
+				const uiError = mapVotClientErrorForUi(err, hasAccountToken(this.videoHandler.data?.account));
 				debug.error("[Translation] translation failed", {
 					videoId: videoData.videoId,
 					retryAttempt,
 					error: err,
 					mappedError: uiError
 				});
-				await this.videoHandler.updateTranslationErrorMsg(getServerErrorMessage(uiError) ?? uiError, signal);
+				await this.handleTranslationUiError(uiError);
+				await this.videoHandler.updateTranslationErrorMsg(getTranslationServerErrorMessage(uiError) ?? uiError, signal);
 				this.videoHandler.hadAsyncWait = notifyTranslationFailureIfNeeded({
 					aborted: Boolean(this.videoHandler.actionsAbortController?.signal?.aborted),
 					translateApiErrorsEnabled: Boolean(this.videoHandler.data?.translateAPIErrors),
@@ -12428,8 +14016,11 @@ var vot = (function(exports) {
 				retryAttempt: retryAttempt + 1
 			}), retryDelayMs, signal);
 		}
+		stopTranslationEtaCountdown() {
+			this.etaCountdown.stop();
+		}
 		async requestTranslationWithLivelyFallback({ videoData, requestLangForApi, responseLang, translationHelp, shouldSendFailedAudio, livelyDisabled, livelyVoiceAllowed }) {
-			let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && Boolean(this.videoHandler.data?.useLivelyVoice);
+			let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && this.videoHandler.data?.useLivelyVoice !== false;
 			debug.log("[Translation] requesting translation from VOT client", {
 				videoId: videoData.videoId,
 				requestLangForApi,
@@ -12497,42 +14088,16 @@ var vot = (function(exports) {
 		}
 		waitForAudioDownloadCompletion(signal, timeoutMs) {
 			if (!this.downloading) return Promise.resolve();
-			return new Promise((resolve, reject) => {
-				let entry;
-				const onAbort = () => {
-					cleanup();
-					reject(makeAbortError());
-				};
-				const timeoutId = setTimeout(() => {
-					cleanup();
-					resolve();
-				}, timeoutMs);
-				const cleanup = () => {
-					clearTimeout(timeoutId);
-					signal.removeEventListener("abort", onAbort);
-					this.downloadWaiters.delete(entry);
-				};
-				entry = {
-					resolve: () => {
-						cleanup();
-						resolve();
-					},
-					reject: (error) => {
-						cleanup();
-						reject(error);
-					}
-				};
-				this.downloadWaiters.add(entry);
-				signal.addEventListener("abort", onAbort, { once: true });
-				if (signal.aborted) onAbort();
-			});
+			const { promise, settle } = createAbortableWaiter(signal, timeoutMs);
+			this.downloadSettlers.add(settle);
+			return promise;
 		}
 		settleDownloadWaiters(error) {
-			if (!this.downloadWaiters.size) return;
-			const waiters = Array.from(this.downloadWaiters);
-			this.downloadWaiters.clear();
-			for (const waiter of waiters) if (error) waiter.reject(error);
-			else waiter.resolve();
+			if (!this.downloadSettlers.size) return;
+			const settlers = Array.from(this.downloadSettlers);
+			this.downloadSettlers.clear();
+			for (const settle of settlers) if (error) settle.reject(error);
+			else settle.resolve();
 		}
 	};
 	//#endregion
@@ -12610,6 +14175,16 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/core/videoLifecycleController.ts
+	var YOUTUBE_TIMESTAMP_PARAMS = [
+		"t",
+		"start",
+		"time_continue"
+	];
+	function getYouTubeSourceKey(url, hasSrcObject) {
+		const stableUrl = new URL(url);
+		for (const param of YOUTUBE_TIMESTAMP_PARAMS) stableUrl.searchParams.delete(param);
+		return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
+	}
 	var VideoLifecycleController = class {
 		host;
 		lifecycleGeneration = 0;
@@ -12659,10 +14234,7 @@ var vot = (function(exports) {
 		}
 		getCurrentSourceKey() {
 			const hasSrcObject = this.host.video.srcObject ? "1" : "0";
-			if (this.host.site.host === "youtube") {
-				const path = globalThis.location.pathname;
-				return `${`${globalThis.location.origin}${path}${globalThis.location.search}`}||${hasSrcObject}`;
-			}
+			if (this.host.site.host === "youtube") return getYouTubeSourceKey(new URL(globalThis.location.href), hasSrcObject);
 			const src = this.host.video.currentSrc || this.host.video.src || "";
 			return `${globalThis.location.href}||${src}||${hasSrcObject}`;
 		}
@@ -12753,7 +14325,6 @@ var vot = (function(exports) {
 			const sourceKey = typeof expectedSourceKey === "string" && expectedSourceKey.length > 0 ? expectedSourceKey : this.getCurrentSourceKey();
 			if (this.shouldAbortHandleSrcChanged(sessionId, "before start")) return;
 			debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, { sourceKey });
-			this.host.translationOrchestrator.reset();
 			this.host.firstPlay = true;
 			const overlayView = this.host.uiManager.votOverlayView;
 			resetAndHideLifecycle(this.host, overlayView, { requireVideoData: true });
@@ -12773,7 +14344,7 @@ var vot = (function(exports) {
 				const cacheKey = this.host.getSubtitlesCacheKey(this.host.videoData.videoId, this.host.videoData.detectedLanguage, subtitleLanguage);
 				const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
 				this.host.subtitles = cachedSubtitles ?? [];
-				this.host.subtitlesCacheKey = cachedSubtitles !== void 0 ? cacheKey : null;
+				this.host.subtitlesCacheKey = cachedSubtitles === void 0 ? null : cacheKey;
 			} else {
 				this.host.subtitles = [];
 				this.host.subtitlesCacheKey = null;
@@ -12894,137 +14465,20 @@ var vot = (function(exports) {
 		return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
 	}
 	//#endregion
-	//#region src/utils/translateApis.ts
-	var SETTINGS_CACHE_TTL_MS = 5e3;
-	var IMMUTABLE_LOOKUP_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
-	var cachedTranslationService = null;
-	var cachedTranslationServiceAt = 0;
-	var cachedDetectService = null;
-	var cachedDetectServiceAt = 0;
-	async function getTranslationServiceCached() {
-		const now = Date.now();
-		if (cachedTranslationService && now - cachedTranslationServiceAt < SETTINGS_CACHE_TTL_MS) return cachedTranslationService;
-		const service = await votStorage.get("translationService", defaultTranslationService);
-		cachedTranslationService = String(service);
-		cachedTranslationServiceAt = now;
-		return cachedTranslationService;
-	}
-	async function getDetectServiceCached() {
-		const now = Date.now();
-		if (cachedDetectService && now - cachedDetectServiceAt < SETTINGS_CACHE_TTL_MS) return cachedDetectService;
-		const service = await votStorage.get("detectService", defaultDetectService);
-		cachedDetectService = String(service);
-		cachedDetectServiceAt = now;
-		return cachedDetectService;
-	}
-	var foswlyServices = ["yandexbrowser", "msedge"];
-	/**
-	* Limit: 10k symbols for yandex, 50k for msedge
-	*/
-	var FOSWLYTranslateAPI = new class {
-		isFOSWLYError(data) {
-			return Object.hasOwn(data, "error");
-		}
-		async request(path, opts = {}) {
-			try {
-				const data = await (await GM_fetch(`${foswlyTranslateUrl}${path}`, {
-					timeout: 3e3,
-					responseCache: {
-						ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
-						cacheName: "vot-foswly-api-v1",
-						allowStaleOnError: true
-					},
-					...opts
-				})).json();
-				if (this.isFOSWLYError(data)) throw new Error(data.error);
-				return data;
-			} catch (err) {
-				console.error(`[VOT] Failed to get data from FOSWLY Translate API, because ${err instanceof Error ? err.message : String(err)}`);
-				return;
-			}
-		}
-		async translateMultiple(text, lang, service) {
-			const result = await this.request("/translate", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					text,
-					lang,
-					service
-				})
-			});
-			return result ? result.translations : text;
-		}
-		async translate(text, lang, service) {
-			const result = await this.request(`/translate?${new URLSearchParams({
-				text,
-				lang,
-				service
-			})}`);
-			return result ? result.translations[0] : text;
-		}
-		async detect(text, service) {
-			const result = await this.request(`/detect?${new URLSearchParams({
-				text,
-				service
-			})}`);
-			return result ? result.lang : "en";
-		}
-	}();
-	var RustServerAPI = { async detect(text) {
-		try {
-			return await (await GM_fetch(detectRustServerUrl, {
-				method: "POST",
-				body: text,
-				timeout: 3e3,
-				responseCache: {
-					ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
-					cacheName: "vot-rust-detect-v1",
-					allowStaleOnError: true
-				}
-			})).text();
-		} catch (error) {
-			console.error(`[VOT] Error getting lang from text, because ${error.message}`);
-			return "en";
-		}
-	} };
-	async function translate(text, fromLang = "", toLang = "ru") {
-		if (fromLang && toLang && fromLang === toLang) return text;
-		const service = await getTranslationServiceCached();
-		switch (service) {
-			case "yandexbrowser":
-			case "msedge": {
-				const langPair = fromLang && toLang ? `${fromLang}-${toLang}` : toLang;
-				return Array.isArray(text) ? await FOSWLYTranslateAPI.translateMultiple(text, langPair, service) : await FOSWLYTranslateAPI.translate(text, langPair, service);
-			}
-			default: return text;
-		}
-	}
-	async function detect(text) {
-		const service = await getDetectServiceCached();
-		switch (service) {
-			case "yandexbrowser":
-			case "msedge": return await FOSWLYTranslateAPI.detect(text, service);
-			case "rust-server": return await RustServerAPI.detect(text);
-			default: return "en";
-		}
-	}
-	var detectServices = [...foswlyServices, "rust-server"];
-	//#endregion
 	//#region src/utils/volume.ts
 	var VIDEO_VOLUME_MIN_PERCENT = 0;
 	var VIDEO_VOLUME_MAX_PERCENT = 100;
 	var VIDEO_VOLUME_STEP_01 = .01;
 	var EPS = 1e-6;
 	function clampInt(value, min, max) {
-		return Math.trunc(clampNumber$1(value, min, max));
+		return Math.trunc(clampNumber(value, min, max));
 	}
 	function clampPercentInt(value, min = VIDEO_VOLUME_MIN_PERCENT, max = VIDEO_VOLUME_MAX_PERCENT) {
 		if (!Number.isFinite(value)) return min;
 		return clampInt(Math.round(value), min, max);
 	}
 	function volume01ToPercent(volume01) {
-		return clampPercentInt(clampNumber$1(volume01, 0, 1) * 100);
+		return clampPercentInt(clampNumber(volume01, 0, 1) * 100);
 	}
 	function percentToVolume01(percent) {
 		return clampPercentInt(percent) / 100;
@@ -13041,11 +14495,11 @@ var vot = (function(exports) {
 		}
 	}
 	function snapVolume01(volume01, direction = "nearest", step = VIDEO_VOLUME_STEP_01) {
-		return clampNumber$1(quantizeToStep(clampNumber$1(volume01, 0, 1), step, direction), 0, 1);
+		return clampNumber(quantizeToStep(clampNumber(volume01, 0, 1), step, direction), 0, 1);
 	}
 	function snapVolume01Towards(next, current, desired, step = VIDEO_VOLUME_STEP_01) {
-		const cur = clampNumber$1(current, 0, 1);
-		const des = clampNumber$1(desired, 0, 1);
+		const cur = clampNumber(current, 0, 1);
+		const des = clampNumber(desired, 0, 1);
 		if (des < cur) {
 			const q = snapVolume01(next, "down", step);
 			return Math.max(des, q);
@@ -13058,10 +14512,10 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/core/hostPolicies.ts
-	var EXTERNAL_VOLUME_HOSTS = new Set(["youtube", "googledrive"]);
+	var EXTERNAL_VOLUME_HOSTS = /* @__PURE__ */ new Set(["youtube", "googledrive"]);
 	var YOUTUBE_LIKE_HOSTS = EXTERNAL_VOLUME_HOSTS;
-	var MUTE_SYNC_DISABLED_HOSTS = new Set(["rutube", "ok"]);
-	var TRANSLATION_DOWNLOAD_HOSTS = new Set([
+	var MUTE_SYNC_DISABLED_HOSTS = /* @__PURE__ */ new Set(["rutube", "ok"]);
+	var TRANSLATION_DOWNLOAD_HOSTS = /* @__PURE__ */ new Set([
 		"youtube",
 		"invidious",
 		"piped"
@@ -13099,6 +14553,32 @@ var vot = (function(exports) {
 	var MIN_DETECT_TEXT_LENGTH = 35;
 	var MAX_SHARED_LANGUAGE_STATES = 500;
 	var REQUEST_LANG_SET = new Set(availableLangs);
+	/**
+	* Prevents YouTube from persisting a temporary volume level to localStorage.
+	*
+	* YouTube reads `yt-player-volume` on player init to restore the previous
+	* volume. When the plugin temporarily lowers the volume (smart ducking),
+	* YouTube would save the lowered value, and the next video would start at
+	* that reduced level. This function saves the current localStorage value
+	* before the action and restores it after, so YouTube's persisted volume
+	* stays at the user's preferred level.
+	*/
+	function preserveYoutubeVolumeStorage(action) {
+		let snapshot;
+		try {
+			snapshot = globalThis.localStorage.getItem(YT_PLAYER_VOLUME_STORAGE_KEY);
+		} catch {
+			snapshot = void 0;
+		}
+		try {
+			return action();
+		} finally {
+			if (snapshot !== void 0) try {
+				if (snapshot === null) globalThis.localStorage.removeItem(YT_PLAYER_VOLUME_STORAGE_KEY);
+				else globalThis.localStorage.setItem(YT_PLAYER_VOLUME_STORAGE_KEY, snapshot);
+			} catch {}
+		}
+	}
 	/**
 	* Shared language caches across VideoManager instances within one frame.
 	*
@@ -13144,34 +14624,6 @@ var vot = (function(exports) {
 		const candidates = subtitles.filter((subtitle) => Boolean(subtitle) && typeof subtitle === "object" && subtitle.source === "youtube" && typeof subtitle.translatedFromLanguage !== "string");
 		const pickLanguage = (predicate) => candidates.filter(predicate).map((candidate) => normalizeToRequestLang(candidate.language)).find(isResolvedLanguage);
 		return pickLanguage((candidate) => candidate.isAutoGenerated !== true) ?? pickLanguage(() => true);
-	}
-	function getYoutubeVolumeStorageSnapshot() {
-		try {
-			const storage = globalThis.localStorage;
-			return {
-				storage,
-				value: storage.getItem(YT_PLAYER_VOLUME_STORAGE_KEY)
-			};
-		} catch {
-			return null;
-		}
-	}
-	function restoreYoutubeVolumeStorageSnapshot(snapshot) {
-		if (!snapshot) return;
-		try {
-			if (snapshot.value === null) snapshot.storage.removeItem(YT_PLAYER_VOLUME_STORAGE_KEY);
-			else snapshot.storage.setItem(YT_PLAYER_VOLUME_STORAGE_KEY, snapshot.value);
-		} catch {}
-	}
-	function preserveYoutubeVolumeStorage(action) {
-		const snapshot = getYoutubeVolumeStorageSnapshot();
-		const restoreSnapshot = () => restoreYoutubeVolumeStorageSnapshot(snapshot);
-		try {
-			return action();
-		} finally {
-			restoreSnapshot();
-			if (snapshot && typeof globalThis.setTimeout === "function") globalThis.setTimeout(restoreSnapshot, 0);
-		}
 	}
 	async function resolveDetectedLanguageForVideo(options) {
 		if (options.isStream) return { detectedLanguage: "auto" };
@@ -13364,16 +14816,7 @@ var vot = (function(exports) {
 			this.videoHandler.video.volume = snapped;
 			return this;
 		}
-		setVideoMuted(muted, options = {}) {
-			if (isExternalVolumeHost(this.videoHandler.site.host)) {
-				const player = YoutubeHelper.getPlayer();
-				const method = muted ? player?.mute : player?.unMute;
-				if (typeof method === "function") try {
-					const setExternalMuted = () => method.call(player);
-					if (options.preserveYoutubeVolumeStorage) preserveYoutubeVolumeStorage(setExternalMuted);
-					else setExternalMuted();
-				} catch {}
-			}
+		setVideoMuted(muted) {
 			if (this.videoHandler.video) this.videoHandler.video.muted = muted;
 			return this;
 		}
@@ -13418,12 +14861,146 @@ var vot = (function(exports) {
 			overlayView.languagePairSelect.toSelect.setSelectedValue(to);
 			return this;
 		}
-	}, t = globalThis, i = (t) => t, s = t.trustedTypes, e = s ? s.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, h = "$lit$", o = `lit$${Math.random().toFixed(9).slice(2)}$`, n = "?" + o, r = `<${n}>`, l = document, c = () => l.createComment(""), a = (t) => null === t || "object" != typeof t && "function" != typeof t, u = Array.isArray, d = (t) => u(t) || "function" == typeof t?.[Symbol.iterator], f = "[ 	\n\f\r]", v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, _ = /-->/g, m = />/g, p = RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), g = /'/g, $ = /"/g, y = /^(?:script|style|textarea|title)$/i, x = (t) => (i, ...s) => ({
-		_$litType$: t,
-		strings: i,
-		values: s
-	}), b = x(1), w = x(2);
-	x(3);
+	};
+	//#endregion
+	//#region src/notify.ts
+	var now = () => Date.now();
+	function getScriptTitle() {
+		return GM_info?.script?.name || "VOT";
+	}
+	function safeL10n(key, fallback) {
+		try {
+			return localizationProvider?.get?.(key) || fallback;
+		} catch {
+			return fallback;
+		}
+	}
+	function canSend(lastSentAt, key, cooldownMs) {
+		if (!cooldownMs) return true;
+		const prev = lastSentAt.get(key) ?? 0;
+		return now() - prev >= cooldownMs;
+	}
+	function markSent(lastSentAt, key) {
+		lastSentAt.set(key, now());
+	}
+	function localizePhraseText(message) {
+		const key = message.trim();
+		if (!key) return null;
+		try {
+			const localized = localizationProvider.get(key);
+			const defaultText = localizationProvider.getDefault(key);
+			return localized !== key || defaultText !== key ? localized || defaultText || key : null;
+		} catch {
+			return null;
+		}
+	}
+	function resolveLocalizedErrorFromObject(message) {
+		if (!message || typeof message !== "object") return null;
+		const localizedError = message;
+		if (localizedError.name !== "VOTLocalizedError") return null;
+		if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) return localizedError.localizedMessage;
+		if (typeof localizedError.unlocalizedMessage === "string") return localizePhraseText(localizedError.unlocalizedMessage);
+		return null;
+	}
+	function localizeExtractedErrorMessage(message) {
+		const extracted = getErrorMessage(message);
+		if (!extracted) return null;
+		return localizePhraseText(extracted) || extracted;
+	}
+	function resolveLocalizedErrorMessage(message) {
+		const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
+		if (localizedObjectMessage) return localizedObjectMessage;
+		if (typeof message === "string") {
+			const byPhraseKey = localizePhraseText(message);
+			if (byPhraseKey) return byPhraseKey;
+		}
+		const extractedMessage = localizeExtractedErrorMessage(message);
+		if (extractedMessage) return extractedMessage;
+		return safeL10n("requestTranslationFailed", "Translation failed");
+	}
+	function trySendViaUserscriptApi(details) {
+		try {
+			if (typeof GM_notification === "function") {
+				GM_notification(details);
+				return true;
+			}
+			const gmApi = globalThis.GM;
+			if (gmApi !== void 0 && typeof gmApi.notification === "function") {
+				const gmDetails = {
+					text: details.text,
+					title: details.title,
+					image: details.image,
+					onclick: details.onclick,
+					ondone: details.ondone
+				};
+				gmApi.notification(gmDetails);
+				return true;
+			}
+		} catch (err) {
+			debug.log("[notify] userscript api error", err);
+		}
+		return false;
+	}
+	/**
+	* Notification helper with dedupe/rate-limit and safe fallbacks.
+	*/
+	var Notifier = class {
+		lastSentAt = /* @__PURE__ */ new Map();
+		send(details, opts = {}) {
+			try {
+				const key = opts.key || details.tag || `${details.title ?? ""}|${details.text ?? ""}`;
+				const cooldownMs = opts.cooldownMs ?? 0;
+				if (!canSend(this.lastSentAt, key, cooldownMs)) return;
+				const normalized = {
+					...details,
+					title: details.title ?? getScriptTitle()
+				};
+				if (trySendViaUserscriptApi(normalized)) markSent(this.lastSentAt, key);
+				else debug.log("[notify] unavailable", normalized);
+			} catch (err) {
+				debug.log("[notify] send error", err);
+			}
+		}
+		translationCompleted(host) {
+			const text = safeL10n("VOTTranslationCompletedNotify", "The translation on the {0} has been completed!").replace("{0}", host);
+			this.send({
+				text,
+				title: getScriptTitle(),
+				timeout: 5e3,
+				silent: true,
+				tag: "VOTTranslationCompleted",
+				onclick: () => {
+					try {
+						globalThis.focus();
+					} catch {}
+				}
+			}, {
+				key: `translation_completed_${host}`,
+				cooldownMs: 1e4
+			});
+		}
+		translationFailed(params) {
+			const { videoId, message } = params;
+			if (isAbortError(message)) return;
+			const msg = resolveLocalizedErrorMessage(message);
+			const title = getScriptTitle();
+			this.send({
+				text: msg,
+				title,
+				timeout: 8e3,
+				silent: true,
+				tag: `VOTtranslationFailed_${videoId || "unknown"}`,
+				onclick: () => {
+					try {
+						globalThis.focus();
+					} catch {}
+				}
+			}, {
+				key: `translation_failed_${videoId || "unknown"}`,
+				cooldownMs: 3e4
+			});
+		}
+	};
 	//#endregion
 	//#region node_modules/lit-html/lit-html.js
 	/**
@@ -13431,7 +15008,38 @@ var vot = (function(exports) {
 	* Copyright 2017 Google LLC
 	* SPDX-License-Identifier: BSD-3-Clause
 	*/
-	var E = Symbol.for("lit-noChange"), A = Symbol.for("lit-nothing"), C = /* @__PURE__ */ new WeakMap(), P = l.createTreeWalker(l, 129);
+	var t = globalThis;
+	var i = (t) => t;
+	var s = t.trustedTypes;
+	var e = s ? s.createPolicy("lit-html", { createHTML: (t) => t }) : void 0;
+	var h = "$lit$";
+	var o = `lit$${Math.random().toFixed(9).slice(2)}$`;
+	var n = "?" + o;
+	var r = `<${n}>`;
+	var l = document;
+	var c = () => l.createComment("");
+	var a = (t) => null === t || "object" != typeof t && "function" != typeof t;
+	var u = Array.isArray;
+	var d = (t) => u(t) || "function" == typeof t?.[Symbol.iterator];
+	var f = "[ 	\n\f\r]";
+	var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+	var _ = /-->/g;
+	var m = />/g;
+	var p = RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g");
+	var g = /'/g;
+	var $ = /"/g;
+	var y = /^(?:script|style|textarea|title)$/i;
+	var x = (t) => (i, ...s) => ({
+		_$litType$: t,
+		strings: i,
+		values: s
+	});
+	var b = x(1);
+	var w = x(2);
+	var E = Symbol.for("lit-noChange");
+	var A = Symbol.for("lit-nothing");
+	var C = /* @__PURE__ */ new WeakMap();
+	var P = l.createTreeWalker(l, 129);
 	function V(t, i) {
 		if (!u(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
 		return void 0 !== e ? e.createHTML(i) : i;
@@ -13660,8 +15268,9 @@ var vot = (function(exports) {
 		_$AI(t) {
 			M(this, t);
 		}
-	}, B = t.litHtmlPolyfillSupport;
-	B?.(S, k), (t.litHtmlVersions ??= []).push("3.3.2");
+	};
+	var B = t.litHtmlPolyfillSupport;
+	B?.(S, k), (t.litHtmlVersions ??= []).push("3.3.3");
 	var D = (t, i, s) => {
 		const e = s?.renderBefore ?? i;
 		let h = e._$litPart$;
@@ -13718,6 +15327,12 @@ var vot = (function(exports) {
 	}
 	initKeyboardNavigationMode();
 	var UI = {
+		/**
+		* Makes a non-native element behave like a button (keyboard + ARIA).
+		*
+		* We use custom tags (`vot-block`) for isolation, so we must re-add
+		* basic semantics for accessibility.
+		*/
 		makeButtonLike(el, { ariaLabel } = {}) {
 			el.setAttribute("role", "button");
 			if (!el.hasAttribute("tabindex")) el.tabIndex = 0;
@@ -13743,15 +15358,24 @@ var vot = (function(exports) {
 			});
 			return el;
 		},
+		/**
+		* Auxiliary method for creating HTML elements
+		*/
 		createEl(tag, classes = [], content = null) {
 			const el = document.createElement(tag);
 			if (classes.length) el.classList.add(...classes);
 			if (content !== null) el.append(content);
 			return el;
 		},
+		/**
+		* Create header element
+		*/
 		createHeader(html, level = 4) {
 			return UI.createEl("vot-block", ["vot-header", `vot-header-level-${level}`], html);
 		},
+		/**
+		* Create information element
+		*/
 		createInformation(labelHtml, valueHtml) {
 			const container = UI.createEl("vot-block", ["vot-info"]);
 			const header = UI.createEl("vot-block");
@@ -13765,18 +15389,30 @@ var vot = (function(exports) {
 				value
 			};
 		},
+		/**
+		* Create button
+		*/
 		createButton(html) {
 			const el = UI.createEl("vot-block", ["vot-button"], html);
 			return UI.makeButtonLike(el);
 		},
+		/**
+		* Create text button
+		*/
 		createTextButton(html) {
 			const el = UI.createEl("vot-block", ["vot-text-button"], html);
 			return UI.makeButtonLike(el);
 		},
+		/**
+		* Create outlined button
+		*/
 		createOutlinedButton(html) {
 			const el = UI.createEl("vot-block", ["vot-outlined-button"], html);
 			return UI.makeButtonLike(el);
 		},
+		/**
+		* Create icon button
+		*/
 		createIconButton(templateHtml, options = {}) {
 			const button = UI.createEl("vot-block", ["vot-icon-button"]);
 			D(templateHtml, button);
@@ -13792,9 +15428,14 @@ var vot = (function(exports) {
 			const container = UI.createEl("vot-block", ["vot-subtitles-info"]);
 			container.id = "vot-subtitles-info";
 			const translatedWith = UI.createEl("vot-block", ["vot-subtitles-info-service"], localizationProvider.get("VOTTranslatedBy").replace("{0}", translationService));
-			const header = UI.createEl("vot-block", ["vot-subtitles-info-header"], word);
+			translatedWith.hidden = true;
+			const title = UI.createEl("vot-block", ["vot-subtitles-info-title"]);
+			const source = UI.createEl("span", ["vot-subtitles-info-source"], word);
+			const divider = UI.createEl("span", ["vot-subtitles-info-divider"], "—");
+			const header = UI.createEl("span", ["vot-subtitles-info-header"], word);
+			title.append(source, divider, header);
 			const context = UI.createEl("vot-block", ["vot-subtitles-info-context"], desc);
-			container.append(translatedWith, header, context);
+			container.append(title, context);
 			return {
 				container,
 				translatedWith,
@@ -13812,12 +15453,14 @@ var vot = (function(exports) {
 		"bottom"
 	];
 	var triggers = ["hover", "click"];
+	var tooltipModes = ["default", "follow"];
 	//#endregion
 	//#region src/ui/components/tooltip.ts
 	var Tooltip = class Tooltip {
 		showed = false;
 		target;
 		anchor;
+		edgeAnchor;
 		content;
 		position;
 		preferredPosition;
@@ -13827,6 +15470,7 @@ var vot = (function(exports) {
 		_hidden;
 		autoLayout;
 		maxWidth;
+		mode;
 		backgroundColor;
 		borderRadius;
 		_bordered;
@@ -13845,6 +15489,7 @@ var vot = (function(exports) {
 			if (!(target instanceof HTMLElement)) throw new TypeError("target must be a valid HTMLElement");
 			this.target = target;
 			this.anchor = opts.anchor instanceof HTMLElement ? opts.anchor : target;
+			this.edgeAnchor = opts.edgeAnchor instanceof HTMLElement ? opts.edgeAnchor : this.anchor;
 			this.content = opts.content ?? "";
 			const offset = opts.offset ?? 4;
 			if (typeof offset === "number") this.offsetY = this.offsetX = offset;
@@ -13861,6 +15506,7 @@ var vot = (function(exports) {
 			this.borderRadius = opts.borderRadius;
 			this._bordered = opts.bordered ?? true;
 			this.maxWidth = opts.maxWidth;
+			this.mode = tooltipModes.includes(opts.mode) ? opts.mode : "default";
 			this.backgroundColor = opts.backgroundColor;
 			this.init();
 		}
@@ -13876,12 +15522,18 @@ var vot = (function(exports) {
 			this.schedulePositionUpdate();
 			return this;
 		}
+		syncContentClass() {
+			if (!this.container) return;
+			const isSubtitlesInfo = this.content instanceof HTMLElement && this.content.classList.contains("vot-subtitles-info");
+			this.container.classList.toggle("vot-tooltip--subtitles-info", isSubtitlesInfo);
+		}
 		setContent(content) {
 			this.content = content;
 			if (this.container) {
 				this.container.replaceChildren();
 				if (typeof content === "string") this.container.textContent = content;
 				else this.container.append(content);
+				this.syncContentClass();
 				this.schedulePositionUpdate();
 			}
 			return this;
@@ -13929,7 +15581,7 @@ var vot = (function(exports) {
 		};
 		onDocumentPointerDown = (event) => {
 			if (!this.showed) return;
-			if (isEventInside(event, this.target) || this.container && isEventInside(event, this.container)) return;
+			if (isEventInside(event, this.target) || this.container && isEventInside(event, this.container) || this.mode === "follow" && isEventInside(event, this.anchor)) return;
 			this.destroy();
 		};
 		onTargetKeyDown = (event) => {
@@ -14006,12 +15658,14 @@ var vot = (function(exports) {
 			this.destroy(true);
 			this.showed = true;
 			this.container = UI.createEl("vot-block", ["vot-tooltip"], this.content);
+			this.syncContentClass();
 			if (this._bordered) this.container.classList.add("vot-tooltip-bordered");
 			this.container.setAttribute("role", "tooltip");
 			this.container.id = this.tooltipId;
 			this.container.dataset.trigger = this.trigger;
+			this.container.dataset.mode = this.mode;
 			this.container.dataset.position = this.position;
-			this.container.style.position = "fixed";
+			this.container.style.position = this.usesPortalCoordinates() ? "absolute" : "fixed";
 			this.container.style.top = "0";
 			this.container.style.left = "0";
 			this.container.style.margin = "0";
@@ -14028,75 +15682,134 @@ var vot = (function(exports) {
 			});
 			this.attachScrollListener();
 			this.resizeObserver?.observe(this.anchor);
+			if (this.edgeAnchor !== this.anchor) this.resizeObserver?.observe(this.edgeAnchor);
 			this.intersectionObserver?.observe(this.target);
 			this.updatePos();
 			return this;
 		}
 		updatePos() {
 			if (!this.container) return this;
-			const { top, left } = this.computePosition(this.autoLayout, this.preferredPosition);
 			const viewportWidth = window.innerWidth;
 			const availableWidth = Math.max(0, viewportWidth - this.offsetX * 2);
 			const maxWidth = clamp(this.maxWidth ?? availableWidth, 0, availableWidth);
-			this.container.style.transform = `translate(${left}px, ${top}px)`;
-			this.container.dataset.position = this.position;
 			this.container.style.maxWidth = `${maxWidth}px`;
+			const { top, left } = this.computePosition(this.autoLayout, this.preferredPosition);
+			const offset = this.getPortalViewportOffset();
+			this.container.style.transform = `translate(${left - offset.left}px, ${top - offset.top}px)`;
+			this.container.dataset.position = this.position;
 			return this;
 		}
-		computePosition(autoLayout, preferred) {
-			const anchorRect = this.anchor.getBoundingClientRect();
-			const tooltipRect = this.container?.getBoundingClientRect();
-			const anchor = {
-				left: anchorRect.left,
-				right: anchorRect.right,
-				top: anchorRect.top,
-				bottom: anchorRect.bottom,
-				width: anchorRect.width,
-				height: anchorRect.height
+		usesPortalCoordinates() {
+			if (this.portal instanceof ShadowRoot) return true;
+			if (this.portal === document.body || this.portal === document.documentElement) return false;
+			if (this.portal.classList.contains("vot-portal")) return false;
+			return true;
+		}
+		getPortalViewportOffset() {
+			if (!this.usesPortalCoordinates()) return {
+				top: 0,
+				left: 0
 			};
+			const rect = (this.portal instanceof ShadowRoot ? this.portal.host : this.portal).getBoundingClientRect();
+			return {
+				top: rect.top,
+				left: rect.left
+			};
+		}
+		computePosition(autoLayout, preferred) {
+			const anchor = this.getAnchorBox();
+			const tooltipRect = this.container?.getBoundingClientRect();
 			const tooltip = {
 				width: tooltipRect.width || 100,
 				height: tooltipRect.height || 40
 			};
-			const viewport = {
+			const viewport = this.getPositionBoundary();
+			const position = autoLayout ? this.resolvePosition(anchor, tooltip, viewport, preferred) : preferred;
+			const coords = this.getCoordinates(anchor, tooltip, position);
+			this.position = position;
+			return {
+				top: clamp(coords.top, viewport.top, viewport.bottom - tooltip.height),
+				left: clamp(coords.left, viewport.left, viewport.right - tooltip.width)
+			};
+		}
+		getAnchorBox() {
+			const anchorRect = this.anchor.getBoundingClientRect();
+			const edgeRect = this.edgeAnchor.getBoundingClientRect();
+			return {
+				left: edgeRect.left,
+				right: edgeRect.right,
+				top: edgeRect.top,
+				bottom: edgeRect.bottom,
+				centerX: anchorRect.left + anchorRect.width / 2,
+				centerY: anchorRect.top + anchorRect.height / 2
+			};
+		}
+		getPositionBoundary() {
+			const fallback = {
+				left: this.offsetX,
+				right: window.innerWidth - this.offsetX,
+				top: this.offsetY,
+				bottom: window.innerHeight - this.offsetY,
 				width: window.innerWidth,
 				height: window.innerHeight
 			};
-			const position = autoLayout ? this.resolvePosition(anchor, tooltip, viewport, preferred) : preferred;
-			const coords = this.getCoordinates(anchor, tooltip, position);
-			const padding = this.offsetX;
-			this.position = position;
+			if (this.mode !== "follow" || !this.usesPortalCoordinates()) return fallback;
+			const rect = (this.portal instanceof ShadowRoot ? this.portal.host : this.portal).getBoundingClientRect();
+			if (!rect.width || !rect.height) return fallback;
 			return {
-				top: clamp(coords.top, padding, viewport.height - tooltip.height - padding),
-				left: clamp(coords.left, padding, viewport.width - tooltip.width - padding)
+				left: rect.left,
+				right: rect.right,
+				top: rect.top,
+				bottom: rect.bottom,
+				width: rect.width,
+				height: rect.height
 			};
 		}
 		resolvePosition(anchor, tooltip, viewport, preferred) {
+			if (this.mode === "follow") return this.resolveFollowPosition(anchor, tooltip, viewport, preferred);
 			switch (preferred) {
-				case "top": return anchor.top >= tooltip.height + this.offsetY ? "top" : "bottom";
-				case "bottom": return viewport.height - anchor.bottom >= tooltip.height + this.offsetY ? "bottom" : "top";
-				case "left": return anchor.left >= tooltip.width + this.offsetX ? "left" : "right";
-				case "right": return viewport.width - anchor.right >= tooltip.width + this.offsetX ? "right" : "left";
+				case "top": return anchor.top - viewport.top >= tooltip.height + this.offsetY ? "top" : "bottom";
+				case "bottom": return viewport.bottom - anchor.bottom >= tooltip.height + this.offsetY ? "bottom" : "top";
+				case "left": return anchor.left - viewport.left >= tooltip.width + this.offsetX ? "left" : "right";
+				case "right": return viewport.right - anchor.right >= tooltip.width + this.offsetX ? "right" : "left";
 			}
 		}
+		resolveFollowPosition(anchor, tooltip, viewport, preferred) {
+			if (preferred === "top" || preferred === "bottom") {
+				const topWouldClamp = anchor.top - tooltip.height - this.offsetY < viewport.top;
+				const bottomWouldClamp = anchor.bottom + this.offsetY + tooltip.height > viewport.bottom;
+				if (preferred === "top") {
+					if (!topWouldClamp || bottomWouldClamp) return "top";
+					return "bottom";
+				}
+				if (!bottomWouldClamp || topWouldClamp) return "bottom";
+				return "top";
+			}
+			const leftWouldClamp = anchor.left - tooltip.width - this.offsetX < viewport.left;
+			const rightWouldClamp = anchor.right + this.offsetX + tooltip.width > viewport.right;
+			if (preferred === "left") {
+				if (!leftWouldClamp || rightWouldClamp) return "left";
+				return "right";
+			}
+			if (!rightWouldClamp || leftWouldClamp) return "right";
+			return "left";
+		}
 		getCoordinates(anchor, tooltip, position) {
-			const centerX = anchor.left + anchor.width / 2;
-			const centerY = anchor.top + anchor.height / 2;
 			switch (position) {
 				case "top": return {
 					top: anchor.top - tooltip.height - this.offsetY,
-					left: centerX - tooltip.width / 2
+					left: anchor.centerX - tooltip.width / 2
 				};
 				case "bottom": return {
 					top: anchor.bottom + this.offsetY,
-					left: centerX - tooltip.width / 2
+					left: anchor.centerX - tooltip.width / 2
 				};
 				case "left": return {
-					top: centerY - tooltip.height / 2,
+					top: anchor.centerY - tooltip.height / 2,
 					left: anchor.left - tooltip.width - this.offsetX
 				};
 				case "right": return {
-					top: centerY - tooltip.height / 2,
+					top: anchor.centerY - tooltip.height / 2,
 					left: anchor.right + this.offsetX
 				};
 			}
@@ -14177,11 +15890,11 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(".vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{word-break:break-word;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:\"\";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:\"\";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:\"\"!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb), .5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb), .87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb), .72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard), background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb), .04)!important;color:rgba(var(--vot-helper-onsurface-rgb), .9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb), .55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb), .7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);position:absolute;top:5rem;left:50%;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important}@media (pointer:coarse){.vot-segmented-button{top:3rem}}.vot-segmented-button{-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;transform:translate(-50%);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{top:12.5vh;left:50px}.vot-segmented-button[data-position=right]{top:12.5vh;left:auto;right:0}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);position:absolute;top:calc(5rem + 48px);left:50%;overflow:hidden}@media (pointer:coarse){.vot-menu{top:calc(3rem + 48px)}}.vot-menu{-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{transform-origin:0;top:12.5vh;left:240px}.vot-menu[data-position=right]{transform-origin:100%;top:12.5vh;left:auto;right:-80px}@keyframes vot-eq-wave{0%,to{transform:translate3d(0, 0, 0) scaleY(var(--vot-eq-min,.68))}30%{transform:translate3d(0, 0, 0) scaleY(calc(var(--vot-eq-max,1) * .9))}50%{transform:translate3d(0, 0, 0) scaleY(var(--vot-eq-max,1))}72%{transform:translate3d(0, 0, 0) scaleY(calc(var(--vot-eq-max,1) * .82))}}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;will-change:transform;animation:1.2s cubic-bezier(.45,0,.25,1) infinite both vot-eq-wave}.vot-voice-icon .vot-eq-bar--1{--vot-eq-min:.68;--vot-eq-max:1;animation-delay:0s}.vot-voice-icon .vot-eq-bar--2{--vot-eq-min:.72;--vot-eq-max:.96;animation-delay:-140ms}.vot-voice-icon .vot-eq-bar--3{--vot-eq-min:.7;--vot-eq-max:.92;animation-delay:-280ms}.vot-voice-icon .vot-eq-bar--4{--vot-eq-min:.74;--vot-eq-max:.98;animation-delay:-420ms}.vot-voice-icon .vot-eq-bar--5{--vot-eq-min:.7;--vot-eq-max:.94;animation-delay:-210ms}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;pointer-events:auto;background:var(--vot-helper-surface);cursor:default;-webkit-user-select:none;user-select:none;transform-origin:0 0;width:max-content;min-width:230px;max-width:310px;display:block;position:absolute;top:0;left:0;overflow:hidden;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{will-change:opacity, transform;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s cubic-bezier(.22,1,.36,1),transform .2s cubic-bezier(.22,1,.36,1),visibility 0s linear .18s;transform:translateY(6px)}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:translate(0)}@starting-style{.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:0;transform:translateY(6px)}}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:translateY(3px)}@supports (transition-behavior:allow-discrete){.vot-voice-popover{transition-behavior:allow-discrete;transition:opacity .18s cubic-bezier(.22, 1, .36, 1), transform .18s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .18s, display 0s linear .18s allow-discrete}}.vot-voice-popover__item{cursor:pointer;color:var(--vot-helper-onsurface);will-change:transform;transition:transform .16s var(--vot-easing-standard,cubic-bezier(.4, 0, .2, 1)), color .16s var(--vot-easing-standard,cubic-bezier(.4, 0, .2, 1)), box-shadow .16s var(--vot-easing-standard,cubic-bezier(.4, 0, .2, 1));outline:none;align-items:center;gap:12px;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:opacity .16s var(--vot-easing-standard,cubic-bezier(.4, 0, .2, 1));position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{transform:translateY(-2px);box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:active{transform:translateY(-1px)}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;width:18px;height:18px;transition:opacity .16s var(--vot-easing-standard,cubic-bezier(.4, 0, .2, 1)), transform .16s var(--vot-easing-standard,cubic-bezier(.4, 0, .2, 1));background-color:currentColor;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{flex-shrink:0;justify-content:center;align-items:flex-end;width:28px;height:28px;display:flex}.vot-voice-popover__item-icon svg{width:20px;height:20px;display:block}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;transition:color .16s var(--vot-easing-standard,cubic-bezier(.4, 0, .2, 1));font-size:15px;line-height:1.3;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{flex-direction:column;gap:2px;max-width:100%;display:flex;padding:6px!important}.vot-subtitles-info-service,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;word-break:break-word;white-space:normal!important}.vot-subtitles-info-service{color:var(--vot-subtitles-context-color,#86919b);margin-bottom:8px!important;font-size:10px!important;line-height:1!important}.vot-subtitles-info-header{color:var(--vot-subtitles-header-color,#fff);margin-bottom:6px!important;font-size:20px!important;font-weight:500!important;line-height:1!important}.vot-subtitles-info-context{color:var(--vot-subtitles-context-color,#86919b);font-size:12px!important;line-height:1.2!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}");
+	var shadowScopedCssText = scopeCssForShadowRoots(".vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:\"\";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:\"\";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:\"\"!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb), .5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb), .87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb), .72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard), background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb), .04)!important;color:rgba(var(--vot-helper-onsurface-rgb), .9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb), .55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb), .7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-button-default-top:5rem;--vot-button-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));left:50%;right:auto;top:var(--vot-button-default-top);position:absolute;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important}@media (pointer:coarse){.vot-segmented-button{--vot-button-default-top:3rem;--vot-button-top-offset:max(12px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(10px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(10px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(42px, 12.5vh, 112px), env(safe-area-inset-top,0px))}}.vot-segmented-button{-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button.vot-segmented-button--dragging{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;box-shadow:var(--vot-shadow-1)!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important;border-color:var(--vot-border-color)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button .vot-translate-button{gap:0!important;padding-inline-end:4px!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;border-radius:999px;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;margin-inline:4px -4px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow[hidden]{display:none!important}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;width:28px;height:28px;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg,.vot-segmented-button .vot-dropdown-arrow.vot-dropdown-arrow--open svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button[data-status=success] .vot-dropdown-arrow{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-dropdown-arrow{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label,.vot-segmented-button[data-direction=column] .vot-dropdown-arrow{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{left:var(--vot-button-side-offset);right:auto;top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=right]{left:auto;right:var(--vot-button-side-offset-right);top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=leftCenter]{left:var(--vot-button-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-button-side-offset-right);top:50%;transform:translateY(-50%)}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);--vot-menu-default-top:calc(5rem + 48px);--vot-menu-top-offset:max(64px, calc(env(safe-area-inset-top,0px) + 56px));--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(56px, 12.5vh, 136px), calc(env(safe-area-inset-top,0px) + 8px));left:50%;right:auto;top:var(--vot-menu-default-top);position:absolute;overflow:hidden}@media (pointer:coarse){.vot-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-top-offset:max(56px, calc(env(safe-area-inset-top,0px) + 48px));--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px));--vot-menu-side-top-offset:max(clamp(50px, 12.5vh, 120px), calc(env(safe-area-inset-top,0px) + 8px))}}.vot-menu{-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-menu[data-position=left][hidden],.vot-menu[data-position=right][hidden]{transform:translateY(-4px)scale(.98)}.vot-menu[data-position=leftCenter][hidden],.vot-menu[data-position=rightCenter][hidden]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;align-items:center;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{flex-shrink:0;justify-content:center;align-items:flex-end;width:28px;height:28px;display:flex}.vot-voice-popover__item-icon svg{width:20px;height:20px;display:block}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}");
 	var sharedShadowStyleSheet = null;
 	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
-		return cssText.replace(/:root\b/g, ":host").replace(/html\.vot-keyboard-nav/g, ":host-context(.vot-keyboard-nav)").replace(/:fullscreen(?=\s|,)/g, ":host-context(:fullscreen)").replace(/:-webkit-full-screen(?=\s|,)/g, ":host-context(:-webkit-full-screen)");
+		return cssText.replaceAll(":root", ":host").replaceAll("html.vot-keyboard-nav", ":host-context(.vot-keyboard-nav)").replace(/:fullscreen(?=\s|,)/g, ":host-context(:fullscreen)").replace(/:-webkit-full-screen(?=\s|,)/g, ":host-context(:-webkit-full-screen)");
 	}
 	function applyClasses(element, classes) {
 		if (classes?.length) element.classList.add(...classes);
@@ -14555,7 +16268,7 @@ var vot = (function(exports) {
 	//#region src/subtitles/inlineStyle.ts
 	var SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
 	var SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
-	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/+-]+\)$/iu;
+	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
 	var SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
 	var normalizeClassNames = (classes) => {
 		if (!classes?.length) return void 0;
@@ -14606,9 +16319,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/subtitles/positionController.ts
-	function clampToRange(value, min, max) {
-		return Math.max(min, Math.min(value, max));
-	}
+	var clampToRange = clampNumber;
 	function hasDragThresholdBeenExceeded(startClientX, startClientY, nextClientX, nextClientY, thresholdPx) {
 		const dx = nextClientX - startClientX;
 		const dy = nextClientY - startClientY;
@@ -14686,10 +16397,28 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/subtitles/renderPlan.ts
-	var LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
-	var TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
-	var PUNCTUATION_ONLY_RE = /^[\p{P}\p{S}]+$/u;
+	var PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
 	var TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
+	var isPunctuationOrSymbol = (char) => PUNCTUATION_OR_SYMBOL_RE.test(char);
+	var getLeadingPunctuation = (value) => {
+		let endIndex = 0;
+		for (const char of value) {
+			if (!isPunctuationOrSymbol(char)) break;
+			endIndex += char.length;
+		}
+		return value.slice(0, endIndex);
+	};
+	var getTrailingPunctuation = (value) => {
+		const chars = Array.from(value);
+		let length = 0;
+		for (let index = chars.length - 1; index >= 0; index -= 1) {
+			const char = chars[index];
+			if (!isPunctuationOrSymbol(char)) break;
+			length += char.length;
+		}
+		return length > 0 ? value.slice(value.length - length) : "";
+	};
+	var isPunctuationOnly = (value) => value.length > 0 && Array.from(value).every(isPunctuationOrSymbol);
 	var pushTextPart = (plan, text, style, options = {}) => {
 		plan.push({
 			kind: "text",
@@ -14708,7 +16437,11 @@ var vot = (function(exports) {
 		for (let index = startIndex; index <= renderEndTokenIndex; index += 1) {
 			const tokenText = tokens[index]?.text ?? "";
 			if (!tokens[index]?.isWordLike || !tokenText.trim()) continue;
-			if (tokenText.trimStart().replace(LEADING_PUNCTUATION_RE, "").replace(TRAILING_PUNCTUATION_RE, "")) return true;
+			const withoutLeadingWhitespace = tokenText.trimStart();
+			const leadingPunctuation = getLeadingPunctuation(withoutLeadingWhitespace);
+			const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(leadingPunctuation.length);
+			const trailingPunctuation = getTrailingPunctuation(withoutLeadingPunctuation);
+			if (trailingPunctuation ? withoutLeadingPunctuation.slice(0, -trailingPunctuation.length) : withoutLeadingPunctuation) return true;
 		}
 		return false;
 	};
@@ -14717,9 +16450,9 @@ var vot = (function(exports) {
 		const leadingWhitespace = /^\s+/u.exec(token.text)?.[0] ?? "";
 		const body = token.text.slice(leadingWhitespace.length);
 		if (leadingWhitespace) pushTextPart(plan, leadingWhitespace, token.style);
-		const leadingPunctuation = LEADING_PUNCTUATION_RE.exec(body)?.[0] ?? "";
+		const leadingPunctuation = getLeadingPunctuation(body);
 		const bodyWithoutLeadingPunctuation = body.slice(leadingPunctuation.length);
-		const trailingPunctuation = TRAILING_PUNCTUATION_RE.exec(bodyWithoutLeadingPunctuation)?.[0] ?? "";
+		const trailingPunctuation = getTrailingPunctuation(bodyWithoutLeadingPunctuation);
 		const wordText = trailingPunctuation ? bodyWithoutLeadingPunctuation.slice(0, bodyWithoutLeadingPunctuation.length - trailingPunctuation.length) : bodyWithoutLeadingPunctuation;
 		if (!wordText) {
 			if (body) pushTextPart(plan, body, token.style);
@@ -14751,10 +16484,11 @@ var vot = (function(exports) {
 			nextTokenIndex: skipWhitespaceTokens(tokens, startIndex + 1, renderEndTokenIndex)
 		};
 	};
-	var consumeTextToken = (plan, tokenIndex, tokens, renderEndTokenIndex, token, tokenText, hasBreakAfter, lastWordHighlightIndex, nextWordHighlightIndex) => {
+	var consumeTextToken = (plan, tokenIndex, tokens, renderEndTokenIndex, options) => {
+		const { token, tokenText, hasBreakAfter, lastWordHighlightIndex, nextWordHighlightIndex } = options;
 		const fallbackHighlightIndex = lastWordHighlightIndex ?? (hasFutureWordToken(tokens, tokenIndex + 1, renderEndTokenIndex) ? nextWordHighlightIndex : void 0);
 		const textParts = tokenText.match(TEXT_TOKEN_SLICE_RE) ?? [tokenText];
-		for (const textPart of textParts) pushTextPart(plan, textPart, token.style, { highlightIndex: PUNCTUATION_ONLY_RE.test(textPart) ? fallbackHighlightIndex : void 0 });
+		for (const textPart of textParts) pushTextPart(plan, textPart, token.style, { highlightIndex: isPunctuationOnly(textPart) ? fallbackHighlightIndex : void 0 });
 		if (hasBreakAfter) {
 			plan.push({ kind: "break" });
 			return skipWhitespaceTokens(tokens, tokenIndex + 1, renderEndTokenIndex);
@@ -14793,13 +16527,18 @@ var vot = (function(exports) {
 				continue;
 			}
 			const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i));
-			i = consumeTextToken(plan, i, tokens, renderEndTokenIndex, token, tokenText, hasBreakAfter, lastWordHighlightIndex, wordHighlightIndex);
+			i = consumeTextToken(plan, i, tokens, renderEndTokenIndex, {
+				token,
+				tokenText,
+				hasBreakAfter,
+				lastWordHighlightIndex,
+				nextWordHighlightIndex: wordHighlightIndex
+			});
 		}
 		return plan;
 	}
 	//#endregion
 	//#region src/subtitles/smartLayout.ts
-	var clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
 	var roundToInt = (value) => Math.round(value);
 	var resolveAspectBand = (aspect) => {
 		if (aspect < .8) return {
@@ -14995,48 +16734,26 @@ var vot = (function(exports) {
 			forcesLineBreak: false
 		};
 	};
+	var appendNextWordSlice = (slices, keyParts, tokens, textBuffer, collectKey, index) => {
+		const token = tokens[index];
+		if (!token?.text) return index + 1;
+		if (token.text === "\n") {
+			const slice = createForcedBreakSlice(tokens, index);
+			slices.push(slice);
+			keyParts?.push("\n");
+			return index + 1;
+		}
+		if (!isWordToken(token)) return index + 1;
+		const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
+		slices.push(slice);
+		keyParts?.push(normalizeTokenText(slice.text));
+		return slice.breakAfterTokenIndex + 1;
+	};
 	function buildWordSlicesFromBuffer(tokens, textBuffer, collectKey) {
 		const slices = [];
 		const keyParts = collectKey ? [] : null;
 		let index = 0;
-		while (index < tokens.length) {
-			const token = tokens[index];
-			if (!token?.text) {
-				index += 1;
-				continue;
-			}
-			if (token.text === "\n") {
-				const slice = createForcedBreakSlice(tokens, index);
-				slices.push(slice);
-				keyParts?.push("\n");
-				index += 1;
-				continue;
-			}
-			if (!isWordToken(token)) {
-				index += 1;
-				continue;
-			}
-			const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
-			slices.push(slice);
-			keyParts?.push(normalizeTokenText(slice.text));
-			index = slice.breakAfterTokenIndex + 1;
-		}
-		if (!slices.length && tokens.length) {
-			const text = textBuffer.fullText;
-			slices.push({
-				text,
-				tokenIndex: 0,
-				breakAfterTokenIndex: tokens.length - 1,
-				startToken: 0,
-				endToken: tokens.length,
-				charLength: collectKey ? normalizeTokenText(text).length : 0,
-				startMs: collectKey ? getRangeStartMs(tokens, 0, tokens.length) : 0,
-				endMs: collectKey ? getRangeEndMs(tokens, 0, tokens.length) : 0,
-				boundary: resolveBoundary(text),
-				forcesLineBreak: false
-			});
-			keyParts?.push(normalizeTokenText(text));
-		}
+		while (index < tokens.length) index = appendNextWordSlice(slices, keyParts, tokens, textBuffer, collectKey, index);
 		return {
 			slices,
 			key: keyParts?.join("|") ?? ""
@@ -15066,116 +16783,108 @@ var vot = (function(exports) {
 			endMs: Math.max(startMs, endMs)
 		});
 	};
-	function computeTwoLineSegments(tokens, metrics, maxWidthPx, maxLength) {
-		if (!metrics.length || !tokens.length) return [];
-		const maxWidth = Math.max(1, Number.isFinite(maxWidthPx) ? maxWidthPx : 0);
-		const charBudget = Math.max(1, Number.isFinite(maxLength) ? maxLength : 0);
-		const segments = [];
-		let segmentStartToken = metrics[0].startToken;
-		let segmentCharLength = 0;
-		let currentLineWidth = 0;
-		let currentLineCount = 1;
-		let lastTokenInSegment = segmentStartToken;
-		for (const metric of metrics) {
-			if (metric.forcesLineBreak) {
-				currentLineCount += 1;
-				currentLineWidth = 0;
-				lastTokenInSegment = metric.endToken;
-				if (currentLineCount > 2) {
-					const splitToken = Math.max(metric.startToken, metric.tokenIndex);
-					finalizeSegment(segments, tokens, segmentStartToken, splitToken);
-					segmentStartToken = splitToken;
-					segmentCharLength = 0;
-					lastTokenInSegment = segmentStartToken;
-				}
-				continue;
-			}
-			const nextCharLength = segmentCharLength + metric.charLength;
-			if ((currentLineWidth === 0 || currentLineWidth + metric.width <= maxWidth) && nextCharLength <= charBudget) {
-				currentLineWidth += metric.width;
-				segmentCharLength = nextCharLength;
-				lastTokenInSegment = metric.endToken;
-				continue;
-			}
-			if (currentLineCount === 1) {
-				currentLineCount = 2;
-				currentLineWidth = metric.width;
-				segmentCharLength = nextCharLength;
-				lastTokenInSegment = metric.endToken;
-				continue;
-			}
+	var createSegmentBuildState = (metrics) => ({
+		segmentStartToken: metrics[0].startToken,
+		segmentCharLength: 0,
+		currentLineWidth: 0,
+		currentLineCount: 1,
+		lastTokenInSegment: metrics[0].startToken
+	});
+	var handleForcedBreakMetric = (state, segments, tokens, metric) => {
+		state.currentLineCount += 1;
+		state.currentLineWidth = 0;
+		state.lastTokenInSegment = metric.endToken;
+		if (state.currentLineCount > 2) {
 			const splitToken = Math.max(metric.startToken, metric.tokenIndex);
-			finalizeSegment(segments, tokens, segmentStartToken, splitToken);
-			segmentStartToken = splitToken;
-			segmentCharLength = metric.charLength;
-			currentLineWidth = metric.width;
-			currentLineCount = 1;
-			lastTokenInSegment = metric.endToken;
+			finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
+			state.segmentStartToken = splitToken;
+			state.segmentCharLength = 0;
+			state.lastTokenInSegment = state.segmentStartToken;
 		}
-		finalizeSegment(segments, tokens, segmentStartToken, lastTokenInSegment);
-		if (!segments.length) return [{
-			startToken: 0,
-			endToken: tokens.length,
-			startMs: getRangeStartMs(tokens, 0, tokens.length),
-			endMs: getRangeEndMs(tokens, 0, tokens.length)
-		}];
+	};
+	var appendMetricToCurrentLine = (state, metric, nextCharLength) => {
+		state.currentLineWidth += metric.width;
+		state.segmentCharLength = nextCharLength;
+		state.lastTokenInSegment = metric.endToken;
+	};
+	var startSecondLineWithMetric = (state, metric, nextCharLength) => {
+		state.currentLineCount = 2;
+		state.currentLineWidth = metric.width;
+		state.segmentCharLength = nextCharLength;
+		state.lastTokenInSegment = metric.endToken;
+	};
+	var startNewSegmentWithMetric = (state, segments, tokens, metric) => {
+		const splitToken = Math.max(metric.startToken, metric.tokenIndex);
+		finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
+		state.segmentStartToken = splitToken;
+		state.segmentCharLength = metric.charLength;
+		state.currentLineWidth = metric.width;
+		state.currentLineCount = 1;
+		state.lastTokenInSegment = metric.endToken;
+	};
+	var handleMeasuredWordMetric = (state, segments, tokens, metric, maxWidth, charBudget) => {
+		const nextCharLength = state.segmentCharLength + metric.charLength;
+		if ((state.currentLineWidth === 0 || state.currentLineWidth + metric.width <= maxWidth) && nextCharLength <= charBudget) {
+			appendMetricToCurrentLine(state, metric, nextCharLength);
+			return;
+		}
+		if (state.currentLineCount === 1) {
+			startSecondLineWithMetric(state, metric, nextCharLength);
+			return;
+		}
+		startNewSegmentWithMetric(state, segments, tokens, metric);
+	};
+	var alignSegmentEndTimes = (segments) => {
 		for (let index = 0; index < segments.length - 1; index += 1) {
 			const current = segments[index];
 			const next = segments[index + 1];
 			if (next.startMs > current.startMs) current.endMs = next.startMs;
 		}
+	};
+	var extendLastSegmentEndTime = (tokens, segments) => {
 		const last = segments.at(-1);
-		if (last) last.endMs = Math.max(last.endMs, getRangeEndMs(tokens, last.startToken, last.endToken));
+		if (!last) return;
+		last.endMs = Math.max(last.endMs, getRangeEndMs(tokens, last.startToken, last.endToken));
+	};
+	var finalizeComputedSegments = (tokens, segments) => {
+		alignSegmentEndTimes(segments);
+		extendLastSegmentEndTime(tokens, segments);
 		return segments.filter((segment) => segment.endToken > segment.startToken);
+	};
+	function computeTwoLineSegments(tokens, metrics, maxWidthPx, maxLength) {
+		if (!metrics.length || !tokens.length) return [];
+		const maxWidth = Math.max(1, Number.isFinite(maxWidthPx) ? maxWidthPx : 0);
+		const charBudget = Math.max(1, Number.isFinite(maxLength) ? maxLength : 0);
+		const segments = [];
+		const state = createSegmentBuildState(metrics);
+		for (const metric of metrics) {
+			if (metric.forcesLineBreak) {
+				handleForcedBreakMetric(state, segments, tokens, metric);
+				continue;
+			}
+			handleMeasuredWordMetric(state, segments, tokens, metric, maxWidth, charBudget);
+		}
+		finalizeSegment(segments, tokens, state.segmentStartToken, state.lastTokenInSegment);
+		return finalizeComputedSegments(tokens, segments);
 	}
 	var measureTokenRange = (textBuffer, startToken, endToken, measureText) => {
 		if (endToken <= startToken) return 0;
 		return measureText(getBufferedTokenText(textBuffer, startToken, endToken));
-	};
-	var resolveSafeBreakAfterTokenIndex = (tokens, breakAfterTokenIndex) => {
-		let safeBreakIndex = breakAfterTokenIndex;
-		while (safeBreakIndex + 1 < tokens.length && tokens[safeBreakIndex + 1]?.text !== "\n" && !tokens[safeBreakIndex + 1]?.isWordLike) safeBreakIndex += 1;
-		return safeBreakIndex;
-	};
-	var findFallbackBreakAfterTokenIndex = (tokens, textBuffer, measureText, maxWidthPx) => {
-		let bestBreakAfterTokenIndex = null;
-		let bestScore = Number.POSITIVE_INFINITY;
-		for (let index = 0; index < tokens.length - 1; index += 1) {
-			const token = tokens[index];
-			const nextToken = tokens[index + 1];
-			if (!token?.text || !nextToken?.text || nextToken.text === "\n") continue;
-			const candidateBreakAfterTokenIndex = resolveSafeBreakAfterTokenIndex(tokens, index);
-			if (candidateBreakAfterTokenIndex >= tokens.length - 1) continue;
-			const firstEndToken = candidateBreakAfterTokenIndex + 1;
-			const secondStartToken = firstEndToken;
-			const firstWidth = measureTokenRange(textBuffer, 0, firstEndToken, measureText);
-			const secondWidth = measureTokenRange(textBuffer, secondStartToken, tokens.length, measureText);
-			const score = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12 + Math.abs(secondWidth - firstWidth) * .4 + (rangeStartsWithDiscouragedLineStart(textBuffer, secondStartToken, tokens.length) ? 260 : 0) + (rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0);
-			if (score < bestScore) {
-				bestScore = score;
-				bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
-			}
-		}
-		return bestBreakAfterTokenIndex;
 	};
 	var scoreBreakCandidate = ({ firstWidth, secondWidth, lineStartPenalty, lineEndPenalty, firstWordCount, secondWordCount, maxWidthPx, boundary }) => {
 		const overflowPenalty = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12;
 		const balancePenalty = Math.abs(secondWidth / Math.max(firstWidth, 1) - 1.08) * 120;
 		const shortTopPenalty = firstWordCount < 2 ? 80 : 0;
 		const orphanPenalty = secondWordCount < 2 ? 80 : 0;
-		const boundaryBonus = boundary === "strong" ? -28 : boundary === "soft" ? -14 : 0;
+		let boundaryBonus = 0;
+		if (boundary === "strong") boundaryBonus = -28;
+		else if (boundary === "soft") boundaryBonus = -14;
 		return overflowPenalty + balancePenalty + shortTopPenalty + orphanPenalty + lineStartPenalty + lineEndPenalty + boundaryBonus;
 	};
-	function computeTokenWrapPlan(tokens, measureText, maxWidthPx) {
-		if (!tokens.length) return { breakAfterTokenIndices: [] };
-		for (const token of tokens) if (token.text === "\n") return { breakAfterTokenIndices: [] };
-		const textBuffer = buildTokenTextBuffer(tokens);
-		const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
-		if (safeMaxWidthPx <= 0) return { breakAfterTokenIndices: [] };
-		const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
-		const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
-		if (!measurableSlices.length) return { breakAfterTokenIndices: [] };
-		if (measureTokenRange(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return { breakAfterTokenIndices: [] };
+	var emptyTokenWrapPlan = () => ({ breakAfterTokenIndices: [] });
+	var singleBreakTokenWrapPlan = (breakAfterTokenIndex) => ({ breakAfterTokenIndices: [breakAfterTokenIndex] });
+	var hasForcedLineBreakToken = (tokens) => tokens.some((token) => token.text === "\n");
+	var findBestWordBreakAfterTokenIndex = (tokens, textBuffer, measurableSlices, measureText, maxWidthPx) => {
 		let bestBreakAfterTokenIndex = null;
 		let bestScore = Number.POSITIVE_INFINITY;
 		for (let index = 0; index < measurableSlices.length - 1; index += 1) {
@@ -15191,7 +16900,7 @@ var vot = (function(exports) {
 				lineEndPenalty: rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0,
 				firstWordCount: index + 1,
 				secondWordCount: measurableSlices.length - (index + 1),
-				maxWidthPx: safeMaxWidthPx,
+				maxWidthPx,
 				boundary: slice.boundary
 			});
 			if (score < bestScore) {
@@ -15199,14 +16908,24 @@ var vot = (function(exports) {
 				bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
 			}
 		}
-		if (bestBreakAfterTokenIndex !== null) return { breakAfterTokenIndices: [bestBreakAfterTokenIndex] };
-		const fallbackBreakAfterTokenIndex = findFallbackBreakAfterTokenIndex(tokens, textBuffer, measureText, safeMaxWidthPx);
-		if (fallbackBreakAfterTokenIndex !== null) return { breakAfterTokenIndices: [fallbackBreakAfterTokenIndex] };
-		return { breakAfterTokenIndices: [] };
+		return bestBreakAfterTokenIndex;
+	};
+	function computeTokenWrapPlan(tokens, measureText, maxWidthPx) {
+		if (!tokens.length || hasForcedLineBreakToken(tokens)) return emptyTokenWrapPlan();
+		const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
+		if (safeMaxWidthPx <= 0) return emptyTokenWrapPlan();
+		const textBuffer = buildTokenTextBuffer(tokens);
+		const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
+		const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
+		if (!measurableSlices.length) return emptyTokenWrapPlan();
+		if (measureTokenRange(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return emptyTokenWrapPlan();
+		const bestBreakAfterTokenIndex = findBestWordBreakAfterTokenIndex(tokens, textBuffer, measurableSlices, measureText, safeMaxWidthPx);
+		if (bestBreakAfterTokenIndex !== null) return singleBreakTokenWrapPlan(bestBreakAfterTokenIndex);
+		return emptyTokenWrapPlan();
 	}
 	//#endregion
 	//#region src/shims/rvfc-polyfill.ts
-	var VidProto = typeof HTMLVideoElement !== "undefined" ? HTMLVideoElement.prototype : {};
+	var VidProto = typeof HTMLVideoElement === "undefined" ? {} : HTMLVideoElement.prototype;
 	var hasQuality = "getVideoPlaybackQuality" in VidProto || "webkitDecodedFrameCount" in VidProto || "mozPresentedFrames" in VidProto || "mozPaintedFrames" in VidProto;
 	if (!("requestVideoFrameCallback" in VidProto) && hasQuality && typeof requestAnimationFrame === "function") {
 		VidProto._rvfcpolyfillmap = {};
@@ -15260,6 +16979,16 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/subtitles/widget.ts
+	var EDGE_PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
+	var isEdgePunctuationOrSymbol = (char) => EDGE_PUNCTUATION_OR_SYMBOL_RE.test(char);
+	var trimEdgePunctuation = (value) => {
+		const chars = Array.from(value);
+		let startIndex = 0;
+		let endIndex = chars.length;
+		while (startIndex < endIndex && isEdgePunctuationOrSymbol(chars[startIndex])) startIndex += 1;
+		while (endIndex > startIndex && isEdgePunctuationOrSymbol(chars[endIndex - 1])) endIndex -= 1;
+		return chars.slice(startIndex, endIndex).join("");
+	};
 	var WRAP_WIDTH_GUARD_PX = 8;
 	var WRAP_WIDTH_GUARD_RATIO = .97;
 	var MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
@@ -15349,13 +17078,12 @@ var vot = (function(exports) {
 		tooltipTranslationRequestId = 0;
 		intervalIdleChecker;
 		checkerUnsubscribe = null;
-		edgePunctuationTrimRe = /(?:^[\p{P}\p{S}]+|[\p{P}\p{S}]+$)/gu;
 		strTokens = "";
 		strTranslatedTokens = "";
 		passedStateKey = null;
 		passedThresholds = [];
 		normalizeTokenTextForTranslation(raw) {
-			return raw.trim().replace(this.edgePunctuationTrimRe, "");
+			return trimEdgePunctuation(raw.trim());
 		}
 		bottomInsetCachedPx = 0;
 		safeAreaBottomInsetCachedPx = 0;
@@ -15435,30 +17163,11 @@ var vot = (function(exports) {
 			this.lastRenderKey = null;
 		}
 		computeAnchorBoxLayout(layout) {
-			const fallback = {
+			return {
 				left: 0,
 				top: 0,
 				w: layout.w,
 				h: layout.h
-			};
-			const video = this.video;
-			if (!video) return fallback;
-			const videoRect = video.getBoundingClientRect();
-			if (!(videoRect.width > 0 && videoRect.height > 0)) return fallback;
-			const containerRect = layout.rect;
-			if (!(videoRect.right > containerRect.left && videoRect.left < containerRect.right && videoRect.bottom > containerRect.top && videoRect.top < containerRect.bottom)) return fallback;
-			const w = videoRect.width / layout.scaleX;
-			const h = videoRect.height / layout.scaleY;
-			if (!(w > 0 && h > 0)) return fallback;
-			const rawLeft = (videoRect.left - containerRect.left) / layout.scaleX;
-			const rawTop = (videoRect.top - containerRect.top) / layout.scaleY;
-			const maxLeft = layout.w - w;
-			const maxTop = layout.h - h;
-			return {
-				left: maxLeft >= 0 ? clampToRange(rawLeft, 0, maxLeft) : (layout.w - w) / 2,
-				top: maxTop >= 0 ? clampToRange(rawTop, 0, maxTop) : (layout.h - h) / 2,
-				w,
-				h
 			};
 		}
 		readSmartCssMetrics() {
@@ -15594,7 +17303,8 @@ var vot = (function(exports) {
 			this.syncGuideLayerMount();
 		}
 		ensureTooltipMount() {
-			if (!this.tooltipMount) this.tooltipMount = createShadowMount({
+			if (this.tooltipMount) reparentShadowMount(this.tooltipMount, this.container);
+			else this.tooltipMount = createShadowMount({
 				parent: this.container,
 				rootClasses: ["vot-portal-local"],
 				hostStyles: {
@@ -15611,7 +17321,6 @@ var vot = (function(exports) {
 					"pointer-events": "none"
 				}
 			});
-			else reparentShadowMount(this.tooltipMount, this.container);
 			return this.tooltipMount;
 		}
 		getTokenTooltipParentElement() {
@@ -15634,6 +17343,8 @@ var vot = (function(exports) {
 			return container;
 		}
 		onGlobalPointerDown = (event) => {
+			const eventPath = typeof event.composedPath === "function" ? event.composedPath() : [];
+			if (this.tokenTooltip?.container && (this.tokenTooltip.container.contains(event.target) || eventPath.includes(this.tokenTooltip.container))) return;
 			if (this.subtitlesContainer && !this.subtitlesContainer.contains(event.target)) this.releaseTooltip();
 		};
 		bindEvents() {
@@ -15715,7 +17426,7 @@ var vot = (function(exports) {
 			if (!video || video.paused || video.ended || !this.subtitles) return;
 			const mediaTime = Number.isFinite(metadata.mediaTime) ? metadata.mediaTime : null;
 			const rawTime = mediaTime === 0 && video.currentTime > 0 ? video.currentTime : mediaTime;
-			const playbackTimeMs = rawTime != null ? rawTime * 1e3 : void 0;
+			const playbackTimeMs = rawTime == null ? void 0 : rawTime * 1e3;
 			this.requestUpdate(playbackTimeMs, now);
 			this.startVideoFrameLoop();
 		};
@@ -15892,16 +17603,16 @@ var vot = (function(exports) {
 		onPointerMove(event) {
 			if (!this.dragging.candidate || this.dragging.pointerId === null) return;
 			if (event.pointerId !== this.dragging.pointerId) return;
-			if (!this.dragging.active) {
+			if (this.dragging.active) this.dragging.moved = true;
+			else {
 				if (!hasDragThresholdBeenExceeded(this.dragging.startClientX, this.dragging.startClientY, event.clientX, event.clientY, this.dragStartThresholdPx)) return;
 				this.dragging.active = true;
 				this.dragging.moved = true;
 				this.suppressTokenClicksUntil = performance.now() + 450;
-				this.releaseTooltip();
 				try {
 					this.subtitlesContainer?.setPointerCapture(event.pointerId);
 				} catch {}
-			} else this.dragging.moved = true;
+			}
 			event.preventDefault();
 			event.stopPropagation();
 			const layout = this.getLayoutSize();
@@ -15915,7 +17626,7 @@ var vot = (function(exports) {
 			let anchorY = pointerY + this.dragging.offset.y;
 			const elW = this.subtitlesContainer?.offsetWidth ?? 0;
 			const elH = this.subtitlesContainer?.offsetHeight ?? 0;
-			const bottomInset = this.getBottomInsetPx(layout, anchorBox);
+			const bottomInset = 0;
 			const snappedX = snapValueToNearestCandidate({
 				current: anchorX,
 				candidates: [anchorBox.w / 2],
@@ -15969,7 +17680,7 @@ var vot = (function(exports) {
 			if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
 			const elW = subtitlesContainer.offsetWidth;
 			const elH = subtitlesContainer.offsetHeight;
-			const bottomInset = this.getBottomInsetPx(layout, anchorBox);
+			const bottomInset = this.positionPreset === "custom" ? 0 : this.getBottomInsetPx(layout, anchorBox);
 			const anchorPosition = this.resolveCurrentAnchorPosition(anchorBox, elW, elH, bottomInset);
 			const containerPosition = this.clampContainerPosition(anchorBox, anchorPosition.anchorX, anchorPosition.anchorY, elW, elH, bottomInset);
 			const anchorX = containerPosition.anchorX;
@@ -16269,7 +17980,10 @@ var vot = (function(exports) {
 			return [context, current];
 		}
 		findTokenSpan(candidate, root) {
-			const token = (candidate instanceof Element ? candidate : candidate instanceof Text ? candidate.parentElement : null)?.closest("span[data-vot-token=\"1\"]");
+			let element = null;
+			if (candidate instanceof Element) element = candidate;
+			else if (candidate instanceof Text) element = candidate.parentElement;
+			const token = element?.closest("span[data-vot-token=\"1\"]");
 			return token instanceof HTMLSpanElement && root.contains(token) ? token : null;
 		}
 		resolveTokenSpanFromClick(event) {
@@ -16364,7 +18078,9 @@ var vot = (function(exports) {
 			return true;
 		}
 		createTokenTooltip(target, content) {
-			const tooltipMaxWidth = Math.max(this.subtitleMaxWidthPx, this.subtitlesContainer?.offsetWidth ?? 0, this.subtitlesBlock?.offsetWidth ?? 0, Math.min(globalThis.innerWidth * .6, 320));
+			const viewportWidth = Math.max(320, globalThis.innerWidth || 0);
+			const preferredWidth = Math.max(360, this.subtitlesContainer?.offsetWidth ?? 0, this.subtitlesBlock?.offsetWidth ?? 0, Math.min(this.subtitleMaxWidthPx || 0, 720));
+			const tooltipMaxWidth = Math.min(viewportWidth - 24, preferredWidth, 720);
 			const tooltipMount = this.ensureTooltipMount();
 			return new Tooltip({
 				target,
@@ -16376,6 +18092,7 @@ var vot = (function(exports) {
 					y: 12
 				},
 				maxWidth: tooltipMaxWidth,
+				mode: "follow",
 				borderRadius: 12,
 				bordered: false,
 				position: "top",
@@ -16554,7 +18271,8 @@ var vot = (function(exports) {
 		}
 		setOpacity(rate) {
 			const numericRate = Number(rate);
-			this.opacity = ((100 - (Number.isFinite(numericRate) ? clampToRange(numericRate, 0, 100) : 0)) / 100).toFixed(2);
+			const clampedRate = Number.isFinite(numericRate) ? clampToRange(numericRate, 0, 100) : 0;
+			this.opacity = ((100 - clampedRate) / 100).toFixed(2);
 			this.applyOpacityStyle();
 		}
 		stringifyTokens(tokens) {
@@ -16676,16 +18394,123 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region src/utils/download.ts
+	function toUint32BE(value) {
+		return new Uint8Array([
+			value >>> 24 & 255,
+			value >>> 16 & 255,
+			value >>> 8 & 255,
+			value & 255
+		]);
+	}
+	function toSynchsafeInt(value) {
+		return new Uint8Array([
+			value >>> 21 & 127,
+			value >>> 14 & 127,
+			value >>> 7 & 127,
+			value & 127
+		]);
+	}
+	function addTitleId3Tag(mp3Buffer, title) {
+		const titleBytes = new TextEncoder().encode(title);
+		const frameData = new Uint8Array(titleBytes.length + 1);
+		frameData[0] = 3;
+		frameData.set(titleBytes, 1);
+		const frame = new Uint8Array(10 + frameData.length);
+		frame.set([
+			84,
+			73,
+			84,
+			50
+		], 0);
+		frame.set(toUint32BE(frameData.length), 4);
+		frame.set(frameData, 10);
+		const header = /* @__PURE__ */ new Uint8Array(10);
+		header.set([
+			73,
+			68,
+			51,
+			3,
+			0,
+			0
+		], 0);
+		header.set(toSynchsafeInt(frame.length), 6);
+		const audioBytes = new Uint8Array(mp3Buffer);
+		const out = new Uint8Array(header.length + frame.length + audioBytes.length);
+		out.set(header, 0);
+		out.set(frame, header.length);
+		out.set(audioBytes, header.length + frame.length);
+		return new Blob([out], { type: "audio/mpeg" });
+	}
+	function appendChunkToOutputBuffer(out, value, loaded) {
+		const needed = loaded + value.byteLength;
+		let nextOut = out;
+		if (needed > nextOut.length) {
+			const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
+			grown.set(nextOut.subarray(0, loaded));
+			nextOut = grown;
+		}
+		nextOut.set(value, loaded);
+		return {
+			out: nextOut,
+			loaded: needed
+		};
+	}
+	function mergeChunks(chunks, loaded) {
+		const merged = new Uint8Array(loaded);
+		let offset = 0;
+		for (const chunk of chunks) {
+			merged.set(chunk, offset);
+			offset += chunk.byteLength;
+		}
+		return merged.buffer;
+	}
+	async function readResponseArrayBuffer(res, onProgress) {
+		const total = Number(res.headers.get("Content-Length") ?? 0);
+		if (!res.body) return res.arrayBuffer();
+		const reader = res.body.getReader();
+		let loaded = 0;
+		let out = total > 0 ? new Uint8Array(total) : null;
+		const chunks = [];
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			if (!value || value.byteLength === 0) continue;
+			if (out) {
+				const appended = appendChunkToOutputBuffer(out, value, loaded);
+				out = appended.out;
+				loaded = appended.loaded;
+			} else {
+				chunks.push(value);
+				loaded += value.byteLength;
+			}
+			if (total > 0) onProgress(clamp(Math.round(loaded / total * 100)));
+		}
+		if (out) return out.buffer.slice(0, loaded);
+		return mergeChunks(chunks, loaded);
+	}
+	/**
+	* Downloads a translation file and saves it as an MP3 file with metadata,
+	* tracking progress when Content-Length is available.
+	*/
+	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
+		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
+	}
+	async function buildTranslationBlob(res, filename, onProgress = () => {}) {
+		const arrayBuffer = await readResponseArrayBuffer(res, onProgress);
+		onProgress(100);
+		return addTitleId3Tag(arrayBuffer, filename);
+	}
+	//#endregion
 	//#region src/subtitles/displayModel.ts
-	var HTML_TAG_RE = /^<\s*(\/?)\s*([a-z0-9]+)([^>]*)>/iu;
-	var ASS_OVERRIDE_RE = /^\{([^}]*)\}/u;
 	var LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
 	var ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;
-	var GLUED_WORD_NUMBER_RE = /([\p{L}\p{M}]+)(\d+)|(\d+)([\p{L}\p{M}]+)/gu;
+	var LETTER_OR_MARK_RUN_RE = /[\p{L}\p{M}]+/uy;
+	var DIGIT_RUN_RE = /\d+/y;
 	var ASS_DIRECTIVE_RE = /\\[^\\]+/gu;
 	var ASS_STYLE_TOGGLE_RE = /^\\([ibu])([01])$/u;
 	var ASS_PRIMARY_COLOR_RE = /^\\(?:1?c|c)&H([0-9a-f]{6,8})&$/iu;
-	var ASS_STYLE_RESET_RE = /^\\r(?:[^\\}]*)?$/u;
+	var ASS_STYLE_RESET_RE = /^\\r[^\\}]*$/u;
 	var COMPLEX_DISPLAY_CONTROL_RE = /[<{\\]/u;
 	var cloneMutableInlineStyle = (style) => ({
 		italic: style.italic,
@@ -16727,6 +18552,32 @@ var vot = (function(exports) {
 			text,
 			style: tokenStyle
 		});
+	};
+	var isHtmlTagSpace = (char) => char === " " || char === "	";
+	var isAsciiAlphaNumeric = (char) => {
+		const code = char.charCodeAt(0);
+		return code >= 48 && code <= 57 || code >= 65 && code <= 90 || code >= 97 && code <= 122;
+	};
+	var parseHtmlTagToken = (text) => {
+		if (!text.startsWith("<")) return null;
+		let index = 1;
+		while (isHtmlTagSpace(text[index] ?? "")) index += 1;
+		const isClosing = text[index] === "/";
+		if (isClosing) {
+			index += 1;
+			while (isHtmlTagSpace(text[index] ?? "")) index += 1;
+		}
+		const tagNameStart = index;
+		while (isAsciiAlphaNumeric(text[index] ?? "")) index += 1;
+		if (index === tagNameStart) return null;
+		const tagEndIndex = text.indexOf(">", index);
+		if (tagEndIndex < 0) return null;
+		return {
+			tagName: text.slice(tagNameStart, index).toLowerCase(),
+			attrsRaw: text.slice(index, tagEndIndex),
+			isClosing,
+			length: tagEndIndex + 1
+		};
 	};
 	var parseAssColorToCssHex = (value) => {
 		const normalized = value.trim();
@@ -16785,12 +18636,58 @@ var vot = (function(exports) {
 			segment.text = normalizeAttachedWordNumberExpression(segment.text);
 		}
 	};
-	var normalizeAttachedWordNumberExpression = (text) => text.replaceAll(GLUED_WORD_NUMBER_RE, (match, leftLetters, leftDigits, rightDigits, rightLetters) => {
-		const letters = leftLetters ?? rightLetters ?? "";
-		const digits = leftDigits ?? rightDigits ?? "";
-		if (/^[A-Za-z]{1,3}$/u.test(letters) || letters.length === 1 && letters === letters.toLocaleUpperCase() && letters !== letters.toLocaleLowerCase()) return match;
-		return leftLetters ? `${letters} ${digits}` : `${digits} ${letters}`;
-	});
+	var isAsciiCodeLike = (letters) => /^[A-Za-z]{1,3}$/u.test(letters) || letters.length === 1 && letters === letters.toLocaleUpperCase() && letters !== letters.toLocaleLowerCase();
+	var readRunEndIndex = (text, startIndex, regex) => {
+		regex.lastIndex = startIndex;
+		return regex.exec(text) ? regex.lastIndex : startIndex;
+	};
+	var getNextCodePointIndex = (text, startIndex) => {
+		return startIndex + ((text.codePointAt(startIndex) ?? 0) > 65535 ? 2 : 1);
+	};
+	var formatAttachedWordNumberMatch = (match, letters, digits, lettersFirst) => {
+		if (isAsciiCodeLike(letters)) return match;
+		return lettersFirst ? `${letters} ${digits}` : `${digits} ${letters}`;
+	};
+	var normalizeAttachedWordNumberExpression = (text) => {
+		const parts = [];
+		for (let index = 0; index < text.length;) {
+			const lettersEnd = readRunEndIndex(text, index, LETTER_OR_MARK_RUN_RE);
+			if (lettersEnd > index) {
+				const digitsEnd = readRunEndIndex(text, lettersEnd, DIGIT_RUN_RE);
+				if (digitsEnd > lettersEnd) {
+					const letters = text.slice(index, lettersEnd);
+					const digits = text.slice(lettersEnd, digitsEnd);
+					const match = text.slice(index, digitsEnd);
+					parts.push(formatAttachedWordNumberMatch(match, letters, digits, true));
+					index = digitsEnd;
+					continue;
+				}
+				parts.push(text.slice(index, lettersEnd));
+				index = lettersEnd;
+				continue;
+			} else {
+				const digitsEnd = readRunEndIndex(text, index, DIGIT_RUN_RE);
+				if (digitsEnd > index) {
+					const lettersEndAfterDigits = readRunEndIndex(text, digitsEnd, LETTER_OR_MARK_RUN_RE);
+					if (lettersEndAfterDigits > digitsEnd) {
+						const digits = text.slice(index, digitsEnd);
+						const letters = text.slice(digitsEnd, lettersEndAfterDigits);
+						const match = text.slice(index, lettersEndAfterDigits);
+						parts.push(formatAttachedWordNumberMatch(match, letters, digits, false));
+						index = lettersEndAfterDigits;
+						continue;
+					}
+					parts.push(text.slice(index, digitsEnd));
+					index = digitsEnd;
+					continue;
+				}
+			}
+			const nextIndex = getNextCodePointIndex(text, index);
+			parts.push(text.slice(index, nextIndex));
+			index = nextIndex;
+		}
+		return parts.join("");
+	};
 	var extractHtmlTagClasses = (attrsRaw) => {
 		const normalized = attrsRaw.trim();
 		if (!normalized.startsWith(".")) return;
@@ -16828,10 +18725,8 @@ var vot = (function(exports) {
 		}
 		if (tagName === "c") activeStyle.classes = [];
 	};
-	var applyHtmlTagStyle = (htmlMatch, segments, activeStyle, styleStack) => {
-		const isClosing = htmlMatch[1] === "/";
-		const tagName = htmlMatch[2].toLowerCase();
-		const attrsRaw = htmlMatch[3] ?? "";
+	var applyHtmlTagStyle = (htmlTag, segments, activeStyle, styleStack) => {
+		const { attrsRaw, isClosing, tagName } = htmlTag;
 		if (tagName === "br") {
 			pushSegment(segments, "\n", activeStyle);
 			return;
@@ -16872,11 +18767,11 @@ var vot = (function(exports) {
 	};
 	var consumeDisplayControlToken = (rawText, cursor, segments, activeStyle, styleStack) => {
 		const remainder = rawText.slice(cursor);
-		if (remainder.startsWith("\\N") || remainder.startsWith("\\n")) {
+		if (remainder.startsWith(String.raw`\N`) || remainder.startsWith(String.raw`\n`)) {
 			pushSegment(segments, "\n", activeStyle);
 			return cursor + 2;
 		}
-		if (remainder.startsWith("\\h")) {
+		if (remainder.startsWith(String.raw`\h`)) {
 			pushSegment(segments, " ", activeStyle);
 			return cursor + 2;
 		}
@@ -16884,15 +18779,17 @@ var vot = (function(exports) {
 			pushSegment(segments, "\n", activeStyle);
 			return cursor + 1;
 		}
-		const assMatch = ASS_OVERRIDE_RE.exec(remainder);
-		if (assMatch) {
-			applyAssOverrideBlock(assMatch[1], activeStyle);
-			return cursor + assMatch[0].length;
+		if (remainder.startsWith("{")) {
+			const assOverrideEndIndex = remainder.indexOf("}", 1);
+			if (assOverrideEndIndex > 0) {
+				applyAssOverrideBlock(remainder.slice(1, assOverrideEndIndex), activeStyle);
+				return cursor + assOverrideEndIndex + 1;
+			}
 		}
-		const htmlMatch = HTML_TAG_RE.exec(remainder);
-		if (!htmlMatch) return null;
-		applyHtmlTagStyle(htmlMatch, segments, activeStyle, styleStack);
-		return cursor + htmlMatch[0].length;
+		const htmlTag = parseHtmlTagToken(remainder);
+		if (!htmlTag) return null;
+		applyHtmlTagStyle(htmlTag, segments, activeStyle, styleStack);
+		return cursor + htmlTag.length;
 	};
 	var buildStyledSpans = (segments) => {
 		const styledSpans = [];
@@ -16914,8 +18811,8 @@ var vot = (function(exports) {
 	};
 	var trimStyledDisplayResult = (text, styledSpans) => {
 		const normalizedText = text.replaceAll("\xA0", " ");
-		const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
-		const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
+		const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
+		const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
 		const trimmedEnd = Math.max(leadingTrim, normalizedText.length - trailingTrim);
 		const finalText = normalizedText.slice(leadingTrim, trimmedEnd);
 		return {
@@ -16932,8 +18829,8 @@ var vot = (function(exports) {
 	};
 	var trimPlainDisplayText = (text) => {
 		const normalizedText = text.replaceAll("\xA0", " ");
-		const leadingTrim = /^\s*/u.exec(normalizedText)?.[0].length ?? 0;
-		const trailingTrim = /\s*$/u.exec(normalizedText)?.[0].length ?? 0;
+		const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
+		const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
 		const trimmedEnd = Math.max(leadingTrim, normalizedText.length - trailingTrim);
 		return normalizedText.slice(leadingTrim, trimmedEnd);
 	};
@@ -16979,9 +18876,54 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/subtitles/standards.ts
 	var BOM = "﻿";
-	var ASS_OVERRIDE_TAG_RE = /\{[^}]*\}/gu;
-	var SRT_TIMING_RE = /^\s*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*$/u;
-	var VTT_TIMING_RE = /^(?<start>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})\s+-->\s+(?<end>(?:\d{2}:)?\d{2}:\d{2}\.\d{3})(?<settings>(?:[ \t]+.+)?)$/u;
+	var SRT_TIMING_RE = /^[ \t]*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*-->[ \t]*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*$/u;
+	var VTT_TIMESTAMP_RE = /^(?:\d{2}:)?\d{2}:\d{2}\.\d{3}$/u;
+	var isSpaceOrTab = (char) => char === " " || char === "	";
+	var indexOfSpaceOrTab = (value) => {
+		const spaceIndex = value.indexOf(" ");
+		const tabIndex = value.indexOf("	");
+		if (spaceIndex === -1) return tabIndex;
+		if (tabIndex === -1) return spaceIndex;
+		return Math.min(spaceIndex, tabIndex);
+	};
+	var trimStartSpaceOrTab = (value) => {
+		let startIndex = 0;
+		while (startIndex < value.length && isSpaceOrTab(value[startIndex])) startIndex += 1;
+		return value.slice(startIndex);
+	};
+	var parseVttTimingParts = (line) => {
+		const arrowIndex = line.indexOf("-->");
+		if (arrowIndex <= 0) return null;
+		const beforeArrow = line.slice(0, arrowIndex);
+		if (!isSpaceOrTab(beforeArrow.at(-1) ?? "")) return null;
+		const start = beforeArrow.trimEnd();
+		const afterArrow = line.slice(arrowIndex + 3);
+		if (!isSpaceOrTab(afterArrow[0] ?? "")) return null;
+		const endAndSettings = trimStartSpaceOrTab(afterArrow);
+		const settingsSeparatorIndex = indexOfSpaceOrTab(endAndSettings);
+		const end = settingsSeparatorIndex === -1 ? endAndSettings : endAndSettings.slice(0, settingsSeparatorIndex);
+		const settings = settingsSeparatorIndex === -1 ? "" : trimStartSpaceOrTab(endAndSettings.slice(settingsSeparatorIndex));
+		if (!VTT_TIMESTAMP_RE.test(start) || !VTT_TIMESTAMP_RE.test(end) || settingsSeparatorIndex !== -1 && (!settings || /^\s/u.test(settings))) return null;
+		return {
+			start,
+			end,
+			settings
+		};
+	};
+	var isVttTimingLine = (line) => parseVttTimingParts(line) != null;
+	var extractAssOverrideTags = (rawText) => {
+		const overrideTags = [];
+		let cursor = 0;
+		while (cursor < rawText.length) {
+			const startIndex = rawText.indexOf("{", cursor);
+			if (startIndex === -1) break;
+			const endIndex = rawText.indexOf("}", startIndex + 1);
+			if (endIndex === -1) break;
+			overrideTags.push(rawText.slice(startIndex, endIndex + 1));
+			cursor = endIndex + 1;
+		}
+		return overrideTags;
+	};
 	var normalizeNewlines = (value) => value.replace(BOM, "").replaceAll(/\r\n?/gu, "\n");
 	var padMilliseconds = (value) => value.length >= 3 ? value.slice(0, 3) : value.padEnd(3, "0");
 	var parseClockTime = (value, millisecondsLength) => {
@@ -17058,8 +19000,7 @@ var vot = (function(exports) {
 		};
 	};
 	var extractVttVoice = (payload) => {
-		const voice = (/^\s*<v(?:\.[^ >]+)?(?:\s+([^>]*?))?>/iu.exec(payload) ?? /^\s*<v\s+([^>]*?)>/iu.exec(payload))?.[1]?.trim();
-		return voice ? voice : void 0;
+		return /^[ \t]*<v(?:\.\S+)?(?:[ \t]+(\S[^>]*))?>/iu.exec(payload)?.[1]?.trim() || void 0;
 	};
 	var isSrtCueStart = (lines, index) => {
 		const current = lines[index]?.trim() ?? "";
@@ -17132,7 +19073,7 @@ var vot = (function(exports) {
 		};
 	};
 	var resolveVttCueIdentity = (lines, cursor) => {
-		if (!VTT_TIMING_RE.test(lines[cursor] ?? "") && VTT_TIMING_RE.test(lines[cursor + 1] ?? "")) return {
+		if (!isVttTimingLine(lines[cursor] ?? "") && isVttTimingLine(lines[cursor + 1] ?? "")) return {
 			cueId: lines[cursor],
 			timingCursor: cursor + 1
 		};
@@ -17142,15 +19083,15 @@ var vot = (function(exports) {
 		};
 	};
 	var parseVttTiming = (line) => {
-		const timingMatch = VTT_TIMING_RE.exec(line);
-		if (!timingMatch?.groups) return null;
-		const startMs = parseClockTime(timingMatch.groups.start, 3);
-		const endMs = parseClockTime(timingMatch.groups.end, 3);
+		const timingParts = parseVttTimingParts(line);
+		if (!timingParts) return null;
+		const startMs = parseClockTime(timingParts.start, 3);
+		const endMs = parseClockTime(timingParts.end, 3);
 		if (startMs == null || endMs == null || endMs < startMs) return null;
 		return {
 			startMs,
 			endMs,
-			settingsRaw: timingMatch.groups.settings ?? ""
+			settingsRaw: timingParts.settings
 		};
 	};
 	var readVttPayloadLines = (lines, startCursor) => {
@@ -17198,7 +19139,7 @@ var vot = (function(exports) {
 			marginV: event.MarginV ?? "0",
 			effect: event.Effect ?? "",
 			rawText,
-			overrideTags: rawText.match(ASS_OVERRIDE_TAG_RE) ?? []
+			overrideTags: extractAssOverrideTags(rawText)
 		};
 		return {
 			index,
@@ -17282,7 +19223,7 @@ var vot = (function(exports) {
 	};
 	var resolveSerializedText = (processed, line, format) => {
 		if (processed.format === format) return line.metadata?.rawText ?? line.text;
-		if (format === "ass") return line.text.replaceAll("\n", "\\N");
+		if (format === "ass") return line.text.replaceAll("\n", String.raw`\N`);
 		return line.text;
 	};
 	var serializeSrt = (processed) => processed.subtitles.map((line, index) => {
@@ -17477,7 +19418,7 @@ var vot = (function(exports) {
 	var serializeAssDialogue = (line) => {
 		const ass = line.metadata?.ass;
 		const endMs = getSubtitleLineEndMs(line);
-		const rawText = ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", "\\N");
+		const rawText = ass?.rawText ?? line.metadata?.rawText ?? line.text.replaceAll("\n", String.raw`\N`);
 		return [
 			ass?.kind === "comment" ? "Comment" : "Dialogue",
 			": ",
@@ -17568,122 +19509,12 @@ var vot = (function(exports) {
 		return serializeAss(processed, options);
 	};
 	//#endregion
-	//#region src/utils/download.ts
-	function toUint32BE(value) {
-		return new Uint8Array([
-			value >>> 24 & 255,
-			value >>> 16 & 255,
-			value >>> 8 & 255,
-			value & 255
-		]);
-	}
-	function toSynchsafeInt(value) {
-		return new Uint8Array([
-			value >>> 21 & 127,
-			value >>> 14 & 127,
-			value >>> 7 & 127,
-			value & 127
-		]);
-	}
-	function addTitleId3Tag(mp3Buffer, title) {
-		const titleBytes = new TextEncoder().encode(title);
-		const frameData = new Uint8Array(titleBytes.length + 1);
-		frameData[0] = 3;
-		frameData.set(titleBytes, 1);
-		const frame = new Uint8Array(10 + frameData.length);
-		frame.set([
-			84,
-			73,
-			84,
-			50
-		], 0);
-		frame.set(toUint32BE(frameData.length), 4);
-		frame.set(frameData, 10);
-		const header = new Uint8Array(10);
-		header.set([
-			73,
-			68,
-			51,
-			3,
-			0,
-			0
-		], 0);
-		header.set(toSynchsafeInt(frame.length), 6);
-		const audioBytes = new Uint8Array(mp3Buffer);
-		const out = new Uint8Array(header.length + frame.length + audioBytes.length);
-		out.set(header, 0);
-		out.set(frame, header.length);
-		out.set(audioBytes, header.length + frame.length);
-		return new Blob([out], { type: "audio/mpeg" });
-	}
-	function appendChunkToOutputBuffer(out, value, loaded) {
-		const needed = loaded + value.byteLength;
-		let nextOut = out;
-		if (needed > nextOut.length) {
-			const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
-			grown.set(nextOut.subarray(0, loaded));
-			nextOut = grown;
-		}
-		nextOut.set(value, loaded);
-		return {
-			out: nextOut,
-			loaded: needed
-		};
-	}
-	function mergeChunks(chunks, loaded) {
-		const merged = new Uint8Array(loaded);
-		let offset = 0;
-		for (const chunk of chunks) {
-			merged.set(chunk, offset);
-			offset += chunk.byteLength;
-		}
-		return merged.buffer;
-	}
-	async function readResponseArrayBuffer(res, onProgress) {
-		const total = Number(res.headers.get("Content-Length") ?? 0);
-		if (!res.body) return res.arrayBuffer();
-		const reader = res.body.getReader();
-		let loaded = 0;
-		let out = total > 0 ? new Uint8Array(total) : null;
-		const chunks = [];
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			if (!value || value.byteLength === 0) continue;
-			if (out) {
-				const appended = appendChunkToOutputBuffer(out, value, loaded);
-				out = appended.out;
-				loaded = appended.loaded;
-			} else {
-				chunks.push(value);
-				loaded += value.byteLength;
-			}
-			if (total > 0) onProgress(clamp(Math.round(loaded / total * 100)));
-		}
-		if (out) return out.buffer.slice(0, loaded);
-		return mergeChunks(chunks, loaded);
-	}
-	/**
-	* Downloads a translation file and saves it as an MP3 file with metadata,
-	* tracking progress when Content-Length is available.
-	*/
-	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
-		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
-	}
-	async function buildTranslationBlob(res, filename, onProgress = () => {}) {
-		const arrayBuffer = await readResponseArrayBuffer(res, onProgress);
-		onProgress(100);
-		return addTitleId3Tag(arrayBuffer, filename);
-	}
-	//#endregion
-	//#region src/utils/translationVolume.ts
+	//#region src/videoHandler/translationVolume.ts
 	function normalizeMediaElementVolume(volume) {
-		if (!Number.isFinite(volume)) return 0;
-		return Math.max(0, Math.min(1, volume));
+		return clampNumber(volume, 0, 1);
 	}
 	function normalizeGainVolume(volume) {
-		if (!Number.isFinite(volume)) return 0;
-		return Math.max(0, volume);
+		return clampNumber(volume, 0, Infinity);
 	}
 	function setAudioParamInstant(param, value, context) {
 		const now = context?.currentTime;
@@ -17711,6 +19542,56 @@ var vot = (function(exports) {
 		const nextVolume = typeof volumePercent === "number" && Number.isFinite(volumePercent) ? volumePercent : fallbackVolumePercent;
 		if (!player || typeof nextVolume !== "number" || !Number.isFinite(nextVolume)) return;
 		safeSetPlayerVolume(player, nextVolume / 100);
+	}
+	//#endregion
+	//#region src/ui/buttonPlacement.ts
+	var SIDE_EDGE_FRACTION = .18;
+	var SIDE_TOP_FRACTION = .36;
+	var MIN_SIDE_EDGE_PX = 84;
+	var MAX_SIDE_EDGE_PX = 220;
+	var MIN_SIDE_TOP_PX = 140;
+	var MAX_SIDE_TOP_PX = 280;
+	function normalizeButtonPosition(position) {
+		switch (position) {
+			case "left":
+			case "right":
+			case "leftCenter":
+			case "rightCenter": return position;
+			default: return "default";
+		}
+	}
+	function isSideButtonPosition(position) {
+		return position === "left" || position === "right" || position === "leftCenter" || position === "rightCenter";
+	}
+	function getButtonDirection(position) {
+		return isSideButtonPosition(position) ? "column" : "row";
+	}
+	function resolveButtonLayout(isBigContainer, preferredPosition = "default") {
+		const normalizedPosition = normalizeButtonPosition(preferredPosition);
+		const position = isBigContainer || !isSideButtonPosition(normalizedPosition) ? normalizedPosition : "default";
+		return {
+			position,
+			direction: getButtonDirection(position)
+		};
+	}
+	function getEdgeSize(size, fraction, minPx, maxPx) {
+		return clampNumber(size * fraction, minPx, maxPx);
+	}
+	function resolveSideVerticalPosition(side, y, height) {
+		if (y <= getEdgeSize(height, SIDE_TOP_FRACTION, MIN_SIDE_TOP_PX, MAX_SIDE_TOP_PX)) return side;
+		return side === "left" ? "leftCenter" : "rightCenter";
+	}
+	function resolveButtonPositionFromPointer(clientX, clientY, containerRect, isBigContainer) {
+		const width = containerRect.width;
+		const height = containerRect.height;
+		if (!(width > 0 && height > 0)) return "default";
+		const x = clampNumber(clientX - containerRect.left, 0, width);
+		const y = clampNumber(clientY - containerRect.top, 0, height);
+		if (!isBigContainer) return "default";
+		const sideEdge = getEdgeSize(width, SIDE_EDGE_FRACTION, MIN_SIDE_EDGE_PX, MAX_SIDE_EDGE_PX);
+		if (x <= sideEdge) return resolveSideVerticalPosition("left", y, height);
+		if (x >= width - sideEdge) return resolveSideVerticalPosition("right", y, height);
+		return "default";
 	}
 	//#endregion
 	//#region src/ui/mount.ts
@@ -17743,6 +19624,11 @@ var vot = (function(exports) {
 	function shouldRefreshVideoDataBeforeTranslation(videoHandler) {
 		return videoHandler.site.host === "vk" && videoHandler.site.additionalData === "clips" || videoHandler.site.host === "douyin";
 	}
+	async function prepareAuthStateForTranslation(videoHandler) {
+		if (!await deleteExpiredAccount(videoHandler)) return;
+		openAuthWindow();
+		throw new VOTLocalizedError("VOTYandexTokenExpired");
+	}
 	async function handleTranslationButtonCommand(deps) {
 		const videoHandler = deps.videoHandler;
 		if (!videoHandler) return;
@@ -17760,6 +19646,7 @@ var vot = (function(exports) {
 			return;
 		}
 		try {
+			await prepareAuthStateForTranslation(videoHandler);
 			debug.log("[handleTranslationBtnClick] trying execute translation");
 			const videoData = await getVideoDataForTranslation(videoHandler);
 			await videoHandler.videoManager.ensureDetectedLanguageForTranslation(videoData);
@@ -17780,155 +19667,20 @@ var vot = (function(exports) {
 		}
 	}
 	//#endregion
-	//#region src/utils/fullscreenHelper.ts
-	var FullscreenHelper = class {
-		container;
-		video;
-		fullscreenChangeListeners = /* @__PURE__ */ new Set();
-		handleFullscreenChange = () => {
-			this.notifyFullscreenChange();
-		};
-		nativeFullscreenListenersActive = false;
-		constructor({ container, video }) {
-			this.container = container;
-			this.video = video;
+	//#region src/utils/inputDevice.ts
+	function matchesMedia(query) {
+		try {
+			return typeof globalThis.matchMedia === "function" && globalThis.matchMedia(query).matches;
+		} catch {
+			return false;
 		}
-		/**
-		* Gets the current fullscreen element with proper ShadowDOM support
-		*/
-		getFullscreenElement() {
-			const doc = document;
-			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-			if (!(fullscreenEl instanceof HTMLElement)) return null;
-			return fullscreenEl;
-		}
-		/**
-		* Gets comprehensive fullscreen information including ShadowDOM details
-		*/
-		getFullscreenInfo() {
-			const element = this.getFullscreenElement();
-			const isFullscreen = Boolean(element);
-			if (!element) return {
-				element: null,
-				shadowRoot: null,
-				isFullscreen: false,
-				belongsToCurrentVideo: false
-			};
-			return {
-				element,
-				shadowRoot: element.shadowRoot ?? null,
-				isFullscreen,
-				belongsToCurrentVideo: this.isElementBelongsToCurrentVideo(element)
-			};
-		}
-		/**
-		* Checks if the given element belongs to the current video/container
-		*/
-		isElementBelongsToCurrentVideo(element) {
-			return element === this.container || containsCrossShadow(element, this.container) || containsCrossShadow(this.container, element) || this.video && (element === this.video || containsCrossShadow(element, this.video) || containsCrossShadow(this.video, element));
-		}
-		/**
-		* Gets the appropriate root element for overlay mounting in fullscreen mode
-		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
-		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
-		*/
-		getOverlayRoot() {
-			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
-			if (!element || !belongsToCurrentVideo) return null;
-			return shadowRoot ?? element;
-		}
-		/**
-		* Gets the appropriate element for ResizeObserver to watch for size changes
-		* Handles both regular DOM and ShadowDOM scenarios
-		*/
-		getResizeObserverTarget() {
-			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
-			if (element && belongsToCurrentVideo) return shadowRoot?.host ?? element;
-			return this.container;
-		}
-		/**
-		* Checks if the current container should be considered "big" for button positioning
-		* Takes into account fullscreen state and ShadowDOM
-		*/
-		isBigContainer(threshold = 550) {
-			const target = this.getResizeObserverTarget();
-			const rect = target.getBoundingClientRect();
-			const videoRect = this.video?.getBoundingClientRect();
-			return (videoRect && videoRect.width < rect.width ? videoRect.width : rect.width > 0 ? rect.width : target.clientWidth) > threshold;
-		}
-		/**
-		* Adds a listener for fullscreen changes
-		*/
-		addFullscreenChangeListener(listener) {
-			this.fullscreenChangeListeners.add(listener);
-			if (this.fullscreenChangeListeners.size === 1) this.setupFullscreenListeners();
-		}
-		/**
-		* Removes a fullscreen change listener
-		*/
-		removeFullscreenChangeListener(listener) {
-			this.fullscreenChangeListeners.delete(listener);
-			if (this.fullscreenChangeListeners.size === 0) this.cleanupFullscreenListeners();
-		}
-		/**
-		* Sets up native fullscreen event listeners
-		*/
-		setupFullscreenListeners() {
-			if (this.nativeFullscreenListenersActive) return;
-			document.addEventListener("fullscreenchange", this.handleFullscreenChange);
-			document.addEventListener("webkitfullscreenchange", this.handleFullscreenChange);
-			if (this.video) {
-				this.video.addEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
-				this.video.addEventListener("webkitendfullscreen", this.handleFullscreenChange);
-			}
-			this.nativeFullscreenListenersActive = true;
-		}
-		/**
-		* Cleans up fullscreen event listeners
-		*/
-		cleanupFullscreenListeners() {
-			if (!this.nativeFullscreenListenersActive) return;
-			document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
-			document.removeEventListener("webkitfullscreenchange", this.handleFullscreenChange);
-			if (this.video) {
-				this.video.removeEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
-				this.video.removeEventListener("webkitendfullscreen", this.handleFullscreenChange);
-			}
-			this.nativeFullscreenListenersActive = false;
-		}
-		/**
-		* Notifies all listeners about fullscreen state changes
-		*/
-		notifyFullscreenChange() {
-			for (const listener of this.fullscreenChangeListeners) try {
-				listener();
-			} catch (error) {
-				console.warn("[FullscreenHelper] Error in fullscreen change listener:", error);
-			}
-		}
-		/**
-		* Updates the container reference (useful when video container changes)
-		*/
-		updateContainer(container) {
-			this.container = container;
-		}
-		/**
-		* Updates the video reference
-		*/
-		updateVideo(video) {
-			const shouldRebind = this.nativeFullscreenListenersActive && this.video !== video;
-			if (shouldRebind) this.cleanupFullscreenListeners();
-			this.video = video;
-			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setupFullscreenListeners();
-		}
-		/**
-		* Cleans up all resources
-		*/
-		destroy() {
-			this.cleanupFullscreenListeners();
-			this.fullscreenChangeListeners.clear();
-		}
-	};
+	}
+	function hasTouchScreen() {
+		return (globalThis.navigator?.maxTouchPoints ?? 0) > 0 || matchesMedia("(pointer: coarse)") || matchesMedia("(hover: none)");
+	}
+	function isTouchFirstInput() {
+		return matchesMedia("(pointer: coarse)") || hasTouchScreen() && !matchesMedia("(hover: hover)");
+	}
 	//#endregion
 	//#region src/ui/icons.ts
 	var TRANSLATE_ICON_SVG = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -18520,7 +20272,7 @@ var vot = (function(exports) {
 		};
 		singleSelectItemHandle = (item) => {
 			const value = item.value;
-			this.selectedValues = new Set([value]);
+			this.selectedValues = /* @__PURE__ */ new Set([value]);
 			this.syncItemsSelectionState();
 			this.syncItemsSelectionState(this.baseItems);
 			this.updateSelectedState();
@@ -18695,8 +20447,7 @@ var vot = (function(exports) {
 			return this.outer.getAttribute("disabled") === "true" || this.outer.getAttribute("aria-disabled") === "true";
 		}
 		set disabled(isDisabled) {
-			if (isDisabled) this.outer.setAttribute("disabled", "true");
-			else this.outer.removeAttribute("disabled");
+			this.outer.toggleAttribute("disabled", isDisabled);
 		}
 	};
 	//#endregion
@@ -18790,8 +20541,7 @@ var vot = (function(exports) {
 		}
 		updateProgress() {
 			const range = this._max - this._min;
-			const raw = range <= 0 ? 0 : (this._value - this._min) / range;
-			const progress = Math.max(0, Math.min(1, raw));
+			const progress = clampNumber(range <= 0 ? 0 : (this._value - this._min) / range, 0, 1);
 			this.container.style.setProperty("--vot-progress", progress.toString());
 			return this;
 		}
@@ -18838,7 +20588,7 @@ var vot = (function(exports) {
 		* If you set a different new value, it will trigger the input event
 		*/
 		set value(val) {
-			this._value = clampNumber$1(val, this._min, this._max);
+			this._value = clampNumber(val, this._min, this._max);
 			this.input.value = this._value.toString();
 			this.updateProgress();
 			this.onInput.dispatch(this._value, true);
@@ -18849,7 +20599,7 @@ var vot = (function(exports) {
 		set min(val) {
 			this._min = val;
 			this.input.min = this._min.toString();
-			this._value = clampNumber$1(this._value, this._min, this._max);
+			this._value = clampNumber(this._value, this._min, this._max);
 			this.input.value = this._value.toString();
 			this.updateProgress();
 		}
@@ -18859,7 +20609,7 @@ var vot = (function(exports) {
 		set max(val) {
 			this._max = val;
 			this.input.max = this._max.toString();
-			this._value = clampNumber$1(this._value, this._min, this._max);
+			this._value = clampNumber(this._value, this._min, this._max);
 			this.input.value = this._value.toString();
 			this.updateProgress();
 		}
@@ -18945,10 +20695,12 @@ var vot = (function(exports) {
 		_activeVoice;
 		onTranslate;
 		listeners = [];
+		visibilityListeners = [];
+		lastVisibilityState = false;
 		showTimer = null;
 		hideTimer = null;
-		static SHOW_DELAY_MS = 120;
-		static HIDE_DELAY_MS = 150;
+		static SHOW_DELAY_MS = 80;
+		static HIDE_DELAY_MS = 80;
 		positionRafId = null;
 		anchorEl = null;
 		outsideTapHandler = null;
@@ -18956,10 +20708,11 @@ var vot = (function(exports) {
 		onLayoutChangeBound = () => {
 			if (this.isOpen && this.anchorEl) this.schedulePositionUpdate(this.anchorEl);
 		};
-		constructor({ activeVoice, layoutRoot, onTranslate }) {
+		constructor({ activeVoice, layoutRoot, onTranslate, onOpenChange }) {
 			this._activeVoice = activeVoice;
 			this.layoutRoot = layoutRoot;
 			this.onTranslate = onTranslate;
+			if (onOpenChange) this.visibilityListeners.push(onOpenChange);
 			this.container = this.createContainer();
 		}
 		get activeVoice() {
@@ -18970,7 +20723,7 @@ var vot = (function(exports) {
 			this.updateActiveState();
 		}
 		get hidden() {
-			return this.container.hidden;
+			return !!this.container.hidden;
 		}
 		get isOpen() {
 			return !this.hidden;
@@ -18983,9 +20736,23 @@ var vot = (function(exports) {
 			this.listeners = this.listeners.filter((l) => l !== listener);
 			return this;
 		}
+		addVisibilityListener(listener) {
+			this.visibilityListeners.push(listener);
+			return this;
+		}
+		removeVisibilityListener(listener) {
+			this.visibilityListeners = this.visibilityListeners.filter((l) => l !== listener);
+			return this;
+		}
 		scheduleShow(anchor) {
 			this.cancelHide();
-			if (this.isOpen) return;
+			this.cancelShow();
+			if (this.isOpen) {
+				this.anchorEl = anchor;
+				this.updatePosition(anchor);
+				this.emitVisibilityChange(true);
+				return;
+			}
 			this.showTimer = setTimeout(() => {
 				this.showTimer = null;
 				this.open(anchor);
@@ -18999,12 +20766,17 @@ var vot = (function(exports) {
 				this.close();
 			}, VoicePopover.HIDE_DELAY_MS);
 		}
-		toggleForTouch(anchor) {
+		showNow(anchor) {
+			this.cancelShow();
+			this.cancelHide();
+			this.open(anchor);
+		}
+		toggle(anchor) {
 			if (this.isOpen) this.hideNow();
-			else {
-				this.cancelHide();
-				this.open(anchor);
-			}
+			else this.showNow(anchor);
+		}
+		toggleForTouch(anchor) {
+			this.toggle(anchor);
 		}
 		cancelShow() {
 			if (this.showTimer !== null) {
@@ -19029,6 +20801,7 @@ var vot = (function(exports) {
 			this.close();
 			this.container.remove();
 			this.listeners = [];
+			this.visibilityListeners = [];
 		}
 		createContainer() {
 			const el = UI.createEl("vot-block", ["vot-voice-popover"]);
@@ -19077,16 +20850,25 @@ var vot = (function(exports) {
 			return item;
 		}
 		open(anchor) {
-			if (this.isOpen) return;
+			if (this.isOpen) {
+				this.anchorEl = anchor;
+				this.updatePosition(anchor);
+				this.emitVisibilityChange(true);
+				return;
+			}
 			this.anchorEl = anchor;
 			setInteractiveHiddenState(this.container, false);
 			this.updateActiveState();
-			this.schedulePositionUpdate(anchor);
+			this.updatePosition(anchor);
 			this.attachLayoutListeners();
 			this.attachOutsideTapListener();
+			this.emitVisibilityChange(true);
 		}
 		close() {
-			if (this.hidden) return;
+			if (this.hidden) {
+				this.emitVisibilityChange(false);
+				return;
+			}
 			setInteractiveHiddenState(this.container, true);
 			this.detachLayoutListeners();
 			this.detachOutsideTapListener();
@@ -19095,17 +20877,21 @@ var vot = (function(exports) {
 				cancelAnimationFrame(this.positionRafId);
 				this.positionRafId = null;
 			}
+			this.emitVisibilityChange(false);
+		}
+		emitVisibilityChange(isOpen) {
+			if (this.lastVisibilityState === isOpen) return;
+			this.lastVisibilityState = isOpen;
+			for (const listener of this.visibilityListeners) listener(isOpen);
 		}
 		handleSelect(voice) {
 			this._activeVoice = voice;
 			this.updateActiveState();
 			this.cancelHide();
-			this.hideTimer = setTimeout(() => {
-				this.hideTimer = null;
-				this.close();
-			}, 400);
-			for (const listener of this.listeners) listener(voice);
-			if (this.onTranslate) this.onTranslate();
+			let shouldTranslate = true;
+			for (const listener of this.listeners) if (listener(voice) === false) shouldTranslate = false;
+			if (shouldTranslate && this.onTranslate) this.onTranslate();
+			this.hideNow();
 		}
 		updateActiveState() {
 			for (const item of this.container.querySelectorAll(".vot-voice-popover__item")) {
@@ -19117,38 +20903,54 @@ var vot = (function(exports) {
 		schedulePositionUpdate(anchor) {
 			if (this.positionRafId !== null) return;
 			this.positionRafId = requestAnimationFrame(() => {
-				this.positionRafId = requestAnimationFrame(() => {
-					this.positionRafId = null;
-					this.updatePosition(anchor);
-				});
+				this.positionRafId = null;
+				this.updatePosition(anchor);
 			});
+		}
+		positionColumn(containerRect, rootRect, gap, position) {
+			const spaceLeft = containerRect.left - rootRect.left - gap;
+			const spaceRight = rootRect.right - containerRect.right - gap;
+			const placement = (position === "right" || position === "rightCenter") && spaceLeft >= 160 || spaceLeft >= spaceRight ? "left" : "right";
+			this.container.style.setProperty("--vot-voice-popover-max-width", `${Math.max(160, Math.min(310, placement === "left" ? spaceLeft : spaceRight))}px`);
+			const popoverRect = this.container.getBoundingClientRect();
+			const top = containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
+			return {
+				left: placement === "left" ? containerRect.left - popoverRect.width - gap : containerRect.right + gap,
+				top,
+				placement
+			};
+		}
+		positionRow(containerRect, rootRect, gap) {
+			const spaceAbove = containerRect.top - rootRect.top - gap;
+			const spaceBelow = rootRect.bottom - containerRect.bottom - gap;
+			const placement = spaceAbove >= spaceBelow ? "top" : "bottom";
+			this.container.style.setProperty("--vot-voice-popover-max-height", `${Math.max(96, placement === "top" ? spaceAbove : spaceBelow)}px`);
+			const popoverRect = this.container.getBoundingClientRect();
+			return {
+				left: containerRect.left + containerRect.width / 2 - popoverRect.width / 2,
+				top: placement === "top" ? containerRect.top - popoverRect.height - gap : containerRect.bottom + gap,
+				placement
+			};
 		}
 		updatePosition(anchor) {
 			if (!this.isOpen) return;
 			const rootRect = this.layoutRoot.getBoundingClientRect();
-			const popoverRect = this.container.getBoundingClientRect();
 			const gap = 8;
+			const maxRootWidth = Math.max(160, rootRect.width - gap * 2);
+			const maxRootHeight = Math.max(96, rootRect.height - gap * 2);
+			this.container.style.setProperty("--vot-voice-popover-max-width", `${Math.min(310, maxRootWidth)}px`);
+			this.container.style.setProperty("--vot-voice-popover-max-height", `${maxRootHeight}px`);
 			const buttonContainer = anchor.closest("[data-direction]") ?? anchor;
 			const containerRect = buttonContainer.getBoundingClientRect();
 			const direction = buttonContainer.dataset?.direction ?? "row";
 			const position = buttonContainer.dataset?.position ?? "default";
-			let left;
-			let top;
-			if (direction === "column") {
-				top = containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
-				if (position === "right") left = containerRect.left - popoverRect.width - gap;
-				else left = containerRect.right + gap;
-			} else {
-				left = containerRect.left + containerRect.width / 2 - popoverRect.width / 2;
-				const spaceAbove = containerRect.top - gap;
-				const spaceBelow = rootRect.bottom - containerRect.bottom - gap;
-				if (spaceAbove >= popoverRect.height || spaceAbove >= spaceBelow) top = containerRect.top - popoverRect.height - gap;
-				else top = containerRect.bottom + gap;
-			}
-			left = Math.max(gap, Math.min(left, rootRect.right - popoverRect.width - gap));
-			top = Math.max(gap, Math.min(top, rootRect.bottom - popoverRect.height - gap));
+			const result = direction === "column" ? this.positionColumn(containerRect, rootRect, gap, position) : this.positionRow(containerRect, rootRect, gap);
+			const popoverRect = this.container.getBoundingClientRect();
+			let left = Math.max(gap, Math.min(result.left, rootRect.right - popoverRect.width - gap));
+			let top = Math.max(gap, Math.min(result.top, rootRect.bottom - popoverRect.height - gap));
 			left -= rootRect.left;
 			top -= rootRect.top;
+			this.container.dataset.placement = result.placement;
 			this.container.style.left = `${left}px`;
 			this.container.style.top = `${top}px`;
 		}
@@ -19171,8 +20973,8 @@ var vot = (function(exports) {
 		attachOutsideTapListener() {
 			this.detachOutsideTapListener();
 			this.outsideTapHandler = (e) => {
-				if (e.pointerType !== "touch") return;
-				if (this.container.contains(e.target)) return;
+				if (isEventInside(e, this.container)) return;
+				if (this.anchorEl && isEventInside(e, this.anchorEl)) return;
 				this.hideNow();
 			};
 			document.addEventListener("pointerdown", this.outsideTapHandler, {
@@ -19188,6 +20990,9 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/components/votButton.ts
+	function isSidePosition(position) {
+		return position === "left" || position === "right" || position === "leftCenter" || position === "rightCenter";
+	}
 	var VOTButton = class {
 		container;
 		translateButton;
@@ -19203,6 +21008,7 @@ var vot = (function(exports) {
 		_position;
 		_direction;
 		_status;
+		_subtitlesActive = false;
 		/** Text shown next to the translate icon (plain text, not HTML). */
 		_labelText;
 		constructor({ position = "default", direction = "default", status = "none", labelHtml = "" }) {
@@ -19222,15 +21028,6 @@ var vot = (function(exports) {
 			this.menuButton = elements.menuButton;
 			this.label = elements.label;
 		}
-		static calcPosition(percentX, isBigContainer) {
-			if (!isBigContainer) return "default";
-			if (percentX <= 44) return "left";
-			if (percentX >= 66) return "right";
-			return "default";
-		}
-		static calcDirection(position) {
-			return ["default", "top"].includes(position) ? "row" : "column";
-		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-segmented-button"]);
 			container.dataset.position = this._position;
@@ -19243,19 +21040,22 @@ var vot = (function(exports) {
 			D(TRANSLATE_ICON_SVG, translateButton);
 			const label = UI.createEl("span", ["vot-segment-label"]);
 			label.textContent = this._labelText;
-			translateButton.appendChild(label);
-			const dropdownArrow = UI.createEl("vot-block", ["vot-segment", "vot-dropdown-arrow"]);
+			const dropdownArrow = UI.createEl("span", ["vot-dropdown-arrow"]);
 			dropdownArrow.setAttribute("role", "button");
 			dropdownArrow.tabIndex = 0;
-			dropdownArrow.setAttribute("aria-label", localizationProvider.get("VOTSelectVoice") ?? "Select voice");
+			dropdownArrow.setAttribute("aria-label", localizationProvider.get("VOTVoiceSelection"));
 			dropdownArrow.setAttribute("aria-haspopup", "menu");
 			dropdownArrow.setAttribute("aria-expanded", "false");
 			D(CHEVRON_ICON, dropdownArrow);
+			translateButton.append(label, dropdownArrow);
 			const separator = UI.createEl("vot-block", ["vot-separator"]);
-			const subtitlesButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
+			const subtitlesButton = UI.createEl("vot-block", ["vot-segment-only-icon", "vot-subtitles-button"]);
 			subtitlesButton.setAttribute("role", "button");
 			subtitlesButton.tabIndex = 0;
-			subtitlesButton.setAttribute("aria-label", localizationProvider.get("VOTSubtitles"));
+			const subtitlesLabelText = localizationProvider.get("VOTSubtitles");
+			subtitlesButton.setAttribute("aria-label", subtitlesLabelText);
+			subtitlesButton.setAttribute("aria-pressed", "false");
+			subtitlesButton.dataset.active = "false";
 			D(SUBTITLES_ICON, subtitlesButton);
 			const separator3 = UI.createEl("vot-block", ["vot-separator"]);
 			const pipButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
@@ -19271,7 +21071,7 @@ var vot = (function(exports) {
 			menuButton.setAttribute("aria-haspopup", "dialog");
 			menuButton.setAttribute("aria-expanded", "false");
 			D(MENU_ICON, menuButton);
-			container.append(translateButton, dropdownArrow, separator, subtitlesButton, separator3, pipButton, separator2, menuButton);
+			container.append(translateButton, separator, subtitlesButton, separator3, pipButton, separator2, menuButton);
 			return {
 				container,
 				translateButton,
@@ -19305,8 +21105,10 @@ var vot = (function(exports) {
 		}
 		get tooltipPos() {
 			switch (this.position) {
-				case "left": return "right";
-				case "right": return "left";
+				case "left":
+				case "leftCenter": return "right";
+				case "right":
+				case "rightCenter": return "left";
 				default: return "bottom";
 			}
 		}
@@ -19321,6 +21123,20 @@ var vot = (function(exports) {
 		}
 		get loading() {
 			return this.container.dataset.loading === "true";
+		}
+		get subtitlesActive() {
+			return this._subtitlesActive;
+		}
+		set subtitlesActive(isActive) {
+			this._subtitlesActive = isActive;
+			this.subtitlesButton.dataset.active = isActive.toString();
+			this.subtitlesButton.setAttribute("aria-pressed", isActive.toString());
+		}
+		setVoiceMenuOpen(isOpen) {
+			this.dropdownArrow.setAttribute("aria-expanded", isOpen.toString());
+			this.dropdownArrow.classList.toggle("vot-dropdown-arrow--open", isOpen);
+			this.translateButton.classList.toggle("vot-translate-button--voice-menu-open", isOpen);
+			return this;
 		}
 		set hidden(isHidden) {
 			this.container.hidden = isHidden;
@@ -19341,15 +21157,15 @@ var vot = (function(exports) {
 			this._direction = this.container.dataset.direction = direction;
 		}
 		/**
-		* Voice popover chevron exists only for centered (horizontal) bar layout.
-		* For left/right docked buttons the segment is omitted from the DOM.
+		* Voice popover chevron is shown only in the centered horizontal layout.
+		* In side layout the whole translate icon is the voice-popover handle.
 		*/
 		syncDropdownArrowPlacement() {
-			if (this._position === "left" || this._position === "right") {
-				this.dropdownArrow.remove();
-				return;
-			}
-			if (this.dropdownArrow.parentElement !== this.container) this.container.insertBefore(this.dropdownArrow, this.separator);
+			const onSide = isSidePosition(this._position);
+			this.dropdownArrow.hidden = onSide;
+			this.dropdownArrow.setAttribute("aria-hidden", onSide.toString());
+			this.dropdownArrow.tabIndex = onSide ? -1 : 0;
+			if (this.dropdownArrow.parentElement !== this.translateButton) this.translateButton.appendChild(this.dropdownArrow);
 		}
 		set opacity(opacity) {
 			const o = Number.isFinite(opacity) ? opacity : 1;
@@ -19451,17 +21267,11 @@ var vot = (function(exports) {
 		abortController = null;
 		defaultVolumePersistTimer;
 		defaultVolumePersistDelayMs = 250;
-		dragging = false;
-		dragCandidate = false;
-		dragDirty = false;
-		dragStartX = 0;
-		dragStartY = 0;
-		currentClientX = 0;
-		activePointerId = null;
 		dragThresholdPx = 6;
-		containerRect = null;
-		dragIsBigContainer = null;
-		checkerUnsubscribe = null;
+		dragActionSuppressMs = 350;
+		dragState = null;
+		dockPreview = null;
+		lastButtonDragEndAt = 0;
 		initialized = false;
 		data;
 		videoHandler;
@@ -19484,6 +21294,7 @@ var vot = (function(exports) {
 		votButton;
 		votButtonTooltip;
 		subtitlesButtonTooltip;
+		voiceMenuButtonTooltip;
 		voicePopover;
 		votMenu;
 		downloadTranslationButton;
@@ -19513,6 +21324,9 @@ var vot = (function(exports) {
 		get portalContainer() {
 			return this.mount.portalContainer;
 		}
+		get tooltipParentElement() {
+			return this.root instanceof ShadowRoot ? this.root.host : this.root;
+		}
 		/**
 		* Update mount points when the player container changes.
 		* Moves already-mounted UI nodes and rebinds root-bound listeners (dragging).
@@ -19523,24 +21337,18 @@ var vot = (function(exports) {
 			this.mount = nextMount;
 			if (!this.isInitialized()) return this;
 			if (prevRoot !== nextRoot && this.overlayMount) reparentShadowMount(this.overlayMount, nextRoot);
-			if (this.votButtonTooltip && prevRoot !== nextRoot) this.votButtonTooltip.updateMount({
-				parentElement: this.root instanceof ShadowRoot ? this.root.host : this.root,
-				layoutRoot: this.overlayMount?.host
-			});
+			if (prevRoot !== nextRoot) for (const tooltip of [
+				this.votButtonTooltip,
+				this.subtitlesButtonTooltip,
+				this.voiceMenuButtonTooltip
+			]) tooltip?.updateMount({ parentElement: this.tooltipParentElement });
 			return this;
 		}
 		isInitialized() {
 			return this.initialized;
 		}
 		calcButtonLayout(position) {
-			if (this.isBigContainer && isSidePosition(position)) return {
-				direction: "column",
-				position
-			};
-			return {
-				direction: "row",
-				position: "default"
-			};
+			return resolveButtonLayout(this.isBigContainer, position);
 		}
 		/** Centered bar uses dropdown arrow; side layout uses translate segment hover. */
 		isCenteredButtonLayout() {
@@ -19551,6 +21359,12 @@ var vot = (function(exports) {
 			if (!this.votButton) return false;
 			if (this.isCenteredButtonLayout()) return true;
 			return this.votButton.status !== "error";
+		}
+		shouldUseTouchVoiceInteraction(event) {
+			return event?.pointerType === "touch" || isTouchFirstInput();
+		}
+		shouldUseHoverVoiceInteraction(event) {
+			return event?.pointerType !== "touch" && !isTouchFirstInput();
 		}
 		/** Error tooltip only on side layout — centered bar uses dropdown + button label. */
 		syncTranslateButtonTooltip() {
@@ -19569,7 +21383,7 @@ var vot = (function(exports) {
 		* chevron — no new `pointerenter` fires, so re-arm the hover popover here.
 		*/
 		rescheduleVoicePopoverIfHovered() {
-			if (!this.isInitialized()) return this;
+			if (!this.isInitialized() || isTouchFirstInput()) return this;
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
 					if (!this.isInitialized() || !this.allowsVoicePopover()) return;
@@ -19606,12 +21420,18 @@ var vot = (function(exports) {
 			}, this.defaultVolumePersistDelayMs);
 		}
 		bindPrimaryAction(element, handler, signal, options = {}) {
-			element.addEventListener("pointerdown", (event) => {
+			element.addEventListener("pointerup", (event) => {
 				if (!isPrimaryPointerAction(event)) return;
+				if (this.shouldSuppressPointerAction()) return;
+				if (options.shouldHandlePointer?.(event) === false) return;
 				if (options.preventPointerDefault) event.preventDefault();
 				handler();
+				queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
 			}, { signal });
-			addKeyboardActivationListener(element, handler, { signal });
+			addKeyboardActivationListener(element, () => {
+				handler();
+				queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+			}, { signal });
 		}
 		flushDefaultVolumePersist() {
 			if (this.defaultVolumePersistTimer !== void 0) {
@@ -19661,15 +21481,20 @@ var vot = (function(exports) {
 				autoLayout: false,
 				hidden: true,
 				bordered: false,
-				parentElement: this.root instanceof ShadowRoot ? this.root.host : this.root
+				parentElement: this.tooltipParentElement
 			});
+			const activeVoice = this.data.useLivelyVoice === false ? "standard" : "live";
 			this.voicePopover = new VoicePopover({
-				activeVoice: this.data.useLivelyVoice ? "live" : "standard",
+				activeVoice,
 				layoutRoot: this.root,
 				onTranslate: () => {
 					this.events["click:translate"].dispatch();
 				}
 			});
+			this.voicePopover.addVisibilityListener((isOpen) => {
+				this.votButton?.setVoiceMenuOpen(isOpen);
+			});
+			this.votButton.container.dataset.voiceType = activeVoice;
 			this.root.appendChild(this.voicePopover.container);
 			this.syncTranslateButtonTooltip();
 			this.subtitlesButtonTooltip = new Tooltip({
@@ -19678,8 +21503,19 @@ var vot = (function(exports) {
 				position: this.votButton.tooltipPos,
 				autoLayout: false,
 				bordered: false,
-				parentElement: this.root instanceof ShadowRoot ? this.root.host : this.root
+				parentElement: this.tooltipParentElement
 			});
+			this.voiceMenuButtonTooltip = new Tooltip({
+				target: this.votButton.dropdownArrow,
+				anchor: this.votButton.dropdownArrow,
+				edgeAnchor: this.votButton.translateButton,
+				content: localizationProvider.get("VOTVoiceSelection"),
+				position: this.votButton.tooltipPos,
+				autoLayout: false,
+				bordered: false,
+				parentElement: this.tooltipParentElement
+			});
+			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
 			this.votMenu = new VOTMenu({
 				titleHtml: localizationProvider.get("VOTSettings"),
 				position
@@ -19746,10 +21582,6 @@ var vot = (function(exports) {
 			if (!this.isInitialized()) throw new Error("[VOT] OverlayView isn't initialized");
 			this.abortController = new AbortController();
 			const signal = this.abortController.signal;
-			this.checkerUnsubscribe?.();
-			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
-				this.onCheckerTick();
-			});
 			this.votButton.container.addEventListener("click", (e) => {
 				e.preventDefault();
 				e.stopPropagation();
@@ -19765,55 +21597,92 @@ var vot = (function(exports) {
 			};
 			const toggleMenu = () => setMenuOpen(this.votMenu.hidden);
 			const closeMenu = (returnFocusToToggle = false) => setMenuOpen(false, { returnFocusToToggle });
+			const toggleVoicePopover = () => {
+				if (!this.allowsVoicePopover()) return;
+				const arrow = this.votButton.dropdownArrow;
+				this.voiceMenuButtonTooltip?.dismissImmediate();
+				if (this.voicePopover?.isOpen) {
+					this.voicePopover.hideNow();
+					this.votButton.setVoiceMenuOpen(false);
+					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+					return;
+				}
+				this.voicePopover?.showNow(arrow);
+			};
+			this.votButton.dropdownArrow.addEventListener("pointerdown", (event) => {
+				if (!isPrimaryPointerAction(event)) return;
+				event.preventDefault();
+				event.stopPropagation();
+				if (this.shouldSuppressPointerAction()) return;
+				toggleVoicePopover();
+			}, {
+				signal,
+				capture: true
+			});
+			this.votButton.dropdownArrow.addEventListener("pointerup", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+			}, {
+				signal,
+				capture: true
+			});
+			this.votButton.dropdownArrow.addEventListener("click", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+			}, {
+				signal,
+				capture: true
+			});
+			this.votButton.dropdownArrow.addEventListener("keydown", (event) => {
+				if (event.key !== "Enter" && event.key !== " ") return;
+				event.preventDefault();
+				event.stopPropagation();
+				toggleVoicePopover();
+			}, {
+				signal,
+				capture: true
+			});
 			this.bindPrimaryAction(this.votButton.translateButton, () => {
 				closeMenu();
 				this.events["click:translate"].dispatch();
-			}, signal);
+			}, signal, { shouldHandlePointer: (event) => !(this.votButton.direction === "column" && this.allowsVoicePopover() && this.shouldUseTouchVoiceInteraction(event)) });
 			this.votButton.translateButton.addEventListener("pointerenter", (e) => {
-				if (e.pointerType === "touch") return;
+				if (!this.shouldUseHoverVoiceInteraction(e)) return;
 				if (this.votButton.direction !== "column") return;
 				if (!this.allowsVoicePopover()) return;
 				this.voicePopover?.scheduleShow(this.votButton.translateButton);
 			}, { signal });
 			this.votButton.translateButton.addEventListener("pointerleave", (e) => {
-				if (e.pointerType === "touch") return;
+				if (!this.shouldUseHoverVoiceInteraction(e)) return;
 				if (this.votButton.direction !== "column") return;
 				this.voicePopover?.scheduleHide();
 			}, { signal });
-			this.votButton.translateButton.addEventListener("pointerdown", (e) => {
-				if (e.pointerType !== "touch") return;
+			this.votButton.translateButton.addEventListener("pointerup", (e) => {
+				if (!this.shouldUseTouchVoiceInteraction(e)) return;
 				if (this.votButton.direction !== "column") return;
+				if (this.shouldSuppressPointerAction()) return;
 				if (!this.allowsVoicePopover()) return;
 				e.preventDefault();
 				e.stopPropagation();
-				this.voicePopover?.toggleForTouch(this.votButton.translateButton);
-			}, { signal });
-			this.bindPrimaryAction(this.votButton.dropdownArrow, () => {
-				if (!this.allowsVoicePopover()) return;
-				const arrow = this.votButton.dropdownArrow;
 				if (this.voicePopover?.isOpen) {
-					this.voicePopover?.hideNow();
-					arrow.setAttribute("aria-expanded", "false");
-				} else {
-					this.voicePopover?.cancelHide();
-					this.voicePopover?.scheduleShow(arrow);
-					arrow.setAttribute("aria-expanded", "true");
-				}
-			}, signal, { preventPointerDefault: true });
-			this.voicePopover.addEventListener(() => {
-				this.votButton.dropdownArrow.setAttribute("aria-expanded", "false");
-			});
-			this.voicePopover.addEventListener((voice) => {
-				const useLive = voice === "live";
-				if (useLive && !this.data.account?.token) {
-					globalThis.open(authLoginUrl, "_blank")?.focus();
-					if (this.voicePopover) this.voicePopover.activeVoice = "standard";
+					this.voicePopover.hideNow();
+					this.votButton.setVoiceMenuOpen(false);
+					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
 					return;
 				}
-				if (this.data.useLivelyVoice === useLive) return;
+				this.voicePopover?.showNow(this.votButton.translateButton);
+			}, { signal });
+			this.voicePopover.addEventListener((voice) => {
+				const useLive = voice === "live";
+				if (this.data.useLivelyVoice === useLive) {
+					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+					return;
+				}
 				this.data.useLivelyVoice = useLive;
 				votStorage.set("useLivelyVoice", useLive);
+				this.syncVoicePopoverState();
 				this.events["select:voiceType"].dispatch(useLive);
+				queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
 			});
 			this.bindPrimaryAction(this.votButton.pipButton, () => {
 				closeMenu();
@@ -19827,14 +21696,24 @@ var vot = (function(exports) {
 			const touchAction = "none";
 			this.votButton.container.style.touchAction = touchAction;
 			this.votButton.translateButton.style.touchAction = touchAction;
+			this.votButton.dropdownArrow.style.touchAction = touchAction;
 			this.votButton.subtitlesButton.style.touchAction = touchAction;
 			this.votButton.pipButton.style.touchAction = touchAction;
 			this.votButton.menuButton.style.touchAction = touchAction;
-			this.votButton.container.addEventListener("pointerdown", this.onDragStart, { signal });
-			this.votButton.container.addEventListener("pointermove", this.onPointerMove, { signal });
-			this.votButton.container.addEventListener("pointerup", this.onDragEnd, { signal });
-			this.votButton.container.addEventListener("pointercancel", this.onDragEnd, { signal });
-			this.votButton.container.addEventListener("lostpointercapture", this.onDragEnd, { signal });
+			this.votButton.container.addEventListener("pointerdown", this.onButtonDragPointerDown, { signal });
+			document.addEventListener("pointermove", this.onButtonDragPointerMove, {
+				signal,
+				capture: true
+			});
+			document.addEventListener("pointerup", this.onButtonDragPointerUp, {
+				signal,
+				capture: true
+			});
+			document.addEventListener("pointercancel", this.onButtonDragPointerCancel, {
+				signal,
+				capture: true
+			});
+			this.votButton.container.addEventListener("lostpointercapture", this.onButtonDragPointerCancel, { signal });
 			this.votMenu.container.addEventListener("click", (e) => {
 				e.preventDefault();
 				e.stopPropagation();
@@ -19932,7 +21811,7 @@ var vot = (function(exports) {
 			});
 			return this;
 		}
-		updateButtonLayout(position, direction) {
+		updateButtonLayout(position, direction, options = {}) {
 			if (!this.isInitialized()) return this;
 			this.votMenu.position = position;
 			this.votButton.position = position;
@@ -19940,9 +21819,12 @@ var vot = (function(exports) {
 			this.votButton.syncDropdownArrowPlacement();
 			this.votButtonTooltip.setPosition(this.votButton.tooltipPos);
 			this.subtitlesButtonTooltip.setPosition(this.votButton.tooltipPos);
-			if (this.voicePopover?.isOpen) {
+			this.voiceMenuButtonTooltip.setPosition(this.votButton.tooltipPos);
+			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
+			if (!options.keepVoicePopover && this.voicePopover?.isOpen) {
 				this.voicePopover.hideNow();
-				this.votButton.dropdownArrow.setAttribute("aria-expanded", "false");
+				this.voiceMenuButtonTooltip?.dismissImmediate();
+				this.votButton.setVoiceMenuOpen(false);
 			}
 			this.syncTranslateButtonTooltip();
 			return this;
@@ -19950,94 +21832,262 @@ var vot = (function(exports) {
 		/** Sync the voice popover's active state with the current data. */
 		syncVoicePopoverState() {
 			if (!this.isInitialized()) return this;
-			this.voicePopover.activeVoice = this.data.useLivelyVoice ? "live" : "standard";
+			const activeVoice = this.data.useLivelyVoice === false ? "standard" : "live";
+			this.voicePopover.activeVoice = activeVoice;
+			this.votButton.container.dataset.voiceType = activeVoice;
 			return this;
 		}
-		moveButton(percentX) {
+		syncSubtitlesButtonState(isActive) {
 			if (!this.isInitialized()) return this;
-			const isBigContainer = this.dragIsBigContainer ?? this.isBigContainer;
-			const position = VOTButton.calcPosition(percentX, isBigContainer);
-			if (position === this.votButton.position) return this;
-			const direction = VOTButton.calcDirection(position);
-			this.data.buttonPos = position;
-			this.updateButtonLayout(position, direction);
+			const active = isActive ?? Array.from(this.subtitlesSelect?.selectedValues ?? []).some((value) => value !== "disabled");
+			this.votButton.subtitlesActive = active;
 			return this;
 		}
-		startDragSession(clientX, clientY, activitySource) {
-			this.dragCandidate = true;
-			this.dragging = false;
-			this.dragStartX = clientX;
-			this.dragStartY = clientY;
-			this.currentClientX = clientX;
-			this.containerRect = (this.root instanceof ShadowRoot ? this.root.host : this.root).getBoundingClientRect();
-			this.dragIsBigContainer = this.isBigContainer;
-			this.dragDirty = false;
-			this.intervalIdleChecker.markActivity(activitySource);
-			this.intervalIdleChecker.requestImmediateTick();
+		getOverlayRootElement() {
+			const root = this.tooltipParentElement;
+			return root instanceof ShadowRoot ? root.host : root;
 		}
-		queueDragTick(activitySource) {
-			if (this.dragDirty) return;
-			this.dragDirty = true;
-			this.intervalIdleChecker.markActivity(activitySource);
-			this.intervalIdleChecker.requestImmediateTick();
+		shouldSuppressPointerAction() {
+			return Boolean(this.dragState?.active) || Date.now() - this.lastButtonDragEndAt < this.dragActionSuppressMs;
 		}
-		updateDragFromMove(clientX, clientY, activitySource) {
-			this.currentClientX = clientX;
-			if (!this.dragCandidate) return;
-			if (!this.dragging) {
-				if (Math.abs(this.currentClientX - this.dragStartX) + Math.abs(clientY - this.dragStartY) >= this.dragThresholdPx) this.dragging = true;
+		closeFloatingButtonUI() {
+			if (!this.isInitialized()) return;
+			this.votMenu.hidden = true;
+			this.votButton.menuButton.setAttribute("aria-expanded", "false");
+			this.voicePopover?.hideNow();
+			this.voiceMenuButtonTooltip?.dismissImmediate();
+			this.votButton.setVoiceMenuOpen(false);
+		}
+		isElementHovered(element) {
+			if (!element?.isConnected) return false;
+			try {
+				return element.matches(":hover");
+			} catch {
+				return false;
 			}
-			if (!this.dragging) return;
-			this.queueDragTick(activitySource);
 		}
-		onDragStart = (event) => {
-			if (!event.isPrimary || event.button !== 0) return;
-			event.preventDefault();
-			this.activePointerId = event.pointerId;
-			this.startDragSession(event.clientX, event.clientY, "overlay-pointer-down");
-		};
-		onPointerMove = (event) => {
-			if (this.activePointerId !== event.pointerId) return;
-			const wasDragging = this.dragging;
-			this.updateDragFromMove(event.clientX, event.clientY, "overlay-pointer-move");
-			if (!wasDragging && this.dragging) try {
-				this.votButton?.container.setPointerCapture(event.pointerId);
-			} catch {}
-			if (this.dragging) event.preventDefault();
-		};
-		applyDragFromState = () => {
-			if (!this.dragging || !this.dragDirty || !this.containerRect) return;
-			const width = this.containerRect.width;
-			if (!(width > 0 && Number.isFinite(width))) return;
-			this.dragDirty = false;
-			const x = this.currentClientX - this.containerRect.left;
-			const percentX = Math.max(0, Math.min(x, width)) / width * 100;
-			this.moveButton(percentX);
-		};
-		onCheckerTick = () => {
-			this.applyDragFromState();
-		};
-		onDragEnd = (event) => {
-			if (event && this.activePointerId !== null && event.pointerId !== this.activePointerId) return;
-			const pointerId = this.activePointerId;
-			if (pointerId !== null) try {
+		getFloatingInteractionTargets() {
+			if (!this.isInitialized()) return [];
+			return [
+				this.votButton.container,
+				this.votMenu.container,
+				this.voicePopover.container
+			].filter((element) => element.isConnected);
+		}
+		isKeyboardFocusWithinFloatingUI() {
+			if (typeof document === "undefined" || typeof document.hasFocus !== "function" || !document.hasFocus() || !document.documentElement.classList.contains("vot-keyboard-nav")) return false;
+			const active = getDeepActiveElement(document);
+			if (!(active instanceof Node)) return false;
+			return this.getFloatingInteractionTargets().some((target) => containsCrossShadow(target, active));
+		}
+		shouldKeepVisibleForInteraction() {
+			if (!this.isInitialized()) return false;
+			const hoverActive = !isTouchFirstInput() && this.getFloatingInteractionTargets().some((target) => this.isElementHovered(target));
+			return this.hasOpenFloatingButtonUI() || hoverActive || this.isKeyboardFocusWithinFloatingUI();
+		}
+		blurPointerFocusInsideButton() {
+			if (!this.isInitialized()) return;
+			if (document.documentElement.classList.contains("vot-keyboard-nav")) return;
+			const active = getDeepActiveElement(document);
+			if (active instanceof HTMLElement && containsCrossShadow(this.votButton.container, active)) active.blur();
+		}
+		hasOpenFloatingButtonUI() {
+			if (!this.isInitialized()) return false;
+			return !this.votMenu.hidden || Boolean(this.voicePopover?.isOpen);
+		}
+		queueButtonAutoHideAfterInteraction() {
+			if (!this.isInitialized()) return;
+			if (this.shouldKeepVisibleForInteraction()) {
+				this.videoHandler?.overlayVisibility?.cancel?.();
+				return;
+			}
+			this.blurPointerFocusInsideButton();
+			if (this.shouldKeepVisibleForInteraction()) {
+				this.videoHandler?.overlayVisibility?.cancel?.();
+				return;
+			}
+			this.videoHandler?.overlayVisibility?.queueAutoHide?.();
+		}
+		ensureDockPreview() {
+			if (!this.isInitialized()) return null;
+			if (this.dockPreview?.isConnected) return this.dockPreview;
+			const preview = this.votButton.container.cloneNode(true);
+			preview.classList.add("vot-segmented-button--dock-preview");
+			preview.classList.remove("vot-segmented-button--dragging", "vot-segmented-button--hidden");
+			preview.removeAttribute("id");
+			preview.removeAttribute("aria-grabbed");
+			preview.setAttribute("aria-hidden", "true");
+			preview.querySelectorAll("[tabindex]").forEach((element) => {
+				element.tabIndex = -1;
+			});
+			this.root.appendChild(preview);
+			this.dockPreview = preview;
+			return preview;
+		}
+		removeDockPreview() {
+			this.dockPreview?.remove();
+			this.dockPreview = null;
+		}
+		syncDockPreview(position, direction) {
+			const preview = this.ensureDockPreview();
+			if (!preview) return;
+			preview.dataset.position = position;
+			preview.dataset.direction = direction;
+			preview.dataset.status = this.votButton.status;
+			preview.dataset.loading = this.votButton.loading.toString();
+			preview.dataset.dragTarget = "true";
+			preview.classList.toggle("vot-segmented-button--dock-preview-side", direction === "column");
+			preview.querySelectorAll("[aria-expanded]").forEach((element) => {
+				element.setAttribute("aria-expanded", "false");
+			});
+			const arrow = preview.querySelector(".vot-dropdown-arrow");
+			if (arrow) {
+				arrow.hidden = direction === "column";
+				arrow.setAttribute("aria-hidden", (direction === "column").toString());
+			}
+		}
+		updateDraggingButtonPosition() {
+			const state = this.dragState;
+			if (!this.isInitialized() || !state?.active) return;
+			const rootRect = this.getOverlayRootElement().getBoundingClientRect();
+			state.rootRect = rootRect;
+			const buttonRect = this.votButton.container.getBoundingClientRect();
+			const maxLeft = Math.max(0, rootRect.width - buttonRect.width);
+			const maxTop = Math.max(0, rootRect.height - buttonRect.height);
+			const nextLeft = Math.max(0, Math.min(state.clientX - rootRect.left - buttonRect.width / 2, maxLeft));
+			const nextTop = Math.max(0, Math.min(state.clientY - rootRect.top - buttonRect.height / 2, maxTop));
+			this.votButton.container.style.setProperty("--vot-button-drag-left", `${nextLeft}px`);
+			this.votButton.container.style.setProperty("--vot-button-drag-top", `${nextTop}px`);
+		}
+		startActiveButtonDrag() {
+			if (!this.isInitialized() || !this.dragState?.active) return;
+			this.closeFloatingButtonUI();
+			this.updateDraggingButtonPosition();
+			this.votButton.container.classList.add("vot-segmented-button--dragging");
+			this.votButton.container.dataset.dragging = "true";
+			this.votButton.container.setAttribute("aria-grabbed", "true");
+			this.updateDragTarget(resolveButtonPositionFromPointer(this.dragState.clientX, this.dragState.clientY, this.dragState.rootRect, this.isBigContainer));
+		}
+		updateDragTarget(position) {
+			if (!this.isInitialized() || !this.dragState) return;
+			const { position: layoutPosition, direction } = resolveButtonLayout(this.isBigContainer, position);
+			if (this.dragState.targetPosition !== layoutPosition) this.dragState.targetPosition = layoutPosition;
+			this.syncDockPreview(layoutPosition, direction);
+		}
+		applyButtonDragFrame() {
+			const state = this.dragState;
+			if (!this.isInitialized() || !state?.active) return;
+			state.frameId = null;
+			this.updateDraggingButtonPosition();
+			const nextPosition = resolveButtonPositionFromPointer(state.clientX, state.clientY, state.rootRect, this.isBigContainer);
+			this.updateDragTarget(nextPosition);
+		}
+		requestButtonDragFrame() {
+			const state = this.dragState;
+			if (!state?.active || state.frameId !== null) return;
+			state.frameId = requestAnimationFrame(() => this.applyButtonDragFrame());
+		}
+		finishButtonDrag(commit) {
+			const state = this.dragState;
+			if (!state) return;
+			if (state.frameId !== null) {
+				cancelAnimationFrame(state.frameId);
+				state.frameId = null;
+			}
+			const pointerId = state.pointerId;
+			const wasActive = state.active;
+			const shouldCommit = commit && wasActive && this.isInitialized();
+			const targetPosition = shouldCommit ? state.targetPosition : state.initialPosition;
+			if (wasActive) this.lastButtonDragEndAt = Date.now();
+			this.dragState = null;
+			try {
 				if (this.votButton?.container.hasPointerCapture(pointerId)) this.votButton.container.releasePointerCapture(pointerId);
 			} catch {}
-			this.applyDragFromState();
-			const isBigContainer = this.dragIsBigContainer ?? this.isBigContainer;
-			if (this.dragging && isBigContainer && this.data.buttonPos) votStorage.set("buttonPos", this.data.buttonPos);
-			this.dragging = false;
-			this.dragCandidate = false;
-			this.dragDirty = false;
-			this.containerRect = null;
-			this.dragIsBigContainer = null;
-			this.activePointerId = null;
+			if (this.isInitialized()) {
+				this.votButton.container.classList.remove("vot-segmented-button--dragging");
+				delete this.votButton.container.dataset.dragging;
+				this.votButton.container.style.removeProperty("--vot-button-drag-left");
+				this.votButton.container.style.removeProperty("--vot-button-drag-top");
+				this.votButton.container.removeAttribute("aria-grabbed");
+				this.removeDockPreview();
+				if (wasActive) {
+					const { position, direction } = this.calcButtonLayout(targetPosition);
+					this.updateButtonLayout(position, direction);
+					if (shouldCommit) {
+						this.data.buttonPos = targetPosition;
+						votStorage.set("buttonPos", targetPosition);
+					}
+					this.queueButtonAutoHideAfterInteraction();
+				}
+			} else this.removeDockPreview();
+		}
+		beginButtonDragCandidate(event) {
+			if (!this.isInitialized()) return;
+			const rootRect = this.getOverlayRootElement().getBoundingClientRect();
+			const initialPosition = normalizeButtonPosition(this.data.buttonPos ?? this.votButton.position);
+			this.dragState = {
+				pointerId: event.pointerId,
+				startClientX: event.clientX,
+				startClientY: event.clientY,
+				clientX: event.clientX,
+				clientY: event.clientY,
+				rootRect,
+				active: false,
+				initialPosition,
+				targetPosition: initialPosition,
+				frameId: null
+			};
+			this.intervalIdleChecker.markActivity("overlay-button-drag-start");
+		}
+		onButtonDragPointerDown = (event) => {
+			if (!event.isPrimary || event.button !== 0 || this.dragState) return;
+			this.beginButtonDragCandidate(event);
+		};
+		onButtonDragPointerMove = (event) => {
+			const state = this.dragState;
+			if (state?.pointerId !== event.pointerId) return;
+			state.clientX = event.clientX;
+			state.clientY = event.clientY;
+			if (!state.active) {
+				if (Math.hypot(event.clientX - state.startClientX, event.clientY - state.startClientY) < this.dragThresholdPx) return;
+				state.active = true;
+				try {
+					this.votButton?.container.setPointerCapture(event.pointerId);
+				} catch {}
+				this.startActiveButtonDrag();
+			}
+			event.preventDefault();
+			event.stopPropagation();
+			this.intervalIdleChecker.markActivity("overlay-button-drag-move");
+			this.requestButtonDragFrame();
+		};
+		onButtonDragPointerUp = (event) => {
+			const state = this.dragState;
+			if (state?.pointerId !== event.pointerId) return;
+			state.clientX = event.clientX;
+			state.clientY = event.clientY;
+			if (state.active) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				this.applyButtonDragFrame();
+			}
+			this.finishButtonDrag(true);
+		};
+		onButtonDragPointerCancel = (event) => {
+			const state = this.dragState;
+			if (state?.pointerId !== event.pointerId) return;
+			if (state.active) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			}
+			this.finishButtonDrag(false);
 		};
 		updateButtonOpacity(opacity) {
 			if (!this.isInitialized() || !this.votMenu.hidden) return this;
-			if (Math.abs(this.votButton.opacity - opacity) > .01) {
-				this.votButton.opacity = opacity;
-				if (opacity <= .01) this.voicePopover?.hideNow();
+			const nextOpacity = opacity <= .01 && this.voicePopover?.isOpen && hasTouchScreen() ? 1 : opacity;
+			if (Math.abs(this.votButton.opacity - nextOpacity) > .01) {
+				this.votButton.opacity = nextOpacity;
+				if (nextOpacity <= .01) this.voicePopover?.hideNow();
 			}
 			return this;
 		}
@@ -20046,6 +22096,7 @@ var vot = (function(exports) {
 			this.votMenu?.remove();
 			this.votButtonTooltip?.release();
 			this.subtitlesButtonTooltip?.release();
+			this.voiceMenuButtonTooltip?.release();
 			this.voicePopover?.release();
 			if (this.resizeObserver) {
 				this.resizeObserver.disconnect();
@@ -20058,9 +22109,7 @@ var vot = (function(exports) {
 		doReleaseUIEvents() {
 			this.abortController?.abort();
 			this.abortController = null;
-			this.checkerUnsubscribe?.();
-			this.checkerUnsubscribe = null;
-			this.onDragEnd();
+			this.finishButtonDrag(false);
 			this.flushDefaultVolumePersist();
 			for (const event of Object.values(this.events)) event.clear();
 		}
@@ -20103,51 +22152,33 @@ var vot = (function(exports) {
 		}
 		handleContainerSizeChange(isBigContainer) {
 			if (!this.isInitialized()) return;
-			const currentPosition = this.votButton.position;
-			const newPosition = isBigContainer ? currentPosition : "default";
-			if (currentPosition !== newPosition) {
-				const direction = VOTButton.calcDirection(newPosition);
-				this.updateButtonLayout(newPosition, direction);
-			}
+			const { position, direction } = resolveButtonLayout(isBigContainer, normalizeButtonPosition(this.data.buttonPos ?? this.votButton.position));
+			if (position !== this.votButton.position || direction !== this.votButton.direction) this.updateButtonLayout(position, direction);
 		}
 		get pipButtonVisible() {
 			return isPiPAvailable() && !!this.data.showPiPButton;
 		}
 	};
-	function isSidePosition(position) {
-		return position === "left" || position === "right";
-	}
 	//#endregion
 	//#region src/types/components/votButton.ts
 	var positions = [
 		"default",
-		"top",
 		"left",
-		"right"
+		"right",
+		"leftCenter",
+		"rightCenter"
 	];
 	//#endregion
-	//#region src/utils/environment.ts
-	var UNKNOWN_VALUE = "unknown";
-	var joinParts = (...parts) => {
-		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
-	};
-	function isDocumentHidden() {
-		return typeof document !== "undefined" && document.hidden;
+	//#region src/videoHandler/shared.ts
+	/**
+	* Country code used for proxy settings. Populated lazily during init.
+	*/
+	var _countryCode;
+	function getCountryCode() {
+		return _countryCode;
 	}
-	function getEnvironmentInfo() {
-		return {
-			os: joinParts(browserInfo.os?.name, browserInfo.os?.version),
-			browser: joinParts(browserInfo.browser?.name, browserInfo.browser?.version),
-			loader: (() => {
-				const handler = GM_info?.scriptHandler;
-				const version = GM_info?.version;
-				if (handler && version) return `${handler} v${version}`;
-				return handler || version || UNKNOWN_VALUE;
-			})(),
-			scriptVersion: GM_info?.script?.version ?? UNKNOWN_VALUE,
-			scriptName: GM_info?.script?.name ?? UNKNOWN_VALUE,
-			url: globalThis?.location?.href ?? UNKNOWN_VALUE
-		};
+	function setCountryCode(next) {
+		_countryCode = next;
 	}
 	//#endregion
 	//#region src/ui/components/accountButton.ts
@@ -20727,7 +22758,8 @@ var vot = (function(exports) {
 			const getOpen = () => header.container.dataset.open === "true";
 			setOpen(!!options.open);
 			header.addEventListener("click", () => {
-				setOpen(!(header.container.dataset.open === "true"));
+				const isOpen = header.container.dataset.open === "true";
+				setOpen(!isOpen);
 			});
 			section.append(header.container, content);
 			return {
@@ -20882,6 +22914,26 @@ var vot = (function(exports) {
 			if (!normalizedQuery) return this.buildSubtitleFontItems(activeFontFamily);
 			const matchingGoogleFonts = (await loadGoogleFontsCatalog()).filter((familyName) => familyName.toLowerCase().includes(normalizedQuery)).slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
 			return this.buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
+		}
+		buildAboutSectionContent(aboutSection) {
+			const envInfo = getEnvironmentInfo();
+			const safeGMInfo = typeof GM_info === "undefined" ? void 0 : GM_info;
+			const versionInfo = UI.createInformation(`${localizationProvider.get("VOTVersion")}:`, envInfo.scriptVersion === "unknown" ? safeGMInfo?.script?.version || localizationProvider.get("notFound") : envInfo.scriptVersion);
+			const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
+			const authorsInfo = UI.createInformation(`${localizationProvider.get("VOTAuthors")}:`, (safeGMInfo?.script)?.author || buildAuthors || localizationProvider.get("notFound"));
+			const loaderInfo = UI.createInformation(`${localizationProvider.get("VOTLoader")}:`, envInfo.loader);
+			const userBrowserInfo = UI.createInformation(`${localizationProvider.get("VOTBrowser")}:`, `${envInfo.browser} (${envInfo.os})`);
+			const localeUpdatedAt = (/* @__PURE__ */ new Date((this.data.localeUpdatedAt ?? 0) * 1e3)).toLocaleString();
+			const localeInfoValue = b`${this.data.localeHash ?? localizationProvider.get("notFound")}<br />(${localizationProvider.get("VOTUpdatedAt")}
+      ${localeUpdatedAt})`;
+			const localeInfo = UI.createInformation(`${localizationProvider.get("VOTLocaleHash")}:`, localeInfoValue);
+			const updateLocaleFilesButton = UI.createOutlinedButton(localizationProvider.get("VOTUpdateLocaleFiles"));
+			updateLocaleFilesButton.addEventListener("click", async () => {
+				await votStorage.set("localeHash", "");
+				await localizationProvider.update(true);
+				globalThis.location.reload();
+			});
+			aboutSection.content.append(versionInfo.container, authorsInfo.container, loaderInfo.container, userBrowserInfo.container, localeInfo.container, updateLocaleFilesButton);
 		}
 		initUI() {
 			if (this.isInitialized()) throw new Error("[VOT] SettingsView is already initialized");
@@ -21091,7 +23143,8 @@ var vot = (function(exports) {
 				localizationProvider.get("VOTTranslateProxyEverything")
 			];
 			const translateProxyEnabled = this.data.translateProxyEnabled ?? 0;
-			const isTranslateProxyRequired = countryCode && proxyOnlyCountries.includes(countryCode);
+			const countryCode = getCountryCode();
+			const isTranslateProxyRequired = countryCode !== null && proxyOnlyCountries.includes(countryCode);
 			this.proxyTranslationStatusSelectLabel = new Label({
 				icon: isTranslateProxyRequired ? WARNING_ICON : void 0,
 				labelText: localizationProvider.get("VOTTranslateProxyStatus")
@@ -21135,8 +23188,9 @@ var vot = (function(exports) {
 					parentElement: this.globalPortal
 				});
 			}
+			const onlyBypassMediaCSPLabel = this.videoHandler?.site.needBypassCSP ? `${localizationProvider.get("VOTOnlyBypassMediaCSP")} (${localizationProvider.get("VOTMediaCSPEnabledOnSite")})` : localizationProvider.get("VOTOnlyBypassMediaCSP");
 			this.onlyBypassMediaCSPCheckbox = new Checkbox({
-				labelHtml: this.videoHandler?.site.needBypassCSP ? `${localizationProvider.get("VOTOnlyBypassMediaCSP")} (${localizationProvider.get("VOTMediaCSPEnabledOnSite")})` : localizationProvider.get("VOTOnlyBypassMediaCSP"),
+				labelHtml: onlyBypassMediaCSPLabel,
 				checked: this.data.onlyBypassMediaCSP,
 				isSubCheckbox: true
 			});
@@ -21208,7 +23262,7 @@ var vot = (function(exports) {
 				labelText: localizationProvider.get("buttonPosition"),
 				icon: HELP_ICON
 			});
-			const buttonPos = this.data.buttonPos ?? "default";
+			const buttonPos = normalizeButtonPosition(this.data.buttonPos);
 			this.buttonPositionSelect = new Select({
 				selectTitle: localizationProvider.get(`position.${buttonPos}`),
 				dialogTitle: localizationProvider.get("buttonPosition"),
@@ -21240,23 +23294,7 @@ var vot = (function(exports) {
 			miscSection.content.append(this.translateAPIErrorsCheckbox.container, this.useNewAudioPlayerCheckbox.container, this.onlyBypassMediaCSPCheckbox.container);
 			translationSection.content.append(this.translationTextServiceSelect.container, this.detectServiceSelect.container);
 			appearanceSection.content.append(this.showPiPButtonCheckbox.container, this.autoHideButtonDelaySlider.container, this.buttonPositionSelect.container, this.menuLanguageSelect.container);
-			const envInfo = getEnvironmentInfo();
-			const versionInfo = UI.createInformation(`${localizationProvider.get("VOTVersion")}:`, envInfo.scriptVersion || GM_info.script.version || localizationProvider.get("notFound"));
-			const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
-			const authorsInfo = UI.createInformation(`${localizationProvider.get("VOTAuthors")}:`, GM_info.script.author || buildAuthors || localizationProvider.get("notFound"));
-			const loaderInfo = UI.createInformation(`${localizationProvider.get("VOTLoader")}:`, envInfo.loader);
-			const userBrowserInfo = UI.createInformation(`${localizationProvider.get("VOTBrowser")}:`, `${envInfo.browser} (${envInfo.os})`);
-			const localeUpdatedAt = (/* @__PURE__ */ new Date((this.data.localeUpdatedAt ?? 0) * 1e3)).toLocaleString();
-			const localeInfoValue = b`${this.data.localeHash ?? localizationProvider.get("notFound")}<br />(${localizationProvider.get("VOTUpdatedAt")}
-      ${localeUpdatedAt})`;
-			const localeInfo = UI.createInformation(`${localizationProvider.get("VOTLocaleHash")}:`, localeInfoValue);
-			const updateLocaleFilesButton = UI.createOutlinedButton(localizationProvider.get("VOTUpdateLocaleFiles"));
-			updateLocaleFilesButton.addEventListener("click", async () => {
-				await votStorage.set("localeHash", "");
-				await localizationProvider.update(true);
-				globalThis.location.reload();
-			});
-			aboutSection.content.append(versionInfo.container, authorsInfo.container, loaderInfo.container, userBrowserInfo.container, localeInfo.container, updateLocaleFilesButton);
+			this.buildAboutSectionContent(aboutSection);
 			this.dialog.footerContainer.append(this.bugReportButton, this.resetSettingsButton);
 			this.initialized = true;
 			return this;
@@ -21271,7 +23309,7 @@ var vot = (function(exports) {
 					this.data.account = {};
 					return this.updateAccountInfo();
 				}
-				globalThis.open(authLoginUrl, "_blank")?.focus();
+				openAuthWindow();
 			});
 			this.accountButton.addEventListener("click:secret", async () => {
 				const dialog = new Dialog({
@@ -21738,7 +23776,7 @@ var vot = (function(exports) {
 				videoHandler: this.videoHandler,
 				intervalIdleChecker: this.intervalIdleChecker
 			});
-			this.votOverlayView.initUI(this.data.buttonPos ?? "default");
+			this.votOverlayView.initUI(normalizeButtonPosition(this.data.buttonPos));
 			this.votSettingsView = new SettingsView({
 				globalPortal: this.votGlobalPortal,
 				data: this.data,
@@ -21795,9 +23833,13 @@ var vot = (function(exports) {
 				await this.handleDownloadSubtitlesClick();
 			}).addEventListener("input:videoVolume", (volume) => {
 				if (!this.videoHandler) return;
-				const nextVolume01 = volume / 100;
-				this.videoHandler.setVideoVolume(nextVolume01);
-				this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
+				if (volume === 0) this.videoHandler.setVideoMuted(true);
+				else {
+					if (this.videoHandler.isMuted()) this.videoHandler.setVideoMuted(false);
+					const nextVolume01 = volume / 100;
+					this.videoHandler.setVideoVolume(nextVolume01);
+					this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
+				}
 				if (!this.data.syncVolume) {
 					this.videoHandler.onVideoVolumeSliderSynced(volume);
 					return;
@@ -21920,7 +23962,7 @@ var vot = (function(exports) {
 				});
 			}).addEventListener("select:buttonPosition", (item) => {
 				this.withInitializedOverlayView((overlayView) => {
-					const preferredPosition = this.data.buttonPos ?? item;
+					const preferredPosition = normalizeButtonPosition(this.data.buttonPos ?? item);
 					const { position, direction } = overlayView.calcButtonLayout(preferredPosition);
 					overlayView.updateButtonLayout(position, direction);
 				});
@@ -22001,7 +24043,7 @@ var vot = (function(exports) {
 			const prevButtonOpacity = this.votOverlayView.votButton.opacity;
 			const prevButtonHidden = this.votOverlayView.votButton.container.hidden;
 			const prevMenuHidden = this.votOverlayView.votMenu.hidden;
-			const prevButtonPos = this.data.buttonPos ?? "default";
+			const prevButtonPos = normalizeButtonPosition(this.data.buttonPos);
 			const settingsWasOpen = this.votSettingsView?.dialog?.container?.hidden === false;
 			await this.videoHandler?.stopTranslation();
 			this.release();
@@ -22060,7 +24102,7 @@ var vot = (function(exports) {
 				if (!centered) {
 					voicePopover?.cancelShow();
 					voicePopover?.hideNow();
-					this.votOverlayView.votButton.dropdownArrow.setAttribute("aria-expanded", "false");
+					this.votOverlayView.votButton.setVoiceMenuOpen(false);
 				}
 				votButtonTooltip.dismissImmediate();
 				this.votOverlayView.syncTranslateButtonTooltip();
@@ -22133,6 +24175,15 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/overlayVisibilityController.ts
+	function isDomNode(value) {
+		return typeof Node !== "undefined" && value instanceof Node;
+	}
+	function isPointerEventType(type) {
+		return type.startsWith("pointer");
+	}
+	function isHoverPointerEvent(event) {
+		return event?.pointerType !== "touch";
+	}
 	/**
 	* Centralizes overlay visibility behavior: showing, hiding and deadline checks.
 	*/
@@ -22140,6 +24191,7 @@ var vot = (function(exports) {
 		deps;
 		hideDeadlineMs = 0;
 		hideArmed = false;
+		pointerInsideOverlay = false;
 		unsubscribeChecker;
 		constructor(deps) {
 			this.deps = deps;
@@ -22165,13 +24217,19 @@ var vot = (function(exports) {
 		}
 		release() {
 			this.cancel();
+			this.pointerInsideOverlay = false;
 			this.unsubscribeChecker();
 		}
 		/**
 		* Schedules overlay auto-hide after configured delay.
 		*/
 		queueAutoHide() {
-			if (!this.show()) return;
+			const view = this.show();
+			if (!view) return;
+			if (this.isOverlayHoverActive(view)) {
+				this.cancel();
+				return;
+			}
 			const delay = this.deps.getAutoHideDelay();
 			this.hideDeadlineMs = this.nowMs() + Math.max(0, delay);
 			this.hideArmed = true;
@@ -22188,7 +24246,8 @@ var vot = (function(exports) {
 				this.handleFocusIn();
 				return;
 			}
-			if (type.startsWith("pointer")) {
+			if (isPointerEventType(type)) {
+				this.pointerInsideOverlay = isHoverPointerEvent(event);
 				this.cancel();
 				this.show();
 				event.stopPropagation?.();
@@ -22204,14 +24263,16 @@ var vot = (function(exports) {
 				this.handleFocusIn();
 				return;
 			}
-			if (type.startsWith("pointer")) {
+			if (isPointerEventType(type)) {
 				const target = event.composedPath?.()[0] ?? event.target;
 				if (this.deps.isInteractiveNode(target)) {
+					this.pointerInsideOverlay = isHoverPointerEvent(event);
 					event.stopPropagation?.();
 					this.cancel();
 					this.show();
 					return;
 				}
+				this.pointerInsideOverlay = false;
 				this.deps.checker.markActivity("overlay-host-pointer");
 			}
 			this.queueAutoHide();
@@ -22222,26 +24283,47 @@ var vot = (function(exports) {
 		hide() {
 			this.hideArmed = false;
 			this.hideDeadlineMs = 0;
+			this.pointerInsideOverlay = false;
 			this.getView()?.updateButtonOpacity(0);
 		}
 		/**
-		* Schedules hide if focus leaves overlay tree entirely.
+		* Schedules hide if focus/pointer leaves overlay tree entirely.
 		*/
-		scheduleHide() {
+		scheduleHide(event) {
 			if (!this.getView()) return;
+			const type = event?.type;
+			if (type === "pointerleave") {
+				if (this.isLeaveInsideOverlay(event)) return;
+				this.pointerInsideOverlay = false;
+			}
+			if (type === "focusout" && this.isFocusMovingInsideOverlay(event)) return;
 			this.queueAutoHide();
 		}
 		onCheckerTick() {
 			if (!this.hideArmed || this.hideDeadlineMs <= 0) return;
 			if (this.nowMs() + 2 < this.hideDeadlineMs) return;
+			const view = this.getView();
+			if (!view) {
+				this.hideArmed = false;
+				return;
+			}
+			if (this.isOverlayHoverActive(view)) {
+				debug.log("[OverlayVisibility] skip hide (pointer inside overlay)");
+				this.cancel();
+				view.updateButtonOpacity(1);
+				return;
+			}
 			this.hideArmed = false;
 			let active = null;
 			if (typeof document !== "undefined" && typeof document.hasFocus === "function" && document.hasFocus()) active = getDeepActiveElement(document);
 			if (active && this.deps.isInteractiveNode(active)) {
-				debug.log("[OverlayVisibility] skip hide (focus inside overlay)");
-				return;
+				if (document.documentElement.classList.contains("vot-keyboard-nav")) {
+					debug.log("[OverlayVisibility] skip hide (keyboard focus inside overlay)");
+					return;
+				}
+				if (active instanceof HTMLElement) active.blur();
 			}
-			this.getView()?.updateButtonOpacity(0);
+			view.updateButtonOpacity(0);
 		}
 		handleFocusIn() {
 			this.cancel();
@@ -22252,793 +24334,32 @@ var vot = (function(exports) {
 			const view = this.deps.getOverlayView();
 			return view?.isInitialized() ? view : null;
 		}
+		isOverlayHoverActive(view = this.getView()) {
+			return Boolean(view && (this.pointerInsideOverlay || view.shouldKeepVisibleForInteraction()));
+		}
+		getRelatedNode(event) {
+			const relatedTarget = event?.relatedTarget ?? null;
+			return isDomNode(relatedTarget) ? relatedTarget : null;
+		}
+		isLeaveInsideOverlay(event) {
+			const relatedNode = this.getRelatedNode(event);
+			if (!relatedNode) return false;
+			if (this.deps.isInteractiveNode(relatedNode)) return true;
+			const currentTarget = event?.currentTarget;
+			const currentNode = isDomNode(currentTarget) ? currentTarget : null;
+			return Boolean(currentNode && containsCrossShadow(currentNode, relatedNode));
+		}
+		isFocusMovingInsideOverlay(event) {
+			const relatedNode = this.getRelatedNode(event);
+			return Boolean(relatedNode && this.deps.isInteractiveNode(relatedNode));
+		}
 		nowMs() {
 			if (this.deps.nowMs) return this.deps.nowMs();
 			return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
 		}
 	};
 	//#endregion
-	//#region src/utils/intervalIdleChecker.ts
-	var DEFAULT_PROFILE = {
-		checkIntervalMs: 250,
-		idleAfterMs: 180
-	};
-	function normalizePositiveMs(value, fallback) {
-		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-		return Math.max(1, Math.trunc(value));
-	}
-	function normalizeNonNegativeMs(value, fallback) {
-		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-		return Math.max(0, Math.trunc(value));
-	}
-	function normalizeProfile(profile = {}) {
-		return {
-			checkIntervalMs: normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs),
-			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs)
-		};
-	}
-	function getDefaultRuntime() {
-		return {
-			nowMs: () => typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now(),
-			setInterval: globalThis.setInterval.bind(globalThis),
-			clearInterval: globalThis.clearInterval.bind(globalThis),
-			queueMicrotask: (fn) => {
-				if (typeof globalThis.queueMicrotask === "function") {
-					globalThis.queueMicrotask(fn);
-					return;
-				}
-				Promise.resolve().then(fn);
-			},
-			onVisibilityChange: (listener) => {
-				if (typeof document === "undefined" || typeof document.addEventListener !== "function") return () => void 0;
-				document.addEventListener("visibilitychange", listener);
-				return () => {
-					if (typeof document.removeEventListener === "function") document.removeEventListener("visibilitychange", listener);
-				};
-			}
-		};
-	}
-	var IntervalIdleChecker = class {
-		profile;
-		runtime;
-		subscribers = /* @__PURE__ */ new Set();
-		intervalId = null;
-		unsubscribeVisibilityChange = null;
-		running = false;
-		destroyed = false;
-		immediateQueued = false;
-		currentMode = "active";
-		lastActivityAt;
-		onVisibilityChangeHandler = () => {
-			if (this.destroyed || !this.running) return;
-			if (isDocumentHidden()) this.clearIntervalTimer();
-			else this.armInterval();
-			this.requestImmediateTick();
-		};
-		constructor(options = {}) {
-			this.profile = normalizeProfile(options.profile);
-			this.runtime = {
-				...getDefaultRuntime(),
-				...options.runtime
-			};
-			this.lastActivityAt = this.runtime.nowMs();
-		}
-		start() {
-			if (this.destroyed || this.running) return;
-			this.running = true;
-			this.lastActivityAt = this.runtime.nowMs();
-			this.subscribeVisibilityChange();
-			this.armInterval();
-			this.runTick("start");
-		}
-		stop() {
-			if (!this.running) return;
-			this.running = false;
-			this.clearIntervalTimer();
-			this.immediateQueued = false;
-			this.unsubscribeFromVisibilityChange();
-		}
-		destroy() {
-			if (this.destroyed) return;
-			this.stop();
-			this.subscribers.clear();
-			this.destroyed = true;
-		}
-		subscribe(fn) {
-			if (this.destroyed) return () => void 0;
-			this.subscribers.add(fn);
-			return () => {
-				this.subscribers.delete(fn);
-			};
-		}
-		markActivity(_source) {
-			if (this.destroyed) return;
-			this.lastActivityAt = this.runtime.nowMs();
-			if (!this.running) return;
-			const nextMode = this.resolveMode(this.lastActivityAt);
-			if (nextMode !== this.currentMode) this.currentMode = nextMode;
-		}
-		requestImmediateTick() {
-			if (this.destroyed || !this.running || this.immediateQueued) return;
-			this.immediateQueued = true;
-			this.runtime.queueMicrotask(() => {
-				this.immediateQueued = false;
-				if (this.destroyed || !this.running) return;
-				this.runTick("immediate");
-			});
-		}
-		resolveMode(nowMs) {
-			if (isDocumentHidden()) return "hidden";
-			return nowMs - this.lastActivityAt >= this.profile.idleAfterMs ? "idle" : "active";
-		}
-		clearIntervalTimer() {
-			if (this.intervalId === null) return;
-			this.runtime.clearInterval(this.intervalId);
-			this.intervalId = null;
-		}
-		armInterval() {
-			if (this.intervalId !== null) return;
-			this.intervalId = this.runtime.setInterval(() => {
-				this.runTick("interval");
-			}, this.profile.checkIntervalMs);
-		}
-		runTick(source) {
-			if (this.destroyed || !this.running) return;
-			if (this.subscribers.size === 0) return;
-			const nowMs = this.runtime.nowMs();
-			const nextMode = this.resolveMode(nowMs);
-			if (nextMode !== this.currentMode) this.currentMode = nextMode;
-			const ctx = {
-				nowMs,
-				mode: nextMode,
-				source
-			};
-			for (const sub of this.subscribers) try {
-				sub(ctx);
-			} catch {}
-		}
-		subscribeVisibilityChange() {
-			if (this.unsubscribeVisibilityChange !== null) return;
-			this.unsubscribeVisibilityChange = this.runtime.onVisibilityChange(this.onVisibilityChangeHandler);
-		}
-		unsubscribeFromVisibilityChange() {
-			if (this.unsubscribeVisibilityChange === null) return;
-			this.unsubscribeVisibilityChange();
-			this.unsubscribeVisibilityChange = null;
-		}
-	};
-	function createIntervalIdleChecker(profile) {
-		return new IntervalIdleChecker({ profile });
-	}
-	//#endregion
-	//#region src/utils/notify.ts
-	var now = () => Date.now();
-	function getScriptTitle() {
-		return GM_info?.script?.name || "VOT";
-	}
-	function safeL10n(key, fallback) {
-		try {
-			return localizationProvider?.get?.(key) || fallback;
-		} catch {
-			return fallback;
-		}
-	}
-	function canSend(lastSentAt, key, cooldownMs) {
-		if (!cooldownMs) return true;
-		const prev = lastSentAt.get(key) ?? 0;
-		return now() - prev >= cooldownMs;
-	}
-	function markSent(lastSentAt, key) {
-		lastSentAt.set(key, now());
-	}
-	function localizePhraseText(message) {
-		const key = message.trim();
-		if (!key) return null;
-		try {
-			const localized = localizationProvider.get(key);
-			const defaultText = localizationProvider.getDefault(key);
-			return localized !== key || defaultText !== key ? localized || defaultText || key : null;
-		} catch {
-			return null;
-		}
-	}
-	function resolveLocalizedErrorFromObject(message) {
-		if (!message || typeof message !== "object") return null;
-		const localizedError = message;
-		if (localizedError.name !== "VOTLocalizedError") return null;
-		if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) return localizedError.localizedMessage;
-		if (typeof localizedError.unlocalizedMessage === "string") return localizePhraseText(localizedError.unlocalizedMessage);
-		return null;
-	}
-	function localizeExtractedErrorMessage(message) {
-		const extracted = getErrorMessage(message);
-		if (!extracted) return null;
-		return localizePhraseText(extracted) || extracted;
-	}
-	function resolveLocalizedErrorMessage(message) {
-		const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
-		if (localizedObjectMessage) return localizedObjectMessage;
-		if (typeof message === "string") {
-			const byPhraseKey = localizePhraseText(message);
-			if (byPhraseKey) return byPhraseKey;
-		}
-		const extractedMessage = localizeExtractedErrorMessage(message);
-		if (extractedMessage) return extractedMessage;
-		return safeL10n("requestTranslationFailed", "Translation failed");
-	}
-	function trySendViaUserscriptApi(details) {
-		try {
-			if (typeof GM_notification === "function") {
-				GM_notification(details);
-				return true;
-			}
-			const gmApi = globalThis.GM;
-			if (gmApi !== void 0 && typeof gmApi.notification === "function") {
-				const gmDetails = {
-					text: details.text,
-					title: details.title,
-					image: details.image,
-					onclick: details.onclick,
-					ondone: details.ondone
-				};
-				gmApi.notification(gmDetails);
-				return true;
-			}
-		} catch (err) {
-			debug.log("[notify] userscript api error", err);
-		}
-		return false;
-	}
-	/**
-	* Notification helper with dedupe/rate-limit and safe fallbacks.
-	*/
-	var Notifier = class {
-		lastSentAt = /* @__PURE__ */ new Map();
-		send(details, opts = {}) {
-			try {
-				const key = opts.key || details.tag || `${details.title ?? ""}|${details.text ?? ""}`;
-				const cooldownMs = opts.cooldownMs ?? 0;
-				if (!canSend(this.lastSentAt, key, cooldownMs)) return;
-				const normalized = {
-					...details,
-					title: details.title ?? getScriptTitle()
-				};
-				if (trySendViaUserscriptApi(normalized)) markSent(this.lastSentAt, key);
-				else debug.log("[notify] unavailable", normalized);
-			} catch (err) {
-				debug.log("[notify] send error", err);
-			}
-		}
-		translationCompleted(host) {
-			const text = safeL10n("VOTTranslationCompletedNotify", "The translation on the {0} has been completed!").replace("{0}", host);
-			this.send({
-				text,
-				title: getScriptTitle(),
-				timeout: 5e3,
-				silent: true,
-				tag: "VOTTranslationCompleted",
-				onclick: () => {
-					try {
-						globalThis.focus();
-					} catch {}
-				}
-			}, {
-				key: `translation_completed_${host}`,
-				cooldownMs: 1e4
-			});
-		}
-		translationFailed(params) {
-			const { videoId, message } = params;
-			if (isAbortError(message)) return;
-			const msg = resolveLocalizedErrorMessage(message);
-			const title = getScriptTitle();
-			this.send({
-				text: msg,
-				title,
-				timeout: 8e3,
-				silent: true,
-				tag: `VOTtranslationFailed_${videoId || "unknown"}`,
-				onclick: () => {
-					try {
-						globalThis.focus();
-					} catch {}
-				}
-			}, {
-				key: `translation_failed_${videoId || "unknown"}`,
-				cooldownMs: 3e4
-			});
-		}
-	};
-	//#endregion
-	//#region src/utils/domTraversal.ts
-	function getComposedParentElement(node) {
-		if (!node) return null;
-		const parentElement = node.parentElement ?? null;
-		if (parentElement) return parentElement;
-		if (typeof node.getRootNode !== "function") return null;
-		const root = node.getRootNode();
-		if (root && "host" in root) return root.host ?? null;
-		return null;
-	}
-	function someComposedAncestor(node, predicate) {
-		for (let parent = getComposedParentElement(node); parent; parent = getComposedParentElement(parent)) if (predicate(parent)) return true;
-		return false;
-	}
-	function isArrayLikeChildren(children) {
-		return "length" in children;
-	}
-	function walkShadowIncludingSubtree(root, adapter, visit) {
-		const stack = [root];
-		const { getChildren, getShadowRoot } = adapter;
-		let stackSize = 1;
-		while (stackSize > 0) {
-			const node = stack[stackSize - 1];
-			stackSize -= 1;
-			visit(node);
-			const children = getChildren(node);
-			if (isArrayLikeChildren(children)) {
-				const arrayLike = children;
-				for (let index = 0; index < arrayLike.length; index += 1) {
-					const child = arrayLike[index];
-					if (child !== void 0 && child !== null) {
-						stack[stackSize] = child;
-						stackSize += 1;
-					}
-				}
-			} else for (const child of children) if (child !== void 0 && child !== null) {
-				stack[stackSize] = child;
-				stackSize += 1;
-			}
-			const shadowRoot = getShadowRoot(node);
-			if (shadowRoot) {
-				stack[stackSize] = shadowRoot;
-				stackSize += 1;
-			}
-		}
-	}
-	//#endregion
-	//#region src/utils/VideoObserver.ts
-	var AD_ATTRS = [
-		"class",
-		"id",
-		"title"
-	];
-	var AD_KEYWORD_PATTERN = new RegExp([
-		"advertise",
-		"advertisement",
-		"promo",
-		"sponsor",
-		"banner",
-		"commercial",
-		"preroll",
-		"midroll",
-		"postroll",
-		"ad-container",
-		"sponsored"
-	].map((keyword) => keyword.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)).join("|"));
-	var ATTACH_SHADOW_HOOK_KEY = Symbol.for("vot.attachShadowHook");
-	function getAttachShadowDescriptor() {
-		const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, "attachShadow");
-		if (!descriptor || typeof descriptor.value !== "function") return null;
-		return descriptor;
-	}
-	function getOrInstallAttachShadowHook() {
-		const g = globalThis;
-		const existing = g[ATTACH_SHADOW_HOOK_KEY];
-		if (existing?.descriptor && existing.subscribers instanceof Set) return existing;
-		const descriptor = getAttachShadowDescriptor();
-		if (!descriptor) return null;
-		const original = descriptor.value;
-		const state = {
-			descriptor,
-			subscribers: /* @__PURE__ */ new Set()
-		};
-		const patchedAttachShadow = function(init) {
-			const root = original.call(this, init);
-			for (const sub of state.subscribers) try {
-				sub(root);
-			} catch (error) {
-				debug.error("attachShadow subscriber failed", error);
-			}
-			return root;
-		};
-		try {
-			Object.defineProperty(Element.prototype, "attachShadow", {
-				...descriptor,
-				value: patchedAttachShadow
-			});
-		} catch {
-			return null;
-		}
-		g[ATTACH_SHADOW_HOOK_KEY] = state;
-		return state;
-	}
-	function removeAttachShadowSubscriber(subscriber) {
-		const g = globalThis;
-		const state = g[ATTACH_SHADOW_HOOK_KEY];
-		if (!state) return;
-		state.subscribers.delete(subscriber);
-		if (state.subscribers.size > 0) return;
-		try {
-			Object.defineProperty(Element.prototype, "attachShadow", state.descriptor);
-		} catch {
-			const original = state.descriptor.value;
-			if (typeof original === "function") Element.prototype.attachShadow = original;
-		}
-		delete g[ATTACH_SHADOW_HOOK_KEY];
-	}
-	var VideoObserver = class VideoObserver {
-		seenVideos = /* @__PURE__ */ new WeakSet();
-		activeVideos = /* @__PURE__ */ new WeakSet();
-		observedRoots = /* @__PURE__ */ new WeakSet();
-		videoListenerControllers = /* @__PURE__ */ new Map();
-		pendingAdded = /* @__PURE__ */ new Set();
-		pendingRemoved = /* @__PURE__ */ new Set();
-		flushPending = false;
-		static MAX_FLUSH_BUDGET_MS = 6;
-		static MAX_NODES_PER_SLICE = 120;
-		onVideoAdded = new EventImpl();
-		onVideoRemoved = new EventImpl();
-		observer = new MutationObserver((muts) => this.onMutations(muts));
-		intervalIdleChecker;
-		checkerUnsubscribe = null;
-		enabled = false;
-		attachShadowSubscriber = null;
-		onDocumentReady = null;
-		onPageShow = () => {
-			const root = document.documentElement;
-			if (!root) return;
-			this.pendingAdded.add(root);
-			this.scheduleFlush();
-		};
-		constructor(intervalIdleChecker = createIntervalIdleChecker()) {
-			this.intervalIdleChecker = intervalIdleChecker;
-		}
-		static containsAdKeyword(value) {
-			return value.length > 0 && AD_KEYWORD_PATTERN.test(value);
-		}
-		isAdRelated(element) {
-			for (const attr of AD_ATTRS) {
-				const rawValue = element.getAttribute(attr);
-				if (!rawValue) continue;
-				if (VideoObserver.containsAdKeyword(rawValue.toLowerCase())) return true;
-			}
-			return false;
-		}
-		isInsideAd(video) {
-			return someComposedAncestor(video, (p) => this.isAdRelated(p));
-		}
-		getCapturedAudioTrackCount(video) {
-			const candidate = video;
-			const captureStream = candidate.captureStream ?? candidate.mozCaptureStream;
-			if (typeof captureStream !== "function") return null;
-			try {
-				return captureStream.call(video).getAudioTracks().length;
-			} catch {
-				return null;
-			}
-		}
-		isLikelySilentDecorativeVideo(video) {
-			if (!(video.muted || video.defaultMuted)) return false;
-			if (!video.autoplay || !video.loop) return false;
-			if (video.controls) return false;
-			const v = video;
-			if (typeof v.mozHasAudio === "boolean") return !v.mozHasAudio;
-			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
-				if (v.audioTracks.length > 0) return false;
-				const capturedTrackCount = this.getCapturedAudioTrackCount(video);
-				if (capturedTrackCount !== null) return capturedTrackCount === 0;
-				return true;
-			}
-			const capturedTrackCount = this.getCapturedAudioTrackCount(video);
-			if (capturedTrackCount !== null) return capturedTrackCount === 0;
-			return false;
-		}
-		hasAudio(video) {
-			const v = video;
-			if (video.srcObject instanceof MediaStream) return video.srcObject.getAudioTracks().length > 0;
-			if (typeof v.mozHasAudio === "boolean") return v.mozHasAudio;
-			if (typeof v.webkitAudioDecodedByteCount === "number" && v.webkitAudioDecodedByteCount > 0) return true;
-			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
-				if (v.audioTracks.length > 0) return true;
-			}
-			if (this.isLikelySilentDecorativeVideo(video)) return false;
-			return true;
-		}
-		isValidVideo(video) {
-			if (this.isAdRelated(video)) return false;
-			if (this.isInsideAd(video)) return false;
-			if (!this.hasAudio(video)) {
-				debug.log("Ignoring video without audio:", video);
-				return false;
-			}
-			return true;
-		}
-		observeRoot(root) {
-			if (this.observedRoots.has(root)) return;
-			this.observedRoots.add(root);
-			this.observer.observe(root, {
-				childList: true,
-				subtree: true
-			});
-		}
-		static domAdapter = {
-			getChildren: (node) => Array.from(node.children ?? []),
-			getShadowRoot: (node) => node.shadowRoot
-		};
-		scan(root) {
-			if (root instanceof HTMLVideoElement) {
-				this.trackVideo(root);
-				return;
-			}
-			if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
-			walkShadowIncludingSubtree(root, VideoObserver.domAdapter, (el) => {
-				if (el instanceof HTMLVideoElement) {
-					this.trackVideo(el);
-					return;
-				}
-				const sr = el.shadowRoot;
-				if (sr) this.observeRoot(sr);
-			});
-		}
-		getVideoListenerSignal(video) {
-			const existingController = this.videoListenerControllers.get(video);
-			if (existingController) existingController.abort();
-			const controller = new AbortController();
-			this.videoListenerControllers.set(video, controller);
-			return controller.signal;
-		}
-		cleanupVideoListeners(video) {
-			const controller = this.videoListenerControllers.get(video);
-			if (!controller) return;
-			controller.abort();
-			this.videoListenerControllers.delete(video);
-		}
-		cleanupAllVideoListeners() {
-			for (const controller of this.videoListenerControllers.values()) controller.abort();
-			this.videoListenerControllers.clear();
-		}
-		trackVideo(video) {
-			if (this.seenVideos.has(video)) return;
-			this.seenVideos.add(video);
-			const listenerSignal = this.getVideoListenerSignal(video);
-			const tryValidate = () => {
-				if (this.isValidVideo(video)) {
-					if (!this.activeVideos.has(video)) {
-						this.activeVideos.add(video);
-						this.onVideoAdded.dispatch(video);
-					}
-				}
-			};
-			if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
-			else {
-				video.addEventListener("loadeddata", tryValidate, {
-					once: true,
-					signal: listenerSignal
-				});
-				const handlePlay = () => {
-					if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
-				};
-				video.addEventListener("play", handlePlay, {
-					once: true,
-					passive: true,
-					signal: listenerSignal
-				});
-			}
-			video.addEventListener("emptied", () => {
-				if (!video.isConnected) this.untrackVideo(video);
-			}, {
-				passive: true,
-				signal: listenerSignal
-			});
-		}
-		untrackVideo(video) {
-			this.cleanupVideoListeners(video);
-			if (this.activeVideos.has(video)) {
-				this.onVideoRemoved.dispatch(video);
-				this.activeVideos.delete(video);
-			}
-			this.seenVideos.delete(video);
-		}
-		collectVideos(node) {
-			const set = /* @__PURE__ */ new Set();
-			if (node instanceof HTMLVideoElement) set.add(node);
-			if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return Array.from(set);
-			walkShadowIncludingSubtree(node, VideoObserver.domAdapter, (el) => {
-				if (el instanceof HTMLVideoElement) set.add(el);
-			});
-			return Array.from(set);
-		}
-		getNowMs() {
-			if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
-			return Date.now();
-		}
-		isSliceBudgetReached(startMs, processed) {
-			if (processed >= VideoObserver.MAX_NODES_PER_SLICE) return true;
-			return this.getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
-		}
-		processPendingAdded(startMs) {
-			let processed = 0;
-			while (this.pendingAdded.size > 0) {
-				const next = this.pendingAdded.values().next();
-				if (next.done) break;
-				this.pendingAdded.delete(next.value);
-				this.scan(next.value);
-				processed += 1;
-				if (this.isSliceBudgetReached(startMs, processed)) break;
-			}
-			return processed;
-		}
-		processPendingRemoved(startMs, processed) {
-			let processedCount = processed;
-			while (this.pendingRemoved.size > 0) {
-				if (this.isSliceBudgetReached(startMs, processedCount)) break;
-				const next = this.pendingRemoved.values().next();
-				if (next.done) break;
-				this.pendingRemoved.delete(next.value);
-				for (const video of this.collectVideos(next.value)) if (!video.isConnected) this.untrackVideo(video);
-				processedCount += 1;
-			}
-			return processedCount;
-		}
-		flushSlice = () => {
-			if (!this.enabled) {
-				this.pendingAdded.clear();
-				this.pendingRemoved.clear();
-				this.flushPending = false;
-				return;
-			}
-			const startMs = this.getNowMs();
-			const processedAdded = this.processPendingAdded(startMs);
-			this.processPendingRemoved(startMs, processedAdded);
-			this.flushPending = this.pendingAdded.size > 0 || this.pendingRemoved.size > 0;
-			if (this.flushPending) this.intervalIdleChecker.requestImmediateTick();
-		};
-		onCheckerTick = () => {
-			if (!this.flushPending) return;
-			this.flushSlice();
-		};
-		scheduleFlush = () => {
-			if (!this.enabled) return;
-			this.flushPending = true;
-			this.intervalIdleChecker.requestImmediateTick();
-		};
-		installAttachShadowHook() {
-			if (this.attachShadowSubscriber) return;
-			const state = getOrInstallAttachShadowHook();
-			if (!state) return;
-			const subscriber = (root) => {
-				if (!this.enabled) return;
-				this.observeRoot(root);
-				this.pendingAdded.add(root);
-				this.scheduleFlush();
-			};
-			state.subscribers.add(subscriber);
-			this.attachShadowSubscriber = subscriber;
-		}
-		uninstallAttachShadowHook() {
-			if (!this.attachShadowSubscriber) return;
-			removeAttachShadowSubscriber(this.attachShadowSubscriber);
-			this.attachShadowSubscriber = null;
-		}
-		enqueueAddedNode(node) {
-			if (node.nodeType === Node.ELEMENT_NODE) {
-				const shadowRoot = node.shadowRoot;
-				if (shadowRoot) this.observeRoot(shadowRoot);
-			}
-			this.pendingAdded.add(node);
-		}
-		enqueueMutation(mutation) {
-			for (const node of mutation.addedNodes) this.enqueueAddedNode(node);
-			for (const node of mutation.removedNodes) this.pendingRemoved.add(node);
-		}
-		onMutations(mutations) {
-			for (const mutation of mutations) {
-				if (mutation.type !== "childList") continue;
-				this.enqueueMutation(mutation);
-			}
-			if (this.pendingAdded.size > 0 || this.pendingRemoved.size > 0) this.scheduleFlush();
-		}
-		enable() {
-			if (this.enabled) return;
-			this.enabled = true;
-			this.checkerUnsubscribe?.();
-			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(this.onCheckerTick);
-			this.intervalIdleChecker.start();
-			this.intervalIdleChecker.markActivity("video-observer-enable");
-			this.installAttachShadowHook();
-			globalThis.addEventListener("pageshow", this.onPageShow, { passive: true });
-			const root = document.documentElement;
-			if (root) {
-				this.observeRoot(root);
-				this.scan(root);
-				return;
-			}
-			const onReady = () => {
-				const r = document.documentElement;
-				if (!r) return;
-				document.removeEventListener("readystatechange", onReady);
-				this.onDocumentReady = null;
-				if (!this.enabled) return;
-				this.observeRoot(r);
-				this.scan(r);
-			};
-			this.onDocumentReady = onReady;
-			document.addEventListener("readystatechange", onReady);
-			if (typeof queueMicrotask === "function") queueMicrotask(onReady);
-			else Promise.resolve().then(onReady);
-		}
-		disable() {
-			if (!this.enabled) return;
-			this.enabled = false;
-			globalThis.removeEventListener("pageshow", this.onPageShow);
-			if (this.onDocumentReady) {
-				document.removeEventListener("readystatechange", this.onDocumentReady);
-				this.onDocumentReady = null;
-			}
-			this.uninstallAttachShadowHook();
-			this.observer.disconnect();
-			this.cleanupAllVideoListeners();
-			this.flushPending = false;
-			this.checkerUnsubscribe?.();
-			this.checkerUnsubscribe = null;
-			this.intervalIdleChecker.stop();
-			this.pendingAdded.clear();
-			this.pendingRemoved.clear();
-			this.seenVideos = /* @__PURE__ */ new WeakSet();
-			this.activeVideos = /* @__PURE__ */ new WeakSet();
-			this.observedRoots = /* @__PURE__ */ new WeakSet();
-		}
-	};
-	//#endregion
-	//#region src/utils/volumeLink.ts
-	function syncVideoLinkSnapshot(state, volumePercent) {
-		state.lastVideoPercent = clampPercentInt(volumePercent);
-	}
-	function syncTranslationLinkSnapshot(state, volumePercent) {
-		state.lastTranslationPercent = clampPercentInt(volumePercent);
-	}
-	function getSharedTranslationRange(translationMin, translationMax) {
-		const min = clampPercentInt(translationMin);
-		return {
-			min,
-			max: clampPercentInt(Math.min(100, translationMax), min, 100)
-		};
-	}
-	/**
-	* Applies delta-based volume linking and mutates `state` in place.
-	*
-	* Rules:
-	* - "video" initiator: translation changes by the same delta as video.
-	* - "translation" initiator: video changes by the same delta as translation.
-	*
-	* This preserves relative offset between sliders (until clamped by bounds),
-	* instead of forcing a 1:1 mirror.
-	*/
-	function applyVolumeLinkDelta({ state, fromType, newVolume, currentVideo, currentTranslation, translationMin, translationMax }) {
-		const sharedTranslationRange = getSharedTranslationRange(translationMin, translationMax);
-		if (!state.initialized) {
-			state.lastVideoPercent = clampPercentInt(currentVideo);
-			state.lastTranslationPercent = clampInt(Number(currentTranslation), sharedTranslationRange.min, sharedTranslationRange.max);
-			state.initialized = true;
-		}
-		if (fromType === "video") {
-			const normalizedVideo = clampPercentInt(newVolume);
-			const delta = normalizedVideo - clampPercentInt(state.lastVideoPercent);
-			state.lastVideoPercent = normalizedVideo;
-			const nextTranslation = clampInt(state.lastTranslationPercent + delta, sharedTranslationRange.min, sharedTranslationRange.max);
-			state.lastTranslationPercent = nextTranslation;
-			return { nextTranslation };
-		}
-		const normalizedTranslation = clampInt(Number.isFinite(newVolume) ? newVolume : currentTranslation, sharedTranslationRange.min, sharedTranslationRange.max);
-		const delta = normalizedTranslation - state.lastTranslationPercent;
-		state.lastTranslationPercent = normalizedTranslation;
-		const nextVideo = clampPercentInt(state.lastVideoPercent + delta);
-		state.lastVideoPercent = nextVideo;
-		return { nextVideo };
-	}
-	//#endregion
-	//#region src/utils/platformEvents.ts
+	//#region src/core/platformEvents.ts
 	var defaultPlatformConfig = {
 		allowTouchMoveHandler: true,
 		disableContainerDrag: false
@@ -23283,6 +24604,35 @@ var vot = (function(exports) {
 			return;
 		}
 	}
+	function ensureAnalyserNode(state, audioContext) {
+		if (!state.analyser) {
+			const analyser = audioContext.createAnalyser();
+			analyser.fftSize = 512;
+			state.analyser = analyser;
+		}
+		return state.analyser;
+	}
+	function reconnectAnalyser(inputNode, analyser, state, audioContext) {
+		if (state.connectedInputNode) try {
+			state.connectedInputNode.disconnect(analyser);
+		} catch {}
+		try {
+			analyser.disconnect();
+		} catch {}
+		try {
+			inputNode.connect(analyser);
+			state.connectedInputNode = inputNode;
+			if (state.createdMediaSource === inputNode) try {
+				analyser.connect(audioContext.destination);
+			} catch (err) {
+				debug.log("[SmartDucking] failed to bridge analyser output", err);
+			}
+			return true;
+		} catch (err) {
+			debug.log("[SmartDucking] failed to connect analyser", err);
+			return false;
+		}
+	}
 	function ensureSmartDuckingAnalyser(handler, player, media) {
 		const audioContext = getSmartDuckingAudioContext(handler);
 		if (!audioContext) return void 0;
@@ -23294,33 +24644,11 @@ var vot = (function(exports) {
 		if (state.mediaElement && state.mediaElement !== media || state.audioContext && state.audioContext !== audioContext) disconnectSmartDuckingAnalyser(state);
 		state.mediaElement = media;
 		state.audioContext = audioContext;
-		if (!state.analyser) {
-			const analyser = audioContext.createAnalyser();
-			analyser.fftSize = 512;
-			state.analyser = analyser;
-		}
+		const analyser = ensureAnalyserNode(state, audioContext);
 		const inputNode = resolveSmartDuckingInputNode(player, media, audioContext, state);
-		const analyser = state.analyser;
-		if (!inputNode || !analyser) return void 0;
+		if (!inputNode) return void 0;
 		if (state.connectedInputNode !== inputNode) {
-			if (state.connectedInputNode) try {
-				state.connectedInputNode.disconnect(analyser);
-			} catch {}
-			try {
-				analyser.disconnect();
-			} catch {}
-			try {
-				inputNode.connect(analyser);
-				state.connectedInputNode = inputNode;
-				if (state.createdMediaSource === inputNode) try {
-					analyser.connect(audioContext.destination);
-				} catch (err) {
-					debug.log("[SmartDucking] failed to bridge analyser output", err);
-				}
-			} catch (err) {
-				debug.log("[SmartDucking] failed to connect analyser", err);
-				return;
-			}
+			if (!reconnectAnalyser(inputNode, analyser, state, audioContext)) return void 0;
 		}
 		return {
 			analyser,
@@ -23495,7 +24823,7 @@ var vot = (function(exports) {
 			if (typeof this.smartVolumeDuckingBaseline !== "number") this.smartVolumeDuckingBaseline = this.getVideoVolume();
 			if (typeof this.autoVolumeMutedOnStart !== "boolean") this.autoVolumeMutedOnStart = Boolean(this.isMuted());
 			this.setVideoVolume(0, { preserveYoutubeVolumeStorage: true });
-			this.setVideoMuted(true, { preserveYoutubeVolumeStorage: true });
+			this.setVideoMuted(true);
 			writeSmartDuckingRuntime(this, initSmartDuckingRuntime(this.smartVolumeDuckingBaseline));
 			this.smartVolumeIsDucked = true;
 			return;
@@ -23540,9 +24868,19 @@ var vot = (function(exports) {
 	function shouldForceProxyClientGmXhr(config) {
 		return Boolean(config.gmXhrSupported && isProxyClientEnabled(config));
 	}
+	/**
+	* Generic proxy URL rewriter. Replaces a known source prefix with the
+	* proxy-worker host + path when proxy routing is enabled.
+	*
+	* Centralizes the shared logic previously duplicated across
+	* proxifyYandexAudioUrl and proxifyYandexSubtitlesUrl.
+	*/
+	function proxifyUrl(url, config, sourcePrefix, proxyPathPrefix) {
+		if (!isProxyRoutingEnabled(config) || !url.startsWith(sourcePrefix)) return url;
+		return url.replace(sourcePrefix, `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${proxyPathPrefix}`);
+	}
 	function proxifyYandexAudioUrl(audioUrl, config) {
-		if (!isProxyRoutingEnabled(config) || !audioUrl.startsWith(AUDIO_SOURCE_PREFIX)) return audioUrl;
-		return audioUrl.replace(AUDIO_SOURCE_PREFIX, `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`);
+		return proxifyUrl(audioUrl, config, AUDIO_SOURCE_PREFIX, AUDIO_PROXY_PATH_PREFIX);
 	}
 	function unproxifyYandexAudioUrl(audioUrl) {
 		const str = String(audioUrl || "");
@@ -23562,9 +24900,7 @@ var vot = (function(exports) {
 		return url.startsWith(AUDIO_SOURCE_PREFIX) || url.startsWith(`https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`);
 	}
 	function proxifyYandexSubtitlesUrl(subtitlesUrl, config) {
-		if (!isProxyRoutingEnabled(config) || !subtitlesUrl.startsWith(SUBTITLE_SOURCE_PREFIX)) return subtitlesUrl;
-		const subtitlesPath = subtitlesUrl.slice(49);
-		return `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${SUBTITLE_PROXY_PATH_PREFIX}${subtitlesPath}`;
+		return proxifyUrl(subtitlesUrl, config, SUBTITLE_SOURCE_PREFIX, SUBTITLE_PROXY_PATH_PREFIX);
 	}
 	//#endregion
 	//#region src/videoHandler/modules/subtitlesShared.ts
@@ -23684,10 +25020,58 @@ var vot = (function(exports) {
 		return null;
 	}
 	//#endregion
+	//#region src/videoHandler/modules/translationShared.ts
+	function normalizeTranslationHelp(translationHelp) {
+		return translationHelp ?? null;
+	}
+	async function requestTranslationAudio(requester, options) {
+		const response = await requester.translateVideoImpl(options.videoData, options.requestLang, options.responseLang, normalizeTranslationHelp(options.translationHelp), !options.useAudioDownload, options.signal);
+		if (!response?.url) return null;
+		return {
+			url: response.url,
+			usedLivelyVoice: Boolean(response.usedLivelyVoice)
+		};
+	}
+	function buildTranslationCacheValue(options) {
+		return {
+			videoId: options.videoId,
+			from: options.requestLang,
+			to: options.responseLang,
+			url: options.downloadTranslationUrl ?? options.fallbackUrl,
+			useLivelyVoice: options.usedLivelyVoice
+		};
+	}
+	/**
+	* Executes an async action with staleness guards before and after.
+	* Returns true if the action completed without becoming stale.
+	*
+	* Centralizes the "check stale -> act -> re-check stale" pattern that was
+	* previously duplicated across updateTranslationIfFresh and
+	* requestAndApplyTranslation.
+	*/
+	async function withStaleGuard(actionContext, isActionStale, action) {
+		if (isActionStale(actionContext)) return false;
+		await action();
+		return !isActionStale(actionContext);
+	}
+	async function updateTranslationIfFresh(options) {
+		return withStaleGuard(options.actionContext, options.isActionStale, () => options.updateTranslation(options.url, options.actionContext, options.usedLivelyVoice));
+	}
+	function setTranslationCacheValue(options) {
+		options.setTranslation(options.cacheKey, buildTranslationCacheValue({
+			videoId: options.videoId,
+			requestLang: options.requestLang,
+			responseLang: options.responseLang,
+			fallbackUrl: options.fallbackUrl,
+			downloadTranslationUrl: options.downloadTranslationUrl,
+			usedLivelyVoice: options.usedLivelyVoice
+		}));
+	}
+	//#endregion
 	//#region src/videoHandler/modules/translationPlayback.ts
 	async function resumePlayerAudioContextIfNeeded(handler) {
 		const ctx = handler.audioPlayer?.audioContext;
-		if (!ctx || ctx.state !== "suspended") return "not-needed";
+		if (ctx?.state !== "suspended") return "not-needed";
 		const RESUME_TIMEOUT_MS = 1500;
 		const resumePromise = (async () => {
 			try {
@@ -23745,21 +25129,22 @@ var vot = (function(exports) {
 		}
 	}
 	async function requestApplyAndCacheTranslation(self, options) {
-		const translateRes = await requestAndApplyTranslation({
-			requester: self.translationHandler,
-			request: {
-				videoData: options.videoData,
-				requestLang: options.requestLang,
-				responseLang: options.responseLang,
-				translationHelp: options.translationHelp,
-				useAudioDownload: Boolean(self.data?.useAudioDownload),
-				signal: self.actionsAbortController.signal
-			},
-			actionContext: options.actionContext,
-			isActionStale: (ctx) => self.isActionStale(ctx),
-			updateTranslation: (url, ctx) => self.updateTranslation(url, ctx)
+		const translateRes = await requestTranslationAudio(self.translationHandler, {
+			videoData: options.videoData,
+			requestLang: options.requestLang,
+			responseLang: options.responseLang,
+			translationHelp: options.translationHelp,
+			useAudioDownload: Boolean(self.data?.useAudioDownload),
+			signal: self.actionsAbortController.signal
 		});
 		if (!translateRes) return null;
+		if (!await updateTranslationIfFresh({
+			url: translateRes.url,
+			actionContext: options.actionContext,
+			usedLivelyVoice: translateRes.usedLivelyVoice,
+			isActionStale: (ctx) => self.isActionStale(ctx),
+			updateTranslation: (url, ctx, usedLivelyVoice) => self.updateTranslation(url, ctx, usedLivelyVoice)
+		})) return null;
 		if (options.onBeforeCache) await options.onBeforeCache(translateRes);
 		setTranslationCacheValue({
 			cacheKey: options.cacheKey,
@@ -23873,7 +25258,10 @@ var vot = (function(exports) {
 			};
 		}
 	}
-	async function updateTranslation(audioUrl, actionContext) {
+	function getTranslationActiveVoiceLabel(usedLivelyVoice) {
+		return localizationProvider.get(usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle");
+	}
+	async function updateTranslation(audioUrl, actionContext, usedLivelyVoice = this.data?.useLivelyVoice !== false) {
 		await this.waitForPendingStopTranslate();
 		if (this.isActionStale(actionContext)) return;
 		if (!this.audioPlayer) this.createPlayer();
@@ -23897,7 +25285,7 @@ var vot = (function(exports) {
 		}
 		this.clearVolumeLinkState();
 		this.setupAudioSettings();
-		this.transformBtn("success", localizationProvider.get("disableTranslate"));
+		this.transformBtn("success", getTranslationActiveVoiceLabel(usedLivelyVoice));
 		this.afterUpdateTranslation(resolvedAudioUrl);
 	}
 	function syncTranslationPlaybackVolume() {
@@ -23995,10 +25383,10 @@ var vot = (function(exports) {
 			}
 			const reqLang = requestLang;
 			const resLang = responseLang;
-			const applyTranslationUrl = async (url) => await this.updateTranslation(url, actionContext);
+			const applyTranslationUrl = async (url, usedLivelyVoice) => await this.updateTranslation(url, actionContext, usedLivelyVoice);
 			const cachedEntry = this.cacheManager.getTranslation(cacheKey);
 			if (cachedEntry?.url) {
-				await applyTranslationUrl(cachedEntry.url);
+				if (!await withStaleGuard(actionContext, (ctx) => this.isActionStale(ctx), () => applyTranslationUrl(cachedEntry.url, cachedEntry.useLivelyVoice))) return;
 				debug.log("[translateFunc] Cached translation was received");
 				return;
 			}
@@ -24092,7 +25480,7 @@ var vot = (function(exports) {
 	}
 	function bindOverlayHoverFocusEvents(addMany, target, overlayVisibility) {
 		const handleInteraction = (event) => overlayVisibility.handleOverlayInteraction(event);
-		const scheduleHide = (_event) => overlayVisibility.scheduleHide();
+		const scheduleHide = (event) => overlayVisibility.scheduleHide(event);
 		if (isIframe() && globalThis.window !== void 0) {
 			addMany(target, ["focusin"], handleInteraction);
 			addMany(target, ["focusout"], scheduleHide);
@@ -24182,7 +25570,8 @@ var vot = (function(exports) {
 			self.syncVideoVolumeSlider();
 			const activeOverlayView = self.uiManager.votOverlayView;
 			if (!activeOverlayView?.isInitialized()) return;
-			syncAudioTranslationVolumeFromVideo(self, toPercentInt(activeOverlayView.videoVolumeSlider.value));
+			const videoPercent = toPercentInt(activeOverlayView.videoVolumeSlider.value);
+			syncAudioTranslationVolumeFromVideo(self, videoPercent);
 		});
 		const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
 		if (!ytpVolumePanel) return;
@@ -24345,11 +25734,15 @@ var vot = (function(exports) {
 				await safeSetCanPlay();
 			});
 		};
+		let emptiedHandled = false;
 		add(self.video, "canplay", () => {
+			emptiedHandled = false;
 			if (self.site.host === "rutube" && self.video.src) return;
 			queueSetCanPlay();
 		});
 		const handleVideoEmptied = async () => {
+			if (emptiedHandled) return;
+			emptiedHandled = true;
 			let videoId;
 			try {
 				videoId = await getVideoID(self.site, {
@@ -24359,7 +25752,10 @@ var vot = (function(exports) {
 			} catch (error) {
 				debug.log("[VOT] Failed to resolve video id on emptied", error);
 			}
-			if (self.videoData && videoId && videoId === self.videoData.videoId) return;
+			if (self.videoData && videoId && videoId === self.videoData.videoId) {
+				emptiedHandled = false;
+				return;
+			}
 			debug.log("lipsync mode is emptied");
 			resetAndHideLifecycle(self, overlayView, {
 				clearVideoData: true,
@@ -24375,7 +25771,8 @@ var vot = (function(exports) {
 			self.syncVideoVolumeSlider();
 			const activeOverlayView = self.uiManager.votOverlayView;
 			if (!activeOverlayView?.isInitialized()) return;
-			syncAudioTranslationVolumeFromVideo(self, toPercentInt(activeOverlayView.videoVolumeSlider.value), { skipYouTubeLikeHosts: true });
+			const videoPercent = toPercentInt(activeOverlayView.videoVolumeSlider.value);
+			syncAudioTranslationVolumeFromVideo(self, videoPercent, { skipYouTubeLikeHosts: true });
 		});
 		if (self.site.host === "youtube" && !self.site.additionalData) add(document, "yt-page-data-updated", () => {
 			debug.log("yt-page-data-updated");
@@ -24435,19 +25832,10 @@ var vot = (function(exports) {
 		if (isDesktopYouTubeLikeSite(this.site)) this.syncVolumeObserver?.disconnect();
 	}
 	//#endregion
-	//#region src/videoHandler/shared.ts
-	/**
-	* Country code used for proxy settings. Populated lazily during init.
-	*/
-	var countryCode;
-	function setCountryCode(next) {
-		countryCode = next;
-	}
-	//#endregion
 	//#region src/videoHandler/modules/init.ts
 	var countryCodeRequestInFlight = null;
 	async function ensureCountryCode() {
-		if (countryCode) return;
+		if (getCountryCode()) return;
 		countryCodeRequestInFlight ??= (async () => {
 			try {
 				setCountryCode((await (await GM_fetch("https://cloudflare-dns.com/cdn-cgi/trace", { timeout: 7e3 })).text()).split("\n").find((line) => line.startsWith("loc="))?.slice(4, 6).toUpperCase());
@@ -24521,7 +25909,8 @@ var vot = (function(exports) {
 		console.log("[VOT] data from db:", this.data);
 		if (!this.data.translateProxyEnabled && isProxyOnlyExtension) this.data.translateProxyEnabled = 1;
 		await ensureCountryCode();
-		if (countryCode && proxyOnlyCountries.includes(countryCode) && this.data.translateProxyEnabledDefault) this.data.translateProxyEnabled = 2;
+		const countryCode = getCountryCode();
+		if (countryCode !== null && proxyOnlyCountries.includes(countryCode) && this.data.translateProxyEnabledDefault) this.data.translateProxyEnabled = 2;
 		debug.log("translateProxyEnabled", this.data.translateProxyEnabled, this.data.translateProxyEnabledDefault);
 		debug.log("Extension compatibility passed...");
 		await this.initVOTClient();
@@ -25310,6 +26699,7 @@ var vot = (function(exports) {
 	function clearSelectedSubtitles(handler, overlayView) {
 		if (handler.hasSubtitlesWidget()) handler.subtitlesWidget?.setContent(null);
 		overlayView.downloadSubtitlesButton.hidden = true;
+		overlayView.syncSubtitlesButtonState(false);
 		handler.yandexSubtitles = null;
 		return handler;
 	}
@@ -25319,6 +26709,7 @@ var vot = (function(exports) {
 		const overlayView = this.uiManager.votOverlayView;
 		if (!overlayView?.subtitlesSelect || !overlayView.downloadSubtitlesButton) return this;
 		overlayView.subtitlesSelect.setSelectedValue(subs);
+		overlayView.syncSubtitlesButtonState(subs !== DISABLED_SUBTITLES_VALUE);
 		if (subs === "disabled") return clearSelectedSubtitles(this, overlayView);
 		const subtitlesIndex = parseSubtitlesOptionIndex(subs);
 		if (subtitlesIndex == null) return clearSelectedSubtitles(this, overlayView);
@@ -25341,6 +26732,7 @@ var vot = (function(exports) {
 		this.yandexSubtitles = fetchedSubtitles;
 		this.getSubtitlesWidget().setContent(this.yandexSubtitles, subtitlesObj.language);
 		overlayView.downloadSubtitlesButton.hidden = false;
+		overlayView.syncSubtitlesButtonState(true);
 		return this;
 	}
 	async function updateSubtitlesLangSelect() {
@@ -25467,9 +26859,56 @@ var vot = (function(exports) {
 		await this.updateSubtitlesLangSelect();
 	}
 	//#endregion
-	//#region src/index.ts
+	//#region src/videoHandler/volumeLink.ts
+	function syncVideoLinkSnapshot(state, volumePercent) {
+		state.lastVideoPercent = clampPercentInt(volumePercent);
+	}
+	function syncTranslationLinkSnapshot(state, volumePercent) {
+		state.lastTranslationPercent = clampPercentInt(volumePercent);
+	}
+	function getSharedTranslationRange(translationMin, translationMax) {
+		const min = clampPercentInt(translationMin);
+		return {
+			min,
+			max: clampPercentInt(Math.min(100, translationMax), min, 100)
+		};
+	}
+	/**
+	* Applies delta-based volume linking and mutates `state` in place.
+	*
+	* Rules:
+	* - "video" initiator: translation changes by the same delta as video.
+	* - "translation" initiator: video changes by the same delta as translation.
+	*
+	* This preserves relative offset between sliders (until clamped by bounds),
+	* instead of forcing a 1:1 mirror.
+	*/
+	function applyVolumeLinkDelta({ state, fromType, newVolume, currentVideo, currentTranslation, translationMin, translationMax }) {
+		const sharedTranslationRange = getSharedTranslationRange(translationMin, translationMax);
+		if (!state.initialized) {
+			state.lastVideoPercent = clampPercentInt(currentVideo);
+			state.lastTranslationPercent = clampInt(Number(currentTranslation), sharedTranslationRange.min, sharedTranslationRange.max);
+			state.initialized = true;
+		}
+		if (fromType === "video") {
+			const normalizedVideo = clampPercentInt(newVolume);
+			const delta = normalizedVideo - clampPercentInt(state.lastVideoPercent);
+			state.lastVideoPercent = normalizedVideo;
+			const nextTranslation = clampInt(state.lastTranslationPercent + delta, sharedTranslationRange.min, sharedTranslationRange.max);
+			state.lastTranslationPercent = nextTranslation;
+			return { nextTranslation };
+		}
+		const normalizedTranslation = clampInt(Number.isFinite(newVolume) ? newVolume : currentTranslation, sharedTranslationRange.min, sharedTranslationRange.max);
+		const delta = normalizedTranslation - state.lastTranslationPercent;
+		state.lastTranslationPercent = normalizedTranslation;
+		const nextVideo = clampPercentInt(state.lastVideoPercent + delta);
+		state.lastVideoPercent = nextVideo;
+		return { nextVideo };
+	}
+	//#endregion
+	//#region src/VideoHandler.ts
 	var RESOLVED_VOID_PROMISE = Promise.resolve();
-	var TRANSLATION_LOADING_MESSAGES = new Set([
+	var TRANSLATION_LOADING_MESSAGES = /* @__PURE__ */ new Set([
 		"Подготавливаем перевод",
 		"Видео передано в обработку",
 		"Ожидаем перевод видео",
@@ -25648,7 +27087,7 @@ var vot = (function(exports) {
 		* @param {string} subtitleLanguage
 		*/
 		getSubtitlesCacheKey(videoId, detectedLanguage, subtitleLanguage) {
-			return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${Boolean(this.data?.useLivelyVoice)}`;
+			return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${this.data?.useLivelyVoice !== false}`;
 		}
 		getPreferredSubtitlesLanguage(detectedLanguage = this.videoData?.detectedLanguage ?? "auto", responseLanguage = this.videoData?.responseLanguage ?? this.translateToLang, preference = this.data?.responseLanguageSubtitles) {
 			return resolveSubtitlesLanguage(preference, detectedLanguage, responseLanguage) ?? responseLanguage ?? detectedLanguage;
@@ -25688,8 +27127,9 @@ var vot = (function(exports) {
 			this.cacheManager = new InMemoryCacheManager();
 			this.interactionChecker = createIntervalIdleChecker();
 			this.interactionChecker.start();
+			const mount = this.getOverlayMount(container);
 			this.uiManager = new UIManager({
-				mount: this.getOverlayMount(container),
+				mount,
 				data: this.data,
 				videoHandler: this,
 				intervalIdleChecker: this.interactionChecker
@@ -25791,12 +27231,7 @@ var vot = (function(exports) {
 		* @returns {HTMLElement} The event container.
 		*/
 		getEventContainer() {
-			if (!this.site.eventSelector) {
-				const { width: cW, height: cH } = this.container.getBoundingClientRect();
-				const { width: vW, height: vH } = this.video.getBoundingClientRect();
-				if (cW < vW || cH < vH) return this.video;
-				return this.container;
-			}
+			if (!this.site.eventSelector) return this.container;
 			return document.querySelector(this.site.eventSelector) ?? this.container;
 		}
 		/**
@@ -25883,7 +27318,9 @@ var vot = (function(exports) {
 		*/
 		async initVOTClient() {
 			const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
-			const transportHost = this.data?.translateProxyEnabled === 1 ? proxyWorkerHostMode1 : proxyClientEnabled ? resolveProxyWorkerHost(this.data?.proxyWorkerHost) : workerHost;
+			let transportHost = workerHost;
+			if (this.data?.translateProxyEnabled === 1) transportHost = proxyWorkerHostMode1;
+			else if (proxyClientEnabled) transportHost = resolveProxyWorkerHost(this.data?.proxyWorkerHost);
 			this.votOpts = {
 				fetchFn: GM_fetch,
 				fetchOpts: {
@@ -25893,7 +27330,7 @@ var vot = (function(exports) {
 						gmXhrSupported: isSupportGMXhr
 					})
 				},
-				apiToken: this.data?.account?.token,
+				apiToken: hasValidAccountToken(this.data?.account) ? this.data?.account?.token : void 0,
 				hostVOT: votBackendUrl,
 				host: transportHost
 			};
@@ -26011,12 +27448,11 @@ var vot = (function(exports) {
 			return toggleSubtitlesForCurrentLangPair.call(this);
 		}
 		getRequestLangForTranslation(requestLang, responseLang) {
-			if (this.data?.useLivelyVoice && this.data?.account?.token && responseLang === "ru") return "en";
+			if (this.data?.useLivelyVoice && requestLang === "auto" && responseLang === "ru") return "en";
 			return requestLang;
 		}
 		isLivelyVoiceAllowed(requestLang = this.videoData?.detectedLanguage ?? "auto", responseLang = this.videoData?.responseLanguage ?? this.translateToLang) {
-			if (this.getRequestLangForTranslation(requestLang, responseLang) !== "en" || responseLang !== "ru") return false;
-			if (!this.data?.account?.token) return false;
+			if (this.getRequestLangForTranslation(requestLang, responseLang) === "auto" || responseLang !== "ru") return false;
 			return true;
 		}
 		/**
@@ -26045,8 +27481,8 @@ var vot = (function(exports) {
 			this.videoManager.setVideoVolume(snapped, { preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage });
 			return this;
 		}
-		setVideoMuted(muted, options = {}) {
-			this.videoManager.setVideoMuted(muted, { preserveYoutubeVolumeStorage: options.preserveYoutubeVolumeStorage });
+		setVideoMuted(muted) {
+			this.videoManager.setVideoMuted(muted);
 			return this;
 		}
 		/**
@@ -26170,6 +27606,7 @@ var vot = (function(exports) {
 				this.downloadTranslation = null;
 				this.longWaitingResCount = 0;
 				this.hadAsyncWait = false;
+				this.translationHandler?.stopTranslationEtaCountdown();
 				this.transformBtn("none", localizationProvider.get("translateVideo"));
 				debug.log(`Volume on start: ${this.volumeOnStart}`);
 				const restoreVolume = typeof this.smartVolumeDuckingBaseline === "number" ? this.smartVolumeDuckingBaseline : this.volumeOnStart;
@@ -26195,13 +27632,15 @@ var vot = (function(exports) {
 		* Updates the translation error message on the UI.
 		* @param {string|Error} errorMessage The error message.
 		*/
-		async updateTranslationErrorMsg(errorMessage, signal) {
+		async updateTranslationErrorMsg(errorMessage, signal, options = {}) {
 			if (signal?.aborted) return;
 			const translationTake = localizationProvider.get("translationTake");
 			const lang = localizationProvider.lang;
-			this.longWaitingResCount = errorMessage === localizationProvider.get("translationTakeAboutMinute") ? this.longWaitingResCount + 1 : 0;
-			debug.log("longWaitingResCount", this.longWaitingResCount);
-			if (this.longWaitingResCount > 5) errorMessage = new VOTLocalizedError("TranslationDelayed");
+			if (options.countLongWait !== false) {
+				this.longWaitingResCount = errorMessage === localizationProvider.get("translationTakeAboutMinute") ? this.longWaitingResCount + 1 : 0;
+				debug.log("longWaitingResCount", this.longWaitingResCount);
+				if (this.longWaitingResCount > 5) errorMessage = new VOTLocalizedError("TranslationDelayed");
+			}
 			debug.log("updateTranslationErrorMsg message", errorMessage);
 			const resolvedMessage = await this.resolveTranslationErrorDisplayMessage(errorMessage, translationTake, lang, signal);
 			if (signal?.aborted || resolvedMessage === null) return;
@@ -26359,6 +27798,19 @@ var vot = (function(exports) {
 		* Handles video source change events.
 		*/
 		handleSrcChanged = () => this.lifecycleController.handleSrcChanged();
+		/** Rebinds an active handler when the page replaces its video element. */
+		async replaceVideo(video) {
+			if (this.video === video) return;
+			debug.log("[VideoHandler] replaceVideo", video);
+			await this.audioPlayer.replaceVideo(video);
+			this.abortController.abort();
+			this.releaseExtraEvents();
+			this.video = video;
+			this.abortController = new AbortController();
+			this.fullscreenHelper?.updateVideo(video);
+			this.resetSubtitlesWidget();
+			this.initExtraEvents();
+		}
 		/**
 		* Releases resources and removes event listeners.
 		*/
@@ -26418,6 +27870,8 @@ var vot = (function(exports) {
 		*/
 		releaseExtraEvents = releaseExtraEvents;
 	};
+	//#endregion
+	//#region src/index.ts
 	var videoObserver = new VideoObserver(createIntervalIdleChecker());
 	var videosWrappers = /* @__PURE__ */ new WeakMap();
 	var servicesCache = null;
@@ -26496,35 +27950,25 @@ var vot = (function(exports) {
 		});
 		videoObserver.enable();
 	}
-	function bootstrapContentScript() {
+	async function bootstrapContentScript() {
 		if (bootState.status === "booting" || bootState.status === "booted") {
 			logBootstrap("bootstrap already initialized, skipping duplicate run", { status: bootState.status });
-			return bootState.promise ?? Promise.resolve();
+			return;
 		}
-		const runBootstrap = async () => {
-			try {
-				await main();
-				bootState.status = "booted";
-			} catch (e) {
-				bootState.status = "failed";
-				bootState.error = e;
-				console.error("[VOT]", e);
-			}
-		};
 		bootState.status = "booting";
-		bootState.promise = runBootstrap();
-		return bootState.promise;
-	}
-	bootstrapContentScript();
-	//#endregion
-	exports.VideoHandler = VideoHandler;
-	exports.bootstrapContentScript = bootstrapContentScript;
-	Object.defineProperty(exports, "countryCode", {
-		enumerable: true,
-		get: function() {
-			return countryCode;
+		try {
+			await main();
+			bootState.status = "booted";
+		} catch (e) {
+			bootState.status = "failed";
+			bootState.error = e;
+			console.error("[VOT]", e);
 		}
-	});
-	exports.getEnvironmentInfo = getEnvironmentInfo;
+	}
+	(async () => {
+		await bootstrapContentScript();
+	})();
+	//#endregion
+	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
