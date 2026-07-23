@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Głosy na żywo",
   "VOTLiveVoicesSubtitle": "Maksymalne podobieństwo. Jakby wszyscy znali rosyjski",
   "VOTYandexTokenExpired": "Sesja wygasła. Zaloguj się ponownie",
-  "VOTVoiceSelection": "Wybierz dubbing"
+  "VOTVoiceSelection": "Wybierz dubbing",
+  "VOTAutoPauseOnTranslate": "Wstrzymaj wideo, aż tłumaczenie będzie gotowe"
 }

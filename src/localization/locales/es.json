@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Voces en vivo",
   "VOTLiveVoicesSubtitle": "Máxima similitud. Como si todo el mundo supiera ruso",
   "VOTYandexTokenExpired": "La sesión expiró. Inicie sesión de nuevo",
-  "VOTVoiceSelection": "Elegir doblaje"
+  "VOTVoiceSelection": "Elegir doblaje",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

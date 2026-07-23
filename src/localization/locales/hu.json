@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Élő hangok",
   "VOTLiveVoicesSubtitle": "Maximális hasonlóság. Mint ha mindenki tudja, orosz",
   "VOTYandexTokenExpired": "A munkamenet lejárt. Jelentkezzen be újra",
-  "VOTVoiceSelection": "Válassza ki a szinkronizálást"
+  "VOTVoiceSelection": "Válassza ki a szinkronizálást",
+  "VOTAutoPauseOnTranslate": "Szüneteltesse a videót, amíg a fordítás készen áll"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Амьд дуу хоолой",
   "VOTLiveVoicesSubtitle": "Хамгийн их төстэй. Хэрэв хүн бүр мэддэг орос",
   "VOTYandexTokenExpired": "Хуралдаан дууссан. Дахин нэвтрэх",
-  "VOTVoiceSelection": "Дубляж сонгох"
+  "VOTVoiceSelection": "Дубляж сонгох",
+  "VOTAutoPauseOnTranslate": "Орчуулга бэлэн болтол видеог түр зогсоо"
 }

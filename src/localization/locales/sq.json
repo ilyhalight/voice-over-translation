@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Zërat e gjallë",
   "VOTLiveVoicesSubtitle": "Ngjashmëria maksimale. Sikur të gjithë e dinë rusisht",
   "VOTYandexTokenExpired": "Seanca skadoi. Hyni përsëri",
-  "VOTVoiceSelection": "Zgjidhni dublimin"
+  "VOTVoiceSelection": "Zgjidhni dublimin",
+  "VOTAutoPauseOnTranslate": "Ndaloni videon derisa përkthimi të jetë gati"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Sora nu hirup",
   "VOTLiveVoicesSubtitle": "Kamiripan maksimum. Seolah olah semuanya tahu rusia",
   "VOTYandexTokenExpired": "Sesi kadaluarsa. Asup deui",
-  "VOTVoiceSelection": "Pilih dubbing"
+  "VOTVoiceSelection": "Pilih dubbing",
+  "VOTAutoPauseOnTranslate": "Jeda video nepi panarjamahan geus siap"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "ಲೈವ್ ಧ್ವನಿಗಳು",
   "VOTLiveVoicesSubtitle": "ಗರಿಷ್ಠ ಹೋಲಿಕೆ. ಎಲ್ಲರಿಗೂ ರಷ್ಯನ್ ತಿಳಿದಿರುವಂತೆ",
   "VOTYandexTokenExpired": "ಅಧಿವೇಶನ ಮುಗಿದಿದೆ. ಮತ್ತೆ ಲಾಗ್ ಇನ್ ಮಾಡಿ",
-  "VOTVoiceSelection": "ಡಬ್ಬಿಂಗ್ ಆಯ್ಕೆ"
+  "VOTVoiceSelection": "ಡಬ್ಬಿಂಗ್ ಆಯ್ಕೆ",
+  "VOTAutoPauseOnTranslate": "ಅನುವಾದ ಸಿದ್ಧವಾಗುವವರೆಗೆ ವೀಡಿಯೊ ವಿರಾಮ"
 }

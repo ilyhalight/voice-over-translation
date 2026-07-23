@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Živi glasovi",
   "VOTLiveVoicesSubtitle": "Maksimalna sličnost. Kao da svi znaju ruski",
   "VOTYandexTokenExpired": "Sesija je istekla. Prijavite se ponovo",
-  "VOTVoiceSelection": "Odaberite sinhronizaciju"
+  "VOTVoiceSelection": "Odaberite sinhronizaciju",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

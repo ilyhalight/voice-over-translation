@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "লাইভ ভয়েসেস",
   "VOTLiveVoicesSubtitle": "সর্বাধিক সাদৃশ্য. যেন সবাই রাশিয়ান জানে",
   "VOTYandexTokenExpired": "অধিবেশন শেষ আবার লগ ইন করুন",
-  "VOTVoiceSelection": "ডাবিং চয়ন করুন"
+  "VOTVoiceSelection": "ডাবিং চয়ন করুন",
+  "VOTAutoPauseOnTranslate": "অনুবাদ প্রস্তুত না হওয়া পর্যন্ত ভিডিও বিরতি দিন"
 }

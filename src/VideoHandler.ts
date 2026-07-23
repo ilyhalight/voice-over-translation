@@ -220,6 +220,13 @@ export class VideoHandler {
   longWaitingResCount = 0;
   hadAsyncWait = false;
 
+  /**
+   * Set to `true` when the video was programmatically paused while waiting for
+   * translation audio to be prepared (autoPauseOnTranslate feature).
+   * Reset when translation finishes or when the user manually starts playback.
+   */
+  pausedByTranslation = false;
+
   // Available subtitle tracks for the current video. The subtitles UI widget
   // maintains its own internal line/token representation.
   subtitles: any[] = [];

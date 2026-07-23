@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Live voices",
   "VOTLiveVoicesSubtitle": "Maximale gelijkenis. Alsof iedereen Russisch kent",
   "VOTYandexTokenExpired": "Sessie verlopen. Opnieuw inloggen",
-  "VOTVoiceSelection": "Kies dubbing"
+  "VOTVoiceSelection": "Kies dubbing",
+  "VOTAutoPauseOnTranslate": "Video pauzeren tot de vertaling klaar is"
 }

@@ -52,6 +52,7 @@ export async function init(this: VideoHandler) {
   // Retrieve settings from storage.
   this.data = await votStorage.getValues({
     autoTranslate: false,
+    autoPauseOnTranslate: false,
     autoSubtitles: false,
     dontTranslateLanguages: [calculatedResLang],
     enabledDontTranslateLanguages: true,

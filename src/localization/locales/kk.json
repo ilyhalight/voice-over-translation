@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Тірі дауыстар",
   "VOTLiveVoicesSubtitle": "Максималды ұқсастық. Барлығы орыс тілін білетін сияқты",
   "VOTYandexTokenExpired": "Сессияның мерзімі аяқталды. Қайта кіріңіз",
-  "VOTVoiceSelection": "Дубляжды таңдаңыз"
+  "VOTVoiceSelection": "Дубляжды таңдаңыз",
+  "VOTAutoPauseOnTranslate": "Аударма дайын болғанша бейнені кідіртіңіз"
 }

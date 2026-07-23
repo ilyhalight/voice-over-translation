@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Amazwi aphilayo",
   "VOTLiveVoicesSubtitle": "Ukufana okuphezulu. Njengokungathi wonke umuntu uyazi isirashiya",
   "VOTYandexTokenExpired": "Isikhathi sesiphelile. Ngena futhi",
-  "VOTVoiceSelection": "Choose dubbing"
+  "VOTVoiceSelection": "Choose dubbing",
+  "VOTAutoPauseOnTranslate": "Phumula ividiyo kuze translation isilungile"
 }

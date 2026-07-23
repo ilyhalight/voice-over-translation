@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Veus en directe",
   "VOTLiveVoicesSubtitle": "Màxima similitud. Com si tothom conegués el rus",
   "VOTYandexTokenExpired": "Sessió expirada. Inicia sessió de nou",
-  "VOTVoiceSelection": "Tria doblatge"
+  "VOTVoiceSelection": "Tria doblatge",
+  "VOTAutoPauseOnTranslate": "Pausa el vídeo fins que la traducció estigui preparada"
 }

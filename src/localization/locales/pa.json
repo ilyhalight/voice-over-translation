@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "ਲਾਈਵ ਆਵਾਜ਼ਾਂ",
   "VOTLiveVoicesSubtitle": "ਵੱਧ ਤੋਂ ਵੱਧ ਸਮਾਨਤਾ ਜਿਵੇਂ ਕਿ ਹਰ ਕੋਈ ਰੂਸੀ ਜਾਣਦਾ ਹੈ",
   "VOTYandexTokenExpired": "ਸੈਸ਼ਨ ਖਤਮ ਹੋ ਗਿਆ ਹੈ. ਮੁੜ ਲਾਗਇਨ ਕਰੋ",
-  "VOTVoiceSelection": "ਡਬਿੰਗ ਚੁਣੋ"
+  "VOTVoiceSelection": "ਡਬਿੰਗ ਚੁਣੋ",
+  "VOTAutoPauseOnTranslate": "ਅਨੁਵਾਦ ਤਿਆਰ ਹੋਣ ਤੱਕ ਵਿਡੀਓ ਵਿਰਾਮ ਕਰੋ"
 }
