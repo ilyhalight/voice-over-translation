@@ -440,7 +440,7 @@ export class OverlayView {
         this.events["click:translate"].dispatch();
       },
     });
-    this.voicePopover.addVisibilityListener((isOpen) => {
+    this.voicePopover.addEventListener("openChange", (isOpen) => {
       this.votButton?.setVoiceMenuOpen(isOpen);
     });
     this.votButton.container.dataset.voiceType = activeVoice;
@@ -747,7 +747,7 @@ export class OverlayView {
     );
 
     // Voice popover selection handler.
-    this.voicePopover.addEventListener((voice): boolean | undefined => {
+    this.voicePopover.addEventListener("voiceChange", (voice) => {
       const useLive = voice === "live";
 
       if (this.data.useLivelyVoice === useLive) {

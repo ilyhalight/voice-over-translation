@@ -6,7 +6,7 @@ import {
   createDomId,
   isEventInside,
   setInteractiveHiddenState,
-  UIComponent,
+  UIComponentWithEvents,
 } from "./componentShared";
 
 export type VoiceType = "standard" | "live";
@@ -16,18 +16,16 @@ export interface VoicePopoverProps {
   /** Overlay root — popover positions in this element's coordinate space. */
   layoutRoot: HTMLElement;
   onTranslate?: () => void;
-  onOpenChange?: (isOpen: boolean) => void;
 }
 
-type VoiceChangeListener = (voice: VoiceType) => boolean | undefined;
-
-export default class VoicePopover extends UIComponent {
+export default class VoicePopover extends UIComponentWithEvents<{
+  voiceChange: [voice: VoiceType];
+  openChange: [isOpen: boolean];
+}> {
   private readonly id = createDomId("vot-voice-popover");
   private readonly layoutRoot: HTMLElement;
   private _activeVoice: VoiceType;
   private readonly onTranslate?: () => void;
-  private listeners: Array<VoiceChangeListener> = [];
-  private visibilityListeners: Array<(isOpen: boolean) => void> = [];
   private lastVisibilityState = false;
 
   private showTimer: ReturnType<typeof setTimeout> | null = null;
@@ -46,19 +44,11 @@ export default class VoicePopover extends UIComponent {
     }
   };
 
-  constructor({
-    activeVoice,
-    layoutRoot,
-    onTranslate,
-    onOpenChange,
-  }: VoicePopoverProps) {
-    super();
+  constructor({ activeVoice, layoutRoot, onTranslate }: VoicePopoverProps) {
+    super(["openChange", "voiceChange"]);
     this._activeVoice = activeVoice;
     this.layoutRoot = layoutRoot;
     this.onTranslate = onTranslate;
-    if (onOpenChange) {
-      this.visibilityListeners.push(onOpenChange);
-    }
     this.container = this.createElements().container;
   }
 
@@ -77,28 +67,6 @@ export default class VoicePopover extends UIComponent {
 
   get isOpen(): boolean {
     return !this.hidden;
-  }
-
-  addEventListener(listener: VoiceChangeListener): this {
-    this.listeners.push(listener);
-    return this;
-  }
-
-  removeEventListener(listener: VoiceChangeListener): this {
-    this.listeners = this.listeners.filter((l) => l !== listener);
-    return this;
-  }
-
-  addVisibilityListener(listener: (isOpen: boolean) => void): this {
-    this.visibilityListeners.push(listener);
-    return this;
-  }
-
-  removeVisibilityListener(listener: (isOpen: boolean) => void): this {
-    this.visibilityListeners = this.visibilityListeners.filter(
-      (l) => l !== listener,
-    );
-    return this;
   }
 
   scheduleShow(anchor: HTMLElement): void {
@@ -168,8 +136,7 @@ export default class VoicePopover extends UIComponent {
     this.cancelHide();
     this.close();
     this.container.remove();
-    this.listeners = [];
-    this.visibilityListeners = [];
+    this.clearEventListeners();
   }
 
   protected createElements() {
@@ -287,24 +254,14 @@ export default class VoicePopover extends UIComponent {
   private emitVisibilityChange(isOpen: boolean): void {
     if (this.lastVisibilityState === isOpen) return;
     this.lastVisibilityState = isOpen;
-    for (const listener of this.visibilityListeners) {
-      listener(isOpen);
-    }
+    this.dispatch("openChange", isOpen);
   }
 
   private handleSelect(voice: VoiceType): void {
     this._activeVoice = voice;
     this.updateActiveState();
     this.cancelHide();
-    let shouldTranslate = true;
-    for (const listener of this.listeners) {
-      if (listener(voice) === false) {
-        shouldTranslate = false;
-      }
-    }
-    if (shouldTranslate && this.onTranslate) {
-      this.onTranslate();
-    }
+    this.onTranslate?.();
     this.hideNow();
   }
 

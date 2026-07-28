@@ -127,4 +127,10 @@ export abstract class UIComponentWithEvents<
 
     return this;
   }
+
+  clearEventListeners(): void {
+    for (const event of Object.values(this.events)) {
+      event.clear();
+    }
+  }
 }
