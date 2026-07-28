@@ -1,5 +1,4 @@
 import { render } from "lit-html";
-
 import { localizationProvider } from "../../localization/localizationProvider";
 import type {
   Direction,
@@ -15,6 +14,7 @@ import {
   SUBTITLES_ICON,
   TRANSLATE_ICON_SVG,
 } from "../icons";
+import { UIComponent } from "./componentShared";
 
 function isSidePosition(position: Position): boolean {
   return (
@@ -25,8 +25,7 @@ function isSidePosition(position: Position): boolean {
   );
 }
 
-export default class VOTButton {
-  container: HTMLElement;
+export default class VOTButton extends UIComponent {
   translateButton: HTMLElement;
   dropdownArrow: HTMLElement;
   separator: HTMLElement;
@@ -54,25 +53,37 @@ export default class VOTButton {
     status = "none",
     labelHtml = "",
   }: VOTButtonProps) {
+    super();
     this._position = position;
     this._direction = direction;
     this._status = status;
     this._labelText = labelHtml;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.translateButton = elements.translateButton;
-    this.dropdownArrow = elements.dropdownArrow;
-    this.separator = elements.separator;
-    this.subtitlesButton = elements.subtitlesButton;
-    this.separator3 = elements.separator3;
-    this.pipButton = elements.pipButton;
-    this.separator2 = elements.separator2;
-    this.menuButton = elements.menuButton;
-    this.label = elements.label;
+    const {
+      container,
+      translateButton,
+      dropdownArrow,
+      separator,
+      subtitlesButton,
+      separator3,
+      pipButton,
+      separator2,
+      menuButton,
+      label,
+    } = this.createElements();
+    this.container = container;
+    this.translateButton = translateButton;
+    this.dropdownArrow = dropdownArrow;
+    this.separator = separator;
+    this.subtitlesButton = subtitlesButton;
+    this.separator3 = separator3;
+    this.pipButton = pipButton;
+    this.separator2 = separator2;
+    this.menuButton = menuButton;
+    this.label = label;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-segmented-button"]);
     container.dataset.position = this._position;
     container.dataset.direction = this._direction;
@@ -226,14 +237,6 @@ export default class VOTButton {
       isOpen,
     );
     return this;
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden === true;
   }
 
   get position() {

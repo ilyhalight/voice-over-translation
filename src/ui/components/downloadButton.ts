@@ -1,55 +1,45 @@
-import { EventImpl } from "../../core/eventImpl";
 import UI from "../../ui";
 import { clampPercentInt } from "../../utils/volume";
 import { DOWNLOAD_ICON } from "../icons";
+import { UIComponentWithEvents } from "./componentShared";
 
-export default class DownloadButton {
-  button: HTMLElement;
+export default class DownloadButton extends UIComponentWithEvents<{
+  click: [];
+}> {
   loaderMain: SVGPathElement;
   loaderCircle: SVGCircleElement;
 
-  private readonly onClick = new EventImpl();
   private _progress = 0;
 
   constructor() {
-    const elements = this.createElements();
-    this.button = elements.button;
-    this.loaderMain = elements.loaderMain;
-    this.loaderCircle = elements.loaderCircle;
+    super(["click"]);
+    const { container, loaderMain, loaderCircle } = this.createElements();
+    this.container = container;
+    this.loaderMain = loaderMain;
+    this.loaderCircle = loaderCircle;
     this.progress = 0;
   }
 
-  private createElements() {
-    const button = UI.createIconButton(DOWNLOAD_ICON, {
+  protected createElements() {
+    const container = UI.createIconButton(DOWNLOAD_ICON, {
       ariaLabel: "Download translation",
     });
-    const loaderMain = button.querySelector<SVGPathElement>(".vot-loader-main");
+    const loaderMain =
+      container.querySelector<SVGPathElement>(".vot-loader-main");
     if (!loaderMain) {
       throw new Error("[VOT] DownloadButton loader main element not found");
     }
 
-    const loaderCircle = button.querySelector<SVGCircleElement>(
+    const loaderCircle = container.querySelector<SVGCircleElement>(
       ".vot-loader-progress",
     );
     if (!loaderCircle) {
       throw new Error("[VOT] DownloadButton loader circle element not found");
     }
-    button.addEventListener("click", () => {
-      this.onClick.dispatch();
+    container.addEventListener("click", () => {
+      this.dispatch("click");
     });
-    return { button, loaderMain, loaderCircle };
-  }
-
-  addEventListener(_type: "click", listener: () => void): this {
-    this.onClick.addListener(listener);
-
-    return this;
-  }
-
-  removeEventListener(_type: "click", listener: () => void): this {
-    this.onClick.removeListener(listener);
-
-    return this;
+    return { container, loaderMain, loaderCircle };
   }
 
   get progress() {
@@ -72,14 +62,6 @@ export default class DownloadButton {
   private getCircleCircumference(): number {
     const radius = this.loaderCircle.r?.baseVal?.value ?? 0;
     return 2 * Math.PI * radius;
-  }
-
-  set hidden(isHidden: boolean) {
-    this.button.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.button.hidden === true;
   }
 }
 

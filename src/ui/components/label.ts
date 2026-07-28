@@ -2,9 +2,9 @@ import { render } from "lit-html";
 import type { LabelProps } from "../../types/components/label";
 import type { LitHtml } from "../../types/components/shared";
 import UI from "../../ui";
+import { UIComponent } from "./componentShared";
 
-export default class Label {
-  container: HTMLElement;
+export default class Label extends UIComponent {
   icon: HTMLElement;
   text: HTMLElement;
 
@@ -12,16 +12,17 @@ export default class Label {
   private readonly _icon?: LitHtml;
 
   constructor({ labelText, icon }: LabelProps) {
+    super();
     this._labelText = labelText;
     this._icon = icon;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.icon = elements.icon;
-    this.text = elements.text;
+    const { container, icon: iconEl, text } = this.createElements();
+    this.container = container;
+    this.icon = iconEl;
+    this.text = text;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-label"]);
 
     // IMPORTANT:
@@ -47,13 +48,5 @@ export default class Label {
       icon,
       text,
     };
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden === true;
   }
 }

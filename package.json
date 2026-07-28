@@ -16,12 +16,12 @@
   ],
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.7.1",
-    "@toil/translate": "^1.0.9",
+    "@toil/translate": "^1.10.0",
     "@types/bun": "^1.3.14",
     "@vot.js/core": "^2.4.20",
     "lefthook": "^2.1.10",
     "npm-run-all2": "^9.0.2",
-    "sass": "^1.101.0",
+    "sass": "^1.102.0",
     "typescript": "^6.0.3",
     "vite": "^8.1.5",
     "zip-a-folder": "^6.1.3"
@@ -41,6 +41,7 @@
     "dev": "vite build --watch --mode development --config vite/vite.config.ts",
     "format": "bunx @biomejs/biome check --write --unsafe ./src ./vite ./scripts",
     "lint": "bunx @biomejs/biome lint ./src ./vite ./scripts",
+    "check": "bunx tsc --noEmit",
     "gen:wiki": "bun run ./scripts/wiki-gen/index.js",
     "localize": "bunx \"@toil/localize-tui\""
   },

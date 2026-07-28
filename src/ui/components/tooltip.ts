@@ -35,6 +35,10 @@ type PositionBoundary = {
   height: number;
 };
 
+const DEFAULT_TOOLTIP_POS: Position = "top";
+const DEFAULT_TOOLTIP_TRIGGER: Trigger = "hover";
+const DEFAULT_TOOLTIP_MODE: TooltipMode = "default";
+
 export default class Tooltip {
   showed = false;
   target: HTMLElement;
@@ -83,35 +87,32 @@ export default class Tooltip {
     }
     this._hidden = opts.hidden ?? false;
     this.autoLayout = opts.autoLayout ?? true;
-    this.trigger = triggers.includes(opts.trigger as Trigger)
-      ? (opts.trigger as Trigger)
-      : "hover";
-    this.position = positions.includes(opts.position as Position)
-      ? (opts.position as Position)
-      : "top";
+    this.trigger = Tooltip.normalizeTrigger(opts.trigger);
+    this.position = Tooltip.normalizePos(opts.position);
     this.preferredPosition = this.position;
     this.portal = opts.parentElement ?? document.body;
     this.borderRadius = opts.borderRadius;
     this._bordered = opts.bordered ?? true;
     this.maxWidth = opts.maxWidth;
-    this.mode = tooltipModes.includes(opts.mode as TooltipMode)
-      ? (opts.mode as TooltipMode)
-      : "default";
+    this.mode = Tooltip.normalizeMode(opts.mode);
     this.backgroundColor = opts.backgroundColor;
     this.init();
   }
 
-  static validatePos(position: Position): boolean {
-    return positions.includes(position);
+  static normalizePos(position: Position): Position {
+    return positions.includes(position) ? position : DEFAULT_TOOLTIP_POS;
   }
 
-  static validateTrigger(trigger: Trigger): boolean {
-    return triggers.includes(trigger);
+  static normalizeTrigger(trigger: Trigger): Trigger {
+    return triggers.includes(trigger) ? trigger : DEFAULT_TOOLTIP_TRIGGER;
+  }
+
+  static normalizeMode(mode: TooltipMode): TooltipMode {
+    return tooltipModes.includes(mode) ? mode : DEFAULT_TOOLTIP_MODE;
   }
 
   setPosition(position: Position): this {
-    this.preferredPosition = Tooltip.validatePos(position) ? position : "top";
-    this.position = this.preferredPosition;
+    this.position = this.preferredPosition = Tooltip.normalizePos(position);
     this.schedulePositionUpdate();
     return this;
   }
@@ -130,16 +131,18 @@ export default class Tooltip {
 
   setContent(content: string | HTMLElement): this {
     this.content = content;
-    if (this.container) {
-      this.container.replaceChildren();
-      if (typeof content === "string") {
-        this.container.textContent = content;
-      } else {
-        this.container.append(content);
-      }
-      this.syncContentClass();
-      this.schedulePositionUpdate();
+    if (!this.container) {
+      return this;
     }
+
+    this.container.replaceChildren();
+    if (typeof content === "string") {
+      this.container.textContent = content;
+    } else {
+      this.container.append(content);
+    }
+    this.syncContentClass();
+    this.schedulePositionUpdate();
     return this;
   }
 
@@ -172,12 +175,14 @@ export default class Tooltip {
   }: {
     parentElement?: HTMLElement | ShadowRoot;
   }): this {
-    if (parentElement && this.portal !== parentElement) {
-      this.portal = parentElement;
-      if (this.container?.isConnected) {
-        parentElement.appendChild(this.container);
-        this.schedulePositionUpdate();
-      }
+    if (!(parentElement && this.portal !== parentElement)) {
+      return this;
+    }
+
+    this.portal = parentElement;
+    if (this.container?.isConnected) {
+      parentElement.appendChild(this.container);
+      this.schedulePositionUpdate();
     }
     return this;
   }
@@ -279,12 +284,13 @@ export default class Tooltip {
 
     if (this.trigger === "click") {
       this.target.removeEventListener("pointerdown", this.onClick);
-    } else {
-      this.target.removeEventListener("pointerenter", this.onPointerEnter);
-      this.target.removeEventListener("pointerleave", this.onPointerLeave);
-      this.target.removeEventListener("pointerdown", this.onTouchPointerDown);
-      this.target.removeEventListener("pointerup", this.onTouchPointerUp);
+      return this;
     }
+
+    this.target.removeEventListener("pointerenter", this.onPointerEnter);
+    this.target.removeEventListener("pointerleave", this.onPointerLeave);
+    this.target.removeEventListener("pointerdown", this.onTouchPointerDown);
+    this.target.removeEventListener("pointerup", this.onTouchPointerUp);
 
     return this;
   }

@@ -6,6 +6,7 @@ import {
   createDomId,
   isEventInside,
   setInteractiveHiddenState,
+  UIComponent,
 } from "./componentShared";
 
 export type VoiceType = "standard" | "live";
@@ -20,9 +21,7 @@ export interface VoicePopoverProps {
 
 type VoiceChangeListener = (voice: VoiceType) => boolean | undefined;
 
-export default class VoicePopover {
-  container: HTMLElement;
-
+export default class VoicePopover extends UIComponent {
   private readonly id = createDomId("vot-voice-popover");
   private readonly layoutRoot: HTMLElement;
   private _activeVoice: VoiceType;
@@ -53,13 +52,14 @@ export default class VoicePopover {
     onTranslate,
     onOpenChange,
   }: VoicePopoverProps) {
+    super();
     this._activeVoice = activeVoice;
     this.layoutRoot = layoutRoot;
     this.onTranslate = onTranslate;
     if (onOpenChange) {
       this.visibilityListeners.push(onOpenChange);
     }
-    this.container = this.createContainer();
+    this.container = this.createElements().container;
   }
 
   get activeVoice(): VoiceType {
@@ -71,8 +71,8 @@ export default class VoicePopover {
     this.updateActiveState();
   }
 
-  get hidden(): boolean {
-    return !!this.container.hidden;
+  override set hidden(isHidden: boolean) {
+    setInteractiveHiddenState(this.container, isHidden);
   }
 
   get isOpen(): boolean {
@@ -172,39 +172,39 @@ export default class VoicePopover {
     this.visibilityListeners = [];
   }
 
-  private createContainer(): HTMLElement {
-    const el = UI.createEl("vot-block", ["vot-voice-popover"]);
-    el.id = this.id;
-    el.setAttribute("role", "menu");
-    el.setAttribute("aria-label", "Voice type selection");
-    setInteractiveHiddenState(el, true);
+  protected createElements() {
+    const container = UI.createEl("vot-block", ["vot-voice-popover"]);
+    container.id = this.id;
+    container.setAttribute("role", "menu");
+    container.setAttribute("aria-label", "Voice type selection");
+    setInteractiveHiddenState(container, true);
 
-    el.append(
+    container.append(
       this.createItem(
         "standard",
         STANDARD_VOICE_ICON,
-        localizationProvider.get("VOTStandardVoicesTitle" as any),
-        localizationProvider.get("VOTStandardVoicesSubtitle" as any),
+        localizationProvider.get("VOTStandardVoicesTitle"),
+        localizationProvider.get("VOTStandardVoicesSubtitle"),
       ),
       UI.createEl("vot-block", ["vot-voice-popover__divider"]),
       this.createItem(
         "live",
         LIVE_VOICE_ICON,
-        localizationProvider.get("VOTLiveVoicesTitle" as any),
-        localizationProvider.get("VOTLiveVoicesSubtitle" as any),
+        localizationProvider.get("VOTLiveVoicesTitle"),
+        localizationProvider.get("VOTLiveVoicesSubtitle"),
       ),
     );
 
-    el.addEventListener("pointerenter", (e) => {
+    container.addEventListener("pointerenter", (e) => {
       if (e.pointerType === "touch") return;
       this.cancelHide();
     });
-    el.addEventListener("pointerleave", (e) => {
+    container.addEventListener("pointerleave", (e) => {
       if (e.pointerType === "touch") return;
       this.scheduleHide();
     });
 
-    return el;
+    return { container };
   }
 
   private createItem(
@@ -260,7 +260,7 @@ export default class VoicePopover {
       return;
     }
     this.anchorEl = anchor;
-    setInteractiveHiddenState(this.container, false);
+    this.hidden = false;
     this.updateActiveState();
     this.updatePosition(anchor);
     this.attachLayoutListeners();
@@ -273,7 +273,7 @@ export default class VoicePopover {
       this.emitVisibilityChange(false);
       return;
     }
-    setInteractiveHiddenState(this.container, true);
+    this.hidden = true;
     this.detachLayoutListeners();
     this.detachOutsideTapListener();
     this.anchorEl = null;

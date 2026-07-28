@@ -1,16 +1,15 @@
 import { render } from "lit-html";
 
-import { EventImpl } from "../../core/eventImpl";
 import type { CheckboxProps } from "../../types/components/checkbox";
 import type { LitHtml } from "../../types/components/shared";
 import UI from "../../ui";
+import { UIComponentWithEvents } from "./componentShared";
 
-export default class Checkbox {
-  container: HTMLElement;
+export default class Checkbox extends UIComponentWithEvents<{
+  change: [checked: boolean];
+}> {
   input: HTMLInputElement;
   label: HTMLSpanElement;
-
-  private readonly onChange = new EventImpl<[boolean]>();
 
   private readonly _labelHtml: LitHtml;
   private _checked: boolean;
@@ -21,17 +20,18 @@ export default class Checkbox {
     checked = false,
     isSubCheckbox = false,
   }: CheckboxProps) {
+    super(["change"]);
     this._labelHtml = labelHtml;
     this._checked = checked;
     this._isSubCheckbox = isSubCheckbox;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.input = elements.input;
-    this.label = elements.label;
+    const { container, input, label } = this.createElements();
+    this.container = container;
+    this.input = input;
+    this.label = label;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("label", ["vot-checkbox"]);
     if (this._isSubCheckbox) {
       container.classList.add("vot-checkbox-sub");
@@ -42,7 +42,7 @@ export default class Checkbox {
     input.checked = this._checked;
     input.addEventListener("change", () => {
       this._checked = input.checked;
-      this.onChange.dispatch(this._checked);
+      this.dispatch("change", this._checked);
     });
 
     const label = UI.createEl("span");
@@ -50,32 +50,6 @@ export default class Checkbox {
 
     container.append(input, label);
     return { container, input, label };
-  }
-
-  addEventListener(
-    _type: "change",
-    listener: (checked: boolean) => void,
-  ): this {
-    this.onChange.addListener(listener);
-
-    return this;
-  }
-
-  removeEventListener(
-    _type: "change",
-    listener: (checked: boolean) => void,
-  ): this {
-    this.onChange.removeListener(listener);
-
-    return this;
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden === true;
   }
 
   get disabled() {
@@ -99,6 +73,6 @@ export default class Checkbox {
     }
 
     this._checked = this.input.checked = isChecked;
-    this.onChange.dispatch(this._checked);
+    this.dispatch("change", this._checked);
   }
 }

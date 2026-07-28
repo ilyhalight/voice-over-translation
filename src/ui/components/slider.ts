@@ -1,17 +1,16 @@
 ﻿import { render } from "lit-html";
 
-import { EventImpl } from "../../core/eventImpl";
 import type { LitHtml } from "../../types/components/shared";
 import type { SliderProps } from "../../types/components/slider";
 import UI from "../../ui";
 import { clampNumber } from "../../utils/number";
+import { UIComponentWithEvents } from "./componentShared";
 
-export default class Slider {
-  container: HTMLElement;
+export default class Slider extends UIComponentWithEvents<{
+  input: [value: number, fromSetter: boolean];
+}> {
   input: HTMLInputElement;
   label: HTMLSpanElement;
-
-  private readonly onInput = new EventImpl<[number, boolean]>();
 
   private readonly _labelHtml: LitHtml;
   private _value: number;
@@ -26,16 +25,17 @@ export default class Slider {
     max = 100,
     step = 1,
   }: SliderProps) {
+    super(["input"]);
     this._labelHtml = labelHtml;
     this._value = value;
     this._min = min;
     this._max = max;
     this._step = step;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.input = elements.input;
-    this.label = elements.label;
+    const { container, input, label } = this.createElements();
+    this.container = container;
+    this.input = input;
+    this.label = label;
     this.update();
   }
 
@@ -55,7 +55,7 @@ export default class Slider {
     return this;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-slider"]);
     const input = document.createElement("input");
     input.type = "range";
@@ -70,7 +70,7 @@ export default class Slider {
     container.append(input, label);
     input.addEventListener("input", () => {
       this.update();
-      this.onInput.dispatch(this._value, false);
+      this.dispatch("input", this._value, false);
     });
 
     return {
@@ -78,24 +78,6 @@ export default class Slider {
       label,
       input,
     };
-  }
-
-  addEventListener(
-    _type: "input",
-    listener: (value: number, fromSetter: boolean) => void,
-  ): this {
-    this.onInput.addListener(listener);
-
-    return this;
-  }
-
-  removeEventListener(
-    _type: "input",
-    listener: (value: number, fromSetter: boolean) => void,
-  ): this {
-    this.onInput.removeListener(listener);
-
-    return this;
   }
 
   get value() {
@@ -110,7 +92,7 @@ export default class Slider {
     this._value = clampNumber(val, this._min, this._max);
     this.input.value = this._value.toString();
     this.updateProgress();
-    this.onInput.dispatch(this._value, true);
+    this.dispatch("input", this._value, true);
   }
 
   get min() {
@@ -152,13 +134,5 @@ export default class Slider {
 
   set disabled(isDisabled: boolean) {
     this.input.disabled = isDisabled;
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden === true;
   }
 }

@@ -81,7 +81,7 @@
 
     "@toil/gm-types": ["@toil/gm-types@1.0.5", "", { "peerDependencies": { "typescript": "^6.0.3" } }, "sha512-hk2MVBTL06cO5+P8S5m9WX/IFZVjTS9Dg2lX+UsYFKzltCzl/Wu9i4WotDOgtXLW90bRQiopX8YfRGtnYS1UOw=="],
 
-    "@toil/translate": ["@toil/translate@1.0.9", "", { "peerDependencies": { "typescript": "^6.0.3" } }, "sha512-mmw6F3xsU4vn8ijKG+W3eL9JRlU20Wg5X67kGpxTlJqWzaeKOd19l5cI4t9sylJMjVM4EA5FcdZejJ4V8KMxTA=="],
+    "@toil/translate": ["@toil/translate@1.10.0", "", { "peerDependencies": { "typescript": "^6.0.3" } }, "sha512-x1qic7Djj8rUK7QxV6GvKhZJXNqm2uwfQSBaB0cPKmopGUxmNlcLIxELYZ/Se2VPugtg1vdqguAqdeTRTQm/yA=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg=="],
 
@@ -263,7 +263,7 @@
 
     "rxjs": ["rxjs@7.5.7", "", { "dependencies": { "tslib": "^2.1.0" } }, "sha512-z9MzKh/UcOqB3i20H6rtrlaE/CgjLOvheWK/9ILrbhROGTweAi1BaFsTT9FbwZi5Trr1qNRs+MXkhmR06awzQA=="],
 
-    "sass": ["sass@1.101.0", "", { "dependencies": { "chokidar": "^5.0.0", "immutable": "^5.1.5", "source-map-js": ">=0.6.2 <2.0.0" }, "optionalDependencies": { "@parcel/watcher": "^2.4.1" }, "bin": { "sass": "sass.js" } }, "sha512-OL3GoQyoUdDt843DpVmDO6y2k1sc5IhUDSpu8XucEI+35neq5QivZ1iuegnpraEVTJXlQGK1gl27zKcTLEPbQw=="],
+    "sass": ["sass@1.102.0", "", { "dependencies": { "chokidar": "^5.0.0", "immutable": "^5.1.5", "source-map-js": ">=0.6.2 <2.0.0" }, "optionalDependencies": { "@parcel/watcher": "^2.4.1" }, "bin": { "sass": "sass.js" } }, "sha512-NSOyTnaQF7rTAEOtI2fwb386vL+akyiQLBZu8Na7hXCb+umJy0GAqlcMIaqACZ6Z1VgTBS4K9PG6B3IdjHGJsw=="],
 
     "shebang-command": ["shebang-command@2.0.0", "", { "dependencies": { "shebang-regex": "^3.0.0" } }, ""],
 

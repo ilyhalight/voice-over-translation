@@ -498,7 +498,7 @@ export class OverlayView {
     });
 
     this.votMenu.headerContainer.append(
-      this.downloadTranslationButton.button,
+      this.downloadTranslationButton.container,
       this.downloadSubtitlesButton,
       this.openSettingsButton,
     );

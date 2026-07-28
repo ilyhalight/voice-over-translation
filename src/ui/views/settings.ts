@@ -1138,7 +1138,7 @@ export class SettingsView {
       if (this.accountButton.loggedIn) {
         await votStorage.delete("account");
         this.data.account = {};
-        return this.updateAccountInfo();
+        return void this.updateAccountInfo();
       }
       openAuthWindow();
     });
