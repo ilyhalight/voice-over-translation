@@ -108,6 +108,10 @@ export default class VOTMenu extends UIComponent {
     setInteractiveHiddenState(this.container, isHidden);
   }
 
+  override get hidden() {
+    return super.hidden;
+  }
+
   get position() {
     return this._position;
   }

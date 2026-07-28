@@ -363,6 +363,10 @@ export default class Dialog extends UIComponentWithEvents<{
     setInteractiveHiddenState(this.container, isHidden);
   }
 
+  override get hidden() {
+    return super.hidden;
+  }
+
   get isDialogOpen() {
     return !this.hidden;
   }

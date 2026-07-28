@@ -65,6 +65,10 @@ export default class VoicePopover extends UIComponentWithEvents<{
     setInteractiveHiddenState(this.container, isHidden);
   }
 
+  override get hidden() {
+    return super.hidden;
+  }
+
   get isOpen(): boolean {
     return !this.hidden;
   }
@@ -261,6 +265,7 @@ export default class VoicePopover extends UIComponentWithEvents<{
     this._activeVoice = voice;
     this.updateActiveState();
     this.cancelHide();
+    this.dispatch("voiceChange", voice);
     this.onTranslate?.();
     this.hideNow();
   }
