@@ -122,6 +122,6 @@ export default class Textfield {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 }

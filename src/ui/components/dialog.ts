@@ -362,10 +362,10 @@ export default class Dialog {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 
   get isDialogOpen() {
-    return !this.container.hidden;
+    return !this.hidden;
   }
 }

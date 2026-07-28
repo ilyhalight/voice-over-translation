@@ -418,7 +418,7 @@ export default class Select<
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 
   get disabled() {

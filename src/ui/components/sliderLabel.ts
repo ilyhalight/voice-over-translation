@@ -73,6 +73,6 @@ export default class SliderLabel {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 }

@@ -159,6 +159,6 @@ export default class Slider {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 }

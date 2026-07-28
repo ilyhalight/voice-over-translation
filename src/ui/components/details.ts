@@ -63,6 +63,6 @@ export default class Details {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 }

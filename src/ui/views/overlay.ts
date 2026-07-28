@@ -465,7 +465,8 @@ export class OverlayView {
       bordered: false,
       parentElement: this.tooltipParentElement,
     });
-    this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
+    this.voiceMenuButtonTooltip.hidden =
+      this.votButton.dropdownArrow.hidden === true;
 
     // #endregion VOT Button
     // #region VOT Menu
@@ -1081,7 +1082,8 @@ export class OverlayView {
     this.votButtonTooltip.setPosition(this.votButton.tooltipPos);
     this.subtitlesButtonTooltip.setPosition(this.votButton.tooltipPos);
     this.voiceMenuButtonTooltip.setPosition(this.votButton.tooltipPos);
-    this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
+    this.voiceMenuButtonTooltip.hidden =
+      this.votButton.dropdownArrow.hidden === true;
 
     if (!options.keepVoicePopover && this.voicePopover?.isOpen) {
       this.voicePopover.hideNow();

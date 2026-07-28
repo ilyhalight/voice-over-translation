@@ -98,7 +98,7 @@ export default class VOTMenu {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 
   get position() {

@@ -233,7 +233,7 @@ export default class VOTButton {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 
   get position() {

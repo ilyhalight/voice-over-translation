@@ -75,7 +75,7 @@ export default class Checkbox {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 
   get disabled() {

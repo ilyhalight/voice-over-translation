@@ -79,7 +79,7 @@ export default class DownloadButton {
   }
 
   get hidden() {
-    return this.button.hidden;
+    return this.button.hidden === true;
   }
 }
 

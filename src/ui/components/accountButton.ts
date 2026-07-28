@@ -162,6 +162,6 @@ export default class AccountButton {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 }

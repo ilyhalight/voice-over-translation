@@ -140,7 +140,7 @@ export default class HotkeyButton {
   }
 
   get hidden() {
-    return this.container.hidden;
+    return this.container.hidden === true;
   }
 
   get key() {
