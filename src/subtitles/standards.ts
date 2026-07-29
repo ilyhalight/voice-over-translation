@@ -263,8 +263,8 @@ const getCueDurationMs = (startMs: number, endMs: number): number =>
 const toComparableSubtitleOrder = (
   subtitles: TimedCueDraft[],
 ): SubtitleLine[] =>
-  subtitles
-    .toSorted((left, right) => {
+  Array.from(subtitles)
+    .sort((left, right) => {
       const startDiff = left.line.startMs - right.line.startMs;
       if (startDiff !== 0) return startDiff;
 

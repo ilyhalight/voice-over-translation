@@ -4,6 +4,7 @@ keys/
 
 dist/test-ui.user.js
 dist/*.txt
+dist/*.map
 dist/main.user.js
 dist-ext/chrome/
 dist-ext/firefox/

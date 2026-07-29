@@ -15308,6 +15308,37 @@ var vot = (function(exports) {
 			handler();
 		}, options);
 	}
+	var UIComponent = class {
+		container;
+		set hidden(isHidden) {
+			this.container.hidden = isHidden;
+		}
+		get hidden() {
+			return this.container.hidden === true;
+		}
+	};
+	var UIComponentWithEvents = class extends UIComponent {
+		events;
+		constructor(types) {
+			super();
+			this.events = Object.fromEntries(types.map((typeItem) => [typeItem, new EventImpl()]));
+		}
+		addEventListener(type, listener) {
+			this.events[type].addListener(listener);
+			return this;
+		}
+		removeEventListener(type, listener) {
+			this.events[type].removeListener(listener);
+			return this;
+		}
+		dispatch(type, ...args) {
+			this.events[type].dispatch(...args);
+			return this;
+		}
+		clearEventListeners() {
+			for (const event of Object.values(this.events)) event.clear();
+		}
+	};
 	//#endregion
 	//#region src/ui.ts
 	function initKeyboardNavigationMode() {
@@ -15456,6 +15487,9 @@ var vot = (function(exports) {
 	var tooltipModes = ["default", "follow"];
 	//#endregion
 	//#region src/ui/components/tooltip.ts
+	var DEFAULT_TOOLTIP_POS = "top";
+	var DEFAULT_TOOLTIP_TRIGGER = "hover";
+	var DEFAULT_TOOLTIP_MODE = "default";
 	var Tooltip = class Tooltip {
 		showed = false;
 		target;
@@ -15499,26 +15533,28 @@ var vot = (function(exports) {
 			}
 			this._hidden = opts.hidden ?? false;
 			this.autoLayout = opts.autoLayout ?? true;
-			this.trigger = triggers.includes(opts.trigger) ? opts.trigger : "hover";
-			this.position = positions$1.includes(opts.position) ? opts.position : "top";
+			this.trigger = Tooltip.normalizeTrigger(opts.trigger);
+			this.position = Tooltip.normalizePos(opts.position);
 			this.preferredPosition = this.position;
 			this.portal = opts.parentElement ?? document.body;
 			this.borderRadius = opts.borderRadius;
 			this._bordered = opts.bordered ?? true;
 			this.maxWidth = opts.maxWidth;
-			this.mode = tooltipModes.includes(opts.mode) ? opts.mode : "default";
+			this.mode = Tooltip.normalizeMode(opts.mode);
 			this.backgroundColor = opts.backgroundColor;
 			this.init();
 		}
-		static validatePos(position) {
-			return positions$1.includes(position);
+		static normalizePos(position) {
+			return positions$1.includes(position) ? position : DEFAULT_TOOLTIP_POS;
 		}
-		static validateTrigger(trigger) {
-			return triggers.includes(trigger);
+		static normalizeTrigger(trigger) {
+			return triggers.includes(trigger) ? trigger : DEFAULT_TOOLTIP_TRIGGER;
+		}
+		static normalizeMode(mode) {
+			return tooltipModes.includes(mode) ? mode : DEFAULT_TOOLTIP_MODE;
 		}
 		setPosition(position) {
-			this.preferredPosition = Tooltip.validatePos(position) ? position : "top";
-			this.position = this.preferredPosition;
+			this.position = this.preferredPosition = Tooltip.normalizePos(position);
 			this.schedulePositionUpdate();
 			return this;
 		}
@@ -15529,13 +15565,12 @@ var vot = (function(exports) {
 		}
 		setContent(content) {
 			this.content = content;
-			if (this.container) {
-				this.container.replaceChildren();
-				if (typeof content === "string") this.container.textContent = content;
-				else this.container.append(content);
-				this.syncContentClass();
-				this.schedulePositionUpdate();
-			}
+			if (!this.container) return this;
+			this.container.replaceChildren();
+			if (typeof content === "string") this.container.textContent = content;
+			else this.container.append(content);
+			this.syncContentClass();
+			this.schedulePositionUpdate();
 			return this;
 		}
 		/** Remove tooltip DOM immediately (no fade). Use when switching UI modes. */
@@ -15561,12 +15596,11 @@ var vot = (function(exports) {
 		* If the tooltip is currently rendered, it will be moved to the new parent.
 		*/
 		updateMount({ parentElement }) {
-			if (parentElement && this.portal !== parentElement) {
-				this.portal = parentElement;
-				if (this.container?.isConnected) {
-					parentElement.appendChild(this.container);
-					this.schedulePositionUpdate();
-				}
+			if (!(parentElement && this.portal !== parentElement)) return this;
+			this.portal = parentElement;
+			if (this.container?.isConnected) {
+				parentElement.appendChild(this.container);
+				this.schedulePositionUpdate();
 			}
 			return this;
 		}
@@ -15626,13 +15660,14 @@ var vot = (function(exports) {
 			this.destroy(true);
 			this.detachScrollListener();
 			this.target.removeEventListener("keydown", this.onTargetKeyDown);
-			if (this.trigger === "click") this.target.removeEventListener("pointerdown", this.onClick);
-			else {
-				this.target.removeEventListener("pointerenter", this.onPointerEnter);
-				this.target.removeEventListener("pointerleave", this.onPointerLeave);
-				this.target.removeEventListener("pointerdown", this.onTouchPointerDown);
-				this.target.removeEventListener("pointerup", this.onTouchPointerUp);
+			if (this.trigger === "click") {
+				this.target.removeEventListener("pointerdown", this.onClick);
+				return this;
 			}
+			this.target.removeEventListener("pointerenter", this.onPointerEnter);
+			this.target.removeEventListener("pointerleave", this.onPointerLeave);
+			this.target.removeEventListener("pointerdown", this.onTouchPointerDown);
+			this.target.removeEventListener("pointerup", this.onTouchPointerUp);
 			return this;
 		}
 		schedulePositionUpdate() {
@@ -18971,7 +19006,7 @@ var vot = (function(exports) {
 	var normalizeSubtitleTextForDisplay = (value) => buildStyledDisplayModel(value).text;
 	var getSubtitleLineEndMs = (line) => line.startMs + Math.max(0, line.durationMs);
 	var getCueDurationMs = (startMs, endMs) => Math.max(0, endMs - startMs);
-	var toComparableSubtitleOrder = (subtitles) => subtitles.toSorted((left, right) => {
+	var toComparableSubtitleOrder = (subtitles) => Array.from(subtitles).sort((left, right) => {
 		const startDiff = left.line.startMs - right.line.startMs;
 		if (startDiff !== 0) return startDiff;
 		const endDiff = getSubtitleLineEndMs(left.line) - getSubtitleLineEndMs(right.line);
@@ -19772,41 +19807,32 @@ var vot = (function(exports) {
 </svg>`;
 	//#endregion
 	//#region src/ui/components/downloadButton.ts
-	var DownloadButton = class {
-		button;
+	var DownloadButton = class extends UIComponentWithEvents {
 		loaderMain;
 		loaderCircle;
-		onClick = new EventImpl();
 		_progress = 0;
 		constructor() {
-			const elements = this.createElements();
-			this.button = elements.button;
-			this.loaderMain = elements.loaderMain;
-			this.loaderCircle = elements.loaderCircle;
+			super(["click"]);
+			const { container, loaderMain, loaderCircle } = this.createElements();
+			this.container = container;
+			this.loaderMain = loaderMain;
+			this.loaderCircle = loaderCircle;
 			this.progress = 0;
 		}
 		createElements() {
-			const button = UI.createIconButton(DOWNLOAD_ICON, { ariaLabel: "Download translation" });
-			const loaderMain = button.querySelector(".vot-loader-main");
+			const container = UI.createIconButton(DOWNLOAD_ICON, { ariaLabel: "Download translation" });
+			const loaderMain = container.querySelector(".vot-loader-main");
 			if (!loaderMain) throw new Error("[VOT] DownloadButton loader main element not found");
-			const loaderCircle = button.querySelector(".vot-loader-progress");
+			const loaderCircle = container.querySelector(".vot-loader-progress");
 			if (!loaderCircle) throw new Error("[VOT] DownloadButton loader circle element not found");
-			button.addEventListener("click", () => {
-				this.onClick.dispatch();
+			container.addEventListener("click", () => {
+				this.dispatch("click");
 			});
 			return {
-				button,
+				container,
 				loaderMain,
 				loaderCircle
 			};
-		}
-		addEventListener(_type, listener) {
-			this.onClick.addListener(listener);
-			return this;
-		}
-		removeEventListener(_type, listener) {
-			this.onClick.removeListener(listener);
-			return this;
 		}
 		get progress() {
 			return this._progress;
@@ -19825,12 +19851,6 @@ var vot = (function(exports) {
 			const radius = this.loaderCircle.r?.baseVal?.value ?? 0;
 			return 2 * Math.PI * radius;
 		}
-		set hidden(isHidden) {
-			this.button.hidden = isHidden;
-		}
-		get hidden() {
-			return this.button.hidden;
-		}
 	};
 	function clampProgress(value) {
 		if (!Number.isFinite(value)) return 0;
@@ -19838,19 +19858,19 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/ui/components/label.ts
-	var Label = class {
-		container;
+	var Label = class extends UIComponent {
 		icon;
 		text;
 		_labelText;
 		_icon;
 		constructor({ labelText, icon }) {
+			super();
 			this._labelText = labelText;
 			this._icon = icon;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.icon = elements.icon;
-			this.text = elements.text;
+			const { container, icon: iconEl, text } = this.createElements();
+			this.container = container;
+			this.icon = iconEl;
+			this.text = text;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-label"]);
@@ -19866,17 +19886,10 @@ var vot = (function(exports) {
 				text
 			};
 		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
-		}
 	};
 	//#endregion
 	//#region src/ui/components/dialog.ts
-	var Dialog = class {
-		container;
+	var Dialog = class extends UIComponentWithEvents {
 		backdrop;
 		box;
 		contentWrapper;
@@ -19886,7 +19899,6 @@ var vot = (function(exports) {
 		closeButton;
 		bodyContainer;
 		footerContainer;
-		onClose = new EventImpl();
 		previouslyFocused = null;
 		keydownListener;
 		adaptiveAlignObserver;
@@ -19898,19 +19910,20 @@ var vot = (function(exports) {
 		_titleHtml;
 		_isTemp;
 		constructor({ titleHtml, isTemp = false }) {
+			super(["close"]);
 			this._titleHtml = titleHtml;
 			this._isTemp = isTemp;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.backdrop = elements.backdrop;
-			this.box = elements.box;
-			this.contentWrapper = elements.contentWrapper;
-			this.headerContainer = elements.headerContainer;
-			this.titleContainer = elements.titleContainer;
-			this.title = elements.title;
-			this.closeButton = elements.closeButton;
-			this.bodyContainer = elements.bodyContainer;
-			this.footerContainer = elements.footerContainer;
+			const { container, backdrop, box, contentWrapper, headerContainer, titleContainer, title, closeButton, bodyContainer, footerContainer } = this.createElements();
+			this.container = container;
+			this.backdrop = backdrop;
+			this.box = box;
+			this.contentWrapper = contentWrapper;
+			this.headerContainer = headerContainer;
+			this.titleContainer = titleContainer;
+			this.title = title;
+			this.closeButton = closeButton;
+			this.bodyContainer = bodyContainer;
+			this.footerContainer = footerContainer;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-dialog-container"]);
@@ -19962,14 +19975,6 @@ var vot = (function(exports) {
 				footerContainer
 			};
 		}
-		addEventListener(_type, listener) {
-			this.onClose.addListener(listener);
-			return this;
-		}
-		removeEventListener(_type, listener) {
-			this.onClose.removeListener(listener);
-			return this;
-		}
 		open() {
 			this.previouslyFocused ??= getDeepActiveElement(document);
 			this.hidden = false;
@@ -19983,7 +19988,7 @@ var vot = (function(exports) {
 			this.detachKeydownTrap();
 			this.container.remove();
 			this.restoreFocus();
-			this.onClose.dispatch();
+			this.dispatch("close");
 			return this;
 		}
 		close() {
@@ -19992,7 +19997,7 @@ var vot = (function(exports) {
 			this.detachKeydownTrap();
 			this.hidden = true;
 			this.restoreFocus();
-			this.onClose.dispatch();
+			this.dispatch("close");
 			return this;
 		}
 		attachAdaptiveVerticalAlign() {
@@ -20109,37 +20114,31 @@ var vot = (function(exports) {
 			setInteractiveHiddenState(this.container, isHidden);
 		}
 		get hidden() {
-			return this.container.hidden;
+			return super.hidden;
 		}
 		get isDialogOpen() {
-			return !this.container.hidden;
+			return !this.hidden;
 		}
 	};
 	//#endregion
 	//#region src/ui/components/textfield.ts
-	var Textfield = class {
-		container;
+	var Textfield = class extends UIComponentWithEvents {
 		input;
 		label;
-		onInput = new EventImpl();
-		onChange = new EventImpl();
-		events = {
-			input: this.onInput,
-			change: this.onChange
-		};
 		_labelHtml;
 		_multiline;
 		_placeholder;
 		_value;
 		constructor({ labelHtml = "", placeholder = "", value = "", multiline = false }) {
+			super(["input", "change"]);
 			this._labelHtml = labelHtml;
 			this._multiline = multiline;
 			this._placeholder = placeholder;
 			this._value = value;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.input = elements.input;
-			this.label = elements.label;
+			const { container, input, label } = this.createElements();
+			this.container = container;
+			this.input = input;
+			this.label = label;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-textfield"]);
@@ -20152,25 +20151,17 @@ var vot = (function(exports) {
 			container.append(input, label);
 			input.addEventListener("input", () => {
 				this._value = this.input.value;
-				this.onInput.dispatch(this._value);
+				this.dispatch("input", this._value);
 			});
 			input.addEventListener("change", () => {
 				this._value = this.input.value;
-				this.onChange.dispatch(this._value);
+				this.dispatch("change", this._value);
 			});
 			return {
 				container,
 				label,
 				input
 			};
-		}
-		addEventListener(type, listener) {
-			this.events[type].addListener(listener);
-			return this;
-		}
-		removeEventListener(type, listener) {
-			this.events[type].removeListener(listener);
-			return this;
 		}
 		get value() {
 			return this._value;
@@ -20181,7 +20172,7 @@ var vot = (function(exports) {
 		set value(val) {
 			if (this._value === val) return;
 			this.input.value = this._value = val;
-			this.onChange.dispatch(this._value);
+			this.dispatch("change", this._value);
 		}
 		get placeholder() {
 			return this._placeholder;
@@ -20195,17 +20186,10 @@ var vot = (function(exports) {
 		set disabled(isDisabled) {
 			this.input.disabled = isDisabled;
 		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
-		}
 	};
 	//#endregion
 	//#region src/ui/components/select.ts
-	var Select = class {
-		container;
+	var Select = class extends UIComponentWithEvents {
 		outer;
 		arrowIcon;
 		title;
@@ -20220,18 +20204,13 @@ var vot = (function(exports) {
 		isLoading = false;
 		isDialogOpen = false;
 		searchRequestId = 0;
-		onSelectItem = new EventImpl();
-		onBeforeOpen = new EventImpl();
-		events = {
-			selectItem: this.onSelectItem,
-			beforeOpen: this.onBeforeOpen
-		};
 		contentList;
 		contentItemSearchDatasetKey = "votSearchLabel";
 		contentItemIndexDatasetKey = "votIndex";
 		selectedItems = [];
 		selectedValues;
 		constructor({ selectTitle, dialogTitle, items, searchItemsProvider, labelElement, dialogParent = document.documentElement, multiSelect }) {
+			super(["selectItem", "beforeOpen"]);
 			this._selectTitle = selectTitle;
 			this._dialogTitle = dialogTitle;
 			this.baseItems = this.cloneItems(items);
@@ -20241,11 +20220,11 @@ var vot = (function(exports) {
 			this.labelElement = labelElement;
 			this.dialogParent = dialogParent;
 			this.selectedValues = this.calcSelectedValues();
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.outer = elements.outer;
-			this.arrowIcon = elements.arrowIcon;
-			this.title = elements.title;
+			const { container, outer, arrowIcon, title } = this.createElements();
+			this.container = container;
+			this.outer = outer;
+			this.arrowIcon = arrowIcon;
+			this.title = title;
 		}
 		cloneItems(items) {
 			return items.map((item) => ({ ...item }));
@@ -20268,7 +20247,7 @@ var vot = (function(exports) {
 			this.syncItemsSelectionState();
 			this.syncItemsSelectionState(this.baseItems);
 			this.updateSelectedState();
-			this.onSelectItem.dispatch(Array.from(this.selectedValues));
+			this.dispatch("selectItem", Array.from(this.selectedValues));
 		};
 		singleSelectItemHandle = (item) => {
 			const value = item.value;
@@ -20276,7 +20255,7 @@ var vot = (function(exports) {
 			this.syncItemsSelectionState();
 			this.syncItemsSelectionState(this.baseItems);
 			this.updateSelectedState();
-			this.onSelectItem.dispatch(value);
+			this.dispatch("selectItem", value);
 		};
 		onContentItemClick = (event) => {
 			if (!(event.target instanceof HTMLElement)) return;
@@ -20340,7 +20319,7 @@ var vot = (function(exports) {
 						titleHtml: this._dialogTitle,
 						isTemp: true
 					});
-					this.onBeforeOpen.dispatch(tempDialog);
+					this.dispatch("beforeOpen", tempDialog);
 					this.dialogParent.appendChild(tempDialog.container);
 					this.isDialogOpen = true;
 					outer.setAttribute("aria-expanded", "true");
@@ -20379,14 +20358,6 @@ var vot = (function(exports) {
 		}
 		calcSelectedValues() {
 			return new Set(this._items.filter((item) => item.selected).map((item) => item.value));
-		}
-		addEventListener(type, listener) {
-			this.events[type].addListener(listener);
-			return this;
-		}
-		removeEventListener(type, listener) {
-			this.events[type].removeListener(listener);
-			return this;
 		}
 		updateTitle() {
 			this.title.textContent = this.visibleText;
@@ -20437,12 +20408,6 @@ var vot = (function(exports) {
 			this._selectTitle = title;
 			this.updateTitle();
 		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
-		}
 		get disabled() {
 			return this.outer.getAttribute("disabled") === "true" || this.outer.getAttribute("aria-disabled") === "true";
 		}
@@ -20452,8 +20417,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/components/languagePairSelect.ts
-	var LanguagePairSelect = class {
-		container;
+	var LanguagePairSelect = class extends UIComponent {
 		fromSelect;
 		directionIcon;
 		toSelect;
@@ -20465,6 +20429,7 @@ var vot = (function(exports) {
 		_toDialogTitle;
 		_toItems;
 		constructor({ from: { selectTitle: fromSelectTitle = localizationProvider.get("videoLanguage"), dialogTitle: fromDialogTitle = localizationProvider.get("videoLanguage"), items: fromItems }, to: { selectTitle: toSelectTitle = localizationProvider.get("translationLanguage"), dialogTitle: toDialogTitle = localizationProvider.get("translationLanguage"), items: toItems }, dialogParent = document.documentElement }) {
+			super();
 			this._fromSelectTitle = fromSelectTitle;
 			this._fromDialogTitle = fromDialogTitle;
 			this._fromItems = fromItems;
@@ -20472,11 +20437,11 @@ var vot = (function(exports) {
 			this._toDialogTitle = toDialogTitle;
 			this._toItems = toItems;
 			this.dialogParent = dialogParent;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.fromSelect = elements.fromSelect;
-			this.directionIcon = elements.directionIcon;
-			this.toSelect = elements.toSelect;
+			const { container, fromSelect, directionIcon, toSelect } = this.createElements();
+			this.container = container;
+			this.fromSelect = fromSelect;
+			this.directionIcon = directionIcon;
+			this.toSelect = toSelect;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-lang-select"]);
@@ -20517,26 +20482,25 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/components/slider.ts
-	var Slider = class {
-		container;
+	var Slider = class extends UIComponentWithEvents {
 		input;
 		label;
-		onInput = new EventImpl();
 		_labelHtml;
 		_value;
 		_min;
 		_max;
 		_step;
 		constructor({ labelHtml, value = 50, min = 0, max = 100, step = 1 }) {
+			super(["input"]);
 			this._labelHtml = labelHtml;
 			this._value = value;
 			this._min = min;
 			this._max = max;
 			this._step = step;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.input = elements.input;
-			this.label = elements.label;
+			const { container, input, label } = this.createElements();
+			this.container = container;
+			this.input = input;
+			this.label = label;
 			this.update();
 		}
 		updateProgress() {
@@ -20565,21 +20529,13 @@ var vot = (function(exports) {
 			container.append(input, label);
 			input.addEventListener("input", () => {
 				this.update();
-				this.onInput.dispatch(this._value, false);
+				this.dispatch("input", this._value, false);
 			});
 			return {
 				container,
 				label,
 				input
 			};
-		}
-		addEventListener(_type, listener) {
-			this.onInput.addListener(listener);
-			return this;
-		}
-		removeEventListener(_type, listener) {
-			this.onInput.removeListener(listener);
-			return this;
 		}
 		get value() {
 			return this._value;
@@ -20591,7 +20547,7 @@ var vot = (function(exports) {
 			this._value = clampNumber(val, this._min, this._max);
 			this.input.value = this._value.toString();
 			this.updateProgress();
-			this.onInput.dispatch(this._value, true);
+			this.dispatch("input", this._value, true);
 		}
 		get min() {
 			return this._min;
@@ -20626,17 +20582,10 @@ var vot = (function(exports) {
 		set disabled(isDisabled) {
 			this.input.disabled = isDisabled;
 		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
-		}
 	};
 	//#endregion
 	//#region src/ui/components/sliderLabel.ts
-	var SliderLabel = class {
-		container;
+	var SliderLabel = class extends UIComponent {
 		strong;
 		text;
 		_labelText;
@@ -20644,14 +20593,15 @@ var vot = (function(exports) {
 		_value;
 		_symbol;
 		constructor({ labelText, labelEOL = "", value = 50, symbol = "%" }) {
+			super();
 			this._labelText = labelText;
 			this._labelEOL = labelEOL;
 			this._value = value;
 			this._symbol = symbol;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.strong = elements.strong;
-			this.text = elements.text;
+			const { container, strong, text } = this.createElements();
+			this.container = container;
+			this.strong = strong;
+			this.text = text;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-slider-label"]);
@@ -20679,23 +20629,14 @@ var vot = (function(exports) {
 			this._value = val;
 			this.strong.textContent = this.valueText;
 		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
-		}
 	};
 	//#endregion
 	//#region src/ui/components/voicePopover.ts
-	var VoicePopover = class VoicePopover {
-		container;
+	var VoicePopover = class VoicePopover extends UIComponentWithEvents {
 		id = createDomId("vot-voice-popover");
 		layoutRoot;
 		_activeVoice;
 		onTranslate;
-		listeners = [];
-		visibilityListeners = [];
 		lastVisibilityState = false;
 		showTimer = null;
 		hideTimer = null;
@@ -20708,12 +20649,12 @@ var vot = (function(exports) {
 		onLayoutChangeBound = () => {
 			if (this.isOpen && this.anchorEl) this.schedulePositionUpdate(this.anchorEl);
 		};
-		constructor({ activeVoice, layoutRoot, onTranslate, onOpenChange }) {
+		constructor({ activeVoice, layoutRoot, onTranslate }) {
+			super(["openChange", "voiceChange"]);
 			this._activeVoice = activeVoice;
 			this.layoutRoot = layoutRoot;
 			this.onTranslate = onTranslate;
-			if (onOpenChange) this.visibilityListeners.push(onOpenChange);
-			this.container = this.createContainer();
+			this.container = this.createElements().container;
 		}
 		get activeVoice() {
 			return this._activeVoice;
@@ -20722,27 +20663,14 @@ var vot = (function(exports) {
 			this._activeVoice = value;
 			this.updateActiveState();
 		}
+		set hidden(isHidden) {
+			setInteractiveHiddenState(this.container, isHidden);
+		}
 		get hidden() {
-			return !!this.container.hidden;
+			return super.hidden;
 		}
 		get isOpen() {
 			return !this.hidden;
-		}
-		addEventListener(listener) {
-			this.listeners.push(listener);
-			return this;
-		}
-		removeEventListener(listener) {
-			this.listeners = this.listeners.filter((l) => l !== listener);
-			return this;
-		}
-		addVisibilityListener(listener) {
-			this.visibilityListeners.push(listener);
-			return this;
-		}
-		removeVisibilityListener(listener) {
-			this.visibilityListeners = this.visibilityListeners.filter((l) => l !== listener);
-			return this;
 		}
 		scheduleShow(anchor) {
 			this.cancelHide();
@@ -20800,25 +20728,24 @@ var vot = (function(exports) {
 			this.cancelHide();
 			this.close();
 			this.container.remove();
-			this.listeners = [];
-			this.visibilityListeners = [];
+			this.clearEventListeners();
 		}
-		createContainer() {
-			const el = UI.createEl("vot-block", ["vot-voice-popover"]);
-			el.id = this.id;
-			el.setAttribute("role", "menu");
-			el.setAttribute("aria-label", "Voice type selection");
-			setInteractiveHiddenState(el, true);
-			el.append(this.createItem("standard", STANDARD_VOICE_ICON, localizationProvider.get("VOTStandardVoicesTitle"), localizationProvider.get("VOTStandardVoicesSubtitle")), UI.createEl("vot-block", ["vot-voice-popover__divider"]), this.createItem("live", LIVE_VOICE_ICON, localizationProvider.get("VOTLiveVoicesTitle"), localizationProvider.get("VOTLiveVoicesSubtitle")));
-			el.addEventListener("pointerenter", (e) => {
+		createElements() {
+			const container = UI.createEl("vot-block", ["vot-voice-popover"]);
+			container.id = this.id;
+			container.setAttribute("role", "menu");
+			container.setAttribute("aria-label", "Voice type selection");
+			setInteractiveHiddenState(container, true);
+			container.append(this.createItem("standard", STANDARD_VOICE_ICON, localizationProvider.get("VOTStandardVoicesTitle"), localizationProvider.get("VOTStandardVoicesSubtitle")), UI.createEl("vot-block", ["vot-voice-popover__divider"]), this.createItem("live", LIVE_VOICE_ICON, localizationProvider.get("VOTLiveVoicesTitle"), localizationProvider.get("VOTLiveVoicesSubtitle")));
+			container.addEventListener("pointerenter", (e) => {
 				if (e.pointerType === "touch") return;
 				this.cancelHide();
 			});
-			el.addEventListener("pointerleave", (e) => {
+			container.addEventListener("pointerleave", (e) => {
 				if (e.pointerType === "touch") return;
 				this.scheduleHide();
 			});
-			return el;
+			return { container };
 		}
 		createItem(voice, iconTemplate, title, subtitle) {
 			const item = UI.createEl("vot-block", ["vot-voice-popover__item"]);
@@ -20857,7 +20784,7 @@ var vot = (function(exports) {
 				return;
 			}
 			this.anchorEl = anchor;
-			setInteractiveHiddenState(this.container, false);
+			this.hidden = false;
 			this.updateActiveState();
 			this.updatePosition(anchor);
 			this.attachLayoutListeners();
@@ -20869,7 +20796,7 @@ var vot = (function(exports) {
 				this.emitVisibilityChange(false);
 				return;
 			}
-			setInteractiveHiddenState(this.container, true);
+			this.hidden = true;
 			this.detachLayoutListeners();
 			this.detachOutsideTapListener();
 			this.anchorEl = null;
@@ -20882,15 +20809,14 @@ var vot = (function(exports) {
 		emitVisibilityChange(isOpen) {
 			if (this.lastVisibilityState === isOpen) return;
 			this.lastVisibilityState = isOpen;
-			for (const listener of this.visibilityListeners) listener(isOpen);
+			this.dispatch("openChange", isOpen);
 		}
 		handleSelect(voice) {
 			this._activeVoice = voice;
 			this.updateActiveState();
 			this.cancelHide();
-			let shouldTranslate = true;
-			for (const listener of this.listeners) if (listener(voice) === false) shouldTranslate = false;
-			if (shouldTranslate && this.onTranslate) this.onTranslate();
+			this.dispatch("voiceChange", voice);
+			this.onTranslate?.();
 			this.hideNow();
 		}
 		updateActiveState() {
@@ -20993,8 +20919,7 @@ var vot = (function(exports) {
 	function isSidePosition(position) {
 		return position === "left" || position === "right" || position === "leftCenter" || position === "rightCenter";
 	}
-	var VOTButton = class {
-		container;
+	var VOTButton = class extends UIComponent {
 		translateButton;
 		dropdownArrow;
 		separator;
@@ -21012,21 +20937,22 @@ var vot = (function(exports) {
 		/** Text shown next to the translate icon (plain text, not HTML). */
 		_labelText;
 		constructor({ position = "default", direction = "default", status = "none", labelHtml = "" }) {
+			super();
 			this._position = position;
 			this._direction = direction;
 			this._status = status;
 			this._labelText = labelHtml;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.translateButton = elements.translateButton;
-			this.dropdownArrow = elements.dropdownArrow;
-			this.separator = elements.separator;
-			this.subtitlesButton = elements.subtitlesButton;
-			this.separator3 = elements.separator3;
-			this.pipButton = elements.pipButton;
-			this.separator2 = elements.separator2;
-			this.menuButton = elements.menuButton;
-			this.label = elements.label;
+			const { container, translateButton, dropdownArrow, separator, subtitlesButton, separator3, pipButton, separator2, menuButton, label } = this.createElements();
+			this.container = container;
+			this.translateButton = translateButton;
+			this.dropdownArrow = dropdownArrow;
+			this.separator = separator;
+			this.subtitlesButton = subtitlesButton;
+			this.separator3 = separator3;
+			this.pipButton = pipButton;
+			this.separator2 = separator2;
+			this.menuButton = menuButton;
+			this.label = label;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-segmented-button"]);
@@ -21138,12 +21064,6 @@ var vot = (function(exports) {
 			this.translateButton.classList.toggle("vot-translate-button--voice-menu-open", isOpen);
 			return this;
 		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
-		}
 		get position() {
 			return this._position;
 		}
@@ -21179,8 +21099,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/components/votMenu.ts
-	var VOTMenu = class {
-		container;
+	var VOTMenu = class extends UIComponent {
 		contentWrapper;
 		headerContainer;
 		bodyContainer;
@@ -21192,16 +21111,17 @@ var vot = (function(exports) {
 		menuId = createDomId("vot-menu");
 		titleId = createDomId("vot-menu-title");
 		constructor({ position = "default", titleHtml = "" }) {
+			super();
 			this._position = position;
 			this._titleHtml = titleHtml;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.contentWrapper = elements.contentWrapper;
-			this.headerContainer = elements.headerContainer;
-			this.bodyContainer = elements.bodyContainer;
-			this.footerContainer = elements.footerContainer;
-			this.titleContainer = elements.titleContainer;
-			this.title = elements.title;
+			const { container, contentWrapper, headerContainer, bodyContainer, footerContainer, titleContainer, title } = this.createElements();
+			this.container = container;
+			this.contentWrapper = contentWrapper;
+			this.headerContainer = headerContainer;
+			this.bodyContainer = bodyContainer;
+			this.footerContainer = footerContainer;
+			this.titleContainer = titleContainer;
+			this.title = title;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-menu"]);
@@ -21246,7 +21166,7 @@ var vot = (function(exports) {
 			setInteractiveHiddenState(this.container, isHidden);
 		}
 		get hidden() {
-			return this.container.hidden;
+			return super.hidden;
 		}
 		get position() {
 			return this._position;
@@ -21491,7 +21411,7 @@ var vot = (function(exports) {
 					this.events["click:translate"].dispatch();
 				}
 			});
-			this.voicePopover.addVisibilityListener((isOpen) => {
+			this.voicePopover.addEventListener("openChange", (isOpen) => {
 				this.votButton?.setVoiceMenuOpen(isOpen);
 			});
 			this.votButton.container.dataset.voiceType = activeVoice;
@@ -21515,7 +21435,7 @@ var vot = (function(exports) {
 				bordered: false,
 				parentElement: this.tooltipParentElement
 			});
-			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
+			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden === true;
 			this.votMenu = new VOTMenu({
 				titleHtml: localizationProvider.get("VOTSettings"),
 				position
@@ -21528,7 +21448,7 @@ var vot = (function(exports) {
 			this.downloadSubtitlesButton = UI.createIconButton(SUBTITLES_ICON, { ariaLabel: "Download subtitles" });
 			this.downloadSubtitlesButton.hidden = true;
 			this.openSettingsButton = UI.createIconButton(SETTINGS_ICON, { ariaLabel: localizationProvider.get("VOTSettings") });
-			this.votMenu.headerContainer.append(this.downloadTranslationButton.button, this.downloadSubtitlesButton, this.openSettingsButton);
+			this.votMenu.headerContainer.append(this.downloadTranslationButton.container, this.downloadSubtitlesButton, this.openSettingsButton);
 			const detectedLanguage = this.videoHandler?.videoData?.detectedLanguage ?? "en";
 			const responseLanguage = this.data.responseLanguage ?? "ru";
 			this.languagePairSelect = new LanguagePairSelect({
@@ -21672,7 +21592,7 @@ var vot = (function(exports) {
 				}
 				this.voicePopover?.showNow(this.votButton.translateButton);
 			}, { signal });
-			this.voicePopover.addEventListener((voice) => {
+			this.voicePopover.addEventListener("voiceChange", (voice) => {
 				const useLive = voice === "live";
 				if (this.data.useLivelyVoice === useLive) {
 					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
@@ -21820,7 +21740,7 @@ var vot = (function(exports) {
 			this.votButtonTooltip.setPosition(this.votButton.tooltipPos);
 			this.subtitlesButtonTooltip.setPosition(this.votButton.tooltipPos);
 			this.voiceMenuButtonTooltip.setPosition(this.votButton.tooltipPos);
-			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
+			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden === true;
 			if (!options.keepVoicePopover && this.voicePopover?.isOpen) {
 				this.voicePopover.hideNow();
 				this.voiceMenuButtonTooltip?.dismissImmediate();
@@ -22182,8 +22102,9 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/ui/components/accountButton.ts
-	var AccountButton = class {
-		container;
+	var DEFAULT_AVATAR_ID = "0/0-0";
+	var DEFAULT_USERNAME = "unnamed";
+	var AccountButton = class extends UIComponentWithEvents {
 		accountWrapper;
 		buttons;
 		usernameEl;
@@ -22192,31 +22113,28 @@ var vot = (function(exports) {
 		actionButton;
 		refreshButton;
 		tokenButton;
-		onClick = new EventImpl();
-		onRefresh = new EventImpl();
-		onClickSecret = new EventImpl();
-		events = {
-			click: this.onClick,
-			"click:secret": this.onClickSecret,
-			refresh: this.onRefresh
-		};
 		_loggedIn;
 		_username;
 		_avatarId;
-		constructor({ loggedIn = false, username = "unnamed", avatarId = "0/0-0" } = {}) {
+		constructor({ loggedIn = false, username = DEFAULT_USERNAME, avatarId = DEFAULT_AVATAR_ID } = {}) {
+			super([
+				"click",
+				"click:secret",
+				"refresh"
+			]);
 			this._loggedIn = loggedIn;
 			this._username = username;
 			this._avatarId = avatarId;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.accountWrapper = elements.accountWrapper;
-			this.buttons = elements.buttons;
-			this.usernameEl = elements.usernameEl;
-			this.avatarEl = elements.avatarEl;
-			this.avatarImg = elements.avatarImg;
-			this.actionButton = elements.actionButton;
-			this.refreshButton = elements.refreshButton;
-			this.tokenButton = elements.tokenButton;
+			const { container, accountWrapper, buttons, usernameEl, avatarEl, avatarImg, actionButton, refreshButton, tokenButton } = this.createElements();
+			this.container = container;
+			this.accountWrapper = accountWrapper;
+			this.buttons = buttons;
+			this.usernameEl = usernameEl;
+			this.avatarEl = avatarEl;
+			this.avatarImg = avatarImg;
+			this.actionButton = actionButton;
+			this.refreshButton = refreshButton;
+			this.tokenButton = tokenButton;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-account"]);
@@ -22233,16 +22151,16 @@ var vot = (function(exports) {
 			const buttons = UI.createEl("vot-block", ["vot-account-buttons"]);
 			const actionButton = UI.createOutlinedButton(this.buttonText);
 			actionButton.addEventListener("click", () => {
-				this.onClick.dispatch();
+				this.dispatch("click");
 			});
 			const tokenButton = UI.createIconButton(KEY_ICON, { ariaLabel: localizationProvider.get("VOTLoginViaToken") });
 			tokenButton.hidden = this._loggedIn;
 			tokenButton.addEventListener("click", () => {
-				this.onClickSecret.dispatch();
+				this.dispatch("click:secret");
 			});
 			const refreshButton = UI.createIconButton(REFRESH_ICON, { ariaLabel: localizationProvider.get("VOTRefresh") });
 			refreshButton.addEventListener("click", () => {
-				this.onRefresh.dispatch();
+				this.dispatch("refresh");
 			});
 			buttons.append(actionButton, tokenButton, refreshButton);
 			container.append(accountWrapper, buttons);
@@ -22257,14 +22175,6 @@ var vot = (function(exports) {
 				refreshButton,
 				tokenButton
 			};
-		}
-		addEventListener(type, listener) {
-			this.events[type].addListener(listener);
-			return this;
-		}
-		removeEventListener(type, listener) {
-			this.events[type].removeListener(listener);
-			return this;
 		}
 		get buttonText() {
 			return this._loggedIn ? localizationProvider.get("VOTLogout") : localizationProvider.get("VOTLogin");
@@ -22282,41 +22192,34 @@ var vot = (function(exports) {
 			return this._avatarId;
 		}
 		set avatarId(avatarId) {
-			this._avatarId = avatarId ?? "0/0-0";
+			this._avatarId = avatarId ?? DEFAULT_AVATAR_ID;
 			this.avatarImg.src = `${avatarServerUrl}/${this._avatarId}/islands-retina-middle`;
 		}
 		get username() {
 			return this._username;
 		}
 		set username(username) {
-			this._username = username ?? "unnamed";
+			this._username = username ?? DEFAULT_USERNAME;
 			this.usernameEl.textContent = this._username;
-		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
 		}
 	};
 	//#endregion
 	//#region src/ui/components/checkbox.ts
-	var Checkbox = class {
-		container;
+	var Checkbox = class extends UIComponentWithEvents {
 		input;
 		label;
-		onChange = new EventImpl();
 		_labelHtml;
 		_checked;
 		_isSubCheckbox;
 		constructor({ labelHtml, checked = false, isSubCheckbox = false }) {
+			super(["change"]);
 			this._labelHtml = labelHtml;
 			this._checked = checked;
 			this._isSubCheckbox = isSubCheckbox;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.input = elements.input;
-			this.label = elements.label;
+			const { container, input, label } = this.createElements();
+			this.container = container;
+			this.input = input;
+			this.label = label;
 		}
 		createElements() {
 			const container = UI.createEl("label", ["vot-checkbox"]);
@@ -22326,7 +22229,7 @@ var vot = (function(exports) {
 			input.checked = this._checked;
 			input.addEventListener("change", () => {
 				this._checked = input.checked;
-				this.onChange.dispatch(this._checked);
+				this.dispatch("change", this._checked);
 			});
 			const label = UI.createEl("span");
 			D(this._labelHtml, label);
@@ -22336,20 +22239,6 @@ var vot = (function(exports) {
 				input,
 				label
 			};
-		}
-		addEventListener(_type, listener) {
-			this.onChange.addListener(listener);
-			return this;
-		}
-		removeEventListener(_type, listener) {
-			this.onChange.removeListener(listener);
-			return this;
-		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
 		}
 		get disabled() {
 			return this.input.disabled;
@@ -22366,23 +22255,22 @@ var vot = (function(exports) {
 		set checked(isChecked) {
 			if (this._checked === isChecked) return;
 			this._checked = this.input.checked = isChecked;
-			this.onChange.dispatch(this._checked);
+			this.dispatch("change", this._checked);
 		}
 	};
 	//#endregion
 	//#region src/ui/components/details.ts
-	var Details = class {
-		container;
+	var Details = class extends UIComponentWithEvents {
 		header;
 		arrowIcon;
-		onClick = new EventImpl();
 		_titleHtml;
 		constructor({ titleHtml }) {
+			super(["click"]);
 			this._titleHtml = titleHtml;
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.header = elements.header;
-			this.arrowIcon = elements.arrowIcon;
+			const { container, header, arrowIcon } = this.createElements();
+			this.container = container;
+			this.header = header;
+			this.arrowIcon = arrowIcon;
 		}
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-details"]);
@@ -22393,7 +22281,7 @@ var vot = (function(exports) {
 			D(CHEVRON_ICON, arrowIcon);
 			container.append(header, arrowIcon);
 			container.addEventListener("click", () => {
-				this.onClick.dispatch();
+				this.dispatch("click");
 			});
 			return {
 				container,
@@ -22401,40 +22289,25 @@ var vot = (function(exports) {
 				arrowIcon
 			};
 		}
-		addEventListener(_type, listener) {
-			this.onClick.addListener(listener);
-			return this;
-		}
-		removeEventListener(_type, listener) {
-			this.onClick.removeListener(listener);
-			return this;
-		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
-		}
 	};
 	//#endregion
 	//#region src/ui/components/hotkeyButton.ts
-	var HotkeyButton = class {
-		container;
+	var HotkeyButton = class extends UIComponentWithEvents {
 		button;
-		onChange = new EventImpl();
 		_labelHtml;
 		_key;
 		pressedKeys;
 		comboKeys;
 		recording = false;
 		constructor({ labelHtml, key = null }) {
+			super(["change"]);
 			this._labelHtml = labelHtml;
 			this._key = key;
 			this.pressedKeys = /* @__PURE__ */ new Set();
 			this.comboKeys = /* @__PURE__ */ new Set();
-			const elements = this.createElements();
-			this.container = elements.container;
-			this.button = elements.button;
+			const { container, button } = this.createElements();
+			this.container = container;
+			this.button = button;
 		}
 		stopRecordingKeys() {
 			this.recording = false;
@@ -22471,6 +22344,21 @@ var vot = (function(exports) {
 		blurHandle = () => {
 			this.keyupOrBlurHandle();
 		};
+		buttonClickHandle = () => {
+			if (this.recording) {
+				this.stopRecordingKeys();
+				this.button.textContent = this.keyText;
+				return;
+			}
+			this.button.dataset.status = "active";
+			this.recording = true;
+			this.pressedKeys.clear();
+			this.comboKeys.clear();
+			this.button.textContent = localizationProvider.get("PressTheKeyCombination");
+			document.addEventListener("keydown", this.keydownHandle);
+			document.addEventListener("keyup", this.keyupOrBlurHandle);
+			globalThis.addEventListener("blur", this.blurHandle);
+		};
 		createElements() {
 			const container = UI.createEl("vot-block", ["vot-hotkey"]);
 			const label = UI.createEl("vot-block", ["vot-hotkey-label"]);
@@ -22478,41 +22366,13 @@ var vot = (function(exports) {
 			const button = UI.createEl("vot-block", ["vot-hotkey-button"]);
 			UI.makeButtonLike(button);
 			button.textContent = this.keyText;
-			button.addEventListener("click", () => {
-				if (this.recording) {
-					this.stopRecordingKeys();
-					this.button.textContent = this.keyText;
-					return;
-				}
-				button.dataset.status = "active";
-				this.recording = true;
-				this.pressedKeys.clear();
-				this.comboKeys.clear();
-				this.button.textContent = localizationProvider.get("PressTheKeyCombination");
-				document.addEventListener("keydown", this.keydownHandle);
-				document.addEventListener("keyup", this.keyupOrBlurHandle);
-				globalThis.addEventListener("blur", this.blurHandle);
-			});
+			button.addEventListener("click", this.buttonClickHandle);
 			container.append(label, button);
 			return {
 				container,
 				button,
 				label
 			};
-		}
-		addEventListener(_type, listener) {
-			this.onChange.addListener(listener);
-			return this;
-		}
-		removeEventListener(_type, listener) {
-			this.onChange.removeListener(listener);
-			return this;
-		}
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden;
 		}
 		get key() {
 			return this._key;
@@ -22528,7 +22388,7 @@ var vot = (function(exports) {
 			if (this._key === newKey) return;
 			this._key = newKey;
 			this.button.textContent = this.keyText;
-			this.onChange.dispatch(this._key);
+			this.dispatch("change", this._key);
 		}
 	};
 	/**
@@ -22611,6 +22471,7 @@ var vot = (function(exports) {
 		return events;
 	}
 	var GOOGLE_FONTS_SEARCH_LIMIT = 30;
+	var LANG_PREFIX = "langs.";
 	var [AUTO_SUBTITLE_LANGUAGE_VALUE$1, ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1] = subtitleResponseLanguageModes;
 	var subtitleFontFamilyLabels = {
 		"default-sans": "Default Sans",
@@ -22629,7 +22490,7 @@ var vot = (function(exports) {
 		return getGoogleSubtitleFontFamilyName(fontFamily) ?? "Default Sans";
 	}
 	function getAvailableSubtitleLanguages() {
-		return Object.keys(localizationProvider.defaultLocale).filter((key) => key.startsWith("langs.") && key !== "langs.auto").map((key) => key.slice(6)).toSorted((left, right) => localizationProvider.getLangLabel(left).localeCompare(localizationProvider.getLangLabel(right)));
+		return Object.keys(localizationProvider.defaultLocale).filter((key) => key.startsWith(LANG_PREFIX) && key !== `${LANG_PREFIX}auto`).map((key) => key.slice(6)).sort((left, right) => localizationProvider.getLangLabel(left).localeCompare(localizationProvider.getLangLabel(right)));
 	}
 	function getSubtitleLanguageSettingLabel(value) {
 		if (value === ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1) return localizationProvider.get("VOTOriginalVideoLanguage");
@@ -23307,7 +23168,8 @@ var vot = (function(exports) {
 				if (this.accountButton.loggedIn) {
 					await votStorage.delete("account");
 					this.data.account = {};
-					return this.updateAccountInfo();
+					this.updateAccountInfo();
+					return;
 				}
 				openAuthWindow();
 			});
