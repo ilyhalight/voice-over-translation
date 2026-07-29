@@ -219,6 +219,11 @@
     }
   }
 
+  & .vot-subtitles-button[data-active="true"] {
+    color: rgb(var(--vot-primary-rgb, 33, 150, 243));
+    fill: rgb(var(--vot-primary-rgb, 33, 150, 243));
+  }
+
   &[data-status="success"] .vot-dropdown-arrow {
     color: rgb(var(--vot-primary-rgb, 33, 150, 243));
     fill: rgb(var(--vot-primary-rgb, 33, 150, 243));
