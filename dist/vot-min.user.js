@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name           [VOT] - Voice Over Translation
-// @name:de        [VOT] - Voice-Over-Video-Übersetzung
-// @name:es        [VOT] - Traducción de vídeo en off
-// @name:fr        [VOT] - Traduction vidéo voix-off
-// @name:it        [VOT] - Traduzione Video fuori campo
+// @name:de        [VOT] - Voice-over-Übersetzung
+// @name:es        [VOT] - Traducción por voz superpuesta
+// @name:fr        [VOT] - Traduction en voix off
+// @name:it        [VOT] - Traduzione fuori campo
 // @name:ru        [VOT] - Закадровый перевод видео
-// @name:zh        [VOT] - 画外音视频翻译
+// @name:zh        [VOT] - 配音翻译
 // @namespace      vot
 // @version        1.11.8
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
-// @description    A small extension that adds a Yandex Browser video translation to other browsers
-// @description:de Eine kleine Erweiterung, die eine Voice-over-Übersetzung von Videos aus dem Yandex-Browser zu anderen Browsern hinzufügt
-// @description:es Una pequeña extensión que agrega una traducción de voz en off de un video de Yandex Browser a otros navegadores
-// @description:fr Une petite extension qui ajoute la traduction vocale de la vidéo du Navigateur Yandex à d'autres navigateurs
-// @description:it Una piccola estensione che aggiunge la traduzione vocale del video dal browser Yandex ad altri browser
-// @description:ru Небольшое расширение, которое добавляет закадровый перевод видео из Яндекс Браузера в другие браузеры
-// @description:zh 一个小扩展，它增加了视频从Yandex浏览器到其他浏览器的画外音翻译
+// @description    Watch videos in other languages with voice-over translation and subtitles in any browser
+// @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
+// @description:es Ve videos en otros idiomas con voice-over y subtítulos en cualquier navegador
+// @description:fr Regardez des vidéos dans d'autres langues avec une traduction en voix off et des sous-titres dans n'importe quel navigateur
+// @description:it Guarda video in altre lingue con doppiaggio fuori campo e sottotitoli in qualsiasi browser
+// @description:ru Смотрите видео на другом языке с закадровым переводом и субтитрами в любом браузере
+// @description:zh 在任何浏览器中观看其他语言的视频，享受配音翻译和字幕
 // @license        MIT
 // @icon           https://translate.yandex.ru/icons/favicon.ico
 // @homepageURL    https://github.com/ilyhalight/voice-over-translation
