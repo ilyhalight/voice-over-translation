@@ -305,7 +305,7 @@ export class UIManager {
           return;
         }
 
-        this.videoHandler.votClient.apiToken = account?.token;
+        this.videoHandler.votClient.provider.apiToken = account?.token;
       })
       .addEventListener("change:autoTranslate", async (checked) => {
         const videoHandler = this.videoHandler;

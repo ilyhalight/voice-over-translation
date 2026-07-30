@@ -102,8 +102,6 @@
 // @match          *://learning.sap.com/*
 // @match          *://*.watchporn.to/*
 // @match          *://*.linkedin.com/*
-// @match          *://*.incestflix.net/*
-// @match          *://*.incestflix.to/*
 // @match          *://*.porntn.com/*
 // @match          *://*.dzen.ru/*
 // @match          *://*.cloudflarestream.com/*
@@ -154,6 +152,7 @@
 // @match          *://*.skilljar.com/*
 // @match          *://projector.datacamp.com/*
 // @match          *://hot.noodlemagazine.com/*
+// @match          *://fast.wistia.net/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
@@ -353,7 +352,6 @@ var vot = (function(exports) {
 		VideoService["watchpornto"] = "watchpornto";
 		VideoService["jove"] = "jove";
 		VideoService["linkedin"] = "linkedin";
-		VideoService["incestflix"] = "incestflix";
 		VideoService["porntn"] = "porntn";
 		VideoService["dzen"] = "dzen";
 		VideoService["bunnystream"] = "bunnystream";
@@ -368,6 +366,7 @@ var vot = (function(exports) {
 		VideoService["bunkr"] = "bunkr";
 		VideoService["imdb"] = "imdb";
 		VideoService["telegram"] = "telegram";
+		VideoService["wistia"] = "wistia";
 	})(VideoService$1 || (VideoService$1 = {}));
 	//#endregion
 	//#region node_modules/@vot.js/core/dist/utils/videoData.js
@@ -378,6 +377,9 @@ var vot = (function(exports) {
 		}
 	};
 	var localLinkRe = /(file:\/\/(\/)?|(http(s)?:\/\/)(127\.0\.0\.1|localhost|192\.168\.(\d){1,3}\.(\d){1,3}))/;
+	var isCustomLink = (url) => {
+		return !!/\.(m3u8|m4(a|v)|mpd)/.exec(url);
+	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/data/alternativeUrls.js
 	var sitesInvidious = [
@@ -945,13 +947,6 @@ var vot = (function(exports) {
 			needBypassCSP: true
 		},
 		{
-			host: VideoService$1.incestflix,
-			url: "https://www.incestflix.net/watch/",
-			match: /^(www.)?incestflix.(net|to|com)$/,
-			selector: "#incflix-stream",
-			needExtraData: true
-		},
-		{
 			host: VideoService$1.porntn,
 			url: "https://porntn.com/videos/",
 			match: /^porntn.com$/,
@@ -1061,7 +1056,7 @@ var vot = (function(exports) {
 			host: VideoService$1.telegram,
 			url: "https://t.me/",
 			match: (url) => /^web\.telegram\.org$/.test(url.hostname) && url.pathname.startsWith("/k"),
-			selector: ".ckin__player"
+			selector: ".media-viewer-aspecter, .ckin__player"
 		},
 		{
 			host: ExtVideoService.oraclelearn,
@@ -1100,9 +1095,15 @@ var vot = (function(exports) {
 			needExtraData: true
 		},
 		{
+			host: VideoService$1.wistia,
+			url: "https://fast.wistia.net/embed/iframe/",
+			match: /^fast.wistia.net$/,
+			selector: ".w-video-wrapper"
+		},
+		{
 			host: VideoService$1.custom,
 			url: "stub",
-			match: (url) => /([^.]+)\.(mp4|webm)/.test(url.pathname),
+			match: (url) => /([^/]+)\.(mp4|webm)/.test(url.pathname),
 			rawResult: true
 		}
 	];
@@ -1110,16 +1111,15 @@ var vot = (function(exports) {
 	//#region node_modules/@vot.js/shared/dist/data/config.js
 	var config_default$1 = {
 		host: "api.browser.yandex.ru",
-		hostVOT: "vot.toil.cc/v1",
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.transly.eu.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 YaBrowser/26.6.0.0 Safari/537.36",
-		componentVersion: "26.6.2.938",
+		componentVersion: "26.6.3.870",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "2.4.20"
+		version: "3.0.1"
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/logger.js
@@ -1281,24 +1281,13 @@ var vot = (function(exports) {
 		zul: "zu"
 	};
 	async function fetchWithTimeout(url, options = { headers: { "User-Agent": config_default$1.userAgent } }) {
-		const { timeout = 3e3, signal, ...fetchOptions } = options;
+		let { timeout = 3e3, signal, ...fetchOptions } = options;
 		if (!signal && (!timeout || timeout <= 0)) return await fetch(url, fetchOptions);
-		const controller = new AbortController();
-		const abort = (reason) => {
-			if (!controller.signal.aborted) controller.abort(reason);
-		};
-		if (signal) if (signal.aborted) abort(signal.reason);
-		else signal.addEventListener("abort", () => abort(signal.reason), { once: true });
-		let timeoutId;
-		if (timeout && timeout > 0) timeoutId = setTimeout(() => abort(/* @__PURE__ */ new Error("Fetch timeout")), timeout);
-		try {
-			return await fetch(url, {
-				...fetchOptions,
-				signal: controller.signal
-			});
-		} finally {
-			if (timeoutId) clearTimeout(timeoutId);
-		}
+		signal ??= AbortSignal.timeout(timeout);
+		return await fetch(url, {
+			...fetchOptions,
+			signal
+		});
 	}
 	function getTimestamp$1() {
 		return Math.floor(Date.now() / 1e3);
@@ -2114,27 +2103,6 @@ var vot = (function(exports) {
 	var IMDbHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /video\/([^/]+)/.exec(url.pathname)?.[1];
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/incestflix.js
-	var IncestflixHelper = class extends BaseHelper {
-		async getVideoData(videoId) {
-			try {
-				const sourceEl = document.querySelector("#incflix-stream source:first-of-type");
-				if (!sourceEl) throw new VideoHelperError("Failed to find source element");
-				const srcLink = sourceEl.getAttribute("src");
-				if (!srcLink) throw new VideoHelperError("Failed to find source link");
-				const source = new URL(srcLink.startsWith("//") ? `https:${srcLink}` : srcLink);
-				source.searchParams.append("media-proxy", "video.mp4");
-				return { url: proxyMedia(source) };
-			} catch (err) {
-				Logger.error(`Failed to get Incestflix data by videoId: ${videoId}`, err.message);
-				return;
-			}
-		}
-		async getVideoId(url) {
-			return /\/watch\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
 	//#endregion
@@ -5848,6 +5816,10 @@ var vot = (function(exports) {
 			}
 		}
 		async getVideoData(videoId) {
+			if (videoId.includes("?app_id=")) {
+				const [embedId] = videoId.split("?");
+				return this.returnBaseData(embedId);
+			}
 			if (this.isPrivatePlayer()) {
 				const videoInfo = await this.getPrivateVideoInfo(videoId);
 				if (!videoInfo) return;
@@ -5900,6 +5872,8 @@ var vot = (function(exports) {
 		async getVideoId(url) {
 			const normalizedPathname = url.pathname.replace(/\/+$/, "");
 			const embedId = /video\/[^/]+$/.exec(normalizedPathname)?.[0];
+			const appId = url.searchParams.get("app_id");
+			if (embedId && appId) return `${embedId}?app_id=${appId}`;
 			if (this.isPrivatePlayer()) return embedId;
 			if (embedId) {
 				const hash = url.searchParams.get("h");
@@ -6065,7 +6039,7 @@ var vot = (function(exports) {
 	}
 	var browserSecHeaders = {
 		"sec-ch-ua": `"Chromium";v="148", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="99", "Yowser";v="2.5"`,
-		"sec-ch-ua-full-version-list": `"Chromium";v="148.0.7778.938", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="99.0.0.0", "Yowser";v="2.5"`,
+		"sec-ch-ua-full-version-list": `"Chromium";v="148.0.7778.870", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="99.0.0.0", "Yowser";v="2.5"`,
 		"Sec-Fetch-Mode": "no-cors"
 	};
 	//#endregion
@@ -6518,6 +6492,13 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/wistia.js
+	var WistiaHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return /\/embed\/iframe\/([^/]+)/.exec(url.pathname)?.[1];
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/index.js
 	var availableHelpers = {
 		[VideoService$1.mailru]: MailRuHelper,
@@ -6540,7 +6521,6 @@ var vot = (function(exports) {
 		[VideoService$1.yandexdisk]: YandexDiskHelper,
 		[VideoService$1.vk]: VKHelper,
 		[VideoService$1.trovo]: TrovoHelper,
-		[VideoService$1.incestflix]: IncestflixHelper,
 		[VideoService$1.porntn]: PornTNHelper,
 		[VideoService$1.googledrive]: GoogleDriveHelper,
 		[VideoService$1.bilibili]: BilibiliHelper,
@@ -6586,6 +6566,7 @@ var vot = (function(exports) {
 		[VideoService$1.telegram]: TelegramHelper,
 		[VideoService$1.niconico]: NicoNicoHelper,
 		[VideoService$1.noodlemagazine]: NoodleMagazineHelper,
+		[VideoService$1.wistia]: WistiaHelper,
 		[ExtVideoService.udemy]: UdemyHelper,
 		[ExtVideoService.coursera]: CourseraHelper,
 		[ExtVideoService.douyin]: DouyinHelper,
@@ -6745,7 +6726,6 @@ var vot = (function(exports) {
 	*/
 	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
 	var proxyWorkerHost = "vot-worker.eu.cc";
-	var votBackendUrl = "https://vot.toil.cc/v1";
 	/**
 	* @see https://github.com/FOSWLY/translate-backend
 	*/
@@ -11274,6 +11254,83 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region node_modules/@vot.js/core/dist/providers/base.js
+	var BaseProvider = class {
+		host;
+		schema;
+		fetch;
+		fetchOpts;
+		userAgent = config_default$1.userAgent;
+		requestLang;
+		responseLang;
+		headers = {
+			"User-Agent": this.userAgent,
+			"Accept-Language": "en",
+			Pragma: "no-cache",
+			"Cache-Control": "no-cache"
+		};
+		hostSchemaRe = /(http(s)?):\/\//;
+		constructor({ host = config_default$1.host, fetchFn = fetchWithTimeout, fetchOpts = {}, headers = {}, requestLang = "en", responseLang = "ru" } = {}) {
+			const schema = this.hostSchemaRe.exec(host)?.[1];
+			this.host = schema ? host.replace(`${schema}://`, "") : host;
+			this.schema = schema ?? "https";
+			this.fetch = fetchFn;
+			this.fetchOpts = fetchOpts;
+			this.headers = {
+				...this.headers,
+				...headers
+			};
+			this.requestLang = requestLang;
+			this.responseLang = responseLang;
+		}
+		async request(path, body, headers = {}, method = "POST") {
+			const options = this.getOpts(new Blob([body]), headers, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.arrayBuffer();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		async requestJSON(path, body = null, headers = {}, method = "POST") {
+			const options = this.getOpts(body, {
+				"Content-Type": "application/json",
+				...headers
+			}, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		getOpts(body, headers = {}, method = "POST") {
+			return {
+				method,
+				headers: {
+					...this.headers,
+					...headers
+				},
+				body,
+				...this.fetchOpts
+			};
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/core/dist/protobuf.js
 	function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
 		return VideoTranslationRequest.encode({
@@ -11416,34 +11473,8 @@ var vot = (function(exports) {
 		AudioDownloadType["WEB_API_COMBINED"] = "web_api_get_all_generating_urls_data_from_iframe,web_api_steal_sig_and_n";
 	})(AudioDownloadType || (AudioDownloadType = {}));
 	//#endregion
-	//#region node_modules/@vot.js/core/dist/utils/vot.js
-	function convertVOT(service, videoId, url) {
-		if (service === VideoService$1.patreon) return {
-			service: "mux",
-			videoId: new URL(url).pathname.slice(1)
-		};
-		return {
-			service,
-			videoId
-		};
-	}
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/client.js
-	var VOTJSError = class extends Error {
-		data;
-		constructor(message, data = void 0) {
-			super(message);
-			this.data = data;
-			this.name = "VOTJSError";
-		}
-	};
-	var MinimalClient = class {
-		host;
-		schema;
-		fetch;
-		fetchOpts;
-		sessions = {};
-		userAgent = config_default$1.userAgent;
+	//#region node_modules/@vot.js/core/dist/providers/yandex.js
+	var YandexProvider = class extends BaseProvider {
 		headers = {
 			"User-Agent": this.userAgent,
 			Accept: "application/x-protobuf",
@@ -11452,63 +11483,24 @@ var vot = (function(exports) {
 			Pragma: "no-cache",
 			"Cache-Control": "no-cache"
 		};
-		hostSchemaRe = /(http(s)?):\/\//;
-		constructor({ host = config_default$1.host, fetchFn = fetchWithTimeout, fetchOpts = {}, headers = {} } = {}) {
-			const schema = this.hostSchemaRe.exec(host)?.[1];
-			this.host = schema ? host.replace(`${schema}://`, "") : host;
-			this.schema = schema ?? "https";
-			this.fetch = fetchFn;
-			this.fetchOpts = fetchOpts;
-			this.headers = {
-				...this.headers,
-				...headers
-			};
+		paths = {
+			videoTranslation: "/video-translation/translate",
+			videoTranslationFailAudio: "/video-translation/fail-audio-js",
+			videoTranslationAudio: "/video-translation/audio",
+			videoTranslationCache: "/video-translation/cache",
+			videoSubtitles: "/video-subtitles/get-subtitles",
+			streamPing: "/stream-translation/ping-stream",
+			streamTranslation: "/stream-translation/translate-stream"
+		};
+		sessions = {};
+		apiToken;
+		constructor({ apiToken, ...baseOpts } = {}) {
+			super(baseOpts);
+			this.apiToken = apiToken;
 		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(new Blob([body]), headers, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(body, {
-				"Content-Type": "application/json",
-				...headers
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		getOpts(body, headers = {}, method = "POST") {
-			return {
-				method,
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body,
-				...this.fetchOpts
-			};
+		get apiTokenHeader() {
+			if (!this.apiToken) return {};
+			return { Authorization: `OAuth ${this.apiToken}` };
 		}
 		async getSession(module) {
 			const timestamp = getTimestamp$1();
@@ -11533,69 +11525,12 @@ var vot = (function(exports) {
 				uuid
 			};
 		}
-	};
-	var VOTClient$1 = class extends MinimalClient {
-		hostVOT;
-		schemaVOT;
-		apiToken;
-		requestLang;
-		responseLang;
-		paths = {
-			videoTranslation: "/video-translation/translate",
-			videoTranslationFailAudio: "/video-translation/fail-audio-js",
-			videoTranslationAudio: "/video-translation/audio",
-			videoTranslationCache: "/video-translation/cache",
-			videoSubtitles: "/video-subtitles/get-subtitles",
-			streamPing: "/stream-translation/ping-stream",
-			streamTranslation: "/stream-translation/translate-stream"
-		};
-		isCustomLink(url) {
-			return !!(/\.(m3u8|m4(a|v)|mpd)/.exec(url) ?? /^https:\/\/cdn\.qstv\.on\.epicgames\.com/.exec(url));
+		async requestVtransFailAudio(url) {
+			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), void 0, "PUT");
+			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
+			return res;
 		}
-		headersVOT = {
-			"User-Agent": `vot.js/${config_default$1.version}`,
-			"Content-Type": "application/json",
-			Pragma: "no-cache",
-			"Cache-Control": "no-cache"
-		};
-		constructor({ host, hostVOT = config_default$1.hostVOT, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
-			super({
-				host,
-				fetchFn,
-				fetchOpts,
-				headers
-			});
-			const schemaVOT = this.hostSchemaRe.exec(hostVOT)?.[1];
-			this.hostVOT = schemaVOT ? hostVOT.replace(`${schemaVOT}://`, "") : hostVOT;
-			this.schemaVOT = schemaVOT ?? "https";
-			this.requestLang = requestLang;
-			this.responseLang = responseLang;
-			this.apiToken = apiToken;
-		}
-		get apiTokenHeader() {
-			if (!this.apiToken) return {};
-			return { Authorization: `OAuth ${this.apiToken}` };
-		}
-		async requestVOT(path, body, headers = {}) {
-			const options = this.getOpts(JSON.stringify(body), {
-				...this.headersVOT,
-				...headers
-			});
-			try {
-				const res = await this.fetch(`${this.schemaVOT}://${this.hostVOT}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async translateVideoYAImpl({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
+		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
 			const { url, duration = config_default$1.defaultDuration } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, extraOpts);
@@ -11637,12 +11572,13 @@ var vot = (function(exports) {
 							audioFile: /* @__PURE__ */ new Uint8Array(),
 							fileId: AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME
 						});
-						return await this.translateVideoYAImpl({
+						return await this.translateVideo({
 							videoData,
 							requestLang,
 							responseLang,
 							translationHelp,
 							headers,
+							extraOpts,
 							shouldSendFailedAudio: false
 						});
 					}
@@ -11657,43 +11593,6 @@ var vot = (function(exports) {
 					Logger.error("Unknown response", translationData);
 					throw new VOTJSError("Unknown response from Yandex", translationData);
 			}
-		}
-		async translateVideoVOTImpl({ url, videoId, service, requestLang = this.requestLang, responseLang = this.responseLang, headers = {}, provider = "yandex" }) {
-			const votData = convertVOT(service, videoId, url);
-			const res = await this.requestVOT(this.paths.videoTranslation, {
-				provider,
-				service: votData.service,
-				video_id: votData.videoId,
-				from_lang: requestLang,
-				to_lang: responseLang,
-				raw_video: url
-			}, { ...headers });
-			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
-			const translationData = res.data;
-			switch (translationData.status) {
-				case "failed": throw new VOTJSError("Yandex couldn't translate video", translationData);
-				case "success":
-					if (!translationData.translated_url) throw new VOTJSError("Audio link wasn't received from VOT response", translationData);
-					return {
-						translationId: String(translationData.id),
-						translated: true,
-						url: translationData.translated_url,
-						status: 1,
-						remainingTime: -1
-					};
-				case "waiting": return {
-					translationId: "",
-					translated: false,
-					remainingTime: translationData.remaining_time,
-					status: 2,
-					message: translationData.message
-				};
-			}
-		}
-		async requestVtransFailAudio(url) {
-			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), void 0, "PUT");
-			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
-			return res;
 		}
 		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
 			const session = await this.getSession("video-translation");
@@ -11711,40 +11610,7 @@ var vot = (function(exports) {
 			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
 			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
 		}
-		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
-			const { url, duration = config_default$1.defaultDuration } = videoData;
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
-			const path = this.paths.videoTranslationCache;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			}, "POST");
-			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
-			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
-		}
-		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
-			const { url, videoId, host } = videoData;
-			return this.isCustomLink(url) ? await this.translateVideoVOTImpl({
-				url,
-				videoId,
-				service: host,
-				requestLang,
-				responseLang,
-				headers,
-				provider: extraOpts.useLivelyVoice ? "yandex_lively" : "yandex"
-			}) : await this.translateVideoYAImpl({
-				videoData,
-				requestLang,
-				responseLang,
-				translationHelp,
-				headers,
-				extraOpts,
-				shouldSendFailedAudio
-			});
-		}
-		async getSubtitlesYAImpl({ videoData, requestLang = this.requestLang, headers = {} }) {
+		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
 			const { url } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
@@ -11770,44 +11636,6 @@ var vot = (function(exports) {
 				subtitles
 			};
 		}
-		async getSubtitlesVOTImpl({ url, videoId, service, headers = {} }) {
-			const votData = convertVOT(service, videoId, url);
-			const res = await this.requestVOT(this.paths.videoSubtitles, {
-				provider: "yandex",
-				service: votData.service,
-				video_id: votData.videoId
-			}, headers);
-			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
-			const subtitlesData = res.data;
-			return {
-				waiting: false,
-				subtitles: subtitlesData.reduce((result, subtitle) => {
-					if (!subtitle.lang_from) return result;
-					const originalSubtitle = subtitlesData.find((sub) => sub.lang === subtitle.lang_from);
-					if (!originalSubtitle) return result;
-					result.push({
-						language: originalSubtitle.lang,
-						url: originalSubtitle.subtitle_url,
-						translatedLanguage: subtitle.lang,
-						translatedUrl: subtitle.subtitle_url
-					});
-					return result;
-				}, [])
-			};
-		}
-		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
-			const { url, videoId, host } = videoData;
-			return this.isCustomLink(url) ? await this.getSubtitlesVOTImpl({
-				url,
-				videoId,
-				service: host,
-				headers
-			}) : await this.getSubtitlesYAImpl({
-				videoData,
-				requestLang,
-				headers
-			});
-		}
 		async pingStream({ pingId, headers = {} }) {
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
@@ -11822,7 +11650,7 @@ var vot = (function(exports) {
 		}
 		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
 			const { url } = videoData;
-			if (this.isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
+			if (isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
 			const path = this.paths.streamTranslation;
@@ -11843,6 +11671,7 @@ var vot = (function(exports) {
 				};
 				case StreamInterval.STREAMING:
 					if (translateResponse.pingId === void 0) throw new VOTJSError("Stream ping id wasn't received from Yandex response", translateResponse);
+					if (!translateResponse.translatedInfo) throw new VOTJSError("Stream translation info wasn't received from Yandex response", translateResponse);
 					return {
 						translated: true,
 						interval,
@@ -11854,60 +11683,64 @@ var vot = (function(exports) {
 					throw new VOTJSError("Unknown response from Yandex", translateResponse);
 			}
 		}
+		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+			const { url, duration = config_default$1.defaultDuration } = videoData;
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
+			const path = this.paths.videoTranslationCache;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			}, "POST");
+			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
+			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
+		}
 	};
-	var VOTWorkerClient$1 = class extends VOTClient$1 {
-		constructor(opts = {}) {
-			opts.host = opts.host ?? config_default$1.hostWorker;
-			super(opts);
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/client.js
+	var VOTJSError = class extends Error {
+		data;
+		constructor(message, data = void 0) {
+			super(message);
+			this.data = data;
+			this.name = "VOTJSError";
 		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body: Array.from(body)
-			}), { "Content-Type": "application/json" }, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
+	};
+	var VOTClient$1 = class {
+		provider;
+		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
+			const ProviderClass = provider ?? YandexProvider;
+			this.provider = new ProviderClass({
+				host,
+				fetchFn,
+				fetchOpts,
+				headers,
+				apiToken,
+				requestLang,
+				responseLang
+			});
 		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					"Content-Type": "application/json",
-					Accept: "application/json",
-					...headers
-				},
-				body
-			}), {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
+		async translateVideo(opts) {
+			return await this.provider.translateVideo(opts);
+		}
+		async translateStream(opts) {
+			return await this.provider.translateStream(opts);
+		}
+		async getSubtitles(opts) {
+			return await this.provider.getSubtitles(opts);
+		}
+		get requestLang() {
+			return this.provider.requestLang;
+		}
+		set requestLang(lang) {
+			this.provider.requestLang = lang;
+		}
+		get responseLang() {
+			return this.provider.responseLang;
+		}
+		set responseLang(lang) {
+			this.provider.responseLang = lang;
 		}
 	};
 	//#endregion
@@ -11915,19 +11748,14 @@ var vot = (function(exports) {
 	var VOTClient = class extends VOTClient$1 {
 		constructor(opts) {
 			super(opts);
-			this.headers = {
-				...browserSecHeaders,
-				...this.headers
-			};
+			this.setHeaders();
 		}
-	};
-	var VOTWorkerClient = class extends VOTWorkerClient$1 {
-		constructor(opts) {
-			super(opts);
-			this.headers = {
+		setHeaders() {
+			this.provider.headers = {
 				...browserSecHeaders,
-				...this.headers
+				...this.provider.headers
 			};
+			return this;
 		}
 	};
 	//#endregion
@@ -13538,7 +13366,7 @@ var vot = (function(exports) {
 	}
 	function clearAccountState(owner) {
 		if (owner?.data) owner.data.account = {};
-		if (owner?.votClient) owner.votClient.apiToken = void 0;
+		if (owner?.votClient) owner.votClient.provider.apiToken = void 0;
 	}
 	async function deleteAccount(owner) {
 		clearAccountState(owner);
@@ -13770,7 +13598,7 @@ var vot = (function(exports) {
 			const { videoId, fileId, audioData } = data;
 			const videoUrl = this.getCanonicalUrl(videoId);
 			try {
-				await this.retryAudioUpload(() => this.videoHandler.votClient.requestVtransAudio(videoUrl, translationId, {
+				await this.retryAudioUpload(() => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
 					audioFile: audioData,
 					fileId
 				}));
@@ -13790,7 +13618,7 @@ var vot = (function(exports) {
 			const { audioData, fileId, videoId, amount, version, index } = data;
 			const videoUrl = this.getCanonicalUrl(videoId);
 			try {
-				await this.retryAudioUpload(() => this.videoHandler.votClient.requestVtransAudio(videoUrl, translationId, {
+				await this.retryAudioUpload(() => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
 					audioFile: audioData,
 					chunkId: index
 				}, {
@@ -13820,7 +13648,7 @@ var vot = (function(exports) {
 				if (this.requestedFailAudio.has(videoUrl)) debug.log("fail-audio-js request already sent for this video");
 				else {
 					debug.log("Sending fail-audio-js request");
-					await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
+					await this.videoHandler.votClient.provider.requestVtransFailAudio(videoUrl);
 					this.requestedFailAudio.add(videoUrl);
 				}
 				this.finishDownloadSuccess();
@@ -23737,7 +23565,7 @@ var vot = (function(exports) {
 			if (!settingsView) return;
 			settingsView.addEventListener("update:account", async (account) => {
 				if (!this.videoHandler) return;
-				this.videoHandler.votClient.apiToken = account?.token;
+				this.videoHandler.votClient.provider.apiToken = account?.token;
 			}).addEventListener("change:autoTranslate", async (checked) => {
 				const videoHandler = this.videoHandler;
 				if (checked && videoHandler && !videoHandler.hasActiveSource()) await this.handleTranslationBtnClick();
@@ -26768,6 +26596,63 @@ var vot = (function(exports) {
 		return { nextVideo };
 	}
 	//#endregion
+	//#region node_modules/@vot.js/core/dist/providers/votworker.js
+	var VOTWorkerProvider = class extends YandexProvider {
+		constructor(opts = {}) {
+			opts.host = opts.host ?? config_default$1.hostWorker;
+			super(opts);
+		}
+		async request(path, body, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					...headers
+				},
+				body: Array.from(body)
+			}), { "Content-Type": "application/json" }, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.arrayBuffer();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		async requestJSON(path, body = null, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					"Content-Type": "application/json",
+					Accept: "application/json",
+					...headers
+				},
+				body
+			}), {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			}, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+	};
+	//#endregion
 	//#region src/VideoHandler.ts
 	var RESOLVED_VOID_PROMISE = Promise.resolve();
 	var TRANSLATION_LOADING_MESSAGES = /* @__PURE__ */ new Set([
@@ -26960,8 +26845,8 @@ var vot = (function(exports) {
 		}
 		updateVOTClientRequestSignal() {
 			if (!this.votClient) return;
-			this.votClient.fetchOpts = {
-				...this.votClient.fetchOpts,
+			this.votClient.provider.fetchOpts = {
+				...this.votClient.provider.fetchOpts,
 				signal: this.actionsAbortController.signal
 			};
 		}
@@ -27193,15 +27078,15 @@ var vot = (function(exports) {
 					})
 				},
 				apiToken: hasValidAccountToken(this.data?.account) ? this.data?.account?.token : void 0,
-				hostVOT: votBackendUrl,
-				host: transportHost
+				host: transportHost,
+				provider: proxyClientEnabled ? VOTWorkerProvider : YandexProvider
 			};
-			this.votClient = new (proxyClientEnabled ? VOTWorkerClient : VOTClient)(this.votOpts);
-			this.votClient.sessions = await this.votSessionStorage.restore(transportHost, this.votClient.sessions);
-			const originalGetSession = this.votClient.getSession.bind(this.votClient);
-			this.votClient.getSession = async (module) => {
+			this.votClient = new VOTClient(this.votOpts);
+			this.votClient.provider.sessions = await this.votSessionStorage.restore(transportHost, this.votClient.provider.sessions);
+			const originalGetSession = this.votClient.provider.getSession.bind(this.votClient.provider);
+			this.votClient.provider.getSession = async (module) => {
 				const session = await originalGetSession(module);
-				await this.votSessionStorage.persist(transportHost, this.votClient.sessions);
+				await this.votSessionStorage.persist(transportHost, this.votClient.provider.sessions);
 				return session;
 			};
 			return this;

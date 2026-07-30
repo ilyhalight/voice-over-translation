@@ -150,7 +150,7 @@ export class VOTTranslationHandler {
     const videoUrl = this.getCanonicalUrl(videoId);
     try {
       await this.retryAudioUpload(() =>
-        this.videoHandler.votClient.requestVtransAudio(
+        this.videoHandler.votClient.provider.requestVtransAudio(
           videoUrl,
           translationId,
           {
@@ -185,7 +185,7 @@ export class VOTTranslationHandler {
     const videoUrl = this.getCanonicalUrl(videoId);
     try {
       await this.retryAudioUpload(() =>
-        this.videoHandler.votClient.requestVtransAudio(
+        this.videoHandler.votClient.provider.requestVtransAudio(
           videoUrl,
           translationId,
           {
@@ -239,7 +239,9 @@ export class VOTTranslationHandler {
         debug.log("fail-audio-js request already sent for this video");
       } else {
         debug.log("Sending fail-audio-js request");
-        await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
+        await this.videoHandler.votClient.provider.requestVtransFailAudio(
+          videoUrl,
+        );
         this.requestedFailAudio.add(videoUrl);
       }
 

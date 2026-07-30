@@ -1,11 +1,10 @@
+import type VOTClient from "@vot.js/ext";
 import type { StorageData } from "../types/storage";
 import { votStorage } from "./storage";
 
 type AccountStateOwner = {
   data?: Partial<StorageData>;
-  votClient?: {
-    apiToken?: string;
-  };
+  votClient?: VOTClient;
 };
 
 export function hasAccountToken(account?: Partial<StorageData["account"]>) {
@@ -36,7 +35,7 @@ export function clearAccountState(owner?: AccountStateOwner): void {
     owner.data.account = {};
   }
   if (owner?.votClient) {
-    owner.votClient.apiToken = undefined;
+    owner.votClient.provider.apiToken = undefined;
   }
 }
 

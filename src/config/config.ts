@@ -15,8 +15,6 @@ export const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
 export const proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
 export const proxyWorkerHost = "vot-worker.eu.cc"; // vot-worker.toil.cc
 
-export const votBackendUrl = "https://vot.toil.cc/v1";
-
 /**
  * @see https://github.com/FOSWLY/translate-backend
  */
