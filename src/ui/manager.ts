@@ -4,6 +4,7 @@ import {
   repositoryUrl,
 } from "../config/config";
 import { localizationProvider } from "../localization/localizationProvider";
+import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
 import type { StorageData } from "../types/storage";
 import type { OverlayMount, UIManagerProps } from "../types/uiManager";
@@ -11,7 +12,6 @@ import debug from "../utils/debug";
 import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
-import { serializeProcessedSubtitles } from "../utils/serializeSubtitles";
 import { votStorage } from "../utils/storage";
 import {
   clamp,
@@ -91,7 +91,41 @@ export class UIManager {
     }
 
     this.initialized = true;
+    try {
+      this.buildUI();
+    } catch (err) {
+      // A partially built UI must not stay flagged as initialized: callers
+      // (release, stopTranslation, transformBtn) would then dereference views
+      // that were never constructed and mask the original failure with a
+      // TypeError.
+      this.initialized = false;
+      this.releasePartialUI();
+      throw err;
+    }
 
+    return this;
+  }
+
+  /** Best-effort teardown of whatever `buildUI` managed to construct. */
+  private releasePartialUI() {
+    try {
+      this.votOverlayView?.release();
+    } catch {
+      /* already broken; keep tearing down */
+    }
+    try {
+      this.votSettingsView?.release();
+    } catch {
+      /* already broken; keep tearing down */
+    }
+    if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
+    this.votOverlayView = undefined;
+    this.votSettingsView = undefined;
+    this.globalPortalMount = undefined;
+    this.votGlobalPortal = undefined;
+  }
+
+  private buildUI() {
     this.globalPortalMount = createShadowMount({
       parent: this.getGlobalPortalHost(this.mount),
       rootClasses: ["vot-portal"],
@@ -786,9 +820,9 @@ export class UIManager {
 
     // Release child views before removing the shared portal.
     // Each view is now idempotent and releases events before DOM.
-    this.votOverlayView.release();
-    this.votSettingsView.release();
-    destroyShadowMount(this.globalPortalMount);
+    this.votOverlayView?.release();
+    this.votSettingsView?.release();
+    if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
     this.globalPortalMount = undefined;
     this.votGlobalPortal = undefined;
 

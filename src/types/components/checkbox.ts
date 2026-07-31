@@ -1,7 +1,7 @@
-import type { LitHtml } from "./shared";
+import type { UiTemplate } from "./shared";
 
 export type CheckboxProps = {
-  labelHtml: LitHtml;
+  labelHtml: UiTemplate;
   checked?: boolean;
   isSubCheckbox?: boolean;
 };

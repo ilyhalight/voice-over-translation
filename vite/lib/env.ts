@@ -1,6 +1,6 @@
 import { loadEnv } from "vite";
-import { defineConstants, type ViteDefine } from "./define";
-import { rootDir } from "./paths";
+import { defineConstants, type ViteDefine } from "./define.ts";
+import { rootDir } from "./paths.ts";
 
 export interface BuildEnvMeta {
   debug: boolean;

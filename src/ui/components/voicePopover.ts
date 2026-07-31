@@ -1,7 +1,7 @@
-import { render } from "lit-html";
 import { localizationProvider } from "../../localization/localizationProvider";
 import UI from "../../ui";
 import { LIVE_VOICE_ICON, STANDARD_VOICE_ICON } from "../icons";
+import { render } from "../solid/render";
 import {
   createDomId,
   isEventInside,

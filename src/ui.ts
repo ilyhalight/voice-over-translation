@@ -1,8 +1,7 @@
-import type { TemplateResult } from "lit-html";
-import { render } from "lit-html";
 import { localizationProvider } from "./localization/localizationProvider";
-import type { LitHtml } from "./types/components/shared";
+import type { UiTemplate } from "./types/components/shared";
 import { addKeyboardActivationListener } from "./ui/components/componentShared";
+import { render } from "./ui/solid/render";
 
 declare global {
   interface Window {
@@ -61,6 +60,31 @@ type MakeButtonLikeOptions = {
   ariaLabel?: string;
 };
 
+/**
+ * Shared `disabled` attribute observer for every button-like element.
+ *
+ * Owns a single `MutationObserver` for the whole document; per-element sync
+ * callbacks are stored in a `WeakMap` so detached buttons are collected without
+ * an explicit `disconnect()` call (the previous per-element observers were
+ * never disconnected either, so lifetime semantics are unchanged).
+ */
+const disabledSyncHandlers = new WeakMap<Element, () => void>();
+let disabledObserver: MutationObserver | undefined;
+
+function observeDisabledAttribute(el: Element, sync: () => void) {
+  disabledSyncHandlers.set(el, sync);
+  if (typeof MutationObserver === "undefined") return;
+  disabledObserver ??= new MutationObserver((records) => {
+    for (const record of records) {
+      disabledSyncHandlers.get(record.target as Element)?.();
+    }
+  });
+  disabledObserver.observe(el, {
+    attributes: true,
+    attributeFilter: ["disabled"],
+  });
+}
+
 const UI = {
   /**
    * Makes a non-native element behave like a button (keyboard + ARIA).
@@ -92,10 +116,11 @@ const UI = {
 
     // If a component toggles `disabled` later (e.g. download button),
     // keep semantics consistent without requiring manual updates.
-    new MutationObserver(() => syncDisabledState()).observe(el, {
-      attributes: true,
-      attributeFilter: ["disabled"],
-    });
+    // Consolidated onto ONE process-wide MutationObserver instead of a new
+    // observer per button: observers are per-element records on the same
+    // microtask queue, so N observers cost N callbacks + N records; one shared
+    // observer delivers a single batched record list per microtask.
+    observeDisabledAttribute(el, syncDisabledState);
 
     if (ariaLabel) {
       el.setAttribute("aria-label", ariaLabel);
@@ -141,8 +166,8 @@ const UI = {
    * Create information element
    */
   createInformation(
-    labelHtml: LitHtml,
-    valueHtml: LitHtml,
+    labelHtml: UiTemplate,
+    valueHtml: UiTemplate,
   ): InformationElements {
     const container = UI.createEl("vot-block", ["vot-info"]);
     const header = UI.createEl("vot-block");
@@ -181,7 +206,7 @@ const UI = {
    * Create icon button
    */
   createIconButton(
-    templateHtml: TemplateResult,
+    templateHtml: UiTemplate,
     options: MakeButtonLikeOptions = {},
   ): HTMLElement {
     const button = UI.createEl("vot-block", ["vot-icon-button"]);

@@ -1,19 +1,19 @@
 import path from "node:path";
 import { defineConfig } from "vite";
-import { buildDefine } from "./lib/env";
-import { distDir, singleFileBuildOptions, srcDir } from "./lib/paths";
+import { buildDefine } from "./lib/env.ts";
+import { distDir, singleFileBuildOptions, srcDir } from "./lib/paths.ts";
 import {
   collectUsedUserscriptGrantsFromEntry,
   getHeaders,
   mergeUserscriptGrants,
   type UserscriptHeader,
-} from "./lib/userscript/grants";
-import { formatUserscriptHeader } from "./lib/userscript/headers";
+} from "./lib/userscript/grants.ts";
+import { formatUserscriptHeader } from "./lib/userscript/headers.ts";
 import {
   getAvailableLocales,
   getLocaleHeaderEntriesAsync,
-} from "./lib/userscript/locales";
-import { createBaseViteConfig } from "./lib/vite-base-config";
+} from "./lib/userscript/locales.ts";
+import { createBaseViteConfig } from "./lib/vite-base-config.ts";
 
 const USERSCRIPT_ENTRY = path.resolve(srcDir, "index.ts");
 const USERSCRIPT_GLOBAL_NAME = "vot";

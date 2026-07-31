@@ -1,10 +1,5 @@
 import { defineConfig, type Plugin } from "vite";
-import {
-  type BuildConfig,
-  buildDefine,
-  getBuildConfig,
-  isStoreBuild,
-} from "./lib/env";
+import { type BuildConfig, buildDefine, getBuildConfig } from "./lib/env";
 import {
   buildExtensionBundles,
   cleanupExtensionTmpDir,
@@ -66,6 +61,7 @@ export default defineConfig(async ({ mode }) => {
     ...baseConfig,
     define: buildDefine(env),
     plugins: [
+      ...(baseConfig.plugins ?? []),
       firefoxPipelineEntryPlugin(),
       firefoxBuildPipelinePlugin(buildConfig),
     ],

@@ -1,4 +1,4 @@
-import { EventImpl } from "../../core/eventImpl";
+import { EventImpl } from "../../utils/eventImpl";
 import type Select from "./select";
 
 export function setInteractiveHiddenState(
@@ -58,7 +58,7 @@ export function addKeyboardActivationListener(
   );
 }
 
-export abstract class UIComponent {
+export class UIComponent {
   container: HTMLElement;
 
   set hidden(isHidden: boolean) {
@@ -69,7 +69,7 @@ export abstract class UIComponent {
     return this.container.hidden === true;
   }
 
-  protected abstract createElements(): Record<
+  protected createElements?(): Record<
     string,
     HTMLElement | SVGGeometryElement | Select
   >;

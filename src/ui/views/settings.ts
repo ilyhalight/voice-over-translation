@@ -43,7 +43,6 @@ function createSettingsEvents(): {
 }
 
 import { availableLangs } from "@vot.js/shared/consts";
-import { html } from "lit-html";
 import {
   defaultAutoHideDelay,
   defaultAutoVolume,
@@ -54,7 +53,6 @@ import {
 } from "../../config/config";
 import { isAuthRefreshMessage } from "../../core/authRefreshMessage";
 import { openAuthWindow } from "../../core/authWindow";
-import { EventImpl } from "../../core/eventImpl";
 import { detectServices, translateServices } from "../../core/translateApis";
 import {
   type LangOverride,
@@ -96,6 +94,7 @@ import type {
 import ui from "../../ui";
 import debug from "../../utils/debug";
 import { getEnvironmentInfo } from "../../utils/environment";
+import { EventImpl } from "../../utils/eventImpl";
 import { isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
 import { isPiPAvailable } from "../../utils/utils";
@@ -623,10 +622,17 @@ export class SettingsView {
     ).toLocaleString();
     const localeHashValue =
       this.data.localeHash ?? localizationProvider.get("notFound");
-    const localeInfoValue = html`${localeHashValue}<br />(${localizationProvider.get(
-      "VOTUpdatedAt",
-    )}
-      ${localeUpdatedAt})`;
+    // Solid: a thunk building the same two-line fragment. No reactive value is
+    // involved (the strings are computed once per settings render), so a plain
+    const localeInfoValue = () => {
+      const fragment = document.createDocumentFragment();
+      fragment.append(
+        localeHashValue,
+        document.createElement("br"),
+        `(${localizationProvider.get("VOTUpdatedAt")} ${localeUpdatedAt})`,
+      );
+      return fragment;
+    };
     const localeInfo = ui.createInformation(
       `${localizationProvider.get("VOTLocaleHash")}:`,
       localeInfoValue,

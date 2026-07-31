@@ -1,9 +1,8 @@
-﻿import { render } from "lit-html";
-
-import type { LitHtml } from "../../types/components/shared";
+﻿import type { UiTemplate } from "../../types/components/shared";
 import type { SliderProps } from "../../types/components/slider";
 import UI from "../../ui";
 import { clampNumber } from "../../utils/number";
+import { render } from "../solid/render";
 import { UIComponentWithEvents } from "./componentShared";
 
 export default class Slider extends UIComponentWithEvents<{
@@ -12,7 +11,7 @@ export default class Slider extends UIComponentWithEvents<{
   input: HTMLInputElement;
   label: HTMLSpanElement;
 
-  private readonly _labelHtml: LitHtml;
+  private readonly _labelHtml: UiTemplate;
   private _value: number;
   private _min: number;
   private _max: number;

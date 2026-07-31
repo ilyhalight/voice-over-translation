@@ -37,9 +37,13 @@ export class OverlayVisibilityController {
 
   constructor(deps: OverlayVisibilityDependencies) {
     this.deps = deps;
-    this.unsubscribeChecker = this.deps.checker.subscribe(() => {
-      this.onCheckerTick();
-    });
+    this.unsubscribeChecker = this.deps.checker.subscribe(
+      () => {
+        this.onCheckerTick();
+      },
+      // Ticks are only useful while an auto-hide deadline is armed.
+      { hasPendingWork: () => this.hideArmed && this.hideDeadlineMs > 0 },
+    );
   }
 
   /**

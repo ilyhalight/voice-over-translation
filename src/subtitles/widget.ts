@@ -1,11 +1,9 @@
-import { html, nothing, render, type TemplateResult } from "lit-html";
 import { defaultTranslationService } from "../config/config";
 import { translate } from "../core/translateApis";
 import { localizationProvider } from "../localization/localizationProvider";
 import type {
   ProcessedSubtitles,
   SubtitleFontFamily,
-  SubtitleInlineStyle,
   SubtitleLine,
   SubtitlePositionPreset,
   SubtitleToken,
@@ -26,7 +24,13 @@ import {
   getSubtitleFontFamilyCssValue,
 } from "./fonts";
 import { FullscreenLayerController } from "./fullscreenLayerController";
-import { buildSubtitleInlineStyleCssText } from "./inlineStyle";
+import {
+  applyPassedState,
+  clearPassedState,
+  createHighlightState,
+  type HighlightState,
+  syncHighlightState,
+} from "./highlightState";
 import {
   type CapturedVerticalAnchorState,
   captureCustomVerticalAnchorState,
@@ -36,10 +40,7 @@ import {
   resolveCustomVerticalAnchor,
   snapValueToNearestCandidate,
 } from "./positionController";
-import {
-  buildSubtitleRenderPlan,
-  type SubtitleRenderPlanPart,
-} from "./renderPlan";
+import { buildSubtitleRenderPlan } from "./renderPlan";
 import {
   computeSmartLayoutForBox as computeSmartLayoutForBoxUtil,
   type SmartCssMetrics,
@@ -55,6 +56,8 @@ import {
   type TokenPrecomputeMemo,
   type TokenProcessingMemo,
 } from "./smartWrap";
+import { mountSubtitleView, type SubtitleViewHandle } from "./subtitleView";
+import { computeNextWakeMs } from "./wakeSchedule";
 import "../shims/rvfc-polyfill";
 
 const EDGE_PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
@@ -131,14 +134,41 @@ function applyWrapWidthGuard(maxWidthPx: number): number {
   const guarded = Math.min(byPixelGuard, byRatioGuard);
   return Math.max(MIN_EFFECTIVE_WRAP_WIDTH_PX, guarded);
 }
+function isDocumentHidden(): boolean {
+  return typeof document !== "undefined" && document.hidden === true;
+}
+
 export class SubtitlesWidget {
   private readonly video?: HTMLVideoElement;
   private container: HTMLElement | ShadowRoot;
   private readonly fullscreenLayerController: FullscreenLayerController;
   private tooltipMount?: ShadowMount;
   private subtitlesContainer: HTMLElement | null = null;
+  private subtitleView: SubtitleViewHandle | null = null;
   private subtitlesBlock: HTMLElement | null = null;
   private renderedHighlightEls: HTMLSpanElement[] = [];
+  /** Parsed highlight indices + last applied class state (see `highlightState.ts`). */
+  private readonly highlightState: HighlightState = createHighlightState();
+  /**
+   */
+  private contentEpoch = 0;
+  private styleEpoch = 0;
+  /** Monotonic tick counter used to cache layout reads within a single tick. */
+  private tickSeq = 0;
+  private layoutSizeCache: { tick: number; value: LayoutMetrics } | null = null;
+  private smartCssMetricsCache: {
+    key: string;
+    value: SmartCssMetrics | null;
+  } | null = null;
+  private tokenLayoutInputsCache: {
+    key: string;
+    value: { fontKey: string; maxWidthPx: number };
+  } | null = null;
+  private elementMetricsCache: { key: string; w: number; h: number } | null =
+    null;
+  private lastPositionApplyKey: string | null = null;
+  private lastScaleCompensation: string | null = null;
+  private readonly containerVarValues = new Map<string, string>();
   private readonly passedFlagsBuffer: boolean[] = [];
   private subtitles: ProcessedSubtitles | null = null;
   private subtitleLang?: string;
@@ -166,10 +196,15 @@ export class SubtitlesWidget {
   private readonly updateMinIntervalHighlightMs = 33;
   private readonly useVideoFrameCallbacks: boolean;
   private videoFrameRequestId: number | null = null;
+  private readonly onVisibilityChangeBound: () => void;
   private lastPlaybackTimeMs: number | null = null;
   private dragAbortController: AbortController | null = null;
   private lastPositionRefreshTs = 0;
   private readonly positionRefreshIntervalMs = 250;
+  /** Media time before which nothing in the pipeline can change. */
+  private nextWakeAtMs: number | null = null;
+  /** Media time the current deadline was computed from (seek detection). */
+  private wakeBaseTimeMs = 0;
   private subtitleMaxWidthPx = 0;
   private breakAfterTokenIndices: number[] = [];
   private breakAfterTokenIndexSet: Set<number> | null = null;
@@ -202,6 +237,13 @@ export class SubtitlesWidget {
       y: 0,
     },
   };
+  private dragLayoutCache: {
+    layout: LayoutMetrics;
+    anchorBox: AnchorBoxLayout;
+  } | null = null;
+  /** Newest un-applied pointer sample; older samples in the same frame are dropped. */
+  private pendingDragPoint: { clientX: number; clientY: number } | null = null;
+  private dragFrameId: number | null = null;
   private readonly dragStartThresholdPx = 4;
   private readonly snapThresholdPx = 18;
   private suppressTokenClicksUntil = 0;
@@ -264,9 +306,13 @@ export class SubtitlesWidget {
     this.onPointerMoveBound = (event) => this.onPointerMove(event);
     this.onPlaybackStateChangeBound = () => this.handlePlaybackStateChange();
     this.onVisualViewportChangeBound = () => this.scheduleReposition();
-    this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
-      this.onCheckerTick();
-    });
+    this.onVisibilityChangeBound = () => this.handleDocumentVisibilityChange();
+    this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(
+      () => {
+        this.onCheckerTick();
+      },
+      { hasPendingWork: () => this.hasPendingWork() },
+    );
     this.bindEvents();
   }
   public updateMount({
@@ -314,6 +360,7 @@ export class SubtitlesWidget {
   }
   private resetRenderMemo(): void {
     this.lastRenderKey = null;
+    this.invalidateWakeDeadline();
   }
   private computeAnchorBoxLayout(layout: LayoutMetrics): AnchorBoxLayout {
     return {
@@ -326,6 +373,15 @@ export class SubtitlesWidget {
   private readSmartCssMetrics(): SmartCssMetrics | null {
     const block = this.subtitlesBlock;
     if (!block) return null;
+    const cacheKey = `${this.contentEpoch}|${this.styleEpoch}`;
+    const cached = this.smartCssMetricsCache;
+    if (cached && cached.key === cacheKey) return cached.value;
+    const value = this.readSmartCssMetricsNow(block);
+    this.smartCssMetricsCache = { key: cacheKey, value };
+    return value;
+  }
+
+  private readSmartCssMetricsNow(block: HTMLElement): SmartCssMetrics | null {
     const cs = getComputedStyle(block);
     const fontSizePx = Number.parseFloat(cs.fontSize);
     const maxWidthRawPx = Number.parseFloat(cs.maxWidth);
@@ -386,11 +442,27 @@ export class SubtitlesWidget {
   private setSubtitlesContainerVar(name: string, value: string | null): void {
     const container = this.subtitlesContainer;
     if (!container) return;
+    const previous = this.containerVarValues.get(name);
     if (value === null) {
+      if (previous === undefined) return;
+      this.containerVarValues.delete(name);
       container.style.removeProperty(name);
+      this.invalidateStyleCaches();
       return;
     }
+    if (previous === value) return;
+    this.containerVarValues.set(name, value);
     container.style.setProperty(name, value);
+    this.invalidateStyleCaches();
+  }
+
+  /** Invalidate every cache derived from computed style or element geometry. */
+  private invalidateStyleCaches(): void {
+    this.styleEpoch += 1;
+    this.smartCssMetricsCache = null;
+    this.tokenLayoutInputsCache = null;
+    this.elementMetricsCache = null;
+    this.lastPositionApplyKey = null;
   }
   private applyOpacityStyle(): void {
     this.setSubtitlesContainerVar("--vot-subtitles-opacity", this.opacity);
@@ -545,6 +617,14 @@ export class SubtitlesWidget {
     const container = document.createElement("vot-block");
     container.classList.add("vot-subtitles-widget");
     this.subtitlesContainer = container;
+    // A new element carries none of the previously written custom properties,
+    // so the write-if-changed bookkeeping must start from scratch.
+    this.containerVarValues.clear();
+    this.lastScaleCompensation = null;
+    this.smartAnchorWidthPx = 0;
+    this.smartAnchorHeightPx = 0;
+    this.invalidateLayoutCache();
+    this.invalidateStyleCaches();
     this.syncWidgetMount();
     container.addEventListener("pointerdown", this.onPointerDownBound, {
       signal: this.abortController.signal,
@@ -608,7 +688,12 @@ export class SubtitlesWidget {
       this.onVisualViewportChangeBound,
       opts,
     );
-    globalThis.addEventListener("pointerdown", this.onGlobalPointerDown);
+    globalThis.addEventListener("pointerdown", this.onGlobalPointerDown, opts);
+    document.addEventListener(
+      "visibilitychange",
+      this.onVisibilityChangeBound,
+      opts,
+    );
   }
   private getUpdateMinIntervalMs(): number {
     return this.highlightWords
@@ -626,11 +711,46 @@ export class SubtitlesWidget {
     } else if (this.video) {
       this.lastPlaybackTimeMs = Math.max(0, this.video.currentTime * 1000);
     }
+    // Deadline gate: between two boundaries (cue start, cue end + lookback,
+    // next highlight threshold) no state can change, so a per-frame wake costs
+    // two comparisons instead of the whole update path.
+    if (this.canSkipWake(this.lastPlaybackTimeMs)) {
+      this.skippedWakeCount += 1;
+      return;
+    }
     const minInterval = this.getUpdateMinIntervalMs();
     if (now - this.lastUpdateRequestTs < minInterval) return;
     this.lastUpdateRequestTs = now;
     this.updatePending = true;
     this.intervalIdleChecker.requestImmediateTick();
+  }
+  /** True when `timeMs` has not yet reached the next boundary. */
+  private canSkipWake(timeMs: number | null): boolean {
+    if (this.updatePending || this.repositionPending || this.wrapPending) {
+      return false;
+    }
+    if (this.nextWakeAtMs === null) return false;
+    if (typeof timeMs !== "number" || !Number.isFinite(timeMs)) return false;
+    // A seek (in either direction) invalidates the deadline.
+    if (timeMs < this.wakeBaseTimeMs) return false;
+    return timeMs < this.nextWakeAtMs;
+  }
+  private invalidateWakeDeadline(): void {
+    this.nextWakeAtMs = null;
+  }
+  private recomputeWakeDeadline(timeMs: number): void {
+    if (!this.subtitles) {
+      this.invalidateWakeDeadline();
+      return;
+    }
+    this.wakeBaseTimeMs = timeMs;
+    this.nextWakeAtMs = computeNextWakeMs({
+      timeMs,
+      lines: this.subtitles.subtitles,
+      lookbackMs: this.maxActiveCueLookbackMs,
+      thresholds: this.highlightWords ? this.passedThresholds : undefined,
+      maxSleepMs: this.positionRefreshIntervalMs,
+    });
   }
   private resolvePlaybackTimeMs(): number {
     if (
@@ -642,6 +762,8 @@ export class SubtitlesWidget {
     return this.video ? Math.max(0, this.video.currentTime * 1000) : 0;
   }
   private handlePlaybackStateChange(): void {
+    // play/pause/seek/ratechange all move the timeline under the deadline.
+    this.invalidateWakeDeadline();
     if (!this.subtitles) {
       this.stopVideoFrameLoop();
       return;
@@ -656,7 +778,7 @@ export class SubtitlesWidget {
     if (!this.useVideoFrameCallbacks) return;
     const video = this.video;
     if (!video) return;
-    if (!this.subtitles || video.paused || video.ended) {
+    if (!this.subtitles || video.paused || video.ended || isDocumentHidden()) {
       this.stopVideoFrameLoop();
       return;
     }
@@ -700,8 +822,45 @@ export class SubtitlesWidget {
     this.requestUpdate(playbackTimeMs, now);
     this.startVideoFrameLoop();
   };
+  /**
+   * Whether a periodic tick would actually do something.
+   *
+   * A wake loop is not free: a 60 Hz callback that does nothing still measures
+   * ~1% main-thread CPU, and a 250 ms poll keeps the thread from ever settling.
+   * Reporting `false` lets the scheduler go fully dormant until playback, a
+   * pointer, a resize, or a visibility change wakes it.
+   */
+  private hasPendingWork(): boolean {
+    if (this.abortController.signal.aborted) return false;
+    if (
+      this.repositionPending ||
+      this.wrapPending ||
+      this.positionRefreshPending ||
+      this.updatePending
+    ) {
+      return true;
+    }
+    // Nothing queued: only keep polling while subtitles are actually playing.
+    if (!this.subtitles || !this.video) return false;
+    if (isDocumentHidden()) return false;
+    return !this.video.paused && !this.video.ended;
+  }
+
+  private handleDocumentVisibilityChange(): void {
+    if (isDocumentHidden()) {
+      // A background tab paints nothing; rVFC would keep firing on some
+      // platforms and the deadline gate would still run per frame.
+      this.stopVideoFrameLoop();
+      return;
+    }
+    this.invalidateWakeDeadline();
+    this.scheduleReposition();
+    this.syncVideoFrameLoop();
+  }
+
   private onCheckerTick(): void {
     if (this.abortController.signal.aborted) return;
+    this.tickSeq += 1;
     if (this.repositionPending) {
       this.repositionPending = false;
       this.updateContainerRect();
@@ -744,6 +903,9 @@ export class SubtitlesWidget {
     this.dragAbortController = null;
   }
   private onResize(): void {
+    this.dragLayoutCache = null;
+    this.invalidateLayoutCache();
+    this.invalidateStyleCaches();
     this.syncWidgetMount();
     this.scheduleReposition();
   }
@@ -756,6 +918,20 @@ export class SubtitlesWidget {
     this.applySubtitlePositionWithLayout(layout, anchorBox);
   }
   private getLayoutSize(): LayoutMetrics {
+    const cached = this.layoutSizeCache;
+    if (cached && cached.tick === this.tickSeq) return cached.value;
+    const value = this.readLayoutSize();
+    this.layoutSizeCache = { tick: this.tickSeq, value };
+    return value;
+  }
+
+  private invalidateLayoutCache(): void {
+    this.layoutSizeCache = null;
+    this.elementMetricsCache = null;
+    this.lastPositionApplyKey = null;
+  }
+
+  private readLayoutSize(): LayoutMetrics {
     const layoutRoot = this.fullscreenLayerController.getLayoutRootElement();
     const rect = layoutRoot.getBoundingClientRect();
     const w = layoutRoot.clientWidth || rect.width;
@@ -905,7 +1081,32 @@ export class SubtitlesWidget {
     this.dragging.offset.x = anchorX - pointerX;
     this.dragging.offset.y = anchorY - pointerY;
     this.hideSnapGuides();
+    // Cache the gesture-invariant layout metrics; they only change on resize,
+    // fullscreen transitions or reposition, all of which invalidate the cache.
+    this.dragLayoutCache = { layout, anchorBox };
     this.attachDragDocumentListeners();
+  }
+  private scheduleDragFrame(): void {
+    if (this.dragFrameId !== null) return;
+    this.dragFrameId = requestAnimationFrame(() => {
+      this.dragFrameId = null;
+      this.flushDragFrame();
+    });
+  }
+
+  private cancelDragFrame(): void {
+    if (this.dragFrameId === null) return;
+    cancelAnimationFrame(this.dragFrameId);
+    this.dragFrameId = null;
+  }
+
+  private flushDragFrame(): void {
+    const point = this.pendingDragPoint;
+    this.pendingDragPoint = null;
+    if (!point) return;
+    if (this.abortController.signal.aborted) return;
+    if (!this.dragging.active) return;
+    this.applyDragPosition(point.clientX, point.clientY);
   }
   private onPointerUp(event: PointerEvent): void {
     if (this.dragging.pointerId === null) return;
@@ -917,6 +1118,15 @@ export class SubtitlesWidget {
     this.dragging.candidate = false;
     this.dragging.active = false;
     this.dragging.moved = false;
+    // Apply the last pointer sample synchronously so the released position is
+    // exactly the position the user let go at (no dropped final frame).
+    this.cancelDragFrame();
+    const pending = this.pendingDragPoint;
+    this.pendingDragPoint = null;
+    if (pending) {
+      this.applyDragPosition(pending.clientX, pending.clientY);
+    }
+    this.dragLayoutCache = null;
     this.hideSnapGuides();
     this.detachDragDocumentListeners();
   }
@@ -945,19 +1155,39 @@ export class SubtitlesWidget {
     }
     event.preventDefault();
     event.stopPropagation();
-    const layout = this.getLayoutSize();
+    this.pendingDragPoint = { clientX: event.clientX, clientY: event.clientY };
+    this.scheduleDragFrame();
+  }
+
+  /**
+   * Applies a pointer sample to the subtitle anchor position.
+   *
+   * Math is unchanged from the previous inline implementation; the only
+   * difference is that layout metrics come from the per-gesture cache when it
+   * is available, so a drag performs one layout read instead of one per event.
+   */
+  private applyDragPosition(clientX: number, clientY: number): void {
+    const cached = this.dragLayoutCache;
+    const layout = cached?.layout ?? this.getLayoutSize();
     const { rect: containerRect, w, h, scaleX, scaleY } = layout;
     if (!w || !h) return;
-    const anchorBox = this.computeAnchorBoxLayout(layout);
+    const anchorBox = cached?.anchorBox ?? this.computeAnchorBoxLayout(layout);
     if (!anchorBox.w || !anchorBox.h) return;
-    const pointerX =
-      (event.clientX - containerRect.left) / scaleX - anchorBox.left;
-    const pointerY =
-      (event.clientY - containerRect.top) / scaleY - anchorBox.top;
+    const pointerX = (clientX - containerRect.left) / scaleX - anchorBox.left;
+    const pointerY = (clientY - containerRect.top) / scaleY - anchorBox.top;
     let anchorX = pointerX + this.dragging.offset.x;
     let anchorY = pointerY + this.dragging.offset.y;
-    const elW = this.subtitlesContainer?.offsetWidth ?? 0;
-    const elH = this.subtitlesContainer?.offsetHeight ?? 0;
+    // Layout read: route through the epoch-keyed cache used by the static
+    // position path so a drag frame does not force an extra synchronous layout
+    // while the pointer stream is being flushed inside rAF.
+    const containerBox = this.subtitlesContainer
+      ? this.measureContainerBox(this.subtitlesContainer)
+      : { w: 0, h: 0 };
+    const elW = containerBox.w;
+    const elH = containerBox.h;
+    // Custom (dragged) placement intentionally ignores the safe-area inset:
+    // the user picked an absolute anchor, so the inset must not push it back.
+    // Mirrors `applySubtitlePositionWithLayout`, which uses 0 for "custom".
     const bottomInset = 0;
     const snappedX = snapValueToNearestCandidate({
       current: anchorX,
@@ -1009,17 +1239,35 @@ export class SubtitlesWidget {
     if (!anchorBox.w || !anchorBox.h) return;
     this.applySubtitlePositionWithLayout(layout, anchorBox);
   }
+  /**
+   * Single owner of the position-apply memo key.
+   *
+   * Previously this template literal existed verbatim in two places inside
+   * `applySubtitlePositionWithLayout` (entry guard + exit recompute), so any
+   * change to the key had to be mirrored by hand. Behavior is unchanged: the
+   * key is still recomputed after the writes, because they may bump
+   * `styleEpoch`.
+   */
+  private buildPositionApplyKey(
+    layout: LayoutMetrics,
+    anchorBox: AnchorBoxLayout,
+  ): string {
+    return `${Math.round(layout.w)}x${Math.round(layout.h)}|${layout.scaleX.toFixed(3)}x${layout.scaleY.toFixed(3)}|${Math.round(anchorBox.left)},${Math.round(anchorBox.top)},${Math.round(anchorBox.w)},${Math.round(anchorBox.h)}|${this.positionPreset}|${this.position.left.toFixed(3)},${this.position.top.toFixed(3)}|${this.contentEpoch}|${this.styleEpoch}`;
+  }
+
   private applySubtitlePositionWithLayout(
     layout: LayoutMetrics,
     anchorBox: AnchorBoxLayout,
   ): void {
     const subtitlesContainer = this.subtitlesContainer;
     if (!subtitlesContainer) return;
+    const applyKey = this.buildPositionApplyKey(layout, anchorBox);
+    if (applyKey === this.lastPositionApplyKey) return;
+
     this.applyScaleCompensation(subtitlesContainer, layout);
     this.syncAnchorDimensions(subtitlesContainer, anchorBox);
     if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
-    const elW = subtitlesContainer.offsetWidth;
-    const elH = subtitlesContainer.offsetHeight;
+    const { w: elW, h: elH } = this.measureContainerBox(subtitlesContainer);
     const bottomInset =
       this.positionPreset === "custom"
         ? 0
@@ -1046,6 +1294,21 @@ export class SubtitlesWidget {
     const topPct = (containerAnchorY / layout.h) * 100;
     this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
     this.tokenTooltip?.updatePos();
+    // Recompute the key: the writes above may have bumped `styleEpoch`.
+    this.lastPositionApplyKey = this.buildPositionApplyKey(layout, anchorBox);
+  }
+
+  private measureContainerBox(subtitlesContainer: HTMLElement): {
+    w: number;
+    h: number;
+  } {
+    const key = `${this.contentEpoch}|${this.styleEpoch}`;
+    const cached = this.elementMetricsCache;
+    if (cached && cached.key === key) return { w: cached.w, h: cached.h };
+    const w = subtitlesContainer.offsetWidth;
+    const h = subtitlesContainer.offsetHeight;
+    this.elementMetricsCache = { key, w, h };
+    return { w, h };
   }
 
   private applyScaleCompensation(
@@ -1055,17 +1318,21 @@ export class SubtitlesWidget {
     const visualScale = Math.min(layout.scaleX || 1, layout.scaleY || 1);
     const compensate =
       visualScale > 0 && visualScale < 0.999 ? Math.min(1 / visualScale, 3) : 1;
-    if (Math.abs(compensate - 1) < 0.001) {
+    const nextValue =
+      Math.abs(compensate - 1) < 0.001 ? null : compensate.toFixed(3);
+    if (nextValue === this.lastScaleCompensation) return;
+    this.lastScaleCompensation = nextValue;
+    if (nextValue === null) {
       subtitlesContainer.style.removeProperty(
         "--vot-subtitles-scale-compensation",
       );
-      return;
+    } else {
+      subtitlesContainer.style.setProperty(
+        "--vot-subtitles-scale-compensation",
+        nextValue,
+      );
     }
-
-    subtitlesContainer.style.setProperty(
-      "--vot-subtitles-scale-compensation",
-      compensate.toFixed(3),
-    );
+    this.invalidateStyleCaches();
   }
 
   private syncAnchorDimensions(
@@ -1311,6 +1578,21 @@ export class SubtitlesWidget {
     return value;
   }
   private getTokenLayoutInputs(ctx: CanvasRenderingContext2D): {
+    fontKey: string;
+    maxWidthPx: number;
+  } {
+    const cacheKey = `${this.contentEpoch}|${this.styleEpoch}|${this.fontSizeOverridden ? this.fontSize : "auto"}|${this.fontFamily}`;
+    const cached = this.tokenLayoutInputsCache;
+    if (cached && cached.key === cacheKey) {
+      ctx.font = cached.value.fontKey;
+      return cached.value;
+    }
+    const value = this.readTokenLayoutInputs(ctx);
+    this.tokenLayoutInputsCache = { key: cacheKey, value };
+    return value;
+  }
+
+  private readTokenLayoutInputs(ctx: CanvasRenderingContext2D): {
     fontKey: string;
     maxWidthPx: number;
   } {
@@ -1569,8 +1851,11 @@ export class SubtitlesWidget {
     this.hideSnapGuides();
     this.resetSegmentationMemo();
     this.clearPendingSchedulerState();
-    if (this.subtitlesContainer) {
-      render(null, this.subtitlesContainer);
+    if (this.subtitleView) {
+      this.subtitleView.dispose();
+      this.subtitleView = null;
+    } else if (this.subtitlesContainer) {
+      this.subtitlesContainer.textContent = "";
     }
   }
   onClick = async (event: PointerEvent): Promise<void> => {
@@ -1695,70 +1980,15 @@ export class SubtitlesWidget {
     flags.length = thresholds.length;
     return flags;
   }
-  private renderTokens(
-    tokens: SubtitleToken[],
-  ): Array<TemplateResult | string> {
-    return buildSubtitleRenderPlan(
-      tokens,
-      tokens.length - 1,
-      this.breakAfterTokenIndexSet,
-    ).map((part) => this.renderPlanPart(part));
-  }
-
-  private renderStyledSpan(
-    text: string,
-    style: SubtitleInlineStyle | undefined,
-    isWordToken = false,
-    highlightIndex?: number,
-  ): TemplateResult | string {
-    if (!style && !isWordToken && highlightIndex === undefined) {
-      return text;
-    }
-
-    return html`<span
-      data-vot-token=${isWordToken ? "1" : nothing}
-      data-vot-highlight-index=${highlightIndex ?? nothing}
-      data-vot-style-italic=${style?.italic ? "1" : "0"}
-      data-vot-style-bold=${style?.bold ? "1" : "0"}
-      data-vot-style-underline=${style?.underline ? "1" : "0"}
-      data-vot-style-color=${style?.color ? "1" : "0"}
-      style=${buildSubtitleInlineStyleCssText(style)}
-      >${text}</span
-    >`;
-  }
-
-  private renderPlanPart(
-    part: SubtitleRenderPlanPart,
-  ): TemplateResult | string {
-    if (part.kind === "break") {
-      return html`<br class="vot-subtitles-br" />`;
-    }
-    return this.renderStyledSpan(
-      part.text,
-      part.style,
-      part.kind === "word",
-      part.highlightIndex,
+  private updatePassedClasses(passedFlags: boolean[]): void {
+    applyPassedState(
+      this.highlightState,
+      this.renderedHighlightEls,
+      passedFlags,
     );
   }
-  private updatePassedClasses(passedFlags: boolean[]): void {
-    for (const tokenEl of this.renderedHighlightEls) {
-      const highlightIndex = Number.parseInt(
-        tokenEl.dataset.votHighlightIndex ?? "",
-        10,
-      );
-      const isPassed =
-        Number.isInteger(highlightIndex) &&
-        highlightIndex >= 0 &&
-        highlightIndex < passedFlags.length
-          ? passedFlags[highlightIndex]
-          : false;
-      tokenEl.classList.toggle("passed", isPassed);
-    }
-  }
   private clearPassedClasses(): void {
-    for (const tokenEl of this.renderedHighlightEls) {
-      tokenEl.classList.remove("passed");
-    }
+    clearPassedState(this.highlightState, this.renderedHighlightEls);
   }
   private setBreakAfterTokenIndices(indices: number[]): void {
     this.breakAfterTokenIndices = indices;
@@ -1824,6 +2054,7 @@ export class SubtitlesWidget {
       tokens,
       (text) => ctx.measureText(text).width,
       safeMaxWidthPx,
+      this.subtitleLang ?? undefined,
     );
     const breaksChanged =
       next.breakAfterTokenIndices.length !==
@@ -2008,31 +2239,36 @@ export class SubtitlesWidget {
   private syncRenderedTokens(tokens: SubtitleToken[]): void {
     this.subtitlesContainer =
       this.subtitlesContainer ?? this.createSubtitlesContainer();
-    render(
-      html`<vot-block
-        class="vot-subtitles"
-        dir="auto"
-        lang=${this.subtitleLang ?? ""}
-        @click=${this.onClick}
-      >
-        ${this.renderTokens(tokens)}
-      </vot-block>`,
-      this.subtitlesContainer,
+    // One persistent Solid root per container: created lazily, then fed a new
+    // render plan. Solid updates only the parts whose text/attributes changed.
+    this.subtitleView ??= mountSubtitleView(this.subtitlesContainer, {
+      lang: () => this.subtitleLang ?? "",
+      onClick: this.onClick,
+    });
+    this.subtitleView.setParts(
+      buildSubtitleRenderPlan(
+        tokens,
+        tokens.length - 1,
+        this.breakAfterTokenIndexSet,
+      ),
     );
 
-    const firstChild = this.subtitlesContainer.firstElementChild;
-    this.subtitlesBlock =
-      firstChild instanceof HTMLElement &&
-      firstChild.classList.contains("vot-subtitles")
-        ? firstChild
-        : null;
-    this.renderedHighlightEls = this.subtitlesBlock
-      ? Array.from(
-          this.subtitlesBlock.querySelectorAll<HTMLSpanElement>(
-            "span[data-vot-highlight-index]",
-          ),
-        )
-      : [];
+    this.subtitlesBlock = this.subtitleView.block();
+    // Spans come from Solid refs, so the former
+    // querySelectorAll("span[data-vot-highlight-index]") + Array.from pass on
+    // every content render is gone.
+    this.renderedHighlightEls = this.subtitleView.highlightEls();
+    // Content changed: cached measurements and computed-style reads are stale.
+    this.contentEpoch += 1;
+    this.elementMetricsCache = null;
+    this.smartCssMetricsCache = null;
+    this.tokenLayoutInputsCache = null;
+    this.lastPositionApplyKey = null;
+    this.syncHighlightIndexCache();
+  }
+
+  private syncHighlightIndexCache(): void {
+    syncHighlightState(this.highlightState, this.renderedHighlightEls);
   }
   update(): void {
     if (!this.video || !this.subtitles) return;
@@ -2041,6 +2277,7 @@ export class SubtitlesWidget {
     const activeLine = this.resolveActiveLine(time, subtitlesList);
     if (!activeLine) {
       this.clearInactiveLineState();
+      this.recomputeWakeDeadline(time);
       return;
     }
 
@@ -2057,6 +2294,7 @@ export class SubtitlesWidget {
         this.updatePassedClasses(passedFlags);
       }
       this.maybeRefreshPosition();
+      this.recomputeWakeDeadline(time);
       return;
     }
 
@@ -2072,8 +2310,12 @@ export class SubtitlesWidget {
     } else {
       this.maybeRefreshPosition();
     }
+    this.recomputeWakeDeadline(time);
   }
   release(): void {
+    this.cancelDragFrame();
+    this.pendingDragPoint = null;
+    this.dragLayoutCache = null;
     this.detachDragDocumentListeners();
     this.stopVideoFrameLoop();
     this.abortController.abort();

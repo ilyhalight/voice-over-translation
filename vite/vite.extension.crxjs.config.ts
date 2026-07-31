@@ -35,7 +35,11 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     ...baseConfig,
-    plugins: [crx({ manifest }), chromePackagePlugin(buildConfig, headers)],
+    plugins: [
+      ...(baseConfig.plugins ?? []),
+      crx({ manifest }),
+      chromePackagePlugin(buildConfig, headers),
+    ],
     define: buildDefine({
       debug: false,
       isExtension: true,

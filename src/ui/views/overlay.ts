@@ -1,7 +1,6 @@
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { maxAudioVolume } from "../../config/config";
-import { EventImpl } from "../../core/eventImpl";
 import { FullscreenHelper } from "../../core/fullscreenHelper";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { Direction, Position } from "../../types/components/votButton";
@@ -13,6 +12,7 @@ import type {
 } from "../../types/views/overlay";
 import ui from "../../ui";
 import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
+import { EventImpl } from "../../utils/eventImpl";
 import { hasTouchScreen, isTouchFirstInput } from "../../utils/inputDevice";
 import type { IntervalIdleChecker } from "../../utils/intervalIdleChecker";
 import { votStorage } from "../../utils/storage";

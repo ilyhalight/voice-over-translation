@@ -1,7 +1,7 @@
-import type { LitHtml } from "./shared";
+import type { UiTemplate } from "./shared";
 
 export type SliderProps = {
-  labelHtml: LitHtml;
+  labelHtml: UiTemplate;
   value?: number;
   min?: number;
   max?: number;

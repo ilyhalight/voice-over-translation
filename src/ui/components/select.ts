@@ -1,5 +1,3 @@
-import { render } from "lit-html";
-
 import { localizationProvider } from "../../localization/localizationProvider";
 import type {
   LanguageSelectKey,
@@ -10,6 +8,7 @@ import type {
 import type { Phrase } from "../../types/localization";
 import UI from "../../ui";
 import { CHEVRON_ICON } from "../icons";
+import { render } from "../solid/render";
 import { UIComponentWithEvents } from "./componentShared";
 import Dialog from "./dialog";
 import Textfield from "./textfield";

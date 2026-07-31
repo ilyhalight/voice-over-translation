@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
-import ts from "typescript";
-import { srcDir } from "../paths";
+import * as ts from "typescript";
+import { srcDir } from "../paths.ts";
 
 const analyzableCodeExtensions = new Set([
   ".js",

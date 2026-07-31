@@ -1,9 +1,9 @@
-import { render } from "lit-html";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { LanguagePairSelectProps } from "../../types/components/languagePairSelect";
 import type { SelectItem } from "../../types/components/select";
 import UI from "../../ui";
 import { ARROW_RIGHT_ICON } from "../icons";
+import { render } from "../solid/render";
 import { UIComponent } from "./componentShared";
 import Select from "./select";
 

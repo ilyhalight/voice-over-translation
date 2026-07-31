@@ -19,36 +19,66 @@ export type SubtitleRenderPlanPart =
 
 const PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
 const TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
+const LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
+const TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
+const PUNCTUATION_ONLY_RE = /^[\p{P}\p{S}]+$/u;
+const LEADING_WHITESPACE_RE = /^\s+/u;
 
-const isPunctuationOrSymbol = (char: string): boolean =>
+const _isPunctuationOrSymbol = (char: string): boolean =>
   PUNCTUATION_OR_SYMBOL_RE.test(char);
 
-const getLeadingPunctuation = (value: string): string => {
-  let endIndex = 0;
-  for (const char of value) {
-    if (!isPunctuationOrSymbol(char)) {
-      break;
-    }
-    endIndex += char.length;
-  }
-  return value.slice(0, endIndex);
-};
+/**
+ * Consolidated from a per-character `for..of` scan. A single anchored regex is
+ * equivalent for the same input class (Unicode `\p{P}`/`\p{S}` runs) and avoids
+ * one regex `test()` per code point.
+ */
+const getLeadingPunctuation = (value: string): string =>
+  LEADING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
 
-const getTrailingPunctuation = (value: string): string => {
-  const chars = Array.from(value);
-  let length = 0;
-  for (let index = chars.length - 1; index >= 0; index -= 1) {
-    const char = chars[index];
-    if (!isPunctuationOrSymbol(char)) {
-      break;
-    }
-    length += char.length;
-  }
-  return length > 0 ? value.slice(value.length - length) : "";
-};
+/**
+ * Consolidated from `Array.from(value)` + reverse scan, which allocated a code
+ * point array for every word token on every render.
+ */
+const getTrailingPunctuation = (value: string): string =>
+  TRAILING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
 
 const isPunctuationOnly = (value: string): boolean =>
-  value.length > 0 && Array.from(value).every(isPunctuationOrSymbol);
+  value.length > 0 && PUNCTUATION_ONLY_RE.test(value);
+
+/**
+ * Precomputes "is there a token at or after index i that contributes a real
+ * word", replacing the previous `hasFutureWordToken()` forward rescan that made
+ * plan building O(n^2) for punctuation-heavy cues.
+ */
+const buildWordLookahead = (
+  tokens: SubtitleToken[],
+  renderEndTokenIndex: number,
+): Uint8Array => {
+  const size = Math.max(0, renderEndTokenIndex + 2);
+  const lookahead = new Uint8Array(size);
+  for (let index = renderEndTokenIndex; index >= 0; index -= 1) {
+    let hasWord = lookahead[index + 1] === 1;
+    if (!hasWord) {
+      const token = tokens[index];
+      const tokenText = token?.text ?? "";
+      if (token?.isWordLike && tokenText.trim()) {
+        const withoutLeadingWhitespace = tokenText.trimStart();
+        const leadingPunctuation = getLeadingPunctuation(
+          withoutLeadingWhitespace,
+        );
+        const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(
+          leadingPunctuation.length,
+        );
+        const trailingPunctuation = getTrailingPunctuation(
+          withoutLeadingPunctuation,
+        );
+        hasWord = withoutLeadingPunctuation.length > trailingPunctuation.length;
+      }
+    }
+    lookahead[index] = hasWord ? 1 : 0;
+  }
+  return lookahead;
+};
 
 const pushTextPart = (
   plan: SubtitleRenderPlanPart[],
@@ -87,36 +117,6 @@ const skipWhitespaceTokens = (
   return index;
 };
 
-const hasFutureWordToken = (
-  tokens: SubtitleToken[],
-  startIndex: number,
-  renderEndTokenIndex: number,
-): boolean => {
-  for (let index = startIndex; index <= renderEndTokenIndex; index += 1) {
-    const tokenText = tokens[index]?.text ?? "";
-    if (!tokens[index]?.isWordLike || !tokenText.trim()) {
-      continue;
-    }
-
-    const withoutLeadingWhitespace = tokenText.trimStart();
-    const leadingPunctuation = getLeadingPunctuation(withoutLeadingWhitespace);
-    const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(
-      leadingPunctuation.length,
-    );
-    const trailingPunctuation = getTrailingPunctuation(
-      withoutLeadingPunctuation,
-    );
-    const withoutTrailingPunctuation = trailingPunctuation
-      ? withoutLeadingPunctuation.slice(0, -trailingPunctuation.length)
-      : withoutLeadingPunctuation;
-    if (withoutTrailingPunctuation) {
-      return true;
-    }
-  }
-
-  return false;
-};
-
 const consumeWordToken = (
   plan: SubtitleRenderPlanPart[],
   tokens: SubtitleToken[],
@@ -126,7 +126,7 @@ const consumeWordToken = (
   highlightIndex: number,
 ): { consumedWord: boolean; nextTokenIndex: number } => {
   const token = tokens[startIndex];
-  const leadingWhitespace = /^\s+/u.exec(token.text)?.[0] ?? "";
+  const leadingWhitespace = LEADING_WHITESPACE_RE.exec(token.text)?.[0] ?? "";
   const body = token.text.slice(leadingWhitespace.length);
   if (leadingWhitespace) {
     pushTextPart(plan, leadingWhitespace, token.style);
@@ -214,6 +214,7 @@ const consumeTextToken = (
     hasBreakAfter: boolean;
     lastWordHighlightIndex: number | null;
     nextWordHighlightIndex: number;
+    hasWordAfter: boolean;
   },
 ): number => {
   const {
@@ -222,13 +223,12 @@ const consumeTextToken = (
     hasBreakAfter,
     lastWordHighlightIndex,
     nextWordHighlightIndex,
+    hasWordAfter,
   } = options;
 
   const fallbackHighlightIndex =
     lastWordHighlightIndex ??
-    (hasFutureWordToken(tokens, tokenIndex + 1, renderEndTokenIndex)
-      ? nextWordHighlightIndex
-      : undefined);
+    (hasWordAfter ? nextWordHighlightIndex : undefined);
 
   const textParts = tokenText.match(TEXT_TOKEN_SLICE_RE) ?? [tokenText];
   for (const textPart of textParts) {
@@ -261,6 +261,7 @@ export function buildSubtitleRenderPlan(
   const plan: SubtitleRenderPlanPart[] = [];
   let wordHighlightIndex = 0;
   let lastWordHighlightIndex: number | null = null;
+  let wordLookahead: Uint8Array | null = null;
 
   for (let i = 0; i <= renderEndTokenIndex; ) {
     const token = tokens[i];
@@ -294,12 +295,16 @@ export function buildSubtitleRenderPlan(
     }
 
     const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i));
+    if (lastWordHighlightIndex === null && wordLookahead === null) {
+      wordLookahead = buildWordLookahead(tokens, renderEndTokenIndex);
+    }
     i = consumeTextToken(plan, i, tokens, renderEndTokenIndex, {
       token,
       tokenText,
       hasBreakAfter,
       lastWordHighlightIndex,
       nextWordHighlightIndex: wordHighlightIndex,
+      hasWordAfter: wordLookahead ? wordLookahead[i + 1] === 1 : false,
     });
   }
 

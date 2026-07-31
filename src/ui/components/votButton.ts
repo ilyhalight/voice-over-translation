@@ -1,4 +1,3 @@
-import { render } from "lit-html";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type {
   Direction,
@@ -14,7 +13,8 @@ import {
   SUBTITLES_ICON,
   TRANSLATE_ICON_SVG,
 } from "../icons";
-import { UIComponent } from "./componentShared";
+import { render } from "../solid/render";
+import { setInteractiveHiddenState, UIComponent } from "./componentShared";
 
 function isSidePosition(position: Position): boolean {
   return (
@@ -168,14 +168,35 @@ export default class VOTButton extends UIComponent {
     };
   }
 
-  showSubtitlesButton(visible: boolean) {
-    this.separator3.hidden = this.subtitlesButton.hidden = !visible;
+  /**
+   * Toggles an optional segment (button + its separator).
+   *
+   * `showSubtitlesButton` and `showPiPButton` were byte-identical apart from the
+   * two elements they touched; they now share one implementation and route
+   * through `setInteractiveHiddenState`, the same helper every other component
+   * uses, so a hidden segment is consistently removed from the a11y tree and
+   * from hit-testing instead of only being visually hidden.
+   */
+  private setSegmentVisible(
+    button: HTMLElement,
+    separator: HTMLElement,
+    visible: boolean,
+  ) {
+    setInteractiveHiddenState(button, !visible);
+    setInteractiveHiddenState(separator, !visible);
     return this;
   }
 
+  showSubtitlesButton(visible: boolean) {
+    return this.setSegmentVisible(
+      this.subtitlesButton,
+      this.separator3,
+      visible,
+    );
+  }
+
   showPiPButton(visible: boolean) {
-    this.separator2.hidden = this.pipButton.hidden = !visible;
-    return this;
+    return this.setSegmentVisible(this.pipButton, this.separator2, visible);
   }
 
   setText(labelText: string) {

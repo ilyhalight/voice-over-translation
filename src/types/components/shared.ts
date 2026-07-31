@@ -1,3 +1,9 @@
-import type { TemplateResult } from "lit-html";
+import type { JSX } from "solid-js";
 
-export type LitHtml = string | HTMLElement | TemplateResult;
+/** Anything that can be mounted by `src/ui/solid/render`. */
+export type UiTemplate =
+  | string
+  | Node
+  | JSX.Element
+  | (() => JSX.Element)
+  | (() => Node);

@@ -1,7 +1,7 @@
-import { contentUrl, repositoryUrl } from "../../../src/config/config";
-import { getAltMatchPatterns } from "./alt-urls";
-import { getHeaders, type UserscriptHeader } from "./grants";
-import type { LocaleHeadersFile } from "./locales";
+import { contentUrl, repositoryUrl } from "../../../src/config/config.ts";
+import { getAltMatchPatterns } from "./alt-urls.ts";
+import { getHeaders, type UserscriptHeader } from "./grants.ts";
+import type { LocaleHeadersFile } from "./locales.ts";
 
 type UserscriptBranch = "dev" | "master";
 type HeaderFieldValue = string | readonly string[] | undefined;

@@ -1,6 +1,6 @@
-import type { LitHtml } from "./shared";
+import type { UiTemplate } from "./shared";
 
 export type LabelProps = {
   labelText: string;
-  icon?: LitHtml;
+  icon?: UiTemplate;
 };
