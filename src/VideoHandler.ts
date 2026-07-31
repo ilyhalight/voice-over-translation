@@ -376,7 +376,11 @@ export class VideoHandler {
     detectedLanguage: string,
     subtitleLanguage: string,
   ): string {
-    return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${this.data?.useLivelyVoice !== false}`;
+    // Note: `useLivelyVoice` intentionally excluded — it only affects audio
+    // translation, not subtitles. Previously it was part of the key, which
+    // caused unnecessary cache invalidation (and re-fetches) whenever the
+    // user toggled the lively-voice setting.
+    return `${videoId}_${detectedLanguage}_${subtitleLanguage}`;
   }
 
   getPreferredSubtitlesLanguage(
@@ -1466,11 +1470,16 @@ export class VideoHandler {
     if (this.video === video) return;
 
     debug.log("[VideoHandler] replaceVideo", video);
-    await this.audioPlayer.replaceVideo(video);
+    // Defensive: `release()` may have nulled out the player. Recreate if needed.
+    if (this.audioPlayer) {
+      await this.audioPlayer.replaceVideo(video);
+    } else {
+      this.video = video;
+      this.createPlayer();
+    }
     this.abortController.abort();
     this.releaseExtraEvents();
 
-    this.video = video;
     this.abortController = new AbortController();
     this.fullscreenHelper?.updateVideo(video);
     this.resetSubtitlesWidget();
@@ -1502,6 +1511,40 @@ export class VideoHandler {
       this.subtitlesWidget = undefined;
     }
     this.interactionChecker?.destroy();
+
+    // Release the translation handler (audioDownloader listeners, ETA
+    // countdown, in-flight download waiters). See VOTTranslationHandler.release.
+    try {
+      this.translationHandler?.release();
+    } catch (err) {
+      debug.log("[VideoHandler] translationHandler.release failed", err);
+    }
+
+    // Close the AudioContext to avoid leaking browser-limited context slots
+    // (Chrome/Firefox cap concurrent AudioContexts at ~6). Previously this was
+    // never closed, so each VideoHandler creation/release cycle on YouTube SPA
+    // navigation leaked one context, eventually breaking audio playback.
+    if (this.audioContext) {
+      try {
+        // `close()` returns a Promise; await it but tolerate failures.
+        await this.audioContext.close();
+      } catch (err) {
+        debug.log("[VideoHandler] audioContext.close failed", err);
+      }
+      this.audioContext = undefined;
+    }
+
+    // Release the Chaimu audio player internals if it has been created.
+    if (this.audioPlayer?.player) {
+      try {
+        this.audioPlayer.player.removeVideoEvents?.();
+        await this.audioPlayer.player.clear?.();
+      } catch (err) {
+        debug.log("[VideoHandler] audioPlayer cleanup failed", err);
+      }
+    }
+    this.audioPlayer = undefined as unknown as Chaimu;
+
     this.uiManager.release();
   }
 

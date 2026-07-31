@@ -6,6 +6,7 @@ import type {
   VideoDataForSubtitles,
 } from "../../subtitles/types";
 import debug from "../../utils/debug";
+import { isAbortError } from "../../utils/errors";
 import type { VideoHandler } from "../../VideoHandler";
 import { proxifyYandexSubtitlesUrl } from "./proxyShared";
 import {
@@ -268,8 +269,16 @@ export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
 
   try {
     await ensureSubtitlesForCurrentLangPair.call(this);
-  } catch {
-    // If loading fails, we can't enable anything.
+  } catch (error) {
+    // If loading fails, we can't enable anything. Log the error so the user
+    // has feedback that subtitles failed to load (previously this was
+    // silently swallowed). Don't show a UI notification here — the inner
+    // `loadSubtitles` already logs and clears the subtitle state.
+    if (isAbortError(error)) {
+      debug.log("[VOT] enableSubtitlesForCurrentLangPair aborted:", error);
+    } else {
+      debug.error("[VOT] enableSubtitlesForCurrentLangPair failed:", error);
+    }
     return this;
   }
 
@@ -374,9 +383,14 @@ export async function loadSubtitles(this: VideoHandler) {
           this,
           subtitleLanguage,
         );
+        // Pass the actions abort signal so that when the VideoHandler is
+        // released or the video source changes mid-fetch, the request is
+        // aborted instead of keeping the entire handler graph alive until
+        // the fetch settles.
         inflight = SubtitlesProcessor.getSubtitles(
           this.votClient,
           videoDataForSubtitles,
+          this.actionsAbortController?.signal,
         );
         this.subtitlesLoadPromises.set(cacheKey, inflight);
       }
@@ -395,7 +409,14 @@ export async function loadSubtitles(this: VideoHandler) {
     this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
     this.subtitlesCacheKey = cacheKey;
   } catch (error) {
-    console.error("[VOT] Failed to load subtitles:", error);
+    // Distinguish abort from real errors: aborts happen routinely when the
+    // user navigates away mid-fetch and should not pollute the console or
+    // reset subtitle state aggressively.
+    if (isAbortError(error)) {
+      debug.log("[VOT] Subtitles fetch aborted:", error);
+    } else {
+      debug.error("[VOT] Failed to load subtitles:", error);
+    }
     this.subtitles = [];
     this.subtitlesCacheKey = null;
   }

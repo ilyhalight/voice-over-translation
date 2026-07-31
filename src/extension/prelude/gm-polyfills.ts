@@ -46,6 +46,14 @@ function postToBridge(payload: AnyObject) {
   );
 }
 
+// SECURITY: GM storage actions whose payload can carry the Yandex auth token
+// (the `account` storage entry). Their payload is never logged — only the key.
+const SENSITIVE_STORAGE_ACTIONS = new Set([
+  "gm_setValue",
+  "gm_getValue",
+  "gm_getValues",
+]);
+
 // Notifications cannot transport functions (onclick/ondone) over postMessage.
 // We strip non-serializable fields here and handle click behaviour in the
 // background script (see background/notifications.ts).
@@ -92,11 +100,30 @@ export function request<T = unknown>(
       reject(new Error(`VOT bridge timeout for ${action}`));
     }, BRIDGE_REQUEST_TIMEOUT_MS);
 
-    debug.log("[VOT EXT][prelude] GM API request", {
-      requestId: id,
-      action,
-      payload,
-    });
+    // SECURITY: never log raw payload for storage operations — `gm_setValue`
+    // and `gm_getValue` payloads can contain the Yandex auth token (the
+    // `account` storage entry). Only log action + key, never the value.
+    if (SENSITIVE_STORAGE_ACTIONS.has(action)) {
+      const safeKey =
+        payload && typeof payload === "object" && "key" in payload
+          ? String((payload as Record<string, unknown>).key)
+          : Array.isArray(
+                (payload as Record<string, unknown> | undefined)?.defaults,
+              )
+            ? "[getValues]"
+            : "?";
+      debug.log("[VOT EXT][prelude] GM API request", {
+        requestId: id,
+        action,
+        key: safeKey,
+      });
+    } else {
+      debug.log("[VOT EXT][prelude] GM API request", {
+        requestId: id,
+        action,
+        payload,
+      });
+    }
     pending.set(id, {
       action,
       resolve: (value) => resolve(value as T),

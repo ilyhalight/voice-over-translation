@@ -45,6 +45,7 @@ function createSettingsEvents(): {
 import { availableLangs } from "@vot.js/shared/consts";
 import { html } from "lit-html";
 import {
+  authServerUrl,
   defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
@@ -208,6 +209,15 @@ export class SettingsView {
     Record<BufferedNumericStorageKey, ReturnType<typeof setTimeout>>
   > = {};
   private readonly onAuthRefreshMessage = (event: MessageEvent<unknown>) => {
+    // SECURITY: only accept auth-refresh messages from the VOT auth server
+    // origin. Without this check, a malicious iframe could post a fake
+    // `account-updated` message and trigger `refreshAccountFromStorage`,
+    // which would overwrite the in-memory account state with whatever is
+    // currently in storage (potentially manipulated by another vector).
+    if (event.origin !== authServerUrl) {
+      return;
+    }
+
     if (!isAuthRefreshMessage(event.data)) {
       return;
     }

@@ -157,6 +157,11 @@ function getSharedLanguageState(videoId: string): SharedLanguageState {
 
 function normalizeToRequestLang(value: unknown): RequestLang | undefined {
   if (typeof value !== "string") return undefined;
+  // Yandex's translation API accepts only the primary language subtag
+  // (e.g. `zh`, not `zh-Hant`). Splitting on `[-_]` and taking `[0]` is
+  // intentional: it normalizes `zh-Hant`, `zh-Hans`, `zh-CN`, `zh_TW` all
+  // to `zh`, which is the only Chinese variant in `availableLangs`.
+  // The same applies to other script/region-tagged inputs.
   const normalized = value.toLowerCase().split(/[-_]/)[0] as RequestLang;
   return REQUEST_LANG_SET.has(normalized) ? normalized : undefined;
 }

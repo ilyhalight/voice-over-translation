@@ -8,6 +8,7 @@ import {
   summarizeBodyForDebug,
 } from "../shared/bodySerialization";
 import { PORT_NAME } from "../shared/constants";
+import { isAllowedXhrUrl } from "../shared/urlAllowlist";
 import { asErrorMessage } from "../shared/utils";
 import { ext, runtimeMessagesUseStructuredClone } from "../shared/webext";
 import {
@@ -601,6 +602,26 @@ export function registerXhrPortListener(): void {
         forbiddenHeaderNames: Object.keys(forbiddenHeaders),
         body: summarizeBodyForDebug(details.data),
       });
+
+      // SECURITY: reject URLs that are not on the VOT allowlist. The
+      // GM_xmlhttpRequest polyfill runs in the page's MAIN world, so any
+      // page script could otherwise use it to read authenticated data from
+      // hosts covered by `host_permissions` (cookies + CORS bypass).
+      if (!isAllowedXhrUrl(url)) {
+        console.warn(
+          "[VOT Extension] Blocked GM_xmlhttpRequest to non-allowlisted URL:",
+          url,
+        );
+        handleFetchFailure(
+          url,
+          method,
+          responseType,
+          new Error(
+            "VOT bridge blocked request to non-allowlisted URL (potential CSRF/SSRF)",
+          ),
+        );
+        return;
+      }
 
       if (shouldAbortImmediately) {
         postAbortBeforeStart(url);

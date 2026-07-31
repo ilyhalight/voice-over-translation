@@ -60,6 +60,19 @@ async function handleCommonAudioDownloadRequest({
 
   let index = 0;
   for await (const audioChunk of getMediaBuffers()) {
+    // Respect an explicit abort signal: when the upload of a previous chunk
+    // failed (and the translation handler aborted its actions controller) or
+    // when the VideoHandler was released, stop fetching further chunks.
+    // Without this check the loop would continue downloading the entire
+    // audio even though no one will upload it, wasting bandwidth.
+    if (signal?.aborted) {
+      debug.log("Audio downloader. Aborting chunk loop — signal aborted", {
+        index,
+        mediaPartsLength,
+      });
+      break;
+    }
+
     const chunk = assertHasAudioChunk(audioChunk);
 
     await audioDownloader.onDownloadedPartialAudio.dispatchAsync(
@@ -77,7 +90,10 @@ async function handleCommonAudioDownloadRequest({
     index++;
   }
 
-  if (index !== mediaPartsLength) {
+  // Tolerate early exit when the download was cancelled mid-stream via the
+  // abort signal — the caller (translation handler) has already been
+  // notified of failure via `onDownloadAudioError`.
+  if (!signal?.aborted && index !== mediaPartsLength) {
     throw new Error(
       `Audio downloader. Expected ${mediaPartsLength} chunks, got ${index}`,
     );

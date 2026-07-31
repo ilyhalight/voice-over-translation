@@ -157,7 +157,12 @@ export class SubtitlesWidget {
   private smartAnchorHeightPx = 0;
   private lastSmartLayoutKey: string | null = null;
   private lastSmartLayoutCheckTs = 0;
-  private opacity = "0.2";
+  // Default opacity must match the SCSS `--vot-subtitles-opacity` initial
+  // value (0.8) and the default `subtitlesOpacity: 20` setting, which yields
+  // `(100 - 20) / 100 = 0.80`. Previously this was initialized to "0.2",
+  // which produced 20%-opaque subtitles if `applySavedSubtitlesWidgetSettings`
+  // never ran (e.g. `this.data` was null).
+  private opacity = "0.80";
   private repositionPending = false;
   private positionRefreshPending = false;
   private updatePending = false;
@@ -608,7 +613,11 @@ export class SubtitlesWidget {
       this.onVisualViewportChangeBound,
       opts,
     );
-    globalThis.addEventListener("pointerdown", this.onGlobalPointerDown);
+    // CRITICAL: pass `opts` (with AbortSignal) so this listener is removed
+    // when `abortController.abort()` runs in `release()`. Without it, every
+    // SubtitlesWidget release leaked one `pointerdown` listener on `window`
+    // plus its entire object graph (video, container, DOM).
+    globalThis.addEventListener("pointerdown", this.onGlobalPointerDown, opts);
   }
   private getUpdateMinIntervalMs(): number {
     return this.highlightWords

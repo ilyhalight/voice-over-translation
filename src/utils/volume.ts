@@ -31,7 +31,11 @@ export function clampPercentInt(
 
 export function volume01ToPercent(volume01: number): number {
   const v = clampNumber(volume01, 0, 1);
-  return clampPercentInt(v * 100);
+  // Add a tiny epsilon before rounding to defend against floating-point
+  // drift. E.g. `0.985 * 100 = 98.49999999999999` would round to 98 instead
+  // of 99; `0.995 * 100 = 99.49999999999999` would round to 99 instead of
+  // 100. The epsilon nudges borderline cases over the .5 boundary.
+  return clampPercentInt(v * 100 + EPS);
 }
 
 export function percentToVolume01(percent: number): number {

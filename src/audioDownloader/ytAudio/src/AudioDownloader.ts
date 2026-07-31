@@ -422,8 +422,13 @@ export class AudioDownloader {
     request: AudioStreamRequest,
     options: AudioChunkStreamOptions,
   ): Promise<AudioChunkStreamResult> {
-    if (options.chunkSize <= 0) {
-      throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
+    // `NaN <= 0` is `false`, so `NaN` would previously slip through and then
+    // produce a confusing "Expected NaN chunks, got 0" error deeper in the
+    // download loop. Reject non-finite values explicitly.
+    if (!Number.isFinite(options.chunkSize) || options.chunkSize <= 0) {
+      throw new RangeError(
+        "Audio downloader. ytAudio. chunkSize must be a finite number > 0",
+      );
     }
 
     return this.withResolvedPlayableAudioFormat(

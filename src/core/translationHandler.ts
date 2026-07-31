@@ -121,6 +121,14 @@ export class VOTTranslationHandler {
   // In normal operation we should upload audio from the direct ytAudio path.
   private readonly requestedFailAudio = new Set<string>();
 
+  /**
+   * Maximum number of video URLs tracked in `requestedFailAudio`. Without a
+   * cap, on YouTube SPA navigation (where the VideoHandler is reused across
+   * many videos) this Set would grow unbounded and permanently disable the
+   * fail-audio-js fallback for every URL ever visited.
+   */
+  private static readonly MAX_REQUESTED_FAIL_AUDIO_ENTRIES = 100;
+
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
     this.audioDownloader = new AudioDownloader();
@@ -241,6 +249,18 @@ export class VOTTranslationHandler {
         debug.log("Sending fail-audio-js request");
         await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
         this.requestedFailAudio.add(videoUrl);
+        // Bound the Set: on YouTube SPA navigation the VideoHandler is reused
+        // across many videos, so without eviction this Set would grow forever
+        // and permanently disable the fail-audio-js fallback for every URL
+        // ever visited.
+        if (
+          this.requestedFailAudio.size >
+          VOTTranslationHandler.MAX_REQUESTED_FAIL_AUDIO_ENTRIES
+        ) {
+          // Drop the oldest-inserted entry (Set preserves insertion order).
+          const first = this.requestedFailAudio.values().next().value;
+          if (typeof first === "string") this.requestedFailAudio.delete(first);
+        }
       }
 
       this.finishDownloadSuccess();
@@ -259,6 +279,16 @@ export class VOTTranslationHandler {
 
   private finishDownloadFailure(error: Error) {
     this.downloading = false;
+    // Abort the actions controller so that the audio downloader's chunk
+    // loop stops fetching further chunks. Without this, the `for await` loop
+    // in `handleCommonAudioDownloadRequest` would continue downloading the
+    // entire audio even though we've already declared the download failed,
+    // wasting bandwidth.
+    try {
+      this.videoHandler.actionsAbortController?.abort(error);
+    } catch (abortErr) {
+      debug.log("[VOTTranslationHandler] abort on failure threw", abortErr);
+    }
     this.settleDownloadWaiters(error);
   }
 
@@ -274,6 +304,12 @@ export class VOTTranslationHandler {
     const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
     let lastError: unknown;
 
+    // Use the VideoHandler's actions abort signal so that if translation is
+    // cancelled during the backoff, the retry is aborted instead of firing
+    // anyway after delayMs (which would upload audio for a cancelled session).
+    const signal =
+      this.videoHandler.actionsAbortController?.signal ?? NEVER_ABORTED_SIGNAL;
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
@@ -285,7 +321,7 @@ export class VOTTranslationHandler {
         debug.log(
           `[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
         );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await createAbortableDelay(delayMs, signal);
       }
     }
     throw lastError;
@@ -435,7 +471,17 @@ export class VOTTranslationHandler {
       });
       throwIfAborted(signal);
 
-      if (res.translated && res.remainingTime < 1) {
+      // Explicitly check that `remainingTime` is a finite number before
+      // comparing. `null < 1` is `true` (null coerces to 0), and
+      // `undefined < 1` is `false` (NaN). Depending on which the API returns,
+      // a `translated: true` response could either falsely report completion
+      // or loop forever. Require an explicit finite number < 1.
+      if (
+        res.translated &&
+        typeof res.remainingTime === "number" &&
+        Number.isFinite(res.remainingTime) &&
+        res.remainingTime < 1
+      ) {
         this.etaCountdown.stop();
         debug.log("[Translation] translation finished", {
           videoId: videoData.videoId,
@@ -708,5 +754,54 @@ export class VOTTranslationHandler {
         settle.resolve();
       }
     }
+  }
+
+  /**
+   * Release all resources held by this handler.
+   *
+   * Called from `VideoHandler.release()`. Removes audioDownloader event
+   * listeners (which otherwise keep this handler and the videoHandler alive
+   * while a download is in-flight), rejects any pending download waiters,
+   * stops the ETA countdown, and clears per-instance caches.
+   */
+  release(): void {
+    // Remove event listeners so that in-flight audioDownloader operations
+    // cannot resurrect this handler via captured closures.
+    try {
+      this.audioDownloader.removeEventListener(
+        "downloadedAudio",
+        this.onDownloadedAudio,
+      );
+      this.audioDownloader.removeEventListener(
+        "downloadedPartialAudio",
+        this.onDownloadedPartialAudio,
+      );
+      this.audioDownloader.removeEventListener(
+        "downloadAudioError",
+        this.onDownloadAudioError,
+      );
+    } catch (err) {
+      debug.log("[VOTTranslationHandler] removeEventListener failed", err);
+    }
+
+    // Reject any in-flight `waitForAudioDownload` callers so they don't
+    // hang waiting for a download that will never complete on this handler.
+    this.settleDownloadWaiters(new Error("VOTTranslationHandler released"));
+    this.downloadSettlers.clear();
+
+    // Stop the ETA countdown timer + clear its UI message.
+    try {
+      this.etaCountdown.stop();
+    } catch (err) {
+      debug.log("[VOTTranslationHandler] etaCountdown.stop failed", err);
+    }
+
+    // Clear per-instance caches. Without this, on YouTube SPA navigation
+    // (where the VideoHandler is reused across many videos), the Set would
+    // grow unbounded and permanently disable the fail-audio-js fallback for
+    // every URL ever visited.
+    this.requestedFailAudio.clear();
+
+    this.downloading = false;
   }
 }

@@ -74,8 +74,30 @@ function canSend(
   return now() - prev >= cooldownMs;
 }
 
+/**
+ * Maximum number of dedupe keys retained in `lastSentAt`. Without a cap, on
+ * YouTube SPA navigation (where the VideoHandler is reused across many videos)
+ * keys like `translation_failed_${videoId}` would accumulate indefinitely.
+ */
+const MAX_LAST_SENT_AT_ENTRIES = 200;
+/** Entries older than this are pruned regardless of count. */
+const LAST_SENT_AT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 function markSent(lastSentAt: Map<string, number>, key: string) {
   lastSentAt.set(key, now());
+  // Prune stale entries periodically to bound memory on long-lived handlers.
+  if (lastSentAt.size > MAX_LAST_SENT_AT_ENTRIES) {
+    const cutoff = now() - LAST_SENT_AT_TTL_MS;
+    for (const [k, ts] of lastSentAt) {
+      if (ts < cutoff) lastSentAt.delete(k);
+    }
+    // If still too many (all recent), drop oldest half by timestamp.
+    if (lastSentAt.size > MAX_LAST_SENT_AT_ENTRIES) {
+      const sorted = [...lastSentAt.entries()].sort((a, b) => a[1] - b[1]);
+      const drop = sorted.length - Math.floor(sorted.length / 2);
+      for (let i = 0; i < drop; i++) lastSentAt.delete(sorted[i][0]);
+    }
+  }
 }
 
 function localizePhraseText(message: string): string | null {

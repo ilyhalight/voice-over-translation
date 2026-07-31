@@ -6822,12 +6822,14 @@ var vot = (function(exports) {
 	];
 	//#endregion
 	//#region src/utils/debug.ts
-	var log = (...text) => {
+	var noop = () => {};
+	var DEBUG_MODE_ACTIVE = Boolean(false);
+	var log = DEBUG_MODE_ACTIVE ? (...text) => {
 		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
-	};
-	var warn = (...text) => {
+	} : noop;
+	var warn = DEBUG_MODE_ACTIVE ? (...text) => {
 		console.warn("%c[VOT DEBUG]", "background: #e1ff00ff; color: #fff; padding: 5px;", ...text);
-	};
+	} : noop;
 	var error = (...text) => {
 		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
 	};
@@ -11931,20 +11933,20 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region ../../chaimu/dist/config.js
+	//#region node_modules/chaimu/dist/config.js
 	var config_default = {
 		version: "1.1.0",
 		debug: false,
 		fetchFn: fetch.bind(window)
 	};
 	//#endregion
-	//#region ../../chaimu/dist/debug.js
+	//#region node_modules/chaimu/dist/debug.js
 	var debug_default = { log: (...text) => {
 		if (!config_default.debug) return;
 		return console.log(`%c✦ chaimu.js v${config_default.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
 	} };
 	//#endregion
-	//#region ../../chaimu/dist/player.js
+	//#region node_modules/chaimu/dist/player.js
 	var videoLipSyncEvents = [
 		"playing",
 		"ratechange",
@@ -12491,7 +12493,7 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region ../../chaimu/dist/client.js
+	//#region node_modules/chaimu/dist/client.js
 	var Chaimu = class {
 		_debug = false;
 		audioContext;
@@ -13203,7 +13205,7 @@ var vot = (function(exports) {
 			return bytes;
 		}
 		async downloadAudioToChunkStream(request, options) {
-			if (options.chunkSize <= 0) throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
+			if (!Number.isFinite(options.chunkSize) || options.chunkSize <= 0) throw new RangeError("Audio downloader. ytAudio. chunkSize must be a finite number > 0");
 			return this.withResolvedPlayableAudioFormat(request, request.audioQuality ?? "best", "Chunk mode requires an adaptive audio stream format", "Unable to resolve streamable format for chunk mode", async ({ resolved, signal }) => {
 				const fileSize = this.resolveStreamContentLength(resolved.chosenFormat.contentLength);
 				const mediaPartsLength = Math.max(1, Math.ceil(fileSize / options.chunkSize));
@@ -13457,6 +13459,13 @@ var vot = (function(exports) {
 		}
 		let index = 0;
 		for await (const audioChunk of getMediaBuffers()) {
+			if (signal?.aborted) {
+				debug.log("Audio downloader. Aborting chunk loop — signal aborted", {
+					index,
+					mediaPartsLength
+				});
+				break;
+			}
 			const chunk = assertHasAudioChunk(audioChunk);
 			await audioDownloader.onDownloadedPartialAudio.dispatchAsync(translationId, {
 				videoId,
@@ -13468,7 +13477,7 @@ var vot = (function(exports) {
 			});
 			index++;
 		}
-		if (index !== mediaPartsLength) throw new Error(`Audio downloader. Expected ${mediaPartsLength} chunks, got ${index}`);
+		if (!signal?.aborted && index !== mediaPartsLength) throw new Error(`Audio downloader. Expected ${mediaPartsLength} chunks, got ${index}`);
 	}
 	var AudioDownloader = class {
 		onDownloadedAudio = new EventImpl();
@@ -13754,6 +13763,13 @@ var vot = (function(exports) {
 		downloadSettlers = /* @__PURE__ */ new Set();
 		etaCountdown;
 		requestedFailAudio = /* @__PURE__ */ new Set();
+		/**
+		* Maximum number of video URLs tracked in `requestedFailAudio`. Without a
+		* cap, on YouTube SPA navigation (where the VideoHandler is reused across
+		* many videos) this Set would grow unbounded and permanently disable the
+		* fail-audio-js fallback for every URL ever visited.
+		*/
+		static MAX_REQUESTED_FAIL_AUDIO_ENTRIES = 100;
 		constructor(videoHandler) {
 			this.videoHandler = videoHandler;
 			this.audioDownloader = new AudioDownloader();
@@ -13822,6 +13838,10 @@ var vot = (function(exports) {
 					debug.log("Sending fail-audio-js request");
 					await this.videoHandler.votClient.requestVtransFailAudio(videoUrl);
 					this.requestedFailAudio.add(videoUrl);
+					if (this.requestedFailAudio.size > VOTTranslationHandler.MAX_REQUESTED_FAIL_AUDIO_ENTRIES) {
+						const first = this.requestedFailAudio.values().next().value;
+						if (typeof first === "string") this.requestedFailAudio.delete(first);
+					}
 				}
 				this.finishDownloadSuccess();
 			} catch (error) {
@@ -13835,6 +13855,11 @@ var vot = (function(exports) {
 		}
 		finishDownloadFailure(error) {
 			this.downloading = false;
+			try {
+				this.videoHandler.actionsAbortController?.abort(error);
+			} catch (abortErr) {
+				debug.log("[VOTTranslationHandler] abort on failure threw", abortErr);
+			}
 			this.settleDownloadWaiters(error);
 		}
 		getCanonicalUrl(videoId) {
@@ -13846,13 +13871,14 @@ var vot = (function(exports) {
 			const maxRetries = VOTTranslationHandler.AUDIO_UPLOAD_MAX_RETRIES;
 			const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
 			let lastError;
+			const signal = this.videoHandler.actionsAbortController?.signal ?? NEVER_ABORTED_SIGNAL;
 			for (let attempt = 0; attempt <= maxRetries; attempt++) try {
 				return await fn();
 			} catch (error) {
 				lastError = error;
 				if (attempt === maxRetries) throw error;
 				debug.log(`[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
-				await new Promise((resolve) => setTimeout(resolve, delayMs));
+				await createAbortableDelay(delayMs, signal);
 			}
 			throw lastError;
 		}
@@ -13931,7 +13957,7 @@ var vot = (function(exports) {
 					...summarizeTranslationResponse(res)
 				});
 				throwIfAborted(signal);
-				if (res.translated && res.remainingTime < 1) {
+				if (res.translated && typeof res.remainingTime === "number" && Number.isFinite(res.remainingTime) && res.remainingTime < 1) {
 					this.etaCountdown.stop();
 					debug.log("[Translation] translation finished", {
 						videoId: videoData.videoId,
@@ -14098,6 +14124,32 @@ var vot = (function(exports) {
 			this.downloadSettlers.clear();
 			for (const settle of settlers) if (error) settle.reject(error);
 			else settle.resolve();
+		}
+		/**
+		* Release all resources held by this handler.
+		*
+		* Called from `VideoHandler.release()`. Removes audioDownloader event
+		* listeners (which otherwise keep this handler and the videoHandler alive
+		* while a download is in-flight), rejects any pending download waiters,
+		* stops the ETA countdown, and clears per-instance caches.
+		*/
+		release() {
+			try {
+				this.audioDownloader.removeEventListener("downloadedAudio", this.onDownloadedAudio);
+				this.audioDownloader.removeEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio);
+				this.audioDownloader.removeEventListener("downloadAudioError", this.onDownloadAudioError);
+			} catch (err) {
+				debug.log("[VOTTranslationHandler] removeEventListener failed", err);
+			}
+			this.settleDownloadWaiters(/* @__PURE__ */ new Error("VOTTranslationHandler released"));
+			this.downloadSettlers.clear();
+			try {
+				this.etaCountdown.stop();
+			} catch (err) {
+				debug.log("[VOTTranslationHandler] etaCountdown.stop failed", err);
+			}
+			this.requestedFailAudio.clear();
+			this.downloading = false;
 		}
 	};
 	//#endregion
@@ -14478,7 +14530,7 @@ var vot = (function(exports) {
 		return clampInt(Math.round(value), min, max);
 	}
 	function volume01ToPercent(volume01) {
-		return clampPercentInt(clampNumber(volume01, 0, 1) * 100);
+		return clampPercentInt(clampNumber(volume01, 0, 1) * 100 + EPS);
 	}
 	function percentToVolume01(percent) {
 		return clampPercentInt(percent) / 100;
@@ -14880,8 +14932,25 @@ var vot = (function(exports) {
 		const prev = lastSentAt.get(key) ?? 0;
 		return now() - prev >= cooldownMs;
 	}
+	/**
+	* Maximum number of dedupe keys retained in `lastSentAt`. Without a cap, on
+	* YouTube SPA navigation (where the VideoHandler is reused across many videos)
+	* keys like `translation_failed_${videoId}` would accumulate indefinitely.
+	*/
+	var MAX_LAST_SENT_AT_ENTRIES = 200;
+	/** Entries older than this are pruned regardless of count. */
+	var LAST_SENT_AT_TTL_MS = 600 * 1e3;
 	function markSent(lastSentAt, key) {
 		lastSentAt.set(key, now());
+		if (lastSentAt.size > MAX_LAST_SENT_AT_ENTRIES) {
+			const cutoff = now() - LAST_SENT_AT_TTL_MS;
+			for (const [k, ts] of lastSentAt) if (ts < cutoff) lastSentAt.delete(k);
+			if (lastSentAt.size > MAX_LAST_SENT_AT_ENTRIES) {
+				const sorted = [...lastSentAt.entries()].sort((a, b) => a[1] - b[1]);
+				const drop = sorted.length - Math.floor(sorted.length / 2);
+				for (let i = 0; i < drop; i++) lastSentAt.delete(sorted[i][0]);
+			}
+		}
 	}
 	function localizePhraseText(message) {
 		const key = message.trim();
@@ -17024,7 +17093,7 @@ var vot = (function(exports) {
 		smartAnchorHeightPx = 0;
 		lastSmartLayoutKey = null;
 		lastSmartLayoutCheckTs = 0;
-		opacity = "0.2";
+		opacity = "0.80";
 		repositionPending = false;
 		positionRefreshPending = false;
 		updatePending = false;
@@ -17363,7 +17432,7 @@ var vot = (function(exports) {
 			if (this.video) this.resizeObserver.observe(this.video);
 			globalThis.visualViewport?.addEventListener("resize", this.onVisualViewportChangeBound, opts);
 			globalThis.visualViewport?.addEventListener("scroll", this.onVisualViewportChangeBound, opts);
-			globalThis.addEventListener("pointerdown", this.onGlobalPointerDown);
+			globalThis.addEventListener("pointerdown", this.onGlobalPointerDown, opts);
 		}
 		getUpdateMinIntervalMs() {
 			return this.highlightWords ? this.updateMinIntervalHighlightMs : this.updateMinIntervalMs;
@@ -22664,6 +22733,7 @@ var vot = (function(exports) {
 		events = createSettingsEvents();
 		persistTimerIds = {};
 		onAuthRefreshMessage = (event) => {
+			if (event.origin !== "https://rust-server-531j.onrender.com") return;
 			if (!isAuthRefreshMessage(event.data)) return;
 			this.refreshAccountFromStorage();
 		};
@@ -25543,7 +25613,8 @@ var vot = (function(exports) {
 		return true;
 	}
 	function bindOverlayLayoutEvents(ctx) {
-		const { self, overlayView, addMany } = ctx;
+		const { self, overlayView } = ctx;
+		if (!overlayView) return;
 		const syncMountAndLayout = () => {
 			self.refreshOverlayMount();
 			applyOverlayLayout(self, overlayView);
@@ -25553,8 +25624,6 @@ var vot = (function(exports) {
 		});
 		self.resizeObserver.observe(self.video);
 		syncMountAndLayout();
-		addMany(document, ["fullscreenchange", "webkitfullscreenchange"], () => syncMountAndLayout());
-		addMany(self.video, ["webkitbeginfullscreen", "webkitendfullscreen"], () => syncMountAndLayout());
 	}
 	function bindYouTubeVolumeSync(ctx) {
 		const { self } = ctx;
@@ -25782,7 +25851,6 @@ var vot = (function(exports) {
 	}
 	function initExtraEvents() {
 		const overlayView = this.uiManager.votOverlayView;
-		if (!overlayView?.subtitlesSelect) return;
 		const { add, addMany } = createScopedListeners(this.abortController.signal);
 		const ctx = {
 			self: this,
@@ -25791,12 +25859,13 @@ var vot = (function(exports) {
 			add,
 			addMany
 		};
+		bindVideoLifecycleEvents(ctx);
 		bindPlaybackRefreshOnResume(ctx);
 		bindOverlayLayoutEvents(ctx);
+		bindGlobalDismissAndHotkeys(ctx);
+		if (!overlayView?.subtitlesSelect) return;
 		bindYouTubeVolumeSync(ctx);
 		bindAudioTrackLanguageSync(ctx);
-		bindGlobalDismissAndHotkeys(ctx);
-		bindVideoLifecycleEvents(ctx);
 	}
 	function rebindOverlayVisibilityTargets() {
 		this.overlayVisibilityTargetsAbortController?.abort();
@@ -25827,9 +25896,13 @@ var vot = (function(exports) {
 	}
 	function releaseExtraEvents() {
 		this.resizeObserver?.disconnect();
+		this.resizeObserver = void 0;
 		this.overlayVisibilityTargetsAbortController?.abort();
 		this.overlayVisibilityTargetsAbortController = void 0;
-		if (isDesktopYouTubeLikeSite(this.site)) this.syncVolumeObserver?.disconnect();
+		if (isDesktopYouTubeLikeSite(this.site)) {
+			this.syncVolumeObserver?.disconnect();
+			this.syncVolumeObserver = void 0;
+		}
 	}
 	//#endregion
 	//#region src/videoHandler/modules/init.ts
@@ -26601,14 +26674,11 @@ var vot = (function(exports) {
 				debug.log("[VOT] Processed subtitles:", subtitlesWithTokens);
 				return subtitlesWithTokens;
 			} catch (error) {
-				console.error("[VOT] Failed to process subtitles:", error);
-				return {
-					format: "json",
-					subtitles: []
-				};
+				debug.error("[VOT] Failed to process subtitles:", error);
+				throw error;
 			}
 		},
-		async getSubtitles(client, videoData) {
+		async getSubtitles(client, videoData, signal) {
 			const { host, url, detectedLanguage: requestLang, videoId, duration, subtitles: extraSubtitles = [] } = videoData;
 			try {
 				const requestPayload = {
@@ -26620,16 +26690,19 @@ var vot = (function(exports) {
 					},
 					requestLang
 				};
-				const res = await Promise.race([client.getSubtitles(requestPayload), new Promise((_, reject) => {
-					setTimeout(() => reject(/* @__PURE__ */ new Error("Timeout")), 5e3);
-				})]);
-				debug.log("[VOT] Subtitles response:", res);
-				if (res.waiting) console.error("[VOT] Failed to get Yandex subtitles");
-				return sortSubtitles([...buildYandexSubtitles(res), ...extraSubtitles], requestLang);
+				const timeoutSignal = createTimeoutSignal(5e3, signal);
+				try {
+					const res = await client.getSubtitles(requestPayload, timeoutSignal.signal);
+					debug.log("[VOT] Subtitles response:", res);
+					if (res.waiting) throw new Error("VOTSubtitlesWaiting");
+					return sortSubtitles([...buildYandexSubtitles(res), ...extraSubtitles], requestLang);
+				} finally {
+					timeoutSignal.cleanup();
+				}
 			} catch (error) {
 				let message = "Error in getSubtitles function";
 				if (error instanceof Error && error.message === "Timeout") message = "Failed to get Yandex subtitles: timeout";
-				console.error(`[VOT] ${message}`, error);
+				debug.error(`[VOT] ${message}`, error);
 				throw error;
 			}
 		}
@@ -26778,7 +26851,9 @@ var vot = (function(exports) {
 		if (!overlayView?.subtitlesSelect) return this;
 		try {
 			await ensureSubtitlesForCurrentLangPair.call(this);
-		} catch {
+		} catch (error) {
+			if (isAbortError(error)) debug.log("[VOT] enableSubtitlesForCurrentLangPair aborted:", error);
+			else debug.error("[VOT] enableSubtitlesForCurrentLangPair failed:", error);
 			return this;
 		}
 		const fromLang = this.videoData?.detectedLanguage ?? this.translateFromLang;
@@ -26838,7 +26913,7 @@ var vot = (function(exports) {
 				let inflight = this.subtitlesLoadPromises.get(cacheKey);
 				if (inflight === void 0) {
 					const videoDataForSubtitles = enrichYoutubeSubtitlesForPreference(this, subtitleLanguage);
-					inflight = SubtitlesProcessor.getSubtitles(this.votClient, videoDataForSubtitles);
+					inflight = SubtitlesProcessor.getSubtitles(this.votClient, videoDataForSubtitles, this.actionsAbortController?.signal);
 					this.subtitlesLoadPromises.set(cacheKey, inflight);
 				}
 				try {
@@ -26852,7 +26927,8 @@ var vot = (function(exports) {
 			this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
 			this.subtitlesCacheKey = cacheKey;
 		} catch (error) {
-			console.error("[VOT] Failed to load subtitles:", error);
+			if (isAbortError(error)) debug.log("[VOT] Subtitles fetch aborted:", error);
+			else debug.error("[VOT] Failed to load subtitles:", error);
 			this.subtitles = [];
 			this.subtitlesCacheKey = null;
 		}
@@ -27087,7 +27163,7 @@ var vot = (function(exports) {
 		* @param {string} subtitleLanguage
 		*/
 		getSubtitlesCacheKey(videoId, detectedLanguage, subtitleLanguage) {
-			return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${this.data?.useLivelyVoice !== false}`;
+			return `${videoId}_${detectedLanguage}_${subtitleLanguage}`;
 		}
 		getPreferredSubtitlesLanguage(detectedLanguage = this.videoData?.detectedLanguage ?? "auto", responseLanguage = this.videoData?.responseLanguage ?? this.translateToLang, preference = this.data?.responseLanguageSubtitles) {
 			return resolveSubtitlesLanguage(preference, detectedLanguage, responseLanguage) ?? responseLanguage ?? detectedLanguage;
@@ -27802,10 +27878,13 @@ var vot = (function(exports) {
 		async replaceVideo(video) {
 			if (this.video === video) return;
 			debug.log("[VideoHandler] replaceVideo", video);
-			await this.audioPlayer.replaceVideo(video);
+			if (this.audioPlayer) await this.audioPlayer.replaceVideo(video);
+			else {
+				this.video = video;
+				this.createPlayer();
+			}
 			this.abortController.abort();
 			this.releaseExtraEvents();
-			this.video = video;
 			this.abortController = new AbortController();
 			this.fullscreenHelper?.updateVideo(video);
 			this.resetSubtitlesWidget();
@@ -27834,6 +27913,26 @@ var vot = (function(exports) {
 				this.subtitlesWidget = void 0;
 			}
 			this.interactionChecker?.destroy();
+			try {
+				this.translationHandler?.release();
+			} catch (err) {
+				debug.log("[VideoHandler] translationHandler.release failed", err);
+			}
+			if (this.audioContext) {
+				try {
+					await this.audioContext.close();
+				} catch (err) {
+					debug.log("[VideoHandler] audioContext.close failed", err);
+				}
+				this.audioContext = void 0;
+			}
+			if (this.audioPlayer?.player) try {
+				this.audioPlayer.player.removeVideoEvents?.();
+				await this.audioPlayer.player.clear?.();
+			} catch (err) {
+				debug.log("[VideoHandler] audioPlayer cleanup failed", err);
+			}
+			this.audioPlayer = void 0;
 			this.uiManager.release();
 		}
 		/**

@@ -32,7 +32,10 @@ type ScopedAddListeners = (
 ) => void;
 type ExtraEventsContext = {
   self: VideoHandler;
-  overlayView: NonNullable<VideoHandler["uiManager"]["votOverlayView"]>;
+  // `overlayView` is optional because `initExtraEvents` may run before the
+  // overlay is fully initialized. Lifecycle bindings tolerate `undefined`
+  // (they pass it through to `hideLifecycleOverlay`, which is null-safe).
+  overlayView?: NonNullable<VideoHandler["uiManager"]["votOverlayView"]>;
   platformConfig: ReturnType<typeof getPlatformEventConfig>;
   add: ScopedAddListener;
   addMany: ScopedAddListeners;
@@ -192,7 +195,10 @@ function isHotkeyMatch(
   return true;
 }
 function bindOverlayLayoutEvents(ctx: ExtraEventsContext): void {
-  const { self, overlayView, addMany } = ctx;
+  const { self, overlayView } = ctx;
+  // If the overlay view isn't initialized yet, skip layout bindings — they
+  // all require a valid overlayView. Lifecycle bindings still run.
+  if (!overlayView) return;
   const syncMountAndLayout = () => {
     self.refreshOverlayMount();
     applyOverlayLayout(self, overlayView);
@@ -204,12 +210,13 @@ function bindOverlayLayoutEvents(ctx: ExtraEventsContext): void {
   });
   self.resizeObserver.observe(self.video);
   syncMountAndLayout();
-  addMany(document, ["fullscreenchange", "webkitfullscreenchange"], () =>
-    syncMountAndLayout(),
-  );
-  addMany(self.video, ["webkitbeginfullscreen", "webkitendfullscreen"], () =>
-    syncMountAndLayout(),
-  );
+  // Note: fullscreen change listeners are intentionally NOT added here.
+  // `FullscreenHelper.setupFullscreenListeners` already binds
+  // `fullscreenchange`/`webkitfullscreenchange` on document and
+  // `webkitbeginfullscreen`/`webkitendfullscreen` on the video, and calls
+  // back into `refreshOverlayMount` via `addFullscreenChangeListener`.
+  // Adding them here too caused duplicate `refreshOverlayMount` calls on
+  // every fullscreen change.
 }
 function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
   const { self } = ctx;
@@ -546,7 +553,6 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
 }
 export function initExtraEvents(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) return;
   const { add, addMany } = createScopedListeners(this.abortController.signal);
   const ctx: ExtraEventsContext = {
     self: this,
@@ -555,12 +561,19 @@ export function initExtraEvents(this: VideoHandler) {
     add,
     addMany,
   };
+  // CRITICAL: `bindVideoLifecycleEvents` must always run — it sets up the
+  // `canplay`/`emptied`/`volumechange` listeners that drive `setCanPlay` and
+  // video data resolution. Previously the early `return` when
+  // `subtitlesSelect` was missing skipped ALL bindings, including lifecycle,
+  // leaving the handler non-functional. Now we only gate the bindings that
+  // actually require `subtitlesSelect`.
+  bindVideoLifecycleEvents(ctx);
   bindPlaybackRefreshOnResume(ctx);
   bindOverlayLayoutEvents(ctx);
+  bindGlobalDismissAndHotkeys(ctx);
+  if (!overlayView?.subtitlesSelect) return;
   bindYouTubeVolumeSync(ctx);
   bindAudioTrackLanguageSync(ctx);
-  bindGlobalDismissAndHotkeys(ctx);
-  bindVideoLifecycleEvents(ctx);
 }
 export function rebindOverlayVisibilityTargets(this: VideoHandler) {
   this.overlayVisibilityTargetsAbortController?.abort();
@@ -614,9 +627,11 @@ export function getAutoHideDelay(this: VideoHandler): number {
 }
 export function releaseExtraEvents(this: VideoHandler) {
   this.resizeObserver?.disconnect();
+  this.resizeObserver = undefined;
   this.overlayVisibilityTargetsAbortController?.abort();
   this.overlayVisibilityTargetsAbortController = undefined;
   if (isDesktopYouTubeLikeSite(this.site)) {
     this.syncVolumeObserver?.disconnect();
+    this.syncVolumeObserver = undefined;
   }
 }

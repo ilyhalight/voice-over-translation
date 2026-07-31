@@ -165,5 +165,6 @@ export type SubtitlesResponsePayload = GetSubtitlesResponse;
 export interface SubtitlesClient {
   getSubtitles(
     args: SubtitlesRequestPayload,
+    signal?: AbortSignal,
   ): Promise<SubtitlesResponsePayload>;
 }

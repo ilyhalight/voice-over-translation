@@ -11,6 +11,7 @@ import type {
   SubtitleToken,
   VideoDataForSubtitles,
 } from "../types/subtitles";
+import { createTimeoutSignal } from "../utils/abort";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
 import { lang } from "../utils/localization";
@@ -991,14 +992,19 @@ export const SubtitlesProcessor = {
       debug.log("[VOT] Processed subtitles:", subtitlesWithTokens);
       return subtitlesWithTokens;
     } catch (error) {
-      console.error("[VOT] Failed to process subtitles:", error);
-      return { format: "json", subtitles: [] };
+      // Propagate the error so callers can distinguish "no subtitles available"
+      // from "fetch failed". Previously this was silently swallowed and
+      // returned an empty `ProcessedSubtitles`, leaving the user with no
+      // feedback that subtitle loading had failed.
+      debug.error("[VOT] Failed to process subtitles:", error);
+      throw error;
     }
   },
 
   async getSubtitles(
     client: SubtitlesClient,
     videoData: VideoDataForSubtitles,
+    signal?: AbortSignal,
   ): Promise<SubtitleDescriptor[]> {
     const {
       host,
@@ -1020,29 +1026,42 @@ export const SubtitlesProcessor = {
         requestLang: requestLang as SubtitlesRequestPayload["requestLang"],
       };
 
-      const response = await Promise.race([
-        client.getSubtitles(requestPayload),
-        new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Timeout")), 5000);
-        }),
-      ]);
+      // Combine caller-provided `signal` with a 5s timeout. The timeout
+      // signal's internal setTimeout is properly cleaned up via `cleanup()`
+      // whether the request succeeds, fails, or is aborted — previously the
+      // raw `setTimeout(reject, 5000)` was never cleared, leaking ~5s of
+      // event-loop time per subtitles fetch.
+      const timeoutSignal = createTimeoutSignal(5000, signal);
+      try {
+        const response = await client.getSubtitles(
+          requestPayload,
+          timeoutSignal.signal,
+        );
+        const res = response as SubtitlesResponsePayload;
+        debug.log("[VOT] Subtitles response:", res);
 
-      const res = response as SubtitlesResponsePayload;
-      debug.log("[VOT] Subtitles response:", res);
-      if (res.waiting) {
-        console.error("[VOT] Failed to get Yandex subtitles");
+        // When Yandex reports `waiting: true`, subtitles are still being
+        // processed server-side. Previously this was logged but treated as
+        // success — the caller received empty/partial subtitles with no
+        // indication that a retry was needed. Now we throw so the caller
+        // can retry after a delay.
+        if (res.waiting) {
+          throw new Error("VOTSubtitlesWaiting");
+        }
+
+        const yandexSubs = buildYandexSubtitles(res);
+
+        const all = [...yandexSubs, ...extraSubtitles];
+        return sortSubtitles(all, requestLang);
+      } finally {
+        timeoutSignal.cleanup();
       }
-
-      const yandexSubs = buildYandexSubtitles(res);
-
-      const all = [...yandexSubs, ...extraSubtitles];
-      return sortSubtitles(all, requestLang);
     } catch (error) {
       let message = "Error in getSubtitles function";
       if (error instanceof Error && error.message === "Timeout") {
         message = "Failed to get Yandex subtitles: timeout";
       }
-      console.error(`[VOT] ${message}`, error);
+      debug.error(`[VOT] ${message}`, error);
       throw error;
     }
   },
