@@ -1,8 +1,8 @@
 import type { SliderLabelProps } from "../../types/components/sliderLabel";
 import UI from "../../ui";
+import { UIComponent } from "./componentShared";
 
-export default class SliderLabel {
-  container: HTMLSpanElement;
+export default class SliderLabel extends UIComponent {
   strong: HTMLElement;
   text: HTMLElement;
 
@@ -17,18 +17,19 @@ export default class SliderLabel {
     value = 50,
     symbol = "%",
   }: SliderLabelProps) {
+    super();
     this._labelText = labelText;
     this._labelEOL = labelEOL;
     this._value = value;
     this._symbol = symbol;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.strong = elements.strong;
-    this.text = elements.text;
+    const { container, strong, text } = this.createElements();
+    this.container = container;
+    this.strong = strong;
+    this.text = text;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-slider-label"]);
 
     // IMPORTANT:
@@ -66,13 +67,5 @@ export default class SliderLabel {
   set value(val: number) {
     this._value = val;
     this.strong.textContent = this.valueText;
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden;
   }
 }

@@ -1,13 +1,12 @@
-import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { HotkeyButtonProps } from "../../types/components/hotkeyButton";
 import UI from "../../ui";
+import { UIComponentWithEvents } from "./componentShared";
 
-export default class HotkeyButton {
-  container: HTMLElement;
+export default class HotkeyButton extends UIComponentWithEvents<{
+  change: [key: string | null];
+}> {
   button: HTMLElement;
-
-  private readonly onChange = new EventImpl<[string | null]>();
 
   private readonly _labelHtml: string;
   private _key: string | null;
@@ -19,14 +18,15 @@ export default class HotkeyButton {
   private recording: boolean = false;
 
   constructor({ labelHtml, key = null }: HotkeyButtonProps) {
+    super(["change"]);
     this._labelHtml = labelHtml;
     this._key = key;
     this.pressedKeys = new Set<string>();
     this.comboKeys = new Set<string>();
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.button = elements.button;
+    const { container, button } = this.createElements();
+    this.container = container;
+    this.button = button;
   }
 
   private stopRecordingKeys() {
@@ -82,7 +82,29 @@ export default class HotkeyButton {
     this.keyupOrBlurHandle();
   };
 
-  private createElements() {
+  private readonly buttonClickHandle = () => {
+    if (this.recording) {
+      // Clicking again cancels recording without changing the value.
+      this.stopRecordingKeys();
+      this.button.textContent = this.keyText;
+      return;
+    }
+
+    this.button.dataset.status = "active";
+
+    this.recording = true;
+    this.pressedKeys.clear();
+    this.comboKeys.clear();
+    this.button.textContent = localizationProvider.get(
+      "PressTheKeyCombination",
+    );
+
+    document.addEventListener("keydown", this.keydownHandle);
+    document.addEventListener("keyup", this.keyupOrBlurHandle);
+    globalThis.addEventListener("blur", this.blurHandle);
+  };
+
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-hotkey"]);
     const label = UI.createEl("vot-block", ["vot-hotkey-label"]);
     label.textContent = this._labelHtml;
@@ -91,56 +113,10 @@ export default class HotkeyButton {
     // A11y: keyboard access for custom element.
     UI.makeButtonLike(button);
     button.textContent = this.keyText;
-    button.addEventListener("click", () => {
-      if (this.recording) {
-        // Clicking again cancels recording without changing the value.
-        this.stopRecordingKeys();
-        this.button.textContent = this.keyText;
-        return;
-      }
-
-      button.dataset.status = "active";
-
-      this.recording = true;
-      this.pressedKeys.clear();
-      this.comboKeys.clear();
-      this.button.textContent = localizationProvider.get(
-        "PressTheKeyCombination",
-      );
-
-      document.addEventListener("keydown", this.keydownHandle);
-      document.addEventListener("keyup", this.keyupOrBlurHandle);
-      globalThis.addEventListener("blur", this.blurHandle);
-    });
+    button.addEventListener("click", this.buttonClickHandle);
 
     container.append(label, button);
     return { container, button, label };
-  }
-
-  addEventListener(
-    _type: "change",
-    listener: (key: string | null) => void,
-  ): this {
-    this.onChange.addListener(listener);
-
-    return this;
-  }
-
-  removeEventListener(
-    _type: "change",
-    listener: (key: string | null) => void,
-  ): this {
-    this.onChange.removeListener(listener);
-
-    return this;
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden;
   }
 
   get key() {
@@ -165,7 +141,7 @@ export default class HotkeyButton {
 
     this._key = newKey;
     this.button.textContent = this.keyText;
-    this.onChange.dispatch(this._key);
+    this.dispatch("change", this._key);
   }
 }
 

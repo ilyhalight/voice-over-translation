@@ -440,7 +440,7 @@ export class OverlayView {
         this.events["click:translate"].dispatch();
       },
     });
-    this.voicePopover.addVisibilityListener((isOpen) => {
+    this.voicePopover.addEventListener("openChange", (isOpen) => {
       this.votButton?.setVoiceMenuOpen(isOpen);
     });
     this.votButton.container.dataset.voiceType = activeVoice;
@@ -465,7 +465,8 @@ export class OverlayView {
       bordered: false,
       parentElement: this.tooltipParentElement,
     });
-    this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
+    this.voiceMenuButtonTooltip.hidden =
+      this.votButton.dropdownArrow.hidden === true;
 
     // #endregion VOT Button
     // #region VOT Menu
@@ -497,7 +498,7 @@ export class OverlayView {
     });
 
     this.votMenu.headerContainer.append(
-      this.downloadTranslationButton.button,
+      this.downloadTranslationButton.container,
       this.downloadSubtitlesButton,
       this.openSettingsButton,
     );
@@ -746,7 +747,7 @@ export class OverlayView {
     );
 
     // Voice popover selection handler.
-    this.voicePopover.addEventListener((voice): boolean | undefined => {
+    this.voicePopover.addEventListener("voiceChange", (voice) => {
       const useLive = voice === "live";
 
       if (this.data.useLivelyVoice === useLive) {
@@ -1081,7 +1082,8 @@ export class OverlayView {
     this.votButtonTooltip.setPosition(this.votButton.tooltipPos);
     this.subtitlesButtonTooltip.setPosition(this.votButton.tooltipPos);
     this.voiceMenuButtonTooltip.setPosition(this.votButton.tooltipPos);
-    this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden;
+    this.voiceMenuButtonTooltip.hidden =
+      this.votButton.dropdownArrow.hidden === true;
 
     if (!options.keepVoicePopover && this.voicePopover?.isOpen) {
       this.voicePopover.hideNow();

@@ -1,18 +1,13 @@
-import { EventImpl } from "../../core/eventImpl";
 import type { TextfieldProps } from "../../types/components/textfield";
 import UI from "../../ui";
+import { UIComponentWithEvents } from "./componentShared";
 
-export default class Textfield {
-  container: HTMLElement;
+export default class Textfield extends UIComponentWithEvents<{
+  input: [value: string];
+  change: [value: string];
+}> {
   input: HTMLInputElement | HTMLTextAreaElement;
   label: HTMLSpanElement;
-
-  private readonly onInput = new EventImpl<[string]>();
-  private readonly onChange = new EventImpl<[string]>();
-  private readonly events = {
-    input: this.onInput,
-    change: this.onChange,
-  };
 
   private readonly _labelHtml: HTMLElement | string;
   private readonly _multiline: boolean;
@@ -25,18 +20,19 @@ export default class Textfield {
     value = "",
     multiline = false,
   }: TextfieldProps) {
+    super(["input", "change"]);
     this._labelHtml = labelHtml;
     this._multiline = multiline;
     this._placeholder = placeholder;
     this._value = value;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.input = elements.input;
-    this.label = elements.label;
+    const { container, input, label } = this.createElements();
+    this.container = container;
+    this.input = input;
+    this.label = label;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-textfield"]);
     const input = document.createElement(
       this._multiline ? "textarea" : "input",
@@ -53,11 +49,11 @@ export default class Textfield {
     container.append(input, label);
     input.addEventListener("input", () => {
       this._value = this.input.value;
-      this.onInput.dispatch(this._value);
+      this.dispatch("input", this._value);
     });
     input.addEventListener("change", () => {
       this._value = this.input.value;
-      this.onChange.dispatch(this._value);
+      this.dispatch("change", this._value);
     });
 
     return {
@@ -65,24 +61,6 @@ export default class Textfield {
       label,
       input,
     };
-  }
-
-  addEventListener(
-    type: "input" | "change",
-    listener: (value: string) => void,
-  ): this {
-    this.events[type].addListener(listener);
-
-    return this;
-  }
-
-  removeEventListener(
-    type: "input" | "change",
-    listener: (value: string) => void,
-  ): this {
-    this.events[type].removeListener(listener);
-
-    return this;
   }
 
   get value() {
@@ -98,7 +76,7 @@ export default class Textfield {
     }
 
     this.input.value = this._value = val;
-    this.onChange.dispatch(this._value);
+    this.dispatch("change", this._value);
   }
 
   get placeholder() {
@@ -115,13 +93,5 @@ export default class Textfield {
 
   set disabled(isDisabled: boolean) {
     this.input.disabled = isDisabled;
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden;
   }
 }

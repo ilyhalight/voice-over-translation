@@ -6,6 +6,7 @@ import {
   createDomId,
   isEventInside,
   setInteractiveHiddenState,
+  UIComponentWithEvents,
 } from "./componentShared";
 
 export type VoiceType = "standard" | "live";
@@ -15,20 +16,16 @@ export interface VoicePopoverProps {
   /** Overlay root — popover positions in this element's coordinate space. */
   layoutRoot: HTMLElement;
   onTranslate?: () => void;
-  onOpenChange?: (isOpen: boolean) => void;
 }
 
-type VoiceChangeListener = (voice: VoiceType) => boolean | undefined;
-
-export default class VoicePopover {
-  container: HTMLElement;
-
+export default class VoicePopover extends UIComponentWithEvents<{
+  voiceChange: [voice: VoiceType];
+  openChange: [isOpen: boolean];
+}> {
   private readonly id = createDomId("vot-voice-popover");
   private readonly layoutRoot: HTMLElement;
   private _activeVoice: VoiceType;
   private readonly onTranslate?: () => void;
-  private listeners: Array<VoiceChangeListener> = [];
-  private visibilityListeners: Array<(isOpen: boolean) => void> = [];
   private lastVisibilityState = false;
 
   private showTimer: ReturnType<typeof setTimeout> | null = null;
@@ -47,19 +44,12 @@ export default class VoicePopover {
     }
   };
 
-  constructor({
-    activeVoice,
-    layoutRoot,
-    onTranslate,
-    onOpenChange,
-  }: VoicePopoverProps) {
+  constructor({ activeVoice, layoutRoot, onTranslate }: VoicePopoverProps) {
+    super(["openChange", "voiceChange"]);
     this._activeVoice = activeVoice;
     this.layoutRoot = layoutRoot;
     this.onTranslate = onTranslate;
-    if (onOpenChange) {
-      this.visibilityListeners.push(onOpenChange);
-    }
-    this.container = this.createContainer();
+    this.container = this.createElements().container;
   }
 
   get activeVoice(): VoiceType {
@@ -71,34 +61,16 @@ export default class VoicePopover {
     this.updateActiveState();
   }
 
-  get hidden(): boolean {
-    return !!this.container.hidden;
+  override set hidden(isHidden: boolean) {
+    setInteractiveHiddenState(this.container, isHidden);
+  }
+
+  override get hidden() {
+    return super.hidden;
   }
 
   get isOpen(): boolean {
     return !this.hidden;
-  }
-
-  addEventListener(listener: VoiceChangeListener): this {
-    this.listeners.push(listener);
-    return this;
-  }
-
-  removeEventListener(listener: VoiceChangeListener): this {
-    this.listeners = this.listeners.filter((l) => l !== listener);
-    return this;
-  }
-
-  addVisibilityListener(listener: (isOpen: boolean) => void): this {
-    this.visibilityListeners.push(listener);
-    return this;
-  }
-
-  removeVisibilityListener(listener: (isOpen: boolean) => void): this {
-    this.visibilityListeners = this.visibilityListeners.filter(
-      (l) => l !== listener,
-    );
-    return this;
   }
 
   scheduleShow(anchor: HTMLElement): void {
@@ -168,43 +140,42 @@ export default class VoicePopover {
     this.cancelHide();
     this.close();
     this.container.remove();
-    this.listeners = [];
-    this.visibilityListeners = [];
+    this.clearEventListeners();
   }
 
-  private createContainer(): HTMLElement {
-    const el = UI.createEl("vot-block", ["vot-voice-popover"]);
-    el.id = this.id;
-    el.setAttribute("role", "menu");
-    el.setAttribute("aria-label", "Voice type selection");
-    setInteractiveHiddenState(el, true);
+  protected createElements() {
+    const container = UI.createEl("vot-block", ["vot-voice-popover"]);
+    container.id = this.id;
+    container.setAttribute("role", "menu");
+    container.setAttribute("aria-label", "Voice type selection");
+    setInteractiveHiddenState(container, true);
 
-    el.append(
+    container.append(
       this.createItem(
         "standard",
         STANDARD_VOICE_ICON,
-        localizationProvider.get("VOTStandardVoicesTitle" as any),
-        localizationProvider.get("VOTStandardVoicesSubtitle" as any),
+        localizationProvider.get("VOTStandardVoicesTitle"),
+        localizationProvider.get("VOTStandardVoicesSubtitle"),
       ),
       UI.createEl("vot-block", ["vot-voice-popover__divider"]),
       this.createItem(
         "live",
         LIVE_VOICE_ICON,
-        localizationProvider.get("VOTLiveVoicesTitle" as any),
-        localizationProvider.get("VOTLiveVoicesSubtitle" as any),
+        localizationProvider.get("VOTLiveVoicesTitle"),
+        localizationProvider.get("VOTLiveVoicesSubtitle"),
       ),
     );
 
-    el.addEventListener("pointerenter", (e) => {
+    container.addEventListener("pointerenter", (e) => {
       if (e.pointerType === "touch") return;
       this.cancelHide();
     });
-    el.addEventListener("pointerleave", (e) => {
+    container.addEventListener("pointerleave", (e) => {
       if (e.pointerType === "touch") return;
       this.scheduleHide();
     });
 
-    return el;
+    return { container };
   }
 
   private createItem(
@@ -260,7 +231,7 @@ export default class VoicePopover {
       return;
     }
     this.anchorEl = anchor;
-    setInteractiveHiddenState(this.container, false);
+    this.hidden = false;
     this.updateActiveState();
     this.updatePosition(anchor);
     this.attachLayoutListeners();
@@ -273,7 +244,7 @@ export default class VoicePopover {
       this.emitVisibilityChange(false);
       return;
     }
-    setInteractiveHiddenState(this.container, true);
+    this.hidden = true;
     this.detachLayoutListeners();
     this.detachOutsideTapListener();
     this.anchorEl = null;
@@ -287,24 +258,15 @@ export default class VoicePopover {
   private emitVisibilityChange(isOpen: boolean): void {
     if (this.lastVisibilityState === isOpen) return;
     this.lastVisibilityState = isOpen;
-    for (const listener of this.visibilityListeners) {
-      listener(isOpen);
-    }
+    this.dispatch("openChange", isOpen);
   }
 
   private handleSelect(voice: VoiceType): void {
     this._activeVoice = voice;
     this.updateActiveState();
     this.cancelHide();
-    let shouldTranslate = true;
-    for (const listener of this.listeners) {
-      if (listener(voice) === false) {
-        shouldTranslate = false;
-      }
-    }
-    if (shouldTranslate && this.onTranslate) {
-      this.onTranslate();
-    }
+    this.dispatch("voiceChange", voice);
+    this.onTranslate?.();
     this.hideNow();
   }
 

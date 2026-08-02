@@ -1,12 +1,16 @@
-import { EventImpl } from "../../core/eventImpl";
 import type { DialogProps } from "../../types/components/dialog";
 import UI from "../../ui";
 import { getDeepActiveElement } from "../../utils/dom";
 import { CLOSE_ICON } from "../icons";
-import { createDomId, setInteractiveHiddenState } from "./componentShared";
+import {
+  createDomId,
+  setInteractiveHiddenState,
+  UIComponentWithEvents,
+} from "./componentShared";
 
-export default class Dialog {
-  container: HTMLElement;
+export default class Dialog extends UIComponentWithEvents<{
+  close: [];
+}> {
   backdrop: HTMLElement;
   box: HTMLElement;
   contentWrapper: HTMLElement;
@@ -16,8 +20,6 @@ export default class Dialog {
   closeButton: HTMLElement;
   bodyContainer: HTMLElement;
   footerContainer: HTMLElement;
-
-  private readonly onClose = new EventImpl();
 
   // Focus management for accessibility.
   private previouslyFocused: Element | null = null;
@@ -36,24 +38,36 @@ export default class Dialog {
   private readonly _isTemp: boolean;
 
   constructor({ titleHtml, isTemp = false }: DialogProps) {
+    super(["close"]);
     this._titleHtml = titleHtml;
     this._isTemp = isTemp;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.backdrop = elements.backdrop;
-    this.box = elements.box;
+    const {
+      container,
+      backdrop,
+      box,
+      contentWrapper,
+      headerContainer,
+      titleContainer,
+      title,
+      closeButton,
+      bodyContainer,
+      footerContainer,
+    } = this.createElements();
+    this.container = container;
+    this.backdrop = backdrop;
+    this.box = box;
 
-    this.contentWrapper = elements.contentWrapper;
-    this.headerContainer = elements.headerContainer;
-    this.titleContainer = elements.titleContainer;
-    this.title = elements.title;
-    this.closeButton = elements.closeButton;
-    this.bodyContainer = elements.bodyContainer;
-    this.footerContainer = elements.footerContainer;
+    this.contentWrapper = contentWrapper;
+    this.headerContainer = headerContainer;
+    this.titleContainer = titleContainer;
+    this.title = title;
+    this.closeButton = closeButton;
+    this.bodyContainer = bodyContainer;
+    this.footerContainer = footerContainer;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-dialog-container"]);
     if (this._isTemp) {
       container.classList.add("vot-dialog-temp");
@@ -132,18 +146,6 @@ export default class Dialog {
     };
   }
 
-  addEventListener(_type: "close", listener: () => void): this {
-    this.onClose.addListener(listener);
-
-    return this;
-  }
-
-  removeEventListener(_type: "close", listener: () => void): this {
-    this.onClose.removeListener(listener);
-
-    return this;
-  }
-
   open() {
     // Temp dialogs are created visible; still run focus/keyboard setup.
     this.previouslyFocused ??= getDeepActiveElement(document);
@@ -161,7 +163,7 @@ export default class Dialog {
     this.detachKeydownTrap();
     this.container.remove();
     this.restoreFocus();
-    this.onClose.dispatch();
+    this.dispatch("close");
     return this;
   }
 
@@ -174,7 +176,7 @@ export default class Dialog {
     this.detachKeydownTrap();
     this.hidden = true;
     this.restoreFocus();
-    this.onClose.dispatch();
+    this.dispatch("close");
     return this;
   }
 
@@ -357,15 +359,15 @@ export default class Dialog {
     this.keydownListener = undefined;
   }
 
-  set hidden(isHidden: boolean) {
+  override set hidden(isHidden: boolean) {
     setInteractiveHiddenState(this.container, isHidden);
   }
 
-  get hidden() {
-    return this.container.hidden;
+  override get hidden() {
+    return super.hidden;
   }
 
   get isDialogOpen() {
-    return !this.container.hidden;
+    return !this.hidden;
   }
 }

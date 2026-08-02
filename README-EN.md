@@ -56,13 +56,13 @@
   <h1>voice-over-translation (<code>vot</code>)</h1>
   <p>Watch videos in other languages with voice-over translation and subtitles in <a href="./BROWSERS-EXTS-TEST.md">any browser</a></p>
 
-  [Installation](#installing-the-extension) ·
-  [Development](#how-to-build-an-extension) ·
-  [FAQ][vot-faq] ·
-  [Supported sites][vot-supported-sites]
+[Installation](#installing-the-extension) ·
+[Development](#how-to-build-an-extension) ·
+[FAQ][vot-faq] ·
+[Supported sites][vot-supported-sites]
 
-  [![en][badge-en]][vot-readme-en]
-  [![ru][badge-ru]][vot-readme-ru]
+[![en][badge-en]][vot-readme-en]
+[![ru][badge-ru]][vot-readme-ru]
 
   <img src="./img/banner.png" alt="vot promotion banner"/>
 </div>
@@ -81,10 +81,12 @@ Thanks to the **[Yandex.Translate][yatranslate-link]** and **[Yandex.Browser][ya
 > [!WARNING]
 > **Important for Tampermonkey 5.2+ (MV3) users:**
 > In **Chromium**-based browsers (Chrome, Edge, Brave, Vivaldi, etc.) you must:
+>
 > 1. Open the extensions page (`chrome://extensions`) and enable **"Developer mode"** (details in [Tampermonkey documentation][devmode-enable]).
 > 2. If you use **Chromium 138+**, open extension details and enable **"Allow User Scripts"**.
 >
 > **For Opera users:**
+>
 > 1. Use **[Violentmonkey][violentmonkey-opera]** instead of Tampermonkey.
 > 2. In the extension settings, enable **"Allow access to search page results"** (Opera guide: [where to find this setting][opera-search-results-access]), otherwise the script will not work.
 
@@ -160,7 +162,6 @@ These domains can be changed in the extension settings without rebuilding:
 
 Required for proxying requests when direct access to Yandex servers is unavailable.
 
-- [vot.deno.dev][vot-worker]
 - [vot-new.toil-dump.workers.dev][vot-worker] (⚠️ doesn't work in Russia)
 
 #### Media Proxy-server
@@ -188,37 +189,53 @@ bun install
 
 3. Build targets:
 
-   3.0. Userscript (regular build):
+### Automatic Build
 
-   ```bash
-   npm run build
-   ```
+Automatic builds are available only when using [Bun.sh][bun-link]:
 
-   3.1. Userscript (minified build):
+```bash
+bun run autobuild
+```
 
-   ```bash
-   npm run build:min
-   ```
+After the build completes, the `.output` directory will contain build artifacts ready for publishing to the Chrome and Firefox extension stores.
 
-   3.2. Userscript (both variants):
+The `dist-ext` directory contains non-store builds distributed as `.zip` archives (for Chrome) and `.xpi` archives (for Firefox).
 
-   ```bash
-   npm run build:all
-   ```
+The `dist` directory contains the userscript build, which can be installed using [Tampermonkey][tampermonkey-link] or other userscript managers.
 
-   3.3. Native Chrome/Firefox extension packages:
+### Manual Build
 
-   ```bash
-   npm run build:ext
-   ```
+Userscript (standard build):
 
-   3.4. Development userscript build with sourcemaps:
+```bash
+npm run build:gm:default
+```
 
-   ```bash
-   npm run build:dev
-   ```
+Userscript (minified build):
 
-Userscript artifacts are generated in `dist/`, native extension artifacts in `dist-ext/`.
+```bash
+npm run build:gm:min
+```
+
+Userscript (both builds):
+
+```bash
+npm run build:gm
+```
+
+Native Chrome/Firefox extensions:
+
+```bash
+npm run build:ext
+```
+
+Development userscript build with source maps:
+
+```bash
+npm run build:dev
+```
+
+Userscript build artifacts are placed in `dist/`, while native extension builds are placed in `dist-ext/`.
 
 ## Customization of appearance:
 
@@ -237,8 +254,8 @@ Example style override:
 ==/UserStyle== */
 
 :root {
-  --vot-font-family: "Roboto", "Segoe UI", BlinkMacSystemFont, system-ui,
-    -apple-system;
+  --vot-font-family:
+    "Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system;
 
   --vot-primary-rgb: 139, 180, 245;
   --vot-onprimary-rgb: 32, 33, 36;

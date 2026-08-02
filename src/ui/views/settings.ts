@@ -117,6 +117,7 @@ import Tooltip from "../components/tooltip";
 import { HELP_ICON, WARNING_ICON } from "../icons";
 
 const GOOGLE_FONTS_SEARCH_LIMIT = 30;
+const LANG_PREFIX = "langs.";
 const [AUTO_SUBTITLE_LANGUAGE_VALUE, ORIGINAL_SUBTITLE_LANGUAGE_VALUE] =
   subtitleResponseLanguageModes;
 type BufferedNumericStorageKey =
@@ -124,6 +125,9 @@ type BufferedNumericStorageKey =
   | "subtitlesFontSize"
   | "subtitlesOpacity"
   | "autoHideButtonDelay";
+
+type RealLanguageSelectKey = Exclude<LanguageSelectKey, "auto">;
+type RealLangKey = `${typeof LANG_PREFIX}${Exclude<LanguageSelectKey, "auto">}`;
 
 const subtitleFontFamilyLabels: Record<BuiltInSubtitleFontFamily, string> = {
   "default-sans": "Default Sans",
@@ -146,14 +150,14 @@ function getSubtitleFontFamilyLabel(fontFamily: SubtitleFontFamily): string {
   return getGoogleSubtitleFontFamilyName(fontFamily) ?? "Default Sans";
 }
 
-function getAvailableSubtitleLanguages(): Exclude<LanguageSelectKey, "auto">[] {
+function getAvailableSubtitleLanguages(): RealLanguageSelectKey[] {
   return Object.keys(localizationProvider.defaultLocale)
     .filter(
-      (key): key is `langs.${Exclude<LanguageSelectKey, "auto">}` =>
-        key.startsWith("langs.") && key !== "langs.auto",
+      (key): key is RealLangKey =>
+        key.startsWith(LANG_PREFIX) && key !== `${LANG_PREFIX}auto`,
     )
-    .map((key) => key.slice(6) as Exclude<LanguageSelectKey, "auto">)
-    .toSorted((left, right) =>
+    .map((key) => key.slice(LANG_PREFIX.length) as RealLanguageSelectKey)
+    .sort((left, right) =>
       localizationProvider
         .getLangLabel(left)
         .localeCompare(localizationProvider.getLangLabel(right)),
@@ -1138,7 +1142,7 @@ export class SettingsView {
       if (this.accountButton.loggedIn) {
         await votStorage.delete("account");
         this.data.account = {};
-        return this.updateAccountInfo();
+        return void this.updateAccountInfo();
       }
       openAuthWindow();
     });

@@ -1,17 +1,16 @@
 import { render } from "lit-html";
-
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { LanguagePairSelectProps } from "../../types/components/languagePairSelect";
 import type { SelectItem } from "../../types/components/select";
 import UI from "../../ui";
 import { ARROW_RIGHT_ICON } from "../icons";
+import { UIComponent } from "./componentShared";
 import Select from "./select";
 
 export default class LanguagePairSelect<
   F extends string = string,
   T extends string = string,
-> {
-  container: HTMLElement;
+> extends UIComponent {
   fromSelect: Select<F>;
   directionIcon: HTMLElement;
   toSelect: Select<T>;
@@ -45,6 +44,7 @@ export default class LanguagePairSelect<
     },
     dialogParent = document.documentElement,
   }: LanguagePairSelectProps<F, T>) {
+    super();
     this._fromSelectTitle = fromSelectTitle;
     this._fromDialogTitle = fromDialogTitle;
     this._fromItems = fromItems;
@@ -55,14 +55,15 @@ export default class LanguagePairSelect<
 
     this.dialogParent = dialogParent;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.fromSelect = elements.fromSelect;
-    this.directionIcon = elements.directionIcon;
-    this.toSelect = elements.toSelect;
+    const { container, fromSelect, directionIcon, toSelect } =
+      this.createElements();
+    this.container = container;
+    this.fromSelect = fromSelect;
+    this.directionIcon = directionIcon;
+    this.toSelect = toSelect;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-lang-select"]);
     const fromSelect = new Select<F>({
       selectTitle: this._fromSelectTitle,

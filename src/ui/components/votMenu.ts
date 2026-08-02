@@ -1,10 +1,13 @@
 import type { Position } from "../../types/components/votButton";
 import type { VOTMenuProps } from "../../types/components/votMenu";
 import UI from "../../ui";
-import { createDomId, setInteractiveHiddenState } from "./componentShared";
+import {
+  createDomId,
+  setInteractiveHiddenState,
+  UIComponent,
+} from "./componentShared";
 
-export default class VOTMenu {
-  container: HTMLElement;
+export default class VOTMenu extends UIComponent {
   contentWrapper: HTMLElement;
   headerContainer: HTMLElement;
   bodyContainer: HTMLElement;
@@ -17,24 +20,32 @@ export default class VOTMenu {
 
   // A11y: stable ids for aria-controls / aria-labelledby.
   private readonly menuId = createDomId("vot-menu");
-
   private readonly titleId = createDomId("vot-menu-title");
 
   constructor({ position = "default", titleHtml = "" }: VOTMenuProps) {
+    super();
     this._position = position;
     this._titleHtml = titleHtml;
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.contentWrapper = elements.contentWrapper;
-    this.headerContainer = elements.headerContainer;
-    this.bodyContainer = elements.bodyContainer;
-    this.footerContainer = elements.footerContainer;
-    this.titleContainer = elements.titleContainer;
-    this.title = elements.title;
+    const {
+      container,
+      contentWrapper,
+      headerContainer,
+      bodyContainer,
+      footerContainer,
+      titleContainer,
+      title,
+    } = this.createElements();
+    this.container = container;
+    this.contentWrapper = contentWrapper;
+    this.headerContainer = headerContainer;
+    this.bodyContainer = bodyContainer;
+    this.footerContainer = footerContainer;
+    this.titleContainer = titleContainer;
+    this.title = title;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-menu"]);
     container.hidden = true;
     container.id = this.menuId;
@@ -93,12 +104,12 @@ export default class VOTMenu {
     return this;
   }
 
-  set hidden(isHidden: boolean) {
+  override set hidden(isHidden: boolean) {
     setInteractiveHiddenState(this.container, isHidden);
   }
 
-  get hidden() {
-    return this.container.hidden;
+  override get hidden() {
+    return super.hidden;
   }
 
   get position() {

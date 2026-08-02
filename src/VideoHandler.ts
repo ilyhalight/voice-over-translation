@@ -1,4 +1,7 @@
-import VOTClient, { VOTWorkerClient } from "@vot.js/ext/client";
+import { VOTWorkerProvider } from "@vot.js/core/providers/votworker";
+import { YandexProvider } from "@vot.js/core/providers/yandex";
+import type { VOTOpts } from "@vot.js/core/types/client";
+import VOTClient from "@vot.js/ext/client";
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
@@ -7,7 +10,6 @@ import { initAudioContext } from "chaimu/player";
 import {
   minLongWaitingCount,
   proxyWorkerHostMode1,
-  votBackendUrl,
   workerHost,
 } from "./config/config";
 import { CacheManager, VOTSessionStorageCache } from "./core/cacheManager";
@@ -145,7 +147,7 @@ export class VideoHandler {
   firstPlay = true;
   audioContext?: AudioContext;
 
-  votClient!: VOTClient | VOTWorkerClient;
+  votClient!: VOTClient;
   audioPlayer!: Chaimu;
 
   abortController!: AbortController;
@@ -171,7 +173,7 @@ export class VideoHandler {
 
   autoRetry?: ReturnType<typeof setTimeout>;
   // streamPing?: ReturnType<typeof setInterval>;
-  votOpts?: Record<string, unknown>;
+  votOpts?: VOTOpts;
   volumeOnStart?: number;
   autoVolumeMutedOnStart?: boolean;
 
@@ -407,8 +409,8 @@ export class VideoHandler {
 
   private updateVOTClientRequestSignal(): void {
     if (!this.votClient) return;
-    this.votClient.fetchOpts = {
-      ...this.votClient.fetchOpts,
+    this.votClient.provider.fetchOpts = {
+      ...this.votClient.provider.fetchOpts,
       signal: this.actionsAbortController.signal,
     };
   }
@@ -731,25 +733,25 @@ export class VideoHandler {
       apiToken: hasValidAccountToken(this.data?.account)
         ? this.data?.account?.token
         : undefined,
-      hostVOT: votBackendUrl,
       host: transportHost,
+      provider: proxyClientEnabled ? VOTWorkerProvider : YandexProvider,
     };
-    this.votClient = new (proxyClientEnabled ? VOTWorkerClient : VOTClient)(
-      this.votOpts,
-    );
-    this.votClient.sessions = await this.votSessionStorage.restore(
+    this.votClient = new VOTClient(this.votOpts);
+    this.votClient.provider.sessions = await this.votSessionStorage.restore(
       transportHost,
-      this.votClient.sessions,
+      this.votClient.provider.sessions,
     );
 
-    const originalGetSession = this.votClient.getSession.bind(this.votClient);
-    this.votClient.getSession = async (
+    const originalGetSession = this.votClient.provider.getSession.bind(
+      this.votClient.provider,
+    );
+    this.votClient.provider.getSession = async (
       module: SessionModule,
     ): Promise<ClientSession> => {
       const session = await originalGetSession(module);
       await this.votSessionStorage.persist(
         transportHost,
-        this.votClient.sessions,
+        this.votClient.provider.sessions,
       );
       return session;
     };

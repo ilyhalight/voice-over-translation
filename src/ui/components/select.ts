@@ -1,6 +1,5 @@
 import { render } from "lit-html";
 
-import { EventImpl } from "../../core/eventImpl";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type {
   LanguageSelectKey,
@@ -11,14 +10,17 @@ import type {
 import type { Phrase } from "../../types/localization";
 import UI from "../../ui";
 import { CHEVRON_ICON } from "../icons";
+import { UIComponentWithEvents } from "./componentShared";
 import Dialog from "./dialog";
 import Textfield from "./textfield";
 
 export default class Select<
   T extends string = string,
   MultiSelect extends boolean = false,
-> {
-  container: HTMLElement;
+> extends UIComponentWithEvents<{
+  selectItem: MultiSelect extends true ? [values: T[]] : [value: T];
+  beforeOpen: [dialog: Dialog];
+}> {
   outer: HTMLElement;
   arrowIcon: HTMLElement;
   title: HTMLElement;
@@ -39,12 +41,6 @@ export default class Select<
   private isLoading = false;
   private isDialogOpen = false;
   private searchRequestId = 0;
-  private readonly onSelectItem = new EventImpl();
-  private readonly onBeforeOpen = new EventImpl();
-  private readonly events = {
-    selectItem: this.onSelectItem as EventImpl<any[]>,
-    beforeOpen: this.onBeforeOpen as EventImpl<any[]>,
-  };
   private contentList?: HTMLElement;
   private readonly contentItemSearchDatasetKey = "votSearchLabel";
   private readonly contentItemIndexDatasetKey = "votIndex";
@@ -61,6 +57,7 @@ export default class Select<
     dialogParent = document.documentElement,
     multiSelect,
   }: SelectProps<T, MultiSelect>) {
+    super(["selectItem", "beforeOpen"]);
     this._selectTitle = selectTitle;
     this._dialogTitle = dialogTitle;
     this.baseItems = this.cloneItems(items);
@@ -71,11 +68,11 @@ export default class Select<
     this.dialogParent = dialogParent;
     this.selectedValues = this.calcSelectedValues();
 
-    const elements = this.createElements();
-    this.container = elements.container;
-    this.outer = elements.outer;
-    this.arrowIcon = elements.arrowIcon;
-    this.title = elements.title;
+    const { container, outer, arrowIcon, title } = this.createElements();
+    this.container = container;
+    this.outer = outer;
+    this.arrowIcon = arrowIcon;
+    this.title = title;
   }
 
   private cloneItems<U extends string>(
@@ -110,7 +107,7 @@ export default class Select<
     this.syncItemsSelectionState();
     this.syncItemsSelectionState(this.baseItems);
     this.updateSelectedState();
-    this.onSelectItem.dispatch(Array.from(this.selectedValues));
+    this.dispatch("selectItem", Array.from(this.selectedValues) as any);
   };
 
   private readonly singleSelectItemHandle = (item: SelectItem<T>) => {
@@ -119,7 +116,7 @@ export default class Select<
     this.syncItemsSelectionState();
     this.syncItemsSelectionState(this.baseItems);
     this.updateSelectedState();
-    this.onSelectItem.dispatch(value);
+    this.dispatch("selectItem", value as any);
   };
 
   private readonly onContentItemClick = (event: Event) => {
@@ -195,7 +192,7 @@ export default class Select<
     return contentList;
   }
 
-  private createElements() {
+  protected createElements() {
     const container = UI.createEl("vot-block", ["vot-select"]);
     if (this.labelElement) {
       container.classList.add("vot-select--labeled");
@@ -231,7 +228,7 @@ export default class Select<
           isTemp: true,
         });
 
-        this.onBeforeOpen.dispatch(tempDialog);
+        this.dispatch("beforeOpen", tempDialog);
         this.dialogParent.appendChild(tempDialog.container);
         this.isDialogOpen = true;
         outer.setAttribute("aria-expanded", "true");
@@ -296,37 +293,6 @@ export default class Select<
     return new Set(
       this._items.filter((item) => item.selected).map((item) => item.value),
     );
-  }
-
-  addEventListener(
-    type: "selectItem",
-    listener: (data: typeof this.multiSelect extends true ? T[] : T) => void,
-  ): this;
-  addEventListener(type: "beforeOpen", listener: (data: Dialog) => void): this;
-  addEventListener(
-    type: "beforeOpen" | "selectItem",
-    listener: (...data: any[]) => void,
-  ): this {
-    this.events[type].addListener(listener);
-
-    return this;
-  }
-
-  removeEventListener(
-    type: "selectItem",
-    listener: (data: typeof this.multiSelect extends true ? T[] : T) => void,
-  ): this;
-  removeEventListener(
-    type: "beforeOpen",
-    listener: (data: Dialog) => void,
-  ): this;
-  removeEventListener(
-    type: "selectItem" | "beforeOpen",
-    listener: (...data: any[]) => void,
-  ): this {
-    this.events[type].removeListener(listener);
-
-    return this;
   }
 
   updateTitle() {
@@ -411,14 +377,6 @@ export default class Select<
   set selectTitle(title: string) {
     this._selectTitle = title;
     this.updateTitle();
-  }
-
-  set hidden(isHidden: boolean) {
-    this.container.hidden = isHidden;
-  }
-
-  get hidden() {
-    return this.container.hidden;
   }
 
   get disabled() {
