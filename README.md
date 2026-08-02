@@ -56,13 +56,13 @@
   <h1>voice-over-translation (<code>vot</code>)</h1>
   <p>Смотрите видео на другом языке с закадровым переводом и субтитрами в <a href="./BROWSERS-EXTS-TEST.md">любом браузере</a></p>
 
-  [Установка](#установка-расширения) ·
-  [Разработка](#как-собрать-расширение) ·
-  [FAQ][vot-faq] ·
-  [Поддерживаемые сайты][vot-supported-sites]
+[Установка](#установка-расширения) ·
+[Разработка](#как-собрать-расширение) ·
+[FAQ][vot-faq] ·
+[Поддерживаемые сайты][vot-supported-sites]
 
-  [![en][badge-en]][vot-readme-en]
-  [![ru][badge-ru]][vot-readme-ru]
+[![en][badge-en]][vot-readme-en]
+[![ru][badge-ru]][vot-readme-ru]
 
   <img src="./img/banner.png" alt="vot promotion banner"/>
 </div>
@@ -81,10 +81,12 @@
 > [!WARNING]
 > **Важно для пользователей Tampermonkey 5.2+ (MV3):**
 > В браузерах на движке **Chromium** (Chrome, Edge, Brave, Vivaldi и др.) необходимо:
+>
 > 1. Открыть страницу расширений (`chrome://extensions`) и включить **«Режим разработчика»** (подробности в [документации Tampermonkey][devmode-enable]).
 > 2. Если движок **Chromium версии 138+**, в «Сведениях» расширения включить **«Разрешить пользовательские скрипты»**.
 >
 > **Пользователям Opera:**
+>
 > 1. Используйте **[Violentmonkey][violentmonkey-opera]** вместо Tampermonkey.
 > 2. В настройках расширения обязательно включите **«Разрешить доступ к результатам на странице поиска»** (гайд от Opera: [как найти эту настройку][opera-search-results-access]), иначе скрипт не будет работать.
 
@@ -160,7 +162,6 @@
 
 Нужен для проксирования запросов, если прямой доступ к серверам Яндекса недоступен.
 
-- [vot.deno.dev][vot-worker]
 - [vot-new.toil-dump.workers.dev][vot-worker] (⚠️ не работает в РФ)
 
 #### Media Proxy-сервер
@@ -237,8 +238,8 @@ bun install
 ==/UserStyle== */
 
 :root {
-  --vot-font-family: "Roboto", "Segoe UI", BlinkMacSystemFont, system-ui,
-    -apple-system;
+  --vot-font-family:
+    "Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system;
 
   --vot-primary-rgb: 139, 180, 245;
   --vot-onprimary-rgb: 32, 33, 36;
