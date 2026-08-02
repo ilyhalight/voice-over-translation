@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["@toil/gm-types/v3", "@toil/gm-types/v4"],
+    "types": ["bun"],
     "target": "ES2024",
     "module": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"]
+  "include": ["scripts/**/*.ts", "vite/**/*.ts"]
 }

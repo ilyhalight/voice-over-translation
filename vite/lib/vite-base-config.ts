@@ -53,5 +53,4 @@ export function createViteConfig(
   };
 }
 
-export type { ViteDefine } from "./define";
-export { defineConstants } from "./define";
+export { defineConstants, type ViteDefine } from "./define";

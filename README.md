@@ -189,35 +189,51 @@ bun install
 
 3. Сборка расширения:
 
-   3.0. Userscript (обычная сборка):
+### Автоматическая сборка
 
-   ```bash
-   npm run build
-   ```
+Автоматическую сборку можно выполнить только с помощью [Bun.sh][bun-link]:
 
-   3.1. Userscript (минифицированная сборка):
+```bash
+bun run autobuild
+```
 
-   ```bash
-   npm run build:min
-   ```
+После завершения в папке `.output` появятся артефакты сборки подготовленные для публикации в магазинах расширений Chrome и Firefox.
 
-   3.2. Userscript (обе версии подряд):
+В папке `dist-ext` будет находится non-store сборка для распространения в виде `.zip`-архива (для Chrome) и `.xpi`-архива (для Firefox).
 
-   ```bash
-   npm run build:all
-   ```
+В папке `dist` будет находится сборка в виде юзерскрипта для установки через [Tampermonkey][tampermonkey-link] или другие загрузчики юзерскриптов.
 
-   3.3. Нативные расширения Chrome/Firefox:
+### Ручная сборка
 
-   ```bash
-   npm run build:ext
-   ```
+Userscript (обычная сборка):
 
-   3.4. Dev-сборка userscript с sourcemap:
+```bash
+npm run build:gm:default
+```
 
-   ```bash
-   npm run build:dev
-   ```
+Userscript (минифицированная сборка):
+
+```bash
+npm run build:gm:min
+```
+
+Userscript (обе версии):
+
+```bash
+npm run build:gm
+```
+
+Нативные расширения Chrome/Firefox:
+
+```bash
+npm run build:ext
+```
+
+Dev-сборка userscript с sourcemap:
+
+```bash
+npm run build:dev
+```
 
 Артефакты userscript попадают в `dist/`, сборка нативных расширений — в `dist-ext/`.
 

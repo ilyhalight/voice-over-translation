@@ -189,37 +189,53 @@ bun install
 
 3. Build targets:
 
-   3.0. Userscript (regular build):
+### Automatic Build
 
-   ```bash
-   npm run build
-   ```
+Automatic builds are available only when using [Bun.sh][bun-link]:
 
-   3.1. Userscript (minified build):
+```bash
+bun run autobuild
+```
 
-   ```bash
-   npm run build:min
-   ```
+After the build completes, the `.output` directory will contain build artifacts ready for publishing to the Chrome and Firefox extension stores.
 
-   3.2. Userscript (both variants):
+The `dist-ext` directory contains non-store builds distributed as `.zip` archives (for Chrome) and `.xpi` archives (for Firefox).
 
-   ```bash
-   npm run build:all
-   ```
+The `dist` directory contains the userscript build, which can be installed using [Tampermonkey][tampermonkey-link] or other userscript managers.
 
-   3.3. Native Chrome/Firefox extension packages:
+### Manual Build
 
-   ```bash
-   npm run build:ext
-   ```
+Userscript (standard build):
 
-   3.4. Development userscript build with sourcemaps:
+```bash
+npm run build:gm:default
+```
 
-   ```bash
-   npm run build:dev
-   ```
+Userscript (minified build):
 
-Userscript artifacts are generated in `dist/`, native extension artifacts in `dist-ext/`.
+```bash
+npm run build:gm:min
+```
+
+Userscript (both builds):
+
+```bash
+npm run build:gm
+```
+
+Native Chrome/Firefox extensions:
+
+```bash
+npm run build:ext
+```
+
+Development userscript build with source maps:
+
+```bash
+npm run build:dev
+```
+
+Userscript build artifacts are placed in `dist/`, while native extension builds are placed in `dist-ext/`.
 
 ## Customization of appearance:
 
