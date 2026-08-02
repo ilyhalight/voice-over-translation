@@ -22,7 +22,13 @@ async function main() {
   await $`bun build:gm`.quiet(false);
 
   console.log("Building extension in store mode...");
-  await $`IS_STORE_BUILD=true bun build:ext`.quiet(false);
+  await $`bun build:ext`
+    .env({
+      ...process.env,
+      IS_STORE_BUILD: "true",
+      FIREFOX_ADDON_ID: "vot-ext-store@firefox",
+    })
+    .quiet(false);
 
   console.log("Copying store build to output directory...");
   await $`cp dist-ext/${FIREFOX_EXTENSION_NAME}.xpi .output/${OUTPUT_EXTENSION_FIREFOX_NAME}-store.xpi`.quiet(
@@ -33,7 +39,12 @@ async function main() {
   );
 
   console.log("Building extension in non-store mode...");
-  await $`IS_STORE_BUILD=false bun build:ext`.quiet(false);
+  await $`bun build:ext`
+    .env({
+      ...process.env,
+      IS_STORE_BUILD: "false",
+    })
+    .quiet(false);
   console.log("Copying non-store firefox build to output directory...");
   await $`cp dist-ext/${FIREFOX_EXTENSION_NAME}.xpi .output/${OUTPUT_EXTENSION_FIREFOX_NAME}.xpi`.quiet(
     false,
