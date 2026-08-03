@@ -1,4 +1,4 @@
-﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import { notifyTranslationFailureIfNeeded } from "../../core/translationErrors";
@@ -605,6 +605,13 @@ export async function translateFunc(
     ) {
       debug.log("[translateFunc] Pausing video until translation is ready");
       this.pausedByTranslation = true;
+      this.video.addEventListener(
+        "play",
+        () => {
+          this.pausedByTranslation = false;
+        },
+        { once: true },
+      );
       this.video.pause();
     }
 
@@ -681,8 +688,9 @@ export async function translateFunc(
     }
 
     // Auto-pause: resume playback once the translated audio is ready
-    // (or on failure/abort). Only resume if we were the ones who paused.
-    if (this.pausedByTranslation) {
+    // (or on failure/abort). Only resume if we were the ones who paused,
+    // and if we are still the active translation (to prevent aborted requests from resuming).
+    if (!this.activeTranslation && this.pausedByTranslation) {
       this.pausedByTranslation = false;
       if (this.hasActiveSource()) {
         debug.log("[translateFunc] Resuming video after translation is ready");
