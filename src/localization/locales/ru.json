@@ -251,5 +251,6 @@
   "subtitlesSmartLayout": "Умное расположение субтитров",
   "smartDucking": "Адаптивная громкость",
   "VOTYandexTokenExpired": "Сессия истекла. Войдите снова",
-  "VOTVoiceSelection": "Выбрать озвучку"
+  "VOTVoiceSelection": "Выбрать озвучку",
+  "VOTAutoPauseOnTranslate": "Приостанавливать видео до готовности перевода"
 }

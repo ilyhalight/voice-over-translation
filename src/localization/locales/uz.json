@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Jonli ovozlar",
   "VOTLiveVoicesSubtitle": "Maksimal o'xshashlik. Go'yo hamma rus tilini biladi",
   "VOTYandexTokenExpired": "Sessiya muddati tugadi. Qayta kiring",
-  "VOTVoiceSelection": "Dublyajni tanlang"
+  "VOTVoiceSelection": "Dublyajni tanlang",
+  "VOTAutoPauseOnTranslate": "Tarjima tayyor bo'lgunga qadar videoni pauza qiling"
 }

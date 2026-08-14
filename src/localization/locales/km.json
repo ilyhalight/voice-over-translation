@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "សំឡេងផ្ទាល់",
   "VOTLiveVoicesSubtitle": "ភាពស្រដៀងគ្នាអតិបរមា។ ដូចជាប្រសិនបើអ្នករាល់គ្នាដឹងរុស្ស៊ី",
   "VOTYandexTokenExpired": "សម័យដែលបានផុតកំណត់. ចូលម្តងទៀត",
-  "VOTVoiceSelection": "ជ្រើស dubbing"
+  "VOTVoiceSelection": "ជ្រើស dubbing",
+  "VOTAutoPauseOnTranslate": "ផ្អាកវីដេអូរហូតដល់ការបកប្រែរួចរាល់"
 }

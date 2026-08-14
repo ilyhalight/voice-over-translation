@@ -25,6 +25,7 @@ export type ConvertData = Record<ConvertCategory, ConvertDataItem[]>;
 
 export const storageKeys = [
   "autoTranslate",
+  "autoPauseOnTranslate",
   "autoSubtitles",
   "dontTranslateLanguages",
   "enabledDontTranslateLanguages",
@@ -84,6 +85,11 @@ export type Account = {
 
 export type StorageData = {
   autoTranslate: boolean;
+  /**
+   * Pause the video while translation is being prepared,
+   * then auto-play once the translated audio is ready.
+   */
+  autoPauseOnTranslate: boolean;
   autoSubtitles: boolean;
   dontTranslateLanguages: LanguageSelectKey[];
   enabledDontTranslateLanguages: boolean;

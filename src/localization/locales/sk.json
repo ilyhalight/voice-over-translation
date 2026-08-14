@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Živé hlasy",
   "VOTLiveVoicesSubtitle": "Maximálna podobnosť. Ako keby každý vedel rusky",
   "VOTYandexTokenExpired": "Platnosť relácie vypršala. Prihlásiť sa",
-  "VOTVoiceSelection": "Vyberte dabing"
+  "VOTVoiceSelection": "Vyberte dabing",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

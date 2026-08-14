@@ -7,6 +7,7 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "click:resetSettings",
   "update:account",
   "change:autoTranslate",
+  "change:autoPauseOnTranslate",
   "change:autoSubtitles",
   "change:showVideoVolume",
   "change:audioBooster",
@@ -224,6 +225,7 @@ export class SettingsView {
   accountButtonTokenTooltip?: Tooltip;
   private accountStorageListenerCleanup?: () => void;
   autoTranslateCheckbox?: Checkbox;
+  autoPauseOnTranslateCheckbox?: Checkbox;
   autoSubtitlesCheckbox?: Checkbox;
   dontTranslateLanguagesCheckbox?: Checkbox;
   dontTranslateLanguagesSelect?: Select<LanguageSelectKey, true>;
@@ -676,6 +678,10 @@ export class SettingsView {
       labelHtml: localizationProvider.get("VOTAutoTranslate"),
       checked: this.data.autoTranslate,
     });
+    this.autoPauseOnTranslateCheckbox = new Checkbox({
+      labelHtml: localizationProvider.get("VOTAutoPauseOnTranslate"),
+      checked: this.data.autoPauseOnTranslate,
+    });
     this.autoSubtitlesCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("VOTAutoSubtitles"),
       checked: this.data.autoSubtitles,
@@ -778,6 +784,7 @@ export class SettingsView {
     accountSection.content.append(this.accountButton.container);
     translationSection.content.append(
       this.autoTranslateCheckbox.container,
+      this.autoPauseOnTranslateCheckbox.container,
       this.autoSubtitlesCheckbox.container,
       this.dontTranslateLanguagesSelect.container,
       this.autoSetVolumeSlider.container,
@@ -1186,6 +1193,18 @@ export class SettingsView {
       logLabel: "autoTranslate",
       dispatch: (checked) =>
         this.events["change:autoTranslate"].dispatch(checked),
+    });
+    this.bindPersistedSetting({
+      control: this.autoPauseOnTranslateCheckbox,
+      event: "change",
+      apply: (checked) => {
+        this.data.autoPauseOnTranslate = checked;
+      },
+      storageKey: "autoPauseOnTranslate",
+      readPersistedValue: () => this.data.autoPauseOnTranslate,
+      logLabel: "autoPauseOnTranslate",
+      dispatch: (checked) =>
+        this.events["change:autoPauseOnTranslate"].dispatch(checked),
     });
     this.bindPersistedSetting({
       control: this.autoSubtitlesCheckbox,

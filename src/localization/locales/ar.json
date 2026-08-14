@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "أصوات حية",
   "VOTLiveVoicesSubtitle": "التشابه الأقصى. كما لو أن الجميع يعرف الروسية",
   "VOTYandexTokenExpired": "انتهت الجلسة. تسجيل الدخول مرة أخرى",
-  "VOTVoiceSelection": "اختر الدبلجة"
+  "VOTVoiceSelection": "اختر الدبلجة",
+  "VOTAutoPauseOnTranslate": "إيقاف الفيديو مؤقتا حتى تصبح الترجمة جاهزة"
 }

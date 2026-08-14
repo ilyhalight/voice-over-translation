@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "တိုက်ရိုက်အသံများ",
   "VOTLiveVoicesSubtitle": "အများဆုံးတူညီမှုပါ။ လူတိုင်းကရုရှားလိုသိနေသလိုပေါ့။",
   "VOTYandexTokenExpired": "အစည်းအဝေးကပြီးသွားပြီ။ နောက်တစ်ကြိမ်ပြန်လည်ဝင်ရောက်",
-  "VOTVoiceSelection": "Dubbing ကိုရွေးပါ။"
+  "VOTVoiceSelection": "Dubbing ကိုရွေးပါ။",
+  "VOTAutoPauseOnTranslate": "ဘာသာပြန်မှုအဆင်သင့်ဖြစ်သည်အထိဗီဒီယိုကိုရပ်ထားပါ။"
 }

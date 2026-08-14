@@ -20,6 +20,7 @@
   "VOTFailedDownloadAudio": "Failed to download audio",
   "audioFormatNotSupported": "The audio format is not supported",
   "VOTAutoTranslate": "Translate on open",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
   "VOTAutoSubtitles": "Subtitles on open",
   "VOTDontTranslateYourLang": "Don't translate from my language",
   "VOTVolume": "Video volume:",

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Vuċijiet ħajjin",
   "VOTLiveVoicesSubtitle": "Xebh massimu. Bħallikieku kulħadd jaf ir russu",
   "VOTYandexTokenExpired": "Sessjoni skada. Idħol mill-ġdid",
-  "VOTVoiceSelection": "Agħżel id-doppjaġġ"
+  "VOTVoiceSelection": "Agħżel id-doppjaġġ",
+  "VOTAutoPauseOnTranslate": "Nieqaf il-vidjow sakemm it-traduzzjoni tkun lesta"
 }

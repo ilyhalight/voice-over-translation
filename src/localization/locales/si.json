@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "සජීවී හඬවල්",
   "VOTLiveVoicesSubtitle": "උපරිම සමානතාවය. හැමෝම රුසියානු දන්නවා වගේ",
   "VOTYandexTokenExpired": "සැසිය කල් ඉකුත් විය. නැවත පිවිසෙන්න",
-  "VOTVoiceSelection": "ඩබ් කිරීම තෝරන්න"
+  "VOTVoiceSelection": "ඩබ් කිරීම තෝරන්න",
+  "VOTAutoPauseOnTranslate": "පරිවර්තනය සූදානම් වන තුරු වීඩියෝ විරාමයක්"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Canlı sesler",
   "VOTLiveVoicesSubtitle": "Maksimum benzerlik. Sanki herkes Rusça biliyormuş gibi",
   "VOTYandexTokenExpired": "Oturumun süresi doldu. Tekrar giriş yap",
-  "VOTVoiceSelection": "Dublajı seçin"
+  "VOTVoiceSelection": "Dublajı seçin",
+  "VOTAutoPauseOnTranslate": "Çeviri hazır olana kadar videoyu duraklatın"
 }

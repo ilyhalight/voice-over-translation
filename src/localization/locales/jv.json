@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Swara urip",
   "VOTLiveVoicesSubtitle": "Kamiripan maksimal. Kaya-kaya kabèh wong ngerti basa rusia",
   "VOTYandexTokenExpired": "Sesi wis kadaluwarsa. Mlebu maneh",
-  "VOTVoiceSelection": "Milih dubbing"
+  "VOTVoiceSelection": "Milih dubbing",
+  "VOTAutoPauseOnTranslate": "Ngaso video nganti terjemahan siap"
 }

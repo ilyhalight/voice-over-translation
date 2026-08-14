@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Hidup suara-suara",
   "VOTLiveVoicesSubtitle": "Persamaan maksimum. Seolah-olah semua orang tahu Rusia",
   "VOTYandexTokenExpired": "Sesi tamat. Log masuk lagi",
-  "VOTVoiceSelection": "Pilih Alih Suara"
+  "VOTVoiceSelection": "Pilih Alih Suara",
+  "VOTAutoPauseOnTranslate": "Jeda video sehingga terjemahan siap"
 }

@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Voces en directo",
   "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego",
   "VOTYandexTokenExpired": "A sesión rematou. Entra de novo",
-  "VOTVoiceSelection": "Escoller o doblaxe"
+  "VOTVoiceSelection": "Escoller o doblaxe",
+  "VOTAutoPauseOnTranslate": "Pausa o vídeo ata que a tradución estea lista"
 }

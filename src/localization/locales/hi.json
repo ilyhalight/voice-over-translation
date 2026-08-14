@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "लाइव आवाज",
   "VOTLiveVoicesSubtitle": "अधिकतम समानता। जैसे कि हर कोई रूसी जानता है",
   "VOTYandexTokenExpired": "सत्र समाप्त हो गया ।  फिर से लॉग इन करें",
-  "VOTVoiceSelection": "डबिंग चुनें"
+  "VOTVoiceSelection": "डबिंग चुनें",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

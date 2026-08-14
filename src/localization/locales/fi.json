@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Live voices",
   "VOTLiveVoicesSubtitle": "Suurin samankaltaisuus. Aivan kuin kaikki osaisivat Venäjää",
   "VOTYandexTokenExpired": "Istunto päättyi. Kirjaudu sisään uudelleen",
-  "VOTVoiceSelection": "Valitse dubbaus"
+  "VOTVoiceSelection": "Valitse dubbaus",
+  "VOTAutoPauseOnTranslate": "Keskeytä video, Kunnes käännös on valmis"
 }

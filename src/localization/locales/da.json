@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Levende stemmer",
   "VOTLiveVoicesSubtitle": "Maksimal lighed. Som om alle kender russisk",
   "VOTYandexTokenExpired": "Sessionen er udløbet. Log ind igen",
-  "VOTVoiceSelection": "Vælg dubbing"
+  "VOTVoiceSelection": "Vælg dubbing",
+  "VOTAutoPauseOnTranslate": "Pause video, indtil oversættelsen er klar"
 }

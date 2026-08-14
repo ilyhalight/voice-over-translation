@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Կենդանի ձայներ",
   "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն",
   "VOTYandexTokenExpired": "Նիստը լրացավ: Կրկին մուտք գործեք համակարգ",
-  "VOTVoiceSelection": "Ընտրեք կրկնօրինակ"
+  "VOTVoiceSelection": "Ընտրեք կրկնօրինակ",
+  "VOTAutoPauseOnTranslate": "Դադարեցրեք տեսանյութը, մինչև թարգմանությունը պատրաստ լինի"
 }

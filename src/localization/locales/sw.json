@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Sauti za moja kwa moja",
   "VOTLiveVoicesSubtitle": "Kufanana kwa kiwango cha juu. Kama kila mtu anajua kirusi",
   "VOTYandexTokenExpired": "Kipindi kiliisha. Ingia tena",
-  "VOTVoiceSelection": "Chagua dubbing"
+  "VOTVoiceSelection": "Chagua dubbing",
+  "VOTAutoPauseOnTranslate": "Pumzika video mpaka tafsiri iko tayari"
 }

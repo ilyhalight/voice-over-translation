@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "ലൈവ് ശബ്ദങ്ങൾ",
   "VOTLiveVoicesSubtitle": "പരമാവധി സമാനത. എല്ലാവരും റഷ്യൻ അറിയുന്നു പോലെ",
   "VOTYandexTokenExpired": "സെഷൻ അവസാനിച്ചു. വീണ്ടും ലോഗിൻ ചെയ്യുക",
-  "VOTVoiceSelection": "ഡബ്ബിംഗ് തിരഞ്ഞെടുക്കുക"
+  "VOTVoiceSelection": "ഡബ്ബിംഗ് തിരഞ്ഞെടുക്കുക",
+  "VOTAutoPauseOnTranslate": "പരിഭാഷ തയ്യാറാകുന്നതുവരെ വീഡിയോ താൽക്കാലികമായി നിർത്തുക"
 }

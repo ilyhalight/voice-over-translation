@@ -2589,8 +2589,11 @@ var vot = (function(exports) {
 	var protoInt64 = /*@__PURE__*/ makeInt64Support();
 	function makeInt64Support() {
 		const dv = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
-		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
-			const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
+		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
+			const MIN = BigInt("-9223372036854775808");
+			const MAX = BigInt("9223372036854775807");
+			const UMIN = BigInt("0");
+			const UMAX = BigInt("18446744073709551615");
 			return {
 				zero: BigInt(0),
 				supported: true,
@@ -2674,17 +2677,22 @@ var vot = (function(exports) {
 		if (globalThis[symbol] == void 0) {
 			const te = new globalThis.TextEncoder();
 			const td = new globalThis.TextDecoder();
+			let tdStrict;
 			globalThis[symbol] = {
 				encodeUtf8(text) {
 					return te.encode(text);
 				},
-				decodeUtf8(bytes) {
+				decodeUtf8(bytes, strict) {
+					if (strict) {
+						if (tdStrict === void 0) tdStrict = new globalThis.TextDecoder("utf-8", { fatal: true });
+						return tdStrict.decode(bytes);
+					}
 					return td.decode(bytes);
 				},
 				checkUtf8(text) {
 					try {
 						return true;
-					} catch (e) {
+					} catch (_) {
 						return false;
 					}
 				}
@@ -2835,7 +2843,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		/**
-		* Write a `bool` value, a variant.
+		* Write a `bool` value, a varint.
 		*/
 		bool(value) {
 			this.buf.push(value ? 1 : 0);
@@ -2901,7 +2909,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		/**
-		* Write a `fixed64` value, a signed, fixed-length 64-bit integer.
+		* Write a `sfixed64` value, a signed, fixed-length 64-bit integer.
 		*/
 		sfixed64(value) {
 			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
@@ -2930,7 +2938,7 @@ var vot = (function(exports) {
 		* Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
 		*/
 		sint64(value) {
-			let tc = protoInt64.enc(value), sign = tc.hi >> 31;
+			const tc = protoInt64.enc(value), sign = tc.hi >> 31;
 			varint64write(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
 			return this;
 		}
@@ -2938,7 +2946,7 @@ var vot = (function(exports) {
 		* Write a `uint64` value, an unsigned 64-bit varint.
 		*/
 		uint64(value) {
-			let tc = protoInt64.uEnc(value);
+			const tc = protoInt64.uEnc(value);
 			varint64write(tc.lo, tc.hi, this.buf);
 			return this;
 		}
@@ -2957,20 +2965,28 @@ var vot = (function(exports) {
 			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 		}
 		/**
-		* Reads a tag - field number and wire type.
+		* Reads a tag - field number and wire type. Tags are uint32 varints; values
+		* that do not fit in uint32 are rejected.
 		*/
 		tag() {
-			let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
-			if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+			const start = this.pos;
+			const tag = this.uint32();
+			const bytesRead = this.pos - start;
+			if (bytesRead > 5 || bytesRead == 5 && this.buf[this.pos - 1] > 15) throw new Error("illegal tag: varint overflows uint32");
+			const fieldNo = tag >>> 3;
+			const wireType = tag & 7;
+			if (fieldNo <= 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
 			return [fieldNo, wireType];
 		}
 		/**
 		* Skip one element and return the skipped data.
 		*
 		* When skipping StartGroup, provide the tags field number to check for
-		* matching field number in the EndGroup tag.
+		* matching field number in the EndGroup tag. Recursion into nested groups
+		* is guarded by the `recursionLimit` argument: When the limit is reached,
+		* this method throws.
 		*/
-		skip(wireType, fieldNo) {
+		skip(wireType, fieldNo, recursionLimit = 100) {
 			let start = this.pos;
 			switch (wireType) {
 				case WireType.Varint:
@@ -2985,13 +3001,14 @@ var vot = (function(exports) {
 					this.pos += len;
 					break;
 				case WireType.StartGroup:
+					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
 					for (;;) {
 						const [fn, wt] = this.tag();
 						if (wt === WireType.EndGroup) {
 							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
 							break;
 						}
-						this.skip(wt, fn);
+						this.skip(wt, fn, recursionLimit - 1);
 					}
 					break;
 				default: throw new Error("cant skip wire type " + wireType);
@@ -3093,10 +3110,11 @@ var vot = (function(exports) {
 			return this.buf.subarray(start, start + len);
 		}
 		/**
-		* Read a `string` field, length-delimited data converted to UTF-8 text.
+		* Read a `string` field, length-delimited data converted to UTF-8 text. If
+		* `strict` is true, throw on invalid UTF-8 instead of substituting U+FFFD.
 		*/
-		string() {
-			return this.decodeUtf8(this.bytes());
+		string(strict) {
+			return this.decodeUtf8(this.bytes(), strict);
 		}
 	};
 	/**
@@ -3122,7 +3140,7 @@ var vot = (function(exports) {
 		if (typeof arg == "string") {
 			const o = arg;
 			arg = Number(arg);
-			if (isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
+			if (Number.isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
 		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
 		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
 	}
@@ -6771,6 +6789,7 @@ var vot = (function(exports) {
 	var subtitleResponseLanguageModes = ["auto", "original"];
 	var storageKeys = [
 		"autoTranslate",
+		"autoPauseOnTranslate",
 		"autoSubtitles",
 		"dontTranslateLanguages",
 		"enabledDontTranslateLanguages",
@@ -9833,6 +9852,7 @@ var vot = (function(exports) {
 		VOTFailedDownloadAudio: "Failed to download audio",
 		audioFormatNotSupported: "The audio format is not supported",
 		VOTAutoTranslate: "Translate on open",
+		VOTAutoPauseOnTranslate: "Pause video until translation is ready",
 		VOTAutoSubtitles: "Subtitles on open",
 		VOTDontTranslateYourLang: "Don't translate from my language",
 		VOTVolume: "Video volume:",
@@ -22341,6 +22361,7 @@ var vot = (function(exports) {
 		"click:resetSettings",
 		"update:account",
 		"change:autoTranslate",
+		"change:autoPauseOnTranslate",
 		"change:autoSubtitles",
 		"change:showVideoVolume",
 		"change:audioBooster",
@@ -22431,6 +22452,7 @@ var vot = (function(exports) {
 		accountButtonTokenTooltip;
 		accountStorageListenerCleanup;
 		autoTranslateCheckbox;
+		autoPauseOnTranslateCheckbox;
 		autoSubtitlesCheckbox;
 		dontTranslateLanguagesCheckbox;
 		dontTranslateLanguagesSelect;
@@ -22704,6 +22726,10 @@ var vot = (function(exports) {
 				labelHtml: localizationProvider.get("VOTAutoTranslate"),
 				checked: this.data.autoTranslate
 			});
+			this.autoPauseOnTranslateCheckbox = new Checkbox({
+				labelHtml: localizationProvider.get("VOTAutoPauseOnTranslate"),
+				checked: this.data.autoPauseOnTranslate
+			});
 			this.autoSubtitlesCheckbox = new Checkbox({
 				labelHtml: localizationProvider.get("VOTAutoSubtitles"),
 				checked: this.data.autoSubtitles
@@ -22794,7 +22820,7 @@ var vot = (function(exports) {
 				parentElement: this.globalPortal
 			});
 			accountSection.content.append(this.accountButton.container);
-			translationSection.content.append(this.autoTranslateCheckbox.container, this.autoSubtitlesCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.smartDuckingCheckbox.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useAudioDownloadCheckbox.container);
+			translationSection.content.append(this.autoTranslateCheckbox.container, this.autoPauseOnTranslateCheckbox.container, this.autoSubtitlesCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.smartDuckingCheckbox.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useAudioDownloadCheckbox.container);
 			this.subtitlesDownloadFormatSelectLabel = new Label({ labelText: localizationProvider.get("VOTSubtitlesDownloadFormat") });
 			this.subtitlesDownloadFormatSelect = new Select({
 				selectTitle: this.data.subtitlesDownloadFormat ?? localizationProvider.get("VOTSubtitlesDownloadFormat"),
@@ -23106,6 +23132,17 @@ var vot = (function(exports) {
 				readPersistedValue: () => this.data.autoTranslate,
 				logLabel: "autoTranslate",
 				dispatch: (checked) => this.events["change:autoTranslate"].dispatch(checked)
+			});
+			this.bindPersistedSetting({
+				control: this.autoPauseOnTranslateCheckbox,
+				event: "change",
+				apply: (checked) => {
+					this.data.autoPauseOnTranslate = checked;
+				},
+				storageKey: "autoPauseOnTranslate",
+				readPersistedValue: () => this.data.autoPauseOnTranslate,
+				logLabel: "autoPauseOnTranslate",
+				dispatch: (checked) => this.events["change:autoPauseOnTranslate"].dispatch(checked)
 			});
 			this.bindPersistedSetting({
 				control: this.autoSubtitlesCheckbox,
@@ -25149,6 +25186,14 @@ var vot = (function(exports) {
 				debug.log("[translateFunc] Cached translation was received");
 				return;
 			}
+			if (this.data?.autoPauseOnTranslate && !this.video.paused && !this.video.ended) {
+				debug.log("[translateFunc] Pausing video until translation is ready");
+				this.pausedByTranslation = true;
+				this.video.addEventListener("play", () => {
+					this.pausedByTranslation = false;
+				}, { once: true });
+				this.video.pause();
+			}
 			const translateRes = await requestApplyAndCacheTranslation(this, {
 				videoData,
 				requestLang: reqLang,
@@ -25192,6 +25237,15 @@ var vot = (function(exports) {
 			throw err;
 		} finally {
 			if (this.activeTranslation?.promise === translationPromise) this.activeTranslation = null;
+			if (!this.activeTranslation && this.pausedByTranslation) {
+				this.pausedByTranslation = false;
+				if (this.hasActiveSource()) {
+					debug.log("[translateFunc] Resuming video after translation is ready");
+					this.video.play().catch((playErr) => {
+						debug.log("[translateFunc] Failed to resume video", playErr);
+					});
+				}
+			}
 			const overlayBtn = this.uiManager.votOverlayView?.votButton;
 			if (!this.activeTranslation && overlayBtn?.loading && !this.hasActiveSource()) {
 				debug.log("[translateFunc] clearing stale loading state");
@@ -25611,6 +25665,7 @@ var vot = (function(exports) {
 		const audioContextSupported = this.isAudioContextSupported;
 		this.data = await votStorage.getValues({
 			autoTranslate: false,
+			autoPauseOnTranslate: false,
 			autoSubtitles: false,
 			dontTranslateLanguages: [calculatedResLang],
 			enabledDontTranslateLanguages: true,
@@ -26741,6 +26796,12 @@ var vot = (function(exports) {
 		smartVolumeIsDucked = false;
 		longWaitingResCount = 0;
 		hadAsyncWait = false;
+		/**
+		* Set to `true` when the video was programmatically paused while waiting for
+		* translation audio to be prepared (autoPauseOnTranslate feature).
+		* Reset when translation finishes or when the user manually starts playback.
+		*/
+		pausedByTranslation = false;
 		subtitles = [];
 		subtitlesCacheKey = null;
 		subtitlesWidget;

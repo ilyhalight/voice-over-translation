@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "لائیو آوازیں",
   "VOTLiveVoicesSubtitle": "زیادہ سے زیادہ مماثلت. گویا ہر کوئی روسی جانتا ہے ۔ ",
   "VOTYandexTokenExpired": "سیشن ختم ہو گیا. دوبارہ لاگ ان کریں",
-  "VOTVoiceSelection": "ڈبنگ کا انتخاب کریں"
+  "VOTVoiceSelection": "ڈبنگ کا انتخاب کریں",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

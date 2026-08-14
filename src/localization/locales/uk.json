@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "Живі голоси",
   "VOTLiveVoicesSubtitle": "Максимальна схожість. Наче всі знають російську",
   "VOTYandexTokenExpired": "Сеанс закінчився. Увійдіть ще раз",
-  "VOTVoiceSelection": "Виберіть дубляж"
+  "VOTVoiceSelection": "Виберіть дубляж",
+  "VOTAutoPauseOnTranslate": "Призупиніть Відео, поки переклад не буде готовий"
 }

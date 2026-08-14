@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "صداهای زنده",
   "VOTLiveVoicesSubtitle": "حداکثر شباهت. گویی همه روسی می دانند",
   "VOTYandexTokenExpired": "جلسه منقضی شد. دوباره وارد شوید",
-  "VOTVoiceSelection": "دوبله را انتخاب کنید"
+  "VOTVoiceSelection": "دوبله را انتخاب کنید",
+  "VOTAutoPauseOnTranslate": "فیلم را مکث کنید تا ترجمه آماده شود"
 }
