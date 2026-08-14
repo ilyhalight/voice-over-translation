@@ -273,7 +273,7 @@ export function buildManifestChrome({
     permissions: [
       "storage",
       "notifications",
-      "tabs",
+      "activeTab",
       "declarativeNetRequestWithHostAccess",
     ],
     host_permissions: hostPermissions,

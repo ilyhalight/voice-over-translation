@@ -222,7 +222,6 @@
 // @connect        raw.githubusercontent.com
 // @connect        vimeo.com
 // @connect        toil.cc
-// @connect        deno.dev
 // @connect        onrender.com
 // @connect        workers.dev
 // @connect        eu.cc
@@ -285,7 +284,7 @@ var vot = (function(exports) {
 		}
 		return to;
 	};
-	var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+	var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
 		value: mod,
 		enumerable: true
 	}) : target, mod));
@@ -1114,12 +1113,13 @@ var vot = (function(exports) {
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.transly.eu.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 YaBrowser/26.6.0.0 Safari/537.36",
-		componentVersion: "26.6.3.870",
+		componentVersion: "26.6.4.760",
+		chromiumRevision: "760",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.0.1"
+		version: "3.0.2"
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/logger.js
@@ -3216,14 +3216,14 @@ var vot = (function(exports) {
 			deviceId: void 0,
 			firstRequest: false,
 			duration: 0,
-			unknown0: 0,
+			unknown0: false,
 			language: "",
 			forceSourceLang: false,
-			unknown1: 0,
+			unknown1: false,
 			translationHelp: [],
 			wasStream: false,
 			responseLanguage: "",
-			unknown2: 0,
+			unknown2: false,
 			unknown3: 0,
 			bypassCache: false,
 			useLivelyVoice: false,
@@ -3236,14 +3236,14 @@ var vot = (function(exports) {
 			if (message.deviceId !== void 0) writer.uint32(34).string(message.deviceId);
 			if (message.firstRequest !== false) writer.uint32(40).bool(message.firstRequest);
 			if (message.duration !== 0) writer.uint32(49).double(message.duration);
-			if (message.unknown0 !== 0) writer.uint32(56).int32(message.unknown0);
+			if (message.unknown0 !== false) writer.uint32(56).bool(message.unknown0);
 			if (message.language !== "") writer.uint32(66).string(message.language);
 			if (message.forceSourceLang !== false) writer.uint32(72).bool(message.forceSourceLang);
-			if (message.unknown1 !== 0) writer.uint32(80).int32(message.unknown1);
+			if (message.unknown1 !== false) writer.uint32(80).bool(message.unknown1);
 			for (const v of message.translationHelp) VideoTranslationHelpObject.encode(v, writer.uint32(90).fork()).join();
 			if (message.wasStream !== false) writer.uint32(104).bool(message.wasStream);
 			if (message.responseLanguage !== "") writer.uint32(114).string(message.responseLanguage);
-			if (message.unknown2 !== 0) writer.uint32(120).int32(message.unknown2);
+			if (message.unknown2 !== false) writer.uint32(120).bool(message.unknown2);
 			if (message.unknown3 !== 0) writer.uint32(128).int32(message.unknown3);
 			if (message.bypassCache !== false) writer.uint32(136).bool(message.bypassCache);
 			if (message.useLivelyVoice !== false) writer.uint32(144).bool(message.useLivelyVoice);
@@ -3275,7 +3275,7 @@ var vot = (function(exports) {
 						continue;
 					case 7:
 						if (tag !== 56) break;
-						message.unknown0 = reader.int32();
+						message.unknown0 = reader.bool();
 						continue;
 					case 8:
 						if (tag !== 66) break;
@@ -3287,7 +3287,7 @@ var vot = (function(exports) {
 						continue;
 					case 10:
 						if (tag !== 80) break;
-						message.unknown1 = reader.int32();
+						message.unknown1 = reader.bool();
 						continue;
 					case 11:
 						if (tag !== 90) break;
@@ -3303,7 +3303,7 @@ var vot = (function(exports) {
 						continue;
 					case 15:
 						if (tag !== 120) break;
-						message.unknown2 = reader.int32();
+						message.unknown2 = reader.bool();
 						continue;
 					case 16:
 						if (tag !== 128) break;
@@ -3333,14 +3333,14 @@ var vot = (function(exports) {
 				deviceId: isSet(object.deviceId) ? globalThis.String(object.deviceId) : void 0,
 				firstRequest: isSet(object.firstRequest) ? globalThis.Boolean(object.firstRequest) : false,
 				duration: isSet(object.duration) ? globalThis.Number(object.duration) : 0,
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
+				unknown0: isSet(object.unknown0) ? globalThis.Boolean(object.unknown0) : false,
 				language: isSet(object.language) ? globalThis.String(object.language) : "",
 				forceSourceLang: isSet(object.forceSourceLang) ? globalThis.Boolean(object.forceSourceLang) : false,
-				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0,
+				unknown1: isSet(object.unknown1) ? globalThis.Boolean(object.unknown1) : false,
 				translationHelp: globalThis.Array.isArray(object?.translationHelp) ? object.translationHelp.map((e) => VideoTranslationHelpObject.fromJSON(e)) : [],
 				wasStream: isSet(object.wasStream) ? globalThis.Boolean(object.wasStream) : false,
 				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : "",
-				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : 0,
+				unknown2: isSet(object.unknown2) ? globalThis.Boolean(object.unknown2) : false,
 				unknown3: isSet(object.unknown3) ? globalThis.Number(object.unknown3) : 0,
 				bypassCache: isSet(object.bypassCache) ? globalThis.Boolean(object.bypassCache) : false,
 				useLivelyVoice: isSet(object.useLivelyVoice) ? globalThis.Boolean(object.useLivelyVoice) : false,
@@ -3353,14 +3353,14 @@ var vot = (function(exports) {
 			if (message.deviceId !== void 0) obj.deviceId = message.deviceId;
 			if (message.firstRequest !== false) obj.firstRequest = message.firstRequest;
 			if (message.duration !== 0) obj.duration = message.duration;
-			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
+			if (message.unknown0 !== false) obj.unknown0 = message.unknown0;
 			if (message.language !== "") obj.language = message.language;
 			if (message.forceSourceLang !== false) obj.forceSourceLang = message.forceSourceLang;
-			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
+			if (message.unknown1 !== false) obj.unknown1 = message.unknown1;
 			if (message.translationHelp?.length) obj.translationHelp = message.translationHelp.map((e) => VideoTranslationHelpObject.toJSON(e));
 			if (message.wasStream !== false) obj.wasStream = message.wasStream;
 			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
-			if (message.unknown2 !== 0) obj.unknown2 = Math.round(message.unknown2);
+			if (message.unknown2 !== false) obj.unknown2 = message.unknown2;
 			if (message.unknown3 !== 0) obj.unknown3 = Math.round(message.unknown3);
 			if (message.bypassCache !== false) obj.bypassCache = message.bypassCache;
 			if (message.useLivelyVoice !== false) obj.useLivelyVoice = message.useLivelyVoice;
@@ -3376,14 +3376,14 @@ var vot = (function(exports) {
 			message.deviceId = object.deviceId ?? void 0;
 			message.firstRequest = object.firstRequest ?? false;
 			message.duration = object.duration ?? 0;
-			message.unknown0 = object.unknown0 ?? 0;
+			message.unknown0 = object.unknown0 ?? false;
 			message.language = object.language ?? "";
 			message.forceSourceLang = object.forceSourceLang ?? false;
-			message.unknown1 = object.unknown1 ?? 0;
+			message.unknown1 = object.unknown1 ?? false;
 			message.translationHelp = object.translationHelp?.map((e) => VideoTranslationHelpObject.fromPartial(e)) || [];
 			message.wasStream = object.wasStream ?? false;
 			message.responseLanguage = object.responseLanguage ?? "";
-			message.unknown2 = object.unknown2 ?? 0;
+			message.unknown2 = object.unknown2 ?? false;
 			message.unknown3 = object.unknown3 ?? 0;
 			message.bypassCache = object.bypassCache ?? false;
 			message.useLivelyVoice = object.useLivelyVoice ?? false;
@@ -3402,7 +3402,7 @@ var vot = (function(exports) {
 			language: void 0,
 			message: void 0,
 			isLivelyVoice: false,
-			unknown2: void 0,
+			allowToTranslateVideo: void 0,
 			shouldRetry: void 0,
 			unknown3: void 0
 		};
@@ -3418,7 +3418,7 @@ var vot = (function(exports) {
 			if (message.language !== void 0) writer.uint32(66).string(message.language);
 			if (message.message !== void 0) writer.uint32(74).string(message.message);
 			if (message.isLivelyVoice !== false) writer.uint32(80).bool(message.isLivelyVoice);
-			if (message.unknown2 !== void 0) writer.uint32(88).int32(message.unknown2);
+			if (message.allowToTranslateVideo !== void 0) writer.uint32(88).bool(message.allowToTranslateVideo);
 			if (message.shouldRetry !== void 0) writer.uint32(96).int32(message.shouldRetry);
 			if (message.unknown3 !== void 0) writer.uint32(104).int32(message.unknown3);
 			return writer;
@@ -3468,7 +3468,7 @@ var vot = (function(exports) {
 						continue;
 					case 11:
 						if (tag !== 88) break;
-						message.unknown2 = reader.int32();
+						message.allowToTranslateVideo = reader.bool();
 						continue;
 					case 12:
 						if (tag !== 96) break;
@@ -3495,7 +3495,7 @@ var vot = (function(exports) {
 				language: isSet(object.language) ? globalThis.String(object.language) : void 0,
 				message: isSet(object.message) ? globalThis.String(object.message) : void 0,
 				isLivelyVoice: isSet(object.isLivelyVoice) ? globalThis.Boolean(object.isLivelyVoice) : false,
-				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : void 0,
+				allowToTranslateVideo: isSet(object.allowToTranslateVideo) ? globalThis.Boolean(object.allowToTranslateVideo) : void 0,
 				shouldRetry: isSet(object.shouldRetry) ? globalThis.Number(object.shouldRetry) : void 0,
 				unknown3: isSet(object.unknown3) ? globalThis.Number(object.unknown3) : void 0
 			};
@@ -3511,7 +3511,7 @@ var vot = (function(exports) {
 			if (message.language !== void 0) obj.language = message.language;
 			if (message.message !== void 0) obj.message = message.message;
 			if (message.isLivelyVoice !== false) obj.isLivelyVoice = message.isLivelyVoice;
-			if (message.unknown2 !== void 0) obj.unknown2 = Math.round(message.unknown2);
+			if (message.allowToTranslateVideo !== void 0) obj.allowToTranslateVideo = message.allowToTranslateVideo;
 			if (message.shouldRetry !== void 0) obj.shouldRetry = Math.round(message.shouldRetry);
 			if (message.unknown3 !== void 0) obj.unknown3 = Math.round(message.unknown3);
 			return obj;
@@ -3530,7 +3530,7 @@ var vot = (function(exports) {
 			message.language = object.language ?? void 0;
 			message.message = object.message ?? void 0;
 			message.isLivelyVoice = object.isLivelyVoice ?? false;
-			message.unknown2 = object.unknown2 ?? void 0;
+			message.allowToTranslateVideo = object.allowToTranslateVideo ?? void 0;
 			message.shouldRetry = object.shouldRetry ?? void 0;
 			message.unknown3 = object.unknown3 ?? void 0;
 			return message;
@@ -3541,7 +3541,8 @@ var vot = (function(exports) {
 			status: 0,
 			remainingTime: void 0,
 			message: void 0,
-			unknown0: void 0
+			unknown0: void 0,
+			flags: []
 		};
 	}
 	var VideoTranslationCacheItem = {
@@ -3550,6 +3551,9 @@ var vot = (function(exports) {
 			if (message.remainingTime !== void 0) writer.uint32(16).int32(message.remainingTime);
 			if (message.message !== void 0) writer.uint32(26).string(message.message);
 			if (message.unknown0 !== void 0) writer.uint32(32).int32(message.unknown0);
+			writer.uint32(42).fork();
+			for (const v of message.flags) writer.int32(v);
+			writer.join();
 			return writer;
 		},
 		decode(input, length) {
@@ -3575,6 +3579,16 @@ var vot = (function(exports) {
 						if (tag !== 32) break;
 						message.unknown0 = reader.int32();
 						continue;
+					case 5:
+						if (tag === 40) {
+							message.flags.push(reader.int32());
+							continue;
+						}
+						if (tag === 42) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.flags.push(reader.int32());
+							continue;
+						}
 				}
 				if ((tag & 7) === 4 || tag === 0) break;
 				reader.skip(tag & 7);
@@ -3586,7 +3600,8 @@ var vot = (function(exports) {
 				status: isSet(object.status) ? globalThis.Number(object.status) : 0,
 				remainingTime: isSet(object.remainingTime) ? globalThis.Number(object.remainingTime) : void 0,
 				message: isSet(object.message) ? globalThis.String(object.message) : void 0,
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : void 0
+				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : void 0,
+				flags: globalThis.Array.isArray(object?.flags) ? object.flags.map((e) => globalThis.Number(e)) : []
 			};
 		},
 		toJSON(message) {
@@ -3595,6 +3610,7 @@ var vot = (function(exports) {
 			if (message.remainingTime !== void 0) obj.remainingTime = Math.round(message.remainingTime);
 			if (message.message !== void 0) obj.message = message.message;
 			if (message.unknown0 !== void 0) obj.unknown0 = Math.round(message.unknown0);
+			if (message.flags?.length) obj.flags = message.flags.map((e) => Math.round(e));
 			return obj;
 		},
 		create(base) {
@@ -3606,6 +3622,7 @@ var vot = (function(exports) {
 			message.remainingTime = object.remainingTime ?? void 0;
 			message.message = object.message ?? void 0;
 			message.unknown0 = object.unknown0 ?? void 0;
+			message.flags = object.flags?.map((e) => e) || [];
 			return message;
 		}
 	};
@@ -4171,22 +4188,22 @@ var vot = (function(exports) {
 		return {
 			language: "",
 			url: "",
-			unknown0: 0,
+			hasTranslation: false,
 			translatedLanguage: "",
 			translatedUrl: "",
-			unknown1: 0,
-			unknown2: 0
+			unknown1: false,
+			subtitleId: 0
 		};
 	}
 	var SubtitlesObject = {
 		encode(message, writer = new BinaryWriter()) {
 			if (message.language !== "") writer.uint32(10).string(message.language);
 			if (message.url !== "") writer.uint32(18).string(message.url);
-			if (message.unknown0 !== 0) writer.uint32(24).int32(message.unknown0);
+			if (message.hasTranslation !== false) writer.uint32(24).bool(message.hasTranslation);
 			if (message.translatedLanguage !== "") writer.uint32(34).string(message.translatedLanguage);
 			if (message.translatedUrl !== "") writer.uint32(42).string(message.translatedUrl);
-			if (message.unknown1 !== 0) writer.uint32(48).int32(message.unknown1);
-			if (message.unknown2 !== 0) writer.uint32(56).int32(message.unknown2);
+			if (message.unknown1 !== false) writer.uint32(48).bool(message.unknown1);
+			if (message.subtitleId !== 0) writer.uint32(56).uint32(message.subtitleId);
 			return writer;
 		},
 		decode(input, length) {
@@ -4206,7 +4223,7 @@ var vot = (function(exports) {
 						continue;
 					case 3:
 						if (tag !== 24) break;
-						message.unknown0 = reader.int32();
+						message.hasTranslation = reader.bool();
 						continue;
 					case 4:
 						if (tag !== 34) break;
@@ -4218,11 +4235,11 @@ var vot = (function(exports) {
 						continue;
 					case 6:
 						if (tag !== 48) break;
-						message.unknown1 = reader.int32();
+						message.unknown1 = reader.bool();
 						continue;
 					case 7:
 						if (tag !== 56) break;
-						message.unknown2 = reader.int32();
+						message.subtitleId = reader.uint32();
 						continue;
 				}
 				if ((tag & 7) === 4 || tag === 0) break;
@@ -4234,22 +4251,22 @@ var vot = (function(exports) {
 			return {
 				language: isSet(object.language) ? globalThis.String(object.language) : "",
 				url: isSet(object.url) ? globalThis.String(object.url) : "",
-				unknown0: isSet(object.unknown0) ? globalThis.Number(object.unknown0) : 0,
+				hasTranslation: isSet(object.hasTranslation) ? globalThis.Boolean(object.hasTranslation) : false,
 				translatedLanguage: isSet(object.translatedLanguage) ? globalThis.String(object.translatedLanguage) : "",
 				translatedUrl: isSet(object.translatedUrl) ? globalThis.String(object.translatedUrl) : "",
-				unknown1: isSet(object.unknown1) ? globalThis.Number(object.unknown1) : 0,
-				unknown2: isSet(object.unknown2) ? globalThis.Number(object.unknown2) : 0
+				unknown1: isSet(object.unknown1) ? globalThis.Boolean(object.unknown1) : false,
+				subtitleId: isSet(object.subtitleId) ? globalThis.Number(object.subtitleId) : 0
 			};
 		},
 		toJSON(message) {
 			const obj = {};
 			if (message.language !== "") obj.language = message.language;
 			if (message.url !== "") obj.url = message.url;
-			if (message.unknown0 !== 0) obj.unknown0 = Math.round(message.unknown0);
+			if (message.hasTranslation !== false) obj.hasTranslation = message.hasTranslation;
 			if (message.translatedLanguage !== "") obj.translatedLanguage = message.translatedLanguage;
 			if (message.translatedUrl !== "") obj.translatedUrl = message.translatedUrl;
-			if (message.unknown1 !== 0) obj.unknown1 = Math.round(message.unknown1);
-			if (message.unknown2 !== 0) obj.unknown2 = Math.round(message.unknown2);
+			if (message.unknown1 !== false) obj.unknown1 = message.unknown1;
+			if (message.subtitleId !== 0) obj.subtitleId = Math.round(message.subtitleId);
 			return obj;
 		},
 		create(base) {
@@ -4259,11 +4276,11 @@ var vot = (function(exports) {
 			const message = createBaseSubtitlesObject();
 			message.language = object.language ?? "";
 			message.url = object.url ?? "";
-			message.unknown0 = object.unknown0 ?? 0;
+			message.hasTranslation = object.hasTranslation ?? false;
 			message.translatedLanguage = object.translatedLanguage ?? "";
 			message.translatedUrl = object.translatedUrl ?? "";
-			message.unknown1 = object.unknown1 ?? 0;
-			message.unknown2 = object.unknown2 ?? 0;
+			message.unknown1 = object.unknown1 ?? false;
+			message.subtitleId = object.subtitleId ?? 0;
 			return message;
 		}
 	};
@@ -5985,7 +6002,7 @@ var vot = (function(exports) {
 	}));
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/secure.js
-	var { componentVersion } = config_default$1;
+	var { componentVersion, chromiumRevision } = config_default$1;
 	async function getCrypto() {
 		if (typeof window !== "undefined" && window.crypto) return window.crypto;
 		return await Promise.resolve().then(() => (init_nodeCrypto(), nodeCrypto_exports));
@@ -6039,7 +6056,7 @@ var vot = (function(exports) {
 	}
 	var browserSecHeaders = {
 		"sec-ch-ua": `"Chromium";v="148", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="99", "Yowser";v="2.5"`,
-		"sec-ch-ua-full-version-list": `"Chromium";v="148.0.7778.870", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="99.0.0.0", "Yowser";v="2.5"`,
+		"sec-ch-ua-full-version-list": `"Chromium";v="148.0.7778.${chromiumRevision}", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="99.0.0.0", "Yowser";v="2.5"`,
 		"Sec-Fetch-Mode": "no-cors"
 	};
 	//#endregion
@@ -11337,14 +11354,14 @@ var vot = (function(exports) {
 			url,
 			firstRequest,
 			duration,
-			unknown0: 1,
+			unknown0: true,
 			language: requestLang,
 			forceSourceLang,
-			unknown1: 0,
+			unknown1: false,
 			translationHelp: translationHelp ?? [],
 			responseLanguage: responseLang,
 			wasStream,
-			unknown2: 1,
+			unknown2: true,
 			unknown3: 2,
 			bypassCache,
 			useLivelyVoice,
@@ -11449,6 +11466,52 @@ var vot = (function(exports) {
 		decodeSessionResponse
 	};
 	//#endregion
+	//#region node_modules/@vot.js/core/dist/client.js
+	var VOTJSError = class extends Error {
+		data;
+		constructor(message, data = void 0) {
+			super(message);
+			this.data = data;
+			this.name = "VOTJSError";
+		}
+	};
+	var VOTClient$1 = class {
+		provider;
+		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
+			const ProviderClass = provider ?? YandexProvider;
+			this.provider = new ProviderClass({
+				host,
+				fetchFn,
+				fetchOpts,
+				headers,
+				apiToken,
+				requestLang,
+				responseLang
+			});
+		}
+		async translateVideo(opts) {
+			return await this.provider.translateVideo(opts);
+		}
+		async translateStream(opts) {
+			return await this.provider.translateStream(opts);
+		}
+		async getSubtitles(opts) {
+			return await this.provider.getSubtitles(opts);
+		}
+		get requestLang() {
+			return this.provider.requestLang;
+		}
+		set requestLang(lang) {
+			this.provider.requestLang = lang;
+		}
+		get responseLang() {
+			return this.provider.responseLang;
+		}
+		set responseLang(lang) {
+			this.provider.responseLang = lang;
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/core/dist/types/yandex.js
 	var VideoTranslationStatus;
 	(function(VideoTranslationStatus) {
@@ -11471,6 +11534,10 @@ var vot = (function(exports) {
 		AudioDownloadType["WEB_API_SLOW"] = "web_api_slow";
 		AudioDownloadType["WEB_API_STEAL_SIG_AND_N"] = "web_api_steal_sig_and_n";
 		AudioDownloadType["WEB_API_COMBINED"] = "web_api_get_all_generating_urls_data_from_iframe,web_api_steal_sig_and_n";
+		AudioDownloadType["WEB_ABR"] = "web_abr";
+		AudioDownloadType["WEB_SABR"] = "web_sabr";
+		AudioDownloadType["WEB_MSE_PROXY"] = "web_mse_proxy";
+		AudioDownloadType["EMPTY_PLUG"] = "empty_plug";
 	})(AudioDownloadType || (AudioDownloadType = {}));
 	//#endregion
 	//#region node_modules/@vot.js/core/dist/providers/yandex.js
@@ -11698,49 +11765,60 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region node_modules/@vot.js/core/dist/client.js
-	var VOTJSError = class extends Error {
-		data;
-		constructor(message, data = void 0) {
-			super(message);
-			this.data = data;
-			this.name = "VOTJSError";
+	//#region node_modules/@vot.js/core/dist/providers/votworker.js
+	var VOTWorkerProvider = class extends YandexProvider {
+		constructor(opts = {}) {
+			opts.host = opts.host ?? config_default$1.hostWorker;
+			super(opts);
 		}
-	};
-	var VOTClient$1 = class {
-		provider;
-		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
-			const ProviderClass = provider ?? YandexProvider;
-			this.provider = new ProviderClass({
-				host,
-				fetchFn,
-				fetchOpts,
-				headers,
-				apiToken,
-				requestLang,
-				responseLang
-			});
+		async request(path, body, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					...headers
+				},
+				body: Array.from(body)
+			}), { "Content-Type": "application/json" }, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.arrayBuffer();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
 		}
-		async translateVideo(opts) {
-			return await this.provider.translateVideo(opts);
-		}
-		async translateStream(opts) {
-			return await this.provider.translateStream(opts);
-		}
-		async getSubtitles(opts) {
-			return await this.provider.getSubtitles(opts);
-		}
-		get requestLang() {
-			return this.provider.requestLang;
-		}
-		set requestLang(lang) {
-			this.provider.requestLang = lang;
-		}
-		get responseLang() {
-			return this.provider.responseLang;
-		}
-		set responseLang(lang) {
-			this.provider.responseLang = lang;
+		async requestJSON(path, body = null, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					"Content-Type": "application/json",
+					Accept: "application/json",
+					...headers
+				},
+				body
+			}), {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			}, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
 		}
 	};
 	//#endregion
@@ -11759,20 +11837,20 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region ../../chaimu/dist/config.js
+	//#region node_modules/chaimu/dist/config.js
 	var config_default = {
 		version: "1.1.0",
 		debug: false,
 		fetchFn: fetch.bind(window)
 	};
 	//#endregion
-	//#region ../../chaimu/dist/debug.js
+	//#region node_modules/chaimu/dist/debug.js
 	var debug_default = { log: (...text) => {
 		if (!config_default.debug) return;
 		return console.log(`%c✦ chaimu.js v${config_default.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
 	} };
 	//#endregion
-	//#region ../../chaimu/dist/player.js
+	//#region node_modules/chaimu/dist/player.js
 	var videoLipSyncEvents = [
 		"playing",
 		"ratechange",
@@ -12319,7 +12397,7 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region ../../chaimu/dist/client.js
+	//#region node_modules/chaimu/dist/client.js
 	var Chaimu = class {
 		_debug = false;
 		audioContext;
@@ -12401,7 +12479,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/core/cacheManager.ts
-	var YANDEX_TTL_MS = 7200 * 1e3;
+	var YANDEX_TTL_MS = 72e5;
 	var VOT_SESSION_STORAGE_KEY = "VOTSession";
 	function getCurrentUnixTimestampSeconds() {
 		return Math.floor(Date.now() / 1e3);
@@ -13332,9 +13410,7 @@ var vot = (function(exports) {
 				case "downloadedPartialAudio":
 					this.onDownloadedPartialAudio.addListener(listener);
 					break;
-				case "downloadAudioError":
-					this.onDownloadAudioError.addListener(listener);
-					break;
+				case "downloadAudioError": this.onDownloadAudioError.addListener(listener);
 			}
 			return this;
 		}
@@ -13346,9 +13422,7 @@ var vot = (function(exports) {
 				case "downloadedPartialAudio":
 					this.onDownloadedPartialAudio.removeListener(listener);
 					break;
-				case "downloadAudioError":
-					this.onDownloadAudioError.removeListener(listener);
-					break;
+				case "downloadAudioError": this.onDownloadAudioError.removeListener(listener);
 			}
 			return this;
 		}
@@ -17644,11 +17718,7 @@ var vot = (function(exports) {
 				case "bottom-left":
 					anchorX = elementWidth / 2;
 					break;
-				case "bottom-right":
-					anchorX = anchorBox.w - elementWidth / 2;
-					break;
-				case "bottom-center":
-				case "custom": break;
+				case "bottom-right": anchorX = anchorBox.w - elementWidth / 2;
 			}
 			return clampAnchorWithinBox({
 				anchorX,
@@ -19869,9 +19939,8 @@ var vot = (function(exports) {
 		updateAdaptiveVerticalAlign() {
 			const viewportHeight = globalThis.visualViewport?.height ?? globalThis.innerHeight;
 			if (!viewportHeight || viewportHeight <= 0) return;
-			const marginPx = 16;
 			const centerMaxPx = Math.max(160, Math.round(viewportHeight * .75));
-			const topMaxPx = Math.max(160, Math.round(viewportHeight - marginPx * 2));
+			const topMaxPx = Math.max(160, Math.round(viewportHeight - 32));
 			const contentHeightPx = this.contentWrapper.scrollHeight;
 			const currentlyTop = this.box.dataset.verticalAlign === "top";
 			const enterTopThresholdPx = centerMaxPx - 8;
@@ -20690,8 +20759,8 @@ var vot = (function(exports) {
 			if (!this.isOpen) return;
 			const rootRect = this.layoutRoot.getBoundingClientRect();
 			const gap = 8;
-			const maxRootWidth = Math.max(160, rootRect.width - gap * 2);
-			const maxRootHeight = Math.max(96, rootRect.height - gap * 2);
+			const maxRootWidth = Math.max(160, rootRect.width - 16);
+			const maxRootHeight = Math.max(96, rootRect.height - 16);
 			this.container.style.setProperty("--vot-voice-popover-max-width", `${Math.min(310, maxRootWidth)}px`);
 			this.container.style.setProperty("--vot-voice-popover-max-height", `${maxRootHeight}px`);
 			const buttonContainer = anchor.closest("[data-direction]") ?? anchor;
@@ -26596,63 +26665,6 @@ var vot = (function(exports) {
 		return { nextVideo };
 	}
 	//#endregion
-	//#region node_modules/@vot.js/core/dist/providers/votworker.js
-	var VOTWorkerProvider = class extends YandexProvider {
-		constructor(opts = {}) {
-			opts.host = opts.host ?? config_default$1.hostWorker;
-			super(opts);
-		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body: Array.from(body)
-			}), { "Content-Type": "application/json" }, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					"Content-Type": "application/json",
-					Accept: "application/json",
-					...headers
-				},
-				body
-			}), {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-	};
-	//#endregion
 	//#region src/VideoHandler.ts
 	var RESOLVED_VOID_PROMISE = Promise.resolve();
 	var TRANSLATION_LOADING_MESSAGES = /* @__PURE__ */ new Set([
@@ -27617,8 +27629,6 @@ var vot = (function(exports) {
 		*/
 		releaseExtraEvents = releaseExtraEvents;
 	};
-	//#endregion
-	//#region src/index.ts
 	var videoObserver = new VideoObserver(createIntervalIdleChecker());
 	var videosWrappers = /* @__PURE__ */ new WeakMap();
 	var servicesCache = null;

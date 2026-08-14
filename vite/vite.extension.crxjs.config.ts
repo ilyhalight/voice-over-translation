@@ -1,6 +1,6 @@
 import path from "node:path";
 import { crx } from "@crxjs/vite-plugin";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
 import { type BuildConfig, buildDefine, getBuildConfig } from "./lib/env";
 import {
   finalizeChromeBuild,
@@ -61,5 +61,5 @@ export default defineConfig(async ({ mode }) => {
       sourcemap: false,
       minify: "oxc",
     },
-  };
+  } satisfies UserConfig;
 });

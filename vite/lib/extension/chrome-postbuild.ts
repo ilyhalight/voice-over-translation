@@ -1,24 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
+import { zipDir } from "../../../scripts/zip/utils";
 import type { BuildConfig } from "../env";
 import { distExtDir } from "../paths";
 
 const GITHUB_DIST_EXT_RAW_BASE =
   "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
 const CHROME_CRX_RAW_URL = `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-chrome.zip`;
-
-async function zipDir(
-  sourceDirPath: string,
-  outZipPath: string,
-): Promise<void> {
-  await fs.rm(outZipPath, { force: true });
-  await fs.mkdir(path.dirname(outZipPath), { recursive: true });
-  await zip(sourceDirPath, outZipPath, {
-    compression: COMPRESSION_LEVEL.high,
-    zlib: { level: 9 },
-  });
-}
 
 export async function writeChromeUpdatesManifest({
   version,

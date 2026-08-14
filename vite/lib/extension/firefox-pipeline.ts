@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { type UserConfig, build as viteBuild } from "vite";
-import { COMPRESSION_LEVEL, zip } from "zip-a-folder";
+import { type InlineConfig, type UserConfig, build as viteBuild } from "vite";
+import { zipDir } from "../../../scripts/zip/utils";
 import { type BuildConfig, type BuildEnvMeta, buildDefine } from "../env";
 import {
   distExtDir,
@@ -148,7 +148,7 @@ export async function getFirefoxBuildEnv(
 function createExtensionEntryConfig(
   entry: ExtensionEntry,
   define: UserConfig["define"],
-): UserConfig {
+): InlineConfig {
   const baseConfig = createBaseViteConfig({
     cacheName: "firefox-extension-bundles",
   });
@@ -419,18 +419,6 @@ async function writeFirefoxUpdatesManifest({
   );
 
   return updatesManifestPath;
-}
-
-async function zipDir(
-  sourceDirPath: string,
-  outZipPath: string,
-): Promise<void> {
-  await fs.rm(outZipPath, { force: true });
-  await fs.mkdir(path.dirname(outZipPath), { recursive: true });
-  await zip(sourceDirPath, outZipPath, {
-    compression: COMPRESSION_LEVEL.high,
-    zlib: { level: 9 },
-  });
 }
 
 // ----------------------------------------------------------------

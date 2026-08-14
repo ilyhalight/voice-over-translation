@@ -56,13 +56,13 @@
   <h1>voice-over-translation (<code>vot</code>)</h1>
   <p>Смотрите видео на другом языке с закадровым переводом и субтитрами в <a href="./BROWSERS-EXTS-TEST.md">любом браузере</a></p>
 
-  [Установка](#установка-расширения) ·
-  [Разработка](#как-собрать-расширение) ·
-  [FAQ][vot-faq] ·
-  [Поддерживаемые сайты][vot-supported-sites]
+[Установка](#установка-расширения) ·
+[Разработка](#как-собрать-расширение) ·
+[FAQ][vot-faq] ·
+[Поддерживаемые сайты][vot-supported-sites]
 
-  [![en][badge-en]][vot-readme-en]
-  [![ru][badge-ru]][vot-readme-ru]
+[![en][badge-en]][vot-readme-en]
+[![ru][badge-ru]][vot-readme-ru]
 
   <img src="./img/banner.png" alt="vot promotion banner"/>
 </div>
@@ -81,10 +81,12 @@
 > [!WARNING]
 > **Важно для пользователей Tampermonkey 5.2+ (MV3):**
 > В браузерах на движке **Chromium** (Chrome, Edge, Brave, Vivaldi и др.) необходимо:
+>
 > 1. Открыть страницу расширений (`chrome://extensions`) и включить **«Режим разработчика»** (подробности в [документации Tampermonkey][devmode-enable]).
 > 2. Если движок **Chromium версии 138+**, в «Сведениях» расширения включить **«Разрешить пользовательские скрипты»**.
 >
 > **Пользователям Opera:**
+>
 > 1. Используйте **[Violentmonkey][violentmonkey-opera]** вместо Tampermonkey.
 > 2. В настройках расширения обязательно включите **«Разрешить доступ к результатам на странице поиска»** (гайд от Opera: [как найти эту настройку][opera-search-results-access]), иначе скрипт не будет работать.
 
@@ -160,7 +162,6 @@
 
 Нужен для проксирования запросов, если прямой доступ к серверам Яндекса недоступен.
 
-- [vot.deno.dev][vot-worker]
 - [vot-new.toil-dump.workers.dev][vot-worker] (⚠️ не работает в РФ)
 
 #### Media Proxy-сервер
@@ -188,35 +189,51 @@ bun install
 
 3. Сборка расширения:
 
-   3.0. Userscript (обычная сборка):
+### Автоматическая сборка
 
-   ```bash
-   npm run build
-   ```
+Автоматическую сборку можно выполнить только с помощью [Bun.sh][bun-link]:
 
-   3.1. Userscript (минифицированная сборка):
+```bash
+bun run autobuild
+```
 
-   ```bash
-   npm run build:min
-   ```
+После завершения в папке `.output` появятся артефакты сборки подготовленные для публикации в магазинах расширений Chrome и Firefox.
 
-   3.2. Userscript (обе версии подряд):
+В папке `dist-ext` будет находится non-store сборка для распространения в виде `.zip`-архива (для Chrome) и `.xpi`-архива (для Firefox).
 
-   ```bash
-   npm run build:all
-   ```
+В папке `dist` будет находится сборка в виде юзерскрипта для установки через [Tampermonkey][tampermonkey-link] или другие загрузчики юзерскриптов.
 
-   3.3. Нативные расширения Chrome/Firefox:
+### Ручная сборка
 
-   ```bash
-   npm run build:ext
-   ```
+Userscript (обычная сборка):
 
-   3.4. Dev-сборка userscript с sourcemap:
+```bash
+npm run build:gm:default
+```
 
-   ```bash
-   npm run build:dev
-   ```
+Userscript (минифицированная сборка):
+
+```bash
+npm run build:gm:min
+```
+
+Userscript (обе версии):
+
+```bash
+npm run build:gm
+```
+
+Нативные расширения Chrome/Firefox:
+
+```bash
+npm run build:ext
+```
+
+Dev-сборка userscript с sourcemap:
+
+```bash
+npm run build:dev
+```
 
 Артефакты userscript попадают в `dist/`, сборка нативных расширений — в `dist-ext/`.
 
@@ -237,8 +254,8 @@ bun install
 ==/UserStyle== */
 
 :root {
-  --vot-font-family: "Roboto", "Segoe UI", BlinkMacSystemFont, system-ui,
-    -apple-system;
+  --vot-font-family:
+    "Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system;
 
   --vot-primary-rgb: 139, 180, 245;
   --vot-onprimary-rgb: 32, 33, 36;

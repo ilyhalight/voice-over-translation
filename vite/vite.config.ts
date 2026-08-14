@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, type UserConfig } from "vite";
 import { buildDefine } from "./lib/env.ts";
 import { distDir, singleFileBuildOptions, srcDir } from "./lib/paths.ts";
 import {
@@ -99,5 +99,5 @@ export default defineConfig(async ({ command, mode }) => {
         },
       },
     },
-  };
+  } satisfies UserConfig;
 });
