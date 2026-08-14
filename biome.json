@@ -24,6 +24,9 @@
       },
       "style": {
         "noDescendingSpecificity": "off"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "off"
       }
     }
   },

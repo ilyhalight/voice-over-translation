@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "قد يؤثر تعطيل تنزيلات الصوت على وظيفة الامتداد",
   "VOTAccountRequired": "تحتاج إلى تسجيل الدخول لاستخدام هذه الميزة",
   "VOTMyAccount": "حسابي",
-  "VOTLogin": "تسجيل الدخول",
   "VOTLogout": "تسجيل الخروج",
   "VOTRefresh": "تحديث",
   "VOTYandexToken": "أدخل رمز ياندكس أوث",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "أصوات حية",
   "VOTLiveVoicesSubtitle": "التشابه الأقصى. كما لو أن الجميع يعرف الروسية",
   "VOTYandexTokenExpired": "انتهت الجلسة. تسجيل الدخول مرة أخرى",
-  "VOTVoiceSelection": "اختر الدبلجة"
+  "VOTVoiceSelection": "اختر الدبلجة",
+  "VOTSignInWithYandex": "تسجيل الدخول باستخدام معرف ياندكس",
+  "VOTOrUseToken": "أو استخدام رمز مميز",
+  "VOTSignedInAs": "تسجيل الدخول باسم",
+  "VOTDownloadSubtitles": "تحميل ترجمات"
 }

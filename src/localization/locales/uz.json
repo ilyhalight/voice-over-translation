@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Ovozni yuklab olishni o'chirib qo'yish kengaytmaning ishlashiga ta'sir qilishi mumkin",
   "VOTAccountRequired": "Ushbu xususiyatdan foydalanish uchun tizimga kirishingiz kerak",
   "VOTMyAccount": "Mening hisobim",
-  "VOTLogin": "Kirish",
   "VOTLogout": "Chiqish",
   "VOTRefresh": "Yangilash",
   "VOTYandexToken": "Yandex OAuth Tokenini kiriting",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Jonli ovozlar",
   "VOTLiveVoicesSubtitle": "Maksimal o'xshashlik. Go'yo hamma rus tilini biladi",
   "VOTYandexTokenExpired": "Sessiya muddati tugadi. Qayta kiring",
-  "VOTVoiceSelection": "Dublyajni tanlang"
+  "VOTVoiceSelection": "Dublyajni tanlang",
+  "VOTSignInWithYandex": "Yandex ID bilan kiring",
+  "VOTOrUseToken": "yoki tokendan foydalaning",
+  "VOTSignedInAs": "Sifatida imzolangan",
+  "VOTDownloadSubtitles": "Subtitrlarni yuklab oling"
 }

@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Աուդիո բեռնման անջատումը կարող է ազդել ընդլայնման ֆունկցիոնալության վրա",
   "VOTAccountRequired": "Այս գործառույթն օգտագործելու համար հարկավոր է մուտք գործել համակարգ",
   "VOTMyAccount": "Իմ հաշիվը",
-  "VOTLogin": "Մուտք գործել",
   "VOTLogout": "Ելք",
   "VOTRefresh": "Թարմացնել",
   "VOTYandexToken": "Մուտքագրեք OAuth-Yandex Token",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Կենդանի ձայներ",
   "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն",
   "VOTYandexTokenExpired": "Նիստը լրացավ: Կրկին մուտք գործեք համակարգ",
-  "VOTVoiceSelection": "Ընտրեք կրկնօրինակ"
+  "VOTVoiceSelection": "Ընտրեք կրկնօրինակ",
+  "VOTSignInWithYandex": "Մուտք գործեք համակարգ Yandex Իդ-ով",
+  "VOTOrUseToken": "կամ օգտագործեք նշան",
+  "VOTSignedInAs": "Մուտք գործել որպես",
+  "VOTDownloadSubtitles": "Բեռնել ենթագրերը"
 }

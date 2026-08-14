@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Onemogućavanje preuzimanja zvuka može uticati na funkcionalnost ekstenzije",
   "VOTAccountRequired": "Morate se prijaviti da biste koristili ovu funkciju",
   "VOTMyAccount": "Moj nalog",
-  "VOTLogin": "Prijava",
   "VOTLogout": "Sound event",
   "VOTRefresh": "Osvježi",
   "VOTYandexToken": "Unesite Yandex OAuth Token",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Živi glasovi",
   "VOTLiveVoicesSubtitle": "Maksimalna sličnost. Kao da svi znaju ruski",
   "VOTYandexTokenExpired": "Sesija je istekla. Prijavite se ponovo",
-  "VOTVoiceSelection": "Odaberite sinhronizaciju"
+  "VOTVoiceSelection": "Odaberite sinhronizaciju",
+  "VOTSignInWithYandex": "Prijavite se sa Yandex ID-om",
+  "VOTOrUseToken": "ili koristiti token",
+  "VOTSignedInAs": "Potpisan kao",
+  "VOTDownloadSubtitles": "Preuzimanje titlovi"
 }

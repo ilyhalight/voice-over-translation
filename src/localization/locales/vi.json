@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Vô hiệu hóa tải xuống âm thanh có thể ảnh hưởng đến chức năng của tiện ích mở rộng",
   "VOTAccountRequired": "Bạn cần đăng nhập để sử dụng tính năng này",
   "VOTMyAccount": "Tài khoản của tôi",
-  "VOTLogin": "Đăng nhập",
   "VOTLogout": "Đăng xuất",
   "VOTRefresh": "Làm mới",
   "VOTYandexToken": "Nhập Mã Thông báo Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Giọng nói trực tiếp",
   "VOTLiveVoicesSubtitle": "Sự tương đồng tối đa. Như thể mọi người đều biết tiếng nga",
   "VOTYandexTokenExpired": "Phiên hết hạn. Đăng nhập lại",
-  "VOTVoiceSelection": "Chọn lồng tiếng"
+  "VOTVoiceSelection": "Chọn lồng tiếng",
+  "VOTSignInWithYandex": "Đăng nhập BẰNG Yandex ID",
+  "VOTOrUseToken": "hoặc sử dụng mã thông báo",
+  "VOTSignedInAs": "Đăng nhập như",
+  "VOTDownloadSubtitles": "Tải phụ đề"
 }

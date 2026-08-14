@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "បិទការទាញយកអូឌីយ៉ូអាចប៉ះពាល់ដល់មុខងាររបស់ផ្នែកបន្ថែម",
   "VOTAccountRequired": "អ្នកត្រូវការដើម្បីចូលក្នុងការប្រើលក្ខណៈពិសេសនេះ",
   "VOTMyAccount": "គណនីរបស់ខ្ញុ",
-  "VOTLogin": "ចូល",
   "VOTLogout": "ចេញ",
   "VOTRefresh": "ធ្វើឲ្យស្រស់",
   "VOTYandexToken": "បញ្ចូលសញ្ញា Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "សំឡេងផ្ទាល់",
   "VOTLiveVoicesSubtitle": "ភាពស្រដៀងគ្នាអតិបរមា។ ដូចជាប្រសិនបើអ្នករាល់គ្នាដឹងរុស្ស៊ី",
   "VOTYandexTokenExpired": "សម័យដែលបានផុតកំណត់. ចូលម្តងទៀត",
-  "VOTVoiceSelection": "ជ្រើស dubbing"
+  "VOTVoiceSelection": "ជ្រើស dubbing",
+  "VOTSignInWithYandex": "ចូលជាមួយលេខសម្គាល់ Yandex",
+  "VOTOrUseToken": "ឬប្រើសញ្ញាសម្ងាត់",
+  "VOTSignedInAs": "ចូលជាសមាជិក",
+  "VOTDownloadSubtitles": "ទាញយកចំណងជើងរង"
 }

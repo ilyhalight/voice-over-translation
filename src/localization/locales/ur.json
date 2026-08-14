@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "آڈیو ڈاؤن لوڈ کو غیر فعال کرنے سے توسیع کی فعالیت متاثر ہوسکتی ہے ۔ ",
   "VOTAccountRequired": "اس خصوصیت کو استعمال کرنے کے لیے آپ کو لاگ ان کرنے کی ضرورت ہے ۔ ",
   "VOTMyAccount": "میرا اکاؤنٹ",
-  "VOTLogin": "لاگ ان",
   "VOTLogout": "لاگ آؤٹ",
   "VOTRefresh": "ریفریش",
   "VOTYandexToken": "Yandex OAuth ٹوکن درج کریں",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "لائیو آوازیں",
   "VOTLiveVoicesSubtitle": "زیادہ سے زیادہ مماثلت. گویا ہر کوئی روسی جانتا ہے ۔ ",
   "VOTYandexTokenExpired": "سیشن ختم ہو گیا. دوبارہ لاگ ان کریں",
-  "VOTVoiceSelection": "ڈبنگ کا انتخاب کریں"
+  "VOTVoiceSelection": "ڈبنگ کا انتخاب کریں",
+  "VOTSignInWithYandex": "Yandex ID کے ساتھ سائن ان کریں",
+  "VOTOrUseToken": "یا ٹوکن استعمال کریں",
+  "VOTSignedInAs": "کے طور پر دستخط",
+  "VOTDownloadSubtitles": "سب ٹائٹلز ڈاؤن لوڈ کریں"
 }

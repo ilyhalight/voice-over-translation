@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "La disattivazione dei download audio può influire sulla funzionalità dell'estensione",
   "VOTAccountRequired": "È necessario effettuare il login per utilizzare questa funzione",
   "VOTMyAccount": "Il mio account",
-  "VOTLogin": "Login",
   "VOTLogout": "Esci",
   "VOTRefresh": "Aggiornare",
   "VOTYandexToken": "Inserisci il token Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Voci dal vivo",
   "VOTLiveVoicesSubtitle": "Massima somiglianza. Come se tutti conoscessero il russo",
   "VOTYandexTokenExpired": "Sessione scaduta. Accedi di nuovo",
-  "VOTVoiceSelection": "Scegli il doppiaggio"
+  "VOTVoiceSelection": "Scegli il doppiaggio",
+  "VOTSignInWithYandex": "Accedi con Yandex ID",
+  "VOTOrUseToken": "oppure usa un token",
+  "VOTSignedInAs": "Registrati come",
+  "VOTDownloadSubtitles": "Scarica i sottotitoli"
 }

@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "အသံဒေါင်းလုပ်များကိုပိတ်ထားခြင်းသည် extension၏လုပ်ဆောင်ချက်များကိုသက်ရောက်နိုင်သည်။",
   "VOTAccountRequired": "ဤလုပ်ဆောင်ချက်ကိုအသုံးပြုရန်သင်ဝင်ရောက်ရန်လိုအပ်သည်။",
   "VOTMyAccount": "ငါ့အကောင့်",
-  "VOTLogin": "ဝင်ရောက်ပါ",
   "VOTLogout": "Logout",
   "VOTRefresh": "Refresh",
   "VOTYandexToken": "Yandex OAuth Token ကိုထည့်ပါ",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "တိုက်ရိုက်အသံများ",
   "VOTLiveVoicesSubtitle": "အများဆုံးတူညီမှုပါ။ လူတိုင်းကရုရှားလိုသိနေသလိုပေါ့။",
   "VOTYandexTokenExpired": "အစည်းအဝေးကပြီးသွားပြီ။ နောက်တစ်ကြိမ်ပြန်လည်ဝင်ရောက်",
-  "VOTVoiceSelection": "Dubbing ကိုရွေးပါ။"
+  "VOTVoiceSelection": "Dubbing ကိုရွေးပါ။",
+  "VOTSignInWithYandex": "Yandex ID ဖြင့်ဝင်ရောက်ပါ။",
+  "VOTOrUseToken": "ဒါမှမဟုတ် token ကိုသုံးပါ။",
+  "VOTSignedInAs": "လက်မှတ်ထိုးထားတာက",
+  "VOTDownloadSubtitles": "စာတန်းထိုးများကိုဒေါင်းလုပ်ဆွဲပါ"
 }

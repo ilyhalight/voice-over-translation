@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Heli allalaadimise keelamine võib mõjutada laienduse funktsionaalsust",
   "VOTAccountRequired": "Selle funktsiooni kasutamiseks peate sisse logima",
   "VOTMyAccount": "Minu konto",
-  "VOTLogin": "Login",
   "VOTLogout": "Logout",
   "VOTRefresh": "Värskendamiseks",
   "VOTYandexToken": "Sisestage Yandex OAuthi märk",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Elavad hääled",
   "VOTLiveVoicesSubtitle": "Maksimaalne sarnasus. Nagu kõik teaksid vene keelt",
   "VOTYandexTokenExpired": "Seanss on aegunud. Logi uuesti sisse",
-  "VOTVoiceSelection": "Valige dubleerimine"
+  "VOTVoiceSelection": "Valige dubleerimine",
+  "VOTSignInWithYandex": "Logige sisse Yandexi ID-ga",
+  "VOTOrUseToken": "või kasutage märki",
+  "VOTSignedInAs": "Sisse logitud kui",
+  "VOTDownloadSubtitles": "Subtiitrite allalaadimine"
 }

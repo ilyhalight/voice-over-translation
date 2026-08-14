@@ -31,6 +31,7 @@
   line-height: $line-height;
   outline: none;
   cursor: pointer;
+  @include shared.vot-hidden-attr;
 }
 
 @mixin vot-button-layers($before-color) {

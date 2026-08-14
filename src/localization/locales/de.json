@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Das Deaktivieren von Audio-Downloads kann die Funktionalität der Erweiterung beeinträchtigen",
   "VOTAccountRequired": "Sie müssen sich anmelden, um diese Funktion nutzen zu können",
   "VOTMyAccount": "Mein Konto",
-  "VOTLogin": "Login",
   "VOTLogout": "Abmelden",
   "VOTRefresh": "Aktualisieren",
   "VOTYandexToken": "Geben Sie das Yandex OAuth-Token ein",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Live Stimmen",
   "VOTLiveVoicesSubtitle": "Maximale Ähnlichkeit. Als ob jeder Russisch kann",
   "VOTYandexTokenExpired": "Sitzung abgelaufen. Erneut anmelden",
-  "VOTVoiceSelection": "Wählen Sie Synchronisation"
+  "VOTVoiceSelection": "Wählen Sie Synchronisation",
+  "VOTSignInWithYandex": "Melden Sie sich mit der Yandex-ID an",
+  "VOTOrUseToken": "oder verwenden Sie ein Token",
+  "VOTSignedInAs": "Angemeldet als",
+  "VOTDownloadSubtitles": "Untertitel herunterladen"
 }

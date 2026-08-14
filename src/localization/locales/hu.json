@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "A hangletöltések letiltása befolyásolhatja a kiterjesztés működését",
   "VOTAccountRequired": "A funkció használatához be kell jelentkeznie",
   "VOTMyAccount": "Saját fiók",
-  "VOTLogin": "Bejelentkezés",
   "VOTLogout": "Kijelentkezés",
   "VOTRefresh": "Frissítés",
   "VOTYandexToken": "Adja meg a Yandex OAuth Tokent",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Élő hangok",
   "VOTLiveVoicesSubtitle": "Maximális hasonlóság. Mint ha mindenki tudja, orosz",
   "VOTYandexTokenExpired": "A munkamenet lejárt. Jelentkezzen be újra",
-  "VOTVoiceSelection": "Válassza ki a szinkronizálást"
+  "VOTVoiceSelection": "Válassza ki a szinkronizálást",
+  "VOTSignInWithYandex": "Jelentkezzen be Yandex azonosítóval",
+  "VOTOrUseToken": "vagy használjon tokent",
+  "VOTSignedInAs": "Bejelentkezés:",
+  "VOTDownloadSubtitles": "Feliratok letöltése"
 }

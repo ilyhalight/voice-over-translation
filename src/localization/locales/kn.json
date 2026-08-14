@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "ಆಡಿಯೊ ಡೌನ್ಲೋಡ್ಗಳನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸುವುದರಿಂದ ವಿಸ್ತರಣೆಯ ಕಾರ್ಯಚಟುವಟಿಕೆಯ ಮೇಲೆ ಪರಿಣಾಮ ಬೀರಬಹುದು",
   "VOTAccountRequired": "ಈ ವೈಶಿಷ್ಟ್ಯವನ್ನು ಬಳಸಲು ನೀವು ಲಾಗ್ ಇನ್ ಮಾಡಬೇಕಾಗುತ್ತದೆ",
   "VOTMyAccount": "ನನ್ನ ಖಾತೆ",
-  "VOTLogin": "ಲಾಗಿನ್ ಮಾಡಿ",
   "VOTLogout": "ಲಾಗ್ಔಟ್",
   "VOTRefresh": "ರಿಫ್ರೆಶ್",
   "VOTYandexToken": "Yandex OAuth ಟೋಕನ್ ಅನ್ನು ನಮೂದಿಸಿ",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "ಲೈವ್ ಧ್ವನಿಗಳು",
   "VOTLiveVoicesSubtitle": "ಗರಿಷ್ಠ ಹೋಲಿಕೆ. ಎಲ್ಲರಿಗೂ ರಷ್ಯನ್ ತಿಳಿದಿರುವಂತೆ",
   "VOTYandexTokenExpired": "ಅಧಿವೇಶನ ಮುಗಿದಿದೆ. ಮತ್ತೆ ಲಾಗ್ ಇನ್ ಮಾಡಿ",
-  "VOTVoiceSelection": "ಡಬ್ಬಿಂಗ್ ಆಯ್ಕೆ"
+  "VOTVoiceSelection": "ಡಬ್ಬಿಂಗ್ ಆಯ್ಕೆ",
+  "VOTSignInWithYandex": "Yandex ID ಯೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ",
+  "VOTOrUseToken": "ಅಥವಾ ಟೋಕನ್ ಬಳಸಿ",
+  "VOTSignedInAs": "ಮಾಹಿತಿ ಸಹಿ",
+  "VOTDownloadSubtitles": "ಉಪಶೀರ್ಷಿಕೆಗಳನ್ನು ಡೌನ್ಲೋಡ್ ಮಾಡಿ"
 }

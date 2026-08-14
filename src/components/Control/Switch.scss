@@ -21,7 +21,7 @@
   ) !important;
   gap: var(--vot-space-4, 16px);
   width: 100%;
-  padding-block: 8px;
+  padding-block: var(--vot-space-2, 8px);
   position: relative;
   touch-action: manipulation;
   vertical-align: middle;

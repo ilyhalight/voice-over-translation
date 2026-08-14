@@ -43,6 +43,7 @@ function createSettingsEvents(): {
 }
 
 import { availableLangs } from "@vot.js/shared/consts";
+import { AccountMenu } from "../../components/Account/AccountMenu";
 import { Switch } from "../../components/Control/Switch";
 import {
   defaultAutoHideDelay,
@@ -59,6 +60,12 @@ import {
   type LangOverride,
   localizationProvider,
 } from "../../localization/localizationProvider";
+import {
+  account,
+  resetAccount,
+  updateAccount,
+  updateAccountFromStorage,
+} from "../../stores/account";
 import {
   getGoogleSubtitleFontFamilyName,
   loadGoogleFontsCatalog,
@@ -102,7 +109,6 @@ import { isPiPAvailable } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
 import { getCountryCode } from "../../videoHandler/shared";
 import { normalizeButtonPosition } from "../buttonPlacement";
-import AccountButton from "../components/accountButton";
 import Checkbox from "../components/checkbox";
 import { createDomId } from "../components/componentShared";
 import Details from "../components/details";
@@ -220,9 +226,7 @@ export class SettingsView {
     void this.refreshAccountFromStorage();
   };
   dialog?: Dialog;
-  accountButton?: AccountButton;
-  accountButtonRefreshTooltip?: Tooltip;
-  accountButtonTokenTooltip?: Tooltip;
+  accountMenu?: MountedComponent<HTMLElement>;
   private accountStorageListenerCleanup?: () => void;
   autoTranslateSwitch?: MountedComponent<HTMLLabelElement>;
   autoSubtitlesSwitch?: MountedComponent<HTMLLabelElement>;
@@ -460,32 +464,21 @@ export class SettingsView {
   }
 
   private initAccountControls(): void {
-    this.accountButton = new AccountButton({
-      avatarId: this.data.account?.avatarId,
-      username: this.data.account?.username,
-      loggedIn: !!this.data.account?.token,
-    });
+    this.accountMenu = mountComponent((rootRef) =>
+      AccountMenu({
+        onClickLogin: async () => {
+          debug.log("Account login button clicked");
+          if (account.isLoggedIn) {
+            await votStorage.delete("account");
+            resetAccount();
+            return this.updateAccountInfo();
+          }
 
-    if (votStorage.isSupportOnlyLS) {
-      this.accountButton.refreshButton.setAttribute("disabled", "true");
-      this.accountButton.actionButton.setAttribute("disabled", "true");
-    } else {
-      this.accountButtonRefreshTooltip = new Tooltip({
-        target: this.accountButton.refreshButton,
-        content: localizationProvider.get("VOTRefresh"),
-        position: "bottom",
-        backgroundColor: "var(--vot-helper-ondialog)",
-        parentElement: this.globalPortal,
-      });
-    }
-
-    this.accountButtonTokenTooltip = new Tooltip({
-      target: this.accountButton.tokenButton,
-      content: localizationProvider.get("VOTLoginViaToken"),
-      position: "bottom",
-      backgroundColor: "var(--vot-helper-ondialog)",
-      parentElement: this.globalPortal,
-    });
+          openAuthWindow();
+        },
+        ref: rootRef,
+      }),
+    );
   }
 
   private bindAccountStorageListener(): void {
@@ -494,10 +487,11 @@ export class SettingsView {
       Partial<Account>
     >("account", (_key, _oldValue, account) => {
       this.data.account = account ?? {};
-      if (!this.isInitialized() || !this.accountButton) {
+      if (!this.isInitialized()) {
         return;
       }
 
+      updateAccount(account);
       this.updateAccountInfo();
     });
   }
@@ -508,10 +502,11 @@ export class SettingsView {
     }
 
     this.data.account = await votStorage.get("account", {});
-    if (!this.isInitialized() || !this.accountButton) {
+    if (!this.isInitialized()) {
       return;
     }
 
+    updateAccount(this.data.account);
     this.updateAccountInfo();
   }
 
@@ -805,7 +800,7 @@ export class SettingsView {
       backgroundColor: "var(--vot-helper-ondialog)",
       parentElement: this.globalPortal,
     });
-    accountSection.content.append(this.accountButton.container);
+    accountSection.content.append(this.accountMenu.root);
 
     translationSection.content.append(
       this.autoTranslateSwitch.root,
@@ -1168,43 +1163,6 @@ export class SettingsView {
       throw new Error("[VOT] SettingsView isn't initialized");
     }
     globalThis.addEventListener("message", this.onAuthRefreshMessage);
-    this.accountButton.addEventListener("click", async () => {
-      if (votStorage.isSupportOnlyLS) return;
-      if (this.accountButton.loggedIn) {
-        await votStorage.delete("account");
-        this.data.account = {};
-        return void this.updateAccountInfo();
-      }
-      openAuthWindow();
-    });
-    this.accountButton.addEventListener("click:secret", async () => {
-      const dialog = new Dialog({
-        titleHtml: localizationProvider.get("VOTLoginViaToken"),
-        isTemp: true,
-      });
-      this.globalPortal.appendChild(dialog.container);
-      const tokenInfoEl = ui.createEl(
-        "vot-block",
-        undefined,
-        localizationProvider.get("VOTYandexTokenInfo"),
-      );
-      const tokenTextfield = new Textfield({
-        labelHtml: localizationProvider.get("VOTYandexToken"),
-        value: this.data.account?.token,
-      });
-      tokenTextfield.addEventListener("change", async (token) => {
-        this.data.account = token
-          ? { expires: Date.now() + 31_534_180_000, token }
-          : {};
-        await votStorage.set<Partial<Account>>("account", this.data.account);
-        this.updateAccountInfo();
-      });
-      dialog.bodyContainer.append(tokenInfoEl, tokenTextfield.container);
-      dialog.open();
-    });
-    this.accountButton.addEventListener("refresh", async () => {
-      await this.refreshAccountFromStorage();
-    });
     this.bindAccountStorageListener();
     this.dontTranslateLanguagesCheckbox.addEventListener(
       "change",
@@ -1505,6 +1463,7 @@ export class SettingsView {
     for (const key of [
       "autoTranslateSwitch",
       "autoSubtitlesSwitch",
+      "accountMenu",
     ] satisfies (keyof (typeof SettingsView)["prototype"])[]) {
       const control = this[key] as MountedComponent<any> | undefined;
       control?.dispose();
@@ -1514,8 +1473,6 @@ export class SettingsView {
 
     this.dialog?.remove();
     for (const tooltip of [
-      this.accountButtonRefreshTooltip,
-      this.accountButtonTokenTooltip,
       this.useAudioDownloadCheckboxTooltip,
       this.useNewAudioPlayerTooltip,
       this.onlyBypassMediaCSPTooltip,
@@ -1543,10 +1500,6 @@ export class SettingsView {
   updateAccountInfo() {
     if (!this.isInitialized())
       throw new Error("[VOT] SettingsView isn't initialized");
-    const loggedIn = !!this.data.account?.token;
-    this.accountButton.avatarId = this.data.account?.avatarId;
-    this.accountButton.loggedIn = loggedIn;
-    this.accountButton.username = this.data.account?.username;
     this.events["update:account"].dispatch(this.data.account);
     return this;
   }

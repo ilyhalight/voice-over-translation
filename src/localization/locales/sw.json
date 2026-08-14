@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Kuzima upakuaji wa sauti kunaweza kuathiri utendakazi wa kiendelezi",
   "VOTAccountRequired": "Unahitaji kuingia ili kutumia kipengele hiki",
   "VOTMyAccount": "Akaunti yangu",
-  "VOTLogin": "Ingia",
   "VOTLogout": "Kuingia",
   "VOTRefresh": "Furahisha",
   "VOTYandexToken": "Ingiza Ishara Ya Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Sauti za moja kwa moja",
   "VOTLiveVoicesSubtitle": "Kufanana kwa kiwango cha juu. Kama kila mtu anajua kirusi",
   "VOTYandexTokenExpired": "Kipindi kiliisha. Ingia tena",
-  "VOTVoiceSelection": "Chagua dubbing"
+  "VOTVoiceSelection": "Chagua dubbing",
+  "VOTSignInWithYandex": "Ingia NA Kitambulisho Cha Yandex",
+  "VOTOrUseToken": "au tumia ishara",
+  "VOTSignedInAs": "Saini katika kama",
+  "VOTDownloadSubtitles": "Pakua manukuu"
 }

@@ -244,7 +244,6 @@
   "VOTUseAudioDownloadWarning": "Disabling audio downloads may affect the functionality of the extension",
   "VOTAccountRequired": "You need to log in to use this feature",
   "VOTMyAccount": "My account",
-  "VOTLogin": "Login",
   "VOTLogout": "Logout",
   "VOTRefresh": "Refresh",
   "VOTYandexToken": "Enter the Yandex OAuth Token",
@@ -252,5 +251,9 @@
   "VOTLoginViaToken": "Login via token",
   "smartDucking": "Adaptive volume",
   "VOTYandexTokenExpired": "Session expired. Log in again",
-  "VOTVoiceSelection": "Choose dubbing"
+  "VOTVoiceSelection": "Choose dubbing",
+  "VOTSignInWithYandex": "Sign in with Yandex ID",
+  "VOTOrUseToken": "or use a token",
+  "VOTSignedInAs": "Signed in as",
+  "VOTDownloadSubtitles": "Download subtitles"
 }

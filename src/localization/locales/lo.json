@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "ການປິດການດາວໂຫຼດສຽງອາດຈະມີຜົນກະທົບການທໍາງານຂອງການຂະຫຍາຍ",
   "VOTAccountRequired": "ທ່ານຈໍາເປັນຕ້ອງເຂົ້າໃນການນໍາໃຊ້ຄຸນນະສົມບັດນີ້",
   "VOTMyAccount": "ບັນຊີຂອງຂ້ອຍ",
-  "VOTLogin": "ເຂົ້າສູ່ລະບົບ",
   "VOTLogout": "ເຂົ້າສູ່ລະບົບ",
   "VOTRefresh": "ສົດຊື່ນ",
   "VOTYandexToken": "ກະລຸນາໃສ່ສັນຍາລັກ Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "ສຽງສົດ",
   "VOTLiveVoicesSubtitle": "ຄວາມຄ້າຍຄືກັນສູງສຸດ. ຄືກັບວ່າທຸກຄົນຮູ້ພາສາລັດເຊຍ",
   "VOTYandexTokenExpired": "ກອງປະຊຸມຫມົດອາຍຸ. ເຂົ້າສູ່ລະບົບອີກຄັ້ງ",
-  "VOTVoiceSelection": "ເລືອກ dubbing"
+  "VOTVoiceSelection": "ເລືອກ dubbing",
+  "VOTSignInWithYandex": "ເຂົ້າສູ່ລະບົບດ້ວຍ YANDEX ID",
+  "VOTOrUseToken": "ຫຼືໃຊ້ເຄື່ອງໝາຍ",
+  "VOTSignedInAs": "ລົງນາມໃນ as",
+  "VOTDownloadSubtitles": "ດາວໂຫລດຄໍາບັນຍາຍ"
 }

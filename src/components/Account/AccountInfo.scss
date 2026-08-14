@@ -1,0 +1,50 @@
+.vot-account-info {
+  --vot-account-label-color: rgba(var(--vot-onsurface-rgb, 13, 1, 31), 0.68);
+  --vot-account-username-color: rgb(var(--vot-primary-rgb, 139, 180, 245));
+
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  font-weight: 600;
+
+  &__block {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  &__avatar {
+    max-width: 36px;
+    max-height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    overflow: hidden;
+    border-radius: 50%;
+
+    &-img {
+      width: 36px;
+      height: 36px;
+      object-fit: cover;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.125em;
+  }
+
+  &__label {
+    font-size: 0.75em;
+    color: var(--vot-account-label-color);
+  }
+
+  &__username {
+    font-weight: 600;
+    color: var(--vot-account-username-color);
+  }
+
+  &__refresh {
+    margin-left: auto;
+  }
+}

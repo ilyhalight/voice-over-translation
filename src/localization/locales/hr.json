@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Onemogućavanje preuzimanja zvuka može utjecati na funkcionalnost proširenja",
   "VOTAccountRequired": "Morate se prijaviti da biste koristili ovu značajku",
   "VOTMyAccount": "Moj račun",
-  "VOTLogin": "Prijaviti se",
   "VOTLogout": "Odjava",
   "VOTRefresh": "Osvježiti",
   "VOTYandexToken": "Unesite IDB-Token Jandeksa",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Živi glasovi",
   "VOTLiveVoicesSubtitle": "Maksimalna sličnost. Kao da svi znaju ruski",
   "VOTYandexTokenExpired": "Sesija je istekla. Ponovno se prijavite",
-  "VOTVoiceSelection": "Odaberite presnimavanje"
+  "VOTVoiceSelection": "Odaberite presnimavanje",
+  "VOTSignInWithYandex": "Prijavite se pomoću izbornika",
+  "VOTOrUseToken": "ili upotrijebite token",
+  "VOTSignedInAs": "Prijavljen kao",
+  "VOTDownloadSubtitles": "Preuzmite titlove"
 }

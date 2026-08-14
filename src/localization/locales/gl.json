@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "A desactivación das descargas de audio pode afectar á funcionalidade da extensión",
   "VOTAccountRequired": "Necesitas iniciar sesión para usar esta característica",
   "VOTMyAccount": "A miña conta",
-  "VOTLogin": "Login",
   "VOTLogout": "Logout",
   "VOTRefresh": "Actualizar",
   "VOTYandexToken": "Introduza O Token Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Voces en directo",
   "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego",
   "VOTYandexTokenExpired": "A sesión rematou. Entra de novo",
-  "VOTVoiceSelection": "Escoller o doblaxe"
+  "VOTVoiceSelection": "Escoller o doblaxe",
+  "VOTSignInWithYandex": "Inicio YANDEX ID",
+  "VOTOrUseToken": "ou usar un token",
+  "VOTSignedInAs": "Asinado como",
+  "VOTDownloadSubtitles": "Descargar subtítulos"
 }

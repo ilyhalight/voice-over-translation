@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "禁用音频下载可能会影响扩展的功能",
   "VOTAccountRequired": "您需要登录才能使用此功能",
   "VOTMyAccount": "我的帐户",
-  "VOTLogin": "登入",
   "VOTLogout": "登出",
   "VOTRefresh": "刷新",
   "VOTYandexToken": "输入Yandex OAuth令牌",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "现场声音",
   "VOTLiveVoicesSubtitle": "最大相似度。 好像每个人都知道俄语",
   "VOTYandexTokenExpired": "会话过期。 再次登入",
-  "VOTVoiceSelection": "选择配音"
+  "VOTVoiceSelection": "选择配音",
+  "VOTSignInWithYandex": "使用Yandex ID登录",
+  "VOTOrUseToken": "或使用令牌",
+  "VOTSignedInAs": "签署为",
+  "VOTDownloadSubtitles": "下载字幕"
 }

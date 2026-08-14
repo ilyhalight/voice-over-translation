@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Mateni download audio bisa mengaruhi fungsi ekstensi",
   "VOTAccountRequired": "Sampeyan kudu mlebu kanggo nggunakake fitur iki",
   "VOTMyAccount": "Akunku",
-  "VOTLogin": "Login",
   "VOTLogout": "Logout",
   "VOTRefresh": "Nganyari",
   "VOTYandexToken": "Mlebu Ing Yandex Token OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Swara urip",
   "VOTLiveVoicesSubtitle": "Kamiripan maksimal. Kaya-kaya kabèh wong ngerti basa rusia",
   "VOTYandexTokenExpired": "Sesi wis kadaluwarsa. Mlebu maneh",
-  "VOTVoiceSelection": "Milih dubbing"
+  "VOTVoiceSelection": "Milih dubbing",
+  "VOTSignInWithYandex": "Mlebu nganggo ID Yandex",
+  "VOTOrUseToken": "utawa gunakna token",
+  "VOTSignedInAs": "Ditandatangani minangka",
+  "VOTDownloadSubtitles": "Ngundhuh subtitles"
 }

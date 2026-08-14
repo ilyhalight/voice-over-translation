@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Η απενεργοποίηση των λήψεων ήχου ενδέχεται να επηρεάσει τη λειτουργικότητα της επέκτασης",
   "VOTAccountRequired": "Πρέπει να συνδεθείτε για να χρησιμοποιήσετε αυτήν τη δυνατότητα",
   "VOTMyAccount": "Ο λογαριασμός μου",
-  "VOTLogin": "Σύνδεση",
   "VOTLogout": "Αποσύνδεση",
   "VOTRefresh": "Ανανέωση",
   "VOTYandexToken": "Εισαγάγετε το διακριτικό Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Ζωντανές φωνές",
   "VOTLiveVoicesSubtitle": "Μέγιστη ομοιότητα. Σαν να γνωρίζουν όλοι ρωσική",
   "VOTYandexTokenExpired": "Η συνεδρία έληξε. Συνδεθείτε ξανά",
-  "VOTVoiceSelection": "Επιλέξτε μεταγλώττιση"
+  "VOTVoiceSelection": "Επιλέξτε μεταγλώττιση",
+  "VOTSignInWithYandex": "Συνδεθείτε με το Yandex ID",
+  "VOTOrUseToken": "ή χρησιμοποιήστε ένα διακριτικό",
+  "VOTSignedInAs": "Συνδεθείτε ως",
+  "VOTDownloadSubtitles": "Λήψη υπότιτλων"
 }

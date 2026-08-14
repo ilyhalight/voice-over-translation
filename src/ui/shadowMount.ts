@@ -1,4 +1,4 @@
-import SwitchSCSS from "../components/Control/Switch.scss?inline";
+import solidSCSS from "../components/solid.scss?inline";
 import mainScss from "../styles/main.scss?inline";
 
 type InlineStyleMap = Partial<Record<string, string>>;
@@ -25,9 +25,7 @@ type CreateShadowMountOptions = {
   delegatesFocus?: boolean;
 };
 
-const shadowScopedCssText = scopeCssForShadowRoots(
-  `${mainScss}\n${SwitchSCSS}`,
-);
+const shadowScopedCssText = scopeCssForShadowRoots(`${mainScss}\n${solidSCSS}`);
 let sharedShadowStyleSheet: CSSStyleSheet | null = null;
 let sharedShadowStyleSheetReady = false;
 

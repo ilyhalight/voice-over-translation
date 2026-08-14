@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Ses indirmelerini devre dışı bırakmak uzantının işlevselliğini etkileyebilir",
   "VOTAccountRequired": "Bu özelliği kullanmak için giriş yapmanız gerekir",
   "VOTMyAccount": "Benim hesabım",
-  "VOTLogin": "Oturum aç",
   "VOTLogout": "Çıkış",
   "VOTRefresh": "Yenilemek",
   "VOTYandexToken": "Yandex OAuth Belirtecini Girin",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Canlı sesler",
   "VOTLiveVoicesSubtitle": "Maksimum benzerlik. Sanki herkes Rusça biliyormuş gibi",
   "VOTYandexTokenExpired": "Oturumun süresi doldu. Tekrar giriş yap",
-  "VOTVoiceSelection": "Dublajı seçin"
+  "VOTVoiceSelection": "Dublajı seçin",
+  "VOTSignInWithYandex": "Yandex Kimliği ile oturum açın",
+  "VOTOrUseToken": "veya bir belirteç kullanın",
+  "VOTSignedInAs": "Olarak oturum açtı",
+  "VOTDownloadSubtitles": "Altyazıları indir"
 }

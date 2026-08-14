@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Äänilatausten poistaminen käytöstä voi vaikuttaa laajennuksen toimivuuteen",
   "VOTAccountRequired": "Sinun on kirjauduttava sisään käyttääksesi tätä ominaisuutta",
   "VOTMyAccount": "Oma tili",
-  "VOTLogin": "Kirjautuminen",
   "VOTLogout": "Logout",
   "VOTRefresh": "Päivitä",
   "VOTYandexToken": "Syötä Yandex OAuth-Token",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Live voices",
   "VOTLiveVoicesSubtitle": "Suurin samankaltaisuus. Aivan kuin kaikki osaisivat Venäjää",
   "VOTYandexTokenExpired": "Istunto päättyi. Kirjaudu sisään uudelleen",
-  "VOTVoiceSelection": "Valitse dubbaus"
+  "VOTVoiceSelection": "Valitse dubbaus",
+  "VOTSignInWithYandex": "Kirjaudu sisään Yandex ID: llä",
+  "VOTOrUseToken": "tai käytä tokenia",
+  "VOTSignedInAs": "Kirjaudu sisään nimellä",
+  "VOTDownloadSubtitles": "Lataa tekstitys"
 }

@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Аудио жүктеулерді өшіру кеңейтімнің жұмысына әсер етуі мүмкін",
   "VOTAccountRequired": "Бұл мүмкіндікті пайдалану үшін жүйеге кіру керек",
   "VOTMyAccount": "Менің аккаунтым",
-  "VOTLogin": "Кіру",
   "VOTLogout": "Шығу",
   "VOTRefresh": "Жаңарту",
   "VOTYandexToken": "Yandex OAuth Таңбалауышын енгізіңіз",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Тірі дауыстар",
   "VOTLiveVoicesSubtitle": "Максималды ұқсастық. Барлығы орыс тілін білетін сияқты",
   "VOTYandexTokenExpired": "Сессияның мерзімі аяқталды. Қайта кіріңіз",
-  "VOTVoiceSelection": "Дубляжды таңдаңыз"
+  "VOTVoiceSelection": "Дубляжды таңдаңыз",
+  "VOTSignInWithYandex": "Яндекс ИДЕНТИФИКАТОРЫМЕН кіріңіз",
+  "VOTOrUseToken": "немесе таңбалауышты пайдаланыңыз",
+  "VOTSignedInAs": "Ретінде кірді",
+  "VOTDownloadSubtitles": "Субтитрлерді жүктеу"
 }

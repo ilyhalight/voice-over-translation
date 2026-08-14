@@ -43,6 +43,9 @@ const config: StorybookConfig = {
             },
           }),
         ],
+        define: {
+          DEBUG_MODE: true,
+        },
         resolve: {
           alias: {
             "vot-solid-renderer": solidRendererPath,

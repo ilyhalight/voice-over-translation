@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Dezactivarea descărcărilor audio poate afecta funcționalitatea extensiei",
   "VOTAccountRequired": "Trebuie să vă conectați pentru a utiliza această caracteristică",
   "VOTMyAccount": "Contul meu",
-  "VOTLogin": "Autentificare",
   "VOTLogout": "Deconectare",
   "VOTRefresh": "Reîmprospătare",
   "VOTYandexToken": "Introduceți tokenul Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Voci Live",
   "VOTLiveVoicesSubtitle": "Similitudine maximă. Ca și cum toată lumea știe limba rusă",
   "VOTYandexTokenExpired": "Sesiunea a expirat. Conectați-vă din nou",
-  "VOTVoiceSelection": "Alegeți dublarea"
+  "VOTVoiceSelection": "Alegeți dublarea",
+  "VOTSignInWithYandex": "Conectați-vă cu ID-ul Yandex",
+  "VOTOrUseToken": "sau folosiți un jeton",
+  "VOTSignedInAs": "Semnat ca",
+  "VOTDownloadSubtitles": "Descărcați subtitrări"
 }

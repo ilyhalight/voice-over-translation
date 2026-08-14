@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "የድምጽ ማውረዶችን ማሰናከል የቅጥያውን ተግባር ላይ ተጽዕኖ ሊያሳድር ይችላል ። ",
   "VOTAccountRequired": "ይህንን ባህሪ ለመጠቀም መግባት አለብዎት ። ",
   "VOTMyAccount": "የእኔ መለያ",
-  "VOTLogin": "አዲስ ዝምብሎ ይግባ",
   "VOTLogout": "ግባ",
   "VOTRefresh": "በድጋሚ ጀምር",
   "VOTYandexToken": "የ Yandex Out Toket አስገባ",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "የቀጥታ ድምጾች",
   "VOTLiveVoicesSubtitle": "ከፍተኛው ተመሳሳይነት. ሁሉም ሰው ሩሲያኛ ያውቃል ከሆነ እንደ",
   "VOTYandexTokenExpired": "ስብሰባው አብቅቷል። እንደገና ይግቡ",
-  "VOTVoiceSelection": "ዱባይን ይምረጡ"
+  "VOTVoiceSelection": "ዱባይን ይምረጡ",
+  "VOTSignInWithYandex": "በያንዴክስ መታወቂያ ይግቡ",
+  "VOTOrUseToken": "ወይም ምልክት ይጠቀሙ ። ",
+  "VOTSignedInAs": "መግቢያ",
+  "VOTDownloadSubtitles": "የትርጉም ጽሑፎችን ያውርዱ"
 }

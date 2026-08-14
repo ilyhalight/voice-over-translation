@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "अडियो डाउनलोडहरू असक्षम पार्दा एक्सटेन्सनको कार्यक्षमतामा असर पर्न सक्छ",
   "VOTAccountRequired": "यो सुविधा प्रयोग गर्न तपाईँले लग इन गर्नु आवश्यक छ",
   "VOTMyAccount": "मेरो खाता",
-  "VOTLogin": "लगइन गर्नुहोस्",
   "VOTLogout": "लगआउट",
   "VOTRefresh": "ताजा पार्नुहोस्",
   "VOTYandexToken": "यान्डेक्स ओआथ टोकन प्रविष्ट गर्नुहोस्",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "प्रत्यक्ष आवाजहरू",
   "VOTLiveVoicesSubtitle": "अधिकतम समानता मानौं सबैलाई रुसी भाषा थाहा छ",
   "VOTYandexTokenExpired": "सत्र समाप्त भयो ।  फेरि लग इन गर्नुहोस्",
-  "VOTVoiceSelection": "डबिंग रोज्नुहोस्"
+  "VOTVoiceSelection": "डबिंग रोज्नुहोस्",
+  "VOTSignInWithYandex": "यान्डेक्स आईडीको साथ साइन इन गर्नुहोस्",
+  "VOTOrUseToken": "वा टोकन प्रयोग गर्नुहोस्",
+  "VOTSignedInAs": "यस रूपमा साइन इन गर्नुहोस्",
+  "VOTDownloadSubtitles": "उपशीर्षक डाउनलोड गर्नुहोस्"
 }

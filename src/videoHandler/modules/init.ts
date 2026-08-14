@@ -8,6 +8,7 @@ import {
   proxyOnlyCountries,
   proxyWorkerHost,
 } from "../../config/config";
+import { updateAccountFromStorage } from "../../stores/account";
 import type { LanguageSelectKey } from "../../types/components/select";
 import debug from "../../utils/debug";
 import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
@@ -95,10 +96,13 @@ export async function init(this: VideoHandler) {
     localeHash: "",
     localeUpdatedAt: 0,
   });
+
   if (this.data.compatVersion !== actualCompatVersion) {
     this.data = await updateConfig(this.data);
     await votStorage.set("compatVersion", actualCompatVersion);
   }
+
+  await updateAccountFromStorage();
 
   try {
     if (

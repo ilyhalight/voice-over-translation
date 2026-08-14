@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "オーディオのダウンロードを無効にすると、拡張機能の機能に影響を与える可能性があります",
   "VOTAccountRequired": "この機能を使用するにはログインする必要があります",
   "VOTMyAccount": "マイアカウント",
-  "VOTLogin": "ログイン",
   "VOTLogout": "ログアウト",
   "VOTRefresh": "リフレッシュ",
   "VOTYandexToken": "Yandex OAuthトークンを入力します",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "ライブボイス",
   "VOTLiveVoicesSubtitle": "最大の類似性。 誰もがロシア語を知っているかのように",
   "VOTYandexTokenExpired": "セッションの有効期限が切れました。 もう一度ログインします",
-  "VOTVoiceSelection": "ダビングを選ぶ"
+  "VOTVoiceSelection": "ダビングを選ぶ",
+  "VOTSignInWithYandex": "Yandex IDでサインインする",
+  "VOTOrUseToken": "またはトークンを使用します",
+  "VOTSignedInAs": "としてサインインしました",
+  "VOTDownloadSubtitles": "字幕をダウンロード"
 }

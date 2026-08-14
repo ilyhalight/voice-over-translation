@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Deaktivering af lydoverførsler kan påvirke udvidelsens funktionalitet",
   "VOTAccountRequired": "Du skal logge ind for at bruge denne funktion",
   "VOTMyAccount": "Min konto",
-  "VOTLogin": "Login",
   "VOTLogout": "Log ud",
   "VOTRefresh": "Opdatere",
   "VOTYandexToken": "Indtast Yandeks OAuth Token",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Levende stemmer",
   "VOTLiveVoicesSubtitle": "Maksimal lighed. Som om alle kender russisk",
   "VOTYandexTokenExpired": "Sessionen er udløbet. Log ind igen",
-  "VOTVoiceSelection": "Vælg dubbing"
+  "VOTVoiceSelection": "Vælg dubbing",
+  "VOTSignInWithYandex": "Log ind med Yandeks ID",
+  "VOTOrUseToken": "eller brug et token",
+  "VOTSignedInAs": "Log ind som",
+  "VOTDownloadSubtitles": "Hent undertekster"
 }

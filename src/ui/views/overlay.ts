@@ -489,7 +489,7 @@ export class OverlayView {
     this.downloadTranslationButton.hidden = true;
 
     this.downloadSubtitlesButton = ui.createIconButton(SUBTITLES_ICON, {
-      ariaLabel: "Download subtitles",
+      ariaLabel: localizationProvider.get("VOTDownloadSubtitles"),
     });
     this.downloadSubtitlesButton.hidden = true;
 

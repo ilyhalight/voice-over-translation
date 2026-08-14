@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Nganonaktipkeun download audio bisa mangaruhan fungsionalitas extension",
   "VOTAccountRequired": "Anjeun kudu asup pikeun make fitur ieu",
   "VOTMyAccount": "Akun abdi",
-  "VOTLogin": "Login",
   "VOTLogout": "Logout",
   "VOTRefresh": "Nyegerkeun",
   "VOTYandexToken": "Asupkeun Token Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Sora nu hirup",
   "VOTLiveVoicesSubtitle": "Kamiripan maksimum. Seolah olah semuanya tahu rusia",
   "VOTYandexTokenExpired": "Sesi kadaluarsa. Asup deui",
-  "VOTVoiceSelection": "Pilih dubbing"
+  "VOTVoiceSelection": "Pilih dubbing",
+  "VOTSignInWithYandex": "Asup jeung Id Yandex",
+  "VOTOrUseToken": "atawa ngagunakeun token",
+  "VOTSignedInAs": "Ditandatanganan dina salaku",
+  "VOTDownloadSubtitles": "Ngundeur terjemahan"
 }

@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "ශ් රව් ය බාගත කිරීම් අක් රිය කිරීම දිගු කිරීමේ ක් රියාකාරිත්වයට බලපෑම් කළ හැකිය",
   "VOTAccountRequired": "මෙම විශේෂාංගය භාවිතා කිරීමට ඔබ පිවිසිය යුතුය",
   "VOTMyAccount": "මගේ ගිණුම",
-  "VOTLogin": "පිවිසෙන්න",
   "VOTLogout": "පිටවීම",
   "VOTRefresh": "නැවුම් කරන්න",
   "VOTYandexToken": "Yandex Oauth ටෝකනය ඇතුලත් කරන්න",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "සජීවී හඬවල්",
   "VOTLiveVoicesSubtitle": "උපරිම සමානතාවය. හැමෝම රුසියානු දන්නවා වගේ",
   "VOTYandexTokenExpired": "සැසිය කල් ඉකුත් විය. නැවත පිවිසෙන්න",
-  "VOTVoiceSelection": "ඩබ් කිරීම තෝරන්න"
+  "VOTVoiceSelection": "ඩබ් කිරීම තෝරන්න",
+  "VOTSignInWithYandex": "Yandex ID සමඟ ලියාපදිංචි වන්න",
+  "VOTOrUseToken": "නැත්නම් ටෝකන් එකක් පාවිච්චි කරන්න",
+  "VOTSignedInAs": "ලියාපදිංචි වෙලා තියෙන්නේ",
+  "VOTDownloadSubtitles": "උපසිරැසි බාගත කරගන්න"
 }

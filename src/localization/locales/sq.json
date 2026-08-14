@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Çaktivizimi i shkarkimeve audio mund të ndikojë në funksionalitetin e shtesës",
   "VOTAccountRequired": "Ju duhet të identifikoheni për të përdorur këtë veçori",
   "VOTMyAccount": "Llogaria ime",
-  "VOTLogin": "Hyrje",
   "VOTLogout": "Dalja",
   "VOTRefresh": "Rifresko",
   "VOTYandexToken": "Futni Shenjën Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Zërat e gjallë",
   "VOTLiveVoicesSubtitle": "Ngjashmëria maksimale. Sikur të gjithë e dinë rusisht",
   "VOTYandexTokenExpired": "Seanca skadoi. Hyni përsëri",
-  "VOTVoiceSelection": "Zgjidhni dublimin"
+  "VOTVoiceSelection": "Zgjidhni dublimin",
+  "VOTSignInWithYandex": "Hyni me Yandex ID",
+  "VOTOrUseToken": "ose përdorni një shenjë",
+  "VOTSignedInAs": "Nënshkruar si",
+  "VOTDownloadSubtitles": "Shkarkoni titra"
 }

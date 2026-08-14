@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Ukukhubaza ukulandwa komsindo kungathinta ukusebenza kwesandiso",
   "VOTAccountRequired": "Udinga ukungena ngemvume ukuze usebenzise lesi sici",
   "VOTMyAccount": "I akhawunti yami",
-  "VOTLogin": "Ukungena ngemvume",
   "VOTLogout": "Ukuphuma",
   "VOTRefresh": "Vuselela",
   "VOTYandexToken": "Faka Ithokheni Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Amazwi aphilayo",
   "VOTLiveVoicesSubtitle": "Ukufana okuphezulu. Njengokungathi wonke umuntu uyazi isirashiya",
   "VOTYandexTokenExpired": "Isikhathi sesiphelile. Ngena futhi",
-  "VOTVoiceSelection": "Choose dubbing"
+  "VOTVoiceSelection": "Choose dubbing",
+  "VOTSignInWithYandex": "Ngena ngemvume Nge Yandex ID",
+  "VOTOrUseToken": "noma sebenzisa ithokheni",
+  "VOTSignedInAs": "Isayine ngokuthi",
+  "VOTDownloadSubtitles": "Thwebula izihlokwana"
 }

@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Zakázání stahování zvuku může ovlivnit funkčnost rozšíření",
   "VOTAccountRequired": "Chcete-li tuto funkci používat, musíte se přihlásit",
   "VOTMyAccount": "Můj účet",
-  "VOTLogin": "Přihlášení",
   "VOTLogout": "Odhlášení",
   "VOTRefresh": "Aktualizovat",
   "VOTYandexToken": "Zadejte Token Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Živé hlasy",
   "VOTLiveVoicesSubtitle": "Maximální podobnost. Jako by každý věděl rusky",
   "VOTYandexTokenExpired": "Relace vypršela. Přihlásit se znovu",
-  "VOTVoiceSelection": "Vyberte si Dabing"
+  "VOTVoiceSelection": "Vyberte si Dabing",
+  "VOTSignInWithYandex": "Přihlaste se pomocí Yandex ID",
+  "VOTOrUseToken": "nebo použijte token",
+  "VOTSignedInAs": "Přihlášeno jako",
+  "VOTDownloadSubtitles": "Stáhnout titulky"
 }

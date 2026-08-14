@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Menonaktifkan unduhan audio dapat memengaruhi fungsionalitas ekstensi",
   "VOTAccountRequired": "Anda harus masuk untuk menggunakan fitur ini",
   "VOTMyAccount": "Akun saya",
-  "VOTLogin": "Login",
   "VOTLogout": "Logout",
   "VOTRefresh": "Menyegarkan",
   "VOTYandexToken": "Masukkan Token OAuth Yandex",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Suara langsung",
   "VOTLiveVoicesSubtitle": "Kesamaan maksimum. Seolah-olah semua orang tahu bahasa Rusia",
   "VOTYandexTokenExpired": "Sesi berakhir. Masuk lagi",
-  "VOTVoiceSelection": "Pilih sulih suara"
+  "VOTVoiceSelection": "Pilih sulih suara",
+  "VOTSignInWithYandex": "Masuk dengan ID Yandex",
+  "VOTOrUseToken": "atau gunakan token",
+  "VOTSignedInAs": "Masuk sebagai",
+  "VOTDownloadSubtitles": "Unduh subtitle"
 }

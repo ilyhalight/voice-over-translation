@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Деактивирането на аудио изтеглянията може да повлияе на функционалността на разширението",
   "VOTAccountRequired": "Трябва да влезете, за да използвате тази функция",
   "VOTMyAccount": "Моят акаунт",
-  "VOTLogin": "Вход",
   "VOTLogout": "Изход",
   "VOTRefresh": "Обновяване",
   "VOTYandexToken": "Въведете Яндекс Оут токен",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Живи гласове",
   "VOTLiveVoicesSubtitle": "Максимално сходство. Сякаш всички знаят руски.",
   "VOTYandexTokenExpired": "Сесията изтече. Влезте отново",
-  "VOTVoiceSelection": "Изберете дублаж"
+  "VOTVoiceSelection": "Изберете дублаж",
+  "VOTSignInWithYandex": "Вход с Яндекс ИД",
+  "VOTOrUseToken": "или използвайте жетон",
+  "VOTSignedInAs": "Подписано като",
+  "VOTDownloadSubtitles": "Изтегляне на субтитри"
 }

@@ -1,5 +1,87 @@
 import { createRenderer } from "solid-js/universal";
 
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+// The universal JSX transform only gives the renderer a tag name.
+const SVG_ELEMENT_NAMES = new Set([
+  "altGlyph",
+  "altGlyphDef",
+  "altGlyphItem",
+  "animate",
+  "animateColor",
+  "animateMotion",
+  "animateTransform",
+  "circle",
+  "clipPath",
+  "color-profile",
+  "cursor",
+  "defs",
+  "desc",
+  "ellipse",
+  "feBlend",
+  "feColorMatrix",
+  "feComponentTransfer",
+  "feComposite",
+  "feConvolveMatrix",
+  "feDiffuseLighting",
+  "feDisplacementMap",
+  "feDistantLight",
+  "feDropShadow",
+  "feFlood",
+  "feFuncA",
+  "feFuncB",
+  "feFuncG",
+  "feFuncR",
+  "feGaussianBlur",
+  "feImage",
+  "feMerge",
+  "feMergeNode",
+  "feMorphology",
+  "feOffset",
+  "fePointLight",
+  "feSpecularLighting",
+  "feSpotLight",
+  "feTile",
+  "feTurbulence",
+  "filter",
+  "font",
+  "font-face",
+  "font-face-format",
+  "font-face-name",
+  "font-face-src",
+  "font-face-uri",
+  "foreignObject",
+  "g",
+  "glyph",
+  "glyphRef",
+  "hkern",
+  "image",
+  "line",
+  "linearGradient",
+  "marker",
+  "mask",
+  "metadata",
+  "missing-glyph",
+  "mpath",
+  "path",
+  "pattern",
+  "polygon",
+  "polyline",
+  "radialGradient",
+  "rect",
+  "set",
+  "stop",
+  "svg",
+  "switch",
+  "symbol",
+  "text",
+  "textPath",
+  "tref",
+  "tspan",
+  "use",
+  "view",
+  "vkern",
+]);
+
 const propertyAliases: Record<string, string> = {
   formnovalidate: "formNoValidate",
   readonly: "readOnly",
@@ -124,6 +206,15 @@ function setProperty<T>(
     else node.setAttribute("class", String(value));
     return;
   }
+  if (name === "textContent") {
+    node.textContent = value == null ? "" : String(value);
+    return;
+  }
+  if (node instanceof SVGElement) {
+    if (value == null) node.removeAttribute(name);
+    else node.setAttribute(name, String(value));
+    return;
+  }
 
   const propertyName = propertyAliases[name] ?? name;
   if (
@@ -158,7 +249,9 @@ export const {
   use,
 } = createRenderer<Node>({
   createElement(tag) {
-    return document.createElement(tag);
+    return SVG_ELEMENT_NAMES.has(tag)
+      ? document.createElementNS(SVG_NAMESPACE, tag)
+      : document.createElement(tag);
   },
   createTextNode(value) {
     return document.createTextNode(value);

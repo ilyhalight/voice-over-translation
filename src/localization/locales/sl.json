@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Onemogočanje prenosov zvoka lahko vpliva na funkcionalnost razširitve",
   "VOTAccountRequired": "Za uporabo te funkcije se morate prijaviti",
   "VOTMyAccount": "Moj Račun",
-  "VOTLogin": "Prijava",
   "VOTLogout": "Odjava",
   "VOTRefresh": "Osveži",
   "VOTYandexToken": "Vnesite žeton OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Glasovi v živo",
   "VOTLiveVoicesSubtitle": "Največja podobnost. Kot da vsi vedo rusko",
   "VOTYandexTokenExpired": "Seja je potekla. Ponovno se prijavite",
-  "VOTVoiceSelection": "Izberite sinhronizacijo"
+  "VOTVoiceSelection": "Izberite sinhronizacijo",
+  "VOTSignInWithYandex": "Prijavite se z ID-jem",
+  "VOTOrUseToken": "ali pa uporabite žeton",
+  "VOTSignedInAs": "Vpisano kot",
+  "VOTDownloadSubtitles": "Prenesite podnapise"
 }

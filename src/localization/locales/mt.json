@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Id diżattivazzjoni tat tniżżil tal awdjo tista'taffettwa l funzjonalità tal estensjoni",
   "VOTAccountRequired": "Trid tidħol biex tuża din il karatteristika",
   "VOTMyAccount": "Il-kont tiegħi",
-  "VOTLogin": "Login",
   "VOTLogout": "Logout",
   "VOTRefresh": "Aġġorna",
   "VOTYandexToken": "Daħħal It-Token Yandex OAuth",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Vuċijiet ħajjin",
   "VOTLiveVoicesSubtitle": "Xebh massimu. Bħallikieku kulħadd jaf ir russu",
   "VOTYandexTokenExpired": "Sessjoni skada. Idħol mill-ġdid",
-  "VOTVoiceSelection": "Agħżel id-doppjaġġ"
+  "VOTVoiceSelection": "Agħżel id-doppjaġġ",
+  "VOTSignInWithYandex": "Idħol B'yandex ID",
+  "VOTOrUseToken": "jew uża token",
+  "VOTSignedInAs": "Iffirmat bħala",
+  "VOTDownloadSubtitles": "Niżżel is-sottotitoli"
 }

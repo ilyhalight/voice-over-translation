@@ -20,7 +20,8 @@
   @include button.vot-button-layer-hover(0.04);
   @include button.vot-button-layer-active(0.16);
 
-  &[disabled="true"] {
+  &[disabled="true"],
+  &[aria-disabled="true"] {
     background-color: transparent;
     color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
     cursor: initial;

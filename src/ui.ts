@@ -187,14 +187,6 @@ const UI = {
   },
 
   /**
-   * Create text button
-   */
-  createTextButton(html: Node | string): HTMLElement {
-    const el = UI.createEl("vot-block", ["vot-text-button"], html);
-    return UI.makeButtonLike(el);
-  },
-
-  /**
    * Create outlined button
    */
   createOutlinedButton(html: Node | string): HTMLElement {

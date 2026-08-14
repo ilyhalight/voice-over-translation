@@ -242,7 +242,6 @@
   "VOTUseAudioDownloadWarning": "Отключение загрузки аудио может нарушить работоспособность расширения",
   "VOTAccountRequired": "Функция доступна только после входа",
   "VOTMyAccount": "Мой аккаунт",
-  "VOTLogin": "Авторизоваться",
   "VOTLogout": "Выйти",
   "VOTRefresh": "Обновить",
   "VOTYandexToken": "Введите OAuth-токен Яндекса",
@@ -251,5 +250,9 @@
   "subtitlesSmartLayout": "Умное расположение субтитров",
   "smartDucking": "Адаптивная громкость",
   "VOTYandexTokenExpired": "Сессия истекла. Войдите снова",
-  "VOTVoiceSelection": "Выбрать озвучку"
+  "VOTVoiceSelection": "Выбрать озвучку",
+  "VOTSignInWithYandex": "Войти с помощью Yandex ID",
+  "VOTOrUseToken": "или используйте токен",
+  "VOTSignedInAs": "Вы вошли как",
+  "VOTDownloadSubtitles": "Скачать субтитры"
 }

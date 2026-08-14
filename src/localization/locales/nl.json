@@ -234,7 +234,6 @@
   "VOTUseAudioDownloadWarning": "Het uitschakelen van audiodownloads kan de functionaliteit van de extensie beïnvloeden",
   "VOTAccountRequired": "U moet inloggen om deze functie te gebruiken",
   "VOTMyAccount": "Mijn account",
-  "VOTLogin": "Login",
   "VOTLogout": "Afmelden",
   "VOTRefresh": "Vernieuwen",
   "VOTYandexToken": "Voer de Yandex OAuth Token in",
@@ -251,5 +250,9 @@
   "VOTLiveVoicesTitle": "Live voices",
   "VOTLiveVoicesSubtitle": "Maximale gelijkenis. Alsof iedereen Russisch kent",
   "VOTYandexTokenExpired": "Sessie verlopen. Opnieuw inloggen",
-  "VOTVoiceSelection": "Kies dubbing"
+  "VOTVoiceSelection": "Kies dubbing",
+  "VOTSignInWithYandex": "Aanmelden met Yandex ID",
+  "VOTOrUseToken": "of gebruik een token",
+  "VOTSignedInAs": "Aangemeld als",
+  "VOTDownloadSubtitles": "Ondertitels downloaden"
 }
