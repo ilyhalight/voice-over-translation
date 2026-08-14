@@ -115,7 +115,7 @@ import SliderLabel from "../components/sliderLabel";
 import Textfield from "../components/textfield";
 import Tooltip from "../components/tooltip";
 import { HELP_ICON, WARNING_ICON } from "../icons";
-import { render as renderSolid } from "../solid/renderer";
+import { type MountedComponent, mountComponent } from "../solid/mountComponent";
 
 const GOOGLE_FONTS_SEARCH_LIMIT = 30;
 const LANG_PREFIX = "langs.";
@@ -224,18 +224,16 @@ export class SettingsView {
   accountButtonRefreshTooltip?: Tooltip;
   accountButtonTokenTooltip?: Tooltip;
   private accountStorageListenerCleanup?: () => void;
-  private switchMount?: { host: HTMLElement; dispose: () => void };
-  autoTranslateCheckbox?: Checkbox;
-  autoSubtitlesCheckbox?: Checkbox;
+  autoTranslateSwitch?: MountedComponent<HTMLLabelElement>;
+  autoSubtitlesSwitch?: MountedComponent<HTMLLabelElement>;
   dontTranslateLanguagesCheckbox?: Checkbox;
   dontTranslateLanguagesSelect?: Select<LanguageSelectKey, true>;
   autoSetVolumeSliderLabel?: SliderLabel;
   autoSetVolumeCheckbox?: Checkbox;
   smartDuckingCheckbox?: Checkbox;
   autoSetVolumeSlider?: Slider;
-  showVideoVolumeSliderCheckbox?: Checkbox;
-  audioBoosterCheckbox?: Checkbox;
-  audioBoosterTooltip?: Tooltip;
+  showVideoVolumeSliderSwitch?: MountedComponent<HTMLLabelElement>;
+  audioBoosterSwitch?: MountedComponent<HTMLLabelElement>;
   syncVolumeCheckbox?: Checkbox;
   downloadWithNameCheckbox?: Checkbox;
   sendNotifyOnCompleteCheckbox?: Checkbox;
@@ -374,39 +372,31 @@ export class SettingsView {
       }
     }
   }
-  private bindPersistedSetting({
-    control,
-    event,
+  private createPersistedSettingHandler<K extends keyof StorageData>({
     apply,
     storageKey,
-    readPersistedValue,
-    logLabel,
+    logLabel = storageKey,
     dispatch,
     afterPersist,
   }: {
-    control: {
-      addEventListener: (
-        type: string,
-        listener: (value: any) => void | Promise<void>,
-      ) => void;
+    apply?: (value: StorageData[K]) => void;
+    storageKey: K;
+    logLabel?: string;
+    dispatch?: (value: StorageData[K]) => void;
+    afterPersist?: (value: StorageData[K]) => void | Promise<void>;
+  }): (value: StorageData[K]) => void {
+    return (value) => {
+      this.data[storageKey] = value;
+      apply?.(value);
+      void (async () => {
+        await votStorage.set(storageKey, value);
+        debug.log(`${logLabel} value changed. New value:`, value);
+        await afterPersist?.(value);
+        dispatch?.(value);
+      })().catch((error) => {
+        debug.error(`Failed to persist ${storageKey}:`, error);
+      });
     };
-    event: string;
-    apply: (value: any) => void;
-    storageKey: string;
-    readPersistedValue: () => unknown;
-    logLabel: string;
-    dispatch?: (value: any) => void;
-    afterPersist?: (value: any) => void | Promise<void>;
-  }): void {
-    control.addEventListener(event, async (value) => {
-      apply(value);
-      await votStorage.set(storageKey as any, readPersistedValue() as any);
-      debug.log(`${logLabel} value changed. New value:`, value);
-      if (afterPersist) {
-        await afterPersist(value);
-      }
-      dispatch?.(value);
-    });
   }
 
   private bindBufferedNumericSetting({
@@ -681,14 +671,31 @@ export class SettingsView {
       ...sections.map((section) => section.container),
     );
     this.initAccountControls();
-    this.autoTranslateCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTAutoTranslate"),
-      checked: this.data.autoTranslate,
-    });
-    this.autoSubtitlesCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTAutoSubtitles"),
-      checked: this.data.autoSubtitles,
-    });
+    this.autoTranslateSwitch = mountComponent<HTMLLabelElement>((rootRef) =>
+      Switch({
+        heading: localizationProvider.get("VOTAutoTranslate"),
+        checked: this.data.autoTranslate,
+        onChange: this.createPersistedSettingHandler({
+          storageKey: "autoTranslate",
+          dispatch: (checked) =>
+            this.events["change:autoTranslate"].dispatch(checked),
+        }),
+        ref: rootRef,
+      }),
+    );
+
+    this.autoSubtitlesSwitch = mountComponent<HTMLLabelElement>((rootRef) =>
+      Switch({
+        heading: localizationProvider.get("VOTAutoSubtitles"),
+        checked: this.data.autoSubtitles,
+        onChange: this.createPersistedSettingHandler({
+          storageKey: "autoSubtitles",
+          dispatch: (checked) =>
+            this.events["change:autoSubtitles"].dispatch(checked),
+        }),
+        ref: rootRef,
+      }),
+    );
     const dontTranslateLanguages = this.data.dontTranslateLanguages ?? [];
     this.dontTranslateLanguagesCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("DontTranslateSelectedLanguages"),
@@ -735,24 +742,38 @@ export class SettingsView {
     });
     this.smartDuckingCheckbox.disabled =
       syncVolumeEnabled || !this.autoSetVolumeCheckbox.checked;
-    this.showVideoVolumeSliderCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("showVideoVolumeSlider"),
-      checked: this.data.showVideoSlider,
-    });
-    this.audioBoosterCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTAudioBooster"),
-      checked: this.data.audioBooster,
-    });
-    if (!this.videoHandler?.isAudioContextSupported) {
-      this.audioBoosterCheckbox.disabled = true;
-      this.audioBoosterTooltip = new Tooltip({
-        target: this.audioBoosterCheckbox.container,
-        content: localizationProvider.get("VOTNeedWebAudioAPI"),
-        position: "bottom",
-        backgroundColor: "var(--vot-helper-ondialog)",
-        parentElement: this.globalPortal,
-      });
-    }
+    this.showVideoVolumeSliderSwitch = mountComponent<HTMLLabelElement>(
+      (rootRef) =>
+        Switch({
+          heading: localizationProvider.get("showVideoVolumeSlider"),
+          checked: this.data.showVideoSlider,
+          onChange: this.createPersistedSettingHandler({
+            storageKey: "showVideoSlider",
+            dispatch: (checked) =>
+              this.events["change:showVideoVolume"].dispatch(checked),
+          }),
+          ref: rootRef,
+        }),
+    );
+
+    const isAudioContextSupported = this.videoHandler?.isAudioContextSupported;
+    this.audioBoosterSwitch = mountComponent<HTMLLabelElement>((rootRef) =>
+      Switch({
+        heading: localizationProvider.get("VOTAudioBooster"),
+        description: isAudioContextSupported
+          ? undefined
+          : localizationProvider.get("VOTNeedWebAudioAPI"),
+        checked: this.data.audioBooster,
+        disabled: !isAudioContextSupported,
+        onChange: this.createPersistedSettingHandler({
+          storageKey: "audioBooster",
+          dispatch: (checked) =>
+            this.events["change:audioBooster"].dispatch(checked),
+        }),
+        ref: rootRef,
+      }),
+    );
+
     this.syncVolumeCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("VOTSyncVolume"),
       checked: this.data.syncVolume,
@@ -785,25 +806,15 @@ export class SettingsView {
       parentElement: this.globalPortal,
     });
     accountSection.content.append(this.accountButton.container);
-    // TODO: remove me
-    const switchHost = ui.createEl("vot-block", ["vot-switch-host"]);
-    this.switchMount = {
-      host: switchHost,
-      dispose: renderSolid(
-        () => Switch({ name: "vot-test" }) as Node,
-        switchHost,
-      ),
-    };
 
     translationSection.content.append(
-      switchHost,
-      this.autoTranslateCheckbox.container,
-      this.autoSubtitlesCheckbox.container,
+      this.autoTranslateSwitch.root,
+      this.autoSubtitlesSwitch.root,
       this.dontTranslateLanguagesSelect.container,
       this.autoSetVolumeSlider.container,
       this.smartDuckingCheckbox.container,
-      this.showVideoVolumeSliderCheckbox.container,
-      this.audioBoosterCheckbox.container,
+      this.showVideoVolumeSliderSwitch.root,
+      this.audioBoosterSwitch.root,
       this.syncVolumeCheckbox.container,
       this.downloadWithNameCheckbox.container,
       this.sendNotifyOnCompleteCheckbox.container,
@@ -1195,30 +1206,6 @@ export class SettingsView {
       await this.refreshAccountFromStorage();
     });
     this.bindAccountStorageListener();
-    this.bindPersistedSetting({
-      control: this.autoTranslateCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.autoTranslate = checked;
-      },
-      storageKey: "autoTranslate",
-      readPersistedValue: () => this.data.autoTranslate,
-      logLabel: "autoTranslate",
-      dispatch: (checked) =>
-        this.events["change:autoTranslate"].dispatch(checked),
-    });
-    this.bindPersistedSetting({
-      control: this.autoSubtitlesCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.autoSubtitles = checked;
-      },
-      storageKey: "autoSubtitles",
-      readPersistedValue: () => this.data.autoSubtitles,
-      logLabel: "autoSubtitles",
-      dispatch: (checked) =>
-        this.events["change:autoSubtitles"].dispatch(checked),
-    });
     this.dontTranslateLanguagesCheckbox.addEventListener(
       "change",
       async (checked) => {
@@ -1245,154 +1232,100 @@ export class SettingsView {
         debug.log("dontTranslateLanguages value changed. New value:", values);
       },
     );
-    this.bindPersistedSetting({
-      control: this.autoSetVolumeCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.enabledAutoVolume = checked;
-        this.autoSetVolumeSlider.disabled = !checked;
-        this.smartDuckingCheckbox.disabled =
-          !checked || Boolean(this.syncVolumeCheckbox?.checked);
-      },
-      storageKey: "enabledAutoVolume",
-      readPersistedValue: () => this.data.enabledAutoVolume,
-      logLabel: "enabledAutoVolume",
-      afterPersist: async () => this.videoHandler?.setupAudioSettings?.(),
-    });
-    this.bindPersistedSetting({
-      control: this.smartDuckingCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.enabledSmartDucking = checked;
-      },
-      storageKey: "enabledSmartDucking",
-      readPersistedValue: () => this.data.enabledSmartDucking,
-      logLabel: "enabledSmartDucking",
-      afterPersist: async () => this.videoHandler?.setupAudioSettings?.(),
-    });
-    this.bindPersistedSetting({
-      control: this.autoSetVolumeSlider,
-      event: "input",
-      apply: (value) => {
-        this.data.autoVolume = this.autoSetVolumeSliderLabel.value = value;
-      },
-      storageKey: "autoVolume",
-      readPersistedValue: () => this.data.autoVolume,
-      logLabel: "autoVolume",
-    });
-    this.bindPersistedSetting({
-      control: this.showVideoVolumeSliderCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.showVideoSlider = checked;
-      },
-      storageKey: "showVideoSlider",
-      readPersistedValue: () => this.data.showVideoSlider,
-      logLabel: "showVideoVolumeSlider",
-      dispatch: (checked) =>
-        this.events["change:showVideoVolume"].dispatch(checked),
-    });
-    this.bindPersistedSetting({
-      control: this.audioBoosterCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.audioBooster = checked;
-      },
-      storageKey: "audioBooster",
-      readPersistedValue: () => this.data.audioBooster,
-      logLabel: "audioBooster",
-      dispatch: (checked) =>
-        this.events["change:audioBooster"].dispatch(checked),
-    });
-    this.bindPersistedSetting({
-      control: this.syncVolumeCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.syncVolume = checked;
-        this.autoSetVolumeSlider.disabled =
-          !this.autoSetVolumeCheckbox?.checked;
-        this.smartDuckingCheckbox.disabled =
-          checked || !this.autoSetVolumeCheckbox?.checked;
-        if (checked && this.smartDuckingCheckbox?.checked) {
-          this.smartDuckingCheckbox.checked = false;
-        }
-      },
-      storageKey: "syncVolume",
-      readPersistedValue: () => this.data.syncVolume,
-      logLabel: "syncVolume",
-      dispatch: (checked) => this.events["change:syncVolume"].dispatch(checked),
-    });
-    this.bindPersistedSetting({
-      control: this.downloadWithNameCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.downloadWithName = checked;
-      },
-      storageKey: "downloadWithName",
-      readPersistedValue: () => this.data.downloadWithName,
-      logLabel: "downloadWithName",
-    });
-    this.bindPersistedSetting({
-      control: this.sendNotifyOnCompleteCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.sendNotifyOnComplete = checked;
-      },
-      storageKey: "sendNotifyOnComplete",
-      readPersistedValue: () => this.data.sendNotifyOnComplete,
-      logLabel: "sendNotifyOnComplete",
-    });
-    this.bindPersistedSetting({
-      control: this.useAudioDownloadCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.useAudioDownload = checked;
-      },
-      storageKey: "useAudioDownload",
-      readPersistedValue: () => this.data.useAudioDownload,
-      logLabel: "useAudioDownload",
-    });
-    this.bindPersistedSetting({
-      control: this.responseLanguageSubtitlesSelect,
-      event: "selectItem",
-      apply: (item) => {
-        this.data.responseLanguageSubtitles = item;
-        this.responseLanguageSubtitlesSelect?.updateItems(
-          buildSubtitleLanguageSettingItems(item),
-        );
-        if (this.responseLanguageSubtitlesSelect) {
-          this.responseLanguageSubtitlesSelect.selectTitle =
-            getSubtitleLanguageSettingLabel(item);
-        }
-      },
-      storageKey: "responseLanguageSubtitles",
-      readPersistedValue: () => this.data.responseLanguageSubtitles,
-      logLabel: "responseLanguageSubtitles",
-      dispatch: (item) =>
-        this.events["select:responseLanguageSubtitles"].dispatch(item),
-    });
-    this.bindPersistedSetting({
-      control: this.subtitlesDownloadFormatSelect,
-      event: "selectItem",
-      apply: (item) => {
-        this.data.subtitlesDownloadFormat = item;
-      },
-      storageKey: "subtitlesDownloadFormat",
-      readPersistedValue: () => this.data.subtitlesDownloadFormat,
-      logLabel: "subtitlesDownloadFormat",
-    });
-    this.bindPersistedSetting({
-      control: this.subtitlesHighlightWordsCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.highlightWords = checked;
-      },
-      storageKey: "highlightWords",
-      readPersistedValue: () => this.data.highlightWords,
-      logLabel: "highlightWords",
-      dispatch: (checked) =>
-        this.events["change:subtitlesHighlightWords"].dispatch(checked),
-    });
+    this.autoSetVolumeCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "enabledAutoVolume",
+        apply: (checked) => {
+          this.autoSetVolumeSlider.disabled = !checked;
+          this.smartDuckingCheckbox.disabled =
+            !checked || Boolean(this.syncVolumeCheckbox?.checked);
+        },
+        afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
+      }),
+    );
+    this.smartDuckingCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "enabledSmartDucking",
+        afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
+      }),
+    );
+    this.autoSetVolumeSlider.addEventListener(
+      "input",
+      this.createPersistedSettingHandler({
+        storageKey: "autoVolume",
+        apply: (value) => {
+          this.autoSetVolumeSliderLabel.value = value;
+        },
+      }),
+    );
+    this.syncVolumeCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "syncVolume",
+        apply: (checked) => {
+          this.autoSetVolumeSlider.disabled =
+            !this.autoSetVolumeCheckbox?.checked;
+          this.smartDuckingCheckbox.disabled =
+            checked || !this.autoSetVolumeCheckbox?.checked;
+          if (checked && this.smartDuckingCheckbox?.checked) {
+            this.smartDuckingCheckbox.checked = false;
+          }
+        },
+        dispatch: (checked) =>
+          this.events["change:syncVolume"].dispatch(checked),
+      }),
+    );
+    this.downloadWithNameCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "downloadWithName",
+      }),
+    );
+    this.sendNotifyOnCompleteCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "sendNotifyOnComplete",
+      }),
+    );
+    this.useAudioDownloadCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "useAudioDownload",
+      }),
+    );
+    this.responseLanguageSubtitlesSelect.addEventListener(
+      "selectItem",
+      this.createPersistedSettingHandler({
+        storageKey: "responseLanguageSubtitles",
+        apply: (item) => {
+          this.responseLanguageSubtitlesSelect?.updateItems(
+            buildSubtitleLanguageSettingItems(item),
+          );
+          if (this.responseLanguageSubtitlesSelect) {
+            this.responseLanguageSubtitlesSelect.selectTitle =
+              getSubtitleLanguageSettingLabel(item);
+          }
+        },
+        dispatch: (item) =>
+          this.events["select:responseLanguageSubtitles"].dispatch(item),
+      }),
+    );
+    this.subtitlesDownloadFormatSelect.addEventListener(
+      "selectItem",
+      this.createPersistedSettingHandler({
+        storageKey: "subtitlesDownloadFormat",
+      }),
+    );
+    this.subtitlesHighlightWordsCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "highlightWords",
+        dispatch: (checked) =>
+          this.events["change:subtitlesHighlightWords"].dispatch(checked),
+      }),
+    );
     this.subtitlesSmartLayoutCheckbox?.addEventListener("change", (checked) => {
       if (this.suppressSubtitlesSmartLayoutCheckboxChange) return;
       this.setSubtitlesSmartLayout(checked);
@@ -1428,38 +1361,26 @@ export class SettingsView {
       dispatch: (value) =>
         this.events["input:subtitlesBackgroundOpacity"].dispatch(value),
     });
-    this.bindPersistedSetting({
-      control: this.subtitlesFontFamilySelect,
-      event: "selectItem",
-      apply: (item) => {
-        this.data.subtitlesFontFamily = item;
-      },
-      storageKey: "subtitlesFontFamily",
-      readPersistedValue: () => this.data.subtitlesFontFamily,
-      logLabel: "subtitlesFontFamily",
-      dispatch: (item) =>
-        this.events["select:subtitlesFontFamily"].dispatch(item),
-    });
-    this.bindPersistedSetting({
-      control: this.translateHotkeyButton,
-      event: "change",
-      apply: (key) => {
-        this.data.translationHotkey = key;
-      },
-      storageKey: "translationHotkey",
-      readPersistedValue: () => this.data.translationHotkey,
-      logLabel: "translationHotkey",
-    });
-    this.bindPersistedSetting({
-      control: this.subtitlesHotkeyButton,
-      event: "change",
-      apply: (key) => {
-        this.data.subtitlesHotkey = key;
-      },
-      storageKey: "subtitlesHotkey",
-      readPersistedValue: () => this.data.subtitlesHotkey,
-      logLabel: "subtitlesHotkey",
-    });
+    this.subtitlesFontFamilySelect.addEventListener(
+      "selectItem",
+      this.createPersistedSettingHandler({
+        storageKey: "subtitlesFontFamily",
+        dispatch: (item) =>
+          this.events["select:subtitlesFontFamily"].dispatch(item),
+      }),
+    );
+    this.translateHotkeyButton.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "translationHotkey",
+      }),
+    );
+    this.subtitlesHotkeyButton.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "subtitlesHotkey",
+      }),
+    );
     this.proxyWorkerHostTextfield.addEventListener("change", async (value) => {
       this.data.proxyWorkerHost = value || proxyWorkerHost;
       await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
@@ -1488,76 +1409,54 @@ export class SettingsView {
         this.events["select:proxyTranslationStatus"].dispatch(item);
       },
     );
-    this.bindPersistedSetting({
-      control: this.translateAPIErrorsCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.translateAPIErrors = checked;
-      },
-      storageKey: "translateAPIErrors",
-      readPersistedValue: () => this.data.translateAPIErrors,
-      logLabel: "translateAPIErrors",
-    });
-    this.bindPersistedSetting({
-      control: this.useNewAudioPlayerCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.newAudioPlayer = checked;
-        this.onlyBypassMediaCSPCheckbox.disabled =
-          this.onlyBypassMediaCSPCheckbox.hidden = !checked;
-      },
-      storageKey: "newAudioPlayer",
-      readPersistedValue: () => this.data.newAudioPlayer,
-      logLabel: "newAudioPlayer",
-      dispatch: (checked) =>
-        this.events["change:useNewAudioPlayer"].dispatch(checked),
-    });
-    this.bindPersistedSetting({
-      control: this.onlyBypassMediaCSPCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.onlyBypassMediaCSP = checked;
-      },
-      storageKey: "onlyBypassMediaCSP",
-      readPersistedValue: () => this.data.onlyBypassMediaCSP,
-      logLabel: "onlyBypassMediaCSP",
-      dispatch: (checked) =>
-        this.events["change:onlyBypassMediaCSP"].dispatch(checked),
-    });
-    this.bindPersistedSetting({
-      control: this.translationTextServiceSelect,
-      event: "selectItem",
-      apply: (item) => {
-        this.data.translationService = item;
-      },
-      storageKey: "translationService",
-      readPersistedValue: () => this.data.translationService,
-      logLabel: "translationService",
-      dispatch: (item) =>
-        this.events["select:translationTextService"].dispatch(item),
-    });
-    this.bindPersistedSetting({
-      control: this.detectServiceSelect,
-      event: "selectItem",
-      apply: (item) => {
-        this.data.detectService = item;
-      },
-      storageKey: "detectService",
-      readPersistedValue: () => this.data.detectService,
-      logLabel: "detectService",
-    });
-    this.bindPersistedSetting({
-      control: this.showPiPButtonCheckbox,
-      event: "change",
-      apply: (checked) => {
-        this.data.showPiPButton = checked;
-      },
-      storageKey: "showPiPButton",
-      readPersistedValue: () => this.data.showPiPButton,
-      logLabel: "showPiPButton",
-      dispatch: (checked) =>
-        this.events["change:showPiPButton"].dispatch(checked),
-    });
+    this.translateAPIErrorsCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "translateAPIErrors",
+      }),
+    );
+    this.useNewAudioPlayerCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "newAudioPlayer",
+        apply: (checked) => {
+          this.onlyBypassMediaCSPCheckbox.disabled =
+            this.onlyBypassMediaCSPCheckbox.hidden = !checked;
+        },
+        dispatch: (checked) =>
+          this.events["change:useNewAudioPlayer"].dispatch(checked),
+      }),
+    );
+    this.onlyBypassMediaCSPCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "onlyBypassMediaCSP",
+        dispatch: (checked) =>
+          this.events["change:onlyBypassMediaCSP"].dispatch(checked),
+      }),
+    );
+    this.translationTextServiceSelect.addEventListener(
+      "selectItem",
+      this.createPersistedSettingHandler({
+        storageKey: "translationService",
+        dispatch: (item) =>
+          this.events["select:translationTextService"].dispatch(item),
+      }),
+    );
+    this.detectServiceSelect.addEventListener(
+      "selectItem",
+      this.createPersistedSettingHandler({
+        storageKey: "detectService",
+      }),
+    );
+    this.showPiPButtonCheckbox.addEventListener(
+      "change",
+      this.createPersistedSettingHandler({
+        storageKey: "showPiPButton",
+        dispatch: (checked) =>
+          this.events["change:showPiPButton"].dispatch(checked),
+      }),
+    );
     this.bindBufferedNumericSetting({
       control: this.autoHideButtonDelaySlider,
       label: this.autoHideButtonDelaySliderLabel,
@@ -1567,17 +1466,13 @@ export class SettingsView {
       dispatch: (value) =>
         this.events["input:autoHideButtonDelay"].dispatch(value),
     });
-    this.bindPersistedSetting({
-      control: this.buttonPositionSelect,
-      event: "selectItem",
-      apply: (item) => {
-        this.data.buttonPos = item;
-      },
-      storageKey: "buttonPos",
-      readPersistedValue: () => this.data.buttonPos,
-      logLabel: "buttonPos",
-      dispatch: (item) => this.events["select:buttonPosition"].dispatch(item),
-    });
+    this.buttonPositionSelect.addEventListener(
+      "selectItem",
+      this.createPersistedSettingHandler({
+        storageKey: "buttonPos",
+        dispatch: (item) => this.events["select:buttonPosition"].dispatch(item),
+      }),
+    );
     this.menuLanguageSelect.addEventListener("selectItem", async (item) => {
       const result = await localizationProvider.changeLang(item);
       if (!result) return;
@@ -1607,14 +1502,20 @@ export class SettingsView {
     return this;
   }
   private doReleaseUI(): void {
-    this.switchMount?.dispose();
-    this.switchMount?.host.remove();
-    this.switchMount = undefined;
+    for (const key of [
+      "autoTranslateSwitch",
+      "autoSubtitlesSwitch",
+    ] satisfies (keyof (typeof SettingsView)["prototype"])[]) {
+      const control = this[key] as MountedComponent<any> | undefined;
+      control?.dispose();
+      control?.root.remove();
+      this[key] = undefined as any;
+    }
+
     this.dialog?.remove();
     for (const tooltip of [
       this.accountButtonRefreshTooltip,
       this.accountButtonTokenTooltip,
-      this.audioBoosterTooltip,
       this.useAudioDownloadCheckboxTooltip,
       this.useNewAudioPlayerTooltip,
       this.onlyBypassMediaCSPTooltip,

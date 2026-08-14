@@ -11,3 +11,5 @@ src/components/**
   ├── ComponentName.tsx
   └── ComponentName.scss
 ```
+
+You SHOULD prefer using Material You (Material Design 3) like design system for creating components. You MUSTN'T use any external UI libraries (like Material UI, Ant Design, etc.) for creating components

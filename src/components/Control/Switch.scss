@@ -9,6 +9,7 @@
 
   align-items: center;
   box-sizing: border-box;
+  color: rgb(var(--vot-onsurface-rgb, 0, 0, 0));
   cursor: pointer;
   display: inline-flex;
   font-family: var(
@@ -18,10 +19,16 @@
     system-ui,
     sans-serif
   ) !important;
+  gap: var(--vot-space-4, 16px);
+  width: 100%;
   padding-block: 8px;
   position: relative;
   touch-action: manipulation;
   vertical-align: middle;
+
+  &[data-disabled="true"] {
+    cursor: not-allowed;
+  }
 
   &-control {
     cursor: inherit;
@@ -33,7 +40,7 @@
     width: 100%;
     z-index: 2;
 
-    &:focus-visible + .vot-switch-track {
+    &:focus-visible ~ .vot-switch-track {
       outline: 2px solid
         var(
           --vot-focus-ring-color,
@@ -42,22 +49,22 @@
       outline-offset: 2px;
     }
 
-    &:hover:not(:disabled) + .vot-switch-track .vot-switch-handle {
+    &:hover:not(:disabled) ~ .vot-switch-track .vot-switch-handle {
       box-shadow: 0 0 0 12px rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.08);
     }
 
-    &:active:not(:disabled) + .vot-switch-track .vot-switch-handle {
+    &:active:not(:disabled) ~ .vot-switch-track .vot-switch-handle {
       box-shadow: 0 0 0 12px rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.12);
     }
 
     &:hover:not(:disabled)
-      + .vot-switch-track[data-checked="true"]
+      ~ .vot-switch-track[data-checked="true"]
       .vot-switch-handle {
       box-shadow: 0 0 0 8px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.08);
     }
 
     &:active:not(:disabled)
-      + .vot-switch-track[data-checked="true"]
+      ~ .vot-switch-track[data-checked="true"]
       .vot-switch-handle {
       box-shadow: 0 0 0 8px rgba(var(--vot-primary-rgb, 33, 150, 243), 0.12);
     }
@@ -66,7 +73,7 @@
       cursor: not-allowed;
     }
 
-    &:disabled + .vot-switch-track {
+    &:disabled ~ .vot-switch-track {
       background: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.12);
       border-color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.12);
 
@@ -75,11 +82,38 @@
       }
     }
 
-    &:disabled + .vot-switch-track[data-checked="true"] {
+    &:disabled ~ .vot-switch-track[data-checked="true"] {
       .vot-switch-handle {
         background: rgb(var(--vot-surface-rgb, 32, 33, 36));
       }
     }
+  }
+
+  &-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &-heading {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    line-height: 24px;
+  }
+
+  &-description {
+    color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.25px;
+    line-height: 20px;
+  }
+
+  &[data-disabled="true"] &-heading,
+  &[data-disabled="true"] &-description {
+    color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
   }
 
   &-track {

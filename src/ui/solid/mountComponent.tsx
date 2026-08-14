@@ -14,7 +14,7 @@ export type MountedComponent<T extends HTMLElement> = {
 export function mountComponent<T extends HTMLElement>(
   view: (setRoot: (element: T) => void) => JSX.Element,
 ): MountedComponent<T> {
-  const host = document.createElement("div");
+  const host = document.createElement("vot-block");
   let root: T | undefined;
   const dispose = render(
     () => view((element) => (root = element)) as Node,

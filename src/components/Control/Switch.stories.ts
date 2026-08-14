@@ -27,3 +27,30 @@ export const SwitchCheckedDisabled: Story = {
     checked: true,
   },
 };
+
+export const SwitchWithHeading: Story = {
+  args: {
+    heading: "Translate videos automatically",
+  },
+};
+
+export const SwitchWithDescription: Story = {
+  args: {
+    heading: "Translate videos automatically",
+    description: "Start translation when a supported video begins playing",
+  },
+};
+
+export const SwitchOnlyWithDescription: Story = {
+  args: {
+    description: "Start translation when a supported video begins playing",
+  },
+};
+
+export const SwitchWithDescriptionDisabled: Story = {
+  args: {
+    heading: "Translate videos automatically",
+    description: "Start translation when a supported video begins playing",
+    disabled: true,
+  },
+};

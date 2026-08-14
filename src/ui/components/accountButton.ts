@@ -1,4 +1,4 @@
-import { avatarServerUrl } from "../../config/config";
+import { AVATAR_SERVER_URL } from "../../config/config";
 import { localizationProvider } from "../../localization/localizationProvider";
 import type { AccountButtonProps } from "../../types/components/accountButton";
 import UI from "../../ui";
@@ -66,7 +66,7 @@ export default class AccountButton extends UIComponentWithEvents<{
     const avatarImg = UI.createEl("img", [
       "vot-account-avatar-img",
     ]) as HTMLImageElement;
-    avatarImg.src = `${avatarServerUrl}/${this._avatarId}/islands-retina-middle`;
+    avatarImg.src = `${AVATAR_SERVER_URL}/${this._avatarId}/islands-retina-middle`;
     avatarImg.loading = "lazy";
     avatarImg.alt = "user avatar";
     const avatarEl = UI.createEl(
@@ -136,7 +136,7 @@ export default class AccountButton extends UIComponentWithEvents<{
 
   set avatarId(avatarId: string | undefined) {
     this._avatarId = avatarId ?? DEFAULT_AVATAR_ID;
-    this.avatarImg.src = `${avatarServerUrl}/${this._avatarId}/islands-retina-middle`;
+    this.avatarImg.src = `${AVATAR_SERVER_URL}/${this._avatarId}/islands-retina-middle`;
   }
 
   get username() {
