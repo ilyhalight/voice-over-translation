@@ -17,12 +17,16 @@ jobs:
     needs: build_release
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
+      - name: Download userscripts
         uses: actions/download-artifact@v8
         with:
+          name: vot-22.x
           path: vot
-          pattern: vot-*
-          merge-multiple: true
+      - name: Download extension artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: vot-extension-22.x
+          path: vot
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
