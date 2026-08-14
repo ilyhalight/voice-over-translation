@@ -1,5 +1,6 @@
 import { createSignal, type JSX } from "solid-js";
 import type { CheckboxProps } from "../../types/components/checkbox";
+import { resolveTemplate } from "../appendTemplate";
 import { mountComponent } from "../solid/mountComponent";
 import { UIComponentWithEvents } from "./componentShared";
 
@@ -19,6 +20,7 @@ function CheckboxView(
     onChange: (value: boolean) => void;
   },
 ): JSX.Element {
+  const label = resolveTemplate(props.labelHtml);
   const [checked, setCheckedState] = createSignal(props.checked ?? false);
   const [disabled, setDisabled] = createSignal(false);
   const setChecked = (value: boolean, emit = true) => {
@@ -40,7 +42,7 @@ function CheckboxView(
         disabled={disabled()}
         onChange={(event) => setChecked(event.currentTarget.checked)}
       />
-      <span ref={props.labelRef}>{props.labelHtml}</span>
+      <span ref={props.labelRef}>{label}</span>
     </label>
   );
 }

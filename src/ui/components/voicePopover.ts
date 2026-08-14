@@ -1,7 +1,8 @@
 import { localizationProvider } from "../../localization/localizationProvider";
+import type { UiTemplate } from "../../types/components/shared";
 import UI from "../../ui";
+import { appendTemplate } from "../appendTemplate";
 import { LIVE_VOICE_ICON, STANDARD_VOICE_ICON } from "../icons";
-import { render } from "../solid/render";
 import {
   createDomId,
   isEventInside,
@@ -180,7 +181,7 @@ export default class VoicePopover extends UIComponentWithEvents<{
 
   private createItem(
     voice: VoiceType,
-    iconTemplate: unknown,
+    iconTemplate: UiTemplate,
     title: string,
     subtitle: string,
   ): HTMLElement {
@@ -193,7 +194,7 @@ export default class VoicePopover extends UIComponentWithEvents<{
       "vot-voice-popover__item-icon",
       `vot-voice-popover__item-icon--${voice}`,
     ]);
-    render(iconTemplate, iconWrap);
+    appendTemplate(iconTemplate, iconWrap);
 
     const textWrap = UI.createEl("vot-block", ["vot-voice-popover__item-text"]);
     const titleEl = UI.createEl("span", ["vot-voice-popover__item-title"]);

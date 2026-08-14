@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-import { render } from "solid-js/web";
+import { render } from "./renderer";
 
 export type MountedComponent<T extends HTMLElement> = {
   root: T;
@@ -16,7 +16,10 @@ export function mountComponent<T extends HTMLElement>(
 ): MountedComponent<T> {
   const host = document.createElement("div");
   let root: T | undefined;
-  const dispose = render(() => view((element) => (root = element)), host);
+  const dispose = render(
+    () => view((element) => (root = element)) as Node,
+    host,
+  );
   if (!root) {
     dispose();
     throw new Error("[VOT] Solid component did not expose a root element");

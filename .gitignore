@@ -6,6 +6,7 @@ dist/test-ui.user.js
 dist/*.txt
 dist/*.map
 dist/main.user.js
+dist/*.css
 dist-ext/chrome/
 dist-ext/firefox/
 
@@ -146,3 +147,6 @@ dist/*.proxy.user.js
 .pnp.*
 
 .idea
+
+*storybook.log
+storybook-static

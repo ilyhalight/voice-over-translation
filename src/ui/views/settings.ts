@@ -43,6 +43,7 @@ function createSettingsEvents(): {
 }
 
 import { availableLangs } from "@vot.js/shared/consts";
+import { Switch } from "../../components/Control/Switch";
 import {
   defaultAutoHideDelay,
   defaultAutoVolume,
@@ -114,6 +115,7 @@ import SliderLabel from "../components/sliderLabel";
 import Textfield from "../components/textfield";
 import Tooltip from "../components/tooltip";
 import { HELP_ICON, WARNING_ICON } from "../icons";
+import { render as renderSolid } from "../solid/renderer";
 
 const GOOGLE_FONTS_SEARCH_LIMIT = 30;
 const LANG_PREFIX = "langs.";
@@ -222,6 +224,7 @@ export class SettingsView {
   accountButtonRefreshTooltip?: Tooltip;
   accountButtonTokenTooltip?: Tooltip;
   private accountStorageListenerCleanup?: () => void;
+  private switchMount?: { host: HTMLElement; dispose: () => void };
   autoTranslateCheckbox?: Checkbox;
   autoSubtitlesCheckbox?: Checkbox;
   dontTranslateLanguagesCheckbox?: Checkbox;
@@ -782,7 +785,18 @@ export class SettingsView {
       parentElement: this.globalPortal,
     });
     accountSection.content.append(this.accountButton.container);
+    // TODO: remove me
+    const switchHost = ui.createEl("vot-block", ["vot-switch-host"]);
+    this.switchMount = {
+      host: switchHost,
+      dispose: renderSolid(
+        () => Switch({ name: "vot-test" }) as Node,
+        switchHost,
+      ),
+    };
+
     translationSection.content.append(
+      switchHost,
       this.autoTranslateCheckbox.container,
       this.autoSubtitlesCheckbox.container,
       this.dontTranslateLanguagesSelect.container,
@@ -1593,6 +1607,9 @@ export class SettingsView {
     return this;
   }
   private doReleaseUI(): void {
+    this.switchMount?.dispose();
+    this.switchMount?.host.remove();
+    this.switchMount = undefined;
     this.dialog?.remove();
     for (const tooltip of [
       this.accountButtonRefreshTooltip,

@@ -1,5 +1,6 @@
 import type { JSX } from "solid-js";
 import type { LabelProps } from "../../types/components/label";
+import { resolveTemplate } from "../appendTemplate";
 import { mountComponent } from "../solid/mountComponent";
 import { UIComponent } from "./componentShared";
 
@@ -10,6 +11,7 @@ function LabelView(
     textRef: (el: HTMLSpanElement) => void;
   },
 ): JSX.Element {
+  const icon = props.icon == null ? undefined : resolveTemplate(props.icon);
   return (
     <div ref={props.rootRef} class="vot-label">
       <span ref={props.textRef} class="vot-label-text">
@@ -20,7 +22,7 @@ function LabelView(
         class="vot-label-icon"
         hidden={props.icon == null}
       >
-        {props.icon}
+        {icon}
       </span>
     </div>
   );

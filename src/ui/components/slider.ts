@@ -2,7 +2,7 @@
 import type { SliderProps } from "../../types/components/slider";
 import UI from "../../ui";
 import { clampNumber } from "../../utils/number";
-import { render } from "../solid/render";
+import { appendTemplate } from "../appendTemplate";
 import { UIComponentWithEvents } from "./componentShared";
 
 export default class Slider extends UIComponentWithEvents<{
@@ -64,7 +64,7 @@ export default class Slider extends UIComponentWithEvents<{
     input.value = this._value.toString();
 
     const label = UI.createEl("span");
-    render(this._labelHtml, label);
+    appendTemplate(this._labelHtml, label);
 
     container.append(input, label);
     input.addEventListener("input", () => {

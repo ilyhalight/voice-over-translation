@@ -1,7 +1,7 @@
 import { localizationProvider } from "./localization/localizationProvider";
 import type { UiTemplate } from "./types/components/shared";
+import { appendTemplate } from "./ui/appendTemplate";
 import { addKeyboardActivationListener } from "./ui/components/componentShared";
-import { render } from "./ui/solid/render";
 
 declare global {
   interface Window {
@@ -171,9 +171,9 @@ const UI = {
   ): InformationElements {
     const container = UI.createEl("vot-block", ["vot-info"]);
     const header = UI.createEl("vot-block");
-    render(labelHtml, header);
+    appendTemplate(labelHtml, header);
     const value = UI.createEl("vot-block");
-    render(valueHtml, value);
+    appendTemplate(valueHtml, value);
     container.append(header, value);
     return { container, header, value };
   },
@@ -210,7 +210,7 @@ const UI = {
     options: MakeButtonLikeOptions = {},
   ): HTMLElement {
     const button = UI.createEl("vot-block", ["vot-icon-button"]);
-    render(templateHtml, button);
+    appendTemplate(templateHtml, button);
     return UI.makeButtonLike(button, options);
   },
 

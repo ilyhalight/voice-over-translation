@@ -6,6 +6,7 @@ import type {
   VOTButtonProps,
 } from "../../types/components/votButton";
 import UI from "../../ui";
+import { appendTemplate } from "../appendTemplate";
 import {
   CHEVRON_ICON,
   MENU_ICON,
@@ -13,7 +14,6 @@ import {
   SUBTITLES_ICON,
   TRANSLATE_ICON_SVG,
 } from "../icons";
-import { render } from "../solid/render";
 import { setInteractiveHiddenState, UIComponent } from "./componentShared";
 
 function isSidePosition(position: Position): boolean {
@@ -96,7 +96,7 @@ export default class VOTButton extends UIComponent {
     translateButton.setAttribute("role", "button");
     translateButton.tabIndex = 0;
     translateButton.setAttribute("aria-label", this._labelText || "Translate");
-    render(TRANSLATE_ICON_SVG, translateButton);
+    appendTemplate(TRANSLATE_ICON_SVG, translateButton);
 
     const label = UI.createEl("span", ["vot-segment-label"]);
     label.textContent = this._labelText;
@@ -111,7 +111,7 @@ export default class VOTButton extends UIComponent {
     );
     dropdownArrow.setAttribute("aria-haspopup", "menu");
     dropdownArrow.setAttribute("aria-expanded", "false");
-    render(CHEVRON_ICON, dropdownArrow);
+    appendTemplate(CHEVRON_ICON, dropdownArrow);
     translateButton.append(label, dropdownArrow);
 
     const separator = UI.createEl("vot-block", ["vot-separator"]);
@@ -126,14 +126,14 @@ export default class VOTButton extends UIComponent {
     subtitlesButton.setAttribute("aria-label", subtitlesLabelText);
     subtitlesButton.setAttribute("aria-pressed", "false");
     subtitlesButton.dataset.active = "false";
-    render(SUBTITLES_ICON, subtitlesButton);
+    appendTemplate(SUBTITLES_ICON, subtitlesButton);
     const separator3 = UI.createEl("vot-block", ["vot-separator"]);
 
     const pipButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
     pipButton.setAttribute("role", "button");
     pipButton.tabIndex = 0;
     pipButton.setAttribute("aria-label", "Picture in picture");
-    render(PIP_ICON_SVG, pipButton);
+    appendTemplate(PIP_ICON_SVG, pipButton);
 
     const separator2 = UI.createEl("vot-block", ["vot-separator"]);
     const menuButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
@@ -143,7 +143,7 @@ export default class VOTButton extends UIComponent {
     // Opens a quick-settings popover (non-modal dialog).
     menuButton.setAttribute("aria-haspopup", "dialog");
     menuButton.setAttribute("aria-expanded", "false");
-    render(MENU_ICON, menuButton);
+    appendTemplate(MENU_ICON, menuButton);
 
     container.append(
       translateButton,

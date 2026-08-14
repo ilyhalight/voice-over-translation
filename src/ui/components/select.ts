@@ -7,8 +7,8 @@ import type {
 } from "../../types/components/select";
 import type { Phrase } from "../../types/localization";
 import UI from "../../ui";
+import { appendTemplate } from "../appendTemplate";
 import { CHEVRON_ICON } from "../icons";
-import { render } from "../solid/render";
 import { UIComponentWithEvents } from "./componentShared";
 import Dialog from "./dialog";
 import Textfield from "./textfield";
@@ -209,7 +209,7 @@ export default class Select<
     title.textContent = this.visibleText;
 
     const arrowIcon = UI.createEl("vot-block", ["vot-select-arrow-icon"]);
-    render(CHEVRON_ICON, arrowIcon);
+    appendTemplate(CHEVRON_ICON, arrowIcon);
     outer.append(title, arrowIcon);
     outer.addEventListener("click", () => {
       if (this.disabled) {

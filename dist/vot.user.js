@@ -10622,7 +10622,7 @@ var vot = (function(exports) {
 	var joinParts = (...parts) => {
 		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
 	};
-	function isDocumentHidden() {
+	function isDocumentHidden$1() {
 		return typeof document !== "undefined" && document.hidden;
 	}
 	function getEnvironmentInfo() {
@@ -10644,7 +10644,9 @@ var vot = (function(exports) {
 	//#region src/utils/intervalIdleChecker.ts
 	var DEFAULT_PROFILE = {
 		checkIntervalMs: 250,
-		idleAfterMs: 180
+		idleAfterMs: 180,
+		idleIntervalMs: 1e3,
+		hiddenIntervalMs: 2e3
 	};
 	function normalizePositiveMs(value, fallback) {
 		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
@@ -10657,7 +10659,9 @@ var vot = (function(exports) {
 	function normalizeProfile(profile = {}) {
 		return {
 			checkIntervalMs: normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs),
-			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs)
+			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs),
+			idleIntervalMs: normalizePositiveMs(profile.idleIntervalMs, Math.max(DEFAULT_PROFILE.idleIntervalMs, normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs))),
+			hiddenIntervalMs: normalizePositiveMs(profile.hiddenIntervalMs, Math.max(DEFAULT_PROFILE.hiddenIntervalMs, normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs)))
 		};
 	}
 	function getDefaultRuntime() {
@@ -10682,6 +10686,8 @@ var vot = (function(exports) {
 		runtime;
 		subscribers = /* @__PURE__ */ new Set();
 		intervalId = null;
+		/** Period the live timer was armed with, so mode changes can re-arm. */
+		armedIntervalMs = 0;
 		unsubscribeVisibilityChange = null;
 		running = false;
 		destroyed = false;
@@ -10690,7 +10696,7 @@ var vot = (function(exports) {
 		lastActivityAt;
 		onVisibilityChangeHandler = () => {
 			if (this.destroyed || !this.running) return;
-			if (isDocumentHidden()) this.clearIntervalTimer();
+			if (isDocumentHidden$1()) this.clearIntervalTimer();
 			else this.armInterval();
 			this.requestImmediateTick();
 		};
@@ -10723,12 +10729,33 @@ var vot = (function(exports) {
 			this.subscribers.clear();
 			this.destroyed = true;
 		}
-		subscribe(fn) {
+		subscribe(fn, options = {}) {
 			if (this.destroyed) return () => void 0;
-			this.subscribers.add(fn);
-			return () => {
-				this.subscribers.delete(fn);
+			const subscription = {
+				fn,
+				hasPendingWork: options.hasPendingWork
 			};
+			this.subscribers.add(subscription);
+			if (this.running) this.armInterval();
+			return () => {
+				this.subscribers.delete(subscription);
+				if (this.subscribers.size === 0) this.clearIntervalTimer();
+			};
+		}
+		/**
+		* True when at least one subscriber still needs periodic ticks. Subscribers
+		* without a predicate always count as pending (backwards compatible).
+		*/
+		hasPendingWork() {
+			for (const sub of this.subscribers) {
+				if (!sub.hasPendingWork) return true;
+				try {
+					if (sub.hasPendingWork()) return true;
+				} catch {
+					return true;
+				}
+			}
+			return false;
 		}
 		markActivity(_source) {
 			if (this.destroyed) return;
@@ -10736,6 +10763,7 @@ var vot = (function(exports) {
 			if (!this.running) return;
 			const nextMode = this.resolveMode(this.lastActivityAt);
 			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+			this.armInterval();
 		}
 		requestImmediateTick() {
 			if (this.destroyed || !this.running || this.immediateQueued) return;
@@ -10744,37 +10772,59 @@ var vot = (function(exports) {
 				this.immediateQueued = false;
 				if (this.destroyed || !this.running) return;
 				this.runTick("immediate");
+				this.armInterval();
 			});
 		}
 		resolveMode(nowMs) {
-			if (isDocumentHidden()) return "hidden";
+			if (isDocumentHidden$1()) return "hidden";
 			return nowMs - this.lastActivityAt >= this.profile.idleAfterMs ? "idle" : "active";
 		}
 		clearIntervalTimer() {
 			if (this.intervalId === null) return;
 			this.runtime.clearInterval(this.intervalId);
 			this.intervalId = null;
+			this.armedIntervalMs = 0;
+		}
+		/** Poll period for the current mode. */
+		intervalMsForMode(mode) {
+			if (mode === "hidden") return this.profile.hiddenIntervalMs;
+			if (mode === "idle") return this.profile.idleIntervalMs;
+			return this.profile.checkIntervalMs;
 		}
 		armInterval() {
-			if (this.intervalId !== null) return;
+			if (!(this.running && !this.destroyed && this.subscribers.size > 0 && this.currentMode !== "hidden" && this.hasPendingWork())) {
+				this.clearIntervalTimer();
+				return;
+			}
+			const periodMs = this.intervalMsForMode(this.currentMode);
+			if (this.intervalId !== null) {
+				if (this.armedIntervalMs === periodMs) return;
+				this.runtime.clearInterval(this.intervalId);
+				this.intervalId = null;
+			}
+			this.armedIntervalMs = periodMs;
 			this.intervalId = this.runtime.setInterval(() => {
 				this.runTick("interval");
-			}, this.profile.checkIntervalMs);
+			}, periodMs);
 		}
 		runTick(source) {
 			if (this.destroyed || !this.running) return;
 			if (this.subscribers.size === 0) return;
 			const nowMs = this.runtime.nowMs();
 			const nextMode = this.resolveMode(nowMs);
-			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+			if (nextMode !== this.currentMode) {
+				this.currentMode = nextMode;
+				if (this.running) this.armInterval();
+			}
 			const ctx = {
 				nowMs,
 				mode: nextMode,
 				source
 			};
 			for (const sub of this.subscribers) try {
-				sub(ctx);
+				sub.fn(ctx);
 			} catch {}
+			if (this.running) this.armInterval();
 		}
 		subscribeVisibilityChange() {
 			if (this.unsubscribeVisibilityChange !== null) return;
@@ -14904,284 +14954,14 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region node_modules/lit-html/lit-html.js
-	/**
-	* @license
-	* Copyright 2017 Google LLC
-	* SPDX-License-Identifier: BSD-3-Clause
-	*/
-	var t = globalThis;
-	var i = (t) => t;
-	var s = t.trustedTypes;
-	var e = s ? s.createPolicy("lit-html", { createHTML: (t) => t }) : void 0;
-	var h = "$lit$";
-	var o = `lit$${Math.random().toFixed(9).slice(2)}$`;
-	var n = "?" + o;
-	var r = `<${n}>`;
-	var l = document;
-	var c = () => l.createComment("");
-	var a = (t) => null === t || "object" != typeof t && "function" != typeof t;
-	var u = Array.isArray;
-	var d = (t) => u(t) || "function" == typeof t?.[Symbol.iterator];
-	var f = "[ 	\n\f\r]";
-	var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
-	var _ = /-->/g;
-	var m = />/g;
-	var p = RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g");
-	var g = /'/g;
-	var $ = /"/g;
-	var y = /^(?:script|style|textarea|title)$/i;
-	var x = (t) => (i, ...s) => ({
-		_$litType$: t,
-		strings: i,
-		values: s
-	});
-	var b = x(1);
-	var w = x(2);
-	var E = Symbol.for("lit-noChange");
-	var A = Symbol.for("lit-nothing");
-	var C = /* @__PURE__ */ new WeakMap();
-	var P = l.createTreeWalker(l, 129);
-	function V(t, i) {
-		if (!u(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-		return void 0 !== e ? e.createHTML(i) : i;
+	//#region src/ui/appendTemplate.ts
+	function resolveTemplate(template) {
+		return typeof template === "function" ? template() : template;
 	}
-	var N = (t, i) => {
-		const s = t.length - 1, e = [];
-		let n, l = 2 === i ? "<svg>" : 3 === i ? "<math>" : "", c = v;
-		for (let i = 0; i < s; i++) {
-			const s = t[i];
-			let a, u, d = -1, f = 0;
-			for (; f < s.length && (c.lastIndex = f, u = c.exec(s), null !== u);) f = c.lastIndex, c === v ? "!--" === u[1] ? c = _ : void 0 !== u[1] ? c = m : void 0 !== u[2] ? (y.test(u[2]) && (n = RegExp("</" + u[2], "g")), c = p) : void 0 !== u[3] && (c = p) : c === p ? ">" === u[0] ? (c = n ?? v, d = -1) : void 0 === u[1] ? d = -2 : (d = c.lastIndex - u[2].length, a = u[1], c = void 0 === u[3] ? p : "\"" === u[3] ? $ : g) : c === $ || c === g ? c = p : c === _ || c === m ? c = v : (c = p, n = void 0);
-			const x = c === p && t[i + 1].startsWith("/>") ? " " : "";
-			l += c === v ? s + r : d >= 0 ? (e.push(a), s.slice(0, d) + h + s.slice(d) + o + x) : s + o + (-2 === d ? i : x);
-		}
-		return [V(t, l + (t[s] || "<?>") + (2 === i ? "</svg>" : 3 === i ? "</math>" : "")), e];
-	};
-	var S = class S {
-		constructor({ strings: t, _$litType$: i }, e) {
-			let r;
-			this.parts = [];
-			let l = 0, a = 0;
-			const u = t.length - 1, d = this.parts, [f, v] = N(t, i);
-			if (this.el = S.createElement(f, e), P.currentNode = this.el.content, 2 === i || 3 === i) {
-				const t = this.el.content.firstChild;
-				t.replaceWith(...t.childNodes);
-			}
-			for (; null !== (r = P.nextNode()) && d.length < u;) {
-				if (1 === r.nodeType) {
-					if (r.hasAttributes()) for (const t of r.getAttributeNames()) if (t.endsWith(h)) {
-						const i = v[a++], s = r.getAttribute(t).split(o), e = /([.?@])?(.*)/.exec(i);
-						d.push({
-							type: 1,
-							index: l,
-							name: e[2],
-							strings: s,
-							ctor: "." === e[1] ? I : "?" === e[1] ? L : "@" === e[1] ? z : H
-						}), r.removeAttribute(t);
-					} else t.startsWith(o) && (d.push({
-						type: 6,
-						index: l
-					}), r.removeAttribute(t));
-					if (y.test(r.tagName)) {
-						const t = r.textContent.split(o), i = t.length - 1;
-						if (i > 0) {
-							r.textContent = s ? s.emptyScript : "";
-							for (let s = 0; s < i; s++) r.append(t[s], c()), P.nextNode(), d.push({
-								type: 2,
-								index: ++l
-							});
-							r.append(t[i], c());
-						}
-					}
-				} else if (8 === r.nodeType) if (r.data === n) d.push({
-					type: 2,
-					index: l
-				});
-				else {
-					let t = -1;
-					for (; -1 !== (t = r.data.indexOf(o, t + 1));) d.push({
-						type: 7,
-						index: l
-					}), t += o.length - 1;
-				}
-				l++;
-			}
-		}
-		static createElement(t, i) {
-			const s = l.createElement("template");
-			return s.innerHTML = t, s;
-		}
-	};
-	function M(t, i, s = t, e) {
-		if (i === E) return i;
-		let h = void 0 !== e ? s._$Co?.[e] : s._$Cl;
-		const o = a(i) ? void 0 : i._$litDirective$;
-		return h?.constructor !== o && (h?._$AO?.(!1), void 0 === o ? h = void 0 : (h = new o(t), h._$AT(t, s, e)), void 0 !== e ? (s._$Co ??= [])[e] = h : s._$Cl = h), void 0 !== h && (i = M(t, h._$AS(t, i.values), h, e)), i;
+	function appendTemplate(template, container) {
+		if (template == null) return;
+		container.append(resolveTemplate(template));
 	}
-	var R = class {
-		constructor(t, i) {
-			this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = i;
-		}
-		get parentNode() {
-			return this._$AM.parentNode;
-		}
-		get _$AU() {
-			return this._$AM._$AU;
-		}
-		u(t) {
-			const { el: { content: i }, parts: s } = this._$AD, e = (t?.creationScope ?? l).importNode(i, !0);
-			P.currentNode = e;
-			let h = P.nextNode(), o = 0, n = 0, r = s[0];
-			for (; void 0 !== r;) {
-				if (o === r.index) {
-					let i;
-					2 === r.type ? i = new k(h, h.nextSibling, this, t) : 1 === r.type ? i = new r.ctor(h, r.name, r.strings, this, t) : 6 === r.type && (i = new Z(h, this, t)), this._$AV.push(i), r = s[++n];
-				}
-				o !== r?.index && (h = P.nextNode(), o++);
-			}
-			return P.currentNode = l, e;
-		}
-		p(t) {
-			let i = 0;
-			for (const s of this._$AV) void 0 !== s && (void 0 !== s.strings ? (s._$AI(t, s, i), i += s.strings.length - 2) : s._$AI(t[i])), i++;
-		}
-	};
-	var k = class k {
-		get _$AU() {
-			return this._$AM?._$AU ?? this._$Cv;
-		}
-		constructor(t, i, s, e) {
-			this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = e, this._$Cv = e?.isConnected ?? !0;
-		}
-		get parentNode() {
-			let t = this._$AA.parentNode;
-			const i = this._$AM;
-			return void 0 !== i && 11 === t?.nodeType && (t = i.parentNode), t;
-		}
-		get startNode() {
-			return this._$AA;
-		}
-		get endNode() {
-			return this._$AB;
-		}
-		_$AI(t, i = this) {
-			t = M(this, t, i), a(t) ? t === A || null == t || "" === t ? (this._$AH !== A && this._$AR(), this._$AH = A) : t !== this._$AH && t !== E && this._(t) : void 0 !== t._$litType$ ? this.$(t) : void 0 !== t.nodeType ? this.T(t) : d(t) ? this.k(t) : this._(t);
-		}
-		O(t) {
-			return this._$AA.parentNode.insertBefore(t, this._$AB);
-		}
-		T(t) {
-			this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
-		}
-		_(t) {
-			this._$AH !== A && a(this._$AH) ? this._$AA.nextSibling.data = t : this.T(l.createTextNode(t)), this._$AH = t;
-		}
-		$(t) {
-			const { values: i, _$litType$: s } = t, e = "number" == typeof s ? this._$AC(t) : (void 0 === s.el && (s.el = S.createElement(V(s.h, s.h[0]), this.options)), s);
-			if (this._$AH?._$AD === e) this._$AH.p(i);
-			else {
-				const t = new R(e, this), s = t.u(this.options);
-				t.p(i), this.T(s), this._$AH = t;
-			}
-		}
-		_$AC(t) {
-			let i = C.get(t.strings);
-			return void 0 === i && C.set(t.strings, i = new S(t)), i;
-		}
-		k(t) {
-			u(this._$AH) || (this._$AH = [], this._$AR());
-			const i = this._$AH;
-			let s, e = 0;
-			for (const h of t) e === i.length ? i.push(s = new k(this.O(c()), this.O(c()), this, this.options)) : s = i[e], s._$AI(h), e++;
-			e < i.length && (this._$AR(s && s._$AB.nextSibling, e), i.length = e);
-		}
-		_$AR(t = this._$AA.nextSibling, s) {
-			for (this._$AP?.(!1, !0, s); t !== this._$AB;) {
-				const s = i(t).nextSibling;
-				i(t).remove(), t = s;
-			}
-		}
-		setConnected(t) {
-			void 0 === this._$AM && (this._$Cv = t, this._$AP?.(t));
-		}
-	};
-	var H = class {
-		get tagName() {
-			return this.element.tagName;
-		}
-		get _$AU() {
-			return this._$AM._$AU;
-		}
-		constructor(t, i, s, e, h) {
-			this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t, this.name = i, this._$AM = e, this.options = h, s.length > 2 || "" !== s[0] || "" !== s[1] ? (this._$AH = Array(s.length - 1).fill(/* @__PURE__ */ new String()), this.strings = s) : this._$AH = A;
-		}
-		_$AI(t, i = this, s, e) {
-			const h = this.strings;
-			let o = !1;
-			if (void 0 === h) t = M(this, t, i, 0), o = !a(t) || t !== this._$AH && t !== E, o && (this._$AH = t);
-			else {
-				const e = t;
-				let n, r;
-				for (t = h[0], n = 0; n < h.length - 1; n++) r = M(this, e[s + n], i, n), r === E && (r = this._$AH[n]), o ||= !a(r) || r !== this._$AH[n], r === A ? t = A : t !== A && (t += (r ?? "") + h[n + 1]), this._$AH[n] = r;
-			}
-			o && !e && this.j(t);
-		}
-		j(t) {
-			t === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
-		}
-	};
-	var I = class extends H {
-		constructor() {
-			super(...arguments), this.type = 3;
-		}
-		j(t) {
-			this.element[this.name] = t === A ? void 0 : t;
-		}
-	};
-	var L = class extends H {
-		constructor() {
-			super(...arguments), this.type = 4;
-		}
-		j(t) {
-			this.element.toggleAttribute(this.name, !!t && t !== A);
-		}
-	};
-	var z = class extends H {
-		constructor(t, i, s, e, h) {
-			super(t, i, s, e, h), this.type = 5;
-		}
-		_$AI(t, i = this) {
-			if ((t = M(this, t, i, 0) ?? A) === E) return;
-			const s = this._$AH, e = t === A && s !== A || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive, h = t !== A && (s === A || e);
-			e && this.element.removeEventListener(this.name, this, s), h && this.element.addEventListener(this.name, this, t), this._$AH = t;
-		}
-		handleEvent(t) {
-			"function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
-		}
-	};
-	var Z = class {
-		constructor(t, i, s) {
-			this.element = t, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
-		}
-		get _$AU() {
-			return this._$AM._$AU;
-		}
-		_$AI(t) {
-			M(this, t);
-		}
-	};
-	var B = t.litHtmlPolyfillSupport;
-	B?.(S, k), (t.litHtmlVersions ??= []).push("3.3.3");
-	var D = (t, i, s) => {
-		const e = s?.renderBefore ?? i;
-		let h = e._$litPart$;
-		if (void 0 === h) {
-			const t = s?.renderBefore ?? null;
-			e._$litPart$ = h = new k(i.insertBefore(c(), t), t, void 0, s ?? {});
-		}
-		return h._$AI(t), h;
-	};
 	//#endregion
 	//#region src/ui/components/componentShared.ts
 	function setInteractiveHiddenState(element, isHidden) {
@@ -15259,6 +15039,27 @@ var vot = (function(exports) {
 		});
 	}
 	initKeyboardNavigationMode();
+	/**
+	* Shared `disabled` attribute observer for every button-like element.
+	*
+	* Owns a single `MutationObserver` for the whole document; per-element sync
+	* callbacks are stored in a `WeakMap` so detached buttons are collected without
+	* an explicit `disconnect()` call (the previous per-element observers were
+	* never disconnected either, so lifetime semantics are unchanged).
+	*/
+	var disabledSyncHandlers = /* @__PURE__ */ new WeakMap();
+	var disabledObserver;
+	function observeDisabledAttribute(el, sync) {
+		disabledSyncHandlers.set(el, sync);
+		if (typeof MutationObserver === "undefined") return;
+		disabledObserver ??= new MutationObserver((records) => {
+			for (const record of records) disabledSyncHandlers.get(record.target)?.();
+		});
+		disabledObserver.observe(el, {
+			attributes: true,
+			attributeFilter: ["disabled"]
+		});
+	}
 	var UI = {
 		/**
 		* Makes a non-native element behave like a button (keyboard + ARIA).
@@ -15280,10 +15081,7 @@ var vot = (function(exports) {
 				}
 			};
 			syncDisabledState();
-			new MutationObserver(() => syncDisabledState()).observe(el, {
-				attributes: true,
-				attributeFilter: ["disabled"]
-			});
+			observeDisabledAttribute(el, syncDisabledState);
 			if (ariaLabel) el.setAttribute("aria-label", ariaLabel);
 			addKeyboardActivationListener(el, () => {
 				if (el.getAttribute("disabled") === "true" || el.getAttribute("aria-disabled") === "true") return;
@@ -15312,9 +15110,9 @@ var vot = (function(exports) {
 		createInformation(labelHtml, valueHtml) {
 			const container = UI.createEl("vot-block", ["vot-info"]);
 			const header = UI.createEl("vot-block");
-			D(labelHtml, header);
+			appendTemplate(labelHtml, header);
 			const value = UI.createEl("vot-block");
-			D(valueHtml, value);
+			appendTemplate(valueHtml, value);
 			container.append(header, value);
 			return {
 				container,
@@ -15348,7 +15146,7 @@ var vot = (function(exports) {
 		*/
 		createIconButton(templateHtml, options = {}) {
 			const button = UI.createEl("vot-block", ["vot-icon-button"]);
-			D(templateHtml, button);
+			appendTemplate(templateHtml, button);
 			return UI.makeButtonLike(button, options);
 		},
 		createInlineLoader() {
@@ -15827,7 +15625,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(".vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:\"\";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:\"\";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:\"\"!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb), .5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb), .87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb), .72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard), background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb), .04)!important;color:rgba(var(--vot-helper-onsurface-rgb), .9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb), .55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb), .7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-button-default-top:5rem;--vot-button-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));left:50%;right:auto;top:var(--vot-button-default-top);position:absolute;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important}@media (pointer:coarse){.vot-segmented-button{--vot-button-default-top:3rem;--vot-button-top-offset:max(12px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(10px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(10px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(42px, 12.5vh, 112px), env(safe-area-inset-top,0px))}}.vot-segmented-button{-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button.vot-segmented-button--dragging{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;box-shadow:var(--vot-shadow-1)!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important;border-color:var(--vot-border-color)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button .vot-translate-button{gap:0!important;padding-inline-end:4px!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;border-radius:999px;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;margin-inline:4px -4px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow[hidden]{display:none!important}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;width:28px;height:28px;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg,.vot-segmented-button .vot-dropdown-arrow.vot-dropdown-arrow--open svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-subtitles-button[data-active=true],.vot-segmented-button[data-status=success] .vot-dropdown-arrow{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-dropdown-arrow{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label,.vot-segmented-button[data-direction=column] .vot-dropdown-arrow{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{left:var(--vot-button-side-offset);right:auto;top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=right]{left:auto;right:var(--vot-button-side-offset-right);top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=leftCenter]{left:var(--vot-button-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-button-side-offset-right);top:50%;transform:translateY(-50%)}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);--vot-menu-default-top:calc(5rem + 48px);--vot-menu-top-offset:max(64px, calc(env(safe-area-inset-top,0px) + 56px));--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(56px, 12.5vh, 136px), calc(env(safe-area-inset-top,0px) + 8px));left:50%;right:auto;top:var(--vot-menu-default-top);position:absolute;overflow:hidden}@media (pointer:coarse){.vot-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-top-offset:max(56px, calc(env(safe-area-inset-top,0px) + 48px));--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px));--vot-menu-side-top-offset:max(clamp(50px, 12.5vh, 120px), calc(env(safe-area-inset-top,0px) + 8px))}}.vot-menu{-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-menu[data-position=left][hidden],.vot-menu[data-position=right][hidden]{transform:translateY(-4px)scale(.98)}.vot-menu[data-position=leftCenter][hidden],.vot-menu[data-position=rightCenter][hidden]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;align-items:center;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{flex-shrink:0;justify-content:center;align-items:flex-end;width:28px;height:28px;display:flex}.vot-voice-popover__item-icon svg{width:20px;height:20px;display:block}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}");
+	var shadowScopedCssText = scopeCssForShadowRoots(`.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:""!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:"";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:"";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:""!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb), .5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb), .87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb), .72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard), background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb), .04)!important;color:rgba(var(--vot-helper-onsurface-rgb), .9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb), .55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb), .7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-button-default-top:5rem;--vot-button-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));left:50%;right:auto;top:var(--vot-button-default-top);position:absolute;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important}@media (pointer:coarse){.vot-segmented-button{--vot-button-default-top:3rem;--vot-button-top-offset:max(12px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(10px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(10px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(42px, 12.5vh, 112px), env(safe-area-inset-top,0px))}}.vot-segmented-button{-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button.vot-segmented-button--dragging{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;box-shadow:var(--vot-shadow-1)!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important;border-color:var(--vot-border-color)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:"";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button .vot-translate-button{gap:0!important;padding-inline-end:4px!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;border-radius:999px;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;margin-inline:4px -4px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow[hidden]{display:none!important}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;width:28px;height:28px;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg,.vot-segmented-button .vot-dropdown-arrow.vot-dropdown-arrow--open svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-subtitles-button[data-active=true],.vot-segmented-button[data-status=success] .vot-dropdown-arrow{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-dropdown-arrow{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label,.vot-segmented-button[data-direction=column] .vot-dropdown-arrow{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{left:var(--vot-button-side-offset);right:auto;top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=right]{left:auto;right:var(--vot-button-side-offset-right);top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=leftCenter]{left:var(--vot-button-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-button-side-offset-right);top:50%;transform:translateY(-50%)}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);--vot-menu-default-top:calc(5rem + 48px);--vot-menu-top-offset:max(64px, calc(env(safe-area-inset-top,0px) + 56px));--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(56px, 12.5vh, 136px), calc(env(safe-area-inset-top,0px) + 8px));left:50%;right:auto;top:var(--vot-menu-default-top);position:absolute;overflow:hidden}@media (pointer:coarse){.vot-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-top-offset:max(56px, calc(env(safe-area-inset-top,0px) + 48px));--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px));--vot-menu-side-top-offset:max(clamp(50px, 12.5vh, 120px), calc(env(safe-area-inset-top,0px) + 8px))}}.vot-menu{-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-menu[data-position=left][hidden],.vot-menu[data-position=right][hidden]{transform:translateY(-4px)scale(.98)}.vot-menu[data-position=leftCenter][hidden],.vot-menu[data-position=rightCenter][hidden]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;align-items:center;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:"";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:"";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E") 50%/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{flex-shrink:0;justify-content:center;align-items:flex-end;width:28px;height:28px;display:flex}.vot-voice-popover__item-icon svg{width:20px;height:20px;display:block}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:"<number>";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:"<number>";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token="1"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token="1"]:before{content:"";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token="1"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token="1"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic="1"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold="1"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline="1"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color="1"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:"Roboto", "Segoe UI", system-ui, sans-serif!important;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}\n.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-timing:cubic-bezier(.2, 0, 0, 1);--vot-switch-duration:var(--vot-duration-medium,.2s);box-sizing:border-box;cursor:pointer;touch-action:manipulation;vertical-align:middle;align-items:center;padding-block:8px;display:inline-flex;position:relative;font-family:var(--vot-font-family,"Roboto", "Segoe UI", system-ui, sans-serif)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible+.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)+.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)+.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)+.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)+.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled+.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled+.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled+.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-switch-timing);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-switch-timing);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}`);
 	var sharedShadowStyleSheet = null;
 	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
@@ -15925,14 +15723,38 @@ var vot = (function(exports) {
 		const rightEnd = right.startMs + Math.max(0, right.durationMs);
 		return left.startMs < rightEnd && right.startMs < leftEnd;
 	};
+	/**
+	* Removes duplicate cues that render identical text for the same speaker in an
+	* overlapping time window.
+	*
+	* Consolidated from the previous O(n^2) implementation that recomputed
+	* `toRenderableTextKey()` (a regex normalization over the full cue text) inside
+	* the inner comparison. Keys are now computed exactly once per entry and
+	* candidates are grouped by `key + speakerId`, so only genuinely comparable
+	* cues are time-checked. Output order and selection are unchanged.
+	*/
 	var dedupeActiveLines = (lines) => {
 		const deduped = [];
+		const byKey = /* @__PURE__ */ new Map();
 		for (const entry of lines) {
 			const textKey = toRenderableTextKey(entry.line);
 			if (!textKey) continue;
-			if (!deduped.some((existing) => {
-				return textKey === toRenderableTextKey(existing.line) && existing.line.speakerId === entry.line.speakerId && linesOverlapInTime(existing.line, entry.line);
-			})) deduped.push(entry);
+			const groupKey = `${textKey}\u0000${entry.line.speakerId ?? ""}`;
+			const group = byKey.get(groupKey);
+			if (!group) {
+				byKey.set(groupKey, [entry]);
+				deduped.push(entry);
+				continue;
+			}
+			let isDuplicate = false;
+			for (const existing of group) if (linesOverlapInTime(existing.line, entry.line)) {
+				isDuplicate = true;
+				break;
+			}
+			if (!isDuplicate) {
+				group.push(entry);
+				deduped.push(entry);
+			}
 		}
 		return deduped;
 	};
@@ -16201,59 +16023,63 @@ var vot = (function(exports) {
 		}
 		release() {}
 	};
-	//#endregion
-	//#region src/subtitles/inlineStyle.ts
-	var SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
-	var SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
-	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
-	var SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
-	var normalizeClassNames = (classes) => {
-		if (!classes?.length) return void 0;
-		const normalized = Array.from(new Set(classes.map((value) => value.trim()).filter((value) => value && SAFE_CLASS_NAME_RE.test(value)))).sort((left, right) => left.localeCompare(right));
-		return normalized.length ? normalized : void 0;
-	};
-	var normalizeCssColorValue = (value) => {
-		const normalized = value.trim();
-		if (!normalized) return void 0;
-		if (SAFE_HEX_COLOR_RE.test(normalized)) return normalized.toLowerCase();
-		if (SAFE_CSS_COLOR_NAME_RE.test(normalized)) return normalized.toLowerCase();
-		if (SAFE_CSS_FUNCTION_COLOR_RE.test(normalized)) return normalized;
-	};
-	var normalizeSubtitleInlineStyle = (style) => {
-		if (!style) return void 0;
-		const normalized = {};
-		if (style.italic) normalized.italic = true;
-		if (style.bold) normalized.bold = true;
-		if (style.underline) normalized.underline = true;
-		const normalizedColor = typeof style.color === "string" ? normalizeCssColorValue(style.color) : void 0;
-		if (normalizedColor) normalized.color = normalizedColor;
-		const normalizedClasses = normalizeClassNames(style.classes);
-		if (normalizedClasses) normalized.classes = normalizedClasses;
-		return Object.keys(normalized).length ? normalized : void 0;
-	};
-	var sanitizeSubtitleInlineStyle = (value) => {
-		if (!value || typeof value !== "object") return void 0;
-		const raw = value;
-		return normalizeSubtitleInlineStyle({
-			italic: raw.italic === true,
-			bold: raw.bold === true,
-			underline: raw.underline === true,
-			color: typeof raw.color === "string" ? raw.color : void 0,
-			classes: Array.isArray(raw.classes) ? raw.classes.filter((entry) => typeof entry === "string") : void 0
-		});
-	};
-	var subtitleInlineStylesEqual = (left, right) => {
-		const leftNormalized = normalizeSubtitleInlineStyle(left);
-		const rightNormalized = normalizeSubtitleInlineStyle(right);
-		const leftClasses = leftNormalized?.classes ?? [];
-		const rightClasses = rightNormalized?.classes ?? [];
-		return Boolean(leftNormalized?.italic) === Boolean(rightNormalized?.italic) && Boolean(leftNormalized?.bold) === Boolean(rightNormalized?.bold) && Boolean(leftNormalized?.underline) === Boolean(rightNormalized?.underline) && (leftNormalized?.color ?? "") === (rightNormalized?.color ?? "") && leftClasses.length === rightClasses.length && leftClasses.every((value, index) => value === rightClasses[index]);
-	};
-	var buildSubtitleInlineStyleCssText = (style) => {
-		const normalized = normalizeSubtitleInlineStyle(style);
-		if (!normalized?.color) return "";
-		return `--vot-subtitles-inline-color:${normalized.color};`;
-	};
+	var PASSED_CLASS = "passed";
+	function createHighlightState() {
+		return {
+			indices: /* @__PURE__ */ new Int32Array(0),
+			applied: /* @__PURE__ */ new Uint8Array(0)
+		};
+	}
+	/**
+	* Rebuilds the index map after a render pass.
+	*
+	* The state is therefore seeded from the **actual** DOM class. `classList.contains`
+	* is a cheap attribute read (no style resolution, no layout) and runs once per
+	* span per render, not per tick.
+	*/
+	function syncHighlightState(state, elements) {
+		const count = elements.length;
+		if (state.indices.length !== count) {
+			state.indices = new Int32Array(count);
+			state.applied = new Uint8Array(count);
+		}
+		const { indices, applied } = state;
+		for (let i = 0; i < count; i += 1) {
+			const element = elements[i];
+			const raw = element.dataset.votHighlightIndex;
+			const parsed = raw === void 0 ? NaN : Number.parseInt(raw, 10);
+			indices[i] = Number.isInteger(parsed) && parsed >= 0 ? parsed : -1;
+			applied[i] = element.classList.contains(PASSED_CLASS) ? 1 : 0;
+		}
+		return state;
+	}
+	/**
+	* Applies `passedFlags` to the rendered spans, touching only changed nodes.
+	*
+	* @returns the number of DOM writes performed (used by tests/benchmarks to
+	* assert that redundant mutations are eliminated).
+	*/
+	function applyPassedState(state, elements, passedFlags) {
+		const { indices, applied } = state;
+		const count = Math.min(elements.length, indices.length);
+		const flagCount = passedFlags.length;
+		let writes = 0;
+		for (let i = 0; i < count; i += 1) {
+			const highlightIndex = indices[i];
+			const isPassed = highlightIndex >= 0 && highlightIndex < flagCount ? passedFlags[highlightIndex] : false;
+			const nextState = isPassed ? 1 : 0;
+			if (applied[i] === nextState) continue;
+			applied[i] = nextState;
+			elements[i].classList.toggle(PASSED_CLASS, isPassed);
+			writes += 1;
+		}
+		return writes;
+	}
+	/** Removes the `passed` class from every span and resets the diff state. */
+	function clearPassedState(state, elements) {
+		state.applied.fill(0);
+		for (let i = 0; i < elements.length; i += 1) elements[i].classList.remove(PASSED_CLASS);
+	}
 	//#endregion
 	//#region src/subtitles/positionController.ts
 	var clampToRange = clampNumber;
@@ -16334,28 +16160,48 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/subtitles/renderPlan.ts
-	var PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
 	var TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
-	var isPunctuationOrSymbol = (char) => PUNCTUATION_OR_SYMBOL_RE.test(char);
-	var getLeadingPunctuation = (value) => {
-		let endIndex = 0;
-		for (const char of value) {
-			if (!isPunctuationOrSymbol(char)) break;
-			endIndex += char.length;
+	var LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
+	var TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
+	var PUNCTUATION_ONLY_RE = /^[\p{P}\p{S}]+$/u;
+	var LEADING_WHITESPACE_RE = /^\s+/u;
+	/**
+	* Consolidated from a per-character `for..of` scan. A single anchored regex is
+	* equivalent for the same input class (Unicode `\p{P}`/`\p{S}` runs) and avoids
+	* one regex `test()` per code point.
+	*/
+	var getLeadingPunctuation = (value) => LEADING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
+	/**
+	* Consolidated from `Array.from(value)` + reverse scan, which allocated a code
+	* point array for every word token on every render.
+	*/
+	var getTrailingPunctuation = (value) => TRAILING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
+	var isPunctuationOnly = (value) => value.length > 0 && PUNCTUATION_ONLY_RE.test(value);
+	/**
+	* Precomputes "is there a token at or after index i that contributes a real
+	* word", replacing the previous `hasFutureWordToken()` forward rescan that made
+	* plan building O(n^2) for punctuation-heavy cues.
+	*/
+	var buildWordLookahead = (tokens, renderEndTokenIndex) => {
+		const size = Math.max(0, renderEndTokenIndex + 2);
+		const lookahead = new Uint8Array(size);
+		for (let index = renderEndTokenIndex; index >= 0; index -= 1) {
+			let hasWord = lookahead[index + 1] === 1;
+			if (!hasWord) {
+				const token = tokens[index];
+				const tokenText = token?.text ?? "";
+				if (token?.isWordLike && tokenText.trim()) {
+					const withoutLeadingWhitespace = tokenText.trimStart();
+					const leadingPunctuation = getLeadingPunctuation(withoutLeadingWhitespace);
+					const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(leadingPunctuation.length);
+					const trailingPunctuation = getTrailingPunctuation(withoutLeadingPunctuation);
+					hasWord = withoutLeadingPunctuation.length > trailingPunctuation.length;
+				}
+			}
+			lookahead[index] = hasWord ? 1 : 0;
 		}
-		return value.slice(0, endIndex);
+		return lookahead;
 	};
-	var getTrailingPunctuation = (value) => {
-		const chars = Array.from(value);
-		let length = 0;
-		for (let index = chars.length - 1; index >= 0; index -= 1) {
-			const char = chars[index];
-			if (!isPunctuationOrSymbol(char)) break;
-			length += char.length;
-		}
-		return length > 0 ? value.slice(value.length - length) : "";
-	};
-	var isPunctuationOnly = (value) => value.length > 0 && Array.from(value).every(isPunctuationOrSymbol);
 	var pushTextPart = (plan, text, style, options = {}) => {
 		plan.push({
 			kind: "text",
@@ -16370,21 +16216,9 @@ var vot = (function(exports) {
 		while (index <= renderEndTokenIndex && !tokens[index]?.isWordLike && !tokens[index]?.text.trim()) index += 1;
 		return index;
 	};
-	var hasFutureWordToken = (tokens, startIndex, renderEndTokenIndex) => {
-		for (let index = startIndex; index <= renderEndTokenIndex; index += 1) {
-			const tokenText = tokens[index]?.text ?? "";
-			if (!tokens[index]?.isWordLike || !tokenText.trim()) continue;
-			const withoutLeadingWhitespace = tokenText.trimStart();
-			const leadingPunctuation = getLeadingPunctuation(withoutLeadingWhitespace);
-			const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(leadingPunctuation.length);
-			const trailingPunctuation = getTrailingPunctuation(withoutLeadingPunctuation);
-			if (trailingPunctuation ? withoutLeadingPunctuation.slice(0, -trailingPunctuation.length) : withoutLeadingPunctuation) return true;
-		}
-		return false;
-	};
 	var consumeWordToken = (plan, tokens, startIndex, renderEndTokenIndex, breakAfterTokenIndexSet, highlightIndex) => {
 		const token = tokens[startIndex];
-		const leadingWhitespace = /^\s+/u.exec(token.text)?.[0] ?? "";
+		const leadingWhitespace = LEADING_WHITESPACE_RE.exec(token.text)?.[0] ?? "";
 		const body = token.text.slice(leadingWhitespace.length);
 		if (leadingWhitespace) pushTextPart(plan, leadingWhitespace, token.style);
 		const leadingPunctuation = getLeadingPunctuation(body);
@@ -16422,8 +16256,8 @@ var vot = (function(exports) {
 		};
 	};
 	var consumeTextToken = (plan, tokenIndex, tokens, renderEndTokenIndex, options) => {
-		const { token, tokenText, hasBreakAfter, lastWordHighlightIndex, nextWordHighlightIndex } = options;
-		const fallbackHighlightIndex = lastWordHighlightIndex ?? (hasFutureWordToken(tokens, tokenIndex + 1, renderEndTokenIndex) ? nextWordHighlightIndex : void 0);
+		const { token, tokenText, hasBreakAfter, lastWordHighlightIndex, nextWordHighlightIndex, hasWordAfter } = options;
+		const fallbackHighlightIndex = lastWordHighlightIndex ?? (hasWordAfter ? nextWordHighlightIndex : void 0);
 		const textParts = tokenText.match(TEXT_TOKEN_SLICE_RE) ?? [tokenText];
 		for (const textPart of textParts) pushTextPart(plan, textPart, token.style, { highlightIndex: isPunctuationOnly(textPart) ? fallbackHighlightIndex : void 0 });
 		if (hasBreakAfter) {
@@ -16442,6 +16276,7 @@ var vot = (function(exports) {
 		const plan = [];
 		let wordHighlightIndex = 0;
 		let lastWordHighlightIndex = null;
+		let wordLookahead = null;
 		for (let i = 0; i <= renderEndTokenIndex;) {
 			const token = tokens[i];
 			const tokenText = token?.text ?? "";
@@ -16464,12 +16299,14 @@ var vot = (function(exports) {
 				continue;
 			}
 			const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i));
+			if (lastWordHighlightIndex === null && wordLookahead === null) wordLookahead = buildWordLookahead(tokens, renderEndTokenIndex);
 			i = consumeTextToken(plan, i, tokens, renderEndTokenIndex, {
 				token,
 				tokenText,
 				hasBreakAfter,
 				lastWordHighlightIndex,
-				nextWordHighlightIndex: wordHighlightIndex
+				nextWordHighlightIndex: wordHighlightIndex,
+				hasWordAfter: wordLookahead ? wordLookahead[i + 1] === 1 : false
 			});
 		}
 		return plan;
@@ -16545,6 +16382,80 @@ var vot = (function(exports) {
 			fontSizePx,
 			maxWidthPx: roundToInt(clampNumber(clampNumber(charsPerLine + extraChars, 25, 48) * averageGlyphWidth, minWidthPx, maxWidthPx))
 		};
+	}
+	//#endregion
+	//#region src/subtitles/lineBreakRules.ts
+	var set = (...words) => new Set(words);
+	var EN = {
+		bindsForward: set("a", "an", "the", "my", "your", "his", "her", "its", "our", "their", "this", "that", "these", "those", "of", "in", "on", "at", "to", "for", "with", "from", "by", "into", "onto", "over", "under", "about", "between", "through", "during", "without", "within", "across", "against", "toward", "towards", "upon", "is", "are", "was", "were", "be", "been", "being", "am", "has", "have", "had", "will", "would", "can", "could", "should", "shall", "may", "might", "must", "do", "does", "did", "not", "no", "very", "more", "most", "less"),
+		prefersLineStart: set("and", "but", "or", "nor", "so", "yet", "because", "although", "though", "while", "whereas", "since", "unless", "if", "that", "which", "who", "when", "where", "whether", "of", "in", "on", "at", "to", "for", "with", "from", "by")
+	};
+	var RU = {
+		bindsForward: set("в", "во", "на", "за", "к", "ко", "с", "со", "по", "о", "об", "обо", "от", "до", "из", "у", "при", "про", "для", "без", "перед", "над", "под", "между", "не", "ни", "бы", "же", "очень", "мой", "твой", "наш", "ваш", "этот", "эта", "эти"),
+		prefersLineStart: set("и", "а", "но", "или", "что", "чтобы", "потому", "если", "когда", "который", "которая", "хотя", "пока")
+	};
+	var DE = {
+		bindsForward: set("der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines", "mein", "dein", "sein", "ihr", "unser", "in", "an", "auf", "aus", "bei", "mit", "nach", "seit", "von", "zu", "zur", "zum", "vor", "über", "unter", "durch", "für", "ohne", "um", "ist", "sind", "war", "waren", "hat", "haben", "wird", "werden", "kann", "können", "muss", "müssen", "nicht", "sehr"),
+		prefersLineStart: set("und", "aber", "oder", "denn", "weil", "dass", "wenn", "obwohl", "während", "der", "die", "das")
+	};
+	var FR = {
+		bindsForward: set("le", "la", "les", "un", "une", "des", "du", "de", "au", "aux", "mon", "ton", "son", "ma", "ta", "sa", "mes", "tes", "ses", "notre", "votre", "leur", "ce", "cet", "cette", "ces", "à", "en", "dans", "sur", "sous", "pour", "par", "avec", "sans", "est", "sont", "a", "ont", "ne", "pas", "très", "plus"),
+		prefersLineStart: set("et", "mais", "ou", "car", "donc", "que", "qui", "quand", "si", "parce", "bien", "lorsque")
+	};
+	var ES = {
+		bindsForward: set("el", "la", "los", "las", "un", "una", "unos", "unas", "lo", "mi", "tu", "su", "mis", "tus", "sus", "nuestro", "este", "esta", "de", "del", "a", "al", "en", "con", "sin", "por", "para", "sobre", "es", "son", "está", "están", "ha", "han", "no", "muy", "más"),
+		prefersLineStart: set("y", "e", "pero", "o", "u", "porque", "que", "si", "cuando", "aunque", "mientras", "quien")
+	};
+	var LEXICONS = {
+		en: EN,
+		ru: RU,
+		uk: RU,
+		be: RU,
+		de: DE,
+		fr: FR,
+		es: ES,
+		pt: ES,
+		it: ES
+	};
+	var SCRIPTIO_CONTINUA = /* @__PURE__ */ new Set([
+		"ja",
+		"zh",
+		"ko",
+		"th",
+		"lo",
+		"km",
+		"my",
+		"bo"
+	]);
+	var getBaseLanguage = (locale) => (locale ?? "").toLowerCase().split(/[-_]/u)[0] ?? "";
+	var isScriptioContinua = (locale) => SCRIPTIO_CONTINUA.has(getBaseLanguage(locale));
+	var WORD_CHARS_RE = /[^\p{L}\p{N}'\u2019]+/gu;
+	var normalizeLexiconWord = (value) => value.replaceAll(WORD_CHARS_RE, " ").trim().toLowerCase();
+	var lastWordOf = (text) => {
+		return normalizeLexiconWord(text).split(" ").filter(Boolean).at(-1) ?? "";
+	};
+	var firstWordOf = (text) => {
+		return normalizeLexiconWord(text).split(" ").filter(Boolean)[0] ?? "";
+	};
+	var LINE_BREAK_PENALTY = {
+		bindsForward: 240,
+		prefersLineStart: -60
+	};
+	/**
+	* Penalty (positive = worse) for breaking a line between `beforeText` and
+	* `afterText`. Returns 0 for space-less scripts, where the lexicon does not
+	* apply.
+	*/
+	function getLinguisticBreakPenalty(beforeText, afterText, locale) {
+		if (isScriptioContinua(locale)) return 0;
+		const lexicon = LEXICONS[getBaseLanguage(locale)] ?? EN;
+		const before = lastWordOf(beforeText);
+		const after = firstWordOf(afterText);
+		if (!before || !after) return 0;
+		let penalty = 0;
+		if (lexicon.bindsForward.has(before)) penalty += LINE_BREAK_PENALTY.bindsForward;
+		if (lexicon.prefersLineStart.has(after)) penalty += LINE_BREAK_PENALTY.prefersLineStart;
+		return penalty;
 	}
 	//#endregion
 	//#region src/subtitles/smartWrap.ts
@@ -16652,9 +16563,9 @@ var vot = (function(exports) {
 			forcesLineBreak: true
 		};
 	};
-	var buildSliceFromWord = (tokens, wordTokenIndex, textBuffer, includeMetrics) => {
+	var buildSliceFromWord = (tokens, wordTokenIndex, textBuffer, includeMetrics, minStartToken) => {
 		let startToken = wordTokenIndex;
-		while (startToken > 0 && tokens[startToken - 1]?.text !== "\n" && !isWordToken(tokens[startToken - 1])) startToken -= 1;
+		while (startToken > minStartToken && tokens[startToken - 1]?.text !== "\n" && !isWordToken(tokens[startToken - 1])) startToken -= 1;
 		let endToken = wordTokenIndex + 1;
 		while (endToken < tokens.length && tokens[endToken]?.text !== "\n" && !isWordToken(tokens[endToken])) endToken += 1;
 		const text = getBufferedTokenText(textBuffer, startToken, endToken);
@@ -16671,26 +16582,43 @@ var vot = (function(exports) {
 			forcesLineBreak: false
 		};
 	};
-	var appendNextWordSlice = (slices, keyParts, tokens, textBuffer, collectKey, index) => {
+	var appendNextWordSlice = (slices, keyParts, tokens, textBuffer, collectKey, state) => {
+		const { index } = state;
 		const token = tokens[index];
-		if (!token?.text) return index + 1;
+		if (!token?.text) {
+			state.index = index + 1;
+			return;
+		}
 		if (token.text === "\n") {
 			const slice = createForcedBreakSlice(tokens, index);
 			slices.push(slice);
 			keyParts?.push("\n");
-			return index + 1;
+			state.index = index + 1;
+			state.cursor = index + 1;
+			return;
 		}
-		if (!isWordToken(token)) return index + 1;
-		const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
+		if (!isWordToken(token)) {
+			state.index = index + 1;
+			return;
+		}
+		const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey, state.cursor);
 		slices.push(slice);
 		keyParts?.push(normalizeTokenText(slice.text));
-		return slice.breakAfterTokenIndex + 1;
+		state.index = slice.breakAfterTokenIndex + 1;
+		state.cursor = slice.endToken;
 	};
 	function buildWordSlicesFromBuffer(tokens, textBuffer, collectKey) {
 		const slices = [];
 		const keyParts = collectKey ? [] : null;
-		let index = 0;
-		while (index < tokens.length) index = appendNextWordSlice(slices, keyParts, tokens, textBuffer, collectKey, index);
+		const state = {
+			index: 0,
+			cursor: 0
+		};
+		while (state.index < tokens.length) {
+			const previousIndex = state.index;
+			appendNextWordSlice(slices, keyParts, tokens, textBuffer, collectKey, state);
+			if (state.index <= previousIndex) state.index = previousIndex + 1;
+		}
 		return {
 			slices,
 			key: keyParts?.join("|") ?? ""
@@ -16804,50 +16732,68 @@ var vot = (function(exports) {
 		finalizeSegment(segments, tokens, state.segmentStartToken, state.lastTokenInSegment);
 		return finalizeComputedSegments(tokens, segments);
 	}
-	var measureTokenRange = (textBuffer, startToken, endToken, measureText) => {
+	/**
+	* Width of a rendered line. Whitespace at a line edge is collapsed away by the
+	* renderer, so measuring it would overstate the line width and make a line that
+	* actually fits look like an overflow.
+	*/
+	var measureRenderedLineWidth = (textBuffer, startToken, endToken, measureText) => {
 		if (endToken <= startToken) return 0;
-		return measureText(getBufferedTokenText(textBuffer, startToken, endToken));
+		const text = getBufferedTokenText(textBuffer, startToken, endToken).trim();
+		if (!text) return 0;
+		return measureText(text);
 	};
-	var scoreBreakCandidate = ({ firstWidth, secondWidth, lineStartPenalty, lineEndPenalty, firstWordCount, secondWordCount, maxWidthPx, boundary }) => {
+	var scoreBreakCandidate = ({ firstWidth, secondWidth, lineStartPenalty, lineEndPenalty, firstWordCount, secondWordCount, maxWidthPx, boundary, linguisticPenalty, countsWords }) => {
 		const overflowPenalty = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12;
 		const balancePenalty = Math.abs(secondWidth / Math.max(firstWidth, 1) - 1.08) * 120;
-		const shortTopPenalty = firstWordCount < 2 ? 80 : 0;
-		const orphanPenalty = secondWordCount < 2 ? 80 : 0;
+		const shortTopPenalty = countsWords && firstWordCount < 2 ? 80 : 0;
+		const orphanPenalty = countsWords && secondWordCount < 2 ? 80 : 0;
 		let boundaryBonus = 0;
 		if (boundary === "strong") boundaryBonus = -28;
 		else if (boundary === "soft") boundaryBonus = -14;
-		return overflowPenalty + balancePenalty + shortTopPenalty + orphanPenalty + lineStartPenalty + lineEndPenalty + boundaryBonus;
+		return overflowPenalty + balancePenalty + shortTopPenalty + orphanPenalty + lineStartPenalty + lineEndPenalty + boundaryBonus + linguisticPenalty;
 	};
 	var emptyTokenWrapPlan = () => ({ breakAfterTokenIndices: [] });
 	var singleBreakTokenWrapPlan = (breakAfterTokenIndex) => ({ breakAfterTokenIndices: [breakAfterTokenIndex] });
 	var hasForcedLineBreakToken = (tokens) => tokens.some((token) => token.text === "\n");
-	var findBestWordBreakAfterTokenIndex = (tokens, textBuffer, measurableSlices, measureText, maxWidthPx) => {
+	var findBestWordBreakAfterTokenIndex = (tokens, textBuffer, measurableSlices, measureText, maxWidthPx, locale) => {
+		let bestFitBreakAfterTokenIndex = null;
+		let bestFitScore = Number.POSITIVE_INFINITY;
 		let bestBreakAfterTokenIndex = null;
 		let bestScore = Number.POSITIVE_INFINITY;
+		const countsWords = !isScriptioContinua(locale);
 		for (let index = 0; index < measurableSlices.length - 1; index += 1) {
 			const slice = measurableSlices[index];
 			const nextSlice = measurableSlices[index + 1];
 			const candidateBreakAfterTokenIndex = Math.max(slice.breakAfterTokenIndex, nextSlice.tokenIndex - 1);
 			const firstEndToken = candidateBreakAfterTokenIndex + 1;
 			const secondStartToken = nextSlice.tokenIndex;
+			const firstWidth = measureRenderedLineWidth(textBuffer, 0, firstEndToken, measureText);
+			const secondWidth = measureRenderedLineWidth(textBuffer, secondStartToken, tokens.length, measureText);
 			const score = scoreBreakCandidate({
-				firstWidth: measureTokenRange(textBuffer, 0, firstEndToken, measureText),
-				secondWidth: measureTokenRange(textBuffer, secondStartToken, tokens.length, measureText),
+				firstWidth,
+				secondWidth,
 				lineStartPenalty: rangeStartsWithDiscouragedLineStart(textBuffer, secondStartToken, tokens.length) ? 260 : 0,
 				lineEndPenalty: rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0,
 				firstWordCount: index + 1,
 				secondWordCount: measurableSlices.length - (index + 1),
 				maxWidthPx,
-				boundary: slice.boundary
+				boundary: slice.boundary,
+				linguisticPenalty: getLinguisticBreakPenalty(slice.text, nextSlice.text, locale),
+				countsWords
 			});
 			if (score < bestScore) {
 				bestScore = score;
 				bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
 			}
+			if (firstWidth <= maxWidthPx && secondWidth <= maxWidthPx && score < bestFitScore) {
+				bestFitScore = score;
+				bestFitBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
+			}
 		}
-		return bestBreakAfterTokenIndex;
+		return bestFitBreakAfterTokenIndex ?? bestBreakAfterTokenIndex;
 	};
-	function computeTokenWrapPlan(tokens, measureText, maxWidthPx) {
+	function computeTokenWrapPlan(tokens, measureText, maxWidthPx, locale) {
 		if (!tokens.length || hasForcedLineBreakToken(tokens)) return emptyTokenWrapPlan();
 		const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
 		if (safeMaxWidthPx <= 0) return emptyTokenWrapPlan();
@@ -16855,10 +16801,912 @@ var vot = (function(exports) {
 		const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
 		const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
 		if (!measurableSlices.length) return emptyTokenWrapPlan();
-		if (measureTokenRange(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return emptyTokenWrapPlan();
-		const bestBreakAfterTokenIndex = findBestWordBreakAfterTokenIndex(tokens, textBuffer, measurableSlices, measureText, safeMaxWidthPx);
+		if (measureRenderedLineWidth(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return emptyTokenWrapPlan();
+		const bestBreakAfterTokenIndex = findBestWordBreakAfterTokenIndex(tokens, textBuffer, measurableSlices, measureText, safeMaxWidthPx, locale);
 		if (bestBreakAfterTokenIndex !== null) return singleBreakTokenWrapPlan(bestBreakAfterTokenIndex);
 		return emptyTokenWrapPlan();
+	}
+	//#endregion
+	//#region node_modules/solid-js/dist/solid.js
+	var sharedConfig = {
+		context: void 0,
+		registry: void 0,
+		effects: void 0,
+		done: false,
+		getContextId() {
+			return getContextId(this.context.count);
+		},
+		getNextContextId() {
+			return getContextId(this.context.count++);
+		}
+	};
+	function getContextId(count) {
+		const num = String(count), len = num.length - 1;
+		return sharedConfig.context.id + (len ? String.fromCharCode(96 + len) : "") + num;
+	}
+	function setHydrateContext(context) {
+		sharedConfig.context = context;
+	}
+	function nextHydrateContext() {
+		return {
+			...sharedConfig.context,
+			id: sharedConfig.getNextContextId(),
+			count: 0
+		};
+	}
+	var equalFn = (a, b) => a === b;
+	var $PROXY = Symbol("solid-proxy");
+	var SUPPORTS_PROXY = typeof Proxy === "function";
+	var signalOptions = { equals: equalFn };
+	var ERROR = null;
+	var runEffects = runQueue;
+	var STALE = 1;
+	var PENDING = 2;
+	var UNOWNED = {
+		owned: null,
+		cleanups: null,
+		context: null,
+		owner: null
+	};
+	var Owner = null;
+	var Transition = null;
+	var Scheduler = null;
+	var ExternalSourceConfig = null;
+	var Listener = null;
+	var Updates = null;
+	var Effects = null;
+	var ExecCount = 0;
+	function createRoot(fn, detachedOwner) {
+		const listener = Listener, owner = Owner, unowned = fn.length === 0, current = detachedOwner === void 0 ? owner : detachedOwner, root = unowned ? UNOWNED : {
+			owned: null,
+			cleanups: null,
+			context: current ? current.context : null,
+			owner: current
+		}, updateFn = unowned ? fn : () => fn(() => untrack(() => cleanNode(root)));
+		Owner = root;
+		Listener = null;
+		try {
+			return runUpdates(updateFn, true);
+		} finally {
+			Listener = listener;
+			Owner = owner;
+		}
+	}
+	function createSignal(value, options) {
+		options = options ? Object.assign({}, signalOptions, options) : signalOptions;
+		const s = {
+			value,
+			observers: null,
+			observerSlots: null,
+			comparator: options.equals || void 0
+		};
+		const setter = (value) => {
+			if (typeof value === "function") if (Transition && Transition.running && Transition.sources.has(s)) value = value(s.tValue);
+			else value = value(s.value);
+			return writeSignal(s, value);
+		};
+		return [readSignal.bind(s), setter];
+	}
+	function createRenderEffect(fn, value, options) {
+		const c = createComputation(fn, value, false, STALE);
+		if (Scheduler && Transition && Transition.running) Updates.push(c);
+		else updateComputation(c);
+	}
+	function createMemo(fn, value, options) {
+		options = options ? Object.assign({}, signalOptions, options) : signalOptions;
+		const c = createComputation(fn, value, true, 0);
+		c.observers = null;
+		c.observerSlots = null;
+		c.comparator = options.equals || void 0;
+		if (Scheduler && Transition && Transition.running) {
+			c.tState = STALE;
+			Updates.push(c);
+		} else updateComputation(c);
+		return readSignal.bind(c);
+	}
+	function untrack(fn) {
+		if (!ExternalSourceConfig && Listener === null) return fn();
+		const listener = Listener;
+		Listener = null;
+		try {
+			if (ExternalSourceConfig) return ExternalSourceConfig.untrack(fn);
+			return fn();
+		} finally {
+			Listener = listener;
+		}
+	}
+	function onCleanup(fn) {
+		if (Owner === null);
+		else if (Owner.cleanups === null) Owner.cleanups = [fn];
+		else Owner.cleanups.push(fn);
+		return fn;
+	}
+	function startTransition(fn) {
+		if (Transition && Transition.running) {
+			fn();
+			return Transition.done;
+		}
+		const l = Listener;
+		const o = Owner;
+		return Promise.resolve().then(() => {
+			Listener = l;
+			Owner = o;
+			let t;
+			if (Scheduler || SuspenseContext) {
+				t = Transition || (Transition = {
+					sources: /* @__PURE__ */ new Set(),
+					effects: [],
+					promises: /* @__PURE__ */ new Set(),
+					disposed: /* @__PURE__ */ new Set(),
+					queue: /* @__PURE__ */ new Set(),
+					running: true
+				});
+				t.done || (t.done = new Promise((res) => t.resolve = res));
+				t.running = true;
+			}
+			runUpdates(fn, false);
+			Listener = Owner = null;
+			return t ? t.done : void 0;
+		});
+	}
+	var [transPending, setTransPending] = /*@__PURE__*/ createSignal(false);
+	var SuspenseContext;
+	function readSignal() {
+		const runningTransition = Transition && Transition.running;
+		if (this.sources && (runningTransition ? this.tState : this.state)) if ((runningTransition ? this.tState : this.state) === STALE) updateComputation(this);
+		else {
+			const updates = Updates;
+			Updates = null;
+			runUpdates(() => lookUpstream(this), false);
+			Updates = updates;
+		}
+		if (Listener) {
+			const observers = this.observers;
+			if (!observers || observers[observers.length - 1] !== Listener) {
+				const sSlot = observers ? observers.length : 0;
+				if (!Listener.sources) {
+					Listener.sources = [this];
+					Listener.sourceSlots = [sSlot];
+				} else {
+					Listener.sources.push(this);
+					Listener.sourceSlots.push(sSlot);
+				}
+				if (!observers) {
+					this.observers = [Listener];
+					this.observerSlots = [Listener.sources.length - 1];
+				} else {
+					observers.push(Listener);
+					this.observerSlots.push(Listener.sources.length - 1);
+				}
+			}
+		}
+		if (runningTransition && Transition.sources.has(this)) return this.tValue;
+		return this.value;
+	}
+	function writeSignal(node, value, isComp) {
+		let current = Transition && Transition.running && Transition.sources.has(node) ? node.tValue : node.value;
+		if (!node.comparator || !node.comparator(current, value)) {
+			if (Transition) {
+				const TransitionRunning = Transition.running;
+				if (TransitionRunning || !isComp && Transition.sources.has(node)) {
+					Transition.sources.add(node);
+					node.tValue = value;
+				}
+				if (!TransitionRunning) node.value = value;
+			} else node.value = value;
+			if (node.observers && node.observers.length) runUpdates(() => {
+				for (let i = 0; i < node.observers.length; i += 1) {
+					const o = node.observers[i];
+					const TransitionRunning = Transition && Transition.running;
+					if (TransitionRunning && Transition.disposed.has(o)) continue;
+					if (TransitionRunning ? !o.tState : !o.state) {
+						if (o.pure) Updates.push(o);
+						else Effects.push(o);
+						if (o.observers) markDownstream(o);
+					}
+					if (!TransitionRunning) o.state = STALE;
+					else o.tState = STALE;
+				}
+				if (Updates.length > 1e6) {
+					Updates = [];
+					throw new Error();
+				}
+			}, false);
+		}
+		return value;
+	}
+	function updateComputation(node) {
+		if (!node.fn) return;
+		cleanNode(node);
+		const time = ExecCount;
+		runComputation(node, Transition && Transition.running && Transition.sources.has(node) ? node.tValue : node.value, time);
+		if (Transition && !Transition.running && Transition.sources.has(node)) queueMicrotask(() => {
+			runUpdates(() => {
+				Transition && (Transition.running = true);
+				Listener = Owner = node;
+				runComputation(node, node.tValue, time);
+				Listener = Owner = null;
+			}, false);
+		});
+	}
+	function runComputation(node, value, time) {
+		let nextValue;
+		const owner = Owner, listener = Listener;
+		Listener = Owner = node;
+		try {
+			nextValue = node.fn(value);
+		} catch (err) {
+			if (node.pure) if (Transition && Transition.running) {
+				node.tState = STALE;
+				node.tOwned && node.tOwned.forEach(cleanNode);
+				node.tOwned = void 0;
+			} else {
+				node.state = STALE;
+				node.owned && node.owned.forEach(cleanNode);
+				node.owned = null;
+			}
+			node.updatedAt = time + 1;
+			return handleError(err);
+		} finally {
+			Listener = listener;
+			Owner = owner;
+		}
+		if (!node.updatedAt || node.updatedAt <= time) {
+			if (node.updatedAt != null && "observers" in node) writeSignal(node, nextValue, true);
+			else if (Transition && Transition.running && node.pure) {
+				if (!Transition.sources.has(node)) node.value = nextValue;
+				Transition.sources.add(node);
+				node.tValue = nextValue;
+			} else node.value = nextValue;
+			node.updatedAt = time;
+		}
+	}
+	function createComputation(fn, init, pure, state = STALE, options) {
+		const c = {
+			fn,
+			state,
+			updatedAt: null,
+			owned: null,
+			sources: null,
+			sourceSlots: null,
+			cleanups: null,
+			value: init,
+			owner: Owner,
+			context: Owner ? Owner.context : null,
+			pure
+		};
+		if (Transition && Transition.running) {
+			c.state = 0;
+			c.tState = state;
+		}
+		if (Owner === null);
+		else if (Owner !== UNOWNED) if (Transition && Transition.running && Owner.pure) if (!Owner.tOwned) Owner.tOwned = [c];
+		else Owner.tOwned.push(c);
+		else if (!Owner.owned) Owner.owned = [c];
+		else Owner.owned.push(c);
+		if (ExternalSourceConfig && c.fn) {
+			const sourceFn = c.fn;
+			const [track, trigger] = createSignal(void 0, { equals: false });
+			const ordinary = ExternalSourceConfig.factory(sourceFn, trigger);
+			onCleanup(() => ordinary.dispose());
+			let inTransition;
+			const triggerInTransition = () => startTransition(trigger).then(() => {
+				if (inTransition) {
+					inTransition.dispose();
+					inTransition = void 0;
+				}
+			});
+			c.fn = (x) => {
+				track();
+				if (Transition && Transition.running) {
+					if (!inTransition) inTransition = ExternalSourceConfig.factory(sourceFn, triggerInTransition);
+					return inTransition.track(x);
+				}
+				return ordinary.track(x);
+			};
+		}
+		return c;
+	}
+	function runTop(node) {
+		const runningTransition = Transition && Transition.running;
+		if ((runningTransition ? node.tState : node.state) === 0) return;
+		if ((runningTransition ? node.tState : node.state) === PENDING) return lookUpstream(node);
+		if (node.suspense && untrack(node.suspense.inFallback)) return node.suspense.effects.push(node);
+		const ancestors = [node];
+		while ((node = node.owner) && (!node.updatedAt || node.updatedAt < ExecCount)) {
+			if (runningTransition && Transition.disposed.has(node)) return;
+			if (runningTransition ? node.tState : node.state) ancestors.push(node);
+		}
+		for (let i = ancestors.length - 1; i >= 0; i--) {
+			node = ancestors[i];
+			if (runningTransition) {
+				let top = node, prev = ancestors[i + 1];
+				while ((top = top.owner) && top !== prev) if (Transition.disposed.has(top)) return;
+			}
+			if ((runningTransition ? node.tState : node.state) === STALE) updateComputation(node);
+			else if ((runningTransition ? node.tState : node.state) === PENDING) {
+				const updates = Updates;
+				Updates = null;
+				runUpdates(() => lookUpstream(node, ancestors[0]), false);
+				Updates = updates;
+			}
+		}
+	}
+	function runUpdates(fn, init) {
+		if (Updates) return fn();
+		let wait = false;
+		if (!init) Updates = [];
+		if (Effects) wait = true;
+		else Effects = [];
+		ExecCount++;
+		try {
+			const res = fn();
+			completeUpdates(wait);
+			return res;
+		} catch (err) {
+			if (!wait) Effects = null;
+			Updates = null;
+			handleError(err);
+		}
+	}
+	function completeUpdates(wait) {
+		if (Updates) {
+			if (Scheduler && Transition && Transition.running) scheduleQueue(Updates);
+			else runQueue(Updates);
+			Updates = null;
+		}
+		if (wait) return;
+		let res;
+		if (Transition) {
+			if (!Transition.promises.size && !Transition.queue.size) {
+				const sources = Transition.sources;
+				const disposed = Transition.disposed;
+				Effects.push.apply(Effects, Transition.effects);
+				res = Transition.resolve;
+				for (const e of Effects) {
+					"tState" in e && (e.state = e.tState);
+					delete e.tState;
+				}
+				Transition = null;
+				runUpdates(() => {
+					for (const d of disposed) cleanNode(d);
+					for (const v of sources) {
+						v.value = v.tValue;
+						if (v.owned) for (let i = 0, len = v.owned.length; i < len; i++) cleanNode(v.owned[i]);
+						if (v.tOwned) v.owned = v.tOwned;
+						delete v.tValue;
+						delete v.tOwned;
+						v.tState = 0;
+					}
+					setTransPending(false);
+				}, false);
+			} else if (Transition.running) {
+				Transition.running = false;
+				Transition.effects.push.apply(Transition.effects, Effects);
+				Effects = null;
+				setTransPending(true);
+				return;
+			}
+		}
+		const e = Effects;
+		Effects = null;
+		if (e.length) runUpdates(() => runEffects(e), false);
+		if (res) res();
+	}
+	function runQueue(queue) {
+		for (let i = 0; i < queue.length; i++) runTop(queue[i]);
+	}
+	function scheduleQueue(queue) {
+		for (let i = 0; i < queue.length; i++) {
+			const item = queue[i];
+			const tasks = Transition.queue;
+			if (!tasks.has(item)) {
+				tasks.add(item);
+				Scheduler(() => {
+					tasks.delete(item);
+					runUpdates(() => {
+						Transition.running = true;
+						runTop(item);
+					}, false);
+					Transition && (Transition.running = false);
+				});
+			}
+		}
+	}
+	function lookUpstream(node, ignore) {
+		const runningTransition = Transition && Transition.running;
+		if (runningTransition) node.tState = 0;
+		else node.state = 0;
+		for (let i = 0; i < node.sources.length; i += 1) {
+			const source = node.sources[i];
+			if (source.sources) {
+				const state = runningTransition ? source.tState : source.state;
+				if (state === STALE) {
+					if (source !== ignore && (!source.updatedAt || source.updatedAt < ExecCount)) runTop(source);
+				} else if (state === PENDING) lookUpstream(source, ignore);
+			}
+		}
+	}
+	function markDownstream(node) {
+		const runningTransition = Transition && Transition.running;
+		for (let i = 0; i < node.observers.length; i += 1) {
+			const o = node.observers[i];
+			if (runningTransition ? !o.tState : !o.state) {
+				if (runningTransition) o.tState = PENDING;
+				else o.state = PENDING;
+				if (o.pure) Updates.push(o);
+				else Effects.push(o);
+				o.observers && markDownstream(o);
+			}
+		}
+	}
+	function cleanNode(node) {
+		let i;
+		if (node.sources) while (node.sources.length) {
+			const source = node.sources.pop(), index = node.sourceSlots.pop(), obs = source.observers;
+			if (obs && obs.length) {
+				const n = obs.pop(), s = source.observerSlots.pop();
+				if (index < obs.length) {
+					n.sourceSlots[s] = index;
+					obs[index] = n;
+					source.observerSlots[index] = s;
+				}
+			}
+		}
+		if (node.tOwned) {
+			for (i = node.tOwned.length - 1; i >= 0; i--) cleanNode(node.tOwned[i]);
+			delete node.tOwned;
+		}
+		if (Transition && Transition.running && node.pure) reset(node, true);
+		else if (node.owned) {
+			for (i = node.owned.length - 1; i >= 0; i--) cleanNode(node.owned[i]);
+			node.owned = null;
+		}
+		if (node.cleanups) {
+			for (i = node.cleanups.length - 1; i >= 0; i--) node.cleanups[i]();
+			node.cleanups = null;
+		}
+		if (Transition && Transition.running) node.tState = 0;
+		else node.state = 0;
+	}
+	function reset(node, top) {
+		if (!top) {
+			node.tState = 0;
+			Transition.disposed.add(node);
+		}
+		if (node.owned) for (let i = 0; i < node.owned.length; i++) reset(node.owned[i]);
+	}
+	function castError(err) {
+		if (err instanceof Error) return err;
+		return new Error(typeof err === "string" ? err : "Unknown error", { cause: err });
+	}
+	function runErrors(err, fns, owner) {
+		try {
+			for (const f of fns) f(err);
+		} catch (e) {
+			handleError(e, owner && owner.owner || null);
+		}
+	}
+	function handleError(err, owner = Owner) {
+		const fns = ERROR && owner && owner.context && owner.context[ERROR];
+		const error = castError(err);
+		if (!fns) throw error;
+		if (Effects) Effects.push({
+			fn() {
+				runErrors(error, fns, owner);
+			},
+			state: STALE
+		});
+		else runErrors(error, fns, owner);
+	}
+	var hydrationEnabled = false;
+	function createComponent$1(Comp, props) {
+		if (hydrationEnabled) {
+			if (sharedConfig.context) {
+				const c = sharedConfig.context;
+				setHydrateContext(nextHydrateContext());
+				const r = untrack(() => Comp(props || {}));
+				setHydrateContext(c);
+				return r;
+			}
+		}
+		return untrack(() => Comp(props || {}));
+	}
+	function trueFn() {
+		return true;
+	}
+	var propTraps = {
+		get(_, property, receiver) {
+			if (property === $PROXY) return receiver;
+			return _.get(property);
+		},
+		has(_, property) {
+			if (property === $PROXY) return true;
+			return _.has(property);
+		},
+		set: trueFn,
+		deleteProperty: trueFn,
+		getOwnPropertyDescriptor(_, property) {
+			return {
+				configurable: true,
+				enumerable: true,
+				get() {
+					return _.get(property);
+				},
+				set: trueFn,
+				deleteProperty: trueFn
+			};
+		},
+		ownKeys(_) {
+			return _.keys();
+		}
+	};
+	function resolveSource(s) {
+		return !(s = typeof s === "function" ? s() : s) ? {} : s;
+	}
+	function resolveSources() {
+		for (let i = 0, length = this.length; i < length; ++i) {
+			const v = this[i]();
+			if (v !== void 0) return v;
+		}
+	}
+	function mergeProps$1(...sources) {
+		let proxy = false;
+		for (let i = 0; i < sources.length; i++) {
+			const s = sources[i];
+			proxy = proxy || !!s && $PROXY in s;
+			sources[i] = typeof s === "function" ? (proxy = true, createMemo(s)) : s;
+		}
+		if (SUPPORTS_PROXY && proxy) return new Proxy({
+			get(property) {
+				for (let i = sources.length - 1; i >= 0; i--) {
+					const v = resolveSource(sources[i])[property];
+					if (v !== void 0) return v;
+				}
+			},
+			has(property) {
+				for (let i = sources.length - 1; i >= 0; i--) if (property in resolveSource(sources[i])) return true;
+				return false;
+			},
+			keys() {
+				const keys = [];
+				for (let i = 0; i < sources.length; i++) keys.push(...Object.keys(resolveSource(sources[i])));
+				return [...new Set(keys)];
+			}
+		}, propTraps);
+		const sourcesMap = {};
+		const defined = Object.create(null);
+		for (let i = sources.length - 1; i >= 0; i--) {
+			const source = sources[i];
+			if (!source) continue;
+			const sourceKeys = Object.getOwnPropertyNames(source);
+			for (let i = sourceKeys.length - 1; i >= 0; i--) {
+				const key = sourceKeys[i];
+				if (key === "__proto__" || key === "constructor") continue;
+				const desc = Object.getOwnPropertyDescriptor(source, key);
+				if (!defined[key]) defined[key] = desc.get ? {
+					enumerable: true,
+					configurable: true,
+					get: resolveSources.bind(sourcesMap[key] = [desc.get.bind(source)])
+				} : desc.value !== void 0 ? desc : void 0;
+				else {
+					const sources = sourcesMap[key];
+					if (sources) {
+						if (desc.get) sources.push(desc.get.bind(source));
+						else if (desc.value !== void 0) sources.push(() => desc.value);
+					}
+				}
+			}
+		}
+		const target = {};
+		const definedKeys = Object.keys(defined);
+		for (let i = definedKeys.length - 1; i >= 0; i--) {
+			const key = definedKeys[i], desc = defined[key];
+			if (desc && desc.get) Object.defineProperty(target, key, desc);
+			else target[key] = desc ? desc.value : void 0;
+		}
+		return target;
+	}
+	var narrowedError = (name) => `Stale read from <${name}>.`;
+	function Show(props) {
+		const keyed = props.keyed;
+		const conditionValue = createMemo(() => props.when, void 0, void 0);
+		const condition = keyed ? conditionValue : createMemo(conditionValue, void 0, { equals: (a, b) => !a === !b });
+		return createMemo(() => {
+			const c = condition();
+			if (c) {
+				const child = props.children;
+				return typeof child === "function" && child.length > 0 ? untrack(() => child(keyed ? c : () => {
+					if (!untrack(condition)) throw narrowedError("Show");
+					return conditionValue();
+				})) : child;
+			}
+			return props.fallback;
+		}, void 0, void 0);
+	}
+	//#endregion
+	//#region src/subtitles/inlineStyle.ts
+	var SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
+	var SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
+	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
+	var SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
+	/**
+	* Bounded memo for color validation. Subtitle tracks reuse a very small set of
+	* distinct colors, so a tiny cache removes 3 regex tests per styled token per
+	* render without unbounded growth.
+	*/
+	var COLOR_CACHE_LIMIT = 256;
+	var colorCache = /* @__PURE__ */ new Map();
+	/**
+	* Memo for normalization / css-text derivation keyed by the *style object*.
+	*
+	* Contract: `SubtitleInlineStyle` values produced by the parsers are treated as
+	* immutable (they are created once per token and never mutated). A `WeakMap`
+	* keeps the memo tied to the token lifetime, so it cannot leak.
+	*/
+	var normalizedCache = /* @__PURE__ */ new WeakMap();
+	var cssTextCache = /* @__PURE__ */ new WeakMap();
+	var normalizeClassNames = (classes) => {
+		if (!classes?.length) return void 0;
+		const normalized = Array.from(new Set(classes.map((value) => value.trim()).filter((value) => value && SAFE_CLASS_NAME_RE.test(value)))).sort((left, right) => left.localeCompare(right));
+		return normalized.length ? normalized : void 0;
+	};
+	var normalizeCssColorValue = (value) => {
+		const cached = colorCache.get(value);
+		if (cached !== void 0 || colorCache.has(value)) return cached;
+		const result = computeNormalizedCssColorValue(value);
+		if (colorCache.size >= COLOR_CACHE_LIMIT) colorCache.clear();
+		colorCache.set(value, result);
+		return result;
+	};
+	var computeNormalizedCssColorValue = (value) => {
+		const normalized = value.trim();
+		if (!normalized) return void 0;
+		if (SAFE_HEX_COLOR_RE.test(normalized)) return normalized.toLowerCase();
+		if (SAFE_CSS_COLOR_NAME_RE.test(normalized)) return normalized.toLowerCase();
+		if (SAFE_CSS_FUNCTION_COLOR_RE.test(normalized)) return normalized;
+	};
+	var computeNormalizedSubtitleInlineStyle = (style) => {
+		const normalized = {};
+		if (style.italic) normalized.italic = true;
+		if (style.bold) normalized.bold = true;
+		if (style.underline) normalized.underline = true;
+		const normalizedColor = typeof style.color === "string" ? normalizeCssColorValue(style.color) : void 0;
+		if (normalizedColor) normalized.color = normalizedColor;
+		const normalizedClasses = normalizeClassNames(style.classes);
+		if (normalizedClasses) normalized.classes = normalizedClasses;
+		return Object.keys(normalized).length ? normalized : void 0;
+	};
+	var normalizeSubtitleInlineStyle = (style) => {
+		if (!style) return void 0;
+		const cached = normalizedCache.get(style);
+		if (cached !== void 0 || normalizedCache.has(style)) return cached;
+		const normalized = computeNormalizedSubtitleInlineStyle(style);
+		normalizedCache.set(style, normalized);
+		return normalized;
+	};
+	var sanitizeSubtitleInlineStyle = (value) => {
+		if (!value || typeof value !== "object") return void 0;
+		const raw = value;
+		return normalizeSubtitleInlineStyle({
+			italic: raw.italic === true,
+			bold: raw.bold === true,
+			underline: raw.underline === true,
+			color: typeof raw.color === "string" ? raw.color : void 0,
+			classes: Array.isArray(raw.classes) ? raw.classes.filter((entry) => typeof entry === "string") : void 0
+		});
+	};
+	var subtitleInlineStylesEqual = (left, right) => {
+		if (left === right) return true;
+		const leftNormalized = normalizeSubtitleInlineStyle(left);
+		const rightNormalized = normalizeSubtitleInlineStyle(right);
+		if (leftNormalized === rightNormalized) return true;
+		const leftClasses = leftNormalized?.classes ?? [];
+		const rightClasses = rightNormalized?.classes ?? [];
+		return Boolean(leftNormalized?.italic) === Boolean(rightNormalized?.italic) && Boolean(leftNormalized?.bold) === Boolean(rightNormalized?.bold) && Boolean(leftNormalized?.underline) === Boolean(rightNormalized?.underline) && (leftNormalized?.color ?? "") === (rightNormalized?.color ?? "") && leftClasses.length === rightClasses.length && leftClasses.every((value, index) => value === rightClasses[index]);
+	};
+	var buildSubtitleInlineStyleCssText = (style) => {
+		if (!style) return "";
+		const cached = cssTextCache.get(style);
+		if (cached !== void 0) return cached;
+		const normalized = normalizeSubtitleInlineStyle(style);
+		const cssText = normalized?.color ? `--vot-subtitles-inline-color:${normalized.color};` : "";
+		cssTextCache.set(style, cssText);
+		return cssText;
+	};
+	//#endregion
+	//#region src/subtitles/subtitleView.ts
+	function shapeOf(part) {
+		if (part.kind === "break") return "break";
+		if (part.kind === "word" || part.style || part.highlightIndex !== void 0) return "span";
+		return "text";
+	}
+	function shapeMatches(node, shape) {
+		if (shape === "text") return node.nodeType === Node.TEXT_NODE;
+		if (shape === "break") return node.nodeName === "BR";
+		return node.nodeName === "SPAN";
+	}
+	/** Write-if-changed: an unchanged attribute write still costs a style recalc. */
+	function setAttr(el, name, value) {
+		if (value === null) {
+			if (el.hasAttribute(name)) el.removeAttribute(name);
+			return;
+		}
+		if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+	}
+	function applySpan(el, part) {
+		if (el.textContent !== part.text) el.textContent = part.text;
+		setAttr(el, "data-vot-token", part.kind === "word" ? "1" : null);
+		setAttr(el, "data-vot-highlight-index", part.highlightIndex === void 0 ? null : String(part.highlightIndex));
+		setAttr(el, "data-vot-style-italic", part.style?.italic ? "1" : "0");
+		setAttr(el, "data-vot-style-bold", part.style?.bold ? "1" : "0");
+		setAttr(el, "data-vot-style-underline", part.style?.underline ? "1" : "0");
+		setAttr(el, "data-vot-style-color", part.style?.color ? "1" : "0");
+		const cssText = buildSubtitleInlineStyleCssText(part.style);
+		if (cssText) {
+			if (el.style.cssText !== cssText) el.style.cssText = cssText;
+		} else if (el.style.cssText) el.style.cssText = "";
+	}
+	function createNode(part, shape) {
+		if (shape === "text") return document.createTextNode(part.text);
+		if (shape === "break") {
+			const br = document.createElement("br");
+			br.className = "vot-subtitles-br";
+			return br;
+		}
+		const span = document.createElement("span");
+		applySpan(span, part);
+		return span;
+	}
+	/**
+	* Subtitle block rendered from a Solid reactive root.
+	*
+	* - One signal holds the whole plan; `equals: false` because the widget rebuilds
+	*   the array on every tick and the identity check would be wasted work.
+	* - `createRenderEffect` (not `createEffect`) so DOM writes happen synchronously
+	*   on `setParts`; the widget reads `block()` / `highlightEls()` immediately
+	*   afterwards. Render effects are the same phase Solid uses for its own DOM
+	*   bindings.
+	* - Rows are reconciled positionally and reused whenever the shape at an index
+	*   is unchanged (measured in Chromium: 6.32 ms reuse vs 29.80 ms rebuild over
+	*   200 cue swaps). Plans are replaced wholesale and never reordered, so
+	*   identity keying would only destroy reusable nodes.
+	* - No JSX: the build has no JSX transform, so the view drives the DOM with
+	*   Solid's reactive primitives directly instead of compiled templates.
+	* - A native `click` listener is used because the container can live inside a
+	*   shadow root, where Solid's document-level event delegation never sees the
+	*   retargeted event.
+	*/
+	function mountSubtitleView(container, options) {
+		const [parts, setParts] = createSignal([], { equals: false });
+		const blockEl = document.createElement("vot-block");
+		blockEl.className = "vot-subtitles";
+		blockEl.setAttribute("dir", "auto");
+		const onClick = options.onClick;
+		blockEl.addEventListener("click", onClick);
+		const highlights = [];
+		const disposeRoot = createRoot((dispose) => {
+			createRenderEffect(() => {
+				setAttr(blockEl, "lang", options.lang() || null);
+			});
+			createRenderEffect(() => {
+				const plan = parts();
+				highlights.length = 0;
+				let node = blockEl.firstChild;
+				for (let i = 0; i < plan.length; i += 1) {
+					const part = plan[i];
+					const shape = shapeOf(part);
+					if (!node || !shapeMatches(node, shape)) {
+						const created = createNode(part, shape);
+						if (node) blockEl.replaceChild(created, node);
+						else blockEl.appendChild(created);
+						node = created;
+					} else if (shape === "span") applySpan(node, part);
+					else if (shape === "text" && node.nodeValue !== part.text) node.nodeValue = part.text;
+					if (shape === "span" && part.highlightIndex !== void 0) highlights.push(node);
+					node = node.nextSibling;
+				}
+				while (node) {
+					const next = node.nextSibling;
+					blockEl.removeChild(node);
+					node = next;
+				}
+			});
+			return dispose;
+		});
+		container.replaceChildren(blockEl);
+		return {
+			setParts: (next) => setParts(next),
+			block: () => blockEl,
+			highlightEls: () => highlights.slice(),
+			dispose: () => {
+				disposeRoot();
+				blockEl.removeEventListener("click", onClick);
+				highlights.length = 0;
+				container.textContent = "";
+			}
+		};
+	}
+	//#endregion
+	//#region src/subtitles/wakeSchedule.ts
+	/**
+	* Deadline scheduling for the subtitle pipeline.
+	*
+	* The widget is driven by `requestVideoFrameCallback`, i.e. it is woken once per
+	* decoded video frame (50-60 Hz, more on high-refresh displays). Before this
+	* module every wake ran the throttle bookkeeping and, four times a second, the
+	* full `update()` -> active-cue search -> render-key -> position-refresh path,
+	* even while no cue was on screen and nothing could possibly change.
+	*
+	* Nothing in the pipeline can change between two *boundaries*:
+	*   - a cue start,
+	*   - a cue end (plus the lookback window during which it still renders),
+	*   - the next word-highlight threshold, when highlighting is on.
+	*
+	* Knowing the next boundary turns the per-frame callback into two numeric
+	* comparisons and eliminates all idle work between cues.
+	*/
+	/** Lines are ordered by `startMs`; find the first index with `startMs > timeMs`. */
+	function upperBoundByStart(lines, timeMs) {
+		let lo = 0;
+		let hi = lines.length;
+		while (lo < hi) {
+			const mid = lo + hi >> 1;
+			if (lines[mid].startMs > timeMs) hi = mid;
+			else lo = mid + 1;
+		}
+		return lo;
+	}
+	/**
+	* Earliest cue boundary strictly after `timeMs`.
+	*
+	* Cue ends are scanned from a bounded window before `timeMs` because a cue that
+	* already ended can still be rendered for `lookbackMs`, and overlapping cues
+	* mean an earlier entry can end later than a later one.
+	*/
+	function findNextCueBoundaryMs(timeMs, lines, lookbackMs = 0) {
+		const count = lines.length;
+		if (count === 0) return null;
+		let next = null;
+		const consider = (value) => {
+			if (value > timeMs && (next === null || value < next)) next = value;
+		};
+		const firstFuture = upperBoundByStart(lines, timeMs);
+		if (firstFuture < count) consider(lines[firstFuture].startMs);
+		for (let i = firstFuture - 1; i >= 0; i -= 1) {
+			const line = lines[i];
+			const endMs = line.startMs + Math.max(0, line.durationMs) + lookbackMs;
+			consider(endMs);
+			if (endMs <= timeMs && line.startMs < timeMs - lookbackMs) {
+				if (next !== null) break;
+			}
+		}
+		return next;
+	}
+	/** Earliest word-highlight threshold strictly after `timeMs`. */
+	function findNextThresholdMs(timeMs, thresholds) {
+		let next = null;
+		for (let i = 0; i < thresholds.length; i += 1) {
+			const value = thresholds[i];
+			if (value > timeMs && (next === null || value < next)) next = value;
+		}
+		return next;
+	}
+	/**
+	* Media time at which the widget must next do work.
+	*
+	* Always bounded by `maxSleepMs` so position/layout refreshes keep running on
+	* long cues and during silence.
+	*/
+	function computeNextWakeMs({ timeMs, lines, lookbackMs = 0, thresholds, maxSleepMs = 250 }) {
+		const cap = timeMs + Math.max(1, maxSleepMs);
+		let next = findNextCueBoundaryMs(timeMs, lines, lookbackMs);
+		if (thresholds && thresholds.length > 0) {
+			const threshold = findNextThresholdMs(timeMs, thresholds);
+			if (threshold !== null && (next === null || threshold < next)) next = threshold;
+		}
+		if (next === null || next > cap) return cap;
+		return next;
 	}
 	//#endregion
 	//#region src/shims/rvfc-polyfill.ts
@@ -16935,14 +17783,33 @@ var vot = (function(exports) {
 		const byRatioGuard = maxWidthPx * WRAP_WIDTH_GUARD_RATIO;
 		return Math.max(MIN_EFFECTIVE_WRAP_WIDTH_PX, Math.min(byPixelGuard, byRatioGuard));
 	}
+	function isDocumentHidden() {
+		return typeof document !== "undefined" && document.hidden === true;
+	}
 	var SubtitlesWidget = class {
 		video;
 		container;
 		fullscreenLayerController;
 		tooltipMount;
 		subtitlesContainer = null;
+		subtitleView = null;
 		subtitlesBlock = null;
 		renderedHighlightEls = [];
+		/** Parsed highlight indices + last applied class state (see `highlightState.ts`). */
+		highlightState = createHighlightState();
+		/**
+		*/
+		contentEpoch = 0;
+		styleEpoch = 0;
+		/** Monotonic tick counter used to cache layout reads within a single tick. */
+		tickSeq = 0;
+		layoutSizeCache = null;
+		smartCssMetricsCache = null;
+		tokenLayoutInputsCache = null;
+		elementMetricsCache = null;
+		lastPositionApplyKey = null;
+		lastScaleCompensation = null;
+		containerVarValues = /* @__PURE__ */ new Map();
 		passedFlagsBuffer = [];
 		subtitles = null;
 		subtitleLang;
@@ -16970,10 +17837,15 @@ var vot = (function(exports) {
 		updateMinIntervalHighlightMs = 33;
 		useVideoFrameCallbacks;
 		videoFrameRequestId = null;
+		onVisibilityChangeBound;
 		lastPlaybackTimeMs = null;
 		dragAbortController = null;
 		lastPositionRefreshTs = 0;
 		positionRefreshIntervalMs = 250;
+		/** Media time before which nothing in the pipeline can change. */
+		nextWakeAtMs = null;
+		/** Media time the current deadline was computed from (seek detection). */
+		wakeBaseTimeMs = 0;
 		subtitleMaxWidthPx = 0;
 		breakAfterTokenIndices = [];
 		breakAfterTokenIndexSet = null;
@@ -17006,6 +17878,10 @@ var vot = (function(exports) {
 				y: 0
 			}
 		};
+		dragLayoutCache = null;
+		/** Newest un-applied pointer sample; older samples in the same frame are dropped. */
+		pendingDragPoint = null;
+		dragFrameId = null;
 		dragStartThresholdPx = 4;
 		snapThresholdPx = 18;
 		suppressTokenClicksUntil = 0;
@@ -17060,9 +17936,10 @@ var vot = (function(exports) {
 			this.onPointerMoveBound = (event) => this.onPointerMove(event);
 			this.onPlaybackStateChangeBound = () => this.handlePlaybackStateChange();
 			this.onVisualViewportChangeBound = () => this.scheduleReposition();
+			this.onVisibilityChangeBound = () => this.handleDocumentVisibilityChange();
 			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
 				this.onCheckerTick();
-			});
+			}, { hasPendingWork: () => this.hasPendingWork() });
 			this.bindEvents();
 		}
 		updateMount({ container }) {
@@ -17098,6 +17975,7 @@ var vot = (function(exports) {
 		}
 		resetRenderMemo() {
 			this.lastRenderKey = null;
+			this.invalidateWakeDeadline();
 		}
 		computeAnchorBoxLayout(layout) {
 			return {
@@ -17110,6 +17988,17 @@ var vot = (function(exports) {
 		readSmartCssMetrics() {
 			const block = this.subtitlesBlock;
 			if (!block) return null;
+			const cacheKey = `${this.contentEpoch}|${this.styleEpoch}`;
+			const cached = this.smartCssMetricsCache;
+			if (cached && cached.key === cacheKey) return cached.value;
+			const value = this.readSmartCssMetricsNow(block);
+			this.smartCssMetricsCache = {
+				key: cacheKey,
+				value
+			};
+			return value;
+		}
+		readSmartCssMetricsNow(block) {
 			const cs = getComputedStyle(block);
 			const fontSizePx = Number.parseFloat(cs.fontSize);
 			const maxWidthRawPx = Number.parseFloat(cs.maxWidth);
@@ -17157,11 +18046,26 @@ var vot = (function(exports) {
 		setSubtitlesContainerVar(name, value) {
 			const container = this.subtitlesContainer;
 			if (!container) return;
+			const previous = this.containerVarValues.get(name);
 			if (value === null) {
+				if (previous === void 0) return;
+				this.containerVarValues.delete(name);
 				container.style.removeProperty(name);
+				this.invalidateStyleCaches();
 				return;
 			}
+			if (previous === value) return;
+			this.containerVarValues.set(name, value);
 			container.style.setProperty(name, value);
+			this.invalidateStyleCaches();
+		}
+		/** Invalidate every cache derived from computed style or element geometry. */
+		invalidateStyleCaches() {
+			this.styleEpoch += 1;
+			this.smartCssMetricsCache = null;
+			this.tokenLayoutInputsCache = null;
+			this.elementMetricsCache = null;
+			this.lastPositionApplyKey = null;
 		}
 		applyOpacityStyle() {
 			this.setSubtitlesContainerVar("--vot-subtitles-opacity", this.opacity);
@@ -17268,6 +18172,12 @@ var vot = (function(exports) {
 			const container = document.createElement("vot-block");
 			container.classList.add("vot-subtitles-widget");
 			this.subtitlesContainer = container;
+			this.containerVarValues.clear();
+			this.lastScaleCompensation = null;
+			this.smartAnchorWidthPx = 0;
+			this.smartAnchorHeightPx = 0;
+			this.invalidateLayoutCache();
+			this.invalidateStyleCaches();
 			this.syncWidgetMount();
 			container.addEventListener("pointerdown", this.onPointerDownBound, {
 				signal: this.abortController.signal,
@@ -17300,7 +18210,8 @@ var vot = (function(exports) {
 			if (this.video) this.resizeObserver.observe(this.video);
 			globalThis.visualViewport?.addEventListener("resize", this.onVisualViewportChangeBound, opts);
 			globalThis.visualViewport?.addEventListener("scroll", this.onVisualViewportChangeBound, opts);
-			globalThis.addEventListener("pointerdown", this.onGlobalPointerDown);
+			globalThis.addEventListener("pointerdown", this.onGlobalPointerDown, opts);
+			document.addEventListener("visibilitychange", this.onVisibilityChangeBound, opts);
 		}
 		getUpdateMinIntervalMs() {
 			return this.highlightWords ? this.updateMinIntervalHighlightMs : this.updateMinIntervalMs;
@@ -17310,17 +18221,47 @@ var vot = (function(exports) {
 			if (!this.subtitles) return;
 			if (typeof playbackTimeMs === "number" && Number.isFinite(playbackTimeMs)) this.lastPlaybackTimeMs = Math.max(0, playbackTimeMs);
 			else if (this.video) this.lastPlaybackTimeMs = Math.max(0, this.video.currentTime * 1e3);
+			if (this.canSkipWake(this.lastPlaybackTimeMs)) {
+				this.skippedWakeCount += 1;
+				return;
+			}
 			const minInterval = this.getUpdateMinIntervalMs();
 			if (now - this.lastUpdateRequestTs < minInterval) return;
 			this.lastUpdateRequestTs = now;
 			this.updatePending = true;
 			this.intervalIdleChecker.requestImmediateTick();
 		}
+		/** True when `timeMs` has not yet reached the next boundary. */
+		canSkipWake(timeMs) {
+			if (this.updatePending || this.repositionPending || this.wrapPending) return false;
+			if (this.nextWakeAtMs === null) return false;
+			if (typeof timeMs !== "number" || !Number.isFinite(timeMs)) return false;
+			if (timeMs < this.wakeBaseTimeMs) return false;
+			return timeMs < this.nextWakeAtMs;
+		}
+		invalidateWakeDeadline() {
+			this.nextWakeAtMs = null;
+		}
+		recomputeWakeDeadline(timeMs) {
+			if (!this.subtitles) {
+				this.invalidateWakeDeadline();
+				return;
+			}
+			this.wakeBaseTimeMs = timeMs;
+			this.nextWakeAtMs = computeNextWakeMs({
+				timeMs,
+				lines: this.subtitles.subtitles,
+				lookbackMs: this.maxActiveCueLookbackMs,
+				thresholds: this.highlightWords ? this.passedThresholds : void 0,
+				maxSleepMs: this.positionRefreshIntervalMs
+			});
+		}
 		resolvePlaybackTimeMs() {
 			if (typeof this.lastPlaybackTimeMs === "number" && Number.isFinite(this.lastPlaybackTimeMs)) return this.lastPlaybackTimeMs;
 			return this.video ? Math.max(0, this.video.currentTime * 1e3) : 0;
 		}
 		handlePlaybackStateChange() {
+			this.invalidateWakeDeadline();
 			if (!this.subtitles) {
 				this.stopVideoFrameLoop();
 				return;
@@ -17333,7 +18274,7 @@ var vot = (function(exports) {
 			if (!this.useVideoFrameCallbacks) return;
 			const video = this.video;
 			if (!video) return;
-			if (!this.subtitles || video.paused || video.ended) {
+			if (!this.subtitles || video.paused || video.ended || isDocumentHidden()) {
 				this.stopVideoFrameLoop();
 				return;
 			}
@@ -17367,8 +18308,33 @@ var vot = (function(exports) {
 			this.requestUpdate(playbackTimeMs, now);
 			this.startVideoFrameLoop();
 		};
+		/**
+		* Whether a periodic tick would actually do something.
+		*
+		* A wake loop is not free: a 60 Hz callback that does nothing still measures
+		* ~1% main-thread CPU, and a 250 ms poll keeps the thread from ever settling.
+		* Reporting `false` lets the scheduler go fully dormant until playback, a
+		* pointer, a resize, or a visibility change wakes it.
+		*/
+		hasPendingWork() {
+			if (this.abortController.signal.aborted) return false;
+			if (this.repositionPending || this.wrapPending || this.positionRefreshPending || this.updatePending) return true;
+			if (!this.subtitles || !this.video) return false;
+			if (isDocumentHidden()) return false;
+			return !this.video.paused && !this.video.ended;
+		}
+		handleDocumentVisibilityChange() {
+			if (isDocumentHidden()) {
+				this.stopVideoFrameLoop();
+				return;
+			}
+			this.invalidateWakeDeadline();
+			this.scheduleReposition();
+			this.syncVideoFrameLoop();
+		}
 		onCheckerTick() {
 			if (this.abortController.signal.aborted) return;
+			this.tickSeq += 1;
 			if (this.repositionPending) {
 				this.repositionPending = false;
 				this.updateContainerRect();
@@ -17411,6 +18377,9 @@ var vot = (function(exports) {
 			this.dragAbortController = null;
 		}
 		onResize() {
+			this.dragLayoutCache = null;
+			this.invalidateLayoutCache();
+			this.invalidateStyleCaches();
 			this.syncWidgetMount();
 			this.scheduleReposition();
 		}
@@ -17423,6 +18392,21 @@ var vot = (function(exports) {
 			this.applySubtitlePositionWithLayout(layout, anchorBox);
 		}
 		getLayoutSize() {
+			const cached = this.layoutSizeCache;
+			if (cached && cached.tick === this.tickSeq) return cached.value;
+			const value = this.readLayoutSize();
+			this.layoutSizeCache = {
+				tick: this.tickSeq,
+				value
+			};
+			return value;
+		}
+		invalidateLayoutCache() {
+			this.layoutSizeCache = null;
+			this.elementMetricsCache = null;
+			this.lastPositionApplyKey = null;
+		}
+		readLayoutSize() {
 			const layoutRoot = this.fullscreenLayerController.getLayoutRootElement();
 			const rect = layoutRoot.getBoundingClientRect();
 			const w = layoutRoot.clientWidth || rect.width;
@@ -17524,7 +18508,31 @@ var vot = (function(exports) {
 			this.dragging.offset.x = anchorX - pointerX;
 			this.dragging.offset.y = anchorY - pointerY;
 			this.hideSnapGuides();
+			this.dragLayoutCache = {
+				layout,
+				anchorBox
+			};
 			this.attachDragDocumentListeners();
+		}
+		scheduleDragFrame() {
+			if (this.dragFrameId !== null) return;
+			this.dragFrameId = requestAnimationFrame(() => {
+				this.dragFrameId = null;
+				this.flushDragFrame();
+			});
+		}
+		cancelDragFrame() {
+			if (this.dragFrameId === null) return;
+			cancelAnimationFrame(this.dragFrameId);
+			this.dragFrameId = null;
+		}
+		flushDragFrame() {
+			const point = this.pendingDragPoint;
+			this.pendingDragPoint = null;
+			if (!point) return;
+			if (this.abortController.signal.aborted) return;
+			if (!this.dragging.active) return;
+			this.applyDragPosition(point.clientX, point.clientY);
 		}
 		onPointerUp(event) {
 			if (this.dragging.pointerId === null) return;
@@ -17534,6 +18542,11 @@ var vot = (function(exports) {
 			this.dragging.candidate = false;
 			this.dragging.active = false;
 			this.dragging.moved = false;
+			this.cancelDragFrame();
+			const pending = this.pendingDragPoint;
+			this.pendingDragPoint = null;
+			if (pending) this.applyDragPosition(pending.clientX, pending.clientY);
+			this.dragLayoutCache = null;
 			this.hideSnapGuides();
 			this.detachDragDocumentListeners();
 		}
@@ -17552,17 +18565,36 @@ var vot = (function(exports) {
 			}
 			event.preventDefault();
 			event.stopPropagation();
-			const layout = this.getLayoutSize();
+			this.pendingDragPoint = {
+				clientX: event.clientX,
+				clientY: event.clientY
+			};
+			this.scheduleDragFrame();
+		}
+		/**
+		* Applies a pointer sample to the subtitle anchor position.
+		*
+		* Math is unchanged from the previous inline implementation; the only
+		* difference is that layout metrics come from the per-gesture cache when it
+		* is available, so a drag performs one layout read instead of one per event.
+		*/
+		applyDragPosition(clientX, clientY) {
+			const cached = this.dragLayoutCache;
+			const layout = cached?.layout ?? this.getLayoutSize();
 			const { rect: containerRect, w, h, scaleX, scaleY } = layout;
 			if (!w || !h) return;
-			const anchorBox = this.computeAnchorBoxLayout(layout);
+			const anchorBox = cached?.anchorBox ?? this.computeAnchorBoxLayout(layout);
 			if (!anchorBox.w || !anchorBox.h) return;
-			const pointerX = (event.clientX - containerRect.left) / scaleX - anchorBox.left;
-			const pointerY = (event.clientY - containerRect.top) / scaleY - anchorBox.top;
+			const pointerX = (clientX - containerRect.left) / scaleX - anchorBox.left;
+			const pointerY = (clientY - containerRect.top) / scaleY - anchorBox.top;
 			let anchorX = pointerX + this.dragging.offset.x;
 			let anchorY = pointerY + this.dragging.offset.y;
-			const elW = this.subtitlesContainer?.offsetWidth ?? 0;
-			const elH = this.subtitlesContainer?.offsetHeight ?? 0;
+			const containerBox = this.subtitlesContainer ? this.measureContainerBox(this.subtitlesContainer) : {
+				w: 0,
+				h: 0
+			};
+			const elW = containerBox.w;
+			const elH = containerBox.h;
 			const bottomInset = 0;
 			const snappedX = snapValueToNearestCandidate({
 				current: anchorX,
@@ -17609,14 +18641,26 @@ var vot = (function(exports) {
 			if (!anchorBox.w || !anchorBox.h) return;
 			this.applySubtitlePositionWithLayout(layout, anchorBox);
 		}
+		/**
+		* Single owner of the position-apply memo key.
+		*
+		* Previously this template literal existed verbatim in two places inside
+		* `applySubtitlePositionWithLayout` (entry guard + exit recompute), so any
+		* change to the key had to be mirrored by hand. Behavior is unchanged: the
+		* key is still recomputed after the writes, because they may bump
+		* `styleEpoch`.
+		*/
+		buildPositionApplyKey(layout, anchorBox) {
+			return `${Math.round(layout.w)}x${Math.round(layout.h)}|${layout.scaleX.toFixed(3)}x${layout.scaleY.toFixed(3)}|${Math.round(anchorBox.left)},${Math.round(anchorBox.top)},${Math.round(anchorBox.w)},${Math.round(anchorBox.h)}|${this.positionPreset}|${this.position.left.toFixed(3)},${this.position.top.toFixed(3)}|${this.contentEpoch}|${this.styleEpoch}`;
+		}
 		applySubtitlePositionWithLayout(layout, anchorBox) {
 			const subtitlesContainer = this.subtitlesContainer;
 			if (!subtitlesContainer) return;
+			if (this.buildPositionApplyKey(layout, anchorBox) === this.lastPositionApplyKey) return;
 			this.applyScaleCompensation(subtitlesContainer, layout);
 			this.syncAnchorDimensions(subtitlesContainer, anchorBox);
 			if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
-			const elW = subtitlesContainer.offsetWidth;
-			const elH = subtitlesContainer.offsetHeight;
+			const { w: elW, h: elH } = this.measureContainerBox(subtitlesContainer);
 			const bottomInset = this.positionPreset === "custom" ? 0 : this.getBottomInsetPx(layout, anchorBox);
 			const anchorPosition = this.resolveCurrentAnchorPosition(anchorBox, elW, elH, bottomInset);
 			const containerPosition = this.clampContainerPosition(anchorBox, anchorPosition.anchorX, anchorPosition.anchorY, elW, elH, bottomInset);
@@ -17628,15 +18672,36 @@ var vot = (function(exports) {
 			const topPct = containerAnchorY / layout.h * 100;
 			this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
 			this.tokenTooltip?.updatePos();
+			this.lastPositionApplyKey = this.buildPositionApplyKey(layout, anchorBox);
+		}
+		measureContainerBox(subtitlesContainer) {
+			const key = `${this.contentEpoch}|${this.styleEpoch}`;
+			const cached = this.elementMetricsCache;
+			if (cached && cached.key === key) return {
+				w: cached.w,
+				h: cached.h
+			};
+			const w = subtitlesContainer.offsetWidth;
+			const h = subtitlesContainer.offsetHeight;
+			this.elementMetricsCache = {
+				key,
+				w,
+				h
+			};
+			return {
+				w,
+				h
+			};
 		}
 		applyScaleCompensation(subtitlesContainer, layout) {
 			const visualScale = Math.min(layout.scaleX || 1, layout.scaleY || 1);
 			const compensate = visualScale > 0 && visualScale < .999 ? Math.min(1 / visualScale, 3) : 1;
-			if (Math.abs(compensate - 1) < .001) {
-				subtitlesContainer.style.removeProperty("--vot-subtitles-scale-compensation");
-				return;
-			}
-			subtitlesContainer.style.setProperty("--vot-subtitles-scale-compensation", compensate.toFixed(3));
+			const nextValue = Math.abs(compensate - 1) < .001 ? null : compensate.toFixed(3);
+			if (nextValue === this.lastScaleCompensation) return;
+			this.lastScaleCompensation = nextValue;
+			if (nextValue === null) subtitlesContainer.style.removeProperty("--vot-subtitles-scale-compensation");
+			else subtitlesContainer.style.setProperty("--vot-subtitles-scale-compensation", nextValue);
+			this.invalidateStyleCaches();
 		}
 		syncAnchorDimensions(subtitlesContainer, anchorBox) {
 			const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
@@ -17812,6 +18877,20 @@ var vot = (function(exports) {
 			return value;
 		}
 		getTokenLayoutInputs(ctx) {
+			const cacheKey = `${this.contentEpoch}|${this.styleEpoch}|${this.fontSizeOverridden ? this.fontSize : "auto"}|${this.fontFamily}`;
+			const cached = this.tokenLayoutInputsCache;
+			if (cached && cached.key === cacheKey) {
+				ctx.font = cached.value.fontKey;
+				return cached.value;
+			}
+			const value = this.readTokenLayoutInputs(ctx);
+			this.tokenLayoutInputsCache = {
+				key: cacheKey,
+				value
+			};
+			return value;
+		}
+		readTokenLayoutInputs(ctx) {
 			const block = this.subtitlesBlock;
 			if (block) {
 				const cs = getComputedStyle(block);
@@ -17971,7 +19050,10 @@ var vot = (function(exports) {
 			this.hideSnapGuides();
 			this.resetSegmentationMemo();
 			this.clearPendingSchedulerState();
-			if (this.subtitlesContainer) D(null, this.subtitlesContainer);
+			if (this.subtitleView) {
+				this.subtitleView.dispose();
+				this.subtitleView = null;
+			} else if (this.subtitlesContainer) this.subtitlesContainer.textContent = "";
 		}
 		onClick = async (event) => {
 			if (performance.now() < this.suppressTokenClicksUntil) {
@@ -18052,35 +19134,11 @@ var vot = (function(exports) {
 			flags.length = thresholds.length;
 			return flags;
 		}
-		renderTokens(tokens) {
-			return buildSubtitleRenderPlan(tokens, tokens.length - 1, this.breakAfterTokenIndexSet).map((part) => this.renderPlanPart(part));
-		}
-		renderStyledSpan(text, style, isWordToken = false, highlightIndex) {
-			if (!style && !isWordToken && highlightIndex === void 0) return text;
-			return b`<span
-      data-vot-token=${isWordToken ? "1" : A}
-      data-vot-highlight-index=${highlightIndex ?? A}
-      data-vot-style-italic=${style?.italic ? "1" : "0"}
-      data-vot-style-bold=${style?.bold ? "1" : "0"}
-      data-vot-style-underline=${style?.underline ? "1" : "0"}
-      data-vot-style-color=${style?.color ? "1" : "0"}
-      style=${buildSubtitleInlineStyleCssText(style)}
-      >${text}</span
-    >`;
-		}
-		renderPlanPart(part) {
-			if (part.kind === "break") return b`<br class="vot-subtitles-br" />`;
-			return this.renderStyledSpan(part.text, part.style, part.kind === "word", part.highlightIndex);
-		}
 		updatePassedClasses(passedFlags) {
-			for (const tokenEl of this.renderedHighlightEls) {
-				const highlightIndex = Number.parseInt(tokenEl.dataset.votHighlightIndex ?? "", 10);
-				const isPassed = Number.isInteger(highlightIndex) && highlightIndex >= 0 && highlightIndex < passedFlags.length ? passedFlags[highlightIndex] : false;
-				tokenEl.classList.toggle("passed", isPassed);
-			}
+			applyPassedState(this.highlightState, this.renderedHighlightEls, passedFlags);
 		}
 		clearPassedClasses() {
-			for (const tokenEl of this.renderedHighlightEls) tokenEl.classList.remove("passed");
+			clearPassedState(this.highlightState, this.renderedHighlightEls);
 		}
 		setBreakAfterTokenIndices(indices) {
 			this.breakAfterTokenIndices = indices;
@@ -18125,7 +19183,7 @@ var vot = (function(exports) {
 			const wrapKey = `${this.getActiveLineKey(tokens)}|${fontKey}|${Math.round(safeMaxWidthPx)}|${this.stringifyTokens(tokens)}`;
 			if (wrapKey === this.lastWrapKey) return;
 			this.lastWrapKey = wrapKey;
-			const next = computeTokenWrapPlan(tokens, (text) => ctx.measureText(text).width, safeMaxWidthPx);
+			const next = computeTokenWrapPlan(tokens, (text) => ctx.measureText(text).width, safeMaxWidthPx, this.subtitleLang ?? void 0);
 			if (next.breakAfterTokenIndices.length !== this.breakAfterTokenIndices.length || next.breakAfterTokenIndices.some((value, index) => value !== this.breakAfterTokenIndices[index])) {
 				this.setBreakAfterTokenIndices(next.breakAfterTokenIndices);
 				this.resetRenderMemo();
@@ -18253,17 +19311,22 @@ var vot = (function(exports) {
 		}
 		syncRenderedTokens(tokens) {
 			this.subtitlesContainer = this.subtitlesContainer ?? this.createSubtitlesContainer();
-			D(b`<vot-block
-        class="vot-subtitles"
-        dir="auto"
-        lang=${this.subtitleLang ?? ""}
-        @click=${this.onClick}
-      >
-        ${this.renderTokens(tokens)}
-      </vot-block>`, this.subtitlesContainer);
-			const firstChild = this.subtitlesContainer.firstElementChild;
-			this.subtitlesBlock = firstChild instanceof HTMLElement && firstChild.classList.contains("vot-subtitles") ? firstChild : null;
-			this.renderedHighlightEls = this.subtitlesBlock ? Array.from(this.subtitlesBlock.querySelectorAll("span[data-vot-highlight-index]")) : [];
+			this.subtitleView ??= mountSubtitleView(this.subtitlesContainer, {
+				lang: () => this.subtitleLang ?? "",
+				onClick: this.onClick
+			});
+			this.subtitleView.setParts(buildSubtitleRenderPlan(tokens, tokens.length - 1, this.breakAfterTokenIndexSet));
+			this.subtitlesBlock = this.subtitleView.block();
+			this.renderedHighlightEls = this.subtitleView.highlightEls();
+			this.contentEpoch += 1;
+			this.elementMetricsCache = null;
+			this.smartCssMetricsCache = null;
+			this.tokenLayoutInputsCache = null;
+			this.lastPositionApplyKey = null;
+			this.syncHighlightIndexCache();
+		}
+		syncHighlightIndexCache() {
+			syncHighlightState(this.highlightState, this.renderedHighlightEls);
 		}
 		update() {
 			if (!this.video || !this.subtitles) return;
@@ -18272,6 +19335,7 @@ var vot = (function(exports) {
 			const activeLine = this.resolveActiveLine(time, subtitlesList);
 			if (!activeLine) {
 				this.clearInactiveLineState();
+				this.recomputeWakeDeadline(time);
 				return;
 			}
 			this.lastActiveLineKey = activeLine.lineKey;
@@ -18280,6 +19344,7 @@ var vot = (function(exports) {
 			if (renderKey === this.lastRenderKey) {
 				if (this.highlightWords && !tokensChanged && passedFlags) this.updatePassedClasses(passedFlags);
 				this.maybeRefreshPosition();
+				this.recomputeWakeDeadline(time);
 				return;
 			}
 			this.lastRenderKey = renderKey;
@@ -18290,8 +19355,12 @@ var vot = (function(exports) {
 				this.scheduleWrapRecompute(tokens);
 				this.scheduleReposition();
 			} else this.maybeRefreshPosition();
+			this.recomputeWakeDeadline(time);
 		}
 		release() {
+			this.cancelDragFrame();
+			this.pendingDragPoint = null;
+			this.dragLayoutCache = null;
 			this.detachDragDocumentListeners();
 			this.stopVideoFrameLoop();
 			this.abortController.abort();
@@ -18326,114 +19395,6 @@ var vot = (function(exports) {
 			this.insetCacheReady = false;
 		}
 	};
-	//#endregion
-	//#region src/utils/download.ts
-	function toUint32BE(value) {
-		return new Uint8Array([
-			value >>> 24 & 255,
-			value >>> 16 & 255,
-			value >>> 8 & 255,
-			value & 255
-		]);
-	}
-	function toSynchsafeInt(value) {
-		return new Uint8Array([
-			value >>> 21 & 127,
-			value >>> 14 & 127,
-			value >>> 7 & 127,
-			value & 127
-		]);
-	}
-	function addTitleId3Tag(mp3Buffer, title) {
-		const titleBytes = new TextEncoder().encode(title);
-		const frameData = new Uint8Array(titleBytes.length + 1);
-		frameData[0] = 3;
-		frameData.set(titleBytes, 1);
-		const frame = new Uint8Array(10 + frameData.length);
-		frame.set([
-			84,
-			73,
-			84,
-			50
-		], 0);
-		frame.set(toUint32BE(frameData.length), 4);
-		frame.set(frameData, 10);
-		const header = /* @__PURE__ */ new Uint8Array(10);
-		header.set([
-			73,
-			68,
-			51,
-			3,
-			0,
-			0
-		], 0);
-		header.set(toSynchsafeInt(frame.length), 6);
-		const audioBytes = new Uint8Array(mp3Buffer);
-		const out = new Uint8Array(header.length + frame.length + audioBytes.length);
-		out.set(header, 0);
-		out.set(frame, header.length);
-		out.set(audioBytes, header.length + frame.length);
-		return new Blob([out], { type: "audio/mpeg" });
-	}
-	function appendChunkToOutputBuffer(out, value, loaded) {
-		const needed = loaded + value.byteLength;
-		let nextOut = out;
-		if (needed > nextOut.length) {
-			const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
-			grown.set(nextOut.subarray(0, loaded));
-			nextOut = grown;
-		}
-		nextOut.set(value, loaded);
-		return {
-			out: nextOut,
-			loaded: needed
-		};
-	}
-	function mergeChunks(chunks, loaded) {
-		const merged = new Uint8Array(loaded);
-		let offset = 0;
-		for (const chunk of chunks) {
-			merged.set(chunk, offset);
-			offset += chunk.byteLength;
-		}
-		return merged.buffer;
-	}
-	async function readResponseArrayBuffer(res, onProgress) {
-		const total = Number(res.headers.get("Content-Length") ?? 0);
-		if (!res.body) return res.arrayBuffer();
-		const reader = res.body.getReader();
-		let loaded = 0;
-		let out = total > 0 ? new Uint8Array(total) : null;
-		const chunks = [];
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			if (!value || value.byteLength === 0) continue;
-			if (out) {
-				const appended = appendChunkToOutputBuffer(out, value, loaded);
-				out = appended.out;
-				loaded = appended.loaded;
-			} else {
-				chunks.push(value);
-				loaded += value.byteLength;
-			}
-			if (total > 0) onProgress(clamp(Math.round(loaded / total * 100)));
-		}
-		if (out) return out.buffer.slice(0, loaded);
-		return mergeChunks(chunks, loaded);
-	}
-	/**
-	* Downloads a translation file and saves it as an MP3 file with metadata,
-	* tracking progress when Content-Length is available.
-	*/
-	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
-		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
-	}
-	async function buildTranslationBlob(res, filename, onProgress = () => {}) {
-		const arrayBuffer = await readResponseArrayBuffer(res, onProgress);
-		onProgress(100);
-		return addTitleId3Tag(arrayBuffer, filename);
-	}
 	//#endregion
 	//#region src/subtitles/displayModel.ts
 	var LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
@@ -19442,6 +20403,114 @@ var vot = (function(exports) {
 		return serializeAss(processed, options);
 	};
 	//#endregion
+	//#region src/utils/download.ts
+	function toUint32BE(value) {
+		return new Uint8Array([
+			value >>> 24 & 255,
+			value >>> 16 & 255,
+			value >>> 8 & 255,
+			value & 255
+		]);
+	}
+	function toSynchsafeInt(value) {
+		return new Uint8Array([
+			value >>> 21 & 127,
+			value >>> 14 & 127,
+			value >>> 7 & 127,
+			value & 127
+		]);
+	}
+	function addTitleId3Tag(mp3Buffer, title) {
+		const titleBytes = new TextEncoder().encode(title);
+		const frameData = new Uint8Array(titleBytes.length + 1);
+		frameData[0] = 3;
+		frameData.set(titleBytes, 1);
+		const frame = new Uint8Array(10 + frameData.length);
+		frame.set([
+			84,
+			73,
+			84,
+			50
+		], 0);
+		frame.set(toUint32BE(frameData.length), 4);
+		frame.set(frameData, 10);
+		const header = /* @__PURE__ */ new Uint8Array(10);
+		header.set([
+			73,
+			68,
+			51,
+			3,
+			0,
+			0
+		], 0);
+		header.set(toSynchsafeInt(frame.length), 6);
+		const audioBytes = new Uint8Array(mp3Buffer);
+		const out = new Uint8Array(header.length + frame.length + audioBytes.length);
+		out.set(header, 0);
+		out.set(frame, header.length);
+		out.set(audioBytes, header.length + frame.length);
+		return new Blob([out], { type: "audio/mpeg" });
+	}
+	function appendChunkToOutputBuffer(out, value, loaded) {
+		const needed = loaded + value.byteLength;
+		let nextOut = out;
+		if (needed > nextOut.length) {
+			const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
+			grown.set(nextOut.subarray(0, loaded));
+			nextOut = grown;
+		}
+		nextOut.set(value, loaded);
+		return {
+			out: nextOut,
+			loaded: needed
+		};
+	}
+	function mergeChunks(chunks, loaded) {
+		const merged = new Uint8Array(loaded);
+		let offset = 0;
+		for (const chunk of chunks) {
+			merged.set(chunk, offset);
+			offset += chunk.byteLength;
+		}
+		return merged.buffer;
+	}
+	async function readResponseArrayBuffer(res, onProgress) {
+		const total = Number(res.headers.get("Content-Length") ?? 0);
+		if (!res.body) return res.arrayBuffer();
+		const reader = res.body.getReader();
+		let loaded = 0;
+		let out = total > 0 ? new Uint8Array(total) : null;
+		const chunks = [];
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			if (!value || value.byteLength === 0) continue;
+			if (out) {
+				const appended = appendChunkToOutputBuffer(out, value, loaded);
+				out = appended.out;
+				loaded = appended.loaded;
+			} else {
+				chunks.push(value);
+				loaded += value.byteLength;
+			}
+			if (total > 0) onProgress(clamp(Math.round(loaded / total * 100)));
+		}
+		if (out) return out.buffer.slice(0, loaded);
+		return mergeChunks(chunks, loaded);
+	}
+	/**
+	* Downloads a translation file and saves it as an MP3 file with metadata,
+	* tracking progress when Content-Length is available.
+	*/
+	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
+		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
+	}
+	async function buildTranslationBlob(res, filename, onProgress = () => {}) {
+		const arrayBuffer = await readResponseArrayBuffer(res, onProgress);
+		onProgress(100);
+		return addTitleId3Tag(arrayBuffer, filename);
+	}
+	//#endregion
 	//#region src/videoHandler/translationVolume.ts
 	function normalizeMediaElementVolume(volume) {
 		return clampNumber(volume, 0, 1);
@@ -19615,94 +20684,368 @@ var vot = (function(exports) {
 		return matchesMedia("(pointer: coarse)") || hasTouchScreen() && !matchesMedia("(hover: hover)");
 	}
 	//#endregion
+	//#region src/ui/icons/iconTemplate.ts
+	var SVG_NS = "http://www.w3.org/2000/svg";
+	function build(spec) {
+		const el = document.createElementNS(SVG_NS, spec.tag);
+		if (spec.attrs) for (const name in spec.attrs) el.setAttribute(name, spec.attrs[name]);
+		if (spec.text) el.textContent = spec.text;
+		if (spec.children) for (const child of spec.children) el.appendChild(build(child));
+		return el;
+	}
+	/**
+	* Build an icon once, clone it per use.
+	*
+	* Icons are constructed with `createElementNS` rather than parsed from markup:
+	* pages such as YouTube enforce `require-trusted-types-for 'script'`, which
+	* rejects `innerHTML` *and* `DOMParser.parseFromString`. Building nodes
+	* directly is the only sink-free option, and it also skips HTML parsing at
+	* runtime entirely.
+	*
+	* Construction is lazy (first insertion), so importing this module never
+	* touches the DOM. The returned thunk is exactly what `appendTemplate()` accepts.
+	*/
+	function iconTemplate(spec) {
+		let prototypeNode;
+		return () => {
+			prototypeNode ??= build(spec);
+			return prototypeNode.cloneNode(true);
+		};
+	}
+	//#endregion
 	//#region src/ui/icons.ts
-	var TRANSLATE_ICON_SVG = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path
-    id="vot-translate-icon"
-    fill-rule="evenodd"
-    d="M15.778 18.95L14.903 21.375C14.8364 21.5583 14.7197 21.7083 14.553 21.825C14.3864 21.9417 14.203 22 14.003 22C13.6697 22 13.3989 21.8625 13.1905 21.5875C12.9822 21.3125 12.9447 21.0083 13.078 20.675L16.878 10.625C16.9614 10.4417 17.0864 10.2917 17.253 10.175C17.4197 10.0583 17.603 10 17.803 10H18.553C18.753 10 18.9364 10.0583 19.103 10.175C19.2697 10.2917 19.3947 10.4417 19.478 10.625L23.278 20.7C23.4114 21.0167 23.378 21.3125 23.178 21.5875C22.978 21.8625 22.7114 22 22.378 22C22.1614 22 21.9739 21.9375 21.8155 21.8125C21.6572 21.6875 21.5364 21.525 21.453 21.325L20.628 18.95H15.778ZM19.978 17.2H16.378L18.228 12.25L19.978 17.2Z"
-  ></path>
-  <path
-    d="M9 14L4.7 18.3C4.51667 18.4833 4.28333 18.575 4 18.575C3.71667 18.575 3.48333 18.4833 3.3 18.3C3.11667 18.1167 3.025 17.8833 3.025 17.6C3.025 17.3167 3.11667 17.0833 3.3 16.9L7.65 12.55C7.01667 11.85 6.4625 11.125 5.9875 10.375C5.5125 9.625 5.1 8.83333 4.75 8H6.85C7.15 8.6 7.47083 9.14167 7.8125 9.625C8.15417 10.1083 8.56667 10.6167 9.05 11.15C9.78333 10.35 10.3917 9.52917 10.875 8.6875C11.3583 7.84583 11.7667 6.95 12.1 6H2C1.71667 6 1.47917 5.90417 1.2875 5.7125C1.09583 5.52083 1 5.28333 1 5C1 4.71667 1.09583 4.47917 1.2875 4.2875C1.47917 4.09583 1.71667 4 2 4H8V3C8 2.71667 8.09583 2.47917 8.2875 2.2875C8.47917 2.09583 8.71667 2 9 2C9.28333 2 9.52083 2.09583 9.7125 2.2875C9.90417 2.47917 10 2.71667 10 3V4H16C16.2833 4 16.5208 4.09583 16.7125 4.2875C16.9042 4.47917 17 4.71667 17 5C17 5.28333 16.9042 5.52083 16.7125 5.7125C16.5208 5.90417 16.2833 6 16 6H14.1C13.75 7.18333 13.275 8.33333 12.675 9.45C12.075 10.5667 11.3333 11.6167 10.45 12.6L12.85 15.05L12.1 17.1L9 14Z"
-  ></path>
-  <path
-    id="vot-loading-icon"
-    style="display:none"
-    d="M19.8081 16.3697L18.5842 15.6633V13.0832C18.5842 12.9285 18.5228 12.7801 18.4134 12.6707C18.304 12.5613 18.1556 12.4998 18.0009 12.4998C17.8462 12.4998 17.6978 12.5613 17.5884 12.6707C17.479 12.7801 17.4176 12.9285 17.4176 13.0832V15.9998C17.4176 16.1022 17.4445 16.2028 17.4957 16.2915C17.5469 16.3802 17.6205 16.4538 17.7092 16.505L19.2247 17.38C19.2911 17.4189 19.3645 17.4443 19.4407 17.4547C19.5169 17.4652 19.5945 17.4604 19.6688 17.4407C19.7432 17.4211 19.813 17.3869 19.8741 17.3402C19.9352 17.2934 19.9864 17.2351 20.0249 17.1684C20.0634 17.1018 20.0883 17.0282 20.0982 16.952C20.1081 16.8757 20.1028 16.7982 20.0827 16.7239C20.0625 16.6497 20.0279 16.5802 19.9808 16.5194C19.9336 16.4586 19.8749 16.4077 19.8081 16.3697ZM18.0015 10C16.8478 10 15.6603 10.359 14.7011 11C13.7418 11.641 12.9415 12.4341 12.5 13.5C12.0585 14.5659 11.8852 16.0369 12.1103 17.1684C12.3353 18.3 12.8736 19.4942 13.6894 20.31C14.5053 21.1258 15.8684 21.7749 17 22C18.1316 22.2251 19.4341 21.9415 20.5 21.5C21.5659 21.0585 22.359 20.2573 23 19.298C23.641 18.3387 24.0015 17.1537 24.0015 16C23.9998 14.4534 23.5951 13.0936 22.5015 12C21.4079 10.9064 19.5481 10.0017 18.0015 10ZM18.0009 20.6665C17.0779 20.6665 16.1757 20.3928 15.4082 19.88C14.6408 19.3672 14.0427 18.6384 13.6894 17.7857C13.3362 16.933 13.2438 15.9947 13.4239 15.0894C13.604 14.1842 14.0484 13.3527 14.7011 12.7C15.3537 12.0474 16.1852 11.6029 17.0905 11.4228C17.9957 11.2428 18.934 11.3352 19.7867 11.6884C20.6395 12.0416 21.3683 12.6397 21.8811 13.4072C22.3939 14.1746 22.6676 15.0769 22.6676 15.9998C22.666 17.237 22.1738 18.4231 21.299 19.298C20.4242 20.1728 19.2381 20.665 18.0009 20.6665Z"
-  ></path>
-</svg>`;
-	var PIP_ICON_SVG = w`<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-  <path
-    d="M120-520q-17 0-28.5-11.5T80-560q0-17 11.5-28.5T120-600h104L80-743q-12-12-12-28.5T80-800q12-12 28.5-12t28.5 12l143 144v-104q0-17 11.5-28.5T320-800q17 0 28.5 11.5T360-760v200q0 17-11.5 28.5T320-520H120Zm40 360q-33 0-56.5-23.5T80-240v-160q0-17 11.5-28.5T120-440q17 0 28.5 11.5T160-400v160h280q17 0 28.5 11.5T480-200q0 17-11.5 28.5T440-160H160Zm680-280q-17 0-28.5-11.5T800-480v-240H480q-17 0-28.5-11.5T440-760q0-17 11.5-28.5T480-800h320q33 0 56.5 23.5T880-720v240q0 17-11.5 28.5T840-440ZM600-160q-17 0-28.5-11.5T560-200v-120q0-17 11.5-28.5T600-360h240q17 0 28.5 11.5T880-320v120q0 17-11.5 28.5T840-160H600Z"
-  />
-</svg>`;
-	var MENU_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-  <path
-    d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"
-  />
-</svg>`;
-	var DOWNLOAD_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 0 24 24" class="vot-loader" id="vot-loader-download">
-  <path class="vot-loader-main" d="M12 15.575C11.8667 15.575 11.7417 15.5542 11.625 15.5125C11.5083 15.4708 11.4 15.4 11.3 15.3L7.7 11.7C7.5 11.5 7.40417 11.2667 7.4125 11C7.42083 10.7333 7.51667 10.5 7.7 10.3C7.9 10.1 8.1375 9.99583 8.4125 9.9875C8.6875 9.97917 8.925 10.075 9.125 10.275L11 12.15V5C11 4.71667 11.0958 4.47917 11.2875 4.2875C11.4792 4.09583 11.7167 4 12 4C12.2833 4 12.5208 4.09583 12.7125 4.2875C12.9042 4.47917 13 4.71667 13 5V12.15L14.875 10.275C15.075 10.075 15.3125 9.97917 15.5875 9.9875C15.8625 9.99583 16.1 10.1 16.3 10.3C16.4833 10.5 16.5792 10.7333 16.5875 11C16.5958 11.2667 16.5 11.5 16.3 11.7L12.7 15.3C12.6 15.4 12.4917 15.4708 12.375 15.5125C12.2583 15.5542 12.1333 15.575 12 15.575ZM6 20C5.45 20 4.97917 19.8042 4.5875 19.4125C4.19583 19.0208 4 18.55 4 18V16C4 15.7167 4.09583 15.4792 4.2875 15.2875C4.47917 15.0958 4.71667 15 5 15C5.28333 15 5.52083 15.0958 5.7125 15.2875C5.90417 15.4792 6 15.7167 6 16V18H18V16C18 15.7167 18.0958 15.4792 18.2875 15.2875C18.4792 15.0958 18.7167 15 19 15C19.2833 15 19.5208 15.0958 19.7125 15.2875C19.9042 15.4792 20 15.7167 20 16V18C20 18.55 19.8042 19.0208 19.4125 19.4125C19.0208 19.8042 18.55 20 18 20H6Z"/>
-  <circle class="vot-loader-progress" cx="12" cy="12" r="9"></circle>
-</svg>`;
-	var SUBTITLES_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 0 24 24">
-  <path d="M4 20q-.825 0-1.413-.588T2 18V6q0-.825.588-1.413T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.588 1.413T20 20H4Zm2-4h8v-2H6v2Zm10 0h2v-2h-2v2ZM6 12h2v-2H6v2Zm4 0h8v-2h-8v2Z"/>
-</svg>`;
-	var SETTINGS_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 -960 960 960">
-  <path d="M555-80H405q-15 0-26-10t-13-25l-12-93q-13-5-24.5-12T307-235l-87 36q-14 5-28 1t-22-17L96-344q-8-13-5-28t15-24l75-57q-1-7-1-13.5v-27q0-6.5 1-13.5l-75-57q-12-9-15-24t5-28l74-129q7-14 21.5-17.5T220-761l87 36q11-8 23-15t24-12l12-93q2-15 13-25t26-10h150q15 0 26 10t13 25l12 93q13 5 24.5 12t22.5 15l87-36q14-5 28-1t22 17l74 129q8 13 5 28t-15 24l-75 57q1 7 1 13.5v27q0 6.5-2 13.5l75 57q12 9 15 24t-5 28l-74 128q-8 13-22.5 17.5T738-199l-85-36q-11 8-23 15t-24 12l-12 93q-2 15-13 25t-26 10Zm-73-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm0-80q-25 0-42.5-17.5T422-480q0-25 17.5-42.5T482-540q25 0 42.5 17.5T542-480q0 25-17.5 42.5T482-420Zm-2-60Zm-40 320h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Z"/>
-</svg>`;
-	var CHEVRON_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
-  <path
-    d="M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7q.275-.275.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275q.275.275.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062Z"
-  />
-</svg>`;
-	var ARROW_RIGHT_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-  <path
-    d="M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z"
-  />
-</svg>`;
-	var CLOSE_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 -960 960 960">
-  <path d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z"/>
-</svg>`;
-	var WARNING_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <g fill="none">
-    <path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m0 2a8 8 0 1 0 0 16a8 8 0 0 0 0-16m0 11a1 1 0 1 1 0 2a1 1 0 0 1 0-2m0-9a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1"/>
-  </g>
-</svg>`;
-	var HELP_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <g fill="none">
-    <path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m0 2a8 8 0 1 0 0 16a8 8 0 0 0 0-16m0 12a1 1 0 1 1 0 2a1 1 0 0 1 0-2m0-9.5a3.625 3.625 0 0 1 1.348 6.99a.8.8 0 0 0-.305.201c-.044.05-.051.114-.05.18L13 14a1 1 0 0 1-1.993.117L11 14v-.25c0-1.153.93-1.845 1.604-2.116a1.626 1.626 0 1 0-2.229-1.509a1 1 0 1 1-2 0A3.625 3.625 0 0 1 12 6.5"/>
-  </g>
-</svg>`;
-	var REFRESH_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <g fill="none">
-    <path d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z"/>
-    <path fill="currentColor" d="M20 9a1 1 0 0 1 1 1v1a8 8 0 0 1-8 8H9.414l.793.793a1 1 0 0 1-1.414 1.414l-2.496-2.496a1 1 0 0 1-.287-.567L6 17.991a1 1 0 0 1 .237-.638l.056-.06l2.5-2.5a1 1 0 0 1 1.414 1.414L9.414 17H13a6 6 0 0 0 6-6v-1a1 1 0 0 1 1-1m-4.793-6.207l2.5 2.5a1 1 0 0 1 0 1.414l-2.5 2.5a1 1 0 1 1-1.414-1.414L14.586 7H11a6 6 0 0 0-6 6v1a1 1 0 1 1-2 0v-1a8 8 0 0 1 8-8h3.586l-.793-.793a1 1 0 0 1 1.414-1.414"/>
-  </g>
-</svg>`;
-	var KEY_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path fill="currentColor" d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"/>
-  </svg>`;
-	/**
-	* Animated equalizer icon for "Standard voices" (gray dots / bars).
-	* Three bars that animate up and down like an audio waveform.
-	*/
-	var STANDARD_VOICE_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="vot-voice-icon vot-voice-icon--standard" aria-hidden="true">
-  <rect class="vot-eq-bar vot-eq-bar--1" x="2" y="10" width="3" height="8" rx="1.5"/>
-  <rect class="vot-eq-bar vot-eq-bar--2" x="8.5" y="6" width="3" height="12" rx="1.5"/>
-  <rect class="vot-eq-bar vot-eq-bar--3" x="15" y="10" width="3" height="8" rx="1.5"/>
-</svg>`;
-	/**
-	* Animated equalizer icon for "Live voices" (pink/magenta bars).
-	* Five bars that animate like a lively audio equalizer.
-	*/
-	var LIVE_VOICE_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="vot-voice-icon vot-voice-icon--live" aria-hidden="true">
-  <rect class="vot-eq-bar vot-eq-bar--1" x="1" y="11" width="2.5" height="7" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--2" x="5.25" y="7" width="2.5" height="11" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--3" x="9.5" y="4" width="2.5" height="14" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--4" x="13.75" y="7" width="2.5" height="11" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--5" x="17.5" y="11" width="2.5" height="7" rx="1.25"/>
-</svg>`;
+	var TRANSLATE_ICON_SVG = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "24",
+			viewBox: "0 0 24 24"
+		},
+		children: [
+			{
+				tag: "path",
+				attrs: {
+					id: "vot-translate-icon",
+					"fill-rule": "evenodd",
+					d: "M15.778 18.95L14.903 21.375C14.8364 21.5583 14.7197 21.7083 14.553 21.825C14.3864 21.9417 14.203 22 14.003 22C13.6697 22 13.3989 21.8625 13.1905 21.5875C12.9822 21.3125 12.9447 21.0083 13.078 20.675L16.878 10.625C16.9614 10.4417 17.0864 10.2917 17.253 10.175C17.4197 10.0583 17.603 10 17.803 10H18.553C18.753 10 18.9364 10.0583 19.103 10.175C19.2697 10.2917 19.3947 10.4417 19.478 10.625L23.278 20.7C23.4114 21.0167 23.378 21.3125 23.178 21.5875C22.978 21.8625 22.7114 22 22.378 22C22.1614 22 21.9739 21.9375 21.8155 21.8125C21.6572 21.6875 21.5364 21.525 21.453 21.325L20.628 18.95H15.778ZM19.978 17.2H16.378L18.228 12.25L19.978 17.2Z"
+				}
+			},
+			{
+				tag: "path",
+				attrs: { d: "M9 14L4.7 18.3C4.51667 18.4833 4.28333 18.575 4 18.575C3.71667 18.575 3.48333 18.4833 3.3 18.3C3.11667 18.1167 3.025 17.8833 3.025 17.6C3.025 17.3167 3.11667 17.0833 3.3 16.9L7.65 12.55C7.01667 11.85 6.4625 11.125 5.9875 10.375C5.5125 9.625 5.1 8.83333 4.75 8H6.85C7.15 8.6 7.47083 9.14167 7.8125 9.625C8.15417 10.1083 8.56667 10.6167 9.05 11.15C9.78333 10.35 10.3917 9.52917 10.875 8.6875C11.3583 7.84583 11.7667 6.95 12.1 6H2C1.71667 6 1.47917 5.90417 1.2875 5.7125C1.09583 5.52083 1 5.28333 1 5C1 4.71667 1.09583 4.47917 1.2875 4.2875C1.47917 4.09583 1.71667 4 2 4H8V3C8 2.71667 8.09583 2.47917 8.2875 2.2875C8.47917 2.09583 8.71667 2 9 2C9.28333 2 9.52083 2.09583 9.7125 2.2875C9.90417 2.47917 10 2.71667 10 3V4H16C16.2833 4 16.5208 4.09583 16.7125 4.2875C16.9042 4.47917 17 4.71667 17 5C17 5.28333 16.9042 5.52083 16.7125 5.7125C16.5208 5.90417 16.2833 6 16 6H14.1C13.75 7.18333 13.275 8.33333 12.675 9.45C12.075 10.5667 11.3333 11.6167 10.45 12.6L12.85 15.05L12.1 17.1L9 14Z" }
+			},
+			{
+				tag: "path",
+				attrs: {
+					id: "vot-loading-icon",
+					style: "display:none",
+					d: "M19.8081 16.3697L18.5842 15.6633V13.0832C18.5842 12.9285 18.5228 12.7801 18.4134 12.6707C18.304 12.5613 18.1556 12.4998 18.0009 12.4998C17.8462 12.4998 17.6978 12.5613 17.5884 12.6707C17.479 12.7801 17.4176 12.9285 17.4176 13.0832V15.9998C17.4176 16.1022 17.4445 16.2028 17.4957 16.2915C17.5469 16.3802 17.6205 16.4538 17.7092 16.505L19.2247 17.38C19.2911 17.4189 19.3645 17.4443 19.4407 17.4547C19.5169 17.4652 19.5945 17.4604 19.6688 17.4407C19.7432 17.4211 19.813 17.3869 19.8741 17.3402C19.9352 17.2934 19.9864 17.2351 20.0249 17.1684C20.0634 17.1018 20.0883 17.0282 20.0982 16.952C20.1081 16.8757 20.1028 16.7982 20.0827 16.7239C20.0625 16.6497 20.0279 16.5802 19.9808 16.5194C19.9336 16.4586 19.8749 16.4077 19.8081 16.3697ZM18.0015 10C16.8478 10 15.6603 10.359 14.7011 11C13.7418 11.641 12.9415 12.4341 12.5 13.5C12.0585 14.5659 11.8852 16.0369 12.1103 17.1684C12.3353 18.3 12.8736 19.4942 13.6894 20.31C14.5053 21.1258 15.8684 21.7749 17 22C18.1316 22.2251 19.4341 21.9415 20.5 21.5C21.5659 21.0585 22.359 20.2573 23 19.298C23.641 18.3387 24.0015 17.1537 24.0015 16C23.9998 14.4534 23.5951 13.0936 22.5015 12C21.4079 10.9064 19.5481 10.0017 18.0015 10ZM18.0009 20.6665C17.0779 20.6665 16.1757 20.3928 15.4082 19.88C14.6408 19.3672 14.0427 18.6384 13.6894 17.7857C13.3362 16.933 13.2438 15.9947 13.4239 15.0894C13.604 14.1842 14.0484 13.3527 14.7011 12.7C15.3537 12.0474 16.1852 11.6029 17.0905 11.4228C17.9957 11.2428 18.934 11.3352 19.7867 11.6884C20.6395 12.0416 21.3683 12.6397 21.8811 13.4072C22.3939 14.1746 22.6676 15.0769 22.6676 15.9998C22.666 17.237 22.1738 18.4231 21.299 19.298C20.4242 20.1728 19.2381 20.665 18.0009 20.6665Z"
+				}
+			}
+		]
+	});
+	var PIP_ICON_SVG = iconTemplate({
+		tag: "svg",
+		attrs: {
+			height: "24",
+			viewBox: "0 -960 960 960",
+			width: "24"
+		},
+		children: [{
+			tag: "path",
+			attrs: { d: "M120-520q-17 0-28.5-11.5T80-560q0-17 11.5-28.5T120-600h104L80-743q-12-12-12-28.5T80-800q12-12 28.5-12t28.5 12l143 144v-104q0-17 11.5-28.5T320-800q17 0 28.5 11.5T360-760v200q0 17-11.5 28.5T320-520H120Zm40 360q-33 0-56.5-23.5T80-240v-160q0-17 11.5-28.5T120-440q17 0 28.5 11.5T160-400v160h280q17 0 28.5 11.5T480-200q0 17-11.5 28.5T440-160H160Zm680-280q-17 0-28.5-11.5T800-480v-240H480q-17 0-28.5-11.5T440-760q0-17 11.5-28.5T480-800h320q33 0 56.5 23.5T880-720v240q0 17-11.5 28.5T840-440ZM600-160q-17 0-28.5-11.5T560-200v-120q0-17 11.5-28.5T600-360h240q17 0 28.5 11.5T880-320v120q0 17-11.5 28.5T840-160H600Z" }
+		}]
+	});
+	var MENU_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			height: "24",
+			viewBox: "0 -960 960 960",
+			width: "24"
+		},
+		children: [{
+			tag: "path",
+			attrs: { d: "M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z" }
+		}]
+	});
+	var DOWNLOAD_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "100%",
+			viewBox: "0 0 24 24",
+			class: "vot-loader",
+			id: "vot-loader-download"
+		},
+		children: [{
+			tag: "path",
+			attrs: {
+				class: "vot-loader-main",
+				d: "M12 15.575C11.8667 15.575 11.7417 15.5542 11.625 15.5125C11.5083 15.4708 11.4 15.4 11.3 15.3L7.7 11.7C7.5 11.5 7.40417 11.2667 7.4125 11C7.42083 10.7333 7.51667 10.5 7.7 10.3C7.9 10.1 8.1375 9.99583 8.4125 9.9875C8.6875 9.97917 8.925 10.075 9.125 10.275L11 12.15V5C11 4.71667 11.0958 4.47917 11.2875 4.2875C11.4792 4.09583 11.7167 4 12 4C12.2833 4 12.5208 4.09583 12.7125 4.2875C12.9042 4.47917 13 4.71667 13 5V12.15L14.875 10.275C15.075 10.075 15.3125 9.97917 15.5875 9.9875C15.8625 9.99583 16.1 10.1 16.3 10.3C16.4833 10.5 16.5792 10.7333 16.5875 11C16.5958 11.2667 16.5 11.5 16.3 11.7L12.7 15.3C12.6 15.4 12.4917 15.4708 12.375 15.5125C12.2583 15.5542 12.1333 15.575 12 15.575ZM6 20C5.45 20 4.97917 19.8042 4.5875 19.4125C4.19583 19.0208 4 18.55 4 18V16C4 15.7167 4.09583 15.4792 4.2875 15.2875C4.47917 15.0958 4.71667 15 5 15C5.28333 15 5.52083 15.0958 5.7125 15.2875C5.90417 15.4792 6 15.7167 6 16V18H18V16C18 15.7167 18.0958 15.4792 18.2875 15.2875C18.4792 15.0958 18.7167 15 19 15C19.2833 15 19.5208 15.0958 19.7125 15.2875C19.9042 15.4792 20 15.7167 20 16V18C20 18.55 19.8042 19.0208 19.4125 19.4125C19.0208 19.8042 18.55 20 18 20H6Z"
+			}
+		}, {
+			tag: "circle",
+			attrs: {
+				class: "vot-loader-progress",
+				cx: "12",
+				cy: "12",
+				r: "9"
+			}
+		}]
+	});
+	var SUBTITLES_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "100%",
+			viewBox: "0 0 24 24"
+		},
+		children: [{
+			tag: "path",
+			attrs: { d: "M4 20q-.825 0-1.413-.588T2 18V6q0-.825.588-1.413T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.588 1.413T20 20H4Zm2-4h8v-2H6v2Zm10 0h2v-2h-2v2ZM6 12h2v-2H6v2Zm4 0h8v-2h-8v2Z" }
+		}]
+	});
+	var SETTINGS_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "100%",
+			viewBox: "0 -960 960 960"
+		},
+		children: [{
+			tag: "path",
+			attrs: { d: "M555-80H405q-15 0-26-10t-13-25l-12-93q-13-5-24.5-12T307-235l-87 36q-14 5-28 1t-22-17L96-344q-8-13-5-28t15-24l75-57q-1-7-1-13.5v-27q0-6.5 1-13.5l-75-57q-12-9-15-24t5-28l74-129q7-14 21.5-17.5T220-761l87 36q11-8 23-15t24-12l12-93q2-15 13-25t26-10h150q15 0 26 10t13 25l12 93q13 5 24.5 12t22.5 15l87-36q14-5 28-1t22 17l74 129q8 13 5 28t-15 24l-75 57q1 7 1 13.5v27q0 6.5-2 13.5l75 57q12 9 15 24t-5 28l-74 128q-8 13-22.5 17.5T738-199l-85-36q-11 8-23 15t-24 12l-12 93q-2 15-13 25t-26 10Zm-73-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm0-80q-25 0-42.5-17.5T422-480q0-25 17.5-42.5T482-540q25 0 42.5 17.5T542-480q0 25-17.5 42.5T482-420Zm-2-60Zm-40 320h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Z" }
+		}]
+	});
+	var CHEVRON_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "24",
+			viewBox: "0 0 24 24"
+		},
+		children: [{
+			tag: "path",
+			attrs: { d: "M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7q.275-.275.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275q.275.275.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062Z" }
+		}]
+	});
+	var ARROW_RIGHT_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			height: "24",
+			viewBox: "0 -960 960 960",
+			width: "24"
+		},
+		children: [{
+			tag: "path",
+			attrs: { d: "M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z" }
+		}]
+	});
+	var CLOSE_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "100%",
+			viewBox: "0 -960 960 960"
+		},
+		children: [{
+			tag: "path",
+			attrs: { d: "M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z" }
+		}]
+	});
+	var WARNING_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "24",
+			viewBox: "0 0 24 24"
+		},
+		children: [{
+			tag: "g",
+			attrs: { fill: "none" },
+			children: [{
+				tag: "path",
+				attrs: { d: "m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z" }
+			}, {
+				tag: "path",
+				attrs: {
+					fill: "currentColor",
+					d: "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m0 2a8 8 0 1 0 0 16a8 8 0 0 0 0-16m0 11a1 1 0 1 1 0 2a1 1 0 0 1 0-2m0-9a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1"
+				}
+			}]
+		}]
+	});
+	var HELP_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "24",
+			viewBox: "0 0 24 24"
+		},
+		children: [{
+			tag: "g",
+			attrs: { fill: "none" },
+			children: [{
+				tag: "path",
+				attrs: { d: "m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z" }
+			}, {
+				tag: "path",
+				attrs: {
+					fill: "currentColor",
+					d: "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m0 2a8 8 0 1 0 0 16a8 8 0 0 0 0-16m0 12a1 1 0 1 1 0 2a1 1 0 0 1 0-2m0-9.5a3.625 3.625 0 0 1 1.348 6.99a.8.8 0 0 0-.305.201c-.044.05-.051.114-.05.18L13 14a1 1 0 0 1-1.993.117L11 14v-.25c0-1.153.93-1.845 1.604-2.116a1.626 1.626 0 1 0-2.229-1.509a1 1 0 1 1-2 0A3.625 3.625 0 0 1 12 6.5"
+				}
+			}]
+		}]
+	});
+	var REFRESH_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "24",
+			viewBox: "0 0 24 24"
+		},
+		children: [{
+			tag: "g",
+			attrs: { fill: "none" },
+			children: [{
+				tag: "path",
+				attrs: { d: "m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z" }
+			}, {
+				tag: "path",
+				attrs: {
+					fill: "currentColor",
+					d: "M20 9a1 1 0 0 1 1 1v1a8 8 0 0 1-8 8H9.414l.793.793a1 1 0 0 1-1.414 1.414l-2.496-2.496a1 1 0 0 1-.287-.567L6 17.991a1 1 0 0 1 .237-.638l.056-.06l2.5-2.5a1 1 0 0 1 1.414 1.414L9.414 17H13a6 6 0 0 0 6-6v-1a1 1 0 0 1 1-1m-4.793-6.207l2.5 2.5a1 1 0 0 1 0 1.414l-2.5 2.5a1 1 0 1 1-1.414-1.414L14.586 7H11a6 6 0 0 0-6 6v1a1 1 0 1 1-2 0v-1a8 8 0 0 1 8-8h3.586l-.793-.793a1 1 0 0 1 1.414-1.414"
+				}
+			}]
+		}]
+	});
+	var KEY_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "24",
+			height: "24",
+			viewBox: "0 0 24 24"
+		},
+		children: [{
+			tag: "path",
+			attrs: {
+				fill: "currentColor",
+				d: "M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"
+			}
+		}]
+	});
+	var STANDARD_VOICE_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "20",
+			height: "20",
+			viewBox: "0 0 20 20",
+			class: "vot-voice-icon vot-voice-icon--standard",
+			"aria-hidden": "true"
+		},
+		children: [
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--1",
+					x: "2",
+					y: "10",
+					width: "3",
+					height: "8",
+					rx: "1.5"
+				}
+			},
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--2",
+					x: "8.5",
+					y: "6",
+					width: "3",
+					height: "12",
+					rx: "1.5"
+				}
+			},
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--3",
+					x: "15",
+					y: "10",
+					width: "3",
+					height: "8",
+					rx: "1.5"
+				}
+			}
+		]
+	});
+	var LIVE_VOICE_ICON = iconTemplate({
+		tag: "svg",
+		attrs: {
+			width: "20",
+			height: "20",
+			viewBox: "0 0 20 20",
+			class: "vot-voice-icon vot-voice-icon--live",
+			"aria-hidden": "true"
+		},
+		children: [
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--1",
+					x: "1",
+					y: "11",
+					width: "2.5",
+					height: "7",
+					rx: "1.25"
+				}
+			},
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--2",
+					x: "5.25",
+					y: "7",
+					width: "2.5",
+					height: "11",
+					rx: "1.25"
+				}
+			},
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--3",
+					x: "9.5",
+					y: "4",
+					width: "2.5",
+					height: "14",
+					rx: "1.25"
+				}
+			},
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--4",
+					x: "13.75",
+					y: "7",
+					width: "2.5",
+					height: "11",
+					rx: "1.25"
+				}
+			},
+			{
+				tag: "rect",
+				attrs: {
+					class: "vot-eq-bar vot-eq-bar--5",
+					x: "17.5",
+					y: "11",
+					width: "2.5",
+					height: "7",
+					rx: "1.25"
+				}
+			}
+		]
+	});
 	//#endregion
 	//#region src/ui/components/downloadButton.ts
 	var DownloadButton = class extends UIComponentWithEvents {
@@ -19755,34 +21098,391 @@ var vot = (function(exports) {
 		return clampPercentInt(value < 1 ? value * 100 : value);
 	}
 	//#endregion
-	//#region src/ui/components/label.ts
+	//#region node_modules/solid-js/universal/dist/universal.js
+	var memo$1 = (fn) => createMemo(() => fn());
+	function createRenderer$1({ createElement, createTextNode, isTextNode, replaceText, insertNode, removeNode, setProperty, getParentNode, getFirstChild, getNextSibling }) {
+		function insert(parent, accessor, marker, initial) {
+			if (marker !== void 0 && !initial) initial = [];
+			if (typeof accessor !== "function") return insertExpression(parent, accessor, initial, marker);
+			createRenderEffect((current) => insertExpression(parent, accessor(), current, marker), initial);
+		}
+		function insertExpression(parent, value, current, marker, unwrapArray) {
+			while (typeof current === "function") current = current();
+			if (value === current) return current;
+			const t = typeof value, multi = marker !== void 0;
+			if (t === "string" || t === "number") {
+				if (t === "number") value = value.toString();
+				if (multi) {
+					let node = current[0];
+					if (node && isTextNode(node)) replaceText(node, value);
+					else node = createTextNode(value);
+					current = cleanChildren(parent, current, marker, node);
+				} else if (current !== "" && typeof current === "string") replaceText(getFirstChild(parent), current = value);
+				else {
+					cleanChildren(parent, current, marker, createTextNode(value));
+					current = value;
+				}
+			} else if (value == null || t === "boolean") current = cleanChildren(parent, current, marker);
+			else if (t === "function") {
+				createRenderEffect(() => {
+					let v = value();
+					while (typeof v === "function") v = v();
+					current = insertExpression(parent, v, current, marker);
+				});
+				return () => current;
+			} else if (Array.isArray(value)) {
+				const array = [];
+				if (normalizeIncomingArray(array, value, unwrapArray)) {
+					createRenderEffect(() => current = insertExpression(parent, array, current, marker, true));
+					return () => current;
+				}
+				if (array.length === 0) {
+					const replacement = cleanChildren(parent, current, marker);
+					if (multi) return current = replacement;
+				} else if (Array.isArray(current)) if (current.length === 0) appendNodes(parent, array, marker);
+				else reconcileArrays(parent, current, array);
+				else if (current == null || current === "") appendNodes(parent, array);
+				else reconcileArrays(parent, multi && current || [getFirstChild(parent)], array);
+				current = array;
+			} else {
+				if (Array.isArray(current)) {
+					if (multi) return current = cleanChildren(parent, current, marker, value);
+					cleanChildren(parent, current, null, value);
+				} else if (current == null || current === "" || !getFirstChild(parent)) insertNode(parent, value);
+				else replaceNode(parent, value, getFirstChild(parent));
+				current = value;
+			}
+			return current;
+		}
+		function normalizeIncomingArray(normalized, array, unwrap) {
+			let dynamic = false;
+			for (let i = 0, len = array.length; i < len; i++) {
+				let item = array[i], t;
+				if (item == null || item === true || item === false);
+				else if (Array.isArray(item)) dynamic = normalizeIncomingArray(normalized, item) || dynamic;
+				else if ((t = typeof item) === "string" || t === "number") normalized.push(createTextNode(item));
+				else if (t === "function") if (unwrap) {
+					while (typeof item === "function") item = item();
+					dynamic = normalizeIncomingArray(normalized, Array.isArray(item) ? item : [item]) || dynamic;
+				} else {
+					normalized.push(item);
+					dynamic = true;
+				}
+				else normalized.push(item);
+			}
+			return dynamic;
+		}
+		function reconcileArrays(parentNode, a, b) {
+			let bLength = b.length, aEnd = a.length, bEnd = bLength, aStart = 0, bStart = 0, after = getNextSibling(a[aEnd - 1]), map = null;
+			while (aStart < aEnd || bStart < bEnd) {
+				if (a[aStart] === b[bStart]) {
+					aStart++;
+					bStart++;
+					continue;
+				}
+				while (a[aEnd - 1] === b[bEnd - 1]) {
+					aEnd--;
+					bEnd--;
+				}
+				if (aEnd === aStart) {
+					const node = bEnd < bLength ? bStart ? getNextSibling(b[bStart - 1]) : b[bEnd - bStart] : after;
+					while (bStart < bEnd) insertNode(parentNode, b[bStart++], node);
+				} else if (bEnd === bStart) while (aStart < aEnd) {
+					if (!map || !map.has(a[aStart])) removeNode(parentNode, a[aStart]);
+					aStart++;
+				}
+				else if (a[aStart] === b[bEnd - 1] && b[bStart] === a[aEnd - 1]) {
+					const node = getNextSibling(a[--aEnd]);
+					insertNode(parentNode, b[bStart++], getNextSibling(a[aStart++]));
+					insertNode(parentNode, b[--bEnd], node);
+					a[aEnd] = b[bEnd];
+				} else {
+					if (!map) {
+						map = /* @__PURE__ */ new Map();
+						let i = bStart;
+						while (i < bEnd) map.set(b[i], i++);
+					}
+					const index = map.get(a[aStart]);
+					if (index != null) if (bStart < index && index < bEnd) {
+						let i = aStart, sequence = 1, t;
+						while (++i < aEnd && i < bEnd) {
+							if ((t = map.get(a[i])) == null || t !== index + sequence) break;
+							sequence++;
+						}
+						if (sequence > index - bStart) {
+							const node = a[aStart];
+							while (bStart < index) insertNode(parentNode, b[bStart++], node);
+						} else replaceNode(parentNode, b[bStart++], a[aStart++]);
+					} else aStart++;
+					else removeNode(parentNode, a[aStart++]);
+				}
+			}
+		}
+		function cleanChildren(parent, current, marker, replacement) {
+			if (marker === void 0) {
+				let removed;
+				while (removed = getFirstChild(parent)) removeNode(parent, removed);
+				replacement && insertNode(parent, replacement);
+				return "";
+			}
+			const node = replacement || createTextNode("");
+			if (current.length) {
+				let inserted = false;
+				for (let i = current.length - 1; i >= 0; i--) {
+					const el = current[i];
+					if (node !== el) {
+						const isParent = getParentNode(el) === parent;
+						if (!inserted && !i) isParent ? replaceNode(parent, node, el) : insertNode(parent, node, marker);
+						else isParent && removeNode(parent, el);
+					} else inserted = true;
+				}
+			} else insertNode(parent, node, marker);
+			return [node];
+		}
+		function appendNodes(parent, array, marker) {
+			for (let i = 0, len = array.length; i < len; i++) insertNode(parent, array[i], marker);
+		}
+		function replaceNode(parent, newNode, oldNode) {
+			insertNode(parent, newNode, oldNode);
+			removeNode(parent, oldNode);
+		}
+		function spreadExpression(node, props, prevProps = {}, skipChildren) {
+			props || (props = {});
+			if (!skipChildren) createRenderEffect(() => prevProps.children = insertExpression(node, props.children, prevProps.children));
+			createRenderEffect(() => props.ref && props.ref(node));
+			createRenderEffect(() => {
+				for (const prop in props) {
+					if (prop === "children" || prop === "ref") continue;
+					const value = props[prop];
+					if (value === prevProps[prop]) continue;
+					setProperty(node, prop, value, prevProps[prop]);
+					prevProps[prop] = value;
+				}
+			});
+			return prevProps;
+		}
+		return {
+			render(code, element) {
+				let disposer;
+				createRoot((dispose) => {
+					disposer = dispose;
+					insert(element, code());
+				});
+				return disposer;
+			},
+			insert,
+			spread(node, accessor, skipChildren) {
+				if (typeof accessor === "function") createRenderEffect((current) => spreadExpression(node, accessor(), current, skipChildren));
+				else spreadExpression(node, accessor, void 0, skipChildren);
+			},
+			createElement,
+			createTextNode,
+			insertNode,
+			setProp(node, name, value, prev) {
+				setProperty(node, name, value, prev);
+				return value;
+			},
+			mergeProps: mergeProps$1,
+			effect: createRenderEffect,
+			memo: memo$1,
+			createComponent: createComponent$1,
+			use(fn, element, arg) {
+				return untrack(() => fn(element, arg));
+			}
+		};
+	}
+	function createRenderer(options) {
+		const renderer = createRenderer$1(options);
+		renderer.mergeProps = mergeProps$1;
+		return renderer;
+	}
+	//#endregion
+	//#region src/ui/solid/renderer.ts
+	var propertyAliases = {
+		formnovalidate: "formNoValidate",
+		readonly: "readOnly"
+	};
+	var booleanAttributes = /* @__PURE__ */ new Set([
+		"allowfullscreen",
+		"async",
+		"autofocus",
+		"autoplay",
+		"checked",
+		"controls",
+		"disabled",
+		"formnovalidate",
+		"hidden",
+		"loop",
+		"multiple",
+		"open",
+		"readonly",
+		"required",
+		"selected"
+	]);
+	var eventListeners = /* @__PURE__ */ new WeakMap();
+	function setClassList(element, value, previous) {
+		for (const name of Object.keys(previous ?? {})) {
+			const classes = name.trim().split(/\s+/).filter(Boolean);
+			if (classes.length && !value?.[name]) element.classList.remove(...classes);
+		}
+		for (const [name, enabled] of Object.entries(value ?? {})) {
+			const classes = name.trim().split(/\s+/).filter(Boolean);
+			if (classes.length && enabled) element.classList.add(...classes);
+		}
+	}
+	function setStyle(element, value, previous) {
+		if (typeof value === "string") {
+			element.style.cssText = value;
+			return;
+		}
+		if (typeof previous === "string") element.style.cssText = "";
+		for (const name of Object.keys(typeof previous === "object" && previous ? previous : {})) if (value?.[name] == null) element.style.removeProperty(name);
+		for (const [name, styleValue] of Object.entries(value ?? {})) if (styleValue == null) element.style.removeProperty(name);
+		else element.style.setProperty(name, styleValue);
+	}
+	function setEvent(element, property, value) {
+		const capture = property.startsWith("oncapture:");
+		const eventName = property.includes(":") ? property.slice(property.indexOf(":") + 1) : property.slice(2).toLowerCase();
+		const key = `${capture ? "capture:" : "event:"}${eventName}`;
+		let listeners = eventListeners.get(element);
+		const previous = listeners?.get(key);
+		if (previous) element.removeEventListener(eventName, previous, capture);
+		if (!value) {
+			listeners?.delete(key);
+			return;
+		}
+		const listener = Array.isArray(value) ? (event) => value[0](value[1], event) : value;
+		listeners ??= /* @__PURE__ */ new Map();
+		eventListeners.set(element, listeners);
+		listeners.set(key, listener);
+		element.addEventListener(eventName, listener, capture);
+	}
+	function setProperty(node, name, value, previous) {
+		if (!(node instanceof Element)) return;
+		if (name === "innerHTML") throw new TypeError("[VOT] innerHTML is not supported by the CSP-safe renderer");
+		if (name === "style" && (node instanceof HTMLElement || node instanceof SVGElement)) {
+			setStyle(node, value, previous);
+			return;
+		}
+		if (name === "classList") {
+			setClassList(node, value, previous);
+			return;
+		}
+		if (name.startsWith("on")) {
+			setEvent(node, name, value);
+			return;
+		}
+		if (name.startsWith("attr:")) name = name.slice(5);
+		if (name === "class" || name === "className") {
+			if (value == null) node.removeAttribute("class");
+			else node.setAttribute("class", String(value));
+			return;
+		}
+		const propertyName = propertyAliases[name] ?? name;
+		if (propertyName in node && !name.startsWith("aria-") && !name.startsWith("data-")) {
+			Reflect.set(node, propertyName, value);
+			return;
+		}
+		if (value == null || value === false && booleanAttributes.has(name)) node.removeAttribute(name);
+		else if (value === true && booleanAttributes.has(name)) node.setAttribute(name, "");
+		else node.setAttribute(name, String(value));
+	}
+	var { render, effect, memo, createComponent, createElement, createTextNode, insertNode, insert, spread, setProp, mergeProps, use } = createRenderer({
+		createElement(tag) {
+			return document.createElement(tag);
+		},
+		createTextNode(value) {
+			return document.createTextNode(value);
+		},
+		replaceText(textNode, value) {
+			textNode.nodeValue = value;
+		},
+		isTextNode(node) {
+			return node.nodeType === Node.TEXT_NODE;
+		},
+		setProperty,
+		insertNode(parent, node, anchor) {
+			parent.insertBefore(node, anchor ?? null);
+		},
+		removeNode(parent, node) {
+			parent.removeChild(node);
+		},
+		getParentNode(node) {
+			return node.parentNode ?? void 0;
+		},
+		getFirstChild(node) {
+			return node.firstChild ?? void 0;
+		},
+		getNextSibling(node) {
+			return node.nextSibling ?? void 0;
+		}
+	});
+	//#endregion
+	//#region src/ui/solid/mountComponent.tsx
+	/**
+	* Compatibility bridge while callers still expect a concrete root element.
+	* The JSX tree remains owned by a Solid root even after the returned element
+	* is moved into a shadow root or portal.
+	*/
+	function mountComponent(view) {
+		const host = document.createElement("div");
+		let root;
+		const dispose = render(() => view((element) => root = element), host);
+		if (!root) {
+			dispose();
+			throw new Error("[VOT] Solid component did not expose a root element");
+		}
+		return {
+			root,
+			dispose
+		};
+	}
+	//#endregion
+	//#region src/ui/components/labelSolid.tsx
+	function LabelView(props) {
+		const icon = props.icon == null ? void 0 : resolveTemplate(props.icon);
+		return (() => {
+			var _el$ = createElement("div"), _el$2 = createElement("span"), _el$3 = createElement("span");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			var _ref$ = props.rootRef;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.rootRef = _el$;
+			setProp(_el$, "class", "vot-label");
+			var _ref$2 = props.textRef;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$2) : props.textRef = _el$2;
+			setProp(_el$2, "class", "vot-label-text");
+			insert(_el$2, () => props.labelText);
+			var _ref$3 = props.iconRef;
+			typeof _ref$3 === "function" ? use(_ref$3, _el$3) : props.iconRef = _el$3;
+			setProp(_el$3, "class", "vot-label-icon");
+			insert(_el$3, icon);
+			effect((_$p) => setProp(_el$3, "hidden", props.icon == null, _$p));
+			return _el$;
+		})();
+	}
 	var Label = class extends UIComponent {
 		icon;
 		text;
-		_labelText;
-		_icon;
-		constructor({ labelText, icon }) {
+		dispose;
+		constructor(props) {
 			super();
-			this._labelText = labelText;
-			this._icon = icon;
-			const { container, icon: iconEl, text } = this.createElements();
-			this.container = container;
-			this.icon = iconEl;
-			this.text = text;
+			const mounted = mountComponent((rootRef) => {
+				const _self$ = this;
+				return createComponent(LabelView, mergeProps(props, {
+					rootRef,
+					iconRef: (el) => _self$.icon = el,
+					textRef: (el) => _self$.text = el
+				}));
+			});
+			this.container = mounted.root;
+			this.dispose = mounted.dispose;
 		}
 		createElements() {
-			const container = UI.createEl("vot-block", ["vot-label"]);
-			const text = UI.createEl("span", ["vot-label-text"]);
-			text.textContent = this._labelText;
-			const icon = UI.createEl("span", ["vot-label-icon"]);
-			if (this._icon) D(this._icon, icon);
-			else icon.hidden = true;
-			container.append(text, icon);
-			return {
-				container,
-				icon,
-				text
-			};
+			throw new Error("Solid component");
+		}
+		remove() {
+			this.dispose();
+			this.container.remove();
 		}
 	};
 	//#endregion
@@ -20018,70 +21718,112 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region src/ui/components/textfield.ts
+	//#region src/ui/components/textfieldSolid.tsx
+	function TextfieldView(props) {
+		const [value, setValueState] = createSignal(props.value ?? "");
+		const [placeholder, setPlaceholder] = createSignal(props.placeholder ?? "");
+		const [disabled, setDisabled] = createSignal(false);
+		const setValue = (next, emit = true) => {
+			if (value() === next) return;
+			setValueState(next);
+			if (emit) props.onChange(next);
+		};
+		props.bind({
+			value,
+			setValue,
+			placeholder,
+			setPlaceholder,
+			disabled,
+			setDisabled
+		});
+		const common = {
+			ref: props.inputRef,
+			class: !props.labelHtml ? "vot-show-placeholer vot-show-placeholder" : void 0,
+			placeholder: placeholder(),
+			value: value(),
+			disabled: disabled(),
+			onInput: (event) => {
+				const next = event.currentTarget.value;
+				setValueState(next);
+				props.onInput(next);
+			},
+			onChange: (event) => {
+				const next = event.currentTarget.value;
+				setValueState(next);
+				props.onChange(next);
+			}
+		};
+		return (() => {
+			var _el$ = createElement("div"), _el$3 = createElement("span");
+			insertNode(_el$, _el$3);
+			var _ref$ = props.rootRef;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.rootRef = _el$;
+			setProp(_el$, "class", "vot-textfield");
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return props.multiline;
+				},
+				get fallback() {
+					return (() => {
+						var _el$4 = createElement("input");
+						spread(_el$4, common, false);
+						return _el$4;
+					})();
+				},
+				get children() {
+					var _el$2 = createElement("textarea");
+					spread(_el$2, common, false);
+					return _el$2;
+				}
+			}), _el$3);
+			var _ref$2 = props.labelRef;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$3) : props.labelRef = _el$3;
+			insert(_el$3, () => props.labelHtml);
+			return _el$;
+		})();
+	}
 	var Textfield = class extends UIComponentWithEvents {
 		input;
 		label;
-		_labelHtml;
-		_multiline;
-		_placeholder;
-		_value;
-		constructor({ labelHtml = "", placeholder = "", value = "", multiline = false }) {
+		api;
+		dispose;
+		constructor(props) {
 			super(["input", "change"]);
-			this._labelHtml = labelHtml;
-			this._multiline = multiline;
-			this._placeholder = placeholder;
-			this._value = value;
-			const { container, input, label } = this.createElements();
-			this.container = container;
-			this.input = input;
-			this.label = label;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-textfield"]);
-			const input = document.createElement(this._multiline ? "textarea" : "input");
-			if (!this._labelHtml) input.classList.add("vot-show-placeholer", "vot-show-placeholder");
-			input.placeholder = this._placeholder;
-			input.value = this._value;
-			const label = UI.createEl("span");
-			label.append(this._labelHtml);
-			container.append(input, label);
-			input.addEventListener("input", () => {
-				this._value = this.input.value;
-				this.dispatch("input", this._value);
+			const mounted = mountComponent((rootRef) => {
+				const _self$ = this;
+				return createComponent(TextfieldView, mergeProps(props, {
+					rootRef,
+					inputRef: (el) => _self$.input = el,
+					labelRef: (el) => _self$.label = el,
+					bind: (api) => _self$.api = api,
+					onInput: (value) => _self$.dispatch("input", value),
+					onChange: (value) => _self$.dispatch("change", value)
+				}));
 			});
-			input.addEventListener("change", () => {
-				this._value = this.input.value;
-				this.dispatch("change", this._value);
-			});
-			return {
-				container,
-				label,
-				input
-			};
+			this.container = mounted.root;
+			this.dispose = mounted.dispose;
 		}
 		get value() {
-			return this._value;
+			return this.api.value();
 		}
-		/**
-		* If you set a different new value, it will trigger the change event
-		*/
-		set value(val) {
-			if (this._value === val) return;
-			this.input.value = this._value = val;
-			this.dispatch("change", this._value);
+		set value(value) {
+			this.api.setValue(value);
 		}
 		get placeholder() {
-			return this._placeholder;
+			return this.api.placeholder();
 		}
-		set placeholder(text) {
-			this.input.placeholder = this._placeholder = text;
+		set placeholder(value) {
+			this.api.setPlaceholder(value);
 		}
 		get disabled() {
-			return this.input.disabled;
+			return this.api.disabled();
 		}
-		set disabled(isDisabled) {
-			this.input.disabled = isDisabled;
+		set disabled(value) {
+			this.api.setDisabled(value);
+		}
+		remove() {
+			this.dispose();
+			this.container.remove();
 		}
 	};
 	//#endregion
@@ -20205,7 +21947,7 @@ var vot = (function(exports) {
 			const title = UI.createEl("vot-block", ["vot-select-title"]);
 			title.textContent = this.visibleText;
 			const arrowIcon = UI.createEl("vot-block", ["vot-select-arrow-icon"]);
-			D(CHEVRON_ICON, arrowIcon);
+			appendTemplate(CHEVRON_ICON, arrowIcon);
 			outer.append(title, arrowIcon);
 			outer.addEventListener("click", () => {
 				if (this.disabled) return;
@@ -20349,7 +22091,7 @@ var vot = (function(exports) {
 				dialogParent: this.dialogParent
 			});
 			const directionIcon = UI.createEl("vot-block", ["vot-lang-select-icon"]);
-			D(ARROW_RIGHT_ICON, directionIcon);
+			appendTemplate(ARROW_RIGHT_ICON, directionIcon);
 			const toSelect = new Select({
 				selectTitle: this._toSelectTitle,
 				dialogTitle: this._toDialogTitle,
@@ -20422,7 +22164,7 @@ var vot = (function(exports) {
 			input.step = this._step.toString();
 			input.value = this._value.toString();
 			const label = UI.createEl("span");
-			D(this._labelHtml, label);
+			appendTemplate(this._labelHtml, label);
 			container.append(input, label);
 			input.addEventListener("input", () => {
 				this.update();
@@ -20481,50 +22223,64 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region src/ui/components/sliderLabel.ts
+	//#region src/ui/components/sliderLabelSolid.tsx
+	function SliderLabelView(props) {
+		const [value, setValue] = createSignal(props.value ?? 50);
+		const valueText = createMemo(() => `${value()}${props.symbol ?? "%"}`);
+		props.bind({
+			value,
+			setValue
+		});
+		return (() => {
+			var _el$ = createElement("div"), _el$2 = createElement("span"), _el$3 = createElement("span");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			var _ref$ = props.rootRef;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.rootRef = _el$;
+			setProp(_el$, "class", "vot-slider-label");
+			var _ref$2 = props.textRef;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$2) : props.textRef = _el$2;
+			setProp(_el$2, "class", "vot-slider-label-text");
+			insert(_el$2, () => props.labelText, null);
+			insert(_el$2, () => props.labelEOL ?? "", null);
+			var _ref$3 = props.strongRef;
+			typeof _ref$3 === "function" ? use(_ref$3, _el$3) : props.strongRef = _el$3;
+			setProp(_el$3, "class", "vot-slider-label-value");
+			insert(_el$3, valueText);
+			return _el$;
+		})();
+	}
 	var SliderLabel = class extends UIComponent {
 		strong;
 		text;
-		_labelText;
-		_labelEOL;
-		_value;
-		_symbol;
-		constructor({ labelText, labelEOL = "", value = 50, symbol = "%" }) {
+		api;
+		dispose;
+		constructor(props) {
 			super();
-			this._labelText = labelText;
-			this._labelEOL = labelEOL;
-			this._value = value;
-			this._symbol = symbol;
-			const { container, strong, text } = this.createElements();
-			this.container = container;
-			this.strong = strong;
-			this.text = text;
+			const mounted = mountComponent((rootRef) => {
+				const _self$ = this;
+				return createComponent(SliderLabelView, mergeProps(props, {
+					rootRef,
+					strongRef: (el) => _self$.strong = el,
+					textRef: (el) => _self$.text = el,
+					bind: (api) => _self$.api = api
+				}));
+			});
+			this.container = mounted.root;
+			this.dispose = mounted.dispose;
 		}
 		createElements() {
-			const container = UI.createEl("vot-block", ["vot-slider-label"]);
-			const text = UI.createEl("span", ["vot-slider-label-text"]);
-			text.textContent = this.labelText;
-			const strong = UI.createEl("span", ["vot-slider-label-value"]);
-			strong.textContent = this.valueText;
-			container.append(text, strong);
-			return {
-				container,
-				strong,
-				text
-			};
-		}
-		get labelText() {
-			return `${this._labelText}${this._labelEOL}`;
-		}
-		get valueText() {
-			return `${this._value}${this._symbol}`;
+			throw new Error("Solid component");
 		}
 		get value() {
-			return this._value;
+			return this.api.value();
 		}
-		set value(val) {
-			this._value = val;
-			this.strong.textContent = this.valueText;
+		set value(value) {
+			this.api.setValue(value);
+		}
+		remove() {
+			this.dispose();
+			this.container.remove();
 		}
 	};
 	//#endregion
@@ -20650,7 +22406,7 @@ var vot = (function(exports) {
 			item.setAttribute("tabindex", "0");
 			item.dataset.voice = voice;
 			const iconWrap = UI.createEl("vot-block", ["vot-voice-popover__item-icon", `vot-voice-popover__item-icon--${voice}`]);
-			D(iconTemplate, iconWrap);
+			appendTemplate(iconTemplate, iconWrap);
 			const textWrap = UI.createEl("vot-block", ["vot-voice-popover__item-text"]);
 			const titleEl = UI.createEl("span", ["vot-voice-popover__item-title"]);
 			titleEl.textContent = title;
@@ -20860,7 +22616,7 @@ var vot = (function(exports) {
 			translateButton.setAttribute("role", "button");
 			translateButton.tabIndex = 0;
 			translateButton.setAttribute("aria-label", this._labelText || "Translate");
-			D(TRANSLATE_ICON_SVG, translateButton);
+			appendTemplate(TRANSLATE_ICON_SVG, translateButton);
 			const label = UI.createEl("span", ["vot-segment-label"]);
 			label.textContent = this._labelText;
 			const dropdownArrow = UI.createEl("span", ["vot-dropdown-arrow"]);
@@ -20869,7 +22625,7 @@ var vot = (function(exports) {
 			dropdownArrow.setAttribute("aria-label", localizationProvider.get("VOTVoiceSelection"));
 			dropdownArrow.setAttribute("aria-haspopup", "menu");
 			dropdownArrow.setAttribute("aria-expanded", "false");
-			D(CHEVRON_ICON, dropdownArrow);
+			appendTemplate(CHEVRON_ICON, dropdownArrow);
 			translateButton.append(label, dropdownArrow);
 			const separator = UI.createEl("vot-block", ["vot-separator"]);
 			const subtitlesButton = UI.createEl("vot-block", ["vot-segment-only-icon", "vot-subtitles-button"]);
@@ -20879,13 +22635,13 @@ var vot = (function(exports) {
 			subtitlesButton.setAttribute("aria-label", subtitlesLabelText);
 			subtitlesButton.setAttribute("aria-pressed", "false");
 			subtitlesButton.dataset.active = "false";
-			D(SUBTITLES_ICON, subtitlesButton);
+			appendTemplate(SUBTITLES_ICON, subtitlesButton);
 			const separator3 = UI.createEl("vot-block", ["vot-separator"]);
 			const pipButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
 			pipButton.setAttribute("role", "button");
 			pipButton.tabIndex = 0;
 			pipButton.setAttribute("aria-label", "Picture in picture");
-			D(PIP_ICON_SVG, pipButton);
+			appendTemplate(PIP_ICON_SVG, pipButton);
 			const separator2 = UI.createEl("vot-block", ["vot-separator"]);
 			const menuButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
 			menuButton.setAttribute("role", "button");
@@ -20893,7 +22649,7 @@ var vot = (function(exports) {
 			menuButton.setAttribute("aria-label", "Menu");
 			menuButton.setAttribute("aria-haspopup", "dialog");
 			menuButton.setAttribute("aria-expanded", "false");
-			D(MENU_ICON, menuButton);
+			appendTemplate(MENU_ICON, menuButton);
 			container.append(translateButton, separator, subtitlesButton, separator3, pipButton, separator2, menuButton);
 			return {
 				container,
@@ -20908,13 +22664,25 @@ var vot = (function(exports) {
 				label
 			};
 		}
-		showSubtitlesButton(visible) {
-			this.separator3.hidden = this.subtitlesButton.hidden = !visible;
+		/**
+		* Toggles an optional segment (button + its separator).
+		*
+		* `showSubtitlesButton` and `showPiPButton` were byte-identical apart from the
+		* two elements they touched; they now share one implementation and route
+		* through `setInteractiveHiddenState`, the same helper every other component
+		* uses, so a hidden segment is consistently removed from the a11y tree and
+		* from hit-testing instead of only being visually hidden.
+		*/
+		setSegmentVisible(button, separator, visible) {
+			setInteractiveHiddenState(button, !visible);
+			setInteractiveHiddenState(separator, !visible);
 			return this;
 		}
+		showSubtitlesButton(visible) {
+			return this.setSegmentVisible(this.subtitlesButton, this.separator3, visible);
+		}
 		showPiPButton(visible) {
-			this.separator2.hidden = this.pipButton.hidden = !visible;
-			return this;
+			return this.setSegmentVisible(this.pipButton, this.separator2, visible);
 		}
 		setText(labelText) {
 			this._labelText = labelText;
@@ -21977,6 +23745,45 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region src/components/Control/Switch.tsx
+	function Switch(props) {
+		const finalProps = mergeProps$1({
+			checked: false,
+			disabled: false
+		}, props);
+		const [checked, setChecked] = createSignal(finalProps.checked);
+		const [disabled] = createSignal(finalProps.disabled);
+		return (() => {
+			var _el$ = createElement("label"), _el$2 = createElement("input"), _el$3 = createElement("span"), _el$4 = createElement("span");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			setProp(_el$, "class", "vot-switch");
+			setProp(_el$2, "class", "vot-switch-control");
+			setProp(_el$2, "role", "switch");
+			setProp(_el$2, "type", "checkbox");
+			setProp(_el$2, "onChange", (event) => setChecked(event.currentTarget.checked));
+			insertNode(_el$3, _el$4);
+			setProp(_el$3, "class", "vot-switch-track");
+			setProp(_el$4, "class", "vot-switch-handle");
+			effect((_p$) => {
+				var _v$ = checked(), _v$2 = finalProps.name, _v$3 = checked(), _v$4 = disabled(), _v$5 = checked();
+				_v$ !== _p$.e && (_p$.e = setProp(_el$2, "aria-checked", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$2, "name", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$2, "checked", _v$3, _p$.a));
+				_v$4 !== _p$.o && (_p$.o = setProp(_el$2, "disabled", _v$4, _p$.o));
+				_v$5 !== _p$.i && (_p$.i = setProp(_el$3, "data-checked", _v$5, _p$.i));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0,
+				o: void 0,
+				i: void 0
+			});
+			return _el$;
+		})();
+	}
+	//#endregion
 	//#region src/types/components/votButton.ts
 	var positions = [
 		"default",
@@ -22101,58 +23908,85 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region src/ui/components/checkbox.ts
+	//#region src/ui/components/checkboxSolid.tsx
+	function CheckboxView(props) {
+		const label = resolveTemplate(props.labelHtml);
+		const [checked, setCheckedState] = createSignal(props.checked ?? false);
+		const [disabled, setDisabled] = createSignal(false);
+		const setChecked = (value, emit = true) => {
+			if (checked() === value) return;
+			setCheckedState(value);
+			if (emit) props.onChange(value);
+		};
+		props.bind({
+			checked,
+			setChecked,
+			disabled,
+			setDisabled
+		});
+		return (() => {
+			var _el$ = createElement("label"), _el$2 = createElement("input"), _el$3 = createElement("span");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			var _ref$ = props.rootRef;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.rootRef = _el$;
+			setProp(_el$, "class", "vot-checkbox");
+			var _ref$2 = props.inputRef;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$2) : props.inputRef = _el$2;
+			setProp(_el$2, "type", "checkbox");
+			setProp(_el$2, "onChange", (event) => setChecked(event.currentTarget.checked));
+			var _ref$3 = props.labelRef;
+			typeof _ref$3 === "function" ? use(_ref$3, _el$3) : props.labelRef = _el$3;
+			insert(_el$3, label);
+			effect((_p$) => {
+				var _v$ = { "vot-checkbox-sub": props.isSubCheckbox === true }, _v$2 = checked(), _v$3 = disabled();
+				_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$2, "checked", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$2, "disabled", _v$3, _p$.a));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0
+			});
+			return _el$;
+		})();
+	}
 	var Checkbox = class extends UIComponentWithEvents {
 		input;
 		label;
-		_labelHtml;
-		_checked;
-		_isSubCheckbox;
-		constructor({ labelHtml, checked = false, isSubCheckbox = false }) {
+		api;
+		dispose;
+		constructor(props) {
 			super(["change"]);
-			this._labelHtml = labelHtml;
-			this._checked = checked;
-			this._isSubCheckbox = isSubCheckbox;
-			const { container, input, label } = this.createElements();
-			this.container = container;
-			this.input = input;
-			this.label = label;
-		}
-		createElements() {
-			const container = UI.createEl("label", ["vot-checkbox"]);
-			if (this._isSubCheckbox) container.classList.add("vot-checkbox-sub");
-			const input = document.createElement("input");
-			input.type = "checkbox";
-			input.checked = this._checked;
-			input.addEventListener("change", () => {
-				this._checked = input.checked;
-				this.dispatch("change", this._checked);
+			const mounted = mountComponent((rootRef) => {
+				const _self$ = this;
+				return createComponent(CheckboxView, mergeProps(props, {
+					rootRef,
+					inputRef: (el) => _self$.input = el,
+					labelRef: (el) => _self$.label = el,
+					bind: (api) => _self$.api = api,
+					onChange: (value) => _self$.dispatch("change", value)
+				}));
 			});
-			const label = UI.createEl("span");
-			D(this._labelHtml, label);
-			container.append(input, label);
-			return {
-				container,
-				input,
-				label
-			};
+			this.container = mounted.root;
+			this.dispose = mounted.dispose;
 		}
 		get disabled() {
-			return this.input.disabled;
+			return this.api.disabled();
 		}
-		set disabled(isDisabled) {
-			this.input.disabled = isDisabled;
+		set disabled(value) {
+			this.api.setDisabled(value);
 		}
 		get checked() {
-			return this._checked;
+			return this.api.checked();
 		}
-		/**
-		* If you set a different new value, it will trigger the change event
-		*/
-		set checked(isChecked) {
-			if (this._checked === isChecked) return;
-			this._checked = this.input.checked = isChecked;
-			this.dispatch("change", this._checked);
+		set checked(value) {
+			this.api.setChecked(value);
+		}
+		remove() {
+			this.dispose();
+			this.container.remove();
 		}
 	};
 	//#endregion
@@ -22175,7 +24009,7 @@ var vot = (function(exports) {
 			const header = UI.createEl("vot-block");
 			header.append(this._titleHtml);
 			const arrowIcon = UI.createEl("vot-block", ["vot-details-arrow-icon"]);
-			D(CHEVRON_ICON, arrowIcon);
+			appendTemplate(CHEVRON_ICON, arrowIcon);
 			container.append(header, arrowIcon);
 			container.addEventListener("click", () => {
 				this.dispatch("click");
@@ -22430,6 +24264,7 @@ var vot = (function(exports) {
 		accountButtonRefreshTooltip;
 		accountButtonTokenTooltip;
 		accountStorageListenerCleanup;
+		switchMount;
 		autoTranslateCheckbox;
 		autoSubtitlesCheckbox;
 		dontTranslateLanguagesCheckbox;
@@ -22682,8 +24517,12 @@ var vot = (function(exports) {
 			const loaderInfo = UI.createInformation(`${localizationProvider.get("VOTLoader")}:`, envInfo.loader);
 			const userBrowserInfo = UI.createInformation(`${localizationProvider.get("VOTBrowser")}:`, `${envInfo.browser} (${envInfo.os})`);
 			const localeUpdatedAt = (/* @__PURE__ */ new Date((this.data.localeUpdatedAt ?? 0) * 1e3)).toLocaleString();
-			const localeInfoValue = b`${this.data.localeHash ?? localizationProvider.get("notFound")}<br />(${localizationProvider.get("VOTUpdatedAt")}
-      ${localeUpdatedAt})`;
+			const localeHashValue = this.data.localeHash ?? localizationProvider.get("notFound");
+			const localeInfoValue = () => {
+				const fragment = document.createDocumentFragment();
+				fragment.append(localeHashValue, document.createElement("br"), `(${localizationProvider.get("VOTUpdatedAt")} ${localeUpdatedAt})`);
+				return fragment;
+			};
 			const localeInfo = UI.createInformation(`${localizationProvider.get("VOTLocaleHash")}:`, localeInfoValue);
 			const updateLocaleFilesButton = UI.createOutlinedButton(localizationProvider.get("VOTUpdateLocaleFiles"));
 			updateLocaleFilesButton.addEventListener("click", async () => {
@@ -22794,7 +24633,12 @@ var vot = (function(exports) {
 				parentElement: this.globalPortal
 			});
 			accountSection.content.append(this.accountButton.container);
-			translationSection.content.append(this.autoTranslateCheckbox.container, this.autoSubtitlesCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.smartDuckingCheckbox.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useAudioDownloadCheckbox.container);
+			const switchHost = UI.createEl("vot-block", ["vot-switch-host"]);
+			this.switchMount = {
+				host: switchHost,
+				dispose: render(() => Switch({ name: "vot-test" }), switchHost)
+			};
+			translationSection.content.append(switchHost, this.autoTranslateCheckbox.container, this.autoSubtitlesCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.smartDuckingCheckbox.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useAudioDownloadCheckbox.container);
 			this.subtitlesDownloadFormatSelectLabel = new Label({ labelText: localizationProvider.get("VOTSubtitlesDownloadFormat") });
 			this.subtitlesDownloadFormatSelect = new Select({
 				selectTitle: this.data.subtitlesDownloadFormat ?? localizationProvider.get("VOTSubtitlesDownloadFormat"),
@@ -23439,6 +25283,9 @@ var vot = (function(exports) {
 			return this;
 		}
 		doReleaseUI() {
+			this.switchMount?.dispose();
+			this.switchMount?.host.remove();
+			this.switchMount = void 0;
 			this.dialog?.remove();
 			for (const tooltip of [
 				this.accountButtonRefreshTooltip,
@@ -23523,6 +25370,30 @@ var vot = (function(exports) {
 		initUI() {
 			if (this.isInitialized()) throw new Error("[VOT] UIManager is already initialized");
 			this.initialized = true;
+			try {
+				this.buildUI();
+			} catch (err) {
+				this.initialized = false;
+				this.releasePartialUI();
+				throw err;
+			}
+			return this;
+		}
+		/** Best-effort teardown of whatever `buildUI` managed to construct. */
+		releasePartialUI() {
+			try {
+				this.votOverlayView?.release();
+			} catch {}
+			try {
+				this.votSettingsView?.release();
+			} catch {}
+			if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
+			this.votOverlayView = void 0;
+			this.votSettingsView = void 0;
+			this.globalPortalMount = void 0;
+			this.votGlobalPortal = void 0;
+		}
+		buildUI() {
 			this.globalPortalMount = createShadowMount({
 				parent: this.getGlobalPortalHost(this.mount),
 				rootClasses: ["vot-portal"]
@@ -23874,9 +25745,9 @@ var vot = (function(exports) {
 		}
 		release() {
 			if (!this.isInitialized()) return this;
-			this.votOverlayView.release();
-			this.votSettingsView.release();
-			destroyShadowMount(this.globalPortalMount);
+			this.votOverlayView?.release();
+			this.votSettingsView?.release();
+			if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
 			this.globalPortalMount = void 0;
 			this.votGlobalPortal = void 0;
 			this.initialized = false;
@@ -23956,7 +25827,7 @@ var vot = (function(exports) {
 			this.deps = deps;
 			this.unsubscribeChecker = this.deps.checker.subscribe(() => {
 				this.onCheckerTick();
-			});
+			}, { hasPendingWork: () => this.hideArmed && this.hideDeadlineMs > 0 });
 		}
 		/**
 		* Ensures overlay is visible immediately and returns current view.

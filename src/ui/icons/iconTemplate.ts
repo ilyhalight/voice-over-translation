@@ -28,8 +28,8 @@ function build(spec: IconNode): SVGElement {
  * directly is the only sink-free option, and it also skips HTML parsing at
  * runtime entirely.
  *
- * Construction is lazy (first render), so importing this module never touches
- * the DOM. The returned thunk is exactly what `render()` accepts.
+ * Construction is lazy (first insertion), so importing this module never
+ * touches the DOM. The returned thunk is exactly what `appendTemplate()` accepts.
  */
 export function iconTemplate(spec: IconNode): () => SVGElement {
   let prototypeNode: SVGElement | undefined;

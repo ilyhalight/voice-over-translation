@@ -22,6 +22,7 @@ export const nodeCryptoAlias = {
 
 export const sharedResolveAlias = {
   ...nodeCryptoAlias,
+  "vot-solid-renderer": path.resolve(srcDir, "ui/solid/renderer.ts"),
 } as const;
 
 export const sharedCssOptions = {

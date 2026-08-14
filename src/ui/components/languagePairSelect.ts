@@ -2,8 +2,8 @@ import { localizationProvider } from "../../localization/localizationProvider";
 import type { LanguagePairSelectProps } from "../../types/components/languagePairSelect";
 import type { SelectItem } from "../../types/components/select";
 import UI from "../../ui";
+import { appendTemplate } from "../appendTemplate";
 import { ARROW_RIGHT_ICON } from "../icons";
-import { render } from "../solid/render";
 import { UIComponent } from "./componentShared";
 import Select from "./select";
 
@@ -73,7 +73,7 @@ export default class LanguagePairSelect<
     });
 
     const directionIcon = UI.createEl("vot-block", ["vot-lang-select-icon"]);
-    render(ARROW_RIGHT_ICON, directionIcon);
+    appendTemplate(ARROW_RIGHT_ICON, directionIcon);
 
     const toSelect = new Select<T>({
       selectTitle: this._toSelectTitle,

@@ -21,7 +21,14 @@ export function createBaseViteConfig({
     publicDir: false,
     cacheDir: viteCacheDir(cacheName),
     appType: "custom",
-    plugins: [solidPlugin()],
+    plugins: [
+      solidPlugin({
+        solid: {
+          generate: "universal",
+          moduleName: "vot-solid-renderer",
+        },
+      }),
+    ],
     resolve: {
       alias: sharedResolveAlias,
       dedupe: ["solid-js", "solid-js/web", "solid-js/store"],

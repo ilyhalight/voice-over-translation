@@ -1,7 +1,7 @@
 import type { DetailsProps } from "../../types/components/details";
 import UI from "../../ui";
+import { appendTemplate } from "../appendTemplate";
 import { CHEVRON_ICON } from "../icons";
-import { render } from "../solid/render";
 import { UIComponentWithEvents } from "./componentShared";
 
 export default class Details extends UIComponentWithEvents<{
@@ -32,7 +32,7 @@ export default class Details extends UIComponentWithEvents<{
     header.append(this._titleHtml);
 
     const arrowIcon = UI.createEl("vot-block", ["vot-details-arrow-icon"]);
-    render(CHEVRON_ICON, arrowIcon);
+    appendTemplate(CHEVRON_ICON, arrowIcon);
     container.append(header, arrowIcon);
     container.addEventListener("click", () => {
       this.dispatch("click");
