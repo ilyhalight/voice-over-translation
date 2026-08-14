@@ -35,7 +35,6 @@ declare global {
   // These are injected at runtime by the userscript manager or by our extension
   // prelude.  GM is installed synchronously at document_start before any
   // content-script code evaluates.
-  const GM_info: any;
 
   const GM: {
     // Promise-based GM API (supported by most userscript managers).

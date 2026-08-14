@@ -1,7 +1,3 @@
-type TMInfoScriptMeta = {
-  author?: string;
-  [key: string]: unknown;
-};
 const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "click:bugReport",
   "click:resetSettings",
@@ -43,6 +39,7 @@ function createSettingsEvents(): {
 }
 
 import { availableLangs } from "@vot.js/shared/consts";
+import { AboutSection } from "../../components/About/AboutSection";
 import { AccountMenu } from "../../components/Account/AccountMenu";
 import { Switch } from "../../components/Control/Switch";
 import {
@@ -60,12 +57,7 @@ import {
   type LangOverride,
   localizationProvider,
 } from "../../localization/localizationProvider";
-import {
-  account,
-  resetAccount,
-  updateAccount,
-  updateAccountFromStorage,
-} from "../../stores/account";
+import { account, resetAccount, updateAccount } from "../../stores/account";
 import {
   getGoogleSubtitleFontFamilyName,
   loadGoogleFontsCatalog,
@@ -101,7 +93,6 @@ import type {
 } from "../../types/views/settings";
 import ui from "../../ui";
 import debug from "../../utils/debug";
-import { getEnvironmentInfo } from "../../utils/environment";
 import { EventImpl } from "../../utils/eventImpl";
 import { isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
@@ -282,6 +273,7 @@ export class SettingsView {
   buttonPositionTooltip?: Tooltip;
   menuLanguageSelectLabel?: Label;
   menuLanguageSelect?: Select<LangOverride>;
+  aboutSection?: MountedComponent<HTMLDivElement>;
   bugReportButton?: HTMLElement;
   resetSettingsButton?: HTMLElement;
   constructor({ globalPortal, data = {}, videoHandler }: SettingsViewProps) {
@@ -576,71 +568,6 @@ export class SettingsView {
       .slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
 
     return this.buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
-  }
-
-  private buildAboutSectionContent(aboutSection: {
-    content: HTMLElement;
-  }): void {
-    const envInfo = getEnvironmentInfo();
-    const safeGMInfo = typeof GM_info === "undefined" ? undefined : GM_info;
-    const versionInfo = ui.createInformation(
-      `${localizationProvider.get("VOTVersion")}:`,
-      envInfo.scriptVersion === "unknown"
-        ? safeGMInfo?.script?.version || localizationProvider.get("notFound")
-        : envInfo.scriptVersion,
-    );
-    const buildAuthors =
-      typeof VOT_AUTHORS === "undefined" ? "" : String(VOT_AUTHORS);
-    const authorsInfo = ui.createInformation(
-      `${localizationProvider.get("VOTAuthors")}:`,
-      (safeGMInfo?.script as TMInfoScriptMeta | undefined)?.author ||
-        buildAuthors ||
-        localizationProvider.get("notFound"),
-    );
-    const loaderInfo = ui.createInformation(
-      `${localizationProvider.get("VOTLoader")}:`,
-      envInfo.loader,
-    );
-    const userBrowserInfo = ui.createInformation(
-      `${localizationProvider.get("VOTBrowser")}:`,
-      `${envInfo.browser} (${envInfo.os})`,
-    );
-    const localeUpdatedAt = new Date(
-      (this.data.localeUpdatedAt ?? 0) * 1000,
-    ).toLocaleString();
-    const localeHashValue =
-      this.data.localeHash ?? localizationProvider.get("notFound");
-    // Solid: a thunk building the same two-line fragment. No reactive value is
-    // involved (the strings are computed once per settings render), so a plain
-    const localeInfoValue = () => {
-      const fragment = document.createDocumentFragment();
-      fragment.append(
-        localeHashValue,
-        document.createElement("br"),
-        `(${localizationProvider.get("VOTUpdatedAt")} ${localeUpdatedAt})`,
-      );
-      return fragment;
-    };
-    const localeInfo = ui.createInformation(
-      `${localizationProvider.get("VOTLocaleHash")}:`,
-      localeInfoValue,
-    );
-    const updateLocaleFilesButton = ui.createOutlinedButton(
-      localizationProvider.get("VOTUpdateLocaleFiles"),
-    );
-    updateLocaleFilesButton.addEventListener("click", async () => {
-      await votStorage.set("localeHash", "");
-      await localizationProvider.update(true);
-      globalThis.location.reload();
-    });
-    aboutSection.content.append(
-      versionInfo.container,
-      authorsInfo.container,
-      loaderInfo.container,
-      userBrowserInfo.container,
-      localeInfo.container,
-      updateLocaleFilesButton,
-    );
   }
 
   initUI() {
@@ -1150,7 +1077,13 @@ export class SettingsView {
       this.buttonPositionSelect.container,
       this.menuLanguageSelect.container,
     );
-    this.buildAboutSectionContent(aboutSection);
+    this.aboutSection = mountComponent<HTMLDivElement>((rootRef) =>
+      AboutSection({
+        ref: rootRef,
+      }),
+    );
+
+    aboutSection.content.append(this.aboutSection.root);
     this.dialog.footerContainer.append(
       this.bugReportButton,
       this.resetSettingsButton,
@@ -1464,6 +1397,7 @@ export class SettingsView {
       "autoTranslateSwitch",
       "autoSubtitlesSwitch",
       "accountMenu",
+      "aboutSection",
     ] satisfies (keyof (typeof SettingsView)["prototype"])[]) {
       const control = this[key] as MountedComponent<any> | undefined;
       control?.dispose();

@@ -1,4 +1,5 @@
 import type { JSX } from "solid-js";
+
 import "./IconButton.scss";
 import { RawButton, type RawButtonProps } from "./RawButton";
 

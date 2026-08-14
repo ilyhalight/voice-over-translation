@@ -9,6 +9,7 @@ import {
   proxyWorkerHost,
 } from "../../config/config";
 import { updateAccountFromStorage } from "../../stores/account";
+import { setLocale } from "../../stores/locale";
 import type { LanguageSelectKey } from "../../types/components/select";
 import debug from "../../utils/debug";
 import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
@@ -103,6 +104,10 @@ export async function init(this: VideoHandler) {
   }
 
   await updateAccountFromStorage();
+  setLocale({
+    updatedAt: this.data.localeUpdatedAt,
+    hash: this.data.localeHash,
+  });
 
   try {
     if (

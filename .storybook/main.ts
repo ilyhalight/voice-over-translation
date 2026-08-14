@@ -45,6 +45,7 @@ const config: StorybookConfig = {
         ],
         define: {
           DEBUG_MODE: true,
+          GM_info: {},
         },
         resolve: {
           alias: {

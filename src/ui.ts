@@ -40,14 +40,6 @@ function initKeyboardNavigationMode(): void {
 // Initialize once at module load.
 initKeyboardNavigationMode();
 
-type HeaderLevel = 1 | 2 | 3 | 4 | 5 | 6;
-
-type InformationElements = {
-  container: HTMLElement;
-  header: HTMLElement;
-  value: HTMLElement;
-};
-
 type SubtitleInfoElements = {
   container: HTMLElement;
   translatedWith: HTMLElement;
@@ -152,33 +144,6 @@ const UI = {
   },
 
   /**
-   * Create header element
-   */
-  createHeader(html: Node | string, level: HeaderLevel = 4): HTMLElement {
-    return UI.createEl(
-      "vot-block",
-      ["vot-header", `vot-header-level-${level}`],
-      html,
-    );
-  },
-
-  /**
-   * Create information element
-   */
-  createInformation(
-    labelHtml: UiTemplate,
-    valueHtml: UiTemplate,
-  ): InformationElements {
-    const container = UI.createEl("vot-block", ["vot-info"]);
-    const header = UI.createEl("vot-block");
-    appendTemplate(labelHtml, header);
-    const value = UI.createEl("vot-block");
-    appendTemplate(valueHtml, value);
-    container.append(header, value);
-    return { container, header, value };
-  },
-
-  /**
    * Create button
    */
   createButton(html: Node | string): HTMLElement {
@@ -208,10 +173,6 @@ const UI = {
 
   createInlineLoader(): HTMLElement {
     return UI.createEl("vot-block", ["vot-inline-loader"]);
-  },
-
-  createPortal(local: boolean = false): HTMLElement {
-    return UI.createEl("vot-block", [`vot-portal${local ? "-local" : ""}`]);
   },
 
   createSubtitleInfo(

@@ -1,5 +1,8 @@
 @use "global.scss";
 
+@use "About/AboutItem.scss";
+@use "About/AboutSection.scss";
+
 @use "Account/AccountInfo.scss";
 @use "Account/AccountLogin.scss";
 @use "Account/AccountLogout.scss";
