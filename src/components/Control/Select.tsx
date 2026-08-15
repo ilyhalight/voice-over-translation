@@ -5,6 +5,7 @@ import {
   type JSX,
   mergeProps,
   onCleanup,
+  onMount,
   Show,
 } from "solid-js";
 import { effect } from "solid-js/web";
@@ -12,6 +13,7 @@ import { effect } from "solid-js/web";
 import "./Select.scss";
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
+import { createFloatingPosition } from "../Utils/createFloatingPosition";
 
 export type SelectOption = {
   value: string | number | boolean;
@@ -58,23 +60,32 @@ export function Select(props: SelectProps): JSX.Element {
     setSelectedValue(finalProps.selectedValue);
   });
 
-  effect(() => {
-    if (!isOpen()) {
-      return;
-    }
+  createFloatingPosition({
+    anchor: () => outerRef,
+    popup: () => innerRef,
+    isOpen,
+    onOutsideScroll: () => setIsOpen(false),
+  });
 
-    const handlePointerDown = (event: PointerEvent) => {
-      const path = event.composedPath();
-      if (!path.includes(innerRef) && !path.includes(outerRef)) {
-        console.log("click outside select, closing", path);
-        setIsOpen(false);
+  onMount(() => {
+    effect(() => {
+      if (!isOpen()) {
+        return;
       }
-    };
 
-    window.addEventListener("pointerdown", handlePointerDown);
+      const handlePointerDown = (event: PointerEvent) => {
+        const path = event.composedPath();
+        if (!path.includes(innerRef) && !path.includes(outerRef)) {
+          console.log("click outside select, closing", path);
+          setIsOpen(false);
+        }
+      };
 
-    onCleanup(() => {
-      window.removeEventListener("pointerdown", handlePointerDown);
+      window.addEventListener("pointerdown", handlePointerDown);
+
+      onCleanup(() => {
+        window.removeEventListener("pointerdown", handlePointerDown);
+      });
     });
   });
 

@@ -1,6 +1,4 @@
 .vot-select_new {
-  --vot-select-inner-bg: rgb(var(--vot-secondary-rgb, 43, 44, 48));
-
   display: flex;
   align-items: center;
   justify-content: end;
@@ -27,8 +25,10 @@
 
     &__title {
       flex: 1;
-      height: 1.5em;
+      height: 24px;
       font-size: 0.8em;
+      display: flex;
+      align-items: center;
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
@@ -57,16 +57,15 @@
   }
 
   &-inner {
-    position: absolute;
+    position: fixed;
     z-index: 2147483647;
     display: flex;
     flex-direction: column;
     gap: 0.5em;
     padding: 0.5em;
     border-radius: 0.75em;
-    background: var(--vot-select-inner-bg);
-    top: calc(100% + 0.5em);
-    right: 0;
+    background: rgb(var(--vot-secondary-rgb, 43, 44, 48));
+    color: rgba(var(--vot-onsurface-rgb), 0.87);
     max-height: min(85vh, 500px);
     overflow: scroll;
 
