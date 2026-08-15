@@ -1,11 +1,13 @@
+@use "../../styles/mixins" as shared;
+
 .vot-switch {
   --vot-switch-outline: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.6);
   --vot-switch-primary: rgb(var(--vot-primary-rgb, 33, 150, 243));
   --vot-switch-onprimary: rgb(var(--vot-onprimary-rgb, 32, 33, 36));
   --vot-switch-track: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.12);
 
-  --vot-switch-timing: cubic-bezier(0.2, 0, 0, 1);
   --vot-switch-duration: var(--vot-duration-medium, 200ms);
+  --vot-switch-label-offset: 24px;
 
   align-items: center;
   box-sizing: border-box;
@@ -25,9 +27,13 @@
   position: relative;
   touch-action: manipulation;
   vertical-align: middle;
-
   &[data-disabled="true"] {
     cursor: not-allowed;
+    user-select: none;
+  }
+
+  &_sub {
+    padding-left: var(--vot-switch-label-offset) !important;
   }
 
   &-control {
@@ -129,7 +135,7 @@
     position: relative;
     transition-duration: var(--vot-switch-duration);
     transition-property: background-color, border-color;
-    transition-timing-function: var(--vot-switch-timing);
+    transition-timing-function: var(--vot-easing-standard);
     width: 52px;
 
     &[data-checked="true"] {
@@ -156,7 +162,7 @@
     transform: translate(0, -50%);
     transition-duration: var(--vot-switch-duration);
     transition-property: background-color, box-shadow, height, transform, width;
-    transition-timing-function: var(--vot-switch-timing);
+    transition-timing-function: var(--vot-easing-standard);
     width: 16px;
   }
 

@@ -1,15 +1,18 @@
 import { type JSX, mergeProps } from "solid-js";
-import type { OnClickEvent } from "../../types/components/shared";
+import type {
+  DataAttributes,
+  OnClickEvent,
+} from "../../types/components/shared";
 import { isKeyboardActivation } from "../../ui/components/componentShared";
 
 export type RawButtonProps = {
   class: string;
-  ariaLabel?: string;
   hidden?: boolean;
   disabled?: boolean;
   ref?: (element: HTMLElement) => void;
   children: JSX.Element;
   onClick?: (event: OnClickEvent) => void;
+  buttonProps?: JSX.HTMLAttributes<HTMLElement> & DataAttributes;
 };
 
 export function RawButton(props: RawButtonProps): JSX.Element {
@@ -22,7 +25,6 @@ export function RawButton(props: RawButtonProps): JSX.Element {
       class={finalProps.class}
       role="button"
       tabIndex={tabIndex()}
-      aria-label={finalProps.ariaLabel}
       aria-disabled={finalProps.disabled ? "true" : undefined}
       hidden={finalProps.hidden}
       onClick={(event) => {
@@ -46,6 +48,7 @@ export function RawButton(props: RawButtonProps): JSX.Element {
 
         event.currentTarget.click();
       }}
+      {...finalProps.buttonProps}
     >
       {finalProps.children}
     </vot-block>

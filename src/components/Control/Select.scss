@@ -1,0 +1,97 @@
+.vot-select_new {
+  --vot-select-inner-bg: rgb(var(--vot-secondary-rgb, 43, 44, 48));
+
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  position: relative;
+  user-select: none;
+
+  &-label {
+    flex: 1;
+  }
+
+  &-outer {
+    cursor: pointer;
+
+    width: 120px;
+    max-width: 120px;
+    display: flex;
+    align-items: center;
+    padding: 0.5em;
+    border-radius: 0.75em;
+    border: 1px solid var(--vot-border-color);
+    color: rgba(var(--vot-onsurface-rgb), 0.87);
+    transition: border-color var(--vot-duration-medium)
+      var(--vot-easing-standard);
+
+    &__title {
+      flex: 1;
+      height: 1.5em;
+      font-size: 0.8em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    &__arrow {
+      display: flex;
+      font-size: 1.5em;
+      fill: currentColor;
+      transition: transform var(--vot-duration-medium)
+        var(--vot-easing-standard);
+    }
+
+    &[aria-disabled="true"] {
+      cursor: not-allowed;
+      opacity: 0.38;
+    }
+
+    &:not([aria-disabled="true"]):hover {
+      border-color: var(--vot-border-color-hover);
+    }
+
+    &[aria-expanded="true"] .vot-select_new-outer__arrow {
+      transform: rotate(180deg);
+    }
+  }
+
+  &-inner {
+    position: absolute;
+    z-index: 2147483647;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    padding: 0.5em;
+    border-radius: 0.75em;
+    background: var(--vot-select-inner-bg);
+    top: calc(100% + 0.5em);
+    right: 0;
+    max-height: min(85vh, 500px);
+    overflow: scroll;
+
+    &__option {
+      cursor: pointer;
+      padding: 0.5em 0.75em;
+      border-radius: 0.5em;
+      transition: background var(--vot-duration-medium)
+        var(--vot-easing-standard);
+
+      &:hover {
+        background: rgba(var(--vot-onsurface-rgb), 0.14);
+      }
+
+      &--selected {
+        color: rgb(var(--vot-primary-rgb, 33, 150, 243));
+        background-color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.2);
+
+        &:hover {
+          background-color: rgba(
+            var(--vot-primary-rgb, 33, 150, 243),
+            0.1
+          ) !important;
+        }
+      }
+    }
+  }
+}

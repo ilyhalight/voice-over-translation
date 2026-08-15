@@ -10,8 +10,16 @@
 
 @use "Button/IconButton.scss";
 @use "Button/TextButton.scss";
+@use "Button/OutlinedButton.scss";
+@use "Button/DetailsButton.scss";
 
+@use "Control/Select.scss";
 @use "Control/Switch.scss";
+@use "Control/Slider.scss";
+@use "Control/SliderLabel.scss";
+@use "Control/SliderWrapper.scss";
+
+@use "Settings/SettingsSection.scss";
 
 @use "Textfield/Textfield.scss";
 

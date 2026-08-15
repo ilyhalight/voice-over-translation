@@ -5,7 +5,6 @@ import { srcDir } from "../paths.ts";
 const localesDir = path.resolve(srcDir, "localization", "locales");
 const localeHeadersDir = path.resolve(localesDir, "headers");
 const hashesPath = path.resolve(srcDir, "localization", "hashes.json");
-const _metaHeadersPath = path.resolve(srcDir, "headers.json");
 
 const priorityLocales = ["auto", "en", "ru"] as const;
 type PriorityLocale = (typeof priorityLocales)[number];

@@ -17,21 +17,25 @@
   }
 }
 
-.vot-settings-section-header {
+.vot-settings-section-header,
+.vot-settings-section__header {
   margin: 0 !important;
   padding: 0.45em 0.5em !important;
   border-radius: var(--vot-radius-m);
 }
 
-.vot-settings-section-header .vot-details-arrow-icon {
+.vot-settings-section-header .vot-details-arrow-icon,
+.vot-settings-section__header .vot-details-arrow-icon {
   transition: transform var(--vot-duration-medium) var(--vot-easing-standard);
 }
 
-.vot-settings-section-header[data-open="true"] .vot-details-arrow-icon {
+.vot-settings-section-header[data-open="true"] .vot-details-arrow-icon,
+.vot-settings-section__header[data-open="true"] .vot-details-arrow-icon {
   transform: scale(1.25) rotate(0deg);
 }
 
-.vot-settings-section-content {
+.vot-settings-section-content,
+.vot-settings-section__content {
   // Shared grid variables for "settings rows".
   // Components (select/slider) read these to align their right column.
   // Controls are no longer pushed to the far right edge of the dialog.
@@ -42,14 +46,11 @@
 
   display: flex;
   flex-direction: column;
+  gap: var(--vot-settings-row-gap);
   padding: 0 var(--vot-space-1) var(--vot-space-1);
 
   & > * {
     margin: 0 !important;
-  }
-
-  & > * + * {
-    margin-top: var(--vot-settings-row-gap) !important;
   }
 
   // Consistent padding + full-row hit area.

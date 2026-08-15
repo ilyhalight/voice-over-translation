@@ -2,7 +2,7 @@ import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { getVideoID } from "@vot.js/ext/utils/videoData";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang } from "@vot.js/shared/types/data";
-import { defaultAutoHideDelay } from "../../config/config";
+import { DEFAULT_AUTO_HIDE_DELAY } from "../../config/config";
 import {
   isDesktopYouTubeLikeSite,
   isMuteSyncDisabledHost,
@@ -610,7 +610,7 @@ export function getAutoHideDelay(this: VideoHandler): number {
   const delay = this.data?.autoHideButtonDelay;
   return typeof delay === "number" && Number.isFinite(delay)
     ? delay
-    : defaultAutoHideDelay;
+    : DEFAULT_AUTO_HIDE_DELAY;
 }
 export function releaseExtraEvents(this: VideoHandler) {
   this.resizeObserver?.disconnect();

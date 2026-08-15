@@ -15,7 +15,7 @@ export type TextfieldProps = {
   value?: string;
   multiline?: boolean;
   disabled?: boolean;
-  ref?: (element: HTMLDivElement) => void;
+  ref?: (element: HTMLElement) => void;
   inputRef?: (element: HTMLInputElement | HTMLTextAreaElement) => void;
   labelRef?: (element: HTMLSpanElement) => void;
   onInput?: (value: string) => void;
@@ -73,13 +73,13 @@ export function Textfield(props: TextfieldProps): JSX.Element {
   };
 
   return (
-    <div ref={finalProps.ref} class="vot-textfield">
+    <vot-block ref={finalProps.ref} class="vot-textfield">
       <Show when={finalProps.multiline} fallback={<input {...common} />}>
         <textarea {...common} />
       </Show>
       <span ref={finalProps.labelRef} id={labelId}>
         {finalProps.labelText}
       </span>
-    </div>
+    </vot-block>
   );
 }

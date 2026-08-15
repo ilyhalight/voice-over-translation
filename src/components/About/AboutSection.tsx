@@ -51,7 +51,10 @@ export function AboutSection(props: AccountSectionProps): JSX.Element {
       </AboutItem>
       <AboutItem label={localizationProvider.get("VOTLocaleHash")}>
         {localeHashValue()}
-        <br />({localizationProvider.get("VOTUpdatedAt")} {localeUpdatedAt})
+        <br />
+        <vot-block class="vot-about-item__value_detail">
+          ({localizationProvider.get("VOTUpdatedAt")} {localeUpdatedAt})
+        </vot-block>
       </AboutItem>
       <OutlinedButton
         onClick={async () => {

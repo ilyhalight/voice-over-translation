@@ -27,6 +27,19 @@ export const SwitchCheckedDisabled: Story = {
     checked: true,
   },
 };
+export const SwitchHidden: Story = {
+  args: {
+    hidden: true,
+    heading: "hidden",
+    description: "you shouldn't see this",
+  },
+};
+export const SwitchSub: Story = {
+  args: {
+    isSubSwitch: true,
+    heading: "Translate videos automatically",
+  },
+};
 
 export const SwitchWithHeading: Story = {
   args: {

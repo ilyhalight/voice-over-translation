@@ -1,6 +1,6 @@
 import {
   actualCompatVersion,
-  defaultAutoHideDelay,
+  DEFAULT_AUTO_HIDE_DELAY,
   defaultAutoVolume,
   defaultDetectService,
   defaultTranslationService,
@@ -10,7 +10,9 @@ import {
 } from "../../config/config";
 import { updateAccountFromStorage } from "../../stores/account";
 import { setLocale } from "../../stores/locale";
+import { setSettings } from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
+import { normalizeButtonPosition } from "../../ui/buttonPlacement";
 import debug from "../../utils/debug";
 import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
@@ -89,7 +91,7 @@ export async function init(this: VideoHandler) {
     translateProxyEnabledDefault: true,
     audioBooster: false,
     useLivelyVoice: false,
-    autoHideButtonDelay: defaultAutoHideDelay,
+    autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
     // Audio download now uses direct network requests (GM_fetch/GM_xmlhttpRequest).
     useAudioDownload: isSupportGMXhr,
     compatVersion: "",
@@ -107,6 +109,13 @@ export async function init(this: VideoHandler) {
   setLocale({
     updatedAt: this.data.localeUpdatedAt,
     hash: this.data.localeHash,
+  });
+  setSettings({
+    translateAPIErrors: this.data.translateAPIErrors,
+    newAudioPlayer: this.data.newAudioPlayer,
+    onlyBypassMediaCSP: this.data.onlyBypassMediaCSP,
+    showPiPButton: this.data.showPiPButton,
+    buttonPos: normalizeButtonPosition(this.data.buttonPos),
   });
 
   try {

@@ -56,6 +56,6 @@ export const proxyOnlyCountries: string[] = ["UA", "LV", "LT"];
 /**
  * 100 - 3000 ms - delay before hiding button
  */
-export const defaultAutoHideDelay = 1000;
+export const DEFAULT_AUTO_HIDE_DELAY = 1000;
 
 export const actualCompatVersion = "2025-05-09";

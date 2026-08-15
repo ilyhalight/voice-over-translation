@@ -42,8 +42,10 @@ import { availableLangs } from "@vot.js/shared/consts";
 import { AboutSection } from "../../components/About/AboutSection";
 import { AccountMenu } from "../../components/Account/AccountMenu";
 import { Switch } from "../../components/Control/Switch";
+import { SettingsAppearanceSection } from "../../components/Settings/SettingsAppearanceSection";
+import { SettingsMiscSection } from "../../components/Settings/SettingsMiscSection";
+import { SettingsSection } from "../../components/Settings/SettingsSection";
 import {
-  defaultAutoHideDelay,
   defaultAutoVolume,
   defaultDetectService,
   defaultTranslationService,
@@ -58,6 +60,8 @@ import {
   localizationProvider,
 } from "../../localization/localizationProvider";
 import { account, resetAccount, updateAccount } from "../../stores/account";
+import { setLocale } from "../../stores/locale";
+import { setSettings } from "../../stores/settings";
 import {
   getGoogleSubtitleFontFamilyName,
   loadGoogleFontsCatalog,
@@ -75,7 +79,7 @@ import type {
   LanguageSelectKey,
   SelectItem,
 } from "../../types/components/select";
-import { type Position, positions } from "../../types/components/votButton";
+import type { Position } from "../../types/components/votButton";
 import type {
   Account,
   ResponseLanguageSubtitles,
@@ -96,10 +100,8 @@ import debug from "../../utils/debug";
 import { EventImpl } from "../../utils/eventImpl";
 import { isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
-import { isPiPAvailable } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
 import { getCountryCode } from "../../videoHandler/shared";
-import { normalizeButtonPosition } from "../buttonPlacement";
 import Checkbox from "../components/checkbox";
 import { createDomId } from "../components/componentShared";
 import Details from "../components/details";
@@ -217,7 +219,7 @@ export class SettingsView {
     void this.refreshAccountFromStorage();
   };
   dialog?: Dialog;
-  accountMenu?: MountedComponent<HTMLElement>;
+  accountSection?: MountedComponent<HTMLElement>;
   private accountStorageListenerCleanup?: () => void;
   autoTranslateSwitch?: MountedComponent<HTMLLabelElement>;
   autoSubtitlesSwitch?: MountedComponent<HTMLLabelElement>;
@@ -255,24 +257,13 @@ export class SettingsView {
   proxyTranslationStatusSelectLabel?: Label;
   proxyTranslationStatusSelectTooltip?: Tooltip;
   proxyTranslationStatusSelect?: Select;
-  translateAPIErrorsCheckbox?: Checkbox;
-  useNewAudioPlayerCheckbox?: Checkbox;
-  useNewAudioPlayerTooltip?: Tooltip;
-  onlyBypassMediaCSPCheckbox?: Checkbox;
-  onlyBypassMediaCSPTooltip?: Tooltip;
   translationTextServiceLabel?: Label;
   translationTextServiceSelect?: Select<TranslateService>;
   translationTextServiceTooltip?: Tooltip;
   detectServiceLabel?: Label;
   detectServiceSelect?: Select<DetectService>;
-  showPiPButtonCheckbox?: Checkbox;
-  autoHideButtonDelaySliderLabel?: SliderLabel;
-  autoHideButtonDelaySlider?: Slider;
-  buttonPositionSelectLabel?: Label;
-  buttonPositionSelect?: Select<Position>;
-  buttonPositionTooltip?: Tooltip;
-  menuLanguageSelectLabel?: Label;
-  menuLanguageSelect?: Select<LangOverride>;
+  appearanceSection?: MountedComponent<HTMLDivElement>;
+  miscSection?: MountedComponent<HTMLDivElement>;
   aboutSection?: MountedComponent<HTMLDivElement>;
   bugReportButton?: HTMLElement;
   resetSettingsButton?: HTMLElement;
@@ -386,12 +377,42 @@ export class SettingsView {
       apply?.(value);
       void (async () => {
         await votStorage.set(storageKey, value);
+        if (
+          [
+            "translateAPIErrors",
+            "newAudioPlayer",
+            "onlyBypassMediaCSP",
+          ].includes(storageKey)
+        ) {
+          setSettings(storageKey as any, value);
+        }
+
         debug.log(`${logLabel} value changed. New value:`, value);
         await afterPersist?.(value);
         dispatch?.(value);
       })().catch((error) => {
         debug.error(`Failed to persist ${storageKey}:`, error);
       });
+    };
+  }
+
+  private createBufferedNumericInputHandler({
+    storageKey,
+    logLabel = storageKey,
+    dispatch,
+  }: {
+    storageKey: BufferedNumericStorageKey;
+    logLabel?: string;
+    dispatch?: (value: number) => void;
+  }): (value: number) => void {
+    return (value) => {
+      this.data[storageKey] = value;
+      if (storageKey === "autoHideButtonDelay") {
+        setSettings(storageKey as any, value);
+      }
+      this.scheduleStoragePersist(storageKey, value);
+      debug.log(`${logLabel} value changed. New value:`, value);
+      dispatch?.(value);
     };
   }
 
@@ -425,9 +446,6 @@ export class SettingsView {
 
   private createSettingsSections() {
     const sections = [
-      this.createAccordionSection(localizationProvider.get("VOTMyAccount"), {
-        open: true,
-      }),
       this.createAccordionSection(
         localizationProvider.get("translationSettings"),
         { open: true },
@@ -437,40 +455,15 @@ export class SettingsView {
       ),
       this.createAccordionSection(localizationProvider.get("hotkeysSettings")),
       this.createAccordionSection(localizationProvider.get("proxySettings")),
-      this.createAccordionSection(localizationProvider.get("miscSettings")),
-      this.createAccordionSection(localizationProvider.get("appearance")),
-      this.createAccordionSection(localizationProvider.get("aboutExtension")),
     ];
 
     return {
-      accountSection: sections[0],
-      translationSection: sections[1],
-      subtitlesSection: sections[2],
-      hotkeysSection: sections[3],
-      proxySection: sections[4],
-      miscSection: sections[5],
-      appearanceSection: sections[6],
-      aboutSection: sections[7],
+      translationSection: sections[0],
+      subtitlesSection: sections[1],
+      hotkeysSection: sections[2],
+      proxySection: sections[3],
       sections,
     };
-  }
-
-  private initAccountControls(): void {
-    this.accountMenu = mountComponent((rootRef) =>
-      AccountMenu({
-        onClickLogin: async () => {
-          debug.log("Account login button clicked");
-          if (account.isLoggedIn) {
-            await votStorage.delete("account");
-            resetAccount();
-            return this.updateAccountInfo();
-          }
-
-          openAuthWindow();
-        },
-        ref: rootRef,
-      }),
-    );
   }
 
   private bindAccountStorageListener(): void {
@@ -578,21 +571,101 @@ export class SettingsView {
       titleHtml: localizationProvider.get("VOTSettings"),
     });
     this.globalPortal.appendChild(this.dialog.container);
+    this.accountSection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsSection({
+        title: localizationProvider.get("VOTMyAccount"),
+        isOpen: true,
+        ref: rootRef,
+        children: AccountMenu({
+          onClickLogin: async () => {
+            debug.log("Account login button clicked");
+            if (account.isLoggedIn) {
+              await votStorage.delete("account");
+              resetAccount();
+              return this.updateAccountInfo();
+            }
+
+            openAuthWindow();
+          },
+        }),
+      }),
+    );
+    this.appearanceSection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsAppearanceSection({
+        ref: rootRef,
+        onShowPiPButtonChange: this.createPersistedSettingHandler({
+          storageKey: "showPiPButton",
+          dispatch: (checked) =>
+            this.events["change:showPiPButton"].dispatch(checked),
+        }),
+        onAutoHideButtonDelayInput: this.createBufferedNumericInputHandler({
+          storageKey: "autoHideButtonDelay",
+          dispatch: (value) =>
+            this.events["input:autoHideButtonDelay"].dispatch(value),
+        }),
+        onButtonPositionSelect: (option) =>
+          this.createPersistedSettingHandler({
+            storageKey: "buttonPos",
+            dispatch: (item) =>
+              this.events["select:buttonPosition"].dispatch(item),
+          })(option.value as Position),
+        onLangSelect: async (option) => {
+          const item = option.value as LangOverride;
+          const result = await localizationProvider.changeLang(item);
+          if (!result) {
+            return;
+          }
+          this.data.localeUpdatedAt = await votStorage.get(
+            "localeUpdatedAt",
+            0,
+          );
+          setLocale("updatedAt", 0);
+          this.events["select:menuLanguage"].dispatch(item);
+        },
+      }),
+    );
+    this.miscSection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsMiscSection({
+        ref: rootRef,
+        onChangeTranslateAPIErrors: this.createPersistedSettingHandler({
+          storageKey: "translateAPIErrors",
+        }),
+        isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+        needBypassCSP: this.videoHandler.site.needBypassCSP,
+        onChangeNewAudioPlayer: this.createPersistedSettingHandler({
+          storageKey: "newAudioPlayer",
+          dispatch: (checked) =>
+            this.events["change:useNewAudioPlayer"].dispatch(checked),
+        }),
+        onChangeOnlyBypassMediaCSP: this.createPersistedSettingHandler({
+          storageKey: "onlyBypassMediaCSP",
+          dispatch: (checked) =>
+            this.events["change:onlyBypassMediaCSP"].dispatch(checked),
+        }),
+      }),
+    );
+    this.aboutSection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsSection({
+        title: localizationProvider.get("aboutExtension"),
+        ref: rootRef,
+        children: AboutSection({}),
+      }),
+    );
+
     const {
-      accountSection,
       translationSection,
       subtitlesSection,
       hotkeysSection,
       proxySection,
-      miscSection,
-      appearanceSection,
-      aboutSection,
       sections,
     } = this.createSettingsSections();
     this.dialog.bodyContainer.append(
+      this.accountSection.root,
       ...sections.map((section) => section.container),
+      this.miscSection.root,
+      this.appearanceSection.root,
+      this.aboutSection.root,
     );
-    this.initAccountControls();
     this.autoTranslateSwitch = mountComponent<HTMLLabelElement>((rootRef) =>
       Switch({
         heading: localizationProvider.get("VOTAutoTranslate"),
@@ -727,7 +800,6 @@ export class SettingsView {
       backgroundColor: "var(--vot-helper-ondialog)",
       parentElement: this.globalPortal,
     });
-    accountSection.content.append(this.accountMenu.root);
 
     translationSection.content.append(
       this.autoTranslateSwitch.root,
@@ -916,47 +988,6 @@ export class SettingsView {
       this.proxyWorkerHostTextfield.container,
       this.proxyTranslationStatusSelect.container,
     );
-    this.translateAPIErrorsCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTTranslateAPIErrors"),
-      checked: this.data.translateAPIErrors ?? true,
-    });
-    this.translateAPIErrorsCheckbox.hidden = localizationProvider.lang === "ru";
-    this.useNewAudioPlayerCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTNewAudioPlayer"),
-      checked: this.data.newAudioPlayer,
-    });
-    if (!this.videoHandler?.isAudioContextSupported) {
-      this.useNewAudioPlayerCheckbox.disabled = true;
-      this.useNewAudioPlayerTooltip = new Tooltip({
-        target: this.useNewAudioPlayerCheckbox.container,
-        content: localizationProvider.get("VOTNeedWebAudioAPI"),
-        position: "bottom",
-        backgroundColor: "var(--vot-helper-ondialog)",
-        parentElement: this.globalPortal,
-      });
-    }
-    const onlyBypassMediaCSPLabel = this.videoHandler?.site.needBypassCSP
-      ? `${localizationProvider.get("VOTOnlyBypassMediaCSP")} (${localizationProvider.get("VOTMediaCSPEnabledOnSite")})`
-      : localizationProvider.get("VOTOnlyBypassMediaCSP");
-    this.onlyBypassMediaCSPCheckbox = new Checkbox({
-      labelHtml: onlyBypassMediaCSPLabel,
-      checked: this.data.onlyBypassMediaCSP,
-      isSubCheckbox: true,
-    });
-    if (!this.videoHandler?.isAudioContextSupported) {
-      this.onlyBypassMediaCSPTooltip = new Tooltip({
-        target: this.onlyBypassMediaCSPCheckbox.container,
-        content: localizationProvider.get("VOTNeedWebAudioAPI"),
-        position: "bottom",
-        backgroundColor: "var(--vot-helper-ondialog)",
-        parentElement: this.globalPortal,
-      });
-    }
-    this.onlyBypassMediaCSPCheckbox.disabled =
-      !this.data.newAudioPlayer && !!this.videoHandler?.isAudioContextSupported;
-    if (!this.data.newAudioPlayer) {
-      this.onlyBypassMediaCSPCheckbox.hidden = true;
-    }
     this.translationTextServiceLabel = new Label({
       labelText: localizationProvider.get("VOTTranslationTextService"),
       icon: HELP_ICON,
@@ -996,94 +1027,17 @@ export class SettingsView {
         selected: service === detectService,
       })),
     });
-    this.showPiPButtonCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTShowPiPButton"),
-      checked: this.data.showPiPButton,
-    });
-    this.showPiPButtonCheckbox.hidden = !isPiPAvailable();
-    const autoHideButtonDelaySec =
-      Math.round(
-        ((this.data.autoHideButtonDelay ?? defaultAutoHideDelay) / 1000) * 10,
-      ) / 10;
-    this.autoHideButtonDelaySliderLabel = new SliderLabel({
-      labelText: localizationProvider.get("autoHideButtonDelay"),
-      labelEOL: ":",
-      value: autoHideButtonDelaySec,
-      symbol: ` ${localizationProvider.get("secs")}`,
-    });
-    this.autoHideButtonDelaySlider = new Slider({
-      labelHtml: this.autoHideButtonDelaySliderLabel.container,
-      value: autoHideButtonDelaySec,
-      min: 0.1,
-      max: 3,
-      step: 0.1,
-    });
-    this.buttonPositionSelectLabel = new Label({
-      labelText: localizationProvider.get("buttonPosition"),
-      icon: HELP_ICON,
-    });
-    const buttonPos = normalizeButtonPosition(this.data.buttonPos);
-    this.buttonPositionSelect = new Select<Position>({
-      selectTitle: localizationProvider.get(`position.${buttonPos}`),
-      dialogTitle: localizationProvider.get("buttonPosition"),
-      labelElement: this.buttonPositionSelectLabel.container,
-      dialogParent: this.globalPortal,
-      items: positions.map<SelectItem<Position>>((position) => ({
-        label: localizationProvider.get(`position.${position}`),
-        value: position,
-        selected: position === buttonPos,
-      })),
-    });
-    this.buttonPositionTooltip = new Tooltip({
-      target: this.buttonPositionSelectLabel.icon,
-      content: localizationProvider.get("minButtonPositionContainer"),
-      position: "bottom",
-      backgroundColor: "var(--vot-helper-ondialog)",
-      parentElement: this.globalPortal,
-    });
-    this.menuLanguageSelectLabel = new Label({
-      labelText: localizationProvider.get("VOTMenuLanguage"),
-    });
-    this.menuLanguageSelect = new Select<LangOverride>({
-      selectTitle: localizationProvider.get(
-        `langs.${localizationProvider.langOverride}` as any,
-      ),
-      dialogTitle: localizationProvider.get("VOTMenuLanguage"),
-      labelElement: this.menuLanguageSelectLabel.container,
-      dialogParent: this.globalPortal,
-      items: Select.genLanguageItems(
-        localizationProvider.getAvailableLangs(),
-        localizationProvider.langOverride,
-      ),
-    });
     this.bugReportButton = ui.createOutlinedButton(
       localizationProvider.get("VOTBugReport"),
     );
     this.resetSettingsButton = ui.createButton(
       localizationProvider.get("resetSettings"),
     );
-    miscSection.content.append(
-      this.translateAPIErrorsCheckbox.container,
-      this.useNewAudioPlayerCheckbox.container,
-      this.onlyBypassMediaCSPCheckbox.container,
-    );
     translationSection.content.append(
       this.translationTextServiceSelect.container,
       this.detectServiceSelect.container,
     );
-    appearanceSection.content.append(
-      this.showPiPButtonCheckbox.container,
-      this.autoHideButtonDelaySlider.container,
-      this.buttonPositionSelect.container,
-      this.menuLanguageSelect.container,
-    );
-    this.aboutSection = mountComponent<HTMLDivElement>((rootRef) =>
-      AboutSection({
-        ref: rootRef,
-      }),
-    );
 
-    aboutSection.content.append(this.aboutSection.root);
     this.dialog.footerContainer.append(
       this.bugReportButton,
       this.resetSettingsButton,
@@ -1300,32 +1254,7 @@ export class SettingsView {
         this.events["select:proxyTranslationStatus"].dispatch(item);
       },
     );
-    this.translateAPIErrorsCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "translateAPIErrors",
-      }),
-    );
-    this.useNewAudioPlayerCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "newAudioPlayer",
-        apply: (checked) => {
-          this.onlyBypassMediaCSPCheckbox.disabled =
-            this.onlyBypassMediaCSPCheckbox.hidden = !checked;
-        },
-        dispatch: (checked) =>
-          this.events["change:useNewAudioPlayer"].dispatch(checked),
-      }),
-    );
-    this.onlyBypassMediaCSPCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "onlyBypassMediaCSP",
-        dispatch: (checked) =>
-          this.events["change:onlyBypassMediaCSP"].dispatch(checked),
-      }),
-    );
+
     this.translationTextServiceSelect.addEventListener(
       "selectItem",
       this.createPersistedSettingHandler({
@@ -1340,36 +1269,6 @@ export class SettingsView {
         storageKey: "detectService",
       }),
     );
-    this.showPiPButtonCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "showPiPButton",
-        dispatch: (checked) =>
-          this.events["change:showPiPButton"].dispatch(checked),
-      }),
-    );
-    this.bindBufferedNumericSetting({
-      control: this.autoHideButtonDelaySlider,
-      label: this.autoHideButtonDelaySliderLabel,
-      storageKey: "autoHideButtonDelay",
-      logLabel: "autoHideButtonDelay",
-      toStoredValue: (value) => Math.round(value * 1000),
-      dispatch: (value) =>
-        this.events["input:autoHideButtonDelay"].dispatch(value),
-    });
-    this.buttonPositionSelect.addEventListener(
-      "selectItem",
-      this.createPersistedSettingHandler({
-        storageKey: "buttonPos",
-        dispatch: (item) => this.events["select:buttonPosition"].dispatch(item),
-      }),
-    );
-    this.menuLanguageSelect.addEventListener("selectItem", async (item) => {
-      const result = await localizationProvider.changeLang(item);
-      if (!result) return;
-      this.data.localeUpdatedAt = await votStorage.get("localeUpdatedAt", 0);
-      this.events["select:menuLanguage"].dispatch(item);
-    });
     this.bugReportButton.addEventListener("click", () =>
       this.events["click:bugReport"].dispatch(),
     );
@@ -1394,9 +1293,11 @@ export class SettingsView {
   }
   private doReleaseUI(): void {
     for (const key of [
+      "accountSection",
       "autoTranslateSwitch",
       "autoSubtitlesSwitch",
-      "accountMenu",
+      "appearanceSection",
+      "miscSection",
       "aboutSection",
     ] satisfies (keyof (typeof SettingsView)["prototype"])[]) {
       const control = this[key] as MountedComponent<any> | undefined;
@@ -1408,11 +1309,8 @@ export class SettingsView {
     this.dialog?.remove();
     for (const tooltip of [
       this.useAudioDownloadCheckboxTooltip,
-      this.useNewAudioPlayerTooltip,
-      this.onlyBypassMediaCSPTooltip,
       this.translationTextServiceTooltip,
       this.proxyTranslationStatusSelectTooltip,
-      this.buttonPositionTooltip,
     ]) {
       tooltip?.release();
     }

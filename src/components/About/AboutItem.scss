@@ -13,5 +13,9 @@
   &__value {
     text-align: end;
     color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.9);
+
+    &_detail {
+      color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
+    }
   }
 }
