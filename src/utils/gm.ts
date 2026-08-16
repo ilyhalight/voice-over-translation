@@ -60,7 +60,7 @@ function hasSupportedGmXhr(): boolean {
   return !!(getCallbackGmXhr() || getPromiseGmXhr());
 }
 
-export const isProxyOnlyExtension =
+export const IS_PROXY_ONLY_EXTENSION =
   !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) &&
   (browserInfo.browser?.name === "Safari" ||
     !["Tampermonkey", "Violentmonkey"].includes(scriptHandler));

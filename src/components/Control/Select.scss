@@ -27,8 +27,7 @@
       flex: 1;
       height: 24px;
       font-size: 0.8em;
-      display: flex;
-      align-items: center;
+      align-content: center;
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
@@ -57,12 +56,14 @@
   }
 
   &-inner {
+    --vot-select-inner-primary-rgb: var(--vot-primary-rgb, 33, 150, 243);
+
     position: fixed;
     z-index: 2147483647;
+    user-select: none;
     display: flex;
     flex-direction: column;
     font-size: 16px;
-    gap: 0.5em;
     padding: 0.5em;
     border-radius: 0.75em;
     background: rgb(var(--vot-secondary-rgb, 43, 44, 48));
@@ -77,19 +78,21 @@
       transition: background var(--vot-duration-medium)
         var(--vot-easing-standard);
 
-      &:hover {
+      &[aria-disabled="true"] {
+        cursor: not-allowed;
+        opacity: 0.38;
+      }
+
+      &:not([aria-disabled="true"]):hover {
         background: rgba(var(--vot-onsurface-rgb), 0.14);
       }
 
       &--selected {
-        color: rgb(var(--vot-primary-rgb, 33, 150, 243));
-        background-color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.2);
+        color: rgb(var(--vot-select-inner-primary-rgb));
+        background: rgba(var(--vot-select-inner-primary-rgb), 0.2);
 
-        &:hover {
-          background-color: rgba(
-            var(--vot-primary-rgb, 33, 150, 243),
-            0.1
-          ) !important;
+        &:not([aria-disabled="true"]):hover {
+          background: rgba(var(--vot-select-inner-primary-rgb), 0.1);
         }
       }
     }

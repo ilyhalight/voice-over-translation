@@ -249,7 +249,7 @@ class LocalizationProvider {
     locale: Partial<FlatPhrases>,
     key: Phrase,
     source: "default" | "locale",
-  ) {
+  ): undefined {
     const warningKey = `${source}:${key}`;
     if (this.warnedMissingKeys.has(warningKey)) {
       return undefined;

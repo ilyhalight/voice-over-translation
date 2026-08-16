@@ -20,6 +20,7 @@ export type SelectValue = string | number | boolean;
 export type SelectOption = {
   value: SelectValue;
   label: string;
+  disabled?: boolean;
 };
 
 export type SelectProps = {
@@ -79,7 +80,6 @@ export function Select(props: SelectProps): JSX.Element {
       const handlePointerDown = (event: PointerEvent) => {
         const path = event.composedPath();
         if (!path.includes(innerRef) && !path.includes(outerRef)) {
-          console.log("click outside select, closing", path);
           setIsOpen(false);
         }
       };
@@ -131,10 +131,10 @@ export function Select(props: SelectProps): JSX.Element {
         hidden={!isOpen()}
       >
         <For each={finalProps.options}>
-          {(option, idx) => (
+          {(option) => (
             <RawButton
               class="vot-select_new-inner__option"
-              disabled={disabled()}
+              disabled={option.disabled || disabled()}
               buttonProps={{
                 role: "menuitem",
                 classList: {
@@ -143,6 +143,10 @@ export function Select(props: SelectProps): JSX.Element {
                 },
               }}
               onClick={() => {
+                if (option.disabled) {
+                  return;
+                }
+
                 setSelectedValue(option.value);
                 setIsOpen(false);
                 finalProps.onSelect?.(option);

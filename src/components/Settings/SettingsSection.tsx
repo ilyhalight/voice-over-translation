@@ -21,7 +21,6 @@ export function SettingsSection(props: SettingsSectionProps): JSX.Element {
   const contentId = `${sectionId}-content`;
 
   const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
-  const isHidden = () => !isOpen();
 
   effect(() => {
     setIsOpen(finalProps.isOpen);
@@ -52,7 +51,7 @@ export function SettingsSection(props: SettingsSectionProps): JSX.Element {
         id={contentId}
         role="region"
         aria-labelledby={headerId}
-        hidden={isHidden()}
+        hidden={!isOpen()}
       >
         {finalProps.children}
       </vot-block>

@@ -13,7 +13,7 @@ export const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
  * @see https://github.com/FOSWLY/vot-worker
  */
 export const proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
-export const proxyWorkerHost = "vot-worker.eu.cc"; // vot-worker.toil.cc
+export const PROXY_WORKER_HOST = "vot-worker.eu.cc"; // vot-worker.toil.cc
 
 /**
  * @see https://github.com/FOSWLY/translate-backend
@@ -51,7 +51,7 @@ export const defaultTranslationService: "yandexbrowser" | "msedge" =
 export const defaultDetectService: "yandexbrowser" | "msedge" | "rust-server" =
   "yandexbrowser";
 
-export const proxyOnlyCountries: string[] = ["UA", "LV", "LT"];
+export const PROXY_ONLY_COUNTRIES: string[] = ["UA", "LV", "LT"];
 
 /**
  * 100 - 3000 ms - delay before hiding button

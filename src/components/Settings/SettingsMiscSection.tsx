@@ -1,6 +1,6 @@
 import { type JSX, mergeProps } from "solid-js";
 import { localizationProvider } from "../../localization/localizationProvider";
-import { settings } from "../../stores/settings";
+import { setSettings, settings } from "../../stores/settings";
 import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
 
@@ -22,7 +22,6 @@ export function SettingsMiscSection(
   );
 
   const isWithoutAudioContext = () => !finalProps.isAudioContextSupported;
-  const newAudioPlayer = () => settings.newAudioPlayer;
 
   return (
     <SettingsSection
@@ -33,7 +32,10 @@ export function SettingsMiscSection(
         heading={localizationProvider.get("VOTTranslateAPIErrors")}
         hidden={localizationProvider.lang === "ru"}
         checked={settings.translateAPIErrors}
-        onChange={finalProps.onChangeTranslateAPIErrors}
+        onChange={(checked) => {
+          setSettings("translateAPIErrors", checked);
+          finalProps.onChangeTranslateAPIErrors?.(checked);
+        }}
       />
       <Switch
         heading={localizationProvider.get("VOTNewAudioPlayer")}
@@ -43,8 +45,11 @@ export function SettingsMiscSection(
             : undefined
         }
         disabled={isWithoutAudioContext()}
-        checked={newAudioPlayer()}
-        onChange={finalProps.onChangeNewAudioPlayer}
+        checked={settings.newAudioPlayer}
+        onChange={(checked) => {
+          setSettings("newAudioPlayer", checked);
+          finalProps.onChangeNewAudioPlayer?.(checked);
+        }}
       />
       <Switch
         heading={localizationProvider.get("VOTOnlyBypassMediaCSP")}
@@ -55,9 +60,12 @@ export function SettingsMiscSection(
         }
         checked={settings.onlyBypassMediaCSP}
         hidden={isWithoutAudioContext()}
-        disabled={!newAudioPlayer()}
+        disabled={!settings.newAudioPlayer}
         isSubSwitch={true}
-        onChange={finalProps.onChangeOnlyBypassMediaCSP}
+        onChange={(checked) => {
+          setSettings("onlyBypassMediaCSP", checked);
+          finalProps.onChangeOnlyBypassMediaCSP?.(checked);
+        }}
       />
     </SettingsSection>
   );

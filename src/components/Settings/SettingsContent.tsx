@@ -4,7 +4,9 @@ import { AboutSection } from "../About/AboutSection";
 import { AccountMenu } from "../Account/AccountMenu";
 import { SettingsAppearanceSection } from "./SettingsAppearanceSection";
 import { SettingsMiscSection } from "./SettingsMiscSection";
+import { SettingsProxySection } from "./SettingsProxySection";
 import { SettingsSection } from "./SettingsSection";
+import { SettingsSubtitlesSection } from "./SettingsSubtitlesSection";
 
 export function SettingsContent(): JSX.Element {
   return (
@@ -15,6 +17,8 @@ export function SettingsContent(): JSX.Element {
       >
         <AccountMenu />
       </SettingsSection>
+      <SettingsSubtitlesSection />
+      <SettingsProxySection />
       <SettingsAppearanceSection />
       <SettingsMiscSection />
       <SettingsSection title={localizationProvider.get("aboutExtension")}>

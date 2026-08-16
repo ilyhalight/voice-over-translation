@@ -12,9 +12,12 @@ export type LocaleStorageKey =
   | "localeUpdatedAt"
   | "localeLangOverride";
 
-export const subtitleResponseLanguageModes = ["auto", "original"] as const;
+export const AUTO_SUBTITLE_LANGUAGE_VALUE = "auto" as const;
+export const ORIGINAL_SUBTITLE_LANGUAGE_VALUE = "original" as const;
+
 export type SubtitleResponseLanguageMode =
-  (typeof subtitleResponseLanguageModes)[number];
+  | typeof AUTO_SUBTITLE_LANGUAGE_VALUE
+  | typeof ORIGINAL_SUBTITLE_LANGUAGE_VALUE;
 export type ResponseLanguageSubtitles =
   | SubtitleResponseLanguageMode
   | Exclude<LanguageSelectKey, "auto">;

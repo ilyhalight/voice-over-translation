@@ -22,6 +22,7 @@ const selectOptions: SelectOption[] = [
   {
     label: "Option 3",
     value: 3,
+    disabled: true,
   },
 ];
 
@@ -45,6 +46,14 @@ export const SelectWithSelected: Story = {
     title: "Select something",
     options: selectOptions,
     selectedValue: "two",
+  },
+};
+
+export const SelectWithDisabledSelected: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+    selectedValue: 3,
   },
 };
 

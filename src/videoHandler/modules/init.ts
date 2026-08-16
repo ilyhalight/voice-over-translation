@@ -5,16 +5,21 @@ import {
   defaultDetectService,
   defaultTranslationService,
   m3u8ProxyHost,
-  proxyOnlyCountries,
-  proxyWorkerHost,
+  PROXY_ONLY_COUNTRIES,
+  PROXY_WORKER_HOST,
 } from "../../config/config";
 import { updateAccountFromStorage } from "../../stores/account";
 import { setLocale } from "../../stores/locale";
 import { setSettings } from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
+import { AUTO_SUBTITLE_LANGUAGE_VALUE } from "../../types/storage";
 import { normalizeButtonPosition } from "../../ui/buttonPlacement";
 import debug from "../../utils/debug";
-import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
+import {
+  GM_fetch,
+  IS_PROXY_ONLY_EXTENSION,
+  isSupportGMXhr,
+} from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
@@ -75,7 +80,7 @@ export async function init(this: VideoHandler) {
     subtitlesOpacity: 20,
     subtitlesDownloadFormat: "srt",
     responseLanguage: calculatedResLang,
-    responseLanguageSubtitles: "auto",
+    responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
     defaultVolume: 100,
     onlyBypassMediaCSP: audioContextSupported,
     newAudioPlayer: audioContextSupported,
@@ -86,7 +91,7 @@ export async function init(this: VideoHandler) {
     translationHotkey: null,
     subtitlesHotkey: null,
     m3u8ProxyHost,
-    proxyWorkerHost,
+    proxyWorkerHost: PROXY_WORKER_HOST,
     translateProxyEnabled: 0,
     translateProxyEnabledDefault: true,
     audioBooster: false,
@@ -115,7 +120,20 @@ export async function init(this: VideoHandler) {
     newAudioPlayer: this.data.newAudioPlayer,
     onlyBypassMediaCSP: this.data.onlyBypassMediaCSP,
     showPiPButton: this.data.showPiPButton,
+    autoHideButtonDelay: this.data.autoHideButtonDelay,
     buttonPos: normalizeButtonPosition(this.data.buttonPos),
+    proxyWorkerHost: this.data.proxyWorkerHost,
+    translateProxyEnabled: this.data.translateProxyEnabled,
+    // hotkeys
+    translationHotkey: this.data.translationHotkey,
+    subtitlesHotkey: this.data.subtitlesHotkey,
+    // subtitles
+    responseLanguageSubtitles: this.data.responseLanguageSubtitles,
+    highlightWords: this.data.highlightWords,
+    subtitlesSmartLayout: this.data.subtitlesSmartLayout,
+    subtitlesMaxLength: this.data.subtitlesMaxLength,
+    subtitlesFontSize: this.data.subtitlesFontSize,
+    subtitlesOpacity: this.data.subtitlesOpacity,
   });
 
   try {
@@ -144,7 +162,7 @@ export async function init(this: VideoHandler) {
   console.log("[VOT] data from db:", this.data);
 
   // Enable translate proxy if extension isn't compatible with GM_xmlhttpRequest
-  if (!this.data.translateProxyEnabled && isProxyOnlyExtension) {
+  if (!this.data.translateProxyEnabled && IS_PROXY_ONLY_EXTENSION) {
     this.data.translateProxyEnabled = 1;
   }
   // Determine country for proxy purposes
@@ -153,7 +171,7 @@ export async function init(this: VideoHandler) {
   const countryCode = getCountryCode();
   if (
     countryCode !== null &&
-    proxyOnlyCountries.includes(countryCode) &&
+    PROXY_ONLY_COUNTRIES.includes(countryCode) &&
     this.data.translateProxyEnabledDefault
   ) {
     this.data.translateProxyEnabled = 2;

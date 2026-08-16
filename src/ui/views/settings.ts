@@ -43,14 +43,16 @@ import { AboutSection } from "../../components/About/AboutSection";
 import { AccountMenu } from "../../components/Account/AccountMenu";
 import { Switch } from "../../components/Control/Switch";
 import { SettingsAppearanceSection } from "../../components/Settings/SettingsAppearanceSection";
+import { SettingsHotkeySection } from "../../components/Settings/SettingsHotkeySection";
 import { SettingsMiscSection } from "../../components/Settings/SettingsMiscSection";
+import { SettingsProxySection } from "../../components/Settings/SettingsProxySection";
 import { SettingsSection } from "../../components/Settings/SettingsSection";
+import { SettingsSubtitlesSection } from "../../components/Settings/SettingsSubtitlesSection";
 import {
   defaultAutoVolume,
   defaultDetectService,
   defaultTranslationService,
-  proxyOnlyCountries,
-  proxyWorkerHost,
+  PROXY_WORKER_HOST,
 } from "../../config/config";
 import { isAuthRefreshMessage } from "../../core/authRefreshMessage";
 import { openAuthWindow } from "../../core/authWindow";
@@ -73,7 +75,6 @@ import {
   type SubtitleFontFamily,
   type SubtitleFormat,
   subtitleFontFamilies,
-  subtitleFormats as subtitlesFormats,
 } from "../../subtitles/types";
 import type {
   LanguageSelectKey,
@@ -86,7 +87,6 @@ import type {
   StorageData,
   TranslateProxyStatus,
 } from "../../types/storage";
-import { subtitleResponseLanguageModes } from "../../types/storage";
 import type {
   DetectService,
   TranslateService,
@@ -98,36 +98,27 @@ import type {
 import ui from "../../ui";
 import debug from "../../utils/debug";
 import { EventImpl } from "../../utils/eventImpl";
-import { isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
+import { isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
 import type { VideoHandler } from "../../VideoHandler";
-import { getCountryCode } from "../../videoHandler/shared";
 import Checkbox from "../components/checkbox";
 import { createDomId } from "../components/componentShared";
 import Details from "../components/details";
 import Dialog from "../components/dialog";
-import HotkeyButton from "../components/hotkeyButton";
 import Label from "../components/label";
 import Select from "../components/select";
 import Slider from "../components/slider";
 import SliderLabel from "../components/sliderLabel";
-import Textfield from "../components/textfield";
 import Tooltip from "../components/tooltip";
 import { HELP_ICON, WARNING_ICON } from "../icons";
 import { type MountedComponent, mountComponent } from "../solid/mountComponent";
 
 const GOOGLE_FONTS_SEARCH_LIMIT = 30;
-const LANG_PREFIX = "langs.";
-const [AUTO_SUBTITLE_LANGUAGE_VALUE, ORIGINAL_SUBTITLE_LANGUAGE_VALUE] =
-  subtitleResponseLanguageModes;
 type BufferedNumericStorageKey =
   | "subtitlesMaxLength"
   | "subtitlesFontSize"
   | "subtitlesOpacity"
   | "autoHideButtonDelay";
-
-type RealLanguageSelectKey = Exclude<LanguageSelectKey, "auto">;
-type RealLangKey = `${typeof LANG_PREFIX}${Exclude<LanguageSelectKey, "auto">}`;
 
 const subtitleFontFamilyLabels: Record<BuiltInSubtitleFontFamily, string> = {
   "default-sans": "Default Sans",
@@ -150,61 +141,12 @@ function getSubtitleFontFamilyLabel(fontFamily: SubtitleFontFamily): string {
   return getGoogleSubtitleFontFamilyName(fontFamily) ?? "Default Sans";
 }
 
-function getAvailableSubtitleLanguages(): RealLanguageSelectKey[] {
-  return Object.keys(localizationProvider.defaultLocale)
-    .filter(
-      (key): key is RealLangKey =>
-        key.startsWith(LANG_PREFIX) && key !== `${LANG_PREFIX}auto`,
-    )
-    .map((key) => key.slice(LANG_PREFIX.length) as RealLanguageSelectKey)
-    .sort((left, right) =>
-      localizationProvider
-        .getLangLabel(left)
-        .localeCompare(localizationProvider.getLangLabel(right)),
-    );
-}
-
-function getSubtitleLanguageSettingLabel(
-  value: ResponseLanguageSubtitles,
-): string {
-  if (value === ORIGINAL_SUBTITLE_LANGUAGE_VALUE) {
-    return localizationProvider.get("VOTOriginalVideoLanguage");
-  }
-
-  return localizationProvider.getLangLabel(value);
-}
-
-function buildSubtitleLanguageSettingItems(
-  selectedValue: ResponseLanguageSubtitles,
-): SelectItem<ResponseLanguageSubtitles>[] {
-  return [
-    {
-      label: getSubtitleLanguageSettingLabel(AUTO_SUBTITLE_LANGUAGE_VALUE),
-      value: AUTO_SUBTITLE_LANGUAGE_VALUE,
-      selected: selectedValue === AUTO_SUBTITLE_LANGUAGE_VALUE,
-    },
-    {
-      label: getSubtitleLanguageSettingLabel(ORIGINAL_SUBTITLE_LANGUAGE_VALUE),
-      value: ORIGINAL_SUBTITLE_LANGUAGE_VALUE,
-      selected: selectedValue === ORIGINAL_SUBTITLE_LANGUAGE_VALUE,
-    },
-    ...getAvailableSubtitleLanguages().map<
-      SelectItem<ResponseLanguageSubtitles>
-    >((language) => ({
-      label: getSubtitleLanguageSettingLabel(language),
-      value: language,
-      selected: selectedValue === language,
-    })),
-  ];
-}
-
 export class SettingsView {
   private static readonly PERSIST_DELAY_MS = 250;
   globalPortal: HTMLElement;
   private initialized = false;
   private readonly data: Partial<StorageData>;
   private readonly videoHandler?: VideoHandler;
-  private suppressSubtitlesSmartLayoutCheckboxChange = false;
   private readonly events: {
     [K in keyof SettingsViewEventMap]: EventImpl<SettingsViewEventMap[K]>;
   } = createSettingsEvents();
@@ -237,31 +179,16 @@ export class SettingsView {
   useAudioDownloadCheckbox?: Checkbox;
   useAudioDownloadCheckboxLabel?: Label;
   useAudioDownloadCheckboxTooltip?: Tooltip;
-  responseLanguageSubtitlesSelectLabel?: Label;
-  responseLanguageSubtitlesSelect?: Select<ResponseLanguageSubtitles>;
-  subtitlesDownloadFormatSelectLabel?: Label;
-  subtitlesDownloadFormatSelect?: Select<SubtitleFormat>;
-  subtitlesHighlightWordsCheckbox?: Checkbox;
-  subtitlesSmartLayoutCheckbox?: Checkbox;
-  subtitlesMaxLengthSliderLabel?: SliderLabel;
-  subtitlesMaxLengthSlider?: Slider;
-  subtitlesFontSizeSliderLabel?: SliderLabel;
-  subtitlesFontSizeSlider?: Slider;
   subtitlesFontFamilySelectLabel?: Label;
   subtitlesFontFamilySelect?: Select<SubtitleFontFamily>;
-  subtitlesBackgroundOpacitySliderLabel?: SliderLabel;
-  subtitlesBackgroundOpacitySlider?: Slider;
-  translateHotkeyButton?: HotkeyButton;
-  subtitlesHotkeyButton?: HotkeyButton;
-  proxyWorkerHostTextfield?: Textfield;
-  proxyTranslationStatusSelectLabel?: Label;
-  proxyTranslationStatusSelectTooltip?: Tooltip;
-  proxyTranslationStatusSelect?: Select;
   translationTextServiceLabel?: Label;
   translationTextServiceSelect?: Select<TranslateService>;
   translationTextServiceTooltip?: Tooltip;
   detectServiceLabel?: Label;
   detectServiceSelect?: Select<DetectService>;
+  hotkeysSection?: MountedComponent<HTMLDivElement>;
+  subtitlesSection?: MountedComponent<HTMLDivElement>;
+  proxySection?: MountedComponent<HTMLDivElement>;
   appearanceSection?: MountedComponent<HTMLDivElement>;
   miscSection?: MountedComponent<HTMLDivElement>;
   aboutSection?: MountedComponent<HTMLDivElement>;
@@ -319,17 +246,7 @@ export class SettingsView {
       getOpen,
     };
   }
-  private setSubtitlesSmartLayout(checked: boolean): void {
-    this.data.subtitlesSmartLayout = checked;
-    void votStorage.set("subtitlesSmartLayout", checked);
-    debug.log("subtitlesSmartLayout value changed. New value:", checked);
-    if (this.subtitlesSmartLayoutCheckbox?.checked !== checked) {
-      this.suppressSubtitlesSmartLayoutCheckboxChange = true;
-      this.subtitlesSmartLayoutCheckbox.checked = checked;
-      this.suppressSubtitlesSmartLayoutCheckboxChange = false;
-    }
-    this.events["change:subtitlesSmartLayout"].dispatch(checked);
-  }
+
   private scheduleStoragePersist(
     key: BufferedNumericStorageKey,
     value: number,
@@ -377,16 +294,6 @@ export class SettingsView {
       apply?.(value);
       void (async () => {
         await votStorage.set(storageKey, value);
-        if (
-          [
-            "translateAPIErrors",
-            "newAudioPlayer",
-            "onlyBypassMediaCSP",
-          ].includes(storageKey)
-        ) {
-          setSettings(storageKey as any, value);
-        }
-
         debug.log(`${logLabel} value changed. New value:`, value);
         await afterPersist?.(value);
         dispatch?.(value);
@@ -407,41 +314,10 @@ export class SettingsView {
   }): (value: number) => void {
     return (value) => {
       this.data[storageKey] = value;
-      if (storageKey === "autoHideButtonDelay") {
-        setSettings(storageKey as any, value);
-      }
       this.scheduleStoragePersist(storageKey, value);
       debug.log(`${logLabel} value changed. New value:`, value);
       dispatch?.(value);
     };
-  }
-
-  private bindBufferedNumericSetting({
-    control,
-    label,
-    storageKey,
-    logLabel,
-    toStoredValue = (value) => value,
-    beforeApply,
-    dispatch,
-  }: {
-    control: Slider;
-    label: SliderLabel;
-    storageKey: BufferedNumericStorageKey;
-    logLabel: string;
-    toStoredValue?: (value: number) => number;
-    beforeApply?: () => void;
-    dispatch?: (value: number) => void;
-  }): void {
-    control.addEventListener("input", (value) => {
-      label.value = value;
-      beforeApply?.();
-      const storedValue = toStoredValue(value);
-      this.data[storageKey] = storedValue;
-      this.scheduleStoragePersist(storageKey, storedValue);
-      debug.log(`${logLabel} value changed. New value:`, storedValue);
-      dispatch?.(value);
-    });
   }
 
   private createSettingsSections() {
@@ -453,15 +329,11 @@ export class SettingsView {
       this.createAccordionSection(
         localizationProvider.get("subtitlesSettings"),
       ),
-      this.createAccordionSection(localizationProvider.get("hotkeysSettings")),
-      this.createAccordionSection(localizationProvider.get("proxySettings")),
     ];
 
     return {
       translationSection: sections[0],
       subtitlesSection: sections[1],
-      hotkeysSection: sections[2],
-      proxySection: sections[3],
       sections,
     };
   }
@@ -590,6 +462,87 @@ export class SettingsView {
         }),
       }),
     );
+    this.hotkeysSection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsHotkeySection({
+        ref: rootRef,
+        onTranslationHotkeyChange: this.createPersistedSettingHandler({
+          storageKey: "translationHotkey",
+        }),
+        onSubtitlesHotkeyChange: this.createPersistedSettingHandler({
+          storageKey: "subtitlesHotkey",
+        }),
+      }),
+    );
+    this.subtitlesSection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsSubtitlesSection({
+        ref: rootRef,
+        onResponseLanguageSubtitlesSelect: (option) =>
+          this.createPersistedSettingHandler({
+            storageKey: "responseLanguageSubtitles",
+            dispatch: (item) =>
+              this.events["select:responseLanguageSubtitles"].dispatch(item),
+          })(option.value as ResponseLanguageSubtitles),
+        onSubtitlesDownloadFormatSelect: (option) =>
+          this.createPersistedSettingHandler({
+            storageKey: "subtitlesDownloadFormat",
+          })(option.value as SubtitleFormat),
+        onHighlightWordsChange: this.createPersistedSettingHandler({
+          storageKey: "highlightWords",
+          dispatch: (checked) =>
+            this.events["change:subtitlesHighlightWords"].dispatch(checked),
+        }),
+        onSubtitlesSmartLayoutChange: this.createPersistedSettingHandler({
+          storageKey: "subtitlesSmartLayout",
+          dispatch: (checked) =>
+            this.events["change:subtitlesSmartLayout"].dispatch(checked),
+        }),
+        onSubtitlesMaxLengthInput: this.createBufferedNumericInputHandler({
+          storageKey: "subtitlesMaxLength",
+          dispatch: (value) =>
+            this.events["input:subtitlesMaxLength"].dispatch(value),
+        }),
+        onSubtitlesFontSizeInput: this.createBufferedNumericInputHandler({
+          storageKey: "subtitlesFontSize",
+          dispatch: (value) =>
+            this.events["input:subtitlesFontSize"].dispatch(value),
+        }),
+        onSubtitlesOpacityInput: this.createBufferedNumericInputHandler({
+          storageKey: "subtitlesOpacity",
+          dispatch: (value) =>
+            this.events["input:subtitlesBackgroundOpacity"].dispatch(value),
+        }),
+      }),
+    );
+    this.proxySection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsProxySection({
+        ref: rootRef,
+        onProxyWorkerHostChange: async (value) => {
+          this.data.proxyWorkerHost = value || PROXY_WORKER_HOST;
+          setSettings("proxyWorkerHost", this.data.proxyWorkerHost);
+          await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
+          debug.log(
+            "proxyWorkerHost value changed. New value:",
+            this.data.proxyWorkerHost,
+          );
+          this.events["change:proxyWorkerHost"].dispatch(value);
+        },
+        onTranslateProxyStatusSelect: async (option) => {
+          const value = option.value as TranslateProxyStatus;
+          this.data.translateProxyEnabled = value;
+          setSettings("translateProxyEnabled", this.data.translateProxyEnabled);
+          await votStorage.set(
+            "translateProxyEnabled",
+            this.data.translateProxyEnabled,
+          );
+          await votStorage.set("translateProxyEnabledDefault", false);
+          debug.log(
+            "translateProxyEnabled value changed. New value:",
+            this.data.translateProxyEnabled,
+          );
+          this.events["select:proxyTranslationStatus"].dispatch(value);
+        },
+      }),
+    );
     this.appearanceSection = mountComponent<HTMLDivElement>((rootRef) =>
       SettingsAppearanceSection({
         ref: rootRef,
@@ -652,16 +605,14 @@ export class SettingsView {
       }),
     );
 
-    const {
-      translationSection,
-      subtitlesSection,
-      hotkeysSection,
-      proxySection,
-      sections,
-    } = this.createSettingsSections();
+    const { translationSection, subtitlesSection, sections } =
+      this.createSettingsSections();
     this.dialog.bodyContainer.append(
       this.accountSection.root,
       ...sections.map((section) => section.container),
+      this.hotkeysSection.root,
+      this.subtitlesSection.root,
+      this.proxySection.root,
       this.miscSection.root,
       this.appearanceSection.root,
       this.aboutSection.root,
@@ -814,70 +765,6 @@ export class SettingsView {
       this.sendNotifyOnCompleteCheckbox.container,
       this.useAudioDownloadCheckbox.container,
     );
-    this.subtitlesDownloadFormatSelectLabel = new Label({
-      labelText: localizationProvider.get("VOTSubtitlesDownloadFormat"),
-    });
-    this.subtitlesDownloadFormatSelect = new Select<SubtitleFormat>({
-      selectTitle:
-        this.data.subtitlesDownloadFormat ??
-        localizationProvider.get("VOTSubtitlesDownloadFormat"),
-      dialogTitle: localizationProvider.get("VOTSubtitlesDownloadFormat"),
-      dialogParent: this.globalPortal,
-      labelElement: this.subtitlesDownloadFormatSelectLabel.container,
-      items: subtitlesFormats.map<SelectItem<SubtitleFormat>>((format) => ({
-        label: format.toUpperCase(),
-        value: format,
-        selected: format === this.data.subtitlesDownloadFormat,
-      })),
-    });
-    const responseLanguageSubtitles =
-      this.data.responseLanguageSubtitles ?? AUTO_SUBTITLE_LANGUAGE_VALUE;
-    this.responseLanguageSubtitlesSelectLabel = new Label({
-      labelText: localizationProvider.get("VOTDefaultSubtitlesLanguage"),
-    });
-    this.responseLanguageSubtitlesSelect =
-      new Select<ResponseLanguageSubtitles>({
-        selectTitle: getSubtitleLanguageSettingLabel(responseLanguageSubtitles),
-        dialogTitle: localizationProvider.get("VOTDefaultSubtitlesLanguage"),
-        dialogParent: this.globalPortal,
-        labelElement: this.responseLanguageSubtitlesSelectLabel.container,
-        items: buildSubtitleLanguageSettingItems(responseLanguageSubtitles),
-      });
-    this.subtitlesHighlightWordsCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTHighlightWords"),
-      checked: this.data.highlightWords,
-    });
-    const subtitlesSmartLayout = this.data.subtitlesSmartLayout ?? true;
-    this.subtitlesSmartLayoutCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("subtitlesSmartLayout"),
-      checked: subtitlesSmartLayout,
-    });
-    const subtitlesMaxLength = this.data.subtitlesMaxLength ?? 300;
-    this.subtitlesMaxLengthSliderLabel = new SliderLabel({
-      labelText: localizationProvider.get("VOTSubtitlesMaxLength"),
-      labelEOL: ":",
-      value: subtitlesMaxLength,
-      symbol: "",
-    });
-    this.subtitlesMaxLengthSlider = new Slider({
-      labelHtml: this.subtitlesMaxLengthSliderLabel.container,
-      value: subtitlesMaxLength,
-      min: 50,
-      max: 300,
-    });
-    const subtitlesFontSize = this.data.subtitlesFontSize ?? 20;
-    this.subtitlesFontSizeSliderLabel = new SliderLabel({
-      labelText: localizationProvider.get("VOTSubtitlesFontSize"),
-      labelEOL: ":",
-      value: subtitlesFontSize,
-      symbol: "px",
-    });
-    this.subtitlesFontSizeSlider = new Slider({
-      labelHtml: this.subtitlesFontSizeSliderLabel.container,
-      value: subtitlesFontSize,
-      min: 8,
-      max: 50,
-    });
     const storedSubtitlesFontFamily =
       typeof this.data.subtitlesFontFamily === "string"
         ? this.data.subtitlesFontFamily
@@ -910,84 +797,7 @@ export class SettingsView {
       this.subtitlesFontFamilySelect.selectTitle =
         getSubtitleFontFamilyLabel(item);
     });
-    const subtitlesOpacity = this.data.subtitlesOpacity ?? 20;
-    this.subtitlesBackgroundOpacitySliderLabel = new SliderLabel({
-      labelText: localizationProvider.get("VOTSubtitlesOpacity"),
-      labelEOL: ":",
-      value: subtitlesOpacity,
-      symbol: "%",
-    });
-    this.subtitlesBackgroundOpacitySlider = new Slider({
-      labelHtml: this.subtitlesBackgroundOpacitySliderLabel.container,
-      value: subtitlesOpacity,
-      min: 0,
-      max: 100,
-    });
-    subtitlesSection.content.append(
-      this.responseLanguageSubtitlesSelect.container,
-      this.subtitlesDownloadFormatSelect.container,
-      this.subtitlesFontFamilySelect.container,
-      this.subtitlesHighlightWordsCheckbox.container,
-      this.subtitlesSmartLayoutCheckbox.container,
-      this.subtitlesMaxLengthSlider.container,
-      this.subtitlesFontSizeSlider.container,
-      this.subtitlesBackgroundOpacitySlider.container,
-    );
-    this.translateHotkeyButton = new HotkeyButton({
-      labelHtml: localizationProvider.get("translateVideo"),
-      key: this.data.translationHotkey,
-    });
-    this.subtitlesHotkeyButton = new HotkeyButton({
-      labelHtml: localizationProvider.get("VOTSubtitles"),
-      key: this.data.subtitlesHotkey,
-    });
-    hotkeysSection.content.append(
-      this.translateHotkeyButton.container,
-      this.subtitlesHotkeyButton.container,
-    );
-    this.proxyWorkerHostTextfield = new Textfield({
-      labelHtml: localizationProvider.get("VOTProxyWorkerHost"),
-      value: this.data.proxyWorkerHost,
-      placeholder: proxyWorkerHost,
-    });
-    const proxyEnabledLabels = [
-      localizationProvider.get("VOTTranslateProxyDisabled"),
-      localizationProvider.get("VOTTranslateProxyEnabled"),
-      localizationProvider.get("VOTTranslateProxyEverything"),
-    ];
-    const translateProxyEnabled = this.data.translateProxyEnabled ?? 0;
-    const countryCode = getCountryCode();
-    const isTranslateProxyRequired =
-      countryCode !== null && proxyOnlyCountries.includes(countryCode);
-    this.proxyTranslationStatusSelectLabel = new Label({
-      icon: isTranslateProxyRequired ? WARNING_ICON : undefined,
-      labelText: localizationProvider.get("VOTTranslateProxyStatus"),
-    });
-    if (isTranslateProxyRequired) {
-      this.proxyTranslationStatusSelectTooltip = new Tooltip({
-        target: this.proxyTranslationStatusSelectLabel.icon,
-        content: localizationProvider.get("VOTTranslateProxyStatusDefault"),
-        position: "bottom",
-        backgroundColor: "var(--vot-helper-ondialog)",
-        parentElement: this.globalPortal,
-      });
-    }
-    this.proxyTranslationStatusSelect = new Select({
-      selectTitle: proxyEnabledLabels[translateProxyEnabled],
-      dialogTitle: localizationProvider.get("VOTTranslateProxyStatus"),
-      dialogParent: this.globalPortal,
-      labelElement: this.proxyTranslationStatusSelectLabel.container,
-      items: proxyEnabledLabels.map<SelectItem>((label, idx) => ({
-        label,
-        value: idx.toString(),
-        selected: idx === translateProxyEnabled,
-        disabled: idx === 0 && isProxyOnlyExtension,
-      })),
-    });
-    proxySection.content.append(
-      this.proxyWorkerHostTextfield.container,
-      this.proxyTranslationStatusSelect.container,
-    );
+    subtitlesSection.content.append(this.subtitlesFontFamilySelect.container);
     this.translationTextServiceLabel = new Label({
       labelText: localizationProvider.get("VOTTranslationTextService"),
       icon: HELP_ICON,
@@ -1140,72 +950,6 @@ export class SettingsView {
         storageKey: "useAudioDownload",
       }),
     );
-    this.responseLanguageSubtitlesSelect.addEventListener(
-      "selectItem",
-      this.createPersistedSettingHandler({
-        storageKey: "responseLanguageSubtitles",
-        apply: (item) => {
-          this.responseLanguageSubtitlesSelect?.updateItems(
-            buildSubtitleLanguageSettingItems(item),
-          );
-          if (this.responseLanguageSubtitlesSelect) {
-            this.responseLanguageSubtitlesSelect.selectTitle =
-              getSubtitleLanguageSettingLabel(item);
-          }
-        },
-        dispatch: (item) =>
-          this.events["select:responseLanguageSubtitles"].dispatch(item),
-      }),
-    );
-    this.subtitlesDownloadFormatSelect.addEventListener(
-      "selectItem",
-      this.createPersistedSettingHandler({
-        storageKey: "subtitlesDownloadFormat",
-      }),
-    );
-    this.subtitlesHighlightWordsCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "highlightWords",
-        dispatch: (checked) =>
-          this.events["change:subtitlesHighlightWords"].dispatch(checked),
-      }),
-    );
-    this.subtitlesSmartLayoutCheckbox?.addEventListener("change", (checked) => {
-      if (this.suppressSubtitlesSmartLayoutCheckboxChange) return;
-      this.setSubtitlesSmartLayout(checked);
-    });
-    const disableSmartLayout = () => {
-      if ((this.data.subtitlesSmartLayout ?? true) === true) {
-        this.setSubtitlesSmartLayout(false);
-      }
-    };
-    this.bindBufferedNumericSetting({
-      control: this.subtitlesMaxLengthSlider,
-      label: this.subtitlesMaxLengthSliderLabel,
-      storageKey: "subtitlesMaxLength",
-      logLabel: "subtitlesMaxLength",
-      beforeApply: disableSmartLayout,
-      dispatch: (value) =>
-        this.events["input:subtitlesMaxLength"].dispatch(value),
-    });
-    this.bindBufferedNumericSetting({
-      control: this.subtitlesFontSizeSlider,
-      label: this.subtitlesFontSizeSliderLabel,
-      storageKey: "subtitlesFontSize",
-      logLabel: "subtitlesFontSize",
-      beforeApply: disableSmartLayout,
-      dispatch: (value) =>
-        this.events["input:subtitlesFontSize"].dispatch(value),
-    });
-    this.bindBufferedNumericSetting({
-      control: this.subtitlesBackgroundOpacitySlider,
-      label: this.subtitlesBackgroundOpacitySliderLabel,
-      storageKey: "subtitlesOpacity",
-      logLabel: "subtitlesOpacity",
-      dispatch: (value) =>
-        this.events["input:subtitlesBackgroundOpacity"].dispatch(value),
-    });
     this.subtitlesFontFamilySelect.addEventListener(
       "selectItem",
       this.createPersistedSettingHandler({
@@ -1213,46 +957,6 @@ export class SettingsView {
         dispatch: (item) =>
           this.events["select:subtitlesFontFamily"].dispatch(item),
       }),
-    );
-    this.translateHotkeyButton.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "translationHotkey",
-      }),
-    );
-    this.subtitlesHotkeyButton.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "subtitlesHotkey",
-      }),
-    );
-    this.proxyWorkerHostTextfield.addEventListener("change", async (value) => {
-      this.data.proxyWorkerHost = value || proxyWorkerHost;
-      await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
-      debug.log(
-        "proxyWorkerHost value changed. New value:",
-        this.data.proxyWorkerHost,
-      );
-      this.events["change:proxyWorkerHost"].dispatch(value);
-    });
-    this.proxyTranslationStatusSelect.addEventListener(
-      "selectItem",
-      async (item) => {
-        this.data.translateProxyEnabled = Number.parseInt(
-          item,
-          10,
-        ) as TranslateProxyStatus;
-        await votStorage.set(
-          "translateProxyEnabled",
-          this.data.translateProxyEnabled,
-        );
-        await votStorage.set("translateProxyEnabledDefault", false);
-        debug.log(
-          "translateProxyEnabled value changed. New value:",
-          this.data.translateProxyEnabled,
-        );
-        this.events["select:proxyTranslationStatus"].dispatch(item);
-      },
     );
 
     this.translationTextServiceSelect.addEventListener(
@@ -1296,6 +1000,10 @@ export class SettingsView {
       "accountSection",
       "autoTranslateSwitch",
       "autoSubtitlesSwitch",
+      "subtitlesSection",
+      "hotkeysSection",
+      "subtitlesSection",
+      "proxySection",
       "appearanceSection",
       "miscSection",
       "aboutSection",
@@ -1310,7 +1018,6 @@ export class SettingsView {
     for (const tooltip of [
       this.useAudioDownloadCheckboxTooltip,
       this.translationTextServiceTooltip,
-      this.proxyTranslationStatusSelectTooltip,
     ]) {
       tooltip?.release();
     }

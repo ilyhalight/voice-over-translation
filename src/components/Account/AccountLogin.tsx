@@ -1,4 +1,4 @@
-import type { JSX } from "solid-js";
+import { type JSX, mergeProps } from "solid-js";
 import "./AccountLogin.scss";
 
 import { produce } from "solid-js/store";
@@ -18,16 +18,18 @@ export type AccountLoginProps = {
 const TOKEN_LIFETIME = 31_534_180_000; // 1 year in milliseconds
 
 export function AccountLogin(props: AccountLoginProps): JSX.Element {
-  const disabledExternalLogin = () =>
-    props.disableExternalLogin ?? votStorage.isSupportOnlyLS;
+  const finalProps = mergeProps(
+    { disableExternalLogin: votStorage.isSupportOnlyLS },
+    props,
+  );
 
   return (
-    <vot-block ref={props.ref} class="vot-account-login">
+    <vot-block ref={finalProps.ref} class="vot-account-login">
       <vot-block
         class="vot-account-login__btn"
-        aria-disabled={disabledExternalLogin()}
+        aria-disabled={finalProps.disableExternalLogin}
         onClick={() => {
-          if (disabledExternalLogin()) {
+          if (finalProps.disableExternalLogin) {
             return;
           }
 

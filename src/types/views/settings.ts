@@ -6,6 +6,7 @@ import type {
   Account,
   ResponseLanguageSubtitles,
   StorageData,
+  TranslateProxyStatus,
 } from "../storage";
 import type { TranslateService } from "../translateApis";
 
@@ -36,7 +37,7 @@ export type SettingsViewEventMap = {
   "input:subtitlesFontSize": [value: number];
   "input:subtitlesBackgroundOpacity": [value: number];
   "input:autoHideButtonDelay": [value: number];
-  "select:proxyTranslationStatus": [item: string];
+  "select:proxyTranslationStatus": [item: TranslateProxyStatus];
   "select:translationTextService": [item: TranslateService];
   "select:buttonPosition": [item: Position];
   "select:menuLanguage": [item: LangOverride];

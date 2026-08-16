@@ -1,8 +1,7 @@
-import { createSignal, type JSX, mergeProps } from "solid-js";
-import { DEFAULT_AUTO_HIDE_DELAY } from "../../config/config";
+import type { JSX } from "solid-js";
 import { localizationProvider } from "../../localization/localizationProvider";
-import { settings } from "../../stores/settings";
-import { positions } from "../../types/components/votButton";
+import { setSettings, settings } from "../../stores/settings";
+import { type Position, positions } from "../../types/components/votButton";
 import type { Phrase } from "../../types/localization";
 import { isPiPAvailable } from "../../utils/utils";
 import { Select, type SelectOption } from "../Control/Select";
@@ -27,24 +26,19 @@ const STEP_AUTO_HIDE_BUTTON_DELAY = 100;
 export function SettingsAppearanceSection(
   props: SettingsAppearanceSectionProps,
 ): JSX.Element {
-  const finalProps = mergeProps(props);
-
-  const [autoHideButtonDelay, setAutoHideButtonDelay] = createSignal(
-    DEFAULT_AUTO_HIDE_DELAY,
-  );
   const autoHideButtonDelaySecs = () =>
-    Math.round(autoHideButtonDelay() / STEP_AUTO_HIDE_BUTTON_DELAY) / 10;
+    Math.round(settings.autoHideButtonDelay / STEP_AUTO_HIDE_BUTTON_DELAY) / 10;
   const autoHideButtonDelayValueText = () =>
     `${autoHideButtonDelaySecs()} ${localizationProvider.get("secs")}`;
 
-  const buttonPositionOptions: SelectOption[] = positions.map((position) => ({
+  const buttonPositionOptions = positions.map<SelectOption>((position) => ({
     label: localizationProvider.get(`position.${position}`),
     value: position,
   }));
 
-  const langsOptions: SelectOption[] = localizationProvider
+  const langsOptions = localizationProvider
     .getAvailableLangs()
-    .map((lang) => {
+    .map<SelectOption>((lang) => {
       const phrase = `langs.${lang}` satisfies Phrase;
       const label = localizationProvider.get(phrase);
       return {
@@ -55,14 +49,17 @@ export function SettingsAppearanceSection(
 
   return (
     <SettingsSection
-      ref={finalProps.ref}
+      ref={props.ref}
       title={localizationProvider.get("appearance")}
     >
       <Switch
         heading={localizationProvider.get("VOTShowPiPButton")}
         checked={settings.showPiPButton}
         hidden={!isPiPAvailable()}
-        onChange={finalProps.onShowPiPButtonChange}
+        onChange={(checked) => {
+          setSettings("showPiPButton", checked);
+          props.onShowPiPButtonChange?.(checked);
+        }}
       />
       <SliderWrapper>
         <SliderLabel value={autoHideButtonDelayValueText()}>
@@ -72,10 +69,10 @@ export function SettingsAppearanceSection(
           min={MIN_AUTO_HIDE_BUTTON_DELAY}
           max={MAX_AUTO_HIDE_BUTTON_DELAY}
           step={STEP_AUTO_HIDE_BUTTON_DELAY}
-          value={autoHideButtonDelay()}
+          value={settings.autoHideButtonDelay}
           onInput={(val) => {
-            setAutoHideButtonDelay(val);
-            finalProps.onAutoHideButtonDelayInput?.(val);
+            setSettings("autoHideButtonDelay", val);
+            props.onAutoHideButtonDelayInput?.(val);
           }}
         />
       </SliderWrapper>
@@ -83,7 +80,10 @@ export function SettingsAppearanceSection(
         title={localizationProvider.get("buttonPosition")}
         options={buttonPositionOptions}
         selectedValue={settings.buttonPos}
-        onSelect={finalProps.onButtonPositionSelect}
+        onSelect={(option) => {
+          setSettings("buttonPos", option.value as Position);
+          props.onButtonPositionSelect?.(option);
+        }}
       >
         {localizationProvider.get("buttonPosition")}
       </Select>
@@ -91,7 +91,7 @@ export function SettingsAppearanceSection(
         title={localizationProvider.get("VOTMenuLanguage")}
         options={langsOptions}
         selectedValue={localizationProvider.langOverride}
-        onSelect={finalProps.onLangSelect}
+        onSelect={props.onLangSelect}
       >
         {localizationProvider.get("VOTMenuLanguage")}
       </Select>

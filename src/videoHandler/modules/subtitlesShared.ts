@@ -4,8 +4,9 @@ import {
   type SubtitleDescriptor,
 } from "../../subtitles/types";
 import {
+  AUTO_SUBTITLE_LANGUAGE_VALUE,
+  ORIGINAL_SUBTITLE_LANGUAGE_VALUE,
   type ResponseLanguageSubtitles,
-  subtitleResponseLanguageModes,
 } from "../../types/storage";
 
 export type IndexedSubtitleDescriptor = {
@@ -22,8 +23,6 @@ export type SubtitlesSelectOption = {
 
 export const DISABLED_SUBTITLES_VALUE = "disabled";
 const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
-const [AUTO_SUBTITLE_LANGUAGE_VALUE, ORIGINAL_SUBTITLE_LANGUAGE_VALUE] =
-  subtitleResponseLanguageModes;
 
 export function getIndexedSubtitleDescriptors(
   subtitles: readonly unknown[],
