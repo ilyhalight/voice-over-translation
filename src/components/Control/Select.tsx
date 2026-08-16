@@ -15,8 +15,10 @@ import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
 import { createFloatingPosition } from "../Utils/createFloatingPosition";
 
+export type SelectValue = string | number | boolean;
+
 export type SelectOption = {
-  value: string | number | boolean;
+  value: SelectValue;
   label: string;
 };
 
@@ -24,7 +26,7 @@ export type SelectProps = {
   title: string;
   options: SelectOption[];
   children?: JSX.Element;
-  selectedValue?: number;
+  selectedValue?: SelectValue;
   disabled?: boolean;
   isOpen?: boolean;
   onSelect?: (option: SelectOption) => void;
@@ -36,7 +38,7 @@ export function Select(props: SelectProps): JSX.Element {
     {
       disabled: false,
       isOpen: false,
-      selectedValue: -1,
+      selectedValue: undefined,
     },
     props,
   );
@@ -46,13 +48,14 @@ export function Select(props: SelectProps): JSX.Element {
 
   const selectId = createUniqueId();
   const [disabled, setDisabled] = createSignal(finalProps.disabled);
-  const [selectedValue, setSelectedValue] = createSignal<number>(
+  const [selectedValue, setSelectedValue] = createSignal<SelectValue>(
     finalProps.selectedValue,
   );
-
-  const visibleTitle = () =>
-    finalProps.options[selectedValue()]?.label || finalProps.title;
   const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+
+  const selectedItem = () =>
+    finalProps.options.find((o) => o.value === selectedValue());
+  const visibleTitle = () => selectedItem()?.label || finalProps.title;
 
   effect(() => {
     setDisabled(finalProps.disabled);
@@ -110,9 +113,7 @@ export function Select(props: SelectProps): JSX.Element {
         }}
         disabled={disabled()}
         onClick={() => {
-          console.log("current state", isOpen());
           setIsOpen(!isOpen());
-          console.log("new state", isOpen());
         }}
       >
         <vot-block class="vot-select_new-outer__title">
@@ -138,11 +139,11 @@ export function Select(props: SelectProps): JSX.Element {
                 role: "menuitem",
                 classList: {
                   "vot-select_new-inner__option--selected":
-                    idx() === selectedValue(),
+                    option.value === selectedValue(),
                 },
               }}
               onClick={() => {
-                setSelectedValue(idx());
+                setSelectedValue(option.value);
                 setIsOpen(false);
                 finalProps.onSelect?.(option);
               }}

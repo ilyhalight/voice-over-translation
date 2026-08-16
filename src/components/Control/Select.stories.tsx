@@ -40,6 +40,14 @@ export const SelectDefault: Story = {
   },
 };
 
+export const SelectWithSelected: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+    selectedValue: "two",
+  },
+};
+
 export const SelectDisabled: Story = {
   args: {
     title: "Select something",

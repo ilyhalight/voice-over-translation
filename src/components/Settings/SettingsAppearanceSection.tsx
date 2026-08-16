@@ -41,10 +41,6 @@ export function SettingsAppearanceSection(
     label: localizationProvider.get(`position.${position}`),
     value: position,
   }));
-  const selectedButtonPositionIndex = () =>
-    buttonPositionOptions.findIndex(
-      (option) => option.value === settings.buttonPos,
-    );
 
   const langsOptions: SelectOption[] = localizationProvider
     .getAvailableLangs()
@@ -56,10 +52,6 @@ export function SettingsAppearanceSection(
         value: lang,
       };
     });
-  const selectedLangIndex = () =>
-    langsOptions.findIndex(
-      (option) => option.value === localizationProvider.langOverride,
-    );
 
   return (
     <SettingsSection
@@ -90,7 +82,7 @@ export function SettingsAppearanceSection(
       <Select
         title={localizationProvider.get("buttonPosition")}
         options={buttonPositionOptions}
-        selectedValue={selectedButtonPositionIndex()}
+        selectedValue={settings.buttonPos}
         onSelect={finalProps.onButtonPositionSelect}
       >
         {localizationProvider.get("buttonPosition")}
@@ -98,7 +90,7 @@ export function SettingsAppearanceSection(
       <Select
         title={localizationProvider.get("VOTMenuLanguage")}
         options={langsOptions}
-        selectedValue={selectedLangIndex()}
+        selectedValue={localizationProvider.langOverride}
         onSelect={finalProps.onLangSelect}
       >
         {localizationProvider.get("VOTMenuLanguage")}
