@@ -41,22 +41,16 @@ function createSettingsEvents(): {
 import { availableLangs } from "@vot.js/shared/consts";
 import { AboutSection } from "../../components/About/AboutSection";
 import { AccountMenu } from "../../components/Account/AccountMenu";
-import { Switch } from "../../components/Control/Switch";
 import { SettingsAppearanceSection } from "../../components/Settings/SettingsAppearanceSection";
 import { SettingsHotkeySection } from "../../components/Settings/SettingsHotkeySection";
 import { SettingsMiscSection } from "../../components/Settings/SettingsMiscSection";
 import { SettingsProxySection } from "../../components/Settings/SettingsProxySection";
 import { SettingsSection } from "../../components/Settings/SettingsSection";
 import { SettingsSubtitlesSection } from "../../components/Settings/SettingsSubtitlesSection";
-import {
-  defaultAutoVolume,
-  defaultDetectService,
-  defaultTranslationService,
-  PROXY_WORKER_HOST,
-} from "../../config/config";
+import { SettingsTranslationSection } from "../../components/Settings/SettingsTranslationSection";
+import { PROXY_WORKER_HOST } from "../../config/config";
 import { isAuthRefreshMessage } from "../../core/authRefreshMessage";
 import { openAuthWindow } from "../../core/authWindow";
-import { detectServices, translateServices } from "../../core/translateApis";
 import {
   type LangOverride,
   localizationProvider,
@@ -88,17 +82,12 @@ import type {
   TranslateProxyStatus,
 } from "../../types/storage";
 import type {
-  DetectService,
-  TranslateService,
-} from "../../types/translateApis";
-import type {
   SettingsViewEventMap,
   SettingsViewProps,
 } from "../../types/views/settings";
 import ui from "../../ui";
 import debug from "../../utils/debug";
 import { EventImpl } from "../../utils/eventImpl";
-import { isSupportGMXhr } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
 import type { VideoHandler } from "../../VideoHandler";
 import Checkbox from "../components/checkbox";
@@ -107,10 +96,6 @@ import Details from "../components/details";
 import Dialog from "../components/dialog";
 import Label from "../components/label";
 import Select from "../components/select";
-import Slider from "../components/slider";
-import SliderLabel from "../components/sliderLabel";
-import Tooltip from "../components/tooltip";
-import { HELP_ICON, WARNING_ICON } from "../icons";
 import { type MountedComponent, mountComponent } from "../solid/mountComponent";
 
 const GOOGLE_FONTS_SEARCH_LIMIT = 30;
@@ -162,30 +147,12 @@ export class SettingsView {
   };
   dialog?: Dialog;
   accountSection?: MountedComponent<HTMLElement>;
+  translationSection?: MountedComponent<HTMLElement>;
   private accountStorageListenerCleanup?: () => void;
-  autoTranslateSwitch?: MountedComponent<HTMLLabelElement>;
-  autoSubtitlesSwitch?: MountedComponent<HTMLLabelElement>;
   dontTranslateLanguagesCheckbox?: Checkbox;
   dontTranslateLanguagesSelect?: Select<LanguageSelectKey, true>;
-  autoSetVolumeSliderLabel?: SliderLabel;
-  autoSetVolumeCheckbox?: Checkbox;
-  smartDuckingCheckbox?: Checkbox;
-  autoSetVolumeSlider?: Slider;
-  showVideoVolumeSliderSwitch?: MountedComponent<HTMLLabelElement>;
-  audioBoosterSwitch?: MountedComponent<HTMLLabelElement>;
-  syncVolumeCheckbox?: Checkbox;
-  downloadWithNameCheckbox?: Checkbox;
-  sendNotifyOnCompleteCheckbox?: Checkbox;
-  useAudioDownloadCheckbox?: Checkbox;
-  useAudioDownloadCheckboxLabel?: Label;
-  useAudioDownloadCheckboxTooltip?: Tooltip;
   subtitlesFontFamilySelectLabel?: Label;
   subtitlesFontFamilySelect?: Select<SubtitleFontFamily>;
-  translationTextServiceLabel?: Label;
-  translationTextServiceSelect?: Select<TranslateService>;
-  translationTextServiceTooltip?: Tooltip;
-  detectServiceLabel?: Label;
-  detectServiceSelect?: Select<DetectService>;
   hotkeysSection?: MountedComponent<HTMLDivElement>;
   subtitlesSection?: MountedComponent<HTMLDivElement>;
   proxySection?: MountedComponent<HTMLDivElement>;
@@ -462,6 +429,65 @@ export class SettingsView {
         }),
       }),
     );
+    this.translationSection = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsTranslationSection({
+        isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+        ref: rootRef,
+        onAutoTranslateChange: this.createPersistedSettingHandler({
+          storageKey: "autoTranslate",
+          dispatch: (checked) =>
+            this.events["change:autoTranslate"].dispatch(checked),
+        }),
+        onAutoSubtitlesChange: this.createPersistedSettingHandler({
+          storageKey: "autoSubtitles",
+          dispatch: (checked) =>
+            this.events["change:autoSubtitles"].dispatch(checked),
+        }),
+        onEnabledAutoVolumeChange: this.createPersistedSettingHandler({
+          storageKey: "enabledAutoVolume",
+          afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
+        }),
+        onAutoVolumeInput: this.createPersistedSettingHandler({
+          storageKey: "autoVolume",
+        }),
+        onEnabledSmartDuckingChange: this.createPersistedSettingHandler({
+          storageKey: "enabledSmartDucking",
+          afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
+        }),
+        onShowVideoSliderChange: this.createPersistedSettingHandler({
+          storageKey: "showVideoSlider",
+          dispatch: (checked) =>
+            this.events["change:showVideoVolume"].dispatch(checked),
+        }),
+        onAudioBoosterChange: this.createPersistedSettingHandler({
+          storageKey: "audioBooster",
+          dispatch: (checked) =>
+            this.events["change:audioBooster"].dispatch(checked),
+        }),
+        onSyncVolumeChange: this.createPersistedSettingHandler({
+          storageKey: "syncVolume",
+          dispatch: (checked) =>
+            this.events["change:syncVolume"].dispatch(checked),
+        }),
+        onDownloadWithNameChange: this.createPersistedSettingHandler({
+          storageKey: "downloadWithName",
+        }),
+        onSendNotifyOnCompleteChange: this.createPersistedSettingHandler({
+          storageKey: "sendNotifyOnComplete",
+        }),
+        onUseAudioDownloadChange: this.createPersistedSettingHandler({
+          storageKey: "useAudioDownload",
+        }),
+        onTranslationServiceSelect: this.createPersistedSettingHandler({
+          storageKey: "translationService",
+          dispatch: (item) =>
+            this.events["select:translationTextService"].dispatch(item),
+        }),
+        onDetectServiceSelect: this.createPersistedSettingHandler({
+          storageKey: "detectService",
+        }),
+      }),
+    );
     this.hotkeysSection = mountComponent<HTMLDivElement>((rootRef) =>
       SettingsHotkeySection({
         ref: rootRef,
@@ -610,6 +636,7 @@ export class SettingsView {
     this.dialog.bodyContainer.append(
       this.accountSection.root,
       ...sections.map((section) => section.container),
+      this.translationSection.root,
       this.hotkeysSection.root,
       this.subtitlesSection.root,
       this.proxySection.root,
@@ -617,31 +644,7 @@ export class SettingsView {
       this.appearanceSection.root,
       this.aboutSection.root,
     );
-    this.autoTranslateSwitch = mountComponent<HTMLLabelElement>((rootRef) =>
-      Switch({
-        heading: localizationProvider.get("VOTAutoTranslate"),
-        checked: this.data.autoTranslate,
-        onChange: this.createPersistedSettingHandler({
-          storageKey: "autoTranslate",
-          dispatch: (checked) =>
-            this.events["change:autoTranslate"].dispatch(checked),
-        }),
-        ref: rootRef,
-      }),
-    );
 
-    this.autoSubtitlesSwitch = mountComponent<HTMLLabelElement>((rootRef) =>
-      Switch({
-        heading: localizationProvider.get("VOTAutoSubtitles"),
-        checked: this.data.autoSubtitles,
-        onChange: this.createPersistedSettingHandler({
-          storageKey: "autoSubtitles",
-          dispatch: (checked) =>
-            this.events["change:autoSubtitles"].dispatch(checked),
-        }),
-        ref: rootRef,
-      }),
-    );
     const dontTranslateLanguages = this.data.dontTranslateLanguages ?? [];
     this.dontTranslateLanguagesCheckbox = new Checkbox({
       labelHtml: localizationProvider.get("DontTranslateSelectedLanguages"),
@@ -666,104 +669,9 @@ export class SettingsView {
     });
     this.dontTranslateLanguagesSelect.disabled =
       !this.dontTranslateLanguagesCheckbox.checked;
-    const autoVolume = this.data.autoVolume ?? defaultAutoVolume;
-    this.autoSetVolumeSliderLabel = new SliderLabel({
-      labelText: localizationProvider.get("VOTAutoSetVolume"),
-      value: autoVolume,
-    });
-    this.autoSetVolumeCheckbox = new Checkbox({
-      labelHtml: this.autoSetVolumeSliderLabel.container,
-      checked: this.data.enabledAutoVolume ?? true,
-    });
-    this.autoSetVolumeSlider = new Slider({
-      labelHtml: this.autoSetVolumeCheckbox.container,
-      value: autoVolume,
-      min: 0,
-    });
-    const syncVolumeEnabled = Boolean(this.data.syncVolume);
-    this.autoSetVolumeSlider.disabled = !this.autoSetVolumeCheckbox.checked;
-    this.smartDuckingCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("smartDucking"),
-      checked: this.data.enabledSmartDucking ?? true,
-    });
-    this.smartDuckingCheckbox.disabled =
-      syncVolumeEnabled || !this.autoSetVolumeCheckbox.checked;
-    this.showVideoVolumeSliderSwitch = mountComponent<HTMLLabelElement>(
-      (rootRef) =>
-        Switch({
-          heading: localizationProvider.get("showVideoVolumeSlider"),
-          checked: this.data.showVideoSlider,
-          onChange: this.createPersistedSettingHandler({
-            storageKey: "showVideoSlider",
-            dispatch: (checked) =>
-              this.events["change:showVideoVolume"].dispatch(checked),
-          }),
-          ref: rootRef,
-        }),
-    );
-
-    const isAudioContextSupported = this.videoHandler?.isAudioContextSupported;
-    this.audioBoosterSwitch = mountComponent<HTMLLabelElement>((rootRef) =>
-      Switch({
-        heading: localizationProvider.get("VOTAudioBooster"),
-        description: isAudioContextSupported
-          ? undefined
-          : localizationProvider.get("VOTNeedWebAudioAPI"),
-        checked: this.data.audioBooster,
-        disabled: !isAudioContextSupported,
-        onChange: this.createPersistedSettingHandler({
-          storageKey: "audioBooster",
-          dispatch: (checked) =>
-            this.events["change:audioBooster"].dispatch(checked),
-        }),
-        ref: rootRef,
-      }),
-    );
-
-    this.syncVolumeCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTSyncVolume"),
-      checked: this.data.syncVolume,
-    });
-    this.downloadWithNameCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTDownloadWithName"),
-      checked: this.data.downloadWithName,
-    });
-    this.downloadWithNameCheckbox.disabled = !isSupportGMXhr;
-    this.sendNotifyOnCompleteCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("VOTSendNotifyOnComplete"),
-      checked: this.data.sendNotifyOnComplete,
-    });
-    this.useAudioDownloadCheckboxLabel = new Label({
-      labelText: localizationProvider.get("VOTUseAudioDownload"),
-      icon: WARNING_ICON,
-    });
-    this.useAudioDownloadCheckbox = new Checkbox({
-      labelHtml: this.useAudioDownloadCheckboxLabel.container,
-      checked: this.data.useAudioDownload,
-    });
-    if (!isSupportGMXhr) {
-      this.useAudioDownloadCheckbox.disabled = true;
-    }
-    this.useAudioDownloadCheckboxTooltip = new Tooltip({
-      target: this.useAudioDownloadCheckboxLabel.container,
-      content: localizationProvider.get("VOTUseAudioDownloadWarning"),
-      position: "bottom",
-      backgroundColor: "var(--vot-helper-ondialog)",
-      parentElement: this.globalPortal,
-    });
 
     translationSection.content.append(
-      this.autoTranslateSwitch.root,
-      this.autoSubtitlesSwitch.root,
       this.dontTranslateLanguagesSelect.container,
-      this.autoSetVolumeSlider.container,
-      this.smartDuckingCheckbox.container,
-      this.showVideoVolumeSliderSwitch.root,
-      this.audioBoosterSwitch.root,
-      this.syncVolumeCheckbox.container,
-      this.downloadWithNameCheckbox.container,
-      this.sendNotifyOnCompleteCheckbox.container,
-      this.useAudioDownloadCheckbox.container,
     );
     const storedSubtitlesFontFamily =
       typeof this.data.subtitlesFontFamily === "string"
@@ -798,54 +706,12 @@ export class SettingsView {
         getSubtitleFontFamilyLabel(item);
     });
     subtitlesSection.content.append(this.subtitlesFontFamilySelect.container);
-    this.translationTextServiceLabel = new Label({
-      labelText: localizationProvider.get("VOTTranslationTextService"),
-      icon: HELP_ICON,
-    });
-    const translationService =
-      this.data.translationService ?? defaultTranslationService;
-    this.translationTextServiceSelect = new Select({
-      selectTitle: localizationProvider.get(`services.${translationService}`),
-      dialogTitle: localizationProvider.get("VOTTranslationTextService"),
-      dialogParent: this.globalPortal,
-      labelElement: this.translationTextServiceLabel.container,
-      items: translateServices.map<SelectItem<TranslateService>>((service) => ({
-        label: localizationProvider.get(`services.${service}`),
-        value: service,
-        selected: service === translationService,
-      })),
-    });
-    this.translationTextServiceTooltip = new Tooltip({
-      target: this.translationTextServiceLabel.icon,
-      content: localizationProvider.get("VOTNotAffectToVoice"),
-      position: "bottom",
-      backgroundColor: "var(--vot-helper-ondialog)",
-      parentElement: this.globalPortal,
-    });
-    this.detectServiceLabel = new Label({
-      labelText: localizationProvider.get("VOTDetectService"),
-    });
-    const detectService = this.data.detectService ?? defaultDetectService;
-    this.detectServiceSelect = new Select({
-      selectTitle: localizationProvider.get(`services.${detectService}` as any),
-      dialogTitle: localizationProvider.get("VOTDetectService"),
-      dialogParent: this.globalPortal,
-      labelElement: this.detectServiceLabel.container,
-      items: detectServices.map<SelectItem<DetectService>>((service) => ({
-        label: localizationProvider.get(`services.${service}`),
-        value: service,
-        selected: service === detectService,
-      })),
-    });
+
     this.bugReportButton = ui.createOutlinedButton(
       localizationProvider.get("VOTBugReport"),
     );
     this.resetSettingsButton = ui.createButton(
       localizationProvider.get("resetSettings"),
-    );
-    translationSection.content.append(
-      this.translationTextServiceSelect.container,
-      this.detectServiceSelect.container,
     );
 
     this.dialog.footerContainer.append(
@@ -887,69 +753,6 @@ export class SettingsView {
         debug.log("dontTranslateLanguages value changed. New value:", values);
       },
     );
-    this.autoSetVolumeCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "enabledAutoVolume",
-        apply: (checked) => {
-          this.autoSetVolumeSlider.disabled = !checked;
-          this.smartDuckingCheckbox.disabled =
-            !checked || Boolean(this.syncVolumeCheckbox?.checked);
-        },
-        afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
-      }),
-    );
-    this.smartDuckingCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "enabledSmartDucking",
-        afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
-      }),
-    );
-    this.autoSetVolumeSlider.addEventListener(
-      "input",
-      this.createPersistedSettingHandler({
-        storageKey: "autoVolume",
-        apply: (value) => {
-          this.autoSetVolumeSliderLabel.value = value;
-        },
-      }),
-    );
-    this.syncVolumeCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "syncVolume",
-        apply: (checked) => {
-          this.autoSetVolumeSlider.disabled =
-            !this.autoSetVolumeCheckbox?.checked;
-          this.smartDuckingCheckbox.disabled =
-            checked || !this.autoSetVolumeCheckbox?.checked;
-          if (checked && this.smartDuckingCheckbox?.checked) {
-            this.smartDuckingCheckbox.checked = false;
-          }
-        },
-        dispatch: (checked) =>
-          this.events["change:syncVolume"].dispatch(checked),
-      }),
-    );
-    this.downloadWithNameCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "downloadWithName",
-      }),
-    );
-    this.sendNotifyOnCompleteCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "sendNotifyOnComplete",
-      }),
-    );
-    this.useAudioDownloadCheckbox.addEventListener(
-      "change",
-      this.createPersistedSettingHandler({
-        storageKey: "useAudioDownload",
-      }),
-    );
     this.subtitlesFontFamilySelect.addEventListener(
       "selectItem",
       this.createPersistedSettingHandler({
@@ -959,20 +762,6 @@ export class SettingsView {
       }),
     );
 
-    this.translationTextServiceSelect.addEventListener(
-      "selectItem",
-      this.createPersistedSettingHandler({
-        storageKey: "translationService",
-        dispatch: (item) =>
-          this.events["select:translationTextService"].dispatch(item),
-      }),
-    );
-    this.detectServiceSelect.addEventListener(
-      "selectItem",
-      this.createPersistedSettingHandler({
-        storageKey: "detectService",
-      }),
-    );
     this.bugReportButton.addEventListener("click", () =>
       this.events["click:bugReport"].dispatch(),
     );
@@ -998,8 +787,6 @@ export class SettingsView {
   private doReleaseUI(): void {
     for (const key of [
       "accountSection",
-      "autoTranslateSwitch",
-      "autoSubtitlesSwitch",
       "subtitlesSection",
       "hotkeysSection",
       "subtitlesSection",
@@ -1015,12 +802,6 @@ export class SettingsView {
     }
 
     this.dialog?.remove();
-    for (const tooltip of [
-      this.useAudioDownloadCheckboxTooltip,
-      this.translationTextServiceTooltip,
-    ]) {
-      tooltip?.release();
-    }
   }
   private doReleaseUIEvents(): void {
     this.accountStorageListenerCleanup?.();

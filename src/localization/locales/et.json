@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Logige sisse Yandexi ID-ga",
   "VOTOrUseToken": "või kasutage märki",
   "VOTSignedInAs": "Sisse logitud kui",
-  "VOTDownloadSubtitles": "Subtiitrite allalaadimine"
+  "VOTDownloadSubtitles": "Subtiitrite allalaadimine",
+  "VOTAutoReduceVolume": "Vähendage video helitugevust automaatselt",
+  "VOTReducedVolumeLevel": "Vähendatud helitugevus",
+  "VOTIncompatibleWith": "Kokkusobimatu sõnaga \" {0}\"",
+  "VOTNotSupportedByLoader": "See funktsioon ei toeta kasutatud script loader"
 }

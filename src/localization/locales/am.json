@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "በያንዴክስ መታወቂያ ይግቡ",
   "VOTOrUseToken": "ወይም ምልክት ይጠቀሙ ። ",
   "VOTSignedInAs": "መግቢያ",
-  "VOTDownloadSubtitles": "የትርጉም ጽሑፎችን ያውርዱ"
+  "VOTDownloadSubtitles": "የትርጉም ጽሑፎችን ያውርዱ",
+  "VOTAutoReduceVolume": "በራስ-ሰር የቪዲዮ መጠን ይቀንሱ",
+  "VOTReducedVolumeLevel": "ዝቅተኛ የድምጽ ደረጃ",
+  "VOTIncompatibleWith": "ከ \" {0}\"ጋር የማይጣጣም",
+  "VOTNotSupportedByLoader": "ይህ ባህሪ ጥቅም ላይ የዋለ ስክሪፕት ጫኚ አይደገፍም"
 }

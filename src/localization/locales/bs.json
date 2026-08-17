@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Prijavite se sa Yandex ID-om",
   "VOTOrUseToken": "ili koristiti token",
   "VOTSignedInAs": "Potpisan kao",
-  "VOTDownloadSubtitles": "Preuzimanje titlovi"
+  "VOTDownloadSubtitles": "Preuzimanje titlovi",
+  "VOTAutoReduceVolume": "Automatski smanjite zapreminu video zapisa",
+  "VOTReducedVolumeLevel": "Smanjen nivo jačine zvuka",
+  "VOTIncompatibleWith": "Nekompatibilno sa \"{0}\"",
+  "VOTNotSupportedByLoader": "Koristi čitač skripti ovu funkciju ne podržava"
 }

@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Aanmelden met Yandex ID",
   "VOTOrUseToken": "of gebruik een token",
   "VOTSignedInAs": "Aangemeld als",
-  "VOTDownloadSubtitles": "Ondertitels downloaden"
+  "VOTDownloadSubtitles": "Ondertitels downloaden",
+  "VOTAutoReduceVolume": "Automatisch videovolume verminderen",
+  "VOTReducedVolumeLevel": "Verlaagd volumeniveau",
+  "VOTIncompatibleWith": "Incompatibel met \" {0}\"",
+  "VOTNotSupportedByLoader": "Deze functie wordt niet ondersteund door gebruikte script loader"
 }

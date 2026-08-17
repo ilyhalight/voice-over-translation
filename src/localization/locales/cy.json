@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Mewngofnodi GYDAG ID Yandex",
   "VOTOrUseToken": "neu defnyddiwch docyn",
   "VOTSignedInAs": "Llofnodwyd yn fel",
-  "VOTDownloadSubtitles": "Isdeitlau i'w lawrlwytho"
+  "VOTDownloadSubtitles": "Isdeitlau i'w lawrlwytho",
+  "VOTAutoReduceVolume": "Lleihau cyfaint fideo yn awtomatig",
+  "VOTReducedVolumeLevel": "Lefel cyfaint is",
+  "VOTIncompatibleWith": "Yn anghydnaws â \" {0}\"",
+  "VOTNotSupportedByLoader": "Nid yw'r nodwedd hon yn cael ei chynnal gan y llwythwr sgript a ddefnyddir"
 }

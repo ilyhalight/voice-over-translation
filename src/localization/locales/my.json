@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Yandex ID ဖြင့်ဝင်ရောက်ပါ။",
   "VOTOrUseToken": "ဒါမှမဟုတ် token ကိုသုံးပါ။",
   "VOTSignedInAs": "လက်မှတ်ထိုးထားတာက",
-  "VOTDownloadSubtitles": "စာတန်းထိုးများကိုဒေါင်းလုပ်ဆွဲပါ"
+  "VOTDownloadSubtitles": "စာတန်းထိုးများကိုဒေါင်းလုပ်ဆွဲပါ",
+  "VOTAutoReduceVolume": "ဗီဒီယိုပမာဏကိုအလိုအလျောက်လျှော့ချပေးခြင်း",
+  "VOTReducedVolumeLevel": "ပမာဏကျဆင်းခြင်း",
+  "VOTIncompatibleWith": "\"{0}\"နဲ့မကိုက်ညီဘူး။",
+  "VOTNotSupportedByLoader": "ဤလုပ်ဆောင်ချက်ကိုအသုံးပြုထားသော script loader မှမထောက်ပံ့ပါ။"
 }

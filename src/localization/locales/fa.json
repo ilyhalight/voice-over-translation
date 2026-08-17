@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "با YANDEX ID وارد شوید",
   "VOTOrUseToken": "یا از توکن استفاده کنید",
   "VOTSignedInAs": "ثبت نام به عنوان",
-  "VOTDownloadSubtitles": "دانلود زیرنویس فارسی"
+  "VOTDownloadSubtitles": "دانلود زیرنویس فارسی",
+  "VOTAutoReduceVolume": "کاهش خودکار حجم فیلم",
+  "VOTReducedVolumeLevel": "کاهش سطح حجم",
+  "VOTIncompatibleWith": "ناسازگار با \" {0}\"",
+  "VOTNotSupportedByLoader": "این ویژگی توسط بارگیری اسکریپت استفاده شده پشتیبانی نمی شود"
 }

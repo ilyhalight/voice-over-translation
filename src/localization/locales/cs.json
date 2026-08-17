@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Přihlaste se pomocí Yandex ID",
   "VOTOrUseToken": "nebo použijte token",
   "VOTSignedInAs": "Přihlášeno jako",
-  "VOTDownloadSubtitles": "Stáhnout titulky"
+  "VOTDownloadSubtitles": "Stáhnout titulky",
+  "VOTAutoReduceVolume": "Automatické snížení hlasitosti videa",
+  "VOTReducedVolumeLevel": "Snížená úroveň hlasitosti",
+  "VOTIncompatibleWith": "Nekompatibilní s\"{0}\"",
+  "VOTNotSupportedByLoader": "Tato funkce není podporována použitým zavaděčem skriptů"
 }

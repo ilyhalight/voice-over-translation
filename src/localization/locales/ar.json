@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "تسجيل الدخول باستخدام معرف ياندكس",
   "VOTOrUseToken": "أو استخدام رمز مميز",
   "VOTSignedInAs": "تسجيل الدخول باسم",
-  "VOTDownloadSubtitles": "تحميل ترجمات"
+  "VOTDownloadSubtitles": "تحميل ترجمات",
+  "VOTAutoReduceVolume": "تقليل حجم الفيديو تلقائيا",
+  "VOTReducedVolumeLevel": "انخفاض مستوى الصوت",
+  "VOTIncompatibleWith": "غير متوافق مع \"{0}\"",
+  "VOTNotSupportedByLoader": "هذه الميزة غير مدعومة من قبل محمل البرنامج النصي المستخدم"
 }

@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "ចូលជាមួយលេខសម្គាល់ Yandex",
   "VOTOrUseToken": "ឬប្រើសញ្ញាសម្ងាត់",
   "VOTSignedInAs": "ចូលជាសមាជិក",
-  "VOTDownloadSubtitles": "ទាញយកចំណងជើងរង"
+  "VOTDownloadSubtitles": "ទាញយកចំណងជើងរង",
+  "VOTAutoReduceVolume": "កាត់បន្ថយកម្រិតសំឡេងវីដេអូ",
+  "VOTReducedVolumeLevel": "កម្រិតសំឡេងដែលបានកាត់បន្ថយ",
+  "VOTIncompatibleWith": "មិនឆបគ្នាជាមួយ\"{0}\"",
+  "VOTNotSupportedByLoader": "លក្ខណៈពិសេសនេះមិនត្រូវបានគាំទ្រដោយកម្មវិធីស្គ្រីបដែលបានប្រើ"
 }

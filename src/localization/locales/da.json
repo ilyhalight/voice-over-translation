@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Log ind med Yandeks ID",
   "VOTOrUseToken": "eller brug et token",
   "VOTSignedInAs": "Log ind som",
-  "VOTDownloadSubtitles": "Hent undertekster"
+  "VOTDownloadSubtitles": "Hent undertekster",
+  "VOTAutoReduceVolume": "Reducer automatisk videovolumen",
+  "VOTReducedVolumeLevel": "Reduceret lydstyrke",
+  "VOTIncompatibleWith": "Uforenelig med \" {0}\"",
+  "VOTNotSupportedByLoader": "Denne funktion understøttes ikke af brugt script loader"
 }

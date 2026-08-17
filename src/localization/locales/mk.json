@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Пријавете Се Со Yandex ID",
   "VOTOrUseToken": "или користете токен",
   "VOTSignedInAs": "Потпишан како",
-  "VOTDownloadSubtitles": "Преземете преводи"
+  "VOTDownloadSubtitles": "Преземете преводи",
+  "VOTAutoReduceVolume": "Автоматски намалете ја јачината на видеото",
+  "VOTReducedVolumeLevel": "Намалено ниво на волумен",
+  "VOTIncompatibleWith": "Некомпатибилен со \" {0}\"",
+  "VOTNotSupportedByLoader": "Оваа функција не е поддржана од користен натоварувач на скрипти"
 }

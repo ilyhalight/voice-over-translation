@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "യാൻഡെക്സ് ഐഡി ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യുക",
   "VOTOrUseToken": "അല്ലെങ്കിൽ ഒരു ടോക്കൺ ഉപയോഗിക്കുക",
   "VOTSignedInAs": "ഒപ്പിട്ടു",
-  "VOTDownloadSubtitles": "സബ്ടൈറ്റിലുകൾ ഡൗൺലോഡ്"
+  "VOTDownloadSubtitles": "സബ്ടൈറ്റിലുകൾ ഡൗൺലോഡ്",
+  "VOTAutoReduceVolume": "വീഡിയോ വോളിയം സ്വയം കുറയ്ക്കുക",
+  "VOTReducedVolumeLevel": "കുറഞ്ഞ വോളിയം നില",
+  "VOTIncompatibleWith": "\"{0} \" എന്ന താളിലേക്കുള്ള കണ്ണികൾ",
+  "VOTNotSupportedByLoader": "ഈ സവിശേഷത ഉപയോഗിച്ച സ്ക്രിപ്റ്റ് ലോഡർ പിന്തുണയ്ക്കുന്നില്ല"
 }

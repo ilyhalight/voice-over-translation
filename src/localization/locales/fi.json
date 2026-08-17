@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Kirjaudu sisään Yandex ID: llä",
   "VOTOrUseToken": "tai käytä tokenia",
   "VOTSignedInAs": "Kirjaudu sisään nimellä",
-  "VOTDownloadSubtitles": "Lataa tekstitys"
+  "VOTDownloadSubtitles": "Lataa tekstitys",
+  "VOTAutoReduceVolume": "Vähennä videon äänenvoimakkuutta automaattisesti",
+  "VOTReducedVolumeLevel": "Pienempi äänenvoimakkuus",
+  "VOTIncompatibleWith": "Yhteensopimaton \"{0}\"kanssa",
+  "VOTNotSupportedByLoader": "Käytetty komentosarjalataaja ei tue tätä ominaisuutta"
 }

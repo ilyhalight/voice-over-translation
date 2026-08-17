@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Mlebu nganggo ID Yandex",
   "VOTOrUseToken": "utawa gunakna token",
   "VOTSignedInAs": "Ditandatangani minangka",
-  "VOTDownloadSubtitles": "Ngundhuh subtitles"
+  "VOTDownloadSubtitles": "Ngundhuh subtitles",
+  "VOTAutoReduceVolume": "Ngurangi volume video kanthi otomatis",
+  "VOTReducedVolumeLevel": "Tingkat volume sing dikurangi",
+  "VOTIncompatibleWith": "Ora kompatibel karo\"{0}\"",
+  "VOTNotSupportedByLoader": "Fitur iki ora didhukung dening loader skrip sing digunakake"
 }

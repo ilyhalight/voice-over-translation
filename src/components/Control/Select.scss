@@ -7,6 +7,14 @@
 
   &-label {
     flex: 1;
+
+    &__description {
+      color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.25px;
+      line-height: 20px;
+    }
   }
 
   &-outer {

@@ -1,6 +1,12 @@
 import { createStore } from "solid-js/store";
 
-import { DEFAULT_AUTO_HIDE_DELAY, PROXY_WORKER_HOST } from "../config/config";
+import {
+  DEFAULT_AUTO_HIDE_DELAY,
+  DEFAULT_AUTO_VOLUME,
+  DEFAULT_DETECT_SERVICE,
+  DEFAULT_TRANSLATION_SERVICE,
+  PROXY_WORKER_HOST,
+} from "../config/config";
 import type { Position } from "../types/components/votButton";
 import {
   AUTO_SUBTITLE_LANGUAGE_VALUE,
@@ -8,8 +14,25 @@ import {
   type TranslateProxyStatus,
 } from "../types/storage";
 import type { SubtitleFormat } from "../types/subtitles";
+import type { DetectService, TranslateService } from "../types/translateApis";
+import { isSupportGMXhr } from "../utils/gm";
 
 export type SettingsStore = {
+  // translation
+  autoTranslate: boolean;
+  autoSubtitles: boolean;
+  enabledAutoVolume: boolean;
+  autoVolume: number;
+  enabledSmartDucking: boolean;
+  showVideoSlider: boolean;
+  audioBooster: boolean;
+  syncVolume: boolean;
+  downloadWithName: boolean;
+  sendNotifyOnComplete: boolean;
+  useAudioDownload: boolean;
+  translationService: TranslateService;
+  detectService: DetectService;
+  // other
   translateAPIErrors: boolean;
   newAudioPlayer: boolean;
   onlyBypassMediaCSP: boolean;
@@ -33,6 +56,21 @@ export type SettingsStore = {
 
 function createInitialState(): SettingsStore {
   return {
+    // translation
+    autoTranslate: false,
+    autoSubtitles: false,
+    enabledAutoVolume: true,
+    autoVolume: DEFAULT_AUTO_VOLUME,
+    enabledSmartDucking: true,
+    showVideoSlider: true,
+    audioBooster: false,
+    syncVolume: false,
+    downloadWithName: isSupportGMXhr,
+    sendNotifyOnComplete: false,
+    useAudioDownload: isSupportGMXhr,
+    translationService: DEFAULT_TRANSLATION_SERVICE,
+    detectService: DEFAULT_DETECT_SERVICE,
+    // other
     translateAPIErrors: true,
     // TODO: set default by audioContextSupported?
     newAudioPlayer: false,

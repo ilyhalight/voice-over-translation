@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Zaloguj się za pomocą Yandex ID",
   "VOTOrUseToken": "lub użyj tokena",
   "VOTSignedInAs": "Zaloguj się jako",
-  "VOTDownloadSubtitles": "Pobierz napisy"
+  "VOTDownloadSubtitles": "Pobierz napisy",
+  "VOTAutoReduceVolume": "Automatycznie zmniejsz głośność wideo",
+  "VOTReducedVolumeLevel": "Zmniejszony poziom głośności",
+  "VOTIncompatibleWith": "Niezgodne z \"{0}\"",
+  "VOTNotSupportedByLoader": "Ta funkcja nie jest obsługiwana przez używany program ładujący Skrypty"
 }

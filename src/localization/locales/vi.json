@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Đăng nhập BẰNG Yandex ID",
   "VOTOrUseToken": "hoặc sử dụng mã thông báo",
   "VOTSignedInAs": "Đăng nhập như",
-  "VOTDownloadSubtitles": "Tải phụ đề"
+  "VOTDownloadSubtitles": "Tải phụ đề",
+  "VOTAutoReduceVolume": "Tự động giảm âm lượng video",
+  "VOTReducedVolumeLevel": "Giảm mức âm lượng",
+  "VOTIncompatibleWith": "Không tương thích với \" {0}\"",
+  "VOTNotSupportedByLoader": "Tính năng này không được hỗ trợ bởi trình tải tập lệnh đã sử dụng"
 }

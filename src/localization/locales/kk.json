@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Яндекс ИДЕНТИФИКАТОРЫМЕН кіріңіз",
   "VOTOrUseToken": "немесе таңбалауышты пайдаланыңыз",
   "VOTSignedInAs": "Ретінде кірді",
-  "VOTDownloadSubtitles": "Субтитрлерді жүктеу"
+  "VOTDownloadSubtitles": "Субтитрлерді жүктеу",
+  "VOTAutoReduceVolume": "Бейне көлемін автоматты түрде азайтыңыз",
+  "VOTReducedVolumeLevel": "Дыбыс деңгейінің төмендеуі",
+  "VOTIncompatibleWith": "\"{0}\"сәйкес келмейді",
+  "VOTNotSupportedByLoader": "Бұл мүмкіндікті пайдаланылған сценарий жүктеушісі қолдамайды"
 }

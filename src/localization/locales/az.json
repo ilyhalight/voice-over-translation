@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Yandex ID ilə daxil olun",
   "VOTOrUseToken": "və ya bir mö ' cüzə istifadə edin",
   "VOTSignedInAs": "Kimi daxil oldu",
-  "VOTDownloadSubtitles": "Altyazıları yükləyin"
+  "VOTDownloadSubtitles": "Altyazıları yükləyin",
+  "VOTAutoReduceVolume": "Avtomatik video səs azaldılması",
+  "VOTReducedVolumeLevel": "Aşağı səs səviyyəsi",
+  "VOTIncompatibleWith": "\"{0} \" ilə uyğun gəlmir",
+  "VOTNotSupportedByLoader": "Bu xüsusiyyət istifadə olunan skript yükləyicisi tərəfindən dəstəklənmir"
 }

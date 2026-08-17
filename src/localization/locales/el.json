@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Συνδεθείτε με το Yandex ID",
   "VOTOrUseToken": "ή χρησιμοποιήστε ένα διακριτικό",
   "VOTSignedInAs": "Συνδεθείτε ως",
-  "VOTDownloadSubtitles": "Λήψη υπότιτλων"
+  "VOTDownloadSubtitles": "Λήψη υπότιτλων",
+  "VOTAutoReduceVolume": "Αυτόματα μειώστε τον τηλεοπτικό όγκο",
+  "VOTReducedVolumeLevel": "Μειωμένο επίπεδο έντασης",
+  "VOTIncompatibleWith": "Ασυμβίβαστο με το\"{0}\"",
+  "VOTNotSupportedByLoader": "Αυτή η λειτουργία δεν υποστηρίζεται από χρησιμοποιημένο φορτωτή δέσμης ενεργειών"
 }

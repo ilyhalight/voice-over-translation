@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Вход с Яндекс ИД",
   "VOTOrUseToken": "или използвайте жетон",
   "VOTSignedInAs": "Подписано като",
-  "VOTDownloadSubtitles": "Изтегляне на субтитри"
+  "VOTDownloadSubtitles": "Изтегляне на субтитри",
+  "VOTAutoReduceVolume": "Автоматично намаляване на силата на звука на видеото",
+  "VOTReducedVolumeLevel": "Намалено ниво на звука",
+  "VOTIncompatibleWith": "Несъвместим с\"{0}\"",
+  "VOTNotSupportedByLoader": "Тази функция не се поддържа от използвания скрипт товарач"
 }

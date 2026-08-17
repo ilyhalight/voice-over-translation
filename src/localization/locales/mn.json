@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Yandex ID-тай нэвтрэх",
   "VOTOrUseToken": "эсвэл токен ашиглах",
   "VOTSignedInAs": "Байдлаар гарын үсэг зурсан",
-  "VOTDownloadSubtitles": "Хадмалтай татаж авах"
+  "VOTDownloadSubtitles": "Хадмалтай татаж авах",
+  "VOTAutoReduceVolume": "Видео дууны хэмжээг автоматаар багасгах",
+  "VOTReducedVolumeLevel": "Эзлэхүүний түвшин буурсан",
+  "VOTIncompatibleWith": "\"00\" - той холбоотой асуудал",
+  "VOTNotSupportedByLoader": "Энэ функцийг ашигласан скрипт дуудагч дэмждэггүй"
 }

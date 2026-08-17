@@ -253,5 +253,9 @@
   "VOTSignInWithYandex": "Iniciar sessão com o Yandex ID",
   "VOTOrUseToken": "ou use um token",
   "VOTSignedInAs": "Assinado como",
-  "VOTDownloadSubtitles": "Baixar legendas"
+  "VOTDownloadSubtitles": "Baixar legendas",
+  "VOTAutoReduceVolume": "Reduzir automaticamente o volume do vídeo",
+  "VOTReducedVolumeLevel": "Nível de volume reduzido",
+  "VOTIncompatibleWith": "Incompatível com \" {0}\"",
+  "VOTNotSupportedByLoader": "Este recurso não é suportado pelo carregador de script usado"
 }

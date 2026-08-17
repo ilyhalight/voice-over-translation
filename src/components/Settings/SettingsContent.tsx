@@ -3,10 +3,12 @@ import { localizationProvider } from "../../localization/localizationProvider";
 import { AboutSection } from "../About/AboutSection";
 import { AccountMenu } from "../Account/AccountMenu";
 import { SettingsAppearanceSection } from "./SettingsAppearanceSection";
+import { SettingsHotkeySection } from "./SettingsHotkeySection";
 import { SettingsMiscSection } from "./SettingsMiscSection";
 import { SettingsProxySection } from "./SettingsProxySection";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsSubtitlesSection } from "./SettingsSubtitlesSection";
+import { SettingsTranslationSection } from "./SettingsTranslationSection";
 
 export function SettingsContent(): JSX.Element {
   return (
@@ -17,6 +19,8 @@ export function SettingsContent(): JSX.Element {
       >
         <AccountMenu />
       </SettingsSection>
+      <SettingsTranslationSection />
+      <SettingsHotkeySection />
       <SettingsSubtitlesSection />
       <SettingsProxySection />
       <SettingsAppearanceSection />

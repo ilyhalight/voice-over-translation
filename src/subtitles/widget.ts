@@ -1,4 +1,4 @@
-import { defaultTranslationService } from "../config/config";
+import { DEFAULT_TRANSLATION_SERVICE } from "../config/config";
 import { translate } from "../core/translateApis";
 import { localizationProvider } from "../localization/localizationProvider";
 import type {
@@ -1880,7 +1880,7 @@ export class SubtitlesWidget {
     if (!text) return;
     const service = await votStorage.get(
       "translationService",
-      defaultTranslationService,
+      DEFAULT_TRANSLATION_SERVICE,
     );
     if (requestId !== this.tooltipTranslationRequestId) return;
     target.classList.add("selected");

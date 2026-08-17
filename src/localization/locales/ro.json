@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Conectați-vă cu ID-ul Yandex",
   "VOTOrUseToken": "sau folosiți un jeton",
   "VOTSignedInAs": "Semnat ca",
-  "VOTDownloadSubtitles": "Descărcați subtitrări"
+  "VOTDownloadSubtitles": "Descărcați subtitrări",
+  "VOTAutoReduceVolume": "Reduceți automat volumul video",
+  "VOTReducedVolumeLevel": "Nivel de volum redus",
+  "VOTIncompatibleWith": "Incompatibil cu\"{0}\"",
+  "VOTNotSupportedByLoader": "Această caracteristică nu este acceptată de script loader folosit"
 }

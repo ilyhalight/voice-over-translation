@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Log masuk dengan ID Yandex",
   "VOTOrUseToken": "atau gunakan token",
   "VOTSignedInAs": "Log masuk sebagai",
-  "VOTDownloadSubtitles": "Muat turun sari kata"
+  "VOTDownloadSubtitles": "Muat turun sari kata",
+  "VOTAutoReduceVolume": "Kurangkan kelantangan video secara automatik",
+  "VOTReducedVolumeLevel": "Tahap kelantangan dikurangkan",
+  "VOTIncompatibleWith": "Tidak serasi dengan \" {0}\"",
+  "VOTNotSupportedByLoader": "Ciri ini tidak disokong oleh pemuat skrip terpakai"
 }

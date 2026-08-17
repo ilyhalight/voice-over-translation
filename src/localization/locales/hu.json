@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Jelentkezzen be Yandex azonosítóval",
   "VOTOrUseToken": "vagy használjon tokent",
   "VOTSignedInAs": "Bejelentkezés:",
-  "VOTDownloadSubtitles": "Feliratok letöltése"
+  "VOTDownloadSubtitles": "Feliratok letöltése",
+  "VOTAutoReduceVolume": "A videó hangerejének automatikus csökkentése",
+  "VOTReducedVolumeLevel": "Csökkentett hangerő",
+  "VOTIncompatibleWith": "Nem kompatibilis a\"{0} \" - vel",
+  "VOTNotSupportedByLoader": "Ezt a funkciót nem támogatja a használt script loader"
 }

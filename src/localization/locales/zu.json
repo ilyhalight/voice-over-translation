@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Ngena ngemvume Nge Yandex ID",
   "VOTOrUseToken": "noma sebenzisa ithokheni",
   "VOTSignedInAs": "Isayine ngokuthi",
-  "VOTDownloadSubtitles": "Thwebula izihlokwana"
+  "VOTDownloadSubtitles": "Thwebula izihlokwana",
+  "VOTAutoReduceVolume": "Ngokuzenzakalelayo ukunciphisa ivolumu video",
+  "VOTReducedVolumeLevel": "Izinga levolumu elincishisiwe",
+  "VOTIncompatibleWith": "Ayihambelani \" {0}\"",
+  "VOTNotSupportedByLoader": "Lesi sici asisekelwa yi used script loader"
 }

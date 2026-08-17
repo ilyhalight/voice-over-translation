@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Yandex IDでサインインする",
   "VOTOrUseToken": "またはトークンを使用します",
   "VOTSignedInAs": "としてサインインしました",
-  "VOTDownloadSubtitles": "字幕をダウンロード"
+  "VOTDownloadSubtitles": "字幕をダウンロード",
+  "VOTAutoReduceVolume": "自動的にビデオ容積を減らして下さい",
+  "VOTReducedVolumeLevel": "減らされた容積のレベル",
+  "VOTIncompatibleWith": "\"{0}\"と互換性がありません",
+  "VOTNotSupportedByLoader": "この機能は、使用されているスクリプトローダーではサポートされていません"
 }

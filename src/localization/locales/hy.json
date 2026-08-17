@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Մուտք գործեք համակարգ Yandex Իդ-ով",
   "VOTOrUseToken": "կամ օգտագործեք նշան",
   "VOTSignedInAs": "Մուտք գործել որպես",
-  "VOTDownloadSubtitles": "Բեռնել ենթագրերը"
+  "VOTDownloadSubtitles": "Բեռնել ենթագրերը",
+  "VOTAutoReduceVolume": "Տեսանյութի ձայնի ավտոմատ իջեցում",
+  "VOTReducedVolumeLevel": "Ձայնի մակարդակի իջեցում",
+  "VOTIncompatibleWith": "Անհամատեղելի է \"{0}\" - ի հետ",
+  "VOTNotSupportedByLoader": "Այս հատկությունը չի աջակցվում օգտագործված սցենարի բեռնիչի կողմից"
 }

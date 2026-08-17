@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Idħol B'yandex ID",
   "VOTOrUseToken": "jew uża token",
   "VOTSignedInAs": "Iffirmat bħala",
-  "VOTDownloadSubtitles": "Niżżel is-sottotitoli"
+  "VOTDownloadSubtitles": "Niżżel is-sottotitoli",
+  "VOTAutoReduceVolume": "Tnaqqas awtomatikament il-volum tal-vidjo",
+  "VOTReducedVolumeLevel": "Livell ta'volum imnaqqas",
+  "VOTIncompatibleWith": "Inkompatibbli ma '\" {0}\"",
+  "VOTNotSupportedByLoader": "Din il karatteristika mhix appoġġjata minn loader tal iskript użat"
 }

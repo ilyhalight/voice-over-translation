@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Teken In Met Yandex ID",
   "VOTOrUseToken": "of gebruik'n teken",
   "VOTSignedInAs": "Onderteken as",
-  "VOTDownloadSubtitles": "Laai onderskrifte af"
+  "VOTDownloadSubtitles": "Laai onderskrifte af",
+  "VOTAutoReduceVolume": "Verminder video volume outomaties",
+  "VOTReducedVolumeLevel": "Verminderde volume",
+  "VOTIncompatibleWith": "Onversoenbaar met\"{0}\"",
+  "VOTNotSupportedByLoader": "Hierdie funksie word nie ondersteun deur gebruikte skriplaaier nie"
 }

@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Hyni me Yandex ID",
   "VOTOrUseToken": "ose përdorni një shenjë",
   "VOTSignedInAs": "Nënshkruar si",
-  "VOTDownloadSubtitles": "Shkarkoni titra"
+  "VOTDownloadSubtitles": "Shkarkoni titra",
+  "VOTAutoReduceVolume": "Ulni automatikisht vëllimin e videos",
+  "VOTReducedVolumeLevel": "Niveli i reduktuar i volumit",
+  "VOTIncompatibleWith": "I papajtueshëm me\"{0}\"",
+  "VOTNotSupportedByLoader": "Kjo veçori nuk mbështetet nga ngarkuesi i përdorur i skriptit"
 }

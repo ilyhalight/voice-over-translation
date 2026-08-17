@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Saioa Hasi Yandex IDAREKIN",
   "VOTOrUseToken": "edo txanpon bat erabili",
   "VOTSignedInAs": "Honela sinatua:",
-  "VOTDownloadSubtitles": "Deskargatu azpitituluak"
+  "VOTDownloadSubtitles": "Deskargatu azpitituluak",
+  "VOTAutoReduceVolume": "Automatikoki murriztu bideo-bolumena",
+  "VOTReducedVolumeLevel": "Bolumen-maila murriztua",
+  "VOTIncompatibleWith": "\"{0}\"(r) ekin bateraezina",
+  "VOTNotSupportedByLoader": "Ezaugarri hau ez dago erabilitako gidoi kargatzaileak onartzen"
 }

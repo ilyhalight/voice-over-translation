@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Prijavite se z ID-jem",
   "VOTOrUseToken": "ali pa uporabite žeton",
   "VOTSignedInAs": "Vpisano kot",
-  "VOTDownloadSubtitles": "Prenesite podnapise"
+  "VOTDownloadSubtitles": "Prenesite podnapise",
+  "VOTAutoReduceVolume": "Samodejno zmanjšajte glasnost videa",
+  "VOTReducedVolumeLevel": "Zmanjšana glasnost",
+  "VOTIncompatibleWith": "Nezdružljivo z \"{0}\"",
+  "VOTNotSupportedByLoader": "Ta funkcija ni podprta z rabljenim nalagalnikom skriptov"
 }

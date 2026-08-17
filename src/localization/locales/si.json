@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Yandex ID සමඟ ලියාපදිංචි වන්න",
   "VOTOrUseToken": "නැත්නම් ටෝකන් එකක් පාවිච්චි කරන්න",
   "VOTSignedInAs": "ලියාපදිංචි වෙලා තියෙන්නේ",
-  "VOTDownloadSubtitles": "උපසිරැසි බාගත කරගන්න"
+  "VOTDownloadSubtitles": "උපසිරැසි බාගත කරගන්න",
+  "VOTAutoReduceVolume": "වීඩියෝ පරිමාව ස්වයංක්රීයව අඩු කරන්න",
+  "VOTReducedVolumeLevel": "පරිමාව මට්ටම අඩු කිරීම",
+  "VOTIncompatibleWith": "\"{0}\"සමග නොගැලපේ",
+  "VOTNotSupportedByLoader": "මෙම විශේෂාංගය භාවිතා කරන ලද script loader මගින් සහාය නොදක්වයි"
 }

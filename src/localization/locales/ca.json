@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Inicieu la sessió Amb YANDEX ID",
   "VOTOrUseToken": "o utilitzeu un testimoni",
   "VOTSignedInAs": "Signat com a",
-  "VOTDownloadSubtitles": "Descarregar subtítols"
+  "VOTDownloadSubtitles": "Descarregar subtítols",
+  "VOTAutoReduceVolume": "Redueix automàticament el volum del vídeo",
+  "VOTReducedVolumeLevel": "Nivell de volum reduït",
+  "VOTIncompatibleWith": "Incompatible amb\"{0}\"",
+  "VOTNotSupportedByLoader": "Aquesta funció no és compatible amb used script loader"
 }

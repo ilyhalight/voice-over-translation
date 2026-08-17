@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Logga in med Yandex ID",
   "VOTOrUseToken": "eller använd en token",
   "VOTSignedInAs": "Inloggad som",
-  "VOTDownloadSubtitles": "Ladda ner undertexter"
+  "VOTDownloadSubtitles": "Ladda ner undertexter",
+  "VOTAutoReduceVolume": "Minska videovolymen automatiskt",
+  "VOTReducedVolumeLevel": "Minskad volymnivå",
+  "VOTIncompatibleWith": "Oförenlig med\"{0}\"",
+  "VOTNotSupportedByLoader": "Den här funktionen stöds inte av använd skriptlastare"
 }

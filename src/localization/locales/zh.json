@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "使用Yandex ID登录",
   "VOTOrUseToken": "或使用令牌",
   "VOTSignedInAs": "签署为",
-  "VOTDownloadSubtitles": "下载字幕"
+  "VOTDownloadSubtitles": "下载字幕",
+  "VOTAutoReduceVolume": "自动降低视频音量",
+  "VOTReducedVolumeLevel": "降低音量",
+  "VOTIncompatibleWith": "与\"{0}\"不兼容",
+  "VOTNotSupportedByLoader": "使用的脚本加载器不支持此功能"
 }

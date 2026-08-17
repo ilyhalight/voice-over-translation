@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Yandex ID bilan kiring",
   "VOTOrUseToken": "yoki tokendan foydalaning",
   "VOTSignedInAs": "Sifatida imzolangan",
-  "VOTDownloadSubtitles": "Subtitrlarni yuklab oling"
+  "VOTDownloadSubtitles": "Subtitrlarni yuklab oling",
+  "VOTAutoReduceVolume": "Video hajmini avtomatik ravishda kamaytiring",
+  "VOTReducedVolumeLevel": "Kamaytirilgan hajm darajasi",
+  "VOTIncompatibleWith": "\"{0} \" bilan mos kelmaydi",
+  "VOTNotSupportedByLoader": "Ushbu xususiyat ishlatilgan skript loader tomonidan qo'llab-quvvatlanmaydi"
 }

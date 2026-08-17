@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "यान्डेक्स आईडीको साथ साइन इन गर्नुहोस्",
   "VOTOrUseToken": "वा टोकन प्रयोग गर्नुहोस्",
   "VOTSignedInAs": "यस रूपमा साइन इन गर्नुहोस्",
-  "VOTDownloadSubtitles": "उपशीर्षक डाउनलोड गर्नुहोस्"
+  "VOTDownloadSubtitles": "उपशीर्षक डाउनलोड गर्नुहोस्",
+  "VOTAutoReduceVolume": "स्वचालित रूपमा भिडियो भोल्युम घटाउनुहोस्",
+  "VOTReducedVolumeLevel": "कम मात्रा स्तर",
+  "VOTIncompatibleWith": "\"{0}\"सँग असंगत",
+  "VOTNotSupportedByLoader": "यो सुविधा प्रयोग गरिएको स्क्रिप्ट लोडरद्वारा समर्थित छैन"
 }

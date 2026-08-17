@@ -1,5 +1,7 @@
 // CONFIGURATION
 
+import type { DetectService, TranslateService } from "../types/translateApis";
+
 export const workerHost = "api.browser.yandex.ru";
 
 /**
@@ -33,7 +35,7 @@ export const repositoryUrl = `https://github.com/${repoPath}`;
 /**
  * 0% - 100% - default volume of the video with the translation
  */
-export const defaultAutoVolume = 15;
+export const DEFAULT_AUTO_VOLUME = 15;
 
 /**
  * Max audio volume percentage (if available)
@@ -46,10 +48,8 @@ export const maxAudioVolume = 900;
  */
 export const minLongWaitingCount = 5;
 
-export const defaultTranslationService: "yandexbrowser" | "msedge" =
-  "yandexbrowser";
-export const defaultDetectService: "yandexbrowser" | "msedge" | "rust-server" =
-  "yandexbrowser";
+export const DEFAULT_TRANSLATION_SERVICE: TranslateService = "yandexbrowser";
+export const DEFAULT_DETECT_SERVICE: DetectService = "yandexbrowser";
 
 export const PROXY_ONLY_COUNTRIES: string[] = ["UA", "LV", "LT"];
 

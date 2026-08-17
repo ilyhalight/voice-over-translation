@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Yandex Kimliği ile oturum açın",
   "VOTOrUseToken": "veya bir belirteç kullanın",
   "VOTSignedInAs": "Olarak oturum açtı",
-  "VOTDownloadSubtitles": "Altyazıları indir"
+  "VOTDownloadSubtitles": "Altyazıları indir",
+  "VOTAutoReduceVolume": "Video sesini otomatik olarak azalt",
+  "VOTReducedVolumeLevel": "Azaltılmış ses seviyesi",
+  "VOTIncompatibleWith": "\"{0}\" ile uyumsuz",
+  "VOTNotSupportedByLoader": "Bu özellik, kullanılan komut dosyası yükleyicisi tarafından desteklenmez"
 }

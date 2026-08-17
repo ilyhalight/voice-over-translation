@@ -316,7 +316,11 @@ export type Phrase =
   | "VOTSignInWithYandex"
   | "VOTOrUseToken"
   | "VOTSignedInAs"
-  | "VOTDownloadSubtitles";
+  | "VOTDownloadSubtitles"
+  | "VOTAutoReduceVolume"
+  | "VOTReducedVolumeLevel"
+  | "VOTIncompatibleWith"
+  | "VOTNotSupportedByLoader";
 
 export type Phrases = {
   recommended: string;
@@ -576,6 +580,10 @@ export type Phrases = {
   VOTOrUseToken: string;
   VOTSignedInAs: string;
   VOTDownloadSubtitles: string;
+  VOTAutoReduceVolume: string;
+  VOTReducedVolumeLevel: string;
+  VOTIncompatibleWith: string;
+  VOTNotSupportedByLoader: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

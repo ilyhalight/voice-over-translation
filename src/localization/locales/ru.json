@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "Войти с помощью Yandex ID",
   "VOTOrUseToken": "или используйте токен",
   "VOTSignedInAs": "Вы вошли как",
-  "VOTDownloadSubtitles": "Скачать субтитры"
+  "VOTDownloadSubtitles": "Скачать субтитры",
+  "VOTAutoReduceVolume": "Автоматически уменьшать громкость видео",
+  "VOTReducedVolumeLevel": "Громкость при уменьшении",
+  "VOTIncompatibleWith": "Несовместимо с \"{0}\"",
+  "VOTNotSupportedByLoader": "Эта функция не поддерживается используемым загрузчиком скриптов"
 }

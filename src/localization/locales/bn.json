@@ -254,5 +254,9 @@
   "VOTSignInWithYandex": "ইয়ানডেক্স আইডি দিয়ে সাইন ইন করুন",
   "VOTOrUseToken": "অথবা একটি টোকেন ব্যবহার করুন",
   "VOTSignedInAs": "সাইন ইন করুন",
-  "VOTDownloadSubtitles": "সাবটাইটেল ডাউনলোড করুন"
+  "VOTDownloadSubtitles": "সাবটাইটেল ডাউনলোড করুন",
+  "VOTAutoReduceVolume": "স্বয়ংক্রিয়ভাবে ভিডিও ভলিউম হ্রাস করুন",
+  "VOTReducedVolumeLevel": "ভলিউম স্তর হ্রাস",
+  "VOTIncompatibleWith": "\"{0}\"এর সাথে অসঙ্গতিপূর্ণ",
+  "VOTNotSupportedByLoader": "এই বৈশিষ্ট্যটি ব্যবহৃত স্ক্রিপ্ট লোডার দ্বারা সমর্থিত নয়"
 }
