@@ -1,5 +1,4 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
-import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
@@ -16,6 +15,7 @@ import {
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
 import type { VideoData as RuntimeVideoData } from "../videoHandler/shared";
+import { fetchSiteVideoData } from "./courseraVideoData";
 import { isExternalVolumeHost } from "./hostPolicies";
 import { detect } from "./translateApis";
 
@@ -444,7 +444,7 @@ export class VOTVideoManager {
       detectedLanguage: possibleLanguage,
       subtitles,
       isStream = false,
-    } = await getVideoData(this.videoHandler.site, {
+    } = await fetchSiteVideoData(this.videoHandler.site, {
       fetchFn: GM_fetch,
       video: this.videoHandler.video,
       language: localizationProvider.lang,

@@ -858,6 +858,8 @@ Available (sub)domains:
 Available paths:
 
 - /learn/NAME/lecture/XXXX
+- /learn/NAME/ungradedLab/XXXX
+- /learn/NAME/ITEM_TYPE/XXXX
 
 Limitations:
 

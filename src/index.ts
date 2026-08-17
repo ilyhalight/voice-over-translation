@@ -7,6 +7,7 @@ import { bindObserverListeners } from "./bootstrap/videoObserverBinding";
 import { authServerUrl } from "./config/config";
 import { resolveBootstrapMode } from "./core/bootstrapPolicy";
 import { findConnectedContainerBySelector } from "./core/containerResolution";
+import { resolveSiteVideoId } from "./core/courseraVideoData";
 import debug from "./utils/debug";
 import { isIframe } from "./utils/iframeConnector";
 import { createIntervalIdleChecker } from "./utils/intervalIdleChecker";
@@ -122,6 +123,7 @@ async function main(): Promise<void> {
     findContainer,
     createVideoHandler: (video, container, site) =>
       new VideoHandler(video, container, site),
+    resolveVideoId: resolveSiteVideoId,
   });
   videoObserver.enable();
 }

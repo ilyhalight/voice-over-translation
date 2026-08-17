@@ -1,8 +1,8 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
-import { getVideoID } from "@vot.js/ext/utils/videoData";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang } from "@vot.js/shared/types/data";
 import { defaultAutoHideDelay } from "../../config/config";
+import { resolveSiteVideoId } from "../../core/courseraVideoData";
 import {
   isDesktopYouTubeLikeSite,
   isMuteSyncDisabledHost,
@@ -12,7 +12,6 @@ import { resetAndHideLifecycle } from "../../core/lifecycleShared";
 import { getPlatformEventConfig } from "../../core/platformEvents";
 import debug from "../../utils/debug";
 import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
-import { GM_fetch } from "../../utils/gm";
 import { isIframe } from "../../utils/iframeConnector";
 import { clampPercentInt } from "../../utils/volume";
 import type { VideoHandler } from "../../VideoHandler";
@@ -499,10 +498,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
     emptiedHandled = true;
     let videoId: string | undefined;
     try {
-      videoId = await getVideoID(self.site, {
-        fetchFn: GM_fetch,
-        video: self.video,
-      });
+      videoId = await resolveSiteVideoId(self.site, self.video);
     } catch (error) {
       debug.log("[VOT] Failed to resolve video id on emptied", error);
     }

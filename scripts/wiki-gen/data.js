@@ -142,7 +142,11 @@ const siteData = {
     paths: ["/video/VIDEO_ID", "/embed/VIDEO_ID"],
   },
   coursera: {
-    paths: ["/learn/NAME/lecture/XXXX"],
+    paths: [
+      "/learn/NAME/lecture/XXXX",
+      "/learn/NAME/ungradedLab/XXXX",
+      "/learn/NAME/ITEM_TYPE/XXXX",
+    ],
     limits: [locales.needBeLoggedIn, locales.videoWithoutSubs],
   },
   eporner: {

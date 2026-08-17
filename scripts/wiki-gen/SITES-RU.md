@@ -858,6 +858,8 @@
 Доступные пути:
 
 - /learn/NAME/lecture/XXXX
+- /learn/NAME/ungradedLab/XXXX
+- /learn/NAME/ITEM_TYPE/XXXX
 
 Ограничения:
 
