@@ -41,7 +41,6 @@
       width: calc(100% * var(--vot-progress, 0));
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
-      will-change: width;
       transition: width var(--vot-slider-transition);
     }
   }
@@ -60,5 +59,12 @@
       transform var(--vot-slider-transition),
       left var(--vot-slider-transition);
     transform: translateX(calc(-100% * var(--vot-progress, 0)));
+  }
+
+  &[data-dragging] {
+    .vot-slider_new__track-progress,
+    .vot-slider_new__handle {
+      transition: none;
+    }
   }
 }

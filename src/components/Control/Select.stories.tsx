@@ -163,3 +163,13 @@ export const SelectMultipleWithZeroSelected: Story = {
     minSelected: 0,
   },
 };
+
+export const SelectMultipleWithManySelected: Story = {
+  args: {
+    title: "None",
+    options: selectOptions,
+    multiple: true,
+    selectedValues: [true, "two"],
+    minSelected: 0,
+  },
+};

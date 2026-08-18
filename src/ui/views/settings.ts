@@ -95,6 +95,7 @@ import { type MountedComponent, mountComponent } from "../solid/mountComponent";
 
 const GOOGLE_FONTS_SEARCH_LIMIT = 30;
 type BufferedNumericStorageKey =
+  | "autoVolume"
   | "subtitlesMaxLength"
   | "subtitlesFontSize"
   | "subtitlesOpacity"
@@ -288,8 +289,7 @@ export class SettingsView {
     ];
 
     return {
-      translationSection: sections[0],
-      subtitlesSection: sections[1],
+      subtitlesSection: sections[0],
       sections,
     };
   }
@@ -439,7 +439,7 @@ export class SettingsView {
           storageKey: "enabledAutoVolume",
           afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
         }),
-        onAutoVolumeInput: this.createPersistedSettingHandler({
+        onAutoVolumeInput: this.createBufferedNumericInputHandler({
           storageKey: "autoVolume",
         }),
         onEnabledSmartDuckingChange: this.createPersistedSettingHandler({

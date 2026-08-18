@@ -13,6 +13,9 @@ export type SliderProps = {
   ref?: (element: HTMLElement) => void;
 };
 
+const DRAG_THRESHOLD = 4;
+type PointerStart = { id: number; x: number; y: number };
+
 export function Slider(props: SliderProps): JSX.Element {
   const finalProps = mergeProps(
     {
@@ -25,11 +28,14 @@ export function Slider(props: SliderProps): JSX.Element {
     props,
   );
 
+  let pointerStart: PointerStart | undefined;
+
   const [value, setValue] = createSignal(finalProps.value);
   const [disabled, setDisabled] = createSignal(finalProps.disabled);
   const [min, setMin] = createSignal(finalProps.min);
   const [max, setMax] = createSignal(finalProps.max);
   const [step, setStep] = createSignal(finalProps.step);
+  const [dragging, setDragging] = createSignal(false);
 
   const progress = () => {
     const range = max() - min();
@@ -49,6 +55,7 @@ export function Slider(props: SliderProps): JSX.Element {
     <vot-block
       ref={finalProps.ref}
       class="vot-slider_new"
+      data-dragging={dragging() ? "" : undefined}
       style={{ "--vot-progress": progress() }}
       aria-disabled={disabled()}
     >
@@ -60,6 +67,35 @@ export function Slider(props: SliderProps): JSX.Element {
         value={value()}
         step={step()}
         disabled={disabled()}
+        onpointerdown={(event) => {
+          pointerStart = {
+            id: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+          };
+        }}
+        onpointermove={(event) => {
+          if (!pointerStart || pointerStart.id !== event.pointerId) {
+            return;
+          }
+
+          const distance = Math.hypot(
+            event.clientX - pointerStart.x,
+            event.clientY - pointerStart.y,
+          );
+
+          if (distance >= DRAG_THRESHOLD) {
+            setDragging(true);
+          }
+        }}
+        onpointerup={() => {
+          pointerStart = undefined;
+          setDragging(false);
+        }}
+        onpointercancel={() => {
+          pointerStart = undefined;
+          setDragging(false);
+        }}
         oninput={(e) => {
           const newValue = e.target.valueAsNumber;
           setValue(newValue);
