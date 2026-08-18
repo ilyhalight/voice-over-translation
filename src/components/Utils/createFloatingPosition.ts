@@ -3,6 +3,7 @@ import { effect } from "solid-js/web";
 
 const DEFAULT_GAP = 8;
 const DEFAULT_VIEWPORT_MARGIN = 8;
+const AVAILABLE_HEIGHT_PROPERTY = "--vot-floating-available-height";
 
 export type FloatingPositionOptions = {
   anchor: () => HTMLElement;
@@ -10,6 +11,7 @@ export type FloatingPositionOptions = {
   isOpen: Accessor<boolean>;
   gap?: number;
   onOutsideScroll?: () => void;
+  stablePlacementWhileOpen?: boolean;
   viewportMargin?: number;
 };
 
@@ -48,6 +50,7 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
   const gap = options.gap ?? DEFAULT_GAP;
   const viewportMargin = options.viewportMargin ?? DEFAULT_VIEWPORT_MARGIN;
   let positionFrame: number | undefined;
+  let stableOpensBelow: boolean | undefined;
 
   const mountPopup = () => {
     const popup = options.popup();
@@ -71,7 +74,9 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
 
     const anchorRect = options.anchor().getBoundingClientRect();
     const popup = options.popup();
-    popup.style.removeProperty("max-height");
+    if (!options.stablePlacementWhileOpen || stableOpensBelow === undefined) {
+      popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
+    }
 
     const popupHeight = popup.getBoundingClientRect().height;
     if (popupHeight === 0) {
@@ -84,11 +89,17 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
       0,
       window.innerHeight - anchorRect.bottom - gap - viewportMargin,
     );
-    const opensBelow =
+    const calculatedOpensBelow =
       availableBelow >= popupHeight || availableBelow >= availableAbove;
+    const opensBelow = options.stablePlacementWhileOpen
+      ? (stableOpensBelow ?? calculatedOpensBelow)
+      : calculatedOpensBelow;
+    if (options.stablePlacementWhileOpen) {
+      stableOpensBelow = opensBelow;
+    }
     const availableHeight = opensBelow ? availableBelow : availableAbove;
 
-    popup.style.maxHeight = `${Math.min(popupHeight, availableHeight)}px`;
+    popup.style.setProperty(AVAILABLE_HEIGHT_PROPERTY, `${availableHeight}px`);
 
     const popupRect = popup.getBoundingClientRect();
     const minLeft = viewportMargin;
@@ -138,6 +149,8 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
       };
 
       mountPopup();
+      const resizeObserver = new ResizeObserver(schedulePositionUpdate);
+      resizeObserver.observe(popup);
       schedulePositionUpdate();
       window.addEventListener("resize", schedulePositionUpdate);
       for (const target of scrollTargets) {
@@ -146,6 +159,9 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
 
       onCleanup(() => {
         cancelPositionUpdate();
+        resizeObserver.disconnect();
+        stableOpensBelow = undefined;
+        popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
         window.removeEventListener("resize", schedulePositionUpdate);
         for (const target of scrollTargets) {
           target.removeEventListener("scroll", handleScroll, true);

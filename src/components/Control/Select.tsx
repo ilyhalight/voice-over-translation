@@ -1,4 +1,5 @@
 import {
+  createMemo,
   createSignal,
   createUniqueId,
   For,
@@ -11,8 +12,11 @@ import {
 import { effect } from "solid-js/web";
 
 import "./Select.scss";
+import { localizationProvider } from "../../localization/localizationProvider";
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
+import { LoadingDotsIcon } from "../Icons/LoadingDotsIcon";
+import { Textfield } from "../Textfield/Textfield";
 import { createFloatingPosition } from "../Utils/createFloatingPosition";
 
 export type SelectValue = string | number | boolean;
@@ -23,13 +27,19 @@ export type SelectOption = {
   disabled?: boolean;
 };
 
+export type SearchItemsProvider = (
+  query: string,
+) => SelectOption[] | Promise<SelectOption[]>;
+
 export type BaseSelectProps = {
   title: string;
   options: SelectOption[];
   children?: JSX.Element;
   isOpen?: boolean;
+  search?: boolean;
   disabled?: boolean;
   ref?: (element: HTMLElement) => void;
+  searchItemsProvider?: SearchItemsProvider;
 };
 
 export type SingleSelectProps = BaseSelectProps & {
@@ -62,6 +72,7 @@ export function Select(props: SelectProps): JSX.Element {
     {
       disabled: false,
       multiple: false,
+      search: false,
       isOpen: false,
       selectedValue: undefined,
       selectedValues: [],
@@ -72,6 +83,7 @@ export function Select(props: SelectProps): JSX.Element {
 
   let outerRef!: HTMLElement;
   let innerRef!: HTMLElement;
+  let searchRequestId = 0;
 
   const selectId = createUniqueId();
   const [disabled, setDisabled] = createSignal(finalProps.disabled);
@@ -83,13 +95,38 @@ export function Select(props: SelectProps): JSX.Element {
         : [finalProps.selectedValue],
     ),
   );
+  const [options, setOptions] = createSignal(finalProps.options);
   const [minSelected, setMinSelected] = createSignal(finalProps.minSelected);
+  const [searchQuery, setSearchQuery] = createSignal("");
   const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+  const [isSearching, setIsSearching] = createSignal(false);
+
+  const [searchOptions, setSearchOptions] = createSignal<
+    SelectOption[] | undefined
+  >();
+  const [selectedOptionCache, setSelectedOptionCache] = createSignal(
+    new Map<SelectValue, SelectOption>(),
+  );
+
+  const baseOptions = createMemo(() => {
+    const result = [...options()];
+    const existingValues = new Set(result.map((option) => option.value));
+
+    for (const [value, option] of selectedOptionCache()) {
+      if (selectedValues().has(value) && !existingValues.has(value)) {
+        result.push(option);
+      }
+    }
+
+    return result;
+  });
+
+  const currentOptions = () => searchOptions() ?? baseOptions();
 
   const visibleTitle = () => {
     if (multiple()) {
       return (
-        finalProps.options
+        baseOptions()
           .filter((o) => selectedValues().has(o.value))
           .map((o) => o.label)
           .join(", ") || finalProps.title
@@ -97,22 +134,47 @@ export function Select(props: SelectProps): JSX.Element {
     }
 
     return (
-      finalProps.options.find((o) => selectedValues().has(o.value))?.label ||
+      baseOptions().find((o) => selectedValues().has(o.value))?.label ||
       finalProps.title
     );
   };
+
+  const filteredOptions = createMemo(() => {
+    const query = searchQuery().trim().toLowerCase();
+    const current = currentOptions();
+    if (!query) {
+      return current;
+    }
+
+    return current.filter((option) =>
+      option.label.toLowerCase().includes(query),
+    );
+  });
+
+  effect(() => {
+    const nextSelectedValues = new Set<SelectValue>(
+      finalProps.multiple
+        ? finalProps.selectedValues
+        : [finalProps.selectedValue],
+    );
+    setSelectedValues(nextSelectedValues);
+    setSelectedOptionCache((previous) => {
+      const next = new Map<SelectValue, SelectOption>();
+      for (const [value, option] of previous) {
+        if (nextSelectedValues.has(value)) {
+          next.set(value, option);
+        }
+      }
+
+      return next;
+    });
+  });
 
   effect(() => {
     setDisabled(finalProps.disabled);
     setMultiple(finalProps.multiple);
     setIsOpen(finalProps.isOpen);
-    setSelectedValues(
-      new Set<SelectValue>(
-        finalProps.multiple
-          ? finalProps.selectedValues
-          : [finalProps.selectedValue],
-      ),
-    );
+    setOptions(finalProps.options);
     setMinSelected(finalProps.minSelected);
   });
 
@@ -120,7 +182,10 @@ export function Select(props: SelectProps): JSX.Element {
     anchor: () => outerRef,
     popup: () => innerRef,
     isOpen,
-    onOutsideScroll: () => setIsOpen(false),
+    onOutsideScroll: () => closeSelect(),
+    stablePlacementWhileOpen: Boolean(
+      finalProps.search || finalProps.searchItemsProvider,
+    ),
   });
 
   onMount(() => {
@@ -132,7 +197,7 @@ export function Select(props: SelectProps): JSX.Element {
       const handlePointerDown = (event: PointerEvent) => {
         const path = event.composedPath();
         if (!path.includes(innerRef) && !path.includes(outerRef)) {
-          setIsOpen(false);
+          closeSelect();
         }
       };
 
@@ -146,7 +211,8 @@ export function Select(props: SelectProps): JSX.Element {
 
   function singleSelectHandle(option: SelectOption) {
     setSelectedValues(new Set([option.value]));
-    setIsOpen(false);
+    setSelectedOptionCache(new Map([[option.value, option]]));
+    closeSelect();
     finalProps.onSelect?.(option);
   }
 
@@ -154,6 +220,11 @@ export function Select(props: SelectProps): JSX.Element {
     const value = option.value;
     const currentSelectedValues = selectedValues();
     if (!currentSelectedValues.has(value)) {
+      setSelectedOptionCache((previous) => {
+        const next = new Map(previous);
+        next.set(value, option);
+        return next;
+      });
       setSelectedValues((prev) => {
         const next = new Set(prev);
         next.add(value);
@@ -169,6 +240,11 @@ export function Select(props: SelectProps): JSX.Element {
       return;
     }
 
+    setSelectedOptionCache((previous) => {
+      const next = new Map(previous);
+      next.delete(value);
+      return next;
+    });
     setSelectedValues((prev) => {
       const next = new Set(prev);
       next.delete(value);
@@ -184,6 +260,43 @@ export function Select(props: SelectProps): JSX.Element {
     }
 
     multiSelectHandle(option);
+  }
+
+  function closeSelect() {
+    ++searchRequestId;
+    setIsOpen(false);
+    setSearchQuery("");
+    setSearchOptions(undefined);
+    setIsSearching(false);
+  }
+
+  async function handleSearchInput(query: string) {
+    setSearchQuery(query);
+
+    const provider = finalProps.searchItemsProvider;
+    if (!provider) {
+      return;
+    }
+
+    setIsSearching(true);
+    const requestId = ++searchRequestId;
+
+    try {
+      const providedOptions = await provider(query);
+      if (requestId !== searchRequestId || !isOpen()) {
+        return;
+      }
+
+      setSearchOptions(providedOptions);
+    } catch {
+      if (requestId === searchRequestId) {
+        setSearchOptions(undefined);
+      }
+    } finally {
+      if (requestId === searchRequestId) {
+        setIsSearching(false);
+      }
+    }
   }
 
   return (
@@ -207,7 +320,11 @@ export function Select(props: SelectProps): JSX.Element {
         }}
         disabled={disabled()}
         onClick={() => {
-          setIsOpen(!isOpen());
+          if (isOpen()) {
+            return closeSelect();
+          }
+
+          setIsOpen(true);
         }}
       >
         <vot-block class="vot-select_new-outer__title">
@@ -221,31 +338,55 @@ export function Select(props: SelectProps): JSX.Element {
         class="vot-select_new-inner"
         ref={innerRef}
         id={selectId}
-        role="listbox"
-        aria-multiselectable={multiple() ? "true" : undefined}
         hidden={!isOpen()}
       >
-        <For each={finalProps.options}>
-          {(option) => (
-            <RawButton
-              class="vot-select_new-inner__option"
-              disabled={option.disabled || disabled()}
-              buttonProps={{
-                role: "option",
-                "aria-selected": selectedValues().has(option.value),
-              }}
-              onClick={() => {
-                if (option.disabled) {
-                  return;
-                }
+        <Show when={finalProps.search || finalProps.searchItemsProvider}>
+          <Textfield
+            labelText={localizationProvider.get("searchField")}
+            value={searchQuery()}
+            onInput={handleSearchInput}
+          />
+        </Show>
+        <vot-block
+          class="vot-select_new-inner__options"
+          role="listbox"
+          aria-multiselectable={multiple() ? "true" : undefined}
+        >
+          <For each={filteredOptions()}>
+            {(option) => (
+              <RawButton
+                class="vot-select_new-inner__option"
+                disabled={option.disabled || disabled()}
+                buttonProps={{
+                  role: "option",
+                  "aria-selected": selectedValues().has(option.value),
+                }}
+                onClick={() => {
+                  if (option.disabled) {
+                    return;
+                  }
 
-                handleSelectOption(option);
-              }}
+                  handleSelectOption(option);
+                }}
+              >
+                {option.label}
+              </RawButton>
+            )}
+          </For>
+        </vot-block>
+        <Show when={filteredOptions().length === 0}>
+          <vot-block
+            class="vot-select_new-inner__no-options"
+            data-searching={isSearching()}
+          >
+            <Show
+              when={isSearching()}
+              fallback={localizationProvider.get("notFound")}
             >
-              {option.label}
-            </RawButton>
-          )}
-        </For>
+              <LoadingDotsIcon />
+            </Show>
+          </vot-block>
+        </Show>
       </vot-block>
     </vot-block>
   );

@@ -111,6 +111,7 @@ export function SettingsTranslationSection(
       />
       <Select
         multiple={true}
+        search={true}
         title={localizationProvider.get("None")}
         options={dontTranslateLanguagesOptions}
         selectedValues={settings.dontTranslateLanguages}

@@ -92,6 +92,7 @@ export function SettingsAppearanceSection(
         options={langsOptions}
         selectedValue={localizationProvider.langOverride}
         onSelect={props.onLangSelect}
+        search={true}
       >
         {localizationProvider.get("VOTMenuLanguage")}
       </Select>

@@ -147,6 +147,96 @@ export const SelectNearViewportBottom: Story = {
   },
 };
 
+export const SelectWithSearch: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+    search: true,
+  },
+};
+
+export const SelectWithSearchWithCustomProvider: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+    search: true,
+    searchItemsProvider: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return [
+        {
+          label: "123",
+          value: 123,
+        },
+      ];
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = canvasElement.querySelector<HTMLElement>(
+      ".vot-select_new-outer",
+    );
+    await expect(trigger).not.toBeNull();
+    if (!trigger) {
+      return;
+    }
+
+    await userEvent.click(trigger);
+
+    const popupId = trigger.getAttribute("aria-controls");
+    const popup = popupId
+      ? canvasElement.ownerDocument.getElementById(popupId)
+      : null;
+    await expect(popup).not.toBeNull();
+    if (!popup) {
+      return;
+    }
+
+    await waitFor(() => expect(popup.style.top).not.toBe(""));
+    const triggerRect = trigger.getBoundingClientRect();
+    const initialPopupRect = popup.getBoundingClientRect();
+    const initiallyOpensBelow = initialPopupRect.top >= triggerRect.bottom;
+    const initialAnchorEdge = initiallyOpensBelow
+      ? initialPopupRect.top
+      : initialPopupRect.bottom;
+
+    const input = canvasElement.ownerDocument.querySelector<HTMLInputElement>(
+      ".vot-select_new-inner input",
+    );
+    await expect(input).not.toBeNull();
+    if (!input) {
+      return;
+    }
+
+    await userEvent.type(input, "123");
+
+    let providerOption: HTMLElement | null = null;
+    await waitFor(() => {
+      providerOption =
+        Array.from(
+          canvasElement.ownerDocument.querySelectorAll<HTMLElement>(
+            ".vot-select_new-inner__option",
+          ),
+        ).find((option) => option.textContent === "123") ?? null;
+      expect(providerOption).not.toBeNull();
+    });
+
+    await waitFor(() => {
+      const popupRect = popup.getBoundingClientRect();
+      const opensBelow = popupRect.top >= triggerRect.bottom;
+      const anchorEdge = opensBelow ? popupRect.top : popupRect.bottom;
+      expect(opensBelow).toBe(initiallyOpensBelow);
+      expect(Math.abs(anchorEdge - initialAnchorEdge)).toBeLessThanOrEqual(1);
+      expect(popupRect.height).toBeLessThan(initialPopupRect.height);
+    });
+
+    if (!providerOption) {
+      return;
+    }
+
+    await userEvent.click(providerOption);
+    await expect(trigger).toHaveTextContent("123");
+  },
+};
+
 export const SelectMultiple: Story = {
   args: {
     title: "Select something",

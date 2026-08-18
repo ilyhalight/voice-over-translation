@@ -14,7 +14,7 @@ import {
   type ResponseLanguageSubtitles,
   type TranslateProxyStatus,
 } from "../types/storage";
-import type { SubtitleFormat } from "../types/subtitles";
+import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
 import type { DetectService, TranslateService } from "../types/translateApis";
 import { isSupportGMXhr } from "../utils/gm";
 import { calculatedResLang } from "../utils/localization";
@@ -52,6 +52,7 @@ export type SettingsStore = {
   highlightWords: boolean;
   subtitlesSmartLayout: boolean;
   subtitlesDownloadFormat: SubtitleFormat;
+  subtitlesFontFamily: SubtitleFontFamily;
   subtitlesMaxLength: number;
   subtitlesFontSize: number;
   subtitlesOpacity: number;
@@ -90,6 +91,7 @@ function createInitialState(): SettingsStore {
     // subtitles
     responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
     subtitlesDownloadFormat: "srt",
+    subtitlesFontFamily: "default-sans",
     highlightWords: false,
     subtitlesSmartLayout: true,
     subtitlesMaxLength: 300,

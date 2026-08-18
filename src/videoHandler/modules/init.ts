@@ -146,6 +146,7 @@ export async function init(this: VideoHandler) {
     responseLanguageSubtitles: this.data.responseLanguageSubtitles,
     highlightWords: this.data.highlightWords,
     subtitlesSmartLayout: this.data.subtitlesSmartLayout,
+    subtitlesFontFamily: this.data.subtitlesFontFamily,
     subtitlesMaxLength: this.data.subtitlesMaxLength,
     subtitlesFontSize: this.data.subtitlesFontSize,
     subtitlesOpacity: this.data.subtitlesOpacity,

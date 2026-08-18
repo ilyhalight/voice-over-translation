@@ -76,8 +76,29 @@
     border-radius: 0.75em;
     background: rgb(var(--vot-secondary-rgb, 43, 44, 48));
     color: rgba(var(--vot-onsurface-rgb), 0.87);
-    max-height: min(85vh, 500px);
-    overflow: scroll;
+    max-height: min(85vh, 500px, var(--vot-floating-available-height, 100vh));
+    overflow: hidden;
+
+    .vot-textfield {
+      margin-bottom: 0.5em;
+    }
+
+    &__no-options {
+      padding: 0.5em 0.75em;
+      color: rgba(var(--vot-onsurface-rgb), 0.38);
+      text-align: center;
+      &[data-searching="true"] {
+        padding: 0;
+        font-size: 1.75em;
+        color: rgba(var(--vot-onsurface-rgb), 0.68);
+      }
+    }
+
+    &__options {
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
 
     &__option {
       cursor: pointer;
