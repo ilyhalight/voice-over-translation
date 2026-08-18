@@ -41,6 +41,7 @@ function createSettingsEvents(): {
 import { AboutSection } from "../../components/About/AboutSection";
 import { AccountMenu } from "../../components/Account/AccountMenu";
 import { SettingsAppearanceSection } from "../../components/Settings/SettingsAppearanceSection";
+import { SettingsFooter } from "../../components/Settings/SettingsFooter";
 import { SettingsHotkeySection } from "../../components/Settings/SettingsHotkeySection";
 import { SettingsMiscSection } from "../../components/Settings/SettingsMiscSection";
 import { SettingsProxySection } from "../../components/Settings/SettingsProxySection";
@@ -69,7 +70,6 @@ import type {
   SettingsViewEventMap,
   SettingsViewProps,
 } from "../../types/views/settings";
-import ui from "../../ui";
 import debug from "../../utils/debug";
 import { EventImpl } from "../../utils/eventImpl";
 import { votStorage } from "../../utils/storage";
@@ -113,8 +113,7 @@ export class SettingsView {
   appearanceSection?: MountedComponent<HTMLDivElement>;
   miscSection?: MountedComponent<HTMLDivElement>;
   aboutSection?: MountedComponent<HTMLDivElement>;
-  bugReportButton?: HTMLElement;
-  resetSettingsButton?: HTMLElement;
+  settingsFooter?: MountedComponent<HTMLDivElement>;
   constructor({ globalPortal, data = {}, videoHandler }: SettingsViewProps) {
     this.globalPortal = globalPortal;
     this.data = data;
@@ -473,17 +472,16 @@ export class SettingsView {
       this.aboutSection.root,
     );
 
-    this.bugReportButton = ui.createOutlinedButton(
-      localizationProvider.get("VOTBugReport"),
-    );
-    this.resetSettingsButton = ui.createButton(
-      localizationProvider.get("resetSettings"),
+    this.settingsFooter = mountComponent<HTMLDivElement>((rootRef) =>
+      SettingsFooter({
+        ref: rootRef,
+        onBugReportClick: () => this.events["click:bugReport"].dispatch(),
+        onResetSettingsClick: () =>
+          this.events["click:resetSettings"].dispatch(),
+      }),
     );
 
-    this.dialog.footerContainer.append(
-      this.bugReportButton,
-      this.resetSettingsButton,
-    );
+    this.dialog.footerContainer.append(this.settingsFooter.root);
     this.initialized = true;
     return this;
   }
@@ -493,13 +491,6 @@ export class SettingsView {
     }
     globalThis.addEventListener("message", this.onAuthRefreshMessage);
     this.bindAccountStorageListener();
-
-    this.bugReportButton.addEventListener("click", () =>
-      this.events["click:bugReport"].dispatch(),
-    );
-    this.resetSettingsButton.addEventListener("click", () =>
-      this.events["click:resetSettings"].dispatch(),
-    );
     return this;
   }
   addEventListener<K extends keyof SettingsViewEventMap>(
@@ -525,6 +516,7 @@ export class SettingsView {
       "appearanceSection",
       "miscSection",
       "aboutSection",
+      "settingsFooter",
     ] satisfies (keyof (typeof SettingsView)["prototype"])[]) {
       const control = this[key] as MountedComponent<any> | undefined;
       control?.dispose();

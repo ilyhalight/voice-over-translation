@@ -715,7 +715,6 @@ export class SubtitlesWidget {
     // next highlight threshold) no state can change, so a per-frame wake costs
     // two comparisons instead of the whole update path.
     if (this.canSkipWake(this.lastPlaybackTimeMs)) {
-      this.skippedWakeCount += 1;
       return;
     }
     const minInterval = this.getUpdateMinIntervalMs();

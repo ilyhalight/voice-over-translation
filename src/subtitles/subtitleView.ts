@@ -1,7 +1,12 @@
 import { createRenderEffect, createRoot, createSignal } from "solid-js";
 
 import { buildSubtitleInlineStyleCssText } from "./inlineStyle";
-import type { SubtitleRenderPlanPart } from "./types";
+import type {
+  SubtitleRenderPlanPart,
+  SubtitleRenderPlanPartBreak,
+  SubtitleRenderPlanPartText,
+  SubtitleRenderPlanSpanPart,
+} from "./renderPlan";
 
 export type SubtitleViewOptions = {
   /** BCP-47 tag for the rendered block; empty string clears the attribute. */
@@ -21,12 +26,17 @@ export type SubtitleViewHandle = {
 
 type PartShape = "break" | "span" | "text";
 
-function shapeOf(part: SubtitleRenderPlanPart): PartShape {
-  if (part.kind === "break") return "break";
+type ClassifiedPart =
+  | { shape: "break"; part: SubtitleRenderPlanPartBreak }
+  | { shape: "span"; part: SubtitleRenderPlanSpanPart }
+  | { shape: "text"; part: SubtitleRenderPlanPartText };
+
+function classifyPart(part: SubtitleRenderPlanPart): ClassifiedPart {
+  if (part.kind === "break") return { shape: "break", part };
   if (part.kind === "word" || part.style || part.highlightIndex !== undefined) {
-    return "span";
+    return { shape: "span", part };
   }
-  return "text";
+  return { shape: "text", part };
 }
 
 function shapeMatches(node: Node, shape: PartShape): boolean {
@@ -44,7 +54,10 @@ function setAttr(el: Element, name: string, value: string | null): void {
   if (el.getAttribute(name) !== value) el.setAttribute(name, value);
 }
 
-function applySpan(el: HTMLSpanElement, part: SubtitleRenderPlanPart): void {
+function applySpan(
+  el: HTMLSpanElement,
+  part: SubtitleRenderPlanSpanPart,
+): void {
   if (el.textContent !== part.text) el.textContent = part.text;
   setAttr(el, "data-vot-token", part.kind === "word" ? "1" : null);
   setAttr(
@@ -65,16 +78,21 @@ function applySpan(el: HTMLSpanElement, part: SubtitleRenderPlanPart): void {
   }
 }
 
-function createNode(part: SubtitleRenderPlanPart, shape: PartShape): Node {
-  if (shape === "text") return document.createTextNode(part.text);
-  if (shape === "break") {
-    const br = document.createElement("br");
-    br.className = "vot-subtitles-br";
-    return br;
+function createNode(classified: ClassifiedPart): ChildNode {
+  switch (classified.shape) {
+    case "break": {
+      const br = document.createElement("br");
+      br.className = "vot-subtitles-br";
+      return br;
+    }
+    case "text":
+      return document.createTextNode(classified.part.text);
+    case "span": {
+      const span = document.createElement("span");
+      applySpan(span, classified.part);
+      return span;
+    }
   }
-  const span = document.createElement("span");
-  applySpan(span, part);
-  return span;
 }
 
 /**
@@ -124,21 +142,27 @@ export function mountSubtitleView(
 
       let node = blockEl.firstChild;
       for (let i = 0; i < plan.length; i += 1) {
-        const part = plan[i];
-        const shape = shapeOf(part);
+        const classified = classifyPart(plan[i]);
+        const shape = classified.shape;
 
         if (!node || !shapeMatches(node, shape)) {
-          const created = createNode(part, shape);
+          const created = createNode(classified);
           if (node) blockEl.replaceChild(created, node);
           else blockEl.appendChild(created);
           node = created;
-        } else if (shape === "span") {
-          applySpan(node as HTMLSpanElement, part);
-        } else if (shape === "text" && node.nodeValue !== part.text) {
-          node.nodeValue = part.text;
+        } else if (classified.shape === "span") {
+          applySpan(node as HTMLSpanElement, classified.part);
+        } else if (
+          classified.shape === "text" &&
+          node.nodeValue !== classified.part.text
+        ) {
+          node.nodeValue = classified.part.text;
         }
 
-        if (shape === "span" && part.highlightIndex !== undefined) {
+        if (
+          classified.shape === "span" &&
+          classified.part.highlightIndex !== undefined
+        ) {
           highlights.push(node as HTMLSpanElement);
         }
         node = node.nextSibling;

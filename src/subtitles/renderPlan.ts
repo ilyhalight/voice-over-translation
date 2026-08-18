@@ -1,21 +1,30 @@
 import type { SubtitleInlineStyle, SubtitleToken } from "../types/subtitles";
 
+export type SubtitleRenderPlanPartWord = {
+  kind: "word";
+  text: string;
+  style?: SubtitleInlineStyle;
+  highlightIndex: number;
+};
+
+export type SubtitleRenderPlanPartText = {
+  kind: "text";
+  text: string;
+  style?: SubtitleInlineStyle;
+  highlightIndex?: number;
+};
+
+export type SubtitleRenderPlanPartBreak = {
+  kind: "break";
+};
+
+export type SubtitleRenderPlanSpanPart =
+  | SubtitleRenderPlanPartWord
+  | SubtitleRenderPlanPartText;
+
 export type SubtitleRenderPlanPart =
-  | {
-      kind: "word";
-      text: string;
-      style?: SubtitleInlineStyle;
-      highlightIndex: number;
-    }
-  | {
-      kind: "text";
-      text: string;
-      style?: SubtitleInlineStyle;
-      highlightIndex?: number;
-    }
-  | {
-      kind: "break";
-    };
+  | SubtitleRenderPlanSpanPart
+  | SubtitleRenderPlanPartBreak;
 
 const PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
 const TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;

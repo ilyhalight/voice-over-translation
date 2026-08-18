@@ -10,6 +10,7 @@
 
 @use "Button/IconButton.scss";
 @use "Button/TextButton.scss";
+@use "Button/GeneralButton.scss";
 @use "Button/OutlinedButton.scss";
 @use "Button/DetailsButton.scss";
 @use "Button/HotkeyButton.scss";
@@ -21,6 +22,7 @@
 @use "Control/SliderWrapper.scss";
 
 @use "Settings/SettingsSection.scss";
+@use "Settings/SettingsFooter.scss";
 
 @use "Textfield/Textfield.scss";
 

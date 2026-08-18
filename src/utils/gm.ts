@@ -22,7 +22,7 @@ const HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
 // Matches statusText reason-phrase: printable ASCII except control chars
 const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
-type RequestUrlLike = string | URL | Request;
+export type RequestUrlLike = string | URL | Request;
 type GmXhrResponse = {
   finalUrl?: string;
   response?: Blob | null;

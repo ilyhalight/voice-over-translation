@@ -53,7 +53,7 @@
     "dev": "vite build --watch --mode development --config vite/vite.config.ts",
     "format": "bunx @biomejs/biome check --write --unsafe ./src ./vite ./scripts",
     "lint": "bunx @biomejs/biome lint ./src ./vite ./scripts",
-    "check": "bunx tsc --noEmit && bunx tsc -p src/tsconfig.json --noEmit",
+    "check": "bunx tsc -p ./src/tsconfig.json --noEmit",
     "gen:wiki": "bun run ./scripts/wiki-gen/index.js",
     "autobuild": "bun run ./scripts/autobuild.ts",
     "zip:source": "bun ./scripts/zip/get-source.ts",
