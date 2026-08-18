@@ -964,8 +964,8 @@ export class OverlayView {
         // UX: keep the "Don't translate from selected languages" list in sync
         // with the selected response language, but only while the list still
         // looks like the old default.
+        // TODO: recheck it later
         if (
-          this.data.enabledDontTranslateLanguages &&
           Array.isArray(this.data.dontTranslateLanguages) &&
           this.data.dontTranslateLanguages.length === 1 &&
           prevResponseLanguage !== language &&

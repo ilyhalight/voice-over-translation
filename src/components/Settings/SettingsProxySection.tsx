@@ -1,4 +1,4 @@
-import { type JSX, mergeProps } from "solid-js";
+import type { JSX } from "solid-js";
 import { PROXY_WORKER_HOST } from "../../config/config";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { settings } from "../../stores/settings";

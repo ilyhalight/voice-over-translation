@@ -1,5 +1,6 @@
 // CONFIGURATION
 
+import type { CompatibilityVersion } from "../types/storage";
 import type { DetectService, TranslateService } from "../types/translateApis";
 
 export const workerHost = "api.browser.yandex.ru";
@@ -58,4 +59,4 @@ export const PROXY_ONLY_COUNTRIES: string[] = ["UA", "LV", "LT"];
  */
 export const DEFAULT_AUTO_HIDE_DELAY = 1000;
 
-export const actualCompatVersion = "2025-05-09";
+export const actualCompatVersion: CompatibilityVersion = "2026-08-18";

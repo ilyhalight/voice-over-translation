@@ -146,3 +146,20 @@ export const SelectNearViewportBottom: Story = {
     shadowHost.remove();
   },
 };
+
+export const SelectMultiple: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+    multiple: true,
+  },
+};
+
+export const SelectMultipleWithZeroSelected: Story = {
+  args: {
+    title: "None",
+    options: selectOptions,
+    multiple: true,
+    minSelected: 0,
+  },
+};

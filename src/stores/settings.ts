@@ -7,6 +7,7 @@ import {
   DEFAULT_TRANSLATION_SERVICE,
   PROXY_WORKER_HOST,
 } from "../config/config";
+import type { LanguageSelectKey } from "../types/components/select";
 import type { Position } from "../types/components/votButton";
 import {
   AUTO_SUBTITLE_LANGUAGE_VALUE,
@@ -16,11 +17,13 @@ import {
 import type { SubtitleFormat } from "../types/subtitles";
 import type { DetectService, TranslateService } from "../types/translateApis";
 import { isSupportGMXhr } from "../utils/gm";
+import { calculatedResLang } from "../utils/localization";
 
 export type SettingsStore = {
   // translation
   autoTranslate: boolean;
   autoSubtitles: boolean;
+  dontTranslateLanguages: LanguageSelectKey[];
   enabledAutoVolume: boolean;
   autoVolume: number;
   enabledSmartDucking: boolean;
@@ -59,6 +62,7 @@ function createInitialState(): SettingsStore {
     // translation
     autoTranslate: false,
     autoSubtitles: false,
+    dontTranslateLanguages: [calculatedResLang],
     enabledAutoVolume: true,
     autoVolume: DEFAULT_AUTO_VOLUME,
     enabledSmartDucking: true,

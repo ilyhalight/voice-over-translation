@@ -22,15 +22,10 @@ export type ResponseLanguageSubtitles =
   | SubtitleResponseLanguageMode
   | Exclude<LanguageSelectKey, "auto">;
 
-export type ConvertCategory = "numToBool" | "number" | "array" | "string";
-export type ConvertDataItem = [oldName: string, newName?: string];
-export type ConvertData = Record<ConvertCategory, ConvertDataItem[]>;
-
 export const storageKeys = [
   "autoTranslate",
   "autoSubtitles",
   "dontTranslateLanguages",
-  "enabledDontTranslateLanguages",
   "enabledAutoVolume",
   "enabledSmartDucking",
   "autoVolume",
@@ -76,7 +71,7 @@ export const storageKeys = [
 ] as const;
 
 export type TranslateProxyStatus = 0 | 1 | 2;
-export type CompatibilityVersion = "" | "2025-05-09";
+export type CompatibilityVersion = "" | "2025-05-09" | "2026-08-18";
 
 export type Account = {
   username: string | undefined;
@@ -89,7 +84,6 @@ export type StorageData = {
   autoTranslate: boolean;
   autoSubtitles: boolean;
   dontTranslateLanguages: LanguageSelectKey[];
-  enabledDontTranslateLanguages: boolean;
   enabledAutoVolume: boolean;
   /**
    * Smart Auto-Volume ducking: only lower original video volume while translated

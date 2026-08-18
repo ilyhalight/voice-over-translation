@@ -1,8 +1,11 @@
+import { availableLangs } from "@vot.js/shared/consts";
 import { createSignal, type JSX, mergeProps } from "solid-js";
 import { effect } from "solid-js/web";
 import { detectServices, translateServices } from "../../core/translateApis";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
+import type { LanguageSelectKey } from "../../types/components/select";
+import type { Phrase } from "../../types/localization";
 import type {
   DetectService,
   TranslateService,
@@ -20,6 +23,10 @@ export type SettingsTranslationSectionProps = {
   ref?: (element: HTMLElement) => void;
   onAutoTranslateChange?: (checked: boolean) => void;
   onAutoSubtitlesChange?: (checked: boolean) => void;
+  onDontTranslateLanguagesChange?: (
+    selectedLanguages: LanguageSelectKey[],
+    changedLanguage: LanguageSelectKey,
+  ) => void;
   onEnabledAutoVolumeChange?: (checked: boolean) => void;
   onAutoVolumeInput?: (volume: number) => void;
   onEnabledSmartDuckingChange?: (checked: boolean) => void;
@@ -41,6 +48,17 @@ export function SettingsTranslationSection(
       isAudioContextSupported: false,
     },
     props,
+  );
+
+  const dontTranslateLanguagesOptions = availableLangs.map<SelectOption>(
+    (lang) => {
+      const phrase = `langs.${lang}` satisfies Phrase;
+      const label = localizationProvider.get(phrase);
+      return {
+        label: label === phrase ? lang.toUpperCase() : label,
+        value: lang,
+      };
+    },
   );
 
   const translationTextServiceOptions = translateServices.map<SelectOption>(
@@ -91,6 +109,22 @@ export function SettingsTranslationSection(
           finalProps.onAutoSubtitlesChange?.(checked);
         }}
       />
+      <Select
+        multiple={true}
+        title={localizationProvider.get("None")}
+        options={dontTranslateLanguagesOptions}
+        selectedValues={settings.dontTranslateLanguages}
+        minSelected={0}
+        onSelectionChange={(values, changedOption) => {
+          setSettings("dontTranslateLanguages", values as LanguageSelectKey[]);
+          finalProps.onDontTranslateLanguagesChange?.(
+            values as LanguageSelectKey[],
+            changedOption.value as LanguageSelectKey,
+          );
+        }}
+      >
+        {localizationProvider.get("DontTranslateSelectedLanguages")}
+      </Select>
       <Switch
         heading={localizationProvider.get("VOTAutoReduceVolume")}
         checked={settings.enabledAutoVolume}

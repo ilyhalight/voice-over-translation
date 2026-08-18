@@ -63,7 +63,6 @@ export async function init(this: VideoHandler) {
     autoTranslate: false,
     autoSubtitles: false,
     dontTranslateLanguages: [calculatedResLang],
-    enabledDontTranslateLanguages: true,
     enabledAutoVolume: true,
     enabledSmartDucking: true,
     autoVolume: DEFAULT_AUTO_VOLUME,
@@ -119,6 +118,7 @@ export async function init(this: VideoHandler) {
     // translation
     autoTranslate: this.data.autoTranslate,
     autoSubtitles: this.data.autoSubtitles,
+    dontTranslateLanguages: this.data.dontTranslateLanguages,
     enabledAutoVolume: this.data.enabledAutoVolume,
     autoVolume: this.data.autoVolume,
     enabledSmartDucking: this.data.enabledSmartDucking,
@@ -154,7 +154,6 @@ export async function init(this: VideoHandler) {
   try {
     if (
       calculatedResLang === "en" &&
-      this.data?.enabledDontTranslateLanguages &&
       Array.isArray(this.data?.dontTranslateLanguages) &&
       this.data.dontTranslateLanguages.length === 1 &&
       this.data.dontTranslateLanguages[0] === "en" &&

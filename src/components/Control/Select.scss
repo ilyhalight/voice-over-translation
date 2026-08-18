@@ -95,7 +95,7 @@
         background: rgba(var(--vot-onsurface-rgb), 0.14);
       }
 
-      &--selected {
+      &[aria-selected="true"] {
         color: rgb(var(--vot-select-inner-primary-rgb));
         background: rgba(var(--vot-select-inner-primary-rgb), 0.2);
 

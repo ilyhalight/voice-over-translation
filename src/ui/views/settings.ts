@@ -38,7 +38,6 @@ function createSettingsEvents(): {
   return events;
 }
 
-import { availableLangs } from "@vot.js/shared/consts";
 import { AboutSection } from "../../components/About/AboutSection";
 import { AccountMenu } from "../../components/Account/AccountMenu";
 import { SettingsAppearanceSection } from "../../components/Settings/SettingsAppearanceSection";
@@ -70,10 +69,7 @@ import {
   type SubtitleFormat,
   subtitleFontFamilies,
 } from "../../subtitles/types";
-import type {
-  LanguageSelectKey,
-  SelectItem,
-} from "../../types/components/select";
+import type { SelectItem } from "../../types/components/select";
 import type { Position } from "../../types/components/votButton";
 import type {
   Account,
@@ -90,7 +86,6 @@ import debug from "../../utils/debug";
 import { EventImpl } from "../../utils/eventImpl";
 import { votStorage } from "../../utils/storage";
 import type { VideoHandler } from "../../VideoHandler";
-import Checkbox from "../components/checkbox";
 import { createDomId } from "../components/componentShared";
 import Details from "../components/details";
 import Dialog from "../components/dialog";
@@ -149,8 +144,6 @@ export class SettingsView {
   accountSection?: MountedComponent<HTMLElement>;
   translationSection?: MountedComponent<HTMLElement>;
   private accountStorageListenerCleanup?: () => void;
-  dontTranslateLanguagesCheckbox?: Checkbox;
-  dontTranslateLanguagesSelect?: Select<LanguageSelectKey, true>;
   subtitlesFontFamilySelectLabel?: Label;
   subtitlesFontFamilySelect?: Select<SubtitleFontFamily>;
   hotkeysSection?: MountedComponent<HTMLDivElement>;
@@ -289,10 +282,6 @@ export class SettingsView {
 
   private createSettingsSections() {
     const sections = [
-      this.createAccordionSection(
-        localizationProvider.get("translationSettings"),
-        { open: true },
-      ),
       this.createAccordionSection(
         localizationProvider.get("subtitlesSettings"),
       ),
@@ -442,6 +431,9 @@ export class SettingsView {
           storageKey: "autoSubtitles",
           dispatch: (checked) =>
             this.events["change:autoSubtitles"].dispatch(checked),
+        }),
+        onDontTranslateLanguagesChange: this.createPersistedSettingHandler({
+          storageKey: "dontTranslateLanguages",
         }),
         onEnabledAutoVolumeChange: this.createPersistedSettingHandler({
           storageKey: "enabledAutoVolume",
@@ -631,8 +623,7 @@ export class SettingsView {
       }),
     );
 
-    const { translationSection, subtitlesSection, sections } =
-      this.createSettingsSections();
+    const { subtitlesSection, sections } = this.createSettingsSections();
     this.dialog.bodyContainer.append(
       this.accountSection.root,
       ...sections.map((section) => section.container),
@@ -645,34 +636,6 @@ export class SettingsView {
       this.aboutSection.root,
     );
 
-    const dontTranslateLanguages = this.data.dontTranslateLanguages ?? [];
-    this.dontTranslateLanguagesCheckbox = new Checkbox({
-      labelHtml: localizationProvider.get("DontTranslateSelectedLanguages"),
-      checked: this.data.enabledDontTranslateLanguages,
-    });
-    this.dontTranslateLanguagesSelect = new Select({
-      dialogParent: this.globalPortal,
-      dialogTitle: localizationProvider.get("DontTranslateSelectedLanguages"),
-      selectTitle:
-        dontTranslateLanguages
-          .map((lang) => localizationProvider.get(`langs.${lang}`))
-          .join(", ") ||
-        localizationProvider.get("DontTranslateSelectedLanguages"),
-      items: Select.genLanguageItems(availableLangs).map<
-        SelectItem<LanguageSelectKey>
-      >((item) => ({
-        ...item,
-        selected: dontTranslateLanguages.includes(item.value),
-      })),
-      multiSelect: true,
-      labelElement: this.dontTranslateLanguagesCheckbox.container,
-    });
-    this.dontTranslateLanguagesSelect.disabled =
-      !this.dontTranslateLanguagesCheckbox.checked;
-
-    translationSection.content.append(
-      this.dontTranslateLanguagesSelect.container,
-    );
     const storedSubtitlesFontFamily =
       typeof this.data.subtitlesFontFamily === "string"
         ? this.data.subtitlesFontFamily
@@ -727,32 +690,6 @@ export class SettingsView {
     }
     globalThis.addEventListener("message", this.onAuthRefreshMessage);
     this.bindAccountStorageListener();
-    this.dontTranslateLanguagesCheckbox.addEventListener(
-      "change",
-      async (checked) => {
-        this.data.enabledDontTranslateLanguages = checked;
-        this.dontTranslateLanguagesSelect.disabled = !checked;
-        await votStorage.set(
-          "enabledDontTranslateLanguages",
-          this.data.enabledDontTranslateLanguages,
-        );
-        debug.log(
-          "enabledDontTranslateLanguages value changed. New value:",
-          checked,
-        );
-      },
-    );
-    this.dontTranslateLanguagesSelect.addEventListener(
-      "selectItem",
-      async (values) => {
-        this.data.dontTranslateLanguages = values;
-        await votStorage.set(
-          "dontTranslateLanguages",
-          this.data.dontTranslateLanguages,
-        );
-        debug.log("dontTranslateLanguages value changed. New value:", values);
-      },
-    );
     this.subtitlesFontFamilySelect.addEventListener(
       "selectItem",
       this.createPersistedSettingHandler({
