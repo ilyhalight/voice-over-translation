@@ -7,12 +7,26 @@ const AVAILABLE_HEIGHT_PROPERTY = "--vot-floating-available-height";
 
 export type FloatingPositionOptions = {
   anchor: () => HTMLElement;
-  popup: () => HTMLElement;
+  popup: () => HTMLElement | undefined;
   isOpen: Accessor<boolean>;
   gap?: number;
+  mount?: () => HTMLElement | ShadowRoot | undefined;
+  mountElement?: () => HTMLElement;
   onOutsideScroll?: () => void;
+  removeOnCleanup?: boolean;
+  resizeTargets?: () => Element[];
   stablePlacementWhileOpen?: boolean;
+  updatePosition?: (context: FloatingPositionContext) => void;
   viewportMargin?: number;
+};
+
+export type FloatingPositionContext = {
+  anchor: HTMLElement;
+  popup: HTMLElement;
+};
+
+export type FloatingPositionController = {
+  update: () => void;
 };
 
 function getPopupMount(
@@ -46,17 +60,21 @@ function getScrollTargets(anchor: HTMLElement): EventTarget[] {
   return targets;
 }
 
-export function createFloatingPosition(options: FloatingPositionOptions): void {
+export function createFloatingPosition(
+  options: FloatingPositionOptions,
+): FloatingPositionController {
   const gap = options.gap ?? DEFAULT_GAP;
   const viewportMargin = options.viewportMargin ?? DEFAULT_VIEWPORT_MARGIN;
   let positionFrame: number | undefined;
   let stableOpensBelow: boolean | undefined;
+  let mountedElement: HTMLElement | undefined;
 
-  const mountPopup = () => {
-    const popup = options.popup();
-    const popupMount = getPopupMount(options.anchor());
-    if (popupMount && popup.parentNode !== popupMount) {
-      popupMount.append(popup);
+  const mountPopup = (popup: HTMLElement, anchor: HTMLElement) => {
+    const popupMount = options.mount?.() ?? getPopupMount(anchor);
+    const element = options.mountElement?.() ?? popup;
+    mountedElement = element;
+    if (popupMount && element.parentNode !== popupMount) {
+      popupMount.append(element);
     }
   };
 
@@ -70,10 +88,19 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
   };
 
   const updatePosition = () => {
-    mountPopup();
-
-    const anchorRect = options.anchor().getBoundingClientRect();
     const popup = options.popup();
+    if (!popup) {
+      return;
+    }
+    const anchor = options.anchor();
+    mountPopup(popup, anchor);
+
+    if (options.updatePosition) {
+      options.updatePosition({ anchor, popup });
+      return;
+    }
+
+    const anchorRect = anchor.getBoundingClientRect();
     if (!options.stablePlacementWhileOpen || stableOpensBelow === undefined) {
       popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
     }
@@ -128,14 +155,17 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
   };
 
   onMount(() => {
-    const popup = options.popup();
-
     effect(() => {
       if (!options.isOpen()) {
         return;
       }
 
-      const scrollTargets = getScrollTargets(options.anchor());
+      const popup = options.popup();
+      if (!popup) {
+        return;
+      }
+      const anchor = options.anchor();
+      const scrollTargets = getScrollTargets(anchor);
       const handleScroll = (event: Event) => {
         if (event.composedPath().includes(popup)) {
           return;
@@ -148,9 +178,15 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
         schedulePositionUpdate();
       };
 
-      mountPopup();
+      mountPopup(popup, anchor);
       const resizeObserver = new ResizeObserver(schedulePositionUpdate);
-      resizeObserver.observe(popup);
+      const resizeTargets = new Set([
+        popup,
+        ...(options.resizeTargets?.() ?? []),
+      ]);
+      for (const target of resizeTargets) {
+        resizeObserver.observe(target);
+      }
       schedulePositionUpdate();
       window.addEventListener("resize", schedulePositionUpdate);
       for (const target of scrollTargets) {
@@ -171,7 +207,11 @@ export function createFloatingPosition(options: FloatingPositionOptions): void {
 
     onCleanup(() => {
       cancelPositionUpdate();
-      popup.remove();
+      if (options.removeOnCleanup ?? true) {
+        mountedElement?.remove();
+      }
     });
   });
+
+  return { update: schedulePositionUpdate };
 }

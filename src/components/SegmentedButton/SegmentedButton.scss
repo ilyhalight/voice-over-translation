@@ -1,0 +1,174 @@
+@use "../../styles/mixins" as shared;
+@use "../../styles/components/buttons/mixins" as button;
+
+.vot-segmented-button {
+  --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
+  --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87);
+
+  @include shared.vot-font-family;
+  font-size: 16px;
+  cursor: default;
+
+  overflow: hidden;
+  user-select: none;
+
+  display: flex;
+  align-items: center;
+  height: 36px;
+  max-width: 100vw;
+
+  background: rgb(var(--vot-surface-rgb, 255, 255, 255));
+  color: var(--vot-helper-theme);
+  fill: var(--vot-helper-theme);
+  border: 1px solid var(--vot-border-color) !important;
+  border-radius: var(--vot-radius-s) !important;
+  box-shadow: var(--vot-shadow-1) !important;
+
+  &[data-direction="column"] {
+    flex-direction: column;
+    height: fit-content;
+
+    & .vot-segment,
+    & .vot-segment-only-icon {
+      padding: var(--vot-space-2) !important;
+    }
+
+    & .vot-separator {
+      height: 1px;
+      width: 50%;
+    }
+  }
+
+  &[data-status="error"] .vot-translate-button {
+    color: #f28b82;
+  }
+
+  &[data-status="success"] .vot-translate-button {
+    color: rgb(var(--vot-primary-rgb, 33, 150, 243));
+  }
+
+  & .vot-segment {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--vot-space-2) !important;
+    height: 100%;
+    padding: 0 var(--vot-space-2) !important;
+    background-color: transparent;
+    color: inherit;
+    transition: background-color var(--vot-duration-fast)
+      var(--vot-easing-standard);
+    border: none !important;
+
+    // Prevent default UA focus outline (it gets clipped by overflow and shows as stripes).
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+
+    // Fallback: show focus ring on :focus (for browsers without :focus-visible),
+    // but hide it for pointer focus when :focus-visible is supported.
+    &:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--vot-focus-ring-color);
+    }
+
+    &:focus:not(:focus-visible) {
+      box-shadow: none;
+    }
+
+    @include button.vot-button-layers(rgb(var(--vot-helper-theme-rgb)));
+    @include button.vot-button-layer-hover(0.04);
+    @include button.vot-button-layer-active(0.16);
+
+    &::before,
+    &::after {
+      pointer-events: none;
+    }
+
+    & svg {
+      font-size: 24px;
+    }
+
+    & > svg,
+    &-label,
+    .vot-dropdown-arrow {
+      position: relative;
+      z-index: 1;
+    }
+
+    &-only-icon {
+      @extend .vot-segment;
+      min-width: 36px;
+      padding: 0 !important;
+      &[data-active="true"] {
+        color: rgb(var(--vot-primary-rgb, 33, 150, 243));
+      }
+    }
+
+    &-label {
+      white-space: nowrap;
+      color: inherit;
+      font-weight: 400 !important;
+      line-height: 1;
+    }
+  }
+
+  & .vot-dropdown-arrow {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    min-width: 30px;
+    height: 100%;
+    margin-inline-end: -4px !important;
+    margin-top: 2px !important;
+    color: inherit;
+    fill: inherit;
+    opacity: 0.95;
+    cursor: default;
+    border-radius: var(--vot-radius-s) !important;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+
+    &:focus {
+      box-shadow: inset 0 0 0 2px var(--vot-focus-ring-color);
+    }
+
+    &:focus:not(:focus-visible) {
+      box-shadow: none;
+    }
+
+    &:hover {
+      background: rgba(var(--vot-helper-theme-rgb), 0.04);
+    }
+
+    // &[hidden] {
+    //   display: none !important;
+    // }
+
+    &::before,
+    &::after {
+      display: none;
+    }
+
+    svg {
+      font-size: 28px;
+      transform: scale(1.08);
+      transform-origin: center;
+      transition: transform var(--vot-duration-fast) var(--vot-easing-standard);
+    }
+
+    &[aria-expanded="true"] svg {
+      transform: rotate(180deg) scale(1.08);
+    }
+  }
+
+  .vot-separator {
+    width: 1px;
+    height: 50%;
+    background: rgba(var(--vot-helper-theme-rgb), 0.1);
+  }
+}

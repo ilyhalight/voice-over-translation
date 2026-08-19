@@ -19,3 +19,17 @@ You SHOULD prefer using Material You (Material Design 3) like design system for 
 You SHOULD be careful with `!important;` CSS rules as they might have been set for a reason and could be important for one of the supported websites.
 
 You SHOULD use `em` or `px` instead of `rem`.
+
+## Localization
+
+You MUST use `localizationProvider.get("key")` for all user-facing localized strings.
+
+Do NOT hardcode localized text directly in the source code.
+
+If a required localization key does not exist, do NOT modify localization files manually. Ask the user to add the new string by running:
+
+```bash
+bun localize
+```
+
+Only use the new localization key after it has been added through this command.

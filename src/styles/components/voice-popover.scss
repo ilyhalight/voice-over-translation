@@ -136,7 +136,6 @@
     overflow: hidden;
 
     display: flex;
-    align-items: center;
     gap: 12px;
 
     padding: 14px 44px 14px 16px !important;
@@ -248,21 +247,7 @@
   }
 
   &__item-icon {
-    flex-shrink: 0;
-
-    width: 28px;
-    height: 28px;
-
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-
-    svg {
-      width: 20px;
-      height: 20px;
-
-      display: block;
-    }
+    font-size: 20px;
   }
 
   &__item-text {

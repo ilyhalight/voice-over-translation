@@ -320,7 +320,9 @@ export type Phrase =
   | "VOTAutoReduceVolume"
   | "VOTReducedVolumeLevel"
   | "VOTIncompatibleWith"
-  | "VOTNotSupportedByLoader";
+  | "VOTNotSupportedByLoader"
+  | "VOTPiP"
+  | "VOTMenu";
 
 export type Phrases = {
   recommended: string;
@@ -584,6 +586,8 @@ export type Phrases = {
   VOTReducedVolumeLevel: string;
   VOTIncompatibleWith: string;
   VOTNotSupportedByLoader: string;
+  VOTPiP: string;
+  VOTMenu: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;
