@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Uforenelig med \" {0}\"",
   "VOTNotSupportedByLoader": "Denne funktion understøttes ikke af brugt script loader",
   "VOTPiP": "Billede i billede",
-  "VOTMenu": "Menu"
+  "VOTMenu": "Menu",
+  "VOTDownloadTranslation": "Hent oversættelse"
 }

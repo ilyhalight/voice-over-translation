@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Kokkusobimatu sõnaga \" {0}\"",
   "VOTNotSupportedByLoader": "See funktsioon ei toeta kasutatud script loader",
   "VOTPiP": "Pilt pildil",
-  "VOTMenu": "Menüü"
+  "VOTMenu": "Menüü",
+  "VOTDownloadTranslation": "Lae tõlge"
 }

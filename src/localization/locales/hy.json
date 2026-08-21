@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Անհամատեղելի է \"{0}\" - ի հետ",
   "VOTNotSupportedByLoader": "Այս հատկությունը չի աջակցվում օգտագործված սցենարի բեռնիչի կողմից",
   "VOTPiP": "Նկար նկարում",
-  "VOTMenu": "Մենու"
+  "VOTMenu": "Մենու",
+  "VOTDownloadTranslation": "Ներբեռնել թարգմանությունը"
 }

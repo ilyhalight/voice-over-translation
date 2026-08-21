@@ -95,6 +95,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   const [container, setContainer] = createSignal<HTMLElement>();
   const [isMounted, setIsMounted] = createSignal(false);
   const [isVisible, setIsVisible] = createSignal(false);
+  const [isPositioned, setIsPositioned] = createSignal(false);
   const [resolvedPosition, setResolvedPosition] = createSignal(
     normalizePosition(finalProps.position),
   );
@@ -320,6 +321,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       top - viewportOffset.top
     }px)`;
     setResolvedPosition(position);
+    setIsPositioned(true);
   }
 
   const floatingPosition = createFloatingPosition({
@@ -397,6 +399,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       showFrame = undefined;
     }
     setIsVisible(false);
+    setIsPositioned(false);
     syncAriaDescribedBy(false);
     if (instant) {
       finishClose();
@@ -630,7 +633,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
           top: "0",
           left: "0",
           margin: "0",
-          opacity: isVisible() ? "1" : "0",
+          opacity: isVisible() && isPositioned() ? "1" : "0",
           "background-color": finalProps.backgroundColor,
           "border-radius":
             finalProps.borderRadius === undefined

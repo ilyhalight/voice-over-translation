@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\"සමග නොගැලපේ",
   "VOTNotSupportedByLoader": "මෙම විශේෂාංගය භාවිතා කරන ලද script loader මගින් සහාය නොදක්වයි",
   "VOTPiP": "පින්තූරයේ පින්තූරය",
-  "VOTMenu": "මෙනුව"
+  "VOTMenu": "මෙනුව",
+  "VOTDownloadTranslation": "පරිවර්තනය බාගත කරන්න"
 }

@@ -115,6 +115,10 @@ export async function init(this: VideoHandler) {
     hash: this.data.localeHash,
   });
   setSettings({
+    // menu
+    defaultVolume: this.data.defaultVolume,
+    responseLanguage: this.data.responseLanguage,
+    useLivelyVoice: false,
     // translation
     autoTranslate: this.data.autoTranslate,
     autoSubtitles: this.data.autoSubtitles,
@@ -204,10 +208,7 @@ export async function init(this: VideoHandler) {
   // Initialize UI elements and events.
   this.uiManager.initUI();
   this.uiManager.initUIEvents();
-
-  if (this.uiManager.votOverlayView?.votButton?.container) {
-    this.uiManager.votOverlayView.votButton.container.hidden = true;
-  }
+  this.uiManager.votOverlayView.overlayViewControls?.setButtonHidden(true);
 
   // Get video data and create player.
   this.createPlayer();

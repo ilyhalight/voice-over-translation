@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Yn anghydnaws â \" {0}\"",
   "VOTNotSupportedByLoader": "Nid yw'r nodwedd hon yn cael ei chynnal gan y llwythwr sgript a ddefnyddir",
   "VOTPiP": "Picture in picture",
-  "VOTMenu": "Dewislen"
+  "VOTMenu": "Dewislen",
+  "VOTDownloadTranslation": "Llwytho i lawr cyfieithu"
 }

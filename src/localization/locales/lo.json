@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "ບໍ່ເຂົ້າກັນໄດ້ກັບ\"{0}\"",
   "VOTNotSupportedByLoader": "ຄຸນນະສົມບັດນີ້ບໍ່ໄດ້ສະຫນັບສະຫນູນໂດຍການນໍາໃຊ້ loader script",
   "VOTPiP": "ຮູບພາບໃນຮູບ",
-  "VOTMenu": "ເມນູ"
+  "VOTMenu": "ເມນູ",
+  "VOTDownloadTranslation": "ດາວໂຫລດການແປພາສາ"
 }

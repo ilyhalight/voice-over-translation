@@ -13,11 +13,26 @@ import { effect } from "solid-js/web";
 
 import "./Select.scss";
 import { localizationProvider } from "../../localization/localizationProvider";
+import type { LanguageSelectKey } from "../../types/components/select";
+import type { Phrase } from "../../types/localization";
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
 import { LoadingDotsIcon } from "../Icons/LoadingDotsIcon";
 import { Textfield } from "../Textfield/Textfield";
 import { createFloatingPosition } from "../Utils/createFloatingPosition";
+
+export function genSelectOptionsByLangs<
+  T extends LanguageSelectKey = LanguageSelectKey,
+>(langs: readonly T[]): SelectOption[] {
+  return langs.map<SelectOption>((lang) => {
+    const phrase = `langs.${lang}` satisfies Phrase;
+    const label = localizationProvider.get(phrase);
+    return {
+      label: label === phrase ? lang.toUpperCase() : label,
+      value: lang,
+    };
+  });
+}
 
 export type SelectValue = string | number | boolean;
 
@@ -31,14 +46,21 @@ export type SearchItemsProvider = (
   query: string,
 ) => SelectOption[] | Promise<SelectOption[]>;
 
+export type SelectControls = {
+  close: () => void;
+};
+
 export type BaseSelectProps = {
   title: string;
   options: SelectOption[];
   children?: JSX.Element;
   isOpen?: boolean;
   search?: boolean;
+  loading?: boolean;
   disabled?: boolean;
   ref?: (element: HTMLElement) => void;
+  controlsRef?: (controls: SelectControls) => void;
+  onOpen?: () => void;
   searchItemsProvider?: SearchItemsProvider;
 };
 
@@ -73,6 +95,7 @@ export function Select(props: SelectProps): JSX.Element {
       disabled: false,
       multiple: false,
       search: false,
+      loading: false,
       isOpen: false,
       selectedValue: undefined,
       selectedValues: [],
@@ -86,8 +109,6 @@ export function Select(props: SelectProps): JSX.Element {
   let searchRequestId = 0;
 
   const selectId = createUniqueId();
-  const [disabled, setDisabled] = createSignal(finalProps.disabled);
-  const [multiple, setMultiple] = createSignal(finalProps.multiple);
   const [selectedValues, setSelectedValues] = createSignal(
     new Set<SelectValue>(
       finalProps.multiple
@@ -96,7 +117,6 @@ export function Select(props: SelectProps): JSX.Element {
     ),
   );
   const [options, setOptions] = createSignal(finalProps.options);
-  const [minSelected, setMinSelected] = createSignal(finalProps.minSelected);
   const [searchQuery, setSearchQuery] = createSignal("");
   const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
   const [isSearching, setIsSearching] = createSignal(false);
@@ -124,7 +144,7 @@ export function Select(props: SelectProps): JSX.Element {
   const currentOptions = () => searchOptions() ?? baseOptions();
 
   const visibleTitle = () => {
-    if (multiple()) {
+    if (finalProps.multiple) {
       return (
         baseOptions()
           .filter((o) => selectedValues().has(o.value))
@@ -171,11 +191,11 @@ export function Select(props: SelectProps): JSX.Element {
   });
 
   effect(() => {
-    setDisabled(finalProps.disabled);
-    setMultiple(finalProps.multiple);
     setIsOpen(finalProps.isOpen);
+  });
+
+  effect(() => {
     setOptions(finalProps.options);
-    setMinSelected(finalProps.minSelected);
   });
 
   createFloatingPosition({
@@ -201,10 +221,15 @@ export function Select(props: SelectProps): JSX.Element {
         }
       };
 
-      window.addEventListener("pointerdown", handlePointerDown);
+      window.addEventListener("pointerdown", handlePointerDown, {
+        capture: true,
+        passive: true,
+      });
 
       onCleanup(() => {
-        window.removeEventListener("pointerdown", handlePointerDown);
+        window.removeEventListener("pointerdown", handlePointerDown, {
+          capture: true,
+        });
       });
     });
   });
@@ -236,7 +261,7 @@ export function Select(props: SelectProps): JSX.Element {
       );
     }
 
-    if (currentSelectedValues.size <= minSelected()) {
+    if (currentSelectedValues.size <= finalProps.minSelected) {
       return;
     }
 
@@ -299,11 +324,19 @@ export function Select(props: SelectProps): JSX.Element {
     }
   }
 
+  finalProps.controlsRef?.({
+    close: () => {
+      if (isOpen()) {
+        closeSelect();
+      }
+    },
+  });
+
   return (
     <vot-block
       ref={finalProps.ref}
       class="vot-select_new"
-      aria-disabled={disabled()}
+      aria-disabled={finalProps.disabled}
     >
       <Show when={finalProps.children}>
         <vot-block class="vot-select_new-label">
@@ -318,13 +351,14 @@ export function Select(props: SelectProps): JSX.Element {
           "aria-controls": selectId,
           "aria-expanded": isOpen(),
         }}
-        disabled={disabled()}
+        disabled={finalProps.disabled}
         onClick={() => {
           if (isOpen()) {
             return closeSelect();
           }
 
           setIsOpen(true);
+          finalProps.onOpen?.();
         }}
       >
         <vot-block class="vot-select_new-outer__title">
@@ -350,13 +384,14 @@ export function Select(props: SelectProps): JSX.Element {
         <vot-block
           class="vot-select_new-inner__options"
           role="listbox"
-          aria-multiselectable={multiple() ? "true" : undefined}
+          aria-busy={finalProps.loading ? "true" : undefined}
+          aria-multiselectable={finalProps.multiple ? "true" : undefined}
         >
           <For each={filteredOptions()}>
             {(option) => (
               <RawButton
                 class="vot-select_new-inner__option"
-                disabled={option.disabled || disabled()}
+                disabled={option.disabled || finalProps.disabled}
                 buttonProps={{
                   role: "option",
                   "aria-selected": selectedValues().has(option.value),
@@ -374,7 +409,15 @@ export function Select(props: SelectProps): JSX.Element {
             )}
           </For>
         </vot-block>
-        <Show when={filteredOptions().length === 0}>
+        <Show when={finalProps.loading}>
+          <vot-block
+            class="vot-select_new-inner__no-options"
+            data-searching="true"
+          >
+            <LoadingDotsIcon />
+          </vot-block>
+        </Show>
+        <Show when={filteredOptions().length === 0 && !finalProps.loading}>
           <vot-block
             class="vot-select_new-inner__no-options"
             data-searching={isSearching()}

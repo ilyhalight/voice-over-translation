@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Teu cocog jeung\"{0}\"",
   "VOTNotSupportedByLoader": "Fitur ieu henteu dirojong ku script loader anu dianggo",
   "VOTPiP": "Gambar dina gambar",
-  "VOTMenu": "Menu"
+  "VOTMenu": "Menu",
+  "VOTDownloadTranslation": "Ngundeur tarjamahan"
 }

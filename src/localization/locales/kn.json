@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\"ನೊಂದಿಗೆ ಹೊಂದಿಕೆಯಾಗುವುದಿಲ್ಲ",
   "VOTNotSupportedByLoader": "ಈ ವೈಶಿಷ್ಟ್ಯವನ್ನು ಬಳಸಿದ ಸ್ಕ್ರಿಪ್ಟ್ ಲೋಡರ್ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ",
   "VOTPiP": "ಚಿತ್ರದಲ್ಲಿ ಚಿತ್ರ",
-  "VOTMenu": "ಮೆನು"
+  "VOTMenu": "ಮೆನು",
+  "VOTDownloadTranslation": "ಅನುವಾದ ಡೌನ್ಲೋಡ್"
 }

@@ -14,13 +14,6 @@ export type IndexedSubtitleDescriptor = {
   index: number;
 };
 
-export type SubtitlesSelectOption = {
-  label: string;
-  value: string;
-  selected: boolean;
-  disabled: boolean;
-};
-
 export const DISABLED_SUBTITLES_VALUE = "disabled";
 const SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
 
@@ -68,15 +61,6 @@ export function getSubtitleDescriptorAtIndex(
   return parseSubtitleDescriptor(subtitles[index]);
 }
 
-function createDisabledSubtitlesOption(): SubtitlesSelectOption {
-  return {
-    label: localizationProvider.get("VOTSubtitlesDisabled"),
-    value: DISABLED_SUBTITLES_VALUE,
-    selected: true,
-    disabled: false,
-  };
-}
-
 function buildSubtitleLabel(subtitle: SubtitleDescriptor): string {
   const languageLabel = localizationProvider.getLangLabel(subtitle.language);
   const translatedFromLabel = subtitle.translatedFromLanguage
@@ -95,27 +79,22 @@ function buildSubtitleLabel(subtitle: SubtitleDescriptor): string {
 
 export function buildSubtitlesSelectOptions(
   subtitleDescriptors: readonly IndexedSubtitleDescriptor[],
-): SubtitlesSelectOption[] {
-  const options: SubtitlesSelectOption[] = [createDisabledSubtitlesOption()];
+): { label: string; value: string }[] {
+  const options = [
+    {
+      label: localizationProvider.get("VOTSubtitlesDisabled"),
+      value: DISABLED_SUBTITLES_VALUE,
+    },
+  ];
 
   for (const { descriptor, index } of subtitleDescriptors) {
     options.push({
       label: buildSubtitleLabel(descriptor),
       value: String(index),
-      selected: false,
-      disabled: false,
     });
   }
 
   return options;
-}
-
-export function getSelectedSubtitlesValue(
-  selectedValues: Iterable<string>,
-): string | undefined {
-  const iterator = selectedValues[Symbol.iterator]();
-  const first = iterator.next();
-  return first.done ? undefined : first.value;
 }
 
 function normalizeLang(lang?: string): string {

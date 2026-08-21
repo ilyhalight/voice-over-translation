@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Haiendani na \"{0}\"",
   "VOTNotSupportedByLoader": "Kipengele hiki si mkono na kutumika script loader",
   "VOTPiP": "Picha katika picha",
-  "VOTMenu": "Menyu"
+  "VOTMenu": "Menyu",
+  "VOTDownloadTranslation": "Pakua tafsiri"
 }

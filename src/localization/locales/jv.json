@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Ora kompatibel karo\"{0}\"",
   "VOTNotSupportedByLoader": "Fitur iki ora didhukung dening loader skrip sing digunakake",
   "VOTPiP": "Gambar ing gambar",
-  "VOTMenu": "Tiramisu"
+  "VOTMenu": "Tiramisu",
+  "VOTDownloadTranslation": "Download terjemahan"
 }

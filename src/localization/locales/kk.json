@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\"сәйкес келмейді",
   "VOTNotSupportedByLoader": "Бұл мүмкіндікті пайдаланылған сценарий жүктеушісі қолдамайды",
   "VOTPiP": "Суреттегі сурет",
-  "VOTMenu": "Мәзір"
+  "VOTMenu": "Мәзір",
+  "VOTDownloadTranslation": "Аударманы жүктеу"
 }

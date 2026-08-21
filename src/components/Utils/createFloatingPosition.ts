@@ -37,6 +37,11 @@ function getPopupMount(
     return dialogContainer;
   }
 
+  const overlayRoot = anchor.closest<HTMLElement>(".vot-overlay-root");
+  if (overlayRoot) {
+    return overlayRoot;
+  }
+
   const rootNode = anchor.getRootNode();
   if (rootNode instanceof ShadowRoot) {
     return rootNode;

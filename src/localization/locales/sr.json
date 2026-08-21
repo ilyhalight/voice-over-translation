@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Некомпатибилно са \" {0}\"",
   "VOTNotSupportedByLoader": "Ова функција није подржана помоћу учитавача скрипти",
   "VOTPiP": "Слика у слици",
-  "VOTMenu": "Мени"
+  "VOTMenu": "Мени",
+  "VOTDownloadTranslation": "Преузмите превод"
 }

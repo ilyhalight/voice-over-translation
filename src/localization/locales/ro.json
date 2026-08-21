@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Incompatibil cu\"{0}\"",
   "VOTNotSupportedByLoader": "Această caracteristică nu este acceptată de script loader folosit",
   "VOTPiP": "Imagine în imagine",
-  "VOTMenu": "Meniu"
+  "VOTMenu": "Meniu",
+  "VOTDownloadTranslation": "Descărcați traducerea"
 }

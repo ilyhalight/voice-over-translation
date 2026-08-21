@@ -70,8 +70,6 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
   const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
   const [activeVoice, setActiveVoice] = createSignal(finalProps.activeVoice);
 
-  let standardItem!: HTMLElement;
-  let liveItem!: HTMLElement;
   let showTimer: ReturnType<typeof setTimeout> | undefined;
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -289,18 +287,6 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     hideNow();
   }
 
-  function moveFocus(direction: 1 | -1): void {
-    const items = [standardItem, liveItem];
-    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-    const nextIndex =
-      currentIndex < 0
-        ? activeVoice() === "standard"
-          ? 0
-          : 1
-        : (currentIndex + direction + items.length) % items.length;
-    items[nextIndex]?.focus();
-  }
-
   createEffect(() => {
     setActiveVoice(finalProps.activeVoice);
   });
@@ -400,12 +386,10 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     title: string,
     subtitle: string,
     icon: JSX.Element,
-    itemRef: (element: HTMLElement) => void,
   ): JSX.Element => {
     const isActive = () => activeVoice() === voice;
     return (
       <vot-block
-        ref={itemRef}
         classList={{
           "vot-voice-popover__item": true,
           "vot-voice-popover__item--active": isActive(),
@@ -414,19 +398,11 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
         tabIndex={isActive() ? 0 : -1}
         aria-checked={isActive()}
         data-voice={voice}
-        onPointerDown={(event) => {
-          if (event.button !== 0 && event.pointerType !== "touch") {
-            return;
-          }
+        onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
           selectVoice(voice);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            selectVoice(voice);
-          }
+          queueMicrotask(() => anchor().focus());
         }}
       >
         <vot-block
@@ -479,30 +455,10 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
         hideNow();
       }}
       onKeyDown={(event) => {
-        switch (event.key) {
-          case "ArrowDown":
-          case "ArrowRight":
-            event.preventDefault();
-            moveFocus(1);
-            break;
-          case "ArrowUp":
-          case "ArrowLeft":
-            event.preventDefault();
-            moveFocus(-1);
-            break;
-          case "Home":
-            event.preventDefault();
-            standardItem.focus();
-            break;
-          case "End":
-            event.preventDefault();
-            liveItem.focus();
-            break;
-          case "Escape":
-            event.preventDefault();
-            hideNow();
-            queueMicrotask(() => anchor().focus());
-            break;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          hideNow();
+          queueMicrotask(() => anchor().focus());
         }
       }}
     >
@@ -511,7 +467,6 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
         localizationProvider.get("VOTStandardVoicesTitle"),
         localizationProvider.get("VOTStandardVoicesSubtitle"),
         <StandardVoiceIcon />,
-        (element) => (standardItem = element),
       )}
       <vot-block class="vot-voice-popover__divider" />
       {voiceItem(
@@ -519,7 +474,6 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
         localizationProvider.get("VOTLiveVoicesTitle"),
         localizationProvider.get("VOTLiveVoicesSubtitle"),
         <LiveVoiceIcon />,
-        (element) => (liveItem = element),
       )}
     </vot-block>
   );

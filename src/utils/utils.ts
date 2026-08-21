@@ -172,6 +172,13 @@ function triggerBlobDownload(blob: Blob, filename: string): boolean {
   anchor.style.position = "fixed";
   anchor.style.left = "-9999px";
   anchor.style.top = "0";
+  anchor.addEventListener(
+    "click",
+    (event) => {
+      event.stopPropagation();
+    },
+    { once: true },
+  );
   (document.body ?? document.documentElement).append(anchor);
 
   try {

@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Incompatible con \" {0}\"",
   "VOTNotSupportedByLoader": "Esta función no es compatible con el cargador de scripts usado",
   "VOTPiP": "Imagen en imagen",
-  "VOTMenu": "Menú"
+  "VOTMenu": "Menú",
+  "VOTDownloadTranslation": "Descargar traducción"
 }

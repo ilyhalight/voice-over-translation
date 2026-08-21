@@ -322,7 +322,8 @@ export type Phrase =
   | "VOTIncompatibleWith"
   | "VOTNotSupportedByLoader"
   | "VOTPiP"
-  | "VOTMenu";
+  | "VOTMenu"
+  | "VOTDownloadTranslation";
 
 export type Phrases = {
   recommended: string;
@@ -588,6 +589,7 @@ export type Phrases = {
   VOTNotSupportedByLoader: string;
   VOTPiP: string;
   VOTMenu: string;
+  VOTDownloadTranslation: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

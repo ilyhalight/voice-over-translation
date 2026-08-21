@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Nem kompatibilis a\"{0} \" - vel",
   "VOTNotSupportedByLoader": "Ezt a funkciót nem támogatja a használt script loader",
   "VOTPiP": "Kép a képben",
-  "VOTMenu": "Menü"
+  "VOTMenu": "Menü",
+  "VOTDownloadTranslation": "Letöltés fordítás"
 }

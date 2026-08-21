@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\"এর সাথে অসঙ্গতিপূর্ণ",
   "VOTNotSupportedByLoader": "এই বৈশিষ্ট্যটি ব্যবহৃত স্ক্রিপ্ট লোডার দ্বারা সমর্থিত নয়",
   "VOTPiP": "ছবিতে ছবি",
-  "VOTMenu": "মেনু"
+  "VOTMenu": "মেনু",
+  "VOTDownloadTranslation": "অনুবাদ ডাউনলোড করুন"
 }

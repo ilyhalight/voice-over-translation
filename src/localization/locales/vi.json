@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Không tương thích với \" {0}\"",
   "VOTNotSupportedByLoader": "Tính năng này không được hỗ trợ bởi trình tải tập lệnh đã sử dụng",
   "VOTPiP": "Hình ảnh trong hình ảnh",
-  "VOTMenu": "Thực đơn"
+  "VOTMenu": "Thực đơn",
+  "VOTDownloadTranslation": "Tải xuống bản dịch"
 }

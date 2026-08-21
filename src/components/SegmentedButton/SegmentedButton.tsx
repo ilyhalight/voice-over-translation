@@ -1,10 +1,21 @@
-import { createSignal, type JSX, mergeProps, Show } from "solid-js";
-import { effect } from "solid-js/web";
+import {
+  createEffect,
+  createSignal,
+  type JSX,
+  mergeProps,
+  Show,
+} from "solid-js";
 
 import "./SegmentedButton.scss";
 
 import { localizationProvider } from "../../localization/localizationProvider";
+import { setSettings, settings } from "../../stores/settings";
 import type { Direction, Status } from "../../types/components/votButton";
+import {
+  isKeyboardActivation,
+  isPrimaryPointerAction,
+} from "../../ui/components/componentShared";
+import { isTouchFirstInput } from "../../utils/inputDevice";
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
 import { MenuIcon } from "../Icons/MenuIcon";
@@ -20,18 +31,30 @@ import {
 
 export type SegmentedButtonTooltipPosition = "right" | "left" | "bottom";
 
+export type SegmentedButtonControls = {
+  closeFloatingUI: () => void;
+  getVoicePopoverEl: () => HTMLElement | undefined;
+  isVoicePopoverOpen: () => boolean;
+};
+
 export type SegmentedButtonProps = {
+  controlsRef?: (controls: SegmentedButtonControls) => void;
   direction?: Direction;
   tooltipPos?: SegmentedButtonTooltipPosition;
   status?: Status;
   isLoading?: boolean;
+  isTransparent?: boolean;
   isSubtitlesActive?: boolean;
+  isDragging?: boolean;
   showPipButton?: boolean;
-  activeVoice?: VoiceType;
   layoutRoot?: HTMLElement;
   labelText: string;
-  onTranslate?: () => void;
+  menuOpened?: boolean;
+  onTranslateClick?: () => void;
   onVoiceChange?: (voice: VoiceType) => void;
+  onSubtitlesClick?: () => void;
+  onMenuClick?: () => void;
+  onPiPClick?: () => void;
   ref?: (element: HTMLElement) => void;
 };
 
@@ -43,8 +66,10 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
       status: "none",
       isLoading: false,
       isSubtitlesActive: false,
+      isTransparent: false,
+      isDragging: false,
       showPipButton: false,
-      activeVoice: "standard" as VoiceType,
+      menuOpened: false,
     } as Partial<SegmentedButtonProps>,
     props,
   );
@@ -57,48 +82,80 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
   const [pipButton, setPiPButton] = createSignal<HTMLElement>();
   const [menuButton, setMenuButton] = createSignal<HTMLElement>();
 
-  const [direction, setDirection] = createSignal(finalProps.direction);
-  const [tooltipPos, setTooltipPos] = createSignal(finalProps.tooltipPos);
-  const [status, setStatus] = createSignal(finalProps.status);
-  const [isLoading, setIsLoading] = createSignal(finalProps.isLoading);
-  const [isSubtitlesActive, setIsSubtitlesActive] = createSignal(
-    finalProps.isSubtitlesActive,
-  );
-  const [labelText, setLabelText] = createSignal(finalProps.labelText);
-  const [showPipButton, setShowPipButton] = createSignal(
-    finalProps.showPipButton,
-  );
-  const [activeVoice, setActiveVoice] = createSignal(finalProps.activeVoice);
   const [isVoicePopoverOpen, setIsVoicePopoverOpen] = createSignal(false);
   const [suppressVoiceTooltip, setSuppressVoiceTooltip] = createSignal(false);
+  let voicePopover: HTMLElement | undefined;
   let voicePopoverControls: VoicePopoverControls | undefined;
+  let suppressRestoredVoiceTooltipFocus = false;
 
+  const needHideTooltip = () =>
+    finalProps.isTransparent || finalProps.isDragging;
+  const isColumnDirection = () => finalProps.direction === "column";
+  const allowsVoicePopover = () =>
+    !isColumnDirection() || finalProps.status !== "error";
+  const shouldUseTouchVoiceInteraction = (event: PointerEvent) =>
+    event.pointerType === "touch" || isTouchFirstInput();
+  const shouldUseHoverVoiceInteraction = (event: PointerEvent) =>
+    event.pointerType !== "touch" && !isTouchFirstInput();
   const voicePopoverAnchor = () =>
-    direction() === "column" ? translationButton() : voiceSelectionButton();
-  const voicePopoverLayoutRoot = () =>
+    isColumnDirection() ? translationButton() : voiceSelectionButton();
+
+  const activeVoice = () => (settings.useLivelyVoice ? "live" : "standard");
+  const tooltipLayoutRoot = () =>
     finalProps.layoutRoot ??
     segmentedButton()?.closest<HTMLElement>(".vot-overlay-root") ??
     document.body;
 
   const handleVoiceChange = (voice: VoiceType) => {
-    setActiveVoice(voice);
+    if (voice === activeVoice()) {
+      return;
+    }
+
+    setSettings("useLivelyVoice", voice === "live");
     finalProps.onVoiceChange?.(voice);
+  };
+
+  const handleVoiceTooltipFocus = () => {
+    if (finalProps.isDragging) {
+      return;
+    }
+    if (suppressRestoredVoiceTooltipFocus) {
+      return;
+    }
+    setSuppressVoiceTooltip(false);
+  };
+
+  const handleVoiceTooltipPointerEnter = () => {
+    if (finalProps.isDragging) {
+      return;
+    }
+    suppressRestoredVoiceTooltipFocus = false;
+    setSuppressVoiceTooltip(false);
+  };
+
+  const handleVoiceTooltipFocusOut = () => {
+    suppressRestoredVoiceTooltipFocus = false;
   };
 
   const handleVoicePopoverOpenChange = (isOpen: boolean) => {
     setSuppressVoiceTooltip(true);
     setIsVoicePopoverOpen(isOpen);
+    suppressRestoredVoiceTooltipFocus = !isOpen;
   };
 
-  effect(() => {
-    setDirection(finalProps.direction);
-    setTooltipPos(finalProps.tooltipPos);
-    setStatus(finalProps.status);
-    setIsLoading(finalProps.isLoading);
-    setIsSubtitlesActive(finalProps.isSubtitlesActive);
-    setLabelText(finalProps.labelText);
-    setShowPipButton(finalProps.showPipButton);
-    setActiveVoice(finalProps.activeVoice);
+  finalProps.controlsRef?.({
+    closeFloatingUI: () => {
+      voicePopoverControls?.hideNow();
+      setSuppressVoiceTooltip(true);
+    },
+    getVoicePopoverEl: () => voicePopover,
+    isVoicePopoverOpen,
+  });
+
+  createEffect(() => {
+    if (finalProps.status === "error" && finalProps.direction === "column") {
+      voicePopoverControls?.hideNow();
+    }
   });
 
   return (
@@ -108,53 +165,90 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
         finalProps.ref?.(element);
       }}
       class="vot-segmented-button"
-      data-direction={direction()}
-      data-status={status()}
-      data-loading={isLoading()}
+      data-direction={finalProps.direction}
+      data-status={finalProps.status}
+      data-loading={finalProps.isLoading}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }}
     >
       <RawButton
         ref={(element) => setTranslationButton(element)}
         class="vot-segment vot-translate-button"
         buttonProps={{
-          "aria-label": labelText(),
+          "aria-label": finalProps.labelText,
           onPointerEnter: (event) => {
-            setSuppressVoiceTooltip(false);
-            if (direction() === "column" && event.pointerType !== "touch") {
+            handleVoiceTooltipPointerEnter();
+            if (
+              isColumnDirection() &&
+              allowsVoicePopover() &&
+              shouldUseHoverVoiceInteraction(event)
+            ) {
               voicePopoverControls?.scheduleShow();
             }
           },
           onPointerLeave: (event) => {
-            setSuppressVoiceTooltip(false);
-            if (direction() === "column" && event.pointerType !== "touch") {
+            if (isColumnDirection() && shouldUseHoverVoiceInteraction(event)) {
               voicePopoverControls?.scheduleHide();
             }
           },
-          onFocusOut: () => setSuppressVoiceTooltip(false),
-        }}
-        onClick={(event) => {
-          if (direction() === "column") {
-            event.stopPropagation();
-            voicePopoverControls?.toggle();
-            return;
-          }
-          finalProps.onTranslate?.();
+          onFocusIn: handleVoiceTooltipFocus,
+          onFocusOut: handleVoiceTooltipFocusOut,
+          onKeyDown: (event) => {
+            if (
+              event.target !== event.currentTarget ||
+              !isKeyboardActivation(event)
+            ) {
+              return;
+            }
+
+            event.preventDefault();
+            finalProps.onTranslateClick?.();
+          },
+          onPointerUp: (event) => {
+            if (!isPrimaryPointerAction(event)) {
+              return;
+            }
+
+            if (
+              isColumnDirection() &&
+              allowsVoicePopover() &&
+              shouldUseTouchVoiceInteraction(event)
+            ) {
+              event.preventDefault();
+              event.stopPropagation();
+              voicePopoverControls?.toggle();
+              return;
+            }
+
+            finalProps.onTranslateClick?.();
+          },
         }}
       >
-        <TranslateIcon loading={isLoading()} />
+        <TranslateIcon loading={finalProps.isLoading} />
         <Show
-          when={direction() !== "column"}
+          when={!isColumnDirection()}
           fallback={
             <Tooltip
               content={localizationProvider.get("translateVideo")}
+              parentElement={tooltipLayoutRoot()}
               target={translationButton()}
-              position={tooltipPos()}
+              position={finalProps.tooltipPos}
               autoLayout={false}
               bordered={false}
-              hidden={isVoicePopoverOpen() || suppressVoiceTooltip()}
+              hidden={
+                needHideTooltip() ||
+                isVoicePopoverOpen() ||
+                suppressVoiceTooltip()
+              }
             />
           }
         >
-          <vot-block class="vot-segment-label">{labelText()}</vot-block>
+          <vot-block class="vot-segment-label">
+            {finalProps.labelText}
+          </vot-block>
           <RawButton
             class="vot-dropdown-arrow"
             ref={(element) => setVoiceSelectionButton(element)}
@@ -162,24 +256,47 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
               "aria-label": localizationProvider.get("VOTVoiceSelection"),
               "aria-haspopup": "menu",
               "aria-expanded": isVoicePopoverOpen(),
-              onPointerEnter: () => setSuppressVoiceTooltip(false),
-              onPointerLeave: () => setSuppressVoiceTooltip(false),
-              onFocusOut: () => setSuppressVoiceTooltip(false),
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              voicePopoverControls?.toggle();
+              onPointerEnter: handleVoiceTooltipPointerEnter,
+              onFocusIn: handleVoiceTooltipFocus,
+              onFocusOut: handleVoiceTooltipFocusOut,
+              onKeyDown: (event) => {
+                if (!isKeyboardActivation(event)) {
+                  return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                voicePopoverControls?.toggle();
+              },
+              onPointerDown: (event) => {
+                if (isPrimaryPointerAction(event)) {
+                  event.stopPropagation();
+                }
+              },
+              onPointerUp: (event) => {
+                if (!isPrimaryPointerAction(event)) {
+                  return;
+                }
+
+                event.stopPropagation();
+                voicePopoverControls?.toggle();
+              },
             }}
           >
             <ChevronIcon />
             <Tooltip
               content={localizationProvider.get("VOTVoiceSelection")}
+              parentElement={tooltipLayoutRoot()}
               target={voiceSelectionButton()}
               edgeAnchor={translationButton()}
-              position={tooltipPos()}
+              position={finalProps.tooltipPos}
               autoLayout={false}
               bordered={false}
-              hidden={isVoicePopoverOpen() || suppressVoiceTooltip()}
+              hidden={
+                needHideTooltip() ||
+                isVoicePopoverOpen() ||
+                suppressVoiceTooltip()
+              }
             />
           </RawButton>
         </Show>
@@ -189,36 +306,74 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
         class="vot-segment-only-icon"
         ref={(element) => setSubtitlesButton(element)}
         buttonProps={{
-          "data-active": isSubtitlesActive(),
+          "data-active": finalProps.isSubtitlesActive,
           "aria-label": localizationProvider.get("VOTSubtitles"),
-          "aria-pressed": isSubtitlesActive(),
+          "aria-pressed": finalProps.isSubtitlesActive,
+          onKeyDown: (event) => {
+            if (!isKeyboardActivation(event)) {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            finalProps.onSubtitlesClick?.();
+          },
+          onPointerUp: (event) => {
+            if (!isPrimaryPointerAction(event)) {
+              return;
+            }
+
+            event.stopPropagation();
+            finalProps.onSubtitlesClick?.();
+          },
         }}
       >
         <SubtitlesIcon />
         <Tooltip
           content={localizationProvider.get("VOTSubtitles")}
+          parentElement={tooltipLayoutRoot()}
           target={subtitlesButton()}
-          position={tooltipPos()}
+          position={finalProps.tooltipPos}
           autoLayout={false}
           bordered={false}
+          hidden={needHideTooltip()}
         />
       </RawButton>
-      <Show when={showPipButton()}>
+      <Show when={finalProps.showPipButton}>
         <vot-block class="vot-separator" />
         <RawButton
           class="vot-segment-only-icon"
           ref={(element) => setPiPButton(element)}
           buttonProps={{
             "aria-label": localizationProvider.get("VOTPiP"),
+            onKeyDown: (event) => {
+              if (!isKeyboardActivation(event)) {
+                return;
+              }
+
+              event.preventDefault();
+              event.stopPropagation();
+              finalProps.onPiPClick?.();
+            },
+            onPointerUp: (event) => {
+              if (!isPrimaryPointerAction(event)) {
+                return;
+              }
+
+              event.stopPropagation();
+              finalProps.onPiPClick?.();
+            },
           }}
         >
           <PiPIcon />
           <Tooltip
             content={localizationProvider.get("VOTPiP")}
+            parentElement={tooltipLayoutRoot()}
             target={pipButton()}
-            position={tooltipPos()}
+            position={finalProps.tooltipPos}
             autoLayout={false}
             bordered={false}
+            hidden={needHideTooltip()}
           />
         </RawButton>
       </Show>
@@ -229,27 +384,47 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
         buttonProps={{
           "aria-label": localizationProvider.get("VOTMenu"),
           "aria-haspopup": "dialog",
-          "aria-expanded": "false",
+          "aria-expanded": finalProps.menuOpened,
+          onKeyDown: (event) => {
+            if (!isKeyboardActivation(event)) {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            finalProps.onMenuClick?.();
+          },
+          onPointerUp: (event) => {
+            if (!isPrimaryPointerAction(event)) {
+              return;
+            }
+
+            event.stopPropagation();
+            finalProps.onMenuClick?.();
+          },
         }}
       >
         <MenuIcon />
         <Tooltip
           content={localizationProvider.get("VOTMenu")}
+          parentElement={tooltipLayoutRoot()}
           target={menuButton()}
-          position={tooltipPos()}
+          position={finalProps.tooltipPos}
           autoLayout={false}
           bordered={false}
+          hidden={needHideTooltip()}
         />
       </RawButton>
       <Show when={voicePopoverAnchor()}>
         {(anchor) => (
           <VoicePopover
+            ref={(element) => (voicePopover = element)}
             activeVoice={activeVoice()}
             anchor={anchor()}
-            layoutRoot={voicePopoverLayoutRoot()}
+            layoutRoot={tooltipLayoutRoot()}
             controlsRef={(controls) => (voicePopoverControls = controls)}
             onOpenChange={handleVoicePopoverOpenChange}
-            onTranslate={finalProps.onTranslate}
+            onTranslate={finalProps.onTranslateClick}
             onVoiceChange={handleVoiceChange}
           />
         )}

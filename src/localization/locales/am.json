@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "ከ \" {0}\"ጋር የማይጣጣም",
   "VOTNotSupportedByLoader": "ይህ ባህሪ ጥቅም ላይ የዋለ ስክሪፕት ጫኚ አይደገፍም",
   "VOTPiP": "በሥዕል ላይ የሚገኝ ሥዕል",
-  "VOTMenu": "ሜኑ"
+  "VOTMenu": "ሜኑ",
+  "VOTDownloadTranslation": "ትርጉም አውርድ"
 }

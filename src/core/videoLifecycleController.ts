@@ -124,8 +124,8 @@ export class VideoLifecycleController {
   }
 
   private showOverlayButton(overlayView: LifecycleOverlayView): void {
-    overlayView.votButton.container.hidden = false;
-    overlayView.votButton.opacity = 1;
+    overlayView.overlayViewControls.setButtonHidden(false);
+    overlayView.overlayViewControls.setButtonOpacity(1);
     this.host.queueOverlayAutoHide?.();
   }
 
@@ -227,9 +227,12 @@ export class VideoLifecycleController {
         err,
       );
       this.host.videoData = undefined;
-      hideLifecycleOverlay(this.host.uiManager.votOverlayView, {
-        hideMenu: true,
-      });
+      hideLifecycleOverlay(
+        this.host.uiManager.votOverlayView.overlayViewControls,
+        {
+          hideMenu: true,
+        },
+      );
       return;
     }
 
@@ -318,14 +321,17 @@ export class VideoLifecycleController {
     this.host.firstPlay = true;
 
     const overlayView = this.host.uiManager.votOverlayView;
-    resetAndHideLifecycle(this.host, overlayView, { requireVideoData: true });
+    const overlayViewControls = overlayView.overlayViewControls;
+    resetAndHideLifecycle(this.host, overlayViewControls, {
+      requireVideoData: true,
+    });
 
     const noSrc =
       !this.host.video.src &&
       !this.host.video.currentSrc &&
       !this.host.video.srcObject;
     if (noSrc) {
-      hideLifecycleOverlay(overlayView, { hideMenu: true });
+      hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
     }
 
     const nextContainer = this.resolveContainer();
@@ -347,7 +353,7 @@ export class VideoLifecycleController {
       debug.log(
         `[VideoLifecycle][session:${sessionId}] No videoId resolved, hiding overlay`,
       );
-      hideLifecycleOverlay(overlayView, { hideMenu: true });
+      hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
       return;
     }
 

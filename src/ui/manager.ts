@@ -1,8 +1,4 @@
-import {
-  actualCompatVersion,
-  maxAudioVolume,
-  repositoryUrl,
-} from "../config/config";
+import { actualCompatVersion, repositoryUrl } from "../config/config";
 import { localizationProvider } from "../localization/localizationProvider";
 import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
@@ -14,7 +10,6 @@ import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import {
-  clamp,
   clearFileName,
   type DownloadBlobOptions,
   downloadBlob,
@@ -134,7 +129,6 @@ export class UIManager {
 
     this.votOverlayView = new OverlayView({
       mount: this.mount,
-      globalPortal: this.votGlobalPortal,
       data: this.data,
       videoHandler: this.videoHandler,
       intervalIdleChecker: this.intervalIdleChecker,
@@ -364,34 +358,15 @@ export class UIManager {
 
         await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
       })
-      .addEventListener("change:showVideoVolume", () => {
-        this.withInitializedOverlayView((overlayView) => {
-          if (!overlayView.videoVolumeSlider || !overlayView.votButton) {
-            return;
-          }
-
-          overlayView.videoVolumeSlider.container.hidden =
-            !this.data.showVideoSlider ||
-            overlayView.votButton.status !== "success";
-        });
-      })
       .addEventListener("change:audioBooster", async () => {
-        this.withInitializedOverlayView((overlayView) => {
-          if (!overlayView.translationVolumeSlider) {
-            return;
-          }
+        const overlayViewControls = this.votOverlayView.overlayViewControls;
+        if (!overlayViewControls) {
+          return;
+        }
 
-          const currentVolume = overlayView.translationVolumeSlider.value;
-          const maxVolume =
-            this.data.audioBooster && !this.data.syncVolume
-              ? maxAudioVolume
-              : 100;
-          overlayView.translationVolumeSlider.max = maxVolume;
-          const nextVolume = clamp(currentVolume, 0, maxVolume);
-          overlayView.translationVolumeSlider.value = nextVolume;
-          this.videoHandler?.onTranslationVolumeSliderSynced(nextVolume);
-          this.videoHandler?.syncTranslationPlaybackVolume();
-        });
+        const nextTranslation = overlayViewControls.getTranslationVolume();
+        this.videoHandler?.onTranslationVolumeSliderSynced(nextTranslation);
+        this.videoHandler?.syncTranslationPlaybackVolume();
       })
       .addEventListener("change:syncVolume", (checked) => {
         if (!this.videoHandler) {
@@ -399,30 +374,22 @@ export class UIManager {
         }
         this.videoHandler.setupAudioSettings();
 
-        this.withInitializedOverlayView((overlayView) => {
-          const videoSlider = overlayView.videoVolumeSlider;
-          const translationSlider = overlayView.translationVolumeSlider;
-          if (!videoSlider || !translationSlider) {
-            return;
-          }
+        const overlayViewControls = this.votOverlayView.overlayViewControls;
+        if (!overlayViewControls) {
+          return;
+        }
 
-          const maxVolume =
-            this.data.audioBooster && !checked ? maxAudioVolume : 100;
-          translationSlider.max = maxVolume;
-          const nextTranslation = clamp(translationSlider.value, 0, maxVolume);
-          translationSlider.value = nextTranslation;
-          this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
-          this.videoHandler.syncTranslationPlaybackVolume();
+        const nextTranslation = overlayViewControls.getTranslationVolume();
+        this.videoHandler.syncVolumeWrapper("translation", nextTranslation);
+        this.videoHandler.syncTranslationPlaybackVolume();
+        if (!checked) {
+          return;
+        }
 
-          if (!checked) {
-            return;
-          }
-
-          this.videoHandler.resetVolumeLinkState(
-            Number(videoSlider.value),
-            nextTranslation,
-          );
-        });
+        this.videoHandler.resetVolumeLinkState(
+          overlayViewControls.getVideoVolume(),
+          nextTranslation,
+        );
       })
       .addEventListener("change:subtitlesHighlightWords", (checked) => {
         this.updateSubtitlesWidgetSetting(
@@ -515,17 +482,6 @@ export class UIManager {
           widget.resetTranslationContext(true);
         });
       })
-      .addEventListener("change:showPiPButton", () => {
-        this.withInitializedOverlayView((overlayView) => {
-          if (!overlayView.votButton) {
-            return;
-          }
-
-          overlayView.votButton.pipButton.hidden =
-            overlayView.votButton.separator2.hidden =
-              !overlayView.pipButtonVisible;
-        });
-      })
       .addEventListener("select:buttonPosition", (item) => {
         this.withInitializedOverlayView((overlayView) => {
           const preferredPosition = normalizeButtonPosition(
@@ -562,10 +518,10 @@ export class UIManager {
   }
 
   private async handleDownloadTranslationClick() {
-    const overlayView = this.votOverlayView;
+    const overlayViewControls = this.votOverlayView?.overlayViewControls;
     const videoHandler = this.videoHandler;
     const download = videoHandler?.downloadTranslation;
-    if (!overlayView?.isInitialized() || !download || !videoHandler.videoData) {
+    if (!download || !videoHandler.videoData) {
       return;
     }
 
@@ -577,7 +533,6 @@ export class UIManager {
       return;
     }
 
-    const downloadButton = overlayView.downloadTranslationButton;
     const downloadUrl = download.url;
     const filename = this.data.downloadWithName
       ? clearFileName(downloadVideoData.downloadTitle)
@@ -586,11 +541,10 @@ export class UIManager {
     const saveOptions: DownloadBlobOptions = { preferShare: isMobile };
 
     const setProgress = (progress: number) => {
-      if (downloadButton) {
-        downloadButton.progress = progress;
-      }
+      overlayViewControls?.setTranslationProgress(progress);
     };
 
+    overlayViewControls?.setShowTranslationProgress(true);
     setProgress(0);
     try {
       await this.downloadTranslationAudio(
@@ -605,6 +559,7 @@ export class UIManager {
         globalThis.open(downloadUrl, "_blank")?.focus();
       }
     } finally {
+      overlayViewControls?.setShowTranslationProgress(false);
       setProgress(0);
     }
   }
@@ -637,9 +592,7 @@ export class UIManager {
 
   private clearDownloadTranslation(videoHandler: VideoHandler): void {
     videoHandler.downloadTranslation = null;
-    if (this.votOverlayView?.downloadTranslationButton) {
-      this.votOverlayView.downloadTranslationButton.hidden = true;
-    }
+    this.votOverlayView?.overlayViewControls?.setShowDownloadTranslation(false);
   }
 
   private async downloadTranslationAudio(
@@ -701,9 +654,12 @@ export class UIManager {
     }
 
     // Preserve overlay state across UI rebuild.
-    const prevButtonOpacity = this.votOverlayView.votButton.opacity;
-    const prevButtonHidden = this.votOverlayView.votButton.container.hidden;
-    const prevMenuHidden = this.votOverlayView.votMenu.hidden;
+    const prevButtonOpacity =
+      this.votOverlayView.overlayViewControls.getButtonOpacity();
+    const prevButtonHidden =
+      this.votOverlayView.overlayViewControls.getButtonHidden();
+    const prevMenuHidden =
+      this.votOverlayView.overlayViewControls.getMenuHidden();
     const prevButtonPos = normalizeButtonPosition(this.data.buttonPos);
     const settingsWasOpen =
       this.votSettingsView?.dialog?.container?.hidden === false;
@@ -721,9 +677,11 @@ export class UIManager {
       const { position, direction } =
         this.votOverlayView.calcButtonLayout(prevButtonPos);
       this.votOverlayView.updateButtonLayout(position, direction);
-      this.votOverlayView.votMenu.hidden = prevMenuHidden;
-      this.votOverlayView.votButton.container.hidden = prevButtonHidden;
-      this.votOverlayView.votButton.opacity = prevButtonOpacity;
+      this.votOverlayView.overlayViewControls.setMenuHidden(prevMenuHidden);
+      this.votOverlayView.overlayViewControls.setButtonHidden(prevButtonHidden);
+      this.votOverlayView.overlayViewControls.setButtonOpacity(
+        prevButtonOpacity,
+      );
     } catch (err) {
       debug.warn(
         "[VOT] Failed to restore overlay state after menu reload",
@@ -763,8 +721,8 @@ export class UIManager {
 
     await handleTranslationButtonCommand({
       videoHandler: this.videoHandler,
-      currentStatus: this.votOverlayView.votButton.status,
-      currentLoading: this.votOverlayView.votButton.loading,
+      currentStatus: this.votOverlayView.overlayViewControls?.getStatus(),
+      currentLoading: this.votOverlayView.overlayViewControls?.getIsLoading(),
       transformBtn: (status, text) => {
         this.transformBtn(status, text);
       },
@@ -787,28 +745,11 @@ export class UIManager {
       throw new Error("[VOT] OverlayView isn't initialized");
     }
 
-    this.votOverlayView.votButton.status = status;
-    this.votOverlayView.votButton.loading =
-      status === "error" && this.isLoadingText(text);
-    this.votOverlayView.votButton.setText(text);
-    this.votOverlayView.votButtonTooltip.setContent(text);
-
-    const { voicePopover, votButtonTooltip } = this.votOverlayView;
-    const centered = this.votOverlayView.votButton.direction !== "column";
-
-    if (status === "error") {
-      if (!centered) {
-        voicePopover?.cancelShow();
-        voicePopover?.hideNow();
-        this.votOverlayView.votButton.setVoiceMenuOpen(false);
-      }
-      votButtonTooltip.dismissImmediate();
-      this.votOverlayView.syncTranslateButtonTooltip();
-    } else {
-      votButtonTooltip.dismissImmediate();
-      this.votOverlayView.syncTranslateButtonTooltip();
-      this.votOverlayView.rescheduleVoicePopoverIfHovered();
-    }
+    this.votOverlayView.overlayViewControls?.setStatus(status);
+    this.votOverlayView.overlayViewControls?.setIsLoading(
+      status === "error" && this.isLoadingText(text),
+    );
+    this.votOverlayView.overlayViewControls?.setLabelText(text);
 
     return this;
   }

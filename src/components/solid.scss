@@ -15,6 +15,8 @@
 @use "Button/DetailsButton.scss";
 @use "Button/HotkeyButton.scss";
 
+@use "Icons/ProgressIcon.scss";
+
 @use "Control/Select.scss";
 @use "Control/Switch.scss";
 @use "Control/Slider.scss";
@@ -27,7 +29,13 @@
 @use "Textfield/Textfield.scss";
 
 @use "SegmentedButton/SegmentedButton.scss";
+@use "SegmentedButton/SegmentedButtonOverlay.scss";
+@use "SegmentedButton/PreviewSegmentedButtonOverlay.scss";
 @use "SegmentedButton/VoicePopover.scss";
+@use "SegmentedButton/SegmentedButtonMenu.scss";
+@use "SegmentedButton/SegmentedButtonMenuOverlay.scss";
 
 @use "Utils/OrBlock.scss";
+@use "Utils/Menu.scss";
 @use "Utils/Tooltip.scss";
+@use "Utils/Overlay.scss";

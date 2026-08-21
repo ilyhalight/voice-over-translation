@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Tidak kompatibel dengan \"{0}\"",
   "VOTNotSupportedByLoader": "Fitur ini tidak didukung oleh pemuat skrip bekas",
   "VOTPiP": "Gambar dalam gambar",
-  "VOTMenu": "Menu"
+  "VOTMenu": "Menu",
+  "VOTDownloadTranslation": "Unduh terjemahan"
 }

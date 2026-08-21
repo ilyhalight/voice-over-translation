@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0} \" bilan mos kelmaydi",
   "VOTNotSupportedByLoader": "Ushbu xususiyat ishlatilgan skript loader tomonidan qo'llab-quvvatlanmaydi",
   "VOTPiP": "Rasmdagi rasm",
-  "VOTMenu": "Menyu"
+  "VOTMenu": "Menyu",
+  "VOTDownloadTranslation": "Tarjimani yuklab oling"
 }

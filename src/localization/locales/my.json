@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\"နဲ့မကိုက်ညီဘူး။",
   "VOTNotSupportedByLoader": "ဤလုပ်ဆောင်ချက်ကိုအသုံးပြုထားသော script loader မှမထောက်ပံ့ပါ။",
   "VOTPiP": "ပုံထဲကပုံ",
-  "VOTMenu": "ဟင်းလျာစာရင်း"
+  "VOTMenu": "ဟင်းလျာစာရင်း",
+  "VOTDownloadTranslation": "ဘာသာပြန်ကိုဒေါင်းလုပ်ဆွဲပါ"
 }

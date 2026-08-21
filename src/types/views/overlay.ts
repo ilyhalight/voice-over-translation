@@ -6,7 +6,6 @@ import type { OverlayMount } from "../uiManager";
 
 export type OverlayViewProps = {
   mount: OverlayMount;
-  globalPortal: HTMLElement;
   data?: Partial<StorageData>;
   videoHandler?: VideoHandler;
   intervalIdleChecker: IntervalIdleChecker;

@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Incompatibel met \" {0}\"",
   "VOTNotSupportedByLoader": "Deze functie wordt niet ondersteund door gebruikte script loader",
   "VOTPiP": "Beeld in beeld",
-  "VOTMenu": "Menu"
+  "VOTMenu": "Menu",
+  "VOTDownloadTranslation": "Vertaling downloaden"
 }

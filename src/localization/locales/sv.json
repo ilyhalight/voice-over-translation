@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Oförenlig med\"{0}\"",
   "VOTNotSupportedByLoader": "Den här funktionen stöds inte av använd skriptlastare",
   "VOTPiP": "Bild i bild",
-  "VOTMenu": "Meny"
+  "VOTMenu": "Meny",
+  "VOTDownloadTranslation": "Ladda ner översättning"
 }

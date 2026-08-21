@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Yhteensopimaton \"{0}\"kanssa",
   "VOTNotSupportedByLoader": "Käytetty komentosarjalataaja ei tue tätä ominaisuutta",
   "VOTPiP": "Kuva kuvassa",
-  "VOTMenu": "Valikko"
+  "VOTMenu": "Valikko",
+  "VOTDownloadTranslation": "Lataa käännös"
 }

@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "ناسازگار با \" {0}\"",
   "VOTNotSupportedByLoader": "این ویژگی توسط بارگیری اسکریپت استفاده شده پشتیبانی نمی شود",
   "VOTPiP": "تصویر در تصویر",
-  "VOTMenu": "منو"
+  "VOTMenu": "منو",
+  "VOTDownloadTranslation": "دانلود ترجمه مقاله"
 }

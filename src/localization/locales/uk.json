@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Несумісний з \"{0}\"",
   "VOTNotSupportedByLoader": "Ця функція не підтримується використовуваним завантажувачем сценаріїв",
   "VOTPiP": "Картинка в картинці",
-  "VOTMenu": "Меню"
+  "VOTMenu": "Меню",
+  "VOTDownloadTranslation": "Завантажити переклад"
 }

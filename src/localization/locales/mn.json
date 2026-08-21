@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"00\" - той холбоотой асуудал",
   "VOTNotSupportedByLoader": "Энэ функцийг ашигласан скрипт дуудагч дэмждэггүй",
   "VOTPiP": "Зураг дээрх зураг",
-  "VOTMenu": "Цэс"
+  "VOTMenu": "Цэс",
+  "VOTDownloadTranslation": "Татаж авах орчуулга"
 }

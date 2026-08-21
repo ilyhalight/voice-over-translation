@@ -2,6 +2,7 @@ import { createSignal, type JSX, mergeProps } from "solid-js";
 import "./Slider.scss";
 import { effect } from "solid-js/web";
 import { clampNumber } from "../../utils/number";
+import { clamp } from "../../utils/utils";
 
 export type SliderProps = {
   min?: number;
@@ -30,25 +31,19 @@ export function Slider(props: SliderProps): JSX.Element {
 
   let pointerStart: PointerStart | undefined;
 
-  const [value, setValue] = createSignal(finalProps.value);
-  const [disabled, setDisabled] = createSignal(finalProps.disabled);
-  const [min, setMin] = createSignal(finalProps.min);
-  const [max, setMax] = createSignal(finalProps.max);
-  const [step, setStep] = createSignal(finalProps.step);
+  const clampVal = (val: number) => clamp(val, finalProps.min, finalProps.max);
+
+  const [value, setValue] = createSignal(clampVal(finalProps.value));
   const [dragging, setDragging] = createSignal(false);
 
   const progress = () => {
-    const range = max() - min();
-    const raw = range <= 0 ? 0 : (value() - min()) / range;
+    const range = finalProps.max - finalProps.min;
+    const raw = range <= 0 ? 0 : (value() - finalProps.min) / range;
     return clampNumber(raw, 0, 1);
   };
 
   effect(() => {
-    setValue(finalProps.value);
-    setDisabled(finalProps.disabled);
-    setMin(finalProps.min);
-    setMax(finalProps.max);
-    setStep(finalProps.step);
+    setValue(clampVal(finalProps.value));
   });
 
   return (
@@ -57,16 +52,16 @@ export function Slider(props: SliderProps): JSX.Element {
       class="vot-slider_new"
       data-dragging={dragging() ? "" : undefined}
       style={{ "--vot-progress": progress() }}
-      aria-disabled={disabled()}
+      aria-disabled={finalProps.disabled}
     >
       <input
         class="vot-slider_new__control"
         type="range"
-        min={min()}
-        max={max()}
+        min={finalProps.min}
+        max={finalProps.max}
         value={value()}
-        step={step()}
-        disabled={disabled()}
+        step={finalProps.step}
+        disabled={finalProps.disabled}
         onpointerdown={(event) => {
           pointerStart = {
             id: event.pointerId,

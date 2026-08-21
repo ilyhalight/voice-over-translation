@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Ayihambelani \" {0}\"",
   "VOTNotSupportedByLoader": "Lesi sici asisekelwa yi used script loader",
   "VOTPiP": "Isithombe esithombeni",
-  "VOTMenu": "Imenyu"
+  "VOTMenu": "Imenyu",
+  "VOTDownloadTranslation": "Thwebula translation"
 }

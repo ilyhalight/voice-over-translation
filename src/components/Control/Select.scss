@@ -35,6 +35,7 @@
       flex: 1;
       height: 24px;
       font-size: 0.8em;
+      margin-top: -2px;
       align-content: center;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -76,8 +77,9 @@
     border-radius: 0.75em;
     background: rgb(var(--vot-secondary-rgb, 43, 44, 48));
     color: rgba(var(--vot-onsurface-rgb), 0.87);
-    max-height: min(85vh, 500px, var(--vot-floating-available-height, 100vh));
+    max-height: min(85vh, 350px, var(--vot-floating-available-height, 100vh));
     overflow: hidden;
+    pointer-events: auto;
 
     .vot-textfield {
       margin-bottom: 0.5em;
@@ -98,6 +100,11 @@
       min-height: 0;
       overflow-y: auto;
       overscroll-behavior: contain;
+      // scrollbar styling
+      margin-right: -8px;
+      padding-right: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(var(--vot-onsurface-rgb), 0.38) transparent;
     }
 
     &__option {

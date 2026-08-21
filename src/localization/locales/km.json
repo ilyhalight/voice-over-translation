@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "មិនឆបគ្នាជាមួយ\"{0}\"",
   "VOTNotSupportedByLoader": "លក្ខណៈពិសេសនេះមិនត្រូវបានគាំទ្រដោយកម្មវិធីស្គ្រីបដែលបានប្រើ",
   "VOTPiP": "រូបភាពក្នុងរូបភាព",
-  "VOTMenu": "ម៉ឺនុយ"
+  "VOTMenu": "ម៉ឺនុយ",
+  "VOTDownloadTranslation": "ទាញយកការបកប្រែ"
 }

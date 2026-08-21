@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Ασυμβίβαστο με το\"{0}\"",
   "VOTNotSupportedByLoader": "Αυτή η λειτουργία δεν υποστηρίζεται από χρησιμοποιημένο φορτωτή δέσμης ενεργειών",
   "VOTPiP": "Εικόνα στην εικόνα",
-  "VOTMenu": "Μενού"
+  "VOTMenu": "Μενού",
+  "VOTDownloadTranslation": "Λήψη μετάφρασης"
 }

@@ -1,5 +1,5 @@
+import type { ResponseLang } from "@vot.js/shared/types/data";
 import { createStore } from "solid-js/store";
-
 import {
   DEFAULT_AUTO_HIDE_DELAY,
   DEFAULT_AUTO_VOLUME,
@@ -20,6 +20,10 @@ import { isSupportGMXhr } from "../utils/gm";
 import { calculatedResLang } from "../utils/localization";
 
 export type SettingsStore = {
+  // menu
+  defaultVolume: number;
+  responseLanguage: ResponseLang;
+  useLivelyVoice: boolean;
   // translation
   autoTranslate: boolean;
   autoSubtitles: boolean;
@@ -60,6 +64,10 @@ export type SettingsStore = {
 
 function createInitialState(): SettingsStore {
   return {
+    // menu
+    defaultVolume: 100,
+    responseLanguage: calculatedResLang,
+    useLivelyVoice: false,
     // translation
     autoTranslate: false,
     autoSubtitles: false,

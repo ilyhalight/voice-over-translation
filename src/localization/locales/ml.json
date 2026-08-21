@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0} \" എന്ന താളിലേക്കുള്ള കണ്ണികൾ",
   "VOTNotSupportedByLoader": "ഈ സവിശേഷത ഉപയോഗിച്ച സ്ക്രിപ്റ്റ് ലോഡർ പിന്തുണയ്ക്കുന്നില്ല",
   "VOTPiP": "ചിത്രത്തിൽ ചിത്രം",
-  "VOTMenu": "മെനു"
+  "VOTMenu": "മെനു",
+  "VOTDownloadTranslation": "ഡൗൺലോഡ് പരിഭാഷ"
 }

@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\"کے ساتھ مطابقت نہیں رکھتا",
   "VOTNotSupportedByLoader": "یہ خصوصیت استعمال شدہ اسکرپٹ لوڈر کی طرف سے حمایت نہیں کی جاتی ہے",
   "VOTPiP": "تصویر میں تصویر",
-  "VOTMenu": "مینو"
+  "VOTMenu": "مینو",
+  "VOTDownloadTranslation": "ترجمہ ڈاؤن لوڈ کریں"
 }

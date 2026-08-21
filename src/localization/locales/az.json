@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0} \" ilə uyğun gəlmir",
   "VOTNotSupportedByLoader": "Bu xüsusiyyət istifadə olunan skript yükləyicisi tərəfindən dəstəklənmir",
   "VOTPiP": "Şəkildə şəkil",
-  "VOTMenu": "Menyu"
+  "VOTMenu": "Menyu",
+  "VOTDownloadTranslation": "Tərcümə Yükləyin"
 }

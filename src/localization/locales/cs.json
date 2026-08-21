@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Nekompatibilní s\"{0}\"",
   "VOTNotSupportedByLoader": "Tato funkce není podporována použitým zavaděčem skriptů",
   "VOTPiP": "Obrázek v obraze",
-  "VOTMenu": "Menu"
+  "VOTMenu": "Menu",
+  "VOTDownloadTranslation": "Stáhnout překlad"
 }

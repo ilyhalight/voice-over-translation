@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Tidak serasi dengan \" {0}\"",
   "VOTNotSupportedByLoader": "Ciri ini tidak disokong oleh pemuat skrip terpakai",
   "VOTPiP": "Gambar dalam gambar",
-  "VOTMenu": "Menu"
+  "VOTMenu": "Menu",
+  "VOTDownloadTranslation": "Muat turun terjemahan"
 }

@@ -13,9 +13,9 @@
 @use "components/settings.scss";
 
 @use "components/lang-select.scss";
-@use "components/segmented-button.scss";
+// @use "components/segmented-button.scss";
 @use "components/tooltip.scss";
-@use "components/menu.scss";
+// @use "components/menu.scss";
 @use "components/voice-popover.scss";
 @use "components/dialog.scss";
 @use "components/loader.scss";
@@ -72,46 +72,6 @@
 // ------------------------------
 // Global baseline for injected UI
 // ------------------------------
-
-// Avoid host-page box-sizing and typography resets from affecting our components.
-vot-block,
-vot-block * {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-// Enforce hidden attribute behavior inside the injected UI tree.
-// Keep opt-out classes for components that use custom hidden animations.
-vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),
-vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container) {
-  display: none !important;
-}
-
-// Use a stable typography baseline for all VOT UI.
-vot-block {
-  --vot-font-family: "Roboto", "Segoe UI", system-ui, sans-serif !important;
-  font-family: var(
-    --vot-font-family,
-    "Roboto",
-    "Segoe UI",
-    system-ui,
-    sans-serif
-  ) !important;
-  font-weight: 400 !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  display: block;
-  // for reddit
-  visibility: visible !important;
-}
-
-// Keep host-page typography rules from overriding VOT font weights.
-vot-block * {
-  font-weight: inherit !important;
-}
 
 // Create an explicit stacking / blending boundary for overlays.
 .vot-portal-local,

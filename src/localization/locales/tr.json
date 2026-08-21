@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\" ile uyumsuz",
   "VOTNotSupportedByLoader": "Bu özellik, kullanılan komut dosyası yükleyicisi tarafından desteklenmez",
   "VOTPiP": "Resim içinde resim",
-  "VOTMenu": "Menü"
+  "VOTMenu": "Menü",
+  "VOTDownloadTranslation": "Çeviriyi indir"
 }

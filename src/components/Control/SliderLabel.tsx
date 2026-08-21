@@ -9,6 +9,19 @@ export type SliderLabelProps = {
   ref?: (element: HTMLElement) => void;
 };
 
+export type SliderLabelDescProps = {
+  children: JSX.Element;
+  ref?: (element: HTMLElement) => void;
+};
+
+export function SliderLabelDesc(props: SliderLabelDescProps): JSX.Element {
+  return (
+    <vot-block ref={props.ref} class="vot-slider_new-label__text-desc">
+      {props.children}
+    </vot-block>
+  );
+}
+
 export function SliderLabel(props: SliderLabelProps): JSX.Element {
   const finalProps = mergeProps(
     {

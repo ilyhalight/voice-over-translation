@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "Inkompatibbli ma '\" {0}\"",
   "VOTNotSupportedByLoader": "Din il karatteristika mhix appoġġjata minn loader tal iskript użat",
   "VOTPiP": "Stampa fl-istampa",
-  "VOTMenu": "Menu"
+  "VOTMenu": "Menu",
+  "VOTDownloadTranslation": "Niżżel it-traduzzjoni"
 }

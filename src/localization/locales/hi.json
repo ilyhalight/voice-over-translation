@@ -260,5 +260,6 @@
   "VOTIncompatibleWith": "\"{0}\"के साथ असंगत",
   "VOTNotSupportedByLoader": "यह सुविधा प्रयुक्त स्क्रिप्ट लोडर द्वारा समर्थित नहीं है",
   "VOTPiP": "चित्र में चित्र",
-  "VOTMenu": "मेनू"
+  "VOTMenu": "मेनू",
+  "VOTDownloadTranslation": "अनुवाद डाउनलोड करें"
 }

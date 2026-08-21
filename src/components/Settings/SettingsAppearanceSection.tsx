@@ -2,9 +2,12 @@ import type { JSX } from "solid-js";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import { type Position, positions } from "../../types/components/votButton";
-import type { Phrase } from "../../types/localization";
 import { isPiPAvailable } from "../../utils/utils";
-import { Select, type SelectOption } from "../Control/Select";
+import {
+  genSelectOptionsByLangs,
+  Select,
+  type SelectOption,
+} from "../Control/Select";
 import { Slider } from "../Control/Slider";
 import { SliderLabel } from "../Control/SliderLabel";
 import { SliderWrapper } from "../Control/SliderWrapper";
@@ -36,16 +39,9 @@ export function SettingsAppearanceSection(
     value: position,
   }));
 
-  const langsOptions = localizationProvider
-    .getAvailableLangs()
-    .map<SelectOption>((lang) => {
-      const phrase = `langs.${lang}` satisfies Phrase;
-      const label = localizationProvider.get(phrase);
-      return {
-        label: label === phrase ? lang.toUpperCase() : label,
-        value: lang,
-      };
-    });
+  const langsOptions = genSelectOptionsByLangs(
+    localizationProvider.getAvailableLangs(),
+  );
 
   return (
     <SettingsSection

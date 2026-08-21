@@ -5,15 +5,18 @@ import { detectServices, translateServices } from "../../core/translateApis";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
-import type { Phrase } from "../../types/localization";
 import type {
   DetectService,
   TranslateService,
 } from "../../types/translateApis";
 import { isSupportGMXhr } from "../../utils/gm";
-import { Select, type SelectOption } from "../Control/Select";
+import {
+  genSelectOptionsByLangs,
+  Select,
+  type SelectOption,
+} from "../Control/Select";
 import { Slider } from "../Control/Slider";
-import { SliderLabel } from "../Control/SliderLabel";
+import { SliderLabel, SliderLabelDesc } from "../Control/SliderLabel";
 import { SliderWrapper } from "../Control/SliderWrapper";
 import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
@@ -50,17 +53,7 @@ export function SettingsTranslationSection(
     props,
   );
 
-  const dontTranslateLanguagesOptions = availableLangs.map<SelectOption>(
-    (lang) => {
-      const phrase = `langs.${lang}` satisfies Phrase;
-      const label = localizationProvider.get(phrase);
-      return {
-        label: label === phrase ? lang.toUpperCase() : label,
-        value: lang,
-      };
-    },
-  );
-
+  const dontTranslateLanguagesOptions = genSelectOptionsByLangs(availableLangs);
   const translationTextServiceOptions = translateServices.map<SelectOption>(
     (service) => ({
       label: localizationProvider.get(`services.${service}`),
@@ -140,6 +133,11 @@ export function SettingsTranslationSection(
           disabled={!settings.enabledAutoVolume || settings.enabledSmartDucking}
         >
           {localizationProvider.get("VOTReducedVolumeLevel")}
+          <SliderLabelDesc>
+            {localizationProvider
+              .get("VOTIncompatibleWith")
+              .replace("{0}", localizationProvider.get("smartDucking"))}
+          </SliderLabelDesc>
         </SliderLabel>
         <Slider
           value={settings.autoVolume}

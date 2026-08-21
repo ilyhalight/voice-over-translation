@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import { expect, userEvent, waitFor } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 
@@ -152,6 +153,67 @@ export const SelectWithSearch: Story = {
     title: "Select something",
     options: selectOptions,
     search: true,
+  },
+};
+
+export const SelectLoading: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+    isOpen: true,
+    loading: true,
+  },
+  play: async () => {
+    const listbox = document.querySelector('[role="listbox"]');
+    const loader = document.querySelector(
+      '.vot-select_new-inner__no-options[data-searching="true"]',
+    );
+
+    await expect(listbox).toHaveAttribute("aria-busy", "true");
+    await expect(loader).not.toBeNull();
+  },
+};
+
+export const SelectStaysOpenWhenOptionsChange: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+  },
+  render: () => {
+    const [options, setOptions] = createSignal(selectOptions);
+
+    return (
+      <Select
+        title="Select something"
+        options={options()}
+        onOpen={() => {
+          queueMicrotask(() => {
+            setOptions([
+              ...selectOptions,
+              { label: "Loaded option", value: "loaded" },
+            ]);
+          });
+        }}
+      />
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = canvasElement.querySelector<HTMLElement>(
+      ".vot-select_new-outer",
+    );
+    const popup = canvasElement.querySelector<HTMLElement>(
+      ".vot-select_new-inner",
+    );
+
+    await expect(trigger).not.toBeNull();
+    await expect(popup).not.toBeNull();
+    if (!trigger || !popup) return;
+
+    await userEvent.click(trigger);
+    await waitFor(() => {
+      expect(popup).not.toHaveAttribute("hidden");
+      expect(popup).toHaveTextContent("Loaded option");
+    });
   },
 };
 
