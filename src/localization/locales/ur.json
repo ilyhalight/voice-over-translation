@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "یہ خصوصیت استعمال شدہ اسکرپٹ لوڈر کی طرف سے حمایت نہیں کی جاتی ہے",
   "VOTPiP": "تصویر میں تصویر",
   "VOTMenu": "مینو",
-  "VOTDownloadTranslation": "ترجمہ ڈاؤن لوڈ کریں"
+  "VOTDownloadTranslation": "ترجمہ ڈاؤن لوڈ کریں",
+  "VOTClose": "بند"
 }

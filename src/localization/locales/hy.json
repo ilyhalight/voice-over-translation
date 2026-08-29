@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Այս հատկությունը չի աջակցվում օգտագործված սցենարի բեռնիչի կողմից",
   "VOTPiP": "Նկար նկարում",
   "VOTMenu": "Մենու",
-  "VOTDownloadTranslation": "Ներբեռնել թարգմանությունը"
+  "VOTDownloadTranslation": "Ներբեռնել թարգմանությունը",
+  "VOTClose": "Փակել"
 }

@@ -33,3 +33,7 @@ bun localize
 ```
 
 Only use the new localization key after it has been added through this command.
+
+## Commits
+
+ALWAYS write commit messages in English. You MUST use the semantic commits format. NEVER use `src/localization/locales/*` files to write commit messages, except in the case where these are the only changes.

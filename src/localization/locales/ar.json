@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "هذه الميزة غير مدعومة من قبل محمل البرنامج النصي المستخدم",
   "VOTPiP": "صورة في صورة",
   "VOTMenu": "القائمة",
-  "VOTDownloadTranslation": "تحميل الترجمة"
+  "VOTDownloadTranslation": "تحميل الترجمة",
+  "VOTClose": "إغلاق"
 }

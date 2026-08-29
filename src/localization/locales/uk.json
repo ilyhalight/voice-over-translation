@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ця функція не підтримується використовуваним завантажувачем сценаріїв",
   "VOTPiP": "Картинка в картинці",
   "VOTMenu": "Меню",
-  "VOTDownloadTranslation": "Завантажити переклад"
+  "VOTDownloadTranslation": "Завантажити переклад",
+  "VOTClose": "Закривати"
 }

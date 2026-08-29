@@ -5,7 +5,6 @@ import { HotkeyButton } from "../Button/HotkeyButton";
 import { SettingsSection } from "./SettingsSection";
 
 export type SettingsHotkeySectionProps = {
-  ref?: (element: HTMLElement) => void;
   onTranslationHotkeyChange?: (newKey: string | null) => void;
   onSubtitlesHotkeyChange?: (newKey: string | null) => void;
 };
@@ -14,10 +13,7 @@ export function SettingsHotkeySection(
   props: SettingsHotkeySectionProps,
 ): JSX.Element {
   return (
-    <SettingsSection
-      ref={props.ref}
-      title={localizationProvider.get("hotkeysSettings")}
-    >
+    <SettingsSection title={localizationProvider.get("hotkeysSettings")}>
       <HotkeyButton
         key={settings.translationHotkey}
         onChange={(newKey) => {

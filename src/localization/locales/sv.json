@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Den här funktionen stöds inte av använd skriptlastare",
   "VOTPiP": "Bild i bild",
   "VOTMenu": "Meny",
-  "VOTDownloadTranslation": "Ladda ner översättning"
+  "VOTDownloadTranslation": "Ladda ner översättning",
+  "VOTClose": "Stänga"
 }

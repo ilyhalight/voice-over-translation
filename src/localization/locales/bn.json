@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "এই বৈশিষ্ট্যটি ব্যবহৃত স্ক্রিপ্ট লোডার দ্বারা সমর্থিত নয়",
   "VOTPiP": "ছবিতে ছবি",
   "VOTMenu": "মেনু",
-  "VOTDownloadTranslation": "অনুবাদ ডাউনলোড করুন"
+  "VOTDownloadTranslation": "অনুবাদ ডাউনলোড করুন",
+  "VOTClose": "বন্ধ"
 }

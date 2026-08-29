@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "این ویژگی توسط بارگیری اسکریپت استفاده شده پشتیبانی نمی شود",
   "VOTPiP": "تصویر در تصویر",
   "VOTMenu": "منو",
-  "VOTDownloadTranslation": "دانلود ترجمه مقاله"
+  "VOTDownloadTranslation": "دانلود ترجمه مقاله",
+  "VOTClose": "نزدیک"
 }

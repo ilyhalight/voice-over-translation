@@ -17,7 +17,6 @@ import {
 import type { VideoHandler } from "../VideoHandler";
 import type { VideoData } from "../videoHandler/shared";
 import { safeSetPlayerVolume } from "../videoHandler/translationVolume";
-import { normalizeButtonPosition } from "./buttonPlacement";
 import { applyOverlayMountUpdate } from "./mount";
 import {
   createShadowMount,
@@ -135,7 +134,7 @@ export class UIManager {
     });
     // Preserve the user's last chosen button position across UI reloads
     // (e.g. when changing the menu language).
-    this.votOverlayView.initUI(normalizeButtonPosition(this.data.buttonPos));
+    this.votOverlayView.initUI();
 
     this.votSettingsView = new SettingsView({
       globalPortal: this.votGlobalPortal,
@@ -184,7 +183,6 @@ export class UIManager {
       throw new Error("[VOT] UIManager isn't initialized");
     }
 
-    this.votOverlayView.initUIEvents();
     this.bindOverlayViewEvents();
 
     this.votSettingsView.initUIEvents();
@@ -482,16 +480,6 @@ export class UIManager {
           widget.resetTranslationContext(true);
         });
       })
-      .addEventListener("select:buttonPosition", (item) => {
-        this.withInitializedOverlayView((overlayView) => {
-          const preferredPosition = normalizeButtonPosition(
-            this.data.buttonPos ?? item,
-          );
-          const { position, direction } =
-            overlayView.calcButtonLayout(preferredPosition);
-          overlayView.updateButtonLayout(position, direction);
-        });
-      })
       .addEventListener("select:menuLanguage", async () => {
         await this.reloadMenu();
       })
@@ -660,9 +648,7 @@ export class UIManager {
       this.votOverlayView.overlayViewControls.getButtonHidden();
     const prevMenuHidden =
       this.votOverlayView.overlayViewControls.getMenuHidden();
-    const prevButtonPos = normalizeButtonPosition(this.data.buttonPos);
-    const settingsWasOpen =
-      this.votSettingsView?.dialog?.container?.hidden === false;
+    const settingsWasOpen = this.votSettingsView?.isOpen() === true;
 
     await this.videoHandler?.stopTranslation();
     this.release();
@@ -672,11 +658,8 @@ export class UIManager {
       return this;
     }
 
-    // Restore button/menu visibility + layout.
+    // Restore button/menu visibility.
     try {
-      const { position, direction } =
-        this.votOverlayView.calcButtonLayout(prevButtonPos);
-      this.votOverlayView.updateButtonLayout(position, direction);
       this.votOverlayView.overlayViewControls.setMenuHidden(prevMenuHidden);
       this.votOverlayView.overlayViewControls.setButtonHidden(prevButtonHidden);
       this.votOverlayView.overlayViewControls.setButtonOpacity(
@@ -769,16 +752,6 @@ export class UIManager {
 
     this.initialized = false;
     return this;
-  }
-
-  private withInitializedOverlayView(
-    callback: (overlayView: OverlayView) => void,
-  ) {
-    if (!this.votOverlayView?.isInitialized()) {
-      return;
-    }
-
-    callback(this.votOverlayView);
   }
 
   private withSubtitlesWidget(

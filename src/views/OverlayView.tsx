@@ -62,6 +62,7 @@ export type OverlayViewControls = {
   getMenuHidden: () => boolean;
   setButtonOpacity: (opacity: number) => void;
   getButtonOpacity: () => number;
+  setContainerSize: (width: number, height: number) => void;
   closeVoicePopover: () => void;
   getButtonOverlayEl: () => HTMLElement | undefined;
   getMenuOverlayEl: () => HTMLElement | undefined;
@@ -117,6 +118,7 @@ export type OverlayViewProps = {
       | "onTranslationVolumeInput"
       | "onDownloadTranslationClick"
       | "onDownloadSubtitlesClick"
+      | "onSettingsClick"
       | "onDetectedLanguageSelect"
       | "onResponseLanguageSelect"
       | "onSubtitlesOpen"
@@ -183,7 +185,6 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
   let dragState: ButtonDragState | null = null;
   let dragListenersAbortController: AbortController | undefined;
   let lastButtonDragEndAt = 0;
-  let resizeObserver: ResizeObserver | undefined;
   let subtitlesLoadVersion = 0;
 
   const setMenuHidden = (hidden: boolean) => {
@@ -202,6 +203,14 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     setButtonHiddenState(hidden);
   };
 
+  const setContainerSize = (width: number, height: number) => {
+    if (width > 0) {
+      setIsBigContainer(width > BIG_CONTAINER_WIDTH_PX);
+    }
+    const menuHeight = height > 200 ? height : globalThis.innerHeight * 0.75;
+    menuOverlay?.style.setProperty("--vot-container-height", `${menuHeight}px`);
+  };
+
   finalProps.controlsRef?.({
     setStatus,
     getStatus: status,
@@ -217,6 +226,7 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     getMenuHidden: menuHidden,
     setButtonOpacity,
     getButtonOpacity: buttonOpacity,
+    setContainerSize,
     closeVoicePopover: () => {
       segmentedButtonControls?.closeFloatingUI();
     },
@@ -531,8 +541,15 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     });
   };
 
+  const normalizedPosition = createMemo<Position>(() => {
+    const normalizedPosition = normalizeButtonPosition(settings.buttonPos);
+    return isBigContainer() || !isSideButtonPosition(normalizedPosition)
+      ? normalizedPosition
+      : "default";
+  });
+  const direction = createMemo(() => getButtonDirection(normalizedPosition()));
   const tooltipPos = createMemo(() => {
-    switch (settings.buttonPos) {
+    switch (normalizedPosition()) {
       case "left":
       case "leftCenter":
         return "right";
@@ -543,14 +560,6 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
         return "bottom";
     }
   });
-
-  const normalizedPosition = createMemo<Position>(() => {
-    const normalizedPosition = normalizeButtonPosition(settings.buttonPos);
-    return isBigContainer() || !isSideButtonPosition(normalizedPosition)
-      ? normalizedPosition
-      : "default";
-  });
-  const direction = createMemo(() => getButtonDirection(normalizedPosition()));
 
   createEffect(() => {
     if (menuHidden() || !buttonOverlay || !menuOverlay) {
@@ -607,20 +616,6 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
   onMount(() => {
     if (!segmentedButton) return;
 
-    const layoutRoot = getLayoutRoot();
-    const syncContainerSize = (width: number) => {
-      if (width > 0) {
-        setIsBigContainer(width > BIG_CONTAINER_WIDTH_PX);
-      }
-    };
-    syncContainerSize(layoutRoot.getBoundingClientRect().width);
-    resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        syncContainerSize(entry.contentRect.width);
-      }
-    });
-    resizeObserver.observe(layoutRoot);
-
     segmentedButton.addEventListener("pointerdown", onButtonDragPointerDown);
     segmentedButton.addEventListener("click", suppressClickAfterDrag, true);
     segmentedButton.addEventListener(
@@ -631,7 +626,6 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
 
   onCleanup(() => {
     subtitlesLoadVersion += 1;
-    resizeObserver?.disconnect();
     finishButtonDrag(false, false);
     segmentedButton?.removeEventListener(
       "pointerdown",
@@ -715,6 +709,10 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
         onDownloadTranslationClick={finalProps.onDownloadTranslationClick}
         onDownloadSubtitlesClick={() => {
           finalProps.onDownloadSubtitlesClick?.();
+        }}
+        onSettingsClick={() => {
+          setMenuHidden(true);
+          finalProps.onSettingsClick?.();
         }}
         onDetectedLanguageSelect={finalProps.onDetectedLanguageSelect}
         onResponseLanguageSelect={finalProps.onResponseLanguageSelect}

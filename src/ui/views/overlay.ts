@@ -1,14 +1,11 @@
 import { FullscreenHelper } from "../../core/fullscreenHelper";
-import { localizationProvider } from "../../localization/localizationProvider";
-import { setSettings, settings } from "../../stores/settings";
-import type { Direction, Position } from "../../types/components/votButton";
+import { setSettings } from "../../stores/settings";
 import type { StorageData } from "../../types/storage";
-import type { ButtonLayout, OverlayMount } from "../../types/uiManager";
+import type { OverlayMount } from "../../types/uiManager";
 import type {
   OverlayViewEventMap,
   OverlayViewProps,
 } from "../../types/views/overlay";
-import ui from "../../ui";
 import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
 import { EventImpl } from "../../utils/eventImpl";
 import { hasTouchScreen, isTouchFirstInput } from "../../utils/inputDevice";
@@ -20,13 +17,6 @@ import {
   type OverlayViewControls,
 } from "../../views/OverlayView";
 import {
-  normalizeButtonPosition,
-  resolveButtonLayout,
-} from "../buttonPlacement";
-import VOTButton from "../components/votButton";
-import VOTMenu from "../components/votMenu";
-import { SETTINGS_ICON } from "./../icons";
-import {
   createShadowMount,
   destroyShadowMount,
   reparentShadowMount,
@@ -37,11 +27,9 @@ import { type MountedComponent, mountComponent } from "../solid/mountComponent";
 export class OverlayView {
   private static readonly BIG_CONTAINER_WIDTH_PX = 550;
   private resizeObserver?: ResizeObserver;
-  private lastIsBigContainer = false;
   private readonly fullscreenHelper: FullscreenHelper;
 
   mount: OverlayMount;
-  private abortController: AbortController | null = null;
   private defaultVolumePersistTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly defaultVolumePersistDelayMs = 250;
 
@@ -86,12 +74,6 @@ export class OverlayView {
     >(),
   };
 
-  // button
-  votButton?: VOTButton;
-  // menu
-  votMenu?: VOTMenu;
-  openSettingsButton?: HTMLElement;
-
   constructor({
     mount,
     data = {},
@@ -134,25 +116,13 @@ export class OverlayView {
     if (prevRoot !== nextRoot && this.overlayMount) {
       reparentShadowMount(this.overlayMount, nextRoot);
     }
+    this.setupResizeObserver();
 
     return this;
   }
 
-  isInitialized(): this is {
-    // #region Button type
-    votButton: VOTButton;
-    // voicePopover: VoicePopover;
-    // #endregion Button type
-    // #region Menu type
-    votMenu: VOTMenu;
-    openSettingsButton: HTMLElement;
-    // #endregion Menu type
-  } {
+  isInitialized(): boolean {
     return this.initialized;
-  }
-
-  calcButtonLayout(position: string): ButtonLayout {
-    return resolveButtonLayout(this.isBigContainer, position);
   }
 
   addEventListener<K extends keyof OverlayViewEventMap>(
@@ -195,13 +165,12 @@ export class OverlayView {
     void votStorage.set("defaultVolume", this.data.defaultVolume);
   }
 
-  initUI(buttonPosition: string = "default") {
+  initUI() {
     if (this.isInitialized()) {
       throw new Error("[VOT] OverlayView is already initialized");
     }
 
     this.initialized = true;
-    this.lastIsBigContainer = this.isBigContainer;
     this.overlayMount = createShadowMount({
       parent: this.mount.root,
       rootClasses: ["vot-overlay-root"],
@@ -220,18 +189,7 @@ export class OverlayView {
       },
     });
 
-    // #region Shared logic
-    const { position, direction } = this.calcButtonLayout(buttonPosition);
-
-    // #endregion Shared logic
     // #region VOT Button
-    this.votButton = new VOTButton({
-      position,
-      direction,
-      status: "none",
-      labelHtml: localizationProvider.get("translateVideo"),
-    });
-
     const videoVolume = this.videoHandler
       ? this.videoHandler.getVideoVolume() * 100
       : 100;
@@ -290,6 +248,9 @@ export class OverlayView {
         onDownloadSubtitlesClick: () => {
           this.events["click:downloadSubtitles"].dispatch();
         },
+        onSettingsClick: () => {
+          this.events["click:settings"].dispatch();
+        },
         onDetectedLanguageSelect: (language) => {
           if (this.videoHandler?.videoData) {
             this.videoHandler.videoData.detectedLanguage = language;
@@ -339,119 +300,8 @@ export class OverlayView {
     );
 
     this.root.appendChild(this.overlayViewComponent.root);
-
-    // #endregion VOT Button
-    // #region VOT Menu
-    this.votMenu = new VOTMenu({
-      titleHtml: localizationProvider.get("VOTSettings"),
-      position,
-    });
-    this.root.appendChild(this.votMenu.container);
-
     this.setupResizeObserver();
-
-    // #region VOT Menu Header
-
-    this.openSettingsButton = ui.createIconButton(SETTINGS_ICON, {
-      ariaLabel: localizationProvider.get("VOTSettings"),
-    });
-
-    this.votMenu.headerContainer.append(this.openSettingsButton);
-
-    // #endregion VOT Menu Header
     // #endregion VOT Menu
-    return this;
-  }
-
-  initUIEvents() {
-    if (!this.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
-    }
-
-    this.abortController = new AbortController();
-    const signal = this.abortController.signal;
-    // #region [Events] VOT Button
-
-    // Quick settings popover state helpers.
-    const setMenuOpen = (
-      open: boolean,
-      { returnFocusToToggle = false }: { returnFocusToToggle?: boolean } = {},
-    ) => {
-      if (!this.isInitialized()) return;
-
-      this.votMenu.hidden = !open;
-      this.votButton.menuButton.setAttribute("aria-expanded", open.toString());
-
-      if (open) {
-        queueMicrotask(() => this.openSettingsButton?.focus?.());
-      } else if (returnFocusToToggle) {
-        queueMicrotask(() => this.votButton.menuButton.focus?.());
-      } else {
-        this.votButton.menuButton.blur();
-      }
-    };
-
-    const closeMenu = (returnFocusToToggle = false) =>
-      setMenuOpen(false, { returnFocusToToggle });
-
-    // #endregion [Events] VOT Button
-    // #region [Events] VOT Menu
-    this.votMenu.container.addEventListener(
-      "click",
-      (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-      },
-      { signal },
-    );
-
-    for (const event of ["pointerdown"]) {
-      this.votMenu.container.addEventListener(
-        event,
-        (e) => {
-          e.stopImmediatePropagation();
-        },
-        { signal },
-      );
-    }
-
-    // #region [Events] VOT Menu Header
-    this.openSettingsButton.addEventListener(
-      "click",
-      () => {
-        closeMenu();
-        this.events["click:settings"].dispatch();
-      },
-      { signal },
-    );
-
-    // #endregion [Events] VOT Menu Header
-    // #endregion [Events] VOT Menu
-    return this;
-  }
-
-  updateButtonLayout(
-    position: Position,
-    direction: Direction,
-    options: { keepVoicePopover?: boolean } = {},
-  ) {
-    if (!this.isInitialized()) {
-      return this;
-    }
-
-    this.votMenu.position = position;
-
-    this.votButton.position = position;
-    this.votButton.direction = direction;
-    this.votButton.syncDropdownArrowPlacement();
-
-    if (!options.keepVoicePopover) {
-      // if (!options.keepVoicePopover && this.voicePopover?.isOpen) {
-      // this.voicePopover.hideNow();
-      this.votButton.setVoiceMenuOpen(false);
-    }
-
     return this;
   }
 
@@ -590,16 +440,11 @@ export class OverlayView {
   }
 
   private doReleaseUI(): void {
-    this.votButton?.remove();
-    this.votMenu?.remove();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.overlayViewComponent?.dispose();
     this.overlayViewComponent = undefined;
     this.overlayViewControls = undefined;
-
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-      this.resizeObserver = undefined;
-    }
 
     this.fullscreenHelper.destroy();
 
@@ -608,9 +453,6 @@ export class OverlayView {
   }
 
   private doReleaseUIEvents(): void {
-    this.abortController?.abort();
-    this.abortController = null;
-
     this.flushDefaultVolumePersist();
 
     for (const event of Object.values(this.events)) {
@@ -638,72 +480,30 @@ export class OverlayView {
   }
 
   private setupResizeObserver(): void {
-    if (this.resizeObserver) {
-      return;
-    }
-
-    this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width } = entry.contentRect;
-        const currentIsBigContainer =
-          width > OverlayView.BIG_CONTAINER_WIDTH_PX;
-
-        if (this.lastIsBigContainer !== currentIsBigContainer) {
-          this.lastIsBigContainer = currentIsBigContainer;
-          this.handleContainerSizeChange(currentIsBigContainer);
-        }
-
-        this.updateMenuHeight(entry.contentRect.height);
-      }
-    });
-
+    this.resizeObserver?.disconnect();
     const target = this.fullscreenHelper.getResizeObserverTarget();
+    const video = this.videoHandler?.video;
+    const syncContainerSize = () => {
+      const targetRect = target.getBoundingClientRect();
+      const videoRect = video?.getBoundingClientRect();
+      const width =
+        videoRect?.width &&
+        (targetRect.width <= 0 || videoRect.width < targetRect.width)
+          ? videoRect.width
+          : targetRect.width;
+      const height =
+        videoRect?.height &&
+        (targetRect.height <= 0 || videoRect.height < targetRect.height)
+          ? videoRect.height
+          : targetRect.height;
+      this.overlayViewControls?.setContainerSize(width, height);
+    };
+
+    this.resizeObserver = new ResizeObserver(syncContainerSize);
     this.resizeObserver.observe(target);
-  }
-
-  private updateMenuHeight(containerHeight?: number): void {
-    if (!this.isInitialized() || !this.votMenu?.container) {
-      return;
+    if (video && video !== target) {
+      this.resizeObserver.observe(video);
     }
-
-    let height: number;
-
-    if (containerHeight && containerHeight > 200) {
-      height = containerHeight;
-    } else {
-      const target = this.fullscreenHelper.getResizeObserverTarget();
-      const rect = target.getBoundingClientRect();
-      height = rect.height || target.clientHeight || window.innerHeight * 0.75;
-    }
-
-    if (!height || height < 200) {
-      height = window.innerHeight * 0.75;
-    }
-
-    this.votMenu.container.style.setProperty(
-      "--vot-container-height",
-      `${height}px`,
-    );
-  }
-
-  private handleContainerSizeChange(isBigContainer: boolean): void {
-    if (!this.isInitialized()) {
-      return;
-    }
-
-    const preferredPosition = normalizeButtonPosition(
-      this.data.buttonPos ?? settings.buttonPos,
-    );
-    const { position, direction } = resolveButtonLayout(
-      isBigContainer,
-      preferredPosition,
-    );
-
-    if (
-      position !== this.votButton.position ||
-      direction !== this.votButton.direction
-    ) {
-      this.updateButtonLayout(position, direction);
-    }
+    syncContainerSize();
   }
 }

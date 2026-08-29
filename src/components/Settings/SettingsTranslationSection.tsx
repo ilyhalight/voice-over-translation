@@ -23,7 +23,6 @@ import { SettingsSection } from "./SettingsSection";
 
 export type SettingsTranslationSectionProps = {
   isAudioContextSupported?: boolean;
-  ref?: (element: HTMLElement) => void;
   onAutoTranslateChange?: (checked: boolean) => void;
   onAutoSubtitlesChange?: (checked: boolean) => void;
   onDontTranslateLanguagesChange?: (
@@ -82,7 +81,6 @@ export function SettingsTranslationSection(
 
   return (
     <SettingsSection
-      ref={finalProps.ref}
       isOpen={true}
       title={localizationProvider.get("translationSettings")}
     >

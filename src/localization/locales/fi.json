@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Käytetty komentosarjalataaja ei tue tätä ominaisuutta",
   "VOTPiP": "Kuva kuvassa",
   "VOTMenu": "Valikko",
-  "VOTDownloadTranslation": "Lataa käännös"
+  "VOTDownloadTranslation": "Lataa käännös",
+  "VOTClose": "Sulje"
 }

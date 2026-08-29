@@ -6,31 +6,9 @@ import type { StorageData } from "../types/storage";
 import debug from "../utils/debug";
 import { containsCrossShadow } from "../utils/dom";
 import type { VideoData } from "../videoHandler/shared";
+import type { OverlayViewControls } from "../views/OverlayView";
 import { findConnectedContainerBySelector } from "./containerResolution";
-import {
-  hideLifecycleOverlay,
-  type LifecycleOverlayViewLike,
-  resetAndHideLifecycle,
-} from "./lifecycleShared";
-
-interface LifecycleOverlayView extends LifecycleOverlayViewLike {
-  votButton: { container: HTMLElement; opacity: number };
-  votMenu: { container: HTMLElement; hidden: boolean };
-}
-
-interface LifecycleUIManager {
-  votOverlayView: LifecycleOverlayView;
-}
-
-const YOUTUBE_TIMESTAMP_PARAMS = ["t", "start", "time_continue"];
-
-export function getYouTubeSourceKey(url: URL, hasSrcObject: "1" | "0"): string {
-  const stableUrl = new URL(url);
-  for (const param of YOUTUBE_TIMESTAMP_PARAMS) {
-    stableUrl.searchParams.delete(param);
-  }
-  return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
-}
+import { hideLifecycleOverlay, resetAndHideLifecycle } from "./lifecycleShared";
 
 export interface VideoLifecycleHost {
   video: HTMLVideoElement;
@@ -39,7 +17,9 @@ export interface VideoLifecycleHost {
   firstPlay: boolean;
   stopTranslation(): void | Promise<void>;
   resetSubtitlesWidget(): void;
-  uiManager: LifecycleUIManager;
+  uiManager: {
+    votOverlayView: { overlayViewControls?: OverlayViewControls };
+  };
   getVideoData(): Promise<VideoData | undefined>;
   cacheManager: {
     getSubtitles(key: string): VideoDataSubtitle[] | undefined;
@@ -68,6 +48,16 @@ export interface VideoLifecycleHost {
   };
   enableSubtitlesForCurrentLangPair(): Promise<unknown>;
   queueOverlayAutoHide?(): void;
+}
+
+const YOUTUBE_TIMESTAMP_PARAMS = ["t", "start", "time_continue"];
+
+export function getYouTubeSourceKey(url: URL, hasSrcObject: "1" | "0"): string {
+  const stableUrl = new URL(url);
+  for (const param of YOUTUBE_TIMESTAMP_PARAMS) {
+    stableUrl.searchParams.delete(param);
+  }
+  return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
 }
 
 export class VideoLifecycleController {
@@ -123,9 +113,11 @@ export class VideoLifecycleController {
     return true;
   }
 
-  private showOverlayButton(overlayView: LifecycleOverlayView): void {
-    overlayView.overlayViewControls.setButtonHidden(false);
-    overlayView.overlayViewControls.setButtonOpacity(1);
+  private showOverlayButton(overlayView: {
+    overlayViewControls?: OverlayViewControls;
+  }): void {
+    overlayView.overlayViewControls?.setButtonHidden(false);
+    overlayView.overlayViewControls?.setButtonOpacity(1);
     this.host.queueOverlayAutoHide?.();
   }
 

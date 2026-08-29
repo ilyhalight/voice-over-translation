@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ovu značajku ne podržava učitavač skripti koji se koristi",
   "VOTPiP": "Slika u slici",
   "VOTMenu": "Izbornik",
-  "VOTDownloadTranslation": "Preuzmite prijevod"
+  "VOTDownloadTranslation": "Preuzmite prijevod",
+  "VOTClose": "Zatvoriti"
 }

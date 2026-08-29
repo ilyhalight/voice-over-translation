@@ -28,7 +28,6 @@ import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
 
 export type SettingsSubtitlesSectionProps = {
-  ref?: (element: HTMLElement) => void;
   onResponseLanguageSubtitlesSelect?: (option: SelectOption) => void;
   onSubtitlesDownloadFormatSelect?: (option: SelectOption) => void;
   onSubtitlesFontFamilySelect?: (value: SubtitleFontFamily) => void;
@@ -162,10 +161,7 @@ export function SettingsSubtitlesSection(
   };
 
   return (
-    <SettingsSection
-      ref={props.ref}
-      title={localizationProvider.get("subtitlesSettings")}
-    >
+    <SettingsSection title={localizationProvider.get("subtitlesSettings")}>
       <Select
         title={localizationProvider.get("VOTDefaultSubtitlesLanguage")}
         options={subtitleLanguageOptions}

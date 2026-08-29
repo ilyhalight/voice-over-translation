@@ -6,18 +6,6 @@ export type LifecycleTranslationResetHost = {
   resetSubtitlesWidget(): void;
 };
 
-export type LifecycleOverlayViewLike = {
-  votButton?: {
-    container?: {
-      hidden: boolean | string;
-    };
-  };
-  votMenu?: {
-    hidden: boolean | string;
-  };
-  overlayViewControls?: OverlayViewControls | null;
-};
-
 export function resetLifecycleTranslation(
   host: LifecycleTranslationResetHost,
   options: {

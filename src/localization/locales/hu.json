@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ezt a funkciót nem támogatja a használt script loader",
   "VOTPiP": "Kép a képben",
   "VOTMenu": "Menü",
-  "VOTDownloadTranslation": "Letöltés fordítás"
+  "VOTDownloadTranslation": "Letöltés fordítás",
+  "VOTClose": "Bezárás"
 }

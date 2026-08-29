@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "이 기능은 사용된 스크립트 로더에서 지원되지 않습니다",
   "VOTPiP": "그림 속의 그림",
   "VOTMenu": "메뉴",
-  "VOTDownloadTranslation": "번역 다운로드"
+  "VOTDownloadTranslation": "번역 다운로드",
+  "VOTClose": "닫기"
 }

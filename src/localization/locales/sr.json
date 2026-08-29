@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ова функција није подржана помоћу учитавача скрипти",
   "VOTPiP": "Слика у слици",
   "VOTMenu": "Мени",
-  "VOTDownloadTranslation": "Преузмите превод"
+  "VOTDownloadTranslation": "Преузмите превод",
+  "VOTClose": "Затвори"
 }

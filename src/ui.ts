@@ -1,7 +1,4 @@
 import { localizationProvider } from "./localization/localizationProvider";
-import type { UiTemplate } from "./types/components/shared";
-import { appendTemplate } from "./ui/appendTemplate";
-import { addKeyboardActivationListener } from "./ui/components/componentShared";
 
 declare global {
   interface Window {
@@ -47,88 +44,7 @@ type SubtitleInfoElements = {
   context: HTMLElement;
 };
 
-type MakeButtonLikeOptions = {
-  /** Accessible label for icon-only controls. */
-  ariaLabel?: string;
-};
-
-/**
- * Shared `disabled` attribute observer for every button-like element.
- *
- * Owns a single `MutationObserver` for the whole document; per-element sync
- * callbacks are stored in a `WeakMap` so detached buttons are collected without
- * an explicit `disconnect()` call (the previous per-element observers were
- * never disconnected either, so lifetime semantics are unchanged).
- */
-const disabledSyncHandlers = new WeakMap<Element, () => void>();
-let disabledObserver: MutationObserver | undefined;
-
-function observeDisabledAttribute(el: Element, sync: () => void) {
-  disabledSyncHandlers.set(el, sync);
-  if (typeof MutationObserver === "undefined") return;
-  disabledObserver ??= new MutationObserver((records) => {
-    for (const record of records) {
-      disabledSyncHandlers.get(record.target as Element)?.();
-    }
-  });
-  disabledObserver.observe(el, {
-    attributes: true,
-    attributeFilter: ["disabled"],
-  });
-}
-
 const UI = {
-  /**
-   * Makes a non-native element behave like a button (keyboard + ARIA).
-   *
-   * We use custom tags (`vot-block`) for isolation, so we must re-add
-   * basic semantics for accessibility.
-   */
-  makeButtonLike(el: HTMLElement, { ariaLabel }: MakeButtonLikeOptions = {}) {
-    el.setAttribute("role", "button");
-    if (!el.hasAttribute("tabindex")) {
-      el.tabIndex = 0;
-    }
-
-    const enabledTabIndex = el.tabIndex;
-
-    // Keep ARIA and tab order in sync with our custom `disabled="true"` flag.
-    const syncDisabledState = () => {
-      const isDisabled = el.getAttribute("disabled") === "true";
-      if (isDisabled) {
-        el.setAttribute("aria-disabled", "true");
-        el.tabIndex = -1;
-      } else {
-        el.removeAttribute("aria-disabled");
-        el.tabIndex = enabledTabIndex;
-      }
-    };
-
-    syncDisabledState();
-
-    // If a component toggles `disabled` later (e.g. download button),
-    // keep semantics consistent without requiring manual updates.
-    // Consolidated onto ONE process-wide MutationObserver instead of a new
-    // observer per button: observers are per-element records on the same
-    // microtask queue, so N observers cost N callbacks + N records; one shared
-    // observer delivers a single batched record list per microtask.
-    observeDisabledAttribute(el, syncDisabledState);
-
-    if (ariaLabel) {
-      el.setAttribute("aria-label", ariaLabel);
-    }
-
-    addKeyboardActivationListener(el, () => {
-      const disabled =
-        el.getAttribute("disabled") === "true" ||
-        el.getAttribute("aria-disabled") === "true";
-      if (disabled) return;
-      el.click();
-    });
-
-    return el;
-  },
-
   /**
    * Auxiliary method for creating HTML elements
    */
@@ -141,38 +57,6 @@ const UI = {
     if (classes.length) el.classList.add(...classes);
     if (content !== null) el.append(content);
     return el;
-  },
-
-  /**
-   * Create button
-   */
-  createButton(html: Node | string): HTMLElement {
-    const el = UI.createEl("vot-block", ["vot-button"], html);
-    return UI.makeButtonLike(el);
-  },
-
-  /**
-   * Create outlined button
-   */
-  createOutlinedButton(html: Node | string): HTMLElement {
-    const el = UI.createEl("vot-block", ["vot-outlined-button"], html);
-    return UI.makeButtonLike(el);
-  },
-
-  /**
-   * Create icon button
-   */
-  createIconButton(
-    templateHtml: UiTemplate,
-    options: MakeButtonLikeOptions = {},
-  ): HTMLElement {
-    const button = UI.createEl("vot-block", ["vot-icon-button"]);
-    appendTemplate(templateHtml, button);
-    return UI.makeButtonLike(button, options);
-  },
-
-  createInlineLoader(): HTMLElement {
-    return UI.createEl("vot-block", ["vot-inline-loader"]);
   },
 
   createSubtitleInfo(

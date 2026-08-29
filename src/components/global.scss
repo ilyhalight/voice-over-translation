@@ -61,8 +61,8 @@ vot-block * {
 
 // Enforce hidden attribute behavior inside the injected UI tree.
 // Keep opt-out classes for components that use custom hidden animations.
-vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),
-vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container) {
+vot-block[hidden]:not(.vot-menu),
+vot-block [hidden]:not(.vot-menu) {
   display: none !important;
 }
 

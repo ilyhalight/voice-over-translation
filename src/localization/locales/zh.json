@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "使用的脚本加载器不支持此功能",
   "VOTPiP": "画中画",
   "VOTMenu": "菜单",
-  "VOTDownloadTranslation": "下载翻译"
+  "VOTDownloadTranslation": "下载翻译",
+  "VOTClose": "关闭"
 }

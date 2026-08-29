@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "මෙම විශේෂාංගය භාවිතා කරන ලද script loader මගින් සහාය නොදක්වයි",
   "VOTPiP": "පින්තූරයේ පින්තූරය",
   "VOTMenu": "මෙනුව",
-  "VOTDownloadTranslation": "පරිවර්තනය බාගත කරන්න"
+  "VOTDownloadTranslation": "පරිවර්තනය බාගත කරන්න",
+  "VOTClose": "වසා දමන්න"
 }

@@ -21,7 +21,6 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "input:autoHideButtonDelay",
   "select:proxyTranslationStatus",
   "select:translationTextService",
-  "select:buttonPosition",
   "select:menuLanguage",
 ];
 function createSettingsEvents(): {
@@ -38,16 +37,8 @@ function createSettingsEvents(): {
   return events;
 }
 
-import { AboutSection } from "../../components/About/AboutSection";
-import { AccountMenu } from "../../components/Account/AccountMenu";
-import { SettingsAppearanceSection } from "../../components/Settings/SettingsAppearanceSection";
-import { SettingsFooter } from "../../components/Settings/SettingsFooter";
-import { SettingsHotkeySection } from "../../components/Settings/SettingsHotkeySection";
-import { SettingsMiscSection } from "../../components/Settings/SettingsMiscSection";
-import { SettingsProxySection } from "../../components/Settings/SettingsProxySection";
-import { SettingsSection } from "../../components/Settings/SettingsSection";
-import { SettingsSubtitlesSection } from "../../components/Settings/SettingsSubtitlesSection";
-import { SettingsTranslationSection } from "../../components/Settings/SettingsTranslationSection";
+import { type Accessor, createSignal, type Setter } from "solid-js";
+import { SettingsDialog } from "../../components/Settings/SettingsDialog";
 import { PROXY_WORKER_HOST } from "../../config/config";
 import { isAuthRefreshMessage } from "../../core/authRefreshMessage";
 import { openAuthWindow } from "../../core/authWindow";
@@ -74,7 +65,6 @@ import debug from "../../utils/debug";
 import { EventImpl } from "../../utils/eventImpl";
 import { votStorage } from "../../utils/storage";
 import type { VideoHandler } from "../../VideoHandler";
-import Dialog from "../components/dialog";
 import { type MountedComponent, mountComponent } from "../solid/mountComponent";
 
 type BufferedNumericStorageKey =
@@ -103,17 +93,11 @@ export class SettingsView {
 
     void this.refreshAccountFromStorage();
   };
-  dialog?: Dialog;
-  accountSection?: MountedComponent<HTMLElement>;
-  translationSection?: MountedComponent<HTMLElement>;
+  root?: HTMLElement;
+  private settingsDialog?: MountedComponent<HTMLElement>;
+  private dialogOpen?: Accessor<boolean>;
+  private setDialogOpen?: Setter<boolean>;
   private accountStorageListenerCleanup?: () => void;
-  hotkeysSection?: MountedComponent<HTMLDivElement>;
-  subtitlesSection?: MountedComponent<HTMLDivElement>;
-  proxySection?: MountedComponent<HTMLDivElement>;
-  appearanceSection?: MountedComponent<HTMLDivElement>;
-  miscSection?: MountedComponent<HTMLDivElement>;
-  aboutSection?: MountedComponent<HTMLDivElement>;
-  settingsFooter?: MountedComponent<HTMLDivElement>;
   constructor({ globalPortal, data = {}, videoHandler }: SettingsViewProps) {
     this.globalPortal = globalPortal;
     this.data = data;
@@ -228,16 +212,17 @@ export class SettingsView {
     if (this.isInitialized()) {
       throw new Error("[VOT] SettingsView is already initialized");
     }
-    this.dialog = new Dialog({
-      titleHtml: localizationProvider.get("VOTSettings"),
-    });
-    this.globalPortal.appendChild(this.dialog.container);
-    this.accountSection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsSection({
-        title: localizationProvider.get("VOTMyAccount"),
-        isOpen: true,
+    this.settingsDialog = mountComponent<HTMLElement>((rootRef) => {
+      const [isOpen, setIsOpen] = createSignal(false);
+      this.dialogOpen = isOpen;
+      this.setDialogOpen = setIsOpen;
+      return SettingsDialog({
         ref: rootRef,
-        children: AccountMenu({
+        get isOpen() {
+          return isOpen();
+        },
+        onClose: () => setIsOpen(false),
+        account: {
           onClickLogin: async () => {
             debug.log("Account login button clicked");
             if (account.isLoggedIn) {
@@ -248,240 +233,201 @@ export class SettingsView {
 
             openAuthWindow();
           },
-        }),
-      }),
-    );
-    this.translationSection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsTranslationSection({
-        isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
-        ref: rootRef,
-        onAutoTranslateChange: this.createPersistedSettingHandler({
-          storageKey: "autoTranslate",
-          dispatch: (checked) =>
-            this.events["change:autoTranslate"].dispatch(checked),
-        }),
-        onAutoSubtitlesChange: this.createPersistedSettingHandler({
-          storageKey: "autoSubtitles",
-          dispatch: (checked) =>
-            this.events["change:autoSubtitles"].dispatch(checked),
-        }),
-        onDontTranslateLanguagesChange: this.createPersistedSettingHandler({
-          storageKey: "dontTranslateLanguages",
-        }),
-        onEnabledAutoVolumeChange: this.createPersistedSettingHandler({
-          storageKey: "enabledAutoVolume",
-          afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
-        }),
-        onAutoVolumeInput: this.createBufferedNumericInputHandler({
-          storageKey: "autoVolume",
-        }),
-        onEnabledSmartDuckingChange: this.createPersistedSettingHandler({
-          storageKey: "enabledSmartDucking",
-          afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
-        }),
-        onShowVideoSliderChange: this.createPersistedSettingHandler({
-          storageKey: "showVideoSlider",
-          dispatch: (checked) =>
-            this.events["change:showVideoVolume"].dispatch(checked),
-        }),
-        onAudioBoosterChange: this.createPersistedSettingHandler({
-          storageKey: "audioBooster",
-          dispatch: (checked) =>
-            this.events["change:audioBooster"].dispatch(checked),
-        }),
-        onSyncVolumeChange: this.createPersistedSettingHandler({
-          storageKey: "syncVolume",
-          dispatch: (checked) =>
-            this.events["change:syncVolume"].dispatch(checked),
-        }),
-        onDownloadWithNameChange: this.createPersistedSettingHandler({
-          storageKey: "downloadWithName",
-        }),
-        onSendNotifyOnCompleteChange: this.createPersistedSettingHandler({
-          storageKey: "sendNotifyOnComplete",
-        }),
-        onUseAudioDownloadChange: this.createPersistedSettingHandler({
-          storageKey: "useAudioDownload",
-        }),
-        onTranslationServiceSelect: this.createPersistedSettingHandler({
-          storageKey: "translationService",
-          dispatch: (item) =>
-            this.events["select:translationTextService"].dispatch(item),
-        }),
-        onDetectServiceSelect: this.createPersistedSettingHandler({
-          storageKey: "detectService",
-        }),
-      }),
-    );
-    this.hotkeysSection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsHotkeySection({
-        ref: rootRef,
-        onTranslationHotkeyChange: this.createPersistedSettingHandler({
-          storageKey: "translationHotkey",
-        }),
-        onSubtitlesHotkeyChange: this.createPersistedSettingHandler({
-          storageKey: "subtitlesHotkey",
-        }),
-      }),
-    );
-    this.subtitlesSection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsSubtitlesSection({
-        ref: rootRef,
-        onResponseLanguageSubtitlesSelect: (option) =>
-          this.createPersistedSettingHandler({
-            storageKey: "responseLanguageSubtitles",
+        },
+        translation: {
+          isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+          onAutoTranslateChange: this.createPersistedSettingHandler({
+            storageKey: "autoTranslate",
+            dispatch: (checked) =>
+              this.events["change:autoTranslate"].dispatch(checked),
+          }),
+          onAutoSubtitlesChange: this.createPersistedSettingHandler({
+            storageKey: "autoSubtitles",
+            dispatch: (checked) =>
+              this.events["change:autoSubtitles"].dispatch(checked),
+          }),
+          onDontTranslateLanguagesChange: this.createPersistedSettingHandler({
+            storageKey: "dontTranslateLanguages",
+          }),
+          onEnabledAutoVolumeChange: this.createPersistedSettingHandler({
+            storageKey: "enabledAutoVolume",
+            afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
+          }),
+          onAutoVolumeInput: this.createBufferedNumericInputHandler({
+            storageKey: "autoVolume",
+          }),
+          onEnabledSmartDuckingChange: this.createPersistedSettingHandler({
+            storageKey: "enabledSmartDucking",
+            afterPersist: () => this.videoHandler?.setupAudioSettings?.(),
+          }),
+          onShowVideoSliderChange: this.createPersistedSettingHandler({
+            storageKey: "showVideoSlider",
+            dispatch: (checked) =>
+              this.events["change:showVideoVolume"].dispatch(checked),
+          }),
+          onAudioBoosterChange: this.createPersistedSettingHandler({
+            storageKey: "audioBooster",
+            dispatch: (checked) =>
+              this.events["change:audioBooster"].dispatch(checked),
+          }),
+          onSyncVolumeChange: this.createPersistedSettingHandler({
+            storageKey: "syncVolume",
+            dispatch: (checked) =>
+              this.events["change:syncVolume"].dispatch(checked),
+          }),
+          onDownloadWithNameChange: this.createPersistedSettingHandler({
+            storageKey: "downloadWithName",
+          }),
+          onSendNotifyOnCompleteChange: this.createPersistedSettingHandler({
+            storageKey: "sendNotifyOnComplete",
+          }),
+          onUseAudioDownloadChange: this.createPersistedSettingHandler({
+            storageKey: "useAudioDownload",
+          }),
+          onTranslationServiceSelect: this.createPersistedSettingHandler({
+            storageKey: "translationService",
             dispatch: (item) =>
-              this.events["select:responseLanguageSubtitles"].dispatch(item),
-          })(option.value as ResponseLanguageSubtitles),
-        onSubtitlesDownloadFormatSelect: (option) =>
-          this.createPersistedSettingHandler({
-            storageKey: "subtitlesDownloadFormat",
-          })(option.value as SubtitleFormat),
-        onSubtitlesFontFamilySelect: this.createPersistedSettingHandler({
-          storageKey: "subtitlesFontFamily",
-          dispatch: (item) =>
-            this.events["select:subtitlesFontFamily"].dispatch(item),
-        }),
-        onHighlightWordsChange: this.createPersistedSettingHandler({
-          storageKey: "highlightWords",
-          dispatch: (checked) =>
-            this.events["change:subtitlesHighlightWords"].dispatch(checked),
-        }),
-        onSubtitlesSmartLayoutChange: this.createPersistedSettingHandler({
-          storageKey: "subtitlesSmartLayout",
-          dispatch: (checked) =>
-            this.events["change:subtitlesSmartLayout"].dispatch(checked),
-        }),
-        onSubtitlesMaxLengthInput: this.createBufferedNumericInputHandler({
-          storageKey: "subtitlesMaxLength",
-          dispatch: (value) =>
-            this.events["input:subtitlesMaxLength"].dispatch(value),
-        }),
-        onSubtitlesFontSizeInput: this.createBufferedNumericInputHandler({
-          storageKey: "subtitlesFontSize",
-          dispatch: (value) =>
-            this.events["input:subtitlesFontSize"].dispatch(value),
-        }),
-        onSubtitlesOpacityInput: this.createBufferedNumericInputHandler({
-          storageKey: "subtitlesOpacity",
-          dispatch: (value) =>
-            this.events["input:subtitlesBackgroundOpacity"].dispatch(value),
-        }),
-      }),
-    );
-    this.proxySection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsProxySection({
-        ref: rootRef,
-        onProxyWorkerHostChange: async (value) => {
-          this.data.proxyWorkerHost = value || PROXY_WORKER_HOST;
-          setSettings("proxyWorkerHost", this.data.proxyWorkerHost);
-          await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
-          debug.log(
-            "proxyWorkerHost value changed. New value:",
-            this.data.proxyWorkerHost,
-          );
-          this.events["change:proxyWorkerHost"].dispatch(value);
+              this.events["select:translationTextService"].dispatch(item),
+          }),
+          onDetectServiceSelect: this.createPersistedSettingHandler({
+            storageKey: "detectService",
+          }),
         },
-        onTranslateProxyStatusSelect: async (option) => {
-          const value = option.value as TranslateProxyStatus;
-          this.data.translateProxyEnabled = value;
-          setSettings("translateProxyEnabled", this.data.translateProxyEnabled);
-          await votStorage.set(
-            "translateProxyEnabled",
-            this.data.translateProxyEnabled,
-          );
-          await votStorage.set("translateProxyEnabledDefault", false);
-          debug.log(
-            "translateProxyEnabled value changed. New value:",
-            this.data.translateProxyEnabled,
-          );
-          this.events["select:proxyTranslationStatus"].dispatch(value);
+        hotkeys: {
+          onTranslationHotkeyChange: this.createPersistedSettingHandler({
+            storageKey: "translationHotkey",
+          }),
+          onSubtitlesHotkeyChange: this.createPersistedSettingHandler({
+            storageKey: "subtitlesHotkey",
+          }),
         },
-      }),
-    );
-    this.appearanceSection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsAppearanceSection({
-        ref: rootRef,
-        onShowPiPButtonChange: this.createPersistedSettingHandler({
-          storageKey: "showPiPButton",
-          dispatch: (checked) =>
-            this.events["change:showPiPButton"].dispatch(checked),
-        }),
-        onAutoHideButtonDelayInput: this.createBufferedNumericInputHandler({
-          storageKey: "autoHideButtonDelay",
-          dispatch: (value) =>
-            this.events["input:autoHideButtonDelay"].dispatch(value),
-        }),
-        onButtonPositionSelect: (option) =>
-          this.createPersistedSettingHandler({
-            storageKey: "buttonPos",
+        subtitles: {
+          onResponseLanguageSubtitlesSelect: (option) =>
+            this.createPersistedSettingHandler({
+              storageKey: "responseLanguageSubtitles",
+              dispatch: (item) =>
+                this.events["select:responseLanguageSubtitles"].dispatch(item),
+            })(option.value as ResponseLanguageSubtitles),
+          onSubtitlesDownloadFormatSelect: (option) =>
+            this.createPersistedSettingHandler({
+              storageKey: "subtitlesDownloadFormat",
+            })(option.value as SubtitleFormat),
+          onSubtitlesFontFamilySelect: this.createPersistedSettingHandler({
+            storageKey: "subtitlesFontFamily",
             dispatch: (item) =>
-              this.events["select:buttonPosition"].dispatch(item),
-          })(option.value as Position),
-        onLangSelect: async (option) => {
-          const item = option.value as LangOverride;
-          const result = await localizationProvider.changeLang(item);
-          if (!result) {
-            return;
-          }
-          this.data.localeUpdatedAt = await votStorage.get(
-            "localeUpdatedAt",
-            0,
-          );
-          setLocale("updatedAt", 0);
-          this.events["select:menuLanguage"].dispatch(item);
+              this.events["select:subtitlesFontFamily"].dispatch(item),
+          }),
+          onHighlightWordsChange: this.createPersistedSettingHandler({
+            storageKey: "highlightWords",
+            dispatch: (checked) =>
+              this.events["change:subtitlesHighlightWords"].dispatch(checked),
+          }),
+          onSubtitlesSmartLayoutChange: this.createPersistedSettingHandler({
+            storageKey: "subtitlesSmartLayout",
+            dispatch: (checked) =>
+              this.events["change:subtitlesSmartLayout"].dispatch(checked),
+          }),
+          onSubtitlesMaxLengthInput: this.createBufferedNumericInputHandler({
+            storageKey: "subtitlesMaxLength",
+            dispatch: (value) =>
+              this.events["input:subtitlesMaxLength"].dispatch(value),
+          }),
+          onSubtitlesFontSizeInput: this.createBufferedNumericInputHandler({
+            storageKey: "subtitlesFontSize",
+            dispatch: (value) =>
+              this.events["input:subtitlesFontSize"].dispatch(value),
+          }),
+          onSubtitlesOpacityInput: this.createBufferedNumericInputHandler({
+            storageKey: "subtitlesOpacity",
+            dispatch: (value) =>
+              this.events["input:subtitlesBackgroundOpacity"].dispatch(value),
+          }),
         },
-      }),
-    );
-    this.miscSection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsMiscSection({
-        ref: rootRef,
-        onChangeTranslateAPIErrors: this.createPersistedSettingHandler({
-          storageKey: "translateAPIErrors",
-        }),
-        isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
-        needBypassCSP: this.videoHandler.site.needBypassCSP,
-        onChangeNewAudioPlayer: this.createPersistedSettingHandler({
-          storageKey: "newAudioPlayer",
-          dispatch: (checked) =>
-            this.events["change:useNewAudioPlayer"].dispatch(checked),
-        }),
-        onChangeOnlyBypassMediaCSP: this.createPersistedSettingHandler({
-          storageKey: "onlyBypassMediaCSP",
-          dispatch: (checked) =>
-            this.events["change:onlyBypassMediaCSP"].dispatch(checked),
-        }),
-      }),
-    );
-    this.aboutSection = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsSection({
-        title: localizationProvider.get("aboutExtension"),
-        ref: rootRef,
-        children: AboutSection({}),
-      }),
-    );
-
-    this.dialog.bodyContainer.append(
-      this.accountSection.root,
-      this.translationSection.root,
-      this.hotkeysSection.root,
-      this.subtitlesSection.root,
-      this.proxySection.root,
-      this.miscSection.root,
-      this.appearanceSection.root,
-      this.aboutSection.root,
-    );
-
-    this.settingsFooter = mountComponent<HTMLDivElement>((rootRef) =>
-      SettingsFooter({
-        ref: rootRef,
-        onBugReportClick: () => this.events["click:bugReport"].dispatch(),
-        onResetSettingsClick: () =>
-          this.events["click:resetSettings"].dispatch(),
-      }),
-    );
-
-    this.dialog.footerContainer.append(this.settingsFooter.root);
+        proxy: {
+          onProxyWorkerHostChange: async (value) => {
+            this.data.proxyWorkerHost = value || PROXY_WORKER_HOST;
+            setSettings("proxyWorkerHost", this.data.proxyWorkerHost);
+            await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
+            debug.log(
+              "proxyWorkerHost value changed. New value:",
+              this.data.proxyWorkerHost,
+            );
+            this.events["change:proxyWorkerHost"].dispatch(value);
+          },
+          onTranslateProxyStatusSelect: async (option) => {
+            const value = option.value as TranslateProxyStatus;
+            this.data.translateProxyEnabled = value;
+            setSettings(
+              "translateProxyEnabled",
+              this.data.translateProxyEnabled,
+            );
+            await votStorage.set(
+              "translateProxyEnabled",
+              this.data.translateProxyEnabled,
+            );
+            await votStorage.set("translateProxyEnabledDefault", false);
+            debug.log(
+              "translateProxyEnabled value changed. New value:",
+              this.data.translateProxyEnabled,
+            );
+            this.events["select:proxyTranslationStatus"].dispatch(value);
+          },
+        },
+        appearance: {
+          onShowPiPButtonChange: this.createPersistedSettingHandler({
+            storageKey: "showPiPButton",
+            dispatch: (checked) =>
+              this.events["change:showPiPButton"].dispatch(checked),
+          }),
+          onAutoHideButtonDelayInput: this.createBufferedNumericInputHandler({
+            storageKey: "autoHideButtonDelay",
+            dispatch: (value) =>
+              this.events["input:autoHideButtonDelay"].dispatch(value),
+          }),
+          onButtonPositionSelect: (option) =>
+            this.createPersistedSettingHandler({
+              storageKey: "buttonPos",
+            })(option.value as Position),
+          onLangSelect: async (option) => {
+            const item = option.value as LangOverride;
+            const result = await localizationProvider.changeLang(item);
+            if (!result) {
+              return;
+            }
+            this.data.localeUpdatedAt = await votStorage.get(
+              "localeUpdatedAt",
+              0,
+            );
+            setLocale("updatedAt", 0);
+            this.events["select:menuLanguage"].dispatch(item);
+          },
+        },
+        misc: {
+          onChangeTranslateAPIErrors: this.createPersistedSettingHandler({
+            storageKey: "translateAPIErrors",
+          }),
+          isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+          needBypassCSP: this.videoHandler.site.needBypassCSP,
+          onChangeNewAudioPlayer: this.createPersistedSettingHandler({
+            storageKey: "newAudioPlayer",
+            dispatch: (checked) =>
+              this.events["change:useNewAudioPlayer"].dispatch(checked),
+          }),
+          onChangeOnlyBypassMediaCSP: this.createPersistedSettingHandler({
+            storageKey: "onlyBypassMediaCSP",
+            dispatch: (checked) =>
+              this.events["change:onlyBypassMediaCSP"].dispatch(checked),
+          }),
+        },
+        footer: {
+          onBugReportClick: () => this.events["click:bugReport"].dispatch(),
+          onResetSettingsClick: () =>
+            this.events["click:resetSettings"].dispatch(),
+        },
+      });
+    });
+    this.root = this.settingsDialog.root;
+    this.globalPortal.appendChild(this.settingsDialog.root);
     this.initialized = true;
     return this;
   }
@@ -508,23 +454,12 @@ export class SettingsView {
     return this;
   }
   private doReleaseUI(): void {
-    for (const key of [
-      "accountSection",
-      "subtitlesSection",
-      "hotkeysSection",
-      "proxySection",
-      "appearanceSection",
-      "miscSection",
-      "aboutSection",
-      "settingsFooter",
-    ] satisfies (keyof (typeof SettingsView)["prototype"])[]) {
-      const control = this[key] as MountedComponent<any> | undefined;
-      control?.dispose();
-      control?.root.remove();
-      this[key] = undefined as any;
-    }
-
-    this.dialog?.remove();
+    this.settingsDialog?.dispose();
+    this.settingsDialog?.root.remove();
+    this.settingsDialog = undefined;
+    this.dialogOpen = undefined;
+    this.setDialogOpen = undefined;
+    this.root = undefined;
   }
   private doReleaseUIEvents(): void {
     this.accountStorageListenerCleanup?.();
@@ -549,11 +484,16 @@ export class SettingsView {
   open() {
     if (!this.isInitialized())
       throw new Error("[VOT] SettingsView isn't initialized");
-    return this.dialog.open();
+    this.setDialogOpen(true);
+    return this;
   }
   close() {
     if (!this.isInitialized())
       throw new Error("[VOT] SettingsView isn't initialized");
-    return this.dialog.close();
+    this.setDialogOpen(false);
+    return this;
+  }
+  isOpen() {
+    return this.dialogOpen?.() ?? false;
   }
 }

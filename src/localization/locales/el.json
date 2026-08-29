@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Αυτή η λειτουργία δεν υποστηρίζεται από χρησιμοποιημένο φορτωτή δέσμης ενεργειών",
   "VOTPiP": "Εικόνα στην εικόνα",
   "VOTMenu": "Μενού",
-  "VOTDownloadTranslation": "Λήψη μετάφρασης"
+  "VOTDownloadTranslation": "Λήψη μετάφρασης",
+  "VOTClose": "Κλείσετε"
 }

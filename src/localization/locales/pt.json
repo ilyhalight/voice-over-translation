@@ -260,5 +260,6 @@
   "VOTNotSupportedByLoader": "Este recurso não é suportado pelo carregador de script usado",
   "VOTPiP": "Picture in picture",
   "VOTMenu": "Menu",
-  "VOTDownloadTranslation": "Transferir tradução"
+  "VOTDownloadTranslation": "Transferir tradução",
+  "VOTClose": "Fechar"
 }

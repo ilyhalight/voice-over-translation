@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Bu özellik, kullanılan komut dosyası yükleyicisi tarafından desteklenmez",
   "VOTPiP": "Resim içinde resim",
   "VOTMenu": "Menü",
-  "VOTDownloadTranslation": "Çeviriyi indir"
+  "VOTDownloadTranslation": "Çeviriyi indir",
+  "VOTClose": "Kapatma"
 }

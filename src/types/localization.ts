@@ -323,7 +323,8 @@ export type Phrase =
   | "VOTNotSupportedByLoader"
   | "VOTPiP"
   | "VOTMenu"
-  | "VOTDownloadTranslation";
+  | "VOTDownloadTranslation"
+  | "VOTClose";
 
 export type Phrases = {
   recommended: string;
@@ -590,6 +591,7 @@ export type Phrases = {
   VOTPiP: string;
   VOTMenu: string;
   VOTDownloadTranslation: string;
+  VOTClose: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

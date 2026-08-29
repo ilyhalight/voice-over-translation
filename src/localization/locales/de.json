@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Diese Funktion wird vom verwendeten Skriptlader nicht unterstützt",
   "VOTPiP": "Bild in Bild",
   "VOTMenu": "Menü",
-  "VOTDownloadTranslation": "Übersetzung herunterladen"
+  "VOTDownloadTranslation": "Übersetzung herunterladen",
+  "VOTClose": "Schließen"
 }

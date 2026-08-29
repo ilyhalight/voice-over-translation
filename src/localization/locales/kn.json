@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "ಈ ವೈಶಿಷ್ಟ್ಯವನ್ನು ಬಳಸಿದ ಸ್ಕ್ರಿಪ್ಟ್ ಲೋಡರ್ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ",
   "VOTPiP": "ಚಿತ್ರದಲ್ಲಿ ಚಿತ್ರ",
   "VOTMenu": "ಮೆನು",
-  "VOTDownloadTranslation": "ಅನುವಾದ ಡೌನ್ಲೋಡ್"
+  "VOTDownloadTranslation": "ಅನುವಾದ ಡೌನ್ಲೋಡ್",
+  "VOTClose": "ಮುಚ್ಚು"
 }

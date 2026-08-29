@@ -1,4 +1,4 @@
-@use "../mixins" as shared;
+@use "../../styles/mixins" as shared;
 
 .vot-dialog {
   --vot-helper-surface-rgb: var(--vot-surface-rgb, 255, 255, 255);
@@ -42,15 +42,6 @@
     opacity var(--vot-duration-medium) var(--vot-easing-standard),
     transform var(--vot-duration-medium) var(--vot-easing-standard);
 
-  [hidden] > & {
-    pointer-events: none;
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-    transition:
-      opacity var(--vot-duration-fast) var(--vot-easing-standard),
-      transform var(--vot-duration-medium) var(--vot-easing-standard);
-  }
-
   &[data-vertical-align="top"] {
     inset-block-start: var(--vot-dialog-viewport-margin);
     inset-block-end: auto;
@@ -62,12 +53,6 @@
     visibility: visible;
     position: absolute;
     z-index: 2147483647;
-
-    &[hidden] {
-      display: block !important;
-      pointer-events: none;
-      visibility: hidden;
-    }
 
     & * {
       box-sizing: border-box !important;
@@ -84,11 +69,6 @@
 
     opacity: 1;
     transition: opacity 0.3s;
-
-    [hidden] > & {
-      pointer-events: none;
-      opacity: 0;
-    }
   }
 
   &-content-wrapper {
@@ -141,6 +121,10 @@
     gap: var(--vot-space-4);
     overscroll-behavior: contain;
     @include shared.vot-overlay-scrollbar;
+
+    &:last-child {
+      padding-block-end: var(--vot-space-5) !important;
+    }
   }
 
   &-footer-container {
@@ -151,9 +135,6 @@
     gap: var(--vot-space-2);
     padding: var(--vot-space-4) !important;
 
-    &:empty {
-      padding: var(--vot-space-5) 0 0 0 !important;
-    }
   }
 }
 

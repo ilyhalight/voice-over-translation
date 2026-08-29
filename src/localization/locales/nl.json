@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Deze functie wordt niet ondersteund door gebruikte script loader",
   "VOTPiP": "Beeld in beeld",
   "VOTMenu": "Menu",
-  "VOTDownloadTranslation": "Vertaling downloaden"
+  "VOTDownloadTranslation": "Vertaling downloaden",
+  "VOTClose": "Sluiten"
 }

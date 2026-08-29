@@ -8,7 +8,6 @@ import { Textfield } from "../Textfield/Textfield";
 import { SettingsSection } from "./SettingsSection";
 
 export type SettingsProxySectionProps = {
-  ref?: (element: HTMLElement) => void;
   onProxyWorkerHostChange?: (value: string) => void;
   onTranslateProxyStatusSelect?: (option: SelectOption) => void;
 };
@@ -31,10 +30,7 @@ export function SettingsProxySection(
   );
 
   return (
-    <SettingsSection
-      ref={props.ref}
-      title={localizationProvider.get("proxySettings")}
-    >
+    <SettingsSection title={localizationProvider.get("proxySettings")}>
       <Textfield
         labelText={localizationProvider.get("VOTProxyWorkerHost")}
         placeholder={PROXY_WORKER_HOST}

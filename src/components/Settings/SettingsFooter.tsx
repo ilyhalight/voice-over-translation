@@ -9,12 +9,11 @@ import { OutlinedButton } from "../Button/OutlinedButton";
 export type SettingsFooterProps = {
   onBugReportClick?: () => void;
   onResetSettingsClick?: () => void;
-  ref?: (element: HTMLElement) => void;
 };
 
 export function SettingsFooter(props: SettingsFooterProps): JSX.Element {
   return (
-    <vot-block class="vot-settings-footer" ref={props.ref}>
+    <vot-block class="vot-settings-footer">
       <OutlinedButton onClick={props.onBugReportClick}>
         {localizationProvider.get("VOTBugReport")}
       </OutlinedButton>

@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Aquesta funció no és compatible amb used script loader",
   "VOTPiP": "Imatge en imatge",
   "VOTMenu": "Menú degustació",
-  "VOTDownloadTranslation": "Descarregar traducció"
+  "VOTDownloadTranslation": "Descarregar traducció",
+  "VOTClose": "Tancar"
 }

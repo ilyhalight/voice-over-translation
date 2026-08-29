@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "ഈ സവിശേഷത ഉപയോഗിച്ച സ്ക്രിപ്റ്റ് ലോഡർ പിന്തുണയ്ക്കുന്നില്ല",
   "VOTPiP": "ചിത്രത്തിൽ ചിത്രം",
   "VOTMenu": "മെനു",
-  "VOTDownloadTranslation": "ഡൗൺലോഡ് പരിഭാഷ"
+  "VOTDownloadTranslation": "ഡൗൺലോഡ് പരിഭാഷ",
+  "VOTClose": "അടയ്ക്കുക"
 }

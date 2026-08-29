@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Hierdie funksie word nie ondersteun deur gebruikte skriplaaier nie",
   "VOTPiP": "Prent in prent",
   "VOTMenu": "Spyskaart",
-  "VOTDownloadTranslation": "Aflaai vertaling"
+  "VOTDownloadTranslation": "Aflaai vertaling",
+  "VOTClose": "Sluit"
 }

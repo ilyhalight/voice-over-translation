@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Kipengele hiki si mkono na kutumika script loader",
   "VOTPiP": "Picha katika picha",
   "VOTMenu": "Menyu",
-  "VOTDownloadTranslation": "Pakua tafsiri"
+  "VOTDownloadTranslation": "Pakua tafsiri",
+  "VOTClose": "Karibu"
 }

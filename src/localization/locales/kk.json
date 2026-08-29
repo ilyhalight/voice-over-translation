@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Бұл мүмкіндікті пайдаланылған сценарий жүктеушісі қолдамайды",
   "VOTPiP": "Суреттегі сурет",
   "VOTMenu": "Мәзір",
-  "VOTDownloadTranslation": "Аударманы жүктеу"
+  "VOTDownloadTranslation": "Аударманы жүктеу",
+  "VOTClose": "Жабу"
 }

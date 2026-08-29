@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Lesi sici asisekelwa yi used script loader",
   "VOTPiP": "Isithombe esithombeni",
   "VOTMenu": "Imenyu",
-  "VOTDownloadTranslation": "Thwebula translation"
+  "VOTDownloadTranslation": "Thwebula translation",
+  "VOTClose": "Vala"
 }

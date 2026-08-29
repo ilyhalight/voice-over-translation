@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ciri ini tidak disokong oleh pemuat skrip terpakai",
   "VOTPiP": "Gambar dalam gambar",
   "VOTMenu": "Menu",
-  "VOTDownloadTranslation": "Muat turun terjemahan"
+  "VOTDownloadTranslation": "Muat turun terjemahan",
+  "VOTClose": "Tutup"
 }

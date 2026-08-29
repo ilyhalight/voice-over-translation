@@ -232,7 +232,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
           when={!isColumnDirection()}
           fallback={
             <Tooltip
-              content={localizationProvider.get("translateVideo")}
+              content={finalProps.labelText}
               parentElement={tooltipLayoutRoot()}
               target={translationButton()}
               position={finalProps.tooltipPos}

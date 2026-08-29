@@ -15,7 +15,6 @@ import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
 
 export type SettingsAppearanceSectionProps = {
-  ref?: (element: HTMLElement) => void;
   onShowPiPButtonChange?: (checked: boolean) => void;
   onAutoHideButtonDelayInput?: (delay: number) => void;
   onButtonPositionSelect?: (option: SelectOption) => void;
@@ -44,10 +43,7 @@ export function SettingsAppearanceSection(
   );
 
   return (
-    <SettingsSection
-      ref={props.ref}
-      title={localizationProvider.get("appearance")}
-    >
+    <SettingsSection title={localizationProvider.get("appearance")}>
       <Switch
         heading={localizationProvider.get("VOTShowPiPButton")}
         checked={settings.showPiPButton}

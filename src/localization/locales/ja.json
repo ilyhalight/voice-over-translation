@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "この機能は、使用されているスクリプトローダーではサポートされていません",
   "VOTPiP": "ピクチャー-イン-ピクチャー",
   "VOTMenu": "メニュー",
-  "VOTDownloadTranslation": "ダウンロード翻訳"
+  "VOTDownloadTranslation": "ダウンロード翻訳",
+  "VOTClose": "閉じる"
 }

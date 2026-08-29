@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Fitur ini tidak didukung oleh pemuat skrip bekas",
   "VOTPiP": "Gambar dalam gambar",
   "VOTMenu": "Menu",
-  "VOTDownloadTranslation": "Unduh terjemahan"
+  "VOTDownloadTranslation": "Unduh terjemahan",
+  "VOTClose": "Tutup"
 }

@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Nid yw'r nodwedd hon yn cael ei chynnal gan y llwythwr sgript a ddefnyddir",
   "VOTPiP": "Picture in picture",
   "VOTMenu": "Dewislen",
-  "VOTDownloadTranslation": "Llwytho i lawr cyfieithu"
+  "VOTDownloadTranslation": "Llwytho i lawr cyfieithu",
+  "VOTClose": "Close"
 }

@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Tính năng này không được hỗ trợ bởi trình tải tập lệnh đã sử dụng",
   "VOTPiP": "Hình ảnh trong hình ảnh",
   "VOTMenu": "Thực đơn",
-  "VOTDownloadTranslation": "Tải xuống bản dịch"
+  "VOTDownloadTranslation": "Tải xuống bản dịch",
+  "VOTClose": "Đóng"
 }

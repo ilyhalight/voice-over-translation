@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "លក្ខណៈពិសេសនេះមិនត្រូវបានគាំទ្រដោយកម្មវិធីស្គ្រីបដែលបានប្រើ",
   "VOTPiP": "រូបភាពក្នុងរូបភាព",
   "VOTMenu": "ម៉ឺនុយ",
-  "VOTDownloadTranslation": "ទាញយកការបកប្រែ"
+  "VOTDownloadTranslation": "ទាញយកការបកប្រែ",
+  "VOTClose": "បិទ"
 }

@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ezaugarri hau ez dago erabilitako gidoi kargatzaileak onartzen",
   "VOTPiP": "Argazkia irudian",
   "VOTMenu": "Menua",
-  "VOTDownloadTranslation": "Deskargatu itzulpena"
+  "VOTDownloadTranslation": "Deskargatu itzulpena",
+  "VOTClose": "Itxi"
 }

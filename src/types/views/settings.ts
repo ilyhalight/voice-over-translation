@@ -1,7 +1,6 @@
 import type { LangOverride } from "../../localization/localizationProvider";
 import type { SubtitleFontFamily } from "../../types/subtitles";
 import type { VideoHandler } from "../../VideoHandler";
-import type { Position } from "../components/votButton";
 import type {
   Account,
   ResponseLanguageSubtitles,
@@ -39,6 +38,5 @@ export type SettingsViewEventMap = {
   "input:autoHideButtonDelay": [value: number];
   "select:proxyTranslationStatus": [item: TranslateProxyStatus];
   "select:translationTextService": [item: TranslateService];
-  "select:buttonPosition": [item: Position];
   "select:menuLanguage": [item: LangOverride];
 };

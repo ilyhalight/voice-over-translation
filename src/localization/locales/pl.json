@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ta funkcja nie jest obsługiwana przez używany program ładujący Skrypty",
   "VOTPiP": "Obraz w obrazie",
   "VOTMenu": "Menu",
-  "VOTDownloadTranslation": "Pobierz tłumaczenie"
+  "VOTDownloadTranslation": "Pobierz tłumaczenie",
+  "VOTClose": "Zamknij"
 }

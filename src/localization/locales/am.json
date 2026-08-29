@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "ይህ ባህሪ ጥቅም ላይ የዋለ ስክሪፕት ጫኚ አይደገፍም",
   "VOTPiP": "በሥዕል ላይ የሚገኝ ሥዕል",
   "VOTMenu": "ሜኑ",
-  "VOTDownloadTranslation": "ትርጉም አውርድ"
+  "VOTDownloadTranslation": "ትርጉም አውርድ",
+  "VOTClose": "ዝጋ"
 }

@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Această caracteristică nu este acceptată de script loader folosit",
   "VOTPiP": "Imagine în imagine",
   "VOTMenu": "Meniu",
-  "VOTDownloadTranslation": "Descărcați traducerea"
+  "VOTDownloadTranslation": "Descărcați traducerea",
+  "VOTClose": "Închide"
 }

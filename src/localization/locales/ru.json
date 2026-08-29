@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Эта функция не поддерживается используемым загрузчиком скриптов",
   "VOTPiP": "Картинка в картинке",
   "VOTMenu": "Меню",
-  "VOTDownloadTranslation": "Скачать перевод"
+  "VOTDownloadTranslation": "Скачать перевод",
+  "VOTClose": "Закрывать"
 }

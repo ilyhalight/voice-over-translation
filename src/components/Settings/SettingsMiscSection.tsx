@@ -5,7 +5,6 @@ import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
 
 export type SettingsMiscSectionProps = {
-  ref?: (element: HTMLElement) => void;
   onChangeTranslateAPIErrors?: (checked: boolean) => void;
   onChangeNewAudioPlayer?: (checked: boolean) => void;
   onChangeOnlyBypassMediaCSP?: (checked: boolean) => void;
@@ -24,10 +23,7 @@ export function SettingsMiscSection(
   const isWithoutAudioContext = () => !finalProps.isAudioContextSupported;
 
   return (
-    <SettingsSection
-      ref={finalProps.ref}
-      title={localizationProvider.get("miscSettings")}
-    >
+    <SettingsSection title={localizationProvider.get("miscSettings")}>
       <Switch
         heading={localizationProvider.get("VOTTranslateAPIErrors")}
         hidden={localizationProvider.lang === "ru"}

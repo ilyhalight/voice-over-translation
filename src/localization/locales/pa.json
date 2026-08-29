@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "ਇਹ ਵਿਸ਼ੇਸ਼ਤਾ ਵਰਤੀ ਸਕ੍ਰਿਪਟ ਲੋਡਰ ਦੁਆਰਾ ਸਮਰਥਤ ਨਹੀਂ ਹੈ",
   "VOTPiP": "ਤਸਵੀਰ ਵਿੱਚ ਤਸਵੀਰ",
   "VOTMenu": "ਮੇਨੂ",
-  "VOTDownloadTranslation": "ਅਨੁਵਾਦ ਡਾਊਨਲੋਡ ਕਰੋ"
+  "VOTDownloadTranslation": "ਅਨੁਵਾਦ ਡਾਊਨਲੋਡ ਕਰੋ",
+  "VOTClose": "ਬੰਦ ਕਰੋ"
 }

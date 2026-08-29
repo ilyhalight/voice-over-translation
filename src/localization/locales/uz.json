@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Ushbu xususiyat ishlatilgan skript loader tomonidan qo'llab-quvvatlanmaydi",
   "VOTPiP": "Rasmdagi rasm",
   "VOTMenu": "Menyu",
-  "VOTDownloadTranslation": "Tarjimani yuklab oling"
+  "VOTDownloadTranslation": "Tarjimani yuklab oling",
+  "VOTClose": "Yopish"
 }

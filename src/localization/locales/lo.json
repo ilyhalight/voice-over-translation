@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "ຄຸນນະສົມບັດນີ້ບໍ່ໄດ້ສະຫນັບສະຫນູນໂດຍການນໍາໃຊ້ loader script",
   "VOTPiP": "ຮູບພາບໃນຮູບ",
   "VOTMenu": "ເມນູ",
-  "VOTDownloadTranslation": "ດາວໂຫລດການແປພາສາ"
+  "VOTDownloadTranslation": "ດາວໂຫລດການແປພາສາ",
+  "VOTClose": "ປິດ"
 }

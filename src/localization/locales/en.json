@@ -262,5 +262,6 @@
   "VOTNotSupportedByLoader": "This feature isn't supported by used script loader",
   "VOTPiP": "Picture in picture",
   "VOTMenu": "Menu",
-  "VOTDownloadTranslation": "Download translation"
+  "VOTDownloadTranslation": "Download translation",
+  "VOTClose": "Close"
 }

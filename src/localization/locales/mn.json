@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Энэ функцийг ашигласан скрипт дуудагч дэмждэггүй",
   "VOTPiP": "Зураг дээрх зураг",
   "VOTMenu": "Цэс",
-  "VOTDownloadTranslation": "Татаж авах орчуулга"
+  "VOTDownloadTranslation": "Татаж авах орчуулга",
+  "VOTClose": "Хаах"
 }

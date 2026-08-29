@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Táto funkcia nie je podporovaná použitým zavádzačom skriptov",
   "VOTPiP": "Obrázok v obraze",
   "VOTMenu": "Menu",
-  "VOTDownloadTranslation": "Stiahnuť preklad"
+  "VOTDownloadTranslation": "Stiahnuť preklad",
+  "VOTClose": "Zatvoriť"
 }

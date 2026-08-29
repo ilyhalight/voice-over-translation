@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "यो सुविधा प्रयोग गरिएको स्क्रिप्ट लोडरद्वारा समर्थित छैन",
   "VOTPiP": "चित्रमा चित्र",
   "VOTMenu": "मेनु",
-  "VOTDownloadTranslation": "अनुवाद डाउनलोड गर्नुहोस्"
+  "VOTDownloadTranslation": "अनुवाद डाउनलोड गर्नुहोस्",
+  "VOTClose": "बन्द गर्नुहोस्"
 }

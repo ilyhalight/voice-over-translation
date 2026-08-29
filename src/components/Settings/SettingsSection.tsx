@@ -10,7 +10,6 @@ export type SettingsSectionProps = {
   title: string;
   children: JSX.Element;
   isOpen?: boolean;
-  ref?: (element: HTMLElement) => void;
 };
 
 export function SettingsSection(props: SettingsSectionProps): JSX.Element {
@@ -27,7 +26,7 @@ export function SettingsSection(props: SettingsSectionProps): JSX.Element {
   });
 
   return (
-    <vot-block class="vot-settings-section" ref={finalProps.ref}>
+    <vot-block class="vot-settings-section">
       <RawButton
         class="vot-details vot-settings-section__header"
         buttonProps={{

@@ -34,6 +34,7 @@ export type MenuHeaderContentProps = {
   showDownloadTranslation?: boolean;
   showDownloadSubtitles?: boolean;
   controlsRef?: (controls: MenuHeaderContentControls) => void;
+  onSettingsClick?: () => void;
   onDownloadTranslationClick?: () => void | Promise<void>;
   onDownloadSubtitlesClick?: () => void | Promise<void>;
 };
@@ -75,7 +76,10 @@ export function MenuHeaderContent(props: MenuHeaderContentProps): JSX.Element {
           <SubtitlesIcon />
         </IconButton>
       </Show>
-      <IconButton ariaLabel={localizationProvider.get("VOTSettings")}>
+      <IconButton
+        ariaLabel={localizationProvider.get("VOTSettings")}
+        onClick={props.onSettingsClick}
+      >
         <GearIcon />
       </IconButton>
     </vot-block>
@@ -238,6 +242,7 @@ export function SegmentedButtonMenu(
           controlsRef={(controls) => (menuHeaderContentControls = controls)}
           showDownloadTranslation={finalProps.showDownloadTranslation}
           showDownloadSubtitles={finalProps.showDownloadSubtitles}
+          onSettingsClick={finalProps.onSettingsClick}
           onDownloadTranslationClick={finalProps.onDownloadTranslationClick}
           onDownloadSubtitlesClick={finalProps.onDownloadSubtitlesClick}
         />

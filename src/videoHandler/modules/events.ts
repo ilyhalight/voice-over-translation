@@ -119,36 +119,6 @@ function syncAudioTranslationVolumeFromVideo(
   if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
   self.syncVolumeWrapper("video", videoPercent);
 }
-function applyOverlayLayout(
-  self: VideoHandler,
-  overlayView: NonNullable<VideoHandler["uiManager"]["votOverlayView"]>,
-  heightPx?: number,
-): void {
-  const menu = overlayView.votMenu?.container;
-  if (menu) {
-    let height: number;
-
-    if (heightPx) {
-      height = heightPx;
-    } else if (self.fullscreenHelper) {
-      const target = self.fullscreenHelper.getResizeObserverTarget();
-      const rect = target.getBoundingClientRect();
-      height = rect.height || target.clientHeight || window.innerHeight * 0.75;
-    } else {
-      height = self.video.getBoundingClientRect().height;
-    }
-
-    if (!height || height < 200) {
-      height = window.innerHeight * 0.75;
-    }
-
-    menu.style.setProperty("--vot-container-height", `${height}px`);
-  }
-  const { position, direction } = overlayView.calcButtonLayout(
-    self.data?.buttonPos ?? "default",
-  );
-  overlayView.updateButtonLayout(position, direction);
-}
 type ParsedHotkey = {
   parts: readonly string[];
   partsSet: ReadonlySet<string>;
@@ -191,25 +161,9 @@ function isHotkeyMatch(
   }
   return true;
 }
-function bindOverlayLayoutEvents(ctx: ExtraEventsContext): void {
-  const { self, overlayView, addMany } = ctx;
-  const syncMountAndLayout = () => {
-    self.refreshOverlayMount();
-    applyOverlayLayout(self, overlayView);
-  };
-  self.resizeObserver = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      applyOverlayLayout(self, overlayView, entry.contentRect.height);
-    }
-  });
-  self.resizeObserver.observe(self.video);
-  syncMountAndLayout();
-  addMany(document, ["fullscreenchange", "webkitfullscreenchange"], () =>
-    syncMountAndLayout(),
-  );
-  addMany(self.video, ["webkitbeginfullscreen", "webkitendfullscreen"], () =>
-    syncMountAndLayout(),
-  );
+function bindOverlayMountEvents(ctx: ExtraEventsContext): void {
+  const { self } = ctx;
+  self.refreshOverlayMount();
 }
 function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
   const { self } = ctx;
@@ -343,11 +297,10 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
   };
 
   add(document, "click", (event) => {
-    const target = event.target as Node | null;
     const overlayViewControls = overlayView.overlayViewControls;
     const button = overlayViewControls?.getButtonOverlayEl();
     const menu = overlayViewControls?.getMenuOverlayEl();
-    const settings = self.uiManager.votSettingsView?.dialog?.container;
+    const settings = self.uiManager.votSettingsView?.root;
     const path = event.composedPath();
     const isInPath = (element?: EventTarget | null) =>
       Boolean(element && path.includes(element));
@@ -360,14 +313,10 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
         element instanceof HTMLElement &&
         element.classList.contains("vot-select_new-inner"),
     );
-    const isTempDialog =
-      target instanceof Element &&
-      target.closest(".vot-dialog-temp") instanceof Element;
     debug.log(
-      `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`,
+      `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings}`,
     );
-    if (isButton || isMenu || isSelectInner || isSettings || isTempDialog)
-      return;
+    if (isButton || isMenu || isSelectInner || isSettings) return;
     if (!isVideo) overlayView.updateButtonOpacity(0);
     dismissFloatingUI();
   });
@@ -588,7 +537,7 @@ export function initExtraEvents(this: VideoHandler) {
     addMany,
   };
   bindPlaybackRefreshOnResume(ctx);
-  bindOverlayLayoutEvents(ctx);
+  bindOverlayMountEvents(ctx);
   bindYouTubeVolumeSync(ctx);
   bindAudioTrackLanguageSync(ctx);
   bindGlobalDismissAndHotkeys(ctx);
@@ -653,7 +602,6 @@ export function getAutoHideDelay(this: VideoHandler): number {
     : DEFAULT_AUTO_HIDE_DELAY;
 }
 export function releaseExtraEvents(this: VideoHandler) {
-  this.resizeObserver?.disconnect();
   this.overlayVisibilityTargetsAbortController?.abort();
   this.overlayVisibilityTargetsAbortController = undefined;
   if (isDesktopYouTubeLikeSite(this.site)) {

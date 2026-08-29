@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Cette fonctionnalité n'est pas prise en charge par le chargeur de script utilisé",
   "VOTPiP": "Image dans l'image",
   "VOTMenu": "Le Menu",
-  "VOTDownloadTranslation": "Télécharger la traduction"
+  "VOTDownloadTranslation": "Télécharger la traduction",
+  "VOTClose": "Fermer"
 }

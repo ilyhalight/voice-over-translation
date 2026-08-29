@@ -249,7 +249,6 @@ export class VideoHandler {
   yandexSubtitles: ProcessedSubtitles | null = null;
 
   // Observers / listeners
-  resizeObserver?: ResizeObserver;
   syncVolumeObserver?: MutationObserver;
 
   // Init guard

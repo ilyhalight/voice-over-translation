@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "See funktsioon ei toeta kasutatud script loader",
   "VOTPiP": "Pilt pildil",
   "VOTMenu": "Menüü",
-  "VOTDownloadTranslation": "Lae tõlge"
+  "VOTDownloadTranslation": "Lae tõlge",
+  "VOTClose": "Lähedal"
 }

@@ -261,5 +261,6 @@
   "VOTNotSupportedByLoader": "Тази функция не се поддържа от използвания скрипт товарач",
   "VOTPiP": "Картина в картината",
   "VOTMenu": "Меню",
-  "VOTDownloadTranslation": "Изтегляне на превод"
+  "VOTDownloadTranslation": "Изтегляне на превод",
+  "VOTClose": "Затвори"
 }
