@@ -36,23 +36,6 @@ declare global {
   // prelude.  GM is installed synchronously at document_start before any
   // content-script code evaluates.
 
-  const GM: {
-    // Promise-based GM API (supported by most userscript managers).
-    getValue?<T>(key: string, defaultValue?: T): Promise<T>;
-    getValues?<T extends Record<string, unknown>>(data: T): Promise<T>;
-    setValue?<T>(key: string, value: T): Promise<void>;
-    deleteValue?(key: string): Promise<void>;
-    listValues?<T extends string = string>(): Promise<T[]>;
-    xmlHttpRequest?(details: any): Promise<any> & { abort?: () => void };
-    xmlhttpRequest?(details: any): Promise<any> & { abort?: () => void };
-    // Some managers expose more APIs, but we only rely on the above.
-  };
-  function GM_getValue<T>(key: string, defaultValue?: T): T;
-  function GM_setValue<T>(key: string, value: T): void;
-  function GM_deleteValue(key: string): void;
-  function GM_listValues<T extends string = string>(): T[];
-  function GM_xmlhttpRequest(details: any): { abort?: () => void } | void;
-
   // --- WebExtension globals (Chrome) ---
   // We intentionally keep these as `any` to avoid pulling in the huge
   // @types/chrome dependency for the core build.

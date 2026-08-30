@@ -3,6 +3,8 @@
 import type { CompatibilityVersion } from "../types/storage";
 import type { DetectService, TranslateService } from "../types/translateApis";
 
+export const EXT_NAME_FALLBACK = "VOT";
+
 export const workerHost = "api.browser.yandex.ru";
 
 /**
