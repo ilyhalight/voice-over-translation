@@ -55,9 +55,9 @@
   // Base size is CSS-driven with clamp; JS only overrides when manual size is enabled.
   font-size: calc(
     var(
-      --vot-subtitles-font-size,
-      clamp(18px, var(--vot-subtitles-smart-font-preferred, 2.2vw), 50px)
-    ) *
+        --vot-subtitles-font-size,
+        clamp(18px, var(--vot-subtitles-smart-font-preferred, 2.2vw), 50px)
+      ) *
       var(--vot-subtitles-scale-compensation, 1)
   );
   // Increase specificity (class repeated) + !important to win against aggressive host CSS.
@@ -182,7 +182,9 @@
     background: rgba(31, 32, 35, 0.96);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 18px !important;
-    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34), 0 4px 16px rgba(0, 0, 0, 0.22);
+    box-shadow:
+      0 18px 48px rgba(0, 0, 0, 0.34),
+      0 4px 16px rgba(0, 0, 0, 0.22);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     text-align: start;
@@ -239,7 +241,7 @@
 
   & span[data-vot-highlight-index] {
     &.passed {
-      color: var(--vot-subtitles-passed-color, rgb(33, 150, 243));
+      color: var(--vot-subtitles-passed-color, rgb(139, 180, 245));
     }
   }
 
@@ -270,7 +272,15 @@
     }
 
     &.selected::before {
-      background: var(--vot-subtitles-passed-color, rgb(33, 150, 243));
+      background: var(--vot-subtitles-passed-color, rgb(139, 180, 245));
+    }
+
+    &.passed.selected::before {
+      background: rgba(var(--vot-primary-rgb, 139, 180, 245), 0.4);
+    }
+
+    &.passed:hover::before {
+      background: rgba(var(--vot-primary-rgb, 139, 180, 245), 0.3);
     }
   }
 
@@ -375,11 +385,10 @@
 :-webkit-full-screen .vot-subtitles {
   font-size: calc(
     var(
-      --vot-subtitles-font-size,
-      clamp(18px, var(--vot-subtitles-smart-font-preferred, 2vw), 50px)
-    ) *
-      var(--vot-subtitles-fullscreen-scale, 1) *
-      0.95 *
+        --vot-subtitles-font-size,
+        clamp(18px, var(--vot-subtitles-smart-font-preferred, 2vw), 50px)
+      ) *
+      var(--vot-subtitles-fullscreen-scale, 1) * 0.95 *
       var(--vot-subtitles-scale-compensation, 1)
   );
 }

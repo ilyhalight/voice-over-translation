@@ -26,15 +26,11 @@ export type SubtitleRenderPlanPart =
   | SubtitleRenderPlanSpanPart
   | SubtitleRenderPlanPartBreak;
 
-const PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
+export const LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
+export const TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
 const TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
-const LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
-const TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
 const PUNCTUATION_ONLY_RE = /^[\p{P}\p{S}]+$/u;
 const LEADING_WHITESPACE_RE = /^\s+/u;
-
-const _isPunctuationOrSymbol = (char: string): boolean =>
-  PUNCTUATION_OR_SYMBOL_RE.test(char);
 
 /**
  * Consolidated from a per-character `for..of` scan. A single anchored regex is

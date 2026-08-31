@@ -46,9 +46,16 @@ type PositionBoundary = {
   bottom: number;
 };
 
+export type TooltipControls = {
+  show: () => void;
+  update: () => void;
+  isOpen: () => boolean;
+};
+
 export type TooltipProps = Omit<TooltipOpts, "content"> & {
   content?: JSX.Element;
   ref?: (element: HTMLElement) => void;
+  controls?: (controls: TooltipControls) => void;
 };
 
 const DEFAULT_TOOLTIP_POS: Position = "top";
@@ -608,6 +615,12 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     }
     clearDestroyTimer();
     syncAriaDescribedBy(false);
+  });
+
+  finalProps.controls?.({
+    show,
+    update: floatingPosition.update,
+    isOpen: () => isMounted() && isVisible(),
   });
 
   const tooltipView = (): JSX.Element => (

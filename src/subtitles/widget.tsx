@@ -1,3 +1,12 @@
+import {
+  mountSolidSubtitlesWidget,
+  type SolidSubtitlesWidgetHandle,
+} from "../components/SubtitlesWidget/SubtitlesWidget";
+import {
+  mountSubtitleTokenTooltip,
+  type SubtitleTokenTooltipHandle,
+} from "../components/SubtitlesWidget/SubtitleTokenTooltip";
+import { Overlay } from "../components/Utils/Overlay";
 import { DEFAULT_TRANSLATION_SERVICE } from "../config/config";
 import { translate } from "../core/translateApis";
 import { localizationProvider } from "../localization/localizationProvider";
@@ -8,14 +17,13 @@ import type {
   SubtitlePositionPreset,
   SubtitleToken,
 } from "../types/subtitles";
-import UI from "../ui";
-import Tooltip from "../ui/components/tooltip";
 import {
   createShadowMount,
   destroyShadowMount,
   reparentShadowMount,
   type ShadowMount,
 } from "../ui/shadowMount";
+import { render } from "../ui/solid/renderer";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import { buildActiveSubtitleRenderLine } from "./activeCues";
@@ -40,7 +48,11 @@ import {
   resolveCustomVerticalAnchor,
   snapValueToNearestCandidate,
 } from "./positionController";
-import { buildSubtitleRenderPlan } from "./renderPlan";
+import {
+  buildSubtitleRenderPlan,
+  LEADING_PUNCTUATION_RE,
+  TRAILING_PUNCTUATION_RE,
+} from "./renderPlan";
 import {
   computeSmartLayoutForBox as computeSmartLayoutForBoxUtil,
   type SmartCssMetrics,
@@ -56,36 +68,24 @@ import {
   type TokenPrecomputeMemo,
   type TokenProcessingMemo,
 } from "./smartWrap";
-import { mountSubtitleView, type SubtitleViewHandle } from "./subtitleView";
 import { computeNextWakeMs } from "./wakeSchedule";
 import "../shims/rvfc-polyfill";
 
-const EDGE_PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
+const trimEdgePunctuation = (value: string): string =>
+  value
+    .trim()
+    .replace(LEADING_PUNCTUATION_RE, "")
+    .replace(TRAILING_PUNCTUATION_RE, "");
 
-const isEdgePunctuationOrSymbol = (char: string): boolean =>
-  EDGE_PUNCTUATION_OR_SYMBOL_RE.test(char);
-
-const trimEdgePunctuation = (value: string): string => {
-  const chars = Array.from(value);
-  let startIndex = 0;
-  let endIndex = chars.length;
-
-  while (
-    startIndex < endIndex &&
-    isEdgePunctuationOrSymbol(chars[startIndex])
-  ) {
-    startIndex += 1;
-  }
-  while (
-    endIndex > startIndex &&
-    isEdgePunctuationOrSymbol(chars[endIndex - 1])
-  ) {
-    endIndex -= 1;
-  }
-
-  return chars.slice(startIndex, endIndex).join("");
+type LayoutMetrics = {
+  w: number;
+  h: number;
+  rect: DOMRect;
+  /** visual px / layout px */
+  scaleX: number;
+  /** visual px / layout px */
+  scaleY: number;
 };
-
 type DraggingState = {
   /** active pointer id while the pointer is down inside the subtitles */
   pointerId: number | null;
@@ -97,42 +97,20 @@ type DraggingState = {
   moved: boolean;
   startClientX: number;
   startClientY: number;
-  offset: {
-    x: number;
-    y: number;
-  };
-};
-type ClearRenderedContentOptions = {
-  releaseTooltip?: boolean;
-};
-type AnchorBoxLayout = {
-  /** Left of the anchor box in *layout* pixels relative to the widget container */
-  left: number;
-  /** Top of the anchor box in *layout* pixels relative to the widget container */
-  top: number;
-  /** Width of the anchor box in *layout* pixels */
-  w: number;
-  /** Height of the anchor box in *layout* pixels */
-  h: number;
-};
-type LayoutMetrics = {
-  w: number;
-  h: number;
-  rect: DOMRect;
-  /** visual px / layout px */
-  scaleX: number;
-  /** visual px / layout px */
-  scaleY: number;
+  offset: { x: number; y: number };
 };
 const WRAP_WIDTH_GUARD_PX = 8;
 const WRAP_WIDTH_GUARD_RATIO = 0.97;
 const MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
 function applyWrapWidthGuard(maxWidthPx: number): number {
   if (!Number.isFinite(maxWidthPx) || maxWidthPx <= 0) return 0;
-  const byPixelGuard = maxWidthPx - WRAP_WIDTH_GUARD_PX;
-  const byRatioGuard = maxWidthPx * WRAP_WIDTH_GUARD_RATIO;
-  const guarded = Math.min(byPixelGuard, byRatioGuard);
-  return Math.max(MIN_EFFECTIVE_WRAP_WIDTH_PX, guarded);
+  return Math.max(
+    MIN_EFFECTIVE_WRAP_WIDTH_PX,
+    Math.min(
+      maxWidthPx - WRAP_WIDTH_GUARD_PX,
+      maxWidthPx * WRAP_WIDTH_GUARD_RATIO,
+    ),
+  );
 }
 function isDocumentHidden(): boolean {
   return typeof document !== "undefined" && document.hidden === true;
@@ -144,13 +122,13 @@ export class SubtitlesWidget {
   private readonly fullscreenLayerController: FullscreenLayerController;
   private tooltipMount?: ShadowMount;
   private subtitlesContainer: HTMLElement | null = null;
-  private subtitleView: SubtitleViewHandle | null = null;
+  private subtitleView: SolidSubtitlesWidgetHandle | null = null;
+  private subtitleOverlayHost: HTMLElement | null = null;
   private subtitlesBlock: HTMLElement | null = null;
   private renderedHighlightEls: HTMLSpanElement[] = [];
   /** Parsed highlight indices + last applied class state (see `highlightState.ts`). */
   private readonly highlightState: HighlightState = createHighlightState();
-  /**
-   */
+  private sourceEpoch = 0;
   private contentEpoch = 0;
   private styleEpoch = 0;
   /** Monotonic tick counter used to cache layout reads within a single tick. */
@@ -232,15 +210,9 @@ export class SubtitlesWidget {
     moved: false,
     startClientX: 0,
     startClientY: 0,
-    offset: {
-      x: 0,
-      y: 0,
-    },
+    offset: { x: 0, y: 0 },
   };
-  private dragLayoutCache: {
-    layout: LayoutMetrics;
-    anchorBox: AnchorBoxLayout;
-  } | null = null;
+  private dragLayoutCache: LayoutMetrics | null = null;
   /** Newest un-applied pointer sample; older samples in the same frame are dropped. */
   private pendingDragPoint: { clientX: number; clientY: number } | null = null;
   private dragFrameId: number | null = null;
@@ -249,7 +221,10 @@ export class SubtitlesWidget {
   private suppressTokenClicksUntil = 0;
   private readonly abortController = new AbortController();
   private resizeObserver?: ResizeObserver;
-  private tokenTooltip?: Tooltip;
+  private resizeTarget?: Element;
+  private tokenTooltip?: SubtitleTokenTooltipHandle;
+  private tokenTooltipTarget?: HTMLElement;
+  private subtitleOverlayDispose?: () => void;
   private tooltipTranslationRequestId = 0;
   private readonly intervalIdleChecker: IntervalIdleChecker;
   private checkerUnsubscribe: (() => void) | null = null;
@@ -257,9 +232,6 @@ export class SubtitlesWidget {
   private strTranslatedTokens = "";
   private passedStateKey: string | null = null;
   private readonly passedThresholds: number[] = [];
-  private normalizeTokenTextForTranslation(raw: string): string {
-    return trimEdgePunctuation(raw.trim());
-  }
   private bottomInsetCachedPx = 0; // layout px
   private safeAreaBottomInsetCachedPx = 0;
   private containerPaddingBottomCachedPx = 0;
@@ -328,10 +300,13 @@ export class SubtitlesWidget {
     this.syncWidgetMount();
 
     if (containerChanged) {
-      const parentElement = this.getTokenTooltipParentElement();
-      this.tokenTooltip?.updateMount({
-        parentElement,
-      });
+      this.syncResizeTarget();
+      this.dragLayoutCache = null;
+      this.invalidateLayoutCache();
+      this.invalidateStyleCaches();
+      if (this.tokenTooltip) {
+        this.tokenTooltip.updateMount(this.getTokenTooltipParentElement());
+      }
     }
 
     if (this.subtitles) {
@@ -361,14 +336,6 @@ export class SubtitlesWidget {
   private resetRenderMemo(): void {
     this.lastRenderKey = null;
     this.invalidateWakeDeadline();
-  }
-  private computeAnchorBoxLayout(layout: LayoutMetrics): AnchorBoxLayout {
-    return {
-      left: 0,
-      top: 0,
-      w: layout.w,
-      h: layout.h,
-    };
   }
   private readSmartCssMetrics(): SmartCssMetrics | null {
     const block = this.subtitlesBlock;
@@ -400,7 +367,7 @@ export class SubtitlesWidget {
     if (maxWidthPx <= 0) return null;
     return { fontSizePx, maxWidthPx };
   }
-  private ensureSmartLayout(anchorBox: AnchorBoxLayout): {
+  private ensureSmartLayout(anchorBox: LayoutMetrics): {
     maxWidthPx: number | null;
   } | null {
     if (!this.smartLayoutEnabled) {
@@ -530,7 +497,7 @@ export class SubtitlesWidget {
     this.horizontalGuide?.removeAttribute("data-visible");
   }
   private updateSnapGuides(
-    anchorBox: AnchorBoxLayout,
+    anchorBox: LayoutMetrics,
     options: {
       showVerticalCenter?: boolean;
       showHorizontalCenter?: boolean;
@@ -543,8 +510,8 @@ export class SubtitlesWidget {
       this.syncGuideLayerMount();
     }
     if (this.verticalGuide) {
-      this.verticalGuide.style.left = `${anchorBox.left + anchorBox.w / 2}px`;
-      this.verticalGuide.style.top = `${anchorBox.top}px`;
+      this.verticalGuide.style.left = `${anchorBox.w / 2}px`;
+      this.verticalGuide.style.top = "0px";
       this.verticalGuide.style.height = `${anchorBox.h}px`;
       if (showVerticalCenter) {
         this.verticalGuide.dataset.visible = "true";
@@ -553,8 +520,8 @@ export class SubtitlesWidget {
       }
     }
     if (this.horizontalGuide) {
-      this.horizontalGuide.style.left = `${anchorBox.left}px`;
-      this.horizontalGuide.style.top = `${anchorBox.top + anchorBox.h / 2}px`;
+      this.horizontalGuide.style.left = "0px";
+      this.horizontalGuide.style.top = `${anchorBox.h / 2}px`;
       this.horizontalGuide.style.width = `${anchorBox.w}px`;
       if (showHorizontalCenter) {
         this.horizontalGuide.dataset.visible = "true";
@@ -572,10 +539,10 @@ export class SubtitlesWidget {
   private syncWidgetMount(): void {
     this.fullscreenLayerController.syncWidgetContainer(null);
     if (
-      this.subtitlesContainer &&
-      this.subtitlesContainer.parentElement !== this.container
+      this.subtitleOverlayHost &&
+      this.subtitleOverlayHost.parentNode !== this.container
     ) {
-      this.container.appendChild(this.subtitlesContainer);
+      this.container.appendChild(this.subtitleOverlayHost);
     }
     if (this.tooltipMount) {
       reparentShadowMount(this.tooltipMount, this.container);
@@ -614,8 +581,30 @@ export class SubtitlesWidget {
     if (this.subtitlesContainer) {
       return this.subtitlesContainer;
     }
-    const container = document.createElement("vot-block");
-    container.classList.add("vot-subtitles-widget");
+    let overlay: HTMLElement | undefined;
+    const host = document.createElement("vot-block");
+    const view = () => (
+      <Overlay
+        ref={(element) => {
+          overlay = element;
+        }}
+        classList={{ "vot-subtitles-widget": true }}
+        blockProps={
+          {
+            "oncapture:pointerdown": this.onPointerDownBound,
+          } as never
+        }
+      >
+        {""}
+      </Overlay>
+    );
+    this.subtitleOverlayDispose = render(() => view() as Node, host);
+    if (!overlay) {
+      this.subtitleOverlayDispose();
+      throw new Error("[VOT] Subtitles overlay failed to mount");
+    }
+    this.subtitleOverlayHost = host;
+    const container = overlay;
     this.subtitlesContainer = container;
     // A new element carries none of the previously written custom properties,
     // so the write-if-changed bookkeeping must start from scratch.
@@ -626,23 +615,16 @@ export class SubtitlesWidget {
     this.invalidateLayoutCache();
     this.invalidateStyleCaches();
     this.syncWidgetMount();
-    container.addEventListener("pointerdown", this.onPointerDownBound, {
-      signal: this.abortController.signal,
-      passive: false,
-      capture: true,
-    });
     this.syncVisualStyleVars();
     this.insetCacheReady = false;
     this.updateContainerRect();
     return container;
   }
   private readonly onGlobalPointerDown = (event: PointerEvent): void => {
-    const eventPath =
-      typeof event.composedPath === "function" ? event.composedPath() : [];
     if (
-      this.tokenTooltip?.container &&
-      (this.tokenTooltip.container.contains(event.target as Node) ||
-        eventPath.includes(this.tokenTooltip.container))
+      this.tokenTooltip &&
+      this.tooltipMount &&
+      event.composedPath().includes(this.tooltipMount.host)
     ) {
       return;
     }
@@ -672,11 +654,7 @@ export class SubtitlesWidget {
       );
     }
     this.resizeObserver = new ResizeObserver(() => this.onResize());
-    const resizeTarget =
-      this.container instanceof ShadowRoot
-        ? this.container.host
-        : this.container;
-    this.resizeObserver.observe(resizeTarget);
+    this.syncResizeTarget();
     if (this.video) this.resizeObserver.observe(this.video);
     globalThis.visualViewport?.addEventListener(
       "resize",
@@ -694,6 +672,16 @@ export class SubtitlesWidget {
       this.onVisibilityChangeBound,
       opts,
     );
+  }
+  private syncResizeTarget(): void {
+    const nextTarget =
+      this.container instanceof ShadowRoot
+        ? this.container.host
+        : this.container;
+    if (nextTarget === this.resizeTarget) return;
+    if (this.resizeTarget) this.resizeObserver?.unobserve(this.resizeTarget);
+    this.resizeTarget = nextTarget;
+    this.resizeObserver?.observe(nextTarget);
   }
   private getUpdateMinIntervalMs(): number {
     return this.highlightWords
@@ -911,10 +899,8 @@ export class SubtitlesWidget {
   private updateContainerRect(): void {
     const layout = this.getLayoutSize();
     if (!layout.w || !layout.h) return;
-    const anchorBox = this.computeAnchorBoxLayout(layout);
-    if (!anchorBox.w || !anchorBox.h) return;
-    this.refreshBottomInsetNow(layout, anchorBox);
-    this.applySubtitlePositionWithLayout(layout, anchorBox);
+    this.refreshBottomInsetNow(layout);
+    this.applySubtitlePositionWithLayout(layout);
   }
   private getLayoutSize(): LayoutMetrics {
     const cached = this.layoutSizeCache;
@@ -1005,28 +991,18 @@ export class SubtitlesWidget {
     const raw = anchorBoxH * preset.ratio;
     return clampToRange(raw, preset.minPx, preset.maxPx);
   }
-  private refreshBottomInsetNow(
-    layout?: LayoutMetrics,
-    anchorBox?: AnchorBoxLayout,
-  ): void {
+  private refreshBottomInsetNow(layout = this.getLayoutSize()): void {
     this.refreshInsetCache();
-    const anchorH =
-      anchorBox?.h ??
-      this.computeAnchorBoxLayout(layout ?? this.getLayoutSize()).h;
-    if (!anchorH) {
+    if (!layout.h) {
       this.bottomInsetCachedPx = 0;
       return;
     }
-    const preset = this.getBottomInsetPreset();
     this.bottomInsetCachedPx = this.computeReservedBottomInsetPx(
-      anchorH,
-      preset,
+      layout.h,
+      this.getBottomInsetPreset(),
     );
   }
-  private getBottomInsetPx(
-    layout?: LayoutMetrics,
-    anchorBox?: AnchorBoxLayout,
-  ): number {
+  private getBottomInsetPx(layout = this.getLayoutSize()): number {
     if (!this.insetCacheReady) {
       this.refreshInsetCache();
     }
@@ -1036,11 +1012,8 @@ export class SubtitlesWidget {
     if (this.isMobileViewport()) {
       return Math.max(paddingBottom, safeAreaBottom);
     }
-    const anchorH =
-      anchorBox?.h ??
-      this.computeAnchorBoxLayout(layout ?? this.getLayoutSize()).h;
-    const reserved = anchorH
-      ? this.computeReservedBottomInsetPx(anchorH, preset)
+    const reserved = layout.h
+      ? this.computeReservedBottomInsetPx(layout.h, preset)
       : preset.minPx;
     const stableInset = Math.max(this.bottomInsetCachedPx, reserved);
     return Math.max(paddingBottom, safeAreaBottom, stableInset) + preset.gapPx;
@@ -1057,20 +1030,13 @@ export class SubtitlesWidget {
     const layout = this.getLayoutSize();
     const { rect: containerRect, w, h, scaleX, scaleY } = layout;
     if (!w || !h) return;
-    const anchorBox = this.computeAnchorBoxLayout(layout);
-    if (!anchorBox.w || !anchorBox.h) return;
     this.lastPositionRefreshTs = performance.now();
     const subRect = subtitlesContainer.getBoundingClientRect();
-    const pointerX =
-      (event.clientX - containerRect.left) / scaleX - anchorBox.left;
-    const pointerY =
-      (event.clientY - containerRect.top) / scaleY - anchorBox.top;
+    const pointerX = (event.clientX - containerRect.left) / scaleX;
+    const pointerY = (event.clientY - containerRect.top) / scaleY;
     const anchorX =
-      (subRect.left - containerRect.left + subRect.width / 2) / scaleX -
-      anchorBox.left;
-    const anchorY =
-      (subRect.top - containerRect.top + subRect.height) / scaleY -
-      anchorBox.top;
+      (subRect.left - containerRect.left + subRect.width / 2) / scaleX;
+    const anchorY = (subRect.top - containerRect.top + subRect.height) / scaleY;
     this.dragging.pointerId = event.pointerId;
     this.dragging.candidate = true;
     this.dragging.active = false;
@@ -1082,7 +1048,7 @@ export class SubtitlesWidget {
     this.hideSnapGuides();
     // Cache the gesture-invariant layout metrics; they only change on resize,
     // fullscreen transitions or reposition, all of which invalidate the cache.
-    this.dragLayoutCache = { layout, anchorBox };
+    this.dragLayoutCache = layout;
     this.attachDragDocumentListeners();
   }
   private scheduleDragFrame(): void {
@@ -1160,20 +1126,13 @@ export class SubtitlesWidget {
 
   /**
    * Applies a pointer sample to the subtitle anchor position.
-   *
-   * Math is unchanged from the previous inline implementation; the only
-   * difference is that layout metrics come from the per-gesture cache when it
-   * is available, so a drag performs one layout read instead of one per event.
    */
   private applyDragPosition(clientX: number, clientY: number): void {
-    const cached = this.dragLayoutCache;
-    const layout = cached?.layout ?? this.getLayoutSize();
+    const layout = this.dragLayoutCache ?? this.getLayoutSize();
     const { rect: containerRect, w, h, scaleX, scaleY } = layout;
     if (!w || !h) return;
-    const anchorBox = cached?.anchorBox ?? this.computeAnchorBoxLayout(layout);
-    if (!anchorBox.w || !anchorBox.h) return;
-    const pointerX = (clientX - containerRect.left) / scaleX - anchorBox.left;
-    const pointerY = (clientY - containerRect.top) / scaleY - anchorBox.top;
+    const pointerX = (clientX - containerRect.left) / scaleX;
+    const pointerY = (clientY - containerRect.top) / scaleY;
     let anchorX = pointerX + this.dragging.offset.x;
     let anchorY = pointerY + this.dragging.offset.y;
     // Layout read: route through the epoch-keyed cache used by the static
@@ -1190,13 +1149,13 @@ export class SubtitlesWidget {
     const bottomInset = 0;
     const snappedX = snapValueToNearestCandidate({
       current: anchorX,
-      candidates: [anchorBox.w / 2],
+      candidates: [layout.w / 2],
       thresholdPx: this.snapThresholdPx,
     });
     if (snappedX.snapped) {
       anchorX = snappedX.value;
     }
-    const verticalCenterAnchor = anchorBox.h / 2 + elH / 2;
+    const verticalCenterAnchor = layout.h / 2 + elH / 2;
     const snappedY = snapValueToNearestCandidate({
       current: anchorY,
       candidates: [verticalCenterAnchor],
@@ -1210,75 +1169,56 @@ export class SubtitlesWidget {
       anchorY,
       elementWidth: elW,
       elementHeight: elH,
-      boxWidth: anchorBox.w,
-      boxHeight: anchorBox.h,
+      boxWidth: layout.w,
+      boxHeight: layout.h,
       bottomInset,
     }));
     this.positionPreset = "custom";
     this.customVerticalAnchorState = captureCustomVerticalAnchorState({
       anchorY,
       elementHeight: elH,
-      boxHeight: anchorBox.h,
+      boxHeight: layout.h,
       bottomInset,
     });
-    this.position.left = (anchorX / anchorBox.w) * 100;
-    this.position.top = (anchorY / anchorBox.h) * 100;
-    this.updateSnapGuides(anchorBox, {
+    this.position.left = (anchorX / layout.w) * 100;
+    this.position.top = (anchorY / layout.h) * 100;
+    this.updateSnapGuides(layout, {
       showVerticalCenter: snappedX.snapped,
       showHorizontalCenter: snappedY.snapped,
     });
-    this.applySubtitlePositionWithLayout(layout, anchorBox);
+    this.applySubtitlePositionWithLayout(layout);
   }
   private applySubtitlePosition(): void {
     const subtitlesContainer = this.subtitlesContainer;
     if (!subtitlesContainer) return;
     const layout = this.getLayoutSize();
     if (!layout.w || !layout.h) return;
-    const anchorBox = this.computeAnchorBoxLayout(layout);
-    if (!anchorBox.w || !anchorBox.h) return;
-    this.applySubtitlePositionWithLayout(layout, anchorBox);
+    this.applySubtitlePositionWithLayout(layout);
   }
-  /**
-   * Single owner of the position-apply memo key.
-   *
-   * Previously this template literal existed verbatim in two places inside
-   * `applySubtitlePositionWithLayout` (entry guard + exit recompute), so any
-   * change to the key had to be mirrored by hand. Behavior is unchanged: the
-   * key is still recomputed after the writes, because they may bump
-   * `styleEpoch`.
-   */
-  private buildPositionApplyKey(
-    layout: LayoutMetrics,
-    anchorBox: AnchorBoxLayout,
-  ): string {
-    return `${Math.round(layout.w)}x${Math.round(layout.h)}|${layout.scaleX.toFixed(3)}x${layout.scaleY.toFixed(3)}|${Math.round(anchorBox.left)},${Math.round(anchorBox.top)},${Math.round(anchorBox.w)},${Math.round(anchorBox.h)}|${this.positionPreset}|${this.position.left.toFixed(3)},${this.position.top.toFixed(3)}|${this.contentEpoch}|${this.styleEpoch}`;
+  private buildPositionApplyKey(layout: LayoutMetrics): string {
+    return `${Math.round(layout.w)}x${Math.round(layout.h)}|${layout.scaleX.toFixed(3)}x${layout.scaleY.toFixed(3)}|${this.positionPreset}|${this.position.left.toFixed(3)},${this.position.top.toFixed(3)}|${this.contentEpoch}|${this.styleEpoch}`;
   }
 
-  private applySubtitlePositionWithLayout(
-    layout: LayoutMetrics,
-    anchorBox: AnchorBoxLayout,
-  ): void {
+  private applySubtitlePositionWithLayout(layout: LayoutMetrics): void {
     const subtitlesContainer = this.subtitlesContainer;
     if (!subtitlesContainer) return;
-    const applyKey = this.buildPositionApplyKey(layout, anchorBox);
+    const applyKey = this.buildPositionApplyKey(layout);
     if (applyKey === this.lastPositionApplyKey) return;
 
     this.applyScaleCompensation(subtitlesContainer, layout);
-    this.syncAnchorDimensions(subtitlesContainer, anchorBox);
-    if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
+    this.syncAnchorDimensions(subtitlesContainer, layout);
+    if (this.smartLayoutEnabled) this.ensureSmartLayout(layout);
     const { w: elW, h: elH } = this.measureContainerBox(subtitlesContainer);
     const bottomInset =
-      this.positionPreset === "custom"
-        ? 0
-        : this.getBottomInsetPx(layout, anchorBox);
+      this.positionPreset === "custom" ? 0 : this.getBottomInsetPx(layout);
     const anchorPosition = this.resolveCurrentAnchorPosition(
-      anchorBox,
+      layout,
       elW,
       elH,
       bottomInset,
     );
     const containerPosition = this.clampContainerPosition(
-      anchorBox,
+      layout,
       anchorPosition.anchorX,
       anchorPosition.anchorY,
       elW,
@@ -1287,14 +1227,12 @@ export class SubtitlesWidget {
     );
     const anchorX = containerPosition.anchorX;
     const anchorY = containerPosition.anchorY;
-    const containerAnchorX = anchorBox.left + anchorX;
-    const containerAnchorY = anchorBox.top + anchorY;
-    const leftPct = (containerAnchorX / layout.w) * 100;
-    const topPct = (containerAnchorY / layout.h) * 100;
+    const leftPct = (anchorX / layout.w) * 100;
+    const topPct = (anchorY / layout.h) * 100;
     this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
-    this.tokenTooltip?.updatePos();
+    this.tokenTooltip?.update();
     // Recompute the key: the writes above may have bumped `styleEpoch`.
-    this.lastPositionApplyKey = this.buildPositionApplyKey(layout, anchorBox);
+    this.lastPositionApplyKey = this.buildPositionApplyKey(layout);
   }
 
   private measureContainerBox(subtitlesContainer: HTMLElement): {
@@ -1336,7 +1274,7 @@ export class SubtitlesWidget {
 
   private syncAnchorDimensions(
     subtitlesContainer: HTMLElement,
-    anchorBox: AnchorBoxLayout,
+    anchorBox: LayoutMetrics,
   ): void {
     const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
     const anchorHeightPx = Math.max(1, Math.round(anchorBox.h));
@@ -1365,18 +1303,18 @@ export class SubtitlesWidget {
   }
 
   private resolveCurrentAnchorPosition(
-    anchorBox: AnchorBoxLayout,
+    layout: LayoutMetrics,
     elementWidth: number,
     elementHeight: number,
     bottomInset: number,
   ): { anchorX: number; anchorY: number } {
-    let anchorX = (this.position.left / 100) * anchorBox.w;
-    let anchorY = (this.position.top / 100) * anchorBox.h;
+    let anchorX = (this.position.left / 100) * layout.w;
+    let anchorY = (this.position.top / 100) * layout.h;
     if (this.positionPreset === "custom") {
       anchorY = resolveCustomVerticalAnchor({
         state: this.customVerticalAnchorState,
         elementHeight,
-        boxHeight: anchorBox.h,
+        boxHeight: layout.h,
         bottomInset,
       });
       return { anchorX, anchorY };
@@ -1384,24 +1322,24 @@ export class SubtitlesWidget {
 
     const presetPosition = this.resolvePresetAnchorPosition({
       preset: this.positionPreset,
-      anchorBox,
+      anchorBox: layout,
       elementWidth,
       elementHeight,
       bottomInset,
     });
     anchorX = presetPosition.anchorX;
     anchorY = presetPosition.anchorY;
-    if (anchorBox.w > 0) {
-      this.position.left = (anchorX / anchorBox.w) * 100;
+    if (layout.w > 0) {
+      this.position.left = (anchorX / layout.w) * 100;
     }
-    if (anchorBox.h > 0) {
-      this.position.top = (anchorY / anchorBox.h) * 100;
+    if (layout.h > 0) {
+      this.position.top = (anchorY / layout.h) * 100;
     }
     return { anchorX, anchorY };
   }
 
   private clampContainerPosition(
-    anchorBox: AnchorBoxLayout,
+    layout: LayoutMetrics,
     anchorX: number,
     anchorY: number,
     elementWidth: number,
@@ -1410,8 +1348,8 @@ export class SubtitlesWidget {
   ): { anchorX: number; anchorY: number } {
     let leftPx = anchorX - elementWidth / 2;
     let topPx = anchorY - elementHeight;
-    const maxLeftPx = anchorBox.w - elementWidth;
-    const maxTopPx = anchorBox.h - bottomInset - elementHeight;
+    const maxLeftPx = layout.w - elementWidth;
+    const maxTopPx = layout.h - bottomInset - elementHeight;
     leftPx =
       maxLeftPx >= 0 ? clampToRange(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
     topPx = maxTopPx >= 0 ? clampToRange(topPx, 0, maxTopPx) : 0;
@@ -1450,7 +1388,7 @@ export class SubtitlesWidget {
     bottomInset,
   }: {
     preset: SubtitlePositionPreset;
-    anchorBox: AnchorBoxLayout;
+    anchorBox: LayoutMetrics;
     elementWidth: number;
     elementHeight: number;
     bottomInset: number;
@@ -1485,20 +1423,7 @@ export class SubtitlesWidget {
     });
   }
   private applyPositionAfterContentRender(): void {
-    const layout = this.getLayoutSize();
-    if (layout.w && layout.h) {
-      const anchorBox = this.computeAnchorBoxLayout(layout);
-      if (anchorBox.w && anchorBox.h) {
-        this.refreshBottomInsetNow(layout, anchorBox);
-        this.applySubtitlePositionWithLayout(layout, anchorBox);
-        return;
-      }
-      this.refreshBottomInsetNow(layout);
-      this.applySubtitlePosition();
-      return;
-    }
-    this.refreshBottomInsetNow();
-    this.applySubtitlePosition();
+    this.updateContainerRect();
   }
   private trimEdgeWhitespaceTokens(tokens: SubtitleToken[]): SubtitleToken[] {
     if (!tokens.length) return tokens;
@@ -1701,27 +1626,29 @@ export class SubtitlesWidget {
   ): number {
     if (!segmentRanges.length) return -1;
     let idx = this.lastSegmentIndex;
-    if (idx >= segmentRanges.length) idx = 0;
-    while (idx < segmentRanges.length - 1 && time >= segmentRanges[idx].endMs) {
+    const length = segmentRanges.length;
+    if (idx >= length) idx = 0;
+    while (idx < length - 1 && time >= segmentRanges[idx].endMs) {
       idx += 1;
     }
     while (idx > 0 && time < segmentRanges[idx].startMs) {
       idx -= 1;
     }
     if (
-      !(time >= segmentRanges[idx].startMs && time < segmentRanges[idx].endMs)
+      idx >= 0 &&
+      time >= segmentRanges[idx].startMs &&
+      time < segmentRanges[idx].endMs
     ) {
-      const found = segmentRanges.findIndex(
-        (s) => time >= s.startMs && time < s.endMs,
-      );
-      if (found >= 0) {
-        idx = found;
-      } else {
-        idx = time < segmentRanges[0].startMs ? 0 : segmentRanges.length - 1;
-      }
+      this.lastSegmentIndex = idx;
+      return idx;
     }
-    this.lastSegmentIndex = idx;
-    return idx;
+    const found = segmentRanges.findIndex(
+      (s) => time >= s.startMs && time < s.endMs,
+    );
+    const resolved =
+      found >= 0 ? found : time < segmentRanges[0].startMs ? 0 : length - 1;
+    this.lastSegmentIndex = resolved;
+    return resolved;
   }
   private processTokens(
     tokens: SubtitleToken[],
@@ -1766,7 +1693,6 @@ export class SubtitlesWidget {
       : [translated, translated];
     const context = typeof pair[0] === "string" ? pair[0] : "";
     const current = typeof pair[1] === "string" ? pair[1] : "";
-    this.strTranslatedTokens = context;
     return [context, current];
   }
   private findTokenSpan(
@@ -1784,9 +1710,7 @@ export class SubtitlesWidget {
       ? token
       : null;
   }
-  private resolveTokenSpanFromClick(
-    event: PointerEvent,
-  ): HTMLSpanElement | null {
+  private resolveTokenSpanFromClick(event: MouseEvent): HTMLSpanElement | null {
     const root: HTMLElement | null =
       this.subtitlesBlock ?? this.subtitlesContainer;
     if (!root) return null;
@@ -1810,10 +1734,9 @@ export class SubtitlesWidget {
   }
   releaseTooltip(): this {
     this.tooltipTranslationRequestId += 1;
-    if (this.tokenTooltip?.target) {
-      this.tokenTooltip.target.classList.remove("selected");
-    }
-    this.tokenTooltip?.release();
+    this.tokenTooltipTarget?.classList.remove("selected");
+    this.tokenTooltipTarget = undefined;
+    this.tokenTooltip?.dispose();
     this.tokenTooltip = undefined;
     destroyShadowMount(this.tooltipMount);
     this.tooltipMount = undefined;
@@ -1825,9 +1748,7 @@ export class SubtitlesWidget {
     this.wrapPending = false;
     this.positionRefreshPending = false;
   }
-  clearRenderedContent({
-    releaseTooltip = false,
-  }: ClearRenderedContentOptions = {}): void {
+  clearRenderedContent(releaseTooltip = false): void {
     if (releaseTooltip) this.releaseTooltip();
     this.resetRenderMemo();
     this.lastActiveLineKey = null;
@@ -1857,7 +1778,7 @@ export class SubtitlesWidget {
       this.subtitlesContainer.textContent = "";
     }
   }
-  onClick = async (event: PointerEvent): Promise<void> => {
+  onClick = async (event: MouseEvent): Promise<void> => {
     if (performance.now() < this.suppressTokenClicksUntil) {
       event.preventDefault();
       event.stopPropagation();
@@ -1873,9 +1794,7 @@ export class SubtitlesWidget {
     }
     this.releaseTooltip();
     const requestId = this.tooltipTranslationRequestId;
-    const text = this.normalizeTokenTextForTranslation(
-      target.textContent ?? "",
-    );
+    const text = trimEdgePunctuation(target.textContent ?? "");
     if (!text) return;
     const service = await votStorage.get(
       "translationService",
@@ -1883,40 +1802,38 @@ export class SubtitlesWidget {
     );
     if (requestId !== this.tooltipTranslationRequestId) return;
     target.classList.add("selected");
-    const subtitlesInfo = UI.createSubtitleInfo(
-      text,
-      this.strTranslatedTokens || this.strTokens,
-      service,
-    );
-    const tooltip = this.createTokenTooltip(target, subtitlesInfo.container);
+    const tooltip = this.createTokenTooltip(target, {
+      source: text,
+      context: this.strTranslatedTokens || this.strTokens,
+      translationService: service,
+    });
     this.tokenTooltip = tooltip;
-    tooltip.create();
+    this.tokenTooltipTarget = target;
+    tooltip.show();
     const strTokens = this.strTokens;
     const translated = await this.translateStrTokens(text);
-    if (requestId !== this.tooltipTranslationRequestId) return;
     if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) {
       return;
     }
-    subtitlesInfo.header.textContent = translated[1];
-    subtitlesInfo.context.textContent = translated[0];
-    tooltip.setContent(subtitlesInfo.container);
+    this.strTranslatedTokens = translated[0];
+    tooltip.setTranslation(translated[1], translated[0]);
   };
   private toggleCurrentTooltipTarget(target: HTMLElement): boolean {
-    if (this.tokenTooltip?.target !== target || !this.tokenTooltip?.container) {
+    if (this.tokenTooltipTarget !== target || !this.tokenTooltip) {
       return false;
     }
 
-    if (this.tokenTooltip.showed) {
-      target.classList.add("selected");
-    } else {
-      target.classList.remove("selected");
-    }
+    target.classList.toggle("selected", this.tokenTooltip.isOpen());
     return true;
   }
   private createTokenTooltip(
     target: HTMLElement,
-    content: HTMLElement,
-  ): Tooltip {
+    content: {
+      source: string;
+      context: string;
+      translationService: string;
+    },
+  ): SubtitleTokenTooltipHandle {
     const viewportWidth = Math.max(320, globalThis.innerWidth || 0);
     const preferredWidth = Math.max(
       360,
@@ -1925,25 +1842,20 @@ export class SubtitlesWidget {
       Math.min(this.subtitleMaxWidthPx || 0, 720),
     );
     const tooltipMaxWidth = Math.min(viewportWidth - 24, preferredWidth, 720);
-    const tooltipMount = this.ensureTooltipMount();
 
-    return new Tooltip({
+    return mountSubtitleTokenTooltip({
       target,
       anchor: this.subtitlesBlock ?? target,
-      content,
-      parentElement: tooltipMount.root,
-      offset: { x: 4, y: 12 },
+      parentElement: this.ensureTooltipMount().root,
       maxWidth: tooltipMaxWidth,
-      mode: "follow",
-      borderRadius: 12,
-      bordered: false,
-      position: "top",
-      trigger: "click",
+      source: content.source,
+      context: content.context,
+      translationService: content.translationService,
     });
   }
   private shouldSkipTooltipUpdate(
     requestId: number,
-    tooltip: Tooltip,
+    tooltip: SubtitleTokenTooltipHandle,
     target: HTMLElement,
     strTokens: string,
   ): boolean {
@@ -1951,8 +1863,8 @@ export class SubtitlesWidget {
       requestId !== this.tooltipTranslationRequestId ||
       strTokens !== this.strTokens ||
       this.tokenTooltip !== tooltip ||
-      tooltip.target !== target ||
-      !tooltip.showed
+      this.tokenTooltipTarget !== target ||
+      !tooltip.isOpen()
     );
   }
   private buildPassedState(
@@ -2083,6 +1995,15 @@ export class SubtitlesWidget {
       this.detachDragDocumentListeners();
       return;
     }
+    this.sourceEpoch += 1;
+    this.strTokens = "";
+    this.resetTranslationContext();
+    this.resetRenderMemo();
+    this.resetWrapMemo();
+    this.resetSegmentationMemo();
+    this.lastWrapTokens = null;
+    this.passedStateKey = null;
+    this.passedThresholds.length = 0;
     this.createSubtitlesContainer();
     this.subtitles = subtitles;
     this.maxActiveCueLookbackMs = subtitles.subtitles.reduce(
@@ -2170,7 +2091,7 @@ export class SubtitlesWidget {
   private clearInactiveLineState(): void {
     this.lastActiveLineKey = null;
     if (this.subtitlesBlock || this.lastRenderKey !== null || this.strTokens) {
-      this.clearRenderedContent({ releaseTooltip: true });
+      this.clearRenderedContent(true);
       return;
     }
 
@@ -2195,10 +2116,7 @@ export class SubtitlesWidget {
       return;
     }
 
-    const anchorBox = this.computeAnchorBoxLayout(layout);
-    if (anchorBox.w && anchorBox.h) {
-      this.ensureSmartLayout(anchorBox);
-    }
+    this.ensureSmartLayout(layout);
   }
   private getRenderState(
     line: SubtitleLine,
@@ -2240,7 +2158,7 @@ export class SubtitlesWidget {
       this.subtitlesContainer ?? this.createSubtitlesContainer();
     // One persistent Solid root per container: created lazily, then fed a new
     // render plan. Solid updates only the parts whose text/attributes changed.
-    this.subtitleView ??= mountSubtitleView(this.subtitlesContainer, {
+    this.subtitleView ??= mountSolidSubtitlesWidget(this.subtitlesContainer, {
       lang: () => this.subtitleLang ?? "",
       onClick: this.onClick,
     });
@@ -2280,11 +2198,12 @@ export class SubtitlesWidget {
       return;
     }
 
-    this.lastActiveLineKey = activeLine.lineKey;
+    const activeLineKey = `${this.sourceEpoch}:${activeLine.lineKey}`;
+    this.lastActiveLineKey = activeLineKey;
     this.refreshSmartLayoutIfNeeded();
     const renderState = this.getRenderState(
       activeLine.line,
-      activeLine.lineKey,
+      activeLineKey,
       time,
     );
     const { tokens, tokensChanged, passedFlags, renderKey } = renderState;
@@ -2323,10 +2242,15 @@ export class SubtitlesWidget {
     this.checkerUnsubscribe?.();
     this.checkerUnsubscribe = null;
     this.releaseTooltip();
-    if (this.subtitlesContainer) {
-      this.subtitlesContainer.remove();
-      this.subtitlesContainer = null;
-    }
+    this.subtitleView?.dispose();
+    this.subtitleView = null;
+    this.subtitlesBlock = null;
+    this.renderedHighlightEls = [];
+    this.subtitleOverlayDispose?.();
+    this.subtitleOverlayDispose = undefined;
+    this.subtitleOverlayHost?.remove();
+    this.subtitleOverlayHost = null;
+    this.subtitlesContainer = null;
     destroyShadowMount(this.tooltipMount);
     this.tooltipMount = undefined;
     this.fullscreenLayerController.release();
@@ -2342,6 +2266,7 @@ export class SubtitlesWidget {
     }
     this.measureCtx = null;
     this.measureCanvas = null;
+    this.resizeTarget = undefined;
     this.lastAppliedLeftPct = null;
     this.lastAppliedTopPct = null;
     this.passedStateKey = null;
