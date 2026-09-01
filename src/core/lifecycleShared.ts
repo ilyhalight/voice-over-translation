@@ -1,4 +1,4 @@
-import type { OverlayViewControls } from "../views/OverlayView";
+import type { OverlayViewControls } from "../components/OverlayView/OverlayView";
 
 export type LifecycleTranslationResetHost = {
   videoData?: unknown;

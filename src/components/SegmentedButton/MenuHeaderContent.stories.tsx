@@ -5,9 +5,9 @@ import { MenuHeaderContent } from "./SegmentedButtonMenu";
 const meta = {
   component: MenuHeaderContent,
   render: (args) => (
-    <div style="display: flex;padding: 20px 200px 200px;">
+    <vot-block style="display: flex;padding: 20px 200px 200px;">
       <MenuHeaderContent {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof MenuHeaderContent>;
 

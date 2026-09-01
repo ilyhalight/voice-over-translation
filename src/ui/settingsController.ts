@@ -1,4 +1,4 @@
-const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
+const SETTINGS_EVENT_KEYS: Array<keyof SettingsControllerEventMap> = [
   "click:bugReport",
   "click:resetSettings",
   "update:account",
@@ -24,10 +24,14 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsViewEventMap> = [
   "select:menuLanguage",
 ];
 function createSettingsEvents(): {
-  [K in keyof SettingsViewEventMap]: EventImpl<SettingsViewEventMap[K]>;
+  [K in keyof SettingsControllerEventMap]: EventImpl<
+    SettingsControllerEventMap[K]
+  >;
 } {
   const events = {} as {
-    [K in keyof SettingsViewEventMap]: EventImpl<SettingsViewEventMap[K]>;
+    [K in keyof SettingsControllerEventMap]: EventImpl<
+      SettingsControllerEventMap[K]
+    >;
   };
   for (const key of SETTINGS_EVENT_KEYS) {
     (events as Record<string, EventImpl<unknown[]>>)[key] = new EventImpl<
@@ -38,34 +42,64 @@ function createSettingsEvents(): {
 }
 
 import { type Accessor, createSignal, type Setter } from "solid-js";
-import { SettingsDialog } from "../../components/Settings/SettingsDialog";
-import { PROXY_WORKER_HOST } from "../../config/config";
-import { isAuthRefreshMessage } from "../../core/authRefreshMessage";
-import { openAuthWindow } from "../../core/authWindow";
+import { SettingsDialog } from "../components/Settings/SettingsDialog";
+import { PROXY_WORKER_HOST } from "../config/config";
+import { isAuthRefreshMessage } from "../core/authRefreshMessage";
+import { openAuthWindow } from "../core/authWindow";
 import {
   type LangOverride,
   localizationProvider,
-} from "../../localization/localizationProvider";
-import { account, resetAccount, updateAccount } from "../../stores/account";
-import { setLocale } from "../../stores/locale";
-import { setSettings } from "../../stores/settings";
-import type { SubtitleFormat } from "../../subtitles/types";
-import type { Position } from "../../types/components/votButton";
+} from "../localization/localizationProvider";
+import { account, resetAccount, updateAccount } from "../stores/account";
+import { setLocale } from "../stores/locale";
+import { setSettings } from "../stores/settings";
+import type { SubtitleFormat } from "../subtitles/types";
+import type { Position } from "../types/components/votButton";
 import type {
   Account,
   ResponseLanguageSubtitles,
   StorageData,
   TranslateProxyStatus,
-} from "../../types/storage";
-import type {
-  SettingsViewEventMap,
-  SettingsViewProps,
-} from "../../types/views/settings";
-import debug from "../../utils/debug";
-import { EventImpl } from "../../utils/eventImpl";
-import { votStorage } from "../../utils/storage";
-import type { VideoHandler } from "../../VideoHandler";
-import { type MountedComponent, mountComponent } from "../solid/mountComponent";
+} from "../types/storage";
+import type { SubtitleFontFamily } from "../types/subtitles";
+import type { TranslateService } from "../types/translateApis";
+import debug from "../utils/debug";
+import { EventImpl } from "../utils/eventImpl";
+import { votStorage } from "../utils/storage";
+import type { VideoHandler } from "../VideoHandler";
+import { render } from "./solid/renderer";
+
+type SettingsControllerProps = {
+  globalPortal: HTMLElement;
+  data?: Partial<StorageData>;
+  videoHandler?: VideoHandler;
+};
+
+type SettingsControllerEventMap = {
+  "click:bugReport": [];
+  "click:resetSettings": [];
+  "update:account": [account: Partial<Account> | undefined];
+  "change:autoTranslate": [checked: boolean];
+  "change:autoSubtitles": [checked: boolean];
+  "change:showVideoVolume": [checked: boolean];
+  "change:audioBooster": [checked: boolean];
+  "change:syncVolume": [checked: boolean];
+  "change:subtitlesHighlightWords": [checked: boolean];
+  "change:subtitlesSmartLayout": [checked: boolean];
+  "select:responseLanguageSubtitles": [item: ResponseLanguageSubtitles];
+  "select:subtitlesFontFamily": [item: SubtitleFontFamily];
+  "change:proxyWorkerHost": [value: string];
+  "change:useNewAudioPlayer": [checked: boolean];
+  "change:onlyBypassMediaCSP": [checked: boolean];
+  "change:showPiPButton": [checked: boolean];
+  "input:subtitlesMaxLength": [value: number];
+  "input:subtitlesFontSize": [value: number];
+  "input:subtitlesBackgroundOpacity": [value: number];
+  "input:autoHideButtonDelay": [value: number];
+  "select:proxyTranslationStatus": [item: TranslateProxyStatus];
+  "select:translationTextService": [item: TranslateService];
+  "select:menuLanguage": [item: LangOverride];
+};
 
 type BufferedNumericStorageKey =
   | "autoVolume"
@@ -74,14 +108,16 @@ type BufferedNumericStorageKey =
   | "subtitlesOpacity"
   | "autoHideButtonDelay";
 
-export class SettingsView {
+export class SettingsController {
   private static readonly PERSIST_DELAY_MS = 250;
   globalPortal: HTMLElement;
   private initialized = false;
   private readonly data: Partial<StorageData>;
   private readonly videoHandler?: VideoHandler;
   private readonly events: {
-    [K in keyof SettingsViewEventMap]: EventImpl<SettingsViewEventMap[K]>;
+    [K in keyof SettingsControllerEventMap]: EventImpl<
+      SettingsControllerEventMap[K]
+    >;
   } = createSettingsEvents();
   private persistTimerIds: Partial<
     Record<BufferedNumericStorageKey, ReturnType<typeof setTimeout>>
@@ -94,16 +130,20 @@ export class SettingsView {
     void this.refreshAccountFromStorage();
   };
   root?: HTMLElement;
-  private settingsDialog?: MountedComponent<HTMLElement>;
+  private disposeSettingsDialog?: () => void;
   private dialogOpen?: Accessor<boolean>;
   private setDialogOpen?: Setter<boolean>;
   private accountStorageListenerCleanup?: () => void;
-  constructor({ globalPortal, data = {}, videoHandler }: SettingsViewProps) {
+  constructor({
+    globalPortal,
+    data = {},
+    videoHandler,
+  }: SettingsControllerProps) {
     this.globalPortal = globalPortal;
     this.data = data;
     this.videoHandler = videoHandler;
   }
-  isInitialized(): this is Required<SettingsView> {
+  isInitialized(): this is Required<SettingsController> {
     return this.initialized;
   }
   private scheduleStoragePersist(
@@ -117,7 +157,7 @@ export class SettingsView {
     this.persistTimerIds[key] = globalThis.setTimeout(() => {
       this.persistTimerIds[key] = undefined;
       void votStorage.set(key, value);
-    }, SettingsView.PERSIST_DELAY_MS);
+    }, SettingsController.PERSIST_DELAY_MS);
   }
   private flushStoragePersists(): void {
     for (const key of Object.keys(this.persistTimerIds) as Array<
@@ -210,14 +250,16 @@ export class SettingsView {
 
   initUI() {
     if (this.isInitialized()) {
-      throw new Error("[VOT] SettingsView is already initialized");
+      throw new Error("[VOT] SettingsController is already initialized");
     }
-    this.settingsDialog = mountComponent<HTMLElement>((rootRef) => {
+    this.disposeSettingsDialog = render(() => {
       const [isOpen, setIsOpen] = createSignal(false);
       this.dialogOpen = isOpen;
       this.setDialogOpen = setIsOpen;
       return SettingsDialog({
-        ref: rootRef,
+        ref: (element) => {
+          this.root = element;
+        },
         get isOpen() {
           return isOpen();
         },
@@ -424,39 +466,42 @@ export class SettingsView {
           onResetSettingsClick: () =>
             this.events["click:resetSettings"].dispatch(),
         },
-      });
-    });
-    this.root = this.settingsDialog.root;
-    this.globalPortal.appendChild(this.settingsDialog.root);
+      }) as Node;
+    }, this.globalPortal);
+    if (!this.root) {
+      this.disposeSettingsDialog();
+      this.disposeSettingsDialog = undefined;
+      throw new Error("[VOT] Settings dialog did not expose a root element");
+    }
     this.initialized = true;
     return this;
   }
   initUIEvents() {
     if (!this.isInitialized()) {
-      throw new Error("[VOT] SettingsView isn't initialized");
+      throw new Error("[VOT] SettingsController isn't initialized");
     }
     globalThis.addEventListener("message", this.onAuthRefreshMessage);
     this.bindAccountStorageListener();
     return this;
   }
-  addEventListener<K extends keyof SettingsViewEventMap>(
+  addEventListener<K extends keyof SettingsControllerEventMap>(
     type: K,
-    listener: (...data: SettingsViewEventMap[K]) => void,
+    listener: (...data: SettingsControllerEventMap[K]) => void,
   ): this {
     this.events[type].addListener(listener);
     return this;
   }
-  removeEventListener<K extends keyof SettingsViewEventMap>(
+  removeEventListener<K extends keyof SettingsControllerEventMap>(
     type: K,
-    listener: (...data: SettingsViewEventMap[K]) => void,
+    listener: (...data: SettingsControllerEventMap[K]) => void,
   ): this {
     this.events[type].removeListener(listener);
     return this;
   }
   private doReleaseUI(): void {
-    this.settingsDialog?.dispose();
-    this.settingsDialog?.root.remove();
-    this.settingsDialog = undefined;
+    this.disposeSettingsDialog?.();
+    this.disposeSettingsDialog = undefined;
+    this.root?.remove();
     this.dialogOpen = undefined;
     this.setDialogOpen = undefined;
     this.root = undefined;
@@ -477,19 +522,19 @@ export class SettingsView {
   }
   updateAccountInfo() {
     if (!this.isInitialized())
-      throw new Error("[VOT] SettingsView isn't initialized");
+      throw new Error("[VOT] SettingsController isn't initialized");
     this.events["update:account"].dispatch(this.data.account);
     return this;
   }
   open() {
     if (!this.isInitialized())
-      throw new Error("[VOT] SettingsView isn't initialized");
+      throw new Error("[VOT] SettingsController isn't initialized");
     this.setDialogOpen(true);
     return this;
   }
   close() {
     if (!this.isInitialized())
-      throw new Error("[VOT] SettingsView isn't initialized");
+      throw new Error("[VOT] SettingsController isn't initialized");
     this.setDialogOpen(false);
     return this;
   }

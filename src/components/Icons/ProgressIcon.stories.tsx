@@ -5,9 +5,9 @@ import { ProgressIcon } from "./ProgressIcon";
 const meta = {
   component: ProgressIcon,
   render: (args) => (
-    <div style="display: flex;color:#fff;font-size: 40px">
+    <vot-block style="display: flex;color:#fff;font-size: 40px">
       <ProgressIcon {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof ProgressIcon>;
 
@@ -53,9 +53,9 @@ export const ProgressIconChanging: Story = {
     onCleanup(() => window.clearInterval(intervalId));
 
     return (
-      <div style="display: flex; color: #fff; font-size: 40px">
+      <vot-block style="display: flex; color: #fff; font-size: 40px">
         <ProgressIcon progress={progress()} />
-      </div>
+      </vot-block>
     );
   },
 };

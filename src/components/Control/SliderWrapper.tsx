@@ -9,7 +9,7 @@ export type SliderWrapperProps = {
 
 export function SliderWrapper(props: SliderWrapperProps): JSX.Element {
   return (
-    <vot-block ref={props.ref} class="vot-slider_new-wrapper">
+    <vot-block ref={props.ref} class="vot-slider-wrapper">
       {props.children}
     </vot-block>
   );

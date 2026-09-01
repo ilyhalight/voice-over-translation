@@ -335,17 +335,15 @@ export function Select(props: SelectProps): JSX.Element {
   return (
     <vot-block
       ref={finalProps.ref}
-      class="vot-select_new"
+      class="vot-select"
       aria-disabled={finalProps.disabled}
     >
       <Show when={finalProps.children}>
-        <vot-block class="vot-select_new-label">
-          {finalProps.children}
-        </vot-block>
+        <vot-block class="vot-select-label">{finalProps.children}</vot-block>
       </Show>
       <RawButton
         ref={(el) => (outerRef = el)}
-        class="vot-select_new-outer"
+        class="vot-select-outer"
         buttonProps={{
           "aria-haspopup": "listbox",
           "aria-controls": selectId,
@@ -361,15 +359,13 @@ export function Select(props: SelectProps): JSX.Element {
           finalProps.onOpen?.();
         }}
       >
-        <vot-block class="vot-select_new-outer__title">
-          {visibleTitle()}
-        </vot-block>
-        <vot-block class="vot-select_new-outer__arrow">
+        <vot-block class="vot-select-outer__title">{visibleTitle()}</vot-block>
+        <vot-block class="vot-select-outer__arrow">
           <ChevronIcon />
         </vot-block>
       </RawButton>
       <vot-block
-        class="vot-select_new-inner"
+        class="vot-select-inner"
         ref={innerRef}
         id={selectId}
         hidden={!isOpen()}
@@ -382,7 +378,7 @@ export function Select(props: SelectProps): JSX.Element {
           />
         </Show>
         <vot-block
-          class="vot-select_new-inner__options"
+          class="vot-select-inner__options"
           role="listbox"
           aria-busy={finalProps.loading ? "true" : undefined}
           aria-multiselectable={finalProps.multiple ? "true" : undefined}
@@ -390,7 +386,7 @@ export function Select(props: SelectProps): JSX.Element {
           <For each={filteredOptions()}>
             {(option) => (
               <RawButton
-                class="vot-select_new-inner__option"
+                class="vot-select-inner__option"
                 disabled={option.disabled || finalProps.disabled}
                 buttonProps={{
                   role: "option",
@@ -410,16 +406,13 @@ export function Select(props: SelectProps): JSX.Element {
           </For>
         </vot-block>
         <Show when={finalProps.loading}>
-          <vot-block
-            class="vot-select_new-inner__no-options"
-            data-searching="true"
-          >
+          <vot-block class="vot-select-inner__no-options" data-searching="true">
             <LoadingDotsIcon />
           </vot-block>
         </Show>
         <Show when={filteredOptions().length === 0 && !finalProps.loading}>
           <vot-block
-            class="vot-select_new-inner__no-options"
+            class="vot-select-inner__no-options"
             data-searching={isSearching()}
           >
             <Show

@@ -1,6 +1,6 @@
 import { expect, fn, userEvent } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { setSettings, settings } from "../stores/settings";
+import { setSettings, settings } from "../../stores/settings";
 import { OverlayView, type OverlayViewControls } from "./OverlayView";
 
 const onSettingsClick = fn();
@@ -10,7 +10,7 @@ let smallLayoutControls: OverlayViewControls | undefined;
 const meta = {
   component: OverlayView,
   render: (args) => (
-    <div style="display: flex;padding: 20px 200px 200px;height: 90vh;">
+    <vot-block style="display: flex;padding: 20px 200px 200px;height: 90vh;">
       <OverlayView
         {...args}
         baseOpacity={1}
@@ -28,7 +28,7 @@ const meta = {
       >
         change direction
       </button>
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof OverlayView>;
 

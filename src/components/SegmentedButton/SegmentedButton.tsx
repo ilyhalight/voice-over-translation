@@ -11,12 +11,12 @@ import "./SegmentedButton.scss";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Direction, Status } from "../../types/components/votButton";
+import { isTouchFirstInput } from "../../utils/inputDevice";
+import { RawButton } from "../Button/RawButton";
 import {
   isKeyboardActivation,
   isPrimaryPointerAction,
-} from "../../ui/components/componentShared";
-import { isTouchFirstInput } from "../../utils/inputDevice";
-import { RawButton } from "../Button/RawButton";
+} from "../componentShared";
 import { ChevronIcon } from "../Icons/ChevronIcon";
 import { MenuIcon } from "../Icons/MenuIcon";
 import { PiPIcon } from "../Icons/PiPIcon";

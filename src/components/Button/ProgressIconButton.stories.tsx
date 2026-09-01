@@ -6,9 +6,9 @@ import { ProgressIconButton } from "./ProgressIconButton";
 const meta = {
   component: ProgressIconButton,
   render: (args) => (
-    <div style="display: flex;color:#fff;font-size: 40px">
+    <vot-block style="display: flex;color:#fff;font-size: 40px">
       <ProgressIconButton {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof ProgressIconButton>;
 
@@ -32,7 +32,7 @@ export const ProgressIconButtonChanging: Story = {
     const [progress, setProgress] = createSignal(0);
 
     return (
-      <div style="display: flex; color: #fff; font-size: 40px">
+      <vot-block style="display: flex; color: #fff; font-size: 40px">
         <ProgressIconButton
           {...args}
           showProgress={showProgress()}
@@ -56,7 +56,7 @@ export const ProgressIconButtonChanging: Story = {
         >
           <DownloadIcon />
         </ProgressIconButton>
-      </div>
+      </vot-block>
     );
   },
 };

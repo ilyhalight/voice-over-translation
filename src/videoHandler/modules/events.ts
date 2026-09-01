@@ -311,7 +311,7 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     const isSelectInner = path.some(
       (element) =>
         element instanceof HTMLElement &&
-        element.classList.contains("vot-select_new-inner"),
+        element.classList.contains("vot-select-inner"),
     );
     debug.log(
       `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings}`,

@@ -16,7 +16,7 @@ export type SliderLabelDescProps = {
 
 export function SliderLabelDesc(props: SliderLabelDescProps): JSX.Element {
   return (
-    <vot-block ref={props.ref} class="vot-slider_new-label__text-desc">
+    <vot-block ref={props.ref} class="vot-slider-label__text-desc">
       {props.children}
     </vot-block>
   );
@@ -34,15 +34,13 @@ export function SliderLabel(props: SliderLabelProps): JSX.Element {
   return (
     <vot-block
       ref={finalProps.ref}
-      class="vot-slider_new-label"
+      class="vot-slider-label"
       aria-disabled={finalProps.disabled}
     >
-      <vot-block class="vot-slider_new-label__text">
+      <vot-block class="vot-slider-label__text">
         {finalProps.children}
       </vot-block>
-      <vot-block class="vot-slider_new-label__value">
-        {finalProps.value}
-      </vot-block>
+      <vot-block class="vot-slider-label__value">{finalProps.value}</vot-block>
     </vot-block>
   );
 }

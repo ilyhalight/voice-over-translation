@@ -1,4 +1,4 @@
-@use "../../styles/mixins" as shared;
+@use "../mixins" as shared;
 
 .vot-menu {
   --vot-helper-surface-rgb: var(--vot-surface-rgb, 255, 255, 255);

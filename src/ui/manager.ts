@@ -18,6 +18,8 @@ import type { VideoHandler } from "../VideoHandler";
 import type { VideoData } from "../videoHandler/shared";
 import { safeSetPlayerVolume } from "../videoHandler/translationVolume";
 import { applyOverlayMountUpdate } from "./mount";
+import { OverlayController } from "./overlayController";
+import { SettingsController } from "./settingsController";
 import {
   createShadowMount,
   destroyShadowMount,
@@ -25,8 +27,6 @@ import {
   type ShadowMount,
 } from "./shadowMount";
 import { handleTranslationButtonCommand } from "./translationCommands";
-import { OverlayView } from "./views/overlay";
-import { SettingsView } from "./views/settings";
 
 export class UIManager {
   mount: OverlayMount;
@@ -36,16 +36,15 @@ export class UIManager {
   private readonly intervalIdleChecker: IntervalIdleChecker;
   data: Partial<StorageData>;
 
-  votGlobalPortal?: HTMLElement;
   private globalPortalMount?: ShadowMount;
   /**
    * Contains all elements over video player e.g. button, menu and etc
    */
-  votOverlayView?: OverlayView;
+  votOverlayView?: OverlayController;
   /**
    * Dialog settings menu
    */
-  votSettingsView?: SettingsView;
+  votSettingsView?: SettingsController;
 
   constructor({
     mount,
@@ -59,22 +58,13 @@ export class UIManager {
     this.intervalIdleChecker = intervalIdleChecker;
   }
 
-  get root(): HTMLElement | ShadowRoot {
-    return this.mount.root;
-  }
-
-  get portalContainer(): HTMLElement {
-    return this.mount.portalContainer;
-  }
-
   getSubtitlesMountContainer(): HTMLElement | ShadowRoot {
     return this.votOverlayView?.root ?? this.mount.subtitlesMountContainer;
   }
 
   isInitialized(): this is {
-    votGlobalPortal: HTMLElement;
-    votOverlayView: OverlayView;
-    votSettingsView: SettingsView;
+    votOverlayView: OverlayController;
+    votSettingsView: SettingsController;
   } {
     return this.initialized;
   }
@@ -116,17 +106,16 @@ export class UIManager {
     this.votOverlayView = undefined;
     this.votSettingsView = undefined;
     this.globalPortalMount = undefined;
-    this.votGlobalPortal = undefined;
   }
 
   private buildUI() {
-    this.globalPortalMount = createShadowMount({
+    const globalPortalMount = createShadowMount({
       parent: this.getGlobalPortalHost(this.mount),
       rootClasses: ["vot-portal"],
     });
-    this.votGlobalPortal = this.globalPortalMount.root;
+    this.globalPortalMount = globalPortalMount;
 
-    this.votOverlayView = new OverlayView({
+    this.votOverlayView = new OverlayController({
       mount: this.mount,
       data: this.data,
       videoHandler: this.videoHandler,
@@ -136,8 +125,8 @@ export class UIManager {
     // (e.g. when changing the menu language).
     this.votOverlayView.initUI();
 
-    this.votSettingsView = new SettingsView({
-      globalPortal: this.votGlobalPortal,
+    this.votSettingsView = new SettingsController({
+      globalPortal: globalPortalMount.root,
       data: this.data,
       videoHandler: this.videoHandler,
     });
@@ -638,7 +627,7 @@ export class UIManager {
 
   async reloadMenu() {
     if (!this.votOverlayView?.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
+      throw new Error("[VOT] OverlayController isn't initialized");
     }
 
     // Preserve overlay state across UI rebuild.
@@ -699,7 +688,7 @@ export class UIManager {
 
   async handleTranslationBtnClick() {
     if (!this.votOverlayView?.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
+      throw new Error("[VOT] OverlayController isn't initialized");
     }
 
     await handleTranslationButtonCommand({
@@ -725,7 +714,7 @@ export class UIManager {
 
   transformBtn(status: Status, text: string) {
     if (!this.votOverlayView?.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
+      throw new Error("[VOT] OverlayController isn't initialized");
     }
 
     this.votOverlayView.overlayViewControls?.setStatus(status);
@@ -748,7 +737,6 @@ export class UIManager {
     this.votSettingsView?.release();
     if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
     this.globalPortalMount = undefined;
-    this.votGlobalPortal = undefined;
 
     this.initialized = false;
     return this;

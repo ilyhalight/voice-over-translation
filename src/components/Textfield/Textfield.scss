@@ -1,1 +1,229 @@
-@use "../../styles/components/textfield.scss";
+.vot-textfield {
+  --vot-helper-theme: rgb(
+    var(--vot-theme-rgb, var(--vot-primary-rgb, 33, 150, 243))
+  ) !important;
+  --vot-helper-safari1: rgba(
+    var(--vot-onsurface-rgb, 0, 0, 0),
+    0.38
+  ) !important;
+  --vot-helper-safari2: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.6) !important;
+  --vot-helper-safari3: rgba(
+    var(--vot-onsurface-rgb, 0, 0, 0),
+    0.87
+  ) !important;
+  position: relative !important;
+  display: inline-block;
+  padding-top: 6px !important;
+  font-family: var(
+    --vot-font-family,
+    "Roboto",
+    "Segoe UI",
+    system-ui,
+    sans-serif
+  ) !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  text-align: start !important;
+
+  & > :is(input, textarea) {
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    border-style: solid !important;
+    border-width: 1px !important;
+    border-color: transparent var(--vot-helper-safari2)
+      var(--vot-helper-safari2) !important;
+    border-radius: 4px !important;
+    padding: 15px 13px 15px !important;
+    width: 100% !important;
+    height: inherit !important;
+    color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.87) !important;
+    -webkit-text-fill-color: currentColor !important; /* Safari */
+    background-color: transparent !important;
+    box-shadow:
+      inset 1px 0 transparent,
+      inset -1px 0 transparent,
+      inset 0 -1px transparent !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    caret-color: var(--vot-helper-theme) !important;
+    transition:
+      border 0.2s,
+      box-shadow 0.2s !important;
+
+    &:not(:focus):not(
+        :is(.vot-show-placeholder, .vot-show-placeholer)
+      )::placeholder {
+      color: transparent !important;
+    }
+
+    &:not(:focus) {
+      &:placeholder-shown {
+        border-top-color: var(--vot-helper-safari2) !important;
+      }
+    }
+
+    & + .vot-textfield__label {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      display: flex !important;
+      width: 100% !important;
+      max-height: 100% !important;
+      color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.6) !important;
+      font-size: 75% !important;
+      font-family: inherit;
+      line-height: 15px !important;
+      cursor: text !important;
+      transition:
+        color 0.2s,
+        font-size 0.2s,
+        line-height 0.2s !important;
+      pointer-events: none !important;
+    }
+
+    &:not(:focus):placeholder-shown + .vot-textfield__label {
+      font-size: inherit !important;
+      line-height: 68px !important;
+    }
+  }
+
+  /* Corners */
+  & > input,
+  & > textarea {
+    & + .vot-textfield__label::before,
+    & + .vot-textfield__label::after {
+      content: "" !important;
+      display: block !important;
+      box-sizing: border-box !important;
+      margin-top: 6px !important;
+      border-top: solid 1px var(--vot-helper-safari2) !important;
+      min-width: 10px !important;
+      height: 8px !important;
+      pointer-events: none !important;
+      box-shadow: inset 0 1px transparent !important;
+      transition:
+        border 0.2s,
+        box-shadow 0.2s !important;
+    }
+
+    & + .vot-textfield__label::before {
+      margin-right: 4px !important;
+      border-left: solid 1px transparent !important;
+      border-radius: 4px 0 !important;
+    }
+
+    & + .vot-textfield__label::after {
+      flex-grow: 1 !important;
+      margin-left: 4px !important;
+      border-right: solid 1px transparent !important;
+      border-radius: 0 4px !important;
+    }
+
+    &:is(.vot-show-placeholder, .vot-show-placeholer) + .vot-textfield__label {
+      &::before {
+        margin-right: 0 !important;
+      }
+
+      &::after {
+        margin-left: 0 !important;
+      }
+    }
+
+    &:is(:not(:focus):placeholder-shown) {
+      & + .vot-textfield__label::before,
+      & + .vot-textfield__label::after {
+        border-top-color: transparent !important;
+      }
+    }
+  }
+
+  & > textarea {
+    resize: none !important;
+  }
+
+  &:hover {
+    & > input:not(:disabled),
+    & > textarea:not(:disabled) {
+      border-color: transparent var(--vot-helper-safari3)
+        var(--vot-helper-safari3) !important;
+
+      & + .vot-textfield__label::before,
+      & + .vot-textfield__label::after {
+        border-top-color: var(--vot-helper-safari3) !important;
+      }
+
+      &:not(:focus):placeholder-shown {
+        border-color: var(--vot-helper-safari3) !important;
+      }
+    }
+  }
+
+  & > input:focus,
+  & > textarea:focus {
+    border-color: transparent var(--vot-helper-theme) var(--vot-helper-theme) !important;
+    box-shadow:
+      inset 1px 0 var(--vot-helper-theme),
+      inset -1px 0 var(--vot-helper-theme),
+      inset 0 -1px var(--vot-helper-theme) !important;
+    outline: none !important;
+
+    & + .vot-textfield__label {
+      color: var(--vot-helper-theme) !important;
+
+      &::before,
+      &::after {
+        border-top-color: var(--vot-helper-theme) !important;
+        box-shadow: inset 0 1px var(--vot-helper-theme) !important;
+      }
+    }
+  }
+
+  & > input:disabled,
+  & > textarea:disabled {
+    &,
+    & + .vot-textfield__label {
+      border-color: transparent var(--vot-helper-safari1)
+        var(--vot-helper-safari1) !important;
+      color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38) !important;
+      pointer-events: none !important;
+    }
+
+    & + .vot-textfield__label {
+      &::before,
+      &::after {
+        border-top-color: var(--vot-helper-safari1) !important;
+      }
+    }
+
+    &:placeholder-shown {
+      &,
+      & + .vot-textfield__label {
+        border-top-color: var(--vot-helper-safari1) !important;
+      }
+
+      & + .vot-textfield__label {
+        &::before,
+        &::after {
+          border-top-color: transparent !important;
+        }
+      }
+    }
+  }
+}
+
+/* Faster transition in Safari for less noticable fractional font-size issue */
+@media not all and (min-resolution: 0.001dpcm) {
+  @supports (-webkit-appearance: none) {
+    .vot-textfield > input,
+    .vot-textfield > input + .vot-textfield__label,
+    .vot-textfield > textarea,
+    .vot-textfield > textarea + .vot-textfield__label,
+    .vot-textfield > input + .vot-textfield__label::before,
+    .vot-textfield > input + .vot-textfield__label::after,
+    .vot-textfield > textarea + .vot-textfield__label::before,
+    .vot-textfield > textarea + .vot-textfield__label::after {
+      transition-duration: 0.1s !important;
+    }
+  }
+}

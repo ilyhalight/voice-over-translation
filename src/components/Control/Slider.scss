@@ -1,4 +1,4 @@
-.vot-slider_new {
+.vot-slider {
   --vot-slider-track-bg: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.15);
   --vot-slider-track-progress-bg: rgb(var(--vot-primary-rgb, 33, 150, 243));
   --vot-slider-size: 1em;
@@ -15,7 +15,7 @@
   &[aria-disabled="true"] {
     user-select: none;
     opacity: 0.5;
-    .vot-slider_new__control {
+    .vot-slider__control {
       cursor: not-allowed;
     }
   }
@@ -62,8 +62,8 @@
   }
 
   &[data-dragging] {
-    .vot-slider_new__track-progress,
-    .vot-slider_new__handle {
+    .vot-slider__track-progress,
+    .vot-slider__handle {
       transition: none;
     }
   }

@@ -1,4 +1,4 @@
-.vot-select_new {
+.vot-select {
   display: flex;
   align-items: center;
   justify-content: end;
@@ -59,7 +59,7 @@
       border-color: var(--vot-border-color-hover);
     }
 
-    &[aria-expanded="true"] .vot-select_new-outer__arrow {
+    &[aria-expanded="true"] .vot-select-outer__arrow {
       transform: rotate(180deg);
     }
   }

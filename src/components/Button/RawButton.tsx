@@ -3,7 +3,7 @@ import type {
   DataAttributes,
   OnClickEvent,
 } from "../../types/components/shared";
-import { isKeyboardActivation } from "../../ui/components/componentShared";
+import { isKeyboardActivation } from "../componentShared";
 
 export type RawButtonProps = {
   class: string;

@@ -5,9 +5,9 @@ import { Menu } from "./Menu";
 const meta = {
   component: Menu,
   render: (args) => (
-    <div style="display: flex;background: gray;padding: 20px 200px 200px;">
+    <vot-block style="display: flex;background: gray;padding: 20px 200px 200px;">
       <Menu {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof Menu>;
 
@@ -17,14 +17,14 @@ type Story = StoryObj<typeof meta>;
 export const MenuDefault: Story = {
   args: {
     title: "Settings",
-    children: <div>hello world</div>,
+    children: <vot-block>hello world</vot-block>,
   },
 };
 
 export const MenuWithHeaderAndFooter: Story = {
   args: {
     title: "Settings",
-    children: <div>hello world</div>,
+    children: <vot-block>hello world</vot-block>,
     headerChildren: "header",
     footerChildren: "footer",
   },

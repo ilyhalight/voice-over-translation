@@ -1,12 +1,11 @@
 import type { VideoDataSubtitle } from "@vot.js/core/types/client";
 import type { ServiceConf, VideoService } from "@vot.js/ext/types/service";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-
+import type { OverlayViewControls } from "../components/OverlayView/OverlayView";
 import type { StorageData } from "../types/storage";
 import debug from "../utils/debug";
 import { containsCrossShadow } from "../utils/dom";
 import type { VideoData } from "../videoHandler/shared";
-import type { OverlayViewControls } from "../views/OverlayView";
 import { findConnectedContainerBySelector } from "./containerResolution";
 import { hideLifecycleOverlay, resetAndHideLifecycle } from "./lifecycleShared";
 

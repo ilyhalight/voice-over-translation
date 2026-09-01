@@ -1,30 +1,49 @@
-import { FullscreenHelper } from "../../core/fullscreenHelper";
-import { setSettings } from "../../stores/settings";
-import type { StorageData } from "../../types/storage";
-import type { OverlayMount } from "../../types/uiManager";
-import type {
-  OverlayViewEventMap,
-  OverlayViewProps,
-} from "../../types/views/overlay";
-import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
-import { EventImpl } from "../../utils/eventImpl";
-import { hasTouchScreen, isTouchFirstInput } from "../../utils/inputDevice";
-import type { IntervalIdleChecker } from "../../utils/intervalIdleChecker";
-import { votStorage } from "../../utils/storage";
-import type { VideoHandler } from "../../VideoHandler";
 import {
   OverlayView as OverlayViewComponent,
   type OverlayViewControls,
-} from "../../views/OverlayView";
+} from "../components/OverlayView/OverlayView";
+import { FullscreenHelper } from "../core/fullscreenHelper";
+import { setSettings } from "../stores/settings";
+import type { LanguageSelectKey } from "../types/components/select";
+import type { StorageData } from "../types/storage";
+import type { OverlayMount } from "../types/uiManager";
+import { containsCrossShadow, getDeepActiveElement } from "../utils/dom";
+import { EventImpl } from "../utils/eventImpl";
+import { hasTouchScreen, isTouchFirstInput } from "../utils/inputDevice";
+import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
+import { votStorage } from "../utils/storage";
+import type { VideoHandler } from "../VideoHandler";
 import {
   createShadowMount,
   destroyShadowMount,
   reparentShadowMount,
   type ShadowMount,
-} from "../shadowMount";
-import { type MountedComponent, mountComponent } from "../solid/mountComponent";
+} from "./shadowMount";
+import { render } from "./solid/renderer";
 
-export class OverlayView {
+type OverlayControllerProps = {
+  mount: OverlayMount;
+  data?: Partial<StorageData>;
+  videoHandler?: VideoHandler;
+  intervalIdleChecker: IntervalIdleChecker;
+};
+
+type OverlayControllerEventMap = {
+  "click:settings": [];
+  "click:pip": [];
+  "click:subtitles": [];
+  "click:downloadTranslation": [];
+  "click:downloadSubtitles": [];
+  "click:translate": [];
+  "input:videoVolume": [volume: number];
+  "input:translationVolume": [volume: number];
+  "select:fromLanguage": [item: LanguageSelectKey];
+  "select:toLanguage": [item: LanguageSelectKey];
+  "select:subtitles": [item: string];
+  "select:voiceType": [useLive: boolean];
+};
+
+export class OverlayController {
   private static readonly BIG_CONTAINER_WIDTH_PX = 550;
   private resizeObserver?: ResizeObserver;
   private readonly fullscreenHelper: FullscreenHelper;
@@ -39,38 +58,46 @@ export class OverlayView {
   private readonly intervalIdleChecker: IntervalIdleChecker;
   private overlayMount?: ShadowMount;
   overlayViewControls?: OverlayViewControls;
-  private overlayViewComponent?: MountedComponent<HTMLDivElement>;
+  private disposeOverlay?: () => void;
 
   private readonly events: {
-    [K in keyof OverlayViewEventMap]: EventImpl<OverlayViewEventMap[K]>;
+    [K in keyof OverlayControllerEventMap]: EventImpl<
+      OverlayControllerEventMap[K]
+    >;
   } = {
-    "click:settings": new EventImpl<OverlayViewEventMap["click:settings"]>(),
-    "click:pip": new EventImpl<OverlayViewEventMap["click:pip"]>(),
-    "click:subtitles": new EventImpl<OverlayViewEventMap["click:subtitles"]>(),
+    "click:settings": new EventImpl<
+      OverlayControllerEventMap["click:settings"]
+    >(),
+    "click:pip": new EventImpl<OverlayControllerEventMap["click:pip"]>(),
+    "click:subtitles": new EventImpl<
+      OverlayControllerEventMap["click:subtitles"]
+    >(),
     "click:downloadTranslation": new EventImpl<
-      OverlayViewEventMap["click:downloadTranslation"]
+      OverlayControllerEventMap["click:downloadTranslation"]
     >(),
     "click:downloadSubtitles": new EventImpl<
-      OverlayViewEventMap["click:downloadSubtitles"]
+      OverlayControllerEventMap["click:downloadSubtitles"]
     >(),
-    "click:translate": new EventImpl<OverlayViewEventMap["click:translate"]>(),
+    "click:translate": new EventImpl<
+      OverlayControllerEventMap["click:translate"]
+    >(),
     "input:videoVolume": new EventImpl<
-      OverlayViewEventMap["input:videoVolume"]
+      OverlayControllerEventMap["input:videoVolume"]
     >(),
     "input:translationVolume": new EventImpl<
-      OverlayViewEventMap["input:translationVolume"]
+      OverlayControllerEventMap["input:translationVolume"]
     >(),
     "select:fromLanguage": new EventImpl<
-      OverlayViewEventMap["select:fromLanguage"]
+      OverlayControllerEventMap["select:fromLanguage"]
     >(),
     "select:toLanguage": new EventImpl<
-      OverlayViewEventMap["select:toLanguage"]
+      OverlayControllerEventMap["select:toLanguage"]
     >(),
     "select:subtitles": new EventImpl<
-      OverlayViewEventMap["select:subtitles"]
+      OverlayControllerEventMap["select:subtitles"]
     >(),
     "select:voiceType": new EventImpl<
-      OverlayViewEventMap["select:voiceType"]
+      OverlayControllerEventMap["select:voiceType"]
     >(),
   };
 
@@ -79,7 +106,7 @@ export class OverlayView {
     data = {},
     videoHandler,
     intervalIdleChecker,
-  }: OverlayViewProps) {
+  }: OverlayControllerProps) {
     this.mount = mount;
     this.data = data;
     this.videoHandler = videoHandler;
@@ -93,10 +120,6 @@ export class OverlayView {
 
   get root(): HTMLElement | ShadowRoot {
     return this.overlayMount?.root ?? this.mount.root;
-  }
-
-  get portalContainer(): HTMLElement {
-    return this.mount.portalContainer;
   }
 
   /**
@@ -125,17 +148,17 @@ export class OverlayView {
     return this.initialized;
   }
 
-  addEventListener<K extends keyof OverlayViewEventMap>(
+  addEventListener<K extends keyof OverlayControllerEventMap>(
     type: K,
-    listener: (...data: OverlayViewEventMap[K]) => void,
+    listener: (...data: OverlayControllerEventMap[K]) => void,
   ): this {
     this.events[type].addListener(listener);
     return this;
   }
 
-  removeEventListener<K extends keyof OverlayViewEventMap>(
+  removeEventListener<K extends keyof OverlayControllerEventMap>(
     type: K,
-    listener: (...data: OverlayViewEventMap[K]) => void,
+    listener: (...data: OverlayControllerEventMap[K]) => void,
   ): this {
     this.events[type].removeListener(listener);
     return this;
@@ -167,7 +190,7 @@ export class OverlayView {
 
   initUI() {
     if (this.isInitialized()) {
-      throw new Error("[VOT] OverlayView is already initialized");
+      throw new Error("[VOT] OverlayController is already initialized");
     }
 
     this.initialized = true;
@@ -194,112 +217,111 @@ export class OverlayView {
       ? this.videoHandler.getVideoVolume() * 100
       : 100;
 
-    this.overlayViewComponent = mountComponent<HTMLDivElement>((rootRef) =>
-      OverlayViewComponent({
-        ref: rootRef,
-        controlsRef: (controls) => {
-          this.overlayViewControls = controls;
-        },
-        isBigContainer: this.isBigContainer,
-        detectedLanguage: this.videoHandler?.videoData?.detectedLanguage,
-        responseLanguage: this.data.responseLanguage,
-        videoVolume,
-        onButtonDragActivity: (source) =>
-          this.intervalIdleChecker.markActivity(source),
-        onButtonDragEnd: () => this.queueButtonAutoHideAfterInteraction(),
-        onButtonPositionChange: (position) => {
-          this.data.buttonPos = position;
-        },
-        onTranslateClick: () => {
-          this.events["click:translate"].dispatch();
-        },
-        onPiPClick: () => {
-          this.events["click:pip"].dispatch();
-        },
-        onSubtitlesClick: () => {
-          this.events["click:subtitles"].dispatch();
-        },
-        onSubtitlesOpen: () =>
-          this.videoHandler?.ensureSubtitlesForCurrentLangPair(),
-        onSubtitlesSelect: (value) => {
-          this.events["select:subtitles"].dispatch(value);
-        },
-        onVoiceChange: (voice) => {
-          const useLive = voice === "live";
-          this.data.useLivelyVoice = useLive;
-          void votStorage.set("useLivelyVoice", useLive);
-          this.events["select:voiceType"].dispatch(useLive);
-          queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
-        },
-        onVideoVolumeInput: (volume) => {
-          this.events["input:videoVolume"].dispatch(volume);
-        },
-        onTranslationVolumeInput: (volume) => {
-          if (this.data.defaultVolume !== volume) {
-            this.data.defaultVolume = volume;
-            this.scheduleDefaultVolumePersist();
-          }
+    this.disposeOverlay = render(
+      () =>
+        OverlayViewComponent({
+          controlsRef: (controls) => {
+            this.overlayViewControls = controls;
+          },
+          isBigContainer: this.isBigContainer,
+          detectedLanguage: this.videoHandler?.videoData?.detectedLanguage,
+          responseLanguage: this.data.responseLanguage,
+          videoVolume,
+          onButtonDragActivity: (source) =>
+            this.intervalIdleChecker.markActivity(source),
+          onButtonDragEnd: () => this.queueButtonAutoHideAfterInteraction(),
+          onButtonPositionChange: (position) => {
+            this.data.buttonPos = position;
+          },
+          onTranslateClick: () => {
+            this.events["click:translate"].dispatch();
+          },
+          onPiPClick: () => {
+            this.events["click:pip"].dispatch();
+          },
+          onSubtitlesClick: () => {
+            this.events["click:subtitles"].dispatch();
+          },
+          onSubtitlesOpen: () =>
+            this.videoHandler?.ensureSubtitlesForCurrentLangPair(),
+          onSubtitlesSelect: (value) => {
+            this.events["select:subtitles"].dispatch(value);
+          },
+          onVoiceChange: (voice) => {
+            const useLive = voice === "live";
+            this.data.useLivelyVoice = useLive;
+            void votStorage.set("useLivelyVoice", useLive);
+            this.events["select:voiceType"].dispatch(useLive);
+            queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+          },
+          onVideoVolumeInput: (volume) => {
+            this.events["input:videoVolume"].dispatch(volume);
+          },
+          onTranslationVolumeInput: (volume) => {
+            if (this.data.defaultVolume !== volume) {
+              this.data.defaultVolume = volume;
+              this.scheduleDefaultVolumePersist();
+            }
 
-          this.events["input:translationVolume"].dispatch(volume);
-        },
-        onDownloadTranslationClick: () => {
-          this.events["click:downloadTranslation"].dispatch();
-        },
-        onDownloadSubtitlesClick: () => {
-          this.events["click:downloadSubtitles"].dispatch();
-        },
-        onSettingsClick: () => {
-          this.events["click:settings"].dispatch();
-        },
-        onDetectedLanguageSelect: (language) => {
-          if (this.videoHandler?.videoData) {
-            this.videoHandler.videoData.detectedLanguage = language;
-            this.videoHandler.videoManager.rememberUserLanguageSelection(
-              this.videoHandler.videoData.videoId,
-              language,
-            );
-          }
-          this.events["select:fromLanguage"].dispatch(language);
-        },
-        onResponseLanguageSelect: async (language) => {
-          if (this.videoHandler?.videoData) {
-            this.videoHandler.translateToLang =
-              this.videoHandler.videoData.responseLanguage = language;
-          }
+            this.events["input:translationVolume"].dispatch(volume);
+          },
+          onDownloadTranslationClick: () => {
+            this.events["click:downloadTranslation"].dispatch();
+          },
+          onDownloadSubtitlesClick: () => {
+            this.events["click:downloadSubtitles"].dispatch();
+          },
+          onSettingsClick: () => {
+            this.events["click:settings"].dispatch();
+          },
+          onDetectedLanguageSelect: (language) => {
+            if (this.videoHandler?.videoData) {
+              this.videoHandler.videoData.detectedLanguage = language;
+              this.videoHandler.videoManager.rememberUserLanguageSelection(
+                this.videoHandler.videoData.videoId,
+                language,
+              );
+            }
+            this.events["select:fromLanguage"].dispatch(language);
+          },
+          onResponseLanguageSelect: async (language) => {
+            if (this.videoHandler?.videoData) {
+              this.videoHandler.translateToLang =
+                this.videoHandler.videoData.responseLanguage = language;
+            }
 
-          const prevResponseLanguage = this.data.responseLanguage;
-          if (prevResponseLanguage !== language) {
-            this.data.responseLanguage = language;
-            await votStorage.set(
-              "responseLanguage",
-              this.data.responseLanguage,
-            );
-          }
+            const prevResponseLanguage = this.data.responseLanguage;
+            if (prevResponseLanguage !== language) {
+              this.data.responseLanguage = language;
+              await votStorage.set(
+                "responseLanguage",
+                this.data.responseLanguage,
+              );
+            }
 
-          // UX: keep the "Don't translate from selected languages" list in sync
-          // with the selected response language, but only while the list still
-          // looks like the old default.
-          // TODO: recheck it later
-          if (
-            Array.isArray(this.data.dontTranslateLanguages) &&
-            this.data.dontTranslateLanguages.length === 1 &&
-            prevResponseLanguage !== language &&
-            typeof prevResponseLanguage === "string" &&
-            this.data.dontTranslateLanguages[0] === prevResponseLanguage
-          ) {
-            setSettings("dontTranslateLanguages", [language]);
-            this.data.dontTranslateLanguages = [language];
-            await votStorage.set(
-              "dontTranslateLanguages",
-              this.data.dontTranslateLanguages,
-            );
-          }
-          this.events["select:toLanguage"].dispatch(language);
-        },
-      }),
+            // UX: keep the "Don't translate from selected languages" list in sync
+            // with the selected response language, but only while the list still
+            // looks like the old default.
+            // TODO: recheck it later
+            if (
+              Array.isArray(this.data.dontTranslateLanguages) &&
+              this.data.dontTranslateLanguages.length === 1 &&
+              prevResponseLanguage !== language &&
+              typeof prevResponseLanguage === "string" &&
+              this.data.dontTranslateLanguages[0] === prevResponseLanguage
+            ) {
+              setSettings("dontTranslateLanguages", [language]);
+              this.data.dontTranslateLanguages = [language];
+              await votStorage.set(
+                "dontTranslateLanguages",
+                this.data.dontTranslateLanguages,
+              );
+            }
+            this.events["select:toLanguage"].dispatch(language);
+          },
+        }) as Node,
+      this.root,
     );
-
-    this.root.appendChild(this.overlayViewComponent.root);
     this.setupResizeObserver();
     // #endregion VOT Menu
     return this;
@@ -442,8 +464,8 @@ export class OverlayView {
   private doReleaseUI(): void {
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
-    this.overlayViewComponent?.dispose();
-    this.overlayViewComponent = undefined;
+    this.disposeOverlay?.();
+    this.disposeOverlay = undefined;
     this.overlayViewControls = undefined;
 
     this.fullscreenHelper.destroy();
@@ -475,7 +497,7 @@ export class OverlayView {
 
   get isBigContainer() {
     return this.fullscreenHelper.isBigContainer(
-      OverlayView.BIG_CONTAINER_WIDTH_PX,
+      OverlayController.BIG_CONTAINER_WIDTH_PX,
     );
   }
 

@@ -10,9 +10,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const SectionChildren = () => (
-  <p>
+  <vot-block>
     Hello <b>World</b>!
-  </p>
+  </vot-block>
 );
 
 export const SettingsSectionDefault: Story = {

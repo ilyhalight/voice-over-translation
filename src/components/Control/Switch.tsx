@@ -63,22 +63,25 @@ export function Switch(props: SwitchProps): JSX.Element {
         }}
       />
       <Show when={finalProps.heading || finalProps.description}>
-        <span class="vot-switch-text">
+        <vot-block class="vot-switch-text">
           <Show when={finalProps.heading}>
-            <span class="vot-switch-heading" id={`${textId}-heading`}>
+            <vot-block class="vot-switch-heading" id={`${textId}-heading`}>
               {finalProps.heading}
-            </span>
+            </vot-block>
           </Show>
           <Show when={finalProps.description}>
-            <span class="vot-switch-description" id={`${textId}-description`}>
+            <vot-block
+              class="vot-switch-description"
+              id={`${textId}-description`}
+            >
               {finalProps.description}
-            </span>
+            </vot-block>
           </Show>
-        </span>
+        </vot-block>
       </Show>
-      <span class="vot-switch-track" data-checked={checked()}>
-        <span class="vot-switch-handle"></span>
-      </span>
+      <vot-block class="vot-switch-track" data-checked={checked()}>
+        <vot-block class="vot-switch-handle" />
+      </vot-block>
     </label>
   );
 }

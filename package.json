@@ -42,7 +42,7 @@
     "test": "bun test",
     "test:unit": "bun test",
     "test:unit:watch": "bun test --watch",
-    "test:ui": "vite build --config vite/vite.test-ui.config.ts",
+    "test:ui": "vitest run --project storybook --maxWorkers=4",
     "build:gm:default": "vite build --config vite/vite.config.ts",
     "build:gm:min": "vite build --mode minify --config vite/vite.config.ts",
     "build:gm": "run-p build:gm:default build:gm:min",

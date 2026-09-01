@@ -5,9 +5,9 @@ import { SegmentedButtonMenu } from "./SegmentedButtonMenu";
 const meta = {
   component: SegmentedButtonMenu,
   render: (args) => (
-    <div style="display: flex;background: gray;padding: 20px 200px 200px;">
+    <vot-block style="display: flex;background: gray;padding: 20px 200px 200px;">
       <SegmentedButtonMenu {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof SegmentedButtonMenu>;
 

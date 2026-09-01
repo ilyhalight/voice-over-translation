@@ -5,9 +5,9 @@ import { TranslateIcon } from "./TranslateIcon";
 const meta = {
   component: TranslateIcon,
   render: (args) => (
-    <div style="color: white">
+    <vot-block style="color: white">
       <TranslateIcon {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof TranslateIcon>;
 

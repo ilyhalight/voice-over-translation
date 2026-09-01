@@ -9,29 +9,29 @@ import {
   onMount,
   Show,
 } from "solid-js";
-import type { SelectOption } from "../components/Control/Select";
-import { PreviewSegmentedButtonOverlay } from "../components/SegmentedButton/PreviewSegmentedButtonOverlay";
-import type { SegmentedButtonControls } from "../components/SegmentedButton/SegmentedButton";
-import type { SegmentedButtonMenuControls } from "../components/SegmentedButton/SegmentedButtonMenu";
-import {
-  SegmentedButtonMenuOverlay,
-  type SegmentedButtonMenuOverlayProps,
-} from "../components/SegmentedButton/SegmentedButtonMenuOverlay";
-import {
-  SegmentedButtonOverlay,
-  type SegmentedButtonOverlayProps,
-} from "../components/SegmentedButton/SegmentedButtonOverlay";
-import { localizationProvider } from "../localization/localizationProvider";
-import { setSettings, settings } from "../stores/settings";
-import type { Position, Status } from "../types/components/votButton";
+import { localizationProvider } from "../../localization/localizationProvider";
+import { setSettings, settings } from "../../stores/settings";
+import type { Position, Status } from "../../types/components/votButton";
 import {
   getButtonDirection,
   isSideButtonPosition,
   normalizeButtonPosition,
   resolveButtonPositionFromPointer,
-} from "../ui/buttonPlacement";
-import { votStorage } from "../utils/storage";
-import { isPiPAvailable } from "../utils/utils";
+} from "../../ui/buttonPlacement";
+import { votStorage } from "../../utils/storage";
+import { isPiPAvailable } from "../../utils/utils";
+import type { SelectOption } from "../Control/Select";
+import { PreviewSegmentedButtonOverlay } from "../SegmentedButton/PreviewSegmentedButtonOverlay";
+import type { SegmentedButtonControls } from "../SegmentedButton/SegmentedButton";
+import type { SegmentedButtonMenuControls } from "../SegmentedButton/SegmentedButtonMenu";
+import {
+  SegmentedButtonMenuOverlay,
+  type SegmentedButtonMenuOverlayProps,
+} from "../SegmentedButton/SegmentedButtonMenuOverlay";
+import {
+  SegmentedButtonOverlay,
+  type SegmentedButtonOverlayProps,
+} from "../SegmentedButton/SegmentedButtonOverlay";
 
 type ButtonDragState = {
   pointerId: number;
@@ -87,7 +87,6 @@ export type OverlayViewControls = {
   >;
 
 export type OverlayViewProps = {
-  ref?: (element: HTMLElement) => void;
   controlsRef?: (controls: OverlayViewControls) => void;
   isBigContainer?: boolean;
   /**
@@ -572,11 +571,11 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
       }
 
       const path = event.composedPath();
-      // select_new-inner can be outside of these overlay
+      // Select options can be portaled outside of these overlays.
       const isClickInsideSelect = path.some(
         (element) =>
           element instanceof HTMLElement &&
-          element.classList.contains("vot-select_new-inner"),
+          element.classList.contains("vot-select-inner"),
       );
       if (
         path.includes(buttonOverlay) ||
@@ -642,7 +641,6 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     <vot-block
       ref={(element) => {
         rootElement = element;
-        finalProps.ref?.(element);
       }}
     >
       <SegmentedButtonOverlay

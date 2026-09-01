@@ -1,5 +1,5 @@
-@use "../../styles/mixins" as shared;
-@use "../../styles/components/buttons/mixins" as button;
+@use "../mixins" as shared;
+@use "../Button/mixins" as button;
 
 .vot-segmented-button {
   --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);

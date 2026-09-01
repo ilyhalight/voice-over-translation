@@ -240,7 +240,7 @@ export function SettingsTranslationSection(
       >
         {localizationProvider.get("VOTTranslationTextService")}
         <br />
-        <vot-block class="vot-select_new-label__description">
+        <vot-block class="vot-select-label__description">
           {localizationProvider.get("VOTNotAffectToVoice")}
         </vot-block>
       </Select>

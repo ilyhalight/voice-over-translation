@@ -49,13 +49,13 @@ export function Slider(props: SliderProps): JSX.Element {
   return (
     <vot-block
       ref={finalProps.ref}
-      class="vot-slider_new"
+      class="vot-slider"
       data-dragging={dragging() ? "" : undefined}
       style={{ "--vot-progress": progress() }}
       aria-disabled={finalProps.disabled}
     >
       <input
-        class="vot-slider_new__control"
+        class="vot-slider__control"
         type="range"
         min={finalProps.min}
         max={finalProps.max}
@@ -97,9 +97,9 @@ export function Slider(props: SliderProps): JSX.Element {
           finalProps.onInput?.(newValue);
         }}
       />
-      <vot-block class="vot-slider_new__track" />
-      <vot-block class="vot-slider_new__track vot-slider_new__track-progress" />
-      <vot-block class="vot-slider_new__handle" />
+      <vot-block class="vot-slider__track" />
+      <vot-block class="vot-slider__track vot-slider__track-progress" />
+      <vot-block class="vot-slider__handle" />
     </vot-block>
   );
 }

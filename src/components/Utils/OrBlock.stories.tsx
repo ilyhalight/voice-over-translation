@@ -11,6 +11,6 @@ type Story = StoryObj<typeof meta>;
 
 export const OrBlockDefault: Story = {
   args: {
-    children: <p>hello world</p>,
+    children: <vot-block>hello world</vot-block>,
   },
 };

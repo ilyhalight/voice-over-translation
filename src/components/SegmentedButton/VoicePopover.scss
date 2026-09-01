@@ -1,1 +1,319 @@
-@use "../../styles/components/voice-popover.scss";
+@use "../mixins" as shared;
+
+.vot-voice-icon {
+  display: block;
+  overflow: visible;
+
+  .vot-eq-bar {
+    transform-origin: 50% 100%;
+    transform-box: fill-box;
+    transform: scaleY(1);
+  }
+
+  &--standard .vot-eq-bar {
+    fill: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.4);
+  }
+
+  &--live .vot-eq-bar {
+    fill: #e040a0;
+  }
+}
+
+.vot-voice-popover {
+  --vot-helper-surface-rgb: var(--vot-surface-rgb, 32, 33, 36);
+
+  --vot-helper-surface: rgb(var(--vot-helper-surface-rgb));
+
+  --vot-helper-onsurface-rgb: var(--vot-onsurface-rgb, 227, 227, 227);
+
+  --vot-helper-onsurface: rgba(var(--vot-helper-onsurface-rgb), 0.87);
+
+  --vot-helper-onsurface-secondary: rgba(var(--vot-helper-onsurface-rgb), 0.55);
+
+  --vot-voice-active-standard-bg: rgba(
+    var(--vot-primary-rgb, 139, 180, 245),
+    0.1
+  );
+
+  --vot-voice-active-standard-fg: rgb(var(--vot-primary-rgb, 139, 180, 245));
+
+  --vot-voice-active-live-bg: rgba(224, 64, 160, 0.1);
+
+  --vot-voice-active-live-fg: #e040a0;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  z-index: 2147483647;
+  display: block;
+
+  background: var(--vot-helper-surface);
+
+  border: 1px solid var(--vot-border-color) !important;
+
+  border-radius: var(--vot-radius-m) !important;
+
+  box-shadow: var(--vot-shadow-2) !important;
+
+  overflow: hidden;
+
+  min-width: 230px;
+  max-width: var(--vot-voice-popover-max-width, 310px);
+  max-height: var(--vot-voice-popover-max-height, calc(100vh - 16px));
+  width: max-content;
+
+  cursor: default;
+  user-select: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  transform-origin: top left;
+
+  @include shared.vot-font-family;
+  text-align: left !important;
+
+  &,
+  & * {
+    box-sizing: border-box !important;
+  }
+
+  opacity: 0;
+
+  transform: none;
+
+  visibility: hidden;
+
+  pointer-events: none;
+
+  transition: none;
+
+  &[hidden] {
+    display: none !important;
+  }
+
+  &:not([hidden]),
+  &.is-open,
+  &[aria-hidden="false"] {
+    opacity: 1;
+
+    transform: none;
+
+    visibility: visible;
+
+    pointer-events: auto;
+  }
+
+  &[data-placement="top"] {
+    transform-origin: bottom center;
+  }
+
+  &[data-placement="bottom"] {
+    transform-origin: top center;
+  }
+
+  &[data-placement="left"] {
+    transform-origin: right center;
+  }
+
+  &[data-placement="right"] {
+    transform-origin: left center;
+  }
+
+  &.is-closing {
+    opacity: 0;
+
+    transform: none;
+
+    visibility: visible;
+
+    pointer-events: none;
+  }
+
+  &__item {
+    position: relative;
+
+    overflow: hidden;
+
+    display: flex;
+    gap: 12px;
+
+    padding: 14px 44px 14px 16px !important;
+    min-height: 62px;
+
+    cursor: pointer;
+
+    color: var(--vot-helper-onsurface);
+
+    outline: none;
+
+    transition: none;
+
+    &::before {
+      content: "";
+
+      position: absolute;
+      inset: 0;
+
+      opacity: 0;
+
+      pointer-events: none;
+
+      background: linear-gradient(
+        180deg,
+        rgba(var(--vot-helper-onsurface-rgb), 0.045),
+        rgba(var(--vot-helper-onsurface-rgb), 0.06)
+      );
+
+      transition: none;
+    }
+
+    &:hover,
+    &:focus-visible {
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+    }
+
+    &:hover::before,
+    &:focus-visible::before {
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1px
+        rgba(var(--vot-primary-rgb, 139, 180, 245), 0.18);
+    }
+
+    &::after {
+      content: "";
+
+      position: absolute;
+
+      right: 14px;
+      top: 50%;
+
+      width: 18px;
+      height: 18px;
+
+      opacity: 0;
+
+      transform: translateY(-50%) scale(0.88);
+
+      transition: none;
+
+      background-color: currentColor;
+
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+        center / contain no-repeat;
+
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+        center / contain no-repeat;
+    }
+
+    &--active {
+      font-weight: 500 !important;
+
+      &::after {
+        opacity: 1;
+
+        transform: translateY(-50%) scale(1);
+      }
+    }
+  }
+
+  &__item[data-voice="standard"].vot-voice-popover__item--active {
+    background-color: var(--vot-voice-active-standard-bg);
+
+    color: var(--vot-voice-active-standard-fg);
+
+    .vot-voice-popover__item-title {
+      color: inherit;
+    }
+
+    .vot-voice-icon--standard .vot-eq-bar {
+      fill: currentColor;
+    }
+  }
+
+  &__item[data-voice="live"].vot-voice-popover__item--active {
+    background-color: var(--vot-voice-active-live-bg);
+
+    color: var(--vot-voice-active-live-fg);
+
+    .vot-voice-popover__item-title {
+      color: inherit;
+    }
+  }
+
+  &__item-icon {
+    font-size: 20px;
+  }
+
+  &__item-text {
+    display: flex;
+    flex-direction: column;
+
+    gap: 2px;
+
+    min-width: 0;
+  }
+
+  &__item-title {
+    font-size: 15px;
+
+    font-weight: 400 !important;
+
+    line-height: 1.3;
+
+    color: inherit;
+
+    white-space: nowrap;
+
+    transition: none;
+  }
+
+  &__item-subtitle {
+    font-size: 12px;
+
+    line-height: 1.4;
+
+    color: var(--vot-helper-onsurface-secondary);
+
+    white-space: normal;
+  }
+
+  &__divider {
+    height: 1px;
+
+    background: var(--vot-border-color);
+
+    margin: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vot-voice-icon .vot-eq-bar {
+    animation: none !important;
+    transform: scaleY(1) !important;
+  }
+
+  .vot-voice-popover,
+  .vot-voice-popover *,
+  .vot-voice-popover::before,
+  .vot-voice-popover::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .vot-voice-popover {
+    transform: none !important;
+  }
+
+  .vot-voice-popover.is-closing,
+  .vot-voice-popover:not([hidden]),
+  .vot-voice-popover.is-open,
+  .vot-voice-popover[aria-hidden="false"] {
+    transform: none !important;
+  }
+}

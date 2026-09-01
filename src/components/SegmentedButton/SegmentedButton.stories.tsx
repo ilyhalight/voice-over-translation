@@ -23,9 +23,9 @@ function dispatchPrimaryPointerUp(
 const meta = {
   component: SegmentedButton,
   render: (args) => (
-    <div style="display: flex;background: gray;padding: 20px 200px 200px;">
+    <vot-block style="display: flex;background: gray;padding: 20px 200px 200px;">
       <SegmentedButton {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof SegmentedButton>;
 
@@ -137,9 +137,9 @@ export const SegmentedButtonAsColumn: Story = {
     tooltipPos: "right",
   },
   render: (args) => (
-    <div style="display: flex;background: gray;padding: 200px;padding-left: 20px;">
+    <vot-block style="display: flex;background: gray;padding: 200px;padding-left: 20px;">
       <SegmentedButton {...args} />
-    </div>
+    </vot-block>
   ),
 };
 

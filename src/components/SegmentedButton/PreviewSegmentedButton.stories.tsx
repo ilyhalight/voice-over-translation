@@ -5,9 +5,9 @@ import { PreviewSegmentedButton } from "./PreviewSegmentedButton";
 const meta = {
   component: PreviewSegmentedButton,
   render: (args) => (
-    <div style="display: flex;background: gray;padding: 20px 200px 200px;">
+    <vot-block style="display: flex;background: gray;padding: 20px 200px 200px;">
       <PreviewSegmentedButton {...args} />
-    </div>
+    </vot-block>
   ),
 } satisfies Meta<typeof PreviewSegmentedButton>;
 
@@ -61,8 +61,8 @@ export const PreviewSegmentedButtonAsColumn: Story = {
     direction: "column",
   },
   render: (args) => (
-    <div style="display: flex;background: gray;padding: 200px;padding-left: 20px;">
+    <vot-block style="display: flex;background: gray;padding: 200px;padding-left: 20px;">
       <PreviewSegmentedButton {...args} />
-    </div>
+    </vot-block>
   ),
 };

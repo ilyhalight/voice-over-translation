@@ -84,12 +84,12 @@ export const SelectNearViewportBottom: Story = {
     </vot-block>
   ),
   play: async ({ canvasElement }) => {
-    const trigger = canvasElement.querySelector<HTMLElement>(
-      ".vot-select_new-outer",
-    );
-    const popup = canvasElement.ownerDocument.querySelector<HTMLElement>(
-      ".vot-select_new-inner",
-    );
+    const trigger =
+      canvasElement.querySelector<HTMLElement>(".vot-select-outer");
+    const popup =
+      canvasElement.ownerDocument.querySelector<HTMLElement>(
+        ".vot-select-inner",
+      );
 
     await expect(trigger).not.toBeNull();
     await expect(popup).not.toBeNull();
@@ -119,7 +119,7 @@ export const SelectNearViewportBottom: Story = {
       expect(popup.hidden).toBe(true);
     });
 
-    const select = trigger.closest<HTMLElement>(".vot-select_new");
+    const select = trigger.closest<HTMLElement>(".vot-select");
     await expect(select).not.toBeNull();
     if (!select?.parentNode) {
       return;
@@ -166,7 +166,7 @@ export const SelectLoading: Story = {
   play: async () => {
     const listbox = document.querySelector('[role="listbox"]');
     const loader = document.querySelector(
-      '.vot-select_new-inner__no-options[data-searching="true"]',
+      '.vot-select-inner__no-options[data-searching="true"]',
     );
 
     await expect(listbox).toHaveAttribute("aria-busy", "true");
@@ -198,12 +198,9 @@ export const SelectStaysOpenWhenOptionsChange: Story = {
     );
   },
   play: async ({ canvasElement }) => {
-    const trigger = canvasElement.querySelector<HTMLElement>(
-      ".vot-select_new-outer",
-    );
-    const popup = canvasElement.querySelector<HTMLElement>(
-      ".vot-select_new-inner",
-    );
+    const trigger =
+      canvasElement.querySelector<HTMLElement>(".vot-select-outer");
+    const popup = canvasElement.querySelector<HTMLElement>(".vot-select-inner");
 
     await expect(trigger).not.toBeNull();
     await expect(popup).not.toBeNull();
@@ -233,9 +230,8 @@ export const SelectWithSearchWithCustomProvider: Story = {
     },
   },
   play: async ({ canvasElement }) => {
-    const trigger = canvasElement.querySelector<HTMLElement>(
-      ".vot-select_new-outer",
-    );
+    const trigger =
+      canvasElement.querySelector<HTMLElement>(".vot-select-outer");
     await expect(trigger).not.toBeNull();
     if (!trigger) {
       return;
@@ -261,7 +257,7 @@ export const SelectWithSearchWithCustomProvider: Story = {
       : initialPopupRect.bottom;
 
     const input = canvasElement.ownerDocument.querySelector<HTMLInputElement>(
-      ".vot-select_new-inner input",
+      ".vot-select-inner input",
     );
     await expect(input).not.toBeNull();
     if (!input) {
@@ -275,7 +271,7 @@ export const SelectWithSearchWithCustomProvider: Story = {
       providerOption =
         Array.from(
           canvasElement.ownerDocument.querySelectorAll<HTMLElement>(
-            ".vot-select_new-inner__option",
+            ".vot-select-inner__option",
           ),
         ).find((option) => option.textContent === "123") ?? null;
       expect(providerOption).not.toBeNull();

@@ -37,9 +37,11 @@ function SubtitleTokenInfo(props: {
           .replace("{0}", props.translationService)}
       </vot-block>
       <vot-block class="vot-subtitles-info-title">
-        <span class="vot-subtitles-info-source">{props.source}</span>
-        <span class="vot-subtitles-info-divider">—</span>
-        <span class="vot-subtitles-info-header">{props.header()}</span>
+        <vot-block class="vot-subtitles-info-source">{props.source}</vot-block>
+        <vot-block class="vot-subtitles-info-divider">—</vot-block>
+        <vot-block class="vot-subtitles-info-header">
+          {props.header()}
+        </vot-block>
       </vot-block>
       <vot-block class="vot-subtitles-info-context">
         {props.context()}

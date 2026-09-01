@@ -77,9 +77,13 @@ export function Textfield(props: TextfieldProps): JSX.Element {
       <Show when={finalProps.multiline} fallback={<input {...common} />}>
         <textarea {...common} />
       </Show>
-      <span ref={finalProps.labelRef} id={labelId}>
+      <vot-block
+        ref={finalProps.labelRef}
+        id={labelId}
+        class="vot-textfield__label"
+      >
         {finalProps.labelText}
-      </span>
+      </vot-block>
     </vot-block>
   );
 }
