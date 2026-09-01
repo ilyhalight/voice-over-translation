@@ -3,13 +3,6 @@ import {
   mountSolidSubtitlesWidget,
   type SolidSubtitlesWidgetHandle,
 } from "../components/SubtitlesWidget/SubtitlesWidget";
-import {
-  mountSubtitleTokenTooltip,
-  type SubtitleTokenTooltipHandle,
-} from "../components/SubtitlesWidget/SubtitleTokenTooltip";
-import { DEFAULT_TRANSLATION_SERVICE } from "../config/config";
-import { translate } from "../core/translateApis";
-import { localizationProvider } from "../localization/localizationProvider";
 import type {
   ProcessedSubtitles,
   SubtitleFontFamily,
@@ -17,19 +10,8 @@ import type {
   SubtitlePositionPreset,
   SubtitleToken,
 } from "../types/subtitles";
-import {
-  createShadowMount,
-  destroyShadowMount,
-  reparentShadowMount,
-  type ShadowMount,
-} from "../ui/shadowMount";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
-import { votStorage } from "../utils/storage";
 import { buildActiveSubtitleRenderLine } from "./activeCues";
-import {
-  ensureGoogleSubtitleFontLoaded,
-  getSubtitleFontFamilyCssValue,
-} from "./fonts";
 import { FullscreenLayerController } from "./fullscreenLayerController";
 import {
   applyPassedState,
@@ -47,34 +29,20 @@ import {
   resolveCustomVerticalAnchor,
   snapValueToNearestCandidate,
 } from "./positionController";
-import {
-  buildSubtitleRenderPlan,
-  LEADING_PUNCTUATION_RE,
-  TRAILING_PUNCTUATION_RE,
-} from "./renderPlan";
+import { buildSubtitleRenderPlan } from "./renderPlan";
 import {
   computeSmartLayoutForBox as computeSmartLayoutForBoxUtil,
   type SmartCssMetrics,
 } from "./smartLayout";
 import {
-  buildWordSlices,
+  applyWrapWidthGuard,
   computeTokenWrapPlan as computeTokenWrapPlanUtil,
-  computeTwoLineSegments as computeTwoLineSegmentsUtil,
-  type LineMeasureMemo,
-  measureWordSlices,
-  type TimedTokenSegment,
-  type TokenPrecomputeInput,
-  type TokenPrecomputeMemo,
-  type TokenProcessingMemo,
 } from "./smartWrap";
+import { SubtitleStyleController } from "./subtitleStyleController";
+import { TokenLayoutProcessor } from "./tokenLayoutProcessor";
+import { TokenTooltipController } from "./tokenTooltipController";
 import { computeNextWakeMs } from "./wakeSchedule";
 import "../shims/rvfc-polyfill";
-
-const trimEdgePunctuation = (value: string): string =>
-  value
-    .trim()
-    .replace(LEADING_PUNCTUATION_RE, "")
-    .replace(TRAILING_PUNCTUATION_RE, "");
 
 type LayoutMetrics = {
   w: number;
@@ -98,19 +66,6 @@ type DraggingState = {
   startClientY: number;
   offset: { x: number; y: number };
 };
-const WRAP_WIDTH_GUARD_PX = 8;
-const WRAP_WIDTH_GUARD_RATIO = 0.97;
-const MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
-function applyWrapWidthGuard(maxWidthPx: number): number {
-  if (!Number.isFinite(maxWidthPx) || maxWidthPx <= 0) return 0;
-  return Math.max(
-    MIN_EFFECTIVE_WRAP_WIDTH_PX,
-    Math.min(
-      maxWidthPx - WRAP_WIDTH_GUARD_PX,
-      maxWidthPx * WRAP_WIDTH_GUARD_RATIO,
-    ),
-  );
-}
 function isDocumentHidden(): boolean {
   return typeof document !== "undefined" && document.hidden === true;
 }
@@ -119,7 +74,8 @@ export class SubtitlesWidget {
   private readonly video?: HTMLVideoElement;
   private container: HTMLElement | ShadowRoot;
   private readonly fullscreenLayerController: FullscreenLayerController;
-  private tooltipMount?: ShadowMount;
+  private readonly subtitleStyleController: SubtitleStyleController;
+  private readonly tokenTooltipController: TokenTooltipController;
   private subtitlesContainer: HTMLElement | null = null;
   private subtitleView: SolidSubtitlesWidgetHandle | null = null;
   private subtitleOverlayHost: HTMLElement | null = null;
@@ -129,7 +85,6 @@ export class SubtitlesWidget {
   private readonly highlightState: HighlightState = createHighlightState();
   private sourceEpoch = 0;
   private contentEpoch = 0;
-  private styleEpoch = 0;
   /** Monotonic tick counter used to cache layout reads within a single tick. */
   private tickSeq = 0;
   private layoutSizeCache: { tick: number; value: LayoutMetrics } | null = null;
@@ -144,8 +99,6 @@ export class SubtitlesWidget {
   private elementMetricsCache: { key: string; w: number; h: number } | null =
     null;
   private lastPositionApplyKey: string | null = null;
-  private lastScaleCompensation: string | null = null;
-  private readonly containerVarValues = new Map<string, string>();
   private readonly passedFlagsBuffer: boolean[] = [];
   private subtitles: ProcessedSubtitles | null = null;
   private subtitleLang?: string;
@@ -153,18 +106,11 @@ export class SubtitlesWidget {
   private lastActiveLineKey: string | null = null;
   private maxActiveCueLookbackMs = 0;
   private highlightWords = false;
-  private fontSize = 20;
-  private fontSizeOverridden = false;
-  private fontFamily: SubtitleFontFamily = "default-sans";
   private maxLength = 300;
-  private smartLayoutEnabled = true;
   private smartFontSizePx = 0;
   private smartMaxWidthPx = 0;
-  private smartAnchorWidthPx = 0;
-  private smartAnchorHeightPx = 0;
   private lastSmartLayoutKey: string | null = null;
   private lastSmartLayoutCheckTs = 0;
-  private opacity = "0.2";
   private repositionPending = false;
   private positionRefreshPending = false;
   private updatePending = false;
@@ -190,10 +136,7 @@ export class SubtitlesWidget {
   private lastWrapTokens: SubtitleToken[] | null = null;
   private measureCanvas: HTMLCanvasElement | null = null;
   private measureCtx: CanvasRenderingContext2D | null = null;
-  private tokenProcessingMemo: TokenProcessingMemo | null = null;
-  private tokenPrecomputeMemo: TokenPrecomputeMemo | null = null;
-  private lineMeasureMemo: LineMeasureMemo | null = null;
-  private lastSegmentIndex = 0;
+  private readonly tokenLayoutProcessor = new TokenLayoutProcessor();
   private lastAppliedLeftPct: number | null = null;
   private lastAppliedTopPct: number | null = null;
   private readonly position = {
@@ -221,14 +164,10 @@ export class SubtitlesWidget {
   private readonly abortController = new AbortController();
   private resizeObserver?: ResizeObserver;
   private resizeTarget?: Element;
-  private tokenTooltip?: SubtitleTokenTooltipHandle;
-  private tokenTooltipTarget?: HTMLElement;
   private subtitleOverlayDispose?: () => void;
-  private tooltipTranslationRequestId = 0;
   private readonly intervalIdleChecker: IntervalIdleChecker;
   private checkerUnsubscribe: (() => void) | null = null;
   private strTokens = "";
-  private strTranslatedTokens = "";
   private passedStateKey: string | null = null;
   private readonly passedThresholds: number[] = [];
   private bottomInsetCachedPx = 0; // layout px
@@ -268,6 +207,26 @@ export class SubtitlesWidget {
     this.fullscreenLayerController = new FullscreenLayerController({
       container,
     });
+    this.subtitleStyleController = new SubtitleStyleController({
+      onStyleChange: () => this.invalidateStyleCaches(),
+      onFontLoaded: () => {
+        this.lastWrapKey = null;
+        this.tokenLayoutProcessor.reset();
+        this.scheduleWrapRecompute();
+        this.scheduleReposition();
+      },
+    });
+    this.tokenTooltipController = new TokenTooltipController({
+      getContext: () => ({
+        container: this.container,
+        subtitlesContainer: this.subtitlesContainer,
+        subtitlesBlock: this.subtitlesBlock,
+        subtitleLang: this.subtitleLang,
+        subtitleMaxWidthPx: this.subtitleMaxWidthPx,
+        tokenText: this.strTokens,
+        suppressClicksUntil: this.suppressTokenClicksUntil,
+      }),
+    });
     this.intervalIdleChecker = intervalIdleChecker;
     this.useVideoFrameCallbacks =
       !!this.video &&
@@ -302,10 +261,7 @@ export class SubtitlesWidget {
       this.syncResizeTarget();
       this.dragLayoutCache = null;
       this.invalidateLayoutCache();
-      this.invalidateStyleCaches();
-      if (this.tokenTooltip) {
-        this.tokenTooltip.updateMount(this.getTokenTooltipParentElement());
-      }
+      this.subtitleStyleController.invalidate();
     }
 
     if (this.subtitles) {
@@ -317,16 +273,7 @@ export class SubtitlesWidget {
     }
   }
   public resetTranslationContext(releaseTooltip = false): void {
-    this.strTranslatedTokens = "";
-    if (releaseTooltip) {
-      this.releaseTooltip();
-    }
-  }
-  private resetSegmentationMemo(): void {
-    this.tokenProcessingMemo = null;
-    this.tokenPrecomputeMemo = null;
-    this.lineMeasureMemo = null;
-    this.lastSegmentIndex = 0;
+    this.tokenTooltipController.resetTranslationContext(releaseTooltip);
   }
   private resetWrapMemo(): void {
     this.setBreakAfterTokenIndices([]);
@@ -339,7 +286,7 @@ export class SubtitlesWidget {
   private readSmartCssMetrics(): SmartCssMetrics | null {
     const block = this.subtitlesBlock;
     if (!block) return null;
-    const cacheKey = `${this.contentEpoch}|${this.styleEpoch}`;
+    const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
     const cached = this.smartCssMetricsCache;
     if (cached && cached.key === cacheKey) return cached.value;
     const value = this.readSmartCssMetricsNow(block);
@@ -369,7 +316,7 @@ export class SubtitlesWidget {
   private ensureSmartLayout(anchorBox: LayoutMetrics): {
     maxWidthPx: number | null;
   } | null {
-    if (!this.smartLayoutEnabled) {
+    if (!this.subtitleStyleController.smartLayoutEnabled) {
       return null;
     }
     const cssMetrics = this.readSmartCssMetrics();
@@ -387,13 +334,13 @@ export class SubtitlesWidget {
       this.smartMaxWidthPx = nextMaxWidthPx;
       this.resetRenderMemo();
     }
-    this.setSubtitlesContainerVar(
+    this.subtitleStyleController.setVariable(
       "--vot-subtitles-max-width",
       next.maxWidthPx && next.maxWidthPx > 0 ? `${next.maxWidthPx}px` : null,
     );
     if ((fontChanged || widthChanged) && this.lastWrapTokens) {
       this.lastWrapKey = null;
-      this.resetSegmentationMemo();
+      this.tokenLayoutProcessor.reset();
       this.scheduleWrapRecompute();
     }
     return next;
@@ -405,68 +352,12 @@ export class SubtitlesWidget {
     this.intervalIdleChecker.markActivity("subtitles-reposition");
     this.intervalIdleChecker.requestImmediateTick();
   }
-  private setSubtitlesContainerVar(name: string, value: string | null): void {
-    const container = this.subtitlesContainer;
-    if (!container) return;
-    const previous = this.containerVarValues.get(name);
-    if (value === null) {
-      if (previous === undefined) return;
-      this.containerVarValues.delete(name);
-      container.style.removeProperty(name);
-      this.invalidateStyleCaches();
-      return;
-    }
-    if (previous === value) return;
-    this.containerVarValues.set(name, value);
-    container.style.setProperty(name, value);
-    this.invalidateStyleCaches();
-  }
-
   /** Invalidate every cache derived from computed style or element geometry. */
   private invalidateStyleCaches(): void {
-    this.styleEpoch += 1;
     this.smartCssMetricsCache = null;
     this.tokenLayoutInputsCache = null;
     this.elementMetricsCache = null;
     this.lastPositionApplyKey = null;
-  }
-  private applyOpacityStyle(): void {
-    this.setSubtitlesContainerVar("--vot-subtitles-opacity", this.opacity);
-  }
-  private applyManualFontSizeStyle(): void {
-    if (!this.smartLayoutEnabled && this.fontSizeOverridden) {
-      this.setSubtitlesContainerVar(
-        "--vot-subtitles-font-size",
-        `${this.fontSize}px`,
-      );
-      return;
-    }
-    this.setSubtitlesContainerVar("--vot-subtitles-font-size", null);
-  }
-  private applyFontFamilyStyle(): void {
-    const fontFamily = this.fontFamily;
-    this.setSubtitlesContainerVar(
-      "--vot-subtitles-font-family-custom",
-      getSubtitleFontFamilyCssValue(fontFamily),
-    );
-    void ensureGoogleSubtitleFontLoaded(fontFamily, {
-      forceGmXhr: true,
-      onLoaded: () => {
-        if (this.fontFamily !== fontFamily) {
-          return;
-        }
-
-        this.lastWrapKey = null;
-        this.resetSegmentationMemo();
-        this.scheduleWrapRecompute();
-        this.scheduleReposition();
-      },
-    });
-  }
-  private syncVisualStyleVars(): void {
-    this.applyOpacityStyle();
-    this.applyManualFontSizeStyle();
-    this.applyFontFamilyStyle();
   }
   private ensureGuidesLayer(): HTMLElement {
     if (this.guidesLayer) {
@@ -543,38 +434,8 @@ export class SubtitlesWidget {
     ) {
       this.container.appendChild(this.subtitleOverlayHost);
     }
-    if (this.tooltipMount) {
-      reparentShadowMount(this.tooltipMount, this.container);
-    }
+    this.tokenTooltipController.updateMount();
     this.syncGuideLayerMount();
-  }
-  private ensureTooltipMount(): ShadowMount {
-    if (this.tooltipMount) {
-      reparentShadowMount(this.tooltipMount, this.container);
-    } else {
-      this.tooltipMount = createShadowMount({
-        parent: this.container,
-        rootClasses: ["vot-portal-local"],
-        hostStyles: {
-          position: "absolute",
-          inset: "0",
-          display: "block",
-          "pointer-events": "none",
-        },
-        rootStyles: {
-          position: "relative",
-          display: "block",
-          width: "100%",
-          height: "100%",
-          "pointer-events": "none",
-        },
-      });
-    }
-
-    return this.tooltipMount;
-  }
-  private getTokenTooltipParentElement(): HTMLElement {
-    return this.ensureTooltipMount().root;
   }
   private createSubtitlesContainer(): HTMLElement {
     if (this.subtitlesContainer) {
@@ -587,35 +448,13 @@ export class SubtitlesWidget {
     this.subtitlesContainer = container;
     // A new element carries none of the previously written custom properties,
     // so the write-if-changed bookkeeping must start from scratch.
-    this.containerVarValues.clear();
-    this.lastScaleCompensation = null;
-    this.smartAnchorWidthPx = 0;
-    this.smartAnchorHeightPx = 0;
     this.invalidateLayoutCache();
-    this.invalidateStyleCaches();
+    this.subtitleStyleController.attach(container);
     this.syncWidgetMount();
-    this.syncVisualStyleVars();
     this.insetCacheReady = false;
     this.updateContainerRect();
     return container;
   }
-  private readonly onGlobalPointerDown = (event: PointerEvent): void => {
-    if (
-      this.tokenTooltip &&
-      this.tooltipMount &&
-      event.composedPath().includes(this.tooltipMount.host)
-    ) {
-      return;
-    }
-
-    if (
-      this.subtitlesContainer &&
-      !this.subtitlesContainer.contains(event.target as Node)
-    ) {
-      this.releaseTooltip();
-    }
-  };
-
   private bindEvents(): void {
     const { signal } = this.abortController;
     const opts = { signal } as AddEventListenerOptions;
@@ -645,7 +484,11 @@ export class SubtitlesWidget {
       this.onVisualViewportChangeBound,
       opts,
     );
-    globalThis.addEventListener("pointerdown", this.onGlobalPointerDown, opts);
+    globalThis.addEventListener(
+      "pointerdown",
+      this.tokenTooltipController.onGlobalPointerDown,
+      opts,
+    );
     document.addEventListener(
       "visibilitychange",
       this.onVisibilityChangeBound,
@@ -871,7 +714,7 @@ export class SubtitlesWidget {
   private onResize(): void {
     this.dragLayoutCache = null;
     this.invalidateLayoutCache();
-    this.invalidateStyleCaches();
+    this.subtitleStyleController.invalidate();
     this.syncWidgetMount();
     this.scheduleReposition();
   }
@@ -1175,7 +1018,7 @@ export class SubtitlesWidget {
     this.applySubtitlePositionWithLayout(layout);
   }
   private buildPositionApplyKey(layout: LayoutMetrics): string {
-    return `${Math.round(layout.w)}x${Math.round(layout.h)}|${layout.scaleX.toFixed(3)}x${layout.scaleY.toFixed(3)}|${this.positionPreset}|${this.position.left.toFixed(3)},${this.position.top.toFixed(3)}|${this.contentEpoch}|${this.styleEpoch}`;
+    return `${Math.round(layout.w)}x${Math.round(layout.h)}|${layout.scaleX.toFixed(3)}x${layout.scaleY.toFixed(3)}|${this.positionPreset}|${this.position.left.toFixed(3)},${this.position.top.toFixed(3)}|${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
   }
 
   private applySubtitlePositionWithLayout(layout: LayoutMetrics): void {
@@ -1184,9 +1027,12 @@ export class SubtitlesWidget {
     const applyKey = this.buildPositionApplyKey(layout);
     if (applyKey === this.lastPositionApplyKey) return;
 
-    this.applyScaleCompensation(subtitlesContainer, layout);
-    this.syncAnchorDimensions(subtitlesContainer, layout);
-    if (this.smartLayoutEnabled) this.ensureSmartLayout(layout);
+    this.subtitleStyleController.applyScaleCompensation(
+      Math.min(layout.scaleX || 1, layout.scaleY || 1),
+    );
+    this.syncAnchorDimensions(layout);
+    if (this.subtitleStyleController.smartLayoutEnabled)
+      this.ensureSmartLayout(layout);
     const { w: elW, h: elH } = this.measureContainerBox(subtitlesContainer);
     const bottomInset =
       this.positionPreset === "custom" ? 0 : this.getBottomInsetPx(layout);
@@ -1209,8 +1055,8 @@ export class SubtitlesWidget {
     const leftPct = (anchorX / layout.w) * 100;
     const topPct = (anchorY / layout.h) * 100;
     this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
-    this.tokenTooltip?.update();
-    // Recompute the key: the writes above may have bumped `styleEpoch`.
+    this.tokenTooltipController.update();
+    // Recompute the key: the writes above may have bumped the style epoch.
     this.lastPositionApplyKey = this.buildPositionApplyKey(layout);
   }
 
@@ -1218,7 +1064,7 @@ export class SubtitlesWidget {
     w: number;
     h: number;
   } {
-    const key = `${this.contentEpoch}|${this.styleEpoch}`;
+    const key = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
     const cached = this.elementMetricsCache;
     if (cached && cached.key === key) return { w: cached.w, h: cached.h };
     const w = subtitlesContainer.offsetWidth;
@@ -1227,56 +1073,21 @@ export class SubtitlesWidget {
     return { w, h };
   }
 
-  private applyScaleCompensation(
-    subtitlesContainer: HTMLElement,
-    layout: LayoutMetrics,
-  ): void {
-    const visualScale = Math.min(layout.scaleX || 1, layout.scaleY || 1);
-    const compensate =
-      visualScale > 0 && visualScale < 0.999 ? Math.min(1 / visualScale, 3) : 1;
-    const nextValue =
-      Math.abs(compensate - 1) < 0.001 ? null : compensate.toFixed(3);
-    if (nextValue === this.lastScaleCompensation) return;
-    this.lastScaleCompensation = nextValue;
-    if (nextValue === null) {
-      subtitlesContainer.style.removeProperty(
-        "--vot-subtitles-scale-compensation",
-      );
-    } else {
-      subtitlesContainer.style.setProperty(
-        "--vot-subtitles-scale-compensation",
-        nextValue,
-      );
-    }
-    this.invalidateStyleCaches();
-  }
-
-  private syncAnchorDimensions(
-    subtitlesContainer: HTMLElement,
-    anchorBox: LayoutMetrics,
-  ): void {
+  private syncAnchorDimensions(anchorBox: LayoutMetrics): void {
     const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
     const anchorHeightPx = Math.max(1, Math.round(anchorBox.h));
-    const anchorDimsChanged =
-      anchorWidthPx !== this.smartAnchorWidthPx ||
-      anchorHeightPx !== this.smartAnchorHeightPx;
-    if (!anchorDimsChanged) {
-      return;
-    }
-
-    this.smartAnchorWidthPx = anchorWidthPx;
-    this.smartAnchorHeightPx = anchorHeightPx;
-    subtitlesContainer.style.setProperty(
+    const widthChanged = this.subtitleStyleController.setVariable(
       "--vot-subtitles-anchor-width",
       `${anchorWidthPx}px`,
     );
-    subtitlesContainer.style.setProperty(
+    const heightChanged = this.subtitleStyleController.setVariable(
       "--vot-subtitles-anchor-height",
       `${anchorHeightPx}px`,
     );
+    if (!widthChanged && !heightChanged) return;
     if (this.lastWrapTokens) {
       this.lastWrapKey = null;
-      this.resetSegmentationMemo();
+      this.tokenLayoutProcessor.reset();
       this.scheduleWrapRecompute();
     }
   }
@@ -1404,87 +1215,11 @@ export class SubtitlesWidget {
   private applyPositionAfterContentRender(): void {
     this.updateContainerRect();
   }
-  private trimEdgeWhitespaceTokens(tokens: SubtitleToken[]): SubtitleToken[] {
-    if (!tokens.length) return tokens;
-    let s = 0;
-    let e = tokens.length;
-    while (s < e && !tokens[s]?.text.trim()) s += 1;
-    while (e > s && !tokens[e - 1]?.text.trim()) e -= 1;
-    if (s === 0 && e === tokens.length) return tokens;
-    return s >= e ? [] : tokens.slice(s, e);
-  }
-  private selectTokensByMaxLength(
-    tokens: SubtitleToken[],
-    time: number,
-  ): SubtitleToken[] {
-    if (!tokens.length) return tokens;
-    let start = 0;
-    let length = 0;
-    let overflowed = false;
-    let chosenStart = 0;
-    let chosenEnd = tokens.length;
-    let hasChosenRange = false;
-    let matchedByTime = false;
-    const considerRange = (rangeStart: number, rangeEnd: number): void => {
-      if (rangeEnd <= rangeStart) return;
-      if (!hasChosenRange) {
-        chosenStart = rangeStart;
-        chosenEnd = rangeEnd;
-        hasChosenRange = true;
-      }
-      if (matchedByTime) return;
-      const first = tokens[rangeStart];
-      const last = tokens[rangeEnd - 1];
-      if (!first || !last) return;
-      const nextStartMs =
-        rangeEnd < tokens.length ? tokens[rangeEnd]?.startMs : undefined;
-      const endMs = nextStartMs ?? last.startMs + (last.durationMs ?? 0);
-      if (first.startMs <= time && time < endMs) {
-        chosenStart = rangeStart;
-        chosenEnd = rangeEnd;
-        matchedByTime = true;
-      }
-    };
-    for (const [index, token] of tokens.entries()) {
-      const nextLength = length + token.text.length;
-      if (nextLength > this.maxLength && index > start) {
-        overflowed = true;
-        considerRange(start, index);
-        start = index;
-        length = token.text.length;
-        continue;
-      }
-      length = nextLength;
-    }
-    if (!overflowed) {
-      return this.trimEdgeWhitespaceTokens(tokens);
-    }
-    considerRange(start, tokens.length);
-    return this.trimEdgeWhitespaceTokens(tokens.slice(chosenStart, chosenEnd));
-  }
-  private buildTokenPrecomputeInput(
-    tokens: SubtitleToken[],
-  ): TokenPrecomputeInput {
-    const cached = this.tokenPrecomputeMemo;
-    if (cached?.tokens === tokens) {
-      return cached.value;
-    }
-    const { slices, key } = buildWordSlices(tokens);
-    const value: TokenPrecomputeInput = {
-      wordSlices: slices,
-      normalizedWordsKey: key,
-    };
-    this.tokenPrecomputeMemo = {
-      tokens,
-      value,
-    };
-    return value;
-  }
   private getTokenLayoutInputs(ctx: CanvasRenderingContext2D): {
     fontKey: string;
     maxWidthPx: number;
   } {
-    const cacheKey = `${this.contentEpoch}|${this.styleEpoch}|${this.fontSizeOverridden ? this.fontSize : "auto"}|${this.fontFamily}`;
+    const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}|${this.subtitleStyleController.fontSizeOverridden ? this.subtitleStyleController.fontSize : "auto"}|${this.subtitleStyleController.fontFamily}`;
     const cached = this.tokenLayoutInputsCache;
     if (cached && cached.key === cacheKey) {
       ctx.font = cached.value.fontKey;
@@ -1527,10 +1262,10 @@ export class SubtitlesWidget {
       remPx * maxRem,
       this.subtitleMaxWidthPx || globalThis.innerWidth * cssFallbackVw,
     );
-    const fontSizePx = this.fontSizeOverridden
-      ? this.fontSize
+    const fontSizePx = this.subtitleStyleController.fontSizeOverridden
+      ? this.subtitleStyleController.fontSize
       : Math.min(24, Math.max(14, globalThis.innerWidth * 0.016));
-    const fontKey = `normal normal 500 ${fontSizePx}px ${getSubtitleFontFamilyCssValue(this.fontFamily)}`;
+    const fontKey = `normal normal 500 ${fontSizePx}px ${this.subtitleStyleController.fontFamilyCssValue}`;
     ctx.font = fontKey;
     return {
       fontKey,
@@ -1543,186 +1278,8 @@ export class SubtitlesWidget {
     }
     return `${tokens[0]?.startMs ?? 0}:${tokens[0]?.durationMs ?? 0}:${tokens.length}`;
   }
-  private getLineMeasureMemo(
-    tokens: SubtitleToken[],
-    activeLineKey: string,
-  ): LineMeasureMemo | null {
-    const { wordSlices, normalizedWordsKey } =
-      this.buildTokenPrecomputeInput(tokens);
-    if (!wordSlices.length) return null;
-    const ctx = this.getMeasureContext();
-    if (!ctx) return null;
-    const { fontKey, maxWidthPx } = this.getTokenLayoutInputs(ctx);
-    if (!Number.isFinite(maxWidthPx) || maxWidthPx < 24) {
-      return null;
-    }
-    const key = `${activeLineKey}|${fontKey}|${Math.round(
-      maxWidthPx,
-    )}|${normalizedWordsKey}`;
-    if (this.lineMeasureMemo?.key === key) {
-      return this.lineMeasureMemo;
-    }
-    const metrics = measureWordSlices(
-      wordSlices,
-      (text) => ctx.measureText(text).width,
-    );
-    const memo: LineMeasureMemo = {
-      key,
-      metrics,
-      maxWidthPx,
-    };
-    this.lineMeasureMemo = memo;
-    return memo;
-  }
-  private buildTokenProcessingMemo(
-    tokens: SubtitleToken[],
-    activeLineKey: string,
-  ): TokenProcessingMemo | null {
-    const lineMeasure = this.getLineMeasureMemo(tokens, activeLineKey);
-    if (!lineMeasure) return null;
-    const memoKey = `${lineMeasure.key}|${this.maxLength}`;
-    if (this.tokenProcessingMemo?.key === memoKey) {
-      return this.tokenProcessingMemo;
-    }
-    const safeMaxWidthPx = applyWrapWidthGuard(lineMeasure.maxWidthPx);
-    const segmentRanges = computeTwoLineSegmentsUtil(
-      tokens,
-      lineMeasure.metrics,
-      safeMaxWidthPx,
-      this.maxLength,
-    );
-    const memo: TokenProcessingMemo = {
-      key: memoKey,
-      segmentRanges,
-    };
-    this.tokenProcessingMemo = memo;
-    this.lastSegmentIndex = 0;
-    return memo;
-  }
-  private selectSegmentIndexFromRanges(
-    segmentRanges: TimedTokenSegment[],
-    time: number,
-  ): number {
-    if (!segmentRanges.length) return -1;
-    let idx = this.lastSegmentIndex;
-    const length = segmentRanges.length;
-    if (idx >= length) idx = 0;
-    while (idx < length - 1 && time >= segmentRanges[idx].endMs) {
-      idx += 1;
-    }
-    while (idx > 0 && time < segmentRanges[idx].startMs) {
-      idx -= 1;
-    }
-    if (
-      idx >= 0 &&
-      time >= segmentRanges[idx].startMs &&
-      time < segmentRanges[idx].endMs
-    ) {
-      this.lastSegmentIndex = idx;
-      return idx;
-    }
-    const found = segmentRanges.findIndex(
-      (s) => time >= s.startMs && time < s.endMs,
-    );
-    const resolved =
-      found >= 0 ? found : time < segmentRanges[0].startMs ? 0 : length - 1;
-    this.lastSegmentIndex = resolved;
-    return resolved;
-  }
-  private processTokens(
-    tokens: SubtitleToken[],
-    time: number,
-  ): SubtitleToken[] {
-    if (!tokens.length) return tokens;
-    const activeLineKey = this.getActiveLineKey(tokens);
-    const memo = this.buildTokenProcessingMemo(tokens, activeLineKey);
-    if (!memo) {
-      return this.selectTokensByMaxLength(tokens, time);
-    }
-    const { segmentRanges } = memo;
-    if (!segmentRanges.length) {
-      return this.trimEdgeWhitespaceTokens(tokens);
-    }
-    const segmentIndex = this.selectSegmentIndexFromRanges(segmentRanges, time);
-    if (segmentIndex < 0) {
-      return this.trimEdgeWhitespaceTokens(tokens);
-    }
-    const seg = segmentRanges[segmentIndex];
-    return this.trimEdgeWhitespaceTokens(
-      tokens.slice(seg.startToken, seg.endToken),
-    );
-  }
-  private async translateStrTokens(text: string): Promise<[string, string]> {
-    const fromLang = this.subtitleLang ?? "";
-    const toLang = localizationProvider.lang;
-    if (this.strTranslatedTokens) {
-      const translated = await translate(text, fromLang, toLang);
-      return [
-        this.strTranslatedTokens,
-        typeof translated === "string" ? translated : "",
-      ];
-    }
-    const translated = await translate(
-      [this.strTokens, text],
-      fromLang,
-      toLang,
-    );
-    const pair = Array.isArray(translated)
-      ? translated
-      : [translated, translated];
-    const context = typeof pair[0] === "string" ? pair[0] : "";
-    const current = typeof pair[1] === "string" ? pair[1] : "";
-    return [context, current];
-  }
-  private findTokenSpan(
-    candidate: EventTarget | null,
-    root: HTMLElement,
-  ): HTMLSpanElement | null {
-    let element: Element | null = null;
-    if (candidate instanceof Element) {
-      element = candidate;
-    } else if (candidate instanceof Text) {
-      element = candidate.parentElement;
-    }
-    const token = element?.closest<HTMLSpanElement>('span[data-vot-token="1"]');
-    return token instanceof HTMLSpanElement && root.contains(token)
-      ? token
-      : null;
-  }
-  private resolveTokenSpanFromEvent(
-    event: MouseEvent | KeyboardEvent,
-  ): HTMLSpanElement | null {
-    const root: HTMLElement | null =
-      this.subtitlesBlock ?? this.subtitlesContainer;
-    if (!root) return null;
-    const fromTarget = this.findTokenSpan(event.target, root);
-    if (fromTarget) {
-      return fromTarget;
-    }
-    const path =
-      typeof event.composedPath === "function" ? event.composedPath() : [];
-    for (const node of path) {
-      const fromPath = this.findTokenSpan(node, root);
-      if (fromPath) {
-        return fromPath;
-      }
-    }
-    if (!(event instanceof MouseEvent)) return null;
-    return Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
-      ? this.findTokenSpan(
-          document.elementFromPoint(event.clientX, event.clientY),
-          root,
-        )
-      : null;
-  }
   releaseTooltip(): this {
-    this.tooltipTranslationRequestId += 1;
-    this.tokenTooltipTarget?.classList.remove("selected");
-    this.tokenTooltipTarget = undefined;
-    this.tokenTooltip?.dispose();
-    this.tokenTooltip = undefined;
-    destroyShadowMount(this.tooltipMount);
-    this.tooltipMount = undefined;
+    this.tokenTooltipController.release();
     return this;
   }
   private clearPendingSchedulerState(): void {
@@ -1742,8 +1299,6 @@ export class SubtitlesWidget {
     this.resetWrapMemo();
     this.lastWrapTokens = null;
     this.subtitleMaxWidthPx = 0;
-    this.smartAnchorWidthPx = 0;
-    this.smartAnchorHeightPx = 0;
     this.smartFontSizePx = 0;
     this.smartMaxWidthPx = 0;
     this.lastAppliedLeftPct = null;
@@ -1752,7 +1307,7 @@ export class SubtitlesWidget {
     this.passedThresholds.length = 0;
     this.insetCacheReady = false;
     this.hideSnapGuides();
-    this.resetSegmentationMemo();
+    this.tokenLayoutProcessor.reset();
     this.clearPendingSchedulerState();
     if (this.subtitleView) {
       this.subtitleView.dispose();
@@ -1760,108 +1315,6 @@ export class SubtitlesWidget {
     } else if (this.subtitlesContainer) {
       this.subtitlesContainer.textContent = "";
     }
-  }
-  onClick = async (event: MouseEvent | KeyboardEvent): Promise<void> => {
-    if (performance.now() < this.suppressTokenClicksUntil) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    const target = this.resolveTokenSpanFromEvent(event);
-    if (!target) {
-      this.releaseTooltip();
-      return;
-    }
-    if (this.toggleCurrentTooltipTarget(target)) {
-      return;
-    }
-    this.releaseTooltip();
-    const requestId = this.tooltipTranslationRequestId;
-    const text = trimEdgePunctuation(target.textContent ?? "");
-    if (!text) return;
-    try {
-      const service = await votStorage.get(
-        "translationService",
-        DEFAULT_TRANSLATION_SERVICE,
-      );
-      if (requestId !== this.tooltipTranslationRequestId) return;
-      target.classList.add("selected");
-      const tooltip = this.createTokenTooltip(target, {
-        source: text,
-        context: this.strTranslatedTokens || this.strTokens,
-        translationService: service,
-      });
-      this.tokenTooltip = tooltip;
-      this.tokenTooltipTarget = target;
-      tooltip.show();
-      const strTokens = this.strTokens;
-      const translated = await this.translateStrTokens(text);
-      if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) {
-        return;
-      }
-      this.strTranslatedTokens = translated[0];
-      tooltip.setTranslation(translated[1], translated[0]);
-    } catch (error) {
-      if (requestId !== this.tooltipTranslationRequestId) return;
-      console.error("[VOT] Failed to translate subtitle token:", error);
-      if (this.tokenTooltip && this.tokenTooltipTarget === target) {
-        this.tokenTooltip.setTranslation(
-          localizationProvider.get("requestTranslationFailed"),
-          this.strTranslatedTokens || this.strTokens,
-        );
-      } else {
-        this.releaseTooltip();
-      }
-    }
-  };
-  private toggleCurrentTooltipTarget(target: HTMLElement): boolean {
-    if (this.tokenTooltipTarget !== target || !this.tokenTooltip) {
-      return false;
-    }
-
-    target.classList.toggle("selected", this.tokenTooltip.isOpen());
-    return true;
-  }
-  private createTokenTooltip(
-    target: HTMLElement,
-    content: {
-      source: string;
-      context: string;
-      translationService: string;
-    },
-  ): SubtitleTokenTooltipHandle {
-    const viewportWidth = Math.max(320, globalThis.innerWidth || 0);
-    const preferredWidth = Math.max(
-      360,
-      this.subtitlesContainer?.offsetWidth ?? 0,
-      this.subtitlesBlock?.offsetWidth ?? 0,
-      Math.min(this.subtitleMaxWidthPx || 0, 720),
-    );
-    const tooltipMaxWidth = Math.min(viewportWidth - 24, preferredWidth, 720);
-
-    return mountSubtitleTokenTooltip({
-      target,
-      anchor: this.subtitlesBlock ?? target,
-      parentElement: this.ensureTooltipMount().root,
-      maxWidth: tooltipMaxWidth,
-      source: content.source,
-      context: content.context,
-      translationService: content.translationService,
-    });
-  }
-  private shouldSkipTooltipUpdate(
-    requestId: number,
-    tooltip: SubtitleTokenTooltipHandle,
-    target: HTMLElement,
-    strTokens: string,
-  ): boolean {
-    return (
-      requestId !== this.tooltipTranslationRequestId ||
-      strTokens !== this.strTokens ||
-      this.tokenTooltip !== tooltip ||
-      this.tokenTooltipTarget !== target ||
-      !tooltip.isOpen()
-    );
   }
   private buildPassedState(
     tokens: SubtitleToken[],
@@ -1996,7 +1449,7 @@ export class SubtitlesWidget {
     this.resetTranslationContext();
     this.resetRenderMemo();
     this.resetWrapMemo();
-    this.resetSegmentationMemo();
+    this.tokenLayoutProcessor.reset();
     this.lastWrapTokens = null;
     this.passedStateKey = null;
     this.passedThresholds.length = 0;
@@ -2017,7 +1470,7 @@ export class SubtitlesWidget {
   setMaxLength(len: number): void {
     if (typeof len === "number" && len > 0) {
       this.maxLength = len;
-      this.resetSegmentationMemo();
+      this.tokenLayoutProcessor.reset();
       this.update();
       this.scheduleReposition();
     }
@@ -2031,45 +1484,32 @@ export class SubtitlesWidget {
     this.update();
   }
   setSmartLayout(enabled: boolean): void {
-    const next = enabled !== false;
-    if (next === this.smartLayoutEnabled) return;
-    this.smartLayoutEnabled = next;
-    this.subtitlesContainer?.style.removeProperty("--vot-subtitles-max-width");
+    if (!this.subtitleStyleController.setSmartLayout(enabled)) return;
     this.lastSmartLayoutKey = null;
     this.resetWrapMemo();
     this.resetRenderMemo();
-    this.resetSegmentationMemo();
-    this.applyManualFontSizeStyle();
+    this.tokenLayoutProcessor.reset();
     this.update();
     this.scheduleWrapRecompute();
     this.scheduleReposition();
   }
   setFontSize(size: number): void {
-    this.fontSize = size;
-    this.fontSizeOverridden = true;
-    if (!this.smartLayoutEnabled) {
-      this.applyManualFontSizeStyle();
+    if (this.subtitleStyleController.setFontSize(size)) {
       this.lastWrapKey = null;
-      this.resetSegmentationMemo();
+      this.tokenLayoutProcessor.reset();
       this.scheduleWrapRecompute();
       this.scheduleReposition();
     }
   }
   setFontFamily(fontFamily: SubtitleFontFamily): void {
-    this.fontFamily = fontFamily;
-    this.applyFontFamilyStyle();
+    this.subtitleStyleController.setFontFamily(fontFamily);
     this.lastWrapKey = null;
-    this.resetSegmentationMemo();
+    this.tokenLayoutProcessor.reset();
     this.scheduleWrapRecompute();
     this.scheduleReposition();
   }
   setOpacity(rate: number): void {
-    const numericRate = Number(rate);
-    const clampedRate = Number.isFinite(numericRate)
-      ? clampToRange(numericRate, 0, 100)
-      : 0;
-    this.opacity = ((100 - clampedRate) / 100).toFixed(2);
-    this.applyOpacityStyle();
+    this.subtitleStyleController.setOpacity(rate);
   }
   private stringifyTokens(tokens: SubtitleToken[]): string {
     return tokens.map((token) => token.text).join("");
@@ -2094,7 +1534,7 @@ export class SubtitlesWidget {
     this.releaseTooltip();
   }
   private refreshSmartLayoutIfNeeded(): void {
-    if (!this.smartLayoutEnabled) {
+    if (!this.subtitleStyleController.smartLayoutEnabled) {
       return;
     }
 
@@ -2124,7 +1564,22 @@ export class SubtitlesWidget {
     passedFlags: boolean[] | null;
     renderKey: string;
   } {
-    const tokens = this.processTokens(line.tokens, time);
+    const tokens = this.tokenLayoutProcessor.process({
+      tokens: line.tokens,
+      time,
+      activeLineKey,
+      maxLength: this.maxLength,
+      getMeasurement: () => {
+        const ctx = this.getMeasureContext();
+        if (!ctx) return null;
+        const { fontKey, maxWidthPx } = this.getTokenLayoutInputs(ctx);
+        return {
+          fontKey,
+          maxWidthPx,
+          measureText: (text) => ctx.measureText(text).width,
+        };
+      },
+    });
     this.lastWrapTokens = tokens;
 
     const strTokens = this.stringifyTokens(tokens);
@@ -2156,7 +1611,7 @@ export class SubtitlesWidget {
     // render plan. Solid updates only the parts whose text/attributes changed.
     this.subtitleView ??= mountSolidSubtitlesWidget(this.subtitlesContainer, {
       lang: () => this.subtitleLang ?? "",
-      onClick: this.onClick,
+      onClick: this.tokenTooltipController.onActivate,
     });
     this.subtitleView.setParts(
       buildSubtitleRenderPlan(
@@ -2246,9 +1701,8 @@ export class SubtitlesWidget {
     this.subtitleOverlayDispose = undefined;
     this.subtitleOverlayHost?.remove();
     this.subtitleOverlayHost = null;
+    this.subtitleStyleController.release();
     this.subtitlesContainer = null;
-    destroyShadowMount(this.tooltipMount);
-    this.tooltipMount = undefined;
     this.fullscreenLayerController.release();
     if (this.safeAreaProbeEl) {
       this.safeAreaProbeEl.remove();

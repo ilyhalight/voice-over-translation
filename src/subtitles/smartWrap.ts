@@ -28,32 +28,11 @@ export type MeasuredWordSlice = WordSlice & {
   width: number;
 };
 
-export type TokenPrecomputeInput = {
-  wordSlices: WordSlice[];
-  normalizedWordsKey: string;
-};
-
-export type TokenPrecomputeMemo = {
-  tokens: SubtitleToken[];
-  value: TokenPrecomputeInput;
-};
-
-export type LineMeasureMemo = {
-  key: string;
-  metrics: MeasuredWordSlice[];
-  maxWidthPx: number;
-};
-
 export type TimedTokenSegment = {
   startToken: number;
   endToken: number;
   startMs: number;
   endMs: number;
-};
-
-export type TokenProcessingMemo = {
-  key: string;
-  segmentRanges: TimedTokenSegment[];
 };
 
 export type TokenWrapPlan = {
@@ -71,6 +50,20 @@ const WHITESPACE_CHAR_RE = /\s/u;
 const DISCOURAGED_LINE_START_CHAR_RE = /^[\p{Pe}\p{Pf},.;:!?%\u2030\u2026]$/u;
 const DISCOURAGED_LINE_END_CHAR_RE =
   /^[\p{Ps}\p{Pi}\u00BF\u00A1([{\u00AB\u201C"'`-]$/u;
+const WRAP_WIDTH_GUARD_PX = 8;
+const WRAP_WIDTH_GUARD_RATIO = 0.97;
+const MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
+
+export function applyWrapWidthGuard(maxWidthPx: number): number {
+  if (!Number.isFinite(maxWidthPx) || maxWidthPx <= 0) return 0;
+  return Math.max(
+    MIN_EFFECTIVE_WRAP_WIDTH_PX,
+    Math.min(
+      maxWidthPx - WRAP_WIDTH_GUARD_PX,
+      maxWidthPx * WRAP_WIDTH_GUARD_RATIO,
+    ),
+  );
+}
 
 const normalizeTokenText = (text: string): string =>
   text.replaceAll(/\s+/gu, " ").trim();

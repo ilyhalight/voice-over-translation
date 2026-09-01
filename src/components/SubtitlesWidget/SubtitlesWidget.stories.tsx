@@ -1,6 +1,7 @@
 import { expect } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 
+import { TokenTooltipController } from "../../subtitles/tokenTooltipController";
 import { SubtitlesWidget as SubtitlesController } from "../../subtitles/widget";
 import type { ProcessedSubtitles } from "../../types/subtitles";
 import { createIntervalIdleChecker } from "../../utils/intervalIdleChecker";
@@ -16,13 +17,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const emptyArgs = {
+  parts: [],
+  lang: "",
+  onClick: () => {},
+  ref: () => {},
+};
+
 export const Lifecycle: Story = {
-  args: {
-    parts: [],
-    lang: "",
-    onClick: () => {},
-    ref: () => {},
-  },
+  args: emptyArgs,
   play: async ({ canvasElement }) => {
     const container = document.createElement("vot-block");
     canvasElement.append(container);
@@ -107,12 +110,7 @@ const subtitles = (color: string): ProcessedSubtitles => ({
 });
 
 export const TrackReplacement: Story = {
-  args: {
-    parts: [],
-    lang: "",
-    onClick: () => {},
-    ref: () => {},
-  },
+  args: emptyArgs,
   play: async ({ canvasElement }) => {
     const container = document.createElement("vot-block");
     const nextContainer = document.createElement("vot-block");
@@ -171,6 +169,99 @@ export const TrackReplacement: Story = {
       globalThis.ResizeObserver = NativeResizeObserver;
       container.remove();
       nextContainer.remove();
+    }
+  },
+};
+
+export const TokenTooltipLifecycle: Story = {
+  args: emptyArgs,
+  play: async ({ canvasElement }) => {
+    const container = document.createElement("vot-block");
+    const nextContainer = document.createElement("vot-block");
+    const subtitlesContainer = document.createElement("vot-block");
+    const subtitlesBlock = document.createElement("vot-block");
+    const target = document.createElement("span");
+    const outside = document.createElement("vot-block");
+    target.dataset.votToken = "1";
+    target.textContent = "hello";
+    subtitlesBlock.append(target);
+    subtitlesContainer.append(subtitlesBlock);
+    container.append(subtitlesContainer);
+    canvasElement.append(container, nextContainer, outside);
+    let mountContainer = container;
+    const controller = new TokenTooltipController({
+      getContext: () => ({
+        container: mountContainer,
+        subtitlesContainer,
+        subtitlesBlock,
+        subtitleLang: "en",
+        subtitleMaxWidthPx: 640,
+        tokenText: "hello world",
+        suppressClicksUntil: 0,
+      }),
+      getTranslationService: async () => "test",
+      translateText: async (text) => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        return Array.isArray(text)
+          ? ["translated context", "translated word"]
+          : "translated word";
+      },
+    });
+    subtitlesBlock.addEventListener("click", controller.onActivate);
+    subtitlesBlock.addEventListener("keydown", controller.onActivate);
+    globalThis.addEventListener("pointerdown", controller.onGlobalPointerDown);
+
+    try {
+      target.click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const tooltipHost = container.querySelector("vot-shadow-host");
+      await expect(target).toHaveClass("selected");
+      await expect(tooltipHost).toBeInstanceOf(HTMLElement);
+      await expect(tooltipHost?.shadowRoot?.textContent).toContain(
+        "translated word",
+      );
+
+      const activateWithKey = async (key: "Enter" | " ") => {
+        target.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      };
+      await activateWithKey("Enter");
+      await expect(target).not.toHaveClass("selected");
+      await activateWithKey("Enter");
+      await expect(target).toHaveClass("selected");
+      await activateWithKey(" ");
+      await expect(target).not.toHaveClass("selected");
+      await activateWithKey(" ");
+      await expect(target).toHaveClass("selected");
+
+      mountContainer = nextContainer;
+      controller.updateMount();
+      await expect(nextContainer.contains(tooltipHost)).toBe(true);
+
+      outside.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, composed: true }),
+      );
+      await expect(target).not.toHaveClass("selected");
+      await expect(tooltipHost?.isConnected).toBe(false);
+    } finally {
+      subtitlesBlock.removeEventListener("click", controller.onActivate);
+      subtitlesBlock.removeEventListener("keydown", controller.onActivate);
+      globalThis.removeEventListener(
+        "pointerdown",
+        controller.onGlobalPointerDown,
+      );
+      controller.release();
+      container.remove();
+      nextContainer.remove();
+      outside.remove();
     }
   },
 };

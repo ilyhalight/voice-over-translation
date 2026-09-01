@@ -60,7 +60,9 @@ function createVideoHandler(account?: { token?: string; expires?: number }) {
       additionalData: undefined,
     },
     votClient: {
-      apiToken: account?.token,
+      provider: {
+        apiToken: account?.token,
+      },
     },
     actionsAbortController: new AbortController(),
     hasActiveSource: () => false,
@@ -112,7 +114,7 @@ describe("translation auth command", () => {
 
     expect(videoHandler.data.useLivelyVoice).toBe(true);
     expect(videoHandler.data.account).toEqual({});
-    expect(videoHandler.votClient.apiToken).toBeUndefined();
+    expect(videoHandler.votClient.provider.apiToken).toBeUndefined();
     expect(storedValues.useLivelyVoice).toBeUndefined();
     expect(openCalls).toHaveLength(1);
     expect(buttonStates).toEqual([["error", "Session expired. Log in again"]]);
