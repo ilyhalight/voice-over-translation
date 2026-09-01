@@ -16,11 +16,12 @@ import type {
   SubtitleRenderPlanSpanPart,
 } from "../../subtitles/renderPlan";
 import { effect, render } from "../../ui/solid/renderer";
+import { Overlay } from "../Utils/Overlay";
 
 export type SubtitlesWidgetProps = {
   parts: SubtitleRenderPlanPart[];
   lang: string;
-  onClick: (event: MouseEvent) => void;
+  onClick: (event: MouseEvent | KeyboardEvent) => void;
   onHighlightRef?: (index: number, element?: HTMLSpanElement) => void;
   ref: (element: HTMLElement) => void;
 };
@@ -82,6 +83,8 @@ function SubtitlePart(props: {
             data-vot-style-bold={part().style?.bold ? "1" : "0"}
             data-vot-style-underline={part().style?.underline ? "1" : "0"}
             data-vot-style-color={part().style?.color ? "1" : "0"}
+            role={part().kind === "word" ? "button" : undefined}
+            tabIndex={part().kind === "word" ? 0 : undefined}
             style={buildSubtitleInlineStyleCssText(part().style)}
           >
             {part().text}
@@ -113,6 +116,17 @@ export function SolidSubtitlesWidget(props: SubtitlesWidgetProps): JSX.Element {
       class="vot-subtitles"
       dir="auto"
       onClick={props.onClick}
+      onKeyDown={(event) => {
+        if (
+          !(event.target instanceof Element) ||
+          !event.target.matches('[data-vot-token="1"]') ||
+          (event.key !== "Enter" && event.key !== " ")
+        ) {
+          return;
+        }
+        event.preventDefault();
+        props.onClick(event);
+      }}
     >
       <Index each={props.parts}>
         {(part, index) => (
@@ -127,11 +141,38 @@ export function SolidSubtitlesWidget(props: SubtitlesWidgetProps): JSX.Element {
   );
 }
 
+export function mountSolidSubtitlesOverlay(
+  onPointerDown: (event: PointerEvent) => void,
+) {
+  let overlay: HTMLElement | undefined;
+  const host = document.createElement("vot-block");
+  const dispose = render(
+    () =>
+      (
+        <Overlay
+          ref={(element) => {
+            overlay = element;
+          }}
+          classList={{ "vot-subtitles-widget": true }}
+          blockProps={{ "oncapture:pointerdown": onPointerDown } as never}
+        >
+          {""}
+        </Overlay>
+      ) as Node,
+    host,
+  );
+  if (!overlay) {
+    dispose();
+    throw new Error("[VOT] Subtitles overlay failed to mount");
+  }
+  return { host, overlay, dispose };
+}
+
 export function mountSolidSubtitlesWidget(
   container: HTMLElement,
   options: {
     lang: () => string;
-    onClick: (event: MouseEvent) => void;
+    onClick: (event: MouseEvent | KeyboardEvent) => void;
   },
 ): SolidSubtitlesWidgetHandle {
   const [parts, setParts] = createSignal<SubtitleRenderPlanPart[]>([]);

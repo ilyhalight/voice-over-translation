@@ -1,4 +1,5 @@
 import {
+  mountSolidSubtitlesOverlay,
   mountSolidSubtitlesWidget,
   type SolidSubtitlesWidgetHandle,
 } from "../components/SubtitlesWidget/SubtitlesWidget";
@@ -6,7 +7,6 @@ import {
   mountSubtitleTokenTooltip,
   type SubtitleTokenTooltipHandle,
 } from "../components/SubtitlesWidget/SubtitleTokenTooltip";
-import { Overlay } from "../components/Utils/Overlay";
 import { DEFAULT_TRANSLATION_SERVICE } from "../config/config";
 import { translate } from "../core/translateApis";
 import { localizationProvider } from "../localization/localizationProvider";
@@ -23,7 +23,6 @@ import {
   reparentShadowMount,
   type ShadowMount,
 } from "../ui/shadowMount";
-import { render } from "../ui/solid/renderer";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import { buildActiveSubtitleRenderLine } from "./activeCues";
@@ -250,7 +249,7 @@ export class SubtitlesWidget {
       gapPx: 9,
     },
   } as const;
-  private safeAreaProbeEl: HTMLDivElement | null = null;
+  private safeAreaProbeEl: HTMLElement | null = null;
   private guidesLayer: HTMLElement | null = null;
   private verticalGuide: HTMLElement | null = null;
   private horizontalGuide: HTMLElement | null = null;
@@ -581,30 +580,10 @@ export class SubtitlesWidget {
     if (this.subtitlesContainer) {
       return this.subtitlesContainer;
     }
-    let overlay: HTMLElement | undefined;
-    const host = document.createElement("vot-block");
-    const view = () => (
-      <Overlay
-        ref={(element) => {
-          overlay = element;
-        }}
-        classList={{ "vot-subtitles-widget": true }}
-        blockProps={
-          {
-            "oncapture:pointerdown": this.onPointerDownBound,
-          } as never
-        }
-      >
-        {""}
-      </Overlay>
-    );
-    this.subtitleOverlayDispose = render(() => view() as Node, host);
-    if (!overlay) {
-      this.subtitleOverlayDispose();
-      throw new Error("[VOT] Subtitles overlay failed to mount");
-    }
-    this.subtitleOverlayHost = host;
-    const container = overlay;
+    const overlayMount = mountSolidSubtitlesOverlay(this.onPointerDownBound);
+    this.subtitleOverlayDispose = overlayMount.dispose;
+    this.subtitleOverlayHost = overlayMount.host;
+    const container = overlayMount.overlay;
     this.subtitlesContainer = container;
     // A new element carries none of the previously written custom properties,
     // so the write-if-changed bookkeeping must start from scratch.
@@ -927,7 +906,7 @@ export class SubtitlesWidget {
   }
   private ensureSafeAreaProbe(): void {
     if (this.safeAreaProbeEl) return;
-    const el = document.createElement("div");
+    const el = document.createElement("vot-block");
     el.style.position = "fixed";
     el.style.left = "0";
     el.style.right = "0";
@@ -1710,7 +1689,9 @@ export class SubtitlesWidget {
       ? token
       : null;
   }
-  private resolveTokenSpanFromClick(event: MouseEvent): HTMLSpanElement | null {
+  private resolveTokenSpanFromEvent(
+    event: MouseEvent | KeyboardEvent,
+  ): HTMLSpanElement | null {
     const root: HTMLElement | null =
       this.subtitlesBlock ?? this.subtitlesContainer;
     if (!root) return null;
@@ -1726,10 +1707,12 @@ export class SubtitlesWidget {
         return fromPath;
       }
     }
-    const x = event.clientX;
-    const y = event.clientY;
-    return Number.isFinite(x) && Number.isFinite(y)
-      ? this.findTokenSpan(document.elementFromPoint(x, y), root)
+    if (!(event instanceof MouseEvent)) return null;
+    return Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
+      ? this.findTokenSpan(
+          document.elementFromPoint(event.clientX, event.clientY),
+          root,
+        )
       : null;
   }
   releaseTooltip(): this {
@@ -1778,13 +1761,13 @@ export class SubtitlesWidget {
       this.subtitlesContainer.textContent = "";
     }
   }
-  onClick = async (event: MouseEvent): Promise<void> => {
+  onClick = async (event: MouseEvent | KeyboardEvent): Promise<void> => {
     if (performance.now() < this.suppressTokenClicksUntil) {
       event.preventDefault();
       event.stopPropagation();
       return;
     }
-    const target = this.resolveTokenSpanFromClick(event);
+    const target = this.resolveTokenSpanFromEvent(event);
     if (!target) {
       this.releaseTooltip();
       return;
@@ -1796,27 +1779,40 @@ export class SubtitlesWidget {
     const requestId = this.tooltipTranslationRequestId;
     const text = trimEdgePunctuation(target.textContent ?? "");
     if (!text) return;
-    const service = await votStorage.get(
-      "translationService",
-      DEFAULT_TRANSLATION_SERVICE,
-    );
-    if (requestId !== this.tooltipTranslationRequestId) return;
-    target.classList.add("selected");
-    const tooltip = this.createTokenTooltip(target, {
-      source: text,
-      context: this.strTranslatedTokens || this.strTokens,
-      translationService: service,
-    });
-    this.tokenTooltip = tooltip;
-    this.tokenTooltipTarget = target;
-    tooltip.show();
-    const strTokens = this.strTokens;
-    const translated = await this.translateStrTokens(text);
-    if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) {
-      return;
+    try {
+      const service = await votStorage.get(
+        "translationService",
+        DEFAULT_TRANSLATION_SERVICE,
+      );
+      if (requestId !== this.tooltipTranslationRequestId) return;
+      target.classList.add("selected");
+      const tooltip = this.createTokenTooltip(target, {
+        source: text,
+        context: this.strTranslatedTokens || this.strTokens,
+        translationService: service,
+      });
+      this.tokenTooltip = tooltip;
+      this.tokenTooltipTarget = target;
+      tooltip.show();
+      const strTokens = this.strTokens;
+      const translated = await this.translateStrTokens(text);
+      if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) {
+        return;
+      }
+      this.strTranslatedTokens = translated[0];
+      tooltip.setTranslation(translated[1], translated[0]);
+    } catch (error) {
+      if (requestId !== this.tooltipTranslationRequestId) return;
+      console.error("[VOT] Failed to translate subtitle token:", error);
+      if (this.tokenTooltip && this.tokenTooltipTarget === target) {
+        this.tokenTooltip.setTranslation(
+          localizationProvider.get("requestTranslationFailed"),
+          this.strTranslatedTokens || this.strTokens,
+        );
+      } else {
+        this.releaseTooltip();
+      }
     }
-    this.strTranslatedTokens = translated[0];
-    tooltip.setTranslation(translated[1], translated[0]);
   };
   private toggleCurrentTooltipTarget(target: HTMLElement): boolean {
     if (this.tokenTooltipTarget !== target || !this.tokenTooltip) {

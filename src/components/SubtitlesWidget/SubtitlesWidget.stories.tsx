@@ -44,9 +44,22 @@ export const Lifecycle: Story = {
 
       const firstWord = handle.highlightEls()[0];
       await expect(handle.block()).toHaveAttribute("lang", "en");
+      await expect(firstWord).toHaveAttribute("role", "button");
+      await expect(firstWord).toHaveAttribute("tabindex", "0");
       await expect(
         handle.highlightEls().map((element) => element.textContent),
       ).toEqual(["one", "two"]);
+      firstWord.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
+      const spaceEvent = new KeyboardEvent("keydown", {
+        key: " ",
+        bubbles: true,
+        cancelable: true,
+      });
+      firstWord.dispatchEvent(spaceEvent);
+      await expect(clicks).toBe(2);
+      await expect(spaceEvent.defaultPrevented).toBe(true);
 
       lang = "";
       handle.setParts([{ kind: "word", text: "three", highlightIndex: 0 }]);
@@ -58,7 +71,7 @@ export const Lifecycle: Story = {
       handle.setParts([{ kind: "word", text: "four", highlightIndex: 0 }]);
       handle.block().click();
       await expect(handle.block()).toHaveAttribute("lang", "ar");
-      await expect(clicks).toBe(1);
+      await expect(clicks).toBe(3);
 
       handle.dispose();
       disposed = true;

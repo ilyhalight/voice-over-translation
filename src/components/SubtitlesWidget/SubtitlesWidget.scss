@@ -271,6 +271,10 @@
       background: var(--vot-subtitles-hover-color, rgba(255, 255, 255, 0.55));
     }
 
+    &:focus-visible::before {
+      background: var(--vot-subtitles-hover-color, rgba(255, 255, 255, 0.55));
+    }
+
     &.selected::before {
       background: var(--vot-subtitles-passed-color, rgb(139, 180, 245));
     }
