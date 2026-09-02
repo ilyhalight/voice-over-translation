@@ -63,8 +63,6 @@ export type Locale =
   | "zh"
   | "zu";
 
-export type LangOverride = Locale | "auto";
-
 export type Hashes = Record<Locale, string>;
 
 export type Phrase =
@@ -308,7 +306,6 @@ export type Phrase =
   | "VOTUseAudioDownloadWarning"
   | "VOTAccountRequired"
   | "VOTMyAccount"
-  | "VOTLogin"
   | "VOTLogout"
   | "VOTRefresh"
   | "VOTYandexToken"
@@ -316,7 +313,19 @@ export type Phrase =
   | "VOTLoginViaToken"
   | "smartDucking"
   | "VOTYandexTokenExpired"
-  | "VOTVoiceSelection";
+  | "VOTVoiceSelection"
+  | "VOTSignInWithYandex"
+  | "VOTOrUseToken"
+  | "VOTSignedInAs"
+  | "VOTDownloadSubtitles"
+  | "VOTAutoReduceVolume"
+  | "VOTReducedVolumeLevel"
+  | "VOTIncompatibleWith"
+  | "VOTNotSupportedByLoader"
+  | "VOTPiP"
+  | "VOTMenu"
+  | "VOTDownloadTranslation"
+  | "VOTClose";
 
 export type Phrases = {
   recommended: string;
@@ -565,7 +574,6 @@ export type Phrases = {
   VOTUseAudioDownloadWarning: string;
   VOTAccountRequired: string;
   VOTMyAccount: string;
-  VOTLogin: string;
   VOTLogout: string;
   VOTRefresh: string;
   VOTYandexToken: string;
@@ -574,6 +582,18 @@ export type Phrases = {
   smartDucking: string;
   VOTYandexTokenExpired: string;
   VOTVoiceSelection: string;
+  VOTSignInWithYandex: string;
+  VOTOrUseToken: string;
+  VOTSignedInAs: string;
+  VOTDownloadSubtitles: string;
+  VOTAutoReduceVolume: string;
+  VOTReducedVolumeLevel: string;
+  VOTIncompatibleWith: string;
+  VOTNotSupportedByLoader: string;
+  VOTPiP: string;
+  VOTMenu: string;
+  VOTDownloadTranslation: string;
+  VOTClose: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

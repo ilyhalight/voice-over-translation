@@ -1,16 +1,25 @@
 import {
   actualCompatVersion,
-  defaultAutoHideDelay,
-  defaultAutoVolume,
-  defaultDetectService,
-  defaultTranslationService,
+  DEFAULT_AUTO_HIDE_DELAY,
+  DEFAULT_AUTO_VOLUME,
+  DEFAULT_DETECT_SERVICE,
+  DEFAULT_TRANSLATION_SERVICE,
   m3u8ProxyHost,
-  proxyOnlyCountries,
-  proxyWorkerHost,
+  PROXY_ONLY_COUNTRIES,
+  PROXY_WORKER_HOST,
 } from "../../config/config";
+import { updateAccountFromStorage } from "../../stores/account";
+import { setLocale } from "../../stores/locale";
+import { setSettings } from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
+import { AUTO_SUBTITLE_LANGUAGE_VALUE } from "../../types/storage";
+import { normalizeButtonPosition } from "../../ui/buttonPlacement";
 import debug from "../../utils/debug";
-import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
+import {
+  GM_fetch,
+  IS_PROXY_ONLY_EXTENSION,
+  isSupportGMXhr,
+} from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
@@ -55,10 +64,9 @@ export async function init(this: VideoHandler) {
     autoPauseOnTranslate: false,
     autoSubtitles: false,
     dontTranslateLanguages: [calculatedResLang],
-    enabledDontTranslateLanguages: true,
     enabledAutoVolume: true,
     enabledSmartDucking: true,
-    autoVolume: defaultAutoVolume,
+    autoVolume: DEFAULT_AUTO_VOLUME,
     buttonPos: "default",
     showVideoSlider: true,
     syncVolume: false,
@@ -72,23 +80,23 @@ export async function init(this: VideoHandler) {
     subtitlesOpacity: 20,
     subtitlesDownloadFormat: "srt",
     responseLanguage: calculatedResLang,
-    responseLanguageSubtitles: "auto",
+    responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
     defaultVolume: 100,
     onlyBypassMediaCSP: audioContextSupported,
     newAudioPlayer: audioContextSupported,
     showPiPButton: false,
     translateAPIErrors: true,
-    translationService: defaultTranslationService,
-    detectService: defaultDetectService,
+    translationService: DEFAULT_TRANSLATION_SERVICE,
+    detectService: DEFAULT_DETECT_SERVICE,
     translationHotkey: null,
     subtitlesHotkey: null,
     m3u8ProxyHost,
-    proxyWorkerHost,
+    proxyWorkerHost: PROXY_WORKER_HOST,
     translateProxyEnabled: 0,
     translateProxyEnabledDefault: true,
     audioBooster: false,
     useLivelyVoice: false,
-    autoHideButtonDelay: defaultAutoHideDelay,
+    autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
     // Audio download now uses direct network requests (GM_fetch/GM_xmlhttpRequest).
     useAudioDownload: isSupportGMXhr,
     compatVersion: "",
@@ -96,15 +104,64 @@ export async function init(this: VideoHandler) {
     localeHash: "",
     localeUpdatedAt: 0,
   });
+
   if (this.data.compatVersion !== actualCompatVersion) {
     this.data = await updateConfig(this.data);
     await votStorage.set("compatVersion", actualCompatVersion);
   }
 
+  await updateAccountFromStorage();
+  setLocale({
+    updatedAt: this.data.localeUpdatedAt,
+    hash: this.data.localeHash,
+  });
+  setSettings({
+    // menu
+    defaultVolume: this.data.defaultVolume,
+    responseLanguage: this.data.responseLanguage,
+    useLivelyVoice: false,
+    // translation
+    autoTranslate: this.data.autoTranslate,
+    autoPauseOnTranslate: this.data.autoPauseOnTranslate,
+    autoSubtitles: this.data.autoSubtitles,
+    dontTranslateLanguages: this.data.dontTranslateLanguages,
+    enabledAutoVolume: this.data.enabledAutoVolume,
+    autoVolume: this.data.autoVolume,
+    enabledSmartDucking: this.data.enabledSmartDucking,
+    showVideoSlider: this.data.showVideoSlider,
+    audioBooster: this.data.audioBooster,
+    syncVolume: this.data.syncVolume,
+    downloadWithName: this.data.downloadWithName,
+    sendNotifyOnComplete: this.data.sendNotifyOnComplete,
+    useAudioDownload: this.data.useAudioDownload,
+    translationService: this.data.translationService,
+    detectService: this.data.detectService,
+    // other
+    translateAPIErrors: this.data.translateAPIErrors,
+    newAudioPlayer: this.data.newAudioPlayer,
+    onlyBypassMediaCSP: this.data.onlyBypassMediaCSP,
+    showPiPButton: this.data.showPiPButton,
+    autoHideButtonDelay: this.data.autoHideButtonDelay,
+    buttonPos: normalizeButtonPosition(this.data.buttonPos),
+    proxyWorkerHost: this.data.proxyWorkerHost,
+    translateProxyEnabled: this.data.translateProxyEnabled,
+    // hotkeys
+    translationHotkey: this.data.translationHotkey,
+    subtitlesHotkey: this.data.subtitlesHotkey,
+    // subtitles
+    responseLanguageSubtitles: this.data.responseLanguageSubtitles,
+    subtitlesDownloadFormat: this.data.subtitlesDownloadFormat,
+    highlightWords: this.data.highlightWords,
+    subtitlesSmartLayout: this.data.subtitlesSmartLayout,
+    subtitlesFontFamily: this.data.subtitlesFontFamily,
+    subtitlesMaxLength: this.data.subtitlesMaxLength,
+    subtitlesFontSize: this.data.subtitlesFontSize,
+    subtitlesOpacity: this.data.subtitlesOpacity,
+  });
+
   try {
     if (
       calculatedResLang === "en" &&
-      this.data?.enabledDontTranslateLanguages &&
       Array.isArray(this.data?.dontTranslateLanguages) &&
       this.data.dontTranslateLanguages.length === 1 &&
       this.data.dontTranslateLanguages[0] === "en" &&
@@ -127,7 +184,7 @@ export async function init(this: VideoHandler) {
   console.log("[VOT] data from db:", this.data);
 
   // Enable translate proxy if extension isn't compatible with GM_xmlhttpRequest
-  if (!this.data.translateProxyEnabled && isProxyOnlyExtension) {
+  if (!this.data.translateProxyEnabled && IS_PROXY_ONLY_EXTENSION) {
     this.data.translateProxyEnabled = 1;
   }
   // Determine country for proxy purposes
@@ -136,7 +193,7 @@ export async function init(this: VideoHandler) {
   const countryCode = getCountryCode();
   if (
     countryCode !== null &&
-    proxyOnlyCountries.includes(countryCode) &&
+    PROXY_ONLY_COUNTRIES.includes(countryCode) &&
     this.data.translateProxyEnabledDefault
   ) {
     this.data.translateProxyEnabled = 2;
@@ -154,10 +211,7 @@ export async function init(this: VideoHandler) {
   // Initialize UI elements and events.
   this.uiManager.initUI();
   this.uiManager.initUIEvents();
-
-  if (this.uiManager.votOverlayView?.votButton?.container) {
-    this.uiManager.votOverlayView.votButton.container.hidden = true;
-  }
+  this.uiManager.votOverlayView.overlayViewControls?.setButtonHidden(true);
 
   // Get video data and create player.
   this.createPlayer();

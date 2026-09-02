@@ -1,0 +1,31 @@
+.vot-slider-label {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.75em;
+
+  &__text {
+    flex: 1 1 auto;
+    text-align: left;
+    &-desc {
+      color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.25px;
+      line-height: 20px;
+    }
+  }
+
+  &__value {
+    flex: 0 0 auto;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600 !important;
+  }
+
+  &[aria-disabled="true"] {
+    opacity: 0.5;
+    user-select: none;
+    color: rgba(var(--vot-onsurface-rgb, 227, 227, 227), 0.5);
+  }
+}

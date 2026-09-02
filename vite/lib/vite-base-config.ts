@@ -1,11 +1,12 @@
 import type { UserConfig } from "vite";
+import solidPlugin from "vite-plugin-solid";
 import {
   rootDir,
   sharedBuildOptions,
   sharedCssOptions,
   sharedResolveAlias,
   viteCacheDir,
-} from "./paths";
+} from "./paths.ts";
 
 export interface BaseViteConfigOptions {
   cacheName: string;
@@ -20,8 +21,17 @@ export function createBaseViteConfig({
     publicDir: false,
     cacheDir: viteCacheDir(cacheName),
     appType: "custom",
+    plugins: [
+      solidPlugin({
+        solid: {
+          generate: "universal",
+          moduleName: "vot-solid-renderer",
+        },
+      }),
+    ],
     resolve: {
       alias: sharedResolveAlias,
+      dedupe: ["solid-js", "solid-js/web", "solid-js/store"],
     },
     css: sharedCssOptions,
     build: sharedBuildOptions,
@@ -37,10 +47,12 @@ export function createViteConfig(
   return {
     ...baseConfig,
     ...config,
+    plugins: [...(baseConfig.plugins ?? []), ...(config.plugins ?? [])],
     resolve: {
       ...baseConfig.resolve,
       ...config.resolve,
       alias: config.resolve?.alias ?? baseConfig.resolve?.alias,
+      dedupe: config.resolve?.dedupe ?? baseConfig.resolve?.dedupe,
     },
     css: {
       ...baseConfig.css,
@@ -53,4 +65,5 @@ export function createViteConfig(
   };
 }
 
-export { defineConstants, type ViteDefine } from "./define";
+export type { ViteDefine } from "./define.ts";
+export { defineConstants } from "./define.ts";

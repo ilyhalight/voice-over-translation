@@ -404,8 +404,9 @@ export async function updateTranslation(
 
 export function syncTranslationPlaybackVolume(this: VideoHandler): void {
   const player = this.audioPlayer?.player;
-  const overlayView = this.uiManager.votOverlayView;
-  const nextVolume = overlayView?.translationVolumeSlider?.value;
+  const overlayViewControls =
+    this.uiManager.votOverlayView?.overlayViewControls;
+  const nextVolume = overlayViewControls?.getTranslationVolume();
   applyTranslationPlaybackVolume(player, nextVolume, this.data?.defaultVolume);
 }
 
@@ -530,11 +531,11 @@ export async function translateFunc(
     this.resetActionsAbortController("translateFunc");
   }
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.votButton) {
+  if (!overlayView?.overlayViewControls) {
     debug.log("[translateFunc] Overlay view missing, skipping translation");
     return;
   }
-  overlayView.votButton.loading = true;
+  overlayView.overlayViewControls.setIsLoading(true);
   this.hadAsyncWait = false;
   this.volumeOnStart = this.getVideoVolume();
   if (!VIDEO_ID) {
@@ -686,10 +687,8 @@ export async function translateFunc(
     if (this.activeTranslation?.promise === translationPromise) {
       this.activeTranslation = null;
     }
-
     // Auto-pause: resume playback once the translated audio is ready
-    // (or on failure/abort). Only resume if we were the ones who paused,
-    // and if we are still the active translation (to prevent aborted requests from resuming).
+    // (or on failure/abort). Only resume if we were the ones who paused.
     if (!this.activeTranslation && this.pausedByTranslation) {
       this.pausedByTranslation = false;
       if (this.hasActiveSource()) {
@@ -700,12 +699,9 @@ export async function translateFunc(
       }
     }
 
-    const overlayBtn = this.uiManager.votOverlayView?.votButton;
-    if (
-      !this.activeTranslation &&
-      overlayBtn?.loading &&
-      !this.hasActiveSource()
-    ) {
+    const isLoading =
+      this.uiManager.votOverlayView.overlayViewControls?.getIsLoading();
+    if (!this.activeTranslation && isLoading && !this.hasActiveSource()) {
       debug.log("[translateFunc] clearing stale loading state");
       this.transformBtn("none", localizationProvider.get("translateVideo"));
     }

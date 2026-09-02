@@ -2,7 +2,8 @@ import { AudioDownloadType } from "@vot.js/core/types/yandex";
 import { config } from "@vot.js/shared";
 
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
-import { GM_fetch } from "../../utils/gm";
+import type { FetchOpts } from "../../types/utils/gm";
+import { GM_fetch, type RequestUrlLike } from "../../utils/gm";
 import { makeFileId } from "../fileId";
 import {
   type AudioChunkStreamResult,
@@ -44,7 +45,7 @@ function createYtAudioFetch({
   signal: AbortSignal;
   timeoutMs: number;
 }): typeof fetch {
-  return async (input, init = {}) =>
+  return async (input: RequestUrlLike, init: FetchOpts = {}) =>
     await GM_fetch(input, {
       ...init,
       signal: init.signal ?? signal,

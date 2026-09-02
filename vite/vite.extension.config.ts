@@ -61,6 +61,7 @@ export default defineConfig(async ({ mode }) => {
     ...baseConfig,
     define: buildDefine(env),
     plugins: [
+      ...(baseConfig.plugins ?? []),
       firefoxPipelineEntryPlugin(),
       firefoxBuildPipelinePlugin(buildConfig),
     ],

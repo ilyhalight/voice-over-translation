@@ -1,9 +1,6 @@
 import { actualCompatVersion } from "../config/config";
 import {
   type CompatibilityVersion,
-  type ConvertCategory,
-  type ConvertData,
-  type StorageData,
   type StorageKey,
   storageKeys,
 } from "../types/storage";
@@ -28,121 +25,6 @@ type StorageValueChangeListener<T = unknown> = (
   remote: boolean,
 ) => void;
 
-const compatMay2025Data = {
-  numToBool: [
-    ["autoTranslate"],
-    ["dontTranslateYourLang", "enabledDontTranslateLanguages"],
-    ["autoSetVolumeYandexStyle", "enabledAutoVolume"],
-    ["showVideoSlider"],
-    ["syncVolume"],
-    ["downloadWithName"],
-    ["sendNotifyOnComplete"],
-    ["highlightWords"],
-    ["onlyBypassMediaCSP"],
-    ["newAudioPlayer"],
-    ["showPiPButton"],
-    ["translateAPIErrors"],
-    ["audioBooster"],
-    ["useNewModel", "useLivelyVoice"],
-  ],
-  number: [["autoVolume"]],
-  array: [["dontTranslateLanguage", "dontTranslateLanguages"]],
-  string: [
-    ["hotkeyButton", "translationHotkey"],
-    ["locale-lang-override", "localeLangOverride"],
-    ["locale-lang", "localeLang"],
-  ],
-} as const satisfies ConvertData;
-
-type CompatRule = Readonly<{
-  category: ConvertCategory;
-  oldKey: string;
-  newKey: StorageKey;
-  shouldDeleteOldKey: boolean;
-}>;
-
-const compatRules = (
-  Object.entries(compatMay2025Data) as [
-    ConvertCategory,
-    readonly (readonly [string, string?])[],
-  ][]
-).flatMap<CompatRule>(([category, entries]) =>
-  entries.map(([oldKey, maybeNewKey]) => ({
-    category,
-    oldKey,
-    newKey: (maybeNewKey ?? oldKey) as StorageKey,
-    shouldDeleteOldKey: Boolean(maybeNewKey),
-  })),
-);
-
-const compatRuleByOldKey = new Map<string, CompatRule>(
-  compatRules.map((rule) => [rule.oldKey, rule]),
-);
-
-const compatKeysToRead = Array.from(
-  new Set<string>(compatRules.map((rule) => rule.oldKey)),
-);
-
-function createUndefinedDefaults(
-  keys: Iterable<string>,
-): Record<string, undefined> {
-  const defaults: Record<string, undefined> = {};
-  for (const key of keys) {
-    defaults[key] = undefined;
-  }
-
-  return defaults;
-}
-
-function isCompatValue(category: ConvertCategory, value: unknown) {
-  switch (category) {
-    case "numToBool":
-    case "number":
-      return typeof value === "number";
-    case "array":
-      return Array.isArray(value);
-    case "string":
-      return typeof value === "string" || value === null;
-    default:
-      return false;
-  }
-}
-
-function convertByCompatCategory(category: ConvertCategory, value: unknown) {
-  switch (category) {
-    case "string":
-    case "array":
-    case "number":
-      return value;
-    default:
-      return !!value;
-  }
-}
-
-function normalizeCompatValue(
-  rule: CompatRule,
-  value: unknown,
-): KeysOrDefaultValue {
-  let convertedValue = convertByCompatCategory(rule.category, value);
-
-  if (rule.oldKey === "autoVolume" && typeof value === "number" && value < 1) {
-    convertedValue = Math.round(value * 100);
-  }
-
-  return convertedValue as KeysOrDefaultValue;
-}
-
-function areStorageValuesEqual(a: unknown, b: unknown): boolean {
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return (
-      a.length === b.length &&
-      a.every((item, index) => Object.is(item, b[index]))
-    );
-  }
-
-  return Object.is(a, b);
-}
-
 function parseStoredValue(rawValue: string | null): unknown {
   if (rawValue === null) {
     return undefined;
@@ -155,55 +37,49 @@ function parseStoredValue(rawValue: string | null): unknown {
   }
 }
 
+async function migrateAugust2026(
+  data: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const enabledDontTranslateLanguages = await votStorage.getRaw<unknown>(
+    "enabledDontTranslateLanguages",
+  );
+
+  const storedLanguages = Array.isArray(data.dontTranslateLanguages)
+    ? data.dontTranslateLanguages
+    : [];
+
+  const dontTranslateLanguages =
+    enabledDontTranslateLanguages === false ? [] : storedLanguages;
+
+  if (enabledDontTranslateLanguages === false) {
+    await votStorage.set("dontTranslateLanguages", dontTranslateLanguages);
+  }
+
+  await votStorage.deleteRaw("enabledDontTranslateLanguages");
+
+  const migratedData = {
+    ...data,
+    dontTranslateLanguages,
+  };
+
+  return migratedData;
+}
+
 export async function updateConfig<T>(
   data: Record<string, unknown>,
 ): Promise<T> {
-  if ((data.compatVersion as CompatibilityVersion) === actualCompatVersion) {
+  const sourceVersion = data.compatVersion as CompatibilityVersion;
+  if (sourceVersion === actualCompatVersion) {
     return data as T;
   }
 
-  const keysToRead = new Set<string>([
-    ...Object.keys(data),
-    ...compatKeysToRead,
-  ]);
-  const persistedValues = await votStorage.getValues<
-    Record<string, KeysOrDefaultValue>
-  >(createUndefinedDefaults(keysToRead));
-
-  const newData: Partial<StorageData> = { ...(data as Partial<StorageData>) };
-  const writeOperations: Promise<unknown>[] = [];
-  const deleteOperations: Promise<unknown>[] = [];
-
-  for (const [key, storedValue] of Object.entries(persistedValues)) {
-    if (storedValue === undefined) {
-      continue;
-    }
-
-    const compatRule = compatRuleByOldKey.get(key);
-    if (!compatRule || !isCompatValue(compatRule.category, storedValue)) {
-      continue;
-    }
-
-    const convertedValue = normalizeCompatValue(compatRule, storedValue);
-    (newData as Record<string, unknown>)[compatRule.newKey] = convertedValue;
-
-    const existingNewValue = persistedValues[compatRule.newKey];
-    if (
-      compatRule.shouldDeleteOldKey ||
-      !areStorageValuesEqual(existingNewValue, convertedValue)
-    ) {
-      writeOperations.push(votStorage.set(compatRule.newKey, convertedValue));
-    }
-
-    if (compatRule.shouldDeleteOldKey) {
-      deleteOperations.push(votStorage.delete(compatRule.oldKey as StorageKey));
-    }
+  let migratedData = data;
+  if (sourceVersion === "" || sourceVersion === "2025-05-09") {
+    migratedData = await migrateAugust2026(migratedData);
   }
 
-  await Promise.all([...writeOperations, ...deleteOperations]);
-
   return {
-    ...newData,
+    ...migratedData,
     compatVersion: actualCompatVersion,
   } as T;
 }

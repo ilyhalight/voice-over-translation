@@ -1,11 +1,11 @@
 import debug from "../utils/debug";
 import { containsCrossShadow, getDeepActiveElement } from "../utils/dom";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
-import type { OverlayView } from "./views/overlay";
+import type { OverlayController } from "./overlayController";
 
 export interface OverlayVisibilityDependencies {
   checker: IntervalIdleChecker;
-  getOverlayView(): OverlayView | null | undefined;
+  getOverlayView(): OverlayController | null | undefined;
   getAutoHideDelay(): number;
   isInteractiveNode(node: unknown): boolean;
   nowMs?: () => number;
@@ -37,15 +37,19 @@ export class OverlayVisibilityController {
 
   constructor(deps: OverlayVisibilityDependencies) {
     this.deps = deps;
-    this.unsubscribeChecker = this.deps.checker.subscribe(() => {
-      this.onCheckerTick();
-    });
+    this.unsubscribeChecker = this.deps.checker.subscribe(
+      () => {
+        this.onCheckerTick();
+      },
+      // Ticks are only useful while an auto-hide deadline is armed.
+      { hasPendingWork: () => this.hideArmed && this.hideDeadlineMs > 0 },
+    );
   }
 
   /**
    * Ensures overlay is visible immediately and returns current view.
    */
-  show(): OverlayView | null {
+  show(): OverlayController | null {
     const view = this.getView();
     if (!view) {
       return null;
@@ -231,12 +235,14 @@ export class OverlayVisibilityController {
     this.deps.checker.markActivity("overlay-focus-in");
   }
 
-  private getView(): OverlayView | null {
+  private getView(): OverlayController | null {
     const view = this.deps.getOverlayView();
     return view?.isInitialized() ? view : null;
   }
 
-  private isOverlayHoverActive(view: OverlayView | null = this.getView()) {
+  private isOverlayHoverActive(
+    view: OverlayController | null = this.getView(),
+  ) {
     return Boolean(
       view &&
         (this.pointerInsideOverlay || view.shouldKeepVisibleForInteraction()),

@@ -15,22 +15,34 @@
     "voice-over-translation"
   ],
   "devDependencies": {
-    "@biomejs/biome": "^2.5.6",
+    "@biomejs/biome": "^2.5.11",
+    "@chromatic-com/storybook": "latest",
     "@crxjs/vite-plugin": "^2.7.1",
+    "@storybook/addon-a11y": "^10.5.10",
+    "@storybook/addon-docs": "^10.5.10",
+    "@storybook/addon-styling-webpack": "^3.0.2",
+    "@storybook/addon-vitest": "^10.5.10",
     "@toil/translate": "^1.10.0",
-    "@types/bun": "^1.3.14",
-    "lefthook": "^2.1.10",
+    "@types/bun": "^1.4.0",
+    "@vitest/browser-playwright": "latest",
+    "@vitest/coverage-v8": "latest",
+    "lefthook": "^2.1.12",
     "npm-run-all2": "^9.0.3",
-    "sass": "^1.102.0",
+    "playwright": "latest",
+    "sass": "^1.103.1",
+    "storybook": "^10.5.10",
+    "storybook-solidjs-vite": "latest",
     "typescript": "^6.0.3",
-    "vite": "^8.2.0",
-    "zip-a-folder": "^6.1.3"
+    "vite": "^8.2.2",
+    "vite-plugin-solid": "^2.11.14",
+    "vitest": "latest",
+    "zip-a-folder": "^6.2.0"
   },
   "scripts": {
     "test": "bun test",
     "test:unit": "bun test",
     "test:unit:watch": "bun test --watch",
-    "test:ui": "vite build --config vite/vite.test-ui.config.ts",
+    "test:ui": "vitest run --project storybook --maxWorkers=4",
     "build:gm:default": "vite build --config vite/vite.config.ts",
     "build:gm:min": "vite build --mode minify --config vite/vite.config.ts",
     "build:gm": "run-p build:gm:default build:gm:min",
@@ -41,19 +53,21 @@
     "dev": "vite build --watch --mode development --config vite/vite.config.ts",
     "format": "bunx @biomejs/biome check --write --unsafe ./src ./vite ./scripts",
     "lint": "bunx @biomejs/biome lint ./src ./vite ./scripts",
-    "check": "bunx tsc --noEmit && bunx tsc -p src/tsconfig.json --noEmit",
+    "check": "bunx tsc -p ./src/tsconfig.json --noEmit",
     "gen:wiki": "bun run ./scripts/wiki-gen/index.js",
     "autobuild": "bun run ./scripts/autobuild.ts",
     "zip:source": "bun ./scripts/zip/get-source.ts",
-    "localize": "bunx \"@toil/localize-tui\""
+    "localize": "bunx \"@toil/localize-tui\"",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@toil/gm-types": "^1.0.5",
-    "@vot.js/ext": "^3.0.2",
+    "@toil/gm-types": "^1.0.6",
     "@vot.js/core": "^3.0.2",
+    "@vot.js/ext": "^3.0.2",
     "@vot.js/shared": "^3.0.2",
     "bowser": "^2.14.1",
     "chaimu": "^1.1.0",
-    "lit-html": "^3.3.3"
+    "solid-js": "^1.9.15"
   }
 }

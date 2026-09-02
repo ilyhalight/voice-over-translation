@@ -12,7 +12,6 @@ import {
   buildSubtitlesSelectOptions,
   DISABLED_SUBTITLES_VALUE,
   getIndexedSubtitleDescriptors,
-  getSelectedSubtitlesValue,
   getSubtitleDescriptorAtIndex,
   parseSubtitlesOptionIndex,
   pickBestSubtitlesIndex,
@@ -36,24 +35,9 @@ function getPreferredSubtitlesLanguage(
   );
 }
 
-function getCacheDetectedLanguage(handler: VideoHandler): string | undefined {
-  const videoData = handler.videoData;
-  const detectedLanguage = videoData?.detectedLanguage?.toLowerCase();
-  if (detectedLanguage && detectedLanguage !== "auto") {
-    return detectedLanguage;
-  }
-
-  return videoData?.responseLanguage?.toLowerCase() ?? handler.translateToLang;
-}
-
 function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
   const videoData = handler.videoData;
   if (!videoData?.videoId) {
-    return null;
-  }
-
-  const detectedLanguage = getCacheDetectedLanguage(handler);
-  if (!detectedLanguage) {
     return null;
   }
 
@@ -64,7 +48,7 @@ function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
 
   return handler.getSubtitlesCacheKey(
     videoData.videoId,
-    detectedLanguage,
+    videoData.detectedLanguage,
     subtitleLanguage,
   );
 }
@@ -144,11 +128,13 @@ function clearSelectedSubtitles(
   handler: VideoHandler,
   overlayView: NonNullable<VideoHandler["uiManager"]["votOverlayView"]>,
 ): VideoHandler {
+  overlayView.overlayViewControls?.setSelectedSubtitles(
+    DISABLED_SUBTITLES_VALUE,
+  );
   if (handler.hasSubtitlesWidget()) {
     handler.subtitlesWidget?.setContent(null);
   }
-  overlayView.downloadSubtitlesButton.hidden = true;
-  overlayView.syncSubtitlesButtonState(false);
+  overlayView.overlayViewControls?.setShowDownloadSubtitles(false);
   handler.yandexSubtitles = null;
   return handler;
 }
@@ -160,14 +146,14 @@ export async function changeSubtitlesLang(
   debug.log("[onchange] subtitles", subs);
   const requestVersion = nextSubtitlesSelectionRequestVersion(this);
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect || !overlayView.downloadSubtitlesButton) {
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) {
     return this;
   }
-  overlayView.subtitlesSelect.setSelectedValue(subs);
-  overlayView.syncSubtitlesButtonState(subs !== DISABLED_SUBTITLES_VALUE);
   if (subs === DISABLED_SUBTITLES_VALUE) {
     return clearSelectedSubtitles(this, overlayView);
   }
+  overlayViewControls.setSelectedSubtitles(subs);
 
   const subtitlesIndex = parseSubtitlesOptionIndex(subs);
   if (subtitlesIndex == null) {
@@ -206,20 +192,20 @@ export async function changeSubtitlesLang(
     this.yandexSubtitles,
     subtitlesObj.language,
   );
-  overlayView.downloadSubtitlesButton.hidden = false;
-  overlayView.syncSubtitlesButtonState(true);
+  overlayViewControls.setShowDownloadSubtitles(true);
   return this;
 }
 
 export async function updateSubtitlesLangSelect(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) {
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) {
     return;
   }
 
   const subtitleDescriptors = getIndexedSubtitleDescriptors(this.subtitles);
   const updatedOptions = buildSubtitlesSelectOptions(subtitleDescriptors);
-  overlayView.subtitlesSelect.updateItems(updatedOptions);
+  overlayViewControls.setSubtitlesOptions(updatedOptions);
   await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
 }
 
@@ -264,7 +250,8 @@ export async function ensureSubtitlesForCurrentLangPair(this: VideoHandler) {
  */
 export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) return this;
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) return this;
 
   try {
     await ensureSubtitlesForCurrentLangPair.call(this);
@@ -290,9 +277,7 @@ export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
   }
 
   // If the currently selected subtitles already match the chosen track, do nothing.
-  const currentValue = getSelectedSubtitlesValue(
-    overlayView.subtitlesSelect.selectedValues,
-  );
+  const currentValue = overlayViewControls.getSelectedSubtitles();
   if (currentValue === String(bestIdx)) {
     return this;
   }
@@ -325,11 +310,10 @@ export async function refreshAutoSubtitlesForCurrentLangPair(
  */
 export async function toggleSubtitlesForCurrentLangPair(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) return this;
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) return this;
 
-  const currentValue = getSelectedSubtitlesValue(
-    overlayView.subtitlesSelect.selectedValues,
-  );
+  const currentValue = overlayViewControls.getSelectedSubtitles();
 
   if (currentValue && currentValue !== DISABLED_SUBTITLES_VALUE) {
     await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);

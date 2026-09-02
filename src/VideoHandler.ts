@@ -256,7 +256,6 @@ export class VideoHandler {
   yandexSubtitles: ProcessedSubtitles | null = null;
 
   // Observers / listeners
-  resizeObserver?: ResizeObserver;
   syncVolumeObserver?: MutationObserver;
 
   // Init guard
@@ -1056,15 +1055,9 @@ export class VideoHandler {
     fromType: "translation" | "video",
     newVolume: number,
   ): ApplyVolumeLinkDeltaResult | undefined {
-    const overlayView = this.uiManager.votOverlayView;
-    if (!overlayView?.isInitialized()) {
-      return undefined;
-    }
-
-    const videoSlider = overlayView.videoVolumeSlider;
-    const translationSlider = overlayView.translationVolumeSlider;
-
-    if (!videoSlider || !translationSlider) {
+    const overlayViewControls =
+      this.uiManager.votOverlayView?.overlayViewControls;
+    if (!overlayViewControls) {
       return undefined;
     }
 
@@ -1072,21 +1065,21 @@ export class VideoHandler {
       state: this.volumeLinkState,
       fromType,
       newVolume,
-      currentVideo: Number(videoSlider.value),
-      currentTranslation: Number(translationSlider.value),
-      translationMin: translationSlider.min,
-      translationMax: translationSlider.max,
+      currentVideo: overlayViewControls.getVideoVolume(),
+      currentTranslation: overlayViewControls.getTranslationVolume(),
+      translationMin: 0,
+      translationMax: overlayViewControls.getMaxTranslationVolume(),
     });
 
     const { nextVideo, nextTranslation } = result;
 
     if (typeof nextTranslation === "number") {
-      translationSlider.value = nextTranslation;
+      overlayViewControls.setTranslationVolume(nextTranslation);
       return result;
     }
 
     if (typeof nextVideo === "number") {
-      videoSlider.value = nextVideo;
+      overlayViewControls.setVideoVolume(nextVideo);
       this.setVideoVolume(nextVideo / 100);
     }
 
@@ -1125,16 +1118,9 @@ export class VideoHandler {
         debug.log("audioPlayer after stopTranslate", this.audioPlayer);
       }
       this.activeTranslation = null;
-      const overlayView = this.uiManager.votOverlayView;
-      if (overlayView) {
-        for (const control of [
-          overlayView.videoVolumeSlider,
-          overlayView.translationVolumeSlider,
-          overlayView.downloadTranslationButton,
-        ]) {
-          if (control) control.hidden = true;
-        }
-      }
+      this.uiManager.votOverlayView?.overlayViewControls?.setShowDownloadTranslation(
+        false,
+      );
       this.downloadTranslation = null;
       this.longWaitingResCount = 0;
       this.hadAsyncWait = false;
@@ -1211,9 +1197,7 @@ export class VideoHandler {
       return;
     }
     if (TRANSLATION_LOADING_MESSAGES.has(errorMessage)) {
-      if (this.uiManager.votOverlayView?.votButton) {
-        this.uiManager.votOverlayView.votButton.loading = true;
-      }
+      this.uiManager.votOverlayView.overlayViewControls?.setIsLoading(true);
     }
   }
 
@@ -1263,7 +1247,7 @@ export class VideoHandler {
     signal?: AbortSignal,
   ): Promise<string | null> {
     const overlayView = this.uiManager.votOverlayView;
-    if (!overlayView?.votButton) {
+    if (!overlayView?.overlayViewControls) {
       return null;
     }
 
@@ -1276,7 +1260,7 @@ export class VideoHandler {
       return cached;
     }
 
-    overlayView.votButton.loading = true;
+    overlayView.overlayViewControls?.setIsLoading(true);
     const translatedMessage = await translate(messageStr, "ru", lang);
     if (signal?.aborted) {
       return null;
@@ -1307,32 +1291,20 @@ export class VideoHandler {
    */
   afterUpdateTranslation(audioUrl) {
     const overlayView = this.uiManager.votOverlayView;
-    if (!overlayView?.votButton) {
-      return;
-    }
-    const isSuccess =
-      overlayView.votButton.container.dataset.status === "success";
-    if (overlayView.videoVolumeSlider) {
-      overlayView.videoVolumeSlider.hidden =
-        !this.data?.showVideoSlider || !isSuccess;
-    }
-    if (overlayView.translationVolumeSlider) {
-      overlayView.translationVolumeSlider.hidden = !isSuccess;
-    }
-
-    if (overlayView.videoVolumeSlider && overlayView.translationVolumeSlider) {
+    const overlayViewControls = overlayView?.overlayViewControls;
+    const isSuccess = overlayViewControls?.getStatus() === "success";
+    if (overlayViewControls) {
+      overlayViewControls.setShowTranslationVolume(isSuccess);
       this.resetVolumeLinkState(
-        Number(overlayView.videoVolumeSlider.value),
-        Number(overlayView.translationVolumeSlider.value),
+        overlayViewControls.getVideoVolume(),
+        overlayViewControls.getTranslationVolume(),
       );
     } else {
       this.volumeLinkState.initialized = false;
     }
 
     if (this.videoData && !this.videoData.isStream) {
-      if (overlayView.downloadTranslationButton) {
-        overlayView.downloadTranslationButton.hidden = false;
-      }
+      overlayViewControls?.setShowDownloadTranslation(true);
       this.downloadTranslation = {
         url: audioUrl,
         videoId: this.videoData.videoId,
