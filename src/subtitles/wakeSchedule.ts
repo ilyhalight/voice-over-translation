@@ -11,7 +11,7 @@ import type { SubtitleLine } from "../types/subtitles";
  *
  * Nothing in the pipeline can change between two *boundaries*:
  *   - a cue start,
- *   - a cue end (plus the lookback window during which it still renders),
+ *   - a cue end,
  *   - the next word-highlight threshold, when highlighting is on.
  *
  * Knowing the next boundary turns the per-frame callback into two numeric
@@ -33,14 +33,13 @@ function upperBoundByStart(lines: SubtitleLine[], timeMs: number): number {
 /**
  * Earliest cue boundary strictly after `timeMs`.
  *
- * Cue ends are scanned from a bounded window before `timeMs` because a cue that
- * already ended can still be rendered for `lookbackMs`, and overlapping cues
- * mean an earlier entry can end later than a later one.
+ * Cue ends are scanned from a bounded window before `timeMs` because overlapping
+ * cues mean an earlier entry can end later than a later one.
  */
 export function findNextCueBoundaryMs(
   timeMs: number,
   lines: SubtitleLine[],
-  lookbackMs = 0,
+  maxCueDurationMs = Number.POSITIVE_INFINITY,
 ): number | null {
   const count = lines.length;
   if (count === 0) return null;
@@ -53,17 +52,14 @@ export function findNextCueBoundaryMs(
   const firstFuture = upperBoundByStart(lines, timeMs);
   if (firstFuture < count) consider(lines[firstFuture].startMs);
 
-  // Walk back over cues that may still be on screen, plus overlapping ones.
+  const minStartMs = Number.isFinite(maxCueDurationMs)
+    ? timeMs - Math.max(0, maxCueDurationMs)
+    : Number.NEGATIVE_INFINITY;
+  // Walk back only over cues that can still be active.
   for (let i = firstFuture - 1; i >= 0; i -= 1) {
     const line = lines[i];
-    const endMs = line.startMs + Math.max(0, line.durationMs) + lookbackMs;
-    consider(endMs);
-    // Once a cue starts before the earliest known boundary minus the maximum
-    // possible on-screen span, no earlier cue can produce a closer boundary.
-    if (endMs <= timeMs && line.startMs < timeMs - lookbackMs) {
-      const settled = next !== null;
-      if (settled) break;
-    }
+    if (line.startMs < minStartMs) break;
+    consider(line.startMs + Math.max(0, line.durationMs));
   }
 
   return next;
@@ -85,7 +81,7 @@ export function findNextThresholdMs(
 export type WakeScheduleInput = {
   timeMs: number;
   lines: SubtitleLine[];
-  lookbackMs?: number;
+  maxCueDurationMs?: number;
   /** Word-highlight thresholds of the active cue; empty when highlighting is off. */
   thresholds?: readonly number[];
   /** Upper bound so periodic layout refreshes still happen. */
@@ -101,12 +97,12 @@ export type WakeScheduleInput = {
 export function computeNextWakeMs({
   timeMs,
   lines,
-  lookbackMs = 0,
+  maxCueDurationMs,
   thresholds,
   maxSleepMs = 250,
 }: WakeScheduleInput): number {
   const cap = timeMs + Math.max(1, maxSleepMs);
-  let next = findNextCueBoundaryMs(timeMs, lines, lookbackMs);
+  let next = findNextCueBoundaryMs(timeMs, lines, maxCueDurationMs);
 
   if (thresholds && thresholds.length > 0) {
     const threshold = findNextThresholdMs(timeMs, thresholds);

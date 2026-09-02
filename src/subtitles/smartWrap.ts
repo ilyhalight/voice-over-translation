@@ -581,17 +581,6 @@ export function computeTwoLineSegments(
   return finalizeComputedSegments(tokens, segments);
 }
 
-const _measureTokenRange = (
-  textBuffer: TokenTextBuffer,
-  startToken: number,
-  endToken: number,
-  measureText: MeasureText,
-): number => {
-  if (endToken <= startToken) return 0;
-
-  return measureText(getBufferedTokenText(textBuffer, startToken, endToken));
-};
-
 /**
  * Width of a rendered line. Whitespace at a line edge is collapsed away by the
  * renderer, so measuring it would overstate the line width and make a line that

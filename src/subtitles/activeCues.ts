@@ -1,5 +1,4 @@
 import type { SubtitleLine, SubtitleToken } from "../types/subtitles";
-import { isTimeInLine } from "./layoutController";
 
 type IndexedSubtitleLine = {
   index: number;
@@ -136,7 +135,7 @@ export const findActiveSubtitleLineIndices = (
     if (line.startMs < minStartMs) {
       break;
     }
-    if (isTimeInLine(time, line)) {
+    if (time >= line.startMs && time < line.startMs + line.durationMs) {
       activeLineIndices.push(index);
     }
   }

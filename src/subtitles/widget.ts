@@ -104,7 +104,7 @@ export class SubtitlesWidget {
   private subtitleLang?: string;
   private lastRenderKey: string | null = null;
   private lastActiveLineKey: string | null = null;
-  private maxActiveCueLookbackMs = 0;
+  private maxCueDurationMs = 0;
   private highlightWords = false;
   private maxLength = 300;
   private smartFontSizePx = 0;
@@ -168,6 +168,7 @@ export class SubtitlesWidget {
   private readonly intervalIdleChecker: IntervalIdleChecker;
   private checkerUnsubscribe: (() => void) | null = null;
   private strTokens = "";
+  private tokenStateKey = "";
   private passedStateKey: string | null = null;
   private readonly passedThresholds: number[] = [];
   private bottomInsetCachedPx = 0; // layout px
@@ -556,7 +557,7 @@ export class SubtitlesWidget {
     this.nextWakeAtMs = computeNextWakeMs({
       timeMs,
       lines: this.subtitles.subtitles,
-      lookbackMs: this.maxActiveCueLookbackMs,
+      maxCueDurationMs: this.maxCueDurationMs,
       thresholds: this.highlightWords ? this.passedThresholds : undefined,
       maxSleepMs: this.positionRefreshIntervalMs,
     });
@@ -1293,6 +1294,7 @@ export class SubtitlesWidget {
     this.resetRenderMemo();
     this.lastActiveLineKey = null;
     this.strTokens = "";
+    this.tokenStateKey = "";
     this.resetTranslationContext();
     this.subtitlesBlock = null;
     this.renderedHighlightEls = [];
@@ -1437,7 +1439,7 @@ export class SubtitlesWidget {
     if (!subtitles || !this.video) {
       this.clearRenderedContent();
       this.subtitles = null;
-      this.maxActiveCueLookbackMs = 0;
+      this.maxCueDurationMs = 0;
       this.lastPlaybackTimeMs = null;
       this.clearPendingSchedulerState();
       this.stopVideoFrameLoop();
@@ -1446,6 +1448,7 @@ export class SubtitlesWidget {
     }
     this.sourceEpoch += 1;
     this.strTokens = "";
+    this.tokenStateKey = "";
     this.resetTranslationContext();
     this.resetRenderMemo();
     this.resetWrapMemo();
@@ -1455,7 +1458,7 @@ export class SubtitlesWidget {
     this.passedThresholds.length = 0;
     this.createSubtitlesContainer();
     this.subtitles = subtitles;
-    this.maxActiveCueLookbackMs = subtitles.subtitles.reduce(
+    this.maxCueDurationMs = subtitles.subtitles.reduce(
       (maxDurationMs, line) =>
         Math.max(maxDurationMs, Math.max(0, line.durationMs)),
       0,
@@ -1521,7 +1524,7 @@ export class SubtitlesWidget {
     return buildActiveSubtitleRenderLine(
       time,
       subtitlesList,
-      this.maxActiveCueLookbackMs,
+      this.maxCueDurationMs,
     );
   }
   private clearInactiveLineState(): void {
@@ -1583,15 +1586,17 @@ export class SubtitlesWidget {
     this.lastWrapTokens = tokens;
 
     const strTokens = this.stringifyTokens(tokens);
-    const tokensChanged = strTokens !== this.strTokens;
+    const tokenStateKey = JSON.stringify(tokens);
+    const tokensChanged = tokenStateKey !== this.tokenStateKey;
     if (tokensChanged) {
       this.releaseTooltip();
       this.strTokens = strTokens;
+      this.tokenStateKey = tokenStateKey;
       this.resetTranslationContext();
       this.resetWrapMemo();
     }
 
-    const passedStateKey = `${activeLineKey}:${strTokens}`;
+    const passedStateKey = `${activeLineKey}:${tokenStateKey}`;
     const passedFlags = this.highlightWords
       ? this.buildPassedState(tokens, time, passedStateKey)
       : null;
@@ -1601,7 +1606,7 @@ export class SubtitlesWidget {
       tokens,
       tokensChanged,
       passedFlags,
-      renderKey: `${activeLineKey}:${strTokens}:${wrapKey}`,
+      renderKey: `${activeLineKey}:${tokenStateKey}:${wrapKey}`,
     };
   }
   private syncRenderedTokens(tokens: SubtitleToken[]): void {

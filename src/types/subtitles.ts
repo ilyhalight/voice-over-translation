@@ -26,7 +26,7 @@ export type SubtitleFontFamily =
   | BuiltInSubtitleFontFamily
   | GoogleSubtitleFontFamily;
 
-const subtitleBaseFontFamilyCSS = `"Segoe UI", system-ui, sans-serif"`;
+const subtitleBaseFontFamilyCSS = `"Segoe UI", system-ui, sans-serif`;
 
 export const subtitleFontFamilyCss = {
   "default-sans": `"Roboto", ${subtitleBaseFontFamilyCSS}`,
