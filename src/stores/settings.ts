@@ -26,6 +26,7 @@ export type SettingsStore = {
   useLivelyVoice: boolean;
   // translation
   autoTranslate: boolean;
+  autoPauseOnTranslate: boolean;
   autoSubtitles: boolean;
   dontTranslateLanguages: LanguageSelectKey[];
   enabledAutoVolume: boolean;
@@ -70,6 +71,7 @@ function createInitialState(): SettingsStore {
     useLivelyVoice: false,
     // translation
     autoTranslate: false,
+    autoPauseOnTranslate: false,
     autoSubtitles: false,
     dontTranslateLanguages: [calculatedResLang],
     enabledAutoVolume: true,

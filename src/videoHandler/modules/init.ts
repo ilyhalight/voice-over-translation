@@ -122,6 +122,7 @@ export async function init(this: VideoHandler) {
     useLivelyVoice: false,
     // translation
     autoTranslate: this.data.autoTranslate,
+    autoPauseOnTranslate: this.data.autoPauseOnTranslate,
     autoSubtitles: this.data.autoSubtitles,
     dontTranslateLanguages: this.data.dontTranslateLanguages,
     enabledAutoVolume: this.data.enabledAutoVolume,

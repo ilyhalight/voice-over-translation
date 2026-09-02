@@ -283,6 +283,9 @@ export class SettingsController {
             dispatch: (checked) =>
               this.events["change:autoTranslate"].dispatch(checked),
           }),
+          onAutoPauseOnTranslateChange: this.createPersistedSettingHandler({
+            storageKey: "autoPauseOnTranslate",
+          }),
           onAutoSubtitlesChange: this.createPersistedSettingHandler({
             storageKey: "autoSubtitles",
             dispatch: (checked) =>

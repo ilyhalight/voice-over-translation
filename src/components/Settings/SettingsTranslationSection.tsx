@@ -24,6 +24,7 @@ import { SettingsSection } from "./SettingsSection";
 export type SettingsTranslationSectionProps = {
   isAudioContextSupported?: boolean;
   onAutoTranslateChange?: (checked: boolean) => void;
+  onAutoPauseOnTranslateChange?: (checked: boolean) => void;
   onAutoSubtitlesChange?: (checked: boolean) => void;
   onDontTranslateLanguagesChange?: (
     selectedLanguages: LanguageSelectKey[],
@@ -90,6 +91,14 @@ export function SettingsTranslationSection(
         onChange={(checked) => {
           setSettings("autoTranslate", checked);
           finalProps.onAutoTranslateChange?.(checked);
+        }}
+      />
+      <Switch
+        heading={localizationProvider.get("VOTAutoPauseOnTranslate")}
+        checked={settings.autoPauseOnTranslate}
+        onChange={(checked) => {
+          setSettings("autoPauseOnTranslate", checked);
+          finalProps.onAutoPauseOnTranslateChange?.(checked);
         }}
       />
       <Switch
