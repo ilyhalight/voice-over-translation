@@ -262,5 +262,7 @@
   "VOTPiP": "Gambar ing gambar",
   "VOTMenu": "Tiramisu",
   "VOTDownloadTranslation": "Download terjemahan",
-  "VOTClose": "Nutup"
+  "VOTClose": "Nutup",
+  "VOTLogin": "Login",
+  "VOTAutoPauseOnTranslate": "Ngaso video nganti terjemahan siap"
 }

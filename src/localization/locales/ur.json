@@ -262,5 +262,7 @@
   "VOTPiP": "تصویر میں تصویر",
   "VOTMenu": "مینو",
   "VOTDownloadTranslation": "ترجمہ ڈاؤن لوڈ کریں",
-  "VOTClose": "بند"
+  "VOTClose": "بند",
+  "VOTLogin": "لاگ ان",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

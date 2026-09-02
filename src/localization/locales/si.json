@@ -262,5 +262,7 @@
   "VOTPiP": "පින්තූරයේ පින්තූරය",
   "VOTMenu": "මෙනුව",
   "VOTDownloadTranslation": "පරිවර්තනය බාගත කරන්න",
-  "VOTClose": "වසා දමන්න"
+  "VOTClose": "වසා දමන්න",
+  "VOTLogin": "පිවිසෙන්න",
+  "VOTAutoPauseOnTranslate": "පරිවර්තනය සූදානම් වන තුරු වීඩියෝ විරාමයක්"
 }

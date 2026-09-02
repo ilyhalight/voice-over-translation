@@ -262,5 +262,7 @@
   "VOTPiP": "Նկար նկարում",
   "VOTMenu": "Մենու",
   "VOTDownloadTranslation": "Ներբեռնել թարգմանությունը",
-  "VOTClose": "Փակել"
+  "VOTClose": "Փակել",
+  "VOTLogin": "Մուտք գործել",
+  "VOTAutoPauseOnTranslate": "Դադարեցրեք տեսանյութը, մինչև թարգմանությունը պատրաստ լինի"
 }

@@ -262,5 +262,7 @@
   "VOTPiP": "تصویر در تصویر",
   "VOTMenu": "منو",
   "VOTDownloadTranslation": "دانلود ترجمه مقاله",
-  "VOTClose": "نزدیک"
+  "VOTClose": "نزدیک",
+  "VOTLogin": "ورود به سایت",
+  "VOTAutoPauseOnTranslate": "فیلم را مکث کنید تا ترجمه آماده شود"
 }

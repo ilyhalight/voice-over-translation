@@ -262,5 +262,7 @@
   "VOTPiP": "Image dans l'image",
   "VOTMenu": "Le Menu",
   "VOTDownloadTranslation": "Télécharger la traduction",
-  "VOTClose": "Fermer"
+  "VOTClose": "Fermer",
+  "VOTLogin": "Connexion",
+  "VOTAutoPauseOnTranslate": "Mettez la vidéo en pause jusqu'à ce que la traduction soit prête"
 }

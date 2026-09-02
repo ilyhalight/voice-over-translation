@@ -262,5 +262,7 @@
   "VOTPiP": "រូបភាពក្នុងរូបភាព",
   "VOTMenu": "ម៉ឺនុយ",
   "VOTDownloadTranslation": "ទាញយកការបកប្រែ",
-  "VOTClose": "បិទ"
+  "VOTClose": "បិទ",
+  "VOTLogin": "ចូល",
+  "VOTAutoPauseOnTranslate": "ផ្អាកវីដេអូរហូតដល់ការបកប្រែរួចរាល់"
 }

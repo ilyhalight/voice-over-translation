@@ -262,5 +262,7 @@
   "VOTPiP": "Foto në foto",
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Shkarkoni përkthimin",
-  "VOTClose": "Afër"
+  "VOTClose": "Afër",
+  "VOTLogin": "Hyrje",
+  "VOTAutoPauseOnTranslate": "Ndaloni videon derisa përkthimi të jetë gati"
 }

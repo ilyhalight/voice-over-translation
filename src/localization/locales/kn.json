@@ -262,5 +262,7 @@
   "VOTPiP": "ಚಿತ್ರದಲ್ಲಿ ಚಿತ್ರ",
   "VOTMenu": "ಮೆನು",
   "VOTDownloadTranslation": "ಅನುವಾದ ಡೌನ್ಲೋಡ್",
-  "VOTClose": "ಮುಚ್ಚು"
+  "VOTClose": "ಮುಚ್ಚು",
+  "VOTLogin": "ಲಾಗಿನ್ ಮಾಡಿ",
+  "VOTAutoPauseOnTranslate": "ಅನುವಾದ ಸಿದ್ಧವಾಗುವವರೆಗೆ ವೀಡಿಯೊ ವಿರಾಮ"
 }

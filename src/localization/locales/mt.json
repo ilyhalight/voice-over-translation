@@ -262,5 +262,7 @@
   "VOTPiP": "Stampa fl-istampa",
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Niżżel it-traduzzjoni",
-  "VOTClose": "Agħlaq"
+  "VOTClose": "Agħlaq",
+  "VOTLogin": "Login",
+  "VOTAutoPauseOnTranslate": "Nieqaf il-vidjow sakemm it-traduzzjoni tkun lesta"
 }

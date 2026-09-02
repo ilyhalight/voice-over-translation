@@ -262,5 +262,7 @@
   "VOTPiP": "በሥዕል ላይ የሚገኝ ሥዕል",
   "VOTMenu": "ሜኑ",
   "VOTDownloadTranslation": "ትርጉም አውርድ",
-  "VOTClose": "ዝጋ"
+  "VOTClose": "ዝጋ",
+  "VOTLogin": "አዲስ ዝምብሎ ይግባ",
+  "VOTAutoPauseOnTranslate": "ትርጉም ዝግጁ እስኪሆን ድረስ ቪዲዮ ለአፍታ ያቁሙ"
 }

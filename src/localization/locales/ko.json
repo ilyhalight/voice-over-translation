@@ -262,5 +262,7 @@
   "VOTPiP": "그림 속의 그림",
   "VOTMenu": "메뉴",
   "VOTDownloadTranslation": "번역 다운로드",
-  "VOTClose": "닫기"
+  "VOTClose": "닫기",
+  "VOTLogin": "로그인",
+  "VOTAutoPauseOnTranslate": "번역이 준비 될 때까지 비디오 일시 중지"
 }

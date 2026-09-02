@@ -262,5 +262,7 @@
   "VOTPiP": "Слика у слици",
   "VOTMenu": "Мени",
   "VOTDownloadTranslation": "Преузмите превод",
-  "VOTClose": "Затвори"
+  "VOTClose": "Затвори",
+  "VOTLogin": "Пријавите се",
+  "VOTAutoPauseOnTranslate": "Паузирајте видео док превод не буде спреман"
 }

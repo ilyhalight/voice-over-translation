@@ -262,5 +262,7 @@
   "VOTPiP": "画中画",
   "VOTMenu": "菜单",
   "VOTDownloadTranslation": "下载翻译",
-  "VOTClose": "关闭"
+  "VOTClose": "关闭",
+  "VOTLogin": "登入",
+  "VOTAutoPauseOnTranslate": "暂停视频，直到翻译准备好"
 }

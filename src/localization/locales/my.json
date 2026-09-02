@@ -262,5 +262,7 @@
   "VOTPiP": "ပုံထဲကပုံ",
   "VOTMenu": "ဟင်းလျာစာရင်း",
   "VOTDownloadTranslation": "ဘာသာပြန်ကိုဒေါင်းလုပ်ဆွဲပါ",
-  "VOTClose": "ပိတ်"
+  "VOTClose": "ပိတ်",
+  "VOTLogin": "ဝင်ရောက်ပါ",
+  "VOTAutoPauseOnTranslate": "ဘာသာပြန်မှုအဆင်သင့်ဖြစ်သည်အထိဗီဒီယိုကိုရပ်ထားပါ။"
 }

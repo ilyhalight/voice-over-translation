@@ -262,5 +262,7 @@
   "VOTPiP": "Gambar dina gambar",
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Ngundeur tarjamahan",
-  "VOTClose": "Deukeut"
+  "VOTClose": "Deukeut",
+  "VOTLogin": "Login",
+  "VOTAutoPauseOnTranslate": "Jeda video nepi panarjamahan geus siap"
 }

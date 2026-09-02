@@ -262,5 +262,7 @@
   "VOTPiP": "Суреттегі сурет",
   "VOTMenu": "Мәзір",
   "VOTDownloadTranslation": "Аударманы жүктеу",
-  "VOTClose": "Жабу"
+  "VOTClose": "Жабу",
+  "VOTLogin": "Кіру",
+  "VOTAutoPauseOnTranslate": "Аударма дайын болғанша бейнені кідіртіңіз"
 }

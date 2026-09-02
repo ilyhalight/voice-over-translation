@@ -262,5 +262,7 @@
   "VOTPiP": "Kuva kuvassa",
   "VOTMenu": "Valikko",
   "VOTDownloadTranslation": "Lataa käännös",
-  "VOTClose": "Sulje"
+  "VOTClose": "Sulje",
+  "VOTLogin": "Kirjautuminen",
+  "VOTAutoPauseOnTranslate": "Keskeytä video, Kunnes käännös on valmis"
 }

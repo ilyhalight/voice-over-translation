@@ -262,5 +262,7 @@
   "VOTPiP": "Argazkia irudian",
   "VOTMenu": "Menua",
   "VOTDownloadTranslation": "Deskargatu itzulpena",
-  "VOTClose": "Itxi"
+  "VOTClose": "Itxi",
+  "VOTLogin": "Saioa hasi",
+  "VOTAutoPauseOnTranslate": "Pausatu bideoa itzulpena prest dagoen arte"
 }

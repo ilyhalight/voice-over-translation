@@ -262,5 +262,7 @@
   "VOTPiP": "Billede i billede",
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Hent oversættelse",
-  "VOTClose": "Lukke"
+  "VOTClose": "Lukke",
+  "VOTLogin": "Login",
+  "VOTAutoPauseOnTranslate": "Pause video, indtil oversættelsen er klar"
 }

@@ -262,5 +262,7 @@
   "VOTPiP": "Obrázek v obraze",
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Stáhnout překlad",
-  "VOTClose": "Uzavřít"
+  "VOTClose": "Uzavřít",
+  "VOTLogin": "Přihlášení",
+  "VOTAutoPauseOnTranslate": "Pozastavte video, dokud nebude překlad připraven"
 }

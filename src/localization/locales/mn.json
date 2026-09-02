@@ -262,5 +262,7 @@
   "VOTPiP": "Зураг дээрх зураг",
   "VOTMenu": "Цэс",
   "VOTDownloadTranslation": "Татаж авах орчуулга",
-  "VOTClose": "Хаах"
+  "VOTClose": "Хаах",
+  "VOTLogin": "Нэвтрэх",
+  "VOTAutoPauseOnTranslate": "Орчуулга бэлэн болтол видеог түр зогсоо"
 }

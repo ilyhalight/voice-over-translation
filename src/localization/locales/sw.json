@@ -262,5 +262,7 @@
   "VOTPiP": "Picha katika picha",
   "VOTMenu": "Menyu",
   "VOTDownloadTranslation": "Pakua tafsiri",
-  "VOTClose": "Karibu"
+  "VOTClose": "Karibu",
+  "VOTLogin": "Ingia",
+  "VOTAutoPauseOnTranslate": "Pumzika video mpaka tafsiri iko tayari"
 }

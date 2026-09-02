@@ -262,5 +262,7 @@
   "VOTPiP": "Beeld in beeld",
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Vertaling downloaden",
-  "VOTClose": "Sluiten"
+  "VOTClose": "Sluiten",
+  "VOTLogin": "Login",
+  "VOTAutoPauseOnTranslate": "Video pauzeren tot de vertaling klaar is"
 }

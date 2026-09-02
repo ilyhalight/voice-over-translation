@@ -262,5 +262,7 @@
   "VOTPiP": "ছবিতে ছবি",
   "VOTMenu": "মেনু",
   "VOTDownloadTranslation": "অনুবাদ ডাউনলোড করুন",
-  "VOTClose": "বন্ধ"
+  "VOTClose": "বন্ধ",
+  "VOTLogin": "লগইন",
+  "VOTAutoPauseOnTranslate": "অনুবাদ প্রস্তুত না হওয়া পর্যন্ত ভিডিও বিরতি দিন"
 }

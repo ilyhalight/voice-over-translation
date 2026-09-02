@@ -262,5 +262,7 @@
   "VOTPiP": "ചിത്രത്തിൽ ചിത്രം",
   "VOTMenu": "മെനു",
   "VOTDownloadTranslation": "ഡൗൺലോഡ് പരിഭാഷ",
-  "VOTClose": "അടയ്ക്കുക"
+  "VOTClose": "അടയ്ക്കുക",
+  "VOTLogin": "ലോഗിൻ ചെയ്യുക",
+  "VOTAutoPauseOnTranslate": "പരിഭാഷ തയ്യാറാകുന്നതുവരെ വീഡിയോ താൽക്കാലികമായി നിർത്തുക"
 }

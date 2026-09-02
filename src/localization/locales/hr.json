@@ -262,5 +262,7 @@
   "VOTPiP": "Slika u slici",
   "VOTMenu": "Izbornik",
   "VOTDownloadTranslation": "Preuzmite prijevod",
-  "VOTClose": "Zatvoriti"
+  "VOTClose": "Zatvoriti",
+  "VOTLogin": "Prijaviti se",
+  "VOTAutoPauseOnTranslate": "Pauzirajte videozapis dok prijevod ne bude spreman"
 }

@@ -262,5 +262,7 @@
   "VOTPiP": "Kép a képben",
   "VOTMenu": "Menü",
   "VOTDownloadTranslation": "Letöltés fordítás",
-  "VOTClose": "Bezárás"
+  "VOTClose": "Bezárás",
+  "VOTLogin": "Bejelentkezés",
+  "VOTAutoPauseOnTranslate": "Szüneteltesse a videót, amíg a fordítás készen áll"
 }

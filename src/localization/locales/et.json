@@ -262,5 +262,7 @@
   "VOTPiP": "Pilt pildil",
   "VOTMenu": "Menüü",
   "VOTDownloadTranslation": "Lae tõlge",
-  "VOTClose": "Lähedal"
+  "VOTClose": "Lähedal",
+  "VOTLogin": "Login",
+  "VOTAutoPauseOnTranslate": "Peatage video, kuni tõlge on valmis"
 }

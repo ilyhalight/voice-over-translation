@@ -262,5 +262,7 @@
   "VOTPiP": "Rasmdagi rasm",
   "VOTMenu": "Menyu",
   "VOTDownloadTranslation": "Tarjimani yuklab oling",
-  "VOTClose": "Yopish"
+  "VOTClose": "Yopish",
+  "VOTLogin": "Kirish",
+  "VOTAutoPauseOnTranslate": "Tarjima tayyor bo'lgunga qadar videoni pauza qiling"
 }

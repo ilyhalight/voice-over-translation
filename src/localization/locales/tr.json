@@ -262,5 +262,7 @@
   "VOTPiP": "Resim içinde resim",
   "VOTMenu": "Menü",
   "VOTDownloadTranslation": "Çeviriyi indir",
-  "VOTClose": "Kapatma"
+  "VOTClose": "Kapatma",
+  "VOTLogin": "Oturum aç",
+  "VOTAutoPauseOnTranslate": "Çeviri hazır olana kadar videoyu duraklatın"
 }

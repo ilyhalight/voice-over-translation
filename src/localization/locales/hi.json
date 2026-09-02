@@ -262,5 +262,7 @@
   "VOTPiP": "चित्र में चित्र",
   "VOTMenu": "मेनू",
   "VOTDownloadTranslation": "अनुवाद डाउनलोड करें",
-  "VOTClose": "बंद करें"
+  "VOTClose": "बंद करें",
+  "VOTLogin": "लॉगिन करें",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

@@ -262,5 +262,7 @@
   "VOTPiP": "ຮູບພາບໃນຮູບ",
   "VOTMenu": "ເມນູ",
   "VOTDownloadTranslation": "ດາວໂຫລດການແປພາສາ",
-  "VOTClose": "ປິດ"
+  "VOTClose": "ປິດ",
+  "VOTLogin": "ເຂົ້າສູ່ລະບົບ",
+  "VOTAutoPauseOnTranslate": "ຢຸດວິດີໂອຈົນກ່ວາການແປພາສາແມ່ນກຽມພ້ອມ"
 }

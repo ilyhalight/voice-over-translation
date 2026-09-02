@@ -262,5 +262,7 @@
   "VOTPiP": "Şəkildə şəkil",
   "VOTMenu": "Menyu",
   "VOTDownloadTranslation": "Tərcümə Yükləyin",
-  "VOTClose": "Yaxın"
+  "VOTClose": "Yaxın",
+  "VOTLogin": "Daxil ol",
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
 }

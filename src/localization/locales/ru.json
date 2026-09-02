@@ -262,5 +262,7 @@
   "VOTPiP": "Картинка в картинке",
   "VOTMenu": "Меню",
   "VOTDownloadTranslation": "Скачать перевод",
-  "VOTClose": "Закрывать"
+  "VOTClose": "Закрывать",
+  "VOTLogin": "Авторизоваться",
+  "VOTAutoPauseOnTranslate": "Приостанавливать видео до готовности перевода"
 }

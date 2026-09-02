@@ -262,5 +262,7 @@
   "VOTPiP": "ピクチャー-イン-ピクチャー",
   "VOTMenu": "メニュー",
   "VOTDownloadTranslation": "ダウンロード翻訳",
-  "VOTClose": "閉じる"
+  "VOTClose": "閉じる",
+  "VOTLogin": "ログイン",
+  "VOTAutoPauseOnTranslate": "翻訳の準備が整うまでビデオを一時停止します"
 }

@@ -262,5 +262,7 @@
   "VOTPiP": "ਤਸਵੀਰ ਵਿੱਚ ਤਸਵੀਰ",
   "VOTMenu": "ਮੇਨੂ",
   "VOTDownloadTranslation": "ਅਨੁਵਾਦ ਡਾਊਨਲੋਡ ਕਰੋ",
-  "VOTClose": "ਬੰਦ ਕਰੋ"
+  "VOTClose": "ਬੰਦ ਕਰੋ",
+  "VOTLogin": "ਲਾਗਇਨ",
+  "VOTAutoPauseOnTranslate": "ਅਨੁਵਾਦ ਤਿਆਰ ਹੋਣ ਤੱਕ ਵਿਡੀਓ ਵਿਰਾਮ ਕਰੋ"
 }

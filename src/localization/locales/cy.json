@@ -262,5 +262,7 @@
   "VOTPiP": "Picture in picture",
   "VOTMenu": "Dewislen",
   "VOTDownloadTranslation": "Llwytho i lawr cyfieithu",
-  "VOTClose": "Close"
+  "VOTClose": "Close",
+  "VOTLogin": "Login",
+  "VOTAutoPauseOnTranslate": "Seibio fideo nes bod y cyfieithiad yn barod"
 }

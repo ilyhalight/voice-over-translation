@@ -262,5 +262,7 @@
   "VOTPiP": "Prent in prent",
   "VOTMenu": "Spyskaart",
   "VOTDownloadTranslation": "Aflaai vertaling",
-  "VOTClose": "Sluit"
+  "VOTClose": "Sluit",
+  "VOTLogin": "Aanmelding",
+  "VOTAutoPauseOnTranslate": "Pouse video totdat vertaling gereed is"
 }

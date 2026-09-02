@@ -262,5 +262,7 @@
   "VOTPiP": "Isithombe esithombeni",
   "VOTMenu": "Imenyu",
   "VOTDownloadTranslation": "Thwebula translation",
-  "VOTClose": "Vala"
+  "VOTClose": "Vala",
+  "VOTLogin": "Ukungena ngemvume",
+  "VOTAutoPauseOnTranslate": "Phumula ividiyo kuze translation isilungile"
 }

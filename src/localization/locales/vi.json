@@ -262,5 +262,7 @@
   "VOTPiP": "Hình ảnh trong hình ảnh",
   "VOTMenu": "Thực đơn",
   "VOTDownloadTranslation": "Tải xuống bản dịch",
-  "VOTClose": "Đóng"
+  "VOTClose": "Đóng",
+  "VOTLogin": "Đăng nhập",
+  "VOTAutoPauseOnTranslate": "Tạm dừng video cho đến khi bản dịch đã sẵn sàng"
 }

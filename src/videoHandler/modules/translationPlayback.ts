@@ -1,4 +1,4 @@
-﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import { notifyTranslationFailureIfNeeded } from "../../core/translationErrors";
@@ -597,6 +597,25 @@ export async function translateFunc(
       return;
     }
 
+    // Auto-pause: pause video while waiting for translation to be prepared.
+    // Skip if the translation is already cached (handled above).
+    if (
+      this.data?.autoPauseOnTranslate &&
+      !this.video.paused &&
+      !this.video.ended
+    ) {
+      debug.log("[translateFunc] Pausing video until translation is ready");
+      this.pausedByTranslation = true;
+      this.video.addEventListener(
+        "play",
+        () => {
+          this.pausedByTranslation = false;
+        },
+        { once: true },
+      );
+      this.video.pause();
+    }
+
     const translateRes = await requestApplyAndCacheTranslation(this, {
       videoData,
       requestLang: reqLang,
@@ -668,6 +687,18 @@ export async function translateFunc(
     if (this.activeTranslation?.promise === translationPromise) {
       this.activeTranslation = null;
     }
+    // Auto-pause: resume playback once the translated audio is ready
+    // (or on failure/abort). Only resume if we were the ones who paused.
+    if (!this.activeTranslation && this.pausedByTranslation) {
+      this.pausedByTranslation = false;
+      if (this.hasActiveSource()) {
+        debug.log("[translateFunc] Resuming video after translation is ready");
+        this.video.play().catch((playErr) => {
+          debug.log("[translateFunc] Failed to resume video", playErr);
+        });
+      }
+    }
+
     const isLoading =
       this.uiManager.votOverlayView.overlayViewControls?.getIsLoading();
     if (!this.activeTranslation && isLoading && !this.hasActiveSource()) {
