@@ -17,9 +17,6 @@ import {
   type ExtensionHeaders,
 } from "./manifest-helpers";
 
-export { distExtDir, outTmp, srcDir } from "../paths";
-export type { ExtensionHeaders } from "./manifest-helpers";
-
 const DEFAULT_EXTENSION_VERSION = "0.0.0";
 const EXTENSION_LOADER_FILES = ["prelude.js", "content.js"] as const;
 const EXTENSION_MODULE_FILES = [
@@ -32,7 +29,7 @@ const GITHUB_DIST_EXT_RAW_BASE =
 const FIREFOX_UPDATES_MANIFEST_FILE = "vot-extension-firefox-updates.json";
 const FIREFOX_UPDATES_MANIFEST_URL = `${GITHUB_DIST_EXT_RAW_BASE}/${FIREFOX_UPDATES_MANIFEST_FILE}`;
 
-export interface ExtensionBuildContext {
+interface ExtensionBuildContext {
   availableLocales: string[];
   repoBranch: string;
 }
@@ -61,11 +58,6 @@ const extensionEntries: ExtensionEntry[] = [
   },
   {
     entry: "src/extension/background.ts",
-    fileName: "background.js",
-    emptyOutDir: false,
-  },
-  {
-    entry: "src/extension/background.ts",
     fileName: "background-ff.js",
     emptyOutDir: false,
   },
@@ -75,7 +67,7 @@ const extensionEntries: ExtensionEntry[] = [
 // Utilities
 // ----------------------------------------------------------------
 
-export async function exists(filePath: string): Promise<boolean> {
+async function exists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
     return true;
@@ -84,7 +76,7 @@ export async function exists(filePath: string): Promise<boolean> {
   }
 }
 
-export async function readJson<T>(filePath: string): Promise<T> {
+async function readJson<T>(filePath: string): Promise<T> {
   return JSON.parse(await fs.readFile(filePath, "utf8")) as T;
 }
 
@@ -686,7 +678,7 @@ async function verifyBodySerializationGuards(): Promise<void> {
   );
 }
 
-export async function verifyFirefoxOutputs(config: BuildConfig): Promise<void> {
+async function verifyFirefoxOutputs(config: BuildConfig): Promise<void> {
   const dir = path.join(distExtDir, "firefox");
   const manifest = await verifyManifest(path.join(dir, "manifest.json"));
   verifyFirefoxManifestFields(manifest, config.IS_STORE_BUILD);

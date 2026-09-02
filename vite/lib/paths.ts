@@ -5,8 +5,6 @@ const rootUrl = new URL("../..", import.meta.url);
 
 export const rootDir = fileURLToPath(rootUrl);
 export const srcDir = path.resolve(rootDir, "src");
-export const testsDir = path.resolve(rootDir, "tests");
-export const viteDir = path.resolve(rootDir, "vite");
 
 export const distDir = path.resolve(rootDir, "dist");
 export const distExtDir = path.resolve(rootDir, "dist-ext");

@@ -269,9 +269,6 @@ export async function collectUsedUserscriptGrantsFromEntry(
   const visitedFiles = new Set<string>();
   const detectedGrants = new Set<string>();
 
-  // Touch GetAltMatchPatternsFn for signature symmetry with the old API (reserved hook).
-  // void (undefined as GetAltMatchPatternsFn | undefined);
-
   while (pendingFiles.length > 0) {
     const currentFilePath = pendingFiles.pop();
     if (!currentFilePath || visitedFiles.has(currentFilePath)) continue;

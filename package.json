@@ -20,7 +20,6 @@
     "@crxjs/vite-plugin": "^2.7.1",
     "@storybook/addon-a11y": "^10.5.10",
     "@storybook/addon-docs": "^10.5.10",
-    "@storybook/addon-styling-webpack": "^3.0.2",
     "@storybook/addon-vitest": "^10.5.10",
     "@toil/translate": "^1.10.0",
     "@types/bun": "^1.4.0",

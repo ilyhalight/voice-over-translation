@@ -117,25 +117,3 @@ export function formatUserscriptHeader(options: {
   lines.push("// ==/UserScript==\n");
   return lines.join("\n");
 }
-
-// Упрощённый форматтер для test-ui (без локалей/грантов/альтернативных URL)
-export function formatSimpleUserscriptHeader(
-  header: Record<string, unknown>,
-): string {
-  const lines = ["// ==UserScript=="];
-
-  for (const [key, value] of Object.entries(header)) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        lines.push(`// @${key} ${item}`);
-      }
-      continue;
-    }
-
-    lines.push(`// @${key} ${String(value)}`);
-  }
-
-  lines.push("// ==/UserScript==\n");
-  return lines.join("\n");
-}

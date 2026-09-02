@@ -37,33 +37,3 @@ export function createBaseViteConfig({
     build: sharedBuildOptions,
   };
 }
-
-export function createViteConfig(
-  config: UserConfig,
-  options: BaseViteConfigOptions,
-): UserConfig {
-  const baseConfig = createBaseViteConfig(options);
-
-  return {
-    ...baseConfig,
-    ...config,
-    plugins: [...(baseConfig.plugins ?? []), ...(config.plugins ?? [])],
-    resolve: {
-      ...baseConfig.resolve,
-      ...config.resolve,
-      alias: config.resolve?.alias ?? baseConfig.resolve?.alias,
-      dedupe: config.resolve?.dedupe ?? baseConfig.resolve?.dedupe,
-    },
-    css: {
-      ...baseConfig.css,
-      ...config.css,
-    },
-    build: {
-      ...baseConfig.build,
-      ...config.build,
-    },
-  };
-}
-
-export type { ViteDefine } from "./define.ts";
-export { defineConstants } from "./define.ts";

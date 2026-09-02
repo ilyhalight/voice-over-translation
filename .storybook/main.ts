@@ -3,7 +3,7 @@ import type { StorybookConfig } from "storybook-solidjs-vite";
 import { mergeConfig, type PluginOption } from "vite";
 import solidPlugin from "vite-plugin-solid";
 
-import { getAvailableLocales } from "../vite/lib/userscript/locales";
+import { getAvailableLocales } from "../vite/lib/userscript/locales.ts";
 
 const solidRendererPath = fileURLToPath(
   new URL("../src/ui/solid/renderer.ts", import.meta.url),
@@ -26,7 +26,6 @@ const config: StorybookConfig = {
     "@storybook/addon-vitest",
     "@storybook/addon-a11y",
     "@storybook/addon-docs",
-    "@storybook/addon-styling-webpack",
   ],
   framework: "storybook-solidjs-vite",
   async viteFinal(viteConfig) {

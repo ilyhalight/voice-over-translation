@@ -451,6 +451,12 @@ Available (sub)domains:
 
 - `my.mail.ru`
 
+Available paths:
+
+- /v/NICKNAME/video/...
+- /mail/NICKNAME/video/...
+- video/embed/VIDEO_ID
+
 ## Bitchute
 
 Status: [✅] Working
@@ -583,6 +589,10 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `ok.ru`
+
+Available paths:
+
+- /video/VIDEO_ID
 
 ## Google Drive
 
@@ -804,6 +814,10 @@ Available (sub)domains:
 - `coursehunter.net`
 - `coursetrain.net`
 
+Available paths:
+
+- /course/COURSE_ID
+
 ## Sap
 
 Status: [✅] Working
@@ -902,23 +916,6 @@ Available paths:
 Limitations:
 
 - To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
-
-## Incestflix
-
-Status: [✅] Working
-
-Available (sub)domains:
-
-- `incestflix.net`
-- `incestflix.to`
-- `incestflix.com`
-- `www.incestflix.net`
-- `www.incestflix.to`
-- `www.incestflix.com`
-
-Available paths:
-
-- /watch/VIDEO_ID
 
 ## Dzen
 
@@ -1171,6 +1168,14 @@ Available (sub)domains:
 
 - `skilljar.com`
 
+## Wistia
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `fast.wistia.net`
+
 ## Direct link to MP4/WEBM
 
 Status: [✅] Working
@@ -1178,3 +1183,12 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `any`
+
+Available paths:
+
+- /*.mp4
+- /*.webm
+
+Limitations:
+
+- Local videos can't be translated

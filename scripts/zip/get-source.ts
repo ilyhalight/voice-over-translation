@@ -42,18 +42,13 @@ async function main() {
     }
     await zipDir(tmpdir, OUTPUT_PATH);
     console.log(`Source code zipped successfully: ${OUTPUT_PATH}`);
-  } catch {
-    console.error("Error occurred while zipping source code");
   } finally {
     console.log("Cleaning up temporary files...");
     await fs.rm(tmpdir, { recursive: true, force: true });
     console.log("Temporary files cleaned up");
   }
-  process.exit(0);
 }
 
 if (import.meta.main) {
   await main();
 }
-
-export { main as getSourceZip };
