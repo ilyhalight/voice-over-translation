@@ -267,10 +267,7 @@
       inset: 2px -2px;
     }
 
-    &:hover::before {
-      background: var(--vot-subtitles-hover-color, rgba(255, 255, 255, 0.55));
-    }
-
+    &:hover::before,
     &:focus-visible::before {
       background: var(--vot-subtitles-hover-color, rgba(255, 255, 255, 0.55));
     }
