@@ -18,8 +18,7 @@ export function getBuildConfig(mode: string) {
     REPO_BRANCH: env.GITHUB_REF_NAME || env.REPO_BRANCH || "master",
     IS_STORE_BUILD: env.IS_STORE_BUILD === "true",
     CHROME_EXTENSION_ID: env.CHROME_EXTENSION_ID || "EXTENSION_ID",
-    FIREFOX_ADDON_ID:
-      env.FIREFOX_ADDON_ID || env.GECKO_ID || "vot-ext-test@firefox",
+    FIREFOX_ADDON_ID: env.FIREFOX_ADDON_ID || env.GECKO_ID || "vot-ext@firefox",
     FIREFOX_STRICT_MIN_VERSION:
       env.FIREFOX_STRICT_MIN_VERSION?.trim() || "140.0",
     FIREFOX_ANDROID_STRICT_MIN_VERSION:
