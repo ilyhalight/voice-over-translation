@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
 import { buildDefine } from "./lib/env.ts";
-import { distDir, singleFileBuildOptions, srcDir } from "./lib/paths.ts";
+import { DIST_DIR, SOURCE_DIR, singleFileBuildOptions } from "./lib/paths.ts";
 import {
   collectUsedUserscriptGrantsFromEntry,
   getHeaders,
@@ -15,7 +15,7 @@ import {
 } from "./lib/userscript/locales.ts";
 import { createBaseViteConfig } from "./lib/vite-base-config.ts";
 
-const USERSCRIPT_ENTRY = path.resolve(srcDir, "index.ts");
+const USERSCRIPT_ENTRY = path.resolve(SOURCE_DIR, "index.ts");
 const USERSCRIPT_GLOBAL_NAME = "vot";
 
 type UserscriptBranch = "dev" | "master";
@@ -83,7 +83,7 @@ export default defineConfig(async ({ command, mode }) => {
     build: {
       ...baseConfig.build,
       ...singleFileBuildOptions,
-      outDir: distDir,
+      outDir: DIST_DIR,
       emptyOutDir: false,
       sourcemap: debug,
       minify: minified ? "oxc" : false,

@@ -1,4 +1,6 @@
 .output
+.amo-upload-uuid
+dist-ext/.firefox-id
 
 keys/
 

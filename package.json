@@ -55,7 +55,9 @@
     "check": "bunx tsc -p ./src/tsconfig.json --noEmit",
     "gen:wiki": "bun run ./scripts/wiki-gen/index.js",
     "autobuild": "bun run ./scripts/autobuild.ts",
-    "zip:source": "bun ./scripts/zip/get-source.ts",
+    "autobuild:signed": "SIGN_FIREFOX=true bun run ./scripts/autobuild.ts",
+    "sign:firefox": "bun run ./scripts/output/sign-firefox.ts",
+    "zip:source": "bun ./scripts/output/zip-source.ts",
     "localize": "bunx \"@toil/localize-tui\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -67,6 +69,7 @@
     "@vot.js/shared": "^3.0.2",
     "bowser": "^2.14.1",
     "chaimu": "^1.1.0",
-    "solid-js": "^1.9.15"
+    "solid-js": "^1.9.15",
+    "web-ext": "^10.6.0"
   }
 }

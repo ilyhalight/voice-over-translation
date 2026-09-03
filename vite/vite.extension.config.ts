@@ -8,7 +8,7 @@ import {
   getExtensionHeaders,
   getFirefoxBuildEnv,
 } from "./lib/extension/firefox-pipeline";
-import { distExtDir } from "./lib/paths";
+import { DIST_EXT_DIR } from "./lib/paths";
 import { createBaseViteConfig } from "./lib/vite-base-config";
 
 const FIREFOX_PIPELINE_ENTRY = "virtual:vot-firefox-extension-pipeline";
@@ -67,7 +67,7 @@ export default defineConfig(async ({ mode }) => {
     ],
     build: {
       ...baseConfig.build,
-      outDir: distExtDir,
+      outDir: DIST_EXT_DIR,
       emptyOutDir: false,
       write: false,
       sourcemap: false,

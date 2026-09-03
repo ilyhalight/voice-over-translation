@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { srcDir } from "../paths.ts";
+import { SOURCE_DIR } from "../paths.ts";
 
-const localesDir = path.resolve(srcDir, "localization", "locales");
+const localesDir = path.resolve(SOURCE_DIR, "localization", "locales");
 const localeHeadersDir = path.resolve(localesDir, "headers");
-const hashesPath = path.resolve(srcDir, "localization", "hashes.json");
+const hashesPath = path.resolve(SOURCE_DIR, "localization", "hashes.json");
 
 const priorityLocales = ["auto", "en", "ru"] as const;
 type PriorityLocale = (typeof priorityLocales)[number];

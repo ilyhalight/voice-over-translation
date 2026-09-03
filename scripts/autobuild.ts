@@ -1,14 +1,13 @@
 import { $ } from "bun";
-
-import headers from "../src/headers.json";
-
-const EXTENSION_NAME = "vot-extension";
-
-const FIREFOX_EXTENSION_NAME = `${EXTENSION_NAME}-firefox`;
-const CHROME_EXTENSION_NAME = `${EXTENSION_NAME}-chrome`;
-
-const OUTPUT_EXTENSION_FIREFOX_NAME = `${EXTENSION_NAME}-${headers.version}-firefox`;
-const OUTPUT_EXTENSION_CHROME_NAME = `${EXTENSION_NAME}-${headers.version}-chrome`;
+import {
+  CHROME_EXTENSION_NAME,
+  FIREFOX_EXTENSION_NAME,
+  FIREFOX_XPI_FILE,
+} from "../vite/lib/paths";
+import {
+  OUTPUT_EXTENSION_CHROME_NAME,
+  OUTPUT_EXTENSION_FIREFOX_NAME,
+} from "./output/paths";
 
 async function main() {
   console.log("Starting autobuild...");
@@ -31,7 +30,7 @@ async function main() {
     .quiet(false);
 
   console.log("Copying store build to output directory...");
-  await $`cp dist-ext/${FIREFOX_EXTENSION_NAME}.xpi .output/${OUTPUT_EXTENSION_FIREFOX_NAME}-store.xpi`.quiet(
+  await $`cp dist-ext/${FIREFOX_XPI_FILE} .output/${OUTPUT_EXTENSION_FIREFOX_NAME}-store.xpi`.quiet(
     false,
   );
   await $`cp dist-ext/${CHROME_EXTENSION_NAME}.zip .output/${OUTPUT_EXTENSION_CHROME_NAME}-store.zip`.quiet(
@@ -46,13 +45,18 @@ async function main() {
     })
     .quiet(false);
   console.log("Copying non-store firefox build to output directory...");
-  await $`cp dist-ext/${FIREFOX_EXTENSION_NAME}.xpi .output/${OUTPUT_EXTENSION_FIREFOX_NAME}.xpi`.quiet(
+  await $`cp dist-ext/${FIREFOX_XPI_FILE} .output/${OUTPUT_EXTENSION_FIREFOX_NAME}.xpi`.quiet(
     false,
   );
 
   await $`bunx @biomejs/biome check --write --unsafe dist-ext/${FIREFOX_EXTENSION_NAME}-updates.json`.quiet(
     false,
   );
+
+  if (process.env.SIGN_FIREFOX === "true") {
+    console.log("Signing the Firefox extension...");
+    await $`bun sign:firefox`.quiet(false);
+  }
 }
 
 await main();

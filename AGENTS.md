@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## IMPORTANT
+
+you MUST NOT use `autobuild:signed` or `sign:firefox` commands in your local environment. These commands are only for the CI/CD pipeline and will not work on your local machine.
+
 ## User Interface Component
 
 You MUST prefer use `vot-block` instead of `div`, `span`, `p` and etc for unified styles on every websites.

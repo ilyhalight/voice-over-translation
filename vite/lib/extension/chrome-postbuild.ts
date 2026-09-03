@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { zipDir } from "../../../scripts/zip/utils";
 import type { BuildConfig } from "../env";
-import { distExtDir } from "../paths";
+import { CHROME_EXTENSION_NAME, DIST_EXT_DIR } from "../paths";
 
 const GITHUB_DIST_EXT_RAW_BASE =
   "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
@@ -15,7 +15,7 @@ export async function writeChromeUpdatesManifest({
   version: string;
   extensionId: string;
 }): Promise<string> {
-  const updatesManifestPath = path.join(distExtDir, "update.xml");
+  const updatesManifestPath = path.join(DIST_EXT_DIR, "update.xml");
   const xml =
     `<?xml version='1.0' encoding='UTF-8'?>\n` +
     `<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>\n` +
@@ -35,10 +35,10 @@ export async function finalizeChromeBuild(
     author?: string;
   },
 ): Promise<void> {
-  const chromeDir = path.join(distExtDir, "chrome");
+  const chromeDir = path.join(DIST_EXT_DIR, "chrome");
   const version = String(headers.version || "");
 
-  const zipPath = path.join(distExtDir, "vot-extension-chrome.zip");
+  const zipPath = path.join(DIST_EXT_DIR, `${CHROME_EXTENSION_NAME}.zip`);
   await zipDir(chromeDir, zipPath);
 
   const updatesPath = await writeChromeUpdatesManifest({

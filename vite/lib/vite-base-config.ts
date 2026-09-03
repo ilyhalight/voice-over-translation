@@ -1,7 +1,7 @@
 import type { UserConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
 import {
-  rootDir,
+  ROOT_DIR,
   sharedBuildOptions,
   sharedCssOptions,
   sharedResolveAlias,
@@ -16,8 +16,8 @@ export function createBaseViteConfig({
   cacheName,
 }: BaseViteConfigOptions): UserConfig {
   return {
-    root: rootDir,
-    envDir: rootDir,
+    root: ROOT_DIR,
+    envDir: ROOT_DIR,
     publicDir: false,
     cacheDir: viteCacheDir(cacheName),
     appType: "custom",
