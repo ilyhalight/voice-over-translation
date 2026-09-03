@@ -119,7 +119,7 @@ export async function init(this: VideoHandler) {
     // menu
     defaultVolume: this.data.defaultVolume,
     responseLanguage: this.data.responseLanguage,
-    useLivelyVoice: false,
+    useLivelyVoice: this.data.useLivelyVoice,
     // translation
     autoTranslate: this.data.autoTranslate,
     autoPauseOnTranslate: this.data.autoPauseOnTranslate,
