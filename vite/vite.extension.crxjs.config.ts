@@ -37,7 +37,12 @@ export default defineConfig(async ({ mode }) => {
     ...baseConfig,
     plugins: [
       ...(baseConfig.plugins ?? []),
-      crx({ manifest }),
+      crx({
+        manifest,
+        contentScripts: {
+          standaloneFiles: ["src/extension/bridge.ts"],
+        },
+      }),
       chromePackagePlugin(buildConfig, headers),
     ],
     define: buildDefine({
