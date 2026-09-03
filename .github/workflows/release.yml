@@ -1,41 +1,54 @@
-# adopted from https://github.com/MihailRis/VoxelEngine-Cpp
 name: Release
 
 on:
   push:
-    branches: [master, dev]
+    tags: ["*"]
 
 permissions:
   contents: write
 
 jobs:
-  build_release:
-    name: Build Release
-    uses: ./.github/workflows/build.yml
-
-  create_release:
-    needs: build_release
+  release:
     runs-on: ubuntu-latest
     steps:
-      - name: Download userscripts
-        uses: actions/download-artifact@v8
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          name: vot-22.x
-          path: vot
-      - name: Download extension artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: vot-extension-22.x
-          path: vot
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build and sign
+        run: bun run autobuild:signed
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+          CHROME_EXTENSION_ID: dnioaagdjgpcokckfpokpndoblenmfcg
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ github.ref }}
-          name: ${{ github.sha }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           draft: true
-          prerelease: false
-          files: |
-            vot/vot*.user.js
-            vot/vot-extension-chrome*.zip
-            vot/vot-extension-firefox*.xpi
+          prerelease: ${{ contains(github.ref_name, 'beta') }}
+          fail_on_unmatched_files: true
+          files: &release-files |
+            dist/vot.user.js
+            dist/vot-min.user.js
+            dist-ext/vot-extension-chrome.zip
+            dist-ext/vot-extension-firefox.xpi
+            dist-ext/update.xml
+            dist-ext/vot-extension-firefox-updates.json
+      - name: Update latest prerelease
+        if: contains(github.ref_name, 'beta')
+        uses: softprops/action-gh-release@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: latest-prerelease
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: *release-files

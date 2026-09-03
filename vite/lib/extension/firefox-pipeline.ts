@@ -7,7 +7,9 @@ import {
   DIST_EXT_DIR,
   FIREFOX_UPDATES_MANIFEST_FILE,
   FIREFOX_UPDATES_MANIFEST_PATH,
+  FIREFOX_XPI_FILE,
   FIREFOX_XPI_PATH,
+  getReleaseDownloadBase,
   OUT_TEMP_DIR,
   ROOT_DIR,
   SOURCE_DIR,
@@ -26,10 +28,6 @@ const EXTENSION_MODULE_FILES = [
   "prelude.module.js",
   "content.module.js",
 ] as const;
-
-const GITHUB_DIST_EXT_RAW_BASE =
-  "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
-const FIREFOX_UPDATES_MANIFEST_URL = `${GITHUB_DIST_EXT_RAW_BASE}/${FIREFOX_UPDATES_MANIFEST_FILE}`;
 
 interface ExtensionBuildContext {
   availableLocales: string[];
@@ -321,10 +319,6 @@ function getFirefoxAndroidSettingsForDataCollectionPermissions(
   return androidSettings;
 }
 
-function getFirefoxXpiRawUrl(): string {
-  return `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-firefox.xpi`;
-}
-
 function getFirefoxSpecificSettings(config: BuildConfig) {
   const dataCollectionPermissions = getFirefoxDataCollectionPermissions(config);
 
@@ -335,7 +329,9 @@ function getFirefoxSpecificSettings(config: BuildConfig) {
       data_collection_permissions: dataCollectionPermissions,
       ...(config.IS_STORE_BUILD
         ? {}
-        : { update_url: FIREFOX_UPDATES_MANIFEST_URL }),
+        : {
+            update_url: `${getReleaseDownloadBase(config.REPO_BRANCH)}/${FIREFOX_UPDATES_MANIFEST_FILE}`,
+          }),
     },
     gecko_android:
       dataCollectionPermissions.required.length ||
@@ -398,7 +394,7 @@ async function writeFirefoxUpdatesManifest({
         updates: [
           {
             version,
-            update_link: getFirefoxXpiRawUrl(),
+            update_link: `${getReleaseDownloadBase(version)}/${FIREFOX_XPI_FILE}`,
           },
         ],
       },
@@ -466,8 +462,9 @@ async function verifyManifest(
 
 function verifyFirefoxManifestFields(
   manifest: Record<string, any>,
-  storeBuild: boolean,
+  config: BuildConfig,
 ): void {
+  const expectedUpdateUrl = `${getReleaseDownloadBase(config.REPO_BRANCH)}/${FIREFOX_UPDATES_MANIFEST_FILE}`;
   const permissions = new Set(manifest.permissions || []);
   if (
     !permissions.has("declarativeNetRequestWithHostAccess") &&
@@ -486,14 +483,14 @@ function verifyFirefoxManifestFields(
   }
   const updateUrl = manifest.browser_specific_settings?.gecko?.update_url;
   if (
-    storeBuild
+    config.IS_STORE_BUILD
       ? updateUrl !== undefined
-      : updateUrl !== FIREFOX_UPDATES_MANIFEST_URL
+      : updateUrl !== expectedUpdateUrl
   ) {
     throw new Error(
-      storeBuild
+      config.IS_STORE_BUILD
         ? "firefox: store manifest must not contain browser_specific_settings.gecko.update_url"
-        : `firefox: expected browser_specific_settings.gecko.update_url to be ${FIREFOX_UPDATES_MANIFEST_URL}`,
+        : `firefox: expected browser_specific_settings.gecko.update_url to be ${expectedUpdateUrl}`,
     );
   }
   if (
@@ -685,7 +682,7 @@ async function verifyBodySerializationGuards(): Promise<void> {
 async function verifyFirefoxOutputs(config: BuildConfig): Promise<void> {
   const dir = path.join(DIST_EXT_DIR, "firefox");
   const manifest = await verifyManifest(path.join(dir, "manifest.json"));
-  verifyFirefoxManifestFields(manifest, config.IS_STORE_BUILD);
+  verifyFirefoxManifestFields(manifest, config);
   verifyContentScripts(manifest);
 
   // File-level checks are independent — run in parallel.

@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import {
-  CHROME_EXTENSION_NAME,
+  CHROME_ZIP_FILE,
   FIREFOX_EXTENSION_NAME,
   FIREFOX_XPI_FILE,
 } from "../vite/lib/paths";
@@ -33,7 +33,7 @@ async function main() {
   await $`cp dist-ext/${FIREFOX_XPI_FILE} .output/${OUTPUT_EXTENSION_FIREFOX_NAME}-store.xpi`.quiet(
     false,
   );
-  await $`cp dist-ext/${CHROME_EXTENSION_NAME}.zip .output/${OUTPUT_EXTENSION_CHROME_NAME}-store.zip`.quiet(
+  await $`cp dist-ext/${CHROME_ZIP_FILE} .output/${OUTPUT_EXTENSION_CHROME_NAME}-store.zip`.quiet(
     false,
   );
 

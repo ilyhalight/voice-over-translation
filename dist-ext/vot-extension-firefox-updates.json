@@ -4,7 +4,7 @@
       "updates": [
         {
           "version": "1.11.8",
-          "update_link": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext/vot-extension-firefox.xpi"
+          "update_link": "https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot-extension-firefox.xpi"
         }
       ]
     }

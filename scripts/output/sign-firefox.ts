@@ -28,32 +28,26 @@ const getExtensionId = async () => {
 
 export async function signFirefoxExtension() {
   if (!AMO_API_KEY || !AMO_API_SECRET) {
-    console.log(
-      "AMO_API_KEY and AMO_API_SECRET environment variables aren't set. Skipping signing",
+    throw new Error(
+      "AMO_API_KEY and AMO_API_SECRET environment variables aren't set.",
     );
-    return;
   }
 
   if (!(await fs.exists(OUTPUT_SOURCE_FILE_PATH))) {
-    console.log(
-      `Source file ${OUTPUT_SOURCE_FILE_PATH} doesn't exist. Skipping signing`,
-    );
-    return;
+    throw new Error(`Source file ${OUTPUT_SOURCE_FILE_PATH} doesn't exist.`);
   }
 
   if (!(await fs.exists(FIREFOX_XPI_PATH))) {
-    console.log(
-      `Firefox extension file ${FIREFOX_XPI_PATH} doesn't exist. Skipping signing`,
+    throw new Error(
+      `Firefox extension file ${FIREFOX_XPI_PATH} doesn't exist.`,
     );
-    return;
   }
 
   const extensionId = await getExtensionId();
   if (!extensionId) {
-    console.log(
-      `Couldn't determine the extension ID from ${FIREFOX_UPDATES_MANIFEST_PATH}. Skipping signing`,
+    throw new Error(
+      `Couldn't determine the extension ID from ${FIREFOX_UPDATES_MANIFEST_PATH}.`,
     );
-    return;
   }
 
   console.log(`Signing the Firefox extension (${extensionId}) with AMO...`);
@@ -64,8 +58,8 @@ export async function signFirefoxExtension() {
     userAgentString: "vot-extension-autobuild/1.0",
     amoBaseUrl: "https://addons.mozilla.org/api/v5/",
     downloadDir: OUTPUT_DIR_PATH,
-    apiKey: process.env.AMO_API_KEY,
-    apiSecret: process.env.AMO_API_SECRET,
+    apiKey: AMO_API_KEY,
+    apiSecret: AMO_API_SECRET,
     id: extensionId,
     xpiPath: FIREFOX_XPI_PATH,
     savedUploadUuidPath: ".amo-upload-uuid",

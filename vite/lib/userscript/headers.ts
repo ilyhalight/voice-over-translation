@@ -1,4 +1,5 @@
-import { contentUrl, repositoryUrl } from "../../../src/config/config.ts";
+import { repositoryUrl } from "../../../src/config/config.ts";
+import { getReleaseDownloadBase } from "../paths.ts";
 import { getAltMatchPatterns } from "./alt-urls.ts";
 import { getHeaders, type UserscriptHeader } from "./grants.ts";
 import type { LocaleHeadersFile } from "./locales.ts";
@@ -13,7 +14,7 @@ function buildUserscriptMeta(
   localeEntries: Array<[string, LocaleHeadersFile]>,
 ): UserscriptHeader {
   const baseMeta = getHeaders<UserscriptHeader>();
-  const finalUrl = `${contentUrl}/${repoUpdateBranch}/dist/${filename}.user.js`;
+  const finalUrl = `${getReleaseDownloadBase(repoUpdateBranch)}/${filename}.user.js`;
   const baseMatch = Array.isArray(baseMeta.match)
     ? baseMeta.match
     : [baseMeta.match];

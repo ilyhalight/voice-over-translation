@@ -1,6 +1,5 @@
 .output
 .amo-upload-uuid
-dist-ext/.firefox-id
 
 keys/
 
@@ -11,6 +10,8 @@ dist/main.user.js
 dist/*.css
 dist-ext/chrome/
 dist-ext/firefox/
+dist-ext/vot-extension-chrome.zip
+dist-ext/vot-extension-firefox.xpi
 
 .vscode
 .pytest_cache

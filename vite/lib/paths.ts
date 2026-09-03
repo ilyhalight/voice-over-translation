@@ -1,4 +1,5 @@
 import path from "node:path";
+import { repositoryUrl } from "../../src/config/config";
 
 export const ROOT_DIR = path.join(import.meta.dirname, "..", "..");
 export const SOURCE_DIR = path.resolve(ROOT_DIR, "src");
@@ -19,6 +20,16 @@ export const FIREFOX_UPDATES_MANIFEST_PATH = path.join(
 
 export const FIREFOX_XPI_FILE = `${FIREFOX_EXTENSION_NAME}.xpi`;
 export const FIREFOX_XPI_PATH = path.join(DIST_EXT_DIR, FIREFOX_XPI_FILE);
+
+export const CHROME_ZIP_FILE = `${CHROME_EXTENSION_NAME}.zip`;
+
+const RELEASES_URL = `${repositoryUrl}/releases`;
+
+export function getReleaseDownloadBase(branch: string): string {
+  return branch === "dev" || branch.includes("beta")
+    ? `${RELEASES_URL}/download/latest-prerelease`
+    : `${RELEASES_URL}/latest/download`;
+}
 
 export function viteCacheDir(name: string): string {
   return path.resolve(ROOT_DIR, "node_modules", ".vite", name);

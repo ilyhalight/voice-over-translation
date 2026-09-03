@@ -2,15 +2,13 @@ import { defineManifest, type ManifestV3Export } from "@crxjs/vite-plugin";
 
 import headers from "../../../src/headers.json";
 import { getBuildConfig } from "../env";
+import { getReleaseDownloadBase } from "../paths";
 import {
   buildManifestChrome,
   type ChromeManifestOptions,
   type ExtensionHeaders,
   type ManifestPathStrategy,
 } from "./manifest-helpers";
-
-const GITHUB_DIST_EXT_RAW_BASE =
-  "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
 
 const CHROME_EXTENSION_KEY =
   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3IITn/V9BfBfaSk1oNpgoUNADzm15zSyWJ/a+bSnp5SkGAziTle3efpSWFTzpfmUnN+LyQeuXsgGqLJ6N8BeXA4g/Gh+J3gcZAgeSOaWmI7zbaXKrAyUo6irOyXaXNr4z+EuH6hqxNd7N5gv/XjaE0fGd9brepbKUoImFa5GnBE/xT6hnLPjwMYYO0tYBi7Om1Z2+Em4SvwixIK42cGxt0v6RwcE3isJ9Yt3Hm28fndfwaN6UO9C5NTXrYrlO2ivDX5njhjnVUXTM4oyy0NifcibYl0e2Au2e5xDLq0R7EkfWuW4mF3xzQi3D+R1A3pqAnMUIWDKt5bu8BmlhGzc3wIDAQAB";
@@ -54,7 +52,7 @@ export default defineManifest(({ mode }) => {
   const updateManifest = BUILD_COFNIG.IS_STORE_BUILD
     ? {}
     : {
-        update_url: `${GITHUB_DIST_EXT_RAW_BASE}/update.xml`,
+        update_url: `${getReleaseDownloadBase(BUILD_COFNIG.REPO_BRANCH)}/update.xml`,
         key: CHROME_EXTENSION_KEY,
       };
 

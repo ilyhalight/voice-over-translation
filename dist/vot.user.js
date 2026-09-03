@@ -21,8 +21,8 @@
 // @homepageURL    https://github.com/ilyhalight/voice-over-translation
 // @source         https://github.com/ilyhalight/voice-over-translation.git
 // @supportURL     https://github.com/ilyhalight/voice-over-translation/issues
-// @downloadURL    https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
-// @updateURL      https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+// @downloadURL    https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot.user.js
+// @updateURL      https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot.user.js
 // @match          *://*.youtube.com/*
 // @match          *://*.youtube-nocookie.com/*
 // @match          *://*.youtubekids.com/*
@@ -1139,7 +1139,7 @@ var vot = (function(exports) {
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
 	}
-	function log(...messages) {
+	function log$1(...messages) {
 		if (!canLog(LoggerLevel.DEBUG)) return;
 		console.log(prefix, ...messages);
 	}
@@ -1147,20 +1147,20 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.INFO)) return;
 		console.info(prefix, ...messages);
 	}
-	function warn(...messages) {
+	function warn$1(...messages) {
 		if (!canLog(LoggerLevel.WARN)) return;
 		console.warn(prefix, ...messages);
 	}
-	function error(...messages) {
+	function error$1(...messages) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
 	var Logger = {
 		canLog,
-		log,
+		log: log$1,
 		info,
-		warn,
-		error
+		warn: warn$1,
+		error: error$1
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/utils/utils.js
@@ -2638,18 +2638,12 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
-	var te;
+	var symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
 	/**
 	* Protobuf-ES requires the Text Encoding API to convert UTF-8 from and to
 	* binary. This WHATWG API is widely available, but it is not part of the
-	* ECMAScript standard. This function used to be the way to supply an
-	* implementation on runtimes that do not provide one.
-	*
-	* It only configures the copy of the library it is imported from. To provide
-	* the encoding API for every copy of Protobuf-ES in an isolate, install
-	* `TextEncoder` (with the methods `encode` and optionally `encodeInto`) and
-	* `TextDecoder` (with the `fatal: true` constructor argument and the `decode`
-	* method) on `globalThis`.
+	* ECMAScript standard. On runtimes where it is not available, use this
+	* function to provide your own implementation.
 	*
 	* Providing `encodeUtf8Into` is optional for backwards compatibility. If it
 	* is omitted, we emulate it with a wrapper that calls `encodeUtf8`.
@@ -2657,17 +2651,14 @@ var vot = (function(exports) {
 	* Note that the Text Encoding API does not provide a way to validate UTF-8.
 	* Our implementation uses String.prototype.isWellFormed, and falls back
 	* to use encodeURIComponent().
-	*
-	* @deprecated Install `TextEncoder` and `TextDecoder` on `globalThis` instead.
 	*/
 	function configureTextEncoding(textEncoding) {
 		var _a;
-		te = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
+		globalThis[symbol] = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
 	}
 	function getTextEncoding() {
-		if (!te) {
-			const globals = globalThis;
-			if (!globals.TextEncoder || !globals.TextDecoder) throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
+		const globals = globalThis;
+		if (!globals[symbol]) {
 			const textEncoder = new globals.TextEncoder();
 			const textDecoder = new globals.TextDecoder();
 			let textDecoderStrict;
@@ -2697,7 +2688,7 @@ var vot = (function(exports) {
 			};
 			configureTextEncoding(config);
 		}
-		return te;
+		return globals[symbol];
 	}
 	/**
 	* Simplistic polyfill for encodeUtf8Into.
@@ -7005,11 +6996,19 @@ var vot = (function(exports) {
 	];
 	//#endregion
 	//#region src/utils/debug.ts
-	var noop = () => {};
+	var log = (...text) => {
+		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
+	};
+	var warn = (...text) => {
+		console.warn("%c[VOT DEBUG]", "background: #e1ff00ff; color: #fff; padding: 5px;", ...text);
+	};
+	var error = (...text) => {
+		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
+	};
 	var debug = {
-		log: noop,
-		warn: noop,
-		error: noop
+		log,
+		warn,
+		error
 	};
 	//#endregion
 	//#region src/utils/errors.ts
@@ -21715,6 +21714,7 @@ var vot = (function(exports) {
 			responseLanguage: calculatedResLang,
 			useLivelyVoice: false,
 			autoTranslate: false,
+			autoPauseOnTranslate: false,
 			autoSubtitles: false,
 			dontTranslateLanguages: [calculatedResLang],
 			enabledAutoVolume: true,
@@ -22176,6 +22176,13 @@ var vot = (function(exports) {
 		const labelId = createUniqueId();
 		const [value, setValue] = createSignal(finalProps.value);
 		createEffect(() => setValue(finalProps.value));
+		const stopKeyEvent = (event) => event.stopPropagation();
+		const removeHostKeyboardListeners = () => {
+			globalThis.removeEventListener("keydown", stopKeyEvent, true);
+			globalThis.removeEventListener("keypress", stopKeyEvent, true);
+			globalThis.removeEventListener("keyup", stopKeyEvent, true);
+		};
+		onCleanup(removeHostKeyboardListeners);
 		const common = {
 			ref: finalProps.inputRef,
 			get class() {
@@ -22191,6 +22198,12 @@ var vot = (function(exports) {
 				return finalProps.disabled;
 			},
 			"aria-labelledby": labelId,
+			onFocus: () => {
+				globalThis.addEventListener("keydown", stopKeyEvent, { capture: true });
+				globalThis.addEventListener("keypress", stopKeyEvent, { capture: true });
+				globalThis.addEventListener("keyup", stopKeyEvent, { capture: true });
+			},
+			onBlur: removeHostKeyboardListeners,
 			onInput: (event) => {
 				const next = event.currentTarget.value;
 				setValue(next);
@@ -26040,6 +26053,18 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
+							return localizationProvider.get("VOTAutoPauseOnTranslate");
+						},
+						get checked() {
+							return settings.autoPauseOnTranslate;
+						},
+						onChange: (checked) => {
+							setSettings("autoPauseOnTranslate", checked);
+							finalProps.onAutoPauseOnTranslateChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
 							return localizationProvider.get("VOTAutoSubtitles");
 						},
 						get checked() {
@@ -26456,6 +26481,7 @@ var vot = (function(exports) {
 							storageKey: "autoTranslate",
 							dispatch: (checked) => this.events["change:autoTranslate"].dispatch(checked)
 						}),
+						onAutoPauseOnTranslateChange: this.createPersistedSettingHandler({ storageKey: "autoPauseOnTranslate" }),
 						onAutoSubtitlesChange: this.createPersistedSettingHandler({
 							storageKey: "autoSubtitles",
 							dispatch: (checked) => this.events["change:autoSubtitles"].dispatch(checked)
@@ -28847,8 +28873,9 @@ var vot = (function(exports) {
 		setSettings({
 			defaultVolume: this.data.defaultVolume,
 			responseLanguage: this.data.responseLanguage,
-			useLivelyVoice: false,
+			useLivelyVoice: this.data.useLivelyVoice,
 			autoTranslate: this.data.autoTranslate,
+			autoPauseOnTranslate: this.data.autoPauseOnTranslate,
 			autoSubtitles: this.data.autoSubtitles,
 			dontTranslateLanguages: this.data.dontTranslateLanguages,
 			enabledAutoVolume: this.data.enabledAutoVolume,
@@ -30238,7 +30265,7 @@ var vot = (function(exports) {
 			debug.log("preferAudio:", preferAudio);
 			this.audioPlayer = new Chaimu({
 				video: this.video,
-				debug: Boolean(false),
+				debug: Boolean(true),
 				fetchFn: GM_fetch,
 				fetchOpts: { timeout: 0 },
 				preferAudio
