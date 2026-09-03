@@ -1,7 +1,8 @@
+import { createSignal } from "solid-js";
 import { expect, fn, userEvent } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-
 import { localizationProvider } from "../../localization/localizationProvider";
+import type { Status } from "../../types/components/votButton";
 import { SegmentedButton } from "./SegmentedButton";
 
 function dispatchPrimaryPointerUp(
@@ -130,18 +131,34 @@ export const SegmentedButtonLoading: Story = {
   },
 };
 
-export const SegmentedButtonAsColumn: Story = {
-  args: {
-    labelText: "Translate",
-    direction: "column",
-    tooltipPos: "right",
-  },
-  render: (args) => (
-    <vot-block style="display: flex;background: gray;padding: 200px;padding-left: 20px;">
-      <SegmentedButton {...args} />
-    </vot-block>
-  ),
-};
+export const SegmentedButtonAsColumn: Story = (() => {
+  const [labelText, setLabelText] = createSignal("Translate");
+  const [status, setStatus] = createSignal<Status>("none");
+
+  return {
+    args: {
+      labelText: labelText(),
+      status: status(),
+      direction: "column",
+      tooltipPos: "right",
+      onTranslateClick: () => {
+        console.log("test");
+        if (status() === "none") {
+          setStatus("error");
+          setLabelText("Failed to translate");
+        } else {
+          setStatus("none");
+          setLabelText("Translate");
+        }
+      },
+    },
+    render: (args) => (
+      <vot-block style="display: flex;background: gray;padding: 200px;padding-left: 20px;">
+        <SegmentedButton {...args} status={status()} labelText={labelText()} />
+      </vot-block>
+    ),
+  };
+})();
 
 export const SegmentedButtonPrimaryAction: Story = {
   args: {

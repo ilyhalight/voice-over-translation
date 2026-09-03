@@ -52,7 +52,7 @@ export type TooltipControls = {
   isOpen: () => boolean;
 };
 
-export type TooltipProps = Omit<TooltipOpts, "content"> & {
+export type TooltipProps = TooltipOpts & {
   content?: JSX.Element;
   ref?: (element: HTMLElement) => void;
   controls?: (controls: TooltipControls) => void;

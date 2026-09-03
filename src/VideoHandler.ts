@@ -771,10 +771,7 @@ export class VideoHandler {
    * @param {string} text The text to display.
    * @returns {VideoHandler} This instance.
    */
-  transformBtn(
-    status: "none" | "loading" | "success" | "error",
-    text: string,
-  ): this {
+  transformBtn(status: "none" | "success" | "error", text: string): this {
     this.uiManager.transformBtn(status, text);
     return this;
   }

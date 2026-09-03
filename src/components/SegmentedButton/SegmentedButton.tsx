@@ -3,6 +3,7 @@ import {
   createSignal,
   type JSX,
   mergeProps,
+  on,
   Show,
 } from "solid-js";
 
@@ -152,11 +153,24 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
     isVoicePopoverOpen,
   });
 
-  createEffect(() => {
-    if (finalProps.status === "error" && finalProps.direction === "column") {
-      voicePopoverControls?.hideNow();
-    }
-  });
+  createEffect(
+    on(
+      () => finalProps.status,
+      (status, previousStatus) => {
+        if (finalProps.direction !== "column") {
+          return;
+        }
+
+        if (status === "error") {
+          voicePopoverControls?.hideNow();
+          setSuppressVoiceTooltip(false);
+        } else if (previousStatus === "error") {
+          voicePopoverControls?.showNow();
+        }
+      },
+      { defer: true },
+    ),
+  );
 
   return (
     <vot-block
