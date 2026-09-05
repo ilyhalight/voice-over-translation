@@ -477,12 +477,6 @@ export class VOTTranslationHandler {
         });
         this.downloading = true;
 
-        await this.audioDownloader.runAudioDownload(
-          videoData.videoId,
-          res.translationId,
-          signal,
-        );
-
         debug.log("[Translation] waiting for audio download completion", {
           videoId: videoData.videoId,
           translationId: res.translationId,

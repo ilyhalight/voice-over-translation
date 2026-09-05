@@ -1,7 +1,7 @@
 {
   "name": "[VOT] - Voice Over Translation",
   "description": "Watch videos in other languages with voice-over translation and subtitles in any browser",
-  "version": "1.11.9",
+  "version": "1.11.10",
   "author": "Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng",
   "namespace": "vot",
   "icon": "https://translate.yandex.ru/icons/favicon.ico",
