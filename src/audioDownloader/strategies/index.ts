@@ -1,9 +1,11 @@
-import { getAudioFromYtAudio } from "../ytAudio/strategy";
+import { AudioDownloadType } from "@vot.js/core/types/yandex";
 
-export const YT_AUDIO_STRATEGY = "ytAudio";
+import { getAudioFromWebMseProxy } from "./webMseProxy";
+
+export const WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
 
 export const strategies = {
-  [YT_AUDIO_STRATEGY]: getAudioFromYtAudio,
+  [WEB_MSE_PROXY_STRATEGY]: getAudioFromWebMseProxy,
 } as const;
 
 export type AvailableAudioDownloadType = keyof typeof strategies;

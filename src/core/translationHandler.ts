@@ -6,6 +6,7 @@ import {
 } from "@vot.js/core/types/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { AudioDownloader } from "../audioDownloader";
+import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webMseProxy";
 import { localizationProvider } from "../localization/localizationProvider";
 import type {
   DownloadedAudioData,
@@ -118,7 +119,7 @@ export class VOTTranslationHandler {
   private readonly etaCountdown: TranslationEtaCountdown;
 
   // Avoid spamming the fail-audio-js fallback for the same video URL.
-  // In normal operation we should upload audio from the direct ytAudio path.
+  // In normal operation we should upload audio through the MSE proxy path.
   private readonly requestedFailAudio = new Set<string>();
 
   constructor(videoHandler: VideoHandler) {
@@ -193,7 +194,7 @@ export class VOTTranslationHandler {
             chunkId: index,
           },
           {
-            audioPartsLength: amount,
+            audioPartsLength: amount ?? 0,
             fileId,
             version,
           },
@@ -207,7 +208,7 @@ export class VOTTranslationHandler {
       return;
     }
 
-    if (index === amount - 1) {
+    if (amount !== undefined && index === amount - 1) {
       this.finishDownloadSuccess();
     }
   };
@@ -485,9 +486,16 @@ export class VOTTranslationHandler {
         debug.log("[Translation] waiting for audio download completion", {
           videoId: videoData.videoId,
           translationId: res.translationId,
-          timeoutMs: 30_000,
+          timeoutMs: STREAM_TIMEOUT_MS,
         });
-        await this.waitForAudioDownloadCompletion(signal, 30_000);
+        await Promise.all([
+          this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS),
+          this.audioDownloader.runAudioDownload(
+            videoData.videoId,
+            res.translationId,
+            signal,
+          ),
+        ]);
 
         // for get instant result on download end
         return await this.translateVideoImpl(

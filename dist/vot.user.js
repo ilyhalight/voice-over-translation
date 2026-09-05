@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.8
+// @version        1.11.9
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -10346,7 +10346,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.8"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.9"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -10677,7 +10677,7 @@ var vot = (function(exports) {
 	//#region src/core/bootstrapPolicy.ts
 	function shouldSkipIframeBootstrap(input) {
 		if (!input.isIframe) return false;
-		return input.href === "about:blank" || input.href.startsWith("about:srcdoc") || input.origin === "null";
+		return input.href === "about:blank" || input.href.startsWith("about:srcdoc") || input.origin === "https://www.youtube.com" && input.href.includes("#ya_iframe") || input.origin === "null";
 	}
 	function resolveBootstrapMode(input) {
 		if (shouldSkipIframeBootstrap(input)) return "skip";
@@ -13052,476 +13052,534 @@ var vot = (function(exports) {
 	}
 	var detectServices = [...foswlyServices, "rust-server"];
 	//#endregion
-	//#region src/audioDownloader/fileId.ts
-	function makeFileId(downloadType, itag, fileSize, minChunkSize) {
-		return JSON.stringify({
-			downloadType,
-			itag,
-			minChunkSize,
-			fileSize
-		});
+	//#region src/audioDownloader/strategies/mseProxyHandler.ts
+	var MESSAGE_TYPE$1 = "get-audio-chunks-by-mse-in-main-world";
+	var READY_MESSAGE_TYPE = "vot-mse-proxy-ready";
+	var IFRAME_HASH = "ya_iframe";
+	var MIN_CHUNK_SIZE = 5295308;
+	var BOOT_KEY = "__VOT_MSE_PROXY_HANDLER__";
+	var STORE_KEY = "__VOT_MSE_CAPTURE_STORE__";
+	var topSessions = /* @__PURE__ */ new Map();
+	function getVideoId(message) {
+		if (!message.payload || typeof message.payload !== "object") return;
+		const videoId = message.payload.pureVideoId;
+		return typeof videoId === "string" ? videoId : void 0;
 	}
-	//#endregion
-	//#region src/audioDownloader/ytAudio/src/internal/format-selection.ts
-	function normalizeMimeType(mimeType) {
-		return mimeType?.toLowerCase() ?? "";
-	}
-	function isAudioOnlyMimeType(mimeType) {
-		const normalizedMimeType = normalizeMimeType(mimeType);
-		return normalizedMimeType.includes("audio/") && !normalizedMimeType.includes("video/");
-	}
-	function isMp4aAdaptiveAudioMimeType(mimeType) {
-		const normalizedMimeType = normalizeMimeType(mimeType);
-		return normalizedMimeType.includes("audio/mp4") && normalizedMimeType.includes("mp4a.");
-	}
-	function isOpusAdaptiveAudioMimeType(mimeType) {
-		const normalizedMimeType = normalizeMimeType(mimeType);
-		return normalizedMimeType.includes("audio/webm") && normalizedMimeType.includes("opus");
-	}
-	function extractAudioCodecFromMimeType(mimeType) {
-		if (!mimeType) return "mp4a.40.2";
-		const codecsMatch = /codecs="([^"]+)"/i.exec(mimeType);
-		if (!codecsMatch?.[1]) return "mp4a.40.2";
-		const codecs = codecsMatch[1].split(",").map((value) => value.trim());
-		return codecs.find((value) => value.toLowerCase().startsWith("mp4a.")) ?? codecs[0] ?? "mp4a.40.2";
-	}
-	function pickByBitrate(formats, direction) {
-		let selected = null;
-		let selectedBitrate = direction === "max" ? -Infinity : Infinity;
-		for (const format of formats) {
-			const bitrate = format.bitrate ?? 0;
-			if (direction === "max" && bitrate > selectedBitrate || direction === "min" && bitrate < selectedBitrate) {
-				selected = format;
-				selectedBitrate = bitrate;
-			}
-		}
-		return selected;
-	}
-	function pickAdaptiveAudioFormat(formats, quality) {
-		const audioFormats = formats.filter((format) => isAudioOnlyMimeType(format.mimeType));
-		if (!audioFormats.length) throw new Error("No adaptive audio formats were found in player response");
-		const pickDirection = quality === "bestefficiency" ? "min" : "max";
-		const candidateGroups = quality === "bestefficiency" ? [audioFormats.filter((format) => isOpusAdaptiveAudioMimeType(format.mimeType)), audioFormats] : [
-			audioFormats.filter((format) => isMp4aAdaptiveAudioMimeType(format.mimeType)),
-			audioFormats.filter((format) => isOpusAdaptiveAudioMimeType(format.mimeType)),
-			audioFormats
-		];
-		for (const candidates of candidateGroups) {
-			if (!candidates.length) continue;
-			const selected = pickByBitrate(candidates, pickDirection);
-			if (selected) return selected;
-		}
-		throw new Error("No adaptive audio formats were found in player response");
-	}
-	//#endregion
-	//#region src/audioDownloader/ytAudio/src/AudioDownloader.ts
-	var VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
-	var CLIENT_CONFIG = { ANDROID_VR: {
-		baseUrl: "https://m.youtube.com",
-		clientName: "ANDROID_VR",
-		clientVersion: "1.65.10",
-		clientNameId: "28",
-		deviceMake: "Oculus",
-		deviceModel: "Quest 3",
-		androidSdkVersion: 32,
-		osName: "Android",
-		osVersion: "12L",
-		userAgent: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"
-	} };
-	var CLIENTS = ["ANDROID_VR"];
-	function getClientHeaders(client) {
-		const cfg = CLIENT_CONFIG[client];
-		return {
-			accept: "*/*",
-			origin: cfg.baseUrl,
-			referer: `${cfg.baseUrl}/`,
-			"user-agent": cfg.userAgent
-		};
-	}
-	function withSignal(signal) {
-		return signal ? { signal } : {};
-	}
-	function resolveInnertubeClient(requestedClient) {
-		const cfg = CLIENT_CONFIG[requestedClient ?? "ANDROID_VR"];
-		if (!cfg) throw new Error(`Unsupported Innertube client: ${requestedClient}`);
-		return {
-			clientName: cfg.clientName,
-			clientVersion: cfg.clientVersion,
-			hl: "en",
-			gl: "US",
-			androidSdkVersion: cfg.androidSdkVersion,
-			osName: cfg.osName,
-			osVersion: cfg.osVersion,
-			platform: "MOBILE"
-		};
-	}
-	function extractVideoId(input) {
-		const value = input.trim();
-		if (VIDEO_ID_PATTERN.test(value)) return value;
-		let url;
+	async function getEncryptedEmbedConfig(targetWindow, videoId) {
+		if (!/(?:^|\.)youtube\.com$/.test(targetWindow.location.hostname)) return;
+		const bytes = new Uint8Array(2 + videoId.length);
+		bytes[0] = 10;
+		bytes[1] = videoId.length;
+		for (let index = 0; index < videoId.length; index++) bytes[index + 2] = videoId.charCodeAt(index);
 		try {
-			url = new URL(value);
+			const match = (await (await targetWindow.fetch("https://www.youtube.com/youtubei/v1/share/get_share_panel", {
+				method: "POST",
+				body: JSON.stringify({
+					context: { client: {
+						clientName: "WEB",
+						clientVersion: "2.20251006.01.00"
+					} },
+					serializedSharedEntity: encodeURIComponent(targetWindow.btoa(String.fromCharCode(...bytes)))
+				})
+			})).text()).match(/"encryptedEmbedConfig"\s*:\s*("[^"]+")/);
+			return match ? `{"enc":${match[1]}}` : void 0;
 		} catch {
-			throw new Error(`Cannot extract YouTube video id from: ${input}`);
-		}
-		const hostname = url.hostname.toLowerCase();
-		if (hostname === "youtu.be" || hostname.endsWith(".youtu.be")) return getValidatedVideoId(url.pathname.split("/").find(Boolean), input);
-		const searchId = url.searchParams.get("v");
-		if (searchId && VIDEO_ID_PATTERN.test(searchId)) return searchId;
-		const pathId = getVideoIdFromPathSegments(url.pathname.split("/").filter(Boolean));
-		if (pathId) return pathId;
-		throw new Error(`Cannot extract YouTube video id from: ${input}`);
-	}
-	function getValidatedVideoId(id, input) {
-		if (id && VIDEO_ID_PATTERN.test(id)) return id;
-		throw new Error(`Cannot extract YouTube video id from: ${input}`);
-	}
-	function getVideoIdFromPathSegments(pathSegments) {
-		for (const marker of ["shorts", "embed"]) {
-			const markerIndex = pathSegments.indexOf(marker);
-			if (markerIndex === -1) continue;
-			const id = pathSegments[markerIndex + 1];
-			if (id && VIDEO_ID_PATTERN.test(id)) return id;
-		}
-		return null;
-	}
-	function decodeEscapedJsonString(input) {
-		return input.replaceAll(String.raw`\u0026`, "&").replaceAll(String.raw`\/`, "/");
-	}
-	function getRequiredVideoId(request) {
-		const source = request.videoId ?? request.videoUrl;
-		if (!source) throw new Error("Either videoId or videoUrl is required");
-		return extractVideoId(source);
-	}
-	function matchFirst(source, patterns) {
-		for (const pattern of patterns) {
-			const matched = pattern.exec(source)?.[1];
-			if (matched) return matched;
+			return;
 		}
 	}
-	async function readResponseBytes(response) {
-		return new Uint8Array(await response.arrayBuffer());
-	}
-	function makeCPN(length = 16) {
-		const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
-		let output = "";
-		if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
-			const bytes = new Uint8Array(length);
-			crypto.getRandomValues(bytes);
-			for (const byte of bytes) output += alphabet[byte % 64] ?? "a";
-			return output;
+	function concatBuffers(buffers) {
+		const result = new Uint8Array(buffers.reduce((length, buffer) => length + buffer.byteLength, 0));
+		let offset = 0;
+		for (const buffer of buffers) {
+			result.set(buffer, offset);
+			offset += buffer.byteLength;
 		}
-		for (let i = 0; i < length; i++) output += alphabet[Math.floor(Math.random() * 64)] ?? "a";
-		return output;
+		return result;
 	}
-	function parsePositiveInteger(value) {
-		if (!value) return null;
-		const parsed = Number.parseInt(value, 10);
-		if (!Number.isFinite(parsed) || parsed <= 0) return null;
-		return parsed;
-	}
-	function parseContentRangeHeader(contentRange) {
-		if (!contentRange) return null;
-		const matched = /^bytes\s+(\d+)-(\d+)\/(?:\d+|\*)$/i.exec(contentRange.trim());
-		if (!matched) return null;
-		const start = Number.parseInt(matched[1] ?? "", 10);
-		const end = Number.parseInt(matched[2] ?? "", 10);
-		if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start) return null;
-		return {
-			start,
-			end
-		};
-	}
-	function getExpectedRangeLength(start, end) {
-		return end - start + 1;
-	}
-	function isValidRangeChunkResponse(response, bytes, start, end) {
-		const expectedLength = getExpectedRangeLength(start, end);
-		if (expectedLength <= 0) return false;
-		if (bytes.byteLength <= 0 || bytes.byteLength > expectedLength) return false;
-		const contentRange = parseContentRangeHeader(response.headers.get("content-range"));
-		if (contentRange) return contentRange.start === start && contentRange.end === start + bytes.byteLength - 1;
-		if (response.status === 206) return bytes.byteLength === expectedLength;
-		if (response.status === 200) return start === 0 && bytes.byteLength === expectedLength;
-		return false;
-	}
-	function describeRangeChunkResponse(response, bytes) {
-		const contentRange = response.headers.get("content-range") ?? "none";
-		const contentLength = response.headers.get("content-length") ?? "none";
-		return `status=${response.status}; bytes=${bytes.byteLength}; content-range=${contentRange}; content-length=${contentLength}`;
-	}
-	function getAudioMimeType(mimeType) {
-		const normalizedMimeType = mimeType?.toLowerCase() ?? "";
-		if (normalizedMimeType.includes("audio/webm")) return "audio/webm";
-		if (normalizedMimeType.includes("audio/mp4")) return "audio/mp4";
-		return "audio/aac";
-	}
-	function buildClientAttemptOrder(requestedClient) {
-		const ordered = requestedClient ? [requestedClient, ...CLIENTS] : [...CLIENTS];
-		const seen = /* @__PURE__ */ new Set();
-		return ordered.filter((client) => {
-			if (seen.has(client)) return false;
-			seen.add(client);
-			return true;
+	function waitFor(getValue, timeoutMs, label) {
+		return new Promise((resolve, reject) => {
+			const startedAt = performance.now();
+			const interval = setInterval(() => {
+				const value = getValue();
+				if (value) {
+					clearInterval(interval);
+					resolve(value);
+				} else if (performance.now() - startedAt >= timeoutMs) {
+					clearInterval(interval);
+					reject(/* @__PURE__ */ new Error(`Audio downloader. ${label} timed out`));
+				}
+			}, 100);
 		});
 	}
-	var AudioDownloader$1 = class {
-		fetchFn;
-		constructor(options = {}) {
-			this.fetchFn = options.fetchImplementation ?? fetch;
-		}
-		async fetchRangeChunk(streamUrl, start, end, signal) {
-			const rangeHeader = `bytes=${start}-${end}`;
-			const response = await this.fetchFn(streamUrl, {
-				headers: {
-					...getClientHeaders("ANDROID_VR"),
-					range: rangeHeader
-				},
-				...withSignal(signal)
-			});
-			if (!response.ok) throw new Error(`Failed to download stream chunk: ${response.status}`);
-			const bytes = await readResponseBytes(response);
-			if (!isValidRangeChunkResponse(response, bytes, start, end)) throw new Error(`Received unexpected stream chunk payload: ${describeRangeChunkResponse(response, bytes)}`);
-			return {
-				bytes,
-				resolvedUrl: response.status === 206 ? response.url : null
-			};
-		}
-		async downloadStreamByRanges(streamUrl, contentLengthHint, signal) {
-			const fileSize = this.resolveStreamContentLength(contentLengthHint);
-			const { bytes } = await this.fetchRangeChunk(streamUrl, 0, fileSize - 1, signal);
-			return bytes;
-		}
-		async downloadAudioToChunkStream(request, options) {
-			if (options.chunkSize <= 0) throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
-			return this.withResolvedPlayableAudioFormat(request, request.audioQuality ?? "best", "Chunk mode requires an adaptive audio stream format", "Unable to resolve streamable format for chunk mode", async ({ resolved, signal }) => {
-				const fileSize = this.resolveStreamContentLength(resolved.chosenFormat.contentLength);
-				const mediaPartsLength = Math.max(1, Math.ceil(fileSize / options.chunkSize));
-				return {
-					videoId: resolved.videoId,
-					fileSize,
-					itag: resolved.chosenFormat.itag ?? 0,
-					mediaPartsLength,
-					getMediaBuffers: async function* () {
-						let actualStreamUrl = resolved.streamUrl;
-						for (let index = 0; index < mediaPartsLength; index++) {
-							const start = index * options.chunkSize;
-							const end = Math.min(fileSize - 1, start + options.chunkSize - 1);
-							const { bytes, resolvedUrl } = await this.fetchRangeChunk(actualStreamUrl, start, end, signal);
-							if (resolvedUrl) actualStreamUrl = resolvedUrl;
-							yield bytes;
-						}
-					}.bind(this)
-				};
-			});
-		}
-		async downloadAudioToUint8Array(request) {
-			const chunks = [];
-			let total = 0;
-			const streamResult = await this.extractAndWriteAudio(request, { async write(chunk) {
-				chunks.push(chunk);
-				total += chunk.byteLength;
+	var CapturedMediaSource = class {
+		mediaSource;
+		createdAt = performance.now();
+		queuedEvents = [];
+		listeners = /* @__PURE__ */ new Set();
+		constructor(mediaSource) {
+			this.mediaSource = mediaSource;
+			const addSourceBuffer = mediaSource.addSourceBuffer;
+			mediaSource.addSourceBuffer = new Proxy(addSourceBuffer, { apply: (target, thisArg, args) => {
+				const sourceBuffer = Reflect.apply(target, thisArg, args);
+				if (args[0].includes("audio/webm")) this.capture(sourceBuffer);
+				return sourceBuffer;
 			} });
-			const bytes = new Uint8Array(total);
-			let offset = 0;
-			for (const chunk of chunks) {
-				bytes.set(chunk, offset);
-				offset += chunk.byteLength;
-			}
-			return {
-				...streamResult,
-				bytes
-			};
+			const endOfStream = mediaSource.endOfStream;
+			mediaSource.endOfStream = new Proxy(endOfStream, { apply: (target, thisArg, args) => {
+				const result = Reflect.apply(target, thisArg, args);
+				this.emit({ type: "end" });
+				return result;
+			} });
+			mediaSource.addEventListener("sourceclose", () => this.emit({ type: "close" }));
 		}
-		async extractAndWriteAudio(request, sink) {
-			return this.withResolvedPlayableAudioFormat(request, request.audioQuality ?? "bestefficiency", "Selected stream is not audio-only", "Unable to download playable stream format", async ({ resolved, signal }) => {
-				const streamBytes = await this.downloadStreamByRanges(resolved.streamUrl, resolved.chosenFormat.contentLength, signal);
-				const hints = this.getExtractionHints(resolved.chosenFormat);
-				await sink.write(streamBytes);
-				return {
-					videoId: resolved.videoId,
-					bytesWritten: streamBytes.byteLength,
-					mimeType: getAudioMimeType(resolved.chosenFormat.mimeType),
-					codec: hints.codec,
-					sampleRate: hints.sampleRate,
-					channels: hints.channels
-				};
-			});
+		get isReady() {
+			return this.mediaSource.readyState === "open";
 		}
-		async withResolvedPlayableAudioFormat(request, quality, audioOnlyErrorMessage, failurePrefix, onResolved) {
-			const videoId = getRequiredVideoId(request);
-			const { signal } = request;
-			const watchContext = await this.fetchWatchContext(videoId, signal);
-			const clientAttempts = buildClientAttemptOrder(request.client);
-			const attemptErrors = [];
-			for (const client of clientAttempts) try {
-				const resolved = await this.resolvePlayableFormatForClient({
-					videoId,
-					watchContext,
-					client,
-					quality,
-					signal
+		listen(listener) {
+			this.listeners.add(listener);
+			for (const event of this.queuedEvents.splice(0)) listener(event);
+			return () => this.listeners.delete(listener);
+		}
+		capture(sourceBuffer) {
+			const appendBuffer = sourceBuffer.appendBuffer;
+			sourceBuffer.appendBuffer = new Proxy(appendBuffer, { apply: (target, thisArg, args) => {
+				const input = args[0];
+				const view = ArrayBuffer.isView(input) ? new Uint8Array(input.buffer, input.byteOffset, input.byteLength) : new Uint8Array(input);
+				const copy = new Uint8Array(view);
+				const result = Reflect.apply(target, thisArg, args);
+				this.emit({
+					type: "append",
+					buffer: copy,
+					sourceBuffer
 				});
-				if (!isAudioOnlyMimeType(resolved.chosenFormat.mimeType)) throw new Error(audioOnlyErrorMessage);
-				return await onResolved({
-					resolved,
-					signal
-				});
-			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error);
-				attemptErrors.push(`${client}: ${message}`);
-			}
-			throw new Error(`${failurePrefix}. Attempts: ${attemptErrors.join(" | ")}`);
+				return result;
+			} });
 		}
-		async resolvePlayableFormatForClient({ videoId, watchContext, client, quality, signal }) {
-			const directAdaptiveFormats = ((await this.fetchPlayerResponse(videoId, watchContext, client, signal)).streamingData?.adaptiveFormats ?? []).filter((format) => Boolean(format.url));
-			if (!directAdaptiveFormats.length) throw new Error("Player response did not contain direct adaptive audio stream URLs");
-			const chosenFormat = pickAdaptiveAudioFormat(directAdaptiveFormats, quality);
-			return {
-				videoId,
-				chosenFormat,
-				streamUrl: this.resolveFormatUrl(chosenFormat)
-			};
-		}
-		resolveStreamContentLength(contentLengthHint) {
-			const contentLength = parsePositiveInteger(contentLengthHint);
-			if (contentLength !== null) return contentLength;
-			throw new Error("Failed to resolve stream content length: contentLength not found in format");
-		}
-		getExtractionHints(format) {
-			const codec = extractAudioCodecFromMimeType(format.mimeType);
-			const sampleRate = Number.parseInt(format.audioSampleRate ?? "", 10);
-			return {
-				codec,
-				sampleRate: Number.isFinite(sampleRate) && sampleRate > 0 ? sampleRate : 44100,
-				channels: format.audioChannels && format.audioChannels > 0 ? format.audioChannels : 2
-			};
-		}
-		resolveFormatUrl(format) {
-			if (!format.url) throw new Error("Selected format does not contain a direct stream URL");
-			const streamUrl = new URL(format.url);
-			streamUrl.searchParams.set("cpn", makeCPN());
-			return streamUrl.toString();
-		}
-		async fetchWatchContext(videoId, signal) {
-			const watchUrl = `${CLIENT_CONFIG.ANDROID_VR.baseUrl}/watch?v=${encodeURIComponent(videoId)}&hl=en`;
-			const response = await this.fetchFn(watchUrl, {
-				headers: getClientHeaders("ANDROID_VR"),
-				...withSignal(signal)
-			});
-			if (!response.ok) throw new Error(`Failed to load watch page: ${response.status}`);
-			const html = await response.text();
-			const apiKey = matchFirst(html, [/"INNERTUBE_API_KEY":"([^"]+)"/, /["']INNERTUBE_API_KEY["']\s*:\s*"([^"]+)"/]);
-			const clientVersion = matchFirst(html, [/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/, /["']INNERTUBE_CLIENT_VERSION["']\s*:\s*"([^"]+)"/]);
-			const stsRaw = matchFirst(html, [/"STS":(\d+)/, /["']STS["']\s*:\s*(\d+)/]);
-			const visitorData = matchFirst(html, [
-				/"VISITOR_DATA":"([^"]+)"/,
-				/"visitorData":"([^"]+)"/,
-				/["'](?:VISITOR_DATA|visitorData)["']\s*:\s*"([^"]+)"/
-			]);
-			if (!apiKey || !clientVersion) throw new Error("Failed to extract required player context from watch page");
-			const signatureTimestamp = stsRaw ? Number.parseInt(stsRaw, 10) : void 0;
-			const context = {
-				apiKey,
-				clientVersion
-			};
-			if (typeof signatureTimestamp === "number" && Number.isFinite(signatureTimestamp)) context.signatureTimestamp = signatureTimestamp;
-			if (visitorData) context.visitorData = decodeEscapedJsonString(visitorData);
-			return context;
-		}
-		async fetchPlayerResponse(videoId, watchContext, requestedClient, signal) {
-			const client = resolveInnertubeClient(requestedClient);
-			if (watchContext.visitorData) client.visitorData = watchContext.visitorData;
-			const body = {
-				context: { client },
-				videoId,
-				contentCheckOk: true,
-				racyCheckOk: true
-			};
-			if (watchContext.signatureTimestamp) body.playbackContext = { contentPlaybackContext: { signatureTimestamp: watchContext.signatureTimestamp } };
-			const endpoint = `${CLIENT_CONFIG.ANDROID_VR.baseUrl}/youtubei/v1/player?key=${encodeURIComponent(watchContext.apiKey)}`;
-			const response = await this.fetchFn(endpoint, {
-				method: "POST",
-				headers: {
-					...getClientHeaders("ANDROID_VR"),
-					"content-type": "application/json",
-					...watchContext.visitorData ? { "x-goog-visitor-id": watchContext.visitorData } : {}
-				},
-				body: JSON.stringify(body),
-				...withSignal(signal)
-			});
-			if (!response.ok) throw new Error(`Player API request failed with status ${response.status}`);
-			const json = await response.json();
-			const hasFormats = Boolean(json.streamingData?.formats?.length);
-			const hasAdaptiveFormats = Boolean(json.streamingData?.adaptiveFormats?.length);
-			if (!hasFormats && !hasAdaptiveFormats) throw new Error("Player response did not contain streaming formats");
-			return json;
+		emit(event) {
+			if (this.listeners.size === 0) this.queuedEvents.push(event);
+			for (const listener of this.listeners) listener(event);
 		}
 	};
-	//#endregion
-	//#region src/audioDownloader/ytAudio/strategy.ts
-	var DEFAULT_YT_AUDIO_QUALITY = "bestefficiency";
-	var DEFAULT_FETCH_TIMEOUT_MS = 3e4;
-	function assertValidChunkSize(chunkSize) {
-		if (chunkSize <= 0) throw new RangeError("Audio downloader. ytAudio. chunkSize must be > 0");
-	}
-	function createYtAudioFetch({ signal, timeoutMs }) {
-		return async (input, init = {}) => await GM_fetch(input, {
-			...init,
-			signal: init.signal ?? signal,
-			forceGmXhr: true,
-			timeout: timeoutMs
-		});
-	}
-	async function getAudioFromYtAudio({ videoId, signal }, deps = {}) {
-		const chunkSize = deps.chunkSize ?? config_default$1.minChunkSize;
-		assertValidChunkSize(chunkSize);
-		const fetchImplementation = createYtAudioFetch({
-			signal,
-			timeoutMs: deps.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
-		});
-		const downloader = deps.createDownloader?.(fetchImplementation) ?? new AudioDownloader$1({ fetchImplementation });
-		try {
-			const streamResult = await downloader.downloadAudioToChunkStream({
-				videoId,
-				audioQuality: DEFAULT_YT_AUDIO_QUALITY,
-				signal
-			}, { chunkSize });
-			return {
-				fileId: makeFileId(AudioDownloadType.WEB_API_STEAL_SIG_AND_N, streamResult.itag, String(streamResult.fileSize), chunkSize),
-				mediaPartsLength: streamResult.mediaPartsLength,
-				getMediaBuffers: streamResult.getMediaBuffers
-			};
-		} catch (error) {
-			console.warn("[VOT] ytAudio streaming mode failed, falling back to buffered mode", error);
+	var MseCaptureStore = class {
+		captures = [];
+		listeners = /* @__PURE__ */ new Set();
+		add(mediaSource) {
+			const capture = new CapturedMediaSource(mediaSource);
+			this.captures.push(capture);
+			for (const listener of this.listeners) listener(capture);
 		}
-		const bytes = (await downloader.downloadAudioToUint8Array({
-			videoId,
-			audioQuality: DEFAULT_YT_AUDIO_QUALITY,
-			signal
-		})).bytes;
-		if (!bytes || bytes.byteLength === 0) throw new Error("Audio downloader. ytAudio. Empty audio");
-		const mediaPartsLength = Math.max(1, Math.ceil(bytes.byteLength / chunkSize));
-		return {
-			fileId: makeFileId(AudioDownloadType.WEB_API_STEAL_SIG_AND_N, 0, String(bytes.byteLength), chunkSize),
-			mediaPartsLength,
-			async *getMediaBuffers() {
-				for (let start = 0; start < bytes.byteLength; start += chunkSize) {
-					const end = Math.min(start + chunkSize, bytes.byteLength);
-					yield bytes.subarray(start, end);
-				}
+		async pick() {
+			try {
+				return await waitFor(() => {
+					const capture = this.captures.at(-1);
+					return capture?.isReady && performance.now() - capture.createdAt >= 4e3 ? capture : null;
+				}, 1e4, "MSE capture wait");
+			} catch (error) {
+				const newest = this.captures.at(-1);
+				throw new Error(`Audio downloader. MSE capture wait timed out (captures: ${this.captures.length}, newestReady: ${newest?.isReady ?? "none"})`, { cause: error });
 			}
+		}
+		onCapture(listener) {
+			this.listeners.add(listener);
+			return () => this.listeners.delete(listener);
+		}
+	};
+	function installMediaSourceProxy(targetWindow) {
+		if (targetWindow[STORE_KEY]) return targetWindow[STORE_KEY];
+		const store = new MseCaptureStore();
+		const key = targetWindow.ManagedMediaSource ? "ManagedMediaSource" : "MediaSource";
+		const MediaSourceConstructor = targetWindow[key];
+		if (!MediaSourceConstructor) throw new Error("MediaSource is not available");
+		class ProxiedMediaSource extends MediaSourceConstructor {
+			constructor() {
+				super();
+				store.add(this);
+			}
+		}
+		targetWindow[key] = ProxiedMediaSource;
+		targetWindow[STORE_KEY] = store;
+		return store;
+	}
+	async function getPlayer(targetWindow) {
+		return await waitFor(() => {
+			const player = targetWindow.document.querySelector("#movie_player");
+			return player && typeof player.playVideo === "function" && typeof player.mute === "function" && typeof player.seekTo === "function" ? player : null;
+		}, 1e4, "MSE player wait");
+	}
+	function createAudioChunkStream(targetWindow, videoId, signal) {
+		let cleanup = () => {};
+		return new ReadableStream({
+			async start(controller) {
+				try {
+					const player = await getPlayer(targetWindow);
+					try {
+						player.loadVideoById?.(videoId);
+					} catch {}
+					player.mute();
+					player.playVideo();
+					const getPlayerState = () => {
+						try {
+							return player.getPlayerState?.() ?? null;
+						} catch {
+							return null;
+						}
+					};
+					const listVideos = () => [...targetWindow.document.querySelectorAll("video")];
+					let readyVideo;
+					let playReject = null;
+					try {
+						readyVideo = await waitFor(() => {
+							const videos = listVideos();
+							const state = getPlayerState();
+							if (videos.length > 0 && (state === 5 || state === 2 || state === -1)) {
+								try {
+									if (state === -1) player.loadVideoById?.(videoId);
+									player.playVideo();
+								} catch {}
+								const element = videos[0];
+								try {
+									element.muted = true;
+									const attempt = element.play();
+									if (attempt && typeof attempt.catch === "function") attempt.catch((playError) => {
+										playReject ??= playError instanceof Error ? playError.name : String(playError);
+									});
+								} catch (playError) {
+									playReject ??= playError instanceof Error ? playError.name : String(playError);
+								}
+							}
+							return videos.find((video) => video.readyState >= 3) ?? (state === 1 && videos.length > 0 ? videos[0] : null);
+						}, 15e3, "MSE media wait");
+					} catch (error) {
+						const videos = listVideos();
+						const video = videos[0];
+						const earlyStore = targetWindow[STORE_KEY];
+						const earlyNewest = earlyStore?.captures.at(-1);
+						throw new Error(`Audio downloader. MSE media wait timed out (videos: ${videos.length}, readyState: ${video?.readyState ?? "none"}, playerState: ${getPlayerState() ?? "unknown"}, paused: ${video?.paused ?? "unknown"}, networkState: ${video?.networkState ?? "none"}, buffered: ${video?.buffered.length ?? "none"}, hasSrc: ${Boolean(video?.currentSrc)}, mediaError: ${video?.error?.code ?? "none"}, playReject: ${playReject ?? "none"}, captures: ${earlyStore?.captures.length ?? "none"}, newestMS: ${earlyNewest?.mediaSource.readyState ?? "none"})`, { cause: error });
+					}
+					try {
+						readyVideo.playbackRate = 2;
+					} catch {}
+					const store = installMediaSourceProxy(targetWindow);
+					let capture = await store.pick();
+					let removeCaptureListener = () => {};
+					let pending = [];
+					let pendingSize = 0;
+					let heldChunk;
+					let seekTimeout;
+					let closed = false;
+					const promotePendingChunk = () => {
+						if (heldChunk) controller.enqueue({
+							buffer: heldChunk,
+							isLastChunk: false
+						});
+						heldChunk = concatBuffers(pending);
+						pending = [];
+						pendingSize = 0;
+					};
+					const close = () => {
+						if (closed) return;
+						closed = true;
+						if (pendingSize > 0) promotePendingChunk();
+						if (!heldChunk?.byteLength) controller.error(/* @__PURE__ */ new Error("Audio downloader. Empty MSE stream"));
+						else {
+							controller.enqueue({
+								buffer: heldChunk,
+								isLastChunk: true
+							});
+							controller.close();
+						}
+						cleanup();
+					};
+					const onCapturedEvent = (event) => {
+						if (closed) return;
+						if (event.type === "end") {
+							close();
+							return;
+						}
+						if (event.type === "close") {
+							closed = true;
+							controller.error(/* @__PURE__ */ new Error("Audio downloader. MSE source closed"));
+							cleanup();
+							return;
+						}
+						pending.push(event.buffer);
+						pendingSize += event.buffer.byteLength;
+						if (pendingSize >= MIN_CHUNK_SIZE) promotePendingChunk();
+						const { buffered } = event.sourceBuffer;
+						const bufferedEnd = buffered.length > 0 ? Math.floor(buffered.end(buffered.length - 1)) : 0;
+						clearTimeout(seekTimeout);
+						if (bufferedEnd > 0) seekTimeout = setTimeout(() => player.seekTo(bufferedEnd, true), 1e3);
+					};
+					let stopCapture = () => {};
+					const onAbort = () => {
+						if (closed) return;
+						closed = true;
+						controller.error(new Error(String(signal.reason ?? "Aborted")));
+						cleanup();
+					};
+					cleanup = () => {
+						clearTimeout(seekTimeout);
+						stopCapture();
+						removeCaptureListener();
+						signal.removeEventListener("abort", onAbort);
+					};
+					stopCapture = capture.listen(onCapturedEvent);
+					if (closed) return;
+					removeCaptureListener = store.onCapture((nextCapture) => {
+						stopCapture();
+						capture = nextCapture;
+						stopCapture = capture.listen(onCapturedEvent);
+					});
+					signal.addEventListener("abort", onAbort, { once: true });
+					if (signal.aborted) onAbort();
+				} catch (error) {
+					controller.error(error);
+					cleanup();
+				}
+			},
+			cancel() {
+				cleanup();
+			}
+		});
+	}
+	function postResponse(target, targetOrigin, message) {
+		target.postMessage(message, targetOrigin || "*");
+	}
+	async function handleIframeRequest(event, targetWindow) {
+		const message = event.data;
+		const source = event.source;
+		if (!source) return;
+		const controller = new AbortController();
+		const abort = (abortEvent) => {
+			const data = abortEvent.data;
+			if (data.messageId === message.messageId && data.isAborted) controller.abort(data.payload);
+		};
+		targetWindow.addEventListener("message", abort);
+		try {
+			const videoId = getVideoId(message);
+			if (!videoId) throw new Error("Audio downloader. Missing video id");
+			await createAudioChunkStream(targetWindow, videoId, controller.signal).pipeTo(new WritableStream({
+				write(chunk) {
+					postResponse(source, event.origin, {
+						...message,
+						messageDirection: "response",
+						payload: chunk
+					});
+				},
+				close() {
+					postResponse(source, event.origin, {
+						...message,
+						messageDirection: "response",
+						payload: void 0,
+						isStreamFinished: true
+					});
+				}
+			}));
+		} catch (error) {
+			postResponse(source, event.origin, {
+				...message,
+				messageDirection: "response",
+				payload: void 0,
+				error: error instanceof Error ? error.message : String(error)
+			});
+		} finally {
+			targetWindow.removeEventListener("message", abort);
+		}
+	}
+	async function handleTopRequest(event, targetWindow) {
+		const message = event.data;
+		const source = event.source;
+		if (!source) return;
+		if (message.isAborted) {
+			const session = topSessions.get(message.messageId);
+			session?.iframe.contentWindow?.postMessage(message, "*");
+			session?.cleanup();
+			return;
+		}
+		const videoId = getVideoId(message);
+		if (!videoId) return;
+		const iframe = targetWindow.document.createElement("iframe");
+		iframe.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
+		iframe.tabIndex = -1;
+		iframe.setAttribute("aria-hidden", "true");
+		iframe.id = `vot-mse-proxy-${message.messageId}`;
+		const url = new URL(`/embed/${videoId}`, "https://www.youtube.com");
+		url.searchParams.set("autoplay", "0");
+		url.searchParams.set("mute", "1");
+		const embedConfig = await getEncryptedEmbedConfig(targetWindow, videoId);
+		if (embedConfig) url.searchParams.set("embed_config", embedConfig);
+		url.hash = IFRAME_HASH;
+		const cleanup = () => {
+			clearTimeout(timeout);
+			targetWindow.removeEventListener("message", onMessage);
+			topSessions.delete(message.messageId);
+			iframe.remove();
+		};
+		let ready = false;
+		const onMessage = (responseEvent) => {
+			const response = responseEvent.data;
+			if (responseEvent.source !== iframe.contentWindow) return;
+			if (response.messageType === READY_MESSAGE_TYPE) {
+				if (ready) return;
+				ready = true;
+				clearTimeout(timeout);
+				iframe.contentWindow?.postMessage(message, "*");
+			} else if (response.messageId === message.messageId && (response.error || response.isStreamFinished)) queueMicrotask(cleanup);
+		};
+		const timeout = setTimeout(() => {
+			postResponse(source, event.origin, {
+				...message,
+				messageDirection: "response",
+				error: "Audio downloader. MSE iframe loading timed out"
+			});
+			cleanup();
+		}, 15e3);
+		topSessions.set(message.messageId, {
+			iframe,
+			cleanup
+		});
+		targetWindow.addEventListener("message", onMessage);
+		iframe.src = url.toString();
+		(targetWindow.document.body ?? targetWindow.document.documentElement).appendChild(iframe);
+	}
+	function initMseProxyHandler() {
+		const pageWindow = globalThis;
+		if (pageWindow[BOOT_KEY] || !pageWindow.location || pageWindow.navigator.userAgent.includes("YaBrowser/")) return;
+		pageWindow[BOOT_KEY] = true;
+		const isServiceIframe = pageWindow.self !== pageWindow.top && /(?:youtube(?:-nocookie)?\.com|youtubekids\.com)$/.test(pageWindow.location.hostname) && pageWindow.location.hash.includes(IFRAME_HASH);
+		if (isServiceIframe) installMediaSourceProxy(pageWindow);
+		pageWindow.addEventListener("message", (event) => {
+			const message = event.data;
+			if (message?.messageType !== MESSAGE_TYPE$1 || message.messageDirection !== "request") return;
+			if (!isServiceIframe && event.origin !== pageWindow.location.origin) return;
+			if (isServiceIframe) {
+				if (!message.isAborted) handleIframeRequest(event, pageWindow);
+			} else handleTopRequest(event, pageWindow);
+		});
+		if (isServiceIframe) pageWindow.parent.postMessage({
+			messageType: READY_MESSAGE_TYPE,
+			messageDirection: "response"
+		}, "*");
+	}
+	initMseProxyHandler();
+	//#endregion
+	//#region src/audioDownloader/strategies/webMseProxy.ts
+	var MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
+	var STREAM_TIMEOUT_MS = 18e5;
+	var MESSAGE_TIMEOUT_MS = 12e4;
+	function parseMseProxyChunk(payload) {
+		if (!payload || typeof payload !== "object" || !("buffer" in payload)) throw new Error("Audio downloader. Invalid MSE chunk");
+		const { buffer, isLastChunk } = payload;
+		const bytes = buffer instanceof Uint8Array ? buffer : buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : ArrayBuffer.isView(buffer) ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength) : null;
+		if (!bytes || typeof isLastChunk !== "boolean") throw new Error("Audio downloader. Invalid MSE chunk");
+		return {
+			buffer: bytes,
+			isLastChunk
+		};
+	}
+	async function* getMseProxyChunks(videoId, signal) {
+		if (signal.aborted) throw new Error(String(signal.reason ?? "Aborted"));
+		const messageId = `stream-message-id-${performance.now()}-${Math.random()}`;
+		const chunks = [];
+		let wake;
+		let streamFinished = false;
+		let failure;
+		let messageTimeout;
+		const notify = () => {
+			wake?.();
+			wake = void 0;
+		};
+		const finish = (error) => {
+			if (error) {
+				if (failure) return;
+				failure = error;
+			} else {
+				streamFinished = true;
+				clearTimeout(messageTimeout);
+			}
+			notify();
+		};
+		const resetMessageTimeout = () => {
+			clearTimeout(messageTimeout);
+			messageTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("MSE proxy message timed out")), MESSAGE_TIMEOUT_MS);
+		};
+		const postAbort = () => globalThis.postMessage({
+			messageId,
+			messageType: MESSAGE_TYPE,
+			messageDirection: "request",
+			isStreamFinished: true,
+			isAborted: true
+		}, "*");
+		const onMessage = (event) => {
+			const message = event.data;
+			const iframe = document.getElementById(`vot-mse-proxy-${messageId}`);
+			if (!message || event.source !== globalThis && event.source !== iframe?.contentWindow || message.messageId !== messageId || message.messageType !== MESSAGE_TYPE || message.messageDirection !== "response") return;
+			resetMessageTimeout();
+			if (message.error || message.isAborted) {
+				finish(new Error(typeof message.error === "string" ? message.error : "MSE proxy stream aborted"));
+				return;
+			}
+			if (message.isStreamFinished) {
+				finish();
+				return;
+			}
+			try {
+				chunks.push(parseMseProxyChunk(message.payload));
+				notify();
+			} catch (error) {
+				finish(error instanceof Error ? error : new Error(String(error)));
+			}
+		};
+		const onAbort = () => finish(new Error(String(signal.reason ?? "Aborted")));
+		const streamTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("MSE proxy stream timed out")), STREAM_TIMEOUT_MS);
+		const navigationInterval = setInterval(() => {
+			if (!globalThis.location.href.includes(videoId)) finish(/* @__PURE__ */ new Error("URL changed during MSE proxy download"));
+		}, 100);
+		globalThis.addEventListener("message", onMessage);
+		signal.addEventListener("abort", onAbort, { once: true });
+		if (signal.aborted) onAbort();
+		resetMessageTimeout();
+		try {
+			if (!streamFinished && !failure) globalThis.postMessage({
+				messageId,
+				messageType: MESSAGE_TYPE,
+				messageDirection: "request",
+				payload: {
+					pureVideoId: videoId,
+					fromPlayer: true
+				}
+			}, "*");
+			while (!streamFinished || chunks.length > 0) {
+				if (failure) throw failure;
+				const chunk = chunks.shift();
+				if (chunk) yield chunk;
+				else await new Promise((resolve) => {
+					wake = resolve;
+				});
+			}
+			if (failure) throw failure;
+		} finally {
+			clearTimeout(messageTimeout);
+			clearTimeout(streamTimeout);
+			clearInterval(navigationInterval);
+			globalThis.removeEventListener("message", onMessage);
+			signal.removeEventListener("abort", onAbort);
+			if (!streamFinished || failure) postAbort();
+		}
+	}
+	async function getAudioFromWebMseProxy({ videoId, signal }) {
+		return {
+			fileId: `random-${AudioDownloadType.WEB_MSE_PROXY}-${crypto.randomUUID()}`,
+			mediaPartsLength: null,
+			getMediaBuffers: () => getMseProxyChunks(videoId, signal)
 		};
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/index.ts
-	var YT_AUDIO_STRATEGY = "ytAudio";
-	var strategies = { [YT_AUDIO_STRATEGY]: getAudioFromYtAudio };
+	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
+	var strategies = { [WEB_MSE_PROXY_STRATEGY]: getAudioFromWebMseProxy };
 	//#endregion
 	//#region src/audioDownloader/index.ts
-	function assertValidMediaPartsLength(mediaPartsLength) {
-		if (!Number.isInteger(mediaPartsLength) || mediaPartsLength < 1) throw new Error("Audio downloader. Invalid media parts length");
-	}
 	function assertHasAudioChunk(chunk) {
 		if (!chunk || chunk.byteLength === 0) throw new Error("Audio downloader. Empty audio");
 		return chunk;
@@ -13533,39 +13591,31 @@ var vot = (function(exports) {
 		});
 		if (!audioData) throw new Error("Audio downloader. Can not get audio data");
 		debug.log("Audio downloader. Url found", { audioDownloadType: audioDownloader.strategy });
-		const { getMediaBuffers, mediaPartsLength, fileId } = audioData;
-		assertValidMediaPartsLength(mediaPartsLength);
-		if (mediaPartsLength < 2) {
-			const { value } = await getMediaBuffers().next();
-			const singleChunk = assertHasAudioChunk(value);
-			await audioDownloader.onDownloadedAudio.dispatchAsync(translationId, {
-				videoId,
-				fileId,
-				audioData: singleChunk
-			});
-			return;
-		}
+		const { getMediaBuffers, fileId } = audioData;
 		let index = 0;
-		for await (const audioChunk of getMediaBuffers()) {
-			const chunk = assertHasAudioChunk(audioChunk);
+		let receivedLastChunk = false;
+		for await (const { buffer, isLastChunk } of getMediaBuffers()) {
+			const chunk = isLastChunk && index > 0 ? buffer : assertHasAudioChunk(buffer);
+			const amount = isLastChunk ? index + 1 : 0;
 			await audioDownloader.onDownloadedPartialAudio.dispatchAsync(translationId, {
 				videoId,
 				fileId,
 				audioData: chunk,
 				version: 1,
 				index,
-				amount: mediaPartsLength
+				amount
 			});
+			receivedLastChunk ||= isLastChunk;
 			index++;
 		}
-		if (index !== mediaPartsLength) throw new Error(`Audio downloader. Expected ${mediaPartsLength} chunks, got ${index}`);
+		if (!receivedLastChunk) throw new Error("Audio downloader. MSE stream ended without a last chunk");
 	}
 	var AudioDownloader = class {
 		onDownloadedAudio = new EventImpl();
 		onDownloadedPartialAudio = new EventImpl();
 		onDownloadAudioError = new EventImpl();
 		strategy;
-		constructor(strategy = YT_AUDIO_STRATEGY) {
+		constructor(strategy = WEB_MSE_PROXY_STRATEGY) {
 			this.strategy = strategy;
 			debug.log("Audio downloader created", { strategy });
 		}
@@ -13880,7 +13930,7 @@ var vot = (function(exports) {
 					audioFile: audioData,
 					chunkId: index
 				}, {
-					audioPartsLength: amount,
+					audioPartsLength: amount ?? 0,
 					fileId,
 					version
 				}));
@@ -13889,7 +13939,7 @@ var vot = (function(exports) {
 				this.finishDownloadFailure(/* @__PURE__ */ new Error("Audio downloader failed while uploading chunk"));
 				return;
 			}
-			if (index === amount - 1) this.finishDownloadSuccess();
+			if (amount !== void 0 && index === amount - 1) this.finishDownloadSuccess();
 		};
 		onDownloadAudioError = async (videoId) => {
 			if (!this.downloading) {
@@ -14052,9 +14102,9 @@ var vot = (function(exports) {
 					debug.log("[Translation] waiting for audio download completion", {
 						videoId: videoData.videoId,
 						translationId: res.translationId,
-						timeoutMs: 3e4
+						timeoutMs: STREAM_TIMEOUT_MS
 					});
-					await this.waitForAudioDownloadCompletion(signal, 3e4);
+					await Promise.all([this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS), this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal)]);
 					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
 						disableLivelyVoice: livelyDisabled,
 						retryAttempt

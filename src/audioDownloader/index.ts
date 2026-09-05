@@ -9,14 +9,8 @@ import { EventImpl } from "../utils/eventImpl";
 import {
   type AvailableAudioDownloadType,
   strategies,
-  YT_AUDIO_STRATEGY,
+  WEB_MSE_PROXY_STRATEGY,
 } from "./strategies";
-
-function assertValidMediaPartsLength(mediaPartsLength: number): void {
-  if (!Number.isInteger(mediaPartsLength) || mediaPartsLength < 1) {
-    throw new Error("Audio downloader. Invalid media parts length");
-  }
-}
 
 function assertHasAudioChunk(chunk: Uint8Array | undefined): Uint8Array {
   if (!chunk || chunk.byteLength === 0) {
@@ -42,25 +36,14 @@ async function handleCommonAudioDownloadRequest({
     audioDownloadType: audioDownloader.strategy,
   });
 
-  const { getMediaBuffers, mediaPartsLength, fileId } = audioData;
-  assertValidMediaPartsLength(mediaPartsLength);
-
-  if (mediaPartsLength < 2) {
-    const iterator = getMediaBuffers();
-    const { value } = (await iterator.next()) as { value: Uint8Array };
-    const singleChunk = assertHasAudioChunk(value);
-
-    await audioDownloader.onDownloadedAudio.dispatchAsync(translationId, {
-      videoId,
-      fileId,
-      audioData: singleChunk,
-    });
-    return;
-  }
+  const { getMediaBuffers, fileId } = audioData;
 
   let index = 0;
-  for await (const audioChunk of getMediaBuffers()) {
-    const chunk = assertHasAudioChunk(audioChunk);
+  let receivedLastChunk = false;
+  for await (const { buffer, isLastChunk } of getMediaBuffers()) {
+    const chunk =
+      isLastChunk && index > 0 ? buffer : assertHasAudioChunk(buffer);
+    const amount = isLastChunk ? index + 1 : 0;
 
     await audioDownloader.onDownloadedPartialAudio.dispatchAsync(
       translationId,
@@ -70,17 +53,16 @@ async function handleCommonAudioDownloadRequest({
         audioData: chunk,
         version: 1,
         index,
-        amount: mediaPartsLength,
+        amount,
       },
     );
 
+    receivedLastChunk ||= isLastChunk;
     index++;
   }
 
-  if (index !== mediaPartsLength) {
-    throw new Error(
-      `Audio downloader. Expected ${mediaPartsLength} chunks, got ${index}`,
-    );
+  if (!receivedLastChunk) {
+    throw new Error("Audio downloader. MSE stream ended without a last chunk");
   }
 }
 
@@ -93,7 +75,7 @@ export class AudioDownloader {
 
   strategy: AvailableAudioDownloadType;
 
-  constructor(strategy: AvailableAudioDownloadType = YT_AUDIO_STRATEGY) {
+  constructor(strategy: AvailableAudioDownloadType = WEB_MSE_PROXY_STRATEGY) {
     this.strategy = strategy;
     debug.log("Audio downloader created", {
       strategy,
