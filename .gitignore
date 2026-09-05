@@ -1,4 +1,5 @@
 .output
+.amo-upload-uuid
 
 keys/
 
@@ -6,8 +7,11 @@ dist/test-ui.user.js
 dist/*.txt
 dist/*.map
 dist/main.user.js
+dist/*.css
 dist-ext/chrome/
 dist-ext/firefox/
+dist-ext/vot-extension-chrome.zip
+dist-ext/vot-extension-firefox.xpi
 
 .vscode
 .pytest_cache
@@ -146,3 +150,6 @@ dist/*.proxy.user.js
 .pnp.*
 
 .idea
+
+*storybook.log
+storybook-static

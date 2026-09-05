@@ -1,0 +1,11 @@
+.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview {
+  opacity: 0.72 !important;
+  pointer-events: none !important;
+  z-index: 2147483646;
+  transition:
+    left var(--vot-duration-medium) var(--vot-easing-standard),
+    right var(--vot-duration-medium) var(--vot-easing-standard),
+    top var(--vot-duration-medium) var(--vot-easing-standard),
+    transform var(--vot-duration-medium) var(--vot-easing-standard),
+    opacity var(--vot-duration-fast) var(--vot-easing-standard);
+}

@@ -1,21 +1,21 @@
 import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
-import { buildDefine } from "./lib/env";
-import { distDir, singleFileBuildOptions, srcDir } from "./lib/paths";
+import { buildDefine } from "./lib/env.ts";
+import { DIST_DIR, SOURCE_DIR, singleFileBuildOptions } from "./lib/paths.ts";
 import {
   collectUsedUserscriptGrantsFromEntry,
   getHeaders,
   mergeUserscriptGrants,
   type UserscriptHeader,
-} from "./lib/userscript/grants";
-import { formatUserscriptHeader } from "./lib/userscript/headers";
+} from "./lib/userscript/grants.ts";
+import { formatUserscriptHeader } from "./lib/userscript/headers.ts";
 import {
   getAvailableLocales,
   getLocaleHeaderEntriesAsync,
-} from "./lib/userscript/locales";
-import { createBaseViteConfig } from "./lib/vite-base-config";
+} from "./lib/userscript/locales.ts";
+import { createBaseViteConfig } from "./lib/vite-base-config.ts";
 
-const USERSCRIPT_ENTRY = path.resolve(srcDir, "index.ts");
+const USERSCRIPT_ENTRY = path.resolve(SOURCE_DIR, "index.ts");
 const USERSCRIPT_GLOBAL_NAME = "vot";
 
 type UserscriptBranch = "dev" | "master";
@@ -83,7 +83,7 @@ export default defineConfig(async ({ command, mode }) => {
     build: {
       ...baseConfig.build,
       ...singleFileBuildOptions,
-      outDir: distDir,
+      outDir: DIST_DIR,
       emptyOutDir: false,
       sourcemap: debug,
       minify: minified ? "oxc" : false,

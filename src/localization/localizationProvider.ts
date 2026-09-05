@@ -1,5 +1,5 @@
 import { contentUrl } from "../config/config";
-import type { FlatPhrases, LangOverride, Phrase } from "../types/localization";
+import type { FlatPhrases, Locale, Phrase } from "../types/localization";
 import type { LocaleStorageKey } from "../types/storage";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
@@ -8,7 +8,7 @@ import { votStorage } from "../utils/storage";
 import { getTimestamp, toFlatObj } from "../utils/utils";
 import rawDefaultLocale from "./locales/en.json";
 
-export type { LangOverride } from "../types/localization";
+export type LangOverride = Locale | "auto";
 
 const LOCALE_STORAGE_KEYS: readonly LocaleStorageKey[] = [
   "localePhrases",
@@ -249,7 +249,7 @@ class LocalizationProvider {
     locale: Partial<FlatPhrases>,
     key: Phrase,
     source: "default" | "locale",
-  ) {
+  ): undefined {
     const warningKey = `${source}:${key}`;
     if (this.warnedMissingKeys.has(warningKey)) {
       return undefined;

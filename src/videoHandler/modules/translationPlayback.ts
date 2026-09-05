@@ -1,4 +1,4 @@
-﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import { notifyTranslationFailureIfNeeded } from "../../core/translationErrors";
@@ -404,8 +404,9 @@ export async function updateTranslation(
 
 export function syncTranslationPlaybackVolume(this: VideoHandler): void {
   const player = this.audioPlayer?.player;
-  const overlayView = this.uiManager.votOverlayView;
-  const nextVolume = overlayView?.translationVolumeSlider?.value;
+  const overlayViewControls =
+    this.uiManager.votOverlayView?.overlayViewControls;
+  const nextVolume = overlayViewControls?.getTranslationVolume();
   applyTranslationPlaybackVolume(player, nextVolume, this.data?.defaultVolume);
 }
 
@@ -530,11 +531,11 @@ export async function translateFunc(
     this.resetActionsAbortController("translateFunc");
   }
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.votButton) {
+  if (!overlayView?.overlayViewControls) {
     debug.log("[translateFunc] Overlay view missing, skipping translation");
     return;
   }
-  overlayView.votButton.loading = true;
+  overlayView.overlayViewControls.setIsLoading(true);
   this.hadAsyncWait = false;
   this.volumeOnStart = this.getVideoVolume();
   if (!VIDEO_ID) {
@@ -594,6 +595,25 @@ export async function translateFunc(
       if (!applied) return;
       debug.log("[translateFunc] Cached translation was received");
       return;
+    }
+
+    // Auto-pause: pause video while waiting for translation to be prepared.
+    // Skip if the translation is already cached (handled above).
+    if (
+      this.data?.autoPauseOnTranslate &&
+      !this.video.paused &&
+      !this.video.ended
+    ) {
+      debug.log("[translateFunc] Pausing video until translation is ready");
+      this.pausedByTranslation = true;
+      this.video.addEventListener(
+        "play",
+        () => {
+          this.pausedByTranslation = false;
+        },
+        { once: true },
+      );
+      this.video.pause();
     }
 
     const translateRes = await requestApplyAndCacheTranslation(this, {
@@ -667,12 +687,21 @@ export async function translateFunc(
     if (this.activeTranslation?.promise === translationPromise) {
       this.activeTranslation = null;
     }
-    const overlayBtn = this.uiManager.votOverlayView?.votButton;
-    if (
-      !this.activeTranslation &&
-      overlayBtn?.loading &&
-      !this.hasActiveSource()
-    ) {
+    // Auto-pause: resume playback once the translated audio is ready
+    // (or on failure/abort). Only resume if we were the ones who paused.
+    if (!this.activeTranslation && this.pausedByTranslation) {
+      this.pausedByTranslation = false;
+      if (this.hasActiveSource()) {
+        debug.log("[translateFunc] Resuming video after translation is ready");
+        this.video.play().catch((playErr) => {
+          debug.log("[translateFunc] Failed to resume video", playErr);
+        });
+      }
+    }
+
+    const isLoading =
+      this.uiManager.votOverlayView.overlayViewControls?.getIsLoading();
+    if (!this.activeTranslation && isLoading && !this.hasActiveSource()) {
       debug.log("[translateFunc] clearing stale loading state");
       this.transformBtn("none", localizationProvider.get("translateVideo"));
     }

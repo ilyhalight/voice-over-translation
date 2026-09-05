@@ -100,7 +100,6 @@
     "*://*.bunkr.cat/*",
     "*://*.bunkr.media/*",
     "*://*.bunkr.red/*",
-    "*://*.bunkr.site/*",
     "*://*.bunkr.ws/*",
     "*://*.bunkr.org/*",
     "*://*.bunkr.sk/*",
@@ -179,6 +178,8 @@
     "cloudflare-dns.com",
     "porntn.com",
     "youtube.com",
-    "googlevideo.com"
+    "googlevideo.com",
+    "fonts.google.com",
+    "fonts.googleapis.com"
   ]
 }

@@ -2,11 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { zipDir } from "../../../scripts/zip/utils";
 import type { BuildConfig } from "../env";
-import { distExtDir } from "../paths";
-
-const GITHUB_DIST_EXT_RAW_BASE =
-  "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
-const CHROME_CRX_RAW_URL = `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-chrome.zip`;
+import {
+  CHROME_ZIP_FILE,
+  DIST_EXT_DIR,
+  getReleaseDownloadBase,
+} from "../paths";
 
 export async function writeChromeUpdatesManifest({
   version,
@@ -15,12 +15,13 @@ export async function writeChromeUpdatesManifest({
   version: string;
   extensionId: string;
 }): Promise<string> {
-  const updatesManifestPath = path.join(distExtDir, "update.xml");
+  const updatesManifestPath = path.join(DIST_EXT_DIR, "update.xml");
+  const packageUrl = `${getReleaseDownloadBase(version)}/${CHROME_ZIP_FILE}`;
   const xml =
     `<?xml version='1.0' encoding='UTF-8'?>\n` +
     `<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>\n` +
     `  <app appid='${extensionId}'>\n` +
-    `    <updatecheck codebase='${CHROME_CRX_RAW_URL}' version='${version}' />\n` +
+    `    <updatecheck codebase='${packageUrl}' version='${version}' />\n` +
     `  </app>\n` +
     `</gupdate>\n`;
 
@@ -35,10 +36,10 @@ export async function finalizeChromeBuild(
     author?: string;
   },
 ): Promise<void> {
-  const chromeDir = path.join(distExtDir, "chrome");
+  const chromeDir = path.join(DIST_EXT_DIR, "chrome");
   const version = String(headers.version || "");
 
-  const zipPath = path.join(distExtDir, "vot-extension-chrome.zip");
+  const zipPath = path.join(DIST_EXT_DIR, CHROME_ZIP_FILE);
   await zipDir(chromeDir, zipPath);
 
   const updatesPath = await writeChromeUpdatesManifest({

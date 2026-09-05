@@ -1,9 +1,6 @@
-import {
-  actualCompatVersion,
-  maxAudioVolume,
-  repositoryUrl,
-} from "../config/config";
+import { actualCompatVersion, repositoryUrl } from "../config/config";
 import { localizationProvider } from "../localization/localizationProvider";
+import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
 import type { StorageData } from "../types/storage";
 import type { OverlayMount, UIManagerProps } from "../types/uiManager";
@@ -11,10 +8,8 @@ import debug from "../utils/debug";
 import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
-import { serializeProcessedSubtitles } from "../utils/serializeSubtitles";
 import { votStorage } from "../utils/storage";
 import {
-  clamp,
   clearFileName,
   type DownloadBlobOptions,
   downloadBlob,
@@ -22,8 +17,9 @@ import {
 import type { VideoHandler } from "../VideoHandler";
 import type { VideoData } from "../videoHandler/shared";
 import { safeSetPlayerVolume } from "../videoHandler/translationVolume";
-import { normalizeButtonPosition } from "./buttonPlacement";
 import { applyOverlayMountUpdate } from "./mount";
+import { OverlayController } from "./overlayController";
+import { SettingsController } from "./settingsController";
 import {
   createShadowMount,
   destroyShadowMount,
@@ -31,8 +27,6 @@ import {
   type ShadowMount,
 } from "./shadowMount";
 import { handleTranslationButtonCommand } from "./translationCommands";
-import { OverlayView } from "./views/overlay";
-import { SettingsView } from "./views/settings";
 
 export class UIManager {
   mount: OverlayMount;
@@ -42,16 +36,15 @@ export class UIManager {
   private readonly intervalIdleChecker: IntervalIdleChecker;
   data: Partial<StorageData>;
 
-  votGlobalPortal?: HTMLElement;
   private globalPortalMount?: ShadowMount;
   /**
    * Contains all elements over video player e.g. button, menu and etc
    */
-  votOverlayView?: OverlayView;
+  votOverlayView?: OverlayController;
   /**
    * Dialog settings menu
    */
-  votSettingsView?: SettingsView;
+  votSettingsView?: SettingsController;
 
   constructor({
     mount,
@@ -65,22 +58,13 @@ export class UIManager {
     this.intervalIdleChecker = intervalIdleChecker;
   }
 
-  get root(): HTMLElement | ShadowRoot {
-    return this.mount.root;
-  }
-
-  get portalContainer(): HTMLElement {
-    return this.mount.portalContainer;
-  }
-
   getSubtitlesMountContainer(): HTMLElement | ShadowRoot {
     return this.votOverlayView?.root ?? this.mount.subtitlesMountContainer;
   }
 
   isInitialized(): this is {
-    votGlobalPortal: HTMLElement;
-    votOverlayView: OverlayView;
-    votSettingsView: SettingsView;
+    votOverlayView: OverlayController;
+    votSettingsView: SettingsController;
   } {
     return this.initialized;
   }
@@ -91,26 +75,58 @@ export class UIManager {
     }
 
     this.initialized = true;
+    try {
+      this.buildUI();
+    } catch (err) {
+      // A partially built UI must not stay flagged as initialized: callers
+      // (release, stopTranslation, transformBtn) would then dereference views
+      // that were never constructed and mask the original failure with a
+      // TypeError.
+      this.initialized = false;
+      this.releasePartialUI();
+      throw err;
+    }
 
-    this.globalPortalMount = createShadowMount({
+    return this;
+  }
+
+  /** Best-effort teardown of whatever `buildUI` managed to construct. */
+  private releasePartialUI() {
+    try {
+      this.votOverlayView?.release();
+    } catch {
+      /* already broken; keep tearing down */
+    }
+    try {
+      this.votSettingsView?.release();
+    } catch {
+      /* already broken; keep tearing down */
+    }
+    if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
+    this.votOverlayView = undefined;
+    this.votSettingsView = undefined;
+    this.globalPortalMount = undefined;
+  }
+
+  private buildUI() {
+    const globalPortalMount = createShadowMount({
       parent: this.getGlobalPortalHost(this.mount),
       rootClasses: ["vot-portal"],
     });
-    this.votGlobalPortal = this.globalPortalMount.root;
+    this.globalPortalMount = globalPortalMount;
 
-    this.votOverlayView = new OverlayView({
+    this.votOverlayView = new OverlayController({
       mount: this.mount,
-      globalPortal: this.votGlobalPortal,
       data: this.data,
       videoHandler: this.videoHandler,
       intervalIdleChecker: this.intervalIdleChecker,
     });
     // Preserve the user's last chosen button position across UI reloads
     // (e.g. when changing the menu language).
-    this.votOverlayView.initUI(normalizeButtonPosition(this.data.buttonPos));
+    this.votOverlayView.initUI();
 
-    this.votSettingsView = new SettingsView({
-      globalPortal: this.votGlobalPortal,
+    this.votSettingsView = new SettingsController({
+      globalPortal: globalPortalMount.root,
       data: this.data,
       videoHandler: this.videoHandler,
     });
@@ -156,7 +172,6 @@ export class UIManager {
       throw new Error("[VOT] UIManager isn't initialized");
     }
 
-    this.votOverlayView.initUIEvents();
     this.bindOverlayViewEvents();
 
     this.votSettingsView.initUIEvents();
@@ -330,34 +345,15 @@ export class UIManager {
 
         await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
       })
-      .addEventListener("change:showVideoVolume", () => {
-        this.withInitializedOverlayView((overlayView) => {
-          if (!overlayView.videoVolumeSlider || !overlayView.votButton) {
-            return;
-          }
-
-          overlayView.videoVolumeSlider.container.hidden =
-            !this.data.showVideoSlider ||
-            overlayView.votButton.status !== "success";
-        });
-      })
       .addEventListener("change:audioBooster", async () => {
-        this.withInitializedOverlayView((overlayView) => {
-          if (!overlayView.translationVolumeSlider) {
-            return;
-          }
+        const overlayViewControls = this.votOverlayView.overlayViewControls;
+        if (!overlayViewControls) {
+          return;
+        }
 
-          const currentVolume = overlayView.translationVolumeSlider.value;
-          const maxVolume =
-            this.data.audioBooster && !this.data.syncVolume
-              ? maxAudioVolume
-              : 100;
-          overlayView.translationVolumeSlider.max = maxVolume;
-          const nextVolume = clamp(currentVolume, 0, maxVolume);
-          overlayView.translationVolumeSlider.value = nextVolume;
-          this.videoHandler?.onTranslationVolumeSliderSynced(nextVolume);
-          this.videoHandler?.syncTranslationPlaybackVolume();
-        });
+        const nextTranslation = overlayViewControls.getTranslationVolume();
+        this.videoHandler?.onTranslationVolumeSliderSynced(nextTranslation);
+        this.videoHandler?.syncTranslationPlaybackVolume();
       })
       .addEventListener("change:syncVolume", (checked) => {
         if (!this.videoHandler) {
@@ -365,30 +361,22 @@ export class UIManager {
         }
         this.videoHandler.setupAudioSettings();
 
-        this.withInitializedOverlayView((overlayView) => {
-          const videoSlider = overlayView.videoVolumeSlider;
-          const translationSlider = overlayView.translationVolumeSlider;
-          if (!videoSlider || !translationSlider) {
-            return;
-          }
+        const overlayViewControls = this.votOverlayView.overlayViewControls;
+        if (!overlayViewControls) {
+          return;
+        }
 
-          const maxVolume =
-            this.data.audioBooster && !checked ? maxAudioVolume : 100;
-          translationSlider.max = maxVolume;
-          const nextTranslation = clamp(translationSlider.value, 0, maxVolume);
-          translationSlider.value = nextTranslation;
-          this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
-          this.videoHandler.syncTranslationPlaybackVolume();
+        const nextTranslation = overlayViewControls.getTranslationVolume();
+        this.videoHandler.syncVolumeWrapper("translation", nextTranslation);
+        this.videoHandler.syncTranslationPlaybackVolume();
+        if (!checked) {
+          return;
+        }
 
-          if (!checked) {
-            return;
-          }
-
-          this.videoHandler.resetVolumeLinkState(
-            Number(videoSlider.value),
-            nextTranslation,
-          );
-        });
+        this.videoHandler.resetVolumeLinkState(
+          overlayViewControls.getVideoVolume(),
+          nextTranslation,
+        );
       })
       .addEventListener("change:subtitlesHighlightWords", (checked) => {
         this.updateSubtitlesWidgetSetting(
@@ -481,27 +469,6 @@ export class UIManager {
           widget.resetTranslationContext(true);
         });
       })
-      .addEventListener("change:showPiPButton", () => {
-        this.withInitializedOverlayView((overlayView) => {
-          if (!overlayView.votButton) {
-            return;
-          }
-
-          overlayView.votButton.pipButton.hidden =
-            overlayView.votButton.separator2.hidden =
-              !overlayView.pipButtonVisible;
-        });
-      })
-      .addEventListener("select:buttonPosition", (item) => {
-        this.withInitializedOverlayView((overlayView) => {
-          const preferredPosition = normalizeButtonPosition(
-            this.data.buttonPos ?? item,
-          );
-          const { position, direction } =
-            overlayView.calcButtonLayout(preferredPosition);
-          overlayView.updateButtonLayout(position, direction);
-        });
-      })
       .addEventListener("select:menuLanguage", async () => {
         await this.reloadMenu();
       })
@@ -528,10 +495,10 @@ export class UIManager {
   }
 
   private async handleDownloadTranslationClick() {
-    const overlayView = this.votOverlayView;
+    const overlayViewControls = this.votOverlayView?.overlayViewControls;
     const videoHandler = this.videoHandler;
     const download = videoHandler?.downloadTranslation;
-    if (!overlayView?.isInitialized() || !download || !videoHandler.videoData) {
+    if (!download || !videoHandler.videoData) {
       return;
     }
 
@@ -543,7 +510,6 @@ export class UIManager {
       return;
     }
 
-    const downloadButton = overlayView.downloadTranslationButton;
     const downloadUrl = download.url;
     const filename = this.data.downloadWithName
       ? clearFileName(downloadVideoData.downloadTitle)
@@ -552,11 +518,10 @@ export class UIManager {
     const saveOptions: DownloadBlobOptions = { preferShare: isMobile };
 
     const setProgress = (progress: number) => {
-      if (downloadButton) {
-        downloadButton.progress = progress;
-      }
+      overlayViewControls?.setTranslationProgress(progress);
     };
 
+    overlayViewControls?.setShowTranslationProgress(true);
     setProgress(0);
     try {
       await this.downloadTranslationAudio(
@@ -571,6 +536,7 @@ export class UIManager {
         globalThis.open(downloadUrl, "_blank")?.focus();
       }
     } finally {
+      overlayViewControls?.setShowTranslationProgress(false);
       setProgress(0);
     }
   }
@@ -603,9 +569,7 @@ export class UIManager {
 
   private clearDownloadTranslation(videoHandler: VideoHandler): void {
     videoHandler.downloadTranslation = null;
-    if (this.votOverlayView?.downloadTranslationButton) {
-      this.votOverlayView.downloadTranslationButton.hidden = true;
-    }
+    this.votOverlayView?.overlayViewControls?.setShowDownloadTranslation(false);
   }
 
   private async downloadTranslationAudio(
@@ -663,16 +627,17 @@ export class UIManager {
 
   async reloadMenu() {
     if (!this.votOverlayView?.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
+      throw new Error("[VOT] OverlayController isn't initialized");
     }
 
     // Preserve overlay state across UI rebuild.
-    const prevButtonOpacity = this.votOverlayView.votButton.opacity;
-    const prevButtonHidden = this.votOverlayView.votButton.container.hidden;
-    const prevMenuHidden = this.votOverlayView.votMenu.hidden;
-    const prevButtonPos = normalizeButtonPosition(this.data.buttonPos);
-    const settingsWasOpen =
-      this.votSettingsView?.dialog?.container?.hidden === false;
+    const prevButtonOpacity =
+      this.votOverlayView.overlayViewControls.getButtonOpacity();
+    const prevButtonHidden =
+      this.votOverlayView.overlayViewControls.getButtonHidden();
+    const prevMenuHidden =
+      this.votOverlayView.overlayViewControls.getMenuHidden();
+    const settingsWasOpen = this.votSettingsView?.isOpen() === true;
 
     await this.videoHandler?.stopTranslation();
     this.release();
@@ -682,14 +647,13 @@ export class UIManager {
       return this;
     }
 
-    // Restore button/menu visibility + layout.
+    // Restore button/menu visibility.
     try {
-      const { position, direction } =
-        this.votOverlayView.calcButtonLayout(prevButtonPos);
-      this.votOverlayView.updateButtonLayout(position, direction);
-      this.votOverlayView.votMenu.hidden = prevMenuHidden;
-      this.votOverlayView.votButton.container.hidden = prevButtonHidden;
-      this.votOverlayView.votButton.opacity = prevButtonOpacity;
+      this.votOverlayView.overlayViewControls.setMenuHidden(prevMenuHidden);
+      this.votOverlayView.overlayViewControls.setButtonHidden(prevButtonHidden);
+      this.votOverlayView.overlayViewControls.setButtonOpacity(
+        prevButtonOpacity,
+      );
     } catch (err) {
       debug.warn(
         "[VOT] Failed to restore overlay state after menu reload",
@@ -724,13 +688,13 @@ export class UIManager {
 
   async handleTranslationBtnClick() {
     if (!this.votOverlayView?.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
+      throw new Error("[VOT] OverlayController isn't initialized");
     }
 
     await handleTranslationButtonCommand({
       videoHandler: this.videoHandler,
-      currentStatus: this.votOverlayView.votButton.status,
-      currentLoading: this.votOverlayView.votButton.loading,
+      currentStatus: this.votOverlayView.overlayViewControls?.getStatus(),
+      currentLoading: this.votOverlayView.overlayViewControls?.getIsLoading(),
       transformBtn: (status, text) => {
         this.transformBtn(status, text);
       },
@@ -750,31 +714,14 @@ export class UIManager {
 
   transformBtn(status: Status, text: string) {
     if (!this.votOverlayView?.isInitialized()) {
-      throw new Error("[VOT] OverlayView isn't initialized");
+      throw new Error("[VOT] OverlayController isn't initialized");
     }
 
-    this.votOverlayView.votButton.status = status;
-    this.votOverlayView.votButton.loading =
-      status === "error" && this.isLoadingText(text);
-    this.votOverlayView.votButton.setText(text);
-    this.votOverlayView.votButtonTooltip.setContent(text);
-
-    const { voicePopover, votButtonTooltip } = this.votOverlayView;
-    const centered = this.votOverlayView.votButton.direction !== "column";
-
-    if (status === "error") {
-      if (!centered) {
-        voicePopover?.cancelShow();
-        voicePopover?.hideNow();
-        this.votOverlayView.votButton.setVoiceMenuOpen(false);
-      }
-      votButtonTooltip.dismissImmediate();
-      this.votOverlayView.syncTranslateButtonTooltip();
-    } else {
-      votButtonTooltip.dismissImmediate();
-      this.votOverlayView.syncTranslateButtonTooltip();
-      this.votOverlayView.rescheduleVoicePopoverIfHovered();
-    }
+    this.votOverlayView.overlayViewControls?.setStatus(status);
+    this.votOverlayView.overlayViewControls?.setIsLoading(
+      status === "error" && this.isLoadingText(text),
+    );
+    this.votOverlayView.overlayViewControls?.setLabelText(text);
 
     return this;
   }
@@ -786,24 +733,13 @@ export class UIManager {
 
     // Release child views before removing the shared portal.
     // Each view is now idempotent and releases events before DOM.
-    this.votOverlayView.release();
-    this.votSettingsView.release();
-    destroyShadowMount(this.globalPortalMount);
+    this.votOverlayView?.release();
+    this.votSettingsView?.release();
+    if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
     this.globalPortalMount = undefined;
-    this.votGlobalPortal = undefined;
 
     this.initialized = false;
     return this;
-  }
-
-  private withInitializedOverlayView(
-    callback: (overlayView: OverlayView) => void,
-  ) {
-    if (!this.votOverlayView?.isInitialized()) {
-      return;
-    }
-
-    callback(this.votOverlayView);
   }
 
   private withSubtitlesWidget(

@@ -21,8 +21,8 @@
 // @homepageURL    https://github.com/ilyhalight/voice-over-translation
 // @source         https://github.com/ilyhalight/voice-over-translation.git
 // @supportURL     https://github.com/ilyhalight/voice-over-translation/issues
-// @downloadURL    https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
-// @updateURL      https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+// @downloadURL    https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot.user.js
+// @updateURL      https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot.user.js
 // @match          *://*.youtube.com/*
 // @match          *://*.youtube-nocookie.com/*
 // @match          *://*.youtubekids.com/*
@@ -229,6 +229,8 @@
 // @connect        porntn.com
 // @connect        youtube.com
 // @connect        googlevideo.com
+// @connect        fonts.google.com
+// @connect        fonts.googleapis.com
 // @grant          GM_addStyle
 // @grant          GM_deleteValue
 // @grant          GM_getValue
@@ -1695,6 +1697,11 @@ var vot = (function(exports) {
 		"en",
 		"kk"
 	];
+	var subtitlesFormats = [
+		"srt",
+		"vtt",
+		"json"
+	];
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/players/videojs.js
 	var VideoJSHelper = class VideoJSHelper extends BaseHelper {
@@ -2357,69 +2364,50 @@ var vot = (function(exports) {
 	/**
 	* Read a 64 bit varint as two JS numbers.
 	*
-	* Returns tuple:
-	* [0]: low bits
-	* [1]: high bits
+	* Stores the low and high words on the reader.
 	*
 	* Copyright 2008 Google Inc.  All rights reserved.
 	*
 	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
 	*/
 	function varint64read() {
-		let lowBits = 0;
-		let highBits = 0;
+		const buf = this.buf;
+		let pos = this.pos;
+		let lo = 0;
+		let hi = 0;
 		for (let shift = 0; shift < 28; shift += 7) {
-			let b = this.buf[this.pos++];
-			lowBits |= (b & 127) << shift;
+			const b = buf[pos++];
+			lo |= (b & 127) << shift;
 			if ((b & 128) == 0) {
+				this.pos = pos;
 				this.assertBounds();
-				return [lowBits, highBits];
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
 			}
 		}
-		let middleByte = this.buf[this.pos++];
-		lowBits |= (middleByte & 15) << 28;
-		highBits = (middleByte & 112) >> 4;
+		const middleByte = buf[pos++];
+		lo |= (middleByte & 15) << 28;
+		hi = (middleByte & 112) >> 4;
 		if ((middleByte & 128) == 0) {
+			this.pos = pos;
 			this.assertBounds();
-			return [lowBits, highBits];
+			this.varint64Lo = lo;
+			this.varint64Hi = hi;
+			return;
 		}
 		for (let shift = 3; shift <= 31; shift += 7) {
-			let b = this.buf[this.pos++];
-			highBits |= (b & 127) << shift;
+			const b = buf[pos++];
+			hi |= (b & 127) << shift;
 			if ((b & 128) == 0) {
+				this.pos = pos;
 				this.assertBounds();
-				return [lowBits, highBits];
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
 			}
 		}
 		throw new Error("invalid varint");
-	}
-	/**
-	* Write a 64 bit varint, given as two JS numbers, to the given bytes array.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
-	*/
-	function varint64write(lo, hi, bytes) {
-		for (let i = 0; i < 28; i = i + 7) {
-			const shift = lo >>> i;
-			const hasNext = !(shift >>> 7 == 0 && hi == 0);
-			const byte = (hasNext ? shift | 128 : shift) & 255;
-			bytes.push(byte);
-			if (!hasNext) return;
-		}
-		const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
-		const hasMoreBits = !(hi >> 3 == 0);
-		bytes.push((hasMoreBits ? splitBits | 128 : splitBits) & 255);
-		if (!hasMoreBits) return;
-		for (let i = 3; i < 31; i = i + 7) {
-			const shift = hi >>> i;
-			const hasNext = !(shift >>> 7 == 0);
-			const byte = (hasNext ? shift | 128 : shift) & 255;
-			bytes.push(byte);
-			if (!hasNext) return;
-		}
-		bytes.push(hi >>> 31 & 1);
 	}
 	var TWO_PWR_32_DBL = 4294967296;
 	/**
@@ -2523,61 +2511,39 @@ var vot = (function(exports) {
 		return "0000000".slice(partial.length) + partial;
 	};
 	/**
-	* Write a 32 bit varint, signed or unsigned. Same as `varint64write(0, value, bytes)`
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
-	*/
-	function varint32write(value, bytes) {
-		if (value >= 0) {
-			while (value > 127) {
-				bytes.push(value & 127 | 128);
-				value = value >>> 7;
-			}
-			bytes.push(value);
-		} else {
-			for (let i = 0; i < 9; i++) {
-				bytes.push(value & 127 | 128);
-				value = value >> 7;
-			}
-			bytes.push(1);
-		}
-	}
-	/**
 	* Read an unsigned 32 bit varint.
 	*
 	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L220
 	*/
 	function varint32read() {
 		let b = this.buf[this.pos++];
-		let result = b & 127;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
-			return result;
+			return b;
 		}
+		let result = b & 127;
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 7;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 14;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 21;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 15) << 28;
 		for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
-		if ((b & 128) != 0) throw new Error("invalid varint");
+		if ((b & 128) !== 0) throw new Error("invalid varint");
 		this.assertBounds();
 		return result >>> 0;
 	}
@@ -2589,8 +2555,11 @@ var vot = (function(exports) {
 	var protoInt64 = /*@__PURE__*/ makeInt64Support();
 	function makeInt64Support() {
 		const dv = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
-		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
-			const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
+		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
+			const MIN = BigInt("-9223372036854775808");
+			const MAX = BigInt("9223372036854775807");
+			const UMIN = BigInt("0");
+			const UMAX = BigInt("18446744073709551615");
 			return {
 				zero: BigInt(0),
 				supported: true,
@@ -2670,27 +2639,68 @@ var vot = (function(exports) {
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
 	var symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
+	/**
+	* Protobuf-ES requires the Text Encoding API to convert UTF-8 from and to
+	* binary. This WHATWG API is widely available, but it is not part of the
+	* ECMAScript standard. On runtimes where it is not available, use this
+	* function to provide your own implementation.
+	*
+	* Providing `encodeUtf8Into` is optional for backwards compatibility. If it
+	* is omitted, we emulate it with a wrapper that calls `encodeUtf8`.
+	*
+	* Note that the Text Encoding API does not provide a way to validate UTF-8.
+	* Our implementation uses String.prototype.isWellFormed, and falls back
+	* to use encodeURIComponent().
+	*/
+	function configureTextEncoding(textEncoding) {
+		var _a;
+		globalThis[symbol] = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
+	}
 	function getTextEncoding() {
-		if (globalThis[symbol] == void 0) {
-			const te = new globalThis.TextEncoder();
-			const td = new globalThis.TextDecoder();
-			globalThis[symbol] = {
+		const globals = globalThis;
+		if (!globals[symbol]) {
+			const textEncoder = new globals.TextEncoder();
+			const textDecoder = new globals.TextDecoder();
+			let textDecoderStrict;
+			const config = {
 				encodeUtf8(text) {
-					return te.encode(text);
+					return textEncoder.encode(text);
 				},
-				decodeUtf8(bytes) {
-					return td.decode(bytes);
+				decodeUtf8(bytes, strict) {
+					if (strict) {
+						if (!textDecoderStrict) textDecoderStrict = new globals.TextDecoder("utf-8", { fatal: true });
+						return textDecoderStrict.decode(bytes);
+					}
+					return textDecoder.decode(bytes);
 				},
 				checkUtf8(text) {
 					try {
 						return true;
-					} catch (e) {
+					} catch (_) {
 						return false;
 					}
 				}
 			};
+			if (textEncoder.encodeInto) config.encodeUtf8Into = textEncoder.encodeInto.bind(textEncoder);
+			const nativeStringIsWellFormed = String.prototype.isWellFormed;
+			if (nativeStringIsWellFormed) config.checkUtf8 = (text) => {
+				return nativeStringIsWellFormed.call(text);
+			};
+			configureTextEncoding(config);
 		}
-		return globalThis[symbol];
+		return globals[symbol];
+	}
+	/**
+	* Simplistic polyfill for encodeUtf8Into.
+	*
+	* @private
+	*/
+	function emulateEncodeInto(encodeUtf8) {
+		return (text, dest) => {
+			const bytes = encodeUtf8(text);
+			dest.set(bytes);
+			return { written: bytes.byteLength };
+		};
 	}
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
@@ -2737,33 +2747,47 @@ var vot = (function(exports) {
 		WireType[WireType["Bit32"] = 5] = "Bit32";
 	})(WireType || (WireType = {}));
 	var BinaryWriter = class {
-		constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
-			this.encodeUtf8 = encodeUtf8;
+		constructor(encodeUtf8) {
 			/**
-			* Previous fork states.
+			* Previous fork positions (the write position at the time
+			* `fork()` was called).
 			*/
-			this.stack = [];
-			this.chunks = [];
-			this.buf = [];
+			this.stackPos = [];
+			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto(encodeUtf8) : getTextEncoding().encodeUtf8Into;
+			this.buffer = EMPTY_BUFFER;
+			this.viewCache = EMPTY_VIEW;
+			this.pos = 0;
+		}
+		ensureCapacity(size) {
+			const required = this.pos + size;
+			if (required > this.buffer.length) {
+				let newLen = this.buffer.length || INITIAL_SIZE;
+				while (newLen < required) newLen *= 2;
+				const newBuf = new Uint8Array(newLen);
+				if (this.pos > 0) newBuf.set(this.buffer);
+				this.buffer = newBuf;
+			}
+		}
+		/**
+		* The DataView over `buffer`, rebuilt only if the buffer has grown since it
+		* was last used.
+		*/
+		view() {
+			const bytes = this.buffer;
+			const view = this.viewCache;
+			if (view.byteLength === bytes.byteLength) return view;
+			const newView = new DataView(bytes.buffer);
+			this.viewCache = newView;
+			return newView;
 		}
 		/**
 		* Return all bytes written and reset this writer.
 		*/
 		finish() {
-			if (this.buf.length) {
-				this.chunks.push(new Uint8Array(this.buf));
-				this.buf = [];
-			}
-			let len = 0;
-			for (let i = 0; i < this.chunks.length; i++) len += this.chunks[i].length;
-			let bytes = new Uint8Array(len);
-			let offset = 0;
-			for (let i = 0; i < this.chunks.length; i++) {
-				bytes.set(this.chunks[i], offset);
-				offset += this.chunks[i].length;
-			}
-			this.chunks = [];
-			return bytes;
+			const result = this.buffer.slice(0, this.pos);
+			this.pos = 0;
+			this.stackPos = [];
+			return result;
 		}
 		/**
 		* Start a new fork for length-delimited data like a message
@@ -2772,12 +2796,9 @@ var vot = (function(exports) {
 		* Must be joined later with `join()`.
 		*/
 		fork() {
-			this.stack.push({
-				chunks: this.chunks,
-				buf: this.buf
-			});
-			this.chunks = [];
-			this.buf = [];
+			this.stackPos.push(this.pos);
+			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+			this.buffer[this.pos++] = 0;
 			return this;
 		}
 		/**
@@ -2785,13 +2806,18 @@ var vot = (function(exports) {
 		* return to the previous state.
 		*/
 		join() {
-			let chunk = this.finish();
-			let prev = this.stack.pop();
-			if (!prev) throw new Error("invalid state, fork stack empty");
-			this.chunks = prev.chunks;
-			this.buf = prev.buf;
-			this.uint32(chunk.byteLength);
-			return this.raw(chunk);
+			const forkPos = this.stackPos.pop();
+			if (forkPos === void 0) throw new Error("invalid state, fork stack empty");
+			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
+			const lenPrefixSize = varint32Size(len);
+			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
+				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
+				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+			}
+			this.pos = forkPos;
+			this.uint32(len);
+			this.pos += len;
+			return this;
 		}
 		/**
 		* Writes a tag (field number and wire type).
@@ -2807,11 +2833,9 @@ var vot = (function(exports) {
 		* Write a chunk of raw bytes.
 		*/
 		raw(chunk) {
-			if (this.buf.length) {
-				this.chunks.push(new Uint8Array(this.buf));
-				this.buf = [];
-			}
-			this.chunks.push(chunk);
+			this.ensureCapacity(chunk.length);
+			this.buffer.set(chunk, this.pos);
+			this.pos += chunk.length;
 			return this;
 		}
 		/**
@@ -2819,11 +2843,16 @@ var vot = (function(exports) {
 		*/
 		uint32(value) {
 			assertUInt32(value);
-			while (value > 127) {
-				this.buf.push(value & 127 | 128);
-				value = value >>> 7;
+			this.ensureCapacity(5);
+			if (value < 128) {
+				this.buffer[this.pos++] = value;
+				return this;
 			}
-			this.buf.push(value);
+			while (value > 127) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>>= 7;
+			}
+			this.buffer[this.pos++] = value;
 			return this;
 		}
 		/**
@@ -2831,14 +2860,21 @@ var vot = (function(exports) {
 		*/
 		int32(value) {
 			assertInt32(value);
-			varint32write(value, this.buf);
+			if (value >= 0) return this.uint32(value);
+			this.ensureCapacity(10);
+			for (let i = 0; i < 9; i++) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>= 7;
+			}
+			this.buffer[this.pos++] = 1;
 			return this;
 		}
 		/**
-		* Write a `bool` value, a variant.
+		* Write a `bool` value, a varint.
 		*/
 		bool(value) {
-			this.buf.push(value ? 1 : 0);
+			this.ensureCapacity(1);
+			this.buffer[this.pos++] = value ? 1 : 0;
 			return this;
 		}
 		/**
@@ -2852,100 +2888,208 @@ var vot = (function(exports) {
 		* Write a `string` value, length-delimited data converted to UTF-8 text.
 		*/
 		string(value) {
-			let chunk = this.encodeUtf8(value);
-			this.uint32(chunk.byteLength);
-			return this.raw(chunk);
+			if (typeof value !== "string") value = String(value);
+			const len = value.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				this.ensureCapacity(len + 1);
+				const ascii = this.buffer;
+				let pos = this.pos;
+				ascii[pos++] = len;
+				let i = 0;
+				for (; i < len; i++) {
+					const code = value.charCodeAt(i);
+					if (code > 127) break;
+					ascii[pos++] = code;
+				}
+				if (i == len) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			this.ensureCapacity(len * 3 + 5);
+			const lenPrefixSizeGuess = varint32Size(len);
+			const buf = this.buffer;
+			const start = this.pos;
+			const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
+			const lenPrefixSize = varint32Size(written);
+			if (lenPrefixSize != lenPrefixSizeGuess) buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
+			this.uint32(written);
+			this.pos += written;
+			return this;
 		}
 		/**
 		* Write a `float` value, 32-bit floating point number.
 		*/
 		float(value) {
 			assertFloat32(value);
-			let chunk = /* @__PURE__ */ new Uint8Array(4);
-			new DataView(chunk.buffer).setFloat32(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(4);
+			this.view().setFloat32(this.pos, value, true);
+			this.pos += 4;
+			return this;
 		}
 		/**
 		* Write a `double` value, a 64-bit floating point number.
 		*/
 		double(value) {
-			let chunk = /* @__PURE__ */ new Uint8Array(8);
-			new DataView(chunk.buffer).setFloat64(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(8);
+			this.view().setFloat64(this.pos, value, true);
+			this.pos += 8;
+			return this;
 		}
 		/**
 		* Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
 		*/
 		fixed32(value) {
 			assertUInt32(value);
-			let chunk = /* @__PURE__ */ new Uint8Array(4);
-			new DataView(chunk.buffer).setUint32(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(4);
+			this.view().setUint32(this.pos, value, true);
+			this.pos += 4;
+			return this;
 		}
 		/**
 		* Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
 		*/
 		sfixed32(value) {
 			assertInt32(value);
-			let chunk = /* @__PURE__ */ new Uint8Array(4);
-			new DataView(chunk.buffer).setInt32(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(4);
+			this.view().setInt32(this.pos, value, true);
+			this.pos += 4;
+			return this;
 		}
 		/**
 		* Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
 		*/
 		sint32(value) {
 			assertInt32(value);
-			value = (value << 1 ^ value >> 31) >>> 0;
-			varint32write(value, this.buf);
-			return this;
+			return this.uint32((value << 1 ^ value >> 31) >>> 0);
 		}
 		/**
-		* Write a `fixed64` value, a signed, fixed-length 64-bit integer.
+		* Write a `sfixed64` value, a signed, fixed-length 64-bit integer.
 		*/
 		sfixed64(value) {
-			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
-			view.setInt32(0, tc.lo, true);
-			view.setInt32(4, tc.hi, true);
-			return this.raw(chunk);
+			const tc = protoInt64.enc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
 		}
 		/**
 		* Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
 		*/
 		fixed64(value) {
-			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
-			view.setInt32(0, tc.lo, true);
-			view.setInt32(4, tc.hi, true);
-			return this.raw(chunk);
+			const tc = protoInt64.uEnc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
 		}
 		/**
 		* Write a `int64` value, a signed 64-bit varint.
 		*/
 		int64(value) {
-			let tc = protoInt64.enc(value);
-			varint64write(tc.lo, tc.hi, this.buf);
-			return this;
+			const tc = protoInt64.enc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
 		}
 		/**
 		* Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
 		*/
 		sint64(value) {
-			let tc = protoInt64.enc(value), sign = tc.hi >> 31;
-			varint64write(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
-			return this;
+			const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+			return this.writeVarint64(lo, hi);
 		}
 		/**
 		* Write a `uint64` value, an unsigned 64-bit varint.
 		*/
 		uint64(value) {
-			let tc = protoInt64.uEnc(value);
-			varint64write(tc.lo, tc.hi, this.buf);
+			const tc = protoInt64.uEnc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
+		}
+		/**
+		* Write a 64-bit varint directly into the buffer. Accepts the value as
+		* split low/high 32-bit words.
+		*
+		* Ported from varint64write() to avoid the intermediate number[] buffer.
+		* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
+		*/
+		writeVarint64(lo, hi) {
+			this.ensureCapacity(10);
+			const buf = this.buffer;
+			let pos = this.pos;
+			for (let i = 0; i < 28; i = i + 7) {
+				const shift = lo >>> i;
+				const hasNext = !(shift >>> 7 == 0 && hi == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
+			const hasMoreBits = !(hi >> 3 == 0);
+			buf[pos++] = (hasMoreBits ? splitBits | 128 : splitBits) & 255;
+			if (!hasMoreBits) {
+				this.pos = pos;
+				return this;
+			}
+			for (let i = 3; i < 31; i = i + 7) {
+				const shift = hi >>> i;
+				const hasNext = !(shift >>> 7 == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			buf[pos++] = hi >>> 31 & 1;
+			this.pos = pos;
 			return this;
 		}
 	};
+	/**
+	* Capacity of the buffer allocated by the first write..
+	*/
+	var INITIAL_SIZE = 128;
+	/**
+	* Bytes `fork()` reserves for the length prefix, betting that the payload will
+	* be under 128 bytes. `join()` fills them in, and widens them if the bet was
+	* wrong.
+	*/
+	var DEFAULT_LEN_PREFIX_SIZE = 1;
+	/**
+	* Shared empty buffer used as the initial value before the first write.
+	* Avoids allocating and zeroing `INITIAL_SIZE` bytes per BinaryWriter when a
+	* writer is only used for a tiny message (or not used at all).
+	*/
+	var EMPTY_BUFFER = /* @__PURE__ */ new Uint8Array(0);
+	/**
+	* Shared empty view, paired with `EMPTY_BUFFER`. Never written to: any
+	* fixed-width write first grows the buffer, which replaces this view.
+	*/
+	var EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
+	/**
+	* Longest string on the ASCII fast paths. Must stay below 0x80, so
+	* that the writer's length prefix always fits a single varint byte.
+	*/
+	var ASCII_MAX_LENGTH = 32;
+	/**
+	* Number of bytes needed to encode `value` as an unsigned 32-bit varint.
+	*/
+	function varint32Size(value) {
+		if (value < 128) return 1;
+		if (value < 16384) return 2;
+		if (value < 2097152) return 3;
+		if (value < 268435456) return 4;
+		return 5;
+	}
 	var BinaryReader = class {
 		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
 			this.decodeUtf8 = decodeUtf8;
+			this.varint64Lo = 0;
+			this.varint64Hi = 0;
 			this.varint64 = varint64read;
 			/**
 			* Read a `uint32` field, an unsigned 32 bit varint.
@@ -2957,20 +3101,28 @@ var vot = (function(exports) {
 			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 		}
 		/**
-		* Reads a tag - field number and wire type.
+		* Reads a tag - field number and wire type. Tags are uint32 varints; values
+		* that do not fit in uint32 are rejected.
 		*/
 		tag() {
-			let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
-			if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+			const start = this.pos;
+			const tag = this.uint32();
+			const bytesRead = this.pos - start;
+			if (bytesRead > 5 || bytesRead == 5 && this.buf[this.pos - 1] > 15) throw new Error("illegal tag: varint overflows uint32");
+			const fieldNo = tag >>> 3;
+			const wireType = tag & 7;
+			if (fieldNo <= 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
 			return [fieldNo, wireType];
 		}
 		/**
 		* Skip one element and return the skipped data.
 		*
 		* When skipping StartGroup, provide the tags field number to check for
-		* matching field number in the EndGroup tag.
+		* matching field number in the EndGroup tag. Recursion into nested groups
+		* is guarded by the `recursionLimit` argument: When the limit is reached,
+		* this method throws.
 		*/
-		skip(wireType, fieldNo) {
+		skip(wireType, fieldNo, recursionLimit = 100) {
 			let start = this.pos;
 			switch (wireType) {
 				case WireType.Varint:
@@ -2985,13 +3137,14 @@ var vot = (function(exports) {
 					this.pos += len;
 					break;
 				case WireType.StartGroup:
+					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
 					for (;;) {
 						const [fn, wt] = this.tag();
 						if (wt === WireType.EndGroup) {
 							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
 							break;
 						}
-						this.skip(wt, fn);
+						this.skip(wt, fn, recursionLimit - 1);
 					}
 					break;
 				default: throw new Error("cant skip wire type " + wireType);
@@ -3022,19 +3175,23 @@ var vot = (function(exports) {
 		* Read a `int64` field, a signed 64-bit varint.
 		*/
 		int64() {
-			return protoInt64.dec(...this.varint64());
+			this.varint64();
+			return protoInt64.dec(this.varint64Lo, this.varint64Hi);
 		}
 		/**
 		* Read a `uint64` field, an unsigned 64-bit varint.
 		*/
 		uint64() {
-			return protoInt64.uDec(...this.varint64());
+			this.varint64();
+			return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
 		}
 		/**
 		* Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
 		*/
 		sint64() {
-			let [lo, hi] = this.varint64();
+			this.varint64();
+			let lo = this.varint64Lo;
+			let hi = this.varint64Hi;
 			let s = -(lo & 1);
 			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
 			hi = hi >>> 1 ^ s;
@@ -3044,8 +3201,13 @@ var vot = (function(exports) {
 		* Read a `bool` field, a variant.
 		*/
 		bool() {
-			let [lo, hi] = this.varint64();
-			return lo !== 0 || hi !== 0;
+			const b = this.buf[this.pos];
+			if (b < 128) {
+				this.pos++;
+				return b !== 0;
+			}
+			this.varint64();
+			return this.varint64Lo !== 0 || this.varint64Hi !== 0;
 		}
 		/**
 		* Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
@@ -3093,10 +3255,22 @@ var vot = (function(exports) {
 			return this.buf.subarray(start, start + len);
 		}
 		/**
-		* Read a `string` field, length-delimited data converted to UTF-8 text.
+		* Read a `string` field, length-delimited data converted to UTF-8 text. If
+		* `strict` is true, throw on invalid UTF-8 instead of substituting U+FFFD.
 		*/
-		string() {
-			return this.decodeUtf8(this.bytes());
+		string(strict) {
+			const bytes = this.bytes();
+			const len = bytes.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				const codes = new Array(len);
+				for (let i = 0; i < len; i++) {
+					const byte = bytes[i];
+					if (byte > 127) return this.decodeUtf8(bytes, strict);
+					codes[i] = byte;
+				}
+				return String.fromCharCode.apply(String, codes);
+			}
+			return this.decodeUtf8(bytes, strict);
 		}
 	};
 	/**
@@ -3122,7 +3296,7 @@ var vot = (function(exports) {
 		if (typeof arg == "string") {
 			const o = arg;
 			arg = Number(arg);
-			if (isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
+			if (Number.isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
 		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
 		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
 	}
@@ -4968,12 +5142,14 @@ var vot = (function(exports) {
 					for (const s of item.sources) if (s?.file && !sources.some((existing) => existing.file === s.file)) sources.push(s);
 				}
 				const validSources = sources.filter((s) => s && typeof s.file === "string" && s.file.length > 0);
-				if (validSources.length === 0) if (typeof item.file === "string" && item.file.length > 0) validSources.push({
-					file: item.file,
-					type: "",
-					label: "default"
-				});
-				else throw new Error("No valid sources found");
+				if (validSources.length === 0) {
+					if (typeof item.file === "string" && item.file.length > 0) validSources.push({
+						file: item.file,
+						type: "",
+						label: "default"
+					});
+					else throw new Error("No valid sources found");
+				}
 				validSources.sort((a, b) => {
 					const heightA = this.getHeight(a);
 					const heightB = this.getHeight(b);
@@ -6742,7 +6918,7 @@ var vot = (function(exports) {
 	* @see https://github.com/FOSWLY/vot-worker
 	*/
 	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
-	var proxyWorkerHost = "vot-worker.eu.cc";
+	var PROXY_WORKER_HOST = "vot-worker.eu.cc";
 	/**
 	* @see https://github.com/FOSWLY/translate-backend
 	*/
@@ -6750,13 +6926,13 @@ var vot = (function(exports) {
 	var detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
 	var authServerUrl = "https://rust-server-531j.onrender.com";
 	var authLoginUrl = `${authServerUrl}/v1/auth/handle`;
-	var avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
+	var AVATAR_SERVER_URL = "https://avatars.mds.yandex.net/get-yapic";
 	var repoPath = "ilyhalight/voice-over-translation";
 	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
 	var repositoryUrl = `https://github.com/${repoPath}`;
-	var defaultTranslationService = "yandexbrowser";
-	var defaultDetectService = "yandexbrowser";
-	var proxyOnlyCountries = [
+	var DEFAULT_TRANSLATION_SERVICE = "yandexbrowser";
+	var DEFAULT_DETECT_SERVICE = "yandexbrowser";
+	var PROXY_ONLY_COUNTRIES = [
 		"UA",
 		"LV",
 		"LT"
@@ -6764,16 +6940,17 @@ var vot = (function(exports) {
 	/**
 	* 100 - 3000 ms - delay before hiding button
 	*/
-	var defaultAutoHideDelay = 1e3;
-	var actualCompatVersion = "2025-05-09";
+	var DEFAULT_AUTO_HIDE_DELAY = 1e3;
+	var actualCompatVersion = "2026-08-18";
 	//#endregion
 	//#region src/types/storage.ts
-	var subtitleResponseLanguageModes = ["auto", "original"];
+	var AUTO_SUBTITLE_LANGUAGE_VALUE = "auto";
+	var ORIGINAL_SUBTITLE_LANGUAGE_VALUE = "original";
 	var storageKeys = [
 		"autoTranslate",
+		"autoPauseOnTranslate",
 		"autoSubtitles",
 		"dontTranslateLanguages",
-		"enabledDontTranslateLanguages",
 		"enabledAutoVolume",
 		"enabledSmartDucking",
 		"autoVolume",
@@ -8941,6 +9118,9 @@ var vot = (function(exports) {
 		anchor.style.position = "fixed";
 		anchor.style.left = "-9999px";
 		anchor.style.top = "0";
+		anchor.addEventListener("click", (event) => {
+			event.stopPropagation();
+		}, { once: true });
 		(document.body ?? document.documentElement).append(anchor);
 		try {
 			anchor.click();
@@ -9146,6 +9326,10 @@ var vot = (function(exports) {
 	var HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
 	var URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 	var scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
+	function getScriptTitle() {
+		if (typeof GM_info === "undefined") return "VOT";
+		return GM_info?.script?.name || "VOT";
+	}
 	function getCallbackGmXhr() {
 		const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
 		return typeof gmXhr === "function" ? gmXhr : void 0;
@@ -9158,7 +9342,7 @@ var vot = (function(exports) {
 	function hasSupportedGmXhr() {
 		return !!(getCallbackGmXhr() || getPromiseGmXhr());
 	}
-	var isProxyOnlyExtension = browserInfo.browser?.name === "Safari" || !["Tampermonkey", "Violentmonkey"].includes(scriptHandler);
+	var IS_PROXY_ONLY_EXTENSION = browserInfo.browser?.name === "Safari" || !["Tampermonkey", "Violentmonkey"].includes(scriptHandler);
 	/**
 	* Returns true when the GM4 promise-based API is available.
 	*
@@ -9472,69 +9656,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/utils/storage.ts
-	var compatRules = Object.entries({
-		numToBool: [
-			["autoTranslate"],
-			["dontTranslateYourLang", "enabledDontTranslateLanguages"],
-			["autoSetVolumeYandexStyle", "enabledAutoVolume"],
-			["showVideoSlider"],
-			["syncVolume"],
-			["downloadWithName"],
-			["sendNotifyOnComplete"],
-			["highlightWords"],
-			["onlyBypassMediaCSP"],
-			["newAudioPlayer"],
-			["showPiPButton"],
-			["translateAPIErrors"],
-			["audioBooster"],
-			["useNewModel", "useLivelyVoice"]
-		],
-		number: [["autoVolume"]],
-		array: [["dontTranslateLanguage", "dontTranslateLanguages"]],
-		string: [
-			["hotkeyButton", "translationHotkey"],
-			["locale-lang-override", "localeLangOverride"],
-			["locale-lang", "localeLang"]
-		]
-	}).flatMap(([category, entries]) => entries.map(([oldKey, maybeNewKey]) => ({
-		category,
-		oldKey,
-		newKey: maybeNewKey ?? oldKey,
-		shouldDeleteOldKey: Boolean(maybeNewKey)
-	})));
-	var compatRuleByOldKey = new Map(compatRules.map((rule) => [rule.oldKey, rule]));
-	var compatKeysToRead = Array.from(new Set(compatRules.map((rule) => rule.oldKey)));
-	function createUndefinedDefaults(keys) {
-		const defaults = {};
-		for (const key of keys) defaults[key] = void 0;
-		return defaults;
-	}
-	function isCompatValue(category, value) {
-		switch (category) {
-			case "numToBool":
-			case "number": return typeof value === "number";
-			case "array": return Array.isArray(value);
-			case "string": return typeof value === "string" || value === null;
-			default: return false;
-		}
-	}
-	function convertByCompatCategory(category, value) {
-		switch (category) {
-			case "string":
-			case "array":
-			case "number": return value;
-			default: return !!value;
-		}
-	}
-	function normalizeCompatValue(rule, value) {
-		let convertedValue = convertByCompatCategory(rule.category, value);
-		if (rule.oldKey === "autoVolume" && typeof value === "number" && value < 1) convertedValue = Math.round(value * 100);
-		return convertedValue;
-	}
-	function areStorageValuesEqual(a, b) {
-		if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, index) => Object.is(item, b[index]));
-		return Object.is(a, b);
-	}
 	function parseStoredValue(rawValue) {
 		if (rawValue === null) return;
 		try {
@@ -9543,26 +9664,24 @@ var vot = (function(exports) {
 			return;
 		}
 	}
-	async function updateConfig(data) {
-		if (data.compatVersion === "2025-05-09") return data;
-		const keysToRead = /* @__PURE__ */ new Set([...Object.keys(data), ...compatKeysToRead]);
-		const persistedValues = await votStorage.getValues(createUndefinedDefaults(keysToRead));
-		const newData = { ...data };
-		const writeOperations = [];
-		const deleteOperations = [];
-		for (const [key, storedValue] of Object.entries(persistedValues)) {
-			if (storedValue === void 0) continue;
-			const compatRule = compatRuleByOldKey.get(key);
-			if (!compatRule || !isCompatValue(compatRule.category, storedValue)) continue;
-			const convertedValue = normalizeCompatValue(compatRule, storedValue);
-			newData[compatRule.newKey] = convertedValue;
-			const existingNewValue = persistedValues[compatRule.newKey];
-			if (compatRule.shouldDeleteOldKey || !areStorageValuesEqual(existingNewValue, convertedValue)) writeOperations.push(votStorage.set(compatRule.newKey, convertedValue));
-			if (compatRule.shouldDeleteOldKey) deleteOperations.push(votStorage.delete(compatRule.oldKey));
-		}
-		await Promise.all([...writeOperations, ...deleteOperations]);
+	async function migrateAugust2026(data) {
+		const enabledDontTranslateLanguages = await votStorage.getRaw("enabledDontTranslateLanguages");
+		const storedLanguages = Array.isArray(data.dontTranslateLanguages) ? data.dontTranslateLanguages : [];
+		const dontTranslateLanguages = enabledDontTranslateLanguages === false ? [] : storedLanguages;
+		if (enabledDontTranslateLanguages === false) await votStorage.set("dontTranslateLanguages", dontTranslateLanguages);
+		await votStorage.deleteRaw("enabledDontTranslateLanguages");
 		return {
-			...newData,
+			...data,
+			dontTranslateLanguages
+		};
+	}
+	async function updateConfig(data) {
+		const sourceVersion = data.compatVersion;
+		if (sourceVersion === "2026-08-18") return data;
+		let migratedData = data;
+		if (sourceVersion === "" || sourceVersion === "2025-05-09") migratedData = await migrateAugust2026(migratedData);
+		return {
+			...migratedData,
 			compatVersion: actualCompatVersion
 		};
 	}
@@ -9833,6 +9952,7 @@ var vot = (function(exports) {
 		VOTFailedDownloadAudio: "Failed to download audio",
 		audioFormatNotSupported: "The audio format is not supported",
 		VOTAutoTranslate: "Translate on open",
+		VOTAutoPauseOnTranslate: "Pause video until translation is ready",
 		VOTAutoSubtitles: "Subtitles on open",
 		VOTDontTranslateYourLang: "Don't translate from my language",
 		VOTVolume: "Video volume:",
@@ -9851,7 +9971,7 @@ var vot = (function(exports) {
 		VOTHighlightWords: "Highlight words",
 		VOTTranslatedFrom: "translated from",
 		VOTAutogenerated: "autogenerated",
-		VOTSettings: "VOT Settings",
+		VOTSettings: "Settings",
 		VOTMenuLanguage: "Menu language",
 		VOTAuthors: "Authors",
 		VOTVersion: "Version",
@@ -10057,7 +10177,6 @@ var vot = (function(exports) {
 		VOTUseAudioDownloadWarning: "Disabling audio downloads may affect the functionality of the extension",
 		VOTAccountRequired: "You need to log in to use this feature",
 		VOTMyAccount: "My account",
-		VOTLogin: "Login",
 		VOTLogout: "Logout",
 		VOTRefresh: "Refresh",
 		VOTYandexToken: "Enter the Yandex OAuth Token",
@@ -10065,7 +10184,19 @@ var vot = (function(exports) {
 		VOTLoginViaToken: "Login via token",
 		smartDucking: "Adaptive volume",
 		VOTYandexTokenExpired: "Session expired. Log in again",
-		VOTVoiceSelection: "Choose dubbing"
+		VOTVoiceSelection: "Choose dubbing",
+		VOTSignInWithYandex: "Sign in with Yandex ID",
+		VOTOrUseToken: "or use a token",
+		VOTSignedInAs: "Signed in as",
+		VOTDownloadSubtitles: "Download subtitles",
+		VOTAutoReduceVolume: "Automatically reduce video volume",
+		VOTReducedVolumeLevel: "Reduced volume level",
+		VOTIncompatibleWith: "Incompatible with \"{0}\"",
+		VOTNotSupportedByLoader: "This feature isn't supported by used script loader",
+		VOTPiP: "Picture in picture",
+		VOTMenu: "Menu",
+		VOTDownloadTranslation: "Download translation",
+		VOTClose: "Close"
 	};
 	//#endregion
 	//#region src/localization/localizationProvider.ts
@@ -10622,21 +10753,24 @@ var vot = (function(exports) {
 	var joinParts = (...parts) => {
 		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
 	};
-	function isDocumentHidden() {
+	function isDocumentHidden$1() {
 		return typeof document !== "undefined" && document.hidden;
 	}
 	function getEnvironmentInfo() {
+		const os = joinParts(browserInfo.os?.name, browserInfo.os?.version);
+		const browser = joinParts(browserInfo.browser?.name, browserInfo.browser?.version);
+		const safeGMInfo = typeof GM_info === "undefined" ? void 0 : GM_info;
 		return {
-			os: joinParts(browserInfo.os?.name, browserInfo.os?.version),
-			browser: joinParts(browserInfo.browser?.name, browserInfo.browser?.version),
+			os,
+			browser,
 			loader: (() => {
-				const handler = GM_info?.scriptHandler;
-				const version = GM_info?.version;
+				const handler = safeGMInfo?.scriptHandler;
+				const version = safeGMInfo?.version;
 				if (handler && version) return `${handler} v${version}`;
 				return handler || version || UNKNOWN_VALUE;
 			})(),
-			scriptVersion: GM_info?.script?.version ?? UNKNOWN_VALUE,
-			scriptName: GM_info?.script?.name ?? UNKNOWN_VALUE,
+			scriptVersion: safeGMInfo?.script?.version ?? UNKNOWN_VALUE,
+			scriptName: safeGMInfo?.script?.name ?? UNKNOWN_VALUE,
 			url: globalThis?.location?.href ?? UNKNOWN_VALUE
 		};
 	}
@@ -10644,7 +10778,9 @@ var vot = (function(exports) {
 	//#region src/utils/intervalIdleChecker.ts
 	var DEFAULT_PROFILE = {
 		checkIntervalMs: 250,
-		idleAfterMs: 180
+		idleAfterMs: 180,
+		idleIntervalMs: 1e3,
+		hiddenIntervalMs: 2e3
 	};
 	function normalizePositiveMs(value, fallback) {
 		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
@@ -10657,7 +10793,9 @@ var vot = (function(exports) {
 	function normalizeProfile(profile = {}) {
 		return {
 			checkIntervalMs: normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs),
-			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs)
+			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs),
+			idleIntervalMs: normalizePositiveMs(profile.idleIntervalMs, Math.max(DEFAULT_PROFILE.idleIntervalMs, normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs))),
+			hiddenIntervalMs: normalizePositiveMs(profile.hiddenIntervalMs, Math.max(DEFAULT_PROFILE.hiddenIntervalMs, normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs)))
 		};
 	}
 	function getDefaultRuntime() {
@@ -10682,6 +10820,8 @@ var vot = (function(exports) {
 		runtime;
 		subscribers = /* @__PURE__ */ new Set();
 		intervalId = null;
+		/** Period the live timer was armed with, so mode changes can re-arm. */
+		armedIntervalMs = 0;
 		unsubscribeVisibilityChange = null;
 		running = false;
 		destroyed = false;
@@ -10690,7 +10830,7 @@ var vot = (function(exports) {
 		lastActivityAt;
 		onVisibilityChangeHandler = () => {
 			if (this.destroyed || !this.running) return;
-			if (isDocumentHidden()) this.clearIntervalTimer();
+			if (isDocumentHidden$1()) this.clearIntervalTimer();
 			else this.armInterval();
 			this.requestImmediateTick();
 		};
@@ -10723,12 +10863,33 @@ var vot = (function(exports) {
 			this.subscribers.clear();
 			this.destroyed = true;
 		}
-		subscribe(fn) {
+		subscribe(fn, options = {}) {
 			if (this.destroyed) return () => void 0;
-			this.subscribers.add(fn);
-			return () => {
-				this.subscribers.delete(fn);
+			const subscription = {
+				fn,
+				hasPendingWork: options.hasPendingWork
 			};
+			this.subscribers.add(subscription);
+			if (this.running) this.armInterval();
+			return () => {
+				this.subscribers.delete(subscription);
+				if (this.subscribers.size === 0) this.clearIntervalTimer();
+			};
+		}
+		/**
+		* True when at least one subscriber still needs periodic ticks. Subscribers
+		* without a predicate always count as pending (backwards compatible).
+		*/
+		hasPendingWork() {
+			for (const sub of this.subscribers) {
+				if (!sub.hasPendingWork) return true;
+				try {
+					if (sub.hasPendingWork()) return true;
+				} catch {
+					return true;
+				}
+			}
+			return false;
 		}
 		markActivity(_source) {
 			if (this.destroyed) return;
@@ -10736,6 +10897,7 @@ var vot = (function(exports) {
 			if (!this.running) return;
 			const nextMode = this.resolveMode(this.lastActivityAt);
 			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+			this.armInterval();
 		}
 		requestImmediateTick() {
 			if (this.destroyed || !this.running || this.immediateQueued) return;
@@ -10744,37 +10906,59 @@ var vot = (function(exports) {
 				this.immediateQueued = false;
 				if (this.destroyed || !this.running) return;
 				this.runTick("immediate");
+				this.armInterval();
 			});
 		}
 		resolveMode(nowMs) {
-			if (isDocumentHidden()) return "hidden";
+			if (isDocumentHidden$1()) return "hidden";
 			return nowMs - this.lastActivityAt >= this.profile.idleAfterMs ? "idle" : "active";
 		}
 		clearIntervalTimer() {
 			if (this.intervalId === null) return;
 			this.runtime.clearInterval(this.intervalId);
 			this.intervalId = null;
+			this.armedIntervalMs = 0;
+		}
+		/** Poll period for the current mode. */
+		intervalMsForMode(mode) {
+			if (mode === "hidden") return this.profile.hiddenIntervalMs;
+			if (mode === "idle") return this.profile.idleIntervalMs;
+			return this.profile.checkIntervalMs;
 		}
 		armInterval() {
-			if (this.intervalId !== null) return;
+			if (!(this.running && !this.destroyed && this.subscribers.size > 0 && this.currentMode !== "hidden" && this.hasPendingWork())) {
+				this.clearIntervalTimer();
+				return;
+			}
+			const periodMs = this.intervalMsForMode(this.currentMode);
+			if (this.intervalId !== null) {
+				if (this.armedIntervalMs === periodMs) return;
+				this.runtime.clearInterval(this.intervalId);
+				this.intervalId = null;
+			}
+			this.armedIntervalMs = periodMs;
 			this.intervalId = this.runtime.setInterval(() => {
 				this.runTick("interval");
-			}, this.profile.checkIntervalMs);
+			}, periodMs);
 		}
 		runTick(source) {
 			if (this.destroyed || !this.running) return;
 			if (this.subscribers.size === 0) return;
 			const nowMs = this.runtime.nowMs();
 			const nextMode = this.resolveMode(nowMs);
-			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+			if (nextMode !== this.currentMode) {
+				this.currentMode = nextMode;
+				if (this.running) this.armInterval();
+			}
 			const ctx = {
 				nowMs,
 				mode: nextMode,
 				source
 			};
 			for (const sub of this.subscribers) try {
-				sub(ctx);
+				sub.fn(ctx);
 			} catch {}
+			if (this.running) this.armInterval();
 		}
 		subscribeVisibilityChange() {
 			if (this.unsubscribeVisibilityChange !== null) return;
@@ -12761,7 +12945,7 @@ var vot = (function(exports) {
 	async function getTranslationServiceCached() {
 		const now = Date.now();
 		if (cachedTranslationService && now - cachedTranslationServiceAt < SETTINGS_CACHE_TTL_MS) return cachedTranslationService;
-		const service = await votStorage.get("translationService", defaultTranslationService);
+		const service = await votStorage.get("translationService", DEFAULT_TRANSLATION_SERVICE);
 		cachedTranslationService = String(service);
 		cachedTranslationServiceAt = now;
 		return cachedTranslationService;
@@ -12769,7 +12953,7 @@ var vot = (function(exports) {
 	async function getDetectServiceCached() {
 		const now = Date.now();
 		if (cachedDetectService && now - cachedDetectServiceAt < SETTINGS_CACHE_TTL_MS) return cachedDetectService;
-		const service = await votStorage.get("detectService", defaultDetectService);
+		const service = await votStorage.get("detectService", DEFAULT_DETECT_SERVICE);
 		cachedDetectService = String(service);
 		cachedDetectServiceAt = now;
 		return cachedDetectService;
@@ -14112,18 +14296,18 @@ var vot = (function(exports) {
 		host.stopTranslation();
 		host.resetSubtitlesWidget();
 	}
-	function hideLifecycleOverlay(overlayView, options = {}) {
+	function hideLifecycleOverlay(overlayViewControls, options = {}) {
 		const { hideMenu = false } = options;
-		if (overlayView?.votButton?.container) overlayView.votButton.container.hidden = true;
-		if (hideMenu && overlayView?.votMenu) overlayView.votMenu.hidden = true;
+		overlayViewControls?.setButtonHidden(true);
+		if (hideMenu) overlayViewControls?.setMenuHidden(true);
 	}
-	function resetAndHideLifecycle(host, overlayView, options = {}) {
+	function resetAndHideLifecycle(host, overlayViewControls, options = {}) {
 		const { requireVideoData, clearVideoData, hideMenu } = options;
 		resetLifecycleTranslation(host, {
 			requireVideoData,
 			clearVideoData
 		});
-		hideLifecycleOverlay(overlayView, { hideMenu });
+		hideLifecycleOverlay(overlayViewControls, { hideMenu });
 	}
 	//#endregion
 	//#region src/core/videoLifecycleController.ts
@@ -14176,8 +14360,8 @@ var vot = (function(exports) {
 			return true;
 		}
 		showOverlayButton(overlayView) {
-			overlayView.votButton.container.hidden = false;
-			overlayView.votButton.opacity = 1;
+			overlayView.overlayViewControls?.setButtonHidden(false);
+			overlayView.overlayViewControls?.setButtonOpacity(1);
 			this.host.queueOverlayAutoHide?.();
 		}
 		teardown() {
@@ -14231,7 +14415,7 @@ var vot = (function(exports) {
 			} catch (err) {
 				debug.log(`[VideoLifecycle] getVideoData failed for source ${sourceKey}`, err);
 				this.host.videoData = void 0;
-				hideLifecycleOverlay(this.host.uiManager.votOverlayView, { hideMenu: true });
+				hideLifecycleOverlay(this.host.uiManager.votOverlayView.overlayViewControls, { hideMenu: true });
 				return;
 			}
 			if (this.getCurrentSourceKey() !== sourceKey) {
@@ -14279,8 +14463,9 @@ var vot = (function(exports) {
 			debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, { sourceKey });
 			this.host.firstPlay = true;
 			const overlayView = this.host.uiManager.votOverlayView;
-			resetAndHideLifecycle(this.host, overlayView, { requireVideoData: true });
-			if (!this.host.video.src && !this.host.video.currentSrc && !this.host.video.srcObject) hideLifecycleOverlay(overlayView, { hideMenu: true });
+			const overlayViewControls = overlayView.overlayViewControls;
+			resetAndHideLifecycle(this.host, overlayViewControls, { requireVideoData: true });
+			if (!this.host.video.src && !this.host.video.currentSrc && !this.host.video.srcObject) hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
 			const nextContainer = this.resolveContainer();
 			if (nextContainer !== this.host.container) this.host.container = nextContainer;
 			if (this.shouldAbortHandleSrcChanged(sessionId, "before getVideoData")) return;
@@ -14288,7 +14473,7 @@ var vot = (function(exports) {
 			if (this.shouldAbortHandleSrcChanged(sessionId, "after getVideoData")) return;
 			if (!this.host.videoData?.videoId) {
 				debug.log(`[VideoLifecycle][session:${sessionId}] No videoId resolved, hiding overlay`);
-				hideLifecycleOverlay(overlayView, { hideMenu: true });
+				hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
 				return;
 			}
 			const subtitleLanguage = this.host.getPreferredSubtitlesLanguage(this.host.videoData.detectedLanguage, this.host.videoData.responseLanguage);
@@ -14732,7 +14917,7 @@ var vot = (function(exports) {
 			const data = this.videoHandler.data;
 			if (!videoData || !data) throw new VOTLocalizedError("VOTNoVideoIDFound");
 			debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
-			if (this.videoHandler.data.enabledDontTranslateLanguages && this.videoHandler.data.dontTranslateLanguages?.includes(this.videoHandler.videoData.detectedLanguage)) throw new VOTLocalizedError("VOTDisableFromYourLang");
+			if (this.videoHandler.data.dontTranslateLanguages?.includes(this.videoHandler.videoData.detectedLanguage)) throw new VOTLocalizedError("VOTDisableFromYourLang");
 			if (this.videoHandler.videoData.isStream) throw new VOTLocalizedError("VOTStreamNotAvailable");
 			if (this.videoHandler.videoData.duration > 14400) throw new VOTLocalizedError("VOTVideoIsTooLong");
 			return true;
@@ -14783,11 +14968,11 @@ var vot = (function(exports) {
 		* Syncs the video volume slider with the actual video volume.
 		*/
 		syncVideoVolumeSlider() {
-			const overlayView = this.videoHandler.uiManager.votOverlayView;
-			if (!overlayView?.isInitialized()) return this;
+			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+			if (!overlayViewControls) return this;
 			const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host) ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR) : null;
 			const volumePercent = this.isMuted() ? 0 : ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0);
-			overlayView.videoVolumeSlider.value = volumePercent;
+			overlayViewControls.setVideoVolume(volumePercent);
 			this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
 			return this;
 		}
@@ -14805,70 +14990,35 @@ var vot = (function(exports) {
 			videoData.responseLanguage = to;
 			this.videoHandler.translateFromLang = normalizedFrom;
 			this.videoHandler.translateToLang = to;
-			const overlayView = this.videoHandler.uiManager.votOverlayView;
-			if (!overlayView?.isInitialized()) return this;
-			overlayView.languagePairSelect.fromSelect.selectTitle = localizationProvider.getLangLabel(normalizedFrom);
-			overlayView.languagePairSelect.toSelect.selectTitle = localizationProvider.getLangLabel(to);
-			overlayView.languagePairSelect.fromSelect.setSelectedValue(normalizedFrom);
-			overlayView.languagePairSelect.toSelect.setSelectedValue(to);
+			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+			if (!overlayViewControls) return this;
+			overlayViewControls.setDetectedLanguage(normalizedFrom);
+			overlayViewControls.setResponseLanguage(to);
 			return this;
 		}
 	};
 	//#endregion
 	//#region src/notify.ts
-	var now = () => Date.now();
-	function getScriptTitle() {
-		return GM_info?.script?.name || "VOT";
-	}
-	function safeL10n(key, fallback) {
-		try {
-			return localizationProvider?.get?.(key) || fallback;
-		} catch {
-			return fallback;
-		}
-	}
 	function canSend(lastSentAt, key, cooldownMs) {
 		if (!cooldownMs) return true;
 		const prev = lastSentAt.get(key) ?? 0;
-		return now() - prev >= cooldownMs;
+		return Date.now() - prev >= cooldownMs;
 	}
 	function markSent(lastSentAt, key) {
-		lastSentAt.set(key, now());
-	}
-	function localizePhraseText(message) {
-		const key = message.trim();
-		if (!key) return null;
-		try {
-			const localized = localizationProvider.get(key);
-			const defaultText = localizationProvider.getDefault(key);
-			return localized !== key || defaultText !== key ? localized || defaultText || key : null;
-		} catch {
-			return null;
-		}
+		lastSentAt.set(key, Date.now());
 	}
 	function resolveLocalizedErrorFromObject(message) {
 		if (!message || typeof message !== "object") return null;
 		const localizedError = message;
 		if (localizedError.name !== "VOTLocalizedError") return null;
 		if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) return localizedError.localizedMessage;
-		if (typeof localizedError.unlocalizedMessage === "string") return localizePhraseText(localizedError.unlocalizedMessage);
+		if (typeof localizedError.unlocalizedMessage === "string") return localizationProvider.get(localizedError.unlocalizedMessage);
 		return null;
-	}
-	function localizeExtractedErrorMessage(message) {
-		const extracted = getErrorMessage(message);
-		if (!extracted) return null;
-		return localizePhraseText(extracted) || extracted;
 	}
 	function resolveLocalizedErrorMessage(message) {
 		const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
 		if (localizedObjectMessage) return localizedObjectMessage;
-		if (typeof message === "string") {
-			const byPhraseKey = localizePhraseText(message);
-			if (byPhraseKey) return byPhraseKey;
-		}
-		const extractedMessage = localizeExtractedErrorMessage(message);
-		if (extractedMessage) return extractedMessage;
-		return safeL10n("requestTranslationFailed", "Translation failed");
+		return localizationProvider.get(getErrorMessage(message) || "requestTranslationFailed");
 	}
 	function trySendViaUserscriptApi(details) {
 		try {
@@ -14914,7 +15064,7 @@ var vot = (function(exports) {
 			}
 		}
 		translationCompleted(host) {
-			const text = safeL10n("VOTTranslationCompletedNotify", "The translation on the {0} has been completed!").replace("{0}", host);
+			const text = localizationProvider.get("VOTTranslationCompletedNotify").replace("{0}", host);
 			this.send({
 				text,
 				title: getScriptTitle(),
@@ -14954,1005 +15104,1630 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region node_modules/lit-html/lit-html.js
-	/**
-	* @license
-	* Copyright 2017 Google LLC
-	* SPDX-License-Identifier: BSD-3-Clause
-	*/
-	var t = globalThis;
-	var i = (t) => t;
-	var s = t.trustedTypes;
-	var e = s ? s.createPolicy("lit-html", { createHTML: (t) => t }) : void 0;
-	var h = "$lit$";
-	var o = `lit$${Math.random().toFixed(9).slice(2)}$`;
-	var n = "?" + o;
-	var r = `<${n}>`;
-	var l = document;
-	var c = () => l.createComment("");
-	var a = (t) => null === t || "object" != typeof t && "function" != typeof t;
-	var u = Array.isArray;
-	var d = (t) => u(t) || "function" == typeof t?.[Symbol.iterator];
-	var f = "[ 	\n\f\r]";
-	var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
-	var _ = /-->/g;
-	var m = />/g;
-	var p = RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g");
-	var g = /'/g;
-	var $ = /"/g;
-	var y = /^(?:script|style|textarea|title)$/i;
-	var x = (t) => (i, ...s) => ({
-		_$litType$: t,
-		strings: i,
-		values: s
-	});
-	var b = x(1);
-	var w = x(2);
-	var E = Symbol.for("lit-noChange");
-	var A = Symbol.for("lit-nothing");
-	var C = /* @__PURE__ */ new WeakMap();
-	var P = l.createTreeWalker(l, 129);
-	function V(t, i) {
-		if (!u(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-		return void 0 !== e ? e.createHTML(i) : i;
-	}
-	var N = (t, i) => {
-		const s = t.length - 1, e = [];
-		let n, l = 2 === i ? "<svg>" : 3 === i ? "<math>" : "", c = v;
-		for (let i = 0; i < s; i++) {
-			const s = t[i];
-			let a, u, d = -1, f = 0;
-			for (; f < s.length && (c.lastIndex = f, u = c.exec(s), null !== u);) f = c.lastIndex, c === v ? "!--" === u[1] ? c = _ : void 0 !== u[1] ? c = m : void 0 !== u[2] ? (y.test(u[2]) && (n = RegExp("</" + u[2], "g")), c = p) : void 0 !== u[3] && (c = p) : c === p ? ">" === u[0] ? (c = n ?? v, d = -1) : void 0 === u[1] ? d = -2 : (d = c.lastIndex - u[2].length, a = u[1], c = void 0 === u[3] ? p : "\"" === u[3] ? $ : g) : c === $ || c === g ? c = p : c === _ || c === m ? c = v : (c = p, n = void 0);
-			const x = c === p && t[i + 1].startsWith("/>") ? " " : "";
-			l += c === v ? s + r : d >= 0 ? (e.push(a), s.slice(0, d) + h + s.slice(d) + o + x) : s + o + (-2 === d ? i : x);
+	//#region node_modules/solid-js/dist/solid.js
+	var sharedConfig = {
+		context: void 0,
+		registry: void 0,
+		effects: void 0,
+		done: false,
+		getContextId() {
+			return getContextId(this.context.count);
+		},
+		getNextContextId() {
+			return getContextId(this.context.count++);
 		}
-		return [V(t, l + (t[s] || "<?>") + (2 === i ? "</svg>" : 3 === i ? "</math>" : "")), e];
 	};
-	var S = class S {
-		constructor({ strings: t, _$litType$: i }, e) {
-			let r;
-			this.parts = [];
-			let l = 0, a = 0;
-			const u = t.length - 1, d = this.parts, [f, v] = N(t, i);
-			if (this.el = S.createElement(f, e), P.currentNode = this.el.content, 2 === i || 3 === i) {
-				const t = this.el.content.firstChild;
-				t.replaceWith(...t.childNodes);
+	function getContextId(count) {
+		const num = String(count), len = num.length - 1;
+		return sharedConfig.context.id + (len ? String.fromCharCode(96 + len) : "") + num;
+	}
+	function setHydrateContext(context) {
+		sharedConfig.context = context;
+	}
+	function nextHydrateContext() {
+		return {
+			...sharedConfig.context,
+			id: sharedConfig.getNextContextId(),
+			count: 0
+		};
+	}
+	var equalFn = (a, b) => a === b;
+	var $PROXY = Symbol("solid-proxy");
+	var SUPPORTS_PROXY = typeof Proxy === "function";
+	var $TRACK = Symbol("solid-track");
+	var signalOptions = { equals: equalFn };
+	var ERROR = null;
+	var runEffects = runQueue;
+	var STALE = 1;
+	var PENDING = 2;
+	var UNOWNED = {
+		owned: null,
+		cleanups: null,
+		context: null,
+		owner: null
+	};
+	var Owner = null;
+	var Transition = null;
+	var Scheduler = null;
+	var ExternalSourceConfig = null;
+	var Listener = null;
+	var Updates = null;
+	var Effects = null;
+	var ExecCount = 0;
+	function createRoot(fn, detachedOwner) {
+		const listener = Listener, owner = Owner, unowned = fn.length === 0, current = detachedOwner === void 0 ? owner : detachedOwner, root = unowned ? UNOWNED : {
+			owned: null,
+			cleanups: null,
+			context: current ? current.context : null,
+			owner: current
+		}, updateFn = unowned ? fn : () => fn(() => untrack(() => cleanNode(root)));
+		Owner = root;
+		Listener = null;
+		try {
+			return runUpdates(updateFn, true);
+		} finally {
+			Listener = listener;
+			Owner = owner;
+		}
+	}
+	function createSignal(value, options) {
+		options = options ? Object.assign({}, signalOptions, options) : signalOptions;
+		const s = {
+			value,
+			observers: null,
+			observerSlots: null,
+			comparator: options.equals || void 0
+		};
+		const setter = (value) => {
+			if (typeof value === "function") {
+				if (Transition && Transition.running && Transition.sources.has(s)) value = value(s.tValue);
+				else value = value(s.value);
 			}
-			for (; null !== (r = P.nextNode()) && d.length < u;) {
-				if (1 === r.nodeType) {
-					if (r.hasAttributes()) for (const t of r.getAttributeNames()) if (t.endsWith(h)) {
-						const i = v[a++], s = r.getAttribute(t).split(o), e = /([.?@])?(.*)/.exec(i);
-						d.push({
-							type: 1,
-							index: l,
-							name: e[2],
-							strings: s,
-							ctor: "." === e[1] ? I : "?" === e[1] ? L : "@" === e[1] ? z : H
-						}), r.removeAttribute(t);
-					} else t.startsWith(o) && (d.push({
-						type: 6,
-						index: l
-					}), r.removeAttribute(t));
-					if (y.test(r.tagName)) {
-						const t = r.textContent.split(o), i = t.length - 1;
-						if (i > 0) {
-							r.textContent = s ? s.emptyScript : "";
-							for (let s = 0; s < i; s++) r.append(t[s], c()), P.nextNode(), d.push({
-								type: 2,
-								index: ++l
-							});
-							r.append(t[i], c());
-						}
-					}
-				} else if (8 === r.nodeType) if (r.data === n) d.push({
-					type: 2,
-					index: l
+			return writeSignal(s, value);
+		};
+		return [readSignal.bind(s), setter];
+	}
+	function createRenderEffect(fn, value, options) {
+		const c = createComputation(fn, value, false, STALE);
+		if (Scheduler && Transition && Transition.running) Updates.push(c);
+		else updateComputation(c);
+	}
+	function createEffect(fn, value, options) {
+		runEffects = runUserEffects;
+		const c = createComputation(fn, value, false, STALE), s = SuspenseContext && useContext(SuspenseContext);
+		if (s) c.suspense = s;
+		if (!options || !options.render) c.user = true;
+		Effects ? Effects.push(c) : updateComputation(c);
+	}
+	function createMemo(fn, value, options) {
+		options = options ? Object.assign({}, signalOptions, options) : signalOptions;
+		const c = createComputation(fn, value, true, 0);
+		c.observers = null;
+		c.observerSlots = null;
+		c.comparator = options.equals || void 0;
+		if (Scheduler && Transition && Transition.running) {
+			c.tState = STALE;
+			Updates.push(c);
+		} else updateComputation(c);
+		return readSignal.bind(c);
+	}
+	function batch(fn) {
+		return runUpdates(fn, false);
+	}
+	function untrack(fn) {
+		if (!ExternalSourceConfig && Listener === null) return fn();
+		const listener = Listener;
+		Listener = null;
+		try {
+			if (ExternalSourceConfig) return ExternalSourceConfig.untrack(fn);
+			return fn();
+		} finally {
+			Listener = listener;
+		}
+	}
+	function onMount(fn) {
+		createEffect(() => untrack(fn));
+	}
+	function onCleanup(fn) {
+		if (Owner === null);
+		else if (Owner.cleanups === null) Owner.cleanups = [fn];
+		else Owner.cleanups.push(fn);
+		return fn;
+	}
+	function getListener() {
+		return Listener;
+	}
+	function startTransition(fn) {
+		if (Transition && Transition.running) {
+			fn();
+			return Transition.done;
+		}
+		const l = Listener;
+		const o = Owner;
+		return Promise.resolve().then(() => {
+			Listener = l;
+			Owner = o;
+			let t;
+			if (Scheduler || SuspenseContext) {
+				t = Transition || (Transition = {
+					sources: /* @__PURE__ */ new Set(),
+					effects: [],
+					promises: /* @__PURE__ */ new Set(),
+					disposed: /* @__PURE__ */ new Set(),
+					queue: /* @__PURE__ */ new Set(),
+					running: true
 				});
-				else {
-					let t = -1;
-					for (; -1 !== (t = r.data.indexOf(o, t + 1));) d.push({
-						type: 7,
-						index: l
-					}), t += o.length - 1;
-				}
-				l++;
+				t.done || (t.done = new Promise((res) => t.resolve = res));
+				t.running = true;
 			}
-		}
-		static createElement(t, i) {
-			const s = l.createElement("template");
-			return s.innerHTML = t, s;
-		}
-	};
-	function M(t, i, s = t, e) {
-		if (i === E) return i;
-		let h = void 0 !== e ? s._$Co?.[e] : s._$Cl;
-		const o = a(i) ? void 0 : i._$litDirective$;
-		return h?.constructor !== o && (h?._$AO?.(!1), void 0 === o ? h = void 0 : (h = new o(t), h._$AT(t, s, e)), void 0 !== e ? (s._$Co ??= [])[e] = h : s._$Cl = h), void 0 !== h && (i = M(t, h._$AS(t, i.values), h, e)), i;
-	}
-	var R = class {
-		constructor(t, i) {
-			this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = i;
-		}
-		get parentNode() {
-			return this._$AM.parentNode;
-		}
-		get _$AU() {
-			return this._$AM._$AU;
-		}
-		u(t) {
-			const { el: { content: i }, parts: s } = this._$AD, e = (t?.creationScope ?? l).importNode(i, !0);
-			P.currentNode = e;
-			let h = P.nextNode(), o = 0, n = 0, r = s[0];
-			for (; void 0 !== r;) {
-				if (o === r.index) {
-					let i;
-					2 === r.type ? i = new k(h, h.nextSibling, this, t) : 1 === r.type ? i = new r.ctor(h, r.name, r.strings, this, t) : 6 === r.type && (i = new Z(h, this, t)), this._$AV.push(i), r = s[++n];
-				}
-				o !== r?.index && (h = P.nextNode(), o++);
-			}
-			return P.currentNode = l, e;
-		}
-		p(t) {
-			let i = 0;
-			for (const s of this._$AV) void 0 !== s && (void 0 !== s.strings ? (s._$AI(t, s, i), i += s.strings.length - 2) : s._$AI(t[i])), i++;
-		}
-	};
-	var k = class k {
-		get _$AU() {
-			return this._$AM?._$AU ?? this._$Cv;
-		}
-		constructor(t, i, s, e) {
-			this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = e, this._$Cv = e?.isConnected ?? !0;
-		}
-		get parentNode() {
-			let t = this._$AA.parentNode;
-			const i = this._$AM;
-			return void 0 !== i && 11 === t?.nodeType && (t = i.parentNode), t;
-		}
-		get startNode() {
-			return this._$AA;
-		}
-		get endNode() {
-			return this._$AB;
-		}
-		_$AI(t, i = this) {
-			t = M(this, t, i), a(t) ? t === A || null == t || "" === t ? (this._$AH !== A && this._$AR(), this._$AH = A) : t !== this._$AH && t !== E && this._(t) : void 0 !== t._$litType$ ? this.$(t) : void 0 !== t.nodeType ? this.T(t) : d(t) ? this.k(t) : this._(t);
-		}
-		O(t) {
-			return this._$AA.parentNode.insertBefore(t, this._$AB);
-		}
-		T(t) {
-			this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
-		}
-		_(t) {
-			this._$AH !== A && a(this._$AH) ? this._$AA.nextSibling.data = t : this.T(l.createTextNode(t)), this._$AH = t;
-		}
-		$(t) {
-			const { values: i, _$litType$: s } = t, e = "number" == typeof s ? this._$AC(t) : (void 0 === s.el && (s.el = S.createElement(V(s.h, s.h[0]), this.options)), s);
-			if (this._$AH?._$AD === e) this._$AH.p(i);
-			else {
-				const t = new R(e, this), s = t.u(this.options);
-				t.p(i), this.T(s), this._$AH = t;
-			}
-		}
-		_$AC(t) {
-			let i = C.get(t.strings);
-			return void 0 === i && C.set(t.strings, i = new S(t)), i;
-		}
-		k(t) {
-			u(this._$AH) || (this._$AH = [], this._$AR());
-			const i = this._$AH;
-			let s, e = 0;
-			for (const h of t) e === i.length ? i.push(s = new k(this.O(c()), this.O(c()), this, this.options)) : s = i[e], s._$AI(h), e++;
-			e < i.length && (this._$AR(s && s._$AB.nextSibling, e), i.length = e);
-		}
-		_$AR(t = this._$AA.nextSibling, s) {
-			for (this._$AP?.(!1, !0, s); t !== this._$AB;) {
-				const s = i(t).nextSibling;
-				i(t).remove(), t = s;
-			}
-		}
-		setConnected(t) {
-			void 0 === this._$AM && (this._$Cv = t, this._$AP?.(t));
-		}
-	};
-	var H = class {
-		get tagName() {
-			return this.element.tagName;
-		}
-		get _$AU() {
-			return this._$AM._$AU;
-		}
-		constructor(t, i, s, e, h) {
-			this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t, this.name = i, this._$AM = e, this.options = h, s.length > 2 || "" !== s[0] || "" !== s[1] ? (this._$AH = Array(s.length - 1).fill(/* @__PURE__ */ new String()), this.strings = s) : this._$AH = A;
-		}
-		_$AI(t, i = this, s, e) {
-			const h = this.strings;
-			let o = !1;
-			if (void 0 === h) t = M(this, t, i, 0), o = !a(t) || t !== this._$AH && t !== E, o && (this._$AH = t);
-			else {
-				const e = t;
-				let n, r;
-				for (t = h[0], n = 0; n < h.length - 1; n++) r = M(this, e[s + n], i, n), r === E && (r = this._$AH[n]), o ||= !a(r) || r !== this._$AH[n], r === A ? t = A : t !== A && (t += (r ?? "") + h[n + 1]), this._$AH[n] = r;
-			}
-			o && !e && this.j(t);
-		}
-		j(t) {
-			t === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
-		}
-	};
-	var I = class extends H {
-		constructor() {
-			super(...arguments), this.type = 3;
-		}
-		j(t) {
-			this.element[this.name] = t === A ? void 0 : t;
-		}
-	};
-	var L = class extends H {
-		constructor() {
-			super(...arguments), this.type = 4;
-		}
-		j(t) {
-			this.element.toggleAttribute(this.name, !!t && t !== A);
-		}
-	};
-	var z = class extends H {
-		constructor(t, i, s, e, h) {
-			super(t, i, s, e, h), this.type = 5;
-		}
-		_$AI(t, i = this) {
-			if ((t = M(this, t, i, 0) ?? A) === E) return;
-			const s = this._$AH, e = t === A && s !== A || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive, h = t !== A && (s === A || e);
-			e && this.element.removeEventListener(this.name, this, s), h && this.element.addEventListener(this.name, this, t), this._$AH = t;
-		}
-		handleEvent(t) {
-			"function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
-		}
-	};
-	var Z = class {
-		constructor(t, i, s) {
-			this.element = t, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
-		}
-		get _$AU() {
-			return this._$AM._$AU;
-		}
-		_$AI(t) {
-			M(this, t);
-		}
-	};
-	var B = t.litHtmlPolyfillSupport;
-	B?.(S, k), (t.litHtmlVersions ??= []).push("3.3.3");
-	var D = (t, i, s) => {
-		const e = s?.renderBefore ?? i;
-		let h = e._$litPart$;
-		if (void 0 === h) {
-			const t = s?.renderBefore ?? null;
-			e._$litPart$ = h = new k(i.insertBefore(c(), t), t, void 0, s ?? {});
-		}
-		return h._$AI(t), h;
-	};
-	//#endregion
-	//#region src/ui/components/componentShared.ts
-	function setInteractiveHiddenState(element, isHidden) {
-		element.hidden = isHidden;
-		element.setAttribute("aria-hidden", isHidden ? "true" : "false");
-		element.toggleAttribute("inert", isHidden);
-	}
-	function createDomId(prefix) {
-		return `${prefix}-${typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
-	}
-	function isEventInside(event, element) {
-		const target = event.target;
-		if (target instanceof Node && element.contains(target)) return true;
-		return typeof event.composedPath === "function" && event.composedPath().includes(element);
-	}
-	function isPrimaryPointerAction(event) {
-		return event.isPrimary && event.button === 0;
-	}
-	function isKeyboardActivation(event) {
-		return event.key === "Enter" || event.key === " ";
-	}
-	function addKeyboardActivationListener(element, handler, options) {
-		element.addEventListener("keydown", (event) => {
-			if (!isKeyboardActivation(event)) return;
-			event.preventDefault();
-			handler();
-		}, options);
-	}
-	var UIComponent = class {
-		container;
-		set hidden(isHidden) {
-			this.container.hidden = isHidden;
-		}
-		get hidden() {
-			return this.container.hidden === true;
-		}
-	};
-	var UIComponentWithEvents = class extends UIComponent {
-		events;
-		constructor(types) {
-			super();
-			this.events = Object.fromEntries(types.map((typeItem) => [typeItem, new EventImpl()]));
-		}
-		addEventListener(type, listener) {
-			this.events[type].addListener(listener);
-			return this;
-		}
-		removeEventListener(type, listener) {
-			this.events[type].removeListener(listener);
-			return this;
-		}
-		dispatch(type, ...args) {
-			this.events[type].dispatch(...args);
-			return this;
-		}
-		clearEventListeners() {
-			for (const event of Object.values(this.events)) event.clear();
-		}
-	};
-	//#endregion
-	//#region src/ui.ts
-	function initKeyboardNavigationMode() {
-		if (globalThis.__votKeyboardNavInitialized) return;
-		globalThis.__votKeyboardNavInitialized = true;
-		const root = document.documentElement;
-		const CLASS = "vot-keyboard-nav";
-		const enable = () => root.classList.add(CLASS);
-		const disable = () => root.classList.remove(CLASS);
-		globalThis.addEventListener("keydown", (e) => {
-			if (e.key === "Tab") enable();
-		}, true);
-		for (const evt of ["pointerdown", "touchstart"]) globalThis.addEventListener(evt, disable, {
-			capture: true,
-			passive: true
+			runUpdates(fn, false);
+			Listener = Owner = null;
+			return t ? t.done : void 0;
 		});
 	}
-	initKeyboardNavigationMode();
-	var UI = {
-		/**
-		* Makes a non-native element behave like a button (keyboard + ARIA).
-		*
-		* We use custom tags (`vot-block`) for isolation, so we must re-add
-		* basic semantics for accessibility.
-		*/
-		makeButtonLike(el, { ariaLabel } = {}) {
-			el.setAttribute("role", "button");
-			if (!el.hasAttribute("tabindex")) el.tabIndex = 0;
-			const enabledTabIndex = el.tabIndex;
-			const syncDisabledState = () => {
-				if (el.getAttribute("disabled") === "true") {
-					el.setAttribute("aria-disabled", "true");
-					el.tabIndex = -1;
-				} else {
-					el.removeAttribute("aria-disabled");
-					el.tabIndex = enabledTabIndex;
-				}
-			};
-			syncDisabledState();
-			new MutationObserver(() => syncDisabledState()).observe(el, {
-				attributes: true,
-				attributeFilter: ["disabled"]
-			});
-			if (ariaLabel) el.setAttribute("aria-label", ariaLabel);
-			addKeyboardActivationListener(el, () => {
-				if (el.getAttribute("disabled") === "true" || el.getAttribute("aria-disabled") === "true") return;
-				el.click();
-			});
-			return el;
-		},
-		/**
-		* Auxiliary method for creating HTML elements
-		*/
-		createEl(tag, classes = [], content = null) {
-			const el = document.createElement(tag);
-			if (classes.length) el.classList.add(...classes);
-			if (content !== null) el.append(content);
-			return el;
-		},
-		/**
-		* Create header element
-		*/
-		createHeader(html, level = 4) {
-			return UI.createEl("vot-block", ["vot-header", `vot-header-level-${level}`], html);
-		},
-		/**
-		* Create information element
-		*/
-		createInformation(labelHtml, valueHtml) {
-			const container = UI.createEl("vot-block", ["vot-info"]);
-			const header = UI.createEl("vot-block");
-			D(labelHtml, header);
-			const value = UI.createEl("vot-block");
-			D(valueHtml, value);
-			container.append(header, value);
-			return {
-				container,
-				header,
-				value
-			};
-		},
-		/**
-		* Create button
-		*/
-		createButton(html) {
-			const el = UI.createEl("vot-block", ["vot-button"], html);
-			return UI.makeButtonLike(el);
-		},
-		/**
-		* Create text button
-		*/
-		createTextButton(html) {
-			const el = UI.createEl("vot-block", ["vot-text-button"], html);
-			return UI.makeButtonLike(el);
-		},
-		/**
-		* Create outlined button
-		*/
-		createOutlinedButton(html) {
-			const el = UI.createEl("vot-block", ["vot-outlined-button"], html);
-			return UI.makeButtonLike(el);
-		},
-		/**
-		* Create icon button
-		*/
-		createIconButton(templateHtml, options = {}) {
-			const button = UI.createEl("vot-block", ["vot-icon-button"]);
-			D(templateHtml, button);
-			return UI.makeButtonLike(button, options);
-		},
-		createInlineLoader() {
-			return UI.createEl("vot-block", ["vot-inline-loader"]);
-		},
-		createPortal(local = false) {
-			return UI.createEl("vot-block", [`vot-portal${local ? "-local" : ""}`]);
-		},
-		createSubtitleInfo(word, desc, translationService) {
-			const container = UI.createEl("vot-block", ["vot-subtitles-info"]);
-			container.id = "vot-subtitles-info";
-			const translatedWith = UI.createEl("vot-block", ["vot-subtitles-info-service"], localizationProvider.get("VOTTranslatedBy").replace("{0}", translationService));
-			translatedWith.hidden = true;
-			const title = UI.createEl("vot-block", ["vot-subtitles-info-title"]);
-			const source = UI.createEl("span", ["vot-subtitles-info-source"], word);
-			const divider = UI.createEl("span", ["vot-subtitles-info-divider"], "—");
-			const header = UI.createEl("span", ["vot-subtitles-info-header"], word);
-			title.append(source, divider, header);
-			const context = UI.createEl("vot-block", ["vot-subtitles-info-context"], desc);
-			container.append(title, context);
-			return {
-				container,
-				translatedWith,
-				header,
-				context
-			};
-		}
-	};
-	//#endregion
-	//#region src/types/components/tooltip.ts
-	var positions$1 = [
-		"left",
-		"top",
-		"right",
-		"bottom"
-	];
-	var triggers = ["hover", "click"];
-	var tooltipModes = ["default", "follow"];
-	//#endregion
-	//#region src/ui/components/tooltip.ts
-	var DEFAULT_TOOLTIP_POS = "top";
-	var DEFAULT_TOOLTIP_TRIGGER = "hover";
-	var DEFAULT_TOOLTIP_MODE = "default";
-	var Tooltip = class Tooltip {
-		showed = false;
-		target;
-		anchor;
-		edgeAnchor;
-		content;
-		position;
-		preferredPosition;
-		trigger;
-		offsetX;
-		offsetY;
-		_hidden;
-		autoLayout;
-		maxWidth;
-		mode;
-		backgroundColor;
-		borderRadius;
-		_bordered;
-		portal;
-		container;
-		resizeObserver;
-		intersectionObserver;
-		scrollListening = false;
-		positionRafId = null;
-		destroyFallbackTimerId;
-		static DESTROY_FALLBACK_MS = 700;
-		tooltipId = createDomId("vot-tooltip");
-		prevAriaDescribedBy = null;
-		constructor(opts) {
-			const target = opts.target;
-			if (!(target instanceof HTMLElement)) throw new TypeError("target must be a valid HTMLElement");
-			this.target = target;
-			this.anchor = opts.anchor instanceof HTMLElement ? opts.anchor : target;
-			this.edgeAnchor = opts.edgeAnchor instanceof HTMLElement ? opts.edgeAnchor : this.anchor;
-			this.content = opts.content ?? "";
-			const offset = opts.offset ?? 4;
-			if (typeof offset === "number") this.offsetY = this.offsetX = offset;
+	var [transPending, setTransPending] = /*@__PURE__*/ createSignal(false);
+	function useContext(context) {
+		let value;
+		return Owner && Owner.context && (value = Owner.context[context.id]) !== void 0 ? value : context.defaultValue;
+	}
+	function children(fn) {
+		const children = createMemo(fn);
+		const memo = createMemo(() => resolveChildren(children()));
+		memo.toArray = () => {
+			const c = memo();
+			return Array.isArray(c) ? c : c != null ? [c] : [];
+		};
+		return memo;
+	}
+	var SuspenseContext;
+	function readSignal() {
+		const runningTransition = Transition && Transition.running;
+		if (this.sources && (runningTransition ? this.tState : this.state)) {
+			if ((runningTransition ? this.tState : this.state) === STALE) updateComputation(this);
 			else {
-				this.offsetX = offset.x;
-				this.offsetY = offset.y;
-			}
-			this._hidden = opts.hidden ?? false;
-			this.autoLayout = opts.autoLayout ?? true;
-			this.trigger = Tooltip.normalizeTrigger(opts.trigger);
-			this.position = Tooltip.normalizePos(opts.position);
-			this.preferredPosition = this.position;
-			this.portal = opts.parentElement ?? document.body;
-			this.borderRadius = opts.borderRadius;
-			this._bordered = opts.bordered ?? true;
-			this.maxWidth = opts.maxWidth;
-			this.mode = Tooltip.normalizeMode(opts.mode);
-			this.backgroundColor = opts.backgroundColor;
-			this.init();
-		}
-		static normalizePos(position) {
-			return positions$1.includes(position) ? position : DEFAULT_TOOLTIP_POS;
-		}
-		static normalizeTrigger(trigger) {
-			return triggers.includes(trigger) ? trigger : DEFAULT_TOOLTIP_TRIGGER;
-		}
-		static normalizeMode(mode) {
-			return tooltipModes.includes(mode) ? mode : DEFAULT_TOOLTIP_MODE;
-		}
-		setPosition(position) {
-			this.position = this.preferredPosition = Tooltip.normalizePos(position);
-			this.schedulePositionUpdate();
-			return this;
-		}
-		syncContentClass() {
-			if (!this.container) return;
-			const isSubtitlesInfo = this.content instanceof HTMLElement && this.content.classList.contains("vot-subtitles-info");
-			this.container.classList.toggle("vot-tooltip--subtitles-info", isSubtitlesInfo);
-		}
-		setContent(content) {
-			this.content = content;
-			if (!this.container) return this;
-			this.container.replaceChildren();
-			if (typeof content === "string") this.container.textContent = content;
-			else this.container.append(content);
-			this.syncContentClass();
-			this.schedulePositionUpdate();
-			return this;
-		}
-		/** Remove tooltip DOM immediately (no fade). Use when switching UI modes. */
-		dismissImmediate() {
-			return this.destroy(true);
-		}
-		/**
-		* After enabling the tooltip while the pointer never left the target,
-		* `pointerenter` does not fire again — call this to show immediately.
-		*/
-		revealIfHovered() {
-			if (this._hidden || this.trigger !== "hover") return this;
-			try {
-				if (!this.target.matches(":hover")) return this;
-			} catch {
-				return this;
-			}
-			this.create();
-			return this;
-		}
-		/**
-		* Update tooltip mount dependencies.
-		* If the tooltip is currently rendered, it will be moved to the new parent.
-		*/
-		updateMount({ parentElement }) {
-			if (!(parentElement && this.portal !== parentElement)) return this;
-			this.portal = parentElement;
-			if (this.container?.isConnected) {
-				parentElement.appendChild(this.container);
-				this.schedulePositionUpdate();
-			}
-			return this;
-		}
-		onResize = () => {
-			this.schedulePositionUpdate();
-		};
-		onScroll = () => {
-			this.schedulePositionUpdate();
-		};
-		onClick = () => {
-			this.showed ? this.destroy() : this.create();
-		};
-		onDocumentPointerDown = (event) => {
-			if (!this.showed) return;
-			if (isEventInside(event, this.target) || this.container && isEventInside(event, this.container) || this.mode === "follow" && isEventInside(event, this.anchor)) return;
-			this.destroy();
-		};
-		onTargetKeyDown = (event) => {
-			if (event.key === "Escape" && this.showed) this.destroy();
-		};
-		onPointerEnter = (_e) => {
-			this.create();
-		};
-		onPointerLeave = (e) => {
-			if (!this.isInTooltipContext(e.relatedTarget)) this.destroy();
-		};
-		onTooltipPointerLeave = (e) => {
-			if (!this.isInTooltipContext(e.relatedTarget)) this.destroy();
-		};
-		onTouchPointerDown = (e) => {
-			if (e.pointerType === "touch") this.create();
-		};
-		onTouchPointerUp = (e) => {
-			if (e.pointerType === "touch") this.destroy();
-		};
-		isInTooltipContext(nextTarget) {
-			if (!(nextTarget instanceof Node)) return false;
-			return this.target.contains(nextTarget) || this.container?.contains(nextTarget);
-		}
-		init() {
-			this.resizeObserver = new ResizeObserver(this.onResize);
-			this.intersectionObserver = new IntersectionObserver(this.onIntersect.bind(this));
-			this.target.addEventListener("keydown", this.onTargetKeyDown);
-			if (this.trigger === "click") {
-				this.target.addEventListener("pointerdown", this.onClick);
-				return;
-			}
-			this.target.addEventListener("pointerenter", this.onPointerEnter);
-			this.target.addEventListener("pointerleave", this.onPointerLeave);
-			this.target.addEventListener("pointerdown", this.onTouchPointerDown);
-			this.target.addEventListener("pointerup", this.onTouchPointerUp);
-		}
-		onIntersect(entries) {
-			if (!entries[0]?.isIntersecting) this.destroy(true);
-		}
-		release() {
-			this.destroy(true);
-			this.detachScrollListener();
-			this.target.removeEventListener("keydown", this.onTargetKeyDown);
-			if (this.trigger === "click") {
-				this.target.removeEventListener("pointerdown", this.onClick);
-				return this;
-			}
-			this.target.removeEventListener("pointerenter", this.onPointerEnter);
-			this.target.removeEventListener("pointerleave", this.onPointerLeave);
-			this.target.removeEventListener("pointerdown", this.onTouchPointerDown);
-			this.target.removeEventListener("pointerup", this.onTouchPointerUp);
-			return this;
-		}
-		schedulePositionUpdate() {
-			if (!this.container || this.positionRafId !== null) return;
-			this.positionRafId = requestAnimationFrame(() => {
-				this.positionRafId = null;
-				this.updatePos();
-			});
-		}
-		cancelPositionUpdate() {
-			if (this.positionRafId !== null) {
-				cancelAnimationFrame(this.positionRafId);
-				this.positionRafId = null;
+				const updates = Updates;
+				Updates = null;
+				runUpdates(() => lookUpstream(this), false);
+				Updates = updates;
 			}
 		}
-		clearDestroyFallbackTimer() {
-			if (this.destroyFallbackTimerId !== void 0) {
-				globalThis.clearTimeout(this.destroyFallbackTimerId);
-				this.destroyFallbackTimerId = void 0;
-			}
-		}
-		create() {
-			this.destroy(true);
-			this.showed = true;
-			this.container = UI.createEl("vot-block", ["vot-tooltip"], this.content);
-			this.syncContentClass();
-			if (this._bordered) this.container.classList.add("vot-tooltip-bordered");
-			this.container.setAttribute("role", "tooltip");
-			this.container.id = this.tooltipId;
-			this.container.dataset.trigger = this.trigger;
-			this.container.dataset.mode = this.mode;
-			this.container.dataset.position = this.position;
-			this.container.style.position = this.usesPortalCoordinates() ? "absolute" : "fixed";
-			this.container.style.top = "0";
-			this.container.style.left = "0";
-			this.container.style.margin = "0";
-			this.portal.appendChild(this.container);
-			if (this.backgroundColor) this.container.style.backgroundColor = this.backgroundColor;
-			if (this.borderRadius !== void 0) this.container.style.borderRadius = `${this.borderRadius}px`;
-			if (this._hidden) this.container.hidden = true;
-			else this.syncAriaDescribedBy(true);
-			this.container.style.opacity = "1";
-			if (this.trigger === "hover") this.container.addEventListener("pointerleave", this.onTooltipPointerLeave);
-			else document.addEventListener("pointerdown", this.onDocumentPointerDown, {
-				capture: true,
-				passive: true
-			});
-			this.attachScrollListener();
-			this.resizeObserver?.observe(this.anchor);
-			if (this.edgeAnchor !== this.anchor) this.resizeObserver?.observe(this.edgeAnchor);
-			this.intersectionObserver?.observe(this.target);
-			this.updatePos();
-			return this;
-		}
-		updatePos() {
-			if (!this.container) return this;
-			const viewportWidth = window.innerWidth;
-			const availableWidth = Math.max(0, viewportWidth - this.offsetX * 2);
-			const maxWidth = clamp(this.maxWidth ?? availableWidth, 0, availableWidth);
-			this.container.style.maxWidth = `${maxWidth}px`;
-			const { top, left } = this.computePosition(this.autoLayout, this.preferredPosition);
-			const offset = this.getPortalViewportOffset();
-			this.container.style.transform = `translate(${left - offset.left}px, ${top - offset.top}px)`;
-			this.container.dataset.position = this.position;
-			return this;
-		}
-		usesPortalCoordinates() {
-			if (this.portal instanceof ShadowRoot) return true;
-			if (this.portal === document.body || this.portal === document.documentElement) return false;
-			if (this.portal.classList.contains("vot-portal")) return false;
-			return true;
-		}
-		getPortalViewportOffset() {
-			if (!this.usesPortalCoordinates()) return {
-				top: 0,
-				left: 0
-			};
-			const rect = (this.portal instanceof ShadowRoot ? this.portal.host : this.portal).getBoundingClientRect();
-			return {
-				top: rect.top,
-				left: rect.left
-			};
-		}
-		computePosition(autoLayout, preferred) {
-			const anchor = this.getAnchorBox();
-			const tooltipRect = this.container?.getBoundingClientRect();
-			const tooltip = {
-				width: tooltipRect.width || 100,
-				height: tooltipRect.height || 40
-			};
-			const viewport = this.getPositionBoundary();
-			const position = autoLayout ? this.resolvePosition(anchor, tooltip, viewport, preferred) : preferred;
-			const coords = this.getCoordinates(anchor, tooltip, position);
-			this.position = position;
-			return {
-				top: clamp(coords.top, viewport.top, viewport.bottom - tooltip.height),
-				left: clamp(coords.left, viewport.left, viewport.right - tooltip.width)
-			};
-		}
-		getAnchorBox() {
-			const anchorRect = this.anchor.getBoundingClientRect();
-			const edgeRect = this.edgeAnchor.getBoundingClientRect();
-			return {
-				left: edgeRect.left,
-				right: edgeRect.right,
-				top: edgeRect.top,
-				bottom: edgeRect.bottom,
-				centerX: anchorRect.left + anchorRect.width / 2,
-				centerY: anchorRect.top + anchorRect.height / 2
-			};
-		}
-		getPositionBoundary() {
-			const fallback = {
-				left: this.offsetX,
-				right: window.innerWidth - this.offsetX,
-				top: this.offsetY,
-				bottom: window.innerHeight - this.offsetY,
-				width: window.innerWidth,
-				height: window.innerHeight
-			};
-			if (this.mode !== "follow" || !this.usesPortalCoordinates()) return fallback;
-			const rect = (this.portal instanceof ShadowRoot ? this.portal.host : this.portal).getBoundingClientRect();
-			if (!rect.width || !rect.height) return fallback;
-			return {
-				left: rect.left,
-				right: rect.right,
-				top: rect.top,
-				bottom: rect.bottom,
-				width: rect.width,
-				height: rect.height
-			};
-		}
-		resolvePosition(anchor, tooltip, viewport, preferred) {
-			if (this.mode === "follow") return this.resolveFollowPosition(anchor, tooltip, viewport, preferred);
-			switch (preferred) {
-				case "top": return anchor.top - viewport.top >= tooltip.height + this.offsetY ? "top" : "bottom";
-				case "bottom": return viewport.bottom - anchor.bottom >= tooltip.height + this.offsetY ? "bottom" : "top";
-				case "left": return anchor.left - viewport.left >= tooltip.width + this.offsetX ? "left" : "right";
-				case "right": return viewport.right - anchor.right >= tooltip.width + this.offsetX ? "right" : "left";
-			}
-		}
-		resolveFollowPosition(anchor, tooltip, viewport, preferred) {
-			if (preferred === "top" || preferred === "bottom") {
-				const topWouldClamp = anchor.top - tooltip.height - this.offsetY < viewport.top;
-				const bottomWouldClamp = anchor.bottom + this.offsetY + tooltip.height > viewport.bottom;
-				if (preferred === "top") {
-					if (!topWouldClamp || bottomWouldClamp) return "top";
-					return "bottom";
+		if (Listener) {
+			const observers = this.observers;
+			if (!observers || observers[observers.length - 1] !== Listener) {
+				const sSlot = observers ? observers.length : 0;
+				if (!Listener.sources) {
+					Listener.sources = [this];
+					Listener.sourceSlots = [sSlot];
+				} else {
+					Listener.sources.push(this);
+					Listener.sourceSlots.push(sSlot);
 				}
-				if (!bottomWouldClamp || topWouldClamp) return "bottom";
-				return "top";
-			}
-			const leftWouldClamp = anchor.left - tooltip.width - this.offsetX < viewport.left;
-			const rightWouldClamp = anchor.right + this.offsetX + tooltip.width > viewport.right;
-			if (preferred === "left") {
-				if (!leftWouldClamp || rightWouldClamp) return "left";
-				return "right";
-			}
-			if (!rightWouldClamp || leftWouldClamp) return "right";
-			return "left";
-		}
-		getCoordinates(anchor, tooltip, position) {
-			switch (position) {
-				case "top": return {
-					top: anchor.top - tooltip.height - this.offsetY,
-					left: anchor.centerX - tooltip.width / 2
-				};
-				case "bottom": return {
-					top: anchor.bottom + this.offsetY,
-					left: anchor.centerX - tooltip.width / 2
-				};
-				case "left": return {
-					top: anchor.centerY - tooltip.height / 2,
-					left: anchor.left - tooltip.width - this.offsetX
-				};
-				case "right": return {
-					top: anchor.centerY - tooltip.height / 2,
-					left: anchor.right + this.offsetX
-				};
+				if (!observers) {
+					this.observers = [Listener];
+					this.observerSlots = [Listener.sources.length - 1];
+				} else {
+					observers.push(Listener);
+					this.observerSlots.push(Listener.sources.length - 1);
+				}
 			}
 		}
-		destroy(instant = false) {
-			if (!this.container) return this;
-			const container = this.container;
-			this.cancelPositionUpdate();
-			this.clearDestroyFallbackTimer();
-			this.showed = false;
-			this.syncAriaDescribedBy(false);
-			this.resizeObserver?.disconnect();
-			this.intersectionObserver?.disconnect();
-			this.detachScrollListener();
-			this.detachOutsidePointerListener();
-			if (instant) {
-				container.remove();
-				this.container = void 0;
-				return this;
+		if (runningTransition && Transition.sources.has(this)) return this.tValue;
+		return this.value;
+	}
+	function writeSignal(node, value, isComp) {
+		let current = Transition && Transition.running && Transition.sources.has(node) ? node.tValue : node.value;
+		if (!node.comparator || !node.comparator(current, value)) {
+			if (Transition) {
+				const TransitionRunning = Transition.running;
+				if (TransitionRunning || !isComp && Transition.sources.has(node)) {
+					Transition.sources.add(node);
+					node.tValue = value;
+				}
+				if (!TransitionRunning) node.value = value;
+			} else node.value = value;
+			if (node.observers && node.observers.length) runUpdates(() => {
+				for (let i = 0; i < node.observers.length; i += 1) {
+					const o = node.observers[i];
+					const TransitionRunning = Transition && Transition.running;
+					if (TransitionRunning && Transition.disposed.has(o)) continue;
+					if (TransitionRunning ? !o.tState : !o.state) {
+						if (o.pure) Updates.push(o);
+						else Effects.push(o);
+						if (o.observers) markDownstream(o);
+					}
+					if (!TransitionRunning) o.state = STALE;
+					else o.tState = STALE;
+				}
+				if (Updates.length > 1e6) {
+					Updates = [];
+					throw new Error();
+				}
+			}, false);
+		}
+		return value;
+	}
+	function updateComputation(node) {
+		if (!node.fn) return;
+		cleanNode(node);
+		const time = ExecCount;
+		runComputation(node, Transition && Transition.running && Transition.sources.has(node) ? node.tValue : node.value, time);
+		if (Transition && !Transition.running && Transition.sources.has(node)) queueMicrotask(() => {
+			runUpdates(() => {
+				Transition && (Transition.running = true);
+				Listener = Owner = node;
+				runComputation(node, node.tValue, time);
+				Listener = Owner = null;
+			}, false);
+		});
+	}
+	function runComputation(node, value, time) {
+		let nextValue;
+		const owner = Owner, listener = Listener;
+		Listener = Owner = node;
+		try {
+			nextValue = node.fn(value);
+		} catch (err) {
+			if (node.pure) {
+				if (Transition && Transition.running) {
+					node.tState = STALE;
+					node.tOwned && node.tOwned.forEach(cleanNode);
+					node.tOwned = void 0;
+				} else {
+					node.state = STALE;
+					node.owned && node.owned.forEach(cleanNode);
+					node.owned = null;
+				}
 			}
-			container.removeEventListener("pointerleave", this.onTooltipPointerLeave);
-			container.style.pointerEvents = "none";
-			container.style.opacity = "0";
-			const handleTransitionDone = () => {
-				this.clearDestroyFallbackTimer();
-				container?.remove();
-				if (this.container === container) this.container = void 0;
+			node.updatedAt = time + 1;
+			return handleError(err);
+		} finally {
+			Listener = listener;
+			Owner = owner;
+		}
+		if (!node.updatedAt || node.updatedAt <= time) {
+			if (node.updatedAt != null && "observers" in node) writeSignal(node, nextValue, true);
+			else if (Transition && Transition.running && node.pure) {
+				if (!Transition.sources.has(node)) node.value = nextValue;
+				Transition.sources.add(node);
+				node.tValue = nextValue;
+			} else node.value = nextValue;
+			node.updatedAt = time;
+		}
+	}
+	function createComputation(fn, init, pure, state = STALE, options) {
+		const c = {
+			fn,
+			state,
+			updatedAt: null,
+			owned: null,
+			sources: null,
+			sourceSlots: null,
+			cleanups: null,
+			value: init,
+			owner: Owner,
+			context: Owner ? Owner.context : null,
+			pure
+		};
+		if (Transition && Transition.running) {
+			c.state = 0;
+			c.tState = state;
+		}
+		if (Owner === null);
+		else if (Owner !== UNOWNED) {
+			if (Transition && Transition.running && Owner.pure) {
+				if (!Owner.tOwned) Owner.tOwned = [c];
+				else Owner.tOwned.push(c);
+			} else if (!Owner.owned) Owner.owned = [c];
+			else Owner.owned.push(c);
+		}
+		if (ExternalSourceConfig && c.fn) {
+			const sourceFn = c.fn;
+			const [track, trigger] = createSignal(void 0, { equals: false });
+			const ordinary = ExternalSourceConfig.factory(sourceFn, trigger);
+			onCleanup(() => ordinary.dispose());
+			let inTransition;
+			let trackedOrdinary = false;
+			const triggerInTransition = () => startTransition(trigger).then(() => {
+				if (inTransition) {
+					inTransition.dispose();
+					inTransition = void 0;
+					if (!trackedOrdinary) trigger();
+				}
+			});
+			c.fn = (x) => {
+				track();
+				if (Transition && Transition.running) {
+					if (!inTransition) inTransition = ExternalSourceConfig.factory(sourceFn, triggerInTransition);
+					return inTransition.track(x);
+				}
+				trackedOrdinary = true;
+				return ordinary.track(x);
 			};
-			container.addEventListener("transitionend", handleTransitionDone, { once: true });
-			container.addEventListener("transitioncancel", handleTransitionDone, { once: true });
-			this.destroyFallbackTimerId = globalThis.setTimeout(handleTransitionDone, Tooltip.DESTROY_FALLBACK_MS);
-			return this;
 		}
-		detachOutsidePointerListener() {
-			document.removeEventListener("pointerdown", this.onDocumentPointerDown, { capture: true });
+		return c;
+	}
+	function runTop(node) {
+		const runningTransition = Transition && Transition.running;
+		if ((runningTransition ? node.tState : node.state) === 0) return;
+		if ((runningTransition ? node.tState : node.state) === PENDING) return lookUpstream(node);
+		if (node.suspense && untrack(node.suspense.inFallback)) return node.suspense.effects.push(node);
+		const ancestors = [node];
+		while ((node = node.owner) && (!node.updatedAt || node.updatedAt < ExecCount)) {
+			if (runningTransition && Transition.disposed.has(node)) return;
+			if (runningTransition ? node.tState : node.state) ancestors.push(node);
 		}
-		syncAriaDescribedBy(isShowing) {
-			const existing = this.target.getAttribute("aria-describedby");
-			this.prevAriaDescribedBy ??= existing;
-			if (!isShowing) {
-				if (this.prevAriaDescribedBy === null) this.target.removeAttribute("aria-describedby");
-				else this.target.setAttribute("aria-describedby", this.prevAriaDescribedBy);
-				this.prevAriaDescribedBy = null;
+		for (let i = ancestors.length - 1; i >= 0; i--) {
+			node = ancestors[i];
+			if (runningTransition) {
+				let top = node, prev = ancestors[i + 1];
+				while ((top = top.owner) && top !== prev) if (Transition.disposed.has(top)) return;
+			}
+			if ((runningTransition ? node.tState : node.state) === STALE) updateComputation(node);
+			else if ((runningTransition ? node.tState : node.state) === PENDING) {
+				const updates = Updates;
+				Updates = null;
+				runUpdates(() => lookUpstream(node, ancestors[0]), false);
+				Updates = updates;
+			}
+		}
+	}
+	function runUpdates(fn, init) {
+		if (Updates) return fn();
+		let wait = false;
+		if (!init) Updates = [];
+		if (Effects) wait = true;
+		else Effects = [];
+		ExecCount++;
+		try {
+			const res = fn();
+			completeUpdates(wait);
+			return res;
+		} catch (err) {
+			if (!wait) Effects = null;
+			Updates = null;
+			handleError(err);
+		}
+	}
+	function completeUpdates(wait) {
+		if (Updates) {
+			if (Scheduler && Transition && Transition.running) scheduleQueue(Updates);
+			else runQueue(Updates);
+			Updates = null;
+		}
+		if (wait) return;
+		let res;
+		if (Transition) {
+			if (!Transition.promises.size && !Transition.queue.size) {
+				const sources = Transition.sources;
+				const disposed = Transition.disposed;
+				Effects.push.apply(Effects, Transition.effects);
+				res = Transition.resolve;
+				for (const e of Effects) {
+					"tState" in e && (e.state = e.tState);
+					delete e.tState;
+				}
+				Transition = null;
+				runUpdates(() => {
+					for (const d of disposed) cleanNode(d);
+					for (const v of sources) {
+						v.value = v.tValue;
+						if (v.owned) for (let i = 0, len = v.owned.length; i < len; i++) cleanNode(v.owned[i]);
+						if (v.tOwned) v.owned = v.tOwned;
+						delete v.tValue;
+						delete v.tOwned;
+						v.tState = 0;
+					}
+					setTransPending(false);
+				}, false);
+			} else if (Transition.running) {
+				Transition.running = false;
+				Transition.effects.push.apply(Transition.effects, Effects);
+				Effects = null;
+				setTransPending(true);
 				return;
 			}
-			const tokens = new Set((existing ?? "").split(/\s+/).filter(Boolean));
-			tokens.add(this.tooltipId);
-			this.target.setAttribute("aria-describedby", Array.from(tokens).join(" "));
 		}
-		set bordered(value) {
-			this._bordered = value;
-			this.container?.classList.toggle("vot-tooltip-bordered", value);
+		const e = Effects;
+		Effects = null;
+		if (e.length) runUpdates(() => runEffects(e), false);
+		if (res) res();
+	}
+	function runQueue(queue) {
+		for (let i = 0; i < queue.length; i++) runTop(queue[i]);
+	}
+	function scheduleQueue(queue) {
+		for (let i = 0; i < queue.length; i++) {
+			const item = queue[i];
+			const tasks = Transition.queue;
+			if (!tasks.has(item)) {
+				tasks.add(item);
+				Scheduler(() => {
+					tasks.delete(item);
+					runUpdates(() => {
+						Transition.running = true;
+						runTop(item);
+					}, false);
+					Transition && (Transition.running = false);
+				});
+			}
 		}
-		get bordered() {
-			return this._bordered;
+	}
+	function runUserEffects(queue) {
+		let i, userLength = 0;
+		for (i = 0; i < queue.length; i++) {
+			const e = queue[i];
+			if (!e.user) runTop(e);
+			else queue[userLength++] = e;
 		}
-		set hidden(value) {
-			this._hidden = value;
-			if (this.container) this.container.hidden = value;
-			if (this.showed) this.syncAriaDescribedBy(!value);
+		if (sharedConfig.context) {
+			if (sharedConfig.count) {
+				sharedConfig.effects || (sharedConfig.effects = []);
+				sharedConfig.effects.push(...queue.slice(0, userLength));
+				return;
+			}
+			setHydrateContext();
 		}
-		get hidden() {
-			return this._hidden;
+		if (sharedConfig.effects && (sharedConfig.done || !sharedConfig.count)) {
+			queue = [...sharedConfig.effects, ...queue];
+			userLength += sharedConfig.effects.length;
+			delete sharedConfig.effects;
 		}
-		attachScrollListener() {
-			if (this.scrollListening) return;
-			this.scrollListening = true;
-			document.addEventListener("scroll", this.onScroll, {
-				passive: true,
-				capture: true
+		for (i = 0; i < userLength; i++) runTop(queue[i]);
+	}
+	function lookUpstream(node, ignore) {
+		const runningTransition = Transition && Transition.running;
+		if (runningTransition) node.tState = 0;
+		else node.state = 0;
+		for (let i = 0; i < node.sources.length; i += 1) {
+			const source = node.sources[i];
+			if (source.sources) {
+				const state = runningTransition ? source.tState : source.state;
+				if (state === STALE) {
+					if (source !== ignore && (!source.updatedAt || source.updatedAt < ExecCount)) runTop(source);
+				} else if (state === PENDING) lookUpstream(source, ignore);
+			}
+		}
+	}
+	function markDownstream(node) {
+		const runningTransition = Transition && Transition.running;
+		for (let i = 0; i < node.observers.length; i += 1) {
+			const o = node.observers[i];
+			if (runningTransition ? !o.tState : !o.state) {
+				if (runningTransition) o.tState = PENDING;
+				else o.state = PENDING;
+				if (o.pure) Updates.push(o);
+				else Effects.push(o);
+				o.observers && markDownstream(o);
+			}
+		}
+	}
+	function cleanNode(node) {
+		let i;
+		if (node.sources) while (node.sources.length) {
+			const source = node.sources.pop(), index = node.sourceSlots.pop(), obs = source.observers;
+			if (obs && obs.length) {
+				const n = obs.pop(), s = source.observerSlots.pop();
+				if (index < obs.length) {
+					n.sourceSlots[s] = index;
+					obs[index] = n;
+					source.observerSlots[index] = s;
+				}
+			}
+		}
+		if (node.tOwned) {
+			for (i = node.tOwned.length - 1; i >= 0; i--) cleanNode(node.tOwned[i]);
+			delete node.tOwned;
+		}
+		if (Transition && Transition.running && node.pure) reset(node, true);
+		else if (node.owned) {
+			for (i = node.owned.length - 1; i >= 0; i--) cleanNode(node.owned[i]);
+			node.owned = null;
+		}
+		if (node.cleanups) {
+			for (i = node.cleanups.length - 1; i >= 0; i--) node.cleanups[i]();
+			node.cleanups = null;
+		}
+		if (Transition && Transition.running) node.tState = 0;
+		else node.state = 0;
+	}
+	function reset(node, top) {
+		if (!top) {
+			node.tState = 0;
+			Transition.disposed.add(node);
+		}
+		if (node.owned) for (let i = 0; i < node.owned.length; i++) reset(node.owned[i]);
+	}
+	function castError(err) {
+		if (err instanceof Error) return err;
+		return new Error(typeof err === "string" ? err : "Unknown error", { cause: err });
+	}
+	function runErrors(err, fns, owner) {
+		try {
+			for (const f of fns) f(err);
+		} catch (e) {
+			handleError(e, owner && owner.owner || null);
+		}
+	}
+	function handleError(err, owner = Owner) {
+		const fns = ERROR && owner && owner.context && owner.context[ERROR];
+		const error = castError(err);
+		if (!fns) throw error;
+		if (Effects) Effects.push({
+			fn() {
+				runErrors(error, fns, owner);
+			},
+			state: STALE
+		});
+		else runErrors(error, fns, owner);
+	}
+	function resolveChildren(children) {
+		if (typeof children === "function" && !children.length) return resolveChildren(children());
+		if (Array.isArray(children)) {
+			const results = [];
+			for (let i = 0; i < children.length; i++) {
+				const result = resolveChildren(children[i]);
+				if (Array.isArray(result)) {
+					if (result.length < 32768) results.push.apply(results, result);
+					else for (let j = 0; j < result.length; j++) results.push(result[j]);
+				} else results.push(result);
+			}
+			return results;
+		}
+		return children;
+	}
+	var FALLBACK = Symbol("fallback");
+	function dispose(d) {
+		for (let i = 0; i < d.length; i++) d[i]();
+	}
+	function mapArray(list, mapFn, options = {}) {
+		let items = [], mapped = [], disposers = [], len = 0, indexes = mapFn.length > 1 ? [] : null;
+		onCleanup(() => dispose(disposers));
+		return () => {
+			let newItems = list() || [], newLen = newItems.length, i, j;
+			newItems[$TRACK];
+			return untrack(() => {
+				let newIndices, newIndicesNext, temp, tempdisposers, tempIndexes, start, end, newEnd, item;
+				if (newLen === 0) {
+					if (len !== 0) {
+						dispose(disposers);
+						disposers = [];
+						items = [];
+						mapped = [];
+						len = 0;
+						indexes && (indexes = []);
+					}
+					if (options.fallback) {
+						items = [FALLBACK];
+						mapped[0] = createRoot((disposer) => {
+							disposers[0] = disposer;
+							return options.fallback();
+						});
+						len = 1;
+					}
+				} else if (len === 0) {
+					mapped = new Array(newLen);
+					for (j = 0; j < newLen; j++) {
+						items[j] = newItems[j];
+						mapped[j] = createRoot(mapper);
+					}
+					len = newLen;
+				} else {
+					temp = new Array(newLen);
+					tempdisposers = new Array(newLen);
+					indexes && (tempIndexes = new Array(newLen));
+					for (start = 0, end = Math.min(len, newLen); start < end && items[start] === newItems[start]; start++);
+					for (end = len - 1, newEnd = newLen - 1; end >= start && newEnd >= start && items[end] === newItems[newEnd]; end--, newEnd--) {
+						temp[newEnd] = mapped[end];
+						tempdisposers[newEnd] = disposers[end];
+						indexes && (tempIndexes[newEnd] = indexes[end]);
+					}
+					newIndices = /* @__PURE__ */ new Map();
+					newIndicesNext = new Array(newEnd + 1);
+					for (j = newEnd; j >= start; j--) {
+						item = newItems[j];
+						i = newIndices.get(item);
+						newIndicesNext[j] = i === void 0 ? -1 : i;
+						newIndices.set(item, j);
+					}
+					for (i = start; i <= end; i++) {
+						item = items[i];
+						j = newIndices.get(item);
+						if (j !== void 0 && j !== -1) {
+							temp[j] = mapped[i];
+							tempdisposers[j] = disposers[i];
+							indexes && (tempIndexes[j] = indexes[i]);
+							j = newIndicesNext[j];
+							newIndices.set(item, j);
+						} else disposers[i]();
+					}
+					for (j = start; j < newLen; j++) if (j in temp) {
+						mapped[j] = temp[j];
+						disposers[j] = tempdisposers[j];
+						if (indexes) {
+							indexes[j] = tempIndexes[j];
+							indexes[j](j);
+						}
+					} else mapped[j] = createRoot(mapper);
+					mapped = mapped.slice(0, len = newLen);
+					items = newItems.slice(0);
+				}
+				return mapped;
 			});
+			function mapper(disposer) {
+				disposers[j] = disposer;
+				if (indexes) {
+					const [s, set] = createSignal(j);
+					indexes[j] = set;
+					return mapFn(newItems[j], s);
+				}
+				return mapFn(newItems[j]);
+			}
+		};
+	}
+	function indexArray(list, mapFn, options = {}) {
+		let items = [], mapped = [], disposers = [], signals = [], len = 0, i;
+		onCleanup(() => dispose(disposers));
+		return () => {
+			const newItems = list() || [], newLen = newItems.length;
+			newItems[$TRACK];
+			return untrack(() => {
+				if (newLen === 0) {
+					if (len !== 0) {
+						dispose(disposers);
+						disposers = [];
+						items = [];
+						mapped = [];
+						len = 0;
+						signals = [];
+					}
+					if (options.fallback) {
+						items = [FALLBACK];
+						mapped[0] = createRoot((disposer) => {
+							disposers[0] = disposer;
+							return options.fallback();
+						});
+						len = 1;
+					}
+					return mapped;
+				}
+				if (items[0] === FALLBACK) {
+					disposers[0]();
+					disposers = [];
+					items = [];
+					mapped = [];
+					len = 0;
+				}
+				for (i = 0; i < newLen; i++) if (i < items.length && items[i] !== newItems[i]) signals[i](() => newItems[i]);
+				else if (i >= items.length) mapped[i] = createRoot(mapper);
+				for (; i < items.length; i++) disposers[i]();
+				len = signals.length = disposers.length = newLen;
+				items = newItems.slice(0);
+				return mapped = mapped.slice(0, len);
+			});
+			function mapper(disposer) {
+				disposers[i] = disposer;
+				const [s, set] = createSignal(newItems[i]);
+				signals[i] = set;
+				return mapFn(s, i);
+			}
+		};
+	}
+	var hydrationEnabled = false;
+	function createComponent$1(Comp, props) {
+		if (hydrationEnabled) {
+			if (sharedConfig.context) {
+				const c = sharedConfig.context;
+				setHydrateContext(nextHydrateContext());
+				const r = untrack(() => Comp(props || {}));
+				setHydrateContext(c);
+				return r;
+			}
 		}
-		detachScrollListener() {
-			if (!this.scrollListening) return;
-			this.scrollListening = false;
-			document.removeEventListener("scroll", this.onScroll, { capture: true });
+		return untrack(() => Comp(props || {}));
+	}
+	function trueFn() {
+		return true;
+	}
+	var propTraps = {
+		get(_, property, receiver) {
+			if (property === $PROXY) return receiver;
+			return _.get(property);
+		},
+		has(_, property) {
+			if (property === $PROXY) return true;
+			return _.has(property);
+		},
+		set: trueFn,
+		deleteProperty: trueFn,
+		getOwnPropertyDescriptor(_, property) {
+			return {
+				configurable: true,
+				enumerable: true,
+				get() {
+					return _.get(property);
+				},
+				set: trueFn,
+				deleteProperty: trueFn
+			};
+		},
+		ownKeys(_) {
+			return _.keys();
 		}
 	};
-	//#endregion
-	//#region src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(".vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;font-weight:500!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:500!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after{opacity:0}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;min-width:64px;height:36px;color:rgb(var(--vot-helper-theme));background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;margin:0!important;font-weight:500!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after{opacity:0}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;width:36px;min-width:36px;height:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;outline:none;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:none!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;max-width:80%}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;background-color:#0000;outline:none;width:fit-content;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:solid 1px var(--vot-border-color)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+span{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+span{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+span:before,.vot-textfield>textarea+span:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+span:after,.vot-textfield>textarea+span:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+span:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+span:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+span:before,.vot-textfield>input:not(:focus):placeholder-shown+span:after,.vot-textfield>textarea:not(:focus):placeholder-shown+span:before,.vot-textfield>textarea:not(:focus):placeholder-shown+span:after{border-top-color:#0000!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+span:before,.vot-textfield:hover>input:not(:disabled)+span:after,.vot-textfield:hover>textarea:not(:disabled)+span:before,.vot-textfield:hover>textarea:not(:disabled)+span:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+span,.vot-textfield>textarea:focus+span{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+span:before,.vot-textfield>input:focus+span:after,.vot-textfield>textarea:focus+span:before,.vot-textfield>textarea:focus+span:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+span,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+span{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+span:before,.vot-textfield>input:disabled+span:after,.vot-textfield>textarea:disabled+span:before,.vot-textfield>textarea:disabled+span:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+span,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+span{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+span:before,.vot-textfield>input:disabled:placeholder-shown+span:after,.vot-textfield>textarea:disabled:placeholder-shown+span:before,.vot-textfield>textarea:disabled:placeholder-shown+span:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+span,.vot-textfield>textarea,.vot-textfield>textarea+span,.vot-textfield>input+span:before,.vot-textfield>input+span:after,.vot-textfield>textarea+span:before,.vot-textfield>textarea+span:after{transition-duration:.1s!important}}}.vot-checkbox{--vot-checkbox-label-offset:30px;--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));z-index:0;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);text-align:start;font-size:16px;line-height:1.5;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-transform:none!important}.vot-checkbox-sub{padding-left:var(--vot-checkbox-label-offset)!important}.vot-checkbox>input{appearance:none;z-index:10000;box-sizing:border-box;opacity:1;cursor:pointer;background:0 0;outline:none;width:18px;height:18px;transition:border-color .2s,background-color .2s;display:block;position:absolute;border:2px solid!important;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;border-radius:2px!important;margin:3px 1px!important;padding:0!important}.vot-checkbox>input+span{box-sizing:border-box;width:inherit;cursor:pointer;font-family:inherit;display:inline-block;position:relative;padding-left:var(--vot-checkbox-label-offset)!important;font-weight:400!important}.vot-checkbox>input+span:before{content:\"\";background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0));opacity:0;pointer-events:none;width:40px;height:40px;transition:opacity .3s,transform .2s;display:block;position:absolute;top:-8px;left:-10px;transform:scale(1);border-radius:50%!important}.vot-checkbox>input+span:after{content:\"\";z-index:10000;pointer-events:none;width:10px;height:5px;transition:border-color .2s;display:block;position:absolute;top:3px;left:1px;transform:translate(3px,4px)rotate(-45deg);box-sizing:content-box!important;border:0 solid #0000!important;border-width:0 0 2px 2px!important}.vot-checkbox>input:checked,.vot-checkbox>input:indeterminate{background-color:rgb(var(--vot-helper-theme));border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox>input:checked+span:before,.vot-checkbox>input:indeterminate+span:before{background-color:rgb(var(--vot-helper-theme))}.vot-checkbox>input:checked+span:after,.vot-checkbox>input:indeterminate+span:after{border-color:rgb(var(--vot-helper-ontheme,255, 255, 255))!important}.vot-checkbox>input:hover{box-shadow:none!important}.vot-checkbox>input:indeterminate+span:after{transform:translate(4px,3px);border-left-width:0!important}.vot-checkbox:hover>input+span:before{opacity:.04}.vot-checkbox:active>input,.vot-checkbox:active:hover>input:not(:disabled){border-color:rgb(var(--vot-helper-theme))!important}.vot-checkbox:active>input:checked{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);border-color:#0000!important}.vot-checkbox:active>input+span:before{opacity:1;transition:transform,opacity;transform:scale(0)}.vot-checkbox>input:disabled{cursor:initial;border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-checkbox>input:disabled:checked,.vot-checkbox>input:disabled:indeterminate{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);border-color:#0000!important}.vot-checkbox>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial}.vot-checkbox>input:disabled+span:before{opacity:0;transform:scale(0)}html.vot-keyboard-nav .vot-checkbox>input:focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-checkbox>input:focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}.vot-slider{flex-direction:column;gap:6px;display:flex;width:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", BlinkMacSystemFont, system-ui, -apple-system)!important;text-align:start!important;font-size:16px!important;line-height:1.5!important}.vot-slider>span{order:1;margin:0!important;display:block!important}.vot-slider .vot-slider-label{flex-wrap:wrap;align-items:baseline;gap:6px;width:100%;display:inline-flex}.vot-slider-label-value{font-variant-numeric:tabular-nums;margin-left:0!important;font-weight:500!important}.vot-slider .vot-slider-label-text{min-width:0}.vot-slider>input{order:2;appearance:none!important;cursor:pointer!important;background-color:#0000!important;border:none!important;width:100%!important;height:32px!important;margin:0!important;padding:0!important;display:block!important;position:relative!important;top:0!important}.vot-slider>input:hover{box-shadow:none!important}.vot-slider>input:before{content:\"\"!important;width:calc(100% * var(--vot-progress,0))!important;background:rgb(var(--vot-primary-rgb,33, 150, 243))!important;height:2px!important;display:block!important;position:absolute!important;top:calc(50% - 1px)!important}.vot-slider>input:disabled{cursor:default!important;opacity:.38!important}.vot-slider>input:disabled+span{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-runnable-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-moz-range-track{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important}.vot-slider>input:disabled::-webkit-slider-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-thumb{background-color:rgb(var(--vot-onsurface-rgb,0, 0, 0))!important;box-shadow:0 0 0 1px rgb(var(--vot-surface-rgb,255, 255, 255))!important;transform:scale(4)!important}.vot-slider>input:disabled::-moz-range-progress{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important}.vot-slider>input:focus{outline:none!important}.vot-slider>input::-webkit-slider-runnable-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-moz-range-track{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important;border-radius:1px!important;width:100%!important;height:2px!important;margin:15px 0!important}.vot-slider>input::-webkit-slider-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-moz-range-thumb{appearance:none!important;background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;width:2px!important;height:2px!important;box-shadow:none!important;border:none!important;border-radius:50%!important;transition:box-shadow .2s!important;transform:scale(6)!important}.vot-slider>input::-webkit-slider-thumb{-webkit-appearance:none!important;margin:0!important}.vot-slider>input::-moz-range-progress{background-color:rgb(var(--vot-primary-rgb,33, 150, 243))!important;border-radius:1px!important;height:2px!important}.vot-slider>input:focus:not(:focus-visible)::-webkit-slider-thumb{box-shadow:none!important}.vot-slider>input:focus:not(:focus-visible)::-moz-range-thumb{box-shadow:none!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav .vot-slider>input:focus::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}html.vot-keyboard-nav .vot-slider>input:focus::-moz-range-thumb{box-shadow:0 0 0 2px rgba(var(--vot-primary-rgb,33, 150, 243), .24)!important}}.vot-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;font-size:14px;line-height:1.5;display:flex;font-weight:400!important}.vot-select-outer{cursor:pointer;justify-content:space-between;align-items:center;width:120px;max-width:120px;display:flex;border:1px solid var(--vot-helper-safari1)!important;border-radius:4px!important;padding:0 5px!important;transition:border .2s!important}.vot-select-outer:hover{border-color:var(--vot-helper-safari2)!important}.vot-select-outer[disabled=true]{opacity:.5;cursor:default}.vot-select-outer[disabled=true]:hover{border-color:var(--vot-helper-safari1)!important}.vot-select-title{text-overflow:ellipsis;white-space:nowrap;font-family:inherit;overflow:hidden}.vot-select-arrow-icon{justify-content:center;align-items:center;width:20px;height:32px;display:flex}.vot-select-arrow-icon svg{fill:inherit;stroke:inherit}.vot-select-content-list{flex-direction:column;display:flex}.vot-select-content-list .vot-select-content-item{cursor:pointer;border-radius:8px!important;padding:5px 10px!important}.vot-select-content-list .vot-select-content-item:not([inert]):hover{background-color:#2a2c31}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243));background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}.vot-select-content-list .vot-select-content-item[data-vot-selected=true]:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .1)!important}.vot-select-content-list .vot-select-content-item[inert]{cursor:default;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-header{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;line-height:1.5;font-weight:700!important}.vot-header:not(:first-child){padding-top:8px}.vot-header-level-1{font-size:2em}.vot-header-level-2{font-size:1.5em}.vot-header-level-3{font-size:1.17em}.vot-header-level-4{font-size:1em}.vot-header-level-5{font-size:.83em}.vot-header-level-6{font-size:.67em}.vot-info{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5;display:flex}.vot-info>:not(:first-child){color:rgba(var(--vot-helper-onsurface-rgb), .5);flex:1;margin-left:8px!important}.vot-details{color:rgba(var(--vot-helper-onsurface-rgb), .87);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif);text-align:start;cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-helper-onsurface-rgb), .87);justify-content:center;align-items:center;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section-header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section-header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section-header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section-content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section-content>*{margin:0!important}.vot-settings-section-content>*+*{margin-top:var(--vot-settings-row-gap)!important}.vot-settings-section-content>.vot-checkbox,.vot-settings-section-content>.vot-hotkey,.vot-settings-section-content>.vot-textfield,.vot-settings-section-content>.vot-select,.vot-settings-section-content>.vot-slider{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-section-content>.vot-textfield{gap:var(--vot-space-1);flex-direction:column;padding-top:0!important;display:flex!important}.vot-settings-section-content>.vot-textfield>span{order:0;width:auto!important;max-height:none!important;color:rgba(var(--vot-helper-onsurface-rgb), .72)!important;cursor:default!important;pointer-events:none!important;font-size:13px!important;line-height:1.2!important;display:block!important;position:static!important}.vot-settings-section-content>.vot-textfield>span:before,.vot-settings-section-content>.vot-textfield>span:after{content:none!important;display:none!important}.vot-settings-section-content>.vot-textfield>input,.vot-settings-section-content>.vot-textfield>textarea{transition:border-color var(--vot-duration-fast) var(--vot-easing-standard), background-color var(--vot-duration-fast) var(--vot-easing-standard);order:1;width:100%!important;height:36px!important;padding:0 var(--vot-space-3)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;background:rgba(var(--vot-helper-onsurface-rgb), .04)!important;color:rgba(var(--vot-helper-onsurface-rgb), .9)!important;-webkit-text-fill-color:currentColor!important;box-shadow:none!important}.vot-settings-section-content>.vot-textfield>textarea{resize:vertical;height:auto!important;min-height:84px!important;padding:var(--vot-space-2) var(--vot-space-3)!important}.vot-settings-section-content>.vot-textfield>input::placeholder,.vot-settings-section-content>.vot-textfield>textarea::placeholder{color:rgba(var(--vot-helper-onsurface-rgb), .55)!important}.vot-settings-section-content>.vot-textfield:hover>input,.vot-settings-section-content>.vot-textfield:hover>textarea{border-color:var(--vot-border-color-hover)!important}.vot-settings-section-content>.vot-textfield>input:not(:focus):placeholder-shown,.vot-settings-section-content>.vot-textfield>textarea:not(:focus):placeholder-shown{border-color:var(--vot-border-color)!important}.vot-settings-section-content>.vot-textfield>input:focus,.vot-settings-section-content>.vot-textfield>textarea:focus{border-color:rgba(var(--vot-primary-rgb), .7)!important}.vot-lang-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);fill:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-lang-select-icon{justify-content:center;align-items:center;width:32px;height:32px;display:flex}.vot-lang-select-icon svg{fill:inherit;stroke:inherit}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-button-default-top:5rem;--vot-button-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));left:50%;right:auto;top:var(--vot-button-default-top);position:absolute;overflow:hidden;transform:translate(-50%);opacity:1!important;pointer-events:auto!important;touch-action:none!important}@media (pointer:coarse){.vot-segmented-button{--vot-button-default-top:3rem;--vot-button-top-offset:max(12px, env(safe-area-inset-top,0px));--vot-button-side-offset:max(10px, env(safe-area-inset-left,0px));--vot-button-side-offset-right:max(10px, env(safe-area-inset-right,0px));--vot-button-side-top-offset:max(clamp(42px, 12.5vh, 112px), env(safe-area-inset-top,0px))}}.vot-segmented-button{-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);z-index:2147483647;align-items:center;font-size:16px;line-height:1.5;display:flex;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-segmented-button.vot-segmented-button--hidden{opacity:0!important;pointer-events:none!important}.vot-segmented-button.vot-segmented-button--dragging{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;box-shadow:var(--vot-shadow-1)!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important;border-color:var(--vot-border-color)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button *{box-sizing:border-box!important}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;margin-left:var(--vot-space-2)!important;font-weight:400!important}.vot-segmented-button .vot-translate-button{gap:0!important;padding-inline-end:4px!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;border-radius:999px;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;margin-inline:4px -4px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow[hidden]{display:none!important}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;width:28px;height:28px;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg,.vot-segmented-button .vot-dropdown-arrow.vot-dropdown-arrow--open svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-subtitles-button[data-active=true],.vot-segmented-button[data-status=success] .vot-dropdown-arrow{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-dropdown-arrow{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243));fill:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82;fill:#f28b82}.vot-segmented-button[data-loading=true] #vot-loading-icon{display:block!important}.vot-segmented-button[data-loading=true] #vot-translate-icon{display:none!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment-label,.vot-segmented-button[data-direction=column] .vot-dropdown-arrow{display:none}.vot-segmented-button[data-direction=column]>.vot-segment-only-icon,.vot-segmented-button[data-direction=column]>.vot-segment{padding:8px!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-position=left]{left:var(--vot-button-side-offset);right:auto;top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=right]{left:auto;right:var(--vot-button-side-offset-right);top:var(--vot-button-side-top-offset);transform:none}.vot-segmented-button[data-position=leftCenter]{left:var(--vot-button-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-button-side-offset-right);top:50%;transform:translateY(-50%)}.vot-segmented-button svg{width:24px;fill:inherit;stroke:inherit}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-ondialog:rgb(var(--vot-ondialog-rgb,37, 38, 40));--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-settings-control-width:clamp(120px, 45%, 200px);--vot-menu-default-top:calc(5rem + 48px);--vot-menu-top-offset:max(64px, calc(env(safe-area-inset-top,0px) + 56px));--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(56px, 12.5vh, 136px), calc(env(safe-area-inset-top,0px) + 8px));left:50%;right:auto;top:var(--vot-menu-default-top);position:absolute;overflow:hidden}@media (pointer:coarse){.vot-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-top-offset:max(56px, calc(env(safe-area-inset-top,0px) + 48px));--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px));--vot-menu-side-top-offset:max(clamp(50px, 12.5vh, 120px), calc(env(safe-area-inset-top,0px) + 8px))}}.vot-menu{-webkit-user-select:none;user-select:none;background-color:var(--vot-helper-surface);color:var(--vot-helper-onsurface);cursor:default;z-index:2147483646;visibility:visible;opacity:1;transform-origin:top;width:fit-content;min-width:320px;max-width:min(90vw,560px);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;transform:translate(-50%)scale(1);border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu *{box-sizing:border-box!important}.vot-menu[hidden]{pointer-events:none;visibility:hidden;opacity:0;transform:translate(-50%,-4px)scale(.98);display:block!important}.vot-menu-content-wrapper{min-width:320px;min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;display:flex;overflow:auto}.vot-menu-header-container{flex-shrink:0;align-items:center;min-height:31px;display:flex;padding-inline-end:var(--vot-space-2)!important}.vot-menu-header-container:empty{padding:0 0 16px!important}.vot-menu-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-menu-title-container{font-size:inherit;text-align:start;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-menu-title{flex:1;font-size:16px;line-height:1;padding:var(--vot-space-4)!important;font-weight:500!important}.vot-menu-body-container{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu-footer-container{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu-footer-container:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-menu .vot-select--labeled>.vot-select-outer{margin-left:auto}.vot-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-menu[data-position=left][hidden],.vot-menu[data-position=right][hidden]{transform:translateY(-4px)scale(.98)}.vot-menu[data-position=leftCenter][hidden],.vot-menu[data-position=rightCenter][hidden]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;align-items:center;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{flex-shrink:0;justify-content:center;align-items:flex-end;width:28px;height:28px;display:flex}.vot-voice-popover__item-icon svg{width:20px;height:20px;display:block}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}[hidden]>.vot-dialog{pointer-events:none;opacity:0;transition:opacity var(--vot-duration-fast) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);transform:translateY(-4px)scale(.98)}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container[hidden]{pointer-events:none;visibility:hidden;display:block!important}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}[hidden]>.vot-dialog-backdrop{pointer-events:none;opacity:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}.vot-dialog-footer-container:empty{padding:var(--vot-space-5) 0 0 0!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-inline-loader{aspect-ratio:5;--vot-loader-bg:no-repeat radial-gradient(farthest-side, rgba(var(--vot-onsurface-rgb,0, 0, 0), .38) 94%, transparent);background:var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg), var(--vot-loader-bg);background-size:20% 100%;height:8px;animation:.75s infinite alternate dotsSlide,1.5s infinite alternate dotsFlip}.vot-loader-progress{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}@keyframes dotsSlide{0%,10%{background-position:0 0,0 0,0 0,0 0}33%{background-position:0 0,33.3333% 0,33.3333% 0,33.3333% 0}66%{background-position:0 0,33.3333% 0,66.6667% 0,66.6667% 0}90%,to{background-position:0 0,33.3333% 0,66.6667% 0,100% 0}}@keyframes dotsFlip{0%,49.99%{transform:scale(1)}50%,to{transform:scale(-1)}}.vot-label{font-family:inherit;font-size:16px;line-height:1.5;display:block}.vot-label-text{display:inline}.vot-label-icon{vertical-align:text-bottom;cursor:help;justify-content:center;align-items:center;width:20px;height:20px;margin-left:4px;display:inline-flex}.vot-label-icon>svg{width:20px;height:20px;display:block}.vot-account{justify-content:space-between;align-items:center;gap:1rem;display:flex}.vot-account-container,.vot-account-wrapper,.vot-account-buttons{align-items:center;gap:1rem;display:flex}.vot-account-avatar{min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-avatar-img{object-fit:cover;border-radius:50%;width:36px;height:36px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#2196f3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}:root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-onsurface-rgb:227, 227, 227;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.4, 0, .2, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu):not(.vot-dialog-container),vot-block [hidden]:not(.vot-menu):not(.vot-dialog-container){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}");
-	var sharedShadowStyleSheet = null;
-	var sharedShadowStyleSheetReady = false;
-	function scopeCssForShadowRoots(cssText) {
-		return cssText.replaceAll(":root", ":host").replaceAll("html.vot-keyboard-nav", ":host-context(.vot-keyboard-nav)").replace(/:fullscreen(?=\s|,)/g, ":host-context(:fullscreen)").replace(/:-webkit-full-screen(?=\s|,)/g, ":host-context(:-webkit-full-screen)");
+	function resolveSource(s) {
+		return !(s = typeof s === "function" ? s() : s) ? {} : s;
 	}
-	function applyClasses(element, classes) {
-		if (classes?.length) element.classList.add(...classes);
-	}
-	function applyInlineStyles(element, styles) {
-		if (!styles) return;
-		for (const [name, value] of Object.entries(styles)) {
-			if (typeof value !== "string") continue;
-			element.style.setProperty(name, value);
+	function resolveSources() {
+		for (let i = 0, length = this.length; i < length; ++i) {
+			const v = this[i]();
+			if (v !== void 0) return v;
 		}
 	}
-	function createMountElement({ tag, classes = [], styles }) {
-		const element = document.createElement(tag);
-		applyClasses(element, classes);
-		applyInlineStyles(element, styles);
-		return element;
+	function mergeProps$1(...sources) {
+		let proxy = false;
+		for (let i = 0; i < sources.length; i++) {
+			const s = sources[i];
+			proxy = proxy || !!s && $PROXY in s;
+			sources[i] = typeof s === "function" ? (proxy = true, createMemo(s)) : s;
+		}
+		if (SUPPORTS_PROXY && proxy) return new Proxy({
+			get(property) {
+				for (let i = sources.length - 1; i >= 0; i--) {
+					const v = resolveSource(sources[i])[property];
+					if (v !== void 0) return v;
+				}
+			},
+			has(property) {
+				for (let i = sources.length - 1; i >= 0; i--) if (property in resolveSource(sources[i])) return true;
+				return false;
+			},
+			keys() {
+				const keys = [];
+				for (let i = 0; i < sources.length; i++) keys.push(...Object.keys(resolveSource(sources[i])));
+				return [...new Set(keys)];
+			}
+		}, propTraps);
+		const sourcesMap = {};
+		const defined = Object.create(null);
+		for (let i = sources.length - 1; i >= 0; i--) {
+			const source = sources[i];
+			if (!source) continue;
+			const sourceKeys = Object.getOwnPropertyNames(source);
+			for (let i = sourceKeys.length - 1; i >= 0; i--) {
+				const key = sourceKeys[i];
+				if (key === "__proto__" || key === "constructor") continue;
+				const desc = Object.getOwnPropertyDescriptor(source, key);
+				if (!defined[key]) defined[key] = desc.get ? {
+					enumerable: true,
+					configurable: true,
+					get: resolveSources.bind(sourcesMap[key] = [desc.get.bind(source)])
+				} : desc.value !== void 0 ? desc : void 0;
+				else {
+					const sources = sourcesMap[key];
+					if (sources) {
+						if (desc.get) sources.push(desc.get.bind(source));
+						else if (desc.value !== void 0) sources.push(() => desc.value);
+					}
+				}
+			}
+		}
+		const target = {};
+		const definedKeys = Object.keys(defined);
+		for (let i = definedKeys.length - 1; i >= 0; i--) {
+			const key = definedKeys[i], desc = defined[key];
+			if (desc && desc.get) Object.defineProperty(target, key, desc);
+			else target[key] = desc ? desc.value : void 0;
+		}
+		return target;
 	}
-	function getSharedShadowStyleSheet() {
-		if (sharedShadowStyleSheetReady) return sharedShadowStyleSheet;
-		sharedShadowStyleSheetReady = true;
-		if (!(typeof CSSStyleSheet !== "undefined" && typeof CSSStyleSheet.prototype.replaceSync === "function")) return null;
-		const sheet = new CSSStyleSheet();
-		sheet.replaceSync(shadowScopedCssText);
-		sharedShadowStyleSheet = sheet;
-		return sharedShadowStyleSheet;
+	function splitProps(props, ...keys) {
+		const len = keys.length;
+		if (SUPPORTS_PROXY && $PROXY in props) {
+			const blocked = len > 1 ? keys.flat() : keys[0];
+			const claimed = /* @__PURE__ */ new Set();
+			const res = keys.map((k) => {
+				const owned = k.filter((property) => !claimed.has(property) && (claimed.add(property), true));
+				return new Proxy({
+					get(property) {
+						return owned.includes(property) ? props[property] : void 0;
+					},
+					has(property) {
+						return owned.includes(property) && property in props;
+					},
+					keys() {
+						return owned.filter((property) => property in props);
+					}
+				}, propTraps);
+			});
+			res.push(new Proxy({
+				get(property) {
+					return blocked.includes(property) ? void 0 : props[property];
+				},
+				has(property) {
+					return blocked.includes(property) ? false : property in props;
+				},
+				keys() {
+					return Object.keys(props).filter((k) => !blocked.includes(k));
+				}
+			}, propTraps));
+			return res;
+		}
+		const objects = [];
+		for (let i = 0; i <= len; i++) objects[i] = {};
+		for (const propName of Object.getOwnPropertyNames(props)) {
+			let keyIndex = len;
+			for (let i = 0; i < keys.length; i++) if (keys[i].includes(propName)) {
+				keyIndex = i;
+				break;
+			}
+			const desc = Object.getOwnPropertyDescriptor(props, propName);
+			!desc.get && !desc.set && desc.enumerable && desc.writable && desc.configurable ? objects[keyIndex][propName] = desc.value : Object.defineProperty(objects[keyIndex], propName, desc);
+		}
+		return objects;
 	}
-	function adoptScopedStyles(shadowRoot) {
-		const sharedSheet = getSharedShadowStyleSheet();
-		if (sharedSheet) {
-			if (!shadowRoot.adoptedStyleSheets.includes(sharedSheet)) shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, sharedSheet];
+	var counter = 0;
+	function createUniqueId() {
+		return sharedConfig.context ? sharedConfig.getNextContextId() : `cl-${counter++}`;
+	}
+	var narrowedError = (name) => `Stale read from <${name}>.`;
+	function For(props) {
+		const fallback = "fallback" in props && { fallback: () => props.fallback };
+		return createMemo(mapArray(() => props.each, props.children, fallback || void 0));
+	}
+	function Index(props) {
+		const fallback = "fallback" in props && { fallback: () => props.fallback };
+		return createMemo(indexArray(() => props.each, props.children, fallback || void 0));
+	}
+	function Show(props) {
+		const keyed = props.keyed;
+		const conditionValue = createMemo(() => props.when, void 0, void 0);
+		const condition = keyed ? conditionValue : createMemo(conditionValue, void 0, { equals: (a, b) => !a === !b });
+		return createMemo(() => {
+			const c = condition();
+			if (c) {
+				const child = props.children;
+				return typeof child === "function" && child.length > 0 ? untrack(() => child(keyed ? c : () => {
+					if (!untrack(condition)) throw narrowedError("Show");
+					return conditionValue();
+				})) : child;
+			}
+			return props.fallback;
+		}, void 0, void 0);
+	}
+	function Switch$1(props) {
+		const chs = children(() => props.children);
+		const switchFunc = createMemo(() => {
+			const ch = chs();
+			const mps = Array.isArray(ch) ? ch : [ch];
+			let func = () => void 0;
+			for (let i = 0; i < mps.length; i++) {
+				const index = i;
+				const mp = mps[i];
+				const prevFunc = func;
+				const conditionValue = createMemo(() => prevFunc() ? void 0 : mp.when, void 0, void 0);
+				const condition = mp.keyed ? conditionValue : createMemo(conditionValue, void 0, { equals: (a, b) => !a === !b });
+				func = () => prevFunc() || (condition() ? [
+					index,
+					conditionValue,
+					mp
+				] : void 0);
+			}
+			return func;
+		});
+		return createMemo(() => {
+			const sel = switchFunc()();
+			if (!sel) return props.fallback;
+			const [index, conditionValue, mp] = sel;
+			const child = mp.children;
+			return typeof child === "function" && child.length > 0 ? untrack(() => child(mp.keyed ? conditionValue() : () => {
+				if (untrack(switchFunc)()?.[0] !== index) throw narrowedError("Match");
+				return conditionValue();
+			})) : child;
+		}, void 0, void 0);
+	}
+	function Match(props) {
+		return props;
+	}
+	//#endregion
+	//#region node_modules/solid-js/universal/dist/universal.js
+	var memo$1 = (fn) => createMemo(() => fn());
+	function createRenderer$1({ createElement, createTextNode, isTextNode, replaceText, insertNode, removeNode, setProperty, getParentNode, getFirstChild, getNextSibling }) {
+		function insert(parent, accessor, marker, initial) {
+			if (marker !== void 0 && !initial) initial = [];
+			if (typeof accessor !== "function") return insertExpression(parent, accessor, initial, marker);
+			createRenderEffect((current) => insertExpression(parent, accessor(), current, marker), initial);
+		}
+		function insertExpression(parent, value, current, marker, unwrapArray) {
+			while (typeof current === "function") current = current();
+			if (value === current) return current;
+			const t = typeof value, multi = marker !== void 0;
+			if (t === "string" || t === "number") {
+				if (t === "number") value = value.toString();
+				if (multi) {
+					let node = current[0];
+					if (node && isTextNode(node)) replaceText(node, value);
+					else node = createTextNode(value);
+					current = cleanChildren(parent, current, marker, node);
+				} else if (current !== "" && typeof current === "string") replaceText(getFirstChild(parent), current = value);
+				else {
+					cleanChildren(parent, current, marker, createTextNode(value));
+					current = value;
+				}
+			} else if (value == null || t === "boolean") current = cleanChildren(parent, current, marker);
+			else if (t === "function") {
+				createRenderEffect(() => {
+					let v = value();
+					while (typeof v === "function") v = v();
+					current = insertExpression(parent, v, current, marker);
+				});
+				return () => current;
+			} else if (Array.isArray(value)) {
+				const array = [];
+				if (normalizeIncomingArray(array, value, unwrapArray)) {
+					createRenderEffect(() => current = insertExpression(parent, array, current, marker, true));
+					return () => current;
+				}
+				if (array.length === 0) {
+					const replacement = cleanChildren(parent, current, marker);
+					if (multi) return current = replacement;
+				} else if (Array.isArray(current)) {
+					if (current.length === 0) appendNodes(parent, array, marker);
+					else reconcileArrays(parent, current, array);
+				} else if (current == null || current === "") appendNodes(parent, array);
+				else reconcileArrays(parent, multi && current || [getFirstChild(parent)], array);
+				current = array;
+			} else {
+				if (Array.isArray(current)) {
+					if (multi) return current = cleanChildren(parent, current, marker, value);
+					cleanChildren(parent, current, null, value);
+				} else if (current == null || current === "" || !getFirstChild(parent)) insertNode(parent, value);
+				else replaceNode(parent, value, getFirstChild(parent));
+				current = value;
+			}
+			return current;
+		}
+		function normalizeIncomingArray(normalized, array, unwrap) {
+			let dynamic = false;
+			for (let i = 0, len = array.length; i < len; i++) {
+				let item = array[i], t;
+				if (item == null || item === true || item === false);
+				else if (Array.isArray(item)) dynamic = normalizeIncomingArray(normalized, item) || dynamic;
+				else if ((t = typeof item) === "string" || t === "number") normalized.push(createTextNode(item));
+				else if (t === "function") {
+					if (unwrap) {
+						while (typeof item === "function") item = item();
+						dynamic = normalizeIncomingArray(normalized, Array.isArray(item) ? item : [item]) || dynamic;
+					} else {
+						normalized.push(item);
+						dynamic = true;
+					}
+				} else normalized.push(item);
+			}
+			return dynamic;
+		}
+		function reconcileArrays(parentNode, a, b) {
+			let bLength = b.length, aEnd = a.length, bEnd = bLength, aStart = 0, bStart = 0, after = getNextSibling(a[aEnd - 1]), map = null;
+			while (aStart < aEnd || bStart < bEnd) {
+				if (a[aStart] === b[bStart]) {
+					aStart++;
+					bStart++;
+					continue;
+				}
+				while (a[aEnd - 1] === b[bEnd - 1]) {
+					aEnd--;
+					bEnd--;
+				}
+				if (aEnd === aStart) {
+					const node = bEnd < bLength ? bStart ? getNextSibling(b[bStart - 1]) : b[bEnd - bStart] : after;
+					while (bStart < bEnd) insertNode(parentNode, b[bStart++], node);
+				} else if (bEnd === bStart) while (aStart < aEnd) {
+					if (!map || !map.has(a[aStart])) removeNode(parentNode, a[aStart]);
+					aStart++;
+				}
+				else if (a[aStart] === b[bEnd - 1] && b[bStart] === a[aEnd - 1]) {
+					const node = getNextSibling(a[--aEnd]);
+					insertNode(parentNode, b[bStart++], getNextSibling(a[aStart++]));
+					insertNode(parentNode, b[--bEnd], node);
+					a[aEnd] = b[bEnd];
+				} else {
+					if (!map) {
+						map = /* @__PURE__ */ new Map();
+						let i = bStart;
+						while (i < bEnd) map.set(b[i], i++);
+					}
+					const index = map.get(a[aStart]);
+					if (index != null) {
+						if (bStart < index && index < bEnd) {
+							let i = aStart, sequence = 1, t;
+							while (++i < aEnd && i < bEnd) {
+								if ((t = map.get(a[i])) == null || t !== index + sequence) break;
+								sequence++;
+							}
+							if (sequence > index - bStart) {
+								const node = a[aStart];
+								while (bStart < index) insertNode(parentNode, b[bStart++], node);
+							} else replaceNode(parentNode, b[bStart++], a[aStart++]);
+						} else aStart++;
+					} else removeNode(parentNode, a[aStart++]);
+				}
+			}
+		}
+		function cleanChildren(parent, current, marker, replacement) {
+			if (marker === void 0) {
+				let removed;
+				while (removed = getFirstChild(parent)) removeNode(parent, removed);
+				replacement && insertNode(parent, replacement);
+				return "";
+			}
+			const node = replacement || createTextNode("");
+			if (current.length) {
+				let inserted = false;
+				for (let i = current.length - 1; i >= 0; i--) {
+					const el = current[i];
+					if (node !== el) {
+						const isParent = getParentNode(el) === parent;
+						if (!inserted && !i) isParent ? replaceNode(parent, node, el) : insertNode(parent, node, marker);
+						else isParent && removeNode(parent, el);
+					} else inserted = true;
+				}
+			} else insertNode(parent, node, marker);
+			return [node];
+		}
+		function appendNodes(parent, array, marker) {
+			for (let i = 0, len = array.length; i < len; i++) insertNode(parent, array[i], marker);
+		}
+		function replaceNode(parent, newNode, oldNode) {
+			insertNode(parent, newNode, oldNode);
+			removeNode(parent, oldNode);
+		}
+		function spreadExpression(node, props, prevProps = {}, skipChildren) {
+			props || (props = {});
+			if (!skipChildren) createRenderEffect(() => prevProps.children = insertExpression(node, props.children, prevProps.children));
+			createRenderEffect(() => props.ref && props.ref(node));
+			createRenderEffect(() => {
+				for (const prop in props) {
+					if (prop === "children" || prop === "ref") continue;
+					const value = props[prop];
+					if (value === prevProps[prop]) continue;
+					setProperty(node, prop, value, prevProps[prop]);
+					prevProps[prop] = value;
+				}
+			});
+			return prevProps;
+		}
+		return {
+			render(code, element) {
+				let disposer;
+				createRoot((dispose) => {
+					disposer = dispose;
+					insert(element, code());
+				});
+				return disposer;
+			},
+			insert,
+			spread(node, accessor, skipChildren) {
+				if (typeof accessor === "function") createRenderEffect((current) => spreadExpression(node, accessor(), current, skipChildren));
+				else spreadExpression(node, accessor, void 0, skipChildren);
+			},
+			createElement,
+			createTextNode,
+			insertNode,
+			setProp(node, name, value, prev) {
+				setProperty(node, name, value, prev);
+				return value;
+			},
+			mergeProps: mergeProps$1,
+			effect: createRenderEffect,
+			memo: memo$1,
+			createComponent: createComponent$1,
+			use(fn, element, arg) {
+				return untrack(() => fn(element, arg));
+			}
+		};
+	}
+	function createRenderer(options) {
+		const renderer = createRenderer$1(options);
+		renderer.mergeProps = mergeProps$1;
+		return renderer;
+	}
+	//#endregion
+	//#region src/ui/solid/renderer.ts
+	var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+	var SVG_ELEMENT_NAMES = /* @__PURE__ */ new Set([
+		"altGlyph",
+		"altGlyphDef",
+		"altGlyphItem",
+		"animate",
+		"animateColor",
+		"animateMotion",
+		"animateTransform",
+		"circle",
+		"clipPath",
+		"color-profile",
+		"cursor",
+		"defs",
+		"desc",
+		"ellipse",
+		"feBlend",
+		"feColorMatrix",
+		"feComponentTransfer",
+		"feComposite",
+		"feConvolveMatrix",
+		"feDiffuseLighting",
+		"feDisplacementMap",
+		"feDistantLight",
+		"feDropShadow",
+		"feFlood",
+		"feFuncA",
+		"feFuncB",
+		"feFuncG",
+		"feFuncR",
+		"feGaussianBlur",
+		"feImage",
+		"feMerge",
+		"feMergeNode",
+		"feMorphology",
+		"feOffset",
+		"fePointLight",
+		"feSpecularLighting",
+		"feSpotLight",
+		"feTile",
+		"feTurbulence",
+		"filter",
+		"font",
+		"font-face",
+		"font-face-format",
+		"font-face-name",
+		"font-face-src",
+		"font-face-uri",
+		"foreignObject",
+		"g",
+		"glyph",
+		"glyphRef",
+		"hkern",
+		"image",
+		"line",
+		"linearGradient",
+		"marker",
+		"mask",
+		"metadata",
+		"missing-glyph",
+		"mpath",
+		"path",
+		"pattern",
+		"polygon",
+		"polyline",
+		"radialGradient",
+		"rect",
+		"set",
+		"stop",
+		"svg",
+		"switch",
+		"symbol",
+		"text",
+		"textPath",
+		"tref",
+		"tspan",
+		"use",
+		"view",
+		"vkern"
+	]);
+	var propertyAliases = {
+		formnovalidate: "formNoValidate",
+		readonly: "readOnly"
+	};
+	var booleanAttributes = /* @__PURE__ */ new Set([
+		"allowfullscreen",
+		"async",
+		"autofocus",
+		"autoplay",
+		"checked",
+		"controls",
+		"disabled",
+		"formnovalidate",
+		"hidden",
+		"loop",
+		"multiple",
+		"open",
+		"readonly",
+		"required",
+		"selected"
+	]);
+	var eventListeners = /* @__PURE__ */ new WeakMap();
+	function setClassList(element, value, previous) {
+		for (const name of Object.keys(previous ?? {})) {
+			const classes = name.trim().split(/\s+/).filter(Boolean);
+			if (classes.length && !value?.[name]) element.classList.remove(...classes);
+		}
+		for (const [name, enabled] of Object.entries(value ?? {})) {
+			const classes = name.trim().split(/\s+/).filter(Boolean);
+			if (classes.length && enabled) element.classList.add(...classes);
+		}
+	}
+	function setStyle(element, value, previous) {
+		if (typeof value === "string") {
+			element.style.cssText = value;
 			return;
 		}
-		const style = document.createElement("style");
-		style.textContent = shadowScopedCssText;
-		shadowRoot.append(style);
+		if (typeof previous === "string") element.style.cssText = "";
+		for (const name of Object.keys(typeof previous === "object" && previous ? previous : {})) if (value?.[name] == null) element.style.removeProperty(name);
+		for (const [name, styleValue] of Object.entries(value ?? {})) if (styleValue == null) element.style.removeProperty(name);
+		else element.style.setProperty(name, styleValue);
 	}
-	function createShadowMount({ parent, hostTag = "vot-shadow-host", rootTag = "vot-block", hostClasses = [], rootClasses = [], hostStyles, rootStyles, delegatesFocus = false }) {
-		const host = createMountElement({
-			tag: hostTag,
-			classes: hostClasses,
-			styles: hostStyles
-		});
-		const shadowRoot = host.attachShadow({
-			mode: "open",
-			delegatesFocus
-		});
-		adoptScopedStyles(shadowRoot);
-		const root = createMountElement({
-			tag: rootTag,
-			classes: rootClasses,
-			styles: rootStyles
-		});
-		shadowRoot.append(root);
-		parent.append(host);
-		return {
-			host,
-			root,
-			shadowRoot
-		};
+	function setEvent(element, property, value) {
+		const capture = property.startsWith("oncapture:");
+		const eventName = property.includes(":") ? property.slice(property.indexOf(":") + 1) : property.slice(2).toLowerCase();
+		const key = `${capture ? "capture:" : "event:"}${eventName}`;
+		let listeners = eventListeners.get(element);
+		const previous = listeners?.get(key);
+		if (previous) element.removeEventListener(eventName, previous, capture);
+		if (!value) {
+			listeners?.delete(key);
+			return;
+		}
+		const listener = Array.isArray(value) ? (event) => value[0](value[1], event) : value;
+		listeners ??= /* @__PURE__ */ new Map();
+		eventListeners.set(element, listeners);
+		listeners.set(key, listener);
+		element.addEventListener(eventName, listener, capture);
 	}
-	function reparentShadowMount(mount, parent) {
-		if (!mount) return;
-		if (mount.host.parentNode !== parent) parent.append(mount.host);
+	function setProperty$1(node, name, value, previous) {
+		if (!(node instanceof Element)) return;
+		if (name === "innerHTML") throw new TypeError("[VOT] innerHTML is not supported by the CSP-safe renderer");
+		if (name === "style" && (node instanceof HTMLElement || node instanceof SVGElement)) {
+			setStyle(node, value, previous);
+			return;
+		}
+		if (name === "classList") {
+			setClassList(node, value, previous);
+			return;
+		}
+		if (name.startsWith("on")) {
+			setEvent(node, name, value);
+			return;
+		}
+		if (name.startsWith("attr:")) name = name.slice(5);
+		if (name === "class" || name === "className") {
+			if (value == null) node.removeAttribute("class");
+			else node.setAttribute("class", String(value));
+			return;
+		}
+		if (name === "textContent") {
+			node.textContent = value == null ? "" : String(value);
+			return;
+		}
+		if (node instanceof SVGElement) {
+			if (value == null) node.removeAttribute(name);
+			else node.setAttribute(name, String(value));
+			return;
+		}
+		const propertyName = propertyAliases[name] ?? name;
+		if (propertyName in node && !name.startsWith("aria-") && !name.startsWith("data-")) {
+			Reflect.set(node, propertyName, value);
+			return;
+		}
+		if (value == null || value === false && booleanAttributes.has(name)) node.removeAttribute(name);
+		else if (value === true && booleanAttributes.has(name)) node.setAttribute(name, "");
+		else node.setAttribute(name, String(value));
 	}
-	function destroyShadowMount(mount) {
-		mount?.host.remove();
+	var { render, effect, memo, createComponent, createElement, createTextNode, insertNode, insert, spread, setProp, mergeProps, use } = createRenderer({
+		createElement(tag) {
+			return SVG_ELEMENT_NAMES.has(tag) ? document.createElementNS(SVG_NAMESPACE, tag) : document.createElement(tag);
+		},
+		createTextNode(value) {
+			return document.createTextNode(value);
+		},
+		replaceText(textNode, value) {
+			textNode.nodeValue = value;
+		},
+		isTextNode(node) {
+			return node.nodeType === Node.TEXT_NODE;
+		},
+		setProperty: setProperty$1,
+		insertNode(parent, node, anchor) {
+			parent.insertBefore(node, anchor ?? null);
+		},
+		removeNode(parent, node) {
+			parent.removeChild(node);
+		},
+		getParentNode(node) {
+			return node.parentNode ?? void 0;
+		},
+		getFirstChild(node) {
+			return node.firstChild ?? void 0;
+		},
+		getNextSibling(node) {
+			return node.nextSibling ?? void 0;
+		}
+	});
+	//#endregion
+	//#region src/subtitles/inlineStyle.ts
+	var SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
+	var SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
+	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
+	var SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
+	/**
+	* Bounded memo for color validation. Subtitle tracks reuse a very small set of
+	* distinct colors, so a tiny cache removes 3 regex tests per styled token per
+	* render without unbounded growth.
+	*/
+	var COLOR_CACHE_LIMIT = 256;
+	var colorCache = /* @__PURE__ */ new Map();
+	/**
+	* Memo for normalization / css-text derivation keyed by the *style object*.
+	*
+	* Contract: `SubtitleInlineStyle` values produced by the parsers are treated as
+	* immutable (they are created once per token and never mutated). A `WeakMap`
+	* keeps the memo tied to the token lifetime, so it cannot leak.
+	*/
+	var normalizedCache = /* @__PURE__ */ new WeakMap();
+	var cssTextCache = /* @__PURE__ */ new WeakMap();
+	var normalizeClassNames = (classes) => {
+		if (!classes?.length) return void 0;
+		const normalized = Array.from(new Set(classes.map((value) => value.trim()).filter((value) => value && SAFE_CLASS_NAME_RE.test(value)))).sort((left, right) => left.localeCompare(right));
+		return normalized.length ? normalized : void 0;
+	};
+	var normalizeCssColorValue = (value) => {
+		const cached = colorCache.get(value);
+		if (cached !== void 0 || colorCache.has(value)) return cached;
+		const result = computeNormalizedCssColorValue(value);
+		if (colorCache.size >= COLOR_CACHE_LIMIT) colorCache.clear();
+		colorCache.set(value, result);
+		return result;
+	};
+	var computeNormalizedCssColorValue = (value) => {
+		const normalized = value.trim();
+		if (!normalized) return void 0;
+		if (SAFE_HEX_COLOR_RE.test(normalized)) return normalized.toLowerCase();
+		if (SAFE_CSS_COLOR_NAME_RE.test(normalized)) return normalized.toLowerCase();
+		if (SAFE_CSS_FUNCTION_COLOR_RE.test(normalized)) return normalized;
+	};
+	var computeNormalizedSubtitleInlineStyle = (style) => {
+		const normalized = {};
+		if (style.italic) normalized.italic = true;
+		if (style.bold) normalized.bold = true;
+		if (style.underline) normalized.underline = true;
+		const normalizedColor = typeof style.color === "string" ? normalizeCssColorValue(style.color) : void 0;
+		if (normalizedColor) normalized.color = normalizedColor;
+		const normalizedClasses = normalizeClassNames(style.classes);
+		if (normalizedClasses) normalized.classes = normalizedClasses;
+		return Object.keys(normalized).length ? normalized : void 0;
+	};
+	var normalizeSubtitleInlineStyle = (style) => {
+		if (!style) return void 0;
+		const cached = normalizedCache.get(style);
+		if (cached !== void 0 || normalizedCache.has(style)) return cached;
+		const normalized = computeNormalizedSubtitleInlineStyle(style);
+		normalizedCache.set(style, normalized);
+		return normalized;
+	};
+	var sanitizeSubtitleInlineStyle = (value) => {
+		if (!value || typeof value !== "object") return void 0;
+		const raw = value;
+		return normalizeSubtitleInlineStyle({
+			italic: raw.italic === true,
+			bold: raw.bold === true,
+			underline: raw.underline === true,
+			color: typeof raw.color === "string" ? raw.color : void 0,
+			classes: Array.isArray(raw.classes) ? raw.classes.filter((entry) => typeof entry === "string") : void 0
+		});
+	};
+	var subtitleInlineStylesEqual = (left, right) => {
+		if (left === right) return true;
+		const leftNormalized = normalizeSubtitleInlineStyle(left);
+		const rightNormalized = normalizeSubtitleInlineStyle(right);
+		if (leftNormalized === rightNormalized) return true;
+		const leftClasses = leftNormalized?.classes ?? [];
+		const rightClasses = rightNormalized?.classes ?? [];
+		return Boolean(leftNormalized?.italic) === Boolean(rightNormalized?.italic) && Boolean(leftNormalized?.bold) === Boolean(rightNormalized?.bold) && Boolean(leftNormalized?.underline) === Boolean(rightNormalized?.underline) && (leftNormalized?.color ?? "") === (rightNormalized?.color ?? "") && leftClasses.length === rightClasses.length && leftClasses.every((value, index) => value === rightClasses[index]);
+	};
+	var buildSubtitleInlineStyleCssText = (style) => {
+		if (!style) return "";
+		const cached = cssTextCache.get(style);
+		if (cached !== void 0) return cached;
+		const normalized = normalizeSubtitleInlineStyle(style);
+		const cssText = normalized?.color ? `--vot-subtitles-inline-color:${normalized.color};` : "";
+		cssTextCache.set(style, cssText);
+		return cssText;
+	};
+	//#endregion
+	//#region src/components/Utils/Overlay.tsx
+	function Overlay(props) {
+		const finalProps = mergeProps$1({ hidden: false }, props);
+		return (() => {
+			var _el$ = createElement("vot-block");
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			spread(_el$, mergeProps({
+				get classList() {
+					return {
+						"vot-overlay": true,
+						...finalProps.classList
+					};
+				},
+				get ["aria-hidden"]() {
+					return finalProps.hidden ? "true" : void 0;
+				}
+			}, () => finalProps.blockProps), true);
+			insert(_el$, () => finalProps.children);
+			return _el$;
+		})();
 	}
 	//#endregion
-	//#region src/subtitles/layoutController.ts
-	function isTimeInLine(time, line) {
-		return time >= line.startMs && time < line.startMs + line.durationMs;
+	//#region src/components/SubtitlesWidget/SubtitlesWidget.tsx
+	function isSpanPart(part) {
+		if (part.kind === "break") return false;
+		return part.kind === "word" || Boolean(part.style) || part.highlightIndex !== void 0;
+	}
+	function SubtitlePart(props) {
+		let span;
+		const spanPart = () => isSpanPart(props.part) ? props.part : void 0;
+		const syncHighlightRef = () => {
+			const part = props.part;
+			props.onHighlightRef?.(props.index, span && isSpanPart(part) && part.highlightIndex !== void 0 ? span : void 0);
+		};
+		effect(syncHighlightRef);
+		onCleanup(() => props.onHighlightRef?.(props.index));
+		return createComponent(Switch$1, {
+			get fallback() {
+				return memo(() => props.part.kind === "text")() ? props.part.text : void 0;
+			},
+			get children() {
+				return [createComponent(Match, {
+					get when() {
+						return props.part.kind === "break";
+					},
+					get children() {
+						var _el$ = createElement("br");
+						setProp(_el$, "class", "vot-subtitles-br");
+						return _el$;
+					}
+				}), createComponent(Match, {
+					get when() {
+						return spanPart();
+					},
+					children: (part) => (() => {
+						var _el$2 = createElement("span");
+						use((element) => {
+							span = element;
+							syncHighlightRef();
+						}, _el$2);
+						insert(_el$2, () => part().text);
+						effect((_p$) => {
+							var _v$ = part().kind === "word" ? "1" : void 0, _v$2 = part().highlightIndex, _v$3 = part().style?.italic ? "1" : "0", _v$4 = part().style?.bold ? "1" : "0", _v$5 = part().style?.underline ? "1" : "0", _v$6 = part().style?.color ? "1" : "0", _v$7 = part().kind === "word" ? "button" : void 0, _v$8 = part().kind === "word" ? 0 : void 0, _v$9 = buildSubtitleInlineStyleCssText(part().style);
+							_v$ !== _p$.e && (_p$.e = setProp(_el$2, "data-vot-token", _v$, _p$.e));
+							_v$2 !== _p$.t && (_p$.t = setProp(_el$2, "data-vot-highlight-index", _v$2, _p$.t));
+							_v$3 !== _p$.a && (_p$.a = setProp(_el$2, "data-vot-style-italic", _v$3, _p$.a));
+							_v$4 !== _p$.o && (_p$.o = setProp(_el$2, "data-vot-style-bold", _v$4, _p$.o));
+							_v$5 !== _p$.i && (_p$.i = setProp(_el$2, "data-vot-style-underline", _v$5, _p$.i));
+							_v$6 !== _p$.n && (_p$.n = setProp(_el$2, "data-vot-style-color", _v$6, _p$.n));
+							_v$7 !== _p$.s && (_p$.s = setProp(_el$2, "role", _v$7, _p$.s));
+							_v$8 !== _p$.h && (_p$.h = setProp(_el$2, "tabIndex", _v$8, _p$.h));
+							_v$9 !== _p$.r && (_p$.r = setProp(_el$2, "style", _v$9, _p$.r));
+							return _p$;
+						}, {
+							e: void 0,
+							t: void 0,
+							a: void 0,
+							o: void 0,
+							i: void 0,
+							n: void 0,
+							s: void 0,
+							h: void 0,
+							r: void 0
+						});
+						return _el$2;
+					})()
+				})];
+			}
+		});
+	}
+	function SolidSubtitlesWidget(props) {
+		let block;
+		const syncLang = () => {
+			const lang = props.lang;
+			if (!block) return;
+			if (lang) block.setAttribute("lang", lang);
+			else block.removeAttribute("lang");
+		};
+		effect(syncLang);
+		return (() => {
+			var _el$3 = createElement("vot-block");
+			use((element) => {
+				block = element;
+				props.ref(element);
+				syncLang();
+			}, _el$3);
+			setProp(_el$3, "class", "vot-subtitles");
+			setProp(_el$3, "dir", "auto");
+			setProp(_el$3, "onKeyDown", (event) => {
+				if (!(event.target instanceof Element) || !event.target.matches("[data-vot-token=\"1\"]") || event.key !== "Enter" && event.key !== " ") return;
+				event.preventDefault();
+				props.onClick(event);
+			});
+			insert(_el$3, createComponent(Index, {
+				get each() {
+					return props.parts;
+				},
+				children: (part, index) => createComponent(SubtitlePart, {
+					index,
+					get part() {
+						return part();
+					},
+					get onHighlightRef() {
+						return props.onHighlightRef;
+					}
+				})
+			}));
+			effect((_$p) => setProp(_el$3, "onClick", props.onClick, _$p));
+			return _el$3;
+		})();
+	}
+	function mountSolidSubtitlesOverlay(onPointerDown) {
+		let overlay;
+		const host = document.createElement("vot-block");
+		const dispose = render(() => createComponent(Overlay, {
+			ref: (element) => {
+				overlay = element;
+			},
+			classList: { "vot-subtitles-widget": true },
+			blockProps: { "oncapture:pointerdown": onPointerDown },
+			children: ""
+		}), host);
+		if (!overlay) {
+			dispose();
+			throw new Error("[VOT] Subtitles overlay failed to mount");
+		}
+		return {
+			host,
+			overlay,
+			dispose
+		};
+	}
+	function mountSolidSubtitlesWidget(container, options) {
+		const [parts, setParts] = createSignal([]);
+		const [lang, setLang] = createSignal(options.lang());
+		const highlightRefs = /* @__PURE__ */ new Map();
+		let block;
+		container.replaceChildren();
+		const subtitlesView = () => createComponent(SolidSubtitlesWidget, {
+			ref: (element) => {
+				block = element;
+			},
+			get parts() {
+				return parts();
+			},
+			get lang() {
+				return lang();
+			},
+			get onClick() {
+				return options.onClick;
+			},
+			onHighlightRef: (index, element) => {
+				if (element) highlightRefs.set(index, element);
+				else highlightRefs.delete(index);
+			}
+		});
+		const disposeRoot = render(() => subtitlesView(), container);
+		return {
+			setParts: (nextParts) => {
+				batch(() => {
+					setLang(options.lang());
+					setParts(nextParts);
+				});
+			},
+			block: () => {
+				if (!block) throw new Error("Subtitles widget failed to mount");
+				return block;
+			},
+			highlightEls: () => Array.from(highlightRefs.entries()).sort(([left], [right]) => left - right).map(([, element]) => element),
+			dispose: () => {
+				disposeRoot();
+				highlightRefs.clear();
+				block = void 0;
+				container.replaceChildren();
+			}
+		};
 	}
 	//#endregion
 	//#region src/subtitles/activeCues.ts
@@ -15975,14 +16750,38 @@ var vot = (function(exports) {
 		const rightEnd = right.startMs + Math.max(0, right.durationMs);
 		return left.startMs < rightEnd && right.startMs < leftEnd;
 	};
+	/**
+	* Removes duplicate cues that render identical text for the same speaker in an
+	* overlapping time window.
+	*
+	* Consolidated from the previous O(n^2) implementation that recomputed
+	* `toRenderableTextKey()` (a regex normalization over the full cue text) inside
+	* the inner comparison. Keys are now computed exactly once per entry and
+	* candidates are grouped by `key + speakerId`, so only genuinely comparable
+	* cues are time-checked. Output order and selection are unchanged.
+	*/
 	var dedupeActiveLines = (lines) => {
 		const deduped = [];
+		const byKey = /* @__PURE__ */ new Map();
 		for (const entry of lines) {
 			const textKey = toRenderableTextKey(entry.line);
 			if (!textKey) continue;
-			if (!deduped.some((existing) => {
-				return textKey === toRenderableTextKey(existing.line) && existing.line.speakerId === entry.line.speakerId && linesOverlapInTime(existing.line, entry.line);
-			})) deduped.push(entry);
+			const groupKey = `${textKey}\u0000${entry.line.speakerId ?? ""}`;
+			const group = byKey.get(groupKey);
+			if (!group) {
+				byKey.set(groupKey, [entry]);
+				deduped.push(entry);
+				continue;
+			}
+			let isDuplicate = false;
+			for (const existing of group) if (linesOverlapInTime(existing.line, entry.line)) {
+				isDuplicate = true;
+				break;
+			}
+			if (!isDuplicate) {
+				group.push(entry);
+				deduped.push(entry);
+			}
 		}
 		return deduped;
 	};
@@ -16009,7 +16808,7 @@ var vot = (function(exports) {
 		for (let index = lastCueIndex; index >= 0; index -= 1) {
 			const line = subtitlesList[index];
 			if (line.startMs < minStartMs) break;
-			if (isTimeInLine(time, line)) activeLineIndices.push(index);
+			if (time >= line.startMs && time < line.startMs + line.durationMs) activeLineIndices.push(index);
 		}
 		activeLineIndices.reverse();
 		return activeLineIndices;
@@ -16068,13 +16867,821 @@ var vot = (function(exports) {
 		};
 	};
 	//#endregion
+	//#region src/subtitles/fullscreenLayerController.ts
+	var FullscreenLayerController = class {
+		container;
+		constructor({ container }) {
+			this.container = container;
+		}
+		updateContainer(container) {
+			this.container = container;
+		}
+		getWidgetParentElement() {
+			return this.container;
+		}
+		getLayoutRootElement() {
+			return this.container instanceof ShadowRoot ? this.container.host : this.container;
+		}
+		syncWidgetContainer(widgetContainer) {
+			const containerEl = this.container instanceof ShadowRoot ? this.container.host : this.container;
+			if (getComputedStyle(containerEl).position === "static") containerEl.style.position = "relative";
+			if (widgetContainer && widgetContainer.parentNode !== this.container) this.container.appendChild(widgetContainer);
+		}
+		release() {}
+	};
+	var PASSED_CLASS = "passed";
+	function createHighlightState() {
+		return {
+			indices: /* @__PURE__ */ new Int32Array(0),
+			applied: /* @__PURE__ */ new Uint8Array(0)
+		};
+	}
+	/**
+	* Rebuilds the index map after a render pass.
+	*
+	* The state is therefore seeded from the **actual** DOM class. `classList.contains`
+	* is a cheap attribute read (no style resolution, no layout) and runs once per
+	* span per render, not per tick.
+	*/
+	function syncHighlightState(state, elements) {
+		const count = elements.length;
+		if (state.indices.length !== count) {
+			state.indices = new Int32Array(count);
+			state.applied = new Uint8Array(count);
+		}
+		const { indices, applied } = state;
+		for (let i = 0; i < count; i += 1) {
+			const element = elements[i];
+			const raw = element.dataset.votHighlightIndex;
+			const parsed = raw === void 0 ? NaN : Number.parseInt(raw, 10);
+			indices[i] = Number.isInteger(parsed) && parsed >= 0 ? parsed : -1;
+			applied[i] = element.classList.contains(PASSED_CLASS) ? 1 : 0;
+		}
+		return state;
+	}
+	/**
+	* Applies `passedFlags` to the rendered spans, touching only changed nodes.
+	*
+	* @returns the number of DOM writes performed (used by tests/benchmarks to
+	* assert that redundant mutations are eliminated).
+	*/
+	function applyPassedState(state, elements, passedFlags) {
+		const { indices, applied } = state;
+		const count = Math.min(elements.length, indices.length);
+		const flagCount = passedFlags.length;
+		let writes = 0;
+		for (let i = 0; i < count; i += 1) {
+			const highlightIndex = indices[i];
+			const isPassed = highlightIndex >= 0 && highlightIndex < flagCount ? passedFlags[highlightIndex] : false;
+			const nextState = isPassed ? 1 : 0;
+			if (applied[i] === nextState) continue;
+			applied[i] = nextState;
+			elements[i].classList.toggle(PASSED_CLASS, isPassed);
+			writes += 1;
+		}
+		return writes;
+	}
+	/** Removes the `passed` class from every span and resets the diff state. */
+	function clearPassedState(state, elements) {
+		state.applied.fill(0);
+		for (let i = 0; i < elements.length; i += 1) elements[i].classList.remove(PASSED_CLASS);
+	}
+	//#endregion
+	//#region src/subtitles/positionController.ts
+	var clampToRange = clampNumber;
+	function hasDragThresholdBeenExceeded(startClientX, startClientY, nextClientX, nextClientY, thresholdPx) {
+		const dx = nextClientX - startClientX;
+		const dy = nextClientY - startClientY;
+		return dx * dx + dy * dy >= thresholdPx * thresholdPx;
+	}
+	function getVerticalAnchorBounds({ elementHeight, boxHeight, bottomInset }) {
+		const minAnchorY = Math.max(0, elementHeight || 0);
+		const baselineAnchorY = Math.max(minAnchorY, boxHeight - bottomInset);
+		return {
+			minAnchorY,
+			baselineAnchorY,
+			travelPx: Math.max(0, baselineAnchorY - minAnchorY)
+		};
+	}
+	function captureCustomVerticalAnchorState({ anchorY, elementHeight, boxHeight, bottomInset }) {
+		const { minAnchorY, baselineAnchorY, travelPx } = getVerticalAnchorBounds({
+			elementHeight,
+			boxHeight,
+			bottomInset
+		});
+		return {
+			offsetFromBaselinePx: clampToRange(anchorY, minAnchorY, baselineAnchorY) - baselineAnchorY,
+			travelPx
+		};
+	}
+	function resolveCustomVerticalAnchor({ state, elementHeight, boxHeight, bottomInset }) {
+		const { minAnchorY, baselineAnchorY, travelPx } = getVerticalAnchorBounds({
+			elementHeight,
+			boxHeight,
+			bottomInset
+		});
+		if (!state || travelPx <= 0) return baselineAnchorY;
+		const storedTravelPx = Math.max(0, state.travelPx || 0);
+		const storedLiftPx = Math.max(0, -(state.offsetFromBaselinePx || 0));
+		if (storedTravelPx <= 0 || storedLiftPx <= 0) return baselineAnchorY;
+		const ratioLiftPx = storedLiftPx / storedTravelPx * travelPx;
+		return clampToRange(baselineAnchorY - (travelPx >= storedTravelPx ? Math.min(storedLiftPx, ratioLiftPx) : Math.min(travelPx, ratioLiftPx)), minAnchorY, baselineAnchorY);
+	}
+	function clampAnchorWithinBox({ anchorX, anchorY, elementWidth, elementHeight, boxWidth, boxHeight, bottomInset }) {
+		let nextAnchorX = anchorX;
+		let nextAnchorY = anchorY;
+		const maxAnchorY = Math.max(0, boxHeight - bottomInset);
+		const minAnchorY = elementHeight || 0;
+		if (elementWidth) {
+			let leftPx = nextAnchorX - elementWidth / 2;
+			const maxLeftPx = boxWidth - elementWidth;
+			if (maxLeftPx >= 0) leftPx = clampToRange(leftPx, 0, maxLeftPx);
+			else leftPx = maxLeftPx / 2;
+			nextAnchorX = leftPx + elementWidth / 2;
+		}
+		nextAnchorY = clampToRange(nextAnchorY, minAnchorY, maxAnchorY);
+		return {
+			anchorX: nextAnchorX,
+			anchorY: nextAnchorY
+		};
+	}
+	function snapValueToNearestCandidate({ current, candidates, thresholdPx }) {
+		let closestValue = current;
+		let closestDistance = Number.POSITIVE_INFINITY;
+		for (const candidate of candidates) {
+			const distance = Math.abs(candidate - current);
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestValue = candidate;
+			}
+		}
+		if (!Number.isFinite(closestDistance) || closestDistance > thresholdPx) return {
+			snapped: false,
+			value: current
+		};
+		return {
+			snapped: true,
+			value: closestValue
+		};
+	}
+	//#endregion
+	//#region src/subtitles/renderPlan.ts
+	var LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
+	var TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
+	var TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
+	var PUNCTUATION_ONLY_RE = /^[\p{P}\p{S}]+$/u;
+	var LEADING_WHITESPACE_RE = /^\s+/u;
+	/**
+	* Consolidated from a per-character `for..of` scan. A single anchored regex is
+	* equivalent for the same input class (Unicode `\p{P}`/`\p{S}` runs) and avoids
+	* one regex `test()` per code point.
+	*/
+	var getLeadingPunctuation = (value) => LEADING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
+	/**
+	* Consolidated from `Array.from(value)` + reverse scan, which allocated a code
+	* point array for every word token on every render.
+	*/
+	var getTrailingPunctuation = (value) => TRAILING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
+	var isPunctuationOnly = (value) => value.length > 0 && PUNCTUATION_ONLY_RE.test(value);
+	/**
+	* Precomputes "is there a token at or after index i that contributes a real
+	* word", replacing the previous `hasFutureWordToken()` forward rescan that made
+	* plan building O(n^2) for punctuation-heavy cues.
+	*/
+	var buildWordLookahead = (tokens, renderEndTokenIndex) => {
+		const size = Math.max(0, renderEndTokenIndex + 2);
+		const lookahead = new Uint8Array(size);
+		for (let index = renderEndTokenIndex; index >= 0; index -= 1) {
+			let hasWord = lookahead[index + 1] === 1;
+			if (!hasWord) {
+				const token = tokens[index];
+				const tokenText = token?.text ?? "";
+				if (token?.isWordLike && tokenText.trim()) {
+					const withoutLeadingWhitespace = tokenText.trimStart();
+					const leadingPunctuation = getLeadingPunctuation(withoutLeadingWhitespace);
+					const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(leadingPunctuation.length);
+					const trailingPunctuation = getTrailingPunctuation(withoutLeadingPunctuation);
+					hasWord = withoutLeadingPunctuation.length > trailingPunctuation.length;
+				}
+			}
+			lookahead[index] = hasWord ? 1 : 0;
+		}
+		return lookahead;
+	};
+	var pushTextPart = (plan, text, style, options = {}) => {
+		plan.push({
+			kind: "text",
+			text,
+			style,
+			highlightIndex: options.highlightIndex
+		});
+		if (options.withBreak) plan.push({ kind: "break" });
+	};
+	var skipWhitespaceTokens = (tokens, startIndex, renderEndTokenIndex) => {
+		let index = startIndex;
+		while (index <= renderEndTokenIndex && !tokens[index]?.isWordLike && !tokens[index]?.text.trim()) index += 1;
+		return index;
+	};
+	var consumeWordToken = (plan, tokens, startIndex, renderEndTokenIndex, breakAfterTokenIndexSet, highlightIndex) => {
+		const token = tokens[startIndex];
+		const leadingWhitespace = LEADING_WHITESPACE_RE.exec(token.text)?.[0] ?? "";
+		const body = token.text.slice(leadingWhitespace.length);
+		if (leadingWhitespace) pushTextPart(plan, leadingWhitespace, token.style);
+		const leadingPunctuation = getLeadingPunctuation(body);
+		const bodyWithoutLeadingPunctuation = body.slice(leadingPunctuation.length);
+		const trailingPunctuation = getTrailingPunctuation(bodyWithoutLeadingPunctuation);
+		const wordText = trailingPunctuation ? bodyWithoutLeadingPunctuation.slice(0, bodyWithoutLeadingPunctuation.length - trailingPunctuation.length) : bodyWithoutLeadingPunctuation;
+		if (!wordText) {
+			if (body) pushTextPart(plan, body, token.style);
+			if (!breakAfterTokenIndexSet?.has(startIndex)) return {
+				consumedWord: false,
+				nextTokenIndex: startIndex + 1
+			};
+			plan.push({ kind: "break" });
+			return {
+				consumedWord: false,
+				nextTokenIndex: skipWhitespaceTokens(tokens, startIndex + 1, renderEndTokenIndex)
+			};
+		}
+		if (leadingPunctuation) pushTextPart(plan, leadingPunctuation, token.style, { highlightIndex });
+		plan.push({
+			kind: "word",
+			text: wordText,
+			style: token.style,
+			highlightIndex
+		});
+		if (trailingPunctuation) pushTextPart(plan, trailingPunctuation, token.style, { highlightIndex });
+		if (!breakAfterTokenIndexSet?.has(startIndex)) return {
+			consumedWord: true,
+			nextTokenIndex: startIndex + 1
+		};
+		plan.push({ kind: "break" });
+		return {
+			consumedWord: true,
+			nextTokenIndex: skipWhitespaceTokens(tokens, startIndex + 1, renderEndTokenIndex)
+		};
+	};
+	var consumeTextToken = (plan, tokenIndex, tokens, renderEndTokenIndex, options) => {
+		const { token, tokenText, hasBreakAfter, lastWordHighlightIndex, nextWordHighlightIndex, hasWordAfter } = options;
+		const fallbackHighlightIndex = lastWordHighlightIndex ?? (hasWordAfter ? nextWordHighlightIndex : void 0);
+		const textParts = tokenText.match(TEXT_TOKEN_SLICE_RE) ?? [tokenText];
+		for (const textPart of textParts) pushTextPart(plan, textPart, token.style, { highlightIndex: isPunctuationOnly(textPart) ? fallbackHighlightIndex : void 0 });
+		if (hasBreakAfter) {
+			plan.push({ kind: "break" });
+			return skipWhitespaceTokens(tokens, tokenIndex + 1, renderEndTokenIndex);
+		}
+		return tokenIndex + 1;
+	};
+	/**
+	* Build a render plan for subtitle tokens preserving existing grouping rules.
+	*
+	* Important detail: leading punctuation before a word (for example "(" or "\"")
+	* should be visually highlighted together with that word.
+	*/
+	function buildSubtitleRenderPlan(tokens, renderEndTokenIndex, breakAfterTokenIndexSet) {
+		const plan = [];
+		let wordHighlightIndex = 0;
+		let lastWordHighlightIndex = null;
+		let wordLookahead = null;
+		for (let i = 0; i <= renderEndTokenIndex;) {
+			const token = tokens[i];
+			const tokenText = token?.text ?? "";
+			if (!tokenText) {
+				i += 1;
+				continue;
+			}
+			if (tokenText === "\n") {
+				plan.push({ kind: "break" });
+				i += 1;
+				continue;
+			}
+			if (token.isWordLike) {
+				const result = consumeWordToken(plan, tokens, i, renderEndTokenIndex, breakAfterTokenIndexSet, wordHighlightIndex);
+				i = result.nextTokenIndex;
+				if (result.consumedWord) {
+					lastWordHighlightIndex = wordHighlightIndex;
+					wordHighlightIndex += 1;
+				}
+				continue;
+			}
+			const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i));
+			if (lastWordHighlightIndex === null && wordLookahead === null) wordLookahead = buildWordLookahead(tokens, renderEndTokenIndex);
+			i = consumeTextToken(plan, i, tokens, renderEndTokenIndex, {
+				token,
+				tokenText,
+				hasBreakAfter,
+				lastWordHighlightIndex,
+				nextWordHighlightIndex: wordHighlightIndex,
+				hasWordAfter: wordLookahead ? wordLookahead[i + 1] === 1 : false
+			});
+		}
+		return plan;
+	}
+	//#endregion
+	//#region src/subtitles/smartLayout.ts
+	var resolveAspectBand = (aspect) => {
+		if (aspect < .8) return {
+			widthRatio: .9,
+			charsPerLine: 27,
+			fontHeightRatio: .03
+		};
+		if (aspect < 1.1) return {
+			widthRatio: .84,
+			charsPerLine: 31,
+			fontHeightRatio: .031
+		};
+		if (aspect < 1.5) return {
+			widthRatio: .76,
+			charsPerLine: 36,
+			fontHeightRatio: .033
+		};
+		if (aspect < 1.95) return {
+			widthRatio: .72,
+			charsPerLine: 40,
+			fontHeightRatio: .034
+		};
+		return {
+			widthRatio: .68,
+			charsPerLine: 44,
+			fontHeightRatio: .035
+		};
+	};
+	var resolveWidthBoost = (width) => {
+		if (width >= 1920) return {
+			extraChars: 4,
+			widthScale: 1.04
+		};
+		if (width >= 1440) return {
+			extraChars: 3,
+			widthScale: 1.03
+		};
+		if (width >= 960) return {
+			extraChars: 2,
+			widthScale: 1.02
+		};
+		if (width >= 640) return {
+			extraChars: 1,
+			widthScale: 1.01
+		};
+		return {
+			extraChars: 0,
+			widthScale: 1
+		};
+	};
+	var estimateAverageGlyphWidth = (fontSizePx) => Math.max(7, fontSizePx * .56);
+	function computeSmartLayoutForBox(box, cssMetrics = null) {
+		const width = Number.isFinite(box.w) ? Math.max(0, box.w) : 0;
+		const height = Number.isFinite(box.h) ? Math.max(0, box.h) : 0;
+		if (width <= 0 || height <= 0) return {
+			fontSizePx: cssMetrics?.fontSizePx ?? 20,
+			maxWidthPx: cssMetrics?.maxWidthPx ?? null
+		};
+		const { widthRatio, charsPerLine, fontHeightRatio } = resolveAspectBand(width / height);
+		const { extraChars, widthScale } = resolveWidthBoost(width);
+		const derivedFontSizePx = clampNumber(height * fontHeightRatio, 16, 42);
+		const fontSizePx = cssMetrics?.fontSizePx ?? derivedFontSizePx;
+		const averageGlyphWidth = estimateAverageGlyphWidth(fontSizePx);
+		const minWidthPx = width * Math.min(.92, widthRatio);
+		const maxWidthPx = width * clampNumber(widthRatio * widthScale, .66, .92);
+		const resolvedMaxWidthPx = clampNumber(clampNumber(charsPerLine + extraChars, 25, 48) * averageGlyphWidth, minWidthPx, maxWidthPx);
+		return {
+			fontSizePx,
+			maxWidthPx: Math.round(resolvedMaxWidthPx)
+		};
+	}
+	//#endregion
+	//#region src/subtitles/lineBreakRules.ts
+	var set = (...words) => new Set(words);
+	var EN = {
+		bindsForward: set("a", "an", "the", "my", "your", "his", "her", "its", "our", "their", "this", "that", "these", "those", "of", "in", "on", "at", "to", "for", "with", "from", "by", "into", "onto", "over", "under", "about", "between", "through", "during", "without", "within", "across", "against", "toward", "towards", "upon", "is", "are", "was", "were", "be", "been", "being", "am", "has", "have", "had", "will", "would", "can", "could", "should", "shall", "may", "might", "must", "do", "does", "did", "not", "no", "very", "more", "most", "less"),
+		prefersLineStart: set("and", "but", "or", "nor", "so", "yet", "because", "although", "though", "while", "whereas", "since", "unless", "if", "that", "which", "who", "when", "where", "whether", "of", "in", "on", "at", "to", "for", "with", "from", "by")
+	};
+	var RU = {
+		bindsForward: set("в", "во", "на", "за", "к", "ко", "с", "со", "по", "о", "об", "обо", "от", "до", "из", "у", "при", "про", "для", "без", "перед", "над", "под", "между", "не", "ни", "бы", "же", "очень", "мой", "твой", "наш", "ваш", "этот", "эта", "эти"),
+		prefersLineStart: set("и", "а", "но", "или", "что", "чтобы", "потому", "если", "когда", "который", "которая", "хотя", "пока")
+	};
+	var DE = {
+		bindsForward: set("der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines", "mein", "dein", "sein", "ihr", "unser", "in", "an", "auf", "aus", "bei", "mit", "nach", "seit", "von", "zu", "zur", "zum", "vor", "über", "unter", "durch", "für", "ohne", "um", "ist", "sind", "war", "waren", "hat", "haben", "wird", "werden", "kann", "können", "muss", "müssen", "nicht", "sehr"),
+		prefersLineStart: set("und", "aber", "oder", "denn", "weil", "dass", "wenn", "obwohl", "während", "der", "die", "das")
+	};
+	var FR = {
+		bindsForward: set("le", "la", "les", "un", "une", "des", "du", "de", "au", "aux", "mon", "ton", "son", "ma", "ta", "sa", "mes", "tes", "ses", "notre", "votre", "leur", "ce", "cet", "cette", "ces", "à", "en", "dans", "sur", "sous", "pour", "par", "avec", "sans", "est", "sont", "a", "ont", "ne", "pas", "très", "plus"),
+		prefersLineStart: set("et", "mais", "ou", "car", "donc", "que", "qui", "quand", "si", "parce", "bien", "lorsque")
+	};
+	var ES = {
+		bindsForward: set("el", "la", "los", "las", "un", "una", "unos", "unas", "lo", "mi", "tu", "su", "mis", "tus", "sus", "nuestro", "este", "esta", "de", "del", "a", "al", "en", "con", "sin", "por", "para", "sobre", "es", "son", "está", "están", "ha", "han", "no", "muy", "más"),
+		prefersLineStart: set("y", "e", "pero", "o", "u", "porque", "que", "si", "cuando", "aunque", "mientras", "quien")
+	};
+	var LEXICONS = {
+		en: EN,
+		ru: RU,
+		uk: RU,
+		be: RU,
+		de: DE,
+		fr: FR,
+		es: ES,
+		pt: ES,
+		it: ES
+	};
+	var SCRIPTIO_CONTINUA = /* @__PURE__ */ new Set([
+		"ja",
+		"zh",
+		"ko",
+		"th",
+		"lo",
+		"km",
+		"my",
+		"bo"
+	]);
+	var getBaseLanguage = (locale) => (locale ?? "").toLowerCase().split(/[-_]/u)[0] ?? "";
+	var isScriptioContinua = (locale) => SCRIPTIO_CONTINUA.has(getBaseLanguage(locale));
+	var WORD_CHARS_RE = /[^\p{L}\p{N}'\u2019]+/gu;
+	var normalizeLexiconWord = (value) => value.replaceAll(WORD_CHARS_RE, " ").trim().toLowerCase();
+	var lastWordOf = (text) => {
+		return normalizeLexiconWord(text).split(" ").filter(Boolean).at(-1) ?? "";
+	};
+	var firstWordOf = (text) => {
+		return normalizeLexiconWord(text).split(" ").filter(Boolean)[0] ?? "";
+	};
+	var LINE_BREAK_PENALTY = {
+		bindsForward: 240,
+		prefersLineStart: -60
+	};
+	/**
+	* Penalty (positive = worse) for breaking a line between `beforeText` and
+	* `afterText`. Returns 0 for space-less scripts, where the lexicon does not
+	* apply.
+	*/
+	function getLinguisticBreakPenalty(beforeText, afterText, locale) {
+		if (isScriptioContinua(locale)) return 0;
+		const lexicon = LEXICONS[getBaseLanguage(locale)] ?? EN;
+		const before = lastWordOf(beforeText);
+		const after = firstWordOf(afterText);
+		if (!before || !after) return 0;
+		let penalty = 0;
+		if (lexicon.bindsForward.has(before)) penalty += LINE_BREAK_PENALTY.bindsForward;
+		if (lexicon.prefersLineStart.has(after)) penalty += LINE_BREAK_PENALTY.prefersLineStart;
+		return penalty;
+	}
+	//#endregion
+	//#region src/subtitles/smartWrap.ts
+	var STRONG_BREAK_RE = /[.!?…:;][)"'\]»”]*\s*$/u;
+	var SOFT_BREAK_RE = /[,،、][)"'\]»”]*\s*$/u;
+	var WHITESPACE_CHAR_RE = /\s/u;
+	var DISCOURAGED_LINE_START_CHAR_RE = /^[\p{Pe}\p{Pf},.;:!?%\u2030\u2026]$/u;
+	var DISCOURAGED_LINE_END_CHAR_RE = /^[\p{Ps}\p{Pi}\u00BF\u00A1([{\u00AB\u201C"'`-]$/u;
+	var WRAP_WIDTH_GUARD_PX = 8;
+	var WRAP_WIDTH_GUARD_RATIO = .97;
+	var MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
+	function applyWrapWidthGuard(maxWidthPx) {
+		if (!Number.isFinite(maxWidthPx) || maxWidthPx <= 0) return 0;
+		return Math.max(MIN_EFFECTIVE_WRAP_WIDTH_PX, Math.min(maxWidthPx - WRAP_WIDTH_GUARD_PX, maxWidthPx * WRAP_WIDTH_GUARD_RATIO));
+	}
+	var normalizeTokenText = (text) => text.replaceAll(/\s+/gu, " ").trim();
+	var getNextChar = (text, index) => {
+		if (index >= text.length) return null;
+		const codePoint = text.codePointAt(index);
+		if (codePoint === void 0) return null;
+		const char = String.fromCodePoint(codePoint);
+		return {
+			char,
+			nextIndex: index + char.length
+		};
+	};
+	var getPreviousChar = (text, index) => {
+		if (index <= 0) return null;
+		let start = index - 1;
+		const lastCodeUnit = text.charCodeAt(start);
+		if (lastCodeUnit >= 56320 && lastCodeUnit <= 57343 && start > 0) start -= 1;
+		return {
+			char: text.slice(start, index),
+			previousIndex: start
+		};
+	};
+	var isWhitespaceChar = (char) => WHITESPACE_CHAR_RE.test(char);
+	var buildTokenTextBuffer = (tokens) => {
+		const offsets = new Array(tokens.length + 1);
+		offsets[0] = 0;
+		let fullText = "";
+		for (let index = 0; index < tokens.length; index += 1) {
+			fullText += tokens[index]?.text ?? "";
+			offsets[index + 1] = fullText.length;
+		}
+		return {
+			fullText,
+			offsets
+		};
+	};
+	var getBufferedTokenText = (buffer, startToken, endToken) => {
+		if (endToken <= startToken) return "";
+		return buffer.fullText.slice(buffer.offsets[startToken], buffer.offsets[endToken]);
+	};
+	var resolveBoundary = (text) => {
+		if (STRONG_BREAK_RE.test(text)) return "strong";
+		if (SOFT_BREAK_RE.test(text)) return "soft";
+		return "neutral";
+	};
+	var rangeStartsWithDiscouragedLineStart = (buffer, startToken, endToken) => {
+		let index = buffer.offsets[startToken];
+		const end = buffer.offsets[endToken];
+		while (index < end) {
+			const next = getNextChar(buffer.fullText, index);
+			if (!next) return false;
+			if (!isWhitespaceChar(next.char)) return DISCOURAGED_LINE_START_CHAR_RE.test(next.char);
+			index = next.nextIndex;
+		}
+		return false;
+	};
+	var rangeEndsWithDiscouragedLineEnd = (buffer, startToken, endToken) => {
+		const start = buffer.offsets[startToken];
+		let index = buffer.offsets[endToken];
+		while (index > start) {
+			const previous = getPreviousChar(buffer.fullText, index);
+			if (!previous) return false;
+			if (!isWhitespaceChar(previous.char)) return DISCOURAGED_LINE_END_CHAR_RE.test(previous.char);
+			index = previous.previousIndex;
+		}
+		return false;
+	};
+	var isWordToken = (token) => Boolean(token?.isWordLike && token.text.trim());
+	var getTokenStartMs = (token) => token && Number.isFinite(token.startMs) ? token.startMs : 0;
+	var getTokenEndMs = (token) => token ? getTokenStartMs(token) + Math.max(0, token.durationMs) : 0;
+	var getRangeStartMs = (tokens, start, end) => {
+		for (let index = start; index < end; index += 1) {
+			const token = tokens[index];
+			if (isWordToken(token)) return getTokenStartMs(token);
+		}
+		return getTokenStartMs(tokens[start]);
+	};
+	var getRangeEndMs = (tokens, start, end) => {
+		for (let index = end - 1; index >= start; index -= 1) {
+			const token = tokens[index];
+			if (isWordToken(token)) return getTokenEndMs(token);
+		}
+		return getTokenEndMs(tokens[end - 1]);
+	};
+	var createForcedBreakSlice = (tokens, tokenIndex) => {
+		const token = tokens[tokenIndex];
+		const startMs = getTokenStartMs(token);
+		return {
+			text: "\n",
+			tokenIndex,
+			breakAfterTokenIndex: tokenIndex,
+			startToken: tokenIndex,
+			endToken: tokenIndex + 1,
+			charLength: 0,
+			startMs,
+			endMs: startMs,
+			boundary: "strong",
+			forcesLineBreak: true
+		};
+	};
+	var buildSliceFromWord = (tokens, wordTokenIndex, textBuffer, includeMetrics, minStartToken) => {
+		let startToken = wordTokenIndex;
+		while (startToken > minStartToken && tokens[startToken - 1]?.text !== "\n" && !isWordToken(tokens[startToken - 1])) startToken -= 1;
+		let endToken = wordTokenIndex + 1;
+		while (endToken < tokens.length && tokens[endToken]?.text !== "\n" && !isWordToken(tokens[endToken])) endToken += 1;
+		const text = getBufferedTokenText(textBuffer, startToken, endToken);
+		return {
+			text,
+			tokenIndex: wordTokenIndex,
+			breakAfterTokenIndex: endToken - 1,
+			startToken,
+			endToken,
+			charLength: includeMetrics ? normalizeTokenText(text).length : 0,
+			startMs: includeMetrics ? getRangeStartMs(tokens, startToken, endToken) : 0,
+			endMs: includeMetrics ? getRangeEndMs(tokens, startToken, endToken) : 0,
+			boundary: resolveBoundary(text),
+			forcesLineBreak: false
+		};
+	};
+	var appendNextWordSlice = (slices, keyParts, tokens, textBuffer, collectKey, state) => {
+		const { index } = state;
+		const token = tokens[index];
+		if (!token?.text) {
+			state.index = index + 1;
+			return;
+		}
+		if (token.text === "\n") {
+			const slice = createForcedBreakSlice(tokens, index);
+			slices.push(slice);
+			keyParts?.push("\n");
+			state.index = index + 1;
+			state.cursor = index + 1;
+			return;
+		}
+		if (!isWordToken(token)) {
+			state.index = index + 1;
+			return;
+		}
+		const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey, state.cursor);
+		slices.push(slice);
+		keyParts?.push(normalizeTokenText(slice.text));
+		state.index = slice.breakAfterTokenIndex + 1;
+		state.cursor = slice.endToken;
+	};
+	function buildWordSlicesFromBuffer(tokens, textBuffer, collectKey) {
+		const slices = [];
+		const keyParts = collectKey ? [] : null;
+		const state = {
+			index: 0,
+			cursor: 0
+		};
+		while (state.index < tokens.length) {
+			const previousIndex = state.index;
+			appendNextWordSlice(slices, keyParts, tokens, textBuffer, collectKey, state);
+			if (state.index <= previousIndex) state.index = previousIndex + 1;
+		}
+		return {
+			slices,
+			key: keyParts?.join("|") ?? ""
+		};
+	}
+	function buildWordSlices(tokens) {
+		return buildWordSlicesFromBuffer(tokens, buildTokenTextBuffer(tokens), true);
+	}
+	function measureWordSlices(wordSlices, measureText) {
+		return wordSlices.map((slice) => ({
+			...slice,
+			width: slice.forcesLineBreak ? 0 : measureText(slice.text)
+		}));
+	}
+	var getSegmentEndMs = (tokens, endTokenExclusive) => {
+		if (endTokenExclusive <= 0) return 0;
+		return getTokenEndMs(tokens[endTokenExclusive - 1]);
+	};
+	var finalizeSegment = (out, tokens, startToken, endToken) => {
+		if (endToken <= startToken) return;
+		const startMs = getRangeStartMs(tokens, startToken, endToken);
+		const endMs = getSegmentEndMs(tokens, endToken);
+		out.push({
+			startToken,
+			endToken,
+			startMs,
+			endMs: Math.max(startMs, endMs)
+		});
+	};
+	var createSegmentBuildState = (metrics) => ({
+		segmentStartToken: metrics[0].startToken,
+		segmentCharLength: 0,
+		currentLineWidth: 0,
+		currentLineCount: 1,
+		lastTokenInSegment: metrics[0].startToken
+	});
+	var handleForcedBreakMetric = (state, segments, tokens, metric) => {
+		state.currentLineCount += 1;
+		state.currentLineWidth = 0;
+		state.lastTokenInSegment = metric.endToken;
+		if (state.currentLineCount > 2) {
+			const splitToken = Math.max(metric.startToken, metric.tokenIndex);
+			finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
+			state.segmentStartToken = splitToken;
+			state.segmentCharLength = 0;
+			state.lastTokenInSegment = state.segmentStartToken;
+		}
+	};
+	var appendMetricToCurrentLine = (state, metric, nextCharLength) => {
+		state.currentLineWidth += metric.width;
+		state.segmentCharLength = nextCharLength;
+		state.lastTokenInSegment = metric.endToken;
+	};
+	var startSecondLineWithMetric = (state, metric, nextCharLength) => {
+		state.currentLineCount = 2;
+		state.currentLineWidth = metric.width;
+		state.segmentCharLength = nextCharLength;
+		state.lastTokenInSegment = metric.endToken;
+	};
+	var startNewSegmentWithMetric = (state, segments, tokens, metric) => {
+		const splitToken = Math.max(metric.startToken, metric.tokenIndex);
+		finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
+		state.segmentStartToken = splitToken;
+		state.segmentCharLength = metric.charLength;
+		state.currentLineWidth = metric.width;
+		state.currentLineCount = 1;
+		state.lastTokenInSegment = metric.endToken;
+	};
+	var handleMeasuredWordMetric = (state, segments, tokens, metric, maxWidth, charBudget) => {
+		const nextCharLength = state.segmentCharLength + metric.charLength;
+		if ((state.currentLineWidth === 0 || state.currentLineWidth + metric.width <= maxWidth) && nextCharLength <= charBudget) {
+			appendMetricToCurrentLine(state, metric, nextCharLength);
+			return;
+		}
+		if (state.currentLineCount === 1) {
+			startSecondLineWithMetric(state, metric, nextCharLength);
+			return;
+		}
+		startNewSegmentWithMetric(state, segments, tokens, metric);
+	};
+	var alignSegmentEndTimes = (segments) => {
+		for (let index = 0; index < segments.length - 1; index += 1) {
+			const current = segments[index];
+			const next = segments[index + 1];
+			if (next.startMs > current.startMs) current.endMs = next.startMs;
+		}
+	};
+	var extendLastSegmentEndTime = (tokens, segments) => {
+		const last = segments.at(-1);
+		if (!last) return;
+		last.endMs = Math.max(last.endMs, getRangeEndMs(tokens, last.startToken, last.endToken));
+	};
+	var finalizeComputedSegments = (tokens, segments) => {
+		alignSegmentEndTimes(segments);
+		extendLastSegmentEndTime(tokens, segments);
+		return segments.filter((segment) => segment.endToken > segment.startToken);
+	};
+	function computeTwoLineSegments(tokens, metrics, maxWidthPx, maxLength) {
+		if (!metrics.length || !tokens.length) return [];
+		const maxWidth = Math.max(1, Number.isFinite(maxWidthPx) ? maxWidthPx : 0);
+		const charBudget = Math.max(1, Number.isFinite(maxLength) ? maxLength : 0);
+		const segments = [];
+		const state = createSegmentBuildState(metrics);
+		for (const metric of metrics) {
+			if (metric.forcesLineBreak) {
+				handleForcedBreakMetric(state, segments, tokens, metric);
+				continue;
+			}
+			handleMeasuredWordMetric(state, segments, tokens, metric, maxWidth, charBudget);
+		}
+		finalizeSegment(segments, tokens, state.segmentStartToken, state.lastTokenInSegment);
+		return finalizeComputedSegments(tokens, segments);
+	}
+	/**
+	* Width of a rendered line. Whitespace at a line edge is collapsed away by the
+	* renderer, so measuring it would overstate the line width and make a line that
+	* actually fits look like an overflow.
+	*/
+	var measureRenderedLineWidth = (textBuffer, startToken, endToken, measureText) => {
+		if (endToken <= startToken) return 0;
+		const text = getBufferedTokenText(textBuffer, startToken, endToken).trim();
+		if (!text) return 0;
+		return measureText(text);
+	};
+	var scoreBreakCandidate = ({ firstWidth, secondWidth, lineStartPenalty, lineEndPenalty, firstWordCount, secondWordCount, maxWidthPx, boundary, linguisticPenalty, countsWords }) => {
+		const overflowPenalty = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12;
+		const balancePenalty = Math.abs(secondWidth / Math.max(firstWidth, 1) - 1.08) * 120;
+		const shortTopPenalty = countsWords && firstWordCount < 2 ? 80 : 0;
+		const orphanPenalty = countsWords && secondWordCount < 2 ? 80 : 0;
+		let boundaryBonus = 0;
+		if (boundary === "strong") boundaryBonus = -28;
+		else if (boundary === "soft") boundaryBonus = -14;
+		return overflowPenalty + balancePenalty + shortTopPenalty + orphanPenalty + lineStartPenalty + lineEndPenalty + boundaryBonus + linguisticPenalty;
+	};
+	var emptyTokenWrapPlan = () => ({ breakAfterTokenIndices: [] });
+	var singleBreakTokenWrapPlan = (breakAfterTokenIndex) => ({ breakAfterTokenIndices: [breakAfterTokenIndex] });
+	var hasForcedLineBreakToken = (tokens) => tokens.some((token) => token.text === "\n");
+	var findBestWordBreakAfterTokenIndex = (tokens, textBuffer, measurableSlices, measureText, maxWidthPx, locale) => {
+		let bestFitBreakAfterTokenIndex = null;
+		let bestFitScore = Number.POSITIVE_INFINITY;
+		let bestBreakAfterTokenIndex = null;
+		let bestScore = Number.POSITIVE_INFINITY;
+		const countsWords = !isScriptioContinua(locale);
+		for (let index = 0; index < measurableSlices.length - 1; index += 1) {
+			const slice = measurableSlices[index];
+			const nextSlice = measurableSlices[index + 1];
+			const candidateBreakAfterTokenIndex = Math.max(slice.breakAfterTokenIndex, nextSlice.tokenIndex - 1);
+			const firstEndToken = candidateBreakAfterTokenIndex + 1;
+			const secondStartToken = nextSlice.tokenIndex;
+			const firstWidth = measureRenderedLineWidth(textBuffer, 0, firstEndToken, measureText);
+			const secondWidth = measureRenderedLineWidth(textBuffer, secondStartToken, tokens.length, measureText);
+			const score = scoreBreakCandidate({
+				firstWidth,
+				secondWidth,
+				lineStartPenalty: rangeStartsWithDiscouragedLineStart(textBuffer, secondStartToken, tokens.length) ? 260 : 0,
+				lineEndPenalty: rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0,
+				firstWordCount: index + 1,
+				secondWordCount: measurableSlices.length - (index + 1),
+				maxWidthPx,
+				boundary: slice.boundary,
+				linguisticPenalty: getLinguisticBreakPenalty(slice.text, nextSlice.text, locale),
+				countsWords
+			});
+			if (score < bestScore) {
+				bestScore = score;
+				bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
+			}
+			if (firstWidth <= maxWidthPx && secondWidth <= maxWidthPx && score < bestFitScore) {
+				bestFitScore = score;
+				bestFitBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
+			}
+		}
+		return bestFitBreakAfterTokenIndex ?? bestBreakAfterTokenIndex;
+	};
+	function computeTokenWrapPlan(tokens, measureText, maxWidthPx, locale) {
+		if (!tokens.length || hasForcedLineBreakToken(tokens)) return emptyTokenWrapPlan();
+		const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
+		if (safeMaxWidthPx <= 0) return emptyTokenWrapPlan();
+		const textBuffer = buildTokenTextBuffer(tokens);
+		const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
+		const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
+		if (!measurableSlices.length) return emptyTokenWrapPlan();
+		if (measureRenderedLineWidth(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return emptyTokenWrapPlan();
+		const bestBreakAfterTokenIndex = findBestWordBreakAfterTokenIndex(tokens, textBuffer, measurableSlices, measureText, safeMaxWidthPx, locale);
+		if (bestBreakAfterTokenIndex !== null) return singleBreakTokenWrapPlan(bestBreakAfterTokenIndex);
+		return emptyTokenWrapPlan();
+	}
+	//#endregion
 	//#region src/types/subtitles.ts
-	var subtitleFormats = [
-		"srt",
-		"vtt",
-		"ass",
-		"json"
-	];
+	var subtitleFormats = [...subtitlesFormats, "ass"];
 	var subtitleFontFamilies = [
 		"default-sans",
 		"arial",
@@ -16087,17 +17694,18 @@ var vot = (function(exports) {
 		"montserrat",
 		"barlow"
 	];
+	var subtitleBaseFontFamilyCSS = `"Segoe UI", system-ui, sans-serif`;
 	var subtitleFontFamilyCss = {
-		"default-sans": `"Roboto", "Segoe UI", system-ui, sans-serif`,
+		"default-sans": `"Roboto", ${subtitleBaseFontFamilyCSS}`,
 		arial: `Arial, "Helvetica Neue", Helvetica, sans-serif`,
 		helvetica: `"Helvetica Neue", Helvetica, Arial, sans-serif`,
-		roboto: `"Roboto", "Segoe UI", system-ui, sans-serif`,
+		roboto: `"Roboto", ${subtitleBaseFontFamilyCSS}`,
 		verdana: `Verdana, Geneva, sans-serif`,
-		"open-sans": `"Open Sans", "Segoe UI", system-ui, sans-serif`,
-		poppins: `"Poppins", "Segoe UI", system-ui, sans-serif`,
-		lato: `"Lato", "Segoe UI", system-ui, sans-serif`,
-		montserrat: `"Montserrat", "Segoe UI", system-ui, sans-serif`,
-		barlow: `"Barlow", "Segoe UI", system-ui, sans-serif`
+		"open-sans": `"Open Sans", ${subtitleBaseFontFamilyCSS}`,
+		poppins: `"Poppins", ${subtitleBaseFontFamilyCSS}`,
+		lato: `"Lato", ${subtitleBaseFontFamilyCSS}`,
+		montserrat: `"Montserrat", ${subtitleBaseFontFamilyCSS}`,
+		barlow: `"Barlow", ${subtitleBaseFontFamilyCSS}`
 	};
 	//#endregion
 	//#region src/subtitles/types.ts
@@ -16229,686 +17837,1200 @@ var vot = (function(exports) {
 		return await googleFontsCatalogPromise;
 	}
 	//#endregion
-	//#region src/subtitles/fullscreenLayerController.ts
-	var FullscreenLayerController = class {
-		container;
-		constructor({ container }) {
+	//#region src/subtitles/subtitleStyleController.ts
+	var SubtitleStyleController = class {
+		options;
+		container = null;
+		variableValues = /* @__PURE__ */ new Map();
+		lastScaleCompensation = null;
+		_epoch = 0;
+		_fontSize = 20;
+		_fontSizeOverridden = false;
+		_fontFamily = "default-sans";
+		_smartLayoutEnabled = true;
+		opacity = "0.2";
+		constructor(options) {
+			this.options = options;
+		}
+		get epoch() {
+			return this._epoch;
+		}
+		get fontSize() {
+			return this._fontSize;
+		}
+		get fontSizeOverridden() {
+			return this._fontSizeOverridden;
+		}
+		get fontFamily() {
+			return this._fontFamily;
+		}
+		get smartLayoutEnabled() {
+			return this._smartLayoutEnabled;
+		}
+		get fontFamilyCssValue() {
+			return getSubtitleFontFamilyCssValue(this._fontFamily);
+		}
+		attach(container) {
 			this.container = container;
+			this.variableValues.clear();
+			this.lastScaleCompensation = null;
+			this.invalidate();
+			this.syncVisualStyles();
 		}
-		updateContainer(container) {
-			this.container = container;
+		release() {
+			this.container = null;
+			this.variableValues.clear();
 		}
-		getWidgetParentElement() {
-			return this.container;
+		invalidate() {
+			this._epoch += 1;
+			this.options.onStyleChange();
 		}
-		getLayoutRootElement() {
-			return this.container instanceof ShadowRoot ? this.container.host : this.container;
-		}
-		syncWidgetContainer(widgetContainer) {
-			const containerEl = this.container instanceof ShadowRoot ? this.container.host : this.container;
-			if (getComputedStyle(containerEl).position === "static") containerEl.style.position = "relative";
-			if (widgetContainer && widgetContainer.parentNode !== this.container) this.container.appendChild(widgetContainer);
-		}
-		release() {}
-	};
-	//#endregion
-	//#region src/subtitles/inlineStyle.ts
-	var SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
-	var SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
-	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
-	var SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
-	var normalizeClassNames = (classes) => {
-		if (!classes?.length) return void 0;
-		const normalized = Array.from(new Set(classes.map((value) => value.trim()).filter((value) => value && SAFE_CLASS_NAME_RE.test(value)))).sort((left, right) => left.localeCompare(right));
-		return normalized.length ? normalized : void 0;
-	};
-	var normalizeCssColorValue = (value) => {
-		const normalized = value.trim();
-		if (!normalized) return void 0;
-		if (SAFE_HEX_COLOR_RE.test(normalized)) return normalized.toLowerCase();
-		if (SAFE_CSS_COLOR_NAME_RE.test(normalized)) return normalized.toLowerCase();
-		if (SAFE_CSS_FUNCTION_COLOR_RE.test(normalized)) return normalized;
-	};
-	var normalizeSubtitleInlineStyle = (style) => {
-		if (!style) return void 0;
-		const normalized = {};
-		if (style.italic) normalized.italic = true;
-		if (style.bold) normalized.bold = true;
-		if (style.underline) normalized.underline = true;
-		const normalizedColor = typeof style.color === "string" ? normalizeCssColorValue(style.color) : void 0;
-		if (normalizedColor) normalized.color = normalizedColor;
-		const normalizedClasses = normalizeClassNames(style.classes);
-		if (normalizedClasses) normalized.classes = normalizedClasses;
-		return Object.keys(normalized).length ? normalized : void 0;
-	};
-	var sanitizeSubtitleInlineStyle = (value) => {
-		if (!value || typeof value !== "object") return void 0;
-		const raw = value;
-		return normalizeSubtitleInlineStyle({
-			italic: raw.italic === true,
-			bold: raw.bold === true,
-			underline: raw.underline === true,
-			color: typeof raw.color === "string" ? raw.color : void 0,
-			classes: Array.isArray(raw.classes) ? raw.classes.filter((entry) => typeof entry === "string") : void 0
-		});
-	};
-	var subtitleInlineStylesEqual = (left, right) => {
-		const leftNormalized = normalizeSubtitleInlineStyle(left);
-		const rightNormalized = normalizeSubtitleInlineStyle(right);
-		const leftClasses = leftNormalized?.classes ?? [];
-		const rightClasses = rightNormalized?.classes ?? [];
-		return Boolean(leftNormalized?.italic) === Boolean(rightNormalized?.italic) && Boolean(leftNormalized?.bold) === Boolean(rightNormalized?.bold) && Boolean(leftNormalized?.underline) === Boolean(rightNormalized?.underline) && (leftNormalized?.color ?? "") === (rightNormalized?.color ?? "") && leftClasses.length === rightClasses.length && leftClasses.every((value, index) => value === rightClasses[index]);
-	};
-	var buildSubtitleInlineStyleCssText = (style) => {
-		const normalized = normalizeSubtitleInlineStyle(style);
-		if (!normalized?.color) return "";
-		return `--vot-subtitles-inline-color:${normalized.color};`;
-	};
-	//#endregion
-	//#region src/subtitles/positionController.ts
-	var clampToRange = clampNumber;
-	function hasDragThresholdBeenExceeded(startClientX, startClientY, nextClientX, nextClientY, thresholdPx) {
-		const dx = nextClientX - startClientX;
-		const dy = nextClientY - startClientY;
-		return dx * dx + dy * dy >= thresholdPx * thresholdPx;
-	}
-	function getVerticalAnchorBounds({ elementHeight, boxHeight, bottomInset }) {
-		const minAnchorY = Math.max(0, elementHeight || 0);
-		const baselineAnchorY = Math.max(minAnchorY, boxHeight - bottomInset);
-		return {
-			minAnchorY,
-			baselineAnchorY,
-			travelPx: Math.max(0, baselineAnchorY - minAnchorY)
-		};
-	}
-	function captureCustomVerticalAnchorState({ anchorY, elementHeight, boxHeight, bottomInset }) {
-		const { minAnchorY, baselineAnchorY, travelPx } = getVerticalAnchorBounds({
-			elementHeight,
-			boxHeight,
-			bottomInset
-		});
-		return {
-			offsetFromBaselinePx: clampToRange(anchorY, minAnchorY, baselineAnchorY) - baselineAnchorY,
-			travelPx
-		};
-	}
-	function resolveCustomVerticalAnchor({ state, elementHeight, boxHeight, bottomInset }) {
-		const { minAnchorY, baselineAnchorY, travelPx } = getVerticalAnchorBounds({
-			elementHeight,
-			boxHeight,
-			bottomInset
-		});
-		if (!state || travelPx <= 0) return baselineAnchorY;
-		const storedTravelPx = Math.max(0, state.travelPx || 0);
-		const storedLiftPx = Math.max(0, -(state.offsetFromBaselinePx || 0));
-		if (storedTravelPx <= 0 || storedLiftPx <= 0) return baselineAnchorY;
-		const ratioLiftPx = storedLiftPx / storedTravelPx * travelPx;
-		return clampToRange(baselineAnchorY - (travelPx >= storedTravelPx ? Math.min(storedLiftPx, ratioLiftPx) : Math.min(travelPx, ratioLiftPx)), minAnchorY, baselineAnchorY);
-	}
-	function clampAnchorWithinBox({ anchorX, anchorY, elementWidth, elementHeight, boxWidth, boxHeight, bottomInset }) {
-		let nextAnchorX = anchorX;
-		let nextAnchorY = anchorY;
-		const maxAnchorY = Math.max(0, boxHeight - bottomInset);
-		const minAnchorY = elementHeight || 0;
-		if (elementWidth) {
-			let leftPx = nextAnchorX - elementWidth / 2;
-			const maxLeftPx = boxWidth - elementWidth;
-			if (maxLeftPx >= 0) leftPx = clampToRange(leftPx, 0, maxLeftPx);
-			else leftPx = maxLeftPx / 2;
-			nextAnchorX = leftPx + elementWidth / 2;
-		}
-		nextAnchorY = clampToRange(nextAnchorY, minAnchorY, maxAnchorY);
-		return {
-			anchorX: nextAnchorX,
-			anchorY: nextAnchorY
-		};
-	}
-	function snapValueToNearestCandidate({ current, candidates, thresholdPx }) {
-		let closestValue = current;
-		let closestDistance = Number.POSITIVE_INFINITY;
-		for (const candidate of candidates) {
-			const distance = Math.abs(candidate - current);
-			if (distance < closestDistance) {
-				closestDistance = distance;
-				closestValue = candidate;
+		setVariable(name, value) {
+			const container = this.container;
+			if (!container) return false;
+			const previous = this.variableValues.get(name);
+			if (value === null) {
+				if (previous === void 0) return false;
+				this.variableValues.delete(name);
+				container.style.removeProperty(name);
+				this.invalidate();
+				return true;
 			}
+			if (previous === value) return false;
+			this.variableValues.set(name, value);
+			container.style.setProperty(name, value);
+			this.invalidate();
+			return true;
 		}
-		if (!Number.isFinite(closestDistance) || closestDistance > thresholdPx) return {
-			snapped: false,
-			value: current
-		};
-		return {
-			snapped: true,
-			value: closestValue
-		};
-	}
-	//#endregion
-	//#region src/subtitles/renderPlan.ts
-	var PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
-	var TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
-	var isPunctuationOrSymbol = (char) => PUNCTUATION_OR_SYMBOL_RE.test(char);
-	var getLeadingPunctuation = (value) => {
-		let endIndex = 0;
-		for (const char of value) {
-			if (!isPunctuationOrSymbol(char)) break;
-			endIndex += char.length;
+		setSmartLayout(enabled) {
+			const next = enabled !== false;
+			if (next === this._smartLayoutEnabled) return false;
+			this._smartLayoutEnabled = next;
+			this.setVariable("--vot-subtitles-max-width", null);
+			this.applyManualFontSize();
+			return true;
 		}
-		return value.slice(0, endIndex);
-	};
-	var getTrailingPunctuation = (value) => {
-		const chars = Array.from(value);
-		let length = 0;
-		for (let index = chars.length - 1; index >= 0; index -= 1) {
-			const char = chars[index];
-			if (!isPunctuationOrSymbol(char)) break;
-			length += char.length;
+		setFontSize(size) {
+			this._fontSize = size;
+			this._fontSizeOverridden = true;
+			if (this._smartLayoutEnabled) return false;
+			this.applyManualFontSize();
+			return true;
 		}
-		return length > 0 ? value.slice(value.length - length) : "";
-	};
-	var isPunctuationOnly = (value) => value.length > 0 && Array.from(value).every(isPunctuationOrSymbol);
-	var pushTextPart = (plan, text, style, options = {}) => {
-		plan.push({
-			kind: "text",
-			text,
-			style,
-			highlightIndex: options.highlightIndex
-		});
-		if (options.withBreak) plan.push({ kind: "break" });
-	};
-	var skipWhitespaceTokens = (tokens, startIndex, renderEndTokenIndex) => {
-		let index = startIndex;
-		while (index <= renderEndTokenIndex && !tokens[index]?.isWordLike && !tokens[index]?.text.trim()) index += 1;
-		return index;
-	};
-	var hasFutureWordToken = (tokens, startIndex, renderEndTokenIndex) => {
-		for (let index = startIndex; index <= renderEndTokenIndex; index += 1) {
-			const tokenText = tokens[index]?.text ?? "";
-			if (!tokens[index]?.isWordLike || !tokenText.trim()) continue;
-			const withoutLeadingWhitespace = tokenText.trimStart();
-			const leadingPunctuation = getLeadingPunctuation(withoutLeadingWhitespace);
-			const withoutLeadingPunctuation = withoutLeadingWhitespace.slice(leadingPunctuation.length);
-			const trailingPunctuation = getTrailingPunctuation(withoutLeadingPunctuation);
-			if (trailingPunctuation ? withoutLeadingPunctuation.slice(0, -trailingPunctuation.length) : withoutLeadingPunctuation) return true;
+		setFontFamily(fontFamily) {
+			this._fontFamily = fontFamily;
+			this.applyFontFamily();
 		}
-		return false;
-	};
-	var consumeWordToken = (plan, tokens, startIndex, renderEndTokenIndex, breakAfterTokenIndexSet, highlightIndex) => {
-		const token = tokens[startIndex];
-		const leadingWhitespace = /^\s+/u.exec(token.text)?.[0] ?? "";
-		const body = token.text.slice(leadingWhitespace.length);
-		if (leadingWhitespace) pushTextPart(plan, leadingWhitespace, token.style);
-		const leadingPunctuation = getLeadingPunctuation(body);
-		const bodyWithoutLeadingPunctuation = body.slice(leadingPunctuation.length);
-		const trailingPunctuation = getTrailingPunctuation(bodyWithoutLeadingPunctuation);
-		const wordText = trailingPunctuation ? bodyWithoutLeadingPunctuation.slice(0, bodyWithoutLeadingPunctuation.length - trailingPunctuation.length) : bodyWithoutLeadingPunctuation;
-		if (!wordText) {
-			if (body) pushTextPart(plan, body, token.style);
-			if (!breakAfterTokenIndexSet?.has(startIndex)) return {
-				consumedWord: false,
-				nextTokenIndex: startIndex + 1
-			};
-			plan.push({ kind: "break" });
-			return {
-				consumedWord: false,
-				nextTokenIndex: skipWhitespaceTokens(tokens, startIndex + 1, renderEndTokenIndex)
-			};
+		setOpacity(rate) {
+			const numericRate = Number(rate);
+			const clampedRate = Number.isFinite(numericRate) ? Math.min(100, Math.max(0, numericRate)) : 0;
+			this.opacity = ((100 - clampedRate) / 100).toFixed(2);
+			this.setVariable("--vot-subtitles-opacity", this.opacity);
 		}
-		if (leadingPunctuation) pushTextPart(plan, leadingPunctuation, token.style, { highlightIndex });
-		plan.push({
-			kind: "word",
-			text: wordText,
-			style: token.style,
-			highlightIndex
-		});
-		if (trailingPunctuation) pushTextPart(plan, trailingPunctuation, token.style, { highlightIndex });
-		if (!breakAfterTokenIndexSet?.has(startIndex)) return {
-			consumedWord: true,
-			nextTokenIndex: startIndex + 1
-		};
-		plan.push({ kind: "break" });
-		return {
-			consumedWord: true,
-			nextTokenIndex: skipWhitespaceTokens(tokens, startIndex + 1, renderEndTokenIndex)
-		};
-	};
-	var consumeTextToken = (plan, tokenIndex, tokens, renderEndTokenIndex, options) => {
-		const { token, tokenText, hasBreakAfter, lastWordHighlightIndex, nextWordHighlightIndex } = options;
-		const fallbackHighlightIndex = lastWordHighlightIndex ?? (hasFutureWordToken(tokens, tokenIndex + 1, renderEndTokenIndex) ? nextWordHighlightIndex : void 0);
-		const textParts = tokenText.match(TEXT_TOKEN_SLICE_RE) ?? [tokenText];
-		for (const textPart of textParts) pushTextPart(plan, textPart, token.style, { highlightIndex: isPunctuationOnly(textPart) ? fallbackHighlightIndex : void 0 });
-		if (hasBreakAfter) {
-			plan.push({ kind: "break" });
-			return skipWhitespaceTokens(tokens, tokenIndex + 1, renderEndTokenIndex);
+		applyScaleCompensation(visualScale) {
+			const compensate = visualScale > 0 && visualScale < .999 ? Math.min(1 / visualScale, 3) : 1;
+			const nextValue = Math.abs(compensate - 1) < .001 ? null : compensate.toFixed(3);
+			if (nextValue === this.lastScaleCompensation) return;
+			this.lastScaleCompensation = nextValue;
+			this.setVariable("--vot-subtitles-scale-compensation", nextValue);
 		}
-		return tokenIndex + 1;
-	};
-	/**
-	* Build a render plan for subtitle tokens preserving existing grouping rules.
-	*
-	* Important detail: leading punctuation before a word (for example "(" or "\"")
-	* should be visually highlighted together with that word.
-	*/
-	function buildSubtitleRenderPlan(tokens, renderEndTokenIndex, breakAfterTokenIndexSet) {
-		const plan = [];
-		let wordHighlightIndex = 0;
-		let lastWordHighlightIndex = null;
-		for (let i = 0; i <= renderEndTokenIndex;) {
-			const token = tokens[i];
-			const tokenText = token?.text ?? "";
-			if (!tokenText) {
-				i += 1;
-				continue;
-			}
-			if (tokenText === "\n") {
-				plan.push({ kind: "break" });
-				i += 1;
-				continue;
-			}
-			if (token.isWordLike) {
-				const result = consumeWordToken(plan, tokens, i, renderEndTokenIndex, breakAfterTokenIndexSet, wordHighlightIndex);
-				i = result.nextTokenIndex;
-				if (result.consumedWord) {
-					lastWordHighlightIndex = wordHighlightIndex;
-					wordHighlightIndex += 1;
+		syncVisualStyles() {
+			this.setVariable("--vot-subtitles-opacity", this.opacity);
+			this.applyManualFontSize();
+			this.applyFontFamily();
+		}
+		applyManualFontSize() {
+			this.setVariable("--vot-subtitles-font-size", !this._smartLayoutEnabled && this._fontSizeOverridden ? `${this._fontSize}px` : null);
+		}
+		applyFontFamily() {
+			const fontFamily = this._fontFamily;
+			this.setVariable("--vot-subtitles-font-family-custom", getSubtitleFontFamilyCssValue(fontFamily));
+			ensureGoogleSubtitleFontLoaded(fontFamily, {
+				forceGmXhr: true,
+				onLoaded: () => {
+					if (this._fontFamily === fontFamily) this.options.onFontLoaded();
 				}
-				continue;
-			}
-			const hasBreakAfter = Boolean(breakAfterTokenIndexSet?.has(i));
-			i = consumeTextToken(plan, i, tokens, renderEndTokenIndex, {
-				token,
-				tokenText,
-				hasBreakAfter,
-				lastWordHighlightIndex,
-				nextWordHighlightIndex: wordHighlightIndex
 			});
 		}
-		return plan;
-	}
+	};
 	//#endregion
-	//#region src/subtitles/smartLayout.ts
-	var roundToInt = (value) => Math.round(value);
-	var resolveAspectBand = (aspect) => {
-		if (aspect < .8) return {
-			widthRatio: .9,
-			charsPerLine: 27,
-			fontHeightRatio: .03
-		};
-		if (aspect < 1.1) return {
-			widthRatio: .84,
-			charsPerLine: 31,
-			fontHeightRatio: .031
-		};
-		if (aspect < 1.5) return {
-			widthRatio: .76,
-			charsPerLine: 36,
-			fontHeightRatio: .033
-		};
-		if (aspect < 1.95) return {
-			widthRatio: .72,
-			charsPerLine: 40,
-			fontHeightRatio: .034
-		};
-		return {
-			widthRatio: .68,
-			charsPerLine: 44,
-			fontHeightRatio: .035
-		};
+	//#region src/subtitles/tokenLayoutProcessor.ts
+	var TokenLayoutProcessor = class {
+		tokenProcessingMemo = null;
+		tokenPrecomputeMemo = null;
+		lineMeasureMemo = null;
+		lastSegmentIndex = 0;
+		reset() {
+			this.tokenProcessingMemo = null;
+			this.tokenPrecomputeMemo = null;
+			this.lineMeasureMemo = null;
+			this.lastSegmentIndex = 0;
+		}
+		process({ tokens, time, activeLineKey, maxLength, getMeasurement }) {
+			if (!tokens.length) return tokens;
+			const memo = this.buildTokenProcessingMemo(tokens, activeLineKey, maxLength, getMeasurement);
+			if (!memo) return this.selectTokensByMaxLength(tokens, time, maxLength);
+			const { segmentRanges } = memo;
+			if (!segmentRanges.length) return this.trimEdgeWhitespaceTokens(tokens);
+			const segment = segmentRanges[this.selectSegmentIndexFromRanges(segmentRanges, time)];
+			return this.trimEdgeWhitespaceTokens(tokens.slice(segment.startToken, segment.endToken));
+		}
+		trimEdgeWhitespaceTokens(tokens) {
+			if (!tokens.length) return tokens;
+			let start = 0;
+			let end = tokens.length;
+			while (start < end && !tokens[start]?.text.trim()) start += 1;
+			while (end > start && !tokens[end - 1]?.text.trim()) end -= 1;
+			if (start === 0 && end === tokens.length) return tokens;
+			return start >= end ? [] : tokens.slice(start, end);
+		}
+		selectTokensByMaxLength(tokens, time, maxLength) {
+			let start = 0;
+			let length = 0;
+			let overflowed = false;
+			let chosenStart = 0;
+			let chosenEnd = tokens.length;
+			let hasChosenRange = false;
+			let matchedByTime = false;
+			const considerRange = (rangeStart, rangeEnd) => {
+				if (rangeEnd <= rangeStart) return;
+				if (!hasChosenRange) {
+					chosenStart = rangeStart;
+					chosenEnd = rangeEnd;
+					hasChosenRange = true;
+				}
+				if (matchedByTime) return;
+				const first = tokens[rangeStart];
+				const last = tokens[rangeEnd - 1];
+				if (!first || !last) return;
+				const endMs = (rangeEnd < tokens.length ? tokens[rangeEnd]?.startMs : void 0) ?? last.startMs + (last.durationMs ?? 0);
+				if (first.startMs <= time && time < endMs) {
+					chosenStart = rangeStart;
+					chosenEnd = rangeEnd;
+					matchedByTime = true;
+				}
+			};
+			for (const [index, token] of tokens.entries()) {
+				const nextLength = length + token.text.length;
+				if (nextLength > maxLength && index > start) {
+					overflowed = true;
+					considerRange(start, index);
+					start = index;
+					length = token.text.length;
+					continue;
+				}
+				length = nextLength;
+			}
+			if (!overflowed) return this.trimEdgeWhitespaceTokens(tokens);
+			considerRange(start, tokens.length);
+			return this.trimEdgeWhitespaceTokens(tokens.slice(chosenStart, chosenEnd));
+		}
+		buildTokenPrecomputeInput(tokens) {
+			const cached = this.tokenPrecomputeMemo;
+			if (cached?.tokens === tokens) return cached;
+			const { slices, key } = buildWordSlices(tokens);
+			const value = {
+				tokens,
+				wordSlices: slices,
+				normalizedWordsKey: key
+			};
+			this.tokenPrecomputeMemo = value;
+			return value;
+		}
+		getLineMeasureMemo(tokens, activeLineKey, getMeasurement) {
+			const { wordSlices, normalizedWordsKey } = this.buildTokenPrecomputeInput(tokens);
+			if (!wordSlices.length) return null;
+			const measurement = getMeasurement();
+			if (!measurement || !Number.isFinite(measurement.maxWidthPx) || measurement.maxWidthPx < 24) return null;
+			const key = `${activeLineKey}|${measurement.fontKey}|${Math.round(measurement.maxWidthPx)}|${normalizedWordsKey}`;
+			if (this.lineMeasureMemo?.key === key) return this.lineMeasureMemo;
+			const memo = {
+				key,
+				metrics: measureWordSlices(wordSlices, measurement.measureText),
+				maxWidthPx: measurement.maxWidthPx
+			};
+			this.lineMeasureMemo = memo;
+			return memo;
+		}
+		buildTokenProcessingMemo(tokens, activeLineKey, maxLength, getMeasurement) {
+			const lineMeasure = this.getLineMeasureMemo(tokens, activeLineKey, getMeasurement);
+			if (!lineMeasure) return null;
+			const memoKey = `${lineMeasure.key}|${maxLength}`;
+			if (this.tokenProcessingMemo?.key === memoKey) return this.tokenProcessingMemo;
+			const memo = {
+				key: memoKey,
+				segmentRanges: computeTwoLineSegments(tokens, lineMeasure.metrics, applyWrapWidthGuard(lineMeasure.maxWidthPx), maxLength)
+			};
+			this.tokenProcessingMemo = memo;
+			this.lastSegmentIndex = 0;
+			return memo;
+		}
+		selectSegmentIndexFromRanges(segmentRanges, time) {
+			let index = this.lastSegmentIndex;
+			const length = segmentRanges.length;
+			if (index >= length) index = 0;
+			while (index < length - 1 && time >= segmentRanges[index].endMs) index += 1;
+			while (index > 0 && time < segmentRanges[index].startMs) index -= 1;
+			if (time >= segmentRanges[index].startMs && time < segmentRanges[index].endMs) {
+				this.lastSegmentIndex = index;
+				return index;
+			}
+			const found = segmentRanges.findIndex((segment) => time >= segment.startMs && time < segment.endMs);
+			const resolved = found >= 0 ? found : time < segmentRanges[0].startMs ? 0 : length - 1;
+			this.lastSegmentIndex = resolved;
+			return resolved;
+		}
 	};
-	var resolveWidthBoost = (width) => {
-		if (width >= 1920) return {
-			extraChars: 4,
-			widthScale: 1.04
-		};
-		if (width >= 1440) return {
-			extraChars: 3,
-			widthScale: 1.03
-		};
-		if (width >= 960) return {
-			extraChars: 2,
-			widthScale: 1.02
-		};
-		if (width >= 640) return {
-			extraChars: 1,
-			widthScale: 1.01
-		};
-		return {
-			extraChars: 0,
-			widthScale: 1
-		};
-	};
-	var estimateAverageGlyphWidth = (fontSizePx) => Math.max(7, fontSizePx * .56);
-	function computeSmartLayoutForBox(box, cssMetrics = null) {
-		const width = Number.isFinite(box.w) ? Math.max(0, box.w) : 0;
-		const height = Number.isFinite(box.h) ? Math.max(0, box.h) : 0;
-		if (width <= 0 || height <= 0) return {
-			fontSizePx: cssMetrics?.fontSizePx ?? 20,
-			maxWidthPx: cssMetrics?.maxWidthPx ?? null
-		};
-		const { widthRatio, charsPerLine, fontHeightRatio } = resolveAspectBand(width / height);
-		const { extraChars, widthScale } = resolveWidthBoost(width);
-		const derivedFontSizePx = clampNumber(height * fontHeightRatio, 16, 42);
-		const fontSizePx = cssMetrics?.fontSizePx ?? derivedFontSizePx;
-		const averageGlyphWidth = estimateAverageGlyphWidth(fontSizePx);
-		const minWidthPx = width * Math.min(.92, widthRatio);
-		const maxWidthPx = width * clampNumber(widthRatio * widthScale, .66, .92);
-		return {
-			fontSizePx,
-			maxWidthPx: roundToInt(clampNumber(clampNumber(charsPerLine + extraChars, 25, 48) * averageGlyphWidth, minWidthPx, maxWidthPx))
-		};
-	}
 	//#endregion
-	//#region src/subtitles/smartWrap.ts
-	var STRONG_BREAK_RE = /[.!?…:;][)"'\]»”]*\s*$/u;
-	var SOFT_BREAK_RE = /[,،、][)"'\]»”]*\s*$/u;
-	var WHITESPACE_CHAR_RE = /\s/u;
-	var DISCOURAGED_LINE_START_CHAR_RE = /^[\p{Pe}\p{Pf},.;:!?%\u2030\u2026]$/u;
-	var DISCOURAGED_LINE_END_CHAR_RE = /^[\p{Ps}\p{Pi}\u00BF\u00A1([{\u00AB\u201C"'`-]$/u;
-	var normalizeTokenText = (text) => text.replaceAll(/\s+/gu, " ").trim();
-	var getNextChar = (text, index) => {
-		if (index >= text.length) return null;
-		const codePoint = text.codePointAt(index);
-		if (codePoint === void 0) return null;
-		const char = String.fromCodePoint(codePoint);
-		return {
-			char,
-			nextIndex: index + char.length
-		};
-	};
-	var getPreviousChar = (text, index) => {
-		if (index <= 0) return null;
-		let start = index - 1;
-		const lastCodeUnit = text.charCodeAt(start);
-		if (lastCodeUnit >= 56320 && lastCodeUnit <= 57343 && start > 0) start -= 1;
-		return {
-			char: text.slice(start, index),
-			previousIndex: start
-		};
-	};
-	var isWhitespaceChar = (char) => WHITESPACE_CHAR_RE.test(char);
-	var buildTokenTextBuffer = (tokens) => {
-		const offsets = new Array(tokens.length + 1);
-		offsets[0] = 0;
-		let fullText = "";
-		for (let index = 0; index < tokens.length; index += 1) {
-			fullText += tokens[index]?.text ?? "";
-			offsets[index + 1] = fullText.length;
-		}
-		return {
-			fullText,
-			offsets
-		};
-	};
-	var getBufferedTokenText = (buffer, startToken, endToken) => {
-		if (endToken <= startToken) return "";
-		return buffer.fullText.slice(buffer.offsets[startToken], buffer.offsets[endToken]);
-	};
-	var resolveBoundary = (text) => {
-		if (STRONG_BREAK_RE.test(text)) return "strong";
-		if (SOFT_BREAK_RE.test(text)) return "soft";
-		return "neutral";
-	};
-	var rangeStartsWithDiscouragedLineStart = (buffer, startToken, endToken) => {
-		let index = buffer.offsets[startToken];
-		const end = buffer.offsets[endToken];
-		while (index < end) {
-			const next = getNextChar(buffer.fullText, index);
-			if (!next) return false;
-			if (!isWhitespaceChar(next.char)) return DISCOURAGED_LINE_START_CHAR_RE.test(next.char);
-			index = next.nextIndex;
-		}
-		return false;
-	};
-	var rangeEndsWithDiscouragedLineEnd = (buffer, startToken, endToken) => {
-		const start = buffer.offsets[startToken];
-		let index = buffer.offsets[endToken];
-		while (index > start) {
-			const previous = getPreviousChar(buffer.fullText, index);
-			if (!previous) return false;
-			if (!isWhitespaceChar(previous.char)) return DISCOURAGED_LINE_END_CHAR_RE.test(previous.char);
-			index = previous.previousIndex;
-		}
-		return false;
-	};
-	var isWordToken = (token) => Boolean(token?.isWordLike && token.text.trim());
-	var getTokenStartMs = (token) => token && Number.isFinite(token.startMs) ? token.startMs : 0;
-	var getTokenEndMs = (token) => token ? getTokenStartMs(token) + Math.max(0, token.durationMs) : 0;
-	var getRangeStartMs = (tokens, start, end) => {
-		for (let index = start; index < end; index += 1) {
-			const token = tokens[index];
-			if (isWordToken(token)) return getTokenStartMs(token);
-		}
-		return getTokenStartMs(tokens[start]);
-	};
-	var getRangeEndMs = (tokens, start, end) => {
-		for (let index = end - 1; index >= start; index -= 1) {
-			const token = tokens[index];
-			if (isWordToken(token)) return getTokenEndMs(token);
-		}
-		return getTokenEndMs(tokens[end - 1]);
-	};
-	var createForcedBreakSlice = (tokens, tokenIndex) => {
-		const token = tokens[tokenIndex];
-		const startMs = getTokenStartMs(token);
-		return {
-			text: "\n",
-			tokenIndex,
-			breakAfterTokenIndex: tokenIndex,
-			startToken: tokenIndex,
-			endToken: tokenIndex + 1,
-			charLength: 0,
-			startMs,
-			endMs: startMs,
-			boundary: "strong",
-			forcesLineBreak: true
-		};
-	};
-	var buildSliceFromWord = (tokens, wordTokenIndex, textBuffer, includeMetrics) => {
-		let startToken = wordTokenIndex;
-		while (startToken > 0 && tokens[startToken - 1]?.text !== "\n" && !isWordToken(tokens[startToken - 1])) startToken -= 1;
-		let endToken = wordTokenIndex + 1;
-		while (endToken < tokens.length && tokens[endToken]?.text !== "\n" && !isWordToken(tokens[endToken])) endToken += 1;
-		const text = getBufferedTokenText(textBuffer, startToken, endToken);
-		return {
-			text,
-			tokenIndex: wordTokenIndex,
-			breakAfterTokenIndex: endToken - 1,
-			startToken,
-			endToken,
-			charLength: includeMetrics ? normalizeTokenText(text).length : 0,
-			startMs: includeMetrics ? getRangeStartMs(tokens, startToken, endToken) : 0,
-			endMs: includeMetrics ? getRangeEndMs(tokens, startToken, endToken) : 0,
-			boundary: resolveBoundary(text),
-			forcesLineBreak: false
-		};
-	};
-	var appendNextWordSlice = (slices, keyParts, tokens, textBuffer, collectKey, index) => {
-		const token = tokens[index];
-		if (!token?.text) return index + 1;
-		if (token.text === "\n") {
-			const slice = createForcedBreakSlice(tokens, index);
-			slices.push(slice);
-			keyParts?.push("\n");
-			return index + 1;
-		}
-		if (!isWordToken(token)) return index + 1;
-		const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
-		slices.push(slice);
-		keyParts?.push(normalizeTokenText(slice.text));
-		return slice.breakAfterTokenIndex + 1;
-	};
-	function buildWordSlicesFromBuffer(tokens, textBuffer, collectKey) {
-		const slices = [];
-		const keyParts = collectKey ? [] : null;
-		let index = 0;
-		while (index < tokens.length) index = appendNextWordSlice(slices, keyParts, tokens, textBuffer, collectKey, index);
-		return {
-			slices,
-			key: keyParts?.join("|") ?? ""
-		};
+	//#region src/types/components/tooltip.ts
+	var positions$1 = [
+		"left",
+		"top",
+		"right",
+		"bottom"
+	];
+	var triggers = ["hover", "click"];
+	var tooltipModes = ["default", "follow"];
+	//#endregion
+	//#region src/components/Utils/createFloatingPosition.ts
+	var DEFAULT_GAP = 8;
+	var DEFAULT_VIEWPORT_MARGIN = 8;
+	var AVAILABLE_HEIGHT_PROPERTY = "--vot-floating-available-height";
+	function getPopupMount(anchor) {
+		const dialogContainer = anchor.closest(".vot-dialog-container");
+		if (dialogContainer) return dialogContainer;
+		const overlayRoot = anchor.closest(".vot-overlay-root");
+		if (overlayRoot) return overlayRoot;
+		const rootNode = anchor.getRootNode();
+		if (rootNode instanceof ShadowRoot) return rootNode;
+		if (rootNode instanceof Document) return rootNode.body;
 	}
-	function buildWordSlices(tokens) {
-		return buildWordSlicesFromBuffer(tokens, buildTokenTextBuffer(tokens), true);
+	function getScrollTargets(anchor) {
+		const targets = [window];
+		let rootNode = anchor.getRootNode();
+		while (rootNode instanceof ShadowRoot) {
+			targets.push(rootNode);
+			rootNode = rootNode.host.getRootNode();
+		}
+		return targets;
 	}
-	function measureWordSlices(wordSlices, measureText) {
-		return wordSlices.map((slice) => ({
-			...slice,
-			width: slice.forcesLineBreak ? 0 : measureText(slice.text)
-		}));
-	}
-	var getSegmentEndMs = (tokens, endTokenExclusive) => {
-		if (endTokenExclusive <= 0) return 0;
-		return getTokenEndMs(tokens[endTokenExclusive - 1]);
-	};
-	var finalizeSegment = (out, tokens, startToken, endToken) => {
-		if (endToken <= startToken) return;
-		const startMs = getRangeStartMs(tokens, startToken, endToken);
-		const endMs = getSegmentEndMs(tokens, endToken);
-		out.push({
-			startToken,
-			endToken,
-			startMs,
-			endMs: Math.max(startMs, endMs)
+	function createFloatingPosition(options) {
+		const gap = options.gap ?? DEFAULT_GAP;
+		const viewportMargin = options.viewportMargin ?? DEFAULT_VIEWPORT_MARGIN;
+		let positionFrame;
+		let stableOpensBelow;
+		let mountedElement;
+		const mountPopup = (popup, anchor) => {
+			const popupMount = options.mount?.() ?? getPopupMount(anchor);
+			const element = options.mountElement?.() ?? popup;
+			mountedElement = element;
+			if (popupMount && element.parentNode !== popupMount) popupMount.append(element);
+		};
+		const cancelPositionUpdate = () => {
+			if (positionFrame === void 0) return;
+			cancelAnimationFrame(positionFrame);
+			positionFrame = void 0;
+		};
+		const updatePosition = () => {
+			const popup = options.popup();
+			if (!popup) return;
+			const anchor = options.anchor();
+			mountPopup(popup, anchor);
+			if (options.updatePosition) {
+				options.updatePosition({
+					anchor,
+					popup
+				});
+				return;
+			}
+			const anchorRect = anchor.getBoundingClientRect();
+			if (!options.stablePlacementWhileOpen || stableOpensBelow === void 0) popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
+			const popupHeight = popup.getBoundingClientRect().height;
+			if (popupHeight === 0) {
+				schedulePositionUpdate();
+				return;
+			}
+			const availableAbove = Math.max(0, anchorRect.top - gap - viewportMargin);
+			const availableBelow = Math.max(0, window.innerHeight - anchorRect.bottom - gap - viewportMargin);
+			const calculatedOpensBelow = availableBelow >= popupHeight || availableBelow >= availableAbove;
+			const opensBelow = options.stablePlacementWhileOpen ? stableOpensBelow ?? calculatedOpensBelow : calculatedOpensBelow;
+			if (options.stablePlacementWhileOpen) stableOpensBelow = opensBelow;
+			const availableHeight = opensBelow ? availableBelow : availableAbove;
+			popup.style.setProperty(AVAILABLE_HEIGHT_PROPERTY, `${availableHeight}px`);
+			const popupRect = popup.getBoundingClientRect();
+			const minLeft = viewportMargin;
+			const maxLeft = Math.max(minLeft, window.innerWidth - viewportMargin - popupRect.width);
+			const left = Math.min(Math.max(anchorRect.right - popupRect.width, minLeft), maxLeft);
+			const top = opensBelow ? anchorRect.bottom + gap : anchorRect.top - gap - popupRect.height;
+			popup.style.left = `${left}px`;
+			popup.style.top = `${top}px`;
+		};
+		const schedulePositionUpdate = () => {
+			cancelPositionUpdate();
+			positionFrame = requestAnimationFrame(() => {
+				positionFrame = void 0;
+				updatePosition();
+			});
+		};
+		onMount(() => {
+			createRenderEffect(() => {
+				if (!options.isOpen()) return;
+				const popup = options.popup();
+				if (!popup) return;
+				const anchor = options.anchor();
+				const scrollTargets = getScrollTargets(anchor);
+				const handleScroll = (event) => {
+					if (event.composedPath().includes(popup)) return;
+					if (options.onOutsideScroll) {
+						options.onOutsideScroll();
+						return;
+					}
+					schedulePositionUpdate();
+				};
+				mountPopup(popup, anchor);
+				const resizeObserver = new ResizeObserver(schedulePositionUpdate);
+				const resizeTargets = /* @__PURE__ */ new Set([popup, ...options.resizeTargets?.() ?? []]);
+				for (const target of resizeTargets) resizeObserver.observe(target);
+				schedulePositionUpdate();
+				window.addEventListener("resize", schedulePositionUpdate);
+				for (const target of scrollTargets) target.addEventListener("scroll", handleScroll, true);
+				onCleanup(() => {
+					cancelPositionUpdate();
+					resizeObserver.disconnect();
+					stableOpensBelow = void 0;
+					popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
+					window.removeEventListener("resize", schedulePositionUpdate);
+					for (const target of scrollTargets) target.removeEventListener("scroll", handleScroll, true);
+				});
+			});
+			onCleanup(() => {
+				cancelPositionUpdate();
+				if (options.removeOnCleanup ?? true) mountedElement?.remove();
+			});
 		});
-	};
-	var createSegmentBuildState = (metrics) => ({
-		segmentStartToken: metrics[0].startToken,
-		segmentCharLength: 0,
-		currentLineWidth: 0,
-		currentLineCount: 1,
-		lastTokenInSegment: metrics[0].startToken
-	});
-	var handleForcedBreakMetric = (state, segments, tokens, metric) => {
-		state.currentLineCount += 1;
-		state.currentLineWidth = 0;
-		state.lastTokenInSegment = metric.endToken;
-		if (state.currentLineCount > 2) {
-			const splitToken = Math.max(metric.startToken, metric.tokenIndex);
-			finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
-			state.segmentStartToken = splitToken;
-			state.segmentCharLength = 0;
-			state.lastTokenInSegment = state.segmentStartToken;
-		}
-	};
-	var appendMetricToCurrentLine = (state, metric, nextCharLength) => {
-		state.currentLineWidth += metric.width;
-		state.segmentCharLength = nextCharLength;
-		state.lastTokenInSegment = metric.endToken;
-	};
-	var startSecondLineWithMetric = (state, metric, nextCharLength) => {
-		state.currentLineCount = 2;
-		state.currentLineWidth = metric.width;
-		state.segmentCharLength = nextCharLength;
-		state.lastTokenInSegment = metric.endToken;
-	};
-	var startNewSegmentWithMetric = (state, segments, tokens, metric) => {
-		const splitToken = Math.max(metric.startToken, metric.tokenIndex);
-		finalizeSegment(segments, tokens, state.segmentStartToken, splitToken);
-		state.segmentStartToken = splitToken;
-		state.segmentCharLength = metric.charLength;
-		state.currentLineWidth = metric.width;
-		state.currentLineCount = 1;
-		state.lastTokenInSegment = metric.endToken;
-	};
-	var handleMeasuredWordMetric = (state, segments, tokens, metric, maxWidth, charBudget) => {
-		const nextCharLength = state.segmentCharLength + metric.charLength;
-		if ((state.currentLineWidth === 0 || state.currentLineWidth + metric.width <= maxWidth) && nextCharLength <= charBudget) {
-			appendMetricToCurrentLine(state, metric, nextCharLength);
-			return;
-		}
-		if (state.currentLineCount === 1) {
-			startSecondLineWithMetric(state, metric, nextCharLength);
-			return;
-		}
-		startNewSegmentWithMetric(state, segments, tokens, metric);
-	};
-	var alignSegmentEndTimes = (segments) => {
-		for (let index = 0; index < segments.length - 1; index += 1) {
-			const current = segments[index];
-			const next = segments[index + 1];
-			if (next.startMs > current.startMs) current.endMs = next.startMs;
-		}
-	};
-	var extendLastSegmentEndTime = (tokens, segments) => {
-		const last = segments.at(-1);
-		if (!last) return;
-		last.endMs = Math.max(last.endMs, getRangeEndMs(tokens, last.startToken, last.endToken));
-	};
-	var finalizeComputedSegments = (tokens, segments) => {
-		alignSegmentEndTimes(segments);
-		extendLastSegmentEndTime(tokens, segments);
-		return segments.filter((segment) => segment.endToken > segment.startToken);
-	};
-	function computeTwoLineSegments(tokens, metrics, maxWidthPx, maxLength) {
-		if (!metrics.length || !tokens.length) return [];
-		const maxWidth = Math.max(1, Number.isFinite(maxWidthPx) ? maxWidthPx : 0);
-		const charBudget = Math.max(1, Number.isFinite(maxLength) ? maxLength : 0);
-		const segments = [];
-		const state = createSegmentBuildState(metrics);
-		for (const metric of metrics) {
-			if (metric.forcesLineBreak) {
-				handleForcedBreakMetric(state, segments, tokens, metric);
-				continue;
-			}
-			handleMeasuredWordMetric(state, segments, tokens, metric, maxWidth, charBudget);
-		}
-		finalizeSegment(segments, tokens, state.segmentStartToken, state.lastTokenInSegment);
-		return finalizeComputedSegments(tokens, segments);
+		return { update: schedulePositionUpdate };
 	}
-	var measureTokenRange = (textBuffer, startToken, endToken, measureText) => {
-		if (endToken <= startToken) return 0;
-		return measureText(getBufferedTokenText(textBuffer, startToken, endToken));
-	};
-	var scoreBreakCandidate = ({ firstWidth, secondWidth, lineStartPenalty, lineEndPenalty, firstWordCount, secondWordCount, maxWidthPx, boundary }) => {
-		const overflowPenalty = Math.max(0, firstWidth - maxWidthPx) * 12 + Math.max(0, secondWidth - maxWidthPx) * 12;
-		const balancePenalty = Math.abs(secondWidth / Math.max(firstWidth, 1) - 1.08) * 120;
-		const shortTopPenalty = firstWordCount < 2 ? 80 : 0;
-		const orphanPenalty = secondWordCount < 2 ? 80 : 0;
-		let boundaryBonus = 0;
-		if (boundary === "strong") boundaryBonus = -28;
-		else if (boundary === "soft") boundaryBonus = -14;
-		return overflowPenalty + balancePenalty + shortTopPenalty + orphanPenalty + lineStartPenalty + lineEndPenalty + boundaryBonus;
-	};
-	var emptyTokenWrapPlan = () => ({ breakAfterTokenIndices: [] });
-	var singleBreakTokenWrapPlan = (breakAfterTokenIndex) => ({ breakAfterTokenIndices: [breakAfterTokenIndex] });
-	var hasForcedLineBreakToken = (tokens) => tokens.some((token) => token.text === "\n");
-	var findBestWordBreakAfterTokenIndex = (tokens, textBuffer, measurableSlices, measureText, maxWidthPx) => {
-		let bestBreakAfterTokenIndex = null;
-		let bestScore = Number.POSITIVE_INFINITY;
-		for (let index = 0; index < measurableSlices.length - 1; index += 1) {
-			const slice = measurableSlices[index];
-			const nextSlice = measurableSlices[index + 1];
-			const candidateBreakAfterTokenIndex = Math.max(slice.breakAfterTokenIndex, nextSlice.tokenIndex - 1);
-			const firstEndToken = candidateBreakAfterTokenIndex + 1;
-			const secondStartToken = nextSlice.tokenIndex;
-			const score = scoreBreakCandidate({
-				firstWidth: measureTokenRange(textBuffer, 0, firstEndToken, measureText),
-				secondWidth: measureTokenRange(textBuffer, secondStartToken, tokens.length, measureText),
-				lineStartPenalty: rangeStartsWithDiscouragedLineStart(textBuffer, secondStartToken, tokens.length) ? 260 : 0,
-				lineEndPenalty: rangeEndsWithDiscouragedLineEnd(textBuffer, 0, firstEndToken) ? 70 : 0,
-				firstWordCount: index + 1,
-				secondWordCount: measurableSlices.length - (index + 1),
-				maxWidthPx,
-				boundary: slice.boundary
-			});
-			if (score < bestScore) {
-				bestScore = score;
-				bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
+	//#endregion
+	//#region src/components/Utils/Tooltip.tsx
+	var DEFAULT_TOOLTIP_POS = "top";
+	var DEFAULT_TOOLTIP_TRIGGER = "hover";
+	var DEFAULT_TOOLTIP_MODE = "default";
+	var DESTROY_FALLBACK_MS = 700;
+	function normalizePosition(position) {
+		return position && positions$1.includes(position) ? position : DEFAULT_TOOLTIP_POS;
+	}
+	function normalizeTrigger(trigger) {
+		return trigger && triggers.includes(trigger) ? trigger : DEFAULT_TOOLTIP_TRIGGER;
+	}
+	function normalizeMode(mode) {
+		return mode && tooltipModes.includes(mode) ? mode : DEFAULT_TOOLTIP_MODE;
+	}
+	function isEventInside(event, element) {
+		return event.composedPath().includes(element);
+	}
+	function Tooltip(props) {
+		const finalProps = mergeProps$1({
+			position: DEFAULT_TOOLTIP_POS,
+			trigger: DEFAULT_TOOLTIP_TRIGGER,
+			mode: DEFAULT_TOOLTIP_MODE,
+			offset: 4,
+			hidden: false,
+			autoLayout: true,
+			bordered: true,
+			content: ""
+		}, props);
+		const tooltipId = `vot-tooltip-${createUniqueId()}`;
+		const [container, setContainer] = createSignal();
+		const [isMounted, setIsMounted] = createSignal(false);
+		const [isVisible, setIsVisible] = createSignal(false);
+		const [isPositioned, setIsPositioned] = createSignal(false);
+		const [resolvedPosition, setResolvedPosition] = createSignal(normalizePosition(finalProps.position));
+		const portalHost = document.createElement("vot-block");
+		portalHost.style.display = "contents";
+		let showFrame;
+		let destroyTimer;
+		let describedTarget;
+		let previousAriaDescribedBy = null;
+		const target = () => {
+			if (!(finalProps.target instanceof HTMLElement)) throw new TypeError("target must be a valid HTMLElement");
+			return finalProps.target;
+		};
+		const anchor = () => finalProps.anchor instanceof HTMLElement ? finalProps.anchor : target();
+		const edgeAnchor = () => finalProps.edgeAnchor instanceof HTMLElement ? finalProps.edgeAnchor : anchor();
+		const portal = () => finalProps.parentElement ?? document.body;
+		const trigger = () => normalizeTrigger(finalProps.trigger);
+		const mode = () => normalizeMode(finalProps.mode);
+		const offset = () => {
+			const value = finalProps.offset;
+			return typeof value === "number" ? {
+				x: value,
+				y: value
+			} : {
+				x: value.x,
+				y: value.y
+			};
+		};
+		function usesPortalCoordinates() {
+			const mount = portal();
+			if (mount instanceof ShadowRoot) return true;
+			if (mount === document.body || mount === document.documentElement) return false;
+			if (mount.classList.contains("vot-portal")) return false;
+			return true;
+		}
+		function getPortalViewportOffset() {
+			if (!usesPortalCoordinates()) return {
+				top: 0,
+				left: 0
+			};
+			const mount = portal();
+			const rect = (mount instanceof ShadowRoot ? mount.host : mount).getBoundingClientRect();
+			return {
+				top: rect.top,
+				left: rect.left
+			};
+		}
+		function getAnchorBox() {
+			const anchorRect = anchor().getBoundingClientRect();
+			const edgeRect = edgeAnchor().getBoundingClientRect();
+			return {
+				left: edgeRect.left,
+				right: edgeRect.right,
+				top: edgeRect.top,
+				bottom: edgeRect.bottom,
+				centerX: anchorRect.left + anchorRect.width / 2,
+				centerY: anchorRect.top + anchorRect.height / 2
+			};
+		}
+		function getPositionBoundary() {
+			const { x, y } = offset();
+			const fallback = {
+				left: x,
+				right: window.innerWidth - x,
+				top: y,
+				bottom: window.innerHeight - y
+			};
+			if (mode() !== "follow" || !usesPortalCoordinates()) return fallback;
+			const mount = portal();
+			const rect = (mount instanceof ShadowRoot ? mount.host : mount).getBoundingClientRect();
+			if (!rect.width || !rect.height) return fallback;
+			return {
+				left: rect.left,
+				right: rect.right,
+				top: rect.top,
+				bottom: rect.bottom
+			};
+		}
+		function resolveFollowPosition(anchorBox, tooltip, boundary, preferred) {
+			const { x, y } = offset();
+			if (preferred === "top" || preferred === "bottom") {
+				const topWouldClamp = anchorBox.top - tooltip.height - y < boundary.top;
+				const bottomWouldClamp = anchorBox.bottom + y + tooltip.height > boundary.bottom;
+				if (preferred === "top") return !topWouldClamp || bottomWouldClamp ? "top" : "bottom";
+				return !bottomWouldClamp || topWouldClamp ? "bottom" : "top";
+			}
+			const leftWouldClamp = anchorBox.left - tooltip.width - x < boundary.left;
+			const rightWouldClamp = anchorBox.right + x + tooltip.width > boundary.right;
+			if (preferred === "left") return !leftWouldClamp || rightWouldClamp ? "left" : "right";
+			return !rightWouldClamp || leftWouldClamp ? "right" : "left";
+		}
+		function resolvePosition(anchorBox, tooltip, boundary, preferred) {
+			if (mode() === "follow") return resolveFollowPosition(anchorBox, tooltip, boundary, preferred);
+			const { x, y } = offset();
+			switch (preferred) {
+				case "top": return anchorBox.top - boundary.top >= tooltip.height + y ? "top" : "bottom";
+				case "bottom": return boundary.bottom - anchorBox.bottom >= tooltip.height + y ? "bottom" : "top";
+				case "left": return anchorBox.left - boundary.left >= tooltip.width + x ? "left" : "right";
+				case "right": return boundary.right - anchorBox.right >= tooltip.width + x ? "right" : "left";
 			}
 		}
-		return bestBreakAfterTokenIndex;
+		function getCoordinates(anchorBox, tooltip, position) {
+			const { x, y } = offset();
+			switch (position) {
+				case "top": return {
+					top: anchorBox.top - tooltip.height - y,
+					left: anchorBox.centerX - tooltip.width / 2
+				};
+				case "bottom": return {
+					top: anchorBox.bottom + y,
+					left: anchorBox.centerX - tooltip.width / 2
+				};
+				case "left": return {
+					top: anchorBox.centerY - tooltip.height / 2,
+					left: anchorBox.left - tooltip.width - x
+				};
+				case "right": return {
+					top: anchorBox.centerY - tooltip.height / 2,
+					left: anchorBox.right + x
+				};
+			}
+		}
+		function updatePosition(element) {
+			const { x } = offset();
+			const availableWidth = Math.max(0, window.innerWidth - x * 2);
+			const maxWidth = clamp(finalProps.maxWidth ?? availableWidth, 0, availableWidth);
+			element.style.maxWidth = `${maxWidth}px`;
+			const anchorBox = getAnchorBox();
+			const tooltipRect = element.getBoundingClientRect();
+			const tooltipSize = {
+				width: tooltipRect.width || 100,
+				height: tooltipRect.height || 40
+			};
+			const boundary = getPositionBoundary();
+			const preferred = normalizePosition(finalProps.position);
+			const position = finalProps.autoLayout ? resolvePosition(anchorBox, tooltipSize, boundary, preferred) : preferred;
+			const coordinates = getCoordinates(anchorBox, tooltipSize, position);
+			const viewportOffset = getPortalViewportOffset();
+			const top = clamp(coordinates.top, boundary.top, boundary.bottom - tooltipSize.height);
+			const left = clamp(coordinates.left, boundary.left, boundary.right - tooltipSize.width);
+			element.style.transform = `translate(${left - viewportOffset.left}px, ${top - viewportOffset.top}px)`;
+			setResolvedPosition(position);
+			setIsPositioned(true);
+		}
+		const floatingPosition = createFloatingPosition({
+			anchor,
+			popup: container,
+			isOpen: isMounted,
+			mount: portal,
+			mountElement: () => portalHost,
+			updatePosition: ({ popup }) => {
+				popup.style.position = usesPortalCoordinates() ? "absolute" : "fixed";
+				updatePosition(popup);
+			},
+			removeOnCleanup: false,
+			resizeTargets: () => [anchor(), edgeAnchor()]
+		});
+		function syncAriaDescribedBy(showing) {
+			if (!showing) {
+				if (!describedTarget) return;
+				if (previousAriaDescribedBy === null) describedTarget.removeAttribute("aria-describedby");
+				else describedTarget.setAttribute("aria-describedby", previousAriaDescribedBy);
+				describedTarget = void 0;
+				previousAriaDescribedBy = null;
+				return;
+			}
+			const currentTarget = target();
+			if (describedTarget === currentTarget) return;
+			if (describedTarget) syncAriaDescribedBy(false);
+			describedTarget = currentTarget;
+			previousAriaDescribedBy = describedTarget.getAttribute("aria-describedby");
+			const tokens = new Set((previousAriaDescribedBy ?? "").split(/\s+/).filter(Boolean));
+			tokens.add(tooltipId);
+			describedTarget.setAttribute("aria-describedby", Array.from(tokens).join(" "));
+		}
+		function clearDestroyTimer() {
+			if (destroyTimer !== void 0) {
+				clearTimeout(destroyTimer);
+				destroyTimer = void 0;
+			}
+		}
+		function finishClose() {
+			clearDestroyTimer();
+			if (!isVisible()) setIsMounted(false);
+		}
+		function hide(instant = false) {
+			if (!isMounted()) return;
+			if (showFrame !== void 0) {
+				cancelAnimationFrame(showFrame);
+				showFrame = void 0;
+			}
+			setIsVisible(false);
+			setIsPositioned(false);
+			syncAriaDescribedBy(false);
+			if (instant) {
+				finishClose();
+				return;
+			}
+			clearDestroyTimer();
+			destroyTimer = setTimeout(finishClose, DESTROY_FALLBACK_MS);
+		}
+		function show() {
+			if (finalProps.hidden) return;
+			clearDestroyTimer();
+			if (!isMounted()) setIsMounted(true);
+			syncAriaDescribedBy(true);
+			floatingPosition.update();
+			if (showFrame !== void 0) cancelAnimationFrame(showFrame);
+			showFrame = requestAnimationFrame(() => {
+				showFrame = void 0;
+				setIsVisible(true);
+				floatingPosition.update();
+			});
+		}
+		function isInTooltipContext(nextTarget) {
+			if (!(nextTarget instanceof Node)) return false;
+			return target().contains(nextTarget) || Boolean(container()?.contains(nextTarget));
+		}
+		createEffect(() => {
+			const currentTarget = target();
+			const currentTrigger = trigger();
+			const handleKeyDown = (event) => {
+				if (event.key === "Escape") {
+					hide();
+					return;
+				}
+				if (currentTrigger === "click" && !event.repeat && (event.key === "Enter" || event.key === " ")) {
+					event.preventDefault();
+					if (isVisible()) hide();
+					else show();
+				}
+			};
+			const handleClick = () => {
+				if (isVisible()) hide();
+				else show();
+			};
+			const handlePointerEnter = () => show();
+			const handlePointerLeave = (event) => {
+				if (!isInTooltipContext(event.relatedTarget)) hide();
+			};
+			const handleFocusOut = (event) => {
+				if (!isInTooltipContext(event.relatedTarget)) hide();
+			};
+			const handleTouchPointerDown = (event) => {
+				if (event.pointerType === "touch") show();
+			};
+			const handleTouchPointerUp = (event) => {
+				if (event.pointerType === "touch") hide();
+			};
+			currentTarget.addEventListener("keydown", handleKeyDown);
+			if (currentTrigger === "click") currentTarget.addEventListener("pointerdown", handleClick);
+			else {
+				currentTarget.addEventListener("pointerenter", handlePointerEnter);
+				currentTarget.addEventListener("pointerleave", handlePointerLeave);
+				currentTarget.addEventListener("pointerdown", handleTouchPointerDown);
+				currentTarget.addEventListener("pointerup", handleTouchPointerUp);
+				currentTarget.addEventListener("focusin", handlePointerEnter);
+				currentTarget.addEventListener("focusout", handleFocusOut);
+			}
+			onCleanup(() => {
+				currentTarget.removeEventListener("keydown", handleKeyDown);
+				currentTarget.removeEventListener("pointerdown", handleClick);
+				currentTarget.removeEventListener("pointerenter", handlePointerEnter);
+				currentTarget.removeEventListener("pointerleave", handlePointerLeave);
+				currentTarget.removeEventListener("pointerdown", handleTouchPointerDown);
+				currentTarget.removeEventListener("pointerup", handleTouchPointerUp);
+				currentTarget.removeEventListener("focusin", handlePointerEnter);
+				currentTarget.removeEventListener("focusout", handleFocusOut);
+			});
+		});
+		createEffect(() => {
+			const element = container();
+			if (!isMounted() || !element) return;
+			const currentTarget = target();
+			const currentAnchor = anchor();
+			const currentTrigger = trigger();
+			const intersectionObserver = new IntersectionObserver((entries) => {
+				if (!entries[0]?.isIntersecting) hide(true);
+			});
+			intersectionObserver.observe(currentTarget);
+			const handleDocumentPointerDown = (event) => {
+				if (isEventInside(event, currentTarget) || isEventInside(event, element) || mode() === "follow" && isEventInside(event, currentAnchor)) return;
+				hide();
+			};
+			if (currentTrigger === "click") document.addEventListener("pointerdown", handleDocumentPointerDown, {
+				capture: true,
+				passive: true
+			});
+			floatingPosition.update();
+			onCleanup(() => {
+				intersectionObserver.disconnect();
+				document.removeEventListener("pointerdown", handleDocumentPointerDown, { capture: true });
+			});
+		});
+		createEffect(() => {
+			normalizePosition(finalProps.position);
+			finalProps.content;
+			finalProps.maxWidth;
+			finalProps.autoLayout;
+			finalProps.offset;
+			finalProps.parentElement;
+			finalProps.anchor;
+			finalProps.edgeAnchor;
+			finalProps.mode;
+			if (isMounted()) floatingPosition.update();
+		});
+		createEffect(() => {
+			if (isMounted()) syncAriaDescribedBy(true);
+		});
+		createEffect(() => {
+			if (finalProps.hidden) {
+				hide(true);
+				return;
+			}
+			if (trigger() !== "hover") return;
+			const currentTarget = target();
+			try {
+				if (currentTarget.matches(":hover") || currentTarget.contains(document.activeElement)) untrack(show);
+			} catch {}
+		});
+		onCleanup(() => {
+			if (showFrame !== void 0) cancelAnimationFrame(showFrame);
+			clearDestroyTimer();
+			syncAriaDescribedBy(false);
+		});
+		finalProps.controls?.({
+			show,
+			update: floatingPosition.update,
+			isOpen: () => isMounted() && isVisible()
+		});
+		const tooltipView = () => createComponent(Show, {
+			get when() {
+				return isMounted();
+			},
+			get children() {
+				var _el$ = createElement("vot-block");
+				use((element) => {
+					setContainer(element);
+					finalProps.ref?.(element);
+				}, _el$);
+				setProp(_el$, "id", tooltipId);
+				setProp(_el$, "role", "tooltip");
+				setProp(_el$, "onPointerLeave", (event) => {
+					if (trigger() === "hover" && !isInTooltipContext(event.relatedTarget)) hide();
+				});
+				setProp(_el$, "onTransitionEnd", (event) => {
+					if (event.propertyName === "opacity" && !isVisible()) finishClose();
+				});
+				insert(_el$, () => finalProps.content);
+				effect((_p$) => {
+					var _v$ = {
+						"vot-tooltip": true,
+						"vot-tooltip-bordered": finalProps.bordered,
+						"vot-tooltip--subtitles-info": finalProps.content instanceof HTMLElement && finalProps.content.classList.contains("vot-subtitles-info")
+					}, _v$2 = trigger(), _v$3 = mode(), _v$4 = resolvedPosition(), _v$5 = {
+						top: "0",
+						left: "0",
+						margin: "0",
+						opacity: isVisible() && isPositioned() ? "1" : "0",
+						"background-color": finalProps.backgroundColor,
+						"border-radius": finalProps.borderRadius === void 0 ? void 0 : `${finalProps.borderRadius}px`
+					};
+					_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
+					_v$2 !== _p$.t && (_p$.t = setProp(_el$, "data-trigger", _v$2, _p$.t));
+					_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-mode", _v$3, _p$.a));
+					_v$4 !== _p$.o && (_p$.o = setProp(_el$, "data-position", _v$4, _p$.o));
+					_v$5 !== _p$.i && (_p$.i = setProp(_el$, "style", _v$5, _p$.i));
+					return _p$;
+				}, {
+					e: void 0,
+					t: void 0,
+					a: void 0,
+					o: void 0,
+					i: void 0
+				});
+				return _el$;
+			}
+		});
+		const disposeTooltip = render(() => tooltipView(), portalHost);
+		onCleanup(() => {
+			disposeTooltip();
+			portalHost.remove();
+		});
+		return document.createTextNode("");
+	}
+	//#endregion
+	//#region src/components/SubtitlesWidget/SubtitleTokenTooltip.tsx
+	function SubtitleTokenInfo(props) {
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block"), _el$7 = createElement("vot-block"), _el$8 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$8);
+			setProp(_el$, "class", "vot-subtitles-info");
+			setProp(_el$, "id", "vot-subtitles-info");
+			setProp(_el$2, "class", "vot-subtitles-info-service");
+			setProp(_el$2, "hidden", true);
+			insert(_el$2, () => localizationProvider.get("VOTTranslatedBy").replace("{0}", props.translationService));
+			insertNode(_el$3, _el$4);
+			insertNode(_el$3, _el$5);
+			insertNode(_el$3, _el$7);
+			setProp(_el$3, "class", "vot-subtitles-info-title");
+			setProp(_el$4, "class", "vot-subtitles-info-source");
+			insert(_el$4, () => props.source);
+			insertNode(_el$5, createTextNode(`—`));
+			setProp(_el$5, "class", "vot-subtitles-info-divider");
+			setProp(_el$7, "class", "vot-subtitles-info-header");
+			insert(_el$7, () => props.header());
+			setProp(_el$8, "class", "vot-subtitles-info-context");
+			insert(_el$8, () => props.context());
+			return _el$;
+		})();
+	}
+	function mountSubtitleTokenTooltip(options) {
+		const [header, setHeader] = createSignal(options.source);
+		const [context, setContext] = createSignal(options.context);
+		const [parentElement, setParentElement] = createSignal(options.parentElement);
+		let tooltipControls;
+		const view = () => createComponent(Tooltip, {
+			get target() {
+				return options.target;
+			},
+			get anchor() {
+				return options.anchor;
+			},
+			get parentElement() {
+				return parentElement();
+			},
+			get maxWidth() {
+				return options.maxWidth;
+			},
+			offset: {
+				x: 4,
+				y: 12
+			},
+			mode: "follow",
+			borderRadius: 12,
+			bordered: false,
+			position: "top",
+			trigger: "click",
+			get content() {
+				return createComponent(SubtitleTokenInfo, {
+					get source() {
+						return options.source;
+					},
+					context,
+					header,
+					get translationService() {
+						return options.translationService;
+					}
+				});
+			},
+			controls: (c) => {
+				tooltipControls = c;
+			}
+		});
+		const dispose = render(() => view(), parentElement());
+		return {
+			show: () => tooltipControls?.show(),
+			update: () => tooltipControls?.update(),
+			isOpen: () => tooltipControls?.isOpen() ?? false,
+			setTranslation: (nextHeader, nextContext) => {
+				setHeader(nextHeader);
+				setContext(nextContext);
+				tooltipControls?.update();
+			},
+			updateMount: (nextParentElement) => {
+				setParentElement(nextParentElement);
+				tooltipControls?.update();
+			},
+			dispose: () => {
+				dispose();
+			}
+		};
+	}
+	//#endregion
+	//#region src/ui/shadowMount.ts
+	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{-webkit-user-select:none;user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{-webkit-user-select:none;user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;-webkit-user-select:none;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;line-height:1;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(56px, 12.5vh, 136px), calc(env(safe-area-inset-top,0px) + 8px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px));--vot-menu-side-top-offset:max(clamp(50px, 12.5vh, 120px), calc(env(safe-area-inset-top,0px) + 8px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:320px;max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;-webkit-user-select:none;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483647;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
+	var sharedShadowStyleSheet = null;
+	var sharedShadowStyleSheetReady = false;
+	function scopeCssForShadowRoots(cssText) {
+		return cssText.replaceAll(":root", ":host").replaceAll("html.vot-keyboard-nav", ":host-context(.vot-keyboard-nav)").replace(/:fullscreen(?=\s|,)/g, ":host-context(:fullscreen)").replace(/:-webkit-full-screen(?=\s|,)/g, ":host-context(:-webkit-full-screen)");
+	}
+	function applyClasses(element, classes) {
+		if (classes?.length) element.classList.add(...classes);
+	}
+	function applyInlineStyles(element, styles) {
+		if (!styles) return;
+		for (const [name, value] of Object.entries(styles)) {
+			if (typeof value !== "string") continue;
+			element.style.setProperty(name, value);
+		}
+	}
+	function createMountElement({ tag, classes = [], styles }) {
+		const element = document.createElement(tag);
+		applyClasses(element, classes);
+		applyInlineStyles(element, styles);
+		return element;
+	}
+	function getSharedShadowStyleSheet() {
+		if (sharedShadowStyleSheetReady) return sharedShadowStyleSheet;
+		sharedShadowStyleSheetReady = true;
+		if (!(typeof CSSStyleSheet !== "undefined" && typeof CSSStyleSheet.prototype.replaceSync === "function")) return null;
+		const sheet = new CSSStyleSheet();
+		sheet.replaceSync(shadowScopedCssText);
+		sharedShadowStyleSheet = sheet;
+		return sharedShadowStyleSheet;
+	}
+	function adoptScopedStyles(shadowRoot) {
+		const sharedSheet = getSharedShadowStyleSheet();
+		if (sharedSheet) {
+			if (!shadowRoot.adoptedStyleSheets.includes(sharedSheet)) shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, sharedSheet];
+			return;
+		}
+		const style = document.createElement("style");
+		style.textContent = shadowScopedCssText;
+		shadowRoot.append(style);
+	}
+	function createShadowMount({ parent, hostTag = "vot-shadow-host", rootTag = "vot-block", hostClasses = [], rootClasses = [], hostStyles, rootStyles, delegatesFocus = false }) {
+		const host = createMountElement({
+			tag: hostTag,
+			classes: hostClasses,
+			styles: hostStyles
+		});
+		const shadowRoot = host.attachShadow({
+			mode: "open",
+			delegatesFocus
+		});
+		adoptScopedStyles(shadowRoot);
+		const root = createMountElement({
+			tag: rootTag,
+			classes: rootClasses,
+			styles: rootStyles
+		});
+		shadowRoot.append(root);
+		parent.append(host);
+		return {
+			host,
+			root,
+			shadowRoot
+		};
+	}
+	function reparentShadowMount(mount, parent) {
+		if (!mount) return;
+		if (mount.host.parentNode !== parent) parent.append(mount.host);
+	}
+	function destroyShadowMount(mount) {
+		mount?.host.remove();
+	}
+	//#endregion
+	//#region src/subtitles/tokenTooltipController.ts
+	var trimEdgePunctuation = (value) => value.trim().replace(LEADING_PUNCTUATION_RE, "").replace(TRAILING_PUNCTUATION_RE, "");
+	var TokenTooltipController = class {
+		getContext;
+		getTranslationService;
+		translateText;
+		tooltipMount;
+		tooltip;
+		target;
+		translationRequestId = 0;
+		translatedContext = "";
+		constructor(options) {
+			this.getContext = options.getContext;
+			this.getTranslationService = options.getTranslationService ?? (() => votStorage.get("translationService", "yandexbrowser"));
+			this.translateText = options.translateText ?? translate;
+		}
+		resetTranslationContext(releaseTooltip = false) {
+			this.translatedContext = "";
+			if (releaseTooltip) this.release();
+		}
+		updateMount() {
+			if (!this.tooltipMount) return;
+			reparentShadowMount(this.tooltipMount, this.getContext().container);
+			this.tooltip?.updateMount(this.tooltipMount.root);
+		}
+		update() {
+			this.tooltip?.update();
+		}
+		release() {
+			this.translationRequestId += 1;
+			this.target?.classList.remove("selected");
+			this.target = void 0;
+			this.tooltip?.dispose();
+			this.tooltip = void 0;
+			destroyShadowMount(this.tooltipMount);
+			this.tooltipMount = void 0;
+		}
+		onGlobalPointerDown = (event) => {
+			if (this.tooltip && this.tooltipMount && event.composedPath().includes(this.tooltipMount.host)) return;
+			const { subtitlesContainer } = this.getContext();
+			if (subtitlesContainer && !subtitlesContainer.contains(event.target)) this.release();
+		};
+		onActivate = async (event) => {
+			if (performance.now() < this.getContext().suppressClicksUntil) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+			const target = this.resolveTokenSpanFromEvent(event);
+			if (!target) {
+				this.release();
+				return;
+			}
+			if (this.toggleCurrentTarget(target, event)) return;
+			this.release();
+			const requestId = this.translationRequestId;
+			const text = trimEdgePunctuation(target.textContent ?? "");
+			if (!text) return;
+			try {
+				const service = await this.getTranslationService();
+				if (requestId !== this.translationRequestId) return;
+				const context = this.getContext();
+				target.classList.add("selected");
+				const tooltip = this.createTooltip(target, {
+					source: text,
+					context: this.translatedContext || context.tokenText,
+					translationService: service
+				});
+				this.tooltip = tooltip;
+				this.target = target;
+				tooltip.show();
+				const tokenText = context.tokenText;
+				const translated = await this.translateTokens(text, context);
+				if (this.shouldSkipUpdate(requestId, tooltip, target, tokenText)) return;
+				this.translatedContext = translated[0];
+				tooltip.setTranslation(translated[1], translated[0]);
+			} catch (error) {
+				if (requestId !== this.translationRequestId) return;
+				console.error("[VOT] Failed to translate subtitle token:", error);
+				if (this.tooltip && this.target === target) {
+					const { tokenText } = this.getContext();
+					this.tooltip.setTranslation(localizationProvider.get("requestTranslationFailed"), this.translatedContext || tokenText);
+				} else this.release();
+			}
+		};
+		async translateTokens(text, context) {
+			const fromLang = context.subtitleLang ?? "";
+			const toLang = localizationProvider.lang;
+			if (this.translatedContext) {
+				const translated = await this.translateText(text, fromLang, toLang);
+				return [this.translatedContext, typeof translated === "string" ? translated : ""];
+			}
+			const translated = await this.translateText([context.tokenText, text], fromLang, toLang);
+			const pair = Array.isArray(translated) ? translated : [translated, translated];
+			return [typeof pair[0] === "string" ? pair[0] : "", typeof pair[1] === "string" ? pair[1] : ""];
+		}
+		findTokenSpan(candidate, root) {
+			let element = null;
+			if (candidate instanceof Element) element = candidate;
+			else if (candidate instanceof Text) element = candidate.parentElement;
+			const token = element?.closest("span[data-vot-token=\"1\"]");
+			return token instanceof HTMLSpanElement && root.contains(token) ? token : null;
+		}
+		resolveTokenSpanFromEvent(event) {
+			const { subtitlesBlock, subtitlesContainer } = this.getContext();
+			const root = subtitlesBlock ?? subtitlesContainer;
+			if (!root) return null;
+			const fromTarget = this.findTokenSpan(event.target, root);
+			if (fromTarget) return fromTarget;
+			const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+			for (const node of path) {
+				const fromPath = this.findTokenSpan(node, root);
+				if (fromPath) return fromPath;
+			}
+			if (!(event instanceof MouseEvent)) return null;
+			return Number.isFinite(event.clientX) && Number.isFinite(event.clientY) ? this.findTokenSpan(document.elementFromPoint(event.clientX, event.clientY), root) : null;
+		}
+		toggleCurrentTarget(target, event) {
+			const tooltip = this.tooltip;
+			if (this.target !== target || !tooltip) return false;
+			const syncSelectedState = () => {
+				if (this.target === target && this.tooltip === tooltip) target.classList.toggle("selected", tooltip.isOpen());
+			};
+			if (event instanceof KeyboardEvent) requestAnimationFrame(syncSelectedState);
+			else syncSelectedState();
+			return true;
+		}
+		createTooltip(target, content) {
+			const context = this.getContext();
+			const viewportWidth = Math.max(320, globalThis.innerWidth || 0);
+			const preferredWidth = Math.max(360, context.subtitlesContainer?.offsetWidth ?? 0, context.subtitlesBlock?.offsetWidth ?? 0, Math.min(context.subtitleMaxWidthPx || 0, 720));
+			this.tooltipMount = createShadowMount({
+				parent: context.container,
+				rootClasses: ["vot-portal-local"],
+				hostStyles: {
+					position: "absolute",
+					inset: "0",
+					display: "block",
+					"pointer-events": "none"
+				},
+				rootStyles: {
+					position: "relative",
+					display: "block",
+					width: "100%",
+					height: "100%",
+					"pointer-events": "none"
+				}
+			});
+			return mountSubtitleTokenTooltip({
+				target,
+				anchor: context.subtitlesBlock ?? target,
+				parentElement: this.tooltipMount.root,
+				maxWidth: Math.min(viewportWidth - 24, preferredWidth, 720),
+				source: content.source,
+				context: content.context,
+				translationService: content.translationService
+			});
+		}
+		shouldSkipUpdate(requestId, tooltip, target, tokenText) {
+			return requestId !== this.translationRequestId || tokenText !== this.getContext().tokenText || this.tooltip !== tooltip || this.target !== target || !tooltip.isOpen();
+		}
 	};
-	function computeTokenWrapPlan(tokens, measureText, maxWidthPx) {
-		if (!tokens.length || hasForcedLineBreakToken(tokens)) return emptyTokenWrapPlan();
-		const safeMaxWidthPx = Number.isFinite(maxWidthPx) ? maxWidthPx : 0;
-		if (safeMaxWidthPx <= 0) return emptyTokenWrapPlan();
-		const textBuffer = buildTokenTextBuffer(tokens);
-		const { slices } = buildWordSlicesFromBuffer(tokens, textBuffer, false);
-		const measurableSlices = slices.filter((slice) => !slice.forcesLineBreak);
-		if (!measurableSlices.length) return emptyTokenWrapPlan();
-		if (measureTokenRange(textBuffer, 0, tokens.length, measureText) <= safeMaxWidthPx) return emptyTokenWrapPlan();
-		const bestBreakAfterTokenIndex = findBestWordBreakAfterTokenIndex(tokens, textBuffer, measurableSlices, measureText, safeMaxWidthPx);
-		if (bestBreakAfterTokenIndex !== null) return singleBreakTokenWrapPlan(bestBreakAfterTokenIndex);
-		return emptyTokenWrapPlan();
+	//#endregion
+	//#region src/subtitles/wakeSchedule.ts
+	/**
+	* Deadline scheduling for the subtitle pipeline.
+	*
+	* The widget is driven by `requestVideoFrameCallback`, i.e. it is woken once per
+	* decoded video frame (50-60 Hz, more on high-refresh displays). Before this
+	* module every wake ran the throttle bookkeeping and, four times a second, the
+	* full `update()` -> active-cue search -> render-key -> position-refresh path,
+	* even while no cue was on screen and nothing could possibly change.
+	*
+	* Nothing in the pipeline can change between two *boundaries*:
+	*   - a cue start,
+	*   - a cue end,
+	*   - the next word-highlight threshold, when highlighting is on.
+	*
+	* Knowing the next boundary turns the per-frame callback into two numeric
+	* comparisons and eliminates all idle work between cues.
+	*/
+	/** Lines are ordered by `startMs`; find the first index with `startMs > timeMs`. */
+	function upperBoundByStart(lines, timeMs) {
+		let lo = 0;
+		let hi = lines.length;
+		while (lo < hi) {
+			const mid = lo + hi >> 1;
+			if (lines[mid].startMs > timeMs) hi = mid;
+			else lo = mid + 1;
+		}
+		return lo;
+	}
+	/**
+	* Earliest cue boundary strictly after `timeMs`.
+	*
+	* Cue ends are scanned from a bounded window before `timeMs` because overlapping
+	* cues mean an earlier entry can end later than a later one.
+	*/
+	function findNextCueBoundaryMs(timeMs, lines, maxCueDurationMs = Number.POSITIVE_INFINITY) {
+		const count = lines.length;
+		if (count === 0) return null;
+		let next = null;
+		const consider = (value) => {
+			if (value > timeMs && (next === null || value < next)) next = value;
+		};
+		const firstFuture = upperBoundByStart(lines, timeMs);
+		if (firstFuture < count) consider(lines[firstFuture].startMs);
+		const minStartMs = Number.isFinite(maxCueDurationMs) ? timeMs - Math.max(0, maxCueDurationMs) : Number.NEGATIVE_INFINITY;
+		for (let i = firstFuture - 1; i >= 0; i -= 1) {
+			const line = lines[i];
+			if (line.startMs < minStartMs) break;
+			consider(line.startMs + Math.max(0, line.durationMs));
+		}
+		return next;
+	}
+	/** Earliest word-highlight threshold strictly after `timeMs`. */
+	function findNextThresholdMs(timeMs, thresholds) {
+		let next = null;
+		for (let i = 0; i < thresholds.length; i += 1) {
+			const value = thresholds[i];
+			if (value > timeMs && (next === null || value < next)) next = value;
+		}
+		return next;
+	}
+	/**
+	* Media time at which the widget must next do work.
+	*
+	* Always bounded by `maxSleepMs` so position/layout refreshes keep running on
+	* long cues and during silence.
+	*/
+	function computeNextWakeMs({ timeMs, lines, maxCueDurationMs, thresholds, maxSleepMs = 250 }) {
+		const cap = timeMs + Math.max(1, maxSleepMs);
+		let next = findNextCueBoundaryMs(timeMs, lines, maxCueDurationMs);
+		if (thresholds && thresholds.length > 0) {
+			const threshold = findNextThresholdMs(timeMs, thresholds);
+			if (threshold !== null && (next === null || threshold < next)) next = threshold;
+		}
+		if (next === null || next > cap) return cap;
+		return next;
 	}
 	//#endregion
 	//#region src/shims/rvfc-polyfill.ts
@@ -16966,52 +19088,43 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/subtitles/widget.ts
-	var EDGE_PUNCTUATION_OR_SYMBOL_RE = /^[\p{P}\p{S}]$/u;
-	var isEdgePunctuationOrSymbol = (char) => EDGE_PUNCTUATION_OR_SYMBOL_RE.test(char);
-	var trimEdgePunctuation = (value) => {
-		const chars = Array.from(value);
-		let startIndex = 0;
-		let endIndex = chars.length;
-		while (startIndex < endIndex && isEdgePunctuationOrSymbol(chars[startIndex])) startIndex += 1;
-		while (endIndex > startIndex && isEdgePunctuationOrSymbol(chars[endIndex - 1])) endIndex -= 1;
-		return chars.slice(startIndex, endIndex).join("");
-	};
-	var WRAP_WIDTH_GUARD_PX = 8;
-	var WRAP_WIDTH_GUARD_RATIO = .97;
-	var MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
-	function applyWrapWidthGuard(maxWidthPx) {
-		if (!Number.isFinite(maxWidthPx) || maxWidthPx <= 0) return 0;
-		const byPixelGuard = maxWidthPx - WRAP_WIDTH_GUARD_PX;
-		const byRatioGuard = maxWidthPx * WRAP_WIDTH_GUARD_RATIO;
-		return Math.max(MIN_EFFECTIVE_WRAP_WIDTH_PX, Math.min(byPixelGuard, byRatioGuard));
+	function isDocumentHidden() {
+		return typeof document !== "undefined" && document.hidden === true;
 	}
 	var SubtitlesWidget = class {
 		video;
 		container;
 		fullscreenLayerController;
-		tooltipMount;
+		subtitleStyleController;
+		tokenTooltipController;
 		subtitlesContainer = null;
+		subtitleView = null;
+		subtitleOverlayHost = null;
 		subtitlesBlock = null;
 		renderedHighlightEls = [];
+		/** Parsed highlight indices + last applied class state (see `highlightState.ts`). */
+		highlightState = createHighlightState();
+		sourceEpoch = 0;
+		contentEpoch = 0;
+		/** Monotonic tick counter used to cache layout reads within a single tick. */
+		tickSeq = 0;
+		layoutSizeCache = null;
+		smartCssMetricsCache = null;
+		tokenLayoutInputsCache = null;
+		elementMetricsCache = null;
+		lastPositionApplyKey = null;
 		passedFlagsBuffer = [];
 		subtitles = null;
 		subtitleLang;
 		lastRenderKey = null;
 		lastActiveLineKey = null;
-		maxActiveCueLookbackMs = 0;
+		maxCueDurationMs = 0;
 		highlightWords = false;
-		fontSize = 20;
-		fontSizeOverridden = false;
-		fontFamily = "default-sans";
 		maxLength = 300;
-		smartLayoutEnabled = true;
 		smartFontSizePx = 0;
 		smartMaxWidthPx = 0;
-		smartAnchorWidthPx = 0;
-		smartAnchorHeightPx = 0;
 		lastSmartLayoutKey = null;
 		lastSmartLayoutCheckTs = 0;
-		opacity = "0.2";
 		repositionPending = false;
 		positionRefreshPending = false;
 		updatePending = false;
@@ -17020,10 +19133,15 @@ var vot = (function(exports) {
 		updateMinIntervalHighlightMs = 33;
 		useVideoFrameCallbacks;
 		videoFrameRequestId = null;
+		onVisibilityChangeBound;
 		lastPlaybackTimeMs = null;
 		dragAbortController = null;
 		lastPositionRefreshTs = 0;
 		positionRefreshIntervalMs = 250;
+		/** Media time before which nothing in the pipeline can change. */
+		nextWakeAtMs = null;
+		/** Media time the current deadline was computed from (seek detection). */
+		wakeBaseTimeMs = 0;
 		subtitleMaxWidthPx = 0;
 		breakAfterTokenIndices = [];
 		breakAfterTokenIndexSet = null;
@@ -17032,10 +19150,7 @@ var vot = (function(exports) {
 		lastWrapTokens = null;
 		measureCanvas = null;
 		measureCtx = null;
-		tokenProcessingMemo = null;
-		tokenPrecomputeMemo = null;
-		lineMeasureMemo = null;
-		lastSegmentIndex = 0;
+		tokenLayoutProcessor = new TokenLayoutProcessor();
 		lastAppliedLeftPct = null;
 		lastAppliedTopPct = null;
 		position = {
@@ -17056,22 +19171,23 @@ var vot = (function(exports) {
 				y: 0
 			}
 		};
+		dragLayoutCache = null;
+		/** Newest un-applied pointer sample; older samples in the same frame are dropped. */
+		pendingDragPoint = null;
+		dragFrameId = null;
 		dragStartThresholdPx = 4;
 		snapThresholdPx = 18;
 		suppressTokenClicksUntil = 0;
 		abortController = new AbortController();
 		resizeObserver;
-		tokenTooltip;
-		tooltipTranslationRequestId = 0;
+		resizeTarget;
+		subtitleOverlayDispose;
 		intervalIdleChecker;
 		checkerUnsubscribe = null;
 		strTokens = "";
-		strTranslatedTokens = "";
+		tokenStateKey = "";
 		passedStateKey = null;
 		passedThresholds = [];
-		normalizeTokenTextForTranslation(raw) {
-			return trimEdgePunctuation(raw.trim());
-		}
 		bottomInsetCachedPx = 0;
 		safeAreaBottomInsetCachedPx = 0;
 		containerPaddingBottomCachedPx = 0;
@@ -17103,6 +19219,24 @@ var vot = (function(exports) {
 			this.video = video;
 			this.container = container;
 			this.fullscreenLayerController = new FullscreenLayerController({ container });
+			this.subtitleStyleController = new SubtitleStyleController({
+				onStyleChange: () => this.invalidateStyleCaches(),
+				onFontLoaded: () => {
+					this.lastWrapKey = null;
+					this.tokenLayoutProcessor.reset();
+					this.scheduleWrapRecompute();
+					this.scheduleReposition();
+				}
+			});
+			this.tokenTooltipController = new TokenTooltipController({ getContext: () => ({
+				container: this.container,
+				subtitlesContainer: this.subtitlesContainer,
+				subtitlesBlock: this.subtitlesBlock,
+				subtitleLang: this.subtitleLang,
+				subtitleMaxWidthPx: this.subtitleMaxWidthPx,
+				tokenText: this.strTokens,
+				suppressClicksUntil: this.suppressTokenClicksUntil
+			}) });
 			this.intervalIdleChecker = intervalIdleChecker;
 			this.useVideoFrameCallbacks = !!this.video && typeof this.video.requestVideoFrameCallback === "function";
 			this.onPointerDownBound = (event) => this.onPointerDown(event);
@@ -17110,9 +19244,10 @@ var vot = (function(exports) {
 			this.onPointerMoveBound = (event) => this.onPointerMove(event);
 			this.onPlaybackStateChangeBound = () => this.handlePlaybackStateChange();
 			this.onVisualViewportChangeBound = () => this.scheduleReposition();
+			this.onVisibilityChangeBound = () => this.handleDocumentVisibilityChange();
 			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(() => {
 				this.onCheckerTick();
-			});
+			}, { hasPendingWork: () => this.hasPendingWork() });
 			this.bindEvents();
 		}
 		updateMount({ container }) {
@@ -17121,8 +19256,10 @@ var vot = (function(exports) {
 			this.fullscreenLayerController.updateContainer(container);
 			this.syncWidgetMount();
 			if (containerChanged) {
-				const parentElement = this.getTokenTooltipParentElement();
-				this.tokenTooltip?.updateMount({ parentElement });
+				this.syncResizeTarget();
+				this.dragLayoutCache = null;
+				this.invalidateLayoutCache();
+				this.subtitleStyleController.invalidate();
 			}
 			if (this.subtitles) {
 				this.insetCacheReady = false;
@@ -17133,14 +19270,7 @@ var vot = (function(exports) {
 			}
 		}
 		resetTranslationContext(releaseTooltip = false) {
-			this.strTranslatedTokens = "";
-			if (releaseTooltip) this.releaseTooltip();
-		}
-		resetSegmentationMemo() {
-			this.tokenProcessingMemo = null;
-			this.tokenPrecomputeMemo = null;
-			this.lineMeasureMemo = null;
-			this.lastSegmentIndex = 0;
+			this.tokenTooltipController.resetTranslationContext(releaseTooltip);
 		}
 		resetWrapMemo() {
 			this.setBreakAfterTokenIndices([]);
@@ -17148,18 +19278,22 @@ var vot = (function(exports) {
 		}
 		resetRenderMemo() {
 			this.lastRenderKey = null;
-		}
-		computeAnchorBoxLayout(layout) {
-			return {
-				left: 0,
-				top: 0,
-				w: layout.w,
-				h: layout.h
-			};
+			this.invalidateWakeDeadline();
 		}
 		readSmartCssMetrics() {
 			const block = this.subtitlesBlock;
 			if (!block) return null;
+			const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
+			const cached = this.smartCssMetricsCache;
+			if (cached && cached.key === cacheKey) return cached.value;
+			const value = this.readSmartCssMetricsNow(block);
+			this.smartCssMetricsCache = {
+				key: cacheKey,
+				value
+			};
+			return value;
+		}
+		readSmartCssMetricsNow(block) {
 			const cs = getComputedStyle(block);
 			const fontSizePx = Number.parseFloat(cs.fontSize);
 			const maxWidthRawPx = Number.parseFloat(cs.maxWidth);
@@ -17175,7 +19309,7 @@ var vot = (function(exports) {
 			};
 		}
 		ensureSmartLayout(anchorBox) {
-			if (!this.smartLayoutEnabled) return null;
+			if (!this.subtitleStyleController.smartLayoutEnabled) return null;
 			const cssMetrics = this.readSmartCssMetrics();
 			const nextFontSizePx = cssMetrics?.fontSizePx ?? this.smartFontSizePx;
 			const next = computeSmartLayoutForBox(anchorBox, cssMetrics);
@@ -17189,10 +19323,10 @@ var vot = (function(exports) {
 				this.smartMaxWidthPx = nextMaxWidthPx;
 				this.resetRenderMemo();
 			}
-			this.setSubtitlesContainerVar("--vot-subtitles-max-width", next.maxWidthPx && next.maxWidthPx > 0 ? `${next.maxWidthPx}px` : null);
+			this.subtitleStyleController.setVariable("--vot-subtitles-max-width", next.maxWidthPx && next.maxWidthPx > 0 ? `${next.maxWidthPx}px` : null);
 			if ((fontChanged || widthChanged) && this.lastWrapTokens) {
 				this.lastWrapKey = null;
-				this.resetSegmentationMemo();
+				this.tokenLayoutProcessor.reset();
 				this.scheduleWrapRecompute();
 			}
 			return next;
@@ -17204,43 +19338,12 @@ var vot = (function(exports) {
 			this.intervalIdleChecker.markActivity("subtitles-reposition");
 			this.intervalIdleChecker.requestImmediateTick();
 		}
-		setSubtitlesContainerVar(name, value) {
-			const container = this.subtitlesContainer;
-			if (!container) return;
-			if (value === null) {
-				container.style.removeProperty(name);
-				return;
-			}
-			container.style.setProperty(name, value);
-		}
-		applyOpacityStyle() {
-			this.setSubtitlesContainerVar("--vot-subtitles-opacity", this.opacity);
-		}
-		applyManualFontSizeStyle() {
-			if (!this.smartLayoutEnabled && this.fontSizeOverridden) {
-				this.setSubtitlesContainerVar("--vot-subtitles-font-size", `${this.fontSize}px`);
-				return;
-			}
-			this.setSubtitlesContainerVar("--vot-subtitles-font-size", null);
-		}
-		applyFontFamilyStyle() {
-			const fontFamily = this.fontFamily;
-			this.setSubtitlesContainerVar("--vot-subtitles-font-family-custom", getSubtitleFontFamilyCssValue(fontFamily));
-			ensureGoogleSubtitleFontLoaded(fontFamily, {
-				forceGmXhr: true,
-				onLoaded: () => {
-					if (this.fontFamily !== fontFamily) return;
-					this.lastWrapKey = null;
-					this.resetSegmentationMemo();
-					this.scheduleWrapRecompute();
-					this.scheduleReposition();
-				}
-			});
-		}
-		syncVisualStyleVars() {
-			this.applyOpacityStyle();
-			this.applyManualFontSizeStyle();
-			this.applyFontFamilyStyle();
+		/** Invalidate every cache derived from computed style or element geometry. */
+		invalidateStyleCaches() {
+			this.smartCssMetricsCache = null;
+			this.tokenLayoutInputsCache = null;
+			this.elementMetricsCache = null;
+			this.lastPositionApplyKey = null;
 		}
 		ensureGuidesLayer() {
 			if (this.guidesLayer) return this.guidesLayer;
@@ -17265,15 +19368,15 @@ var vot = (function(exports) {
 			const { showVerticalCenter = false, showHorizontalCenter = false } = options;
 			if (!this.ensureGuidesLayer().isConnected) this.syncGuideLayerMount();
 			if (this.verticalGuide) {
-				this.verticalGuide.style.left = `${anchorBox.left + anchorBox.w / 2}px`;
-				this.verticalGuide.style.top = `${anchorBox.top}px`;
+				this.verticalGuide.style.left = `${anchorBox.w / 2}px`;
+				this.verticalGuide.style.top = "0px";
 				this.verticalGuide.style.height = `${anchorBox.h}px`;
 				if (showVerticalCenter) this.verticalGuide.dataset.visible = "true";
 				else delete this.verticalGuide.dataset.visible;
 			}
 			if (this.horizontalGuide) {
-				this.horizontalGuide.style.left = `${anchorBox.left}px`;
-				this.horizontalGuide.style.top = `${anchorBox.top + anchorBox.h / 2}px`;
+				this.horizontalGuide.style.left = "0px";
+				this.horizontalGuide.style.top = `${anchorBox.h / 2}px`;
 				this.horizontalGuide.style.width = `${anchorBox.w}px`;
 				if (showHorizontalCenter) this.horizontalGuide.dataset.visible = "true";
 				else delete this.horizontalGuide.dataset.visible;
@@ -17285,55 +19388,24 @@ var vot = (function(exports) {
 		}
 		syncWidgetMount() {
 			this.fullscreenLayerController.syncWidgetContainer(null);
-			if (this.subtitlesContainer && this.subtitlesContainer.parentElement !== this.container) this.container.appendChild(this.subtitlesContainer);
-			if (this.tooltipMount) reparentShadowMount(this.tooltipMount, this.container);
+			if (this.subtitleOverlayHost && this.subtitleOverlayHost.parentNode !== this.container) this.container.appendChild(this.subtitleOverlayHost);
+			this.tokenTooltipController.updateMount();
 			this.syncGuideLayerMount();
-		}
-		ensureTooltipMount() {
-			if (this.tooltipMount) reparentShadowMount(this.tooltipMount, this.container);
-			else this.tooltipMount = createShadowMount({
-				parent: this.container,
-				rootClasses: ["vot-portal-local"],
-				hostStyles: {
-					position: "absolute",
-					inset: "0",
-					display: "block",
-					"pointer-events": "none"
-				},
-				rootStyles: {
-					position: "relative",
-					display: "block",
-					width: "100%",
-					height: "100%",
-					"pointer-events": "none"
-				}
-			});
-			return this.tooltipMount;
-		}
-		getTokenTooltipParentElement() {
-			return this.ensureTooltipMount().root;
 		}
 		createSubtitlesContainer() {
 			if (this.subtitlesContainer) return this.subtitlesContainer;
-			const container = document.createElement("vot-block");
-			container.classList.add("vot-subtitles-widget");
+			const overlayMount = mountSolidSubtitlesOverlay(this.onPointerDownBound);
+			this.subtitleOverlayDispose = overlayMount.dispose;
+			this.subtitleOverlayHost = overlayMount.host;
+			const container = overlayMount.overlay;
 			this.subtitlesContainer = container;
+			this.invalidateLayoutCache();
+			this.subtitleStyleController.attach(container);
 			this.syncWidgetMount();
-			container.addEventListener("pointerdown", this.onPointerDownBound, {
-				signal: this.abortController.signal,
-				passive: false,
-				capture: true
-			});
-			this.syncVisualStyleVars();
 			this.insetCacheReady = false;
 			this.updateContainerRect();
 			return container;
 		}
-		onGlobalPointerDown = (event) => {
-			const eventPath = typeof event.composedPath === "function" ? event.composedPath() : [];
-			if (this.tokenTooltip?.container && (this.tokenTooltip.container.contains(event.target) || eventPath.includes(this.tokenTooltip.container))) return;
-			if (this.subtitlesContainer && !this.subtitlesContainer.contains(event.target)) this.releaseTooltip();
-		};
 		bindEvents() {
 			const { signal } = this.abortController;
 			const opts = { signal };
@@ -17345,12 +19417,19 @@ var vot = (function(exports) {
 				"ended"
 			]) this.video?.addEventListener(eventName, this.onPlaybackStateChangeBound, opts);
 			this.resizeObserver = new ResizeObserver(() => this.onResize());
-			const resizeTarget = this.container instanceof ShadowRoot ? this.container.host : this.container;
-			this.resizeObserver.observe(resizeTarget);
+			this.syncResizeTarget();
 			if (this.video) this.resizeObserver.observe(this.video);
 			globalThis.visualViewport?.addEventListener("resize", this.onVisualViewportChangeBound, opts);
 			globalThis.visualViewport?.addEventListener("scroll", this.onVisualViewportChangeBound, opts);
-			globalThis.addEventListener("pointerdown", this.onGlobalPointerDown);
+			globalThis.addEventListener("pointerdown", this.tokenTooltipController.onGlobalPointerDown, opts);
+			document.addEventListener("visibilitychange", this.onVisibilityChangeBound, opts);
+		}
+		syncResizeTarget() {
+			const nextTarget = this.container instanceof ShadowRoot ? this.container.host : this.container;
+			if (nextTarget === this.resizeTarget) return;
+			if (this.resizeTarget) this.resizeObserver?.unobserve(this.resizeTarget);
+			this.resizeTarget = nextTarget;
+			this.resizeObserver?.observe(nextTarget);
 		}
 		getUpdateMinIntervalMs() {
 			return this.highlightWords ? this.updateMinIntervalHighlightMs : this.updateMinIntervalMs;
@@ -17360,17 +19439,44 @@ var vot = (function(exports) {
 			if (!this.subtitles) return;
 			if (typeof playbackTimeMs === "number" && Number.isFinite(playbackTimeMs)) this.lastPlaybackTimeMs = Math.max(0, playbackTimeMs);
 			else if (this.video) this.lastPlaybackTimeMs = Math.max(0, this.video.currentTime * 1e3);
+			if (this.canSkipWake(this.lastPlaybackTimeMs)) return;
 			const minInterval = this.getUpdateMinIntervalMs();
 			if (now - this.lastUpdateRequestTs < minInterval) return;
 			this.lastUpdateRequestTs = now;
 			this.updatePending = true;
 			this.intervalIdleChecker.requestImmediateTick();
 		}
+		/** True when `timeMs` has not yet reached the next boundary. */
+		canSkipWake(timeMs) {
+			if (this.updatePending || this.repositionPending || this.wrapPending) return false;
+			if (this.nextWakeAtMs === null) return false;
+			if (typeof timeMs !== "number" || !Number.isFinite(timeMs)) return false;
+			if (timeMs < this.wakeBaseTimeMs) return false;
+			return timeMs < this.nextWakeAtMs;
+		}
+		invalidateWakeDeadline() {
+			this.nextWakeAtMs = null;
+		}
+		recomputeWakeDeadline(timeMs) {
+			if (!this.subtitles) {
+				this.invalidateWakeDeadline();
+				return;
+			}
+			this.wakeBaseTimeMs = timeMs;
+			this.nextWakeAtMs = computeNextWakeMs({
+				timeMs,
+				lines: this.subtitles.subtitles,
+				maxCueDurationMs: this.maxCueDurationMs,
+				thresholds: this.highlightWords ? this.passedThresholds : void 0,
+				maxSleepMs: this.positionRefreshIntervalMs
+			});
+		}
 		resolvePlaybackTimeMs() {
 			if (typeof this.lastPlaybackTimeMs === "number" && Number.isFinite(this.lastPlaybackTimeMs)) return this.lastPlaybackTimeMs;
 			return this.video ? Math.max(0, this.video.currentTime * 1e3) : 0;
 		}
 		handlePlaybackStateChange() {
+			this.invalidateWakeDeadline();
 			if (!this.subtitles) {
 				this.stopVideoFrameLoop();
 				return;
@@ -17383,7 +19489,7 @@ var vot = (function(exports) {
 			if (!this.useVideoFrameCallbacks) return;
 			const video = this.video;
 			if (!video) return;
-			if (!this.subtitles || video.paused || video.ended) {
+			if (!this.subtitles || video.paused || video.ended || isDocumentHidden()) {
 				this.stopVideoFrameLoop();
 				return;
 			}
@@ -17417,8 +19523,33 @@ var vot = (function(exports) {
 			this.requestUpdate(playbackTimeMs, now);
 			this.startVideoFrameLoop();
 		};
+		/**
+		* Whether a periodic tick would actually do something.
+		*
+		* A wake loop is not free: a 60 Hz callback that does nothing still measures
+		* ~1% main-thread CPU, and a 250 ms poll keeps the thread from ever settling.
+		* Reporting `false` lets the scheduler go fully dormant until playback, a
+		* pointer, a resize, or a visibility change wakes it.
+		*/
+		hasPendingWork() {
+			if (this.abortController.signal.aborted) return false;
+			if (this.repositionPending || this.wrapPending || this.positionRefreshPending || this.updatePending) return true;
+			if (!this.subtitles || !this.video) return false;
+			if (isDocumentHidden()) return false;
+			return !this.video.paused && !this.video.ended;
+		}
+		handleDocumentVisibilityChange() {
+			if (isDocumentHidden()) {
+				this.stopVideoFrameLoop();
+				return;
+			}
+			this.invalidateWakeDeadline();
+			this.scheduleReposition();
+			this.syncVideoFrameLoop();
+		}
 		onCheckerTick() {
 			if (this.abortController.signal.aborted) return;
+			this.tickSeq += 1;
 			if (this.repositionPending) {
 				this.repositionPending = false;
 				this.updateContainerRect();
@@ -17461,18 +19592,34 @@ var vot = (function(exports) {
 			this.dragAbortController = null;
 		}
 		onResize() {
+			this.dragLayoutCache = null;
+			this.invalidateLayoutCache();
+			this.subtitleStyleController.invalidate();
 			this.syncWidgetMount();
 			this.scheduleReposition();
 		}
 		updateContainerRect() {
 			const layout = this.getLayoutSize();
 			if (!layout.w || !layout.h) return;
-			const anchorBox = this.computeAnchorBoxLayout(layout);
-			if (!anchorBox.w || !anchorBox.h) return;
-			this.refreshBottomInsetNow(layout, anchorBox);
-			this.applySubtitlePositionWithLayout(layout, anchorBox);
+			this.refreshBottomInsetNow(layout);
+			this.applySubtitlePositionWithLayout(layout);
 		}
 		getLayoutSize() {
+			const cached = this.layoutSizeCache;
+			if (cached && cached.tick === this.tickSeq) return cached.value;
+			const value = this.readLayoutSize();
+			this.layoutSizeCache = {
+				tick: this.tickSeq,
+				value
+			};
+			return value;
+		}
+		invalidateLayoutCache() {
+			this.layoutSizeCache = null;
+			this.elementMetricsCache = null;
+			this.lastPositionApplyKey = null;
+		}
+		readLayoutSize() {
 			const layoutRoot = this.fullscreenLayerController.getLayoutRootElement();
 			const rect = layoutRoot.getBoundingClientRect();
 			const w = layoutRoot.clientWidth || rect.width;
@@ -17487,7 +19634,7 @@ var vot = (function(exports) {
 		}
 		ensureSafeAreaProbe() {
 			if (this.safeAreaProbeEl) return;
-			const el = document.createElement("div");
+			const el = document.createElement("vot-block");
 			el.style.position = "fixed";
 			el.style.left = "0";
 			el.style.right = "0";
@@ -17525,24 +19672,21 @@ var vot = (function(exports) {
 		computeReservedBottomInsetPx(anchorBoxH, preset = this.getBottomInsetPreset()) {
 			return clampToRange(anchorBoxH * preset.ratio, preset.minPx, preset.maxPx);
 		}
-		refreshBottomInsetNow(layout, anchorBox) {
+		refreshBottomInsetNow(layout = this.getLayoutSize()) {
 			this.refreshInsetCache();
-			const anchorH = anchorBox?.h ?? this.computeAnchorBoxLayout(layout ?? this.getLayoutSize()).h;
-			if (!anchorH) {
+			if (!layout.h) {
 				this.bottomInsetCachedPx = 0;
 				return;
 			}
-			const preset = this.getBottomInsetPreset();
-			this.bottomInsetCachedPx = this.computeReservedBottomInsetPx(anchorH, preset);
+			this.bottomInsetCachedPx = this.computeReservedBottomInsetPx(layout.h, this.getBottomInsetPreset());
 		}
-		getBottomInsetPx(layout, anchorBox) {
+		getBottomInsetPx(layout = this.getLayoutSize()) {
 			if (!this.insetCacheReady) this.refreshInsetCache();
 			const preset = this.getBottomInsetPreset();
 			const safeAreaBottom = this.safeAreaBottomInsetCachedPx;
 			const paddingBottom = this.containerPaddingBottomCachedPx;
 			if (this.isMobileViewport()) return Math.max(paddingBottom, safeAreaBottom);
-			const anchorH = anchorBox?.h ?? this.computeAnchorBoxLayout(layout ?? this.getLayoutSize()).h;
-			const reserved = anchorH ? this.computeReservedBottomInsetPx(anchorH, preset) : preset.minPx;
+			const reserved = layout.h ? this.computeReservedBottomInsetPx(layout.h, preset) : preset.minPx;
 			const stableInset = Math.max(this.bottomInsetCachedPx, reserved);
 			return Math.max(paddingBottom, safeAreaBottom, stableInset) + preset.gapPx;
 		}
@@ -17557,14 +19701,12 @@ var vot = (function(exports) {
 			const layout = this.getLayoutSize();
 			const { rect: containerRect, w, h, scaleX, scaleY } = layout;
 			if (!w || !h) return;
-			const anchorBox = this.computeAnchorBoxLayout(layout);
-			if (!anchorBox.w || !anchorBox.h) return;
 			this.lastPositionRefreshTs = performance.now();
 			const subRect = subtitlesContainer.getBoundingClientRect();
-			const pointerX = (event.clientX - containerRect.left) / scaleX - anchorBox.left;
-			const pointerY = (event.clientY - containerRect.top) / scaleY - anchorBox.top;
-			const anchorX = (subRect.left - containerRect.left + subRect.width / 2) / scaleX - anchorBox.left;
-			const anchorY = (subRect.top - containerRect.top + subRect.height) / scaleY - anchorBox.top;
+			const pointerX = (event.clientX - containerRect.left) / scaleX;
+			const pointerY = (event.clientY - containerRect.top) / scaleY;
+			const anchorX = (subRect.left - containerRect.left + subRect.width / 2) / scaleX;
+			const anchorY = (subRect.top - containerRect.top + subRect.height) / scaleY;
 			this.dragging.pointerId = event.pointerId;
 			this.dragging.candidate = true;
 			this.dragging.active = false;
@@ -17574,7 +19716,28 @@ var vot = (function(exports) {
 			this.dragging.offset.x = anchorX - pointerX;
 			this.dragging.offset.y = anchorY - pointerY;
 			this.hideSnapGuides();
+			this.dragLayoutCache = layout;
 			this.attachDragDocumentListeners();
+		}
+		scheduleDragFrame() {
+			if (this.dragFrameId !== null) return;
+			this.dragFrameId = requestAnimationFrame(() => {
+				this.dragFrameId = null;
+				this.flushDragFrame();
+			});
+		}
+		cancelDragFrame() {
+			if (this.dragFrameId === null) return;
+			cancelAnimationFrame(this.dragFrameId);
+			this.dragFrameId = null;
+		}
+		flushDragFrame() {
+			const point = this.pendingDragPoint;
+			this.pendingDragPoint = null;
+			if (!point) return;
+			if (this.abortController.signal.aborted) return;
+			if (!this.dragging.active) return;
+			this.applyDragPosition(point.clientX, point.clientY);
 		}
 		onPointerUp(event) {
 			if (this.dragging.pointerId === null) return;
@@ -17584,6 +19747,11 @@ var vot = (function(exports) {
 			this.dragging.candidate = false;
 			this.dragging.active = false;
 			this.dragging.moved = false;
+			this.cancelDragFrame();
+			const pending = this.pendingDragPoint;
+			this.pendingDragPoint = null;
+			if (pending) this.applyDragPosition(pending.clientX, pending.clientY);
+			this.dragLayoutCache = null;
 			this.hideSnapGuides();
 			this.detachDragDocumentListeners();
 		}
@@ -17602,25 +19770,37 @@ var vot = (function(exports) {
 			}
 			event.preventDefault();
 			event.stopPropagation();
-			const layout = this.getLayoutSize();
+			this.pendingDragPoint = {
+				clientX: event.clientX,
+				clientY: event.clientY
+			};
+			this.scheduleDragFrame();
+		}
+		/**
+		* Applies a pointer sample to the subtitle anchor position.
+		*/
+		applyDragPosition(clientX, clientY) {
+			const layout = this.dragLayoutCache ?? this.getLayoutSize();
 			const { rect: containerRect, w, h, scaleX, scaleY } = layout;
 			if (!w || !h) return;
-			const anchorBox = this.computeAnchorBoxLayout(layout);
-			if (!anchorBox.w || !anchorBox.h) return;
-			const pointerX = (event.clientX - containerRect.left) / scaleX - anchorBox.left;
-			const pointerY = (event.clientY - containerRect.top) / scaleY - anchorBox.top;
+			const pointerX = (clientX - containerRect.left) / scaleX;
+			const pointerY = (clientY - containerRect.top) / scaleY;
 			let anchorX = pointerX + this.dragging.offset.x;
 			let anchorY = pointerY + this.dragging.offset.y;
-			const elW = this.subtitlesContainer?.offsetWidth ?? 0;
-			const elH = this.subtitlesContainer?.offsetHeight ?? 0;
+			const containerBox = this.subtitlesContainer ? this.measureContainerBox(this.subtitlesContainer) : {
+				w: 0,
+				h: 0
+			};
+			const elW = containerBox.w;
+			const elH = containerBox.h;
 			const bottomInset = 0;
 			const snappedX = snapValueToNearestCandidate({
 				current: anchorX,
-				candidates: [anchorBox.w / 2],
+				candidates: [layout.w / 2],
 				thresholdPx: this.snapThresholdPx
 			});
 			if (snappedX.snapped) anchorX = snappedX.value;
-			const verticalCenterAnchor = anchorBox.h / 2 + elH / 2;
+			const verticalCenterAnchor = layout.h / 2 + elH / 2;
 			const snappedY = snapValueToNearestCandidate({
 				current: anchorY,
 				candidates: [verticalCenterAnchor],
@@ -17632,84 +19812,92 @@ var vot = (function(exports) {
 				anchorY,
 				elementWidth: elW,
 				elementHeight: elH,
-				boxWidth: anchorBox.w,
-				boxHeight: anchorBox.h,
+				boxWidth: layout.w,
+				boxHeight: layout.h,
 				bottomInset
 			}));
 			this.positionPreset = "custom";
 			this.customVerticalAnchorState = captureCustomVerticalAnchorState({
 				anchorY,
 				elementHeight: elH,
-				boxHeight: anchorBox.h,
+				boxHeight: layout.h,
 				bottomInset
 			});
-			this.position.left = anchorX / anchorBox.w * 100;
-			this.position.top = anchorY / anchorBox.h * 100;
-			this.updateSnapGuides(anchorBox, {
+			this.position.left = anchorX / layout.w * 100;
+			this.position.top = anchorY / layout.h * 100;
+			this.updateSnapGuides(layout, {
 				showVerticalCenter: snappedX.snapped,
 				showHorizontalCenter: snappedY.snapped
 			});
-			this.applySubtitlePositionWithLayout(layout, anchorBox);
+			this.applySubtitlePositionWithLayout(layout);
 		}
 		applySubtitlePosition() {
 			if (!this.subtitlesContainer) return;
 			const layout = this.getLayoutSize();
 			if (!layout.w || !layout.h) return;
-			const anchorBox = this.computeAnchorBoxLayout(layout);
-			if (!anchorBox.w || !anchorBox.h) return;
-			this.applySubtitlePositionWithLayout(layout, anchorBox);
+			this.applySubtitlePositionWithLayout(layout);
 		}
-		applySubtitlePositionWithLayout(layout, anchorBox) {
+		buildPositionApplyKey(layout) {
+			return `${Math.round(layout.w)}x${Math.round(layout.h)}|${layout.scaleX.toFixed(3)}x${layout.scaleY.toFixed(3)}|${this.positionPreset}|${this.position.left.toFixed(3)},${this.position.top.toFixed(3)}|${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
+		}
+		applySubtitlePositionWithLayout(layout) {
 			const subtitlesContainer = this.subtitlesContainer;
 			if (!subtitlesContainer) return;
-			this.applyScaleCompensation(subtitlesContainer, layout);
-			this.syncAnchorDimensions(subtitlesContainer, anchorBox);
-			if (this.smartLayoutEnabled) this.ensureSmartLayout(anchorBox);
-			const elW = subtitlesContainer.offsetWidth;
-			const elH = subtitlesContainer.offsetHeight;
-			const bottomInset = this.positionPreset === "custom" ? 0 : this.getBottomInsetPx(layout, anchorBox);
-			const anchorPosition = this.resolveCurrentAnchorPosition(anchorBox, elW, elH, bottomInset);
-			const containerPosition = this.clampContainerPosition(anchorBox, anchorPosition.anchorX, anchorPosition.anchorY, elW, elH, bottomInset);
+			if (this.buildPositionApplyKey(layout) === this.lastPositionApplyKey) return;
+			this.subtitleStyleController.applyScaleCompensation(Math.min(layout.scaleX || 1, layout.scaleY || 1));
+			this.syncAnchorDimensions(layout);
+			if (this.subtitleStyleController.smartLayoutEnabled) this.ensureSmartLayout(layout);
+			const { w: elW, h: elH } = this.measureContainerBox(subtitlesContainer);
+			const bottomInset = this.positionPreset === "custom" ? 0 : this.getBottomInsetPx(layout);
+			const anchorPosition = this.resolveCurrentAnchorPosition(layout, elW, elH, bottomInset);
+			const containerPosition = this.clampContainerPosition(layout, anchorPosition.anchorX, anchorPosition.anchorY, elW, elH, bottomInset);
 			const anchorX = containerPosition.anchorX;
 			const anchorY = containerPosition.anchorY;
-			const containerAnchorX = anchorBox.left + anchorX;
-			const containerAnchorY = anchorBox.top + anchorY;
-			const leftPct = containerAnchorX / layout.w * 100;
-			const topPct = containerAnchorY / layout.h * 100;
+			const leftPct = anchorX / layout.w * 100;
+			const topPct = anchorY / layout.h * 100;
 			this.updateContainerPosition(subtitlesContainer, leftPct, topPct);
-			this.tokenTooltip?.updatePos();
+			this.tokenTooltipController.update();
+			this.lastPositionApplyKey = this.buildPositionApplyKey(layout);
 		}
-		applyScaleCompensation(subtitlesContainer, layout) {
-			const visualScale = Math.min(layout.scaleX || 1, layout.scaleY || 1);
-			const compensate = visualScale > 0 && visualScale < .999 ? Math.min(1 / visualScale, 3) : 1;
-			if (Math.abs(compensate - 1) < .001) {
-				subtitlesContainer.style.removeProperty("--vot-subtitles-scale-compensation");
-				return;
-			}
-			subtitlesContainer.style.setProperty("--vot-subtitles-scale-compensation", compensate.toFixed(3));
+		measureContainerBox(subtitlesContainer) {
+			const key = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
+			const cached = this.elementMetricsCache;
+			if (cached && cached.key === key) return {
+				w: cached.w,
+				h: cached.h
+			};
+			const w = subtitlesContainer.offsetWidth;
+			const h = subtitlesContainer.offsetHeight;
+			this.elementMetricsCache = {
+				key,
+				w,
+				h
+			};
+			return {
+				w,
+				h
+			};
 		}
-		syncAnchorDimensions(subtitlesContainer, anchorBox) {
+		syncAnchorDimensions(anchorBox) {
 			const anchorWidthPx = Math.max(1, Math.round(anchorBox.w));
 			const anchorHeightPx = Math.max(1, Math.round(anchorBox.h));
-			if (!(anchorWidthPx !== this.smartAnchorWidthPx || anchorHeightPx !== this.smartAnchorHeightPx)) return;
-			this.smartAnchorWidthPx = anchorWidthPx;
-			this.smartAnchorHeightPx = anchorHeightPx;
-			subtitlesContainer.style.setProperty("--vot-subtitles-anchor-width", `${anchorWidthPx}px`);
-			subtitlesContainer.style.setProperty("--vot-subtitles-anchor-height", `${anchorHeightPx}px`);
+			const widthChanged = this.subtitleStyleController.setVariable("--vot-subtitles-anchor-width", `${anchorWidthPx}px`);
+			const heightChanged = this.subtitleStyleController.setVariable("--vot-subtitles-anchor-height", `${anchorHeightPx}px`);
+			if (!widthChanged && !heightChanged) return;
 			if (this.lastWrapTokens) {
 				this.lastWrapKey = null;
-				this.resetSegmentationMemo();
+				this.tokenLayoutProcessor.reset();
 				this.scheduleWrapRecompute();
 			}
 		}
-		resolveCurrentAnchorPosition(anchorBox, elementWidth, elementHeight, bottomInset) {
-			let anchorX = this.position.left / 100 * anchorBox.w;
-			let anchorY = this.position.top / 100 * anchorBox.h;
+		resolveCurrentAnchorPosition(layout, elementWidth, elementHeight, bottomInset) {
+			let anchorX = this.position.left / 100 * layout.w;
+			let anchorY = this.position.top / 100 * layout.h;
 			if (this.positionPreset === "custom") {
 				anchorY = resolveCustomVerticalAnchor({
 					state: this.customVerticalAnchorState,
 					elementHeight,
-					boxHeight: anchorBox.h,
+					boxHeight: layout.h,
 					bottomInset
 				});
 				return {
@@ -17719,25 +19907,25 @@ var vot = (function(exports) {
 			}
 			const presetPosition = this.resolvePresetAnchorPosition({
 				preset: this.positionPreset,
-				anchorBox,
+				anchorBox: layout,
 				elementWidth,
 				elementHeight,
 				bottomInset
 			});
 			anchorX = presetPosition.anchorX;
 			anchorY = presetPosition.anchorY;
-			if (anchorBox.w > 0) this.position.left = anchorX / anchorBox.w * 100;
-			if (anchorBox.h > 0) this.position.top = anchorY / anchorBox.h * 100;
+			if (layout.w > 0) this.position.left = anchorX / layout.w * 100;
+			if (layout.h > 0) this.position.top = anchorY / layout.h * 100;
 			return {
 				anchorX,
 				anchorY
 			};
 		}
-		clampContainerPosition(anchorBox, anchorX, anchorY, elementWidth, elementHeight, bottomInset) {
+		clampContainerPosition(layout, anchorX, anchorY, elementWidth, elementHeight, bottomInset) {
 			let leftPx = anchorX - elementWidth / 2;
 			let topPx = anchorY - elementHeight;
-			const maxLeftPx = anchorBox.w - elementWidth;
-			const maxTopPx = anchorBox.h - bottomInset - elementHeight;
+			const maxLeftPx = layout.w - elementWidth;
+			const maxTopPx = layout.h - bottomInset - elementHeight;
 			leftPx = maxLeftPx >= 0 ? clampToRange(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
 			topPx = maxTopPx >= 0 ? clampToRange(topPx, 0, maxTopPx) : 0;
 			return {
@@ -17781,87 +19969,23 @@ var vot = (function(exports) {
 			});
 		}
 		applyPositionAfterContentRender() {
-			const layout = this.getLayoutSize();
-			if (layout.w && layout.h) {
-				const anchorBox = this.computeAnchorBoxLayout(layout);
-				if (anchorBox.w && anchorBox.h) {
-					this.refreshBottomInsetNow(layout, anchorBox);
-					this.applySubtitlePositionWithLayout(layout, anchorBox);
-					return;
-				}
-				this.refreshBottomInsetNow(layout);
-				this.applySubtitlePosition();
-				return;
+			this.updateContainerRect();
+		}
+		getTokenLayoutInputs(ctx) {
+			const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}|${this.subtitleStyleController.fontSizeOverridden ? this.subtitleStyleController.fontSize : "auto"}|${this.subtitleStyleController.fontFamily}`;
+			const cached = this.tokenLayoutInputsCache;
+			if (cached && cached.key === cacheKey) {
+				ctx.font = cached.value.fontKey;
+				return cached.value;
 			}
-			this.refreshBottomInsetNow();
-			this.applySubtitlePosition();
-		}
-		trimEdgeWhitespaceTokens(tokens) {
-			if (!tokens.length) return tokens;
-			let s = 0;
-			let e = tokens.length;
-			while (s < e && !tokens[s]?.text.trim()) s += 1;
-			while (e > s && !tokens[e - 1]?.text.trim()) e -= 1;
-			if (s === 0 && e === tokens.length) return tokens;
-			return s >= e ? [] : tokens.slice(s, e);
-		}
-		selectTokensByMaxLength(tokens, time) {
-			if (!tokens.length) return tokens;
-			let start = 0;
-			let length = 0;
-			let overflowed = false;
-			let chosenStart = 0;
-			let chosenEnd = tokens.length;
-			let hasChosenRange = false;
-			let matchedByTime = false;
-			const considerRange = (rangeStart, rangeEnd) => {
-				if (rangeEnd <= rangeStart) return;
-				if (!hasChosenRange) {
-					chosenStart = rangeStart;
-					chosenEnd = rangeEnd;
-					hasChosenRange = true;
-				}
-				if (matchedByTime) return;
-				const first = tokens[rangeStart];
-				const last = tokens[rangeEnd - 1];
-				if (!first || !last) return;
-				const endMs = (rangeEnd < tokens.length ? tokens[rangeEnd]?.startMs : void 0) ?? last.startMs + (last.durationMs ?? 0);
-				if (first.startMs <= time && time < endMs) {
-					chosenStart = rangeStart;
-					chosenEnd = rangeEnd;
-					matchedByTime = true;
-				}
-			};
-			for (const [index, token] of tokens.entries()) {
-				const nextLength = length + token.text.length;
-				if (nextLength > this.maxLength && index > start) {
-					overflowed = true;
-					considerRange(start, index);
-					start = index;
-					length = token.text.length;
-					continue;
-				}
-				length = nextLength;
-			}
-			if (!overflowed) return this.trimEdgeWhitespaceTokens(tokens);
-			considerRange(start, tokens.length);
-			return this.trimEdgeWhitespaceTokens(tokens.slice(chosenStart, chosenEnd));
-		}
-		buildTokenPrecomputeInput(tokens) {
-			const cached = this.tokenPrecomputeMemo;
-			if (cached?.tokens === tokens) return cached.value;
-			const { slices, key } = buildWordSlices(tokens);
-			const value = {
-				wordSlices: slices,
-				normalizedWordsKey: key
-			};
-			this.tokenPrecomputeMemo = {
-				tokens,
+			const value = this.readTokenLayoutInputs(ctx);
+			this.tokenLayoutInputsCache = {
+				key: cacheKey,
 				value
 			};
 			return value;
 		}
-		getTokenLayoutInputs(ctx) {
+		readTokenLayoutInputs(ctx) {
 			const block = this.subtitlesBlock;
 			if (block) {
 				const cs = getComputedStyle(block);
@@ -17879,8 +20003,8 @@ var vot = (function(exports) {
 			}
 			const remPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
 			const baseMaxWidth = Math.min(remPx * 52, this.subtitleMaxWidthPx || globalThis.innerWidth * .8);
-			const fontSizePx = this.fontSizeOverridden ? this.fontSize : Math.min(24, Math.max(14, globalThis.innerWidth * .016));
-			const fontKey = `normal normal 500 ${fontSizePx}px ${getSubtitleFontFamilyCssValue(this.fontFamily)}`;
+			const fontSizePx = this.subtitleStyleController.fontSizeOverridden ? this.subtitleStyleController.fontSize : Math.min(24, Math.max(14, globalThis.innerWidth * .016));
+			const fontKey = `normal normal 500 ${fontSizePx}px ${this.subtitleStyleController.fontFamilyCssValue}`;
 			ctx.font = fontKey;
 			return {
 				fontKey,
@@ -17891,105 +20015,8 @@ var vot = (function(exports) {
 			if (this.lastActiveLineKey !== null) return this.lastActiveLineKey;
 			return `${tokens[0]?.startMs ?? 0}:${tokens[0]?.durationMs ?? 0}:${tokens.length}`;
 		}
-		getLineMeasureMemo(tokens, activeLineKey) {
-			const { wordSlices, normalizedWordsKey } = this.buildTokenPrecomputeInput(tokens);
-			if (!wordSlices.length) return null;
-			const ctx = this.getMeasureContext();
-			if (!ctx) return null;
-			const { fontKey, maxWidthPx } = this.getTokenLayoutInputs(ctx);
-			if (!Number.isFinite(maxWidthPx) || maxWidthPx < 24) return null;
-			const key = `${activeLineKey}|${fontKey}|${Math.round(maxWidthPx)}|${normalizedWordsKey}`;
-			if (this.lineMeasureMemo?.key === key) return this.lineMeasureMemo;
-			const memo = {
-				key,
-				metrics: measureWordSlices(wordSlices, (text) => ctx.measureText(text).width),
-				maxWidthPx
-			};
-			this.lineMeasureMemo = memo;
-			return memo;
-		}
-		buildTokenProcessingMemo(tokens, activeLineKey) {
-			const lineMeasure = this.getLineMeasureMemo(tokens, activeLineKey);
-			if (!lineMeasure) return null;
-			const memoKey = `${lineMeasure.key}|${this.maxLength}`;
-			if (this.tokenProcessingMemo?.key === memoKey) return this.tokenProcessingMemo;
-			const safeMaxWidthPx = applyWrapWidthGuard(lineMeasure.maxWidthPx);
-			const memo = {
-				key: memoKey,
-				segmentRanges: computeTwoLineSegments(tokens, lineMeasure.metrics, safeMaxWidthPx, this.maxLength)
-			};
-			this.tokenProcessingMemo = memo;
-			this.lastSegmentIndex = 0;
-			return memo;
-		}
-		selectSegmentIndexFromRanges(segmentRanges, time) {
-			if (!segmentRanges.length) return -1;
-			let idx = this.lastSegmentIndex;
-			if (idx >= segmentRanges.length) idx = 0;
-			while (idx < segmentRanges.length - 1 && time >= segmentRanges[idx].endMs) idx += 1;
-			while (idx > 0 && time < segmentRanges[idx].startMs) idx -= 1;
-			if (!(time >= segmentRanges[idx].startMs && time < segmentRanges[idx].endMs)) {
-				const found = segmentRanges.findIndex((s) => time >= s.startMs && time < s.endMs);
-				if (found >= 0) idx = found;
-				else idx = time < segmentRanges[0].startMs ? 0 : segmentRanges.length - 1;
-			}
-			this.lastSegmentIndex = idx;
-			return idx;
-		}
-		processTokens(tokens, time) {
-			if (!tokens.length) return tokens;
-			const activeLineKey = this.getActiveLineKey(tokens);
-			const memo = this.buildTokenProcessingMemo(tokens, activeLineKey);
-			if (!memo) return this.selectTokensByMaxLength(tokens, time);
-			const { segmentRanges } = memo;
-			if (!segmentRanges.length) return this.trimEdgeWhitespaceTokens(tokens);
-			const segmentIndex = this.selectSegmentIndexFromRanges(segmentRanges, time);
-			if (segmentIndex < 0) return this.trimEdgeWhitespaceTokens(tokens);
-			const seg = segmentRanges[segmentIndex];
-			return this.trimEdgeWhitespaceTokens(tokens.slice(seg.startToken, seg.endToken));
-		}
-		async translateStrTokens(text) {
-			const fromLang = this.subtitleLang ?? "";
-			const toLang = localizationProvider.lang;
-			if (this.strTranslatedTokens) {
-				const translated = await translate(text, fromLang, toLang);
-				return [this.strTranslatedTokens, typeof translated === "string" ? translated : ""];
-			}
-			const translated = await translate([this.strTokens, text], fromLang, toLang);
-			const pair = Array.isArray(translated) ? translated : [translated, translated];
-			const context = typeof pair[0] === "string" ? pair[0] : "";
-			const current = typeof pair[1] === "string" ? pair[1] : "";
-			this.strTranslatedTokens = context;
-			return [context, current];
-		}
-		findTokenSpan(candidate, root) {
-			let element = null;
-			if (candidate instanceof Element) element = candidate;
-			else if (candidate instanceof Text) element = candidate.parentElement;
-			const token = element?.closest("span[data-vot-token=\"1\"]");
-			return token instanceof HTMLSpanElement && root.contains(token) ? token : null;
-		}
-		resolveTokenSpanFromClick(event) {
-			const root = this.subtitlesBlock ?? this.subtitlesContainer;
-			if (!root) return null;
-			const fromTarget = this.findTokenSpan(event.target, root);
-			if (fromTarget) return fromTarget;
-			const path = typeof event.composedPath === "function" ? event.composedPath() : [];
-			for (const node of path) {
-				const fromPath = this.findTokenSpan(node, root);
-				if (fromPath) return fromPath;
-			}
-			const x = event.clientX;
-			const y = event.clientY;
-			return Number.isFinite(x) && Number.isFinite(y) ? this.findTokenSpan(document.elementFromPoint(x, y), root) : null;
-		}
 		releaseTooltip() {
-			this.tooltipTranslationRequestId += 1;
-			if (this.tokenTooltip?.target) this.tokenTooltip.target.classList.remove("selected");
-			this.tokenTooltip?.release();
-			this.tokenTooltip = void 0;
-			destroyShadowMount(this.tooltipMount);
-			this.tooltipMount = void 0;
+			this.tokenTooltipController.release();
 			return this;
 		}
 		clearPendingSchedulerState() {
@@ -17998,19 +20025,18 @@ var vot = (function(exports) {
 			this.wrapPending = false;
 			this.positionRefreshPending = false;
 		}
-		clearRenderedContent({ releaseTooltip = false } = {}) {
+		clearRenderedContent(releaseTooltip = false) {
 			if (releaseTooltip) this.releaseTooltip();
 			this.resetRenderMemo();
 			this.lastActiveLineKey = null;
 			this.strTokens = "";
+			this.tokenStateKey = "";
 			this.resetTranslationContext();
 			this.subtitlesBlock = null;
 			this.renderedHighlightEls = [];
 			this.resetWrapMemo();
 			this.lastWrapTokens = null;
 			this.subtitleMaxWidthPx = 0;
-			this.smartAnchorWidthPx = 0;
-			this.smartAnchorHeightPx = 0;
 			this.smartFontSizePx = 0;
 			this.smartMaxWidthPx = 0;
 			this.lastAppliedLeftPct = null;
@@ -18019,71 +20045,12 @@ var vot = (function(exports) {
 			this.passedThresholds.length = 0;
 			this.insetCacheReady = false;
 			this.hideSnapGuides();
-			this.resetSegmentationMemo();
+			this.tokenLayoutProcessor.reset();
 			this.clearPendingSchedulerState();
-			if (this.subtitlesContainer) D(null, this.subtitlesContainer);
-		}
-		onClick = async (event) => {
-			if (performance.now() < this.suppressTokenClicksUntil) {
-				event.preventDefault();
-				event.stopPropagation();
-				return;
-			}
-			const target = this.resolveTokenSpanFromClick(event);
-			if (!target) {
-				this.releaseTooltip();
-				return;
-			}
-			if (this.toggleCurrentTooltipTarget(target)) return;
-			this.releaseTooltip();
-			const requestId = this.tooltipTranslationRequestId;
-			const text = this.normalizeTokenTextForTranslation(target.textContent ?? "");
-			if (!text) return;
-			const service = await votStorage.get("translationService", defaultTranslationService);
-			if (requestId !== this.tooltipTranslationRequestId) return;
-			target.classList.add("selected");
-			const subtitlesInfo = UI.createSubtitleInfo(text, this.strTranslatedTokens || this.strTokens, service);
-			const tooltip = this.createTokenTooltip(target, subtitlesInfo.container);
-			this.tokenTooltip = tooltip;
-			tooltip.create();
-			const strTokens = this.strTokens;
-			const translated = await this.translateStrTokens(text);
-			if (requestId !== this.tooltipTranslationRequestId) return;
-			if (this.shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens)) return;
-			subtitlesInfo.header.textContent = translated[1];
-			subtitlesInfo.context.textContent = translated[0];
-			tooltip.setContent(subtitlesInfo.container);
-		};
-		toggleCurrentTooltipTarget(target) {
-			if (this.tokenTooltip?.target !== target || !this.tokenTooltip?.container) return false;
-			if (this.tokenTooltip.showed) target.classList.add("selected");
-			else target.classList.remove("selected");
-			return true;
-		}
-		createTokenTooltip(target, content) {
-			const viewportWidth = Math.max(320, globalThis.innerWidth || 0);
-			const preferredWidth = Math.max(360, this.subtitlesContainer?.offsetWidth ?? 0, this.subtitlesBlock?.offsetWidth ?? 0, Math.min(this.subtitleMaxWidthPx || 0, 720));
-			const tooltipMaxWidth = Math.min(viewportWidth - 24, preferredWidth, 720);
-			const tooltipMount = this.ensureTooltipMount();
-			return new Tooltip({
-				target,
-				anchor: this.subtitlesBlock ?? target,
-				content,
-				parentElement: tooltipMount.root,
-				offset: {
-					x: 4,
-					y: 12
-				},
-				maxWidth: tooltipMaxWidth,
-				mode: "follow",
-				borderRadius: 12,
-				bordered: false,
-				position: "top",
-				trigger: "click"
-			});
-		}
-		shouldSkipTooltipUpdate(requestId, tooltip, target, strTokens) {
-			return requestId !== this.tooltipTranslationRequestId || strTokens !== this.strTokens || this.tokenTooltip !== tooltip || tooltip.target !== target || !tooltip.showed;
+			if (this.subtitleView) {
+				this.subtitleView.dispose();
+				this.subtitleView = null;
+			} else if (this.subtitlesContainer) this.subtitlesContainer.textContent = "";
 		}
 		buildPassedState(tokens, time, stateKey) {
 			if (this.passedStateKey !== stateKey) {
@@ -18102,35 +20069,11 @@ var vot = (function(exports) {
 			flags.length = thresholds.length;
 			return flags;
 		}
-		renderTokens(tokens) {
-			return buildSubtitleRenderPlan(tokens, tokens.length - 1, this.breakAfterTokenIndexSet).map((part) => this.renderPlanPart(part));
-		}
-		renderStyledSpan(text, style, isWordToken = false, highlightIndex) {
-			if (!style && !isWordToken && highlightIndex === void 0) return text;
-			return b`<span
-      data-vot-token=${isWordToken ? "1" : A}
-      data-vot-highlight-index=${highlightIndex ?? A}
-      data-vot-style-italic=${style?.italic ? "1" : "0"}
-      data-vot-style-bold=${style?.bold ? "1" : "0"}
-      data-vot-style-underline=${style?.underline ? "1" : "0"}
-      data-vot-style-color=${style?.color ? "1" : "0"}
-      style=${buildSubtitleInlineStyleCssText(style)}
-      >${text}</span
-    >`;
-		}
-		renderPlanPart(part) {
-			if (part.kind === "break") return b`<br class="vot-subtitles-br" />`;
-			return this.renderStyledSpan(part.text, part.style, part.kind === "word", part.highlightIndex);
-		}
 		updatePassedClasses(passedFlags) {
-			for (const tokenEl of this.renderedHighlightEls) {
-				const highlightIndex = Number.parseInt(tokenEl.dataset.votHighlightIndex ?? "", 10);
-				const isPassed = Number.isInteger(highlightIndex) && highlightIndex >= 0 && highlightIndex < passedFlags.length ? passedFlags[highlightIndex] : false;
-				tokenEl.classList.toggle("passed", isPassed);
-			}
+			applyPassedState(this.highlightState, this.renderedHighlightEls, passedFlags);
 		}
 		clearPassedClasses() {
-			for (const tokenEl of this.renderedHighlightEls) tokenEl.classList.remove("passed");
+			clearPassedState(this.highlightState, this.renderedHighlightEls);
 		}
 		setBreakAfterTokenIndices(indices) {
 			this.breakAfterTokenIndices = indices;
@@ -18175,7 +20118,7 @@ var vot = (function(exports) {
 			const wrapKey = `${this.getActiveLineKey(tokens)}|${fontKey}|${Math.round(safeMaxWidthPx)}|${this.stringifyTokens(tokens)}`;
 			if (wrapKey === this.lastWrapKey) return;
 			this.lastWrapKey = wrapKey;
-			const next = computeTokenWrapPlan(tokens, (text) => ctx.measureText(text).width, safeMaxWidthPx);
+			const next = computeTokenWrapPlan(tokens, (text) => ctx.measureText(text).width, safeMaxWidthPx, this.subtitleLang ?? void 0);
 			if (next.breakAfterTokenIndices.length !== this.breakAfterTokenIndices.length || next.breakAfterTokenIndices.some((value, index) => value !== this.breakAfterTokenIndices[index])) {
 				this.setBreakAfterTokenIndices(next.breakAfterTokenIndices);
 				this.resetRenderMemo();
@@ -18188,16 +20131,26 @@ var vot = (function(exports) {
 			if (!subtitles || !this.video) {
 				this.clearRenderedContent();
 				this.subtitles = null;
-				this.maxActiveCueLookbackMs = 0;
+				this.maxCueDurationMs = 0;
 				this.lastPlaybackTimeMs = null;
 				this.clearPendingSchedulerState();
 				this.stopVideoFrameLoop();
 				this.detachDragDocumentListeners();
 				return;
 			}
+			this.sourceEpoch += 1;
+			this.strTokens = "";
+			this.tokenStateKey = "";
+			this.resetTranslationContext();
+			this.resetRenderMemo();
+			this.resetWrapMemo();
+			this.tokenLayoutProcessor.reset();
+			this.lastWrapTokens = null;
+			this.passedStateKey = null;
+			this.passedThresholds.length = 0;
 			this.createSubtitlesContainer();
 			this.subtitles = subtitles;
-			this.maxActiveCueLookbackMs = subtitles.subtitles.reduce((maxDurationMs, line) => Math.max(maxDurationMs, Math.max(0, line.durationMs)), 0);
+			this.maxCueDurationMs = subtitles.subtitles.reduce((maxDurationMs, line) => Math.max(maxDurationMs, Math.max(0, line.durationMs)), 0);
 			this.lastPlaybackTimeMs = Math.max(0, this.video.currentTime * 1e3);
 			this.lastActiveLineKey = null;
 			this.syncVideoFrameLoop();
@@ -18208,7 +20161,7 @@ var vot = (function(exports) {
 		setMaxLength(len) {
 			if (typeof len === "number" && len > 0) {
 				this.maxLength = len;
-				this.resetSegmentationMemo();
+				this.tokenLayoutProcessor.reset();
 				this.update();
 				this.scheduleReposition();
 			}
@@ -18220,100 +20173,110 @@ var vot = (function(exports) {
 			this.update();
 		}
 		setSmartLayout(enabled) {
-			const next = enabled !== false;
-			if (next === this.smartLayoutEnabled) return;
-			this.smartLayoutEnabled = next;
-			this.subtitlesContainer?.style.removeProperty("--vot-subtitles-max-width");
+			if (!this.subtitleStyleController.setSmartLayout(enabled)) return;
 			this.lastSmartLayoutKey = null;
 			this.resetWrapMemo();
 			this.resetRenderMemo();
-			this.resetSegmentationMemo();
-			this.applyManualFontSizeStyle();
+			this.tokenLayoutProcessor.reset();
 			this.update();
 			this.scheduleWrapRecompute();
 			this.scheduleReposition();
 		}
 		setFontSize(size) {
-			this.fontSize = size;
-			this.fontSizeOverridden = true;
-			if (!this.smartLayoutEnabled) {
-				this.applyManualFontSizeStyle();
+			if (this.subtitleStyleController.setFontSize(size)) {
 				this.lastWrapKey = null;
-				this.resetSegmentationMemo();
+				this.tokenLayoutProcessor.reset();
 				this.scheduleWrapRecompute();
 				this.scheduleReposition();
 			}
 		}
 		setFontFamily(fontFamily) {
-			this.fontFamily = fontFamily;
-			this.applyFontFamilyStyle();
+			this.subtitleStyleController.setFontFamily(fontFamily);
 			this.lastWrapKey = null;
-			this.resetSegmentationMemo();
+			this.tokenLayoutProcessor.reset();
 			this.scheduleWrapRecompute();
 			this.scheduleReposition();
 		}
 		setOpacity(rate) {
-			const numericRate = Number(rate);
-			const clampedRate = Number.isFinite(numericRate) ? clampToRange(numericRate, 0, 100) : 0;
-			this.opacity = ((100 - clampedRate) / 100).toFixed(2);
-			this.applyOpacityStyle();
+			this.subtitleStyleController.setOpacity(rate);
 		}
 		stringifyTokens(tokens) {
 			return tokens.map((token) => token.text).join("");
 		}
 		resolveActiveLine(time, subtitlesList) {
-			return buildActiveSubtitleRenderLine(time, subtitlesList, this.maxActiveCueLookbackMs);
+			return buildActiveSubtitleRenderLine(time, subtitlesList, this.maxCueDurationMs);
 		}
 		clearInactiveLineState() {
 			this.lastActiveLineKey = null;
 			if (this.subtitlesBlock || this.lastRenderKey !== null || this.strTokens) {
-				this.clearRenderedContent({ releaseTooltip: true });
+				this.clearRenderedContent(true);
 				return;
 			}
 			this.releaseTooltip();
 		}
 		refreshSmartLayoutIfNeeded() {
-			if (!this.smartLayoutEnabled) return;
+			if (!this.subtitleStyleController.smartLayoutEnabled) return;
 			const now = performance.now();
 			if (this.lastSmartLayoutKey !== null && now - this.lastSmartLayoutCheckTs <= 500) return;
 			this.lastSmartLayoutCheckTs = now;
 			const layout = this.getLayoutSize();
 			if (!layout.w || !layout.h) return;
-			const anchorBox = this.computeAnchorBoxLayout(layout);
-			if (anchorBox.w && anchorBox.h) this.ensureSmartLayout(anchorBox);
+			this.ensureSmartLayout(layout);
 		}
 		getRenderState(line, activeLineKey, time) {
-			const tokens = this.processTokens(line.tokens, time);
+			const tokens = this.tokenLayoutProcessor.process({
+				tokens: line.tokens,
+				time,
+				activeLineKey,
+				maxLength: this.maxLength,
+				getMeasurement: () => {
+					const ctx = this.getMeasureContext();
+					if (!ctx) return null;
+					const { fontKey, maxWidthPx } = this.getTokenLayoutInputs(ctx);
+					return {
+						fontKey,
+						maxWidthPx,
+						measureText: (text) => ctx.measureText(text).width
+					};
+				}
+			});
 			this.lastWrapTokens = tokens;
 			const strTokens = this.stringifyTokens(tokens);
-			const tokensChanged = strTokens !== this.strTokens;
+			const tokenStateKey = JSON.stringify(tokens);
+			const tokensChanged = tokenStateKey !== this.tokenStateKey;
 			if (tokensChanged) {
 				this.releaseTooltip();
 				this.strTokens = strTokens;
+				this.tokenStateKey = tokenStateKey;
 				this.resetTranslationContext();
 				this.resetWrapMemo();
 			}
-			const passedStateKey = `${activeLineKey}:${strTokens}`;
+			const passedStateKey = `${activeLineKey}:${tokenStateKey}`;
 			return {
 				tokens,
 				tokensChanged,
 				passedFlags: this.highlightWords ? this.buildPassedState(tokens, time, passedStateKey) : null,
-				renderKey: `${activeLineKey}:${strTokens}:${this.breakAfterTokenIndices.join(",")}`
+				renderKey: `${activeLineKey}:${tokenStateKey}:${this.breakAfterTokenIndices.join(",")}`
 			};
 		}
 		syncRenderedTokens(tokens) {
 			this.subtitlesContainer = this.subtitlesContainer ?? this.createSubtitlesContainer();
-			D(b`<vot-block
-        class="vot-subtitles"
-        dir="auto"
-        lang=${this.subtitleLang ?? ""}
-        @click=${this.onClick}
-      >
-        ${this.renderTokens(tokens)}
-      </vot-block>`, this.subtitlesContainer);
-			const firstChild = this.subtitlesContainer.firstElementChild;
-			this.subtitlesBlock = firstChild instanceof HTMLElement && firstChild.classList.contains("vot-subtitles") ? firstChild : null;
-			this.renderedHighlightEls = this.subtitlesBlock ? Array.from(this.subtitlesBlock.querySelectorAll("span[data-vot-highlight-index]")) : [];
+			this.subtitleView ??= mountSolidSubtitlesWidget(this.subtitlesContainer, {
+				lang: () => this.subtitleLang ?? "",
+				onClick: this.tokenTooltipController.onActivate
+			});
+			this.subtitleView.setParts(buildSubtitleRenderPlan(tokens, tokens.length - 1, this.breakAfterTokenIndexSet));
+			this.subtitlesBlock = this.subtitleView.block();
+			this.renderedHighlightEls = this.subtitleView.highlightEls();
+			this.contentEpoch += 1;
+			this.elementMetricsCache = null;
+			this.smartCssMetricsCache = null;
+			this.tokenLayoutInputsCache = null;
+			this.lastPositionApplyKey = null;
+			this.syncHighlightIndexCache();
+		}
+		syncHighlightIndexCache() {
+			syncHighlightState(this.highlightState, this.renderedHighlightEls);
 		}
 		update() {
 			if (!this.video || !this.subtitles) return;
@@ -18322,14 +20285,17 @@ var vot = (function(exports) {
 			const activeLine = this.resolveActiveLine(time, subtitlesList);
 			if (!activeLine) {
 				this.clearInactiveLineState();
+				this.recomputeWakeDeadline(time);
 				return;
 			}
-			this.lastActiveLineKey = activeLine.lineKey;
+			const activeLineKey = `${this.sourceEpoch}:${activeLine.lineKey}`;
+			this.lastActiveLineKey = activeLineKey;
 			this.refreshSmartLayoutIfNeeded();
-			const { tokens, tokensChanged, passedFlags, renderKey } = this.getRenderState(activeLine.line, activeLine.lineKey, time);
+			const { tokens, tokensChanged, passedFlags, renderKey } = this.getRenderState(activeLine.line, activeLineKey, time);
 			if (renderKey === this.lastRenderKey) {
 				if (this.highlightWords && !tokensChanged && passedFlags) this.updatePassedClasses(passedFlags);
 				this.maybeRefreshPosition();
+				this.recomputeWakeDeadline(time);
 				return;
 			}
 			this.lastRenderKey = renderKey;
@@ -18340,8 +20306,12 @@ var vot = (function(exports) {
 				this.scheduleWrapRecompute(tokens);
 				this.scheduleReposition();
 			} else this.maybeRefreshPosition();
+			this.recomputeWakeDeadline(time);
 		}
 		release() {
+			this.cancelDragFrame();
+			this.pendingDragPoint = null;
+			this.dragLayoutCache = null;
 			this.detachDragDocumentListeners();
 			this.stopVideoFrameLoop();
 			this.abortController.abort();
@@ -18350,12 +20320,16 @@ var vot = (function(exports) {
 			this.checkerUnsubscribe?.();
 			this.checkerUnsubscribe = null;
 			this.releaseTooltip();
-			if (this.subtitlesContainer) {
-				this.subtitlesContainer.remove();
-				this.subtitlesContainer = null;
-			}
-			destroyShadowMount(this.tooltipMount);
-			this.tooltipMount = void 0;
+			this.subtitleView?.dispose();
+			this.subtitleView = null;
+			this.subtitlesBlock = null;
+			this.renderedHighlightEls = [];
+			this.subtitleOverlayDispose?.();
+			this.subtitleOverlayDispose = void 0;
+			this.subtitleOverlayHost?.remove();
+			this.subtitleOverlayHost = null;
+			this.subtitleStyleController.release();
+			this.subtitlesContainer = null;
 			this.fullscreenLayerController.release();
 			if (this.safeAreaProbeEl) {
 				this.safeAreaProbeEl.remove();
@@ -18369,6 +20343,7 @@ var vot = (function(exports) {
 			}
 			this.measureCtx = null;
 			this.measureCanvas = null;
+			this.resizeTarget = void 0;
 			this.lastAppliedLeftPct = null;
 			this.lastAppliedTopPct = null;
 			this.passedStateKey = null;
@@ -18376,114 +20351,6 @@ var vot = (function(exports) {
 			this.insetCacheReady = false;
 		}
 	};
-	//#endregion
-	//#region src/utils/download.ts
-	function toUint32BE(value) {
-		return new Uint8Array([
-			value >>> 24 & 255,
-			value >>> 16 & 255,
-			value >>> 8 & 255,
-			value & 255
-		]);
-	}
-	function toSynchsafeInt(value) {
-		return new Uint8Array([
-			value >>> 21 & 127,
-			value >>> 14 & 127,
-			value >>> 7 & 127,
-			value & 127
-		]);
-	}
-	function addTitleId3Tag(mp3Buffer, title) {
-		const titleBytes = new TextEncoder().encode(title);
-		const frameData = new Uint8Array(titleBytes.length + 1);
-		frameData[0] = 3;
-		frameData.set(titleBytes, 1);
-		const frame = new Uint8Array(10 + frameData.length);
-		frame.set([
-			84,
-			73,
-			84,
-			50
-		], 0);
-		frame.set(toUint32BE(frameData.length), 4);
-		frame.set(frameData, 10);
-		const header = /* @__PURE__ */ new Uint8Array(10);
-		header.set([
-			73,
-			68,
-			51,
-			3,
-			0,
-			0
-		], 0);
-		header.set(toSynchsafeInt(frame.length), 6);
-		const audioBytes = new Uint8Array(mp3Buffer);
-		const out = new Uint8Array(header.length + frame.length + audioBytes.length);
-		out.set(header, 0);
-		out.set(frame, header.length);
-		out.set(audioBytes, header.length + frame.length);
-		return new Blob([out], { type: "audio/mpeg" });
-	}
-	function appendChunkToOutputBuffer(out, value, loaded) {
-		const needed = loaded + value.byteLength;
-		let nextOut = out;
-		if (needed > nextOut.length) {
-			const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
-			grown.set(nextOut.subarray(0, loaded));
-			nextOut = grown;
-		}
-		nextOut.set(value, loaded);
-		return {
-			out: nextOut,
-			loaded: needed
-		};
-	}
-	function mergeChunks(chunks, loaded) {
-		const merged = new Uint8Array(loaded);
-		let offset = 0;
-		for (const chunk of chunks) {
-			merged.set(chunk, offset);
-			offset += chunk.byteLength;
-		}
-		return merged.buffer;
-	}
-	async function readResponseArrayBuffer(res, onProgress) {
-		const total = Number(res.headers.get("Content-Length") ?? 0);
-		if (!res.body) return res.arrayBuffer();
-		const reader = res.body.getReader();
-		let loaded = 0;
-		let out = total > 0 ? new Uint8Array(total) : null;
-		const chunks = [];
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			if (!value || value.byteLength === 0) continue;
-			if (out) {
-				const appended = appendChunkToOutputBuffer(out, value, loaded);
-				out = appended.out;
-				loaded = appended.loaded;
-			} else {
-				chunks.push(value);
-				loaded += value.byteLength;
-			}
-			if (total > 0) onProgress(clamp(Math.round(loaded / total * 100)));
-		}
-		if (out) return out.buffer.slice(0, loaded);
-		return mergeChunks(chunks, loaded);
-	}
-	/**
-	* Downloads a translation file and saves it as an MP3 file with metadata,
-	* tracking progress when Content-Length is available.
-	*/
-	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
-		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
-	}
-	async function buildTranslationBlob(res, filename, onProgress = () => {}) {
-		const arrayBuffer = await readResponseArrayBuffer(res, onProgress);
-		onProgress(100);
-		return addTitleId3Tag(arrayBuffer, filename);
-	}
 	//#endregion
 	//#region src/subtitles/displayModel.ts
 	var LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
@@ -19492,6 +21359,114 @@ var vot = (function(exports) {
 		return serializeAss(processed, options);
 	};
 	//#endregion
+	//#region src/utils/download.ts
+	function toUint32BE(value) {
+		return new Uint8Array([
+			value >>> 24 & 255,
+			value >>> 16 & 255,
+			value >>> 8 & 255,
+			value & 255
+		]);
+	}
+	function toSynchsafeInt(value) {
+		return new Uint8Array([
+			value >>> 21 & 127,
+			value >>> 14 & 127,
+			value >>> 7 & 127,
+			value & 127
+		]);
+	}
+	function addTitleId3Tag(mp3Buffer, title) {
+		const titleBytes = new TextEncoder().encode(title);
+		const frameData = new Uint8Array(titleBytes.length + 1);
+		frameData[0] = 3;
+		frameData.set(titleBytes, 1);
+		const frame = new Uint8Array(10 + frameData.length);
+		frame.set([
+			84,
+			73,
+			84,
+			50
+		], 0);
+		frame.set(toUint32BE(frameData.length), 4);
+		frame.set(frameData, 10);
+		const header = /* @__PURE__ */ new Uint8Array(10);
+		header.set([
+			73,
+			68,
+			51,
+			3,
+			0,
+			0
+		], 0);
+		header.set(toSynchsafeInt(frame.length), 6);
+		const audioBytes = new Uint8Array(mp3Buffer);
+		const out = new Uint8Array(header.length + frame.length + audioBytes.length);
+		out.set(header, 0);
+		out.set(frame, header.length);
+		out.set(audioBytes, header.length + frame.length);
+		return new Blob([out], { type: "audio/mpeg" });
+	}
+	function appendChunkToOutputBuffer(out, value, loaded) {
+		const needed = loaded + value.byteLength;
+		let nextOut = out;
+		if (needed > nextOut.length) {
+			const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
+			grown.set(nextOut.subarray(0, loaded));
+			nextOut = grown;
+		}
+		nextOut.set(value, loaded);
+		return {
+			out: nextOut,
+			loaded: needed
+		};
+	}
+	function mergeChunks(chunks, loaded) {
+		const merged = new Uint8Array(loaded);
+		let offset = 0;
+		for (const chunk of chunks) {
+			merged.set(chunk, offset);
+			offset += chunk.byteLength;
+		}
+		return merged.buffer;
+	}
+	async function readResponseArrayBuffer(res, onProgress) {
+		const total = Number(res.headers.get("Content-Length") ?? 0);
+		if (!res.body) return res.arrayBuffer();
+		const reader = res.body.getReader();
+		let loaded = 0;
+		let out = total > 0 ? new Uint8Array(total) : null;
+		const chunks = [];
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			if (!value || value.byteLength === 0) continue;
+			if (out) {
+				const appended = appendChunkToOutputBuffer(out, value, loaded);
+				out = appended.out;
+				loaded = appended.loaded;
+			} else {
+				chunks.push(value);
+				loaded += value.byteLength;
+			}
+			if (total > 0) onProgress(clamp(Math.round(loaded / total * 100)));
+		}
+		if (out) return out.buffer.slice(0, loaded);
+		return mergeChunks(chunks, loaded);
+	}
+	/**
+	* Downloads a translation file and saves it as an MP3 file with metadata,
+	* tracking progress when Content-Length is available.
+	*/
+	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
+		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
+	}
+	async function buildTranslationBlob(res, filename, onProgress = () => {}) {
+		const arrayBuffer = await readResponseArrayBuffer(res, onProgress);
+		onProgress(100);
+		return addTitleId3Tag(arrayBuffer, filename);
+	}
+	//#endregion
 	//#region src/videoHandler/translationVolume.ts
 	function normalizeMediaElementVolume(volume) {
 		return clampNumber(volume, 0, 1);
@@ -19527,6 +21502,304 @@ var vot = (function(exports) {
 		safeSetPlayerVolume(player, nextVolume / 100);
 	}
 	//#endregion
+	//#region src/ui/mount.ts
+	/**
+	* Compare overlay mount points by DOM identity.
+	*
+	* Mount updates should only run when one of the attachment roots actually
+	* changes (root/portal/tooltip layout root).
+	*/
+	function isSameOverlayMount(previous, next) {
+		return previous.root === next.root && previous.portalContainer === next.portalContainer && previous.subtitlesMountContainer === next.subtitlesMountContainer;
+	}
+	/**
+	* Runs `onChanged` only when mount targets are actually different.
+	* Returns the mount that should become current state.
+	*/
+	function applyOverlayMountUpdate(previous, next, onChanged) {
+		if (isSameOverlayMount(previous, next)) return previous;
+		onChanged(next);
+		return next;
+	}
+	//#endregion
+	//#region node_modules/solid-js/store/dist/store.js
+	var $RAW = Symbol("store-raw");
+	var $NODE = Symbol("store-node");
+	var $HAS = Symbol("store-has");
+	var $SELF = Symbol("store-self");
+	function wrap$1(value) {
+		let p = value[$PROXY];
+		if (!p) {
+			Object.defineProperty(value, $PROXY, { value: p = new Proxy(value, proxyTraps$1) });
+			if (!Array.isArray(value)) {
+				const keys = Object.keys(value), desc = Object.getOwnPropertyDescriptors(value), proto = Object.getPrototypeOf(value);
+				const isClass = proto !== null && value !== null && typeof value === "object" && !Array.isArray(value) && proto !== Object.prototype;
+				if (isClass) {
+					const descriptors = Object.getOwnPropertyDescriptors(proto);
+					keys.push(...Object.keys(descriptors));
+					Object.assign(desc, descriptors);
+				}
+				for (let i = 0, l = keys.length; i < l; i++) {
+					const prop = keys[i];
+					if (isClass && prop === "constructor") continue;
+					if (desc[prop].get) Object.defineProperty(value, prop, {
+						configurable: true,
+						enumerable: desc[prop].enumerable,
+						get: desc[prop].get.bind(p)
+					});
+				}
+			}
+		}
+		return p;
+	}
+	function isWrappable(obj) {
+		let proto;
+		return obj != null && typeof obj === "object" && (obj[$PROXY] || !(proto = Object.getPrototypeOf(obj)) || proto === Object.prototype || Array.isArray(obj));
+	}
+	function unwrap(item, set = /* @__PURE__ */ new Set()) {
+		let result, unwrapped, v, prop;
+		if (result = item != null && item[$RAW]) return result;
+		if (!isWrappable(item) || set.has(item)) return item;
+		if (Array.isArray(item)) {
+			if (Object.isFrozen(item)) item = item.slice(0);
+			else set.add(item);
+			for (let i = 0, l = item.length; i < l; i++) {
+				v = item[i];
+				if ((unwrapped = unwrap(v, set)) !== v) item[i] = unwrapped;
+			}
+		} else {
+			if (Object.isFrozen(item)) item = Object.assign({}, item);
+			else set.add(item);
+			const keys = Object.keys(item), desc = Object.getOwnPropertyDescriptors(item);
+			for (let i = 0, l = keys.length; i < l; i++) {
+				prop = keys[i];
+				if (desc[prop].get) continue;
+				v = item[prop];
+				if ((unwrapped = unwrap(v, set)) !== v) item[prop] = unwrapped;
+			}
+		}
+		return item;
+	}
+	function getNodes(target, symbol) {
+		let nodes = target[symbol];
+		if (!nodes) Object.defineProperty(target, symbol, { value: nodes = Object.create(null) });
+		return nodes;
+	}
+	function getNode(nodes, property, value) {
+		if (nodes[property]) return nodes[property];
+		const [s, set] = createSignal(value, {
+			equals: false,
+			internal: true
+		});
+		s.$ = set;
+		return nodes[property] = s;
+	}
+	function proxyDescriptor$1(target, property) {
+		const desc = Reflect.getOwnPropertyDescriptor(target, property);
+		if (!desc || desc.get || !desc.configurable || property === $PROXY || property === $NODE) return desc;
+		delete desc.value;
+		delete desc.writable;
+		desc.get = () => target[$PROXY][property];
+		return desc;
+	}
+	function trackSelf(target) {
+		getListener() && getNode(getNodes(target, $NODE), $SELF)();
+	}
+	function ownKeys(target) {
+		trackSelf(target);
+		return Reflect.ownKeys(target);
+	}
+	var proxyTraps$1 = {
+		get(target, property, receiver) {
+			if (property === $RAW) return target;
+			if (property === $PROXY) return receiver;
+			if (property === $TRACK) {
+				trackSelf(target);
+				return receiver;
+			}
+			const nodes = getNodes(target, $NODE);
+			const tracked = nodes[property];
+			let value = tracked ? tracked() : target[property];
+			if (property === $NODE || property === $HAS || property === "__proto__") return value;
+			if (!tracked) {
+				const desc = Object.getOwnPropertyDescriptor(target, property);
+				if (getListener() && (typeof value !== "function" || Object.prototype.hasOwnProperty.call(target, property)) && !(desc && desc.get)) value = getNode(nodes, property, value)();
+			}
+			return isWrappable(value) ? wrap$1(value) : value;
+		},
+		has(target, property) {
+			if (property === $RAW || property === $PROXY || property === $TRACK || property === $NODE || property === $HAS || property === "__proto__") return true;
+			getListener() && getNode(getNodes(target, $HAS), property)();
+			return property in target;
+		},
+		set() {
+			return true;
+		},
+		deleteProperty() {
+			return true;
+		},
+		ownKeys,
+		getOwnPropertyDescriptor: proxyDescriptor$1
+	};
+	function setProperty(state, property, value, deleting = false) {
+		if (property === "__proto__") return;
+		if (!deleting && state[property] === value) return;
+		const prev = state[property], len = state.length;
+		if (value === void 0) {
+			delete state[property];
+			if (state[$HAS] && state[$HAS][property] && prev !== void 0) state[$HAS][property].$();
+		} else {
+			state[property] = value;
+			if (state[$HAS] && state[$HAS][property] && prev === void 0) state[$HAS][property].$();
+		}
+		let nodes = getNodes(state, $NODE), node;
+		if (node = getNode(nodes, property, prev)) node.$(() => value);
+		if (Array.isArray(state) && state.length !== len) {
+			for (let i = state.length; i < len; i++) (node = nodes[i]) && node.$();
+			(node = getNode(nodes, "length", len)) && node.$(state.length);
+		}
+		(node = nodes[$SELF]) && node.$();
+	}
+	function mergeStoreNode(state, value) {
+		const keys = Object.keys(value);
+		for (let i = 0; i < keys.length; i += 1) {
+			const key = keys[i];
+			if (isUnsafeKey$1(key)) continue;
+			setProperty(state, key, value[key]);
+		}
+	}
+	function isUnsafeKey$1(property) {
+		return property === "__proto__" || property === "constructor" || property === "prototype";
+	}
+	function updateArray(current, next) {
+		if (typeof next === "function") next = next(current);
+		next = unwrap(next);
+		if (Array.isArray(next)) {
+			if (current === next) return;
+			let i = 0, len = next.length;
+			for (; i < len; i++) {
+				const value = next[i];
+				if (current[i] !== value) setProperty(current, i, value);
+			}
+			setProperty(current, "length", len);
+		} else mergeStoreNode(current, next);
+	}
+	function updatePath(current, path, traversed = []) {
+		let part, prev = current;
+		if (path.length > 1) {
+			part = path.shift();
+			const partType = typeof part, isArray = Array.isArray(current);
+			if (partType === "string" && (part === "__proto__" || path.length > 1 && isUnsafeKey$1(part))) return;
+			if (Array.isArray(part)) {
+				for (let i = 0; i < part.length; i++) updatePath(current, [part[i]].concat(path), traversed);
+				return;
+			} else if (isArray && partType === "function") {
+				for (let i = 0; i < current.length; i++) if (part(current[i], i)) updatePath(current, [i].concat(path), traversed);
+				return;
+			} else if (isArray && partType === "object") {
+				const { from = 0, to = current.length - 1, by = 1 } = part;
+				for (let i = from; i <= to; i += by) updatePath(current, [i].concat(path), traversed);
+				return;
+			} else if (path.length > 1) {
+				updatePath(current[part], path, [part].concat(traversed));
+				return;
+			}
+			prev = current[part];
+			traversed = [part].concat(traversed);
+		}
+		let value = path[0];
+		if (typeof value === "function") {
+			value = value(prev, traversed);
+			if (value === prev) return;
+		}
+		if (part === void 0 && value == void 0) return;
+		value = unwrap(value);
+		if (part === void 0 || isWrappable(prev) && isWrappable(value) && !Array.isArray(value)) mergeStoreNode(prev, value);
+		else setProperty(current, part, value);
+	}
+	function createStore(...[store, options]) {
+		const unwrappedStore = unwrap(store || {});
+		const isArray = Array.isArray(unwrappedStore);
+		const wrappedStore = wrap$1(unwrappedStore);
+		function setStore(...args) {
+			batch(() => {
+				isArray && args.length === 1 ? updateArray(unwrappedStore, args[0]) : updatePath(unwrappedStore, args);
+			});
+		}
+		return [wrappedStore, setStore];
+	}
+	var producers = /* @__PURE__ */ new WeakMap();
+	var setterTraps = {
+		get(target, property) {
+			if (property === $RAW) return target;
+			const value = target[property];
+			if (property === $PROXY || property === $TRACK || property === $NODE || property === $HAS || property === "__proto__") return value;
+			let proxy;
+			return isWrappable(value) ? producers.get(value) || (producers.set(value, proxy = new Proxy(value, setterTraps)), proxy) : value;
+		},
+		set(target, property, value) {
+			setProperty(target, property, unwrap(value));
+			return true;
+		},
+		deleteProperty(target, property) {
+			setProperty(target, property, void 0, true);
+			return true;
+		}
+	};
+	function produce(fn) {
+		return (state) => {
+			if (isWrappable(state)) {
+				let proxy;
+				if (!(proxy = producers.get(state))) producers.set(state, proxy = new Proxy(state, setterTraps));
+				fn(proxy);
+			}
+			return state;
+		};
+	}
+	//#endregion
+	//#region src/stores/settings.ts
+	function createInitialState$2() {
+		return {
+			defaultVolume: 100,
+			responseLanguage: calculatedResLang,
+			useLivelyVoice: false,
+			autoTranslate: false,
+			autoPauseOnTranslate: false,
+			autoSubtitles: false,
+			dontTranslateLanguages: [calculatedResLang],
+			enabledAutoVolume: true,
+			autoVolume: 15,
+			enabledSmartDucking: true,
+			showVideoSlider: true,
+			audioBooster: false,
+			syncVolume: false,
+			downloadWithName: isSupportGMXhr,
+			sendNotifyOnComplete: false,
+			useAudioDownload: isSupportGMXhr,
+			translationService: DEFAULT_TRANSLATION_SERVICE,
+			detectService: DEFAULT_DETECT_SERVICE,
+			translateAPIErrors: true,
+			newAudioPlayer: false,
+			onlyBypassMediaCSP: false,
+			showPiPButton: false,
+			autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
+			buttonPos: "default",
+			proxyWorkerHost: PROXY_WORKER_HOST,
+			translateProxyEnabled: 0,
+			translationHotkey: null,
+			subtitlesHotkey: null,
+			responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
+			subtitlesDownloadFormat: "srt",
+			subtitlesFontFamily: "default-sans",
+			highlightWords: false,
+			subtitlesSmartLayout: true,
+			subtitlesMaxLength: 300,
+			subtitlesFontSize: 20,
+			subtitlesOpacity: 20
+		};
+	}
+	var [settings, setSettings] = createStore(createInitialState$2());
+	//#endregion
 	//#region src/ui/buttonPlacement.ts
 	var SIDE_EDGE_FRACTION = .18;
 	var SIDE_TOP_FRACTION = .36;
@@ -19549,14 +21822,6 @@ var vot = (function(exports) {
 	function getButtonDirection(position) {
 		return isSideButtonPosition(position) ? "column" : "row";
 	}
-	function resolveButtonLayout(isBigContainer, preferredPosition = "default") {
-		const normalizedPosition = normalizeButtonPosition(preferredPosition);
-		const position = isBigContainer || !isSideButtonPosition(normalizedPosition) ? normalizedPosition : "default";
-		return {
-			position,
-			direction: getButtonDirection(position)
-		};
-	}
 	function getEdgeSize(size, fraction, minPx, maxPx) {
 		return clampNumber(size * fraction, minPx, maxPx);
 	}
@@ -19577,25 +21842,4884 @@ var vot = (function(exports) {
 		return "default";
 	}
 	//#endregion
-	//#region src/ui/mount.ts
-	/**
-	* Compare overlay mount points by DOM identity.
-	*
-	* Mount updates should only run when one of the attachment roots actually
-	* changes (root/portal/tooltip layout root).
-	*/
-	function isSameOverlayMount(previous, next) {
-		return previous.root === next.root && previous.portalContainer === next.portalContainer && previous.subtitlesMountContainer === next.subtitlesMountContainer;
+	//#region src/components/componentShared.ts
+	function isPrimaryPointerAction(event) {
+		return event.isPrimary && event.button === 0;
 	}
-	/**
-	* Runs `onChanged` only when mount targets are actually different.
-	* Returns the mount that should become current state.
-	*/
-	function applyOverlayMountUpdate(previous, next, onChanged) {
-		if (isSameOverlayMount(previous, next)) return previous;
-		onChanged(next);
-		return next;
+	function isKeyboardActivation(event) {
+		return event.key === "Enter" || event.key === " ";
 	}
+	//#endregion
+	//#region src/components/Button/RawButton.tsx
+	function RawButton(props) {
+		const finalProps = mergeProps$1({
+			hidden: false,
+			disabled: false
+		}, props);
+		const tabIndex = () => finalProps.disabled ? -1 : 0;
+		return (() => {
+			var _el$ = createElement("vot-block");
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "role", "button");
+			setProp(_el$, "onClick", (event) => {
+				if (finalProps.disabled) {
+					event.preventDefault();
+					event.stopPropagation();
+					return;
+				}
+				finalProps.onClick?.(event);
+			});
+			setProp(_el$, "onKeyDown", (event) => {
+				if (!isKeyboardActivation(event)) return;
+				event.preventDefault();
+				if (finalProps.disabled) return;
+				event.currentTarget.click();
+			});
+			spread(_el$, mergeProps({
+				get ["class"]() {
+					return finalProps.class;
+				},
+				get tabIndex() {
+					return tabIndex();
+				},
+				get ["aria-disabled"]() {
+					return finalProps.disabled ? "true" : void 0;
+				},
+				get hidden() {
+					return finalProps.hidden;
+				}
+			}, () => finalProps.buttonProps), true);
+			insert(_el$, () => finalProps.children);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/ChevronIcon.tsx
+	function ChevronIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "d", "M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7q.275-.275.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275q.275.275.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/MenuIcon.tsx
+	function MenuIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "viewBox", "0 -960 960 960");
+			setProp(_el$2, "d", "M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/PiPIcon.tsx
+	function PiPIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "viewBox", "0 -960 960 960");
+			setProp(_el$2, "d", "M120-520q-17 0-28.5-11.5T80-560q0-17 11.5-28.5T120-600h104L80-743q-12-12-12-28.5T80-800q12-12 28.5-12t28.5 12l143 144v-104q0-17 11.5-28.5T320-800q17 0 28.5 11.5T360-760v200q0 17-11.5 28.5T320-520H120Zm40 360q-33 0-56.5-23.5T80-240v-160q0-17 11.5-28.5T120-440q17 0 28.5 11.5T160-400v160h280q17 0 28.5 11.5T480-200q0 17-11.5 28.5T440-160H160Zm680-280q-17 0-28.5-11.5T800-480v-240H480q-17 0-28.5-11.5T440-760q0-17 11.5-28.5T480-800h320q33 0 56.5 23.5T880-720v240q0 17-11.5 28.5T840-440ZM600-160q-17 0-28.5-11.5T560-200v-120q0-17 11.5-28.5T600-360h240q17 0 28.5 11.5T880-320v120q0 17-11.5 28.5T840-160H600Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/SubtitlesIcon.tsx
+	function SubtitlesIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "100%");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "d", "M4 20q-.825 0-1.413-.588T2 18V6q0-.825.588-1.413T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.588 1.413T20 20H4Zm2-4h8v-2H6v2Zm10 0h2v-2h-2v2ZM6 12h2v-2H6v2Zm4 0h8v-2h-8v2Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/TranslateIcon.tsx
+	function TranslateIcon(props) {
+		const finalProps = mergeProps$1({ loading: false }, props);
+		const [loading, setLoading] = createSignal(finalProps.loading);
+		createRenderEffect(() => {
+			setLoading(finalProps.loading);
+		});
+		return (() => {
+			var _el$ = createElement("svg"), _el$3 = createElement("path");
+			insertNode(_el$, _el$3);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return loading();
+				},
+				get fallback() {
+					return (() => {
+						var _el$4 = createElement("path");
+						setProp(_el$4, "fill-rule", "evenodd");
+						setProp(_el$4, "d", "M15.778 18.95L14.903 21.375C14.8364 21.5583 14.7197 21.7083 14.553 21.825C14.3864 21.9417 14.203 22 14.003 22C13.6697 22 13.3989 21.8625 13.1905 21.5875C12.9822 21.3125 12.9447 21.0083 13.078 20.675L16.878 10.625C16.9614 10.4417 17.0864 10.2917 17.253 10.175C17.4197 10.0583 17.603 10 17.803 10H18.553C18.753 10 18.9364 10.0583 19.103 10.175C19.2697 10.2917 19.3947 10.4417 19.478 10.625L23.278 20.7C23.4114 21.0167 23.378 21.3125 23.178 21.5875C22.978 21.8625 22.7114 22 22.378 22C22.1614 22 21.9739 21.9375 21.8155 21.8125C21.6572 21.6875 21.5364 21.525 21.453 21.325L20.628 18.95H15.778ZM19.978 17.2H16.378L18.228 12.25L19.978 17.2Z");
+						return _el$4;
+					})();
+				},
+				get children() {
+					var _el$2 = createElement("path");
+					setProp(_el$2, "d", "M19.8081 16.3697L18.5842 15.6633V13.0832C18.5842 12.9285 18.5228 12.7801 18.4134 12.6707C18.304 12.5613 18.1556 12.4998 18.0009 12.4998C17.8462 12.4998 17.6978 12.5613 17.5884 12.6707C17.479 12.7801 17.4176 12.9285 17.4176 13.0832V15.9998C17.4176 16.1022 17.4445 16.2028 17.4957 16.2915C17.5469 16.3802 17.6205 16.4538 17.7092 16.505L19.2247 17.38C19.2911 17.4189 19.3645 17.4443 19.4407 17.4547C19.5169 17.4652 19.5945 17.4604 19.6688 17.4407C19.7432 17.4211 19.813 17.3869 19.8741 17.3402C19.9352 17.2934 19.9864 17.2351 20.0249 17.1684C20.0634 17.1018 20.0883 17.0282 20.0982 16.952C20.1081 16.8757 20.1028 16.7982 20.0827 16.7239C20.0625 16.6497 20.0279 16.5802 19.9808 16.5194C19.9336 16.4586 19.8749 16.4077 19.8081 16.3697ZM18.0015 10C16.8478 10 15.6603 10.359 14.7011 11C13.7418 11.641 12.9415 12.4341 12.5 13.5C12.0585 14.5659 11.8852 16.0369 12.1103 17.1684C12.3353 18.3 12.8736 19.4942 13.6894 20.31C14.5053 21.1258 15.8684 21.7749 17 22C18.1316 22.2251 19.4341 21.9415 20.5 21.5C21.5659 21.0585 22.359 20.2573 23 19.298C23.641 18.3387 24.0015 17.1537 24.0015 16C23.9998 14.4534 23.5951 13.0936 22.5015 12C21.4079 10.9064 19.5481 10.0017 18.0015 10ZM18.0009 20.6665C17.0779 20.6665 16.1757 20.3928 15.4082 19.88C14.6408 19.3672 14.0427 18.6384 13.6894 17.7857C13.3362 16.933 13.2438 15.9947 13.4239 15.0894C13.604 14.1842 14.0484 13.3527 14.7011 12.7C15.3537 12.0474 16.1852 11.6029 17.0905 11.4228C17.9957 11.2428 18.934 11.3352 19.7867 11.6884C20.6395 12.0416 21.3683 12.6397 21.8811 13.4072C22.3939 14.1746 22.6676 15.0769 22.6676 15.9998C22.666 17.237 22.1738 18.4231 21.299 19.298C20.4242 20.1728 19.2381 20.665 18.0009 20.6665Z");
+					return _el$2;
+				}
+			}), _el$3);
+			setProp(_el$3, "d", "M9 14L4.7 18.3C4.51667 18.4833 4.28333 18.575 4 18.575C3.71667 18.575 3.48333 18.4833 3.3 18.3C3.11667 18.1167 3.025 17.8833 3.025 17.6C3.025 17.3167 3.11667 17.0833 3.3 16.9L7.65 12.55C7.01667 11.85 6.4625 11.125 5.9875 10.375C5.5125 9.625 5.1 8.83333 4.75 8H6.85C7.15 8.6 7.47083 9.14167 7.8125 9.625C8.15417 10.1083 8.56667 10.6167 9.05 11.15C9.78333 10.35 10.3917 9.52917 10.875 8.6875C11.3583 7.84583 11.7667 6.95 12.1 6H2C1.71667 6 1.47917 5.90417 1.2875 5.7125C1.09583 5.52083 1 5.28333 1 5C1 4.71667 1.09583 4.47917 1.2875 4.2875C1.47917 4.09583 1.71667 4 2 4H8V3C8 2.71667 8.09583 2.47917 8.2875 2.2875C8.47917 2.09583 8.71667 2 9 2C9.28333 2 9.52083 2.09583 9.7125 2.2875C9.90417 2.47917 10 2.71667 10 3V4H16C16.2833 4 16.5208 4.09583 16.7125 4.2875C16.9042 4.47917 17 4.71667 17 5C17 5.28333 16.9042 5.52083 16.7125 5.7125C16.5208 5.90417 16.2833 6 16 6H14.1C13.75 7.18333 13.275 8.33333 12.675 9.45C12.075 10.5667 11.3333 11.6167 10.45 12.6L12.85 15.05L12.1 17.1L9 14Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/SegmentedButton/PreviewSegmentedButton.tsx
+	function PreviewSegmentedButton(props) {
+		const finalProps = mergeProps$1({
+			direction: "default",
+			status: "none",
+			isLoading: false,
+			isSubtitlesActive: false,
+			showPipButton: false
+		}, props);
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$5 = createElement("vot-block");
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$5);
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "class", "vot-segmented-button");
+			insert(_el$, createComponent(RawButton, {
+				"class": "vot-segment vot-translate-button",
+				get children() {
+					return [createComponent(TranslateIcon, { get loading() {
+						return finalProps.isLoading;
+					} }), createComponent(Show, {
+						get when() {
+							return finalProps.direction !== "column";
+						},
+						get children() {
+							return [(() => {
+								var _el$2 = createElement("vot-block");
+								setProp(_el$2, "class", "vot-segment-label");
+								insert(_el$2, () => finalProps.labelText);
+								return _el$2;
+							})(), createComponent(RawButton, {
+								"class": "vot-dropdown-arrow",
+								get children() {
+									return createComponent(ChevronIcon, {});
+								}
+							})];
+						}
+					})];
+				}
+			}), _el$3);
+			setProp(_el$3, "class", "vot-separator");
+			insert(_el$, createComponent(RawButton, {
+				"class": "vot-segment-only-icon",
+				get buttonProps() {
+					return { "data-active": finalProps.isSubtitlesActive };
+				},
+				get children() {
+					return createComponent(SubtitlesIcon, {});
+				}
+			}), _el$5);
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.showPipButton;
+				},
+				get children() {
+					return [(() => {
+						var _el$4 = createElement("vot-block");
+						setProp(_el$4, "class", "vot-separator");
+						return _el$4;
+					})(), createComponent(RawButton, {
+						"class": "vot-segment-only-icon",
+						get children() {
+							return createComponent(PiPIcon, {});
+						}
+					})];
+				}
+			}), _el$5);
+			setProp(_el$5, "class", "vot-separator");
+			insert(_el$, createComponent(RawButton, {
+				"class": "vot-segment-only-icon",
+				get children() {
+					return createComponent(MenuIcon, {});
+				}
+			}), null);
+			effect((_p$) => {
+				var _v$ = finalProps.direction, _v$2 = finalProps.status, _v$3 = finalProps.isLoading;
+				_v$ !== _p$.e && (_p$.e = setProp(_el$, "data-direction", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "data-status", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-loading", _v$3, _p$.a));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0
+			});
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/SegmentedButton/PreviewSegmentedButtonOverlay.tsx
+	function PreviewSegmentedButtonOverlay(props) {
+		const [local, rest] = splitProps(mergeProps$1({ position: "default" }, props), ["position"]);
+		return createComponent(Overlay, {
+			classList: {
+				"vot-overlay__segmented-button": true,
+				"vot-segmented-button--dock-preview": true
+			},
+			get blockProps() {
+				return {
+					"data-position": local.position,
+					inert: true
+				};
+			},
+			get children() {
+				return createComponent(PreviewSegmentedButton, rest);
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Button/IconButton.tsx
+	function IconButton(props) {
+		const [local, rest] = splitProps(props, ["ariaLabel", "buttonProps"]);
+		return createComponent(RawButton, mergeProps(rest, {
+			"class": "vot-icon-button",
+			get buttonProps() {
+				return {
+					"aria-label": local.ariaLabel,
+					...local.buttonProps
+				};
+			}
+		}));
+	}
+	//#endregion
+	//#region src/components/Icons/ProgressIcon.tsx
+	function ProgressIcon(props) {
+		const finalProps = mergeProps$1({ progress: 0 }, props);
+		const progress = () => clampNumber(finalProps.progress, 0, 100);
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "100%");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "class", "vot-progress-icon vot-progress-icon_base");
+			setProp(_el$2, "cx", "12");
+			setProp(_el$2, "cy", "12");
+			setProp(_el$2, "r", "9");
+			setProp(_el$3, "class", "vot-progress-icon vot-progress-icon_progress");
+			setProp(_el$3, "cx", "12");
+			setProp(_el$3, "cy", "12");
+			setProp(_el$3, "r", "9");
+			setProp(_el$3, "pathLength", "100");
+			setProp(_el$3, "stroke-dasharray", "100");
+			effect((_$p) => setProp(_el$3, "stroke-dashoffset", 100 - progress(), _$p));
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Button/ProgressIconButton.tsx
+	function ProgressIconButton(props) {
+		const [local, rest] = splitProps(mergeProps$1({
+			progress: 0,
+			showProgress: false
+		}, props), [
+			"children",
+			"showProgress",
+			"progress"
+		]);
+		return createComponent(IconButton, mergeProps(rest, { get children() {
+			return createComponent(Show, {
+				get when() {
+					return local.showProgress;
+				},
+				get fallback() {
+					return local.children;
+				},
+				get children() {
+					return createComponent(ProgressIcon, { get progress() {
+						return local.progress;
+					} });
+				}
+			});
+		} }));
+	}
+	//#endregion
+	//#region src/components/Icons/LoadingDotsIcon.tsx
+	function LoadingDotsIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("animate"), _el$4 = createElement("circle"), _el$5 = createElement("animate"), _el$6 = createElement("circle"), _el$7 = createElement("animate");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$4);
+			insertNode(_el$, _el$6);
+			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			insertNode(_el$2, _el$3);
+			setProp(_el$2, "cx", "18");
+			setProp(_el$2, "cy", "12");
+			setProp(_el$2, "r", "0");
+			setProp(_el$2, "fill", "currentColor");
+			setProp(_el$3, "attributeName", "r");
+			setProp(_el$3, "begin", ".67");
+			setProp(_el$3, "calcMode", "spline");
+			setProp(_el$3, "dur", "1.5s");
+			setProp(_el$3, "keySplines", "0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8");
+			setProp(_el$3, "repeatCount", "indefinite");
+			setProp(_el$3, "values", "0;2;0;0");
+			insertNode(_el$4, _el$5);
+			setProp(_el$4, "cx", "12");
+			setProp(_el$4, "cy", "12");
+			setProp(_el$4, "r", "0");
+			setProp(_el$4, "fill", "currentColor");
+			setProp(_el$5, "attributeName", "r");
+			setProp(_el$5, "begin", ".33");
+			setProp(_el$5, "calcMode", "spline");
+			setProp(_el$5, "dur", "1.5s");
+			setProp(_el$5, "keySplines", "0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8");
+			setProp(_el$5, "repeatCount", "indefinite");
+			setProp(_el$5, "values", "0;2;0;0");
+			insertNode(_el$6, _el$7);
+			setProp(_el$6, "cx", "6");
+			setProp(_el$6, "cy", "12");
+			setProp(_el$6, "r", "0");
+			setProp(_el$6, "fill", "currentColor");
+			setProp(_el$7, "attributeName", "r");
+			setProp(_el$7, "begin", "0");
+			setProp(_el$7, "calcMode", "spline");
+			setProp(_el$7, "dur", "1.5s");
+			setProp(_el$7, "keySplines", "0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8");
+			setProp(_el$7, "repeatCount", "indefinite");
+			setProp(_el$7, "values", "0;2;0;0");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Textfield/Textfield.tsx
+	function Textfield(props) {
+		const finalProps = mergeProps$1({
+			value: "",
+			placeholder: "",
+			multiline: false,
+			disabled: false
+		}, props);
+		const labelId = createUniqueId();
+		const [value, setValue] = createSignal(finalProps.value);
+		createEffect(() => setValue(finalProps.value));
+		const stopKeyEvent = (event) => event.stopPropagation();
+		const removeHostKeyboardListeners = () => {
+			globalThis.removeEventListener("keydown", stopKeyEvent, true);
+			globalThis.removeEventListener("keypress", stopKeyEvent, true);
+			globalThis.removeEventListener("keyup", stopKeyEvent, true);
+		};
+		onCleanup(removeHostKeyboardListeners);
+		const common = {
+			ref: finalProps.inputRef,
+			get class() {
+				return finalProps.labelText ? void 0 : "vot-show-placeholer";
+			},
+			get placeholder() {
+				return finalProps.placeholder;
+			},
+			get value() {
+				return value();
+			},
+			get disabled() {
+				return finalProps.disabled;
+			},
+			"aria-labelledby": labelId,
+			onFocus: () => {
+				globalThis.addEventListener("keydown", stopKeyEvent, { capture: true });
+				globalThis.addEventListener("keypress", stopKeyEvent, { capture: true });
+				globalThis.addEventListener("keyup", stopKeyEvent, { capture: true });
+			},
+			onBlur: removeHostKeyboardListeners,
+			onInput: (event) => {
+				const next = event.currentTarget.value;
+				setValue(next);
+				finalProps.onInput?.(next);
+			},
+			onChange: (event) => {
+				const next = event.currentTarget.value;
+				setValue(next);
+				finalProps.onChange?.(next);
+			}
+		};
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block");
+			insertNode(_el$, _el$3);
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "class", "vot-textfield");
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.multiline;
+				},
+				get fallback() {
+					return (() => {
+						var _el$4 = createElement("input");
+						spread(_el$4, common, false);
+						return _el$4;
+					})();
+				},
+				get children() {
+					var _el$2 = createElement("textarea");
+					spread(_el$2, common, false);
+					return _el$2;
+				}
+			}), _el$3);
+			var _ref$2 = finalProps.labelRef;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$3) : finalProps.labelRef = _el$3;
+			setProp(_el$3, "id", labelId);
+			setProp(_el$3, "class", "vot-textfield__label");
+			insert(_el$3, () => finalProps.labelText);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Control/Select.tsx
+	function genSelectOptionsByLangs(langs) {
+		return langs.map((lang) => {
+			const phrase = `langs.${lang}`;
+			const label = localizationProvider.get(phrase);
+			return {
+				label: label === phrase ? lang.toUpperCase() : label,
+				value: lang
+			};
+		});
+	}
+	function Select(props) {
+		const finalProps = mergeProps$1({
+			disabled: false,
+			multiple: false,
+			search: false,
+			loading: false,
+			isOpen: false,
+			selectedValue: void 0,
+			selectedValues: [],
+			minSelected: 1
+		}, props);
+		let outerRef;
+		let innerRef;
+		let searchRequestId = 0;
+		const selectId = createUniqueId();
+		const [selectedValues, setSelectedValues] = createSignal(new Set(finalProps.multiple ? finalProps.selectedValues : [finalProps.selectedValue]));
+		const [options, setOptions] = createSignal(finalProps.options);
+		const [searchQuery, setSearchQuery] = createSignal("");
+		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+		const [isSearching, setIsSearching] = createSignal(false);
+		const [searchOptions, setSearchOptions] = createSignal();
+		const [selectedOptionCache, setSelectedOptionCache] = createSignal(/* @__PURE__ */ new Map());
+		const baseOptions = createMemo(() => {
+			const result = [...options()];
+			const existingValues = new Set(result.map((option) => option.value));
+			for (const [value, option] of selectedOptionCache()) if (selectedValues().has(value) && !existingValues.has(value)) result.push(option);
+			return result;
+		});
+		const currentOptions = () => searchOptions() ?? baseOptions();
+		const visibleTitle = () => {
+			if (finalProps.multiple) return baseOptions().filter((o) => selectedValues().has(o.value)).map((o) => o.label).join(", ") || finalProps.title;
+			return baseOptions().find((o) => selectedValues().has(o.value))?.label || finalProps.title;
+		};
+		const filteredOptions = createMemo(() => {
+			const query = searchQuery().trim().toLowerCase();
+			const current = currentOptions();
+			if (!query) return current;
+			return current.filter((option) => option.label.toLowerCase().includes(query));
+		});
+		createRenderEffect(() => {
+			const nextSelectedValues = new Set(finalProps.multiple ? finalProps.selectedValues : [finalProps.selectedValue]);
+			setSelectedValues(nextSelectedValues);
+			setSelectedOptionCache((previous) => {
+				const next = /* @__PURE__ */ new Map();
+				for (const [value, option] of previous) if (nextSelectedValues.has(value)) next.set(value, option);
+				return next;
+			});
+		});
+		createRenderEffect(() => {
+			setIsOpen(finalProps.isOpen);
+		});
+		createRenderEffect(() => {
+			setOptions(finalProps.options);
+		});
+		createFloatingPosition({
+			anchor: () => outerRef,
+			popup: () => innerRef,
+			isOpen,
+			onOutsideScroll: () => closeSelect(),
+			stablePlacementWhileOpen: Boolean(finalProps.search || finalProps.searchItemsProvider)
+		});
+		onMount(() => {
+			createRenderEffect(() => {
+				if (!isOpen()) return;
+				const handlePointerDown = (event) => {
+					const path = event.composedPath();
+					if (!path.includes(innerRef) && !path.includes(outerRef)) closeSelect();
+				};
+				window.addEventListener("pointerdown", handlePointerDown, {
+					capture: true,
+					passive: true
+				});
+				onCleanup(() => {
+					window.removeEventListener("pointerdown", handlePointerDown, { capture: true });
+				});
+			});
+		});
+		function singleSelectHandle(option) {
+			setSelectedValues(/* @__PURE__ */ new Set([option.value]));
+			setSelectedOptionCache(/* @__PURE__ */ new Map([[option.value, option]]));
+			closeSelect();
+			finalProps.onSelect?.(option);
+		}
+		function multiSelectHandle(option) {
+			const value = option.value;
+			const currentSelectedValues = selectedValues();
+			if (!currentSelectedValues.has(value)) {
+				setSelectedOptionCache((previous) => {
+					const next = new Map(previous);
+					next.set(value, option);
+					return next;
+				});
+				setSelectedValues((prev) => {
+					const next = new Set(prev);
+					next.add(value);
+					return next;
+				});
+				return finalProps.onSelectionChange?.(Array.from(selectedValues()), option);
+			}
+			if (currentSelectedValues.size <= finalProps.minSelected) return;
+			setSelectedOptionCache((previous) => {
+				const next = new Map(previous);
+				next.delete(value);
+				return next;
+			});
+			setSelectedValues((prev) => {
+				const next = new Set(prev);
+				next.delete(value);
+				return next;
+			});
+			finalProps.onSelectionChange?.(Array.from(selectedValues()), option);
+		}
+		function handleSelectOption(option) {
+			if (!finalProps.multiple) return singleSelectHandle(option);
+			multiSelectHandle(option);
+		}
+		function closeSelect() {
+			++searchRequestId;
+			setIsOpen(false);
+			setSearchQuery("");
+			setSearchOptions(void 0);
+			setIsSearching(false);
+		}
+		async function handleSearchInput(query) {
+			setSearchQuery(query);
+			const provider = finalProps.searchItemsProvider;
+			if (!provider) return;
+			setIsSearching(true);
+			const requestId = ++searchRequestId;
+			try {
+				const providedOptions = await provider(query);
+				if (requestId !== searchRequestId || !isOpen()) return;
+				setSearchOptions(providedOptions);
+			} catch {
+				if (requestId === searchRequestId) setSearchOptions(void 0);
+			} finally {
+				if (requestId === searchRequestId) setIsSearching(false);
+			}
+		}
+		finalProps.controlsRef?.({ close: () => {
+			if (isOpen()) closeSelect();
+		} });
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$5 = createElement("vot-block"), _el$6 = createElement("vot-block");
+			insertNode(_el$, _el$5);
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "class", "vot-select");
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.children;
+				},
+				get children() {
+					var _el$2 = createElement("vot-block");
+					setProp(_el$2, "class", "vot-select-label");
+					insert(_el$2, () => finalProps.children);
+					return _el$2;
+				}
+			}), _el$5);
+			insert(_el$, createComponent(RawButton, {
+				ref: (el) => outerRef = el,
+				"class": "vot-select-outer",
+				get buttonProps() {
+					return {
+						"aria-haspopup": "listbox",
+						"aria-controls": selectId,
+						"aria-expanded": isOpen()
+					};
+				},
+				get disabled() {
+					return finalProps.disabled;
+				},
+				onClick: () => {
+					if (isOpen()) return closeSelect();
+					setIsOpen(true);
+					finalProps.onOpen?.();
+				},
+				get children() {
+					return [(() => {
+						var _el$3 = createElement("vot-block");
+						setProp(_el$3, "class", "vot-select-outer__title");
+						insert(_el$3, visibleTitle);
+						return _el$3;
+					})(), (() => {
+						var _el$4 = createElement("vot-block");
+						setProp(_el$4, "class", "vot-select-outer__arrow");
+						insert(_el$4, createComponent(ChevronIcon, {}));
+						return _el$4;
+					})()];
+				}
+			}), _el$5);
+			insertNode(_el$5, _el$6);
+			var _ref$2 = innerRef;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$5) : innerRef = _el$5;
+			setProp(_el$5, "class", "vot-select-inner");
+			setProp(_el$5, "id", selectId);
+			insert(_el$5, createComponent(Show, {
+				get when() {
+					return finalProps.search || finalProps.searchItemsProvider;
+				},
+				get children() {
+					return createComponent(Textfield, {
+						get labelText() {
+							return localizationProvider.get("searchField");
+						},
+						get value() {
+							return searchQuery();
+						},
+						onInput: handleSearchInput
+					});
+				}
+			}), _el$6);
+			setProp(_el$6, "class", "vot-select-inner__options");
+			setProp(_el$6, "role", "listbox");
+			insert(_el$6, createComponent(For, {
+				get each() {
+					return filteredOptions();
+				},
+				children: (option) => createComponent(RawButton, {
+					"class": "vot-select-inner__option",
+					get disabled() {
+						return option.disabled || finalProps.disabled;
+					},
+					get buttonProps() {
+						return {
+							role: "option",
+							"aria-selected": selectedValues().has(option.value)
+						};
+					},
+					onClick: () => {
+						if (option.disabled) return;
+						handleSelectOption(option);
+					},
+					get children() {
+						return option.label;
+					}
+				})
+			}));
+			insert(_el$5, createComponent(Show, {
+				get when() {
+					return finalProps.loading;
+				},
+				get children() {
+					var _el$7 = createElement("vot-block");
+					setProp(_el$7, "class", "vot-select-inner__no-options");
+					setProp(_el$7, "data-searching", "true");
+					insert(_el$7, createComponent(LoadingDotsIcon, {}));
+					return _el$7;
+				}
+			}), null);
+			insert(_el$5, createComponent(Show, {
+				get when() {
+					return memo(() => filteredOptions().length === 0)() && !finalProps.loading;
+				},
+				get children() {
+					var _el$8 = createElement("vot-block");
+					setProp(_el$8, "class", "vot-select-inner__no-options");
+					insert(_el$8, createComponent(Show, {
+						get when() {
+							return isSearching();
+						},
+						get fallback() {
+							return localizationProvider.get("notFound");
+						},
+						get children() {
+							return createComponent(LoadingDotsIcon, {});
+						}
+					}));
+					effect((_$p) => setProp(_el$8, "data-searching", isSearching(), _$p));
+					return _el$8;
+				}
+			}), null);
+			effect((_p$) => {
+				var _v$ = finalProps.disabled, _v$2 = !isOpen(), _v$3 = finalProps.loading ? "true" : void 0, _v$4 = finalProps.multiple ? "true" : void 0;
+				_v$ !== _p$.e && (_p$.e = setProp(_el$, "aria-disabled", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$5, "hidden", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$6, "aria-busy", _v$3, _p$.a));
+				_v$4 !== _p$.o && (_p$.o = setProp(_el$6, "aria-multiselectable", _v$4, _p$.o));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0,
+				o: void 0
+			});
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Control/Slider.tsx
+	var DRAG_THRESHOLD = 4;
+	function Slider(props) {
+		const finalProps = mergeProps$1({
+			min: 0,
+			max: 100,
+			value: 50,
+			step: 1,
+			disabled: false
+		}, props);
+		let pointerStart;
+		const clampVal = (val) => clamp(val, finalProps.min, finalProps.max);
+		const [value, setValue] = createSignal(clampVal(finalProps.value));
+		const [dragging, setDragging] = createSignal(false);
+		const progress = () => {
+			const range = finalProps.max - finalProps.min;
+			return clampNumber(range <= 0 ? 0 : (value() - finalProps.min) / range, 0, 1);
+		};
+		createRenderEffect(() => {
+			setValue(clampVal(finalProps.value));
+		});
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$2 = createElement("input"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$4);
+			insertNode(_el$, _el$5);
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "class", "vot-slider");
+			setProp(_el$2, "class", "vot-slider__control");
+			setProp(_el$2, "type", "range");
+			setProp(_el$2, "onpointerdown", (event) => {
+				pointerStart = {
+					id: event.pointerId,
+					x: event.clientX,
+					y: event.clientY
+				};
+			});
+			setProp(_el$2, "onpointermove", (event) => {
+				if (!pointerStart || pointerStart.id !== event.pointerId) return;
+				if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) >= DRAG_THRESHOLD) setDragging(true);
+			});
+			setProp(_el$2, "onpointerup", () => {
+				pointerStart = void 0;
+				setDragging(false);
+			});
+			setProp(_el$2, "onpointercancel", () => {
+				pointerStart = void 0;
+				setDragging(false);
+			});
+			setProp(_el$2, "oninput", (e) => {
+				const newValue = e.target.valueAsNumber;
+				setValue(newValue);
+				finalProps.onInput?.(newValue);
+			});
+			setProp(_el$3, "class", "vot-slider__track");
+			setProp(_el$4, "class", "vot-slider__track vot-slider__track-progress");
+			setProp(_el$5, "class", "vot-slider__handle");
+			effect((_p$) => {
+				var _v$ = dragging() ? "" : void 0, _v$2 = { "--vot-progress": progress() }, _v$3 = finalProps.disabled, _v$4 = finalProps.min, _v$5 = finalProps.max, _v$6 = value(), _v$7 = finalProps.step, _v$8 = finalProps.disabled;
+				_v$ !== _p$.e && (_p$.e = setProp(_el$, "data-dragging", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "style", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "aria-disabled", _v$3, _p$.a));
+				_v$4 !== _p$.o && (_p$.o = setProp(_el$2, "min", _v$4, _p$.o));
+				_v$5 !== _p$.i && (_p$.i = setProp(_el$2, "max", _v$5, _p$.i));
+				_v$6 !== _p$.n && (_p$.n = setProp(_el$2, "value", _v$6, _p$.n));
+				_v$7 !== _p$.s && (_p$.s = setProp(_el$2, "step", _v$7, _p$.s));
+				_v$8 !== _p$.h && (_p$.h = setProp(_el$2, "disabled", _v$8, _p$.h));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0,
+				o: void 0,
+				i: void 0,
+				n: void 0,
+				s: void 0,
+				h: void 0
+			});
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Control/SliderLabel.tsx
+	function SliderLabelDesc(props) {
+		return (() => {
+			var _el$ = createElement("vot-block");
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
+			setProp(_el$, "class", "vot-slider-label__text-desc");
+			insert(_el$, () => props.children);
+			return _el$;
+		})();
+	}
+	function SliderLabel(props) {
+		const finalProps = mergeProps$1({
+			disabled: false,
+			value: "0"
+		}, props);
+		return (() => {
+			var _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block");
+			insertNode(_el$2, _el$3);
+			insertNode(_el$2, _el$4);
+			var _ref$2 = finalProps.ref;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$2) : finalProps.ref = _el$2;
+			setProp(_el$2, "class", "vot-slider-label");
+			setProp(_el$3, "class", "vot-slider-label__text");
+			insert(_el$3, () => finalProps.children);
+			setProp(_el$4, "class", "vot-slider-label__value");
+			insert(_el$4, () => finalProps.value);
+			effect((_$p) => setProp(_el$2, "aria-disabled", finalProps.disabled, _$p));
+			return _el$2;
+		})();
+	}
+	//#endregion
+	//#region src/components/Control/SliderWrapper.tsx
+	function SliderWrapper(props) {
+		return (() => {
+			var _el$ = createElement("vot-block");
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
+			setProp(_el$, "class", "vot-slider-wrapper");
+			insert(_el$, () => props.children);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/ArrowRightIcon.tsx
+	function ArrowRightIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "viewBox", "0 -960 960 960");
+			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "d", "M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/DownloadIcon.tsx
+	function DownloadIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "100%");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "d", "M12 15.575C11.8667 15.575 11.7417 15.5542 11.625 15.5125C11.5083 15.4708 11.4 15.4 11.3 15.3L7.7 11.7C7.5 11.5 7.40417 11.2667 7.4125 11C7.42083 10.7333 7.51667 10.5 7.7 10.3C7.9 10.1 8.1375 9.99583 8.4125 9.9875C8.6875 9.97917 8.925 10.075 9.125 10.275L11 12.15V5C11 4.71667 11.0958 4.47917 11.2875 4.2875C11.4792 4.09583 11.7167 4 12 4C12.2833 4 12.5208 4.09583 12.7125 4.2875C12.9042 4.47917 13 4.71667 13 5V12.15L14.875 10.275C15.075 10.075 15.3125 9.97917 15.5875 9.9875C15.8625 9.99583 16.1 10.1 16.3 10.3C16.4833 10.5 16.5792 10.7333 16.5875 11C16.5958 11.2667 16.5 11.5 16.3 11.7L12.7 15.3C12.6 15.4 12.4917 15.4708 12.375 15.5125C12.2583 15.5542 12.1333 15.575 12 15.575ZM6 20C5.45 20 4.97917 19.8042 4.5875 19.4125C4.19583 19.0208 4 18.55 4 18V16C4 15.7167 4.09583 15.4792 4.2875 15.2875C4.47917 15.0958 4.71667 15 5 15C5.28333 15 5.52083 15.0958 5.7125 15.2875C5.90417 15.4792 6 15.7167 6 16V18H18V16C18 15.7167 18.0958 15.4792 18.2875 15.2875C18.4792 15.0958 18.7167 15 19 15C19.2833 15 19.5208 15.0958 19.7125 15.2875C19.9042 15.4792 20 15.7167 20 16V18C20 18.55 19.8042 19.0208 19.4125 19.4125C19.0208 19.8042 18.55 20 18 20H6Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/GearIcon.tsx
+	function GearIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "100%");
+			setProp(_el$, "viewBox", "0 -960 960 960");
+			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
+			setProp(_el$2, "d", "M555-80H405q-15 0-26-10t-13-25l-12-93q-13-5-24.5-12T307-235l-87 36q-14 5-28 1t-22-17L96-344q-8-13-5-28t15-24l75-57q-1-7-1-13.5v-27q0-6.5 1-13.5l-75-57q-12-9-15-24t5-28l74-129q7-14 21.5-17.5T220-761l87 36q11-8 23-15t24-12l12-93q2-15 13-25t26-10h150q15 0 26 10t13 25l12 93q13 5 24.5 12t22.5 15l87-36q14-5 28-1t22 17l74 129q8 13 5 28t-15 24l-75 57q1 7 1 13.5v27q0 6.5-2 13.5l75 57q12 9 15 24t-5 28l-74 128q-8 13-22.5 17.5T738-199l-85-36q-11 8-23 15t-24 12l-12 93q-2 15-13 25t-26 10Zm-73-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm0-80q-25 0-42.5-17.5T422-480q0-25 17.5-42.5T482-540q25 0 42.5 17.5T542-480q0 25-17.5 42.5T482-420Zm-2-60Zm-40 320h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Utils/Menu.tsx
+	function Menu(props) {
+		const finalProps = mergeProps$1({}, props);
+		const menuId = `vot-menu-${createUniqueId()}`;
+		const titleId = `vot-menu-title-${createUniqueId()}`;
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block"), _el$6 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$5);
+			insertNode(_el$, _el$6);
+			setProp(_el$, "class", "vot-menu");
+			setProp(_el$, "id", menuId);
+			setProp(_el$, "role", "dialog");
+			setProp(_el$, "aria-modal", "false");
+			setProp(_el$, "aria-labelledby", titleId);
+			insertNode(_el$2, _el$3);
+			setProp(_el$2, "class", "vot-menu__header");
+			insertNode(_el$3, _el$4);
+			setProp(_el$3, "class", "vot-menu__title-container");
+			setProp(_el$4, "class", "vot-menu-title");
+			setProp(_el$4, "id", titleId);
+			insert(_el$4, () => finalProps.title);
+			insert(_el$2, createComponent(Show, {
+				get when() {
+					return finalProps.headerChildren;
+				},
+				get children() {
+					return finalProps.headerChildren;
+				}
+			}), null);
+			setProp(_el$5, "class", "vot-menu__body");
+			insert(_el$5, () => finalProps.children);
+			setProp(_el$6, "class", "vot-menu__footer");
+			insert(_el$6, createComponent(Show, {
+				get when() {
+					return finalProps.footerChildren;
+				},
+				get children() {
+					return finalProps.footerChildren;
+				}
+			}));
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/SegmentedButton/SegmentedButtonMenu.tsx
+	function MenuHeaderContent(props) {
+		const finalProps = mergeProps$1({
+			showDownloadTranslation: false,
+			showDownloadSubtitles: false
+		}, props);
+		const [translationProgress, setTranslationProgress] = createSignal(0);
+		const [showTranslationProgress, setShowTranslationProgress] = createSignal(false);
+		finalProps.controlsRef?.({
+			setTranslationProgress,
+			setShowTranslationProgress
+		});
+		return (() => {
+			var _el$ = createElement("vot-block");
+			setProp(_el$, "class", "vot-segmented-button__menu-header");
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.showDownloadTranslation;
+				},
+				get children() {
+					return createComponent(ProgressIconButton, {
+						get ariaLabel() {
+							return localizationProvider.get("VOTDownloadTranslation");
+						},
+						get progress() {
+							return translationProgress();
+						},
+						get showProgress() {
+							return showTranslationProgress();
+						},
+						get onClick() {
+							return finalProps.onDownloadTranslationClick;
+						},
+						get children() {
+							return createComponent(DownloadIcon, {});
+						}
+					});
+				}
+			}), null);
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.showDownloadSubtitles;
+				},
+				get children() {
+					return createComponent(IconButton, {
+						get ariaLabel() {
+							return localizationProvider.get("VOTDownloadSubtitles");
+						},
+						get onClick() {
+							return finalProps.onDownloadSubtitlesClick;
+						},
+						get children() {
+							return createComponent(SubtitlesIcon, {});
+						}
+					});
+				}
+			}), null);
+			insert(_el$, createComponent(IconButton, {
+				get ariaLabel() {
+					return localizationProvider.get("VOTSettings");
+				},
+				get onClick() {
+					return props.onSettingsClick;
+				},
+				get children() {
+					return createComponent(GearIcon, {});
+				}
+			}), null);
+			return _el$;
+		})();
+	}
+	function LanguagePairSelect(props) {
+		const fromLangsOptions = genSelectOptionsByLangs(availableLangs);
+		const toLangsOptions = genSelectOptionsByLangs(availableTTS);
+		let videoControlsRef;
+		let translationControlsRef;
+		props.controlsRef?.({ closeFloatingUI: () => {
+			videoControlsRef?.close();
+			translationControlsRef?.close();
+		} });
+		return (() => {
+			var _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block");
+			insertNode(_el$2, _el$3);
+			setProp(_el$2, "class", "vot-langpair-select");
+			insert(_el$2, createComponent(Select, {
+				get title() {
+					return localizationProvider.get("videoLanguage");
+				},
+				options: fromLangsOptions,
+				get selectedValue() {
+					return props.detectedLanguage;
+				},
+				controlsRef: (controls) => videoControlsRef = controls,
+				onSelect: async (option) => await props.onDetectedLanguageSelect?.(option.value)
+			}), _el$3);
+			setProp(_el$3, "class", "vot-langpair-select__icon");
+			insert(_el$3, createComponent(ArrowRightIcon, {}));
+			insert(_el$2, createComponent(Select, {
+				get title() {
+					return localizationProvider.get("translationLanguage");
+				},
+				options: toLangsOptions,
+				get selectedValue() {
+					return props.responseLanguage;
+				},
+				controlsRef: (controls) => translationControlsRef = controls,
+				onSelect: async (option) => await props.onResponseLanguageSelect?.(option.value)
+			}), null);
+			return _el$2;
+		})();
+	}
+	var MAX_AUDIO_BOOSTER_VOLUME = 900;
+	function SegmentedButtonMenu(props) {
+		const finalProps = mergeProps$1({
+			detectedLanguage: "en",
+			responseLanguage: "ru",
+			videoVolume: 100,
+			showTranslationVolume: false,
+			translationVolume: 100,
+			subtitlesOptions: [{
+				label: localizationProvider.get("VOTSubtitlesDisabled"),
+				value: "disabled"
+			}],
+			selectedSubtitles: "disabled",
+			subtitlesLoading: false
+		}, props);
+		let menuHeaderContentControls;
+		let languagePairSelectControls;
+		let subtitlesSelectControls;
+		const [videoVolume, setVideoVolume] = createSignal(finalProps.videoVolume);
+		const [translationVolumeState, setTranslationVolume] = createSignal(finalProps.translationVolume);
+		const maxTranslationVolume = () => settings.audioBooster && !settings.syncVolume ? MAX_AUDIO_BOOSTER_VOLUME : 100;
+		const translationVolume = () => clamp(translationVolumeState(), 0, maxTranslationVolume());
+		const videoVolumeText = () => `${videoVolume()}%`;
+		const translationVolumeText = () => `${translationVolume()}%`;
+		createRenderEffect(() => {
+			setVideoVolume(finalProps.videoVolume);
+		});
+		createRenderEffect(() => {
+			setTranslationVolume(finalProps.translationVolume);
+		});
+		finalProps.controlsRef?.({
+			closeFloatingUI: () => {
+				languagePairSelectControls?.closeFloatingUI();
+				subtitlesSelectControls?.close();
+			},
+			setVideoVolume,
+			getVideoVolume: videoVolume,
+			setTranslationVolume,
+			getTranslationVolume: translationVolume,
+			getMaxTranslationVolume: maxTranslationVolume,
+			setTranslationProgress: (progress) => {
+				menuHeaderContentControls?.setTranslationProgress(progress);
+			},
+			setShowTranslationProgress: (show) => menuHeaderContentControls?.setShowTranslationProgress(show)
+		});
+		return createComponent(Menu, {
+			get title() {
+				return localizationProvider.get("VOTSettings");
+			},
+			get headerChildren() {
+				return createComponent(MenuHeaderContent, {
+					controlsRef: (controls) => menuHeaderContentControls = controls,
+					get showDownloadTranslation() {
+						return finalProps.showDownloadTranslation;
+					},
+					get showDownloadSubtitles() {
+						return finalProps.showDownloadSubtitles;
+					},
+					get onSettingsClick() {
+						return finalProps.onSettingsClick;
+					},
+					get onDownloadTranslationClick() {
+						return finalProps.onDownloadTranslationClick;
+					},
+					get onDownloadSubtitlesClick() {
+						return finalProps.onDownloadSubtitlesClick;
+					}
+				});
+			},
+			get children() {
+				return [
+					createComponent(LanguagePairSelect, {
+						controlsRef: (controls) => languagePairSelectControls = controls,
+						get detectedLanguage() {
+							return finalProps.detectedLanguage;
+						},
+						get onDetectedLanguageSelect() {
+							return finalProps.onDetectedLanguageSelect;
+						},
+						get responseLanguage() {
+							return settings.responseLanguage;
+						},
+						onResponseLanguageSelect: (lang) => {
+							const prevResponseLanguage = settings.responseLanguage;
+							setSettings("responseLanguage", lang);
+							if (Array.isArray(settings.dontTranslateLanguages) && settings.dontTranslateLanguages.length === 1 && prevResponseLanguage !== lang && settings.dontTranslateLanguages[0] === prevResponseLanguage) setSettings("dontTranslateLanguages", [lang]);
+							finalProps.onResponseLanguageSelect?.(lang);
+						}
+					}),
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("VOTSubtitles");
+						},
+						get options() {
+							return finalProps.subtitlesOptions;
+						},
+						get selectedValue() {
+							return finalProps.selectedSubtitles;
+						},
+						search: true,
+						get loading() {
+							return finalProps.subtitlesLoading;
+						},
+						controlsRef: (controls) => subtitlesSelectControls = controls,
+						get onOpen() {
+							return finalProps.onSubtitlesOpen;
+						},
+						onSelect: (option) => finalProps.onSubtitlesSelect?.(String(option.value)),
+						get children() {
+							return localizationProvider.get("VOTSubtitles");
+						}
+					}),
+					createComponent(Show, {
+						get when() {
+							return memo(() => finalProps.buttonStatus === "success")() && settings.showVideoSlider;
+						},
+						get children() {
+							return createComponent(SliderWrapper, { get children() {
+								return [createComponent(SliderLabel, {
+									get value() {
+										return videoVolumeText();
+									},
+									get children() {
+										return localizationProvider.get("VOTVolume");
+									}
+								}), createComponent(Slider, {
+									get value() {
+										return videoVolume();
+									},
+									onInput: (value) => {
+										setVideoVolume(value);
+										finalProps.onVideoVolumeInput?.(value);
+									}
+								})];
+							} });
+						}
+					}),
+					createComponent(Show, {
+						get when() {
+							return memo(() => finalProps.buttonStatus === "success")() && finalProps.showTranslationVolume;
+						},
+						get children() {
+							return createComponent(SliderWrapper, { get children() {
+								return [createComponent(SliderLabel, {
+									get value() {
+										return translationVolumeText();
+									},
+									get children() {
+										return localizationProvider.get("VOTVolumeTranslation");
+									}
+								}), createComponent(Slider, {
+									get max() {
+										return maxTranslationVolume();
+									},
+									get value() {
+										return translationVolume();
+									},
+									onInput: (value) => {
+										setTranslationVolume(value);
+										setSettings("defaultVolume", value);
+										finalProps.onTranslationVolumeInput?.(value);
+									}
+								})];
+							} });
+						}
+					})
+				];
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/SegmentedButton/SegmentedButtonMenuOverlay.tsx
+	function SegmentedButtonMenuOverlay(props) {
+		const [local, rest] = splitProps(mergeProps$1({
+			position: "default",
+			hidden: false
+		}, props), [
+			"ref",
+			"position",
+			"hidden"
+		]);
+		return createComponent(Overlay, {
+			ref(r$) {
+				var _ref$ = local.ref;
+				typeof _ref$ === "function" ? _ref$(r$) : local.ref = r$;
+			},
+			get hidden() {
+				return local.hidden;
+			},
+			classList: { "vot-overlay__segmented-button-menu": true },
+			get blockProps() {
+				return { "data-position": local.position };
+			},
+			get children() {
+				return createComponent(SegmentedButtonMenu, rest);
+			}
+		});
+	}
+	//#endregion
+	//#region src/utils/inputDevice.ts
+	function matchesMedia(query) {
+		try {
+			return typeof globalThis.matchMedia === "function" && globalThis.matchMedia(query).matches;
+		} catch {
+			return false;
+		}
+	}
+	function hasTouchScreen() {
+		return (globalThis.navigator?.maxTouchPoints ?? 0) > 0 || matchesMedia("(pointer: coarse)") || matchesMedia("(hover: none)");
+	}
+	function isTouchFirstInput() {
+		return matchesMedia("(pointer: coarse)") || hasTouchScreen() && !matchesMedia("(hover: hover)");
+	}
+	//#endregion
+	//#region src/components/Icons/LiveVoiceIcon.tsx
+	function LiveVoiceIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle"), _el$6 = createElement("circle"), _el$7 = createElement("circle"), _el$8 = createElement("circle");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$4);
+			insertNode(_el$, _el$5);
+			insertNode(_el$, _el$6);
+			insertNode(_el$, _el$7);
+			insertNode(_el$, _el$8);
+			setProp(_el$, "width", "24");
+			setProp(_el$, "height", "24");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "cx", "10");
+			setProp(_el$2, "cy", "4.5");
+			setProp(_el$2, "r", "1.4");
+			setProp(_el$3, "cx", "10");
+			setProp(_el$3, "cy", "9");
+			setProp(_el$3, "r", "1.9");
+			setProp(_el$4, "cx", "15");
+			setProp(_el$4, "cy", "9");
+			setProp(_el$4, "r", "1.65");
+			setProp(_el$5, "cx", "5.5");
+			setProp(_el$5, "cy", "14");
+			setProp(_el$5, "r", "1.55");
+			setProp(_el$6, "cx", "10");
+			setProp(_el$6, "cy", "14");
+			setProp(_el$6, "r", "2");
+			setProp(_el$7, "cx", "15");
+			setProp(_el$7, "cy", "14");
+			setProp(_el$7, "r", "2.15");
+			setProp(_el$8, "cx", "20");
+			setProp(_el$8, "cy", "14");
+			setProp(_el$8, "r", "1.55");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/StandartVoiceIcon.tsx
+	function StandardVoiceIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$4);
+			insertNode(_el$, _el$5);
+			setProp(_el$, "width", "24");
+			setProp(_el$, "height", "24");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "cx", "5");
+			setProp(_el$2, "cy", "12");
+			setProp(_el$2, "r", "1.25");
+			setProp(_el$3, "cx", "9.5");
+			setProp(_el$3, "cy", "12");
+			setProp(_el$3, "r", "2.25");
+			setProp(_el$4, "cx", "15");
+			setProp(_el$4, "cy", "12");
+			setProp(_el$4, "r", "2.75");
+			setProp(_el$5, "cx", "20");
+			setProp(_el$5, "cy", "12");
+			setProp(_el$5, "r", "1.75");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/SegmentedButton/VoicePopover.tsx
+	var DEFAULT_SHOW_DELAY_MS = 80;
+	var DEFAULT_HIDE_DELAY_MS = 80;
+	var POPOVER_GAP = 8;
+	var MIN_POPOVER_WIDTH = 160;
+	var MAX_POPOVER_WIDTH = 310;
+	var MIN_POPOVER_HEIGHT = 96;
+	function VoicePopover(props) {
+		const finalProps = mergeProps$1({
+			isOpen: false,
+			showDelay: DEFAULT_SHOW_DELAY_MS,
+			hideDelay: DEFAULT_HIDE_DELAY_MS
+		}, props);
+		const popoverId = `vot-voice-popover-${createUniqueId()}`;
+		const portalHost = document.createElement("vot-block");
+		portalHost.style.display = "contents";
+		const [popover, setPopover] = createSignal();
+		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+		const [activeVoice, setActiveVoice] = createSignal(finalProps.activeVoice);
+		let showTimer;
+		let hideTimer;
+		const anchor = () => {
+			if (!(finalProps.anchor instanceof HTMLElement)) throw new TypeError("anchor must be a valid HTMLElement");
+			return finalProps.anchor;
+		};
+		const layoutRoot = () => {
+			if (!(finalProps.layoutRoot instanceof HTMLElement)) throw new TypeError("layoutRoot must be a valid HTMLElement");
+			return finalProps.layoutRoot;
+		};
+		const buttonContainer = () => anchor().closest("[data-direction]") ?? anchor();
+		function clearShowTimer() {
+			if (showTimer !== void 0) {
+				clearTimeout(showTimer);
+				showTimer = void 0;
+			}
+		}
+		function clearHideTimer() {
+			if (hideTimer !== void 0) {
+				clearTimeout(hideTimer);
+				hideTimer = void 0;
+			}
+		}
+		function updateOpen(nextIsOpen) {
+			if (isOpen() === nextIsOpen) {
+				if (nextIsOpen) floatingPosition.update();
+				return;
+			}
+			setIsOpen(nextIsOpen);
+			finalProps.onOpenChange?.(nextIsOpen);
+		}
+		function showNow() {
+			clearShowTimer();
+			clearHideTimer();
+			updateOpen(true);
+		}
+		function hideNow() {
+			clearShowTimer();
+			clearHideTimer();
+			updateOpen(false);
+		}
+		function scheduleShow() {
+			clearShowTimer();
+			clearHideTimer();
+			if (isOpen()) {
+				floatingPosition.update();
+				return;
+			}
+			showTimer = setTimeout(() => {
+				showTimer = void 0;
+				updateOpen(true);
+			}, finalProps.showDelay);
+		}
+		function scheduleHide() {
+			clearShowTimer();
+			if (!isOpen()) return;
+			clearHideTimer();
+			hideTimer = setTimeout(() => {
+				hideTimer = void 0;
+				updateOpen(false);
+			}, finalProps.hideDelay);
+		}
+		function toggle() {
+			if (isOpen()) hideNow();
+			else showNow();
+		}
+		const controls = {
+			isOpen,
+			scheduleShow,
+			scheduleHide,
+			showNow,
+			hideNow,
+			toggle,
+			cancelShow: clearShowTimer,
+			cancelHide: clearHideTimer
+		};
+		function positionPopover(element) {
+			if (!isOpen()) return;
+			const rootRect = layoutRoot().getBoundingClientRect();
+			const container = buttonContainer();
+			const containerRect = container.getBoundingClientRect();
+			const maxRootWidth = Math.max(MIN_POPOVER_WIDTH, rootRect.width - 16);
+			const maxRootHeight = Math.max(MIN_POPOVER_HEIGHT, rootRect.height - 16);
+			element.style.setProperty("--vot-voice-popover-max-width", `${Math.min(MAX_POPOVER_WIDTH, maxRootWidth)}px`);
+			element.style.setProperty("--vot-voice-popover-max-height", `${maxRootHeight}px`);
+			const direction = container.dataset.direction ?? "row";
+			const position = container.dataset.position ?? "default";
+			let placement;
+			let left;
+			let top;
+			if (direction === "column") {
+				const spaceLeft = containerRect.left - rootRect.left - POPOVER_GAP;
+				const spaceRight = rootRect.right - containerRect.right - POPOVER_GAP;
+				placement = (position === "right" || position === "rightCenter") && spaceLeft >= MIN_POPOVER_WIDTH || spaceLeft >= spaceRight ? "left" : "right";
+				const availableWidth = placement === "left" ? spaceLeft : spaceRight;
+				element.style.setProperty("--vot-voice-popover-max-width", `${Math.max(MIN_POPOVER_WIDTH, Math.min(MAX_POPOVER_WIDTH, availableWidth))}px`);
+				const popoverRect = element.getBoundingClientRect();
+				top = containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
+				left = placement === "left" ? containerRect.left - popoverRect.width - POPOVER_GAP : containerRect.right + POPOVER_GAP;
+			} else {
+				const spaceAbove = containerRect.top - rootRect.top - POPOVER_GAP;
+				const spaceBelow = rootRect.bottom - containerRect.bottom - POPOVER_GAP;
+				placement = spaceBelow >= element.getBoundingClientRect().height || spaceBelow >= spaceAbove ? "bottom" : "top";
+				element.style.setProperty("--vot-voice-popover-max-height", `${Math.max(MIN_POPOVER_HEIGHT, placement === "top" ? spaceAbove : spaceBelow)}px`);
+				const popoverRect = element.getBoundingClientRect();
+				left = containerRect.left + containerRect.width / 2 - popoverRect.width / 2;
+				top = placement === "top" ? containerRect.top - popoverRect.height - POPOVER_GAP : containerRect.bottom + POPOVER_GAP;
+			}
+			const popoverRect = element.getBoundingClientRect();
+			const minLeft = rootRect.left + POPOVER_GAP;
+			const maxLeft = Math.max(minLeft, rootRect.right - popoverRect.width - POPOVER_GAP);
+			const minTop = rootRect.top + POPOVER_GAP;
+			const maxTop = Math.max(minTop, rootRect.bottom - popoverRect.height - POPOVER_GAP);
+			left = Math.min(Math.max(left, minLeft), maxLeft) - rootRect.left;
+			top = Math.min(Math.max(top, minTop), maxTop) - rootRect.top;
+			element.dataset.placement = placement;
+			element.style.left = `${left}px`;
+			element.style.top = `${top}px`;
+		}
+		const floatingPosition = createFloatingPosition({
+			anchor,
+			popup: popover,
+			isOpen,
+			mount: layoutRoot,
+			mountElement: () => portalHost,
+			removeOnCleanup: false,
+			resizeTargets: () => [layoutRoot(), buttonContainer()],
+			updatePosition: ({ popup }) => positionPopover(popup)
+		});
+		finalProps.controlsRef?.(controls);
+		function selectVoice(voice) {
+			setActiveVoice(voice);
+			clearHideTimer();
+			finalProps.onVoiceChange?.(voice);
+			finalProps.onTranslate?.();
+			hideNow();
+		}
+		createEffect(() => {
+			setActiveVoice(finalProps.activeVoice);
+		});
+		createEffect(() => {
+			setIsOpen(finalProps.isOpen);
+		});
+		createEffect(() => {
+			const currentAnchor = anchor();
+			const previousControls = currentAnchor.getAttribute("aria-controls");
+			const previousHasPopup = currentAnchor.getAttribute("aria-haspopup");
+			const previousExpanded = currentAnchor.getAttribute("aria-expanded");
+			const handleAnchorKeyDown = (event) => {
+				if (event.key === "Escape" && isOpen()) {
+					event.preventDefault();
+					hideNow();
+				}
+			};
+			currentAnchor.setAttribute("aria-controls", popoverId);
+			currentAnchor.setAttribute("aria-haspopup", "menu");
+			currentAnchor.addEventListener("keydown", handleAnchorKeyDown);
+			onCleanup(() => {
+				currentAnchor.removeEventListener("keydown", handleAnchorKeyDown);
+				if (previousControls === null) currentAnchor.removeAttribute("aria-controls");
+				else currentAnchor.setAttribute("aria-controls", previousControls);
+				if (previousHasPopup === null) currentAnchor.removeAttribute("aria-haspopup");
+				else currentAnchor.setAttribute("aria-haspopup", previousHasPopup);
+				if (previousExpanded === null) currentAnchor.removeAttribute("aria-expanded");
+				else currentAnchor.setAttribute("aria-expanded", previousExpanded);
+			});
+		});
+		createEffect(() => {
+			anchor().setAttribute("aria-expanded", isOpen().toString());
+		});
+		createEffect(() => {
+			const element = popover();
+			if (!isOpen() || !element) return;
+			const currentAnchor = anchor();
+			const handleOutsidePointerDown = (event) => {
+				const path = event.composedPath();
+				if (path.includes(element) || path.includes(currentAnchor)) return;
+				hideNow();
+			};
+			const updatePosition = () => floatingPosition.update();
+			document.addEventListener("pointerdown", handleOutsidePointerDown, {
+				capture: true,
+				passive: true
+			});
+			window.visualViewport?.addEventListener("scroll", updatePosition);
+			window.visualViewport?.addEventListener("resize", updatePosition);
+			onCleanup(() => {
+				document.removeEventListener("pointerdown", handleOutsidePointerDown, { capture: true });
+				window.visualViewport?.removeEventListener("scroll", updatePosition);
+				window.visualViewport?.removeEventListener("resize", updatePosition);
+			});
+		});
+		createEffect(() => {
+			finalProps.activeVoice;
+			finalProps.anchor;
+			finalProps.layoutRoot;
+			if (isOpen()) floatingPosition.update();
+		});
+		onCleanup(() => {
+			clearShowTimer();
+			clearHideTimer();
+		});
+		const voiceItem = (voice, title, subtitle, icon) => {
+			const isActive = () => activeVoice() === voice;
+			return (() => {
+				var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block");
+				insertNode(_el$, _el$2);
+				insertNode(_el$, _el$3);
+				setProp(_el$, "role", "menuitemradio");
+				setProp(_el$, "data-voice", voice);
+				setProp(_el$, "onClick", (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					selectVoice(voice);
+					queueMicrotask(() => anchor().focus());
+				});
+				setProp(_el$2, "class", `vot-voice-popover__item-icon vot-voice-popover__item-icon--${voice}`);
+				insert(_el$2, icon);
+				insertNode(_el$3, _el$4);
+				insertNode(_el$3, _el$5);
+				setProp(_el$3, "class", "vot-voice-popover__item-text");
+				setProp(_el$4, "class", "vot-voice-popover__item-title");
+				insert(_el$4, title);
+				setProp(_el$5, "class", "vot-voice-popover__item-subtitle");
+				insert(_el$5, subtitle);
+				effect((_p$) => {
+					var _v$ = {
+						"vot-voice-popover__item": true,
+						"vot-voice-popover__item--active": isActive()
+					}, _v$2 = isActive() ? 0 : -1, _v$3 = isActive();
+					_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
+					_v$2 !== _p$.t && (_p$.t = setProp(_el$, "tabIndex", _v$2, _p$.t));
+					_v$3 !== _p$.a && (_p$.a = setProp(_el$, "aria-checked", _v$3, _p$.a));
+					return _p$;
+				}, {
+					e: void 0,
+					t: void 0,
+					a: void 0
+				});
+				return _el$;
+			})();
+		};
+		const popoverView = () => (() => {
+			var _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
+			insertNode(_el$6, _el$7);
+			use((element) => {
+				setPopover(element);
+				finalProps.ref?.(element);
+			}, _el$6);
+			setProp(_el$6, "id", popoverId);
+			setProp(_el$6, "class", "vot-voice-popover");
+			setProp(_el$6, "role", "menu");
+			setProp(_el$6, "onPointerEnter", (event) => {
+				if (event.pointerType !== "touch") clearHideTimer();
+			});
+			setProp(_el$6, "onPointerLeave", (event) => {
+				if (event.pointerType !== "touch") scheduleHide();
+			});
+			setProp(_el$6, "onFocusOut", (event) => {
+				const nextTarget = event.relatedTarget;
+				if (nextTarget instanceof Node && (event.currentTarget.contains(nextTarget) || anchor().contains(nextTarget))) return;
+				hideNow();
+			});
+			setProp(_el$6, "onKeyDown", (event) => {
+				if (event.key === "Escape") {
+					event.preventDefault();
+					hideNow();
+					queueMicrotask(() => anchor().focus());
+				}
+			});
+			insert(_el$6, () => voiceItem("standard", localizationProvider.get("VOTStandardVoicesTitle"), localizationProvider.get("VOTStandardVoicesSubtitle"), createComponent(StandardVoiceIcon, {})), _el$7);
+			setProp(_el$7, "class", "vot-voice-popover__divider");
+			insert(_el$6, () => voiceItem("live", localizationProvider.get("VOTLiveVoicesTitle"), localizationProvider.get("VOTLiveVoicesSubtitle"), createComponent(LiveVoiceIcon, {})), null);
+			effect((_p$) => {
+				var _v$4 = localizationProvider.get("VOTVoiceSelection"), _v$5 = !isOpen(), _v$6 = !isOpen(), _v$7 = !isOpen();
+				_v$4 !== _p$.e && (_p$.e = setProp(_el$6, "aria-label", _v$4, _p$.e));
+				_v$5 !== _p$.t && (_p$.t = setProp(_el$6, "aria-hidden", _v$5, _p$.t));
+				_v$6 !== _p$.a && (_p$.a = setProp(_el$6, "hidden", _v$6, _p$.a));
+				_v$7 !== _p$.o && (_p$.o = setProp(_el$6, "inert", _v$7, _p$.o));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0,
+				o: void 0
+			});
+			return _el$6;
+		})();
+		const disposePopover = render(() => popoverView(), portalHost);
+		onCleanup(() => {
+			disposePopover();
+			portalHost.remove();
+		});
+		return document.createTextNode("");
+	}
+	//#endregion
+	//#region src/components/SegmentedButton/SegmentedButton.tsx
+	function SegmentedButton(props) {
+		const finalProps = mergeProps$1({
+			direction: "default",
+			tooltipPos: "bottom",
+			status: "none",
+			isLoading: false,
+			isSubtitlesActive: false,
+			isTransparent: false,
+			isDragging: false,
+			showPipButton: false,
+			menuOpened: false
+		}, props);
+		const [segmentedButton, setSegmentedButton] = createSignal();
+		const [translationButton, setTranslationButton] = createSignal();
+		const [voiceSelectionButton, setVoiceSelectionButton] = createSignal();
+		const [subtitlesButton, setSubtitlesButton] = createSignal();
+		const [pipButton, setPiPButton] = createSignal();
+		const [menuButton, setMenuButton] = createSignal();
+		const [isVoicePopoverOpen, setIsVoicePopoverOpen] = createSignal(false);
+		const [suppressVoiceTooltip, setSuppressVoiceTooltip] = createSignal(false);
+		let voicePopover;
+		let voicePopoverControls;
+		let suppressRestoredVoiceTooltipFocus = false;
+		const needHideTooltip = () => finalProps.isTransparent || finalProps.isDragging;
+		const isColumnDirection = () => finalProps.direction === "column";
+		const allowsVoicePopover = () => !isColumnDirection() || finalProps.status !== "error";
+		const shouldUseTouchVoiceInteraction = (event) => event.pointerType === "touch" || isTouchFirstInput();
+		const shouldUseHoverVoiceInteraction = (event) => event.pointerType !== "touch" && !isTouchFirstInput();
+		const voicePopoverAnchor = () => isColumnDirection() ? translationButton() : voiceSelectionButton();
+		const activeVoice = () => settings.useLivelyVoice ? "live" : "standard";
+		const tooltipLayoutRoot = () => finalProps.layoutRoot ?? segmentedButton()?.closest(".vot-overlay-root") ?? document.body;
+		const handleVoiceChange = (voice) => {
+			if (voice === activeVoice()) return;
+			setSettings("useLivelyVoice", voice === "live");
+			finalProps.onVoiceChange?.(voice);
+		};
+		const handleVoiceTooltipFocus = () => {
+			if (finalProps.isDragging) return;
+			if (suppressRestoredVoiceTooltipFocus) return;
+			setSuppressVoiceTooltip(false);
+		};
+		const handleVoiceTooltipPointerEnter = () => {
+			if (finalProps.isDragging) return;
+			suppressRestoredVoiceTooltipFocus = false;
+			setSuppressVoiceTooltip(false);
+		};
+		const handleVoiceTooltipFocusOut = () => {
+			suppressRestoredVoiceTooltipFocus = false;
+		};
+		const handleVoicePopoverOpenChange = (isOpen) => {
+			setSuppressVoiceTooltip(true);
+			setIsVoicePopoverOpen(isOpen);
+			suppressRestoredVoiceTooltipFocus = !isOpen;
+		};
+		finalProps.controlsRef?.({
+			closeFloatingUI: () => {
+				voicePopoverControls?.hideNow();
+				setSuppressVoiceTooltip(true);
+			},
+			getVoicePopoverEl: () => voicePopover,
+			isVoicePopoverOpen
+		});
+		createEffect(() => {
+			if (finalProps.status === "error" && finalProps.direction === "column") voicePopoverControls?.hideNow();
+		});
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$5 = createElement("vot-block");
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$5);
+			use((element) => {
+				setSegmentedButton(element);
+				finalProps.ref?.(element);
+			}, _el$);
+			setProp(_el$, "class", "vot-segmented-button");
+			setProp(_el$, "onClick", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				event.stopImmediatePropagation();
+			});
+			insert(_el$, createComponent(RawButton, {
+				ref: (element) => setTranslationButton(element),
+				"class": "vot-segment vot-translate-button",
+				get buttonProps() {
+					return {
+						"aria-label": finalProps.labelText,
+						onPointerEnter: (event) => {
+							handleVoiceTooltipPointerEnter();
+							if (isColumnDirection() && allowsVoicePopover() && shouldUseHoverVoiceInteraction(event)) voicePopoverControls?.scheduleShow();
+						},
+						onPointerLeave: (event) => {
+							if (isColumnDirection() && shouldUseHoverVoiceInteraction(event)) voicePopoverControls?.scheduleHide();
+						},
+						onFocusIn: handleVoiceTooltipFocus,
+						onFocusOut: handleVoiceTooltipFocusOut,
+						onKeyDown: (event) => {
+							if (event.target !== event.currentTarget || !isKeyboardActivation(event)) return;
+							event.preventDefault();
+							finalProps.onTranslateClick?.();
+						},
+						onPointerUp: (event) => {
+							if (!isPrimaryPointerAction(event)) return;
+							if (isColumnDirection() && allowsVoicePopover() && shouldUseTouchVoiceInteraction(event)) {
+								event.preventDefault();
+								event.stopPropagation();
+								voicePopoverControls?.toggle();
+								return;
+							}
+							finalProps.onTranslateClick?.();
+						}
+					};
+				},
+				get children() {
+					return [createComponent(TranslateIcon, { get loading() {
+						return finalProps.isLoading;
+					} }), createComponent(Show, {
+						get when() {
+							return !isColumnDirection();
+						},
+						get fallback() {
+							return createComponent(Tooltip, {
+								get content() {
+									return finalProps.labelText;
+								},
+								get parentElement() {
+									return tooltipLayoutRoot();
+								},
+								get target() {
+									return translationButton();
+								},
+								get position() {
+									return finalProps.tooltipPos;
+								},
+								autoLayout: false,
+								bordered: false,
+								get hidden() {
+									return needHideTooltip() || isVoicePopoverOpen() || suppressVoiceTooltip();
+								}
+							});
+						},
+						get children() {
+							return [(() => {
+								var _el$2 = createElement("vot-block");
+								setProp(_el$2, "class", "vot-segment-label");
+								insert(_el$2, () => finalProps.labelText);
+								return _el$2;
+							})(), createComponent(RawButton, {
+								"class": "vot-dropdown-arrow",
+								ref: (element) => setVoiceSelectionButton(element),
+								get buttonProps() {
+									return {
+										"aria-label": localizationProvider.get("VOTVoiceSelection"),
+										"aria-haspopup": "menu",
+										"aria-expanded": isVoicePopoverOpen(),
+										onPointerEnter: handleVoiceTooltipPointerEnter,
+										onFocusIn: handleVoiceTooltipFocus,
+										onFocusOut: handleVoiceTooltipFocusOut,
+										onKeyDown: (event) => {
+											if (!isKeyboardActivation(event)) return;
+											event.preventDefault();
+											event.stopPropagation();
+											voicePopoverControls?.toggle();
+										},
+										onPointerDown: (event) => {
+											if (isPrimaryPointerAction(event)) event.stopPropagation();
+										},
+										onPointerUp: (event) => {
+											if (!isPrimaryPointerAction(event)) return;
+											event.stopPropagation();
+											voicePopoverControls?.toggle();
+										}
+									};
+								},
+								get children() {
+									return [createComponent(ChevronIcon, {}), createComponent(Tooltip, {
+										get content() {
+											return localizationProvider.get("VOTVoiceSelection");
+										},
+										get parentElement() {
+											return tooltipLayoutRoot();
+										},
+										get target() {
+											return voiceSelectionButton();
+										},
+										get edgeAnchor() {
+											return translationButton();
+										},
+										get position() {
+											return finalProps.tooltipPos;
+										},
+										autoLayout: false,
+										bordered: false,
+										get hidden() {
+											return needHideTooltip() || isVoicePopoverOpen() || suppressVoiceTooltip();
+										}
+									})];
+								}
+							})];
+						}
+					})];
+				}
+			}), _el$3);
+			setProp(_el$3, "class", "vot-separator");
+			insert(_el$, createComponent(RawButton, {
+				"class": "vot-segment-only-icon",
+				ref: (element) => setSubtitlesButton(element),
+				get buttonProps() {
+					return {
+						"data-active": finalProps.isSubtitlesActive,
+						"aria-label": localizationProvider.get("VOTSubtitles"),
+						"aria-pressed": finalProps.isSubtitlesActive,
+						onKeyDown: (event) => {
+							if (!isKeyboardActivation(event)) return;
+							event.preventDefault();
+							event.stopPropagation();
+							finalProps.onSubtitlesClick?.();
+						},
+						onPointerUp: (event) => {
+							if (!isPrimaryPointerAction(event)) return;
+							event.stopPropagation();
+							finalProps.onSubtitlesClick?.();
+						}
+					};
+				},
+				get children() {
+					return [createComponent(SubtitlesIcon, {}), createComponent(Tooltip, {
+						get content() {
+							return localizationProvider.get("VOTSubtitles");
+						},
+						get parentElement() {
+							return tooltipLayoutRoot();
+						},
+						get target() {
+							return subtitlesButton();
+						},
+						get position() {
+							return finalProps.tooltipPos;
+						},
+						autoLayout: false,
+						bordered: false,
+						get hidden() {
+							return needHideTooltip();
+						}
+					})];
+				}
+			}), _el$5);
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.showPipButton;
+				},
+				get children() {
+					return [(() => {
+						var _el$4 = createElement("vot-block");
+						setProp(_el$4, "class", "vot-separator");
+						return _el$4;
+					})(), createComponent(RawButton, {
+						"class": "vot-segment-only-icon",
+						ref: (element) => setPiPButton(element),
+						get buttonProps() {
+							return {
+								"aria-label": localizationProvider.get("VOTPiP"),
+								onKeyDown: (event) => {
+									if (!isKeyboardActivation(event)) return;
+									event.preventDefault();
+									event.stopPropagation();
+									finalProps.onPiPClick?.();
+								},
+								onPointerUp: (event) => {
+									if (!isPrimaryPointerAction(event)) return;
+									event.stopPropagation();
+									finalProps.onPiPClick?.();
+								}
+							};
+						},
+						get children() {
+							return [createComponent(PiPIcon, {}), createComponent(Tooltip, {
+								get content() {
+									return localizationProvider.get("VOTPiP");
+								},
+								get parentElement() {
+									return tooltipLayoutRoot();
+								},
+								get target() {
+									return pipButton();
+								},
+								get position() {
+									return finalProps.tooltipPos;
+								},
+								autoLayout: false,
+								bordered: false,
+								get hidden() {
+									return needHideTooltip();
+								}
+							})];
+						}
+					})];
+				}
+			}), _el$5);
+			setProp(_el$5, "class", "vot-separator");
+			insert(_el$, createComponent(RawButton, {
+				"class": "vot-segment-only-icon",
+				ref: (element) => setMenuButton(element),
+				get buttonProps() {
+					return {
+						"aria-label": localizationProvider.get("VOTMenu"),
+						"aria-haspopup": "dialog",
+						"aria-expanded": finalProps.menuOpened,
+						onKeyDown: (event) => {
+							if (!isKeyboardActivation(event)) return;
+							event.preventDefault();
+							event.stopPropagation();
+							finalProps.onMenuClick?.();
+						},
+						onPointerUp: (event) => {
+							if (!isPrimaryPointerAction(event)) return;
+							event.stopPropagation();
+							finalProps.onMenuClick?.();
+						}
+					};
+				},
+				get children() {
+					return [createComponent(MenuIcon, {}), createComponent(Tooltip, {
+						get content() {
+							return localizationProvider.get("VOTMenu");
+						},
+						get parentElement() {
+							return tooltipLayoutRoot();
+						},
+						get target() {
+							return menuButton();
+						},
+						get position() {
+							return finalProps.tooltipPos;
+						},
+						autoLayout: false,
+						bordered: false,
+						get hidden() {
+							return needHideTooltip();
+						}
+					})];
+				}
+			}), null);
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return voicePopoverAnchor();
+				},
+				children: (anchor) => createComponent(VoicePopover, {
+					ref: (element) => voicePopover = element,
+					get activeVoice() {
+						return activeVoice();
+					},
+					get anchor() {
+						return anchor();
+					},
+					get layoutRoot() {
+						return tooltipLayoutRoot();
+					},
+					controlsRef: (controls) => voicePopoverControls = controls,
+					onOpenChange: handleVoicePopoverOpenChange,
+					get onTranslate() {
+						return finalProps.onTranslateClick;
+					},
+					onVoiceChange: handleVoiceChange
+				})
+			}), null);
+			effect((_p$) => {
+				var _v$ = finalProps.direction, _v$2 = finalProps.status, _v$3 = finalProps.isLoading;
+				_v$ !== _p$.e && (_p$.e = setProp(_el$, "data-direction", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "data-status", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-loading", _v$3, _p$.a));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0
+			});
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/SegmentedButton/SegmentedButtonOverlay.tsx
+	function SegmentedButtonOverlay(props) {
+		const [local, rest] = splitProps(mergeProps$1({
+			position: "default",
+			isDragging: false
+		}, props), [
+			"overlayRef",
+			"position",
+			"isDragging",
+			"hidden",
+			"opacity",
+			"isTransparent"
+		]);
+		const isTransparent = () => local.opacity !== void 0 && local.opacity < .05;
+		return createComponent(Overlay, {
+			ref(r$) {
+				var _ref$ = local.overlayRef;
+				typeof _ref$ === "function" ? _ref$(r$) : local.overlayRef = r$;
+			},
+			get hidden() {
+				return local.hidden;
+			},
+			classList: { "vot-overlay__segmented-button": true },
+			get blockProps() {
+				return {
+					"data-position": local.position,
+					"data-dragging": local.isDragging ? "true" : void 0,
+					style: { opacity: local.opacity }
+				};
+			},
+			get children() {
+				return createComponent(SegmentedButton, mergeProps(rest, {
+					get isTransparent() {
+						return isTransparent();
+					},
+					get isDragging() {
+						return local.isDragging;
+					}
+				}));
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/OverlayView/OverlayView.tsx
+	var BIG_CONTAINER_WIDTH_PX = 550;
+	var DRAG_ACTION_SUPPRESS_MS = 350;
+	var DRAG_THRESHOLD_PX = 6;
+	function OverlayView(props) {
+		const finalProps = mergeProps$1({
+			isBigContainer: false,
+			detectedLanguage: "en",
+			responseLanguage: "ru",
+			status: "none",
+			baseOpacity: 0
+		}, props);
+		const [isBigContainer, setIsBigContainer] = createSignal(finalProps.isBigContainer);
+		const [dockPreviewPosition, setDockPreviewPosition] = createSignal();
+		const [menuHidden, setMenuHiddenState] = createSignal(true);
+		const [buttonHidden, setButtonHiddenState] = createSignal(false);
+		const [buttonOpacity, setButtonOpacity] = createSignal(finalProps.baseOpacity);
+		const [isDragging, setIsDragging] = createSignal(false);
+		const [isLoading, setIsLoading] = createSignal(false);
+		const [subtitlesOptions, setSubtitlesOptions] = createSignal([{
+			label: localizationProvider.get("VOTSubtitlesDisabled"),
+			value: "disabled"
+		}]);
+		const [selectedSubtitles, setSelectedSubtitles] = createSignal("disabled");
+		const [subtitlesLoading, setSubtitlesLoading] = createSignal(false);
+		const [status, setStatus] = createSignal(finalProps.status);
+		const [labelText, setLabelText] = createSignal(localizationProvider.get("translateVideo"));
+		const [showTranslationVolume, setShowTranslationVolume] = createSignal(false);
+		const [showDownloadTranslation, setShowDownloadTranslation] = createSignal(false);
+		const [showDownloadSubtitles, setShowDownloadSubtitles] = createSignal(false);
+		const [detectedLanguage, setDetectedLanguage] = createSignal(finalProps.detectedLanguage);
+		const [responseLanguage, setResponseLanguage] = createSignal(finalProps.responseLanguage);
+		let rootElement;
+		let buttonOverlay;
+		let menuOverlay;
+		let segmentedButton;
+		let segmentedButtonControls;
+		let segmentedButtonMenuControls;
+		let dragState = null;
+		let dragListenersAbortController;
+		let lastButtonDragEndAt = 0;
+		let subtitlesLoadVersion = 0;
+		const setMenuHidden = (hidden) => {
+			if (hidden) segmentedButtonMenuControls?.closeFloatingUI();
+			setMenuHiddenState(hidden);
+		};
+		const setButtonHidden = (hidden) => {
+			if (hidden) segmentedButtonControls?.closeFloatingUI();
+			setButtonHiddenState(hidden);
+		};
+		const setContainerSize = (width, height) => {
+			if (width > 0) setIsBigContainer(width > BIG_CONTAINER_WIDTH_PX);
+			const menuHeight = height > 200 ? height : globalThis.innerHeight * .75;
+			menuOverlay?.style.setProperty("--vot-container-height", `${menuHeight}px`);
+		};
+		finalProps.controlsRef?.({
+			setStatus,
+			getStatus: status,
+			setIsLoading,
+			getIsLoading: isLoading,
+			setLabelText,
+			setSubtitlesOptions,
+			setSelectedSubtitles,
+			getSelectedSubtitles: selectedSubtitles,
+			setButtonHidden,
+			getButtonHidden: buttonHidden,
+			setMenuHidden,
+			getMenuHidden: menuHidden,
+			setButtonOpacity,
+			getButtonOpacity: buttonOpacity,
+			setContainerSize,
+			closeVoicePopover: () => {
+				segmentedButtonControls?.closeFloatingUI();
+			},
+			getButtonOverlayEl: () => buttonOverlay,
+			getMenuOverlayEl: () => menuOverlay,
+			getVoicePopoverEl: () => {
+				return segmentedButtonControls?.getVoicePopoverEl();
+			},
+			isVoicePopoverOpen: () => {
+				return segmentedButtonControls?.isVoicePopoverOpen() ?? false;
+			},
+			setVideoVolume: (volume) => {
+				segmentedButtonMenuControls?.setVideoVolume(volume);
+			},
+			getVideoVolume: () => {
+				return segmentedButtonMenuControls?.getVideoVolume() ?? 100;
+			},
+			setTranslationVolume: (volume) => {
+				segmentedButtonMenuControls?.setTranslationVolume(volume);
+			},
+			getTranslationVolume: () => {
+				return segmentedButtonMenuControls?.getTranslationVolume() ?? settings.defaultVolume;
+			},
+			getMaxTranslationVolume: () => {
+				return segmentedButtonMenuControls?.getMaxTranslationVolume() ?? 100;
+			},
+			getShowTranslationVolume: showTranslationVolume,
+			setShowTranslationVolume,
+			getShowDownloadTranslation: showDownloadTranslation,
+			setShowDownloadTranslation,
+			setTranslationProgress: (progress) => {
+				segmentedButtonMenuControls?.setTranslationProgress(progress);
+			},
+			setShowTranslationProgress: (show) => {
+				segmentedButtonMenuControls?.setShowTranslationProgress(show);
+			},
+			getShowDownloadSubtitles: showDownloadSubtitles,
+			setShowDownloadSubtitles,
+			setDetectedLanguage,
+			setResponseLanguage
+		});
+		const getLayoutRoot = () => rootElement?.closest(".vot-overlay-root") ?? rootElement?.parentElement ?? rootElement ?? document.documentElement;
+		const loadSubtitles = async () => {
+			if (!finalProps.onSubtitlesOpen) return;
+			const version = ++subtitlesLoadVersion;
+			setSubtitlesLoading(true);
+			try {
+				await finalProps.onSubtitlesOpen();
+			} catch (error) {
+				console.error("[VOT] Failed to prepare subtitles:", error);
+			} finally {
+				if (version === subtitlesLoadVersion) setSubtitlesLoading(false);
+			}
+		};
+		const updateDraggingButtonPosition = () => {
+			const state = dragState;
+			if (!isDragging() || !state || !buttonOverlay) return;
+			const rootRect = getLayoutRoot().getBoundingClientRect();
+			const maxLeft = Math.max(0, rootRect.width - state.buttonWidth);
+			const maxTop = Math.max(0, rootRect.height - state.buttonHeight);
+			const nextLeft = Math.max(0, Math.min(state.clientX - rootRect.left - state.grabOffsetX, maxLeft));
+			const nextTop = Math.max(0, Math.min(state.clientY - rootRect.top - state.grabOffsetY, maxTop));
+			buttonOverlay.style.setProperty("--vot-button-drag-left", `${nextLeft}px`);
+			buttonOverlay.style.setProperty("--vot-button-drag-top", `${nextTop}px`);
+			return rootRect;
+		};
+		const updateDragTarget = (position) => {
+			if (!dragState) return;
+			dragState.targetPosition = position;
+			setDockPreviewPosition(position);
+		};
+		const applyButtonDragFrame = () => {
+			const state = dragState;
+			if (!isDragging() || !state) return;
+			state.frameId = null;
+			const rootRect = updateDraggingButtonPosition();
+			if (!rootRect) return;
+			updateDragTarget(resolveButtonPositionFromPointer(state.clientX, state.clientY, rootRect, isBigContainer()));
+			finalProps.onButtonDragActivity?.("overlay-button-drag-move");
+		};
+		const requestButtonDragFrame = () => {
+			const state = dragState;
+			if (!isDragging() || !state || state.frameId !== null) return;
+			state.frameId = requestAnimationFrame(applyButtonDragFrame);
+		};
+		const startButtonDrag = () => {
+			const state = dragState;
+			if (!isDragging() || !state || !buttonOverlay) return;
+			setMenuHidden(true);
+			segmentedButtonControls?.closeFloatingUI();
+			finalProps.onButtonDragStart?.();
+			finalProps.onButtonDragActivity?.("overlay-button-drag-start");
+			const rootRect = updateDraggingButtonPosition();
+			if (!rootRect) return;
+			updateDragTarget(resolveButtonPositionFromPointer(state.clientX, state.clientY, rootRect, isBigContainer()));
+		};
+		const finishButtonDrag = (commit, notify = true) => {
+			dragListenersAbortController?.abort();
+			dragListenersAbortController = void 0;
+			const state = dragState;
+			const wasDragging = isDragging();
+			dragState = null;
+			setIsDragging(false);
+			if (wasDragging) lastButtonDragEndAt = Date.now();
+			if (!state) return;
+			if (state.frameId !== null) cancelAnimationFrame(state.frameId);
+			try {
+				if (segmentedButton?.hasPointerCapture(state.pointerId)) segmentedButton.releasePointerCapture(state.pointerId);
+			} catch {}
+			if (buttonOverlay) {
+				buttonOverlay.style.removeProperty("--vot-button-drag-left");
+				buttonOverlay.style.removeProperty("--vot-button-drag-top");
+			}
+			setDockPreviewPosition(void 0);
+			if (!wasDragging) return;
+			if (commit) {
+				setSettings("buttonPos", state.targetPosition);
+				finalProps.onButtonPositionChange?.(state.targetPosition);
+				votStorage.set("buttonPos", state.targetPosition);
+			}
+			if (notify) finalProps.onButtonDragEnd?.();
+		};
+		const onButtonDragPointerDown = (event) => {
+			if (!event.isPrimary || event.button !== 0 || dragState || !buttonOverlay) return;
+			const buttonRect = buttonOverlay.getBoundingClientRect();
+			dragState = {
+				pointerId: event.pointerId,
+				startClientX: event.clientX,
+				startClientY: event.clientY,
+				clientX: event.clientX,
+				clientY: event.clientY,
+				grabOffsetX: event.clientX - buttonRect.left,
+				grabOffsetY: event.clientY - buttonRect.top,
+				buttonWidth: buttonRect.width,
+				buttonHeight: buttonRect.height,
+				targetPosition: "default",
+				frameId: null
+			};
+			bindDragDocumentListeners();
+		};
+		const onButtonDragPointerMove = (event) => {
+			const state = dragState;
+			if (state?.pointerId !== event.pointerId) return;
+			state.clientX = event.clientX;
+			state.clientY = event.clientY;
+			let started = false;
+			if (!isDragging()) {
+				if (Math.hypot(event.clientX - state.startClientX, event.clientY - state.startClientY) < DRAG_THRESHOLD_PX) return;
+				setIsDragging(true);
+				try {
+					segmentedButton?.setPointerCapture(event.pointerId);
+				} catch {}
+				startButtonDrag();
+				started = true;
+			}
+			event.preventDefault();
+			event.stopPropagation();
+			if (!started) requestButtonDragFrame();
+		};
+		const onButtonDragPointerUp = (event) => {
+			const state = dragState;
+			if (state?.pointerId !== event.pointerId) return;
+			state.clientX = event.clientX;
+			state.clientY = event.clientY;
+			if (isDragging()) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				applyButtonDragFrame();
+			}
+			finishButtonDrag(true);
+		};
+		const onButtonDragPointerCancel = (event) => {
+			if (dragState?.pointerId !== event.pointerId) return;
+			if (isDragging()) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			}
+			finishButtonDrag(false);
+		};
+		const suppressClickAfterDrag = (event) => {
+			if (isDragging() || Date.now() - lastButtonDragEndAt < DRAG_ACTION_SUPPRESS_MS) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			}
+		};
+		const bindDragDocumentListeners = () => {
+			dragListenersAbortController?.abort();
+			dragListenersAbortController = new AbortController();
+			const { signal } = dragListenersAbortController;
+			document.addEventListener("pointermove", onButtonDragPointerMove, {
+				capture: true,
+				signal
+			});
+			document.addEventListener("pointerup", onButtonDragPointerUp, {
+				capture: true,
+				signal
+			});
+			document.addEventListener("pointercancel", onButtonDragPointerCancel, {
+				capture: true,
+				signal
+			});
+		};
+		const normalizedPosition = createMemo(() => {
+			const normalizedPosition = normalizeButtonPosition(settings.buttonPos);
+			return isBigContainer() || !isSideButtonPosition(normalizedPosition) ? normalizedPosition : "default";
+		});
+		const direction = createMemo(() => getButtonDirection(normalizedPosition()));
+		const tooltipPos = createMemo(() => {
+			switch (normalizedPosition()) {
+				case "left":
+				case "leftCenter": return "right";
+				case "right":
+				case "rightCenter": return "left";
+				default: return "bottom";
+			}
+		});
+		createEffect(() => {
+			if (menuHidden() || !buttonOverlay || !menuOverlay) return;
+			const onOutsideClickHandle = (event) => {
+				if (menuHidden()) return;
+				const path = event.composedPath();
+				const isClickInsideSelect = path.some((element) => element instanceof HTMLElement && element.classList.contains("vot-select-inner"));
+				if (path.includes(buttonOverlay) || path.includes(menuOverlay) || isClickInsideSelect) return;
+				setMenuHidden(true);
+			};
+			const onEscHandle = (event) => {
+				if (event.key !== "Escape" || event.defaultPrevented) return;
+				event.preventDefault();
+				event.stopPropagation();
+				setMenuHidden(true);
+			};
+			document.addEventListener("pointerdown", onOutsideClickHandle, {
+				capture: true,
+				passive: true
+			});
+			rootElement.addEventListener("keydown", onEscHandle);
+			onCleanup(() => {
+				document.removeEventListener("pointerdown", onOutsideClickHandle, { capture: true });
+				rootElement.removeEventListener("keydown", onEscHandle);
+			});
+		});
+		onMount(() => {
+			if (!segmentedButton) return;
+			segmentedButton.addEventListener("pointerdown", onButtonDragPointerDown);
+			segmentedButton.addEventListener("click", suppressClickAfterDrag, true);
+			segmentedButton.addEventListener("lostpointercapture", onButtonDragPointerCancel);
+		});
+		onCleanup(() => {
+			subtitlesLoadVersion += 1;
+			finishButtonDrag(false, false);
+			segmentedButton?.removeEventListener("pointerdown", onButtonDragPointerDown);
+			segmentedButton?.removeEventListener("click", suppressClickAfterDrag, true);
+			segmentedButton?.removeEventListener("lostpointercapture", onButtonDragPointerCancel);
+		});
+		return (() => {
+			var _el$ = createElement("vot-block");
+			use((element) => {
+				rootElement = element;
+			}, _el$);
+			insert(_el$, createComponent(SegmentedButtonOverlay, {
+				controlsRef: (controls) => segmentedButtonControls = controls,
+				overlayRef: (element) => buttonOverlay = element,
+				get opacity() {
+					return buttonOpacity();
+				},
+				get isDragging() {
+					return isDragging();
+				},
+				get position() {
+					return normalizedPosition();
+				},
+				get hidden() {
+					return buttonHidden();
+				},
+				get status() {
+					return status();
+				},
+				get labelText() {
+					return labelText();
+				},
+				get tooltipPos() {
+					return tooltipPos();
+				},
+				get direction() {
+					return direction();
+				},
+				get isLoading() {
+					return isLoading();
+				},
+				get isSubtitlesActive() {
+					return selectedSubtitles() !== "disabled";
+				},
+				get showPipButton() {
+					return memo(() => !!isPiPAvailable())() && settings.showPiPButton;
+				},
+				get menuOpened() {
+					return !menuHidden();
+				},
+				ref: (element) => segmentedButton = element,
+				onMenuClick: () => {
+					setMenuHidden(!menuHidden());
+				},
+				onTranslateClick: () => {
+					setMenuHidden(true);
+					finalProps.onTranslateClick?.();
+				},
+				onPiPClick: () => {
+					setMenuHidden(true);
+					finalProps.onPiPClick?.();
+				},
+				onSubtitlesClick: () => {
+					setMenuHidden(true);
+					finalProps.onSubtitlesClick?.();
+				},
+				get onVoiceChange() {
+					return finalProps.onVoiceChange;
+				}
+			}), null);
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return dockPreviewPosition();
+				},
+				children: (position) => createComponent(PreviewSegmentedButtonOverlay, {
+					get position() {
+						return position();
+					},
+					get labelText() {
+						return labelText();
+					},
+					get direction() {
+						return getButtonDirection(position());
+					},
+					get showPipButton() {
+						return settings.showPiPButton;
+					}
+				})
+			}), null);
+			insert(_el$, createComponent(SegmentedButtonMenuOverlay, {
+				ref: (element) => menuOverlay = element,
+				controlsRef: (controls) => segmentedButtonMenuControls = controls,
+				get buttonStatus() {
+					return status();
+				},
+				get position() {
+					return normalizedPosition();
+				},
+				get hidden() {
+					return menuHidden();
+				},
+				get videoVolume() {
+					return finalProps.videoVolume;
+				},
+				get translationVolume() {
+					return settings.defaultVolume;
+				},
+				get showTranslationVolume() {
+					return showTranslationVolume();
+				},
+				get showDownloadTranslation() {
+					return showDownloadTranslation();
+				},
+				get showDownloadSubtitles() {
+					return showDownloadSubtitles();
+				},
+				get detectedLanguage() {
+					return detectedLanguage();
+				},
+				get responseLanguage() {
+					return responseLanguage();
+				},
+				get subtitlesOptions() {
+					return subtitlesOptions();
+				},
+				get selectedSubtitles() {
+					return selectedSubtitles();
+				},
+				get subtitlesLoading() {
+					return subtitlesLoading();
+				},
+				get onVideoVolumeInput() {
+					return finalProps.onVideoVolumeInput;
+				},
+				get onTranslationVolumeInput() {
+					return finalProps.onTranslationVolumeInput;
+				},
+				get onDownloadTranslationClick() {
+					return finalProps.onDownloadTranslationClick;
+				},
+				onDownloadSubtitlesClick: () => {
+					finalProps.onDownloadSubtitlesClick?.();
+				},
+				onSettingsClick: () => {
+					setMenuHidden(true);
+					finalProps.onSettingsClick?.();
+				},
+				get onDetectedLanguageSelect() {
+					return finalProps.onDetectedLanguageSelect;
+				},
+				get onResponseLanguageSelect() {
+					return finalProps.onResponseLanguageSelect;
+				},
+				onSubtitlesOpen: () => void loadSubtitles(),
+				onSubtitlesSelect: (value) => {
+					setSelectedSubtitles(value);
+					finalProps.onSubtitlesSelect?.(value);
+				}
+			}), null);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/ui/overlayController.ts
+	var OverlayController = class OverlayController {
+		static BIG_CONTAINER_WIDTH_PX = 550;
+		resizeObserver;
+		fullscreenHelper;
+		mount;
+		defaultVolumePersistTimer;
+		defaultVolumePersistDelayMs = 250;
+		initialized = false;
+		data;
+		videoHandler;
+		intervalIdleChecker;
+		overlayMount;
+		overlayViewControls;
+		disposeOverlay;
+		events = {
+			"click:settings": new EventImpl(),
+			"click:pip": new EventImpl(),
+			"click:subtitles": new EventImpl(),
+			"click:downloadTranslation": new EventImpl(),
+			"click:downloadSubtitles": new EventImpl(),
+			"click:translate": new EventImpl(),
+			"input:videoVolume": new EventImpl(),
+			"input:translationVolume": new EventImpl(),
+			"select:fromLanguage": new EventImpl(),
+			"select:toLanguage": new EventImpl(),
+			"select:subtitles": new EventImpl(),
+			"select:voiceType": new EventImpl()
+		};
+		constructor({ mount, data = {}, videoHandler, intervalIdleChecker }) {
+			this.mount = mount;
+			this.data = data;
+			this.videoHandler = videoHandler;
+			this.intervalIdleChecker = intervalIdleChecker;
+			this.fullscreenHelper = new FullscreenHelper({
+				container: videoHandler?.container || mount.root,
+				video: videoHandler?.video
+			});
+		}
+		get root() {
+			return this.overlayMount?.root ?? this.mount.root;
+		}
+		/**
+		* Update mount points when the player container changes.
+		* Moves already-mounted UI nodes and rebinds root-bound listeners (dragging).
+		*/
+		updateMount(nextMount) {
+			const prevRoot = this.mount.root;
+			const nextRoot = nextMount.root;
+			this.mount = nextMount;
+			if (!this.isInitialized()) return this;
+			if (prevRoot !== nextRoot && this.overlayMount) reparentShadowMount(this.overlayMount, nextRoot);
+			this.setupResizeObserver();
+			return this;
+		}
+		isInitialized() {
+			return this.initialized;
+		}
+		addEventListener(type, listener) {
+			this.events[type].addListener(listener);
+			return this;
+		}
+		removeEventListener(type, listener) {
+			this.events[type].removeListener(listener);
+			return this;
+		}
+		scheduleDefaultVolumePersist() {
+			if (this.defaultVolumePersistTimer !== void 0) globalThis.clearTimeout(this.defaultVolumePersistTimer);
+			this.defaultVolumePersistTimer = globalThis.setTimeout(() => {
+				this.defaultVolumePersistTimer = void 0;
+				this.flushDefaultVolumePersist();
+			}, this.defaultVolumePersistDelayMs);
+		}
+		flushDefaultVolumePersist() {
+			if (this.defaultVolumePersistTimer !== void 0) {
+				globalThis.clearTimeout(this.defaultVolumePersistTimer);
+				this.defaultVolumePersistTimer = void 0;
+			}
+			if (typeof this.data.defaultVolume !== "number") return;
+			votStorage.set("defaultVolume", this.data.defaultVolume);
+		}
+		initUI() {
+			if (this.isInitialized()) throw new Error("[VOT] OverlayController is already initialized");
+			this.initialized = true;
+			this.overlayMount = createShadowMount({
+				parent: this.mount.root,
+				rootClasses: ["vot-overlay-root"],
+				hostStyles: {
+					position: "absolute",
+					inset: "0",
+					display: "block",
+					"pointer-events": "none"
+				},
+				rootStyles: {
+					position: "relative",
+					display: "block",
+					width: "100%",
+					height: "100%",
+					"pointer-events": "none"
+				}
+			});
+			const videoVolume = this.videoHandler ? this.videoHandler.getVideoVolume() * 100 : 100;
+			this.disposeOverlay = render(() => OverlayView({
+				controlsRef: (controls) => {
+					this.overlayViewControls = controls;
+				},
+				isBigContainer: this.isBigContainer,
+				detectedLanguage: this.videoHandler?.videoData?.detectedLanguage,
+				responseLanguage: this.data.responseLanguage,
+				videoVolume,
+				onButtonDragActivity: (source) => this.intervalIdleChecker.markActivity(source),
+				onButtonDragEnd: () => this.queueButtonAutoHideAfterInteraction(),
+				onButtonPositionChange: (position) => {
+					this.data.buttonPos = position;
+				},
+				onTranslateClick: () => {
+					this.events["click:translate"].dispatch();
+				},
+				onPiPClick: () => {
+					this.events["click:pip"].dispatch();
+				},
+				onSubtitlesClick: () => {
+					this.events["click:subtitles"].dispatch();
+				},
+				onSubtitlesOpen: () => this.videoHandler?.ensureSubtitlesForCurrentLangPair(),
+				onSubtitlesSelect: (value) => {
+					this.events["select:subtitles"].dispatch(value);
+				},
+				onVoiceChange: (voice) => {
+					const useLive = voice === "live";
+					this.data.useLivelyVoice = useLive;
+					votStorage.set("useLivelyVoice", useLive);
+					this.events["select:voiceType"].dispatch(useLive);
+					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
+				},
+				onVideoVolumeInput: (volume) => {
+					this.events["input:videoVolume"].dispatch(volume);
+				},
+				onTranslationVolumeInput: (volume) => {
+					if (this.data.defaultVolume !== volume) {
+						this.data.defaultVolume = volume;
+						this.scheduleDefaultVolumePersist();
+					}
+					this.events["input:translationVolume"].dispatch(volume);
+				},
+				onDownloadTranslationClick: () => {
+					this.events["click:downloadTranslation"].dispatch();
+				},
+				onDownloadSubtitlesClick: () => {
+					this.events["click:downloadSubtitles"].dispatch();
+				},
+				onSettingsClick: () => {
+					this.events["click:settings"].dispatch();
+				},
+				onDetectedLanguageSelect: (language) => {
+					if (this.videoHandler?.videoData) {
+						this.videoHandler.videoData.detectedLanguage = language;
+						this.videoHandler.videoManager.rememberUserLanguageSelection(this.videoHandler.videoData.videoId, language);
+					}
+					this.events["select:fromLanguage"].dispatch(language);
+				},
+				onResponseLanguageSelect: async (language) => {
+					if (this.videoHandler?.videoData) this.videoHandler.translateToLang = this.videoHandler.videoData.responseLanguage = language;
+					const prevResponseLanguage = this.data.responseLanguage;
+					if (prevResponseLanguage !== language) {
+						this.data.responseLanguage = language;
+						await votStorage.set("responseLanguage", this.data.responseLanguage);
+					}
+					if (Array.isArray(this.data.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && prevResponseLanguage !== language && typeof prevResponseLanguage === "string" && this.data.dontTranslateLanguages[0] === prevResponseLanguage) {
+						setSettings("dontTranslateLanguages", [language]);
+						this.data.dontTranslateLanguages = [language];
+						await votStorage.set("dontTranslateLanguages", this.data.dontTranslateLanguages);
+					}
+					this.events["select:toLanguage"].dispatch(language);
+				}
+			}), this.root);
+			this.setupResizeObserver();
+			return this;
+		}
+		isElementHovered(element) {
+			if (!element?.isConnected) return false;
+			try {
+				return element.matches(":hover");
+			} catch {
+				return false;
+			}
+		}
+		getFloatingInteractionTargets() {
+			const overlayViewControls = this.overlayViewControls;
+			if (!overlayViewControls) return [];
+			return [
+				overlayViewControls.getButtonOverlayEl(),
+				overlayViewControls.getMenuOverlayEl(),
+				overlayViewControls.getVoicePopoverEl()
+			].filter((element) => element.isConnected);
+		}
+		isKeyboardFocusWithinFloatingUI() {
+			if (typeof document === "undefined" || typeof document.hasFocus !== "function" || !document.hasFocus() || !document.documentElement.classList.contains("vot-keyboard-nav")) return false;
+			const active = getDeepActiveElement(document);
+			if (!(active instanceof Node)) return false;
+			return this.getFloatingInteractionTargets().some((target) => containsCrossShadow(target, active));
+		}
+		shouldKeepVisibleForInteraction() {
+			if (!this.isInitialized()) return false;
+			const hoverActive = !isTouchFirstInput() && this.getFloatingInteractionTargets().some((target) => this.isElementHovered(target));
+			return this.hasOpenFloatingButtonUI() || hoverActive || this.isKeyboardFocusWithinFloatingUI();
+		}
+		blurPointerFocusInsideButton() {
+			const overlayViewControls = this.overlayViewControls;
+			if (!overlayViewControls || document.documentElement.classList.contains("vot-keyboard-nav")) return;
+			const active = getDeepActiveElement(document);
+			if (active instanceof HTMLElement && containsCrossShadow(overlayViewControls.getButtonOverlayEl(), active)) active.blur();
+		}
+		hasOpenFloatingButtonUI() {
+			const overlayViewControls = this.overlayViewControls;
+			if (!overlayViewControls) return false;
+			return !overlayViewControls.getMenuHidden() || overlayViewControls.isVoicePopoverOpen();
+		}
+		queueButtonAutoHideAfterInteraction() {
+			if (!this.isInitialized()) return;
+			if (this.shouldKeepVisibleForInteraction()) {
+				this.videoHandler?.overlayVisibility?.cancel?.();
+				return;
+			}
+			this.blurPointerFocusInsideButton();
+			if (this.shouldKeepVisibleForInteraction()) {
+				this.videoHandler?.overlayVisibility?.cancel?.();
+				return;
+			}
+			this.videoHandler?.overlayVisibility?.queueAutoHide?.();
+		}
+		updateButtonOpacity(opacity) {
+			const overlayViewControls = this.overlayViewControls;
+			if (!overlayViewControls?.getMenuHidden()) return this;
+			const nextOpacity = opacity <= .01 && overlayViewControls.isVoicePopoverOpen() && hasTouchScreen() ? 1 : opacity;
+			if (Math.abs(this.overlayViewControls.getButtonOpacity() - nextOpacity) > .01) {
+				this.overlayViewControls.setButtonOpacity(nextOpacity);
+				if (nextOpacity <= .01) this.overlayViewControls.closeVoicePopover();
+			}
+			return this;
+		}
+		doReleaseUI() {
+			this.resizeObserver?.disconnect();
+			this.resizeObserver = void 0;
+			this.disposeOverlay?.();
+			this.disposeOverlay = void 0;
+			this.overlayViewControls = void 0;
+			this.fullscreenHelper.destroy();
+			destroyShadowMount(this.overlayMount);
+			this.overlayMount = void 0;
+		}
+		doReleaseUIEvents() {
+			this.flushDefaultVolumePersist();
+			for (const event of Object.values(this.events)) event.clear();
+		}
+		release() {
+			if (!this.isInitialized()) return this;
+			this.doReleaseUIEvents();
+			this.doReleaseUI();
+			this.initialized = false;
+			return this;
+		}
+		get isBigContainer() {
+			return this.fullscreenHelper.isBigContainer(OverlayController.BIG_CONTAINER_WIDTH_PX);
+		}
+		setupResizeObserver() {
+			this.resizeObserver?.disconnect();
+			const target = this.fullscreenHelper.getResizeObserverTarget();
+			const video = this.videoHandler?.video;
+			const syncContainerSize = () => {
+				const targetRect = target.getBoundingClientRect();
+				const videoRect = video?.getBoundingClientRect();
+				const width = videoRect?.width && (targetRect.width <= 0 || videoRect.width < targetRect.width) ? videoRect.width : targetRect.width;
+				const height = videoRect?.height && (targetRect.height <= 0 || videoRect.height < targetRect.height) ? videoRect.height : targetRect.height;
+				this.overlayViewControls?.setContainerSize(width, height);
+			};
+			this.resizeObserver = new ResizeObserver(syncContainerSize);
+			this.resizeObserver.observe(target);
+			if (video && video !== target) this.resizeObserver.observe(video);
+			syncContainerSize();
+		}
+	};
+	//#endregion
+	//#region src/components/About/AboutItem.tsx
+	function AboutItem(props) {
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
+			setProp(_el$, "class", "vot-about-item");
+			setProp(_el$2, "class", "vot-about-item__label");
+			insert(_el$2, () => props.label);
+			setProp(_el$3, "class", "vot-about-item__value");
+			insert(_el$3, () => props.children);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/stores/locale.ts
+	function createInitialState$1() {
+		return {
+			updatedAt: 0,
+			hash: ""
+		};
+	}
+	var [locale, setLocale] = createStore(createInitialState$1());
+	//#endregion
+	//#region src/components/Button/OutlinedButton.tsx
+	function OutlinedButton(props) {
+		return createComponent(RawButton, mergeProps(props, { "class": "vot-outlined-button" }));
+	}
+	//#endregion
+	//#region src/components/About/AboutSection.tsx
+	function AboutSection(props) {
+		const envInfo = getEnvironmentInfo();
+		const safeGMInfo = typeof GM_info === "undefined" ? void 0 : GM_info;
+		const scriptVersion = envInfo.scriptVersion === "unknown" ? safeGMInfo?.script?.version || localizationProvider.get("notFound") : envInfo.scriptVersion;
+		const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
+		const scriptAuthors = (safeGMInfo?.script)?.author || buildAuthors || localizationProvider.get("notFound");
+		const browserInfo = `${envInfo.browser} (${envInfo.os})`;
+		const localeUpdatedAt = () => (/* @__PURE__ */ new Date(locale.updatedAt * 1e3)).toLocaleString();
+		const localeHashValue = () => locale.hash || localizationProvider.get("notFound");
+		return (() => {
+			var _el$ = createElement("vot-block");
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
+			setProp(_el$, "class", "vot-about-section");
+			insert(_el$, createComponent(AboutItem, {
+				get label() {
+					return localizationProvider.get("VOTVersion");
+				},
+				children: scriptVersion
+			}), null);
+			insert(_el$, createComponent(AboutItem, {
+				get label() {
+					return localizationProvider.get("VOTAuthors");
+				},
+				children: scriptAuthors
+			}), null);
+			insert(_el$, createComponent(AboutItem, {
+				get label() {
+					return localizationProvider.get("VOTLoader");
+				},
+				get children() {
+					return envInfo.loader;
+				}
+			}), null);
+			insert(_el$, createComponent(AboutItem, {
+				get label() {
+					return localizationProvider.get("VOTBrowser");
+				},
+				children: browserInfo
+			}), null);
+			insert(_el$, createComponent(AboutItem, {
+				get label() {
+					return localizationProvider.get("VOTLocaleHash");
+				},
+				get children() {
+					return [
+						memo(() => localeHashValue()),
+						createElement("br"),
+						(() => {
+							var _el$3 = createElement("vot-block"), _el$4 = createTextNode(`(`), _el$5 = createTextNode(` `), _el$6 = createTextNode(`)`);
+							insertNode(_el$3, _el$4);
+							insertNode(_el$3, _el$5);
+							insertNode(_el$3, _el$6);
+							setProp(_el$3, "class", "vot-about-item__value_detail");
+							insert(_el$3, () => localizationProvider.get("VOTUpdatedAt"), _el$5);
+							insert(_el$3, localeUpdatedAt, _el$6);
+							return _el$3;
+						})()
+					];
+				}
+			}), null);
+			insert(_el$, createComponent(OutlinedButton, {
+				onClick: async () => {
+					await votStorage.set("localeHash", "");
+					await localizationProvider.update(true);
+					globalThis.location.reload();
+				},
+				get children() {
+					return localizationProvider.get("VOTUpdateLocaleFiles");
+				}
+			}), null);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/stores/account.ts
+	function createInitialState() {
+		return {
+			isLoggedIn: false,
+			username: void 0,
+			avatarId: void 0,
+			expires: void 0,
+			token: void 0
+		};
+	}
+	var [account, setAccount] = createStore(createInitialState());
+	function resetAccount() {
+		setAccount(createInitialState());
+	}
+	function updateAccount(data) {
+		if (hasValidAccountToken(data)) return setAccount({
+			isLoggedIn: true,
+			...data
+		});
+		resetAccount();
+	}
+	async function updateAccountFromStorage() {
+		updateAccount(await votStorage.get("account", {}));
+	}
+	//#endregion
+	//#region src/components/Button/TextButton.tsx
+	function TextButton(props) {
+		return createComponent(RawButton, mergeProps(props, { "class": "vot-text-button" }));
+	}
+	//#endregion
+	//#region src/components/Icons/LogoutIcon.tsx
+	function LogoutIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("g"), _el$3 = createElement("path"), _el$4 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			insertNode(_el$2, _el$3);
+			insertNode(_el$2, _el$4);
+			setProp(_el$2, "fill", "none");
+			setProp(_el$3, "d", "m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z");
+			setProp(_el$4, "fill", "currentColor");
+			setProp(_el$4, "d", "M12 2.5a1.5 1.5 0 0 1 0 3H7a.5.5 0 0 0-.5.5v12a.5.5 0 0 0 .5.5h4.5a1.5 1.5 0 0 1 0 3H7A3.5 3.5 0 0 1 3.5 18V6A3.5 3.5 0 0 1 7 2.5Zm6.06 5.61l2.829 2.83a1.5 1.5 0 0 1 0 2.12l-2.828 2.83a1.5 1.5 0 1 1-2.122-2.122l.268-.268H12a1.5 1.5 0 0 1 0-3h4.207l-.268-.268a1.5 1.5 0 1 1 2.122-2.121Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Account/AccountLogout.tsx
+	function AccountLogout(props) {
+		return (() => {
+			var _el$ = createElement("vot-block");
+			setProp(_el$, "class", "vot-account-logout");
+			insert(_el$, createComponent(TextButton, {
+				ref(r$) {
+					var _ref$ = props.ref;
+					typeof _ref$ === "function" ? _ref$(r$) : props.ref = r$;
+				},
+				onClick: async () => {
+					await votStorage.delete("account");
+					resetAccount();
+				},
+				get children() {
+					var _el$2 = createElement("vot-block");
+					setProp(_el$2, "class", "vot-account-logout__content");
+					insert(_el$2, createComponent(LogoutIcon, {}), null);
+					insert(_el$2, () => localizationProvider.get("VOTLogout"), null);
+					return _el$2;
+				}
+			}));
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/RefreshIcon.tsx
+	function RefreshIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("g"), _el$3 = createElement("path"), _el$4 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			insertNode(_el$2, _el$3);
+			insertNode(_el$2, _el$4);
+			setProp(_el$2, "fill", "none");
+			setProp(_el$3, "d", "m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z");
+			setProp(_el$4, "fill", "currentColor");
+			setProp(_el$4, "d", "M20 9a1 1 0 0 1 1 1v1a8 8 0 0 1-8 8H9.414l.793.793a1 1 0 0 1-1.414 1.414l-2.496-2.496a1 1 0 0 1-.287-.567L6 17.991a1 1 0 0 1 .237-.638l.056-.06l2.5-2.5a1 1 0 0 1 1.414 1.414L9.414 17H13a6 6 0 0 0 6-6v-1a1 1 0 0 1 1-1m-4.793-6.207l2.5 2.5a1 1 0 0 1 0 1.414l-2.5 2.5a1 1 0 1 1-1.414-1.414L14.586 7H11a6 6 0 0 0-6 6v1a1 1 0 1 1-2 0v-1a8 8 0 0 1 8-8h3.586l-.793-.793a1 1 0 0 1 1.414-1.414");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Account/AccountRefreshButton.tsx
+	function AccountRefreshButton(props) {
+		return createComponent(IconButton, {
+			ref(r$) {
+				var _ref$ = props.ref;
+				typeof _ref$ === "function" ? _ref$(r$) : props.ref = r$;
+			},
+			get ariaLabel() {
+				return localizationProvider.get("VOTRefresh");
+			},
+			onClick: async () => {
+				await updateAccountFromStorage();
+			},
+			get children() {
+				return createComponent(RefreshIcon, {});
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Account/AccountInfo.tsx
+	function AccountInfo(props) {
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("img"), _el$5 = createElement("vot-block"), _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block"), _el$8 = createElement("vot-block"), _el$9 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$9);
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
+			setProp(_el$, "class", "vot-account-info");
+			insertNode(_el$2, _el$3);
+			insertNode(_el$2, _el$5);
+			insertNode(_el$2, _el$8);
+			setProp(_el$2, "class", "vot-account-info__block");
+			insertNode(_el$3, _el$4);
+			setProp(_el$3, "class", "vot-account-info__avatar");
+			setProp(_el$4, "class", "vot-account-info__avatar-img");
+			insertNode(_el$5, _el$6);
+			insertNode(_el$5, _el$7);
+			setProp(_el$5, "class", "vot-account-info__content");
+			setProp(_el$6, "class", "vot-account-info__label");
+			insert(_el$6, () => localizationProvider.get("VOTSignedInAs"));
+			setProp(_el$7, "class", "vot-account-info__username");
+			insert(_el$7, () => props.username);
+			setProp(_el$8, "class", "vot-account-info__refresh");
+			insert(_el$8, createComponent(AccountRefreshButton, {}));
+			setProp(_el$9, "class", "vot-account-info__block");
+			insert(_el$9, createComponent(AccountLogout, {}));
+			effect((_p$) => {
+				var _v$ = props.avatarUrl, _v$2 = `Avatar of ${props.username}`;
+				_v$ !== _p$.e && (_p$.e = setProp(_el$4, "src", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$4, "alt", _v$2, _p$.t));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0
+			});
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Utils/OrBlock.tsx
+	function OrBlock(props) {
+		return (() => {
+			var _el$ = createElement("vot-block");
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
+			setProp(_el$, "class", "vot-or-block");
+			insert(_el$, () => props.children);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Account/AccountLogin.tsx
+	var TOKEN_LIFETIME = 3153418e4;
+	function AccountLogin(props) {
+		const finalProps = mergeProps$1({ disableExternalLogin: votStorage.isSupportOnlyLS }, props);
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$5);
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "class", "vot-account-login");
+			insertNode(_el$2, _el$3);
+			insertNode(_el$2, _el$4);
+			setProp(_el$2, "class", "vot-account-login__btn");
+			setProp(_el$2, "onClick", () => {
+				if (finalProps.disableExternalLogin) return;
+				props.onClickLogin?.();
+			});
+			setProp(_el$3, "class", "vot-account-login__btn-icon");
+			setProp(_el$4, "class", "vot-account-login__btn-text");
+			insert(_el$4, () => localizationProvider.get("VOTSignInWithYandex"));
+			insert(_el$, createComponent(OrBlock, { get children() {
+				return localizationProvider.get("VOTOrUseToken");
+			} }), _el$5);
+			setProp(_el$5, "class", "vot-account-login__token");
+			insert(_el$5, createComponent(Textfield, {
+				get labelText() {
+					return localizationProvider.get("VOTLoginViaToken");
+				},
+				get placeholder() {
+					return localizationProvider.get("VOTYandexToken");
+				},
+				onChange: async (value) => {
+					const data = value ? {
+						token: value,
+						expires: Date.now() + TOKEN_LIFETIME
+					} : {};
+					const isLoggedIn = Boolean(value);
+					await votStorage.set("account", { ...data });
+					setAccount(produce((state) => {
+						state.token = data.token;
+						state.expires = data.expires;
+						state.isLoggedIn = isLoggedIn;
+					}));
+				}
+			}), null);
+			insert(_el$5, createComponent(AccountRefreshButton, {}), null);
+			effect((_$p) => setProp(_el$2, "aria-disabled", finalProps.disableExternalLogin, _$p));
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Account/AccountMenu.tsx
+	function AccountMenu(props) {
+		const avatarId = () => account.avatarId ?? "0/0-0";
+		const username = () => account.username ?? "unnamed";
+		const avatarUrl = () => `${AVATAR_SERVER_URL}/${avatarId()}/islands-retina-middle`;
+		return (() => {
+			var _el$ = createElement("vot-block");
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
+			setProp(_el$, "class", "vot-account-menu");
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return account.isLoggedIn;
+				},
+				get fallback() {
+					return createComponent(AccountLogin, {
+						get disableExternalLogin() {
+							return props.disableExternalLogin;
+						},
+						get onClickLogin() {
+							return props.onClickLogin;
+						}
+					});
+				},
+				get children() {
+					return createComponent(AccountInfo, {
+						get username() {
+							return username();
+						},
+						get avatarUrl() {
+							return avatarUrl();
+						}
+					});
+				}
+			}));
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Icons/CloseIcon.tsx
+	function CloseIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "100%");
+			setProp(_el$, "viewBox", "0 -960 960 960");
+			setProp(_el$2, "d", "M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z");
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Dialog/Dialog.tsx
+	function Dialog(props) {
+		const titleId = `vot-dialog-title-${createUniqueId()}`;
+		let container;
+		let box;
+		let contentWrapper;
+		let closeButton;
+		let previouslyFocused = null;
+		let adaptiveAlignObserver;
+		let adaptiveAlignRaf;
+		const getFocusableElements = () => {
+			if (!container) return [];
+			return Array.from(container.querySelectorAll([
+				"button:not([disabled])",
+				"[href]",
+				"input:not([disabled])",
+				"select:not([disabled])",
+				"textarea:not([disabled])",
+				"[tabindex]:not([tabindex='-1'])",
+				"[role='button']:not([aria-disabled='true'])"
+			].join(","))).filter((element) => !element.hidden && element.getClientRects().length);
+		};
+		const restoreFocus = () => {
+			const element = previouslyFocused;
+			previouslyFocused = null;
+			if (element instanceof HTMLElement && element.isConnected) element.focus();
+		};
+		const detachAdaptiveVerticalAlign = () => {
+			adaptiveAlignObserver?.disconnect();
+			adaptiveAlignObserver = void 0;
+			globalThis.removeEventListener("resize", scheduleAdaptiveVerticalAlign);
+			globalThis.visualViewport?.removeEventListener("resize", scheduleAdaptiveVerticalAlign);
+			globalThis.visualViewport?.removeEventListener("scroll", scheduleAdaptiveVerticalAlign);
+			if (adaptiveAlignRaf !== void 0) {
+				cancelAnimationFrame(adaptiveAlignRaf);
+				adaptiveAlignRaf = void 0;
+			}
+		};
+		function updateAdaptiveVerticalAlign() {
+			if (!box || !contentWrapper) return;
+			const viewportHeight = globalThis.visualViewport?.height ?? globalThis.innerHeight;
+			if (!viewportHeight || viewportHeight <= 0) return;
+			const centerMaxPx = Math.max(160, Math.round(viewportHeight * .75));
+			const topMaxPx = Math.max(160, Math.round(viewportHeight - 32));
+			const shouldTop = box.dataset.verticalAlign === "top" ? contentWrapper.scrollHeight > Math.round(viewportHeight * .6) : contentWrapper.scrollHeight >= centerMaxPx - 8;
+			box.dataset.verticalAlign = shouldTop ? "top" : "center";
+			box.style.setProperty("--vot-dialog-max-height", `${shouldTop ? topMaxPx : centerMaxPx}px`);
+		}
+		function scheduleAdaptiveVerticalAlign() {
+			if (adaptiveAlignRaf !== void 0) cancelAnimationFrame(adaptiveAlignRaf);
+			adaptiveAlignRaf = requestAnimationFrame(() => {
+				adaptiveAlignRaf = void 0;
+				updateAdaptiveVerticalAlign();
+			});
+		}
+		const close = () => {
+			if (!props.isOpen) return;
+			props.onClose();
+		};
+		const handleKeyDown = (event) => {
+			if (event.key === "Escape" && !event.defaultPrevented) {
+				event.preventDefault();
+				close();
+				return;
+			}
+			if (event.key !== "Tab") return;
+			const focusableElements = getFocusableElements();
+			if (!focusableElements.length) {
+				event.preventDefault();
+				box?.focus();
+				return;
+			}
+			const first = focusableElements[0];
+			const last = focusableElements.at(-1) ?? first;
+			const active = container ? getDeepActiveElement(container.getRootNode()) : null;
+			if (event.shiftKey && (active === first || active === box)) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && active === last) {
+				event.preventDefault();
+				first.focus();
+			}
+		};
+		createEffect(() => {
+			if (!props.isOpen) return;
+			previouslyFocused ??= getDeepActiveElement(document);
+			if (typeof ResizeObserver !== "undefined" && contentWrapper) {
+				adaptiveAlignObserver = new ResizeObserver(scheduleAdaptiveVerticalAlign);
+				adaptiveAlignObserver.observe(contentWrapper);
+			}
+			globalThis.addEventListener("resize", scheduleAdaptiveVerticalAlign, { passive: true });
+			globalThis.visualViewport?.addEventListener("resize", scheduleAdaptiveVerticalAlign, { passive: true });
+			globalThis.visualViewport?.addEventListener("scroll", scheduleAdaptiveVerticalAlign, { passive: true });
+			scheduleAdaptiveVerticalAlign();
+			queueMicrotask(() => {
+				if (props.isOpen) (getFocusableElements()[0] ?? closeButton ?? box)?.focus();
+			});
+			onCleanup(() => {
+				detachAdaptiveVerticalAlign();
+				restoreFocus();
+			});
+		});
+		return createComponent(Overlay, {
+			ref: (element) => {
+				container = element;
+				props.ref?.(element);
+			},
+			get hidden() {
+				return !props.isOpen;
+			},
+			classList: { "vot-dialog-container": true },
+			get blockProps() {
+				return {
+					inert: props.isOpen ? void 0 : true,
+					onKeyDown: handleKeyDown
+				};
+			},
+			get children() {
+				return [(() => {
+					var _el$ = createElement("vot-block");
+					setProp(_el$, "class", "vot-dialog-backdrop");
+					setProp(_el$, "onClick", (event) => {
+						event.stopPropagation();
+						close();
+					});
+					return _el$;
+				})(), (() => {
+					var _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block"), _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
+					insertNode(_el$2, _el$3);
+					use((element) => box = element, _el$2);
+					setProp(_el$2, "class", "vot-dialog");
+					setProp(_el$2, "data-vertical-align", "center");
+					setProp(_el$2, "role", "dialog");
+					setProp(_el$2, "aria-modal", "true");
+					setProp(_el$2, "aria-labelledby", titleId);
+					setProp(_el$2, "tabIndex", -1);
+					setProp(_el$2, "onClick", (event) => event.stopPropagation());
+					insertNode(_el$3, _el$4);
+					insertNode(_el$3, _el$7);
+					use((element) => contentWrapper = element, _el$3);
+					setProp(_el$3, "class", "vot-dialog-content-wrapper");
+					insertNode(_el$4, _el$5);
+					setProp(_el$4, "class", "vot-dialog-header-container");
+					insertNode(_el$5, _el$6);
+					setProp(_el$5, "class", "vot-dialog-title-container");
+					setProp(_el$6, "class", "vot-dialog-title");
+					setProp(_el$6, "id", titleId);
+					insert(_el$6, () => props.title);
+					insert(_el$4, createComponent(IconButton, {
+						ref: (element) => closeButton = element,
+						get ariaLabel() {
+							return localizationProvider.get("VOTClose");
+						},
+						onClick: close,
+						get children() {
+							return createComponent(CloseIcon, {});
+						}
+					}), null);
+					setProp(_el$7, "class", "vot-dialog-body-container");
+					insert(_el$7, () => props.children);
+					insert(_el$3, createComponent(Show, {
+						get when() {
+							return props.footer;
+						},
+						get children() {
+							var _el$8 = createElement("vot-block");
+							setProp(_el$8, "class", "vot-dialog-footer-container");
+							insert(_el$8, () => props.footer);
+							return _el$8;
+						}
+					}), null);
+					return _el$2;
+				})()];
+			}
+		});
+	}
+	//#endregion
+	//#region src/types/components/votButton.ts
+	var positions = [
+		"default",
+		"left",
+		"right",
+		"leftCenter",
+		"rightCenter"
+	];
+	//#endregion
+	//#region src/components/Control/Switch.tsx
+	function Switch(props) {
+		const finalProps = mergeProps$1({
+			checked: false,
+			disabled: false,
+			isSubSwitch: false
+		}, props);
+		const textId = createUniqueId();
+		const [checked, setChecked] = createSignal(finalProps.checked);
+		const [disabled, setDisabled] = createSignal(finalProps.disabled);
+		createRenderEffect(() => {
+			setChecked(finalProps.checked);
+			setDisabled(finalProps.disabled);
+		});
+		return (() => {
+			var _el$ = createElement("label"), _el$2 = createElement("input"), _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$6);
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "class", "vot-switch");
+			setProp(_el$2, "class", "vot-switch-control");
+			setProp(_el$2, "role", "switch");
+			setProp(_el$2, "type", "checkbox");
+			setProp(_el$2, "name", textId);
+			setProp(_el$2, "onChange", (event) => {
+				const nextChecked = event.currentTarget.checked;
+				setChecked(nextChecked);
+				finalProps.onChange?.(nextChecked);
+			});
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.heading || finalProps.description;
+				},
+				get children() {
+					var _el$3 = createElement("vot-block");
+					setProp(_el$3, "class", "vot-switch-text");
+					insert(_el$3, createComponent(Show, {
+						get when() {
+							return finalProps.heading;
+						},
+						get children() {
+							var _el$4 = createElement("vot-block");
+							setProp(_el$4, "class", "vot-switch-heading");
+							setProp(_el$4, "id", `${textId}-heading`);
+							insert(_el$4, () => finalProps.heading);
+							return _el$4;
+						}
+					}), null);
+					insert(_el$3, createComponent(Show, {
+						get when() {
+							return finalProps.description;
+						},
+						get children() {
+							var _el$5 = createElement("vot-block");
+							setProp(_el$5, "class", "vot-switch-description");
+							setProp(_el$5, "id", `${textId}-description`);
+							insert(_el$5, () => finalProps.description);
+							return _el$5;
+						}
+					}), null);
+					return _el$3;
+				}
+			}), _el$6);
+			insertNode(_el$6, _el$7);
+			setProp(_el$6, "class", "vot-switch-track");
+			setProp(_el$7, "class", "vot-switch-handle");
+			effect((_p$) => {
+				var _v$ = { "vot-switch_sub": finalProps.isSubSwitch }, _v$2 = finalProps.hidden, _v$3 = disabled(), _v$4 = checked(), _v$5 = finalProps.description ? `${textId}-description` : void 0, _v$6 = finalProps.heading ? `${textId}-heading` : void 0, _v$7 = checked(), _v$8 = disabled(), _v$9 = checked();
+				_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "hidden", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-disabled", _v$3, _p$.a));
+				_v$4 !== _p$.o && (_p$.o = setProp(_el$2, "aria-checked", _v$4, _p$.o));
+				_v$5 !== _p$.i && (_p$.i = setProp(_el$2, "aria-describedby", _v$5, _p$.i));
+				_v$6 !== _p$.n && (_p$.n = setProp(_el$2, "aria-labelledby", _v$6, _p$.n));
+				_v$7 !== _p$.s && (_p$.s = setProp(_el$2, "checked", _v$7, _p$.s));
+				_v$8 !== _p$.h && (_p$.h = setProp(_el$2, "disabled", _v$8, _p$.h));
+				_v$9 !== _p$.r && (_p$.r = setProp(_el$6, "data-checked", _v$9, _p$.r));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0,
+				o: void 0,
+				i: void 0,
+				n: void 0,
+				s: void 0,
+				h: void 0,
+				r: void 0
+			});
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsSection.tsx
+	function SettingsSection(props) {
+		const finalProps = mergeProps$1({ isOpen: false }, props);
+		const sectionId = createUniqueId();
+		const headerId = `${sectionId}-header`;
+		const contentId = `${sectionId}-content`;
+		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+		createRenderEffect(() => {
+			setIsOpen(finalProps.isOpen);
+		});
+		return (() => {
+			var _el$ = createElement("vot-block"), _el$4 = createElement("vot-block");
+			insertNode(_el$, _el$4);
+			setProp(_el$, "class", "vot-settings-section");
+			insert(_el$, createComponent(RawButton, {
+				"class": "vot-details vot-settings-section__header",
+				get buttonProps() {
+					return {
+						id: headerId,
+						"aria-controls": contentId,
+						"data-open": isOpen(),
+						"aria-expanded": isOpen()
+					};
+				},
+				onClick: () => {
+					setIsOpen(!isOpen());
+				},
+				get children() {
+					return [(() => {
+						var _el$2 = createElement("vot-block");
+						insert(_el$2, () => finalProps.title);
+						return _el$2;
+					})(), (() => {
+						var _el$3 = createElement("vot-block");
+						setProp(_el$3, "class", "vot-details-arrow-icon");
+						insert(_el$3, createComponent(ChevronIcon, {}));
+						return _el$3;
+					})()];
+				}
+			}), _el$4);
+			setProp(_el$4, "class", "vot-settings-section__content");
+			setProp(_el$4, "id", contentId);
+			setProp(_el$4, "role", "region");
+			setProp(_el$4, "aria-labelledby", headerId);
+			insert(_el$4, () => finalProps.children);
+			effect((_$p) => setProp(_el$4, "hidden", !isOpen(), _$p));
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsAppearanceSection.tsx
+	var MAX_AUTO_HIDE_BUTTON_DELAY = 3e3;
+	var MIN_AUTO_HIDE_BUTTON_DELAY = 100;
+	var STEP_AUTO_HIDE_BUTTON_DELAY = 100;
+	function SettingsAppearanceSection(props) {
+		const autoHideButtonDelaySecs = () => Math.round(settings.autoHideButtonDelay / STEP_AUTO_HIDE_BUTTON_DELAY) / 10;
+		const autoHideButtonDelayValueText = () => `${autoHideButtonDelaySecs()} ${localizationProvider.get("secs")}`;
+		const buttonPositionOptions = positions.map((position) => ({
+			label: localizationProvider.get(`position.${position}`),
+			value: position
+		}));
+		const langsOptions = genSelectOptionsByLangs(localizationProvider.getAvailableLangs());
+		return createComponent(SettingsSection, {
+			get title() {
+				return localizationProvider.get("appearance");
+			},
+			get children() {
+				return [
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTShowPiPButton");
+						},
+						get checked() {
+							return settings.showPiPButton;
+						},
+						get hidden() {
+							return !isPiPAvailable();
+						},
+						onChange: (checked) => {
+							setSettings("showPiPButton", checked);
+							props.onShowPiPButtonChange?.(checked);
+						}
+					}),
+					createComponent(SliderWrapper, { get children() {
+						return [createComponent(SliderLabel, {
+							get value() {
+								return autoHideButtonDelayValueText();
+							},
+							get children() {
+								return localizationProvider.get("autoHideButtonDelay");
+							}
+						}), createComponent(Slider, {
+							min: MIN_AUTO_HIDE_BUTTON_DELAY,
+							max: MAX_AUTO_HIDE_BUTTON_DELAY,
+							step: STEP_AUTO_HIDE_BUTTON_DELAY,
+							get value() {
+								return settings.autoHideButtonDelay;
+							},
+							onInput: (val) => {
+								setSettings("autoHideButtonDelay", val);
+								props.onAutoHideButtonDelayInput?.(val);
+							}
+						})];
+					} }),
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("buttonPosition");
+						},
+						options: buttonPositionOptions,
+						get selectedValue() {
+							return settings.buttonPos;
+						},
+						onSelect: (option) => {
+							setSettings("buttonPos", option.value);
+							props.onButtonPositionSelect?.(option);
+						},
+						get children() {
+							return localizationProvider.get("buttonPosition");
+						}
+					}),
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("VOTMenuLanguage");
+						},
+						options: langsOptions,
+						get selectedValue() {
+							return localizationProvider.langOverride;
+						},
+						get onSelect() {
+							return props.onLangSelect;
+						},
+						search: true,
+						get children() {
+							return localizationProvider.get("VOTMenuLanguage");
+						}
+					})
+				];
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Button/GeneralButton.tsx
+	function GeneralButton(props) {
+		return createComponent(RawButton, mergeProps(props, { "class": "vot-button" }));
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsFooter.tsx
+	function SettingsFooter(props) {
+		return (() => {
+			var _el$ = createElement("vot-block");
+			setProp(_el$, "class", "vot-settings-footer");
+			insert(_el$, createComponent(OutlinedButton, {
+				get onClick() {
+					return props.onBugReportClick;
+				},
+				get children() {
+					return localizationProvider.get("VOTBugReport");
+				}
+			}), null);
+			insert(_el$, createComponent(GeneralButton, {
+				get onClick() {
+					return props.onResetSettingsClick;
+				},
+				get children() {
+					return localizationProvider.get("resetSettings");
+				}
+			}), null);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Button/HotkeyButton.tsx
+	function formatKeysCombo(keys) {
+		return (Array.isArray(keys) ? keys : Array.from(keys)).map((code) => code.replace("Key", "").replace("Digit", "")).join("+");
+	}
+	function formatKeysComboDisplay(keys) {
+		let parts;
+		if (typeof keys === "string") parts = keys.split("+").filter(Boolean);
+		else if (Array.isArray(keys)) parts = keys;
+		else parts = Array.from(keys);
+		const mapKey = (k) => {
+			switch (k) {
+				case "ControlLeft":
+				case "ControlRight":
+				case "Control": return "Ctrl";
+				case "ShiftLeft":
+				case "ShiftRight":
+				case "Shift": return "Shift";
+				case "AltLeft":
+				case "AltRight":
+				case "Alt": return "Alt";
+				case "MetaLeft":
+				case "MetaRight":
+				case "Meta": return "Meta";
+				case "Space": return "Space";
+				case "ArrowUp": return "↑";
+				case "ArrowDown": return "↓";
+				case "ArrowLeft": return "←";
+				case "ArrowRight": return "→";
+				default: return k.replace("Key", "").replace("Digit", "");
+			}
+		};
+		const priority = (k) => {
+			const m = mapKey(k);
+			if (m === "Ctrl") return 0;
+			if (m === "Alt") return 1;
+			if (m === "Shift") return 2;
+			if (m === "Meta") return 3;
+			return 10;
+		};
+		return parts.slice().sort((a, b) => priority(a) - priority(b)).map(mapKey).join("+");
+	}
+	function HotkeyButton(props) {
+		const [local, buttonProps] = splitProps(mergeProps$1({ key: null }, props), [
+			"children",
+			"key",
+			"buttonProps",
+			"onChange"
+		]);
+		const [key, setKey] = createSignal(local.key);
+		const [recording, setRecording] = createSignal(false);
+		const [pressedKeys, setPressedKeys] = createSignal(/* @__PURE__ */ new Set());
+		const [comboKeys, setComboKeys] = createSignal(/* @__PURE__ */ new Set());
+		const clearPressedKeys = () => setPressedKeys(/* @__PURE__ */ new Set());
+		const clearComboKeys = () => setComboKeys(/* @__PURE__ */ new Set());
+		const setKeyWithDispatch = (newKey) => {
+			setKey(newKey);
+			local.onChange?.(newKey);
+		};
+		const keyText = () => {
+			const pressed = pressedKeys();
+			if (pressed.size > 0) return formatKeysComboDisplay(pressed);
+			if (recording()) return localizationProvider.get("PressTheKeyCombination");
+			const currentKey = key();
+			return currentKey ? formatKeysComboDisplay(currentKey) : localizationProvider.get("None");
+		};
+		createRenderEffect(() => {
+			setKey(local.key);
+		});
+		function stopRecordingKeys() {
+			setRecording(false);
+			document.removeEventListener("keydown", keydownHandle, { capture: true });
+			document.removeEventListener("keyup", keyupOrBlurHandle, { capture: true });
+			globalThis.removeEventListener("blur", keyupOrBlurHandle);
+			clearPressedKeys();
+			clearComboKeys();
+		}
+		function keyupOrBlurHandle(event) {
+			if (!recording()) return;
+			if (event) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				setPressedKeys((prev) => {
+					const next = new Set(prev);
+					next.delete(event.code);
+					return next;
+				});
+				if (pressedKeys().size) return;
+			}
+			const combo = comboKeys();
+			setKeyWithDispatch(combo.size ? formatKeysCombo(combo) : null);
+			stopRecordingKeys();
+		}
+		function keydownHandle(event) {
+			if (!recording() || event.repeat) return;
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			if (event.code === "Escape") {
+				setKeyWithDispatch(null);
+				stopRecordingKeys();
+				return;
+			}
+			setPressedKeys((prev) => {
+				const next = new Set(prev);
+				next.add(event.code);
+				return next;
+			});
+			setComboKeys((prev) => {
+				const next = new Set(prev);
+				next.add(event.code);
+				return next;
+			});
+		}
+		function buttonClickHandle() {
+			if (recording()) return stopRecordingKeys();
+			setRecording(true);
+			clearPressedKeys();
+			clearComboKeys();
+			document.addEventListener("keydown", keydownHandle, { capture: true });
+			document.addEventListener("keyup", keyupOrBlurHandle, { capture: true });
+			globalThis.addEventListener("blur", keyupOrBlurHandle);
+		}
+		return (() => {
+			var _el$ = createElement("vot-block");
+			setProp(_el$, "class", "vot-hotkey");
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return local.children;
+				},
+				get children() {
+					var _el$2 = createElement("vot-block");
+					setProp(_el$2, "class", "vot-hotkey-label");
+					insert(_el$2, () => local.children);
+					return _el$2;
+				}
+			}), null);
+			insert(_el$, createComponent(RawButton, mergeProps(buttonProps, {
+				get buttonProps() {
+					return {
+						...local.buttonProps,
+						"data-status": recording() ? "active" : void 0
+					};
+				},
+				"class": "vot-hotkey-button",
+				onClick: buttonClickHandle,
+				get children() {
+					return keyText();
+				}
+			})), null);
+			return _el$;
+		})();
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsHotkeySection.tsx
+	function SettingsHotkeySection(props) {
+		return createComponent(SettingsSection, {
+			get title() {
+				return localizationProvider.get("hotkeysSettings");
+			},
+			get children() {
+				return [createComponent(HotkeyButton, {
+					get key() {
+						return settings.translationHotkey;
+					},
+					onChange: (newKey) => {
+						setSettings("translationHotkey", newKey);
+						props.onTranslationHotkeyChange?.(newKey);
+					},
+					get children() {
+						return localizationProvider.get("translateVideo");
+					}
+				}), createComponent(HotkeyButton, {
+					get key() {
+						return settings.subtitlesHotkey;
+					},
+					onChange: (newKey) => {
+						setSettings("subtitlesHotkey", newKey);
+						props.onSubtitlesHotkeyChange?.(newKey);
+					},
+					get children() {
+						return localizationProvider.get("VOTSubtitles");
+					}
+				})];
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsMiscSection.tsx
+	function SettingsMiscSection(props) {
+		const finalProps = mergeProps$1({
+			isAudioContextSupported: false,
+			needBypassCSP: false
+		}, props);
+		const isWithoutAudioContext = () => !finalProps.isAudioContextSupported;
+		return createComponent(SettingsSection, {
+			get title() {
+				return localizationProvider.get("miscSettings");
+			},
+			get children() {
+				return [
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTTranslateAPIErrors");
+						},
+						get hidden() {
+							return localizationProvider.lang === "ru";
+						},
+						get checked() {
+							return settings.translateAPIErrors;
+						},
+						onChange: (checked) => {
+							setSettings("translateAPIErrors", checked);
+							finalProps.onChangeTranslateAPIErrors?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTNewAudioPlayer");
+						},
+						get description() {
+							return memo(() => !!isWithoutAudioContext())() ? localizationProvider.get("VOTNeedWebAudioAPI") : void 0;
+						},
+						get disabled() {
+							return isWithoutAudioContext();
+						},
+						get checked() {
+							return settings.newAudioPlayer;
+						},
+						onChange: (checked) => {
+							setSettings("newAudioPlayer", checked);
+							finalProps.onChangeNewAudioPlayer?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTOnlyBypassMediaCSP");
+						},
+						get description() {
+							return memo(() => !!finalProps.needBypassCSP)() ? localizationProvider.get("VOTMediaCSPEnabledOnSite") : void 0;
+						},
+						get checked() {
+							return settings.onlyBypassMediaCSP;
+						},
+						get hidden() {
+							return isWithoutAudioContext();
+						},
+						get disabled() {
+							return !settings.newAudioPlayer;
+						},
+						isSubSwitch: true,
+						onChange: (checked) => {
+							setSettings("onlyBypassMediaCSP", checked);
+							finalProps.onChangeOnlyBypassMediaCSP?.(checked);
+						}
+					})
+				];
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsProxySection.tsx
+	function SettingsProxySection(props) {
+		const translateProxyOptions = [
+			localizationProvider.get("VOTTranslateProxyDisabled"),
+			localizationProvider.get("VOTTranslateProxyEnabled"),
+			localizationProvider.get("VOTTranslateProxyEverything")
+		].map((label, idx) => ({
+			label,
+			value: idx,
+			disabled: idx === 0 && IS_PROXY_ONLY_EXTENSION
+		}));
+		return createComponent(SettingsSection, {
+			get title() {
+				return localizationProvider.get("proxySettings");
+			},
+			get children() {
+				return [createComponent(Textfield, {
+					get labelText() {
+						return localizationProvider.get("VOTProxyWorkerHost");
+					},
+					placeholder: PROXY_WORKER_HOST,
+					get value() {
+						return settings.proxyWorkerHost;
+					},
+					get onChange() {
+						return props.onProxyWorkerHostChange;
+					}
+				}), createComponent(Select, {
+					get title() {
+						return localizationProvider.get("VOTTranslateProxyStatus");
+					},
+					options: translateProxyOptions,
+					get selectedValue() {
+						return settings.translateProxyEnabled;
+					},
+					get onSelect() {
+						return props.onTranslateProxyStatusSelect;
+					},
+					get children() {
+						return localizationProvider.get("VOTTranslateProxyStatus");
+					}
+				})];
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsSubtitlesSection.tsx
+	var DEFAULT_SUBTITLE_FONT_FAMILY = "default-sans";
+	var GOOGLE_FONTS_SEARCH_LIMIT = 30;
+	var LANG_PREFIX = "langs.";
+	var subtitleFontFamilyLabels = {
+		"default-sans": "Default Sans",
+		arial: "Arial",
+		helvetica: "Helvetica",
+		roboto: "Roboto",
+		verdana: "Verdana",
+		"open-sans": "Open Sans",
+		poppins: "Poppins",
+		lato: "Lato",
+		montserrat: "Montserrat",
+		barlow: "Barlow"
+	};
+	function getAvailableSubtitleLanguages() {
+		return Object.keys(localizationProvider.defaultLocale).filter((key) => key.startsWith(LANG_PREFIX) && key !== `${LANG_PREFIX}auto`).map((key) => key.slice(6)).sort((left, right) => localizationProvider.getLangLabel(left).localeCompare(localizationProvider.getLangLabel(right)));
+	}
+	function buildSubtitleLanguageSettingOptions() {
+		return [
+			{
+				label: localizationProvider.getLangLabel(AUTO_SUBTITLE_LANGUAGE_VALUE),
+				value: AUTO_SUBTITLE_LANGUAGE_VALUE
+			},
+			{
+				label: localizationProvider.get("VOTOriginalVideoLanguage"),
+				value: ORIGINAL_SUBTITLE_LANGUAGE_VALUE
+			},
+			...getAvailableSubtitleLanguages().map((language) => ({
+				label: localizationProvider.getLangLabel(language),
+				value: language
+			}))
+		];
+	}
+	function buildSubtitleFontOptions(selectedFontFamily, dynamicFontFamilies = []) {
+		const options = subtitleFontFamilies.map((fontFamily) => ({
+			label: subtitleFontFamilyLabels[fontFamily],
+			value: fontFamily
+		}));
+		const dynamicOptions = dynamicFontFamilies.filter((familyName) => {
+			const lowerFamilyName = familyName.toLowerCase();
+			return !options.some((option) => option.label.toLowerCase() === lowerFamilyName);
+		}).map((familyName) => ({
+			label: familyName,
+			value: toGoogleSubtitleFontFamily(familyName)
+		}));
+		if (!isBuiltInSubtitleFontFamily(selectedFontFamily) && !dynamicOptions.some((option) => option.value === selectedFontFamily)) {
+			const currentGoogleFontFamily = getGoogleSubtitleFontFamilyName(selectedFontFamily);
+			if (currentGoogleFontFamily) dynamicOptions.unshift({
+				label: currentGoogleFontFamily,
+				value: selectedFontFamily
+			});
+		}
+		return [...options, ...dynamicOptions];
+	}
+	async function searchSubtitleFontOptions(query, selectedFontFamily) {
+		const normalizedQuery = query.trim().toLowerCase();
+		if (!normalizedQuery) return buildSubtitleFontOptions(selectedFontFamily);
+		return buildSubtitleFontOptions(selectedFontFamily, (await loadGoogleFontsCatalog()).filter((familyName) => familyName.toLowerCase().includes(normalizedQuery)).slice(0, GOOGLE_FONTS_SEARCH_LIMIT));
+	}
+	function SettingsSubtitlesSection(props) {
+		const subtitleLanguageOptions = buildSubtitleLanguageSettingOptions();
+		const subtitlesDownloadFormatOptions = subtitleFormats.map((format) => ({
+			label: format.toUpperCase(),
+			value: format
+		}));
+		const selectedSubtitleFontFamily = () => {
+			const value = settings.subtitlesFontFamily;
+			return isBuiltInSubtitleFontFamily(value) || getGoogleSubtitleFontFamilyName(value) ? value : DEFAULT_SUBTITLE_FONT_FAMILY;
+		};
+		return createComponent(SettingsSection, {
+			get title() {
+				return localizationProvider.get("subtitlesSettings");
+			},
+			get children() {
+				return [
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("VOTDefaultSubtitlesLanguage");
+						},
+						options: subtitleLanguageOptions,
+						get selectedValue() {
+							return settings.responseLanguageSubtitles;
+						},
+						onSelect: (option) => {
+							setSettings("responseLanguageSubtitles", option.value);
+							props.onResponseLanguageSubtitlesSelect?.(option);
+						},
+						get children() {
+							return localizationProvider.get("VOTDefaultSubtitlesLanguage");
+						}
+					}),
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("VOTSubtitlesDownloadFormat");
+						},
+						options: subtitlesDownloadFormatOptions,
+						get selectedValue() {
+							return settings.subtitlesDownloadFormat;
+						},
+						onSelect: (option) => {
+							setSettings("subtitlesDownloadFormat", option.value);
+							props.onSubtitlesDownloadFormatSelect?.(option);
+						},
+						get children() {
+							return localizationProvider.get("VOTSubtitlesDownloadFormat");
+						}
+					}),
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("VOTSubtitlesFont");
+						},
+						get options() {
+							return buildSubtitleFontOptions(selectedSubtitleFontFamily());
+						},
+						get selectedValue() {
+							return selectedSubtitleFontFamily();
+						},
+						searchItemsProvider: (query) => searchSubtitleFontOptions(query, selectedSubtitleFontFamily()),
+						onSelect: (option) => {
+							const value = option.value;
+							setSettings("subtitlesFontFamily", value);
+							props.onSubtitlesFontFamilySelect?.(value);
+						},
+						get children() {
+							return localizationProvider.get("VOTSubtitlesFont");
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTHighlightWords");
+						},
+						get checked() {
+							return settings.highlightWords;
+						},
+						onChange: (checked) => {
+							setSettings("highlightWords", checked);
+							props.onHighlightWordsChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("subtitlesSmartLayout");
+						},
+						get checked() {
+							return settings.subtitlesSmartLayout;
+						},
+						onChange: (checked) => {
+							setSettings("subtitlesSmartLayout", checked);
+							props.onSubtitlesSmartLayoutChange?.(checked);
+						}
+					}),
+					createComponent(SliderWrapper, { get children() {
+						return [createComponent(SliderLabel, {
+							get value() {
+								return settings.subtitlesMaxLength.toString();
+							},
+							get children() {
+								return localizationProvider.get("VOTSubtitlesMaxLength");
+							}
+						}), createComponent(Slider, {
+							min: 50,
+							max: 300,
+							get value() {
+								return settings.subtitlesMaxLength;
+							},
+							onInput: (value) => {
+								if (settings.subtitlesSmartLayout) {
+									setSettings("subtitlesSmartLayout", false);
+									props.onSubtitlesSmartLayoutChange?.(false);
+								}
+								setSettings("subtitlesMaxLength", value);
+								props.onSubtitlesMaxLengthInput?.(value);
+							}
+						})];
+					} }),
+					createComponent(SliderWrapper, { get children() {
+						return [createComponent(SliderLabel, {
+							get value() {
+								return `${settings.subtitlesFontSize}px`;
+							},
+							get children() {
+								return localizationProvider.get("VOTSubtitlesFontSize");
+							}
+						}), createComponent(Slider, {
+							min: 8,
+							max: 50,
+							get value() {
+								return settings.subtitlesFontSize;
+							},
+							onInput: (value) => {
+								if (settings.subtitlesSmartLayout) {
+									setSettings("subtitlesSmartLayout", false);
+									props.onSubtitlesSmartLayoutChange?.(false);
+								}
+								setSettings("subtitlesFontSize", value);
+								props.onSubtitlesFontSizeInput?.(value);
+							}
+						})];
+					} }),
+					createComponent(SliderWrapper, { get children() {
+						return [createComponent(SliderLabel, {
+							get value() {
+								return `${settings.subtitlesOpacity}%`;
+							},
+							get children() {
+								return localizationProvider.get("VOTSubtitlesOpacity");
+							}
+						}), createComponent(Slider, {
+							get value() {
+								return settings.subtitlesOpacity;
+							},
+							onInput: (value) => {
+								setSettings("subtitlesOpacity", value);
+								props.onSubtitlesOpacityInput?.(value);
+							}
+						})];
+					} })
+				];
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsTranslationSection.tsx
+	function SettingsTranslationSection(props) {
+		const finalProps = mergeProps$1({ isAudioContextSupported: false }, props);
+		const dontTranslateLanguagesOptions = genSelectOptionsByLangs(availableLangs);
+		const translationTextServiceOptions = foswlyServices.map((service) => ({
+			label: localizationProvider.get(`services.${service}`),
+			value: service
+		}));
+		const detectServiceOptions = detectServices.map((service) => ({
+			label: localizationProvider.get(`services.${service}`),
+			value: service
+		}));
+		const [isAudioContextSupported, setIsAudioContextSupported] = createSignal(finalProps.isAudioContextSupported);
+		createRenderEffect(() => {
+			setIsAudioContextSupported(finalProps.isAudioContextSupported);
+		});
+		const autoVolumeText = () => `${settings.autoVolume}%`;
+		const useAudioDownloadDescription = () => isSupportGMXhr ? localizationProvider.get("VOTUseAudioDownloadWarning") : `${localizationProvider.get("VOTUseAudioDownloadWarning")}. ${localizationProvider.get("VOTNotSupportedByLoader")}`;
+		return createComponent(SettingsSection, {
+			isOpen: true,
+			get title() {
+				return localizationProvider.get("translationSettings");
+			},
+			get children() {
+				return [
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTAutoTranslate");
+						},
+						get checked() {
+							return settings.autoTranslate;
+						},
+						onChange: (checked) => {
+							setSettings("autoTranslate", checked);
+							finalProps.onAutoTranslateChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTAutoPauseOnTranslate");
+						},
+						get checked() {
+							return settings.autoPauseOnTranslate;
+						},
+						onChange: (checked) => {
+							setSettings("autoPauseOnTranslate", checked);
+							finalProps.onAutoPauseOnTranslateChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTAutoSubtitles");
+						},
+						get checked() {
+							return settings.autoSubtitles;
+						},
+						onChange: (checked) => {
+							setSettings("autoSubtitles", checked);
+							finalProps.onAutoSubtitlesChange?.(checked);
+						}
+					}),
+					createComponent(Select, {
+						multiple: true,
+						search: true,
+						get title() {
+							return localizationProvider.get("None");
+						},
+						options: dontTranslateLanguagesOptions,
+						get selectedValues() {
+							return settings.dontTranslateLanguages;
+						},
+						minSelected: 0,
+						onSelectionChange: (values, changedOption) => {
+							setSettings("dontTranslateLanguages", values);
+							finalProps.onDontTranslateLanguagesChange?.(values, changedOption.value);
+						},
+						get children() {
+							return localizationProvider.get("DontTranslateSelectedLanguages");
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTAutoReduceVolume");
+						},
+						get checked() {
+							return settings.enabledAutoVolume;
+						},
+						onChange: (checked) => {
+							setSettings("enabledAutoVolume", checked);
+							finalProps.onEnabledAutoVolumeChange?.(checked);
+						}
+					}),
+					createComponent(SliderWrapper, { get children() {
+						return [createComponent(SliderLabel, {
+							get value() {
+								return autoVolumeText();
+							},
+							get disabled() {
+								return !settings.enabledAutoVolume || settings.enabledSmartDucking;
+							},
+							get children() {
+								return [memo(() => localizationProvider.get("VOTReducedVolumeLevel")), createComponent(SliderLabelDesc, { get children() {
+									return localizationProvider.get("VOTIncompatibleWith").replace("{0}", localizationProvider.get("smartDucking"));
+								} })];
+							}
+						}), createComponent(Slider, {
+							get value() {
+								return settings.autoVolume;
+							},
+							get disabled() {
+								return !settings.enabledAutoVolume || settings.enabledSmartDucking;
+							},
+							onInput: (val) => {
+								setSettings("autoVolume", val);
+								finalProps.onAutoVolumeInput?.(val);
+							}
+						})];
+					} }),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("smartDucking");
+						},
+						get description() {
+							return localizationProvider.get("VOTIncompatibleWith").replace("{0}", localizationProvider.get("VOTSyncVolume"));
+						},
+						get disabled() {
+							return settings.syncVolume || !settings.enabledAutoVolume;
+						},
+						get checked() {
+							return settings.enabledSmartDucking;
+						},
+						onChange: (checked) => {
+							setSettings("enabledSmartDucking", checked);
+							finalProps.onEnabledSmartDuckingChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("showVideoVolumeSlider");
+						},
+						get checked() {
+							return settings.showVideoSlider;
+						},
+						onChange: (checked) => {
+							setSettings("showVideoSlider", checked);
+							finalProps.onShowVideoSliderChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTAudioBooster");
+						},
+						get description() {
+							return memo(() => !!isAudioContextSupported())() ? void 0 : localizationProvider.get("VOTNeedWebAudioAPI");
+						},
+						get checked() {
+							return settings.audioBooster;
+						},
+						get disabled() {
+							return !isAudioContextSupported();
+						},
+						onChange: (checked) => {
+							setSettings("audioBooster", checked);
+							finalProps.onAudioBoosterChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTSyncVolume");
+						},
+						get description() {
+							return localizationProvider.get("VOTIncompatibleWith").replace("{0}", localizationProvider.get("smartDucking"));
+						},
+						get checked() {
+							return settings.syncVolume;
+						},
+						onChange: (checked) => {
+							setSettings("syncVolume", checked);
+							if (checked) {
+								setSettings("enabledSmartDucking", false);
+								finalProps.onEnabledSmartDuckingChange?.(checked);
+							}
+							finalProps.onSyncVolumeChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTDownloadWithName");
+						},
+						get description() {
+							return isSupportGMXhr ? void 0 : localizationProvider.get("VOTNotSupportedByLoader");
+						},
+						disabled: !isSupportGMXhr,
+						get checked() {
+							return settings.downloadWithName;
+						},
+						onChange: (checked) => {
+							setSettings("downloadWithName", checked);
+							finalProps.onDownloadWithNameChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTSendNotifyOnComplete");
+						},
+						get checked() {
+							return settings.sendNotifyOnComplete;
+						},
+						onChange: (checked) => {
+							setSettings("sendNotifyOnComplete", checked);
+							finalProps.onSendNotifyOnCompleteChange?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return localizationProvider.get("VOTUseAudioDownload");
+						},
+						get description() {
+							return useAudioDownloadDescription();
+						},
+						disabled: !isSupportGMXhr,
+						get checked() {
+							return settings.useAudioDownload;
+						},
+						onChange: (checked) => {
+							setSettings("useAudioDownload", checked);
+							finalProps.onUseAudioDownloadChange?.(checked);
+						}
+					}),
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("VOTTranslationTextService");
+						},
+						options: translationTextServiceOptions,
+						get selectedValue() {
+							return settings.translationService;
+						},
+						onSelect: (option) => {
+							const value = option.value;
+							setSettings("translationService", value);
+							finalProps.onTranslationServiceSelect?.(value);
+						},
+						get children() {
+							return [
+								memo(() => localizationProvider.get("VOTTranslationTextService")),
+								createElement("br"),
+								(() => {
+									var _el$2 = createElement("vot-block");
+									setProp(_el$2, "class", "vot-select-label__description");
+									insert(_el$2, () => localizationProvider.get("VOTNotAffectToVoice"));
+									return _el$2;
+								})()
+							];
+						}
+					}),
+					createComponent(Select, {
+						get title() {
+							return localizationProvider.get("VOTDetectService");
+						},
+						options: detectServiceOptions,
+						get selectedValue() {
+							return settings.detectService;
+						},
+						onSelect: (option) => {
+							const value = option.value;
+							setSettings("detectService", value);
+							finalProps.onDetectServiceSelect?.(value);
+						},
+						get children() {
+							return localizationProvider.get("VOTDetectService");
+						}
+					})
+				];
+			}
+		});
+	}
+	//#endregion
+	//#region src/components/Settings/SettingsDialog.tsx
+	function SettingsDialog(props) {
+		return createComponent(Dialog, {
+			ref(r$) {
+				var _ref$ = props.ref;
+				typeof _ref$ === "function" ? _ref$(r$) : props.ref = r$;
+			},
+			get isOpen() {
+				return props.isOpen;
+			},
+			get onClose() {
+				return props.onClose;
+			},
+			get title() {
+				return localizationProvider.get("VOTSettings");
+			},
+			get footer() {
+				return createComponent(SettingsFooter, mergeProps(() => props.footer));
+			},
+			get children() {
+				return [
+					createComponent(SettingsSection, {
+						get title() {
+							return localizationProvider.get("VOTMyAccount");
+						},
+						isOpen: true,
+						get children() {
+							return createComponent(AccountMenu, mergeProps(() => props.account));
+						}
+					}),
+					createComponent(SettingsTranslationSection, mergeProps(() => props.translation)),
+					createComponent(SettingsHotkeySection, mergeProps(() => props.hotkeys)),
+					createComponent(SettingsSubtitlesSection, mergeProps(() => props.subtitles)),
+					createComponent(SettingsProxySection, mergeProps(() => props.proxy)),
+					createComponent(SettingsMiscSection, mergeProps(() => props.misc)),
+					createComponent(SettingsAppearanceSection, mergeProps(() => props.appearance)),
+					createComponent(SettingsSection, {
+						get title() {
+							return localizationProvider.get("aboutExtension");
+						},
+						get children() {
+							return createComponent(AboutSection, {});
+						}
+					})
+				];
+			}
+		});
+	}
+	//#endregion
+	//#region src/ui/settingsController.ts
+	var SETTINGS_EVENT_KEYS = [
+		"click:bugReport",
+		"click:resetSettings",
+		"update:account",
+		"change:autoTranslate",
+		"change:autoSubtitles",
+		"change:showVideoVolume",
+		"change:audioBooster",
+		"change:syncVolume",
+		"change:subtitlesHighlightWords",
+		"change:subtitlesSmartLayout",
+		"select:responseLanguageSubtitles",
+		"select:subtitlesFontFamily",
+		"change:proxyWorkerHost",
+		"change:useNewAudioPlayer",
+		"change:onlyBypassMediaCSP",
+		"change:showPiPButton",
+		"input:subtitlesMaxLength",
+		"input:subtitlesFontSize",
+		"input:subtitlesBackgroundOpacity",
+		"input:autoHideButtonDelay",
+		"select:proxyTranslationStatus",
+		"select:translationTextService",
+		"select:menuLanguage"
+	];
+	function createSettingsEvents() {
+		const events = {};
+		for (const key of SETTINGS_EVENT_KEYS) events[key] = new EventImpl();
+		return events;
+	}
+	var SettingsController = class SettingsController {
+		static PERSIST_DELAY_MS = 250;
+		globalPortal;
+		initialized = false;
+		data;
+		videoHandler;
+		events = createSettingsEvents();
+		persistTimerIds = {};
+		onAuthRefreshMessage = (event) => {
+			if (!isAuthRefreshMessage(event.data)) return;
+			this.refreshAccountFromStorage();
+		};
+		root;
+		disposeSettingsDialog;
+		dialogOpen;
+		setDialogOpen;
+		accountStorageListenerCleanup;
+		constructor({ globalPortal, data = {}, videoHandler }) {
+			this.globalPortal = globalPortal;
+			this.data = data;
+			this.videoHandler = videoHandler;
+		}
+		isInitialized() {
+			return this.initialized;
+		}
+		scheduleStoragePersist(key, value) {
+			const prevTimerId = this.persistTimerIds[key];
+			if (prevTimerId !== void 0) globalThis.clearTimeout(prevTimerId);
+			this.persistTimerIds[key] = globalThis.setTimeout(() => {
+				this.persistTimerIds[key] = void 0;
+				votStorage.set(key, value);
+			}, SettingsController.PERSIST_DELAY_MS);
+		}
+		flushStoragePersists() {
+			for (const key of Object.keys(this.persistTimerIds)) {
+				const timerId = this.persistTimerIds[key];
+				if (timerId === void 0) continue;
+				globalThis.clearTimeout(timerId);
+				this.persistTimerIds[key] = void 0;
+				const value = this.data[key];
+				if (typeof value === "number") votStorage.set(key, value);
+			}
+		}
+		createPersistedSettingHandler({ apply, storageKey, logLabel = storageKey, dispatch, afterPersist }) {
+			return (value) => {
+				this.data[storageKey] = value;
+				apply?.(value);
+				(async () => {
+					await votStorage.set(storageKey, value);
+					debug.log(`${logLabel} value changed. New value:`, value);
+					await afterPersist?.(value);
+					dispatch?.(value);
+				})().catch((error) => {
+					debug.error(`Failed to persist ${storageKey}:`, error);
+				});
+			};
+		}
+		createBufferedNumericInputHandler({ storageKey, logLabel = storageKey, dispatch }) {
+			return (value) => {
+				this.data[storageKey] = value;
+				this.scheduleStoragePersist(storageKey, value);
+				debug.log(`${logLabel} value changed. New value:`, value);
+				dispatch?.(value);
+			};
+		}
+		bindAccountStorageListener() {
+			this.accountStorageListenerCleanup?.();
+			this.accountStorageListenerCleanup = votStorage.addValueChangeListener("account", (_key, _oldValue, account) => {
+				this.data.account = account ?? {};
+				if (!this.isInitialized()) return;
+				updateAccount(account);
+				this.updateAccountInfo();
+			});
+		}
+		async refreshAccountFromStorage() {
+			if (votStorage.isSupportOnlyLS) return;
+			this.data.account = await votStorage.get("account", {});
+			if (!this.isInitialized()) return;
+			updateAccount(this.data.account);
+			this.updateAccountInfo();
+		}
+		initUI() {
+			if (this.isInitialized()) throw new Error("[VOT] SettingsController is already initialized");
+			this.disposeSettingsDialog = render(() => {
+				const [isOpen, setIsOpen] = createSignal(false);
+				this.dialogOpen = isOpen;
+				this.setDialogOpen = setIsOpen;
+				return SettingsDialog({
+					ref: (element) => {
+						this.root = element;
+					},
+					get isOpen() {
+						return isOpen();
+					},
+					onClose: () => setIsOpen(false),
+					account: { onClickLogin: async () => {
+						debug.log("Account login button clicked");
+						if (account.isLoggedIn) {
+							await votStorage.delete("account");
+							resetAccount();
+							return this.updateAccountInfo();
+						}
+						openAuthWindow();
+					} },
+					translation: {
+						isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+						onAutoTranslateChange: this.createPersistedSettingHandler({
+							storageKey: "autoTranslate",
+							dispatch: (checked) => this.events["change:autoTranslate"].dispatch(checked)
+						}),
+						onAutoPauseOnTranslateChange: this.createPersistedSettingHandler({ storageKey: "autoPauseOnTranslate" }),
+						onAutoSubtitlesChange: this.createPersistedSettingHandler({
+							storageKey: "autoSubtitles",
+							dispatch: (checked) => this.events["change:autoSubtitles"].dispatch(checked)
+						}),
+						onDontTranslateLanguagesChange: this.createPersistedSettingHandler({ storageKey: "dontTranslateLanguages" }),
+						onEnabledAutoVolumeChange: this.createPersistedSettingHandler({
+							storageKey: "enabledAutoVolume",
+							afterPersist: () => this.videoHandler?.setupAudioSettings?.()
+						}),
+						onAutoVolumeInput: this.createBufferedNumericInputHandler({ storageKey: "autoVolume" }),
+						onEnabledSmartDuckingChange: this.createPersistedSettingHandler({
+							storageKey: "enabledSmartDucking",
+							afterPersist: () => this.videoHandler?.setupAudioSettings?.()
+						}),
+						onShowVideoSliderChange: this.createPersistedSettingHandler({
+							storageKey: "showVideoSlider",
+							dispatch: (checked) => this.events["change:showVideoVolume"].dispatch(checked)
+						}),
+						onAudioBoosterChange: this.createPersistedSettingHandler({
+							storageKey: "audioBooster",
+							dispatch: (checked) => this.events["change:audioBooster"].dispatch(checked)
+						}),
+						onSyncVolumeChange: this.createPersistedSettingHandler({
+							storageKey: "syncVolume",
+							dispatch: (checked) => this.events["change:syncVolume"].dispatch(checked)
+						}),
+						onDownloadWithNameChange: this.createPersistedSettingHandler({ storageKey: "downloadWithName" }),
+						onSendNotifyOnCompleteChange: this.createPersistedSettingHandler({ storageKey: "sendNotifyOnComplete" }),
+						onUseAudioDownloadChange: this.createPersistedSettingHandler({ storageKey: "useAudioDownload" }),
+						onTranslationServiceSelect: this.createPersistedSettingHandler({
+							storageKey: "translationService",
+							dispatch: (item) => this.events["select:translationTextService"].dispatch(item)
+						}),
+						onDetectServiceSelect: this.createPersistedSettingHandler({ storageKey: "detectService" })
+					},
+					hotkeys: {
+						onTranslationHotkeyChange: this.createPersistedSettingHandler({ storageKey: "translationHotkey" }),
+						onSubtitlesHotkeyChange: this.createPersistedSettingHandler({ storageKey: "subtitlesHotkey" })
+					},
+					subtitles: {
+						onResponseLanguageSubtitlesSelect: (option) => this.createPersistedSettingHandler({
+							storageKey: "responseLanguageSubtitles",
+							dispatch: (item) => this.events["select:responseLanguageSubtitles"].dispatch(item)
+						})(option.value),
+						onSubtitlesDownloadFormatSelect: (option) => this.createPersistedSettingHandler({ storageKey: "subtitlesDownloadFormat" })(option.value),
+						onSubtitlesFontFamilySelect: this.createPersistedSettingHandler({
+							storageKey: "subtitlesFontFamily",
+							dispatch: (item) => this.events["select:subtitlesFontFamily"].dispatch(item)
+						}),
+						onHighlightWordsChange: this.createPersistedSettingHandler({
+							storageKey: "highlightWords",
+							dispatch: (checked) => this.events["change:subtitlesHighlightWords"].dispatch(checked)
+						}),
+						onSubtitlesSmartLayoutChange: this.createPersistedSettingHandler({
+							storageKey: "subtitlesSmartLayout",
+							dispatch: (checked) => this.events["change:subtitlesSmartLayout"].dispatch(checked)
+						}),
+						onSubtitlesMaxLengthInput: this.createBufferedNumericInputHandler({
+							storageKey: "subtitlesMaxLength",
+							dispatch: (value) => this.events["input:subtitlesMaxLength"].dispatch(value)
+						}),
+						onSubtitlesFontSizeInput: this.createBufferedNumericInputHandler({
+							storageKey: "subtitlesFontSize",
+							dispatch: (value) => this.events["input:subtitlesFontSize"].dispatch(value)
+						}),
+						onSubtitlesOpacityInput: this.createBufferedNumericInputHandler({
+							storageKey: "subtitlesOpacity",
+							dispatch: (value) => this.events["input:subtitlesBackgroundOpacity"].dispatch(value)
+						})
+					},
+					proxy: {
+						onProxyWorkerHostChange: async (value) => {
+							this.data.proxyWorkerHost = value || "vot-worker.eu.cc";
+							setSettings("proxyWorkerHost", this.data.proxyWorkerHost);
+							await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
+							debug.log("proxyWorkerHost value changed. New value:", this.data.proxyWorkerHost);
+							this.events["change:proxyWorkerHost"].dispatch(value);
+						},
+						onTranslateProxyStatusSelect: async (option) => {
+							const value = option.value;
+							this.data.translateProxyEnabled = value;
+							setSettings("translateProxyEnabled", this.data.translateProxyEnabled);
+							await votStorage.set("translateProxyEnabled", this.data.translateProxyEnabled);
+							await votStorage.set("translateProxyEnabledDefault", false);
+							debug.log("translateProxyEnabled value changed. New value:", this.data.translateProxyEnabled);
+							this.events["select:proxyTranslationStatus"].dispatch(value);
+						}
+					},
+					appearance: {
+						onShowPiPButtonChange: this.createPersistedSettingHandler({
+							storageKey: "showPiPButton",
+							dispatch: (checked) => this.events["change:showPiPButton"].dispatch(checked)
+						}),
+						onAutoHideButtonDelayInput: this.createBufferedNumericInputHandler({
+							storageKey: "autoHideButtonDelay",
+							dispatch: (value) => this.events["input:autoHideButtonDelay"].dispatch(value)
+						}),
+						onButtonPositionSelect: (option) => this.createPersistedSettingHandler({ storageKey: "buttonPos" })(option.value),
+						onLangSelect: async (option) => {
+							const item = option.value;
+							if (!await localizationProvider.changeLang(item)) return;
+							this.data.localeUpdatedAt = await votStorage.get("localeUpdatedAt", 0);
+							setLocale("updatedAt", 0);
+							this.events["select:menuLanguage"].dispatch(item);
+						}
+					},
+					misc: {
+						onChangeTranslateAPIErrors: this.createPersistedSettingHandler({ storageKey: "translateAPIErrors" }),
+						isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+						needBypassCSP: this.videoHandler.site.needBypassCSP,
+						onChangeNewAudioPlayer: this.createPersistedSettingHandler({
+							storageKey: "newAudioPlayer",
+							dispatch: (checked) => this.events["change:useNewAudioPlayer"].dispatch(checked)
+						}),
+						onChangeOnlyBypassMediaCSP: this.createPersistedSettingHandler({
+							storageKey: "onlyBypassMediaCSP",
+							dispatch: (checked) => this.events["change:onlyBypassMediaCSP"].dispatch(checked)
+						})
+					},
+					footer: {
+						onBugReportClick: () => this.events["click:bugReport"].dispatch(),
+						onResetSettingsClick: () => this.events["click:resetSettings"].dispatch()
+					}
+				});
+			}, this.globalPortal);
+			if (!this.root) {
+				this.disposeSettingsDialog();
+				this.disposeSettingsDialog = void 0;
+				throw new Error("[VOT] Settings dialog did not expose a root element");
+			}
+			this.initialized = true;
+			return this;
+		}
+		initUIEvents() {
+			if (!this.isInitialized()) throw new Error("[VOT] SettingsController isn't initialized");
+			globalThis.addEventListener("message", this.onAuthRefreshMessage);
+			this.bindAccountStorageListener();
+			return this;
+		}
+		addEventListener(type, listener) {
+			this.events[type].addListener(listener);
+			return this;
+		}
+		removeEventListener(type, listener) {
+			this.events[type].removeListener(listener);
+			return this;
+		}
+		doReleaseUI() {
+			this.disposeSettingsDialog?.();
+			this.disposeSettingsDialog = void 0;
+			this.root?.remove();
+			this.dialogOpen = void 0;
+			this.setDialogOpen = void 0;
+			this.root = void 0;
+		}
+		doReleaseUIEvents() {
+			this.accountStorageListenerCleanup?.();
+			this.accountStorageListenerCleanup = void 0;
+			globalThis.removeEventListener("message", this.onAuthRefreshMessage);
+			this.flushStoragePersists();
+			for (const event of Object.values(this.events)) event.clear();
+		}
+		release() {
+			if (!this.isInitialized()) return this;
+			this.doReleaseUIEvents();
+			this.doReleaseUI();
+			this.initialized = false;
+			return this;
+		}
+		updateAccountInfo() {
+			if (!this.isInitialized()) throw new Error("[VOT] SettingsController isn't initialized");
+			this.events["update:account"].dispatch(this.data.account);
+			return this;
+		}
+		open() {
+			if (!this.isInitialized()) throw new Error("[VOT] SettingsController isn't initialized");
+			this.setDialogOpen(true);
+			return this;
+		}
+		close() {
+			if (!this.isInitialized()) throw new Error("[VOT] SettingsController isn't initialized");
+			this.setDialogOpen(false);
+			return this;
+		}
+		isOpen() {
+			return this.dialogOpen?.() ?? false;
+		}
+	};
 	//#endregion
 	//#region src/ui/translationCommands.ts
 	async function getVideoDataForTranslation(videoHandler) {
@@ -19650,3891 +26774,6 @@ var vot = (function(exports) {
 		}
 	}
 	//#endregion
-	//#region src/utils/inputDevice.ts
-	function matchesMedia(query) {
-		try {
-			return typeof globalThis.matchMedia === "function" && globalThis.matchMedia(query).matches;
-		} catch {
-			return false;
-		}
-	}
-	function hasTouchScreen() {
-		return (globalThis.navigator?.maxTouchPoints ?? 0) > 0 || matchesMedia("(pointer: coarse)") || matchesMedia("(hover: none)");
-	}
-	function isTouchFirstInput() {
-		return matchesMedia("(pointer: coarse)") || hasTouchScreen() && !matchesMedia("(hover: hover)");
-	}
-	//#endregion
-	//#region src/ui/icons.ts
-	var TRANSLATE_ICON_SVG = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path
-    id="vot-translate-icon"
-    fill-rule="evenodd"
-    d="M15.778 18.95L14.903 21.375C14.8364 21.5583 14.7197 21.7083 14.553 21.825C14.3864 21.9417 14.203 22 14.003 22C13.6697 22 13.3989 21.8625 13.1905 21.5875C12.9822 21.3125 12.9447 21.0083 13.078 20.675L16.878 10.625C16.9614 10.4417 17.0864 10.2917 17.253 10.175C17.4197 10.0583 17.603 10 17.803 10H18.553C18.753 10 18.9364 10.0583 19.103 10.175C19.2697 10.2917 19.3947 10.4417 19.478 10.625L23.278 20.7C23.4114 21.0167 23.378 21.3125 23.178 21.5875C22.978 21.8625 22.7114 22 22.378 22C22.1614 22 21.9739 21.9375 21.8155 21.8125C21.6572 21.6875 21.5364 21.525 21.453 21.325L20.628 18.95H15.778ZM19.978 17.2H16.378L18.228 12.25L19.978 17.2Z"
-  ></path>
-  <path
-    d="M9 14L4.7 18.3C4.51667 18.4833 4.28333 18.575 4 18.575C3.71667 18.575 3.48333 18.4833 3.3 18.3C3.11667 18.1167 3.025 17.8833 3.025 17.6C3.025 17.3167 3.11667 17.0833 3.3 16.9L7.65 12.55C7.01667 11.85 6.4625 11.125 5.9875 10.375C5.5125 9.625 5.1 8.83333 4.75 8H6.85C7.15 8.6 7.47083 9.14167 7.8125 9.625C8.15417 10.1083 8.56667 10.6167 9.05 11.15C9.78333 10.35 10.3917 9.52917 10.875 8.6875C11.3583 7.84583 11.7667 6.95 12.1 6H2C1.71667 6 1.47917 5.90417 1.2875 5.7125C1.09583 5.52083 1 5.28333 1 5C1 4.71667 1.09583 4.47917 1.2875 4.2875C1.47917 4.09583 1.71667 4 2 4H8V3C8 2.71667 8.09583 2.47917 8.2875 2.2875C8.47917 2.09583 8.71667 2 9 2C9.28333 2 9.52083 2.09583 9.7125 2.2875C9.90417 2.47917 10 2.71667 10 3V4H16C16.2833 4 16.5208 4.09583 16.7125 4.2875C16.9042 4.47917 17 4.71667 17 5C17 5.28333 16.9042 5.52083 16.7125 5.7125C16.5208 5.90417 16.2833 6 16 6H14.1C13.75 7.18333 13.275 8.33333 12.675 9.45C12.075 10.5667 11.3333 11.6167 10.45 12.6L12.85 15.05L12.1 17.1L9 14Z"
-  ></path>
-  <path
-    id="vot-loading-icon"
-    style="display:none"
-    d="M19.8081 16.3697L18.5842 15.6633V13.0832C18.5842 12.9285 18.5228 12.7801 18.4134 12.6707C18.304 12.5613 18.1556 12.4998 18.0009 12.4998C17.8462 12.4998 17.6978 12.5613 17.5884 12.6707C17.479 12.7801 17.4176 12.9285 17.4176 13.0832V15.9998C17.4176 16.1022 17.4445 16.2028 17.4957 16.2915C17.5469 16.3802 17.6205 16.4538 17.7092 16.505L19.2247 17.38C19.2911 17.4189 19.3645 17.4443 19.4407 17.4547C19.5169 17.4652 19.5945 17.4604 19.6688 17.4407C19.7432 17.4211 19.813 17.3869 19.8741 17.3402C19.9352 17.2934 19.9864 17.2351 20.0249 17.1684C20.0634 17.1018 20.0883 17.0282 20.0982 16.952C20.1081 16.8757 20.1028 16.7982 20.0827 16.7239C20.0625 16.6497 20.0279 16.5802 19.9808 16.5194C19.9336 16.4586 19.8749 16.4077 19.8081 16.3697ZM18.0015 10C16.8478 10 15.6603 10.359 14.7011 11C13.7418 11.641 12.9415 12.4341 12.5 13.5C12.0585 14.5659 11.8852 16.0369 12.1103 17.1684C12.3353 18.3 12.8736 19.4942 13.6894 20.31C14.5053 21.1258 15.8684 21.7749 17 22C18.1316 22.2251 19.4341 21.9415 20.5 21.5C21.5659 21.0585 22.359 20.2573 23 19.298C23.641 18.3387 24.0015 17.1537 24.0015 16C23.9998 14.4534 23.5951 13.0936 22.5015 12C21.4079 10.9064 19.5481 10.0017 18.0015 10ZM18.0009 20.6665C17.0779 20.6665 16.1757 20.3928 15.4082 19.88C14.6408 19.3672 14.0427 18.6384 13.6894 17.7857C13.3362 16.933 13.2438 15.9947 13.4239 15.0894C13.604 14.1842 14.0484 13.3527 14.7011 12.7C15.3537 12.0474 16.1852 11.6029 17.0905 11.4228C17.9957 11.2428 18.934 11.3352 19.7867 11.6884C20.6395 12.0416 21.3683 12.6397 21.8811 13.4072C22.3939 14.1746 22.6676 15.0769 22.6676 15.9998C22.666 17.237 22.1738 18.4231 21.299 19.298C20.4242 20.1728 19.2381 20.665 18.0009 20.6665Z"
-  ></path>
-</svg>`;
-	var PIP_ICON_SVG = w`<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-  <path
-    d="M120-520q-17 0-28.5-11.5T80-560q0-17 11.5-28.5T120-600h104L80-743q-12-12-12-28.5T80-800q12-12 28.5-12t28.5 12l143 144v-104q0-17 11.5-28.5T320-800q17 0 28.5 11.5T360-760v200q0 17-11.5 28.5T320-520H120Zm40 360q-33 0-56.5-23.5T80-240v-160q0-17 11.5-28.5T120-440q17 0 28.5 11.5T160-400v160h280q17 0 28.5 11.5T480-200q0 17-11.5 28.5T440-160H160Zm680-280q-17 0-28.5-11.5T800-480v-240H480q-17 0-28.5-11.5T440-760q0-17 11.5-28.5T480-800h320q33 0 56.5 23.5T880-720v240q0 17-11.5 28.5T840-440ZM600-160q-17 0-28.5-11.5T560-200v-120q0-17 11.5-28.5T600-360h240q17 0 28.5 11.5T880-320v120q0 17-11.5 28.5T840-160H600Z"
-  />
-</svg>`;
-	var MENU_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-  <path
-    d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"
-  />
-</svg>`;
-	var DOWNLOAD_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 0 24 24" class="vot-loader" id="vot-loader-download">
-  <path class="vot-loader-main" d="M12 15.575C11.8667 15.575 11.7417 15.5542 11.625 15.5125C11.5083 15.4708 11.4 15.4 11.3 15.3L7.7 11.7C7.5 11.5 7.40417 11.2667 7.4125 11C7.42083 10.7333 7.51667 10.5 7.7 10.3C7.9 10.1 8.1375 9.99583 8.4125 9.9875C8.6875 9.97917 8.925 10.075 9.125 10.275L11 12.15V5C11 4.71667 11.0958 4.47917 11.2875 4.2875C11.4792 4.09583 11.7167 4 12 4C12.2833 4 12.5208 4.09583 12.7125 4.2875C12.9042 4.47917 13 4.71667 13 5V12.15L14.875 10.275C15.075 10.075 15.3125 9.97917 15.5875 9.9875C15.8625 9.99583 16.1 10.1 16.3 10.3C16.4833 10.5 16.5792 10.7333 16.5875 11C16.5958 11.2667 16.5 11.5 16.3 11.7L12.7 15.3C12.6 15.4 12.4917 15.4708 12.375 15.5125C12.2583 15.5542 12.1333 15.575 12 15.575ZM6 20C5.45 20 4.97917 19.8042 4.5875 19.4125C4.19583 19.0208 4 18.55 4 18V16C4 15.7167 4.09583 15.4792 4.2875 15.2875C4.47917 15.0958 4.71667 15 5 15C5.28333 15 5.52083 15.0958 5.7125 15.2875C5.90417 15.4792 6 15.7167 6 16V18H18V16C18 15.7167 18.0958 15.4792 18.2875 15.2875C18.4792 15.0958 18.7167 15 19 15C19.2833 15 19.5208 15.0958 19.7125 15.2875C19.9042 15.4792 20 15.7167 20 16V18C20 18.55 19.8042 19.0208 19.4125 19.4125C19.0208 19.8042 18.55 20 18 20H6Z"/>
-  <circle class="vot-loader-progress" cx="12" cy="12" r="9"></circle>
-</svg>`;
-	var SUBTITLES_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 0 24 24">
-  <path d="M4 20q-.825 0-1.413-.588T2 18V6q0-.825.588-1.413T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.588 1.413T20 20H4Zm2-4h8v-2H6v2Zm10 0h2v-2h-2v2ZM6 12h2v-2H6v2Zm4 0h8v-2h-8v2Z"/>
-</svg>`;
-	var SETTINGS_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 -960 960 960">
-  <path d="M555-80H405q-15 0-26-10t-13-25l-12-93q-13-5-24.5-12T307-235l-87 36q-14 5-28 1t-22-17L96-344q-8-13-5-28t15-24l75-57q-1-7-1-13.5v-27q0-6.5 1-13.5l-75-57q-12-9-15-24t5-28l74-129q7-14 21.5-17.5T220-761l87 36q11-8 23-15t24-12l12-93q2-15 13-25t26-10h150q15 0 26 10t13 25l12 93q13 5 24.5 12t22.5 15l87-36q14-5 28-1t22 17l74 129q8 13 5 28t-15 24l-75 57q1 7 1 13.5v27q0 6.5-2 13.5l75 57q12 9 15 24t-5 28l-74 128q-8 13-22.5 17.5T738-199l-85-36q-11 8-23 15t-24 12l-12 93q-2 15-13 25t-26 10Zm-73-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm0-80q-25 0-42.5-17.5T422-480q0-25 17.5-42.5T482-540q25 0 42.5 17.5T542-480q0 25-17.5 42.5T482-420Zm-2-60Zm-40 320h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Z"/>
-</svg>`;
-	var CHEVRON_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
-  <path
-    d="M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7q.275-.275.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275q.275.275.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062Z"
-  />
-</svg>`;
-	var ARROW_RIGHT_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-  <path
-    d="M647-440H200q-17 0-28.5-11.5T160-480q0-17 11.5-28.5T200-520h447L451-716q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l264 264q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L508-188q-11 11-27.5 11T452-188q-12-12-12-28.5t12-28.5l195-195Z"
-  />
-</svg>`;
-	var CLOSE_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="100%" viewBox="0 -960 960 960">
-  <path d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z"/>
-</svg>`;
-	var WARNING_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <g fill="none">
-    <path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m0 2a8 8 0 1 0 0 16a8 8 0 0 0 0-16m0 11a1 1 0 1 1 0 2a1 1 0 0 1 0-2m0-9a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1"/>
-  </g>
-</svg>`;
-	var HELP_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <g fill="none">
-    <path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m0 2a8 8 0 1 0 0 16a8 8 0 0 0 0-16m0 12a1 1 0 1 1 0 2a1 1 0 0 1 0-2m0-9.5a3.625 3.625 0 0 1 1.348 6.99a.8.8 0 0 0-.305.201c-.044.05-.051.114-.05.18L13 14a1 1 0 0 1-1.993.117L11 14v-.25c0-1.153.93-1.845 1.604-2.116a1.626 1.626 0 1 0-2.229-1.509a1 1 0 1 1-2 0A3.625 3.625 0 0 1 12 6.5"/>
-  </g>
-</svg>`;
-	var REFRESH_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <g fill="none">
-    <path d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z"/>
-    <path fill="currentColor" d="M20 9a1 1 0 0 1 1 1v1a8 8 0 0 1-8 8H9.414l.793.793a1 1 0 0 1-1.414 1.414l-2.496-2.496a1 1 0 0 1-.287-.567L6 17.991a1 1 0 0 1 .237-.638l.056-.06l2.5-2.5a1 1 0 0 1 1.414 1.414L9.414 17H13a6 6 0 0 0 6-6v-1a1 1 0 0 1 1-1m-4.793-6.207l2.5 2.5a1 1 0 0 1 0 1.414l-2.5 2.5a1 1 0 1 1-1.414-1.414L14.586 7H11a6 6 0 0 0-6 6v1a1 1 0 1 1-2 0v-1a8 8 0 0 1 8-8h3.586l-.793-.793a1 1 0 0 1 1.414-1.414"/>
-  </g>
-</svg>`;
-	var KEY_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path fill="currentColor" d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"/>
-  </svg>`;
-	/**
-	* Animated equalizer icon for "Standard voices" (gray dots / bars).
-	* Three bars that animate up and down like an audio waveform.
-	*/
-	var STANDARD_VOICE_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="vot-voice-icon vot-voice-icon--standard" aria-hidden="true">
-  <rect class="vot-eq-bar vot-eq-bar--1" x="2" y="10" width="3" height="8" rx="1.5"/>
-  <rect class="vot-eq-bar vot-eq-bar--2" x="8.5" y="6" width="3" height="12" rx="1.5"/>
-  <rect class="vot-eq-bar vot-eq-bar--3" x="15" y="10" width="3" height="8" rx="1.5"/>
-</svg>`;
-	/**
-	* Animated equalizer icon for "Live voices" (pink/magenta bars).
-	* Five bars that animate like a lively audio equalizer.
-	*/
-	var LIVE_VOICE_ICON = w`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="vot-voice-icon vot-voice-icon--live" aria-hidden="true">
-  <rect class="vot-eq-bar vot-eq-bar--1" x="1" y="11" width="2.5" height="7" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--2" x="5.25" y="7" width="2.5" height="11" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--3" x="9.5" y="4" width="2.5" height="14" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--4" x="13.75" y="7" width="2.5" height="11" rx="1.25"/>
-  <rect class="vot-eq-bar vot-eq-bar--5" x="17.5" y="11" width="2.5" height="7" rx="1.25"/>
-</svg>`;
-	//#endregion
-	//#region src/ui/components/downloadButton.ts
-	var DownloadButton = class extends UIComponentWithEvents {
-		loaderMain;
-		loaderCircle;
-		_progress = 0;
-		constructor() {
-			super(["click"]);
-			const { container, loaderMain, loaderCircle } = this.createElements();
-			this.container = container;
-			this.loaderMain = loaderMain;
-			this.loaderCircle = loaderCircle;
-			this.progress = 0;
-		}
-		createElements() {
-			const container = UI.createIconButton(DOWNLOAD_ICON, { ariaLabel: "Download translation" });
-			const loaderMain = container.querySelector(".vot-loader-main");
-			if (!loaderMain) throw new Error("[VOT] DownloadButton loader main element not found");
-			const loaderCircle = container.querySelector(".vot-loader-progress");
-			if (!loaderCircle) throw new Error("[VOT] DownloadButton loader circle element not found");
-			container.addEventListener("click", () => {
-				this.dispatch("click");
-			});
-			return {
-				container,
-				loaderMain,
-				loaderCircle
-			};
-		}
-		get progress() {
-			return this._progress;
-		}
-		set progress(value) {
-			const normalized = clampProgress(value);
-			this._progress = normalized;
-			const circumference = this.getCircleCircumference();
-			this.loaderCircle.style.strokeDasharray = `${circumference}`;
-			const offset = circumference * (1 - normalized / 100);
-			this.loaderCircle.style.strokeDashoffset = `${offset}`;
-			this.loaderMain.style.opacity = normalized === 0 ? "1" : "0";
-			this.loaderCircle.style.opacity = normalized === 0 ? "0" : "1";
-		}
-		getCircleCircumference() {
-			const radius = this.loaderCircle.r?.baseVal?.value ?? 0;
-			return 2 * Math.PI * radius;
-		}
-	};
-	function clampProgress(value) {
-		if (!Number.isFinite(value)) return 0;
-		return clampPercentInt(value < 1 ? value * 100 : value);
-	}
-	//#endregion
-	//#region src/ui/components/label.ts
-	var Label = class extends UIComponent {
-		icon;
-		text;
-		_labelText;
-		_icon;
-		constructor({ labelText, icon }) {
-			super();
-			this._labelText = labelText;
-			this._icon = icon;
-			const { container, icon: iconEl, text } = this.createElements();
-			this.container = container;
-			this.icon = iconEl;
-			this.text = text;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-label"]);
-			const text = UI.createEl("span", ["vot-label-text"]);
-			text.textContent = this._labelText;
-			const icon = UI.createEl("span", ["vot-label-icon"]);
-			if (this._icon) D(this._icon, icon);
-			else icon.hidden = true;
-			container.append(text, icon);
-			return {
-				container,
-				icon,
-				text
-			};
-		}
-	};
-	//#endregion
-	//#region src/ui/components/dialog.ts
-	var Dialog = class extends UIComponentWithEvents {
-		backdrop;
-		box;
-		contentWrapper;
-		headerContainer;
-		titleContainer;
-		title;
-		closeButton;
-		bodyContainer;
-		footerContainer;
-		previouslyFocused = null;
-		keydownListener;
-		adaptiveAlignObserver;
-		adaptiveAlignRaf = null;
-		handleViewportChange = () => {
-			this.scheduleAdaptiveVerticalAlign();
-		};
-		titleId = createDomId("vot-dialog-title");
-		_titleHtml;
-		_isTemp;
-		constructor({ titleHtml, isTemp = false }) {
-			super(["close"]);
-			this._titleHtml = titleHtml;
-			this._isTemp = isTemp;
-			const { container, backdrop, box, contentWrapper, headerContainer, titleContainer, title, closeButton, bodyContainer, footerContainer } = this.createElements();
-			this.container = container;
-			this.backdrop = backdrop;
-			this.box = box;
-			this.contentWrapper = contentWrapper;
-			this.headerContainer = headerContainer;
-			this.titleContainer = titleContainer;
-			this.title = title;
-			this.closeButton = closeButton;
-			this.bodyContainer = bodyContainer;
-			this.footerContainer = footerContainer;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-dialog-container"]);
-			if (this._isTemp) container.classList.add("vot-dialog-temp");
-			container.hidden = !this._isTemp;
-			setInteractiveHiddenState(container, container.hidden);
-			const backdrop = UI.createEl("vot-block", ["vot-dialog-backdrop"]);
-			const box = UI.createEl("vot-block", ["vot-dialog"]);
-			box.dataset.verticalAlign = "center";
-			box.setAttribute("role", "dialog");
-			box.setAttribute("aria-modal", "true");
-			box.tabIndex = -1;
-			const contentWrapper = UI.createEl("vot-block", ["vot-dialog-content-wrapper"]);
-			const headerContainer = UI.createEl("vot-block", ["vot-dialog-header-container"]);
-			const titleContainer = UI.createEl("vot-block", ["vot-dialog-title-container"]);
-			const title = UI.createEl("vot-block", ["vot-dialog-title"]);
-			title.id = this.titleId;
-			title.append(this._titleHtml);
-			titleContainer.appendChild(title);
-			box.setAttribute("aria-labelledby", this.titleId);
-			const closeButton = UI.createIconButton(CLOSE_ICON, { ariaLabel: "Close" });
-			closeButton.classList.add("vot-dialog-close-button");
-			backdrop.addEventListener("click", (e) => {
-				e.stopPropagation();
-				this.close();
-			});
-			closeButton.addEventListener("click", () => {
-				this.close();
-			});
-			headerContainer.append(titleContainer, closeButton);
-			const bodyContainer = UI.createEl("vot-block", ["vot-dialog-body-container"]);
-			const footerContainer = UI.createEl("vot-block", ["vot-dialog-footer-container"]);
-			contentWrapper.append(headerContainer, bodyContainer, footerContainer);
-			box.appendChild(contentWrapper);
-			container.append(backdrop, box);
-			box.addEventListener("click", (e) => {
-				e.stopPropagation();
-			});
-			return {
-				container,
-				backdrop,
-				box,
-				contentWrapper,
-				headerContainer,
-				titleContainer,
-				title,
-				closeButton,
-				bodyContainer,
-				footerContainer
-			};
-		}
-		open() {
-			this.previouslyFocused ??= getDeepActiveElement(document);
-			this.hidden = false;
-			this.attachKeydownTrap();
-			this.attachAdaptiveVerticalAlign();
-			queueMicrotask(() => this.focusFirst());
-			return this;
-		}
-		remove() {
-			this.detachAdaptiveVerticalAlign();
-			this.detachKeydownTrap();
-			this.container.remove();
-			this.restoreFocus();
-			this.dispatch("close");
-			return this;
-		}
-		close() {
-			if (this._isTemp) return this.remove();
-			this.detachAdaptiveVerticalAlign();
-			this.detachKeydownTrap();
-			this.hidden = true;
-			this.restoreFocus();
-			this.dispatch("close");
-			return this;
-		}
-		attachAdaptiveVerticalAlign() {
-			if (this.adaptiveAlignObserver) {
-				this.scheduleAdaptiveVerticalAlign();
-				return;
-			}
-			if (typeof ResizeObserver !== "undefined") {
-				this.adaptiveAlignObserver = new ResizeObserver(() => {
-					this.scheduleAdaptiveVerticalAlign();
-				});
-				this.adaptiveAlignObserver.observe(this.contentWrapper);
-			}
-			globalThis.addEventListener("resize", this.handleViewportChange, { passive: true });
-			if (globalThis.visualViewport) {
-				globalThis.visualViewport.addEventListener("resize", this.handleViewportChange, { passive: true });
-				globalThis.visualViewport.addEventListener("scroll", this.handleViewportChange, { passive: true });
-			}
-			this.scheduleAdaptiveVerticalAlign();
-		}
-		detachAdaptiveVerticalAlign() {
-			if (this.adaptiveAlignObserver) {
-				this.adaptiveAlignObserver.disconnect();
-				this.adaptiveAlignObserver = void 0;
-			}
-			globalThis.removeEventListener("resize", this.handleViewportChange);
-			globalThis.visualViewport?.removeEventListener("resize", this.handleViewportChange);
-			globalThis.visualViewport?.removeEventListener("scroll", this.handleViewportChange);
-			if (this.adaptiveAlignRaf !== null) {
-				cancelAnimationFrame(this.adaptiveAlignRaf);
-				this.adaptiveAlignRaf = null;
-			}
-		}
-		scheduleAdaptiveVerticalAlign() {
-			if (this.adaptiveAlignRaf !== null) cancelAnimationFrame(this.adaptiveAlignRaf);
-			this.adaptiveAlignRaf = requestAnimationFrame(() => {
-				this.adaptiveAlignRaf = null;
-				this.updateAdaptiveVerticalAlign();
-			});
-		}
-		updateAdaptiveVerticalAlign() {
-			const viewportHeight = globalThis.visualViewport?.height ?? globalThis.innerHeight;
-			if (!viewportHeight || viewportHeight <= 0) return;
-			const centerMaxPx = Math.max(160, Math.round(viewportHeight * .75));
-			const topMaxPx = Math.max(160, Math.round(viewportHeight - 32));
-			const contentHeightPx = this.contentWrapper.scrollHeight;
-			const currentlyTop = this.box.dataset.verticalAlign === "top";
-			const enterTopThresholdPx = centerMaxPx - 8;
-			const exitTopThresholdPx = Math.round(viewportHeight * .6);
-			if (currentlyTop ? contentHeightPx > exitTopThresholdPx : contentHeightPx >= enterTopThresholdPx) {
-				this.box.dataset.verticalAlign = "top";
-				this.box.style.setProperty("--vot-dialog-max-height", `${topMaxPx}px`);
-			} else {
-				this.box.dataset.verticalAlign = "center";
-				this.box.style.setProperty("--vot-dialog-max-height", `${centerMaxPx}px`);
-			}
-		}
-		restoreFocus() {
-			const el = this.previouslyFocused;
-			this.previouslyFocused = null;
-			if (el && el instanceof HTMLElement && document.contains(el)) el.focus();
-		}
-		getFocusableElements() {
-			return Array.from(this.container.querySelectorAll([
-				"button:not([disabled])",
-				"[href]",
-				"input:not([disabled])",
-				"select:not([disabled])",
-				"textarea:not([disabled])",
-				"[tabindex]:not([tabindex='-1'])",
-				"[role='button']:not([aria-disabled='true'])"
-			].join(","))).filter((el) => !el.hidden && el.getClientRects().length > 0);
-		}
-		focusFirst() {
-			(this.getFocusableElements()[0] ?? this.closeButton ?? this.box).focus?.();
-		}
-		attachKeydownTrap() {
-			if (this.keydownListener) return;
-			this.keydownListener = (e) => {
-				if (e.key === "Escape") {
-					e.preventDefault();
-					this.close();
-					return;
-				}
-				if (e.key !== "Tab") return;
-				const focusables = this.getFocusableElements();
-				if (!focusables.length) {
-					e.preventDefault();
-					this.box.focus();
-					return;
-				}
-				const first = focusables[0];
-				const last = focusables.at(-1) ?? first;
-				const active = getDeepActiveElement(this.container.getRootNode());
-				if (e.shiftKey) {
-					if (active === first || active === this.box) {
-						e.preventDefault();
-						last.focus();
-					}
-				} else if (active === last) {
-					e.preventDefault();
-					first.focus();
-				}
-			};
-			this.container.addEventListener("keydown", this.keydownListener);
-		}
-		detachKeydownTrap() {
-			if (!this.keydownListener) return;
-			this.container.removeEventListener("keydown", this.keydownListener);
-			this.keydownListener = void 0;
-		}
-		set hidden(isHidden) {
-			setInteractiveHiddenState(this.container, isHidden);
-		}
-		get hidden() {
-			return super.hidden;
-		}
-		get isDialogOpen() {
-			return !this.hidden;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/textfield.ts
-	var Textfield = class extends UIComponentWithEvents {
-		input;
-		label;
-		_labelHtml;
-		_multiline;
-		_placeholder;
-		_value;
-		constructor({ labelHtml = "", placeholder = "", value = "", multiline = false }) {
-			super(["input", "change"]);
-			this._labelHtml = labelHtml;
-			this._multiline = multiline;
-			this._placeholder = placeholder;
-			this._value = value;
-			const { container, input, label } = this.createElements();
-			this.container = container;
-			this.input = input;
-			this.label = label;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-textfield"]);
-			const input = document.createElement(this._multiline ? "textarea" : "input");
-			if (!this._labelHtml) input.classList.add("vot-show-placeholer", "vot-show-placeholder");
-			input.placeholder = this._placeholder;
-			input.value = this._value;
-			const label = UI.createEl("span");
-			label.append(this._labelHtml);
-			container.append(input, label);
-			input.addEventListener("input", () => {
-				this._value = this.input.value;
-				this.dispatch("input", this._value);
-			});
-			input.addEventListener("change", () => {
-				this._value = this.input.value;
-				this.dispatch("change", this._value);
-			});
-			return {
-				container,
-				label,
-				input
-			};
-		}
-		get value() {
-			return this._value;
-		}
-		/**
-		* If you set a different new value, it will trigger the change event
-		*/
-		set value(val) {
-			if (this._value === val) return;
-			this.input.value = this._value = val;
-			this.dispatch("change", this._value);
-		}
-		get placeholder() {
-			return this._placeholder;
-		}
-		set placeholder(text) {
-			this.input.placeholder = this._placeholder = text;
-		}
-		get disabled() {
-			return this.input.disabled;
-		}
-		set disabled(isDisabled) {
-			this.input.disabled = isDisabled;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/select.ts
-	var Select = class extends UIComponentWithEvents {
-		outer;
-		arrowIcon;
-		title;
-		dialogParent;
-		labelElement;
-		_selectTitle;
-		_dialogTitle;
-		multiSelect;
-		baseItems;
-		_items;
-		searchItemsProvider;
-		isLoading = false;
-		isDialogOpen = false;
-		searchRequestId = 0;
-		contentList;
-		contentItemSearchDatasetKey = "votSearchLabel";
-		contentItemIndexDatasetKey = "votIndex";
-		selectedItems = [];
-		selectedValues;
-		constructor({ selectTitle, dialogTitle, items, searchItemsProvider, labelElement, dialogParent = document.documentElement, multiSelect }) {
-			super(["selectItem", "beforeOpen"]);
-			this._selectTitle = selectTitle;
-			this._dialogTitle = dialogTitle;
-			this.baseItems = this.cloneItems(items);
-			this._items = this.cloneItems(items);
-			this.searchItemsProvider = searchItemsProvider;
-			this.multiSelect = multiSelect ?? false;
-			this.labelElement = labelElement;
-			this.dialogParent = dialogParent;
-			this.selectedValues = this.calcSelectedValues();
-			const { container, outer, arrowIcon, title } = this.createElements();
-			this.container = container;
-			this.outer = outer;
-			this.arrowIcon = arrowIcon;
-			this.title = title;
-		}
-		cloneItems(items) {
-			return items.map((item) => ({ ...item }));
-		}
-		static genLanguageItems(langs, conditionString) {
-			return langs.map((lang) => {
-				const phrase = `langs.${lang}`;
-				const label = localizationProvider.get(phrase);
-				return {
-					label: label === phrase ? lang.toUpperCase() : label,
-					value: lang,
-					selected: conditionString === lang
-				};
-			});
-		}
-		multiSelectItemHandle = (item) => {
-			const value = item.value;
-			if (this.selectedValues.has(value) && this.selectedValues.size > 1) this.selectedValues.delete(value);
-			else this.selectedValues.add(value);
-			this.syncItemsSelectionState();
-			this.syncItemsSelectionState(this.baseItems);
-			this.updateSelectedState();
-			this.dispatch("selectItem", Array.from(this.selectedValues));
-		};
-		singleSelectItemHandle = (item) => {
-			const value = item.value;
-			this.selectedValues = /* @__PURE__ */ new Set([value]);
-			this.syncItemsSelectionState();
-			this.syncItemsSelectionState(this.baseItems);
-			this.updateSelectedState();
-			this.dispatch("selectItem", value);
-		};
-		onContentItemClick = (event) => {
-			if (!(event.target instanceof HTMLElement)) return;
-			const contentItem = event.target.closest(".vot-select-content-item");
-			if (!contentItem || contentItem.inert || !this.contentList?.contains(contentItem)) return;
-			const rawIndex = contentItem.dataset[this.contentItemIndexDatasetKey];
-			if (!rawIndex) return;
-			const item = this._items[Number(rawIndex)];
-			if (!item) return;
-			if (this.multiSelect) {
-				this.multiSelectItemHandle(item);
-				return;
-			}
-			this.singleSelectItemHandle(item);
-		};
-		syncItemsSelectionState(items = this._items) {
-			for (const item of items) item.selected = this.selectedValues.has(item.value);
-		}
-		restoreBaseItems() {
-			this._items = this.cloneItems(this.baseItems);
-			this.syncItemsSelectionState();
-			this.updateSelectedState();
-		}
-		createDialogContentList() {
-			const contentList = UI.createEl("vot-block", ["vot-select-content-list"]);
-			for (const [index, item] of this._items.entries()) {
-				const contentItem = UI.createEl("vot-block", ["vot-select-content-item"]);
-				contentItem.textContent = item.label;
-				contentItem.dataset.votSelected = item.selected === true ? "true" : "false";
-				contentItem.dataset.votValue = item.value;
-				contentItem.dataset[this.contentItemSearchDatasetKey] = item.label.toLowerCase();
-				contentItem.dataset[this.contentItemIndexDatasetKey] = String(index);
-				if (item.disabled) contentItem.inert = true;
-				contentList.appendChild(contentItem);
-			}
-			contentList.addEventListener("click", this.onContentItemClick);
-			this.selectedItems = Array.from(contentList.children);
-			return contentList;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-select"]);
-			if (this.labelElement) {
-				container.classList.add("vot-select--labeled");
-				container.append(this.labelElement);
-			} else container.classList.add("vot-select--control-only");
-			const outer = UI.createEl("vot-block", ["vot-select-outer"]);
-			UI.makeButtonLike(outer);
-			outer.setAttribute("aria-haspopup", "dialog");
-			outer.setAttribute("aria-expanded", "false");
-			const title = UI.createEl("vot-block", ["vot-select-title"]);
-			title.textContent = this.visibleText;
-			const arrowIcon = UI.createEl("vot-block", ["vot-select-arrow-icon"]);
-			D(CHEVRON_ICON, arrowIcon);
-			outer.append(title, arrowIcon);
-			outer.addEventListener("click", () => {
-				if (this.disabled) return;
-				if (this.isLoading || this.isDialogOpen) return;
-				try {
-					this.isLoading = true;
-					const tempDialog = new Dialog({
-						titleHtml: this._dialogTitle,
-						isTemp: true
-					});
-					this.dispatch("beforeOpen", tempDialog);
-					this.dialogParent.appendChild(tempDialog.container);
-					this.isDialogOpen = true;
-					outer.setAttribute("aria-expanded", "true");
-					const votSearchLangTextfield = new Textfield({ labelHtml: localizationProvider.get("searchField") });
-					votSearchLangTextfield.addEventListener("input", async (searchText) => {
-						const requestId = ++this.searchRequestId;
-						if (this.searchItemsProvider) {
-							const providedItems = await this.searchItemsProvider(searchText);
-							if (requestId !== this.searchRequestId) return;
-							this.updateItems(providedItems, { persist: false });
-						}
-						const normalizedSearchText = searchText.toLowerCase();
-						for (const contentItem of this.selectedItems) contentItem.hidden = !(contentItem.dataset[this.contentItemSearchDatasetKey] ?? "").includes(normalizedSearchText);
-					});
-					this.contentList = this.createDialogContentList();
-					tempDialog.bodyContainer.append(votSearchLangTextfield.container, this.contentList);
-					tempDialog.addEventListener("close", () => {
-						this.isDialogOpen = false;
-						this.restoreBaseItems();
-						this.selectedItems = [];
-						this.contentList = void 0;
-						outer.setAttribute("aria-expanded", "false");
-					});
-					tempDialog.open();
-				} finally {
-					this.isLoading = false;
-				}
-			});
-			container.appendChild(outer);
-			return {
-				container,
-				outer,
-				arrowIcon,
-				title
-			};
-		}
-		calcSelectedValues() {
-			return new Set(this._items.filter((item) => item.selected).map((item) => item.value));
-		}
-		updateTitle() {
-			this.title.textContent = this.visibleText;
-			return this;
-		}
-		updateSelectedState() {
-			if (this.selectedItems.length > 0) for (const item of this.selectedItems) {
-				const val = item.dataset.votValue;
-				if (val === void 0) continue;
-				item.dataset.votSelected = this.selectedValues.has(val).toString();
-			}
-			this.updateTitle();
-			return this;
-		}
-		setSelectedValue(value) {
-			const values = Array.isArray(value) ? value : [value];
-			let selectedValues;
-			if (this.multiSelect) selectedValues = values;
-			else selectedValues = values.length > 0 ? [values[0]] : [];
-			this.selectedValues = new Set(selectedValues);
-			this.syncItemsSelectionState();
-			this.syncItemsSelectionState(this.baseItems);
-			this.updateSelectedState();
-			return this;
-		}
-		/**
-		* @warning Use chaining with this method or reassign to variable to get the updated type of instance
-		*/
-		updateItems(newItems, options = {}) {
-			const { persist = true } = options;
-			const nextItems = this.cloneItems(newItems);
-			if (persist) this.baseItems = this.cloneItems(nextItems);
-			this._items = nextItems;
-			this.selectedValues = this.calcSelectedValues();
-			this.updateSelectedState();
-			const dialogContainer = this.contentList?.parentElement;
-			if (!this.contentList || !dialogContainer) return this;
-			const oldContentList = this.contentList;
-			this.contentList = this.createDialogContentList();
-			dialogContainer.replaceChild(this.contentList, oldContentList);
-			return this;
-		}
-		get visibleText() {
-			if (!this.multiSelect) return this._items.find((item) => item.selected)?.label ?? this._selectTitle;
-			return this._items.filter((item) => this.selectedValues.has(item.value)).map((item) => item.label).join(", ") || this._selectTitle;
-		}
-		set selectTitle(title) {
-			this._selectTitle = title;
-			this.updateTitle();
-		}
-		get disabled() {
-			return this.outer.getAttribute("disabled") === "true" || this.outer.getAttribute("aria-disabled") === "true";
-		}
-		set disabled(isDisabled) {
-			this.outer.toggleAttribute("disabled", isDisabled);
-		}
-	};
-	//#endregion
-	//#region src/ui/components/languagePairSelect.ts
-	var LanguagePairSelect = class extends UIComponent {
-		fromSelect;
-		directionIcon;
-		toSelect;
-		dialogParent;
-		_fromSelectTitle;
-		_fromDialogTitle;
-		_fromItems;
-		_toSelectTitle;
-		_toDialogTitle;
-		_toItems;
-		constructor({ from: { selectTitle: fromSelectTitle = localizationProvider.get("videoLanguage"), dialogTitle: fromDialogTitle = localizationProvider.get("videoLanguage"), items: fromItems }, to: { selectTitle: toSelectTitle = localizationProvider.get("translationLanguage"), dialogTitle: toDialogTitle = localizationProvider.get("translationLanguage"), items: toItems }, dialogParent = document.documentElement }) {
-			super();
-			this._fromSelectTitle = fromSelectTitle;
-			this._fromDialogTitle = fromDialogTitle;
-			this._fromItems = fromItems;
-			this._toSelectTitle = toSelectTitle;
-			this._toDialogTitle = toDialogTitle;
-			this._toItems = toItems;
-			this.dialogParent = dialogParent;
-			const { container, fromSelect, directionIcon, toSelect } = this.createElements();
-			this.container = container;
-			this.fromSelect = fromSelect;
-			this.directionIcon = directionIcon;
-			this.toSelect = toSelect;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-lang-select"]);
-			const fromSelect = new Select({
-				selectTitle: this._fromSelectTitle,
-				dialogTitle: this._fromDialogTitle,
-				items: this._fromItems,
-				dialogParent: this.dialogParent
-			});
-			const directionIcon = UI.createEl("vot-block", ["vot-lang-select-icon"]);
-			D(ARROW_RIGHT_ICON, directionIcon);
-			const toSelect = new Select({
-				selectTitle: this._toSelectTitle,
-				dialogTitle: this._toDialogTitle,
-				items: this._toItems,
-				dialogParent: this.dialogParent
-			});
-			container.append(fromSelect.container, directionIcon, toSelect.container);
-			return {
-				container,
-				fromSelect,
-				directionIcon,
-				toSelect
-			};
-		}
-		setSelectedValues(from, to) {
-			this.fromSelect.setSelectedValue(from);
-			this.toSelect.setSelectedValue(to);
-			return this;
-		}
-		updateItems(fromItems, toItems) {
-			this._fromItems = fromItems;
-			this._toItems = toItems;
-			this.fromSelect = this.fromSelect.updateItems(fromItems);
-			this.toSelect = this.toSelect.updateItems(toItems);
-			return this;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/slider.ts
-	var Slider = class extends UIComponentWithEvents {
-		input;
-		label;
-		_labelHtml;
-		_value;
-		_min;
-		_max;
-		_step;
-		constructor({ labelHtml, value = 50, min = 0, max = 100, step = 1 }) {
-			super(["input"]);
-			this._labelHtml = labelHtml;
-			this._value = value;
-			this._min = min;
-			this._max = max;
-			this._step = step;
-			const { container, input, label } = this.createElements();
-			this.container = container;
-			this.input = input;
-			this.label = label;
-			this.update();
-		}
-		updateProgress() {
-			const range = this._max - this._min;
-			const progress = clampNumber(range <= 0 ? 0 : (this._value - this._min) / range, 0, 1);
-			this.container.style.setProperty("--vot-progress", progress.toString());
-			return this;
-		}
-		update() {
-			this._value = this.input.valueAsNumber;
-			this._min = +this.input.min;
-			this._max = +this.input.max;
-			this.updateProgress();
-			return this;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-slider"]);
-			const input = document.createElement("input");
-			input.type = "range";
-			input.min = this._min.toString();
-			input.max = this._max.toString();
-			input.step = this._step.toString();
-			input.value = this._value.toString();
-			const label = UI.createEl("span");
-			D(this._labelHtml, label);
-			container.append(input, label);
-			input.addEventListener("input", () => {
-				this.update();
-				this.dispatch("input", this._value, false);
-			});
-			return {
-				container,
-				label,
-				input
-			};
-		}
-		get value() {
-			return this._value;
-		}
-		/**
-		* If you set a different new value, it will trigger the input event
-		*/
-		set value(val) {
-			this._value = clampNumber(val, this._min, this._max);
-			this.input.value = this._value.toString();
-			this.updateProgress();
-			this.dispatch("input", this._value, true);
-		}
-		get min() {
-			return this._min;
-		}
-		set min(val) {
-			this._min = val;
-			this.input.min = this._min.toString();
-			this._value = clampNumber(this._value, this._min, this._max);
-			this.input.value = this._value.toString();
-			this.updateProgress();
-		}
-		get max() {
-			return this._max;
-		}
-		set max(val) {
-			this._max = val;
-			this.input.max = this._max.toString();
-			this._value = clampNumber(this._value, this._min, this._max);
-			this.input.value = this._value.toString();
-			this.updateProgress();
-		}
-		get step() {
-			return this._step;
-		}
-		set step(val) {
-			this._step = val;
-			this.input.step = this._step.toString();
-		}
-		get disabled() {
-			return this.input.disabled;
-		}
-		set disabled(isDisabled) {
-			this.input.disabled = isDisabled;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/sliderLabel.ts
-	var SliderLabel = class extends UIComponent {
-		strong;
-		text;
-		_labelText;
-		_labelEOL;
-		_value;
-		_symbol;
-		constructor({ labelText, labelEOL = "", value = 50, symbol = "%" }) {
-			super();
-			this._labelText = labelText;
-			this._labelEOL = labelEOL;
-			this._value = value;
-			this._symbol = symbol;
-			const { container, strong, text } = this.createElements();
-			this.container = container;
-			this.strong = strong;
-			this.text = text;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-slider-label"]);
-			const text = UI.createEl("span", ["vot-slider-label-text"]);
-			text.textContent = this.labelText;
-			const strong = UI.createEl("span", ["vot-slider-label-value"]);
-			strong.textContent = this.valueText;
-			container.append(text, strong);
-			return {
-				container,
-				strong,
-				text
-			};
-		}
-		get labelText() {
-			return `${this._labelText}${this._labelEOL}`;
-		}
-		get valueText() {
-			return `${this._value}${this._symbol}`;
-		}
-		get value() {
-			return this._value;
-		}
-		set value(val) {
-			this._value = val;
-			this.strong.textContent = this.valueText;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/voicePopover.ts
-	var VoicePopover = class VoicePopover extends UIComponentWithEvents {
-		id = createDomId("vot-voice-popover");
-		layoutRoot;
-		_activeVoice;
-		onTranslate;
-		lastVisibilityState = false;
-		showTimer = null;
-		hideTimer = null;
-		static SHOW_DELAY_MS = 80;
-		static HIDE_DELAY_MS = 80;
-		positionRafId = null;
-		anchorEl = null;
-		outsideTapHandler = null;
-		layoutListening = false;
-		onLayoutChangeBound = () => {
-			if (this.isOpen && this.anchorEl) this.schedulePositionUpdate(this.anchorEl);
-		};
-		constructor({ activeVoice, layoutRoot, onTranslate }) {
-			super(["openChange", "voiceChange"]);
-			this._activeVoice = activeVoice;
-			this.layoutRoot = layoutRoot;
-			this.onTranslate = onTranslate;
-			this.container = this.createElements().container;
-		}
-		get activeVoice() {
-			return this._activeVoice;
-		}
-		set activeVoice(value) {
-			this._activeVoice = value;
-			this.updateActiveState();
-		}
-		set hidden(isHidden) {
-			setInteractiveHiddenState(this.container, isHidden);
-		}
-		get hidden() {
-			return super.hidden;
-		}
-		get isOpen() {
-			return !this.hidden;
-		}
-		scheduleShow(anchor) {
-			this.cancelHide();
-			this.cancelShow();
-			if (this.isOpen) {
-				this.anchorEl = anchor;
-				this.updatePosition(anchor);
-				this.emitVisibilityChange(true);
-				return;
-			}
-			this.showTimer = setTimeout(() => {
-				this.showTimer = null;
-				this.open(anchor);
-			}, VoicePopover.SHOW_DELAY_MS);
-		}
-		scheduleHide() {
-			this.cancelShow();
-			if (this.hidden) return;
-			this.hideTimer = setTimeout(() => {
-				this.hideTimer = null;
-				this.close();
-			}, VoicePopover.HIDE_DELAY_MS);
-		}
-		showNow(anchor) {
-			this.cancelShow();
-			this.cancelHide();
-			this.open(anchor);
-		}
-		toggle(anchor) {
-			if (this.isOpen) this.hideNow();
-			else this.showNow(anchor);
-		}
-		toggleForTouch(anchor) {
-			this.toggle(anchor);
-		}
-		cancelShow() {
-			if (this.showTimer !== null) {
-				clearTimeout(this.showTimer);
-				this.showTimer = null;
-			}
-		}
-		cancelHide() {
-			if (this.hideTimer !== null) {
-				clearTimeout(this.hideTimer);
-				this.hideTimer = null;
-			}
-		}
-		hideNow() {
-			this.cancelShow();
-			this.cancelHide();
-			this.close();
-		}
-		release() {
-			this.cancelShow();
-			this.cancelHide();
-			this.close();
-			this.container.remove();
-			this.clearEventListeners();
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-voice-popover"]);
-			container.id = this.id;
-			container.setAttribute("role", "menu");
-			container.setAttribute("aria-label", "Voice type selection");
-			setInteractiveHiddenState(container, true);
-			container.append(this.createItem("standard", STANDARD_VOICE_ICON, localizationProvider.get("VOTStandardVoicesTitle"), localizationProvider.get("VOTStandardVoicesSubtitle")), UI.createEl("vot-block", ["vot-voice-popover__divider"]), this.createItem("live", LIVE_VOICE_ICON, localizationProvider.get("VOTLiveVoicesTitle"), localizationProvider.get("VOTLiveVoicesSubtitle")));
-			container.addEventListener("pointerenter", (e) => {
-				if (e.pointerType === "touch") return;
-				this.cancelHide();
-			});
-			container.addEventListener("pointerleave", (e) => {
-				if (e.pointerType === "touch") return;
-				this.scheduleHide();
-			});
-			return { container };
-		}
-		createItem(voice, iconTemplate, title, subtitle) {
-			const item = UI.createEl("vot-block", ["vot-voice-popover__item"]);
-			item.setAttribute("role", "menuitemradio");
-			item.setAttribute("tabindex", "0");
-			item.dataset.voice = voice;
-			const iconWrap = UI.createEl("vot-block", ["vot-voice-popover__item-icon", `vot-voice-popover__item-icon--${voice}`]);
-			D(iconTemplate, iconWrap);
-			const textWrap = UI.createEl("vot-block", ["vot-voice-popover__item-text"]);
-			const titleEl = UI.createEl("span", ["vot-voice-popover__item-title"]);
-			titleEl.textContent = title;
-			const subtitleEl = UI.createEl("span", ["vot-voice-popover__item-subtitle"]);
-			subtitleEl.textContent = subtitle;
-			textWrap.append(titleEl, subtitleEl);
-			item.append(iconWrap, textWrap);
-			const select = () => this.handleSelect(voice);
-			item.addEventListener("pointerdown", (e) => {
-				if (e.button !== 0 && e.pointerType !== "touch") return;
-				e.preventDefault();
-				e.stopPropagation();
-				select();
-			});
-			item.addEventListener("keydown", (e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					select();
-				}
-			});
-			return item;
-		}
-		open(anchor) {
-			if (this.isOpen) {
-				this.anchorEl = anchor;
-				this.updatePosition(anchor);
-				this.emitVisibilityChange(true);
-				return;
-			}
-			this.anchorEl = anchor;
-			this.hidden = false;
-			this.updateActiveState();
-			this.updatePosition(anchor);
-			this.attachLayoutListeners();
-			this.attachOutsideTapListener();
-			this.emitVisibilityChange(true);
-		}
-		close() {
-			if (this.hidden) {
-				this.emitVisibilityChange(false);
-				return;
-			}
-			this.hidden = true;
-			this.detachLayoutListeners();
-			this.detachOutsideTapListener();
-			this.anchorEl = null;
-			if (this.positionRafId !== null) {
-				cancelAnimationFrame(this.positionRafId);
-				this.positionRafId = null;
-			}
-			this.emitVisibilityChange(false);
-		}
-		emitVisibilityChange(isOpen) {
-			if (this.lastVisibilityState === isOpen) return;
-			this.lastVisibilityState = isOpen;
-			this.dispatch("openChange", isOpen);
-		}
-		handleSelect(voice) {
-			this._activeVoice = voice;
-			this.updateActiveState();
-			this.cancelHide();
-			this.dispatch("voiceChange", voice);
-			this.onTranslate?.();
-			this.hideNow();
-		}
-		updateActiveState() {
-			for (const item of this.container.querySelectorAll(".vot-voice-popover__item")) {
-				const isActive = item.dataset.voice === this._activeVoice;
-				item.classList.toggle("vot-voice-popover__item--active", isActive);
-				item.setAttribute("aria-checked", isActive.toString());
-			}
-		}
-		schedulePositionUpdate(anchor) {
-			if (this.positionRafId !== null) return;
-			this.positionRafId = requestAnimationFrame(() => {
-				this.positionRafId = null;
-				this.updatePosition(anchor);
-			});
-		}
-		positionColumn(containerRect, rootRect, gap, position) {
-			const spaceLeft = containerRect.left - rootRect.left - gap;
-			const spaceRight = rootRect.right - containerRect.right - gap;
-			const placement = (position === "right" || position === "rightCenter") && spaceLeft >= 160 || spaceLeft >= spaceRight ? "left" : "right";
-			this.container.style.setProperty("--vot-voice-popover-max-width", `${Math.max(160, Math.min(310, placement === "left" ? spaceLeft : spaceRight))}px`);
-			const popoverRect = this.container.getBoundingClientRect();
-			const top = containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
-			return {
-				left: placement === "left" ? containerRect.left - popoverRect.width - gap : containerRect.right + gap,
-				top,
-				placement
-			};
-		}
-		positionRow(containerRect, rootRect, gap) {
-			const spaceAbove = containerRect.top - rootRect.top - gap;
-			const spaceBelow = rootRect.bottom - containerRect.bottom - gap;
-			const placement = spaceAbove >= spaceBelow ? "top" : "bottom";
-			this.container.style.setProperty("--vot-voice-popover-max-height", `${Math.max(96, placement === "top" ? spaceAbove : spaceBelow)}px`);
-			const popoverRect = this.container.getBoundingClientRect();
-			return {
-				left: containerRect.left + containerRect.width / 2 - popoverRect.width / 2,
-				top: placement === "top" ? containerRect.top - popoverRect.height - gap : containerRect.bottom + gap,
-				placement
-			};
-		}
-		updatePosition(anchor) {
-			if (!this.isOpen) return;
-			const rootRect = this.layoutRoot.getBoundingClientRect();
-			const gap = 8;
-			const maxRootWidth = Math.max(160, rootRect.width - 16);
-			const maxRootHeight = Math.max(96, rootRect.height - 16);
-			this.container.style.setProperty("--vot-voice-popover-max-width", `${Math.min(310, maxRootWidth)}px`);
-			this.container.style.setProperty("--vot-voice-popover-max-height", `${maxRootHeight}px`);
-			const buttonContainer = anchor.closest("[data-direction]") ?? anchor;
-			const containerRect = buttonContainer.getBoundingClientRect();
-			const direction = buttonContainer.dataset?.direction ?? "row";
-			const position = buttonContainer.dataset?.position ?? "default";
-			const result = direction === "column" ? this.positionColumn(containerRect, rootRect, gap, position) : this.positionRow(containerRect, rootRect, gap);
-			const popoverRect = this.container.getBoundingClientRect();
-			let left = Math.max(gap, Math.min(result.left, rootRect.right - popoverRect.width - gap));
-			let top = Math.max(gap, Math.min(result.top, rootRect.bottom - popoverRect.height - gap));
-			left -= rootRect.left;
-			top -= rootRect.top;
-			this.container.dataset.placement = result.placement;
-			this.container.style.left = `${left}px`;
-			this.container.style.top = `${top}px`;
-		}
-		attachLayoutListeners() {
-			if (this.layoutListening) return;
-			this.layoutListening = true;
-			window.addEventListener("scroll", this.onLayoutChangeBound, true);
-			window.addEventListener("resize", this.onLayoutChangeBound);
-			window.visualViewport?.addEventListener("scroll", this.onLayoutChangeBound);
-			window.visualViewport?.addEventListener("resize", this.onLayoutChangeBound);
-		}
-		detachLayoutListeners() {
-			if (!this.layoutListening) return;
-			this.layoutListening = false;
-			window.removeEventListener("scroll", this.onLayoutChangeBound, true);
-			window.removeEventListener("resize", this.onLayoutChangeBound);
-			window.visualViewport?.removeEventListener("scroll", this.onLayoutChangeBound);
-			window.visualViewport?.removeEventListener("resize", this.onLayoutChangeBound);
-		}
-		attachOutsideTapListener() {
-			this.detachOutsideTapListener();
-			this.outsideTapHandler = (e) => {
-				if (isEventInside(e, this.container)) return;
-				if (this.anchorEl && isEventInside(e, this.anchorEl)) return;
-				this.hideNow();
-			};
-			document.addEventListener("pointerdown", this.outsideTapHandler, {
-				capture: true,
-				passive: true
-			});
-		}
-		detachOutsideTapListener() {
-			if (!this.outsideTapHandler) return;
-			document.removeEventListener("pointerdown", this.outsideTapHandler, { capture: true });
-			this.outsideTapHandler = null;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/votButton.ts
-	function isSidePosition(position) {
-		return position === "left" || position === "right" || position === "leftCenter" || position === "rightCenter";
-	}
-	var VOTButton = class extends UIComponent {
-		translateButton;
-		dropdownArrow;
-		separator;
-		subtitlesButton;
-		separator3;
-		pipButton;
-		separator2;
-		menuButton;
-		label;
-		_opacity = 1;
-		_position;
-		_direction;
-		_status;
-		_subtitlesActive = false;
-		/** Text shown next to the translate icon (plain text, not HTML). */
-		_labelText;
-		constructor({ position = "default", direction = "default", status = "none", labelHtml = "" }) {
-			super();
-			this._position = position;
-			this._direction = direction;
-			this._status = status;
-			this._labelText = labelHtml;
-			const { container, translateButton, dropdownArrow, separator, subtitlesButton, separator3, pipButton, separator2, menuButton, label } = this.createElements();
-			this.container = container;
-			this.translateButton = translateButton;
-			this.dropdownArrow = dropdownArrow;
-			this.separator = separator;
-			this.subtitlesButton = subtitlesButton;
-			this.separator3 = separator3;
-			this.pipButton = pipButton;
-			this.separator2 = separator2;
-			this.menuButton = menuButton;
-			this.label = label;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-segmented-button"]);
-			container.dataset.position = this._position;
-			container.dataset.direction = this._direction;
-			container.dataset.status = this._status;
-			const translateButton = UI.createEl("vot-block", ["vot-segment", "vot-translate-button"]);
-			translateButton.setAttribute("role", "button");
-			translateButton.tabIndex = 0;
-			translateButton.setAttribute("aria-label", this._labelText || "Translate");
-			D(TRANSLATE_ICON_SVG, translateButton);
-			const label = UI.createEl("span", ["vot-segment-label"]);
-			label.textContent = this._labelText;
-			const dropdownArrow = UI.createEl("span", ["vot-dropdown-arrow"]);
-			dropdownArrow.setAttribute("role", "button");
-			dropdownArrow.tabIndex = 0;
-			dropdownArrow.setAttribute("aria-label", localizationProvider.get("VOTVoiceSelection"));
-			dropdownArrow.setAttribute("aria-haspopup", "menu");
-			dropdownArrow.setAttribute("aria-expanded", "false");
-			D(CHEVRON_ICON, dropdownArrow);
-			translateButton.append(label, dropdownArrow);
-			const separator = UI.createEl("vot-block", ["vot-separator"]);
-			const subtitlesButton = UI.createEl("vot-block", ["vot-segment-only-icon", "vot-subtitles-button"]);
-			subtitlesButton.setAttribute("role", "button");
-			subtitlesButton.tabIndex = 0;
-			const subtitlesLabelText = localizationProvider.get("VOTSubtitles");
-			subtitlesButton.setAttribute("aria-label", subtitlesLabelText);
-			subtitlesButton.setAttribute("aria-pressed", "false");
-			subtitlesButton.dataset.active = "false";
-			D(SUBTITLES_ICON, subtitlesButton);
-			const separator3 = UI.createEl("vot-block", ["vot-separator"]);
-			const pipButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
-			pipButton.setAttribute("role", "button");
-			pipButton.tabIndex = 0;
-			pipButton.setAttribute("aria-label", "Picture in picture");
-			D(PIP_ICON_SVG, pipButton);
-			const separator2 = UI.createEl("vot-block", ["vot-separator"]);
-			const menuButton = UI.createEl("vot-block", ["vot-segment-only-icon"]);
-			menuButton.setAttribute("role", "button");
-			menuButton.tabIndex = 0;
-			menuButton.setAttribute("aria-label", "Menu");
-			menuButton.setAttribute("aria-haspopup", "dialog");
-			menuButton.setAttribute("aria-expanded", "false");
-			D(MENU_ICON, menuButton);
-			container.append(translateButton, separator, subtitlesButton, separator3, pipButton, separator2, menuButton);
-			return {
-				container,
-				translateButton,
-				dropdownArrow,
-				separator,
-				subtitlesButton,
-				separator3,
-				pipButton,
-				separator2,
-				menuButton,
-				label
-			};
-		}
-		showSubtitlesButton(visible) {
-			this.separator3.hidden = this.subtitlesButton.hidden = !visible;
-			return this;
-		}
-		showPiPButton(visible) {
-			this.separator2.hidden = this.pipButton.hidden = !visible;
-			return this;
-		}
-		setText(labelText) {
-			this._labelText = labelText;
-			this.label.textContent = labelText;
-			this.translateButton.setAttribute("aria-label", labelText || "Translate");
-			return this;
-		}
-		remove() {
-			this.container.remove();
-			return this;
-		}
-		get tooltipPos() {
-			switch (this.position) {
-				case "left":
-				case "leftCenter": return "right";
-				case "right":
-				case "rightCenter": return "left";
-				default: return "bottom";
-			}
-		}
-		set status(status) {
-			this._status = this.container.dataset.status = status;
-		}
-		get status() {
-			return this._status;
-		}
-		set loading(isLoading) {
-			this.container.dataset.loading = isLoading.toString();
-		}
-		get loading() {
-			return this.container.dataset.loading === "true";
-		}
-		get subtitlesActive() {
-			return this._subtitlesActive;
-		}
-		set subtitlesActive(isActive) {
-			this._subtitlesActive = isActive;
-			this.subtitlesButton.dataset.active = isActive.toString();
-			this.subtitlesButton.setAttribute("aria-pressed", isActive.toString());
-		}
-		setVoiceMenuOpen(isOpen) {
-			this.dropdownArrow.setAttribute("aria-expanded", isOpen.toString());
-			this.dropdownArrow.classList.toggle("vot-dropdown-arrow--open", isOpen);
-			this.translateButton.classList.toggle("vot-translate-button--voice-menu-open", isOpen);
-			return this;
-		}
-		get position() {
-			return this._position;
-		}
-		set position(position) {
-			this._position = this.container.dataset.position = position;
-		}
-		get direction() {
-			return this._direction;
-		}
-		set direction(direction) {
-			this._direction = this.container.dataset.direction = direction;
-		}
-		/**
-		* Voice popover chevron is shown only in the centered horizontal layout.
-		* In side layout the whole translate icon is the voice-popover handle.
-		*/
-		syncDropdownArrowPlacement() {
-			const onSide = isSidePosition(this._position);
-			this.dropdownArrow.hidden = onSide;
-			this.dropdownArrow.setAttribute("aria-hidden", onSide.toString());
-			this.dropdownArrow.tabIndex = onSide ? -1 : 0;
-			if (this.dropdownArrow.parentElement !== this.translateButton) this.translateButton.appendChild(this.dropdownArrow);
-		}
-		set opacity(opacity) {
-			const o = Number.isFinite(opacity) ? opacity : 1;
-			this._opacity = o;
-			const isHidden = o <= .01;
-			this.container.classList.toggle("vot-segmented-button--hidden", isHidden);
-		}
-		get opacity() {
-			return this._opacity;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/votMenu.ts
-	var VOTMenu = class extends UIComponent {
-		contentWrapper;
-		headerContainer;
-		bodyContainer;
-		footerContainer;
-		titleContainer;
-		title;
-		_position;
-		_titleHtml;
-		menuId = createDomId("vot-menu");
-		titleId = createDomId("vot-menu-title");
-		constructor({ position = "default", titleHtml = "" }) {
-			super();
-			this._position = position;
-			this._titleHtml = titleHtml;
-			const { container, contentWrapper, headerContainer, bodyContainer, footerContainer, titleContainer, title } = this.createElements();
-			this.container = container;
-			this.contentWrapper = contentWrapper;
-			this.headerContainer = headerContainer;
-			this.bodyContainer = bodyContainer;
-			this.footerContainer = footerContainer;
-			this.titleContainer = titleContainer;
-			this.title = title;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-menu"]);
-			container.hidden = true;
-			container.id = this.menuId;
-			container.dataset.position = this._position;
-			container.setAttribute("role", "dialog");
-			container.setAttribute("aria-modal", "false");
-			setInteractiveHiddenState(container, true);
-			const contentWrapper = UI.createEl("vot-block", ["vot-menu-content-wrapper"]);
-			container.appendChild(contentWrapper);
-			const headerContainer = UI.createEl("vot-block", ["vot-menu-header-container"]);
-			const titleContainer = UI.createEl("vot-block", ["vot-menu-title-container"]);
-			headerContainer.appendChild(titleContainer);
-			const title = UI.createEl("vot-block", ["vot-menu-title"]);
-			title.id = this.titleId;
-			title.append(this._titleHtml);
-			titleContainer.appendChild(title);
-			container.setAttribute("aria-labelledby", this.titleId);
-			const bodyContainer = UI.createEl("vot-block", ["vot-menu-body-container"]);
-			const footerContainer = UI.createEl("vot-block", ["vot-menu-footer-container"]);
-			contentWrapper.append(headerContainer, bodyContainer, footerContainer);
-			return {
-				container,
-				contentWrapper,
-				headerContainer,
-				bodyContainer,
-				footerContainer,
-				titleContainer,
-				title
-			};
-		}
-		setText(titleText) {
-			this._titleHtml = this.title.textContent = titleText;
-			return this;
-		}
-		remove() {
-			this.container.remove();
-			return this;
-		}
-		set hidden(isHidden) {
-			setInteractiveHiddenState(this.container, isHidden);
-		}
-		get hidden() {
-			return super.hidden;
-		}
-		get position() {
-			return this._position;
-		}
-		set position(position) {
-			this._position = this.container.dataset.position = position;
-		}
-	};
-	//#endregion
-	//#region src/ui/views/overlay.ts
-	var OverlayView = class OverlayView {
-		static BIG_CONTAINER_WIDTH_PX = 550;
-		resizeObserver;
-		lastIsBigContainer = false;
-		fullscreenHelper;
-		mount;
-		globalPortal;
-		abortController = null;
-		defaultVolumePersistTimer;
-		defaultVolumePersistDelayMs = 250;
-		dragThresholdPx = 6;
-		dragActionSuppressMs = 350;
-		dragState = null;
-		dockPreview = null;
-		lastButtonDragEndAt = 0;
-		initialized = false;
-		data;
-		videoHandler;
-		intervalIdleChecker;
-		overlayMount;
-		events = {
-			"click:settings": new EventImpl(),
-			"click:pip": new EventImpl(),
-			"click:subtitles": new EventImpl(),
-			"click:downloadTranslation": new EventImpl(),
-			"click:downloadSubtitles": new EventImpl(),
-			"click:translate": new EventImpl(),
-			"input:videoVolume": new EventImpl(),
-			"input:translationVolume": new EventImpl(),
-			"select:fromLanguage": new EventImpl(),
-			"select:toLanguage": new EventImpl(),
-			"select:subtitles": new EventImpl(),
-			"select:voiceType": new EventImpl()
-		};
-		votButton;
-		votButtonTooltip;
-		subtitlesButtonTooltip;
-		voiceMenuButtonTooltip;
-		voicePopover;
-		votMenu;
-		downloadTranslationButton;
-		downloadSubtitlesButton;
-		openSettingsButton;
-		languagePairSelect;
-		subtitlesSelectLabel;
-		subtitlesSelect;
-		videoVolumeSliderLabel;
-		videoVolumeSlider;
-		translationVolumeSliderLabel;
-		translationVolumeSlider;
-		constructor({ mount, globalPortal, data = {}, videoHandler, intervalIdleChecker }) {
-			this.mount = mount;
-			this.globalPortal = globalPortal;
-			this.data = data;
-			this.videoHandler = videoHandler;
-			this.intervalIdleChecker = intervalIdleChecker;
-			this.fullscreenHelper = new FullscreenHelper({
-				container: videoHandler?.container || mount.root,
-				video: videoHandler?.video
-			});
-		}
-		get root() {
-			return this.overlayMount?.root ?? this.mount.root;
-		}
-		get portalContainer() {
-			return this.mount.portalContainer;
-		}
-		get tooltipParentElement() {
-			return this.root instanceof ShadowRoot ? this.root.host : this.root;
-		}
-		/**
-		* Update mount points when the player container changes.
-		* Moves already-mounted UI nodes and rebinds root-bound listeners (dragging).
-		*/
-		updateMount(nextMount) {
-			const prevRoot = this.mount.root;
-			const nextRoot = nextMount.root;
-			this.mount = nextMount;
-			if (!this.isInitialized()) return this;
-			if (prevRoot !== nextRoot && this.overlayMount) reparentShadowMount(this.overlayMount, nextRoot);
-			if (prevRoot !== nextRoot) for (const tooltip of [
-				this.votButtonTooltip,
-				this.subtitlesButtonTooltip,
-				this.voiceMenuButtonTooltip
-			]) tooltip?.updateMount({ parentElement: this.tooltipParentElement });
-			return this;
-		}
-		isInitialized() {
-			return this.initialized;
-		}
-		calcButtonLayout(position) {
-			return resolveButtonLayout(this.isBigContainer, position);
-		}
-		/** Centered bar uses dropdown arrow; side layout uses translate segment hover. */
-		isCenteredButtonLayout() {
-			return this.votButton?.direction !== "column";
-		}
-		/** Side layout blocks voice popover on error (tooltip instead). Centered bar always allows dropdown. */
-		allowsVoicePopover() {
-			if (!this.votButton) return false;
-			if (this.isCenteredButtonLayout()) return true;
-			return this.votButton.status !== "error";
-		}
-		shouldUseTouchVoiceInteraction(event) {
-			return event?.pointerType === "touch" || isTouchFirstInput();
-		}
-		shouldUseHoverVoiceInteraction(event) {
-			return event?.pointerType !== "touch" && !isTouchFirstInput();
-		}
-		/** Error tooltip only on side layout — centered bar uses dropdown + button label. */
-		syncTranslateButtonTooltip() {
-			if (!this.isInitialized()) return this;
-			const tooltip = this.votButtonTooltip;
-			const showErrorTooltip = this.votButton.status === "error" && !this.isCenteredButtonLayout();
-			tooltip.hidden = !showErrorTooltip;
-			tooltip.dismissImmediate();
-			if (showErrorTooltip) requestAnimationFrame(() => {
-				requestAnimationFrame(() => tooltip.revealIfHovered());
-			});
-			return this;
-		}
-		/**
-		* When status leaves `error`, pointer may still sit on translate segment or
-		* chevron — no new `pointerenter` fires, so re-arm the hover popover here.
-		*/
-		rescheduleVoicePopoverIfHovered() {
-			if (!this.isInitialized() || isTouchFirstInput()) return this;
-			requestAnimationFrame(() => {
-				requestAnimationFrame(() => {
-					if (!this.isInitialized() || !this.allowsVoicePopover()) return;
-					const vp = this.voicePopover;
-					if (!vp || vp.isOpen) return;
-					const hovered = (el) => {
-						if (!el?.isConnected) return false;
-						try {
-							return el.matches(":hover");
-						} catch {
-							return false;
-						}
-					};
-					if (this.votButton.direction === "column") {
-						if (hovered(this.votButton.translateButton)) vp.scheduleShow(this.votButton.translateButton);
-					} else if (hovered(this.votButton.dropdownArrow)) vp.scheduleShow(this.votButton.dropdownArrow);
-				});
-			});
-			return this;
-		}
-		addEventListener(type, listener) {
-			this.events[type].addListener(listener);
-			return this;
-		}
-		removeEventListener(type, listener) {
-			this.events[type].removeListener(listener);
-			return this;
-		}
-		scheduleDefaultVolumePersist() {
-			if (this.defaultVolumePersistTimer !== void 0) globalThis.clearTimeout(this.defaultVolumePersistTimer);
-			this.defaultVolumePersistTimer = globalThis.setTimeout(() => {
-				this.defaultVolumePersistTimer = void 0;
-				this.flushDefaultVolumePersist();
-			}, this.defaultVolumePersistDelayMs);
-		}
-		bindPrimaryAction(element, handler, signal, options = {}) {
-			element.addEventListener("pointerup", (event) => {
-				if (!isPrimaryPointerAction(event)) return;
-				if (this.shouldSuppressPointerAction()) return;
-				if (options.shouldHandlePointer?.(event) === false) return;
-				if (options.preventPointerDefault) event.preventDefault();
-				handler();
-				queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
-			}, { signal });
-			addKeyboardActivationListener(element, () => {
-				handler();
-				queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
-			}, { signal });
-		}
-		flushDefaultVolumePersist() {
-			if (this.defaultVolumePersistTimer !== void 0) {
-				globalThis.clearTimeout(this.defaultVolumePersistTimer);
-				this.defaultVolumePersistTimer = void 0;
-			}
-			if (typeof this.data.defaultVolume !== "number") return;
-			votStorage.set("defaultVolume", this.data.defaultVolume);
-		}
-		initUI(buttonPosition = "default") {
-			if (this.isInitialized()) throw new Error("[VOT] OverlayView is already initialized");
-			this.initialized = true;
-			this.lastIsBigContainer = this.isBigContainer;
-			this.overlayMount = createShadowMount({
-				parent: this.mount.root,
-				rootClasses: ["vot-overlay-root"],
-				hostStyles: {
-					position: "absolute",
-					inset: "0",
-					display: "block",
-					"pointer-events": "none"
-				},
-				rootStyles: {
-					position: "relative",
-					display: "block",
-					width: "100%",
-					height: "100%",
-					"pointer-events": "none"
-				}
-			});
-			const { position, direction } = this.calcButtonLayout(buttonPosition);
-			this.votButton = new VOTButton({
-				position,
-				direction,
-				status: "none",
-				labelHtml: localizationProvider.get("translateVideo")
-			});
-			this.votButton.opacity = 0;
-			if (!this.pipButtonVisible) this.votButton.showPiPButton(false);
-			this.votButton.showSubtitlesButton(true);
-			this.root.appendChild(this.votButton.container);
-			this.votButton.syncDropdownArrowPlacement();
-			this.votButtonTooltip = new Tooltip({
-				target: this.votButton.translateButton,
-				content: localizationProvider.get("translateVideo"),
-				position: this.votButton.tooltipPos,
-				autoLayout: false,
-				hidden: true,
-				bordered: false,
-				parentElement: this.tooltipParentElement
-			});
-			const activeVoice = this.data.useLivelyVoice === false ? "standard" : "live";
-			this.voicePopover = new VoicePopover({
-				activeVoice,
-				layoutRoot: this.root,
-				onTranslate: () => {
-					this.events["click:translate"].dispatch();
-				}
-			});
-			this.voicePopover.addEventListener("openChange", (isOpen) => {
-				this.votButton?.setVoiceMenuOpen(isOpen);
-			});
-			this.votButton.container.dataset.voiceType = activeVoice;
-			this.root.appendChild(this.voicePopover.container);
-			this.syncTranslateButtonTooltip();
-			this.subtitlesButtonTooltip = new Tooltip({
-				target: this.votButton.subtitlesButton,
-				content: localizationProvider.get("VOTSubtitles"),
-				position: this.votButton.tooltipPos,
-				autoLayout: false,
-				bordered: false,
-				parentElement: this.tooltipParentElement
-			});
-			this.voiceMenuButtonTooltip = new Tooltip({
-				target: this.votButton.dropdownArrow,
-				anchor: this.votButton.dropdownArrow,
-				edgeAnchor: this.votButton.translateButton,
-				content: localizationProvider.get("VOTVoiceSelection"),
-				position: this.votButton.tooltipPos,
-				autoLayout: false,
-				bordered: false,
-				parentElement: this.tooltipParentElement
-			});
-			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden === true;
-			this.votMenu = new VOTMenu({
-				titleHtml: localizationProvider.get("VOTSettings"),
-				position
-			});
-			this.root.appendChild(this.votMenu.container);
-			this.setupResizeObserver();
-			this.votButton.menuButton.setAttribute("aria-controls", this.votMenu.container.id);
-			this.downloadTranslationButton = new DownloadButton();
-			this.downloadTranslationButton.hidden = true;
-			this.downloadSubtitlesButton = UI.createIconButton(SUBTITLES_ICON, { ariaLabel: "Download subtitles" });
-			this.downloadSubtitlesButton.hidden = true;
-			this.openSettingsButton = UI.createIconButton(SETTINGS_ICON, { ariaLabel: localizationProvider.get("VOTSettings") });
-			this.votMenu.headerContainer.append(this.downloadTranslationButton.container, this.downloadSubtitlesButton, this.openSettingsButton);
-			const detectedLanguage = this.videoHandler?.videoData?.detectedLanguage ?? "en";
-			const responseLanguage = this.data.responseLanguage ?? "ru";
-			this.languagePairSelect = new LanguagePairSelect({
-				from: {
-					selectTitle: localizationProvider.get(`langs.${detectedLanguage}`),
-					items: Select.genLanguageItems(availableLangs, detectedLanguage)
-				},
-				to: {
-					selectTitle: localizationProvider.get(`langs.${responseLanguage}`),
-					items: Select.genLanguageItems(availableTTS, responseLanguage)
-				},
-				dialogParent: this.globalPortal
-			});
-			this.subtitlesSelectLabel = new Label({ labelText: localizationProvider.get("VOTSubtitles") });
-			this.subtitlesSelect = new Select({
-				selectTitle: localizationProvider.get("VOTSubtitlesDisabled"),
-				dialogTitle: localizationProvider.get("VOTSubtitles"),
-				labelElement: this.subtitlesSelectLabel.container,
-				dialogParent: this.globalPortal,
-				items: [{
-					label: localizationProvider.get("VOTSubtitlesDisabled"),
-					value: "disabled",
-					selected: true
-				}]
-			});
-			const videoVolume = this.videoHandler ? this.videoHandler.getVideoVolume() * 100 : 100;
-			this.videoVolumeSliderLabel = new SliderLabel({
-				labelText: localizationProvider.get("VOTVolume"),
-				value: videoVolume
-			});
-			this.videoVolumeSlider = new Slider({
-				labelHtml: this.videoVolumeSliderLabel.container,
-				value: videoVolume
-			});
-			this.videoVolumeSlider.hidden = !this.data.showVideoSlider || this.votButton.status !== "success";
-			const defaultVolume = this.data.defaultVolume ?? 100;
-			this.translationVolumeSliderLabel = new SliderLabel({
-				labelText: localizationProvider.get("VOTVolumeTranslation"),
-				value: defaultVolume
-			});
-			this.translationVolumeSlider = new Slider({
-				labelHtml: this.translationVolumeSliderLabel.container,
-				value: defaultVolume,
-				max: this.data.audioBooster && !this.data.syncVolume ? 900 : 100
-			});
-			this.translationVolumeSlider.hidden = this.votButton.status !== "success";
-			this.votMenu.bodyContainer.append(this.languagePairSelect.container, this.subtitlesSelect.container, this.videoVolumeSlider.container, this.translationVolumeSlider.container);
-			return this;
-		}
-		initUIEvents() {
-			if (!this.isInitialized()) throw new Error("[VOT] OverlayView isn't initialized");
-			this.abortController = new AbortController();
-			const signal = this.abortController.signal;
-			this.votButton.container.addEventListener("click", (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
-			}, { signal });
-			const setMenuOpen = (open, { returnFocusToToggle = false } = {}) => {
-				if (!this.isInitialized()) return;
-				this.votMenu.hidden = !open;
-				this.votButton.menuButton.setAttribute("aria-expanded", open.toString());
-				if (open) queueMicrotask(() => this.openSettingsButton?.focus?.());
-				else if (returnFocusToToggle) queueMicrotask(() => this.votButton.menuButton.focus?.());
-				else this.votButton.menuButton.blur();
-			};
-			const toggleMenu = () => setMenuOpen(this.votMenu.hidden);
-			const closeMenu = (returnFocusToToggle = false) => setMenuOpen(false, { returnFocusToToggle });
-			const toggleVoicePopover = () => {
-				if (!this.allowsVoicePopover()) return;
-				const arrow = this.votButton.dropdownArrow;
-				this.voiceMenuButtonTooltip?.dismissImmediate();
-				if (this.voicePopover?.isOpen) {
-					this.voicePopover.hideNow();
-					this.votButton.setVoiceMenuOpen(false);
-					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
-					return;
-				}
-				this.voicePopover?.showNow(arrow);
-			};
-			this.votButton.dropdownArrow.addEventListener("pointerdown", (event) => {
-				if (!isPrimaryPointerAction(event)) return;
-				event.preventDefault();
-				event.stopPropagation();
-				if (this.shouldSuppressPointerAction()) return;
-				toggleVoicePopover();
-			}, {
-				signal,
-				capture: true
-			});
-			this.votButton.dropdownArrow.addEventListener("pointerup", (event) => {
-				event.preventDefault();
-				event.stopPropagation();
-			}, {
-				signal,
-				capture: true
-			});
-			this.votButton.dropdownArrow.addEventListener("click", (event) => {
-				event.preventDefault();
-				event.stopPropagation();
-			}, {
-				signal,
-				capture: true
-			});
-			this.votButton.dropdownArrow.addEventListener("keydown", (event) => {
-				if (event.key !== "Enter" && event.key !== " ") return;
-				event.preventDefault();
-				event.stopPropagation();
-				toggleVoicePopover();
-			}, {
-				signal,
-				capture: true
-			});
-			this.bindPrimaryAction(this.votButton.translateButton, () => {
-				closeMenu();
-				this.events["click:translate"].dispatch();
-			}, signal, { shouldHandlePointer: (event) => !(this.votButton.direction === "column" && this.allowsVoicePopover() && this.shouldUseTouchVoiceInteraction(event)) });
-			this.votButton.translateButton.addEventListener("pointerenter", (e) => {
-				if (!this.shouldUseHoverVoiceInteraction(e)) return;
-				if (this.votButton.direction !== "column") return;
-				if (!this.allowsVoicePopover()) return;
-				this.voicePopover?.scheduleShow(this.votButton.translateButton);
-			}, { signal });
-			this.votButton.translateButton.addEventListener("pointerleave", (e) => {
-				if (!this.shouldUseHoverVoiceInteraction(e)) return;
-				if (this.votButton.direction !== "column") return;
-				this.voicePopover?.scheduleHide();
-			}, { signal });
-			this.votButton.translateButton.addEventListener("pointerup", (e) => {
-				if (!this.shouldUseTouchVoiceInteraction(e)) return;
-				if (this.votButton.direction !== "column") return;
-				if (this.shouldSuppressPointerAction()) return;
-				if (!this.allowsVoicePopover()) return;
-				e.preventDefault();
-				e.stopPropagation();
-				if (this.voicePopover?.isOpen) {
-					this.voicePopover.hideNow();
-					this.votButton.setVoiceMenuOpen(false);
-					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
-					return;
-				}
-				this.voicePopover?.showNow(this.votButton.translateButton);
-			}, { signal });
-			this.voicePopover.addEventListener("voiceChange", (voice) => {
-				const useLive = voice === "live";
-				if (this.data.useLivelyVoice === useLive) {
-					queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
-					return;
-				}
-				this.data.useLivelyVoice = useLive;
-				votStorage.set("useLivelyVoice", useLive);
-				this.syncVoicePopoverState();
-				this.events["select:voiceType"].dispatch(useLive);
-				queueMicrotask(() => this.queueButtonAutoHideAfterInteraction());
-			});
-			this.bindPrimaryAction(this.votButton.pipButton, () => {
-				closeMenu();
-				this.events["click:pip"].dispatch();
-			}, signal);
-			this.bindPrimaryAction(this.votButton.subtitlesButton, () => {
-				closeMenu();
-				this.events["click:subtitles"].dispatch();
-			}, signal);
-			this.bindPrimaryAction(this.votButton.menuButton, toggleMenu, signal, { preventPointerDefault: true });
-			const touchAction = "none";
-			this.votButton.container.style.touchAction = touchAction;
-			this.votButton.translateButton.style.touchAction = touchAction;
-			this.votButton.dropdownArrow.style.touchAction = touchAction;
-			this.votButton.subtitlesButton.style.touchAction = touchAction;
-			this.votButton.pipButton.style.touchAction = touchAction;
-			this.votButton.menuButton.style.touchAction = touchAction;
-			this.votButton.container.addEventListener("pointerdown", this.onButtonDragPointerDown, { signal });
-			document.addEventListener("pointermove", this.onButtonDragPointerMove, {
-				signal,
-				capture: true
-			});
-			document.addEventListener("pointerup", this.onButtonDragPointerUp, {
-				signal,
-				capture: true
-			});
-			document.addEventListener("pointercancel", this.onButtonDragPointerCancel, {
-				signal,
-				capture: true
-			});
-			this.votButton.container.addEventListener("lostpointercapture", this.onButtonDragPointerCancel, { signal });
-			this.votMenu.container.addEventListener("click", (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
-			}, { signal });
-			for (const event of ["pointerdown"]) this.votMenu.container.addEventListener(event, (e) => {
-				e.stopImmediatePropagation();
-			}, { signal });
-			document.addEventListener("pointerdown", (e) => {
-				if (this.votMenu.hidden) return;
-				const isInsideDialog = (typeof e.composedPath === "function" ? e.composedPath() : []).some((node) => node instanceof HTMLElement && node.classList.contains("vot-dialog-container"));
-				if (isEventInside(e, this.votMenu.container) || isEventInside(e, this.votButton.menuButton) || isEventInside(e, this.votButton.container) || isInsideDialog) return;
-				closeMenu(false);
-			}, {
-				signal,
-				capture: true,
-				passive: true
-			});
-			this.votMenu.container.addEventListener("keydown", (e) => {
-				if (e.key !== "Escape") return;
-				const keyboardNav = document.documentElement.classList.contains("vot-keyboard-nav");
-				e.preventDefault();
-				e.stopPropagation();
-				closeMenu(keyboardNav);
-				if (!(this.votButton.container.matches(":hover") || this.votMenu.container.matches(":hover"))) this.videoHandler?.overlayVisibility?.queueAutoHide?.();
-			}, { signal });
-			this.downloadTranslationButton.addEventListener("click", () => {
-				this.events["click:downloadTranslation"].dispatch();
-			});
-			this.downloadSubtitlesButton.addEventListener("click", () => {
-				this.events["click:downloadSubtitles"].dispatch();
-			}, { signal });
-			this.openSettingsButton.addEventListener("click", () => {
-				closeMenu();
-				this.events["click:settings"].dispatch();
-			}, { signal });
-			this.languagePairSelect.fromSelect.addEventListener("selectItem", (language) => {
-				if (this.videoHandler?.videoData) {
-					this.videoHandler.videoData.detectedLanguage = language;
-					this.videoHandler.videoManager.rememberUserLanguageSelection(this.videoHandler.videoData.videoId, language);
-				}
-				this.events["select:fromLanguage"].dispatch(language);
-			});
-			this.languagePairSelect.toSelect.addEventListener("selectItem", async (language) => {
-				if (this.videoHandler?.videoData) this.videoHandler.translateToLang = this.videoHandler.videoData.responseLanguage = language;
-				const prevResponseLanguage = this.data.responseLanguage;
-				if (prevResponseLanguage !== language) {
-					this.data.responseLanguage = language;
-					await votStorage.set("responseLanguage", this.data.responseLanguage);
-				}
-				if (this.data.enabledDontTranslateLanguages && Array.isArray(this.data.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && prevResponseLanguage !== language && typeof prevResponseLanguage === "string" && this.data.dontTranslateLanguages[0] === prevResponseLanguage) {
-					this.data.dontTranslateLanguages = [language];
-					await votStorage.set("dontTranslateLanguages", this.data.dontTranslateLanguages);
-				}
-				this.events["select:toLanguage"].dispatch(language);
-			});
-			this.subtitlesSelect.addEventListener("beforeOpen", async (dialog) => {
-				if (!this.videoHandler?.videoData) return;
-				const subtitleLanguage = this.videoHandler.getPreferredSubtitlesLanguage(this.videoHandler.videoData.detectedLanguage, this.videoHandler.videoData.responseLanguage);
-				if (!subtitleLanguage) return;
-				const cacheKey = this.videoHandler.getSubtitlesCacheKey(this.videoHandler.videoData.videoId, this.videoHandler.videoData.detectedLanguage, subtitleLanguage);
-				if (this.videoHandler.subtitlesCacheKey === cacheKey) return;
-				if (this.videoHandler.cacheManager.getSubtitles(cacheKey) !== void 0) {
-					await this.videoHandler.ensureSubtitlesForCurrentLangPair();
-					return;
-				}
-				const prevLoading = this.votButton?.loading ?? false;
-				if (this.votButton) this.votButton.loading = true;
-				const loadingEl = UI.createInlineLoader();
-				loadingEl.style.margin = "0 auto";
-				dialog.footerContainer.appendChild(loadingEl);
-				try {
-					await this.videoHandler.ensureSubtitlesForCurrentLangPair();
-				} finally {
-					loadingEl.remove();
-					if (this.votButton) this.votButton.loading = prevLoading;
-				}
-			});
-			this.subtitlesSelect.addEventListener("selectItem", (data) => {
-				this.events["select:subtitles"].dispatch(data);
-			});
-			this.videoVolumeSlider.addEventListener("input", (value, fromSetter) => {
-				if (this.videoVolumeSliderLabel) this.videoVolumeSliderLabel.value = value;
-				if (fromSetter) return;
-				this.events["input:videoVolume"].dispatch(value);
-			});
-			this.translationVolumeSlider.addEventListener("input", (value, fromSetter) => {
-				if (this.translationVolumeSliderLabel) this.translationVolumeSliderLabel.value = value;
-				if (this.data.defaultVolume !== value) {
-					this.data.defaultVolume = value;
-					this.scheduleDefaultVolumePersist();
-				}
-				if (fromSetter) return;
-				this.events["input:translationVolume"].dispatch(value);
-			});
-			return this;
-		}
-		updateButtonLayout(position, direction, options = {}) {
-			if (!this.isInitialized()) return this;
-			this.votMenu.position = position;
-			this.votButton.position = position;
-			this.votButton.direction = direction;
-			this.votButton.syncDropdownArrowPlacement();
-			this.votButtonTooltip.setPosition(this.votButton.tooltipPos);
-			this.subtitlesButtonTooltip.setPosition(this.votButton.tooltipPos);
-			this.voiceMenuButtonTooltip.setPosition(this.votButton.tooltipPos);
-			this.voiceMenuButtonTooltip.hidden = this.votButton.dropdownArrow.hidden === true;
-			if (!options.keepVoicePopover && this.voicePopover?.isOpen) {
-				this.voicePopover.hideNow();
-				this.voiceMenuButtonTooltip?.dismissImmediate();
-				this.votButton.setVoiceMenuOpen(false);
-			}
-			this.syncTranslateButtonTooltip();
-			return this;
-		}
-		/** Sync the voice popover's active state with the current data. */
-		syncVoicePopoverState() {
-			if (!this.isInitialized()) return this;
-			const activeVoice = this.data.useLivelyVoice === false ? "standard" : "live";
-			this.voicePopover.activeVoice = activeVoice;
-			this.votButton.container.dataset.voiceType = activeVoice;
-			return this;
-		}
-		syncSubtitlesButtonState(isActive) {
-			if (!this.isInitialized()) return this;
-			const active = isActive ?? Array.from(this.subtitlesSelect?.selectedValues ?? []).some((value) => value !== "disabled");
-			this.votButton.subtitlesActive = active;
-			return this;
-		}
-		getOverlayRootElement() {
-			const root = this.tooltipParentElement;
-			return root instanceof ShadowRoot ? root.host : root;
-		}
-		shouldSuppressPointerAction() {
-			return Boolean(this.dragState?.active) || Date.now() - this.lastButtonDragEndAt < this.dragActionSuppressMs;
-		}
-		closeFloatingButtonUI() {
-			if (!this.isInitialized()) return;
-			this.votMenu.hidden = true;
-			this.votButton.menuButton.setAttribute("aria-expanded", "false");
-			this.voicePopover?.hideNow();
-			this.voiceMenuButtonTooltip?.dismissImmediate();
-			this.votButton.setVoiceMenuOpen(false);
-		}
-		isElementHovered(element) {
-			if (!element?.isConnected) return false;
-			try {
-				return element.matches(":hover");
-			} catch {
-				return false;
-			}
-		}
-		getFloatingInteractionTargets() {
-			if (!this.isInitialized()) return [];
-			return [
-				this.votButton.container,
-				this.votMenu.container,
-				this.voicePopover.container
-			].filter((element) => element.isConnected);
-		}
-		isKeyboardFocusWithinFloatingUI() {
-			if (typeof document === "undefined" || typeof document.hasFocus !== "function" || !document.hasFocus() || !document.documentElement.classList.contains("vot-keyboard-nav")) return false;
-			const active = getDeepActiveElement(document);
-			if (!(active instanceof Node)) return false;
-			return this.getFloatingInteractionTargets().some((target) => containsCrossShadow(target, active));
-		}
-		shouldKeepVisibleForInteraction() {
-			if (!this.isInitialized()) return false;
-			const hoverActive = !isTouchFirstInput() && this.getFloatingInteractionTargets().some((target) => this.isElementHovered(target));
-			return this.hasOpenFloatingButtonUI() || hoverActive || this.isKeyboardFocusWithinFloatingUI();
-		}
-		blurPointerFocusInsideButton() {
-			if (!this.isInitialized()) return;
-			if (document.documentElement.classList.contains("vot-keyboard-nav")) return;
-			const active = getDeepActiveElement(document);
-			if (active instanceof HTMLElement && containsCrossShadow(this.votButton.container, active)) active.blur();
-		}
-		hasOpenFloatingButtonUI() {
-			if (!this.isInitialized()) return false;
-			return !this.votMenu.hidden || Boolean(this.voicePopover?.isOpen);
-		}
-		queueButtonAutoHideAfterInteraction() {
-			if (!this.isInitialized()) return;
-			if (this.shouldKeepVisibleForInteraction()) {
-				this.videoHandler?.overlayVisibility?.cancel?.();
-				return;
-			}
-			this.blurPointerFocusInsideButton();
-			if (this.shouldKeepVisibleForInteraction()) {
-				this.videoHandler?.overlayVisibility?.cancel?.();
-				return;
-			}
-			this.videoHandler?.overlayVisibility?.queueAutoHide?.();
-		}
-		ensureDockPreview() {
-			if (!this.isInitialized()) return null;
-			if (this.dockPreview?.isConnected) return this.dockPreview;
-			const preview = this.votButton.container.cloneNode(true);
-			preview.classList.add("vot-segmented-button--dock-preview");
-			preview.classList.remove("vot-segmented-button--dragging", "vot-segmented-button--hidden");
-			preview.removeAttribute("id");
-			preview.removeAttribute("aria-grabbed");
-			preview.setAttribute("aria-hidden", "true");
-			preview.querySelectorAll("[tabindex]").forEach((element) => {
-				element.tabIndex = -1;
-			});
-			this.root.appendChild(preview);
-			this.dockPreview = preview;
-			return preview;
-		}
-		removeDockPreview() {
-			this.dockPreview?.remove();
-			this.dockPreview = null;
-		}
-		syncDockPreview(position, direction) {
-			const preview = this.ensureDockPreview();
-			if (!preview) return;
-			preview.dataset.position = position;
-			preview.dataset.direction = direction;
-			preview.dataset.status = this.votButton.status;
-			preview.dataset.loading = this.votButton.loading.toString();
-			preview.dataset.dragTarget = "true";
-			preview.classList.toggle("vot-segmented-button--dock-preview-side", direction === "column");
-			preview.querySelectorAll("[aria-expanded]").forEach((element) => {
-				element.setAttribute("aria-expanded", "false");
-			});
-			const arrow = preview.querySelector(".vot-dropdown-arrow");
-			if (arrow) {
-				arrow.hidden = direction === "column";
-				arrow.setAttribute("aria-hidden", (direction === "column").toString());
-			}
-		}
-		updateDraggingButtonPosition() {
-			const state = this.dragState;
-			if (!this.isInitialized() || !state?.active) return;
-			const rootRect = this.getOverlayRootElement().getBoundingClientRect();
-			state.rootRect = rootRect;
-			const buttonRect = this.votButton.container.getBoundingClientRect();
-			const maxLeft = Math.max(0, rootRect.width - buttonRect.width);
-			const maxTop = Math.max(0, rootRect.height - buttonRect.height);
-			const nextLeft = Math.max(0, Math.min(state.clientX - rootRect.left - buttonRect.width / 2, maxLeft));
-			const nextTop = Math.max(0, Math.min(state.clientY - rootRect.top - buttonRect.height / 2, maxTop));
-			this.votButton.container.style.setProperty("--vot-button-drag-left", `${nextLeft}px`);
-			this.votButton.container.style.setProperty("--vot-button-drag-top", `${nextTop}px`);
-		}
-		startActiveButtonDrag() {
-			if (!this.isInitialized() || !this.dragState?.active) return;
-			this.closeFloatingButtonUI();
-			this.updateDraggingButtonPosition();
-			this.votButton.container.classList.add("vot-segmented-button--dragging");
-			this.votButton.container.dataset.dragging = "true";
-			this.votButton.container.setAttribute("aria-grabbed", "true");
-			this.updateDragTarget(resolveButtonPositionFromPointer(this.dragState.clientX, this.dragState.clientY, this.dragState.rootRect, this.isBigContainer));
-		}
-		updateDragTarget(position) {
-			if (!this.isInitialized() || !this.dragState) return;
-			const { position: layoutPosition, direction } = resolveButtonLayout(this.isBigContainer, position);
-			if (this.dragState.targetPosition !== layoutPosition) this.dragState.targetPosition = layoutPosition;
-			this.syncDockPreview(layoutPosition, direction);
-		}
-		applyButtonDragFrame() {
-			const state = this.dragState;
-			if (!this.isInitialized() || !state?.active) return;
-			state.frameId = null;
-			this.updateDraggingButtonPosition();
-			const nextPosition = resolveButtonPositionFromPointer(state.clientX, state.clientY, state.rootRect, this.isBigContainer);
-			this.updateDragTarget(nextPosition);
-		}
-		requestButtonDragFrame() {
-			const state = this.dragState;
-			if (!state?.active || state.frameId !== null) return;
-			state.frameId = requestAnimationFrame(() => this.applyButtonDragFrame());
-		}
-		finishButtonDrag(commit) {
-			const state = this.dragState;
-			if (!state) return;
-			if (state.frameId !== null) {
-				cancelAnimationFrame(state.frameId);
-				state.frameId = null;
-			}
-			const pointerId = state.pointerId;
-			const wasActive = state.active;
-			const shouldCommit = commit && wasActive && this.isInitialized();
-			const targetPosition = shouldCommit ? state.targetPosition : state.initialPosition;
-			if (wasActive) this.lastButtonDragEndAt = Date.now();
-			this.dragState = null;
-			try {
-				if (this.votButton?.container.hasPointerCapture(pointerId)) this.votButton.container.releasePointerCapture(pointerId);
-			} catch {}
-			if (this.isInitialized()) {
-				this.votButton.container.classList.remove("vot-segmented-button--dragging");
-				delete this.votButton.container.dataset.dragging;
-				this.votButton.container.style.removeProperty("--vot-button-drag-left");
-				this.votButton.container.style.removeProperty("--vot-button-drag-top");
-				this.votButton.container.removeAttribute("aria-grabbed");
-				this.removeDockPreview();
-				if (wasActive) {
-					const { position, direction } = this.calcButtonLayout(targetPosition);
-					this.updateButtonLayout(position, direction);
-					if (shouldCommit) {
-						this.data.buttonPos = targetPosition;
-						votStorage.set("buttonPos", targetPosition);
-					}
-					this.queueButtonAutoHideAfterInteraction();
-				}
-			} else this.removeDockPreview();
-		}
-		beginButtonDragCandidate(event) {
-			if (!this.isInitialized()) return;
-			const rootRect = this.getOverlayRootElement().getBoundingClientRect();
-			const initialPosition = normalizeButtonPosition(this.data.buttonPos ?? this.votButton.position);
-			this.dragState = {
-				pointerId: event.pointerId,
-				startClientX: event.clientX,
-				startClientY: event.clientY,
-				clientX: event.clientX,
-				clientY: event.clientY,
-				rootRect,
-				active: false,
-				initialPosition,
-				targetPosition: initialPosition,
-				frameId: null
-			};
-			this.intervalIdleChecker.markActivity("overlay-button-drag-start");
-		}
-		onButtonDragPointerDown = (event) => {
-			if (!event.isPrimary || event.button !== 0 || this.dragState) return;
-			this.beginButtonDragCandidate(event);
-		};
-		onButtonDragPointerMove = (event) => {
-			const state = this.dragState;
-			if (state?.pointerId !== event.pointerId) return;
-			state.clientX = event.clientX;
-			state.clientY = event.clientY;
-			if (!state.active) {
-				if (Math.hypot(event.clientX - state.startClientX, event.clientY - state.startClientY) < this.dragThresholdPx) return;
-				state.active = true;
-				try {
-					this.votButton?.container.setPointerCapture(event.pointerId);
-				} catch {}
-				this.startActiveButtonDrag();
-			}
-			event.preventDefault();
-			event.stopPropagation();
-			this.intervalIdleChecker.markActivity("overlay-button-drag-move");
-			this.requestButtonDragFrame();
-		};
-		onButtonDragPointerUp = (event) => {
-			const state = this.dragState;
-			if (state?.pointerId !== event.pointerId) return;
-			state.clientX = event.clientX;
-			state.clientY = event.clientY;
-			if (state.active) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				this.applyButtonDragFrame();
-			}
-			this.finishButtonDrag(true);
-		};
-		onButtonDragPointerCancel = (event) => {
-			const state = this.dragState;
-			if (state?.pointerId !== event.pointerId) return;
-			if (state.active) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-			}
-			this.finishButtonDrag(false);
-		};
-		updateButtonOpacity(opacity) {
-			if (!this.isInitialized() || !this.votMenu.hidden) return this;
-			const nextOpacity = opacity <= .01 && this.voicePopover?.isOpen && hasTouchScreen() ? 1 : opacity;
-			if (Math.abs(this.votButton.opacity - nextOpacity) > .01) {
-				this.votButton.opacity = nextOpacity;
-				if (nextOpacity <= .01) this.voicePopover?.hideNow();
-			}
-			return this;
-		}
-		doReleaseUI() {
-			this.votButton?.remove();
-			this.votMenu?.remove();
-			this.votButtonTooltip?.release();
-			this.subtitlesButtonTooltip?.release();
-			this.voiceMenuButtonTooltip?.release();
-			this.voicePopover?.release();
-			if (this.resizeObserver) {
-				this.resizeObserver.disconnect();
-				this.resizeObserver = void 0;
-			}
-			this.fullscreenHelper.destroy();
-			destroyShadowMount(this.overlayMount);
-			this.overlayMount = void 0;
-		}
-		doReleaseUIEvents() {
-			this.abortController?.abort();
-			this.abortController = null;
-			this.finishButtonDrag(false);
-			this.flushDefaultVolumePersist();
-			for (const event of Object.values(this.events)) event.clear();
-		}
-		release() {
-			if (!this.isInitialized()) return this;
-			this.doReleaseUIEvents();
-			this.doReleaseUI();
-			this.initialized = false;
-			return this;
-		}
-		get isBigContainer() {
-			return this.fullscreenHelper.isBigContainer(OverlayView.BIG_CONTAINER_WIDTH_PX);
-		}
-		setupResizeObserver() {
-			if (this.resizeObserver) return;
-			this.resizeObserver = new ResizeObserver((entries) => {
-				for (const entry of entries) {
-					const { width } = entry.contentRect;
-					const currentIsBigContainer = width > OverlayView.BIG_CONTAINER_WIDTH_PX;
-					if (this.lastIsBigContainer !== currentIsBigContainer) {
-						this.lastIsBigContainer = currentIsBigContainer;
-						this.handleContainerSizeChange(currentIsBigContainer);
-					}
-					this.updateMenuHeight(entry.contentRect.height);
-				}
-			});
-			const target = this.fullscreenHelper.getResizeObserverTarget();
-			this.resizeObserver.observe(target);
-		}
-		updateMenuHeight(containerHeight) {
-			if (!this.isInitialized() || !this.votMenu?.container) return;
-			let height;
-			if (containerHeight && containerHeight > 200) height = containerHeight;
-			else {
-				const target = this.fullscreenHelper.getResizeObserverTarget();
-				height = target.getBoundingClientRect().height || target.clientHeight || window.innerHeight * .75;
-			}
-			if (!height || height < 200) height = window.innerHeight * .75;
-			this.votMenu.container.style.setProperty("--vot-container-height", `${height}px`);
-		}
-		handleContainerSizeChange(isBigContainer) {
-			if (!this.isInitialized()) return;
-			const { position, direction } = resolveButtonLayout(isBigContainer, normalizeButtonPosition(this.data.buttonPos ?? this.votButton.position));
-			if (position !== this.votButton.position || direction !== this.votButton.direction) this.updateButtonLayout(position, direction);
-		}
-		get pipButtonVisible() {
-			return isPiPAvailable() && !!this.data.showPiPButton;
-		}
-	};
-	//#endregion
-	//#region src/types/components/votButton.ts
-	var positions = [
-		"default",
-		"left",
-		"right",
-		"leftCenter",
-		"rightCenter"
-	];
-	//#endregion
-	//#region src/videoHandler/shared.ts
-	/**
-	* Country code used for proxy settings. Populated lazily during init.
-	*/
-	var _countryCode;
-	function getCountryCode() {
-		return _countryCode;
-	}
-	function setCountryCode(next) {
-		_countryCode = next;
-	}
-	//#endregion
-	//#region src/ui/components/accountButton.ts
-	var DEFAULT_AVATAR_ID = "0/0-0";
-	var DEFAULT_USERNAME = "unnamed";
-	var AccountButton = class extends UIComponentWithEvents {
-		accountWrapper;
-		buttons;
-		usernameEl;
-		avatarEl;
-		avatarImg;
-		actionButton;
-		refreshButton;
-		tokenButton;
-		_loggedIn;
-		_username;
-		_avatarId;
-		constructor({ loggedIn = false, username = DEFAULT_USERNAME, avatarId = DEFAULT_AVATAR_ID } = {}) {
-			super([
-				"click",
-				"click:secret",
-				"refresh"
-			]);
-			this._loggedIn = loggedIn;
-			this._username = username;
-			this._avatarId = avatarId;
-			const { container, accountWrapper, buttons, usernameEl, avatarEl, avatarImg, actionButton, refreshButton, tokenButton } = this.createElements();
-			this.container = container;
-			this.accountWrapper = accountWrapper;
-			this.buttons = buttons;
-			this.usernameEl = usernameEl;
-			this.avatarEl = avatarEl;
-			this.avatarImg = avatarImg;
-			this.actionButton = actionButton;
-			this.refreshButton = refreshButton;
-			this.tokenButton = tokenButton;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-account"]);
-			const accountWrapper = UI.createEl("vot-block", ["vot-account-wrapper"]);
-			accountWrapper.hidden = !this._loggedIn;
-			const avatarImg = UI.createEl("img", ["vot-account-avatar-img"]);
-			avatarImg.src = `${avatarServerUrl}/${this._avatarId}/islands-retina-middle`;
-			avatarImg.loading = "lazy";
-			avatarImg.alt = "user avatar";
-			const avatarEl = UI.createEl("vot-block", ["vot-account-avatar"], avatarImg);
-			const usernameEl = UI.createEl("vot-block", ["vot-account-username"]);
-			usernameEl.textContent = this._username;
-			accountWrapper.append(avatarEl, usernameEl);
-			const buttons = UI.createEl("vot-block", ["vot-account-buttons"]);
-			const actionButton = UI.createOutlinedButton(this.buttonText);
-			actionButton.addEventListener("click", () => {
-				this.dispatch("click");
-			});
-			const tokenButton = UI.createIconButton(KEY_ICON, { ariaLabel: localizationProvider.get("VOTLoginViaToken") });
-			tokenButton.hidden = this._loggedIn;
-			tokenButton.addEventListener("click", () => {
-				this.dispatch("click:secret");
-			});
-			const refreshButton = UI.createIconButton(REFRESH_ICON, { ariaLabel: localizationProvider.get("VOTRefresh") });
-			refreshButton.addEventListener("click", () => {
-				this.dispatch("refresh");
-			});
-			buttons.append(actionButton, tokenButton, refreshButton);
-			container.append(accountWrapper, buttons);
-			return {
-				container,
-				accountWrapper,
-				buttons,
-				usernameEl,
-				avatarImg,
-				avatarEl,
-				actionButton,
-				refreshButton,
-				tokenButton
-			};
-		}
-		get buttonText() {
-			return this._loggedIn ? localizationProvider.get("VOTLogout") : localizationProvider.get("VOTLogin");
-		}
-		get loggedIn() {
-			return this._loggedIn;
-		}
-		set loggedIn(isLoggedIn) {
-			this._loggedIn = isLoggedIn;
-			this.accountWrapper.hidden = !this._loggedIn;
-			this.actionButton.textContent = this.buttonText;
-			this.tokenButton.hidden = this._loggedIn;
-		}
-		get avatarId() {
-			return this._avatarId;
-		}
-		set avatarId(avatarId) {
-			this._avatarId = avatarId ?? DEFAULT_AVATAR_ID;
-			this.avatarImg.src = `${avatarServerUrl}/${this._avatarId}/islands-retina-middle`;
-		}
-		get username() {
-			return this._username;
-		}
-		set username(username) {
-			this._username = username ?? DEFAULT_USERNAME;
-			this.usernameEl.textContent = this._username;
-		}
-	};
-	//#endregion
-	//#region src/ui/components/checkbox.ts
-	var Checkbox = class extends UIComponentWithEvents {
-		input;
-		label;
-		_labelHtml;
-		_checked;
-		_isSubCheckbox;
-		constructor({ labelHtml, checked = false, isSubCheckbox = false }) {
-			super(["change"]);
-			this._labelHtml = labelHtml;
-			this._checked = checked;
-			this._isSubCheckbox = isSubCheckbox;
-			const { container, input, label } = this.createElements();
-			this.container = container;
-			this.input = input;
-			this.label = label;
-		}
-		createElements() {
-			const container = UI.createEl("label", ["vot-checkbox"]);
-			if (this._isSubCheckbox) container.classList.add("vot-checkbox-sub");
-			const input = document.createElement("input");
-			input.type = "checkbox";
-			input.checked = this._checked;
-			input.addEventListener("change", () => {
-				this._checked = input.checked;
-				this.dispatch("change", this._checked);
-			});
-			const label = UI.createEl("span");
-			D(this._labelHtml, label);
-			container.append(input, label);
-			return {
-				container,
-				input,
-				label
-			};
-		}
-		get disabled() {
-			return this.input.disabled;
-		}
-		set disabled(isDisabled) {
-			this.input.disabled = isDisabled;
-		}
-		get checked() {
-			return this._checked;
-		}
-		/**
-		* If you set a different new value, it will trigger the change event
-		*/
-		set checked(isChecked) {
-			if (this._checked === isChecked) return;
-			this._checked = this.input.checked = isChecked;
-			this.dispatch("change", this._checked);
-		}
-	};
-	//#endregion
-	//#region src/ui/components/details.ts
-	var Details = class extends UIComponentWithEvents {
-		header;
-		arrowIcon;
-		_titleHtml;
-		constructor({ titleHtml }) {
-			super(["click"]);
-			this._titleHtml = titleHtml;
-			const { container, header, arrowIcon } = this.createElements();
-			this.container = container;
-			this.header = header;
-			this.arrowIcon = arrowIcon;
-		}
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-details"]);
-			UI.makeButtonLike(container);
-			const header = UI.createEl("vot-block");
-			header.append(this._titleHtml);
-			const arrowIcon = UI.createEl("vot-block", ["vot-details-arrow-icon"]);
-			D(CHEVRON_ICON, arrowIcon);
-			container.append(header, arrowIcon);
-			container.addEventListener("click", () => {
-				this.dispatch("click");
-			});
-			return {
-				container,
-				header,
-				arrowIcon
-			};
-		}
-	};
-	//#endregion
-	//#region src/ui/components/hotkeyButton.ts
-	var HotkeyButton = class extends UIComponentWithEvents {
-		button;
-		_labelHtml;
-		_key;
-		pressedKeys;
-		comboKeys;
-		recording = false;
-		constructor({ labelHtml, key = null }) {
-			super(["change"]);
-			this._labelHtml = labelHtml;
-			this._key = key;
-			this.pressedKeys = /* @__PURE__ */ new Set();
-			this.comboKeys = /* @__PURE__ */ new Set();
-			const { container, button } = this.createElements();
-			this.container = container;
-			this.button = button;
-		}
-		stopRecordingKeys() {
-			this.recording = false;
-			document.removeEventListener("keydown", this.keydownHandle);
-			document.removeEventListener("keyup", this.keyupOrBlurHandle);
-			globalThis.removeEventListener("blur", this.blurHandle);
-			delete this.button.dataset.status;
-			this.pressedKeys.clear();
-			this.comboKeys.clear();
-		}
-		keydownHandle = (event) => {
-			if (!this.recording || event.repeat) return;
-			event.preventDefault();
-			if (event.code === "Escape") {
-				this.key = null;
-				this.button.textContent = this.keyText;
-				this.stopRecordingKeys();
-				return;
-			}
-			this.pressedKeys.add(event.code);
-			this.comboKeys.add(event.code);
-			this.button.textContent = formatKeysComboDisplay(this.pressedKeys);
-		};
-		keyupOrBlurHandle = (event) => {
-			if (!this.recording) return;
-			if (event) {
-				this.pressedKeys.delete(event.code);
-				this.button.textContent = this.pressedKeys.size ? formatKeysComboDisplay(this.pressedKeys) : formatKeysComboDisplay(this.comboKeys);
-				if (this.pressedKeys.size) return;
-			}
-			this.key = this.comboKeys.size ? formatKeysCombo(this.comboKeys) : null;
-			this.stopRecordingKeys();
-		};
-		blurHandle = () => {
-			this.keyupOrBlurHandle();
-		};
-		buttonClickHandle = () => {
-			if (this.recording) {
-				this.stopRecordingKeys();
-				this.button.textContent = this.keyText;
-				return;
-			}
-			this.button.dataset.status = "active";
-			this.recording = true;
-			this.pressedKeys.clear();
-			this.comboKeys.clear();
-			this.button.textContent = localizationProvider.get("PressTheKeyCombination");
-			document.addEventListener("keydown", this.keydownHandle);
-			document.addEventListener("keyup", this.keyupOrBlurHandle);
-			globalThis.addEventListener("blur", this.blurHandle);
-		};
-		createElements() {
-			const container = UI.createEl("vot-block", ["vot-hotkey"]);
-			const label = UI.createEl("vot-block", ["vot-hotkey-label"]);
-			label.textContent = this._labelHtml;
-			const button = UI.createEl("vot-block", ["vot-hotkey-button"]);
-			UI.makeButtonLike(button);
-			button.textContent = this.keyText;
-			button.addEventListener("click", this.buttonClickHandle);
-			container.append(label, button);
-			return {
-				container,
-				button,
-				label
-			};
-		}
-		get key() {
-			return this._key;
-		}
-		get keyText() {
-			if (!this._key) return localizationProvider.get("None");
-			return formatKeysComboDisplay(this._key);
-		}
-		/**
-		* If you set a different new value, it will trigger the change event
-		*/
-		set key(newKey) {
-			if (this._key === newKey) return;
-			this._key = newKey;
-			this.button.textContent = this.keyText;
-			this.dispatch("change", this._key);
-		}
-	};
-	/**
-	* Formats a set of key codes into a string representing a key combination
-	*/
-	function formatKeysCombo(keys) {
-		return (Array.isArray(keys) ? keys : Array.from(keys)).map((code) => code.replace("Key", "").replace("Digit", "")).join("+");
-	}
-	/**
-	* Human-friendly formatting for hotkeys. Does not change stored semantics.
-	*/
-	function formatKeysComboDisplay(keys) {
-		let parts;
-		if (typeof keys === "string") parts = keys.split("+").filter(Boolean);
-		else if (Array.isArray(keys)) parts = keys;
-		else parts = Array.from(keys);
-		const map = (k) => {
-			switch (k) {
-				case "ControlLeft":
-				case "ControlRight":
-				case "Control": return "Ctrl";
-				case "ShiftLeft":
-				case "ShiftRight":
-				case "Shift": return "Shift";
-				case "AltLeft":
-				case "AltRight":
-				case "Alt": return "Alt";
-				case "MetaLeft":
-				case "MetaRight":
-				case "Meta": return "Meta";
-				case "Space": return "Space";
-				case "ArrowUp": return "↑";
-				case "ArrowDown": return "↓";
-				case "ArrowLeft": return "←";
-				case "ArrowRight": return "→";
-				default: return k.replace("Key", "").replace("Digit", "");
-			}
-		};
-		const priority = (k) => {
-			const m = map(k);
-			if (m === "Ctrl") return 0;
-			if (m === "Alt") return 1;
-			if (m === "Shift") return 2;
-			if (m === "Meta") return 3;
-			return 10;
-		};
-		return parts.slice().sort((a, b) => priority(a) - priority(b)).map(map).join("+");
-	}
-	//#endregion
-	//#region src/ui/views/settings.ts
-	var SETTINGS_EVENT_KEYS = [
-		"click:bugReport",
-		"click:resetSettings",
-		"update:account",
-		"change:autoTranslate",
-		"change:autoSubtitles",
-		"change:showVideoVolume",
-		"change:audioBooster",
-		"change:syncVolume",
-		"change:subtitlesHighlightWords",
-		"change:subtitlesSmartLayout",
-		"select:responseLanguageSubtitles",
-		"select:subtitlesFontFamily",
-		"change:proxyWorkerHost",
-		"change:useNewAudioPlayer",
-		"change:onlyBypassMediaCSP",
-		"change:showPiPButton",
-		"input:subtitlesMaxLength",
-		"input:subtitlesFontSize",
-		"input:subtitlesBackgroundOpacity",
-		"input:autoHideButtonDelay",
-		"select:proxyTranslationStatus",
-		"select:translationTextService",
-		"select:buttonPosition",
-		"select:menuLanguage"
-	];
-	function createSettingsEvents() {
-		const events = {};
-		for (const key of SETTINGS_EVENT_KEYS) events[key] = new EventImpl();
-		return events;
-	}
-	var GOOGLE_FONTS_SEARCH_LIMIT = 30;
-	var LANG_PREFIX = "langs.";
-	var [AUTO_SUBTITLE_LANGUAGE_VALUE$1, ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1] = subtitleResponseLanguageModes;
-	var subtitleFontFamilyLabels = {
-		"default-sans": "Default Sans",
-		arial: "Arial",
-		helvetica: "Helvetica",
-		roboto: "Roboto",
-		verdana: "Verdana",
-		"open-sans": "Open Sans",
-		poppins: "Poppins",
-		lato: "Lato",
-		montserrat: "Montserrat",
-		barlow: "Barlow"
-	};
-	function getSubtitleFontFamilyLabel(fontFamily) {
-		if (isBuiltInSubtitleFontFamily(fontFamily)) return subtitleFontFamilyLabels[fontFamily];
-		return getGoogleSubtitleFontFamilyName(fontFamily) ?? "Default Sans";
-	}
-	function getAvailableSubtitleLanguages() {
-		return Object.keys(localizationProvider.defaultLocale).filter((key) => key.startsWith(LANG_PREFIX) && key !== `${LANG_PREFIX}auto`).map((key) => key.slice(6)).sort((left, right) => localizationProvider.getLangLabel(left).localeCompare(localizationProvider.getLangLabel(right)));
-	}
-	function getSubtitleLanguageSettingLabel(value) {
-		if (value === ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1) return localizationProvider.get("VOTOriginalVideoLanguage");
-		return localizationProvider.getLangLabel(value);
-	}
-	function buildSubtitleLanguageSettingItems(selectedValue) {
-		return [
-			{
-				label: getSubtitleLanguageSettingLabel(AUTO_SUBTITLE_LANGUAGE_VALUE$1),
-				value: AUTO_SUBTITLE_LANGUAGE_VALUE$1,
-				selected: selectedValue === AUTO_SUBTITLE_LANGUAGE_VALUE$1
-			},
-			{
-				label: getSubtitleLanguageSettingLabel(ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1),
-				value: ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1,
-				selected: selectedValue === ORIGINAL_SUBTITLE_LANGUAGE_VALUE$1
-			},
-			...getAvailableSubtitleLanguages().map((language) => ({
-				label: getSubtitleLanguageSettingLabel(language),
-				value: language,
-				selected: selectedValue === language
-			}))
-		];
-	}
-	var SettingsView = class SettingsView {
-		static PERSIST_DELAY_MS = 250;
-		globalPortal;
-		initialized = false;
-		data;
-		videoHandler;
-		suppressSubtitlesSmartLayoutCheckboxChange = false;
-		events = createSettingsEvents();
-		persistTimerIds = {};
-		onAuthRefreshMessage = (event) => {
-			if (!isAuthRefreshMessage(event.data)) return;
-			this.refreshAccountFromStorage();
-		};
-		dialog;
-		accountButton;
-		accountButtonRefreshTooltip;
-		accountButtonTokenTooltip;
-		accountStorageListenerCleanup;
-		autoTranslateCheckbox;
-		autoSubtitlesCheckbox;
-		dontTranslateLanguagesCheckbox;
-		dontTranslateLanguagesSelect;
-		autoSetVolumeSliderLabel;
-		autoSetVolumeCheckbox;
-		smartDuckingCheckbox;
-		autoSetVolumeSlider;
-		showVideoVolumeSliderCheckbox;
-		audioBoosterCheckbox;
-		audioBoosterTooltip;
-		syncVolumeCheckbox;
-		downloadWithNameCheckbox;
-		sendNotifyOnCompleteCheckbox;
-		useAudioDownloadCheckbox;
-		useAudioDownloadCheckboxLabel;
-		useAudioDownloadCheckboxTooltip;
-		responseLanguageSubtitlesSelectLabel;
-		responseLanguageSubtitlesSelect;
-		subtitlesDownloadFormatSelectLabel;
-		subtitlesDownloadFormatSelect;
-		subtitlesHighlightWordsCheckbox;
-		subtitlesSmartLayoutCheckbox;
-		subtitlesMaxLengthSliderLabel;
-		subtitlesMaxLengthSlider;
-		subtitlesFontSizeSliderLabel;
-		subtitlesFontSizeSlider;
-		subtitlesFontFamilySelectLabel;
-		subtitlesFontFamilySelect;
-		subtitlesBackgroundOpacitySliderLabel;
-		subtitlesBackgroundOpacitySlider;
-		translateHotkeyButton;
-		subtitlesHotkeyButton;
-		proxyWorkerHostTextfield;
-		proxyTranslationStatusSelectLabel;
-		proxyTranslationStatusSelectTooltip;
-		proxyTranslationStatusSelect;
-		translateAPIErrorsCheckbox;
-		useNewAudioPlayerCheckbox;
-		useNewAudioPlayerTooltip;
-		onlyBypassMediaCSPCheckbox;
-		onlyBypassMediaCSPTooltip;
-		translationTextServiceLabel;
-		translationTextServiceSelect;
-		translationTextServiceTooltip;
-		detectServiceLabel;
-		detectServiceSelect;
-		showPiPButtonCheckbox;
-		autoHideButtonDelaySliderLabel;
-		autoHideButtonDelaySlider;
-		buttonPositionSelectLabel;
-		buttonPositionSelect;
-		buttonPositionTooltip;
-		menuLanguageSelectLabel;
-		menuLanguageSelect;
-		bugReportButton;
-		resetSettingsButton;
-		constructor({ globalPortal, data = {}, videoHandler }) {
-			this.globalPortal = globalPortal;
-			this.data = data;
-			this.videoHandler = videoHandler;
-		}
-		isInitialized() {
-			return this.initialized;
-		}
-		createAccordionSection(title, options = {}) {
-			const section = UI.createEl("vot-block", ["vot-settings-section"]);
-			const header = new Details({ titleHtml: title });
-			header.container.classList.add("vot-settings-section-header");
-			const sectionId = createDomId("vot-settings-section");
-			const headerId = `${sectionId}-header`;
-			const contentId = `${sectionId}-content`;
-			header.container.id = headerId;
-			const content = UI.createEl("vot-block", ["vot-settings-section-content"]);
-			content.id = contentId;
-			content.setAttribute("role", "region");
-			content.setAttribute("aria-labelledby", headerId);
-			header.container.setAttribute("aria-controls", contentId);
-			const setOpen = (open) => {
-				header.container.dataset.open = open ? "true" : "false";
-				header.container.setAttribute("aria-expanded", open ? "true" : "false");
-				content.hidden = !open;
-			};
-			const getOpen = () => header.container.dataset.open === "true";
-			setOpen(!!options.open);
-			header.addEventListener("click", () => {
-				const isOpen = header.container.dataset.open === "true";
-				setOpen(!isOpen);
-			});
-			section.append(header.container, content);
-			return {
-				title,
-				container: section,
-				header: header.container,
-				content,
-				setOpen,
-				getOpen
-			};
-		}
-		setSubtitlesSmartLayout(checked) {
-			this.data.subtitlesSmartLayout = checked;
-			votStorage.set("subtitlesSmartLayout", checked);
-			debug.log("subtitlesSmartLayout value changed. New value:", checked);
-			if (this.subtitlesSmartLayoutCheckbox?.checked !== checked) {
-				this.suppressSubtitlesSmartLayoutCheckboxChange = true;
-				this.subtitlesSmartLayoutCheckbox.checked = checked;
-				this.suppressSubtitlesSmartLayoutCheckboxChange = false;
-			}
-			this.events["change:subtitlesSmartLayout"].dispatch(checked);
-		}
-		scheduleStoragePersist(key, value) {
-			const prevTimerId = this.persistTimerIds[key];
-			if (prevTimerId !== void 0) globalThis.clearTimeout(prevTimerId);
-			this.persistTimerIds[key] = globalThis.setTimeout(() => {
-				this.persistTimerIds[key] = void 0;
-				votStorage.set(key, value);
-			}, SettingsView.PERSIST_DELAY_MS);
-		}
-		flushStoragePersists() {
-			for (const key of Object.keys(this.persistTimerIds)) {
-				const timerId = this.persistTimerIds[key];
-				if (timerId === void 0) continue;
-				globalThis.clearTimeout(timerId);
-				this.persistTimerIds[key] = void 0;
-				const value = this.data[key];
-				if (typeof value === "number") votStorage.set(key, value);
-			}
-		}
-		bindPersistedSetting({ control, event, apply, storageKey, readPersistedValue, logLabel, dispatch, afterPersist }) {
-			control.addEventListener(event, async (value) => {
-				apply(value);
-				await votStorage.set(storageKey, readPersistedValue());
-				debug.log(`${logLabel} value changed. New value:`, value);
-				if (afterPersist) await afterPersist(value);
-				dispatch?.(value);
-			});
-		}
-		bindBufferedNumericSetting({ control, label, storageKey, logLabel, toStoredValue = (value) => value, beforeApply, dispatch }) {
-			control.addEventListener("input", (value) => {
-				label.value = value;
-				beforeApply?.();
-				const storedValue = toStoredValue(value);
-				this.data[storageKey] = storedValue;
-				this.scheduleStoragePersist(storageKey, storedValue);
-				debug.log(`${logLabel} value changed. New value:`, storedValue);
-				dispatch?.(value);
-			});
-		}
-		createSettingsSections() {
-			const sections = [
-				this.createAccordionSection(localizationProvider.get("VOTMyAccount"), { open: true }),
-				this.createAccordionSection(localizationProvider.get("translationSettings"), { open: true }),
-				this.createAccordionSection(localizationProvider.get("subtitlesSettings")),
-				this.createAccordionSection(localizationProvider.get("hotkeysSettings")),
-				this.createAccordionSection(localizationProvider.get("proxySettings")),
-				this.createAccordionSection(localizationProvider.get("miscSettings")),
-				this.createAccordionSection(localizationProvider.get("appearance")),
-				this.createAccordionSection(localizationProvider.get("aboutExtension"))
-			];
-			return {
-				accountSection: sections[0],
-				translationSection: sections[1],
-				subtitlesSection: sections[2],
-				hotkeysSection: sections[3],
-				proxySection: sections[4],
-				miscSection: sections[5],
-				appearanceSection: sections[6],
-				aboutSection: sections[7],
-				sections
-			};
-		}
-		initAccountControls() {
-			this.accountButton = new AccountButton({
-				avatarId: this.data.account?.avatarId,
-				username: this.data.account?.username,
-				loggedIn: !!this.data.account?.token
-			});
-			if (votStorage.isSupportOnlyLS) {
-				this.accountButton.refreshButton.setAttribute("disabled", "true");
-				this.accountButton.actionButton.setAttribute("disabled", "true");
-			} else this.accountButtonRefreshTooltip = new Tooltip({
-				target: this.accountButton.refreshButton,
-				content: localizationProvider.get("VOTRefresh"),
-				position: "bottom",
-				backgroundColor: "var(--vot-helper-ondialog)",
-				parentElement: this.globalPortal
-			});
-			this.accountButtonTokenTooltip = new Tooltip({
-				target: this.accountButton.tokenButton,
-				content: localizationProvider.get("VOTLoginViaToken"),
-				position: "bottom",
-				backgroundColor: "var(--vot-helper-ondialog)",
-				parentElement: this.globalPortal
-			});
-		}
-		bindAccountStorageListener() {
-			this.accountStorageListenerCleanup?.();
-			this.accountStorageListenerCleanup = votStorage.addValueChangeListener("account", (_key, _oldValue, account) => {
-				this.data.account = account ?? {};
-				if (!this.isInitialized() || !this.accountButton) return;
-				this.updateAccountInfo();
-			});
-		}
-		async refreshAccountFromStorage() {
-			if (votStorage.isSupportOnlyLS) return;
-			this.data.account = await votStorage.get("account", {});
-			if (!this.isInitialized() || !this.accountButton) return;
-			this.updateAccountInfo();
-		}
-		buildSubtitleFontItems(selectedFontFamily, dynamicFontFamilies = []) {
-			const items = subtitleFontFamilies.map((fontFamily) => ({
-				label: subtitleFontFamilyLabels[fontFamily],
-				value: fontFamily,
-				selected: fontFamily === selectedFontFamily
-			}));
-			const dynamicItems = dynamicFontFamilies.filter((familyName) => {
-				const lowerFamilyName = familyName.toLowerCase();
-				return !items.some((item) => item.label.toLowerCase() === lowerFamilyName);
-			}).map((familyName) => {
-				const fontValue = toGoogleSubtitleFontFamily(familyName);
-				return {
-					label: familyName,
-					value: fontValue,
-					selected: fontValue === selectedFontFamily
-				};
-			});
-			if (!isBuiltInSubtitleFontFamily(selectedFontFamily) && !dynamicItems.some((item) => item.value === selectedFontFamily)) {
-				const currentGoogleFontFamily = getGoogleSubtitleFontFamilyName(selectedFontFamily);
-				if (currentGoogleFontFamily) dynamicItems.unshift({
-					label: currentGoogleFontFamily,
-					value: selectedFontFamily,
-					selected: true
-				});
-			}
-			return [...items, ...dynamicItems];
-		}
-		async searchSubtitleFontItems(query, fallbackFontFamily) {
-			const activeFontFamily = Array.from(this.subtitlesFontFamilySelect?.selectedValues ?? [])[0] ?? fallbackFontFamily;
-			const normalizedQuery = query.trim().toLowerCase();
-			if (!normalizedQuery) return this.buildSubtitleFontItems(activeFontFamily);
-			const matchingGoogleFonts = (await loadGoogleFontsCatalog()).filter((familyName) => familyName.toLowerCase().includes(normalizedQuery)).slice(0, GOOGLE_FONTS_SEARCH_LIMIT);
-			return this.buildSubtitleFontItems(activeFontFamily, matchingGoogleFonts);
-		}
-		buildAboutSectionContent(aboutSection) {
-			const envInfo = getEnvironmentInfo();
-			const safeGMInfo = typeof GM_info === "undefined" ? void 0 : GM_info;
-			const versionInfo = UI.createInformation(`${localizationProvider.get("VOTVersion")}:`, envInfo.scriptVersion === "unknown" ? safeGMInfo?.script?.version || localizationProvider.get("notFound") : envInfo.scriptVersion);
-			const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
-			const authorsInfo = UI.createInformation(`${localizationProvider.get("VOTAuthors")}:`, (safeGMInfo?.script)?.author || buildAuthors || localizationProvider.get("notFound"));
-			const loaderInfo = UI.createInformation(`${localizationProvider.get("VOTLoader")}:`, envInfo.loader);
-			const userBrowserInfo = UI.createInformation(`${localizationProvider.get("VOTBrowser")}:`, `${envInfo.browser} (${envInfo.os})`);
-			const localeUpdatedAt = (/* @__PURE__ */ new Date((this.data.localeUpdatedAt ?? 0) * 1e3)).toLocaleString();
-			const localeInfoValue = b`${this.data.localeHash ?? localizationProvider.get("notFound")}<br />(${localizationProvider.get("VOTUpdatedAt")}
-      ${localeUpdatedAt})`;
-			const localeInfo = UI.createInformation(`${localizationProvider.get("VOTLocaleHash")}:`, localeInfoValue);
-			const updateLocaleFilesButton = UI.createOutlinedButton(localizationProvider.get("VOTUpdateLocaleFiles"));
-			updateLocaleFilesButton.addEventListener("click", async () => {
-				await votStorage.set("localeHash", "");
-				await localizationProvider.update(true);
-				globalThis.location.reload();
-			});
-			aboutSection.content.append(versionInfo.container, authorsInfo.container, loaderInfo.container, userBrowserInfo.container, localeInfo.container, updateLocaleFilesButton);
-		}
-		initUI() {
-			if (this.isInitialized()) throw new Error("[VOT] SettingsView is already initialized");
-			this.dialog = new Dialog({ titleHtml: localizationProvider.get("VOTSettings") });
-			this.globalPortal.appendChild(this.dialog.container);
-			const { accountSection, translationSection, subtitlesSection, hotkeysSection, proxySection, miscSection, appearanceSection, aboutSection, sections } = this.createSettingsSections();
-			this.dialog.bodyContainer.append(...sections.map((section) => section.container));
-			this.initAccountControls();
-			this.autoTranslateCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTAutoTranslate"),
-				checked: this.data.autoTranslate
-			});
-			this.autoSubtitlesCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTAutoSubtitles"),
-				checked: this.data.autoSubtitles
-			});
-			const dontTranslateLanguages = this.data.dontTranslateLanguages ?? [];
-			this.dontTranslateLanguagesCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("DontTranslateSelectedLanguages"),
-				checked: this.data.enabledDontTranslateLanguages
-			});
-			this.dontTranslateLanguagesSelect = new Select({
-				dialogParent: this.globalPortal,
-				dialogTitle: localizationProvider.get("DontTranslateSelectedLanguages"),
-				selectTitle: dontTranslateLanguages.map((lang) => localizationProvider.get(`langs.${lang}`)).join(", ") || localizationProvider.get("DontTranslateSelectedLanguages"),
-				items: Select.genLanguageItems(availableLangs).map((item) => ({
-					...item,
-					selected: dontTranslateLanguages.includes(item.value)
-				})),
-				multiSelect: true,
-				labelElement: this.dontTranslateLanguagesCheckbox.container
-			});
-			this.dontTranslateLanguagesSelect.disabled = !this.dontTranslateLanguagesCheckbox.checked;
-			const autoVolume = this.data.autoVolume ?? 15;
-			this.autoSetVolumeSliderLabel = new SliderLabel({
-				labelText: localizationProvider.get("VOTAutoSetVolume"),
-				value: autoVolume
-			});
-			this.autoSetVolumeCheckbox = new Checkbox({
-				labelHtml: this.autoSetVolumeSliderLabel.container,
-				checked: this.data.enabledAutoVolume ?? true
-			});
-			this.autoSetVolumeSlider = new Slider({
-				labelHtml: this.autoSetVolumeCheckbox.container,
-				value: autoVolume,
-				min: 0
-			});
-			const syncVolumeEnabled = Boolean(this.data.syncVolume);
-			this.autoSetVolumeSlider.disabled = !this.autoSetVolumeCheckbox.checked;
-			this.smartDuckingCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("smartDucking"),
-				checked: this.data.enabledSmartDucking ?? true
-			});
-			this.smartDuckingCheckbox.disabled = syncVolumeEnabled || !this.autoSetVolumeCheckbox.checked;
-			this.showVideoVolumeSliderCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("showVideoVolumeSlider"),
-				checked: this.data.showVideoSlider
-			});
-			this.audioBoosterCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTAudioBooster"),
-				checked: this.data.audioBooster
-			});
-			if (!this.videoHandler?.isAudioContextSupported) {
-				this.audioBoosterCheckbox.disabled = true;
-				this.audioBoosterTooltip = new Tooltip({
-					target: this.audioBoosterCheckbox.container,
-					content: localizationProvider.get("VOTNeedWebAudioAPI"),
-					position: "bottom",
-					backgroundColor: "var(--vot-helper-ondialog)",
-					parentElement: this.globalPortal
-				});
-			}
-			this.syncVolumeCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTSyncVolume"),
-				checked: this.data.syncVolume
-			});
-			this.downloadWithNameCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTDownloadWithName"),
-				checked: this.data.downloadWithName
-			});
-			this.downloadWithNameCheckbox.disabled = !isSupportGMXhr;
-			this.sendNotifyOnCompleteCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTSendNotifyOnComplete"),
-				checked: this.data.sendNotifyOnComplete
-			});
-			this.useAudioDownloadCheckboxLabel = new Label({
-				labelText: localizationProvider.get("VOTUseAudioDownload"),
-				icon: WARNING_ICON
-			});
-			this.useAudioDownloadCheckbox = new Checkbox({
-				labelHtml: this.useAudioDownloadCheckboxLabel.container,
-				checked: this.data.useAudioDownload
-			});
-			if (!isSupportGMXhr) this.useAudioDownloadCheckbox.disabled = true;
-			this.useAudioDownloadCheckboxTooltip = new Tooltip({
-				target: this.useAudioDownloadCheckboxLabel.container,
-				content: localizationProvider.get("VOTUseAudioDownloadWarning"),
-				position: "bottom",
-				backgroundColor: "var(--vot-helper-ondialog)",
-				parentElement: this.globalPortal
-			});
-			accountSection.content.append(this.accountButton.container);
-			translationSection.content.append(this.autoTranslateCheckbox.container, this.autoSubtitlesCheckbox.container, this.dontTranslateLanguagesSelect.container, this.autoSetVolumeSlider.container, this.smartDuckingCheckbox.container, this.showVideoVolumeSliderCheckbox.container, this.audioBoosterCheckbox.container, this.syncVolumeCheckbox.container, this.downloadWithNameCheckbox.container, this.sendNotifyOnCompleteCheckbox.container, this.useAudioDownloadCheckbox.container);
-			this.subtitlesDownloadFormatSelectLabel = new Label({ labelText: localizationProvider.get("VOTSubtitlesDownloadFormat") });
-			this.subtitlesDownloadFormatSelect = new Select({
-				selectTitle: this.data.subtitlesDownloadFormat ?? localizationProvider.get("VOTSubtitlesDownloadFormat"),
-				dialogTitle: localizationProvider.get("VOTSubtitlesDownloadFormat"),
-				dialogParent: this.globalPortal,
-				labelElement: this.subtitlesDownloadFormatSelectLabel.container,
-				items: subtitleFormats.map((format) => ({
-					label: format.toUpperCase(),
-					value: format,
-					selected: format === this.data.subtitlesDownloadFormat
-				}))
-			});
-			const responseLanguageSubtitles = this.data.responseLanguageSubtitles ?? AUTO_SUBTITLE_LANGUAGE_VALUE$1;
-			this.responseLanguageSubtitlesSelectLabel = new Label({ labelText: localizationProvider.get("VOTDefaultSubtitlesLanguage") });
-			this.responseLanguageSubtitlesSelect = new Select({
-				selectTitle: getSubtitleLanguageSettingLabel(responseLanguageSubtitles),
-				dialogTitle: localizationProvider.get("VOTDefaultSubtitlesLanguage"),
-				dialogParent: this.globalPortal,
-				labelElement: this.responseLanguageSubtitlesSelectLabel.container,
-				items: buildSubtitleLanguageSettingItems(responseLanguageSubtitles)
-			});
-			this.subtitlesHighlightWordsCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTHighlightWords"),
-				checked: this.data.highlightWords
-			});
-			const subtitlesSmartLayout = this.data.subtitlesSmartLayout ?? true;
-			this.subtitlesSmartLayoutCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("subtitlesSmartLayout"),
-				checked: subtitlesSmartLayout
-			});
-			const subtitlesMaxLength = this.data.subtitlesMaxLength ?? 300;
-			this.subtitlesMaxLengthSliderLabel = new SliderLabel({
-				labelText: localizationProvider.get("VOTSubtitlesMaxLength"),
-				labelEOL: ":",
-				value: subtitlesMaxLength,
-				symbol: ""
-			});
-			this.subtitlesMaxLengthSlider = new Slider({
-				labelHtml: this.subtitlesMaxLengthSliderLabel.container,
-				value: subtitlesMaxLength,
-				min: 50,
-				max: 300
-			});
-			const subtitlesFontSize = this.data.subtitlesFontSize ?? 20;
-			this.subtitlesFontSizeSliderLabel = new SliderLabel({
-				labelText: localizationProvider.get("VOTSubtitlesFontSize"),
-				labelEOL: ":",
-				value: subtitlesFontSize,
-				symbol: "px"
-			});
-			this.subtitlesFontSizeSlider = new Slider({
-				labelHtml: this.subtitlesFontSizeSliderLabel.container,
-				value: subtitlesFontSize,
-				min: 8,
-				max: 50
-			});
-			const storedSubtitlesFontFamily = typeof this.data.subtitlesFontFamily === "string" ? this.data.subtitlesFontFamily : void 0;
-			const subtitlesFontFamily = storedSubtitlesFontFamily && (isBuiltInSubtitleFontFamily(storedSubtitlesFontFamily) || getGoogleSubtitleFontFamilyName(storedSubtitlesFontFamily)) ? storedSubtitlesFontFamily : "default-sans";
-			this.subtitlesFontFamilySelectLabel = new Label({ labelText: localizationProvider.get("VOTSubtitlesFont") });
-			this.subtitlesFontFamilySelect = new Select({
-				selectTitle: getSubtitleFontFamilyLabel(subtitlesFontFamily),
-				dialogTitle: localizationProvider.get("VOTSubtitlesFont"),
-				dialogParent: this.globalPortal,
-				labelElement: this.subtitlesFontFamilySelectLabel.container,
-				items: this.buildSubtitleFontItems(subtitlesFontFamily),
-				searchItemsProvider: (query) => this.searchSubtitleFontItems(query, subtitlesFontFamily)
-			});
-			this.subtitlesFontFamilySelect.addEventListener("selectItem", (item) => {
-				if (!this.subtitlesFontFamilySelect) return;
-				this.subtitlesFontFamilySelect.updateItems(this.buildSubtitleFontItems(item));
-				this.subtitlesFontFamilySelect.selectTitle = getSubtitleFontFamilyLabel(item);
-			});
-			const subtitlesOpacity = this.data.subtitlesOpacity ?? 20;
-			this.subtitlesBackgroundOpacitySliderLabel = new SliderLabel({
-				labelText: localizationProvider.get("VOTSubtitlesOpacity"),
-				labelEOL: ":",
-				value: subtitlesOpacity,
-				symbol: "%"
-			});
-			this.subtitlesBackgroundOpacitySlider = new Slider({
-				labelHtml: this.subtitlesBackgroundOpacitySliderLabel.container,
-				value: subtitlesOpacity,
-				min: 0,
-				max: 100
-			});
-			subtitlesSection.content.append(this.responseLanguageSubtitlesSelect.container, this.subtitlesDownloadFormatSelect.container, this.subtitlesFontFamilySelect.container, this.subtitlesHighlightWordsCheckbox.container, this.subtitlesSmartLayoutCheckbox.container, this.subtitlesMaxLengthSlider.container, this.subtitlesFontSizeSlider.container, this.subtitlesBackgroundOpacitySlider.container);
-			this.translateHotkeyButton = new HotkeyButton({
-				labelHtml: localizationProvider.get("translateVideo"),
-				key: this.data.translationHotkey
-			});
-			this.subtitlesHotkeyButton = new HotkeyButton({
-				labelHtml: localizationProvider.get("VOTSubtitles"),
-				key: this.data.subtitlesHotkey
-			});
-			hotkeysSection.content.append(this.translateHotkeyButton.container, this.subtitlesHotkeyButton.container);
-			this.proxyWorkerHostTextfield = new Textfield({
-				labelHtml: localizationProvider.get("VOTProxyWorkerHost"),
-				value: this.data.proxyWorkerHost,
-				placeholder: proxyWorkerHost
-			});
-			const proxyEnabledLabels = [
-				localizationProvider.get("VOTTranslateProxyDisabled"),
-				localizationProvider.get("VOTTranslateProxyEnabled"),
-				localizationProvider.get("VOTTranslateProxyEverything")
-			];
-			const translateProxyEnabled = this.data.translateProxyEnabled ?? 0;
-			const countryCode = getCountryCode();
-			const isTranslateProxyRequired = countryCode !== null && proxyOnlyCountries.includes(countryCode);
-			this.proxyTranslationStatusSelectLabel = new Label({
-				icon: isTranslateProxyRequired ? WARNING_ICON : void 0,
-				labelText: localizationProvider.get("VOTTranslateProxyStatus")
-			});
-			if (isTranslateProxyRequired) this.proxyTranslationStatusSelectTooltip = new Tooltip({
-				target: this.proxyTranslationStatusSelectLabel.icon,
-				content: localizationProvider.get("VOTTranslateProxyStatusDefault"),
-				position: "bottom",
-				backgroundColor: "var(--vot-helper-ondialog)",
-				parentElement: this.globalPortal
-			});
-			this.proxyTranslationStatusSelect = new Select({
-				selectTitle: proxyEnabledLabels[translateProxyEnabled],
-				dialogTitle: localizationProvider.get("VOTTranslateProxyStatus"),
-				dialogParent: this.globalPortal,
-				labelElement: this.proxyTranslationStatusSelectLabel.container,
-				items: proxyEnabledLabels.map((label, idx) => ({
-					label,
-					value: idx.toString(),
-					selected: idx === translateProxyEnabled,
-					disabled: idx === 0 && isProxyOnlyExtension
-				}))
-			});
-			proxySection.content.append(this.proxyWorkerHostTextfield.container, this.proxyTranslationStatusSelect.container);
-			this.translateAPIErrorsCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTTranslateAPIErrors"),
-				checked: this.data.translateAPIErrors ?? true
-			});
-			this.translateAPIErrorsCheckbox.hidden = localizationProvider.lang === "ru";
-			this.useNewAudioPlayerCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTNewAudioPlayer"),
-				checked: this.data.newAudioPlayer
-			});
-			if (!this.videoHandler?.isAudioContextSupported) {
-				this.useNewAudioPlayerCheckbox.disabled = true;
-				this.useNewAudioPlayerTooltip = new Tooltip({
-					target: this.useNewAudioPlayerCheckbox.container,
-					content: localizationProvider.get("VOTNeedWebAudioAPI"),
-					position: "bottom",
-					backgroundColor: "var(--vot-helper-ondialog)",
-					parentElement: this.globalPortal
-				});
-			}
-			const onlyBypassMediaCSPLabel = this.videoHandler?.site.needBypassCSP ? `${localizationProvider.get("VOTOnlyBypassMediaCSP")} (${localizationProvider.get("VOTMediaCSPEnabledOnSite")})` : localizationProvider.get("VOTOnlyBypassMediaCSP");
-			this.onlyBypassMediaCSPCheckbox = new Checkbox({
-				labelHtml: onlyBypassMediaCSPLabel,
-				checked: this.data.onlyBypassMediaCSP,
-				isSubCheckbox: true
-			});
-			if (!this.videoHandler?.isAudioContextSupported) this.onlyBypassMediaCSPTooltip = new Tooltip({
-				target: this.onlyBypassMediaCSPCheckbox.container,
-				content: localizationProvider.get("VOTNeedWebAudioAPI"),
-				position: "bottom",
-				backgroundColor: "var(--vot-helper-ondialog)",
-				parentElement: this.globalPortal
-			});
-			this.onlyBypassMediaCSPCheckbox.disabled = !this.data.newAudioPlayer && !!this.videoHandler?.isAudioContextSupported;
-			if (!this.data.newAudioPlayer) this.onlyBypassMediaCSPCheckbox.hidden = true;
-			this.translationTextServiceLabel = new Label({
-				labelText: localizationProvider.get("VOTTranslationTextService"),
-				icon: HELP_ICON
-			});
-			const translationService = this.data.translationService ?? "yandexbrowser";
-			this.translationTextServiceSelect = new Select({
-				selectTitle: localizationProvider.get(`services.${translationService}`),
-				dialogTitle: localizationProvider.get("VOTTranslationTextService"),
-				dialogParent: this.globalPortal,
-				labelElement: this.translationTextServiceLabel.container,
-				items: foswlyServices.map((service) => ({
-					label: localizationProvider.get(`services.${service}`),
-					value: service,
-					selected: service === translationService
-				}))
-			});
-			this.translationTextServiceTooltip = new Tooltip({
-				target: this.translationTextServiceLabel.icon,
-				content: localizationProvider.get("VOTNotAffectToVoice"),
-				position: "bottom",
-				backgroundColor: "var(--vot-helper-ondialog)",
-				parentElement: this.globalPortal
-			});
-			this.detectServiceLabel = new Label({ labelText: localizationProvider.get("VOTDetectService") });
-			const detectService = this.data.detectService ?? "yandexbrowser";
-			this.detectServiceSelect = new Select({
-				selectTitle: localizationProvider.get(`services.${detectService}`),
-				dialogTitle: localizationProvider.get("VOTDetectService"),
-				dialogParent: this.globalPortal,
-				labelElement: this.detectServiceLabel.container,
-				items: detectServices.map((service) => ({
-					label: localizationProvider.get(`services.${service}`),
-					value: service,
-					selected: service === detectService
-				}))
-			});
-			this.showPiPButtonCheckbox = new Checkbox({
-				labelHtml: localizationProvider.get("VOTShowPiPButton"),
-				checked: this.data.showPiPButton
-			});
-			this.showPiPButtonCheckbox.hidden = !isPiPAvailable();
-			const autoHideButtonDelaySec = Math.round((this.data.autoHideButtonDelay ?? 1e3) / 1e3 * 10) / 10;
-			this.autoHideButtonDelaySliderLabel = new SliderLabel({
-				labelText: localizationProvider.get("autoHideButtonDelay"),
-				labelEOL: ":",
-				value: autoHideButtonDelaySec,
-				symbol: ` ${localizationProvider.get("secs")}`
-			});
-			this.autoHideButtonDelaySlider = new Slider({
-				labelHtml: this.autoHideButtonDelaySliderLabel.container,
-				value: autoHideButtonDelaySec,
-				min: .1,
-				max: 3,
-				step: .1
-			});
-			this.buttonPositionSelectLabel = new Label({
-				labelText: localizationProvider.get("buttonPosition"),
-				icon: HELP_ICON
-			});
-			const buttonPos = normalizeButtonPosition(this.data.buttonPos);
-			this.buttonPositionSelect = new Select({
-				selectTitle: localizationProvider.get(`position.${buttonPos}`),
-				dialogTitle: localizationProvider.get("buttonPosition"),
-				labelElement: this.buttonPositionSelectLabel.container,
-				dialogParent: this.globalPortal,
-				items: positions.map((position) => ({
-					label: localizationProvider.get(`position.${position}`),
-					value: position,
-					selected: position === buttonPos
-				}))
-			});
-			this.buttonPositionTooltip = new Tooltip({
-				target: this.buttonPositionSelectLabel.icon,
-				content: localizationProvider.get("minButtonPositionContainer"),
-				position: "bottom",
-				backgroundColor: "var(--vot-helper-ondialog)",
-				parentElement: this.globalPortal
-			});
-			this.menuLanguageSelectLabel = new Label({ labelText: localizationProvider.get("VOTMenuLanguage") });
-			this.menuLanguageSelect = new Select({
-				selectTitle: localizationProvider.get(`langs.${localizationProvider.langOverride}`),
-				dialogTitle: localizationProvider.get("VOTMenuLanguage"),
-				labelElement: this.menuLanguageSelectLabel.container,
-				dialogParent: this.globalPortal,
-				items: Select.genLanguageItems(localizationProvider.getAvailableLangs(), localizationProvider.langOverride)
-			});
-			this.bugReportButton = UI.createOutlinedButton(localizationProvider.get("VOTBugReport"));
-			this.resetSettingsButton = UI.createButton(localizationProvider.get("resetSettings"));
-			miscSection.content.append(this.translateAPIErrorsCheckbox.container, this.useNewAudioPlayerCheckbox.container, this.onlyBypassMediaCSPCheckbox.container);
-			translationSection.content.append(this.translationTextServiceSelect.container, this.detectServiceSelect.container);
-			appearanceSection.content.append(this.showPiPButtonCheckbox.container, this.autoHideButtonDelaySlider.container, this.buttonPositionSelect.container, this.menuLanguageSelect.container);
-			this.buildAboutSectionContent(aboutSection);
-			this.dialog.footerContainer.append(this.bugReportButton, this.resetSettingsButton);
-			this.initialized = true;
-			return this;
-		}
-		initUIEvents() {
-			if (!this.isInitialized()) throw new Error("[VOT] SettingsView isn't initialized");
-			globalThis.addEventListener("message", this.onAuthRefreshMessage);
-			this.accountButton.addEventListener("click", async () => {
-				if (votStorage.isSupportOnlyLS) return;
-				if (this.accountButton.loggedIn) {
-					await votStorage.delete("account");
-					this.data.account = {};
-					this.updateAccountInfo();
-					return;
-				}
-				openAuthWindow();
-			});
-			this.accountButton.addEventListener("click:secret", async () => {
-				const dialog = new Dialog({
-					titleHtml: localizationProvider.get("VOTLoginViaToken"),
-					isTemp: true
-				});
-				this.globalPortal.appendChild(dialog.container);
-				const tokenInfoEl = UI.createEl("vot-block", void 0, localizationProvider.get("VOTYandexTokenInfo"));
-				const tokenTextfield = new Textfield({
-					labelHtml: localizationProvider.get("VOTYandexToken"),
-					value: this.data.account?.token
-				});
-				tokenTextfield.addEventListener("change", async (token) => {
-					this.data.account = token ? {
-						expires: Date.now() + 3153418e4,
-						token
-					} : {};
-					await votStorage.set("account", this.data.account);
-					this.updateAccountInfo();
-				});
-				dialog.bodyContainer.append(tokenInfoEl, tokenTextfield.container);
-				dialog.open();
-			});
-			this.accountButton.addEventListener("refresh", async () => {
-				await this.refreshAccountFromStorage();
-			});
-			this.bindAccountStorageListener();
-			this.bindPersistedSetting({
-				control: this.autoTranslateCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.autoTranslate = checked;
-				},
-				storageKey: "autoTranslate",
-				readPersistedValue: () => this.data.autoTranslate,
-				logLabel: "autoTranslate",
-				dispatch: (checked) => this.events["change:autoTranslate"].dispatch(checked)
-			});
-			this.bindPersistedSetting({
-				control: this.autoSubtitlesCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.autoSubtitles = checked;
-				},
-				storageKey: "autoSubtitles",
-				readPersistedValue: () => this.data.autoSubtitles,
-				logLabel: "autoSubtitles",
-				dispatch: (checked) => this.events["change:autoSubtitles"].dispatch(checked)
-			});
-			this.dontTranslateLanguagesCheckbox.addEventListener("change", async (checked) => {
-				this.data.enabledDontTranslateLanguages = checked;
-				this.dontTranslateLanguagesSelect.disabled = !checked;
-				await votStorage.set("enabledDontTranslateLanguages", this.data.enabledDontTranslateLanguages);
-				debug.log("enabledDontTranslateLanguages value changed. New value:", checked);
-			});
-			this.dontTranslateLanguagesSelect.addEventListener("selectItem", async (values) => {
-				this.data.dontTranslateLanguages = values;
-				await votStorage.set("dontTranslateLanguages", this.data.dontTranslateLanguages);
-				debug.log("dontTranslateLanguages value changed. New value:", values);
-			});
-			this.bindPersistedSetting({
-				control: this.autoSetVolumeCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.enabledAutoVolume = checked;
-					this.autoSetVolumeSlider.disabled = !checked;
-					this.smartDuckingCheckbox.disabled = !checked || Boolean(this.syncVolumeCheckbox?.checked);
-				},
-				storageKey: "enabledAutoVolume",
-				readPersistedValue: () => this.data.enabledAutoVolume,
-				logLabel: "enabledAutoVolume",
-				afterPersist: async () => this.videoHandler?.setupAudioSettings?.()
-			});
-			this.bindPersistedSetting({
-				control: this.smartDuckingCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.enabledSmartDucking = checked;
-				},
-				storageKey: "enabledSmartDucking",
-				readPersistedValue: () => this.data.enabledSmartDucking,
-				logLabel: "enabledSmartDucking",
-				afterPersist: async () => this.videoHandler?.setupAudioSettings?.()
-			});
-			this.bindPersistedSetting({
-				control: this.autoSetVolumeSlider,
-				event: "input",
-				apply: (value) => {
-					this.data.autoVolume = this.autoSetVolumeSliderLabel.value = value;
-				},
-				storageKey: "autoVolume",
-				readPersistedValue: () => this.data.autoVolume,
-				logLabel: "autoVolume"
-			});
-			this.bindPersistedSetting({
-				control: this.showVideoVolumeSliderCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.showVideoSlider = checked;
-				},
-				storageKey: "showVideoSlider",
-				readPersistedValue: () => this.data.showVideoSlider,
-				logLabel: "showVideoVolumeSlider",
-				dispatch: (checked) => this.events["change:showVideoVolume"].dispatch(checked)
-			});
-			this.bindPersistedSetting({
-				control: this.audioBoosterCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.audioBooster = checked;
-				},
-				storageKey: "audioBooster",
-				readPersistedValue: () => this.data.audioBooster,
-				logLabel: "audioBooster",
-				dispatch: (checked) => this.events["change:audioBooster"].dispatch(checked)
-			});
-			this.bindPersistedSetting({
-				control: this.syncVolumeCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.syncVolume = checked;
-					this.autoSetVolumeSlider.disabled = !this.autoSetVolumeCheckbox?.checked;
-					this.smartDuckingCheckbox.disabled = checked || !this.autoSetVolumeCheckbox?.checked;
-					if (checked && this.smartDuckingCheckbox?.checked) this.smartDuckingCheckbox.checked = false;
-				},
-				storageKey: "syncVolume",
-				readPersistedValue: () => this.data.syncVolume,
-				logLabel: "syncVolume",
-				dispatch: (checked) => this.events["change:syncVolume"].dispatch(checked)
-			});
-			this.bindPersistedSetting({
-				control: this.downloadWithNameCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.downloadWithName = checked;
-				},
-				storageKey: "downloadWithName",
-				readPersistedValue: () => this.data.downloadWithName,
-				logLabel: "downloadWithName"
-			});
-			this.bindPersistedSetting({
-				control: this.sendNotifyOnCompleteCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.sendNotifyOnComplete = checked;
-				},
-				storageKey: "sendNotifyOnComplete",
-				readPersistedValue: () => this.data.sendNotifyOnComplete,
-				logLabel: "sendNotifyOnComplete"
-			});
-			this.bindPersistedSetting({
-				control: this.useAudioDownloadCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.useAudioDownload = checked;
-				},
-				storageKey: "useAudioDownload",
-				readPersistedValue: () => this.data.useAudioDownload,
-				logLabel: "useAudioDownload"
-			});
-			this.bindPersistedSetting({
-				control: this.responseLanguageSubtitlesSelect,
-				event: "selectItem",
-				apply: (item) => {
-					this.data.responseLanguageSubtitles = item;
-					this.responseLanguageSubtitlesSelect?.updateItems(buildSubtitleLanguageSettingItems(item));
-					if (this.responseLanguageSubtitlesSelect) this.responseLanguageSubtitlesSelect.selectTitle = getSubtitleLanguageSettingLabel(item);
-				},
-				storageKey: "responseLanguageSubtitles",
-				readPersistedValue: () => this.data.responseLanguageSubtitles,
-				logLabel: "responseLanguageSubtitles",
-				dispatch: (item) => this.events["select:responseLanguageSubtitles"].dispatch(item)
-			});
-			this.bindPersistedSetting({
-				control: this.subtitlesDownloadFormatSelect,
-				event: "selectItem",
-				apply: (item) => {
-					this.data.subtitlesDownloadFormat = item;
-				},
-				storageKey: "subtitlesDownloadFormat",
-				readPersistedValue: () => this.data.subtitlesDownloadFormat,
-				logLabel: "subtitlesDownloadFormat"
-			});
-			this.bindPersistedSetting({
-				control: this.subtitlesHighlightWordsCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.highlightWords = checked;
-				},
-				storageKey: "highlightWords",
-				readPersistedValue: () => this.data.highlightWords,
-				logLabel: "highlightWords",
-				dispatch: (checked) => this.events["change:subtitlesHighlightWords"].dispatch(checked)
-			});
-			this.subtitlesSmartLayoutCheckbox?.addEventListener("change", (checked) => {
-				if (this.suppressSubtitlesSmartLayoutCheckboxChange) return;
-				this.setSubtitlesSmartLayout(checked);
-			});
-			const disableSmartLayout = () => {
-				if ((this.data.subtitlesSmartLayout ?? true) === true) this.setSubtitlesSmartLayout(false);
-			};
-			this.bindBufferedNumericSetting({
-				control: this.subtitlesMaxLengthSlider,
-				label: this.subtitlesMaxLengthSliderLabel,
-				storageKey: "subtitlesMaxLength",
-				logLabel: "subtitlesMaxLength",
-				beforeApply: disableSmartLayout,
-				dispatch: (value) => this.events["input:subtitlesMaxLength"].dispatch(value)
-			});
-			this.bindBufferedNumericSetting({
-				control: this.subtitlesFontSizeSlider,
-				label: this.subtitlesFontSizeSliderLabel,
-				storageKey: "subtitlesFontSize",
-				logLabel: "subtitlesFontSize",
-				beforeApply: disableSmartLayout,
-				dispatch: (value) => this.events["input:subtitlesFontSize"].dispatch(value)
-			});
-			this.bindBufferedNumericSetting({
-				control: this.subtitlesBackgroundOpacitySlider,
-				label: this.subtitlesBackgroundOpacitySliderLabel,
-				storageKey: "subtitlesOpacity",
-				logLabel: "subtitlesOpacity",
-				dispatch: (value) => this.events["input:subtitlesBackgroundOpacity"].dispatch(value)
-			});
-			this.bindPersistedSetting({
-				control: this.subtitlesFontFamilySelect,
-				event: "selectItem",
-				apply: (item) => {
-					this.data.subtitlesFontFamily = item;
-				},
-				storageKey: "subtitlesFontFamily",
-				readPersistedValue: () => this.data.subtitlesFontFamily,
-				logLabel: "subtitlesFontFamily",
-				dispatch: (item) => this.events["select:subtitlesFontFamily"].dispatch(item)
-			});
-			this.bindPersistedSetting({
-				control: this.translateHotkeyButton,
-				event: "change",
-				apply: (key) => {
-					this.data.translationHotkey = key;
-				},
-				storageKey: "translationHotkey",
-				readPersistedValue: () => this.data.translationHotkey,
-				logLabel: "translationHotkey"
-			});
-			this.bindPersistedSetting({
-				control: this.subtitlesHotkeyButton,
-				event: "change",
-				apply: (key) => {
-					this.data.subtitlesHotkey = key;
-				},
-				storageKey: "subtitlesHotkey",
-				readPersistedValue: () => this.data.subtitlesHotkey,
-				logLabel: "subtitlesHotkey"
-			});
-			this.proxyWorkerHostTextfield.addEventListener("change", async (value) => {
-				this.data.proxyWorkerHost = value || "vot-worker.eu.cc";
-				await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
-				debug.log("proxyWorkerHost value changed. New value:", this.data.proxyWorkerHost);
-				this.events["change:proxyWorkerHost"].dispatch(value);
-			});
-			this.proxyTranslationStatusSelect.addEventListener("selectItem", async (item) => {
-				this.data.translateProxyEnabled = Number.parseInt(item, 10);
-				await votStorage.set("translateProxyEnabled", this.data.translateProxyEnabled);
-				await votStorage.set("translateProxyEnabledDefault", false);
-				debug.log("translateProxyEnabled value changed. New value:", this.data.translateProxyEnabled);
-				this.events["select:proxyTranslationStatus"].dispatch(item);
-			});
-			this.bindPersistedSetting({
-				control: this.translateAPIErrorsCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.translateAPIErrors = checked;
-				},
-				storageKey: "translateAPIErrors",
-				readPersistedValue: () => this.data.translateAPIErrors,
-				logLabel: "translateAPIErrors"
-			});
-			this.bindPersistedSetting({
-				control: this.useNewAudioPlayerCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.newAudioPlayer = checked;
-					this.onlyBypassMediaCSPCheckbox.disabled = this.onlyBypassMediaCSPCheckbox.hidden = !checked;
-				},
-				storageKey: "newAudioPlayer",
-				readPersistedValue: () => this.data.newAudioPlayer,
-				logLabel: "newAudioPlayer",
-				dispatch: (checked) => this.events["change:useNewAudioPlayer"].dispatch(checked)
-			});
-			this.bindPersistedSetting({
-				control: this.onlyBypassMediaCSPCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.onlyBypassMediaCSP = checked;
-				},
-				storageKey: "onlyBypassMediaCSP",
-				readPersistedValue: () => this.data.onlyBypassMediaCSP,
-				logLabel: "onlyBypassMediaCSP",
-				dispatch: (checked) => this.events["change:onlyBypassMediaCSP"].dispatch(checked)
-			});
-			this.bindPersistedSetting({
-				control: this.translationTextServiceSelect,
-				event: "selectItem",
-				apply: (item) => {
-					this.data.translationService = item;
-				},
-				storageKey: "translationService",
-				readPersistedValue: () => this.data.translationService,
-				logLabel: "translationService",
-				dispatch: (item) => this.events["select:translationTextService"].dispatch(item)
-			});
-			this.bindPersistedSetting({
-				control: this.detectServiceSelect,
-				event: "selectItem",
-				apply: (item) => {
-					this.data.detectService = item;
-				},
-				storageKey: "detectService",
-				readPersistedValue: () => this.data.detectService,
-				logLabel: "detectService"
-			});
-			this.bindPersistedSetting({
-				control: this.showPiPButtonCheckbox,
-				event: "change",
-				apply: (checked) => {
-					this.data.showPiPButton = checked;
-				},
-				storageKey: "showPiPButton",
-				readPersistedValue: () => this.data.showPiPButton,
-				logLabel: "showPiPButton",
-				dispatch: (checked) => this.events["change:showPiPButton"].dispatch(checked)
-			});
-			this.bindBufferedNumericSetting({
-				control: this.autoHideButtonDelaySlider,
-				label: this.autoHideButtonDelaySliderLabel,
-				storageKey: "autoHideButtonDelay",
-				logLabel: "autoHideButtonDelay",
-				toStoredValue: (value) => Math.round(value * 1e3),
-				dispatch: (value) => this.events["input:autoHideButtonDelay"].dispatch(value)
-			});
-			this.bindPersistedSetting({
-				control: this.buttonPositionSelect,
-				event: "selectItem",
-				apply: (item) => {
-					this.data.buttonPos = item;
-				},
-				storageKey: "buttonPos",
-				readPersistedValue: () => this.data.buttonPos,
-				logLabel: "buttonPos",
-				dispatch: (item) => this.events["select:buttonPosition"].dispatch(item)
-			});
-			this.menuLanguageSelect.addEventListener("selectItem", async (item) => {
-				if (!await localizationProvider.changeLang(item)) return;
-				this.data.localeUpdatedAt = await votStorage.get("localeUpdatedAt", 0);
-				this.events["select:menuLanguage"].dispatch(item);
-			});
-			this.bugReportButton.addEventListener("click", () => this.events["click:bugReport"].dispatch());
-			this.resetSettingsButton.addEventListener("click", () => this.events["click:resetSettings"].dispatch());
-			return this;
-		}
-		addEventListener(type, listener) {
-			this.events[type].addListener(listener);
-			return this;
-		}
-		removeEventListener(type, listener) {
-			this.events[type].removeListener(listener);
-			return this;
-		}
-		doReleaseUI() {
-			this.dialog?.remove();
-			for (const tooltip of [
-				this.accountButtonRefreshTooltip,
-				this.accountButtonTokenTooltip,
-				this.audioBoosterTooltip,
-				this.useAudioDownloadCheckboxTooltip,
-				this.useNewAudioPlayerTooltip,
-				this.onlyBypassMediaCSPTooltip,
-				this.translationTextServiceTooltip,
-				this.proxyTranslationStatusSelectTooltip,
-				this.buttonPositionTooltip
-			]) tooltip?.release();
-		}
-		doReleaseUIEvents() {
-			this.accountStorageListenerCleanup?.();
-			this.accountStorageListenerCleanup = void 0;
-			globalThis.removeEventListener("message", this.onAuthRefreshMessage);
-			this.flushStoragePersists();
-			for (const event of Object.values(this.events)) event.clear();
-		}
-		release() {
-			if (!this.isInitialized()) return this;
-			this.doReleaseUIEvents();
-			this.doReleaseUI();
-			this.initialized = false;
-			return this;
-		}
-		updateAccountInfo() {
-			if (!this.isInitialized()) throw new Error("[VOT] SettingsView isn't initialized");
-			const loggedIn = !!this.data.account?.token;
-			this.accountButton.avatarId = this.data.account?.avatarId;
-			this.accountButton.loggedIn = loggedIn;
-			this.accountButton.username = this.data.account?.username;
-			this.events["update:account"].dispatch(this.data.account);
-			return this;
-		}
-		open() {
-			if (!this.isInitialized()) throw new Error("[VOT] SettingsView isn't initialized");
-			return this.dialog.open();
-		}
-		close() {
-			if (!this.isInitialized()) throw new Error("[VOT] SettingsView isn't initialized");
-			return this.dialog.close();
-		}
-	};
-	//#endregion
 	//#region src/ui/manager.ts
 	var UIManager = class {
 		mount;
@@ -23542,7 +26781,6 @@ var vot = (function(exports) {
 		videoHandler;
 		intervalIdleChecker;
 		data;
-		votGlobalPortal;
 		globalPortalMount;
 		/**
 		* Contains all elements over video player e.g. button, menu and etc
@@ -23558,12 +26796,6 @@ var vot = (function(exports) {
 			this.data = data;
 			this.intervalIdleChecker = intervalIdleChecker;
 		}
-		get root() {
-			return this.mount.root;
-		}
-		get portalContainer() {
-			return this.mount.portalContainer;
-		}
 		getSubtitlesMountContainer() {
 			return this.votOverlayView?.root ?? this.mount.subtitlesMountContainer;
 		}
@@ -23573,21 +26805,43 @@ var vot = (function(exports) {
 		initUI() {
 			if (this.isInitialized()) throw new Error("[VOT] UIManager is already initialized");
 			this.initialized = true;
-			this.globalPortalMount = createShadowMount({
+			try {
+				this.buildUI();
+			} catch (err) {
+				this.initialized = false;
+				this.releasePartialUI();
+				throw err;
+			}
+			return this;
+		}
+		/** Best-effort teardown of whatever `buildUI` managed to construct. */
+		releasePartialUI() {
+			try {
+				this.votOverlayView?.release();
+			} catch {}
+			try {
+				this.votSettingsView?.release();
+			} catch {}
+			if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
+			this.votOverlayView = void 0;
+			this.votSettingsView = void 0;
+			this.globalPortalMount = void 0;
+		}
+		buildUI() {
+			const globalPortalMount = createShadowMount({
 				parent: this.getGlobalPortalHost(this.mount),
 				rootClasses: ["vot-portal"]
 			});
-			this.votGlobalPortal = this.globalPortalMount.root;
-			this.votOverlayView = new OverlayView({
+			this.globalPortalMount = globalPortalMount;
+			this.votOverlayView = new OverlayController({
 				mount: this.mount,
-				globalPortal: this.votGlobalPortal,
 				data: this.data,
 				videoHandler: this.videoHandler,
 				intervalIdleChecker: this.intervalIdleChecker
 			});
-			this.votOverlayView.initUI(normalizeButtonPosition(this.data.buttonPos));
-			this.votSettingsView = new SettingsView({
-				globalPortal: this.votGlobalPortal,
+			this.votOverlayView.initUI();
+			this.votSettingsView = new SettingsController({
+				globalPortal: globalPortalMount.root,
 				data: this.data,
 				videoHandler: this.videoHandler
 			});
@@ -23610,7 +26864,6 @@ var vot = (function(exports) {
 		}
 		initUIEvents() {
 			if (!this.isInitialized()) throw new Error("[VOT] UIManager isn't initialized");
-			this.votOverlayView.initUIEvents();
 			this.bindOverlayViewEvents();
 			this.votSettingsView.initUIEvents();
 			this.bindSettingsViewEvents();
@@ -23694,38 +26947,22 @@ var vot = (function(exports) {
 			}).addEventListener("select:responseLanguageSubtitles", async () => {
 				if (!this.videoHandler?.data.autoSubtitles || !this.videoHandler.videoData) return;
 				await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
-			}).addEventListener("change:showVideoVolume", () => {
-				this.withInitializedOverlayView((overlayView) => {
-					if (!overlayView.videoVolumeSlider || !overlayView.votButton) return;
-					overlayView.videoVolumeSlider.container.hidden = !this.data.showVideoSlider || overlayView.votButton.status !== "success";
-				});
 			}).addEventListener("change:audioBooster", async () => {
-				this.withInitializedOverlayView((overlayView) => {
-					if (!overlayView.translationVolumeSlider) return;
-					const currentVolume = overlayView.translationVolumeSlider.value;
-					const maxVolume = this.data.audioBooster && !this.data.syncVolume ? 900 : 100;
-					overlayView.translationVolumeSlider.max = maxVolume;
-					const nextVolume = clamp(currentVolume, 0, maxVolume);
-					overlayView.translationVolumeSlider.value = nextVolume;
-					this.videoHandler?.onTranslationVolumeSliderSynced(nextVolume);
-					this.videoHandler?.syncTranslationPlaybackVolume();
-				});
+				const overlayViewControls = this.votOverlayView.overlayViewControls;
+				if (!overlayViewControls) return;
+				const nextTranslation = overlayViewControls.getTranslationVolume();
+				this.videoHandler?.onTranslationVolumeSliderSynced(nextTranslation);
+				this.videoHandler?.syncTranslationPlaybackVolume();
 			}).addEventListener("change:syncVolume", (checked) => {
 				if (!this.videoHandler) return;
 				this.videoHandler.setupAudioSettings();
-				this.withInitializedOverlayView((overlayView) => {
-					const videoSlider = overlayView.videoVolumeSlider;
-					const translationSlider = overlayView.translationVolumeSlider;
-					if (!videoSlider || !translationSlider) return;
-					const maxVolume = this.data.audioBooster && !checked ? 900 : 100;
-					translationSlider.max = maxVolume;
-					const nextTranslation = clamp(translationSlider.value, 0, maxVolume);
-					translationSlider.value = nextTranslation;
-					this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
-					this.videoHandler.syncTranslationPlaybackVolume();
-					if (!checked) return;
-					this.videoHandler.resetVolumeLinkState(Number(videoSlider.value), nextTranslation);
-				});
+				const overlayViewControls = this.votOverlayView.overlayViewControls;
+				if (!overlayViewControls) return;
+				const nextTranslation = overlayViewControls.getTranslationVolume();
+				this.videoHandler.syncVolumeWrapper("translation", nextTranslation);
+				this.videoHandler.syncTranslationPlaybackVolume();
+				if (!checked) return;
+				this.videoHandler.resetVolumeLinkState(overlayViewControls.getVideoVolume(), nextTranslation);
 			}).addEventListener("change:subtitlesHighlightWords", (checked) => {
 				this.updateSubtitlesWidgetSetting(checked, this.data.highlightWords, (widget, value) => {
 					widget.setHighlightWords(value);
@@ -23764,17 +27001,6 @@ var vot = (function(exports) {
 				this.withSubtitlesWidget((widget) => {
 					widget.resetTranslationContext(true);
 				});
-			}).addEventListener("change:showPiPButton", () => {
-				this.withInitializedOverlayView((overlayView) => {
-					if (!overlayView.votButton) return;
-					overlayView.votButton.pipButton.hidden = overlayView.votButton.separator2.hidden = !overlayView.pipButtonVisible;
-				});
-			}).addEventListener("select:buttonPosition", (item) => {
-				this.withInitializedOverlayView((overlayView) => {
-					const preferredPosition = normalizeButtonPosition(this.data.buttonPos ?? item);
-					const { position, direction } = overlayView.calcButtonLayout(preferredPosition);
-					overlayView.updateButtonLayout(position, direction);
-				});
 			}).addEventListener("select:menuLanguage", async () => {
 				await this.reloadMenu();
 			}).addEventListener("click:bugReport", () => {
@@ -23789,19 +27015,19 @@ var vot = (function(exports) {
 			});
 		}
 		async handleDownloadTranslationClick() {
-			const overlayView = this.votOverlayView;
+			const overlayViewControls = this.votOverlayView?.overlayViewControls;
 			const videoHandler = this.videoHandler;
 			const download = videoHandler?.downloadTranslation;
-			if (!overlayView?.isInitialized() || !download || !videoHandler.videoData) return;
+			if (!download || !videoHandler.videoData) return;
 			const downloadVideoData = await this.getDownloadVideoData(videoHandler, download.videoId);
 			if (!downloadVideoData) return;
-			const downloadButton = overlayView.downloadTranslationButton;
 			const downloadUrl = download.url;
 			const filename = this.data.downloadWithName ? clearFileName(downloadVideoData.downloadTitle) : `translation_${downloadVideoData.videoId}`;
 			const saveOptions = { preferShare: this.isLikelyMobileDownloadContext() };
 			const setProgress = (progress) => {
-				if (downloadButton) downloadButton.progress = progress;
+				overlayViewControls?.setTranslationProgress(progress);
 			};
+			overlayViewControls?.setShowTranslationProgress(true);
 			setProgress(0);
 			try {
 				await this.downloadTranslationAudio(downloadUrl, filename, setProgress, saveOptions);
@@ -23809,6 +27035,7 @@ var vot = (function(exports) {
 				console.error("[VOT] Download translation failed:", err);
 				if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) globalThis.open(downloadUrl, "_blank")?.focus();
 			} finally {
+				overlayViewControls?.setShowTranslationProgress(false);
 				setProgress(0);
 			}
 		}
@@ -23833,7 +27060,7 @@ var vot = (function(exports) {
 		}
 		clearDownloadTranslation(videoHandler) {
 			videoHandler.downloadTranslation = null;
-			if (this.votOverlayView?.downloadTranslationButton) this.votOverlayView.downloadTranslationButton.hidden = true;
+			this.votOverlayView?.overlayViewControls?.setShowDownloadTranslation(false);
 		}
 		async downloadTranslationAudio(downloadUrl, filename, onProgress, saveOptions) {
 			const response = await GM_fetch(downloadUrl, { timeout: 0 });
@@ -23848,23 +27075,20 @@ var vot = (function(exports) {
 			await downloadBlob(new Blob([subsFormat === "json" ? JSON.stringify(subsContent) : subsContent], { type: "text/plain" }), `${this.data.downloadWithName ? clearFileName(videoHandler.videoData.downloadTitle) : `subtitles_${videoHandler.videoData.videoId}`}.${subsFormat}`, { preferShare: this.isLikelyMobileDownloadContext() });
 		}
 		async reloadMenu() {
-			if (!this.votOverlayView?.isInitialized()) throw new Error("[VOT] OverlayView isn't initialized");
-			const prevButtonOpacity = this.votOverlayView.votButton.opacity;
-			const prevButtonHidden = this.votOverlayView.votButton.container.hidden;
-			const prevMenuHidden = this.votOverlayView.votMenu.hidden;
-			const prevButtonPos = normalizeButtonPosition(this.data.buttonPos);
-			const settingsWasOpen = this.votSettingsView?.dialog?.container?.hidden === false;
+			if (!this.votOverlayView?.isInitialized()) throw new Error("[VOT] OverlayController isn't initialized");
+			const prevButtonOpacity = this.votOverlayView.overlayViewControls.getButtonOpacity();
+			const prevButtonHidden = this.votOverlayView.overlayViewControls.getButtonHidden();
+			const prevMenuHidden = this.votOverlayView.overlayViewControls.getMenuHidden();
+			const settingsWasOpen = this.votSettingsView?.isOpen() === true;
 			await this.videoHandler?.stopTranslation();
 			this.release();
 			this.initUI();
 			this.initUIEvents();
 			if (!this.videoHandler) return this;
 			try {
-				const { position, direction } = this.votOverlayView.calcButtonLayout(prevButtonPos);
-				this.votOverlayView.updateButtonLayout(position, direction);
-				this.votOverlayView.votMenu.hidden = prevMenuHidden;
-				this.votOverlayView.votButton.container.hidden = prevButtonHidden;
-				this.votOverlayView.votButton.opacity = prevButtonOpacity;
+				this.votOverlayView.overlayViewControls.setMenuHidden(prevMenuHidden);
+				this.votOverlayView.overlayViewControls.setButtonHidden(prevButtonHidden);
+				this.votOverlayView.overlayViewControls.setButtonOpacity(prevButtonOpacity);
 			} catch (err) {
 				debug.warn("[VOT] Failed to restore overlay state after menu reload", err);
 			}
@@ -23884,11 +27108,11 @@ var vot = (function(exports) {
 			return this;
 		}
 		async handleTranslationBtnClick() {
-			if (!this.votOverlayView?.isInitialized()) throw new Error("[VOT] OverlayView isn't initialized");
+			if (!this.votOverlayView?.isInitialized()) throw new Error("[VOT] OverlayController isn't initialized");
 			await handleTranslationButtonCommand({
 				videoHandler: this.videoHandler,
-				currentStatus: this.votOverlayView.votButton.status,
-				currentLoading: this.votOverlayView.votButton.loading,
+				currentStatus: this.votOverlayView.overlayViewControls?.getStatus(),
+				currentLoading: this.votOverlayView.overlayViewControls?.getIsLoading(),
 				transformBtn: (status, text) => {
 					this.transformBtn(status, text);
 				}
@@ -23900,41 +27124,20 @@ var vot = (function(exports) {
 			return typeof text === "string" && (text.includes(localizationProvider.get("translationTake")) || (delayed ? text.includes(delayed) : false));
 		}
 		transformBtn(status, text) {
-			if (!this.votOverlayView?.isInitialized()) throw new Error("[VOT] OverlayView isn't initialized");
-			this.votOverlayView.votButton.status = status;
-			this.votOverlayView.votButton.loading = status === "error" && this.isLoadingText(text);
-			this.votOverlayView.votButton.setText(text);
-			this.votOverlayView.votButtonTooltip.setContent(text);
-			const { voicePopover, votButtonTooltip } = this.votOverlayView;
-			const centered = this.votOverlayView.votButton.direction !== "column";
-			if (status === "error") {
-				if (!centered) {
-					voicePopover?.cancelShow();
-					voicePopover?.hideNow();
-					this.votOverlayView.votButton.setVoiceMenuOpen(false);
-				}
-				votButtonTooltip.dismissImmediate();
-				this.votOverlayView.syncTranslateButtonTooltip();
-			} else {
-				votButtonTooltip.dismissImmediate();
-				this.votOverlayView.syncTranslateButtonTooltip();
-				this.votOverlayView.rescheduleVoicePopoverIfHovered();
-			}
+			if (!this.votOverlayView?.isInitialized()) throw new Error("[VOT] OverlayController isn't initialized");
+			this.votOverlayView.overlayViewControls?.setStatus(status);
+			this.votOverlayView.overlayViewControls?.setIsLoading(status === "error" && this.isLoadingText(text));
+			this.votOverlayView.overlayViewControls?.setLabelText(text);
 			return this;
 		}
 		release() {
 			if (!this.isInitialized()) return this;
-			this.votOverlayView.release();
-			this.votSettingsView.release();
-			destroyShadowMount(this.globalPortalMount);
+			this.votOverlayView?.release();
+			this.votSettingsView?.release();
+			if (this.globalPortalMount) destroyShadowMount(this.globalPortalMount);
 			this.globalPortalMount = void 0;
-			this.votGlobalPortal = void 0;
 			this.initialized = false;
 			return this;
-		}
-		withInitializedOverlayView(callback) {
-			if (!this.votOverlayView?.isInitialized()) return;
-			callback(this.votOverlayView);
 		}
 		withSubtitlesWidget(callback) {
 			const widget = this.videoHandler?.subtitlesWidget;
@@ -24006,7 +27209,7 @@ var vot = (function(exports) {
 			this.deps = deps;
 			this.unsubscribeChecker = this.deps.checker.subscribe(() => {
 				this.onCheckerTick();
-			});
+			}, { hasPendingWork: () => this.hideArmed && this.hideDeadlineMs > 0 });
 		}
 		/**
 		* Ensures overlay is visible immediately and returns current view.
@@ -24171,9 +27374,11 @@ var vot = (function(exports) {
 	//#region src/core/platformEvents.ts
 	var defaultPlatformConfig = {
 		allowTouchMoveHandler: true,
-		disableContainerDrag: false
+		disableContainerDrag: false,
+		useDocumentInteractionTarget: false
 	};
 	var platformOverrides = {
+		custom: { useDocumentInteractionTarget: true },
 		xvideos: { allowTouchMoveHandler: false },
 		youtube: { disableContainerDrag: true }
 	};
@@ -24715,7 +27920,6 @@ var vot = (function(exports) {
 	//#region src/videoHandler/modules/subtitlesShared.ts
 	var DISABLED_SUBTITLES_VALUE = "disabled";
 	var SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
-	var [AUTO_SUBTITLE_LANGUAGE_VALUE, ORIGINAL_SUBTITLE_LANGUAGE_VALUE] = subtitleResponseLanguageModes;
 	function getIndexedSubtitleDescriptors(subtitles) {
 		const descriptors = [];
 		for (let index = 0; index < subtitles.length; index += 1) {
@@ -24738,30 +27942,19 @@ var vot = (function(exports) {
 		if (!Number.isInteger(index) || index < 0 || index >= subtitles.length) return null;
 		return parseSubtitleDescriptor(subtitles[index]);
 	}
-	function createDisabledSubtitlesOption() {
-		return {
-			label: localizationProvider.get("VOTSubtitlesDisabled"),
-			value: DISABLED_SUBTITLES_VALUE,
-			selected: true,
-			disabled: false
-		};
-	}
 	function buildSubtitleLabel(subtitle) {
 		return `${localizationProvider.getLangLabel(subtitle.language)}${subtitle.translatedFromLanguage ? ` ${localizationProvider.get("VOTTranslatedFrom")} ${localizationProvider.getLangLabel(subtitle.translatedFromLanguage)}` : ""}${subtitle.source === "yandex" ? "" : `, ${globalThis.location.hostname}`}${subtitle.isAutoGenerated ? ` (${localizationProvider.get("VOTAutogenerated")})` : ""}`;
 	}
 	function buildSubtitlesSelectOptions(subtitleDescriptors) {
-		const options = [createDisabledSubtitlesOption()];
+		const options = [{
+			label: localizationProvider.get("VOTSubtitlesDisabled"),
+			value: DISABLED_SUBTITLES_VALUE
+		}];
 		for (const { descriptor, index } of subtitleDescriptors) options.push({
 			label: buildSubtitleLabel(descriptor),
-			value: String(index),
-			selected: false,
-			disabled: false
+			value: String(index)
 		});
 		return options;
-	}
-	function getSelectedSubtitlesValue(selectedValues) {
-		const first = selectedValues[Symbol.iterator]().next();
-		return first.done ? void 0 : first.value;
 	}
 	function normalizeLang(lang) {
 		return (lang ?? "").toLowerCase();
@@ -24776,11 +27969,11 @@ var vot = (function(exports) {
 		return cand === want || baseLang(cand) === baseLang(want);
 	}
 	function resolveSubtitlesLanguage(preference, detectedLanguage, responseLanguage) {
-		if (preference === ORIGINAL_SUBTITLE_LANGUAGE_VALUE) {
+		if (preference === "original") {
 			const originalLanguage = normalizeLang(detectedLanguage);
-			return originalLanguage && originalLanguage !== AUTO_SUBTITLE_LANGUAGE_VALUE ? originalLanguage : void 0;
+			return originalLanguage && originalLanguage !== "auto" ? originalLanguage : void 0;
 		}
-		if (typeof preference === "string" && preference && preference !== AUTO_SUBTITLE_LANGUAGE_VALUE) return normalizeLang(preference);
+		if (typeof preference === "string" && preference && preference !== "auto") return normalizeLang(preference);
 		return normalizeLang(responseLanguage) || normalizeLang(detectedLanguage);
 	}
 	function pickBestSubtitlesIndex(subtitles, fromLang, toLang) {
@@ -25099,7 +28292,7 @@ var vot = (function(exports) {
 	}
 	function syncTranslationPlaybackVolume() {
 		const player = this.audioPlayer?.player;
-		const nextVolume = this.uiManager.votOverlayView?.translationVolumeSlider?.value;
+		const nextVolume = (this.uiManager.votOverlayView?.overlayViewControls)?.getTranslationVolume();
 		applyTranslationPlaybackVolume(player, nextVolume, this.data?.defaultVolume);
 	}
 	async function applyTranslationWithDirectFallback(handler, audioUrl, actionContext) {
@@ -25156,11 +28349,11 @@ var vot = (function(exports) {
 		await this.videoValidator();
 		if (this.actionsAbortController?.signal?.aborted) this.resetActionsAbortController("translateFunc");
 		const overlayView = this.uiManager.votOverlayView;
-		if (!overlayView?.votButton) {
+		if (!overlayView?.overlayViewControls) {
 			debug.log("[translateFunc] Overlay view missing, skipping translation");
 			return;
 		}
-		overlayView.votButton.loading = true;
+		overlayView.overlayViewControls.setIsLoading(true);
 		this.hadAsyncWait = false;
 		this.volumeOnStart = this.getVideoVolume();
 		if (!VIDEO_ID) {
@@ -25198,6 +28391,14 @@ var vot = (function(exports) {
 				if (!await withStaleGuard(actionContext, (ctx) => this.isActionStale(ctx), () => applyTranslationUrl(cachedEntry.url, cachedEntry.useLivelyVoice))) return;
 				debug.log("[translateFunc] Cached translation was received");
 				return;
+			}
+			if (this.data?.autoPauseOnTranslate && !this.video.paused && !this.video.ended) {
+				debug.log("[translateFunc] Pausing video until translation is ready");
+				this.pausedByTranslation = true;
+				this.video.addEventListener("play", () => {
+					this.pausedByTranslation = false;
+				}, { once: true });
+				this.video.pause();
 			}
 			const translateRes = await requestApplyAndCacheTranslation(this, {
 				videoData,
@@ -25242,8 +28443,17 @@ var vot = (function(exports) {
 			throw err;
 		} finally {
 			if (this.activeTranslation?.promise === translationPromise) this.activeTranslation = null;
-			const overlayBtn = this.uiManager.votOverlayView?.votButton;
-			if (!this.activeTranslation && overlayBtn?.loading && !this.hasActiveSource()) {
+			if (!this.activeTranslation && this.pausedByTranslation) {
+				this.pausedByTranslation = false;
+				if (this.hasActiveSource()) {
+					debug.log("[translateFunc] Resuming video after translation is ready");
+					this.video.play().catch((playErr) => {
+						debug.log("[translateFunc] Failed to resume video", playErr);
+					});
+				}
+			}
+			const isLoading = this.uiManager.votOverlayView.overlayViewControls?.getIsLoading();
+			if (!this.activeTranslation && isLoading && !this.hasActiveSource()) {
 				debug.log("[translateFunc] clearing stale loading state");
 				this.transformBtn("none", localizationProvider.get("translateVideo"));
 			}
@@ -25310,21 +28520,6 @@ var vot = (function(exports) {
 		if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
 		self.syncVolumeWrapper("video", videoPercent);
 	}
-	function applyOverlayLayout(self, overlayView, heightPx) {
-		const menu = overlayView.votMenu?.container;
-		if (menu) {
-			let height;
-			if (heightPx) height = heightPx;
-			else if (self.fullscreenHelper) {
-				const target = self.fullscreenHelper.getResizeObserverTarget();
-				height = target.getBoundingClientRect().height || target.clientHeight || window.innerHeight * .75;
-			} else height = self.video.getBoundingClientRect().height;
-			if (!height || height < 200) height = window.innerHeight * .75;
-			menu.style.setProperty("--vot-container-height", `${height}px`);
-		}
-		const { position, direction } = overlayView.calcButtonLayout(self.data?.buttonPos ?? "default");
-		overlayView.updateButtonLayout(position, direction);
-	}
 	function normalizeHotkeyPart(value) {
 		return value.replace("Key", "").replace("Digit", "");
 	}
@@ -25351,19 +28546,9 @@ var vot = (function(exports) {
 		for (const key of hotkey.partsSet) if (!pressedParts.has(key)) return false;
 		return true;
 	}
-	function bindOverlayLayoutEvents(ctx) {
-		const { self, overlayView, addMany } = ctx;
-		const syncMountAndLayout = () => {
-			self.refreshOverlayMount();
-			applyOverlayLayout(self, overlayView);
-		};
-		self.resizeObserver = new ResizeObserver((entries) => {
-			for (const entry of entries) applyOverlayLayout(self, overlayView, entry.contentRect.height);
-		});
-		self.resizeObserver.observe(self.video);
-		syncMountAndLayout();
-		addMany(document, ["fullscreenchange", "webkitfullscreenchange"], () => syncMountAndLayout());
-		addMany(self.video, ["webkitbeginfullscreen", "webkitendfullscreen"], () => syncMountAndLayout());
+	function bindOverlayMountEvents(ctx) {
+		const { self } = ctx;
+		self.refreshOverlayMount();
 	}
 	function bindYouTubeVolumeSync(ctx) {
 		const { self } = ctx;
@@ -25377,9 +28562,9 @@ var vot = (function(exports) {
 			}
 			if (!hasVolumeMutation) return;
 			self.syncVideoVolumeSlider();
-			const activeOverlayView = self.uiManager.votOverlayView;
-			if (!activeOverlayView?.isInitialized()) return;
-			const videoPercent = toPercentInt(activeOverlayView.videoVolumeSlider.value);
+			const overlayViewControls = self.uiManager.votOverlayView?.overlayViewControls;
+			if (!overlayViewControls) return;
+			const videoPercent = toPercentInt(overlayViewControls.getVideoVolume());
 			syncAudioTranslationVolumeFromVideo(self, videoPercent);
 		});
 		const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
@@ -25438,26 +28623,37 @@ var vot = (function(exports) {
 	}
 	function bindGlobalDismissAndHotkeys(ctx) {
 		const { self, overlayView, add, addMany, platformConfig } = ctx;
+		const dismissFloatingUI = () => {
+			const controls = overlayView.overlayViewControls;
+			if (!controls) return;
+			const isMenuOpen = !controls.getMenuHidden();
+			const isVoicePopoverOpen = controls.isVoicePopoverOpen();
+			if (isMenuOpen) controls.setMenuHidden(true);
+			if (isVoicePopoverOpen) controls.closeVoicePopover();
+			if (isMenuOpen || isVoicePopoverOpen) self.overlayVisibility?.queueAutoHide();
+		};
 		add(document, "click", (event) => {
-			const target = event.target;
-			const button = overlayView.votButton?.container;
-			const menu = overlayView.votMenu?.container;
-			const settings = self.uiManager.votSettingsView?.dialog?.container;
+			const overlayViewControls = overlayView.overlayViewControls;
+			const button = overlayViewControls?.getButtonOverlayEl();
+			const menu = overlayViewControls?.getMenuOverlayEl();
+			const settings = self.uiManager.votSettingsView?.root;
 			const path = event.composedPath();
 			const isInPath = (element) => Boolean(element && path.includes(element));
 			const isButton = isInPath(button);
 			const isMenu = isInPath(menu);
 			const isVideo = isInPath(self.container);
 			const isSettings = isInPath(settings);
-			const isTempDialog = target instanceof Element && target.closest(".vot-dialog-temp") instanceof Element;
-			debug.log(`[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`);
-			if (isButton || isMenu || isSettings || isTempDialog) return;
+			const isSelectInner = path.some((element) => element instanceof HTMLElement && element.classList.contains("vot-select-inner"));
+			debug.log(`[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings}`);
+			if (isButton || isMenu || isSelectInner || isSettings) return;
 			if (!isVideo) overlayView.updateButtonOpacity(0);
-			if (menu && !menu.hidden) {
-				menu.hidden = true;
-				self.overlayVisibility?.queueAutoHide();
-			}
+			dismissFloatingUI();
 		});
+		if (self.site.host === "custom") addMany(self.video, [
+			"play",
+			"pause",
+			"seeking"
+		], dismissFloatingUI);
 		const userPressedKeys = /* @__PURE__ */ new Set();
 		const hotkeyCache = /* @__PURE__ */ new Map();
 		const clearUserPressedKeys = () => userPressedKeys.clear();
@@ -25493,7 +28689,7 @@ var vot = (function(exports) {
 		const eventContainer = self.getEventContainer();
 		if (eventContainer) {
 			const useWindowEvents = isIframe() && globalThis.window !== void 0;
-			const interactionTarget = useWindowEvents ? globalThis.window : eventContainer;
+			const interactionTarget = useWindowEvents ? globalThis.window : platformConfig.useDocumentInteractionTarget ? document : eventContainer;
 			if (useWindowEvents) {
 				addMany(interactionTarget, ["pointermove", "pointerdown"], (event) => self.overlayVisibility.handleHostInteraction(event), { passive: true });
 				add(interactionTarget, "blur", () => self.overlayVisibility.scheduleHide());
@@ -25566,7 +28762,7 @@ var vot = (function(exports) {
 				return;
 			}
 			debug.log("lipsync mode is emptied");
-			resetAndHideLifecycle(self, overlayView, {
+			resetAndHideLifecycle(self, overlayView.overlayViewControls, {
 				clearVideoData: true,
 				hideMenu: true
 			});
@@ -25578,9 +28774,9 @@ var vot = (function(exports) {
 		});
 		if (!isMuteSyncDisabledHost(self.site.host)) add(self.video, "volumechange", () => {
 			self.syncVideoVolumeSlider();
-			const activeOverlayView = self.uiManager.votOverlayView;
-			if (!activeOverlayView?.isInitialized()) return;
-			const videoPercent = toPercentInt(activeOverlayView.videoVolumeSlider.value);
+			const overlayViewControls = self.uiManager.votOverlayView?.overlayViewControls;
+			if (!overlayViewControls) return;
+			const videoPercent = toPercentInt(overlayViewControls.getVideoVolume());
 			syncAudioTranslationVolumeFromVideo(self, videoPercent, { skipYouTubeLikeHosts: true });
 		});
 		if (self.site.host === "youtube" && !self.site.additionalData) add(document, "yt-page-data-updated", () => {
@@ -25591,7 +28787,7 @@ var vot = (function(exports) {
 	}
 	function initExtraEvents() {
 		const overlayView = this.uiManager.votOverlayView;
-		if (!overlayView?.subtitlesSelect) return;
+		if (!overlayView?.overlayViewControls) return;
 		const { add, addMany } = createScopedListeners(this.abortController.signal);
 		const ctx = {
 			self: this,
@@ -25601,7 +28797,7 @@ var vot = (function(exports) {
 			addMany
 		};
 		bindPlaybackRefreshOnResume(ctx);
-		bindOverlayLayoutEvents(ctx);
+		bindOverlayMountEvents(ctx);
 		bindYouTubeVolumeSync(ctx);
 		bindAudioTrackLanguageSync(ctx);
 		bindGlobalDismissAndHotkeys(ctx);
@@ -25611,34 +28807,46 @@ var vot = (function(exports) {
 		this.overlayVisibilityTargetsAbortController?.abort();
 		this.overlayVisibilityTargetsAbortController = new AbortController();
 		const { signal } = this.overlayVisibilityTargetsAbortController;
-		const overlayView = this.uiManager?.votOverlayView;
-		const overlayButton = overlayView?.votButton?.container;
-		const overlayMenu = overlayView?.votMenu?.container;
+		const overlayViewControls = this.uiManager?.votOverlayView?.overlayViewControls;
+		if (!overlayViewControls) return;
+		const overlayButton = overlayViewControls.getButtonOverlayEl();
+		const overlayMenu = overlayViewControls.getMenuOverlayEl();
 		if (!overlayButton || !overlayMenu || !this.overlayVisibility) return;
 		const overlayVisibility = this.overlayVisibility;
 		const { addMany } = createScopedListeners(signal);
 		bindOverlayHoverFocusEvents(addMany, overlayButton, overlayVisibility);
 		bindOverlayHoverFocusEvents(addMany, overlayMenu, overlayVisibility);
-		const voicePopoverContainer = overlayView?.voicePopover?.container;
+		const voicePopoverContainer = overlayViewControls.getVoicePopoverEl();
 		if (voicePopoverContainer) bindOverlayHoverFocusEvents(addMany, voicePopoverContainer, overlayVisibility);
 	}
 	function isOverlayInteractiveNode(node) {
 		if (!(node instanceof Node)) return false;
-		const overlayView = this.uiManager?.votOverlayView;
-		const buttonContainer = overlayView?.votButton?.container;
-		const menuContainer = overlayView?.votMenu?.container;
-		const voicePopoverContainer = overlayView?.voicePopover?.container;
+		const overlayViewControls = this.uiManager?.votOverlayView?.overlayViewControls;
+		const buttonContainer = overlayViewControls?.getButtonOverlayEl();
+		const menuContainer = overlayViewControls?.getMenuOverlayEl();
+		const voicePopoverContainer = overlayViewControls?.getVoicePopoverEl();
 		return buttonContainer instanceof Node && containsCrossShadow(buttonContainer, node) || menuContainer instanceof Node && containsCrossShadow(menuContainer, node) || voicePopoverContainer instanceof Node && containsCrossShadow(voicePopoverContainer, node);
 	}
 	function getAutoHideDelay() {
 		const delay = this.data?.autoHideButtonDelay;
-		return typeof delay === "number" && Number.isFinite(delay) ? delay : defaultAutoHideDelay;
+		return typeof delay === "number" && Number.isFinite(delay) ? delay : DEFAULT_AUTO_HIDE_DELAY;
 	}
 	function releaseExtraEvents() {
-		this.resizeObserver?.disconnect();
 		this.overlayVisibilityTargetsAbortController?.abort();
 		this.overlayVisibilityTargetsAbortController = void 0;
 		if (isDesktopYouTubeLikeSite(this.site)) this.syncVolumeObserver?.disconnect();
+	}
+	//#endregion
+	//#region src/videoHandler/shared.ts
+	/**
+	* Country code used for proxy settings. Populated lazily during init.
+	*/
+	var _countryCode;
+	function getCountryCode() {
+		return _countryCode;
+	}
+	function setCountryCode(next) {
+		_countryCode = next;
 	}
 	//#endregion
 	//#region src/videoHandler/modules/init.ts
@@ -25661,9 +28869,9 @@ var vot = (function(exports) {
 		const audioContextSupported = this.isAudioContextSupported;
 		this.data = await votStorage.getValues({
 			autoTranslate: false,
+			autoPauseOnTranslate: false,
 			autoSubtitles: false,
 			dontTranslateLanguages: [calculatedResLang],
-			enabledDontTranslateLanguages: true,
 			enabledAutoVolume: true,
 			enabledSmartDucking: true,
 			autoVolume: 15,
@@ -25680,35 +28888,78 @@ var vot = (function(exports) {
 			subtitlesOpacity: 20,
 			subtitlesDownloadFormat: "srt",
 			responseLanguage: calculatedResLang,
-			responseLanguageSubtitles: "auto",
+			responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
 			defaultVolume: 100,
 			onlyBypassMediaCSP: audioContextSupported,
 			newAudioPlayer: audioContextSupported,
 			showPiPButton: false,
 			translateAPIErrors: true,
-			translationService: defaultTranslationService,
-			detectService: defaultDetectService,
+			translationService: DEFAULT_TRANSLATION_SERVICE,
+			detectService: DEFAULT_DETECT_SERVICE,
 			translationHotkey: null,
 			subtitlesHotkey: null,
 			m3u8ProxyHost,
-			proxyWorkerHost,
+			proxyWorkerHost: PROXY_WORKER_HOST,
 			translateProxyEnabled: 0,
 			translateProxyEnabledDefault: true,
 			audioBooster: false,
 			useLivelyVoice: false,
-			autoHideButtonDelay: defaultAutoHideDelay,
+			autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
 			useAudioDownload: isSupportGMXhr,
 			compatVersion: "",
 			account: {},
 			localeHash: "",
 			localeUpdatedAt: 0
 		});
-		if (this.data.compatVersion !== "2025-05-09") {
+		if (this.data.compatVersion !== "2026-08-18") {
 			this.data = await updateConfig(this.data);
 			await votStorage.set("compatVersion", actualCompatVersion);
 		}
+		await updateAccountFromStorage();
+		setLocale({
+			updatedAt: this.data.localeUpdatedAt,
+			hash: this.data.localeHash
+		});
+		setSettings({
+			defaultVolume: this.data.defaultVolume,
+			responseLanguage: this.data.responseLanguage,
+			useLivelyVoice: this.data.useLivelyVoice,
+			autoTranslate: this.data.autoTranslate,
+			autoPauseOnTranslate: this.data.autoPauseOnTranslate,
+			autoSubtitles: this.data.autoSubtitles,
+			dontTranslateLanguages: this.data.dontTranslateLanguages,
+			enabledAutoVolume: this.data.enabledAutoVolume,
+			autoVolume: this.data.autoVolume,
+			enabledSmartDucking: this.data.enabledSmartDucking,
+			showVideoSlider: this.data.showVideoSlider,
+			audioBooster: this.data.audioBooster,
+			syncVolume: this.data.syncVolume,
+			downloadWithName: this.data.downloadWithName,
+			sendNotifyOnComplete: this.data.sendNotifyOnComplete,
+			useAudioDownload: this.data.useAudioDownload,
+			translationService: this.data.translationService,
+			detectService: this.data.detectService,
+			translateAPIErrors: this.data.translateAPIErrors,
+			newAudioPlayer: this.data.newAudioPlayer,
+			onlyBypassMediaCSP: this.data.onlyBypassMediaCSP,
+			showPiPButton: this.data.showPiPButton,
+			autoHideButtonDelay: this.data.autoHideButtonDelay,
+			buttonPos: normalizeButtonPosition(this.data.buttonPos),
+			proxyWorkerHost: this.data.proxyWorkerHost,
+			translateProxyEnabled: this.data.translateProxyEnabled,
+			translationHotkey: this.data.translationHotkey,
+			subtitlesHotkey: this.data.subtitlesHotkey,
+			responseLanguageSubtitles: this.data.responseLanguageSubtitles,
+			subtitlesDownloadFormat: this.data.subtitlesDownloadFormat,
+			highlightWords: this.data.highlightWords,
+			subtitlesSmartLayout: this.data.subtitlesSmartLayout,
+			subtitlesFontFamily: this.data.subtitlesFontFamily,
+			subtitlesMaxLength: this.data.subtitlesMaxLength,
+			subtitlesFontSize: this.data.subtitlesFontSize,
+			subtitlesOpacity: this.data.subtitlesOpacity
+		});
 		try {
-			if (calculatedResLang === "en" && this.data?.enabledDontTranslateLanguages && Array.isArray(this.data?.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && this.data.dontTranslateLanguages[0] === "en" && typeof this.data.responseLanguage === "string" && this.data.responseLanguage !== "en") {
+			if (calculatedResLang === "en" && Array.isArray(this.data?.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && this.data.dontTranslateLanguages[0] === "en" && typeof this.data.responseLanguage === "string" && this.data.responseLanguage !== "en") {
 				const responseLang = this.data.responseLanguage;
 				this.data.dontTranslateLanguages = [responseLang];
 				await votStorage.set("dontTranslateLanguages", this.data.dontTranslateLanguages);
@@ -25716,16 +28967,16 @@ var vot = (function(exports) {
 		} catch {}
 		this.uiManager.data = this.data;
 		console.log("[VOT] data from db:", this.data);
-		if (!this.data.translateProxyEnabled && isProxyOnlyExtension) this.data.translateProxyEnabled = 1;
+		if (!this.data.translateProxyEnabled && IS_PROXY_ONLY_EXTENSION) this.data.translateProxyEnabled = 1;
 		await ensureCountryCode();
 		const countryCode = getCountryCode();
-		if (countryCode !== null && proxyOnlyCountries.includes(countryCode) && this.data.translateProxyEnabledDefault) this.data.translateProxyEnabled = 2;
+		if (countryCode !== null && PROXY_ONLY_COUNTRIES.includes(countryCode) && this.data.translateProxyEnabledDefault) this.data.translateProxyEnabled = 2;
 		debug.log("translateProxyEnabled", this.data.translateProxyEnabled, this.data.translateProxyEnabledDefault);
 		debug.log("Extension compatibility passed...");
 		await this.initVOTClient();
 		this.uiManager.initUI();
 		this.uiManager.initUIEvents();
-		if (this.uiManager.votOverlayView?.votButton?.container) this.uiManager.votOverlayView.votButton.container.hidden = true;
+		this.uiManager.votOverlayView.overlayViewControls?.setButtonHidden(true);
 		this.createPlayer();
 		this.translateToLang = this.data.responseLanguage ?? "ru";
 		this.initExtraEvents();
@@ -25921,19 +29172,6 @@ var vot = (function(exports) {
 	//#region src/subtitles/processor.ts
 	var toFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
 	var toNonNegativeNumber = (value) => Math.max(0, toFiniteNumber(value));
-	var pickDescriptorFromVideoData = (videoData, requestLang, spokenLang) => {
-		const list = videoData.subtitles;
-		if (!Array.isArray(list) || list.length === 0) return null;
-		const desiredLang = requestLang ?? spokenLang;
-		if (desiredLang) {
-			const translated = list.find((subtitle) => subtitle.language === desiredLang && typeof subtitle.translatedFromLanguage === "string");
-			if (translated) return translated;
-			const original = list.find((subtitle) => subtitle.language === desiredLang);
-			if (original) return original;
-		}
-		return list[0] ?? null;
-	};
-	var isVideoDataForSubtitles = (value) => "host" in value && "videoId" in value && "detectedLanguage" in value && "duration" in value && typeof value.host === "string" && typeof value.videoId === "string" && typeof value.detectedLanguage === "string" && typeof value.duration === "number";
 	var appendYoutubePoTokenParams = (inputUrl) => {
 		const poToken = YoutubeHelper.getPoToken();
 		if (!poToken) return inputUrl;
@@ -26108,22 +29346,14 @@ var vot = (function(exports) {
 	var buildYoutubeSourceTokens = (event, segs, durationMs) => {
 		const sourceTokens = [];
 		let text = "";
-		let remainingDuration = durationMs;
 		let previousRawText = "";
 		for (let j = 0; j < segs.length; j += 1) {
 			const segment = segs[j];
 			const rawText = typeof segment.utf8 === "string" ? segment.utf8 : "";
 			if (!rawText) continue;
-			const offset = Math.max(0, segment.tOffsetMs ?? 0);
-			let segmentDuration = durationMs;
+			const offset = Math.min(durationMs, Math.max(0, segment.tOffsetMs ?? 0));
 			const nextSegment = segs[j + 1];
-			if (nextSegment?.tOffsetMs !== void 0) {
-				const nextOffset = Math.max(offset, nextSegment.tOffsetMs);
-				segmentDuration = Math.max(0, nextOffset - offset);
-				remainingDuration = Math.max(remainingDuration - segmentDuration, 0);
-			}
-			let tokenDuration = Math.max(0, remainingDuration);
-			if (nextSegment) tokenDuration = Math.max(0, segmentDuration);
+			const tokenDuration = (nextSegment ? Math.min(durationMs, Math.max(offset, nextSegment.tOffsetMs ?? offset)) : durationMs) - offset;
 			if (text && shouldInsertSpaceBetweenTextFragments(previousRawText, rawText)) {
 				sourceTokens.push({
 					text: " ",
@@ -26395,9 +29625,8 @@ var vot = (function(exports) {
 				subtitles: mergeAutoGeneratedSubtitleLines(subtitles.subtitles, descriptor.language)
 			};
 		},
-		async fetchSubtitles(descriptorOrVideoData, requestLang, spokenLang) {
-			let descriptor = parseSubtitleDescriptor(descriptorOrVideoData);
-			if (!descriptor && isVideoDataForSubtitles(descriptorOrVideoData)) descriptor = pickDescriptorFromVideoData(descriptorOrVideoData, requestLang, spokenLang);
+		async fetchSubtitles(descriptorInput) {
+			const descriptor = parseSubtitleDescriptor(descriptorInput);
 			if (!descriptor) return {
 				format: "json",
 				subtitles: []
@@ -26450,20 +29679,12 @@ var vot = (function(exports) {
 		const videoData = handler.videoData;
 		return handler.getPreferredSubtitlesLanguage(videoData?.detectedLanguage, videoData?.responseLanguage) ?? videoData?.responseLanguage ?? handler.translateToLang;
 	}
-	function getCacheDetectedLanguage(handler) {
-		const videoData = handler.videoData;
-		const detectedLanguage = videoData?.detectedLanguage?.toLowerCase();
-		if (detectedLanguage && detectedLanguage !== "auto") return detectedLanguage;
-		return videoData?.responseLanguage?.toLowerCase() ?? handler.translateToLang;
-	}
 	function getCurrentSubtitlesCacheKey(handler) {
 		const videoData = handler.videoData;
 		if (!videoData?.videoId) return null;
-		const detectedLanguage = getCacheDetectedLanguage(handler);
-		if (!detectedLanguage) return null;
 		const subtitleLanguage = getPreferredSubtitlesLanguage(handler);
 		if (!subtitleLanguage) return null;
-		return handler.getSubtitlesCacheKey(videoData.videoId, detectedLanguage, subtitleLanguage);
+		return handler.getSubtitlesCacheKey(videoData.videoId, videoData.detectedLanguage, subtitleLanguage);
 	}
 	function buildSubtitleDescriptorKey(descriptor) {
 		return [
@@ -26506,9 +29727,9 @@ var vot = (function(exports) {
 		return subtitlesSelectionRequestVersion.get(handler) === requestVersion;
 	}
 	function clearSelectedSubtitles(handler, overlayView) {
+		overlayView.overlayViewControls?.setSelectedSubtitles(DISABLED_SUBTITLES_VALUE);
 		if (handler.hasSubtitlesWidget()) handler.subtitlesWidget?.setContent(null);
-		overlayView.downloadSubtitlesButton.hidden = true;
-		overlayView.syncSubtitlesButtonState(false);
+		overlayView.overlayViewControls?.setShowDownloadSubtitles(false);
 		handler.yandexSubtitles = null;
 		return handler;
 	}
@@ -26516,10 +29737,10 @@ var vot = (function(exports) {
 		debug.log("[onchange] subtitles", subs);
 		const requestVersion = nextSubtitlesSelectionRequestVersion(this);
 		const overlayView = this.uiManager.votOverlayView;
-		if (!overlayView?.subtitlesSelect || !overlayView.downloadSubtitlesButton) return this;
-		overlayView.subtitlesSelect.setSelectedValue(subs);
-		overlayView.syncSubtitlesButtonState(subs !== DISABLED_SUBTITLES_VALUE);
+		const overlayViewControls = overlayView?.overlayViewControls;
+		if (!overlayViewControls) return this;
 		if (subs === "disabled") return clearSelectedSubtitles(this, overlayView);
+		overlayViewControls.setSelectedSubtitles(subs);
 		const subtitlesIndex = parseSubtitlesOptionIndex(subs);
 		if (subtitlesIndex == null) return clearSelectedSubtitles(this, overlayView);
 		const descriptor = getSubtitleDescriptorAtIndex(this.subtitles, subtitlesIndex);
@@ -26540,15 +29761,14 @@ var vot = (function(exports) {
 		if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) return this;
 		this.yandexSubtitles = fetchedSubtitles;
 		this.getSubtitlesWidget().setContent(this.yandexSubtitles, subtitlesObj.language);
-		overlayView.downloadSubtitlesButton.hidden = false;
-		overlayView.syncSubtitlesButtonState(true);
+		overlayViewControls.setShowDownloadSubtitles(true);
 		return this;
 	}
 	async function updateSubtitlesLangSelect() {
-		const overlayView = this.uiManager.votOverlayView;
-		if (!overlayView?.subtitlesSelect) return;
+		const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
+		if (!overlayViewControls) return;
 		const updatedOptions = buildSubtitlesSelectOptions(getIndexedSubtitleDescriptors(this.subtitles));
-		overlayView.subtitlesSelect.updateItems(updatedOptions);
+		overlayViewControls.setSubtitlesOptions(updatedOptions);
 		await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
 	}
 	async function ensureSubtitlesForCurrentLangPair() {
@@ -26583,8 +29803,8 @@ var vot = (function(exports) {
 	* For same-language pair (from == to), prefer site subtitles before Yandex.
 	*/
 	async function enableSubtitlesForCurrentLangPair() {
-		const overlayView = this.uiManager.votOverlayView;
-		if (!overlayView?.subtitlesSelect) return this;
+		const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
+		if (!overlayViewControls) return this;
 		try {
 			await ensureSubtitlesForCurrentLangPair.call(this);
 		} catch {
@@ -26595,7 +29815,7 @@ var vot = (function(exports) {
 		if (!toLang) return this;
 		const bestIdx = pickBestSubtitlesIndex(getIndexedSubtitleDescriptors(this.subtitles), fromLang, toLang);
 		if (bestIdx == null) return this;
-		if (getSelectedSubtitlesValue(overlayView.subtitlesSelect.selectedValues) === String(bestIdx)) return this;
+		if (overlayViewControls.getSelectedSubtitles() === String(bestIdx)) return this;
 		await this.changeSubtitlesLang(String(bestIdx));
 		return this;
 	}
@@ -26616,9 +29836,9 @@ var vot = (function(exports) {
 	*   language pair.
 	*/
 	async function toggleSubtitlesForCurrentLangPair() {
-		const overlayView = this.uiManager.votOverlayView;
-		if (!overlayView?.subtitlesSelect) return this;
-		const currentValue = getSelectedSubtitlesValue(overlayView.subtitlesSelect.selectedValues);
+		const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
+		if (!overlayViewControls) return this;
+		const currentValue = overlayViewControls.getSelectedSubtitles();
 		if (currentValue && currentValue !== "disabled") {
 			await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
 			return this;
@@ -26791,6 +30011,12 @@ var vot = (function(exports) {
 		smartVolumeIsDucked = false;
 		longWaitingResCount = 0;
 		hadAsyncWait = false;
+		/**
+		* Set to `true` when the video was programmatically paused while waiting for
+		* translation audio to be prepared (autoPauseOnTranslate feature).
+		* Reset when translation finishes or when the user manually starts playback.
+		*/
+		pausedByTranslation = false;
 		subtitles = [];
 		subtitlesCacheKey = null;
 		subtitlesWidget;
@@ -26809,7 +30035,6 @@ var vot = (function(exports) {
 		translationHandler;
 		videoManager;
 		yandexSubtitles = null;
-		resizeObserver;
 		syncVolumeObserver;
 		initialized = false;
 		/**
@@ -27090,7 +30315,7 @@ var vot = (function(exports) {
 			debug.log("preferAudio:", preferAudio);
 			this.audioPlayer = new Chaimu({
 				video: this.video,
-				debug: Boolean(false),
+				debug: Boolean(true),
 				fetchFn: GM_fetch,
 				fetchOpts: { timeout: 0 },
 				preferAudio
@@ -27352,27 +30577,24 @@ var vot = (function(exports) {
 		* is disabled.
 		*/
 		syncVolumeWrapper(fromType, newVolume) {
-			const overlayView = this.uiManager.votOverlayView;
-			if (!overlayView?.isInitialized()) return;
-			const videoSlider = overlayView.videoVolumeSlider;
-			const translationSlider = overlayView.translationVolumeSlider;
-			if (!videoSlider || !translationSlider) return;
+			const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
+			if (!overlayViewControls) return;
 			const result = applyVolumeLinkDelta({
 				state: this.volumeLinkState,
 				fromType,
 				newVolume,
-				currentVideo: Number(videoSlider.value),
-				currentTranslation: Number(translationSlider.value),
-				translationMin: translationSlider.min,
-				translationMax: translationSlider.max
+				currentVideo: overlayViewControls.getVideoVolume(),
+				currentTranslation: overlayViewControls.getTranslationVolume(),
+				translationMin: 0,
+				translationMax: overlayViewControls.getMaxTranslationVolume()
 			});
 			const { nextVideo, nextTranslation } = result;
 			if (typeof nextTranslation === "number") {
-				translationSlider.value = nextTranslation;
+				overlayViewControls.setTranslationVolume(nextTranslation);
 				return result;
 			}
 			if (typeof nextVideo === "number") {
-				videoSlider.value = nextVideo;
+				overlayViewControls.setVideoVolume(nextVideo);
 				this.setVideoVolume(nextVideo / 100);
 			}
 			return result;
@@ -27404,14 +30626,7 @@ var vot = (function(exports) {
 					debug.log("audioPlayer after stopTranslate", this.audioPlayer);
 				}
 				this.activeTranslation = null;
-				const overlayView = this.uiManager.votOverlayView;
-				if (overlayView) {
-					for (const control of [
-						overlayView.videoVolumeSlider,
-						overlayView.translationVolumeSlider,
-						overlayView.downloadTranslationButton
-					]) if (control) control.hidden = true;
-				}
+				this.uiManager.votOverlayView?.overlayViewControls?.setShowDownloadTranslation(false);
 				this.downloadTranslation = null;
 				this.longWaitingResCount = 0;
 				this.hadAsyncWait = false;
@@ -27455,9 +30670,7 @@ var vot = (function(exports) {
 			if (signal?.aborted || resolvedMessage === null) return;
 			this.transformBtn("error", resolvedMessage);
 			if (signal?.aborted) return;
-			if (TRANSLATION_LOADING_MESSAGES.has(errorMessage)) {
-				if (this.uiManager.votOverlayView?.votButton) this.uiManager.votOverlayView.votButton.loading = true;
-			}
+			if (TRANSLATION_LOADING_MESSAGES.has(errorMessage)) this.uiManager.votOverlayView.overlayViewControls?.setIsLoading(true);
 		}
 		async resolveTranslationErrorDisplayMessage(errorMessage, translationTake, lang, signal) {
 			if (errorMessage?.name === "VOTLocalizedError") return errorMessage.localizedMessage;
@@ -27473,12 +30686,12 @@ var vot = (function(exports) {
 		}
 		async getTranslatedErrorMessage(errorMessage, lang, signal) {
 			const overlayView = this.uiManager.votOverlayView;
-			if (!overlayView?.votButton) return null;
+			if (!overlayView?.overlayViewControls) return null;
 			const messageStr = Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage);
 			const cacheKey = `${lang}:${messageStr}`;
 			const cached = this.errorTranslationCache.get(cacheKey);
 			if (cached) return cached;
-			overlayView.votButton.loading = true;
+			overlayView.overlayViewControls?.setIsLoading(true);
 			const translatedMessage = await translate(messageStr, "ru", lang);
 			if (signal?.aborted) return null;
 			const translatedText = Array.isArray(translatedMessage) ? translatedMessage.join("\n") : String(translatedMessage);
@@ -27496,15 +30709,14 @@ var vot = (function(exports) {
 		* @param {string} audioUrl The URL of the translation audio.
 		*/
 		afterUpdateTranslation(audioUrl) {
-			const overlayView = this.uiManager.votOverlayView;
-			if (!overlayView?.votButton) return;
-			const isSuccess = overlayView.votButton.container.dataset.status === "success";
-			if (overlayView.videoVolumeSlider) overlayView.videoVolumeSlider.hidden = !this.data?.showVideoSlider || !isSuccess;
-			if (overlayView.translationVolumeSlider) overlayView.translationVolumeSlider.hidden = !isSuccess;
-			if (overlayView.videoVolumeSlider && overlayView.translationVolumeSlider) this.resetVolumeLinkState(Number(overlayView.videoVolumeSlider.value), Number(overlayView.translationVolumeSlider.value));
-			else this.volumeLinkState.initialized = false;
+			const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
+			const isSuccess = overlayViewControls?.getStatus() === "success";
+			if (overlayViewControls) {
+				overlayViewControls.setShowTranslationVolume(isSuccess);
+				this.resetVolumeLinkState(overlayViewControls.getVideoVolume(), overlayViewControls.getTranslationVolume());
+			} else this.volumeLinkState.initialized = false;
 			if (this.videoData && !this.videoData.isStream) {
-				if (overlayView.downloadTranslationButton) overlayView.downloadTranslationButton.hidden = false;
+				overlayViewControls?.setShowDownloadTranslation(true);
 				this.downloadTranslation = {
 					url: audioUrl,
 					videoId: this.videoData.videoId

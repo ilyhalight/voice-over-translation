@@ -1,0 +1,18 @@
+.vot-or-block {
+  --vot-or-block-line: rgba(var(--vot-primary-rgb, 139, 180, 245), 0.5);
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgb(var(--vot-primary-rgb));
+  font-size: 0.75em;
+  font-weight: 600;
+
+  &:before,
+  &:after {
+    height: 1px;
+    flex: 1;
+    background: var(--vot-or-block-line);
+    content: "";
+  }
+}

@@ -131,7 +131,7 @@ const siteData = {
   bilibili: {
     paths: ["/video/VIDEO_ID", "/?bvid=VIDEO_ID"],
   },
-  mail_ru: {
+  mailru: {
     paths: [
       "/v/NICKNAME/video/...",
       "/mail/NICKNAME/video/...",
@@ -163,10 +163,10 @@ const siteData = {
     paths: ["/i/FILE_ID"],
     limits: [locales.workOnlyWithPublicLinks],
   },
-  coursehunterLike: {
+  coursehunterlike: {
     paths: ["/course/COURSE_ID"],
   },
-  "ok.ru": {
+  okru: {
     paths: ["/video/VIDEO_ID"],
   },
   googledrive: {
@@ -234,9 +234,6 @@ const siteData = {
   linkedin: {
     paths: ["/learning/COURSE_NAME/LECTURE_NAME"],
   },
-  incestflix: {
-    paths: ["/watch/VIDEO_ID"],
-  },
   dzen: {
     paths: ["/video/watch/VIDEO_ID"],
   },
@@ -286,7 +283,7 @@ const siteData = {
   niconico: {
     paths: ["/watch/VIDEO_ID"],
   },
-  directlink: {
+  custom: {
     paths: ["/*.mp4", "/*.webm"],
     limits: [locales.noLocalLinks],
   },
@@ -297,26 +294,6 @@ const extraData = {
     status: "⚠️",
     statusPhrase: locales.worksWithLimitations,
   },
-  // twitter: {
-  //   status: "⚠️",
-  //   statusPhrase: locales.worksWithLimitations,
-  // },
-  // facebook: {
-  //   status: "⚠️",
-  //   statusPhrase: locales.worksWithLimitations,
-  // },
-  // yandexdisk: {
-  //   status: "⚠️",
-  //   statusPhrase: locales.worksWithLimitations,
-  // },
-  // sap: {
-  //   status: "⚠️",
-  //   statusPhrase: locales.worksWithLimitations,
-  // },
-  // linkedin: {
-  //   status: "⚠️",
-  //   statusPhrase: locales.worksWithLimitations,
-  // },
 };
 
 const sitesBlackList = ["porntn"];

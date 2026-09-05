@@ -4,11 +4,16 @@ import { type InlineConfig, type UserConfig, build as viteBuild } from "vite";
 import { zipDir } from "../../../scripts/zip/utils";
 import { type BuildConfig, type BuildEnvMeta, buildDefine } from "../env";
 import {
-  distExtDir,
-  outTmp,
-  rootDir,
+  DIST_EXT_DIR,
+  FIREFOX_UPDATES_MANIFEST_FILE,
+  FIREFOX_UPDATES_MANIFEST_PATH,
+  FIREFOX_XPI_FILE,
+  FIREFOX_XPI_PATH,
+  getReleaseDownloadBase,
+  OUT_TEMP_DIR,
+  ROOT_DIR,
+  SOURCE_DIR,
   singleFileBuildOptions,
-  srcDir,
 } from "../paths";
 import { createBaseViteConfig } from "../vite-base-config";
 import {
@@ -17,9 +22,6 @@ import {
   type ExtensionHeaders,
 } from "./manifest-helpers";
 
-export { distExtDir, outTmp, srcDir } from "../paths";
-export type { ExtensionHeaders } from "./manifest-helpers";
-
 const DEFAULT_EXTENSION_VERSION = "0.0.0";
 const EXTENSION_LOADER_FILES = ["prelude.js", "content.js"] as const;
 const EXTENSION_MODULE_FILES = [
@@ -27,12 +29,7 @@ const EXTENSION_MODULE_FILES = [
   "content.module.js",
 ] as const;
 
-const GITHUB_DIST_EXT_RAW_BASE =
-  "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist-ext";
-const FIREFOX_UPDATES_MANIFEST_FILE = "vot-extension-firefox-updates.json";
-const FIREFOX_UPDATES_MANIFEST_URL = `${GITHUB_DIST_EXT_RAW_BASE}/${FIREFOX_UPDATES_MANIFEST_FILE}`;
-
-export interface ExtensionBuildContext {
+interface ExtensionBuildContext {
   availableLocales: string[];
   repoBranch: string;
 }
@@ -61,11 +58,6 @@ const extensionEntries: ExtensionEntry[] = [
   },
   {
     entry: "src/extension/background.ts",
-    fileName: "background.js",
-    emptyOutDir: false,
-  },
-  {
-    entry: "src/extension/background.ts",
     fileName: "background-ff.js",
     emptyOutDir: false,
   },
@@ -75,7 +67,7 @@ const extensionEntries: ExtensionEntry[] = [
 // Utilities
 // ----------------------------------------------------------------
 
-export async function exists(filePath: string): Promise<boolean> {
+async function exists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
     return true;
@@ -84,7 +76,7 @@ export async function exists(filePath: string): Promise<boolean> {
   }
 }
 
-export async function readJson<T>(filePath: string): Promise<T> {
+async function readJson<T>(filePath: string): Promise<T> {
   return JSON.parse(await fs.readFile(filePath, "utf8")) as T;
 }
 
@@ -94,7 +86,7 @@ async function ensureCleanDir(dir: string): Promise<void> {
 }
 
 export async function getLocaleCodes(): Promise<string[]> {
-  const localesDir = path.join(srcDir, "localization", "locales");
+  const localesDir = path.join(SOURCE_DIR, "localization", "locales");
   const entries = await fs.readdir(localesDir, { withFileTypes: true });
 
   const codes = entries
@@ -121,7 +113,7 @@ export async function createExtensionBuildContext(
 }
 
 export async function getExtensionHeaders(): Promise<ExtensionHeaders> {
-  return readJson<ExtensionHeaders>(path.join(srcDir, "headers.json"));
+  return readJson<ExtensionHeaders>(path.join(SOURCE_DIR, "headers.json"));
 }
 
 export async function getFirefoxBuildEnv(
@@ -160,12 +152,12 @@ function createExtensionEntryConfig(
     build: {
       ...baseConfig.build,
       ...singleFileBuildOptions,
-      outDir: outTmp,
+      outDir: OUT_TEMP_DIR,
       emptyOutDir: entry.emptyOutDir,
       sourcemap: false,
       minify: "oxc",
       lib: {
-        entry: path.join(rootDir, entry.entry),
+        entry: path.join(ROOT_DIR, entry.entry),
         name: "VOT",
         formats: ["es"],
         fileName: () => entry.fileName,
@@ -198,7 +190,7 @@ export async function buildExtensionBundles({
     crxjsBuild: false,
   });
 
-  await ensureCleanDir(outTmp);
+  await ensureCleanDir(OUT_TEMP_DIR);
 
   for (const entry of extensionEntries) {
     await buildEntry(entry, define);
@@ -212,19 +204,22 @@ async function copyExtensionFiles(targetDir: string): Promise<void> {
     fs.mkdir(iconsDstDir, { recursive: true }),
   ]);
 
-  const bundleFiles = await fs.readdir(outTmp);
+  const bundleFiles = await fs.readdir(OUT_TEMP_DIR);
   const frontEndJsFiles = bundleFiles.filter((fileName) => {
     if (!fileName.endsWith(".js")) return false;
     return !["background.js", "background-ff.js"].includes(fileName);
   });
 
-  const iconsSrcDir = path.join(srcDir, "extension", "icons");
+  const iconsSrcDir = path.join(SOURCE_DIR, "extension", "icons");
   const iconFiles = await fs.readdir(iconsSrcDir);
 
   await Promise.all([
     // Front-end JS bundles
     ...frontEndJsFiles.map((fileName) =>
-      fs.copyFile(path.join(outTmp, fileName), path.join(targetDir, fileName)),
+      fs.copyFile(
+        path.join(OUT_TEMP_DIR, fileName),
+        path.join(targetDir, fileName),
+      ),
     ),
     // Empty loader stubs
     ...EXTENSION_LOADER_FILES.map((fileName) =>
@@ -232,7 +227,7 @@ async function copyExtensionFiles(targetDir: string): Promise<void> {
     ),
     // Firefox background (renamed from background-ff.js)
     fs.copyFile(
-      path.join(outTmp, "background-ff.js"),
+      path.join(OUT_TEMP_DIR, "background-ff.js"),
       path.join(targetDir, "background.js"),
     ),
     // Icon files
@@ -324,10 +319,6 @@ function getFirefoxAndroidSettingsForDataCollectionPermissions(
   return androidSettings;
 }
 
-function getFirefoxXpiRawUrl(): string {
-  return `${GITHUB_DIST_EXT_RAW_BASE}/vot-extension-firefox.xpi`;
-}
-
 function getFirefoxSpecificSettings(config: BuildConfig) {
   const dataCollectionPermissions = getFirefoxDataCollectionPermissions(config);
 
@@ -338,7 +329,9 @@ function getFirefoxSpecificSettings(config: BuildConfig) {
       data_collection_permissions: dataCollectionPermissions,
       ...(config.IS_STORE_BUILD
         ? {}
-        : { update_url: FIREFOX_UPDATES_MANIFEST_URL }),
+        : {
+            update_url: `${getReleaseDownloadBase(config.REPO_BRANCH)}/${FIREFOX_UPDATES_MANIFEST_FILE}`,
+          }),
     },
     gecko_android:
       dataCollectionPermissions.required.length ||
@@ -395,17 +388,13 @@ async function writeFirefoxUpdatesManifest({
   version: string;
   addonId: string;
 }): Promise<string> {
-  const updatesManifestPath = path.join(
-    distExtDir,
-    FIREFOX_UPDATES_MANIFEST_FILE,
-  );
   const updatesManifest = {
     addons: {
       [addonId]: {
         updates: [
           {
             version,
-            update_link: getFirefoxXpiRawUrl(),
+            update_link: `${getReleaseDownloadBase(version)}/${FIREFOX_XPI_FILE}`,
           },
         ],
       },
@@ -413,12 +402,12 @@ async function writeFirefoxUpdatesManifest({
   };
 
   await fs.writeFile(
-    updatesManifestPath,
+    FIREFOX_UPDATES_MANIFEST_PATH,
     JSON.stringify(updatesManifest, null, 3),
     "utf8",
   );
 
-  return updatesManifestPath;
+  return FIREFOX_UPDATES_MANIFEST_PATH;
 }
 
 // ----------------------------------------------------------------
@@ -473,8 +462,9 @@ async function verifyManifest(
 
 function verifyFirefoxManifestFields(
   manifest: Record<string, any>,
-  storeBuild: boolean,
+  config: BuildConfig,
 ): void {
+  const expectedUpdateUrl = `${getReleaseDownloadBase(config.REPO_BRANCH)}/${FIREFOX_UPDATES_MANIFEST_FILE}`;
   const permissions = new Set(manifest.permissions || []);
   if (
     !permissions.has("declarativeNetRequestWithHostAccess") &&
@@ -493,14 +483,14 @@ function verifyFirefoxManifestFields(
   }
   const updateUrl = manifest.browser_specific_settings?.gecko?.update_url;
   if (
-    storeBuild
+    config.IS_STORE_BUILD
       ? updateUrl !== undefined
-      : updateUrl !== FIREFOX_UPDATES_MANIFEST_URL
+      : updateUrl !== expectedUpdateUrl
   ) {
     throw new Error(
-      storeBuild
+      config.IS_STORE_BUILD
         ? "firefox: store manifest must not contain browser_specific_settings.gecko.update_url"
-        : `firefox: expected browser_specific_settings.gecko.update_url to be ${FIREFOX_UPDATES_MANIFEST_URL}`,
+        : `firefox: expected browser_specific_settings.gecko.update_url to be ${expectedUpdateUrl}`,
     );
   }
   if (
@@ -639,10 +629,13 @@ async function verifyBundleSources(dir: string): Promise<void> {
 }
 
 async function verifyBodySerializationGuards(): Promise<void> {
-  const bridgeSrcPath = path.join(srcDir, "extension/bridge/index.ts");
-  const bridgeXhrSrcPath = path.join(srcDir, "extension/bridge/xhr-bridge.ts");
+  const bridgeSrcPath = path.join(SOURCE_DIR, "extension/bridge/index.ts");
+  const bridgeXhrSrcPath = path.join(
+    SOURCE_DIR,
+    "extension/bridge/xhr-bridge.ts",
+  );
   const serializationSrcPath = path.join(
-    srcDir,
+    SOURCE_DIR,
     "extension/shared/bodySerialization.ts",
   );
 
@@ -686,10 +679,10 @@ async function verifyBodySerializationGuards(): Promise<void> {
   );
 }
 
-export async function verifyFirefoxOutputs(config: BuildConfig): Promise<void> {
-  const dir = path.join(distExtDir, "firefox");
+async function verifyFirefoxOutputs(config: BuildConfig): Promise<void> {
+  const dir = path.join(DIST_EXT_DIR, "firefox");
   const manifest = await verifyManifest(path.join(dir, "manifest.json"));
-  verifyFirefoxManifestFields(manifest, config.IS_STORE_BUILD);
+  verifyFirefoxManifestFields(manifest, config);
   verifyContentScripts(manifest);
 
   // File-level checks are independent — run in parallel.
@@ -701,13 +694,9 @@ export async function verifyFirefoxOutputs(config: BuildConfig): Promise<void> {
 
   console.log("OK firefox: basic structure checks passed");
 
-  const firefoxUpdatesManifestPath = path.join(
-    distExtDir,
-    FIREFOX_UPDATES_MANIFEST_FILE,
-  );
-  if (!(await exists(firefoxUpdatesManifestPath))) {
+  if (!(await exists(FIREFOX_UPDATES_MANIFEST_PATH))) {
     throw new Error(
-      `firefox: missing updates manifest at ${firefoxUpdatesManifestPath}`,
+      `firefox: missing updates manifest at ${FIREFOX_UPDATES_MANIFEST_PATH}`,
     );
   }
 }
@@ -720,7 +709,7 @@ export async function finalizeFirefoxBuild(config: BuildConfig): Promise<void> {
   const headers = await getExtensionHeaders();
   const version = headers.version || DEFAULT_EXTENSION_VERSION;
 
-  const outDir = path.join(distExtDir, "firefox");
+  const outDir = path.join(DIST_EXT_DIR, "firefox");
   await ensureCleanDir(outDir);
   await copyExtensionFiles(outDir);
   await writeManifest(
@@ -728,7 +717,7 @@ export async function finalizeFirefoxBuild(config: BuildConfig): Promise<void> {
     buildManifestFirefox({ headers, includeWorld: true, config }),
   );
 
-  await zipDir(outDir, path.join(distExtDir, "vot-extension-firefox.xpi"));
+  await zipDir(outDir, FIREFOX_XPI_PATH);
 
   const updatesPath = await writeFirefoxUpdatesManifest({
     version,
@@ -743,5 +732,5 @@ export async function finalizeFirefoxBuild(config: BuildConfig): Promise<void> {
 }
 
 export async function cleanupExtensionTmpDir(): Promise<void> {
-  await fs.rm(outTmp, { recursive: true, force: true });
+  await fs.rm(OUT_TEMP_DIR, { recursive: true, force: true });
 }
