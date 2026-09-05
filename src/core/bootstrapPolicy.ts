@@ -14,6 +14,8 @@ export function shouldSkipIframeBootstrap(
   return (
     input.href === "about:blank" ||
     input.href.startsWith("about:srcdoc") ||
+    (input.origin === "https://www.youtube.com" &&
+      input.href.includes("#ya_iframe")) ||
     input.origin === "null"
   );
 }
