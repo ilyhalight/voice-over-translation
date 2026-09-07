@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.9
+// @version        1.11.10
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -1139,7 +1139,7 @@ var vot = (function(exports) {
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
 	}
-	function log$1(...messages) {
+	function log(...messages) {
 		if (!canLog(LoggerLevel.DEBUG)) return;
 		console.log(prefix, ...messages);
 	}
@@ -1147,20 +1147,20 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.INFO)) return;
 		console.info(prefix, ...messages);
 	}
-	function warn$1(...messages) {
+	function warn(...messages) {
 		if (!canLog(LoggerLevel.WARN)) return;
 		console.warn(prefix, ...messages);
 	}
-	function error$1(...messages) {
+	function error(...messages) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
 	var Logger = {
 		canLog,
-		log: log$1,
+		log,
 		info,
-		warn: warn$1,
-		error: error$1
+		warn,
+		error
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/utils/utils.js
@@ -2364,50 +2364,69 @@ var vot = (function(exports) {
 	/**
 	* Read a 64 bit varint as two JS numbers.
 	*
-	* Stores the low and high words on the reader.
+	* Returns tuple:
+	* [0]: low bits
+	* [1]: high bits
 	*
 	* Copyright 2008 Google Inc.  All rights reserved.
 	*
 	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
 	*/
 	function varint64read() {
-		const buf = this.buf;
-		let pos = this.pos;
-		let lo = 0;
-		let hi = 0;
+		let lowBits = 0;
+		let highBits = 0;
 		for (let shift = 0; shift < 28; shift += 7) {
-			const b = buf[pos++];
-			lo |= (b & 127) << shift;
+			let b = this.buf[this.pos++];
+			lowBits |= (b & 127) << shift;
 			if ((b & 128) == 0) {
-				this.pos = pos;
 				this.assertBounds();
-				this.varint64Lo = lo;
-				this.varint64Hi = hi;
-				return;
+				return [lowBits, highBits];
 			}
 		}
-		const middleByte = buf[pos++];
-		lo |= (middleByte & 15) << 28;
-		hi = (middleByte & 112) >> 4;
+		let middleByte = this.buf[this.pos++];
+		lowBits |= (middleByte & 15) << 28;
+		highBits = (middleByte & 112) >> 4;
 		if ((middleByte & 128) == 0) {
-			this.pos = pos;
 			this.assertBounds();
-			this.varint64Lo = lo;
-			this.varint64Hi = hi;
-			return;
+			return [lowBits, highBits];
 		}
 		for (let shift = 3; shift <= 31; shift += 7) {
-			const b = buf[pos++];
-			hi |= (b & 127) << shift;
+			let b = this.buf[this.pos++];
+			highBits |= (b & 127) << shift;
 			if ((b & 128) == 0) {
-				this.pos = pos;
 				this.assertBounds();
-				this.varint64Lo = lo;
-				this.varint64Hi = hi;
-				return;
+				return [lowBits, highBits];
 			}
 		}
 		throw new Error("invalid varint");
+	}
+	/**
+	* Write a 64 bit varint, given as two JS numbers, to the given bytes array.
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
+	*/
+	function varint64write(lo, hi, bytes) {
+		for (let i = 0; i < 28; i = i + 7) {
+			const shift = lo >>> i;
+			const hasNext = !(shift >>> 7 == 0 && hi == 0);
+			const byte = (hasNext ? shift | 128 : shift) & 255;
+			bytes.push(byte);
+			if (!hasNext) return;
+		}
+		const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
+		const hasMoreBits = !(hi >> 3 == 0);
+		bytes.push((hasMoreBits ? splitBits | 128 : splitBits) & 255);
+		if (!hasMoreBits) return;
+		for (let i = 3; i < 31; i = i + 7) {
+			const shift = hi >>> i;
+			const hasNext = !(shift >>> 7 == 0);
+			const byte = (hasNext ? shift | 128 : shift) & 255;
+			bytes.push(byte);
+			if (!hasNext) return;
+		}
+		bytes.push(hi >>> 31 & 1);
 	}
 	var TWO_PWR_32_DBL = 4294967296;
 	/**
@@ -2511,39 +2530,61 @@ var vot = (function(exports) {
 		return "0000000".slice(partial.length) + partial;
 	};
 	/**
+	* Write a 32 bit varint, signed or unsigned. Same as `varint64write(0, value, bytes)`
+	*
+	* Copyright 2008 Google Inc.  All rights reserved.
+	*
+	* See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
+	*/
+	function varint32write(value, bytes) {
+		if (value >= 0) {
+			while (value > 127) {
+				bytes.push(value & 127 | 128);
+				value = value >>> 7;
+			}
+			bytes.push(value);
+		} else {
+			for (let i = 0; i < 9; i++) {
+				bytes.push(value & 127 | 128);
+				value = value >> 7;
+			}
+			bytes.push(1);
+		}
+	}
+	/**
 	* Read an unsigned 32 bit varint.
 	*
 	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L220
 	*/
 	function varint32read() {
 		let b = this.buf[this.pos++];
-		if ((b & 128) === 0) {
-			this.assertBounds();
-			return b;
-		}
 		let result = b & 127;
+		if ((b & 128) == 0) {
+			this.assertBounds();
+			return result;
+		}
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 7;
-		if ((b & 128) === 0) {
+		if ((b & 128) == 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 14;
-		if ((b & 128) === 0) {
+		if ((b & 128) == 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 21;
-		if ((b & 128) === 0) {
+		if ((b & 128) == 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 15) << 28;
 		for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
-		if ((b & 128) !== 0) throw new Error("invalid varint");
+		if ((b & 128) != 0) throw new Error("invalid varint");
 		this.assertBounds();
 		return result >>> 0;
 	}
@@ -2555,11 +2596,8 @@ var vot = (function(exports) {
 	var protoInt64 = /*@__PURE__*/ makeInt64Support();
 	function makeInt64Support() {
 		const dv = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
-		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
-			const MIN = BigInt("-9223372036854775808");
-			const MAX = BigInt("9223372036854775807");
-			const UMIN = BigInt("0");
-			const UMAX = BigInt("18446744073709551615");
+		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
+			const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
 			return {
 				zero: BigInt(0),
 				supported: true,
@@ -2639,68 +2677,27 @@ var vot = (function(exports) {
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
 	var symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
-	/**
-	* Protobuf-ES requires the Text Encoding API to convert UTF-8 from and to
-	* binary. This WHATWG API is widely available, but it is not part of the
-	* ECMAScript standard. On runtimes where it is not available, use this
-	* function to provide your own implementation.
-	*
-	* Providing `encodeUtf8Into` is optional for backwards compatibility. If it
-	* is omitted, we emulate it with a wrapper that calls `encodeUtf8`.
-	*
-	* Note that the Text Encoding API does not provide a way to validate UTF-8.
-	* Our implementation uses String.prototype.isWellFormed, and falls back
-	* to use encodeURIComponent().
-	*/
-	function configureTextEncoding(textEncoding) {
-		var _a;
-		globalThis[symbol] = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
-	}
 	function getTextEncoding() {
-		const globals = globalThis;
-		if (!globals[symbol]) {
-			const textEncoder = new globals.TextEncoder();
-			const textDecoder = new globals.TextDecoder();
-			let textDecoderStrict;
-			const config = {
+		if (globalThis[symbol] == void 0) {
+			const te = new globalThis.TextEncoder();
+			const td = new globalThis.TextDecoder();
+			globalThis[symbol] = {
 				encodeUtf8(text) {
-					return textEncoder.encode(text);
+					return te.encode(text);
 				},
-				decodeUtf8(bytes, strict) {
-					if (strict) {
-						if (!textDecoderStrict) textDecoderStrict = new globals.TextDecoder("utf-8", { fatal: true });
-						return textDecoderStrict.decode(bytes);
-					}
-					return textDecoder.decode(bytes);
+				decodeUtf8(bytes) {
+					return td.decode(bytes);
 				},
 				checkUtf8(text) {
 					try {
 						return true;
-					} catch (_) {
+					} catch (e) {
 						return false;
 					}
 				}
 			};
-			if (textEncoder.encodeInto) config.encodeUtf8Into = textEncoder.encodeInto.bind(textEncoder);
-			const nativeStringIsWellFormed = String.prototype.isWellFormed;
-			if (nativeStringIsWellFormed) config.checkUtf8 = (text) => {
-				return nativeStringIsWellFormed.call(text);
-			};
-			configureTextEncoding(config);
 		}
-		return globals[symbol];
-	}
-	/**
-	* Simplistic polyfill for encodeUtf8Into.
-	*
-	* @private
-	*/
-	function emulateEncodeInto(encodeUtf8) {
-		return (text, dest) => {
-			const bytes = encodeUtf8(text);
-			dest.set(bytes);
-			return { written: bytes.byteLength };
-		};
+		return globalThis[symbol];
 	}
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
@@ -2747,47 +2744,33 @@ var vot = (function(exports) {
 		WireType[WireType["Bit32"] = 5] = "Bit32";
 	})(WireType || (WireType = {}));
 	var BinaryWriter = class {
-		constructor(encodeUtf8) {
+		constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
+			this.encodeUtf8 = encodeUtf8;
 			/**
-			* Previous fork positions (the write position at the time
-			* `fork()` was called).
+			* Previous fork states.
 			*/
-			this.stackPos = [];
-			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto(encodeUtf8) : getTextEncoding().encodeUtf8Into;
-			this.buffer = EMPTY_BUFFER;
-			this.viewCache = EMPTY_VIEW;
-			this.pos = 0;
-		}
-		ensureCapacity(size) {
-			const required = this.pos + size;
-			if (required > this.buffer.length) {
-				let newLen = this.buffer.length || INITIAL_SIZE;
-				while (newLen < required) newLen *= 2;
-				const newBuf = new Uint8Array(newLen);
-				if (this.pos > 0) newBuf.set(this.buffer);
-				this.buffer = newBuf;
-			}
-		}
-		/**
-		* The DataView over `buffer`, rebuilt only if the buffer has grown since it
-		* was last used.
-		*/
-		view() {
-			const bytes = this.buffer;
-			const view = this.viewCache;
-			if (view.byteLength === bytes.byteLength) return view;
-			const newView = new DataView(bytes.buffer);
-			this.viewCache = newView;
-			return newView;
+			this.stack = [];
+			this.chunks = [];
+			this.buf = [];
 		}
 		/**
 		* Return all bytes written and reset this writer.
 		*/
 		finish() {
-			const result = this.buffer.slice(0, this.pos);
-			this.pos = 0;
-			this.stackPos = [];
-			return result;
+			if (this.buf.length) {
+				this.chunks.push(new Uint8Array(this.buf));
+				this.buf = [];
+			}
+			let len = 0;
+			for (let i = 0; i < this.chunks.length; i++) len += this.chunks[i].length;
+			let bytes = new Uint8Array(len);
+			let offset = 0;
+			for (let i = 0; i < this.chunks.length; i++) {
+				bytes.set(this.chunks[i], offset);
+				offset += this.chunks[i].length;
+			}
+			this.chunks = [];
+			return bytes;
 		}
 		/**
 		* Start a new fork for length-delimited data like a message
@@ -2796,9 +2779,12 @@ var vot = (function(exports) {
 		* Must be joined later with `join()`.
 		*/
 		fork() {
-			this.stackPos.push(this.pos);
-			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
-			this.buffer[this.pos++] = 0;
+			this.stack.push({
+				chunks: this.chunks,
+				buf: this.buf
+			});
+			this.chunks = [];
+			this.buf = [];
 			return this;
 		}
 		/**
@@ -2806,18 +2792,13 @@ var vot = (function(exports) {
 		* return to the previous state.
 		*/
 		join() {
-			const forkPos = this.stackPos.pop();
-			if (forkPos === void 0) throw new Error("invalid state, fork stack empty");
-			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
-			const lenPrefixSize = varint32Size(len);
-			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
-				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
-				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
-			}
-			this.pos = forkPos;
-			this.uint32(len);
-			this.pos += len;
-			return this;
+			let chunk = this.finish();
+			let prev = this.stack.pop();
+			if (!prev) throw new Error("invalid state, fork stack empty");
+			this.chunks = prev.chunks;
+			this.buf = prev.buf;
+			this.uint32(chunk.byteLength);
+			return this.raw(chunk);
 		}
 		/**
 		* Writes a tag (field number and wire type).
@@ -2833,9 +2814,11 @@ var vot = (function(exports) {
 		* Write a chunk of raw bytes.
 		*/
 		raw(chunk) {
-			this.ensureCapacity(chunk.length);
-			this.buffer.set(chunk, this.pos);
-			this.pos += chunk.length;
+			if (this.buf.length) {
+				this.chunks.push(new Uint8Array(this.buf));
+				this.buf = [];
+			}
+			this.chunks.push(chunk);
 			return this;
 		}
 		/**
@@ -2843,16 +2826,11 @@ var vot = (function(exports) {
 		*/
 		uint32(value) {
 			assertUInt32(value);
-			this.ensureCapacity(5);
-			if (value < 128) {
-				this.buffer[this.pos++] = value;
-				return this;
-			}
 			while (value > 127) {
-				this.buffer[this.pos++] = value & 127 | 128;
-				value >>>= 7;
+				this.buf.push(value & 127 | 128);
+				value = value >>> 7;
 			}
-			this.buffer[this.pos++] = value;
+			this.buf.push(value);
 			return this;
 		}
 		/**
@@ -2860,21 +2838,14 @@ var vot = (function(exports) {
 		*/
 		int32(value) {
 			assertInt32(value);
-			if (value >= 0) return this.uint32(value);
-			this.ensureCapacity(10);
-			for (let i = 0; i < 9; i++) {
-				this.buffer[this.pos++] = value & 127 | 128;
-				value >>= 7;
-			}
-			this.buffer[this.pos++] = 1;
+			varint32write(value, this.buf);
 			return this;
 		}
 		/**
-		* Write a `bool` value, a varint.
+		* Write a `bool` value, a variant.
 		*/
 		bool(value) {
-			this.ensureCapacity(1);
-			this.buffer[this.pos++] = value ? 1 : 0;
+			this.buf.push(value ? 1 : 0);
 			return this;
 		}
 		/**
@@ -2888,208 +2859,100 @@ var vot = (function(exports) {
 		* Write a `string` value, length-delimited data converted to UTF-8 text.
 		*/
 		string(value) {
-			if (typeof value !== "string") value = String(value);
-			const len = value.length;
-			if (len <= ASCII_MAX_LENGTH) {
-				this.ensureCapacity(len + 1);
-				const ascii = this.buffer;
-				let pos = this.pos;
-				ascii[pos++] = len;
-				let i = 0;
-				for (; i < len; i++) {
-					const code = value.charCodeAt(i);
-					if (code > 127) break;
-					ascii[pos++] = code;
-				}
-				if (i == len) {
-					this.pos = pos;
-					return this;
-				}
-			}
-			this.ensureCapacity(len * 3 + 5);
-			const lenPrefixSizeGuess = varint32Size(len);
-			const buf = this.buffer;
-			const start = this.pos;
-			const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
-			const lenPrefixSize = varint32Size(written);
-			if (lenPrefixSize != lenPrefixSizeGuess) buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
-			this.uint32(written);
-			this.pos += written;
-			return this;
+			let chunk = this.encodeUtf8(value);
+			this.uint32(chunk.byteLength);
+			return this.raw(chunk);
 		}
 		/**
 		* Write a `float` value, 32-bit floating point number.
 		*/
 		float(value) {
 			assertFloat32(value);
-			this.ensureCapacity(4);
-			this.view().setFloat32(this.pos, value, true);
-			this.pos += 4;
-			return this;
+			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			new DataView(chunk.buffer).setFloat32(0, value, true);
+			return this.raw(chunk);
 		}
 		/**
 		* Write a `double` value, a 64-bit floating point number.
 		*/
 		double(value) {
-			this.ensureCapacity(8);
-			this.view().setFloat64(this.pos, value, true);
-			this.pos += 8;
-			return this;
+			let chunk = /* @__PURE__ */ new Uint8Array(8);
+			new DataView(chunk.buffer).setFloat64(0, value, true);
+			return this.raw(chunk);
 		}
 		/**
 		* Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
 		*/
 		fixed32(value) {
 			assertUInt32(value);
-			this.ensureCapacity(4);
-			this.view().setUint32(this.pos, value, true);
-			this.pos += 4;
-			return this;
+			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			new DataView(chunk.buffer).setUint32(0, value, true);
+			return this.raw(chunk);
 		}
 		/**
 		* Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
 		*/
 		sfixed32(value) {
 			assertInt32(value);
-			this.ensureCapacity(4);
-			this.view().setInt32(this.pos, value, true);
-			this.pos += 4;
-			return this;
+			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			new DataView(chunk.buffer).setInt32(0, value, true);
+			return this.raw(chunk);
 		}
 		/**
 		* Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
 		*/
 		sint32(value) {
 			assertInt32(value);
-			return this.uint32((value << 1 ^ value >> 31) >>> 0);
+			value = (value << 1 ^ value >> 31) >>> 0;
+			varint32write(value, this.buf);
+			return this;
 		}
 		/**
-		* Write a `sfixed64` value, a signed, fixed-length 64-bit integer.
+		* Write a `fixed64` value, a signed, fixed-length 64-bit integer.
 		*/
 		sfixed64(value) {
-			const tc = protoInt64.enc(value);
-			this.ensureCapacity(8);
-			const view = this.view();
-			view.setInt32(this.pos, tc.lo, true);
-			view.setInt32(this.pos + 4, tc.hi, true);
-			this.pos += 8;
-			return this;
+			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
+			view.setInt32(0, tc.lo, true);
+			view.setInt32(4, tc.hi, true);
+			return this.raw(chunk);
 		}
 		/**
 		* Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
 		*/
 		fixed64(value) {
-			const tc = protoInt64.uEnc(value);
-			this.ensureCapacity(8);
-			const view = this.view();
-			view.setInt32(this.pos, tc.lo, true);
-			view.setInt32(this.pos + 4, tc.hi, true);
-			this.pos += 8;
-			return this;
+			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
+			view.setInt32(0, tc.lo, true);
+			view.setInt32(4, tc.hi, true);
+			return this.raw(chunk);
 		}
 		/**
 		* Write a `int64` value, a signed 64-bit varint.
 		*/
 		int64(value) {
-			const tc = protoInt64.enc(value);
-			return this.writeVarint64(tc.lo, tc.hi);
+			let tc = protoInt64.enc(value);
+			varint64write(tc.lo, tc.hi, this.buf);
+			return this;
 		}
 		/**
 		* Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
 		*/
 		sint64(value) {
-			const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
-			return this.writeVarint64(lo, hi);
+			let tc = protoInt64.enc(value), sign = tc.hi >> 31;
+			varint64write(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
+			return this;
 		}
 		/**
 		* Write a `uint64` value, an unsigned 64-bit varint.
 		*/
 		uint64(value) {
-			const tc = protoInt64.uEnc(value);
-			return this.writeVarint64(tc.lo, tc.hi);
-		}
-		/**
-		* Write a 64-bit varint directly into the buffer. Accepts the value as
-		* split low/high 32-bit words.
-		*
-		* Ported from varint64write() to avoid the intermediate number[] buffer.
-		* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
-		*/
-		writeVarint64(lo, hi) {
-			this.ensureCapacity(10);
-			const buf = this.buffer;
-			let pos = this.pos;
-			for (let i = 0; i < 28; i = i + 7) {
-				const shift = lo >>> i;
-				const hasNext = !(shift >>> 7 == 0 && hi == 0);
-				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
-				if (!hasNext) {
-					this.pos = pos;
-					return this;
-				}
-			}
-			const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
-			const hasMoreBits = !(hi >> 3 == 0);
-			buf[pos++] = (hasMoreBits ? splitBits | 128 : splitBits) & 255;
-			if (!hasMoreBits) {
-				this.pos = pos;
-				return this;
-			}
-			for (let i = 3; i < 31; i = i + 7) {
-				const shift = hi >>> i;
-				const hasNext = !(shift >>> 7 == 0);
-				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
-				if (!hasNext) {
-					this.pos = pos;
-					return this;
-				}
-			}
-			buf[pos++] = hi >>> 31 & 1;
-			this.pos = pos;
+			let tc = protoInt64.uEnc(value);
+			varint64write(tc.lo, tc.hi, this.buf);
 			return this;
 		}
 	};
-	/**
-	* Capacity of the buffer allocated by the first write..
-	*/
-	var INITIAL_SIZE = 128;
-	/**
-	* Bytes `fork()` reserves for the length prefix, betting that the payload will
-	* be under 128 bytes. `join()` fills them in, and widens them if the bet was
-	* wrong.
-	*/
-	var DEFAULT_LEN_PREFIX_SIZE = 1;
-	/**
-	* Shared empty buffer used as the initial value before the first write.
-	* Avoids allocating and zeroing `INITIAL_SIZE` bytes per BinaryWriter when a
-	* writer is only used for a tiny message (or not used at all).
-	*/
-	var EMPTY_BUFFER = /* @__PURE__ */ new Uint8Array(0);
-	/**
-	* Shared empty view, paired with `EMPTY_BUFFER`. Never written to: any
-	* fixed-width write first grows the buffer, which replaces this view.
-	*/
-	var EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
-	/**
-	* Longest string on the ASCII fast paths. Must stay below 0x80, so
-	* that the writer's length prefix always fits a single varint byte.
-	*/
-	var ASCII_MAX_LENGTH = 32;
-	/**
-	* Number of bytes needed to encode `value` as an unsigned 32-bit varint.
-	*/
-	function varint32Size(value) {
-		if (value < 128) return 1;
-		if (value < 16384) return 2;
-		if (value < 2097152) return 3;
-		if (value < 268435456) return 4;
-		return 5;
-	}
 	var BinaryReader = class {
 		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
 			this.decodeUtf8 = decodeUtf8;
-			this.varint64Lo = 0;
-			this.varint64Hi = 0;
 			this.varint64 = varint64read;
 			/**
 			* Read a `uint32` field, an unsigned 32 bit varint.
@@ -3101,28 +2964,20 @@ var vot = (function(exports) {
 			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 		}
 		/**
-		* Reads a tag - field number and wire type. Tags are uint32 varints; values
-		* that do not fit in uint32 are rejected.
+		* Reads a tag - field number and wire type.
 		*/
 		tag() {
-			const start = this.pos;
-			const tag = this.uint32();
-			const bytesRead = this.pos - start;
-			if (bytesRead > 5 || bytesRead == 5 && this.buf[this.pos - 1] > 15) throw new Error("illegal tag: varint overflows uint32");
-			const fieldNo = tag >>> 3;
-			const wireType = tag & 7;
-			if (fieldNo <= 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+			let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
+			if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
 			return [fieldNo, wireType];
 		}
 		/**
 		* Skip one element and return the skipped data.
 		*
 		* When skipping StartGroup, provide the tags field number to check for
-		* matching field number in the EndGroup tag. Recursion into nested groups
-		* is guarded by the `recursionLimit` argument: When the limit is reached,
-		* this method throws.
+		* matching field number in the EndGroup tag.
 		*/
-		skip(wireType, fieldNo, recursionLimit = 100) {
+		skip(wireType, fieldNo) {
 			let start = this.pos;
 			switch (wireType) {
 				case WireType.Varint:
@@ -3137,14 +2992,13 @@ var vot = (function(exports) {
 					this.pos += len;
 					break;
 				case WireType.StartGroup:
-					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
 					for (;;) {
 						const [fn, wt] = this.tag();
 						if (wt === WireType.EndGroup) {
 							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
 							break;
 						}
-						this.skip(wt, fn, recursionLimit - 1);
+						this.skip(wt, fn);
 					}
 					break;
 				default: throw new Error("cant skip wire type " + wireType);
@@ -3175,23 +3029,19 @@ var vot = (function(exports) {
 		* Read a `int64` field, a signed 64-bit varint.
 		*/
 		int64() {
-			this.varint64();
-			return protoInt64.dec(this.varint64Lo, this.varint64Hi);
+			return protoInt64.dec(...this.varint64());
 		}
 		/**
 		* Read a `uint64` field, an unsigned 64-bit varint.
 		*/
 		uint64() {
-			this.varint64();
-			return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
+			return protoInt64.uDec(...this.varint64());
 		}
 		/**
 		* Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
 		*/
 		sint64() {
-			this.varint64();
-			let lo = this.varint64Lo;
-			let hi = this.varint64Hi;
+			let [lo, hi] = this.varint64();
 			let s = -(lo & 1);
 			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
 			hi = hi >>> 1 ^ s;
@@ -3201,13 +3051,8 @@ var vot = (function(exports) {
 		* Read a `bool` field, a variant.
 		*/
 		bool() {
-			const b = this.buf[this.pos];
-			if (b < 128) {
-				this.pos++;
-				return b !== 0;
-			}
-			this.varint64();
-			return this.varint64Lo !== 0 || this.varint64Hi !== 0;
+			let [lo, hi] = this.varint64();
+			return lo !== 0 || hi !== 0;
 		}
 		/**
 		* Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
@@ -3255,22 +3100,10 @@ var vot = (function(exports) {
 			return this.buf.subarray(start, start + len);
 		}
 		/**
-		* Read a `string` field, length-delimited data converted to UTF-8 text. If
-		* `strict` is true, throw on invalid UTF-8 instead of substituting U+FFFD.
+		* Read a `string` field, length-delimited data converted to UTF-8 text.
 		*/
-		string(strict) {
-			const bytes = this.bytes();
-			const len = bytes.length;
-			if (len <= ASCII_MAX_LENGTH) {
-				const codes = new Array(len);
-				for (let i = 0; i < len; i++) {
-					const byte = bytes[i];
-					if (byte > 127) return this.decodeUtf8(bytes, strict);
-					codes[i] = byte;
-				}
-				return String.fromCharCode.apply(String, codes);
-			}
-			return this.decodeUtf8(bytes, strict);
+		string() {
+			return this.decodeUtf8(this.bytes());
 		}
 	};
 	/**
@@ -3296,7 +3129,7 @@ var vot = (function(exports) {
 		if (typeof arg == "string") {
 			const o = arg;
 			arg = Number(arg);
-			if (Number.isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
+			if (isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
 		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
 		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
 	}
@@ -6996,19 +6829,11 @@ var vot = (function(exports) {
 	];
 	//#endregion
 	//#region src/utils/debug.ts
-	var log = (...text) => {
-		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
-	};
-	var warn = (...text) => {
-		console.warn("%c[VOT DEBUG]", "background: #e1ff00ff; color: #fff; padding: 5px;", ...text);
-	};
-	var error = (...text) => {
-		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
-	};
+	var noop = () => {};
 	var debug = {
-		log,
-		warn,
-		error
+		log: noop,
+		warn: noop,
+		error: noop
 	};
 	//#endregion
 	//#region src/utils/errors.ts
@@ -10346,7 +10171,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.9"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.10"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -14098,7 +13923,6 @@ var vot = (function(exports) {
 						translationId: res.translationId
 					});
 					this.downloading = true;
-					await this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal);
 					debug.log("[Translation] waiting for audio download completion", {
 						videoId: videoData.videoId,
 						translationId: res.translationId,
@@ -15224,6 +15048,25 @@ var vot = (function(exports) {
 		} finally {
 			Listener = listener;
 		}
+	}
+	function on(deps, fn, options) {
+		const isArray = Array.isArray(deps);
+		let prevInput;
+		let defer = options && options.defer;
+		return (prevValue) => {
+			let input;
+			if (isArray) {
+				input = Array(deps.length);
+				for (let i = 0; i < deps.length; i++) input[i] = deps[i]();
+			} else input = deps();
+			if (defer) {
+				defer = false;
+				return prevValue;
+			}
+			const result = untrack(() => fn(input, prevInput, prevValue));
+			prevInput = input;
+			return result;
+		};
 	}
 	function onMount(fn) {
 		createEffect(() => untrack(fn));
@@ -23584,9 +23427,13 @@ var vot = (function(exports) {
 			getVoicePopoverEl: () => voicePopover,
 			isVoicePopoverOpen
 		});
-		createEffect(() => {
-			if (finalProps.status === "error" && finalProps.direction === "column") voicePopoverControls?.hideNow();
-		});
+		createEffect(on(() => finalProps.status, (status, previousStatus) => {
+			if (finalProps.direction !== "column") return;
+			if (status === "error") {
+				voicePopoverControls?.hideNow();
+				setSuppressVoiceTooltip(false);
+			} else if (previousStatus === "error") voicePopoverControls?.showNow();
+		}, { defer: true }));
 		return (() => {
 			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$5 = createElement("vot-block");
 			insertNode(_el$, _el$3);
@@ -30315,7 +30162,7 @@ var vot = (function(exports) {
 			debug.log("preferAudio:", preferAudio);
 			this.audioPlayer = new Chaimu({
 				video: this.video,
-				debug: Boolean(true),
+				debug: Boolean(false),
 				fetchFn: GM_fetch,
 				fetchOpts: { timeout: 0 },
 				preferAudio
