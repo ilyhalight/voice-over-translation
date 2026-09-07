@@ -1,13 +1,18 @@
 import { createSignal, type JSX, mergeProps, Show } from "solid-js";
 
 import "./SegmentedButtonMenu.scss";
+import { VideoService } from "@vot.js/ext/types/service";
+import { getVideoID } from "@vot.js/ext/utils/videoData";
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { effect } from "solid-js/web";
+import { AudioDownloader } from "../../audioDownloader";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Status } from "../../types/components/votButton";
-import { clamp } from "../../utils/utils";
+import debug from "../../utils/debug";
+import { GM_fetch } from "../../utils/gm";
+import { clamp, downloadBlob } from "../../utils/utils";
 import { IconButton } from "../Button/IconButton";
 import { ProgressIconButton } from "../Button/ProgressIconButton";
 import {
@@ -76,6 +81,7 @@ export function MenuHeaderContent(props: MenuHeaderContentProps): JSX.Element {
           <SubtitlesIcon />
         </IconButton>
       </Show>
+      <DebugYTAudioComponent />
       <IconButton
         ariaLabel={localizationProvider.get("VOTSettings")}
         onClick={props.onSettingsClick}
@@ -84,6 +90,59 @@ export function MenuHeaderContent(props: MenuHeaderContentProps): JSX.Element {
       </IconButton>
     </vot-block>
   );
+}
+
+/**
+ * Debug component for downloading YouTube audio. Only bundled in DEBUG_MODE
+ */
+function DebugYTAudioComponent() {
+  return DEBUG_MODE && globalThis.location.hostname === "www.youtube.com" ? (
+    <IconButton
+      ariaLabel={"debug: download yt audio"}
+      onClick={async () => {
+        debug.log("clicked download yt audio");
+        const audioDownloader = new AudioDownloader();
+        const partialAudio: Uint8Array[] = [];
+        audioDownloader
+          .addEventListener("downloadedAudio", (translationId, data) => {
+            debug.log("downloadedAudio", translationId, data);
+          })
+          .addEventListener(
+            "downloadedPartialAudio",
+            async (translationId, data) => {
+              debug.log("downloadedPartialAudio", translationId, data);
+              partialAudio[data.index] = data.audioData;
+              if (data.amount !== undefined && data.index === data.amount - 1) {
+                const blobParts = partialAudio.map((chunk) => {
+                  const copy = new Uint8Array(chunk.byteLength);
+                  copy.set(chunk);
+                  return copy.buffer;
+                });
+                await downloadBlob(
+                  new Blob(blobParts, { type: "audio/webm" }),
+                  `${data.videoId}.webm`,
+                );
+              }
+            },
+          )
+          .addEventListener("downloadAudioError", (videoId: string) => {
+            debug.log("downloadAudioError", videoId);
+          });
+        await audioDownloader.runAudioDownload(
+          await getVideoID(
+            { host: VideoService.youtube, url: "https://youtu.be/" },
+            {
+              fetchFn: GM_fetch,
+            },
+          ),
+          "test-id",
+          new AbortController().signal,
+        );
+      }}
+    >
+      <DownloadIcon />
+    </IconButton>
+  ) : undefined;
 }
 
 export type LanguagePairSelectControls = {
