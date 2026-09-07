@@ -96,6 +96,7 @@ export default defineConfig(async ({ command, mode }) => {
       rolldownOptions: {
         output: {
           postBanner: banner,
+          comments: minified ? undefined : false,
         },
       },
     },

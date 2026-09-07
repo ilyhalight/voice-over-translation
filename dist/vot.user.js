@@ -1583,7 +1583,7 @@ var vot = (function(exports) {
 						lang: track.srclang || track.lang || ""
 					});
 				}
-				const seenUrls = /* @__PURE__ */ new Set();
+				const seenUrls = new Set();
 				for (const { src, lang } of rawTracks) try {
 					const absUrl = new URL(src, window.location.href).toString();
 					if (!seenUrls.has(absUrl)) {
@@ -2361,17 +2361,6 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
-	/**
-	* Read a 64 bit varint as two JS numbers.
-	*
-	* Returns tuple:
-	* [0]: low bits
-	* [1]: high bits
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
-	*/
 	function varint64read() {
 		let lowBits = 0;
 		let highBits = 0;
@@ -2400,13 +2389,6 @@ var vot = (function(exports) {
 		}
 		throw new Error("invalid varint");
 	}
-	/**
-	* Write a 64 bit varint, given as two JS numbers, to the given bytes array.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
-	*/
 	function varint64write(lo, hi, bytes) {
 		for (let i = 0; i < 28; i = i + 7) {
 			const shift = lo >>> i;
@@ -2429,13 +2411,6 @@ var vot = (function(exports) {
 		bytes.push(hi >>> 31 & 1);
 	}
 	var TWO_PWR_32_DBL = 4294967296;
-	/**
-	* Parse decimal string of 64 bit integer value as two JS numbers.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
-	*/
 	function int64FromString(dec) {
 		const minus = dec[0] === "-";
 		if (minus) dec = dec.slice(1);
@@ -2457,14 +2432,6 @@ var vot = (function(exports) {
 		add1e6digit(-6);
 		return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
 	}
-	/**
-	* Losslessly converts a 64-bit signed integer in 32:32 split representation
-	* into a decimal string.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
-	*/
 	function int64ToString(lo, hi) {
 		let bits = newBits(lo, hi);
 		const negative = bits.hi & 2147483648;
@@ -2472,14 +2439,6 @@ var vot = (function(exports) {
 		const result = uInt64ToString(bits.lo, bits.hi);
 		return negative ? "-" + result : result;
 	}
-	/**
-	* Losslessly converts a 64-bit unsigned integer in 32:32 split representation
-	* into a decimal string.
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
-	*/
 	function uInt64ToString(lo, hi) {
 		({lo, hi} = toUnsigned(lo, hi));
 		if (hi <= 2097151) return String(TWO_PWR_32_DBL * hi + lo);
@@ -2512,30 +2471,16 @@ var vot = (function(exports) {
 			hi: hi | 0
 		};
 	}
-	/**
-	* Returns two's compliment negation of input.
-	* @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#Signed_32-bit_integers
-	*/
 	function negate(lowBits, highBits) {
 		highBits = ~highBits;
 		if (lowBits) lowBits = ~lowBits + 1;
 		else highBits += 1;
 		return newBits(lowBits, highBits);
 	}
-	/**
-	* Returns decimal representation of digit1e7 with leading zeros.
-	*/
 	var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
 		const partial = String(digit1e7);
 		return "0000000".slice(partial.length) + partial;
 	};
-	/**
-	* Write a 32 bit varint, signed or unsigned. Same as `varint64write(0, value, bytes)`
-	*
-	* Copyright 2008 Google Inc.  All rights reserved.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
-	*/
 	function varint32write(value, bytes) {
 		if (value >= 0) {
 			while (value > 127) {
@@ -2551,11 +2496,6 @@ var vot = (function(exports) {
 			bytes.push(1);
 		}
 	}
-	/**
-	* Read an unsigned 32 bit varint.
-	*
-	* See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L220
-	*/
 	function varint32read() {
 		let b = this.buf[this.pos++];
 		let result = b & 127;
@@ -2590,12 +2530,9 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
-	/**
-	* Int64Support for the current environment.
-	*/
-	var protoInt64 = /*@__PURE__*/ makeInt64Support();
+	var protoInt64 = makeInt64Support();
 	function makeInt64Support() {
-		const dv = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
+		const dv = new DataView(new ArrayBuffer(8));
 		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
 			const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
 			return {
@@ -2701,61 +2638,22 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
-	/**
-	* Protobuf binary format wire types.
-	*
-	* A wire type provides just enough information to find the length of the
-	* following value.
-	*
-	* See https://developers.google.com/protocol-buffers/docs/encoding#structure
-	*/
 	var WireType;
 	(function(WireType) {
-		/**
-		* Used for int32, int64, uint32, uint64, sint32, sint64, bool, enum
-		*/
 		WireType[WireType["Varint"] = 0] = "Varint";
-		/**
-		* Used for fixed64, sfixed64, double.
-		* Always 8 bytes with little-endian byte order.
-		*/
 		WireType[WireType["Bit64"] = 1] = "Bit64";
-		/**
-		* Used for string, bytes, embedded messages, packed repeated fields
-		*
-		* Only repeated numeric types (types which use the varint, 32-bit,
-		* or 64-bit wire types) can be packed. In proto3, such fields are
-		* packed by default.
-		*/
 		WireType[WireType["LengthDelimited"] = 2] = "LengthDelimited";
-		/**
-		* Start of a tag-delimited aggregate, such as a proto2 group, or a message
-		* in editions with message_encoding = DELIMITED.
-		*/
 		WireType[WireType["StartGroup"] = 3] = "StartGroup";
-		/**
-		* End of a tag-delimited aggregate.
-		*/
 		WireType[WireType["EndGroup"] = 4] = "EndGroup";
-		/**
-		* Used for fixed32, sfixed32, float.
-		* Always 4 bytes with little-endian byte order.
-		*/
 		WireType[WireType["Bit32"] = 5] = "Bit32";
 	})(WireType || (WireType = {}));
 	var BinaryWriter = class {
 		constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
 			this.encodeUtf8 = encodeUtf8;
-			/**
-			* Previous fork states.
-			*/
 			this.stack = [];
 			this.chunks = [];
 			this.buf = [];
 		}
-		/**
-		* Return all bytes written and reset this writer.
-		*/
 		finish() {
 			if (this.buf.length) {
 				this.chunks.push(new Uint8Array(this.buf));
@@ -2772,12 +2670,6 @@ var vot = (function(exports) {
 			this.chunks = [];
 			return bytes;
 		}
-		/**
-		* Start a new fork for length-delimited data like a message
-		* or a packed repeated field.
-		*
-		* Must be joined later with `join()`.
-		*/
 		fork() {
 			this.stack.push({
 				chunks: this.chunks,
@@ -2787,10 +2679,6 @@ var vot = (function(exports) {
 			this.buf = [];
 			return this;
 		}
-		/**
-		* Join the last fork. Write its length and bytes, then
-		* return to the previous state.
-		*/
 		join() {
 			let chunk = this.finish();
 			let prev = this.stack.pop();
@@ -2800,19 +2688,9 @@ var vot = (function(exports) {
 			this.uint32(chunk.byteLength);
 			return this.raw(chunk);
 		}
-		/**
-		* Writes a tag (field number and wire type).
-		*
-		* Equivalent to `uint32( (fieldNo << 3 | type) >>> 0 )`.
-		*
-		* Generated code should compute the tag ahead of time and call `uint32()`.
-		*/
 		tag(fieldNo, type) {
 			return this.uint32((fieldNo << 3 | type) >>> 0);
 		}
-		/**
-		* Write a chunk of raw bytes.
-		*/
 		raw(chunk) {
 			if (this.buf.length) {
 				this.chunks.push(new Uint8Array(this.buf));
@@ -2821,9 +2699,6 @@ var vot = (function(exports) {
 			this.chunks.push(chunk);
 			return this;
 		}
-		/**
-		* Write a `uint32` value, an unsigned 32 bit varint.
-		*/
 		uint32(value) {
 			assertUInt32(value);
 			while (value > 127) {
@@ -2833,117 +2708,75 @@ var vot = (function(exports) {
 			this.buf.push(value);
 			return this;
 		}
-		/**
-		* Write a `int32` value, a signed 32 bit varint.
-		*/
 		int32(value) {
 			assertInt32(value);
 			varint32write(value, this.buf);
 			return this;
 		}
-		/**
-		* Write a `bool` value, a variant.
-		*/
 		bool(value) {
 			this.buf.push(value ? 1 : 0);
 			return this;
 		}
-		/**
-		* Write a `bytes` value, length-delimited arbitrary data.
-		*/
 		bytes(value) {
 			this.uint32(value.byteLength);
 			return this.raw(value);
 		}
-		/**
-		* Write a `string` value, length-delimited data converted to UTF-8 text.
-		*/
 		string(value) {
 			let chunk = this.encodeUtf8(value);
 			this.uint32(chunk.byteLength);
 			return this.raw(chunk);
 		}
-		/**
-		* Write a `float` value, 32-bit floating point number.
-		*/
 		float(value) {
 			assertFloat32(value);
-			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			let chunk = new Uint8Array(4);
 			new DataView(chunk.buffer).setFloat32(0, value, true);
 			return this.raw(chunk);
 		}
-		/**
-		* Write a `double` value, a 64-bit floating point number.
-		*/
 		double(value) {
-			let chunk = /* @__PURE__ */ new Uint8Array(8);
+			let chunk = new Uint8Array(8);
 			new DataView(chunk.buffer).setFloat64(0, value, true);
 			return this.raw(chunk);
 		}
-		/**
-		* Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
-		*/
 		fixed32(value) {
 			assertUInt32(value);
-			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			let chunk = new Uint8Array(4);
 			new DataView(chunk.buffer).setUint32(0, value, true);
 			return this.raw(chunk);
 		}
-		/**
-		* Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
-		*/
 		sfixed32(value) {
 			assertInt32(value);
-			let chunk = /* @__PURE__ */ new Uint8Array(4);
+			let chunk = new Uint8Array(4);
 			new DataView(chunk.buffer).setInt32(0, value, true);
 			return this.raw(chunk);
 		}
-		/**
-		* Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
-		*/
 		sint32(value) {
 			assertInt32(value);
 			value = (value << 1 ^ value >> 31) >>> 0;
 			varint32write(value, this.buf);
 			return this;
 		}
-		/**
-		* Write a `fixed64` value, a signed, fixed-length 64-bit integer.
-		*/
 		sfixed64(value) {
-			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
+			let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
 			view.setInt32(0, tc.lo, true);
 			view.setInt32(4, tc.hi, true);
 			return this.raw(chunk);
 		}
-		/**
-		* Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
-		*/
 		fixed64(value) {
-			let chunk = /* @__PURE__ */ new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
+			let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
 			view.setInt32(0, tc.lo, true);
 			view.setInt32(4, tc.hi, true);
 			return this.raw(chunk);
 		}
-		/**
-		* Write a `int64` value, a signed 64-bit varint.
-		*/
 		int64(value) {
 			let tc = protoInt64.enc(value);
 			varint64write(tc.lo, tc.hi, this.buf);
 			return this;
 		}
-		/**
-		* Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
-		*/
 		sint64(value) {
 			let tc = protoInt64.enc(value), sign = tc.hi >> 31;
 			varint64write(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
 			return this;
 		}
-		/**
-		* Write a `uint64` value, an unsigned 64-bit varint.
-		*/
 		uint64(value) {
 			let tc = protoInt64.uEnc(value);
 			varint64write(tc.lo, tc.hi, this.buf);
@@ -2954,29 +2787,17 @@ var vot = (function(exports) {
 		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
 			this.decodeUtf8 = decodeUtf8;
 			this.varint64 = varint64read;
-			/**
-			* Read a `uint32` field, an unsigned 32 bit varint.
-			*/
 			this.uint32 = varint32read;
 			this.buf = buf;
 			this.len = buf.length;
 			this.pos = 0;
 			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 		}
-		/**
-		* Reads a tag - field number and wire type.
-		*/
 		tag() {
 			let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
 			if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
 			return [fieldNo, wireType];
 		}
-		/**
-		* Skip one element and return the skipped data.
-		*
-		* When skipping StartGroup, provide the tags field number to check for
-		* matching field number in the EndGroup tag.
-		*/
 		skip(wireType, fieldNo) {
 			let start = this.pos;
 			switch (wireType) {
@@ -3006,40 +2827,22 @@ var vot = (function(exports) {
 			this.assertBounds();
 			return this.buf.subarray(start, this.pos);
 		}
-		/**
-		* Throws error if position in byte array is out of range.
-		*/
 		assertBounds() {
 			if (this.pos > this.len) throw new RangeError("premature EOF");
 		}
-		/**
-		* Read a `int32` field, a signed 32 bit varint.
-		*/
 		int32() {
 			return this.uint32() | 0;
 		}
-		/**
-		* Read a `sint32` field, a signed, zigzag-encoded 32-bit varint.
-		*/
 		sint32() {
 			let zze = this.uint32();
 			return zze >>> 1 ^ -(zze & 1);
 		}
-		/**
-		* Read a `int64` field, a signed 64-bit varint.
-		*/
 		int64() {
 			return protoInt64.dec(...this.varint64());
 		}
-		/**
-		* Read a `uint64` field, an unsigned 64-bit varint.
-		*/
 		uint64() {
 			return protoInt64.uDec(...this.varint64());
 		}
-		/**
-		* Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
-		*/
 		sint64() {
 			let [lo, hi] = this.varint64();
 			let s = -(lo & 1);
@@ -3047,84 +2850,48 @@ var vot = (function(exports) {
 			hi = hi >>> 1 ^ s;
 			return protoInt64.dec(lo, hi);
 		}
-		/**
-		* Read a `bool` field, a variant.
-		*/
 		bool() {
 			let [lo, hi] = this.varint64();
 			return lo !== 0 || hi !== 0;
 		}
-		/**
-		* Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
-		*/
 		fixed32() {
 			return this.view.getUint32((this.pos += 4) - 4, true);
 		}
-		/**
-		* Read a `sfixed32` field, a signed, fixed-length 32-bit integer.
-		*/
 		sfixed32() {
 			return this.view.getInt32((this.pos += 4) - 4, true);
 		}
-		/**
-		* Read a `fixed64` field, an unsigned, fixed-length 64 bit integer.
-		*/
 		fixed64() {
 			return protoInt64.uDec(this.sfixed32(), this.sfixed32());
 		}
-		/**
-		* Read a `fixed64` field, a signed, fixed-length 64-bit integer.
-		*/
 		sfixed64() {
 			return protoInt64.dec(this.sfixed32(), this.sfixed32());
 		}
-		/**
-		* Read a `float` field, 32-bit floating point number.
-		*/
 		float() {
 			return this.view.getFloat32((this.pos += 4) - 4, true);
 		}
-		/**
-		* Read a `double` field, a 64-bit floating point number.
-		*/
 		double() {
 			return this.view.getFloat64((this.pos += 8) - 8, true);
 		}
-		/**
-		* Read a `bytes` field, length-delimited arbitrary data.
-		*/
 		bytes() {
 			let len = this.uint32(), start = this.pos;
 			this.pos += len;
 			this.assertBounds();
 			return this.buf.subarray(start, start + len);
 		}
-		/**
-		* Read a `string` field, length-delimited data converted to UTF-8 text.
-		*/
 		string() {
 			return this.decodeUtf8(this.bytes());
 		}
 	};
-	/**
-	* Assert a valid signed protobuf 32-bit integer as a number or string.
-	*/
 	function assertInt32(arg) {
 		if (typeof arg == "string") arg = Number(arg);
 		else if (typeof arg != "number") throw new Error("invalid int32: " + typeof arg);
 		if (!Number.isInteger(arg) || arg > 2147483647 || arg < -2147483648) throw new Error("invalid int32: " + arg);
 	}
-	/**
-	* Assert a valid unsigned protobuf 32-bit integer as a number or string.
-	*/
 	function assertUInt32(arg) {
 		if (typeof arg == "string") arg = Number(arg);
 		else if (typeof arg != "number") throw new Error("invalid uint32: " + typeof arg);
 		if (!Number.isInteger(arg) || arg > 4294967295 || arg < 0) throw new Error("invalid uint32: " + arg);
 	}
-	/**
-	* Assert a valid protobuf float value as a number or string.
-	*/
 	function assertFloat32(arg) {
 		if (typeof arg == "string") {
 			const o = arg;
@@ -3882,7 +3649,7 @@ var vot = (function(exports) {
 	};
 	function createBaseAudioBufferObject() {
 		return {
-			audioFile: /* @__PURE__ */ new Uint8Array(0),
+			audioFile: new Uint8Array(0),
 			fileId: ""
 		};
 	}
@@ -3915,7 +3682,7 @@ var vot = (function(exports) {
 		},
 		fromJSON(object) {
 			return {
-				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : /* @__PURE__ */ new Uint8Array(0),
+				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : new Uint8Array(0),
 				fileId: isSet(object.fileId) ? globalThis.String(object.fileId) : ""
 			};
 		},
@@ -3930,14 +3697,14 @@ var vot = (function(exports) {
 		},
 		fromPartial(object) {
 			const message = createBaseAudioBufferObject();
-			message.audioFile = object.audioFile ?? /* @__PURE__ */ new Uint8Array(0);
+			message.audioFile = object.audioFile ?? new Uint8Array(0);
 			message.fileId = object.fileId ?? "";
 			return message;
 		}
 	};
 	function createBasePartialAudioBufferObject() {
 		return {
-			audioFile: /* @__PURE__ */ new Uint8Array(0),
+			audioFile: new Uint8Array(0),
 			chunkId: 0
 		};
 	}
@@ -3970,7 +3737,7 @@ var vot = (function(exports) {
 		},
 		fromJSON(object) {
 			return {
-				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : /* @__PURE__ */ new Uint8Array(0),
+				audioFile: isSet(object.audioFile) ? bytesFromBase64(object.audioFile) : new Uint8Array(0),
 				chunkId: isSet(object.chunkId) ? globalThis.Number(object.chunkId) : 0
 			};
 		},
@@ -3985,7 +3752,7 @@ var vot = (function(exports) {
 		},
 		fromPartial(object) {
 			const message = createBasePartialAudioBufferObject();
-			message.audioFile = object.audioFile ?? /* @__PURE__ */ new Uint8Array(0);
+			message.audioFile = object.audioFile ?? new Uint8Array(0);
 			message.chunkId = object.chunkId ?? 0;
 			return message;
 		}
@@ -5018,7 +4785,7 @@ var vot = (function(exports) {
 				}
 				const tracks = item?.tracks ?? [];
 				const captionsList = typeof player.getCaptionsList === "function" ? player.getCaptionsList() : [];
-				const seenUrls = /* @__PURE__ */ new Set();
+				const seenUrls = new Set();
 				const addSubtitle = (label, file) => {
 					if (!file) return;
 					try {
@@ -5643,7 +5410,7 @@ var vot = (function(exports) {
 			if (typeof externalUrl === "string") allCandidates.push({ src: externalUrl });
 			const playerSrc = this.video?.currentSrc || this.video?.src;
 			if (typeof playerSrc === "string" && playerSrc) allCandidates.push({ src: playerSrc });
-			const dedupCandidates = /* @__PURE__ */ new Map();
+			const dedupCandidates = new Map();
 			for (const candidate of allCandidates) {
 				const url = getCandidateUrl(candidate);
 				if (!url || /^javascript:/i.test(url)) continue;
@@ -5995,7 +5762,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/shims/nodeCrypto.ts
-	var nodeCrypto_exports = /* @__PURE__ */ __exportAll({
+	var nodeCrypto_exports = __exportAll({
 		default: () => webCrypto,
 		getRandomValues: () => getRandomValues,
 		randomUUID: () => randomUUID,
@@ -6679,7 +6446,7 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/bootstrap/bootState.ts
 	var MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
-	var BOOTSTRAP_STATUSES = /* @__PURE__ */ new Set([
+	var BOOTSTRAP_STATUSES = new Set([
 		"idle",
 		"booting",
 		"booted",
@@ -6741,20 +6508,9 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/config/config.ts
 	var workerHost = "api.browser.yandex.ru";
-	/**
-	* used for streaming
-	*
-	* @see https://github.com/FOSWLY/media-proxy
-	*/
 	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
-	/**
-	* @see https://github.com/FOSWLY/vot-worker
-	*/
 	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
 	var PROXY_WORKER_HOST = "vot-worker.eu.cc";
-	/**
-	* @see https://github.com/FOSWLY/translate-backend
-	*/
 	var foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2";
 	var detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
 	var authServerUrl = "https://rust-server-531j.onrender.com";
@@ -6770,9 +6526,6 @@ var vot = (function(exports) {
 		"LV",
 		"LT"
 	];
-	/**
-	* 100 - 3000 ms - delay before hiding button
-	*/
 	var DEFAULT_AUTO_HIDE_DELAY = 1e3;
 	var actualCompatVersion = "2026-08-18";
 	//#endregion
@@ -6837,11 +6590,8 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/utils/errors.ts
-	/**
-	* Small error helpers used across the project.
-	*/
 	function stringifyUnknownObject(value) {
-		const seen = /* @__PURE__ */ new WeakSet();
+		const seen = new WeakSet();
 		try {
 			return JSON.stringify(value, (_key, currentValue) => {
 				if (typeof currentValue !== "object" || currentValue === null) return currentValue;
@@ -6883,9 +6633,6 @@ var vot = (function(exports) {
 		if (typeof error === "object") return formatObjectError(error, fallback);
 		return formatPrimitiveError(error, fallback);
 	}
-	/**
-	* Extracts a human-readable error message from various error shapes.
-	*/
 	function getErrorMessage(error) {
 		return toErrorMessage(error, "");
 	}
@@ -6893,12 +6640,6 @@ var vot = (function(exports) {
 		const anyErr = err;
 		return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
 	}
-	/**
-	* Creates a canonical AbortError instance. Prefer DOMException when available.
-	*
-	* Note: This is intentionally not coupled to AbortSignal.reason to avoid
-	* surfacing string/opaque abort reasons as user-facing "errors".
-	*/
 	function makeAbortError(message = "Aborted") {
 		try {
 			return new DOMException(message, "AbortError");
@@ -6908,17 +6649,6 @@ var vot = (function(exports) {
 			return err;
 		}
 	}
-	/**
-	* Safely reads a nested field from an unknown value.
-	*
-	* Returns `undefined` when any intermediate property is missing or not an
-	* object, eliminating the repetitive null-check → cast → access pattern
-	* that was scattered across error-handling code.
-	*
-	* @example
-	* safeNestedGet(err, ["data", "message"])  // err?.data?.message
-	* safeNestedGet(err, ["status"])           // err?.status
-	*/
 	function safeNestedGet(value, path) {
 		let current = value;
 		for (const key of path) {
@@ -6930,13 +6660,6 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/utils/abort.ts
 	var NEVER_ABORTED_SIGNAL = new AbortController().signal;
-	/**
-	* Throws a canonical AbortError if the provided signal is aborted.
-	*
-	* Runtimes that implement `AbortSignal.throwIfAborted()` throw `signal.reason`,
-	* which can be *any* value. We normalize cancellation to a standard
-	* `AbortError` so callers can reliably use `isAbortError()`.
-	*/
 	function throwIfAborted(signal) {
 		try {
 			signal.throwIfAborted();
@@ -6945,12 +6668,6 @@ var vot = (function(exports) {
 			throw e instanceof Error ? e : new Error(String(e));
 		}
 	}
-	/**
-	* Creates an AbortSignal that auto-aborts after `timeoutMs`.
-	*
-	* If an `external` signal is provided, the returned signal is aborted when
-	* *either* external aborts or the timeout elapses.
-	*/
 	function createTimeoutSignal(timeoutMs, external) {
 		if (!(Number.isFinite(timeoutMs) && timeoutMs > 0)) return {
 			signal: external ?? NEVER_ABORTED_SIGNAL,
@@ -6991,15 +6708,6 @@ var vot = (function(exports) {
 			cleanup
 		};
 	}
-	/**
-	* Returns a promise that resolves after `delayMs` and rejects if `signal`
-	* is aborted before the delay elapses.
-	*
-	* Unlike `createAbortableWaiter`, the timeout here is a *delay* — the promise
-	* resolves on expiry so the caller can proceed with the next action (e.g.
-	* a retry). The promise only rejects when the external `signal` is aborted
-	* (i.e. the operation was cancelled).
-	*/
 	function createAbortableDelay(delayMs, signal, options) {
 		return new Promise((resolve, reject) => {
 			if (signal.aborted) {
@@ -7023,18 +6731,6 @@ var vot = (function(exports) {
 			signal.addEventListener("abort", onAbort, { once: true });
 		});
 	}
-	/**
-	* Generic abortable waiter that unifies the "create a Promise that settles
-	* on timeout, abort-signal, or external event" pattern.
-	*
-	* Previously duplicated between `waitForAbortableTimeout` (timeout-driven)
-	* and `waitForAudioDownloadCompletion` (event-driven with external settle).
-	*
-	* Uses `AbortController` + `AbortSignal.any()` for modern runtimes,
-	* falling back to manual `addEventListener` for older environments.
-	*
-	* @returns The promise and a `settle` handle for external resolve/reject.
-	*/
 	function createAbortableWaiter(signal, timeoutMs, options) {
 		let settled = false;
 		let _resolve;
@@ -7092,7 +6788,7 @@ var vot = (function(exports) {
 			}
 		};
 	}
-	var browserInfo = (/* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var browserInfo = __toESM(__commonJSMin(((exports, module) => {
 		(function(e, t) {
 			"object" == typeof exports && "object" == typeof module ? module.exports = t() : "function" == typeof define && define.amd ? define([], t) : "object" == typeof exports ? exports.bowser = t() : e.bowser = t();
 		})(exports, (function() {
@@ -8806,7 +8502,7 @@ var vot = (function(exports) {
 				}
 			});
 		}));
-	})))(), 1)).default.getParser(globalThis.navigator.userAgent).getResult();
+	}))(), 1).default.getParser(globalThis.navigator.userAgent).getResult();
 	//#endregion
 	//#region src/utils/number.ts
 	function clampNumber(value, min, max) {
@@ -8823,7 +8519,7 @@ var vot = (function(exports) {
 		if (typeof navigator === "undefined") return "en";
 		return navigator.language?.substring(0, 2).toLowerCase() || "en";
 	}
-	var slavicLangs = /* @__PURE__ */ new Set([
+	var slavicLangs = new Set([
 		"uk",
 		"be",
 		"bg",
@@ -8860,18 +8556,13 @@ var vot = (function(exports) {
 		return value.slice(startIndex, endIndex);
 	};
 	function getDateFallbackFilename() {
-		return (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+		return new Date().toISOString().slice(0, 10);
 	}
 	function stripAsciiControlChars(value) {
 		return value.replace(ASCII_CONTROL_CHARS_RE, "");
 	}
-	/**
-	* Creates a stable JSON string representation for consistent hashing
-	* @param value The value to stringify
-	* @returns A stable JSON string
-	*/
 	function stableStringify(value) {
-		const seen = /* @__PURE__ */ new WeakSet();
+		const seen = new WeakSet();
 		return JSON.stringify(value, (_key, val) => {
 			if (val && typeof val === "object") {
 				if (seen.has(val)) return "[Circular]";
@@ -8885,11 +8576,6 @@ var vot = (function(exports) {
 			return val;
 		});
 	}
-	/**
-	* Small, deterministic hash for cache keys. (Not crypto.)
-	* @param str The string to hash
-	* @returns A base36 string representation of the hash
-	*/
 	function fnv1a32ToKeyPart(str) {
 		let hash = 2166136261;
 		let i = 0;
@@ -8957,7 +8643,6 @@ var vot = (function(exports) {
 			revokeObjectUrlLater(url);
 		}
 	}
-	/** Downloads binary file with entered filename */
 	async function downloadBlob(blob, filename, options = {}) {
 		if (options.fileHandle) {
 			if (await writeBlobToHandle(options.fileHandle, blob)) return true;
@@ -9015,7 +8700,7 @@ var vot = (function(exports) {
 		if (body instanceof URLSearchParams) return body.toString();
 	}
 	var ResponseCacheManager = class {
-		inFlightRequests = /* @__PURE__ */ new Map();
+		inFlightRequests = new Map();
 		async execute(context, options, fetcher) {
 			if (!options || options.ttlMs <= 0) return fetcher();
 			const method = normalizeMethod(context.method);
@@ -9168,15 +8853,6 @@ var vot = (function(exports) {
 		return !!(getCallbackGmXhr() || getPromiseGmXhr());
 	}
 	var IS_PROXY_ONLY_EXTENSION = browserInfo.browser?.name === "Safari" || !["Tampermonkey", "Violentmonkey"].includes(scriptHandler);
-	/**
-	* Returns true when the GM4 promise-based API is available.
-	*
-	* Safe to read as a module-level const because:
-	* - CRXJS Chrome: the IIFE prelude installs GM globals synchronously at
-	*   document_start, before this module evaluates at document_end.
-	* - Firefox: the bridge injects prelude.module.js before content.module.js.
-	* - Userscript managers inject GM before the script runs.
-	*/
 	var isGM4Supported = typeof GM !== "undefined" || globalThis.GM !== void 0;
 	var isSupportGMXhr = hasSupportedGmXhr();
 	function getRequestHost(url) {
@@ -9292,7 +8968,7 @@ var vot = (function(exports) {
 						method,
 						timeout
 					});
-					failOnce(/* @__PURE__ */ new Error("Timeout"));
+					failOnce(new Error("Timeout"));
 				},
 				onerror: (error) => {
 					const message = getGmXhrErrorMessage(error);
@@ -9512,7 +9188,7 @@ var vot = (function(exports) {
 	}
 	var VOTStorage = class {
 		support = null;
-		localStorageListeners = /* @__PURE__ */ new Map();
+		localStorageListeners = new Map();
 		shouldUseSyntheticListeners(support) {
 			return !support.promiseAddValueChangeListener && !support.legacyAddValueChangeListener;
 		}
@@ -9542,9 +9218,6 @@ var vot = (function(exports) {
 			debug.log(`[VOT Storage] GM Promises: ${support.promiseGet} | GM legacy: ${support.legacyGet}`);
 			return support;
 		}
-		/**
-		* Check if storage type is LocalStorage
-		*/
 		get isSupportOnlyLS() {
 			const support = this.resolveSupport();
 			return !support.legacyGet && !support.legacySet && !support.legacyDelete && !support.legacyList && !support.promiseGet && !support.promiseGetValues && !support.promiseSet && !support.promiseDelete && !support.promiseList;
@@ -9666,7 +9339,7 @@ var vot = (function(exports) {
 		getLocalStorageListeners(name) {
 			const existing = this.localStorageListeners.get(name);
 			if (existing) return existing;
-			const created = /* @__PURE__ */ new Set();
+			const created = new Set();
 			this.localStorageListeners.set(name, created);
 			return created;
 		}
@@ -10174,18 +9847,12 @@ var vot = (function(exports) {
 		return resolveRuntimeLocaleVersion(String("1.11.10"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
-		/**
-		* Language used before page was reloaded
-		*/
 		lang;
-		/**
-		* Locale phrases with current language
-		*/
 		locale;
 		defaultLocale = DEFAULT_LOCALE;
 		localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
 		hashesUrl = `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
-		warnedMissingKeys = /* @__PURE__ */ new Set();
+		warnedMissingKeys = new Set();
 		_langOverride = "auto";
 		constructor() {
 			this.lang = this.getLang();
@@ -10314,12 +9981,6 @@ var vot = (function(exports) {
 		}
 	};
 	var localizationProvider = new LocalizationProvider();
-	/**
-	* In the userscript build, SystemJS wrapping allowed a top-level await.
-	* For the extension build we bootstrap through loader scripts and keep the
-	* runtime initialization explicit, so avoid top-level await and expose a lazy
-	* ready Promise instead.
-	*/
 	var localizationProviderReadyPromise = null;
 	function ensureLocalizationProviderReady() {
 		localizationProviderReadyPromise ??= localizationProvider.init();
@@ -10327,12 +9988,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/utils/iframeConnector.ts
-	/**
-	* Runtime frame detection helper.
-	*
-	* Audio download no longer relies on service iframes or postMessage bridges.
-	* We keep only the minimal utility used by bootstrap policy.
-	*/
 	var isIframe = () => globalThis.self !== globalThis.top;
 	//#endregion
 	//#region src/bootstrap/runtimeActivation.ts
@@ -10359,8 +10014,8 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/bootstrap/videoObserverBinding.ts
-	var boundObservers = /* @__PURE__ */ new WeakSet();
-	var RUNTIME_URL_HOSTS = /* @__PURE__ */ new Set(["peertube", "directlink"]);
+	var boundObservers = new WeakSet();
+	var RUNTIME_URL_HOSTS = new Set(["peertube", "directlink"]);
 	function bindObserverListeners(options) {
 		const { videoObserver, videosWrappers, ensureRuntimeActivated, getServicesCached, findContainer, createVideoHandler, resolveVideoId = (site, video) => getVideoID(site, {
 			fetchFn: GM_fetch,
@@ -10368,10 +10023,10 @@ var vot = (function(exports) {
 		}) } = options;
 		if (boundObservers.has(videoObserver)) return;
 		boundObservers.add(videoObserver);
-		const initializingVideos = /* @__PURE__ */ new WeakSet();
-		const containerOwners = /* @__PURE__ */ new WeakMap();
-		const videoContainers = /* @__PURE__ */ new WeakMap();
-		const pendingVideoByContainer = /* @__PURE__ */ new WeakMap();
+		const initializingVideos = new WeakSet();
+		const containerOwners = new WeakMap();
+		const videoContainers = new WeakMap();
+		const pendingVideoByContainer = new WeakMap();
 		const clearContainerOwner = (video) => {
 			const container = videoContainers.get(video);
 			if (container && containerOwners.get(container) === video) containerOwners.delete(container);
@@ -10525,10 +10180,6 @@ var vot = (function(exports) {
 		}
 		return activeElement;
 	}
-	/**
-	* Checks whether `target` is a descendant of `container` in the composed tree
-	* (crossing ShadowRoot boundaries via hosts).
-	*/
 	function containsCrossShadow(container, target) {
 		let node = target;
 		while (node) {
@@ -10643,9 +10294,8 @@ var vot = (function(exports) {
 	var IntervalIdleChecker = class {
 		profile;
 		runtime;
-		subscribers = /* @__PURE__ */ new Set();
+		subscribers = new Set();
 		intervalId = null;
-		/** Period the live timer was armed with, so mode changes can re-arm. */
 		armedIntervalMs = 0;
 		unsubscribeVisibilityChange = null;
 		running = false;
@@ -10701,10 +10351,6 @@ var vot = (function(exports) {
 				if (this.subscribers.size === 0) this.clearIntervalTimer();
 			};
 		}
-		/**
-		* True when at least one subscriber still needs periodic ticks. Subscribers
-		* without a predicate always count as pending (backwards compatible).
-		*/
 		hasPendingWork() {
 			for (const sub of this.subscribers) {
 				if (!sub.hasPendingWork) return true;
@@ -10744,7 +10390,6 @@ var vot = (function(exports) {
 			this.intervalId = null;
 			this.armedIntervalMs = 0;
 		}
-		/** Poll period for the current mode. */
 		intervalMsForMode(mode) {
 			if (mode === "hidden") return this.profile.hiddenIntervalMs;
 			if (mode === "idle") return this.profile.idleIntervalMs;
@@ -10851,7 +10496,7 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/utils/eventImpl.ts
 	var EventImpl = class {
-		listeners = /* @__PURE__ */ new Set();
+		listeners = new Set();
 		get size() {
 			return this.listeners.size;
 		}
@@ -10921,7 +10566,7 @@ var vot = (function(exports) {
 		const original = descriptor.value;
 		const state = {
 			descriptor,
-			subscribers: /* @__PURE__ */ new Set()
+			subscribers: new Set()
 		};
 		const patchedAttachShadow = function(init) {
 			const root = original.call(this, init);
@@ -10958,12 +10603,12 @@ var vot = (function(exports) {
 		delete g[ATTACH_SHADOW_HOOK_KEY];
 	}
 	var VideoObserver = class VideoObserver {
-		seenVideos = /* @__PURE__ */ new WeakSet();
-		activeVideos = /* @__PURE__ */ new WeakSet();
-		observedRoots = /* @__PURE__ */ new WeakSet();
-		videoListenerControllers = /* @__PURE__ */ new Map();
-		pendingAdded = /* @__PURE__ */ new Set();
-		pendingRemoved = /* @__PURE__ */ new Set();
+		seenVideos = new WeakSet();
+		activeVideos = new WeakSet();
+		observedRoots = new WeakSet();
+		videoListenerControllers = new Map();
+		pendingAdded = new Set();
+		pendingRemoved = new Set();
 		flushPending = false;
 		static MAX_FLUSH_BUDGET_MS = 6;
 		static MAX_NODES_PER_SLICE = 120;
@@ -11131,7 +10776,7 @@ var vot = (function(exports) {
 			this.seenVideos.delete(video);
 		}
 		collectVideos(node) {
-			const set = /* @__PURE__ */ new Set();
+			const set = new Set();
 			if (node instanceof HTMLVideoElement) set.add(node);
 			if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return Array.from(set);
 			walkShadowIncludingSubtree(node, VideoObserver.domAdapter, (el) => {
@@ -11274,9 +10919,9 @@ var vot = (function(exports) {
 			this.intervalIdleChecker.stop();
 			this.pendingAdded.clear();
 			this.pendingRemoved.clear();
-			this.seenVideos = /* @__PURE__ */ new WeakSet();
-			this.activeVideos = /* @__PURE__ */ new WeakSet();
-			this.observedRoots = /* @__PURE__ */ new WeakSet();
+			this.seenVideos = new WeakSet();
+			this.activeVideos = new WeakSet();
+			this.observedRoots = new WeakSet();
 		}
 	};
 	//#endregion
@@ -11645,7 +11290,7 @@ var vot = (function(exports) {
 					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
 						await this.requestVtransFailAudio(url);
 						await this.requestVtransAudio(url, translationData.translationId, {
-							audioFile: /* @__PURE__ */ new Uint8Array(),
+							audioFile: new Uint8Array(),
 							fileId: AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME
 						});
 						return await this.translateVideo({
@@ -12542,20 +12187,9 @@ var vot = (function(exports) {
 			await this.storage.setRaw(storageKey, sanitizedSessions);
 		}
 	};
-	/**
-	* Small in-memory cache with TTL for both translations and subtitles.
-	*
-	* The cache is keyed by a stable key built by VideoHandler.
-	*/
 	var InMemoryCacheManager = class {
-		translations = /* @__PURE__ */ new Map();
-		subtitles = /* @__PURE__ */ new Map();
-		/**
-		* Clears all cached entries.
-		*
-		* Used when runtime settings change (e.g. proxy mode/host), because cached
-		* translation URLs and especially previous failures can become stale.
-		*/
+		translations = new Map();
+		subtitles = new Map();
 		clear() {
 			this.translations.clear();
 			this.subtitles.clear();
@@ -12596,7 +12230,7 @@ var vot = (function(exports) {
 	var FullscreenHelper = class {
 		container;
 		video;
-		fullscreenChangeListeners = /* @__PURE__ */ new Set();
+		fullscreenChangeListeners = new Set();
 		handleFullscreenChange = () => {
 			this.notifyFullscreenChange();
 		};
@@ -12605,18 +12239,12 @@ var vot = (function(exports) {
 			this.container = container;
 			this.video = video;
 		}
-		/**
-		* Gets the current fullscreen element with proper ShadowDOM support
-		*/
 		getFullscreenElement() {
 			const doc = document;
 			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
 			if (!(fullscreenEl instanceof HTMLElement)) return null;
 			return fullscreenEl;
 		}
-		/**
-		* Gets comprehensive fullscreen information including ShadowDOM details
-		*/
 		getFullscreenInfo() {
 			const element = this.getFullscreenElement();
 			const isFullscreen = Boolean(element);
@@ -12633,35 +12261,19 @@ var vot = (function(exports) {
 				belongsToCurrentVideo: this.isElementBelongsToCurrentVideo(element)
 			};
 		}
-		/**
-		* Checks if the given element belongs to the current video/container
-		*/
 		isElementBelongsToCurrentVideo(element) {
 			return element === this.container || containsCrossShadow(element, this.container) || containsCrossShadow(this.container, element) || this.video && (element === this.video || containsCrossShadow(element, this.video) || containsCrossShadow(this.video, element));
 		}
-		/**
-		* Gets the appropriate root element for overlay mounting in fullscreen mode
-		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
-		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
-		*/
 		getOverlayRoot() {
 			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
 			if (!element || !belongsToCurrentVideo) return null;
 			return shadowRoot ?? element;
 		}
-		/**
-		* Gets the appropriate element for ResizeObserver to watch for size changes
-		* Handles both regular DOM and ShadowDOM scenarios
-		*/
 		getResizeObserverTarget() {
 			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
 			if (element && belongsToCurrentVideo) return shadowRoot?.host ?? element;
 			return this.container;
 		}
-		/**
-		* Checks if the current container should be considered "big" for button positioning
-		* Takes into account fullscreen state and ShadowDOM
-		*/
 		isBigContainer(threshold = 550) {
 			const target = this.getResizeObserverTarget();
 			const rect = target.getBoundingClientRect();
@@ -12671,23 +12283,14 @@ var vot = (function(exports) {
 			if (videoRect && videoRect.width < rect.width) width = videoRect.width;
 			return width > threshold;
 		}
-		/**
-		* Adds a listener for fullscreen changes
-		*/
 		addFullscreenChangeListener(listener) {
 			this.fullscreenChangeListeners.add(listener);
 			if (this.fullscreenChangeListeners.size === 1) this.setupFullscreenListeners();
 		}
-		/**
-		* Removes a fullscreen change listener
-		*/
 		removeFullscreenChangeListener(listener) {
 			this.fullscreenChangeListeners.delete(listener);
 			if (this.fullscreenChangeListeners.size === 0) this.cleanupFullscreenListeners();
 		}
-		/**
-		* Sets up native fullscreen event listeners
-		*/
 		setupFullscreenListeners() {
 			if (this.nativeFullscreenListenersActive) return;
 			document.addEventListener("fullscreenchange", this.handleFullscreenChange);
@@ -12698,9 +12301,6 @@ var vot = (function(exports) {
 			}
 			this.nativeFullscreenListenersActive = true;
 		}
-		/**
-		* Cleans up fullscreen event listeners
-		*/
 		cleanupFullscreenListeners() {
 			if (!this.nativeFullscreenListenersActive) return;
 			document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
@@ -12711,9 +12311,6 @@ var vot = (function(exports) {
 			}
 			this.nativeFullscreenListenersActive = false;
 		}
-		/**
-		* Notifies all listeners about fullscreen state changes
-		*/
 		notifyFullscreenChange() {
 			for (const listener of this.fullscreenChangeListeners) try {
 				listener();
@@ -12721,24 +12318,15 @@ var vot = (function(exports) {
 				console.warn("[FullscreenHelper] Error in fullscreen change listener:", error);
 			}
 		}
-		/**
-		* Updates the container reference (useful when video container changes)
-		*/
 		updateContainer(container) {
 			this.container = container;
 		}
-		/**
-		* Updates the video reference
-		*/
 		updateVideo(video) {
 			const shouldRebind = this.nativeFullscreenListenersActive && this.video !== video;
 			if (shouldRebind) this.cleanupFullscreenListeners();
 			this.video = video;
 			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setupFullscreenListeners();
 		}
-		/**
-		* Cleans up all resources
-		*/
 		destroy() {
 			this.cleanupFullscreenListeners();
 			this.fullscreenChangeListeners.clear();
@@ -12784,9 +12372,6 @@ var vot = (function(exports) {
 		return cachedDetectService;
 	}
 	var foswlyServices = ["yandexbrowser", "msedge"];
-	/**
-	* Limit: 10k symbols for yandex, 50k for msedge
-	*/
 	var FOSWLYTranslateAPI = new class {
 		isFOSWLYError(data) {
 			return Object.hasOwn(data, "error");
@@ -12884,7 +12469,7 @@ var vot = (function(exports) {
 	var MIN_CHUNK_SIZE = 5295308;
 	var BOOT_KEY = "__VOT_MSE_PROXY_HANDLER__";
 	var STORE_KEY = "__VOT_MSE_CAPTURE_STORE__";
-	var topSessions = /* @__PURE__ */ new Map();
+	var topSessions = new Map();
 	function getVideoId(message) {
 		if (!message.payload || typeof message.payload !== "object") return;
 		const videoId = message.payload.pureVideoId;
@@ -12931,7 +12516,7 @@ var vot = (function(exports) {
 					resolve(value);
 				} else if (performance.now() - startedAt >= timeoutMs) {
 					clearInterval(interval);
-					reject(/* @__PURE__ */ new Error(`Audio downloader. ${label} timed out`));
+					reject(new Error(`Audio downloader. ${label} timed out`));
 				}
 			}, 100);
 		});
@@ -12940,7 +12525,7 @@ var vot = (function(exports) {
 		mediaSource;
 		createdAt = performance.now();
 		queuedEvents = [];
-		listeners = /* @__PURE__ */ new Set();
+		listeners = new Set();
 		constructor(mediaSource) {
 			this.mediaSource = mediaSource;
 			const addSourceBuffer = mediaSource.addSourceBuffer;
@@ -12987,7 +12572,7 @@ var vot = (function(exports) {
 	};
 	var MseCaptureStore = class {
 		captures = [];
-		listeners = /* @__PURE__ */ new Set();
+		listeners = new Set();
 		add(mediaSource) {
 			const capture = new CapturedMediaSource(mediaSource);
 			this.captures.push(capture);
@@ -13105,7 +12690,7 @@ var vot = (function(exports) {
 						if (closed) return;
 						closed = true;
 						if (pendingSize > 0) promotePendingChunk();
-						if (!heldChunk?.byteLength) controller.error(/* @__PURE__ */ new Error("Audio downloader. Empty MSE stream"));
+						if (!heldChunk?.byteLength) controller.error(new Error("Audio downloader. Empty MSE stream"));
 						else {
 							controller.enqueue({
 								buffer: heldChunk,
@@ -13123,7 +12708,7 @@ var vot = (function(exports) {
 						}
 						if (event.type === "close") {
 							closed = true;
-							controller.error(/* @__PURE__ */ new Error("Audio downloader. MSE source closed"));
+							controller.error(new Error("Audio downloader. MSE source closed"));
 							cleanup();
 							return;
 						}
@@ -13326,7 +12911,7 @@ var vot = (function(exports) {
 		};
 		const resetMessageTimeout = () => {
 			clearTimeout(messageTimeout);
-			messageTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("MSE proxy message timed out")), MESSAGE_TIMEOUT_MS);
+			messageTimeout = setTimeout(() => finish(new Error("MSE proxy message timed out")), MESSAGE_TIMEOUT_MS);
 		};
 		const postAbort = () => globalThis.postMessage({
 			messageId,
@@ -13356,9 +12941,9 @@ var vot = (function(exports) {
 			}
 		};
 		const onAbort = () => finish(new Error(String(signal.reason ?? "Aborted")));
-		const streamTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("MSE proxy stream timed out")), STREAM_TIMEOUT_MS);
+		const streamTimeout = setTimeout(() => finish(new Error("MSE proxy stream timed out")), STREAM_TIMEOUT_MS);
 		const navigationInterval = setInterval(() => {
-			if (!globalThis.location.href.includes(videoId)) finish(/* @__PURE__ */ new Error("URL changed during MSE proxy download"));
+			if (!globalThis.location.href.includes(videoId)) finish(new Error("URL changed during MSE proxy download"));
 		}, 100);
 		globalThis.addEventListener("message", onMessage);
 		signal.addEventListener("abort", onAbort, { once: true });
@@ -13514,9 +13099,7 @@ var vot = (function(exports) {
 	//#region src/VOTLocalizedError.ts
 	var VOTLocalizedError = class extends Error {
 		name = "VOTLocalizedError";
-		/** Original (non-localized) message key. */
 		unlocalizedMessage;
-		/** Resolved localized message. */
 		localizedMessage;
 		constructor(message) {
 			super(localizationProvider.getDefault(message));
@@ -13617,14 +13200,6 @@ var vot = (function(exports) {
 	function getMessageIdentity(message) {
 		return message instanceof VOTLocalizedError ? `${message.name}:${message.unlocalizedMessage}` : message;
 	}
-	/**
-	* Keeps the visible translation ETA moving between polling requests.
-	*
-	* Server responses still remain the source of truth: every call to `sync()`
-	* recalculates the deadline from the latest `remainingTime`. Timer ticks only
-	* render the local wall-clock countdown to avoid stale UI while the next poll is
-	* still waiting.
-	*/
 	var TranslationEtaCountdown = class {
 		updateMessage;
 		deadlineMs = 0;
@@ -13680,13 +13255,6 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/core/translationHandler.ts
-	/**
-	* Historically we used `patch-package` to make `@vot.js/core` throw
-	* `VOTLocalizedError` for a few common failure cases.
-	*
-	* We now keep the dependency unpatched and instead map known error messages
-	* coming from the VOT client to the corresponding localized UI errors.
-	*/
 	function mapVotClientErrorForUi(error, hasProvidedAccountToken = false) {
 		const authErrorKind = getTranslationAuthErrorKind(error, { hasAccountToken: hasProvidedAccountToken });
 		if (authErrorKind) return new VOTLocalizedError(authErrorKind === "session-expired" ? "VOTYandexTokenExpired" : "VOTAccountRequired");
@@ -13712,9 +13280,9 @@ var vot = (function(exports) {
 		videoHandler;
 		audioDownloader;
 		downloading;
-		downloadSettlers = /* @__PURE__ */ new Set();
+		downloadSettlers = new Set();
 		etaCountdown;
-		requestedFailAudio = /* @__PURE__ */ new Set();
+		requestedFailAudio = new Set();
 		constructor(videoHandler) {
 			this.videoHandler = videoHandler;
 			this.audioDownloader = new AudioDownloader();
@@ -13737,7 +13305,7 @@ var vot = (function(exports) {
 				}));
 			} catch (error) {
 				debug.error("Failed to upload downloaded audio", error);
-				this.finishDownloadFailure(error instanceof Error ? error : /* @__PURE__ */ new Error("Audio downloader failed while uploading full audio"));
+				this.finishDownloadFailure(error instanceof Error ? error : new Error("Audio downloader failed while uploading full audio"));
 				return;
 			}
 			this.finishDownloadSuccess();
@@ -13761,7 +13329,7 @@ var vot = (function(exports) {
 				}));
 			} catch (error) {
 				debug.error("Failed to upload downloaded audio chunk", error);
-				this.finishDownloadFailure(/* @__PURE__ */ new Error("Audio downloader failed while uploading chunk"));
+				this.finishDownloadFailure(new Error("Audio downloader failed while uploading chunk"));
 				return;
 			}
 			if (amount !== void 0 && index === amount - 1) this.finishDownloadSuccess();
@@ -13817,10 +13385,6 @@ var vot = (function(exports) {
 			}
 			throw lastError;
 		}
-		/**
-		* Detector for cases when server rejects the request because
-		* "Lively/Live voices" are unavailable (unsupported language pair).
-		*/
 		isLivelyVoiceUnavailableError(value) {
 			if (isTranslationAuthError(value)) return false;
 			const msg = getErrorMessage(value);
@@ -14473,10 +14037,10 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/core/hostPolicies.ts
-	var EXTERNAL_VOLUME_HOSTS = /* @__PURE__ */ new Set(["youtube", "googledrive"]);
+	var EXTERNAL_VOLUME_HOSTS = new Set(["youtube", "googledrive"]);
 	var YOUTUBE_LIKE_HOSTS = EXTERNAL_VOLUME_HOSTS;
-	var MUTE_SYNC_DISABLED_HOSTS = /* @__PURE__ */ new Set(["rutube", "ok"]);
-	var TRANSLATION_DOWNLOAD_HOSTS = /* @__PURE__ */ new Set([
+	var MUTE_SYNC_DISABLED_HOSTS = new Set(["rutube", "ok"]);
+	var TRANSLATION_DOWNLOAD_HOSTS = new Set([
 		"youtube",
 		"invidious",
 		"piped"
@@ -14514,16 +14078,6 @@ var vot = (function(exports) {
 	var MIN_DETECT_TEXT_LENGTH = 35;
 	var MAX_SHARED_LANGUAGE_STATES = 500;
 	var REQUEST_LANG_SET = new Set(availableLangs);
-	/**
-	* Prevents YouTube from persisting a temporary volume level to localStorage.
-	*
-	* YouTube reads `yt-player-volume` on player init to restore the previous
-	* volume. When the plugin temporarily lowers the volume (smart ducking),
-	* YouTube would save the lowered value, and the next video would start at
-	* that reduced level. This function saves the current localStorage value
-	* before the action and restores it after, so YouTube's persisted volume
-	* stays at the user's preferred level.
-	*/
 	function preserveYoutubeVolumeStorage(action) {
 		let snapshot;
 		try {
@@ -14540,15 +14094,7 @@ var vot = (function(exports) {
 			} catch {}
 		}
 	}
-	/**
-	* Shared language caches across VideoManager instances within one frame.
-	*
-	* YouTube Shorts can transiently create multiple video handlers while the URL
-	* (and therefore resolved `videoId`) still points to the same active short.
-	* Per-instance caches are insufficient in that case and can trigger duplicate
-	* language detection requests.
-	*/
-	var sharedLanguageStateByVideoId = /* @__PURE__ */ new Map();
+	var sharedLanguageStateByVideoId = new Map();
 	function getSharedLanguageState(videoId) {
 		const cachedState = sharedLanguageStateByVideoId.get(videoId);
 		if (cachedState) return cachedState;
@@ -14746,9 +14292,6 @@ var vot = (function(exports) {
 			if (this.videoHandler.videoData.duration > 14400) throw new VOTLocalizedError("VOTVideoIsTooLong");
 			return true;
 		}
-		/**
-		* Gets current video volume (0.0 - 1.0)
-		*/
 		getVideoVolume() {
 			const video = this.videoHandler.video;
 			if (!video) return void 0;
@@ -14760,9 +14303,6 @@ var vot = (function(exports) {
 			}
 			return snapVolume01(video.volume);
 		}
-		/**
-		* Sets the video volume
-		*/
 		setVideoVolume(volume, options = {}) {
 			const snapped = snapVolume01(volume);
 			if (!isExternalVolumeHost(this.videoHandler.site.host)) {
@@ -14781,16 +14321,10 @@ var vot = (function(exports) {
 			if (this.videoHandler.video) this.videoHandler.video.muted = muted;
 			return this;
 		}
-		/**
-		* Checks if the video is muted
-		*/
 		isMuted() {
 			if (!isExternalVolumeHost(this.videoHandler.site.host)) return this.videoHandler.video?.muted;
 			return YoutubeHelper.isMuted() || Boolean(this.videoHandler.video?.muted);
 		}
-		/**
-		* Syncs the video volume slider with the actual video volume.
-		*/
 		syncVideoVolumeSlider() {
 			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
 			if (!overlayViewControls) return this;
@@ -14867,11 +14401,8 @@ var vot = (function(exports) {
 		}
 		return false;
 	}
-	/**
-	* Notification helper with dedupe/rate-limit and safe fallbacks.
-	*/
 	var Notifier = class {
-		lastSentAt = /* @__PURE__ */ new Map();
+		lastSentAt = new Map();
 		send(details, opts = {}) {
 			try {
 				const key = opts.key || details.tag || `${details.title ?? ""}|${details.text ?? ""}`;
@@ -15093,11 +14624,11 @@ var vot = (function(exports) {
 			let t;
 			if (Scheduler || SuspenseContext) {
 				t = Transition || (Transition = {
-					sources: /* @__PURE__ */ new Set(),
+					sources: new Set(),
 					effects: [],
-					promises: /* @__PURE__ */ new Set(),
-					disposed: /* @__PURE__ */ new Set(),
-					queue: /* @__PURE__ */ new Set(),
+					promises: new Set(),
+					disposed: new Set(),
+					queue: new Set(),
 					running: true
 				});
 				t.done || (t.done = new Promise((res) => t.resolve = res));
@@ -15108,7 +14639,7 @@ var vot = (function(exports) {
 			return t ? t.done : void 0;
 		});
 	}
-	var [transPending, setTransPending] = /*@__PURE__*/ createSignal(false);
+	var [transPending, setTransPending] = createSignal(false);
 	function useContext(context) {
 		let value;
 		return Owner && Owner.context && (value = Owner.context[context.id]) !== void 0 ? value : context.defaultValue;
@@ -15564,7 +15095,7 @@ var vot = (function(exports) {
 						tempdisposers[newEnd] = disposers[end];
 						indexes && (tempIndexes[newEnd] = indexes[end]);
 					}
-					newIndices = /* @__PURE__ */ new Map();
+					newIndices = new Map();
 					newIndicesNext = new Array(newEnd + 1);
 					for (j = newEnd; j >= start; j--) {
 						item = newItems[j];
@@ -15767,7 +15298,7 @@ var vot = (function(exports) {
 		const len = keys.length;
 		if (SUPPORTS_PROXY && $PROXY in props) {
 			const blocked = len > 1 ? keys.flat() : keys[0];
-			const claimed = /* @__PURE__ */ new Set();
+			const claimed = new Set();
 			const res = keys.map((k) => {
 				const owned = k.filter((property) => !claimed.has(property) && (claimed.add(property), true));
 				return new Proxy({
@@ -15974,7 +15505,7 @@ var vot = (function(exports) {
 					a[aEnd] = b[bEnd];
 				} else {
 					if (!map) {
-						map = /* @__PURE__ */ new Map();
+						map = new Map();
 						let i = bStart;
 						while (i < bEnd) map.set(b[i], i++);
 					}
@@ -16076,7 +15607,7 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/ui/solid/renderer.ts
 	var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-	var SVG_ELEMENT_NAMES = /* @__PURE__ */ new Set([
+	var SVG_ELEMENT_NAMES = new Set([
 		"altGlyph",
 		"altGlyphDef",
 		"altGlyphItem",
@@ -16159,7 +15690,7 @@ var vot = (function(exports) {
 		formnovalidate: "formNoValidate",
 		readonly: "readOnly"
 	};
-	var booleanAttributes = /* @__PURE__ */ new Set([
+	var booleanAttributes = new Set([
 		"allowfullscreen",
 		"async",
 		"autofocus",
@@ -16176,7 +15707,7 @@ var vot = (function(exports) {
 		"required",
 		"selected"
 	]);
-	var eventListeners = /* @__PURE__ */ new WeakMap();
+	var eventListeners = new WeakMap();
 	function setClassList(element, value, previous) {
 		for (const name of Object.keys(previous ?? {})) {
 			const classes = name.trim().split(/\s+/).filter(Boolean);
@@ -16209,7 +15740,7 @@ var vot = (function(exports) {
 			return;
 		}
 		const listener = Array.isArray(value) ? (event) => value[0](value[1], event) : value;
-		listeners ??= /* @__PURE__ */ new Map();
+		listeners ??= new Map();
 		eventListeners.set(element, listeners);
 		listeners.set(key, listener);
 		element.addEventListener(eventName, listener, capture);
@@ -16289,22 +15820,10 @@ var vot = (function(exports) {
 	var SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
 	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
 	var SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
-	/**
-	* Bounded memo for color validation. Subtitle tracks reuse a very small set of
-	* distinct colors, so a tiny cache removes 3 regex tests per styled token per
-	* render without unbounded growth.
-	*/
 	var COLOR_CACHE_LIMIT = 256;
-	var colorCache = /* @__PURE__ */ new Map();
-	/**
-	* Memo for normalization / css-text derivation keyed by the *style object*.
-	*
-	* Contract: `SubtitleInlineStyle` values produced by the parsers are treated as
-	* immutable (they are created once per token and never mutated). A `WeakMap`
-	* keeps the memo tied to the token lifetime, so it cannot leak.
-	*/
-	var normalizedCache = /* @__PURE__ */ new WeakMap();
-	var cssTextCache = /* @__PURE__ */ new WeakMap();
+	var colorCache = new Map();
+	var normalizedCache = new WeakMap();
+	var cssTextCache = new WeakMap();
 	var normalizeClassNames = (classes) => {
 		if (!classes?.length) return void 0;
 		const normalized = Array.from(new Set(classes.map((value) => value.trim()).filter((value) => value && SAFE_CLASS_NAME_RE.test(value)))).sort((left, right) => left.localeCompare(right));
@@ -16530,7 +16049,7 @@ var vot = (function(exports) {
 	function mountSolidSubtitlesWidget(container, options) {
 		const [parts, setParts] = createSignal([]);
 		const [lang, setLang] = createSignal(options.lang());
-		const highlightRefs = /* @__PURE__ */ new Map();
+		const highlightRefs = new Map();
 		let block;
 		container.replaceChildren();
 		const subtitlesView = () => createComponent(SolidSubtitlesWidget, {
@@ -16593,19 +16112,9 @@ var vot = (function(exports) {
 		const rightEnd = right.startMs + Math.max(0, right.durationMs);
 		return left.startMs < rightEnd && right.startMs < leftEnd;
 	};
-	/**
-	* Removes duplicate cues that render identical text for the same speaker in an
-	* overlapping time window.
-	*
-	* Consolidated from the previous O(n^2) implementation that recomputed
-	* `toRenderableTextKey()` (a regex normalization over the full cue text) inside
-	* the inner comparison. Keys are now computed exactly once per entry and
-	* candidates are grouped by `key + speakerId`, so only genuinely comparable
-	* cues are time-checked. Output order and selection are unchanged.
-	*/
 	var dedupeActiveLines = (lines) => {
 		const deduped = [];
-		const byKey = /* @__PURE__ */ new Map();
+		const byKey = new Map();
 		for (const entry of lines) {
 			const textKey = toRenderableTextKey(entry.line);
 			if (!textKey) continue;
@@ -16735,17 +16244,10 @@ var vot = (function(exports) {
 	var PASSED_CLASS = "passed";
 	function createHighlightState() {
 		return {
-			indices: /* @__PURE__ */ new Int32Array(0),
-			applied: /* @__PURE__ */ new Uint8Array(0)
+			indices: new Int32Array(0),
+			applied: new Uint8Array(0)
 		};
 	}
-	/**
-	* Rebuilds the index map after a render pass.
-	*
-	* The state is therefore seeded from the **actual** DOM class. `classList.contains`
-	* is a cheap attribute read (no style resolution, no layout) and runs once per
-	* span per render, not per tick.
-	*/
 	function syncHighlightState(state, elements) {
 		const count = elements.length;
 		if (state.indices.length !== count) {
@@ -16762,12 +16264,6 @@ var vot = (function(exports) {
 		}
 		return state;
 	}
-	/**
-	* Applies `passedFlags` to the rendered spans, touching only changed nodes.
-	*
-	* @returns the number of DOM writes performed (used by tests/benchmarks to
-	* assert that redundant mutations are eliminated).
-	*/
 	function applyPassedState(state, elements, passedFlags) {
 		const { indices, applied } = state;
 		const count = Math.min(elements.length, indices.length);
@@ -16784,7 +16280,6 @@ var vot = (function(exports) {
 		}
 		return writes;
 	}
-	/** Removes the `passed` class from every span and resets the diff state. */
 	function clearPassedState(state, elements) {
 		state.applied.fill(0);
 		for (let i = 0; i < elements.length; i += 1) elements[i].classList.remove(PASSED_CLASS);
@@ -16874,23 +16369,9 @@ var vot = (function(exports) {
 	var TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
 	var PUNCTUATION_ONLY_RE = /^[\p{P}\p{S}]+$/u;
 	var LEADING_WHITESPACE_RE = /^\s+/u;
-	/**
-	* Consolidated from a per-character `for..of` scan. A single anchored regex is
-	* equivalent for the same input class (Unicode `\p{P}`/`\p{S}` runs) and avoids
-	* one regex `test()` per code point.
-	*/
 	var getLeadingPunctuation = (value) => LEADING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
-	/**
-	* Consolidated from `Array.from(value)` + reverse scan, which allocated a code
-	* point array for every word token on every render.
-	*/
 	var getTrailingPunctuation = (value) => TRAILING_PUNCTUATION_RE.exec(value)?.[0] ?? "";
 	var isPunctuationOnly = (value) => value.length > 0 && PUNCTUATION_ONLY_RE.test(value);
-	/**
-	* Precomputes "is there a token at or after index i that contributes a real
-	* word", replacing the previous `hasFutureWordToken()` forward rescan that made
-	* plan building O(n^2) for punctuation-heavy cues.
-	*/
 	var buildWordLookahead = (tokens, renderEndTokenIndex) => {
 		const size = Math.max(0, renderEndTokenIndex + 2);
 		const lookahead = new Uint8Array(size);
@@ -16975,12 +16456,6 @@ var vot = (function(exports) {
 		}
 		return tokenIndex + 1;
 	};
-	/**
-	* Build a render plan for subtitle tokens preserving existing grouping rules.
-	*
-	* Important detail: leading punctuation before a word (for example "(" or "\"")
-	* should be visually highlighted together with that word.
-	*/
 	function buildSubtitleRenderPlan(tokens, renderEndTokenIndex, breakAfterTokenIndexSet) {
 		const plan = [];
 		let wordHighlightIndex = 0;
@@ -17126,7 +16601,7 @@ var vot = (function(exports) {
 		pt: ES,
 		it: ES
 	};
-	var SCRIPTIO_CONTINUA = /* @__PURE__ */ new Set([
+	var SCRIPTIO_CONTINUA = new Set([
 		"ja",
 		"zh",
 		"ko",
@@ -17150,11 +16625,6 @@ var vot = (function(exports) {
 		bindsForward: 240,
 		prefersLineStart: -60
 	};
-	/**
-	* Penalty (positive = worse) for breaking a line between `beforeText` and
-	* `afterText`. Returns 0 for space-less scripts, where the lexicon does not
-	* apply.
-	*/
 	function getLinguisticBreakPenalty(beforeText, afterText, locale) {
 		if (isScriptioContinua(locale)) return 0;
 		const lexicon = LEXICONS[getBaseLanguage(locale)] ?? EN;
@@ -17448,11 +16918,6 @@ var vot = (function(exports) {
 		finalizeSegment(segments, tokens, state.segmentStartToken, state.lastTokenInSegment);
 		return finalizeComputedSegments(tokens, segments);
 	}
-	/**
-	* Width of a rendered line. Whitespace at a line edge is collapsed away by the
-	* renderer, so measuring it would overstate the line width and make a line that
-	* actually fits look like an overflow.
-	*/
 	var measureRenderedLineWidth = (textBuffer, startToken, endToken, measureText) => {
 		if (endToken <= startToken) return 0;
 		const text = getBufferedTokenText(textBuffer, startToken, endToken).trim();
@@ -17588,8 +17053,8 @@ var vot = (function(exports) {
 		montserrat: "Montserrat",
 		barlow: "Barlow"
 	};
-	var loadedSubtitleGoogleFonts = /* @__PURE__ */ new Set();
-	var pendingSubtitleGoogleFonts = /* @__PURE__ */ new Map();
+	var loadedSubtitleGoogleFonts = new Set();
+	var pendingSubtitleGoogleFonts = new Map();
 	var googleFontsCatalogPromise = null;
 	function toGoogleSubtitleFontFamily(familyName) {
 		return `${GOOGLE_SUBTITLE_FONT_PREFIX}${familyName}`;
@@ -17684,7 +17149,7 @@ var vot = (function(exports) {
 	var SubtitleStyleController = class {
 		options;
 		container = null;
-		variableValues = /* @__PURE__ */ new Map();
+		variableValues = new Map();
 		lastScaleCompensation = null;
 		_epoch = 0;
 		_fontSize = 20;
@@ -18032,7 +17497,7 @@ var vot = (function(exports) {
 				};
 				mountPopup(popup, anchor);
 				const resizeObserver = new ResizeObserver(schedulePositionUpdate);
-				const resizeTargets = /* @__PURE__ */ new Set([popup, ...options.resizeTargets?.() ?? []]);
+				const resizeTargets = new Set([popup, ...options.resizeTargets?.() ?? []]);
 				for (const target of resizeTargets) resizeObserver.observe(target);
 				schedulePositionUpdate();
 				window.addEventListener("resize", schedulePositionUpdate);
@@ -18799,24 +18264,6 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/subtitles/wakeSchedule.ts
-	/**
-	* Deadline scheduling for the subtitle pipeline.
-	*
-	* The widget is driven by `requestVideoFrameCallback`, i.e. it is woken once per
-	* decoded video frame (50-60 Hz, more on high-refresh displays). Before this
-	* module every wake ran the throttle bookkeeping and, four times a second, the
-	* full `update()` -> active-cue search -> render-key -> position-refresh path,
-	* even while no cue was on screen and nothing could possibly change.
-	*
-	* Nothing in the pipeline can change between two *boundaries*:
-	*   - a cue start,
-	*   - a cue end,
-	*   - the next word-highlight threshold, when highlighting is on.
-	*
-	* Knowing the next boundary turns the per-frame callback into two numeric
-	* comparisons and eliminates all idle work between cues.
-	*/
-	/** Lines are ordered by `startMs`; find the first index with `startMs > timeMs`. */
 	function upperBoundByStart(lines, timeMs) {
 		let lo = 0;
 		let hi = lines.length;
@@ -18827,12 +18274,6 @@ var vot = (function(exports) {
 		}
 		return lo;
 	}
-	/**
-	* Earliest cue boundary strictly after `timeMs`.
-	*
-	* Cue ends are scanned from a bounded window before `timeMs` because overlapping
-	* cues mean an earlier entry can end later than a later one.
-	*/
 	function findNextCueBoundaryMs(timeMs, lines, maxCueDurationMs = Number.POSITIVE_INFINITY) {
 		const count = lines.length;
 		if (count === 0) return null;
@@ -18850,7 +18291,6 @@ var vot = (function(exports) {
 		}
 		return next;
 	}
-	/** Earliest word-highlight threshold strictly after `timeMs`. */
 	function findNextThresholdMs(timeMs, thresholds) {
 		let next = null;
 		for (let i = 0; i < thresholds.length; i += 1) {
@@ -18859,12 +18299,6 @@ var vot = (function(exports) {
 		}
 		return next;
 	}
-	/**
-	* Media time at which the widget must next do work.
-	*
-	* Always bounded by `maxSleepMs` so position/layout refreshes keep running on
-	* long cues and during silence.
-	*/
 	function computeNextWakeMs({ timeMs, lines, maxCueDurationMs, thresholds, maxSleepMs = 250 }) {
 		const cap = timeMs + Math.max(1, maxSleepMs);
 		let next = findNextCueBoundaryMs(timeMs, lines, maxCueDurationMs);
@@ -18945,11 +18379,9 @@ var vot = (function(exports) {
 		subtitleOverlayHost = null;
 		subtitlesBlock = null;
 		renderedHighlightEls = [];
-		/** Parsed highlight indices + last applied class state (see `highlightState.ts`). */
 		highlightState = createHighlightState();
 		sourceEpoch = 0;
 		contentEpoch = 0;
-		/** Monotonic tick counter used to cache layout reads within a single tick. */
 		tickSeq = 0;
 		layoutSizeCache = null;
 		smartCssMetricsCache = null;
@@ -18981,9 +18413,7 @@ var vot = (function(exports) {
 		dragAbortController = null;
 		lastPositionRefreshTs = 0;
 		positionRefreshIntervalMs = 250;
-		/** Media time before which nothing in the pipeline can change. */
 		nextWakeAtMs = null;
-		/** Media time the current deadline was computed from (seek detection). */
 		wakeBaseTimeMs = 0;
 		subtitleMaxWidthPx = 0;
 		breakAfterTokenIndices = [];
@@ -19015,7 +18445,6 @@ var vot = (function(exports) {
 			}
 		};
 		dragLayoutCache = null;
-		/** Newest un-applied pointer sample; older samples in the same frame are dropped. */
 		pendingDragPoint = null;
 		dragFrameId = null;
 		dragStartThresholdPx = 4;
@@ -19181,7 +18610,6 @@ var vot = (function(exports) {
 			this.intervalIdleChecker.markActivity("subtitles-reposition");
 			this.intervalIdleChecker.requestImmediateTick();
 		}
-		/** Invalidate every cache derived from computed style or element geometry. */
 		invalidateStyleCaches() {
 			this.smartCssMetricsCache = null;
 			this.tokenLayoutInputsCache = null;
@@ -19289,7 +18717,6 @@ var vot = (function(exports) {
 			this.updatePending = true;
 			this.intervalIdleChecker.requestImmediateTick();
 		}
-		/** True when `timeMs` has not yet reached the next boundary. */
 		canSkipWake(timeMs) {
 			if (this.updatePending || this.repositionPending || this.wrapPending) return false;
 			if (this.nextWakeAtMs === null) return false;
@@ -19366,14 +18793,6 @@ var vot = (function(exports) {
 			this.requestUpdate(playbackTimeMs, now);
 			this.startVideoFrameLoop();
 		};
-		/**
-		* Whether a periodic tick would actually do something.
-		*
-		* A wake loop is not free: a 60 Hz callback that does nothing still measures
-		* ~1% main-thread CPU, and a 250 ms poll keeps the thread from ever settling.
-		* Reporting `false` lets the scheduler go fully dormant until playback, a
-		* pointer, a resize, or a visibility change wakes it.
-		*/
 		hasPendingWork() {
 			if (this.abortController.signal.aborted) return false;
 			if (this.repositionPending || this.wrapPending || this.positionRefreshPending || this.updatePending) return true;
@@ -19619,9 +19038,6 @@ var vot = (function(exports) {
 			};
 			this.scheduleDragFrame();
 		}
-		/**
-		* Applies a pointer sample to the subtitle anchor position.
-		*/
 		applyDragPosition(clientX, clientY) {
 			const layout = this.dragLayoutCache ?? this.getLayoutSize();
 			const { rect: containerRect, w, h, scaleX, scaleY } = layout;
@@ -21013,7 +20429,7 @@ var vot = (function(exports) {
 	var serializeVtt = (processed) => {
 		const metadata = processed.metadata?.vtt;
 		const sections = [`WEBVTT${metadata?.headerText ? ` ${metadata.headerText}` : ""}`];
-		const blocksByIndex = /* @__PURE__ */ new Map();
+		const blocksByIndex = new Map();
 		for (const block of metadata?.blocks ?? []) {
 			const existing = blocksByIndex.get(block.cueIndex) ?? [];
 			existing.push(block.lines);
@@ -21233,7 +20649,7 @@ var vot = (function(exports) {
 		], 0);
 		frame.set(toUint32BE(frameData.length), 4);
 		frame.set(frameData, 10);
-		const header = /* @__PURE__ */ new Uint8Array(10);
+		const header = new Uint8Array(10);
 		header.set([
 			73,
 			68,
@@ -21297,10 +20713,6 @@ var vot = (function(exports) {
 		if (out) return out.buffer.slice(0, loaded);
 		return mergeChunks(chunks, loaded);
 	}
-	/**
-	* Downloads a translation file and saves it as an MP3 file with metadata,
-	* tracking progress when Content-Length is available.
-	*/
 	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
 		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
 	}
@@ -21346,19 +20758,9 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/ui/mount.ts
-	/**
-	* Compare overlay mount points by DOM identity.
-	*
-	* Mount updates should only run when one of the attachment roots actually
-	* changes (root/portal/tooltip layout root).
-	*/
 	function isSameOverlayMount(previous, next) {
 		return previous.root === next.root && previous.portalContainer === next.portalContainer && previous.subtitlesMountContainer === next.subtitlesMountContainer;
 	}
-	/**
-	* Runs `onChanged` only when mount targets are actually different.
-	* Returns the mount that should become current state.
-	*/
 	function applyOverlayMountUpdate(previous, next, onChanged) {
 		if (isSameOverlayMount(previous, next)) return previous;
 		onChanged(next);
@@ -21399,7 +20801,7 @@ var vot = (function(exports) {
 		let proto;
 		return obj != null && typeof obj === "object" && (obj[$PROXY] || !(proto = Object.getPrototypeOf(obj)) || proto === Object.prototype || Array.isArray(obj));
 	}
-	function unwrap(item, set = /* @__PURE__ */ new Set()) {
+	function unwrap(item, set = new Set()) {
 		let result, unwrapped, v, prop;
 		if (result = item != null && item[$RAW]) return result;
 		if (!isWrappable(item) || set.has(item)) return item;
@@ -21571,7 +20973,7 @@ var vot = (function(exports) {
 		}
 		return [wrappedStore, setStore];
 	}
-	var producers = /* @__PURE__ */ new WeakMap();
+	var producers = new WeakMap();
 	var setterTraps = {
 		get(target, property) {
 			if (property === $RAW) return target;
@@ -22172,7 +21574,7 @@ var vot = (function(exports) {
 		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
 		const [isSearching, setIsSearching] = createSignal(false);
 		const [searchOptions, setSearchOptions] = createSignal();
-		const [selectedOptionCache, setSelectedOptionCache] = createSignal(/* @__PURE__ */ new Map());
+		const [selectedOptionCache, setSelectedOptionCache] = createSignal(new Map());
 		const baseOptions = createMemo(() => {
 			const result = [...options()];
 			const existingValues = new Set(result.map((option) => option.value));
@@ -22194,7 +21596,7 @@ var vot = (function(exports) {
 			const nextSelectedValues = new Set(finalProps.multiple ? finalProps.selectedValues : [finalProps.selectedValue]);
 			setSelectedValues(nextSelectedValues);
 			setSelectedOptionCache((previous) => {
-				const next = /* @__PURE__ */ new Map();
+				const next = new Map();
 				for (const [value, option] of previous) if (nextSelectedValues.has(value)) next.set(value, option);
 				return next;
 			});
@@ -22229,8 +21631,8 @@ var vot = (function(exports) {
 			});
 		});
 		function singleSelectHandle(option) {
-			setSelectedValues(/* @__PURE__ */ new Set([option.value]));
-			setSelectedOptionCache(/* @__PURE__ */ new Map([[option.value, option]]));
+			setSelectedValues(new Set([option.value]));
+			setSelectedOptionCache(new Map([[option.value, option]]));
 			closeSelect();
 			finalProps.onSelect?.(option);
 		}
@@ -22713,6 +22115,7 @@ var vot = (function(exports) {
 					});
 				}
 			}), null);
+			insert(_el$, createComponent(DebugYTAudioComponent, {}), null);
 			insert(_el$, createComponent(IconButton, {
 				get ariaLabel() {
 					return localizationProvider.get("VOTSettings");
@@ -22727,6 +22130,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
+	function DebugYTAudioComponent() {}
 	function LanguagePairSelect(props) {
 		const fromLangsOptions = genSelectOptionsByLangs(availableLangs);
 		const toLangsOptions = genSelectOptionsByLangs(availableTTS);
@@ -24315,10 +23719,6 @@ var vot = (function(exports) {
 		get root() {
 			return this.overlayMount?.root ?? this.mount.root;
 		}
-		/**
-		* Update mount points when the player container changes.
-		* Moves already-mounted UI nodes and rebinds root-bound listeners (dragging).
-		*/
 		updateMount(nextMount) {
 			const prevRoot = this.mount.root;
 			const nextRoot = nextMount.root;
@@ -24595,7 +23995,7 @@ var vot = (function(exports) {
 		const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
 		const scriptAuthors = (safeGMInfo?.script)?.author || buildAuthors || localizationProvider.get("notFound");
 		const browserInfo = `${envInfo.browser} (${envInfo.os})`;
-		const localeUpdatedAt = () => (/* @__PURE__ */ new Date(locale.updatedAt * 1e3)).toLocaleString();
+		const localeUpdatedAt = () => new Date(locale.updatedAt * 1e3).toLocaleString();
 		const localeHashValue = () => locale.hash || localizationProvider.get("notFound");
 		return (() => {
 			var _el$ = createElement("vot-block");
@@ -25432,10 +24832,10 @@ var vot = (function(exports) {
 		]);
 		const [key, setKey] = createSignal(local.key);
 		const [recording, setRecording] = createSignal(false);
-		const [pressedKeys, setPressedKeys] = createSignal(/* @__PURE__ */ new Set());
-		const [comboKeys, setComboKeys] = createSignal(/* @__PURE__ */ new Set());
-		const clearPressedKeys = () => setPressedKeys(/* @__PURE__ */ new Set());
-		const clearComboKeys = () => setComboKeys(/* @__PURE__ */ new Set());
+		const [pressedKeys, setPressedKeys] = createSignal(new Set());
+		const [comboKeys, setComboKeys] = createSignal(new Set());
+		const clearPressedKeys = () => setPressedKeys(new Set());
+		const clearComboKeys = () => setComboKeys(new Set());
 		const setKeyWithDispatch = (newKey) => {
 			setKey(newKey);
 			local.onChange?.(newKey);
@@ -26629,13 +26029,7 @@ var vot = (function(exports) {
 		intervalIdleChecker;
 		data;
 		globalPortalMount;
-		/**
-		* Contains all elements over video player e.g. button, menu and etc
-		*/
 		votOverlayView;
-		/**
-		* Dialog settings menu
-		*/
 		votSettingsView;
 		constructor({ mount, data = {}, videoHandler, intervalIdleChecker }) {
 			this.mount = mount;
@@ -26661,7 +26055,6 @@ var vot = (function(exports) {
 			}
 			return this;
 		}
-		/** Best-effort teardown of whatever `buildUI` managed to construct. */
 		releasePartialUI() {
 			try {
 				this.votOverlayView?.release();
@@ -27043,9 +26436,6 @@ var vot = (function(exports) {
 	function isHoverPointerEvent(event) {
 		return event?.pointerType !== "touch";
 	}
-	/**
-	* Centralizes overlay visibility behavior: showing, hiding and deadline checks.
-	*/
 	var OverlayVisibilityController = class {
 		deps;
 		hideDeadlineMs = 0;
@@ -27058,18 +26448,12 @@ var vot = (function(exports) {
 				this.onCheckerTick();
 			}, { hasPendingWork: () => this.hideArmed && this.hideDeadlineMs > 0 });
 		}
-		/**
-		* Ensures overlay is visible immediately and returns current view.
-		*/
 		show() {
 			const view = this.getView();
 			if (!view) return null;
 			view.updateButtonOpacity(1);
 			return view;
 		}
-		/**
-		* Cancels scheduled auto-hide.
-		*/
 		cancel() {
 			this.hideDeadlineMs = 0;
 			this.hideArmed = false;
@@ -27079,9 +26463,6 @@ var vot = (function(exports) {
 			this.pointerInsideOverlay = false;
 			this.unsubscribeChecker();
 		}
-		/**
-		* Schedules overlay auto-hide after configured delay.
-		*/
 		queueAutoHide() {
 			const view = this.show();
 			if (!view) return;
@@ -27095,9 +26476,6 @@ var vot = (function(exports) {
 			this.deps.checker.markActivity("overlay-queue-hide");
 			this.deps.checker.requestImmediateTick();
 		}
-		/**
-		* Handles pointer/focus interactions originating from overlay elements.
-		*/
 		handleOverlayInteraction(event) {
 			const type = event?.type;
 			if (!type) return;
@@ -27112,9 +26490,6 @@ var vot = (function(exports) {
 				event.stopPropagation?.();
 			}
 		}
-		/**
-		* Handles interactions from the broader host container (video, document etc.).
-		*/
 		handleHostInteraction(event) {
 			const type = event?.type;
 			if (!type) return;
@@ -27136,18 +26511,12 @@ var vot = (function(exports) {
 			}
 			this.queueAutoHide();
 		}
-		/**
-		* Hides overlay immediately without delay.
-		*/
 		hide() {
 			this.hideArmed = false;
 			this.hideDeadlineMs = 0;
 			this.pointerInsideOverlay = false;
 			this.getView()?.updateButtonOpacity(0);
 		}
-		/**
-		* Schedules hide if focus/pointer leaves overlay tree entirely.
-		*/
 		scheduleHide(event) {
 			if (!this.getView()) return;
 			const type = event?.type;
@@ -27404,7 +26773,7 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/videoHandler/modules/smartDuckingRuntime.ts
 	var SMART_DUCKING_TICK_MS = SMART_DUCKING_DEFAULT_CONFIG.tickMs;
-	var smartDuckingAnalyserState = /* @__PURE__ */ new WeakMap();
+	var smartDuckingAnalyserState = new WeakMap();
 	function isAudioNode(node) {
 		if (!node || typeof node !== "object") return false;
 		const candidate = node;
@@ -27729,13 +27098,6 @@ var vot = (function(exports) {
 	function shouldForceProxyClientGmXhr(config) {
 		return Boolean(config.gmXhrSupported && isProxyClientEnabled(config));
 	}
-	/**
-	* Generic proxy URL rewriter. Replaces a known source prefix with the
-	* proxy-worker host + path when proxy routing is enabled.
-	*
-	* Centralizes the shared logic previously duplicated across
-	* proxifyYandexAudioUrl and proxifyYandexSubtitlesUrl.
-	*/
 	function proxifyUrl(url, config, sourcePrefix, proxyPathPrefix) {
 		if (!isProxyRoutingEnabled(config) || !url.startsWith(sourcePrefix)) return url;
 		return url.replace(sourcePrefix, `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${proxyPathPrefix}`);
@@ -27890,14 +27252,6 @@ var vot = (function(exports) {
 			useLivelyVoice: options.usedLivelyVoice
 		};
 	}
-	/**
-	* Executes an async action with staleness guards before and after.
-	* Returns true if the action completed without becoming stale.
-	*
-	* Centralizes the "check stale -> act -> re-check stale" pattern that was
-	* previously duplicated across updateTranslationIfFresh and
-	* requestAndApplyTranslation.
-	*/
 	async function withStaleGuard(actionContext, isActionStale, action) {
 		if (isActionStale(actionContext)) return false;
 		await action();
@@ -28371,7 +27725,7 @@ var vot = (function(exports) {
 		return value.replace("Key", "").replace("Digit", "");
 	}
 	function buildPressedHotkeyPartsSet(userPressedKeys) {
-		const pressedParts = /* @__PURE__ */ new Set();
+		const pressedParts = new Set();
 		for (const key of userPressedKeys) pressedParts.add(normalizeHotkeyPart(key));
 		return pressedParts;
 	}
@@ -28501,8 +27855,8 @@ var vot = (function(exports) {
 			"pause",
 			"seeking"
 		], dismissFloatingUI);
-		const userPressedKeys = /* @__PURE__ */ new Set();
-		const hotkeyCache = /* @__PURE__ */ new Map();
+		const userPressedKeys = new Set();
+		const hotkeyCache = new Map();
 		const clearUserPressedKeys = () => userPressedKeys.clear();
 		const runHotkeyAction = (action, actionName) => {
 			action().catch((error) => {
@@ -28685,9 +28039,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/videoHandler/shared.ts
-	/**
-	* Country code used for proxy settings. Populated lazily during init.
-	*/
 	var _countryCode;
 	function getCountryCode() {
 		return _countryCode;
@@ -28833,8 +28184,8 @@ var vot = (function(exports) {
 	//#region src/subtitles/segmenter.ts
 	var HAS_SEGMENTER = typeof Intl !== "undefined" && typeof Intl.Segmenter === "function";
 	var DEFAULT_CACHE_LOCALE = "und";
-	var segmenterCache = /* @__PURE__ */ new Map();
-	var resolvedLocaleCache = /* @__PURE__ */ new Map();
+	var segmenterCache = new Map();
+	var resolvedLocaleCache = new Map();
 	var canonicalizeLocale = (locale) => {
 		if (!locale) return void 0;
 		try {
@@ -29396,7 +28747,7 @@ var vot = (function(exports) {
 	};
 	var buildYandexSubtitles = (response) => {
 		const subtitles = [];
-		const seenOriginal = /* @__PURE__ */ new Set();
+		const seenOriginal = new Set();
 		for (const subtitle of response.subtitles ?? []) {
 			if (subtitle.language && !seenOriginal.has(subtitle.language)) {
 				seenOriginal.add(subtitle.language);
@@ -29506,7 +28857,7 @@ var vot = (function(exports) {
 					requestLang
 				};
 				const res = await Promise.race([client.getSubtitles(requestPayload), new Promise((_, reject) => {
-					setTimeout(() => reject(/* @__PURE__ */ new Error("Timeout")), 5e3);
+					setTimeout(() => reject(new Error("Timeout")), 5e3);
 				})]);
 				debug.log("[VOT] Subtitles response:", res);
 				if (res.waiting) console.error("[VOT] Failed to get Yandex subtitles");
@@ -29521,7 +28872,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/videoHandler/modules/subtitles.ts
-	var subtitlesSelectionRequestVersion = /* @__PURE__ */ new WeakMap();
+	var subtitlesSelectionRequestVersion = new WeakMap();
 	function getPreferredSubtitlesLanguage(handler) {
 		const videoData = handler.videoData;
 		return handler.getPreferredSubtitlesLanguage(videoData?.detectedLanguage, videoData?.responseLanguage) ?? videoData?.responseLanguage ?? handler.translateToLang;
@@ -29544,7 +28895,7 @@ var vot = (function(exports) {
 		].join("|");
 	}
 	function dedupeSubtitles(subtitles) {
-		const seen = /* @__PURE__ */ new Set();
+		const seen = new Set();
 		const result = [];
 		for (const descriptor of subtitles) {
 			const key = buildSubtitleDescriptorKey(descriptor);
@@ -29642,13 +28993,6 @@ var vot = (function(exports) {
 		await this.loadSubtitles();
 		return this;
 	}
-	/**
-	* Hotkey/helper: enables subtitles for the currently selected language pair.
-	*
-	* If an exact "from -> to" subtitles track is unavailable, falls back to any
-	* subtitles track in the target language.
-	* For same-language pair (from == to), prefer site subtitles before Yandex.
-	*/
 	async function enableSubtitlesForCurrentLangPair() {
 		const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
 		if (!overlayViewControls) return this;
@@ -29666,22 +29010,11 @@ var vot = (function(exports) {
 		await this.changeSubtitlesLang(String(bestIdx));
 		return this;
 	}
-	/**
-	* Re-evaluates the active subtitles track for the currently selected language
-	* pair, but only when auto-subtitles are enabled.
-	*/
 	async function refreshAutoSubtitlesForCurrentLangPair() {
 		if (!this.data?.autoSubtitles || !this.videoData?.videoId) return this;
 		await this.enableSubtitlesForCurrentLangPair();
 		return this;
 	}
-	/**
-	* Hotkey helper: toggles subtitles.
-	*
-	* - If subtitles are currently enabled (any non-"disabled" value), disable them.
-	* - If subtitles are disabled, enable the best subtitles for the current
-	*   language pair.
-	*/
 	async function toggleSubtitlesForCurrentLangPair() {
 		const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
 		if (!overlayViewControls) return this;
@@ -29749,16 +29082,6 @@ var vot = (function(exports) {
 			max: clampPercentInt(Math.min(100, translationMax), min, 100)
 		};
 	}
-	/**
-	* Applies delta-based volume linking and mutates `state` in place.
-	*
-	* Rules:
-	* - "video" initiator: translation changes by the same delta as video.
-	* - "translation" initiator: video changes by the same delta as translation.
-	*
-	* This preserves relative offset between sliders (until clamped by bounds),
-	* instead of forcing a 1:1 mirror.
-	*/
 	function applyVolumeLinkDelta({ state, fromType, newVolume, currentVideo, currentTranslation, translationMin, translationMax }) {
 		const sharedTranslationRange = getSharedTranslationRange(translationMin, translationMax);
 		if (!state.initialized) {
@@ -29784,7 +29107,7 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/VideoHandler.ts
 	var RESOLVED_VOID_PROMISE = Promise.resolve();
-	var TRANSLATION_LOADING_MESSAGES = /* @__PURE__ */ new Set([
+	var TRANSLATION_LOADING_MESSAGES = new Set([
 		"Подготавливаем перевод",
 		"Видео передано в обработку",
 		"Ожидаем перевод видео",
@@ -29804,37 +29127,22 @@ var vot = (function(exports) {
 		audioPlayer;
 		abortController;
 		actionsAbortController;
-		/** Increments whenever we reset/abort translation actions to invalidate stale async work */
 		actionsGeneration = 0;
 		notifier = new Notifier();
 		cacheManager;
 		votSessionStorage = new VOTSessionStorageCache();
-		/**
-		* In-flight subtitles list requests, keyed by subtitles cache key.
-		*
-		* Prevents duplicate parallel requests when the subtitles hotkey is spammed
-		* before the first request resolves.
-		*/
-		subtitlesLoadPromises = /* @__PURE__ */ new Map();
+		subtitlesLoadPromises = new Map();
 		downloadTranslation = null;
 		isRefreshingTranslation = false;
 		autoRetry;
 		votOpts;
 		volumeOnStart;
 		autoVolumeMutedOnStart;
-		/**
-		* syncVolume (link translation and video volume) runtime state.
-		* We keep last-known slider values to apply deltas reliably.
-		*/
 		volumeLinkState = {
 			initialized: false,
 			lastVideoPercent: 0,
 			lastTranslationPercent: 0
 		};
-		/**
-		* Used to ignore our own programmatic video-volume updates when observing
-		* external UIs (e.g. YouTube volume panel aria mutations).
-		*/
 		internalVideoVolumeSetAt = 0;
 		internalVideoVolumeSetPercent = null;
 		internalVideoVolumeSuppressionMs = 250;
@@ -29846,32 +29154,16 @@ var vot = (function(exports) {
 		smartVolumeLastTickAt = 0;
 		smartVolumeLastSoundAt = 0;
 		smartVolumeRmsMissingSinceAt = null;
-		/** Smoothed translated-track RMS envelope (0..1). */
 		smartVolumeRmsEnvelope = 0;
-		/**
-		* Internal speech gate state for Smart Auto-Volume ducking.
-		*
-		* This is a debounced/hysteresis-based boolean that tracks whether the
-		* translated track is considered "audible" for the purpose of ducking.
-		*/
 		smartVolumeSpeechGateOpen = false;
 		smartVolumeIsDucked = false;
 		longWaitingResCount = 0;
 		hadAsyncWait = false;
-		/**
-		* Set to `true` when the video was programmatically paused while waiting for
-		* translation audio to be prepared (autoPauseOnTranslate feature).
-		* Reset when translation finishes or when the user manually starts playback.
-		*/
 		pausedByTranslation = false;
 		subtitles = [];
 		subtitlesCacheKey = null;
 		subtitlesWidget;
 		activeTranslation = null;
-		/**
-		* In-flight async teardown for translation/audio player cleanup.
-		* New translation starts should wait for this to avoid clear/init races.
-		*/
 		stopTranslatePromise = null;
 		interactionChecker;
 		uiManager;
@@ -29884,27 +29176,9 @@ var vot = (function(exports) {
 		yandexSubtitles = null;
 		syncVolumeObserver;
 		initialized = false;
-		/**
-		* Cached overlay mount points (root/portal). Recomputed when container changes.
-		* Avoids doing the same DOM/style walks multiple times per lifecycle update.
-		*/
 		mountCache;
-		/**
-		* In-memory cache for translated error strings (RU -> UI language).
-		* This avoids repeated translation API calls during retry loops when the
-		* same backend message is emitted multiple times.
-		*/
-		errorTranslationCache = /* @__PURE__ */ new Map();
-		/**
-		* Fullscreen helper for proper ShadowDOM support
-		*/
+		errorTranslationCache = new Map();
 		fullscreenHelper;
-		/**
-		* Returns fullscreen root for overlay if the active fullscreen session belongs
-		* to the current video/container. Otherwise returns null.
-		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
-		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
-		*/
 		getFullscreenOverlayRoot() {
 			return this.fullscreenHelper?.getOverlayRoot() ?? null;
 		}
@@ -29945,28 +29219,12 @@ var vot = (function(exports) {
 				subtitlesMountContainer
 			};
 		}
-		/**
-		* Builds a stable cache key for translations.
-		*
-		* NOTE: Keep this in sync with CacheManager expectations.
-		* @param {string} videoId
-		* @param {string} from
-		* @param {string} to
-		*/
 		getTranslationCacheKey(videoId, from, to, translationHelp) {
 			const requestLangForApi = this.getRequestLangForTranslation(from, to);
 			const useLivelyVoice = this.isLivelyVoiceAllowed(requestLangForApi, to) && this.data?.useLivelyVoice;
 			const helpStr = translationHelp === void 0 || translationHelp === null ? "" : stableStringify(translationHelp);
 			return `${videoId}_${requestLangForApi}_${to}_${useLivelyVoice}_${helpStr ? fnv1a32ToKeyPart(helpStr) : "0"}`;
 		}
-		/**
-		* Builds a stable cache key for subtitles.
-		*
-		* Bugfix: subtitles cache key must match the key used by loadSubtitles().
-		* @param {string} videoId
-		* @param {string} detectedLanguage
-		* @param {string} subtitleLanguage
-		*/
 		getSubtitlesCacheKey(videoId, detectedLanguage, subtitleLanguage) {
 			return `${videoId}_${detectedLanguage}_${subtitleLanguage}_${this.data?.useLivelyVoice !== false}`;
 		}
@@ -29992,12 +29250,6 @@ var vot = (function(exports) {
 			this.actionsGeneration++;
 			this.updateVOTClientRequestSignal();
 		}
-		/**
-		* Constructs a new VideoHandler instance.
-		* @param {HTMLVideoElement} video The video element to handle.
-		* @param {HTMLElement} container The container element for the video.
-		* @param {Object} site The site object associated with the video.
-		*/
 		constructor(video, container, site) {
 			debug.log("[VideoHandler] add video:", video, "container:", container, this);
 			this.video = video;
@@ -30058,10 +29310,6 @@ var vot = (function(exports) {
 				this.refreshOverlayMount();
 			});
 		}
-		/**
-		* Lazily creates the subtitles widget.
-		* @returns {SubtitlesWidget}
-		*/
 		getSubtitlesWidget() {
 			if (!this.subtitlesWidget) {
 				const { subtitlesMountContainer } = this.getOverlayMountPoints();
@@ -30079,10 +29327,6 @@ var vot = (function(exports) {
 			if (typeof this.data.subtitlesFontFamily === "string") widget.setFontFamily(this.data.subtitlesFontFamily);
 			if (typeof this.data.subtitlesOpacity === "number") widget.setOpacity(this.data.subtitlesOpacity);
 		}
-		/**
-		* Determines whether subtitles widget is initialized\.
-		* @returns {boolean}
-		*/
 		hasSubtitlesWidget() {
 			return Boolean(this.subtitlesWidget);
 		}
@@ -30092,40 +29336,21 @@ var vot = (function(exports) {
 				this.subtitlesWidget = void 0;
 			}
 		}
-		/**
-		* Root element for overlay UI (buttons/menu) so it remains clickable on players
-		* that disable pointer events on inner layers.
-		*/
 		get uiRoot() {
 			const root = this.getOverlayMountPoints().root;
 			return root instanceof ShadowRoot ? root.host : root;
 		}
-		/**
-		* Determines the DOM container used for overlay portals.
-		* @returns {HTMLElement}
-		*/
 		get portalContainer() {
 			return this.getOverlayMountPoints().portalContainer;
 		}
-		/**
-		* Returns the container element for event listeners.
-		* @returns {HTMLElement} The event container.
-		*/
 		getEventContainer() {
 			if (!this.site.eventSelector) return this.container;
 			return document.querySelector(this.site.eventSelector) ?? this.container;
 		}
-		/**
-		* Run auto translate using orchestrator dependencies.
-		*/
 		async runAutoTranslate() {
 			await this.videoManager.videoValidator();
 			await this.uiManager.handleTranslationBtnClick();
 		}
-		/**
-		* Lazily initializes and returns the AudioContext.
-		* @returns {AudioContext | undefined}
-		*/
 		getAudioContext() {
 			if (this.audioContext) return this.audioContext;
 			if (!this.isAudioContextSupported) return void 0;
@@ -30140,10 +29365,6 @@ var vot = (function(exports) {
 		get isAudioContextSupported() {
 			return globalThis.AudioContext !== void 0 || globalThis.webkitAudioContext !== void 0;
 		}
-		/**
-		* Determines if audio should be preferred.
-		* @returns {boolean} True if audio is preferred.
-		*/
 		getPreferAudio() {
 			if (!this.getAudioContext()) return true;
 			if (!this.data) return true;
@@ -30152,10 +29373,6 @@ var vot = (function(exports) {
 			if (this.data.newAudioPlayer && !this.data.onlyBypassMediaCSP) return false;
 			return !this.site.needBypassCSP;
 		}
-		/**
-		* Creates the audio player.
-		* @returns {VideoHandler} The VideoHandler instance.
-		*/
 		createPlayer() {
 			const preferAudio = this.getPreferAudio();
 			const audioContext = this.getAudioContext();
@@ -30170,10 +29387,6 @@ var vot = (function(exports) {
 			if (preferAudio && audioContext) this.audioPlayer.audioContext = audioContext;
 			return this;
 		}
-		/**
-		* Returns true if a detected external volume update is very likely caused by
-		* our own recent programmatic setVideoVolume call.
-		*/
 		isLikelyInternalVideoVolumeChange(observedPercent) {
 			const now = Date.now();
 			const history = this.internalVideoVolumeSetHistory;
@@ -30186,17 +29399,9 @@ var vot = (function(exports) {
 			if (now - this.internalVideoVolumeSetAt > this.internalVideoVolumeSuppressionMs) return false;
 			return Math.abs(observedPercent - this.internalVideoVolumeSetPercent) <= 1;
 		}
-		/**
-		* Initializes the VideoHandler: loads settings, UI, video data, events, etc.
-		* @returns {Promise<void>}
-		*/
 		init() {
 			return init.call(this);
 		}
-		/**
-		* Initializes the VOT client.
-		* @returns {VideoHandler} This instance.
-		*/
 		async initVOTClient() {
 			const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
 			let transportHost = workerHost;
@@ -30225,34 +29430,16 @@ var vot = (function(exports) {
 			};
 			return this;
 		}
-		/**
-		* Sets the translation button state and text.
-		* @param {string} status The new status.
-		* @param {string} text The text to display.
-		* @returns {VideoHandler} This instance.
-		*/
 		transformBtn(status, text) {
 			this.uiManager.transformBtn(status, text);
 			return this;
 		}
-		/**
-		* @returns {boolean} True if the extension audio player has active audio source
-		*/
 		hasActiveSource() {
 			return !!this.audioPlayer?.player?.src;
 		}
-		/**
-		* Initializes extra event listeners (resize, click outside, keydown, etc.).
-		*/
 		initExtraEvents() {
 			return initExtraEvents.call(this);
 		}
-		/**
-		* Recomputes overlay mount points and rebinds interaction targets.
-		*
-		* Used when fullscreen state changes without changing `this.container`
-		* (common for players inside Shadow DOM).
-		*/
 		refreshOverlayMount() {
 			this.mountCache = void 0;
 			if (this.fullscreenHelper) {
@@ -30265,66 +29452,24 @@ var vot = (function(exports) {
 			if (!mountChanged) return;
 			this.rebindOverlayVisibilityTargets();
 		}
-		/**
-		* Re-attach overlayVisibility listeners to the *current* overlay button/menu elements.
-		*
-		* The overlay UI gets recreated in some flows (e.g. menu language change),
-		* so listeners that were attached to the old DOM nodes must be re-bound.
-		*/
 		rebindOverlayVisibilityTargets = rebindOverlayVisibilityTargets;
-		/**
-		* Called when the video can play.
-		*/
 		setCanPlay = () => this.lifecycleController.setCanPlay();
 		isOverlayInteractiveNode(node) {
 			return isOverlayInteractiveNode.call(this, node);
 		}
-		/**
-		* Schedules hiding the overlay button with guard checks for internal navigation.
-		*/
 		getAutoHideDelay() {
 			return getAutoHideDelay.call(this);
 		}
-		/**
-		* Changes subtitles language based on user selection.
-		* @param {string} subs The subtitles selection value.
-		*/
 		changeSubtitlesLang = changeSubtitlesLang;
-		/**
-		* Updates the subtitles selection options.
-		*/
 		updateSubtitlesLangSelect = updateSubtitlesLangSelect;
-		/**
-		* Ensures the in-memory subtitles list matches the current language-pair cache key.
-		*/
 		ensureSubtitlesForCurrentLangPair = ensureSubtitlesForCurrentLangPair;
-		/**
-		* Loads subtitles for the current video.
-		*/
 		loadSubtitles = loadSubtitles;
-		/**
-		* Enables subtitles that match the currently selected language pair (from -> to).
-		*
-		* Used by the subtitles hotkey: prefers Yandex captions for the exact pair,
-		* then falls back to any captions in the target language.
-		*/
 		enableSubtitlesForCurrentLangPair() {
 			return enableSubtitlesForCurrentLangPair.call(this);
 		}
-		/**
-		* Re-evaluates the active subtitles track for the current language pair,
-		* but only when auto-subtitles are enabled.
-		*/
 		refreshAutoSubtitlesForCurrentLangPair() {
 			return refreshAutoSubtitlesForCurrentLangPair.call(this);
 		}
-		/**
-		* Toggles subtitles for the current video.
-		*
-		* - If subtitles are enabled, this disables them.
-		* - If subtitles are disabled, this enables the best subtitles track for the
-		*   current language pair.
-		*/
 		toggleSubtitlesForCurrentLangPair() {
 			return toggleSubtitlesForCurrentLangPair.call(this);
 		}
@@ -30336,16 +29481,7 @@ var vot = (function(exports) {
 			if (this.getRequestLangForTranslation(requestLang, responseLang) === "auto" || responseLang !== "ru") return false;
 			return true;
 		}
-		/**
-		* Gets the video volume.
-		* @returns {number} The video volume (0.0 - 1.0).
-		*/
 		getVideoVolume = () => this.videoManager.getVideoVolume();
-		/**
-		* Sets the video volume.
-		* @param {number} volume A number between 0 and 1.
-		* @returns {VideoHandler} This instance.
-		*/
 		setVideoVolume(volume, options = {}) {
 			const snapped = snapVolume01(volume);
 			const suppressSyncMs = typeof options.suppressSyncMs === "number" && Number.isFinite(options.suppressSyncMs) ? Math.max(0, options.suppressSyncMs) : this.internalVideoVolumeSuppressionMs;
@@ -30366,9 +29502,6 @@ var vot = (function(exports) {
 			this.videoManager.setVideoMuted(muted);
 			return this;
 		}
-		/**
-		* Keeps internal syncVolume state aligned with observed/programmatic video-volume changes.
-		*/
 		onVideoVolumeSliderSynced(volumePercent) {
 			const normalized = clampPercentInt(volumePercent);
 			if (!this.volumeLinkState.initialized) {
@@ -30378,17 +29511,9 @@ var vot = (function(exports) {
 			if (this.data?.syncVolume && this.hasActiveSource() && !this.isLikelyInternalVideoVolumeChange(normalized)) return;
 			syncVideoLinkSnapshot(this.volumeLinkState, normalized);
 		}
-		/**
-		* Keeps internal translation-volume snapshot aligned when syncVolume is
-		* temporarily disabled, so re-enabling link mode does not apply stale deltas.
-		*/
 		onTranslationVolumeSliderSynced(volumePercent) {
 			syncTranslationLinkSnapshot(this.volumeLinkState, volumePercent);
 		}
-		/**
-		* Re-seeds syncVolume baseline from current UI slider values.
-		* Useful when toggling syncVolume on/off to avoid stale delta state.
-		*/
 		resetVolumeLinkState(videoPercent, translationPercent) {
 			syncVideoLinkSnapshot(this.volumeLinkState, videoPercent);
 			syncTranslationLinkSnapshot(this.volumeLinkState, translationPercent);
@@ -30399,30 +29524,11 @@ var vot = (function(exports) {
 			this.volumeLinkState.lastVideoPercent = 0;
 			this.volumeLinkState.lastTranslationPercent = 0;
 		}
-		/**
-		* Checks if the video is muted.
-		* @returns {boolean} True if muted.
-		*/
 		isMuted = () => this.videoManager.isMuted();
-		/**
-		* Syncs the video volume slider.
-		*/
 		syncVideoVolumeSlider = () => this.videoManager.syncVideoVolumeSlider();
-		/**
-		* Sets language select menu values.
-		* @param {string} from Source language.
-		* @param {string} to Target language.
-		*/
 		setSelectMenuValues = (from, to) => {
 			this.videoManager.setSelectMenuValues(from, to);
 		};
-		/**
-		* Keeps translation and video sliders linked (syncVolume option).
-		*
-		* The implementation is delta-based inside the shared 0..100 link range.
-		* Translation booster values above 100 remain available only while link mode
-		* is disabled.
-		*/
 		syncVolumeWrapper(fromType, newVolume) {
 			const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
 			if (!overlayViewControls) return;
@@ -30446,19 +29552,8 @@ var vot = (function(exports) {
 			}
 			return result;
 		}
-		/**
-		* Retrieves video data.
-		* @returns {Promise<Object>} The video data object.
-		*/
 		getVideoData = () => this.videoManager.getVideoData();
-		/**
-		* Validates the video.
-		* @returns {Promise<boolean>} True if valid.
-		*/
 		videoValidator = () => this.videoManager.videoValidator();
-		/**
-		* Stops translation and resets UI elements.
-		*/
 		stopTranslate() {
 			if (this.stopTranslatePromise !== null) return this.stopTranslatePromise;
 			const cleanup = async () => {
@@ -30499,10 +29594,6 @@ var vot = (function(exports) {
 		waitForPendingStopTranslate() {
 			return this.stopTranslatePromise ?? RESOLVED_VOID_PROMISE;
 		}
-		/**
-		* Updates the translation error message on the UI.
-		* @param {string|Error} errorMessage The error message.
-		*/
 		async updateTranslationErrorMsg(errorMessage, signal, options = {}) {
 			if (signal?.aborted) return;
 			const translationTake = localizationProvider.get("translationTake");
@@ -30551,10 +29642,6 @@ var vot = (function(exports) {
 			const oldestKey = this.errorTranslationCache.keys().next().value;
 			if (oldestKey) this.errorTranslationCache.delete(oldestKey);
 		}
-		/**
-		* Called after translation is updated.
-		* @param {string} audioUrl The URL of the translation audio.
-		*/
 		afterUpdateTranslation(audioUrl) {
 			const overlayViewControls = this.uiManager.votOverlayView?.overlayViewControls;
 			const isSuccess = overlayViewControls?.getStatus() === "success";
@@ -30576,12 +29663,6 @@ var vot = (function(exports) {
 				this.hadAsyncWait = false;
 			}
 		}
-		/**
-		* Keeps the historical async hook for audio URL preparation.
-		* Playback errors are handled by the native audio player path.
-		* @param {string} audioUrl The audio URL.
-		* @returns {Promise<string>} The prepared audio URL.
-		*/
 		validateAudioUrl(audioUrl, actionContext) {
 			return validateAudioUrl.call(this, audioUrl, actionContext);
 		}
@@ -30589,84 +29670,39 @@ var vot = (function(exports) {
 			scheduleTranslationRefresh.call(this);
 		}
 		refreshTranslationAudio = refreshTranslationAudio;
-		/**
-		* Proxifies the audio URL if needed.
-		* @param {string} audioUrl The original audio URL.
-		* @returns {string} The proxified audio URL.
-		*/
 		proxifyAudio(audioUrl) {
 			return proxifyAudio.call(this, audioUrl);
 		}
-		/**
-		* Reverts a previously proxified audio URL back to the original Yandex S3 URL.
-		*
-		* This allows us to re-apply proxy settings when the proxy host/mode changes
-		* without permanently "locking in" the old proxy host in the current player
-		* src.
-		*/
 		unproxifyAudio(audioUrl) {
 			return unproxifyAudio.call(this, audioUrl);
 		}
-		/**
-		* Called when proxy-related settings are changed at runtime.
-		*
-		* - Clears in-memory caches so old failures/URLs don't persist.
-		* - Cancels any in-flight translation work.
-		* - Best-effort refreshes the active audio source so the new proxy host/mode
-		*   takes effect immediately.
-		*/
 		handleProxySettingsChanged = handleProxySettingsChanged;
 		isMultiMethodS3(url) {
 			return isMultiMethodS3.call(this, url);
 		}
-		/**
-		* Updates the translation audio source.
-		* @param {string} audioUrl The audio URL.
-		*/
 		updateTranslation = updateTranslation;
 		syncTranslationPlaybackVolume() {
 			return syncTranslationPlaybackVolume.call(this);
 		}
-		/**
-		* Translates the video/audio.
-		* @param {string} VIDEO_ID The video ID.
-		* @param {boolean} isStream Whether the video is a stream.
-		* @param {string} requestLang Source language.
-		* @param {string} responseLang Target language.
-		* @param {any} translationHelp Optional translation helper data.
-		*/
 		translateFunc(VIDEO_ID, isStream, requestLang, responseLang, translationHelp) {
 			return translateFunc.call(this, VIDEO_ID, isStream, requestLang, responseLang, translationHelp);
 		}
-		/**
-		* used for enable audio downloader on this hosts
-		*/
 		isYouTubeHosts() {
 			return isYouTubeHosts.call(this);
 		}
-		/**
-		* Configures audio settings such as volume.
-		*/
 		setupAudioSettings() {
 			return setupAudioSettings.call(this);
 		}
 		applyManualVideoVolumeOverride(volume) {
 			return applyManualVideoVolumeOverride.call(this, volume);
 		}
-		/**
-		* Stops translation and synchronizes volume.
-		*/
 		stopTranslation = async () => {
 			this.translationOrchestrator?.reset();
 			this.overlayVisibility?.cancel();
 			await this.stopTranslate();
 			this.syncVideoVolumeSlider();
 		};
-		/**
-		* Handles video source change events.
-		*/
 		handleSrcChanged = () => this.lifecycleController.handleSrcChanged();
-		/** Rebinds an active handler when the page replaces its video element. */
 		async replaceVideo(video) {
 			if (this.video === video) return;
 			debug.log("[VideoHandler] replaceVideo", video);
@@ -30679,9 +29715,6 @@ var vot = (function(exports) {
 			this.resetSubtitlesWidget();
 			this.initExtraEvents();
 		}
-		/**
-		* Releases resources and removes event listeners.
-		*/
 		async release() {
 			debug.log("[VideoHandler] release");
 			this.initialized = false;
@@ -30704,10 +29737,6 @@ var vot = (function(exports) {
 			this.interactionChecker?.destroy();
 			this.uiManager.release();
 		}
-		/**
-		* Collects report information for bug reporting.
-		* @returns {Object} Report info object.
-		*/
 		collectReportInfo() {
 			const info = getEnvironmentInfo();
 			const detectedLanguage = this.videoData?.detectedLanguage ?? "unknown";
@@ -30733,13 +29762,10 @@ var vot = (function(exports) {
 				"additional-info": additionalInfo
 			};
 		}
-		/**
-		* Releases extra event listeners.
-		*/
 		releaseExtraEvents = releaseExtraEvents;
 	};
 	var videoObserver = new VideoObserver(createIntervalIdleChecker());
-	var videosWrappers = /* @__PURE__ */ new WeakMap();
+	var videosWrappers = new WeakMap();
 	var servicesCache = null;
 	var bootState = getOrCreateBootState();
 	function getFrameContext() {
@@ -30762,12 +29788,6 @@ var vot = (function(exports) {
 		servicesCache ??= getService();
 		return servicesCache;
 	}
-	/**
-	* Recursively finds the closest parent element matching a selector.
-	* @param {SiteData} site The site data.
-	* @param {HTMLElement} video The video element.
-	* @returns {HTMLElement|null} The matching parent element.
-	*/
 	function findContainer(site, video) {
 		debug.log("findContainer", site, site.selector, video);
 		if (!site.selector) {
@@ -30779,9 +29799,6 @@ var vot = (function(exports) {
 		else debug.log("findContainer without shadowRoot", matched);
 		return matched;
 	}
-	/**
-	* Main function to start the extension.
-	*/
 	async function main() {
 		const bootstrapMode = resolveBootstrapMode({
 			isIframe: isIframe(),
