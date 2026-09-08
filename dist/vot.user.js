@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.10
+// @version        1.11.11
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -1112,14 +1112,14 @@ var vot = (function(exports) {
 		host: "api.browser.yandex.ru",
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.transly.eu.cc",
-		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 YaBrowser/26.6.0.0 Safari/537.36",
-		componentVersion: "26.6.4.760",
-		chromiumRevision: "760",
+		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
+		componentVersion: "26.8.1.1024",
+		chromiumRevision: "1024",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.0.2"
+		version: "3.0.3"
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/logger.js
@@ -1765,6 +1765,30 @@ var vot = (function(exports) {
 	var CourseraHelper = class CourseraHelper extends VideoJSHelper {
 		API_ORIGIN = "https://www.coursera.org/api";
 		SUBTITLE_SOURCE = "coursera";
+		static VIDEO_ITEM_TYPES = [
+			"lecture",
+			"ungradedLab",
+			"ungradedWidget",
+			"supplement",
+			"programmingLab",
+			"programmingAssignment",
+			"notebook",
+			"lab",
+			"quiz",
+			"exam",
+			"peer",
+			"discussionPrompt",
+			"honors",
+			"staffGraded",
+			"assignment",
+			"review",
+			"workspaceLab",
+			"ungradedLti",
+			"gradedLti"
+		];
+		static LEARN_ITEM_RE = new RegExp(`learn/([^/]+)/(${this.VIDEO_ITEM_TYPES.join("|")})/([^/]+)`);
+		static PREVIEW_LECTURE_RE = /lecture\/([^/]+)\/([^/]+)/;
+		static LEARN_SLUG_RE = /learn\/([^/]+)/;
 		async getCourseData(courseIdOrSlug) {
 			try {
 				const url = typeof courseIdOrSlug === "string" && courseIdOrSlug.includes("-") ? `${this.API_ORIGIN}/onDemandCourses.v1?q=slug&slug=${courseIdOrSlug}` : `${this.API_ORIGIN}/onDemandCourses.v1/${courseIdOrSlug}`;
@@ -1775,7 +1799,7 @@ var vot = (function(exports) {
 			}
 		}
 		getCourseSlug() {
-			return (/learn\/([^/]+)\/lecture/.exec(window.location.pathname) ?? /lecture\/([^/]+)\//.exec(window.location.pathname))?.[1];
+			return CourseraHelper.LEARN_SLUG_RE.exec(window.location.pathname)?.[1] ?? CourseraHelper.PREVIEW_LECTURE_RE.exec(window.location.pathname)?.[1];
 		}
 		getCourseId() {
 			const player = CourseraHelper.getPlayer();
@@ -1825,7 +1849,7 @@ var vot = (function(exports) {
 			};
 		}
 		async getVideoId(url) {
-			return (/learn\/([^/]+)\/lecture\/([^/]+)/.exec(url.pathname) ?? /lecture\/([^/]+)\/([^/]+)/.exec(url.pathname))?.[0];
+			return CourseraHelper.LEARN_ITEM_RE.exec(url.pathname)?.[0] ?? CourseraHelper.PREVIEW_LECTURE_RE.exec(url.pathname)?.[0];
 		}
 	};
 	//#endregion
@@ -6055,8 +6079,8 @@ var vot = (function(exports) {
 		}
 	}
 	var browserSecHeaders = {
-		"sec-ch-ua": `"Chromium";v="148", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Not?A_Brand";v="99", "Yowser";v="2.5"`,
-		"sec-ch-ua-full-version-list": `"Chromium";v="148.0.7778.${chromiumRevision}", "YaBrowser";v="${componentVersion}", "Not?A_Brand";v="99.0.0.0", "Yowser";v="2.5"`,
+		"sec-ch-ua": `"Not;A=Brand";v="8", "Chromium";v="150", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Yowser";v="2.5"`,
+		"sec-ch-ua-full-version-list": `"Not;A=Brand";v="8.0.0.0", "Chromium";v="150.0.7871.${chromiumRevision}", "YaBrowser";v="${componentVersion}", "Yowser";v="2.5"`,
 		"Sec-Fetch-Mode": "no-cors"
 	};
 	//#endregion
@@ -10215,7 +10239,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.10"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.11"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -11636,8 +11660,8 @@ var vot = (function(exports) {
 					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
 						await this.requestVtransFailAudio(url);
 						await this.requestVtransAudio(url, translationData.translationId, {
-							audioFile: /* @__PURE__ */ new Uint8Array(),
-							fileId: AudioDownloadType.WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME
+							audioFile: /* @__PURE__ */ new Uint8Array(0),
+							fileId: `fallback-empty-audio:video-translation:${videoData.videoId}`
 						});
 						return await this.translateVideo({
 							videoData,
@@ -13020,14 +13044,16 @@ var vot = (function(exports) {
 		return await waitFor(() => {
 			const player = targetWindow.document.querySelector("#movie_player");
 			return player && typeof player.playVideo === "function" && typeof player.mute === "function" && typeof player.seekTo === "function" ? player : null;
-		}, 1e4, "MSE player wait");
+		}, 3e4, "MSE player wait");
 	}
-	function createAudioChunkStream(targetWindow, videoId, signal) {
+	function createAudioChunkStream(targetWindow, videoId, signal, onProgress) {
 		let cleanup = () => {};
 		return new ReadableStream({
 			async start(controller) {
 				try {
+					debug.log("Audio downloader. MSE iframe stream started", { videoId });
 					const player = await getPlayer(targetWindow);
+					debug.log("Audio downloader. MSE player found", { videoId });
 					try {
 						player.loadVideoById?.(videoId);
 					} catch {}
@@ -13072,55 +13098,102 @@ var vot = (function(exports) {
 						const earlyNewest = earlyStore?.captures.at(-1);
 						throw new Error(`Audio downloader. MSE media wait timed out (videos: ${videos.length}, readyState: ${video?.readyState ?? "none"}, playerState: ${getPlayerState() ?? "unknown"}, paused: ${video?.paused ?? "unknown"}, networkState: ${video?.networkState ?? "none"}, buffered: ${video?.buffered.length ?? "none"}, hasSrc: ${Boolean(video?.currentSrc)}, mediaError: ${video?.error?.code ?? "none"}, playReject: ${playReject ?? "none"}, captures: ${earlyStore?.captures.length ?? "none"}, newestMS: ${earlyNewest?.mediaSource.readyState ?? "none"})`, { cause: error });
 					}
+					debug.log("Audio downloader. MSE media ready", {
+						videoId,
+						readyState: readyVideo.readyState,
+						playerState: getPlayerState(),
+						playReject
+					});
 					try {
 						readyVideo.playbackRate = 2;
 					} catch {}
 					const store = installMediaSourceProxy(targetWindow);
 					let capture = await store.pick();
+					debug.log("Audio downloader. MSE capture picked", {
+						videoId,
+						captures: store.captures.length,
+						readyState: capture.mediaSource.readyState
+					});
 					let removeCaptureListener = () => {};
 					let pending = [];
 					let pendingSize = 0;
-					let heldChunk;
+					let totalSize = 0;
 					let seekTimeout;
+					let lastProgressAt = 0;
 					let closed = false;
-					const promotePendingChunk = () => {
-						if (heldChunk) controller.enqueue({
-							buffer: heldChunk,
-							isLastChunk: false
+					const enqueuePendingChunk = (isLastChunk) => {
+						const size = pendingSize;
+						controller.enqueue({
+							buffer: concatBuffers(pending),
+							isLastChunk
 						});
-						heldChunk = concatBuffers(pending);
+						debug.log("Audio downloader. MSE chunk enqueued", {
+							videoId,
+							size,
+							isLastChunk,
+							totalSize
+						});
 						pending = [];
 						pendingSize = 0;
 					};
 					const close = () => {
 						if (closed) return;
 						closed = true;
-						if (pendingSize > 0) promotePendingChunk();
-						if (!heldChunk?.byteLength) controller.error(/* @__PURE__ */ new Error("Audio downloader. Empty MSE stream"));
-						else {
-							controller.enqueue({
-								buffer: heldChunk,
-								isLastChunk: true
+						if (totalSize === 0) {
+							debug.error("Audio downloader. MSE empty stream", { videoId });
+							controller.error(/* @__PURE__ */ new Error("Audio downloader. Empty MSE stream"));
+						} else {
+							debug.log("Audio downloader. MSE stream finished", {
+								videoId,
+								totalSize
 							});
+							enqueuePendingChunk(true);
 							controller.close();
 						}
 						cleanup();
 					};
+					let firstAppendLogged = false;
 					const onCapturedEvent = (event) => {
 						if (closed) return;
 						if (event.type === "end") {
+							debug.log("Audio downloader. MSE end of stream", {
+								videoId,
+								totalSize,
+								pendingSize
+							});
 							close();
 							return;
 						}
 						if (event.type === "close") {
 							closed = true;
+							debug.error("Audio downloader. MSE source closed", {
+								videoId,
+								totalSize
+							});
 							controller.error(/* @__PURE__ */ new Error("Audio downloader. MSE source closed"));
 							cleanup();
 							return;
 						}
+						if (!firstAppendLogged) {
+							firstAppendLogged = true;
+							debug.log("Audio downloader. MSE first audio append", {
+								videoId,
+								size: event.buffer.byteLength
+							});
+						}
 						pending.push(event.buffer);
 						pendingSize += event.buffer.byteLength;
-						if (pendingSize >= MIN_CHUNK_SIZE) promotePendingChunk();
+						totalSize += event.buffer.byteLength;
+						if (pendingSize >= MIN_CHUNK_SIZE) enqueuePendingChunk(false);
+						else if (pendingSize >= MIN_CHUNK_SIZE / 2 && performance.now() - lastProgressAt >= 3e4) {
+							lastProgressAt = performance.now();
+							debug.log("Audio downloader. MSE progress ping", {
+								videoId,
+								pendingSize,
+								totalSize
+							});
+							onProgress?.();
+						}
 						const { buffered } = event.sourceBuffer;
 						const bufferedEnd = buffered.length > 0 ? Math.floor(buffered.end(buffered.length - 1)) : 0;
 						clearTimeout(seekTimeout);
@@ -13130,6 +13203,11 @@ var vot = (function(exports) {
 					const onAbort = () => {
 						if (closed) return;
 						closed = true;
+						debug.log("Audio downloader. MSE iframe stream aborted", {
+							videoId,
+							reason: String(signal.reason ?? "Aborted"),
+							totalSize
+						});
 						controller.error(new Error(String(signal.reason ?? "Aborted")));
 						cleanup();
 					};
@@ -13149,6 +13227,10 @@ var vot = (function(exports) {
 					signal.addEventListener("abort", onAbort, { once: true });
 					if (signal.aborted) onAbort();
 				} catch (error) {
+					debug.error("Audio downloader. MSE iframe stream failed", {
+						videoId,
+						error: error instanceof Error ? error.message : String(error)
+					});
 					controller.error(error);
 					cleanup();
 				}
@@ -13171,11 +13253,30 @@ var vot = (function(exports) {
 			if (data.messageId === message.messageId && data.isAborted) controller.abort(data.payload);
 		};
 		targetWindow.addEventListener("message", abort);
+		let settled = false;
 		try {
 			const videoId = getVideoId(message);
 			if (!videoId) throw new Error("Audio downloader. Missing video id");
-			await createAudioChunkStream(targetWindow, videoId, controller.signal).pipeTo(new WritableStream({
+			debug.log("Audio downloader. MSE iframe request started", {
+				videoId,
+				messageId: message.messageId
+			});
+			await createAudioChunkStream(targetWindow, videoId, controller.signal, () => {
+				if (settled) return;
+				postResponse(source, event.origin, {
+					...message,
+					messageDirection: "response",
+					payload: void 0,
+					isProgress: true
+				});
+			}).pipeTo(new WritableStream({
 				write(chunk) {
+					debug.log("Audio downloader. MSE iframe chunk sent", {
+						videoId,
+						messageId: message.messageId,
+						size: chunk.buffer.byteLength,
+						isLastChunk: chunk.isLastChunk
+					});
 					postResponse(source, event.origin, {
 						...message,
 						messageDirection: "response",
@@ -13183,6 +13284,11 @@ var vot = (function(exports) {
 					});
 				},
 				close() {
+					settled = true;
+					debug.log("Audio downloader. MSE iframe stream closed", {
+						videoId,
+						messageId: message.messageId
+					});
 					postResponse(source, event.origin, {
 						...message,
 						messageDirection: "response",
@@ -13192,6 +13298,11 @@ var vot = (function(exports) {
 				}
 			}));
 		} catch (error) {
+			settled = true;
+			debug.error("Audio downloader. MSE iframe request failed", {
+				messageId: message.messageId,
+				error: error instanceof Error ? error.message : String(error)
+			});
 			postResponse(source, event.origin, {
 				...message,
 				messageDirection: "response",
@@ -13214,6 +13325,10 @@ var vot = (function(exports) {
 		}
 		const videoId = getVideoId(message);
 		if (!videoId) return;
+		debug.log("Audio downloader. MSE top request started", {
+			videoId,
+			messageId: message.messageId
+		});
 		const iframe = targetWindow.document.createElement("iframe");
 		iframe.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
 		iframe.tabIndex = -1;
@@ -13239,10 +13354,19 @@ var vot = (function(exports) {
 				if (ready) return;
 				ready = true;
 				clearTimeout(timeout);
+				debug.log("Audio downloader. MSE iframe ready", {
+					videoId,
+					messageId: message.messageId
+				});
 				iframe.contentWindow?.postMessage(message, "*");
 			} else if (response.messageId === message.messageId && (response.error || response.isStreamFinished)) queueMicrotask(cleanup);
 		};
 		const timeout = setTimeout(() => {
+			debug.error("Audio downloader. MSE iframe loading timed out", {
+				videoId,
+				messageId: message.messageId,
+				ready
+			});
 			postResponse(source, event.origin, {
 				...message,
 				messageDirection: "response",
@@ -13282,7 +13406,7 @@ var vot = (function(exports) {
 	//#region src/audioDownloader/strategies/webMseProxy.ts
 	var MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 	var STREAM_TIMEOUT_MS = 18e5;
-	var MESSAGE_TIMEOUT_MS = 12e4;
+	var MESSAGE_TIMEOUT_MS = 3e5;
 	function parseMseProxyChunk(payload) {
 		if (!payload || typeof payload !== "object" || !("buffer" in payload)) throw new Error("Audio downloader. Invalid MSE chunk");
 		const { buffer, isLastChunk } = payload;
@@ -13300,6 +13424,7 @@ var vot = (function(exports) {
 		let wake;
 		let streamFinished = false;
 		let failure;
+		let receivedChunks = 0;
 		let messageTimeout;
 		const notify = () => {
 			wake?.();
@@ -13309,9 +13434,20 @@ var vot = (function(exports) {
 			if (error) {
 				if (failure) return;
 				failure = error;
+				debug.error("Audio downloader. MSE proxy failed", {
+					videoId,
+					messageId,
+					receivedChunks,
+					error: error.message
+				});
 			} else {
 				streamFinished = true;
 				clearTimeout(messageTimeout);
+				debug.log("Audio downloader. MSE proxy stream finished", {
+					videoId,
+					messageId,
+					receivedChunks
+				});
 			}
 			notify();
 		};
@@ -13339,8 +13475,24 @@ var vot = (function(exports) {
 				finish();
 				return;
 			}
+			if (message.isProgress) {
+				debug.log("Audio downloader. MSE proxy progress", {
+					videoId,
+					messageId
+				});
+				return;
+			}
 			try {
-				chunks.push(parseMseProxyChunk(message.payload));
+				const chunk = parseMseProxyChunk(message.payload);
+				chunks.push(chunk);
+				receivedChunks++;
+				debug.log("Audio downloader. MSE proxy chunk received", {
+					videoId,
+					messageId,
+					index: receivedChunks - 1,
+					size: chunk.buffer.byteLength,
+					isLastChunk: chunk.isLastChunk
+				});
 				notify();
 			} catch (error) {
 				finish(error instanceof Error ? error : new Error(String(error)));
@@ -13355,6 +13507,10 @@ var vot = (function(exports) {
 		signal.addEventListener("abort", onAbort, { once: true });
 		if (signal.aborted) onAbort();
 		resetMessageTimeout();
+		debug.log("Audio downloader. MSE proxy request started", {
+			videoId,
+			messageId
+		});
 		try {
 			if (!streamFinished && !failure) globalThis.postMessage({
 				messageId,
@@ -13449,7 +13605,7 @@ var vot = (function(exports) {
 					videoId,
 					error: err instanceof Error ? err.message : String(err)
 				});
-				this.onDownloadAudioError.dispatch(videoId);
+				this.onDownloadAudioError.dispatch(translationId, videoId);
 			}
 		}
 		addEventListener(type, listener) {
@@ -13757,7 +13913,7 @@ var vot = (function(exports) {
 			}
 			if (amount !== void 0 && index === amount - 1) this.finishDownloadSuccess();
 		};
-		onDownloadAudioError = async (videoId) => {
+		onDownloadAudioError = async (translationId, videoId) => {
 			if (!this.downloading) {
 				debug.log("skip downloadAudioError");
 				return;
@@ -13773,6 +13929,10 @@ var vot = (function(exports) {
 				else {
 					debug.log("Sending fail-audio-js request");
 					await this.videoHandler.votClient.provider.requestVtransFailAudio(videoUrl);
+					await this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
+						audioFile: /* @__PURE__ */ new Uint8Array(0),
+						fileId: `fallback-empty-audio:video-translation:${videoId}`
+					});
 					this.requestedFailAudio.add(videoUrl);
 				}
 				this.finishDownloadSuccess();
