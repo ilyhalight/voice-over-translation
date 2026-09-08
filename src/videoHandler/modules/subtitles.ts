@@ -1,6 +1,9 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { localizationProvider } from "../../localization/localizationProvider";
-import { SubtitlesProcessor } from "../../subtitles/processor";
+import {
+  SubtitlesProcessor,
+  SubtitlesRequestError,
+} from "../../subtitles/processor";
 import type {
   SubtitleDescriptor,
   VideoDataForSubtitles,
@@ -380,7 +383,12 @@ export async function loadSubtitles(this: VideoHandler) {
     this.subtitlesCacheKey = cacheKey;
   } catch (error) {
     console.error("[VOT] Failed to load subtitles:", error);
-    this.subtitles = [];
+    // The Yandex request failed (e.g. timeout), but the site's own subtitles
+    // don't depend on it, so keep them instead of dropping everything. The
+    // cache key is left unset on purpose: the degraded list isn't cached, so
+    // the next attempt can still pick up the Yandex tracks.
+    this.subtitles =
+      error instanceof SubtitlesRequestError ? error.fallbackSubtitles : [];
     this.subtitlesCacheKey = null;
   }
   await this.updateSubtitlesLangSelect();

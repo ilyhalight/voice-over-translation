@@ -12,7 +12,9 @@ import type {
 import { subtitleFontFamilyCss } from "../src/types/subtitles";
 
 Object.assign(globalThis, { DEBUG_MODE: false });
-const { SubtitlesProcessor } = await import("../src/subtitles/processor");
+const { SubtitlesProcessor, SubtitlesRequestError } = await import(
+  "../src/subtitles/processor"
+);
 
 const line = (
   startMs: number,
@@ -133,4 +135,38 @@ describe("subtitle standard round trips", () => {
       ).toEqual(comparableLines(parsed));
     });
   }
+});
+
+describe("subtitles request failures", () => {
+  const videoData = {
+    host: "youtube",
+    url: "https://youtu.be/abc",
+    detectedLanguage: "en",
+    videoId: "abc",
+    duration: 60,
+    subtitles: [
+      {
+        source: "youtube" as const,
+        format: "json" as const,
+        language: "en",
+        url: "https://example.com/site.json",
+      },
+    ],
+  };
+
+  test("keeps site subtitles when the yandex request fails", async () => {
+    const client = {
+      getSubtitles: () => Promise.reject(new Error("Timeout")),
+    };
+
+    const error = await SubtitlesProcessor.getSubtitles(client, videoData).then(
+      () => null,
+      (reason: unknown) => reason,
+    );
+
+    expect(error).toBeInstanceOf(SubtitlesRequestError);
+    expect(
+      (error as InstanceType<typeof SubtitlesRequestError>).fallbackSubtitles,
+    ).toEqual(videoData.subtitles);
+  });
 });

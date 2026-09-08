@@ -821,6 +821,27 @@ const buildYandexSubtitles = (
   return subtitles;
 };
 
+/**
+ * Thrown when the Yandex subtitles request fails (network error, timeout, etc).
+ *
+ * Carries the subtitles that don't depend on that request (the ones provided by
+ * the site itself), so callers can still show them instead of ending up with an
+ * empty subtitles list.
+ */
+export class SubtitlesRequestError extends Error {
+  readonly fallbackSubtitles: SubtitleDescriptor[];
+
+  constructor(
+    message: string,
+    fallbackSubtitles: SubtitleDescriptor[],
+    cause: unknown,
+  ) {
+    super(message, { cause });
+    this.name = "SubtitlesRequestError";
+    this.fallbackSubtitles = fallbackSubtitles;
+  }
+}
+
 export const SubtitlesProcessor = {
   processTokens(
     subtitles: ProcessedSubtitles,
@@ -988,7 +1009,11 @@ export const SubtitlesProcessor = {
         message = "Failed to get Yandex subtitles: timeout";
       }
       console.error(`[VOT] ${message}`, error);
-      throw error;
+      throw new SubtitlesRequestError(
+        message,
+        sortSubtitles(extraSubtitles, requestLang),
+        error,
+      );
     }
   },
 };
