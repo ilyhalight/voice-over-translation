@@ -90,7 +90,7 @@ export function request<T = unknown>(
         action,
       });
       reject(new Error(`VOT bridge timeout for ${action}`));
-    }, BRIDGE_REQUEST_TIMEOUT_MS);
+    }, BRIDGE_REQUEST_TIMEOUT_MS) as unknown as number;
 
     debug.log("[VOT EXT][prelude] GM API request", {
       requestId: id,

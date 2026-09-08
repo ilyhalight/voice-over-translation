@@ -7,7 +7,7 @@ import {
   getChromeExtensionBuildEnv,
 } from "./lib/extension/chrome-postbuild";
 import manifest from "./lib/extension/manifest.config";
-import { distExtDir } from "./lib/paths";
+import { DIST_EXT_DIR } from "./lib/paths";
 import { createBaseViteConfig } from "./lib/vite-base-config";
 
 function chromePackagePlugin(
@@ -35,7 +35,16 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     ...baseConfig,
-    plugins: [crx({ manifest }), chromePackagePlugin(buildConfig, headers)],
+    plugins: [
+      ...(baseConfig.plugins ?? []),
+      crx({
+        manifest,
+        contentScripts: {
+          standaloneFiles: ["src/extension/bridge.ts"],
+        },
+      }),
+      chromePackagePlugin(buildConfig, headers),
+    ],
     define: buildDefine({
       debug: false,
       isExtension: true,
@@ -52,7 +61,7 @@ export default defineConfig(async ({ mode }) => {
     },
     build: {
       ...baseConfig.build,
-      outDir: path.join(distExtDir, "chrome"),
+      outDir: path.join(DIST_EXT_DIR, "chrome"),
       emptyOutDir: true,
       sourcemap: false,
       minify: "oxc",

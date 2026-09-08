@@ -1,3 +1,4 @@
+import { EXT_NAME_FALLBACK } from "../../config/config";
 import debug from "../../utils/debug";
 import { BG_MSG_NOTIFICATION } from "../shared/constants";
 import { asErrorMessage, sendBridgeResponse } from "../shared/utils";
@@ -101,7 +102,7 @@ function createBridgeNotificationOptions(
   const options: Record<string, unknown> = {
     type: "basic",
     iconUrl: resolveNotificationIconUrl(),
-    title: details.title || "VOT",
+    title: details.title || EXT_NAME_FALLBACK,
     message: details.text,
   };
   if (!isFirefox) {

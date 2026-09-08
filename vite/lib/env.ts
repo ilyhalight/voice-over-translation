@@ -1,6 +1,6 @@
 import { loadEnv } from "vite";
-import { defineConstants, type ViteDefine } from "./define";
-import { rootDir } from "./paths";
+import { defineConstants, type ViteDefine } from "./define.ts";
+import { ROOT_DIR } from "./paths.ts";
 
 export interface BuildEnvMeta {
   debug: boolean;
@@ -13,7 +13,7 @@ export interface BuildEnvMeta {
 }
 
 export function getBuildConfig(mode: string) {
-  const env = loadEnv(mode, rootDir, "");
+  const env = loadEnv(mode, ROOT_DIR, "");
   return {
     REPO_BRANCH: env.GITHUB_REF_NAME || env.REPO_BRANCH || "master",
     IS_STORE_BUILD: env.IS_STORE_BUILD === "true",

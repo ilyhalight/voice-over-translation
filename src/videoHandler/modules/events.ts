@@ -2,7 +2,7 @@ import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { getVideoID } from "@vot.js/ext/utils/videoData";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang } from "@vot.js/shared/types/data";
-import { defaultAutoHideDelay } from "../../config/config";
+import { DEFAULT_AUTO_HIDE_DELAY } from "../../config/config";
 import {
   isDesktopYouTubeLikeSite,
   isMuteSyncDisabledHost,
@@ -119,36 +119,6 @@ function syncAudioTranslationVolumeFromVideo(
   if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
   self.syncVolumeWrapper("video", videoPercent);
 }
-function applyOverlayLayout(
-  self: VideoHandler,
-  overlayView: NonNullable<VideoHandler["uiManager"]["votOverlayView"]>,
-  heightPx?: number,
-): void {
-  const menu = overlayView.votMenu?.container;
-  if (menu) {
-    let height: number;
-
-    if (heightPx) {
-      height = heightPx;
-    } else if (self.fullscreenHelper) {
-      const target = self.fullscreenHelper.getResizeObserverTarget();
-      const rect = target.getBoundingClientRect();
-      height = rect.height || target.clientHeight || window.innerHeight * 0.75;
-    } else {
-      height = self.video.getBoundingClientRect().height;
-    }
-
-    if (!height || height < 200) {
-      height = window.innerHeight * 0.75;
-    }
-
-    menu.style.setProperty("--vot-container-height", `${height}px`);
-  }
-  const { position, direction } = overlayView.calcButtonLayout(
-    self.data?.buttonPos ?? "default",
-  );
-  overlayView.updateButtonLayout(position, direction);
-}
 type ParsedHotkey = {
   parts: readonly string[];
   partsSet: ReadonlySet<string>;
@@ -191,25 +161,9 @@ function isHotkeyMatch(
   }
   return true;
 }
-function bindOverlayLayoutEvents(ctx: ExtraEventsContext): void {
-  const { self, overlayView, addMany } = ctx;
-  const syncMountAndLayout = () => {
-    self.refreshOverlayMount();
-    applyOverlayLayout(self, overlayView);
-  };
-  self.resizeObserver = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      applyOverlayLayout(self, overlayView, entry.contentRect.height);
-    }
-  });
-  self.resizeObserver.observe(self.video);
-  syncMountAndLayout();
-  addMany(document, ["fullscreenchange", "webkitfullscreenchange"], () =>
-    syncMountAndLayout(),
-  );
-  addMany(self.video, ["webkitbeginfullscreen", "webkitendfullscreen"], () =>
-    syncMountAndLayout(),
-  );
+function bindOverlayMountEvents(ctx: ExtraEventsContext): void {
+  const { self } = ctx;
+  self.refreshOverlayMount();
 }
 function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
   const { self } = ctx;
@@ -228,11 +182,12 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
     }
     if (!hasVolumeMutation) return;
     self.syncVideoVolumeSlider();
-    const activeOverlayView = self.uiManager.votOverlayView;
-    if (!activeOverlayView?.isInitialized()) return;
-    const videoPercent = toPercentInt(
-      activeOverlayView.videoVolumeSlider.value,
-    );
+    const overlayViewControls =
+      self.uiManager.votOverlayView?.overlayViewControls;
+    if (!overlayViewControls) {
+      return;
+    }
+    const videoPercent = toPercentInt(overlayViewControls.getVideoVolume());
     syncAudioTranslationVolumeFromVideo(self, videoPercent);
   });
   const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
@@ -321,11 +276,31 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
 }
 function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
   const { self, overlayView, add, addMany, platformConfig } = ctx;
+  const dismissFloatingUI = () => {
+    const controls = overlayView.overlayViewControls;
+    if (!controls) return;
+
+    const isMenuOpen = !controls.getMenuHidden();
+    const isVoicePopoverOpen = controls.isVoicePopoverOpen();
+
+    if (isMenuOpen) {
+      controls.setMenuHidden(true);
+    }
+
+    if (isVoicePopoverOpen) {
+      controls.closeVoicePopover();
+    }
+
+    if (isMenuOpen || isVoicePopoverOpen) {
+      self.overlayVisibility?.queueAutoHide();
+    }
+  };
+
   add(document, "click", (event) => {
-    const target = event.target as Node | null;
-    const button = overlayView.votButton?.container;
-    const menu = overlayView.votMenu?.container;
-    const settings = self.uiManager.votSettingsView?.dialog?.container;
+    const overlayViewControls = overlayView.overlayViewControls;
+    const button = overlayViewControls?.getButtonOverlayEl();
+    const menu = overlayViewControls?.getMenuOverlayEl();
+    const settings = self.uiManager.votSettingsView?.root;
     const path = event.composedPath();
     const isInPath = (element?: EventTarget | null) =>
       Boolean(element && path.includes(element));
@@ -333,19 +308,22 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     const isMenu = isInPath(menu);
     const isVideo = isInPath(self.container);
     const isSettings = isInPath(settings);
-    const isTempDialog =
-      target instanceof Element &&
-      target.closest(".vot-dialog-temp") instanceof Element;
-    debug.log(
-      `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings} ${isTempDialog}`,
+    const isSelectInner = path.some(
+      (element) =>
+        element instanceof HTMLElement &&
+        element.classList.contains("vot-select-inner"),
     );
-    if (isButton || isMenu || isSettings || isTempDialog) return;
+    debug.log(
+      `[document click] ${isButton} ${isMenu} ${isVideo} ${isSettings}`,
+    );
+    if (isButton || isMenu || isSelectInner || isSettings) return;
     if (!isVideo) overlayView.updateButtonOpacity(0);
-    if (menu && !menu.hidden) {
-      menu.hidden = true;
-      self.overlayVisibility?.queueAutoHide();
-    }
+    dismissFloatingUI();
   });
+  if (self.site.host === "custom") {
+    addMany(self.video, ["play", "pause", "seeking"], dismissFloatingUI);
+  }
+
   const userPressedKeys = new Set<string>();
   const hotkeyCache = new Map<string, ParsedHotkey>();
   const clearUserPressedKeys = () => userPressedKeys.clear();
@@ -407,7 +385,9 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     const useWindowEvents = isIframe() && globalThis.window !== undefined;
     const interactionTarget = useWindowEvents
       ? globalThis.window
-      : eventContainer;
+      : platformConfig.useDocumentInteractionTarget
+        ? document
+        : eventContainer;
 
     if (useWindowEvents) {
       addMany(
@@ -513,7 +493,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
       return;
     }
     debug.log("lipsync mode is emptied");
-    resetAndHideLifecycle(self, overlayView, {
+    resetAndHideLifecycle(self, overlayView.overlayViewControls, {
       clearVideoData: true,
       hideMenu: true,
     });
@@ -526,11 +506,12 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
   if (!isMuteSyncDisabledHost(self.site.host)) {
     add(self.video, "volumechange", () => {
       self.syncVideoVolumeSlider();
-      const activeOverlayView = self.uiManager.votOverlayView;
-      if (!activeOverlayView?.isInitialized()) return;
-      const videoPercent = toPercentInt(
-        activeOverlayView.videoVolumeSlider.value,
-      );
+      const overlayViewControls =
+        self.uiManager.votOverlayView?.overlayViewControls;
+      if (!overlayViewControls) {
+        return;
+      }
+      const videoPercent = toPercentInt(overlayViewControls.getVideoVolume());
       syncAudioTranslationVolumeFromVideo(self, videoPercent, {
         skipYouTubeLikeHosts: true,
       });
@@ -546,7 +527,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
 }
 export function initExtraEvents(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) return;
+  if (!overlayView?.overlayViewControls) return;
   const { add, addMany } = createScopedListeners(this.abortController.signal);
   const ctx: ExtraEventsContext = {
     self: this,
@@ -556,7 +537,7 @@ export function initExtraEvents(this: VideoHandler) {
     addMany,
   };
   bindPlaybackRefreshOnResume(ctx);
-  bindOverlayLayoutEvents(ctx);
+  bindOverlayMountEvents(ctx);
   bindYouTubeVolumeSync(ctx);
   bindAudioTrackLanguageSync(ctx);
   bindGlobalDismissAndHotkeys(ctx);
@@ -566,11 +547,18 @@ export function rebindOverlayVisibilityTargets(this: VideoHandler) {
   this.overlayVisibilityTargetsAbortController?.abort();
   this.overlayVisibilityTargetsAbortController = new AbortController();
   const { signal } = this.overlayVisibilityTargetsAbortController;
-  const overlayView = this.uiManager?.votOverlayView;
-  const overlayButton = overlayView?.votButton?.container;
-  const overlayMenu = overlayView?.votMenu?.container;
+  const overlayViewControls =
+    this.uiManager?.votOverlayView?.overlayViewControls;
+  if (!overlayViewControls) {
+    return;
+  }
 
-  if (!overlayButton || !overlayMenu || !this.overlayVisibility) return;
+  const overlayButton = overlayViewControls.getButtonOverlayEl();
+  const overlayMenu = overlayViewControls.getMenuOverlayEl();
+  if (!overlayButton || !overlayMenu || !this.overlayVisibility) {
+    return;
+  }
+
   const overlayVisibility = this.overlayVisibility;
   const { addMany } = createScopedListeners(signal);
   bindOverlayHoverFocusEvents(addMany, overlayButton, overlayVisibility);
@@ -579,7 +567,7 @@ export function rebindOverlayVisibilityTargets(this: VideoHandler) {
   // Keep the overlay visible while the voice popover is hovered/focused.
   // Popover is portaled next to the menu under the overlay root (not under the
   // button subtree), so visibility logic must treat it like the menu.
-  const voicePopoverContainer = overlayView?.voicePopover?.container;
+  const voicePopoverContainer = overlayViewControls.getVoicePopoverEl();
   if (voicePopoverContainer) {
     bindOverlayHoverFocusEvents(
       addMany,
@@ -593,10 +581,11 @@ export function isOverlayInteractiveNode(
   node: unknown,
 ): boolean {
   if (!(node instanceof Node)) return false;
-  const overlayView = this.uiManager?.votOverlayView;
-  const buttonContainer = overlayView?.votButton?.container;
-  const menuContainer = overlayView?.votMenu?.container;
-  const voicePopoverContainer = overlayView?.voicePopover?.container;
+  const overlayViewControls =
+    this.uiManager?.votOverlayView?.overlayViewControls;
+  const buttonContainer = overlayViewControls?.getButtonOverlayEl();
+  const menuContainer = overlayViewControls?.getMenuOverlayEl();
+  const voicePopoverContainer = overlayViewControls?.getVoicePopoverEl();
   return (
     (buttonContainer instanceof Node &&
       containsCrossShadow(buttonContainer, node)) ||
@@ -610,10 +599,9 @@ export function getAutoHideDelay(this: VideoHandler): number {
   const delay = this.data?.autoHideButtonDelay;
   return typeof delay === "number" && Number.isFinite(delay)
     ? delay
-    : defaultAutoHideDelay;
+    : DEFAULT_AUTO_HIDE_DELAY;
 }
 export function releaseExtraEvents(this: VideoHandler) {
-  this.resizeObserver?.disconnect();
   this.overlayVisibilityTargetsAbortController?.abort();
   this.overlayVisibilityTargetsAbortController = undefined;
   if (isDesktopYouTubeLikeSite(this.site)) {

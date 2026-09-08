@@ -6,6 +6,24 @@ const SAFE_HEX_COLOR_RE =
 const SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
 const SAFE_CLASS_NAME_RE = /^[a-z0-9_-]+$/iu;
 
+/**
+ * Bounded memo for color validation. Subtitle tracks reuse a very small set of
+ * distinct colors, so a tiny cache removes 3 regex tests per styled token per
+ * render without unbounded growth.
+ */
+const COLOR_CACHE_LIMIT = 256;
+const colorCache = new Map<string, string | undefined>();
+
+/**
+ * Memo for normalization / css-text derivation keyed by the *style object*.
+ *
+ * Contract: `SubtitleInlineStyle` values produced by the parsers are treated as
+ * immutable (they are created once per token and never mutated). A `WeakMap`
+ * keeps the memo tied to the token lifetime, so it cannot leak.
+ */
+const normalizedCache = new WeakMap<object, SubtitleInlineStyle | undefined>();
+const cssTextCache = new WeakMap<object, string>();
+
 const normalizeClassNames = (
   classes: readonly string[] | undefined,
 ): string[] | undefined => {
@@ -23,6 +41,16 @@ const normalizeClassNames = (
 };
 
 export const normalizeCssColorValue = (value: string): string | undefined => {
+  const cached = colorCache.get(value);
+  if (cached !== undefined || colorCache.has(value)) return cached;
+
+  const result = computeNormalizedCssColorValue(value);
+  if (colorCache.size >= COLOR_CACHE_LIMIT) colorCache.clear();
+  colorCache.set(value, result);
+  return result;
+};
+
+const computeNormalizedCssColorValue = (value: string): string | undefined => {
   const normalized = value.trim();
   if (!normalized) return undefined;
 
@@ -41,11 +69,9 @@ export const normalizeCssColorValue = (value: string): string | undefined => {
   return undefined;
 };
 
-export const normalizeSubtitleInlineStyle = (
-  style: Partial<SubtitleInlineStyle> | undefined,
+const computeNormalizedSubtitleInlineStyle = (
+  style: Partial<SubtitleInlineStyle>,
 ): SubtitleInlineStyle | undefined => {
-  if (!style) return undefined;
-
   const normalized: SubtitleInlineStyle = {};
   if (style.italic) normalized.italic = true;
   if (style.bold) normalized.bold = true;
@@ -65,6 +91,19 @@ export const normalizeSubtitleInlineStyle = (
   }
 
   return Object.keys(normalized).length ? normalized : undefined;
+};
+
+export const normalizeSubtitleInlineStyle = (
+  style: Partial<SubtitleInlineStyle> | undefined,
+): SubtitleInlineStyle | undefined => {
+  if (!style) return undefined;
+
+  const cached = normalizedCache.get(style);
+  if (cached !== undefined || normalizedCache.has(style)) return cached;
+
+  const normalized = computeNormalizedSubtitleInlineStyle(style);
+  normalizedCache.set(style, normalized);
+  return normalized;
 };
 
 export const sanitizeSubtitleInlineStyle = (
@@ -90,8 +129,12 @@ export const subtitleInlineStylesEqual = (
   left: SubtitleInlineStyle | undefined,
   right: SubtitleInlineStyle | undefined,
 ): boolean => {
+  if (left === right) return true;
+
   const leftNormalized = normalizeSubtitleInlineStyle(left);
   const rightNormalized = normalizeSubtitleInlineStyle(right);
+  if (leftNormalized === rightNormalized) return true;
+
   const leftClasses = leftNormalized?.classes ?? [];
   const rightClasses = rightNormalized?.classes ?? [];
 
@@ -109,7 +152,15 @@ export const subtitleInlineStylesEqual = (
 export const buildSubtitleInlineStyleCssText = (
   style: SubtitleInlineStyle | undefined,
 ): string => {
+  if (!style) return "";
+
+  const cached = cssTextCache.get(style);
+  if (cached !== undefined) return cached;
+
   const normalized = normalizeSubtitleInlineStyle(style);
-  if (!normalized?.color) return "";
-  return `--vot-subtitles-inline-color:${normalized.color};`;
+  const cssText = normalized?.color
+    ? `--vot-subtitles-inline-color:${normalized.color};`
+    : "";
+  cssTextCache.set(style, cssText);
+  return cssText;
 };

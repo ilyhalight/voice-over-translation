@@ -1,10 +1,10 @@
-import { EventImpl } from "../core/eventImpl";
 import type {
   AudioDownloadRequestOptions,
   DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
 import debug from "../utils/debug";
+import { EventImpl } from "../utils/eventImpl";
 
 import {
   type AvailableAudioDownloadType,

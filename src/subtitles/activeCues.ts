@@ -1,5 +1,4 @@
 import type { SubtitleLine, SubtitleToken } from "../types/subtitles";
-import { isTimeInLine } from "./layoutController";
 
 type IndexedSubtitleLine = {
   index: number;
@@ -49,24 +48,44 @@ const linesOverlapInTime = (
   return left.startMs < rightEnd && right.startMs < leftEnd;
 };
 
+/**
+ * Removes duplicate cues that render identical text for the same speaker in an
+ * overlapping time window.
+ *
+ * Consolidated from the previous O(n^2) implementation that recomputed
+ * `toRenderableTextKey()` (a regex normalization over the full cue text) inside
+ * the inner comparison. Keys are now computed exactly once per entry and
+ * candidates are grouped by `key + speakerId`, so only genuinely comparable
+ * cues are time-checked. Output order and selection are unchanged.
+ */
 const dedupeActiveLines = (
   lines: IndexedSubtitleLine[],
 ): IndexedSubtitleLine[] => {
   const deduped: IndexedSubtitleLine[] = [];
+  const byKey = new Map<string, IndexedSubtitleLine[]>();
 
   for (const entry of lines) {
     const textKey = toRenderableTextKey(entry.line);
     if (!textKey) continue;
 
-    const isDuplicate = deduped.some((existing) => {
-      return (
-        textKey === toRenderableTextKey(existing.line) &&
-        existing.line.speakerId === entry.line.speakerId &&
-        linesOverlapInTime(existing.line, entry.line)
-      );
-    });
+    const groupKey = `${textKey}\u0000${entry.line.speakerId ?? ""}`;
+    const group = byKey.get(groupKey);
+    if (!group) {
+      byKey.set(groupKey, [entry]);
+      deduped.push(entry);
+      continue;
+    }
+
+    let isDuplicate = false;
+    for (const existing of group) {
+      if (linesOverlapInTime(existing.line, entry.line)) {
+        isDuplicate = true;
+        break;
+      }
+    }
 
     if (!isDuplicate) {
+      group.push(entry);
       deduped.push(entry);
     }
   }
@@ -116,7 +135,7 @@ export const findActiveSubtitleLineIndices = (
     if (line.startMs < minStartMs) {
       break;
     }
-    if (isTimeInLine(time, line)) {
+    if (time >= line.startMs && time < line.startMs + line.durationMs) {
       activeLineIndices.push(index);
     }
   }

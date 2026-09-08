@@ -451,6 +451,12 @@
 
 - `my.mail.ru`
 
+Доступные пути:
+
+- /v/NICKNAME/video/...
+- /mail/NICKNAME/video/...
+- video/embed/VIDEO_ID
+
 ## Bitchute
 
 Статус: [✅] Работает
@@ -583,6 +589,10 @@
 Доступные (под)домены:
 
 - `ok.ru`
+
+Доступные пути:
+
+- /video/VIDEO_ID
 
 ## Google Drive
 
@@ -804,6 +814,10 @@
 - `coursehunter.net`
 - `coursetrain.net`
 
+Доступные пути:
+
+- /course/COURSE_ID
+
 ## Sap
 
 Статус: [✅] Работает
@@ -902,23 +916,6 @@
 Ограничения:
 
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
-
-## Incestflix
-
-Статус: [✅] Работает
-
-Доступные (под)домены:
-
-- `incestflix.net`
-- `incestflix.to`
-- `incestflix.com`
-- `www.incestflix.net`
-- `www.incestflix.to`
-- `www.incestflix.com`
-
-Доступные пути:
-
-- /watch/VIDEO_ID
 
 ## Dzen
 
@@ -1171,6 +1168,14 @@
 
 - `skilljar.com`
 
+## Wistia
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `fast.wistia.net`
+
 ## Direct link to MP4/WEBM
 
 Статус: [✅] Работает
@@ -1178,3 +1183,12 @@
 Доступные (под)домены:
 
 - `any`
+
+Доступные пути:
+
+- /*.mp4
+- /*.webm
+
+Ограничения:
+
+- Нельзя переводить локальные видео

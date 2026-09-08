@@ -1,4 +1,4 @@
-import { defaultAutoVolume } from "../../config/config";
+import { DEFAULT_AUTO_VOLUME } from "../../config/config";
 import debug from "../../utils/debug";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
@@ -449,7 +449,7 @@ function smartDuckingTick(handler: VideoHandler): void {
   const hostVideo = handler.video;
   const hostVideoActive = !(hostVideo && (hostVideo.paused || hostVideo.ended));
   const dynamicDuckingTarget =
-    clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
+    clamp(handler.data?.autoVolume ?? DEFAULT_AUTO_VOLUME, 0, 100) / 100;
   const rms =
     audioIsPlaying && media ? getTranslatedAudioRms(handler, media) : 0;
 
@@ -505,7 +505,7 @@ export function setupAudioSettings(this: VideoHandler) {
   }
 
   const targetVolume =
-    clamp(this.data.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
+    clamp(this.data.autoVolume ?? DEFAULT_AUTO_VOLUME, 0, 100) / 100;
 
   if (!this.hasActiveSource()) {
     return;
