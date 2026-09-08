@@ -1,10 +1,10 @@
-import { EventImpl } from "../core/eventImpl";
 import type {
   AudioDownloadRequestOptions,
   DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
 import debug from "../utils/debug";
+import { EventImpl } from "../utils/eventImpl";
 
 import {
   type AvailableAudioDownloadType,
@@ -71,7 +71,7 @@ export class AudioDownloader {
   onDownloadedPartialAudio = new EventImpl<
     [string, DownloadedPartialAudioData]
   >();
-  onDownloadAudioError = new EventImpl<[string]>();
+  onDownloadAudioError = new EventImpl<[string, string]>();
 
   strategy: AvailableAudioDownloadType;
 
@@ -102,7 +102,7 @@ export class AudioDownloader {
         videoId,
         error: err instanceof Error ? err.message : String(err),
       });
-      this.onDownloadAudioError.dispatch(videoId);
+      this.onDownloadAudioError.dispatch(translationId, videoId);
     }
   }
 
@@ -116,7 +116,7 @@ export class AudioDownloader {
   ): this;
   addEventListener(
     type: "downloadAudioError",
-    listener: (videoId: string) => void,
+    listener: (translationId: string, videoId: string) => void,
   ): this;
   addEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
@@ -147,7 +147,7 @@ export class AudioDownloader {
   ): this;
   removeEventListener(
     type: "downloadAudioError",
-    listener: (videoId: string) => void,
+    listener: (translationId: string, videoId: string) => void,
   ): this;
   removeEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",

@@ -1,12 +1,13 @@
 import { AudioDownloadType } from "@vot.js/core/types/yandex";
 
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
+import debug from "../../utils/debug";
 
 import "./mseProxyHandler";
 
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 export const STREAM_TIMEOUT_MS = 30 * 60_000;
-const MESSAGE_TIMEOUT_MS = 2 * 60_000;
+const MESSAGE_TIMEOUT_MS = 5 * 60_000;
 
 export type MseProxyChunk = {
   buffer: Uint8Array;
@@ -49,6 +50,7 @@ async function* getMseProxyChunks(
   let wake: (() => void) | undefined;
   let streamFinished = false;
   let failure: Error | undefined;
+  let receivedChunks = 0;
   let messageTimeout: ReturnType<typeof setTimeout>;
 
   const notify = () => {
@@ -59,9 +61,20 @@ async function* getMseProxyChunks(
     if (error) {
       if (failure) return;
       failure = error;
+      debug.error("Audio downloader. MSE proxy failed", {
+        videoId,
+        messageId,
+        receivedChunks,
+        error: error.message,
+      });
     } else {
       streamFinished = true;
       clearTimeout(messageTimeout);
+      debug.log("Audio downloader. MSE proxy stream finished", {
+        videoId,
+        messageId,
+        receivedChunks,
+      });
     }
     notify();
   };
@@ -114,9 +127,25 @@ async function* getMseProxyChunks(
       finish();
       return;
     }
+    if (message.isProgress) {
+      debug.log("Audio downloader. MSE proxy progress", {
+        videoId,
+        messageId,
+      });
+      return;
+    }
 
     try {
-      chunks.push(parseMseProxyChunk(message.payload));
+      const chunk = parseMseProxyChunk(message.payload);
+      chunks.push(chunk);
+      receivedChunks++;
+      debug.log("Audio downloader. MSE proxy chunk received", {
+        videoId,
+        messageId,
+        index: receivedChunks - 1,
+        size: chunk.buffer.byteLength,
+        isLastChunk: chunk.isLastChunk,
+      });
       notify();
     } catch (error) {
       finish(error instanceof Error ? error : new Error(String(error)));
@@ -137,6 +166,11 @@ async function* getMseProxyChunks(
   signal.addEventListener("abort", onAbort, { once: true });
   if (signal.aborted) onAbort();
   resetMessageTimeout();
+
+  debug.log("Audio downloader. MSE proxy request started", {
+    videoId,
+    messageId,
+  });
 
   try {
     if (!streamFinished && !failure) {
