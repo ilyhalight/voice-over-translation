@@ -43,3 +43,11 @@ Only use the new localization key after it has been added through this command.
 ALWAYS write commit messages in English. You MUST use the semantic commits format. NEVER use `src/localization/locales/*` files to write commit messages, except in the case where these are the only changes.
 
 NEVER make push or pull requests without ASK an user!
+
+## GM API
+
+Never use `unsafeWindow`!
+
+## YouTube API (Browser)
+
+You can check static fields of `YoutubeHelper` from `@vot.js/ext/helpers/youtube` package to get some useful typed methods instead of reimplement it yourself.

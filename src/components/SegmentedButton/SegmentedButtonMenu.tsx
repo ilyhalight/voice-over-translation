@@ -125,9 +125,12 @@ function DebugYTAudioComponent() {
               }
             },
           )
-          .addEventListener("downloadAudioError", (videoId: string) => {
-            debug.log("downloadAudioError", videoId);
-          });
+          .addEventListener(
+            "downloadAudioError",
+            (translationId: string, videoId: string) => {
+              debug.log("downloadAudioError", translationId, videoId);
+            },
+          );
         await audioDownloader.runAudioDownload(
           await getVideoID(
             { host: VideoService.youtube, url: "https://youtu.be/" },
