@@ -9,6 +9,7 @@ import { EventImpl } from "../utils/eventImpl";
 import {
   type AvailableAudioDownloadType,
   strategies,
+  WEB_ABR_STRATEGY,
   WEB_MSE_PROXY_STRATEGY,
 } from "./strategies";
 
@@ -21,11 +22,14 @@ function assertHasAudioChunk(chunk: Uint8Array | undefined): Uint8Array {
 
 async function handleCommonAudioDownloadRequest({
   audioDownloader,
+  attemptedStrategy,
   translationId,
   videoId,
   signal,
-}: AudioDownloadRequestOptions) {
-  const audioData = await strategies[audioDownloader.strategy]({
+}: AudioDownloadRequestOptions & {
+  attemptedStrategy: AvailableAudioDownloadType;
+}) {
+  const audioData = await strategies[attemptedStrategy]({
     videoId,
     signal,
   });
@@ -33,7 +37,7 @@ async function handleCommonAudioDownloadRequest({
     throw new Error("Audio downloader. Can not get audio data");
   }
   debug.log("Audio downloader. Url found", {
-    audioDownloadType: audioDownloader.strategy,
+    audioDownloadType: attemptedStrategy,
   });
 
   const { getMediaBuffers, fileId } = audioData;
@@ -62,7 +66,7 @@ async function handleCommonAudioDownloadRequest({
   }
 
   if (!receivedLastChunk) {
-    throw new Error("Audio downloader. MSE stream ended without a last chunk");
+    throw new Error("Audio downloader. Stream ended without a last chunk");
   }
 }
 
@@ -75,7 +79,7 @@ export class AudioDownloader {
 
   strategy: AvailableAudioDownloadType;
 
-  constructor(strategy: AvailableAudioDownloadType = WEB_MSE_PROXY_STRATEGY) {
+  constructor(strategy: AvailableAudioDownloadType = WEB_ABR_STRATEGY) {
     this.strategy = strategy;
     debug.log("Audio downloader created", {
       strategy,
@@ -87,23 +91,55 @@ export class AudioDownloader {
     translationId: string,
     signal: AbortSignal,
   ) {
-    try {
-      await handleCommonAudioDownloadRequest({
-        audioDownloader: this,
-        translationId,
-        videoId,
-        signal,
-      });
-      debug.log("Audio downloader. Audio download finished", {
-        videoId,
-      });
-    } catch (err) {
-      debug.error("Audio downloader. Failed to download audio", {
-        videoId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      this.onDownloadAudioError.dispatch(translationId, videoId);
+    const attempts: AvailableAudioDownloadType[] =
+      this.strategy === WEB_ABR_STRATEGY
+        ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
+        : [this.strategy];
+    const errors: unknown[] = [];
+
+    for (const attemptedStrategy of attempts) {
+      try {
+        await handleCommonAudioDownloadRequest({
+          audioDownloader: this,
+          attemptedStrategy,
+          translationId,
+          videoId,
+          signal,
+        });
+        debug.log("Audio downloader. Audio download finished", {
+          videoId,
+          audioDownloadType: attemptedStrategy,
+        });
+        return;
+      } catch (error) {
+        if (
+          signal.aborted ||
+          (error as { name?: string } | null)?.name === "AbortError"
+        ) {
+          debug.log("Audio downloader. Audio download aborted", {
+            videoId,
+            audioDownloadType: attemptedStrategy,
+          });
+          return;
+        }
+        errors.push(error);
+        debug.error("Audio downloader. Strategy failed", {
+          videoId,
+          audioDownloadType: attemptedStrategy,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
+
+    const error =
+      errors.length === 1
+        ? errors[0]
+        : new AggregateError(errors, "All audio download strategies failed");
+    debug.error("Audio downloader. Failed to download audio", {
+      videoId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    this.onDownloadAudioError.dispatch(translationId, videoId);
   }
 
   addEventListener(

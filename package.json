@@ -52,8 +52,10 @@
     "@vot.js/ext": "^3.0.3",
     "@vot.js/core": "^3.0.3",
     "@vot.js/shared": "^3.0.3",
+    "astring": "1.9.0",
     "bowser": "^2.14.1",
     "chaimu": "^1.1.0",
-    "lit-html": "^3.3.3"
+    "lit-html": "^3.3.3",
+    "meriyah": "6.1.4"
   }
 }
