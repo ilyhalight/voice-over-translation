@@ -9,9 +9,9 @@ const {
   buildWebCreatorPlayerRequest,
   buildWebEmbeddedPlayerRequest,
   buildWebPlayerRequest,
+  collectPageSolutions,
   mintPagePoToken,
   selectWebEmbeddedAudioFormat,
-  solveWithPagePlayer,
 } = await import("../src/audioDownloader/strategies/webAbr");
 
 test("builds YouTube's ramped media ranges", () => {
@@ -184,15 +184,6 @@ test("builds the yt-dlp web_embedded request and selects direct Opus audio", asy
     webRequest.playbackContext.contentPlaybackContext.signatureTimestamp,
   ).toBe(20702);
 
-  const sha1Hex = async (value: string) => {
-    const digest = await crypto.subtle.digest(
-      "SHA-1",
-      new TextEncoder().encode(value),
-    );
-    return [...new Uint8Array(digest)]
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
-  };
   expect(
     await buildSidAuthorization(
       "SAPISIDHASH",
@@ -200,7 +191,7 @@ test("builds the yt-dlp web_embedded request and selects direct Opus audio", asy
       "https://www.youtube.com",
       "123",
     ),
-  ).toBe(`SAPISIDHASH 123_${await sha1Hex("123 sid https://www.youtube.com")}`);
+  ).toBe("SAPISIDHASH 123_9f7b839a9037086c827e7212ab185e652786244e");
   expect(
     await buildSidAuthorization(
       "SAPISIDHASH",
@@ -209,9 +200,7 @@ test("builds the yt-dlp web_embedded request and selects direct Opus audio", asy
       "123",
       "uid",
     ),
-  ).toBe(
-    `SAPISIDHASH 123_${await sha1Hex("uid 123 sid https://www.youtube.com")}_u`,
-  );
+  ).toBe("SAPISIDHASH 123_f3aae25f0759efdc6d8be91f09dbd17fa4a2fd94_u");
 
   const stsOverride = buildWebEmbeddedPlayerRequest(
     {
@@ -237,83 +226,18 @@ test("solves sig/n through the page player without eval", () => {
   };
   const decodedSig = `${longSig}${pad}`;
   const decodedN = `nnn${pad}`;
-  // Lazily-transformed URL class (base.js style): constructor stores,
-  // a proto method decodes.
-  class LazyYtUrl {
-    url: string;
-    params = new URLSearchParams();
-    constructor(url: string, _trusted?: boolean) {
-      this.url = url;
-      for (const [key, value] of new URL(url).searchParams) {
-        this.params.set(key, value);
-      }
-    }
-    set(key: string, value: string) {
-      this.params.set(key, value);
-    }
-    get(key: string) {
-      return this.params.get(key);
-    }
-    clone() {
-      return new LazyYtUrl(this.url);
-    }
-    decipher() {
-      for (const [key, value] of [...this.params]) {
-        this.params.set(key, decode(value));
-      }
-    }
-  }
-  // Eagerly-transformed URL class (page runtime style): constructor decodes.
-  class EagerYtUrl {
-    params = new URLSearchParams();
-    constructor(url: string) {
-      for (const [key, value] of new URL(url).searchParams) {
-        this.params.set(key, decode(value));
-      }
-    }
-    set(key: string, value: string) {
-      this.params.set(key, decode(value));
-    }
-    get(key: string) {
-      return this.params.get(key);
-    }
-    clone() {
-      return new EagerYtUrl("https://example.com/");
-    }
-    decipher() {
-      for (const [key, value] of [...this.params]) {
-        this.params.set(key, decode(value));
-      }
-    }
-  }
-  const pageWindow = {
-    _yt_player: { LazyYtUrl, EagerYtUrl },
-  } as any;
+  const expected = { signature: decodedSig, n: decodedN };
   const challenge = {
     url: `https://example.com/videoplayback?n=enc(nnn)&sp=sig&s=enc(${longSig})`,
     sp: "sig",
     signature: `enc(${longSig})`,
     n: "enc(nnn)",
   };
-  // LazyYtUrl matches first: constructor stores, transform decodes once.
-  expect(solveWithPagePlayer(pageWindow, challenge)).toEqual({
-    signature: decodedSig,
-    n: decodedN,
-  });
-  // Eager class first: already decoded, transform must not run twice.
-  expect(
-    solveWithPagePlayer({ _yt_player: { EagerYtUrl } } as any, challenge),
-  ).toEqual({ signature: decodedSig, n: decodedN });
-  expect(() => solveWithPagePlayer({} as any, challenge)).toThrow(
-    "page challenge solve incomplete",
-  );
-  // A bogus transform producing invalid output is filtered, the valid one wins.
-  class NoisyYtUrl {
-    params = new URLSearchParams();
-    constructor(url: string) {
-      for (const [key, value] of new URL(url).searchParams) {
-        this.params.set(key, value);
-      }
+
+  class YtUrl {
+    params: URLSearchParams;
+    constructor(url: string, _trusted?: boolean) {
+      this.params = new URL(url).searchParams;
     }
     set(key: string, value: string) {
       this.params.set(key, value);
@@ -322,75 +246,46 @@ test("solves sig/n through the page player without eval", () => {
       return this.params.get(key);
     }
     clone() {
-      return new NoisyYtUrl("https://example.com/");
+      return new YtUrl("https://example.com/");
     }
     decipher() {
       for (const [key, value] of [...this.params]) {
         this.params.set(key, decode(value));
       }
     }
+  }
+  class EagerYtUrl extends YtUrl {
+    constructor(url: string) {
+      super(url);
+      this.decipher();
+    }
+    set(key: string, value: string) {
+      this.params.set(key, decode(value));
+    }
+  }
+
+  expect(
+    collectPageSolutions(
+      { _yt_player: { YtUrl, EagerYtUrl } } as any,
+      challenge,
+    ),
+  ).toEqual([expected]);
+  expect(
+    collectPageSolutions({ _yt_player: { EagerYtUrl } } as any, challenge),
+  ).toEqual([expected]);
+  expect(collectPageSolutions({} as any, challenge)).toEqual([]);
+
+  class NoisyYtUrl extends YtUrl {
     garbage() {
       this.params.set("n", "YY=garbage");
       this.params.set("sig", "YY=garbage");
     }
   }
   expect(
-    solveWithPagePlayer({ _yt_player: { NoisyYtUrl } } as any, challenge),
-  ).toEqual({ signature: decodedSig, n: decodedN });
-  // Two valid but disagreeing transforms are an error, not a guess.
-  class FlipYtUrl {
-    params = new URLSearchParams();
-    constructor(url: string) {
-      for (const [key, value] of new URL(url).searchParams) {
-        this.params.set(key, value);
-      }
-    }
-    set(key: string, value: string) {
-      this.params.set(key, value);
-    }
-    get(key: string) {
-      return this.params.get(key);
-    }
-    clone() {
-      return new FlipYtUrl("https://example.com/");
-    }
-    flip() {
-      this.params.set("n", "decFIRSTVALIDSTRING000000000000000001");
-      this.params.set("sig", "decFIRSTVALIDSTRING000000000000000002");
-    }
-    flop() {
-      this.params.set("n", "decSECONDVALIDSTRING0000000000000001");
-      this.params.set("sig", "decSECONDVALIDSTRING0000000000000002");
-    }
-  }
-  expect(() =>
-    solveWithPagePlayer({ _yt_player: { FlipYtUrl } } as any, challenge),
-  ).toThrow("ambiguous page challenge solutions");
+    collectPageSolutions({ _yt_player: { NoisyYtUrl } } as any, challenge),
+  ).toEqual([expected]);
 
-  // The sig factory (EJS protocol): solves s at construction like Ix does.
-  class FactoryUrl {
-    params = new URLSearchParams();
-    constructor(url: string) {
-      for (const [key, value] of new URL(url).searchParams) {
-        this.params.set(key, value);
-      }
-    }
-    set(key: string, value: string) {
-      this.params.set(key, value);
-    }
-    get(key: string) {
-      return this.params.get(key);
-    }
-    clone() {
-      return new FactoryUrl("https://example.com/");
-    }
-    decipher() {
-      for (const [key, value] of [...this.params]) {
-        this.params.set(key, decode(value));
-      }
-    }
-  }
-  const ns = { FactoryUrl };
+  const ns = { FactoryUrl: YtUrl };
   const SigFactory = (url: any, sp: string, s: string) => {
     url = new ns.FactoryUrl(url, !0);
     url.set("alr", "yes");
@@ -398,8 +293,8 @@ test("solves sig/n through the page player without eval", () => {
     return url;
   };
   expect(
-    solveWithPagePlayer({ _yt_player: { SigFactory } } as any, challenge),
-  ).toEqual({ signature: decodedSig, n: decodedN });
+    collectPageSolutions({ _yt_player: { SigFactory } } as any, challenge),
+  ).toEqual([expected]);
 
   const creatorRequest = buildWebCreatorPlayerRequest("TVmV3-pEXss", {
     visitorData: "visitor",

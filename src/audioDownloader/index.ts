@@ -4,6 +4,7 @@ import type {
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
 import debug from "../utils/debug";
+import { isAbortError } from "../utils/errors";
 import { EventImpl } from "../utils/eventImpl";
 
 import {
@@ -95,8 +96,6 @@ export class AudioDownloader {
       this.strategy === WEB_ABR_STRATEGY
         ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
         : [this.strategy];
-    const errors: unknown[] = [];
-
     for (const attemptedStrategy of attempts) {
       try {
         await handleCommonAudioDownloadRequest({
@@ -112,17 +111,13 @@ export class AudioDownloader {
         });
         return;
       } catch (error) {
-        if (
-          signal.aborted ||
-          (error as { name?: string } | null)?.name === "AbortError"
-        ) {
+        if (signal.aborted || isAbortError(error)) {
           debug.log("Audio downloader. Audio download aborted", {
             videoId,
             audioDownloadType: attemptedStrategy,
           });
           return;
         }
-        errors.push(error);
         debug.error("Audio downloader. Strategy failed", {
           videoId,
           audioDownloadType: attemptedStrategy,
@@ -131,13 +126,8 @@ export class AudioDownloader {
       }
     }
 
-    const error =
-      errors.length === 1
-        ? errors[0]
-        : new AggregateError(errors, "All audio download strategies failed");
-    debug.error("Audio downloader. Failed to download audio", {
+    debug.error("Audio downloader. All audio download strategies failed", {
       videoId,
-      error: error instanceof Error ? error.message : String(error),
     });
     this.onDownloadAudioError.dispatch(translationId, videoId);
   }

@@ -1,10 +1,7 @@
-import { AudioDownloadType } from "@vot.js/core/types/yandex";
 import { config } from "@vot.js/shared";
-import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
-import { getAudioFromBridge } from "./webAudioBridge";
 import { preprocessYouTubePlayer } from "./ytPlayerSolver.js";
 
 const MEDIA_RANGE_SIZES = [60_000, 80_000, 150_000, 330_000, 460_000];
@@ -62,51 +59,59 @@ type FetchedClientConfig = {
   experimentFlags?: string[];
 };
 
-export async function fetchClientConfigPage(
+async function fetchTvConfig(
   targetWindow: Window,
   signal: AbortSignal,
-  pageUrl: string,
-  label: string,
-): Promise<FetchedClientConfig> {
-  const response = await targetWindow.fetch(pageUrl, {
-    credentials: "include",
-    signal,
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Audio downloader. ${label} config request failed (${response.status})`,
-    );
-  }
-  const html = await response.text();
-  const pick = (patterns: RegExp[]): string | undefined => {
-    for (const pattern of patterns) {
-      const match = pattern.exec(html);
-      if (match?.[1]) return match[1];
+  videoId: string,
+): Promise<FetchedClientConfig | undefined> {
+  try {
+    const response = await targetWindow.fetch("https://www.youtube.com/tv", {
+      credentials: "include",
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Audio downloader. tv config request failed (${response.status})`,
+      );
     }
-  };
-  const playerPath = pick([/"PLAYER_JS_URL":"([^"]+)"/, /"jsUrl":"([^"]+)"/]);
-  const sts = Number(pick([/"STS":(\d+)/, /"signatureTimestamp":(\d+)/]));
-  const experimentFlags: string[] = [];
-  for (const match of html.matchAll(
-    /"serializedExperimentFlags"\s*:\s*("(?:\\.|[^"\\])*")/g,
-  )) {
-    try {
-      experimentFlags.push(JSON.parse(match[1] ?? '""') as string);
-    } catch {
-      // Malformed optional flags must not discard the rest of the config.
+    const html = await response.text();
+    const pick = (patterns: RegExp[]): string | undefined => {
+      for (const pattern of patterns) {
+        const match = pattern.exec(html);
+        if (match?.[1]) return match[1];
+      }
+    };
+    const playerPath = pick([/"PLAYER_JS_URL":"([^"]+)"/, /"jsUrl":"([^"]+)"/]);
+    const sts = Number(pick([/"STS":(\d+)/, /"signatureTimestamp":(\d+)/]));
+    const experimentFlags: string[] = [];
+    for (const match of html.matchAll(
+      /"serializedExperimentFlags"\s*:\s*("(?:\\.|[^"\\])*")/g,
+    )) {
+      try {
+        experimentFlags.push(JSON.parse(match[1] ?? '""') as string);
+      } catch {
+        // Malformed optional flags must not discard the rest of the config.
+      }
     }
+    return {
+      apiKey: pick([/"INNERTUBE_API_KEY":"([^"]+)"/]),
+      clientVersion: pick([/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/]),
+      visitorData: pick([/"VISITOR_DATA":"([^"]+)"/]),
+      dataSyncId: pick([/"DATASYNC_ID":"([^"]+)"/]),
+      experimentFlags,
+      playerUrl: playerPath
+        ? new URL(playerPath, "https://www.youtube.com").toString()
+        : undefined,
+      signatureTimestamp: Number.isFinite(sts) && sts > 0 ? sts : undefined,
+    };
+  } catch (error) {
+    signal.throwIfAborted();
+    debug.log("Audio downloader. client config unavailable", {
+      videoId,
+      client: "tv",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
-  return {
-    apiKey: pick([/"INNERTUBE_API_KEY":"([^"]+)"/]),
-    clientVersion: pick([/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/]),
-    visitorData: pick([/"VISITOR_DATA":"([^"]+)"/]),
-    dataSyncId: pick([/"DATASYNC_ID":"([^"]+)"/]),
-    experimentFlags,
-    playerUrl: playerPath
-      ? new URL(playerPath, "https://www.youtube.com").toString()
-      : undefined,
-    signatureTimestamp: Number.isFinite(sts) && sts > 0 ? sts : undefined,
-  };
 }
 
 export function buildMediaRanges(
@@ -206,6 +211,19 @@ export function selectGvsPoTokenBinding(
 
 function getConfigValue(config: YouTubeConfig, key: string): unknown {
   return config.get?.(key) ?? config.data_?.[key];
+}
+
+function buildContentPlaybackContext(
+  signatureTimestamp: unknown,
+): Record<string, unknown> {
+  const context: Record<string, unknown> = {
+    html5Preference: "HTML5_PREF_WANTS",
+  };
+  const timestamp = Number(signatureTimestamp);
+  if (Number.isFinite(timestamp) && timestamp > 0) {
+    context.signatureTimestamp = timestamp;
+  }
+  return context;
 }
 
 function findJsonValueEnd(source: string, start: number): number {
@@ -361,14 +379,9 @@ export function buildWebEmbeddedPlayerRequest(
   context.thirdParty ??= {};
   context.thirdParty.embedUrl = "https://www.reddit.com/";
 
-  const contentPlaybackContext: Record<string, unknown> = {
-    html5Preference: "HTML5_PREF_WANTS",
-  };
-  const signatureTimestamp =
-    extractedSignatureTimestamp ?? Number(getConfigValue(config, "STS"));
-  if (Number.isFinite(signatureTimestamp) && signatureTimestamp > 0) {
-    contentPlaybackContext.signatureTimestamp = signatureTimestamp;
-  }
+  const contentPlaybackContext = buildContentPlaybackContext(
+    extractedSignatureTimestamp ?? getConfigValue(config, "STS"),
+  );
   const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS") as
     | {
         WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?: {
@@ -533,11 +546,6 @@ function resolveTrustedRealm(realm: Window): Window {
     if (candidate && candidate !== realm) candidates.push(candidate);
   };
   try {
-    add(realm.document?.defaultView);
-  } catch {
-    // Cross-origin access is denied.
-  }
-  try {
     add(realm.parent as Window | null);
   } catch {
     // Cross-origin access is denied.
@@ -658,10 +666,6 @@ function isSigFactory({ fn }: SigFactory): boolean {
   } catch {
     return false;
   }
-}
-
-export function findSigFactories(pageWindow: WebAbrWindow): SigFactory[] {
-  return listPageFunctions(pageWindow).filter(isSigFactory);
 }
 
 function pageUrlMethods(proto: object | null) {
@@ -847,25 +851,6 @@ export function collectPageSolutions(
   return [...merged.values()];
 }
 
-export function solveWithPagePlayer(
-  pageWindow: WebAbrWindow,
-  challenge: PageChallenge,
-): PageSolution {
-  const solutions = collectPageSolutions(pageWindow, challenge);
-  const [solution] = solutions;
-  if (
-    !solution ||
-    (challenge.signature && !solutions.some((value) => value.signature)) ||
-    (challenge.n && !solutions.some((value) => value.n))
-  ) {
-    throw new Error("Audio downloader. page challenge solve incomplete");
-  }
-  if (solutions.length === 1) return solution;
-  throw new Error(
-    `Audio downloader. ambiguous page challenge solutions (${solutions.length})`,
-  );
-}
-
 function solveYouTubeChallenges(
   targetWindow: Window,
   playerCode: string,
@@ -915,29 +900,12 @@ function buildSolvedUrl(
   return url.toString();
 }
 
-export function resolveWebEmbeddedFormatUrl(
-  targetWindow: WebAbrWindow,
-  format: WebEmbeddedFormat,
-  signal: AbortSignal,
-): AsyncGenerator<string>;
-export function resolveWebEmbeddedFormatUrl(
+export async function* resolveWebEmbeddedFormatUrl(
   targetWindow: WebAbrWindow,
   format: WebEmbeddedFormat,
   playerCode: () => Promise<string | undefined>,
   signal: AbortSignal,
-): AsyncGenerator<string>;
-export async function* resolveWebEmbeddedFormatUrl(
-  targetWindow: WebAbrWindow,
-  format: WebEmbeddedFormat,
-  playerCodeOrSignal: (() => Promise<string | undefined>) | AbortSignal,
-  providedSignal?: AbortSignal,
 ): AsyncGenerator<string> {
-  const playerCode =
-    typeof playerCodeOrSignal === "function" ? playerCodeOrSignal : undefined;
-  const signal =
-    typeof playerCodeOrSignal === "function"
-      ? (providedSignal as AbortSignal)
-      : playerCodeOrSignal;
   signal.throwIfAborted();
   const cipher = format.signatureCipher
     ? new URLSearchParams(format.signatureCipher)
@@ -975,9 +943,6 @@ export async function* resolveWebEmbeddedFormatUrl(
     const key = JSON.stringify([signature, n]);
     const cached = astSolutions.get(key);
     if (cached) return cached;
-    if (!playerCode) {
-      throw new Error("Audio downloader. page challenge solve incomplete");
-    }
     source ??= playerCode();
     const code = await source;
     signal.throwIfAborted();
@@ -1003,7 +968,6 @@ export async function* resolveWebEmbeddedFormatUrl(
     let solved = candidate;
     try {
       if (!complete(candidate)) {
-        if (!playerCode) continue;
         const missing = await solve(
           candidate.signature ? undefined : signature,
           candidate.n ? undefined : n,
@@ -1027,10 +991,6 @@ export async function* resolveWebEmbeddedFormatUrl(
   }
   // Resume only after the consumer has tried downloading the page candidates.
   signal.throwIfAborted();
-  if (!playerCode) {
-    if (yielded.size) return;
-    throw new Error("Audio downloader. page challenge solve incomplete");
-  }
   let solved: PageSolution;
   try {
     solved = await solve(signature, n);
@@ -1055,15 +1015,9 @@ export function buildTvDowngradedPlayerRequest(
     clientVersion?: unknown;
   } = {},
 ): Record<string, unknown> {
-  const contentPlaybackContext: Record<string, unknown> = {
-    html5Preference: "HTML5_PREF_WANTS",
-  };
-  if (
-    Number.isFinite(options.signatureTimestamp) &&
-    (options.signatureTimestamp ?? 0) > 0
-  ) {
-    contentPlaybackContext.signatureTimestamp = options.signatureTimestamp;
-  }
+  const contentPlaybackContext = buildContentPlaybackContext(
+    options.signatureTimestamp,
+  );
   return {
     context: {
       client: {
@@ -1111,14 +1065,9 @@ export function buildWebPlayerRequest(
   client.originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
   delete context.thirdParty;
 
-  const contentPlaybackContext: Record<string, unknown> = {
-    html5Preference: "HTML5_PREF_WANTS",
-  };
-  const signatureTimestamp =
-    extractedSignatureTimestamp ?? Number(getConfigValue(config, "STS"));
-  if (Number.isFinite(signatureTimestamp) && signatureTimestamp > 0) {
-    contentPlaybackContext.signatureTimestamp = signatureTimestamp;
-  }
+  const contentPlaybackContext = buildContentPlaybackContext(
+    extractedSignatureTimestamp ?? getConfigValue(config, "STS"),
+  );
 
   return {
     context,
@@ -1137,15 +1086,9 @@ export function buildWebCreatorPlayerRequest(
     clientVersion?: unknown;
   } = {},
 ): Record<string, unknown> {
-  const contentPlaybackContext: Record<string, unknown> = {
-    html5Preference: "HTML5_PREF_WANTS",
-  };
-  if (
-    Number.isFinite(options.signatureTimestamp) &&
-    (options.signatureTimestamp ?? 0) > 0
-  ) {
-    contentPlaybackContext.signatureTimestamp = options.signatureTimestamp;
-  }
+  const contentPlaybackContext = buildContentPlaybackContext(
+    options.signatureTimestamp,
+  );
   return {
     context: {
       client: {
@@ -1393,21 +1336,6 @@ export async function* getWebAbrAudioChunks(
     sessionIndex,
     delegatedSessionId,
   };
-  const fetchConfig = async (
-    pageUrl: string,
-    label: string,
-  ): Promise<FetchedClientConfig | undefined> => {
-    try {
-      return await fetchClientConfigPage(targetWindow, signal, pageUrl, label);
-    } catch (error) {
-      signal.throwIfAborted();
-      debug.log("Audio downloader. client config unavailable", {
-        videoId,
-        client: label,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
   let lastError: unknown;
   let emitted = false;
   for (const name of ["web_embedded", "tv_downgraded", "web", "web_creator"]) {
@@ -1418,7 +1346,7 @@ export async function* getWebAbrAudioChunks(
     });
     const fetchedConfig =
       name === "tv_downgraded"
-        ? await fetchConfig("https://www.youtube.com/tv", "tv")
+        ? await fetchTvConfig(targetWindow, signal, videoId)
         : undefined;
     const options = {
       visitorData: fetchedConfig?.visitorData ?? visitorData,
@@ -1575,8 +1503,4 @@ export async function* getWebAbrAudioChunks(
     );
   }
   throw fallbackError;
-}
-
-export async function getAudioFromWebAbr(options: GetAudioFromAPIOptions) {
-  return getAudioFromBridge(options, AudioDownloadType.WEB_ABR);
 }

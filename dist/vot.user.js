@@ -6921,7 +6921,9 @@ var vot = (function(exports) {
 	* Note: This is intentionally not coupled to AbortSignal.reason to avoid
 	* surfacing string/opaque abort reasons as user-facing "errors".
 	*/
-	function makeAbortError(message = "Aborted") {
+	function makeAbortError(reason = "Aborted") {
+		if (reason instanceof Error && isAbortError(reason)) return reason;
+		const message = reason instanceof Error ? reason.message : String(reason ?? "Aborted");
 		try {
 			return new DOMException(message, "AbortError");
 		} catch {
@@ -12892,17 +12894,6 @@ var vot = (function(exports) {
 	}
 	var detectServices = [...foswlyServices, "rust-server"];
 	//#endregion
-	//#region src/audioDownloader/strategies/audioChunks.ts
-	function concatBuffers(buffers) {
-		const result = new Uint8Array(buffers.reduce((length, buffer) => length + buffer.byteLength, 0));
-		let offset = 0;
-		for (const buffer of buffers) {
-			result.set(buffer, offset);
-			offset += buffer.byteLength;
-		}
-		return result;
-	}
-	//#endregion
 	//#region src/audioDownloader/strategies/webAudioBridge.ts
 	var MESSAGE_TYPE$1 = "get-audio-chunks-by-mse-in-main-world";
 	var STREAM_TIMEOUT_MS = 18e5;
@@ -12917,12 +12908,8 @@ var vot = (function(exports) {
 			isLastChunk
 		};
 	}
-	function createAbortError(reason) {
-		if (reason instanceof Error && reason.name === "AbortError") return reason;
-		return new DOMException(reason instanceof Error ? reason.message : String(reason ?? "Aborted"), "AbortError");
-	}
 	async function* getAudioBridgeChunks(videoId, signal, audioDownloadType) {
-		if (signal.aborted) throw createAbortError(signal.reason);
+		if (signal.aborted) throw makeAbortError(signal.reason);
 		const messageId = `stream-message-id-${performance.now()}-${Math.random()}`;
 		const chunks = [];
 		let wake;
@@ -12963,7 +12950,7 @@ var vot = (function(exports) {
 		};
 		const throwIfFailed = () => {
 			if (!failure) return;
-			if (!globalThis.location.href.includes(videoId)) throw createAbortError("URL changed during audio download");
+			if (!globalThis.location.href.includes(videoId)) throw makeAbortError("URL changed during audio download");
 			throw failure;
 		};
 		const postAbort = () => globalThis.postMessage({
@@ -12979,7 +12966,7 @@ var vot = (function(exports) {
 			if (!message || event.source !== globalThis && event.source !== iframe?.contentWindow || message.messageId !== messageId || message.messageType !== MESSAGE_TYPE$1 || message.messageDirection !== "response") return;
 			resetMessageTimeout();
 			if (message.isAborted) {
-				finish(createAbortError(message.error));
+				finish(makeAbortError(message.error));
 				return;
 			}
 			if (message.error) {
@@ -13015,10 +13002,10 @@ var vot = (function(exports) {
 				finish(error instanceof Error ? error : new Error(String(error)));
 			}
 		};
-		const onAbort = () => finish(createAbortError(signal.reason));
+		const onAbort = () => finish(makeAbortError(signal.reason));
 		const streamTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("Audio bridge stream timed out")), STREAM_TIMEOUT_MS);
 		const navigationInterval = setInterval(() => {
-			if (!globalThis.location.href.includes(videoId)) finish(createAbortError("URL changed during audio download"));
+			if (!globalThis.location.href.includes(videoId)) finish(makeAbortError("URL changed during audio download"));
 		}, 100);
 		globalThis.addEventListener("message", onMessage);
 		signal.addEventListener("abort", onAbort, { once: true });
@@ -13063,6 +13050,17 @@ var vot = (function(exports) {
 			mediaPartsLength: null,
 			getMediaBuffers: () => getAudioBridgeChunks(videoId, signal, audioDownloadType)
 		};
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/audioChunks.ts
+	function concatBuffers(buffers) {
+		const result = new Uint8Array(buffers.reduce((length, buffer) => length + buffer.byteLength, 0));
+		let offset = 0;
+		for (const buffer of buffers) {
+			result.set(buffer, offset);
+			offset += buffer.byteLength;
+		}
+		return result;
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/ytPlayerSolver.js
@@ -22338,16 +22336,7 @@ var vot = (function(exports) {
 		function r(t) {
 			return e.parse(t).body[0].expression;
 		}
-		function i(e) {
-			let t, n = e[0], r = 1;
-			for (; r < e.length;) {
-				let i = e[r], a = e[r + 1];
-				if (r += 2, (i === "optionalAccess" || i === "optionalCall") && n == null) return;
-				i === "access" || i === "optionalAccess" ? (t = n, n = a(n)) : (i === "call" || i === "optionalCall") && (n = a((...e) => n.call(t, ...e)), t = void 0);
-			}
-			return n;
-		}
-		let a = { or: [
+		let i = { or: [
 			{
 				type: "ExpressionStatement",
 				expression: {
@@ -22375,7 +22364,7 @@ var vot = (function(exports) {
 					}
 				}] }
 			}
-		] }, o = {
+		] }, a = {
 			type: "ExpressionStatement",
 			expression: {
 				type: "CallExpression",
@@ -22395,55 +22384,33 @@ var vot = (function(exports) {
 				optional: !1
 			}
 		};
-		function s(e) {
-			if (!n(e, a)) return null;
+		function o(e) {
+			if (!n(e, i)) return null;
 			let t = [];
-			if (e.type === "FunctionDeclaration") e.id && i([
-				e,
-				"access",
-				(e) => e.body,
-				"optionalAccess",
-				(e) => e.body
-			]) && t.push({
-				name: e.id,
-				statements: i([
-					e,
-					"access",
-					(e) => e.body,
-					"optionalAccess",
-					(e) => e.body
-				])
-			});
-			else if (e.type === "ExpressionStatement") {
+			if (e.type === "FunctionDeclaration") {
+				let n = e.body?.body;
+				e.id && n && t.push({
+					name: e.id,
+					statements: n
+				});
+			} else if (e.type === "ExpressionStatement") {
 				if (e.expression.type !== "AssignmentExpression") return null;
-				let n = e.expression.left, r = i([
-					e.expression.right,
-					"optionalAccess",
-					(e) => e.body,
-					"optionalAccess",
-					(e) => e.body
-				]);
+				let n = e.expression.left, r = e.expression.right?.body?.body;
 				n && r && t.push({
 					name: n,
 					statements: r
 				});
 			} else if (e.type === "VariableDeclaration") for (let n of e.declarations) {
-				let e = n.id, r = i([
-					n.init,
-					"optionalAccess",
-					(e) => e.body,
-					"optionalAccess",
-					(e) => e.body
-				]);
+				let e = n.id, r = n.init?.body?.body;
 				e && r && t.push({
 					name: e,
 					statements: r
 				});
 			}
-			for (let { name: e, statements: r } of t) if (n(r, { anykey: [o] })) return c(e);
+			for (let { name: e, statements: r } of t) if (n(r, { anykey: [a] })) return s(e);
 			return null;
 		}
-		function c(e) {
+		function s(e) {
 			return r(`
 ({sig, n}) => {
   const url = (${t.generate(e)})("https://youtube.com/watch?v=yt-dlp-wins", "s", sig ? encodeURIComponent(sig) : undefined);
@@ -22464,10 +22431,8 @@ var vot = (function(exports) {
 }
 `);
 		}
-		let l;
-		function u(n) {
-			l ??= e.parse("\nif (typeof globalThis.XMLHttpRequest === \"undefined\") {\n  globalThis.XMLHttpRequest = { prototype: {} };\n}\nif (typeof globalThis.location === \"undefined\") {\n  globalThis.location = new URL(\"https://www.youtube.com/watch?v=yt-dlp-wins\");\n}\nif (typeof globalThis.document === \"undefined\") {\n  globalThis.document = Object.create(null);\n}\nif (typeof globalThis.navigator === \"undefined\") {\n  globalThis.navigator = Object.create(null);\n}\nif (typeof globalThis.self === \"undefined\") {\n  globalThis.self = globalThis;\n}\nif (typeof globalThis.window === \"undefined\") {\n  globalThis.window = globalThis;\n}\n").body;
-			let r = e.parse(n), i = d(r), a = f(i);
+		function c(n) {
+			let r = e.parse(n), i = l(r), a = u(i);
 			for (let [e, t] of Object.entries(a)) i.push({
 				type: "ExpressionStatement",
 				expression: {
@@ -22486,30 +22451,22 @@ var vot = (function(exports) {
 						},
 						optional: !1
 					},
-					right: m(t)
+					right: f(t)
 				}
 			});
-			return r.body.splice(0, 0, ...l), t.generate(r);
+			return t.generate(r);
 		}
-		function d(e) {
+		function l(e) {
 			let t = e.body, n = (() => {
 				switch (t.length) {
 					case 1: {
 						let e = t[0];
-						if (i([
-							e,
-							"optionalAccess",
-							(e) => e.type
-						]) === "ExpressionStatement" && e.expression.type === "CallExpression" && e.expression.callee.type === "MemberExpression" && e.expression.callee.object.type === "FunctionExpression") return e.expression.callee.object.body;
+						if (e?.type === "ExpressionStatement" && e.expression.type === "CallExpression" && e.expression.callee.type === "MemberExpression" && e.expression.callee.object.type === "FunctionExpression") return e.expression.callee.object.body;
 						break;
 					}
 					case 2: {
 						let e = t[1];
-						if (i([
-							e,
-							"optionalAccess",
-							(e) => e.type
-						]) === "ExpressionStatement" && e.expression.type === "CallExpression" && e.expression.callee.type === "FunctionExpression") {
+						if (e?.type === "ExpressionStatement" && e.expression.type === "CallExpression" && e.expression.callee.type === "FunctionExpression") {
 							let t = e.expression.callee.body;
 							return t.body.splice(0, 1), t;
 						}
@@ -22520,24 +22477,24 @@ var vot = (function(exports) {
 			})();
 			return n.body = n.body.filter((e) => e.type !== "ExpressionStatement" || e.expression.type === "AssignmentExpression" || e.expression.type === "Literal"), n.body;
 		}
-		function f(e) {
+		function u(e) {
 			let t = {
 				n: [],
 				sig: []
 			};
 			for (let n of e) {
-				let e = s(n);
-				e && (t.n.push(p(e, {
+				let e = o(n);
+				e && (t.n.push(d(e, {
 					type: "Identifier",
 					name: "n"
-				})), t.sig.push(p(e, {
+				})), t.sig.push(d(e, {
 					type: "Identifier",
 					name: "sig"
 				})));
 			}
 			return t;
 		}
-		function p(e, t) {
+		function d(e, t) {
 			return {
 				type: "ArrowFunctionExpression",
 				params: [t],
@@ -22569,7 +22526,7 @@ var vot = (function(exports) {
 				generator: !1
 			};
 		}
-		function m(e) {
+		function f(e) {
 			return r(`
 (_input) => {
   const _results = new Set();
@@ -22594,7 +22551,7 @@ var vot = (function(exports) {
 }
 `);
 		}
-		return u;
+		return c;
 	})(se, n$1);
 	//#endregion
 	//#region src/audioDownloader/strategies/webAbr.ts
@@ -22605,34 +22562,43 @@ var vot = (function(exports) {
 		33e4,
 		46e4
 	];
-	async function fetchClientConfigPage(targetWindow, signal, pageUrl, label) {
-		const response = await targetWindow.fetch(pageUrl, {
-			credentials: "include",
-			signal
-		});
-		if (!response.ok) throw new Error(`Audio downloader. ${label} config request failed (${response.status})`);
-		const html = await response.text();
-		const pick = (patterns) => {
-			for (const pattern of patterns) {
-				const match = pattern.exec(html);
-				if (match?.[1]) return match[1];
-			}
-		};
-		const playerPath = pick([/"PLAYER_JS_URL":"([^"]+)"/, /"jsUrl":"([^"]+)"/]);
-		const sts = Number(pick([/"STS":(\d+)/, /"signatureTimestamp":(\d+)/]));
-		const experimentFlags = [];
-		for (const match of html.matchAll(/"serializedExperimentFlags"\s*:\s*("(?:\\.|[^"\\])*")/g)) try {
-			experimentFlags.push(JSON.parse(match[1] ?? "\"\""));
-		} catch {}
-		return {
-			apiKey: pick([/"INNERTUBE_API_KEY":"([^"]+)"/]),
-			clientVersion: pick([/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/]),
-			visitorData: pick([/"VISITOR_DATA":"([^"]+)"/]),
-			dataSyncId: pick([/"DATASYNC_ID":"([^"]+)"/]),
-			experimentFlags,
-			playerUrl: playerPath ? new URL(playerPath, "https://www.youtube.com").toString() : void 0,
-			signatureTimestamp: Number.isFinite(sts) && sts > 0 ? sts : void 0
-		};
+	async function fetchTvConfig(targetWindow, signal, videoId) {
+		try {
+			const response = await targetWindow.fetch("https://www.youtube.com/tv", {
+				credentials: "include",
+				signal
+			});
+			if (!response.ok) throw new Error(`Audio downloader. tv config request failed (${response.status})`);
+			const html = await response.text();
+			const pick = (patterns) => {
+				for (const pattern of patterns) {
+					const match = pattern.exec(html);
+					if (match?.[1]) return match[1];
+				}
+			};
+			const playerPath = pick([/"PLAYER_JS_URL":"([^"]+)"/, /"jsUrl":"([^"]+)"/]);
+			const sts = Number(pick([/"STS":(\d+)/, /"signatureTimestamp":(\d+)/]));
+			const experimentFlags = [];
+			for (const match of html.matchAll(/"serializedExperimentFlags"\s*:\s*("(?:\\.|[^"\\])*")/g)) try {
+				experimentFlags.push(JSON.parse(match[1] ?? "\"\""));
+			} catch {}
+			return {
+				apiKey: pick([/"INNERTUBE_API_KEY":"([^"]+)"/]),
+				clientVersion: pick([/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/]),
+				visitorData: pick([/"VISITOR_DATA":"([^"]+)"/]),
+				dataSyncId: pick([/"DATASYNC_ID":"([^"]+)"/]),
+				experimentFlags,
+				playerUrl: playerPath ? new URL(playerPath, "https://www.youtube.com").toString() : void 0,
+				signatureTimestamp: Number.isFinite(sts) && sts > 0 ? sts : void 0
+			};
+		} catch (error) {
+			signal.throwIfAborted();
+			debug.log("Audio downloader. client config unavailable", {
+				videoId,
+				client: "tv",
+				error: error instanceof Error ? error.message : String(error)
+			});
+		}
 	}
 	function buildMediaRanges(contentLength) {
 		if (!Number.isInteger(contentLength) || contentLength < 1) return [];
@@ -22704,6 +22670,12 @@ var vot = (function(exports) {
 	}
 	function getConfigValue(config, key) {
 		return config.get?.(key) ?? config.data_?.[key];
+	}
+	function buildContentPlaybackContext(signatureTimestamp) {
+		const context = { html5Preference: "HTML5_PREF_WANTS" };
+		const timestamp = Number(signatureTimestamp);
+		if (Number.isFinite(timestamp) && timestamp > 0) context.signatureTimestamp = timestamp;
+		return context;
 	}
 	function findJsonValueEnd(source, start) {
 		const first = source[start];
@@ -22816,9 +22788,7 @@ var vot = (function(exports) {
 		client.originalUrl = `https://www.youtube.com/embed/${videoId}?html5=1`;
 		context.thirdParty ??= {};
 		context.thirdParty.embedUrl = "https://www.reddit.com/";
-		const contentPlaybackContext = { html5Preference: "HTML5_PREF_WANTS" };
-		const signatureTimestamp = extractedSignatureTimestamp ?? Number(getConfigValue(config, "STS"));
-		if (Number.isFinite(signatureTimestamp) && signatureTimestamp > 0) contentPlaybackContext.signatureTimestamp = signatureTimestamp;
+		const contentPlaybackContext = buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS"));
 		const encryptedHostFlags = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS")?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags;
 		if (typeof encryptedHostFlags === "string" && encryptedHostFlags) contentPlaybackContext.encryptedHostFlags = encryptedHostFlags;
 		return {
@@ -22898,9 +22868,6 @@ var vot = (function(exports) {
 		const add = (candidate) => {
 			if (candidate && candidate !== realm) candidates.push(candidate);
 		};
-		try {
-			add(realm.document?.defaultView);
-		} catch {}
 		try {
 			add(realm.parent);
 		} catch {}
@@ -23095,9 +23062,7 @@ var vot = (function(exports) {
 		if (solved.n) url.searchParams.set("n", solved.n);
 		return url.toString();
 	}
-	async function* resolveWebEmbeddedFormatUrl(targetWindow, format, playerCodeOrSignal, providedSignal) {
-		const playerCode = typeof playerCodeOrSignal === "function" ? playerCodeOrSignal : void 0;
-		const signal = typeof playerCodeOrSignal === "function" ? providedSignal : playerCodeOrSignal;
+	async function* resolveWebEmbeddedFormatUrl(targetWindow, format, playerCode, signal) {
 		signal.throwIfAborted();
 		const cipher = format.signatureCipher ? new URLSearchParams(format.signatureCipher) : void 0;
 		const rawUrl = format.url ?? cipher?.get("url");
@@ -23127,7 +23092,6 @@ var vot = (function(exports) {
 			const key = JSON.stringify([signature, n]);
 			const cached = astSolutions.get(key);
 			if (cached) return cached;
-			if (!playerCode) throw new Error("Audio downloader. page challenge solve incomplete");
 			source ??= playerCode();
 			const code = await source;
 			signal.throwIfAborted();
@@ -23149,7 +23113,6 @@ var vot = (function(exports) {
 			let solved = candidate;
 			try {
 				if (!complete(candidate)) {
-					if (!playerCode) continue;
 					const missing = await solve(candidate.signature ? void 0 : signature, candidate.n ? void 0 : n);
 					solved = {
 						signature: candidate.signature ?? missing.signature,
@@ -23169,10 +23132,6 @@ var vot = (function(exports) {
 			}
 		}
 		signal.throwIfAborted();
-		if (!playerCode) {
-			if (yielded.size) return;
-			throw new Error("Audio downloader. page challenge solve incomplete");
-		}
 		let solved;
 		try {
 			solved = await solve(signature, n);
@@ -23187,8 +23146,7 @@ var vot = (function(exports) {
 		signal.throwIfAborted();
 	}
 	function buildTvDowngradedPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = { html5Preference: "HTML5_PREF_WANTS" };
-		if (Number.isFinite(options.signatureTimestamp) && (options.signatureTimestamp ?? 0) > 0) contentPlaybackContext.signatureTimestamp = options.signatureTimestamp;
+		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
 		return {
 			context: { client: {
 				clientName: "TVHTML5",
@@ -23216,20 +23174,16 @@ var vot = (function(exports) {
 		client.clientVersion = getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
 		client.originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
 		delete context.thirdParty;
-		const contentPlaybackContext = { html5Preference: "HTML5_PREF_WANTS" };
-		const signatureTimestamp = extractedSignatureTimestamp ?? Number(getConfigValue(config, "STS"));
-		if (Number.isFinite(signatureTimestamp) && signatureTimestamp > 0) contentPlaybackContext.signatureTimestamp = signatureTimestamp;
 		return {
 			context,
 			videoId,
-			playbackContext: { contentPlaybackContext },
+			playbackContext: { contentPlaybackContext: buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
 			contentCheckOk: true,
 			racyCheckOk: true
 		};
 	}
 	function buildWebCreatorPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = { html5Preference: "HTML5_PREF_WANTS" };
-		if (Number.isFinite(options.signatureTimestamp) && (options.signatureTimestamp ?? 0) > 0) contentPlaybackContext.signatureTimestamp = options.signatureTimestamp;
+		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
 		return {
 			context: { client: {
 				clientName: "WEB_CREATOR",
@@ -23376,18 +23330,6 @@ var vot = (function(exports) {
 			sessionIndex,
 			delegatedSessionId
 		};
-		const fetchConfig = async (pageUrl, label) => {
-			try {
-				return await fetchClientConfigPage(targetWindow, signal, pageUrl, label);
-			} catch (error) {
-				signal.throwIfAborted();
-				debug.log("Audio downloader. client config unavailable", {
-					videoId,
-					client: label,
-					error: error instanceof Error ? error.message : String(error)
-				});
-			}
-		};
 		let lastError;
 		let emitted = false;
 		for (const name of [
@@ -23401,7 +23343,7 @@ var vot = (function(exports) {
 				videoId,
 				client: name
 			});
-			const fetchedConfig = name === "tv_downgraded" ? await fetchConfig("https://www.youtube.com/tv", "tv") : void 0;
+			const fetchedConfig = name === "tv_downgraded" ? await fetchTvConfig(targetWindow, signal, videoId) : void 0;
 			const options = {
 				visitorData: fetchedConfig?.visitorData ?? visitorData,
 				signatureTimestamp: fetchedConfig?.signatureTimestamp ?? sts,
@@ -23470,9 +23412,6 @@ var vot = (function(exports) {
 		const fallbackError = lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. no playable audio formats");
 		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Sign in to YouTube with an age-verified account and retry from the youtube.com watch page`, { cause: fallbackError });
 		throw fallbackError;
-	}
-	async function getAudioFromWebAbr(options) {
-		return getAudioFromBridge(options, AudioDownloadType.WEB_ABR);
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/mseProxyHandler.ts
@@ -23615,7 +23554,7 @@ var vot = (function(exports) {
 				}, 1e4, "MSE capture wait", signal);
 			} catch (error) {
 				signal.throwIfAborted();
-				if (error?.name === "AbortError") throw error;
+				if (isAbortError(error)) throw error;
 				const newest = this.captures.at(-1);
 				throw new Error(`Audio downloader. MSE capture wait timed out (captures: ${this.captures.length}, newestReady: ${newest?.isReady ?? "none"})`, { cause: error });
 			}
@@ -23717,7 +23656,7 @@ var vot = (function(exports) {
 						}, 15e3, "MSE media wait", signal);
 					} catch (error) {
 						signal.throwIfAborted();
-						if (error?.name === "AbortError") throw error;
+						if (isAbortError(error)) throw error;
 						const videos = listVideos();
 						const video = videos[0];
 						const earlyStore = targetWindow[STORE_KEY];
@@ -23949,7 +23888,7 @@ var vot = (function(exports) {
 				messageDirection: "response",
 				payload: void 0,
 				error: error instanceof Error ? error.message : String(error),
-				isAborted: controller.signal.aborted || error?.name === "AbortError"
+				isAborted: controller.signal.aborted || isAbortError(error)
 			});
 		} finally {
 			clearInterval(heartbeat);
@@ -24066,17 +24005,12 @@ var vot = (function(exports) {
 	}
 	initMseProxyHandler();
 	//#endregion
-	//#region src/audioDownloader/strategies/webMseProxy.ts
-	async function getAudioFromWebMseProxy(options) {
-		return getAudioFromBridge(options, AudioDownloadType.WEB_MSE_PROXY);
-	}
-	//#endregion
 	//#region src/audioDownloader/strategies/index.ts
 	var WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
 	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
 	var strategies = {
-		[WEB_ABR_STRATEGY]: getAudioFromWebAbr,
-		[WEB_MSE_PROXY_STRATEGY]: getAudioFromWebMseProxy
+		[WEB_ABR_STRATEGY]: (options) => getAudioFromBridge(options, WEB_ABR_STRATEGY),
+		[WEB_MSE_PROXY_STRATEGY]: (options) => getAudioFromBridge(options, WEB_MSE_PROXY_STRATEGY)
 	};
 	//#endregion
 	//#region src/audioDownloader/index.ts
@@ -24121,7 +24055,6 @@ var vot = (function(exports) {
 		}
 		async runAudioDownload(videoId, translationId, signal) {
 			const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
-			const errors = [];
 			for (const attemptedStrategy of attempts) try {
 				await handleCommonAudioDownloadRequest({
 					audioDownloader: this,
@@ -24136,25 +24069,20 @@ var vot = (function(exports) {
 				});
 				return;
 			} catch (error) {
-				if (signal.aborted || error?.name === "AbortError") {
+				if (signal.aborted || isAbortError(error)) {
 					debug.log("Audio downloader. Audio download aborted", {
 						videoId,
 						audioDownloadType: attemptedStrategy
 					});
 					return;
 				}
-				errors.push(error);
 				debug.error("Audio downloader. Strategy failed", {
 					videoId,
 					audioDownloadType: attemptedStrategy,
 					error: error instanceof Error ? error.message : String(error)
 				});
 			}
-			const error = errors.length === 1 ? errors[0] : new AggregateError(errors, "All audio download strategies failed");
-			debug.error("Audio downloader. Failed to download audio", {
-				videoId,
-				error: error instanceof Error ? error.message : String(error)
-			});
+			debug.error("Audio downloader. All audio download strategies failed", { videoId });
 			this.onDownloadAudioError.dispatch(translationId, videoId);
 		}
 		addEventListener(type, listener) {

@@ -40,31 +40,6 @@ export const preprocessYouTubePlayer = (function (meriyah, astring) {
     return meriyah.parse(data).body[0].expression;
   }
 
-  function optionalChain(operations) {
-    let lastAccess;
-    let value = operations[0];
-    let index = 1;
-    while (index < operations.length) {
-      const operation = operations[index];
-      const callback = operations[index + 1];
-      index += 2;
-      if (
-        (operation === "optionalAccess" || operation === "optionalCall") &&
-        value == null
-      ) {
-        return undefined;
-      }
-      if (operation === "access" || operation === "optionalAccess") {
-        lastAccess = value;
-        value = callback(value);
-      } else if (operation === "call" || operation === "optionalCall") {
-        value = callback((...args) => value.call(lastAccess, ...args));
-        lastAccess = undefined;
-      }
-    }
-    return value;
-  }
-
   const identifier = {
     or: [
       {
@@ -112,48 +87,17 @@ export const preprocessYouTubePlayer = (function (meriyah, astring) {
     if (!matchesStructure(node, identifier)) return null;
     const options = [];
     if (node.type === "FunctionDeclaration") {
-      if (
-        node.id &&
-        optionalChain([
-          node,
-          "access",
-          (value) => value.body,
-          "optionalAccess",
-          (value) => value.body,
-        ])
-      ) {
-        options.push({
-          name: node.id,
-          statements: optionalChain([
-            node,
-            "access",
-            (value) => value.body,
-            "optionalAccess",
-            (value) => value.body,
-          ]),
-        });
-      }
+      const statements = node.body?.body;
+      if (node.id && statements) options.push({ name: node.id, statements });
     } else if (node.type === "ExpressionStatement") {
       if (node.expression.type !== "AssignmentExpression") return null;
       const name = node.expression.left;
-      const body = optionalChain([
-        node.expression.right,
-        "optionalAccess",
-        (value) => value.body,
-        "optionalAccess",
-        (value) => value.body,
-      ]);
+      const body = node.expression.right?.body?.body;
       if (name && body) options.push({ name, statements: body });
     } else if (node.type === "VariableDeclaration") {
       for (const declaration of node.declarations) {
         const name = declaration.id;
-        const body = optionalChain([
-          declaration.init,
-          "optionalAccess",
-          (value) => value.body,
-          "optionalAccess",
-          (value) => value.body,
-        ]);
+        const body = declaration.init?.body?.body;
         if (name && body) options.push({ name, statements: body });
       }
     }
@@ -187,30 +131,7 @@ export const preprocessYouTubePlayer = (function (meriyah, astring) {
 `);
   }
 
-  let setupNodes;
-
   function preprocessPlayer(data) {
-    setupNodes ??= meriyah.parse(`
-if (typeof globalThis.XMLHttpRequest === "undefined") {
-  globalThis.XMLHttpRequest = { prototype: {} };
-}
-if (typeof globalThis.location === "undefined") {
-  globalThis.location = new URL("https://www.youtube.com/watch?v=yt-dlp-wins");
-}
-if (typeof globalThis.document === "undefined") {
-  globalThis.document = Object.create(null);
-}
-if (typeof globalThis.navigator === "undefined") {
-  globalThis.navigator = Object.create(null);
-}
-if (typeof globalThis.self === "undefined") {
-  globalThis.self = globalThis;
-}
-if (typeof globalThis.window === "undefined") {
-  globalThis.window = globalThis;
-}
-`).body;
-
     const program = meriyah.parse(data);
     const plainStatements = modifyPlayer(program);
     const solutions = getSolutions(plainStatements);
@@ -231,7 +152,6 @@ if (typeof globalThis.window === "undefined") {
         },
       });
     }
-    program.body.splice(0, 0, ...setupNodes);
     return astring.generate(program);
   }
 
@@ -242,8 +162,7 @@ if (typeof globalThis.window === "undefined") {
         case 1: {
           const func = body[0];
           if (
-            optionalChain([func, "optionalAccess", (value) => value.type]) ===
-              "ExpressionStatement" &&
+            func?.type === "ExpressionStatement" &&
             func.expression.type === "CallExpression" &&
             func.expression.callee.type === "MemberExpression" &&
             func.expression.callee.object.type === "FunctionExpression"
@@ -255,8 +174,7 @@ if (typeof globalThis.window === "undefined") {
         case 2: {
           const func = body[1];
           if (
-            optionalChain([func, "optionalAccess", (value) => value.type]) ===
-              "ExpressionStatement" &&
+            func?.type === "ExpressionStatement" &&
             func.expression.type === "CallExpression" &&
             func.expression.callee.type === "FunctionExpression"
           ) {

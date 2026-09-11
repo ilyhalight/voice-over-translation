@@ -1,6 +1,7 @@
 import { AudioDownloadType } from "@vot.js/core/types/yandex";
 import { config } from "@vot.js/shared";
 import debug from "../../utils/debug";
+import { isAbortError } from "../../utils/errors";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
 import { getWebAbrAudioChunks } from "./webAbr";
 
@@ -240,8 +241,7 @@ class MseCaptureStore {
       );
     } catch (error) {
       signal.throwIfAborted();
-      if ((error as { name?: string } | null)?.name === "AbortError")
-        throw error;
+      if (isAbortError(error)) throw error;
       const newest = this.captures.at(-1);
       throw new Error(
         `Audio downloader. MSE capture wait timed out (captures: ${this.captures.length}, ` +
@@ -412,8 +412,7 @@ export function createAudioChunkStream(
           );
         } catch (error) {
           signal.throwIfAborted();
-          if ((error as { name?: string } | null)?.name === "AbortError")
-            throw error;
+          if (isAbortError(error)) throw error;
           const videos = listVideos();
           const video = videos[0];
           // The proxy is installed at handler init, so captures collected
@@ -704,9 +703,7 @@ async function handleIframeRequest(
       messageDirection: "response",
       payload: undefined,
       error: error instanceof Error ? error.message : String(error),
-      isAborted:
-        controller.signal.aborted ||
-        (error as { name?: string } | null)?.name === "AbortError",
+      isAborted: controller.signal.aborted || isAbortError(error),
     });
   } finally {
     clearInterval(heartbeat);

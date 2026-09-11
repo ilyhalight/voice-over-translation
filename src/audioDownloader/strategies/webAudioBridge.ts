@@ -2,6 +2,7 @@ import type { AudioDownloadType } from "@vot.js/core/types/yandex";
 
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
 import debug from "../../utils/debug";
+import { makeAbortError } from "../../utils/errors";
 import type { AudioChunk } from "./audioChunks";
 
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
@@ -33,14 +34,6 @@ export function parseAudioBridgeChunk(payload: unknown): AudioChunk {
   return { buffer: bytes, isLastChunk };
 }
 
-function createAbortError(reason: unknown): Error {
-  if (reason instanceof Error && reason.name === "AbortError") return reason;
-  return new DOMException(
-    reason instanceof Error ? reason.message : String(reason ?? "Aborted"),
-    "AbortError",
-  );
-}
-
 async function* getAudioBridgeChunks(
   videoId: string,
   signal: AbortSignal,
@@ -48,7 +41,7 @@ async function* getAudioBridgeChunks(
     | AudioDownloadType.WEB_ABR
     | AudioDownloadType.WEB_MSE_PROXY,
 ): AsyncGenerator<AudioChunk> {
-  if (signal.aborted) throw createAbortError(signal.reason);
+  if (signal.aborted) throw makeAbortError(signal.reason);
 
   const messageId = `stream-message-id-${performance.now()}-${Math.random()}`;
   const chunks: AudioChunk[] = [];
@@ -95,7 +88,7 @@ async function* getAudioBridgeChunks(
   const throwIfFailed = () => {
     if (!failure) return;
     if (!globalThis.location.href.includes(videoId)) {
-      throw createAbortError("URL changed during audio download");
+      throw makeAbortError("URL changed during audio download");
     }
     throw failure;
   };
@@ -128,7 +121,7 @@ async function* getAudioBridgeChunks(
 
     resetMessageTimeout();
     if (message.isAborted) {
-      finish(createAbortError(message.error));
+      finish(makeAbortError(message.error));
       return;
     }
     if (message.error) {
@@ -171,14 +164,14 @@ async function* getAudioBridgeChunks(
       finish(error instanceof Error ? error : new Error(String(error)));
     }
   };
-  const onAbort = () => finish(createAbortError(signal.reason));
+  const onAbort = () => finish(makeAbortError(signal.reason));
   const streamTimeout = setTimeout(
     () => finish(new Error("Audio bridge stream timed out")),
     STREAM_TIMEOUT_MS,
   );
   const navigationInterval = setInterval(() => {
     if (!globalThis.location.href.includes(videoId)) {
-      finish(createAbortError("URL changed during audio download"));
+      finish(makeAbortError("URL changed during audio download"));
     }
   }, 100);
 
