@@ -8,10 +8,7 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { AudioDownloader } from "../audioDownloader";
 import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
 import { localizationProvider } from "../localization/localizationProvider";
-import type {
-  DownloadedAudioData,
-  DownloadedPartialAudioData,
-} from "../types/audioDownloader";
+import type { DownloadedPartialAudioData } from "../types/audioDownloader";
 import {
   createAbortableDelay,
   createAbortableWaiter,
@@ -119,8 +116,19 @@ export class VOTTranslationHandler {
   private readonly etaCountdown: TranslationEtaCountdown;
 
   // Avoid spamming the fail-audio-js fallback for the same video URL.
-  // In normal operation we should upload audio through the MSE proxy path.
+  // In normal operation the audio track is streamed from YouTube directly.
   private readonly requestedFailAudio = new Set<string>();
+
+  /**
+   * Whether the audio of the current attempt reached the translation backend.
+   *
+   * `uploaded` is set only after `PUT /video-translation/audio` answered 200 OK
+   * for the last chunk, and it is the only state that allows
+   * `shouldSendFailedAudio: false`. Anything else (a failed upload, a download
+   * that no strategy could finish, the fail-audio fallback) means the backend
+   * has no usable audio and has to be told so.
+   */
+  private audioUploadState: "idle" | "uploaded" | "failed" = "idle";
 
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
@@ -132,45 +140,9 @@ export class VOTTranslationHandler {
     );
 
     this.audioDownloader
-      .addEventListener("downloadedAudio", this.onDownloadedAudio)
       .addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio)
       .addEventListener("downloadAudioError", this.onDownloadAudioError);
   }
-
-  private readonly onDownloadedAudio = async (
-    translationId: string,
-    data: DownloadedAudioData,
-  ) => {
-    debug.log("downloadedAudio", data);
-    if (!this.downloading) {
-      debug.log("skip downloadedAudio");
-      return;
-    }
-
-    const { videoId, fileId, audioData } = data;
-    const videoUrl = this.getCanonicalUrl(videoId);
-    try {
-      await this.retryAudioUpload(() =>
-        this.videoHandler.votClient.provider.requestVtransAudio(
-          videoUrl,
-          translationId,
-          {
-            audioFile: audioData,
-            fileId,
-          },
-        ),
-      );
-    } catch (error) {
-      debug.error("Failed to upload downloaded audio", error);
-      this.finishDownloadFailure(
-        error instanceof Error
-          ? error
-          : new Error("Audio downloader failed while uploading full audio"),
-      );
-      return;
-    }
-    this.finishDownloadSuccess();
-  };
 
   private readonly onDownloadedPartialAudio = async (
     translationId: string,
@@ -202,6 +174,7 @@ export class VOTTranslationHandler {
       );
     } catch (error) {
       debug.error("Failed to upload downloaded audio chunk", error);
+      this.audioUploadState = "failed";
       this.finishDownloadFailure(
         new Error("Audio downloader failed while uploading chunk"),
       );
@@ -209,6 +182,9 @@ export class VOTTranslationHandler {
     }
 
     if (amount !== undefined && index === amount - 1) {
+      // The last chunk was accepted, so the whole track is in the backend's
+      // storage: the next translation request must not claim failed audio.
+      this.audioUploadState = "uploaded";
       this.finishDownloadSuccess();
     }
   };
@@ -223,6 +199,8 @@ export class VOTTranslationHandler {
     }
 
     debug.log(`Failed to download audio ${videoId}`);
+    // Nothing usable was uploaded, whatever the fallback below answers.
+    this.audioUploadState = "failed";
     const videoUrl = this.getCanonicalUrl(videoId);
 
     // The fail-audio-js endpoint is a rare fallback. Keep its usage minimal and
@@ -488,13 +466,15 @@ export class VOTTranslationHandler {
           translationId: res.translationId,
         });
         this.downloading = true;
+        // A fresh attempt: nothing has been delivered yet.
+        this.audioUploadState = "idle";
 
         debug.log("[Translation] waiting for audio download completion", {
           videoId: videoData.videoId,
           translationId: res.translationId,
           timeoutMs: STREAM_TIMEOUT_MS,
         });
-        await Promise.all([
+        const [, audioDownload] = await Promise.all([
           this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS),
           this.audioDownloader.runAudioDownload(
             videoData.videoId,
@@ -502,6 +482,26 @@ export class VOTTranslationHandler {
             signal,
           ),
         ]);
+        throwIfAborted(signal);
+
+        // `shouldSendFailedAudio` tells the backend that no audio is coming, so
+        // it may only be set when the download really failed: sent together
+        // with a complete upload it makes the backend answer "Yandex couldn't
+        // translate video" instead of translating the track it already has.
+        const audioDelivered =
+          audioDownload.status === "completed" &&
+          this.audioUploadState === "uploaded";
+        debug.log("[Translation] audio download settled", {
+          videoId: videoData.videoId,
+          translationId: res.translationId,
+          outcome: audioDownload.status,
+          audioDownloadType:
+            audioDownload.status === "completed"
+              ? audioDownload.audioDownloadType
+              : undefined,
+          audioUploadState: this.audioUploadState,
+          shouldSendFailedAudio: !audioDelivered,
+        });
 
         // for get instant result on download end
         return await this.translateVideoImpl(
@@ -509,7 +509,7 @@ export class VOTTranslationHandler {
           requestLang,
           responseLang,
           translationHelp,
-          true,
+          !audioDelivered,
           signal,
           {
             disableLivelyVoice: livelyDisabled,

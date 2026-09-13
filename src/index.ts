@@ -1,5 +1,6 @@
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
+import { initPageAudioHandler } from "./audioDownloader/strategies/pageAudioHandler";
 import { getOrCreateBootState } from "./bootstrap/bootState";
 import { initIframeInteractor } from "./bootstrap/iframeInteractor";
 import { ensureRuntimeActivated } from "./bootstrap/runtimeActivation";
@@ -95,6 +96,15 @@ async function main(): Promise<void> {
             pointer-events: auto !important;
         }
     `);
+  }
+
+  if (bootstrapMode === "audio-realm") {
+    // Our own hidden frame: it exists only to answer the media requests of the
+    // realm that opened it, so the audio handler is installed and no UI, no
+    // observers and no translation runtime are.
+    initPageAudioHandler();
+    logBootstrap("Audio realm bootstrapped; UI skipped");
+    return;
   }
 
   if (bootstrapMode === "skip") {

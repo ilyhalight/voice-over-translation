@@ -1,18 +1,33 @@
 import type {
   AudioDownloadRequestOptions,
-  DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
 import debug from "../utils/debug";
-import { isAbortError } from "../utils/errors";
+import { isAbortError, toErrorMessage } from "../utils/errors";
 import { EventImpl } from "../utils/eventImpl";
-
 import {
+  AUDIO_DOWNLOAD_TYPES,
   type AvailableAudioDownloadType,
-  strategies,
-  WEB_ABR_STRATEGY,
-  WEB_MSE_PROXY_STRATEGY,
-} from "./strategies";
+} from "./strategies/bridgeProtocol";
+import { initPageAudioHandler } from "./strategies/pageAudioHandler";
+import { getAudioFromBridge } from "./strategies/webAudioBridge";
+
+// The download itself runs in the page realm, so the handler has to be ready
+// before the first request is posted to it.
+initPageAudioHandler();
+
+/**
+ * How a whole download attempt ended.
+ *
+ * The caller needs it for `shouldSendFailedAudio`: the translation backend
+ * refuses a request that announces failed audio while a complete upload is
+ * sitting in its storage, so the flag may only be set when every strategy
+ * really failed.
+ */
+export type AudioDownloadOutcome =
+  | { status: "completed"; audioDownloadType: AvailableAudioDownloadType }
+  | { status: "aborted" }
+  | { status: "failed" };
 
 function assertHasAudioChunk(chunk: Uint8Array | undefined): Uint8Array {
   if (!chunk || chunk.byteLength === 0) {
@@ -21,27 +36,17 @@ function assertHasAudioChunk(chunk: Uint8Array | undefined): Uint8Array {
   return chunk;
 }
 
-async function handleCommonAudioDownloadRequest({
+async function handleAudioDownloadRequest({
   audioDownloader,
-  attemptedStrategy,
   translationId,
   videoId,
   signal,
-}: AudioDownloadRequestOptions & {
-  attemptedStrategy: AvailableAudioDownloadType;
-}) {
-  const audioData = await strategies[attemptedStrategy]({
-    videoId,
-    signal,
-  });
-  if (!audioData) {
-    throw new Error("Audio downloader. Can not get audio data");
-  }
-  debug.log("Audio downloader. Url found", {
-    audioDownloadType: attemptedStrategy,
-  });
-
-  const { getMediaBuffers, fileId } = audioData;
+  audioDownloadType,
+}: AudioDownloadRequestOptions) {
+  const { getMediaBuffers, fileId } = getAudioFromBridge(
+    { videoId, signal },
+    audioDownloadType,
+  );
 
   let index = 0;
   let receivedLastChunk = false;
@@ -72,70 +77,60 @@ async function handleCommonAudioDownloadRequest({
 }
 
 export class AudioDownloader {
-  onDownloadedAudio = new EventImpl<[string, DownloadedAudioData]>();
   onDownloadedPartialAudio = new EventImpl<
     [string, DownloadedPartialAudioData]
   >();
   onDownloadAudioError = new EventImpl<[string, string]>();
 
-  strategy: AvailableAudioDownloadType;
-
-  constructor(strategy: AvailableAudioDownloadType = WEB_ABR_STRATEGY) {
-    this.strategy = strategy;
-    debug.log("Audio downloader created", {
-      strategy,
-    });
-  }
-
   async runAudioDownload(
     videoId: string,
     translationId: string,
     signal: AbortSignal,
-  ) {
-    const attempts: AvailableAudioDownloadType[] =
-      this.strategy === WEB_ABR_STRATEGY
-        ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
-        : [this.strategy];
-    for (const attemptedStrategy of attempts) {
+  ): Promise<AudioDownloadOutcome> {
+    let failure: unknown;
+    // The direct-URL strategy goes first because it costs two requests. The
+    // MediaSource capture needs no request of its own, but it has to load a
+    // hidden player, so it only runs when YouTube answers no usable URL.
+    for (const audioDownloadType of AUDIO_DOWNLOAD_TYPES) {
       try {
-        await handleCommonAudioDownloadRequest({
+        await handleAudioDownloadRequest({
           audioDownloader: this,
-          attemptedStrategy,
           translationId,
           videoId,
           signal,
+          audioDownloadType,
         });
         debug.log("Audio downloader. Audio download finished", {
           videoId,
-          audioDownloadType: attemptedStrategy,
+          audioDownloadType,
         });
-        return;
+        return { status: "completed", audioDownloadType };
       } catch (error) {
         if (signal.aborted || isAbortError(error)) {
-          debug.log("Audio downloader. Audio download aborted", {
-            videoId,
-            audioDownloadType: attemptedStrategy,
-          });
-          return;
+          debug.log("Audio downloader. Audio download aborted", { videoId });
+          return { status: "aborted" };
         }
-        debug.error("Audio downloader. Strategy failed", {
+        failure = error;
+        // Every attempt uploads under its own file id, so the next strategy
+        // starts a clean file instead of continuing a broken one.
+        debug.error("Audio downloader. Audio download strategy failed", {
           videoId,
-          audioDownloadType: attemptedStrategy,
-          error: error instanceof Error ? error.message : String(error),
+          audioDownloadType,
+          error: toErrorMessage(error),
         });
       }
     }
 
-    debug.error("Audio downloader. All audio download strategies failed", {
+    debug.error("Audio downloader. Audio download failed", {
       videoId,
+      error: toErrorMessage(failure),
     });
-    this.onDownloadAudioError.dispatch(translationId, videoId);
+    // Awaited, so the caller sees the final state of the upload (the
+    // fail-audio fallback included) before it decides on its flags.
+    await this.onDownloadAudioError.dispatchAsync(translationId, videoId);
+    return { status: "failed" };
   }
 
-  addEventListener(
-    type: "downloadedAudio",
-    listener: (translationId: string, data: DownloadedAudioData) => void,
-  ): this;
   addEventListener(
     type: "downloadedPartialAudio",
     listener: (translationId: string, data: DownloadedPartialAudioData) => void,
@@ -145,13 +140,10 @@ export class AudioDownloader {
     listener: (translationId: string, videoId: string) => void,
   ): this;
   addEventListener(
-    type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
+    type: "downloadedPartialAudio" | "downloadAudioError",
     listener: (...data: any[]) => void,
   ): this {
     switch (type) {
-      case "downloadedAudio":
-        this.onDownloadedAudio.addListener(listener);
-        break;
       case "downloadedPartialAudio":
         this.onDownloadedPartialAudio.addListener(listener);
         break;
@@ -164,10 +156,6 @@ export class AudioDownloader {
   }
 
   removeEventListener(
-    type: "downloadedAudio",
-    listener: (translationId: string, data: DownloadedAudioData) => void,
-  ): this;
-  removeEventListener(
     type: "downloadedPartialAudio",
     listener: (translationId: string, data: DownloadedPartialAudioData) => void,
   ): this;
@@ -176,13 +164,10 @@ export class AudioDownloader {
     listener: (translationId: string, videoId: string) => void,
   ): this;
   removeEventListener(
-    type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
+    type: "downloadedPartialAudio" | "downloadAudioError",
     listener: (...data: any[]) => void,
   ): this {
     switch (type) {
-      case "downloadedAudio":
-        this.onDownloadedAudio.removeListener(listener);
-        break;
       case "downloadedPartialAudio":
         this.onDownloadedPartialAudio.removeListener(listener);
         break;

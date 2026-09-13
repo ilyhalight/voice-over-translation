@@ -244,6 +244,7 @@
 // @grant          GM.notification
 // @grant          GM.setValue
 // @grant          GM.xmlHttpRequest
+// @grant          unsafeWindow
 // @grant          window.focus
 // ==/UserScript==
 
@@ -6692,156 +6693,6 @@ var vot = (function(exports) {
 		};
 	}
 	//#endregion
-	//#region src/bootstrap/bootState.ts
-	var MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
-	var BOOTSTRAP_STATUSES = /* @__PURE__ */ new Set([
-		"idle",
-		"booting",
-		"booted",
-		"failed"
-	]);
-	function isBootstrapStatus(value) {
-		return BOOTSTRAP_STATUSES.has(value);
-	}
-	function isBootstrapState(value) {
-		if (!value || typeof value !== "object") return false;
-		return isBootstrapStatus(value.status);
-	}
-	function getOrCreateBootState(bootKey = MAIN_BOOT_KEY) {
-		const scope = globalThis;
-		const existing = scope[bootKey];
-		if (isBootstrapState(existing)) return existing;
-		const created = {
-			status: "idle",
-			error: null
-		};
-		scope[bootKey] = created;
-		return created;
-	}
-	//#endregion
-	//#region src/bootstrap/iframeInteractor.ts
-	var iframeInteractorInitialized = false;
-	var IFRAME_CONFIGS = {
-		"https://dev.epicgames.com": {
-			targetOrigin: "https://dev.epicgames.com",
-			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
-			extractVideoId: (url) => url.pathname.split("/").at(-2) ?? null,
-			responseFormatter: (videoId, data) => `${typeof data === "string" ? data : ""}:${videoId}`
-		},
-		"https://www.dailymotion.com": {
-			targetOrigin: "https://geo.dailymotion.com",
-			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
-			extractVideoId: (url) => /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? null,
-			responseFormatter: (videoId) => `getVideoId:${videoId}`
-		}
-	};
-	function initIframeInteractor() {
-		if (iframeInteractorInitialized) return;
-		iframeInteractorInitialized = true;
-		const currentConfig = IFRAME_CONFIGS[globalThis.location.origin];
-		if (!currentConfig) return;
-		globalThis.addEventListener("message", (event) => {
-			try {
-				if (event.origin !== currentConfig.targetOrigin) return;
-				if (!currentConfig.dataFilter(event.data)) return;
-				const videoId = currentConfig.extractVideoId(new URL(globalThis.location.href));
-				if (!videoId) return;
-				const response = currentConfig.responseFormatter(videoId, event.data);
-				event.source?.postMessage(response, currentConfig.targetOrigin);
-			} catch (error) {
-				console.error("Iframe communication error:", error);
-			}
-		});
-	}
-	//#endregion
-	//#region src/config/config.ts
-	var workerHost = "api.browser.yandex.ru";
-	/**
-	* used for streaming
-	*
-	* @see https://github.com/FOSWLY/media-proxy
-	*/
-	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
-	/**
-	* @see https://github.com/FOSWLY/vot-worker
-	*/
-	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
-	var proxyWorkerHost = "vot-worker.eu.cc";
-	/**
-	* @see https://github.com/FOSWLY/translate-backend
-	*/
-	var foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2";
-	var detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
-	var authServerUrl = "https://rust-server-531j.onrender.com";
-	var authLoginUrl = `${authServerUrl}/v1/auth/handle`;
-	var avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
-	var repoPath = "ilyhalight/voice-over-translation";
-	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
-	var repositoryUrl = `https://github.com/${repoPath}`;
-	var defaultTranslationService = "yandexbrowser";
-	var defaultDetectService = "yandexbrowser";
-	var proxyOnlyCountries = [
-		"UA",
-		"LV",
-		"LT"
-	];
-	/**
-	* 100 - 3000 ms - delay before hiding button
-	*/
-	var defaultAutoHideDelay = 1e3;
-	var actualCompatVersion = "2025-05-09";
-	//#endregion
-	//#region src/types/storage.ts
-	var subtitleResponseLanguageModes = ["auto", "original"];
-	var storageKeys = [
-		"autoTranslate",
-		"autoSubtitles",
-		"dontTranslateLanguages",
-		"enabledDontTranslateLanguages",
-		"enabledAutoVolume",
-		"enabledSmartDucking",
-		"autoVolume",
-		"buttonPos",
-		"showVideoSlider",
-		"syncVolume",
-		"downloadWithName",
-		"sendNotifyOnComplete",
-		"subtitlesMaxLength",
-		"subtitlesSmartLayout",
-		"highlightWords",
-		"subtitlesFontSize",
-		"subtitlesFontFamily",
-		"subtitlesOpacity",
-		"subtitlesDownloadFormat",
-		"responseLanguage",
-		"responseLanguageSubtitles",
-		"defaultVolume",
-		"onlyBypassMediaCSP",
-		"newAudioPlayer",
-		"showPiPButton",
-		"translateAPIErrors",
-		"translationService",
-		"detectService",
-		"translationHotkey",
-		"subtitlesHotkey",
-		"m3u8ProxyHost",
-		"proxyWorkerHost",
-		"translateProxyEnabled",
-		"translateProxyEnabledDefault",
-		"audioBooster",
-		"useLivelyVoice",
-		"autoHideButtonDelay",
-		"useAudioDownload",
-		"compatVersion",
-		"localePhrases",
-		"localeLang",
-		"localeHash",
-		"localeVersion",
-		"localeUpdatedAt",
-		"localeLangOverride",
-		"account"
-	];
-	//#endregion
 	//#region src/utils/debug.ts
 	var log = (...text) => {
 		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
@@ -6950,6 +6801,1496 @@ var vot = (function(exports) {
 			current = current[key];
 		}
 		return current;
+	}
+	//#endregion
+	//#region src/audioDownloader/internal/constants.ts
+	/**
+	* CONSOLIDATION — timings that more than one strategy keys behavior off.
+	*
+	* `PROGRESS_INTERVAL_MS` was declared twice with the same value
+	* (`pageAudioHandler.ts:39` and `mseProxy.ts:41`). Both sides of the bridge
+	* have to agree on it — the requester drops a stream that reports nothing for
+	* too long — so two independent literals were a latent divergence.
+	*/
+	/** How often a long-running download pings the requesting realm. */
+	var PROGRESS_INTERVAL_MS = 3e4;
+	//#endregion
+	//#region src/audioDownloader/internal/hosts.ts
+	/**
+	* CONSOLIDATION — one source of truth for the hosts the audio downloader
+	* keys behavior off.
+	*
+	* Before: `webAudioBridge.YOUTUBE_ORIGIN` (an origin regexp),
+	* `pageAudioHandler.YOUTUBE_HOSTS` (a hostname regexp that listed a *different*
+	* host set), and two byte-identical `/(?:^|\.)googlevideo\.com$/` literals at
+	* `poToken.ts:189` and `webAbr.ts:1268`. Three facts, four declarations, two of
+	* them already divergent.
+	*
+	* PARITY NOTE: every pattern below is copied verbatim from the unit it came
+	* from, flags included, so consolidation cannot change which strings match.
+	* `youtubekids.com` is intentionally present in both host sets because both
+	* originals listed it.
+	*/
+	/** Origin used as the base when resolving a relative YouTube URL. */
+	var YOUTUBE_ORIGIN = "https://www.youtube.com";
+	/**
+	* Origins whose bridge answers are accepted (from `webAudioBridge.ts:31`).
+	*
+	* Deliberately wide: the answer comes from the page realm itself (the site the
+	* video is embedded on), from the hidden youtube.com realm, or from a realm
+	* that reports no origin at all.
+	*/
+	var TRUSTED_ORIGIN_PATTERN = /^https:\/\/(?:[a-z0-9-]+\.)*(?:youtube(?:-nocookie)?\.com|youtubekids\.com)$/i;
+	/** Hostnames that carry a usable YouTube session (from `pageAudioHandler.ts:40`). */
+	var YOUTUBE_HOST_PATTERN = /(?:^|\.)(?:youtube\.com|youtube-nocookie\.com|youtubekids\.com)$/;
+	/** GVS media hosts (from `poToken.ts:189` and `webAbr.ts:1268`). */
+	var GOOGLEVIDEO_HOST_PATTERN = /(?:^|\.)googlevideo\.com$/;
+	/** True for a `https://…youtube(-nocookie|kids)?.com` origin string. */
+	function isTrustedYouTubeOrigin(origin) {
+		return TRUSTED_ORIGIN_PATTERN.test(origin);
+	}
+	/** True for youtube.com / youtube-nocookie.com / youtubekids.com and subdomains. */
+	function isYouTubeHost(host) {
+		return !!host && YOUTUBE_HOST_PATTERN.test(host);
+	}
+	/** True for the GVS media hosts (`*.googlevideo.com`). */
+	function isGooglevideoHost(host) {
+		return !!host && GOOGLEVIDEO_HOST_PATTERN.test(host);
+	}
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/types/yandex.js
+	var VideoTranslationStatus;
+	(function(VideoTranslationStatus) {
+		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
+		VideoTranslationStatus[VideoTranslationStatus["FINISHED"] = 1] = "FINISHED";
+		VideoTranslationStatus[VideoTranslationStatus["WAITING"] = 2] = "WAITING";
+		VideoTranslationStatus[VideoTranslationStatus["LONG_WAITING"] = 3] = "LONG_WAITING";
+		VideoTranslationStatus[VideoTranslationStatus["PART_CONTENT"] = 5] = "PART_CONTENT";
+		VideoTranslationStatus[VideoTranslationStatus["AUDIO_REQUESTED"] = 6] = "AUDIO_REQUESTED";
+		VideoTranslationStatus[VideoTranslationStatus["SESSION_REQUIRED"] = 7] = "SESSION_REQUIRED";
+	})(VideoTranslationStatus || (VideoTranslationStatus = {}));
+	var AudioDownloadType;
+	(function(AudioDownloadType) {
+		AudioDownloadType["WEB_API_VIDEO_SRC_FROM_IFRAME"] = "web_api_video_src_from_iframe";
+		AudioDownloadType["WEB_API_VIDEO_SRC"] = "web_api_video_src";
+		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME"] = "web_api_get_all_generating_urls_data_from_iframe";
+		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME_TMP_EXP"] = "web_api_get_all_generating_urls_data_from_iframe_tmp_exp";
+		AudioDownloadType["WEB_API_REPLACED_FETCH_INSIDE_IFRAME"] = "web_api_replaced_fetch_inside_iframe";
+		AudioDownloadType["ANDROID_API"] = "android_api";
+		AudioDownloadType["WEB_API_SLOW"] = "web_api_slow";
+		AudioDownloadType["WEB_API_STEAL_SIG_AND_N"] = "web_api_steal_sig_and_n";
+		AudioDownloadType["WEB_API_COMBINED"] = "web_api_get_all_generating_urls_data_from_iframe,web_api_steal_sig_and_n";
+		AudioDownloadType["WEB_ABR"] = "web_abr";
+		AudioDownloadType["WEB_SABR"] = "web_sabr";
+		AudioDownloadType["WEB_MSE_PROXY"] = "web_mse_proxy";
+		AudioDownloadType["EMPTY_PLUG"] = "empty_plug";
+	})(AudioDownloadType || (AudioDownloadType = {}));
+	//#endregion
+	//#region src/audioDownloader/strategies/bridgeProtocol.ts
+	/**
+	* Ways the page realm can hand the audio track over to the userscript realm:
+	*
+	* - `WEB_ABR` downloads a direct GVS audio URL in ranges. One InnerTube
+	*   `player` call plus one media request per 4 MiB of the track, but YouTube
+	*   only answers direct URLs for a part of its clients.
+	* - `WEB_MSE_PROXY` copies the audio segments the YouTube player is already
+	*   streaming through MediaSource. It costs no request of its own and works
+	*   even when every client answers SABR-only, so it is the last resort.
+	*/
+	var AUDIO_DOWNLOAD_TYPES = [AudioDownloadType.WEB_ABR, AudioDownloadType.WEB_MSE_PROXY];
+	function isAudioDownloadType(value) {
+		return AUDIO_DOWNLOAD_TYPES.includes(value);
+	}
+	/** postMessage contract between the userscript realm and the page realm. */
+	var MESSAGE_TYPE = "vot-get-audio-chunks-in-main-world";
+	var READY_MESSAGE_TYPE = "vot-audio-realm-ready";
+	/**
+	* Marks the hidden youtube.com iframe that is used as a realm when the current
+	* page cannot talk to youtube.com itself.
+	*/
+	var IFRAME_HASH = "vot_audio_realm";
+	function getAudioRealmIframeId(messageId) {
+		return `vot-audio-realm-${messageId}`;
+	}
+	//#endregion
+	//#region src/audioDownloader/internal/asyncQueue.ts
+	function createAsyncQueue() {
+		const buffer = [];
+		let settled = false;
+		let failure;
+		let wake;
+		const signal = () => {
+			const resume = wake;
+			wake = void 0;
+			resume?.();
+		};
+		return {
+			push(item) {
+				if (settled) return;
+				buffer.push(item);
+				signal();
+			},
+			close() {
+				if (settled) return;
+				settled = true;
+				signal();
+			},
+			fail(error) {
+				if (settled) return;
+				settled = true;
+				failure = { error };
+				signal();
+			},
+			get settled() {
+				return settled;
+			},
+			get size() {
+				return buffer.length;
+			},
+			async *drain() {
+				while (!settled || buffer.length > 0) {
+					if (buffer.length === 0) {
+						const gate = Promise.withResolvers();
+						wake = gate.resolve;
+						await gate.promise;
+						continue;
+					}
+					yield buffer.shift();
+				}
+				if (failure) throw failure.error;
+			}
+		};
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/audioChunks.ts
+	function concatBuffers(buffers) {
+		if (buffers.length === 1) return buffers[0];
+		const result = new Uint8Array(buffers.reduce((length, buffer) => length + buffer.byteLength, 0));
+		let offset = 0;
+		for (const buffer of buffers) {
+			result.set(buffer, offset);
+			offset += buffer.byteLength;
+		}
+		return result;
+	}
+	//#endregion
+	//#region src/audioDownloader/internal/chunkAccumulator.ts
+	/**
+	* CONSOLIDATION — unified "buffer until `minChunkSize`, then emit" rule.
+	*
+	* `mseProxy.captureMseStream` and `webAbr.streamMediaFormat` both carried:
+	*
+	*     pending.push(bytes);
+	*     pendingSize += bytes.byteLength;
+	*     if (pendingSize >= config.minChunkSize) {
+	*       yield concatBuffers(pending);
+	*       pending = [];
+	*       pendingSize = 0;
+	*     }
+	*     // ...and, at the end, a separate flush with its own emptiness rule
+	*
+	* Two copies of a size threshold, two copies of the reset, and two *different*
+	* tail rules (one could emit a zero-length final chunk, the other could not).
+	* The accumulator owns the rule; callers only say "take these bytes" and
+	* "flush".
+	*/
+	function createChunkAccumulator(minChunkSize) {
+		const threshold = Number.isFinite(minChunkSize) && minChunkSize > 0 ? minChunkSize : 1;
+		let buffered = [];
+		let bufferedSize = 0;
+		let received = 0;
+		const take = () => {
+			if (bufferedSize === 0) return void 0;
+			const chunk = concatBuffers(buffered);
+			buffered = [];
+			bufferedSize = 0;
+			return chunk;
+		};
+		return {
+			add(bytes) {
+				if (bytes.byteLength === 0) return void 0;
+				buffered.push(bytes);
+				bufferedSize += bytes.byteLength;
+				received += bytes.byteLength;
+				return bufferedSize >= threshold ? take() : void 0;
+			},
+			flush: take,
+			get pending() {
+				return bufferedSize;
+			},
+			get received() {
+				return received;
+			}
+		};
+	}
+	//#endregion
+	//#region src/audioDownloader/internal/realms.ts
+	/**
+	* Yields `self`, `parent` and `top` once each, in that order, skipping realms
+	* that are unreachable or duplicated.
+	*
+	* Cross-origin access throws *on property read*, so every candidate is probed
+	* inside its own try/catch; a realm that throws is simply not a realm we can
+	* use. Ordering matters: the current realm is always preferred over an
+	* ancestor, which is what keeps a same-origin page from being asked to mint a
+	* token the local realm could mint itself.
+	*/
+	function enumerateRealms(source) {
+		const realms = [];
+		const seen = /* @__PURE__ */ new Set();
+		const candidates = [
+			() => source,
+			() => source.parent,
+			() => source.top
+		];
+		for (const read of candidates) try {
+			const realm = read();
+			if (!realm || seen.has(realm)) continue;
+			seen.add(realm);
+			realms.push(realm);
+		} catch {}
+		return realms;
+	}
+	/**
+	* Wraps a script source so it can be assigned to `HTMLScriptElement.text`
+	* under a `require-trusted-types-for 'script'` CSP.
+	*
+	* Policies are cached per realm: `createPolicy` with a fresh random name on
+	* every call leaked one policy per probe in `webAbr.evalInRealm`, and each
+	* policy name has to be allowed by the page's `trusted-types` directive, so
+	* random names are also the *less* likely variant to be accepted.
+	* Verified against the Trusted Types sink list (Research Log R-6):
+	* `HTMLScriptElement.text` is a `TrustedScript` sink.
+	*/
+	var policyCache = /* @__PURE__ */ new WeakMap();
+	function createTrustedScript(realm, source, policyName = "vot-audio-downloader") {
+		const trustedTypes = realm.trustedTypes;
+		if (!trustedTypes?.createPolicy) return source;
+		try {
+			let policy = policyCache.get(realm);
+			if (!policy) {
+				policy = trustedTypes.createPolicy(policyName, { createScript: (input) => input });
+				policyCache.set(realm, policy);
+			}
+			return policy.createScript(source);
+		} catch {
+			return source;
+		}
+	}
+	/**
+	* Reads a key out of a realm's `ytcfg`, preferring the accessor and falling
+	* back to the raw backing store.
+	*
+	* `webAbr.getConfigValue` and the inline expression in
+	* `mseProxy.getEncryptedEmbedConfig` were the same two-step lookup; the
+	* accessor can throw on a partially initialised page, which only one of the
+	* two copies guarded.
+	*/
+	function getYtcfgValue(realm, key) {
+		const ytcfg = realm?.ytcfg;
+		if (!ytcfg) return void 0;
+		try {
+			const value = ytcfg.get?.(key);
+			if (value !== void 0 && value !== null) return value;
+		} catch {}
+		return ytcfg.data_?.[key];
+	}
+	//#endregion
+	//#region src/audioDownloader/internal/settle.ts
+	/**
+	* CONSOLIDATION — unified "settle once on value, timeout, or abort" waiter.
+	*
+	* The same shape existed three times with three different bug profiles:
+	*   - `mseProxy.waitFor(read, subscribe, timeoutMs, label, signal)` — complete
+	*   - `poToken.mintPageWorldPoToken` — inline listener + timer that resolves
+	*     `undefined` instead of rejecting
+	*   - `pageAudioHandler.relayThroughAudioRealm` — inline listener + timer whose
+	*     handle was cleared on READY and never re-armed (DEFECT F-3)
+	*
+	* `waitForValue` keeps the strictest version of each rule:
+	*  - `read()` runs once up front, so an already-satisfied condition never waits;
+	*  - subscription happens *before* the first read, so no event can slip through;
+	*  - exactly one settle wins and every listener/timer is torn down on all paths;
+	*  - the timeout message and the abort reason are injectable, so each caller
+	*    keeps its existing externally-visible error text byte for byte.
+	*/
+	function waitForValue({ read, subscribe, timeoutMs, label, timeoutMessage, signal, abortReason }) {
+		const gate = Promise.withResolvers();
+		const rejectWithAbort = () => abortReason ? abortReason() : makeAbortError();
+		let done = false;
+		let unsubscribe;
+		let timer;
+		const teardown = () => {
+			if (timer !== void 0) {
+				clearTimeout(timer);
+				timer = void 0;
+			}
+			signal?.removeEventListener("abort", onAbort);
+			unsubscribe?.();
+			unsubscribe = void 0;
+		};
+		const settle = (apply) => {
+			if (done) return;
+			done = true;
+			teardown();
+			apply();
+		};
+		function onAbort() {
+			settle(() => gate.reject(rejectWithAbort()));
+		}
+		const poll = () => {
+			if (done) return;
+			try {
+				const value = read();
+				if (value !== void 0) settle(() => gate.resolve(value));
+			} catch (error) {
+				settle(() => gate.reject(error));
+			}
+		};
+		if (signal?.aborted) return Promise.reject(rejectWithAbort());
+		signal?.addEventListener("abort", onAbort, { once: true });
+		if (Number.isFinite(timeoutMs) && timeoutMs > 0) timer = setTimeout(() => {
+			settle(() => gate.reject(new Error(timeoutMessage ?? `${label} timed out`)));
+		}, timeoutMs);
+		unsubscribe = subscribe(poll);
+		poll();
+		return gate.promise;
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/formatSelection.ts
+	/** Track variants `acont` names, in the order the field spells them. */
+	var TRACK_CONTENTS = [
+		"original",
+		"dubbed",
+		"dubbed-auto",
+		"descriptive"
+	];
+	var AUDIO_MIME = /^audio\//i;
+	var VIDEO_MIME = /^video\//i;
+	var OPUS_CODEC = /\bopus\b/i;
+	/** A muxed format names an audio codec next to the video codec. */
+	var MUXED_AUDIO_CODEC = /\b(?:mp4a|aac|opus|vorbis|ac-3|ec-3|mp3)\b/i;
+	var ENGLISH_NAME = /\benglish\b/i;
+	var DESCRIPTIVE_NAME = /\bdescri/i;
+	var DUBBED_NAME = /\bdub/i;
+	var AUTO_NAME = /\bauto/i;
+	var ORIGINAL_NAME = /\borigin/i;
+	var QUALITY_HEIGHT = /(\d+)p/;
+	var ACONT_VALUES = new Set(TRACK_CONTENTS);
+	/**
+	* Rank of an English track, lower is better: the original audio wins, and an
+	* audio description is the least useful variant because it talks over the
+	* content. Hoisted so ranking a track allocates nothing.
+	*/
+	var ENGLISH_RANKS = {
+		original: 0,
+		dubbed: 1,
+		"dubbed-auto": 2,
+		unknown: 3,
+		descriptive: 4
+	};
+	/** Every other language ranks behind every English track. */
+	var OTHER_LANGUAGE_RANK = 10;
+	/** Sorting helper that keeps `Infinity` comparable (`Infinity - Infinity` is `NaN`). */
+	function compareNumbers$1(a, b) {
+		return a === b ? 0 : a < b ? -1 : 1;
+	}
+	/** A reported measure, or `Infinity` when the answer does not carry it. */
+	function toPositive(value) {
+		const parsed = Number(value);
+		return parsed > 0 ? parsed : Number.POSITIVE_INFINITY;
+	}
+	/** The first entry `compare` ranks best, without copying or sorting. */
+	function pickBest(items, compare) {
+		let best;
+		for (const item of items) if (best === void 0 || compare(item, best) < 0) best = item;
+		return best;
+	}
+	/** `xtags` is a colon-separated key list, sometimes percent-encoded. */
+	function parseXtags(xtags) {
+		const tags = /* @__PURE__ */ new Map();
+		if (!xtags) return tags;
+		let source = xtags;
+		if (source.includes("%")) try {
+			source = decodeURIComponent(source);
+		} catch {}
+		for (const part of source.split(":")) {
+			const separator = part.indexOf("=");
+			if (separator > 0) tags.set(part.slice(0, separator).trim().toLowerCase(), part.slice(separator + 1).trim().toLowerCase());
+		}
+		return tags;
+	}
+	function readLanguage(format, tags) {
+		const primary = (tags.get("lang") ?? format.audioTrack?.id?.split(".")[0])?.trim().toLowerCase().split(/[-_]/)[0];
+		if (primary) return primary;
+		return ENGLISH_NAME.test(format.audioTrack?.displayName ?? "") ? "en" : void 0;
+	}
+	function readContent(format, tags, isDefault) {
+		const acont = tags.get("acont");
+		if (acont && ACONT_VALUES.has(acont)) return acont;
+		const name = format.audioTrack?.displayName ?? "";
+		if (DESCRIPTIVE_NAME.test(name)) return "descriptive";
+		if (DUBBED_NAME.test(name)) return AUTO_NAME.test(name) ? "dubbed-auto" : "dubbed";
+		if (ORIGINAL_NAME.test(name)) return "original";
+		return isDefault ? "original" : "unknown";
+	}
+	/** The clients of the ladder spell the same flag in five different ways. */
+	function isDefaultTrack(format) {
+		const track = format.audioTrack;
+		return track?.audioIsDefault === true || track?.isDefault === true || track?.default === true || format.audioIsDefault === true || format.isDefaultAudio === true;
+	}
+	function describeTrack(format) {
+		const tags = parseXtags(format.xtags);
+		const isDefault = isDefaultTrack(format);
+		const language = readLanguage(format, tags);
+		const content = readContent(format, tags, isDefault);
+		return {
+			key: format.audioTrack?.id ?? `${language ?? "und"}:${content}`,
+			language,
+			content,
+			isDefault
+		};
+	}
+	/**
+	* Lower is better. English wins over every other language, and inside a
+	* language the original audio wins over a dub, the default track over an
+	* unnamed one, and everything over an audio description.
+	*/
+	function rankTrack({ language, content, isDefault }) {
+		if (language === "en") return ENGLISH_RANKS[content];
+		if (content === "descriptive") return 14;
+		if (content === "original") return OTHER_LANGUAGE_RANK;
+		if (isDefault) return 11;
+		return OTHER_LANGUAGE_RANK + (content === "unknown" ? 2 : 3);
+	}
+	/** The rate the format is billed at: the lower of both reported bitrates. */
+	function getFormatBitrate(format) {
+		return Math.min(toPositive(format.averageBitrate), toPositive(format.bitrate));
+	}
+	function getFormatHeight(format) {
+		return toPositive(format.height ?? QUALITY_HEIGHT.exec(format.qualityLabel ?? "")?.[1]);
+	}
+	/**
+	* Formats of the wanted kind that can actually be requested: a URL, or a
+	* cipher that produces one.
+	*/
+	function narrowToRequestable(formats, mime, requireUrl) {
+		const matching = [];
+		const playable = [];
+		for (const format of formats) {
+			if (!mime.test(format.mimeType ?? "")) continue;
+			matching.push(format);
+			if (typeof format.url === "string" || typeof format.signatureCipher === "string") playable.push(format);
+		}
+		return requireUrl || playable.length ? playable : matching;
+	}
+	/** True when a MIME type names an audio codec, muxed or audio-only. */
+	function hasAudioCodec(mimeType) {
+		return MUXED_AUDIO_CODEC.test(mimeType ?? "");
+	}
+	/**
+	* The `ultralow` Opus streams (itag 599 and 600) are the cheapest audio a
+	* response can carry, but GVS only serves them to a part of YouTube's own
+	* surfaces: a browser session that signs its URLs with a PO token is answered
+	* 403 for a regular video (yt-dlp issue #14605). Picking them saves a few
+	* hundred kilobytes and costs the whole download, so they are only taken when
+	* the upload carries nothing else.
+	*/
+	var ULTRALOW_AUDIO_ITAGS = /* @__PURE__ */ new Set([599, 600]);
+	/** Traffic-first order: bitrate, then the untouched track, then real bytes. */
+	function compareAudioCost(a, b) {
+		return compareNumbers$1(getFormatBitrate(a), getFormatBitrate(b)) || Number(a.isDrc === true) - Number(b.isDrc === true) || compareNumbers$1(toPositive(a.contentLength), toPositive(b.contentLength)) || compareNumbers$1(a.itag ?? 0, b.itag ?? 0);
+	}
+	/**
+	* Opus ladder of a YouTube response, cheapest first: `249` (~50 kbps),
+	* `250` (~70 kbps), `251` (<= 160 kbps).
+	*
+	* The itag is ranked before the reported bitrate because `bitrate` is the peak
+	* of the stream and some client answers repeat the same value on every entry
+	* of the ladder, which made the "cheapest" pick land on `251` and upload three
+	* times the bytes. An Opus itag outside the ladder ranks behind all three.
+	*/
+	var OPUS_ITAG_ORDER = [
+		249,
+		250,
+		251
+	];
+	function opusRank(format) {
+		const index = OPUS_ITAG_ORDER.indexOf(format.itag ?? 0);
+		return index === -1 ? OPUS_ITAG_ORDER.length : index;
+	}
+	/** Opus streams only: the itag ladder first, then the generic cost. */
+	function compareOpusCost(a, b) {
+		return compareNumbers$1(opusRank(a), opusRank(b)) || compareAudioCost(a, b);
+	}
+	function compareVideoCost(a, b) {
+		return compareNumbers$1(getFormatHeight(a), getFormatHeight(b)) || compareNumbers$1(getFormatBitrate(a), getFormatBitrate(b)) || compareNumbers$1(toPositive(a.contentLength), toPositive(b.contentLength));
+	}
+	function describeFormat(format) {
+		return {
+			itag: format.itag,
+			mimeType: format.mimeType,
+			bitrate: getFormatBitrate(format),
+			contentLength: format.contentLength ?? "none",
+			isDrc: format.isDrc === true
+		};
+	}
+	/**
+	* Selects the cheapest audio-only stream of the preferred language track.
+	*
+	* Every other track is dropped by the caller, so a multi-language upload can
+	* never switch languages mid-download.
+	*
+	* @throws when the response carries no audio-only format at all, or none with
+	* a URL while one is required, which is what a SABR-only client answers.
+	*/
+	function selectAudioFormat(formats, { requireUrl = true } = {}) {
+		const candidates = narrowToRequestable(formats, AUDIO_MIME, requireUrl);
+		if (!candidates.length) throw new Error(requireUrl ? "Audio downloader. web ABR returned no direct audio formats" : "Audio downloader. player response carries no audio formats");
+		const tracks = /* @__PURE__ */ new Map();
+		for (const format of candidates) {
+			const track = describeTrack(format);
+			const group = tracks.get(track.key);
+			if (group) group.formats.push(format);
+			else tracks.set(track.key, {
+				track,
+				formats: [format]
+			});
+		}
+		const selected = pickBest(tracks.values(), (a, b) => rankTrack(a.track) - rankTrack(b.track));
+		const servable = selected.formats.filter((format) => !ULTRALOW_AUDIO_ITAGS.has(format.itag ?? 0));
+		const usable = servable.length ? servable : selected.formats;
+		const opus = usable.filter((format) => OPUS_CODEC.test(format.mimeType ?? ""));
+		return {
+			format: pickBest(opus.length ? opus : usable, opus.length ? compareOpusCost : compareAudioCost),
+			track: selected.track,
+			reason: opus.length ? "lowest-bitrate opus" : "lowest-bitrate audio"
+		};
+	}
+	/**
+	* The smallest picture of a response: 144p whenever YouTube offers one.
+	*
+	* `preferMuxed` decides what a tie between a muxed and a video-only stream
+	* means. A muxed format carries the audio with it, a video-only one is
+	* smaller but silent, so the caller picks by what it needs next to the
+	* picture. When the response only carries the other kind, that kind is taken
+	* and named in the reason.
+	*/
+	function selectVideoStream(formats, preferMuxed, { requireUrl = true } = {}) {
+		const candidates = narrowToRequestable(formats, VIDEO_MIME, requireUrl);
+		const preferred = candidates.filter((format) => hasAudioCodec(format.mimeType) === preferMuxed);
+		const format = pickBest(preferred.length ? preferred : candidates, compareVideoCost);
+		if (!format) return void 0;
+		return {
+			format,
+			reason: (preferred.length ? preferMuxed : !preferMuxed) ? "lowest-quality muxed video" : "lowest-quality video-only"
+		};
+	}
+	/** The only picture worth paying for when the audio is the payload. */
+	var MAX_FALLBACK_VIDEO_HEIGHT = 144;
+	function isLowQualityVideo(format) {
+		const height = getFormatHeight(format);
+		return height > 0 && height <= MAX_FALLBACK_VIDEO_HEIGHT;
+	}
+	/**
+	* Last resort: the smallest video stream that carries audio, 144p first.
+	*
+	* This format is uploaded to the translation backend as it is downloaded, so
+	* a video-only stream is not an option here even though the 144p video-only
+	* streams (`597`, `598`, `160`, `278`, `394`) are the smallest bytes a
+	* response offers: they are silent, and silence is answered with a translation
+	* that never completes instead of an error the caller can fall back from.
+	*
+	* `itag 17` (3GP, 144p plus 24 kbps AAC) is the cheapest muxed stream, but
+	* YouTube stopped serving it for most uploads, so in practice this is `18`
+	* (progressive 360p). It is accepted only because the alternative is no audio,
+	* and only after every audio-only format has failed.
+	*
+	* @throws when the response carries no muxed video format with a URL, which
+	* tells the caller to try the next strategy instead of uploading silence.
+	*/
+	function selectVideoFallbackFormat(formats, { requireUrl = true } = {}) {
+		const candidates = narrowToRequestable(formats, VIDEO_MIME, requireUrl).filter((format) => hasAudioCodec(format.mimeType));
+		if (!candidates.length) throw new Error("Audio downloader. no muxed video fallback format");
+		const lowest = candidates.filter(isLowQualityVideo);
+		const format = pickBest(lowest.length ? lowest : candidates, compareVideoCost);
+		return {
+			format,
+			track: describeTrack(format),
+			reason: lowest.length ? "lowest-quality muxed video" : "smallest muxed video above 144p"
+		};
+	}
+	/**
+	* Matches the stream a download is already reading against a fresh `player`
+	* response, so an expired GVS URL can be replaced without restarting.
+	*
+	* A stream is identified by its itag and its audio track only. `contentLength`,
+	* `lastModified` and even the exact `mimeType` string differ between two
+	* answers for the same video (another client, another CDN node, a re-muxed
+	* upload), and comparing them turned every URL refresh into
+	* "Refreshed audio format changed" in the middle of a working download.
+	*
+	* @returns the same stream of the fresh response, the same itag of another
+	* track when the response no longer carries that track, or `undefined` when
+	* the itag is gone entirely.
+	*/
+	function findRefreshedFormat(formats, previous) {
+		const trackKey = describeTrack(previous).key;
+		const sameItag = formats.filter((format) => format.itag === previous.itag && (typeof format.url === "string" || typeof format.signatureCipher === "string"));
+		return sameItag.find((format) => describeTrack(format).key === trackKey) ?? sameItag[0];
+	}
+	/**
+	* The cheapest picture of a response: 144p video-only whenever YouTube offers
+	* one.
+	*
+	* Unlike {@link selectVideoFallbackFormat} a video-only stream is preferred
+	* here, because this format is kept next to the captured audio: a muxed one
+	* would pay for a second copy of the audio track.
+	*
+	* @returns `undefined` when the response carries no video format.
+	*/
+	function selectSmallestVideoStream(formats, options = {}) {
+		return selectVideoStream(formats, false, options);
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/playerResponseFilter.ts
+	/**
+	* Forces the embedded player onto exactly one audio format.
+	*
+	* `web_mse_proxy` collects the bytes the player downloads anyway, so the
+	* player alone decides what the download costs. Left untouched its adaptive
+	* ladder opens the medium Opus stream (`itag 251`, ~128 kbps, ~17 MB for a
+	* long video) and a multi-language upload may switch tracks mid-download.
+	*
+	* The `player` response is therefore rewritten before the player can read it:
+	* the track is chosen by {@link selectAudioFormat} (English first, then the
+	* original audio of the upload) and `streamingData` is trimmed to the
+	* cheapest Opus stream of that track (`itag 249`, ~50 kbps), or to the
+	* cheapest AAC stream (`itag 139`) when the upload carries no Opus. The
+	* player keeps the smallest picture next to it, so it still has something to
+	* play, and loses every other format: there is no ladder left to climb.
+	*
+	* The response reaches the player through whichever entry point the embed
+	* uses, so all of them are hooked:
+	*
+	* - `ytInitialPlayerResponse` of the embed document,
+	* - the `/youtubei/v1/player` answer, over `fetch` and `XMLHttpRequest`,
+	* - `loadVideoByPlayerVars` / `cueVideoByPlayerVars` / `updateVideoData` of
+	*   the player element (`raw_player_response`, `player_response`).
+	*
+	* Only our own hidden realm is patched (`pageAudioHandler` installs this when
+	* the document is the audio realm iframe), so the player the user is watching
+	* keeps every format it normally has.
+	*/
+	var STORE_KEY$1 = "__VOT_PLAYER_FORMAT_FILTER__";
+	var PLAYER_ENDPOINT = "/youtubei/v1/player";
+	var PATCHED_FLAG = "__votFormatFilter";
+	/** Player API entry points that carry a `player` response of their own. */
+	var PLAYER_VARS_METHODS = [
+		"loadVideoByPlayerVars",
+		"cueVideoByPlayerVars",
+		"updateVideoData"
+	];
+	/** Serialized responses handed to the player through player vars. */
+	var PLAYER_VARS_KEYS = ["player_response", "embedded_player_response"];
+	/** Tried in this order: the audio capture first, the picture as last resort. */
+	var PLAYER_FILTER_MODES = ["audio", "video"];
+	var toMessage = toErrorMessage;
+	function isPlayerEndpoint(url) {
+		return url.includes(PLAYER_ENDPOINT);
+	}
+	function readRequestUrl(input) {
+		if (typeof input === "string") return input;
+		const candidate = input;
+		if (typeof candidate?.url === "string") return candidate.url;
+		if (typeof candidate?.href === "string") return candidate.href;
+		return "";
+	}
+	function trySelect(select) {
+		try {
+			return select();
+		} catch {
+			return;
+		}
+	}
+	/** Keeps the array identity the player may already hold a reference to. */
+	function replaceFormats(streaming, key, formats) {
+		const current = streaming[key];
+		if (Array.isArray(current)) try {
+			current.splice(0, current.length, ...formats);
+			return;
+		} catch {}
+		try {
+			streaming[key] = formats;
+		} catch (error) {
+			debug.log("Audio downloader. player formats not writable", {
+				key,
+				error: toMessage(error)
+			});
+		}
+	}
+	function pickKeptFormats(streaming, mode) {
+		const adaptiveFormats = streaming.adaptiveFormats ?? [];
+		const options = { requireUrl: false };
+		if (mode === "audio") {
+			const audio = trySelect(() => selectAudioFormat(adaptiveFormats, options));
+			if (!audio) return void 0;
+			const video = selectSmallestVideoStream(adaptiveFormats, options);
+			return {
+				kept: video ? [audio.format, video.format] : [audio.format],
+				audio,
+				video,
+				reason: audio.reason
+			};
+		}
+		const video = selectSmallestVideoStream(adaptiveFormats, options);
+		if (!video) return void 0;
+		const muxed = hasAudioCodec(video.format.mimeType);
+		const audio = muxed ? void 0 : trySelect(() => selectAudioFormat(adaptiveFormats, options));
+		return {
+			kept: audio ? [video.format, audio.format] : [video.format],
+			audio,
+			video,
+			reason: muxed ? "lowest-quality muxed video" : video.reason
+		};
+	}
+	/**
+	* Trims `streamingData` in place to the formats the player is allowed to use.
+	*
+	* @returns what was kept, or `undefined` when the response was left untouched.
+	*/
+	function filterPlayerResponse(response, mode) {
+		const streaming = response?.streamingData;
+		if (!streaming || !Array.isArray(streaming.adaptiveFormats)) return void 0;
+		const before = streaming.adaptiveFormats.length + (streaming.formats?.length ?? 0);
+		const picked = pickKeptFormats(streaming, mode);
+		if (!picked) return void 0;
+		const { kept, audio, video } = picked;
+		const audioTrack = audio?.format.audioTrack;
+		if (audioTrack) try {
+			audioTrack.audioIsDefault = true;
+		} catch {}
+		replaceFormats(streaming, "adaptiveFormats", kept);
+		if (streaming.formats?.length) replaceFormats(streaming, "formats", []);
+		for (const key of ["hlsManifestUrl", "dashManifestUrl"]) {
+			if (!streaming[key]) continue;
+			try {
+				delete streaming[key];
+			} catch {}
+		}
+		return {
+			mode,
+			reason: picked.reason,
+			audioItag: audio?.format.itag,
+			videoItag: video?.format.itag,
+			mimeType: audio?.format.mimeType ?? video?.format.mimeType,
+			expectedLength: audio?.format.contentLength ?? video?.format.contentLength,
+			track: audio?.track?.key,
+			language: audio?.track?.language,
+			content: audio?.track?.content,
+			dropped: Math.max(before - kept.length, 0)
+		};
+	}
+	/** Rewrites every `player` response of one realm before the player reads it. */
+	var PlayerFormatFilter = class {
+		mode = "audio";
+		selection;
+		/** Responses the player re-reads must not be filtered a second time. */
+		handled = /* @__PURE__ */ new WeakSet();
+		getMode() {
+			return this.mode;
+		}
+		getSelection() {
+			return this.selection;
+		}
+		setMode(mode) {
+			if (this.mode === mode) return;
+			this.mode = mode;
+			this.selection = void 0;
+			this.handled = /* @__PURE__ */ new WeakSet();
+		}
+		/** Filters a parsed response in place and returns the same value. */
+		apply(response, source) {
+			if (!response || typeof response !== "object") return response;
+			if (this.handled.has(response)) return response;
+			this.handled.add(response);
+			try {
+				const selection = filterPlayerResponse(response, this.mode);
+				if (!selection) return response;
+				this.selection = selection;
+				debug.log("Audio downloader. player formats trimmed", {
+					source,
+					...selection
+				});
+			} catch (error) {
+				debug.log("Audio downloader. player formats untouched", {
+					source,
+					error: toMessage(error)
+				});
+			}
+			return response;
+		}
+		/** Filters a JSON body. `undefined` when the body stays as it is. */
+		applyToJson(body, source) {
+			if (!body || !body.includes("adaptiveFormats")) return void 0;
+			let parsed;
+			try {
+				parsed = JSON.parse(body);
+			} catch {
+				return;
+			}
+			const previous = this.selection;
+			this.apply(parsed, source);
+			if (this.selection === previous) return void 0;
+			try {
+				return JSON.stringify(parsed);
+			} catch (error) {
+				debug.log("Audio downloader. player response not serializable", {
+					source,
+					error: toMessage(error)
+				});
+				return;
+			}
+		}
+		/** Filters the response the player API is handed directly. */
+		applyToPlayerVars(args, source) {
+			if (!args || typeof args !== "object") return;
+			const vars = args;
+			const raw = vars.raw_player_response;
+			if (raw && typeof raw === "object") this.apply(raw, source);
+			for (const key of PLAYER_VARS_KEYS) {
+				const value = vars[key];
+				if (typeof value !== "string") continue;
+				const patched = this.applyToJson(value, source);
+				if (!patched) continue;
+				try {
+					vars[key] = patched;
+				} catch (error) {
+					debug.log("Audio downloader. player vars not writable", {
+						key,
+						error: toMessage(error)
+					});
+				}
+			}
+		}
+	};
+	function hookInitialPlayerResponse(targetWindow, filter) {
+		const key = "ytInitialPlayerResponse";
+		let current = filter.apply(targetWindow[key], key);
+		try {
+			Object.defineProperty(targetWindow, key, {
+				configurable: true,
+				enumerable: true,
+				get: () => current,
+				set: (next) => {
+					current = filter.apply(next, key);
+				}
+			});
+		} catch (error) {
+			debug.log("Audio downloader. player response hook refused", {
+				hook: key,
+				error: toMessage(error)
+			});
+		}
+	}
+	function hookFetch(targetWindow, filter) {
+		const original = targetWindow.fetch;
+		const ResponseConstructor = targetWindow.Response;
+		if (typeof original !== "function" || !ResponseConstructor) return;
+		targetWindow.fetch = async function patchedFetch(input, init) {
+			const response = await original.call(this ?? targetWindow, input, init);
+			try {
+				if (!response.ok) return response;
+				if (!isPlayerEndpoint(readRequestUrl(input) || response.url)) return response;
+				const body = filter.applyToJson(await response.clone().text(), "fetch");
+				if (!body) return response;
+				return new ResponseConstructor(body, {
+					status: response.status,
+					statusText: response.statusText,
+					headers: response.headers
+				});
+			} catch (error) {
+				debug.log("Audio downloader. player response passed through", {
+					hook: "fetch",
+					error: toMessage(error)
+				});
+				return response;
+			}
+		};
+	}
+	/**
+	* `responseText` is read-only, so the instance shadows it with a getter that
+	* filters lazily. Reading it on demand keeps the hook independent of when the
+	* player attaches its own `readystatechange` handler.
+	*/
+	function watchXhrResponse(xhr, filter, textGetter, responseGetter) {
+		let cache;
+		const readText = () => {
+			const raw = textGetter.call(xhr);
+			if (typeof raw !== "string" || !raw) return raw;
+			if (cache?.raw !== raw) cache = {
+				raw,
+				patched: filter.applyToJson(raw, "xhr") ?? raw
+			};
+			return cache.patched;
+		};
+		Object.defineProperty(xhr, "responseText", {
+			configurable: true,
+			get: () => {
+				try {
+					return readText();
+				} catch {
+					return textGetter.call(xhr);
+				}
+			}
+		});
+		Object.defineProperty(xhr, "response", {
+			configurable: true,
+			get: () => {
+				try {
+					const type = xhr.responseType;
+					if (type === "" || type === "text") return readText();
+					const value = responseGetter.call(xhr);
+					return type === "json" ? filter.apply(value, "xhr") : value;
+				} catch {
+					return responseGetter.call(xhr);
+				}
+			}
+		});
+	}
+	function hookXhr(targetWindow, filter) {
+		const prototype = targetWindow.XMLHttpRequest?.prototype;
+		const nativeOpen = prototype?.open;
+		const textGetter = prototype ? Object.getOwnPropertyDescriptor(prototype, "responseText")?.get : void 0;
+		const responseGetter = prototype ? Object.getOwnPropertyDescriptor(prototype, "response")?.get : void 0;
+		if (!prototype || typeof nativeOpen !== "function") return;
+		if (!textGetter || !responseGetter) return;
+		prototype.open = function patchedOpen(...args) {
+			try {
+				if (isPlayerEndpoint(String(args[1] ?? ""))) watchXhrResponse(this, filter, textGetter, responseGetter);
+			} catch (error) {
+				debug.log("Audio downloader. player response hook refused", {
+					hook: "xhr",
+					error: toMessage(error)
+				});
+			}
+			return nativeOpen.apply(this, args);
+		};
+	}
+	/**
+	* Installs the filter of a realm, once. Must run before the player boots, so
+	* the very first response is already trimmed.
+	*/
+	function installPlayerResponseFilter(targetWindow) {
+		const installed = targetWindow[STORE_KEY$1];
+		if (installed) return installed;
+		const filter = new PlayerFormatFilter();
+		targetWindow[STORE_KEY$1] = filter;
+		hookInitialPlayerResponse(targetWindow, filter);
+		hookFetch(targetWindow, filter);
+		hookXhr(targetWindow, filter);
+		return filter;
+	}
+	/**
+	* Covers the last entry point: a player that is handed its response directly
+	* instead of fetching it. Called once the player element exists.
+	*/
+	function patchPlayerVarsMethods(player, filter) {
+		const target = player;
+		for (const name of PLAYER_VARS_METHODS) {
+			const original = target[name];
+			if (typeof original !== "function" || original[PATCHED_FLAG]) continue;
+			const patched = function patchedPlayerVars(...args) {
+				filter.applyToPlayerVars(args[0], name);
+				return original.apply(this, args);
+			};
+			patched[PATCHED_FLAG] = true;
+			try {
+				target[name] = patched;
+			} catch (error) {
+				debug.log("Audio downloader. player method not writable", {
+					hook: name,
+					error: toMessage(error)
+				});
+			}
+		}
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/mseProxy.ts
+	/**
+	* Copies the audio track out of the YouTube player itself.
+	*
+	* Since April 2025 the `WEB` client is answered with SABR-only formats: the
+	* `adaptiveFormats` of the `player` response carry no `url` at all, so there
+	* is nothing to request directly. The player still receives plain audio-only
+	* segments and pushes them into a MediaSource audio buffer, so proxying
+	* `appendBuffer` yields exactly the audio track (itag 251/140) and costs no
+	* media request of our own.
+	*
+	* The proxy is installed only inside our own hidden youtube.com realm, so the
+	* player the user is watching is never touched, and the video track is pinned
+	* to the smallest available quality: only the audio stream is needed here.
+	*
+	* If an upload has no audio-only stream at all, the player opens a single
+	* muxed buffer. That buffer is mirrored as the last resort of this strategy,
+	* at the 144p quality the player was pinned to.
+	*/
+	var STORE_KEY = "__VOT_AUDIO_CAPTURE_STORE__";
+	var PLAYER_TIMEOUT_MS = 3e4;
+	var PLAYBACK_TIMEOUT_MS = 3e4;
+	var CAPTURE_TIMEOUT_MS = 2e4;
+	var STALL_TIMEOUT_MS = 6e4;
+	/**
+	* A seek makes the player request the next segments at once instead of at
+	* playback speed, so it is debounced only long enough to answer a burst of
+	* appends with a single seek.
+	*/
+	var SEEK_DELAY_MS = 200;
+	/**
+	* The player only requests what it is about to play, so a hidden playback at
+	* 1x would download a 25-minute track in 25 minutes. Chrome accepts rates up
+	* to 16x and throws (or silently clamps) above that, so the highest rate the
+	* element actually accepts is used.
+	*/
+	var FAST_PLAYBACK_RATES = [
+		16,
+		8,
+		4,
+		2
+	];
+	/** Used only when the page keeps its client version out of `ytcfg`. */
+	var FALLBACK_CLIENT_VERSION = "2.20260908.01.00";
+	/** YouTube player states: -1 unstarted, 1 playing, 2 paused, 5 cued. */
+	var UNSTARTED = -1;
+	var PLAYING = 1;
+	/** Mirrors the audio buffers of a single MediaSource instance. */
+	var AudioCapture = class {
+		mediaSource;
+		listeners = /* @__PURE__ */ new Set();
+		queued = [];
+		/** Set as soon as the player opens an audio-only buffer. */
+		hasAudioBuffer = false;
+		constructor(mediaSource) {
+			this.mediaSource = mediaSource;
+			mediaSource.addSourceBuffer = new Proxy(mediaSource.addSourceBuffer, { apply: (target, thisArg, args) => {
+				const sourceBuffer = Reflect.apply(target, thisArg, args);
+				const mimeType = args[0] ?? "";
+				if (mimeType.includes("audio/")) {
+					this.hasAudioBuffer = true;
+					this.captureBuffer(sourceBuffer, "audio");
+				} else if (hasAudioCodec(mimeType)) this.captureBuffer(sourceBuffer, "video");
+				return sourceBuffer;
+			} });
+			mediaSource.endOfStream = new Proxy(mediaSource.endOfStream, { apply: (target, thisArg, args) => {
+				const result = Reflect.apply(target, thisArg, args);
+				this.emit({ type: "end" });
+				return result;
+			} });
+			mediaSource.addEventListener("sourceclose", () => this.emit({ type: "close" }));
+		}
+		get isOpen() {
+			return this.mediaSource.readyState === "open";
+		}
+		listen(listener) {
+			this.listeners.add(listener);
+			for (const event of this.queued.splice(0)) listener(event);
+			return () => this.listeners.delete(listener);
+		}
+		captureBuffer(sourceBuffer, kind) {
+			sourceBuffer.appendBuffer = new Proxy(sourceBuffer.appendBuffer, { apply: (target, thisArg, args) => {
+				const input = args[0];
+				const view = ArrayBuffer.isView(input) ? new Uint8Array(input.buffer, input.byteOffset, input.byteLength) : new Uint8Array(input);
+				const buffer = new Uint8Array(view);
+				const result = Reflect.apply(target, thisArg, args);
+				const { buffered } = sourceBuffer;
+				this.emit({
+					type: "append",
+					kind,
+					buffer,
+					bufferedEnd: buffered.length ? Math.floor(buffered.end(buffered.length - 1)) : 0
+				});
+				return result;
+			} });
+		}
+		emit(event) {
+			if (!this.listeners.size) {
+				this.queued.push(event);
+				return;
+			}
+			for (const listener of this.listeners) listener(event);
+		}
+	};
+	var AudioCaptureStore = class {
+		captures = [];
+		listeners = /* @__PURE__ */ new Set();
+		add(mediaSource) {
+			const capture = new AudioCapture(mediaSource);
+			this.captures.push(capture);
+			for (const listener of this.listeners) listener(capture);
+		}
+		onCapture(listener) {
+			this.listeners.add(listener);
+			return () => this.listeners.delete(listener);
+		}
+	};
+	/**
+	* Has to run before the player boots, otherwise its MediaSource is created
+	* without the proxy and no append can be observed.
+	*/
+	function installAudioCaptureProxy(targetWindow) {
+		const installed = targetWindow[STORE_KEY];
+		if (installed) return installed;
+		const key = targetWindow.ManagedMediaSource ? "ManagedMediaSource" : "MediaSource";
+		const MediaSourceConstructor = targetWindow[key];
+		if (!MediaSourceConstructor) throw new Error("Audio downloader. MediaSource is unavailable");
+		const store = new AudioCaptureStore();
+		targetWindow[key] = class extends MediaSourceConstructor {
+			constructor() {
+				super();
+				store.add(this);
+			}
+		};
+		targetWindow[STORE_KEY] = store;
+		return store;
+	}
+	/**
+	* Resolves once `read()` answers, rejecting on timeout or abort.
+	*
+	* CONSOLIDATION: delegates to `internal/settle.waitForValue`. The timeout text
+	* (`Audio downloader. <label>`) and the abort value (`signal.reason`, rethrown
+	* raw) are injected, so nothing observable here changes.
+	*/
+	function waitFor(read, subscribe, timeoutMs, label, signal) {
+		return waitForValue({
+			read,
+			subscribe,
+			timeoutMs,
+			label,
+			timeoutMessage: `Audio downloader. ${label}`,
+			signal,
+			abortReason: () => signal.reason
+		});
+	}
+	function observeDocument(targetWindow, notify) {
+		const observer = new targetWindow.MutationObserver(notify);
+		observer.observe(targetWindow.document, {
+			childList: true,
+			subtree: true
+		});
+		targetWindow.addEventListener("load", notify);
+		return () => {
+			observer.disconnect();
+			targetWindow.removeEventListener("load", notify);
+		};
+	}
+	function waitForPlayer(targetWindow, signal) {
+		return waitFor(() => targetWindow.document.querySelector("#movie_player") ?? void 0, (notify) => observeDocument(targetWindow, notify), PLAYER_TIMEOUT_MS, "MSE player wait timed out", signal);
+	}
+	/**
+	* Starts a muted playback of the smallest video quality: the audio segments
+	* are the only thing that is read from the player.
+	*/
+	function startAudioPlayback(player, videoId, load = false) {
+		const steps = [
+			() => player.mute?.(),
+			() => player.setPlaybackQualityRange?.("tiny", "tiny"),
+			() => player.playVideo?.()
+		];
+		if (load) steps.unshift(() => player.loadVideoById?.(videoId));
+		for (const start of steps) try {
+			start();
+		} catch (error) {
+			debug.log("Audio downloader. MSE playback setup failed", {
+				videoId,
+				error: toErrorMessage(error)
+			});
+		}
+	}
+	/**
+	* Buffers the track as fast as the player can be made to: the playback of the
+	* hidden video runs at the highest rate it accepts, so segments are requested
+	* in seconds instead of in real time. The rate is re-applied while the
+	* capture runs, because the player resets it on a format switch or a reload.
+	*/
+	function forceFastBuffering(targetWindow, player) {
+		const video = targetWindow.document.querySelector("video");
+		if (!video) return;
+		video.muted = true;
+		for (const rate of FAST_PLAYBACK_RATES) {
+			if (video.playbackRate >= rate) return;
+			try {
+				video.defaultPlaybackRate = rate;
+				video.playbackRate = rate;
+				if (video.playbackRate < rate) continue;
+				player.setPlaybackRate?.(rate);
+				return;
+			} catch {}
+		}
+	}
+	/** Reports what the hidden player is doing when playback never starts. */
+	function describePlayback(targetWindow, player, playRejection) {
+		const video = targetWindow.document.querySelector("video");
+		let state;
+		try {
+			state = player.getPlayerState?.() ?? "none";
+		} catch {
+			state = "unavailable";
+		}
+		return [
+			`playerState: ${state}`,
+			`playerError: ${player.classList.contains("ytp-error")}`,
+			`videos: ${targetWindow.document.querySelectorAll("video").length}`,
+			`readyState: ${video?.readyState ?? "none"}`,
+			`mediaError: ${video?.error?.code ?? "none"}`,
+			`playRejection: ${playRejection ?? "none"}`
+		].join(", ");
+	}
+	/**
+	* Playback is re-pressed on every player and media state change until a video
+	* element actually reports playing: the player drops a play() it received
+	* before it was ready.
+	*/
+	async function waitForPlayback(targetWindow, player, videoId, signal) {
+		const MEDIA_EVENTS = [
+			"loadedmetadata",
+			"canplay",
+			"playing",
+			"progress",
+			"error"
+		];
+		let playRejection;
+		const read = () => {
+			const videos = [...targetWindow.document.querySelectorAll("video")];
+			const playing = videos.find((video) => video.readyState >= 3);
+			if (playing) return playing;
+			if (player.classList.contains("ytp-error")) throw new Error("Audio downloader. MSE player refused the video");
+			const state = player.getPlayerState?.() ?? UNSTARTED;
+			if (state !== PLAYING) {
+				startAudioPlayback(player, videoId);
+				const video = videos[0];
+				if (video) {
+					video.muted = true;
+					video.play().catch((error) => {
+						playRejection = error instanceof Error ? error.name : String(error);
+					});
+				}
+			}
+			return state === PLAYING ? videos[0] : void 0;
+		};
+		try {
+			return await waitFor(read, (notify) => {
+				const videos = /* @__PURE__ */ new Set();
+				const bindVideos = () => {
+					for (const video of targetWindow.document.querySelectorAll("video")) {
+						if (videos.has(video)) continue;
+						videos.add(video);
+						for (const name of MEDIA_EVENTS) video.addEventListener(name, notify);
+					}
+				};
+				const stopObserver = observeDocument(targetWindow, () => {
+					bindVideos();
+					notify();
+				});
+				bindVideos();
+				return () => {
+					stopObserver();
+					for (const video of videos) for (const name of MEDIA_EVENTS) video.removeEventListener(name, notify);
+				};
+			}, PLAYBACK_TIMEOUT_MS, "MSE playback wait timed out", signal);
+		} catch (error) {
+			if (signal.aborted || !(error instanceof Error)) throw error;
+			error.message = `${error.message} (${describePlayback(targetWindow, player, playRejection)})`;
+			throw error;
+		}
+	}
+	function waitForAudioCapture(store, signal) {
+		return waitFor(() => store.captures.findLast((capture) => capture.isOpen) ?? void 0, (notify) => store.onCapture(notify), CAPTURE_TIMEOUT_MS, `MSE capture wait timed out (captures: ${store.captures.length})`, signal);
+	}
+	/** The itag the player was forced onto, and what it announced for it. */
+	function describeForcedFormat(filter) {
+		const selection = filter.getSelection();
+		return {
+			mode: filter.getMode(),
+			itag: selection?.audioItag ?? selection?.videoItag ?? "player choice",
+			reason: selection?.reason ?? "formats untouched",
+			track: selection?.track ?? "single",
+			expectedLength: selection?.expectedLength ?? "unknown"
+		};
+	}
+	/**
+	* One capture pass: loads the video, then mirrors the buffer the player fills.
+	*
+	* Playback is nudged forward to the end of the buffered range instead of
+	* waiting in real time, so a track is collected in a few seconds without any
+	* additional media request.
+	*/
+	async function* captureMseStream(targetWindow, store, filter, videoId, signal, onProgress) {
+		const player = await waitForPlayer(targetWindow, signal);
+		patchPlayerVarsMethods(player, filter);
+		startAudioPlayback(player, videoId, true);
+		await waitForPlayback(targetWindow, player, videoId, signal);
+		forceFastBuffering(targetWindow, player);
+		let capture = await waitForAudioCapture(store, signal);
+		debug.log("Audio downloader. MSE capture started", {
+			videoId,
+			captures: store.captures.length,
+			...describeForcedFormat(filter)
+		});
+		const queue = createAsyncQueue();
+		const push = (event) => queue.push(event);
+		let stopCapture = capture.listen(push);
+		const stopCaptureWatch = store.onCapture((next) => {
+			stopCapture();
+			capture = next;
+			stopCapture = capture.listen(push);
+		});
+		const onAbort = () => queue.fail(signal.reason);
+		signal.addEventListener("abort", onAbort, { once: true });
+		if (signal.aborted) onAbort();
+		let seekTimeout;
+		let stallTimeout;
+		const armStall = () => {
+			clearTimeout(stallTimeout);
+			stallTimeout = setTimeout(() => {
+				queue.fail(/* @__PURE__ */ new Error("Audio downloader. MSE capture stalled"));
+			}, STALL_TIMEOUT_MS);
+		};
+		const progress = setInterval(() => onProgress?.(), PROGRESS_INTERVAL_MS);
+		const accumulator = createChunkAccumulator(config_default$1.minChunkSize);
+		let totalSize = 0;
+		/** Fixed on the first mirrored append, so the tracks are never mixed. */
+		let streamKind;
+		try {
+			armStall();
+			for await (const event of queue.drain()) {
+				if (event.type === "close") {
+					if (capture.isOpen) continue;
+					throw new Error(`Audio downloader. MSE source closed early (${totalSize} bytes)`);
+				}
+				if (event.type === "end") {
+					if (!totalSize) throw new Error("Audio downloader. Empty MSE audio stream");
+					debug.log("Audio downloader. MSE stream finished", {
+						videoId,
+						kind: streamKind ?? "audio",
+						totalSize,
+						...describeForcedFormat(filter)
+					});
+					yield {
+						buffer: accumulator.flush() ?? concatBuffers([]),
+						isLastChunk: true
+					};
+					return;
+				}
+				streamKind ??= capture.hasAudioBuffer ? "audio" : event.kind;
+				if (event.kind !== streamKind) continue;
+				armStall();
+				const chunk = accumulator.add(event.buffer);
+				totalSize += event.buffer.byteLength;
+				if (event.bufferedEnd > 0) {
+					clearTimeout(seekTimeout);
+					seekTimeout = setTimeout(() => {
+						try {
+							forceFastBuffering(targetWindow, player);
+							player.seekTo?.(event.bufferedEnd, true);
+						} catch (error) {
+							queue.fail(error instanceof Error ? error : new Error(String(error)));
+						}
+					}, SEEK_DELAY_MS);
+				}
+				if (!chunk) continue;
+				yield {
+					buffer: chunk,
+					isLastChunk: false
+				};
+			}
+		} finally {
+			clearTimeout(seekTimeout);
+			clearTimeout(stallTimeout);
+			clearInterval(progress);
+			stopCaptureWatch();
+			stopCapture();
+			signal.removeEventListener("abort", onAbort);
+		}
+	}
+	/**
+	* Streams the audio track the player itself is downloading.
+	*
+	* The `player` response is trimmed first, so the player has exactly one audio
+	* format left and buffers the cheapest Opus stream (`itag 249`, ~6 MB for a
+	* long video) instead of the `itag 251` its adaptive ladder would pick.
+	*
+	* If that pass yields nothing (player timeout, a fatal player error, an empty
+	* stream), the emergency pass reloads the same video with only the 144p
+	* picture left in the manifest: the cheapest thing the player can still be
+	* made to deliver.
+	*/
+	async function* getMseProxyAudioChunks(targetWindow, videoId, signal, onProgress) {
+		const filter = installPlayerResponseFilter(targetWindow);
+		const store = installAudioCaptureProxy(targetWindow);
+		let lastError;
+		for (const mode of PLAYER_FILTER_MODES) {
+			filter.setMode(mode);
+			let emitted = false;
+			try {
+				for await (const chunk of captureMseStream(targetWindow, store, filter, videoId, signal, onProgress)) {
+					emitted = true;
+					yield chunk;
+				}
+				return;
+			} catch (error) {
+				signal.throwIfAborted();
+				if (emitted) throw error;
+				lastError = error;
+				debug.log("Audio downloader. MSE capture failed", {
+					videoId,
+					mode,
+					error: toErrorMessage(error)
+				});
+			}
+		}
+		throw lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. MSE capture unavailable");
+	}
+	/**
+	* Videos whose embedding is restricted only play in an embed that carries the
+	* encrypted config of the watch page. One request, and it is the difference
+	* between a playable hidden realm and `Video unavailable`.
+	*/
+	async function getEncryptedEmbedConfig(targetWindow, videoId, signal) {
+		const bytes = Uint8Array.from([
+			10,
+			videoId.length,
+			...[...videoId].map((character) => character.charCodeAt(0))
+		]);
+		const pageVersion = getYtcfgValue(targetWindow, "INNERTUBE_CLIENT_VERSION");
+		const clientVersion = typeof pageVersion === "string" && pageVersion ? pageVersion : FALLBACK_CLIENT_VERSION;
+		try {
+			const response = await targetWindow.fetch("https://www.youtube.com/youtubei/v1/share/get_share_panel?prettyPrint=false", {
+				method: "POST",
+				credentials: "include",
+				signal,
+				headers: {
+					"content-type": "application/json",
+					"x-youtube-client-name": "1",
+					"x-youtube-client-version": clientVersion
+				},
+				body: JSON.stringify({
+					context: { client: {
+						clientName: "WEB",
+						clientVersion
+					} },
+					serializedSharedEntity: encodeURIComponent(targetWindow.btoa(String.fromCharCode(...bytes)))
+				})
+			});
+			if (!response.ok) return;
+			const encrypted = /"encryptedEmbedConfig"\s*:\s*("[^"]+")/.exec(await response.text())?.[1];
+			return encrypted ? `{"enc":${encrypted}}` : void 0;
+		} catch (error) {
+			signal.throwIfAborted();
+			debug.log("Audio downloader. Embed config unavailable", {
+				videoId,
+				error: toErrorMessage(error)
+			});
+		}
 	}
 	//#endregion
 	//#region src/utils/abort.ts
@@ -9497,3570 +10838,505 @@ var vot = (function(exports) {
 		}, responseCache, performRequest);
 	}
 	//#endregion
-	//#region src/utils/storage.ts
-	var compatRules = Object.entries({
-		numToBool: [
-			["autoTranslate"],
-			["dontTranslateYourLang", "enabledDontTranslateLanguages"],
-			["autoSetVolumeYandexStyle", "enabledAutoVolume"],
-			["showVideoSlider"],
-			["syncVolume"],
-			["downloadWithName"],
-			["sendNotifyOnComplete"],
-			["highlightWords"],
-			["onlyBypassMediaCSP"],
-			["newAudioPlayer"],
-			["showPiPButton"],
-			["translateAPIErrors"],
-			["audioBooster"],
-			["useNewModel", "useLivelyVoice"]
-		],
-		number: [["autoVolume"]],
-		array: [["dontTranslateLanguage", "dontTranslateLanguages"]],
-		string: [
-			["hotkeyButton", "translationHotkey"],
-			["locale-lang-override", "localeLangOverride"],
-			["locale-lang", "localeLang"]
-		]
-	}).flatMap(([category, entries]) => entries.map(([oldKey, maybeNewKey]) => ({
-		category,
-		oldKey,
-		newKey: maybeNewKey ?? oldKey,
-		shouldDeleteOldKey: Boolean(maybeNewKey)
-	})));
-	var compatRuleByOldKey = new Map(compatRules.map((rule) => [rule.oldKey, rule]));
-	var compatKeysToRead = Array.from(new Set(compatRules.map((rule) => rule.oldKey)));
-	function createUndefinedDefaults(keys) {
-		const defaults = {};
-		for (const key of keys) defaults[key] = void 0;
-		return defaults;
-	}
-	function isCompatValue(category, value) {
-		switch (category) {
-			case "numToBool":
-			case "number": return typeof value === "number";
-			case "array": return Array.isArray(value);
-			case "string": return typeof value === "string" || value === null;
-			default: return false;
-		}
-	}
-	function convertByCompatCategory(category, value) {
-		switch (category) {
-			case "string":
-			case "array":
-			case "number": return value;
-			default: return !!value;
-		}
-	}
-	function normalizeCompatValue(rule, value) {
-		let convertedValue = convertByCompatCategory(rule.category, value);
-		if (rule.oldKey === "autoVolume" && typeof value === "number" && value < 1) convertedValue = Math.round(value * 100);
-		return convertedValue;
-	}
-	function areStorageValuesEqual(a, b) {
-		if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, index) => Object.is(item, b[index]));
-		return Object.is(a, b);
-	}
-	function parseStoredValue(rawValue) {
-		if (rawValue === null) return;
-		try {
-			return JSON.parse(rawValue);
-		} catch {
-			return;
-		}
-	}
-	async function updateConfig(data) {
-		if (data.compatVersion === "2025-05-09") return data;
-		const keysToRead = /* @__PURE__ */ new Set([...Object.keys(data), ...compatKeysToRead]);
-		const persistedValues = await votStorage.getValues(createUndefinedDefaults(keysToRead));
-		const newData = { ...data };
-		const writeOperations = [];
-		const deleteOperations = [];
-		for (const [key, storedValue] of Object.entries(persistedValues)) {
-			if (storedValue === void 0) continue;
-			const compatRule = compatRuleByOldKey.get(key);
-			if (!compatRule || !isCompatValue(compatRule.category, storedValue)) continue;
-			const convertedValue = normalizeCompatValue(compatRule, storedValue);
-			newData[compatRule.newKey] = convertedValue;
-			const existingNewValue = persistedValues[compatRule.newKey];
-			if (compatRule.shouldDeleteOldKey || !areStorageValuesEqual(existingNewValue, convertedValue)) writeOperations.push(votStorage.set(compatRule.newKey, convertedValue));
-			if (compatRule.shouldDeleteOldKey) deleteOperations.push(votStorage.delete(compatRule.oldKey));
-		}
-		await Promise.all([...writeOperations, ...deleteOperations]);
-		return {
-			...newData,
-			compatVersion: actualCompatVersion
-		};
-	}
-	var VOTStorage = class {
-		support = null;
-		localStorageListeners = /* @__PURE__ */ new Map();
-		shouldUseSyntheticListeners(support) {
-			return !support.promiseAddValueChangeListener && !support.legacyAddValueChangeListener;
-		}
-		getGMRuntime() {
-			if (typeof GM !== "undefined") return GM;
-			return globalThis.GM;
-		}
-		resolveSupport() {
-			if (this.support) return this.support;
-			const gm = this.getGMRuntime();
-			const support = {
-				legacyGet: typeof GM_getValue === "function",
-				legacySet: typeof GM_setValue === "function",
-				legacyDelete: typeof GM_deleteValue === "function",
-				legacyList: typeof GM_listValues === "function",
-				legacyAddValueChangeListener: typeof globalThis.GM_addValueChangeListener === "function",
-				legacyRemoveValueChangeListener: typeof globalThis.GM_removeValueChangeListener === "function",
-				promiseGet: isGM4Supported && typeof gm?.getValue === "function",
-				promiseGetValues: isGM4Supported && typeof gm?.getValues === "function",
-				promiseSet: isGM4Supported && typeof gm?.setValue === "function",
-				promiseDelete: isGM4Supported && typeof gm?.deleteValue === "function",
-				promiseList: isGM4Supported && typeof gm?.listValues === "function",
-				promiseAddValueChangeListener: isGM4Supported && typeof gm?.addValueChangeListener === "function",
-				promiseRemoveValueChangeListener: isGM4Supported && typeof gm?.removeValueChangeListener === "function"
-			};
-			this.support = support;
-			debug.log(`[VOT Storage] GM Promises: ${support.promiseGet} | GM legacy: ${support.legacyGet}`);
-			return support;
-		}
-		/**
-		* Check if storage type is LocalStorage
-		*/
-		get isSupportOnlyLS() {
-			const support = this.resolveSupport();
-			return !support.legacyGet && !support.legacySet && !support.legacyDelete && !support.legacyList && !support.promiseGet && !support.promiseGetValues && !support.promiseSet && !support.promiseDelete && !support.promiseList;
-		}
-		syncGetByName(name, def, support) {
-			if (support.legacyGet) return GM_getValue(name, def);
-			const val = globalThis.localStorage.getItem(name);
-			if (val === null) return def;
-			try {
-				return JSON.parse(val);
-			} catch {
-				return def;
-			}
-		}
-		async getRaw(name, def) {
-			const support = this.resolveSupport();
-			if (support.promiseGet && GM.getValue) return await GM.getValue(name, def);
-			return this.syncGetByName(name, def, support);
-		}
-		async get(name, def) {
-			return this.getRaw(name, def);
-		}
-		async getValues(data) {
-			const support = this.resolveSupport();
-			if (support.promiseGetValues && GM.getValues) return await GM.getValues(data);
-			const entries = Object.entries(data);
-			if (support.promiseGet && GM.getValue) {
-				const values = await Promise.all(entries.map(async ([key, value]) => {
-					return [key, await GM.getValue(key, value)];
-				}));
-				return Object.fromEntries(values);
-			}
-			return Object.fromEntries(entries.map(([key, value]) => [key, this.syncGetByName(key, value, support)]));
-		}
-		syncSetByName(name, value, support) {
-			if (support.legacySet) return GM_setValue(name, value);
-			return globalThis.localStorage.setItem(name, JSON.stringify(value));
-		}
-		async setRaw(name, value) {
-			const support = this.resolveSupport();
-			const storageKey = name;
-			const shouldNotify = this.shouldUseSyntheticListeners(support);
-			const oldValue = shouldNotify ? await this.getRaw(name) : void 0;
-			if (support.promiseSet && GM.setValue) {
-				await GM.setValue(name, value);
-				if (shouldNotify) this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
-				return;
-			}
-			const setResult = this.syncSetByName(name, value, support);
-			this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
-			return setResult;
-		}
-		async set(name, value) {
-			return this.setRaw(name, value);
-		}
-		syncDeleteByName(name, support) {
-			if (support.legacyDelete) return GM_deleteValue(name);
-			return globalThis.localStorage.removeItem(name);
-		}
-		async deleteRaw(name) {
-			const support = this.resolveSupport();
-			const storageKey = name;
-			const shouldNotify = this.shouldUseSyntheticListeners(support);
-			const oldValue = shouldNotify ? await this.getRaw(name) : void 0;
-			if (support.promiseDelete && GM.deleteValue) {
-				await GM.deleteValue(name);
-				if (shouldNotify) this.notifyLocalStorageListeners(storageKey, oldValue, void 0, false);
-				return;
-			}
-			const deleteResult = this.syncDeleteByName(name, support);
-			this.notifyLocalStorageListeners(storageKey, oldValue, void 0, false);
-			return deleteResult;
-		}
-		async delete(name) {
-			return this.deleteRaw(name);
-		}
-		addValueChangeListener(name, listener) {
-			const support = this.resolveSupport();
-			const gm = this.getGMRuntime();
-			if (support.promiseAddValueChangeListener) {
-				const addListener = gm?.addValueChangeListener;
-				const removeListener = support.promiseRemoveValueChangeListener ? gm?.removeValueChangeListener : void 0;
-				if (typeof addListener === "function") {
-					const listenerId = addListener(name, this.createTypedListener(listener));
-					return () => {
-						if (typeof removeListener === "function") removeListener(listenerId);
-					};
-				}
-			}
-			if (support.legacyAddValueChangeListener) {
-				const addListener = globalThis.GM_addValueChangeListener;
-				const removeListener = support.legacyRemoveValueChangeListener ? globalThis.GM_removeValueChangeListener : void 0;
-				if (typeof addListener === "function") {
-					const listenerId = addListener(name, this.createTypedListener(listener));
-					return () => {
-						if (typeof removeListener === "function") removeListener(listenerId);
-					};
-				}
-			}
-			const listeners = this.getLocalStorageListeners(name);
-			const typedListener = listener;
-			listeners.add(typedListener);
-			const onStorage = (event) => {
-				if (event.storageArea !== globalThis.localStorage || event.key !== name) return;
-				typedListener(name, parseStoredValue(event.oldValue), parseStoredValue(event.newValue), true);
-			};
-			globalThis.addEventListener("storage", onStorage);
-			return () => {
-				listeners.delete(typedListener);
-				if (listeners.size === 0) this.localStorageListeners.delete(name);
-				globalThis.removeEventListener("storage", onStorage);
-			};
-		}
-		createTypedListener(listener) {
-			return (key, oldValue, newValue, remote) => {
-				listener(key, oldValue, newValue, remote);
-			};
-		}
-		getLocalStorageListeners(name) {
-			const existing = this.localStorageListeners.get(name);
-			if (existing) return existing;
-			const created = /* @__PURE__ */ new Set();
-			this.localStorageListeners.set(name, created);
-			return created;
-		}
-		notifyLocalStorageListeners(name, oldValue, newValue, remote) {
-			const listeners = this.localStorageListeners.get(name);
-			if (!listeners || listeners.size === 0) return;
-			for (const listener of listeners) listener(name, oldValue, newValue, remote);
-		}
-		syncList(support) {
-			if (support.legacyList) return GM_listValues();
-			return storageKeys;
-		}
-		async list() {
-			const support = this.resolveSupport();
-			if (support.promiseList && GM.listValues) return await GM.listValues();
-			return this.syncList(support);
-		}
-	};
-	var VOT_STORAGE_GLOBAL_KEY = "__VOT_STORAGE_SINGLETON__";
-	var votStorage = (() => {
-		const scope = globalThis;
-		const existing = scope[VOT_STORAGE_GLOBAL_KEY];
-		if (existing instanceof VOTStorage) return existing;
-		const created = new VOTStorage();
-		scope[VOT_STORAGE_GLOBAL_KEY] = created;
-		return created;
-	})();
-	//#endregion
-	//#region src/core/authRefreshMessage.ts
-	var AUTH_REFRESH_MESSAGE_SOURCE = "vot-auth";
-	var AUTH_REFRESH_MESSAGE_TYPE = "account-updated";
-	function createAuthRefreshMessage() {
-		return {
-			source: AUTH_REFRESH_MESSAGE_SOURCE,
-			type: AUTH_REFRESH_MESSAGE_TYPE
-		};
-	}
-	function isAuthRefreshMessage(value) {
-		if (!value || typeof value !== "object") return false;
-		const candidate = value;
-		return candidate.source === "vot-auth" && candidate.type === "account-updated";
-	}
-	function notifyAuthOpener(target = globalThis.opener) {
-		if (!target || typeof target.postMessage !== "function") return;
-		target.postMessage(createAuthRefreshMessage(), globalThis.location.origin);
-	}
-	//#endregion
-	//#region src/core/auth.ts
-	function getProfilePayload() {
-		const payload = globalThis._userData;
-		if (!payload || typeof payload !== "object") return null;
-		const candidate = payload;
-		if (typeof candidate.avatar_id !== "string" || typeof candidate.username !== "string" || candidate.avatar_id.length === 0 || candidate.username.length === 0) return null;
-		return {
-			avatar_id: candidate.avatar_id,
-			username: candidate.username
-		};
-	}
-	async function handleAuthCallbackPage() {
-		const { access_token: token, expires_in: expiresIn } = Object.fromEntries(new URLSearchParams(globalThis.location.hash.slice(1)));
-		if (!token || !expiresIn) throw new Error("[VOT] Invalid token response");
-		const numExpiresIn = Number.parseInt(expiresIn, 10);
-		if (Number.isNaN(numExpiresIn)) throw new TypeError("[VOT] Invalid expires_in value");
-		await votStorage.set("account", {
-			token,
-			expires: Date.now() + numExpiresIn * 1e3,
-			username: void 0,
-			avatarId: void 0
-		});
-		notifyAuthOpener();
-	}
-	async function handleProfilePage() {
-		const payload = getProfilePayload();
-		if (!payload) throw new Error("[VOT] Invalid user data");
-		const { avatar_id: avatarId, username } = payload;
-		const data = await votStorage.get("account");
-		if (!data) throw new Error("[VOT] No account data found");
-		await votStorage.set("account", {
-			...data,
-			username,
-			avatarId
-		});
-		notifyAuthOpener();
-	}
-	async function initAuth() {
-		if (globalThis.location.pathname === "/auth/callback") return handleAuthCallbackPage();
-		if (globalThis.location.pathname === "/my/profile") return handleProfilePage();
-	}
-	var en_default = {
-		recommended: "recommended",
-		translateVideo: "Translate video",
-		disableTranslate: "Turn off",
-		translationSettings: "Translation settings",
-		subtitlesSettings: "Subtitles settings",
-		subtitlesSmartLayout: "Smart subtitle layout",
-		resetSettings: "Reset settings",
-		videoBeingTranslated: "The video is being translated",
-		videoLanguage: "Video language",
-		translationLanguage: "Translation language",
-		translationTake: "The translation will take",
-		translationTakeMoreThanHour: "The translation will take more than an hour",
-		translationTakeAboutMinute: "The translation will take about a minute",
-		translationTakeFewMinutes: "The translation will take a few minutes",
-		translationTakeApproximatelyMinutes: "The translation will take approximately {0} minutes",
-		translationTakeApproximatelyMinute: "The translation will take approximately {0} minutes",
-		requestTranslationFailed: "Failed to request video translation",
-		audioNotReceived: "Audio link not received",
-		VOTFailedDownloadAudio: "Failed to download audio",
-		audioFormatNotSupported: "The audio format is not supported",
-		VOTAutoTranslate: "Translate on open",
-		VOTAutoSubtitles: "Subtitles on open",
-		VOTDontTranslateYourLang: "Don't translate from my language",
-		VOTVolume: "Video volume:",
-		VOTVolumeTranslation: "Translation volume:",
-		VOTAutoSetVolume: "Reduce video volume to",
-		VOTShowVideoSlider: "Video volume slider",
-		VOTSyncVolume: "Link translation and video volume",
-		VOTDisableFromYourLang: "You have disabled the translation of the video in your language",
-		VOTVideoIsTooLong: "Video is too long",
-		VOTNoVideoIDFound: "No video ID found",
-		VOTSubtitles: "Subtitles",
-		VOTSubtitlesDisabled: "Disabled",
-		VOTDefaultSubtitlesLanguage: "Default subtitle language",
-		VOTOriginalVideoLanguage: "Original video language",
-		VOTSubtitlesMaxLength: "Subtitles max length",
-		VOTHighlightWords: "Highlight words",
-		VOTTranslatedFrom: "translated from",
-		VOTAutogenerated: "autogenerated",
-		VOTSettings: "VOT Settings",
-		VOTMenuLanguage: "Menu language",
-		VOTAuthors: "Authors",
-		VOTVersion: "Version",
-		VOTLoader: "Loader",
-		VOTBrowser: "Browser",
-		VOTShowPiPButton: "Show PiP button",
-		langs: {
-			"auto": "Auto",
-			"af": "Afrikaans",
-			"ak": "Akan",
-			"sq": "Albanian",
-			"am": "Amharic",
-			"ar": "Arabic",
-			"hy": "Armenian",
-			"as": "Assamese",
-			"ay": "Aymara",
-			"az": "Azerbaijani",
-			"bn": "Bangla",
-			"eu": "Basque",
-			"be": "Belarusian",
-			"bho": "Bhojpuri",
-			"bs": "Bosnian",
-			"bg": "Bulgarian",
-			"my": "Burmese",
-			"ca": "Catalan",
-			"ceb": "Cebuano",
-			"zh": "Chinese",
-			"zh-Hans": "Chinese (Simplified)",
-			"zh-Hant": "Chinese (Traditional)",
-			"co": "Corsican",
-			"hr": "Croatian",
-			"cs": "Czech",
-			"da": "Danish",
-			"dv": "Divehi",
-			"nl": "Dutch",
-			"en": "English",
-			"eo": "Esperanto",
-			"et": "Estonian",
-			"ee": "Ewe",
-			"fil": "Filipino",
-			"fi": "Finnish",
-			"fr": "French",
-			"gl": "Galician",
-			"lg": "Ganda",
-			"ka": "Georgian",
-			"de": "German",
-			"el": "Greek",
-			"gn": "Guarani",
-			"gu": "Gujarati",
-			"ht": "Haitian Creole",
-			"ha": "Hausa",
-			"haw": "Hawaiian",
-			"iw": "Hebrew",
-			"hi": "Hindi",
-			"hmn": "Hmong",
-			"hu": "Hungarian",
-			"is": "Icelandic",
-			"ig": "Igbo",
-			"id": "Indonesian",
-			"ga": "Irish",
-			"it": "Italian",
-			"ja": "Japanese",
-			"jv": "Javanese",
-			"kn": "Kannada",
-			"kk": "Kazakh",
-			"km": "Khmer",
-			"rw": "Kinyarwanda",
-			"ko": "Korean",
-			"kri": "Krio",
-			"ku": "Kurdish",
-			"ky": "Kyrgyz",
-			"lo": "Lao",
-			"la": "Latin",
-			"lv": "Latvian",
-			"ln": "Lingala",
-			"lt": "Lithuanian",
-			"lb": "Luxembourgish",
-			"mk": "Macedonian",
-			"mg": "Malagasy",
-			"ms": "Malay",
-			"ml": "Malayalam",
-			"mt": "Maltese",
-			"mi": "Māori",
-			"mr": "Marathi",
-			"mn": "Mongolian",
-			"ne": "Nepali",
-			"nso": "Northern Sotho",
-			"no": "Norwegian",
-			"ny": "Nyanja",
-			"or": "Odia",
-			"om": "Oromo",
-			"ps": "Pashto",
-			"fa": "Persian",
-			"pl": "Polish",
-			"pt": "Portuguese",
-			"pa": "Punjabi",
-			"qu": "Quechua",
-			"ro": "Romanian",
-			"ru": "Russian",
-			"sm": "Samoan",
-			"sa": "Sanskrit",
-			"gd": "Scottish Gaelic",
-			"sr": "Serbian",
-			"sn": "Shona",
-			"sd": "Sindhi",
-			"si": "Sinhala",
-			"sk": "Slovak",
-			"sl": "Slovenian",
-			"so": "Somali",
-			"st": "Southern Sotho",
-			"es": "Spanish",
-			"su": "Sundanese",
-			"sw": "Swahili",
-			"sv": "Swedish",
-			"tg": "Tajik",
-			"ta": "Tamil",
-			"tt": "Tatar",
-			"te": "Telugu",
-			"th": "Thai",
-			"ti": "Tigrinya",
-			"ts": "Tsonga",
-			"tr": "Turkish",
-			"tk": "Turkmen",
-			"uk": "Ukrainian",
-			"ur": "Urdu",
-			"ug": "Uyghur",
-			"uz": "Uzbek",
-			"vi": "Vietnamese",
-			"cy": "Welsh",
-			"fy": "Western Frisian",
-			"xh": "Xhosa",
-			"yi": "Yiddish",
-			"yo": "Yoruba",
-			"zu": "Zulu"
-		},
-		streamNoConnectionToServer: "There is no connection to the server",
-		searchField: "Search...",
-		VOTTranslateAPIErrors: "Translate errors from the API",
-		VOTDetectService: "Language detection service",
-		VOTProxyWorkerHost: "Enter the proxy worker address",
-		VOTM3u8ProxyHost: "Enter the address of the m3u8 proxy worker",
-		proxySettings: "Proxy Settings",
-		translationTakeApproximatelyMinute2: "The translation will take approximately {0} minutes",
-		VOTAudioBooster: "Extended translation volume increase",
-		VOTSubtitlesDesign: "Subtitles design",
-		VOTSubtitlesFont: "Subtitle font",
-		VOTSubtitlesFontSize: "Font size of subtitles",
-		VOTSubtitlesOpacity: "Transparency of the subtitle background",
-		VOTSubtitlesDownloadFormat: "The format for downloading subtitles",
-		VOTDownloadWithName: "Download files with the video name",
-		VOTUpdateLocaleFiles: "Update localization files",
-		VOTLocaleHash: "Locale hash",
-		VOTUpdatedAt: "Updated at",
-		VOTNeedWebAudioAPI: "To enable this, you must have a Web Audio API",
-		VOTMediaCSPEnabledOnSite: "Media CSP is enabled on this site",
-		VOTOnlyBypassMediaCSP: "Use it only for bypassing Media CSP",
-		VOTNewAudioPlayer: "Use the new audio player",
-		VOTUseNewModel: "Use an experimental variation of Yandex voices for some videos",
-		TranslationDelayed: "The translation is slightly delayed",
-		VOTTranslationCompletedNotify: "The translation on the {0} has been completed!",
-		VOTSendNotifyOnComplete: "Send a notification that the video has been translated",
-		VOTBugReport: "Report a bug",
-		VOTTranslateProxyDisabled: "Disabled",
-		VOTTranslateProxyEnabled: "Enabled",
-		VOTTranslateProxyEverything: "Proxy everything",
-		VOTTranslateProxyStatus: "Proxying mode",
-		VOTTranslatedBy: "Translated by {0}",
-		VOTStreamNotAvailable: "Translate stream isn't available",
-		VOTTranslationTextService: "Text translation service",
-		VOTNotAffectToVoice: "Doesn't affect the translation of text in voice over",
-		DontTranslateSelectedLanguages: "Don't translate from selected languages",
-		showVideoVolumeSlider: "Display the video volume slider",
-		hotkeysSettings: "Hotkeys settings",
-		None: "None",
-		VOTStandardVoicesTitle: "Standard voices",
-		VOTStandardVoicesSubtitle: "Fast and high-quality voiceover",
-		VOTLiveVoicesTitle: "Live voices",
-		VOTLiveVoicesSubtitle: "Maximum similarity. As if everyone knows Russian",
-		miscSettings: "Misc settings",
-		services: {
-			"yandexbrowser": "Yandex Browser",
-			"msedge": "Microsoft Edge",
-			"rust-server": "Rust Server"
-		},
-		aboutExtension: "About extension",
-		appearance: "Appearance",
-		buttonPosition: "Button position in the player",
-		position: {
-			"left": "Left",
-			"right": "Right",
-			"top": "Top",
-			"default": "Default",
-			"leftCenter": "Left centered",
-			"rightCenter": "Right centered"
-		},
-		secs: "secs",
-		autoHideButtonDelay: "Delay before hiding the translate button",
-		notFound: "not found",
-		minButtonPositionContainer: "The button position only changes in players larger than 600 pixels.",
-		VOTTranslateProxyStatusDefault: "Completely disabling proxying in your country may break the extension",
-		PressTheKeyCombination: "Press the key combination...",
-		VOTUseAudioDownload: "Use audio download",
-		VOTUseAudioDownloadWarning: "Disabling audio downloads may affect the functionality of the extension",
-		VOTAccountRequired: "You need to log in to use this feature",
-		VOTMyAccount: "My account",
-		VOTLogin: "Login",
-		VOTLogout: "Logout",
-		VOTRefresh: "Refresh",
-		VOTYandexToken: "Enter the Yandex OAuth Token",
-		VOTYandexTokenInfo: "You can manually set the account token in this field. Please note that we don't check its validity before sending a translate request",
-		VOTLoginViaToken: "Login via token",
-		smartDucking: "Adaptive volume",
-		VOTYandexTokenExpired: "Session expired. Log in again",
-		VOTVoiceSelection: "Choose dubbing"
-	};
-	//#endregion
-	//#region src/localization/localizationProvider.ts
-	var LOCALE_STORAGE_KEYS = [
-		"localePhrases",
-		"localeLang",
-		"localeHash",
-		"localeVersion",
-		"localeUpdatedAt",
-		"localeLangOverride"
-	];
-	var DEFAULT_LOCALE = toFlatObj(en_default);
-	var repoBranch = "master";
-	var availableLocales = (() => {
-		const locales = Array.isArray([
-			"auto",
-			"en",
-			"ru",
-			"af",
-			"am",
-			"ar",
-			"az",
-			"bg",
-			"bn",
-			"bs",
-			"ca",
-			"cs",
-			"cy",
-			"da",
-			"de",
-			"el",
-			"es",
-			"et",
-			"eu",
-			"fa",
-			"fi",
-			"fr",
-			"gl",
-			"hi",
-			"hr",
-			"hu",
-			"hy",
-			"id",
-			"it",
-			"ja",
-			"jv",
-			"kk",
-			"km",
-			"kn",
-			"ko",
-			"lo",
-			"mk",
-			"ml",
-			"mn",
-			"ms",
-			"mt",
-			"my",
-			"ne",
-			"nl",
-			"pa",
-			"pl",
-			"pt",
-			"ro",
-			"si",
-			"sk",
-			"sl",
-			"sq",
-			"sr",
-			"su",
-			"sv",
-			"sw",
-			"tr",
-			"uk",
-			"ur",
-			"uz",
-			"vi",
-			"zh",
-			"zu"
-		]) ? [
-			"auto",
-			"en",
-			"ru",
-			"af",
-			"am",
-			"ar",
-			"az",
-			"bg",
-			"bn",
-			"bs",
-			"ca",
-			"cs",
-			"cy",
-			"da",
-			"de",
-			"el",
-			"es",
-			"et",
-			"eu",
-			"fa",
-			"fi",
-			"fr",
-			"gl",
-			"hi",
-			"hr",
-			"hu",
-			"hy",
-			"id",
-			"it",
-			"ja",
-			"jv",
-			"kk",
-			"km",
-			"kn",
-			"ko",
-			"lo",
-			"mk",
-			"ml",
-			"mn",
-			"ms",
-			"mt",
-			"my",
-			"ne",
-			"nl",
-			"pa",
-			"pl",
-			"pt",
-			"ro",
-			"si",
-			"sk",
-			"sl",
-			"sq",
-			"sr",
-			"su",
-			"sv",
-			"sw",
-			"tr",
-			"uk",
-			"ur",
-			"uz",
-			"vi",
-			"zh",
-			"zu"
-		] : ["en"];
-		return locales.includes("auto") ? locales : ["auto", ...locales];
-	})();
-	function resolveRuntimeLocaleVersion(buildVersion, scriptVersion) {
-		return buildVersion || scriptVersion || "unknown";
-	}
-	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.12"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
-	}
-	var LocalizationProvider = class {
-		/**
-		* Language used before page was reloaded
-		*/
-		lang;
-		/**
-		* Locale phrases with current language
-		*/
-		locale;
-		defaultLocale = DEFAULT_LOCALE;
-		localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
-		hashesUrl = `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
-		warnedMissingKeys = /* @__PURE__ */ new Set();
-		_langOverride = "auto";
-		constructor() {
-			this.lang = this.getLang();
-			this.locale = {};
-		}
-		async init() {
-			const [langOverride, phrases] = await Promise.all([votStorage.get("localeLangOverride", "auto"), votStorage.get("localePhrases", "")]);
-			this._langOverride = langOverride;
-			this.lang = this.getLang();
-			this.setLocaleFromJsonString(phrases);
-			return this;
-		}
-		get langOverride() {
-			return this._langOverride;
-		}
-		getLang() {
-			return this.langOverride === "auto" ? lang : this.langOverride;
-		}
-		getAvailableLangs() {
-			return [...availableLocales];
-		}
-		async reset() {
-			await Promise.all(LOCALE_STORAGE_KEYS.map((key) => votStorage.delete(key)));
-			return this;
-		}
-		buildUrl(baseUrl, path = "", force = false) {
-			return `${baseUrl}${path}${force ? `?timestamp=${getTimestamp()}` : ""}`;
-		}
-		async changeLang(newLang) {
-			if (this.langOverride === newLang) return false;
-			await votStorage.set("localeLangOverride", newLang);
-			this._langOverride = newLang;
-			this.lang = this.getLang();
-			await this.update(true);
-			return true;
-		}
-		async checkUpdates(force = false) {
-			debug.log("Check locale updates...");
-			try {
-				const runtimeLocaleVersion = getRuntimeLocaleVersion();
-				if (!force) {
-					const storedLocaleVersion = await votStorage.get("localeVersion", "");
-					if (runtimeLocaleVersion !== "unknown" && storedLocaleVersion === runtimeLocaleVersion) return false;
-				}
-				const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
-				if (!res.ok) throw res.status;
-				const hashes = await res.json();
-				if (!hashes || typeof hashes !== "object") throw new Error("Invalid locale hashes payload");
-				const nextHash = hashes[this.lang];
-				if (typeof nextHash !== "string" || !nextHash) return false;
-				return await votStorage.get("localeHash", "") === nextHash ? false : nextHash;
-			} catch (err) {
-				console.error("[VOT] [localizationProvider] Failed to get locales hash:", err);
-				return null;
-			}
-		}
-		async update(force = false) {
-			const runtimeLocaleVersion = getRuntimeLocaleVersion();
-			const storedLocaleVersion = await votStorage.get("localeVersion", "");
-			const hash = await this.checkUpdates(force);
-			if (hash === null) return this;
-			if (!hash) {
-				if (storedLocaleVersion !== runtimeLocaleVersion) await votStorage.set("localeVersion", runtimeLocaleVersion);
-				return this;
-			}
-			const timestamp = getTimestamp();
-			debug.log("Updating locale...");
-			try {
-				const res = await GM_fetch(this.buildUrl(this.localesUrl, `/${this.lang}.json`, force));
-				if (!res.ok) throw res.status;
-				const text = await res.text();
-				this.setLocaleFromJsonString(text);
-				await Promise.all([
-					votStorage.set("localePhrases", text),
-					votStorage.set("localeHash", hash),
-					votStorage.set("localeLang", this.lang),
-					votStorage.set("localeVersion", runtimeLocaleVersion),
-					votStorage.set("localeUpdatedAt", timestamp)
-				]);
-			} catch (err) {
-				console.error("[VOT] [localizationProvider] Failed to get locale:", err);
-				this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
-			}
-			return this;
-		}
-		setLocaleFromJsonString(json) {
-			const trimmed = json.trim();
-			if (!trimmed) {
-				this.locale = {};
-				this.warnedMissingKeys.clear();
-				return this;
-			}
-			try {
-				const locale = JSON.parse(trimmed);
-				if (!locale || typeof locale !== "object" || Array.isArray(locale)) throw new Error("Locale payload should be a JSON object");
-				this.locale = toFlatObj(locale);
-			} catch (err) {
-				console.error("[VOT] [localizationProvider]", err);
-				this.locale = {};
-			}
-			this.warnedMissingKeys.clear();
-			return this;
-		}
-		getFromLocale(locale, key, source = "locale") {
-			return locale[key] ?? this.warnMissingKey(locale, key, source);
-		}
-		warnMissingKey(locale, key, source) {
-			const warningKey = `${source}:${key}`;
-			if (this.warnedMissingKeys.has(warningKey)) return;
-			this.warnedMissingKeys.add(warningKey);
-			console.warn("[VOT] [localizationProvider] locale", locale, "doesn't contain key", key);
-		}
-		getDefault(key) {
-			return this.getFromLocale(this.defaultLocale, key, "default") ?? key;
-		}
-		get(key) {
-			return this.getFromLocale(this.locale, key) ?? this.getDefault(key);
-		}
-		getLangLabel(lang) {
-			const key = `langs.${lang}`;
-			if (key in this.defaultLocale) {
-				const label = this.get(key);
-				if (label) return label;
-			}
-			return lang.toUpperCase();
-		}
-	};
-	var localizationProvider = new LocalizationProvider();
+	//#region src/audioDownloader/strategies/mediaTransport.ts
 	/**
-	* In the userscript build, SystemJS wrapping allowed a top-level await.
-	* For the extension build we bootstrap through loader scripts and keep the
-	* runtime initialization explicit, so avoid top-level await and expose a lazy
-	* ready Promise instead.
-	*/
-	var localizationProviderReadyPromise = null;
-	function ensureLocalizationProviderReady() {
-		localizationProviderReadyPromise ??= localizationProvider.init();
-		return localizationProviderReadyPromise;
-	}
-	//#endregion
-	//#region src/utils/iframeConnector.ts
-	/**
-	* Runtime frame detection helper.
+	* Transport of the media (`videoplayback`) requests.
 	*
-	* Audio download no longer relies on service iframes or postMessage bridges.
-	* We keep only the minimal utility used by bootstrap policy.
+	* GVS answers a part of its hosts with a cross-host redirect
+	* (`cms_redirect=yes`), and that redirected answer carries no
+	* `Access-Control-Allow-Origin`: a page request is dropped by the browser
+	* before the download reads its first byte (`Failed to fetch`), and the retry
+	* looks like a transport hiccup even though no retry can ever succeed. Page
+	* level `fetch` wrappers of content blockers drop a part of these requests as
+	* well (`ERR_BLOCKED_BY_CLIENT`).
+	*
+	* Two independent ways around it, in this order:
+	*
+	* 1. `GM_xmlhttpRequest` (userscript manager) or the extension background:
+	*    the request leaves a privileged context, so no CORS check and no page
+	*    `fetch` wrapper applies and redirects are followed transparently. Every
+	*    googlevideo.com host is already routed through it by `utils/gm.ts`,
+	*    which is why the extension build never sees the redirect problem.
+	* 2. `alr=yes`, the parameter the YouTube player itself sends: instead of a
+	*    redirect GVS answers the next host as a `text/plain` body, which the
+	*    caller requests again itself. It keeps a bare page realm working when no
+	*    privileged transport exists (GM API missing, host not in `@connect`).
 	*/
-	var isIframe = () => globalThis.self !== globalThis.top;
-	//#endregion
-	//#region src/bootstrap/runtimeActivation.ts
-	var runtimeActivated = false;
-	var runtimeActivationPromise = null;
-	async function activateRuntime(reason, logBootstrap) {
-		logBootstrap("Activating runtime", { reason });
-		if (globalThis.location.origin === "https://rust-server-531j.onrender.com") {
-			await initAuth();
-			runtimeActivated = true;
-			return;
-		}
-		await ensureLocalizationProviderReady();
-		if (!isIframe()) await localizationProvider.update();
-		debug.log(`Selected menu language: ${localizationProvider.lang}`);
-		runtimeActivated = true;
-	}
-	async function ensureRuntimeActivated(reason, logBootstrap) {
-		if (runtimeActivated) return;
-		runtimeActivationPromise ??= activateRuntime(reason, logBootstrap).finally(() => {
-			runtimeActivationPromise = null;
-		});
-		await runtimeActivationPromise;
-	}
-	//#endregion
-	//#region src/bootstrap/videoObserverBinding.ts
-	var boundObservers = /* @__PURE__ */ new WeakSet();
-	var RUNTIME_URL_HOSTS = /* @__PURE__ */ new Set(["peertube", "directlink"]);
-	function bindObserverListeners(options) {
-		const { videoObserver, videosWrappers, ensureRuntimeActivated, getServicesCached, findContainer, createVideoHandler, resolveVideoId = (site, video) => getVideoID(site, {
-			fetchFn: GM_fetch,
-			video
-		}) } = options;
-		if (boundObservers.has(videoObserver)) return;
-		boundObservers.add(videoObserver);
-		const initializingVideos = /* @__PURE__ */ new WeakSet();
-		const containerOwners = /* @__PURE__ */ new WeakMap();
-		const videoContainers = /* @__PURE__ */ new WeakMap();
-		const pendingVideoByContainer = /* @__PURE__ */ new WeakMap();
-		const clearContainerOwner = (video) => {
-			const container = videoContainers.get(video);
-			if (container && containerOwners.get(container) === video) containerOwners.delete(container);
-			videoContainers.delete(video);
-			return container ?? void 0;
-		};
-		const releaseVideoHandler = async (video, reason) => {
-			const videoHandler = videosWrappers.get(video);
-			if (!videoHandler) return;
-			try {
-				await videoHandler.release();
-			} catch (error) {
-				console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
-			} finally {
-				if (videosWrappers.get(video) === videoHandler) videosWrappers.delete(video);
-			}
-		};
-		const getMatchedSiteAndContainer = (video) => {
-			for (const candidate of getServicesCached()) {
-				const container = findContainer(candidate, video);
-				if (container) return {
-					site: candidate,
-					container
-				};
-			}
-			return null;
-		};
-		const withRuntimeSiteUrl = (site) => {
-			return RUNTIME_URL_HOSTS.has(String(site.host)) ? {
-				...site,
-				url: globalThis.location.origin
-			} : site;
-		};
-		const tryReplaceVideo = async (oldVideo, newVideo, container) => {
-			const videoHandler = videosWrappers.get(oldVideo);
-			const previousVideoId = videoHandler?.videoData?.videoId;
-			if (!videoHandler?.hasActiveSource() || !previousVideoId) return false;
-			try {
-				if (await resolveVideoId(videoHandler.site, newVideo) !== previousVideoId) return false;
-				await videoHandler.replaceVideo(newVideo);
-			} catch (error) {
-				console.error("[VOT] Failed to replace video element", error);
-				return false;
-			}
-			if (videosWrappers.get(oldVideo) !== videoHandler) return videosWrappers.get(newVideo) === videoHandler;
-			videosWrappers.delete(oldVideo);
-			videoContainers.delete(oldVideo);
-			videosWrappers.set(newVideo, videoHandler);
-			videoContainers.set(newVideo, container);
-			containerOwners.set(container, newVideo);
-			return true;
-		};
-		const promotePendingVideo = async (container) => {
-			const pendingVideo = container && pendingVideoByContainer.get(container);
-			if (!pendingVideo) return;
-			pendingVideoByContainer.delete(container);
-			if (!pendingVideo.isConnected || videosWrappers.has(pendingVideo) || initializingVideos.has(pendingVideo)) return;
-			await handleVideoAdded(pendingVideo);
-		};
-		const handleVideoAdded = async (video) => {
-			if (videosWrappers.has(video) || initializingVideos.has(video)) return;
-			initializingVideos.add(video);
-			try {
-				if (!await ensureRuntimeReady()) return;
-				const match = getMatchedSiteAndContainer(video);
-				if (!match) return;
-				const { site, container } = match;
-				const activeVideoForContainer = containerOwners.get(container);
-				if (activeVideoForContainer && activeVideoForContainer !== video) {
-					if (activeVideoForContainer.isConnected) {
-						pendingVideoByContainer.set(container, video);
-						return;
-					}
-					if (await tryReplaceVideo(activeVideoForContainer, video, container)) return;
-					await releaseVideoHandler(activeVideoForContainer, "stale container");
-					clearContainerOwner(activeVideoForContainer);
-				}
-				const videoHandler = createVideoHandler(video, container, withRuntimeSiteUrl(site));
-				videosWrappers.set(video, videoHandler);
-				videoContainers.set(video, container);
-				containerOwners.set(container, video);
-				try {
-					await videoHandler.init();
-					if (videosWrappers.get(video) !== videoHandler) return;
-					try {
-						await videoHandler.setCanPlay();
-					} catch (err) {
-						console.error("[VOT] Failed to get video data", err);
-					}
-				} catch (err) {
-					if (videosWrappers.get(video) === videoHandler) {
-						await releaseVideoHandler(video, "init failed");
-						const container = clearContainerOwner(video);
-						if (container) pendingVideoByContainer.delete(container);
-						await promotePendingVideo(container);
-					}
-					console.error("[VOT] Failed to initialize videoHandler", err);
-				}
-			} finally {
-				initializingVideos.delete(video);
-			}
-		};
-		const ensureRuntimeReady = async () => {
-			try {
-				await ensureRuntimeActivated("video-detected");
-				return true;
-			} catch (err) {
-				console.error("[VOT] Failed to activate runtime", err);
-				return false;
-			}
-		};
-		videoObserver.onVideoAdded.addListener(handleVideoAdded);
-		videoObserver.onVideoRemoved.addListener(async (video) => {
-			const container = videoContainers.get(video);
-			const replacement = container && Array.from(container.querySelectorAll("video")).find((candidate) => candidate !== video && candidate.isConnected);
-			if (container && replacement && await tryReplaceVideo(video, replacement, container)) {
-				initializingVideos.delete(video);
-				return;
-			}
-			clearContainerOwner(video);
-			await releaseVideoHandler(video, "video removed");
-			initializingVideos.delete(video);
-			if (container && pendingVideoByContainer.get(container) === video) pendingVideoByContainer.delete(container);
-			await promotePendingVideo(container);
-		});
-	}
-	//#endregion
-	//#region src/core/bootstrapPolicy.ts
-	function shouldSkipIframeBootstrap(input) {
-		if (!input.isIframe) return false;
-		return input.href === "about:blank" || input.href.startsWith("about:srcdoc") || input.origin === "https://www.youtube.com" && input.href.includes("#ya_iframe") || input.origin === "null";
-	}
-	function resolveBootstrapMode(input) {
-		if (shouldSkipIframeBootstrap(input)) return "skip";
-		if (!input.isIframe && input.origin === input.authOrigin) return "auth-eager";
-		return "lazy";
-	}
-	//#endregion
-	//#region src/utils/dom.ts
-	function getComposableParent(node) {
-		if (!node) return null;
-		if (typeof ShadowRoot !== "undefined" && node instanceof ShadowRoot) return node.host;
-		return node.parentNode ?? null;
-	}
-	function getDeepActiveElement(root = document) {
-		let activeElement = root.activeElement;
-		while (activeElement instanceof HTMLElement && activeElement.shadowRoot) {
-			const nestedActiveElement = activeElement.shadowRoot.activeElement;
-			if (!nestedActiveElement) break;
-			activeElement = nestedActiveElement;
-		}
-		return activeElement;
+	/**
+	* A 4 MiB range needs far more than the 15 s GM default on a slow connection.
+	* The download is bounded by the caller's abort signal anyway.
+	*/
+	var MEDIA_REQUEST_TIMEOUT_MS = 6e5;
+	/** The privileged transport whenever this build has one. */
+	function getMediaTransport() {
+		const transport = isSupportGMXhr ? "gm" : "page";
+		debug.log("Audio downloader. media transport selected", { transport });
+		return transport;
 	}
 	/**
-	* Checks whether `target` is a descendant of `container` in the composed tree
-	* (crossing ShadowRoot boundaries via hosts).
+	* The bare URL is requested with explicit `Range` headers, so everything the
+	* player adds to slice and wrap the stream itself is stripped:
+	* - `ump` would wrap the body into the UMP container,
+	* - `range`/`rn` are the player's own slicing into hundreds of small
+	*   requests, replaced here by a few fixed-size ranges.
+	*
+	* `alr` is the exception: the page transport can only read a GVS redirect
+	* when it arrives as a body instead of a `302`, while the privileged
+	* transport follows redirects itself and would only pay for the extra hop.
 	*/
-	function containsCrossShadow(container, target) {
-		let node = target;
-		while (node) {
-			if (node === container) return true;
-			node = getComposableParent(node);
-		}
-		return false;
+	function buildMediaRequestUrl(streamUrl, transport) {
+		const url = new URL(streamUrl);
+		for (const param of [
+			"ump",
+			"range",
+			"rn"
+		]) url.searchParams.delete(param);
+		if (transport === "page") url.searchParams.set("alr", "yes");
+		else url.searchParams.delete("alr");
+		return url.toString();
 	}
-	function closestCrossShadow(element, selector) {
-		if (!element || !selector) return null;
-		return walkCrossShadow(element, selector, element instanceof Document ? null : element);
-	}
-	function findMatchingDocumentElement(current, selector, origin) {
-		if (!origin) return current.querySelector(selector);
-		const matches = current.querySelectorAll(selector);
-		for (const match of matches) if (containsCrossShadow(match, origin)) return match;
-		return null;
-	}
-	function getNextCrossShadowTarget(current) {
-		const root = current.getRootNode();
-		if (root instanceof ShadowRoot) return root.host;
-		if (root instanceof Document) return root;
-		if (root !== current) {
-			const parent = getComposableParent(root);
-			if (parent && parent !== current && parent instanceof Element) return parent;
-		}
-		return null;
-	}
-	function walkCrossShadow(current, selector, origin) {
-		if (!current) return null;
-		if (current instanceof Document) return findMatchingDocumentElement(current, selector, origin);
-		const closest = current.closest(selector);
-		if (closest) return closest;
-		return walkCrossShadow(getNextCrossShadowTarget(current), selector, origin);
+	/** One ranged media request over the selected transport. */
+	async function fetchMediaRange({ transport, targetWindow, url, range, signal }) {
+		if (transport === "gm") return await GM_fetch(url, {
+			method: "GET",
+			headers: { range },
+			redirect: "follow",
+			timeout: MEDIA_REQUEST_TIMEOUT_MS,
+			forceGmXhr: true,
+			signal
+		});
+		return await targetWindow.fetch(url, {
+			signal,
+			credentials: "omit",
+			headers: { range }
+		});
 	}
 	//#endregion
-	//#region src/core/containerResolution.ts
-	function findConnectedContainerBySelector(video, selector) {
-		if (!selector) return null;
-		const matched = closestCrossShadow(video, selector);
-		if (matched instanceof HTMLElement && matched.isConnected && containsCrossShadow(matched, video)) return matched;
-		return null;
+	//#region src/audioDownloader/strategies/poToken.ts
+	/**
+	* GVS PO token of the page: selection of its binding and every way to get it.
+	*
+	* GVS answers 403 for the signed URLs of most InnerTube clients unless the
+	* request carries a `pot` parameter, and the token is minted by the BotGuard
+	* VM the web player already booted — no network request is spent on it
+	* (`web`, `web_safari`, `web_music`, `web_creator`, `mweb` and `tv_simply`
+	* all need one; `web_embedded`, `tv` and `tv_embedded` do not).
+	*
+	* The VM lives in the page realm, so where this code runs decides whether a
+	* token can be minted at all:
+	*
+	* - the extension build runs its prelude in the MAIN world, so the BotGuard
+	*   globals are own properties of its own `globalThis` and
+	*   {@link mintPagePoToken} finds them,
+	* - a userscript build runs in a sandboxed realm whenever the manager cannot
+	*   inject into the page (Tampermonkey `@sandbox JavaScript`/`DOM`,
+	*   Violentmonkey, a page CSP that blocks the raw injection). That realm has
+	*   its own globals, so the very same scan finds nothing, every PO token
+	*   client is skipped and the download ends on a 403 — which is exactly the
+	*   difference the userscript build used to show against the extension one.
+	*
+	* Three sources are tried, cheapest first:
+	*
+	* 1. the BotGuard VM of a realm this code can read ({@link mintPagePoToken}),
+	*    including `unsafeWindow`, the page realm a userscript manager hands out,
+	* 2. the `pot` parameter of the media requests the page player already sent
+	*    ({@link harvestGvsPoToken}) — the same token, for free, and readable
+	*    from any realm,
+	* 3. a short script injected into the document, which mints the token in the
+	*    page realm and posts it back behind a random nonce
+	*    ({@link mintPageWorldPoToken}).
+	*/
+	/** Globals the BotGuard VM of the web player publishes. */
+	var BOTGUARD_GLOBAL = "bevasrsg";
+	var BOTGUARD_PREFIX = "havuokmhhs-";
+	/** BotGuard answers `SDF:notready` until its VM finished booting. */
+	var MINT_ATTEMPTS = 10;
+	var MINT_RETRY_DELAY_MS = 500;
+	/** A page realm that never answers costs the ladder this much, once. */
+	var PAGE_REALM_TIMEOUT_MS = 15e3;
+	/**
+	* A GVS token stays valid for hours, so one mint is shared by every download
+	* of the session instead of paying the page realm roundtrip again. Kept well
+	* below the server side lifetime so a rotated session is picked up anyway.
+	*/
+	var TOKEN_TTL_MS = 18e5;
+	/** The page realm a userscript manager exposes to a sandboxed script. */
+	function getUnsafeWindow() {
+		const realm = globalThis.unsafeWindow;
+		return realm && realm !== globalThis ? realm : void 0;
 	}
-	//#endregion
-	//#region src/utils/environment.ts
-	var UNKNOWN_VALUE = "unknown";
-	var joinParts = (...parts) => {
-		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
-	};
-	function isDocumentHidden() {
-		return typeof document !== "undefined" && document.hidden;
+	/** The realms one document can reach, deduplicated. */
+	/**
+	* The realms one document can reach, deduplicated.
+	*
+	* CONSOLIDATION: the self/parent/top walk is
+	* `internal/realms.enumerateRealms` (shared with `webAbr.resolveTrustedRealm`).
+	* Both entry points are still unioned, because BotGuard may be installed in
+	* either the userscript realm or the page realm.
+	*/
+	function collectRealms(pageWindow) {
+		const realms = /* @__PURE__ */ new Set();
+		for (const entry of [pageWindow, getUnsafeWindow()]) {
+			if (!entry) continue;
+			for (const realm of enumerateRealms(entry)) realms.add(realm);
+		}
+		return realms;
 	}
-	function getEnvironmentInfo() {
+	function isBotguardKey(key) {
+		return key === BOTGUARD_GLOBAL || key.startsWith(BOTGUARD_PREFIX);
+	}
+	/**
+	* GVS binds a PO token to the session (the datasync ID when signed in, the
+	* visitor data otherwise) unless the page announces the video-id binding
+	* experiment. Exactly one binding is selected per attempt: a token GVS
+	* refuses is a verdict on the whole client, and the caller rotates to the
+	* video-id binding only after a refusal instead of guessing upfront.
+	*/
+	function selectGvsPoTokenBinding(videoId, options) {
+		const prefersVideoId = options.experimentFlags.some((flags) => new URLSearchParams(flags).getAll("html5_generate_content_po_token").at(-1) === "true");
+		const session = options.loggedIn ? options.dataSyncId : options.visitorData;
+		if (prefersVideoId || typeof session !== "string" || !session) return {
+			kind: "video",
+			value: videoId
+		};
 		return {
-			os: joinParts(browserInfo.os?.name, browserInfo.os?.version),
-			browser: joinParts(browserInfo.browser?.name, browserInfo.browser?.version),
-			loader: (() => {
-				const handler = GM_info?.scriptHandler;
-				const version = GM_info?.version;
-				if (handler && version) return `${handler} v${version}`;
-				return handler || version || UNKNOWN_VALUE;
-			})(),
-			scriptVersion: GM_info?.script?.version ?? UNKNOWN_VALUE,
-			scriptName: GM_info?.script?.name ?? UNKNOWN_VALUE,
-			url: globalThis?.location?.href ?? UNKNOWN_VALUE
+			kind: options.loggedIn ? "datasync" : "visitor",
+			value: session
 		};
 	}
-	//#endregion
-	//#region src/utils/intervalIdleChecker.ts
-	var DEFAULT_PROFILE = {
-		checkIntervalMs: 250,
-		idleAfterMs: 180
-	};
-	function normalizePositiveMs(value, fallback) {
-		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-		return Math.max(1, Math.trunc(value));
-	}
-	function normalizeNonNegativeMs(value, fallback) {
-		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-		return Math.max(0, Math.trunc(value));
-	}
-	function normalizeProfile(profile = {}) {
-		return {
-			checkIntervalMs: normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs),
-			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs)
-		};
-	}
-	function getDefaultRuntime() {
-		return {
-			nowMs: () => typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now(),
-			setInterval: globalThis.setInterval.bind(globalThis),
-			clearInterval: globalThis.clearInterval.bind(globalThis),
-			queueMicrotask: (fn) => {
-				globalThis.queueMicrotask(fn);
-			},
-			onVisibilityChange: (listener) => {
-				if (typeof document === "undefined" || typeof document.addEventListener !== "function") return () => void 0;
-				document.addEventListener("visibilitychange", listener);
-				return () => {
-					if (typeof document.removeEventListener === "function") document.removeEventListener("visibilitychange", listener);
-				};
+	/**
+	* Mints the token with the BotGuard instance of a realm this code can read.
+	*
+	* @returns the token, or `undefined` when no reachable realm carries a
+	* BotGuard VM.
+	*/
+	async function mintPagePoToken(pageWindow, binding, signal) {
+		for (const realm of collectRealms(pageWindow)) {
+			let keys;
+			try {
+				keys = Object.getOwnPropertyNames(realm).filter(isBotguardKey);
+			} catch {
+				continue;
 			}
-		};
-	}
-	var IntervalIdleChecker = class {
-		profile;
-		runtime;
-		subscribers = /* @__PURE__ */ new Set();
-		intervalId = null;
-		unsubscribeVisibilityChange = null;
-		running = false;
-		destroyed = false;
-		immediateQueued = false;
-		currentMode = "active";
-		lastActivityAt;
-		onVisibilityChangeHandler = () => {
-			if (this.destroyed || !this.running) return;
-			if (isDocumentHidden()) this.clearIntervalTimer();
-			else this.armInterval();
-			this.requestImmediateTick();
-		};
-		constructor(options = {}) {
-			this.profile = normalizeProfile(options.profile);
-			this.runtime = {
-				...getDefaultRuntime(),
-				...options.runtime
-			};
-			this.lastActivityAt = this.runtime.nowMs();
-		}
-		start() {
-			if (this.destroyed || this.running) return;
-			this.running = true;
-			this.lastActivityAt = this.runtime.nowMs();
-			this.subscribeVisibilityChange();
-			this.armInterval();
-			this.runTick("start");
-		}
-		stop() {
-			if (!this.running) return;
-			this.running = false;
-			this.clearIntervalTimer();
-			this.immediateQueued = false;
-			this.unsubscribeFromVisibilityChange();
-		}
-		destroy() {
-			if (this.destroyed) return;
-			this.stop();
-			this.subscribers.clear();
-			this.destroyed = true;
-		}
-		subscribe(fn) {
-			if (this.destroyed) return () => void 0;
-			this.subscribers.add(fn);
-			return () => {
-				this.subscribers.delete(fn);
-			};
-		}
-		markActivity(_source) {
-			if (this.destroyed) return;
-			this.lastActivityAt = this.runtime.nowMs();
-			if (!this.running) return;
-			const nextMode = this.resolveMode(this.lastActivityAt);
-			if (nextMode !== this.currentMode) this.currentMode = nextMode;
-		}
-		requestImmediateTick() {
-			if (this.destroyed || !this.running || this.immediateQueued) return;
-			this.immediateQueued = true;
-			this.runtime.queueMicrotask(() => {
-				this.immediateQueued = false;
-				if (this.destroyed || !this.running) return;
-				this.runTick("immediate");
-			});
-		}
-		resolveMode(nowMs) {
-			if (isDocumentHidden()) return "hidden";
-			return nowMs - this.lastActivityAt >= this.profile.idleAfterMs ? "idle" : "active";
-		}
-		clearIntervalTimer() {
-			if (this.intervalId === null) return;
-			this.runtime.clearInterval(this.intervalId);
-			this.intervalId = null;
-		}
-		armInterval() {
-			if (this.intervalId !== null) return;
-			this.intervalId = this.runtime.setInterval(() => {
-				this.runTick("interval");
-			}, this.profile.checkIntervalMs);
-		}
-		runTick(source) {
-			if (this.destroyed || !this.running) return;
-			if (this.subscribers.size === 0) return;
-			const nowMs = this.runtime.nowMs();
-			const nextMode = this.resolveMode(nowMs);
-			if (nextMode !== this.currentMode) this.currentMode = nextMode;
-			const ctx = {
-				nowMs,
-				mode: nextMode,
-				source
-			};
-			for (const sub of this.subscribers) try {
-				sub(ctx);
-			} catch {}
-		}
-		subscribeVisibilityChange() {
-			if (this.unsubscribeVisibilityChange !== null) return;
-			this.unsubscribeVisibilityChange = this.runtime.onVisibilityChange(this.onVisibilityChangeHandler);
-		}
-		unsubscribeFromVisibilityChange() {
-			if (this.unsubscribeVisibilityChange === null) return;
-			this.unsubscribeVisibilityChange();
-			this.unsubscribeVisibilityChange = null;
-		}
-	};
-	function createIntervalIdleChecker(profile) {
-		return new IntervalIdleChecker({ profile });
-	}
-	//#endregion
-	//#region src/utils/domTraversal.ts
-	function getComposedParentElement(node) {
-		if (!node) return null;
-		const parentElement = node.parentElement ?? null;
-		if (parentElement) return parentElement;
-		if (typeof node.getRootNode !== "function") return null;
-		const root = node.getRootNode();
-		if (root && "host" in root) return root.host ?? null;
-		return null;
-	}
-	function someComposedAncestor(node, predicate) {
-		for (let parent = getComposedParentElement(node); parent; parent = getComposedParentElement(parent)) if (predicate(parent)) return true;
-		return false;
-	}
-	function isArrayLikeChildren(children) {
-		return "length" in children;
-	}
-	function pushChildrenToStack(stack, stackSize, children) {
-		if (isArrayLikeChildren(children)) {
-			const arrayLike = children;
-			for (let index = 0; index < arrayLike.length; index += 1) {
-				const child = arrayLike[index];
-				if (child !== void 0 && child !== null) {
-					stack[stackSize] = child;
-					stackSize += 1;
+			for (const key of keys) {
+				let bevasrs;
+				try {
+					bevasrs = realm[key]?.bevasrs;
+				} catch {
+					continue;
+				}
+				const wpc = bevasrs?.wpc;
+				if (typeof wpc !== "function") continue;
+				for (let attempt = 0; attempt < MINT_ATTEMPTS; attempt++) {
+					if (signal.aborted) throw makeAbortError(signal.reason);
+					try {
+						const token = await (await wpc.call(bevasrs))?.mws?.({
+							c: binding,
+							mc: false,
+							me: false
+						});
+						if (typeof token === "string" && token) return token;
+					} catch (error) {
+						if (!String(error).includes("SDF:notready")) break;
+					}
+					await createAbortableDelay(MINT_RETRY_DELAY_MS, signal);
 				}
 			}
-		} else for (const child of children) if (child !== void 0 && child !== null) {
-			stack[stackSize] = child;
-			stackSize += 1;
-		}
-		return stackSize;
-	}
-	function walkShadowIncludingSubtree(root, adapter, visit) {
-		const stack = [root];
-		const { getChildren, getShadowRoot } = adapter;
-		let stackSize = 1;
-		while (stackSize > 0) {
-			const node = stack[stackSize - 1];
-			stackSize -= 1;
-			visit(node);
-			stackSize = pushChildrenToStack(stack, stackSize, getChildren(node));
-			const shadowRoot = getShadowRoot(node);
-			if (shadowRoot) {
-				stack[stackSize] = shadowRoot;
-				stackSize += 1;
-			}
 		}
 	}
-	//#endregion
-	//#region src/utils/eventImpl.ts
-	var EventImpl = class {
-		listeners = /* @__PURE__ */ new Set();
-		get size() {
-			return this.listeners.size;
-		}
-		addListener(handler) {
-			this.listeners.add(handler);
-			return this;
-		}
-		removeListener(handler) {
-			this.listeners.delete(handler);
-			return this;
-		}
-		dispatch(...args) {
-			for (const handler of this.listeners) try {
-				handler(...args);
-			} catch (exception) {
-				console.error("[VOT]", exception);
-			}
-		}
-		async dispatchAsync(...args) {
-			const pending = [];
-			for (const handler of this.listeners) try {
-				const result = handler(...args);
-				if (result && typeof result.then === "function") pending.push(Promise.resolve(result));
-			} catch (exception) {
-				console.error("[VOT]", exception);
-			}
-			if (!pending.length) return;
-			const settled = await Promise.allSettled(pending);
-			for (const item of settled) if (item.status === "rejected") console.error("[VOT]", item.reason);
-		}
-		clear() {
-			this.listeners.clear();
-		}
-	};
-	//#endregion
-	//#region src/utils/VideoObserver.ts
-	var AD_ATTRS = [
-		"class",
-		"id",
-		"title"
-	];
-	var AD_KEYWORD_PATTERN = new RegExp([
-		"advertise",
-		"advertisement",
-		"promo",
-		"sponsor",
-		"banner",
-		"commercial",
-		"preroll",
-		"midroll",
-		"postroll",
-		"ad-container",
-		"sponsored"
-	].map((keyword) => keyword.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)).join("|"));
-	var ATTACH_SHADOW_HOOK_KEY = Symbol.for("vot.attachShadowHook");
-	function getAttachShadowDescriptor() {
-		const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, "attachShadow");
-		if (!descriptor || typeof descriptor.value !== "function") return null;
-		return descriptor;
-	}
-	function getOrInstallAttachShadowHook() {
-		const g = globalThis;
-		const existing = g[ATTACH_SHADOW_HOOK_KEY];
-		if (existing?.descriptor && existing.subscribers instanceof Set) return existing;
-		const descriptor = getAttachShadowDescriptor();
-		if (!descriptor) return null;
-		const original = descriptor.value;
-		const state = {
-			descriptor,
-			subscribers: /* @__PURE__ */ new Set()
-		};
-		const patchedAttachShadow = function(init) {
-			const root = original.call(this, init);
-			for (const sub of state.subscribers) try {
-				sub(root);
-			} catch (error) {
-				debug.error("attachShadow subscriber failed", error);
-			}
-			return root;
-		};
+	/**
+	* Reads the token off the media requests the page player already sent.
+	*
+	* The player signs its own `videoplayback` URLs with the very same GVS token
+	* (yt-dlp documents the `pot` parameter of those URLs as a source of it), and
+	* resource timings are readable from every realm, so this works where neither
+	* BotGuard nor an injected script can be reached. A SABR request carries the
+	* token in its protobuf body instead, so those URLs are skipped.
+	*/
+	function harvestGvsPoToken(realm) {
+		let entries = [];
 		try {
-			Object.defineProperty(Element.prototype, "attachShadow", {
-				...descriptor,
-				value: patchedAttachShadow
-			});
+			entries = realm.performance?.getEntriesByType?.("resource") ?? [];
 		} catch {
-			return null;
+			return;
 		}
-		g[ATTACH_SHADOW_HOOK_KEY] = state;
-		return state;
-	}
-	function removeAttachShadowSubscriber(subscriber) {
-		const g = globalThis;
-		const state = g[ATTACH_SHADOW_HOOK_KEY];
-		if (!state) return;
-		state.subscribers.delete(subscriber);
-		if (state.subscribers.size > 0) return;
-		try {
-			Object.defineProperty(Element.prototype, "attachShadow", state.descriptor);
-		} catch {
-			const original = state.descriptor.value;
-			if (typeof original === "function") Element.prototype.attachShadow = original;
-		}
-		delete g[ATTACH_SHADOW_HOOK_KEY];
-	}
-	var VideoObserver = class VideoObserver {
-		seenVideos = /* @__PURE__ */ new WeakSet();
-		activeVideos = /* @__PURE__ */ new WeakSet();
-		observedRoots = /* @__PURE__ */ new WeakSet();
-		videoListenerControllers = /* @__PURE__ */ new Map();
-		pendingAdded = /* @__PURE__ */ new Set();
-		pendingRemoved = /* @__PURE__ */ new Set();
-		flushPending = false;
-		static MAX_FLUSH_BUDGET_MS = 6;
-		static MAX_NODES_PER_SLICE = 120;
-		onVideoAdded = new EventImpl();
-		onVideoRemoved = new EventImpl();
-		observer = new MutationObserver((muts) => this.onMutations(muts));
-		intervalIdleChecker;
-		checkerUnsubscribe = null;
-		enabled = false;
-		attachShadowSubscriber = null;
-		onDocumentReady = null;
-		onPageShow = () => {
-			const root = document.documentElement;
-			if (!root) return;
-			this.pendingAdded.add(root);
-			this.scheduleFlush();
-		};
-		constructor(intervalIdleChecker = createIntervalIdleChecker()) {
-			this.intervalIdleChecker = intervalIdleChecker;
-		}
-		static containsAdKeyword(value) {
-			return value.length > 0 && AD_KEYWORD_PATTERN.test(value);
-		}
-		isAdRelated(element) {
-			for (const attr of AD_ATTRS) {
-				const rawValue = element.getAttribute(attr);
-				if (!rawValue) continue;
-				if (VideoObserver.containsAdKeyword(rawValue.toLowerCase())) return true;
-			}
-			return false;
-		}
-		isInsideAd(video) {
-			return someComposedAncestor(video, (p) => this.isAdRelated(p));
-		}
-		getCapturedAudioTrackCount(video) {
-			const candidate = video;
-			const captureStream = candidate.captureStream ?? candidate.mozCaptureStream;
-			if (typeof captureStream !== "function") return null;
+		for (let index = entries.length - 1; index >= 0; index--) {
+			const name = entries[index]?.name;
+			if (typeof name !== "string" || !name.includes("/videoplayback")) continue;
+			let url;
 			try {
-				return captureStream.call(video).getAudioTracks().length;
+				url = new URL(name);
 			} catch {
-				return null;
+				continue;
 			}
+			if (!isGooglevideoHost(url.hostname)) continue;
+			if (url.searchParams.get("sabr") === "1") continue;
+			const token = url.searchParams.get("pot");
+			if (token) return token;
 		}
-		isLikelySilentDecorativeVideo(video) {
-			if (!(video.muted || video.defaultMuted)) return false;
-			if (!video.autoplay || !video.loop) return false;
-			if (video.controls) return false;
-			const v = video;
-			if (typeof v.mozHasAudio === "boolean") return !v.mozHasAudio;
-			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
-				if (v.audioTracks.length > 0) return false;
-				const capturedTrackCount = this.getCapturedAudioTrackCount(video);
-				if (capturedTrackCount !== null) return capturedTrackCount === 0;
-				return true;
-			}
-			const capturedTrackCount = this.getCapturedAudioTrackCount(video);
-			if (capturedTrackCount !== null) return capturedTrackCount === 0;
+	}
+	/**
+	* The same scan, written for the page realm: it is injected as plain source,
+	* so it cannot share anything with this module.
+	*/
+	function buildPageRealmSource(nonce, binding) {
+		return `(() => {
+  const nonce = ${JSON.stringify(nonce)};
+  const binding = ${JSON.stringify(binding)};
+  const reply = (token, error) => {
+    try {
+      window.postMessage({ votPoTokenNonce: nonce, token: token, error: error }, "*");
+    } catch (ignored) {}
+  };
+  const realms = new Set([window]);
+  try {
+    realms.add(window.parent);
+    realms.add(window.top);
+  } catch (crossOrigin) {}
+  const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+  (async () => {
+    for (const realm of realms) {
+      let keys = [];
+      try {
+        keys = Object.getOwnPropertyNames(realm).filter(
+          (key) =>
+            key === ${JSON.stringify(BOTGUARD_GLOBAL)} ||
+            key.indexOf(${JSON.stringify(BOTGUARD_PREFIX)}) === 0,
+        );
+      } catch (denied) {
+        continue;
+      }
+      for (const key of keys) {
+        let bevasrs;
+        try {
+          bevasrs = realm[key] && realm[key].bevasrs;
+        } catch (denied) {
+          continue;
+        }
+        const wpc = bevasrs && bevasrs.wpc;
+        if (typeof wpc !== "function") continue;
+        for (let attempt = 0; attempt < ${MINT_ATTEMPTS}; attempt++) {
+          try {
+            const minter = await wpc.call(bevasrs);
+            const token =
+              minter &&
+              minter.mws &&
+              (await minter.mws({ c: binding, mc: false, me: false }));
+            if (typeof token === "string" && token) {
+              reply(token);
+              return;
+            }
+          } catch (error) {
+            if (String(error).indexOf("SDF:notready") < 0) break;
+          }
+          await wait(${MINT_RETRY_DELAY_MS});
+        }
+      }
+    }
+    reply(undefined, "no BotGuard instance in the page realm");
+  })().catch((error) => reply(undefined, String(error)));
+})();`;
+	}
+	/** Trusted Types refuse a plain string, so the policy is only built on demand. */
+	/**
+	* Sets the source of an injected `<script>`, honouring Trusted Types.
+	*
+	* Returns false when the realm enforces Trusted Types and no policy could be
+	* created, which is the caller's signal to give up on page-realm minting.
+	*
+	* CONSOLIDATION + DEFECT FIX (F-5): the policy is the cached per-realm one from
+	* `internal/realms.createTrustedScript`; this used to mint a uniquely named
+	* policy on every call.
+	*/
+	function setScriptSource(script, realm, source) {
+		try {
+			script.textContent = source;
+			return true;
+		} catch {}
+		try {
+			const trusted = createTrustedScript(realm, source, "vot-po-token");
+			if (trusted === source) return false;
+			script.text = trusted;
+			return true;
+		} catch {
 			return false;
 		}
-		hasAudio(video) {
-			const v = video;
-			if (video.srcObject instanceof MediaStream) return video.srcObject.getAudioTracks().length > 0;
-			if (typeof v.mozHasAudio === "boolean") return v.mozHasAudio;
-			if (typeof v.webkitAudioDecodedByteCount === "number" && v.webkitAudioDecodedByteCount > 0) return true;
-			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
-				if (v.audioTracks.length > 0) return true;
-			}
-			if (this.isLikelySilentDecorativeVideo(video)) return false;
-			return true;
-		}
-		isValidVideo(video) {
-			if (this.isAdRelated(video)) return false;
-			if (this.isInsideAd(video)) return false;
-			if (!this.hasAudio(video)) {
-				debug.log("Ignoring video without audio:", video);
-				return false;
-			}
-			return true;
-		}
-		observeRoot(root) {
-			if (this.observedRoots.has(root)) return;
-			this.observedRoots.add(root);
-			this.observer.observe(root, {
-				childList: true,
-				subtree: true
-			});
-		}
-		static domAdapter = {
-			getChildren: (node) => Array.from(node.children ?? []),
-			getShadowRoot: (node) => node.shadowRoot
-		};
-		scan(root) {
-			if (root instanceof HTMLVideoElement) {
-				this.trackVideo(root);
-				return;
-			}
-			if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
-			walkShadowIncludingSubtree(root, VideoObserver.domAdapter, (el) => {
-				if (el instanceof HTMLVideoElement) {
-					this.trackVideo(el);
+	}
+	/**
+	* Mints the token inside the page realm from a sandboxed userscript realm.
+	*
+	* @returns the token, or `undefined` when the page carries no BotGuard VM or
+	* its CSP refuses the injected script.
+	*/
+	function mintPageWorldPoToken(realm, binding, signal) {
+		const document = realm.document;
+		const host = document?.documentElement;
+		if (!host || typeof document.createElement !== "function") return Promise.resolve(void 0);
+		const nonce = `vot-po-token-${crypto.randomUUID()}`;
+		const script = document.createElement("script");
+		if (!setScriptSource(script, realm, buildPageRealmSource(nonce, binding))) return Promise.resolve(void 0);
+		return new Promise((resolve) => {
+			let timeout;
+			let settled = false;
+			const finish = (token) => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timeout);
+				realm.removeEventListener("message", onMessage);
+				signal.removeEventListener("abort", onAbort);
+				script.remove();
+				resolve(token);
+			};
+			const onMessage = (event) => {
+				const data = event.data;
+				if (!data || data.votPoTokenNonce !== nonce) return;
+				if (typeof data.token === "string" && data.token) {
+					finish(data.token);
 					return;
 				}
-				const sr = el.shadowRoot;
-				if (sr) this.observeRoot(sr);
-			});
-		}
-		getVideoListenerSignal(video) {
-			const existingController = this.videoListenerControllers.get(video);
-			if (existingController) existingController.abort();
-			const controller = new AbortController();
-			this.videoListenerControllers.set(video, controller);
-			return controller.signal;
-		}
-		cleanupVideoListeners(video) {
-			const controller = this.videoListenerControllers.get(video);
-			if (!controller) return;
-			controller.abort();
-			this.videoListenerControllers.delete(video);
-		}
-		cleanupAllVideoListeners() {
-			for (const controller of this.videoListenerControllers.values()) controller.abort();
-			this.videoListenerControllers.clear();
-		}
-		trackVideo(video) {
-			if (this.seenVideos.has(video)) return;
-			this.seenVideos.add(video);
-			const listenerSignal = this.getVideoListenerSignal(video);
-			const tryValidate = () => {
-				if (this.isValidVideo(video)) {
-					if (!this.activeVideos.has(video)) {
-						this.activeVideos.add(video);
-						this.onVideoAdded.dispatch(video);
-					}
-				}
+				debug.log("Audio downloader. page realm PO token unavailable", { error: String(data.error ?? "unknown") });
+				finish();
 			};
-			if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
-			else {
-				video.addEventListener("loadeddata", tryValidate, {
-					once: true,
-					signal: listenerSignal
-				});
-				const handlePlay = () => {
-					if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
-				};
-				video.addEventListener("play", handlePlay, {
-					once: true,
-					passive: true,
-					signal: listenerSignal
-				});
-			}
-			video.addEventListener("emptied", () => {
-				if (!video.isConnected) this.untrackVideo(video);
-			}, {
-				passive: true,
-				signal: listenerSignal
-			});
-		}
-		untrackVideo(video) {
-			this.cleanupVideoListeners(video);
-			if (this.activeVideos.has(video)) {
-				this.onVideoRemoved.dispatch(video);
-				this.activeVideos.delete(video);
-			}
-			this.seenVideos.delete(video);
-		}
-		collectVideos(node) {
-			const set = /* @__PURE__ */ new Set();
-			if (node instanceof HTMLVideoElement) set.add(node);
-			if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return Array.from(set);
-			walkShadowIncludingSubtree(node, VideoObserver.domAdapter, (el) => {
-				if (el instanceof HTMLVideoElement) set.add(el);
-			});
-			return Array.from(set);
-		}
-		getNowMs() {
-			if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
-			return Date.now();
-		}
-		isSliceBudgetReached(startMs, processed) {
-			if (processed >= VideoObserver.MAX_NODES_PER_SLICE) return true;
-			return this.getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
-		}
-		processPendingAdded(startMs) {
-			let processed = 0;
-			while (this.pendingAdded.size > 0) {
-				const next = this.pendingAdded.values().next();
-				if (next.done) break;
-				this.pendingAdded.delete(next.value);
-				this.scan(next.value);
-				processed += 1;
-				if (this.isSliceBudgetReached(startMs, processed)) break;
-			}
-			return processed;
-		}
-		processPendingRemoved(startMs, processed) {
-			let processedCount = processed;
-			while (this.pendingRemoved.size > 0) {
-				if (this.isSliceBudgetReached(startMs, processedCount)) break;
-				const next = this.pendingRemoved.values().next();
-				if (next.done) break;
-				this.pendingRemoved.delete(next.value);
-				for (const video of this.collectVideos(next.value)) if (!video.isConnected) this.untrackVideo(video);
-				processedCount += 1;
-			}
-			return processedCount;
-		}
-		flushSlice = () => {
-			if (!this.enabled) {
-				this.pendingAdded.clear();
-				this.pendingRemoved.clear();
-				this.flushPending = false;
-				return;
-			}
-			const startMs = this.getNowMs();
-			const processedAdded = this.processPendingAdded(startMs);
-			this.processPendingRemoved(startMs, processedAdded);
-			this.flushPending = this.pendingAdded.size > 0 || this.pendingRemoved.size > 0;
-			if (this.flushPending) this.intervalIdleChecker.requestImmediateTick();
-		};
-		onCheckerTick = () => {
-			if (!this.flushPending) return;
-			this.flushSlice();
-		};
-		scheduleFlush = () => {
-			if (!this.enabled) return;
-			this.flushPending = true;
-			this.intervalIdleChecker.requestImmediateTick();
-		};
-		installAttachShadowHook() {
-			if (this.attachShadowSubscriber) return;
-			const state = getOrInstallAttachShadowHook();
-			if (!state) return;
-			const subscriber = (root) => {
-				if (!this.enabled) return;
-				this.observeRoot(root);
-				this.pendingAdded.add(root);
-				this.scheduleFlush();
-			};
-			state.subscribers.add(subscriber);
-			this.attachShadowSubscriber = subscriber;
-		}
-		uninstallAttachShadowHook() {
-			if (!this.attachShadowSubscriber) return;
-			removeAttachShadowSubscriber(this.attachShadowSubscriber);
-			this.attachShadowSubscriber = null;
-		}
-		enqueueAddedNode(node) {
-			if (node.nodeType === Node.ELEMENT_NODE) {
-				const shadowRoot = node.shadowRoot;
-				if (shadowRoot) this.observeRoot(shadowRoot);
-			}
-			this.pendingAdded.add(node);
-		}
-		enqueueMutation(mutation) {
-			for (const node of mutation.addedNodes) this.enqueueAddedNode(node);
-			for (const node of mutation.removedNodes) this.pendingRemoved.add(node);
-		}
-		onMutations(mutations) {
-			for (const mutation of mutations) {
-				if (mutation.type !== "childList") continue;
-				this.enqueueMutation(mutation);
-			}
-			if (this.pendingAdded.size > 0 || this.pendingRemoved.size > 0) this.scheduleFlush();
-		}
-		enable() {
-			if (this.enabled) return;
-			this.enabled = true;
-			this.checkerUnsubscribe?.();
-			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(this.onCheckerTick);
-			this.intervalIdleChecker.start();
-			this.intervalIdleChecker.markActivity("video-observer-enable");
-			this.installAttachShadowHook();
-			globalThis.addEventListener("pageshow", this.onPageShow, { passive: true });
-			const root = document.documentElement;
-			if (root) {
-				this.observeRoot(root);
-				this.scan(root);
-				return;
-			}
-			const onReady = () => {
-				const r = document.documentElement;
-				if (!r) return;
-				document.removeEventListener("readystatechange", onReady);
-				this.onDocumentReady = null;
-				if (!this.enabled) return;
-				this.observeRoot(r);
-				this.scan(r);
-			};
-			this.onDocumentReady = onReady;
-			document.addEventListener("readystatechange", onReady);
-			queueMicrotask(onReady);
-		}
-		disable() {
-			if (!this.enabled) return;
-			this.enabled = false;
-			globalThis.removeEventListener("pageshow", this.onPageShow);
-			if (this.onDocumentReady) {
-				document.removeEventListener("readystatechange", this.onDocumentReady);
-				this.onDocumentReady = null;
-			}
-			this.uninstallAttachShadowHook();
-			this.observer.disconnect();
-			this.cleanupAllVideoListeners();
-			this.flushPending = false;
-			this.checkerUnsubscribe?.();
-			this.checkerUnsubscribe = null;
-			this.intervalIdleChecker.stop();
-			this.pendingAdded.clear();
-			this.pendingRemoved.clear();
-			this.seenVideos = /* @__PURE__ */ new WeakSet();
-			this.activeVideos = /* @__PURE__ */ new WeakSet();
-			this.observedRoots = /* @__PURE__ */ new WeakSet();
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/providers/base.js
-	var BaseProvider = class {
-		host;
-		schema;
-		fetch;
-		fetchOpts;
-		userAgent = config_default$1.userAgent;
-		requestLang;
-		responseLang;
-		headers = {
-			"User-Agent": this.userAgent,
-			"Accept-Language": "en",
-			Pragma: "no-cache",
-			"Cache-Control": "no-cache"
-		};
-		hostSchemaRe = /(http(s)?):\/\//;
-		constructor({ host = config_default$1.host, fetchFn = fetchWithTimeout, fetchOpts = {}, headers = {}, requestLang = "en", responseLang = "ru" } = {}) {
-			const schema = this.hostSchemaRe.exec(host)?.[1];
-			this.host = schema ? host.replace(`${schema}://`, "") : host;
-			this.schema = schema ?? "https";
-			this.fetch = fetchFn;
-			this.fetchOpts = fetchOpts;
-			this.headers = {
-				...this.headers,
-				...headers
-			};
-			this.requestLang = requestLang;
-			this.responseLang = responseLang;
-		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(new Blob([body]), headers, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(body, {
-				"Content-Type": "application/json",
-				...headers
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		getOpts(body, headers = {}, method = "POST") {
-			return {
-				method,
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body,
-				...this.fetchOpts
-			};
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/protobuf.js
-	function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
-		return VideoTranslationRequest.encode({
-			url,
-			firstRequest,
-			duration,
-			unknown0: true,
-			language: requestLang,
-			forceSourceLang,
-			unknown1: false,
-			translationHelp: translationHelp ?? [],
-			responseLanguage: responseLang,
-			wasStream,
-			unknown2: true,
-			unknown3: 2,
-			bypassCache,
-			useLivelyVoice,
-			videoTitle
-		}).finish();
-	}
-	function decodeTranslationResponse(response) {
-		return VideoTranslationResponse.decode(new Uint8Array(response));
-	}
-	function encodeTranslationCacheRequest(url, duration, requestLang, responseLang) {
-		return VideoTranslationCacheRequest.encode({
-			url,
-			duration,
-			language: requestLang,
-			responseLanguage: responseLang
-		}).finish();
-	}
-	function decodeTranslationCacheResponse(response) {
-		return VideoTranslationCacheResponse.decode(new Uint8Array(response));
-	}
-	function isPartialAudioBuffer(audioBuffer) {
-		return "chunkId" in audioBuffer;
-	}
-	function encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) {
-		if (partialAudio && isPartialAudioBuffer(audioBuffer)) return VideoTranslationAudioRequest.encode({
-			url,
-			translationId,
-			partialAudioInfo: {
-				...partialAudio,
-				audioBuffer
-			}
-		}).finish();
-		return VideoTranslationAudioRequest.encode({
-			url,
-			translationId,
-			audioInfo: audioBuffer
-		}).finish();
-	}
-	function decodeTranslationAudioResponse(response) {
-		return VideoTranslationAudioResponse.decode(new Uint8Array(response));
-	}
-	function encodeSubtitlesRequest(url, requestLang) {
-		return SubtitlesRequest.encode({
-			url,
-			language: requestLang
-		}).finish();
-	}
-	function decodeSubtitlesResponse(response) {
-		return SubtitlesResponse.decode(new Uint8Array(response));
-	}
-	function encodeStreamPingRequest(pingId) {
-		return StreamPingRequest.encode({ pingId }).finish();
-	}
-	function encodeStreamRequest(url, requestLang, responseLang) {
-		return StreamTranslationRequest.encode({
-			url,
-			language: requestLang,
-			responseLanguage: responseLang,
-			unknown0: 1,
-			unknown1: 0
-		}).finish();
-	}
-	function decodeStreamResponse(response) {
-		return StreamTranslationResponse.decode(new Uint8Array(response));
-	}
-	function encodeVideoLangCacheRequest(url, title) {
-		return VideoLangCacheRequest.encode({
-			url,
-			title
-		}).finish();
-	}
-	function decodeVideoLangCacheResponse(response) {
-		return VideoLangCacheResponse.decode(new Uint8Array(response));
-	}
-	var YandexVOTProtobuf = {
-		encodeTranslationRequest,
-		decodeTranslationResponse,
-		encodeTranslationCacheRequest,
-		decodeTranslationCacheResponse,
-		isPartialAudioBuffer,
-		encodeTranslationAudioRequest,
-		decodeTranslationAudioResponse,
-		encodeSubtitlesRequest,
-		decodeSubtitlesResponse,
-		encodeStreamPingRequest,
-		encodeStreamRequest,
-		decodeStreamResponse,
-		encodeVideoLangCacheRequest,
-		decodeVideoLangCacheResponse
-	};
-	function encodeSessionRequest(uuid, module) {
-		return YandexSessionRequest.encode({
-			uuid,
-			module
-		}).finish();
-	}
-	function decodeSessionResponse(response) {
-		return YandexSessionResponse.decode(new Uint8Array(response));
-	}
-	var YandexSessionProtobuf = {
-		encodeSessionRequest,
-		decodeSessionResponse
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/client.js
-	var VOTJSError = class extends Error {
-		data;
-		constructor(message, data = void 0) {
-			super(message);
-			this.data = data;
-			this.name = "VOTJSError";
-		}
-	};
-	var VOTClient$1 = class {
-		provider;
-		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
-			const ProviderClass = provider ?? YandexProvider;
-			this.provider = new ProviderClass({
-				host,
-				fetchFn,
-				fetchOpts,
-				headers,
-				apiToken,
-				requestLang,
-				responseLang
-			});
-		}
-		async translateVideo(opts) {
-			return await this.provider.translateVideo(opts);
-		}
-		async translateStream(opts) {
-			return await this.provider.translateStream(opts);
-		}
-		async getSubtitles(opts) {
-			return await this.provider.getSubtitles(opts);
-		}
-		get requestLang() {
-			return this.provider.requestLang;
-		}
-		set requestLang(lang) {
-			this.provider.requestLang = lang;
-		}
-		get responseLang() {
-			return this.provider.responseLang;
-		}
-		set responseLang(lang) {
-			this.provider.responseLang = lang;
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/types/yandex.js
-	var VideoTranslationStatus;
-	(function(VideoTranslationStatus) {
-		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
-		VideoTranslationStatus[VideoTranslationStatus["FINISHED"] = 1] = "FINISHED";
-		VideoTranslationStatus[VideoTranslationStatus["WAITING"] = 2] = "WAITING";
-		VideoTranslationStatus[VideoTranslationStatus["LONG_WAITING"] = 3] = "LONG_WAITING";
-		VideoTranslationStatus[VideoTranslationStatus["PART_CONTENT"] = 5] = "PART_CONTENT";
-		VideoTranslationStatus[VideoTranslationStatus["AUDIO_REQUESTED"] = 6] = "AUDIO_REQUESTED";
-		VideoTranslationStatus[VideoTranslationStatus["SESSION_REQUIRED"] = 7] = "SESSION_REQUIRED";
-	})(VideoTranslationStatus || (VideoTranslationStatus = {}));
-	var AudioDownloadType;
-	(function(AudioDownloadType) {
-		AudioDownloadType["WEB_API_VIDEO_SRC_FROM_IFRAME"] = "web_api_video_src_from_iframe";
-		AudioDownloadType["WEB_API_VIDEO_SRC"] = "web_api_video_src";
-		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME"] = "web_api_get_all_generating_urls_data_from_iframe";
-		AudioDownloadType["WEB_API_GET_ALL_GENERATING_URLS_DATA_FROM_IFRAME_TMP_EXP"] = "web_api_get_all_generating_urls_data_from_iframe_tmp_exp";
-		AudioDownloadType["WEB_API_REPLACED_FETCH_INSIDE_IFRAME"] = "web_api_replaced_fetch_inside_iframe";
-		AudioDownloadType["ANDROID_API"] = "android_api";
-		AudioDownloadType["WEB_API_SLOW"] = "web_api_slow";
-		AudioDownloadType["WEB_API_STEAL_SIG_AND_N"] = "web_api_steal_sig_and_n";
-		AudioDownloadType["WEB_API_COMBINED"] = "web_api_get_all_generating_urls_data_from_iframe,web_api_steal_sig_and_n";
-		AudioDownloadType["WEB_ABR"] = "web_abr";
-		AudioDownloadType["WEB_SABR"] = "web_sabr";
-		AudioDownloadType["WEB_MSE_PROXY"] = "web_mse_proxy";
-		AudioDownloadType["EMPTY_PLUG"] = "empty_plug";
-	})(AudioDownloadType || (AudioDownloadType = {}));
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/providers/yandex.js
-	var YandexProvider = class extends BaseProvider {
-		headers = {
-			"User-Agent": this.userAgent,
-			Accept: "application/x-protobuf",
-			"Accept-Language": "en",
-			"Content-Type": "application/x-protobuf",
-			Pragma: "no-cache",
-			"Cache-Control": "no-cache"
-		};
-		paths = {
-			videoTranslation: "/video-translation/translate",
-			videoTranslationFailAudio: "/video-translation/fail-audio-js",
-			videoTranslationAudio: "/video-translation/audio",
-			videoTranslationCache: "/video-translation/cache",
-			videoSubtitles: "/video-subtitles/get-subtitles",
-			streamPing: "/stream-translation/ping-stream",
-			streamTranslation: "/stream-translation/translate-stream"
-		};
-		sessions = {};
-		apiToken;
-		constructor({ apiToken, ...baseOpts } = {}) {
-			super(baseOpts);
-			this.apiToken = apiToken;
-		}
-		get apiTokenHeader() {
-			if (!this.apiToken) return {};
-			return { Authorization: `OAuth ${this.apiToken}` };
-		}
-		async getSession(module) {
-			const timestamp = getTimestamp$1();
-			const session = this.sessions[module];
-			if (session && session.timestamp + session.expires > timestamp) return session;
-			const { secretKey, expires, uuid } = await this.createSession(module);
-			this.sessions[module] = {
-				secretKey,
-				expires,
-				timestamp,
-				uuid
-			};
-			return this.sessions[module];
-		}
-		async createSession(module) {
-			const uuid = getUUID();
-			const body = YandexSessionProtobuf.encodeSessionRequest(uuid, module);
-			const res = await this.request("/session/create", body, { "Vtrans-Signature": await getSignature(body) });
-			if (!res.success) throw new VOTJSError("Failed to request create session", res);
-			return {
-				...YandexSessionProtobuf.decodeSessionResponse(res.data),
-				uuid
-			};
-		}
-		async requestVtransFailAudio(url) {
-			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), void 0, "PUT");
-			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
-			return res;
-		}
-		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
-			const { url, duration = config_default$1.defaultDuration } = videoData;
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, extraOpts);
-			const path = this.paths.videoTranslation;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const apiTokenHeader = extraOpts.useLivelyVoice ? this.apiTokenHeader : {};
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...apiTokenHeader,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
-			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
-			Logger.log("translateVideo", translationData);
-			const { status, translationId } = translationData;
-			switch (status) {
-				case VideoTranslationStatus.FAILED: throw new VOTJSError("Yandex couldn't translate video", translationData);
-				case VideoTranslationStatus.FINISHED:
-				case VideoTranslationStatus.PART_CONTENT:
-					if (!translationData.url) throw new VOTJSError("Audio link wasn't received from Yandex response", translationData);
-					return {
-						translationId,
-						translated: true,
-						url: translationData.url,
-						status,
-						remainingTime: translationData.remainingTime ?? -1
-					};
-				case VideoTranslationStatus.WAITING:
-				case VideoTranslationStatus.LONG_WAITING: return {
-					translationId,
-					translated: false,
-					status,
-					remainingTime: translationData.remainingTime ?? -1
-				};
-				case VideoTranslationStatus.AUDIO_REQUESTED:
-					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
-						await this.requestVtransFailAudio(url);
-						await this.requestVtransAudio(url, translationData.translationId, {
-							audioFile: /* @__PURE__ */ new Uint8Array(0),
-							fileId: `fallback-empty-audio:video-translation:${videoData.videoId}`
-						});
-						return await this.translateVideo({
-							videoData,
-							requestLang,
-							responseLang,
-							translationHelp,
-							headers,
-							extraOpts,
-							shouldSendFailedAudio: false
-						});
-					}
-					return {
-						translationId,
-						translated: false,
-						status,
-						remainingTime: translationData.remainingTime ?? -1
-					};
-				case VideoTranslationStatus.SESSION_REQUIRED: throw new VOTJSError("Yandex auth required to translate video. See docs for more info", translationData);
-				default:
-					Logger.error("Unknown response", translationData);
-					throw new VOTJSError("Unknown response from Yandex", translationData);
-			}
-		}
-		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
-			const session = await this.getSession("video-translation");
-			let body;
-			if (YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
-				if (!partialAudio) throw new VOTJSError("Partial audio metadata is required for partial audio buffer", audioBuffer);
-				body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio);
-			} else body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
-			const path = this.paths.videoTranslationAudio;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			}, "PUT");
-			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
-			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
-		}
-		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
-			const { url } = videoData;
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
-			const path = this.paths.videoSubtitles;
-			const vsubsHeaders = await getSecYaHeaders("Vsubs", session, body, path);
-			const res = await this.request(path, body, {
-				...vsubsHeaders,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
-			const subtitlesData = YandexVOTProtobuf.decodeSubtitlesResponse(res.data);
-			const subtitles = subtitlesData.subtitles.map((subtitle) => {
-				const { language, url, translatedLanguage, translatedUrl } = subtitle;
-				return {
-					language,
-					url,
-					translatedLanguage,
-					translatedUrl
-				};
-			});
-			return {
-				waiting: subtitlesData.waiting,
-				subtitles
-			};
-		}
-		async pingStream({ pingId, headers = {} }) {
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
-			const path = this.paths.streamPing;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request stream ping", res);
-			return true;
-		}
-		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
-			const { url } = videoData;
-			if (isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
-			const path = this.paths.streamTranslation;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			});
-			if (!res.success) throw new VOTJSError("Failed to request stream translation", res);
-			const translateResponse = YandexVOTProtobuf.decodeStreamResponse(res.data);
-			const interval = translateResponse.interval;
-			switch (interval) {
-				case StreamInterval.NO_CONNECTION:
-				case StreamInterval.TRANSLATING: return {
-					translated: false,
-					interval,
-					message: interval === StreamInterval.NO_CONNECTION ? "streamNoConnectionToServer" : "translationTakeFewMinutes"
-				};
-				case StreamInterval.STREAMING:
-					if (translateResponse.pingId === void 0) throw new VOTJSError("Stream ping id wasn't received from Yandex response", translateResponse);
-					if (!translateResponse.translatedInfo) throw new VOTJSError("Stream translation info wasn't received from Yandex response", translateResponse);
-					return {
-						translated: true,
-						interval,
-						pingId: translateResponse.pingId,
-						result: translateResponse.translatedInfo
-					};
-				default:
-					Logger.error("Unknown response", translateResponse);
-					throw new VOTJSError("Unknown response from Yandex", translateResponse);
-			}
-		}
-		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
-			const { url, duration = config_default$1.defaultDuration } = videoData;
-			const session = await this.getSession("video-translation");
-			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
-			const path = this.paths.videoTranslationCache;
-			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			}, "POST");
-			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
-			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/providers/votworker.js
-	var VOTWorkerProvider = class extends YandexProvider {
-		constructor(opts = {}) {
-			opts.host = opts.host ?? config_default$1.hostWorker;
-			super(opts);
-		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body: Array.from(body)
-			}), { "Content-Type": "application/json" }, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					"Content-Type": "application/json",
-					Accept: "application/json",
-					...headers
-				},
-				body
-			}), {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/client.js
-	var VOTClient = class extends VOTClient$1 {
-		constructor(opts) {
-			super(opts);
-			this.setHeaders();
-		}
-		setHeaders() {
-			this.provider.headers = {
-				...browserSecHeaders,
-				...this.provider.headers
-			};
-			return this;
-		}
-	};
-	//#endregion
-	//#region node_modules/chaimu/dist/config.js
-	var config_default = {
-		version: "1.1.0",
-		debug: false,
-		fetchFn: fetch.bind(window)
-	};
-	//#endregion
-	//#region node_modules/chaimu/dist/debug.js
-	var debug_default = { log: (...text) => {
-		if (!config_default.debug) return;
-		return console.log(`%c✦ chaimu.js v${config_default.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
-	} };
-	//#endregion
-	//#region node_modules/chaimu/dist/player.js
-	var videoLipSyncEvents = [
-		"playing",
-		"ratechange",
-		"play",
-		"waiting",
-		"pause",
-		"seeked",
-		"ended",
-		"timeupdate"
-	];
-	function initAudioContext() {
-		const audioContext = window.AudioContext || window.webkitAudioContext;
-		return audioContext ? new audioContext() : void 0;
-	}
-	var BasePlayer = class {
-		static name = "BasePlayer";
-		chaimu;
-		fetch;
-		_src;
-		_currentSrc;
-		fetchOpts;
-		isDestroyed = false;
-		destructionPromise;
-		storedVolume = 1;
-		lifecycleGeneration = 0;
-		lifecycleQueue = Promise.resolve();
-		videoWithEvents;
-		constructor(chaimu, src) {
-			this.chaimu = chaimu;
-			this._src = src;
-			this.fetch = this.chaimu.fetchFn;
-			this.fetchOpts = this.chaimu.fetchOpts;
-		}
-		async init() {
-			return this;
-		}
-		async clear() {
-			return this;
-		}
-		destroy() {
-			if (this.destructionPromise) return this.destructionPromise;
-			this.isDestroyed = true;
-			this.removeVideoEvents();
-			this.destructionPromise = (async () => {
-				await this.clear();
-				await this.closeAudioContext();
-				return this;
-			})();
-			return this.destructionPromise;
-		}
-		assertActive() {
-			if (this.isDestroyed) throw new Error(`${this.name} has been destroyed`);
-		}
-		async closeAudioContext() {
-			const audioContext = this.chaimu.audioContext;
-			if (!audioContext) return;
-			try {
-				if (audioContext.state !== "closed") await audioContext.close();
-			} finally {
-				if (this.chaimu.audioContext === audioContext) this.chaimu.audioContext = void 0;
-			}
-		}
-		unloadMediaElement(mediaElement) {
-			if (!mediaElement) return;
-			mediaElement.pause();
-			mediaElement.src = "";
-			mediaElement.removeAttribute("src");
-			mediaElement.load();
-		}
-		composeFetchSignal(lifecycleSignal) {
-			const callerSignal = this.fetchOpts?.signal;
-			if (!(callerSignal instanceof AbortSignal)) return lifecycleSignal;
-			if (!lifecycleSignal || callerSignal === lifecycleSignal) return callerSignal;
-			return AbortSignal.any([callerSignal, lifecycleSignal]);
-		}
-		enqueueLifecycle(operation) {
-			const result = this.lifecycleQueue.then(operation);
-			this.lifecycleQueue = result.then(() => void 0, () => void 0);
-			return result;
-		}
-		isVideoPlaying() {
-			const video = this.chaimu.video;
-			return !video.paused && !video.ended && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
-		}
-		lipSync(_mode = false) {
-			return this;
-		}
-		handleVideoEvent = (event) => {
-			if (this.isDestroyed || event.currentTarget !== this.chaimu.video) return this;
-			debug_default.log(`handle video ${event.type}`);
-			if (event.type === "timeupdate") {
-				if (this.playbackRate !== this.chaimu.video.playbackRate) this.playbackRate = this.chaimu.video.playbackRate;
-				return this;
-			}
-			this.lipSync(event.type);
-			return this;
-		};
-		audioErrorHandle = (error) => {
-			console.error(`[${this.name}]`, error);
-		};
-		removeVideoEvents(video = this.videoWithEvents ?? this.chaimu.video) {
-			for (const e of videoLipSyncEvents) video.removeEventListener(e, this.handleVideoEvent);
-			if (this.videoWithEvents === video) this.videoWithEvents = void 0;
-			return this;
-		}
-		addVideoEvents(video = this.chaimu.video) {
-			this.assertActive();
-			if (this.videoWithEvents === video) return this;
-			if (this.videoWithEvents) this.removeVideoEvents(this.videoWithEvents);
-			for (const e of videoLipSyncEvents) video.addEventListener(e, this.handleVideoEvent);
-			this.videoWithEvents = video;
-			return this;
-		}
-		async play() {
-			return this;
-		}
-		async pause() {
-			return this;
-		}
-		get name() {
-			return this.constructor.name;
-		}
-		set src(url) {
-			this._src = url;
-		}
-		get src() {
-			return this._src;
-		}
-		get currentSrc() {
-			return this._currentSrc;
-		}
-		set volume(_value) {}
-		get volume() {
-			return 0;
-		}
-		get playbackRate() {
-			return 0;
-		}
-		set playbackRate(_value) {}
-		get currentTime() {
-			return 0;
-		}
-	};
-	var AudioPlayer = class extends BasePlayer {
-		static name = "AudioPlayer";
-		audio;
-		gainNode;
-		audioSource;
-		constructor(chaimu, src) {
-			super(chaimu, src);
-			this.updateAudio();
-		}
-		initAudioBooster() {
-			if (!this.chaimu.audioContext) return this;
-			this.disconnectAudioNodes();
-			this.gainNode = this.chaimu.audioContext.createGain();
-			this.gainNode.gain.value = this.storedVolume;
-			this.gainNode.connect(this.chaimu.audioContext.destination);
-			this.audioSource = this.chaimu.audioContext.createMediaElementSource(this.audio);
-			this.audioSource.connect(this.gainNode);
-			return this;
-		}
-		disconnectAudioNodes() {
-			if (this.audioSource) {
-				this.audioSource.disconnect();
-				this.audioSource = void 0;
-			}
-			if (this.gainNode) {
-				this.gainNode.disconnect();
-				this.gainNode = void 0;
-			}
-		}
-		updateAudio() {
-			this.lifecycleGeneration += 1;
-			this.disconnectAudioNodes();
-			this.unloadMediaElement(this.audio);
-			this.audio = new Audio(this.src);
-			this.audio.crossOrigin = "anonymous";
-			this.audio.playbackRate = this.chaimu.video.playbackRate;
-			if (!this.chaimu.audioContext) this.audio.volume = this.storedVolume;
-			this._currentSrc = this.src;
-			return this;
-		}
-		async init() {
-			this.assertActive();
-			this.updateAudio();
-			this.initAudioBooster();
-			return this;
-		}
-		lipSync(mode = false) {
-			debug_default.log("[AudioPlayer] lipsync video", this.chaimu.video);
-			if (!this.chaimu.video) return this;
-			if (this._currentSrc) {
-				this.audio.currentTime = this.chaimu.video.currentTime;
-				this.audio.playbackRate = this.chaimu.video.playbackRate;
-			}
-			if (!mode) {
-				debug_default.log("[AudioPlayer] lipsync mode isn't set");
-				return this;
-			}
-			debug_default.log(`[AudioPlayer] lipsync mode is ${mode}`);
-			switch (mode) {
-				case "playing":
-					if (!this.chaimu.video.paused && !this.chaimu.video.ended) this.syncPlay();
-					return this;
-				case "seeked":
-					if (this.isVideoPlaying()) this.syncPlay();
-					else this.pause().catch(this.audioErrorHandle);
-					return this;
-				case "pause":
-				case "waiting":
-				case "ended":
-					this.pause().catch(this.audioErrorHandle);
-					return this;
-				default: return this;
-			}
-		}
-		async clear() {
-			this.lifecycleGeneration += 1;
-			this.disconnectAudioNodes();
-			this.unloadMediaElement(this.audio);
-			this._currentSrc = void 0;
-			return this;
-		}
-		syncPlay() {
-			debug_default.log("[AudioPlayer] sync play called");
-			this.play().catch(this.audioErrorHandle);
-			return this;
-		}
-		async play() {
-			this.assertActive();
-			debug_default.log("[AudioPlayer] play called");
-			if (!this._src) throw new Error("No audio source provided");
-			const generation = this.lifecycleGeneration;
-			return this.enqueueLifecycle(async () => {
-				if (generation !== this.lifecycleGeneration) return this;
-				if (this.chaimu.audioContext?.state === "suspended") await this.chaimu.audioContext.resume();
-				if (generation !== this.lifecycleGeneration) return this;
-				await this.audio.play();
-				return this;
-			});
-		}
-		async pause() {
-			this.assertActive();
-			debug_default.log("[AudioPlayer] pause called");
-			this.lifecycleGeneration += 1;
-			this.audio.pause();
-			return this;
-		}
-		set src(url) {
-			this.assertActive();
-			this._src = url;
-			if (!url) {
-				this.clear();
-				return;
-			}
-			this.updateAudio();
-			if (this.chaimu.audioContext) this.initAudioBooster();
-		}
-		get src() {
-			return this._src;
-		}
-		get currentSrc() {
-			return this._currentSrc;
-		}
-		set volume(value) {
-			this.storedVolume = value;
-			if (this.gainNode) {
-				this.gainNode.gain.value = value;
-				return;
-			}
-			this.audio.volume = value;
-		}
-		get volume() {
-			return this.storedVolume;
-		}
-		get playbackRate() {
-			return this.audio.playbackRate;
-		}
-		set playbackRate(value) {
-			this.audio.playbackRate = value;
-		}
-		get currentTime() {
-			return this._currentSrc ? this.audio.currentTime : 0;
-		}
-	};
-	var ChaimuPlayer = class extends BasePlayer {
-		static name = "ChaimuPlayer";
-		audioBuffer;
-		audioElement;
-		mediaElementSource;
-		gainNode;
-		blobUrl;
-		initializationAbortController;
-		cancelInitialization;
-		clearingPromise;
-		playbackGeneration = 0;
-		sourceGeneration = 0;
-		async fetchAudio(signal) {
-			if (!this._src) throw new Error("No audio source provided");
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			debug_default.log(`[ChaimuPlayer] Fetching audio from ${this._src}...`);
-			let tempBlobUrl;
-			try {
-				const fetchSignal = this.composeFetchSignal(signal);
-				const res = await this.fetch(this._src, {
-					...this.fetchOpts,
-					signal: fetchSignal
-				});
-				fetchSignal?.throwIfAborted();
-				debug_default.log(`[ChaimuPlayer] Decoding fetched audio...`);
-				const data = await res.arrayBuffer();
-				fetchSignal?.throwIfAborted();
-				const blob = new Blob([data]);
-				tempBlobUrl = URL.createObjectURL(blob);
-				const audioBuffer = await this.chaimu.audioContext.decodeAudioData(data);
-				fetchSignal?.throwIfAborted();
-				if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
-				this.audioBuffer = audioBuffer;
-				this.blobUrl = tempBlobUrl;
-				tempBlobUrl = void 0;
-			} catch (err) {
-				if (tempBlobUrl) URL.revokeObjectURL(tempBlobUrl);
-				throw new Error(`Failed to fetch audio file, because ${err.message}`);
-			}
-			return this;
-		}
-		initAudioBooster() {
-			if (!this.chaimu.audioContext) return this;
-			this.disconnectAudioNodes();
-			this.gainNode = this.chaimu.audioContext.createGain();
-			this.gainNode.gain.value = this.storedVolume;
-			return this;
-		}
-		disconnectAudioNodes() {
-			if (this.mediaElementSource) {
-				this.mediaElementSource.disconnect();
-				this.mediaElementSource = void 0;
-			}
-			if (this.gainNode) {
-				this.gainNode.disconnect();
-				this.gainNode = void 0;
-			}
-		}
-		releaseMediaResources() {
-			this.disconnectAudioNodes();
-			this.unloadMediaElement(this.audioElement);
-			this.audioElement = void 0;
-			this.audioBuffer = void 0;
-			if (this.blobUrl) {
-				URL.revokeObjectURL(this.blobUrl);
-				this.blobUrl = void 0;
-			}
-			this._currentSrc = void 0;
-		}
-		async init() {
-			this.assertActive();
-			if (!this._src) return this;
-			const generation = this.lifecycleGeneration;
-			return this.enqueueLifecycle(async () => {
-				if (generation !== this.lifecycleGeneration) return this;
-				this.releaseMediaResources();
-				const abortController = new AbortController();
-				let cancelInitialization;
-				const cancellation = new Promise((resolve) => {
-					cancelInitialization = () => resolve("cancelled");
-				});
-				this.initializationAbortController = abortController;
-				this.cancelInitialization = cancelInitialization;
-				try {
-					const initialization = this.fetchAudio(abortController.signal).then(() => "initialized");
-					if (await Promise.race([initialization, cancellation]) === "cancelled" || generation !== this.lifecycleGeneration) return this;
-					this.initAudioBooster();
-					this.createAudioElement();
-					return this;
-				} finally {
-					if (this.initializationAbortController === abortController) {
-						this.initializationAbortController = void 0;
-						this.cancelInitialization = void 0;
-					}
-				}
-			});
-		}
-		createAudioElement() {
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			if (!this.blobUrl) throw new Error("No blob URL available.");
-			const audio = new Audio(this.blobUrl);
-			audio.crossOrigin = "anonymous";
-			audio.playbackRate = this.chaimu.video.playbackRate;
-			if ("preservesPitch" in audio) {
-				audio.preservesPitch = true;
-				if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
-				if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = true;
-			}
-			this.audioElement = audio;
-			this.mediaElementSource = this.chaimu.audioContext.createMediaElementSource(audio);
-			this.mediaElementSource.connect(this.gainNode);
-			this.gainNode.connect(this.chaimu.audioContext.destination);
-			this._currentSrc = this._src;
-		}
-		lipSync(mode = false) {
-			debug_default.log("[ChaimuPlayer] lipsync video", this.chaimu.video, this);
-			if (!this.chaimu.video) return this;
-			if (this.audioElement) {
-				this.audioElement.currentTime = this.chaimu.video.currentTime;
-				this.audioElement.playbackRate = this.chaimu.video.playbackRate;
-			}
-			if (!mode) {
-				debug_default.log("[ChaimuPlayer] lipsync mode isn't set");
-				return this;
-			}
-			debug_default.log(`[ChaimuPlayer] lipsync mode is ${mode}`);
-			switch (mode) {
-				case "playing":
-					if (!this.chaimu.video.paused && !this.chaimu.video.ended) this.play().catch(this.audioErrorHandle);
-					return this;
-				case "seeked":
-					if (this.isVideoPlaying()) this.play().catch(this.audioErrorHandle);
-					else this.pause().catch(this.audioErrorHandle);
-					return this;
-				case "pause":
-				case "waiting":
-				case "ended":
-					this.pause().catch(this.audioErrorHandle);
-					return this;
-				default: return this;
-			}
-		}
-		async reopenCtx() {
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			try {
-				if (this.chaimu.audioContext.state !== "closed") await this.chaimu.audioContext.close();
-			} catch (err) {
-				debug_default.log("[ChaimuPlayer] Failed to close audio context:", err);
-			}
-			this.chaimu.audioContext = initAudioContext();
-			return this;
-		}
-		async clear() {
-			if (this.isDestroyed) return await this.destructionPromise ?? this;
-			this.sourceGeneration += 1;
-			this._currentSrc = void 0;
-			if (this.clearingPromise) return this.clearingPromise;
-			if (!this.chaimu.audioContext) throw new Error("No audio context available");
-			debug_default.log("clear audio context");
-			this.lifecycleGeneration += 1;
-			this.initializationAbortController?.abort();
-			this.cancelInitialization?.();
-			const clearingPromise = this.enqueueLifecycle(async () => {
-				this.releaseMediaResources();
-				await this.reopenCtx();
-				return this;
-			});
-			this.clearingPromise = clearingPromise;
-			try {
-				return await clearingPromise;
-			} finally {
-				if (this.clearingPromise === clearingPromise) this.clearingPromise = void 0;
-			}
-		}
-		destroy() {
-			if (this.destructionPromise) return this.destructionPromise;
-			this.isDestroyed = true;
-			this.removeVideoEvents();
-			this._currentSrc = void 0;
-			this.sourceGeneration += 1;
-			this.lifecycleGeneration += 1;
-			this.initializationAbortController?.abort();
-			this.cancelInitialization?.();
-			this.destructionPromise = this.enqueueLifecycle(async () => {
-				this.releaseMediaResources();
-				await this.closeAudioContext();
-				return this;
-			});
-			return this.destructionPromise;
-		}
-		async play() {
-			this.assertActive();
-			if (!this._src) throw new Error("No audio source provided");
-			if (this.clearingPromise) await this.clearingPromise;
-			const generation = this.lifecycleGeneration;
-			const playbackGeneration = this.playbackGeneration;
-			return this.enqueueLifecycle(async () => {
-				if (generation !== this.lifecycleGeneration || playbackGeneration !== this.playbackGeneration) return this;
-				if (!this.chaimu.audioContext) throw new Error("No audio context available");
-				if (!this.audioElement) throw new Error("Audio element is missing");
-				debug_default.log("starting audio via HTMLAudioElement");
-				if (this.chaimu.audioContext.state === "suspended") await this.chaimu.audioContext.resume();
-				if (generation !== this.lifecycleGeneration || playbackGeneration !== this.playbackGeneration) return this;
-				const audioElement = this.audioElement;
-				if (!audioElement) return this;
-				if (this.chaimu.video) {
-					audioElement.currentTime = this.chaimu.video.currentTime;
-					audioElement.playbackRate = this.chaimu.video.playbackRate;
-				}
-				await audioElement.play();
-				return this;
-			});
-		}
-		start() {
-			return this.play();
-		}
-		async pause() {
-			this.assertActive();
-			this.playbackGeneration += 1;
-			if (this.audioElement) this.audioElement.pause();
-			return this;
-		}
-		set src(url) {
-			this.assertActive();
-			this._src = url;
-			const clearing = this.clear();
-			const sourceGeneration = this.sourceGeneration;
-			if (!url) {
-				clearing.catch((err) => debug_default.log("[ChaimuPlayer] Failed to clear source:", err));
-				return;
-			}
-			clearing.then(() => {
-				if (sourceGeneration !== this.sourceGeneration || this._src !== url) return this;
-				return this.init();
-			}).catch((err) => debug_default.log("[ChaimuPlayer] Failed to replace source:", err));
-		}
-		get src() {
-			return this._src;
-		}
-		get currentSrc() {
-			return this._currentSrc;
-		}
-		set volume(value) {
-			this.storedVolume = value;
-			if (this.gainNode) this.gainNode.gain.value = value;
-		}
-		get volume() {
-			return this.storedVolume;
-		}
-		set playbackRate(value) {
-			if (this.audioElement) this.audioElement.playbackRate = value;
-		}
-		get playbackRate() {
-			return this.audioElement ? this.audioElement.playbackRate : this.chaimu.video?.playbackRate ?? 1;
-		}
-		get currentTime() {
-			return this.audioElement?.currentTime ?? 0;
-		}
-	};
-	//#endregion
-	//#region node_modules/chaimu/dist/client.js
-	var Chaimu = class {
-		_debug = false;
-		audioContext;
-		isDestroyed = false;
-		isInitialized = false;
-		destructionPromise;
-		lifecycleQueue;
-		player;
-		video;
-		fetchFn;
-		fetchOpts;
-		constructor({ url, video, debug = false, fetchFn = config_default.fetchFn, fetchOpts = {}, preferAudio = false }) {
-			this._debug = config_default.debug = debug;
-			this.fetchFn = fetchFn;
-			this.fetchOpts = fetchOpts;
-			this.video = video;
-			this.audioContext = initAudioContext();
-			this.player = this.audioContext && !preferAudio ? new ChaimuPlayer(this, url) : new AudioPlayer(this, url);
-		}
-		assertActive() {
-			if (this.isDestroyed) throw new Error("Chaimu has been destroyed");
-		}
-		isVideoPlaying(video) {
-			return !video.paused && !video.ended && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
-		}
-		enqueueLifecycle(operation) {
-			let result;
-			if (this.lifecycleQueue) result = this.lifecycleQueue.then(operation);
-			else try {
-				result = Promise.resolve(operation());
-			} catch (error) {
-				result = Promise.reject(error instanceof Error ? error : new Error(String(error)));
-			}
-			const lifecycleQueue = result.then(() => void 0, () => void 0);
-			this.lifecycleQueue = lifecycleQueue;
-			lifecycleQueue.then(() => {
-				if (this.lifecycleQueue === lifecycleQueue) this.lifecycleQueue = void 0;
-			});
-			return result;
-		}
-		async init() {
-			this.assertActive();
-			return this.enqueueLifecycle(async () => {
-				this.assertActive();
-				await this.player.init();
-				if (this.isDestroyed) return;
-				if (this.isVideoPlaying(this.video)) this.player.lipSync("playing");
-				this.player.addVideoEvents();
-				this.isInitialized = true;
-			});
-		}
-		async replaceVideo(newVideo) {
-			this.assertActive();
-			return this.enqueueLifecycle(() => {
-				this.assertActive();
-				if (newVideo === this.video) return this;
-				this.player.removeVideoEvents();
-				this.video = newVideo;
-				if (this.isInitialized) this.player.addVideoEvents();
-				this.player.lipSync(this.isVideoPlaying(newVideo) ? "seeked" : "pause");
-				return this;
-			});
-		}
-		destroy() {
-			if (this.destructionPromise) return this.destructionPromise;
-			this.isDestroyed = true;
-			this.destructionPromise = this.player.destroy().then(() => this);
-			return this.destructionPromise;
-		}
-		get destroyed() {
-			return this.isDestroyed;
-		}
-		set debug(value) {
-			this._debug = config_default.debug = value;
-		}
-		get debug() {
-			return this._debug;
-		}
-	};
-	//#endregion
-	//#region src/core/cacheManager.ts
-	var YANDEX_TTL_MS = 72e5;
-	var VOT_SESSION_STORAGE_KEY = "VOTSession";
-	function getCurrentUnixTimestampSeconds() {
-		return Math.floor(Date.now() / 1e3);
-	}
-	function isClientSession(value) {
-		if (!value || typeof value !== "object") return false;
-		const candidate = value;
-		return typeof candidate.expires === "number" && Number.isFinite(candidate.expires) && typeof candidate.timestamp === "number" && Number.isFinite(candidate.timestamp) && typeof candidate.uuid === "string" && candidate.uuid.length > 0 && typeof candidate.secretKey === "string" && candidate.secretKey.length > 0;
-	}
-	function sanitizeVOTSessions(value) {
-		if (!value || typeof value !== "object") return {};
-		const now = getCurrentUnixTimestampSeconds();
-		const entries = Object.entries(value).flatMap(([module, session]) => {
-			if (!isClientSession(session)) return [];
-			if (session.timestamp + session.expires <= now) return [];
-			return [[module, session]];
-		});
-		return Object.fromEntries(entries);
-	}
-	function hasSessions(sessions) {
-		return Object.keys(sessions).length > 0;
-	}
-	var VOTSessionStorageCache = class {
-		storage;
-		constructor(storage = votStorage) {
-			this.storage = storage;
-		}
-		getStorageKey() {
-			return VOT_SESSION_STORAGE_KEY;
-		}
-		async restore(_host, currentSessions = {}) {
-			const storageKey = this.getStorageKey();
-			const rawStoredSession = await this.storage.getRaw(storageKey);
-			const restoredSessions = sanitizeVOTSessions(rawStoredSession);
-			if (!hasSessions(restoredSessions)) {
-				if (rawStoredSession !== void 0) await this.storage.deleteRaw(storageKey);
-				return currentSessions;
-			}
-			return {
-				...currentSessions,
-				...restoredSessions
-			};
-		}
-		async persist(_host, sessions) {
-			const storageKey = this.getStorageKey();
-			const sanitizedSessions = sanitizeVOTSessions(sessions);
-			if (!hasSessions(sanitizedSessions)) {
-				await this.storage.deleteRaw(storageKey);
-				return;
-			}
-			await this.storage.setRaw(storageKey, sanitizedSessions);
-		}
-	};
-	/**
-	* Small in-memory cache with TTL for both translations and subtitles.
-	*
-	* The cache is keyed by a stable key built by VideoHandler.
-	*/
-	var InMemoryCacheManager = class {
-		translations = /* @__PURE__ */ new Map();
-		subtitles = /* @__PURE__ */ new Map();
-		/**
-		* Clears all cached entries.
-		*
-		* Used when runtime settings change (e.g. proxy mode/host), because cached
-		* translation URLs and especially previous failures can become stale.
-		*/
-		clear() {
-			this.translations.clear();
-			this.subtitles.clear();
-		}
-		getTranslation(key) {
-			return this.getFreshValue(this.translations, key);
-		}
-		setTranslation(key, translation) {
-			this.setFreshValue(this.translations, key, translation);
-		}
-		getSubtitles(key) {
-			return this.getFreshValue(this.subtitles, key);
-		}
-		setSubtitles(key, subtitles) {
-			this.setFreshValue(this.subtitles, key, subtitles);
-		}
-		deleteSubtitles(key) {
-			this.subtitles.delete(key);
-		}
-		getFreshValue(cache, key) {
-			const entry = cache.get(key);
-			if (!entry) return void 0;
-			if (entry.expiresAt <= Date.now()) {
-				cache.delete(key);
-				return;
-			}
-			return entry.value;
-		}
-		setFreshValue(cache, key, value) {
-			cache.set(key, {
-				value,
-				expiresAt: computeExpiresAt(Date.now(), YANDEX_TTL_MS)
-			});
-		}
-	};
-	//#endregion
-	//#region src/core/fullscreenHelper.ts
-	var FullscreenHelper = class {
-		container;
-		video;
-		fullscreenChangeListeners = /* @__PURE__ */ new Set();
-		handleFullscreenChange = () => {
-			this.notifyFullscreenChange();
-		};
-		nativeFullscreenListenersActive = false;
-		constructor({ container, video }) {
-			this.container = container;
-			this.video = video;
-		}
-		/**
-		* Gets the current fullscreen element with proper ShadowDOM support
-		*/
-		getFullscreenElement() {
-			const doc = document;
-			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-			if (!(fullscreenEl instanceof HTMLElement)) return null;
-			return fullscreenEl;
-		}
-		/**
-		* Gets comprehensive fullscreen information including ShadowDOM details
-		*/
-		getFullscreenInfo() {
-			const element = this.getFullscreenElement();
-			const isFullscreen = Boolean(element);
-			if (!element) return {
-				element: null,
-				shadowRoot: null,
-				isFullscreen: false,
-				belongsToCurrentVideo: false
-			};
-			return {
-				element,
-				shadowRoot: element.shadowRoot ?? null,
-				isFullscreen,
-				belongsToCurrentVideo: this.isElementBelongsToCurrentVideo(element)
-			};
-		}
-		/**
-		* Checks if the given element belongs to the current video/container
-		*/
-		isElementBelongsToCurrentVideo(element) {
-			return element === this.container || containsCrossShadow(element, this.container) || containsCrossShadow(this.container, element) || this.video && (element === this.video || containsCrossShadow(element, this.video) || containsCrossShadow(this.video, element));
-		}
-		/**
-		* Gets the appropriate root element for overlay mounting in fullscreen mode
-		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
-		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
-		*/
-		getOverlayRoot() {
-			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
-			if (!element || !belongsToCurrentVideo) return null;
-			return shadowRoot ?? element;
-		}
-		/**
-		* Gets the appropriate element for ResizeObserver to watch for size changes
-		* Handles both regular DOM and ShadowDOM scenarios
-		*/
-		getResizeObserverTarget() {
-			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
-			if (element && belongsToCurrentVideo) return shadowRoot?.host ?? element;
-			return this.container;
-		}
-		/**
-		* Checks if the current container should be considered "big" for button positioning
-		* Takes into account fullscreen state and ShadowDOM
-		*/
-		isBigContainer(threshold = 550) {
-			const target = this.getResizeObserverTarget();
-			const rect = target.getBoundingClientRect();
-			const videoRect = this.video?.getBoundingClientRect();
-			let width = target.clientWidth;
-			if (rect.width > 0) width = rect.width;
-			if (videoRect && videoRect.width < rect.width) width = videoRect.width;
-			return width > threshold;
-		}
-		/**
-		* Adds a listener for fullscreen changes
-		*/
-		addFullscreenChangeListener(listener) {
-			this.fullscreenChangeListeners.add(listener);
-			if (this.fullscreenChangeListeners.size === 1) this.setupFullscreenListeners();
-		}
-		/**
-		* Removes a fullscreen change listener
-		*/
-		removeFullscreenChangeListener(listener) {
-			this.fullscreenChangeListeners.delete(listener);
-			if (this.fullscreenChangeListeners.size === 0) this.cleanupFullscreenListeners();
-		}
-		/**
-		* Sets up native fullscreen event listeners
-		*/
-		setupFullscreenListeners() {
-			if (this.nativeFullscreenListenersActive) return;
-			document.addEventListener("fullscreenchange", this.handleFullscreenChange);
-			document.addEventListener("webkitfullscreenchange", this.handleFullscreenChange);
-			if (this.video) {
-				this.video.addEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
-				this.video.addEventListener("webkitendfullscreen", this.handleFullscreenChange);
-			}
-			this.nativeFullscreenListenersActive = true;
-		}
-		/**
-		* Cleans up fullscreen event listeners
-		*/
-		cleanupFullscreenListeners() {
-			if (!this.nativeFullscreenListenersActive) return;
-			document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
-			document.removeEventListener("webkitfullscreenchange", this.handleFullscreenChange);
-			if (this.video) {
-				this.video.removeEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
-				this.video.removeEventListener("webkitendfullscreen", this.handleFullscreenChange);
-			}
-			this.nativeFullscreenListenersActive = false;
-		}
-		/**
-		* Notifies all listeners about fullscreen state changes
-		*/
-		notifyFullscreenChange() {
-			for (const listener of this.fullscreenChangeListeners) try {
-				listener();
-			} catch (error) {
-				console.warn("[FullscreenHelper] Error in fullscreen change listener:", error);
-			}
-		}
-		/**
-		* Updates the container reference (useful when video container changes)
-		*/
-		updateContainer(container) {
-			this.container = container;
-		}
-		/**
-		* Updates the video reference
-		*/
-		updateVideo(video) {
-			const shouldRebind = this.nativeFullscreenListenersActive && this.video !== video;
-			if (shouldRebind) this.cleanupFullscreenListeners();
-			this.video = video;
-			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setupFullscreenListeners();
-		}
-		/**
-		* Cleans up all resources
-		*/
-		destroy() {
-			this.cleanupFullscreenListeners();
-			this.fullscreenChangeListeners.clear();
-		}
-	};
-	//#endregion
-	//#region src/core/overlayMountTargets.ts
-	function resolveOverlayBaseContainer(container, site) {
-		return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
-	}
-	function resolveOverlayMountTargets(input) {
-		const base = resolveOverlayBaseContainer(input.container, input.site);
-		const root = input.fullscreenRoot ?? base;
-		return {
-			base,
-			root,
-			portalContainer: base,
-			subtitlesMountContainer: root
-		};
-	}
-	//#endregion
-	//#region src/core/translateApis.ts
-	var SETTINGS_CACHE_TTL_MS = 5e3;
-	var IMMUTABLE_LOOKUP_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
-	var cachedTranslationService = null;
-	var cachedTranslationServiceAt = 0;
-	var cachedDetectService = null;
-	var cachedDetectServiceAt = 0;
-	async function getTranslationServiceCached() {
-		const now = Date.now();
-		if (cachedTranslationService && now - cachedTranslationServiceAt < SETTINGS_CACHE_TTL_MS) return cachedTranslationService;
-		const service = await votStorage.get("translationService", defaultTranslationService);
-		cachedTranslationService = String(service);
-		cachedTranslationServiceAt = now;
-		return cachedTranslationService;
-	}
-	async function getDetectServiceCached() {
-		const now = Date.now();
-		if (cachedDetectService && now - cachedDetectServiceAt < SETTINGS_CACHE_TTL_MS) return cachedDetectService;
-		const service = await votStorage.get("detectService", defaultDetectService);
-		cachedDetectService = String(service);
-		cachedDetectServiceAt = now;
-		return cachedDetectService;
-	}
-	var foswlyServices = ["yandexbrowser", "msedge"];
-	/**
-	* Limit: 10k symbols for yandex, 50k for msedge
-	*/
-	var FOSWLYTranslateAPI = new class {
-		isFOSWLYError(data) {
-			return Object.hasOwn(data, "error");
-		}
-		async request(path, opts = {}) {
-			try {
-				const data = await (await GM_fetch(`${foswlyTranslateUrl}${path}`, {
-					timeout: 3e3,
-					responseCache: {
-						ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
-						cacheName: "vot-foswly-api-v1",
-						allowStaleOnError: true
-					},
-					...opts
-				})).json();
-				if (this.isFOSWLYError(data)) throw new Error(data.error);
-				return data;
-			} catch (err) {
-				console.error(`[VOT] Failed to get data from FOSWLY Translate API, because ${err instanceof Error ? err.message : String(err)}`);
-				return;
-			}
-		}
-		async translateMultiple(text, lang, service) {
-			const result = await this.request("/translate", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					text,
-					lang,
-					service
-				})
-			});
-			return result ? result.translations : text;
-		}
-		async translate(text, lang, service) {
-			const result = await this.request(`/translate?${new URLSearchParams({
-				text,
-				lang,
-				service
-			})}`);
-			return result ? result.translations[0] : text;
-		}
-		async detect(text, service) {
-			const result = await this.request(`/detect?${new URLSearchParams({
-				text,
-				service
-			})}`);
-			return result ? result.lang : "en";
-		}
-	}();
-	var RustServerAPI = { async detect(text) {
-		try {
-			return await (await GM_fetch(detectRustServerUrl, {
-				method: "POST",
-				body: text,
-				timeout: 3e3,
-				responseCache: {
-					ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
-					cacheName: "vot-rust-detect-v1",
-					allowStaleOnError: true
-				}
-			})).text();
-		} catch (error) {
-			console.error(`[VOT] Error getting lang from text, because ${error.message}`);
-			return "en";
-		}
-	} };
-	async function translate(text, fromLang = "", toLang = "ru") {
-		if (fromLang && toLang && fromLang === toLang) return text;
-		const service = await getTranslationServiceCached();
-		switch (service) {
-			case "yandexbrowser":
-			case "msedge": {
-				const langPair = fromLang && toLang ? `${fromLang}-${toLang}` : toLang;
-				return Array.isArray(text) ? await FOSWLYTranslateAPI.translateMultiple(text, langPair, service) : await FOSWLYTranslateAPI.translate(text, langPair, service);
-			}
-			default: return text;
-		}
-	}
-	async function detect(text) {
-		const service = await getDetectServiceCached();
-		switch (service) {
-			case "yandexbrowser":
-			case "msedge": return await FOSWLYTranslateAPI.detect(text, service);
-			case "rust-server": return await RustServerAPI.detect(text);
-			default: return "en";
-		}
-	}
-	var detectServices = [...foswlyServices, "rust-server"];
-	//#endregion
-	//#region src/audioDownloader/strategies/webAudioBridge.ts
-	var MESSAGE_TYPE$1 = "get-audio-chunks-by-mse-in-main-world";
-	var STREAM_TIMEOUT_MS = 18e5;
-	var MESSAGE_TIMEOUT_MS = 3e5;
-	function parseAudioBridgeChunk(payload) {
-		if (!payload || typeof payload !== "object" || !("buffer" in payload)) throw new Error("Audio downloader. Invalid audio bridge chunk");
-		const { buffer, isLastChunk } = payload;
-		const bytes = buffer instanceof Uint8Array ? buffer : buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : ArrayBuffer.isView(buffer) ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength) : null;
-		if (!bytes || typeof isLastChunk !== "boolean") throw new Error("Audio downloader. Invalid audio bridge chunk");
-		return {
-			buffer: bytes,
-			isLastChunk
-		};
-	}
-	async function* getAudioBridgeChunks(videoId, signal, audioDownloadType) {
-		if (signal.aborted) throw makeAbortError(signal.reason);
-		const messageId = `stream-message-id-${performance.now()}-${Math.random()}`;
-		const chunks = [];
-		let wake;
-		let streamFinished = false;
-		let failure;
-		let receivedChunks = 0;
-		let messageTimeout;
-		const notify = () => {
-			wake?.();
-			wake = void 0;
-		};
-		const finish = (error) => {
-			if (error) {
-				if (failure) return;
-				failure = error;
-				debug.error("Audio downloader. Audio bridge failed", {
-					videoId,
-					messageId,
-					audioDownloadType,
-					receivedChunks,
-					error: error.message
-				});
-			} else {
-				streamFinished = true;
-				clearTimeout(messageTimeout);
-				debug.log("Audio downloader. Audio bridge stream finished", {
-					videoId,
-					messageId,
-					audioDownloadType,
-					receivedChunks
-				});
-			}
-			notify();
-		};
-		const resetMessageTimeout = () => {
-			clearTimeout(messageTimeout);
-			messageTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("Audio bridge message timed out")), MESSAGE_TIMEOUT_MS);
-		};
-		const throwIfFailed = () => {
-			if (!failure) return;
-			if (!globalThis.location.href.includes(videoId)) throw makeAbortError("URL changed during audio download");
-			throw failure;
-		};
-		const postAbort = () => globalThis.postMessage({
-			messageId,
-			messageType: MESSAGE_TYPE$1,
-			messageDirection: "request",
-			isStreamFinished: true,
-			isAborted: true
-		}, "*");
-		const onMessage = (event) => {
-			const message = event.data;
-			const iframe = document.getElementById(`vot-mse-proxy-${messageId}`);
-			if (!message || event.source !== globalThis && event.source !== iframe?.contentWindow || message.messageId !== messageId || message.messageType !== MESSAGE_TYPE$1 || message.messageDirection !== "response") return;
-			resetMessageTimeout();
-			if (message.isAborted) {
-				finish(makeAbortError(message.error));
-				return;
-			}
-			if (message.error) {
-				finish(new Error(typeof message.error === "string" ? message.error : "Audio bridge failed"));
-				return;
-			}
-			if (message.isStreamFinished) {
+			const onAbort = () => finish();
+			realm.addEventListener("message", onMessage);
+			signal.addEventListener("abort", onAbort, { once: true });
+			if (signal.aborted) {
 				finish();
 				return;
 			}
-			if (message.isProgress) {
-				debug.log("Audio downloader. Audio bridge progress", {
-					videoId,
-					messageId,
-					audioDownloadType
-				});
-				return;
-			}
-			try {
-				const chunk = parseAudioBridgeChunk(message.payload);
-				chunks.push(chunk);
-				receivedChunks++;
-				debug.log("Audio downloader. Audio bridge chunk received", {
-					videoId,
-					messageId,
-					audioDownloadType,
-					index: receivedChunks - 1,
-					size: chunk.buffer.byteLength,
-					isLastChunk: chunk.isLastChunk
-				});
-				notify();
-			} catch (error) {
-				finish(error instanceof Error ? error : new Error(String(error)));
-			}
-		};
-		const onAbort = () => finish(makeAbortError(signal.reason));
-		const streamTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("Audio bridge stream timed out")), STREAM_TIMEOUT_MS);
-		const navigationInterval = setInterval(() => {
-			if (!globalThis.location.href.includes(videoId)) finish(makeAbortError("URL changed during audio download"));
-		}, 100);
-		globalThis.addEventListener("message", onMessage);
-		signal.addEventListener("abort", onAbort, { once: true });
-		if (signal.aborted) onAbort();
-		resetMessageTimeout();
-		debug.log("Audio downloader. Audio bridge request started", {
-			videoId,
-			messageId,
-			audioDownloadType
+			timeout = setTimeout(finish, PAGE_REALM_TIMEOUT_MS);
+			(document.body ?? host).append(script);
 		});
-		try {
-			if (!streamFinished && !failure) globalThis.postMessage({
-				messageId,
-				messageType: MESSAGE_TYPE$1,
-				messageDirection: "request",
-				payload: {
-					pureVideoId: videoId,
-					audioDownloadType
-				}
-			}, "*");
-			while (!streamFinished || chunks.length > 0) {
-				throwIfFailed();
-				const chunk = chunks.shift();
-				if (chunk) yield chunk;
-				else await new Promise((resolve) => {
-					wake = resolve;
-				});
-			}
-			throwIfFailed();
-		} finally {
-			clearTimeout(messageTimeout);
-			clearTimeout(streamTimeout);
-			clearInterval(navigationInterval);
-			globalThis.removeEventListener("message", onMessage);
-			signal.removeEventListener("abort", onAbort);
-			if (!streamFinished || failure) postAbort();
-		}
 	}
-	async function getAudioFromBridge({ videoId, signal }, audioDownloadType) {
-		return {
-			fileId: `random-${audioDownloadType}-${crypto.randomUUID()}`,
-			mediaPartsLength: null,
-			getMediaBuffers: () => getAudioBridgeChunks(videoId, signal, audioDownloadType)
-		};
+	/** One token per realm and binding, reused while it is still fresh. */
+	var tokenCache = /* @__PURE__ */ new WeakMap();
+	function readCachedToken(realm, binding) {
+		const cached = tokenCache.get(realm)?.get(binding);
+		if (!cached) return void 0;
+		if (Date.now() - cached.mintedAt < TOKEN_TTL_MS) return cached.token;
+		tokenCache.get(realm)?.delete(binding);
+	}
+	function cacheToken(realm, binding, token) {
+		let bindings = tokenCache.get(realm);
+		if (!bindings) {
+			bindings = /* @__PURE__ */ new Map();
+			tokenCache.set(realm, bindings);
+		}
+		bindings.set(binding, {
+			token,
+			mintedAt: Date.now()
+		});
+	}
+	/**
+	* One token for the whole download, taken from wherever it is reachable.
+	*
+	* @returns the token, or `undefined` when no source of this realm can answer
+	* one — the caller then skips every client whose URLs GVS would refuse.
+	*/
+	async function mintGvsPoToken(realm, binding, signal) {
+		const cached = readCachedToken(realm, binding);
+		if (cached) return cached;
+		const inRealm = await mintPagePoToken(realm, binding, signal);
+		if (inRealm) {
+			debug.log("Audio downloader. GVS PO token minted", { source: "realm" });
+			cacheToken(realm, binding, inRealm);
+			return inRealm;
+		}
+		const harvested = harvestGvsPoToken(realm);
+		if (harvested) {
+			debug.log("Audio downloader. GVS PO token minted", { source: "player" });
+			return harvested;
+		}
+		const pageRealm = await mintPageWorldPoToken(realm, binding, signal);
+		debug.log("Audio downloader. GVS PO token minted", {
+			source: pageRealm ? "page realm" : "none",
+			sandboxedRealm: !realm.ytcfg
+		});
+		if (pageRealm) cacheToken(realm, binding, pageRealm);
+		return pageRealm;
 	}
 	//#endregion
-	//#region src/audioDownloader/strategies/audioChunks.ts
-	function concatBuffers(buffers) {
-		const result = new Uint8Array(buffers.reduce((length, buffer) => length + buffer.byteLength, 0));
-		let offset = 0;
-		for (const buffer of buffers) {
-			result.set(buffer, offset);
-			offset += buffer.byteLength;
-		}
-		return result;
+	//#region src/audioDownloader/strategies/rangePlanner.ts
+	/**
+	* Sizing of the ranged media requests.
+	*
+	* YouTube paces a single continuous `videoplayback` body down to playback
+	* speed, while every separate `Range` request is answered at the full speed of
+	* the connection — the reason yt-dlp downloads in HTTP chunks. The catch is
+	* that the trick only holds inside a corridor: ranges above ~10 MiB are paced
+	* again, and ranges that are too small pay a round trip per megabyte, which is
+	* what makes a slow link crawl.
+	*
+	* So the size is not a constant. The download starts at a size that is safe
+	* everywhere and then follows what the previous range actually measured: a
+	* fast link reads fewer and bigger ranges, a slow or flaky one keeps them
+	* small, so a dropped answer costs one small retry instead of a large one.
+	*/
+	var MB = 1048576;
+	/** Below this a range costs more in round trips than it carries. */
+	var MEDIA_RANGE_MIN_BYTES = 2 * MB;
+	/** Where every download starts: fast enough to measure, safe on any link. */
+	var MEDIA_RANGE_START_BYTES = 4 * MB;
+	/** The ceiling while the link looks slow, laggy or unstable. */
+	var MEDIA_RANGE_SLOW_MAX_BYTES = 4 * MB;
+	/** The ceiling overall, kept well under the ~10 MiB pacing threshold. */
+	var MEDIA_RANGE_MAX_BYTES = 8 * MB;
+	/** Above this throughput the link can carry a bigger range. */
+	var FAST_BYTES_PER_SECOND = 3 * MB;
+	/** ...as long as the round trip is short enough to be worth it. */
+	var FAST_LATENCY_MS = 400;
+	/** Below this throughput the ranges are halved. */
+	var SLOW_BYTES_PER_SECOND = 786432;
+	/** A round trip this long means the answer, not the bytes, is the cost. */
+	var SLOW_LATENCY_MS = 1200;
+	/** Keeps a size inside the corridor both ends of which are load-bearing. */
+	function clampRangeSize(size, max = MEDIA_RANGE_MAX_BYTES) {
+		if (!Number.isFinite(size) || size <= 0) return MEDIA_RANGE_START_BYTES;
+		return Math.min(Math.max(Math.round(size), MEDIA_RANGE_MIN_BYTES), max);
+	}
+	/**
+	* The size of the next range, from the size and the measurement of the last.
+	*
+	* Doubling and halving (instead of a computed "ideal" size) is deliberate: the
+	* numbers a browser reports for a request that was answered from a CDN edge
+	* are noisy enough that a precise formula mostly measures the noise.
+	*/
+	function nextMediaRangeSize(size, sample) {
+		const current = clampRangeSize(size);
+		if (sample.unstable) return clampRangeSize(current / 2, MEDIA_RANGE_SLOW_MAX_BYTES);
+		const seconds = sample.durationMs / 1e3;
+		if (!(seconds > 0) || !(sample.bytes > 0)) return current;
+		const throughput = sample.bytes / seconds;
+		const latency = sample.latencyMs ?? 0;
+		if (throughput <= SLOW_BYTES_PER_SECOND || latency >= SLOW_LATENCY_MS) return clampRangeSize(current / 2, MEDIA_RANGE_SLOW_MAX_BYTES);
+		if (throughput >= FAST_BYTES_PER_SECOND && latency <= FAST_LATENCY_MS) return clampRangeSize(current * 2);
+		return current;
+	}
+	/**
+	* How many ranges to keep in flight at a given size.
+	*
+	* The point of overlapping is to keep GVS busy while the consumer uploads the
+	* previous chunk to the translation backend, not to download in parallel — so
+	* the bigger the range, the fewer of them, and the bytes in flight stay
+	* roughly the same and well away from the pacing threshold.
+	*/
+	function mediaRangeParallelism(size) {
+		return size <= 4194304 ? 3 : 2;
+	}
+	/** One planner per download: the link is measured per download too. */
+	function createMediaRangePlanner(startSize = MEDIA_RANGE_START_BYTES) {
+		let size = clampRangeSize(startSize);
+		return {
+			get rangeSize() {
+				return size;
+			},
+			get parallelism() {
+				return mediaRangeParallelism(size);
+			},
+			complete(sample) {
+				size = nextMediaRangeSize(size, sample);
+			}
+		};
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/ytPlayerSolver.js
@@ -22555,121 +20831,44 @@ var vot = (function(exports) {
 	})(se, n$1);
 	//#endregion
 	//#region src/audioDownloader/strategies/webAbr.ts
-	var MEDIA_RANGE_SIZES = [
-		6e4,
-		8e4,
-		15e4,
-		33e4,
-		46e4
-	];
-	async function fetchTvConfig(targetWindow, signal, videoId) {
-		try {
-			const response = await targetWindow.fetch("https://www.youtube.com/tv", {
-				credentials: "include",
-				signal
-			});
-			if (!response.ok) throw new Error(`Audio downloader. tv config request failed (${response.status})`);
-			const html = await response.text();
-			const pick = (patterns) => {
-				for (const pattern of patterns) {
-					const match = pattern.exec(html);
-					if (match?.[1]) return match[1];
-				}
-			};
-			const playerPath = pick([/"PLAYER_JS_URL":"([^"]+)"/, /"jsUrl":"([^"]+)"/]);
-			const sts = Number(pick([/"STS":(\d+)/, /"signatureTimestamp":(\d+)/]));
-			const experimentFlags = [];
-			for (const match of html.matchAll(/"serializedExperimentFlags"\s*:\s*("(?:\\.|[^"\\])*")/g)) try {
-				experimentFlags.push(JSON.parse(match[1] ?? "\"\""));
-			} catch {}
-			return {
-				apiKey: pick([/"INNERTUBE_API_KEY":"([^"]+)"/]),
-				clientVersion: pick([/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/]),
-				visitorData: pick([/"VISITOR_DATA":"([^"]+)"/]),
-				dataSyncId: pick([/"DATASYNC_ID":"([^"]+)"/]),
-				experimentFlags,
-				playerUrl: playerPath ? new URL(playerPath, "https://www.youtube.com").toString() : void 0,
-				signatureTimestamp: Number.isFinite(sts) && sts > 0 ? sts : void 0
-			};
-		} catch (error) {
-			signal.throwIfAborted();
-			debug.log("Audio downloader. client config unavailable", {
-				videoId,
-				client: "tv",
-				error: error instanceof Error ? error.message : String(error)
-			});
+	/**
+	* `WEB_EMBEDDED_PLAYER` is answered as a third-party embed. Naming
+	* youtube.com as the host makes YouTube apply the playability verdict of its
+	* own surfaces instead of the embed verdict, which is answered as
+	* `ERROR: Video unavailable`.
+	*/
+	var THIRD_PARTY_EMBED_URL = "https://www.reddit.com/";
+	/**
+	* Raised when this JS realm cannot reach the YouTube session at all: no
+	* `ytcfg`, no player JS, or a CSP that blocks the challenge solver.
+	*
+	* Only these failures are worth retrying in another realm. A playability
+	* answer (`UNPLAYABLE`, `LOGIN_REQUIRED`, "Video unavailable") comes from
+	* YouTube itself and is the same in every realm, so retrying it in a hidden
+	* iframe only doubles the request count and the wait before the server-side
+	* fallback takes over.
+	*/
+	var AudioRealmError = class extends Error {
+		constructor(message, options) {
+			super(message, options);
+			this.name = "AudioRealmError";
 		}
-	}
-	function buildMediaRanges(contentLength) {
-		if (!Number.isInteger(contentLength) || contentLength < 1) return [];
-		const ranges = [];
-		let start = 0;
-		let sizeIndex = 0;
-		while (start < contentLength) {
-			const size = MEDIA_RANGE_SIZES[sizeIndex] ?? MEDIA_RANGE_SIZES.at(-1) ?? 1;
-			const end = Math.min(contentLength - 1, start + size - 1);
-			ranges.push({
-				start,
-				end
-			});
-			start = end + 1;
-			if (sizeIndex < MEDIA_RANGE_SIZES.length - 1) sizeIndex++;
+	};
+	/** InnerTube refused to play the video for the requested client. */
+	var PlayerStatusError = class extends Error {
+		status;
+		constructor(client, playabilityStatus) {
+			const status = playabilityStatus?.status ?? "failed";
+			const reason = playabilityStatus?.reason ?? playabilityStatus?.messages?.join(" ") ?? "no streaming data";
+			super(`Audio downloader. ${client} ${status}: ${reason}`);
+			this.name = "PlayerStatusError";
+			this.status = playabilityStatus?.status ?? "";
 		}
-		return ranges;
-	}
-	async function mintPagePoToken(pageWindow, binding, signal) {
-		const realms = /* @__PURE__ */ new Set([pageWindow]);
-		try {
-			realms.add(pageWindow.parent);
-			realms.add(pageWindow.top);
-		} catch {}
-		for (const realm of realms) {
-			let keys;
-			try {
-				keys = Object.getOwnPropertyNames(realm).filter((key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"));
-			} catch {
-				continue;
-			}
-			for (const key of keys) {
-				let bevasrs;
-				try {
-					bevasrs = realm[key]?.bevasrs;
-				} catch {
-					continue;
-				}
-				const wpc = bevasrs?.wpc;
-				if (typeof wpc !== "function") continue;
-				for (let attempt = 0; attempt < 10; attempt++) {
-					if (signal.aborted) throw signal.reason;
-					try {
-						const token = await (await wpc.call(bevasrs))?.mws?.({
-							c: binding,
-							mc: false,
-							me: false
-						});
-						if (typeof token === "string" && token) return token;
-					} catch (error) {
-						if (!String(error).includes("SDF:notready")) break;
-					}
-					await createAbortableDelay(500, signal);
-				}
-			}
-		}
-	}
-	function selectGvsPoTokenBinding(videoId, options) {
-		if (options.experimentFlags.some((flags) => new URLSearchParams(flags).getAll("html5_generate_content_po_token").at(-1) === "true")) return {
-			kind: "video",
-			value: videoId
-		};
-		const value = options.loggedIn ? options.dataSyncId : options.visitorData;
-		if (typeof value !== "string" || !value) return;
-		return {
-			kind: options.loggedIn ? "datasync" : "visitor",
-			value
-		};
-	}
+	};
+	/** GVS rejected the signed URL itself, so resuming that URL cannot help. */
+	var MediaAuthError = class extends Error {};
 	function getConfigValue(config, key) {
-		return config.get?.(key) ?? config.data_?.[key];
+		return getYtcfgValue({ ytcfg: config }, key);
 	}
 	function buildContentPlaybackContext(signatureTimestamp) {
 		const context = { html5Preference: "HTML5_PREF_WANTS" };
@@ -22767,9 +20966,9 @@ var vot = (function(exports) {
 			}
 		} catch (error) {
 			signal.throwIfAborted();
-			debug.log("Audio downloader. web ABR config request failed", { error: error instanceof Error ? error.message : String(error) });
+			debug.log("Audio downloader. web ABR config request failed", { error: toErrorMessage(error) });
 		}
-		if (typeof data.INNERTUBE_API_KEY !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
+		if (typeof data.INNERTUBE_API_KEY !== "string") throw new AudioRealmError("Audio downloader. web ABR config is unavailable");
 		debug.log("Audio downloader. web ABR config recovered", {
 			source,
 			hasContext: Boolean(data.INNERTUBE_CONTEXT),
@@ -22777,66 +20976,92 @@ var vot = (function(exports) {
 		});
 		return { data_: data };
 	}
-	function buildWebEmbeddedPlayerRequest(config, videoId, extractedSignatureTimestamp) {
+	/**
+	* Clones the page InnerTube context and swaps in another client, so every
+	* request keeps the session fields YouTube expects from this browser
+	* (visitorData, hl/gl, screen, user agent) instead of a synthetic context.
+	*/
+	function buildPlayerRequest(config, videoId, { client, signatureTimestamp, embedUrl }) {
 		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-		if (!rawContext || typeof rawContext !== "object") throw new Error("Audio downloader. web_embedded context is unavailable");
-		const context = JSON.parse(JSON.stringify(rawContext));
-		context.client ??= {};
-		const client = context.client;
-		client.clientName = "WEB_EMBEDDED_PLAYER";
-		client.clientVersion = getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
-		client.originalUrl = `https://www.youtube.com/embed/${videoId}?html5=1`;
-		context.thirdParty ??= {};
-		context.thirdParty.embedUrl = "https://www.reddit.com/";
-		const contentPlaybackContext = buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS"));
-		const encryptedHostFlags = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS")?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags;
-		if (typeof encryptedHostFlags === "string" && encryptedHostFlags) contentPlaybackContext.encryptedHostFlags = encryptedHostFlags;
-		return {
+		if (!rawContext || typeof rawContext !== "object") throw new AudioRealmError("Audio downloader. InnerTube context is unavailable");
+		const context = structuredClone(rawContext);
+		context.client = {
+			...context.client,
+			...client
+		};
+		const request = {
 			context,
 			videoId,
-			playbackContext: { contentPlaybackContext },
+			playbackContext: { contentPlaybackContext: buildContentPlaybackContext(signatureTimestamp) },
 			contentCheckOk: true,
 			racyCheckOk: true
 		};
-	}
-	function selectWebEmbeddedAudioFormat(formats) {
-		const withUrl = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string");
-		const audioOnly = withUrl.filter(({ mimeType }) => mimeType?.includes("audio/") && !mimeType?.includes("video/"));
-		const preferredItags = [
-			251,
-			140,
-			141,
-			250,
-			249,
-			139,
-			256,
-			258,
-			325,
-			327,
-			328,
-			338,
-			171,
-			172
-		];
-		const byPreference = (a, b) => {
-			const rank = (itag) => {
-				const index = itag === void 0 ? -1 : preferredItags.indexOf(itag);
-				return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-			};
-			return rank(a.itag) - rank(b.itag) || (b.bitrate ?? 0) - (a.bitrate ?? 0);
+		if (embedUrl) context.thirdParty = {
+			...context.thirdParty,
+			embedUrl
 		};
-		const selected = audioOnly.sort(byPreference)[0] ?? withUrl.find(({ itag }) => itag === 18) ?? withUrl.filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? "")).sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
-		if (!selected) {
-			debug.log("Audio downloader. no direct audio formats", JSON.stringify(formats.map((format) => ({
-				itag: format.itag,
-				mimeType: format.mimeType,
-				hasUrl: typeof format.url === "string",
-				hasCipher: typeof format.signatureCipher === "string",
-				contentLength: format.contentLength ?? "none"
-			}))));
-			throw new Error("Audio downloader. web ABR returned no direct audio formats");
-		}
-		return selected;
+		return request;
+	}
+	function getPageClientVersion(config) {
+		const version = getConfigValue(config, "INNERTUBE_CLIENT_VERSION");
+		return typeof version === "string" && version ? version : void 0;
+	}
+	function withPageClientVersion(config, client) {
+		const clientVersion = getPageClientVersion(config);
+		return clientVersion ? {
+			clientVersion,
+			...client
+		} : client;
+	}
+	/**
+	* `WEB_EMBEDDED_PLAYER`: the only client that needs no GVS PO token, so it is
+	* the cheapest way to reach a direct audio URL.
+	*/
+	function buildWebEmbeddedPlayerRequest(config, videoId, extractedSignatureTimestamp) {
+		const request = buildPlayerRequest(config, videoId, {
+			client: withPageClientVersion(config, {
+				clientName: "WEB_EMBEDDED_PLAYER",
+				clientScreen: "EMBED",
+				originalUrl: `https://www.youtube.com/embed/${videoId}?html5=1`
+			}),
+			signatureTimestamp: extractedSignatureTimestamp ?? getConfigValue(config, "STS"),
+			embedUrl: THIRD_PARTY_EMBED_URL
+		});
+		const { contentPlaybackContext } = request.playbackContext;
+		const encryptedHostFlags = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS")?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags;
+		if (typeof encryptedHostFlags === "string" && encryptedHostFlags) contentPlaybackContext.encryptedHostFlags = encryptedHostFlags;
+		return request;
+	}
+	/**
+	* `MWEB`: shares the cookies and the version scheme of the page and is not
+	* SABR-only. Its stream URLs need a GVS PO token, which the page BotGuard
+	* instance mints for free.
+	*/
+	function buildMwebPlayerRequest(config, videoId, signatureTimestamp) {
+		return buildPlayerRequest(config, videoId, {
+			client: withPageClientVersion(config, {
+				clientName: "MWEB",
+				clientScreen: "WATCH",
+				originalUrl: `https://m.youtube.com/watch?v=${videoId}`
+			}),
+			signatureTimestamp: signatureTimestamp ?? getConfigValue(config, "STS")
+		});
+	}
+	/**
+	* `WEB_CREATOR`: answers with direct URLs for a signed-in session, including
+	* videos the embedded player refuses to play. It is useless without account
+	* cookies, so the ladder skips it for anonymous sessions.
+	*/
+	function buildWebCreatorPlayerRequest(config, videoId, signatureTimestamp) {
+		const pageVersion = getPageClientVersion(config);
+		return buildPlayerRequest(config, videoId, {
+			client: {
+				clientName: "WEB_CREATOR",
+				clientVersion: pageVersion ? pageVersion.replace(/^\d+\./, "1.") : "1.20260101.00.00",
+				clientScreen: "WATCH"
+			},
+			signatureTimestamp: signatureTimestamp ?? getConfigValue(config, "STS")
+		});
 	}
 	async function sha1(value) {
 		const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(value));
@@ -22852,39 +21077,58 @@ var vot = (function(exports) {
 		}));
 		const timestamp = String(Math.round(Date.now() / 1e3));
 		const origin = "https://www.youtube.com";
-		return (await Promise.all([
+		const schemes = [
 			["SAPISIDHASH", cookies.get("SAPISID") ?? cookies.get("__Secure-3PAPISID")],
 			["SAPISID1PHASH", cookies.get("__Secure-1PAPISID")],
 			["SAPISID3PHASH", cookies.get("__Secure-3PAPISID")]
-		].map(async ([scheme, sid]) => sid ? buildSidAuthorization(scheme, sid, origin, timestamp, userSessionId || void 0) : ""))).filter(Boolean).join(" ") || void 0;
+		];
+		return (await Promise.all(schemes.map(async ([scheme, sid]) => sid ? buildSidAuthorization(scheme, sid, origin, timestamp, userSessionId || void 0) : ""))).filter(Boolean).join(" ") || void 0;
 	}
 	function getPlayerUrl(config) {
 		const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
 		const value = getConfigValue(config, "PLAYER_JS_URL") ?? getConfigValue(config, "JS_URL") ?? playerContexts?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.jsUrl;
-		return typeof value === "string" ? new URL(value, "https://www.youtube.com").toString() : void 0;
+		return typeof value === "string" ? new URL(value, YOUTUBE_ORIGIN).toString() : void 0;
 	}
+	/**
+	* Finds a realm that exposes `trustedTypes.createPolicy`.
+	*
+	* A sandboxed or proxied global can lack `trustedTypes` while its `Function`
+	* is still Trusted Types-checked, and the policy plus the eval sink must live
+	* in the same realm, so same-origin ancestors are probed too.
+	*
+	* CONSOLIDATION: the self/parent/top walk is `internal/realms.enumerateRealms`
+	* (shared with `poToken.collectRealms`).
+	*/
 	function resolveTrustedRealm(realm) {
-		const candidates = [realm];
-		const add = (candidate) => {
-			if (candidate && candidate !== realm) candidates.push(candidate);
-		};
-		try {
-			add(realm.parent);
-		} catch {}
-		try {
-			add(realm.top);
-		} catch {}
-		for (const candidate of candidates) try {
+		for (const candidate of enumerateRealms(realm)) try {
 			if (candidate.trustedTypes?.createPolicy) return candidate;
 		} catch {}
 		return realm;
 	}
-	function runChallengeSolver(realm, preparedPlayer, signature, n) {
+	/**
+	* Evaluates `source` in `realm`.
+	*
+	* Chrome's `Function` constructor rejects a TrustedScript argument
+	* (crbug.com/1087743), so `eval`, which accepts one, is used instead.
+	*
+	* CONSOLIDATION + DEFECT FIX (F-5): the policy comes from the per-realm cache
+	* in `internal/realms.createTrustedScript` instead of a freshly named policy
+	* per call.
+	*/
+	function evalInRealm(realm, source) {
 		const nativeRealm = resolveTrustedRealm(realm);
-		const policy = nativeRealm.trustedTypes?.createPolicy(`vot-youtube-solver-${crypto.randomUUID()}`, { createScript: (value) => value });
-		const source = `(function(){\nconst _result={sig:null,n:null};\n${preparedPlayer}\nreturn _result;\n})()`;
-		const script = policy?.createScript(source) ?? source;
-		const result = nativeRealm.eval(script);
+		const script = createTrustedScript(nativeRealm, source, "vot-youtube-solver");
+		return nativeRealm.eval(script);
+	}
+	function canSolveChallengesInRealm(realm) {
+		try {
+			return evalInRealm(realm, "1+1") === 2;
+		} catch {
+			return false;
+		}
+	}
+	function runChallengeSolver(realm, preparedPlayer, signature, n) {
+		const result = evalInRealm(realm, `(function(){\nconst _result={sig:null,n:null};\n${preparedPlayer}\nreturn _result;\n})()`);
 		if (!result) throw new Error("Audio downloader. YouTube challenge solver returned none");
 		const solved = {
 			signature: signature && result.sig ? result.sig(signature) : void 0,
@@ -23062,7 +21306,7 @@ var vot = (function(exports) {
 		if (solved.n) url.searchParams.set("n", solved.n);
 		return url.toString();
 	}
-	async function* resolveWebEmbeddedFormatUrl(targetWindow, format, playerCode, signal) {
+	async function* resolveFormatUrls(targetWindow, format, playerCode, signal) {
 		signal.throwIfAborted();
 		const cipher = format.signatureCipher ? new URLSearchParams(format.signatureCipher) : void 0;
 		const rawUrl = format.url ?? cipher?.get("url");
@@ -23145,61 +21389,6 @@ var vot = (function(exports) {
 		if (!yielded.has(fallbackUrl)) yield fallbackUrl;
 		signal.throwIfAborted();
 	}
-	function buildTvDowngradedPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
-		return {
-			context: { client: {
-				clientName: "TVHTML5",
-				clientVersion: typeof options.clientVersion === "string" && options.clientVersion ? options.clientVersion : "5.20260707",
-				hl: "en",
-				gl: "US",
-				timeZone: "UTC",
-				utcOffsetMinutes: 0,
-				userAgent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version",
-				...typeof options.visitorData === "string" ? { visitorData: options.visitorData } : {}
-			} },
-			videoId,
-			playbackContext: { contentPlaybackContext },
-			contentCheckOk: true,
-			racyCheckOk: true
-		};
-	}
-	function buildWebPlayerRequest(config, videoId, extractedSignatureTimestamp) {
-		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-		if (!rawContext || typeof rawContext !== "object") throw new Error("Audio downloader. web client context is unavailable");
-		const context = JSON.parse(JSON.stringify(rawContext));
-		context.client ??= {};
-		const client = context.client;
-		client.clientName = "WEB";
-		client.clientVersion = getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
-		client.originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
-		delete context.thirdParty;
-		return {
-			context,
-			videoId,
-			playbackContext: { contentPlaybackContext: buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
-			contentCheckOk: true,
-			racyCheckOk: true
-		};
-	}
-	function buildWebCreatorPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
-		return {
-			context: { client: {
-				clientName: "WEB_CREATOR",
-				clientVersion: typeof options.clientVersion === "string" && options.clientVersion ? options.clientVersion : "1.20260708.06.00",
-				hl: "en",
-				gl: "US",
-				timeZone: "UTC",
-				utcOffsetMinutes: 0,
-				...typeof options.visitorData === "string" ? { visitorData: options.visitorData } : {}
-			} },
-			videoId,
-			playbackContext: { contentPlaybackContext },
-			contentCheckOk: true,
-			racyCheckOk: true
-		};
-	}
 	async function postInnertubePlayer(targetWindow, signal, apiKey, body, clientName, clientVersion, extra) {
 		const visitorData = body.context?.client?.visitorData;
 		const response = await targetWindow.fetch(`https://www.youtube.com/youtubei/v1/player?prettyPrint=false&key=${encodeURIComponent(apiKey)}`, {
@@ -23224,99 +21413,395 @@ var vot = (function(exports) {
 		if (!response.ok) throw new Error(`Audio downloader. player request failed (${response.status})`);
 		return await response.json();
 	}
-	async function probeContentLength(targetWindow, streamUrl, signal) {
-		const url = new URL(streamUrl);
-		url.searchParams.set("range", "0-0");
-		url.searchParams.delete("ump");
-		const response = await targetWindow.fetch(url, { signal });
-		if (!response.ok) throw new Error(`Audio downloader. web ABR media probe failed (${response.status})`);
-		const total = Number(/\/(\d+)\s*$/.exec(response.headers.get("content-range") ?? "")?.[1]);
-		if (!(total > 0)) throw new Error("Audio downloader. web ABR content length unknown");
-		return total;
+	var MEDIA_RETRY_DELAY_MS = 250;
+	/**
+	* Retries of one ranged request: the first covers a transport hiccup, the
+	* second re-signs the URL in case the signature expired mid-download. A GVS
+	* verdict (403) is not retried at all, so no time is spent on an answer that
+	* never changes.
+	*/
+	var MEDIA_RANGE_RETRIES = 2;
+	/**
+	* YouTube paces a single continuous `videoplayback` body down to playback
+	* speed (~30-50 kbps), which is what made a 6.5 MB Opus track take ~15
+	* minutes to read. Every separate `Range` request is answered at the full
+	* speed of the connection instead — the trick yt-dlp uses with
+	* `--http-chunk-size` — but YouTube throttles any range above ~10 MiB.
+	*
+	* How big a range is and how many of them overlap is decided per download by
+	* `rangePlanner`, from what the previous range measured: a fast link reads
+	* fewer and bigger ranges, a slow or flaky one keeps them small so a dropped
+	* answer costs little. The consumer uploads each chunk to the translation
+	* backend while the next range is already on its way.
+	*/
+	/**
+	* GVS refuses the signed URLs of a client in bursts — `mweb` most of all,
+	* because its PO token is minted by the web client of the page and because
+	* `Origin`, `Referer` and `User-Agent` are forbidden header names a page
+	* cannot set. Asking a refused client again in the same session costs a
+	* `player` request plus a media request for the very same 403, so the verdict
+	* is remembered for a few minutes and the ladder moves on to `web_mse_proxy`.
+	*/
+	var REFUSED_CLIENT_TTL_MS = 3e5;
+	var refusedClients = /* @__PURE__ */ new Map();
+	function isClientRefusedRecently(name) {
+		const refusedAt = refusedClients.get(name);
+		if (refusedAt === void 0) return false;
+		if (Date.now() - refusedAt < REFUSED_CLIENT_TTL_MS) return true;
+		refusedClients.delete(name);
+		return false;
 	}
-	async function* downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl) {
-		if (!Number.isSafeInteger(contentLength) || contentLength < 1) throw new Error("Audio downloader. Invalid media content length");
-		let requestNumber = 0;
-		let pending = [];
-		let pendingSize = 0;
-		for (const { start, end } of buildMediaRanges(contentLength)) {
-			let buffer;
-			for (let attempt = 0; attempt < 3; attempt++) {
+	var STS_PATTERN = /(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})/;
+	/**
+	* Ordered ladder of InnerTube clients that still answer a browser session with
+	* direct (non-SABR) media URLs, cheapest first: `web_embedded` needs no PO
+	* token at all, `mweb` needs one but works for an anonymous session too, and
+	* `web_creator` needs both a signed-in session and a token.
+	*
+	* `WEB` was removed: since April 2025 it is answered SABR-only, so its
+	* `adaptiveFormats` never carry a URL and its `player` request is always
+	* wasted. That case is covered by the MediaSource strategy instead.
+	* TVHTML5 (`tv_downgraded`) answers `UNPLAYABLE: The page needs to be
+	* reloaded` and moved its `sig`/`n` code into a separate
+	* `tv-player-ias-tcl.js` variant, so it can no longer succeed from a browser.
+	* The headset clients (`ANDROID_VR`, `VISIONOS`) are not usable from a page
+	* either: they cannot send the page cookies, they are not covered by the PO
+	* token the page BotGuard mints for the web clients, and GVS answers their
+	* formats with 403, so every request spent on them is lost.
+	*/
+	var PLAYER_CLIENTS = [
+		{
+			name: "web_embedded",
+			id: "56",
+			build: ({ config, videoId, signatureTimestamp }) => buildWebEmbeddedPlayerRequest(config, videoId, signatureTimestamp)
+		},
+		{
+			name: "mweb",
+			id: "2",
+			requiresPoToken: true,
+			build: ({ config, videoId, signatureTimestamp }) => buildMwebPlayerRequest(config, videoId, signatureTimestamp)
+		},
+		{
+			name: "web_creator",
+			id: "62",
+			requiresLogin: true,
+			requiresPoToken: true,
+			build: ({ config, videoId, signatureTimestamp }) => buildWebCreatorPlayerRequest(config, videoId, signatureTimestamp)
+		}
+	];
+	function readTotalLength(response, offset) {
+		const ranged = Number(/\/(\d+)\s*$/.exec(response.headers.get("content-range") ?? "")?.[1]);
+		if (ranged > 0) return ranged;
+		const length = Number(response.headers.get("content-length"));
+		if (!(length > 0)) return 0;
+		return response.status === 206 ? length + offset : length;
+	}
+	/**
+	* Downloads the selected format with explicit ranged requests.
+	*
+	* A single continuous body is paced by YouTube down to playback speed, while
+	* every separate `Range: bytes=start-end` request is answered at the full
+	* speed of the connection — the same reason yt-dlp downloads in fixed-size
+	* HTTP chunks. A few ranges are kept in flight, so uploading one chunk
+	* overlaps downloading the next. `Range` is a CORS-safelisted header, so none
+	* of this costs a preflight request.
+	*/
+	async function* streamMediaFormat(targetWindow, streamUrl, signal, refreshUrl, expectedLength) {
+		/**
+		* The privileged transport is preferred: GVS omits the CORS headers on its
+		* cross-host redirect, so a page request can never read that answer.
+		*/
+		let transport = getMediaTransport();
+		let url = buildMediaRequestUrl(streamUrl, transport);
+		/** The size the format announced, or what the first answer reports. */
+		let total = expectedLength && expectedLength > 0 ? expectedLength : 0;
+		let received = 0;
+		/** Only a `206` proves ranges are honored and may be asked in parallel. */
+		let rangesHonored = false;
+		/** Nothing is left to ask for: the whole announced size was requested. */
+		let exhausted = false;
+		let nextStart = 0;
+		/**
+		* One re-signing per download, for a URL that expired mid-download.
+		* Overlapping ranges share that one request instead of spending one each.
+		*/
+		let resigning;
+		const resign = () => {
+			resigning ??= refreshUrl().then((refreshed) => {
+				url = buildMediaRequestUrl(refreshed, transport);
+			}).catch((error) => {
+				debug.log("Audio downloader. media URL refresh failed", { error: toErrorMessage(error) });
+			});
+			return resigning;
+		};
+		/**
+		* Falls back to the page transport once. A failure of the privileged one is
+		* about this realm, not about the range, so it must not eat a retry — and
+		* the URL has to be rebuilt, because only `alr=yes` keeps a GVS redirect
+		* readable from a page.
+		*/
+		let downgraded = false;
+		const downgradeTransport = (error) => {
+			if (transport !== "gm" || downgraded) return false;
+			downgraded = true;
+			transport = "page";
+			url = buildMediaRequestUrl(url, transport);
+			debug.log("Audio downloader. media transport downgraded", {
+				transport,
+				error: toErrorMessage(error)
+			});
+			return true;
+		};
+		/** One ranged request, retried while it can still succeed. */
+		const fetchRange = async (start, size, measured) => {
+			let retries = 0;
+			for (;;) {
 				signal.throwIfAborted();
+				const requestedAt = performance.now();
 				try {
-					const url = new URL(streamUrl);
-					url.searchParams.set("range", `${start}-${end}`);
-					url.searchParams.set("rn", String(++requestNumber));
-					url.searchParams.delete("ump");
-					const response = await targetWindow.fetch(url, { signal });
-					if (!response.ok) throw new Error(`Audio downloader. Media request failed (${response.status}, range ${start}-${end})`);
-					const bytes = new Uint8Array(await response.arrayBuffer());
-					signal.throwIfAborted();
-					if (bytes.byteLength === end - start + 1) {
-						buffer = bytes;
-						break;
+					const response = await fetchMediaRange({
+						transport,
+						targetWindow,
+						url,
+						range: `bytes=${start}-${start + size - 1}`,
+						signal
+					});
+					measured.latencyMs = performance.now() - requestedAt;
+					if (!response.ok) {
+						const message = `Audio downloader. Media request failed (${response.status})`;
+						if (response.status === 416 && start > 0) return /* @__PURE__ */ new Uint8Array(0);
+						if (response.status === 403) {
+							if (received === 0 || resigning) throw new MediaAuthError(message);
+							measured.unstable = true;
+							await resign();
+							continue;
+						}
+						throw new Error(message);
 					}
-					const redirect = new TextDecoder("ascii").decode(bytes).match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
-					if (redirect) {
-						const next = new URL(redirect);
-						if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) throw new Error("Audio downloader. Invalid media redirect");
-						streamUrl = next.toString();
-						if (attempt < 2) continue;
+					if ((response.headers.get("content-type") ?? "").startsWith("text/")) {
+						const redirect = new URL((await response.text()).trim());
+						if (!isGooglevideoHost(redirect.hostname)) throw new Error("Audio downloader. Invalid media redirect");
+						url = buildMediaRequestUrl(redirect.toString(), transport);
+						measured.unstable = true;
+						continue;
 					}
-					throw new Error("Audio downloader. Incomplete web ABR chunk");
+					total ||= readTotalLength(response, start);
+					const body = new Uint8Array(await response.arrayBuffer());
+					measured.durationMs = performance.now() - requestedAt;
+					if (response.status === 206) {
+						rangesHonored = true;
+						return body;
+					}
+					return start > 0 ? body.subarray(start) : body;
 				} catch (error) {
 					signal.throwIfAborted();
-					if (attempt === 2) throw error;
-					await createAbortableDelay(250 * (attempt + 1), signal);
-					if (attempt === 1) streamUrl = await refreshUrl();
+					if (error instanceof MediaAuthError) throw error;
+					if (downgradeTransport(error)) {
+						measured.unstable = true;
+						continue;
+					}
+					retries += 1;
+					measured.unstable = true;
+					if (retries > MEDIA_RANGE_RETRIES) throw error;
+					debug.log("Audio downloader. retrying media range", {
+						start,
+						size,
+						retries,
+						transport,
+						error: toErrorMessage(error)
+					});
+					await createAbortableDelay(MEDIA_RETRY_DELAY_MS * retries, signal);
+					if (retries === MEDIA_RANGE_RETRIES) await resign();
 				}
 			}
-			if (!buffer) throw new Error("Audio downloader. Incomplete web ABR chunk");
-			pending.push(buffer);
-			pendingSize += buffer.byteLength;
-			const isLastChunk = end === contentLength - 1;
-			if (pendingSize >= config_default$1.minChunkSize || isLastChunk) {
+		};
+		const planner = createMediaRangePlanner();
+		/** Ranges already requested, in the order their bytes are needed. */
+		const inFlight = [];
+		const schedule = () => {
+			const limit = rangesHonored ? planner.parallelism : 1;
+			while (!exhausted && inFlight.length < limit) {
+				const planned = planner.rangeSize;
+				const size = total ? Math.min(planned, total - nextStart) : planned;
+				if (size <= 0) {
+					exhausted = true;
+					break;
+				}
+				const start = nextStart;
+				nextStart += size;
+				const measured = {};
+				inFlight.push({
+					size,
+					measured,
+					startedAt: performance.now(),
+					bytes: fetchRange(start, size, measured)
+				});
+				exhausted = total > 0 && nextStart >= total;
+			}
+		};
+		const accumulator = createChunkAccumulator(config_default$1.minChunkSize);
+		let ranges = 0;
+		const startedAt = Date.now();
+		try {
+			for (;;) {
+				schedule();
+				const range = inFlight.shift();
+				if (!range) break;
+				const bytes = await range.bytes;
+				ranges += 1;
+				planner.complete({
+					bytes: bytes.byteLength,
+					durationMs: range.measured.durationMs ?? performance.now() - range.startedAt,
+					latencyMs: range.measured.latencyMs,
+					unstable: range.measured.unstable
+				});
+				let chunk;
+				if (bytes.byteLength) {
+					received += bytes.byteLength;
+					chunk = accumulator.add(bytes);
+				}
+				if (bytes.byteLength < range.size) exhausted = true;
+				const ended = exhausted && inFlight.length === 0;
+				if (ended) {
+					if (!received) throw new Error("Audio downloader. Empty audio");
+					if (total > 0 && received < total) throw new Error(`Audio downloader. Media stream ended early (${received}/${total})`);
+				}
+				const isLastChunk = ended || total > 0 && received >= total;
+				if (!chunk && !isLastChunk) continue;
 				yield {
-					buffer: concatBuffers(pending),
+					buffer: chunk ?? accumulator.flush() ?? concatBuffers([]),
 					isLastChunk
 				};
-				pending = [];
-				pendingSize = 0;
+				if (isLastChunk) {
+					debug.log("Audio downloader. media download finished", {
+						received,
+						ranges,
+						rangeSize: planner.rangeSize,
+						transport,
+						seconds: Math.round((Date.now() - startedAt) / 100) / 10
+					});
+					return;
+				}
+			}
+		} finally {
+			for (const range of inFlight) range.bytes.catch(() => void 0);
+		}
+		if (!received) throw new Error("Audio downloader. Empty audio");
+		yield {
+			buffer: concatBuffers(pending),
+			isLastChunk: true
+		};
+	}
+	/**
+	* Streams one selected format.
+	*
+	* `sig`/`n` can have more than one candidate solution, so the candidates are
+	* tried in order until one of them is answered with media bytes. A refused
+	* signature ends the format immediately: GVS answers every candidate of the
+	* same format the same way, so trying the rest only spends refused requests.
+	*/
+	async function* streamSelectedFormat(media, format, refreshFormat) {
+		const { targetWindow, signal, fetchPlayerCode, authorizeUrl } = media;
+		const contentLength = Number(format.contentLength) || void 0;
+		const refreshUrl = async () => {
+			const refreshed = await refreshFormat();
+			for await (const url of resolveFormatUrls(targetWindow, refreshed, fetchPlayerCode, signal)) return await authorizeUrl(url);
+			throw new Error("Audio downloader. Refreshed media URL unavailable");
+		};
+		let lastError;
+		for await (const solvedUrl of resolveFormatUrls(targetWindow, format, fetchPlayerCode, signal)) {
+			let emitted = false;
+			try {
+				const streamUrl = await authorizeUrl(solvedUrl);
+				for await (const chunk of streamMediaFormat(targetWindow, streamUrl, signal, refreshUrl, contentLength)) {
+					emitted = true;
+					yield chunk;
+				}
+				return;
+			} catch (error) {
+				signal.throwIfAborted();
+				if (emitted || error instanceof MediaAuthError) throw error;
+				lastError = error;
 			}
 		}
+		throw lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. media format URL is unavailable");
 	}
+	/**
+	* Matches the re-issued copy of a format in a fresh `player` answer.
+	*
+	* The stream is identified by its itag and its audio track only, the rule
+	* `formatSelection` owns. Comparing `contentLength`, `lastModified` and the
+	* exact `mimeType` string as well is what turned a URL refresh into
+	* "Refreshed format changed": a second answer for the same video reports
+	* those differently often enough that the refresh failed more often than it
+	* worked, in the middle of a download that was fine.
+	*/
+	function findRefreshedStreamingFormat(streaming, format) {
+		return findRefreshedFormat([...streaming?.adaptiveFormats ?? [], ...streaming?.formats ?? []], format);
+	}
+	/**
+	* The audio pass is the only normal one: the translation needs the audio
+	* track, and a low-bitrate Opus stream is the cheapest way to move it.
+	*
+	* The video pass is the last resort of this strategy, for uploads that answer
+	* no usable audio-only stream at all. It reuses the `player` answers of the
+	* audio pass, so it costs no extra InnerTube request, and it picks the
+	* smallest picture YouTube offers (144p, or the cheapest muxed format when a
+	* video-only stream would arrive without any audio).
+	*/
+	var DOWNLOAD_STAGES = [{
+		kind: "audio",
+		select: ({ adaptiveFormats }) => selectAudioFormat(adaptiveFormats ?? [])
+	}, {
+		kind: "video",
+		select: ({ formats, adaptiveFormats }) => selectVideoFallbackFormat([...formats ?? [], ...adaptiveFormats ?? []])
+	}];
+	/**
+	* Streams the audio track of a YouTube video from the current realm.
+	*
+	* Request budget on the happy path: one InnerTube player request plus one
+	* media request for the whole track. The player JS, the PO token, the
+	* fallback clients and the video fallback are only paid for when the cheap
+	* path cannot answer, and every result is cached for the rest of the download.
+	*/
 	async function* getWebAbrAudioChunks(targetWindow, videoId, signal) {
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
-		if (typeof apiKey !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
-		const playerCodes = /* @__PURE__ */ new Map();
-		const fetchPlayerCode = (url = getPlayerUrl(config)) => {
+		if (typeof apiKey !== "string") throw new AudioRealmError("Audio downloader. web ABR config is unavailable");
+		let playerCode;
+		const fetchPlayerCode = () => {
+			const url = getPlayerUrl(config);
 			if (!url) return Promise.resolve(void 0);
-			let code = playerCodes.get(url);
-			if (!code) {
-				code = targetWindow.fetch(url, { signal }).then((response) => {
-					if (!response.ok) throw new Error(`Audio downloader. YouTube player request failed (${response.status})`);
-					return response.text();
-				});
-				playerCodes.set(url, code);
-			}
-			return code;
+			playerCode ??= targetWindow.fetch(url, { signal }).then((response) => {
+				if (!response.ok) throw new AudioRealmError(`Audio downloader. YouTube player request failed (${response.status})`);
+				return response.text();
+			});
+			return playerCode;
 		};
 		let sts = Number(getConfigValue(config, "STS"));
-		if (!(sts > 0)) sts = Number((await fetchPlayerCode())?.match(/(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})/)?.[1]);
-		const body = buildWebEmbeddedPlayerRequest(config, videoId, sts);
-		const context = body.context;
-		const clientVersion = String(context.client.clientVersion ?? "");
-		const visitorData = context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
-		if (typeof visitorData === "string") context.client.visitorData = visitorData;
+		if (!(sts > 0)) {
+			const code = await fetchPlayerCode();
+			sts = Number(code ? STS_PATTERN.exec(code)?.[1] : void 0);
+		}
+		const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
+		const session = {
+			config,
+			videoId,
+			signatureTimestamp: sts > 0 ? sts : void 0
+		};
+		const visitorData = getConfigValue(config, "VISITOR_DATA");
 		const dataSyncId = getConfigValue(config, "DATASYNC_ID");
 		const [firstSyncId, secondSyncId] = typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
 		const delegatedSessionId = getConfigValue(config, "DELEGATED_SESSION_ID") ?? (secondSyncId ? firstSyncId : void 0);
 		const authorization = await getYouTubeAuthorization(targetWindow, String(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId) ?? "") || void 0);
-		const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
-		const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
-		const pageExperimentFlags = Object.values(playerContexts && typeof playerContexts === "object" ? playerContexts : {}).flatMap((entry) => typeof entry?.serializedExperimentFlags === "string" ? [entry.serializedExperimentFlags] : []);
 		const sessionIndex = getConfigValue(config, "SESSION_INDEX");
+		const auth = {
+			authorization,
+			sessionIndex,
+			delegatedSessionId
+		};
+		const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
+		const experimentFlags = Object.values(playerContexts && typeof playerContexts === "object" ? playerContexts : {}).flatMap((entry) => typeof entry?.serializedExperimentFlags === "string" ? [entry.serializedExperimentFlags] : []);
 		debug.log("Audio downloader. player auth state", {
 			videoId,
 			host: targetWindow.location.hostname,
@@ -23325,70 +21810,118 @@ var vot = (function(exports) {
 			hasDelegatedSession: Boolean(delegatedSessionId),
 			loggedIn
 		});
-		const auth = {
-			authorization,
-			sessionIndex,
-			delegatedSessionId
+		let poTokenBinding = selectGvsPoTokenBinding(videoId, {
+			loggedIn,
+			dataSyncId,
+			visitorData,
+			experimentFlags
+		});
+		let poToken;
+		let replacePoToken = false;
+		const mintPoToken = () => {
+			poToken ??= mintGvsPoToken(targetWindow, poTokenBinding.value, signal);
+			return poToken;
 		};
+		/**
+		* GVS refused a session-bound token: the video-id binding is the documented
+		* alternative and YouTube rolls it out per session, so it is worth one more
+		* media request before the client is given up on.
+		*/
+		const rotatePoTokenBinding = async () => {
+			if (poTokenBinding.kind === "video") return false;
+			poTokenBinding = {
+				kind: "video",
+				value: videoId
+			};
+			poToken = void 0;
+			replacePoToken = true;
+			const token = await mintPoToken();
+			debug.log("Audio downloader. rotated GVS PO token binding", {
+				videoId,
+				binding: poTokenBinding.kind,
+				hasPoToken: Boolean(token)
+			});
+			return Boolean(token);
+		};
+		const authorizeUrl = async (streamUrl) => {
+			const url = new URL(streamUrl);
+			if (url.searchParams.has("pot") && !replacePoToken) return url.toString();
+			const token = await mintPoToken();
+			if (token) url.searchParams.set("pot", token);
+			return url.toString();
+		};
+		const media = {
+			targetWindow,
+			signal,
+			fetchPlayerCode,
+			authorizeUrl
+		};
+		/**
+		* One `player` request per client for the whole download: its answer is
+		* shared by the audio pass, by the video fallback and by a URL refresh, and
+		* a client that already answered a verdict is never asked again.
+		*/
+		const answers = /* @__PURE__ */ new Map();
+		const requestPlayer = async (client, refresh = false) => {
+			const cached = answers.get(client.name);
+			if (cached && !refresh) {
+				if (cached instanceof Error) throw cached;
+				return cached;
+			}
+			const body = client.build(session);
+			const clientContext = body.context.client;
+			if (typeof visitorData === "string" && !clientContext.visitorData) clientContext.visitorData = visitorData;
+			try {
+				const response = await postInnertubePlayer(targetWindow, signal, apiKey, body, client.id, String(clientContext.clientVersion ?? ""), auth);
+				const streaming = response.streamingData;
+				if (!streaming?.adaptiveFormats?.length && !streaming?.formats?.length) throw new PlayerStatusError(client.name, response.playabilityStatus);
+				answers.set(client.name, response);
+				return response;
+			} catch (error) {
+				signal.throwIfAborted();
+				if (error instanceof Error && !answers.has(client.name)) answers.set(client.name, error);
+				throw error;
+			}
+		};
+		const clients = [];
+		for (const client of PLAYER_CLIENTS) {
+			const skipped = isClientRefusedRecently(client.name) ? "GVS refused it in this session" : client.requiresLogin && !loggedIn ? "anonymous session" : client.requiresPoToken && !await mintPoToken() ? "no GVS PO token" : void 0;
+			if (!skipped) {
+				clients.push(client);
+				continue;
+			}
+			debug.log("Audio downloader. skipping player client", {
+				videoId,
+				client: client.name,
+				reason: skipped
+			});
+		}
+		/** Clients whose signed URLs GVS refused: their video formats are too. */
+		const refused = /* @__PURE__ */ new Set();
 		let lastError;
 		let emitted = false;
-		for (const name of [
-			"web_embedded",
-			"tv_downgraded",
-			"web",
-			"web_creator"
-		]) {
-			signal.throwIfAborted();
-			debug.log("Audio downloader. trying player client", {
-				videoId,
-				client: name
-			});
-			const fetchedConfig = name === "tv_downgraded" ? await fetchTvConfig(targetWindow, signal, videoId) : void 0;
-			const options = {
-				visitorData: fetchedConfig?.visitorData ?? visitorData,
-				signatureTimestamp: fetchedConfig?.signatureTimestamp ?? sts,
-				clientVersion: fetchedConfig?.clientVersion
-			};
-			const candidateBody = name === "web_embedded" ? body : name === "tv_downgraded" ? buildTvDowngradedPlayerRequest(videoId, options) : name === "web" ? buildWebPlayerRequest(config, videoId, sts) : buildWebCreatorPlayerRequest(videoId, options);
-			const candidateContext = candidateBody.context;
-			if (typeof options.visitorData === "string") candidateContext.client.visitorData = options.visitorData;
-			const requestPlayer = () => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, name === "web_embedded" ? "56" : name === "tv_downgraded" ? "7" : name === "web" ? "1" : "62", String(candidateContext.client.clientVersion ?? clientVersion), auth);
-			const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl);
-			try {
-				const playerResponse = await requestPlayer();
-				const formats = [...playerResponse.streamingData?.adaptiveFormats ?? [], ...playerResponse.streamingData?.formats ?? []];
-				if (!formats.length) {
-					const status = playerResponse.playabilityStatus;
-					throw new Error(`Audio downloader. ${name} ${status?.status ?? "failed"}: ${status?.reason ?? status?.messages?.join(" ") ?? "no streaming data"}`);
-				}
-				const format = selectWebEmbeddedAudioFormat(formats);
-				const fetchedFlags = fetchedConfig?.experimentFlags;
-				const poTokenBinding = selectGvsPoTokenBinding(videoId, {
-					loggedIn,
-					dataSyncId: playerResponse.responseContext?.mainAppWebResponseContext?.datasyncId || dataSyncId || fetchedConfig?.dataSyncId,
-					visitorData: candidateContext.client.visitorData ?? visitorData,
-					experimentFlags: fetchedFlags?.length ? fetchedFlags : pageExperimentFlags
-				});
-				let poToken;
-				const authorizeUrl = async (streamUrl) => {
-					const url = new URL(streamUrl);
-					if (!url.searchParams.has("pot") && poTokenBinding) {
-						poToken ??= mintPagePoToken(targetWindow, poTokenBinding.value, signal);
-						const token = await poToken;
-						if (token) url.searchParams.set("pot", token);
-					}
-					return url.toString();
-				};
-				for await (const solvedUrl of resolveWebEmbeddedFormatUrl(targetWindow, format, getCode, signal)) try {
-					const streamUrl = await authorizeUrl(solvedUrl);
-					const contentLength = Number(format.contentLength) || await probeContentLength(targetWindow, streamUrl, signal);
-					const refreshUrl = async () => {
-						const refreshed = (await requestPlayer()).streamingData?.adaptiveFormats?.find((entry) => entry.itag === format.itag && entry.mimeType === format.mimeType && Number(entry.contentLength) === contentLength && entry.lastModified === format.lastModified);
-						if (!refreshed) throw new Error("Audio downloader. Refreshed audio format changed");
-						for await (const url of resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, signal)) return await authorizeUrl(url);
-						throw new Error("Audio downloader. Refreshed audio URL unavailable");
-					};
-					for await (const chunk of downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl)) {
+		for (const stage of DOWNLOAD_STAGES) {
+			const usable = clients.filter((client) => !refused.has(client.name) && !(answers.get(client.name) instanceof Error));
+			if (!usable.length) break;
+			clientLoop: for (const client of usable) {
+				signal.throwIfAborted();
+				if (refused.has(client.name)) continue;
+				for (let attempt = 0; attempt < 2; attempt++) try {
+					const { streamingData } = await requestPlayer(client);
+					const selected = stage.select(streamingData ?? {});
+					debug.log("Audio downloader. selected media format", {
+						videoId,
+						client: client.name,
+						stage: stage.kind,
+						reason: selected.reason,
+						track: selected.track?.key ?? "single",
+						language: selected.track?.language ?? "unknown",
+						content: selected.track?.content ?? "unknown",
+						...describeFormat(selected.format)
+					});
+					for await (const chunk of streamSelectedFormat(media, selected.format, async () => {
+						return findRefreshedStreamingFormat((await requestPlayer(client, true)).streamingData, selected.format) ?? selected.format;
+					})) {
 						emitted = true;
 						yield chunk;
 					}
@@ -23397,16 +21930,27 @@ var vot = (function(exports) {
 					signal.throwIfAborted();
 					if (emitted) throw error;
 					lastError = error;
+					const authRefused = error instanceof MediaAuthError;
+					debug.log("Audio downloader. player client failed", {
+						videoId,
+						client: client.name,
+						stage: stage.kind,
+						attempt,
+						error: toErrorMessage(error),
+						...authRefused ? {
+							refused: true,
+							binding: poTokenBinding.kind,
+							hasPoToken: Boolean(await poToken)
+						} : {}
+					});
+					if (authRefused && attempt === 0 && await rotatePoTokenBinding()) continue;
+					if (authRefused) {
+						refused.add(client.name);
+						refusedClients.set(client.name, Date.now());
+					}
+					if (!loggedIn && error instanceof PlayerStatusError && error.status === "LOGIN_REQUIRED") break clientLoop;
+					break;
 				}
-			} catch (error) {
-				signal.throwIfAborted();
-				if (emitted) throw error;
-				debug.log("Audio downloader. player client format failed", {
-					videoId,
-					client: name,
-					error: error instanceof Error ? error.message : String(error)
-				});
-				lastError = error;
 			}
 		}
 		const fallbackError = lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. no playable audio formats");
@@ -23414,618 +21958,3937 @@ var vot = (function(exports) {
 		throw fallbackError;
 	}
 	//#endregion
-	//#region src/audioDownloader/strategies/mseProxyHandler.ts
-	var MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
-	var READY_MESSAGE_TYPE = "vot-mse-proxy-ready";
-	var IFRAME_HASH = "ya_iframe";
-	var BOOT_KEY = "__VOT_MSE_PROXY_HANDLER__";
-	var STORE_KEY = "__VOT_MSE_CAPTURE_STORE__";
-	var topSessions = /* @__PURE__ */ new Map();
+	//#region src/audioDownloader/strategies/pageAudioHandler.ts
+	/**
+	* Streams the YouTube audio track from a realm that can talk to youtube.com.
+	*
+	* For the direct-URL strategy the page realm is preferred, because `ytcfg`,
+	* cookies and the player functions are already there and no extra document has
+	* to be loaded. When the page cannot do it (foreign host, or a CSP that blocks
+	* the challenge solver), a hidden youtube.com iframe is used as a JS realm
+	* only: its player stays paused, so no video content is requested.
+	*
+	* The MediaSource strategy always needs a fresh realm, because the capture
+	* proxy has to be installed before a player boots. It is installed here, in
+	* the hidden realm only, so the player the user is watching is never touched.
+	*/
+	var REALM_LOAD_TIMEOUT_MS = 15e3;
 	function getVideoId(message) {
-		if (!message.payload || typeof message.payload !== "object") return;
-		const videoId = message.payload.pureVideoId;
-		return typeof videoId === "string" ? videoId : void 0;
+		const videoId = message.payload?.pureVideoId;
+		return typeof videoId === "string" && videoId ? videoId : void 0;
 	}
 	function getAudioDownloadType(message) {
-		if (!message.payload || typeof message.payload !== "object") return;
-		const audioDownloadType = message.payload.audioDownloadType;
-		return audioDownloadType === AudioDownloadType.WEB_ABR || audioDownloadType === AudioDownloadType.WEB_MSE_PROXY ? audioDownloadType : void 0;
+		const audioDownloadType = message.payload?.audioDownloadType;
+		return isAudioDownloadType(audioDownloadType) ? audioDownloadType : void 0;
 	}
-	async function getEncryptedEmbedConfig(targetWindow, videoId) {
-		if (!/(?:^|\.)youtube\.com$/.test(targetWindow.location.hostname)) return;
-		const bytes = new Uint8Array(2 + videoId.length);
-		bytes[0] = 10;
-		bytes[1] = videoId.length;
-		for (let index = 0; index < videoId.length; index++) bytes[index + 2] = videoId.charCodeAt(index);
+	function postResponse(requester, data) {
+		requester.window.postMessage({
+			messageId: requester.messageId,
+			messageType: MESSAGE_TYPE,
+			messageDirection: "response",
+			...data
+		}, requester.origin);
+	}
+	/**
+	* @returns `true` when the requester got a final answer, `false` when the
+	* caller should retry in a youtube.com realm.
+	*/
+	async function streamToRequester(realm, requester, videoId, audioDownloadType, signal, allowFallback) {
+		let emitted = false;
+		const sendProgress = () => postResponse(requester, { isProgress: true });
+		const progress = setInterval(sendProgress, PROGRESS_INTERVAL_MS);
+		const chunks = audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(realm, videoId, signal) : getMseProxyAudioChunks(realm, videoId, signal, sendProgress);
 		try {
-			const match = (await (await targetWindow.fetch("https://www.youtube.com/youtubei/v1/share/get_share_panel", {
-				method: "POST",
-				body: JSON.stringify({
-					context: { client: {
-						clientName: "WEB",
-						clientVersion: "2.20251006.01.00"
-					} },
-					serializedSharedEntity: encodeURIComponent(targetWindow.btoa(String.fromCharCode(...bytes)))
-				})
-			})).text()).match(/"encryptedEmbedConfig"\s*:\s*("[^"]+")/);
-			return match ? `{"enc":${match[1]}}` : void 0;
-		} catch {
-			return;
-		}
-	}
-	function waitFor(getValue, timeoutMs, label, signal) {
-		return new Promise((resolve, reject) => {
-			const cleanup = () => {
-				clearInterval(interval);
-				clearTimeout(timeout);
-				signal.removeEventListener("abort", onAbort);
-			};
-			const onAbort = () => {
-				cleanup();
-				reject(signal.reason);
-			};
-			const interval = setInterval(() => {
-				try {
-					const value = getValue();
-					if (value) {
-						cleanup();
-						resolve(value);
-					}
-				} catch (error) {
-					cleanup();
-					reject(error);
-				}
-			}, 100);
-			const timeout = setTimeout(() => {
-				cleanup();
-				reject(/* @__PURE__ */ new Error(`Audio downloader. ${label} timed out`));
-			}, timeoutMs);
-			signal.addEventListener("abort", onAbort, { once: true });
-			if (signal.aborted) onAbort();
-		});
-	}
-	var CapturedMediaSource = class {
-		mediaSource;
-		createdAt = performance.now();
-		queuedEvents = [];
-		listeners = /* @__PURE__ */ new Set();
-		constructor(mediaSource) {
-			this.mediaSource = mediaSource;
-			const addSourceBuffer = mediaSource.addSourceBuffer;
-			mediaSource.addSourceBuffer = new Proxy(addSourceBuffer, { apply: (target, thisArg, args) => {
-				const sourceBuffer = Reflect.apply(target, thisArg, args);
-				if (args[0].includes("audio/webm")) this.capture(sourceBuffer);
-				return sourceBuffer;
-			} });
-			const endOfStream = mediaSource.endOfStream;
-			mediaSource.endOfStream = new Proxy(endOfStream, { apply: (target, thisArg, args) => {
-				const result = Reflect.apply(target, thisArg, args);
-				this.emit({ type: "end" });
-				return result;
-			} });
-			mediaSource.addEventListener("sourceclose", () => this.emit({ type: "close" }));
-		}
-		get isReady() {
-			return this.mediaSource.readyState === "open";
-		}
-		listen(listener) {
-			this.listeners.add(listener);
-			try {
-				for (const event of this.queuedEvents.splice(0)) listener(event);
-			} catch (error) {
-				this.listeners.delete(listener);
-				throw error;
-			}
-			return () => this.listeners.delete(listener);
-		}
-		capture(sourceBuffer) {
-			const appendBuffer = sourceBuffer.appendBuffer;
-			sourceBuffer.appendBuffer = new Proxy(appendBuffer, { apply: (target, thisArg, args) => {
-				const input = args[0];
-				const view = ArrayBuffer.isView(input) ? new Uint8Array(input.buffer, input.byteOffset, input.byteLength) : new Uint8Array(input);
-				const copy = new Uint8Array(view);
-				const result = Reflect.apply(target, thisArg, args);
-				this.emit({
-					type: "append",
-					buffer: copy,
-					sourceBuffer
-				});
-				return result;
-			} });
-		}
-		emit(event) {
-			if (this.listeners.size === 0) this.queuedEvents.push(event);
-			for (const listener of this.listeners) listener(event);
-		}
-	};
-	var MseCaptureStore = class {
-		captures = [];
-		listeners = /* @__PURE__ */ new Set();
-		add(mediaSource) {
-			const capture = new CapturedMediaSource(mediaSource);
-			this.captures.push(capture);
-			for (const listener of this.listeners) listener(capture);
-		}
-		async pick(signal) {
-			try {
-				return await waitFor(() => {
-					const capture = this.captures.at(-1);
-					return capture?.isReady && performance.now() - capture.createdAt >= 4e3 ? capture : null;
-				}, 1e4, "MSE capture wait", signal);
-			} catch (error) {
-				signal.throwIfAborted();
-				if (isAbortError(error)) throw error;
-				const newest = this.captures.at(-1);
-				throw new Error(`Audio downloader. MSE capture wait timed out (captures: ${this.captures.length}, newestReady: ${newest?.isReady ?? "none"})`, { cause: error });
-			}
-		}
-		onCapture(listener) {
-			this.listeners.add(listener);
-			return () => this.listeners.delete(listener);
-		}
-	};
-	function installMediaSourceProxy(targetWindow) {
-		if (targetWindow[STORE_KEY]) return targetWindow[STORE_KEY];
-		const store = new MseCaptureStore();
-		const key = targetWindow.ManagedMediaSource ? "ManagedMediaSource" : "MediaSource";
-		const MediaSourceConstructor = targetWindow[key];
-		if (!MediaSourceConstructor) throw new Error("MediaSource is not available");
-		class ProxiedMediaSource extends MediaSourceConstructor {
-			constructor() {
-				super();
-				store.add(this);
-			}
-		}
-		targetWindow[key] = ProxiedMediaSource;
-		targetWindow[STORE_KEY] = store;
-		return store;
-	}
-	async function getPlayer(targetWindow, signal) {
-		return await waitFor(() => {
-			const player = targetWindow.document.querySelector("#movie_player");
-			return player && typeof player.playVideo === "function" && typeof player.mute === "function" && typeof player.seekTo === "function" ? player : null;
-		}, 3e4, "MSE player wait", signal);
-	}
-	function createAudioChunkStream(targetWindow, videoId, signal, onProgress) {
-		let cleanup = () => {};
-		let finished = false;
-		const cancellation = new AbortController();
-		signal = AbortSignal.any([signal, cancellation.signal]);
-		return new ReadableStream({
-			async start(controller) {
-				let stopMse = () => {};
-				const fail = (error) => {
-					if (finished) return;
-					finished = true;
-					cleanup();
-					controller.error(error);
-				};
-				const onAbort = () => fail(signal.reason);
-				cleanup = () => {
-					stopMse();
-					signal.removeEventListener("abort", onAbort);
-				};
-				signal.addEventListener("abort", onAbort, { once: true });
-				const onMseError = (error) => {
-					if (finished) return;
-					stopMse();
-					fail(signal.aborted ? signal.reason : error);
-				};
-				try {
-					signal.throwIfAborted();
-					debug.log("Audio downloader. MSE iframe stream started", { videoId });
-					const player = await getPlayer(targetWindow, signal);
-					signal.throwIfAborted();
-					debug.log("Audio downloader. MSE player found", { videoId });
-					try {
-						player.loadVideoById?.(videoId);
-					} catch {}
-					player.mute();
-					player.playVideo();
-					const getPlayerState = () => {
-						try {
-							return player.getPlayerState?.() ?? null;
-						} catch {
-							return null;
-						}
-					};
-					const listVideos = () => [...targetWindow.document.querySelectorAll("video")];
-					let readyVideo;
-					let playReject = null;
-					try {
-						readyVideo = await waitFor(() => {
-							const videos = listVideos();
-							const state = getPlayerState();
-							if (videos.length > 0 && (state === 5 || state === 2 || state === -1)) {
-								try {
-									if (state === -1) player.loadVideoById?.(videoId);
-									player.playVideo();
-								} catch {}
-								const element = videos[0];
-								try {
-									element.muted = true;
-									const attempt = element.play();
-									if (attempt && typeof attempt.catch === "function") attempt.catch((playError) => {
-										playReject ??= playError instanceof Error ? playError.name : String(playError);
-									});
-								} catch (playError) {
-									playReject ??= playError instanceof Error ? playError.name : String(playError);
-								}
-							}
-							return videos.find((video) => video.readyState >= 3) ?? (state === 1 && videos.length > 0 ? videos[0] : null);
-						}, 15e3, "MSE media wait", signal);
-					} catch (error) {
-						signal.throwIfAborted();
-						if (isAbortError(error)) throw error;
-						const videos = listVideos();
-						const video = videos[0];
-						const earlyStore = targetWindow[STORE_KEY];
-						const earlyNewest = earlyStore?.captures.at(-1);
-						throw new Error(`Audio downloader. MSE media wait timed out (videos: ${videos.length}, readyState: ${video?.readyState ?? "none"}, playerState: ${getPlayerState() ?? "unknown"}, paused: ${video?.paused ?? "unknown"}, networkState: ${video?.networkState ?? "none"}, buffered: ${video?.buffered.length ?? "none"}, hasSrc: ${Boolean(video?.currentSrc)}, mediaError: ${video?.error?.code ?? "none"}, playReject: ${playReject ?? "none"}, captures: ${earlyStore?.captures.length ?? "none"}, newestMS: ${earlyNewest?.mediaSource.readyState ?? "none"})`, { cause: error });
-					}
-					signal.throwIfAborted();
-					debug.log("Audio downloader. MSE media ready", {
-						videoId,
-						readyState: readyVideo.readyState,
-						playerState: getPlayerState(),
-						playReject
-					});
-					try {
-						readyVideo.playbackRate = 2;
-					} catch {}
-					const store = installMediaSourceProxy(targetWindow);
-					let capture = await store.pick(signal);
-					signal.throwIfAborted();
-					debug.log("Audio downloader. MSE capture picked", {
-						videoId,
-						captures: store.captures.length,
-						readyState: capture.mediaSource.readyState
-					});
-					let removeCaptureListener = () => {};
-					let pending = [];
-					let pendingSize = 0;
-					let totalSize = 0;
-					let seekTimeout;
-					let lastProgressAt = 0;
-					const enqueuePendingChunk = (isLastChunk) => {
-						const size = pendingSize;
-						controller.enqueue({
-							buffer: concatBuffers(pending),
-							isLastChunk
-						});
-						debug.log("Audio downloader. MSE chunk enqueued", {
-							videoId,
-							size,
-							isLastChunk,
-							totalSize
-						});
-						pending = [];
-						pendingSize = 0;
-					};
-					const close = () => {
-						if (finished) return;
-						if (totalSize === 0) {
-							debug.error("Audio downloader. MSE empty stream", { videoId });
-							onMseError(/* @__PURE__ */ new Error("Audio downloader. Empty MSE stream"));
-						} else {
-							debug.log("Audio downloader. MSE stream finished", {
-								videoId,
-								totalSize
-							});
-							enqueuePendingChunk(true);
-							finished = true;
-							controller.close();
-							cleanup();
-						}
-					};
-					let firstAppendLogged = false;
-					const onCapturedEvent = (event) => {
-						if (finished) return;
-						try {
-							if (event.type === "end") {
-								debug.log("Audio downloader. MSE end of stream", {
-									videoId,
-									totalSize,
-									pendingSize
-								});
-								close();
-								return;
-							}
-							if (event.type === "close") {
-								debug.error("Audio downloader. MSE source closed", {
-									videoId,
-									totalSize
-								});
-								onMseError(/* @__PURE__ */ new Error("Audio downloader. MSE source closed"));
-								return;
-							}
-							if (!firstAppendLogged) {
-								firstAppendLogged = true;
-								debug.log("Audio downloader. MSE first audio append", {
-									videoId,
-									size: event.buffer.byteLength
-								});
-							}
-							pending.push(event.buffer);
-							pendingSize += event.buffer.byteLength;
-							totalSize += event.buffer.byteLength;
-							if (pendingSize >= config_default$1.minChunkSize) enqueuePendingChunk(false);
-							else if (pendingSize >= config_default$1.minChunkSize / 2 && performance.now() - lastProgressAt >= 3e4) {
-								lastProgressAt = performance.now();
-								debug.log("Audio downloader. MSE progress ping", {
-									videoId,
-									pendingSize,
-									totalSize
-								});
-								onProgress?.();
-							}
-							if (finished) return;
-							const { buffered } = event.sourceBuffer;
-							const bufferedEnd = buffered.length > 0 ? Math.floor(buffered.end(buffered.length - 1)) : 0;
-							clearTimeout(seekTimeout);
-							if (bufferedEnd > 0) seekTimeout = setTimeout(() => {
-								try {
-									player.seekTo(bufferedEnd, true);
-								} catch (error) {
-									onMseError(error);
-								}
-							}, 1e3);
-						} catch (error) {
-							onMseError(error);
-						}
-					};
-					let stopCapture = () => {};
-					stopMse = () => {
-						clearTimeout(seekTimeout);
-						stopCapture();
-						removeCaptureListener();
-					};
-					stopCapture = capture.listen(onCapturedEvent);
-					if (finished) {
-						stopCapture();
-						return;
-					}
-					removeCaptureListener = store.onCapture((nextCapture) => {
-						if (finished) return;
-						try {
-							stopCapture();
-							capture = nextCapture;
-							stopCapture = capture.listen(onCapturedEvent);
-							if (finished) stopCapture();
-						} catch (error) {
-							onMseError(error);
-						}
-					});
-					if (finished) removeCaptureListener();
-				} catch (error) {
-					debug.error("Audio downloader. MSE iframe stream failed", {
-						videoId,
-						error: error instanceof Error ? error.message : String(error)
-					});
-					onMseError(error);
-				}
-			},
-			cancel(reason) {
-				finished = true;
-				cancellation.abort(reason);
-				cleanup();
-			}
-		});
-	}
-	function postResponse(target, targetOrigin, message) {
-		target.postMessage(message, targetOrigin || "*");
-	}
-	async function handleIframeRequest(event, targetWindow) {
-		const message = event.data;
-		const source = event.source;
-		if (!source) return;
-		const controller = new AbortController();
-		const abort = (abortEvent) => {
-			const data = abortEvent.data;
-			if (abortEvent.source === source && abortEvent.origin === event.origin && data.messageId === message.messageId && data.messageType === MESSAGE_TYPE && data.messageDirection === "request" && data.isAborted) controller.abort(data.payload);
-		};
-		targetWindow.addEventListener("message", abort);
-		let settled = false;
-		let heartbeat;
-		try {
-			const videoId = getVideoId(message);
-			if (!videoId) throw new Error("Audio downloader. Missing video id");
-			const audioDownloadType = getAudioDownloadType(message);
-			if (!audioDownloadType) throw new Error("Audio downloader. Unsupported audio download type");
-			debug.log("Audio downloader. iframe request started", {
-				videoId,
-				messageId: message.messageId,
-				audioDownloadType
-			});
-			const postProgress = () => {
-				if (settled) return;
-				postResponse(source, event.origin, {
-					...message,
-					messageDirection: "response",
-					payload: void 0,
-					isProgress: true
-				});
-			};
-			const chunks = audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
-			if (audioDownloadType === AudioDownloadType.WEB_ABR) {
-				postProgress();
-				heartbeat = setInterval(postProgress, 3e4);
-			}
 			for await (const chunk of chunks) {
-				debug.log("Audio downloader. iframe chunk sent", {
-					videoId,
-					messageId: message.messageId,
-					audioDownloadType,
-					size: chunk.buffer.byteLength,
+				emitted = true;
+				postResponse(requester, { payload: {
+					buffer: chunk.buffer,
 					isLastChunk: chunk.isLastChunk
-				});
-				postResponse(source, event.origin, {
-					...message,
-					messageDirection: "response",
-					payload: chunk
-				});
+				} });
 			}
-			settled = true;
-			debug.log("Audio downloader. iframe stream closed", {
-				videoId,
-				messageId: message.messageId,
-				audioDownloadType
-			});
-			postResponse(source, event.origin, {
-				...message,
-				messageDirection: "response",
-				payload: void 0,
+			postResponse(requester, { isStreamFinished: true });
+			return true;
+		} catch (error) {
+			const aborted = isAbortError(error) || signal.aborted;
+			const message = error instanceof Error ? error.message : String(error);
+			if (allowFallback && !aborted && !emitted && error instanceof AudioRealmError) {
+				debug.log("Audio downloader. Page realm can not stream audio", {
+					videoId,
+					audioDownloadType,
+					error: message
+				});
+				return false;
+			}
+			postResponse(requester, {
+				error: message,
+				isAborted: aborted || void 0,
 				isStreamFinished: true
 			});
-		} catch (error) {
-			settled = true;
-			debug.error("Audio downloader. iframe request failed", {
-				messageId: message.messageId,
-				error: error instanceof Error ? error.message : String(error)
-			});
-			postResponse(source, event.origin, {
-				...message,
-				messageDirection: "response",
-				payload: void 0,
-				error: error instanceof Error ? error.message : String(error),
-				isAborted: controller.signal.aborted || isAbortError(error)
-			});
+			return true;
 		} finally {
-			clearInterval(heartbeat);
-			targetWindow.removeEventListener("message", abort);
+			clearInterval(progress);
 		}
 	}
-	async function handleTopRequest(event, targetWindow) {
-		const message = event.data;
-		const source = event.source;
-		if (!source) return;
-		if (message.isAborted) {
-			const session = topSessions.get(message.messageId);
-			if (session?.source === source && session.origin === event.origin) {
-				session.iframe.contentWindow?.postMessage(message, "*");
-				session.cleanup();
-			}
-			return;
-		}
-		const videoId = getVideoId(message);
-		const audioDownloadType = getAudioDownloadType(message);
-		if (!videoId || !audioDownloadType) {
-			postResponse(source, event.origin, {
-				...message,
-				messageDirection: "response",
-				error: videoId ? "Audio downloader. Unsupported audio download type" : "Audio downloader. Missing video id"
-			});
-			return;
-		}
-		debug.log("Audio downloader. top request started", {
-			videoId,
-			messageId: message.messageId,
-			audioDownloadType,
-			host: targetWindow.location.hostname
-		});
-		const iframe = targetWindow.document.createElement("iframe");
-		iframe.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
-		iframe.tabIndex = -1;
-		iframe.setAttribute("aria-hidden", "true");
-		iframe.id = `vot-mse-proxy-${message.messageId}`;
-		const url = new URL(`/embed/${videoId}`, "https://www.youtube.com");
+	async function buildAudioRealmUrl(realm, videoId, audioDownloadType, signal) {
+		const url = new URL(`/embed/${encodeURIComponent(videoId)}`, "https://www.youtube.com");
 		url.searchParams.set("html5", "1");
-		url.searchParams.set("autoplay", "0");
 		url.searchParams.set("mute", "1");
+		const needsPlayback = audioDownloadType === AudioDownloadType.WEB_MSE_PROXY;
+		url.searchParams.set("autoplay", "0");
+		if (needsPlayback) {
+			const embedConfig = await getEncryptedEmbedConfig(realm, videoId, signal);
+			if (embedConfig) url.searchParams.set("embed_config", embedConfig);
+		}
 		url.hash = IFRAME_HASH;
-		let active = true;
-		let timeout;
-		let onMessage = (_event) => {};
-		const cleanup = () => {
-			active = false;
-			clearTimeout(timeout);
-			targetWindow.removeEventListener("message", onMessage);
-			if (topSessions.get(message.messageId)?.iframe === iframe) topSessions.delete(message.messageId);
-			iframe.remove();
-		};
-		topSessions.set(message.messageId, {
-			iframe,
-			cleanup,
-			source,
-			origin: event.origin
-		});
-		const embedConfig = await getEncryptedEmbedConfig(targetWindow, videoId);
-		if (!active) return;
-		if (embedConfig) url.searchParams.set("embed_config", embedConfig);
-		let ready = false;
-		onMessage = (responseEvent) => {
-			const response = responseEvent.data;
-			if (responseEvent.source !== iframe.contentWindow) return;
-			if (response.messageType === READY_MESSAGE_TYPE) {
-				if (ready) return;
-				ready = true;
-				clearTimeout(timeout);
-				debug.log("Audio downloader. iframe ready", {
-					videoId,
-					messageId: message.messageId
-				});
-				iframe.contentWindow?.postMessage(message, "*");
-			} else if (response.messageId === message.messageId && (response.error || response.isAborted || response.isStreamFinished)) queueMicrotask(cleanup);
-		};
-		timeout = setTimeout(() => {
-			debug.error("Audio downloader. iframe loading timed out", {
-				videoId,
-				messageId: message.messageId,
-				ready
-			});
-			postResponse(source, event.origin, {
-				...message,
-				messageDirection: "response",
-				error: "Audio downloader. iframe loading timed out"
-			});
-			cleanup();
-		}, 15e3);
-		targetWindow.addEventListener("message", onMessage);
-		iframe.src = url.toString();
-		(targetWindow.document.body ?? targetWindow.document.documentElement).appendChild(iframe);
+		return url.toString();
 	}
-	function initMseProxyHandler() {
-		const pageWindow = globalThis;
-		if (pageWindow[BOOT_KEY] || !pageWindow.location || pageWindow.navigator.userAgent.includes("YaBrowser/")) return;
-		pageWindow[BOOT_KEY] = true;
-		const isServiceIframe = pageWindow.self !== pageWindow.top && /(?:youtube(?:-nocookie)?\.com|youtubekids\.com)$/.test(pageWindow.location.hostname) && pageWindow.location.hash.includes(IFRAME_HASH);
-		if (isServiceIframe) installMediaSourceProxy(pageWindow);
-		pageWindow.addEventListener("message", (event) => {
-			const message = event.data;
-			if (message?.messageType !== MESSAGE_TYPE || message.messageDirection !== "request") return;
-			if (!isServiceIframe && event.origin !== pageWindow.location.origin) return;
-			if (isServiceIframe) {
-				if (!message.isAborted) handleIframeRequest(event, pageWindow);
-			} else handleTopRequest(event, pageWindow);
+	/**
+	* Loads a hidden youtube.com realm and lets it answer the bridge directly, so
+	* audio chunks are never copied twice.
+	*/
+	async function relayThroughAudioRealm(realm, requester, videoId, audioDownloadType, request, signal) {
+		const src = await buildAudioRealmUrl(realm, videoId, audioDownloadType, signal);
+		return new Promise((resolve) => {
+			const iframe = realm.document.createElement("iframe");
+			iframe.id = getAudioRealmIframeId(requester.messageId);
+			iframe.setAttribute("aria-hidden", "true");
+			iframe.tabIndex = -1;
+			iframe.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
+			let settled = false;
+			const finish = () => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(loadTimeout);
+				realm.removeEventListener("message", onRealmMessage);
+				signal.removeEventListener("abort", onAbort);
+				iframe.remove();
+				resolve();
+			};
+			const onRealmMessage = (event) => {
+				const message = event.data;
+				if (!message || event.source !== iframe.contentWindow) return;
+				if (message.messageType === "vot-audio-realm-ready") {
+					clearTimeout(loadTimeout);
+					loadTimeout = setTimeout(onLoadTimeout, REALM_LOAD_TIMEOUT_MS);
+					iframe.contentWindow?.postMessage(request, "*");
+					return;
+				}
+				if (message.messageType !== "vot-get-audio-chunks-in-main-world" || message.messageDirection !== "response" || message.messageId !== requester.messageId) return;
+				clearTimeout(loadTimeout);
+				if (message.isStreamFinished || message.error || message.isAborted) finish();
+			};
+			const onAbort = () => {
+				iframe.contentWindow?.postMessage({
+					messageId: requester.messageId,
+					messageType: MESSAGE_TYPE,
+					messageDirection: "request",
+					isAborted: true,
+					isStreamFinished: true
+				}, "*");
+				finish();
+			};
+			const onLoadTimeout = () => {
+				postResponse(requester, {
+					error: "Audio downloader. Audio realm loading timed out",
+					isStreamFinished: true
+				});
+				finish();
+			};
+			let loadTimeout = setTimeout(onLoadTimeout, REALM_LOAD_TIMEOUT_MS);
+			realm.addEventListener("message", onRealmMessage);
+			signal.addEventListener("abort", onAbort, { once: true });
+			if (signal.aborted) {
+				onAbort();
+				return;
+			}
+			iframe.src = src;
+			(realm.document.body ?? realm.document.documentElement).append(iframe);
 		});
-		if (isServiceIframe) pageWindow.parent.postMessage({
+	}
+	function initPageAudioHandler() {
+		const realm = globalThis;
+		if (realm.__VOT_AUDIO_STREAM_HANDLER__ || typeof realm.addEventListener !== "function" || !realm.location) return;
+		realm.__VOT_AUDIO_STREAM_HANDLER__ = true;
+		const isYouTubeRealm = isYouTubeHost(realm.location.hostname);
+		const isAudioRealm = isYouTubeRealm && realm.location.hash.includes("vot_audio_realm") && realm.self !== realm.top;
+		if (isAudioRealm) {
+			try {
+				installAudioCaptureProxy(realm);
+			} catch (error) {
+				debug.log("Audio downloader. MediaSource proxy unavailable", { error: toErrorMessage(error) });
+			}
+			try {
+				installPlayerResponseFilter(realm);
+			} catch (error) {
+				debug.log("Audio downloader. player format filter unavailable", { error: toErrorMessage(error) });
+			}
+		}
+		const sessions = /* @__PURE__ */ new Map();
+		const handleRequest = async (event, messageId) => {
+			const message = event.data;
+			const source = event.source;
+			if (!source) return;
+			const requester = {
+				window: source,
+				origin: event.origin && event.origin !== "null" ? event.origin : "*",
+				messageId
+			};
+			const videoId = getVideoId(message);
+			const audioDownloadType = getAudioDownloadType(message);
+			if (!videoId || !audioDownloadType) {
+				postResponse(requester, {
+					error: videoId ? "Audio downloader. Unsupported audio download type" : "Audio downloader. Video ID is unavailable",
+					isStreamFinished: true
+				});
+				return;
+			}
+			const controller = new AbortController();
+			sessions.set(messageId, controller);
+			postResponse(requester, { isProgress: true });
+			try {
+				if ((isAudioRealm || audioDownloadType === AudioDownloadType.WEB_ABR && isYouTubeRealm && canSolveChallengesInRealm(realm)) && await streamToRequester(realm, requester, videoId, audioDownloadType, controller.signal, !isAudioRealm)) return;
+				await relayThroughAudioRealm(realm, requester, videoId, audioDownloadType, message, controller.signal);
+			} catch (error) {
+				postResponse(requester, {
+					error: toErrorMessage(error),
+					isStreamFinished: true
+				});
+			} finally {
+				sessions.delete(messageId);
+			}
+		};
+		realm.addEventListener("message", (event) => {
+			const message = event.data;
+			if (!message || message.messageType !== "vot-get-audio-chunks-in-main-world" || message.messageDirection !== "request" || typeof message.messageId !== "string") return;
+			if (message.isAborted) {
+				sessions.get(message.messageId)?.abort(makeAbortError("Audio download aborted"));
+				return;
+			}
+			handleRequest(event, message.messageId);
+		});
+		if (isAudioRealm) realm.parent.postMessage({
 			messageType: READY_MESSAGE_TYPE,
 			messageDirection: "response"
 		}, "*");
 	}
-	initMseProxyHandler();
 	//#endregion
-	//#region src/audioDownloader/strategies/index.ts
-	var WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
-	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
-	var strategies = {
-		[WEB_ABR_STRATEGY]: (options) => getAudioFromBridge(options, WEB_ABR_STRATEGY),
-		[WEB_MSE_PROXY_STRATEGY]: (options) => getAudioFromBridge(options, WEB_MSE_PROXY_STRATEGY)
+	//#region src/bootstrap/bootState.ts
+	var MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
+	var BOOTSTRAP_STATUSES = /* @__PURE__ */ new Set([
+		"idle",
+		"booting",
+		"booted",
+		"failed"
+	]);
+	function isBootstrapStatus(value) {
+		return BOOTSTRAP_STATUSES.has(value);
+	}
+	function isBootstrapState(value) {
+		if (!value || typeof value !== "object") return false;
+		return isBootstrapStatus(value.status);
+	}
+	function getOrCreateBootState(bootKey = MAIN_BOOT_KEY) {
+		const scope = globalThis;
+		const existing = scope[bootKey];
+		if (isBootstrapState(existing)) return existing;
+		const created = {
+			status: "idle",
+			error: null
+		};
+		scope[bootKey] = created;
+		return created;
+	}
+	//#endregion
+	//#region src/bootstrap/iframeInteractor.ts
+	var iframeInteractorInitialized = false;
+	var IFRAME_CONFIGS = {
+		"https://dev.epicgames.com": {
+			targetOrigin: "https://dev.epicgames.com",
+			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
+			extractVideoId: (url) => url.pathname.split("/").at(-2) ?? null,
+			responseFormatter: (videoId, data) => `${typeof data === "string" ? data : ""}:${videoId}`
+		},
+		"https://www.dailymotion.com": {
+			targetOrigin: "https://geo.dailymotion.com",
+			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
+			extractVideoId: (url) => /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? null,
+			responseFormatter: (videoId) => `getVideoId:${videoId}`
+		}
+	};
+	function initIframeInteractor() {
+		if (iframeInteractorInitialized) return;
+		iframeInteractorInitialized = true;
+		const currentConfig = IFRAME_CONFIGS[globalThis.location.origin];
+		if (!currentConfig) return;
+		globalThis.addEventListener("message", (event) => {
+			try {
+				if (event.origin !== currentConfig.targetOrigin) return;
+				if (!currentConfig.dataFilter(event.data)) return;
+				const videoId = currentConfig.extractVideoId(new URL(globalThis.location.href));
+				if (!videoId) return;
+				const response = currentConfig.responseFormatter(videoId, event.data);
+				event.source?.postMessage(response, currentConfig.targetOrigin);
+			} catch (error) {
+				console.error("Iframe communication error:", error);
+			}
+		});
+	}
+	//#endregion
+	//#region src/config/config.ts
+	var workerHost = "api.browser.yandex.ru";
+	/**
+	* used for streaming
+	*
+	* @see https://github.com/FOSWLY/media-proxy
+	*/
+	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
+	/**
+	* @see https://github.com/FOSWLY/vot-worker
+	*/
+	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
+	var proxyWorkerHost = "vot-worker.eu.cc";
+	/**
+	* @see https://github.com/FOSWLY/translate-backend
+	*/
+	var foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2";
+	var detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
+	var authServerUrl = "https://rust-server-531j.onrender.com";
+	var authLoginUrl = `${authServerUrl}/v1/auth/handle`;
+	var avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
+	var repoPath = "ilyhalight/voice-over-translation";
+	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
+	var repositoryUrl = `https://github.com/${repoPath}`;
+	var defaultTranslationService = "yandexbrowser";
+	var defaultDetectService = "yandexbrowser";
+	var proxyOnlyCountries = [
+		"UA",
+		"LV",
+		"LT"
+	];
+	/**
+	* 100 - 3000 ms - delay before hiding button
+	*/
+	var defaultAutoHideDelay = 1e3;
+	var actualCompatVersion = "2025-05-09";
+	//#endregion
+	//#region src/types/storage.ts
+	var subtitleResponseLanguageModes = ["auto", "original"];
+	var storageKeys = [
+		"autoTranslate",
+		"autoSubtitles",
+		"dontTranslateLanguages",
+		"enabledDontTranslateLanguages",
+		"enabledAutoVolume",
+		"enabledSmartDucking",
+		"autoVolume",
+		"buttonPos",
+		"showVideoSlider",
+		"syncVolume",
+		"downloadWithName",
+		"sendNotifyOnComplete",
+		"subtitlesMaxLength",
+		"subtitlesSmartLayout",
+		"highlightWords",
+		"subtitlesFontSize",
+		"subtitlesFontFamily",
+		"subtitlesOpacity",
+		"subtitlesDownloadFormat",
+		"responseLanguage",
+		"responseLanguageSubtitles",
+		"defaultVolume",
+		"onlyBypassMediaCSP",
+		"newAudioPlayer",
+		"showPiPButton",
+		"translateAPIErrors",
+		"translationService",
+		"detectService",
+		"translationHotkey",
+		"subtitlesHotkey",
+		"m3u8ProxyHost",
+		"proxyWorkerHost",
+		"translateProxyEnabled",
+		"translateProxyEnabledDefault",
+		"audioBooster",
+		"useLivelyVoice",
+		"autoHideButtonDelay",
+		"useAudioDownload",
+		"compatVersion",
+		"localePhrases",
+		"localeLang",
+		"localeHash",
+		"localeVersion",
+		"localeUpdatedAt",
+		"localeLangOverride",
+		"account"
+	];
+	//#endregion
+	//#region src/utils/storage.ts
+	var compatRules = Object.entries({
+		numToBool: [
+			["autoTranslate"],
+			["dontTranslateYourLang", "enabledDontTranslateLanguages"],
+			["autoSetVolumeYandexStyle", "enabledAutoVolume"],
+			["showVideoSlider"],
+			["syncVolume"],
+			["downloadWithName"],
+			["sendNotifyOnComplete"],
+			["highlightWords"],
+			["onlyBypassMediaCSP"],
+			["newAudioPlayer"],
+			["showPiPButton"],
+			["translateAPIErrors"],
+			["audioBooster"],
+			["useNewModel", "useLivelyVoice"]
+		],
+		number: [["autoVolume"]],
+		array: [["dontTranslateLanguage", "dontTranslateLanguages"]],
+		string: [
+			["hotkeyButton", "translationHotkey"],
+			["locale-lang-override", "localeLangOverride"],
+			["locale-lang", "localeLang"]
+		]
+	}).flatMap(([category, entries]) => entries.map(([oldKey, maybeNewKey]) => ({
+		category,
+		oldKey,
+		newKey: maybeNewKey ?? oldKey,
+		shouldDeleteOldKey: Boolean(maybeNewKey)
+	})));
+	var compatRuleByOldKey = new Map(compatRules.map((rule) => [rule.oldKey, rule]));
+	var compatKeysToRead = Array.from(new Set(compatRules.map((rule) => rule.oldKey)));
+	function createUndefinedDefaults(keys) {
+		const defaults = {};
+		for (const key of keys) defaults[key] = void 0;
+		return defaults;
+	}
+	function isCompatValue(category, value) {
+		switch (category) {
+			case "numToBool":
+			case "number": return typeof value === "number";
+			case "array": return Array.isArray(value);
+			case "string": return typeof value === "string" || value === null;
+			default: return false;
+		}
+	}
+	function convertByCompatCategory(category, value) {
+		switch (category) {
+			case "string":
+			case "array":
+			case "number": return value;
+			default: return !!value;
+		}
+	}
+	function normalizeCompatValue(rule, value) {
+		let convertedValue = convertByCompatCategory(rule.category, value);
+		if (rule.oldKey === "autoVolume" && typeof value === "number" && value < 1) convertedValue = Math.round(value * 100);
+		return convertedValue;
+	}
+	function areStorageValuesEqual(a, b) {
+		if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, index) => Object.is(item, b[index]));
+		return Object.is(a, b);
+	}
+	function parseStoredValue(rawValue) {
+		if (rawValue === null) return;
+		try {
+			return JSON.parse(rawValue);
+		} catch {
+			return;
+		}
+	}
+	async function updateConfig(data) {
+		if (data.compatVersion === "2025-05-09") return data;
+		const keysToRead = /* @__PURE__ */ new Set([...Object.keys(data), ...compatKeysToRead]);
+		const persistedValues = await votStorage.getValues(createUndefinedDefaults(keysToRead));
+		const newData = { ...data };
+		const writeOperations = [];
+		const deleteOperations = [];
+		for (const [key, storedValue] of Object.entries(persistedValues)) {
+			if (storedValue === void 0) continue;
+			const compatRule = compatRuleByOldKey.get(key);
+			if (!compatRule || !isCompatValue(compatRule.category, storedValue)) continue;
+			const convertedValue = normalizeCompatValue(compatRule, storedValue);
+			newData[compatRule.newKey] = convertedValue;
+			const existingNewValue = persistedValues[compatRule.newKey];
+			if (compatRule.shouldDeleteOldKey || !areStorageValuesEqual(existingNewValue, convertedValue)) writeOperations.push(votStorage.set(compatRule.newKey, convertedValue));
+			if (compatRule.shouldDeleteOldKey) deleteOperations.push(votStorage.delete(compatRule.oldKey));
+		}
+		await Promise.all([...writeOperations, ...deleteOperations]);
+		return {
+			...newData,
+			compatVersion: actualCompatVersion
+		};
+	}
+	var VOTStorage = class {
+		support = null;
+		localStorageListeners = /* @__PURE__ */ new Map();
+		shouldUseSyntheticListeners(support) {
+			return !support.promiseAddValueChangeListener && !support.legacyAddValueChangeListener;
+		}
+		getGMRuntime() {
+			if (typeof GM !== "undefined") return GM;
+			return globalThis.GM;
+		}
+		resolveSupport() {
+			if (this.support) return this.support;
+			const gm = this.getGMRuntime();
+			const support = {
+				legacyGet: typeof GM_getValue === "function",
+				legacySet: typeof GM_setValue === "function",
+				legacyDelete: typeof GM_deleteValue === "function",
+				legacyList: typeof GM_listValues === "function",
+				legacyAddValueChangeListener: typeof globalThis.GM_addValueChangeListener === "function",
+				legacyRemoveValueChangeListener: typeof globalThis.GM_removeValueChangeListener === "function",
+				promiseGet: isGM4Supported && typeof gm?.getValue === "function",
+				promiseGetValues: isGM4Supported && typeof gm?.getValues === "function",
+				promiseSet: isGM4Supported && typeof gm?.setValue === "function",
+				promiseDelete: isGM4Supported && typeof gm?.deleteValue === "function",
+				promiseList: isGM4Supported && typeof gm?.listValues === "function",
+				promiseAddValueChangeListener: isGM4Supported && typeof gm?.addValueChangeListener === "function",
+				promiseRemoveValueChangeListener: isGM4Supported && typeof gm?.removeValueChangeListener === "function"
+			};
+			this.support = support;
+			debug.log(`[VOT Storage] GM Promises: ${support.promiseGet} | GM legacy: ${support.legacyGet}`);
+			return support;
+		}
+		/**
+		* Check if storage type is LocalStorage
+		*/
+		get isSupportOnlyLS() {
+			const support = this.resolveSupport();
+			return !support.legacyGet && !support.legacySet && !support.legacyDelete && !support.legacyList && !support.promiseGet && !support.promiseGetValues && !support.promiseSet && !support.promiseDelete && !support.promiseList;
+		}
+		syncGetByName(name, def, support) {
+			if (support.legacyGet) return GM_getValue(name, def);
+			const val = globalThis.localStorage.getItem(name);
+			if (val === null) return def;
+			try {
+				return JSON.parse(val);
+			} catch {
+				return def;
+			}
+		}
+		async getRaw(name, def) {
+			const support = this.resolveSupport();
+			if (support.promiseGet && GM.getValue) return await GM.getValue(name, def);
+			return this.syncGetByName(name, def, support);
+		}
+		async get(name, def) {
+			return this.getRaw(name, def);
+		}
+		async getValues(data) {
+			const support = this.resolveSupport();
+			if (support.promiseGetValues && GM.getValues) return await GM.getValues(data);
+			const entries = Object.entries(data);
+			if (support.promiseGet && GM.getValue) {
+				const values = await Promise.all(entries.map(async ([key, value]) => {
+					return [key, await GM.getValue(key, value)];
+				}));
+				return Object.fromEntries(values);
+			}
+			return Object.fromEntries(entries.map(([key, value]) => [key, this.syncGetByName(key, value, support)]));
+		}
+		syncSetByName(name, value, support) {
+			if (support.legacySet) return GM_setValue(name, value);
+			return globalThis.localStorage.setItem(name, JSON.stringify(value));
+		}
+		async setRaw(name, value) {
+			const support = this.resolveSupport();
+			const storageKey = name;
+			const shouldNotify = this.shouldUseSyntheticListeners(support);
+			const oldValue = shouldNotify ? await this.getRaw(name) : void 0;
+			if (support.promiseSet && GM.setValue) {
+				await GM.setValue(name, value);
+				if (shouldNotify) this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
+				return;
+			}
+			const setResult = this.syncSetByName(name, value, support);
+			this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
+			return setResult;
+		}
+		async set(name, value) {
+			return this.setRaw(name, value);
+		}
+		syncDeleteByName(name, support) {
+			if (support.legacyDelete) return GM_deleteValue(name);
+			return globalThis.localStorage.removeItem(name);
+		}
+		async deleteRaw(name) {
+			const support = this.resolveSupport();
+			const storageKey = name;
+			const shouldNotify = this.shouldUseSyntheticListeners(support);
+			const oldValue = shouldNotify ? await this.getRaw(name) : void 0;
+			if (support.promiseDelete && GM.deleteValue) {
+				await GM.deleteValue(name);
+				if (shouldNotify) this.notifyLocalStorageListeners(storageKey, oldValue, void 0, false);
+				return;
+			}
+			const deleteResult = this.syncDeleteByName(name, support);
+			this.notifyLocalStorageListeners(storageKey, oldValue, void 0, false);
+			return deleteResult;
+		}
+		async delete(name) {
+			return this.deleteRaw(name);
+		}
+		addValueChangeListener(name, listener) {
+			const support = this.resolveSupport();
+			const gm = this.getGMRuntime();
+			if (support.promiseAddValueChangeListener) {
+				const addListener = gm?.addValueChangeListener;
+				const removeListener = support.promiseRemoveValueChangeListener ? gm?.removeValueChangeListener : void 0;
+				if (typeof addListener === "function") {
+					const listenerId = addListener(name, this.createTypedListener(listener));
+					return () => {
+						if (typeof removeListener === "function") removeListener(listenerId);
+					};
+				}
+			}
+			if (support.legacyAddValueChangeListener) {
+				const addListener = globalThis.GM_addValueChangeListener;
+				const removeListener = support.legacyRemoveValueChangeListener ? globalThis.GM_removeValueChangeListener : void 0;
+				if (typeof addListener === "function") {
+					const listenerId = addListener(name, this.createTypedListener(listener));
+					return () => {
+						if (typeof removeListener === "function") removeListener(listenerId);
+					};
+				}
+			}
+			const listeners = this.getLocalStorageListeners(name);
+			const typedListener = listener;
+			listeners.add(typedListener);
+			const onStorage = (event) => {
+				if (event.storageArea !== globalThis.localStorage || event.key !== name) return;
+				typedListener(name, parseStoredValue(event.oldValue), parseStoredValue(event.newValue), true);
+			};
+			globalThis.addEventListener("storage", onStorage);
+			return () => {
+				listeners.delete(typedListener);
+				if (listeners.size === 0) this.localStorageListeners.delete(name);
+				globalThis.removeEventListener("storage", onStorage);
+			};
+		}
+		createTypedListener(listener) {
+			return (key, oldValue, newValue, remote) => {
+				listener(key, oldValue, newValue, remote);
+			};
+		}
+		getLocalStorageListeners(name) {
+			const existing = this.localStorageListeners.get(name);
+			if (existing) return existing;
+			const created = /* @__PURE__ */ new Set();
+			this.localStorageListeners.set(name, created);
+			return created;
+		}
+		notifyLocalStorageListeners(name, oldValue, newValue, remote) {
+			const listeners = this.localStorageListeners.get(name);
+			if (!listeners || listeners.size === 0) return;
+			for (const listener of listeners) listener(name, oldValue, newValue, remote);
+		}
+		syncList(support) {
+			if (support.legacyList) return GM_listValues();
+			return storageKeys;
+		}
+		async list() {
+			const support = this.resolveSupport();
+			if (support.promiseList && GM.listValues) return await GM.listValues();
+			return this.syncList(support);
+		}
+	};
+	var VOT_STORAGE_GLOBAL_KEY = "__VOT_STORAGE_SINGLETON__";
+	var votStorage = (() => {
+		const scope = globalThis;
+		const existing = scope[VOT_STORAGE_GLOBAL_KEY];
+		if (existing instanceof VOTStorage) return existing;
+		const created = new VOTStorage();
+		scope[VOT_STORAGE_GLOBAL_KEY] = created;
+		return created;
+	})();
+	//#endregion
+	//#region src/core/authRefreshMessage.ts
+	var AUTH_REFRESH_MESSAGE_SOURCE = "vot-auth";
+	var AUTH_REFRESH_MESSAGE_TYPE = "account-updated";
+	function createAuthRefreshMessage() {
+		return {
+			source: AUTH_REFRESH_MESSAGE_SOURCE,
+			type: AUTH_REFRESH_MESSAGE_TYPE
+		};
+	}
+	function isAuthRefreshMessage(value) {
+		if (!value || typeof value !== "object") return false;
+		const candidate = value;
+		return candidate.source === "vot-auth" && candidate.type === "account-updated";
+	}
+	function notifyAuthOpener(target = globalThis.opener) {
+		if (!target || typeof target.postMessage !== "function") return;
+		target.postMessage(createAuthRefreshMessage(), globalThis.location.origin);
+	}
+	//#endregion
+	//#region src/core/auth.ts
+	function getProfilePayload() {
+		const payload = globalThis._userData;
+		if (!payload || typeof payload !== "object") return null;
+		const candidate = payload;
+		if (typeof candidate.avatar_id !== "string" || typeof candidate.username !== "string" || candidate.avatar_id.length === 0 || candidate.username.length === 0) return null;
+		return {
+			avatar_id: candidate.avatar_id,
+			username: candidate.username
+		};
+	}
+	async function handleAuthCallbackPage() {
+		const { access_token: token, expires_in: expiresIn } = Object.fromEntries(new URLSearchParams(globalThis.location.hash.slice(1)));
+		if (!token || !expiresIn) throw new Error("[VOT] Invalid token response");
+		const numExpiresIn = Number.parseInt(expiresIn, 10);
+		if (Number.isNaN(numExpiresIn)) throw new TypeError("[VOT] Invalid expires_in value");
+		await votStorage.set("account", {
+			token,
+			expires: Date.now() + numExpiresIn * 1e3,
+			username: void 0,
+			avatarId: void 0
+		});
+		notifyAuthOpener();
+	}
+	async function handleProfilePage() {
+		const payload = getProfilePayload();
+		if (!payload) throw new Error("[VOT] Invalid user data");
+		const { avatar_id: avatarId, username } = payload;
+		const data = await votStorage.get("account");
+		if (!data) throw new Error("[VOT] No account data found");
+		await votStorage.set("account", {
+			...data,
+			username,
+			avatarId
+		});
+		notifyAuthOpener();
+	}
+	async function initAuth() {
+		if (globalThis.location.pathname === "/auth/callback") return handleAuthCallbackPage();
+		if (globalThis.location.pathname === "/my/profile") return handleProfilePage();
+	}
+	var en_default = {
+		recommended: "recommended",
+		translateVideo: "Translate video",
+		disableTranslate: "Turn off",
+		translationSettings: "Translation settings",
+		subtitlesSettings: "Subtitles settings",
+		subtitlesSmartLayout: "Smart subtitle layout",
+		resetSettings: "Reset settings",
+		videoBeingTranslated: "The video is being translated",
+		videoLanguage: "Video language",
+		translationLanguage: "Translation language",
+		translationTake: "The translation will take",
+		translationTakeMoreThanHour: "The translation will take more than an hour",
+		translationTakeAboutMinute: "The translation will take about a minute",
+		translationTakeFewMinutes: "The translation will take a few minutes",
+		translationTakeApproximatelyMinutes: "The translation will take approximately {0} minutes",
+		translationTakeApproximatelyMinute: "The translation will take approximately {0} minutes",
+		requestTranslationFailed: "Failed to request video translation",
+		audioNotReceived: "Audio link not received",
+		VOTFailedDownloadAudio: "Failed to download audio",
+		audioFormatNotSupported: "The audio format is not supported",
+		VOTAutoTranslate: "Translate on open",
+		VOTAutoSubtitles: "Subtitles on open",
+		VOTDontTranslateYourLang: "Don't translate from my language",
+		VOTVolume: "Video volume:",
+		VOTVolumeTranslation: "Translation volume:",
+		VOTAutoSetVolume: "Reduce video volume to",
+		VOTShowVideoSlider: "Video volume slider",
+		VOTSyncVolume: "Link translation and video volume",
+		VOTDisableFromYourLang: "You have disabled the translation of the video in your language",
+		VOTVideoIsTooLong: "Video is too long",
+		VOTNoVideoIDFound: "No video ID found",
+		VOTSubtitles: "Subtitles",
+		VOTSubtitlesDisabled: "Disabled",
+		VOTDefaultSubtitlesLanguage: "Default subtitle language",
+		VOTOriginalVideoLanguage: "Original video language",
+		VOTSubtitlesMaxLength: "Subtitles max length",
+		VOTHighlightWords: "Highlight words",
+		VOTTranslatedFrom: "translated from",
+		VOTAutogenerated: "autogenerated",
+		VOTSettings: "VOT Settings",
+		VOTMenuLanguage: "Menu language",
+		VOTAuthors: "Authors",
+		VOTVersion: "Version",
+		VOTLoader: "Loader",
+		VOTBrowser: "Browser",
+		VOTShowPiPButton: "Show PiP button",
+		langs: {
+			"auto": "Auto",
+			"af": "Afrikaans",
+			"ak": "Akan",
+			"sq": "Albanian",
+			"am": "Amharic",
+			"ar": "Arabic",
+			"hy": "Armenian",
+			"as": "Assamese",
+			"ay": "Aymara",
+			"az": "Azerbaijani",
+			"bn": "Bangla",
+			"eu": "Basque",
+			"be": "Belarusian",
+			"bho": "Bhojpuri",
+			"bs": "Bosnian",
+			"bg": "Bulgarian",
+			"my": "Burmese",
+			"ca": "Catalan",
+			"ceb": "Cebuano",
+			"zh": "Chinese",
+			"zh-Hans": "Chinese (Simplified)",
+			"zh-Hant": "Chinese (Traditional)",
+			"co": "Corsican",
+			"hr": "Croatian",
+			"cs": "Czech",
+			"da": "Danish",
+			"dv": "Divehi",
+			"nl": "Dutch",
+			"en": "English",
+			"eo": "Esperanto",
+			"et": "Estonian",
+			"ee": "Ewe",
+			"fil": "Filipino",
+			"fi": "Finnish",
+			"fr": "French",
+			"gl": "Galician",
+			"lg": "Ganda",
+			"ka": "Georgian",
+			"de": "German",
+			"el": "Greek",
+			"gn": "Guarani",
+			"gu": "Gujarati",
+			"ht": "Haitian Creole",
+			"ha": "Hausa",
+			"haw": "Hawaiian",
+			"iw": "Hebrew",
+			"hi": "Hindi",
+			"hmn": "Hmong",
+			"hu": "Hungarian",
+			"is": "Icelandic",
+			"ig": "Igbo",
+			"id": "Indonesian",
+			"ga": "Irish",
+			"it": "Italian",
+			"ja": "Japanese",
+			"jv": "Javanese",
+			"kn": "Kannada",
+			"kk": "Kazakh",
+			"km": "Khmer",
+			"rw": "Kinyarwanda",
+			"ko": "Korean",
+			"kri": "Krio",
+			"ku": "Kurdish",
+			"ky": "Kyrgyz",
+			"lo": "Lao",
+			"la": "Latin",
+			"lv": "Latvian",
+			"ln": "Lingala",
+			"lt": "Lithuanian",
+			"lb": "Luxembourgish",
+			"mk": "Macedonian",
+			"mg": "Malagasy",
+			"ms": "Malay",
+			"ml": "Malayalam",
+			"mt": "Maltese",
+			"mi": "Māori",
+			"mr": "Marathi",
+			"mn": "Mongolian",
+			"ne": "Nepali",
+			"nso": "Northern Sotho",
+			"no": "Norwegian",
+			"ny": "Nyanja",
+			"or": "Odia",
+			"om": "Oromo",
+			"ps": "Pashto",
+			"fa": "Persian",
+			"pl": "Polish",
+			"pt": "Portuguese",
+			"pa": "Punjabi",
+			"qu": "Quechua",
+			"ro": "Romanian",
+			"ru": "Russian",
+			"sm": "Samoan",
+			"sa": "Sanskrit",
+			"gd": "Scottish Gaelic",
+			"sr": "Serbian",
+			"sn": "Shona",
+			"sd": "Sindhi",
+			"si": "Sinhala",
+			"sk": "Slovak",
+			"sl": "Slovenian",
+			"so": "Somali",
+			"st": "Southern Sotho",
+			"es": "Spanish",
+			"su": "Sundanese",
+			"sw": "Swahili",
+			"sv": "Swedish",
+			"tg": "Tajik",
+			"ta": "Tamil",
+			"tt": "Tatar",
+			"te": "Telugu",
+			"th": "Thai",
+			"ti": "Tigrinya",
+			"ts": "Tsonga",
+			"tr": "Turkish",
+			"tk": "Turkmen",
+			"uk": "Ukrainian",
+			"ur": "Urdu",
+			"ug": "Uyghur",
+			"uz": "Uzbek",
+			"vi": "Vietnamese",
+			"cy": "Welsh",
+			"fy": "Western Frisian",
+			"xh": "Xhosa",
+			"yi": "Yiddish",
+			"yo": "Yoruba",
+			"zu": "Zulu"
+		},
+		streamNoConnectionToServer: "There is no connection to the server",
+		searchField: "Search...",
+		VOTTranslateAPIErrors: "Translate errors from the API",
+		VOTDetectService: "Language detection service",
+		VOTProxyWorkerHost: "Enter the proxy worker address",
+		VOTM3u8ProxyHost: "Enter the address of the m3u8 proxy worker",
+		proxySettings: "Proxy Settings",
+		translationTakeApproximatelyMinute2: "The translation will take approximately {0} minutes",
+		VOTAudioBooster: "Extended translation volume increase",
+		VOTSubtitlesDesign: "Subtitles design",
+		VOTSubtitlesFont: "Subtitle font",
+		VOTSubtitlesFontSize: "Font size of subtitles",
+		VOTSubtitlesOpacity: "Transparency of the subtitle background",
+		VOTSubtitlesDownloadFormat: "The format for downloading subtitles",
+		VOTDownloadWithName: "Download files with the video name",
+		VOTUpdateLocaleFiles: "Update localization files",
+		VOTLocaleHash: "Locale hash",
+		VOTUpdatedAt: "Updated at",
+		VOTNeedWebAudioAPI: "To enable this, you must have a Web Audio API",
+		VOTMediaCSPEnabledOnSite: "Media CSP is enabled on this site",
+		VOTOnlyBypassMediaCSP: "Use it only for bypassing Media CSP",
+		VOTNewAudioPlayer: "Use the new audio player",
+		VOTUseNewModel: "Use an experimental variation of Yandex voices for some videos",
+		TranslationDelayed: "The translation is slightly delayed",
+		VOTTranslationCompletedNotify: "The translation on the {0} has been completed!",
+		VOTSendNotifyOnComplete: "Send a notification that the video has been translated",
+		VOTBugReport: "Report a bug",
+		VOTTranslateProxyDisabled: "Disabled",
+		VOTTranslateProxyEnabled: "Enabled",
+		VOTTranslateProxyEverything: "Proxy everything",
+		VOTTranslateProxyStatus: "Proxying mode",
+		VOTTranslatedBy: "Translated by {0}",
+		VOTStreamNotAvailable: "Translate stream isn't available",
+		VOTTranslationTextService: "Text translation service",
+		VOTNotAffectToVoice: "Doesn't affect the translation of text in voice over",
+		DontTranslateSelectedLanguages: "Don't translate from selected languages",
+		showVideoVolumeSlider: "Display the video volume slider",
+		hotkeysSettings: "Hotkeys settings",
+		None: "None",
+		VOTStandardVoicesTitle: "Standard voices",
+		VOTStandardVoicesSubtitle: "Fast and high-quality voiceover",
+		VOTLiveVoicesTitle: "Live voices",
+		VOTLiveVoicesSubtitle: "Maximum similarity. As if everyone knows Russian",
+		miscSettings: "Misc settings",
+		services: {
+			"yandexbrowser": "Yandex Browser",
+			"msedge": "Microsoft Edge",
+			"rust-server": "Rust Server"
+		},
+		aboutExtension: "About extension",
+		appearance: "Appearance",
+		buttonPosition: "Button position in the player",
+		position: {
+			"left": "Left",
+			"right": "Right",
+			"top": "Top",
+			"default": "Default",
+			"leftCenter": "Left centered",
+			"rightCenter": "Right centered"
+		},
+		secs: "secs",
+		autoHideButtonDelay: "Delay before hiding the translate button",
+		notFound: "not found",
+		minButtonPositionContainer: "The button position only changes in players larger than 600 pixels.",
+		VOTTranslateProxyStatusDefault: "Completely disabling proxying in your country may break the extension",
+		PressTheKeyCombination: "Press the key combination...",
+		VOTUseAudioDownload: "Use audio download",
+		VOTUseAudioDownloadWarning: "Disabling audio downloads may affect the functionality of the extension",
+		VOTAccountRequired: "You need to log in to use this feature",
+		VOTMyAccount: "My account",
+		VOTLogin: "Login",
+		VOTLogout: "Logout",
+		VOTRefresh: "Refresh",
+		VOTYandexToken: "Enter the Yandex OAuth Token",
+		VOTYandexTokenInfo: "You can manually set the account token in this field. Please note that we don't check its validity before sending a translate request",
+		VOTLoginViaToken: "Login via token",
+		smartDucking: "Adaptive volume",
+		VOTYandexTokenExpired: "Session expired. Log in again",
+		VOTVoiceSelection: "Choose dubbing"
 	};
 	//#endregion
+	//#region src/localization/localizationProvider.ts
+	var LOCALE_STORAGE_KEYS = [
+		"localePhrases",
+		"localeLang",
+		"localeHash",
+		"localeVersion",
+		"localeUpdatedAt",
+		"localeLangOverride"
+	];
+	var DEFAULT_LOCALE = toFlatObj(en_default);
+	var repoBranch = "master";
+	var availableLocales = (() => {
+		const locales = Array.isArray([
+			"auto",
+			"en",
+			"ru",
+			"af",
+			"am",
+			"ar",
+			"az",
+			"bg",
+			"bn",
+			"bs",
+			"ca",
+			"cs",
+			"cy",
+			"da",
+			"de",
+			"el",
+			"es",
+			"et",
+			"eu",
+			"fa",
+			"fi",
+			"fr",
+			"gl",
+			"hi",
+			"hr",
+			"hu",
+			"hy",
+			"id",
+			"it",
+			"ja",
+			"jv",
+			"kk",
+			"km",
+			"kn",
+			"ko",
+			"lo",
+			"mk",
+			"ml",
+			"mn",
+			"ms",
+			"mt",
+			"my",
+			"ne",
+			"nl",
+			"pa",
+			"pl",
+			"pt",
+			"ro",
+			"si",
+			"sk",
+			"sl",
+			"sq",
+			"sr",
+			"su",
+			"sv",
+			"sw",
+			"tr",
+			"uk",
+			"ur",
+			"uz",
+			"vi",
+			"zh",
+			"zu"
+		]) ? [
+			"auto",
+			"en",
+			"ru",
+			"af",
+			"am",
+			"ar",
+			"az",
+			"bg",
+			"bn",
+			"bs",
+			"ca",
+			"cs",
+			"cy",
+			"da",
+			"de",
+			"el",
+			"es",
+			"et",
+			"eu",
+			"fa",
+			"fi",
+			"fr",
+			"gl",
+			"hi",
+			"hr",
+			"hu",
+			"hy",
+			"id",
+			"it",
+			"ja",
+			"jv",
+			"kk",
+			"km",
+			"kn",
+			"ko",
+			"lo",
+			"mk",
+			"ml",
+			"mn",
+			"ms",
+			"mt",
+			"my",
+			"ne",
+			"nl",
+			"pa",
+			"pl",
+			"pt",
+			"ro",
+			"si",
+			"sk",
+			"sl",
+			"sq",
+			"sr",
+			"su",
+			"sv",
+			"sw",
+			"tr",
+			"uk",
+			"ur",
+			"uz",
+			"vi",
+			"zh",
+			"zu"
+		] : ["en"];
+		return locales.includes("auto") ? locales : ["auto", ...locales];
+	})();
+	function resolveRuntimeLocaleVersion(buildVersion, scriptVersion) {
+		return buildVersion || scriptVersion || "unknown";
+	}
+	function getRuntimeLocaleVersion() {
+		return resolveRuntimeLocaleVersion(String("1.11.12"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+	}
+	var LocalizationProvider = class {
+		/**
+		* Language used before page was reloaded
+		*/
+		lang;
+		/**
+		* Locale phrases with current language
+		*/
+		locale;
+		defaultLocale = DEFAULT_LOCALE;
+		localesUrl = `${contentUrl}/${repoBranch}/src/localization/locales`;
+		hashesUrl = `${contentUrl}/${repoBranch}/src/localization/hashes.json`;
+		warnedMissingKeys = /* @__PURE__ */ new Set();
+		_langOverride = "auto";
+		constructor() {
+			this.lang = this.getLang();
+			this.locale = {};
+		}
+		async init() {
+			const [langOverride, phrases] = await Promise.all([votStorage.get("localeLangOverride", "auto"), votStorage.get("localePhrases", "")]);
+			this._langOverride = langOverride;
+			this.lang = this.getLang();
+			this.setLocaleFromJsonString(phrases);
+			return this;
+		}
+		get langOverride() {
+			return this._langOverride;
+		}
+		getLang() {
+			return this.langOverride === "auto" ? lang : this.langOverride;
+		}
+		getAvailableLangs() {
+			return [...availableLocales];
+		}
+		async reset() {
+			await Promise.all(LOCALE_STORAGE_KEYS.map((key) => votStorage.delete(key)));
+			return this;
+		}
+		buildUrl(baseUrl, path = "", force = false) {
+			return `${baseUrl}${path}${force ? `?timestamp=${getTimestamp()}` : ""}`;
+		}
+		async changeLang(newLang) {
+			if (this.langOverride === newLang) return false;
+			await votStorage.set("localeLangOverride", newLang);
+			this._langOverride = newLang;
+			this.lang = this.getLang();
+			await this.update(true);
+			return true;
+		}
+		async checkUpdates(force = false) {
+			debug.log("Check locale updates...");
+			try {
+				const runtimeLocaleVersion = getRuntimeLocaleVersion();
+				if (!force) {
+					const storedLocaleVersion = await votStorage.get("localeVersion", "");
+					if (runtimeLocaleVersion !== "unknown" && storedLocaleVersion === runtimeLocaleVersion) return false;
+				}
+				const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
+				if (!res.ok) throw res.status;
+				const hashes = await res.json();
+				if (!hashes || typeof hashes !== "object") throw new Error("Invalid locale hashes payload");
+				const nextHash = hashes[this.lang];
+				if (typeof nextHash !== "string" || !nextHash) return false;
+				return await votStorage.get("localeHash", "") === nextHash ? false : nextHash;
+			} catch (err) {
+				console.error("[VOT] [localizationProvider] Failed to get locales hash:", err);
+				return null;
+			}
+		}
+		async update(force = false) {
+			const runtimeLocaleVersion = getRuntimeLocaleVersion();
+			const storedLocaleVersion = await votStorage.get("localeVersion", "");
+			const hash = await this.checkUpdates(force);
+			if (hash === null) return this;
+			if (!hash) {
+				if (storedLocaleVersion !== runtimeLocaleVersion) await votStorage.set("localeVersion", runtimeLocaleVersion);
+				return this;
+			}
+			const timestamp = getTimestamp();
+			debug.log("Updating locale...");
+			try {
+				const res = await GM_fetch(this.buildUrl(this.localesUrl, `/${this.lang}.json`, force));
+				if (!res.ok) throw res.status;
+				const text = await res.text();
+				this.setLocaleFromJsonString(text);
+				await Promise.all([
+					votStorage.set("localePhrases", text),
+					votStorage.set("localeHash", hash),
+					votStorage.set("localeLang", this.lang),
+					votStorage.set("localeVersion", runtimeLocaleVersion),
+					votStorage.set("localeUpdatedAt", timestamp)
+				]);
+			} catch (err) {
+				console.error("[VOT] [localizationProvider] Failed to get locale:", err);
+				this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
+			}
+			return this;
+		}
+		setLocaleFromJsonString(json) {
+			const trimmed = json.trim();
+			if (!trimmed) {
+				this.locale = {};
+				this.warnedMissingKeys.clear();
+				return this;
+			}
+			try {
+				const locale = JSON.parse(trimmed);
+				if (!locale || typeof locale !== "object" || Array.isArray(locale)) throw new Error("Locale payload should be a JSON object");
+				this.locale = toFlatObj(locale);
+			} catch (err) {
+				console.error("[VOT] [localizationProvider]", err);
+				this.locale = {};
+			}
+			this.warnedMissingKeys.clear();
+			return this;
+		}
+		getFromLocale(locale, key, source = "locale") {
+			return locale[key] ?? this.warnMissingKey(locale, key, source);
+		}
+		warnMissingKey(locale, key, source) {
+			const warningKey = `${source}:${key}`;
+			if (this.warnedMissingKeys.has(warningKey)) return;
+			this.warnedMissingKeys.add(warningKey);
+			console.warn("[VOT] [localizationProvider] locale", locale, "doesn't contain key", key);
+		}
+		getDefault(key) {
+			return this.getFromLocale(this.defaultLocale, key, "default") ?? key;
+		}
+		get(key) {
+			return this.getFromLocale(this.locale, key) ?? this.getDefault(key);
+		}
+		getLangLabel(lang) {
+			const key = `langs.${lang}`;
+			if (key in this.defaultLocale) {
+				const label = this.get(key);
+				if (label) return label;
+			}
+			return lang.toUpperCase();
+		}
+	};
+	var localizationProvider = new LocalizationProvider();
+	/**
+	* In the userscript build, SystemJS wrapping allowed a top-level await.
+	* For the extension build we bootstrap through loader scripts and keep the
+	* runtime initialization explicit, so avoid top-level await and expose a lazy
+	* ready Promise instead.
+	*/
+	var localizationProviderReadyPromise = null;
+	function ensureLocalizationProviderReady() {
+		localizationProviderReadyPromise ??= localizationProvider.init();
+		return localizationProviderReadyPromise;
+	}
+	//#endregion
+	//#region src/utils/iframeConnector.ts
+	/**
+	* Runtime frame detection helper.
+	*
+	* Audio download no longer relies on service iframes or postMessage bridges.
+	* We keep only the minimal utility used by bootstrap policy.
+	*/
+	var isIframe = () => globalThis.self !== globalThis.top;
+	//#endregion
+	//#region src/bootstrap/runtimeActivation.ts
+	var runtimeActivated = false;
+	var runtimeActivationPromise = null;
+	async function activateRuntime(reason, logBootstrap) {
+		logBootstrap("Activating runtime", { reason });
+		if (globalThis.location.origin === "https://rust-server-531j.onrender.com") {
+			await initAuth();
+			runtimeActivated = true;
+			return;
+		}
+		await ensureLocalizationProviderReady();
+		if (!isIframe()) await localizationProvider.update();
+		debug.log(`Selected menu language: ${localizationProvider.lang}`);
+		runtimeActivated = true;
+	}
+	async function ensureRuntimeActivated(reason, logBootstrap) {
+		if (runtimeActivated) return;
+		runtimeActivationPromise ??= activateRuntime(reason, logBootstrap).finally(() => {
+			runtimeActivationPromise = null;
+		});
+		await runtimeActivationPromise;
+	}
+	//#endregion
+	//#region src/bootstrap/videoObserverBinding.ts
+	var boundObservers = /* @__PURE__ */ new WeakSet();
+	var RUNTIME_URL_HOSTS = /* @__PURE__ */ new Set(["peertube", "directlink"]);
+	function bindObserverListeners(options) {
+		const { videoObserver, videosWrappers, ensureRuntimeActivated, getServicesCached, findContainer, createVideoHandler, resolveVideoId = (site, video) => getVideoID(site, {
+			fetchFn: GM_fetch,
+			video
+		}) } = options;
+		if (boundObservers.has(videoObserver)) return;
+		boundObservers.add(videoObserver);
+		const initializingVideos = /* @__PURE__ */ new WeakSet();
+		const containerOwners = /* @__PURE__ */ new WeakMap();
+		const videoContainers = /* @__PURE__ */ new WeakMap();
+		const pendingVideoByContainer = /* @__PURE__ */ new WeakMap();
+		const clearContainerOwner = (video) => {
+			const container = videoContainers.get(video);
+			if (container && containerOwners.get(container) === video) containerOwners.delete(container);
+			videoContainers.delete(video);
+			return container ?? void 0;
+		};
+		const releaseVideoHandler = async (video, reason) => {
+			const videoHandler = videosWrappers.get(video);
+			if (!videoHandler) return;
+			try {
+				await videoHandler.release();
+			} catch (error) {
+				console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
+			} finally {
+				if (videosWrappers.get(video) === videoHandler) videosWrappers.delete(video);
+			}
+		};
+		const getMatchedSiteAndContainer = (video) => {
+			for (const candidate of getServicesCached()) {
+				const container = findContainer(candidate, video);
+				if (container) return {
+					site: candidate,
+					container
+				};
+			}
+			return null;
+		};
+		const withRuntimeSiteUrl = (site) => {
+			return RUNTIME_URL_HOSTS.has(String(site.host)) ? {
+				...site,
+				url: globalThis.location.origin
+			} : site;
+		};
+		const tryReplaceVideo = async (oldVideo, newVideo, container) => {
+			const videoHandler = videosWrappers.get(oldVideo);
+			const previousVideoId = videoHandler?.videoData?.videoId;
+			if (!videoHandler?.hasActiveSource() || !previousVideoId) return false;
+			try {
+				if (await resolveVideoId(videoHandler.site, newVideo) !== previousVideoId) return false;
+				await videoHandler.replaceVideo(newVideo);
+			} catch (error) {
+				console.error("[VOT] Failed to replace video element", error);
+				return false;
+			}
+			if (videosWrappers.get(oldVideo) !== videoHandler) return videosWrappers.get(newVideo) === videoHandler;
+			videosWrappers.delete(oldVideo);
+			videoContainers.delete(oldVideo);
+			videosWrappers.set(newVideo, videoHandler);
+			videoContainers.set(newVideo, container);
+			containerOwners.set(container, newVideo);
+			return true;
+		};
+		const promotePendingVideo = async (container) => {
+			const pendingVideo = container && pendingVideoByContainer.get(container);
+			if (!pendingVideo) return;
+			pendingVideoByContainer.delete(container);
+			if (!pendingVideo.isConnected || videosWrappers.has(pendingVideo) || initializingVideos.has(pendingVideo)) return;
+			await handleVideoAdded(pendingVideo);
+		};
+		const handleVideoAdded = async (video) => {
+			if (videosWrappers.has(video) || initializingVideos.has(video)) return;
+			initializingVideos.add(video);
+			try {
+				if (!await ensureRuntimeReady()) return;
+				const match = getMatchedSiteAndContainer(video);
+				if (!match) return;
+				const { site, container } = match;
+				const activeVideoForContainer = containerOwners.get(container);
+				if (activeVideoForContainer && activeVideoForContainer !== video) {
+					if (activeVideoForContainer.isConnected) {
+						pendingVideoByContainer.set(container, video);
+						return;
+					}
+					if (await tryReplaceVideo(activeVideoForContainer, video, container)) return;
+					await releaseVideoHandler(activeVideoForContainer, "stale container");
+					clearContainerOwner(activeVideoForContainer);
+				}
+				const videoHandler = createVideoHandler(video, container, withRuntimeSiteUrl(site));
+				videosWrappers.set(video, videoHandler);
+				videoContainers.set(video, container);
+				containerOwners.set(container, video);
+				try {
+					await videoHandler.init();
+					if (videosWrappers.get(video) !== videoHandler) return;
+					try {
+						await videoHandler.setCanPlay();
+					} catch (err) {
+						console.error("[VOT] Failed to get video data", err);
+					}
+				} catch (err) {
+					if (videosWrappers.get(video) === videoHandler) {
+						await releaseVideoHandler(video, "init failed");
+						const container = clearContainerOwner(video);
+						if (container) pendingVideoByContainer.delete(container);
+						await promotePendingVideo(container);
+					}
+					console.error("[VOT] Failed to initialize videoHandler", err);
+				}
+			} finally {
+				initializingVideos.delete(video);
+			}
+		};
+		const ensureRuntimeReady = async () => {
+			try {
+				await ensureRuntimeActivated("video-detected");
+				return true;
+			} catch (err) {
+				console.error("[VOT] Failed to activate runtime", err);
+				return false;
+			}
+		};
+		videoObserver.onVideoAdded.addListener(handleVideoAdded);
+		videoObserver.onVideoRemoved.addListener(async (video) => {
+			const container = videoContainers.get(video);
+			const replacement = container && Array.from(container.querySelectorAll("video")).find((candidate) => candidate !== video && candidate.isConnected);
+			if (container && replacement && await tryReplaceVideo(video, replacement, container)) {
+				initializingVideos.delete(video);
+				return;
+			}
+			clearContainerOwner(video);
+			await releaseVideoHandler(video, "video removed");
+			initializingVideos.delete(video);
+			if (container && pendingVideoByContainer.get(container) === video) pendingVideoByContainer.delete(container);
+			await promotePendingVideo(container);
+		});
+	}
+	//#endregion
+	//#region src/core/bootstrapPolicy.ts
+	/**
+	* The hidden youtube.com frame the audio downloader opens when the current
+	* realm cannot talk to the YouTube session itself.
+	*
+	* It is our own frame, it carries no UI, and the download waits for it to
+	* report itself ready — so it must never be dropped as a "non-runnable"
+	* iframe, which is what left a userscript download waiting for its whole
+	* timeout while the extension build (whose prelude runs in every frame)
+	* answered right away.
+	*/
+	function isAudioRealmFrame(input) {
+		return input.isIframe && input.href.includes(`#vot_audio_realm`);
+	}
+	function shouldSkipIframeBootstrap(input) {
+		if (!input.isIframe || isAudioRealmFrame(input)) return false;
+		return input.href === "about:blank" || input.href.startsWith("about:srcdoc") || input.origin === "https://www.youtube.com" && input.href.includes("#ya_iframe") || input.origin === "null";
+	}
+	function resolveBootstrapMode(input) {
+		if (isAudioRealmFrame(input)) return "audio-realm";
+		if (shouldSkipIframeBootstrap(input)) return "skip";
+		if (!input.isIframe && input.origin === input.authOrigin) return "auth-eager";
+		return "lazy";
+	}
+	//#endregion
+	//#region src/utils/dom.ts
+	function getComposableParent(node) {
+		if (!node) return null;
+		if (typeof ShadowRoot !== "undefined" && node instanceof ShadowRoot) return node.host;
+		return node.parentNode ?? null;
+	}
+	function getDeepActiveElement(root = document) {
+		let activeElement = root.activeElement;
+		while (activeElement instanceof HTMLElement && activeElement.shadowRoot) {
+			const nestedActiveElement = activeElement.shadowRoot.activeElement;
+			if (!nestedActiveElement) break;
+			activeElement = nestedActiveElement;
+		}
+		return activeElement;
+	}
+	/**
+	* Checks whether `target` is a descendant of `container` in the composed tree
+	* (crossing ShadowRoot boundaries via hosts).
+	*/
+	function containsCrossShadow(container, target) {
+		let node = target;
+		while (node) {
+			if (node === container) return true;
+			node = getComposableParent(node);
+		}
+		return false;
+	}
+	function closestCrossShadow(element, selector) {
+		if (!element || !selector) return null;
+		return walkCrossShadow(element, selector, element instanceof Document ? null : element);
+	}
+	function findMatchingDocumentElement(current, selector, origin) {
+		if (!origin) return current.querySelector(selector);
+		const matches = current.querySelectorAll(selector);
+		for (const match of matches) if (containsCrossShadow(match, origin)) return match;
+		return null;
+	}
+	function getNextCrossShadowTarget(current) {
+		const root = current.getRootNode();
+		if (root instanceof ShadowRoot) return root.host;
+		if (root instanceof Document) return root;
+		if (root !== current) {
+			const parent = getComposableParent(root);
+			if (parent && parent !== current && parent instanceof Element) return parent;
+		}
+		return null;
+	}
+	function walkCrossShadow(current, selector, origin) {
+		if (!current) return null;
+		if (current instanceof Document) return findMatchingDocumentElement(current, selector, origin);
+		const closest = current.closest(selector);
+		if (closest) return closest;
+		return walkCrossShadow(getNextCrossShadowTarget(current), selector, origin);
+	}
+	//#endregion
+	//#region src/core/containerResolution.ts
+	function findConnectedContainerBySelector(video, selector) {
+		if (!selector) return null;
+		const matched = closestCrossShadow(video, selector);
+		if (matched instanceof HTMLElement && matched.isConnected && containsCrossShadow(matched, video)) return matched;
+		return null;
+	}
+	//#endregion
+	//#region src/utils/environment.ts
+	var UNKNOWN_VALUE = "unknown";
+	var joinParts = (...parts) => {
+		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
+	};
+	function isDocumentHidden() {
+		return typeof document !== "undefined" && document.hidden;
+	}
+	function getEnvironmentInfo() {
+		return {
+			os: joinParts(browserInfo.os?.name, browserInfo.os?.version),
+			browser: joinParts(browserInfo.browser?.name, browserInfo.browser?.version),
+			loader: (() => {
+				const handler = GM_info?.scriptHandler;
+				const version = GM_info?.version;
+				if (handler && version) return `${handler} v${version}`;
+				return handler || version || UNKNOWN_VALUE;
+			})(),
+			scriptVersion: GM_info?.script?.version ?? UNKNOWN_VALUE,
+			scriptName: GM_info?.script?.name ?? UNKNOWN_VALUE,
+			url: globalThis?.location?.href ?? UNKNOWN_VALUE
+		};
+	}
+	//#endregion
+	//#region src/utils/intervalIdleChecker.ts
+	var DEFAULT_PROFILE = {
+		checkIntervalMs: 250,
+		idleAfterMs: 180
+	};
+	function normalizePositiveMs(value, fallback) {
+		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+		return Math.max(1, Math.trunc(value));
+	}
+	function normalizeNonNegativeMs(value, fallback) {
+		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+		return Math.max(0, Math.trunc(value));
+	}
+	function normalizeProfile(profile = {}) {
+		return {
+			checkIntervalMs: normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs),
+			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs)
+		};
+	}
+	function getDefaultRuntime() {
+		return {
+			nowMs: () => typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now(),
+			setInterval: globalThis.setInterval.bind(globalThis),
+			clearInterval: globalThis.clearInterval.bind(globalThis),
+			queueMicrotask: (fn) => {
+				globalThis.queueMicrotask(fn);
+			},
+			onVisibilityChange: (listener) => {
+				if (typeof document === "undefined" || typeof document.addEventListener !== "function") return () => void 0;
+				document.addEventListener("visibilitychange", listener);
+				return () => {
+					if (typeof document.removeEventListener === "function") document.removeEventListener("visibilitychange", listener);
+				};
+			}
+		};
+	}
+	var IntervalIdleChecker = class {
+		profile;
+		runtime;
+		subscribers = /* @__PURE__ */ new Set();
+		intervalId = null;
+		unsubscribeVisibilityChange = null;
+		running = false;
+		destroyed = false;
+		immediateQueued = false;
+		currentMode = "active";
+		lastActivityAt;
+		onVisibilityChangeHandler = () => {
+			if (this.destroyed || !this.running) return;
+			if (isDocumentHidden()) this.clearIntervalTimer();
+			else this.armInterval();
+			this.requestImmediateTick();
+		};
+		constructor(options = {}) {
+			this.profile = normalizeProfile(options.profile);
+			this.runtime = {
+				...getDefaultRuntime(),
+				...options.runtime
+			};
+			this.lastActivityAt = this.runtime.nowMs();
+		}
+		start() {
+			if (this.destroyed || this.running) return;
+			this.running = true;
+			this.lastActivityAt = this.runtime.nowMs();
+			this.subscribeVisibilityChange();
+			this.armInterval();
+			this.runTick("start");
+		}
+		stop() {
+			if (!this.running) return;
+			this.running = false;
+			this.clearIntervalTimer();
+			this.immediateQueued = false;
+			this.unsubscribeFromVisibilityChange();
+		}
+		destroy() {
+			if (this.destroyed) return;
+			this.stop();
+			this.subscribers.clear();
+			this.destroyed = true;
+		}
+		subscribe(fn) {
+			if (this.destroyed) return () => void 0;
+			this.subscribers.add(fn);
+			return () => {
+				this.subscribers.delete(fn);
+			};
+		}
+		markActivity(_source) {
+			if (this.destroyed) return;
+			this.lastActivityAt = this.runtime.nowMs();
+			if (!this.running) return;
+			const nextMode = this.resolveMode(this.lastActivityAt);
+			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+		}
+		requestImmediateTick() {
+			if (this.destroyed || !this.running || this.immediateQueued) return;
+			this.immediateQueued = true;
+			this.runtime.queueMicrotask(() => {
+				this.immediateQueued = false;
+				if (this.destroyed || !this.running) return;
+				this.runTick("immediate");
+			});
+		}
+		resolveMode(nowMs) {
+			if (isDocumentHidden()) return "hidden";
+			return nowMs - this.lastActivityAt >= this.profile.idleAfterMs ? "idle" : "active";
+		}
+		clearIntervalTimer() {
+			if (this.intervalId === null) return;
+			this.runtime.clearInterval(this.intervalId);
+			this.intervalId = null;
+		}
+		armInterval() {
+			if (this.intervalId !== null) return;
+			this.intervalId = this.runtime.setInterval(() => {
+				this.runTick("interval");
+			}, this.profile.checkIntervalMs);
+		}
+		runTick(source) {
+			if (this.destroyed || !this.running) return;
+			if (this.subscribers.size === 0) return;
+			const nowMs = this.runtime.nowMs();
+			const nextMode = this.resolveMode(nowMs);
+			if (nextMode !== this.currentMode) this.currentMode = nextMode;
+			const ctx = {
+				nowMs,
+				mode: nextMode,
+				source
+			};
+			for (const sub of this.subscribers) try {
+				sub(ctx);
+			} catch {}
+		}
+		subscribeVisibilityChange() {
+			if (this.unsubscribeVisibilityChange !== null) return;
+			this.unsubscribeVisibilityChange = this.runtime.onVisibilityChange(this.onVisibilityChangeHandler);
+		}
+		unsubscribeFromVisibilityChange() {
+			if (this.unsubscribeVisibilityChange === null) return;
+			this.unsubscribeVisibilityChange();
+			this.unsubscribeVisibilityChange = null;
+		}
+	};
+	function createIntervalIdleChecker(profile) {
+		return new IntervalIdleChecker({ profile });
+	}
+	//#endregion
+	//#region src/utils/domTraversal.ts
+	function getComposedParentElement(node) {
+		if (!node) return null;
+		const parentElement = node.parentElement ?? null;
+		if (parentElement) return parentElement;
+		if (typeof node.getRootNode !== "function") return null;
+		const root = node.getRootNode();
+		if (root && "host" in root) return root.host ?? null;
+		return null;
+	}
+	function someComposedAncestor(node, predicate) {
+		for (let parent = getComposedParentElement(node); parent; parent = getComposedParentElement(parent)) if (predicate(parent)) return true;
+		return false;
+	}
+	function isArrayLikeChildren(children) {
+		return "length" in children;
+	}
+	function pushChildrenToStack(stack, stackSize, children) {
+		if (isArrayLikeChildren(children)) {
+			const arrayLike = children;
+			for (let index = 0; index < arrayLike.length; index += 1) {
+				const child = arrayLike[index];
+				if (child !== void 0 && child !== null) {
+					stack[stackSize] = child;
+					stackSize += 1;
+				}
+			}
+		} else for (const child of children) if (child !== void 0 && child !== null) {
+			stack[stackSize] = child;
+			stackSize += 1;
+		}
+		return stackSize;
+	}
+	function walkShadowIncludingSubtree(root, adapter, visit) {
+		const stack = [root];
+		const { getChildren, getShadowRoot } = adapter;
+		let stackSize = 1;
+		while (stackSize > 0) {
+			const node = stack[stackSize - 1];
+			stackSize -= 1;
+			visit(node);
+			stackSize = pushChildrenToStack(stack, stackSize, getChildren(node));
+			const shadowRoot = getShadowRoot(node);
+			if (shadowRoot) {
+				stack[stackSize] = shadowRoot;
+				stackSize += 1;
+			}
+		}
+	}
+	//#endregion
+	//#region src/utils/eventImpl.ts
+	var EventImpl = class {
+		listeners = /* @__PURE__ */ new Set();
+		get size() {
+			return this.listeners.size;
+		}
+		addListener(handler) {
+			this.listeners.add(handler);
+			return this;
+		}
+		removeListener(handler) {
+			this.listeners.delete(handler);
+			return this;
+		}
+		dispatch(...args) {
+			for (const handler of this.listeners) try {
+				handler(...args);
+			} catch (exception) {
+				console.error("[VOT]", exception);
+			}
+		}
+		async dispatchAsync(...args) {
+			const pending = [];
+			for (const handler of this.listeners) try {
+				const result = handler(...args);
+				if (result && typeof result.then === "function") pending.push(Promise.resolve(result));
+			} catch (exception) {
+				console.error("[VOT]", exception);
+			}
+			if (!pending.length) return;
+			const settled = await Promise.allSettled(pending);
+			for (const item of settled) if (item.status === "rejected") console.error("[VOT]", item.reason);
+		}
+		clear() {
+			this.listeners.clear();
+		}
+	};
+	//#endregion
+	//#region src/utils/VideoObserver.ts
+	var AD_ATTRS = [
+		"class",
+		"id",
+		"title"
+	];
+	var AD_KEYWORD_PATTERN = new RegExp([
+		"advertise",
+		"advertisement",
+		"promo",
+		"sponsor",
+		"banner",
+		"commercial",
+		"preroll",
+		"midroll",
+		"postroll",
+		"ad-container",
+		"sponsored"
+	].map((keyword) => keyword.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)).join("|"));
+	var ATTACH_SHADOW_HOOK_KEY = Symbol.for("vot.attachShadowHook");
+	function getAttachShadowDescriptor() {
+		const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, "attachShadow");
+		if (!descriptor || typeof descriptor.value !== "function") return null;
+		return descriptor;
+	}
+	function getOrInstallAttachShadowHook() {
+		const g = globalThis;
+		const existing = g[ATTACH_SHADOW_HOOK_KEY];
+		if (existing?.descriptor && existing.subscribers instanceof Set) return existing;
+		const descriptor = getAttachShadowDescriptor();
+		if (!descriptor) return null;
+		const original = descriptor.value;
+		const state = {
+			descriptor,
+			subscribers: /* @__PURE__ */ new Set()
+		};
+		const patchedAttachShadow = function(init) {
+			const root = original.call(this, init);
+			for (const sub of state.subscribers) try {
+				sub(root);
+			} catch (error) {
+				debug.error("attachShadow subscriber failed", error);
+			}
+			return root;
+		};
+		try {
+			Object.defineProperty(Element.prototype, "attachShadow", {
+				...descriptor,
+				value: patchedAttachShadow
+			});
+		} catch {
+			return null;
+		}
+		g[ATTACH_SHADOW_HOOK_KEY] = state;
+		return state;
+	}
+	function removeAttachShadowSubscriber(subscriber) {
+		const g = globalThis;
+		const state = g[ATTACH_SHADOW_HOOK_KEY];
+		if (!state) return;
+		state.subscribers.delete(subscriber);
+		if (state.subscribers.size > 0) return;
+		try {
+			Object.defineProperty(Element.prototype, "attachShadow", state.descriptor);
+		} catch {
+			const original = state.descriptor.value;
+			if (typeof original === "function") Element.prototype.attachShadow = original;
+		}
+		delete g[ATTACH_SHADOW_HOOK_KEY];
+	}
+	var VideoObserver = class VideoObserver {
+		seenVideos = /* @__PURE__ */ new WeakSet();
+		activeVideos = /* @__PURE__ */ new WeakSet();
+		observedRoots = /* @__PURE__ */ new WeakSet();
+		videoListenerControllers = /* @__PURE__ */ new Map();
+		pendingAdded = /* @__PURE__ */ new Set();
+		pendingRemoved = /* @__PURE__ */ new Set();
+		flushPending = false;
+		static MAX_FLUSH_BUDGET_MS = 6;
+		static MAX_NODES_PER_SLICE = 120;
+		onVideoAdded = new EventImpl();
+		onVideoRemoved = new EventImpl();
+		observer = new MutationObserver((muts) => this.onMutations(muts));
+		intervalIdleChecker;
+		checkerUnsubscribe = null;
+		enabled = false;
+		attachShadowSubscriber = null;
+		onDocumentReady = null;
+		onPageShow = () => {
+			const root = document.documentElement;
+			if (!root) return;
+			this.pendingAdded.add(root);
+			this.scheduleFlush();
+		};
+		constructor(intervalIdleChecker = createIntervalIdleChecker()) {
+			this.intervalIdleChecker = intervalIdleChecker;
+		}
+		static containsAdKeyword(value) {
+			return value.length > 0 && AD_KEYWORD_PATTERN.test(value);
+		}
+		isAdRelated(element) {
+			for (const attr of AD_ATTRS) {
+				const rawValue = element.getAttribute(attr);
+				if (!rawValue) continue;
+				if (VideoObserver.containsAdKeyword(rawValue.toLowerCase())) return true;
+			}
+			return false;
+		}
+		isInsideAd(video) {
+			return someComposedAncestor(video, (p) => this.isAdRelated(p));
+		}
+		getCapturedAudioTrackCount(video) {
+			const candidate = video;
+			const captureStream = candidate.captureStream ?? candidate.mozCaptureStream;
+			if (typeof captureStream !== "function") return null;
+			try {
+				return captureStream.call(video).getAudioTracks().length;
+			} catch {
+				return null;
+			}
+		}
+		isLikelySilentDecorativeVideo(video) {
+			if (!(video.muted || video.defaultMuted)) return false;
+			if (!video.autoplay || !video.loop) return false;
+			if (video.controls) return false;
+			const v = video;
+			if (typeof v.mozHasAudio === "boolean") return !v.mozHasAudio;
+			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
+				if (v.audioTracks.length > 0) return false;
+				const capturedTrackCount = this.getCapturedAudioTrackCount(video);
+				if (capturedTrackCount !== null) return capturedTrackCount === 0;
+				return true;
+			}
+			const capturedTrackCount = this.getCapturedAudioTrackCount(video);
+			if (capturedTrackCount !== null) return capturedTrackCount === 0;
+			return false;
+		}
+		hasAudio(video) {
+			const v = video;
+			if (video.srcObject instanceof MediaStream) return video.srcObject.getAudioTracks().length > 0;
+			if (typeof v.mozHasAudio === "boolean") return v.mozHasAudio;
+			if (typeof v.webkitAudioDecodedByteCount === "number" && v.webkitAudioDecodedByteCount > 0) return true;
+			if ("audioTracks" in v && typeof v.audioTracks?.length === "number") {
+				if (v.audioTracks.length > 0) return true;
+			}
+			if (this.isLikelySilentDecorativeVideo(video)) return false;
+			return true;
+		}
+		isValidVideo(video) {
+			if (this.isAdRelated(video)) return false;
+			if (this.isInsideAd(video)) return false;
+			if (!this.hasAudio(video)) {
+				debug.log("Ignoring video without audio:", video);
+				return false;
+			}
+			return true;
+		}
+		observeRoot(root) {
+			if (this.observedRoots.has(root)) return;
+			this.observedRoots.add(root);
+			this.observer.observe(root, {
+				childList: true,
+				subtree: true
+			});
+		}
+		static domAdapter = {
+			getChildren: (node) => Array.from(node.children ?? []),
+			getShadowRoot: (node) => node.shadowRoot
+		};
+		scan(root) {
+			if (root instanceof HTMLVideoElement) {
+				this.trackVideo(root);
+				return;
+			}
+			if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
+			walkShadowIncludingSubtree(root, VideoObserver.domAdapter, (el) => {
+				if (el instanceof HTMLVideoElement) {
+					this.trackVideo(el);
+					return;
+				}
+				const sr = el.shadowRoot;
+				if (sr) this.observeRoot(sr);
+			});
+		}
+		getVideoListenerSignal(video) {
+			const existingController = this.videoListenerControllers.get(video);
+			if (existingController) existingController.abort();
+			const controller = new AbortController();
+			this.videoListenerControllers.set(video, controller);
+			return controller.signal;
+		}
+		cleanupVideoListeners(video) {
+			const controller = this.videoListenerControllers.get(video);
+			if (!controller) return;
+			controller.abort();
+			this.videoListenerControllers.delete(video);
+		}
+		cleanupAllVideoListeners() {
+			for (const controller of this.videoListenerControllers.values()) controller.abort();
+			this.videoListenerControllers.clear();
+		}
+		trackVideo(video) {
+			if (this.seenVideos.has(video)) return;
+			this.seenVideos.add(video);
+			const listenerSignal = this.getVideoListenerSignal(video);
+			const tryValidate = () => {
+				if (this.isValidVideo(video)) {
+					if (!this.activeVideos.has(video)) {
+						this.activeVideos.add(video);
+						this.onVideoAdded.dispatch(video);
+					}
+				}
+			};
+			if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
+			else {
+				video.addEventListener("loadeddata", tryValidate, {
+					once: true,
+					signal: listenerSignal
+				});
+				const handlePlay = () => {
+					if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) tryValidate();
+				};
+				video.addEventListener("play", handlePlay, {
+					once: true,
+					passive: true,
+					signal: listenerSignal
+				});
+			}
+			video.addEventListener("emptied", () => {
+				if (!video.isConnected) this.untrackVideo(video);
+			}, {
+				passive: true,
+				signal: listenerSignal
+			});
+		}
+		untrackVideo(video) {
+			this.cleanupVideoListeners(video);
+			if (this.activeVideos.has(video)) {
+				this.onVideoRemoved.dispatch(video);
+				this.activeVideos.delete(video);
+			}
+			this.seenVideos.delete(video);
+		}
+		collectVideos(node) {
+			const set = /* @__PURE__ */ new Set();
+			if (node instanceof HTMLVideoElement) set.add(node);
+			if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return Array.from(set);
+			walkShadowIncludingSubtree(node, VideoObserver.domAdapter, (el) => {
+				if (el instanceof HTMLVideoElement) set.add(el);
+			});
+			return Array.from(set);
+		}
+		getNowMs() {
+			if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
+			return Date.now();
+		}
+		isSliceBudgetReached(startMs, processed) {
+			if (processed >= VideoObserver.MAX_NODES_PER_SLICE) return true;
+			return this.getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
+		}
+		processPendingAdded(startMs) {
+			let processed = 0;
+			while (this.pendingAdded.size > 0) {
+				const next = this.pendingAdded.values().next();
+				if (next.done) break;
+				this.pendingAdded.delete(next.value);
+				this.scan(next.value);
+				processed += 1;
+				if (this.isSliceBudgetReached(startMs, processed)) break;
+			}
+			return processed;
+		}
+		processPendingRemoved(startMs, processed) {
+			let processedCount = processed;
+			while (this.pendingRemoved.size > 0) {
+				if (this.isSliceBudgetReached(startMs, processedCount)) break;
+				const next = this.pendingRemoved.values().next();
+				if (next.done) break;
+				this.pendingRemoved.delete(next.value);
+				for (const video of this.collectVideos(next.value)) if (!video.isConnected) this.untrackVideo(video);
+				processedCount += 1;
+			}
+			return processedCount;
+		}
+		flushSlice = () => {
+			if (!this.enabled) {
+				this.pendingAdded.clear();
+				this.pendingRemoved.clear();
+				this.flushPending = false;
+				return;
+			}
+			const startMs = this.getNowMs();
+			const processedAdded = this.processPendingAdded(startMs);
+			this.processPendingRemoved(startMs, processedAdded);
+			this.flushPending = this.pendingAdded.size > 0 || this.pendingRemoved.size > 0;
+			if (this.flushPending) this.intervalIdleChecker.requestImmediateTick();
+		};
+		onCheckerTick = () => {
+			if (!this.flushPending) return;
+			this.flushSlice();
+		};
+		scheduleFlush = () => {
+			if (!this.enabled) return;
+			this.flushPending = true;
+			this.intervalIdleChecker.requestImmediateTick();
+		};
+		installAttachShadowHook() {
+			if (this.attachShadowSubscriber) return;
+			const state = getOrInstallAttachShadowHook();
+			if (!state) return;
+			const subscriber = (root) => {
+				if (!this.enabled) return;
+				this.observeRoot(root);
+				this.pendingAdded.add(root);
+				this.scheduleFlush();
+			};
+			state.subscribers.add(subscriber);
+			this.attachShadowSubscriber = subscriber;
+		}
+		uninstallAttachShadowHook() {
+			if (!this.attachShadowSubscriber) return;
+			removeAttachShadowSubscriber(this.attachShadowSubscriber);
+			this.attachShadowSubscriber = null;
+		}
+		enqueueAddedNode(node) {
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				const shadowRoot = node.shadowRoot;
+				if (shadowRoot) this.observeRoot(shadowRoot);
+			}
+			this.pendingAdded.add(node);
+		}
+		enqueueMutation(mutation) {
+			for (const node of mutation.addedNodes) this.enqueueAddedNode(node);
+			for (const node of mutation.removedNodes) this.pendingRemoved.add(node);
+		}
+		onMutations(mutations) {
+			for (const mutation of mutations) {
+				if (mutation.type !== "childList") continue;
+				this.enqueueMutation(mutation);
+			}
+			if (this.pendingAdded.size > 0 || this.pendingRemoved.size > 0) this.scheduleFlush();
+		}
+		enable() {
+			if (this.enabled) return;
+			this.enabled = true;
+			this.checkerUnsubscribe?.();
+			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(this.onCheckerTick);
+			this.intervalIdleChecker.start();
+			this.intervalIdleChecker.markActivity("video-observer-enable");
+			this.installAttachShadowHook();
+			globalThis.addEventListener("pageshow", this.onPageShow, { passive: true });
+			const root = document.documentElement;
+			if (root) {
+				this.observeRoot(root);
+				this.scan(root);
+				return;
+			}
+			const onReady = () => {
+				const r = document.documentElement;
+				if (!r) return;
+				document.removeEventListener("readystatechange", onReady);
+				this.onDocumentReady = null;
+				if (!this.enabled) return;
+				this.observeRoot(r);
+				this.scan(r);
+			};
+			this.onDocumentReady = onReady;
+			document.addEventListener("readystatechange", onReady);
+			queueMicrotask(onReady);
+		}
+		disable() {
+			if (!this.enabled) return;
+			this.enabled = false;
+			globalThis.removeEventListener("pageshow", this.onPageShow);
+			if (this.onDocumentReady) {
+				document.removeEventListener("readystatechange", this.onDocumentReady);
+				this.onDocumentReady = null;
+			}
+			this.uninstallAttachShadowHook();
+			this.observer.disconnect();
+			this.cleanupAllVideoListeners();
+			this.flushPending = false;
+			this.checkerUnsubscribe?.();
+			this.checkerUnsubscribe = null;
+			this.intervalIdleChecker.stop();
+			this.pendingAdded.clear();
+			this.pendingRemoved.clear();
+			this.seenVideos = /* @__PURE__ */ new WeakSet();
+			this.activeVideos = /* @__PURE__ */ new WeakSet();
+			this.observedRoots = /* @__PURE__ */ new WeakSet();
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/providers/base.js
+	var BaseProvider = class {
+		host;
+		schema;
+		fetch;
+		fetchOpts;
+		userAgent = config_default$1.userAgent;
+		requestLang;
+		responseLang;
+		headers = {
+			"User-Agent": this.userAgent,
+			"Accept-Language": "en",
+			Pragma: "no-cache",
+			"Cache-Control": "no-cache"
+		};
+		hostSchemaRe = /(http(s)?):\/\//;
+		constructor({ host = config_default$1.host, fetchFn = fetchWithTimeout, fetchOpts = {}, headers = {}, requestLang = "en", responseLang = "ru" } = {}) {
+			const schema = this.hostSchemaRe.exec(host)?.[1];
+			this.host = schema ? host.replace(`${schema}://`, "") : host;
+			this.schema = schema ?? "https";
+			this.fetch = fetchFn;
+			this.fetchOpts = fetchOpts;
+			this.headers = {
+				...this.headers,
+				...headers
+			};
+			this.requestLang = requestLang;
+			this.responseLang = responseLang;
+		}
+		async request(path, body, headers = {}, method = "POST") {
+			const options = this.getOpts(new Blob([body]), headers, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.arrayBuffer();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		async requestJSON(path, body = null, headers = {}, method = "POST") {
+			const options = this.getOpts(body, {
+				"Content-Type": "application/json",
+				...headers
+			}, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		getOpts(body, headers = {}, method = "POST") {
+			return {
+				method,
+				headers: {
+					...this.headers,
+					...headers
+				},
+				body,
+				...this.fetchOpts
+			};
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/protobuf.js
+	function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
+		return VideoTranslationRequest.encode({
+			url,
+			firstRequest,
+			duration,
+			unknown0: true,
+			language: requestLang,
+			forceSourceLang,
+			unknown1: false,
+			translationHelp: translationHelp ?? [],
+			responseLanguage: responseLang,
+			wasStream,
+			unknown2: true,
+			unknown3: 2,
+			bypassCache,
+			useLivelyVoice,
+			videoTitle
+		}).finish();
+	}
+	function decodeTranslationResponse(response) {
+		return VideoTranslationResponse.decode(new Uint8Array(response));
+	}
+	function encodeTranslationCacheRequest(url, duration, requestLang, responseLang) {
+		return VideoTranslationCacheRequest.encode({
+			url,
+			duration,
+			language: requestLang,
+			responseLanguage: responseLang
+		}).finish();
+	}
+	function decodeTranslationCacheResponse(response) {
+		return VideoTranslationCacheResponse.decode(new Uint8Array(response));
+	}
+	function isPartialAudioBuffer(audioBuffer) {
+		return "chunkId" in audioBuffer;
+	}
+	function encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio) {
+		if (partialAudio && isPartialAudioBuffer(audioBuffer)) return VideoTranslationAudioRequest.encode({
+			url,
+			translationId,
+			partialAudioInfo: {
+				...partialAudio,
+				audioBuffer
+			}
+		}).finish();
+		return VideoTranslationAudioRequest.encode({
+			url,
+			translationId,
+			audioInfo: audioBuffer
+		}).finish();
+	}
+	function decodeTranslationAudioResponse(response) {
+		return VideoTranslationAudioResponse.decode(new Uint8Array(response));
+	}
+	function encodeSubtitlesRequest(url, requestLang) {
+		return SubtitlesRequest.encode({
+			url,
+			language: requestLang
+		}).finish();
+	}
+	function decodeSubtitlesResponse(response) {
+		return SubtitlesResponse.decode(new Uint8Array(response));
+	}
+	function encodeStreamPingRequest(pingId) {
+		return StreamPingRequest.encode({ pingId }).finish();
+	}
+	function encodeStreamRequest(url, requestLang, responseLang) {
+		return StreamTranslationRequest.encode({
+			url,
+			language: requestLang,
+			responseLanguage: responseLang,
+			unknown0: 1,
+			unknown1: 0
+		}).finish();
+	}
+	function decodeStreamResponse(response) {
+		return StreamTranslationResponse.decode(new Uint8Array(response));
+	}
+	function encodeVideoLangCacheRequest(url, title) {
+		return VideoLangCacheRequest.encode({
+			url,
+			title
+		}).finish();
+	}
+	function decodeVideoLangCacheResponse(response) {
+		return VideoLangCacheResponse.decode(new Uint8Array(response));
+	}
+	var YandexVOTProtobuf = {
+		encodeTranslationRequest,
+		decodeTranslationResponse,
+		encodeTranslationCacheRequest,
+		decodeTranslationCacheResponse,
+		isPartialAudioBuffer,
+		encodeTranslationAudioRequest,
+		decodeTranslationAudioResponse,
+		encodeSubtitlesRequest,
+		decodeSubtitlesResponse,
+		encodeStreamPingRequest,
+		encodeStreamRequest,
+		decodeStreamResponse,
+		encodeVideoLangCacheRequest,
+		decodeVideoLangCacheResponse
+	};
+	function encodeSessionRequest(uuid, module) {
+		return YandexSessionRequest.encode({
+			uuid,
+			module
+		}).finish();
+	}
+	function decodeSessionResponse(response) {
+		return YandexSessionResponse.decode(new Uint8Array(response));
+	}
+	var YandexSessionProtobuf = {
+		encodeSessionRequest,
+		decodeSessionResponse
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/client.js
+	var VOTJSError = class extends Error {
+		data;
+		constructor(message, data = void 0) {
+			super(message);
+			this.data = data;
+			this.name = "VOTJSError";
+		}
+	};
+	var VOTClient$1 = class {
+		provider;
+		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
+			const ProviderClass = provider ?? YandexProvider;
+			this.provider = new ProviderClass({
+				host,
+				fetchFn,
+				fetchOpts,
+				headers,
+				apiToken,
+				requestLang,
+				responseLang
+			});
+		}
+		async translateVideo(opts) {
+			return await this.provider.translateVideo(opts);
+		}
+		async translateStream(opts) {
+			return await this.provider.translateStream(opts);
+		}
+		async getSubtitles(opts) {
+			return await this.provider.getSubtitles(opts);
+		}
+		get requestLang() {
+			return this.provider.requestLang;
+		}
+		set requestLang(lang) {
+			this.provider.requestLang = lang;
+		}
+		get responseLang() {
+			return this.provider.responseLang;
+		}
+		set responseLang(lang) {
+			this.provider.responseLang = lang;
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/providers/yandex.js
+	var YandexProvider = class extends BaseProvider {
+		headers = {
+			"User-Agent": this.userAgent,
+			Accept: "application/x-protobuf",
+			"Accept-Language": "en",
+			"Content-Type": "application/x-protobuf",
+			Pragma: "no-cache",
+			"Cache-Control": "no-cache"
+		};
+		paths = {
+			videoTranslation: "/video-translation/translate",
+			videoTranslationFailAudio: "/video-translation/fail-audio-js",
+			videoTranslationAudio: "/video-translation/audio",
+			videoTranslationCache: "/video-translation/cache",
+			videoSubtitles: "/video-subtitles/get-subtitles",
+			streamPing: "/stream-translation/ping-stream",
+			streamTranslation: "/stream-translation/translate-stream"
+		};
+		sessions = {};
+		apiToken;
+		constructor({ apiToken, ...baseOpts } = {}) {
+			super(baseOpts);
+			this.apiToken = apiToken;
+		}
+		get apiTokenHeader() {
+			if (!this.apiToken) return {};
+			return { Authorization: `OAuth ${this.apiToken}` };
+		}
+		async getSession(module) {
+			const timestamp = getTimestamp$1();
+			const session = this.sessions[module];
+			if (session && session.timestamp + session.expires > timestamp) return session;
+			const { secretKey, expires, uuid } = await this.createSession(module);
+			this.sessions[module] = {
+				secretKey,
+				expires,
+				timestamp,
+				uuid
+			};
+			return this.sessions[module];
+		}
+		async createSession(module) {
+			const uuid = getUUID();
+			const body = YandexSessionProtobuf.encodeSessionRequest(uuid, module);
+			const res = await this.request("/session/create", body, { "Vtrans-Signature": await getSignature(body) });
+			if (!res.success) throw new VOTJSError("Failed to request create session", res);
+			return {
+				...YandexSessionProtobuf.decodeSessionResponse(res.data),
+				uuid
+			};
+		}
+		async requestVtransFailAudio(url) {
+			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), void 0, "PUT");
+			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
+			return res;
+		}
+		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
+			const { url, duration = config_default$1.defaultDuration } = videoData;
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, extraOpts);
+			const path = this.paths.videoTranslation;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const apiTokenHeader = extraOpts.useLivelyVoice ? this.apiTokenHeader : {};
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...apiTokenHeader,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
+			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
+			Logger.log("translateVideo", translationData);
+			const { status, translationId } = translationData;
+			switch (status) {
+				case VideoTranslationStatus.FAILED: throw new VOTJSError("Yandex couldn't translate video", translationData);
+				case VideoTranslationStatus.FINISHED:
+				case VideoTranslationStatus.PART_CONTENT:
+					if (!translationData.url) throw new VOTJSError("Audio link wasn't received from Yandex response", translationData);
+					return {
+						translationId,
+						translated: true,
+						url: translationData.url,
+						status,
+						remainingTime: translationData.remainingTime ?? -1
+					};
+				case VideoTranslationStatus.WAITING:
+				case VideoTranslationStatus.LONG_WAITING: return {
+					translationId,
+					translated: false,
+					status,
+					remainingTime: translationData.remainingTime ?? -1
+				};
+				case VideoTranslationStatus.AUDIO_REQUESTED:
+					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
+						await this.requestVtransFailAudio(url);
+						await this.requestVtransAudio(url, translationData.translationId, {
+							audioFile: /* @__PURE__ */ new Uint8Array(0),
+							fileId: `fallback-empty-audio:video-translation:${videoData.videoId}`
+						});
+						return await this.translateVideo({
+							videoData,
+							requestLang,
+							responseLang,
+							translationHelp,
+							headers,
+							extraOpts,
+							shouldSendFailedAudio: false
+						});
+					}
+					return {
+						translationId,
+						translated: false,
+						status,
+						remainingTime: translationData.remainingTime ?? -1
+					};
+				case VideoTranslationStatus.SESSION_REQUIRED: throw new VOTJSError("Yandex auth required to translate video. See docs for more info", translationData);
+				default:
+					Logger.error("Unknown response", translationData);
+					throw new VOTJSError("Unknown response from Yandex", translationData);
+			}
+		}
+		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
+			const session = await this.getSession("video-translation");
+			let body;
+			if (YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
+				if (!partialAudio) throw new VOTJSError("Partial audio metadata is required for partial audio buffer", audioBuffer);
+				body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, partialAudio);
+			} else body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
+			const path = this.paths.videoTranslationAudio;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			}, "PUT");
+			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
+			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
+		}
+		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
+			const { url } = videoData;
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
+			const path = this.paths.videoSubtitles;
+			const vsubsHeaders = await getSecYaHeaders("Vsubs", session, body, path);
+			const res = await this.request(path, body, {
+				...vsubsHeaders,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
+			const subtitlesData = YandexVOTProtobuf.decodeSubtitlesResponse(res.data);
+			const subtitles = subtitlesData.subtitles.map((subtitle) => {
+				const { language, url, translatedLanguage, translatedUrl } = subtitle;
+				return {
+					language,
+					url,
+					translatedLanguage,
+					translatedUrl
+				};
+			});
+			return {
+				waiting: subtitlesData.waiting,
+				subtitles
+			};
+		}
+		async pingStream({ pingId, headers = {} }) {
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
+			const path = this.paths.streamPing;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request stream ping", res);
+			return true;
+		}
+		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+			const { url } = videoData;
+			if (isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
+			const path = this.paths.streamTranslation;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			});
+			if (!res.success) throw new VOTJSError("Failed to request stream translation", res);
+			const translateResponse = YandexVOTProtobuf.decodeStreamResponse(res.data);
+			const interval = translateResponse.interval;
+			switch (interval) {
+				case StreamInterval.NO_CONNECTION:
+				case StreamInterval.TRANSLATING: return {
+					translated: false,
+					interval,
+					message: interval === StreamInterval.NO_CONNECTION ? "streamNoConnectionToServer" : "translationTakeFewMinutes"
+				};
+				case StreamInterval.STREAMING:
+					if (translateResponse.pingId === void 0) throw new VOTJSError("Stream ping id wasn't received from Yandex response", translateResponse);
+					if (!translateResponse.translatedInfo) throw new VOTJSError("Stream translation info wasn't received from Yandex response", translateResponse);
+					return {
+						translated: true,
+						interval,
+						pingId: translateResponse.pingId,
+						result: translateResponse.translatedInfo
+					};
+				default:
+					Logger.error("Unknown response", translateResponse);
+					throw new VOTJSError("Unknown response from Yandex", translateResponse);
+			}
+		}
+		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+			const { url, duration = config_default$1.defaultDuration } = videoData;
+			const session = await this.getSession("video-translation");
+			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
+			const path = this.paths.videoTranslationCache;
+			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
+			const res = await this.request(path, body, {
+				...vtransHeaders,
+				...headers
+			}, "POST");
+			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
+			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/providers/votworker.js
+	var VOTWorkerProvider = class extends YandexProvider {
+		constructor(opts = {}) {
+			opts.host = opts.host ?? config_default$1.hostWorker;
+			super(opts);
+		}
+		async request(path, body, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					...headers
+				},
+				body: Array.from(body)
+			}), { "Content-Type": "application/json" }, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.arrayBuffer();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+		async requestJSON(path, body = null, headers = {}, method = "POST") {
+			const options = this.getOpts(JSON.stringify({
+				headers: {
+					...this.headers,
+					"Content-Type": "application/json",
+					Accept: "application/json",
+					...headers
+				},
+				body
+			}), {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			}, method);
+			try {
+				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
+				const data = await res.json();
+				return {
+					success: res.status === 200,
+					data
+				};
+			} catch (err) {
+				return {
+					success: false,
+					data: err?.message
+				};
+			}
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/client.js
+	var VOTClient = class extends VOTClient$1 {
+		constructor(opts) {
+			super(opts);
+			this.setHeaders();
+		}
+		setHeaders() {
+			this.provider.headers = {
+				...browserSecHeaders,
+				...this.provider.headers
+			};
+			return this;
+		}
+	};
+	//#endregion
+	//#region node_modules/chaimu/dist/config.js
+	var config_default = {
+		version: "1.1.0",
+		debug: false,
+		fetchFn: fetch.bind(window)
+	};
+	//#endregion
+	//#region node_modules/chaimu/dist/debug.js
+	var debug_default = { log: (...text) => {
+		if (!config_default.debug) return;
+		return console.log(`%c✦ chaimu.js v${config_default.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
+	} };
+	//#endregion
+	//#region node_modules/chaimu/dist/player.js
+	var videoLipSyncEvents = [
+		"playing",
+		"ratechange",
+		"play",
+		"waiting",
+		"pause",
+		"seeked",
+		"ended",
+		"timeupdate"
+	];
+	function initAudioContext() {
+		const audioContext = window.AudioContext || window.webkitAudioContext;
+		return audioContext ? new audioContext() : void 0;
+	}
+	var BasePlayer = class {
+		static name = "BasePlayer";
+		chaimu;
+		fetch;
+		_src;
+		_currentSrc;
+		fetchOpts;
+		isDestroyed = false;
+		destructionPromise;
+		storedVolume = 1;
+		lifecycleGeneration = 0;
+		lifecycleQueue = Promise.resolve();
+		videoWithEvents;
+		constructor(chaimu, src) {
+			this.chaimu = chaimu;
+			this._src = src;
+			this.fetch = this.chaimu.fetchFn;
+			this.fetchOpts = this.chaimu.fetchOpts;
+		}
+		async init() {
+			return this;
+		}
+		async clear() {
+			return this;
+		}
+		destroy() {
+			if (this.destructionPromise) return this.destructionPromise;
+			this.isDestroyed = true;
+			this.removeVideoEvents();
+			this.destructionPromise = (async () => {
+				await this.clear();
+				await this.closeAudioContext();
+				return this;
+			})();
+			return this.destructionPromise;
+		}
+		assertActive() {
+			if (this.isDestroyed) throw new Error(`${this.name} has been destroyed`);
+		}
+		async closeAudioContext() {
+			const audioContext = this.chaimu.audioContext;
+			if (!audioContext) return;
+			try {
+				if (audioContext.state !== "closed") await audioContext.close();
+			} finally {
+				if (this.chaimu.audioContext === audioContext) this.chaimu.audioContext = void 0;
+			}
+		}
+		unloadMediaElement(mediaElement) {
+			if (!mediaElement) return;
+			mediaElement.pause();
+			mediaElement.src = "";
+			mediaElement.removeAttribute("src");
+			mediaElement.load();
+		}
+		composeFetchSignal(lifecycleSignal) {
+			const callerSignal = this.fetchOpts?.signal;
+			if (!(callerSignal instanceof AbortSignal)) return lifecycleSignal;
+			if (!lifecycleSignal || callerSignal === lifecycleSignal) return callerSignal;
+			return AbortSignal.any([callerSignal, lifecycleSignal]);
+		}
+		enqueueLifecycle(operation) {
+			const result = this.lifecycleQueue.then(operation);
+			this.lifecycleQueue = result.then(() => void 0, () => void 0);
+			return result;
+		}
+		isVideoPlaying() {
+			const video = this.chaimu.video;
+			return !video.paused && !video.ended && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+		}
+		lipSync(_mode = false) {
+			return this;
+		}
+		handleVideoEvent = (event) => {
+			if (this.isDestroyed || event.currentTarget !== this.chaimu.video) return this;
+			debug_default.log(`handle video ${event.type}`);
+			if (event.type === "timeupdate") {
+				if (this.playbackRate !== this.chaimu.video.playbackRate) this.playbackRate = this.chaimu.video.playbackRate;
+				return this;
+			}
+			this.lipSync(event.type);
+			return this;
+		};
+		audioErrorHandle = (error) => {
+			console.error(`[${this.name}]`, error);
+		};
+		removeVideoEvents(video = this.videoWithEvents ?? this.chaimu.video) {
+			for (const e of videoLipSyncEvents) video.removeEventListener(e, this.handleVideoEvent);
+			if (this.videoWithEvents === video) this.videoWithEvents = void 0;
+			return this;
+		}
+		addVideoEvents(video = this.chaimu.video) {
+			this.assertActive();
+			if (this.videoWithEvents === video) return this;
+			if (this.videoWithEvents) this.removeVideoEvents(this.videoWithEvents);
+			for (const e of videoLipSyncEvents) video.addEventListener(e, this.handleVideoEvent);
+			this.videoWithEvents = video;
+			return this;
+		}
+		async play() {
+			return this;
+		}
+		async pause() {
+			return this;
+		}
+		get name() {
+			return this.constructor.name;
+		}
+		set src(url) {
+			this._src = url;
+		}
+		get src() {
+			return this._src;
+		}
+		get currentSrc() {
+			return this._currentSrc;
+		}
+		set volume(_value) {}
+		get volume() {
+			return 0;
+		}
+		get playbackRate() {
+			return 0;
+		}
+		set playbackRate(_value) {}
+		get currentTime() {
+			return 0;
+		}
+	};
+	var AudioPlayer = class extends BasePlayer {
+		static name = "AudioPlayer";
+		audio;
+		gainNode;
+		audioSource;
+		constructor(chaimu, src) {
+			super(chaimu, src);
+			this.updateAudio();
+		}
+		initAudioBooster() {
+			if (!this.chaimu.audioContext) return this;
+			this.disconnectAudioNodes();
+			this.gainNode = this.chaimu.audioContext.createGain();
+			this.gainNode.gain.value = this.storedVolume;
+			this.gainNode.connect(this.chaimu.audioContext.destination);
+			this.audioSource = this.chaimu.audioContext.createMediaElementSource(this.audio);
+			this.audioSource.connect(this.gainNode);
+			return this;
+		}
+		disconnectAudioNodes() {
+			if (this.audioSource) {
+				this.audioSource.disconnect();
+				this.audioSource = void 0;
+			}
+			if (this.gainNode) {
+				this.gainNode.disconnect();
+				this.gainNode = void 0;
+			}
+		}
+		updateAudio() {
+			this.lifecycleGeneration += 1;
+			this.disconnectAudioNodes();
+			this.unloadMediaElement(this.audio);
+			this.audio = new Audio(this.src);
+			this.audio.crossOrigin = "anonymous";
+			this.audio.playbackRate = this.chaimu.video.playbackRate;
+			if (!this.chaimu.audioContext) this.audio.volume = this.storedVolume;
+			this._currentSrc = this.src;
+			return this;
+		}
+		async init() {
+			this.assertActive();
+			this.updateAudio();
+			this.initAudioBooster();
+			return this;
+		}
+		lipSync(mode = false) {
+			debug_default.log("[AudioPlayer] lipsync video", this.chaimu.video);
+			if (!this.chaimu.video) return this;
+			if (this._currentSrc) {
+				this.audio.currentTime = this.chaimu.video.currentTime;
+				this.audio.playbackRate = this.chaimu.video.playbackRate;
+			}
+			if (!mode) {
+				debug_default.log("[AudioPlayer] lipsync mode isn't set");
+				return this;
+			}
+			debug_default.log(`[AudioPlayer] lipsync mode is ${mode}`);
+			switch (mode) {
+				case "playing":
+					if (!this.chaimu.video.paused && !this.chaimu.video.ended) this.syncPlay();
+					return this;
+				case "seeked":
+					if (this.isVideoPlaying()) this.syncPlay();
+					else this.pause().catch(this.audioErrorHandle);
+					return this;
+				case "pause":
+				case "waiting":
+				case "ended":
+					this.pause().catch(this.audioErrorHandle);
+					return this;
+				default: return this;
+			}
+		}
+		async clear() {
+			this.lifecycleGeneration += 1;
+			this.disconnectAudioNodes();
+			this.unloadMediaElement(this.audio);
+			this._currentSrc = void 0;
+			return this;
+		}
+		syncPlay() {
+			debug_default.log("[AudioPlayer] sync play called");
+			this.play().catch(this.audioErrorHandle);
+			return this;
+		}
+		async play() {
+			this.assertActive();
+			debug_default.log("[AudioPlayer] play called");
+			if (!this._src) throw new Error("No audio source provided");
+			const generation = this.lifecycleGeneration;
+			return this.enqueueLifecycle(async () => {
+				if (generation !== this.lifecycleGeneration) return this;
+				if (this.chaimu.audioContext?.state === "suspended") await this.chaimu.audioContext.resume();
+				if (generation !== this.lifecycleGeneration) return this;
+				await this.audio.play();
+				return this;
+			});
+		}
+		async pause() {
+			this.assertActive();
+			debug_default.log("[AudioPlayer] pause called");
+			this.lifecycleGeneration += 1;
+			this.audio.pause();
+			return this;
+		}
+		set src(url) {
+			this.assertActive();
+			this._src = url;
+			if (!url) {
+				this.clear();
+				return;
+			}
+			this.updateAudio();
+			if (this.chaimu.audioContext) this.initAudioBooster();
+		}
+		get src() {
+			return this._src;
+		}
+		get currentSrc() {
+			return this._currentSrc;
+		}
+		set volume(value) {
+			this.storedVolume = value;
+			if (this.gainNode) {
+				this.gainNode.gain.value = value;
+				return;
+			}
+			this.audio.volume = value;
+		}
+		get volume() {
+			return this.storedVolume;
+		}
+		get playbackRate() {
+			return this.audio.playbackRate;
+		}
+		set playbackRate(value) {
+			this.audio.playbackRate = value;
+		}
+		get currentTime() {
+			return this._currentSrc ? this.audio.currentTime : 0;
+		}
+	};
+	var ChaimuPlayer = class extends BasePlayer {
+		static name = "ChaimuPlayer";
+		audioBuffer;
+		audioElement;
+		mediaElementSource;
+		gainNode;
+		blobUrl;
+		initializationAbortController;
+		cancelInitialization;
+		clearingPromise;
+		playbackGeneration = 0;
+		sourceGeneration = 0;
+		async fetchAudio(signal) {
+			if (!this._src) throw new Error("No audio source provided");
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			debug_default.log(`[ChaimuPlayer] Fetching audio from ${this._src}...`);
+			let tempBlobUrl;
+			try {
+				const fetchSignal = this.composeFetchSignal(signal);
+				const res = await this.fetch(this._src, {
+					...this.fetchOpts,
+					signal: fetchSignal
+				});
+				fetchSignal?.throwIfAborted();
+				debug_default.log(`[ChaimuPlayer] Decoding fetched audio...`);
+				const data = await res.arrayBuffer();
+				fetchSignal?.throwIfAborted();
+				const blob = new Blob([data]);
+				tempBlobUrl = URL.createObjectURL(blob);
+				const audioBuffer = await this.chaimu.audioContext.decodeAudioData(data);
+				fetchSignal?.throwIfAborted();
+				if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
+				this.audioBuffer = audioBuffer;
+				this.blobUrl = tempBlobUrl;
+				tempBlobUrl = void 0;
+			} catch (err) {
+				if (tempBlobUrl) URL.revokeObjectURL(tempBlobUrl);
+				throw new Error(`Failed to fetch audio file, because ${err.message}`);
+			}
+			return this;
+		}
+		initAudioBooster() {
+			if (!this.chaimu.audioContext) return this;
+			this.disconnectAudioNodes();
+			this.gainNode = this.chaimu.audioContext.createGain();
+			this.gainNode.gain.value = this.storedVolume;
+			return this;
+		}
+		disconnectAudioNodes() {
+			if (this.mediaElementSource) {
+				this.mediaElementSource.disconnect();
+				this.mediaElementSource = void 0;
+			}
+			if (this.gainNode) {
+				this.gainNode.disconnect();
+				this.gainNode = void 0;
+			}
+		}
+		releaseMediaResources() {
+			this.disconnectAudioNodes();
+			this.unloadMediaElement(this.audioElement);
+			this.audioElement = void 0;
+			this.audioBuffer = void 0;
+			if (this.blobUrl) {
+				URL.revokeObjectURL(this.blobUrl);
+				this.blobUrl = void 0;
+			}
+			this._currentSrc = void 0;
+		}
+		async init() {
+			this.assertActive();
+			if (!this._src) return this;
+			const generation = this.lifecycleGeneration;
+			return this.enqueueLifecycle(async () => {
+				if (generation !== this.lifecycleGeneration) return this;
+				this.releaseMediaResources();
+				const abortController = new AbortController();
+				let cancelInitialization;
+				const cancellation = new Promise((resolve) => {
+					cancelInitialization = () => resolve("cancelled");
+				});
+				this.initializationAbortController = abortController;
+				this.cancelInitialization = cancelInitialization;
+				try {
+					const initialization = this.fetchAudio(abortController.signal).then(() => "initialized");
+					if (await Promise.race([initialization, cancellation]) === "cancelled" || generation !== this.lifecycleGeneration) return this;
+					this.initAudioBooster();
+					this.createAudioElement();
+					return this;
+				} finally {
+					if (this.initializationAbortController === abortController) {
+						this.initializationAbortController = void 0;
+						this.cancelInitialization = void 0;
+					}
+				}
+			});
+		}
+		createAudioElement() {
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			if (!this.blobUrl) throw new Error("No blob URL available.");
+			const audio = new Audio(this.blobUrl);
+			audio.crossOrigin = "anonymous";
+			audio.playbackRate = this.chaimu.video.playbackRate;
+			if ("preservesPitch" in audio) {
+				audio.preservesPitch = true;
+				if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
+				if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = true;
+			}
+			this.audioElement = audio;
+			this.mediaElementSource = this.chaimu.audioContext.createMediaElementSource(audio);
+			this.mediaElementSource.connect(this.gainNode);
+			this.gainNode.connect(this.chaimu.audioContext.destination);
+			this._currentSrc = this._src;
+		}
+		lipSync(mode = false) {
+			debug_default.log("[ChaimuPlayer] lipsync video", this.chaimu.video, this);
+			if (!this.chaimu.video) return this;
+			if (this.audioElement) {
+				this.audioElement.currentTime = this.chaimu.video.currentTime;
+				this.audioElement.playbackRate = this.chaimu.video.playbackRate;
+			}
+			if (!mode) {
+				debug_default.log("[ChaimuPlayer] lipsync mode isn't set");
+				return this;
+			}
+			debug_default.log(`[ChaimuPlayer] lipsync mode is ${mode}`);
+			switch (mode) {
+				case "playing":
+					if (!this.chaimu.video.paused && !this.chaimu.video.ended) this.play().catch(this.audioErrorHandle);
+					return this;
+				case "seeked":
+					if (this.isVideoPlaying()) this.play().catch(this.audioErrorHandle);
+					else this.pause().catch(this.audioErrorHandle);
+					return this;
+				case "pause":
+				case "waiting":
+				case "ended":
+					this.pause().catch(this.audioErrorHandle);
+					return this;
+				default: return this;
+			}
+		}
+		async reopenCtx() {
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			try {
+				if (this.chaimu.audioContext.state !== "closed") await this.chaimu.audioContext.close();
+			} catch (err) {
+				debug_default.log("[ChaimuPlayer] Failed to close audio context:", err);
+			}
+			this.chaimu.audioContext = initAudioContext();
+			return this;
+		}
+		async clear() {
+			if (this.isDestroyed) return await this.destructionPromise ?? this;
+			this.sourceGeneration += 1;
+			this._currentSrc = void 0;
+			if (this.clearingPromise) return this.clearingPromise;
+			if (!this.chaimu.audioContext) throw new Error("No audio context available");
+			debug_default.log("clear audio context");
+			this.lifecycleGeneration += 1;
+			this.initializationAbortController?.abort();
+			this.cancelInitialization?.();
+			const clearingPromise = this.enqueueLifecycle(async () => {
+				this.releaseMediaResources();
+				await this.reopenCtx();
+				return this;
+			});
+			this.clearingPromise = clearingPromise;
+			try {
+				return await clearingPromise;
+			} finally {
+				if (this.clearingPromise === clearingPromise) this.clearingPromise = void 0;
+			}
+		}
+		destroy() {
+			if (this.destructionPromise) return this.destructionPromise;
+			this.isDestroyed = true;
+			this.removeVideoEvents();
+			this._currentSrc = void 0;
+			this.sourceGeneration += 1;
+			this.lifecycleGeneration += 1;
+			this.initializationAbortController?.abort();
+			this.cancelInitialization?.();
+			this.destructionPromise = this.enqueueLifecycle(async () => {
+				this.releaseMediaResources();
+				await this.closeAudioContext();
+				return this;
+			});
+			return this.destructionPromise;
+		}
+		async play() {
+			this.assertActive();
+			if (!this._src) throw new Error("No audio source provided");
+			if (this.clearingPromise) await this.clearingPromise;
+			const generation = this.lifecycleGeneration;
+			const playbackGeneration = this.playbackGeneration;
+			return this.enqueueLifecycle(async () => {
+				if (generation !== this.lifecycleGeneration || playbackGeneration !== this.playbackGeneration) return this;
+				if (!this.chaimu.audioContext) throw new Error("No audio context available");
+				if (!this.audioElement) throw new Error("Audio element is missing");
+				debug_default.log("starting audio via HTMLAudioElement");
+				if (this.chaimu.audioContext.state === "suspended") await this.chaimu.audioContext.resume();
+				if (generation !== this.lifecycleGeneration || playbackGeneration !== this.playbackGeneration) return this;
+				const audioElement = this.audioElement;
+				if (!audioElement) return this;
+				if (this.chaimu.video) {
+					audioElement.currentTime = this.chaimu.video.currentTime;
+					audioElement.playbackRate = this.chaimu.video.playbackRate;
+				}
+				await audioElement.play();
+				return this;
+			});
+		}
+		start() {
+			return this.play();
+		}
+		async pause() {
+			this.assertActive();
+			this.playbackGeneration += 1;
+			if (this.audioElement) this.audioElement.pause();
+			return this;
+		}
+		set src(url) {
+			this.assertActive();
+			this._src = url;
+			const clearing = this.clear();
+			const sourceGeneration = this.sourceGeneration;
+			if (!url) {
+				clearing.catch((err) => debug_default.log("[ChaimuPlayer] Failed to clear source:", err));
+				return;
+			}
+			clearing.then(() => {
+				if (sourceGeneration !== this.sourceGeneration || this._src !== url) return this;
+				return this.init();
+			}).catch((err) => debug_default.log("[ChaimuPlayer] Failed to replace source:", err));
+		}
+		get src() {
+			return this._src;
+		}
+		get currentSrc() {
+			return this._currentSrc;
+		}
+		set volume(value) {
+			this.storedVolume = value;
+			if (this.gainNode) this.gainNode.gain.value = value;
+		}
+		get volume() {
+			return this.storedVolume;
+		}
+		set playbackRate(value) {
+			if (this.audioElement) this.audioElement.playbackRate = value;
+		}
+		get playbackRate() {
+			return this.audioElement ? this.audioElement.playbackRate : this.chaimu.video?.playbackRate ?? 1;
+		}
+		get currentTime() {
+			return this.audioElement?.currentTime ?? 0;
+		}
+	};
+	//#endregion
+	//#region node_modules/chaimu/dist/client.js
+	var Chaimu = class {
+		_debug = false;
+		audioContext;
+		isDestroyed = false;
+		isInitialized = false;
+		destructionPromise;
+		lifecycleQueue;
+		player;
+		video;
+		fetchFn;
+		fetchOpts;
+		constructor({ url, video, debug = false, fetchFn = config_default.fetchFn, fetchOpts = {}, preferAudio = false }) {
+			this._debug = config_default.debug = debug;
+			this.fetchFn = fetchFn;
+			this.fetchOpts = fetchOpts;
+			this.video = video;
+			this.audioContext = initAudioContext();
+			this.player = this.audioContext && !preferAudio ? new ChaimuPlayer(this, url) : new AudioPlayer(this, url);
+		}
+		assertActive() {
+			if (this.isDestroyed) throw new Error("Chaimu has been destroyed");
+		}
+		isVideoPlaying(video) {
+			return !video.paused && !video.ended && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+		}
+		enqueueLifecycle(operation) {
+			let result;
+			if (this.lifecycleQueue) result = this.lifecycleQueue.then(operation);
+			else try {
+				result = Promise.resolve(operation());
+			} catch (error) {
+				result = Promise.reject(error instanceof Error ? error : new Error(String(error)));
+			}
+			const lifecycleQueue = result.then(() => void 0, () => void 0);
+			this.lifecycleQueue = lifecycleQueue;
+			lifecycleQueue.then(() => {
+				if (this.lifecycleQueue === lifecycleQueue) this.lifecycleQueue = void 0;
+			});
+			return result;
+		}
+		async init() {
+			this.assertActive();
+			return this.enqueueLifecycle(async () => {
+				this.assertActive();
+				await this.player.init();
+				if (this.isDestroyed) return;
+				if (this.isVideoPlaying(this.video)) this.player.lipSync("playing");
+				this.player.addVideoEvents();
+				this.isInitialized = true;
+			});
+		}
+		async replaceVideo(newVideo) {
+			this.assertActive();
+			return this.enqueueLifecycle(() => {
+				this.assertActive();
+				if (newVideo === this.video) return this;
+				this.player.removeVideoEvents();
+				this.video = newVideo;
+				if (this.isInitialized) this.player.addVideoEvents();
+				this.player.lipSync(this.isVideoPlaying(newVideo) ? "seeked" : "pause");
+				return this;
+			});
+		}
+		destroy() {
+			if (this.destructionPromise) return this.destructionPromise;
+			this.isDestroyed = true;
+			this.destructionPromise = this.player.destroy().then(() => this);
+			return this.destructionPromise;
+		}
+		get destroyed() {
+			return this.isDestroyed;
+		}
+		set debug(value) {
+			this._debug = config_default.debug = value;
+		}
+		get debug() {
+			return this._debug;
+		}
+	};
+	//#endregion
+	//#region src/core/cacheManager.ts
+	var YANDEX_TTL_MS = 72e5;
+	var VOT_SESSION_STORAGE_KEY = "VOTSession";
+	function getCurrentUnixTimestampSeconds() {
+		return Math.floor(Date.now() / 1e3);
+	}
+	function isClientSession(value) {
+		if (!value || typeof value !== "object") return false;
+		const candidate = value;
+		return typeof candidate.expires === "number" && Number.isFinite(candidate.expires) && typeof candidate.timestamp === "number" && Number.isFinite(candidate.timestamp) && typeof candidate.uuid === "string" && candidate.uuid.length > 0 && typeof candidate.secretKey === "string" && candidate.secretKey.length > 0;
+	}
+	function sanitizeVOTSessions(value) {
+		if (!value || typeof value !== "object") return {};
+		const now = getCurrentUnixTimestampSeconds();
+		const entries = Object.entries(value).flatMap(([module, session]) => {
+			if (!isClientSession(session)) return [];
+			if (session.timestamp + session.expires <= now) return [];
+			return [[module, session]];
+		});
+		return Object.fromEntries(entries);
+	}
+	function hasSessions(sessions) {
+		return Object.keys(sessions).length > 0;
+	}
+	var VOTSessionStorageCache = class {
+		storage;
+		constructor(storage = votStorage) {
+			this.storage = storage;
+		}
+		getStorageKey() {
+			return VOT_SESSION_STORAGE_KEY;
+		}
+		async restore(_host, currentSessions = {}) {
+			const storageKey = this.getStorageKey();
+			const rawStoredSession = await this.storage.getRaw(storageKey);
+			const restoredSessions = sanitizeVOTSessions(rawStoredSession);
+			if (!hasSessions(restoredSessions)) {
+				if (rawStoredSession !== void 0) await this.storage.deleteRaw(storageKey);
+				return currentSessions;
+			}
+			return {
+				...currentSessions,
+				...restoredSessions
+			};
+		}
+		async persist(_host, sessions) {
+			const storageKey = this.getStorageKey();
+			const sanitizedSessions = sanitizeVOTSessions(sessions);
+			if (!hasSessions(sanitizedSessions)) {
+				await this.storage.deleteRaw(storageKey);
+				return;
+			}
+			await this.storage.setRaw(storageKey, sanitizedSessions);
+		}
+	};
+	/**
+	* Small in-memory cache with TTL for both translations and subtitles.
+	*
+	* The cache is keyed by a stable key built by VideoHandler.
+	*/
+	var InMemoryCacheManager = class {
+		translations = /* @__PURE__ */ new Map();
+		subtitles = /* @__PURE__ */ new Map();
+		/**
+		* Clears all cached entries.
+		*
+		* Used when runtime settings change (e.g. proxy mode/host), because cached
+		* translation URLs and especially previous failures can become stale.
+		*/
+		clear() {
+			this.translations.clear();
+			this.subtitles.clear();
+		}
+		getTranslation(key) {
+			return this.getFreshValue(this.translations, key);
+		}
+		setTranslation(key, translation) {
+			this.setFreshValue(this.translations, key, translation);
+		}
+		getSubtitles(key) {
+			return this.getFreshValue(this.subtitles, key);
+		}
+		setSubtitles(key, subtitles) {
+			this.setFreshValue(this.subtitles, key, subtitles);
+		}
+		deleteSubtitles(key) {
+			this.subtitles.delete(key);
+		}
+		getFreshValue(cache, key) {
+			const entry = cache.get(key);
+			if (!entry) return void 0;
+			if (entry.expiresAt <= Date.now()) {
+				cache.delete(key);
+				return;
+			}
+			return entry.value;
+		}
+		setFreshValue(cache, key, value) {
+			cache.set(key, {
+				value,
+				expiresAt: computeExpiresAt(Date.now(), YANDEX_TTL_MS)
+			});
+		}
+	};
+	//#endregion
+	//#region src/core/fullscreenHelper.ts
+	var FullscreenHelper = class {
+		container;
+		video;
+		fullscreenChangeListeners = /* @__PURE__ */ new Set();
+		handleFullscreenChange = () => {
+			this.notifyFullscreenChange();
+		};
+		nativeFullscreenListenersActive = false;
+		constructor({ container, video }) {
+			this.container = container;
+			this.video = video;
+		}
+		/**
+		* Gets the current fullscreen element with proper ShadowDOM support
+		*/
+		getFullscreenElement() {
+			const doc = document;
+			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+			if (!(fullscreenEl instanceof HTMLElement)) return null;
+			return fullscreenEl;
+		}
+		/**
+		* Gets comprehensive fullscreen information including ShadowDOM details
+		*/
+		getFullscreenInfo() {
+			const element = this.getFullscreenElement();
+			const isFullscreen = Boolean(element);
+			if (!element) return {
+				element: null,
+				shadowRoot: null,
+				isFullscreen: false,
+				belongsToCurrentVideo: false
+			};
+			return {
+				element,
+				shadowRoot: element.shadowRoot ?? null,
+				isFullscreen,
+				belongsToCurrentVideo: this.isElementBelongsToCurrentVideo(element)
+			};
+		}
+		/**
+		* Checks if the given element belongs to the current video/container
+		*/
+		isElementBelongsToCurrentVideo(element) {
+			return element === this.container || containsCrossShadow(element, this.container) || containsCrossShadow(this.container, element) || this.video && (element === this.video || containsCrossShadow(element, this.video) || containsCrossShadow(this.video, element));
+		}
+		/**
+		* Gets the appropriate root element for overlay mounting in fullscreen mode
+		* For Shadow DOM players (e.g., Reddit's shreddit-player), returns shadowRoot
+		* to ensure UI is mounted inside the shadow tree, not in the light DOM.
+		*/
+		getOverlayRoot() {
+			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
+			if (!element || !belongsToCurrentVideo) return null;
+			return shadowRoot ?? element;
+		}
+		/**
+		* Gets the appropriate element for ResizeObserver to watch for size changes
+		* Handles both regular DOM and ShadowDOM scenarios
+		*/
+		getResizeObserverTarget() {
+			const { element, belongsToCurrentVideo, shadowRoot } = this.getFullscreenInfo();
+			if (element && belongsToCurrentVideo) return shadowRoot?.host ?? element;
+			return this.container;
+		}
+		/**
+		* Checks if the current container should be considered "big" for button positioning
+		* Takes into account fullscreen state and ShadowDOM
+		*/
+		isBigContainer(threshold = 550) {
+			const target = this.getResizeObserverTarget();
+			const rect = target.getBoundingClientRect();
+			const videoRect = this.video?.getBoundingClientRect();
+			let width = target.clientWidth;
+			if (rect.width > 0) width = rect.width;
+			if (videoRect && videoRect.width < rect.width) width = videoRect.width;
+			return width > threshold;
+		}
+		/**
+		* Adds a listener for fullscreen changes
+		*/
+		addFullscreenChangeListener(listener) {
+			this.fullscreenChangeListeners.add(listener);
+			if (this.fullscreenChangeListeners.size === 1) this.setupFullscreenListeners();
+		}
+		/**
+		* Removes a fullscreen change listener
+		*/
+		removeFullscreenChangeListener(listener) {
+			this.fullscreenChangeListeners.delete(listener);
+			if (this.fullscreenChangeListeners.size === 0) this.cleanupFullscreenListeners();
+		}
+		/**
+		* Sets up native fullscreen event listeners
+		*/
+		setupFullscreenListeners() {
+			if (this.nativeFullscreenListenersActive) return;
+			document.addEventListener("fullscreenchange", this.handleFullscreenChange);
+			document.addEventListener("webkitfullscreenchange", this.handleFullscreenChange);
+			if (this.video) {
+				this.video.addEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
+				this.video.addEventListener("webkitendfullscreen", this.handleFullscreenChange);
+			}
+			this.nativeFullscreenListenersActive = true;
+		}
+		/**
+		* Cleans up fullscreen event listeners
+		*/
+		cleanupFullscreenListeners() {
+			if (!this.nativeFullscreenListenersActive) return;
+			document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
+			document.removeEventListener("webkitfullscreenchange", this.handleFullscreenChange);
+			if (this.video) {
+				this.video.removeEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
+				this.video.removeEventListener("webkitendfullscreen", this.handleFullscreenChange);
+			}
+			this.nativeFullscreenListenersActive = false;
+		}
+		/**
+		* Notifies all listeners about fullscreen state changes
+		*/
+		notifyFullscreenChange() {
+			for (const listener of this.fullscreenChangeListeners) try {
+				listener();
+			} catch (error) {
+				console.warn("[FullscreenHelper] Error in fullscreen change listener:", error);
+			}
+		}
+		/**
+		* Updates the container reference (useful when video container changes)
+		*/
+		updateContainer(container) {
+			this.container = container;
+		}
+		/**
+		* Updates the video reference
+		*/
+		updateVideo(video) {
+			const shouldRebind = this.nativeFullscreenListenersActive && this.video !== video;
+			if (shouldRebind) this.cleanupFullscreenListeners();
+			this.video = video;
+			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setupFullscreenListeners();
+		}
+		/**
+		* Cleans up all resources
+		*/
+		destroy() {
+			this.cleanupFullscreenListeners();
+			this.fullscreenChangeListeners.clear();
+		}
+	};
+	//#endregion
+	//#region src/core/overlayMountTargets.ts
+	function resolveOverlayBaseContainer(container, site) {
+		return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
+	}
+	function resolveOverlayMountTargets(input) {
+		const base = resolveOverlayBaseContainer(input.container, input.site);
+		const root = input.fullscreenRoot ?? base;
+		return {
+			base,
+			root,
+			portalContainer: base,
+			subtitlesMountContainer: root
+		};
+	}
+	//#endregion
+	//#region src/core/translateApis.ts
+	var SETTINGS_CACHE_TTL_MS = 5e3;
+	var IMMUTABLE_LOOKUP_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
+	var cachedTranslationService = null;
+	var cachedTranslationServiceAt = 0;
+	var cachedDetectService = null;
+	var cachedDetectServiceAt = 0;
+	async function getTranslationServiceCached() {
+		const now = Date.now();
+		if (cachedTranslationService && now - cachedTranslationServiceAt < SETTINGS_CACHE_TTL_MS) return cachedTranslationService;
+		const service = await votStorage.get("translationService", defaultTranslationService);
+		cachedTranslationService = String(service);
+		cachedTranslationServiceAt = now;
+		return cachedTranslationService;
+	}
+	async function getDetectServiceCached() {
+		const now = Date.now();
+		if (cachedDetectService && now - cachedDetectServiceAt < SETTINGS_CACHE_TTL_MS) return cachedDetectService;
+		const service = await votStorage.get("detectService", defaultDetectService);
+		cachedDetectService = String(service);
+		cachedDetectServiceAt = now;
+		return cachedDetectService;
+	}
+	var foswlyServices = ["yandexbrowser", "msedge"];
+	/**
+	* Limit: 10k symbols for yandex, 50k for msedge
+	*/
+	var FOSWLYTranslateAPI = new class {
+		isFOSWLYError(data) {
+			return Object.hasOwn(data, "error");
+		}
+		async request(path, opts = {}) {
+			try {
+				const data = await (await GM_fetch(`${foswlyTranslateUrl}${path}`, {
+					timeout: 3e3,
+					responseCache: {
+						ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
+						cacheName: "vot-foswly-api-v1",
+						allowStaleOnError: true
+					},
+					...opts
+				})).json();
+				if (this.isFOSWLYError(data)) throw new Error(data.error);
+				return data;
+			} catch (err) {
+				console.error(`[VOT] Failed to get data from FOSWLY Translate API, because ${err instanceof Error ? err.message : String(err)}`);
+				return;
+			}
+		}
+		async translateMultiple(text, lang, service) {
+			const result = await this.request("/translate", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					text,
+					lang,
+					service
+				})
+			});
+			return result ? result.translations : text;
+		}
+		async translate(text, lang, service) {
+			const result = await this.request(`/translate?${new URLSearchParams({
+				text,
+				lang,
+				service
+			})}`);
+			return result ? result.translations[0] : text;
+		}
+		async detect(text, service) {
+			const result = await this.request(`/detect?${new URLSearchParams({
+				text,
+				service
+			})}`);
+			return result ? result.lang : "en";
+		}
+	}();
+	var RustServerAPI = { async detect(text) {
+		try {
+			return await (await GM_fetch(detectRustServerUrl, {
+				method: "POST",
+				body: text,
+				timeout: 3e3,
+				responseCache: {
+					ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
+					cacheName: "vot-rust-detect-v1",
+					allowStaleOnError: true
+				}
+			})).text();
+		} catch (error) {
+			console.error(`[VOT] Error getting lang from text, because ${error.message}`);
+			return "en";
+		}
+	} };
+	async function translate(text, fromLang = "", toLang = "ru") {
+		if (fromLang && toLang && fromLang === toLang) return text;
+		const service = await getTranslationServiceCached();
+		switch (service) {
+			case "yandexbrowser":
+			case "msedge": {
+				const langPair = fromLang && toLang ? `${fromLang}-${toLang}` : toLang;
+				return Array.isArray(text) ? await FOSWLYTranslateAPI.translateMultiple(text, langPair, service) : await FOSWLYTranslateAPI.translate(text, langPair, service);
+			}
+			default: return text;
+		}
+	}
+	async function detect(text) {
+		const service = await getDetectServiceCached();
+		switch (service) {
+			case "yandexbrowser":
+			case "msedge": return await FOSWLYTranslateAPI.detect(text, service);
+			case "rust-server": return await RustServerAPI.detect(text);
+			default: return "en";
+		}
+	}
+	var detectServices = [...foswlyServices, "rust-server"];
+	//#endregion
+	//#region src/audioDownloader/strategies/webAudioBridge.ts
+	var STREAM_TIMEOUT_MS = 18e5;
+	/** Between two answers of a running stream: one range can legitimately be slow. */
+	var MESSAGE_TIMEOUT_MS = 3e5;
+	/**
+	* Until the *first* answer.
+	*
+	* The handler acknowledges a request as soon as it accepts it, so nothing
+	* answering inside this budget means nothing is listening (no handler in this
+	* realm, or the message never reached one). Waiting the full message timeout
+	* in that case only delays the server-side fallback by five minutes.
+	*/
+	var FIRST_RESPONSE_TIMEOUT_MS = 3e4;
+	/**
+	* Origins whose answers are accepted.
+	*
+	* An answer is already tied to a `messageId` that nothing outside this module
+	* knows, so this is only the second guard. It has to stay wide: the answer
+	* comes from the page realm itself (the site the video is embedded on), from
+	* the hidden youtube.com realm, or from a realm that reports no origin.
+	*/
+	/**
+	* Whether a bridge answer from `origin` may be trusted.
+	*
+	* Deliberately wide: the answer comes from the page realm itself, from the
+	* hidden youtube.com realm, or from a realm that reports no origin at all.
+	*
+	* CONSOLIDATION: the accepted-origin pattern moved to `internal/hosts.ts`
+	* (copied verbatim, flags included), so the accepted set is unchanged.
+	*/
+	function isTrustedBridgeOrigin(origin) {
+		if (!origin || origin === "null") return true;
+		if (origin === globalThis.location?.origin) return true;
+		return isTrustedYouTubeOrigin(origin);
+	}
+	function parseAudioBridgeChunk(payload) {
+		if (!payload || typeof payload !== "object" || !("buffer" in payload)) throw new Error("Audio downloader. Invalid audio bridge chunk");
+		const { buffer, isLastChunk } = payload;
+		const bytes = buffer instanceof Uint8Array ? buffer : buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : ArrayBuffer.isView(buffer) ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength) : null;
+		if (!bytes || typeof isLastChunk !== "boolean") throw new Error("Audio downloader. Invalid audio bridge chunk");
+		return {
+			buffer: bytes,
+			isLastChunk
+		};
+	}
+	async function* getAudioBridgeChunks(videoId, signal, audioDownloadType) {
+		if (signal.aborted) throw makeAbortError(signal.reason);
+		const messageId = `stream-message-id-${crypto.randomUUID()}`;
+		const queue = createAsyncQueue();
+		let streamFinished = false;
+		let failure;
+		let receivedChunks = 0;
+		let receivedAnyResponse = false;
+		let messageTimeout;
+		const finish = (error) => {
+			if (error) {
+				if (failure) return;
+				failure = error;
+				debug.error("Audio downloader. Audio bridge failed", {
+					videoId,
+					messageId,
+					receivedChunks,
+					error: error.message
+				});
+				queue.fail(error);
+			} else {
+				streamFinished = true;
+				clearTimeout(messageTimeout);
+				debug.log("Audio downloader. Audio bridge stream finished", {
+					videoId,
+					messageId,
+					receivedChunks
+				});
+				queue.close();
+			}
+		};
+		const resetMessageTimeout = () => {
+			clearTimeout(messageTimeout);
+			messageTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error(receivedAnyResponse ? "Audio bridge message timed out" : "Audio bridge did not answer")), receivedAnyResponse ? MESSAGE_TIMEOUT_MS : FIRST_RESPONSE_TIMEOUT_MS);
+		};
+		const throwIfFailed = () => {
+			if (!failure) return;
+			if (!globalThis.location.href.includes(videoId)) throw makeAbortError("URL changed during audio download");
+			throw failure;
+		};
+		const postAbort = () => globalThis.postMessage({
+			messageId,
+			messageType: MESSAGE_TYPE,
+			messageDirection: "request",
+			isStreamFinished: true,
+			isAborted: true
+		}, "*");
+		const onMessage = (event) => {
+			const message = event.data;
+			if (!message || message.messageId !== messageId || message.messageType !== "vot-get-audio-chunks-in-main-world" || message.messageDirection !== "response" || !isTrustedBridgeOrigin(event.origin)) return;
+			receivedAnyResponse = true;
+			resetMessageTimeout();
+			if (message.isAborted) {
+				finish(makeAbortError(message.error));
+				return;
+			}
+			if (message.error) {
+				finish(new Error(typeof message.error === "string" ? message.error : "Audio bridge failed"));
+				return;
+			}
+			if (message.isStreamFinished) {
+				finish();
+				return;
+			}
+			if (message.isProgress) {
+				debug.log("Audio downloader. Audio bridge progress", {
+					videoId,
+					messageId
+				});
+				return;
+			}
+			try {
+				const chunk = parseAudioBridgeChunk(message.payload);
+				queue.push(chunk);
+				receivedChunks++;
+				debug.log("Audio downloader. Audio bridge chunk received", {
+					videoId,
+					messageId,
+					index: receivedChunks - 1,
+					size: chunk.buffer.byteLength,
+					isLastChunk: chunk.isLastChunk
+				});
+			} catch (error) {
+				finish(error instanceof Error ? error : new Error(String(error)));
+			}
+		};
+		const onAbort = () => finish(makeAbortError(signal.reason));
+		const streamTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("Audio bridge stream timed out")), STREAM_TIMEOUT_MS);
+		const navigationInterval = setInterval(() => {
+			if (!globalThis.location.href.includes(videoId)) finish(makeAbortError("URL changed during audio download"));
+		}, 100);
+		globalThis.addEventListener("message", onMessage);
+		signal.addEventListener("abort", onAbort, { once: true });
+		if (signal.aborted) onAbort();
+		resetMessageTimeout();
+		debug.log("Audio downloader. Audio bridge request started", {
+			videoId,
+			messageId,
+			audioDownloadType
+		});
+		try {
+			if (!streamFinished && !failure) globalThis.postMessage({
+				messageId,
+				messageType: MESSAGE_TYPE,
+				messageDirection: "request",
+				payload: {
+					pureVideoId: videoId,
+					audioDownloadType
+				}
+			}, "*");
+			for await (const chunk of queue.drain()) yield chunk;
+			throwIfFailed();
+		} finally {
+			clearTimeout(messageTimeout);
+			clearTimeout(streamTimeout);
+			clearInterval(navigationInterval);
+			globalThis.removeEventListener("message", onMessage);
+			signal.removeEventListener("abort", onAbort);
+			if (!streamFinished || failure) postAbort();
+		}
+	}
+	function getAudioFromBridge({ videoId, signal }, audioDownloadType) {
+		return {
+			fileId: `random-${audioDownloadType}-${crypto.randomUUID()}`,
+			getMediaBuffers: () => getAudioBridgeChunks(videoId, signal, audioDownloadType)
+		};
+	}
+	//#endregion
 	//#region src/audioDownloader/index.ts
+	initPageAudioHandler();
 	function assertHasAudioChunk(chunk) {
 		if (!chunk || chunk.byteLength === 0) throw new Error("Audio downloader. Empty audio");
 		return chunk;
 	}
-	async function handleCommonAudioDownloadRequest({ audioDownloader, attemptedStrategy, translationId, videoId, signal }) {
-		const audioData = await strategies[attemptedStrategy]({
+	async function handleAudioDownloadRequest({ audioDownloader, translationId, videoId, signal, audioDownloadType }) {
+		const { getMediaBuffers, fileId } = getAudioFromBridge({
 			videoId,
 			signal
-		});
-		if (!audioData) throw new Error("Audio downloader. Can not get audio data");
-		debug.log("Audio downloader. Url found", { audioDownloadType: attemptedStrategy });
-		const { getMediaBuffers, fileId } = audioData;
+		}, audioDownloadType);
 		let index = 0;
 		let receivedLastChunk = false;
 		for await (const { buffer, isLastChunk } of getMediaBuffers()) {
@@ -24045,51 +25908,47 @@ var vot = (function(exports) {
 		if (!receivedLastChunk) throw new Error("Audio downloader. Stream ended without a last chunk");
 	}
 	var AudioDownloader = class {
-		onDownloadedAudio = new EventImpl();
 		onDownloadedPartialAudio = new EventImpl();
 		onDownloadAudioError = new EventImpl();
-		strategy;
-		constructor(strategy = WEB_ABR_STRATEGY) {
-			this.strategy = strategy;
-			debug.log("Audio downloader created", { strategy });
-		}
 		async runAudioDownload(videoId, translationId, signal) {
-			const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
-			for (const attemptedStrategy of attempts) try {
-				await handleCommonAudioDownloadRequest({
+			let failure;
+			for (const audioDownloadType of AUDIO_DOWNLOAD_TYPES) try {
+				await handleAudioDownloadRequest({
 					audioDownloader: this,
-					attemptedStrategy,
 					translationId,
 					videoId,
-					signal
+					signal,
+					audioDownloadType
 				});
 				debug.log("Audio downloader. Audio download finished", {
 					videoId,
-					audioDownloadType: attemptedStrategy
+					audioDownloadType
 				});
-				return;
+				return {
+					status: "completed",
+					audioDownloadType
+				};
 			} catch (error) {
 				if (signal.aborted || isAbortError(error)) {
-					debug.log("Audio downloader. Audio download aborted", {
-						videoId,
-						audioDownloadType: attemptedStrategy
-					});
-					return;
+					debug.log("Audio downloader. Audio download aborted", { videoId });
+					return { status: "aborted" };
 				}
-				debug.error("Audio downloader. Strategy failed", {
+				failure = error;
+				debug.error("Audio downloader. Audio download strategy failed", {
 					videoId,
-					audioDownloadType: attemptedStrategy,
-					error: error instanceof Error ? error.message : String(error)
+					audioDownloadType,
+					error: toErrorMessage(error)
 				});
 			}
-			debug.error("Audio downloader. All audio download strategies failed", { videoId });
-			this.onDownloadAudioError.dispatch(translationId, videoId);
+			debug.error("Audio downloader. Audio download failed", {
+				videoId,
+				error: toErrorMessage(failure)
+			});
+			await this.onDownloadAudioError.dispatchAsync(translationId, videoId);
+			return { status: "failed" };
 		}
 		addEventListener(type, listener) {
 			switch (type) {
-				case "downloadedAudio":
-					this.onDownloadedAudio.addListener(listener);
-					break;
 				case "downloadedPartialAudio":
 					this.onDownloadedPartialAudio.addListener(listener);
 					break;
@@ -24099,9 +25958,6 @@ var vot = (function(exports) {
 		}
 		removeEventListener(type, listener) {
 			switch (type) {
-				case "downloadedAudio":
-					this.onDownloadedAudio.removeListener(listener);
-					break;
 				case "downloadedPartialAudio":
 					this.onDownloadedPartialAudio.removeListener(listener);
 					break;
@@ -24339,33 +26195,23 @@ var vot = (function(exports) {
 		downloadSettlers = /* @__PURE__ */ new Set();
 		etaCountdown;
 		requestedFailAudio = /* @__PURE__ */ new Set();
+		/**
+		* Whether the audio of the current attempt reached the translation backend.
+		*
+		* `uploaded` is set only after `PUT /video-translation/audio` answered 200 OK
+		* for the last chunk, and it is the only state that allows
+		* `shouldSendFailedAudio: false`. Anything else (a failed upload, a download
+		* that no strategy could finish, the fail-audio fallback) means the backend
+		* has no usable audio and has to be told so.
+		*/
+		audioUploadState = "idle";
 		constructor(videoHandler) {
 			this.videoHandler = videoHandler;
 			this.audioDownloader = new AudioDownloader();
 			this.downloading = false;
 			this.etaCountdown = new TranslationEtaCountdown((message, signal, options) => this.videoHandler.updateTranslationErrorMsg(message, signal, options));
-			this.audioDownloader.addEventListener("downloadedAudio", this.onDownloadedAudio).addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio).addEventListener("downloadAudioError", this.onDownloadAudioError);
+			this.audioDownloader.addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio).addEventListener("downloadAudioError", this.onDownloadAudioError);
 		}
-		onDownloadedAudio = async (translationId, data) => {
-			debug.log("downloadedAudio", data);
-			if (!this.downloading) {
-				debug.log("skip downloadedAudio");
-				return;
-			}
-			const { videoId, fileId, audioData } = data;
-			const videoUrl = this.getCanonicalUrl(videoId);
-			try {
-				await this.retryAudioUpload(() => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
-					audioFile: audioData,
-					fileId
-				}));
-			} catch (error) {
-				debug.error("Failed to upload downloaded audio", error);
-				this.finishDownloadFailure(error instanceof Error ? error : /* @__PURE__ */ new Error("Audio downloader failed while uploading full audio"));
-				return;
-			}
-			this.finishDownloadSuccess();
-		};
 		onDownloadedPartialAudio = async (translationId, data) => {
 			debug.log("downloadedPartialAudio", data);
 			if (!this.downloading) {
@@ -24385,10 +26231,14 @@ var vot = (function(exports) {
 				}));
 			} catch (error) {
 				debug.error("Failed to upload downloaded audio chunk", error);
+				this.audioUploadState = "failed";
 				this.finishDownloadFailure(/* @__PURE__ */ new Error("Audio downloader failed while uploading chunk"));
 				return;
 			}
-			if (amount !== void 0 && index === amount - 1) this.finishDownloadSuccess();
+			if (amount !== void 0 && index === amount - 1) {
+				this.audioUploadState = "uploaded";
+				this.finishDownloadSuccess();
+			}
 		};
 		onDownloadAudioError = async (translationId, videoId) => {
 			if (!this.downloading) {
@@ -24396,6 +26246,7 @@ var vot = (function(exports) {
 				return;
 			}
 			debug.log(`Failed to download audio ${videoId}`);
+			this.audioUploadState = "failed";
 			const videoUrl = this.getCanonicalUrl(videoId);
 			if (!(this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload))) {
 				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"));
@@ -24551,13 +26402,24 @@ var vot = (function(exports) {
 						translationId: res.translationId
 					});
 					this.downloading = true;
+					this.audioUploadState = "idle";
 					debug.log("[Translation] waiting for audio download completion", {
 						videoId: videoData.videoId,
 						translationId: res.translationId,
 						timeoutMs: STREAM_TIMEOUT_MS
 					});
-					await Promise.all([this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS), this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal)]);
-					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
+					const [, audioDownload] = await Promise.all([this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS), this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal)]);
+					throwIfAborted(signal);
+					const audioDelivered = audioDownload.status === "completed" && this.audioUploadState === "uploaded";
+					debug.log("[Translation] audio download settled", {
+						videoId: videoData.videoId,
+						translationId: res.translationId,
+						outcome: audioDownload.status,
+						audioDownloadType: audioDownload.status === "completed" ? audioDownload.audioDownloadType : void 0,
+						audioUploadState: this.audioUploadState,
+						shouldSendFailedAudio: !audioDelivered
+					});
+					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, !audioDelivered, signal, {
 						disableLivelyVoice: livelyDisabled,
 						retryAttempt
 					});
@@ -38375,6 +40237,11 @@ var vot = (function(exports) {
             pointer-events: auto !important;
         }
     `);
+		if (bootstrapMode === "audio-realm") {
+			initPageAudioHandler();
+			logBootstrap("Audio realm bootstrapped; UI skipped");
+			return;
+		}
 		if (bootstrapMode === "skip") {
 			logBootstrap("Skipping bootstrap for non-runnable iframe");
 			return;

@@ -140,7 +140,7 @@
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
-  "grant": ["window.focus"],
+  "grant": ["window.focus", "unsafeWindow"],
   "exclude": [
     "file://*/*.mp4*",
     "file://*/*.webm*",

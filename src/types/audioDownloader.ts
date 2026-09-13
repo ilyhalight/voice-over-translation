@@ -1,4 +1,5 @@
 import type { AudioDownloader } from "../audioDownloader";
+import type { AvailableAudioDownloadType } from "../audioDownloader/strategies/bridgeProtocol";
 
 export type GetAudioFromAPIOptions = {
   videoId: string;
@@ -10,12 +11,7 @@ export type AudioDownloadRequestOptions = {
   translationId: string;
   videoId: string;
   signal: AbortSignal;
-};
-
-export type DownloadedAudioData = {
-  videoId: string;
-  fileId: string;
-  audioData: Uint8Array;
+  audioDownloadType: AvailableAudioDownloadType;
 };
 
 export type DownloadedPartialAudioData = {

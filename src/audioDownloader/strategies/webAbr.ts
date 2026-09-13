@@ -1,10 +1,42 @@
 import { config } from "@vot.js/shared";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
+import { toErrorMessage } from "../../utils/errors";
+import { createChunkAccumulator } from "../internal/chunkAccumulator";
+import { isGooglevideoHost, YOUTUBE_ORIGIN } from "../internal/hosts";
+import {
+  createTrustedScript,
+  enumerateRealms,
+  getYtcfgValue,
+  type RealmWindow,
+} from "../internal/realms";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
+import {
+  describeFormat,
+  findRefreshedFormat,
+  type MediaFormat,
+  selectAudioFormat,
+  type SelectedFormat,
+  selectVideoFallbackFormat,
+} from "./formatSelection";
+import {
+  buildMediaRequestUrl,
+  fetchMediaRange,
+  getMediaTransport,
+  type MediaTransport,
+} from "./mediaTransport";
+import { mintGvsPoToken, selectGvsPoTokenBinding } from "./poToken";
+import {
+  createMediaRangePlanner,
+  type MediaRangeSample,
+} from "./rangePlanner";
 import { preprocessYouTubePlayer } from "./ytPlayerSolver.js";
 
-const MEDIA_RANGE_SIZES = [60_000, 80_000, 150_000, 330_000, 460_000];
+/**
+ * Every way of getting a GVS PO token lives in `poToken.ts`. Both helpers are
+ * re-exported because they are part of this strategy's tested surface.
+ */
+export { mintPagePoToken, selectGvsPoTokenBinding } from "./poToken";
 
 type YouTubeConfig = {
   data_?: Record<string, unknown>;
@@ -24,193 +56,75 @@ type PageUrlInstance = {
 
 type PageUrlClass = new (...args: unknown[]) => PageUrlInstance;
 
-type WebEmbeddedFormat = {
-  itag?: number;
-  url?: string;
-  mimeType?: string;
-  bitrate?: number;
-  contentLength?: string;
-  lastModified?: string;
-  signatureCipher?: string;
+/**
+ * `WEB_EMBEDDED_PLAYER` is answered as a third-party embed. Naming
+ * youtube.com as the host makes YouTube apply the playability verdict of its
+ * own surfaces instead of the embed verdict, which is answered as
+ * `ERROR: Video unavailable`.
+ */
+const THIRD_PARTY_EMBED_URL = "https://www.reddit.com/";
+
+type PlayabilityStatus = {
+  status?: string;
+  reason?: string;
+  messages?: string[];
+};
+
+type MediaStreamingData = {
+  /** Audio-only and video-only streams. */
+  adaptiveFormats?: MediaFormat[];
+  /** Streams with the video and the audio muxed into one file. */
+  formats?: MediaFormat[];
 };
 
 type WebEmbeddedPlayerResponse = {
-  responseContext?: {
-    mainAppWebResponseContext?: { datasyncId?: string };
-  };
-  playabilityStatus?: {
-    status?: string;
-    reason?: string;
-    messages?: string[];
-  };
-  streamingData?: {
-    adaptiveFormats?: WebEmbeddedFormat[];
-    formats?: WebEmbeddedFormat[];
-  };
+  playabilityStatus?: PlayabilityStatus;
+  streamingData?: MediaStreamingData;
 };
 
-type FetchedClientConfig = {
-  apiKey?: string;
-  clientVersion?: string;
-  visitorData?: string;
-  playerUrl?: string;
-  signatureTimestamp?: number;
-  dataSyncId?: string;
-  experimentFlags?: string[];
-};
-
-async function fetchTvConfig(
-  targetWindow: Window,
-  signal: AbortSignal,
-  videoId: string,
-): Promise<FetchedClientConfig | undefined> {
-  try {
-    const response = await targetWindow.fetch("https://www.youtube.com/tv", {
-      credentials: "include",
-      signal,
-    });
-    if (!response.ok) {
-      throw new Error(
-        `Audio downloader. tv config request failed (${response.status})`,
-      );
-    }
-    const html = await response.text();
-    const pick = (patterns: RegExp[]): string | undefined => {
-      for (const pattern of patterns) {
-        const match = pattern.exec(html);
-        if (match?.[1]) return match[1];
-      }
-    };
-    const playerPath = pick([/"PLAYER_JS_URL":"([^"]+)"/, /"jsUrl":"([^"]+)"/]);
-    const sts = Number(pick([/"STS":(\d+)/, /"signatureTimestamp":(\d+)/]));
-    const experimentFlags: string[] = [];
-    for (const match of html.matchAll(
-      /"serializedExperimentFlags"\s*:\s*("(?:\\.|[^"\\])*")/g,
-    )) {
-      try {
-        experimentFlags.push(JSON.parse(match[1] ?? '""') as string);
-      } catch {
-        // Malformed optional flags must not discard the rest of the config.
-      }
-    }
-    return {
-      apiKey: pick([/"INNERTUBE_API_KEY":"([^"]+)"/]),
-      clientVersion: pick([/"INNERTUBE_CLIENT_VERSION":"([^"]+)"/]),
-      visitorData: pick([/"VISITOR_DATA":"([^"]+)"/]),
-      dataSyncId: pick([/"DATASYNC_ID":"([^"]+)"/]),
-      experimentFlags,
-      playerUrl: playerPath
-        ? new URL(playerPath, "https://www.youtube.com").toString()
-        : undefined,
-      signatureTimestamp: Number.isFinite(sts) && sts > 0 ? sts : undefined,
-    };
-  } catch (error) {
-    signal.throwIfAborted();
-    debug.log("Audio downloader. client config unavailable", {
-      videoId,
-      client: "tv",
-      error: error instanceof Error ? error.message : String(error),
-    });
+/**
+ * Raised when this JS realm cannot reach the YouTube session at all: no
+ * `ytcfg`, no player JS, or a CSP that blocks the challenge solver.
+ *
+ * Only these failures are worth retrying in another realm. A playability
+ * answer (`UNPLAYABLE`, `LOGIN_REQUIRED`, "Video unavailable") comes from
+ * YouTube itself and is the same in every realm, so retrying it in a hidden
+ * iframe only doubles the request count and the wait before the server-side
+ * fallback takes over.
+ */
+export class AudioRealmError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "AudioRealmError";
   }
 }
 
-export function buildMediaRanges(
-  contentLength: number,
-): { start: number; end: number }[] {
-  if (!Number.isInteger(contentLength) || contentLength < 1) return [];
-  const ranges: { start: number; end: number }[] = [];
-  let start = 0;
-  let sizeIndex = 0;
-  while (start < contentLength) {
-    const size = MEDIA_RANGE_SIZES[sizeIndex] ?? MEDIA_RANGE_SIZES.at(-1) ?? 1;
-    const end = Math.min(contentLength - 1, start + size - 1);
-    ranges.push({ start, end });
-    start = end + 1;
-    if (sizeIndex < MEDIA_RANGE_SIZES.length - 1) sizeIndex++;
-  }
-  return ranges;
-}
+/** InnerTube refused to play the video for the requested client. */
+class PlayerStatusError extends Error {
+  readonly status: string;
 
-export async function mintPagePoToken(
-  pageWindow: WebAbrWindow,
-  binding: string,
-  signal: AbortSignal,
-): Promise<string | undefined> {
-  const realms = new Set<WebAbrWindow>([pageWindow]);
-  try {
-    realms.add(pageWindow.parent as WebAbrWindow);
-    realms.add(pageWindow.top as WebAbrWindow);
-  } catch {
-    // Cross-origin access is denied.
-  }
-  for (const realm of realms) {
-    let keys: string[];
-    try {
-      keys = Object.getOwnPropertyNames(realm).filter(
-        (key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"),
-      );
-    } catch {
-      continue;
-    }
-    for (const key of keys) {
-      let bevasrs: { wpc?: unknown } | undefined;
-      try {
-        bevasrs = (
-          (realm as unknown as Record<string, unknown>)[key] as {
-            bevasrs?: { wpc?: unknown };
-          }
-        )?.bevasrs;
-      } catch {
-        continue;
-      }
-      const wpc = bevasrs?.wpc;
-      if (typeof wpc !== "function") continue;
-      for (let attempt = 0; attempt < 10; attempt++) {
-        if (signal.aborted) throw signal.reason;
-        try {
-          const minter = await wpc.call(bevasrs);
-          const token = await minter?.mws?.({
-            c: binding,
-            mc: false,
-            me: false,
-          });
-          if (typeof token === "string" && token) return token;
-        } catch (error) {
-          if (!String(error).includes("SDF:notready")) break;
-        }
-        await createAbortableDelay(500, signal);
-      }
-    }
+  constructor(client: string, playabilityStatus?: PlayabilityStatus) {
+    const status = playabilityStatus?.status ?? "failed";
+    const reason =
+      playabilityStatus?.reason ??
+      playabilityStatus?.messages?.join(" ") ??
+      "no streaming data";
+    super(`Audio downloader. ${client} ${status}: ${reason}`);
+    this.name = "PlayerStatusError";
+    this.status = playabilityStatus?.status ?? "";
   }
 }
 
-export function selectGvsPoTokenBinding(
-  videoId: string,
-  options: {
-    loggedIn: boolean;
-    dataSyncId: unknown;
-    visitorData: unknown;
-    experimentFlags: string[];
-  },
-): { kind: "video" | "datasync" | "visitor"; value: string } | undefined {
-  if (
-    options.experimentFlags.some(
-      (flags) =>
-        new URLSearchParams(flags)
-          .getAll("html5_generate_content_po_token")
-          .at(-1) === "true",
-    )
-  ) {
-    return { kind: "video", value: videoId };
-  }
-  // Authenticated GVS uses the full datasync ID, including the || separator.
-  const value = options.loggedIn ? options.dataSyncId : options.visitorData;
-  if (typeof value !== "string" || !value) return;
-  return { kind: options.loggedIn ? "datasync" : "visitor", value };
-}
+/** GVS rejected the signed URL itself, so resuming that URL cannot help. */
+class MediaAuthError extends Error {}
 
 function getConfigValue(config: YouTubeConfig, key: string): unknown {
-  return config.get?.(key) ?? config.data_?.[key];
+  // CONSOLIDATION: identical to the lookup `mseProxy` inlined; the shared
+  // helper additionally survives a throwing `get` accessor.
+  return getYtcfgValue(
+    { ytcfg: config } as unknown as RealmWindow,
+    key,
+  );
 }
 
 function buildContentPlaybackContext(
@@ -253,14 +167,14 @@ function findJsonValueEnd(source: string, start: number): number {
 // The page keeps its config in the ytcfg global, which a sandboxed userscript
 // realm cannot read. Both calling forms carry plain JSON, so the same inline
 // script that builds ytcfg can be replayed from its source text instead.
-export function parseYtcfgData(source: string): Record<string, unknown> {
+function parseYtcfgData(source: string): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   const pattern = /ytcfg\s*\.\s*set\s*\(/g;
   const skipSpaces = (index: number) => {
     while (index < source.length && /\s/.test(source[index] ?? "")) index++;
     return index;
   };
-  for (let cursor = 0; cursor <= source.length; ) {
+  for (let cursor = 0; cursor <= source.length;) {
     pattern.lastIndex = cursor;
     const match = pattern.exec(source);
     if (!match) break;
@@ -313,7 +227,7 @@ function readYtcfgFromDocument(targetWindow: Window): Record<string, unknown> {
   return data;
 }
 
-export async function resolveYtcfg(
+async function resolveYtcfg(
   targetWindow: WebAbrWindow,
   signal: AbortSignal,
 ): Promise<YouTubeConfig> {
@@ -341,12 +255,14 @@ export async function resolveYtcfg(
     } catch (error) {
       signal.throwIfAborted();
       debug.log("Audio downloader. web ABR config request failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
     }
   }
   if (typeof data.INNERTUBE_API_KEY !== "string") {
-    throw new Error("Audio downloader. web ABR config is unavailable");
+    throw new AudioRealmError(
+      "Audio downloader. web ABR config is unavailable",
+    );
   }
   debug.log("Audio downloader. web ABR config recovered", {
     source,
@@ -356,33 +272,99 @@ export async function resolveYtcfg(
   return { data_: data };
 }
 
+type PlayerRequestOptions = {
+  /** `context.client` overrides that select the InnerTube client. */
+  client: Record<string, unknown>;
+  /** Timestamp of the player JS the sig/n solutions are built with. */
+  signatureTimestamp?: unknown;
+  /** Embedded clients have to declare the page that hosts the player. */
+  embedUrl?: string;
+};
+
+/**
+ * Clones the page InnerTube context and swaps in another client, so every
+ * request keeps the session fields YouTube expects from this browser
+ * (visitorData, hl/gl, screen, user agent) instead of a synthetic context.
+ */
+function buildPlayerRequest(
+  config: YouTubeConfig,
+  videoId: string,
+  { client, signatureTimestamp, embedUrl }: PlayerRequestOptions,
+): Record<string, unknown> {
+  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
+  if (!rawContext || typeof rawContext !== "object") {
+    throw new AudioRealmError(
+      "Audio downloader. InnerTube context is unavailable",
+    );
+  }
+
+  const context = structuredClone(rawContext) as {
+    client?: Record<string, unknown>;
+    thirdParty?: Record<string, unknown>;
+  };
+  context.client = { ...context.client, ...client };
+
+  const request: Record<string, unknown> = {
+    context,
+    videoId,
+    playbackContext: {
+      contentPlaybackContext: buildContentPlaybackContext(signatureTimestamp),
+    },
+    contentCheckOk: true,
+    racyCheckOk: true,
+  };
+  if (embedUrl) {
+    // The `player` endpoint reads the embed host from the context. A
+    // top-level `thirdParty` field is not part of the request schema.
+    context.thirdParty = { ...context.thirdParty, embedUrl };
+  }
+  return request;
+}
+
+function getPageClientVersion(config: YouTubeConfig): string | undefined {
+  const version = getConfigValue(config, "INNERTUBE_CLIENT_VERSION");
+  return typeof version === "string" && version ? version : undefined;
+}
+
+// WEB, WEB_EMBEDDED_PLAYER and MWEB share the page release version, so it is
+// always current. Keep the cloned context value when the page has none.
+function withPageClientVersion(
+  config: YouTubeConfig,
+  client: Record<string, unknown>,
+): Record<string, unknown> {
+  const clientVersion = getPageClientVersion(config);
+  return clientVersion ? { clientVersion, ...client } : client;
+}
+
+/**
+ * `WEB_EMBEDDED_PLAYER`: the only client that needs no GVS PO token, so it is
+ * the cheapest way to reach a direct audio URL.
+ */
 export function buildWebEmbeddedPlayerRequest(
   config: YouTubeConfig,
   videoId: string,
   extractedSignatureTimestamp?: number,
 ): Record<string, unknown> {
-  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-  if (!rawContext || typeof rawContext !== "object") {
-    throw new Error("Audio downloader. web_embedded context is unavailable");
-  }
+  const request = buildPlayerRequest(config, videoId, {
+    client: withPageClientVersion(config, {
+      clientName: "WEB_EMBEDDED_PLAYER",
+      clientScreen: "EMBED",
+      originalUrl: `https://www.youtube.com/embed/${videoId}?html5=1`,
+    }),
+    signatureTimestamp:
+      extractedSignatureTimestamp ?? getConfigValue(config, "STS"),
+    embedUrl: THIRD_PARTY_EMBED_URL,
+  });
 
-  const context = JSON.parse(JSON.stringify(rawContext)) as {
-    client?: Record<string, unknown>;
-    thirdParty?: Record<string, unknown>;
+  // Embedded player requests may have to carry encryptedHostFlags, and
+  // sending it unconditionally does no harm (yt-dlp does the same).
+  const { contentPlaybackContext } = request.playbackContext as {
+    contentPlaybackContext: Record<string, unknown>;
   };
-  context.client ??= {};
-  const client = context.client;
-  client.clientName = "WEB_EMBEDDED_PLAYER";
-  client.clientVersion =
-    getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
-  client.originalUrl = `https://www.youtube.com/embed/${videoId}?html5=1`;
-  context.thirdParty ??= {};
-  context.thirdParty.embedUrl = "https://www.reddit.com/";
-
-  const contentPlaybackContext = buildContentPlaybackContext(
-    extractedSignatureTimestamp ?? getConfigValue(config, "STS"),
-  );
-  const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS") as
+  const playerContexts = getConfigValue(
+    config,
+    "WEB_PLAYER_CONTEXT_CONFIGS",
+  ) as
     | {
         WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?: {
           encryptedHostFlags?: unknown;
@@ -396,61 +378,51 @@ export function buildWebEmbeddedPlayerRequest(
     contentPlaybackContext.encryptedHostFlags = encryptedHostFlags;
   }
 
-  return {
-    context,
-    videoId,
-    playbackContext: { contentPlaybackContext },
-    contentCheckOk: true,
-    racyCheckOk: true,
-  };
+  return request;
 }
 
-export function selectWebEmbeddedAudioFormat(
-  formats: WebEmbeddedFormat[],
-): WebEmbeddedFormat {
-  const withUrl = formats.filter(
-    ({ url, signatureCipher }) =>
-      typeof url === "string" || typeof signatureCipher === "string",
-  );
-  const audioOnly = withUrl.filter(
-    ({ mimeType }) =>
-      mimeType?.includes("audio/") && !mimeType?.includes("video/"),
-  );
-  // Preferred itag order from Yandex media-scripts (MAPPINGS.md, WEB_ABR).
-  const preferredItags = [
-    251, 140, 141, 250, 249, 139, 256, 258, 325, 327, 328, 338, 171, 172,
-  ];
-  const byPreference = (a: WebEmbeddedFormat, b: WebEmbeddedFormat) => {
-    const rank = (itag?: number) => {
-      const index = itag === undefined ? -1 : preferredItags.indexOf(itag);
-      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-    };
-    return rank(a.itag) - rank(b.itag) || (b.bitrate ?? 0) - (a.bitrate ?? 0);
-  };
-  const selected =
-    audioOnly.sort(byPreference)[0] ??
-    withUrl.find(({ itag }) => itag === 18) ??
-    withUrl
-      .filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? ""))
-      .sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
-  if (!selected) {
-    debug.log(
-      "Audio downloader. no direct audio formats",
-      JSON.stringify(
-        formats.map((format) => ({
-          itag: format.itag,
-          mimeType: format.mimeType,
-          hasUrl: typeof format.url === "string",
-          hasCipher: typeof format.signatureCipher === "string",
-          contentLength: format.contentLength ?? "none",
-        })),
-      ),
-    );
-    throw new Error(
-      "Audio downloader. web ABR returned no direct audio formats",
-    );
-  }
-  return selected;
+/**
+ * `MWEB`: shares the cookies and the version scheme of the page and is not
+ * SABR-only. Its stream URLs need a GVS PO token, which the page BotGuard
+ * instance mints for free.
+ */
+export function buildMwebPlayerRequest(
+  config: YouTubeConfig,
+  videoId: string,
+  signatureTimestamp?: number,
+): Record<string, unknown> {
+  return buildPlayerRequest(config, videoId, {
+    client: withPageClientVersion(config, {
+      clientName: "MWEB",
+      clientScreen: "WATCH",
+      originalUrl: `https://m.youtube.com/watch?v=${videoId}`,
+    }),
+    signatureTimestamp: signatureTimestamp ?? getConfigValue(config, "STS"),
+  });
+}
+
+/**
+ * `WEB_CREATOR`: answers with direct URLs for a signed-in session, including
+ * videos the embedded player refuses to play. It is useless without account
+ * cookies, so the ladder skips it for anonymous sessions.
+ */
+export function buildWebCreatorPlayerRequest(
+  config: YouTubeConfig,
+  videoId: string,
+  signatureTimestamp?: number,
+): Record<string, unknown> {
+  const pageVersion = getPageClientVersion(config);
+  return buildPlayerRequest(config, videoId, {
+    client: {
+      clientName: "WEB_CREATOR",
+      // The creator app ships the page release date under a `1.x` major.
+      clientVersion: pageVersion
+        ? pageVersion.replace(/^\d+\./, "1.")
+        : "1.20260101.00.00",
+      clientScreen: "WATCH",
+    },
+    signatureTimestamp: signatureTimestamp ?? getConfigValue(config, "STS"),
+  });
 }
 
 async function sha1(value: string): Promise<string> {
@@ -492,15 +464,13 @@ async function getYouTubeAuthorization(
   );
   const timestamp = String(Math.round(Date.now() / 1000));
   const origin = "https://www.youtube.com";
+  const schemes: Array<[string, string | undefined]> = [
+    ["SAPISIDHASH", cookies.get("SAPISID") ?? cookies.get("__Secure-3PAPISID")],
+    ["SAPISID1PHASH", cookies.get("__Secure-1PAPISID")],
+    ["SAPISID3PHASH", cookies.get("__Secure-3PAPISID")],
+  ];
   const authorizations = await Promise.all(
-    [
-      [
-        "SAPISIDHASH",
-        cookies.get("SAPISID") ?? cookies.get("__Secure-3PAPISID"),
-      ],
-      ["SAPISID1PHASH", cookies.get("__Secure-1PAPISID")],
-      ["SAPISID3PHASH", cookies.get("__Secure-3PAPISID")],
-    ].map(async ([scheme, sid]) =>
+    schemes.map(async ([scheme, sid]) =>
       sid
         ? buildSidAuthorization(
             scheme,
@@ -516,7 +486,10 @@ async function getYouTubeAuthorization(
 }
 
 function getPlayerUrl(config: YouTubeConfig): string | undefined {
-  const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS") as
+  const playerContexts = getConfigValue(
+    config,
+    "WEB_PLAYER_CONTEXT_CONFIGS",
+  ) as
     | {
         WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?: { jsUrl?: unknown };
       }
@@ -526,48 +499,68 @@ function getPlayerUrl(config: YouTubeConfig): string | undefined {
     getConfigValue(config, "JS_URL") ??
     playerContexts?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.jsUrl;
   return typeof value === "string"
-    ? new URL(value, "https://www.youtube.com").toString()
+    ? new URL(value, YOUTUBE_ORIGIN).toString()
     : undefined;
 }
 
-type TrustedTypePolicyFactory = {
-  createPolicy: (
-    name: string,
-    rules: { createScript: (value: string) => string },
-  ) => { createScript: (value: string) => unknown };
-};
 
 // A sandboxed or proxied global can lack trustedTypes while its Function is
 // still Trusted Types-checked. The policy and the Function sink must live in
 // the same realm, so probe same-origin ancestors for the policy factory.
+/**
+ * Finds a realm that exposes `trustedTypes.createPolicy`.
+ *
+ * A sandboxed or proxied global can lack `trustedTypes` while its `Function`
+ * is still Trusted Types-checked, and the policy plus the eval sink must live
+ * in the same realm, so same-origin ancestors are probed too.
+ *
+ * CONSOLIDATION: the self/parent/top walk is `internal/realms.enumerateRealms`
+ * (shared with `poToken.collectRealms`).
+ */
 function resolveTrustedRealm(realm: Window): Window {
-  const candidates: Window[] = [realm];
-  const add = (candidate: Window | null | undefined): void => {
-    if (candidate && candidate !== realm) candidates.push(candidate);
-  };
-  try {
-    add(realm.parent as Window | null);
-  } catch {
-    // Cross-origin access is denied.
-  }
-  try {
-    add(realm.top as Window | null);
-  } catch {
-    // Cross-origin access is denied.
-  }
-  for (const candidate of candidates) {
+  for (const candidate of enumerateRealms(realm as RealmWindow)) {
     try {
-      if (
-        (candidate as unknown as { trustedTypes?: TrustedTypePolicyFactory })
-          .trustedTypes?.createPolicy
-      ) {
-        return candidate;
-      }
+      if (candidate.trustedTypes?.createPolicy) return candidate as Window;
     } catch {
       // Cross-origin access is denied.
     }
   }
   return realm;
+}
+
+// Chrome's Function constructor rejects TrustedScript arguments
+// (crbug.com/1087743), so evaluate through eval, which accepts TrustedScript.
+/**
+ * Evaluates `source` in `realm`.
+ *
+ * Chrome's `Function` constructor rejects a TrustedScript argument
+ * (crbug.com/1087743), so `eval`, which accepts one, is used instead.
+ *
+ * CONSOLIDATION + DEFECT FIX (F-5): the policy comes from the per-realm cache
+ * in `internal/realms.createTrustedScript` instead of a freshly named policy
+ * per call.
+ */
+function evalInRealm(realm: Window, source: string): unknown {
+  const nativeRealm = resolveTrustedRealm(realm);
+  const script = createTrustedScript(
+    nativeRealm as RealmWindow,
+    source,
+    "vot-youtube-solver",
+  );
+  return (nativeRealm as unknown as { eval: (value: unknown) => unknown }).eval(
+    script,
+  );
+}
+
+// A CSP without unsafe-eval blocks the AST solver, which is the only way to
+// solve sig/n when the page player keeps its factories IIFE-local. Probing it
+// costs nothing and lets the caller pick a realm that can finish the job.
+export function canSolveChallengesInRealm(realm: Window): boolean {
+  try {
+    return evalInRealm(realm, "1+1") === 2;
+  } catch {
+    return false;
+  }
 }
 
 function runChallengeSolver(
@@ -576,24 +569,11 @@ function runChallengeSolver(
   signature?: string,
   n?: string,
 ): { signature?: string; n?: string } {
-  const nativeRealm = resolveTrustedRealm(realm);
-  const trustedTypes = (
-    nativeRealm as unknown as { trustedTypes?: TrustedTypePolicyFactory }
-  ).trustedTypes;
-  const policy = trustedTypes?.createPolicy(
-    `vot-youtube-solver-${crypto.randomUUID()}`,
-    { createScript: (value) => value },
-  );
-  // Chrome's Function constructor rejects TrustedScript arguments
-  // (crbug.com/1087743), so evaluate through eval, which accepts
-  // TrustedScript. The IIFE keeps the player locals out of the page too, and
-  // handing its result back as the completion value keeps the solver working
-  // when eval runs in another realm than the caller (a sandboxed userscript).
+  // The IIFE keeps the player locals out of the page, and handing its result
+  // back as the completion value keeps the solver working when eval runs in
+  // another realm than the caller (a sandboxed userscript).
   const source = `(function(){\nconst _result={sig:null,n:null};\n${preparedPlayer}\nreturn _result;\n})()`;
-  const script = policy?.createScript(source) ?? source;
-  const result = (
-    nativeRealm as unknown as { eval: (value: unknown) => unknown }
-  ).eval(script) as {
+  const result = evalInRealm(realm, source) as {
     sig?: ((value: string) => string) | null;
     n?: ((value: string) => string) | null;
   } | null;
@@ -900,9 +880,9 @@ function buildSolvedUrl(
   return url.toString();
 }
 
-export async function* resolveWebEmbeddedFormatUrl(
+async function* resolveFormatUrls(
   targetWindow: WebAbrWindow,
-  format: WebEmbeddedFormat,
+  format: MediaFormat,
   playerCode: () => Promise<string | undefined>,
   signal: AbortSignal,
 ): AsyncGenerator<string> {
@@ -1007,112 +987,6 @@ export async function* resolveWebEmbeddedFormatUrl(
   signal.throwIfAborted();
 }
 
-export function buildTvDowngradedPlayerRequest(
-  videoId: string,
-  options: {
-    visitorData?: unknown;
-    signatureTimestamp?: number;
-    clientVersion?: unknown;
-  } = {},
-): Record<string, unknown> {
-  const contentPlaybackContext = buildContentPlaybackContext(
-    options.signatureTimestamp,
-  );
-  return {
-    context: {
-      client: {
-        clientName: "TVHTML5",
-        clientVersion:
-          typeof options.clientVersion === "string" && options.clientVersion
-            ? options.clientVersion
-            : "5.20260707",
-        hl: "en",
-        gl: "US",
-        timeZone: "UTC",
-        utcOffsetMinutes: 0,
-        userAgent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version",
-        ...(typeof options.visitorData === "string"
-          ? { visitorData: options.visitorData }
-          : {}),
-      },
-    },
-    videoId,
-    playbackContext: { contentPlaybackContext },
-    contentCheckOk: true,
-    racyCheckOk: true,
-  };
-}
-
-export function buildWebPlayerRequest(
-  config: YouTubeConfig,
-  videoId: string,
-  extractedSignatureTimestamp?: number,
-): Record<string, unknown> {
-  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-  if (!rawContext || typeof rawContext !== "object") {
-    throw new Error("Audio downloader. web client context is unavailable");
-  }
-
-  const context = JSON.parse(JSON.stringify(rawContext)) as {
-    client?: Record<string, unknown>;
-    thirdParty?: Record<string, unknown>;
-  };
-  context.client ??= {};
-  const client = context.client;
-  client.clientName = "WEB";
-  client.clientVersion =
-    getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
-  client.originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
-  delete context.thirdParty;
-
-  const contentPlaybackContext = buildContentPlaybackContext(
-    extractedSignatureTimestamp ?? getConfigValue(config, "STS"),
-  );
-
-  return {
-    context,
-    videoId,
-    playbackContext: { contentPlaybackContext },
-    contentCheckOk: true,
-    racyCheckOk: true,
-  };
-}
-
-export function buildWebCreatorPlayerRequest(
-  videoId: string,
-  options: {
-    visitorData?: unknown;
-    signatureTimestamp?: number;
-    clientVersion?: unknown;
-  } = {},
-): Record<string, unknown> {
-  const contentPlaybackContext = buildContentPlaybackContext(
-    options.signatureTimestamp,
-  );
-  return {
-    context: {
-      client: {
-        clientName: "WEB_CREATOR",
-        clientVersion:
-          typeof options.clientVersion === "string" && options.clientVersion
-            ? options.clientVersion
-            : "1.20260708.06.00",
-        hl: "en",
-        gl: "US",
-        timeZone: "UTC",
-        utcOffsetMinutes: 0,
-        ...(typeof options.visitorData === "string"
-          ? { visitorData: options.visitorData }
-          : {}),
-      },
-    },
-    videoId,
-    playbackContext: { contentPlaybackContext },
-    contentCheckOk: true,
-    racyCheckOk: true,
-  };
-}
-
 async function postInnertubePlayer(
   targetWindow: Window,
   signal: AbortSignal,
@@ -1168,95 +1042,512 @@ async function postInnertubePlayer(
   return (await response.json()) as WebEmbeddedPlayerResponse;
 }
 
-async function probeContentLength(
-  targetWindow: Window,
-  streamUrl: string,
-  signal: AbortSignal,
-): Promise<number> {
-  const url = new URL(streamUrl);
-  url.searchParams.set("range", "0-0");
-  url.searchParams.delete("ump");
-  const response = await targetWindow.fetch(url, { signal });
-  if (!response.ok) {
-    throw new Error(
-      `Audio downloader. web ABR media probe failed (${response.status})`,
-    );
-  }
-  const total = Number(
+const MEDIA_RETRY_DELAY_MS = 250;
+/**
+ * Retries of one ranged request: the first covers a transport hiccup, the
+ * second re-signs the URL in case the signature expired mid-download. A GVS
+ * verdict (403) is not retried at all, so no time is spent on an answer that
+ * never changes.
+ */
+const MEDIA_RANGE_RETRIES = 2;
+/**
+ * YouTube paces a single continuous `videoplayback` body down to playback
+ * speed (~30-50 kbps), which is what made a 6.5 MB Opus track take ~15
+ * minutes to read. Every separate `Range` request is answered at the full
+ * speed of the connection instead — the trick yt-dlp uses with
+ * `--http-chunk-size` — but YouTube throttles any range above ~10 MiB.
+ *
+ * How big a range is and how many of them overlap is decided per download by
+ * `rangePlanner`, from what the previous range measured: a fast link reads
+ * fewer and bigger ranges, a slow or flaky one keeps them small so a dropped
+ * answer costs little. The consumer uploads each chunk to the translation
+ * backend while the next range is already on its way.
+ */
+
+/**
+ * GVS refuses the signed URLs of a client in bursts — `mweb` most of all,
+ * because its PO token is minted by the web client of the page and because
+ * `Origin`, `Referer` and `User-Agent` are forbidden header names a page
+ * cannot set. Asking a refused client again in the same session costs a
+ * `player` request plus a media request for the very same 403, so the verdict
+ * is remembered for a few minutes and the ladder moves on to `web_mse_proxy`.
+ */
+const REFUSED_CLIENT_TTL_MS = 5 * 60_000;
+const refusedClients = new Map<string, number>();
+
+function isClientRefusedRecently(name: string): boolean {
+  const refusedAt = refusedClients.get(name);
+  if (refusedAt === undefined) return false;
+  if (Date.now() - refusedAt < REFUSED_CLIENT_TTL_MS) return true;
+  refusedClients.delete(name);
+  return false;
+}
+const STS_PATTERN = /(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})/;
+
+/** Session facts every player request is built from. */
+type PlayerSession = {
+  readonly config: YouTubeConfig;
+  readonly videoId: string;
+  readonly signatureTimestamp?: number;
+};
+
+type PlayerClient = {
+  /** yt-dlp client name, used in the logs. */
+  readonly name: string;
+  /** `x-youtube-client-name` value. */
+  readonly id: string;
+  readonly build: (session: PlayerSession) => Record<string, unknown>;
+  /** YouTube only answers this client for a signed-in session. */
+  readonly requiresLogin?: boolean;
+  /** GVS answers 403 for this client's URLs without a GVS PO token. */
+  readonly requiresPoToken?: boolean;
+};
+
+/**
+ * Ordered ladder of InnerTube clients that still answer a browser session with
+ * direct (non-SABR) media URLs, cheapest first: `web_embedded` needs no PO
+ * token at all, `mweb` needs one but works for an anonymous session too, and
+ * `web_creator` needs both a signed-in session and a token.
+ *
+ * `WEB` was removed: since April 2025 it is answered SABR-only, so its
+ * `adaptiveFormats` never carry a URL and its `player` request is always
+ * wasted. That case is covered by the MediaSource strategy instead.
+ * TVHTML5 (`tv_downgraded`) answers `UNPLAYABLE: The page needs to be
+ * reloaded` and moved its `sig`/`n` code into a separate
+ * `tv-player-ias-tcl.js` variant, so it can no longer succeed from a browser.
+ * The headset clients (`ANDROID_VR`, `VISIONOS`) are not usable from a page
+ * either: they cannot send the page cookies, they are not covered by the PO
+ * token the page BotGuard mints for the web clients, and GVS answers their
+ * formats with 403, so every request spent on them is lost.
+ */
+const PLAYER_CLIENTS: readonly PlayerClient[] = [
+  {
+    name: "web_embedded",
+    id: "56",
+    build: ({ config, videoId, signatureTimestamp }) =>
+      buildWebEmbeddedPlayerRequest(config, videoId, signatureTimestamp),
+  },
+  {
+    name: "mweb",
+    id: "2",
+    requiresPoToken: true,
+    build: ({ config, videoId, signatureTimestamp }) =>
+      buildMwebPlayerRequest(config, videoId, signatureTimestamp),
+  },
+  {
+    name: "web_creator",
+    id: "62",
+    requiresLogin: true,
+    // Every `web*` client but `web_embedded` is answered with URLs GVS only
+    // serves with a `pot`, so without a token this client can do nothing but
+    // collect a 403.
+    requiresPoToken: true,
+    build: ({ config, videoId, signatureTimestamp }) =>
+      buildWebCreatorPlayerRequest(config, videoId, signatureTimestamp),
+  },
+];
+
+function readTotalLength(response: Response, offset: number): number {
+  const ranged = Number(
     /\/(\d+)\s*$/.exec(response.headers.get("content-range") ?? "")?.[1],
   );
-  if (!(total > 0)) {
-    throw new Error("Audio downloader. web ABR content length unknown");
-  }
-  return total;
+  if (ranged > 0) return ranged;
+  const length = Number(response.headers.get("content-length"));
+  if (!(length > 0)) return 0;
+  return response.status === 206 ? length + offset : length;
 }
 
-export async function* downloadMediaRanges(
+/** What one ranged request reported about the link it was answered over. */
+type RangeMeasurement = Partial<MediaRangeSample>;
+
+/**
+ * Downloads the selected format with explicit ranged requests.
+ *
+ * A single continuous body is paced by YouTube down to playback speed, while
+ * every separate `Range: bytes=start-end` request is answered at the full
+ * speed of the connection — the same reason yt-dlp downloads in fixed-size
+ * HTTP chunks. A few ranges are kept in flight, so uploading one chunk
+ * overlaps downloading the next. `Range` is a CORS-safelisted header, so none
+ * of this costs a preflight request.
+ */
+async function* streamMediaFormat(
   targetWindow: Window,
   streamUrl: string,
-  contentLength: number,
   signal: AbortSignal,
   refreshUrl: () => Promise<string>,
+  expectedLength?: number,
 ): AsyncGenerator<AudioChunk> {
-  if (!Number.isSafeInteger(contentLength) || contentLength < 1) {
-    throw new Error("Audio downloader. Invalid media content length");
-  }
-  let requestNumber = 0;
-  let pending: Uint8Array[] = [];
-  let pendingSize = 0;
-  for (const { start, end } of buildMediaRanges(contentLength)) {
-    let buffer: Uint8Array | undefined;
-    for (let attempt = 0; attempt < 3; attempt++) {
+  /**
+   * The privileged transport is preferred: GVS omits the CORS headers on its
+   * cross-host redirect, so a page request can never read that answer.
+   */
+  let transport: MediaTransport = getMediaTransport();
+  let url = buildMediaRequestUrl(streamUrl, transport);
+  /** The size the format announced, or what the first answer reports. */
+  let total = expectedLength && expectedLength > 0 ? expectedLength : 0;
+  let received = 0;
+  /** Only a `206` proves ranges are honored and may be asked in parallel. */
+  let rangesHonored = false;
+  /** Nothing is left to ask for: the whole announced size was requested. */
+  let exhausted = false;
+  let nextStart = 0;
+  /**
+   * One re-signing per download, for a URL that expired mid-download.
+   * Overlapping ranges share that one request instead of spending one each.
+   */
+  let resigning: Promise<void> | undefined;
+  const resign = () => {
+    // A refresh that fails does not end the download: the URL in hand is
+    // usually still readable (the refresh exists for a signature that expired
+    // mid-download), while a rejection here used to abort a download that had
+    // already moved megabytes. A second 403 is answered as a verdict anyway,
+    // because `resigning` stays set.
+    resigning ??= refreshUrl()
+      .then((refreshed) => {
+        url = buildMediaRequestUrl(refreshed, transport);
+      })
+      .catch((error) => {
+        debug.log("Audio downloader. media URL refresh failed", {
+          error: toErrorMessage(error),
+        });
+      });
+    return resigning;
+  };
+  /**
+   * Falls back to the page transport once. A failure of the privileged one is
+   * about this realm, not about the range, so it must not eat a retry — and
+   * the URL has to be rebuilt, because only `alr=yes` keeps a GVS redirect
+   * readable from a page.
+   */
+  let downgraded = false;
+  const downgradeTransport = (error: unknown): boolean => {
+    if (transport !== "gm" || downgraded) return false;
+    downgraded = true;
+    transport = "page";
+    url = buildMediaRequestUrl(url, transport);
+    debug.log("Audio downloader. media transport downgraded", {
+      transport,
+      error: toErrorMessage(error),
+    });
+    return true;
+  };
+
+  /** One ranged request, retried while it can still succeed. */
+  const fetchRange = async (
+    start: number,
+    size: number,
+    measured: RangeMeasurement,
+  ): Promise<Uint8Array> => {
+    let retries = 0;
+    for (;;) {
       signal.throwIfAborted();
+      const requestedAt = performance.now();
       try {
-        const url = new URL(streamUrl);
-        url.searchParams.set("range", `${start}-${end}`);
-        url.searchParams.set("rn", String(++requestNumber));
-        url.searchParams.delete("ump");
-        const response = await targetWindow.fetch(url, { signal });
+        const response = await fetchMediaRange({
+          transport,
+          targetWindow,
+          url,
+          range: `bytes=${start}-${start + size - 1}`,
+          signal,
+        });
+        // Time to the answer, which is the RTT estimate the planner reads.
+        measured.latencyMs = performance.now() - requestedAt;
         if (!response.ok) {
-          throw new Error(
-            `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`,
-          );
+          const message = `Audio downloader. Media request failed (${response.status})`;
+          // A range that starts past the end: the format is already complete.
+          if (response.status === 416 && start > 0) return new Uint8Array(0);
+          if (response.status === 403) {
+            // Before the first byte this is a verdict on the whole URL: GVS
+            // refused the PO token binding, and every retry is answered the
+            // same way. Mid-download it means the signed URL expired instead,
+            // which exactly one refresh fixes.
+            if (received === 0 || resigning) throw new MediaAuthError(message);
+            measured.unstable = true;
+            await resign();
+            continue;
+          }
+          throw new Error(message);
         }
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        signal.throwIfAborted();
-        if (bytes.byteLength === end - start + 1) {
-          buffer = bytes;
-          break;
-        }
-        const redirect = new TextDecoder("ascii")
-          .decode(bytes)
-          .match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
-        if (redirect) {
-          const next = new URL(redirect);
-          if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) {
+        if ((response.headers.get("content-type") ?? "").startsWith("text/")) {
+          // Some hosts answer with the next host as plain text instead of a 302.
+          const redirect = new URL((await response.text()).trim());
+          if (!isGooglevideoHost(redirect.hostname)) {
             throw new Error("Audio downloader. Invalid media redirect");
           }
-          streamUrl = next.toString();
-          if (attempt < 2) continue;
+          url = buildMediaRequestUrl(redirect.toString(), transport);
+          measured.unstable = true;
+          continue;
         }
-        throw new Error("Audio downloader. Incomplete web ABR chunk");
+        total ||= readTotalLength(response, start);
+        const body = new Uint8Array(await response.arrayBuffer());
+        measured.durationMs = performance.now() - requestedAt;
+        if (response.status === 206) {
+          rangesHonored = true;
+          return body;
+        }
+        // A host that ignores the header answers the whole format from byte
+        // zero instead, so the asked range is cut out of that answer and the
+        // ranges stay sequential.
+        return start > 0 ? body.subarray(start) : body;
       } catch (error) {
         signal.throwIfAborted();
-        if (attempt === 2) throw error;
-        await createAbortableDelay(250 * (attempt + 1), signal);
-        // Retry transient failures first; refresh an expired URL before the last try.
-        if (attempt === 1) streamUrl = await refreshUrl();
+        // GVS rejected the signed URL itself. Asking for the same bytes again
+        // is answered the same way, so it is reported at once.
+        if (error instanceof MediaAuthError) throw error;
+        // A privileged transport that is not usable in this realm (no GM API,
+        // or a manager that refuses the host): the same range is asked again
+        // through the page instead of spending a retry on it.
+        if (downgradeTransport(error)) {
+          measured.unstable = true;
+          continue;
+        }
+        retries += 1;
+        measured.unstable = true;
+        if (retries > MEDIA_RANGE_RETRIES) throw error;
+        debug.log("Audio downloader. retrying media range", {
+          start,
+          size,
+          retries,
+          transport,
+          error: toErrorMessage(error),
+        });
+        await createAbortableDelay(MEDIA_RETRY_DELAY_MS * retries, signal);
+        // Asking for the same range again is cheapest, so the URL is
+        // re-signed only after that failed as well.
+        if (retries === MEDIA_RANGE_RETRIES) await resign();
       }
     }
-    if (!buffer) throw new Error("Audio downloader. Incomplete web ABR chunk");
-    pending.push(buffer);
-    pendingSize += buffer.byteLength;
-    const isLastChunk = end === contentLength - 1;
-    if (pendingSize >= config.minChunkSize || isLastChunk) {
-      yield { buffer: concatBuffers(pending), isLastChunk };
-      pending = [];
-      pendingSize = 0;
+  };
+
+  const planner = createMediaRangePlanner();
+  /** Ranges already requested, in the order their bytes are needed. */
+  const inFlight: Array<{
+    size: number;
+    bytes: Promise<Uint8Array>;
+    startedAt: number;
+    measured: RangeMeasurement;
+  }> = [];
+  const schedule = () => {
+    // Ranges are only overlapped once an answer proved they are honored, and
+    // the bigger the range the fewer of them, so the bytes in flight stay
+    // away from the throttle.
+    const limit = rangesHonored ? planner.parallelism : 1;
+    while (!exhausted && inFlight.length < limit) {
+      const planned = planner.rangeSize;
+      const size = total ? Math.min(planned, total - nextStart) : planned;
+      if (size <= 0) {
+        exhausted = true;
+        break;
+      }
+      const start = nextStart;
+      nextStart += size;
+      const measured: RangeMeasurement = {};
+      inFlight.push({
+        size,
+        measured,
+        startedAt: performance.now(),
+        bytes: fetchRange(start, size, measured),
+      });
+      exhausted = total > 0 && nextStart >= total;
     }
+  };
+
+  // CONSOLIDATION: shared with `mseProxy.captureMseStream`.
+  const accumulator = createChunkAccumulator(config.minChunkSize);
+  let ranges = 0;
+  const startedAt = Date.now();
+  try {
+    for (;;) {
+      schedule();
+      const range = inFlight.shift();
+      if (!range) break;
+      const bytes = await range.bytes;
+      ranges += 1;
+      // The next ranges are sized from what this one measured. The duration
+      // is the one the request itself reported: measuring it here would also
+      // count the time the consumer spent uploading the previous chunk.
+      planner.complete({
+        bytes: bytes.byteLength,
+        durationMs:
+          range.measured.durationMs ?? performance.now() - range.startedAt,
+        latencyMs: range.measured.latencyMs,
+        unstable: range.measured.unstable,
+      });
+      let chunk: Uint8Array | undefined;
+      if (bytes.byteLength) {
+        received += bytes.byteLength;
+        chunk = accumulator.add(bytes);
+      }
+      // A short answer is the end of the format, which is also how a stream
+      // of unannounced size ends.
+      if (bytes.byteLength < range.size) exhausted = true;
+      const ended = exhausted && inFlight.length === 0;
+      if (ended) {
+        if (!received) throw new Error("Audio downloader. Empty audio");
+        if (total > 0 && received < total) {
+          throw new Error(
+            `Audio downloader. Media stream ended early (${received}/${total})`,
+          );
+        }
+      }
+      const isLastChunk = ended || (total > 0 && received >= total);
+      if (!chunk && !isLastChunk) continue;
+      yield {
+        buffer: chunk ?? accumulator.flush() ?? concatBuffers([]),
+        isLastChunk,
+      };
+      if (isLastChunk) {
+        debug.log("Audio downloader. media download finished", {
+          received,
+          ranges,
+          rangeSize: planner.rangeSize,
+          transport,
+          seconds: Math.round((Date.now() - startedAt) / 100) / 10,
+        });
+        return;
+      }
+    }
+  } finally {
+    // A consumer that stops early (an aborted download) leaves the
+    // overlapping requests behind, and their rejection is nobody's error.
+    for (const range of inFlight) void range.bytes.catch(() => undefined);
   }
+
+  if (!received) throw new Error("Audio downloader. Empty audio");
+  yield { buffer: concatBuffers(pending), isLastChunk: true };
 }
 
+/** Everything a download needs that does not depend on the chosen format. */
+type MediaSession = {
+  readonly targetWindow: WebAbrWindow;
+  readonly signal: AbortSignal;
+  readonly fetchPlayerCode: () => Promise<string | undefined>;
+  readonly authorizeUrl: (streamUrl: string) => Promise<string>;
+};
+
+/**
+ * Streams one selected format.
+ *
+ * `sig`/`n` can have more than one candidate solution, so the candidates are
+ * tried in order until one of them is answered with media bytes. A refused
+ * signature ends the format immediately: GVS answers every candidate of the
+ * same format the same way, so trying the rest only spends refused requests.
+ */
+async function* streamSelectedFormat(
+  media: MediaSession,
+  format: MediaFormat,
+  refreshFormat: () => Promise<MediaFormat>,
+): AsyncGenerator<AudioChunk> {
+  const { targetWindow, signal, fetchPlayerCode, authorizeUrl } = media;
+  // The format reports its own size, so probing it costs no request.
+  const contentLength = Number(format.contentLength) || undefined;
+  // Signed URLs expire mid-download on slow connections; one extra player
+  // request then resumes the same format by byte offset.
+  const refreshUrl = async () => {
+    const refreshed = await refreshFormat();
+    for await (const url of resolveFormatUrls(
+      targetWindow,
+      refreshed,
+      fetchPlayerCode,
+      signal,
+    )) {
+      return await authorizeUrl(url);
+    }
+    throw new Error("Audio downloader. Refreshed media URL unavailable");
+  };
+
+  let lastError: unknown;
+  for await (const solvedUrl of resolveFormatUrls(
+    targetWindow,
+    format,
+    fetchPlayerCode,
+    signal,
+  )) {
+    let emitted = false;
+    try {
+      const streamUrl = await authorizeUrl(solvedUrl);
+      for await (const chunk of streamMediaFormat(
+        targetWindow,
+        streamUrl,
+        signal,
+        refreshUrl,
+        contentLength,
+      )) {
+        emitted = true;
+        yield chunk;
+      }
+      return;
+    } catch (error) {
+      signal.throwIfAborted();
+      if (emitted || error instanceof MediaAuthError) throw error;
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Audio downloader. media format URL is unavailable");
+}
+
+/**
+ * Matches the re-issued copy of a format in a fresh `player` answer.
+ *
+ * The stream is identified by its itag and its audio track only, the rule
+ * `formatSelection` owns. Comparing `contentLength`, `lastModified` and the
+ * exact `mimeType` string as well is what turned a URL refresh into
+ * "Refreshed format changed": a second answer for the same video reports
+ * those differently often enough that the refresh failed more often than it
+ * worked, in the middle of a download that was fine.
+ */
+function findRefreshedStreamingFormat(
+  streaming: MediaStreamingData | undefined,
+  format: MediaFormat,
+): MediaFormat | undefined {
+  return findRefreshedFormat(
+    [...(streaming?.adaptiveFormats ?? []), ...(streaming?.formats ?? [])],
+    format,
+  );
+}
+
+type DownloadStage = {
+  readonly kind: "audio" | "video";
+  readonly select: (streaming: MediaStreamingData) => SelectedFormat;
+};
+
+/**
+ * The audio pass is the only normal one: the translation needs the audio
+ * track, and a low-bitrate Opus stream is the cheapest way to move it.
+ *
+ * The video pass is the last resort of this strategy, for uploads that answer
+ * no usable audio-only stream at all. It reuses the `player` answers of the
+ * audio pass, so it costs no extra InnerTube request, and it picks the
+ * smallest picture YouTube offers (144p, or the cheapest muxed format when a
+ * video-only stream would arrive without any audio).
+ */
+const DOWNLOAD_STAGES: readonly DownloadStage[] = [
+  {
+    kind: "audio",
+    // Only adaptive formats are audio-only: `formats` are muxed with video.
+    select: ({ adaptiveFormats }) => selectAudioFormat(adaptiveFormats ?? []),
+  },
+  {
+    kind: "video",
+    select: ({ formats, adaptiveFormats }) =>
+      selectVideoFallbackFormat([
+        ...(formats ?? []),
+        ...(adaptiveFormats ?? []),
+      ]),
+  },
+];
+
+/**
+ * Streams the audio track of a YouTube video from the current realm.
+ *
+ * Request budget on the happy path: one InnerTube player request plus one
+ * media request for the whole track. The player JS, the PO token, the
+ * fallback clients and the video fallback are only paid for when the cheap
+ * path cannot answer, and every result is cached for the rest of the download.
+ */
 export async function* getWebAbrAudioChunks(
   targetWindow: WebAbrWindow,
   videoId: string,
@@ -1265,40 +1556,42 @@ export async function* getWebAbrAudioChunks(
   const config = await resolveYtcfg(targetWindow, signal);
   const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
   if (typeof apiKey !== "string") {
-    throw new Error("Audio downloader. web ABR config is unavailable");
-  }
-
-  const playerCodes = new Map<string, Promise<string>>();
-  const fetchPlayerCode = (url = getPlayerUrl(config)) => {
-    if (!url) return Promise.resolve(undefined);
-    let code = playerCodes.get(url);
-    if (!code) {
-      code = targetWindow.fetch(url, { signal }).then((response) => {
-        if (!response.ok) {
-          throw new Error(
-            `Audio downloader. YouTube player request failed (${response.status})`,
-          );
-        }
-        return response.text();
-      });
-      playerCodes.set(url, code);
-    }
-    return code;
-  };
-  let sts = Number(getConfigValue(config, "STS"));
-  if (!(sts > 0)) {
-    sts = Number(
-      (await fetchPlayerCode())?.match(
-        /(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})/,
-      )?.[1],
+    throw new AudioRealmError(
+      "Audio downloader. web ABR config is unavailable",
     );
   }
-  const body = buildWebEmbeddedPlayerRequest(config, videoId, sts);
-  const context = body.context as { client: Record<string, unknown> };
-  const clientVersion = String(context.client.clientVersion ?? "");
-  const visitorData =
-    context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
-  if (typeof visitorData === "string") context.client.visitorData = visitorData;
+
+  // The player JS is only needed to solve sig/n or to recover the signature
+  // timestamp, so it stays lazy and is downloaded at most once.
+  let playerCode: Promise<string | undefined> | undefined;
+  const fetchPlayerCode = () => {
+    const url = getPlayerUrl(config);
+    if (!url) return Promise.resolve(undefined);
+    playerCode ??= targetWindow.fetch(url, { signal }).then((response) => {
+      if (!response.ok) {
+        throw new AudioRealmError(
+          `Audio downloader. YouTube player request failed (${response.status})`,
+        );
+      }
+      return response.text();
+    });
+    return playerCode;
+  };
+
+  let sts = Number(getConfigValue(config, "STS"));
+  if (!(sts > 0)) {
+    const code = await fetchPlayerCode();
+    sts = Number(code ? STS_PATTERN.exec(code)?.[1] : undefined);
+  }
+
+  const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
+  const session: PlayerSession = {
+    config,
+    videoId,
+    signatureTimestamp: sts > 0 ? sts : undefined,
+  };
+
+  const visitorData = getConfigValue(config, "VISITOR_DATA");
   const dataSyncId = getConfigValue(config, "DATASYNC_ID");
   const [firstSyncId, secondSyncId] =
     typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
@@ -1313,16 +1606,16 @@ export async function* getWebAbrAudioChunks(
         "",
     ) || undefined,
   );
-  const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
+  const sessionIndex = getConfigValue(config, "SESSION_INDEX");
+  const auth = { authorization, sessionIndex, delegatedSessionId };
   const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
-  const pageExperimentFlags = Object.values(
+  const experimentFlags = Object.values(
     playerContexts && typeof playerContexts === "object" ? playerContexts : {},
   ).flatMap((entry: { serializedExperimentFlags?: unknown } | null) =>
     typeof entry?.serializedExperimentFlags === "string"
       ? [entry.serializedExperimentFlags]
       : [],
   );
-  const sessionIndex = getConfigValue(config, "SESSION_INDEX");
   debug.log("Audio downloader. player auth state", {
     videoId,
     host: targetWindow.location.hostname,
@@ -1331,144 +1624,169 @@ export async function* getWebAbrAudioChunks(
     hasDelegatedSession: Boolean(delegatedSessionId),
     loggedIn,
   });
-  const auth = {
-    authorization,
-    sessionIndex,
-    delegatedSessionId,
+
+  // One binding, one token, no network request: it is minted by the BotGuard
+  // instance of the page (or read off the media URLs the page player already
+  // signed) and reused for every URL of this download.
+  let poTokenBinding = selectGvsPoTokenBinding(videoId, {
+    loggedIn,
+    dataSyncId,
+    visitorData,
+    experimentFlags,
+  });
+  let poToken: Promise<string | undefined> | undefined;
+  let replacePoToken = false;
+  const mintPoToken = () => {
+    poToken ??= mintGvsPoToken(targetWindow, poTokenBinding.value, signal);
+    return poToken;
   };
-  let lastError: unknown;
-  let emitted = false;
-  for (const name of ["web_embedded", "tv_downgraded", "web", "web_creator"]) {
-    signal.throwIfAborted();
-    debug.log("Audio downloader. trying player client", {
+  /**
+   * GVS refused a session-bound token: the video-id binding is the documented
+   * alternative and YouTube rolls it out per session, so it is worth one more
+   * media request before the client is given up on.
+   */
+  const rotatePoTokenBinding = async (): Promise<boolean> => {
+    if (poTokenBinding.kind === "video") return false;
+    poTokenBinding = { kind: "video", value: videoId };
+    poToken = undefined;
+    replacePoToken = true;
+    const token = await mintPoToken();
+    debug.log("Audio downloader. rotated GVS PO token binding", {
       videoId,
-      client: name,
+      binding: poTokenBinding.kind,
+      hasPoToken: Boolean(token),
     });
-    const fetchedConfig =
-      name === "tv_downgraded"
-        ? await fetchTvConfig(targetWindow, signal, videoId)
-        : undefined;
-    const options = {
-      visitorData: fetchedConfig?.visitorData ?? visitorData,
-      signatureTimestamp: fetchedConfig?.signatureTimestamp ?? sts,
-      clientVersion: fetchedConfig?.clientVersion,
-    };
-    // Studio cannot be fetched from the embed realm without CORS permission.
-    const candidateBody =
-      name === "web_embedded"
-        ? body
-        : name === "tv_downgraded"
-          ? buildTvDowngradedPlayerRequest(videoId, options)
-          : name === "web"
-            ? buildWebPlayerRequest(config, videoId, sts)
-            : buildWebCreatorPlayerRequest(videoId, options);
-    const candidateContext = candidateBody.context as {
-      client: Record<string, unknown>;
-    };
-    if (typeof options.visitorData === "string") {
-      candidateContext.client.visitorData = options.visitorData;
+    return Boolean(token);
+  };
+  const authorizeUrl = async (streamUrl: string): Promise<string> => {
+    const url = new URL(streamUrl);
+    if (url.searchParams.has("pot") && !replacePoToken) return url.toString();
+    const token = await mintPoToken();
+    if (token) url.searchParams.set("pot", token);
+    return url.toString();
+  };
+  const media: MediaSession = {
+    targetWindow,
+    signal,
+    fetchPlayerCode,
+    authorizeUrl,
+  };
+
+  /**
+   * One `player` request per client for the whole download: its answer is
+   * shared by the audio pass, by the video fallback and by a URL refresh, and
+   * a client that already answered a verdict is never asked again.
+   */
+  const answers = new Map<string, WebEmbeddedPlayerResponse | Error>();
+  const requestPlayer = async (
+    client: PlayerClient,
+    refresh = false,
+  ): Promise<WebEmbeddedPlayerResponse> => {
+    const cached = answers.get(client.name);
+    if (cached && !refresh) {
+      if (cached instanceof Error) throw cached;
+      return cached;
     }
-    const requestPlayer = () =>
-      postInnertubePlayer(
+    const body = client.build(session);
+    const clientContext = (body.context as { client: Record<string, unknown> })
+      .client;
+    if (typeof visitorData === "string" && !clientContext.visitorData) {
+      clientContext.visitorData = visitorData;
+    }
+    try {
+      const response = await postInnertubePlayer(
         targetWindow,
         signal,
-        fetchedConfig?.apiKey ?? apiKey,
-        candidateBody,
-        name === "web_embedded"
-          ? "56"
-          : name === "tv_downgraded"
-            ? "7"
-            : name === "web"
-              ? "1"
-              : "62",
-        String(candidateContext.client.clientVersion ?? clientVersion),
+        apiKey,
+        body,
+        client.id,
+        String(clientContext.clientVersion ?? ""),
         auth,
       );
-    const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl);
-    try {
-      const playerResponse = await requestPlayer();
-      const formats = [
-        ...(playerResponse.streamingData?.adaptiveFormats ?? []),
-        ...(playerResponse.streamingData?.formats ?? []),
-      ];
-      if (!formats.length) {
-        const status = playerResponse.playabilityStatus;
-        throw new Error(
-          `Audio downloader. ${name} ${status?.status ?? "failed"}: ${
-            status?.reason ?? status?.messages?.join(" ") ?? "no streaming data"
-          }`,
-        );
+      const streaming = response.streamingData;
+      if (!streaming?.adaptiveFormats?.length && !streaming?.formats?.length) {
+        throw new PlayerStatusError(client.name, response.playabilityStatus);
       }
-      const format = selectWebEmbeddedAudioFormat(formats);
-      const fetchedFlags = fetchedConfig?.experimentFlags;
-      const poTokenBinding = selectGvsPoTokenBinding(videoId, {
-        loggedIn,
-        dataSyncId:
-          playerResponse.responseContext?.mainAppWebResponseContext
-            ?.datasyncId ||
-          dataSyncId ||
-          fetchedConfig?.dataSyncId,
-        visitorData: candidateContext.client.visitorData ?? visitorData,
-        experimentFlags: fetchedFlags?.length
-          ? fetchedFlags
-          : pageExperimentFlags,
-      });
-      let poToken: Promise<string | undefined> | undefined;
-      const authorizeUrl = async (streamUrl: string) => {
-        const url = new URL(streamUrl);
-        if (!url.searchParams.has("pot") && poTokenBinding) {
-          poToken ??= mintPagePoToken(
-            targetWindow,
-            poTokenBinding.value,
-            signal,
-          );
-          const token = await poToken;
-          if (token) url.searchParams.set("pot", token);
-        }
-        return url.toString();
-      };
-      for await (const solvedUrl of resolveWebEmbeddedFormatUrl(
-        targetWindow,
-        format,
-        getCode,
-        signal,
-      )) {
+      answers.set(client.name, response);
+      return response;
+    } catch (error) {
+      signal.throwIfAborted();
+      // The verdict is remembered so the next pass skips this client instead
+      // of spending another request on the same answer.
+      if (error instanceof Error && !answers.has(client.name)) {
+        answers.set(client.name, error);
+      }
+      throw error;
+    }
+  };
+
+  const clients: PlayerClient[] = [];
+  for (const client of PLAYER_CLIENTS) {
+    // A request that can only be refused is never sent.
+    const skipped = isClientRefusedRecently(client.name)
+      ? "GVS refused it in this session"
+      : client.requiresLogin && !loggedIn
+        ? "anonymous session"
+        : client.requiresPoToken && !(await mintPoToken())
+          ? "no GVS PO token"
+          : undefined;
+    if (!skipped) {
+      clients.push(client);
+      continue;
+    }
+    debug.log("Audio downloader. skipping player client", {
+      videoId,
+      client: client.name,
+      reason: skipped,
+    });
+  }
+
+  /** Clients whose signed URLs GVS refused: their video formats are too. */
+  const refused = new Set<string>();
+  let lastError: unknown;
+  let emitted = false;
+  for (const stage of DOWNLOAD_STAGES) {
+    const usable = clients.filter(
+      (client) =>
+        !refused.has(client.name) &&
+        !(answers.get(client.name) instanceof Error),
+    );
+    // Every client already answered a verdict or had its signature refused:
+    // another pass would only collect the same answers a second time.
+    if (!usable.length) break;
+    clientLoop: for (const client of usable) {
+      signal.throwIfAborted();
+      if (refused.has(client.name)) continue;
+      // Two attempts per client: a session-bound token GVS refused is retried
+      // once with the video-id binding, which costs one media request and no
+      // player request, because the client's answer is already cached.
+      for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          const streamUrl = await authorizeUrl(solvedUrl);
-          const contentLength =
-            Number(format.contentLength) ||
-            (await probeContentLength(targetWindow, streamUrl, signal));
-          const refreshUrl = async () => {
-            const response = await requestPlayer();
-            const refreshed = response.streamingData?.adaptiveFormats?.find(
-              (entry) =>
-                entry.itag === format.itag &&
-                entry.mimeType === format.mimeType &&
-                Number(entry.contentLength) === contentLength &&
-                entry.lastModified === format.lastModified,
-            );
-            if (!refreshed)
-              throw new Error(
-                "Audio downloader. Refreshed audio format changed",
+          const { streamingData } = await requestPlayer(client);
+          const selected = stage.select(streamingData ?? {});
+          debug.log("Audio downloader. selected media format", {
+            videoId,
+            client: client.name,
+            stage: stage.kind,
+            reason: selected.reason,
+            track: selected.track?.key ?? "single",
+            language: selected.track?.language ?? "unknown",
+            content: selected.track?.content ?? "unknown",
+            ...describeFormat(selected.format),
+          });
+          for await (const chunk of streamSelectedFormat(
+            media,
+            selected.format,
+            async () => {
+              const refreshed = findRefreshedStreamingFormat(
+                (await requestPlayer(client, true)).streamingData,
+                selected.format,
               );
-            for await (const url of resolveWebEmbeddedFormatUrl(
-              targetWindow,
-              refreshed,
-              getCode,
-              signal,
-            )) {
-              return await authorizeUrl(url);
-            }
-            throw new Error(
-              "Audio downloader. Refreshed audio URL unavailable",
-            );
-          };
-          for await (const chunk of downloadMediaRanges(
-            targetWindow,
-            streamUrl,
-            contentLength,
-            signal,
-            refreshUrl,
+              // The itag is gone from the fresh answer: the format in hand is
+              // re-signed with the current player code instead, which is
+              // still better than ending a download that is under way.
+              return refreshed ?? selected.format;
+            },
           )) {
             emitted = true;
             yield chunk;
@@ -1478,20 +1796,46 @@ export async function* getWebAbrAudioChunks(
           signal.throwIfAborted();
           if (emitted) throw error;
           lastError = error;
-          // Nothing escaped this candidate: try another solve or client from byte zero.
+          const authRefused = error instanceof MediaAuthError;
+          debug.log("Audio downloader. player client failed", {
+            videoId,
+            client: client.name,
+            stage: stage.kind,
+            attempt,
+            error: toErrorMessage(error),
+            ...(authRefused
+              ? {
+                  refused: true,
+                  binding: poTokenBinding.kind,
+                  hasPoToken: Boolean(await poToken),
+                }
+              : {}),
+          });
+          if (authRefused && attempt === 0 && (await rotatePoTokenBinding())) {
+            continue;
+          }
+          if (authRefused) {
+            // GVS refused this client's signature, not the format, so its
+            // video formats are answered the same way — and so is the next
+            // download of this session.
+            refused.add(client.name);
+            refusedClients.set(client.name, Date.now());
+          }
+          // Without cookies no other client can pass a sign-in check, so stop
+          // instead of spending a request per remaining client.
+          if (
+            !loggedIn &&
+            error instanceof PlayerStatusError &&
+            error.status === "LOGIN_REQUIRED"
+          ) {
+            break clientLoop;
+          }
+          break;
         }
       }
-    } catch (error) {
-      signal.throwIfAborted();
-      if (emitted) throw error;
-      debug.log("Audio downloader. player client format failed", {
-        videoId,
-        client: name,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      lastError = error;
     }
   }
+
   const fallbackError =
     lastError instanceof Error
       ? lastError
