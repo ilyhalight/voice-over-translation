@@ -6,7 +6,7 @@ import {
 } from "@vot.js/core/types/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { AudioDownloader } from "../audioDownloader";
-import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webMseProxy";
+import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
 import { localizationProvider } from "../localization/localizationProvider";
 import type {
   DownloadedAudioData,
@@ -213,7 +213,10 @@ export class VOTTranslationHandler {
     }
   };
 
-  private readonly onDownloadAudioError = async (videoId: string) => {
+  private readonly onDownloadAudioError = async (
+    translationId: string,
+    videoId: string,
+  ) => {
     if (!this.downloading) {
       debug.log("skip downloadAudioError");
       return;
@@ -243,6 +246,15 @@ export class VOTTranslationHandler {
         await this.videoHandler.votClient.provider.requestVtransFailAudio(
           videoUrl,
         );
+        await this.videoHandler.votClient.provider.requestVtransAudio(
+          videoUrl,
+          translationId,
+          {
+            audioFile: new Uint8Array(0),
+            fileId: `fallback-empty-audio:video-translation:${videoId}`,
+          },
+        );
+
         this.requestedFailAudio.add(videoUrl);
       }
 

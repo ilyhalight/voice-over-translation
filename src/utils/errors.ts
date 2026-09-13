@@ -119,7 +119,10 @@ export function isAbortError(err: unknown): boolean {
  * Note: This is intentionally not coupled to AbortSignal.reason to avoid
  * surfacing string/opaque abort reasons as user-facing "errors".
  */
-export function makeAbortError(message = "Aborted"): Error {
+export function makeAbortError(reason: unknown = "Aborted"): Error {
+  if (reason instanceof Error && isAbortError(reason)) return reason;
+  const message =
+    reason instanceof Error ? reason.message : String(reason ?? "Aborted");
   try {
     return new DOMException(message, "AbortError");
   } catch {

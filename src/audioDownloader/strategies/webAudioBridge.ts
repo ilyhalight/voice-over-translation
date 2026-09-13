@@ -1,21 +1,17 @@
-import { AudioDownloadType } from "@vot.js/core/types/yandex";
+import type { AudioDownloadType } from "@vot.js/core/types/yandex";
 
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
-
-import "./mseProxyHandler";
+import debug from "../../utils/debug";
+import { makeAbortError } from "../../utils/errors";
+import type { AudioChunk } from "./audioChunks";
 
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 export const STREAM_TIMEOUT_MS = 30 * 60_000;
-const MESSAGE_TIMEOUT_MS = 2 * 60_000;
+const MESSAGE_TIMEOUT_MS = 5 * 60_000;
 
-export type MseProxyChunk = {
-  buffer: Uint8Array;
-  isLastChunk: boolean;
-};
-
-export function parseMseProxyChunk(payload: unknown): MseProxyChunk {
+export function parseAudioBridgeChunk(payload: unknown): AudioChunk {
   if (!payload || typeof payload !== "object" || !("buffer" in payload)) {
-    throw new Error("Audio downloader. Invalid MSE chunk");
+    throw new Error("Audio downloader. Invalid audio bridge chunk");
   }
 
   const { buffer, isLastChunk } = payload as {
@@ -32,23 +28,27 @@ export function parseMseProxyChunk(payload: unknown): MseProxyChunk {
           : null;
 
   if (!bytes || typeof isLastChunk !== "boolean") {
-    throw new Error("Audio downloader. Invalid MSE chunk");
+    throw new Error("Audio downloader. Invalid audio bridge chunk");
   }
 
   return { buffer: bytes, isLastChunk };
 }
 
-async function* getMseProxyChunks(
+async function* getAudioBridgeChunks(
   videoId: string,
   signal: AbortSignal,
-): AsyncGenerator<MseProxyChunk> {
-  if (signal.aborted) throw new Error(String(signal.reason ?? "Aborted"));
+  audioDownloadType:
+    | AudioDownloadType.WEB_ABR
+    | AudioDownloadType.WEB_MSE_PROXY,
+): AsyncGenerator<AudioChunk> {
+  if (signal.aborted) throw makeAbortError(signal.reason);
 
   const messageId = `stream-message-id-${performance.now()}-${Math.random()}`;
-  const chunks: MseProxyChunk[] = [];
+  const chunks: AudioChunk[] = [];
   let wake: (() => void) | undefined;
   let streamFinished = false;
   let failure: Error | undefined;
+  let receivedChunks = 0;
   let messageTimeout: ReturnType<typeof setTimeout>;
 
   const notify = () => {
@@ -59,18 +59,38 @@ async function* getMseProxyChunks(
     if (error) {
       if (failure) return;
       failure = error;
+      debug.error("Audio downloader. Audio bridge failed", {
+        videoId,
+        messageId,
+        audioDownloadType,
+        receivedChunks,
+        error: error.message,
+      });
     } else {
       streamFinished = true;
       clearTimeout(messageTimeout);
+      debug.log("Audio downloader. Audio bridge stream finished", {
+        videoId,
+        messageId,
+        audioDownloadType,
+        receivedChunks,
+      });
     }
     notify();
   };
   const resetMessageTimeout = () => {
     clearTimeout(messageTimeout);
     messageTimeout = setTimeout(
-      () => finish(new Error("MSE proxy message timed out")),
+      () => finish(new Error("Audio bridge message timed out")),
       MESSAGE_TIMEOUT_MS,
     );
+  };
+  const throwIfFailed = () => {
+    if (!failure) return;
+    if (!globalThis.location.href.includes(videoId)) {
+      throw makeAbortError("URL changed during audio download");
+    }
+    throw failure;
   };
   const postAbort = () =>
     globalThis.postMessage(
@@ -100,12 +120,16 @@ async function* getMseProxyChunks(
     }
 
     resetMessageTimeout();
-    if (message.error || message.isAborted) {
+    if (message.isAborted) {
+      finish(makeAbortError(message.error));
+      return;
+    }
+    if (message.error) {
       finish(
         new Error(
           typeof message.error === "string"
             ? message.error
-            : "MSE proxy stream aborted",
+            : "Audio bridge failed",
         ),
       );
       return;
@@ -114,22 +138,40 @@ async function* getMseProxyChunks(
       finish();
       return;
     }
+    if (message.isProgress) {
+      debug.log("Audio downloader. Audio bridge progress", {
+        videoId,
+        messageId,
+        audioDownloadType,
+      });
+      return;
+    }
 
     try {
-      chunks.push(parseMseProxyChunk(message.payload));
+      const chunk = parseAudioBridgeChunk(message.payload);
+      chunks.push(chunk);
+      receivedChunks++;
+      debug.log("Audio downloader. Audio bridge chunk received", {
+        videoId,
+        messageId,
+        audioDownloadType,
+        index: receivedChunks - 1,
+        size: chunk.buffer.byteLength,
+        isLastChunk: chunk.isLastChunk,
+      });
       notify();
     } catch (error) {
       finish(error instanceof Error ? error : new Error(String(error)));
     }
   };
-  const onAbort = () => finish(new Error(String(signal.reason ?? "Aborted")));
+  const onAbort = () => finish(makeAbortError(signal.reason));
   const streamTimeout = setTimeout(
-    () => finish(new Error("MSE proxy stream timed out")),
+    () => finish(new Error("Audio bridge stream timed out")),
     STREAM_TIMEOUT_MS,
   );
   const navigationInterval = setInterval(() => {
     if (!globalThis.location.href.includes(videoId)) {
-      finish(new Error("URL changed during MSE proxy download"));
+      finish(makeAbortError("URL changed during audio download"));
     }
   }, 100);
 
@@ -138,6 +180,12 @@ async function* getMseProxyChunks(
   if (signal.aborted) onAbort();
   resetMessageTimeout();
 
+  debug.log("Audio downloader. Audio bridge request started", {
+    videoId,
+    messageId,
+    audioDownloadType,
+  });
+
   try {
     if (!streamFinished && !failure) {
       globalThis.postMessage(
@@ -145,14 +193,17 @@ async function* getMseProxyChunks(
           messageId,
           messageType: MESSAGE_TYPE,
           messageDirection: "request",
-          payload: { pureVideoId: videoId, fromPlayer: true },
+          payload: {
+            pureVideoId: videoId,
+            audioDownloadType,
+          },
         },
         "*",
       );
     }
 
     while (!streamFinished || chunks.length > 0) {
-      if (failure) throw failure;
+      throwIfFailed();
       const chunk = chunks.shift();
       if (chunk) {
         yield chunk;
@@ -162,7 +213,7 @@ async function* getMseProxyChunks(
         });
       }
     }
-    if (failure) throw failure;
+    throwIfFailed();
   } finally {
     clearTimeout(messageTimeout);
     clearTimeout(streamTimeout);
@@ -173,13 +224,16 @@ async function* getMseProxyChunks(
   }
 }
 
-export async function getAudioFromWebMseProxy({
-  videoId,
-  signal,
-}: GetAudioFromAPIOptions) {
+export async function getAudioFromBridge(
+  { videoId, signal }: GetAudioFromAPIOptions,
+  audioDownloadType:
+    | AudioDownloadType.WEB_ABR
+    | AudioDownloadType.WEB_MSE_PROXY,
+) {
   return {
-    fileId: `random-${AudioDownloadType.WEB_MSE_PROXY}-${crypto.randomUUID()}`,
+    fileId: `random-${audioDownloadType}-${crypto.randomUUID()}`,
     mediaPartsLength: null,
-    getMediaBuffers: () => getMseProxyChunks(videoId, signal),
+    getMediaBuffers: () =>
+      getAudioBridgeChunks(videoId, signal, audioDownloadType),
   };
 }

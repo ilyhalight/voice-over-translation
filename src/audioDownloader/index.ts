@@ -4,11 +4,13 @@ import type {
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
 import debug from "../utils/debug";
+import { isAbortError } from "../utils/errors";
 import { EventImpl } from "../utils/eventImpl";
 
 import {
   type AvailableAudioDownloadType,
   strategies,
+  WEB_ABR_STRATEGY,
   WEB_MSE_PROXY_STRATEGY,
 } from "./strategies";
 
@@ -21,11 +23,14 @@ function assertHasAudioChunk(chunk: Uint8Array | undefined): Uint8Array {
 
 async function handleCommonAudioDownloadRequest({
   audioDownloader,
+  attemptedStrategy,
   translationId,
   videoId,
   signal,
-}: AudioDownloadRequestOptions) {
-  const audioData = await strategies[audioDownloader.strategy]({
+}: AudioDownloadRequestOptions & {
+  attemptedStrategy: AvailableAudioDownloadType;
+}) {
+  const audioData = await strategies[attemptedStrategy]({
     videoId,
     signal,
   });
@@ -33,7 +38,7 @@ async function handleCommonAudioDownloadRequest({
     throw new Error("Audio downloader. Can not get audio data");
   }
   debug.log("Audio downloader. Url found", {
-    audioDownloadType: audioDownloader.strategy,
+    audioDownloadType: attemptedStrategy,
   });
 
   const { getMediaBuffers, fileId } = audioData;
@@ -62,7 +67,7 @@ async function handleCommonAudioDownloadRequest({
   }
 
   if (!receivedLastChunk) {
-    throw new Error("Audio downloader. MSE stream ended without a last chunk");
+    throw new Error("Audio downloader. Stream ended without a last chunk");
   }
 }
 
@@ -71,11 +76,11 @@ export class AudioDownloader {
   onDownloadedPartialAudio = new EventImpl<
     [string, DownloadedPartialAudioData]
   >();
-  onDownloadAudioError = new EventImpl<[string]>();
+  onDownloadAudioError = new EventImpl<[string, string]>();
 
   strategy: AvailableAudioDownloadType;
 
-  constructor(strategy: AvailableAudioDownloadType = WEB_MSE_PROXY_STRATEGY) {
+  constructor(strategy: AvailableAudioDownloadType = WEB_ABR_STRATEGY) {
     this.strategy = strategy;
     debug.log("Audio downloader created", {
       strategy,
@@ -87,23 +92,44 @@ export class AudioDownloader {
     translationId: string,
     signal: AbortSignal,
   ) {
-    try {
-      await handleCommonAudioDownloadRequest({
-        audioDownloader: this,
-        translationId,
-        videoId,
-        signal,
-      });
-      debug.log("Audio downloader. Audio download finished", {
-        videoId,
-      });
-    } catch (err) {
-      debug.error("Audio downloader. Failed to download audio", {
-        videoId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      this.onDownloadAudioError.dispatch(videoId);
+    const attempts: AvailableAudioDownloadType[] =
+      this.strategy === WEB_ABR_STRATEGY
+        ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
+        : [this.strategy];
+    for (const attemptedStrategy of attempts) {
+      try {
+        await handleCommonAudioDownloadRequest({
+          audioDownloader: this,
+          attemptedStrategy,
+          translationId,
+          videoId,
+          signal,
+        });
+        debug.log("Audio downloader. Audio download finished", {
+          videoId,
+          audioDownloadType: attemptedStrategy,
+        });
+        return;
+      } catch (error) {
+        if (signal.aborted || isAbortError(error)) {
+          debug.log("Audio downloader. Audio download aborted", {
+            videoId,
+            audioDownloadType: attemptedStrategy,
+          });
+          return;
+        }
+        debug.error("Audio downloader. Strategy failed", {
+          videoId,
+          audioDownloadType: attemptedStrategy,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
+
+    debug.error("Audio downloader. All audio download strategies failed", {
+      videoId,
+    });
+    this.onDownloadAudioError.dispatch(translationId, videoId);
   }
 
   addEventListener(
@@ -116,7 +142,7 @@ export class AudioDownloader {
   ): this;
   addEventListener(
     type: "downloadAudioError",
-    listener: (videoId: string) => void,
+    listener: (translationId: string, videoId: string) => void,
   ): this;
   addEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
@@ -147,7 +173,7 @@ export class AudioDownloader {
   ): this;
   removeEventListener(
     type: "downloadAudioError",
-    listener: (videoId: string) => void,
+    listener: (translationId: string, videoId: string) => void,
   ): this;
   removeEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",

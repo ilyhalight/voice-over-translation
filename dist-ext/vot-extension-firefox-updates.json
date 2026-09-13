@@ -3,7 +3,7 @@
     "vot-ext@firefox": {
       "updates": [
         {
-          "version": "1.11.10",
+          "version": "1.11.12",
           "update_link": "https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot-extension-firefox.xpi"
         }
       ]

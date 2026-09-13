@@ -1,7 +1,13 @@
+import { AudioDownloadType } from "@vot.js/core/types/yandex";
+import { config } from "@vot.js/shared";
+import debug from "../../utils/debug";
+import { isAbortError } from "../../utils/errors";
+import { type AudioChunk, concatBuffers } from "./audioChunks";
+import { getWebAbrAudioChunks } from "./webAbr";
+
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 const READY_MESSAGE_TYPE = "vot-mse-proxy-ready";
 const IFRAME_HASH = "ya_iframe";
-const MIN_CHUNK_SIZE = 5_295_308;
 const BOOT_KEY = "__VOT_MSE_PROXY_HANDLER__";
 const STORE_KEY = "__VOT_MSE_CAPTURE_STORE__";
 
@@ -27,17 +33,35 @@ type MseMessage = {
   error?: string;
   isAborted?: boolean;
   isStreamFinished?: boolean;
+  isProgress?: boolean;
 };
 
 const topSessions = new Map<
   string,
-  { iframe: HTMLIFrameElement; cleanup: () => void }
+  {
+    iframe: HTMLIFrameElement;
+    cleanup: () => void;
+    source: MessageEventSource;
+    origin: string;
+  }
 >();
 
 function getVideoId(message: MseMessage): string | undefined {
   if (!message.payload || typeof message.payload !== "object") return;
   const videoId = (message.payload as { pureVideoId?: unknown }).pureVideoId;
   return typeof videoId === "string" ? videoId : undefined;
+}
+
+function getAudioDownloadType(
+  message: MseMessage,
+): AudioDownloadType.WEB_ABR | AudioDownloadType.WEB_MSE_PROXY | undefined {
+  if (!message.payload || typeof message.payload !== "object") return;
+  const audioDownloadType = (message.payload as { audioDownloadType?: unknown })
+    .audioDownloadType;
+  return audioDownloadType === AudioDownloadType.WEB_ABR ||
+    audioDownloadType === AudioDownloadType.WEB_MSE_PROXY
+    ? audioDownloadType
+    : undefined;
 }
 
 async function getEncryptedEmbedConfig(
@@ -85,35 +109,40 @@ type CapturedEvent =
   | { type: "end" }
   | { type: "close" };
 
-function concatBuffers(buffers: Uint8Array[]): Uint8Array {
-  const result = new Uint8Array(
-    buffers.reduce((length, buffer) => length + buffer.byteLength, 0),
-  );
-  let offset = 0;
-  for (const buffer of buffers) {
-    result.set(buffer, offset);
-    offset += buffer.byteLength;
-  }
-  return result;
-}
-
 function waitFor<T>(
   getValue: () => T | null,
   timeoutMs: number,
   label: string,
+  signal: AbortSignal,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
-    const startedAt = performance.now();
+    const cleanup = () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+      signal.removeEventListener("abort", onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(signal.reason);
+    };
     const interval = setInterval(() => {
-      const value = getValue();
-      if (value) {
-        clearInterval(interval);
-        resolve(value);
-      } else if (performance.now() - startedAt >= timeoutMs) {
-        clearInterval(interval);
-        reject(new Error(`Audio downloader. ${label} timed out`));
+      try {
+        const value = getValue();
+        if (value) {
+          cleanup();
+          resolve(value);
+        }
+      } catch (error) {
+        cleanup();
+        reject(error);
       }
     }, 100);
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Audio downloader. ${label} timed out`));
+    }, timeoutMs);
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
   });
 }
 
@@ -153,7 +182,12 @@ class CapturedMediaSource {
 
   listen(listener: (event: CapturedEvent) => void): () => void {
     this.listeners.add(listener);
-    for (const event of this.queuedEvents.splice(0)) listener(event);
+    try {
+      for (const event of this.queuedEvents.splice(0)) listener(event);
+    } catch (error) {
+      this.listeners.delete(listener);
+      throw error;
+    }
     return () => this.listeners.delete(listener);
   }
 
@@ -191,7 +225,7 @@ class MseCaptureStore {
     for (const listener of this.listeners) listener(capture);
   }
 
-  async pick(): Promise<CapturedMediaSource> {
+  async pick(signal: AbortSignal): Promise<CapturedMediaSource> {
     try {
       return await waitFor(
         () => {
@@ -203,8 +237,11 @@ class MseCaptureStore {
         },
         10_000,
         "MSE capture wait",
+        signal,
       );
     } catch (error) {
+      signal.throwIfAborted();
+      if (isAbortError(error)) throw error;
       const newest = this.captures.at(-1);
       throw new Error(
         `Audio downloader. MSE capture wait timed out (captures: ${this.captures.length}, ` +
@@ -245,7 +282,10 @@ function installMediaSourceProxy(targetWindow: MseWindow): MseCaptureStore {
   return store;
 }
 
-async function getPlayer(targetWindow: Window): Promise<YouTubePlayer> {
+async function getPlayer(
+  targetWindow: Window,
+  signal: AbortSignal,
+): Promise<YouTubePlayer> {
   return await waitFor(
     () => {
       const player =
@@ -257,22 +297,50 @@ async function getPlayer(targetWindow: Window): Promise<YouTubePlayer> {
         ? player
         : null;
     },
-    10_000,
+    30_000,
     "MSE player wait",
+    signal,
   );
 }
 
-function createAudioChunkStream(
+export function createAudioChunkStream(
   targetWindow: MseWindow,
   videoId: string,
   signal: AbortSignal,
-): ReadableStream<{ buffer: Uint8Array; isLastChunk: boolean }> {
+  onProgress?: () => void,
+): ReadableStream<AudioChunk> {
   let cleanup = () => {};
+  let finished = false;
+  const cancellation = new AbortController();
+  signal = AbortSignal.any([signal, cancellation.signal]);
 
   return new ReadableStream({
     async start(controller) {
+      let stopMse = () => {};
+      const fail = (error: unknown) => {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        controller.error(error);
+      };
+      const onAbort = () => fail(signal.reason);
+      cleanup = () => {
+        stopMse();
+        signal.removeEventListener("abort", onAbort);
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+
+      const onMseError = (error: unknown) => {
+        if (finished) return;
+        stopMse();
+        fail(signal.aborted ? signal.reason : error);
+      };
       try {
-        const player = await getPlayer(targetWindow);
+        signal.throwIfAborted();
+        debug.log("Audio downloader. MSE iframe stream started", { videoId });
+        const player = await getPlayer(targetWindow, signal);
+        signal.throwIfAborted();
+        debug.log("Audio downloader. MSE player found", { videoId });
         try {
           player.loadVideoById?.(videoId);
         } catch {
@@ -340,8 +408,11 @@ function createAudioChunkStream(
             },
             15_000,
             "MSE media wait",
+            signal,
           );
         } catch (error) {
+          signal.throwIfAborted();
+          if (isAbortError(error)) throw error;
           const videos = listVideos();
           const video = videos[0];
           // The proxy is installed at handler init, so captures collected
@@ -361,6 +432,13 @@ function createAudioChunkStream(
             { cause: error },
           );
         }
+        signal.throwIfAborted();
+        debug.log("Audio downloader. MSE media ready", {
+          videoId,
+          readyState: readyVideo.readyState,
+          playerState: getPlayerState(),
+          playReject,
+        });
         try {
           readyVideo.playbackRate = 2;
         } catch {
@@ -368,92 +446,153 @@ function createAudioChunkStream(
         }
 
         const store = installMediaSourceProxy(targetWindow);
-        let capture = await store.pick();
+        let capture = await store.pick(signal);
+        signal.throwIfAborted();
+        debug.log("Audio downloader. MSE capture picked", {
+          videoId,
+          captures: store.captures.length,
+          readyState: capture.mediaSource.readyState,
+        });
         let removeCaptureListener = () => {};
         let pending: Uint8Array[] = [];
         let pendingSize = 0;
-        let heldChunk: Uint8Array | undefined;
+        let totalSize = 0;
         let seekTimeout: ReturnType<typeof setTimeout> | undefined;
-        let closed = false;
+        let lastProgressAt = 0;
 
-        const promotePendingChunk = () => {
-          if (heldChunk) {
-            controller.enqueue({ buffer: heldChunk, isLastChunk: false });
-          }
-          heldChunk = concatBuffers(pending);
+        const enqueuePendingChunk = (isLastChunk: boolean) => {
+          const size = pendingSize;
+          controller.enqueue({ buffer: concatBuffers(pending), isLastChunk });
+          debug.log("Audio downloader. MSE chunk enqueued", {
+            videoId,
+            size,
+            isLastChunk,
+            totalSize,
+          });
           pending = [];
           pendingSize = 0;
         };
         const close = () => {
-          if (closed) return;
-          closed = true;
-          if (pendingSize > 0) promotePendingChunk();
-          if (!heldChunk?.byteLength) {
-            controller.error(new Error("Audio downloader. Empty MSE stream"));
+          if (finished) return;
+          if (totalSize === 0) {
+            debug.error("Audio downloader. MSE empty stream", { videoId });
+            void onMseError(new Error("Audio downloader. Empty MSE stream"));
           } else {
-            controller.enqueue({ buffer: heldChunk, isLastChunk: true });
+            debug.log("Audio downloader. MSE stream finished", {
+              videoId,
+              totalSize,
+            });
+            enqueuePendingChunk(true);
+            finished = true;
             controller.close();
-          }
-          cleanup();
-        };
-        const onCapturedEvent = (event: CapturedEvent) => {
-          if (closed) return;
-          if (event.type === "end") {
-            close();
-            return;
-          }
-          if (event.type === "close") {
-            closed = true;
-            controller.error(new Error("Audio downloader. MSE source closed"));
             cleanup();
-            return;
           }
+        };
+        let firstAppendLogged = false;
+        const onCapturedEvent = (event: CapturedEvent) => {
+          if (finished) return;
+          try {
+            if (event.type === "end") {
+              debug.log("Audio downloader. MSE end of stream", {
+                videoId,
+                totalSize,
+                pendingSize,
+              });
+              close();
+              return;
+            }
+            if (event.type === "close") {
+              debug.error("Audio downloader. MSE source closed", {
+                videoId,
+                totalSize,
+              });
+              void onMseError(new Error("Audio downloader. MSE source closed"));
+              return;
+            }
 
-          pending.push(event.buffer);
-          pendingSize += event.buffer.byteLength;
-          if (pendingSize >= MIN_CHUNK_SIZE) promotePendingChunk();
+            if (!firstAppendLogged) {
+              firstAppendLogged = true;
+              debug.log("Audio downloader. MSE first audio append", {
+                videoId,
+                size: event.buffer.byteLength,
+              });
+            }
+            pending.push(event.buffer);
+            pendingSize += event.buffer.byteLength;
+            totalSize += event.buffer.byteLength;
+            if (pendingSize >= config.minChunkSize) {
+              enqueuePendingChunk(false);
+            } else if (
+              pendingSize >= config.minChunkSize / 2 &&
+              performance.now() - lastProgressAt >= 30_000
+            ) {
+              // Half a chunk is buffered but no full chunk yet: ping the
+              // main world so it extends the message timeout. Chunk sizes
+              // stay strictly bound to config.minChunkSize.
+              lastProgressAt = performance.now();
+              debug.log("Audio downloader. MSE progress ping", {
+                videoId,
+                pendingSize,
+                totalSize,
+              });
+              onProgress?.();
+            }
 
-          const { buffered } = event.sourceBuffer;
-          const bufferedEnd =
-            buffered.length > 0
-              ? Math.floor(buffered.end(buffered.length - 1))
-              : 0;
-          clearTimeout(seekTimeout);
-          if (bufferedEnd > 0) {
-            seekTimeout = setTimeout(
-              () => player.seekTo(bufferedEnd, true),
-              1000,
-            );
+            if (finished) return;
+            const { buffered } = event.sourceBuffer;
+            const bufferedEnd =
+              buffered.length > 0
+                ? Math.floor(buffered.end(buffered.length - 1))
+                : 0;
+            clearTimeout(seekTimeout);
+            if (bufferedEnd > 0) {
+              seekTimeout = setTimeout(() => {
+                try {
+                  player.seekTo(bufferedEnd, true);
+                } catch (error) {
+                  void onMseError(error);
+                }
+              }, 1000);
+            }
+          } catch (error) {
+            void onMseError(error);
           }
         };
         let stopCapture = () => {};
-        const onAbort = () => {
-          if (closed) return;
-          closed = true;
-          controller.error(new Error(String(signal.reason ?? "Aborted")));
-          cleanup();
-        };
-        cleanup = () => {
+        stopMse = () => {
           clearTimeout(seekTimeout);
           stopCapture();
           removeCaptureListener();
-          signal.removeEventListener("abort", onAbort);
         };
         stopCapture = capture.listen(onCapturedEvent);
-        if (closed) return;
-        removeCaptureListener = store.onCapture((nextCapture) => {
+        // listen() replays queued events before returning its unsubscribe.
+        if (finished) {
           stopCapture();
-          capture = nextCapture;
-          stopCapture = capture.listen(onCapturedEvent);
+          return;
+        }
+        removeCaptureListener = store.onCapture((nextCapture) => {
+          if (finished) return;
+          try {
+            stopCapture();
+            capture = nextCapture;
+            stopCapture = capture.listen(onCapturedEvent);
+            if (finished) stopCapture();
+          } catch (error) {
+            void onMseError(error);
+          }
         });
-        signal.addEventListener("abort", onAbort, { once: true });
-        if (signal.aborted) onAbort();
+        if (finished) removeCaptureListener();
       } catch (error) {
-        controller.error(error);
-        cleanup();
+        debug.error("Audio downloader. MSE iframe stream failed", {
+          videoId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        onMseError(error);
       }
     },
-    cancel() {
+    cancel(reason) {
+      finished = true;
+      cancellation.abort(reason);
       cleanup();
     },
   });
@@ -477,47 +616,97 @@ async function handleIframeRequest(
   const controller = new AbortController();
   const abort = (abortEvent: MessageEvent<MseMessage>) => {
     const data = abortEvent.data;
-    if (data.messageId === message.messageId && data.isAborted) {
+    if (
+      abortEvent.source === source &&
+      abortEvent.origin === event.origin &&
+      data.messageId === message.messageId &&
+      data.messageType === MESSAGE_TYPE &&
+      data.messageDirection === "request" &&
+      data.isAborted
+    ) {
       controller.abort(data.payload);
     }
   };
   targetWindow.addEventListener("message", abort);
 
+  let settled = false;
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
   try {
     const videoId = getVideoId(message);
     if (!videoId) throw new Error("Audio downloader. Missing video id");
-    const stream = createAudioChunkStream(
-      targetWindow,
+    const audioDownloadType = getAudioDownloadType(message);
+    if (!audioDownloadType) {
+      throw new Error("Audio downloader. Unsupported audio download type");
+    }
+    debug.log("Audio downloader. iframe request started", {
       videoId,
-      controller.signal,
-    );
-    await stream.pipeTo(
-      new WritableStream({
-        write(chunk) {
-          postResponse(source, event.origin, {
-            ...message,
-            messageDirection: "response",
-            payload: chunk,
-          });
-        },
-        close() {
-          postResponse(source, event.origin, {
-            ...message,
-            messageDirection: "response",
-            payload: undefined,
-            isStreamFinished: true,
-          });
-        },
-      }),
-    );
+      messageId: message.messageId,
+      audioDownloadType,
+    });
+    const postProgress = () => {
+      if (settled) return;
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: undefined,
+        isProgress: true,
+      });
+    };
+    const chunks: AsyncIterable<AudioChunk> =
+      audioDownloadType === AudioDownloadType.WEB_ABR
+        ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal)
+        : createAudioChunkStream(
+            targetWindow,
+            videoId,
+            controller.signal,
+            postProgress,
+          );
+    if (audioDownloadType === AudioDownloadType.WEB_ABR) {
+      postProgress();
+      heartbeat = setInterval(postProgress, 30_000);
+    }
+
+    for await (const chunk of chunks) {
+      debug.log("Audio downloader. iframe chunk sent", {
+        videoId,
+        messageId: message.messageId,
+        audioDownloadType,
+        size: chunk.buffer.byteLength,
+        isLastChunk: chunk.isLastChunk,
+      });
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: chunk,
+      });
+    }
+    settled = true;
+    debug.log("Audio downloader. iframe stream closed", {
+      videoId,
+      messageId: message.messageId,
+      audioDownloadType,
+    });
+    postResponse(source, event.origin, {
+      ...message,
+      messageDirection: "response",
+      payload: undefined,
+      isStreamFinished: true,
+    });
   } catch (error) {
+    settled = true;
+    debug.error("Audio downloader. iframe request failed", {
+      messageId: message.messageId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     postResponse(source, event.origin, {
       ...message,
       messageDirection: "response",
       payload: undefined,
       error: error instanceof Error ? error.message : String(error),
+      isAborted: controller.signal.aborted || isAbortError(error),
     });
   } finally {
+    clearInterval(heartbeat);
     targetWindow.removeEventListener("message", abort);
   }
 }
@@ -532,14 +721,32 @@ async function handleTopRequest(
 
   if (message.isAborted) {
     const session = topSessions.get(message.messageId);
-    session?.iframe.contentWindow?.postMessage(message, "*");
-    session?.cleanup();
+    if (session?.source === source && session.origin === event.origin) {
+      session.iframe.contentWindow?.postMessage(message, "*");
+      session.cleanup();
+    }
     return;
   }
 
   const videoId = getVideoId(message);
-  if (!videoId) return;
+  const audioDownloadType = getAudioDownloadType(message);
+  if (!videoId || !audioDownloadType) {
+    postResponse(source, event.origin, {
+      ...message,
+      messageDirection: "response",
+      error: videoId
+        ? "Audio downloader. Unsupported audio download type"
+        : "Audio downloader. Missing video id",
+    });
+    return;
+  }
 
+  debug.log("Audio downloader. top request started", {
+    videoId,
+    messageId: message.messageId,
+    audioDownloadType,
+    host: targetWindow.location.hostname,
+  });
   const iframe = targetWindow.document.createElement("iframe");
   // display:none iframes have no layout box, and YouTube defers media
   // loading for non-rendered players (no src is ever assigned). Keep the
@@ -551,44 +758,68 @@ async function handleTopRequest(
   iframe.setAttribute("aria-hidden", "true");
   iframe.id = `vot-mse-proxy-${message.messageId}`;
   const url = new URL(`/embed/${videoId}`, "https://www.youtube.com");
+  url.searchParams.set("html5", "1");
   url.searchParams.set("autoplay", "0");
   url.searchParams.set("mute", "1");
-  const embedConfig = await getEncryptedEmbedConfig(targetWindow, videoId);
-  if (embedConfig) url.searchParams.set("embed_config", embedConfig);
   url.hash = IFRAME_HASH;
 
+  let active = true;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let onMessage = (_event: MessageEvent<MseMessage>) => {};
   const cleanup = () => {
+    active = false;
     clearTimeout(timeout);
     targetWindow.removeEventListener("message", onMessage);
-    topSessions.delete(message.messageId);
+    if (topSessions.get(message.messageId)?.iframe === iframe) {
+      topSessions.delete(message.messageId);
+    }
     iframe.remove();
   };
+  topSessions.set(message.messageId, {
+    iframe,
+    cleanup,
+    source,
+    origin: event.origin,
+  });
+
+  const embedConfig = await getEncryptedEmbedConfig(targetWindow, videoId);
+  if (!active) return;
+  if (embedConfig) url.searchParams.set("embed_config", embedConfig);
+
   let ready = false;
-  const onMessage = (responseEvent: MessageEvent<MseMessage>) => {
+  onMessage = (responseEvent: MessageEvent<MseMessage>) => {
     const response = responseEvent.data;
     if (responseEvent.source !== iframe.contentWindow) return;
     if (response.messageType === READY_MESSAGE_TYPE) {
       if (ready) return;
       ready = true;
       clearTimeout(timeout);
+      debug.log("Audio downloader. iframe ready", {
+        videoId,
+        messageId: message.messageId,
+      });
       iframe.contentWindow?.postMessage(message, "*");
     } else if (
       response.messageId === message.messageId &&
-      (response.error || response.isStreamFinished)
+      (response.error || response.isAborted || response.isStreamFinished)
     ) {
       queueMicrotask(cleanup);
     }
   };
-  const timeout = setTimeout(() => {
+  timeout = setTimeout(() => {
+    debug.error("Audio downloader. iframe loading timed out", {
+      videoId,
+      messageId: message.messageId,
+      ready,
+    });
     postResponse(source, event.origin, {
       ...message,
       messageDirection: "response",
-      error: "Audio downloader. MSE iframe loading timed out",
+      error: "Audio downloader. iframe loading timed out",
     });
     cleanup();
   }, 15_000);
 
-  topSessions.set(message.messageId, { iframe, cleanup });
   targetWindow.addEventListener("message", onMessage);
   iframe.src = url.toString();
   (

@@ -67,8 +67,10 @@
     "@vot.js/core": "^3.0.3",
     "@vot.js/ext": "^3.0.3",
     "@vot.js/shared": "^3.0.3",
+    "astring": "1.9.0",
     "bowser": "^2.14.1",
     "chaimu": "^1.1.0",
+    "meriyah": "6.1.4",
     "solid-js": "^1.9.15",
     "web-ext": "^10.6.0"
   }

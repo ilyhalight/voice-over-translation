@@ -2,4 +2,5 @@ Contains the implementation for extracting the audio track from a YouTube video 
 
 Implemented:
 
+- `web_abr`
 - `web_mse_proxy`
