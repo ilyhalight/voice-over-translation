@@ -1150,6 +1150,7 @@
 Доступные пути:
 
 - /content/i2cs/*
+- /authoring-resources/*
 
 ## Mediafile
 

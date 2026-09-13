@@ -278,7 +278,7 @@ const siteData = {
     paths: ["/courses/COURSE_NAME/lesson/LESSON_ID/VIDEO_ID"],
   },
   netacad: {
-    paths: ["/content/i2cs/*"],
+    paths: ["/content/i2cs/*", "/authoring-resources/*"],
   },
   niconico: {
     paths: ["/watch/VIDEO_ID"],

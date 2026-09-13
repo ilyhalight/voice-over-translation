@@ -1150,6 +1150,7 @@ Available (sub)domains:
 Available paths:
 
 - /content/i2cs/*
+- /authoring-resources/*
 
 ## Mediafile
 
