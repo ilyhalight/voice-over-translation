@@ -39,6 +39,10 @@ import {
 const STORE_KEY = "__VOT_PLAYER_FORMAT_FILTER__";
 const PLAYER_ENDPOINT = "/youtubei/v1/player";
 const PATCHED_FLAG = "__votFormatFilter";
+/** The function a patch replaced, kept on the patch itself. */
+const ORIGINAL_KEY = "__votFormatFilterOriginal";
+/** Marks an `XMLHttpRequest` whose accessors this module already shadowed. */
+const WATCHED_FLAG = "__votFormatFilterWatched";
 /** Player API entry points that carry a `player` response of their own. */
 const PLAYER_VARS_METHODS = [
   "loadVideoByPlayerVars",
@@ -99,6 +103,7 @@ type FilterWindow = Window & {
 
 type PatchedMethod = ((...args: unknown[]) => unknown) & {
   [PATCHED_FLAG]?: boolean;
+  [ORIGINAL_KEY]?: unknown;
 };
 
 // CONSOLIDATION: `utils/errors.toErrorMessage` is the project-wide version
@@ -108,6 +113,59 @@ const toMessage = toErrorMessage;
 
 function isPlayerEndpoint(url: string): boolean {
   return url.includes(PLAYER_ENDPOINT);
+}
+
+/**
+ * `hookXhr` and `hookFetch` used to wrap whatever function they found, and the
+ * only install guard was a key on the *window* (`STORE_KEY`). A userscript
+ * realm and the page realm are two different `globalThis` objects that share
+ * one `XMLHttpRequest.prototype` (and this build also grants `unsafeWindow`),
+ * so the same prototype could be wrapped again by a second install that
+ * captured the *first wrapper* as its "native" function. Re-entering that
+ * chain on the first `/youtubei/v1/player` request of the hidden realm blew
+ * the stack, the exception surfaced through the filter as
+ * `player formats untouched { source: "xhr", error: "Maximum call stack size
+ * exceeded" }`, and it took the whole `web_mse_proxy` fallback down with it.
+ *
+ * Every patch now carries {@link PATCHED_FLAG} plus the function it replaced,
+ * so a hook can recognise its own kind, refuse to wrap it a second time, and
+ * always resolve down to the real native implementation — no matter how many
+ * realms or injections of the script share the prototype.
+ */
+function markPatched<T>(patched: T, original: unknown): T {
+  for (const [key, value] of [
+    [PATCHED_FLAG, true],
+    [ORIGINAL_KEY, original],
+  ] as const) {
+    try {
+      Object.defineProperty(patched as object, key, {
+        value,
+        configurable: true,
+      });
+    } catch {
+      // A frozen function cannot be marked. It is still a fresh wrapper, so
+      // the worst case is the pre-existing behavior.
+    }
+  }
+  return patched;
+}
+
+function isPatched(value: unknown): boolean {
+  return (
+    typeof value === "function" &&
+    (value as PatchedMethod)[PATCHED_FLAG] === true
+  );
+}
+
+/** Walks a chain of our own wrappers down to the function underneath it. */
+function unwrapPatched<T>(value: T): T {
+  let current: unknown = value;
+  const seen = new Set<unknown>();
+  while (isPatched(current) && !seen.has(current)) {
+    seen.add(current);
+    current = (current as PatchedMethod)[ORIGINAL_KEY];
+  }
+  return current as T;
 }
 
 function readRequestUrl(input: unknown): string {
@@ -379,10 +437,11 @@ function hookFetch(
   targetWindow: FilterWindow,
   filter: PlayerFormatFilter,
 ): void {
-  const original = targetWindow.fetch;
   const ResponseConstructor = targetWindow.Response;
+  if (isPatched(targetWindow.fetch)) return;
+  const original = unwrapPatched(targetWindow.fetch);
   if (typeof original !== "function" || !ResponseConstructor) return;
-  targetWindow.fetch = async function patchedFetch(
+  const patchedFetch = async function patchedFetch(
     this: unknown,
     input: RequestInfo | URL,
     init?: RequestInit,
@@ -406,7 +465,18 @@ function hookFetch(
       });
       return response;
     }
-  } as typeof fetch;
+  };
+  try {
+    targetWindow.fetch = markPatched(
+      patchedFetch,
+      original,
+    ) as unknown as typeof fetch;
+  } catch (error) {
+    debug.log("Audio downloader. player response hook refused", {
+      hook: "fetch",
+      error: toMessage(error),
+    });
+  }
 }
 
 /**
@@ -420,12 +490,25 @@ function watchXhrResponse(
   textGetter: () => unknown,
   responseGetter: () => unknown,
 ): void {
+  const watched = xhr as XMLHttpRequest & { [WATCHED_FLAG]?: boolean };
+  if (watched[WATCHED_FLAG]) return;
+  Object.defineProperty(watched, WATCHED_FLAG, {
+    value: true,
+    configurable: true,
+  });
+
   let cache: { raw: string; patched: string } | undefined;
+  let filtering = false;
   const readText = (): unknown => {
     const raw = textGetter.call(xhr);
     if (typeof raw !== "string" || !raw) return raw;
-    if (cache?.raw !== raw) {
+    if (cache?.raw === raw) return cache.patched;
+    if (filtering) return raw;
+    filtering = true;
+    try {
       cache = { raw, patched: filter.applyToJson(raw, "xhr") ?? raw };
+    } finally {
+      filtering = false;
     }
     return cache.patched;
   };
@@ -448,7 +531,13 @@ function watchXhrResponse(
         const value = responseGetter.call(xhr);
         // A `json` response is parsed by the browser itself, so the object is
         // rewritten instead of the text.
-        return type === "json" ? filter.apply(value, "xhr") : value;
+        if (type !== "json" || filtering) return value;
+        filtering = true;
+        try {
+          return filter.apply(value, "xhr");
+        } finally {
+          filtering = false;
+        }
       } catch {
         return responseGetter.call(xhr);
       }
@@ -458,16 +547,20 @@ function watchXhrResponse(
 
 function hookXhr(targetWindow: FilterWindow, filter: PlayerFormatFilter): void {
   const prototype = targetWindow.XMLHttpRequest?.prototype;
-  const nativeOpen = prototype?.open;
-  const textGetter = prototype
-    ? Object.getOwnPropertyDescriptor(prototype, "responseText")?.get
-    : undefined;
-  const responseGetter = prototype
-    ? Object.getOwnPropertyDescriptor(prototype, "response")?.get
-    : undefined;
-  if (!prototype || typeof nativeOpen !== "function") return;
+  if (!prototype) return;
+  if (isPatched(prototype.open)) return;
+  const nativeOpen = unwrapPatched(prototype.open);
+  const textGetter = Object.getOwnPropertyDescriptor(
+    prototype,
+    "responseText",
+  )?.get;
+  const responseGetter = Object.getOwnPropertyDescriptor(
+    prototype,
+    "response",
+  )?.get;
+  if (typeof nativeOpen !== "function") return;
   if (!textGetter || !responseGetter) return;
-  prototype.open = function patchedOpen(
+  const patchedOpen = function patchedOpen(
     this: XMLHttpRequest,
     ...args: unknown[]
   ) {
@@ -482,7 +575,18 @@ function hookXhr(targetWindow: FilterWindow, filter: PlayerFormatFilter): void {
       });
     }
     return (nativeOpen as (...open: unknown[]) => void).apply(this, args);
-  } as typeof prototype.open;
+  };
+  try {
+    prototype.open = markPatched(
+      patchedOpen,
+      nativeOpen,
+    ) as typeof prototype.open;
+  } catch (error) {
+    debug.log("Audio downloader. player response hook refused", {
+      hook: "xhr",
+      error: toMessage(error),
+    });
+  }
 }
 
 /**

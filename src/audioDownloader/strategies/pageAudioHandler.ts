@@ -95,11 +95,18 @@ async function streamToRequester(
   audioDownloadType: AvailableAudioDownloadType,
   signal: AbortSignal,
   allowFallback: boolean,
+  inAudioRealm = false,
 ): Promise<boolean> {
   let emitted = false;
   // The bridge drops silent streams, so keep it awake between chunks.
   const sendProgress = () => postResponse(requester, { isProgress: true });
   const progress = setInterval(sendProgress, PROGRESS_INTERVAL_MS);
+  debug.log(
+    inAudioRealm
+      ? "Audio downloader. iframe request started"
+      : "Audio downloader. document request started",
+    { videoId, messageId: requester.messageId, audioDownloadType },
+  );
   const chunks: AsyncIterable<AudioChunk> =
     audioDownloadType === AudioDownloadType.WEB_ABR
       ? getWebAbrAudioChunks(realm, videoId, signal)
@@ -107,6 +114,15 @@ async function streamToRequester(
   try {
     for await (const chunk of chunks) {
       emitted = true;
+      if (inAudioRealm) {
+        debug.log("Audio downloader. iframe chunk sent", {
+          videoId,
+          messageId: requester.messageId,
+          audioDownloadType,
+          size: chunk.buffer.byteLength,
+          isLastChunk: chunk.isLastChunk,
+        });
+      }
       postResponse(requester, {
         payload: { buffer: chunk.buffer, isLastChunk: chunk.isLastChunk },
       });
@@ -147,7 +163,6 @@ async function streamToRequester(
 async function buildAudioRealmUrl(
   realm: Window,
   videoId: string,
-  audioDownloadType: AvailableAudioDownloadType,
   signal: AbortSignal,
 ): Promise<string> {
   const url = new URL(
@@ -156,18 +171,18 @@ async function buildAudioRealmUrl(
   );
   url.searchParams.set("html5", "1");
   url.searchParams.set("mute", "1");
-  const needsPlayback = audioDownloadType === AudioDownloadType.WEB_MSE_PROXY;
   // Playback is started through the player API instead: embed autoplay is
   // blocked without a user gesture in a hidden frame, and it would start
   // before the capture proxy is installed.
   url.searchParams.set("autoplay", "0");
-  if (needsPlayback) {
-    // Uploads that forbid embedding only play in an embed that carries the
-    // encrypted config of the watch page. Requested for playback only, so the
-    // direct-URL strategy stays at its two-request budget.
-    const embedConfig = await getEncryptedEmbedConfig(realm, videoId, signal);
-    if (embedConfig) url.searchParams.set("embed_config", embedConfig);
-  }
+  // An upload that forbids embedding answers a bare `/embed/` document with an
+  // "unavailable" verdict, and the realm's own `web_embedded` player request
+  // inherits that verdict. The encrypted config of the watch page turns the
+  // frame into a legitimate embed context, which is what lets `web_embedded`
+  // succeed inside the realm for a video that cannot be embedded directly.
+  // It costs one extra request and only on the delegated path.
+  const embedConfig = await getEncryptedEmbedConfig(realm, videoId, signal);
+  if (embedConfig) url.searchParams.set("embed_config", embedConfig);
   url.hash = IFRAME_HASH;
   return url.toString();
 }
@@ -183,14 +198,19 @@ async function relayThroughAudioRealm(
   audioDownloadType: AvailableAudioDownloadType,
   request: BridgeMessage,
   signal: AbortSignal,
-): Promise<void> {
-  const src = await buildAudioRealmUrl(
-    realm,
+): Promise<boolean> {
+  const src = await buildAudioRealmUrl(realm, videoId, signal);
+  debug.log("Audio downloader. top request started", {
     videoId,
+    messageId: requester.messageId,
     audioDownloadType,
-    signal,
-  );
-  return new Promise<void>((resolve) => {
+    host: realm.location?.hostname,
+  });
+  // `true`: the hidden realm gave the requester its final answer.
+  // `false`: the realm never answered at all (frame blocked by CSP, or no
+  // userscript inside it) and nothing was posted to the requester, so the
+  // caller may still try the current realm itself.
+  return new Promise<boolean>((resolve) => {
     const iframe = realm.document.createElement("iframe");
     iframe.id = getAudioRealmIframeId(requester.messageId);
     iframe.setAttribute("aria-hidden", "true");
@@ -203,19 +223,24 @@ async function relayThroughAudioRealm(
       "padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
 
     let settled = false;
-    const finish = () => {
+    let answered = false;
+    const finish = (handled: boolean) => {
       if (settled) return;
       settled = true;
       clearTimeout(loadTimeout);
       realm.removeEventListener("message", onRealmMessage);
       signal.removeEventListener("abort", onAbort);
       iframe.remove();
-      resolve();
+      resolve(handled);
     };
     const onRealmMessage = (event: MessageEvent) => {
       const message = event.data as BridgeMessage | null;
       if (!message || event.source !== iframe.contentWindow) return;
       if (message.messageType === READY_MESSAGE_TYPE) {
+        debug.log("Audio downloader. iframe ready", {
+          videoId,
+          messageId: requester.messageId,
+        });
         // DEFECT FIX (F-3): re-arm instead of disarming. READY only says
         // the realm booted; the request is posted right after, so the
         // watchdog now covers the first real answer as well.
@@ -234,9 +259,10 @@ async function relayThroughAudioRealm(
       // DEFECT FIX (F-3): the realm answered, so the watchdog is done. A
       // slow first chunk can no longer be mistaken for a dead realm.
       clearTimeout(loadTimeout);
+      answered = true;
       // The realm replies to the bridge itself; only its lifetime is managed here.
       if (message.isStreamFinished || message.error || message.isAborted) {
-        finish();
+        finish(true);
       }
     };
     const onAbort = () => {
@@ -250,16 +276,20 @@ async function relayThroughAudioRealm(
         },
         "*",
       );
-      finish();
+      finish(true);
     };
     // DEFECT FIX (F-3): extracted and held in a reassignable binding so the
     // watchdog can be re-armed after READY.
     const onLoadTimeout = () => {
-      postResponse(requester, {
-        error: "Audio downloader. Audio realm loading timed out",
-        isStreamFinished: true,
+      debug.log("Audio downloader. audio realm did not answer", {
+        videoId,
+        messageId: requester.messageId,
+        audioDownloadType,
+        answered,
       });
-      finish();
+      // Nothing is posted to the requester here: the caller decides whether
+      // to try the current realm instead or to report the failure.
+      finish(false);
     };
     let loadTimeout = setTimeout(onLoadTimeout, REALM_LOAD_TIMEOUT_MS);
 
@@ -344,35 +374,62 @@ export function initPageAudioHandler(): void {
     // and fetching the first range together take longer than that budget.
     postResponse(requester, { isProgress: true });
     try {
-      // Streaming in place saves a youtube.com document load, but sig/n can
-      // only be solved where the CSP allows the challenge solver to run, and
-      // the MediaSource capture needs a player that boots after the proxy.
-      const canStreamHere =
-        isAudioRealm ||
-        (audioDownloadType === AudioDownloadType.WEB_ABR &&
-          isYouTubeRealm &&
-          canSolveChallengesInRealm(realm));
-      if (
-        canStreamHere &&
-        (await streamToRequester(
+      // Running `web_abr` in the watch document looks cheaper, but the watch
+      // page is not an embed context: YouTube answers its `web_embedded`
+      // player request with "Video unavailable", `mweb` collects a GVS 403 and
+      // `web_creator` needs a signed-in session — so an anonymous watch
+      // document has no client left, and the strategy always burned its
+      // requests before falling through to MediaSource. The very same
+      // `web_embedded` request is answered normally from a `/embed/`
+      // document, which is the realm opened below. The MediaSource capture
+      // needs a player that boots after the proxy anyway.
+      if (isAudioRealm) {
+        await streamToRequester(
           realm,
           requester,
           videoId,
           audioDownloadType,
           controller.signal,
-          !isAudioRealm,
-        ))
+          false,
+          true,
+        );
+        return;
+      }
+      if (
+        await relayThroughAudioRealm(
+          realm,
+          requester,
+          videoId,
+          audioDownloadType,
+          message,
+          controller.signal,
+        )
       ) {
         return;
       }
-      await relayThroughAudioRealm(
-        realm,
-        requester,
-        videoId,
-        audioDownloadType,
-        message,
-        controller.signal,
-      );
+      // The hidden realm never answered: the frame is blocked, or no
+      // userscript runs inside it. Streaming in place is the last resort, and
+      // only `web_abr` on a youtube.com document can do it — sig/n needs a
+      // realm whose CSP allows the challenge solver to run.
+      if (
+        audioDownloadType === AudioDownloadType.WEB_ABR &&
+        isYouTubeRealm &&
+        canSolveChallengesInRealm(realm)
+      ) {
+        await streamToRequester(
+          realm,
+          requester,
+          videoId,
+          audioDownloadType,
+          controller.signal,
+          false,
+        );
+        return;
+      }
+      postResponse(requester, {
+        error: "Audio downloader. Audio realm is unavailable",
+        isStreamFinished: true,
+      });
     } catch (error) {
       postResponse(requester, {
         error: toErrorMessage(error),

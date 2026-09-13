@@ -7485,6 +7485,10 @@ var vot = (function(exports) {
 	var STORE_KEY$1 = "__VOT_PLAYER_FORMAT_FILTER__";
 	var PLAYER_ENDPOINT = "/youtubei/v1/player";
 	var PATCHED_FLAG = "__votFormatFilter";
+	/** The function a patch replaced, kept on the patch itself. */
+	var ORIGINAL_KEY = "__votFormatFilterOriginal";
+	/** Marks an `XMLHttpRequest` whose accessors this module already shadowed. */
+	var WATCHED_FLAG = "__votFormatFilterWatched";
 	/** Player API entry points that carry a `player` response of their own. */
 	var PLAYER_VARS_METHODS = [
 		"loadVideoByPlayerVars",
@@ -7498,6 +7502,47 @@ var vot = (function(exports) {
 	var toMessage = toErrorMessage;
 	function isPlayerEndpoint(url) {
 		return url.includes(PLAYER_ENDPOINT);
+	}
+	/**
+	* DEFECT FIX — `Maximum call stack size exceeded`, `source: "xhr"`.
+	*
+	* `hookXhr` and `hookFetch` used to wrap whatever function they found, and the
+	* only install guard was a key on the *window* (`STORE_KEY`). A userscript
+	* realm and the page realm are two different `globalThis` objects that share
+	* one `XMLHttpRequest.prototype` (and this build also grants `unsafeWindow`),
+	* so the same prototype could be wrapped again by a second install that
+	* captured the *first wrapper* as its "native" function. Re-entering that
+	* chain on the first `/youtubei/v1/player` request of the hidden realm blew
+	* the stack, the exception surfaced through the filter as
+	* `player formats untouched { source: "xhr", error: "Maximum call stack size
+	* exceeded" }`, and it took the whole `web_mse_proxy` fallback down with it.
+	*
+	* Every patch now carries {@link PATCHED_FLAG} plus the function it replaced,
+	* so a hook can recognise its own kind, refuse to wrap it a second time, and
+	* always resolve down to the real native implementation — no matter how many
+	* realms or injections of the script share the prototype.
+	*/
+	function markPatched(patched, original) {
+		for (const [key, value] of [[PATCHED_FLAG, true], [ORIGINAL_KEY, original]]) try {
+			Object.defineProperty(patched, key, {
+				value,
+				configurable: true
+			});
+		} catch {}
+		return patched;
+	}
+	function isPatched(value) {
+		return typeof value === "function" && value[PATCHED_FLAG] === true;
+	}
+	/** Walks a chain of our own wrappers down to the function underneath it. */
+	function unwrapPatched(value) {
+		let current = value;
+		const seen = /* @__PURE__ */ new Set();
+		while (isPatched(current) && !seen.has(current)) {
+			seen.add(current);
+			current = current[ORIGINAL_KEY];
+		}
+		return current;
 	}
 	function readRequestUrl(input) {
 		if (typeof input === "string") return input;
@@ -7694,10 +7739,11 @@ var vot = (function(exports) {
 		}
 	}
 	function hookFetch(targetWindow, filter) {
-		const original = targetWindow.fetch;
 		const ResponseConstructor = targetWindow.Response;
+		if (isPatched(targetWindow.fetch)) return;
+		const original = unwrapPatched(targetWindow.fetch);
 		if (typeof original !== "function" || !ResponseConstructor) return;
-		targetWindow.fetch = async function patchedFetch(input, init) {
+		const patchedFetch = async function patchedFetch(input, init) {
 			const response = await original.call(this ?? targetWindow, input, init);
 			try {
 				if (!response.ok) return response;
@@ -7717,6 +7763,14 @@ var vot = (function(exports) {
 				return response;
 			}
 		};
+		try {
+			targetWindow.fetch = markPatched(patchedFetch, original);
+		} catch (error) {
+			debug.log("Audio downloader. player response hook refused", {
+				hook: "fetch",
+				error: toMessage(error)
+			});
+		}
 	}
 	/**
 	* `responseText` is read-only, so the instance shadows it with a getter that
@@ -7724,14 +7778,28 @@ var vot = (function(exports) {
 	* player attaches its own `readystatechange` handler.
 	*/
 	function watchXhrResponse(xhr, filter, textGetter, responseGetter) {
+		const watched = xhr;
+		if (watched[WATCHED_FLAG]) return;
+		Object.defineProperty(watched, WATCHED_FLAG, {
+			value: true,
+			configurable: true
+		});
 		let cache;
+		let filtering = false;
 		const readText = () => {
 			const raw = textGetter.call(xhr);
 			if (typeof raw !== "string" || !raw) return raw;
-			if (cache?.raw !== raw) cache = {
-				raw,
-				patched: filter.applyToJson(raw, "xhr") ?? raw
-			};
+			if (cache?.raw === raw) return cache.patched;
+			if (filtering) return raw;
+			filtering = true;
+			try {
+				cache = {
+					raw,
+					patched: filter.applyToJson(raw, "xhr") ?? raw
+				};
+			} finally {
+				filtering = false;
+			}
 			return cache.patched;
 		};
 		Object.defineProperty(xhr, "responseText", {
@@ -7751,7 +7819,13 @@ var vot = (function(exports) {
 					const type = xhr.responseType;
 					if (type === "" || type === "text") return readText();
 					const value = responseGetter.call(xhr);
-					return type === "json" ? filter.apply(value, "xhr") : value;
+					if (type !== "json" || filtering) return value;
+					filtering = true;
+					try {
+						return filter.apply(value, "xhr");
+					} finally {
+						filtering = false;
+					}
 				} catch {
 					return responseGetter.call(xhr);
 				}
@@ -7760,12 +7834,14 @@ var vot = (function(exports) {
 	}
 	function hookXhr(targetWindow, filter) {
 		const prototype = targetWindow.XMLHttpRequest?.prototype;
-		const nativeOpen = prototype?.open;
-		const textGetter = prototype ? Object.getOwnPropertyDescriptor(prototype, "responseText")?.get : void 0;
-		const responseGetter = prototype ? Object.getOwnPropertyDescriptor(prototype, "response")?.get : void 0;
-		if (!prototype || typeof nativeOpen !== "function") return;
+		if (!prototype) return;
+		if (isPatched(prototype.open)) return;
+		const nativeOpen = unwrapPatched(prototype.open);
+		const textGetter = Object.getOwnPropertyDescriptor(prototype, "responseText")?.get;
+		const responseGetter = Object.getOwnPropertyDescriptor(prototype, "response")?.get;
+		if (typeof nativeOpen !== "function") return;
 		if (!textGetter || !responseGetter) return;
-		prototype.open = function patchedOpen(...args) {
+		const patchedOpen = function patchedOpen(...args) {
 			try {
 				if (isPlayerEndpoint(String(args[1] ?? ""))) watchXhrResponse(this, filter, textGetter, responseGetter);
 			} catch (error) {
@@ -7776,6 +7852,14 @@ var vot = (function(exports) {
 			}
 			return nativeOpen.apply(this, args);
 		};
+		try {
+			prototype.open = markPatched(patchedOpen, nativeOpen);
+		} catch (error) {
+			debug.log("Audio downloader. player response hook refused", {
+				hook: "xhr",
+				error: toMessage(error)
+			});
+		}
 	}
 	/**
 	* Installs the filter of a realm, once. Must run before the player boots, so
@@ -21993,14 +22077,26 @@ var vot = (function(exports) {
 	* @returns `true` when the requester got a final answer, `false` when the
 	* caller should retry in a youtube.com realm.
 	*/
-	async function streamToRequester(realm, requester, videoId, audioDownloadType, signal, allowFallback) {
+	async function streamToRequester(realm, requester, videoId, audioDownloadType, signal, allowFallback, inAudioRealm = false) {
 		let emitted = false;
 		const sendProgress = () => postResponse(requester, { isProgress: true });
 		const progress = setInterval(sendProgress, PROGRESS_INTERVAL_MS);
+		debug.log(inAudioRealm ? "Audio downloader. iframe request started" : "Audio downloader. document request started", {
+			videoId,
+			messageId: requester.messageId,
+			audioDownloadType
+		});
 		const chunks = audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(realm, videoId, signal) : getMseProxyAudioChunks(realm, videoId, signal, sendProgress);
 		try {
 			for await (const chunk of chunks) {
 				emitted = true;
+				if (inAudioRealm) debug.log("Audio downloader. iframe chunk sent", {
+					videoId,
+					messageId: requester.messageId,
+					audioDownloadType,
+					size: chunk.buffer.byteLength,
+					isLastChunk: chunk.isLastChunk
+				});
 				postResponse(requester, { payload: {
 					buffer: chunk.buffer,
 					isLastChunk: chunk.isLastChunk
@@ -22029,16 +22125,13 @@ var vot = (function(exports) {
 			clearInterval(progress);
 		}
 	}
-	async function buildAudioRealmUrl(realm, videoId, audioDownloadType, signal) {
+	async function buildAudioRealmUrl(realm, videoId, signal) {
 		const url = new URL(`/embed/${encodeURIComponent(videoId)}`, "https://www.youtube.com");
 		url.searchParams.set("html5", "1");
 		url.searchParams.set("mute", "1");
-		const needsPlayback = audioDownloadType === AudioDownloadType.WEB_MSE_PROXY;
 		url.searchParams.set("autoplay", "0");
-		if (needsPlayback) {
-			const embedConfig = await getEncryptedEmbedConfig(realm, videoId, signal);
-			if (embedConfig) url.searchParams.set("embed_config", embedConfig);
-		}
+		const embedConfig = await getEncryptedEmbedConfig(realm, videoId, signal);
+		if (embedConfig) url.searchParams.set("embed_config", embedConfig);
 		url.hash = IFRAME_HASH;
 		return url.toString();
 	}
@@ -22047,7 +22140,13 @@ var vot = (function(exports) {
 	* audio chunks are never copied twice.
 	*/
 	async function relayThroughAudioRealm(realm, requester, videoId, audioDownloadType, request, signal) {
-		const src = await buildAudioRealmUrl(realm, videoId, audioDownloadType, signal);
+		const src = await buildAudioRealmUrl(realm, videoId, signal);
+		debug.log("Audio downloader. top request started", {
+			videoId,
+			messageId: requester.messageId,
+			audioDownloadType,
+			host: realm.location?.hostname
+		});
 		return new Promise((resolve) => {
 			const iframe = realm.document.createElement("iframe");
 			iframe.id = getAudioRealmIframeId(requester.messageId);
@@ -22055,19 +22154,24 @@ var vot = (function(exports) {
 			iframe.tabIndex = -1;
 			iframe.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
 			let settled = false;
-			const finish = () => {
+			let answered = false;
+			const finish = (handled) => {
 				if (settled) return;
 				settled = true;
 				clearTimeout(loadTimeout);
 				realm.removeEventListener("message", onRealmMessage);
 				signal.removeEventListener("abort", onAbort);
 				iframe.remove();
-				resolve();
+				resolve(handled);
 			};
 			const onRealmMessage = (event) => {
 				const message = event.data;
 				if (!message || event.source !== iframe.contentWindow) return;
 				if (message.messageType === "vot-audio-realm-ready") {
+					debug.log("Audio downloader. iframe ready", {
+						videoId,
+						messageId: requester.messageId
+					});
 					clearTimeout(loadTimeout);
 					loadTimeout = setTimeout(onLoadTimeout, REALM_LOAD_TIMEOUT_MS);
 					iframe.contentWindow?.postMessage(request, "*");
@@ -22075,7 +22179,8 @@ var vot = (function(exports) {
 				}
 				if (message.messageType !== "vot-get-audio-chunks-in-main-world" || message.messageDirection !== "response" || message.messageId !== requester.messageId) return;
 				clearTimeout(loadTimeout);
-				if (message.isStreamFinished || message.error || message.isAborted) finish();
+				answered = true;
+				if (message.isStreamFinished || message.error || message.isAborted) finish(true);
 			};
 			const onAbort = () => {
 				iframe.contentWindow?.postMessage({
@@ -22085,14 +22190,16 @@ var vot = (function(exports) {
 					isAborted: true,
 					isStreamFinished: true
 				}, "*");
-				finish();
+				finish(true);
 			};
 			const onLoadTimeout = () => {
-				postResponse(requester, {
-					error: "Audio downloader. Audio realm loading timed out",
-					isStreamFinished: true
+				debug.log("Audio downloader. audio realm did not answer", {
+					videoId,
+					messageId: requester.messageId,
+					audioDownloadType,
+					answered
 				});
-				finish();
+				finish(false);
 			};
 			let loadTimeout = setTimeout(onLoadTimeout, REALM_LOAD_TIMEOUT_MS);
 			realm.addEventListener("message", onRealmMessage);
@@ -22146,8 +22253,19 @@ var vot = (function(exports) {
 			sessions.set(messageId, controller);
 			postResponse(requester, { isProgress: true });
 			try {
-				if ((isAudioRealm || audioDownloadType === AudioDownloadType.WEB_ABR && isYouTubeRealm && canSolveChallengesInRealm(realm)) && await streamToRequester(realm, requester, videoId, audioDownloadType, controller.signal, !isAudioRealm)) return;
-				await relayThroughAudioRealm(realm, requester, videoId, audioDownloadType, message, controller.signal);
+				if (isAudioRealm) {
+					await streamToRequester(realm, requester, videoId, audioDownloadType, controller.signal, false, true);
+					return;
+				}
+				if (await relayThroughAudioRealm(realm, requester, videoId, audioDownloadType, message, controller.signal)) return;
+				if (audioDownloadType === AudioDownloadType.WEB_ABR && isYouTubeRealm && canSolveChallengesInRealm(realm)) {
+					await streamToRequester(realm, requester, videoId, audioDownloadType, controller.signal, false);
+					return;
+				}
+				postResponse(requester, {
+					error: "Audio downloader. Audio realm is unavailable",
+					isStreamFinished: true
+				});
 			} catch (error) {
 				postResponse(requester, {
 					error: toErrorMessage(error),
