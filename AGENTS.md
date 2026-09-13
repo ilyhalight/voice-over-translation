@@ -48,6 +48,12 @@ NEVER make push or pull requests without ASK an user!
 
 Never use `unsafeWindow`!
 
-## YouTube API (Browser)
+## Browser
+
+### Minimal versions
+
+Before use new JS features check that it's supported by the Firefox 106 and Chrome 106. You can check it on [caniuse.com](https://caniuse.com/).
+
+### YouTube API
 
 You can check static fields of `YoutubeHelper` from `@vot.js/ext/helpers/youtube` package to get some useful typed methods instead of reimplement it yourself.
