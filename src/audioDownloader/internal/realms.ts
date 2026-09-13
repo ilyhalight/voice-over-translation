@@ -64,7 +64,10 @@ export function enumerateRealms(source: Window): RealmWindow[] {
  * Verified against the Trusted Types sink list (Research Log R-6):
  * `HTMLScriptElement.text` is a `TrustedScript` sink.
  */
-const policyCache = new WeakMap<object, { createScript: (s: string) => string }>();
+const policyCache = new WeakMap<
+  object,
+  { createScript: (s: string) => string }
+>();
 
 export function createTrustedScript(
   realm: RealmWindow,

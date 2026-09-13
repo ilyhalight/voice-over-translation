@@ -175,6 +175,8 @@ async function buildAudioRealmUrl(
   // blocked without a user gesture in a hidden frame, and it would start
   // before the capture proxy is installed.
   url.searchParams.set("autoplay", "0");
+  // PARITY FIX: requested for *both* strategies now.
+  //
   // An upload that forbids embedding answers a bare `/embed/` document with an
   // "unavailable" verdict, and the realm's own `web_embedded` player request
   // inherits that verdict. The encrypted config of the watch page turns the
@@ -374,6 +376,10 @@ export function initPageAudioHandler(): void {
     // and fetching the first range together take longer than that budget.
     postResponse(requester, { isProgress: true });
     try {
+      // ROUTING FIX: every download runs inside the hidden youtube.com realm,
+      // the way the working build routes it (`top request started` ->
+      // `iframe ready` -> `iframe request started` -> `iframe chunk sent`).
+      //
       // Running `web_abr` in the watch document looks cheaper, but the watch
       // page is not an embed context: YouTube answers its `web_embedded`
       // player request with "Video unavailable", `mweb` collects a GVS 403 and

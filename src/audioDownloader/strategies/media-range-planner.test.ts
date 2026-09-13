@@ -36,9 +36,9 @@ test("grows up to the throttle limit on a fast connection", () => {
 
 test("shrinks on a slow, laggy or flaky connection", () => {
   // 0.2 MiB/s: keep the ranges small so a dropped answer costs little.
-  expect(nextMediaRangeSize(8 * MB, { bytes: 2 * MB, durationMs: 10_000 })).toBe(
-    4 * MB,
-  );
+  expect(
+    nextMediaRangeSize(8 * MB, { bytes: 2 * MB, durationMs: 10_000 }),
+  ).toBe(4 * MB);
   // Fast but laggy: the round trip is what the request pays for.
   expect(
     nextMediaRangeSize(8 * MB, {

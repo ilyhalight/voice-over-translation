@@ -227,8 +227,16 @@ export function describeTrack(format: MediaFormat): TrackDescriptor {
  * Lower is better. English wins over every other language, and inside a
  * language the original audio wins over a dub, the default track over an
  * unnamed one, and everything over an audio description.
+ *
+ * Exported because the HLS path (`hlsAudio.ts`) ranks its `#EXT-X-MEDIA`
+ * renditions by the very same rule: two transports of one video must never
+ * pick two different languages.
  */
-function rankTrack({ language, content, isDefault }: TrackDescriptor): number {
+export function rankTrack({
+  language,
+  content,
+  isDefault,
+}: TrackDescriptor): number {
   if (language === "en") return ENGLISH_RANKS[content];
   if (content === "descriptive") return OTHER_LANGUAGE_RANK + 4;
   if (content === "original") return OTHER_LANGUAGE_RANK;
@@ -422,9 +430,7 @@ function selectVideoStream(
   const muxed = preferred.length ? preferMuxed : !preferMuxed;
   return {
     format,
-    reason: muxed
-      ? "lowest-quality muxed video"
-      : "lowest-quality video-only",
+    reason: muxed ? "lowest-quality muxed video" : "lowest-quality video-only",
   };
 }
 

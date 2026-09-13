@@ -29,13 +29,13 @@ import { hasAudioCodec } from "./formatSelection";
 import {
   installPlayerResponseFilter,
   PLAYER_FILTER_MODES,
-  patchPlayerVarsMethods,
   type PlayerFormatFilter,
+  patchPlayerVarsMethods,
 } from "./playerResponseFilter";
 
 const STORE_KEY = "__VOT_AUDIO_CAPTURE_STORE__";
 const PLAYER_TIMEOUT_MS = 30_000;
-const PLAYBACK_TIMEOUT_MS = 30_000;
+const PLAYBACK_TIMEOUT_MS = 45_000;
 const CAPTURE_TIMEOUT_MS = 20_000;
 const STALL_TIMEOUT_MS = 60_000;
 /**
@@ -307,10 +307,7 @@ function startAudioPlayback(
  * in seconds instead of in real time. The rate is re-applied while the
  * capture runs, because the player resets it on a format switch or a reload.
  */
-function forceFastBuffering(
-  targetWindow: Window,
-  player: YouTubePlayer,
-): void {
+function forceFastBuffering(targetWindow: Window, player: YouTubePlayer): void {
   // The player replaces its video element on a reload, so the current one is
   // read every time instead of being remembered.
   const video = targetWindow.document.querySelector("video");
@@ -379,7 +376,19 @@ async function waitForPlayback(
   let playRejection: string | undefined;
   const read = () => {
     const videos = [...targetWindow.document.querySelectorAll("video")];
-    const playing = videos.find((video) => video.readyState >= 3);
+    // DEFECT FIX: bytes, not playback, are what the capture needs.
+    //
+    // A muted <video> inside a hidden frame frequently never reaches
+    // `readyState >= 3`: the player's own `loadVideoById` interrupts the
+    // pending play() (`playRejection: AbortError`) and the element stays
+    // paused while MediaSource is already being fed. Requiring HAVE_FUTURE_DATA
+    // therefore failed a capture that was working, which is what turned the
+    // last-resort strategy into "MSE playback wait timed out" for every
+    // anonymous download. A buffered range or decoded current data is the real
+    // signal that segments are flowing.
+    const playing = videos.find(
+      (video) => video.readyState >= 2 || video.buffered.length > 0,
+    );
     if (playing) return playing;
     // A player that already reported an error never starts, so the strategy
     // gives up at once instead of after the whole timeout.
@@ -391,8 +400,14 @@ async function waitForPlayback(
       startAudioPlayback(player, videoId);
       const video = videos[0];
       if (video) {
+        // Everything an autoplay policy asks for: muted, silent and inline.
+        // The element is never seen or heard, it is only a byte source.
         video.muted = true;
-        // A rejected play() proves the browser blocked muted autoplay.
+        video.volume = 0;
+        video.playsInline = true;
+        // A rejected play() is recorded but not fatal: `AbortError` only means
+        // this call was superseded (a reload, a format switch), and the next
+        // media/player event presses play again.
         void video.play().catch((error: unknown) => {
           playRejection = error instanceof Error ? error.name : String(error);
         });
@@ -492,7 +507,21 @@ async function* captureMseStream(
   // formats directly instead of fetching them.
   patchPlayerVarsMethods(player, filter);
   startAudioPlayback(player, videoId, true);
-  await waitForPlayback(targetWindow, player, videoId, signal);
+  // A hidden frame can refuse to *play* while it still buffers, so a
+  // playback timeout is only fatal when nothing was appended either: the
+  // capture proxy is the actual source of truth for "is this working".
+  try {
+    await waitForPlayback(targetWindow, player, videoId, signal);
+  } catch (error) {
+    if (signal.aborted || !store.captures.some((capture) => capture.isOpen)) {
+      throw error;
+    }
+    debug.log("Audio downloader. MSE playback wait skipped", {
+      videoId,
+      captures: store.captures.length,
+      error: toErrorMessage(error),
+    });
+  }
   // The player only downloads what it is about to play, so its playback speed
   // is the download speed: at the highest rate the element accepts the whole
   // track is requested in seconds instead of in real time.

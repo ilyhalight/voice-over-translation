@@ -7255,6 +7255,10 @@ var vot = (function(exports) {
 	* Lower is better. English wins over every other language, and inside a
 	* language the original audio wins over a dub, the default track over an
 	* unnamed one, and everything over an audio description.
+	*
+	* Exported because the HLS path (`hlsAudio.ts`) ranks its `#EXT-X-MEDIA`
+	* renditions by the very same rule: two transports of one video must never
+	* pick two different languages.
 	*/
 	function rankTrack({ language, content, isDefault }) {
 		if (language === "en") return ENGLISH_RANKS[content];
@@ -7677,7 +7681,7 @@ var vot = (function(exports) {
 		}
 		/** Filters a JSON body. `undefined` when the body stays as it is. */
 		applyToJson(body, source) {
-			if (!body || !body.includes("adaptiveFormats")) return void 0;
+			if (!body?.includes("adaptiveFormats")) return void 0;
 			let parsed;
 			try {
 				parsed = JSON.parse(body);
@@ -7921,7 +7925,7 @@ var vot = (function(exports) {
 	*/
 	var STORE_KEY = "__VOT_AUDIO_CAPTURE_STORE__";
 	var PLAYER_TIMEOUT_MS = 3e4;
-	var PLAYBACK_TIMEOUT_MS = 3e4;
+	var PLAYBACK_TIMEOUT_MS = 45e3;
 	var CAPTURE_TIMEOUT_MS = 2e4;
 	var STALL_TIMEOUT_MS = 6e4;
 	/**
@@ -8145,7 +8149,7 @@ var vot = (function(exports) {
 		let playRejection;
 		const read = () => {
 			const videos = [...targetWindow.document.querySelectorAll("video")];
-			const playing = videos.find((video) => video.readyState >= 3);
+			const playing = videos.find((video) => video.readyState >= 2 || video.buffered.length > 0);
 			if (playing) return playing;
 			if (player.classList.contains("ytp-error")) throw new Error("Audio downloader. MSE player refused the video");
 			const state = player.getPlayerState?.() ?? UNSTARTED;
@@ -8154,6 +8158,8 @@ var vot = (function(exports) {
 				const video = videos[0];
 				if (video) {
 					video.muted = true;
+					video.volume = 0;
+					video.playsInline = true;
 					video.play().catch((error) => {
 						playRejection = error instanceof Error ? error.name : String(error);
 					});
@@ -8212,7 +8218,16 @@ var vot = (function(exports) {
 		const player = await waitForPlayer(targetWindow, signal);
 		patchPlayerVarsMethods(player, filter);
 		startAudioPlayback(player, videoId, true);
-		await waitForPlayback(targetWindow, player, videoId, signal);
+		try {
+			await waitForPlayback(targetWindow, player, videoId, signal);
+		} catch (error) {
+			if (signal.aborted || !store.captures.some((capture) => capture.isOpen)) throw error;
+			debug.log("Audio downloader. MSE playback wait skipped", {
+				videoId,
+				captures: store.captures.length,
+				error: toErrorMessage(error)
+			});
+		}
 		forceFastBuffering(targetWindow, player);
 		let capture = await waitForAudioCapture(store, signal);
 		debug.log("Audio downloader. MSE capture started", {
@@ -10921,36 +10936,6 @@ var vot = (function(exports) {
 			body: fetchOptions.body
 		}, responseCache, performRequest);
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/mediaTransport.ts
-	/**
-	* Transport of the media (`videoplayback`) requests.
-	*
-	* GVS answers a part of its hosts with a cross-host redirect
-	* (`cms_redirect=yes`), and that redirected answer carries no
-	* `Access-Control-Allow-Origin`: a page request is dropped by the browser
-	* before the download reads its first byte (`Failed to fetch`), and the retry
-	* looks like a transport hiccup even though no retry can ever succeed. Page
-	* level `fetch` wrappers of content blockers drop a part of these requests as
-	* well (`ERR_BLOCKED_BY_CLIENT`).
-	*
-	* Two independent ways around it, in this order:
-	*
-	* 1. `GM_xmlhttpRequest` (userscript manager) or the extension background:
-	*    the request leaves a privileged context, so no CORS check and no page
-	*    `fetch` wrapper applies and redirects are followed transparently. Every
-	*    googlevideo.com host is already routed through it by `utils/gm.ts`,
-	*    which is why the extension build never sees the redirect problem.
-	* 2. `alr=yes`, the parameter the YouTube player itself sends: instead of a
-	*    redirect GVS answers the next host as a `text/plain` body, which the
-	*    caller requests again itself. It keeps a bare page realm working when no
-	*    privileged transport exists (GM API missing, host not in `@connect`).
-	*/
-	/**
-	* A 4 MiB range needs far more than the 15 s GM default on a slow connection.
-	* The download is bounded by the caller's abort signal anyway.
-	*/
-	var MEDIA_REQUEST_TIMEOUT_MS = 6e5;
 	/** The privileged transport whenever this build has one. */
 	function getMediaTransport() {
 		const transport = isSupportGMXhr ? "gm" : "page";
@@ -10979,21 +10964,662 @@ var vot = (function(exports) {
 		else url.searchParams.delete("alr");
 		return url.toString();
 	}
-	/** One ranged media request over the selected transport. */
-	async function fetchMediaRange({ transport, targetWindow, url, range, signal }) {
+	/**
+	* One media request over the selected transport.
+	*
+	* `range` is optional: the ranged download of a progressive format needs it,
+	* while an HLS playlist or segment is requested whole (its size is already
+	* the chunk size the server chose).
+	*/
+	async function fetchMediaResource({ transport, targetWindow, url, range, signal, timeoutMs }) {
 		if (transport === "gm") return await GM_fetch(url, {
 			method: "GET",
-			headers: { range },
+			...range ? { headers: { range } } : {},
 			redirect: "follow",
-			timeout: MEDIA_REQUEST_TIMEOUT_MS,
+			timeout: timeoutMs ?? 6e5,
 			forceGmXhr: true,
 			signal
 		});
 		return await targetWindow.fetch(url, {
 			signal,
 			credentials: "omit",
-			headers: { range }
+			...range ? { headers: { range } } : {}
 		});
+	}
+	/** One ranged media request over the selected transport. */
+	function fetchMediaRange(request) {
+		return fetchMediaResource(request);
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/hlsAudio.ts
+	/**
+	* HLS audio path — the only YouTube transport that a logged-out browser
+	* session is still served without a GVS PO token.
+	*
+	* WHY
+	* ---
+	* yt-dlp's PO token table says it in one line: for every web-family client
+	* the HTTPS (`videoplayback`) URLs are `required=True`, while HLS is
+	* `required=False`. That is exactly the difference between a signed-in and an
+	* anonymous download in this extension: with an account the page BotGuard
+	* token matches the session that issued the HTTPS URLs, in a private window it
+	* does not and GVS answers 403 — but the very same session is served its HLS
+	* manifest and segments without any token at all.
+	*
+	* The `-F` listing of such a video shows what this path reads:
+	*
+	*     233-20 mp4 audio only  m3u8  [en-US] American English - original
+	*     234-20 mp4 audio only  m3u8  [en-US] American English - original
+	*
+	* `itag 233` is the low-bitrate AAC audio-only rendition — the cheapest
+	* complete audio track YouTube offers over HLS, and the one this module
+	* downloads: master playlist -> audio rendition of the wanted track -> media
+	* playlist -> segments, concatenated into the same chunk stream every other
+	* strategy produces.
+	*
+	* Everything here is intentionally free of realm plumbing: the two playlist
+	* parsers and the rendition ranking are pure functions, which is what the unit
+	* tests exercise.
+	*/
+	/** `/itag/233/` inside a GVS playlist or segment path. */
+	var ITAG_PATH_PATTERN = /\/itag\/(\d+)/;
+	/** yt-dlp appends the GVS token as a path segment on manifest URLs. */
+	var POT_PATH_PATTERN = /\/pot\/[^/]+/;
+	/** `.../file/index.m3u8` and `.../playlist/index.m3u8` keep their suffix. */
+	var MANIFEST_SUFFIX_PATTERN = /^(.+)(\/(?:file|playlist)\/index\.m3u8)$/;
+	/** Audio-only HLS ladder, cheapest first (`233` low AAC, `234` high AAC). */
+	var HLS_AUDIO_ITAG_ORDER = [233, 234];
+	/** Segments in flight. Enough to saturate a link, small enough to be cheap. */
+	var SEGMENT_PARALLELISM = 4;
+	/** A playlist is a few kilobytes; anything slower than this is broken. */
+	var PLAYLIST_TIMEOUT_MS = 3e4;
+	/**
+	* Parses an `#EXT-X-...:KEY=VALUE,KEY="VALUE"` attribute list.
+	*
+	* Quoted values may contain commas (`CODECS="mp4a.40.5,avc1"`), so a plain
+	* `split(",")` is wrong; keys are upper-cased because the spec is
+	* case-sensitive but YouTube is not always consistent.
+	*/
+	function parseHlsAttributeList(line) {
+		const attributes = /* @__PURE__ */ new Map();
+		const colon = line.indexOf(":");
+		const source = colon < 0 ? line : line.slice(colon + 1);
+		let index = 0;
+		while (index < source.length) {
+			const equals = source.indexOf("=", index);
+			if (equals < 0) break;
+			const key = source.slice(index, equals).trim().toUpperCase();
+			let value;
+			if (source[equals + 1] === "\"") {
+				const end = source.indexOf("\"", equals + 2);
+				const stop = end < 0 ? source.length : end;
+				value = source.slice(equals + 2, stop);
+				index = stop + 2;
+			} else {
+				const comma = source.indexOf(",", equals + 1);
+				const stop = comma < 0 ? source.length : comma;
+				value = source.slice(equals + 1, stop).trim();
+				index = stop + 1;
+			}
+			if (key) attributes.set(key, value);
+		}
+		return attributes;
+	}
+	/** The itag a GVS playlist or segment URL carries in its path. */
+	function readHlsItag(uri) {
+		const itag = Number(ITAG_PATH_PATTERN.exec(uri)?.[1]);
+		return itag > 0 ? itag : void 0;
+	}
+	function resolveHlsUrl(uri, baseUrl) {
+		const trimmed = uri.trim();
+		if (!trimmed) return void 0;
+		if (URL.canParse(trimmed)) return trimmed;
+		if (!URL.canParse(trimmed, baseUrl)) return void 0;
+		return new URL(trimmed, baseUrl).toString();
+	}
+	/** True for a master playlist, i.e. one that lists other playlists. */
+	function isHlsMasterPlaylist(playlist) {
+		return playlist.includes("#EXT-X-STREAM-INF") || playlist.includes("#EXT-X-MEDIA:");
+	}
+	/**
+	* Audio-only renditions of a master playlist.
+	*
+	* A `TYPE=AUDIO` entry without a `URI` describes audio that is muxed into the
+	* video renditions, so it carries nothing this downloader could read on its
+	* own and is skipped.
+	*/
+	function parseHlsAudioRenditions(playlist, baseUrl) {
+		const renditions = [];
+		for (const rawLine of playlist.split(/\r?\n/)) {
+			const line = rawLine.trim();
+			if (!line.startsWith("#EXT-X-MEDIA:")) continue;
+			const attributes = parseHlsAttributeList(line);
+			if ((attributes.get("TYPE") ?? "").toUpperCase() !== "AUDIO") continue;
+			const rawUri = attributes.get("URI");
+			if (!rawUri) continue;
+			const uri = resolveHlsUrl(rawUri, baseUrl);
+			if (!uri) continue;
+			renditions.push({
+				uri,
+				itag: readHlsItag(uri),
+				language: attributes.get("LANGUAGE") || void 0,
+				name: attributes.get("NAME") || void 0,
+				groupId: attributes.get("GROUP-ID") || void 0,
+				isDefault: (attributes.get("DEFAULT") ?? "").toUpperCase() === "YES",
+				isAutoselect: (attributes.get("AUTOSELECT") ?? "").toUpperCase() === "YES"
+			});
+		}
+		return renditions;
+	}
+	/**
+	* Describes an HLS rendition the way `formatSelection` describes a
+	* `streamingData` entry, so both paths rank tracks by the same rule (English
+	* original first, an automatic dub last, the upload's own audio when the video
+	* has no English track at all).
+	*/
+	function toTrackFormat(rendition) {
+		return {
+			itag: rendition.itag,
+			mimeType: "audio/mp4; codecs=\"mp4a.40.5\"",
+			audioTrack: {
+				id: rendition.language ? `${rendition.language}.${rendition.groupId ?? "0"}` : void 0,
+				displayName: rendition.name,
+				audioIsDefault: rendition.isDefault
+			}
+		};
+	}
+	function describeHlsRendition(rendition) {
+		return describeTrack(toTrackFormat(rendition));
+	}
+	function hlsItagRank(rendition) {
+		const index = HLS_AUDIO_ITAG_ORDER.indexOf(rendition.itag ?? 0);
+		return index === -1 ? HLS_AUDIO_ITAG_ORDER.length : index;
+	}
+	/**
+	* The cheapest audio-only rendition of the preferred track.
+	*
+	* Track first (the language decides what the translation backend receives),
+	* bitrate second (`itag 233` before `234`): every byte is paid for twice, once
+	* on the way down from GVS and once on the way up to the backend.
+	*/
+	function selectHlsAudioRendition(renditions) {
+		let best;
+		let bestRank = Number.POSITIVE_INFINITY;
+		let bestItagRank = Number.POSITIVE_INFINITY;
+		for (const rendition of renditions) {
+			const track = describeHlsRendition(rendition);
+			const rank = rankTrack(track);
+			const itagRank = hlsItagRank(rendition);
+			if (rank > bestRank || rank === bestRank && itagRank >= bestItagRank) continue;
+			bestRank = rank;
+			bestItagRank = itagRank;
+			best = {
+				rendition,
+				track,
+				reason: rendition.itag === HLS_AUDIO_ITAG_ORDER[0] ? "lowest-bitrate hls audio" : "hls audio rendition"
+			};
+		}
+		return best;
+	}
+	/** `#EXT-X-BYTERANGE:<length>[@<offset>]`, offsets continuing the previous one. */
+	function parseByteRange(value, previousEnd) {
+		const [rawLength, rawOffset] = value.split("@");
+		const length = Number(rawLength);
+		if (!(length > 0)) return void 0;
+		const offset = rawOffset === void 0 ? previousEnd : Number(rawOffset);
+		if (!(offset >= 0)) return void 0;
+		return {
+			range: `bytes=${offset}-${offset + length - 1}`,
+			end: offset + length
+		};
+	}
+	/** Segments (and the init segment) of one media playlist, in playback order. */
+	function parseHlsMediaPlaylist(playlist, baseUrl) {
+		const segments = [];
+		let initSegment;
+		let pendingRange;
+		let previousEnd = 0;
+		for (const rawLine of playlist.split(/\r?\n/)) {
+			const line = rawLine.trim();
+			if (!line) continue;
+			if (line.startsWith("#EXT-X-MAP:")) {
+				const attributes = parseHlsAttributeList(line);
+				const uri = resolveHlsUrl(attributes.get("URI") ?? "", baseUrl);
+				if (!uri) continue;
+				const rawRange = attributes.get("BYTERANGE");
+				const parsed = rawRange ? parseByteRange(rawRange, 0) : void 0;
+				initSegment = {
+					url: uri,
+					...parsed ? { range: parsed.range } : {}
+				};
+				continue;
+			}
+			if (line.startsWith("#EXT-X-BYTERANGE:")) {
+				const parsed = parseByteRange(line.slice(17), previousEnd);
+				if (parsed) {
+					pendingRange = parsed.range;
+					previousEnd = parsed.end;
+				}
+				continue;
+			}
+			if (line.startsWith("#")) continue;
+			const url = resolveHlsUrl(line, baseUrl);
+			if (!url) continue;
+			segments.push({
+				url,
+				...pendingRange ? { range: pendingRange } : {}
+			});
+			pendingRange = void 0;
+		}
+		return {
+			initSegment,
+			segments
+		};
+	}
+	/**
+	* Attaches a GVS PO token to a manifest URL the way YouTube expects it: as a
+	* `/pot/<token>` path segment, before a `/file/index.m3u8` or
+	* `/playlist/index.m3u8` suffix (this is verbatim what yt-dlp's YouTube
+	* extractor does for HLS and DASH manifests).
+	*
+	* HLS needs no token for any client this downloader speaks for, so this is
+	* only ever used when a token happens to be available anyway.
+	*/
+	function applyHlsPoToken(manifestUrl, poToken) {
+		if (!poToken || !URL.canParse(manifestUrl)) return manifestUrl;
+		const url = new URL(manifestUrl);
+		if (POT_PATH_PATTERN.test(url.pathname)) return url.toString();
+		const match = MANIFEST_SUFFIX_PATTERN.exec(url.pathname);
+		url.pathname = `${(match?.[1] ?? url.pathname).replace(/\/+$/, "")}/pot/${encodeURIComponent(poToken)}${match?.[2] ?? ""}`;
+		return url.toString();
+	}
+	async function fetchPlaylist({ targetWindow, transport, signal }, url) {
+		const response = await fetchMediaResource({
+			transport,
+			targetWindow,
+			url,
+			signal,
+			timeoutMs: PLAYLIST_TIMEOUT_MS
+		});
+		if (!response.ok) throw new Error(`Audio downloader. HLS playlist request failed (${response.status})`);
+		const text = await response.text();
+		if (!text.includes("#EXTM3U")) throw new Error("Audio downloader. HLS playlist is not a playlist");
+		return text;
+	}
+	async function fetchSegment({ targetWindow, transport, signal }, segment) {
+		const response = await fetchMediaResource({
+			transport,
+			targetWindow,
+			url: segment.url,
+			range: segment.range,
+			signal
+		});
+		if (!response.ok) throw new Error(`Audio downloader. HLS segment request failed (${response.status})`);
+		return new Uint8Array(await response.arrayBuffer());
+	}
+	/**
+	* Resolves the media playlist of the wanted audio track.
+	*
+	* A manifest URL can already point at a media playlist (a rendition URL that
+	* was handed over directly), in which case it is used as it is.
+	*/
+	async function resolveAudioPlaylist(request) {
+		const manifestUrl = applyHlsPoToken(request.manifestUrl, request.poToken);
+		const manifest = await fetchPlaylist(request, manifestUrl);
+		if (!isHlsMasterPlaylist(manifest)) return {
+			playlistUrl: manifestUrl,
+			playlist: manifest
+		};
+		const selected = selectHlsAudioRendition(parseHlsAudioRenditions(manifest, manifestUrl));
+		if (!selected) throw new Error("Audio downloader. HLS manifest carries no audio-only rendition");
+		const playlist = await fetchPlaylist(request, selected.rendition.uri);
+		return {
+			playlistUrl: selected.rendition.uri,
+			playlist,
+			selected
+		};
+	}
+	/**
+	* Streams the audio track of a YouTube HLS manifest.
+	*
+	* Segments are requested a few at a time but emitted strictly in order, so
+	* the consumer can upload chunk `n` while chunk `n + 1` is still arriving,
+	* and the resulting byte stream is a plain concatenation of the rendition's
+	* segments — which is what an MPEG-TS/fMP4 audio track is.
+	*/
+	async function* streamHlsAudio(request) {
+		const { signal } = request;
+		signal.throwIfAborted();
+		const { playlistUrl, playlist, selected } = await resolveAudioPlaylist(request);
+		const { initSegment, segments } = parseHlsMediaPlaylist(playlist, playlistUrl);
+		if (!segments.length) throw new Error("Audio downloader. HLS playlist carries no segments");
+		const queue = initSegment ? [initSegment, ...segments] : [...segments];
+		debug.log("Audio downloader. HLS audio selected", {
+			itag: selected?.rendition.itag ?? readHlsItag(playlistUrl) ?? "unknown",
+			reason: selected?.reason ?? "single rendition",
+			track: selected?.track.key ?? "single",
+			language: selected?.track.language ?? "unknown",
+			content: selected?.track.content ?? "unknown",
+			segments: segments.length,
+			initSegment: Boolean(initSegment),
+			hasPoToken: Boolean(request.poToken)
+		});
+		const accumulator = createChunkAccumulator(config_default$1.minChunkSize);
+		const inFlight = [];
+		let next = 0;
+		const fill = () => {
+			while (inFlight.length < SEGMENT_PARALLELISM && next < queue.length) inFlight.push(fetchSegment(request, queue[next++]));
+		};
+		try {
+			fill();
+			while (inFlight.length) {
+				signal.throwIfAborted();
+				const bytes = await inFlight.shift();
+				fill();
+				const chunk = accumulator.add(bytes);
+				if (chunk) yield {
+					buffer: chunk,
+					isLastChunk: false
+				};
+			}
+		} finally {
+			for (const pending of inFlight) pending.catch(() => void 0);
+		}
+		if (!accumulator.received) throw new Error("Audio downloader. Empty HLS audio");
+		debug.log("Audio downloader. HLS audio finished", {
+			segments: queue.length,
+			received: accumulator.received
+		});
+		yield {
+			buffer: accumulator.flush() ?? /* @__PURE__ */ new Uint8Array(0),
+			isLastChunk: true
+		};
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/innertubeClients.ts
+	/**
+	* The client authorizes its URLs without a token. yt-dlp leaves the GVS
+	* policy out entirely for `visionos`, `web_embedded`, `tv`, `tv_downgraded`
+	* and `tv_embedded`, which defaults to `required=False, recommended=False`.
+	*
+	* "Not required" is not "must not be attached": no token is minted for such
+	* a client, but one that is already available is attached anyway, which is
+	* what yt-dlp does.
+	*/
+	var POT_NEVER = {
+		required: false,
+		recommended: false
+	};
+	/** GVS refuses the URLs without a token. */
+	var POT_REQUIRED = {
+		required: true,
+		recommended: true
+	};
+	/** Accepted, not demanded (every HLS manifest of the web family). */
+	var POT_OPTIONAL = {
+		required: false,
+		recommended: true
+	};
+	/**
+	* Ordered ladder, cheapest and most likely first.
+	*
+	* 1. `visionos` — yt-dlp's first default client for an anonymous session.
+	*    No PO token, no account, no player JS, and its `adaptiveFormats` carry
+	*    plain URLs, so nothing signed can be wrong with them.
+	* 2. `web_embedded` — no token, no account, answers direct URLs, and speaks
+	*    the page release, so it is the cheapest web client of the ladder.
+	* 3. `tv` — no token either, and not embed-restricted, so it covers uploads
+	*    that forbid embedding. Its context is built the way yt-dlp builds it
+	*    (the client's own descriptor plus the session fields, and no
+	*    `configInfo.appInstallData` for an anonymous session), without which
+	*    InnerTube answers `UNPLAYABLE: Please reload the page`.
+	* 4. `tv_downgraded` — yt-dlp's fallback for `tv`: the same client name on an
+	*    older Cobalt release, answered without a token as well.
+	* 5. `mweb` — needs a token for its HTTPS URLs, which the page BotGuard mints
+	*    for the same session; its HLS manifest needs none.
+	* 6. `web_safari` — HTTPS formats are SABR-only, but its HLS manifest is
+	*    served token-free and carries the audio-only renditions (itag 233/234).
+	*    Since 2026.07 YouTube only answers it for trusted or signed-in
+	*    sessions, so an anonymous run reads it as "no HLS manifest".
+	* 7. `tv_embedded` / `web_creator` — signed-in only, kept for age-restricted
+	*    uploads where the anonymous clients answer `LOGIN_REQUIRED`.
+	*/
+	var INNERTUBE_CLIENTS = [
+		{
+			name: "visionos",
+			id: "101",
+			clientName: "VISIONOS",
+			clientVersion: "1.02",
+			contextFamily: "device",
+			deviceMake: "Apple",
+			deviceModel: "RealityDevice17,1",
+			osName: "visionOS",
+			osVersion: "26.5.23O471",
+			contextUserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+			requiresJsPlayer: false,
+			gvsPoToken: {
+				https: POT_NEVER,
+				hls: POT_NEVER
+			}
+		},
+		{
+			name: "web_embedded",
+			id: "56",
+			clientName: "WEB_EMBEDDED_PLAYER",
+			clientScreen: "EMBED",
+			usesPageVersion: true,
+			requiresEmbedUrl: true,
+			originalUrl: (videoId) => `https://www.youtube.com/embed/${videoId}?html5=1`,
+			gvsPoToken: {
+				https: POT_NEVER,
+				hls: POT_NEVER
+			},
+			supportsHls: true
+		},
+		{
+			name: "tv",
+			id: "7",
+			clientName: "TVHTML5",
+			clientVersion: "7.20260707.07.00",
+			contextFamily: "tv",
+			contextUserAgent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)",
+			gvsPoToken: {
+				https: POT_NEVER,
+				hls: POT_NEVER
+			},
+			supportsHls: true
+		},
+		{
+			name: "tv_downgraded",
+			id: "7",
+			clientName: "TVHTML5",
+			clientVersion: "5.20260707",
+			contextFamily: "tv",
+			contextUserAgent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version",
+			gvsPoToken: {
+				https: POT_NEVER,
+				hls: POT_NEVER
+			},
+			supportsHls: true
+		},
+		{
+			name: "mweb",
+			id: "2",
+			clientName: "MWEB",
+			clientScreen: "WATCH",
+			usesPageVersion: true,
+			originalUrl: (videoId) => `https://m.youtube.com/watch?v=${videoId}`,
+			gvsPoToken: {
+				https: {
+					...POT_REQUIRED,
+					notRequiredForPremium: true
+				},
+				hls: POT_OPTIONAL
+			},
+			supportsHls: true
+		},
+		{
+			name: "web_safari",
+			id: "1",
+			clientName: "WEB",
+			clientScreen: "WATCH",
+			usesPageVersion: true,
+			contextUserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)",
+			originalUrl: (videoId) => `https://www.youtube.com/watch?v=${videoId}`,
+			gvsPoToken: {
+				https: POT_REQUIRED,
+				hls: POT_OPTIONAL
+			},
+			supportsHls: true
+		},
+		{
+			name: "tv_embedded",
+			id: "85",
+			clientName: "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+			clientVersion: "2.0",
+			clientScreen: "EMBED",
+			contextFamily: "tv",
+			requiresAuth: true,
+			requiresEmbedUrl: true,
+			originalUrl: (videoId) => `https://www.youtube.com/embed/${videoId}?html5=1`,
+			gvsPoToken: {
+				https: POT_NEVER,
+				hls: POT_NEVER
+			},
+			supportsHls: true
+		},
+		{
+			name: "web_creator",
+			id: "62",
+			clientName: "WEB_CREATOR",
+			clientScreen: "WATCH",
+			requiresAuth: true,
+			gvsPoToken: {
+				https: POT_REQUIRED,
+				hls: POT_OPTIONAL
+			},
+			supportsHls: true
+		}
+	];
+	/** GVS answers 403 for this client and protocol without a token. */
+	function requiresGvsPoToken(client, protocol) {
+		return client.gvsPoToken[protocol].required;
+	}
+	/**
+	* Whether minting a token for this client and protocol is worth the BotGuard
+	* round trip — yt-dlp's `fetch_po_token(required=required or recommended)`.
+	*
+	* It is *not* a permission to attach one: a token that is already available
+	* is attached to any client's URLs, exactly as yt-dlp does.
+	*/
+	function recommendsGvsPoToken(client, protocol) {
+		const policy = client.gvsPoToken[protocol];
+		return policy.required || policy.recommended;
+	}
+	/**
+	* `context.client` overrides for one client of the matrix.
+	*
+	* The caller clones the page context first (so visitor data, `hl`/`gl` and
+	* the screen stay the session's own) and then applies these fields.
+	*/
+	function getClientPlayerContext(client, { videoId, pageClientVersion }) {
+		const clientVersion = client.usesPageVersion ? pageClientVersion ?? client.clientVersion : client.clientVersion;
+		return {
+			...clientVersion ? { clientVersion } : {},
+			clientName: client.clientName,
+			...client.clientScreen ? { clientScreen: client.clientScreen } : {},
+			...client.contextUserAgent ? { userAgent: client.contextUserAgent } : {},
+			...client.deviceMake ? { deviceMake: client.deviceMake } : {},
+			...client.deviceModel ? { deviceModel: client.deviceModel } : {},
+			...client.osName ? { osName: client.osName } : {},
+			...client.osVersion ? { osVersion: client.osVersion } : {},
+			...client.originalUrl ? { originalUrl: client.originalUrl(videoId) } : {}
+		};
+	}
+	/**
+	* Fields that belong to the session rather than to the browser, and that
+	* yt-dlp carries into (or forces onto) every client context it builds —
+	* `_extract_context` in `yt_dlp/extractor/youtube/_base.py`.
+	*/
+	var SESSION_CONTEXT_FIELDS = [
+		"hl",
+		"gl",
+		"visitorData",
+		"remoteHost",
+		"timeZone",
+		"utcOffsetMinutes"
+	];
+	/** The context fields the client's own descriptor provides. */
+	function declaredContextFields(client) {
+		const fields = ["clientName", "clientVersion"];
+		if (client.clientScreen) fields.push("clientScreen");
+		if (client.contextUserAgent) fields.push("userAgent");
+		if (client.deviceMake) fields.push("deviceMake");
+		if (client.deviceModel) fields.push("deviceModel");
+		if (client.osName) fields.push("osName");
+		if (client.osVersion) fields.push("osVersion");
+		if (client.originalUrl) fields.push("originalUrl");
+		return fields;
+	}
+	/**
+	* Brings a cloned page context in line with the client that will be declared.
+	*
+	* A web client speaks for this very browser, so its cloned context is left
+	* alone. Every other family gets the context yt-dlp would have built: the
+	* client's own descriptor plus the session fields, and nothing else.
+	*
+	* This is a keep-list on purpose. The previous revision deleted a fixed list
+	* of desktop fields, so every field YouTube adds to the watch page later
+	* (`rolloutToken` and `deviceExperimentId` were such additions) leaks into a
+	* `TVHTML5` or `VISIONOS` request and describes a desktop Chrome window
+	* running a TV client — the mismatch InnerTube answers with `UNPLAYABLE:
+	* Please reload the page`, before a single media request is sent.
+	*
+	* `configInfo.appInstallData` is dropped for an anonymous session, which is
+	* yt-dlp's workaround for that same verdict (yt-dlp issue 12563); it keeps
+	* the field while signed in, where the workaround has no effect.
+	*/
+	function applyClientContextPolicy(clientContext, client, { loggedIn }) {
+		if (!client.contextFamily || client.contextFamily === "web") return clientContext;
+		const kept = {};
+		for (const field of [...SESSION_CONTEXT_FIELDS, ...declaredContextFields(client)]) {
+			const value = clientContext[field];
+			if (value !== void 0) kept[field] = value;
+		}
+		kept.timeZone = "UTC";
+		kept.utcOffsetMinutes = 0;
+		const configInfo = clientContext.configInfo;
+		if (configInfo && typeof configInfo === "object") {
+			const cleaned = { ...configInfo };
+			if (!loggedIn) delete cleaned.appInstallData;
+			kept.configInfo = cleaned;
+		}
+		for (const field of Object.keys(clientContext)) delete clientContext[field];
+		Object.assign(clientContext, kept);
+		return clientContext;
+	}
+	/**
+	* The clients worth a `player` request for one protocol.
+	*
+	* A request that can only be refused is never sent: a signed-in-only client
+	* without cookies, a token-requiring client without a token, and a client GVS
+	* refused a moment ago.
+	*/
+	function selectPlayerClients({ loggedIn, hasPoToken = true, protocol, isRefused }) {
+		const clients = [];
+		const skipped = [];
+		for (const client of INNERTUBE_CLIENTS) {
+			const reason = isRefused?.(client.name) ? "GVS refused it in this session" : client.requiresAuth && !loggedIn ? "anonymous session" : protocol === "hls" && !client.supportsHls ? "no HLS manifest" : requiresGvsPoToken(client, protocol) && !hasPoToken ? "no GVS PO token" : void 0;
+			if (reason) skipped.push({
+				client: client.name,
+				reason
+			});
+			else clients.push(client);
+		}
+		return {
+			clients,
+			skipped
+		};
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/poToken.ts
@@ -21065,7 +21691,7 @@ var vot = (function(exports) {
 	* request keeps the session fields YouTube expects from this browser
 	* (visitorData, hl/gl, screen, user agent) instead of a synthetic context.
 	*/
-	function buildPlayerRequest(config, videoId, { client, signatureTimestamp, embedUrl }) {
+	function buildPlayerRequest(config, videoId, { client, signatureTimestamp, embedUrl, contextClient }) {
 		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
 		if (!rawContext || typeof rawContext !== "object") throw new AudioRealmError("Audio downloader. InnerTube context is unavailable");
 		const context = structuredClone(rawContext);
@@ -21073,6 +21699,7 @@ var vot = (function(exports) {
 			...context.client,
 			...client
 		};
+		if (contextClient) applyClientContextPolicy(context.client, contextClient, { loggedIn: getConfigValue(config, "LOGGED_IN") === true });
 		const request = {
 			context,
 			videoId,
@@ -21537,42 +22164,29 @@ var vot = (function(exports) {
 	}
 	var STS_PATTERN = /(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})/;
 	/**
-	* Ordered ladder of InnerTube clients that still answer a browser session with
-	* direct (non-SABR) media URLs, cheapest first: `web_embedded` needs no PO
-	* token at all, `mweb` needs one but works for an anonymous session too, and
-	* `web_creator` needs both a signed-in session and a token.
+	* `player` request body for one client of the matrix.
 	*
-	* `WEB` was removed: since April 2025 it is answered SABR-only, so its
-	* `adaptiveFormats` never carry a URL and its `player` request is always
-	* wasted. That case is covered by the MediaSource strategy instead.
-	* TVHTML5 (`tv_downgraded`) answers `UNPLAYABLE: The page needs to be
-	* reloaded` and moved its `sig`/`n` code into a separate
-	* `tv-player-ias-tcl.js` variant, so it can no longer succeed from a browser.
-	* The headset clients (`ANDROID_VR`, `VISIONOS`) are not usable from a page
-	* either: they cannot send the page cookies, they are not covered by the PO
-	* token the page BotGuard mints for the web clients, and GVS answers their
-	* formats with 403, so every request spent on them is lost.
+	* The three web clients keep their hand-written builders: `web_embedded` has
+	* to carry `encryptedHostFlags`, `mweb` and `web_creator` have version rules
+	* of their own. Every other client is built generically from its context
+	* descriptor, so adding a client is a table entry and nothing else.
 	*/
-	var PLAYER_CLIENTS = [
-		{
-			name: "web_embedded",
-			id: "56",
-			build: ({ config, videoId, signatureTimestamp }) => buildWebEmbeddedPlayerRequest(config, videoId, signatureTimestamp)
-		},
-		{
-			name: "mweb",
-			id: "2",
-			requiresPoToken: true,
-			build: ({ config, videoId, signatureTimestamp }) => buildMwebPlayerRequest(config, videoId, signatureTimestamp)
-		},
-		{
-			name: "web_creator",
-			id: "62",
-			requiresLogin: true,
-			requiresPoToken: true,
-			build: ({ config, videoId, signatureTimestamp }) => buildWebCreatorPlayerRequest(config, videoId, signatureTimestamp)
+	function buildClientPlayerRequest(client, { config, videoId, signatureTimestamp }) {
+		switch (client.name) {
+			case "web_embedded": return buildWebEmbeddedPlayerRequest(config, videoId, signatureTimestamp);
+			case "mweb": return buildMwebPlayerRequest(config, videoId, signatureTimestamp);
+			case "web_creator": return buildWebCreatorPlayerRequest(config, videoId, signatureTimestamp);
+			default: return buildPlayerRequest(config, videoId, {
+				client: getClientPlayerContext(client, {
+					videoId,
+					pageClientVersion: getPageClientVersion(config)
+				}),
+				contextClient: client,
+				signatureTimestamp: signatureTimestamp ?? getConfigValue(config, "STS"),
+				...client.requiresEmbedUrl ? { embedUrl: THIRD_PARTY_EMBED_URL } : {}
+			});
 		}
-	];
+	}
 	function readTotalLength(response, offset) {
 		const ranged = Number(/\/(\d+)\s*$/.exec(response.headers.get("content-range") ?? "")?.[1]);
 		if (ranged > 0) return ranged;
@@ -21772,7 +22386,7 @@ var vot = (function(exports) {
 		}
 		if (!received) throw new Error("Audio downloader. Empty audio");
 		yield {
-			buffer: concatBuffers(pending),
+			buffer: accumulator.flush() ?? concatBuffers([]),
 			isLastChunk: true
 		};
 	}
@@ -21823,23 +22437,22 @@ var vot = (function(exports) {
 	function findRefreshedStreamingFormat(streaming, format) {
 		return findRefreshedFormat([...streaming?.adaptiveFormats ?? [], ...streaming?.formats ?? []], format);
 	}
-	/**
-	* The audio pass is the only normal one: the translation needs the audio
-	* track, and a low-bitrate Opus stream is the cheapest way to move it.
-	*
-	* The video pass is the last resort of this strategy, for uploads that answer
-	* no usable audio-only stream at all. It reuses the `player` answers of the
-	* audio pass, so it costs no extra InnerTube request, and it picks the
-	* smallest picture YouTube offers (144p, or the cheapest muxed format when a
-	* video-only stream would arrive without any audio).
-	*/
-	var DOWNLOAD_STAGES = [{
-		kind: "audio",
-		select: ({ adaptiveFormats }) => selectAudioFormat(adaptiveFormats ?? [])
-	}, {
-		kind: "video",
-		select: ({ formats, adaptiveFormats }) => selectVideoFallbackFormat([...formats ?? [], ...adaptiveFormats ?? []])
-	}];
+	var DOWNLOAD_STAGES = [
+		{
+			kind: "audio",
+			protocol: "https",
+			select: ({ adaptiveFormats }) => selectAudioFormat(adaptiveFormats ?? [])
+		},
+		{
+			kind: "hls",
+			protocol: "hls"
+		},
+		{
+			kind: "video",
+			protocol: "https",
+			select: ({ formats, adaptiveFormats }) => selectVideoFallbackFormat([...formats ?? [], ...adaptiveFormats ?? []])
+		}
+	];
 	/**
 	* Streams the audio track of a YouTube video from the current realm.
 	*
@@ -21907,6 +22520,12 @@ var vot = (function(exports) {
 			return poToken;
 		};
 		/**
+		* The token only when one was already minted in this download. yt-dlp
+		* keeps its tokens per client (`gvs_pots`) and never pays for BotGuard
+		* twice, so a client that needs no token can still attach one for free.
+		*/
+		const peekPoToken = async () => poToken ? await poToken : void 0;
+		/**
 		* GVS refused a session-bound token: the video-id binding is the documented
 		* alternative and YouTube rolls it out per session, so it is worth one more
 		* media request before the client is given up on.
@@ -21927,19 +22546,35 @@ var vot = (function(exports) {
 			});
 			return Boolean(token);
 		};
-		const authorizeUrl = async (streamUrl) => {
+		/**
+		* Authorizes one stream URL the way yt-dlp authorizes it.
+		*
+		* yt-dlp asks its provider for a token when the client policy requires or
+		* recommends one and then attaches whatever it got:
+		*
+		*     if po_token:
+		*         fmt_url = update_url_query(fmt_url, {'pot': po_token})
+		*
+		* There is no branch that deletes a `pot`, and no client is denied a token
+		* that is available — `required` only decides whether a *missing* token is
+		* fatal. The previous revision stripped the token for the token-free
+		* clients, so the single 403 of `web_embedded` (raised before any token had
+		* been minted) could never be retried with one.
+		*/
+		const createAuthorizeUrl = (withPoToken) => async (streamUrl) => {
 			const url = new URL(streamUrl);
 			if (url.searchParams.has("pot") && !replacePoToken) return url.toString();
+			if (!withPoToken) return url.toString();
 			const token = await mintPoToken();
 			if (token) url.searchParams.set("pot", token);
 			return url.toString();
 		};
-		const media = {
+		const createMediaSession = (withPoToken) => ({
 			targetWindow,
 			signal,
 			fetchPlayerCode,
-			authorizeUrl
-		};
+			authorizeUrl: createAuthorizeUrl(withPoToken)
+		});
 		/**
 		* One `player` request per client for the whole download: its answer is
 		* shared by the audio pass, by the video fallback and by a URL refresh, and
@@ -21952,13 +22587,13 @@ var vot = (function(exports) {
 				if (cached instanceof Error) throw cached;
 				return cached;
 			}
-			const body = client.build(session);
+			const body = buildClientPlayerRequest(client, session);
 			const clientContext = body.context.client;
 			if (typeof visitorData === "string" && !clientContext.visitorData) clientContext.visitorData = visitorData;
 			try {
 				const response = await postInnertubePlayer(targetWindow, signal, apiKey, body, client.id, String(clientContext.clientVersion ?? ""), auth);
 				const streaming = response.streamingData;
-				if (!streaming?.adaptiveFormats?.length && !streaming?.formats?.length) throw new PlayerStatusError(client.name, response.playabilityStatus);
+				if (!streaming?.adaptiveFormats?.length && !streaming?.formats?.length && !streaming?.hlsManifestUrl) throw new PlayerStatusError(client.name, response.playabilityStatus);
 				answers.set(client.name, response);
 				return response;
 			} catch (error) {
@@ -21967,44 +22602,109 @@ var vot = (function(exports) {
 				throw error;
 			}
 		};
-		const clients = [];
-		for (const client of PLAYER_CLIENTS) {
-			const skipped = isClientRefusedRecently(client.name) ? "GVS refused it in this session" : client.requiresLogin && !loggedIn ? "anonymous session" : client.requiresPoToken && !await mintPoToken() ? "no GVS PO token" : void 0;
-			if (!skipped) {
-				clients.push(client);
-				continue;
-			}
-			debug.log("Audio downloader. skipping player client", {
-				videoId,
-				client: client.name,
-				reason: skipped
+		/**
+		* Clients whose signed HTTPS URLs GVS refused. HLS is authorized by another
+		* policy, so a client refused here is still asked for its manifest.
+		*/
+		const refusedDirect = /* @__PURE__ */ new Set();
+		/**
+		* A refusal is per client, per protocol *and* per stage: the muxed
+		* fallback is authorized by another rule (`itag 18` needs no PO token in
+		* yt-dlp, whatever the client policy says), so a client whose audio URLs
+		* were refused is still worth that one request. Scoping this to the audio
+		* stage alone is what turned a single 403 into a failed download: every
+		* later stage skipped the client that still had a usable format.
+		*/
+		const isRefused = (name, protocol, stage = "audio") => protocol === "https" && stage !== "video" && (refusedDirect.has(name) || isClientRefusedRecently(name));
+		/** The clients worth a `player` request for one protocol. */
+		const selectClients = (protocol, stage = "audio") => {
+			const { clients, skipped } = selectPlayerClients({
+				loggedIn,
+				protocol,
+				isRefused: (name) => isRefused(name, protocol, stage)
 			});
-		}
-		/** Clients whose signed URLs GVS refused: their video formats are too. */
-		const refused = /* @__PURE__ */ new Set();
+			for (const entry of skipped) debug.log("Audio downloader. skipping player client", {
+				videoId,
+				client: entry.client,
+				protocol,
+				reason: entry.reason
+			});
+			return [...clients];
+		};
+		/**
+		* Authorization attempts for one client's HTTPS URLs.
+		*
+		* yt-dlp spends one request per format: it attaches a token whenever it
+		* has one and drops a client only when a *required* token is missing. A
+		* browser realm mints the token itself, so the order below keeps the happy
+		* path free of BotGuard work while still reaching every authorization
+		* yt-dlp would have used:
+		*
+		* 1. no token, for a client that authorizes without one (`visionos`,
+		*    `web_embedded`, `tv`, `tv_downgraded`) — one request, no BotGuard,
+		* 2. the session-bound token (visitor data, or the datasync id when signed
+		*    in), which is what yt-dlp attaches whenever it holds one,
+		* 3. the same token re-minted with the video-id binding, YouTube's newer
+		*    scheme (`html5_generate_content_po_token`),
+		* 4. no token, for a client that only *recommends* one.
+		*
+		* The muxed fallback stage is exempt from the requirement, because yt-dlp
+		* keeps `itag 18` token-free for every client (`require_po_token =
+		* stream_id[0] not in ['18'] and gvs_pot_required(...)`).
+		*/
+		const buildAuthorizationPlans = (client, stage) => {
+			const tokenExempt = stage === "video";
+			const required = requiresGvsPoToken(client, "https") && !tokenExempt;
+			const tokenFirst = recommendsGvsPoToken(client, "https") && !tokenExempt;
+			const plans = [];
+			if (!tokenFirst) plans.push({
+				withPoToken: false,
+				rotate: false
+			});
+			plans.push({
+				withPoToken: true,
+				rotate: false
+			});
+			plans.push({
+				withPoToken: true,
+				rotate: true
+			});
+			if (tokenFirst && !required) plans.push({
+				withPoToken: false,
+				rotate: false
+			});
+			return plans;
+		};
 		let lastError;
 		let emitted = false;
-		for (const stage of DOWNLOAD_STAGES) {
-			const usable = clients.filter((client) => !refused.has(client.name) && !(answers.get(client.name) instanceof Error));
-			if (!usable.length) break;
-			clientLoop: for (const client of usable) {
+		stageLoop: for (const stage of DOWNLOAD_STAGES) {
+			const usable = selectClients(stage.protocol, stage.kind).filter((client) => !(answers.get(client.name) instanceof Error));
+			if (!usable.length) continue;
+			for (const client of usable) {
 				signal.throwIfAborted();
-				if (refused.has(client.name)) continue;
-				for (let attempt = 0; attempt < 2; attempt++) try {
+				if (isRefused(client.name, stage.protocol, stage.kind)) continue;
+				if (stage.kind === "hls") try {
 					const { streamingData } = await requestPlayer(client);
-					const selected = stage.select(streamingData ?? {});
-					debug.log("Audio downloader. selected media format", {
+					const manifestUrl = streamingData?.hlsManifestUrl;
+					if (!manifestUrl) {
+						debug.log("Audio downloader. client answered no HLS manifest", {
+							videoId,
+							client: client.name
+						});
+						continue;
+					}
+					const poToken = recommendsGvsPoToken(client, "hls") ? await mintPoToken() : await peekPoToken();
+					debug.log("Audio downloader. selected HLS audio manifest", {
 						videoId,
 						client: client.name,
-						stage: stage.kind,
-						reason: selected.reason,
-						track: selected.track?.key ?? "single",
-						language: selected.track?.language ?? "unknown",
-						content: selected.track?.content ?? "unknown",
-						...describeFormat(selected.format)
+						hasPoToken: Boolean(poToken)
 					});
-					for await (const chunk of streamSelectedFormat(media, selected.format, async () => {
-						return findRefreshedStreamingFormat((await requestPlayer(client, true)).streamingData, selected.format) ?? selected.format;
+					for await (const chunk of streamHlsAudio({
+						targetWindow,
+						transport: getMediaTransport(),
+						manifestUrl,
+						signal,
+						poToken
 					})) {
 						emitted = true;
 						yield chunk;
@@ -22014,27 +22714,74 @@ var vot = (function(exports) {
 					signal.throwIfAborted();
 					if (emitted) throw error;
 					lastError = error;
-					const authRefused = error instanceof MediaAuthError;
-					debug.log("Audio downloader. player client failed", {
+					debug.log("Audio downloader. HLS client failed", {
 						videoId,
 						client: client.name,
-						stage: stage.kind,
-						attempt,
-						error: toErrorMessage(error),
-						...authRefused ? {
-							refused: true,
-							binding: poTokenBinding.kind,
-							hasPoToken: Boolean(await poToken)
-						} : {}
+						error: toErrorMessage(error)
 					});
-					if (authRefused && attempt === 0 && await rotatePoTokenBinding()) continue;
-					if (authRefused) {
-						refused.add(client.name);
-						refusedClients.set(client.name, Date.now());
-					}
-					if (!loggedIn && error instanceof PlayerStatusError && error.status === "LOGIN_REQUIRED") break clientLoop;
-					break;
+					if (!loggedIn && error instanceof PlayerStatusError && error.status === "LOGIN_REQUIRED") continue stageLoop;
+					continue;
 				}
+				const plans = buildAuthorizationPlans(client, stage.kind);
+				let attempted = false;
+				for (let attempt = 0; attempt < plans.length; attempt++) {
+					const plan = plans[attempt];
+					if (plan.withPoToken && !await mintPoToken()) continue;
+					if (plan.rotate && !await rotatePoTokenBinding()) break;
+					attempted = true;
+					try {
+						const { streamingData } = await requestPlayer(client);
+						const selected = stage.select(streamingData ?? {});
+						debug.log("Audio downloader. selected media format", {
+							videoId,
+							client: client.name,
+							stage: stage.kind,
+							reason: selected.reason,
+							track: selected.track?.key ?? "single",
+							language: selected.track?.language ?? "unknown",
+							content: selected.track?.content ?? "unknown",
+							poToken: plan.withPoToken ? poTokenBinding.kind : "none",
+							...describeFormat(selected.format)
+						});
+						for await (const chunk of streamSelectedFormat(createMediaSession(plan.withPoToken), selected.format, async () => {
+							return findRefreshedStreamingFormat((await requestPlayer(client, true)).streamingData, selected.format) ?? selected.format;
+						})) {
+							emitted = true;
+							yield chunk;
+						}
+						return;
+					} catch (error) {
+						signal.throwIfAborted();
+						if (emitted) throw error;
+						lastError = error;
+						const authRefused = error instanceof MediaAuthError;
+						debug.log("Audio downloader. player client failed", {
+							videoId,
+							client: client.name,
+							stage: stage.kind,
+							attempt,
+							error: toErrorMessage(error),
+							...authRefused ? {
+								refused: true,
+								binding: poTokenBinding.kind,
+								withPoToken: plan.withPoToken
+							} : {}
+						});
+						if (authRefused && attempt + 1 < plans.length) continue;
+						if (authRefused) {
+							refusedDirect.add(client.name);
+							refusedClients.set(client.name, Date.now());
+						}
+						if (!loggedIn && error instanceof PlayerStatusError && error.status === "LOGIN_REQUIRED") continue stageLoop;
+						break;
+					}
+				}
+				if (!attempted) debug.log("Audio downloader. skipping player client", {
+					videoId,
+					client: client.name,
+					protocol: stage.protocol,
+					reason: "no GVS PO token"
+				});
 			}
 		}
 		const fallbackError = lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. no playable audio formats");
@@ -23034,7 +23781,8 @@ var vot = (function(exports) {
 		VOTLoginViaToken: "Login via token",
 		smartDucking: "Adaptive volume",
 		VOTYandexTokenExpired: "Session expired. Log in again",
-		VOTVoiceSelection: "Choose dubbing"
+		VOTVoiceSelection: "Choose dubbing",
+		"Yandex couldn't translate video": "The video couldn't be translated. Try again later"
 	};
 	//#endregion
 	//#region src/localization/localizationProvider.ts

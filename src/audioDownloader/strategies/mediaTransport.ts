@@ -63,29 +63,42 @@ export function buildMediaRequestUrl(
   return url.toString();
 }
 
-export type MediaRangeRequest = {
+export type MediaResourceRequest = {
   readonly transport: MediaTransport;
   readonly targetWindow: Window;
   readonly url: string;
   /** `bytes=start-end`. A CORS-safelisted header, so it costs no preflight. */
-  readonly range: string;
+  readonly range?: string;
   readonly signal: AbortSignal;
+  /** Shorter budget for a small resource (an m3u8 playlist is a few KiB). */
+  readonly timeoutMs?: number;
 };
 
-/** One ranged media request over the selected transport. */
-export async function fetchMediaRange({
+export type MediaRangeRequest = MediaResourceRequest & {
+  readonly range: string;
+};
+
+/**
+ * One media request over the selected transport.
+ *
+ * `range` is optional: the ranged download of a progressive format needs it,
+ * while an HLS playlist or segment is requested whole (its size is already
+ * the chunk size the server chose).
+ */
+export async function fetchMediaResource({
   transport,
   targetWindow,
   url,
   range,
   signal,
-}: MediaRangeRequest): Promise<Response> {
+  timeoutMs,
+}: MediaResourceRequest): Promise<Response> {
   if (transport === "gm") {
     return await GM_fetch(url, {
       method: "GET",
-      headers: { range },
+      ...(range ? { headers: { range } } : {}),
       redirect: "follow",
-      timeout: MEDIA_REQUEST_TIMEOUT_MS,
+      timeout: timeoutMs ?? MEDIA_REQUEST_TIMEOUT_MS,
       // Never fall back to `fetch` silently: the caller downgrades the whole
       // download instead, so the URL is rebuilt with `alr=yes` first.
       forceGmXhr: true,
@@ -95,11 +108,16 @@ export async function fetchMediaRange({
   return await targetWindow.fetch(url, {
     signal,
     // The URL authorizes itself (`sig`, `pot`, `expire`), so no cookie is
-    // needed — and none would be sent to googlevideo.com anyway. Nothing else
+    // needed, and none would be sent to googlevideo.com anyway. Nothing else
     // can be added from a page either: `Origin`, `Referer` and `User-Agent`
     // are forbidden header names, which is why a client whose token GVS ties
     // to another user agent can never be satisfied from a browser realm.
     credentials: "omit",
-    headers: { range },
+    ...(range ? { headers: { range } } : {}),
   });
+}
+
+/** One ranged media request over the selected transport. */
+export function fetchMediaRange(request: MediaRangeRequest): Promise<Response> {
+  return fetchMediaResource(request);
 }

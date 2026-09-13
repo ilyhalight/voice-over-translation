@@ -116,6 +116,8 @@ function isPlayerEndpoint(url: string): boolean {
 }
 
 /**
+ * DEFECT FIX — `Maximum call stack size exceeded`, `source: "xhr"`.
+ *
  * `hookXhr` and `hookFetch` used to wrap whatever function they found, and the
  * only install guard was a key on the *window* (`STORE_KEY`). A userscript
  * realm and the page realm are two different `globalThis` objects that share
@@ -216,7 +218,12 @@ function pickKeptFormats(
   streaming: PlayerStreamingData,
   mode: PlayerFilterMode,
 ):
-  | { kept: MediaFormat[]; audio?: SelectedFormat; video?: SelectedFormat; reason: string }
+  | {
+      kept: MediaFormat[];
+      audio?: SelectedFormat;
+      video?: SelectedFormat;
+      reason: string;
+    }
   | undefined {
   const adaptiveFormats = streaming.adaptiveFormats ?? [];
   // The formats of an embed carry no `url` (SABR), so a URL is not required
@@ -365,7 +372,7 @@ export class PlayerFormatFilter {
 
   /** Filters a JSON body. `undefined` when the body stays as it is. */
   applyToJson(body: string, source: string): string | undefined {
-    if (!body || !body.includes("adaptiveFormats")) return undefined;
+    if (!body?.includes("adaptiveFormats")) return undefined;
     let parsed: unknown;
     try {
       parsed = JSON.parse(body);
@@ -438,6 +445,7 @@ function hookFetch(
   filter: PlayerFormatFilter,
 ): void {
   const ResponseConstructor = targetWindow.Response;
+  // DEFECT FIX: never wrap our own wrapper — see `markPatched`.
   if (isPatched(targetWindow.fetch)) return;
   const original = unwrapPatched(targetWindow.fetch);
   if (typeof original !== "function" || !ResponseConstructor) return;
@@ -490,6 +498,10 @@ function watchXhrResponse(
   textGetter: () => unknown,
   responseGetter: () => unknown,
 ): void {
+  // DEFECT FIX: one request may be `open()`ed through more than one wrapper,
+  // and a single instance can be reopened. Shadowing the accessors twice
+  // stacks one filtering getter on top of the other, which is one half of the
+  // recursion that blew the stack.
   const watched = xhr as XMLHttpRequest & { [WATCHED_FLAG]?: boolean };
   if (watched[WATCHED_FLAG]) return;
   Object.defineProperty(watched, WATCHED_FLAG, {
@@ -498,6 +510,9 @@ function watchXhrResponse(
   });
 
   let cache: { raw: string; patched: string } | undefined;
+  // DEFECT FIX: re-entrancy guard. While the filter runs, any nested read of
+  // `responseText` / `response` — a logger, a JSON reviver, the player itself
+  // — is answered with the untouched value instead of re-entering the filter.
   let filtering = false;
   const readText = (): unknown => {
     const raw = textGetter.call(xhr);
@@ -548,6 +563,10 @@ function watchXhrResponse(
 function hookXhr(targetWindow: FilterWindow, filter: PlayerFormatFilter): void {
   const prototype = targetWindow.XMLHttpRequest?.prototype;
   if (!prototype) return;
+  // DEFECT FIX: `XMLHttpRequest.prototype` is shared by every realm of the
+  // document, so the install marker has to live on the patch itself and not on
+  // a window. Already ours: nothing to do. Someone else's wrapper around ours:
+  // unwrap to the real `open` so the chain can never close into a cycle.
   if (isPatched(prototype.open)) return;
   const nativeOpen = unwrapPatched(prototype.open);
   const textGetter = Object.getOwnPropertyDescriptor(
