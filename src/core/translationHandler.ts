@@ -95,6 +95,8 @@ function mapVotClientErrorForUi(
 type TranslateVideoImplOptions = {
   disableLivelyVoice?: boolean;
   retryAttempt?: number;
+  /** Called after the backend confirms the translation is still preparing. */
+  onTranslationWaiting?: () => void;
 };
 
 function summarizeTranslationResponse(
@@ -469,6 +471,10 @@ export class VOTTranslationHandler {
         message,
       });
       if (res.remainingTime > 0) {
+        // Backend confirmed the translation is not ready yet. Notify the caller
+        // now (after the real response) so it can pause, instead of doing it
+        // before the first request.
+        options.onTranslationWaiting?.();
         await this.etaCountdown.sync(res.remainingTime, signal, {
           countLongWaitOnFirstRender: true,
         });
@@ -515,6 +521,7 @@ export class VOTTranslationHandler {
           {
             disableLivelyVoice: livelyDisabled,
             retryAttempt,
+            onTranslationWaiting: options.onTranslationWaiting,
           },
         );
       }
@@ -592,6 +599,7 @@ export class VOTTranslationHandler {
           {
             disableLivelyVoice: livelyDisabled,
             retryAttempt: retryAttempt + 1,
+            onTranslationWaiting: options.onTranslationWaiting,
           },
         ),
       retryDelayMs,

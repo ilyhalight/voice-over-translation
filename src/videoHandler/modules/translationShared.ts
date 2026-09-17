@@ -17,6 +17,7 @@ type TranslationRequester = {
     translationHelp: VideoData["translationHelp"],
     shouldSendFailedAudio: boolean,
     signal: AbortSignal,
+    options?: { onTranslationWaiting?: () => void },
   ): Promise<TranslationAudioResult | null>;
 };
 
@@ -35,8 +36,18 @@ export async function requestTranslationAudio(
     translationHelp: VideoData["translationHelp"] | undefined;
     useAudioDownload?: boolean;
     signal: AbortSignal;
+    onTranslationWaiting?: () => void;
   },
 ): Promise<TranslationAudioResult | null> {
+  let waitingNotified = false;
+  const onTranslationWaiting = options.onTranslationWaiting
+    ? () => {
+        if (waitingNotified) return;
+        waitingNotified = true;
+        options.onTranslationWaiting?.();
+      }
+    : undefined;
+
   const response = await requester.translateVideoImpl(
     options.videoData,
     options.requestLang,
@@ -44,6 +55,7 @@ export async function requestTranslationAudio(
     normalizeTranslationHelp(options.translationHelp),
     !options.useAudioDownload,
     options.signal,
+    { onTranslationWaiting },
   );
 
   if (!response?.url) {

@@ -146,6 +146,36 @@ export async function handlePlaybackResumedTranslationRefresh(
   }
 }
 
+/** Pauses playback until the translation is ready; returns a listener cleanup. */
+export function pauseVideoForTranslation(
+  handler: VideoHandler,
+): (() => void) | undefined {
+  if (!handler.data?.autoPauseOnTranslate) return;
+  if (handler.pausedByTranslation) return;
+  if (handler.video.paused || handler.video.ended) return;
+
+  debug.log("[translateFunc] Pausing video until translation is ready");
+  handler.pausedByTranslation = true;
+  const onPlay = () => {
+    handler.pausedByTranslation = false;
+  };
+  handler.video.addEventListener("play", onPlay, { once: true });
+  handler.video.pause();
+  return () => handler.video.removeEventListener("play", onPlay);
+}
+
+/** Resumes playback only if this extension was the one that paused it. */
+export function resumeVideoAfterTranslation(handler: VideoHandler): void {
+  if (!handler.pausedByTranslation) return;
+  handler.pausedByTranslation = false;
+  if (handler.hasActiveSource()) {
+    debug.log("[translateFunc] Resuming video after translation is ready");
+    handler.video.play().catch((playErr) => {
+      debug.log("[translateFunc] Failed to resume video", playErr);
+    });
+  }
+}
+
 async function requestApplyAndCacheTranslation(
   self: VideoHandler,
   options: {
@@ -159,6 +189,7 @@ async function requestApplyAndCacheTranslation(
     cacheRequestLang: string;
     cacheResponseLang: string;
     onBeforeCache?: (result: TranslationAudioResult) => Promise<void> | void;
+    onTranslationWaiting?: () => void;
   },
 ): Promise<TranslationAudioResult | null> {
   const translateRes = await requestTranslationAudio(self.translationHandler, {
@@ -168,6 +199,7 @@ async function requestApplyAndCacheTranslation(
     translationHelp: options.translationHelp,
     useAudioDownload: Boolean(self.data?.useAudioDownload),
     signal: self.actionsAbortController.signal,
+    onTranslationWaiting: options.onTranslationWaiting,
   });
   if (!translateRes) return null;
 
@@ -574,6 +606,10 @@ export async function translateFunc(
     videoId: VIDEO_ID,
   };
 
+  // Set when auto-pause actually attached a "play" listener; cleaned up in
+  // `finally` so a rejected programmatic resume cannot leave it dangling.
+  let cleanupPauseListener: (() => void) | undefined;
+
   const translationPromise = (async () => {
     if (this.isActionStale(actionContext)) {
       debug.log("[translateFunc] Stale translation task - skipping");
@@ -597,25 +633,6 @@ export async function translateFunc(
       return;
     }
 
-    // Auto-pause: pause video while waiting for translation to be prepared.
-    // Skip if the translation is already cached (handled above).
-    if (
-      this.data?.autoPauseOnTranslate &&
-      !this.video.paused &&
-      !this.video.ended
-    ) {
-      debug.log("[translateFunc] Pausing video until translation is ready");
-      this.pausedByTranslation = true;
-      this.video.addEventListener(
-        "play",
-        () => {
-          this.pausedByTranslation = false;
-        },
-        { once: true },
-      );
-      this.video.pause();
-    }
-
     const translateRes = await requestApplyAndCacheTranslation(this, {
       videoData,
       requestLang: reqLang,
@@ -626,6 +643,9 @@ export async function translateFunc(
       cacheVideoId: VIDEO_ID,
       cacheRequestLang: requestLang,
       cacheResponseLang: responseLang,
+      onTranslationWaiting: () => {
+        cleanupPauseListener = pauseVideoForTranslation(this);
+      },
       onBeforeCache: async () => {
         const preferredSubtitleLanguage = this.getPreferredSubtitlesLanguage(
           videoData.detectedLanguage,
@@ -687,16 +707,9 @@ export async function translateFunc(
     if (this.activeTranslation?.promise === translationPromise) {
       this.activeTranslation = null;
     }
-    // Auto-pause: resume playback once the translated audio is ready
-    // (or on failure/abort). Only resume if we were the ones who paused.
-    if (!this.activeTranslation && this.pausedByTranslation) {
-      this.pausedByTranslation = false;
-      if (this.hasActiveSource()) {
-        debug.log("[translateFunc] Resuming video after translation is ready");
-        this.video.play().catch((playErr) => {
-          debug.log("[translateFunc] Failed to resume video", playErr);
-        });
-      }
+    if (!this.activeTranslation) {
+      cleanupPauseListener?.();
+      resumeVideoAfterTranslation(this);
     }
 
     const isLoading =
