@@ -103,6 +103,7 @@ type SettingsControllerEventMap = {
 
 type BufferedNumericStorageKey =
   | "autoVolume"
+  | "smartDuckingStrength"
   | "subtitlesMaxLength"
   | "subtitlesFontSize"
   | "subtitlesOpacity"
@@ -300,6 +301,11 @@ export class SettingsController {
           }),
           onAutoVolumeInput: this.createBufferedNumericInputHandler({
             storageKey: "autoVolume",
+            dispatch: () => this.videoHandler?.setupAudioSettings?.(),
+          }),
+          onSmartDuckingStrengthInput: this.createBufferedNumericInputHandler({
+            storageKey: "smartDuckingStrength",
+            dispatch: () => this.videoHandler?.setupAudioSettings?.(),
           }),
           onEnabledSmartDuckingChange: this.createPersistedSettingHandler({
             storageKey: "enabledSmartDucking",

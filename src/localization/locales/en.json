@@ -264,5 +264,6 @@
   "VOTPiP": "Picture in picture",
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Download translation",
-  "VOTClose": "Close"
+  "VOTClose": "Close",
+  "VOTSmartDuckingStrength": "Adaptive volume reduction strength"
 }

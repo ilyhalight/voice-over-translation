@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "ဘာသာပြန်ကိုဒေါင်းလုပ်ဆွဲပါ",
   "VOTClose": "ပိတ်",
   "VOTLogin": "ဝင်ရောက်ပါ",
-  "VOTAutoPauseOnTranslate": "ဘာသာပြန်မှုအဆင်သင့်ဖြစ်သည်အထိဗီဒီယိုကိုရပ်ထားပါ။"
+  "VOTAutoPauseOnTranslate": "ဘာသာပြန်မှုအဆင်သင့်ဖြစ်သည်အထိဗီဒီယိုကိုရပ်ထားပါ။",
+  "VOTSmartDuckingStrength": "အလိုက်သင့်ပြောင်းလဲနိုင်သောပမာဏလျှော့ချမှုအားကောင်းမှု"
 }

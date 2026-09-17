@@ -325,7 +325,8 @@ export type Phrase =
   | "VOTPiP"
   | "VOTMenu"
   | "VOTDownloadTranslation"
-  | "VOTClose";
+  | "VOTClose"
+  | "VOTSmartDuckingStrength";
 
 export type Phrases = {
   recommended: string;
@@ -594,12 +595,7 @@ export type Phrases = {
   VOTMenu: string;
   VOTDownloadTranslation: string;
   VOTClose: string;
+  VOTSmartDuckingStrength: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;
-
-/**
- * Language override for the extension menu.
- * `"auto"` means use the browser's language.
- */
-export type LangOverride = "auto" | Locale;

@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Lataa käännös",
   "VOTClose": "Sulje",
   "VOTLogin": "Kirjautuminen",
-  "VOTAutoPauseOnTranslate": "Keskeytä video, Kunnes käännös on valmis"
+  "VOTAutoPauseOnTranslate": "Keskeytä video, Kunnes käännös on valmis",
+  "VOTSmartDuckingStrength": "Mukautuva äänenvoimakkuuden vähennyslujuus"
 }

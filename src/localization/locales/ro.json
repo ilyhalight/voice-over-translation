@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Descărcați traducerea",
   "VOTClose": "Închide",
   "VOTLogin": "Autentificare",
-  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
+  "VOTSmartDuckingStrength": "Puterea adaptivă de reducere a volumului"
 }

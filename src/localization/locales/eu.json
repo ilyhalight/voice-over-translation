@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Deskargatu itzulpena",
   "VOTClose": "Itxi",
   "VOTLogin": "Saioa hasi",
-  "VOTAutoPauseOnTranslate": "Pausatu bideoa itzulpena prest dagoen arte"
+  "VOTAutoPauseOnTranslate": "Pausatu bideoa itzulpena prest dagoen arte",
+  "VOTSmartDuckingStrength": "Bolumena murrizteko erresistentzia egokitzailea"
 }

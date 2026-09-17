@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Преузмите превод",
   "VOTClose": "Затвори",
   "VOTLogin": "Пријавите се",
-  "VOTAutoPauseOnTranslate": "Паузирајте видео док превод не буде спреман"
+  "VOTAutoPauseOnTranslate": "Паузирајте видео док превод не буде спреман",
+  "VOTSmartDuckingStrength": "Адаптивна сила смањења запремине"
 }

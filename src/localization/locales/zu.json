@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Thwebula translation",
   "VOTClose": "Vala",
   "VOTLogin": "Ukungena ngemvume",
-  "VOTAutoPauseOnTranslate": "Phumula ividiyo kuze translation isilungile"
+  "VOTAutoPauseOnTranslate": "Phumula ividiyo kuze translation isilungile",
+  "VOTSmartDuckingStrength": "Amandla okunciphisa umthamo wokuzivumelanisa nezimo"
 }

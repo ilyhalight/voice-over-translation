@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Unduh terjemahan",
   "VOTClose": "Tutup",
   "VOTLogin": "Login",
-  "VOTAutoPauseOnTranslate": "Jeda video hingga terjemahan siap"
+  "VOTAutoPauseOnTranslate": "Jeda video hingga terjemahan siap",
+  "VOTSmartDuckingStrength": "Kekuatan pengurangan volume adaptif"
 }

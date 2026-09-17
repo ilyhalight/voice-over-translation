@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "অনুবাদ ডাউনলোড করুন",
   "VOTClose": "বন্ধ",
   "VOTLogin": "লগইন",
-  "VOTAutoPauseOnTranslate": "অনুবাদ প্রস্তুত না হওয়া পর্যন্ত ভিডিও বিরতি দিন"
+  "VOTAutoPauseOnTranslate": "অনুবাদ প্রস্তুত না হওয়া পর্যন্ত ভিডিও বিরতি দিন",
+  "VOTSmartDuckingStrength": "অভিযোজিত ভলিউম হ্রাস শক্তি"
 }

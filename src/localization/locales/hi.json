@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "अनुवाद डाउनलोड करें",
   "VOTClose": "बंद करें",
   "VOTLogin": "लॉगिन करें",
-  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
+  "VOTSmartDuckingStrength": "अनुकूली मात्रा में कमी ताकत"
 }

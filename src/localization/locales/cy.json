@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Llwytho i lawr cyfieithu",
   "VOTClose": "Close",
   "VOTLogin": "Login",
-  "VOTAutoPauseOnTranslate": "Seibio fideo nes bod y cyfieithiad yn barod"
+  "VOTAutoPauseOnTranslate": "Seibio fideo nes bod y cyfieithiad yn barod",
+  "VOTSmartDuckingStrength": "Cryfder lleihau cyfaint addasol"
 }

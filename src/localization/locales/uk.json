@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Завантажити переклад",
   "VOTClose": "Закривати",
   "VOTLogin": "Авторизувати",
-  "VOTAutoPauseOnTranslate": "Призупиніть Відео, поки переклад не буде готовий"
+  "VOTAutoPauseOnTranslate": "Призупиніть Відео, поки переклад не буде готовий",
+  "VOTSmartDuckingStrength": "Адаптивна сила зменшення обсягу"
 }

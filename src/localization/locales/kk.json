@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Аударманы жүктеу",
   "VOTClose": "Жабу",
   "VOTLogin": "Кіру",
-  "VOTAutoPauseOnTranslate": "Аударма дайын болғанша бейнені кідіртіңіз"
+  "VOTAutoPauseOnTranslate": "Аударма дайын болғанша бейнені кідіртіңіз",
+  "VOTSmartDuckingStrength": "Адаптивті көлемді азайту күші"
 }

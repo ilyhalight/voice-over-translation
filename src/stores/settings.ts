@@ -4,6 +4,7 @@ import {
   DEFAULT_AUTO_HIDE_DELAY,
   DEFAULT_AUTO_VOLUME,
   DEFAULT_DETECT_SERVICE,
+  DEFAULT_SMART_DUCKING_STRENGTH,
   DEFAULT_TRANSLATION_SERVICE,
   PROXY_WORKER_HOST,
 } from "../config/config";
@@ -32,6 +33,7 @@ export type SettingsStore = {
   enabledAutoVolume: boolean;
   autoVolume: number;
   enabledSmartDucking: boolean;
+  smartDuckingStrength: number;
   showVideoSlider: boolean;
   audioBooster: boolean;
   syncVolume: boolean;
@@ -77,6 +79,7 @@ function createInitialState(): SettingsStore {
     enabledAutoVolume: true,
     autoVolume: DEFAULT_AUTO_VOLUME,
     enabledSmartDucking: true,
+    smartDuckingStrength: DEFAULT_SMART_DUCKING_STRENGTH,
     showVideoSlider: true,
     audioBooster: false,
     syncVolume: false,

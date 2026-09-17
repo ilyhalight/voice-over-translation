@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Letöltés fordítás",
   "VOTClose": "Bezárás",
   "VOTLogin": "Bejelentkezés",
-  "VOTAutoPauseOnTranslate": "Szüneteltesse a videót, amíg a fordítás készen áll"
+  "VOTAutoPauseOnTranslate": "Szüneteltesse a videót, amíg a fordítás készen áll",
+  "VOTSmartDuckingStrength": "Adaptív térfogat-csökkentési szilárdság"
 }

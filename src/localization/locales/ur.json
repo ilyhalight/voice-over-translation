@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "ترجمہ ڈاؤن لوڈ کریں",
   "VOTClose": "بند",
   "VOTLogin": "لاگ ان",
-  "VOTAutoPauseOnTranslate": "Pause video until translation is ready"
+  "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
+  "VOTSmartDuckingStrength": "انکولی حجم میں کمی کی طاقت"
 }

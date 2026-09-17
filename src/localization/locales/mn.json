@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Татаж авах орчуулга",
   "VOTClose": "Хаах",
   "VOTLogin": "Нэвтрэх",
-  "VOTAutoPauseOnTranslate": "Орчуулга бэлэн болтол видеог түр зогсоо"
+  "VOTAutoPauseOnTranslate": "Орчуулга бэлэн болтол видеог түр зогсоо",
+  "VOTSmartDuckingStrength": "Дасан зохицох хэмжээ бууруулах хүч чадал"
 }

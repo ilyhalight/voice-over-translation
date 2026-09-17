@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "ទាញយកការបកប្រែ",
   "VOTClose": "បិទ",
   "VOTLogin": "ចូល",
-  "VOTAutoPauseOnTranslate": "ផ្អាកវីដេអូរហូតដល់ការបកប្រែរួចរាល់"
+  "VOTAutoPauseOnTranslate": "ផ្អាកវីដេអូរហូតដល់ការបកប្រែរួចរាល់",
+  "VOTSmartDuckingStrength": "កម្លាំងកាត់បន្ថយបរិមាណសម្របសម្រួល"
 }

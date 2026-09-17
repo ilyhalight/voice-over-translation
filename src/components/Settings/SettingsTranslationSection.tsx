@@ -16,7 +16,7 @@ import {
   type SelectOption,
 } from "../Control/Select";
 import { Slider } from "../Control/Slider";
-import { SliderLabel, SliderLabelDesc } from "../Control/SliderLabel";
+import { SliderLabel } from "../Control/SliderLabel";
 import { SliderWrapper } from "../Control/SliderWrapper";
 import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
@@ -32,6 +32,7 @@ export type SettingsTranslationSectionProps = {
   ) => void;
   onEnabledAutoVolumeChange?: (checked: boolean) => void;
   onAutoVolumeInput?: (volume: number) => void;
+  onSmartDuckingStrengthInput?: (volume: number) => void;
   onEnabledSmartDuckingChange?: (checked: boolean) => void;
   onShowVideoSliderChange?: (checked: boolean) => void;
   onAudioBoosterChange?: (checked: boolean) => void;
@@ -74,7 +75,8 @@ export function SettingsTranslationSection(
     setIsAudioContextSupported(finalProps.isAudioContextSupported);
   });
 
-  const autoVolumeText = () => `${settings.autoVolume}%`;
+  const autoVolumeText = () =>
+    `${settings.enabledSmartDucking ? settings.smartDuckingStrength : settings.autoVolume}%`;
   const useAudioDownloadDescription = () =>
     isSupportGMXhr
       ? localizationProvider.get("VOTUseAudioDownloadWarning")
@@ -137,19 +139,26 @@ export function SettingsTranslationSection(
       <SliderWrapper>
         <SliderLabel
           value={autoVolumeText()}
-          disabled={!settings.enabledAutoVolume || settings.enabledSmartDucking}
+          disabled={!settings.enabledAutoVolume}
         >
-          {localizationProvider.get("VOTReducedVolumeLevel")}
-          <SliderLabelDesc>
-            {localizationProvider
-              .get("VOTIncompatibleWith")
-              .replace("{0}", localizationProvider.get("smartDucking"))}
-          </SliderLabelDesc>
+          {settings.enabledSmartDucking
+            ? localizationProvider.get("VOTSmartDuckingStrength")
+            : localizationProvider.get("VOTReducedVolumeLevel")}
         </SliderLabel>
         <Slider
-          value={settings.autoVolume}
-          disabled={!settings.enabledAutoVolume || settings.enabledSmartDucking}
+          value={
+            settings.enabledSmartDucking
+              ? settings.smartDuckingStrength
+              : settings.autoVolume
+          }
+          disabled={!settings.enabledAutoVolume}
           onInput={(val) => {
+            if (settings.enabledSmartDucking) {
+              setSettings("smartDuckingStrength", val);
+              finalProps.onSmartDuckingStrengthInput?.(val);
+              return;
+            }
+
             setSettings("autoVolume", val);
             finalProps.onAutoVolumeInput?.(val);
           }}

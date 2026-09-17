@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Shkarkoni përkthimin",
   "VOTClose": "Afër",
   "VOTLogin": "Hyrje",
-  "VOTAutoPauseOnTranslate": "Ndaloni videon derisa përkthimi të jetë gati"
+  "VOTAutoPauseOnTranslate": "Ndaloni videon derisa përkthimi të jetë gati",
+  "VOTSmartDuckingStrength": "Forca Adaptive e reduktimit të vëllimit"
 }

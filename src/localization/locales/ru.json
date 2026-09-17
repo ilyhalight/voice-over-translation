@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Скачать перевод",
   "VOTClose": "Закрывать",
   "VOTLogin": "Авторизоваться",
-  "VOTAutoPauseOnTranslate": "Приостанавливать видео до готовности перевода"
+  "VOTAutoPauseOnTranslate": "Приостанавливать видео до готовности перевода",
+  "VOTSmartDuckingStrength": "Сила адаптивного приглушения"
 }

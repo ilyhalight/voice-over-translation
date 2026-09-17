@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Lae tõlge",
   "VOTClose": "Lähedal",
   "VOTLogin": "Login",
-  "VOTAutoPauseOnTranslate": "Peatage video, kuni tõlge on valmis"
+  "VOTAutoPauseOnTranslate": "Peatage video, kuni tõlge on valmis",
+  "VOTSmartDuckingStrength": "Adaptiivne mahu vähendamise tugevus"
 }

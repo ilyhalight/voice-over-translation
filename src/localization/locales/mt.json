@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Niżżel it-traduzzjoni",
   "VOTClose": "Agħlaq",
   "VOTLogin": "Login",
-  "VOTAutoPauseOnTranslate": "Nieqaf il-vidjow sakemm it-traduzzjoni tkun lesta"
+  "VOTAutoPauseOnTranslate": "Nieqaf il-vidjow sakemm it-traduzzjoni tkun lesta",
+  "VOTSmartDuckingStrength": "Qawwa adattiva għat-tnaqqis tal-volum"
 }

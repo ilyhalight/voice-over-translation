@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Hent oversættelse",
   "VOTClose": "Lukke",
   "VOTLogin": "Login",
-  "VOTAutoPauseOnTranslate": "Pause video, indtil oversættelsen er klar"
+  "VOTAutoPauseOnTranslate": "Pause video, indtil oversættelsen er klar",
+  "VOTSmartDuckingStrength": "Adaptiv volumenreduktionsstyrke"
 }

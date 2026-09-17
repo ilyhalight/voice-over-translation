@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "ಅನುವಾದ ಡೌನ್ಲೋಡ್",
   "VOTClose": "ಮುಚ್ಚು",
   "VOTLogin": "ಲಾಗಿನ್ ಮಾಡಿ",
-  "VOTAutoPauseOnTranslate": "ಅನುವಾದ ಸಿದ್ಧವಾಗುವವರೆಗೆ ವೀಡಿಯೊ ವಿರಾಮ"
+  "VOTAutoPauseOnTranslate": "ಅನುವಾದ ಸಿದ್ಧವಾಗುವವರೆಗೆ ವೀಡಿಯೊ ವಿರಾಮ",
+  "VOTSmartDuckingStrength": "ಹೊಂದಾಣಿಕೆಯ ಪರಿಮಾಣ ಕಡಿತ ಶಕ್ತಿ"
 }

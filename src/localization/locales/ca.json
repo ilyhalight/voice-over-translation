@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "Descarregar traducció",
   "VOTClose": "Tancar",
   "VOTLogin": "Accés",
-  "VOTAutoPauseOnTranslate": "Pausa el vídeo fins que la traducció estigui preparada"
+  "VOTAutoPauseOnTranslate": "Pausa el vídeo fins que la traducció estigui preparada",
+  "VOTSmartDuckingStrength": "Resistència de reducció de volum adaptativa"
 }

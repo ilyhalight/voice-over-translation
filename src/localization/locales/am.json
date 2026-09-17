@@ -264,5 +264,6 @@
   "VOTDownloadTranslation": "ትርጉም አውርድ",
   "VOTClose": "ዝጋ",
   "VOTLogin": "አዲስ ዝምብሎ ይግባ",
-  "VOTAutoPauseOnTranslate": "ትርጉም ዝግጁ እስኪሆን ድረስ ቪዲዮ ለአፍታ ያቁሙ"
+  "VOTAutoPauseOnTranslate": "ትርጉም ዝግጁ እስኪሆን ድረስ ቪዲዮ ለአፍታ ያቁሙ",
+  "VOTSmartDuckingStrength": "የመላመድ መጠን ቅነሳ ጥንካሬ"
 }

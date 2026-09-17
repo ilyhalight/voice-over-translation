@@ -30,6 +30,7 @@ export const storageKeys = [
   "enabledAutoVolume",
   "enabledSmartDucking",
   "autoVolume",
+  "smartDuckingStrength",
   "buttonPos",
   "showVideoSlider",
   "syncVolume",
@@ -98,7 +99,18 @@ export type StorageData = {
    * When disabled, Auto-Volume behaves like a classic constant ducking.
    */
   enabledSmartDucking: boolean;
+  /**
+   * Classic Auto-Volume target: absolute original video volume (0-100) that is
+   * applied for the whole translated playback. Ignored in Smart ducking mode.
+   */
   autoVolume: number;
+  /**
+   * Smart Auto-Volume strength (0-100): relative lowering of the original track
+   * against its baseline while translated audio is audible.
+   * 0 keeps the baseline, 100 fully mutes it.
+   * Classic mode keeps using {@link autoVolume} instead.
+   */
+  smartDuckingStrength: number;
   buttonPos: Position;
   showVideoSlider: boolean;
   syncVolume: boolean;

@@ -41,6 +41,13 @@ export const repositoryUrl = `https://github.com/${repoPath}`;
 export const DEFAULT_AUTO_VOLUME = 15;
 
 /**
+ * 0% - 100% - default strength of Smart Auto-Volume ducking.
+ * The original track is lowered relative to its baseline while the translated
+ * audio is audible; 0% keeps the baseline, 100% fully mutes it.
+ */
+export const DEFAULT_SMART_DUCKING_STRENGTH = 80;
+
+/**
  * Max audio volume percentage (if available)
  */
 export const maxAudioVolume = 900;
