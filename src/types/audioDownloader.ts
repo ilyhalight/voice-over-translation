@@ -3,6 +3,7 @@ import type { AudioDownloader } from "../audioDownloader";
 export type GetAudioFromAPIOptions = {
   videoId: string;
   signal: AbortSignal;
+  sourceLanguage?: string;
 };
 
 export type AudioDownloadRequestOptions = {
@@ -10,6 +11,7 @@ export type AudioDownloadRequestOptions = {
   translationId: string;
   videoId: string;
   signal: AbortSignal;
+  sourceLanguage?: string;
 };
 
 export type DownloadedAudioData = {

@@ -1,4 +1,5 @@
 import { config } from "@vot.js/shared";
+import { normalizeLang } from "@vot.js/shared/utils/utils";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
@@ -29,9 +30,16 @@ type WebEmbeddedFormat = {
   url?: string;
   mimeType?: string;
   bitrate?: number;
-  contentLength?: string;
+  averageBitrate?: number;
+  contentLength?: string | number;
   lastModified?: string;
   signatureCipher?: string;
+  audioQuality?: string;
+  audioTrack?: {
+    id?: string;
+    languageCode?: string;
+    audioIsDefault?: boolean;
+  };
 };
 
 type WebEmbeddedPlayerResponse = {
@@ -405,30 +413,101 @@ export function buildWebEmbeddedPlayerRequest(
   };
 }
 
-export function selectWebEmbeddedAudioFormat(
-  formats: WebEmbeddedFormat[],
+// the globally smallest positive contentLength, then
+// the smallest positive averageBitrate, then
+// the first remaining format
+function selectAudioFormatFrom(
+  audioFormats: WebEmbeddedFormat[],
 ): WebEmbeddedFormat {
+  const smallest = (key: "contentLength" | "averageBitrate") => {
+    let best: WebEmbeddedFormat | undefined;
+    let bestValue = Number.POSITIVE_INFINITY;
+    for (const format of audioFormats) {
+      const raw = format[key];
+      const value =
+        raw == null
+          ? Number.NaN
+          : typeof raw === "number"
+            ? raw
+            : Number(String(raw));
+      if (Number.isFinite(value) && value > 0 && value < bestValue) {
+        best = format;
+        bestValue = value;
+      }
+    }
+    return best;
+  };
+  return (
+    smallest("contentLength") ?? smallest("averageBitrate") ?? audioFormats[0]
+  );
+}
+
+// YouTube audio track IDs look like "en", "en.4", or "en-US"; prefer the
+// explicit languageCode when present, otherwise strip the dot suffix
+// before normalizing so "en.4" resolves to the base language.
+function normalizeAudioLanguage(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value) return;
+  const language = normalizeLang(value.split(".")[0] ?? "");
+  return language || undefined;
+}
+
+function getAudioTrackLanguage(format: WebEmbeddedFormat): string | undefined {
+  return normalizeAudioLanguage(
+    format.audioTrack?.languageCode ?? format.audioTrack?.id,
+  );
+}
+
+function normalizeRequestedLanguage(value: unknown): string | undefined {
+  const language = normalizeAudioLanguage(value);
+  return language && language !== "auto" ? language : undefined;
+}
+
+function preferSourceLanguageAudioFormats(
+  audioFormats: WebEmbeddedFormat[],
+  sourceLanguage?: string,
+): WebEmbeddedFormat[] {
+  const requested = normalizeRequestedLanguage(sourceLanguage);
+  if (requested) {
+    const matches = audioFormats.filter(
+      (format) => getAudioTrackLanguage(format) === requested,
+    );
+    if (matches.length) {
+      const defaultMatches = matches.filter(
+        (format) => format.audioTrack?.audioIsDefault === true,
+      );
+      return defaultMatches.length ? defaultMatches : matches;
+    }
+  }
+  const defaults = audioFormats.filter(
+    (format) => format.audioTrack?.audioIsDefault === true,
+  );
+  return defaults.length ? defaults : audioFormats;
+}
+
+export function selectAudioFormat(
+  formats: WebEmbeddedFormat[],
+  sourceLanguage?: string,
+): WebEmbeddedFormat {
+  if (!formats.length) {
+    throw new Error("Audio downloader. Empty adaptive formats");
+  }
   const withUrl = formats.filter(
     ({ url, signatureCipher }) =>
       typeof url === "string" || typeof signatureCipher === "string",
   );
-  const audioOnly = withUrl.filter(
-    ({ mimeType }) =>
-      mimeType?.includes("audio/") && !mimeType?.includes("video/"),
+  const audioFormats = withUrl.filter(
+    ({ audioQuality, mimeType }) =>
+      !mimeType?.includes("video/") &&
+      (Boolean(audioQuality) || mimeType?.includes("audio/")),
   );
-  // Preferred itag order from Yandex media-scripts (MAPPINGS.md, WEB_ABR).
-  const preferredItags = [
-    251, 140, 141, 250, 249, 139, 256, 258, 325, 327, 328, 338, 171, 172,
-  ];
-  const byPreference = (a: WebEmbeddedFormat, b: WebEmbeddedFormat) => {
-    const rank = (itag?: number) => {
-      const index = itag === undefined ? -1 : preferredItags.indexOf(itag);
-      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-    };
-    return rank(a.itag) - rank(b.itag) || (b.bitrate ?? 0) - (a.bitrate ?? 0);
-  };
+  if (audioFormats.length) {
+    return selectAudioFormatFrom(
+      preferSourceLanguageAudioFormats(audioFormats, sourceLanguage),
+    );
+  }
+
+  // itag 18, then the lowest-bitrate mp4a/opus regular format
   const selected =
-    audioOnly.sort(byPreference)[0] ??
     withUrl.find(({ itag }) => itag === 18) ??
     withUrl
       .filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? ""))
@@ -582,7 +661,9 @@ function runChallengeSolver(
   ).trustedTypes;
   const policy = trustedTypes?.createPolicy(
     `vot-youtube-solver-${crypto.randomUUID()}`,
-    { createScript: (value) => value },
+    {
+      createScript: (value) => value,
+    },
   );
   // Chrome's Function constructor rejects TrustedScript arguments
   // (crbug.com/1087743), so evaluate through eval, which accepts
@@ -1261,6 +1342,7 @@ export async function* getWebAbrAudioChunks(
   targetWindow: WebAbrWindow,
   videoId: string,
   signal: AbortSignal,
+  sourceLanguage?: string,
 ): AsyncGenerator<AudioChunk> {
   const config = await resolveYtcfg(targetWindow, signal);
   const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
@@ -1399,7 +1481,7 @@ export async function* getWebAbrAudioChunks(
           }`,
         );
       }
-      const format = selectWebEmbeddedAudioFormat(formats);
+      const format = selectAudioFormat(formats, sourceLanguage);
       const fetchedFlags = fetchedConfig?.experimentFlags;
       const poTokenBinding = selectGvsPoTokenBinding(videoId, {
         loggedIn,
@@ -1440,7 +1522,10 @@ export async function* getWebAbrAudioChunks(
             (await probeContentLength(targetWindow, streamUrl, signal));
           const refreshUrl = async () => {
             const response = await requestPlayer();
-            const refreshed = response.streamingData?.adaptiveFormats?.find(
+            const refreshed = [
+              ...(response.streamingData?.adaptiveFormats ?? []),
+              ...(response.streamingData?.formats ?? []),
+            ].find(
               (entry) =>
                 entry.itag === format.itag &&
                 entry.mimeType === format.mimeType &&

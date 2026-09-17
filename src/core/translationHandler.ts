@@ -500,6 +500,7 @@ export class VOTTranslationHandler {
             videoData.videoId,
             res.translationId,
             signal,
+            videoData.detectedLanguage,
           ),
         ]);
 
