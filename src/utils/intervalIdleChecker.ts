@@ -20,9 +20,38 @@ export type IntervalIdleProfile = {
    * Inactivity threshold after which mode switches to `"idle"`.
    */
   idleAfterMs: number;
+  /**
+   * Polling interval while idle. A idle tab-with-video still polled at the
+   * active rate before this existed, which is pure background CPU.
+   */
+  idleIntervalMs: number;
+  /**
+   * Polling interval while the document is hidden. The loop is stopped
+   * entirely on `visibilitychange`; this is only the floor used if a host
+   * environment reports hidden without firing the event.
+   */
+  hiddenIntervalMs: number;
 };
 
 type IntervalIdleSubscriber = (ctx: IntervalIdleTickContext) => void;
+
+export type IntervalIdleSubscribeOptions = {
+  /**
+   * Reports whether this subscriber currently has work that a periodic tick
+   * could perform. When every subscriber reports `false`, the checker stops its
+   * timer completely instead of waking the main thread forever: a 60 Hz wake
+   * loop costs ~1% CPU by itself even when the callback does nothing, and a
+   * poll loop is the same problem at lower frequency.
+   *
+   * Omitting the predicate keeps the old always-poll behavior.
+   */
+  hasPendingWork?: () => boolean;
+};
+
+type IntervalIdleSubscription = {
+  fn: IntervalIdleSubscriber;
+  hasPendingWork?: () => boolean;
+};
 
 type IntervalIdleRuntime = {
   nowMs: () => number;
@@ -40,6 +69,8 @@ type IntervalIdleCheckerOptions = {
 const DEFAULT_PROFILE: IntervalIdleProfile = {
   checkIntervalMs: 250,
   idleAfterMs: 180,
+  idleIntervalMs: 1000,
+  hiddenIntervalMs: 2000,
 };
 
 function normalizePositiveMs(
@@ -73,6 +104,26 @@ function normalizeProfile(
     idleAfterMs: normalizeNonNegativeMs(
       profile.idleAfterMs,
       DEFAULT_PROFILE.idleAfterMs,
+    ),
+    idleIntervalMs: normalizePositiveMs(
+      profile.idleIntervalMs,
+      Math.max(
+        DEFAULT_PROFILE.idleIntervalMs,
+        normalizePositiveMs(
+          profile.checkIntervalMs,
+          DEFAULT_PROFILE.checkIntervalMs,
+        ),
+      ),
+    ),
+    hiddenIntervalMs: normalizePositiveMs(
+      profile.hiddenIntervalMs,
+      Math.max(
+        DEFAULT_PROFILE.hiddenIntervalMs,
+        normalizePositiveMs(
+          profile.checkIntervalMs,
+          DEFAULT_PROFILE.checkIntervalMs,
+        ),
+      ),
     ),
   };
 }
@@ -110,9 +161,11 @@ function getDefaultRuntime(): IntervalIdleRuntime {
 export class IntervalIdleChecker {
   private readonly profile: IntervalIdleProfile;
   private readonly runtime: IntervalIdleRuntime;
-  private readonly subscribers = new Set<IntervalIdleSubscriber>();
+  private readonly subscribers = new Set<IntervalIdleSubscription>();
 
   private intervalId: ReturnType<typeof setInterval> | null = null;
+  /** Period the live timer was armed with, so mode changes can re-arm. */
+  private armedIntervalMs = 0;
   private unsubscribeVisibilityChange: (() => void) | null = null;
   private running = false;
   private destroyed = false;
@@ -165,14 +218,39 @@ export class IntervalIdleChecker {
     this.destroyed = true;
   }
 
-  subscribe(fn: IntervalIdleSubscriber): () => void {
+  subscribe(
+    fn: IntervalIdleSubscriber,
+    options: IntervalIdleSubscribeOptions = {},
+  ): () => void {
     if (this.destroyed) {
       return () => undefined;
     }
-    this.subscribers.add(fn);
-    return () => {
-      this.subscribers.delete(fn);
+    const subscription: IntervalIdleSubscription = {
+      fn,
+      hasPendingWork: options.hasPendingWork,
     };
+    this.subscribers.add(subscription);
+    if (this.running) this.armInterval();
+    return () => {
+      this.subscribers.delete(subscription);
+      if (this.subscribers.size === 0) this.clearIntervalTimer();
+    };
+  }
+
+  /**
+   * True when at least one subscriber still needs periodic ticks. Subscribers
+   * without a predicate always count as pending (backwards compatible).
+   */
+  private hasPendingWork(): boolean {
+    for (const sub of this.subscribers) {
+      if (!sub.hasPendingWork) return true;
+      try {
+        if (sub.hasPendingWork()) return true;
+      } catch {
+        return true;
+      }
+    }
+    return false;
   }
 
   markActivity(_source?: string): void {
@@ -181,7 +259,11 @@ export class IntervalIdleChecker {
     if (!this.running) return;
 
     const nextMode = this.resolveMode(this.lastActivityAt);
-    if (nextMode !== this.currentMode) this.currentMode = nextMode;
+    if (nextMode !== this.currentMode) {
+      this.currentMode = nextMode;
+    }
+    // Always re-evaluate: the timer may be dormant because nothing was pending.
+    this.armInterval();
   }
 
   requestImmediateTick(): void {
@@ -191,6 +273,7 @@ export class IntervalIdleChecker {
       this.immediateQueued = false;
       if (this.destroyed || !this.running) return;
       this.runTick("immediate");
+      this.armInterval();
     });
   }
 
@@ -206,13 +289,48 @@ export class IntervalIdleChecker {
     if (this.intervalId === null) return;
     this.runtime.clearInterval(this.intervalId);
     this.intervalId = null;
+    this.armedIntervalMs = 0;
+  }
+
+  /** Poll period for the current mode. */
+  private intervalMsForMode(mode: IntervalIdleMode): number {
+    if (mode === "hidden") return this.profile.hiddenIntervalMs;
+    if (mode === "idle") return this.profile.idleIntervalMs;
+    return this.profile.checkIntervalMs;
   }
 
   private armInterval(): void {
-    if (this.intervalId !== null) return;
+    // Decide first whether a timer should exist at all, then decide its period.
+    // Doing it in this order matters: the timer must be torn down even when the
+    // period for the current mode is unchanged.
+    const shouldPoll =
+      this.running &&
+      !this.destroyed &&
+      this.subscribers.size > 0 &&
+      // A hidden document paints nothing, yet every wake still costs CPU.
+      // `visibilitychange` re-arms it, and immediate ticks keep working.
+      this.currentMode !== "hidden" &&
+      // Nothing queued: go fully dormant instead of waking forever.
+      this.hasPendingWork();
+
+    if (!shouldPoll) {
+      this.clearIntervalTimer();
+      return;
+    }
+
+    const periodMs = this.intervalMsForMode(this.currentMode);
+    if (this.intervalId !== null) {
+      if (this.armedIntervalMs === periodMs) return;
+      // Mode changed: re-arm at the new period instead of polling at the
+      // active rate forever.
+      this.runtime.clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+
+    this.armedIntervalMs = periodMs;
     this.intervalId = this.runtime.setInterval(() => {
       this.runTick("interval");
-    }, this.profile.checkIntervalMs);
+    }, periodMs);
   }
 
   private runTick(source: IntervalIdleTickSource): void {
@@ -221,7 +339,10 @@ export class IntervalIdleChecker {
 
     const nowMs = this.runtime.nowMs();
     const nextMode = this.resolveMode(nowMs);
-    if (nextMode !== this.currentMode) this.currentMode = nextMode;
+    if (nextMode !== this.currentMode) {
+      this.currentMode = nextMode;
+      if (this.running) this.armInterval();
+    }
 
     const ctx: IntervalIdleTickContext = {
       nowMs,
@@ -231,11 +352,14 @@ export class IntervalIdleChecker {
 
     for (const sub of this.subscribers) {
       try {
-        sub(ctx);
+        sub.fn(ctx);
       } catch {
         // Never allow one subscriber to break the scheduler loop.
       }
     }
+
+    // Work may have drained (stop polling) or appeared (start polling).
+    if (this.running) this.armInterval();
   }
 
   private subscribeVisibilityChange(): void {

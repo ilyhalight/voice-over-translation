@@ -496,7 +496,6 @@ export class VOTVideoManager {
 
     debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
     if (
-      this.videoHandler.data.enabledDontTranslateLanguages &&
       this.videoHandler.data.dontTranslateLanguages?.includes(
         this.videoHandler.videoData.detectedLanguage,
       )
@@ -594,8 +593,11 @@ export class VOTVideoManager {
    * Syncs the video volume slider with the actual video volume.
    */
   syncVideoVolumeSlider() {
-    const overlayView = this.videoHandler.uiManager.votOverlayView;
-    if (!overlayView?.isInitialized()) return this;
+    const overlayViewControls =
+      this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+    if (!overlayViewControls) {
+      return this;
+    }
 
     const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host)
       ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR)
@@ -605,7 +607,7 @@ export class VOTVideoManager {
       ? 0
       : (ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0));
 
-    overlayView.videoVolumeSlider.value = volumePercent;
+    overlayViewControls.setVideoVolume(volumePercent);
 
     // Keep syncVolume delta state aligned with programmatic slider updates.
     this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
@@ -630,17 +632,14 @@ export class VOTVideoManager {
     this.videoHandler.translateFromLang = normalizedFrom;
     this.videoHandler.translateToLang = to;
 
-    const overlayView = this.videoHandler.uiManager.votOverlayView;
-    if (!overlayView?.isInitialized()) {
+    const overlayViewControls =
+      this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+    if (!overlayViewControls) {
       return this;
     }
 
-    overlayView.languagePairSelect.fromSelect.selectTitle =
-      localizationProvider.getLangLabel(normalizedFrom);
-    overlayView.languagePairSelect.toSelect.selectTitle =
-      localizationProvider.getLangLabel(to);
-    overlayView.languagePairSelect.fromSelect.setSelectedValue(normalizedFrom);
-    overlayView.languagePairSelect.toSelect.setSelectedValue(to);
+    overlayViewControls.setDetectedLanguage(normalizedFrom);
+    overlayViewControls.setResponseLanguage(to);
     return this;
   }
 }

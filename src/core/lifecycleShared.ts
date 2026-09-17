@@ -1,18 +1,9 @@
+import type { OverlayViewControls } from "../components/OverlayView/OverlayView";
+
 export type LifecycleTranslationResetHost = {
   videoData?: unknown;
   stopTranslation(): void | Promise<void>;
   resetSubtitlesWidget(): void;
-};
-
-export type LifecycleOverlayViewLike = {
-  votButton?: {
-    container?: {
-      hidden: boolean | string;
-    };
-  };
-  votMenu?: {
-    hidden: boolean | string;
-  };
 };
 
 export function resetLifecycleTranslation(
@@ -37,25 +28,22 @@ export function resetLifecycleTranslation(
 }
 
 export function hideLifecycleOverlay(
-  overlayView: LifecycleOverlayViewLike | null | undefined,
+  overlayViewControls: OverlayViewControls | null | undefined,
   options: {
     hideMenu?: boolean;
   } = {},
 ): void {
   const { hideMenu = false } = options;
 
-  if (overlayView?.votButton?.container) {
-    overlayView.votButton.container.hidden = true;
-  }
-
-  if (hideMenu && overlayView?.votMenu) {
-    overlayView.votMenu.hidden = true;
+  overlayViewControls?.setButtonHidden(true);
+  if (hideMenu) {
+    overlayViewControls?.setMenuHidden(true);
   }
 }
 
 export function resetAndHideLifecycle(
   host: LifecycleTranslationResetHost,
-  overlayView: LifecycleOverlayViewLike | null | undefined,
+  overlayViewControls: OverlayViewControls | null | undefined,
   options: {
     requireVideoData?: boolean;
     clearVideoData?: boolean;
@@ -67,5 +55,5 @@ export function resetAndHideLifecycle(
     requireVideoData,
     clearVideoData,
   });
-  hideLifecycleOverlay(overlayView, { hideMenu });
+  hideLifecycleOverlay(overlayViewControls, { hideMenu });
 }

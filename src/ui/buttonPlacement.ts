@@ -1,5 +1,4 @@
 ﻿import type { Direction, Position } from "../types/components/votButton";
-import type { ButtonLayout } from "../types/uiManager";
 import { clampNumber } from "../utils/number";
 
 const SIDE_EDGE_FRACTION = 0.18;
@@ -36,22 +35,6 @@ export function isSideButtonPosition(
 
 export function getButtonDirection(position: Position): Direction {
   return isSideButtonPosition(position) ? "column" : "row";
-}
-
-export function resolveButtonLayout(
-  isBigContainer: boolean,
-  preferredPosition: string | undefined = "default",
-): ButtonLayout {
-  const normalizedPosition = normalizeButtonPosition(preferredPosition);
-  const position =
-    isBigContainer || !isSideButtonPosition(normalizedPosition)
-      ? normalizedPosition
-      : "default";
-
-  return {
-    position,
-    direction: getButtonDirection(position),
-  };
 }
 
 function getEdgeSize(

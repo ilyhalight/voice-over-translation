@@ -4,17 +4,18 @@ import {
   type UserConfig,
   build as viteBuild,
 } from "vite";
+import solidPlugin from "vite-plugin-solid";
 import {
-  rootDir,
+  ROOT_DIR,
+  SOURCE_DIR,
   sharedBuildOptions,
   sharedCssOptions,
   sharedResolveAlias,
-  srcDir,
   viteCacheDir,
-} from "./paths";
+} from "./paths.ts";
 
 const youtubePlayerSolverPath = normalizePath(
-  `${srcDir}/audioDownloader/strategies/ytPlayerSolver.js`,
+  `${SOURCE_DIR}/audioDownloader/strategies/ytPlayerSolver.js`,
 );
 
 const minifiedYouTubePlayerSolverPlugin: Plugin = {
@@ -25,7 +26,7 @@ const minifiedYouTubePlayerSolverPlugin: Plugin = {
 
     const result = await viteBuild({
       configFile: false,
-      root: rootDir,
+      root: ROOT_DIR,
       publicDir: false,
       logLevel: "silent",
       build: {
@@ -57,43 +58,25 @@ export function createBaseViteConfig({
   cacheName,
 }: BaseViteConfigOptions): UserConfig {
   return {
-    root: rootDir,
-    envDir: rootDir,
+    root: ROOT_DIR,
+    envDir: ROOT_DIR,
     publicDir: false,
     cacheDir: viteCacheDir(cacheName),
     appType: "custom",
-    plugins: [minifiedYouTubePlayerSolverPlugin],
+    plugins: [
+      solidPlugin({
+        solid: {
+          generate: "universal",
+          moduleName: "vot-solid-renderer",
+        },
+      }),
+      minifiedYouTubePlayerSolverPlugin,
+    ],
     resolve: {
       alias: sharedResolveAlias,
+      dedupe: ["solid-js", "solid-js/web", "solid-js/store"],
     },
     css: sharedCssOptions,
     build: sharedBuildOptions,
   };
 }
-
-export function createViteConfig(
-  config: UserConfig,
-  options: BaseViteConfigOptions,
-): UserConfig {
-  const baseConfig = createBaseViteConfig(options);
-
-  return {
-    ...baseConfig,
-    ...config,
-    resolve: {
-      ...baseConfig.resolve,
-      ...config.resolve,
-      alias: config.resolve?.alias ?? baseConfig.resolve?.alias,
-    },
-    css: {
-      ...baseConfig.css,
-      ...config.css,
-    },
-    build: {
-      ...baseConfig.build,
-      ...config.build,
-    },
-  };
-}
-
-export { defineConstants, type ViteDefine } from "./define";

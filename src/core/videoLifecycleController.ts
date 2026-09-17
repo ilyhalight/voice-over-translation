@@ -1,36 +1,13 @@
 import type { VideoDataSubtitle } from "@vot.js/core/types/client";
 import type { ServiceConf, VideoService } from "@vot.js/ext/types/service";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-
+import type { OverlayViewControls } from "../components/OverlayView/OverlayView";
 import type { StorageData } from "../types/storage";
 import debug from "../utils/debug";
 import { containsCrossShadow } from "../utils/dom";
 import type { VideoData } from "../videoHandler/shared";
 import { findConnectedContainerBySelector } from "./containerResolution";
-import {
-  hideLifecycleOverlay,
-  type LifecycleOverlayViewLike,
-  resetAndHideLifecycle,
-} from "./lifecycleShared";
-
-interface LifecycleOverlayView extends LifecycleOverlayViewLike {
-  votButton: { container: HTMLElement; opacity: number };
-  votMenu: { container: HTMLElement; hidden: boolean };
-}
-
-interface LifecycleUIManager {
-  votOverlayView: LifecycleOverlayView;
-}
-
-const YOUTUBE_TIMESTAMP_PARAMS = ["t", "start", "time_continue"];
-
-export function getYouTubeSourceKey(url: URL, hasSrcObject: "1" | "0"): string {
-  const stableUrl = new URL(url);
-  for (const param of YOUTUBE_TIMESTAMP_PARAMS) {
-    stableUrl.searchParams.delete(param);
-  }
-  return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
-}
+import { hideLifecycleOverlay, resetAndHideLifecycle } from "./lifecycleShared";
 
 export interface VideoLifecycleHost {
   video: HTMLVideoElement;
@@ -39,7 +16,9 @@ export interface VideoLifecycleHost {
   firstPlay: boolean;
   stopTranslation(): void | Promise<void>;
   resetSubtitlesWidget(): void;
-  uiManager: LifecycleUIManager;
+  uiManager: {
+    votOverlayView: { overlayViewControls?: OverlayViewControls };
+  };
   getVideoData(): Promise<VideoData | undefined>;
   cacheManager: {
     getSubtitles(key: string): VideoDataSubtitle[] | undefined;
@@ -68,6 +47,16 @@ export interface VideoLifecycleHost {
   };
   enableSubtitlesForCurrentLangPair(): Promise<unknown>;
   queueOverlayAutoHide?(): void;
+}
+
+const YOUTUBE_TIMESTAMP_PARAMS = ["t", "start", "time_continue"];
+
+export function getYouTubeSourceKey(url: URL, hasSrcObject: "1" | "0"): string {
+  const stableUrl = new URL(url);
+  for (const param of YOUTUBE_TIMESTAMP_PARAMS) {
+    stableUrl.searchParams.delete(param);
+  }
+  return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
 }
 
 export class VideoLifecycleController {
@@ -123,9 +112,11 @@ export class VideoLifecycleController {
     return true;
   }
 
-  private showOverlayButton(overlayView: LifecycleOverlayView): void {
-    overlayView.votButton.container.hidden = false;
-    overlayView.votButton.opacity = 1;
+  private showOverlayButton(overlayView: {
+    overlayViewControls?: OverlayViewControls;
+  }): void {
+    overlayView.overlayViewControls?.setButtonHidden(false);
+    overlayView.overlayViewControls?.setButtonOpacity(1);
     this.host.queueOverlayAutoHide?.();
   }
 
@@ -227,9 +218,12 @@ export class VideoLifecycleController {
         err,
       );
       this.host.videoData = undefined;
-      hideLifecycleOverlay(this.host.uiManager.votOverlayView, {
-        hideMenu: true,
-      });
+      hideLifecycleOverlay(
+        this.host.uiManager.votOverlayView.overlayViewControls,
+        {
+          hideMenu: true,
+        },
+      );
       return;
     }
 
@@ -318,14 +312,17 @@ export class VideoLifecycleController {
     this.host.firstPlay = true;
 
     const overlayView = this.host.uiManager.votOverlayView;
-    resetAndHideLifecycle(this.host, overlayView, { requireVideoData: true });
+    const overlayViewControls = overlayView.overlayViewControls;
+    resetAndHideLifecycle(this.host, overlayViewControls, {
+      requireVideoData: true,
+    });
 
     const noSrc =
       !this.host.video.src &&
       !this.host.video.currentSrc &&
       !this.host.video.srcObject;
     if (noSrc) {
-      hideLifecycleOverlay(overlayView, { hideMenu: true });
+      hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
     }
 
     const nextContainer = this.resolveContainer();
@@ -347,7 +344,7 @@ export class VideoLifecycleController {
       debug.log(
         `[VideoLifecycle][session:${sessionId}] No videoId resolved, hiding overlay`,
       );
-      hideLifecycleOverlay(overlayView, { hideMenu: true });
+      hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
       return;
     }
 

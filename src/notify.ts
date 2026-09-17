@@ -1,37 +1,9 @@
+import type { GMNotificationOptions } from "@toil/gm-types/types/notification/index";
 import { localizationProvider } from "./localization/localizationProvider";
 import type { Phrase } from "./types/localization";
 import debug from "./utils/debug";
 import { getErrorMessage, isAbortError } from "./utils/errors";
-
-export type NotifyDetails = {
-  text: string;
-  title?: string;
-  timeout?: number;
-  silent?: boolean;
-  tag?: string;
-  onclick?: () => void;
-  image?: string;
-  ondone?: () => void;
-};
-
-// Userscript globals are injected by the manager at runtime.
-// Declare them so TS builds don't complain, and so we can reference them
-// directly (many managers don't attach them to globalThis/globalThis).
-declare const GM_notification:
-  | undefined
-  | ((details: any, ondone?: (() => void) | undefined) => void);
-declare const GM:
-  | undefined
-  | {
-      notification?: (details: any) => void;
-    };
-declare const GM_info:
-  | undefined
-  | {
-      script?: {
-        name?: string;
-      };
-    };
+import { getScriptTitle } from "./utils/gm";
 
 type NotifySendOpts = {
   /**
@@ -43,26 +15,11 @@ type NotifySendOpts = {
   cooldownMs?: number;
 };
 
-const now = () => Date.now();
-
 type LocalizedErrorLike = {
   name?: unknown;
   localizedMessage?: unknown;
   unlocalizedMessage?: unknown;
 };
-
-function getScriptTitle(): string {
-  return GM_info?.script?.name || "VOT";
-}
-
-function safeL10n(key: Phrase, fallback: string): string {
-  try {
-    const value = localizationProvider?.get?.(key);
-    return value || fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function canSend(
   lastSentAt: Map<string, number>,
@@ -71,25 +28,11 @@ function canSend(
 ): boolean {
   if (!cooldownMs) return true;
   const prev = lastSentAt.get(key) ?? 0;
-  return now() - prev >= cooldownMs;
+  return Date.now() - prev >= cooldownMs;
 }
 
 function markSent(lastSentAt: Map<string, number>, key: string) {
-  lastSentAt.set(key, now());
-}
-
-function localizePhraseText(message: string): string | null {
-  const key = message.trim();
-  if (!key) return null;
-
-  try {
-    const localized = localizationProvider.get(key as Phrase);
-    const defaultText = localizationProvider.getDefault(key as Phrase);
-    const isKnownPhrase = localized !== key || defaultText !== key;
-    return isKnownPhrase ? localized || defaultText || key : null;
-  } catch {
-    return null;
-  }
+  lastSentAt.set(key, Date.now());
 }
 
 function resolveLocalizedErrorFromObject(message: unknown): string | null {
@@ -110,39 +53,25 @@ function resolveLocalizedErrorFromObject(message: unknown): string | null {
   }
 
   if (typeof localizedError.unlocalizedMessage === "string") {
-    return localizePhraseText(localizedError.unlocalizedMessage);
+    return localizationProvider.get(
+      localizedError.unlocalizedMessage as Phrase,
+    );
   }
 
   return null;
-}
-
-function localizeExtractedErrorMessage(message: unknown): string | null {
-  const extracted = getErrorMessage(message);
-  if (!extracted) {
-    return null;
-  }
-
-  return localizePhraseText(extracted) || extracted;
 }
 
 function resolveLocalizedErrorMessage(message: unknown): string {
   const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
   if (localizedObjectMessage) return localizedObjectMessage;
 
-  if (typeof message === "string") {
-    const byPhraseKey = localizePhraseText(message);
-    if (byPhraseKey) return byPhraseKey;
-  }
-
-  const extractedMessage = localizeExtractedErrorMessage(message);
-  if (extractedMessage) return extractedMessage;
-
-  return safeL10n("requestTranslationFailed", "Translation failed");
+  return localizationProvider.get(
+    (getErrorMessage(message) || "requestTranslationFailed") as Phrase,
+  );
 }
 
-function trySendViaUserscriptApi(details: NotifyDetails): boolean {
+function trySendViaUserscriptApi(details: GMNotificationOptions): boolean {
   try {
-    // Tampermonkey / Violentmonkey: legacy GM_notification.
     // Important: many userscript managers expose GM_* as sandbox globals,
     // not as properties on globalThis/globalThis.
     if (typeof GM_notification === "function") {
@@ -150,12 +79,9 @@ function trySendViaUserscriptApi(details: NotifyDetails): boolean {
       return true;
     }
 
-    // Greasemonkey 4+ / Violentmonkey: GM.notification.
-    // Greasemonkey's API documents only a small option set (text/title/image/onclick/ondone),
-    // so avoid passing extra properties like tag/timeout/silent.
-    const gmApi = (globalThis as typeof globalThis & { GM?: typeof GM }).GM;
+    const gmApi = globalThis.GM;
     if (gmApi !== undefined && typeof gmApi.notification === "function") {
-      const gmDetails = {
+      const gmDetails: GMNotificationOptions = {
         text: details.text,
         title: details.title,
         image: details.image,
@@ -178,7 +104,7 @@ function trySendViaUserscriptApi(details: NotifyDetails): boolean {
 export class Notifier {
   private readonly lastSentAt = new Map<string, number>();
 
-  send(details: NotifyDetails, opts: NotifySendOpts = {}): void {
+  send(details: GMNotificationOptions, opts: NotifySendOpts = {}): void {
     try {
       const key =
         opts.key ||
@@ -189,7 +115,7 @@ export class Notifier {
       if (!canSend(this.lastSentAt, key, cooldownMs)) return;
 
       // Always ensure we have a title for UIs that render it.
-      const normalized: NotifyDetails = {
+      const normalized: GMNotificationOptions = {
         ...details,
         title: details.title ?? getScriptTitle(),
       };
@@ -208,10 +134,9 @@ export class Notifier {
   }
 
   translationCompleted(host: string): void {
-    const text = safeL10n(
-      "VOTTranslationCompletedNotify",
-      "The translation on the {0} has been completed!",
-    ).replace("{0}", host);
+    const text = localizationProvider
+      .get("VOTTranslationCompletedNotify")
+      .replace("{0}", host);
 
     this.send(
       {

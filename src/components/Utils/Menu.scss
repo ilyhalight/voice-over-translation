@@ -1,0 +1,60 @@
+@use "../mixins" as shared;
+
+.vot-menu {
+  --vot-helper-surface-rgb: var(--vot-surface-rgb, 255, 255, 255);
+  --vot-helper-surface: rgb(var(--vot-helper-surface-rgb));
+  --vot-helper-onsurface-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
+  --vot-helper-onsurface: rgba(var(--vot-helper-onsurface-rgb), 0.87);
+
+  background: var(--vot-helper-surface);
+  color: var(--vot-helper-onsurface);
+  border: 1px solid var(--vot-border-color) !important;
+  border-radius: var(--vot-radius-m) !important;
+  box-shadow: var(--vot-shadow-2) !important;
+  @include shared.vot-font-family;
+  font-size: 16px;
+  line-height: 1.5;
+  width: fit-content;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  max-width: min(90vw, 560px);
+  min-height: 100px;
+  max-height: calc(
+    var(--vot-container-height, 75vh) - (5rem + 32px + 16px) * 2
+  );
+  overflow: auto;
+
+  &__header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    padding: var(--vot-space-2) var(--vot-space-4) !important;
+    gap: var(--vot-space-2);
+  }
+
+  &__body {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 1.375rem;
+    overflow: auto;
+    padding: 0 var(--vot-space-4) !important;
+    gap: var(--vot-space-2);
+    overscroll-behavior: contain;
+    @include shared.vot-overlay-scrollbar;
+  }
+
+  &__footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--vot-space-4) !important;
+
+    &:empty {
+      padding: var(--vot-space-4) 0 0 0 !important;
+    }
+  }
+}

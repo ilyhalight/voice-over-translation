@@ -1,0 +1,21 @@
+.vot-about-item {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8em;
+
+  &__label {
+    text-transform: lowercase;
+    color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
+  }
+
+  &__value {
+    text-align: end;
+    color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.9);
+
+    &_detail {
+      color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
+    }
+  }
+}

@@ -1,4 +1,7 @@
-import { defaultAutoVolume } from "../../config/config";
+import {
+  DEFAULT_AUTO_VOLUME,
+  DEFAULT_SMART_DUCKING_STRENGTH,
+} from "../../config/config";
 import debug from "../../utils/debug";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
@@ -448,8 +451,12 @@ function smartDuckingTick(handler: VideoHandler): void {
 
   const hostVideo = handler.video;
   const hostVideoActive = !(hostVideo && (hostVideo.paused || hostVideo.ended));
-  const dynamicDuckingTarget =
-    clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
+  const duckingStrength =
+    clamp(
+      handler.data?.smartDuckingStrength ?? DEFAULT_SMART_DUCKING_STRENGTH,
+      0,
+      100,
+    ) / 100;
   const rms =
     audioIsPlaying && media ? getTranslatedAudioRms(handler, media) : 0;
 
@@ -463,7 +470,7 @@ function smartDuckingTick(handler: VideoHandler): void {
       rms,
       currentVideoVolume,
       hostVideoActive,
-      duckingTarget01: dynamicDuckingTarget,
+      duckingStrength01: duckingStrength,
       volumeOnStart: handler.volumeOnStart,
     },
     readSmartDuckingRuntime(handler),
@@ -504,12 +511,18 @@ export function setupAudioSettings(this: VideoHandler) {
     return;
   }
 
-  const targetVolume =
-    clamp(this.data.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
-
   if (!this.hasActiveSource()) {
     return;
   }
+
+  if (autoVolumeMode === "smart") {
+    restoreAutoVolumeMute(this);
+    startSmartVolumeDucking(this);
+    return;
+  }
+
+  const targetVolume =
+    clamp(this.data.autoVolume ?? DEFAULT_AUTO_VOLUME, 0, 100) / 100;
 
   if (targetVolume === 0) {
     if (this.smartVolumeDuckingInterval !== undefined) {
@@ -535,11 +548,6 @@ export function setupAudioSettings(this: VideoHandler) {
   }
 
   restoreAutoVolumeMute(this);
-
-  if (autoVolumeMode === "smart") {
-    startSmartVolumeDucking(this);
-    return;
-  }
 
   if (this.smartVolumeDuckingInterval !== undefined) {
     clearTimeout(this.smartVolumeDuckingInterval);

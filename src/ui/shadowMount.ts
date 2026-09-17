@@ -1,4 +1,4 @@
-import mainScss from "../styles/main.scss?inline";
+import solidSCSS from "../components/solid.scss?inline";
 
 type InlineStyleMap = Partial<Record<string, string>>;
 type ElementConfig = {
@@ -24,7 +24,7 @@ type CreateShadowMountOptions = {
   delegatesFocus?: boolean;
 };
 
-const shadowScopedCssText = scopeCssForShadowRoots(mainScss);
+const shadowScopedCssText = scopeCssForShadowRoots(solidSCSS);
 let sharedShadowStyleSheet: CSSStyleSheet | null = null;
 let sharedShadowStyleSheetReady = false;
 

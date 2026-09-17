@@ -23,7 +23,7 @@
 
 <!-- Install / Build -->
 
-[vot-dist]: https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+[vot-dist]: https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot.user.js
 [vot-releases]: https://github.com/ilyhalight/voice-over-translation/releases
 [nodejs-link]: https://nodejs.org
 [bun-link]: https://bun.sh/
@@ -128,7 +128,7 @@ Open [Releases][vot-releases], click `vot-extension-firefox.xpi`, and confirm in
 - Smart subtitle layout that adapts line width and text size to player dimensions
 - Display AI-generated subtitles
 - Display site-provided subtitles (for example, auto-translated YouTube subtitles)
-- Save subtitles in `.srt`, `.vtt`, and `.json` formats
+- Save subtitles in `.srt`, `.vtt`, `.ass` and `.json` formats
 - Save translated audio as `.mp3`
 - Separate volume sliders for original and translated audio
 - Adaptive volume: duck original audio while translated speech is playing

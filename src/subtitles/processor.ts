@@ -80,43 +80,6 @@ const toFiniteNumber = (value: unknown): number =>
 const toNonNegativeNumber = (value: unknown): number =>
   Math.max(0, toFiniteNumber(value));
 
-const pickDescriptorFromVideoData = (
-  videoData: VideoDataForSubtitles,
-  requestLang?: string,
-  spokenLang?: string,
-): SubtitleDescriptor | null => {
-  const list = videoData.subtitles;
-  if (!Array.isArray(list) || list.length === 0) return null;
-
-  const desiredLang = requestLang ?? spokenLang;
-
-  if (desiredLang) {
-    const translated = list.find(
-      (subtitle) =>
-        subtitle.language === desiredLang &&
-        typeof subtitle.translatedFromLanguage === "string",
-    );
-    if (translated) return translated;
-
-    const original = list.find((subtitle) => subtitle.language === desiredLang);
-    if (original) return original;
-  }
-
-  return list[0] ?? null;
-};
-
-const isVideoDataForSubtitles = (
-  value: SubtitleDescriptor | VideoDataForSubtitles,
-): value is VideoDataForSubtitles =>
-  "host" in value &&
-  "videoId" in value &&
-  "detectedLanguage" in value &&
-  "duration" in value &&
-  typeof value.host === "string" &&
-  typeof value.videoId === "string" &&
-  typeof value.detectedLanguage === "string" &&
-  typeof value.duration === "number";
-
 const appendYoutubePoTokenParams = (inputUrl: string): string => {
   const poToken = YoutubeHelper.getPoToken();
   if (!poToken) return inputUrl;
@@ -428,7 +391,6 @@ const buildYoutubeSourceTokens = (
 ): { text: string; sourceTokens: SubtitleToken[] } => {
   const sourceTokens: SubtitleToken[] = [];
   let text = "";
-  let remainingDuration = durationMs;
   let previousRawText = "";
 
   for (let j = 0; j < segs.length; j += 1) {
@@ -436,20 +398,12 @@ const buildYoutubeSourceTokens = (
     const rawText = typeof segment.utf8 === "string" ? segment.utf8 : "";
     if (!rawText) continue;
 
-    const offset = Math.max(0, segment.tOffsetMs ?? 0);
-    let segmentDuration = durationMs;
+    const offset = Math.min(durationMs, Math.max(0, segment.tOffsetMs ?? 0));
     const nextSegment = segs[j + 1];
-
-    if (nextSegment?.tOffsetMs !== undefined) {
-      const nextOffset = Math.max(offset, nextSegment.tOffsetMs);
-      segmentDuration = Math.max(0, nextOffset - offset);
-      remainingDuration = Math.max(remainingDuration - segmentDuration, 0);
-    }
-
-    let tokenDuration = Math.max(0, remainingDuration);
-    if (nextSegment) {
-      tokenDuration = Math.max(0, segmentDuration);
-    }
+    const nextOffset = nextSegment
+      ? Math.min(durationMs, Math.max(offset, nextSegment.tOffsetMs ?? offset))
+      : durationMs;
+    const tokenDuration = nextOffset - offset;
 
     if (
       text &&
@@ -867,6 +821,27 @@ const buildYandexSubtitles = (
   return subtitles;
 };
 
+/**
+ * Thrown when the Yandex subtitles request fails (network error, timeout, etc).
+ *
+ * Carries the subtitles that don't depend on that request (the ones provided by
+ * the site itself), so callers can still show them instead of ending up with an
+ * empty subtitles list.
+ */
+export class SubtitlesRequestError extends Error {
+  readonly fallbackSubtitles: SubtitleDescriptor[];
+
+  constructor(
+    message: string,
+    fallbackSubtitles: SubtitleDescriptor[],
+    cause: unknown,
+  ) {
+    super(message, { cause });
+    this.name = "SubtitlesRequestError";
+    this.fallbackSubtitles = fallbackSubtitles;
+  }
+}
+
 export const SubtitlesProcessor = {
   processTokens(
     subtitles: ProcessedSubtitles,
@@ -956,18 +931,9 @@ export const SubtitlesProcessor = {
   },
 
   async fetchSubtitles(
-    descriptorOrVideoData: SubtitleDescriptor | VideoDataForSubtitles,
-    requestLang?: string,
-    spokenLang?: string,
+    descriptorInput: SubtitleDescriptor,
   ): Promise<ProcessedSubtitles> {
-    let descriptor = parseSubtitleDescriptor(descriptorOrVideoData);
-    if (!descriptor && isVideoDataForSubtitles(descriptorOrVideoData)) {
-      descriptor = pickDescriptorFromVideoData(
-        descriptorOrVideoData,
-        requestLang,
-        spokenLang,
-      );
-    }
+    const descriptor = parseSubtitleDescriptor(descriptorInput);
 
     if (!descriptor) {
       return { format: "json", subtitles: [] };
@@ -1043,7 +1009,11 @@ export const SubtitlesProcessor = {
         message = "Failed to get Yandex subtitles: timeout";
       }
       console.error(`[VOT] ${message}`, error);
-      throw error;
+      throw new SubtitlesRequestError(
+        message,
+        sortSubtitles(extraSubtitles, requestLang),
+        error,
+      );
     }
   },
 };
