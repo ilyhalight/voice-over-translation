@@ -1,4 +1,4 @@
-import { VOTWorkerProvider } from "@vot.js/core/providers/votworker";
+import { VOTNextWorkerProvider } from "@vot.js/core/providers/votworker";
 import { YandexProvider } from "@vot.js/core/providers/yandex";
 import type { VOTOpts } from "@vot.js/core/types/client";
 import VOTClient from "@vot.js/ext/client";
@@ -740,7 +740,7 @@ export class VideoHandler {
         ? this.data?.account?.token
         : undefined,
       host: transportHost,
-      provider: proxyClientEnabled ? VOTWorkerProvider : YandexProvider,
+      provider: proxyClientEnabled ? VOTNextWorkerProvider : YandexProvider,
     };
     this.votClient = new VOTClient(this.votOpts);
     this.votClient.provider.sessions = await this.votSessionStorage.restore(

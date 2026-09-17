@@ -64,6 +64,15 @@ function getAudioDownloadType(
     : undefined;
 }
 
+function getSourceLanguage(message: MseMessage): string | undefined {
+  if (!message.payload || typeof message.payload !== "object") return;
+  const sourceLanguage = (message.payload as { sourceLanguage?: unknown })
+    .sourceLanguage;
+  return typeof sourceLanguage === "string" && sourceLanguage
+    ? sourceLanguage
+    : undefined;
+}
+
 async function getEncryptedEmbedConfig(
   targetWindow: Window,
   videoId: string,
@@ -654,7 +663,12 @@ async function handleIframeRequest(
     };
     const chunks: AsyncIterable<AudioChunk> =
       audioDownloadType === AudioDownloadType.WEB_ABR
-        ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal)
+        ? getWebAbrAudioChunks(
+            targetWindow,
+            videoId,
+            controller.signal,
+            getSourceLanguage(message),
+          )
         : createAudioChunkStream(
             targetWindow,
             videoId,

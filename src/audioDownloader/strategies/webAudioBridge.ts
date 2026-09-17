@@ -40,6 +40,7 @@ async function* getAudioBridgeChunks(
   audioDownloadType:
     | AudioDownloadType.WEB_ABR
     | AudioDownloadType.WEB_MSE_PROXY,
+  sourceLanguage?: string,
 ): AsyncGenerator<AudioChunk> {
   if (signal.aborted) throw makeAbortError(signal.reason);
 
@@ -61,6 +62,7 @@ async function* getAudioBridgeChunks(
       failure = error;
       debug.error("Audio downloader. Audio bridge failed", {
         videoId,
+        sourceLanguage,
         messageId,
         audioDownloadType,
         receivedChunks,
@@ -71,6 +73,7 @@ async function* getAudioBridgeChunks(
       clearTimeout(messageTimeout);
       debug.log("Audio downloader. Audio bridge stream finished", {
         videoId,
+        sourceLanguage,
         messageId,
         audioDownloadType,
         receivedChunks,
@@ -182,6 +185,7 @@ async function* getAudioBridgeChunks(
 
   debug.log("Audio downloader. Audio bridge request started", {
     videoId,
+    sourceLanguage,
     messageId,
     audioDownloadType,
   });
@@ -196,6 +200,7 @@ async function* getAudioBridgeChunks(
           payload: {
             pureVideoId: videoId,
             audioDownloadType,
+            sourceLanguage,
           },
         },
         "*",
@@ -225,7 +230,7 @@ async function* getAudioBridgeChunks(
 }
 
 export async function getAudioFromBridge(
-  { videoId, signal }: GetAudioFromAPIOptions,
+  { videoId, signal, sourceLanguage }: GetAudioFromAPIOptions,
   audioDownloadType:
     | AudioDownloadType.WEB_ABR
     | AudioDownloadType.WEB_MSE_PROXY,
@@ -234,6 +239,6 @@ export async function getAudioFromBridge(
     fileId: `random-${audioDownloadType}-${crypto.randomUUID()}`,
     mediaPartsLength: null,
     getMediaBuffers: () =>
-      getAudioBridgeChunks(videoId, signal, audioDownloadType),
+      getAudioBridgeChunks(videoId, signal, audioDownloadType, sourceLanguage),
   };
 }
