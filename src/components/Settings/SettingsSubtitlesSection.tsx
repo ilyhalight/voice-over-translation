@@ -165,6 +165,7 @@ export function SettingsSubtitlesSection(
       <Select
         title={localizationProvider.get("VOTDefaultSubtitlesLanguage")}
         options={subtitleLanguageOptions}
+        search={true}
         selectedValue={settings.responseLanguageSubtitles}
         onSelect={(option) => {
           setSettings(

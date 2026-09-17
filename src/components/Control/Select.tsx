@@ -142,6 +142,8 @@ export function Select(props: SelectProps): JSX.Element {
   });
 
   const currentOptions = () => searchOptions() ?? baseOptions();
+  const isSearchActive = () =>
+    Boolean(finalProps.search || finalProps.searchItemsProvider);
 
   const visibleTitle = () => {
     if (finalProps.multiple) {
@@ -366,11 +368,14 @@ export function Select(props: SelectProps): JSX.Element {
       </RawButton>
       <vot-block
         class="vot-select-inner"
+        classList={{
+          "vot-select-inner__static-width": isSearchActive(),
+        }}
         ref={innerRef}
         id={selectId}
         hidden={!isOpen()}
       >
-        <Show when={finalProps.search || finalProps.searchItemsProvider}>
+        <Show when={isSearchActive()}>
           <Textfield
             labelText={localizationProvider.get("searchField")}
             value={searchQuery()}

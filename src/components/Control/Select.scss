@@ -77,9 +77,13 @@
     border-radius: 0.75em;
     background: rgb(var(--vot-secondary-rgb, 43, 44, 48));
     color: rgba(var(--vot-onsurface-rgb), 0.87);
+    max-width: 300px;
     max-height: min(85vh, 350px, var(--vot-floating-available-height, 100vh));
     overflow: hidden;
     pointer-events: auto;
+    &.vot-select-inner__static-width {
+      width: 100%;
+    }
 
     .vot-textfield {
       margin-bottom: 0.5em;
