@@ -125,6 +125,7 @@
     "*://learn-staging.deeplearning.ai/*",
     "*://learn-dev.deeplearning.ai/*",
     "*://*.netacad.com/content/i2cs/*",
+    "*://*.netacad.com/authoring-resources/*",
     "*://*.nicovideo.jp/*",
     "*://*.zdf.de/*",
     "*://iframe.mediadelivery.net/*",
