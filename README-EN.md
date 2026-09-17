@@ -128,7 +128,7 @@ Open [Releases][vot-releases], click `vot-extension-firefox.xpi`, and confirm in
 - Smart subtitle layout that adapts line width and text size to player dimensions
 - Display AI-generated subtitles
 - Display site-provided subtitles (for example, auto-translated YouTube subtitles)
-- Save subtitles in `.srt`, `.vtt`, and `.json` formats
+- Save subtitles in `.srt`, `.vtt`, `.ass` and `.json` formats
 - Save translated audio as `.mp3`
 - Separate volume sliders for original and translated audio
 - Adaptive volume: duck original audio while translated speech is playing

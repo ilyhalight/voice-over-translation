@@ -140,6 +140,7 @@ function DebugYTAudioComponent() {
           ),
           "test-id",
           new AbortController().signal,
+          "auto",
         );
       }}
     >
