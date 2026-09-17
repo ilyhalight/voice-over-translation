@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.12
+// @version        1.11.13
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -141,6 +141,7 @@
 // @match          *://learn-staging.deeplearning.ai/*
 // @match          *://learn-dev.deeplearning.ai/*
 // @match          *://*.netacad.com/content/i2cs/*
+// @match          *://*.netacad.com/authoring-resources/*
 // @match          *://*.nicovideo.jp/*
 // @match          *://*.zdf.de/*
 // @match          *://iframe.mediadelivery.net/*
@@ -1077,6 +1078,7 @@ var vot = (function(exports) {
 			url: "https://www.netacad.com/",
 			match: /^(www\.)?netacad\.com/,
 			selector: sharedSelectors.videoJsUniversal,
+			shadowRoot: true,
 			needExtraData: true
 		},
 		{
@@ -1111,15 +1113,15 @@ var vot = (function(exports) {
 	var config_default$1 = {
 		host: "api.browser.yandex.ru",
 		hostWorker: "vot-worker.toil.cc",
-		mediaProxy: "media-proxy.transly.eu.cc",
+		mediaProxy: "media-proxy.toil.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
-		componentVersion: "26.8.1.1024",
-		chromiumRevision: "1024",
+		componentVersion: "26.8.3.971",
+		chromiumRevision: "971",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.0.3"
+		version: "3.1.0"
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/logger.js
@@ -1696,13 +1698,38 @@ var vot = (function(exports) {
 		"kk"
 	];
 	//#endregion
+	//#region node_modules/@vot.js/ext/dist/utils/dom.js
+	function querySelectorDeep(selector, root = document) {
+		const match = root.querySelector(selector);
+		if (match) return match;
+		for (const el of root.querySelectorAll("*")) if (el.shadowRoot) {
+			const nested = querySelectorDeep(selector, el.shadowRoot);
+			if (nested) return nested;
+		}
+		return null;
+	}
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/players/videojs.js
+	function isPreferredMedia(source) {
+		const type = source.type?.toLowerCase().split(";")[0].trim();
+		if (type === "video/mp4" || type === "video/webm") return true;
+		const path = source.src?.split(/[?#]/)[0].toLowerCase();
+		return Boolean(path?.endsWith(".mp4") || path?.endsWith(".webm"));
+	}
+	function selectVideoUrl(candidates) {
+		const available = candidates.filter((source) => Boolean(source.src));
+		return (available.find(isPreferredMedia) ?? available[0])?.src;
+	}
 	var VideoJSHelper = class VideoJSHelper extends BaseHelper {
 		SUBTITLE_SOURCE = "videojs";
 		SUBTITLE_FORMAT = "vtt";
-		static getPlayer() {
+		static VIDEOJS_SELECTOR = "video.vjs-tech, video[id$='_html5_api'], video[src], video";
+		static getTechEl(isShadowRoot = false) {
+			return isShadowRoot ? querySelectorDeep(VideoJSHelper.VIDEOJS_SELECTOR) : document.querySelector(VideoJSHelper.VIDEOJS_SELECTOR);
+		}
+		static getPlayer(isShadowRoot = false) {
 			const vjs = window.videojs;
-			const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video");
+			const techEl = VideoJSHelper.getTechEl(isShadowRoot);
 			const derivedPlayerId = techEl?.id?.endsWith("_html5_api") ? techEl.id.slice(0, -10) : void 0;
 			if (vjs?.getPlayer) {
 				if (derivedPlayerId) {
@@ -1722,18 +1749,22 @@ var vot = (function(exports) {
 				if (derivedPlayerId && typeof player.id === "function" && player.id() === derivedPlayerId) return p;
 			}
 		}
-		getVideoDataByPlayer(videoId) {
+		getVideoDataByPlayer(videoId, isShadowRoot = false) {
 			try {
-				const player = VideoJSHelper.getPlayer();
-				const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video[src], video");
+				const player = VideoJSHelper.getPlayer(isShadowRoot);
+				const techEl = VideoJSHelper.getTechEl(isShadowRoot);
 				if (!player && !techEl) throw new Error(`Video player/video element not found, videoId ${videoId}`);
 				const duration = player?.duration?.() ?? techEl?.duration;
-				let url;
+				const candidates = [];
 				if (player) {
 					const sources = typeof player.currentSources === "function" ? player.currentSources() : player.getCache?.()?.sources;
-					url = (Array.isArray(sources) ? sources.find((source) => source?.type === "video/mp4" || source?.type === "video/webm" || source?.src) : void 0)?.src;
+					if (Array.isArray(sources)) candidates.push(...sources);
 				}
-				url ??= techEl?.currentSrc || techEl?.src || techEl?.querySelector("source")?.src || techEl?.getAttribute?.("src") || void 0;
+				if (techEl) candidates.push({ src: techEl.currentSrc }, { src: techEl.src }, ...Array.from(techEl.querySelectorAll("source")).map((source) => ({
+					src: source.src,
+					type: source.getAttribute("type")
+				})), { src: techEl.getAttribute?.("src") });
+				const url = selectVideoUrl(candidates);
 				if (!url) throw new Error(`Failed to find video url for videoID ${videoId}`);
 				return {
 					url,
@@ -1746,7 +1777,7 @@ var vot = (function(exports) {
 			}
 		}
 		getSubtitles() {
-			const techEl = document.querySelector("video.vjs-tech, video[id$='_html5_api'], video[src], video");
+			const techEl = VideoJSHelper.getTechEl();
 			return (techEl ? Array.from(techEl.querySelectorAll("track[src]")) : []).filter((t) => t.kind !== "metadata").flatMap((t) => {
 				const src = t.getAttribute("src");
 				if (!src) return [];
@@ -3248,7 +3279,7 @@ var vot = (function(exports) {
 			wasStream: false,
 			responseLanguage: "",
 			unknown2: false,
-			unknown3: 0,
+			configVersion: 0,
 			bypassCache: false,
 			useLivelyVoice: false,
 			videoTitle: ""
@@ -3268,7 +3299,7 @@ var vot = (function(exports) {
 			if (message.wasStream !== false) writer.uint32(104).bool(message.wasStream);
 			if (message.responseLanguage !== "") writer.uint32(114).string(message.responseLanguage);
 			if (message.unknown2 !== false) writer.uint32(120).bool(message.unknown2);
-			if (message.unknown3 !== 0) writer.uint32(128).int32(message.unknown3);
+			if (message.configVersion !== 0) writer.uint32(128).int32(message.configVersion);
 			if (message.bypassCache !== false) writer.uint32(136).bool(message.bypassCache);
 			if (message.useLivelyVoice !== false) writer.uint32(144).bool(message.useLivelyVoice);
 			if (message.videoTitle !== "") writer.uint32(154).string(message.videoTitle);
@@ -3331,7 +3362,7 @@ var vot = (function(exports) {
 						continue;
 					case 16:
 						if (tag !== 128) break;
-						message.unknown3 = reader.int32();
+						message.configVersion = reader.int32();
 						continue;
 					case 17:
 						if (tag !== 136) break;
@@ -3365,7 +3396,7 @@ var vot = (function(exports) {
 				wasStream: isSet(object.wasStream) ? globalThis.Boolean(object.wasStream) : false,
 				responseLanguage: isSet(object.responseLanguage) ? globalThis.String(object.responseLanguage) : "",
 				unknown2: isSet(object.unknown2) ? globalThis.Boolean(object.unknown2) : false,
-				unknown3: isSet(object.unknown3) ? globalThis.Number(object.unknown3) : 0,
+				configVersion: isSet(object.configVersion) ? globalThis.Number(object.configVersion) : 0,
 				bypassCache: isSet(object.bypassCache) ? globalThis.Boolean(object.bypassCache) : false,
 				useLivelyVoice: isSet(object.useLivelyVoice) ? globalThis.Boolean(object.useLivelyVoice) : false,
 				videoTitle: isSet(object.videoTitle) ? globalThis.String(object.videoTitle) : ""
@@ -3385,7 +3416,7 @@ var vot = (function(exports) {
 			if (message.wasStream !== false) obj.wasStream = message.wasStream;
 			if (message.responseLanguage !== "") obj.responseLanguage = message.responseLanguage;
 			if (message.unknown2 !== false) obj.unknown2 = message.unknown2;
-			if (message.unknown3 !== 0) obj.unknown3 = Math.round(message.unknown3);
+			if (message.configVersion !== 0) obj.configVersion = Math.round(message.configVersion);
 			if (message.bypassCache !== false) obj.bypassCache = message.bypassCache;
 			if (message.useLivelyVoice !== false) obj.useLivelyVoice = message.useLivelyVoice;
 			if (message.videoTitle !== "") obj.videoTitle = message.videoTitle;
@@ -3408,7 +3439,7 @@ var vot = (function(exports) {
 			message.wasStream = object.wasStream ?? false;
 			message.responseLanguage = object.responseLanguage ?? "";
 			message.unknown2 = object.unknown2 ?? false;
-			message.unknown3 = object.unknown3 ?? 0;
+			message.configVersion = object.configVersion ?? 0;
 			message.bypassCache = object.bypassCache ?? false;
 			message.useLivelyVoice = object.useLivelyVoice ?? false;
 			message.videoTitle = object.videoTitle ?? "";
@@ -4896,14 +4927,9 @@ var vot = (function(exports) {
 	var NetacadHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "netacad";
 		async getVideoData(videoId) {
-			const data = this.getVideoDataByPlayer(videoId);
+			const data = this.getVideoDataByPlayer(videoId, true);
 			if (!data) return;
-			const { url, duration, subtitles } = data;
-			return {
-				url: proxyMedia(new URL(url)),
-				duration,
-				subtitles
-			};
+			return data;
 		}
 		async getVideoId(url) {
 			return url.pathname + url.search;
@@ -10241,7 +10267,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.12"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.13"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -11344,6 +11370,7 @@ var vot = (function(exports) {
 		}
 		async requestJSON(path, body = null, headers = {}, method = "POST") {
 			const options = this.getOpts(body, {
+				Accept: "application/json",
 				"Content-Type": "application/json",
 				...headers
 			}, method);
@@ -11388,7 +11415,7 @@ var vot = (function(exports) {
 			responseLanguage: responseLang,
 			wasStream,
 			unknown2: true,
-			unknown3: 2,
+			configVersion: 2,
 			bypassCache,
 			useLivelyVoice,
 			videoTitle
@@ -11595,6 +11622,9 @@ var vot = (function(exports) {
 			if (!this.apiToken) return {};
 			return { Authorization: `OAuth ${this.apiToken}` };
 		}
+		mergeHeaders(...headers) {
+			return Object.assign({}, ...headers);
+		}
 		async getSession(module) {
 			const timestamp = getTimestamp$1();
 			const session = this.sessions[module];
@@ -11611,7 +11641,7 @@ var vot = (function(exports) {
 		async createSession(module) {
 			const uuid = getUUID();
 			const body = YandexSessionProtobuf.encodeSessionRequest(uuid, module);
-			const res = await this.request("/session/create", body, { "Vtrans-Signature": await getSignature(body) });
+			const res = await this.request("/session/create", body, this.mergeHeaders({ "Vtrans-Signature": await getSignature(body) }));
 			if (!res.success) throw new VOTJSError("Failed to request create session", res);
 			return {
 				...YandexSessionProtobuf.decodeSessionResponse(res.data),
@@ -11619,7 +11649,7 @@ var vot = (function(exports) {
 			};
 		}
 		async requestVtransFailAudio(url) {
-			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), void 0, "PUT");
+			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), this.mergeHeaders({ Accept: "application/json" }), "PUT");
 			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
 			return res;
 		}
@@ -11630,11 +11660,7 @@ var vot = (function(exports) {
 			const path = this.paths.videoTranslation;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
 			const apiTokenHeader = extraOpts.useLivelyVoice ? this.apiTokenHeader : {};
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...apiTokenHeader,
-				...headers
-			});
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, apiTokenHeader, headers));
 			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
 			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
 			Logger.log("translateVideo", translationData);
@@ -11696,10 +11722,7 @@ var vot = (function(exports) {
 			} else body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
 			const path = this.paths.videoTranslationAudio;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			}, "PUT");
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "PUT");
 			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
 			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
 		}
@@ -11709,10 +11732,7 @@ var vot = (function(exports) {
 			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
 			const path = this.paths.videoSubtitles;
 			const vsubsHeaders = await getSecYaHeaders("Vsubs", session, body, path);
-			const res = await this.request(path, body, {
-				...vsubsHeaders,
-				...headers
-			});
+			const res = await this.request(path, body, this.mergeHeaders(vsubsHeaders, headers));
 			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
 			const subtitlesData = YandexVOTProtobuf.decodeSubtitlesResponse(res.data);
 			const subtitles = subtitlesData.subtitles.map((subtitle) => {
@@ -11734,10 +11754,7 @@ var vot = (function(exports) {
 			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
 			const path = this.paths.streamPing;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			});
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers));
 			if (!res.success) throw new VOTJSError("Failed to request stream ping", res);
 			return true;
 		}
@@ -11748,10 +11765,7 @@ var vot = (function(exports) {
 			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
 			const path = this.paths.streamTranslation;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			});
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers));
 			if (!res.success) throw new VOTJSError("Failed to request stream translation", res);
 			const translateResponse = YandexVOTProtobuf.decodeStreamResponse(res.data);
 			const interval = translateResponse.interval;
@@ -11782,68 +11796,27 @@ var vot = (function(exports) {
 			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
 			const path = this.paths.videoTranslationCache;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, {
-				...vtransHeaders,
-				...headers
-			}, "POST");
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "POST");
 			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
 			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
 		}
 	};
 	//#endregion
 	//#region node_modules/@vot.js/core/dist/providers/votworker.js
-	var VOTWorkerProvider = class extends YandexProvider {
+	var VOTNextWorkerProvider = class extends YandexProvider {
 		constructor(opts = {}) {
 			opts.host = opts.host ?? config_default$1.hostWorker;
 			super(opts);
 		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					...headers
-				},
-				body: Array.from(body)
-			}), { "Content-Type": "application/json" }, method);
+		mergeHeaders(...headers) {
+			const data = Object.assign({}, this.headers, ...headers);
 			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.arrayBuffer();
 				return {
-					success: res.status === 200,
-					data
+					"User-Agent": `vot.js/${config_default$1.version}`,
+					"X-VOT-Headers": btoa(JSON.stringify(data))
 				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
-			}
-		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
-			const options = this.getOpts(JSON.stringify({
-				headers: {
-					...this.headers,
-					"Content-Type": "application/json",
-					Accept: "application/json",
-					...headers
-				},
-				body
-			}), {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			}, method);
-			try {
-				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
-				const data = await res.json();
-				return {
-					success: res.status === 200,
-					data
-				};
-			} catch (err) {
-				return {
-					success: false,
-					data: err?.message
-				};
+			} catch {
+				throw new VOTJSError("Failed to encode headers for VOT Worker request");
 			}
 		}
 	};
@@ -12908,7 +12881,7 @@ var vot = (function(exports) {
 			isLastChunk
 		};
 	}
-	async function* getAudioBridgeChunks(videoId, signal, audioDownloadType) {
+	async function* getAudioBridgeChunks(videoId, signal, audioDownloadType, sourceLanguage) {
 		if (signal.aborted) throw makeAbortError(signal.reason);
 		const messageId = `stream-message-id-${performance.now()}-${Math.random()}`;
 		const chunks = [];
@@ -12927,6 +12900,7 @@ var vot = (function(exports) {
 				failure = error;
 				debug.error("Audio downloader. Audio bridge failed", {
 					videoId,
+					sourceLanguage,
 					messageId,
 					audioDownloadType,
 					receivedChunks,
@@ -12937,6 +12911,7 @@ var vot = (function(exports) {
 				clearTimeout(messageTimeout);
 				debug.log("Audio downloader. Audio bridge stream finished", {
 					videoId,
+					sourceLanguage,
 					messageId,
 					audioDownloadType,
 					receivedChunks
@@ -13013,6 +12988,7 @@ var vot = (function(exports) {
 		resetMessageTimeout();
 		debug.log("Audio downloader. Audio bridge request started", {
 			videoId,
+			sourceLanguage,
 			messageId,
 			audioDownloadType
 		});
@@ -13023,7 +12999,8 @@ var vot = (function(exports) {
 				messageDirection: "request",
 				payload: {
 					pureVideoId: videoId,
-					audioDownloadType
+					audioDownloadType,
+					sourceLanguage
 				}
 			}, "*");
 			while (!streamFinished || chunks.length > 0) {
@@ -13044,11 +13021,11 @@ var vot = (function(exports) {
 			if (!streamFinished || failure) postAbort();
 		}
 	}
-	async function getAudioFromBridge({ videoId, signal }, audioDownloadType) {
+	async function getAudioFromBridge({ videoId, signal, sourceLanguage }, audioDownloadType) {
 		return {
 			fileId: `random-${audioDownloadType}-${crypto.randomUUID()}`,
 			mediaPartsLength: null,
-			getMediaBuffers: () => getAudioBridgeChunks(videoId, signal, audioDownloadType)
+			getMediaBuffers: () => getAudioBridgeChunks(videoId, signal, audioDownloadType, sourceLanguage)
 		};
 	}
 	//#endregion
@@ -22799,33 +22776,51 @@ var vot = (function(exports) {
 			racyCheckOk: true
 		};
 	}
-	function selectWebEmbeddedAudioFormat(formats) {
-		const withUrl = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string");
-		const audioOnly = withUrl.filter(({ mimeType }) => mimeType?.includes("audio/") && !mimeType?.includes("video/"));
-		const preferredItags = [
-			251,
-			140,
-			141,
-			250,
-			249,
-			139,
-			256,
-			258,
-			325,
-			327,
-			328,
-			338,
-			171,
-			172
-		];
-		const byPreference = (a, b) => {
-			const rank = (itag) => {
-				const index = itag === void 0 ? -1 : preferredItags.indexOf(itag);
-				return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-			};
-			return rank(a.itag) - rank(b.itag) || (b.bitrate ?? 0) - (a.bitrate ?? 0);
+	function selectAudioFormatFrom(audioFormats) {
+		const smallest = (key) => {
+			let best;
+			let bestValue = Number.POSITIVE_INFINITY;
+			for (const format of audioFormats) {
+				const raw = format[key];
+				const value = raw == null ? NaN : typeof raw === "number" ? raw : Number(String(raw));
+				if (Number.isFinite(value) && value > 0 && value < bestValue) {
+					best = format;
+					bestValue = value;
+				}
+			}
+			return best;
 		};
-		const selected = audioOnly.sort(byPreference)[0] ?? withUrl.find(({ itag }) => itag === 18) ?? withUrl.filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? "")).sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
+		return smallest("contentLength") ?? smallest("averageBitrate") ?? audioFormats[0];
+	}
+	function normalizeAudioLanguage(value) {
+		if (typeof value !== "string" || !value) return;
+		return normalizeLang$1(value.split(".")[0] ?? "") || void 0;
+	}
+	function getAudioTrackLanguage(format) {
+		return normalizeAudioLanguage(format.audioTrack?.languageCode ?? format.audioTrack?.id);
+	}
+	function normalizeRequestedLanguage(value) {
+		const language = normalizeAudioLanguage(value);
+		return language && language !== "auto" ? language : void 0;
+	}
+	function preferSourceLanguageAudioFormats(audioFormats, sourceLanguage) {
+		const requested = normalizeRequestedLanguage(sourceLanguage);
+		if (requested) {
+			const matches = audioFormats.filter((format) => getAudioTrackLanguage(format) === requested);
+			if (matches.length) {
+				const defaultMatches = matches.filter((format) => format.audioTrack?.audioIsDefault === true);
+				return defaultMatches.length ? defaultMatches : matches;
+			}
+		}
+		const defaults = audioFormats.filter((format) => format.audioTrack?.audioIsDefault === true);
+		return defaults.length ? defaults : audioFormats;
+	}
+	function selectAudioFormat(formats, sourceLanguage) {
+		if (!formats.length) throw new Error("Audio downloader. Empty adaptive formats");
+		const withUrl = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string");
+		const audioFormats = withUrl.filter(({ audioQuality, mimeType }) => !mimeType?.includes("video/") && (Boolean(audioQuality) || mimeType?.includes("audio/")));
+		if (audioFormats.length) return selectAudioFormatFrom(preferSourceLanguageAudioFormats(audioFormats, sourceLanguage));
+		const selected = withUrl.find(({ itag }) => itag === 18) ?? withUrl.filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? "")).sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
 		if (!selected) {
 			debug.log("Audio downloader. no direct audio formats", JSON.stringify(formats.map((format) => ({
 				itag: format.itag,
@@ -23285,7 +23280,7 @@ var vot = (function(exports) {
 			}
 		}
 	}
-	async function* getWebAbrAudioChunks(targetWindow, videoId, signal) {
+	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
 		if (typeof apiKey !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
@@ -23361,7 +23356,7 @@ var vot = (function(exports) {
 					const status = playerResponse.playabilityStatus;
 					throw new Error(`Audio downloader. ${name} ${status?.status ?? "failed"}: ${status?.reason ?? status?.messages?.join(" ") ?? "no streaming data"}`);
 				}
-				const format = selectWebEmbeddedAudioFormat(formats);
+				const format = selectAudioFormat(formats, sourceLanguage);
 				const fetchedFlags = fetchedConfig?.experimentFlags;
 				const poTokenBinding = selectGvsPoTokenBinding(videoId, {
 					loggedIn,
@@ -23383,7 +23378,8 @@ var vot = (function(exports) {
 					const streamUrl = await authorizeUrl(solvedUrl);
 					const contentLength = Number(format.contentLength) || await probeContentLength(targetWindow, streamUrl, signal);
 					const refreshUrl = async () => {
-						const refreshed = (await requestPlayer()).streamingData?.adaptiveFormats?.find((entry) => entry.itag === format.itag && entry.mimeType === format.mimeType && Number(entry.contentLength) === contentLength && entry.lastModified === format.lastModified);
+						const response = await requestPlayer();
+						const refreshed = [...response.streamingData?.adaptiveFormats ?? [], ...response.streamingData?.formats ?? []].find((entry) => entry.itag === format.itag && entry.mimeType === format.mimeType && Number(entry.contentLength) === contentLength && entry.lastModified === format.lastModified);
 						if (!refreshed) throw new Error("Audio downloader. Refreshed audio format changed");
 						for await (const url of resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, signal)) return await authorizeUrl(url);
 						throw new Error("Audio downloader. Refreshed audio URL unavailable");
@@ -23430,6 +23426,11 @@ var vot = (function(exports) {
 		if (!message.payload || typeof message.payload !== "object") return;
 		const audioDownloadType = message.payload.audioDownloadType;
 		return audioDownloadType === AudioDownloadType.WEB_ABR || audioDownloadType === AudioDownloadType.WEB_MSE_PROXY ? audioDownloadType : void 0;
+	}
+	function getSourceLanguage(message) {
+		if (!message.payload || typeof message.payload !== "object") return;
+		const sourceLanguage = message.payload.sourceLanguage;
+		return typeof sourceLanguage === "string" && sourceLanguage ? sourceLanguage : void 0;
 	}
 	async function getEncryptedEmbedConfig(targetWindow, videoId) {
 		if (!/(?:^|\.)youtube\.com$/.test(targetWindow.location.hostname)) return;
@@ -23846,7 +23847,7 @@ var vot = (function(exports) {
 					isProgress: true
 				});
 			};
-			const chunks = audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
+			const chunks = audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
 			if (audioDownloadType === AudioDownloadType.WEB_ABR) {
 				postProgress();
 				heartbeat = setInterval(postProgress, 3e4);
@@ -24014,35 +24015,92 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/audioDownloader/index.ts
-	function assertHasAudioChunk(chunk) {
-		if (!chunk || chunk.byteLength === 0) throw new Error("Audio downloader. Empty audio");
-		return chunk;
-	}
-	async function handleCommonAudioDownloadRequest({ audioDownloader, attemptedStrategy, translationId, videoId, signal }) {
+	async function handleCommonAudioDownloadRequest({ audioDownloader, attemptedStrategy, translationId, videoId, signal, sourceLanguage }) {
 		const audioData = await strategies[attemptedStrategy]({
 			videoId,
-			signal
+			signal,
+			sourceLanguage
 		});
 		if (!audioData) throw new Error("Audio downloader. Can not get audio data");
 		debug.log("Audio downloader. Url found", { audioDownloadType: attemptedStrategy });
 		const { getMediaBuffers, fileId } = audioData;
 		let index = 0;
-		let receivedLastChunk = false;
-		for await (const { buffer, isLastChunk } of getMediaBuffers()) {
-			const chunk = isLastChunk && index > 0 ? buffer : assertHasAudioChunk(buffer);
-			const amount = isLastChunk ? index + 1 : 0;
+		let pending;
+		let sawTerminal = false;
+		const dispatchChunk = async (chunk, isLastChunk) => {
 			await audioDownloader.onDownloadedPartialAudio.dispatchAsync(translationId, {
 				videoId,
 				fileId,
 				audioData: chunk,
 				version: 1,
 				index,
-				amount
+				amount: isLastChunk ? index + 1 : 0
 			});
-			receivedLastChunk ||= isLastChunk;
 			index++;
+		};
+		for await (const raw of getMediaBuffers()) {
+			if (sawTerminal) {
+				if (raw.buffer.byteLength === 0 && raw.isLastChunk) continue;
+				throw new Error("Audio downloader. Malformed audio stream after last chunk");
+			}
+			if (raw.isLastChunk) {
+				if (raw.buffer.byteLength === 0) {
+					if (!pending) throw new Error("Audio downloader. Empty audio");
+					await dispatchChunk(pending.buffer, true);
+					pending = void 0;
+				} else {
+					if (pending) await dispatchChunk(pending.buffer, false);
+					pending = raw;
+				}
+				sawTerminal = true;
+				continue;
+			}
+			if (raw.buffer.byteLength === 0) throw new Error("Audio downloader. Empty audio");
+			if (pending) await dispatchChunk(pending.buffer, false);
+			pending = raw;
 		}
-		if (!receivedLastChunk) throw new Error("Audio downloader. Stream ended without a last chunk");
+		if (pending) {
+			if (!pending.isLastChunk) throw new Error("Audio downloader. Stream ended without a last chunk");
+			await dispatchChunk(pending.buffer, true);
+		} else if (!sawTerminal) throw new Error("Audio downloader. Stream ended without a last chunk");
+	}
+	var audioDownloadTails = /* @__PURE__ */ new Map();
+	function waitForPreviousDownload(previous, signal) {
+		return new Promise((resolve, reject) => {
+			if (signal.aborted) {
+				reject(makeAbortError());
+				return;
+			}
+			const onAbort = () => reject(makeAbortError());
+			signal.addEventListener("abort", onAbort, { once: true });
+			const settled = () => {
+				signal.removeEventListener("abort", onAbort);
+				resolve();
+			};
+			previous.then(settled, settled);
+		});
+	}
+	async function acquireAudioDownloadSlot(videoId, signal) {
+		throwIfAborted(signal);
+		const previous = audioDownloadTails.get(videoId) ?? Promise.resolve();
+		let resolveOwn;
+		const ownDone = new Promise((resolve) => {
+			resolveOwn = resolve;
+		});
+		const tail = previous.then(() => ownDone, () => ownDone);
+		audioDownloadTails.set(videoId, tail);
+		const cleanup = () => {
+			if (audioDownloadTails.get(videoId) === tail) audioDownloadTails.delete(videoId);
+		};
+		tail.then(cleanup, cleanup);
+		try {
+			await waitForPreviousDownload(previous, signal);
+			throwIfAborted(signal);
+		} catch (error) {
+			resolveOwn();
+			throw error;
+		}
+		return resolveOwn;
 	}
 	var AudioDownloader = class {
 		onDownloadedAudio = new EventImpl();
@@ -24053,37 +24111,55 @@ var vot = (function(exports) {
 			this.strategy = strategy;
 			debug.log("Audio downloader created", { strategy });
 		}
-		async runAudioDownload(videoId, translationId, signal) {
-			const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
-			for (const attemptedStrategy of attempts) try {
-				await handleCommonAudioDownloadRequest({
-					audioDownloader: this,
-					attemptedStrategy,
-					translationId,
-					videoId,
-					signal
-				});
-				debug.log("Audio downloader. Audio download finished", {
-					videoId,
-					audioDownloadType: attemptedStrategy
-				});
-				return;
+		async runAudioDownload(videoId, translationId, signal, sourceLanguage) {
+			let release;
+			try {
+				release = await acquireAudioDownloadSlot(videoId, signal);
 			} catch (error) {
 				if (signal.aborted || isAbortError(error)) {
-					debug.log("Audio downloader. Audio download aborted", {
+					debug.log("Audio downloader. Audio download aborted", { videoId });
+					return;
+				}
+				debug.error("Audio downloader. All audio download strategies failed", { videoId });
+				this.onDownloadAudioError.dispatch(translationId, videoId);
+				return;
+			}
+			try {
+				const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
+				for (const attemptedStrategy of attempts) try {
+					await handleCommonAudioDownloadRequest({
+						audioDownloader: this,
+						attemptedStrategy,
+						translationId,
 						videoId,
+						signal,
+						sourceLanguage
+					});
+					debug.log("Audio downloader. Audio download finished", {
+						videoId,
+						sourceLanguage,
 						audioDownloadType: attemptedStrategy
 					});
 					return;
+				} catch (error) {
+					if (signal.aborted || isAbortError(error)) {
+						debug.log("Audio downloader. Audio download aborted", {
+							videoId,
+							audioDownloadType: attemptedStrategy
+						});
+						return;
+					}
+					debug.error("Audio downloader. Strategy failed", {
+						videoId,
+						audioDownloadType: attemptedStrategy,
+						error: error instanceof Error ? error.message : String(error)
+					});
 				}
-				debug.error("Audio downloader. Strategy failed", {
-					videoId,
-					audioDownloadType: attemptedStrategy,
-					error: error instanceof Error ? error.message : String(error)
-				});
+				debug.error("Audio downloader. All audio download strategies failed", { videoId });
+				this.onDownloadAudioError.dispatch(translationId, videoId);
+			} finally {
+				release();
 			}
-			debug.error("Audio downloader. All audio download strategies failed", { videoId });
-			this.onDownloadAudioError.dispatch(translationId, videoId);
 		}
 		addEventListener(type, listener) {
 			switch (type) {
@@ -24556,7 +24632,7 @@ var vot = (function(exports) {
 						translationId: res.translationId,
 						timeoutMs: STREAM_TIMEOUT_MS
 					});
-					await Promise.all([this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS), this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal)]);
+					await Promise.all([this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS), this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal, videoData.detectedLanguage)]);
 					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
 						disableLivelyVoice: livelyDisabled,
 						retryAttempt
@@ -37777,7 +37853,7 @@ var vot = (function(exports) {
 				},
 				apiToken: hasValidAccountToken(this.data?.account) ? this.data?.account?.token : void 0,
 				host: transportHost,
-				provider: proxyClientEnabled ? VOTWorkerProvider : YandexProvider
+				provider: proxyClientEnabled ? VOTNextWorkerProvider : YandexProvider
 			};
 			this.votClient = new VOTClient(this.votOpts);
 			this.votClient.provider.sessions = await this.votSessionStorage.restore(transportHost, this.votClient.provider.sessions);
