@@ -4,6 +4,21 @@
 
 you MUST NOT use `autobuild:signed` or `sign:firefox` commands in your local environment. These commands are only for the CI/CD pipeline and will not work on your local machine.
 
+## Code style
+
+Avoid overusing comments in code. Prefer clear naming, simple structure, and self-explanatory code over comments that merely restate what the code does.
+
+Add comments only when they provide information that is not obvious from the code itself, such as:
+
+- explaining complex or non-obvious logic;
+- documenting important assumptions, constraints, edge cases, or workarounds;
+- explaining why a particular approach was chosen when the reason is not apparent;
+- warning about behavior that could easily be misunderstood or accidentally broken.
+
+Do not add comments for trivial operations, obvious control flow, variable assignments, function calls, or code whose intent is already clear from its names and structure.
+
+Prefer comments that explain **why**, not **what**. If a comment can be removed by making the code clearer, improve the code instead.
+
 ## User Interface Component
 
 You MUST prefer use `vot-block` instead of `div`, `span`, `p` and etc for unified styles on every websites.
