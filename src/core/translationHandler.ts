@@ -122,6 +122,16 @@ export class VOTTranslationHandler {
   // In normal operation we should upload audio through the MSE proxy path.
   private readonly requestedFailAudio = new Set<string>();
 
+  // Resume state is intentionally kept only for a failed first audio upload.
+  // A successful translation clears it, so later target languages use the
+  // normal server-side path and do not replay YouTube audio.
+  private uploadResumeState: {
+    videoId: string;
+    fileId: string;
+    lastSuccessfulChunkId: number;
+    failed: boolean;
+  } | null = null;
+
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
     this.audioDownloader = new AudioDownloader();
@@ -184,6 +194,21 @@ export class VOTTranslationHandler {
 
     const { audioData, fileId, videoId, amount, version, index } = data;
     const videoUrl = this.getCanonicalUrl(videoId);
+    const resume = this.uploadResumeState;
+    if (
+      resume?.failed &&
+      resume.videoId === videoId &&
+      resume.fileId === fileId &&
+      index <= resume.lastSuccessfulChunkId
+    ) {
+      debug.log("[VOT][AudioUpload] skipping already uploaded chunk", {
+        videoId,
+        fileId,
+        chunkId: index,
+        lastSuccessfulChunkId: resume.lastSuccessfulChunkId,
+      });
+      return;
+    }
     try {
       await this.retryAudioUpload(() =>
         this.videoHandler.votClient.provider.requestVtransAudio(
@@ -200,15 +225,37 @@ export class VOTTranslationHandler {
           },
         ),
       );
+      this.uploadResumeState = {
+        videoId,
+        fileId,
+        lastSuccessfulChunkId: index,
+        failed: false,
+      };
     } catch (error) {
-      debug.error("Failed to upload downloaded audio chunk", error);
-      this.finishDownloadFailure(
-        new Error("Audio downloader failed while uploading chunk"),
-      );
+      debug.error("[VOT][AudioUpload] chunk PUT failed after all retries", {
+        videoId,
+        fileId,
+        chunkId: index,
+        amount,
+        bytes: audioData.byteLength,
+        error,
+      });
+      this.uploadResumeState = {
+        videoId,
+        fileId,
+        lastSuccessfulChunkId:
+          this.uploadResumeState?.videoId === videoId
+            ? this.uploadResumeState.lastSuccessfulChunkId
+            : index - 1,
+        failed: true,
+      };
+      this.finishDownloadFailure(new VOTLocalizedError("VOTRetryTranslation"));
       return;
     }
 
     if (amount !== undefined && index === amount - 1) {
+      this.uploadResumeState = null;
+      this.audioDownloader.clearCachedAudio(videoId);
       this.finishDownloadSuccess();
     }
   };
@@ -222,7 +269,9 @@ export class VOTTranslationHandler {
       return;
     }
 
-    debug.log(`Failed to download audio ${videoId}`);
+    debug.error("[VOT][AudioDownload] failed to download audio from source", {
+      videoId,
+    });
     const videoUrl = this.getCanonicalUrl(videoId);
 
     // The fail-audio-js endpoint is a rare fallback. Keep its usage minimal and
@@ -281,7 +330,7 @@ export class VOTTranslationHandler {
     return `https://youtu.be/${videoId}`;
   }
 
-  private static readonly AUDIO_UPLOAD_MAX_RETRIES = 2;
+  private static readonly AUDIO_UPLOAD_MAX_RETRIES = 15;
   private static readonly AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
 
   private async retryAudioUpload<T>(fn: () => Promise<T>): Promise<T> {
@@ -294,11 +343,23 @@ export class VOTTranslationHandler {
         return await fn();
       } catch (error) {
         lastError = error;
+        const details = error as {
+          status?: unknown;
+          code?: unknown;
+          message?: unknown;
+        };
+        debug.error("[VOT][AudioUpload] PUT attempt failed", {
+          attempt: attempt + 1,
+          totalAttempts: maxRetries + 1,
+          status: details?.status,
+          code: details?.code,
+          message: details?.message ?? getErrorMessage(error),
+        });
         if (attempt === maxRetries) {
           throw error;
         }
         debug.log(
-          `[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
+          `[VOT][AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
         );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
