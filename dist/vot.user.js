@@ -10478,7 +10478,9 @@ var vot = (function(exports) {
 			const videoHandler = videosWrappers.get(video);
 			if (!videoHandler) return;
 			try {
-				await videoHandler.release();
+				if (typeof videoHandler.release === "function") {
+					await videoHandler.release();
+				}
 			} catch (error) {
 				console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
 			} finally {
@@ -20137,7 +20139,7 @@ var vot = (function(exports) {
 		});
 	}
 	function it(e) {
-		return e >= 55296 && e <= 57343 || e > 1114111 ? "�" : String.fromCodePoint(Ke(nt, e) ?? e);
+		return e >= 55296 && e <= 57343 || e > 1114111 ? " " : String.fromCodePoint(Ke(nt, e) ?? e);
 	}
 	function at(e, t) {
 		return e.startIndex = e.tokenIndex = e.index, e.startColumn = e.tokenColumn = e.column, e.startLine = e.tokenLine = e.line, e.setToken(b$1[e.currentChar] & 8192 ? ot(e) : et(e, t, 0)), e.getToken();
@@ -26630,13 +26632,23 @@ var vot = (function(exports) {
 		style.textContent = shadowScopedCssText;
 		shadowRoot.append(style);
 	}
+	var nativeAttachShadow = Element.prototype.attachShadow;
+	function safeAttachShadow(element, init) {
+		if (typeof element.attachShadow === "function") {
+			return element.attachShadow(init);
+		}
+		if (typeof nativeAttachShadow === "function") {
+			return nativeAttachShadow.call(element, init);
+		}
+		throw new TypeError("attachShadow is not supported in this environment");
+	}
 	function createShadowMount({ parent, hostTag = "vot-shadow-host", rootTag = "vot-block", hostClasses = [], rootClasses = [], hostStyles, rootStyles, delegatesFocus = false }) {
 		const host = createMountElement({
 			tag: hostTag,
 			classes: hostClasses,
 			styles: hostStyles
 		});
-		const shadowRoot = host.attachShadow({
+		const shadowRoot = safeAttachShadow(host, {
 			mode: "open",
 			delegatesFocus
 		});
