@@ -162,7 +162,7 @@ async function acquireAudioDownloadSlot(
 export class AudioDownloader {
   private readonly completedAudioCache = new Map<
     string,
-    { fileId: string; chunks: Uint8Array[]; version: number }
+    { fileId: string; chunks: Uint8Array[]; version: 1 }
   >();
   private readonly collectingChunks = new Map<string, Uint8Array[]>();
 
@@ -224,7 +224,7 @@ export class AudioDownloader {
         await this.onDownloadedPartialAudio.dispatchAsync(translationId, {
           videoId,
           fileId: cached.fileId,
-          audioData: cached.chunks[index]!,
+          audioData: cached.chunks[index] ?? new Uint8Array(),
           version: cached.version,
           index,
           amount: index === cached.chunks.length - 1 ? cached.chunks.length : 0,

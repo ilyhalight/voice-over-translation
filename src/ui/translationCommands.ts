@@ -93,10 +93,15 @@ export async function handleTranslationButtonCommand(
       "[handleTranslationBtnClick] Run translateFunc",
       videoData.videoId,
     );
+    const requestLang =
+      videoHandler.translateFromLang === "auto"
+        ? videoData.detectedLanguage
+        : videoHandler.translateFromLang;
+
     await videoHandler.translateFunc(
       videoData.videoId,
       videoData.isStream,
-      videoData.detectedLanguage,
+      requestLang,
       videoData.responseLanguage,
       videoData.translationHelp,
     );

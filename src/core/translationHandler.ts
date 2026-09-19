@@ -330,7 +330,7 @@ export class VOTTranslationHandler {
     return `https://youtu.be/${videoId}`;
   }
 
-  private static readonly AUDIO_UPLOAD_MAX_RETRIES = 15;
+  private static readonly AUDIO_UPLOAD_MAX_RETRIES = 5;
   private static readonly AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
 
   private async retryAudioUpload<T>(fn: () => Promise<T>): Promise<T> {
@@ -561,7 +561,7 @@ export class VOTTranslationHandler {
             videoData.videoId,
             res.translationId,
             signal,
-            videoData.detectedLanguage,
+            requestLang,
           ),
         ]);
 
