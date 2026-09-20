@@ -1,4 +1,4 @@
-import { openAuthWindow } from "../core/authWindow";
+import { openAuthWindow } from "../core/auth/window";
 import { t } from "../localization/localizationProvider";
 import type { Status } from "../types/components/votButton";
 import { deleteExpiredAccount } from "../utils/account";
@@ -50,7 +50,7 @@ async function prepareAuthStateForTranslation(
     return;
   }
 
-  openAuthWindow();
+  await openAuthWindow();
   throw new VOTLocalizedError("VOTYandexTokenExpired");
 }
 

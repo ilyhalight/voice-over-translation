@@ -25,7 +25,7 @@ import { getErrorMessage, isAbortError, safeNestedGet } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
 import type { VideoData } from "../videoHandler/shared";
-import { openAuthWindow } from "./authWindow";
+import { openAuthWindow } from "./auth/window";
 import {
   getTranslationAuthErrorKind,
   getTranslationServerErrorMessage,
@@ -366,9 +366,9 @@ export class VOTTranslationHandler {
 
     if (uiError.unlocalizedMessage === "VOTYandexTokenExpired") {
       await deleteAccount(this.videoHandler);
-      openAuthWindow();
+      await openAuthWindow();
     } else if (uiError.unlocalizedMessage === "VOTAccountRequired") {
-      openAuthWindow();
+      await openAuthWindow();
     }
   }
 

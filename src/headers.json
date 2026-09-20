@@ -137,6 +137,7 @@
     "*://projector.datacamp.com/*",
     "*://hot.noodlemagazine.com/*",
     "*://fast.wistia.net/*",
+    "*://oauth.yandex.ru/verification_code*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
@@ -151,6 +152,8 @@
   ],
   "connect": [
     "yandex.ru",
+    "oauth.yandex.ru",
+    "login.yandex.ru",
     "disk.yandex.kz",
     "disk.yandex.com",
     "disk.yandex.com.am",

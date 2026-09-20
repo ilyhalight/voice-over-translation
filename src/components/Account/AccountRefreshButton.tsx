@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-
+import { updateAccountInfo } from "../../core/auth/yandex";
 import { t } from "../../localization/localizationProvider";
 import { updateAccountFromStorage } from "../../stores/account";
 import { IconButton } from "../Button/IconButton";
@@ -17,7 +17,11 @@ export function AccountRefreshButton(
       ref={props.ref}
       ariaLabel={t("VOTRefresh")}
       onClick={async () => {
-        await updateAccountFromStorage();
+        try {
+          await updateAccountInfo();
+        } catch {
+          await updateAccountFromStorage();
+        }
       }}
     >
       <RefreshIcon />

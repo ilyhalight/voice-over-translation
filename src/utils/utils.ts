@@ -274,3 +274,10 @@ export function toFlatObj<T extends Record<string, unknown>>(
 
   return out as T;
 }
+
+export function base64UrlEncode(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}

@@ -1,4 +1,4 @@
-import { authLoginUrl } from "../config/config";
+import { createAuthLink } from "./yandex";
 
 const AUTH_WINDOW_NAME = "votAuthWindow";
 const AUTH_WINDOW_WIDTH = 520;
@@ -49,8 +49,8 @@ function getAuthWindowFeatures(): string {
   ].join(",");
 }
 
-export function openAuthWindow(): void {
+export async function openAuthWindow(): Promise<void> {
   globalThis
-    .open(authLoginUrl, AUTH_WINDOW_NAME, getAuthWindowFeatures())
+    .open(await createAuthLink(), AUTH_WINDOW_NAME, getAuthWindowFeatures())
     ?.focus?.();
 }

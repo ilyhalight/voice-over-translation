@@ -1,5 +1,5 @@
-import { authServerUrl } from "../config/config";
-import { initAuth } from "../core/auth";
+import { YANDEX_AUTH_ORIGIN } from "../config/auth";
+import { handleAuthCallbackPage } from "../core/auth/message";
 import {
   ensureLocalizationProviderReady,
   localizationProvider,
@@ -21,8 +21,8 @@ async function activateRuntime(
 ): Promise<void> {
   logBootstrap("Activating runtime", { reason });
 
-  if (globalThis.location.origin === authServerUrl) {
-    await initAuth();
+  if (globalThis.location.origin === YANDEX_AUTH_ORIGIN) {
+    await handleAuthCallbackPage();
     runtimeActivated = true;
     return;
   }

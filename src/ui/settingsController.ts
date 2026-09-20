@@ -44,8 +44,9 @@ function createSettingsEvents(): {
 import { type Accessor, createSignal, type Setter } from "solid-js";
 import { SettingsDialog } from "../components/Settings/SettingsDialog";
 import { PROXY_WORKER_HOST } from "../config/config";
-import { isAuthRefreshMessage } from "../core/authRefreshMessage";
-import { openAuthWindow } from "../core/authWindow";
+import { isAuthDataMessage } from "../core/auth/message";
+import { openAuthWindow } from "../core/auth/window";
+import { updateAccountByCallbackData } from "../core/auth/yandex";
 import {
   type LangOverride,
   localizationProvider,
@@ -123,10 +124,13 @@ export class SettingsController {
   private persistTimerIds: Partial<
     Record<BufferedNumericStorageKey, ReturnType<typeof setTimeout>>
   > = {};
-  private readonly onAuthRefreshMessage = (event: MessageEvent<unknown>) => {
-    if (!isAuthRefreshMessage(event.data)) {
+  private readonly onAuthDataMessage = async (event: MessageEvent<unknown>) => {
+    if (!isAuthDataMessage(event.data)) {
       return;
     }
+
+    const { data } = event.data;
+    await updateAccountByCallbackData(data);
 
     void this.refreshAccountFromStorage();
   };
@@ -274,7 +278,7 @@ export class SettingsController {
               return this.updateAccountInfo();
             }
 
-            openAuthWindow();
+            await openAuthWindow();
           },
         },
         translation: {
@@ -489,7 +493,7 @@ export class SettingsController {
     if (!this.isInitialized()) {
       throw new Error("[VOT] SettingsController isn't initialized");
     }
-    globalThis.addEventListener("message", this.onAuthRefreshMessage);
+    globalThis.addEventListener("message", this.onAuthDataMessage);
     this.bindAccountStorageListener();
     return this;
   }
@@ -518,7 +522,7 @@ export class SettingsController {
   private doReleaseUIEvents(): void {
     this.accountStorageListenerCleanup?.();
     this.accountStorageListenerCleanup = undefined;
-    globalThis.removeEventListener("message", this.onAuthRefreshMessage);
+    globalThis.removeEventListener("message", this.onAuthDataMessage);
     this.flushStoragePersists();
     for (const event of Object.values(this.events)) event.clear();
   }
