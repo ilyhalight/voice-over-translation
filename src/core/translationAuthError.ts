@@ -1,4 +1,4 @@
-﻿import { VideoTranslationStatus } from "@vot.js/core/types/yandex";
+﻿import { VideoTranslationStatus } from "@vot.js/core/types/providers/yandex";
 
 import { safeNestedGet } from "../utils/errors";
 

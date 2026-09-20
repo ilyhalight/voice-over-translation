@@ -1,5 +1,6 @@
-import { AudioDownloadType } from "@vot.js/core/types/yandex";
+import { AudioDownloadType } from "@vot.js/core/types/providers/yandex";
 import { config } from "@vot.js/shared";
+
 import debug from "../../utils/debug";
 import { isAbortError } from "../../utils/errors";
 import { type AudioChunk, concatBuffers } from "./audioChunks";

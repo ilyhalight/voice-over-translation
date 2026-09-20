@@ -1,8 +1,8 @@
-import type { VideoService } from "@vot.js/core/types/service";
 import type {
-  GetSubtitlesResponse,
-  VideoSubtitlesOpts,
-} from "@vot.js/core/types/yandex";
+  BaseGetSubtitlesResponse,
+  BaseVideoSubtitlesOpts,
+} from "@vot.js/core/types/providers/base";
+import type { VideoService } from "@vot.js/core/types/service";
 import { subtitlesFormats as votjsSubtitlesFormats } from "@vot.js/shared/consts";
 
 export const subtitleFormats = [...votjsSubtitlesFormats, "ass"] as const;
@@ -162,8 +162,8 @@ export type VideoDataForSubtitles = {
   subtitles?: SubtitleDescriptor[];
 };
 
-export type SubtitlesRequestPayload = VideoSubtitlesOpts<VideoService>;
-export type SubtitlesResponsePayload = GetSubtitlesResponse;
+export type SubtitlesRequestPayload = BaseVideoSubtitlesOpts<VideoService>;
+export type SubtitlesResponsePayload = BaseGetSubtitlesResponse;
 
 export interface SubtitlesClient {
   getSubtitles(

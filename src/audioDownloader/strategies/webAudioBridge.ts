@@ -1,4 +1,4 @@
-import type { AudioDownloadType } from "@vot.js/core/types/yandex";
+import type { AudioDownloadType } from "@vot.js/core/types/providers/yandex";
 
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
 import debug from "../../utils/debug";

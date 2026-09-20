@@ -1,9 +1,9 @@
 import {
   type TranslatedVideoTranslationResponse,
-  type TranslationHelp,
+  type VideoTranslationHelp,
   type VideoTranslationResponse,
   VideoTranslationStatus,
-} from "@vot.js/core/types/yandex";
+} from "@vot.js/core/types/providers/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { AudioDownloader } from "../audioDownloader";
@@ -376,7 +376,7 @@ export class VOTTranslationHandler {
     videoData: VideoData,
     requestLang: RequestLang,
     responseLang: ResponseLang,
-    translationHelp: TranslationHelp[] | null = null,
+    translationHelp: VideoTranslationHelp[] | null = null,
     shouldSendFailedAudio = false,
     signal = NEVER_ABORTED_SIGNAL,
     options: TranslateVideoImplOptions = {},
@@ -623,7 +623,7 @@ export class VOTTranslationHandler {
     videoData: VideoData;
     requestLangForApi: RequestLang;
     responseLang: ResponseLang;
-    translationHelp: TranslationHelp[] | null;
+    translationHelp: VideoTranslationHelp[] | null;
     shouldSendFailedAudio: boolean;
     livelyDisabled: boolean;
     livelyVoiceAllowed: boolean;
