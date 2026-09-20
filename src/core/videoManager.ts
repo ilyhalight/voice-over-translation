@@ -38,6 +38,17 @@ const MAX_SHARED_LANGUAGE_STATES = 500;
 const REQUEST_LANG_SET = new Set<RequestLang>(
   availableLangs as readonly RequestLang[],
 );
+const SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set<RequestLang>([
+  "ru",
+  "en",
+  "zh",
+  "ko",
+  "fr",
+  "it",
+  "es",
+  "de",
+  "ja",
+]);
 
 type ResolvedRequestLang = Exclude<RequestLang, "auto">;
 type SharedLanguageState = {
@@ -165,6 +176,79 @@ function isResolvedLanguage(
   value: RequestLang | undefined,
 ): value is ResolvedRequestLang {
   return Boolean(value && value !== "auto");
+}
+
+function getYoutubeAudioFormatLanguage(format: any): RequestLang | undefined {
+  const direct =
+    format?.languageCode ??
+    format?.language ??
+    format?.audioTrack?.languageCode ??
+    format?.audioTrack?.language;
+  const normalizedDirect = normalizeToRequestLang(direct);
+  if (normalizedDirect) return normalizedDirect;
+
+  const trackId = format?.audioTrack?.id ?? format?.audioTrackId;
+  if (typeof trackId === "string") {
+    const match = trackId.match(
+      /(?:^|[.;:_-])([a-z]{2,3}(?:-[a-z]{2})?)(?:[.;:_-]|$)/i,
+    );
+    const normalized = normalizeToRequestLang(match?.[1]);
+    if (normalized) return normalized;
+  }
+
+  try {
+    const rawUrl =
+      typeof format?.url === "string"
+        ? format.url
+        : typeof format?.signatureCipher === "string"
+          ? new URLSearchParams(format.signatureCipher).get("url")
+          : undefined;
+    const xtags = rawUrl
+      ? (new URL(rawUrl).searchParams.get("xtags") ?? "")
+      : "";
+    const match = /(?:^|:)lang=([^:]+)/i.exec(xtags);
+    return normalizeToRequestLang(match?.[1]);
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveSupportedYoutubeAudioLanguage(): RequestLang | undefined {
+  const response = YoutubeHelper.getPlayerResponse() as any;
+  const formats = [
+    ...(Array.isArray(response?.streamingData?.adaptiveFormats)
+      ? response.streamingData.adaptiveFormats
+      : []),
+    ...(Array.isArray(response?.streamingData?.formats)
+      ? response.streamingData.formats
+      : []),
+  ].filter((format: any) => {
+    const mimeType = String(format?.mimeType ?? "");
+    return mimeType.includes("audio/") && !mimeType.includes("video/");
+  });
+
+  const preferredItags = [
+    251, 140, 141, 250, 249, 139, 256, 258, 325, 327, 328, 338, 171, 172,
+  ];
+  const rank = (format: any) => {
+    const index = preferredItags.indexOf(Number(format?.itag));
+    return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+  };
+
+  return formats
+    .map((format: any) => ({
+      format,
+      language: getYoutubeAudioFormatLanguage(format),
+    }))
+    .filter(
+      (item: any) =>
+        item.language && SUPPORTED_TRANSLATION_SOURCE_LANGS.has(item.language),
+    )
+    .sort(
+      (a: any, b: any) =>
+        rank(a.format) - rank(b.format) ||
+        Number(b.format?.bitrate ?? 0) - Number(a.format?.bitrate ?? 0),
+    )[0]?.language;
 }
 
 function buildDetectText(title: unknown, description: unknown): string {
@@ -407,28 +491,63 @@ export class VOTVideoManager {
   async ensureDetectedLanguageForTranslation(
     videoData: RuntimeVideoData | undefined,
   ): Promise<void> {
-    if (!videoData?.videoId || videoData.detectedLanguage !== "auto") {
+    if (!videoData?.videoId) return;
+
+    if (videoData.detectedLanguage === "auto") {
+      const { detectedLanguage } = await this.resolveVideoLanguage({
+        videoId: videoData.videoId,
+        isStream: videoData.isStream,
+        possibleLanguage: videoData.detectedLanguage,
+        subtitles: videoData.subtitles,
+        title: videoData.title,
+        description: videoData.description,
+        allowTextLanguageDetection: true,
+      });
+      if (detectedLanguage && detectedLanguage !== "auto") {
+        videoData.detectedLanguage = detectedLanguage;
+      }
+    }
+
+    const detected = normalizeToRequestLang(videoData.detectedLanguage);
+    if (
+      detected &&
+      detected !== "auto" &&
+      SUPPORTED_TRANSLATION_SOURCE_LANGS.has(detected)
+    ) {
       return;
     }
 
-    const { detectedLanguage } = await this.resolveVideoLanguage({
+    if (this.videoHandler.site.host !== "youtube") return;
+
+    const supportedVideoLanguage = resolveSupportedYoutubeAudioLanguage();
+    if (!supportedVideoLanguage) {
+      debug.log("[language] no supported YouTube audio track found", {
+        videoId: videoData.videoId,
+        detectedLanguage: videoData.detectedLanguage,
+      });
+      return;
+    }
+
+    const previousLanguage = videoData.detectedLanguage;
+    videoData.detectedLanguage = supportedVideoLanguage;
+    this.setDetectedLanguageCache(videoData.videoId, supportedVideoLanguage);
+
+    if (this.videoHandler.translateFromLang === "auto") {
+      this.videoHandler.translateFromLang = supportedVideoLanguage;
+      this.videoHandler.autoSourceLanguageOverride = supportedVideoLanguage;
+      this.videoHandler.autoSourceLanguageOverrideVideoId = videoData.videoId;
+      this.videoHandler.setSelectMenuValues(
+        supportedVideoLanguage,
+        videoData.responseLanguage,
+      );
+    }
+
+    debug.log("[language] unsupported language switched immediately", {
       videoId: videoData.videoId,
-      isStream: videoData.isStream,
-      possibleLanguage: videoData.detectedLanguage,
-      subtitles: videoData.subtitles,
-      title: videoData.title,
-      description: videoData.description,
-      allowTextLanguageDetection: true,
+      previousLanguage,
+      supportedVideoLanguage,
+      translateFromLang: this.videoHandler.translateFromLang,
     });
-
-    if (!detectedLanguage || detectedLanguage === "auto") {
-      return;
-    }
-
-    this.videoHandler.setSelectMenuValues(
-      detectedLanguage,
-      this.videoHandler.translateToLang,
-    );
   }
 
   async getVideoData() {

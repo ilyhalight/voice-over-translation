@@ -85,6 +85,19 @@ export async function handleTranslationButtonCommand(
 
     debug.log("[handleTranslationBtnClick] trying execute translation");
     const videoData = await getVideoDataForTranslation(videoHandler);
+
+    // Automatic fallback belongs only to the video where it was selected.
+    // Reset it before resolving the language of a newly opened video.
+    if (
+      videoHandler.autoSourceLanguageOverrideVideoId &&
+      videoHandler.autoSourceLanguageOverrideVideoId !== videoData.videoId
+    ) {
+      videoHandler.translateFromLang = "auto";
+      videoHandler.autoSourceLanguageOverride = undefined;
+      videoHandler.autoSourceLanguageOverrideVideoId = undefined;
+      videoHandler.setSelectMenuValues("auto", videoData.responseLanguage);
+    }
+
     await videoHandler.videoManager.ensureDetectedLanguageForTranslation(
       videoData,
     );
