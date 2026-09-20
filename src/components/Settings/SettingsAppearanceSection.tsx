@@ -1,5 +1,8 @@
 import type { JSX } from "solid-js";
-import { localizationProvider } from "../../localization/localizationProvider";
+import {
+  localizationProvider,
+  t,
+} from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import { type Position, positions } from "../../types/components/votButton";
 import { isPiPAvailable } from "../../utils/utils";
@@ -31,10 +34,10 @@ export function SettingsAppearanceSection(
   const autoHideButtonDelaySecs = () =>
     Math.round(settings.autoHideButtonDelay / STEP_AUTO_HIDE_BUTTON_DELAY) / 10;
   const autoHideButtonDelayValueText = () =>
-    `${autoHideButtonDelaySecs()} ${localizationProvider.get("secs")}`;
+    `${autoHideButtonDelaySecs()} ${t("secs")}`;
 
   const buttonPositionOptions = positions.map<SelectOption>((position) => ({
-    label: localizationProvider.get(`position.${position}`),
+    label: t(`position.${position}`),
     value: position,
   }));
 
@@ -43,9 +46,9 @@ export function SettingsAppearanceSection(
   );
 
   return (
-    <SettingsSection title={localizationProvider.get("appearance")}>
+    <SettingsSection title={t("appearance")}>
       <Switch
-        heading={localizationProvider.get("VOTShowPiPButton")}
+        heading={t("VOTShowPiPButton")}
         checked={settings.showPiPButton}
         hidden={!isPiPAvailable()}
         onChange={(checked) => {
@@ -55,7 +58,7 @@ export function SettingsAppearanceSection(
       />
       <SliderWrapper>
         <SliderLabel value={autoHideButtonDelayValueText()}>
-          {localizationProvider.get("autoHideButtonDelay")}
+          {t("autoHideButtonDelay")}
         </SliderLabel>
         <Slider
           min={MIN_AUTO_HIDE_BUTTON_DELAY}
@@ -69,7 +72,7 @@ export function SettingsAppearanceSection(
         />
       </SliderWrapper>
       <Select
-        title={localizationProvider.get("buttonPosition")}
+        title={t("buttonPosition")}
         options={buttonPositionOptions}
         selectedValue={settings.buttonPos}
         onSelect={(option) => {
@@ -77,16 +80,16 @@ export function SettingsAppearanceSection(
           props.onButtonPositionSelect?.(option);
         }}
       >
-        {localizationProvider.get("buttonPosition")}
+        {t("buttonPosition")}
       </Select>
       <Select
-        title={localizationProvider.get("VOTMenuLanguage")}
+        title={t("VOTMenuLanguage")}
         options={langsOptions}
         selectedValue={localizationProvider.langOverride}
         onSelect={props.onLangSelect}
         search={true}
       >
-        {localizationProvider.get("VOTMenuLanguage")}
+        {t("VOTMenuLanguage")}
       </Select>
     </SettingsSection>
   );

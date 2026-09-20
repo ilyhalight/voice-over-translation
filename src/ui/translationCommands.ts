@@ -1,5 +1,5 @@
 import { openAuthWindow } from "../core/authWindow";
-import { localizationProvider } from "../localization/localizationProvider";
+import { t } from "../localization/localizationProvider";
 import type { Status } from "../types/components/votButton";
 import { deleteExpiredAccount } from "../utils/account";
 import debug from "../utils/debug";
@@ -70,7 +70,7 @@ export async function handleTranslationButtonCommand(
   }
 
   if (deps.currentStatus === "error" && !deps.currentLoading) {
-    deps.transformBtn("none", localizationProvider.get("translateVideo"));
+    deps.transformBtn("none", t("translateVideo"));
   }
 
   if (deps.currentStatus !== "none" || deps.currentLoading) {
@@ -102,7 +102,7 @@ export async function handleTranslationButtonCommand(
     );
   } catch (err) {
     if (isAbortError(err)) {
-      deps.transformBtn("none", localizationProvider.get("translateVideo"));
+      deps.transformBtn("none", t("translateVideo"));
       return;
     }
 

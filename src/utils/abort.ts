@@ -3,6 +3,48 @@ import { isAbortError, makeAbortError } from "./errors";
 export const NEVER_ABORTED_SIGNAL = new AbortController().signal;
 
 /**
+ * Links an external signal to a per-run controller without `AbortSignal.any`
+ * (unavailable on Firefox 106 / Chrome 106). Aborting the source aborts the
+ * target; returns a cleanup that detaches the listener.
+ */
+export function linkAbortSignal(
+  source: AbortSignal,
+  target: AbortController,
+): () => void {
+  const reason =
+    typeof (source as { reason?: unknown }).reason !== "undefined"
+      ? (source as { reason?: unknown }).reason
+      : undefined;
+  if (source.aborted) {
+    try {
+      target.abort(reason);
+    } catch {
+      // ignore
+    }
+    return () => {};
+  }
+  const onAbort = () => {
+    try {
+      target.abort(
+        typeof (source as { reason?: unknown }).reason !== "undefined"
+          ? (source as { reason?: unknown }).reason
+          : undefined,
+      );
+    } catch {
+      // ignore
+    }
+  };
+  source.addEventListener("abort", onAbort, { once: true });
+  return () => {
+    try {
+      source.removeEventListener("abort", onAbort);
+    } catch {
+      // ignore
+    }
+  };
+}
+
+/**
  * Throws a canonical AbortError if the provided signal is aborted.
  *
  * Runtimes that implement `AbortSignal.throwIfAborted()` throw `signal.reason`,

@@ -4,7 +4,10 @@ import type { JSX } from "solid-js";
 import { AboutItem } from "./AboutItem";
 import "./AboutSection.scss";
 
-import { localizationProvider } from "../../localization/localizationProvider";
+import {
+  localizationProvider,
+  t,
+} from "../../localization/localizationProvider";
 import { locale } from "../../stores/locale";
 import { getEnvironmentInfo } from "../../utils/environment";
 import { votStorage } from "../../utils/storage";
@@ -19,40 +22,31 @@ export function AboutSection(props: AboutSectionProps): JSX.Element {
   const safeGMInfo = typeof GM_info === "undefined" ? undefined : GM_info;
   const scriptVersion =
     envInfo.scriptVersion === "unknown"
-      ? safeGMInfo?.script?.version || localizationProvider.get("notFound")
+      ? safeGMInfo?.script?.version || t("notFound")
       : envInfo.scriptVersion;
   const buildAuthors =
     typeof VOT_AUTHORS === "undefined" ? "" : String(VOT_AUTHORS);
   const scriptAuthors =
     (safeGMInfo?.script as TMInfoScriptMeta)?.author ||
     buildAuthors ||
-    localizationProvider.get("notFound");
+    t("notFound");
   const browserInfo = `${envInfo.browser} (${envInfo.os})`;
 
   const localeUpdatedAt = () =>
     new Date(locale.updatedAt * 1000).toLocaleString();
-  const localeHashValue = () =>
-    locale.hash || localizationProvider.get("notFound");
+  const localeHashValue = () => locale.hash || t("notFound");
 
   return (
     <vot-block ref={props.ref} class="vot-about-section">
-      <AboutItem label={localizationProvider.get("VOTVersion")}>
-        {scriptVersion}
-      </AboutItem>
-      <AboutItem label={localizationProvider.get("VOTAuthors")}>
-        {scriptAuthors}
-      </AboutItem>
-      <AboutItem label={localizationProvider.get("VOTLoader")}>
-        {envInfo.loader}
-      </AboutItem>
-      <AboutItem label={localizationProvider.get("VOTBrowser")}>
-        {browserInfo}
-      </AboutItem>
-      <AboutItem label={localizationProvider.get("VOTLocaleHash")}>
+      <AboutItem label={t("VOTVersion")}>{scriptVersion}</AboutItem>
+      <AboutItem label={t("VOTAuthors")}>{scriptAuthors}</AboutItem>
+      <AboutItem label={t("VOTLoader")}>{envInfo.loader}</AboutItem>
+      <AboutItem label={t("VOTBrowser")}>{browserInfo}</AboutItem>
+      <AboutItem label={t("VOTLocaleHash")}>
         {localeHashValue()}
         <br />
         <vot-block class="vot-about-item__value_detail">
-          ({localizationProvider.get("VOTUpdatedAt")} {localeUpdatedAt()})
+          ({t("VOTUpdatedAt")} {localeUpdatedAt()})
         </vot-block>
       </AboutItem>
       <OutlinedButton
@@ -62,7 +56,7 @@ export function AboutSection(props: AboutSectionProps): JSX.Element {
           globalThis.location.reload();
         }}
       >
-        {localizationProvider.get("VOTUpdateLocaleFiles")}
+        {t("VOTUpdateLocaleFiles")}
       </OutlinedButton>
     </vot-block>
   );

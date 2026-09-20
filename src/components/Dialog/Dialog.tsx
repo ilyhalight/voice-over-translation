@@ -5,7 +5,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { getDeepActiveElement } from "../../utils/dom";
 import { IconButton } from "../Button/IconButton";
 import { Overlay } from "../Utils/Overlay";
@@ -213,7 +213,7 @@ export function Dialog(props: DialogProps): JSX.Element {
             </vot-block>
             <IconButton
               ref={(element) => (closeButton = element)}
-              ariaLabel={localizationProvider.get("VOTClose")}
+              ariaLabel={t("VOTClose")}
               onClick={close}
             >
               <CloseIcon />

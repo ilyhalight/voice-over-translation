@@ -2,7 +2,7 @@ import { createSignal, type JSX, mergeProps, Show, splitProps } from "solid-js";
 
 import "./HotkeyButton.scss";
 import { effect } from "solid-js/web";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { RawButton, type RawButtonProps } from "./RawButton";
 
 function formatKeysCombo(keys: Set<string> | string[]): string {
@@ -111,13 +111,11 @@ export function HotkeyButton(props: HotkeyButtonProps): JSX.Element {
     }
 
     if (recording()) {
-      return localizationProvider.get("PressTheKeyCombination");
+      return t("PressTheKeyCombination");
     }
 
     const currentKey = key();
-    return currentKey
-      ? formatKeysComboDisplay(currentKey)
-      : localizationProvider.get("None");
+    return currentKey ? formatKeysComboDisplay(currentKey) : t("None");
   };
 
   effect(() => {

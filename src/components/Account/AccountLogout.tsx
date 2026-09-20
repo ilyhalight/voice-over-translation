@@ -2,7 +2,7 @@ import type { JSX } from "solid-js";
 
 import "./AccountLogout.scss";
 
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { resetAccount } from "../../stores/account";
 import { votStorage } from "../../utils/storage";
 import { TextButton } from "../Button/TextButton";
@@ -24,7 +24,7 @@ export function AccountLogout(props: AccountLogoutProps): JSX.Element {
       >
         <vot-block class="vot-account-logout__content">
           <LogoutIcon />
-          {localizationProvider.get("VOTLogout")}
+          {t("VOTLogout")}
         </vot-block>
       </TextButton>
     </vot-block>

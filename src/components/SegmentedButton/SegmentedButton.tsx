@@ -9,7 +9,7 @@ import {
 
 import "./SegmentedButton.scss";
 
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Direction, Status } from "../../types/components/votButton";
 import { isTouchFirstInput } from "../../utils/inputDevice";
@@ -267,7 +267,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
             class="vot-dropdown-arrow"
             ref={(element) => setVoiceSelectionButton(element)}
             buttonProps={{
-              "aria-label": localizationProvider.get("VOTVoiceSelection"),
+              "aria-label": t("VOTVoiceSelection"),
               "aria-haspopup": "menu",
               "aria-expanded": isVoicePopoverOpen(),
               onPointerEnter: handleVoiceTooltipPointerEnter,
@@ -299,7 +299,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
           >
             <ChevronIcon />
             <Tooltip
-              content={localizationProvider.get("VOTVoiceSelection")}
+              content={t("VOTVoiceSelection")}
               parentElement={tooltipLayoutRoot()}
               target={voiceSelectionButton()}
               edgeAnchor={translationButton()}
@@ -321,7 +321,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
         ref={(element) => setSubtitlesButton(element)}
         buttonProps={{
           "data-active": finalProps.isSubtitlesActive,
-          "aria-label": localizationProvider.get("VOTSubtitles"),
+          "aria-label": t("VOTSubtitles"),
           "aria-pressed": finalProps.isSubtitlesActive,
           onKeyDown: (event) => {
             if (!isKeyboardActivation(event)) {
@@ -344,7 +344,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
       >
         <SubtitlesIcon />
         <Tooltip
-          content={localizationProvider.get("VOTSubtitles")}
+          content={t("VOTSubtitles")}
           parentElement={tooltipLayoutRoot()}
           target={subtitlesButton()}
           position={finalProps.tooltipPos}
@@ -359,7 +359,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
           class="vot-segment-only-icon"
           ref={(element) => setPiPButton(element)}
           buttonProps={{
-            "aria-label": localizationProvider.get("VOTPiP"),
+            "aria-label": t("VOTPiP"),
             onKeyDown: (event) => {
               if (!isKeyboardActivation(event)) {
                 return;
@@ -381,7 +381,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
         >
           <PiPIcon />
           <Tooltip
-            content={localizationProvider.get("VOTPiP")}
+            content={t("VOTPiP")}
             parentElement={tooltipLayoutRoot()}
             target={pipButton()}
             position={finalProps.tooltipPos}
@@ -396,7 +396,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
         class="vot-segment-only-icon"
         ref={(element) => setMenuButton(element)}
         buttonProps={{
-          "aria-label": localizationProvider.get("VOTMenu"),
+          "aria-label": t("VOTMenu"),
           "aria-haspopup": "dialog",
           "aria-expanded": finalProps.menuOpened,
           onKeyDown: (event) => {
@@ -420,7 +420,7 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
       >
         <MenuIcon />
         <Tooltip
-          content={localizationProvider.get("VOTMenu")}
+          content={t("VOTMenu")}
           parentElement={tooltipLayoutRoot()}
           target={menuButton()}
           position={finalProps.tooltipPos}

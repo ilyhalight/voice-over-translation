@@ -2,7 +2,7 @@ import { type JSX, mergeProps } from "solid-js";
 import "./AccountLogin.scss";
 
 import { produce } from "solid-js/store";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { setAccount } from "../../stores/account";
 import { votStorage } from "../../utils/storage";
 import { Textfield } from "../Textfield/Textfield";
@@ -38,14 +38,14 @@ export function AccountLogin(props: AccountLoginProps): JSX.Element {
       >
         <vot-block class="vot-account-login__btn-icon" />
         <vot-block class="vot-account-login__btn-text">
-          {localizationProvider.get("VOTSignInWithYandex")}
+          {t("VOTSignInWithYandex")}
         </vot-block>
       </vot-block>
-      <OrBlock>{localizationProvider.get("VOTOrUseToken")}</OrBlock>
+      <OrBlock>{t("VOTOrUseToken")}</OrBlock>
       <vot-block class="vot-account-login__token">
         <Textfield
-          labelText={localizationProvider.get("VOTLoginViaToken")}
-          placeholder={localizationProvider.get("VOTYandexToken")}
+          labelText={t("VOTLoginViaToken")}
+          placeholder={t("VOTYandexToken")}
           onChange={async (value) => {
             const data = value
               ? {

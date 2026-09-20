@@ -1,6 +1,7 @@
 import type { JSX } from "solid-js";
+
 import { PROXY_WORKER_HOST } from "../../config/config";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { settings } from "../../stores/settings";
 import { IS_PROXY_ONLY_EXTENSION } from "../../utils/gm";
 import { Select, type SelectOption } from "../Control/Select";
@@ -16,9 +17,9 @@ export function SettingsProxySection(
   props: SettingsProxySectionProps,
 ): JSX.Element {
   const proxyEnabledLabels = [
-    localizationProvider.get("VOTTranslateProxyDisabled"),
-    localizationProvider.get("VOTTranslateProxyEnabled"),
-    localizationProvider.get("VOTTranslateProxyEverything"),
+    t("VOTTranslateProxyDisabled"),
+    t("VOTTranslateProxyEnabled"),
+    t("VOTTranslateProxyEverything"),
   ];
 
   const translateProxyOptions = proxyEnabledLabels.map<SelectOption>(
@@ -30,20 +31,20 @@ export function SettingsProxySection(
   );
 
   return (
-    <SettingsSection title={localizationProvider.get("proxySettings")}>
+    <SettingsSection title={t("proxySettings")}>
       <Textfield
-        labelText={localizationProvider.get("VOTProxyWorkerHost")}
+        labelText={t("VOTProxyWorkerHost")}
         placeholder={PROXY_WORKER_HOST}
         value={settings.proxyWorkerHost}
         onChange={props.onProxyWorkerHostChange}
       />
       <Select
-        title={localizationProvider.get("VOTTranslateProxyStatus")}
+        title={t("VOTTranslateProxyStatus")}
         options={translateProxyOptions}
         selectedValue={settings.translateProxyEnabled}
         onSelect={props.onTranslateProxyStatusSelect}
       >
-        {localizationProvider.get("VOTTranslateProxyStatus")}
+        {t("VOTTranslateProxyStatus")}
       </Select>
     </SettingsSection>
   );

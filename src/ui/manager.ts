@@ -1,5 +1,5 @@
 import { actualCompatVersion, repositoryUrl } from "../config/config";
-import { localizationProvider } from "../localization/localizationProvider";
+import { t } from "../localization/localizationProvider";
 import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
 import type { StorageData } from "../types/storage";
@@ -704,10 +704,10 @@ export class UIManager {
 
   private isLoadingText(text: string) {
     // Localization keys have historically varied in casing across builds.
-    const delayed = localizationProvider.get("TranslationDelayed");
+    const delayed = t("TranslationDelayed");
     return (
       typeof text === "string" &&
-      (text.includes(localizationProvider.get("translationTake")) ||
+      (text.includes(t("translationTake")) ||
         (delayed ? text.includes(delayed) : false))
     );
   }

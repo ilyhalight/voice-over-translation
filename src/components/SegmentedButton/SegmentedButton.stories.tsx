@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 import { expect, fn, userEvent } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import type { Status } from "../../types/components/votButton";
 import { SegmentedButton } from "./SegmentedButton";
 
@@ -162,7 +162,7 @@ export const SegmentedButtonAsColumn: Story = (() => {
 
 export const SegmentedButtonPrimaryAction: Story = {
   args: {
-    labelText: localizationProvider.get("translateVideo"),
+    labelText: t("translateVideo"),
     onTranslateClick: fn(),
   },
   play: async ({ args, canvasElement }) => {
@@ -200,7 +200,7 @@ export const SegmentedButtonPrimaryAction: Story = {
 export const SegmentedButtonColumnTouchVoiceSelection: Story = {
   args: {
     direction: "column",
-    labelText: localizationProvider.get("translateVideo"),
+    labelText: t("translateVideo"),
     onTranslateClick: fn(),
   },
   play: ({ args, canvasElement }) => {
@@ -226,7 +226,7 @@ export const SegmentedButtonColumnTouchVoiceSelection: Story = {
 export const SegmentedButtonColumnTouchError: Story = {
   args: {
     direction: "column",
-    labelText: localizationProvider.get("translateVideo"),
+    labelText: t("translateVideo"),
     onTranslateClick: fn(),
     status: "error",
   },

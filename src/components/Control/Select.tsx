@@ -12,7 +12,7 @@ import {
 import { effect } from "solid-js/web";
 
 import "./Select.scss";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import type { LanguageSelectKey } from "../../types/components/select";
 import type { Phrase } from "../../types/localization";
 import { RawButton } from "../Button/RawButton";
@@ -26,7 +26,7 @@ export function genSelectOptionsByLangs<
 >(langs: readonly T[]): SelectOption[] {
   return langs.map<SelectOption>((lang) => {
     const phrase = `langs.${lang}` satisfies Phrase;
-    const label = localizationProvider.get(phrase);
+    const label = t(phrase);
     return {
       label: label === phrase ? lang.toUpperCase() : label,
       value: lang,
@@ -377,7 +377,7 @@ export function Select(props: SelectProps): JSX.Element {
       >
         <Show when={isSearchActive()}>
           <Textfield
-            labelText={localizationProvider.get("searchField")}
+            labelText={t("searchField")}
             value={searchQuery()}
             onInput={handleSearchInput}
           />
@@ -420,10 +420,7 @@ export function Select(props: SelectProps): JSX.Element {
             class="vot-select-inner__no-options"
             data-searching={isSearching()}
           >
-            <Show
-              when={isSearching()}
-              fallback={localizationProvider.get("notFound")}
-            >
+            <Show when={isSearching()} fallback={t("notFound")}>
               <LoadingDotsIcon />
             </Show>
           </vot-block>

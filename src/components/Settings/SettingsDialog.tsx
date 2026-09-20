@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { AboutSection } from "../About/AboutSection";
 import { AccountMenu, type AccountMenuProps } from "../Account/AccountMenu";
 import { Dialog, type DialogProps } from "../Dialog/Dialog";
@@ -50,13 +50,10 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
       ref={props.ref}
       isOpen={props.isOpen}
       onClose={props.onClose}
-      title={localizationProvider.get("VOTSettings")}
+      title={t("VOTSettings")}
       footer={<SettingsFooter {...props.footer} />}
     >
-      <SettingsSection
-        title={localizationProvider.get("VOTMyAccount")}
-        isOpen={true}
-      >
+      <SettingsSection title={t("VOTMyAccount")} isOpen={true}>
         <AccountMenu {...props.account} />
       </SettingsSection>
       <SettingsTranslationSection {...props.translation} />
@@ -65,7 +62,7 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
       <SettingsProxySection {...props.proxy} />
       <SettingsMiscSection {...props.misc} />
       <SettingsAppearanceSection {...props.appearance} />
-      <SettingsSection title={localizationProvider.get("aboutExtension")}>
+      <SettingsSection title={t("aboutExtension")}>
         <AboutSection />
       </SettingsSection>
     </Dialog>

@@ -1,5 +1,8 @@
 import type { JSX } from "solid-js";
-import { localizationProvider } from "../../localization/localizationProvider";
+import {
+  localizationProvider,
+  t,
+} from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import {
   getGoogleSubtitleFontFamilyName,
@@ -78,7 +81,7 @@ function buildSubtitleLanguageSettingOptions(): SelectOption[] {
       value: AUTO_SUBTITLE_LANGUAGE_VALUE,
     },
     {
-      label: localizationProvider.get("VOTOriginalVideoLanguage"),
+      label: t("VOTOriginalVideoLanguage"),
       value: ORIGINAL_SUBTITLE_LANGUAGE_VALUE,
     },
     ...getAvailableSubtitleLanguages().map<SelectOption>((language) => ({
@@ -161,9 +164,9 @@ export function SettingsSubtitlesSection(
   };
 
   return (
-    <SettingsSection title={localizationProvider.get("subtitlesSettings")}>
+    <SettingsSection title={t("subtitlesSettings")}>
       <Select
-        title={localizationProvider.get("VOTDefaultSubtitlesLanguage")}
+        title={t("VOTDefaultSubtitlesLanguage")}
         options={subtitleLanguageOptions}
         search={true}
         selectedValue={settings.responseLanguageSubtitles}
@@ -175,10 +178,10 @@ export function SettingsSubtitlesSection(
           props.onResponseLanguageSubtitlesSelect?.(option);
         }}
       >
-        {localizationProvider.get("VOTDefaultSubtitlesLanguage")}
+        {t("VOTDefaultSubtitlesLanguage")}
       </Select>
       <Select
-        title={localizationProvider.get("VOTSubtitlesDownloadFormat")}
+        title={t("VOTSubtitlesDownloadFormat")}
         options={subtitlesDownloadFormatOptions}
         selectedValue={settings.subtitlesDownloadFormat}
         onSelect={(option) => {
@@ -189,10 +192,10 @@ export function SettingsSubtitlesSection(
           props.onSubtitlesDownloadFormatSelect?.(option);
         }}
       >
-        {localizationProvider.get("VOTSubtitlesDownloadFormat")}
+        {t("VOTSubtitlesDownloadFormat")}
       </Select>
       <Select
-        title={localizationProvider.get("VOTSubtitlesFont")}
+        title={t("VOTSubtitlesFont")}
         options={buildSubtitleFontOptions(selectedSubtitleFontFamily())}
         selectedValue={selectedSubtitleFontFamily()}
         searchItemsProvider={(query) =>
@@ -205,10 +208,10 @@ export function SettingsSubtitlesSection(
           props.onSubtitlesFontFamilySelect?.(value);
         }}
       >
-        {localizationProvider.get("VOTSubtitlesFont")}
+        {t("VOTSubtitlesFont")}
       </Select>
       <Switch
-        heading={localizationProvider.get("VOTHighlightWords")}
+        heading={t("VOTHighlightWords")}
         checked={settings.highlightWords}
         onChange={(checked) => {
           setSettings("highlightWords", checked);
@@ -216,7 +219,7 @@ export function SettingsSubtitlesSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("subtitlesSmartLayout")}
+        heading={t("subtitlesSmartLayout")}
         checked={settings.subtitlesSmartLayout}
         onChange={(checked) => {
           setSettings("subtitlesSmartLayout", checked);
@@ -225,7 +228,7 @@ export function SettingsSubtitlesSection(
       />
       <SliderWrapper>
         <SliderLabel value={settings.subtitlesMaxLength.toString()}>
-          {localizationProvider.get("VOTSubtitlesMaxLength")}
+          {t("VOTSubtitlesMaxLength")}
         </SliderLabel>
         <Slider
           min={50}
@@ -244,7 +247,7 @@ export function SettingsSubtitlesSection(
       </SliderWrapper>
       <SliderWrapper>
         <SliderLabel value={`${settings.subtitlesFontSize}px`}>
-          {localizationProvider.get("VOTSubtitlesFontSize")}
+          {t("VOTSubtitlesFontSize")}
         </SliderLabel>
         <Slider
           min={8}
@@ -263,7 +266,7 @@ export function SettingsSubtitlesSection(
       </SliderWrapper>
       <SliderWrapper>
         <SliderLabel value={`${settings.subtitlesOpacity}%`}>
-          {localizationProvider.get("VOTSubtitlesOpacity")}
+          {t("VOTSubtitlesOpacity")}
         </SliderLabel>
         <Slider
           value={settings.subtitlesOpacity}

@@ -5,9 +5,10 @@ import {
   VideoTranslationStatus,
 } from "@vot.js/core/types/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+
 import { AudioDownloader } from "../audioDownloader";
 import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
-import { localizationProvider } from "../localization/localizationProvider";
+import { t } from "../localization/localizationProvider";
 import type {
   DownloadedAudioData,
   DownloadedPartialAudioData,
@@ -462,8 +463,7 @@ export class VOTTranslationHandler {
         return { ...res, usedLivelyVoice: useLivelyVoice };
       }
 
-      const message =
-        res.message ?? localizationProvider.get("translationTakeFewMinutes");
+      const message = res.message ?? t("translationTakeFewMinutes");
       debug.log("[Translation] translation still processing", {
         videoId: videoData.videoId,
         useLivelyVoice,

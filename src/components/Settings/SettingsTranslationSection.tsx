@@ -1,8 +1,12 @@
 import { availableLangs } from "@vot.js/shared/consts";
 import { createSignal, type JSX, mergeProps } from "solid-js";
 import { effect } from "solid-js/web";
+
 import { detectServices, translateServices } from "../../core/translateApis";
-import { localizationProvider } from "../../localization/localizationProvider";
+import {
+  localizationProvider,
+  t,
+} from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
 import type {
@@ -57,13 +61,13 @@ export function SettingsTranslationSection(
   const dontTranslateLanguagesOptions = genSelectOptionsByLangs(availableLangs);
   const translationTextServiceOptions = translateServices.map<SelectOption>(
     (service) => ({
-      label: localizationProvider.get(`services.${service}`),
+      label: t(`services.${service}`),
       value: service,
     }),
   );
 
   const detectServiceOptions = detectServices.map<SelectOption>((service) => ({
-    label: localizationProvider.get(`services.${service}`),
+    label: t(`services.${service}`),
     value: service,
   }));
 
@@ -79,16 +83,13 @@ export function SettingsTranslationSection(
     `${settings.enabledSmartDucking ? settings.smartDuckingStrength : settings.autoVolume}%`;
   const useAudioDownloadDescription = () =>
     isSupportGMXhr
-      ? localizationProvider.get("VOTUseAudioDownloadWarning")
-      : `${localizationProvider.get("VOTUseAudioDownloadWarning")}. ${localizationProvider.get("VOTNotSupportedByLoader")}`;
+      ? t("VOTUseAudioDownloadWarning")
+      : `${t("VOTUseAudioDownloadWarning")}. ${t("VOTNotSupportedByLoader")}`;
 
   return (
-    <SettingsSection
-      isOpen={true}
-      title={localizationProvider.get("translationSettings")}
-    >
+    <SettingsSection isOpen={true} title={t("translationSettings")}>
       <Switch
-        heading={localizationProvider.get("VOTAutoTranslate")}
+        heading={t("VOTAutoTranslate")}
         checked={settings.autoTranslate}
         onChange={(checked) => {
           setSettings("autoTranslate", checked);
@@ -96,7 +97,7 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTAutoPauseOnTranslate")}
+        heading={t("VOTAutoPauseOnTranslate")}
         checked={settings.autoPauseOnTranslate}
         onChange={(checked) => {
           setSettings("autoPauseOnTranslate", checked);
@@ -104,7 +105,7 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTAutoSubtitles")}
+        heading={t("VOTAutoSubtitles")}
         checked={settings.autoSubtitles}
         onChange={(checked) => {
           setSettings("autoSubtitles", checked);
@@ -114,7 +115,7 @@ export function SettingsTranslationSection(
       <Select
         multiple={true}
         search={true}
-        title={localizationProvider.get("None")}
+        title={t("None")}
         options={dontTranslateLanguagesOptions}
         selectedValues={settings.dontTranslateLanguages}
         minSelected={0}
@@ -126,10 +127,10 @@ export function SettingsTranslationSection(
           );
         }}
       >
-        {localizationProvider.get("DontTranslateSelectedLanguages")}
+        {t("DontTranslateSelectedLanguages")}
       </Select>
       <Switch
-        heading={localizationProvider.get("VOTAutoReduceVolume")}
+        heading={t("VOTAutoReduceVolume")}
         checked={settings.enabledAutoVolume}
         onChange={(checked) => {
           setSettings("enabledAutoVolume", checked);
@@ -142,8 +143,8 @@ export function SettingsTranslationSection(
           disabled={!settings.enabledAutoVolume}
         >
           {settings.enabledSmartDucking
-            ? localizationProvider.get("VOTSmartDuckingStrength")
-            : localizationProvider.get("VOTReducedVolumeLevel")}
+            ? t("VOTSmartDuckingStrength")
+            : t("VOTReducedVolumeLevel")}
         </SliderLabel>
         <Slider
           value={
@@ -165,10 +166,10 @@ export function SettingsTranslationSection(
         />
       </SliderWrapper>
       <Switch
-        heading={localizationProvider.get("smartDucking")}
+        heading={t("smartDucking")}
         description={localizationProvider
           .get("VOTIncompatibleWith")
-          .replace("{0}", localizationProvider.get("VOTSyncVolume"))}
+          .replace("{0}", t("VOTSyncVolume"))}
         disabled={settings.syncVolume || !settings.enabledAutoVolume}
         checked={settings.enabledSmartDucking}
         onChange={(checked) => {
@@ -177,7 +178,7 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("showVideoVolumeSlider")}
+        heading={t("showVideoVolumeSlider")}
         checked={settings.showVideoSlider}
         onChange={(checked) => {
           setSettings("showVideoSlider", checked);
@@ -185,11 +186,9 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTAudioBooster")}
+        heading={t("VOTAudioBooster")}
         description={
-          isAudioContextSupported()
-            ? undefined
-            : localizationProvider.get("VOTNeedWebAudioAPI")
+          isAudioContextSupported() ? undefined : t("VOTNeedWebAudioAPI")
         }
         checked={settings.audioBooster}
         disabled={!isAudioContextSupported()}
@@ -199,10 +198,8 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTSyncVolume")}
-        description={localizationProvider
-          .get("VOTIncompatibleWith")
-          .replace("{0}", localizationProvider.get("smartDucking"))}
+        heading={t("VOTSyncVolume")}
+        description={t("VOTIncompatibleWith").replace("{0}", t("smartDucking"))}
         checked={settings.syncVolume}
         onChange={(checked) => {
           setSettings("syncVolume", checked);
@@ -215,12 +212,8 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTDownloadWithName")}
-        description={
-          isSupportGMXhr
-            ? undefined
-            : localizationProvider.get("VOTNotSupportedByLoader")
-        }
+        heading={t("VOTDownloadWithName")}
+        description={isSupportGMXhr ? undefined : t("VOTNotSupportedByLoader")}
         disabled={!isSupportGMXhr}
         checked={settings.downloadWithName}
         onChange={(checked) => {
@@ -229,7 +222,7 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTSendNotifyOnComplete")}
+        heading={t("VOTSendNotifyOnComplete")}
         checked={settings.sendNotifyOnComplete}
         onChange={(checked) => {
           setSettings("sendNotifyOnComplete", checked);
@@ -237,7 +230,7 @@ export function SettingsTranslationSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTUseAudioDownload")}
+        heading={t("VOTUseAudioDownload")}
         description={useAudioDownloadDescription()}
         disabled={!isSupportGMXhr}
         checked={settings.useAudioDownload}
@@ -247,7 +240,7 @@ export function SettingsTranslationSection(
         }}
       />
       <Select
-        title={localizationProvider.get("VOTTranslationTextService")}
+        title={t("VOTTranslationTextService")}
         options={translationTextServiceOptions}
         selectedValue={settings.translationService}
         onSelect={(option) => {
@@ -256,14 +249,14 @@ export function SettingsTranslationSection(
           finalProps.onTranslationServiceSelect?.(value);
         }}
       >
-        {localizationProvider.get("VOTTranslationTextService")}
+        {t("VOTTranslationTextService")}
         <br />
         <vot-block class="vot-select-label__description">
-          {localizationProvider.get("VOTNotAffectToVoice")}
+          {t("VOTNotAffectToVoice")}
         </vot-block>
       </Select>
       <Select
-        title={localizationProvider.get("VOTDetectService")}
+        title={t("VOTDetectService")}
         options={detectServiceOptions}
         selectedValue={settings.detectService}
         onSelect={(option) => {
@@ -272,7 +265,7 @@ export function SettingsTranslationSection(
           finalProps.onDetectServiceSelect?.(value);
         }}
       >
-        {localizationProvider.get("VOTDetectService")}
+        {t("VOTDetectService")}
       </Select>
     </SettingsSection>
   );

@@ -1,6 +1,6 @@
 import type { JSX } from "solid-js";
 
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { updateAccountFromStorage } from "../../stores/account";
 import { IconButton } from "../Button/IconButton";
 import { RefreshIcon } from "../Icons/RefreshIcon";
@@ -15,7 +15,7 @@ export function AccountRefreshButton(
   return (
     <IconButton
       ref={props.ref}
-      ariaLabel={localizationProvider.get("VOTRefresh")}
+      ariaLabel={t("VOTRefresh")}
       onClick={async () => {
         await updateAccountFromStorage();
       }}

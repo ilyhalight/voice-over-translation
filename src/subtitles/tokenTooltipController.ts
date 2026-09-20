@@ -4,7 +4,7 @@ import {
 } from "../components/SubtitlesWidget/SubtitleTokenTooltip";
 import { DEFAULT_TRANSLATION_SERVICE } from "../config/config";
 import { translate } from "../core/translateApis";
-import { localizationProvider } from "../localization/localizationProvider";
+import { localizationProvider, t } from "../localization/localizationProvider";
 import {
   createShadowMount,
   destroyShadowMount,
@@ -140,7 +140,7 @@ export class TokenTooltipController {
       if (this.tooltip && this.target === target) {
         const { tokenText } = this.getContext();
         this.tooltip.setTranslation(
-          localizationProvider.get("requestTranslationFailed"),
+          t("requestTranslationFailed"),
           this.translatedContext || tokenText,
         );
       } else {

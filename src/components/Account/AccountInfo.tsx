@@ -1,6 +1,6 @@
 import type { JSX } from "solid-js";
 import "./AccountInfo.scss";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { AccountLogout } from "./AccountLogout";
 import { AccountRefreshButton } from "./AccountRefreshButton";
 
@@ -23,7 +23,7 @@ export function AccountInfo(props: AccountInfoProps): JSX.Element {
         </vot-block>
         <vot-block class="vot-account-info__content">
           <vot-block class="vot-account-info__label">
-            {localizationProvider.get("VOTSignedInAs")}
+            {t("VOTSignedInAs")}
           </vot-block>
           <vot-block class="vot-account-info__username">
             {props.username}

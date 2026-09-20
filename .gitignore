@@ -15,7 +15,10 @@ dist-ext/firefox/
 dist-ext/vot-extension-chrome.zip
 dist-ext/vot-extension-firefox.xpi
 
+
 .vscode
+!.vscode/i18n-ally-custom-framework.yml
+!.vscode/extensions.json
 .pytest_cache
 .husky
 

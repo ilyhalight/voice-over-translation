@@ -9,7 +9,7 @@ import {
   onMount,
   Show,
 } from "solid-js";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Position, Status } from "../../types/components/votButton";
 import {
@@ -154,16 +154,14 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
   const [isLoading, setIsLoading] = createSignal(false);
   const [subtitlesOptions, setSubtitlesOptions] = createSignal<SelectOption[]>([
     {
-      label: localizationProvider.get("VOTSubtitlesDisabled"),
+      label: t("VOTSubtitlesDisabled"),
       value: "disabled",
     },
   ]);
   const [selectedSubtitles, setSelectedSubtitles] = createSignal("disabled");
   const [subtitlesLoading, setSubtitlesLoading] = createSignal(false);
   const [status, setStatus] = createSignal(finalProps.status);
-  const [labelText, setLabelText] = createSignal(
-    localizationProvider.get("translateVideo"),
-  );
+  const [labelText, setLabelText] = createSignal(t("translateVideo"));
   const [showTranslationVolume, setShowTranslationVolume] = createSignal(false);
   const [showDownloadTranslation, setShowDownloadTranslation] =
     createSignal(false);

@@ -1,5 +1,8 @@
 import { type JSX, mergeProps } from "solid-js";
-import { localizationProvider } from "../../localization/localizationProvider";
+import {
+  localizationProvider,
+  t,
+} from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
@@ -23,9 +26,9 @@ export function SettingsMiscSection(
   const isWithoutAudioContext = () => !finalProps.isAudioContextSupported;
 
   return (
-    <SettingsSection title={localizationProvider.get("miscSettings")}>
+    <SettingsSection title={t("miscSettings")}>
       <Switch
-        heading={localizationProvider.get("VOTTranslateAPIErrors")}
+        heading={t("VOTTranslateAPIErrors")}
         hidden={localizationProvider.lang === "ru"}
         checked={settings.translateAPIErrors}
         onChange={(checked) => {
@@ -34,11 +37,9 @@ export function SettingsMiscSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTNewAudioPlayer")}
+        heading={t("VOTNewAudioPlayer")}
         description={
-          isWithoutAudioContext()
-            ? localizationProvider.get("VOTNeedWebAudioAPI")
-            : undefined
+          isWithoutAudioContext() ? t("VOTNeedWebAudioAPI") : undefined
         }
         disabled={isWithoutAudioContext()}
         checked={settings.newAudioPlayer}
@@ -48,11 +49,9 @@ export function SettingsMiscSection(
         }}
       />
       <Switch
-        heading={localizationProvider.get("VOTOnlyBypassMediaCSP")}
+        heading={t("VOTOnlyBypassMediaCSP")}
         description={
-          finalProps.needBypassCSP
-            ? localizationProvider.get("VOTMediaCSPEnabledOnSite")
-            : undefined
+          finalProps.needBypassCSP ? t("VOTMediaCSPEnabledOnSite") : undefined
         }
         checked={settings.onlyBypassMediaCSP}
         hidden={isWithoutAudioContext()}

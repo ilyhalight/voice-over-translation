@@ -2,7 +2,7 @@ import type { JSX } from "solid-js";
 
 import "./SettingsFooter.scss";
 
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { GeneralButton } from "../Button/GeneralButton";
 import { OutlinedButton } from "../Button/OutlinedButton";
 
@@ -15,10 +15,10 @@ export function SettingsFooter(props: SettingsFooterProps): JSX.Element {
   return (
     <vot-block class="vot-settings-footer">
       <OutlinedButton onClick={props.onBugReportClick}>
-        {localizationProvider.get("VOTBugReport")}
+        {t("VOTBugReport")}
       </OutlinedButton>
       <GeneralButton onClick={props.onResetSettingsClick}>
-        {localizationProvider.get("resetSettings")}
+        {t("resetSettings")}
       </GeneralButton>
     </vot-block>
   );

@@ -21,7 +21,7 @@ import { TranslationOrchestrator } from "./core/translationOrchestrator";
 import { VideoLifecycleController } from "./core/videoLifecycleController";
 import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
 import { VOTVideoManager } from "./core/videoManager";
-import { localizationProvider } from "./localization/localizationProvider";
+import { localizationProvider, t } from "./localization/localizationProvider";
 import { Notifier } from "./notify";
 import type { ProcessedSubtitles } from "./subtitles/processor";
 import { SubtitlesWidget } from "./subtitles/widget";
@@ -1122,7 +1122,7 @@ export class VideoHandler {
       this.longWaitingResCount = 0;
       this.hadAsyncWait = false;
       this.translationHandler?.stopTranslationEtaCountdown();
-      this.transformBtn("none", localizationProvider.get("translateVideo"));
+      this.transformBtn("none", t("translateVideo"));
       debug.log(`Volume on start: ${this.volumeOnStart}`);
 
       const restoreVolume =
@@ -1166,11 +1166,11 @@ export class VideoHandler {
     if (signal?.aborted) {
       return;
     }
-    const translationTake = localizationProvider.get("translationTake");
+    const translationTake = t("translationTake");
     const lang = localizationProvider.lang;
     if (options.countLongWait !== false) {
       this.longWaitingResCount =
-        errorMessage === localizationProvider.get("translationTakeAboutMinute")
+        errorMessage === t("translationTakeAboutMinute")
           ? this.longWaitingResCount + 1
           : 0;
       debug.log("longWaitingResCount", this.longWaitingResCount);

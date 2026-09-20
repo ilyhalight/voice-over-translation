@@ -7,7 +7,7 @@ import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { effect } from "solid-js/web";
 import { AudioDownloader } from "../../audioDownloader";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Status } from "../../types/components/votButton";
 import debug from "../../utils/debug";
@@ -65,7 +65,7 @@ export function MenuHeaderContent(props: MenuHeaderContentProps): JSX.Element {
     <vot-block class="vot-segmented-button__menu-header">
       <Show when={finalProps.showDownloadTranslation}>
         <ProgressIconButton
-          ariaLabel={localizationProvider.get("VOTDownloadTranslation")}
+          ariaLabel={t("VOTDownloadTranslation")}
           progress={translationProgress()}
           showProgress={showTranslationProgress()}
           onClick={finalProps.onDownloadTranslationClick}
@@ -75,17 +75,14 @@ export function MenuHeaderContent(props: MenuHeaderContentProps): JSX.Element {
       </Show>
       <Show when={finalProps.showDownloadSubtitles}>
         <IconButton
-          ariaLabel={localizationProvider.get("VOTDownloadSubtitles")}
+          ariaLabel={t("VOTDownloadSubtitles")}
           onClick={finalProps.onDownloadSubtitlesClick}
         >
           <SubtitlesIcon />
         </IconButton>
       </Show>
       <DebugYTAudioComponent />
-      <IconButton
-        ariaLabel={localizationProvider.get("VOTSettings")}
-        onClick={props.onSettingsClick}
-      >
+      <IconButton ariaLabel={t("VOTSettings")} onClick={props.onSettingsClick}>
         <GearIcon />
       </IconButton>
     </vot-block>
@@ -180,7 +177,7 @@ export function LanguagePairSelect(
     <vot-block class="vot-langpair-select">
       {/* TODO: Open as dialog */}
       <Select
-        title={localizationProvider.get("videoLanguage")}
+        title={t("videoLanguage")}
         options={fromLangsOptions}
         selectedValue={props.detectedLanguage}
         controlsRef={(controls) => (videoControlsRef = controls)}
@@ -192,7 +189,7 @@ export function LanguagePairSelect(
         <ArrowRightIcon />
       </vot-block>
       <Select
-        title={localizationProvider.get("translationLanguage")}
+        title={t("translationLanguage")}
         options={toLangsOptions}
         selectedValue={props.responseLanguage}
         controlsRef={(controls) => (translationControlsRef = controls)}
@@ -244,7 +241,7 @@ export function SegmentedButtonMenu(
       translationVolume: 100,
       subtitlesOptions: [
         {
-          label: localizationProvider.get("VOTSubtitlesDisabled"),
+          label: t("VOTSubtitlesDisabled"),
           value: "disabled",
         },
       ],
@@ -299,7 +296,7 @@ export function SegmentedButtonMenu(
 
   return (
     <Menu
-      title={localizationProvider.get("VOTSettings")}
+      title={t("VOTSettings")}
       headerChildren={
         <MenuHeaderContent
           controlsRef={(controls) => (menuHeaderContentControls = controls)}
@@ -332,7 +329,7 @@ export function SegmentedButtonMenu(
         }}
       />
       <Select
-        title={localizationProvider.get("VOTSubtitles")}
+        title={t("VOTSubtitles")}
         options={finalProps.subtitlesOptions}
         selectedValue={finalProps.selectedSubtitles}
         search
@@ -343,15 +340,13 @@ export function SegmentedButtonMenu(
           finalProps.onSubtitlesSelect?.(String(option.value))
         }
       >
-        {localizationProvider.get("VOTSubtitles")}
+        {t("VOTSubtitles")}
       </Select>
       <Show
         when={finalProps.buttonStatus === "success" && settings.showVideoSlider}
       >
         <SliderWrapper>
-          <SliderLabel value={videoVolumeText()}>
-            {localizationProvider.get("VOTVolume")}
-          </SliderLabel>
+          <SliderLabel value={videoVolumeText()}>{t("VOTVolume")}</SliderLabel>
           <Slider
             value={videoVolume()}
             onInput={(value) => {
@@ -369,7 +364,7 @@ export function SegmentedButtonMenu(
       >
         <SliderWrapper>
           <SliderLabel value={translationVolumeText()}>
-            {localizationProvider.get("VOTVolumeTranslation")}
+            {t("VOTVolumeTranslation")}
           </SliderLabel>
           <Slider
             max={maxTranslationVolume()}

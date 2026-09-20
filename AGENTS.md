@@ -41,7 +41,7 @@ You SHOULD use `em` or `px` instead of `rem`.
 
 ## Localization
 
-You MUST use `localizationProvider.get("key")` for all user-facing localized strings.
+You MUST use `t("key")` for all user-facing localized strings.
 
 Do NOT hardcode localized text directly in the source code.
 

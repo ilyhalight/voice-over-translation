@@ -1,5 +1,5 @@
 import type { GMNotificationOptions } from "@toil/gm-types/types/notification/index";
-import { localizationProvider } from "./localization/localizationProvider";
+import { localizationProvider, t } from "./localization/localizationProvider";
 import type { Phrase } from "./types/localization";
 import debug from "./utils/debug";
 import { getErrorMessage, isAbortError } from "./utils/errors";
@@ -53,9 +53,7 @@ function resolveLocalizedErrorFromObject(message: unknown): string | null {
   }
 
   if (typeof localizedError.unlocalizedMessage === "string") {
-    return localizationProvider.get(
-      localizedError.unlocalizedMessage as Phrase,
-    );
+    return t(localizedError.unlocalizedMessage as Phrase);
   }
 
   return null;
@@ -65,9 +63,7 @@ function resolveLocalizedErrorMessage(message: unknown): string {
   const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
   if (localizedObjectMessage) return localizedObjectMessage;
 
-  return localizationProvider.get(
-    (getErrorMessage(message) || "requestTranslationFailed") as Phrase,
-  );
+  return t((getErrorMessage(message) || "requestTranslationFailed") as Phrase);
 }
 
 function trySendViaUserscriptApi(details: GMNotificationOptions): boolean {

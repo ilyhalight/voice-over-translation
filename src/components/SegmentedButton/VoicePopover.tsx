@@ -9,7 +9,7 @@ import {
 
 import "./VoicePopover.scss";
 
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import { render } from "../../ui/solid/renderer";
 import { LiveVoiceIcon } from "../Icons/LiveVoiceIcon";
 import { StandardVoiceIcon } from "../Icons/StandartVoiceIcon";
@@ -429,7 +429,7 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
       id={popoverId}
       class="vot-voice-popover"
       role="menu"
-      aria-label={localizationProvider.get("VOTVoiceSelection")}
+      aria-label={t("VOTVoiceSelection")}
       aria-hidden={!isOpen()}
       hidden={!isOpen()}
       inert={!isOpen()}
@@ -464,15 +464,15 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     >
       {voiceItem(
         "standard",
-        localizationProvider.get("VOTStandardVoicesTitle"),
-        localizationProvider.get("VOTStandardVoicesSubtitle"),
+        t("VOTStandardVoicesTitle"),
+        t("VOTStandardVoicesSubtitle"),
         <StandardVoiceIcon />,
       )}
       <vot-block class="vot-voice-popover__divider" />
       {voiceItem(
         "live",
-        localizationProvider.get("VOTLiveVoicesTitle"),
-        localizationProvider.get("VOTLiveVoicesSubtitle"),
+        t("VOTLiveVoicesTitle"),
+        t("VOTLiveVoicesSubtitle"),
         <LiveVoiceIcon />,
       )}
     </vot-block>

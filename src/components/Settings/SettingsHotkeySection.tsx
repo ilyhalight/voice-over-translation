@@ -1,5 +1,6 @@
 import type { JSX } from "solid-js";
-import { localizationProvider } from "../../localization/localizationProvider";
+
+import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import { HotkeyButton } from "../Button/HotkeyButton";
 import { SettingsSection } from "./SettingsSection";
@@ -13,7 +14,7 @@ export function SettingsHotkeySection(
   props: SettingsHotkeySectionProps,
 ): JSX.Element {
   return (
-    <SettingsSection title={localizationProvider.get("hotkeysSettings")}>
+    <SettingsSection title={t("hotkeysSettings")}>
       <HotkeyButton
         key={settings.translationHotkey}
         onChange={(newKey) => {
@@ -21,7 +22,7 @@ export function SettingsHotkeySection(
           props.onTranslationHotkeyChange?.(newKey);
         }}
       >
-        {localizationProvider.get("translateVideo")}
+        {t("translateVideo")}
       </HotkeyButton>
       <HotkeyButton
         key={settings.subtitlesHotkey}
@@ -30,7 +31,7 @@ export function SettingsHotkeySection(
           props.onSubtitlesHotkeyChange?.(newKey);
         }}
       >
-        {localizationProvider.get("VOTSubtitles")}
+        {t("VOTSubtitles")}
       </HotkeyButton>
     </SettingsSection>
   );

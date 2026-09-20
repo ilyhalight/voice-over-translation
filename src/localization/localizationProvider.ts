@@ -286,6 +286,7 @@ class LocalizationProvider {
 }
 
 export const localizationProvider = new LocalizationProvider();
+export const t = localizationProvider.get.bind(localizationProvider);
 /**
  * In the userscript build, SystemJS wrapping allowed a top-level await.
  * For the extension build we bootstrap through loader scripts and keep the

@@ -2,7 +2,7 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import { notifyTranslationFailureIfNeeded } from "../../core/translationErrors";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
 import type { VideoHandler } from "../../VideoHandler";
@@ -386,9 +386,7 @@ async function applyTranslationSource(
 }
 
 function getTranslationActiveVoiceLabel(usedLivelyVoice?: boolean): string {
-  return localizationProvider.get(
-    usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle",
-  );
+  return t(usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle");
 }
 
 export async function updateTranslation(
@@ -716,7 +714,7 @@ export async function translateFunc(
       this.uiManager.votOverlayView.overlayViewControls?.getIsLoading();
     if (!this.activeTranslation && isLoading && !this.hasActiveSource()) {
       debug.log("[translateFunc] clearing stale loading state");
-      this.transformBtn("none", localizationProvider.get("translateVideo"));
+      this.transformBtn("none", t("translateVideo"));
     }
   }
 }
