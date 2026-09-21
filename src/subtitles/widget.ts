@@ -316,11 +316,33 @@ export class SubtitlesWidget {
     this.lastRenderKey = null;
   }
   private computeAnchorBoxLayout(layout: LayoutMetrics): AnchorBoxLayout {
+    // Subtitles must be anchored to the video box, not the whole layout
+    // root: some hosts mount the overlay into a tall container (title,
+    // description, comments) whose bottom is far below the player
+    if (!this.video || !layout.w || !layout.h) {
+      return {
+        left: 0,
+        top: 0,
+        w: layout.w,
+        h: layout.h,
+      };
+    }
+
+    const videoRect = this.video.getBoundingClientRect();
+    if (!videoRect.width || !videoRect.height) {
+      return {
+        left: 0,
+        top: 0,
+        w: layout.w,
+        h: layout.h,
+      };
+    }
+
     return {
-      left: 0,
-      top: 0,
-      w: layout.w,
-      h: layout.h,
+      left: videoRect.left - layout.rect.left,
+      top: videoRect.top - layout.rect.top,
+      w: videoRect.width,
+      h: videoRect.height,
     };
   }
   private readSmartCssMetrics(): SmartCssMetrics | null {

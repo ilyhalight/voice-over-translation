@@ -887,13 +887,12 @@ export class VideoHandler {
 
   getRequestLangForTranslation(
     requestLang: RequestLang,
-    responseLang: ResponseLang,
+    _responseLang: ResponseLang,
   ): RequestLang {
-    if (
-      this.data?.useLivelyVoice &&
-      requestLang === "auto" &&
-      responseLang === "ru"
-    ) {
+    // Yandex rejects the literal "auto" request language for hosts it
+    // doesn't have language data for (status FAILED), so fall back to
+    // "en" whenever detection had no concrete language
+    if (requestLang === "auto") {
       return "en";
     }
     return requestLang;
