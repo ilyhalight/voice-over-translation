@@ -1,7 +1,11 @@
 import { config } from "@vot.js/shared";
-import { normalizeLang } from "@vot.js/shared/utils/utils";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
+import {
+  getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
+  normalizeAudioLanguageTag as normalizeAudioLanguage,
+  selectSmallestAudioFormat,
+} from "../utils";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
 import { preprocessYouTubePlayer } from "./ytPlayerSolver.js";
 
@@ -35,9 +39,18 @@ type WebEmbeddedFormat = {
   lastModified?: string;
   signatureCipher?: string;
   audioQuality?: string;
+  language?: string;
+  languageCode?: string;
+  audioTrackId?: string;
+  audioSampleRate?: string;
+  audioChannels?: number;
+  displayName?: string;
+  xtags?: string;
   audioTrack?: {
     id?: string;
     languageCode?: string;
+    language?: string;
+    displayName?: string;
     audioIsDefault?: boolean;
   };
 };
@@ -413,122 +426,91 @@ export function buildWebEmbeddedPlayerRequest(
   };
 }
 
-// the globally smallest positive contentLength, then
-// the smallest positive averageBitrate, then
-// the first remaining format
-function selectAudioFormatFrom(
-  audioFormats: WebEmbeddedFormat[],
-): WebEmbeddedFormat {
-  const smallest = (key: "contentLength" | "averageBitrate") => {
-    let best: WebEmbeddedFormat | undefined;
-    let bestValue = Number.POSITIVE_INFINITY;
-    for (const format of audioFormats) {
-      const raw = format[key];
-      const value =
-        raw == null
-          ? Number.NaN
-          : typeof raw === "number"
-            ? raw
-            : Number(String(raw));
-      if (Number.isFinite(value) && value > 0 && value < bestValue) {
-        best = format;
-        bestValue = value;
-      }
-    }
-    return best;
-  };
-  return (
-    smallest("contentLength") ?? smallest("averageBitrate") ?? audioFormats[0]
-  );
+function audioLanguageMatches(
+  trackLanguage: string,
+  requestedLanguage: string,
+): boolean {
+  const track = normalizeAudioLanguage(trackLanguage);
+  const requested = normalizeAudioLanguage(requestedLanguage);
+  if (!track || !requested || requested === "auto") return false;
+  if (track === requested) return true;
+  return track.split("-")[0] === requested.split("-")[0];
 }
 
-// YouTube audio track IDs look like "en", "en.4", or "en-US"; prefer the
-// explicit languageCode when present, otherwise strip the dot suffix
-// before normalizing so "en.4" resolves to the base language.
-function normalizeAudioLanguage(value: unknown): string | undefined {
-  if (typeof value !== "string" || !value) return;
-  const language = normalizeLang(value.split(".")[0] ?? "");
-  return language || undefined;
-}
-
-function getAudioTrackLanguage(format: WebEmbeddedFormat): string | undefined {
-  return normalizeAudioLanguage(
-    format.audioTrack?.languageCode ?? format.audioTrack?.id,
-  );
-}
-
-function normalizeRequestedLanguage(value: unknown): string | undefined {
-  const language = normalizeAudioLanguage(value);
-  return language && language !== "auto" ? language : undefined;
-}
-
-function preferSourceLanguageAudioFormats(
-  audioFormats: WebEmbeddedFormat[],
-  sourceLanguage?: string,
-): WebEmbeddedFormat[] {
-  const requested = normalizeRequestedLanguage(sourceLanguage);
-  if (requested) {
-    const matches = audioFormats.filter(
-      (format) => getAudioTrackLanguage(format) === requested,
-    );
-    if (matches.length) {
-      const defaultMatches = matches.filter(
-        (format) => format.audioTrack?.audioIsDefault === true,
-      );
-      return defaultMatches.length ? defaultMatches : matches;
-    }
+function isDrcAudioFormat(format: WebEmbeddedFormat): boolean {
+  if (typeof format.xtags === "string" && format.xtags.includes("drc=1")) {
+    return true;
   }
-  const defaults = audioFormats.filter(
-    (format) => format.audioTrack?.audioIsDefault === true,
-  );
-  return defaults.length ? defaults : audioFormats;
+  try {
+    const cipher =
+      typeof format.signatureCipher === "string"
+        ? new URLSearchParams(format.signatureCipher)
+        : undefined;
+    const rawUrl = format.url ?? cipher?.get("url");
+    const xtags = rawUrl ? new URL(rawUrl).searchParams.get("xtags") : null;
+    return xtags?.includes("drc=1") === true;
+  } catch {
+    return false;
+  }
 }
 
-export function selectAudioFormat(
+export function selectWebEmbeddedAudioFormat(
   formats: WebEmbeddedFormat[],
-  sourceLanguage?: string,
+  requestedLanguage?: string,
 ): WebEmbeddedFormat {
-  if (!formats.length) {
-    throw new Error("Audio downloader. Empty adaptive formats");
-  }
   const withUrl = formats.filter(
     ({ url, signatureCipher }) =>
       typeof url === "string" || typeof signatureCipher === "string",
   );
-  const audioFormats = withUrl.filter(
-    ({ audioQuality, mimeType }) =>
-      !mimeType?.includes("video/") &&
-      (Boolean(audioQuality) || mimeType?.includes("audio/")),
+  const audioOnly = withUrl.filter(
+    ({ mimeType }) =>
+      mimeType?.includes("audio/") && !mimeType?.includes("video/"),
   );
-  if (audioFormats.length) {
-    return selectAudioFormatFrom(
-      preferSourceLanguageAudioFormats(audioFormats, sourceLanguage),
+
+  // If VOT explicitly selected a source language, prefer that YouTube audio
+  // track. BCP-47 variants are matched by exact tag first, then base language.
+  const normalizedRequestedLanguage = normalizeAudioLanguage(requestedLanguage);
+  const exactLanguageCandidates =
+    normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto"
+      ? audioOnly.filter(
+          (format) =>
+            getAudioFormatLanguage(format) === normalizedRequestedLanguage,
+        )
+      : [];
+  const requestedLanguageCandidates =
+    exactLanguageCandidates.length > 0
+      ? exactLanguageCandidates
+      : normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto"
+        ? audioOnly.filter((format) =>
+            audioLanguageMatches(
+              getAudioFormatLanguage(format),
+              normalizedRequestedLanguage,
+            ),
+          )
+        : [];
+
+  const defaultAudioOnly = audioOnly.filter(
+    ({ audioTrack }) => audioTrack?.audioIsDefault === true,
+  );
+  const trackCandidates =
+    requestedLanguageCandidates.length > 0
+      ? requestedLanguageCandidates
+      : defaultAudioOnly.length > 0
+        ? defaultAudioOnly
+        : audioOnly;
+  const nonDrcCandidates = trackCandidates.filter(
+    (format) => !isDrcAudioFormat(format),
+  );
+  const selected = selectSmallestAudioFormat(
+    nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates,
+  );
+
+  if (!selected) {
+    throw new Error(
+      "Audio downloader. web ABR returned no direct audio-only formats",
     );
   }
 
-  // itag 18, then the lowest-bitrate mp4a/opus regular format
-  const selected =
-    withUrl.find(({ itag }) => itag === 18) ??
-    withUrl
-      .filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? ""))
-      .sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
-  if (!selected) {
-    debug.log(
-      "Audio downloader. no direct audio formats",
-      JSON.stringify(
-        formats.map((format) => ({
-          itag: format.itag,
-          mimeType: format.mimeType,
-          hasUrl: typeof format.url === "string",
-          hasCipher: typeof format.signatureCipher === "string",
-          contentLength: format.contentLength ?? "none",
-        })),
-      ),
-    );
-    throw new Error(
-      "Audio downloader. web ABR returned no direct audio formats",
-    );
-  }
   return selected;
 }
 
@@ -1272,6 +1254,510 @@ async function probeContentLength(
   return total;
 }
 
+type MediaRange = { start: number; end: number };
+type MediaUrlState = {
+  value: string;
+  refreshPromise: Promise<string> | null;
+  version: number;
+};
+type RequestNumberRef = { value: number };
+type PendingState = { buffers: Uint8Array[]; size: number };
+type WebAbrTransport =
+  | "parallel_4"
+  | "4mb"
+  | "parallel_8"
+  | "8mb"
+  | "parallel_2"
+  | "2mb"
+  | "stream"
+  | "original";
+
+const WEB_ABR_TRANSPORTS: WebAbrTransport[] = [
+  "parallel_4",
+  "4mb",
+  "parallel_8",
+  "8mb",
+  "parallel_2",
+  "2mb",
+  "stream",
+  "original",
+];
+
+function makeFixedRanges(
+  contentLength: number,
+  chunkSize: number,
+): MediaRange[] {
+  const ranges: MediaRange[] = [];
+  for (let start = 0; start < contentLength; start += chunkSize) {
+    ranges.push({
+      start,
+      end: Math.min(contentLength - 1, start + chunkSize - 1),
+    });
+  }
+  return ranges;
+}
+
+const WEB_ABR_RANGE_MAX_ATTEMPTS = 10;
+const WEB_ABR_RANGE_REFRESH_EVERY_FAILURES = 2;
+const WEB_ABR_RANGE_RETRY_BASE_DELAY_MS = 250;
+const WEB_ABR_RANGE_RETRY_MAX_DELAY_MS = 1500;
+
+// Permanent media HTTP statuses cannot be recovered by retrying the same signed
+// URL or by cycling the transport matrix, so the outer client/strategy fallback
+// must take over. 408/425/429/5xx and network errors stay retryable.
+const WEB_ABR_FATAL_MEDIA_STATUSES = new Set([401, 403, 404, 410]);
+
+class MediaHttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "MediaHttpError";
+  }
+}
+
+function isFatalMediaError(error: unknown): boolean {
+  return (
+    error instanceof MediaHttpError &&
+    WEB_ABR_FATAL_MEDIA_STATUSES.has(error.status)
+  );
+}
+
+async function refreshMediaUrl(
+  urlState: MediaUrlState,
+  refreshUrl: () => Promise<string>,
+  reason: unknown = null,
+): Promise<string> {
+  if (!urlState.refreshPromise) {
+    const previousUrl = urlState.value;
+    const previousVersion = urlState.version ?? 0;
+    urlState.refreshPromise = Promise.resolve()
+      .then(() => refreshUrl())
+      .then((nextUrl) => {
+        if (typeof nextUrl !== "string" || !nextUrl) {
+          throw new Error("Audio downloader. Failed to refresh media URL");
+        }
+        urlState.value = nextUrl;
+        urlState.version = previousVersion + 1;
+        debug.log("Audio downloader. web ABR media URL refresh applied", {
+          reason,
+          version: urlState.version,
+          urlChanged: nextUrl !== previousUrl,
+        });
+        return nextUrl;
+      })
+      .finally(() => {
+        urlState.refreshPromise = null;
+      });
+  }
+  return await urlState.refreshPromise;
+}
+
+async function fetchMediaRange(
+  targetWindow: Window,
+  urlState: MediaUrlState,
+  start: number,
+  end: number,
+  signal: AbortSignal,
+  refreshUrl: () => Promise<string>,
+  requestNumberRef: RequestNumberRef,
+): Promise<Uint8Array> {
+  let lastError: unknown;
+  let refreshedFatal = false;
+  for (let attempt = 0; attempt < WEB_ABR_RANGE_MAX_ATTEMPTS; attempt++) {
+    signal.throwIfAborted();
+    // If another failed range is already refreshing the signed media URL,
+    // wait for that refresh before starting this retry. This keeps every retry
+    // on the newest URL without restarting ranges that already succeeded.
+    if (attempt > 0 && urlState.refreshPromise) {
+      await urlState.refreshPromise;
+    }
+    try {
+      const urlVersion = urlState.version ?? 0;
+      const url = new URL(urlState.value);
+      url.searchParams.set("range", `${start}-${end}`);
+      url.searchParams.set("rn", String(++requestNumberRef.value));
+      url.searchParams.delete("ump");
+      const response = await targetWindow.fetch(url, {
+        signal,
+        cache: "no-store",
+      });
+      if (!response.ok)
+        throw new MediaHttpError(
+          response.status,
+          `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`,
+        );
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      signal.throwIfAborted();
+      if (bytes.byteLength === end - start + 1) {
+        if (attempt > 0) {
+          debug.log("Audio downloader. web ABR range recovered", {
+            range: `${start}-${end}`,
+            attempt: attempt + 1,
+            maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+            urlVersion,
+          });
+        }
+        return bytes;
+      }
+      const redirect = new TextDecoder("ascii")
+        .decode(bytes)
+        .match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
+      if (redirect) {
+        const next = new URL(redirect);
+        if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname))
+          throw new Error("Audio downloader. Invalid media redirect");
+        urlState.value = next.toString();
+        if (attempt + 1 < WEB_ABR_RANGE_MAX_ATTEMPTS) continue;
+      }
+      throw new Error(
+        `Audio downloader. Incomplete web ABR chunk (${bytes.byteLength}/${end - start + 1}, range ${start}-${end})`,
+      );
+    } catch (error) {
+      signal.throwIfAborted();
+      lastError = error;
+      const failedAttempt = attempt + 1;
+      const fatal = isFatalMediaError(error);
+      const hasMoreAttempts = failedAttempt < WEB_ABR_RANGE_MAX_ATTEMPTS;
+      // A permanent status still gets one URL refresh (expired signatures look
+      // like 403), but a second fatal failure or a failed refresh ends this
+      // range so the transport matrix can abort.
+      const shouldRefreshUrl =
+        hasMoreAttempts &&
+        (fatal || failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0);
+
+      debug.log("Audio downloader. web ABR range request failed", {
+        range: `${start}-${end}`,
+        attempt: failedAttempt,
+        maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+        fatal,
+        refreshUrl: shouldRefreshUrl,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (!hasMoreAttempts) break;
+      if (fatal && refreshedFatal) break;
+
+      await createAbortableDelay(
+        Math.min(
+          WEB_ABR_RANGE_RETRY_BASE_DELAY_MS * failedAttempt,
+          WEB_ABR_RANGE_RETRY_MAX_DELAY_MS,
+        ),
+        signal,
+      );
+
+      if (shouldRefreshUrl) {
+        try {
+          await refreshMediaUrl(urlState, refreshUrl, {
+            range: `${start}-${end}`,
+            failedAttempt,
+          });
+          if (fatal) refreshedFatal = true;
+          debug.log(
+            "Audio downloader. web ABR media URL refreshed for range retry",
+            {
+              range: `${start}-${end}`,
+              nextAttempt: failedAttempt + 1,
+              urlVersion: urlState.version ?? 0,
+            },
+          );
+        } catch (refreshError) {
+          signal.throwIfAborted();
+          debug.log("Audio downloader. web ABR media URL refresh failed", {
+            range: `${start}-${end}`,
+            nextAttempt: failedAttempt + 1,
+            error:
+              refreshError instanceof Error
+                ? refreshError.message
+                : String(refreshError),
+          });
+          // Keep the fatal HTTP error as lastError so the transport matrix
+          // aborts instead of retrying a permanent failure.
+          if (fatal) break;
+          lastError = refreshError;
+        }
+      }
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Audio downloader. Media range failed");
+}
+
+async function* emitOrderedBuffers(
+  buffers: Uint8Array[],
+  isLastBatch: boolean,
+  pendingState: PendingState,
+): AsyncGenerator<AudioChunk> {
+  for (let bufferIndex = 0; bufferIndex < buffers.length; bufferIndex++) {
+    const buffer = buffers[bufferIndex];
+    pendingState.buffers.push(buffer);
+    pendingState.size += buffer.byteLength;
+
+    const isFinalBuffer = isLastBatch && bufferIndex === buffers.length - 1;
+    if (pendingState.size >= config.minChunkSize && !isFinalBuffer) {
+      yield {
+        buffer: concatBuffers(pendingState.buffers),
+        isLastChunk: false,
+      };
+      pendingState.buffers = [];
+      pendingState.size = 0;
+    }
+  }
+
+  if (isLastBatch) {
+    if (pendingState.size < 1) {
+      throw new Error("Audio downloader. Final web ABR chunk is empty");
+    }
+    yield {
+      buffer: concatBuffers(pendingState.buffers),
+      isLastChunk: true,
+    };
+    pendingState.buffers = [];
+    pendingState.size = 0;
+  }
+}
+
+async function* downloadRangesSequential(
+  targetWindow: Window,
+  streamUrl: string,
+  _contentLength: number,
+  signal: AbortSignal,
+  refreshUrl: () => Promise<string>,
+  ranges: MediaRange[],
+): AsyncGenerator<AudioChunk> {
+  const urlState: MediaUrlState = {
+    value: streamUrl,
+    refreshPromise: null,
+    version: 0,
+  };
+  const requestNumberRef: RequestNumberRef = { value: 0 };
+  const pendingState: PendingState = { buffers: [], size: 0 };
+  for (let index = 0; index < ranges.length; index++) {
+    const { start, end } = ranges[index];
+    const buffer = await fetchMediaRange(
+      targetWindow,
+      urlState,
+      start,
+      end,
+      signal,
+      refreshUrl,
+      requestNumberRef,
+    );
+    for await (const chunk of emitOrderedBuffers(
+      [buffer],
+      index === ranges.length - 1,
+      pendingState,
+    ))
+      yield chunk;
+  }
+}
+
+async function* downloadRangesParallel(
+  targetWindow: Window,
+  streamUrl: string,
+  contentLength: number,
+  signal: AbortSignal,
+  refreshUrl: () => Promise<string>,
+  concurrency: number,
+): AsyncGenerator<AudioChunk> {
+  const ranges = makeFixedRanges(contentLength, 4 * 1024 * 1024);
+  const urlState: MediaUrlState = {
+    value: streamUrl,
+    refreshPromise: null,
+    version: 0,
+  };
+  const requestNumberRef: RequestNumberRef = { value: 0 };
+  const pendingState: PendingState = { buffers: [], size: 0 };
+
+  for (let index = 0; index < ranges.length; index += concurrency) {
+    signal.throwIfAborted();
+    const batch = ranges.slice(index, index + concurrency);
+    const buffers = await Promise.all(
+      batch.map(({ start, end }) =>
+        fetchMediaRange(
+          targetWindow,
+          urlState,
+          start,
+          end,
+          signal,
+          refreshUrl,
+          requestNumberRef,
+        ),
+      ),
+    );
+    for await (const chunk of emitOrderedBuffers(
+      buffers,
+      index + batch.length >= ranges.length,
+      pendingState,
+    ))
+      yield chunk;
+  }
+}
+
+async function* downloadStream(
+  targetWindow: Window,
+  streamUrl: string,
+  signal: AbortSignal,
+): AsyncGenerator<AudioChunk> {
+  const url = new URL(streamUrl);
+  url.searchParams.delete("range");
+  url.searchParams.delete("rn");
+  url.searchParams.delete("ump");
+  const response = await targetWindow.fetch(url, { signal });
+  if (!response.ok)
+    throw new Error(
+      `Audio downloader. Stream request failed (${response.status})`,
+    );
+  if (!response.body)
+    throw new Error("Audio downloader. Stream body is unavailable");
+
+  const reader = response.body.getReader();
+  const pending: Uint8Array[] = [];
+  let pendingSize = 0;
+  let readyChunk: Uint8Array | null = null;
+  try {
+    for (;;) {
+      signal.throwIfAborted();
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value?.byteLength) continue;
+      const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+      pending.push(bytes);
+      pendingSize += bytes.byteLength;
+      if (pendingSize >= config.minChunkSize) {
+        const nextChunk = concatBuffers(pending);
+        pending.length = 0;
+        pendingSize = 0;
+
+        if (readyChunk) {
+          yield {
+            buffer: readyChunk,
+            isLastChunk: false,
+          };
+        }
+        readyChunk = nextChunk;
+      }
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {}
+  }
+
+  if (pendingSize > 0) {
+    if (readyChunk) {
+      yield {
+        buffer: readyChunk,
+        isLastChunk: false,
+      };
+    }
+    yield {
+      buffer: concatBuffers(pending),
+      isLastChunk: true,
+    };
+    return;
+  }
+
+  if (!readyChunk?.byteLength) {
+    throw new Error("Audio downloader. Stream ended without audio data");
+  }
+  yield {
+    buffer: readyChunk,
+    isLastChunk: true,
+  };
+}
+
+async function* downloadWithTransport(
+  targetWindow: Window,
+  transport: WebAbrTransport,
+  streamUrl: string,
+  contentLength: number,
+  signal: AbortSignal,
+  refreshUrl: () => Promise<string>,
+): AsyncGenerator<AudioChunk> {
+  switch (transport) {
+    case "parallel_4":
+      yield* downloadRangesParallel(
+        targetWindow,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+        4,
+      );
+      return;
+    case "parallel_2":
+      yield* downloadRangesParallel(
+        targetWindow,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+        2,
+      );
+      return;
+    case "parallel_8":
+      yield* downloadRangesParallel(
+        targetWindow,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+        8,
+      );
+      return;
+    case "stream":
+      yield* downloadStream(targetWindow, streamUrl, signal);
+      return;
+    case "8mb":
+      yield* downloadRangesSequential(
+        targetWindow,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+        makeFixedRanges(contentLength, 8 * 1024 * 1024),
+      );
+      return;
+    case "4mb":
+      yield* downloadRangesSequential(
+        targetWindow,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+        makeFixedRanges(contentLength, 4 * 1024 * 1024),
+      );
+      return;
+    case "2mb":
+      yield* downloadRangesSequential(
+        targetWindow,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+        makeFixedRanges(contentLength, 2 * 1024 * 1024),
+      );
+      return;
+    case "original":
+      yield* downloadRangesSequential(
+        targetWindow,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+        buildMediaRanges(contentLength),
+      );
+      return;
+    default:
+      throw new Error(
+        `Audio downloader. Unknown web ABR transport: ${transport}`,
+      );
+  }
+}
+
 export async function* downloadMediaRanges(
   targetWindow: Window,
   streamUrl: string,
@@ -1279,66 +1765,109 @@ export async function* downloadMediaRanges(
   signal: AbortSignal,
   refreshUrl: () => Promise<string>,
 ): AsyncGenerator<AudioChunk> {
-  if (!Number.isSafeInteger(contentLength) || contentLength < 1) {
+  if (!Number.isSafeInteger(contentLength) || contentLength < 1)
     throw new Error("Audio downloader. Invalid media content length");
-  }
-  let requestNumber = 0;
-  let pending: Uint8Array[] = [];
-  let pendingSize = 0;
-  for (const { start, end } of buildMediaRanges(contentLength)) {
-    let buffer: Uint8Array | undefined;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      signal.throwIfAborted();
-      try {
-        const url = new URL(streamUrl);
-        url.searchParams.set("range", `${start}-${end}`);
-        url.searchParams.set("rn", String(++requestNumber));
-        url.searchParams.delete("ump");
-        const response = await targetWindow.fetch(url, { signal });
-        if (!response.ok) {
+
+  // Start with parallel_4 and move forward through the fallback list.
+  const transports = [...WEB_ABR_TRANSPORTS];
+  debug.log("Audio downloader. web ABR transport order", {
+    transports,
+    bufferBeforeEmit: true,
+  });
+
+  let lastError: unknown;
+  for (const transport of transports) {
+    signal.throwIfAborted();
+    const startedAt = performance.now();
+    try {
+      debug.log("Audio downloader. web ABR transport started", {
+        transport,
+        contentLength,
+        bufferBeforeEmit: true,
+      });
+
+      // Do not expose any audio to the outer uploader until the selected
+      // transport has downloaded the complete source audio successfully.
+      // This makes fallback safe even if a transport fails near the end.
+      const bufferedChunks: AudioChunk[] = [];
+      let downloadedBytes = 0;
+      for await (const chunk of downloadWithTransport(
+        targetWindow,
+        transport,
+        streamUrl,
+        contentLength,
+        signal,
+        refreshUrl,
+      )) {
+        if (!chunk?.buffer?.byteLength) {
           throw new Error(
-            `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`,
+            "Audio downloader. Web ABR transport produced an empty chunk",
           );
         }
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        signal.throwIfAborted();
-        if (bytes.byteLength === end - start + 1) {
-          buffer = bytes;
-          break;
-        }
-        const redirect = new TextDecoder("ascii")
-          .decode(bytes)
-          .match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
-        if (redirect) {
-          const next = new URL(redirect);
-          if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) {
-            throw new Error("Audio downloader. Invalid media redirect");
-          }
-          streamUrl = next.toString();
-          if (attempt < 2) continue;
-        }
-        throw new Error("Audio downloader. Incomplete web ABR chunk");
-      } catch (error) {
-        signal.throwIfAborted();
-        if (attempt === 2) throw error;
-        await createAbortableDelay(250 * (attempt + 1), signal);
-        // Retry transient failures first; refresh an expired URL before the last try.
-        if (attempt === 1) streamUrl = await refreshUrl();
+        bufferedChunks.push(chunk);
+        downloadedBytes += chunk.buffer.byteLength;
+      }
+
+      if (downloadedBytes !== contentLength) {
+        throw new Error(
+          `Audio downloader. Incomplete web ABR download (${downloadedBytes}/${contentLength} bytes)`,
+        );
+      }
+      if (bufferedChunks.length < 1) {
+        throw new Error(
+          "Audio downloader. Web ABR transport returned no audio chunks",
+        );
+      }
+
+      // Normalize finalization after the full download is verified.
+      for (let index = 0; index < bufferedChunks.length; index++) {
+        bufferedChunks[index] = {
+          ...bufferedChunks[index],
+          isLastChunk: index === bufferedChunks.length - 1,
+        };
+      }
+
+      debug.log("Audio downloader. web ABR transport fully buffered", {
+        transport,
+        chunks: bufferedChunks.length,
+        downloadedBytes,
+        elapsedMs: Math.round(performance.now() - startedAt),
+      });
+
+      // Only now make the chunks visible to AudioDownloader/Yandex upload.
+      for (const chunk of bufferedChunks) yield chunk;
+
+      debug.log("Audio downloader. web ABR transport finished", {
+        transport,
+        elapsedMs: Math.round(performance.now() - startedAt),
+        bufferBeforeEmit: true,
+      });
+      return;
+    } catch (error) {
+      signal.throwIfAborted();
+      lastError = error;
+      debug.log("Audio downloader. web ABR transport failed", {
+        transport,
+        emitted: false,
+        bufferBeforeEmit: true,
+        elapsedMs: Math.round(performance.now() - startedAt),
+        error: error instanceof Error ? error.message : String(error),
+      });
+      if (isFatalMediaError(error)) {
+        debug.log("Audio downloader. web ABR transport matrix aborted", {
+          transport,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
       }
     }
-    if (!buffer) throw new Error("Audio downloader. Incomplete web ABR chunk");
-    pending.push(buffer);
-    pendingSize += buffer.byteLength;
-    const isLastChunk = end === contentLength - 1;
-    if (pendingSize >= config.minChunkSize || isLastChunk) {
-      yield { buffer: concatBuffers(pending), isLastChunk };
-      pending = [];
-      pendingSize = 0;
-    }
   }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Audio downloader. All web ABR transports failed");
 }
 
-export async function* getWebAbrAudioChunks(
+async function* getWebAbrAudioChunksImpl(
   targetWindow: WebAbrWindow,
   videoId: string,
   signal: AbortSignal,
@@ -1481,7 +2010,7 @@ export async function* getWebAbrAudioChunks(
           }`,
         );
       }
-      const format = selectAudioFormat(formats, sourceLanguage);
+      const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
       const fetchedFlags = fetchedConfig?.experimentFlags;
       const poTokenBinding = selectGvsPoTokenBinding(videoId, {
         loggedIn,
@@ -1588,4 +2117,53 @@ export async function* getWebAbrAudioChunks(
     );
   }
   throw fallbackError;
+}
+
+const WEB_ABR_DOWNLOAD_QUEUE = new Map<string, Promise<void>>();
+
+/**
+ * Serialize concurrent web_abr downloads for the same video.
+ *
+ * If VOT accidentally calls web_abr twice for one video, the second call waits
+ * until the first generator is completely finished before it starts resolving
+ * clients/media URLs or issuing media requests. Calls for different videos can
+ * still run independently.
+ */
+export async function* getWebAbrAudioChunks(
+  targetWindow: WebAbrWindow,
+  videoId: string,
+  signal: AbortSignal,
+  sourceLanguage?: string,
+): AsyncGenerator<AudioChunk> {
+  const queueKey = String(videoId);
+  const previous = WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
+  const hadPrevious = WEB_ABR_DOWNLOAD_QUEUE.has(queueKey);
+
+  let releaseCurrent: (() => void) | undefined;
+  const current = new Promise<void>((resolve) => {
+    releaseCurrent = resolve;
+  });
+  WEB_ABR_DOWNLOAD_QUEUE.set(queueKey, current);
+
+  debug.log("Audio downloader. web ABR queued", {
+    videoId,
+    hasPrevious: hadPrevious,
+  });
+
+  try {
+    await previous;
+    signal.throwIfAborted();
+    yield* getWebAbrAudioChunksImpl(
+      targetWindow,
+      videoId,
+      signal,
+      sourceLanguage,
+    );
+  } finally {
+    releaseCurrent?.();
+    if (WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) === current) {
+      WEB_ABR_DOWNLOAD_QUEUE.delete(queueKey);
+    }
+    debug.log("Audio downloader. web ABR queue released", { videoId });
+  }
 }

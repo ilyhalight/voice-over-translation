@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { handleTranslationButtonCommand } from "../src/ui/translationCommands";
 
 type StoredValues = Record<string, string>;
 type OpenCall = {
@@ -43,6 +42,10 @@ Object.defineProperty(globalThis, "open", {
   },
 });
 
+const { handleTranslationButtonCommand } = await import(
+  "../src/ui/translationCommands"
+);
+
 function createVideoHandler(account?: { token?: string; expires?: number }) {
   const calls = {
     ensureDetectedLanguage: 0,
@@ -60,7 +63,7 @@ function createVideoHandler(account?: { token?: string; expires?: number }) {
       additionalData: undefined,
     },
     votClient: {
-      apiToken: account?.token,
+      provider: { apiToken: account?.token },
     },
     actionsAbortController: new AbortController(),
     hasActiveSource: () => false,
@@ -112,7 +115,7 @@ describe("translation auth command", () => {
 
     expect(videoHandler.data.useLivelyVoice).toBe(true);
     expect(videoHandler.data.account).toEqual({});
-    expect(videoHandler.votClient.apiToken).toBeUndefined();
+    expect(videoHandler.votClient.provider.apiToken).toBeUndefined();
     expect(storedValues.useLivelyVoice).toBeUndefined();
     expect(openCalls).toHaveLength(1);
     expect(buttonStates).toEqual([["error", "Session expired. Log in again"]]);
@@ -139,5 +142,49 @@ describe("translation auth command", () => {
     expect(buttonStates).toEqual([]);
     expect(videoHandler.calls.ensureDetectedLanguage).toBe(1);
     expect(videoHandler.calls.translateFunc).toBe(1);
+  });
+
+  test("an idle error click retries in the same click without stopping", async () => {
+    const videoHandler = createVideoHandler();
+    const buttonStates: Array<[string, string]> = [];
+    let stops = 0;
+    videoHandler.stopTranslation = async () => {
+      stops += 1;
+    };
+
+    await handleTranslationButtonCommand({
+      videoHandler: videoHandler as any,
+      currentStatus: "error",
+      currentLoading: false,
+      transformBtn: (status, text) => {
+        buttonStates.push([status, text]);
+      },
+    });
+
+    // Reset to idle, but do not abort the background preparation.
+    expect(buttonStates.map(([status]) => status)).toEqual(["none"]);
+    expect(videoHandler.actionsAbortController.signal.aborted).toBe(false);
+    expect(stops).toBe(0);
+    expect(videoHandler.calls.ensureDetectedLanguage).toBe(1);
+    expect(videoHandler.calls.translateFunc).toBe(1);
+  });
+
+  test("an active/loading click still aborts and stops", async () => {
+    const videoHandler = createVideoHandler();
+    let stops = 0;
+    videoHandler.stopTranslation = async () => {
+      stops += 1;
+    };
+
+    await handleTranslationButtonCommand({
+      videoHandler: videoHandler as any,
+      currentStatus: "loading",
+      currentLoading: true,
+      transformBtn: () => undefined,
+    });
+
+    expect(videoHandler.actionsAbortController.signal.aborted).toBe(true);
+    expect(stops).toBe(1);
+    expect(videoHandler.calls.translateFunc).toBe(0);
   });
 });
