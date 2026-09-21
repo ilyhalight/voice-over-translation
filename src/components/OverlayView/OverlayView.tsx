@@ -613,12 +613,10 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
   onMount(() => {
     if (!segmentedButton) return;
 
+    // No lostpointercapture listener: touch implicitly captures the nested button,
+    // and Document pointerup/pointercancel cover the drag lifecycle.
     segmentedButton.addEventListener("pointerdown", onButtonDragPointerDown);
     segmentedButton.addEventListener("click", suppressClickAfterDrag, true);
-    segmentedButton.addEventListener(
-      "lostpointercapture",
-      onButtonDragPointerCancel,
-    );
   });
 
   onCleanup(() => {
@@ -629,10 +627,6 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
       onButtonDragPointerDown,
     );
     segmentedButton?.removeEventListener("click", suppressClickAfterDrag, true);
-    segmentedButton?.removeEventListener(
-      "lostpointercapture",
-      onButtonDragPointerCancel,
-    );
   });
 
   return (
