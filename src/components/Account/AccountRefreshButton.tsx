@@ -1,7 +1,7 @@
 import type { JSX } from "solid-js";
 import { updateAccountInfo } from "../../core/auth/yandex";
 import { t } from "../../localization/localizationProvider";
-import { updateAccountFromStorage } from "../../stores/account";
+import { account, updateAccountFromStorage } from "../../stores/account";
 import { IconButton } from "../Button/IconButton";
 import { RefreshIcon } from "../Icons/RefreshIcon";
 
@@ -16,7 +16,12 @@ export function AccountRefreshButton(
     <IconButton
       ref={props.ref}
       ariaLabel={t("VOTRefresh")}
+      disabled={account.isRefreshing}
       onClick={async () => {
+        if (account.isRefreshing) {
+          return;
+        }
+
         try {
           await updateAccountInfo();
         } catch {

@@ -7,7 +7,7 @@ import {
   YANDEX_AUTH_URL,
   YANDEX_USER_INFO_URL,
 } from "../../config/auth";
-import { updateAccount } from "../../stores/account";
+import { setAccount, updateAccount } from "../../stores/account";
 import type { AuthMessageData } from "../../types/core/auth/message";
 import type {
   AuthError,
@@ -105,6 +105,7 @@ export async function updateAccountInfo() {
   let username: string;
   let avatarId: string;
   try {
+    setAccount("isRefreshing", true);
     const userInfo = await getUserInfo(account.token);
     username = userInfo.login;
     avatarId = userInfo.default_avatar_id;
@@ -120,6 +121,8 @@ export async function updateAccountInfo() {
     });
   } catch (err) {
     console.error("[VOT] Failed to fetch user info:", err);
+  } finally {
+    setAccount("isRefreshing", false);
   }
 }
 

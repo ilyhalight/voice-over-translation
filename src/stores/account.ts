@@ -4,6 +4,7 @@ import { hasValidAccountToken } from "../utils/account";
 import { votStorage } from "../utils/storage";
 
 export type AccountStore = {
+  isRefreshing: boolean;
   isLoggedIn: boolean;
   username?: string;
   avatarId?: string;
@@ -13,6 +14,7 @@ export type AccountStore = {
 
 function createInitialState(): AccountStore {
   return {
+    isRefreshing: false,
     isLoggedIn: false,
     username: undefined,
     avatarId: undefined,

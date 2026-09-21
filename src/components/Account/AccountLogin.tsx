@@ -1,7 +1,8 @@
 import { type JSX, mergeProps } from "solid-js";
+import { produce } from "solid-js/store";
 import "./AccountLogin.scss";
 
-import { produce } from "solid-js/store";
+import { YANDEX_TOKEN_DEFAULT_LIFETIME } from "../../config/auth";
 import { t } from "../../localization/localizationProvider";
 import { setAccount } from "../../stores/account";
 import { votStorage } from "../../utils/storage";
@@ -14,8 +15,6 @@ export type AccountLoginProps = {
   disableExternalLogin?: boolean;
   onClickLogin?: () => void;
 };
-
-const TOKEN_LIFETIME = 31_534_180_000; // 1 year in milliseconds
 
 export function AccountLogin(props: AccountLoginProps): JSX.Element {
   const finalProps = mergeProps(
@@ -50,12 +49,11 @@ export function AccountLogin(props: AccountLoginProps): JSX.Element {
             const data = value
               ? {
                   token: value,
-                  expires: Date.now() + TOKEN_LIFETIME,
+                  expires: Date.now() + YANDEX_TOKEN_DEFAULT_LIFETIME,
                 }
               : {};
             const isLoggedIn = Boolean(value);
 
-            // TODO: add get account info via token and set username and avatarId
             await votStorage.set("account", { ...data });
             setAccount(
               produce((state) => {

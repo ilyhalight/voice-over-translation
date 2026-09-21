@@ -6,3 +6,4 @@ export const YANDEX_AUTH_TOKEN_URL = `${YANDEX_AUTH_ORIGIN}/token`;
 export const YANDEX_AUTH_AVATAR_BASE =
   "https://avatars.mds.yandex.net/get-yapic";
 export const YANDEX_USER_INFO_URL = "https://login.yandex.ru/info";
+export const YANDEX_TOKEN_DEFAULT_LIFETIME = 31_534_180_000; // 1 year in milliseconds
