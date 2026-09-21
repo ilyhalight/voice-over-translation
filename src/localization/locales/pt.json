@@ -250,5 +250,6 @@
   "VOTLiveVoicesTitle": "Vozes ao vivo",
   "VOTLiveVoicesSubtitle": "O máximo de semelhança. Como se todos soubessem russo",
   "VOTYandexTokenExpired": "A sessão expirou. Iniciar sessão novamente",
-  "VOTVoiceSelection": "Escolha a dublagem"
+  "VOTVoiceSelection": "Escolha a dublagem",
+  "VOTRetryTranslation": "Tentar tradução novamente"
 }

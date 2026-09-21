@@ -160,6 +160,12 @@ async function acquireAudioDownloadSlot(
 }
 
 export class AudioDownloader {
+  private readonly completedAudioCache = new Map<
+    string,
+    { fileId: string; chunks: Uint8Array[]; version: 1 }
+  >();
+  private readonly collectingChunks = new Map<string, Uint8Array[]>();
+
   onDownloadedAudio = new EventImpl<[string, DownloadedAudioData]>();
   onDownloadedPartialAudio = new EventImpl<
     [string, DownloadedPartialAudioData]
@@ -170,9 +176,35 @@ export class AudioDownloader {
 
   constructor(strategy: AvailableAudioDownloadType = WEB_ABR_STRATEGY) {
     this.strategy = strategy;
+    this.onDownloadedPartialAudio.addListener((_translationId, data) => {
+      const chunks = this.collectingChunks.get(data.videoId);
+      if (!chunks) return;
+      chunks[data.index] = data.audioData.slice();
+      if (
+        data.amount !== undefined &&
+        data.amount > 0 &&
+        data.index === data.amount - 1
+      ) {
+        this.completedAudioCache.set(data.videoId, {
+          fileId: data.fileId,
+          chunks: chunks.slice(0, data.amount),
+          version: data.version,
+        });
+        this.collectingChunks.delete(data.videoId);
+        debug.log("[VOT][AudioDownload] prepared audio cached for retry", {
+          videoId: data.videoId,
+          chunks: data.amount,
+        });
+      }
+    });
     debug.log("Audio downloader created", {
       strategy,
     });
+  }
+
+  clearCachedAudio(videoId: string) {
+    this.completedAudioCache.delete(videoId);
+    this.collectingChunks.delete(videoId);
   }
 
   async runAudioDownload(
@@ -181,6 +213,27 @@ export class AudioDownloader {
     signal: AbortSignal,
     sourceLanguage?: string,
   ) {
+    const cached = this.completedAudioCache.get(videoId);
+    if (cached) {
+      debug.log("[VOT][AudioDownload] replaying cached prepared audio", {
+        videoId,
+        chunks: cached.chunks.length,
+      });
+      for (let index = 0; index < cached.chunks.length; index++) {
+        throwIfAborted(signal);
+        await this.onDownloadedPartialAudio.dispatchAsync(translationId, {
+          videoId,
+          fileId: cached.fileId,
+          audioData: cached.chunks[index] ?? new Uint8Array(),
+          version: cached.version,
+          index,
+          amount: index === cached.chunks.length - 1 ? cached.chunks.length : 0,
+        });
+      }
+      return;
+    }
+
+    this.collectingChunks.set(videoId, []);
     let release: (() => void) | undefined;
     try {
       release = await acquireAudioDownloadSlot(videoId, signal);
