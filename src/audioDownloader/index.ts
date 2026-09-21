@@ -39,6 +39,7 @@ async function handleCommonAudioDownloadRequest({
   });
 
   const { getMediaBuffers, fileId } = audioData;
+  throwIfAborted(signal);
 
   // One-item lookahead: hold each real chunk until the next item (or clean
   // EOF) confirms it, so a terminal zero-byte marker is absorbed and the
@@ -59,10 +60,13 @@ async function handleCommonAudioDownloadRequest({
         amount: isLastChunk ? index + 1 : 0,
       },
     );
+    // Upload handlers may abort the run.
+    throwIfAborted(signal);
     index++;
   };
 
   for await (const raw of getMediaBuffers()) {
+    throwIfAborted(signal);
     if (sawTerminal) {
       // A real last chunk is final; only trailing empty markers are allowed.
       if (raw.buffer.byteLength === 0 && raw.isLastChunk) continue;
@@ -160,10 +164,15 @@ async function acquireAudioDownloadSlot(
 }
 
 export class AudioDownloader {
-  private readonly completedAudioCache = new Map<
-    string,
-    { fileId: string; chunks: Uint8Array[]; version: 1 }
-  >();
+  // Only the most recent completed download is kept so a failed upload can
+  // resume the same video without re-downloading. Completing a different
+  // video replaces it; this is a single-entry cache, not an LRU/TTL.
+  private completedAudioCache: {
+    videoId: string;
+    fileId: string;
+    chunks: Uint8Array[];
+    version: 1;
+  } | null = null;
   private readonly collectingChunks = new Map<string, Uint8Array[]>();
 
   onDownloadedAudio = new EventImpl<[string, DownloadedAudioData]>();
@@ -185,11 +194,12 @@ export class AudioDownloader {
         data.amount > 0 &&
         data.index === data.amount - 1
       ) {
-        this.completedAudioCache.set(data.videoId, {
+        this.completedAudioCache = {
+          videoId: data.videoId,
           fileId: data.fileId,
           chunks: chunks.slice(0, data.amount),
           version: data.version,
-        });
+        };
         this.collectingChunks.delete(data.videoId);
         debug.log("[VOT][AudioDownload] prepared audio cached for retry", {
           videoId: data.videoId,
@@ -203,8 +213,35 @@ export class AudioDownloader {
   }
 
   clearCachedAudio(videoId: string) {
-    this.completedAudioCache.delete(videoId);
+    if (this.completedAudioCache?.videoId === videoId) {
+      this.completedAudioCache = null;
+    }
     this.collectingChunks.delete(videoId);
+  }
+
+  private async replayCachedAudio(
+    videoId: string,
+    translationId: string,
+    signal: AbortSignal,
+  ): Promise<boolean> {
+    const cached = this.completedAudioCache;
+    if (cached?.videoId !== videoId) return false;
+    debug.log("[VOT][AudioDownload] replaying cached prepared audio", {
+      videoId,
+      chunks: cached.chunks.length,
+    });
+    for (let index = 0; index < cached.chunks.length; index++) {
+      throwIfAborted(signal);
+      await this.onDownloadedPartialAudio.dispatchAsync(translationId, {
+        videoId,
+        fileId: cached.fileId,
+        audioData: cached.chunks[index] ?? new Uint8Array(),
+        version: cached.version,
+        index,
+        amount: index === cached.chunks.length - 1 ? cached.chunks.length : 0,
+      });
+    }
+    return true;
   }
 
   async runAudioDownload(
@@ -213,27 +250,10 @@ export class AudioDownloader {
     signal: AbortSignal,
     sourceLanguage?: string,
   ) {
-    const cached = this.completedAudioCache.get(videoId);
-    if (cached) {
-      debug.log("[VOT][AudioDownload] replaying cached prepared audio", {
-        videoId,
-        chunks: cached.chunks.length,
-      });
-      for (let index = 0; index < cached.chunks.length; index++) {
-        throwIfAborted(signal);
-        await this.onDownloadedPartialAudio.dispatchAsync(translationId, {
-          videoId,
-          fileId: cached.fileId,
-          audioData: cached.chunks[index] ?? new Uint8Array(),
-          version: cached.version,
-          index,
-          amount: index === cached.chunks.length - 1 ? cached.chunks.length : 0,
-        });
-      }
+    if (await this.replayCachedAudio(videoId, translationId, signal)) {
       return;
     }
 
-    this.collectingChunks.set(videoId, []);
     let release: (() => void) | undefined;
     try {
       release = await acquireAudioDownloadSlot(videoId, signal);
@@ -250,7 +270,18 @@ export class AudioDownloader {
       this.onDownloadAudioError.dispatch(translationId, videoId);
       return;
     }
+
+    let collecting: Uint8Array[] | undefined;
     try {
+      // A predecessor may have finished the same video while this run waited.
+      if (await this.replayCachedAudio(videoId, translationId, signal)) {
+        return;
+      }
+      // Buffer chunks in a run-local array so an abort/failure can drop them.
+      // The identity guard keeps a queued same-video run from losing its own
+      // collection when an overlapping predecessor cleans up.
+      collecting = [];
+      this.collectingChunks.set(videoId, collecting);
       const attempts: AvailableAudioDownloadType[] =
         this.strategy === WEB_ABR_STRATEGY
           ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
@@ -292,6 +323,9 @@ export class AudioDownloader {
       });
       this.onDownloadAudioError.dispatch(translationId, videoId);
     } finally {
+      if (collecting && this.collectingChunks.get(videoId) === collecting) {
+        this.collectingChunks.delete(videoId);
+      }
       release();
     }
   }

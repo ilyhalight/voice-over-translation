@@ -539,3 +539,77 @@ test("a queued run cannot interleave between WEB_ABR and its fallback", async ()
     restore();
   }
 });
+
+test("an aborted run drops its buffered collecting chunks", async () => {
+  const gate = deferred<void>();
+  const entered = deferred<void>();
+  const restore = patchStrategies(
+    async () => ({
+      fileId: "test-file",
+      mediaPartsLength: null,
+      getMediaBuffers: async function* () {
+        entered.resolve();
+        await gate.promise;
+        yield { buffer: bytes(10), isLastChunk: false };
+      },
+    }),
+    abrSucceeds(),
+  );
+  const collecting = (downloader: AudioDownloader) =>
+    (downloader as unknown as { collectingChunks: Map<string, unknown> })
+      .collectingChunks;
+  try {
+    const downloader = new AudioDownloader(WEB_ABR_STRATEGY);
+    const controller = new AbortController();
+    const run = downloader.runAudioDownload(
+      "q-collect",
+      "t",
+      controller.signal,
+    );
+    await entered.promise;
+    expect(collecting(downloader).has("q-collect")).toBe(true);
+    controller.abort();
+    gate.resolve();
+    await run;
+    expect(collecting(downloader).has("q-collect")).toBe(false);
+  } finally {
+    restore();
+  }
+});
+
+test("completed audio cache keeps only the last video", async () => {
+  const calls: string[] = [];
+  const restore = patchStrategies(async (options) => {
+    calls.push(`abr:${options.videoId}`);
+    return {
+      fileId: `file-${options.videoId}`,
+      mediaPartsLength: null,
+      getMediaBuffers: () => singleChunk(),
+    };
+  }, abrSucceeds());
+  try {
+    const downloader = new AudioDownloader(WEB_ABR_STRATEGY);
+    const signal = new AbortController().signal;
+
+    await downloader.runAudioDownload("cache-a", "t-a", signal);
+    expect(calls).toEqual(["abr:cache-a"]);
+
+    // The same video resumes from the cached chunks without re-downloading.
+    await downloader.runAudioDownload("cache-a", "t-a2", signal);
+    expect(calls).toEqual(["abr:cache-a"]);
+
+    // Starting a different video evicts the single cached entry.
+    await downloader.runAudioDownload("cache-b", "t-b", signal);
+    expect(calls).toEqual(["abr:cache-a", "abr:cache-b"]);
+
+    // cache-b is now the cached video and replays.
+    await downloader.runAudioDownload("cache-b", "t-b2", signal);
+    expect(calls).toEqual(["abr:cache-a", "abr:cache-b"]);
+
+    // cache-a was evicted, so it must download again.
+    await downloader.runAudioDownload("cache-a", "t-a3", signal);
+    expect(calls).toEqual(["abr:cache-a", "abr:cache-b", "abr:cache-a"]);
+  } finally {
+    restore();
+  }
+});

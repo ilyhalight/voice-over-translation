@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.13
+// @version        1.11.14
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -154,6 +154,7 @@
 // @match          *://projector.datacamp.com/*
 // @match          *://hot.noodlemagazine.com/*
 // @match          *://fast.wistia.net/*
+// @match          *://*.the-joi-database.com/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
@@ -360,6 +361,7 @@ var vot = (function(exports) {
 		VideoService["rtnews"] = "rtnews";
 		VideoService["bitview"] = "bitview";
 		VideoService["thisvid"] = "thisvid";
+		VideoService["joidatabase"] = "joidatabase";
 		VideoService["ign"] = "ign";
 		VideoService["noodlemagazine"] = "noodlemagazine";
 		VideoService["zdf"] = "zdf";
@@ -431,6 +433,9 @@ var vot = (function(exports) {
 	var sitesCoursehunterLike = ["coursehunter.net", "coursetrain.net"];
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/types/service.js
+	/**
+	* Additional video services supported in extension
+	*/
 	var ExtVideoService;
 	(function(ExtVideoService) {
 		ExtVideoService["udemy"] = "udemy";
@@ -640,6 +645,12 @@ var vot = (function(exports) {
 			url: "https://rule34video.com/video/",
 			match: (url) => /^(www\.)?rule34video\.com$/.test(url.host) && /\/videos?\/\d+/.test(url.pathname),
 			selector: sharedSelectors.flowplayer
+		},
+		{
+			host: VideoService$1.joidatabase,
+			url: "https://www.the-joi-database.com/api/stream/",
+			match: [/^s1\.the-joi-database\.com$/, /^(www\.)?the-joi-database\.com$/],
+			selector: "#small-player-container"
 		},
 		{
 			host: VideoService$1.picarto,
@@ -1115,13 +1126,13 @@ var vot = (function(exports) {
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.toil.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
-		componentVersion: "26.8.3.971",
-		chromiumRevision: "971",
+		componentVersion: "26.8.3.1002",
+		chromiumRevision: "1002",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.1.0"
+		version: "3.1.2"
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/logger.js
@@ -1164,6 +1175,10 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/utils/utils.js
+	/**
+	* not all possible languages are listed here, but only those that are supported in voice-over-translation
+	* src: https://gist.github.com/jackdoe/043297c8f739c53a6865138aa1dc3fe2
+	*/
 	var iso6392to6391 = {
 		afr: "af",
 		aka: "ak",
@@ -1282,6 +1297,13 @@ var vot = (function(exports) {
 		yor: "yo",
 		zul: "zu"
 	};
+	/**
+	* Fetch wrapper with timeout support.
+	*
+	* Notes:
+	* - Respects a user-provided AbortSignal and will abort if either the signal
+	*   or the timeout triggers.
+	*/
 	async function fetchWithTimeout(url, options = { headers: { "User-Agent": config_default$1.userAgent } }) {
 		let { timeout = 3e3, signal, ...fetchOptions } = options;
 		if (!signal && (!timeout || timeout <= 0)) return await fetch(url, fetchOptions);
@@ -1291,13 +1313,22 @@ var vot = (function(exports) {
 			signal
 		});
 	}
+	/**
+	* Get current timestamp in seconds
+	*/
 	function getTimestamp$1() {
 		return Math.floor(Date.now() / 1e3);
 	}
+	/**
+	* Convert lang to ISO 639-1
+	*/
 	function normalizeLang$1(lang) {
 		if (lang.length === 3) return iso6392to6391[lang];
 		return lang.toLowerCase().split(/[_;-]/)[0].trim();
 	}
+	/**
+	* Convert media .mp4/.webm link to proxied link with media proxy
+	*/
 	function proxyMedia(url, format = "mp4") {
 		const generalUrl = `https://${config_default$1.mediaProxy}/v1/proxy/video.${format}?format=base64&force=true`;
 		if (!(url instanceof URL)) return `${generalUrl}&url=${btoa(url)}`;
@@ -1683,8 +1714,6 @@ var vot = (function(exports) {
 		"en",
 		"zh",
 		"ko",
-		"lt",
-		"lv",
 		"ar",
 		"fr",
 		"it",
@@ -1699,6 +1728,9 @@ var vot = (function(exports) {
 	];
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/utils/dom.js
+	/**
+	* querySelector that also pierces open shadow roots at any depth.
+	*/
 	function querySelectorDeep(selector, root = document) {
 		const match = root.querySelector(selector);
 		if (match) return match;
@@ -1720,6 +1752,9 @@ var vot = (function(exports) {
 		const available = candidates.filter((source) => Boolean(source.src));
 		return (available.find(isPreferredMedia) ?? available[0])?.src;
 	}
+	/**
+	* Shared class for all videojs players
+	*/
 	var VideoJSHelper = class VideoJSHelper extends BaseHelper {
 		SUBTITLE_SOURCE = "videojs";
 		SUBTITLE_FORMAT = "vtt";
@@ -1796,6 +1831,10 @@ var vot = (function(exports) {
 	var CourseraHelper = class CourseraHelper extends VideoJSHelper {
 		API_ORIGIN = "https://www.coursera.org/api";
 		SUBTITLE_SOURCE = "coursera";
+		/**
+		* Coursera on-demand item types that can embed the same Video.js player
+		* as lectures.
+		*/
 		static VIDEO_ITEM_TYPES = [
 			"lecture",
 			"ungradedLab",
@@ -2158,6 +2197,13 @@ var vot = (function(exports) {
 	var IMDbHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /video\/([^/]+)/.exec(url.pathname)?.[1];
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/joidatabase.js
+	var JOIDatabaseHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return /\/(?:watch|embed)\/([0-9a-f]+)\/?$/.exec(url.pathname)?.[1];
 		}
 	};
 	//#endregion
@@ -6434,6 +6480,9 @@ var vot = (function(exports) {
 		static getPlayerData() {
 			return YoutubeHelper.getPlayer()?.getVideoData?.call(void 0);
 		}
+		/**
+		* @returns volume in 0.00 - 1.00 range
+		*/
 		static getVolume() {
 			const player = YoutubeHelper.getPlayer();
 			if (player?.getVolume) return player.getVolume() / 100;
@@ -6452,10 +6501,16 @@ var vot = (function(exports) {
 			if (player?.isMuted) return player.isMuted();
 			return false;
 		}
+		/**
+		* time in ms
+		*/
 		static videoSeek(video, time) {
 			Logger.log("videoSeek", time);
 			video.currentTime = (YoutubeHelper.getPlayer()?.getProgressState()?.seekableEnd ?? video.currentTime) - time;
 		}
+		/**
+		* i guess it doesn't work on mobile. Maybe I'll fix it later
+		*/
 		static getPoToken() {
 			const player = YoutubeHelper.getPlayer();
 			if (!player) return;
@@ -6627,6 +6682,7 @@ var vot = (function(exports) {
 		[VideoService$1.rtnews]: RtNewsHelper,
 		[VideoService$1.bitview]: BitviewHelper,
 		[VideoService$1.thisvid]: ThisVidHelper,
+		[VideoService$1.joidatabase]: JOIDatabaseHelper,
 		[VideoService$1.ign]: IgnHelper,
 		[VideoService$1.bunkr]: BunkrHelper,
 		[VideoService$1.imdb]: IMDbHelper,
@@ -6646,6 +6702,9 @@ var vot = (function(exports) {
 		[ExtVideoService.mediafile]: MediafileHelper,
 		[ExtVideoService.skilljar]: SkilljarHelper
 	};
+	/**
+	* A convenient wrapper over the rest of the helpers
+	*/
 	var VideoHelper = class {
 		helpersData;
 		constructor(helpersData = {}) {
@@ -10117,7 +10176,8 @@ var vot = (function(exports) {
 		VOTLoginViaToken: "Login via token",
 		smartDucking: "Adaptive volume",
 		VOTYandexTokenExpired: "Session expired. Log in again",
-		VOTVoiceSelection: "Choose dubbing"
+		VOTVoiceSelection: "Choose dubbing",
+		VOTRetryTranslation: "Retry translation"
 	};
 	//#endregion
 	//#region src/localization/localizationProvider.ts
@@ -10267,7 +10327,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.13"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.14"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -11327,11 +11387,18 @@ var vot = (function(exports) {
 	var BaseProvider = class {
 		host;
 		schema;
+		/**
+		* If you don't want to use the classic fetch
+		* @includeExample examples/with_ofetch.ts[1:13]
+		*/
 		fetch;
 		fetchOpts;
 		userAgent = config_default$1.userAgent;
 		requestLang;
 		responseLang;
+		/**
+		* Headers for interacting with API
+		*/
 		headers = {
 			"User-Agent": this.userAgent,
 			"Accept-Language": "en",
@@ -11352,8 +11419,12 @@ var vot = (function(exports) {
 			this.requestLang = requestLang;
 			this.responseLang = responseLang;
 		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(new Blob([body]), headers, method);
+		/**
+		* The standard method for requesting the Yandex API, if necessary, you can override how it is done in the example
+		* @includeExample examples/with_axios.ts[4:41]
+		*/
+		async request(path, body, headers = {}, method = "POST", fetchOpts = {}) {
+			const options = this.getOpts(new Blob([body]), headers, method, fetchOpts);
 			try {
 				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
 				const data = await res.arrayBuffer();
@@ -11368,12 +11439,12 @@ var vot = (function(exports) {
 				};
 			}
 		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
+		async requestJSON(path, body = null, headers = {}, method = "POST", fetchOpts = {}) {
 			const options = this.getOpts(body, {
 				Accept: "application/json",
 				"Content-Type": "application/json",
 				...headers
-			}, method);
+			}, method, fetchOpts);
 			try {
 				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
 				const data = await res.json();
@@ -11388,7 +11459,7 @@ var vot = (function(exports) {
 				};
 			}
 		}
-		getOpts(body, headers = {}, method = "POST") {
+		getOpts(body, headers = {}, method = "POST", fetchOpts = {}) {
 			return {
 				method,
 				headers: {
@@ -11396,8 +11467,55 @@ var vot = (function(exports) {
 					...headers
 				},
 				body,
-				...this.fetchOpts
+				...this.fetchOpts,
+				...fetchOpts
 			};
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/client.js
+	var VOTJSError = class extends Error {
+		data;
+		constructor(message, data = void 0) {
+			super(message);
+			this.data = data;
+			this.name = "VOTJSError";
+		}
+	};
+	var VOTClient$1 = class {
+		provider;
+		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
+			const ProviderClass = provider ?? YandexProvider;
+			this.provider = new ProviderClass({
+				host,
+				fetchFn,
+				fetchOpts,
+				headers,
+				apiToken,
+				requestLang,
+				responseLang
+			});
+		}
+		async translateVideo(opts) {
+			return await this.provider.translateVideo(opts);
+		}
+		async translateStream(opts) {
+			return await this.provider.translateStream(opts);
+		}
+		async getSubtitles(opts) {
+			return await this.provider.getSubtitles(opts);
+		}
+		get requestLang() {
+			return this.provider.requestLang;
+		}
+		set requestLang(lang) {
+			this.provider.requestLang = lang;
+		}
+		get responseLang() {
+			return this.provider.responseLang;
+		}
+		set responseLang(lang) {
+			this.provider.responseLang = lang;
 		}
 	};
 	//#endregion
@@ -11519,53 +11637,7 @@ var vot = (function(exports) {
 		decodeSessionResponse
 	};
 	//#endregion
-	//#region node_modules/@vot.js/core/dist/client.js
-	var VOTJSError = class extends Error {
-		data;
-		constructor(message, data = void 0) {
-			super(message);
-			this.data = data;
-			this.name = "VOTJSError";
-		}
-	};
-	var VOTClient$1 = class {
-		provider;
-		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
-			const ProviderClass = provider ?? YandexProvider;
-			this.provider = new ProviderClass({
-				host,
-				fetchFn,
-				fetchOpts,
-				headers,
-				apiToken,
-				requestLang,
-				responseLang
-			});
-		}
-		async translateVideo(opts) {
-			return await this.provider.translateVideo(opts);
-		}
-		async translateStream(opts) {
-			return await this.provider.translateStream(opts);
-		}
-		async getSubtitles(opts) {
-			return await this.provider.getSubtitles(opts);
-		}
-		get requestLang() {
-			return this.provider.requestLang;
-		}
-		set requestLang(lang) {
-			this.provider.requestLang = lang;
-		}
-		get responseLang() {
-			return this.provider.responseLang;
-		}
-		set responseLang(lang) {
-			this.provider.responseLang = lang;
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/types/yandex.js
+	//#region node_modules/@vot.js/core/dist/types/providers/yandex.js
 	var VideoTranslationStatus;
 	(function(VideoTranslationStatus) {
 		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
@@ -11574,6 +11646,9 @@ var vot = (function(exports) {
 		VideoTranslationStatus[VideoTranslationStatus["LONG_WAITING"] = 3] = "LONG_WAITING";
 		VideoTranslationStatus[VideoTranslationStatus["PART_CONTENT"] = 5] = "PART_CONTENT";
 		VideoTranslationStatus[VideoTranslationStatus["AUDIO_REQUESTED"] = 6] = "AUDIO_REQUESTED";
+		/**
+		* requires login to yandex account
+		*/
 		VideoTranslationStatus[VideoTranslationStatus["SESSION_REQUIRED"] = 7] = "SESSION_REQUIRED";
 	})(VideoTranslationStatus || (VideoTranslationStatus = {}));
 	var AudioDownloadType;
@@ -11595,6 +11670,9 @@ var vot = (function(exports) {
 	//#endregion
 	//#region node_modules/@vot.js/core/dist/providers/yandex.js
 	var YandexProvider = class extends BaseProvider {
+		/**
+		* Headers for interacting with Yandex API
+		*/
 		headers = {
 			"User-Agent": this.userAgent,
 			Accept: "application/x-protobuf",
@@ -11648,19 +11726,19 @@ var vot = (function(exports) {
 				uuid
 			};
 		}
-		async requestVtransFailAudio(url) {
-			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), this.mergeHeaders({ Accept: "application/json" }), "PUT");
+		async requestVtransFailAudio(url, fetchOpts = {}) {
+			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), this.mergeHeaders({ Accept: "application/json" }), "PUT", fetchOpts);
 			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
 			return res;
 		}
-		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
+		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true, fetchOpts = {} }) {
 			const { url, duration = config_default$1.defaultDuration } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, extraOpts);
 			const path = this.paths.videoTranslation;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
 			const apiTokenHeader = extraOpts.useLivelyVoice ? this.apiTokenHeader : {};
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, apiTokenHeader, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, apiTokenHeader, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
 			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
 			Logger.log("translateVideo", translationData);
@@ -11678,7 +11756,16 @@ var vot = (function(exports) {
 						remainingTime: translationData.remainingTime ?? -1
 					};
 				case VideoTranslationStatus.WAITING:
-				case VideoTranslationStatus.LONG_WAITING: return {
+				case VideoTranslationStatus.LONG_WAITING:
+ /**
+				LONG_WAITING:
+				Иногда, в ответе приходит статус код 3, но видео всё, так же, ожидает перевода.
+				В конечном итоге, это занимает слишком много времени,
+				как-будто сервер не понимает, что данное видео уже недавно было переведено
+				и заместо возвращения готовой ссылки на перевод начинает переводить видео заново
+				при чём у него это получается за очень длительное время.
+				*/
+				return {
 					translationId,
 					translated: false,
 					status,
@@ -11686,11 +11773,11 @@ var vot = (function(exports) {
 				};
 				case VideoTranslationStatus.AUDIO_REQUESTED:
 					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
-						await this.requestVtransFailAudio(url);
+						await this.requestVtransFailAudio(url, fetchOpts);
 						await this.requestVtransAudio(url, translationData.translationId, {
 							audioFile: /* @__PURE__ */ new Uint8Array(0),
 							fileId: `fallback-empty-audio:video-translation:${videoData.videoId}`
-						});
+						}, void 0, void 0, fetchOpts);
 						return await this.translateVideo({
 							videoData,
 							requestLang,
@@ -11698,7 +11785,8 @@ var vot = (function(exports) {
 							translationHelp,
 							headers,
 							extraOpts,
-							shouldSendFailedAudio: false
+							shouldSendFailedAudio: false,
+							fetchOpts
 						});
 					}
 					return {
@@ -11713,7 +11801,7 @@ var vot = (function(exports) {
 					throw new VOTJSError("Unknown response from Yandex", translationData);
 			}
 		}
-		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
+		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}, fetchOpts = {}) {
 			const session = await this.getSession("video-translation");
 			let body;
 			if (YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
@@ -11722,17 +11810,17 @@ var vot = (function(exports) {
 			} else body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
 			const path = this.paths.videoTranslationAudio;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "PUT");
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "PUT", fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
 			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
 		}
-		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
+		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {}, fetchOpts = {} }) {
 			const { url } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
 			const path = this.paths.videoSubtitles;
 			const vsubsHeaders = await getSecYaHeaders("Vsubs", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vsubsHeaders, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vsubsHeaders, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
 			const subtitlesData = YandexVOTProtobuf.decodeSubtitlesResponse(res.data);
 			const subtitles = subtitlesData.subtitles.map((subtitle) => {
@@ -11749,23 +11837,29 @@ var vot = (function(exports) {
 				subtitles
 			};
 		}
-		async pingStream({ pingId, headers = {} }) {
+		/**
+		* @includeExample examples/stream.ts[7:44]
+		*/
+		async pingStream({ pingId, headers = {}, fetchOpts = {} }) {
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
 			const path = this.paths.streamPing;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request stream ping", res);
 			return true;
 		}
-		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+		/**
+		* @includeExample examples/stream.ts[7:44]
+		*/
+		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {}, fetchOpts = {} }) {
 			const { url } = videoData;
 			if (isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
 			const path = this.paths.streamTranslation;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request stream translation", res);
 			const translateResponse = YandexVOTProtobuf.decodeStreamResponse(res.data);
 			const interval = translateResponse.interval;
@@ -11790,13 +11884,13 @@ var vot = (function(exports) {
 					throw new VOTJSError("Unknown response from Yandex", translateResponse);
 			}
 		}
-		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {}, fetchOpts = {} }) {
 			const { url, duration = config_default$1.defaultDuration } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
 			const path = this.paths.videoTranslationCache;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "POST");
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "POST", fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
 			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
 		}
@@ -13038,6 +13132,53 @@ var vot = (function(exports) {
 			offset += buffer.byteLength;
 		}
 		return result;
+	}
+	//#endregion
+	//#region src/audioDownloader/utils.ts
+	function normalizeAudioLanguageTag(value) {
+		if (typeof value !== "string") return "";
+		return value.trim().toLowerCase().replaceAll("_", "-");
+	}
+	function getYoutubeAudioFormatLanguage(format, isValid) {
+		const accept = (value) => {
+			const tag = normalizeAudioLanguageTag(value);
+			if (!tag) return void 0;
+			if (isValid && !isValid(tag)) return void 0;
+			return tag;
+		};
+		const direct = accept(format?.languageCode ?? format?.language ?? format?.audioTrack?.languageCode ?? format?.audioTrack?.language);
+		if (direct) return direct;
+		const trackId = format?.audioTrack?.id ?? format?.audioTrackId;
+		if (typeof trackId === "string" && trackId) {
+			const idLanguage = accept(trackId.split(".")[0]);
+			if (idLanguage) return idLanguage;
+		}
+		try {
+			const cipher = typeof format?.signatureCipher === "string" ? new URLSearchParams(format.signatureCipher) : void 0;
+			const rawUrl = format?.url ?? cipher?.get("url");
+			if (typeof rawUrl === "string") {
+				const xtags = new URL(rawUrl).searchParams.get("xtags") ?? "";
+				const fromUrl = accept(/(?:^|:)lang=([^:]+)/i.exec(xtags)?.[1]);
+				if (fromUrl) return fromUrl;
+			}
+		} catch {}
+		return "";
+	}
+	function selectSmallestAudioFormat(candidates) {
+		const smallest = (key) => {
+			let best;
+			let bestValue = Number.POSITIVE_INFINITY;
+			for (const candidate of candidates) {
+				const raw = candidate[key];
+				const value = raw == null ? NaN : typeof raw === "number" ? raw : Number(String(raw));
+				if (Number.isFinite(value) && value > 0 && value < bestValue) {
+					best = candidate;
+					bestValue = value;
+				}
+			}
+			return best;
+		};
+		return smallest("contentLength") ?? smallest("averageBitrate") ?? candidates[0];
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/ytPlayerSolver.js
@@ -22776,61 +22917,33 @@ var vot = (function(exports) {
 			racyCheckOk: true
 		};
 	}
-	function selectAudioFormatFrom(audioFormats) {
-		const smallest = (key) => {
-			let best;
-			let bestValue = Number.POSITIVE_INFINITY;
-			for (const format of audioFormats) {
-				const raw = format[key];
-				const value = raw == null ? NaN : typeof raw === "number" ? raw : Number(String(raw));
-				if (Number.isFinite(value) && value > 0 && value < bestValue) {
-					best = format;
-					bestValue = value;
-				}
-			}
-			return best;
-		};
-		return smallest("contentLength") ?? smallest("averageBitrate") ?? audioFormats[0];
+	function audioLanguageMatches(trackLanguage, requestedLanguage) {
+		const track = normalizeAudioLanguageTag(trackLanguage);
+		const requested = normalizeAudioLanguageTag(requestedLanguage);
+		if (!track || !requested || requested === "auto") return false;
+		if (track === requested) return true;
+		return track.split("-")[0] === requested.split("-")[0];
 	}
-	function normalizeAudioLanguage(value) {
-		if (typeof value !== "string" || !value) return;
-		return normalizeLang$1(value.split(".")[0] ?? "") || void 0;
-	}
-	function getAudioTrackLanguage(format) {
-		return normalizeAudioLanguage(format.audioTrack?.languageCode ?? format.audioTrack?.id);
-	}
-	function normalizeRequestedLanguage(value) {
-		const language = normalizeAudioLanguage(value);
-		return language && language !== "auto" ? language : void 0;
-	}
-	function preferSourceLanguageAudioFormats(audioFormats, sourceLanguage) {
-		const requested = normalizeRequestedLanguage(sourceLanguage);
-		if (requested) {
-			const matches = audioFormats.filter((format) => getAudioTrackLanguage(format) === requested);
-			if (matches.length) {
-				const defaultMatches = matches.filter((format) => format.audioTrack?.audioIsDefault === true);
-				return defaultMatches.length ? defaultMatches : matches;
-			}
+	function isDrcAudioFormat(format) {
+		if (typeof format.xtags === "string" && format.xtags.includes("drc=1")) return true;
+		try {
+			const cipher = typeof format.signatureCipher === "string" ? new URLSearchParams(format.signatureCipher) : void 0;
+			const rawUrl = format.url ?? cipher?.get("url");
+			return (rawUrl ? new URL(rawUrl).searchParams.get("xtags") : null)?.includes("drc=1") === true;
+		} catch {
+			return false;
 		}
-		const defaults = audioFormats.filter((format) => format.audioTrack?.audioIsDefault === true);
-		return defaults.length ? defaults : audioFormats;
 	}
-	function selectAudioFormat(formats, sourceLanguage) {
-		if (!formats.length) throw new Error("Audio downloader. Empty adaptive formats");
-		const withUrl = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string");
-		const audioFormats = withUrl.filter(({ audioQuality, mimeType }) => !mimeType?.includes("video/") && (Boolean(audioQuality) || mimeType?.includes("audio/")));
-		if (audioFormats.length) return selectAudioFormatFrom(preferSourceLanguageAudioFormats(audioFormats, sourceLanguage));
-		const selected = withUrl.find(({ itag }) => itag === 18) ?? withUrl.filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? "")).sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
-		if (!selected) {
-			debug.log("Audio downloader. no direct audio formats", JSON.stringify(formats.map((format) => ({
-				itag: format.itag,
-				mimeType: format.mimeType,
-				hasUrl: typeof format.url === "string",
-				hasCipher: typeof format.signatureCipher === "string",
-				contentLength: format.contentLength ?? "none"
-			}))));
-			throw new Error("Audio downloader. web ABR returned no direct audio formats");
-		}
+	function selectWebEmbeddedAudioFormat(formats, requestedLanguage) {
+		const audioOnly = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string").filter(({ mimeType }) => mimeType?.includes("audio/") && !mimeType?.includes("video/"));
+		const normalizedRequestedLanguage = normalizeAudioLanguageTag(requestedLanguage);
+		const exactLanguageCandidates = normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => getYoutubeAudioFormatLanguage(format) === normalizedRequestedLanguage) : [];
+		const requestedLanguageCandidates = exactLanguageCandidates.length > 0 ? exactLanguageCandidates : normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), normalizedRequestedLanguage)) : [];
+		const defaultAudioOnly = audioOnly.filter(({ audioTrack }) => audioTrack?.audioIsDefault === true);
+		const trackCandidates = requestedLanguageCandidates.length > 0 ? requestedLanguageCandidates : defaultAudioOnly.length > 0 ? defaultAudioOnly : audioOnly;
+		const nonDrcCandidates = trackCandidates.filter((format) => !isDrcAudioFormat(format));
+		const selected = selectSmallestAudioFormat(nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates);
+		if (!selected) throw new Error("Audio downloader. web ABR returned no direct audio-only formats");
 		return selected;
 	}
 	async function sha1(value) {
@@ -23229,58 +23342,353 @@ var vot = (function(exports) {
 		if (!(total > 0)) throw new Error("Audio downloader. web ABR content length unknown");
 		return total;
 	}
-	async function* downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl) {
-		if (!Number.isSafeInteger(contentLength) || contentLength < 1) throw new Error("Audio downloader. Invalid media content length");
-		let requestNumber = 0;
-		let pending = [];
-		let pendingSize = 0;
-		for (const { start, end } of buildMediaRanges(contentLength)) {
-			let buffer;
-			for (let attempt = 0; attempt < 3; attempt++) {
+	var WEB_ABR_TRANSPORTS = [
+		"parallel_4",
+		"4mb",
+		"parallel_8",
+		"8mb",
+		"parallel_2",
+		"2mb",
+		"stream",
+		"original"
+	];
+	function makeFixedRanges(contentLength, chunkSize) {
+		const ranges = [];
+		for (let start = 0; start < contentLength; start += chunkSize) ranges.push({
+			start,
+			end: Math.min(contentLength - 1, start + chunkSize - 1)
+		});
+		return ranges;
+	}
+	var WEB_ABR_RANGE_MAX_ATTEMPTS = 10;
+	var WEB_ABR_RANGE_REFRESH_EVERY_FAILURES = 2;
+	var WEB_ABR_RANGE_RETRY_BASE_DELAY_MS = 250;
+	var WEB_ABR_RANGE_RETRY_MAX_DELAY_MS = 1500;
+	var WEB_ABR_FATAL_MEDIA_STATUSES = /* @__PURE__ */ new Set([
+		401,
+		403,
+		404,
+		410
+	]);
+	var MediaHttpError = class extends Error {
+		status;
+		constructor(status, message) {
+			super(message);
+			this.status = status;
+			this.name = "MediaHttpError";
+		}
+	};
+	function isFatalMediaError(error) {
+		return error instanceof MediaHttpError && WEB_ABR_FATAL_MEDIA_STATUSES.has(error.status);
+	}
+	async function refreshMediaUrl(urlState, refreshUrl, reason = null) {
+		if (!urlState.refreshPromise) {
+			const previousUrl = urlState.value;
+			const previousVersion = urlState.version ?? 0;
+			urlState.refreshPromise = Promise.resolve().then(() => refreshUrl()).then((nextUrl) => {
+				if (typeof nextUrl !== "string" || !nextUrl) throw new Error("Audio downloader. Failed to refresh media URL");
+				urlState.value = nextUrl;
+				urlState.version = previousVersion + 1;
+				debug.log("Audio downloader. web ABR media URL refresh applied", {
+					reason,
+					version: urlState.version,
+					urlChanged: nextUrl !== previousUrl
+				});
+				return nextUrl;
+			}).finally(() => {
+				urlState.refreshPromise = null;
+			});
+		}
+		return await urlState.refreshPromise;
+	}
+	async function fetchMediaRange(targetWindow, urlState, start, end, signal, refreshUrl, requestNumberRef) {
+		let lastError;
+		let refreshedFatal = false;
+		for (let attempt = 0; attempt < WEB_ABR_RANGE_MAX_ATTEMPTS; attempt++) {
+			signal.throwIfAborted();
+			if (attempt > 0 && urlState.refreshPromise) await urlState.refreshPromise;
+			try {
+				const urlVersion = urlState.version ?? 0;
+				const url = new URL(urlState.value);
+				url.searchParams.set("range", `${start}-${end}`);
+				url.searchParams.set("rn", String(++requestNumberRef.value));
+				url.searchParams.delete("ump");
+				const response = await targetWindow.fetch(url, {
+					signal,
+					cache: "no-store"
+				});
+				if (!response.ok) throw new MediaHttpError(response.status, `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`);
+				const bytes = new Uint8Array(await response.arrayBuffer());
 				signal.throwIfAborted();
-				try {
-					const url = new URL(streamUrl);
-					url.searchParams.set("range", `${start}-${end}`);
-					url.searchParams.set("rn", String(++requestNumber));
-					url.searchParams.delete("ump");
-					const response = await targetWindow.fetch(url, { signal });
-					if (!response.ok) throw new Error(`Audio downloader. Media request failed (${response.status}, range ${start}-${end})`);
-					const bytes = new Uint8Array(await response.arrayBuffer());
+				if (bytes.byteLength === end - start + 1) {
+					if (attempt > 0) debug.log("Audio downloader. web ABR range recovered", {
+						range: `${start}-${end}`,
+						attempt: attempt + 1,
+						maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+						urlVersion
+					});
+					return bytes;
+				}
+				const redirect = new TextDecoder("ascii").decode(bytes).match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
+				if (redirect) {
+					const next = new URL(redirect);
+					if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) throw new Error("Audio downloader. Invalid media redirect");
+					urlState.value = next.toString();
+					if (attempt + 1 < WEB_ABR_RANGE_MAX_ATTEMPTS) continue;
+				}
+				throw new Error(`Audio downloader. Incomplete web ABR chunk (${bytes.byteLength}/${end - start + 1}, range ${start}-${end})`);
+			} catch (error) {
+				signal.throwIfAborted();
+				lastError = error;
+				const failedAttempt = attempt + 1;
+				const fatal = isFatalMediaError(error);
+				const hasMoreAttempts = failedAttempt < WEB_ABR_RANGE_MAX_ATTEMPTS;
+				const shouldRefreshUrl = hasMoreAttempts && (fatal || failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0);
+				debug.log("Audio downloader. web ABR range request failed", {
+					range: `${start}-${end}`,
+					attempt: failedAttempt,
+					maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+					fatal,
+					refreshUrl: shouldRefreshUrl,
+					error: error instanceof Error ? error.message : String(error)
+				});
+				if (!hasMoreAttempts) break;
+				if (fatal && refreshedFatal) break;
+				await createAbortableDelay(Math.min(WEB_ABR_RANGE_RETRY_BASE_DELAY_MS * failedAttempt, WEB_ABR_RANGE_RETRY_MAX_DELAY_MS), signal);
+				if (shouldRefreshUrl) try {
+					await refreshMediaUrl(urlState, refreshUrl, {
+						range: `${start}-${end}`,
+						failedAttempt
+					});
+					if (fatal) refreshedFatal = true;
+					debug.log("Audio downloader. web ABR media URL refreshed for range retry", {
+						range: `${start}-${end}`,
+						nextAttempt: failedAttempt + 1,
+						urlVersion: urlState.version ?? 0
+					});
+				} catch (refreshError) {
 					signal.throwIfAborted();
-					if (bytes.byteLength === end - start + 1) {
-						buffer = bytes;
-						break;
-					}
-					const redirect = new TextDecoder("ascii").decode(bytes).match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
-					if (redirect) {
-						const next = new URL(redirect);
-						if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) throw new Error("Audio downloader. Invalid media redirect");
-						streamUrl = next.toString();
-						if (attempt < 2) continue;
-					}
-					throw new Error("Audio downloader. Incomplete web ABR chunk");
-				} catch (error) {
-					signal.throwIfAborted();
-					if (attempt === 2) throw error;
-					await createAbortableDelay(250 * (attempt + 1), signal);
-					if (attempt === 1) streamUrl = await refreshUrl();
+					debug.log("Audio downloader. web ABR media URL refresh failed", {
+						range: `${start}-${end}`,
+						nextAttempt: failedAttempt + 1,
+						error: refreshError instanceof Error ? refreshError.message : String(refreshError)
+					});
+					if (fatal) break;
+					lastError = refreshError;
 				}
 			}
-			if (!buffer) throw new Error("Audio downloader. Incomplete web ABR chunk");
-			pending.push(buffer);
-			pendingSize += buffer.byteLength;
-			const isLastChunk = end === contentLength - 1;
-			if (pendingSize >= config_default$1.minChunkSize || isLastChunk) {
+		}
+		throw lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. Media range failed");
+	}
+	async function* emitOrderedBuffers(buffers, isLastBatch, pendingState) {
+		for (let bufferIndex = 0; bufferIndex < buffers.length; bufferIndex++) {
+			const buffer = buffers[bufferIndex];
+			pendingState.buffers.push(buffer);
+			pendingState.size += buffer.byteLength;
+			const isFinalBuffer = isLastBatch && bufferIndex === buffers.length - 1;
+			if (pendingState.size >= config_default$1.minChunkSize && !isFinalBuffer) {
 				yield {
-					buffer: concatBuffers(pending),
-					isLastChunk
+					buffer: concatBuffers(pendingState.buffers),
+					isLastChunk: false
 				};
-				pending = [];
-				pendingSize = 0;
+				pendingState.buffers = [];
+				pendingState.size = 0;
 			}
 		}
+		if (isLastBatch) {
+			if (pendingState.size < 1) throw new Error("Audio downloader. Final web ABR chunk is empty");
+			yield {
+				buffer: concatBuffers(pendingState.buffers),
+				isLastChunk: true
+			};
+			pendingState.buffers = [];
+			pendingState.size = 0;
+		}
 	}
-	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+	async function* downloadRangesSequential(targetWindow, streamUrl, _contentLength, signal, refreshUrl, ranges) {
+		const urlState = {
+			value: streamUrl,
+			refreshPromise: null,
+			version: 0
+		};
+		const requestNumberRef = { value: 0 };
+		const pendingState = {
+			buffers: [],
+			size: 0
+		};
+		for (let index = 0; index < ranges.length; index++) {
+			const { start, end } = ranges[index];
+			const buffer = await fetchMediaRange(targetWindow, urlState, start, end, signal, refreshUrl, requestNumberRef);
+			for await (const chunk of emitOrderedBuffers([buffer], index === ranges.length - 1, pendingState)) yield chunk;
+		}
+	}
+	async function* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, concurrency) {
+		const ranges = makeFixedRanges(contentLength, 4194304);
+		const urlState = {
+			value: streamUrl,
+			refreshPromise: null,
+			version: 0
+		};
+		const requestNumberRef = { value: 0 };
+		const pendingState = {
+			buffers: [],
+			size: 0
+		};
+		for (let index = 0; index < ranges.length; index += concurrency) {
+			signal.throwIfAborted();
+			const batch = ranges.slice(index, index + concurrency);
+			const buffers = await Promise.all(batch.map(({ start, end }) => fetchMediaRange(targetWindow, urlState, start, end, signal, refreshUrl, requestNumberRef)));
+			for await (const chunk of emitOrderedBuffers(buffers, index + batch.length >= ranges.length, pendingState)) yield chunk;
+		}
+	}
+	async function* downloadStream(targetWindow, streamUrl, signal) {
+		const url = new URL(streamUrl);
+		url.searchParams.delete("range");
+		url.searchParams.delete("rn");
+		url.searchParams.delete("ump");
+		const response = await targetWindow.fetch(url, { signal });
+		if (!response.ok) throw new Error(`Audio downloader. Stream request failed (${response.status})`);
+		if (!response.body) throw new Error("Audio downloader. Stream body is unavailable");
+		const reader = response.body.getReader();
+		const pending = [];
+		let pendingSize = 0;
+		let readyChunk = null;
+		try {
+			for (;;) {
+				signal.throwIfAborted();
+				const { value, done } = await reader.read();
+				if (done) break;
+				if (!value?.byteLength) continue;
+				const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+				pending.push(bytes);
+				pendingSize += bytes.byteLength;
+				if (pendingSize >= config_default$1.minChunkSize) {
+					const nextChunk = concatBuffers(pending);
+					pending.length = 0;
+					pendingSize = 0;
+					if (readyChunk) yield {
+						buffer: readyChunk,
+						isLastChunk: false
+					};
+					readyChunk = nextChunk;
+				}
+			}
+		} finally {
+			try {
+				reader.releaseLock();
+			} catch {}
+		}
+		if (pendingSize > 0) {
+			if (readyChunk) yield {
+				buffer: readyChunk,
+				isLastChunk: false
+			};
+			yield {
+				buffer: concatBuffers(pending),
+				isLastChunk: true
+			};
+			return;
+		}
+		if (!readyChunk?.byteLength) throw new Error("Audio downloader. Stream ended without audio data");
+		yield {
+			buffer: readyChunk,
+			isLastChunk: true
+		};
+	}
+	async function* downloadWithTransport(targetWindow, transport, streamUrl, contentLength, signal, refreshUrl) {
+		switch (transport) {
+			case "parallel_4":
+				yield* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, 4);
+				return;
+			case "parallel_2":
+				yield* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, 2);
+				return;
+			case "parallel_8":
+				yield* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, 8);
+				return;
+			case "stream":
+				yield* downloadStream(targetWindow, streamUrl, signal);
+				return;
+			case "8mb":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, makeFixedRanges(contentLength, 8388608));
+				return;
+			case "4mb":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, makeFixedRanges(contentLength, 4194304));
+				return;
+			case "2mb":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, makeFixedRanges(contentLength, 2097152));
+				return;
+			case "original":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, buildMediaRanges(contentLength));
+				return;
+			default: throw new Error(`Audio downloader. Unknown web ABR transport: ${transport}`);
+		}
+	}
+	async function* downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl) {
+		if (!Number.isSafeInteger(contentLength) || contentLength < 1) throw new Error("Audio downloader. Invalid media content length");
+		const transports = [...WEB_ABR_TRANSPORTS];
+		debug.log("Audio downloader. web ABR transport order", {
+			transports,
+			bufferBeforeEmit: true
+		});
+		let lastError;
+		for (const transport of transports) {
+			signal.throwIfAborted();
+			const startedAt = performance.now();
+			try {
+				debug.log("Audio downloader. web ABR transport started", {
+					transport,
+					contentLength,
+					bufferBeforeEmit: true
+				});
+				const bufferedChunks = [];
+				let downloadedBytes = 0;
+				for await (const chunk of downloadWithTransport(targetWindow, transport, streamUrl, contentLength, signal, refreshUrl)) {
+					if (!chunk?.buffer?.byteLength) throw new Error("Audio downloader. Web ABR transport produced an empty chunk");
+					bufferedChunks.push(chunk);
+					downloadedBytes += chunk.buffer.byteLength;
+				}
+				if (downloadedBytes !== contentLength) throw new Error(`Audio downloader. Incomplete web ABR download (${downloadedBytes}/${contentLength} bytes)`);
+				if (bufferedChunks.length < 1) throw new Error("Audio downloader. Web ABR transport returned no audio chunks");
+				for (let index = 0; index < bufferedChunks.length; index++) bufferedChunks[index] = {
+					...bufferedChunks[index],
+					isLastChunk: index === bufferedChunks.length - 1
+				};
+				debug.log("Audio downloader. web ABR transport fully buffered", {
+					transport,
+					chunks: bufferedChunks.length,
+					downloadedBytes,
+					elapsedMs: Math.round(performance.now() - startedAt)
+				});
+				for (const chunk of bufferedChunks) yield chunk;
+				debug.log("Audio downloader. web ABR transport finished", {
+					transport,
+					elapsedMs: Math.round(performance.now() - startedAt),
+					bufferBeforeEmit: true
+				});
+				return;
+			} catch (error) {
+				signal.throwIfAborted();
+				lastError = error;
+				debug.log("Audio downloader. web ABR transport failed", {
+					transport,
+					emitted: false,
+					bufferBeforeEmit: true,
+					elapsedMs: Math.round(performance.now() - startedAt),
+					error: error instanceof Error ? error.message : String(error)
+				});
+				if (isFatalMediaError(error)) {
+					debug.log("Audio downloader. web ABR transport matrix aborted", {
+						transport,
+						error: error instanceof Error ? error.message : String(error)
+					});
+					throw error;
+				}
+			}
+		}
+		throw lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. All web ABR transports failed");
+	}
+	async function* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
 		if (typeof apiKey !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
@@ -23356,7 +23764,7 @@ var vot = (function(exports) {
 					const status = playerResponse.playabilityStatus;
 					throw new Error(`Audio downloader. ${name} ${status?.status ?? "failed"}: ${status?.reason ?? status?.messages?.join(" ") ?? "no streaming data"}`);
 				}
-				const format = selectAudioFormat(formats, sourceLanguage);
+				const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
 				const fetchedFlags = fetchedConfig?.experimentFlags;
 				const poTokenBinding = selectGvsPoTokenBinding(videoId, {
 					loggedIn,
@@ -23408,6 +23816,38 @@ var vot = (function(exports) {
 		const fallbackError = lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. no playable audio formats");
 		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Sign in to YouTube with an age-verified account and retry from the youtube.com watch page`, { cause: fallbackError });
 		throw fallbackError;
+	}
+	var WEB_ABR_DOWNLOAD_QUEUE = /* @__PURE__ */ new Map();
+	/**
+	* Serialize concurrent web_abr downloads for the same video.
+	*
+	* If VOT accidentally calls web_abr twice for one video, the second call waits
+	* until the first generator is completely finished before it starts resolving
+	* clients/media URLs or issuing media requests. Calls for different videos can
+	* still run independently.
+	*/
+	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+		const queueKey = String(videoId);
+		const previous = WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
+		const hadPrevious = WEB_ABR_DOWNLOAD_QUEUE.has(queueKey);
+		let releaseCurrent;
+		const current = new Promise((resolve) => {
+			releaseCurrent = resolve;
+		});
+		WEB_ABR_DOWNLOAD_QUEUE.set(queueKey, current);
+		debug.log("Audio downloader. web ABR queued", {
+			videoId,
+			hasPrevious: hadPrevious
+		});
+		try {
+			await previous;
+			signal.throwIfAborted();
+			yield* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage);
+		} finally {
+			releaseCurrent?.();
+			if (WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) === current) WEB_ABR_DOWNLOAD_QUEUE.delete(queueKey);
+			debug.log("Audio downloader. web ABR queue released", { videoId });
+		}
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/mseProxyHandler.ts
@@ -24024,6 +24464,7 @@ var vot = (function(exports) {
 		if (!audioData) throw new Error("Audio downloader. Can not get audio data");
 		debug.log("Audio downloader. Url found", { audioDownloadType: attemptedStrategy });
 		const { getMediaBuffers, fileId } = audioData;
+		throwIfAborted(signal);
 		let index = 0;
 		let pending;
 		let sawTerminal = false;
@@ -24036,9 +24477,11 @@ var vot = (function(exports) {
 				index,
 				amount: isLastChunk ? index + 1 : 0
 			});
+			throwIfAborted(signal);
 			index++;
 		};
 		for await (const raw of getMediaBuffers()) {
+			throwIfAborted(signal);
 			if (sawTerminal) {
 				if (raw.buffer.byteLength === 0 && raw.isLastChunk) continue;
 				throw new Error("Audio downloader. Malformed audio stream after last chunk");
@@ -24103,15 +24546,60 @@ var vot = (function(exports) {
 		return resolveOwn;
 	}
 	var AudioDownloader = class {
+		completedAudioCache = null;
+		collectingChunks = /* @__PURE__ */ new Map();
 		onDownloadedAudio = new EventImpl();
 		onDownloadedPartialAudio = new EventImpl();
 		onDownloadAudioError = new EventImpl();
 		strategy;
 		constructor(strategy = WEB_ABR_STRATEGY) {
 			this.strategy = strategy;
+			this.onDownloadedPartialAudio.addListener((_translationId, data) => {
+				const chunks = this.collectingChunks.get(data.videoId);
+				if (!chunks) return;
+				chunks[data.index] = data.audioData.slice();
+				if (data.amount !== void 0 && data.amount > 0 && data.index === data.amount - 1) {
+					this.completedAudioCache = {
+						videoId: data.videoId,
+						fileId: data.fileId,
+						chunks: chunks.slice(0, data.amount),
+						version: data.version
+					};
+					this.collectingChunks.delete(data.videoId);
+					debug.log("[VOT][AudioDownload] prepared audio cached for retry", {
+						videoId: data.videoId,
+						chunks: data.amount
+					});
+				}
+			});
 			debug.log("Audio downloader created", { strategy });
 		}
+		clearCachedAudio(videoId) {
+			if (this.completedAudioCache?.videoId === videoId) this.completedAudioCache = null;
+			this.collectingChunks.delete(videoId);
+		}
+		async replayCachedAudio(videoId, translationId, signal) {
+			const cached = this.completedAudioCache;
+			if (cached?.videoId !== videoId) return false;
+			debug.log("[VOT][AudioDownload] replaying cached prepared audio", {
+				videoId,
+				chunks: cached.chunks.length
+			});
+			for (let index = 0; index < cached.chunks.length; index++) {
+				throwIfAborted(signal);
+				await this.onDownloadedPartialAudio.dispatchAsync(translationId, {
+					videoId,
+					fileId: cached.fileId,
+					audioData: cached.chunks[index] ?? /* @__PURE__ */ new Uint8Array(),
+					version: cached.version,
+					index,
+					amount: index === cached.chunks.length - 1 ? cached.chunks.length : 0
+				});
+			}
+			return true;
+		}
 		async runAudioDownload(videoId, translationId, signal, sourceLanguage) {
+			if (await this.replayCachedAudio(videoId, translationId, signal)) return;
 			let release;
 			try {
 				release = await acquireAudioDownloadSlot(videoId, signal);
@@ -24124,7 +24612,11 @@ var vot = (function(exports) {
 				this.onDownloadAudioError.dispatch(translationId, videoId);
 				return;
 			}
+			let collecting;
 			try {
+				if (await this.replayCachedAudio(videoId, translationId, signal)) return;
+				collecting = [];
+				this.collectingChunks.set(videoId, collecting);
 				const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
 				for (const attemptedStrategy of attempts) try {
 					await handleCommonAudioDownloadRequest({
@@ -24158,6 +24650,7 @@ var vot = (function(exports) {
 				debug.error("Audio downloader. All audio download strategies failed", { videoId });
 				this.onDownloadAudioError.dispatch(translationId, videoId);
 			} finally {
+				if (collecting && this.collectingChunks.get(videoId) === collecting) this.collectingChunks.delete(videoId);
 				release();
 			}
 		}
@@ -24415,6 +24908,60 @@ var vot = (function(exports) {
 		downloadSettlers = /* @__PURE__ */ new Set();
 		etaCountdown;
 		requestedFailAudio = /* @__PURE__ */ new Set();
+		audioRunSeq = 0;
+		audioRunController = null;
+		audioRunExternalUnlinks = /* @__PURE__ */ new Map();
+		audioRunTranslationId = null;
+		audioRunVideoId = null;
+		linkAudioRunAbort(externalSignal, controller) {
+			if (externalSignal === NEVER_ABORTED_SIGNAL) return;
+			if (this.audioRunExternalUnlinks.has(externalSignal)) return;
+			if (externalSignal.aborted) {
+				controller.abort(makeAbortError());
+				return;
+			}
+			const onAbort = () => controller.abort(makeAbortError());
+			externalSignal.addEventListener("abort", onAbort, { once: true });
+			this.audioRunExternalUnlinks.set(externalSignal, () => externalSignal.removeEventListener("abort", onAbort));
+		}
+		startAudioRun(externalSignal, translationId, videoId) {
+			this.audioRunSeq += 1;
+			const runId = this.audioRunSeq;
+			const existing = this.audioRunController;
+			if (existing && this.audioRunVideoId === videoId && !existing.signal.aborted) {
+				this.linkAudioRunAbort(externalSignal, existing);
+				this.audioRunTranslationId = translationId;
+				return {
+					signal: existing.signal,
+					runId
+				};
+			}
+			if (existing) {
+				existing.abort(makeAbortError("New audio run started"));
+				this.cleanupAudioRun();
+			}
+			const controller = new AbortController();
+			this.audioRunController = controller;
+			this.audioRunVideoId = videoId;
+			this.audioRunTranslationId = translationId;
+			this.linkAudioRunAbort(externalSignal, controller);
+			return {
+				signal: controller.signal,
+				runId
+			};
+		}
+		cleanupAudioRun() {
+			for (const unlink of this.audioRunExternalUnlinks.values()) unlink();
+			this.audioRunExternalUnlinks.clear();
+			this.audioRunController = null;
+			this.audioRunTranslationId = null;
+			this.audioRunVideoId = null;
+		}
+		finishAudioRun(runId) {
+			if (runId !== this.audioRunSeq) return;
+			this.cleanupAudioRun();
+		}
+		uploadResumeState = null;
 		constructor(videoHandler) {
 			this.videoHandler = videoHandler;
 			this.audioDownloader = new AudioDownloader();
@@ -24428,19 +24975,27 @@ var vot = (function(exports) {
 				debug.log("skip downloadedAudio");
 				return;
 			}
+			if (translationId !== this.audioRunTranslationId) {
+				debug.log("skip stale downloadedAudio", { translationId });
+				return;
+			}
+			const runId = this.audioRunSeq;
+			const signal = this.audioRunController?.signal ?? NEVER_ABORTED_SIGNAL;
 			const { videoId, fileId, audioData } = data;
 			const videoUrl = this.getCanonicalUrl(videoId);
 			try {
-				await this.retryAudioUpload(() => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
+				await this.retryAudioUpload((timeoutMs) => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
 					audioFile: audioData,
 					fileId
-				}));
+				}, void 0, {}, { timeout: timeoutMs }), signal);
 			} catch (error) {
+				if (isAbortError(error) && signal.aborted) return;
 				debug.error("Failed to upload downloaded audio", error);
-				this.finishDownloadFailure(error instanceof Error ? error : /* @__PURE__ */ new Error("Audio downloader failed while uploading full audio"));
+				this.finishDownloadFailure(error instanceof Error ? error : /* @__PURE__ */ new Error("Audio downloader failed while uploading full audio"), runId);
 				return;
 			}
-			this.finishDownloadSuccess();
+			this.audioDownloader.clearCachedAudio(videoId);
+			this.finishDownloadSuccess(runId);
 		};
 		onDownloadedPartialAudio = async (translationId, data) => {
 			debug.log("downloadedPartialAudio", data);
@@ -24448,33 +25003,78 @@ var vot = (function(exports) {
 				debug.log("skip downloadedPartialAudio");
 				return;
 			}
+			if (translationId !== this.audioRunTranslationId) {
+				debug.log("skip stale downloadedPartialAudio", { translationId });
+				return;
+			}
+			const runId = this.audioRunSeq;
+			const signal = this.audioRunController?.signal ?? NEVER_ABORTED_SIGNAL;
 			const { audioData, fileId, videoId, amount, version, index } = data;
 			const videoUrl = this.getCanonicalUrl(videoId);
+			const resume = this.uploadResumeState;
+			if (resume?.failed && resume.videoId === videoId && resume.fileId === fileId && index <= resume.lastSuccessfulChunkId) {
+				debug.log("[VOT][AudioUpload] skipping already uploaded chunk", {
+					videoId,
+					fileId,
+					chunkId: index,
+					lastSuccessfulChunkId: resume.lastSuccessfulChunkId
+				});
+				return;
+			}
 			try {
-				await this.retryAudioUpload(() => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
+				await this.retryAudioUpload((timeoutMs) => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
 					audioFile: audioData,
 					chunkId: index
 				}, {
 					audioPartsLength: amount ?? 0,
 					fileId,
 					version
-				}));
+				}, {}, { timeout: timeoutMs }), signal);
+				this.uploadResumeState = {
+					videoId,
+					fileId,
+					lastSuccessfulChunkId: index,
+					failed: false
+				};
 			} catch (error) {
-				debug.error("Failed to upload downloaded audio chunk", error);
-				this.finishDownloadFailure(/* @__PURE__ */ new Error("Audio downloader failed while uploading chunk"));
+				if (isAbortError(error) && signal.aborted) return;
+				debug.error("[VOT][AudioUpload] chunk PUT failed after all retries", {
+					videoId,
+					fileId,
+					chunkId: index,
+					amount,
+					bytes: audioData.byteLength,
+					error
+				});
+				this.uploadResumeState = {
+					videoId,
+					fileId,
+					lastSuccessfulChunkId: this.uploadResumeState?.videoId === videoId ? this.uploadResumeState.lastSuccessfulChunkId : index - 1,
+					failed: true
+				};
+				this.finishDownloadFailure(new VOTLocalizedError("VOTRetryTranslation"), runId);
 				return;
 			}
-			if (amount !== void 0 && index === amount - 1) this.finishDownloadSuccess();
+			if (amount !== void 0 && index === amount - 1) {
+				this.uploadResumeState = null;
+				this.audioDownloader.clearCachedAudio(videoId);
+				this.finishDownloadSuccess(runId);
+			}
 		};
 		onDownloadAudioError = async (translationId, videoId) => {
 			if (!this.downloading) {
 				debug.log("skip downloadAudioError");
 				return;
 			}
-			debug.log(`Failed to download audio ${videoId}`);
+			if (translationId !== this.audioRunTranslationId) {
+				debug.log("skip stale downloadAudioError", { translationId });
+				return;
+			}
+			const runId = this.audioRunSeq;
+			debug.error("[VOT][AudioDownload] failed to download audio from source", { videoId });
 			const videoUrl = this.getCanonicalUrl(videoId);
 			if (!(this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload))) {
-				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"));
+				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"), runId);
 				return;
 			}
 			try {
@@ -24488,36 +25088,57 @@ var vot = (function(exports) {
 					});
 					this.requestedFailAudio.add(videoUrl);
 				}
-				this.finishDownloadSuccess();
+				this.finishDownloadSuccess(runId);
 			} catch (error) {
 				debug.error("fail-audio-js request failed", error);
-				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"));
+				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"), runId);
 			}
 		};
-		finishDownloadSuccess() {
+		finishDownloadSuccess(runId) {
+			if (runId !== void 0 && runId !== this.audioRunSeq) return;
 			this.downloading = false;
 			this.settleDownloadWaiters();
 		}
-		finishDownloadFailure(error) {
+		finishDownloadFailure(error, runId) {
+			if (runId !== void 0 && runId !== this.audioRunSeq) return;
 			this.downloading = false;
 			this.settleDownloadWaiters(error);
 		}
 		getCanonicalUrl(videoId) {
 			return `https://youtu.be/${videoId}`;
 		}
-		static AUDIO_UPLOAD_MAX_RETRIES = 2;
+		static AUDIO_UPLOAD_MAX_RETRIES = 5;
 		static AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
-		async retryAudioUpload(fn) {
+		static AUDIO_UPLOAD_TIMEOUTS_MS = [
+			15e3,
+			2e4,
+			3e4
+		];
+		async retryAudioUpload(fn, signal) {
 			const maxRetries = VOTTranslationHandler.AUDIO_UPLOAD_MAX_RETRIES;
 			const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
+			const timeouts = VOTTranslationHandler.AUDIO_UPLOAD_TIMEOUTS_MS;
 			let lastError;
-			for (let attempt = 0; attempt <= maxRetries; attempt++) try {
-				return await fn();
-			} catch (error) {
-				lastError = error;
-				if (attempt === maxRetries) throw error;
-				debug.log(`[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
-				await new Promise((resolve) => setTimeout(resolve, delayMs));
+			for (let attempt = 0; attempt <= maxRetries; attempt++) {
+				throwIfAborted(signal);
+				const timeoutMs = timeouts[Math.min(attempt, timeouts.length - 1)];
+				try {
+					return await fn(timeoutMs);
+				} catch (error) {
+					if (signal.aborted) throw isAbortError(error) ? error : makeAbortError();
+					lastError = error;
+					const details = error;
+					debug.error("[VOT][AudioUpload] PUT attempt failed", {
+						attempt: attempt + 1,
+						totalAttempts: maxRetries + 1,
+						status: details?.status,
+						code: details?.code,
+						message: details?.message ?? getErrorMessage(error)
+					});
+					if (attempt === maxRetries) throw error;
+					debug.log(`[VOT][AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
+					await createAbortableDelay(delayMs, signal);
+				}
 			}
 			throw lastError;
 		}
@@ -24627,12 +25248,19 @@ var vot = (function(exports) {
 						translationId: res.translationId
 					});
 					this.downloading = true;
+					const { signal: audioSignal, runId } = this.startAudioRun(signal, res.translationId, videoData.videoId);
 					debug.log("[Translation] waiting for audio download completion", {
 						videoId: videoData.videoId,
 						translationId: res.translationId,
 						timeoutMs: STREAM_TIMEOUT_MS
 					});
-					await Promise.all([this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS), this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal, videoData.detectedLanguage)]);
+					const audioProducer = this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, audioSignal, requestLang);
+					try {
+						await Promise.all([this.waitForAudioDownloadCompletion(audioSignal, STREAM_TIMEOUT_MS), audioProducer]);
+					} finally {
+						if (runId === this.audioRunSeq) this.downloading = false;
+						audioProducer.then(() => this.finishAudioRun(runId), () => this.finishAudioRun(runId));
+					}
 					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
 						disableLivelyVoice: livelyDisabled,
 						retryAttempt
@@ -24754,7 +25382,9 @@ var vot = (function(exports) {
 			if (!this.downloading) return Promise.resolve();
 			const { promise, settle } = createAbortableWaiter(signal, timeoutMs);
 			this.downloadSettlers.add(settle);
-			return promise;
+			return promise.finally(() => {
+				this.downloadSettlers.delete(settle);
+			});
 		}
 		settleDownloadWaiters(error) {
 			if (!this.downloadSettlers.size) return;
@@ -25217,6 +25847,17 @@ var vot = (function(exports) {
 	var MIN_DETECT_TEXT_LENGTH = 35;
 	var MAX_SHARED_LANGUAGE_STATES = 500;
 	var REQUEST_LANG_SET = new Set(availableLangs);
+	var SUPPORTED_TRANSLATION_SOURCE_LANGS = /* @__PURE__ */ new Set([
+		"ru",
+		"en",
+		"zh",
+		"ko",
+		"fr",
+		"it",
+		"es",
+		"de",
+		"ja"
+	]);
 	/**
 	* Prevents YouTube from persisting a temporary volume level to localStorage.
 	*
@@ -25271,6 +25912,20 @@ var vot = (function(exports) {
 	}
 	function isResolvedLanguage(value) {
 		return Boolean(value && value !== "auto");
+	}
+	function resolveSupportedYoutubeAudioLanguage() {
+		const response = YoutubeHelper.getPlayerResponse();
+		const selected = selectSmallestAudioFormat([...Array.isArray(response?.streamingData?.adaptiveFormats) ? response.streamingData.adaptiveFormats : [], ...Array.isArray(response?.streamingData?.formats) ? response.streamingData.formats : []].filter((format) => {
+			const mimeType = String(format?.mimeType ?? "");
+			return mimeType.includes("audio/") && !mimeType.includes("video/");
+		}).map((format) => {
+			return {
+				language: normalizeToRequestLang(getYoutubeAudioFormatLanguage(format, (value) => Boolean(normalizeToRequestLang(value)))),
+				contentLength: format?.contentLength,
+				averageBitrate: format?.averageBitrate
+			};
+		}).filter((c) => c.language && SUPPORTED_TRANSLATION_SOURCE_LANGS.has(c.language)));
+		return selected?.language && isResolvedLanguage(selected.language) ? selected.language : void 0;
 	}
 	function buildDetectText(title, description) {
 		return cleanText(typeof title === "string" ? title : "", typeof description === "string" ? description : void 0);
@@ -25390,18 +26045,44 @@ var vot = (function(exports) {
 			};
 		}
 		async ensureDetectedLanguageForTranslation(videoData) {
-			if (!videoData?.videoId || videoData.detectedLanguage !== "auto") return;
-			const { detectedLanguage } = await this.resolveVideoLanguage({
+			if (!videoData?.videoId) return;
+			if (videoData.detectedLanguage === "auto") {
+				const { detectedLanguage } = await this.resolveVideoLanguage({
+					videoId: videoData.videoId,
+					isStream: videoData.isStream,
+					possibleLanguage: videoData.detectedLanguage,
+					subtitles: videoData.subtitles,
+					title: videoData.title,
+					description: videoData.description,
+					allowTextLanguageDetection: true
+				});
+				if (detectedLanguage && detectedLanguage !== "auto") videoData.detectedLanguage = detectedLanguage;
+			}
+			const detected = normalizeToRequestLang(videoData.detectedLanguage);
+			if (detected && detected !== "auto" && SUPPORTED_TRANSLATION_SOURCE_LANGS.has(detected)) return;
+			if (this.videoHandler.site.host !== "youtube") return;
+			const supportedVideoLanguage = resolveSupportedYoutubeAudioLanguage();
+			if (!supportedVideoLanguage) {
+				debug.log("[language] no supported YouTube audio track found", {
+					videoId: videoData.videoId,
+					detectedLanguage: videoData.detectedLanguage
+				});
+				return;
+			}
+			const previousLanguage = videoData.detectedLanguage;
+			videoData.detectedLanguage = supportedVideoLanguage;
+			this.setDetectedLanguageCache(videoData.videoId, supportedVideoLanguage);
+			if (this.videoHandler.translateFromLang === "auto") {
+				this.videoHandler.translateFromLang = supportedVideoLanguage;
+				this.videoHandler.autoSourceLanguageOverrideVideoId = videoData.videoId;
+				this.videoHandler.setSelectMenuValues(supportedVideoLanguage, videoData.responseLanguage);
+			}
+			debug.log("[language] unsupported language switched immediately", {
 				videoId: videoData.videoId,
-				isStream: videoData.isStream,
-				possibleLanguage: videoData.detectedLanguage,
-				subtitles: videoData.subtitles,
-				title: videoData.title,
-				description: videoData.description,
-				allowTextLanguageDetection: true
+				previousLanguage,
+				supportedVideoLanguage,
+				translateFromLang: this.videoHandler.translateFromLang
 			});
-			if (!detectedLanguage || detectedLanguage === "auto") return;
-			this.videoHandler.setSelectMenuValues(detectedLanguage, this.videoHandler.translateToLang);
 		}
 		async getVideoData() {
 			const { duration, url, videoId, host, title, translationHelp = null, localizedTitle, description, detectedLanguage: possibleLanguage, subtitles, isStream = false } = await getVideoData(this.videoHandler.site, {
@@ -30333,8 +31014,9 @@ var vot = (function(exports) {
 			await videoHandler.stopTranslation();
 			return;
 		}
-		if (deps.currentStatus === "error" && !deps.currentLoading) deps.transformBtn("none", localizationProvider.get("translateVideo"));
-		if (deps.currentStatus !== "none" || deps.currentLoading) {
+		const isRetry = deps.currentStatus === "error" && !deps.currentLoading;
+		if (isRetry) deps.transformBtn("none", localizationProvider.get("translateVideo"));
+		if (!isRetry && (deps.currentStatus !== "none" || deps.currentLoading)) {
 			debug.log("[handleTranslationBtnClick] translationBtn isn't in none state");
 			videoHandler.actionsAbortController.abort();
 			await videoHandler.stopTranslation();
@@ -30344,9 +31026,15 @@ var vot = (function(exports) {
 			await prepareAuthStateForTranslation(videoHandler);
 			debug.log("[handleTranslationBtnClick] trying execute translation");
 			const videoData = await getVideoDataForTranslation(videoHandler);
+			if (videoHandler.autoSourceLanguageOverrideVideoId && videoHandler.autoSourceLanguageOverrideVideoId !== videoData.videoId) {
+				videoHandler.translateFromLang = "auto";
+				videoHandler.autoSourceLanguageOverrideVideoId = void 0;
+				videoHandler.setSelectMenuValues("auto", videoData.responseLanguage);
+			}
 			await videoHandler.videoManager.ensureDetectedLanguageForTranslation(videoData);
 			debug.log("[handleTranslationBtnClick] Run translateFunc", videoData.videoId);
-			await videoHandler.translateFunc(videoData.videoId, videoData.isStream, videoData.detectedLanguage, videoData.responseLanguage, videoData.translationHelp);
+			const requestLang = videoHandler.translateFromLang === "auto" ? videoData.detectedLanguage : videoHandler.translateFromLang;
+			await videoHandler.translateFunc(videoData.videoId, videoData.isStream, requestLang, videoData.responseLanguage, videoData.translationHelp);
 		} catch (err) {
 			if (isAbortError(err)) {
 				deps.transformBtn("none", localizationProvider.get("translateVideo"));
@@ -32331,6 +33019,7 @@ var vot = (function(exports) {
 			}, { signal });
 			this.languagePairSelect.fromSelect.addEventListener("selectItem", (language) => {
 				if (this.videoHandler?.videoData) {
+					this.videoHandler.translateFromLang = language;
 					this.videoHandler.videoData.detectedLanguage = language;
 					this.videoHandler.videoManager.rememberUserLanguageSelection(this.videoHandler.videoData.videoId, language);
 				}
@@ -36105,6 +36794,7 @@ var vot = (function(exports) {
 	function bindAudioTrackLanguageSync(ctx) {
 		const { self } = ctx;
 		if (self.site.host !== "youtube" || self.site.additionalData === "mobile") return;
+		let lastSyncedAudioTrackLanguage;
 		const syncAudioTrackLanguage = async () => {
 			try {
 				if (!self.videoData) return;
@@ -36116,6 +36806,8 @@ var vot = (function(exports) {
 				if (!currentLanguageCode) return;
 				if (!availableLangs.includes(currentLanguageCode)) return;
 				const currentLanguage = currentLanguageCode;
+				if (currentLanguage === lastSyncedAudioTrackLanguage) return;
+				lastSyncedAudioTrackLanguage = currentLanguage;
 				if (currentLanguage === self.videoData.detectedLanguage) return;
 				self.videoManager.rememberDetectedLanguage(self.videoData.videoId, currentLanguage);
 				self.setSelectMenuValues(currentLanguage, self.videoData.responseLanguage);
@@ -37440,6 +38132,7 @@ var vot = (function(exports) {
 		container;
 		site;
 		translateFromLang = "auto";
+		autoSourceLanguageOverrideVideoId;
 		translateToLang = calculatedResLang;
 		data;
 		videoData;

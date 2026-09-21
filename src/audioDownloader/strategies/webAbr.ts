@@ -1,6 +1,11 @@
 import { config } from "@vot.js/shared";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
+import {
+  getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
+  normalizeAudioLanguageTag as normalizeAudioLanguage,
+  selectSmallestAudioFormat,
+} from "../utils";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
 import { preprocessYouTubePlayer } from "./ytPlayerSolver.js";
 
@@ -421,47 +426,6 @@ export function buildWebEmbeddedPlayerRequest(
   };
 }
 
-// YouTube audio track IDs look like "en", "en.4", or "en-US"; prefer the
-// explicit languageCode when present, otherwise strip the dot suffix.
-function normalizeAudioLanguage(value: unknown): string {
-  if (typeof value !== "string") return "";
-  return value.trim().toLowerCase().replaceAll("_", "-");
-}
-
-function getAudioFormatLanguage(format: WebEmbeddedFormat): string {
-  const direct =
-    format.languageCode ??
-    format.language ??
-    format.audioTrack?.languageCode ??
-    format.audioTrack?.language;
-  if (typeof direct === "string" && direct) {
-    return normalizeAudioLanguage(direct);
-  }
-
-  const trackId = format.audioTrack?.id ?? format.audioTrackId;
-  if (typeof trackId === "string" && trackId) {
-    const idLanguage = trackId.split(".")[0];
-    if (idLanguage) return normalizeAudioLanguage(idLanguage);
-  }
-
-  try {
-    const cipher =
-      typeof format.signatureCipher === "string"
-        ? new URLSearchParams(format.signatureCipher)
-        : undefined;
-    const rawUrl = format.url ?? cipher?.get("url");
-    if (rawUrl) {
-      const xtags = new URL(rawUrl).searchParams.get("xtags") ?? "";
-      const match = /(?:^|:)lang=([^:]+)/i.exec(xtags);
-      if (match?.[1]) return normalizeAudioLanguage(match[1]);
-    }
-  } catch {
-    // Optional URL metadata is not required for language selection.
-  }
-
-  return "";
-}
-
 function audioLanguageMatches(
   trackLanguage: string,
   requestedLanguage: string,
@@ -490,7 +454,7 @@ function isDrcAudioFormat(format: WebEmbeddedFormat): boolean {
   }
 }
 
-function selectWebEmbeddedAudioFormat(
+export function selectWebEmbeddedAudioFormat(
   formats: WebEmbeddedFormat[],
   requestedLanguage?: string,
 ): WebEmbeddedFormat {
@@ -502,17 +466,6 @@ function selectWebEmbeddedAudioFormat(
     ({ mimeType }) =>
       mimeType?.includes("audio/") && !mimeType?.includes("video/"),
   );
-
-  const preferredItags = [
-    251, 140, 141, 250, 249, 139, 256, 258, 325, 327, 328, 338, 171, 172,
-  ];
-  const byPreference = (a: WebEmbeddedFormat, b: WebEmbeddedFormat): number => {
-    const rank = (itag?: number): number => {
-      const index = itag === undefined ? -1 : preferredItags.indexOf(itag);
-      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-    };
-    return rank(a.itag) - rank(b.itag) || (b.bitrate ?? 0) - (a.bitrate ?? 0);
-  };
 
   // If VOT explicitly selected a source language, prefer that YouTube audio
   // track. BCP-47 variants are matched by exact tag first, then base language.
@@ -545,72 +498,18 @@ function selectWebEmbeddedAudioFormat(
       : defaultAudioOnly.length > 0
         ? defaultAudioOnly
         : audioOnly;
-  const selectionMode =
-    requestedLanguageCandidates.length > 0
-      ? "requested-language"
-      : defaultAudioOnly.length > 0
-        ? "audioIsDefault"
-        : "legacy-fallback";
   const nonDrcCandidates = trackCandidates.filter(
     (format) => !isDrcAudioFormat(format),
   );
-  const selected = (
-    nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates
-  ).sort(byPreference)[0];
+  const selected = selectSmallestAudioFormat(
+    nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates,
+  );
 
   if (!selected) {
     throw new Error(
       "Audio downloader. web ABR returned no direct audio-only formats",
     );
   }
-
-  const describeAudioFormat = (format: WebEmbeddedFormat) => ({
-    itag: format.itag,
-    mimeType: format.mimeType,
-    bitrate: format.bitrate,
-    averageBitrate: format.averageBitrate,
-    audioQuality: format.audioQuality,
-    audioSampleRate: format.audioSampleRate,
-    audioChannels: format.audioChannels,
-    audioTrack: format.audioTrack,
-    audioTrackId: format.audioTrackId,
-    language: format.language,
-    languageCode: format.languageCode,
-    resolvedLanguage: getAudioFormatLanguage(format),
-    displayName: format.displayName,
-    xtags: format.xtags,
-    isDrc: isDrcAudioFormat(format),
-    contentLength: format.contentLength,
-    hasUrl: typeof format.url === "string",
-    hasCipher: typeof format.signatureCipher === "string",
-  });
-
-  debug.log(
-    "Audio downloader. AUDIO TRACK TEST",
-    JSON.stringify(
-      {
-        requestedLanguage: normalizedRequestedLanguage || null,
-        selectionMode,
-        selectedLanguage: getAudioFormatLanguage(selected) || null,
-        selectedTrack:
-          selected.audioTrack?.displayName ?? selected.displayName ?? null,
-        selectedTrackId:
-          selected.audioTrack?.id ?? selected.audioTrackId ?? null,
-        selectedIsDefault: selected.audioTrack?.audioIsDefault === true,
-        selectedItag: selected.itag ?? null,
-        selectedBitrate: selected.bitrate ?? null,
-        selectedContentLength: selected.contentLength ?? null,
-        selectedIsDrc: isDrcAudioFormat(selected),
-        selected: describeAudioFormat(selected),
-        audioOnlyCount: audioOnly.length,
-        requestedLanguageCandidates: requestedLanguageCandidates.length,
-        defaultAudioOnlyCount: defaultAudioOnly.length,
-        candidates: audioOnly.map(describeAudioFormat),
-      },
-      null,
-      2,
-    ),
-  );
 
   return selected;
 }
@@ -1403,6 +1302,28 @@ const WEB_ABR_RANGE_REFRESH_EVERY_FAILURES = 2;
 const WEB_ABR_RANGE_RETRY_BASE_DELAY_MS = 250;
 const WEB_ABR_RANGE_RETRY_MAX_DELAY_MS = 1500;
 
+// Permanent media HTTP statuses cannot be recovered by retrying the same signed
+// URL or by cycling the transport matrix, so the outer client/strategy fallback
+// must take over. 408/425/429/5xx and network errors stay retryable.
+const WEB_ABR_FATAL_MEDIA_STATUSES = new Set([401, 403, 404, 410]);
+
+class MediaHttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "MediaHttpError";
+  }
+}
+
+function isFatalMediaError(error: unknown): boolean {
+  return (
+    error instanceof MediaHttpError &&
+    WEB_ABR_FATAL_MEDIA_STATUSES.has(error.status)
+  );
+}
+
 async function refreshMediaUrl(
   urlState: MediaUrlState,
   refreshUrl: () => Promise<string>,
@@ -1443,6 +1364,7 @@ async function fetchMediaRange(
   requestNumberRef: RequestNumberRef,
 ): Promise<Uint8Array> {
   let lastError: unknown;
+  let refreshedFatal = false;
   for (let attempt = 0; attempt < WEB_ABR_RANGE_MAX_ATTEMPTS; attempt++) {
     signal.throwIfAborted();
     // If another failed range is already refreshing the signed media URL,
@@ -1462,7 +1384,8 @@ async function fetchMediaRange(
         cache: "no-store",
       });
       if (!response.ok)
-        throw new Error(
+        throw new MediaHttpError(
+          response.status,
           `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`,
         );
       const bytes = new Uint8Array(await response.arrayBuffer());
@@ -1495,20 +1418,26 @@ async function fetchMediaRange(
       signal.throwIfAborted();
       lastError = error;
       const failedAttempt = attempt + 1;
+      const fatal = isFatalMediaError(error);
       const hasMoreAttempts = failedAttempt < WEB_ABR_RANGE_MAX_ATTEMPTS;
+      // A permanent status still gets one URL refresh (expired signatures look
+      // like 403), but a second fatal failure or a failed refresh ends this
+      // range so the transport matrix can abort.
       const shouldRefreshUrl =
         hasMoreAttempts &&
-        failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0;
+        (fatal || failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0);
 
       debug.log("Audio downloader. web ABR range request failed", {
         range: `${start}-${end}`,
         attempt: failedAttempt,
         maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+        fatal,
         refreshUrl: shouldRefreshUrl,
         error: error instanceof Error ? error.message : String(error),
       });
 
       if (!hasMoreAttempts) break;
+      if (fatal && refreshedFatal) break;
 
       await createAbortableDelay(
         Math.min(
@@ -1524,6 +1453,7 @@ async function fetchMediaRange(
             range: `${start}-${end}`,
             failedAttempt,
           });
+          if (fatal) refreshedFatal = true;
           debug.log(
             "Audio downloader. web ABR media URL refreshed for range retry",
             {
@@ -1534,7 +1464,6 @@ async function fetchMediaRange(
           );
         } catch (refreshError) {
           signal.throwIfAborted();
-          lastError = refreshError;
           debug.log("Audio downloader. web ABR media URL refresh failed", {
             range: `${start}-${end}`,
             nextAttempt: failedAttempt + 1,
@@ -1543,6 +1472,10 @@ async function fetchMediaRange(
                 ? refreshError.message
                 : String(refreshError),
           });
+          // Keep the fatal HTTP error as lastError so the transport matrix
+          // aborts instead of retrying a permanent failure.
+          if (fatal) break;
+          lastError = refreshError;
         }
       }
     }
@@ -1920,6 +1853,13 @@ export async function* downloadMediaRanges(
         elapsedMs: Math.round(performance.now() - startedAt),
         error: error instanceof Error ? error.message : String(error),
       });
+      if (isFatalMediaError(error)) {
+        debug.log("Audio downloader. web ABR transport matrix aborted", {
+          transport,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     }
   }
   throw lastError instanceof Error

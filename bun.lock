@@ -6,9 +6,9 @@
       "name": "voice-over-translation",
       "dependencies": {
         "@toil/gm-types": "^1.0.5",
-        "@vot.js/core": "^3.1.0",
-        "@vot.js/ext": "^3.1.0",
-        "@vot.js/shared": "^3.1.0",
+        "@vot.js/core": "^3.1.2",
+        "@vot.js/ext": "^3.1.2",
+        "@vot.js/shared": "^3.1.2",
         "astring": "1.9.0",
         "bowser": "^2.14.1",
         "chaimu": "^1.1.0",
@@ -112,11 +112,11 @@
 
     "@types/trusted-types": ["@types/trusted-types@2.0.7", "", {}, ""],
 
-    "@vot.js/core": ["@vot.js/core@3.1.0", "", { "dependencies": { "@vot.js/shared": "^3.1.0" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-bbcOdkVinshfq63ryp1oS+4CD9slmtJVKAKBB3qJ+Tb7Ve4I4WLOobMJgrh9YhB8dtg03Zly9X+YHVT+/bA8XQ=="],
+    "@vot.js/core": ["@vot.js/core@3.1.2", "", { "dependencies": { "@vot.js/shared": "^3.1.2" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-Hi+csDJA4+E268lsbOQBBLgWYwjOeMH7p0kg5Atwk6ZnmMYwPZIozvKtqGaRFcVj5zg1VzrJZ8cDC6QThQ0Gpg=="],
 
-    "@vot.js/ext": ["@vot.js/ext@3.1.0", "", { "dependencies": { "@vot.js/core": "^3.1.0", "@vot.js/shared": "^3.1.0" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-rTASfUBuryj4ZtV9n/X3lCjoijik4zadXOw9EsGZWK7f+1ALkwdnwtqZUFsbuDdmLde8DlBiBOtl/azlj9gNnw=="],
+    "@vot.js/ext": ["@vot.js/ext@3.1.2", "", { "dependencies": { "@vot.js/core": "^3.1.2", "@vot.js/shared": "^3.1.2" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-hfdBnvgT8JYkWnlZ9hli6wUXJZKWlyGz7cNWuCiBSD/Sfs7ghZ7uUungi2tRjlp7L/iMI3FAvR7z/8iVrRK7sg=="],
 
-    "@vot.js/shared": ["@vot.js/shared@3.1.0", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-rjuPIPfh2vaZz4D6gB5xwVtM4VX3tmEUA7rESRuY2NJhi8llvKy4akhEyv/smyKKYFhyCQNS9d5PgJ8+Xr7DaA=="],
+    "@vot.js/shared": ["@vot.js/shared@3.1.2", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-iqVesnzQ6kSU8VZUaRUHygeU7g0nuSQMtlKktkqI+p72j2LgQRxhx7ZPs2/S4m0KOVrq9xuvagKJovZZFJsexQ=="],
 
     "@webcomponents/custom-elements": ["@webcomponents/custom-elements@1.6.0", "", {}, "sha512-CqTpxOlUCPWRNUPZDxT5v2NnHXA4oox612iUGnmTUGQFhZ1Gkj8kirtl/2wcF6MqX7+PqqicZzOCBKKfIn0dww=="],
 
