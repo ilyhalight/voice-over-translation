@@ -247,6 +247,7 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
   const { self } = ctx;
   if (self.site.host !== "youtube" || self.site.additionalData === "mobile")
     return;
+  let lastSyncedAudioTrackLanguage: RequestLang | undefined;
   const syncAudioTrackLanguage = async () => {
     try {
       if (!self.videoData) return;
@@ -263,6 +264,8 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
       if (!currentLanguageCode) return;
       if (!availableLangs.includes(currentLanguageCode as RequestLang)) return;
       const currentLanguage = currentLanguageCode as RequestLang;
+      if (currentLanguage === lastSyncedAudioTrackLanguage) return;
+      lastSyncedAudioTrackLanguage = currentLanguage;
       if (currentLanguage === self.videoData.detectedLanguage) return;
       self.videoManager.rememberDetectedLanguage(
         self.videoData.videoId,
