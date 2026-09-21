@@ -7,6 +7,7 @@ import {
   YANDEX_AUTH_URL,
   YANDEX_USER_INFO_URL,
 } from "../../config/auth";
+import { updateAccount } from "../../stores/account";
 import type { AuthMessageData } from "../../types/core/auth/message";
 import type {
   AuthError,
@@ -112,6 +113,11 @@ export async function updateAccountInfo() {
       username,
       avatarId,
     });
+    updateAccount({
+      ...account,
+      token: account.token,
+      expires: account.expires,
+    });
   } catch (err) {
     console.error("[VOT] Failed to fetch user info:", err);
   }
@@ -131,12 +137,15 @@ export async function updateAccountByCallbackData(
   }
 
   const token = await getOAuthTokenByCode(code);
-  await votStorage.set<Account>("account", {
+  const expires = Date.now() + token.expires_in * 1000;
+  const account: Account = {
     token: token.access_token,
-    expires: Date.now() + token.expires_in * 1000,
+    expires,
     username: undefined,
     avatarId: undefined,
-  });
+  };
+  await votStorage.set<Account>("account", account);
+  updateAccount(account);
   sessionStorage.removeItem("votYandexState");
   sessionStorage.removeItem("votYandexCodeVerifier");
 

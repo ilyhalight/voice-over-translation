@@ -31,7 +31,7 @@ export async function handleAuthCallbackPage() {
   }
 
   const { state, code }: Partial<AuthMessageData> = Object.fromEntries(
-    new URLSearchParams(globalThis.location.search.slice(1)),
+    new URLSearchParams(globalThis.location.search),
   );
   if (!state || !code) {
     throw new Error("[VOT] Missing state or code value");
