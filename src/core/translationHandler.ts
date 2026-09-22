@@ -21,7 +21,12 @@ import {
 } from "../utils/abort";
 import { deleteAccount, hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
-import { getErrorMessage, isAbortError, safeNestedGet } from "../utils/errors";
+import {
+  getErrorMessage,
+  isAbortError,
+  makeAbortError,
+  safeNestedGet,
+} from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
 import type { VideoData } from "../videoHandler/shared";
@@ -125,6 +130,89 @@ export class VOTTranslationHandler {
   // In normal operation we should upload audio through the MSE proxy path.
   private readonly requestedFailAudio = new Set<string>();
 
+  // Source preparation is keyed to a video and outlives a failed upload run so
+  // a same-video retry can replay the completed cache. Upload runs share the
+  // preparation signal; a different video aborts it. Handlers and finish
+  // callbacks check their run so stale events can't mutate the active run.
+  private audioRunSeq = 0;
+  private audioRunController: AbortController | null = null;
+  private readonly audioRunExternalUnlinks = new Map<AbortSignal, () => void>();
+  private audioRunTranslationId: string | null = null;
+  private audioRunVideoId: string | null = null;
+
+  private linkAudioRunAbort(
+    externalSignal: AbortSignal,
+    controller: AbortController,
+  ): void {
+    if (externalSignal === NEVER_ABORTED_SIGNAL) return;
+    if (this.audioRunExternalUnlinks.has(externalSignal)) return;
+    if (externalSignal.aborted) {
+      controller.abort(makeAbortError());
+      return;
+    }
+    const onAbort = () => controller.abort(makeAbortError());
+    externalSignal.addEventListener("abort", onAbort, { once: true });
+    this.audioRunExternalUnlinks.set(externalSignal, () =>
+      externalSignal.removeEventListener("abort", onAbort),
+    );
+  }
+
+  private startAudioRun(
+    externalSignal: AbortSignal,
+    translationId: string,
+    videoId: string,
+  ): { signal: AbortSignal; runId: number } {
+    this.audioRunSeq += 1;
+    const runId = this.audioRunSeq;
+
+    const existing = this.audioRunController;
+    if (
+      existing &&
+      this.audioRunVideoId === videoId &&
+      !existing.signal.aborted
+    ) {
+      this.linkAudioRunAbort(externalSignal, existing);
+      this.audioRunTranslationId = translationId;
+      return { signal: existing.signal, runId };
+    }
+
+    if (existing) {
+      existing.abort(makeAbortError("New audio run started"));
+      this.cleanupAudioRun();
+    }
+    const controller = new AbortController();
+    this.audioRunController = controller;
+    this.audioRunVideoId = videoId;
+    this.audioRunTranslationId = translationId;
+    this.linkAudioRunAbort(externalSignal, controller);
+    return { signal: controller.signal, runId };
+  }
+
+  private cleanupAudioRun(): void {
+    for (const unlink of this.audioRunExternalUnlinks.values()) {
+      unlink();
+    }
+    this.audioRunExternalUnlinks.clear();
+    this.audioRunController = null;
+    this.audioRunTranslationId = null;
+    this.audioRunVideoId = null;
+  }
+
+  private finishAudioRun(runId: number): void {
+    if (runId !== this.audioRunSeq) return;
+    this.cleanupAudioRun();
+  }
+
+  // Resume state is intentionally kept only for a failed first audio upload.
+  // A successful translation clears it, so later target languages use the
+  // normal server-side path and do not replay YouTube audio.
+  private uploadResumeState: {
+    videoId: string;
+    fileId: string;
+    lastSuccessfulChunkId: number;
+    failed: boolean;
+  } | null = null;
+
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
     this.audioDownloader = new AudioDownloader();
@@ -149,30 +237,46 @@ export class VOTTranslationHandler {
       debug.log("skip downloadedAudio");
       return;
     }
+    if (translationId !== this.audioRunTranslationId) {
+      debug.log("skip stale downloadedAudio", { translationId });
+      return;
+    }
+    const runId = this.audioRunSeq;
+    const signal = this.audioRunController?.signal ?? NEVER_ABORTED_SIGNAL;
 
     const { videoId, fileId, audioData } = data;
     const videoUrl = this.getCanonicalUrl(videoId);
     try {
-      await this.retryAudioUpload(() =>
-        this.videoHandler.votClient.provider.requestVtransAudio(
-          videoUrl,
-          translationId,
-          {
-            audioFile: audioData,
-            fileId,
-          },
-        ),
+      await this.retryAudioUpload(
+        (timeoutMs) =>
+          this.videoHandler.votClient.provider.requestVtransAudio(
+            videoUrl,
+            translationId,
+            {
+              audioFile: audioData,
+              fileId,
+            },
+            undefined as never,
+            {},
+            { timeout: timeoutMs },
+          ),
+        signal,
       );
     } catch (error) {
+      if (isAbortError(error) && signal.aborted) {
+        return;
+      }
       debug.error("Failed to upload downloaded audio", error);
       this.finishDownloadFailure(
         error instanceof Error
           ? error
           : new Error("Audio downloader failed while uploading full audio"),
+        runId,
       );
       return;
     }
-    this.finishDownloadSuccess();
+    this.audioDownloader.clearCachedAudio(videoId);
+    this.finishDownloadSuccess(runId);
   };
 
   private readonly onDownloadedPartialAudio = async (
@@ -184,35 +288,88 @@ export class VOTTranslationHandler {
       debug.log("skip downloadedPartialAudio");
       return;
     }
+    if (translationId !== this.audioRunTranslationId) {
+      debug.log("skip stale downloadedPartialAudio", { translationId });
+      return;
+    }
+    const runId = this.audioRunSeq;
+    const signal = this.audioRunController?.signal ?? NEVER_ABORTED_SIGNAL;
 
     const { audioData, fileId, videoId, amount, version, index } = data;
     const videoUrl = this.getCanonicalUrl(videoId);
+    const resume = this.uploadResumeState;
+    if (
+      resume?.failed &&
+      resume.videoId === videoId &&
+      resume.fileId === fileId &&
+      index <= resume.lastSuccessfulChunkId
+    ) {
+      debug.log("[VOT][AudioUpload] skipping already uploaded chunk", {
+        videoId,
+        fileId,
+        chunkId: index,
+        lastSuccessfulChunkId: resume.lastSuccessfulChunkId,
+      });
+      return;
+    }
     try {
-      await this.retryAudioUpload(() =>
-        this.videoHandler.votClient.provider.requestVtransAudio(
-          videoUrl,
-          translationId,
-          {
-            audioFile: audioData,
-            chunkId: index,
-          },
-          {
-            audioPartsLength: amount ?? 0,
-            fileId,
-            version,
-          },
-        ),
+      await this.retryAudioUpload(
+        (timeoutMs) =>
+          this.videoHandler.votClient.provider.requestVtransAudio(
+            videoUrl,
+            translationId,
+            {
+              audioFile: audioData,
+              chunkId: index,
+            },
+            {
+              audioPartsLength: amount ?? 0,
+              fileId,
+              version,
+            },
+            {},
+            { timeout: timeoutMs },
+          ),
+        signal,
       );
+      this.uploadResumeState = {
+        videoId,
+        fileId,
+        lastSuccessfulChunkId: index,
+        failed: false,
+      };
     } catch (error) {
-      debug.error("Failed to upload downloaded audio chunk", error);
+      if (isAbortError(error) && signal.aborted) {
+        return;
+      }
+      debug.error("[VOT][AudioUpload] chunk PUT failed after all retries", {
+        videoId,
+        fileId,
+        chunkId: index,
+        amount,
+        bytes: audioData.byteLength,
+        error,
+      });
+      this.uploadResumeState = {
+        videoId,
+        fileId,
+        lastSuccessfulChunkId:
+          this.uploadResumeState?.videoId === videoId
+            ? this.uploadResumeState.lastSuccessfulChunkId
+            : index - 1,
+        failed: true,
+      };
       this.finishDownloadFailure(
-        new Error("Audio downloader failed while uploading chunk"),
+        new VOTLocalizedError("VOTRetryTranslation"),
+        runId,
       );
       return;
     }
 
     if (amount !== undefined && index === amount - 1) {
-      this.finishDownloadSuccess();
+      this.uploadResumeState = null;
+      this.audioDownloader.clearCachedAudio(videoId);
+      this.finishDownloadSuccess(runId);
     }
   };
 
@@ -224,8 +381,15 @@ export class VOTTranslationHandler {
       debug.log("skip downloadAudioError");
       return;
     }
+    if (translationId !== this.audioRunTranslationId) {
+      debug.log("skip stale downloadAudioError", { translationId });
+      return;
+    }
+    const runId = this.audioRunSeq;
 
-    debug.log(`Failed to download audio ${videoId}`);
+    debug.error("[VOT][AudioDownload] failed to download audio from source", {
+      videoId,
+    });
     const videoUrl = this.getCanonicalUrl(videoId);
 
     // The fail-audio-js endpoint is a rare fallback. Keep its usage minimal and
@@ -237,6 +401,7 @@ export class VOTTranslationHandler {
     if (!shouldUseFallback) {
       this.finishDownloadFailure(
         new VOTLocalizedError("VOTFailedDownloadAudio"),
+        runId,
       );
       return;
     }
@@ -261,21 +426,26 @@ export class VOTTranslationHandler {
         this.requestedFailAudio.add(videoUrl);
       }
 
-      this.finishDownloadSuccess();
+      this.finishDownloadSuccess(runId);
     } catch (error) {
       debug.error("fail-audio-js request failed", error);
       this.finishDownloadFailure(
         new VOTLocalizedError("VOTFailedDownloadAudio"),
+        runId,
       );
     }
   };
 
-  private finishDownloadSuccess() {
+  private finishDownloadSuccess(runId?: number) {
+    if (runId !== undefined && runId !== this.audioRunSeq) return;
     this.downloading = false;
     this.settleDownloadWaiters();
   }
 
-  private finishDownloadFailure(error: Error) {
+  private finishDownloadFailure(error: Error, runId?: number) {
+    if (runId !== undefined && runId !== this.audioRunSeq) return;
+    // Settle the UI waiter with the real error promptly but keep the source
+    // preparation running so a same-video retry can replay the completed cache.
     this.downloading = false;
     this.settleDownloadWaiters(error);
   }
@@ -284,26 +454,48 @@ export class VOTTranslationHandler {
     return `https://youtu.be/${videoId}`;
   }
 
-  private static readonly AUDIO_UPLOAD_MAX_RETRIES = 2;
+  private static readonly AUDIO_UPLOAD_MAX_RETRIES = 5;
   private static readonly AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
+  private static readonly AUDIO_UPLOAD_TIMEOUTS_MS = [15_000, 20_000, 30_000];
 
-  private async retryAudioUpload<T>(fn: () => Promise<T>): Promise<T> {
+  private async retryAudioUpload<T>(
+    fn: (timeoutMs: number) => Promise<T>,
+    signal: AbortSignal,
+  ): Promise<T> {
     const maxRetries = VOTTranslationHandler.AUDIO_UPLOAD_MAX_RETRIES;
     const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
+    const timeouts = VOTTranslationHandler.AUDIO_UPLOAD_TIMEOUTS_MS;
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      throwIfAborted(signal);
+      const timeoutMs = timeouts[Math.min(attempt, timeouts.length - 1)];
       try {
-        return await fn();
+        return await fn(timeoutMs);
       } catch (error) {
+        if (signal.aborted) {
+          throw isAbortError(error) ? error : makeAbortError();
+        }
         lastError = error;
+        const details = error as {
+          status?: unknown;
+          code?: unknown;
+          message?: unknown;
+        };
+        debug.error("[VOT][AudioUpload] PUT attempt failed", {
+          attempt: attempt + 1,
+          totalAttempts: maxRetries + 1,
+          status: details?.status,
+          code: details?.code,
+          message: details?.message ?? getErrorMessage(error),
+        });
         if (attempt === maxRetries) {
           throw error;
         }
         debug.log(
-          `[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
+          `[VOT][AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
         );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await createAbortableDelay(delayMs, signal);
       }
     }
     throw lastError;
@@ -494,21 +686,40 @@ export class VOTTranslationHandler {
           translationId: res.translationId,
         });
         this.downloading = true;
+        const { signal: audioSignal, runId } = this.startAudioRun(
+          signal,
+          res.translationId,
+          videoData.videoId,
+        );
 
         debug.log("[Translation] waiting for audio download completion", {
           videoId: videoData.videoId,
           translationId: res.translationId,
           timeoutMs: STREAM_TIMEOUT_MS,
         });
-        await Promise.all([
-          this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS),
-          this.audioDownloader.runAudioDownload(
-            videoData.videoId,
-            res.translationId,
-            signal,
-            videoData.detectedLanguage,
-          ),
-        ]);
+        const audioProducer = this.audioDownloader.runAudioDownload(
+          videoData.videoId,
+          res.translationId,
+          audioSignal,
+          requestLang,
+        );
+        try {
+          await Promise.all([
+            this.waitForAudioDownloadCompletion(audioSignal, STREAM_TIMEOUT_MS),
+            audioProducer,
+          ]);
+        } finally {
+          if (runId === this.audioRunSeq) {
+            this.downloading = false;
+          }
+          // Release the preparation signal/link only once the producer settles.
+          // Until then it must stay alive so external abort stops it and a
+          // same-video retry can reuse it instead of downloading again.
+          void audioProducer.then(
+            () => this.finishAudioRun(runId),
+            () => this.finishAudioRun(runId),
+          );
+        }
 
         // for get instant result on download end
         return await this.translateVideoImpl(
@@ -716,7 +927,9 @@ export class VOTTranslationHandler {
 
     const { promise, settle } = createAbortableWaiter(signal, timeoutMs);
     this.downloadSettlers.add(settle);
-    return promise;
+    return promise.finally(() => {
+      this.downloadSettlers.delete(settle);
+    });
   }
 
   private settleDownloadWaiters(error?: Error) {

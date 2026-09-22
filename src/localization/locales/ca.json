@@ -265,5 +265,6 @@
   "VOTClose": "Tancar",
   "VOTLogin": "Accés",
   "VOTAutoPauseOnTranslate": "Pausa el vídeo fins que la traducció estigui preparada",
-  "VOTSmartDuckingStrength": "Resistència de reducció de volum adaptativa"
+  "VOTSmartDuckingStrength": "Resistència de reducció de volum adaptativa",
+  "VOTRetryTranslation": "Torna a provar la traducció"
 }

@@ -265,5 +265,6 @@
   "VOTClose": "Жабу",
   "VOTLogin": "Кіру",
   "VOTAutoPauseOnTranslate": "Аударма дайын болғанша бейнені кідіртіңіз",
-  "VOTSmartDuckingStrength": "Адаптивті көлемді азайту күші"
+  "VOTSmartDuckingStrength": "Адаптивті көлемді азайту күші",
+  "VOTRetryTranslation": "Аударманы қайталап көру"
 }

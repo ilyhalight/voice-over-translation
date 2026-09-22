@@ -265,5 +265,6 @@
   "VOTClose": "Pechar",
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Pausa o vídeo ata que a tradución estea lista",
-  "VOTSmartDuckingStrength": "Resistencia á redución do volume adaptativo"
+  "VOTSmartDuckingStrength": "Resistencia á redución do volume adaptativo",
+  "VOTRetryTranslation": "Tentar de novo a tradución"
 }

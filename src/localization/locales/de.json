@@ -265,5 +265,6 @@
   "VOTClose": "Schließen",
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Video anhalten, bis die Übersetzung fertig ist",
-  "VOTSmartDuckingStrength": "Adaptive Volumenreduktionsstärke"
+  "VOTSmartDuckingStrength": "Adaptive Volumenreduktionsstärke",
+  "VOTRetryTranslation": "Übersetzung erneut versuchen"
 }

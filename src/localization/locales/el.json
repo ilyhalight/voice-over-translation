@@ -265,5 +265,6 @@
   "VOTClose": "Κλείσετε",
   "VOTLogin": "Σύνδεση",
   "VOTAutoPauseOnTranslate": "Παύση βίντεο μέχρι να είναι έτοιμη η μετάφραση",
-  "VOTSmartDuckingStrength": "Προσαρμοστική δύναμη μείωσης όγκου"
+  "VOTSmartDuckingStrength": "Προσαρμοστική δύναμη μείωσης όγκου",
+  "VOTRetryTranslation": "Επανάληψη μετάφρασης"
 }

@@ -265,5 +265,6 @@
   "VOTClose": "ປິດ",
   "VOTLogin": "ເຂົ້າສູ່ລະບົບ",
   "VOTAutoPauseOnTranslate": "ຢຸດວິດີໂອຈົນກ່ວາການແປພາສາແມ່ນກຽມພ້ອມ",
-  "VOTSmartDuckingStrength": "ຄວາມເຂັ້ມແຂງການຫຼຸດຜ່ອນປະລິມານການປັບ"
+  "VOTSmartDuckingStrength": "ຄວາມເຂັ້ມແຂງການຫຼຸດຜ່ອນປະລິມານການປັບ",
+  "VOTRetryTranslation": "ລອງແປອີກຄັ້ງ"
 }

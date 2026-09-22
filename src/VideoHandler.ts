@@ -139,6 +139,7 @@ export class VideoHandler {
   site!: ServiceConf;
 
   translateFromLang: RequestLang = "auto";
+  autoSourceLanguageOverrideVideoId?: string;
   translateToLang: ResponseLang = calculatedResLang;
 
   data?: Partial<StorageData>;

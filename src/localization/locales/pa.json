@@ -265,5 +265,6 @@
   "VOTClose": "ਬੰਦ ਕਰੋ",
   "VOTLogin": "ਲਾਗਇਨ",
   "VOTAutoPauseOnTranslate": "ਅਨੁਵਾਦ ਤਿਆਰ ਹੋਣ ਤੱਕ ਵਿਡੀਓ ਵਿਰਾਮ ਕਰੋ",
-  "VOTSmartDuckingStrength": "ਅਨੁਕੂਲ ਵਾਲੀਅਮ ਘਟਾਉਣ ਦੀ ਤਾਕਤ"
+  "VOTSmartDuckingStrength": "ਅਨੁਕੂਲ ਵਾਲੀਅਮ ਘਟਾਉਣ ਦੀ ਤਾਕਤ",
+  "VOTRetryTranslation": "ਅਨੁਵਾਦ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ"
 }

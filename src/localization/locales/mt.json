@@ -265,5 +265,6 @@
   "VOTClose": "Agħlaq",
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Nieqaf il-vidjow sakemm it-traduzzjoni tkun lesta",
-  "VOTSmartDuckingStrength": "Qawwa adattiva għat-tnaqqis tal-volum"
+  "VOTSmartDuckingStrength": "Qawwa adattiva għat-tnaqqis tal-volum",
+  "VOTRetryTranslation": "Erġa’ pprova t-traduzzjoni"
 }

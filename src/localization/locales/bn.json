@@ -265,5 +265,6 @@
   "VOTClose": "বন্ধ",
   "VOTLogin": "লগইন",
   "VOTAutoPauseOnTranslate": "অনুবাদ প্রস্তুত না হওয়া পর্যন্ত ভিডিও বিরতি দিন",
-  "VOTSmartDuckingStrength": "অভিযোজিত ভলিউম হ্রাস শক্তি"
+  "VOTSmartDuckingStrength": "অভিযোজিত ভলিউম হ্রাস শক্তি",
+  "VOTRetryTranslation": "অনুবাদ আবার চেষ্টা করুন"
 }

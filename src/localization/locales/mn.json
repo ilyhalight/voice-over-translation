@@ -265,5 +265,6 @@
   "VOTClose": "Хаах",
   "VOTLogin": "Нэвтрэх",
   "VOTAutoPauseOnTranslate": "Орчуулга бэлэн болтол видеог түр зогсоо",
-  "VOTSmartDuckingStrength": "Дасан зохицох хэмжээ бууруулах хүч чадал"
+  "VOTSmartDuckingStrength": "Дасан зохицох хэмжээ бууруулах хүч чадал",
+  "VOTRetryTranslation": "Орчуулгыг дахин оролдох"
 }

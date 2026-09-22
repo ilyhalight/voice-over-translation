@@ -265,5 +265,6 @@
   "VOTClose": "Zatvoriti",
   "VOTLogin": "Prijaviti se",
   "VOTAutoPauseOnTranslate": "Pauzirajte videozapis dok prijevod ne bude spreman",
-  "VOTSmartDuckingStrength": "Prilagodljiva sila smanjenja volumena"
+  "VOTSmartDuckingStrength": "Prilagodljiva sila smanjenja volumena",
+  "VOTRetryTranslation": "Pokušaj ponovno prevesti"
 }

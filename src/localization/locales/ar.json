@@ -265,5 +265,6 @@
   "VOTClose": "إغلاق",
   "VOTLogin": "تسجيل الدخول",
   "VOTAutoPauseOnTranslate": "إيقاف الفيديو مؤقتا حتى تصبح الترجمة جاهزة",
-  "VOTSmartDuckingStrength": "قوة تقليل الحجم التكيفي"
+  "VOTSmartDuckingStrength": "قوة تقليل الحجم التكيفي",
+  "VOTRetryTranslation": "إعادة محاولة الترجمة"
 }

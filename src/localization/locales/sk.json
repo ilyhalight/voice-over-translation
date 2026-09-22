@@ -265,5 +265,6 @@
   "VOTClose": "Zatvoriť",
   "VOTLogin": "Prihlásenie",
   "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
-  "VOTSmartDuckingStrength": "Adaptívna sila na zníženie objemu"
+  "VOTSmartDuckingStrength": "Adaptívna sila na zníženie objemu",
+  "VOTRetryTranslation": "Skúsiť preklad znova"
 }

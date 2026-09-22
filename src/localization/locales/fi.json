@@ -265,5 +265,6 @@
   "VOTClose": "Sulje",
   "VOTLogin": "Kirjautuminen",
   "VOTAutoPauseOnTranslate": "Keskeytä video, Kunnes käännös on valmis",
-  "VOTSmartDuckingStrength": "Mukautuva äänenvoimakkuuden vähennyslujuus"
+  "VOTSmartDuckingStrength": "Mukautuva äänenvoimakkuuden vähennyslujuus",
+  "VOTRetryTranslation": "Yritä käännöstä uudelleen"
 }

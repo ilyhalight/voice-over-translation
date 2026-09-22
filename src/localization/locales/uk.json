@@ -265,5 +265,6 @@
   "VOTClose": "Закривати",
   "VOTLogin": "Авторизувати",
   "VOTAutoPauseOnTranslate": "Призупиніть Відео, поки переклад не буде готовий",
-  "VOTSmartDuckingStrength": "Адаптивна сила зменшення обсягу"
+  "VOTSmartDuckingStrength": "Адаптивна сила зменшення обсягу",
+  "VOTRetryTranslation": "Повторити переклад"
 }

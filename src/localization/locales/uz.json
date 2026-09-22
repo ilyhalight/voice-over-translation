@@ -265,5 +265,6 @@
   "VOTClose": "Yopish",
   "VOTLogin": "Kirish",
   "VOTAutoPauseOnTranslate": "Tarjima tayyor bo'lgunga qadar videoni pauza qiling",
-  "VOTSmartDuckingStrength": "Adaptiv hajmni kamaytirish kuchi"
+  "VOTSmartDuckingStrength": "Adaptiv hajmni kamaytirish kuchi",
+  "VOTRetryTranslation": "Tarjimani qayta urinib ko‘ring"
 }

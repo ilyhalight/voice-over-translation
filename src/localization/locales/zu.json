@@ -265,5 +265,6 @@
   "VOTClose": "Vala",
   "VOTLogin": "Ukungena ngemvume",
   "VOTAutoPauseOnTranslate": "Phumula ividiyo kuze translation isilungile",
-  "VOTSmartDuckingStrength": "Amandla okunciphisa umthamo wokuzivumelanisa nezimo"
+  "VOTSmartDuckingStrength": "Amandla okunciphisa umthamo wokuzivumelanisa nezimo",
+  "VOTRetryTranslation": "Zama ukuhumusha futhi"
 }

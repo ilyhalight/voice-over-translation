@@ -265,5 +265,6 @@
   "VOTClose": "Bezárás",
   "VOTLogin": "Bejelentkezés",
   "VOTAutoPauseOnTranslate": "Szüneteltesse a videót, amíg a fordítás készen áll",
-  "VOTSmartDuckingStrength": "Adaptív térfogat-csökkentési szilárdság"
+  "VOTSmartDuckingStrength": "Adaptív térfogat-csökkentési szilárdság",
+  "VOTRetryTranslation": "Fordítás újrapróbálása"
 }

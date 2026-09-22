@@ -265,5 +265,6 @@
   "VOTMenu": "Menu",
   "VOTDownloadTranslation": "Download translation",
   "VOTClose": "Close",
-  "VOTSmartDuckingStrength": "Adaptive volume reduction strength"
+  "VOTSmartDuckingStrength": "Adaptive volume reduction strength",
+  "VOTRetryTranslation": "Retry translation"
 }

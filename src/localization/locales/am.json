@@ -265,5 +265,6 @@
   "VOTClose": "ዝጋ",
   "VOTLogin": "አዲስ ዝምብሎ ይግባ",
   "VOTAutoPauseOnTranslate": "ትርጉም ዝግጁ እስኪሆን ድረስ ቪዲዮ ለአፍታ ያቁሙ",
-  "VOTSmartDuckingStrength": "የመላመድ መጠን ቅነሳ ጥንካሬ"
+  "VOTSmartDuckingStrength": "የመላመድ መጠን ቅነሳ ጥንካሬ",
+  "VOTRetryTranslation": "ትርጉሙን እንደገና ሞክር"
 }

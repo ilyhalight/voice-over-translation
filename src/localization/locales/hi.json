@@ -265,5 +265,6 @@
   "VOTClose": "बंद करें",
   "VOTLogin": "लॉगिन करें",
   "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
-  "VOTSmartDuckingStrength": "अनुकूली मात्रा में कमी ताकत"
+  "VOTSmartDuckingStrength": "अनुकूली मात्रा में कमी ताकत",
+  "VOTRetryTranslation": "अनुवाद का फिर से प्रयास करें"
 }

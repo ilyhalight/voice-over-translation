@@ -265,5 +265,6 @@
   "VOTClose": "बन्द गर्नुहोस्",
   "VOTLogin": "लगइन गर्नुहोस्",
   "VOTAutoPauseOnTranslate": "अनुवाद तयार नभएसम्म भिडियो पज गर्नुहोस्",
-  "VOTSmartDuckingStrength": "अनुकूलनशील मात्रा घटाउने शक्ति"
+  "VOTSmartDuckingStrength": "अनुकूलनशील मात्रा घटाउने शक्ति",
+  "VOTRetryTranslation": "अनुवाद पुन: प्रयास गर्नुहोस्"
 }

@@ -265,5 +265,6 @@
   "VOTClose": "Փակել",
   "VOTLogin": "Մուտք գործել",
   "VOTAutoPauseOnTranslate": "Դադարեցրեք տեսանյութը, մինչև թարգմանությունը պատրաստ լինի",
-  "VOTSmartDuckingStrength": "Հարմարվողական ծավալի նվազեցման ուժ"
+  "VOTSmartDuckingStrength": "Հարմարվողական ծավալի նվազեցման ուժ",
+  "VOTRetryTranslation": "Կրկին փորձել թարգմանությունը"
 }

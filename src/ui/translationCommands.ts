@@ -69,11 +69,15 @@ export async function handleTranslationButtonCommand(
     return;
   }
 
-  if (deps.currentStatus === "error" && !deps.currentLoading) {
+  // A click on an errored, idle button is the retry action: reset the button
+  // and fall through to translation in this same click instead of taking the
+  // stop/abort branch (which would kill background preparation).
+  const isRetry = deps.currentStatus === "error" && !deps.currentLoading;
+  if (isRetry) {
     deps.transformBtn("none", t("translateVideo"));
   }
 
-  if (deps.currentStatus !== "none" || deps.currentLoading) {
+  if (!isRetry && (deps.currentStatus !== "none" || deps.currentLoading)) {
     debug.log("[handleTranslationBtnClick] translationBtn isn't in none state");
     videoHandler.actionsAbortController.abort();
     await videoHandler.stopTranslation();
@@ -85,6 +89,18 @@ export async function handleTranslationButtonCommand(
 
     debug.log("[handleTranslationBtnClick] trying execute translation");
     const videoData = await getVideoDataForTranslation(videoHandler);
+
+    // Automatic fallback belongs only to the video where it was selected.
+    // Reset it before resolving the language of a newly opened video.
+    if (
+      videoHandler.autoSourceLanguageOverrideVideoId &&
+      videoHandler.autoSourceLanguageOverrideVideoId !== videoData.videoId
+    ) {
+      videoHandler.translateFromLang = "auto";
+      videoHandler.autoSourceLanguageOverrideVideoId = undefined;
+      videoHandler.setSelectMenuValues("auto", videoData.responseLanguage);
+    }
+
     await videoHandler.videoManager.ensureDetectedLanguageForTranslation(
       videoData,
     );
@@ -93,10 +109,15 @@ export async function handleTranslationButtonCommand(
       "[handleTranslationBtnClick] Run translateFunc",
       videoData.videoId,
     );
+    const requestLang =
+      videoHandler.translateFromLang === "auto"
+        ? videoData.detectedLanguage
+        : videoHandler.translateFromLang;
+
     await videoHandler.translateFunc(
       videoData.videoId,
       videoData.isStream,
-      videoData.detectedLanguage,
+      requestLang,
       videoData.responseLanguage,
       videoData.translationHelp,
     );

@@ -265,5 +265,6 @@
   "VOTClose": "Nutup",
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Ngaso video nganti terjemahan siap",
-  "VOTSmartDuckingStrength": "Kekuatan pengurangan volume adaptif"
+  "VOTSmartDuckingStrength": "Kekuatan pengurangan volume adaptif",
+  "VOTRetryTranslation": "Coba terjemahake maneh"
 }

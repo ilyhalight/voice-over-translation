@@ -265,5 +265,6 @@
   "VOTClose": "Itxi",
   "VOTLogin": "Saioa hasi",
   "VOTAutoPauseOnTranslate": "Pausatu bideoa itzulpena prest dagoen arte",
-  "VOTSmartDuckingStrength": "Bolumena murrizteko erresistentzia egokitzailea"
+  "VOTSmartDuckingStrength": "Bolumena murrizteko erresistentzia egokitzailea",
+  "VOTRetryTranslation": "Saiatu itzulpena berriro"
 }

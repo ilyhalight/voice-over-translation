@@ -265,5 +265,6 @@
   "VOTClose": "閉じる",
   "VOTLogin": "ログイン",
   "VOTAutoPauseOnTranslate": "翻訳の準備が整うまでビデオを一時停止します",
-  "VOTSmartDuckingStrength": "適応的な容積の減少の強さ"
+  "VOTSmartDuckingStrength": "適応的な容積の減少の強さ",
+  "VOTRetryTranslation": "翻訳を再試行"
 }

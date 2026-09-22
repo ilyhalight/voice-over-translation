@@ -265,5 +265,6 @@
   "VOTClose": "അടയ്ക്കുക",
   "VOTLogin": "ലോഗിൻ ചെയ്യുക",
   "VOTAutoPauseOnTranslate": "പരിഭാഷ തയ്യാറാകുന്നതുവരെ വീഡിയോ താൽക്കാലികമായി നിർത്തുക",
-  "VOTSmartDuckingStrength": "അഡാപ്റ്റീവ് വോള്യം കുറയ്ക്കൽ ശക്തി"
+  "VOTSmartDuckingStrength": "അഡാപ്റ്റീവ് വോള്യം കുറയ്ക്കൽ ശക്തി",
+  "VOTRetryTranslation": "വിവർത്തനം വീണ്ടും ശ്രമിക്കുക"
 }

@@ -265,5 +265,6 @@
   "VOTClose": "Afër",
   "VOTLogin": "Hyrje",
   "VOTAutoPauseOnTranslate": "Ndaloni videon derisa përkthimi të jetë gati",
-  "VOTSmartDuckingStrength": "Forca Adaptive e reduktimit të vëllimit"
+  "VOTSmartDuckingStrength": "Forca Adaptive e reduktimit të vëllimit",
+  "VOTRetryTranslation": "Provo përsëri përkthimin"
 }

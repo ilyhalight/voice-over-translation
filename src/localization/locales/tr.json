@@ -265,5 +265,6 @@
   "VOTClose": "Kapatma",
   "VOTLogin": "Oturum aç",
   "VOTAutoPauseOnTranslate": "Çeviri hazır olana kadar videoyu duraklatın",
-  "VOTSmartDuckingStrength": "Uyarlanabilir ses azaltma gücü"
+  "VOTSmartDuckingStrength": "Uyarlanabilir ses azaltma gücü",
+  "VOTRetryTranslation": "Çeviriyi yeniden dene"
 }

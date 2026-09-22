@@ -265,5 +265,6 @@
   "VOTClose": "Đóng",
   "VOTLogin": "Đăng nhập",
   "VOTAutoPauseOnTranslate": "Tạm dừng video cho đến khi bản dịch đã sẵn sàng",
-  "VOTSmartDuckingStrength": "Cường độ giảm âm lượng thích ứng"
+  "VOTSmartDuckingStrength": "Cường độ giảm âm lượng thích ứng",
+  "VOTRetryTranslation": "Thử dịch lại"
 }

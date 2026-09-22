@@ -265,5 +265,6 @@
   "VOTClose": "ಮುಚ್ಚು",
   "VOTLogin": "ಲಾಗಿನ್ ಮಾಡಿ",
   "VOTAutoPauseOnTranslate": "ಅನುವಾದ ಸಿದ್ಧವಾಗುವವರೆಗೆ ವೀಡಿಯೊ ವಿರಾಮ",
-  "VOTSmartDuckingStrength": "ಹೊಂದಾಣಿಕೆಯ ಪರಿಮಾಣ ಕಡಿತ ಶಕ್ತಿ"
+  "VOTSmartDuckingStrength": "ಹೊಂದಾಣಿಕೆಯ ಪರಿಮಾಣ ಕಡಿತ ಶಕ್ತಿ",
+  "VOTRetryTranslation": "ಅನುವಾದವನ್ನು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ"
 }

@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.13
+// @version        1.11.14
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -135,7 +135,6 @@
 // @match          *://*.bunkr.ac/*
 // @match          *://*.bunkr.ax/*
 // @match          *://web.telegram.org/k/*
-// @match          *://rust-server-531j.onrender.com/*
 // @match          *://mylearn.oracle.com/*
 // @match          *://learn.deeplearning.ai/*
 // @match          *://learn-staging.deeplearning.ai/*
@@ -154,6 +153,8 @@
 // @match          *://projector.datacamp.com/*
 // @match          *://hot.noodlemagazine.com/*
 // @match          *://fast.wistia.net/*
+// @match          *://oauth.yandex.ru/verification_code*
+// @match          *://*.the-joi-database.com/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
@@ -201,6 +202,8 @@
 // @exclude        *://accounts.youtube.com/*
 // @require        https://gist.githubusercontent.com/ilyhalight/6eb5bb4dffc7ca9e3c57d6933e2452f3/raw/7ab38af2228d0bed13912e503bc8a9ee4b11828d/gm-addstyle-polyfill.js
 // @connect        yandex.ru
+// @connect        oauth.yandex.ru
+// @connect        login.yandex.ru
 // @connect        disk.yandex.kz
 // @connect        disk.yandex.com
 // @connect        disk.yandex.com.am
@@ -362,6 +365,7 @@ var vot = (function(exports) {
 		VideoService["rtnews"] = "rtnews";
 		VideoService["bitview"] = "bitview";
 		VideoService["thisvid"] = "thisvid";
+		VideoService["joidatabase"] = "joidatabase";
 		VideoService["ign"] = "ign";
 		VideoService["noodlemagazine"] = "noodlemagazine";
 		VideoService["zdf"] = "zdf";
@@ -642,6 +646,12 @@ var vot = (function(exports) {
 			url: "https://rule34video.com/video/",
 			match: (url) => /^(www\.)?rule34video\.com$/.test(url.host) && /\/videos?\/\d+/.test(url.pathname),
 			selector: sharedSelectors.flowplayer
+		},
+		{
+			host: VideoService$1.joidatabase,
+			url: "https://www.the-joi-database.com/api/stream/",
+			match: [/^s1\.the-joi-database\.com$/, /^(www\.)?the-joi-database\.com$/],
+			selector: "#small-player-container"
 		},
 		{
 			host: VideoService$1.picarto,
@@ -1117,13 +1127,13 @@ var vot = (function(exports) {
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.toil.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
-		componentVersion: "26.8.3.971",
-		chromiumRevision: "971",
+		componentVersion: "26.8.3.1002",
+		chromiumRevision: "1002",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.1.0"
+		version: "3.1.2"
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/logger.js
@@ -1685,8 +1695,6 @@ var vot = (function(exports) {
 		"en",
 		"zh",
 		"ko",
-		"lt",
-		"lv",
 		"ar",
 		"fr",
 		"it",
@@ -2168,6 +2176,13 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/joidatabase.js
+	var JOIDatabaseHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return /\/(?:watch|embed)\/([0-9a-f]+)\/?$/.exec(url.pathname)?.[1];
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/jove.js
 	var JoveHelper = class extends BaseHelper {
 		async getVideoId(url) {
@@ -2417,53 +2432,43 @@ var vot = (function(exports) {
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
 	function varint64read() {
-		let lowBits = 0;
-		let highBits = 0;
+		const buf = this.buf;
+		let pos = this.pos;
+		let lo = 0;
+		let hi = 0;
 		for (let shift = 0; shift < 28; shift += 7) {
-			let b = this.buf[this.pos++];
-			lowBits |= (b & 127) << shift;
+			const b = buf[pos++];
+			lo |= (b & 127) << shift;
 			if ((b & 128) == 0) {
+				this.pos = pos;
 				this.assertBounds();
-				return [lowBits, highBits];
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
 			}
 		}
-		let middleByte = this.buf[this.pos++];
-		lowBits |= (middleByte & 15) << 28;
-		highBits = (middleByte & 112) >> 4;
+		const middleByte = buf[pos++];
+		lo |= (middleByte & 15) << 28;
+		hi = (middleByte & 112) >> 4;
 		if ((middleByte & 128) == 0) {
+			this.pos = pos;
 			this.assertBounds();
-			return [lowBits, highBits];
+			this.varint64Lo = lo;
+			this.varint64Hi = hi;
+			return;
 		}
 		for (let shift = 3; shift <= 31; shift += 7) {
-			let b = this.buf[this.pos++];
-			highBits |= (b & 127) << shift;
+			const b = buf[pos++];
+			hi |= (b & 127) << shift;
 			if ((b & 128) == 0) {
+				this.pos = pos;
 				this.assertBounds();
-				return [lowBits, highBits];
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
 			}
 		}
 		throw new Error("invalid varint");
-	}
-	function varint64write(lo, hi, bytes) {
-		for (let i = 0; i < 28; i = i + 7) {
-			const shift = lo >>> i;
-			const hasNext = !(shift >>> 7 == 0 && hi == 0);
-			const byte = (hasNext ? shift | 128 : shift) & 255;
-			bytes.push(byte);
-			if (!hasNext) return;
-		}
-		const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
-		const hasMoreBits = !(hi >> 3 == 0);
-		bytes.push((hasMoreBits ? splitBits | 128 : splitBits) & 255);
-		if (!hasMoreBits) return;
-		for (let i = 3; i < 31; i = i + 7) {
-			const shift = hi >>> i;
-			const hasNext = !(shift >>> 7 == 0);
-			const byte = (hasNext ? shift | 128 : shift) & 255;
-			bytes.push(byte);
-			if (!hasNext) return;
-		}
-		bytes.push(hi >>> 31 & 1);
 	}
 	var TWO_PWR_32_DBL = 4294967296;
 	function int64FromString(dec) {
@@ -2536,50 +2541,35 @@ var vot = (function(exports) {
 		const partial = String(digit1e7);
 		return "0000000".slice(partial.length) + partial;
 	};
-	function varint32write(value, bytes) {
-		if (value >= 0) {
-			while (value > 127) {
-				bytes.push(value & 127 | 128);
-				value = value >>> 7;
-			}
-			bytes.push(value);
-		} else {
-			for (let i = 0; i < 9; i++) {
-				bytes.push(value & 127 | 128);
-				value = value >> 7;
-			}
-			bytes.push(1);
-		}
-	}
 	function varint32read() {
 		let b = this.buf[this.pos++];
-		let result = b & 127;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
-			return result;
+			return b;
 		}
+		let result = b & 127;
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 7;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 14;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 127) << 21;
-		if ((b & 128) == 0) {
+		if ((b & 128) === 0) {
 			this.assertBounds();
 			return result;
 		}
 		b = this.buf[this.pos++];
 		result |= (b & 15) << 28;
 		for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
-		if ((b & 128) != 0) throw new Error("invalid varint");
+		if ((b & 128) !== 0) throw new Error("invalid varint");
 		this.assertBounds();
 		return result >>> 0;
 	}
@@ -2588,8 +2578,11 @@ var vot = (function(exports) {
 	var protoInt64 = makeInt64Support();
 	function makeInt64Support() {
 		const dv = new DataView(new ArrayBuffer(8));
-		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
-			const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
+		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
+			const MIN = BigInt("-9223372036854775808");
+			const MAX = BigInt("9223372036854775807");
+			const UMIN = BigInt("0");
+			const UMAX = BigInt("18446744073709551615");
 			return {
 				zero: BigInt(0),
 				supported: true,
@@ -2668,28 +2661,52 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
-	var symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
+	var te$1;
+	function configureTextEncoding(textEncoding) {
+		var _a;
+		te$1 = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
+	}
 	function getTextEncoding() {
-		if (globalThis[symbol] == void 0) {
-			const te = new globalThis.TextEncoder();
-			const td = new globalThis.TextDecoder();
-			globalThis[symbol] = {
+		if (!te$1) {
+			const globals = globalThis;
+			if (!globals.TextEncoder || !globals.TextDecoder) throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
+			const textEncoder = new globals.TextEncoder();
+			const textDecoder = new globals.TextDecoder();
+			let textDecoderStrict;
+			const config = {
 				encodeUtf8(text) {
-					return te.encode(text);
+					return textEncoder.encode(text);
 				},
-				decodeUtf8(bytes) {
-					return td.decode(bytes);
+				decodeUtf8(bytes, strict) {
+					if (strict) {
+						if (!textDecoderStrict) textDecoderStrict = new globals.TextDecoder("utf-8", { fatal: true });
+						return textDecoderStrict.decode(bytes);
+					}
+					return textDecoder.decode(bytes);
 				},
 				checkUtf8(text) {
 					try {
 						return true;
-					} catch (e) {
+					} catch (_) {
 						return false;
 					}
 				}
 			};
+			if (textEncoder.encodeInto) config.encodeUtf8Into = textEncoder.encodeInto.bind(textEncoder);
+			const nativeStringIsWellFormed = String.prototype.isWellFormed;
+			if (nativeStringIsWellFormed) config.checkUtf8 = (text) => {
+				return nativeStringIsWellFormed.call(text);
+			};
+			configureTextEncoding(config);
 		}
-		return globalThis[symbol];
+		return te$1;
+	}
+	function emulateEncodeInto(encodeUtf8) {
+		return (text, dest) => {
+			const bytes = encodeUtf8(text);
+			dest.set(bytes);
+			return { written: bytes.byteLength };
+		};
 	}
 	//#endregion
 	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
@@ -2703,73 +2720,94 @@ var vot = (function(exports) {
 		WireType[WireType["Bit32"] = 5] = "Bit32";
 	})(WireType || (WireType = {}));
 	var BinaryWriter = class {
-		constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
-			this.encodeUtf8 = encodeUtf8;
-			this.stack = [];
-			this.chunks = [];
-			this.buf = [];
+		constructor(encodeUtf8) {
+			this.stackPos = [];
+			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto(encodeUtf8) : getTextEncoding().encodeUtf8Into;
+			this.buffer = EMPTY_BUFFER;
+			this.viewCache = EMPTY_VIEW;
+			this.pos = 0;
+		}
+		ensureCapacity(size) {
+			const required = this.pos + size;
+			if (required > this.buffer.length) {
+				let newLen = this.buffer.length || INITIAL_SIZE;
+				while (newLen < required) newLen *= 2;
+				const newBuf = new Uint8Array(newLen);
+				if (this.pos > 0) newBuf.set(this.buffer);
+				this.buffer = newBuf;
+			}
+		}
+		view() {
+			const bytes = this.buffer;
+			const view = this.viewCache;
+			if (view.byteLength === bytes.byteLength) return view;
+			const newView = new DataView(bytes.buffer);
+			this.viewCache = newView;
+			return newView;
 		}
 		finish() {
-			if (this.buf.length) {
-				this.chunks.push(new Uint8Array(this.buf));
-				this.buf = [];
-			}
-			let len = 0;
-			for (let i = 0; i < this.chunks.length; i++) len += this.chunks[i].length;
-			let bytes = new Uint8Array(len);
-			let offset = 0;
-			for (let i = 0; i < this.chunks.length; i++) {
-				bytes.set(this.chunks[i], offset);
-				offset += this.chunks[i].length;
-			}
-			this.chunks = [];
-			return bytes;
+			const result = this.buffer.slice(0, this.pos);
+			this.pos = 0;
+			this.stackPos = [];
+			return result;
 		}
 		fork() {
-			this.stack.push({
-				chunks: this.chunks,
-				buf: this.buf
-			});
-			this.chunks = [];
-			this.buf = [];
+			this.stackPos.push(this.pos);
+			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+			this.buffer[this.pos++] = 0;
 			return this;
 		}
 		join() {
-			let chunk = this.finish();
-			let prev = this.stack.pop();
-			if (!prev) throw new Error("invalid state, fork stack empty");
-			this.chunks = prev.chunks;
-			this.buf = prev.buf;
-			this.uint32(chunk.byteLength);
-			return this.raw(chunk);
+			const forkPos = this.stackPos.pop();
+			if (forkPos === void 0) throw new Error("invalid state, fork stack empty");
+			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
+			const lenPrefixSize = varint32Size(len);
+			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
+				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
+				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+			}
+			this.pos = forkPos;
+			this.uint32(len);
+			this.pos += len;
+			return this;
 		}
 		tag(fieldNo, type) {
 			return this.uint32((fieldNo << 3 | type) >>> 0);
 		}
 		raw(chunk) {
-			if (this.buf.length) {
-				this.chunks.push(new Uint8Array(this.buf));
-				this.buf = [];
-			}
-			this.chunks.push(chunk);
+			this.ensureCapacity(chunk.length);
+			this.buffer.set(chunk, this.pos);
+			this.pos += chunk.length;
 			return this;
 		}
 		uint32(value) {
 			assertUInt32(value);
-			while (value > 127) {
-				this.buf.push(value & 127 | 128);
-				value = value >>> 7;
+			this.ensureCapacity(5);
+			if (value < 128) {
+				this.buffer[this.pos++] = value;
+				return this;
 			}
-			this.buf.push(value);
+			while (value > 127) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>>= 7;
+			}
+			this.buffer[this.pos++] = value;
 			return this;
 		}
 		int32(value) {
 			assertInt32(value);
-			varint32write(value, this.buf);
+			if (value >= 0) return this.uint32(value);
+			this.ensureCapacity(10);
+			for (let i = 0; i < 9; i++) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>= 7;
+			}
+			this.buffer[this.pos++] = 1;
 			return this;
 		}
 		bool(value) {
-			this.buf.push(value ? 1 : 0);
+			this.ensureCapacity(1);
+			this.buffer[this.pos++] = value ? 1 : 0;
 			return this;
 		}
 		bytes(value) {
@@ -2777,70 +2815,147 @@ var vot = (function(exports) {
 			return this.raw(value);
 		}
 		string(value) {
-			let chunk = this.encodeUtf8(value);
-			this.uint32(chunk.byteLength);
-			return this.raw(chunk);
+			if (typeof value !== "string") value = String(value);
+			const len = value.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				this.ensureCapacity(len + 1);
+				const ascii = this.buffer;
+				let pos = this.pos;
+				ascii[pos++] = len;
+				let i = 0;
+				for (; i < len; i++) {
+					const code = value.charCodeAt(i);
+					if (code > 127) break;
+					ascii[pos++] = code;
+				}
+				if (i == len) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			this.ensureCapacity(len * 3 + 5);
+			const lenPrefixSizeGuess = varint32Size(len);
+			const buf = this.buffer;
+			const start = this.pos;
+			const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
+			const lenPrefixSize = varint32Size(written);
+			if (lenPrefixSize != lenPrefixSizeGuess) buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
+			this.uint32(written);
+			this.pos += written;
+			return this;
 		}
 		float(value) {
 			assertFloat32(value);
-			let chunk = new Uint8Array(4);
-			new DataView(chunk.buffer).setFloat32(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(4);
+			this.view().setFloat32(this.pos, value, true);
+			this.pos += 4;
+			return this;
 		}
 		double(value) {
-			let chunk = new Uint8Array(8);
-			new DataView(chunk.buffer).setFloat64(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(8);
+			this.view().setFloat64(this.pos, value, true);
+			this.pos += 8;
+			return this;
 		}
 		fixed32(value) {
 			assertUInt32(value);
-			let chunk = new Uint8Array(4);
-			new DataView(chunk.buffer).setUint32(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(4);
+			this.view().setUint32(this.pos, value, true);
+			this.pos += 4;
+			return this;
 		}
 		sfixed32(value) {
 			assertInt32(value);
-			let chunk = new Uint8Array(4);
-			new DataView(chunk.buffer).setInt32(0, value, true);
-			return this.raw(chunk);
+			this.ensureCapacity(4);
+			this.view().setInt32(this.pos, value, true);
+			this.pos += 4;
+			return this;
 		}
 		sint32(value) {
 			assertInt32(value);
-			value = (value << 1 ^ value >> 31) >>> 0;
-			varint32write(value, this.buf);
-			return this;
+			return this.uint32((value << 1 ^ value >> 31) >>> 0);
 		}
 		sfixed64(value) {
-			let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
-			view.setInt32(0, tc.lo, true);
-			view.setInt32(4, tc.hi, true);
-			return this.raw(chunk);
+			const tc = protoInt64.enc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
 		}
 		fixed64(value) {
-			let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
-			view.setInt32(0, tc.lo, true);
-			view.setInt32(4, tc.hi, true);
-			return this.raw(chunk);
+			const tc = protoInt64.uEnc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
 		}
 		int64(value) {
-			let tc = protoInt64.enc(value);
-			varint64write(tc.lo, tc.hi, this.buf);
-			return this;
+			const tc = protoInt64.enc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
 		}
 		sint64(value) {
-			let tc = protoInt64.enc(value), sign = tc.hi >> 31;
-			varint64write(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
-			return this;
+			const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+			return this.writeVarint64(lo, hi);
 		}
 		uint64(value) {
-			let tc = protoInt64.uEnc(value);
-			varint64write(tc.lo, tc.hi, this.buf);
+			const tc = protoInt64.uEnc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
+		}
+		writeVarint64(lo, hi) {
+			this.ensureCapacity(10);
+			const buf = this.buffer;
+			let pos = this.pos;
+			for (let i = 0; i < 28; i = i + 7) {
+				const shift = lo >>> i;
+				const hasNext = !(shift >>> 7 == 0 && hi == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
+			const hasMoreBits = !(hi >> 3 == 0);
+			buf[pos++] = (hasMoreBits ? splitBits | 128 : splitBits) & 255;
+			if (!hasMoreBits) {
+				this.pos = pos;
+				return this;
+			}
+			for (let i = 3; i < 31; i = i + 7) {
+				const shift = hi >>> i;
+				const hasNext = !(shift >>> 7 == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			buf[pos++] = hi >>> 31 & 1;
+			this.pos = pos;
 			return this;
 		}
 	};
+	var INITIAL_SIZE = 128;
+	var DEFAULT_LEN_PREFIX_SIZE = 1;
+	var EMPTY_BUFFER = new Uint8Array(0);
+	var EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
+	var ASCII_MAX_LENGTH = 32;
+	function varint32Size(value) {
+		if (value < 128) return 1;
+		if (value < 16384) return 2;
+		if (value < 2097152) return 3;
+		if (value < 268435456) return 4;
+		return 5;
+	}
 	var BinaryReader = class {
 		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
 			this.decodeUtf8 = decodeUtf8;
+			this.varint64Lo = 0;
+			this.varint64Hi = 0;
 			this.varint64 = varint64read;
 			this.uint32 = varint32read;
 			this.buf = buf;
@@ -2849,11 +2964,16 @@ var vot = (function(exports) {
 			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 		}
 		tag() {
-			let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
-			if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+			const start = this.pos;
+			const tag = this.uint32();
+			const bytesRead = this.pos - start;
+			if (bytesRead > 5 || bytesRead == 5 && this.buf[this.pos - 1] > 15) throw new Error("illegal tag: varint overflows uint32");
+			const fieldNo = tag >>> 3;
+			const wireType = tag & 7;
+			if (fieldNo <= 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
 			return [fieldNo, wireType];
 		}
-		skip(wireType, fieldNo) {
+		skip(wireType, fieldNo, recursionLimit = 100) {
 			let start = this.pos;
 			switch (wireType) {
 				case WireType.Varint:
@@ -2868,13 +2988,14 @@ var vot = (function(exports) {
 					this.pos += len;
 					break;
 				case WireType.StartGroup:
+					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
 					for (;;) {
 						const [fn, wt] = this.tag();
 						if (wt === WireType.EndGroup) {
 							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
 							break;
 						}
-						this.skip(wt, fn);
+						this.skip(wt, fn, recursionLimit - 1);
 					}
 					break;
 				default: throw new Error("cant skip wire type " + wireType);
@@ -2893,21 +3014,30 @@ var vot = (function(exports) {
 			return zze >>> 1 ^ -(zze & 1);
 		}
 		int64() {
-			return protoInt64.dec(...this.varint64());
+			this.varint64();
+			return protoInt64.dec(this.varint64Lo, this.varint64Hi);
 		}
 		uint64() {
-			return protoInt64.uDec(...this.varint64());
+			this.varint64();
+			return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
 		}
 		sint64() {
-			let [lo, hi] = this.varint64();
+			this.varint64();
+			let lo = this.varint64Lo;
+			let hi = this.varint64Hi;
 			let s = -(lo & 1);
 			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
 			hi = hi >>> 1 ^ s;
 			return protoInt64.dec(lo, hi);
 		}
 		bool() {
-			let [lo, hi] = this.varint64();
-			return lo !== 0 || hi !== 0;
+			const b = this.buf[this.pos];
+			if (b < 128) {
+				this.pos++;
+				return b !== 0;
+			}
+			this.varint64();
+			return this.varint64Lo !== 0 || this.varint64Hi !== 0;
 		}
 		fixed32() {
 			return this.view.getUint32((this.pos += 4) - 4, true);
@@ -2933,8 +3063,19 @@ var vot = (function(exports) {
 			this.assertBounds();
 			return this.buf.subarray(start, start + len);
 		}
-		string() {
-			return this.decodeUtf8(this.bytes());
+		string(strict) {
+			const bytes = this.bytes();
+			const len = bytes.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				const codes = new Array(len);
+				for (let i = 0; i < len; i++) {
+					const byte = bytes[i];
+					if (byte > 127) return this.decodeUtf8(bytes, strict);
+					codes[i] = byte;
+				}
+				return String.fromCharCode.apply(String, codes);
+			}
+			return this.decodeUtf8(bytes, strict);
 		}
 	};
 	function assertInt32(arg) {
@@ -2951,7 +3092,7 @@ var vot = (function(exports) {
 		if (typeof arg == "string") {
 			const o = arg;
 			arg = Number(arg);
-			if (isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
+			if (Number.isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
 		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
 		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
 	}
@@ -6403,6 +6544,7 @@ var vot = (function(exports) {
 		[VideoService$1.rtnews]: RtNewsHelper,
 		[VideoService$1.bitview]: BitviewHelper,
 		[VideoService$1.thisvid]: ThisVidHelper,
+		[VideoService$1.joidatabase]: JOIDatabaseHelper,
 		[VideoService$1.ign]: IgnHelper,
 		[VideoService$1.bunkr]: BunkrHelper,
 		[VideoService$1.imdb]: IMDbHelper,
@@ -6556,6 +6698,46 @@ var vot = (function(exports) {
 		});
 	}
 	//#endregion
+	//#region src/config/auth.ts
+	var YANDEX_AUTH_CLIENT_ID = "1666fbe22f3749c581002a4f97b2592d";
+	var YANDEX_AUTH_ORIGIN = "https://oauth.yandex.ru";
+	var YANDEX_AUTH_URL = `${YANDEX_AUTH_ORIGIN}/authorize`;
+	var YANDEX_AUTH_REDIRECT_URI = `${YANDEX_AUTH_ORIGIN}/verification_code`;
+	var YANDEX_AUTH_TOKEN_URL = `${YANDEX_AUTH_ORIGIN}/token`;
+	var YANDEX_AUTH_AVATAR_BASE = "https://avatars.mds.yandex.net/get-yapic";
+	var YANDEX_USER_INFO_URL = "https://login.yandex.ru/info";
+	var YANDEX_TOKEN_DEFAULT_LIFETIME = 3153418e4;
+	//#endregion
+	//#region src/types/core/auth/message.ts
+	var AUTH_DATA_MESSAGE_SOURCE = "vot-auth";
+	var AUTH_DATA_MESSAGE_TYPE = "auth-data";
+	//#endregion
+	//#region src/core/auth/message.ts
+	function createAuthDataMessage(data) {
+		return {
+			source: AUTH_DATA_MESSAGE_SOURCE,
+			type: AUTH_DATA_MESSAGE_TYPE,
+			data
+		};
+	}
+	function isAuthDataMessage(value) {
+		if (!value || typeof value !== "object") return false;
+		const candidate = value;
+		return candidate.source === "vot-auth" && candidate.type === "auth-data";
+	}
+	async function handleAuthCallbackPage() {
+		if (globalThis.location.pathname !== "/verification_code") return;
+		const { state, code } = Object.fromEntries(new URLSearchParams(globalThis.location.search));
+		if (!state || !code) throw new Error("[VOT] Missing state or code value");
+		const target = globalThis.opener;
+		if (!target || typeof target.postMessage !== "function") return;
+		target.postMessage(createAuthDataMessage({
+			state,
+			code
+		}), "*");
+		globalThis.close();
+	}
+	//#endregion
 	//#region src/config/config.ts
 	var workerHost = "api.browser.yandex.ru";
 	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
@@ -6563,9 +6745,6 @@ var vot = (function(exports) {
 	var PROXY_WORKER_HOST = "vot-worker.eu.cc";
 	var foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2";
 	var detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
-	var authServerUrl = "https://rust-server-531j.onrender.com";
-	var authLoginUrl = `${authServerUrl}/v1/auth/handle`;
-	var AVATAR_SERVER_URL = "https://avatars.mds.yandex.net/get-yapic";
 	var repoPath = "ilyhalight/voice-over-translation";
 	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
 	var repositoryUrl = `https://github.com/${repoPath}`;
@@ -6578,58 +6757,6 @@ var vot = (function(exports) {
 	];
 	var DEFAULT_AUTO_HIDE_DELAY = 1e3;
 	var actualCompatVersion = "2026-08-18";
-	//#endregion
-	//#region src/types/storage.ts
-	var AUTO_SUBTITLE_LANGUAGE_VALUE = "auto";
-	var ORIGINAL_SUBTITLE_LANGUAGE_VALUE = "original";
-	var storageKeys = [
-		"autoTranslate",
-		"autoPauseOnTranslate",
-		"autoSubtitles",
-		"dontTranslateLanguages",
-		"enabledAutoVolume",
-		"enabledSmartDucking",
-		"autoVolume",
-		"buttonPos",
-		"showVideoSlider",
-		"syncVolume",
-		"downloadWithName",
-		"sendNotifyOnComplete",
-		"subtitlesMaxLength",
-		"subtitlesSmartLayout",
-		"highlightWords",
-		"subtitlesFontSize",
-		"subtitlesFontFamily",
-		"subtitlesOpacity",
-		"subtitlesDownloadFormat",
-		"responseLanguage",
-		"responseLanguageSubtitles",
-		"defaultVolume",
-		"onlyBypassMediaCSP",
-		"newAudioPlayer",
-		"showPiPButton",
-		"translateAPIErrors",
-		"translationService",
-		"detectService",
-		"translationHotkey",
-		"subtitlesHotkey",
-		"m3u8ProxyHost",
-		"proxyWorkerHost",
-		"translateProxyEnabled",
-		"translateProxyEnabledDefault",
-		"audioBooster",
-		"useLivelyVoice",
-		"autoHideButtonDelay",
-		"useAudioDownload",
-		"compatVersion",
-		"localePhrases",
-		"localeLang",
-		"localeHash",
-		"localeVersion",
-		"localeUpdatedAt",
-		"localeLangOverride",
-		"account"
-	];
 	//#endregion
 	//#region src/utils/debug.ts
 	var noop = () => {};
@@ -6690,12 +6817,6 @@ var vot = (function(exports) {
 		const anyErr = err;
 		return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
 	}
-	/**
-	* Creates a canonical AbortError instance. Prefer DOMException when available.
-	*
-	* Note: This is intentionally not coupled to AbortSignal.reason to avoid
-	* surfacing string/opaque abort reasons as user-facing "errors".
-	*/
 	function makeAbortError(reason = "Aborted") {
 		if (reason instanceof Error && isAbortError(reason)) return reason;
 		const message = reason instanceof Error ? reason.message : String(reason ?? "Aborted");
@@ -8740,6 +8861,9 @@ var vot = (function(exports) {
 		}
 		return out;
 	}
+	function base64UrlEncode(bytes) {
+		return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+	}
 	//#endregion
 	//#region src/utils/responseCache.ts
 	var RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
@@ -9214,6 +9338,59 @@ var vot = (function(exports) {
 		}, responseCache, performRequest);
 	}
 	//#endregion
+	//#region src/types/storage.ts
+	var AUTO_SUBTITLE_LANGUAGE_VALUE = "auto";
+	var ORIGINAL_SUBTITLE_LANGUAGE_VALUE = "original";
+	var storageKeys = [
+		"autoTranslate",
+		"autoPauseOnTranslate",
+		"autoSubtitles",
+		"dontTranslateLanguages",
+		"enabledAutoVolume",
+		"enabledSmartDucking",
+		"autoVolume",
+		"smartDuckingStrength",
+		"buttonPos",
+		"showVideoSlider",
+		"syncVolume",
+		"downloadWithName",
+		"sendNotifyOnComplete",
+		"subtitlesMaxLength",
+		"subtitlesSmartLayout",
+		"highlightWords",
+		"subtitlesFontSize",
+		"subtitlesFontFamily",
+		"subtitlesOpacity",
+		"subtitlesDownloadFormat",
+		"responseLanguage",
+		"responseLanguageSubtitles",
+		"defaultVolume",
+		"onlyBypassMediaCSP",
+		"newAudioPlayer",
+		"showPiPButton",
+		"translateAPIErrors",
+		"translationService",
+		"detectService",
+		"translationHotkey",
+		"subtitlesHotkey",
+		"m3u8ProxyHost",
+		"proxyWorkerHost",
+		"translateProxyEnabled",
+		"translateProxyEnabledDefault",
+		"audioBooster",
+		"useLivelyVoice",
+		"autoHideButtonDelay",
+		"useAudioDownload",
+		"compatVersion",
+		"localePhrases",
+		"localeLang",
+		"localeHash",
+		"localeVersion",
+		"localeUpdatedAt",
+		"localeLangOverride",
+		"account"
+	];
+	//#endregion
 	//#region src/utils/storage.ts
 	function parseStoredValue(rawValue) {
 		if (rawValue === null) return;
@@ -9425,67 +9602,6 @@ var vot = (function(exports) {
 		scope[VOT_STORAGE_GLOBAL_KEY] = created;
 		return created;
 	})();
-	//#endregion
-	//#region src/core/authRefreshMessage.ts
-	var AUTH_REFRESH_MESSAGE_SOURCE = "vot-auth";
-	var AUTH_REFRESH_MESSAGE_TYPE = "account-updated";
-	function createAuthRefreshMessage() {
-		return {
-			source: AUTH_REFRESH_MESSAGE_SOURCE,
-			type: AUTH_REFRESH_MESSAGE_TYPE
-		};
-	}
-	function isAuthRefreshMessage(value) {
-		if (!value || typeof value !== "object") return false;
-		const candidate = value;
-		return candidate.source === "vot-auth" && candidate.type === "account-updated";
-	}
-	function notifyAuthOpener(target = globalThis.opener) {
-		if (!target || typeof target.postMessage !== "function") return;
-		target.postMessage(createAuthRefreshMessage(), globalThis.location.origin);
-	}
-	//#endregion
-	//#region src/core/auth.ts
-	function getProfilePayload() {
-		const payload = globalThis._userData;
-		if (!payload || typeof payload !== "object") return null;
-		const candidate = payload;
-		if (typeof candidate.avatar_id !== "string" || typeof candidate.username !== "string" || candidate.avatar_id.length === 0 || candidate.username.length === 0) return null;
-		return {
-			avatar_id: candidate.avatar_id,
-			username: candidate.username
-		};
-	}
-	async function handleAuthCallbackPage() {
-		const { access_token: token, expires_in: expiresIn } = Object.fromEntries(new URLSearchParams(globalThis.location.hash.slice(1)));
-		if (!token || !expiresIn) throw new Error("[VOT] Invalid token response");
-		const numExpiresIn = Number.parseInt(expiresIn, 10);
-		if (Number.isNaN(numExpiresIn)) throw new TypeError("[VOT] Invalid expires_in value");
-		await votStorage.set("account", {
-			token,
-			expires: Date.now() + numExpiresIn * 1e3,
-			username: void 0,
-			avatarId: void 0
-		});
-		notifyAuthOpener();
-	}
-	async function handleProfilePage() {
-		const payload = getProfilePayload();
-		if (!payload) throw new Error("[VOT] Invalid user data");
-		const { avatar_id: avatarId, username } = payload;
-		const data = await votStorage.get("account");
-		if (!data) throw new Error("[VOT] No account data found");
-		await votStorage.set("account", {
-			...data,
-			username,
-			avatarId
-		});
-		notifyAuthOpener();
-	}
-	async function initAuth() {
-		if (globalThis.location.pathname === "/auth/callback") return handleAuthCallbackPage();
-		if (globalThis.location.pathname === "/my/profile") return handleProfilePage();
-	}
 	var en_default = {
 		recommended: "recommended",
 		translateVideo: "Translate video",
@@ -9752,7 +9868,9 @@ var vot = (function(exports) {
 		VOTPiP: "Picture in picture",
 		VOTMenu: "Menu",
 		VOTDownloadTranslation: "Download translation",
-		VOTClose: "Close"
+		VOTClose: "Close",
+		VOTSmartDuckingStrength: "Adaptive volume reduction strength",
+		VOTRetryTranslation: "Retry translation"
 	};
 	//#endregion
 	//#region src/localization/localizationProvider.ts
@@ -9902,7 +10020,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.13"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.14"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -10039,6 +10157,7 @@ var vot = (function(exports) {
 		}
 	};
 	var localizationProvider = new LocalizationProvider();
+	var t$1 = localizationProvider.get.bind(localizationProvider);
 	var localizationProviderReadyPromise = null;
 	function ensureLocalizationProviderReady() {
 		localizationProviderReadyPromise ??= localizationProvider.init();
@@ -10053,8 +10172,8 @@ var vot = (function(exports) {
 	var runtimeActivationPromise = null;
 	async function activateRuntime(reason, logBootstrap) {
 		logBootstrap("Activating runtime", { reason });
-		if (globalThis.location.origin === "https://rust-server-531j.onrender.com") {
-			await initAuth();
+		if (globalThis.location.origin === "https://oauth.yandex.ru") {
+			await handleAuthCallbackPage();
 			runtimeActivated = true;
 			return;
 		}
@@ -11012,8 +11131,8 @@ var vot = (function(exports) {
 			this.requestLang = requestLang;
 			this.responseLang = responseLang;
 		}
-		async request(path, body, headers = {}, method = "POST") {
-			const options = this.getOpts(new Blob([body]), headers, method);
+		async request(path, body, headers = {}, method = "POST", fetchOpts = {}) {
+			const options = this.getOpts(new Blob([body]), headers, method, fetchOpts);
 			try {
 				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
 				const data = await res.arrayBuffer();
@@ -11028,12 +11147,12 @@ var vot = (function(exports) {
 				};
 			}
 		}
-		async requestJSON(path, body = null, headers = {}, method = "POST") {
+		async requestJSON(path, body = null, headers = {}, method = "POST", fetchOpts = {}) {
 			const options = this.getOpts(body, {
 				Accept: "application/json",
 				"Content-Type": "application/json",
 				...headers
-			}, method);
+			}, method, fetchOpts);
 			try {
 				const res = await this.fetch(`${this.schema}://${this.host}${path}`, options);
 				const data = await res.json();
@@ -11048,7 +11167,7 @@ var vot = (function(exports) {
 				};
 			}
 		}
-		getOpts(body, headers = {}, method = "POST") {
+		getOpts(body, headers = {}, method = "POST", fetchOpts = {}) {
 			return {
 				method,
 				headers: {
@@ -11056,8 +11175,55 @@ var vot = (function(exports) {
 					...headers
 				},
 				body,
-				...this.fetchOpts
+				...this.fetchOpts,
+				...fetchOpts
 			};
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/core/dist/client.js
+	var VOTJSError = class extends Error {
+		data;
+		constructor(message, data = void 0) {
+			super(message);
+			this.data = data;
+			this.name = "VOTJSError";
+		}
+	};
+	var VOTClient$1 = class {
+		provider;
+		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
+			const ProviderClass = provider ?? YandexProvider;
+			this.provider = new ProviderClass({
+				host,
+				fetchFn,
+				fetchOpts,
+				headers,
+				apiToken,
+				requestLang,
+				responseLang
+			});
+		}
+		async translateVideo(opts) {
+			return await this.provider.translateVideo(opts);
+		}
+		async translateStream(opts) {
+			return await this.provider.translateStream(opts);
+		}
+		async getSubtitles(opts) {
+			return await this.provider.getSubtitles(opts);
+		}
+		get requestLang() {
+			return this.provider.requestLang;
+		}
+		set requestLang(lang) {
+			this.provider.requestLang = lang;
+		}
+		get responseLang() {
+			return this.provider.responseLang;
+		}
+		set responseLang(lang) {
+			this.provider.responseLang = lang;
 		}
 	};
 	//#endregion
@@ -11179,53 +11345,7 @@ var vot = (function(exports) {
 		decodeSessionResponse
 	};
 	//#endregion
-	//#region node_modules/@vot.js/core/dist/client.js
-	var VOTJSError = class extends Error {
-		data;
-		constructor(message, data = void 0) {
-			super(message);
-			this.data = data;
-			this.name = "VOTJSError";
-		}
-	};
-	var VOTClient$1 = class {
-		provider;
-		constructor({ provider, host, fetchFn, fetchOpts, requestLang = "en", responseLang = "ru", apiToken, headers } = {}) {
-			const ProviderClass = provider ?? YandexProvider;
-			this.provider = new ProviderClass({
-				host,
-				fetchFn,
-				fetchOpts,
-				headers,
-				apiToken,
-				requestLang,
-				responseLang
-			});
-		}
-		async translateVideo(opts) {
-			return await this.provider.translateVideo(opts);
-		}
-		async translateStream(opts) {
-			return await this.provider.translateStream(opts);
-		}
-		async getSubtitles(opts) {
-			return await this.provider.getSubtitles(opts);
-		}
-		get requestLang() {
-			return this.provider.requestLang;
-		}
-		set requestLang(lang) {
-			this.provider.requestLang = lang;
-		}
-		get responseLang() {
-			return this.provider.responseLang;
-		}
-		set responseLang(lang) {
-			this.provider.responseLang = lang;
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/types/yandex.js
+	//#region node_modules/@vot.js/core/dist/types/providers/yandex.js
 	var VideoTranslationStatus;
 	(function(VideoTranslationStatus) {
 		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
@@ -11308,19 +11428,19 @@ var vot = (function(exports) {
 				uuid
 			};
 		}
-		async requestVtransFailAudio(url) {
-			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), this.mergeHeaders({ Accept: "application/json" }), "PUT");
+		async requestVtransFailAudio(url, fetchOpts = {}) {
+			const res = await this.requestJSON(this.paths.videoTranslationFailAudio, JSON.stringify({ video_url: url }), this.mergeHeaders({ Accept: "application/json" }), "PUT", fetchOpts);
 			if (!res.data || typeof res.data === "string" || res.data.status !== 1) throw new VOTJSError("Failed to request to fake video translation fail audio js", res);
 			return res;
 		}
-		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true }) {
+		async translateVideo({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, translationHelp = null, headers = {}, extraOpts = {}, shouldSendFailedAudio = true, fetchOpts = {} }) {
 			const { url, duration = config_default$1.defaultDuration } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, extraOpts);
 			const path = this.paths.videoTranslation;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
 			const apiTokenHeader = extraOpts.useLivelyVoice ? this.apiTokenHeader : {};
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, apiTokenHeader, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, apiTokenHeader, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
 			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
 			Logger.log("translateVideo", translationData);
@@ -11346,11 +11466,11 @@ var vot = (function(exports) {
 				};
 				case VideoTranslationStatus.AUDIO_REQUESTED:
 					if (url.startsWith("https://youtu.be/") && shouldSendFailedAudio) {
-						await this.requestVtransFailAudio(url);
+						await this.requestVtransFailAudio(url, fetchOpts);
 						await this.requestVtransAudio(url, translationData.translationId, {
-							audioFile: /* @__PURE__ */ new Uint8Array(0),
+							audioFile: new Uint8Array(0),
 							fileId: `fallback-empty-audio:video-translation:${videoData.videoId}`
-						});
+						}, void 0, void 0, fetchOpts);
 						return await this.translateVideo({
 							videoData,
 							requestLang,
@@ -11358,7 +11478,8 @@ var vot = (function(exports) {
 							translationHelp,
 							headers,
 							extraOpts,
-							shouldSendFailedAudio: false
+							shouldSendFailedAudio: false,
+							fetchOpts
 						});
 					}
 					return {
@@ -11373,7 +11494,7 @@ var vot = (function(exports) {
 					throw new VOTJSError("Unknown response from Yandex", translationData);
 			}
 		}
-		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}) {
+		async requestVtransAudio(url, translationId, audioBuffer, partialAudio, headers = {}, fetchOpts = {}) {
 			const session = await this.getSession("video-translation");
 			let body;
 			if (YandexVOTProtobuf.isPartialAudioBuffer(audioBuffer)) {
@@ -11382,17 +11503,17 @@ var vot = (function(exports) {
 			} else body = YandexVOTProtobuf.encodeTranslationAudioRequest(url, translationId, audioBuffer, void 0);
 			const path = this.paths.videoTranslationAudio;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "PUT");
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "PUT", fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation audio", res);
 			return YandexVOTProtobuf.decodeTranslationAudioResponse(res.data);
 		}
-		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {} }) {
+		async getSubtitles({ videoData, requestLang = this.requestLang, headers = {}, fetchOpts = {} }) {
 			const { url } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeSubtitlesRequest(url, requestLang);
 			const path = this.paths.videoSubtitles;
 			const vsubsHeaders = await getSecYaHeaders("Vsubs", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vsubsHeaders, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vsubsHeaders, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video subtitles", res);
 			const subtitlesData = YandexVOTProtobuf.decodeSubtitlesResponse(res.data);
 			const subtitles = subtitlesData.subtitles.map((subtitle) => {
@@ -11409,23 +11530,23 @@ var vot = (function(exports) {
 				subtitles
 			};
 		}
-		async pingStream({ pingId, headers = {} }) {
+		async pingStream({ pingId, headers = {}, fetchOpts = {} }) {
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeStreamPingRequest(pingId);
 			const path = this.paths.streamPing;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request stream ping", res);
 			return true;
 		}
-		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+		async translateStream({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {}, fetchOpts = {} }) {
 			const { url } = videoData;
 			if (isCustomLink(url)) throw new VOTJSError("Unsupported video URL for getting stream translation");
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeStreamRequest(url, requestLang, responseLang);
 			const path = this.paths.streamTranslation;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers));
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request stream translation", res);
 			const translateResponse = YandexVOTProtobuf.decodeStreamResponse(res.data);
 			const interval = translateResponse.interval;
@@ -11450,13 +11571,13 @@ var vot = (function(exports) {
 					throw new VOTJSError("Unknown response from Yandex", translateResponse);
 			}
 		}
-		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {} }) {
+		async translateVideoCache({ videoData, requestLang = this.requestLang, responseLang = this.responseLang, headers = {}, fetchOpts = {} }) {
 			const { url, duration = config_default$1.defaultDuration } = videoData;
 			const session = await this.getSession("video-translation");
 			const body = YandexVOTProtobuf.encodeTranslationCacheRequest(url, duration, requestLang, responseLang);
 			const path = this.paths.videoTranslationCache;
 			const vtransHeaders = await getSecYaHeaders("Vtrans", session, body, path);
-			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "POST");
+			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, headers), "POST", fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation cache", res);
 			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
 		}
@@ -12521,7 +12642,7 @@ var vot = (function(exports) {
 		};
 		const resetMessageTimeout = () => {
 			clearTimeout(messageTimeout);
-			messageTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("Audio bridge message timed out")), MESSAGE_TIMEOUT_MS);
+			messageTimeout = setTimeout(() => finish(new Error("Audio bridge message timed out")), MESSAGE_TIMEOUT_MS);
 		};
 		const throwIfFailed = () => {
 			if (!failure) return;
@@ -12578,7 +12699,7 @@ var vot = (function(exports) {
 			}
 		};
 		const onAbort = () => finish(makeAbortError(signal.reason));
-		const streamTimeout = setTimeout(() => finish(/* @__PURE__ */ new Error("Audio bridge stream timed out")), STREAM_TIMEOUT_MS);
+		const streamTimeout = setTimeout(() => finish(new Error("Audio bridge stream timed out")), STREAM_TIMEOUT_MS);
 		const navigationInterval = setInterval(() => {
 			if (!globalThis.location.href.includes(videoId)) finish(makeAbortError("URL changed during audio download"));
 		}, 100);
@@ -12640,30 +12761,71 @@ var vot = (function(exports) {
 		return result;
 	}
 	//#endregion
+	//#region src/audioDownloader/utils.ts
+	function normalizeAudioLanguageTag(value) {
+		if (typeof value !== "string") return "";
+		return value.trim().toLowerCase().replaceAll("_", "-");
+	}
+	function getYoutubeAudioFormatLanguage(format, isValid) {
+		const accept = (value) => {
+			const tag = normalizeAudioLanguageTag(value);
+			if (!tag) return void 0;
+			if (isValid && !isValid(tag)) return void 0;
+			return tag;
+		};
+		const direct = accept(format?.languageCode ?? format?.language ?? format?.audioTrack?.languageCode ?? format?.audioTrack?.language);
+		if (direct) return direct;
+		const trackId = format?.audioTrack?.id ?? format?.audioTrackId;
+		if (typeof trackId === "string" && trackId) {
+			const idLanguage = accept(trackId.split(".")[0]);
+			if (idLanguage) return idLanguage;
+		}
+		try {
+			const cipher = typeof format?.signatureCipher === "string" ? new URLSearchParams(format.signatureCipher) : void 0;
+			const rawUrl = format?.url ?? cipher?.get("url");
+			if (typeof rawUrl === "string") {
+				const xtags = new URL(rawUrl).searchParams.get("xtags") ?? "";
+				const fromUrl = accept(/(?:^|:)lang=([^:]+)/i.exec(xtags)?.[1]);
+				if (fromUrl) return fromUrl;
+			}
+		} catch {}
+		return "";
+	}
+	function selectSmallestAudioFormat(candidates) {
+		const smallest = (key) => {
+			let best;
+			let bestValue = Number.POSITIVE_INFINITY;
+			for (const candidate of candidates) {
+				const raw = candidate[key];
+				const value = raw == null ? NaN : typeof raw === "number" ? raw : Number(String(raw));
+				if (Number.isFinite(value) && value > 0 && value < bestValue) {
+					best = candidate;
+					bestValue = value;
+				}
+			}
+			return best;
+		};
+		return smallest("contentLength") ?? smallest("averageBitrate") ?? candidates[0];
+	}
+	//#endregion
 	//#region src/audioDownloader/strategies/ytPlayerSolver.js
-	var e$1 = Object.defineProperty, t$1 = (t, n) => {
+	var e = Object.defineProperty, t = (t, n) => {
 		let r = {};
-		for (var i in t) e$1(r, i, {
+		for (var i in t) e(r, i, {
 			get: t[i],
 			enumerable: !0
 		});
-		return n || e$1(r, Symbol.toStringTag, { value: "Module" }), r;
-	}, n$1 = /* @__PURE__ */ t$1({
-		EXPRESSIONS_PRECEDENCE: () => a$1,
+		return n || e(r, Symbol.toStringTag, { value: "Module" }), r;
+	}, n = t({
+		EXPRESSIONS_PRECEDENCE: () => a,
 		GENERATOR: () => ne,
 		NEEDS_PARENTHESES: () => 17,
 		baseGenerator: () => ie,
 		generate: () => oe
-	}), { stringify: r$1 } = JSON;
-	/* c8 ignore if */
-	if (!String.prototype.repeat)
- /* c8 ignore next */
-	throw Error("String.prototype.repeat is undefined, see https://github.com/davidbonnet/astring#installation");
-	/* c8 ignore if */
-	if (!String.prototype.endsWith)
- /* c8 ignore next */
-	throw Error("String.prototype.endsWith is undefined, see https://github.com/davidbonnet/astring#installation");
-	var i$1 = {
+	}), { stringify: r } = JSON;
+	if (!String.prototype.repeat) throw Error("String.prototype.repeat is undefined, see https://github.com/davidbonnet/astring#installation");
+	if (!String.prototype.endsWith) throw Error("String.prototype.endsWith is undefined, see https://github.com/davidbonnet/astring#installation");
+	var i = {
 		"||": 2,
 		"??": 3,
 		"&&": 4,
@@ -12690,7 +12852,7 @@ var vot = (function(exports) {
 		"/": 12,
 		"**": 13
 	};
-	var a$1 = {
+	var a = {
 		ArrayExpression: 20,
 		TaggedTemplateExpression: 20,
 		ThisExpression: 20,
@@ -12718,7 +12880,7 @@ var vot = (function(exports) {
 		YieldExpression: 2,
 		RestElement: 1
 	};
-	function o$1(e, t) {
+	function o(e, t) {
 		let { generator: n } = e;
 		if (e.write("("), t != null && t.length > 0) {
 			n[t[0].type](t[0], e);
@@ -12730,17 +12892,17 @@ var vot = (function(exports) {
 		}
 		e.write(")");
 	}
-	function s$1(e, t, n, r) {
+	function s(e, t, n, r) {
 		let a = e.expressionsPrecedence[t.type];
 		if (a === 17) return !0;
 		let o = e.expressionsPrecedence[n.type];
-		return a === o ? a !== 13 && a !== 14 ? !1 : t.operator === "**" && n.operator === "**" ? !r : a === 13 && o === 13 && (t.operator === "??" || n.operator === "??") ? !0 : r ? i$1[t.operator] <= i$1[n.operator] : i$1[t.operator] < i$1[n.operator] : !r && a === 15 && o === 14 && n.operator === "**" || a < o;
+		return a === o ? a !== 13 && a !== 14 ? !1 : t.operator === "**" && n.operator === "**" ? !r : a === 13 && o === 13 && (t.operator === "??" || n.operator === "??") ? !0 : r ? i[t.operator] <= i[n.operator] : i[t.operator] < i[n.operator] : !r && a === 15 && o === 14 && n.operator === "**" || a < o;
 	}
-	function c$1(e, t, n, r) {
+	function c(e, t, n, r) {
 		let { generator: i } = e;
-		s$1(e, t, n, r) ? (e.write("("), i[t.type](t, e), e.write(")")) : i[t.type](t, e);
+		s(e, t, n, r) ? (e.write("("), i[t.type](t, e), e.write(")")) : i[t.type](t, e);
 	}
-	function l$1(e, t, n, r) {
+	function l(e, t, n, r) {
 		let i = t.split("\n"), a = i.length - 1;
 		if (e.write(i[0].trim()), a > 0) {
 			e.write(r);
@@ -12748,14 +12910,14 @@ var vot = (function(exports) {
 			e.write(n + i[a].trim());
 		}
 	}
-	function u$1(e, t, n, r) {
+	function u(e, t, n, r) {
 		let { length: i } = t;
 		for (let a = 0; a < i; a++) {
 			let i = t[a];
-			e.write(n), i.type[0] === "L" ? e.write("// " + i.value.trim() + "\n", i) : (e.write("/*"), l$1(e, i.value, n, r), e.write("*/" + r));
+			e.write(n), i.type[0] === "L" ? e.write("// " + i.value.trim() + "\n", i) : (e.write("/*"), l(e, i.value, n, r), e.write("*/" + r));
 		}
 	}
-	function d$1(e) {
+	function d(e) {
 		let t = e;
 		for (; t != null;) {
 			let { type: e } = t;
@@ -12764,7 +12926,7 @@ var vot = (function(exports) {
 			else return !1;
 		}
 	}
-	function f$1(e, t) {
+	function f(e, t) {
 		let { generator: n } = e, { declarations: r } = t;
 		e.write(t.kind + " ");
 		let { length: i } = r;
@@ -12773,37 +12935,37 @@ var vot = (function(exports) {
 			for (let t = 1; t < i; t++) e.write(", "), n.VariableDeclarator(r[t], e);
 		}
 	}
-	var p$1;
-	var m$1;
-	var h$1;
-	var g$1;
+	var p;
+	var m;
+	var h;
+	var g;
 	var ee;
 	var te;
 	var ne = {
 		Program(e, t) {
 			let n = t.indent.repeat(t.indentLevel), { lineEnd: r, writeComments: i } = t;
-			i && e.comments != null && u$1(t, e.comments, n, r);
+			i && e.comments != null && u(t, e.comments, n, r);
 			let a = e.body, { length: o } = a;
 			for (let e = 0; e < o; e++) {
 				let o = a[e];
-				i && o.comments != null && u$1(t, o.comments, n, r), t.write(n), this[o.type](o, t), t.write(r);
+				i && o.comments != null && u(t, o.comments, n, r), t.write(n), this[o.type](o, t), t.write(r);
 			}
-			i && e.trailingComments != null && u$1(t, e.trailingComments, n, r);
+			i && e.trailingComments != null && u(t, e.trailingComments, n, r);
 		},
 		BlockStatement: te = function(e, t) {
 			let n = t.indent.repeat(t.indentLevel++), { lineEnd: r, writeComments: i } = t, a = n + t.indent;
 			t.write("{");
 			let o = e.body;
 			if (o != null && o.length > 0) {
-				t.write(r), i && e.comments != null && u$1(t, e.comments, a, r);
+				t.write(r), i && e.comments != null && u(t, e.comments, a, r);
 				let { length: s } = o;
 				for (let e = 0; e < s; e++) {
 					let n = o[e];
-					i && n.comments != null && u$1(t, n.comments, a, r), t.write(a), this[n.type](n, t), t.write(r);
+					i && n.comments != null && u(t, n.comments, a, r), t.write(a), this[n.type](n, t), t.write(r);
 				}
 				t.write(n);
-			} else i && e.comments != null && (t.write(r), u$1(t, e.comments, a, r), t.write(n));
-			i && e.trailingComments != null && u$1(t, e.trailingComments, a, r), t.write("}"), t.indentLevel--;
+			} else i && e.comments != null && (t.write(r), u(t, e.comments, a, r), t.write(n));
+			i && e.trailingComments != null && u(t, e.trailingComments, a, r), t.write("}"), t.indentLevel--;
 		},
 		ClassBody: te,
 		StaticBlock(e, t) {
@@ -12839,11 +13001,11 @@ var vot = (function(exports) {
 			let { cases: s } = e, { length: c } = s;
 			for (let e = 0; e < c; e++) {
 				let n = s[e];
-				i && n.comments != null && u$1(t, n.comments, a, r), n.test ? (t.write(a + "case "), this[n.test.type](n.test, t), t.write(":" + r)) : t.write(a + "default:" + r);
+				i && n.comments != null && u(t, n.comments, a, r), n.test ? (t.write(a + "case "), this[n.test.type](n.test, t), t.write(":" + r)) : t.write(a + "default:" + r);
 				let { consequent: c } = n, { length: l } = c;
 				for (let e = 0; e < l; e++) {
 					let n = c[e];
-					i && n.comments != null && u$1(t, n.comments, o, r), t.write(o), this[n.type](n, t), t.write(r);
+					i && n.comments != null && u(t, n.comments, o, r), t.write(o), this[n.type](n, t), t.write(r);
 				}
 			}
 			t.indentLevel -= 2, t.write(n + "}");
@@ -12870,25 +13032,25 @@ var vot = (function(exports) {
 		ForStatement(e, t) {
 			if (t.write("for ("), e.init != null) {
 				let { init: n } = e;
-				n.type[0] === "V" ? f$1(t, n) : this[n.type](n, t);
+				n.type[0] === "V" ? f(t, n) : this[n.type](n, t);
 			}
 			t.write("; "), e.test && this[e.test.type](e.test, t), t.write("; "), e.update && this[e.update.type](e.update, t), t.write(") "), this[e.body.type](e.body, t);
 		},
-		ForInStatement: p$1 = function(e, t) {
+		ForInStatement: p = function(e, t) {
 			t.write(`for ${e.await ? "await " : ""}(`);
 			let { left: n } = e;
-			n.type[0] === "V" ? f$1(t, n) : this[n.type](n, t), t.write(e.type[3] === "I" ? " in " : " of "), this[e.right.type](e.right, t), t.write(") "), this[e.body.type](e.body, t);
+			n.type[0] === "V" ? f(t, n) : this[n.type](n, t), t.write(e.type[3] === "I" ? " in " : " of "), this[e.right.type](e.right, t), t.write(") "), this[e.body.type](e.body, t);
 		},
-		ForOfStatement: p$1,
+		ForOfStatement: p,
 		DebuggerStatement(e, t) {
 			t.write("debugger;", e);
 		},
-		FunctionDeclaration: m$1 = function(e, t) {
-			t.write((e.async ? "async " : "") + (e.generator ? "function* " : "function ") + (e.id ? e.id.name : ""), e), o$1(t, e.params), t.write(" "), this[e.body.type](e.body, t);
+		FunctionDeclaration: m = function(e, t) {
+			t.write((e.async ? "async " : "") + (e.generator ? "function* " : "function ") + (e.id ? e.id.name : ""), e), o(t, e.params), t.write(" "), this[e.body.type](e.body, t);
 		},
-		FunctionExpression: m$1,
+		FunctionExpression: m,
 		VariableDeclaration(e, t) {
-			f$1(t, e), t.write(";");
+			f(t, e), t.write(";");
 		},
 		VariableDeclarator(e, t) {
 			this[e.id.type](e.id, t), e.init != null && (t.write(" = "), this[e.init.type](e.init, t));
@@ -12967,7 +13129,7 @@ var vot = (function(exports) {
 		MethodDefinition(e, t) {
 			e.static && t.write("static ");
 			let n = e.kind[0];
-			(n === "g" || n === "s") && t.write(e.kind + " "), e.value.async && t.write("async "), e.value.generator && t.write("*"), e.computed ? (t.write("["), this[e.key.type](e.key, t), t.write("]")) : this[e.key.type](e.key, t), o$1(t, e.value.params), t.write(" "), this[e.value.body.type](e.value.body, t);
+			(n === "g" || n === "s") && t.write(e.kind + " "), e.value.async && t.write("async "), e.value.generator && t.write("*"), e.computed ? (t.write("["), this[e.key.type](e.key, t), t.write("]")) : this[e.key.type](e.key, t), o(t, e.value.params), t.write(" "), this[e.value.body.type](e.value.body, t);
 		},
 		ClassExpression(e, t) {
 			this.ClassDeclaration(e, t);
@@ -12975,7 +13137,7 @@ var vot = (function(exports) {
 		ArrowFunctionExpression(e, t) {
 			t.write(e.async ? "async " : "", e);
 			let { params: n } = e;
-			n != null && (n.length === 1 && n[0].type[0] === "I" ? t.write(n[0].name, n[0]) : o$1(t, e.params)), t.write(" => "), e.body.type[0] === "O" ? (t.write("("), this.ObjectExpression(e.body, t), t.write(")")) : this[e.body.type](e.body, t);
+			n != null && (n.length === 1 && n[0].type[0] === "I" ? t.write(n[0].name, n[0]) : o(t, e.params)), t.write(" => "), e.body.type[0] === "O" ? (t.write("("), this.ObjectExpression(e.body, t), t.write(")")) : this[e.body.type](e.body, t);
 		},
 		ThisExpression(e, t) {
 			t.write("this", e);
@@ -12983,15 +13145,15 @@ var vot = (function(exports) {
 		Super(e, t) {
 			t.write("super", e);
 		},
-		RestElement: h$1 = function(e, t) {
+		RestElement: h = function(e, t) {
 			t.write("..."), this[e.argument.type](e.argument, t);
 		},
-		SpreadElement: h$1,
+		SpreadElement: h,
 		YieldExpression(e, t) {
 			t.write(e.delegate ? "yield*" : "yield"), e.argument && (t.write(" "), this[e.argument.type](e.argument, t));
 		},
 		AwaitExpression(e, t) {
-			t.write("await ", e), c$1(t, e.argument, e);
+			t.write("await ", e), c(t, e.argument, e);
 		},
 		TemplateLiteral(e, t) {
 			let { quasis: n, expressions: r } = e;
@@ -13008,7 +13170,7 @@ var vot = (function(exports) {
 			t.write(e.value.raw, e);
 		},
 		TaggedTemplateExpression(e, t) {
-			c$1(t, e.tag, e), this[e.quasi.type](e.quasi, t);
+			c(t, e.tag, e), this[e.quasi.type](e.quasi, t);
 		},
 		ArrayExpression: ee = function(e, t) {
 			if (t.write("["), e.elements.length > 0) {
@@ -13028,15 +13190,15 @@ var vot = (function(exports) {
 		ObjectExpression(e, t) {
 			let n = t.indent.repeat(t.indentLevel++), { lineEnd: r, writeComments: i } = t, a = n + t.indent;
 			if (t.write("{"), e.properties.length > 0) {
-				t.write(r), i && e.comments != null && u$1(t, e.comments, a, r);
+				t.write(r), i && e.comments != null && u(t, e.comments, a, r);
 				let o = "," + r, { properties: s } = e, { length: c } = s;
 				for (let e = 0;;) {
 					let n = s[e];
-					if (i && n.comments != null && u$1(t, n.comments, a, r), t.write(a), this[n.type](n, t), ++e < c) t.write(o);
+					if (i && n.comments != null && u(t, n.comments, a, r), t.write(a), this[n.type](n, t), ++e < c) t.write(o);
 					else break;
 				}
-				t.write(r), i && e.trailingComments != null && u$1(t, e.trailingComments, a, r), t.write(n + "}");
-			} else i ? e.comments == null ? e.trailingComments == null ? t.write("}") : (t.write(r), u$1(t, e.trailingComments, a, r), t.write(n + "}")) : (t.write(r), u$1(t, e.comments, a, r), e.trailingComments != null && u$1(t, e.trailingComments, a, r), t.write(n + "}")) : t.write("}");
+				t.write(r), i && e.trailingComments != null && u(t, e.trailingComments, a, r), t.write(n + "}");
+			} else i ? e.comments == null ? e.trailingComments == null ? t.write("}") : (t.write(r), u(t, e.trailingComments, a, r), t.write(n + "}")) : (t.write(r), u(t, e.comments, a, r), e.trailingComments != null && u(t, e.trailingComments, a, r), t.write(n + "}")) : t.write("}");
 			t.indentLevel--;
 		},
 		Property(e, t) {
@@ -13057,13 +13219,13 @@ var vot = (function(exports) {
 			t.write("}");
 		},
 		SequenceExpression(e, t) {
-			o$1(t, e.expressions);
+			o(t, e.expressions);
 		},
 		UnaryExpression(e, t) {
 			if (e.prefix) {
 				let { operator: n, argument: r, argument: { type: i } } = e;
 				t.write(n);
-				let a = s$1(t, r, e);
+				let a = s(t, r, e);
 				!a && (n.length > 1 || i[0] === "U" && (i[1] === "n" || i[1] === "p") && r.prefix && r.operator[0] === n && (n === "+" || n === "-")) && t.write(" "), a ? (t.write(n.length > 1 ? " (" : "("), this[i](r, t), t.write(")")) : this[i](r, t);
 			} else this[e.argument.type](e.argument, t), t.write(e.operator);
 		},
@@ -13076,11 +13238,11 @@ var vot = (function(exports) {
 		AssignmentPattern(e, t) {
 			this[e.left.type](e.left, t), t.write(" = "), this[e.right.type](e.right, t);
 		},
-		BinaryExpression: g$1 = function(e, t) {
+		BinaryExpression: g = function(e, t) {
 			let n = e.operator === "in";
-			n && t.write("("), c$1(t, e.left, e, !1), t.write(" " + e.operator + " "), c$1(t, e.right, e, !0), n && t.write(")");
+			n && t.write("("), c(t, e.left, e, !1), t.write(" " + e.operator + " "), c(t, e.right, e, !0), n && t.write(")");
 		},
-		LogicalExpression: g$1,
+		LogicalExpression: g,
 		ConditionalExpression(e, t) {
 			let { test: n } = e, r = t.expressionsPrecedence[n.type];
 			r === 17 || r <= t.expressionsPrecedence.ConditionalExpression ? (t.write("("), this[n.type](n, t), t.write(")")) : this[n.type](n, t), t.write(" ? "), this[e.consequent.type](e.consequent, t), t.write(" : "), this[e.alternate.type](e.alternate, t);
@@ -13088,11 +13250,11 @@ var vot = (function(exports) {
 		NewExpression(e, t) {
 			t.write("new ");
 			let n = t.expressionsPrecedence[e.callee.type];
-			n === 17 || n < t.expressionsPrecedence.CallExpression || d$1(e.callee) ? (t.write("("), this[e.callee.type](e.callee, t), t.write(")")) : this[e.callee.type](e.callee, t), o$1(t, e.arguments);
+			n === 17 || n < t.expressionsPrecedence.CallExpression || d(e.callee) ? (t.write("("), this[e.callee.type](e.callee, t), t.write(")")) : this[e.callee.type](e.callee, t), o(t, e.arguments);
 		},
 		CallExpression(e, t) {
 			let n = t.expressionsPrecedence[e.callee.type];
-			n === 17 || n < t.expressionsPrecedence.CallExpression ? (t.write("("), this[e.callee.type](e.callee, t), t.write(")")) : this[e.callee.type](e.callee, t), e.optional && t.write("?."), o$1(t, e.arguments);
+			n === 17 || n < t.expressionsPrecedence.CallExpression ? (t.write("("), this[e.callee.type](e.callee, t), t.write(")")) : this[e.callee.type](e.callee, t), e.optional && t.write("?."), o(t, e.arguments);
 		},
 		ChainExpression(e, t) {
 			this[e.expression.type](e.expression, t);
@@ -13111,7 +13273,7 @@ var vot = (function(exports) {
 			t.write(`#${e.name}`, e);
 		},
 		Literal(e, t) {
-			e.raw == null ? e.regex == null ? e.bigint == null ? t.write(r$1(e.value), e) : t.write(e.bigint + "n", e) : this.RegExpLiteral(e, t) : t.write(e.raw, e);
+			e.raw == null ? e.regex == null ? e.bigint == null ? t.write(r(e.value), e) : t.write(e.bigint + "n", e) : this.RegExpLiteral(e, t) : t.write(e.raw, e);
 		},
 		RegExpLiteral(e, t) {
 			let { regex: n } = e;
@@ -13123,7 +13285,7 @@ var vot = (function(exports) {
 	var ae = class {
 		constructor(e) {
 			let t = e ?? re;
-			this.output = "", t.output == null ? this.output = "" : (this.output = t.output, this.write = this.writeToStream), this.generator = t.generator == null ? ne : t.generator, this.expressionsPrecedence = t.expressionsPrecedence == null ? a$1 : t.expressionsPrecedence, this.indent = t.indent == null ? "  " : t.indent, this.lineEnd = t.lineEnd == null ? "\n" : t.lineEnd, this.indentLevel = t.startingIndentLevel == null ? 0 : t.startingIndentLevel, this.writeComments = t.comments ? t.comments : !1, t.sourceMap != null && (this.write = t.output == null ? this.writeAndMap : this.writeToStreamAndMap, this.sourceMap = t.sourceMap, this.line = 1, this.column = 0, this.lineEndSize = this.lineEnd.split("\n").length - 1, this.mapping = {
+			this.output = "", t.output == null ? this.output = "" : (this.output = t.output, this.write = this.writeToStream), this.generator = t.generator == null ? ne : t.generator, this.expressionsPrecedence = t.expressionsPrecedence == null ? a : t.expressionsPrecedence, this.indent = t.indent == null ? "  " : t.indent, this.lineEnd = t.lineEnd == null ? "\n" : t.lineEnd, this.indentLevel = t.startingIndentLevel == null ? 0 : t.startingIndentLevel, this.writeComments = t.comments ? t.comments : !1, t.sourceMap != null && (this.write = t.output == null ? this.writeAndMap : this.writeToStreamAndMap, this.sourceMap = t.sourceMap, this.line = 1, this.column = 0, this.lineEndSize = this.lineEnd.split("\n").length - 1, this.mapping = {
 				original: null,
 				generated: this,
 				name: void 0,
@@ -13171,14 +13333,14 @@ var vot = (function(exports) {
 		let n = new ae(t);
 		return n.generator[e.type](e, n), n.output;
 	}
-	var se = /* @__PURE__ */ t$1({
+	var se = t({
 		parse: () => Sr,
 		parseModule: () => xr,
 		parseScript: () => br,
 		version: () => yr
 	});
 	var ce = ((e, t) => {
-		let n = /* @__PURE__ */ new Uint32Array(69632), r = 0, i = 0;
+		let n = new Uint32Array(69632), r = 0, i = 0;
 		for (; r < 2571;) {
 			let a = e[r++];
 			if (a < 0) i -= a;
@@ -15927,7 +16089,7 @@ var vot = (function(exports) {
 	]);
 	var le = (e) => !!(ce[(e >>> 5) + 0] >>> e & 1);
 	var ue = (e) => !!(ce[(e >>> 5) + 34816] >>> e & 1);
-	function _$1(e) {
+	function _(e) {
 		return e.column++, e.currentChar = e.source.charCodeAt(++e.index);
 	}
 	function de(e) {
@@ -15939,13 +16101,13 @@ var vot = (function(exports) {
 	function fe(e, t) {
 		e.currentChar = e.source.charCodeAt(++e.index), e.flags |= 1, t & 4 || (e.column = 0, e.line++);
 	}
-	function v$1(e) {
+	function v(e) {
 		e.flags |= 1, e.currentChar = e.source.charCodeAt(++e.index), e.column = 0, e.line++;
 	}
 	function pe(e) {
 		return e === 160 || e === 65279 || e === 133 || e === 5760 || e >= 8192 && e <= 8203 || e === 8239 || e === 8287 || e === 12288 || e === 8201 || e === 65519;
 	}
-	function y$1(e) {
+	function y(e) {
 		return e < 65 ? e - 48 : e - 65 + 10 & 15;
 	}
 	function me(e) {
@@ -15962,7 +16124,7 @@ var vot = (function(exports) {
 			default: return (e & 143360) == 143360 ? "Identifier" : (e & 4096) == 4096 ? "Keyword" : "Punctuator";
 		}
 	}
-	var b$1 = [
+	var b = [
 		0,
 		0,
 		0,
@@ -16367,7 +16529,7 @@ var vot = (function(exports) {
 	];
 	function be(e) {
 		let { source: t } = e;
-		e.currentChar === 35 && t.charCodeAt(e.index + 1) === 33 && (_$1(e), _$1(e), Se(e, t, 0, 4, e.tokenStart));
+		e.currentChar === 35 && t.charCodeAt(e.index + 1) === 33 && (_(e), _(e), Se(e, t, 0, 4, e.tokenStart));
 	}
 	function xe(e, t, n, r, i, a) {
 		return r & 2 && e.report(0), Se(e, t, n, i, a);
@@ -16375,16 +16537,16 @@ var vot = (function(exports) {
 	function Se(e, t, n, r, i) {
 		let { index: a } = e;
 		for (e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column; e.index < e.end;) {
-			if (b$1[e.currentChar] & 8) {
+			if (b[e.currentChar] & 8) {
 				let n = e.currentChar === 13;
-				v$1(e), n && e.index < e.end && e.currentChar === 10 && (e.currentChar = t.charCodeAt(++e.index));
+				v(e), n && e.index < e.end && e.currentChar === 10 && (e.currentChar = t.charCodeAt(++e.index));
 				break;
 			}
 			if ((e.currentChar ^ 8232) <= 1) {
-				v$1(e);
+				v(e);
 				break;
 			}
-			_$1(e), e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column;
+			_(e), e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column;
 		}
 		if (e.options.onComment) {
 			let n = {
@@ -16405,8 +16567,8 @@ var vot = (function(exports) {
 		let { index: r } = e;
 		for (; e.index < e.end;) if (e.currentChar < 43) {
 			let i = !1;
-			for (; e.currentChar === 42;) if (i ||= (n &= -5, !0), _$1(e) === 47) {
-				if (_$1(e), e.options.onComment) {
+			for (; e.currentChar === 42;) if (i ||= (n &= -5, !0), _(e) === 47) {
+				if (_(e), e.options.onComment) {
 					let n = {
 						start: {
 							line: e.tokenLine,
@@ -16422,67 +16584,67 @@ var vot = (function(exports) {
 				return e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column, n;
 			}
 			if (i) continue;
-			b$1[e.currentChar] & 8 ? e.currentChar === 13 ? (n |= 5, v$1(e)) : (fe(e, n), n = n & -5 | 1) : _$1(e);
-		} else (e.currentChar ^ 8232) <= 1 ? (n = n & -5 | 1, v$1(e)) : (n &= -5, _$1(e));
+			b[e.currentChar] & 8 ? e.currentChar === 13 ? (n |= 5, v(e)) : (fe(e, n), n = n & -5 | 1) : _(e);
+		} else (e.currentChar ^ 8232) <= 1 ? (n = n & -5 | 1, v(e)) : (n &= -5, _(e));
 		e.report(18);
 	}
-	var x$1;
+	var x;
 	(function(e) {
 		e[e.Empty = 0] = "Empty", e[e.Escape = 1] = "Escape", e[e.Class = 2] = "Class";
-	})(x$1 ||= {});
-	var S$1;
+	})(x ||= {});
+	var S;
 	(function(e) {
 		e[e.Empty = 0] = "Empty", e[e.IgnoreCase = 1] = "IgnoreCase", e[e.Global = 2] = "Global", e[e.Multiline = 4] = "Multiline", e[e.Unicode = 16] = "Unicode", e[e.Sticky = 8] = "Sticky", e[e.DotAll = 32] = "DotAll", e[e.Indices = 64] = "Indices", e[e.UnicodeSets = 128] = "UnicodeSets";
-	})(S$1 ||= {});
+	})(S ||= {});
 	function we(e) {
-		let t = e.index, n = x$1.Empty;
+		let t = e.index, n = x.Empty;
 		loop: for (;;) {
 			let t = e.currentChar;
-			if (_$1(e), n & x$1.Escape) n &= ~x$1.Escape;
+			if (_(e), n & x.Escape) n &= ~x.Escape;
 			else switch (t) {
 				case 47:
 					if (n) break;
 					break loop;
 				case 92:
-					n |= x$1.Escape;
+					n |= x.Escape;
 					break;
 				case 91:
-					n |= x$1.Class;
+					n |= x.Class;
 					break;
-				case 93: n &= x$1.Escape;
+				case 93: n &= x.Escape;
 			}
 			if ((t === 13 || t === 10 || t === 8232 || t === 8233) && e.report(34), e.index >= e.source.length) return e.report(34);
 		}
-		let r = e.index - 1, i = S$1.Empty, a = e.currentChar, { index: o } = e;
+		let r = e.index - 1, i = S.Empty, a = e.currentChar, { index: o } = e;
 		for (; ve(a);) {
 			switch (a) {
 				case 103:
-					i & S$1.Global && e.report(36, "g"), i |= S$1.Global;
+					i & S.Global && e.report(36, "g"), i |= S.Global;
 					break;
 				case 105:
-					i & S$1.IgnoreCase && e.report(36, "i"), i |= S$1.IgnoreCase;
+					i & S.IgnoreCase && e.report(36, "i"), i |= S.IgnoreCase;
 					break;
 				case 109:
-					i & S$1.Multiline && e.report(36, "m"), i |= S$1.Multiline;
+					i & S.Multiline && e.report(36, "m"), i |= S.Multiline;
 					break;
 				case 117:
-					i & S$1.Unicode && e.report(36, "u"), i & S$1.UnicodeSets && e.report(36, "vu"), i |= S$1.Unicode;
+					i & S.Unicode && e.report(36, "u"), i & S.UnicodeSets && e.report(36, "vu"), i |= S.Unicode;
 					break;
 				case 118:
-					i & S$1.Unicode && e.report(36, "uv"), i & S$1.UnicodeSets && e.report(36, "v"), i |= S$1.UnicodeSets;
+					i & S.Unicode && e.report(36, "uv"), i & S.UnicodeSets && e.report(36, "v"), i |= S.UnicodeSets;
 					break;
 				case 121:
-					i & S$1.Sticky && e.report(36, "y"), i |= S$1.Sticky;
+					i & S.Sticky && e.report(36, "y"), i |= S.Sticky;
 					break;
 				case 115:
-					i & S$1.DotAll && e.report(36, "s"), i |= S$1.DotAll;
+					i & S.DotAll && e.report(36, "s"), i |= S.DotAll;
 					break;
 				case 100:
-					i & S$1.Indices && e.report(36, "d"), i |= S$1.Indices;
+					i & S.Indices && e.report(36, "d"), i |= S.Indices;
 					break;
 				default: e.report(35);
 			}
-			a = _$1(e);
+			a = _(e);
 		}
 		let s = e.source.slice(o, e.index), c = e.source.slice(t, r);
 		return e.tokenRegExp = {
@@ -16502,17 +16664,17 @@ var vot = (function(exports) {
 		}
 	}
 	function Ee(e, t, n) {
-		let { index: r } = e, i = "", a = _$1(e), o = e.index;
-		for (; !(b$1[a] & 8);) {
-			if (a === n) return i += e.source.slice(o, e.index), _$1(e), e.options.raw && (e.tokenRaw = e.source.slice(r, e.index)), e.tokenValue = i, 134283267;
+		let { index: r } = e, i = "", a = _(e), o = e.index;
+		for (; !(b[a] & 8);) {
+			if (a === n) return i += e.source.slice(o, e.index), _(e), e.options.raw && (e.tokenRaw = e.source.slice(r, e.index)), e.tokenValue = i, 134283267;
 			if ((a & 8) == 8 && a === 92) {
-				if (i += e.source.slice(o, e.index), a = _$1(e), a < 127 || a === 8232 || a === 8233) {
+				if (i += e.source.slice(o, e.index), a = _(e), a < 127 || a === 8232 || a === 8233) {
 					let n = De(e, t, a);
 					n >= 0 ? i += String.fromCodePoint(n) : Oe(e, n, 0);
 				} else i += String.fromCodePoint(a);
 				o = e.index + 1;
 			} else (a === 8232 || a === 8233) && (e.column = -1, e.line++);
-			e.index >= e.end && e.report(16), a = _$1(e);
+			e.index >= e.end && e.report(16), a = _(e);
 		}
 		e.report(16);
 	}
@@ -16538,8 +16700,8 @@ var vot = (function(exports) {
 				let i = n - 48, a = e.index + 1, o = e.column + 1;
 				if (a < e.end) {
 					let n = e.source.charCodeAt(a);
-					if (!(b$1[n] & 32)) {
-						if (i !== 0 || b$1[n] & 512) {
+					if (!(b[n] & 32)) {
+						if (i !== 0 || b[n] & 512) {
 							if (t & 1 || r) return -2;
 							e.flags |= 64;
 						}
@@ -16547,7 +16709,7 @@ var vot = (function(exports) {
 					else {
 						if (e.currentChar = n, i = i << 3 | n - 48, a++, o++, a < e.end) {
 							let t = e.source.charCodeAt(a);
-							b$1[t] & 32 && (e.currentChar = t, i = i << 3 | t - 48, a++, o++);
+							b[t] & 32 && (e.currentChar = t, i = i << 3 | t - 48, a++, o++);
 						}
 						e.flags |= 64;
 					}
@@ -16563,33 +16725,33 @@ var vot = (function(exports) {
 				let i = n - 48, a = e.index + 1, o = e.column + 1;
 				if (a < e.end) {
 					let t = e.source.charCodeAt(a);
-					b$1[t] & 32 && (i = i << 3 | t - 48, e.currentChar = t, e.index = a, e.column = o);
+					b[t] & 32 && (i = i << 3 | t - 48, e.currentChar = t, e.index = a, e.column = o);
 				}
 				return e.flags |= 64, i;
 			}
 			case 120: {
-				let t = _$1(e);
-				if (!(b$1[t] & 64)) return -4;
-				let n = y$1(t), r = _$1(e);
-				if (!(b$1[r] & 64)) return -4;
-				let i = y$1(r);
+				let t = _(e);
+				if (!(b[t] & 64)) return -4;
+				let n = y(t), r = _(e);
+				if (!(b[r] & 64)) return -4;
+				let i = y(r);
 				return n << 4 | i;
 			}
 			case 117: {
-				let t = _$1(e);
+				let t = _(e);
 				if (e.currentChar === 123) {
 					let t = 0;
-					for (; b$1[_$1(e)] & 64;) if (t = t << 4 | y$1(e.currentChar), t > 1114111) return -5;
+					for (; b[_(e)] & 64;) if (t = t << 4 | y(e.currentChar), t > 1114111) return -5;
 					return e.currentChar < 1 || e.currentChar !== 125 ? -4 : t;
 				}
 				{
-					if (!(b$1[t] & 64)) return -4;
+					if (!(b[t] & 64)) return -4;
 					let n = e.source.charCodeAt(e.index + 1);
-					if (!(b$1[n] & 64)) return -4;
+					if (!(b[n] & 64)) return -4;
 					let r = e.source.charCodeAt(e.index + 2);
-					if (!(b$1[r] & 64)) return -4;
+					if (!(b[r] & 64)) return -4;
 					let i = e.source.charCodeAt(e.index + 3);
-					return b$1[i] & 64 ? (e.index += 3, e.column += 3, e.currentChar = e.source.charCodeAt(e.index), y$1(t) << 12 | y$1(n) << 8 | y$1(r) << 4 | y$1(i)) : -4;
+					return b[i] & 64 ? (e.index += 3, e.column += 3, e.currentChar = e.source.charCodeAt(e.index), y(t) << 12 | y(n) << 8 | y(r) << 4 | y(i)) : -4;
 				}
 			}
 			case 56:
@@ -16609,25 +16771,26 @@ var vot = (function(exports) {
 		}
 	}
 	function ke(e, t) {
-		let { index: n } = e, r = 67174409, i = "", a = _$1(e);
+		let { index: n } = e, r = 67174409, i = "", a = _(e);
 		for (; a !== 96;) {
 			if (a === 36 && e.source.charCodeAt(e.index + 1) === 123) {
-				_$1(e), r = 67174408;
+				_(e), r = 67174408;
 				break;
 			}
-			if (a === 92) if (a = _$1(e), a > 126) i += String.fromCodePoint(a);
-			else {
-				let { index: n, line: o, column: s } = e, c = De(e, t | 1, a, 1);
-				if (c >= 0) i += String.fromCodePoint(c);
-				else if (c !== -1 && t & 64) {
-					e.index = n, e.line = o, e.column = s, i = null, a = Ae(e, a), a < 0 && (r = 67174408);
-					break;
-				} else Oe(e, c, 1);
-			}
-			else e.index < e.end && (a === 13 && e.source.charCodeAt(e.index) === 10 && (i += String.fromCodePoint(a), e.currentChar = e.source.charCodeAt(++e.index)), ((a & 83) < 3 && a === 10 || (a ^ 8232) <= 1) && (e.column = -1, e.line++), i += String.fromCodePoint(a));
-			e.index >= e.end && e.report(17), a = _$1(e);
+			if (a === 92) {
+				if (a = _(e), a > 126) i += String.fromCodePoint(a);
+				else {
+					let { index: n, line: o, column: s } = e, c = De(e, t | 1, a, 1);
+					if (c >= 0) i += String.fromCodePoint(c);
+					else if (c !== -1 && t & 64) {
+						e.index = n, e.line = o, e.column = s, i = null, a = Ae(e, a), a < 0 && (r = 67174408);
+						break;
+					} else Oe(e, c, 1);
+				}
+			} else e.index < e.end && (a === 13 && e.source.charCodeAt(e.index) === 10 && (i += String.fromCodePoint(a), e.currentChar = e.source.charCodeAt(++e.index)), ((a & 83) < 3 && a === 10 || (a ^ 8232) <= 1) && (e.column = -1, e.line++), i += String.fromCodePoint(a));
+			e.index >= e.end && e.report(17), a = _(e);
 		}
-		return _$1(e), e.tokenValue = i, e.tokenRaw = e.source.slice(n + 1, e.index - (r === 67174409 ? 1 : 2)), r;
+		return _(e), e.tokenValue = i, e.tokenRaw = e.source.slice(n + 1, e.index - (r === 67174409 ? 1 : 2)), r;
 	}
 	function Ae(e, t) {
 		for (; t !== 96;) {
@@ -16641,7 +16804,7 @@ var vot = (function(exports) {
 				case 8232:
 				case 8233: e.column = -1, e.line++;
 			}
-			e.index >= e.end && e.report(17), t = _$1(e);
+			e.index >= e.end && e.report(17), t = _(e);
 		}
 		return t;
 	}
@@ -16827,7 +16990,7 @@ var vot = (function(exports) {
 		176: "cannot use \"await\" as identifier inside an async function",
 		177: "cannot use \"await\" in static blocks"
 	};
-	var C$1 = class extends SyntaxError {
+	var C = class extends SyntaxError {
 		start;
 		end;
 		range;
@@ -16851,46 +17014,48 @@ var vot = (function(exports) {
 		let r = e.currentChar, i = 0, a = 9, o = n & 64 ? 0 : 1, s = 0, c = 0;
 		if (n & 64) i = "." + Pe(e, r), r = e.currentChar, r === 110 && e.report(12);
 		else {
-			if (r === 48) if (r = _$1(e), (r | 32) == 120) {
-				for (n = 136, r = _$1(e); b$1[r] & 4160;) {
-					if (r === 95) {
-						c || e.report(152), c = 0, r = _$1(e);
-						continue;
+			if (r === 48) {
+				if (r = _(e), (r | 32) == 120) {
+					for (n = 136, r = _(e); b[r] & 4160;) {
+						if (r === 95) {
+							c || e.report(152), c = 0, r = _(e);
+							continue;
+						}
+						c = 1, i = i * 16 + y(r), s++, r = _(e);
 					}
-					c = 1, i = i * 16 + y$1(r), s++, r = _$1(e);
-				}
-				(s === 0 || !c) && e.report(s === 0 ? 21 : 153);
-			} else if ((r | 32) == 111) {
-				for (n = 132, r = _$1(e); b$1[r] & 4128;) {
-					if (r === 95) {
-						c || e.report(152), c = 0, r = _$1(e);
-						continue;
+					(s === 0 || !c) && e.report(s === 0 ? 21 : 153);
+				} else if ((r | 32) == 111) {
+					for (n = 132, r = _(e); b[r] & 4128;) {
+						if (r === 95) {
+							c || e.report(152), c = 0, r = _(e);
+							continue;
+						}
+						c = 1, i = i * 8 + (r - 48), s++, r = _(e);
 					}
-					c = 1, i = i * 8 + (r - 48), s++, r = _$1(e);
-				}
-				(s === 0 || !c) && e.report(s === 0 ? 0 : 153);
-			} else if ((r | 32) == 98) {
-				for (n = 130, r = _$1(e); b$1[r] & 4224;) {
-					if (r === 95) {
-						c || e.report(152), c = 0, r = _$1(e);
-						continue;
+					(s === 0 || !c) && e.report(s === 0 ? 0 : 153);
+				} else if ((r | 32) == 98) {
+					for (n = 130, r = _(e); b[r] & 4224;) {
+						if (r === 95) {
+							c || e.report(152), c = 0, r = _(e);
+							continue;
+						}
+						c = 1, i = i * 2 + (r - 48), s++, r = _(e);
 					}
-					c = 1, i = i * 2 + (r - 48), s++, r = _$1(e);
+					(s === 0 || !c) && e.report(s === 0 ? 0 : 153);
+				} else if (b[r] & 32) for (t & 1 && e.report(1), n = 1; b[r] & 16;) {
+					if (b[r] & 512) {
+						n = 32, o = 0;
+						break;
+					}
+					i = i * 8 + (r - 48), r = _(e);
 				}
-				(s === 0 || !c) && e.report(s === 0 ? 0 : 153);
-			} else if (b$1[r] & 32) for (t & 1 && e.report(1), n = 1; b$1[r] & 16;) {
-				if (b$1[r] & 512) {
-					n = 32, o = 0;
-					break;
-				}
-				i = i * 8 + (r - 48), r = _$1(e);
+				else b[r] & 512 ? (t & 1 && e.report(1), e.flags |= 64, n = 32) : r === 95 && e.report(0);
 			}
-			else b$1[r] & 512 ? (t & 1 && e.report(1), e.flags |= 64, n = 32) : r === 95 && e.report(0);
 			if (n & 48) {
 				if (o) {
-					for (; a >= 0 && b$1[r] & 4112;) {
+					for (; a >= 0 && b[r] & 4112;) {
 						if (r === 95) {
-							if (r = _$1(e), r === 95 || n & 32) throw new C$1(e.currentLocation, {
+							if (r = _(e), r === 95 || n & 32) throw new C(e.currentLocation, {
 								index: e.index + 1,
 								line: e.line,
 								column: e.column
@@ -16898,33 +17063,33 @@ var vot = (function(exports) {
 							c = 1;
 							continue;
 						}
-						c = 0, i = 10 * i + (r - 48), r = _$1(e), --a;
+						c = 0, i = 10 * i + (r - 48), r = _(e), --a;
 					}
-					if (c) throw new C$1(e.currentLocation, {
+					if (c) throw new C(e.currentLocation, {
 						index: e.index + 1,
 						line: e.line,
 						column: e.column
 					}, 153);
 					if (a >= 0 && !_e(r) && r !== 46) return e.tokenValue = i, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283266;
 				}
-				i += Pe(e, r), r = e.currentChar, r === 46 && (_$1(e) === 95 && e.report(0), n = 64, i += "." + Pe(e, e.currentChar), r = e.currentChar);
+				i += Pe(e, r), r = e.currentChar, r === 46 && (_(e) === 95 && e.report(0), n = 64, i += "." + Pe(e, e.currentChar), r = e.currentChar);
 			}
 		}
 		let l = e.index, u = 0;
-		if (r === 110 && n & 128) u = 1, r = _$1(e);
+		if (r === 110 && n & 128) u = 1, r = _(e);
 		else if ((r | 32) == 101) {
-			r = _$1(e), b$1[r] & 256 && (r = _$1(e));
+			r = _(e), b[r] & 256 && (r = _(e));
 			let { index: t } = e;
-			b$1[r] & 16 || e.report(11), i += e.source.substring(l, t) + Pe(e, r), r = e.currentChar;
+			b[r] & 16 || e.report(11), i += e.source.substring(l, t) + Pe(e, r), r = e.currentChar;
 		}
-		return (e.index < e.end && b$1[r] & 16 || _e(r)) && e.report(13), u ? (e.tokenRaw = e.source.slice(e.tokenIndex, e.index), e.tokenValue = BigInt(e.tokenRaw.slice(0, -1).replaceAll("_", "")), 134283388) : (e.tokenValue = n & 15 ? i : n & 32 ? parseFloat(e.source.substring(e.tokenIndex, e.index)) : +i, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283266);
+		return (e.index < e.end && b[r] & 16 || _e(r)) && e.report(13), u ? (e.tokenRaw = e.source.slice(e.tokenIndex, e.index), e.tokenValue = BigInt(e.tokenRaw.slice(0, -1).replaceAll("_", "")), 134283388) : (e.tokenValue = n & 15 ? i : n & 32 ? parseFloat(e.source.substring(e.tokenIndex, e.index)) : +i, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283266);
 	}
 	function Pe(e, t) {
 		let n = 0, r = e.index, i = "";
-		for (; b$1[t] & 4112;) {
+		for (; b[t] & 4112;) {
 			if (t === 95) {
 				let { index: a } = e;
-				if (t = _$1(e), t === 95) throw new C$1(e.currentLocation, {
+				if (t = _(e), t === 95) throw new C(e.currentLocation, {
 					index: e.index + 1,
 					line: e.line,
 					column: e.column
@@ -16932,16 +17097,16 @@ var vot = (function(exports) {
 				n = 1, i += e.source.substring(r, a), r = e.index;
 				continue;
 			}
-			n = 0, t = _$1(e);
+			n = 0, t = _(e);
 		}
-		if (n) throw new C$1(e.currentLocation, {
+		if (n) throw new C(e.currentLocation, {
 			index: e.index + 1,
 			line: e.line,
 			column: e.column
 		}, 153);
 		return i + e.source.substring(r, e.index);
 	}
-	var w$1 = [
+	var w = [
 		"end of source",
 		"identifier",
 		"number",
@@ -17141,20 +17306,20 @@ var vot = (function(exports) {
 		meta: 209030,
 		accessor: 12402
 	};
-	function T$1(e, t) {
-		!(e.flags & 1) && (e.getToken() & 1048576) != 1048576 && e.report(30, w$1[e.getToken() & 255]), E$1(e, t, 1074790417) || e.options.onInsertedSemicolon?.(e.startIndex);
+	function T(e, t) {
+		!(e.flags & 1) && (e.getToken() & 1048576) != 1048576 && e.report(30, w[e.getToken() & 255]), E(e, t, 1074790417) || e.options.onInsertedSemicolon?.(e.startIndex);
 	}
 	function Ie(e, t, n, r) {
 		return t - n < 13 && r === "use strict" && ((e.getToken() & 1048576) == 1048576 || e.flags & 1) ? 1 : 0;
 	}
 	function Le(e, t, n) {
-		return e.getToken() === n ? (A$1(e, t), 1) : 0;
+		return e.getToken() === n ? (A(e, t), 1) : 0;
 	}
-	function E$1(e, t, n) {
-		return e.getToken() === n && (A$1(e, t), !0);
+	function E(e, t, n) {
+		return e.getToken() === n && (A(e, t), !0);
 	}
-	function D$1(e, t, n) {
-		e.getToken() !== n && e.report(25, w$1[n & 255]), A$1(e, t);
+	function D(e, t, n) {
+		e.getToken() !== n && e.report(25, w[n & 255]), A(e, t);
 	}
 	function O(e, t) {
 		switch (t.type) {
@@ -17213,34 +17378,34 @@ var vot = (function(exports) {
 			case "JSXMemberExpression": return We(e.object) + "." + We(e.property);
 		}
 	}
-	function k$1(e, t) {
+	function k(e, t) {
 		return e & 1025 ? e & 2 && t === 209006 || e & 1024 && t === 241771 ? !1 : (t & 12288) == 12288 : (t & 12288) == 12288 || (t & 36864) == 36864;
 	}
 	function Ge(e, t, n) {
-		(n & 537079808) == 537079808 && (t & 1 && e.report(119), e.flags |= 512), k$1(t, n) || e.report(0);
+		(n & 537079808) == 537079808 && (t & 1 && e.report(119), e.flags |= 512), k(t, n) || e.report(0);
 	}
 	function Ke(e, t) {
 		return Object.hasOwn(e, t) ? e[t] : void 0;
 	}
 	function qe(e, t, n) {
-		for (; ge[_$1(e)];);
+		for (; ge[_(e)];);
 		return e.tokenValue = e.source.slice(e.tokenIndex, e.index), e.currentChar !== 92 && e.currentChar <= 126 ? Ke(Fe, e.tokenValue) ?? 208897 : Ye(e, t, 0, n);
 	}
 	function Je(e, t) {
 		let n = Ze(e);
-		return _e(n) || e.report(5), e.tokenValue = String.fromCodePoint(n), Ye(e, t, 1, b$1[n] & 4);
+		return _e(n) || e.report(5), e.tokenValue = String.fromCodePoint(n), Ye(e, t, 1, b[n] & 4);
 	}
 	function Ye(e, t, n, r) {
 		let i = e.index;
 		for (; e.index < e.end;) if (e.currentChar === 92) {
 			e.tokenValue += e.source.slice(i, e.index), n = 1;
 			let t = Ze(e);
-			ve(t) || e.report(5), r &&= b$1[t] & 4, e.tokenValue += String.fromCodePoint(t), i = e.index;
+			ve(t) || e.report(5), r &&= b[t] & 4, e.tokenValue += String.fromCodePoint(t), i = e.index;
 		} else {
 			let t = de(e);
 			if (t > 0) ve(t) || e.report(20, String.fromCodePoint(t)), e.currentChar = t, e.index++, e.column++;
 			else if (!ve(e.currentChar)) break;
-			_$1(e);
+			_(e);
 		}
 		e.index <= e.end && (e.tokenValue += e.source.slice(i, e.index));
 		let { length: a } = e.tokenValue;
@@ -17251,7 +17416,7 @@ var vot = (function(exports) {
 		return 208897 | (n ? -2147483648 : 0);
 	}
 	function Xe(e) {
-		let t = _$1(e);
+		let t = _(e);
 		if (t === 92) return 130;
 		let n = de(e);
 		return n && (t = n), _e(t) || e.report(96), 130;
@@ -17263,25 +17428,25 @@ var vot = (function(exports) {
 		let t = 0, n = e.currentChar;
 		if (n === 123) {
 			let n = e.index - 2;
-			for (; b$1[_$1(e)] & 64;) if (t = t << 4 | y$1(e.currentChar), t > 1114111) throw new C$1({
+			for (; b[_(e)] & 64;) if (t = t << 4 | y(e.currentChar), t > 1114111) throw new C({
 				index: n,
 				line: e.line,
 				column: e.column
 			}, e.currentLocation, 104);
-			if (e.currentChar !== 125) throw new C$1({
+			if (e.currentChar !== 125) throw new C({
 				index: n,
 				line: e.line,
 				column: e.column
 			}, e.currentLocation, 7);
-			return _$1(e), t;
+			return _(e), t;
 		}
-		b$1[n] & 64 || e.report(7);
+		b[n] & 64 || e.report(7);
 		let r = e.source.charCodeAt(e.index + 1);
-		b$1[r] & 64 || e.report(7);
+		b[r] & 64 || e.report(7);
 		let i = e.source.charCodeAt(e.index + 2);
-		b$1[i] & 64 || e.report(7);
+		b[i] & 64 || e.report(7);
 		let a = e.source.charCodeAt(e.index + 3);
-		return b$1[a] & 64 || e.report(7), t = y$1(n) << 12 | y$1(r) << 8 | y$1(i) << 4 | y$1(a), e.currentChar = e.source.charCodeAt(e.index += 4), e.column += 4, t;
+		return b[a] & 64 || e.report(7), t = y(n) << 12 | y(r) << 8 | y(i) << 4 | y(a), e.currentChar = e.source.charCodeAt(e.index += 4), e.column += 4, t;
 	}
 	var $e = [
 		128,
@@ -17413,7 +17578,7 @@ var vot = (function(exports) {
 		16842799,
 		128
 	];
-	function A$1(e, t) {
+	function A(e, t) {
 		e.flags = (e.flags | 1) ^ 1, e.startIndex = e.index, e.startColumn = e.column, e.startLine = e.line, e.setToken(et(e, t, 0));
 	}
 	function et(e, t, n) {
@@ -17435,7 +17600,7 @@ var vot = (function(exports) {
 					case 18:
 					case 16842799:
 					case 132:
-					case 128: return _$1(e), s;
+					case 128: return _(e), s;
 					case 208897: return qe(e, t, 0);
 					case 4096: return qe(e, t, 1);
 					case 134283266: return Ne(e, t, 144);
@@ -17444,19 +17609,19 @@ var vot = (function(exports) {
 					case 136: return Je(e, t);
 					case 130: return Xe(e);
 					case 127:
-						_$1(e);
+						_(e);
 						break;
 					case 129:
-						n |= 5, v$1(e);
+						n |= 5, v(e);
 						break;
 					case 135:
 						fe(e, n), n = n & -5 | 1;
 						break;
 					case 8456256: {
-						let r = _$1(e);
+						let r = _(e);
 						if (e.index < e.end) {
-							if (r === 60) return e.index < e.end && _$1(e) === 61 ? (_$1(e), 4194332) : 8390978;
-							if (r === 61) return _$1(e), 8390718;
+							if (r === 60) return e.index < e.end && _(e) === 61 ? (_(e), 4194332) : 8390978;
+							if (r === 61) return _(e), 8390718;
 							if (r === 33) {
 								let r = e.index + 1;
 								if (r + 1 < e.end && i.charCodeAt(r) === 45 && i.charCodeAt(r + 1) == 45) {
@@ -17469,52 +17634,52 @@ var vot = (function(exports) {
 						return 8456256;
 					}
 					case 1077936155: {
-						_$1(e);
+						_(e);
 						let t = e.currentChar;
-						return t === 61 ? _$1(e) === 61 ? (_$1(e), 8390458) : 8390460 : t === 62 ? (_$1(e), 10) : 1077936155;
+						return t === 61 ? _(e) === 61 ? (_(e), 8390458) : 8390460 : t === 62 ? (_(e), 10) : 1077936155;
 					}
-					case 16842798: return _$1(e) === 61 ? _$1(e) === 61 ? (_$1(e), 8390459) : 8390461 : 16842798;
-					case 8391477: return _$1(e) === 61 ? (_$1(e), 4194340) : 8391477;
+					case 16842798: return _(e) === 61 ? _(e) === 61 ? (_(e), 8390459) : 8390461 : 16842798;
+					case 8391477: return _(e) === 61 ? (_(e), 4194340) : 8391477;
 					case 8391476: {
-						if (_$1(e), e.index >= e.end) return 8391476;
+						if (_(e), e.index >= e.end) return 8391476;
 						let t = e.currentChar;
-						return t === 61 ? (_$1(e), 4194338) : t === 42 ? _$1(e) === 61 ? (_$1(e), 4194335) : 8391735 : 8391476;
+						return t === 61 ? (_(e), 4194338) : t === 42 ? _(e) === 61 ? (_(e), 4194335) : 8391735 : 8391476;
 					}
-					case 8389959: return _$1(e) === 61 ? (_$1(e), 4194341) : 8389959;
+					case 8389959: return _(e) === 61 ? (_(e), 4194341) : 8389959;
 					case 25233968: {
-						_$1(e);
+						_(e);
 						let t = e.currentChar;
-						return t === 43 ? (_$1(e), 33619993) : t === 61 ? (_$1(e), 4194336) : 25233968;
+						return t === 43 ? (_(e), 33619993) : t === 61 ? (_(e), 4194336) : 25233968;
 					}
 					case 25233969: {
-						_$1(e);
+						_(e);
 						let o = e.currentChar;
 						if (o === 45) {
-							if (_$1(e), (n & 1 || r) && e.currentChar === 62) {
-								e.options.webcompat || e.report(112), _$1(e), n = xe(e, i, n, t, 3, a), a = e.tokenStart;
+							if (_(e), (n & 1 || r) && e.currentChar === 62) {
+								e.options.webcompat || e.report(112), _(e), n = xe(e, i, n, t, 3, a), a = e.tokenStart;
 								continue;
 							}
 							return 33619994;
 						}
-						return o === 61 ? (_$1(e), 4194337) : 25233969;
+						return o === 61 ? (_(e), 4194337) : 25233969;
 					}
 					case 8457014:
-						if (_$1(e), e.index < e.end) {
+						if (_(e), e.index < e.end) {
 							let r = e.currentChar;
 							if (r === 47) {
-								_$1(e), n = Se(e, i, n, 0, e.tokenStart), a = e.tokenStart;
+								_(e), n = Se(e, i, n, 0, e.tokenStart), a = e.tokenStart;
 								continue;
 							}
 							if (r === 42) {
-								_$1(e), n = Ce(e, i, n), a = e.tokenStart;
+								_(e), n = Ce(e, i, n), a = e.tokenStart;
 								continue;
 							}
 							if (t & 32) return we(e);
-							if (r === 61) return _$1(e), 4259875;
+							if (r === 61) return _(e), 4259875;
 						}
 						return 8457014;
 					case 67108877: {
-						let n = _$1(e);
+						let n = _(e);
 						if (n >= 48 && n <= 57) return Ne(e, t, 80);
 						if (n === 46) {
 							let t = e.index + 1;
@@ -17523,46 +17688,46 @@ var vot = (function(exports) {
 						return 67108877;
 					}
 					case 8389702: {
-						_$1(e);
+						_(e);
 						let t = e.currentChar;
-						return t === 124 ? (_$1(e), e.currentChar === 61 ? (_$1(e), 4194344) : 8913465) : t === 61 ? (_$1(e), 4194342) : 8389702;
+						return t === 124 ? (_(e), e.currentChar === 61 ? (_(e), 4194344) : 8913465) : t === 61 ? (_(e), 4194342) : 8389702;
 					}
 					case 8390721: {
-						_$1(e);
+						_(e);
 						let t = e.currentChar;
-						if (t === 61) return _$1(e), 8390719;
+						if (t === 61) return _(e), 8390719;
 						if (t !== 62) return 8390721;
-						if (_$1(e), e.index < e.end) {
+						if (_(e), e.index < e.end) {
 							let t = e.currentChar;
-							if (t === 62) return _$1(e) === 61 ? (_$1(e), 4194334) : 8390980;
-							if (t === 61) return _$1(e), 4194333;
+							if (t === 62) return _(e) === 61 ? (_(e), 4194334) : 8390980;
+							if (t === 61) return _(e), 4194333;
 						}
 						return 8390979;
 					}
 					case 8390213: {
-						_$1(e);
+						_(e);
 						let t = e.currentChar;
-						return t === 38 ? (_$1(e), e.currentChar === 61 ? (_$1(e), 4194345) : 8913720) : t === 61 ? (_$1(e), 4194343) : 8390213;
+						return t === 38 ? (_(e), e.currentChar === 61 ? (_(e), 4194345) : 8913720) : t === 61 ? (_(e), 4194343) : 8390213;
 					}
 					case 22: {
-						let t = _$1(e);
-						if (t === 63) return _$1(e), e.currentChar === 61 ? (_$1(e), 4194346) : 276824445;
+						let t = _(e);
+						if (t === 63) return _(e), e.currentChar === 61 ? (_(e), 4194346) : 276824445;
 						if (t === 46) {
 							let n = e.index + 1;
-							if (n < e.end && (t = i.charCodeAt(n), !(t >= 48 && t <= 57))) return _$1(e), 67108990;
+							if (n < e.end && (t = i.charCodeAt(n), !(t >= 48 && t <= 57))) return _(e), 67108990;
 						}
 						return 22;
 					}
 				}
 			} else {
 				if ((o ^ 8232) <= 1) {
-					n = n & -5 | 1, v$1(e);
+					n = n & -5 | 1, v(e);
 					continue;
 				}
 				let r = de(e);
 				if (r > 0 && (o = r), ue(o)) return e.tokenValue = "", Ye(e, t, 0, 0);
 				if (pe(o)) {
-					_$1(e);
+					_(e);
 					continue;
 				}
 				e.report(20, String.fromCodePoint(o));
@@ -19740,12 +19905,12 @@ var vot = (function(exports) {
 		return e >= 55296 && e <= 57343 || e > 1114111 ? "�" : String.fromCodePoint(Ke(nt, e) ?? e);
 	}
 	function at(e, t) {
-		return e.startIndex = e.tokenIndex = e.index, e.startColumn = e.tokenColumn = e.column, e.startLine = e.tokenLine = e.line, e.setToken(b$1[e.currentChar] & 8192 ? ot(e) : et(e, t, 0)), e.getToken();
+		return e.startIndex = e.tokenIndex = e.index, e.startColumn = e.tokenColumn = e.column, e.startLine = e.tokenLine = e.line, e.setToken(b[e.currentChar] & 8192 ? ot(e) : et(e, t, 0)), e.getToken();
 	}
 	function ot(e) {
-		let t = e.currentChar, n = _$1(e), r = e.index;
-		for (; n !== t;) e.index >= e.end && e.report(16), n = _$1(e);
-		return n !== t && e.report(16), e.tokenValue = e.source.slice(r, e.index), _$1(e), e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283267;
+		let t = e.currentChar, n = _(e), r = e.index;
+		for (; n !== t;) e.index >= e.end && e.report(16), n = _(e);
+		return n !== t && e.report(16), e.tokenValue = e.source.slice(r, e.index), _(e), e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283267;
 	}
 	function j(e) {
 		if (e.startIndex = e.tokenIndex = e.index, e.startColumn = e.tokenColumn = e.column, e.startLine = e.tokenLine = e.line, e.index >= e.end) {
@@ -19753,17 +19918,17 @@ var vot = (function(exports) {
 			return;
 		}
 		if (e.currentChar === 60) {
-			_$1(e), e.setToken(8456256);
+			_(e), e.setToken(8456256);
 			return;
 		}
 		if (e.currentChar === 123) {
-			_$1(e), e.setToken(2162700);
+			_(e), e.setToken(2162700);
 			return;
 		}
 		let t = 0;
 		for (; e.index < e.end;) {
-			let n = b$1[e.source.charCodeAt(e.index)];
-			if (n & 1024 ? (t |= 5, v$1(e)) : n & 2048 ? (fe(e, t), t = t & -5 | 1) : _$1(e), b$1[e.currentChar] & 16384) break;
+			let n = b[e.source.charCodeAt(e.index)];
+			if (n & 1024 ? (t |= 5, v(e)) : n & 2048 ? (fe(e, t), t = t & -5 | 1) : _(e), b[e.currentChar] & 16384) break;
 		}
 		e.tokenIndex === e.index && e.report(0);
 		let n = e.source.slice(e.tokenIndex, e.index);
@@ -19772,7 +19937,7 @@ var vot = (function(exports) {
 	function st(e) {
 		if ((e.getToken() & 143360) == 143360) {
 			let { index: t } = e, n = e.currentChar;
-			for (; b$1[n] & 32770;) n = _$1(e);
+			for (; b[n] & 32770;) n = _(e);
 			e.tokenValue += e.source.slice(t, e.index), e.setToken(208897, !0);
 		}
 		return e.getToken();
@@ -19782,7 +19947,7 @@ var vot = (function(exports) {
 		type;
 		parent;
 		scopeError;
-		variableBindings = /* @__PURE__ */ new Map();
+		variableBindings = new Map();
 		constructor(e, t = 2, n) {
 			this.parser = e, this.type = t, this.parent = n;
 		}
@@ -19816,7 +19981,7 @@ var vot = (function(exports) {
 		}
 		reportScopeError() {
 			let { scopeError: e } = this;
-			if (e) throw new C$1(e.start, e.end, e.type, ...e.params);
+			if (e) throw new C(e.start, e.end, e.type, ...e.params);
 		}
 	};
 	function lt(e, t, n) {
@@ -19827,7 +19992,7 @@ var vot = (function(exports) {
 		parser;
 		parent;
 		refs = Object.create(null);
-		privateIdentifiers = /* @__PURE__ */ new Map();
+		privateIdentifiers = new Map();
 		constructor(e, t) {
 			this.parser = e, this.parent = t;
 		}
@@ -19846,7 +20011,7 @@ var vot = (function(exports) {
 		validatePrivateIdentifierRefs() {
 			for (let e in this.refs) if (!this.isPrivateIdentifierDefined(e)) {
 				let { index: t, line: n, column: r } = this.refs[e][0];
-				throw new C$1({
+				throw new C({
 					index: t,
 					line: n,
 					column: r
@@ -19881,8 +20046,8 @@ var vot = (function(exports) {
 		tokenRaw = "";
 		tokenRegExp = void 0;
 		currentChar = 0;
-		exportedNames = /* @__PURE__ */ new Set();
-		exportedBindings = /* @__PURE__ */ new Set();
+		exportedNames = new Set();
+		exportedBindings = new Set();
 		assignable = 1;
 		destructible = 0;
 		leadingDecorators = { decorators: [] };
@@ -19895,24 +20060,26 @@ var vot = (function(exports) {
 		setToken(e, t = !1) {
 			this.token = e;
 			let { onToken: n } = this.options;
-			if (n) if (e !== 1048576) {
-				let r = {
-					start: {
-						line: this.tokenLine,
-						column: this.tokenColumn
-					},
-					end: {
-						line: this.line,
-						column: this.column
-					}
-				};
-				!t && this.lastOnToken && n(...this.lastOnToken), this.lastOnToken = [
-					me(e),
-					this.tokenIndex,
-					this.index,
-					r
-				];
-			} else this.lastOnToken &&= (n(...this.lastOnToken), null);
+			if (n) {
+				if (e !== 1048576) {
+					let r = {
+						start: {
+							line: this.tokenLine,
+							column: this.tokenColumn
+						},
+						end: {
+							line: this.line,
+							column: this.column
+						}
+					};
+					!t && this.lastOnToken && n(...this.lastOnToken), this.lastOnToken = [
+						me(e),
+						this.tokenIndex,
+						this.index,
+						r
+					];
+				} else this.lastOnToken &&= (n(...this.lastOnToken), null);
+			}
 			return e;
 		}
 		get tokenStart() {
@@ -19957,7 +20124,7 @@ var vot = (function(exports) {
 			t.has(e) && this.report(147, e), t.add(e);
 		}
 		report(e, ...t) {
-			throw new C$1(this.tokenStart, this.currentLocation, e, ...t);
+			throw new C(this.tokenStart, this.currentLocation, e, ...t);
 		}
 		createScopeIfLexical(e, t) {
 			if (this.options.lexical) return this.createScope(e, t);
@@ -20008,21 +20175,21 @@ var vot = (function(exports) {
 		}, i.currentLocation);
 	}
 	function gt(e, t, n) {
-		A$1(e, t | 262176);
+		A(e, t | 262176);
 		let r = [];
 		for (; e.getToken() === 134283267;) {
 			let { index: n, tokenValue: i, tokenStart: a, tokenIndex: o } = e, s = e.getToken(), c = q(e, t);
 			if (Ie(e, n, o, i)) {
-				if (t |= 1, e.flags & 64) throw new C$1(e.tokenStart, e.currentLocation, 9);
-				if (e.flags & 4096) throw new C$1(e.tokenStart, e.currentLocation, 15);
+				if (t |= 1, e.flags & 64) throw new C(e.tokenStart, e.currentLocation, 9);
+				if (e.flags & 4096) throw new C(e.tokenStart, e.currentLocation, 15);
 			}
 			r.push(wt(e, t, c, s, a));
 		}
-		for (; e.getToken() !== 1048576;) r.push(M$1(e, t, n, void 0, 4, {}));
+		for (; e.getToken() !== 1048576;) r.push(M(e, t, n, void 0, 4, {}));
 		return r;
 	}
 	function _t(e, t, n) {
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let r = [];
 		for (; e.getToken() === 134283267;) {
 			let { tokenStart: n } = e, i = e.getToken();
@@ -20044,11 +20211,11 @@ var vot = (function(exports) {
 			case 86106:
 				r = Gt(e, t, n);
 				break;
-			default: r = M$1(e, t, n, void 0, 4, {});
+			default: r = M(e, t, n, void 0, 4, {});
 		}
 		return e.leadingDecorators?.decorators.length && e.report(170), r;
 	}
-	function M$1(e, t, n, r, i, a) {
+	function M(e, t, n, r, i, a) {
 		let o = e.tokenStart;
 		switch (e.getToken()) {
 			case 86104: return J(e, t, n, r, i, 1, 0, 0, o);
@@ -20057,16 +20224,16 @@ var vot = (function(exports) {
 			case 86090: return Bt(e, t, n, r, 16, 0);
 			case 241737: return zt(e, t, n, r, i);
 			case 20564: e.report(103, "export");
-			case 86106: switch (A$1(e, t), e.getToken()) {
+			case 86106: switch (A(e, t), e.getToken()) {
 				case 67174411: return Xt(e, t, r, o);
 				case 67108877: return Yt(e, t, o);
 				default: e.report(103, "import");
 			}
 			case 209005: return Ct(e, t, n, r, i, a, 1);
-			default: return N$1(e, t, n, r, i, a, 1);
+			default: return N(e, t, n, r, i, a, 1);
 		}
 	}
-	function N$1(e, t, n, r, i, a, o) {
+	function N(e, t, n, r, i, a, o) {
 		switch (e.getToken()) {
 			case 86088: return Vt(e, t, n, r, 0);
 			case 20572: return xt(e, t, r);
@@ -20099,12 +20266,12 @@ var vot = (function(exports) {
 				break;
 			default: u = G(e, t, r, 2, 0, 1, 0, 1, e.tokenStart);
 		}
-		return l & 143360 && e.getToken() === 21 ? St(e, t, n, r, i, a, s, u, l, o, c) : (u = W(e, t, r, u, 0, 0, c), u = B$1(e, t, r, 0, 0, c, u), e.getToken() === 18 && (u = R$1(e, t, r, 0, c, u)), P$1(e, t, u, c));
+		return l & 143360 && e.getToken() === 21 ? St(e, t, n, r, i, a, s, u, l, o, c) : (u = W(e, t, r, u, 0, 0, c), u = B(e, t, r, 0, 0, c, u), e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), P(e, t, u, c));
 	}
 	function bt(e, t, n, r, i, a = e.tokenStart, o = "BlockStatement") {
 		let s = [];
-		for (D$1(e, t | 32, 2162700); e.getToken() !== 1074790415;) s.push(M$1(e, t, n, r, 2, { $: i }));
-		return D$1(e, t | 32, 1074790415), e.finishNode({
+		for (D(e, t | 32, 2162700); e.getToken() !== 1074790415;) s.push(M(e, t, n, r, 2, { $: i }));
+		return D(e, t | 32, 1074790415), e.finishNode({
 			type: o,
 			body: s
 		}, a);
@@ -20112,22 +20279,22 @@ var vot = (function(exports) {
 	function xt(e, t, n) {
 		t & 4096 || e.report(92);
 		let r = e.tokenStart;
-		A$1(e, t | 32);
-		let i = e.flags & 1 || e.getToken() & 1048576 ? null : z$1(e, t, n, 0, 1, e.tokenStart);
-		return T$1(e, t | 32), e.finishNode({
+		A(e, t | 32);
+		let i = e.flags & 1 || e.getToken() & 1048576 ? null : z(e, t, n, 0, 1, e.tokenStart);
+		return T(e, t | 32), e.finishNode({
 			type: "ReturnStatement",
 			argument: i
 		}, r);
 	}
-	function P$1(e, t, n, r) {
-		return T$1(e, t | 32), e.finishNode({
+	function P(e, t, n, r) {
+		return T(e, t | 32), e.finishNode({
 			type: "ExpressionStatement",
 			expression: n
 		}, r);
 	}
 	function St(e, t, n, r, i, a, o, s, c, l, u) {
-		Re(e, t, 0, c, 1), Ue(e, a, o), A$1(e, t | 32);
-		let d = l && !(t & 1) && e.options.webcompat && e.getToken() === 86104 ? J(e, t, n?.createChildScope(), r, i, 0, 0, 0, e.tokenStart) : N$1(e, t, n, r, i, a, l);
+		Re(e, t, 0, c, 1), Ue(e, a, o), A(e, t | 32);
+		let d = l && !(t & 1) && e.options.webcompat && e.getToken() === 86104 ? J(e, t, n?.createChildScope(), r, i, 0, 0, 0, e.tokenStart) : N(e, t, n, r, i, a, l);
 		return e.finishNode({
 			type: "LabeledStatement",
 			label: s,
@@ -20140,13 +20307,13 @@ var vot = (function(exports) {
 		let d = e.flags & 1;
 		if (!d) {
 			if (e.getToken() === 86104) return o || e.report(123), J(e, t, n, r, i, 1, 0, 1, c);
-			if (k$1(t, e.getToken())) return u = Bn(e, t, r, 1, c), e.getToken() === 18 && (u = R$1(e, t, r, 0, c, u)), P$1(e, t, u, c);
+			if (k(t, e.getToken())) return u = Bn(e, t, r, 1, c), e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), P(e, t, u, c);
 		}
-		return e.getToken() === 67174411 ? u = Vn(e, t, r, u, 1, 1, 0, d, c) : (e.getToken() === 10 && (Ge(e, t, l), (l & 36864) == 36864 && (e.flags |= 256), u = Nn(e, t | 2048, r, e.tokenValue, u, 0, 1, 0, c)), e.assignable = 1), u = W(e, t, r, u, 0, 0, c), u = B$1(e, t, r, 0, 0, c, u), e.assignable = 1, e.getToken() === 18 && (u = R$1(e, t, r, 0, c, u)), P$1(e, t, u, c);
+		return e.getToken() === 67174411 ? u = Vn(e, t, r, u, 1, 1, 0, d, c) : (e.getToken() === 10 && (Ge(e, t, l), (l & 36864) == 36864 && (e.flags |= 256), u = Nn(e, t | 2048, r, e.tokenValue, u, 0, 1, 0, c)), e.assignable = 1), u = W(e, t, r, u, 0, 0, c), u = B(e, t, r, 0, 0, c, u), e.assignable = 1, e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), P(e, t, u, c);
 	}
 	function wt(e, t, n, r, i) {
 		let a = e.startIndex;
-		r !== 1074790417 && (e.assignable = 2, n = W(e, t, void 0, n, 0, 0, i), e.getToken() !== 1074790417 && (n = B$1(e, t, void 0, 0, 0, i, n), e.getToken() === 18 && (n = R$1(e, t, void 0, 0, i, n))), T$1(e, t | 32));
+		r !== 1074790417 && (e.assignable = 2, n = W(e, t, void 0, n, 0, 0, i), e.getToken() !== 1074790417 && (n = B(e, t, void 0, 0, 0, i, n), e.getToken() === 18 && (n = R(e, t, void 0, 0, i, n))), T(e, t | 32));
 		let o = {
 			type: "ExpressionStatement",
 			expression: n
@@ -20155,24 +20322,24 @@ var vot = (function(exports) {
 	}
 	function Tt(e, t) {
 		let n = e.tokenStart;
-		return A$1(e, t | 32), e.finishNode({ type: "EmptyStatement" }, n);
+		return A(e, t | 32), e.finishNode({ type: "EmptyStatement" }, n);
 	}
 	function Et(e, t, n) {
 		let r = e.tokenStart;
-		A$1(e, t | 32), e.flags & 1 && e.report(90);
-		let i = z$1(e, t, n, 0, 1, e.tokenStart);
-		return T$1(e, t | 32), e.finishNode({
+		A(e, t | 32), e.flags & 1 && e.report(90);
+		let i = z(e, t, n, 0, 1, e.tokenStart);
+		return T(e, t | 32), e.finishNode({
 			type: "ThrowStatement",
 			argument: i
 		}, r);
 	}
 	function Dt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t), D$1(e, t | 32, 67174411), e.assignable = 1;
-		let o = z$1(e, t, r, 0, 1, e.tokenStart);
-		D$1(e, t | 32, 16);
+		A(e, t), D(e, t | 32, 67174411), e.assignable = 1;
+		let o = z(e, t, r, 0, 1, e.tokenStart);
+		D(e, t | 32, 16);
 		let s = Ot(e, t, n, r, i), c = null;
-		return e.getToken() === 20563 && (A$1(e, t | 32), c = Ot(e, t, n, r, i)), e.finishNode({
+		return e.getToken() === 20563 && (A(e, t | 32), c = Ot(e, t, n, r, i)), e.finishNode({
 			type: "IfStatement",
 			test: o,
 			consequent: s,
@@ -20181,24 +20348,24 @@ var vot = (function(exports) {
 	}
 	function Ot(e, t, n, r, i) {
 		let { tokenStart: a } = e;
-		return t & 1 || !e.options.webcompat || e.getToken() !== 86104 ? N$1(e, t, n, r, 0, { $: i }, 0) : J(e, t, n?.createChildScope(), r, 0, 0, 0, 0, a);
+		return t & 1 || !e.options.webcompat || e.getToken() !== 86104 ? N(e, t, n, r, 0, { $: i }, 0) : J(e, t, n?.createChildScope(), r, 0, 0, 0, 0, a);
 	}
 	function kt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t), D$1(e, t | 32, 67174411);
-		let o = z$1(e, t, r, 0, 1, e.tokenStart);
-		D$1(e, t, 16), D$1(e, t, 2162700);
+		A(e, t), D(e, t | 32, 67174411);
+		let o = z(e, t, r, 0, 1, e.tokenStart);
+		D(e, t, 16), D(e, t, 2162700);
 		let s = [], c = 0;
 		for (n = n?.createChildScope(8); e.getToken() !== 1074790415;) {
 			let { tokenStart: a } = e, o = null, l = [];
-			for (E$1(e, t | 32, 20556) ? o = z$1(e, t, r, 0, 1, e.tokenStart) : (D$1(e, t | 32, 20561), c && e.report(89), c = 1), D$1(e, t | 32, 21); e.getToken() !== 20556 && e.getToken() !== 1074790415 && e.getToken() !== 20561;) l.push(M$1(e, t | 4, n, r, 2, { $: i }));
+			for (E(e, t | 32, 20556) ? o = z(e, t, r, 0, 1, e.tokenStart) : (D(e, t | 32, 20561), c && e.report(89), c = 1), D(e, t | 32, 21); e.getToken() !== 20556 && e.getToken() !== 1074790415 && e.getToken() !== 20561;) l.push(M(e, t | 4, n, r, 2, { $: i }));
 			s.push(e.finishNode({
 				type: "SwitchCase",
 				test: o,
 				consequent: l
 			}, a));
 		}
-		return D$1(e, t | 32, 1074790415), e.finishNode({
+		return D(e, t | 32, 1074790415), e.finishNode({
 			type: "SwitchStatement",
 			discriminant: o,
 			cases: s
@@ -20206,9 +20373,9 @@ var vot = (function(exports) {
 	}
 	function At(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t), D$1(e, t | 32, 67174411);
-		let o = z$1(e, t, r, 0, 1, e.tokenStart);
-		D$1(e, t | 32, 16);
+		A(e, t), D(e, t | 32, 67174411);
+		let o = z(e, t, r, 0, 1, e.tokenStart);
+		D(e, t | 32, 16);
 		let s = F(e, t, n, r, i);
 		return e.finishNode({
 			type: "WhileStatement",
@@ -20217,7 +20384,7 @@ var vot = (function(exports) {
 		}, a);
 	}
 	function F(e, t, n, r, i) {
-		return N$1(e, (t | 131072) ^ 131072 | 128, n, r, 0, {
+		return N(e, (t | 131072) ^ 131072 | 128, n, r, 0, {
 			loop: 1,
 			$: i
 		}, 0);
@@ -20225,36 +20392,36 @@ var vot = (function(exports) {
 	function jt(e, t, n) {
 		t & 128 || e.report(68);
 		let r = e.tokenStart;
-		A$1(e, t);
+		A(e, t);
 		let i = null;
 		if (!(e.flags & 1) && e.getToken() & 143360) {
 			let { tokenValue: r } = e;
 			i = K(e, t | 32), He(e, n, r, 1) || e.report(138, r);
 		}
-		return T$1(e, t | 32), e.finishNode({
+		return T(e, t | 32), e.finishNode({
 			type: "ContinueStatement",
 			label: i
 		}, r);
 	}
 	function Mt(e, t, n) {
 		let r = e.tokenStart;
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let i = null;
 		if (!(e.flags & 1) && e.getToken() & 143360) {
 			let { tokenValue: r } = e;
 			i = K(e, t | 32), He(e, n, r, 0) || e.report(138, r);
 		} else t & 132 || e.report(69);
-		return T$1(e, t | 32), e.finishNode({
+		return T(e, t | 32), e.finishNode({
 			type: "BreakStatement",
 			label: i
 		}, r);
 	}
 	function Nt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t), t & 1 && e.report(91), D$1(e, t | 32, 67174411);
-		let o = z$1(e, t, r, 0, 1, e.tokenStart);
-		D$1(e, t | 32, 16);
-		let s = N$1(e, t, n, r, 2, i, 0);
+		A(e, t), t & 1 && e.report(91), D(e, t | 32, 67174411);
+		let o = z(e, t, r, 0, 1, e.tokenStart);
+		D(e, t | 32, 16);
+		let s = N(e, t, n, r, 2, i, 0);
 		return e.finishNode({
 			type: "WithStatement",
 			object: o,
@@ -20263,14 +20430,14 @@ var vot = (function(exports) {
 	}
 	function Pt(e, t) {
 		let n = e.tokenStart;
-		return A$1(e, t | 32), T$1(e, t | 32), e.finishNode({ type: "DebuggerStatement" }, n);
+		return A(e, t | 32), T(e, t | 32), e.finishNode({ type: "DebuggerStatement" }, n);
 	}
 	function Ft(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t | 32);
-		let o = n?.createChildScope(16), s = bt(e, t, o, r, { $: i }), { tokenStart: c } = e, l = E$1(e, t | 32, 20557) ? It(e, t, n, r, i, c) : null, u = null;
+		A(e, t | 32);
+		let o = n?.createChildScope(16), s = bt(e, t, o, r, { $: i }), { tokenStart: c } = e, l = E(e, t | 32, 20557) ? It(e, t, n, r, i, c) : null, u = null;
 		if (e.getToken() === 20566) {
-			A$1(e, t | 32);
+			A(e, t | 32);
 			let a = n?.createChildScope(4);
 			u = bt(e, t, a, r, { $: i });
 		}
@@ -20283,7 +20450,7 @@ var vot = (function(exports) {
 	}
 	function It(e, t, n, r, i, a) {
 		let o = null, s = n;
-		E$1(e, t, 67174411) && (n = n?.createChildScope(4), o = Zn(e, t, n, r, (e.getToken() & 2097152) == 2097152 ? 256 : 512, 0), e.getToken() === 18 ? e.report(86) : e.getToken() === 1077936155 && e.report(87), D$1(e, t | 32, 16)), s = n?.createChildScope(32);
+		E(e, t, 67174411) && (n = n?.createChildScope(4), o = Zn(e, t, n, r, (e.getToken() & 2097152) == 2097152 ? 256 : 512, 0), e.getToken() === 18 ? e.report(86) : e.getToken() === 1077936155 && e.report(87), D(e, t | 32, 16)), s = n?.createChildScope(32);
 		let c = bt(e, t, s, r, { $: i });
 		return e.finishNode({
 			type: "CatchClause",
@@ -20298,11 +20465,11 @@ var vot = (function(exports) {
 	}
 	function Rt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let o = F(e, t, n, r, i);
-		D$1(e, t, 20578), D$1(e, t | 32, 67174411);
-		let s = z$1(e, t, r, 0, 1, e.tokenStart);
-		return D$1(e, t | 32, 16), E$1(e, t | 32, 1074790417), e.finishNode({
+		D(e, t, 20578), D(e, t | 32, 67174411);
+		let s = z(e, t, r, 0, 1, e.tokenStart);
+		return D(e, t | 32, 16), E(e, t | 32, 1074790417), e.finishNode({
 			type: "DoWhileStatement",
 			body: o,
 			test: s
@@ -20311,8 +20478,8 @@ var vot = (function(exports) {
 	function zt(e, t, n, r, i) {
 		let { tokenValue: a, tokenStart: o } = e, s = e.getToken(), c = K(e, t);
 		if (e.getToken() & 2240512) {
-			let i = I$1(e, t, n, r, 8, 0);
-			return T$1(e, t | 32), e.finishNode({
+			let i = I(e, t, n, r, 8, 0);
+			return T(e, t | 32), e.finishNode({
 				type: "VariableDeclaration",
 				kind: "let",
 				declarations: i
@@ -20322,14 +20489,14 @@ var vot = (function(exports) {
 		if (e.getToken() === 10) {
 			let n;
 			e.options.lexical && (n = lt(e, t, a)), e.flags = (e.flags | 128) ^ 128, c = Fn(e, t, n, r, [c], 0, o);
-		} else c = W(e, t, r, c, 0, 0, o), c = B$1(e, t, r, 0, 0, o, c);
-		return e.getToken() === 18 && (c = R$1(e, t, r, 0, o, c)), P$1(e, t, c, o);
+		} else c = W(e, t, r, c, 0, 0, o), c = B(e, t, r, 0, 0, o, c);
+		return e.getToken() === 18 && (c = R(e, t, r, 0, o, c)), P(e, t, c, o);
 	}
 	function Bt(e, t, n, r, i, a) {
 		let o = e.tokenStart;
-		A$1(e, t);
-		let s = I$1(e, t, n, r, i, a);
-		return T$1(e, t | 32), e.finishNode({
+		A(e, t);
+		let s = I(e, t, n, r, i, a);
+		return T(e, t | 32), e.finishNode({
 			type: "VariableDeclaration",
 			kind: i & 8 ? "let" : "const",
 			declarations: s
@@ -20337,23 +20504,23 @@ var vot = (function(exports) {
 	}
 	function Vt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t);
-		let o = I$1(e, t, n, r, 4, i);
-		return T$1(e, t | 32), e.finishNode({
+		A(e, t);
+		let o = I(e, t, n, r, 4, i);
+		return T(e, t | 32), e.finishNode({
 			type: "VariableDeclaration",
 			kind: "var",
 			declarations: o
 		}, a);
 	}
-	function I$1(e, t, n, r, i, a) {
+	function I(e, t, n, r, i, a) {
 		let o = 1, s = [Ht(e, t, n, r, i, a)];
-		for (; E$1(e, t, 18);) o++, s.push(Ht(e, t, n, r, i, a));
-		return o > 1 && a & 32 && e.getToken() & 262144 && e.report(61, w$1[e.getToken() & 255]), s;
+		for (; E(e, t, 18);) o++, s.push(Ht(e, t, n, r, i, a));
+		return o > 1 && a & 32 && e.getToken() & 262144 && e.report(61, w[e.getToken() & 255]), s;
 	}
 	function Ht(e, t, n, r, i, a) {
 		let { tokenStart: o } = e, s = e.getToken(), c = null, l = Zn(e, t, n, r, i, a);
 		if (e.getToken() === 1077936155) {
-			if (A$1(e, t | 32), c = L$1(e, t, r, 1, 0, e.tokenStart), (a & 32 || !(s & 2097152)) && (e.getToken() === 471156 || e.getToken() === 8673330 && (s & 2097152 || !(i & 4) || t & 1))) throw new C$1(o, e.currentLocation, 60, e.getToken() === 471156 ? "of" : "in");
+			if (A(e, t | 32), c = L(e, t, r, 1, 0, e.tokenStart), (a & 32 || !(s & 2097152)) && (e.getToken() === 471156 || e.getToken() === 8673330 && (s & 2097152 || !(i & 4) || t & 1))) throw new C(o, e.currentLocation, 60, e.getToken() === 471156 ? "of" : "in");
 		} else (i & 16 || (s & 2097152) > 0) && (e.getToken() & 262144) != 262144 && e.report(59, i & 16 ? "const" : "destructuring");
 		return e.finishNode({
 			type: "VariableDeclarator",
@@ -20363,22 +20530,22 @@ var vot = (function(exports) {
 	}
 	function Ut(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A$1(e, t);
-		let o = ((t & 2048) > 0 || (t & 2) > 0 && (t & 8) > 0) && E$1(e, t, 209006);
-		D$1(e, t | 32, 67174411), n = n?.createChildScope(1);
+		A(e, t);
+		let o = ((t & 2048) > 0 || (t & 2) > 0 && (t & 8) > 0) && E(e, t, 209006);
+		D(e, t | 32, 67174411), n = n?.createChildScope(1);
 		let s = null, c = null, l = 0, u = null, d = e.getToken() === 86088 || e.getToken() === 241737 || e.getToken() === 86090, f, { tokenStart: p } = e, m = e.getToken();
 		if (d) m === 241737 ? (u = K(e, t), e.getToken() & 2240512 ? (e.getToken() === 8673330 ? t & 1 && e.report(67) : u = e.finishNode({
 			type: "VariableDeclaration",
 			kind: "let",
-			declarations: I$1(e, t | 131072, n, r, 8, 32)
-		}, p), e.assignable = 1) : t & 1 ? e.report(67) : (d = !1, e.assignable = 1, u = W(e, t, r, u, 0, 0, p), e.getToken() === 471156 && e.report(115))) : (A$1(e, t), u = e.finishNode(m === 86088 ? {
+			declarations: I(e, t | 131072, n, r, 8, 32)
+		}, p), e.assignable = 1) : t & 1 ? e.report(67) : (d = !1, e.assignable = 1, u = W(e, t, r, u, 0, 0, p), e.getToken() === 471156 && e.report(115))) : (A(e, t), u = e.finishNode(m === 86088 ? {
 			type: "VariableDeclaration",
 			kind: "var",
-			declarations: I$1(e, t | 131072, n, r, 4, 32)
+			declarations: I(e, t | 131072, n, r, 4, 32)
 		} : {
 			type: "VariableDeclaration",
 			kind: "const",
-			declarations: I$1(e, t | 131072, n, r, 16, 32)
+			declarations: I(e, t | 131072, n, r, 16, 32)
 		}, p), e.assignable = 1);
 		else if (m === 1074790417) o && e.report(82);
 		else if ((m & 2097152) == 2097152) {
@@ -20387,7 +20554,7 @@ var vot = (function(exports) {
 		} else u = U(e, t | 131072, r, 1, 0, 1);
 		if ((e.getToken() & 262144) == 262144) {
 			if (e.getToken() === 471156) {
-				e.assignable & 2 && e.report(80, o ? "await" : "of"), O(e, u), A$1(e, t | 32), f = L$1(e, t, r, 1, 0, e.tokenStart), D$1(e, t | 32, 16);
+				e.assignable & 2 && e.report(80, o ? "await" : "of"), O(e, u), A(e, t | 32), f = L(e, t, r, 1, 0, e.tokenStart), D(e, t | 32, 16);
 				let s = F(e, t, n, r, i);
 				return e.finishNode({
 					type: "ForOfStatement",
@@ -20397,7 +20564,7 @@ var vot = (function(exports) {
 					await: o
 				}, a);
 			}
-			e.assignable & 2 && e.report(80, "in"), O(e, u), A$1(e, t | 32), o && e.report(82), f = z$1(e, t, r, 0, 1, e.tokenStart), D$1(e, t | 32, 16);
+			e.assignable & 2 && e.report(80, "in"), O(e, u), A(e, t | 32), o && e.report(82), f = z(e, t, r, 0, 1, e.tokenStart), D(e, t | 32, 16);
 			let s = F(e, t, n, r, i);
 			return e.finishNode({
 				type: "ForInStatement",
@@ -20406,7 +20573,7 @@ var vot = (function(exports) {
 				right: f
 			}, a);
 		}
-		o && e.report(82), d || (l & 8 && e.getToken() !== 1077936155 && e.report(80, "loop"), u = B$1(e, t | 131072, r, 0, 0, p, u)), e.getToken() === 18 && (u = R$1(e, t, r, 0, p, u)), D$1(e, t | 32, 1074790417), e.getToken() !== 1074790417 && (s = z$1(e, t, r, 0, 1, e.tokenStart)), D$1(e, t | 32, 1074790417), e.getToken() !== 16 && (c = z$1(e, t, r, 0, 1, e.tokenStart)), D$1(e, t | 32, 16);
+		o && e.report(82), d || (l & 8 && e.getToken() !== 1077936155 && e.report(80, "loop"), u = B(e, t | 131072, r, 0, 0, p, u)), e.getToken() === 18 && (u = R(e, t, r, 0, p, u)), D(e, t | 32, 1074790417), e.getToken() !== 1074790417 && (s = z(e, t, r, 0, 1, e.tokenStart)), D(e, t | 32, 1074790417), e.getToken() !== 16 && (c = z(e, t, r, 0, 1, e.tokenStart)), D(e, t | 32, 16);
 		let h = F(e, t, n, r, i);
 		return e.finishNode({
 			type: "ForStatement",
@@ -20417,11 +20584,11 @@ var vot = (function(exports) {
 		}, a);
 	}
 	function Wt(e, t, n) {
-		return k$1(t, e.getToken()) || e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), n?.addBlockName(t, e.tokenValue, 8, 0), K(e, t);
+		return k(t, e.getToken()) || e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), n?.addBlockName(t, e.tokenValue, 8, 0), K(e, t);
 	}
 	function Gt(e, t, n) {
 		let r = e.tokenStart;
-		A$1(e, t);
+		A(e, t);
 		let i = null, { tokenStart: a } = e, o = [];
 		if (e.getToken() === 134283267) i = q(e, t);
 		else {
@@ -20430,7 +20597,7 @@ var vot = (function(exports) {
 				if (o = [e.finishNode({
 					type: "ImportDefaultSpecifier",
 					local: r
-				}, a)], E$1(e, t, 18)) switch (e.getToken()) {
+				}, a)], E(e, t, 18)) switch (e.getToken()) {
 					case 8391476:
 						o.push(Kt(e, t, n));
 						break;
@@ -20448,7 +20615,7 @@ var vot = (function(exports) {
 					break;
 				case 67174411: return Xt(e, t, void 0, r);
 				case 67108877: return Yt(e, t, r);
-				default: e.report(30, w$1[e.getToken() & 255]);
+				default: e.report(30, w[e.getToken() & 255]);
 			}
 			i = qt(e, t);
 		}
@@ -20458,46 +20625,46 @@ var vot = (function(exports) {
 			source: i,
 			attributes: s
 		};
-		return T$1(e, t | 32), e.finishNode(c, r);
+		return T(e, t | 32), e.finishNode(c, r);
 	}
 	function Kt(e, t, n) {
 		let { tokenStart: r } = e;
-		if (A$1(e, t), D$1(e, t, 77932), (e.getToken() & 134217728) == 134217728) throw new C$1(r, e.currentLocation, 30, w$1[e.getToken() & 255]);
+		if (A(e, t), D(e, t, 77932), (e.getToken() & 134217728) == 134217728) throw new C(r, e.currentLocation, 30, w[e.getToken() & 255]);
 		return e.finishNode({
 			type: "ImportNamespaceSpecifier",
 			local: Wt(e, t, n)
 		}, r);
 	}
 	function qt(e, t) {
-		return D$1(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Import"), q(e, t);
+		return D(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Import"), q(e, t);
 	}
 	function Jt(e, t, n, r) {
-		for (A$1(e, t); e.getToken() & 143360 || e.getToken() === 134283267;) {
+		for (A(e, t); e.getToken() & 143360 || e.getToken() === 134283267;) {
 			let { tokenValue: i, tokenStart: a } = e, o = e.getToken(), s = _n(e, t), c;
-			E$1(e, t, 77932) ? ((e.getToken() & 134217728) == 134217728 || e.getToken() === 18 ? e.report(106) : Re(e, t, 16, e.getToken(), 0), i = e.tokenValue, c = K(e, t)) : s.type === "Identifier" ? (Re(e, t, 16, o, 0), c = s) : e.report(25, w$1[108]), n?.addBlockName(t, i, 8, 0), r.push(e.finishNode({
+			E(e, t, 77932) ? ((e.getToken() & 134217728) == 134217728 || e.getToken() === 18 ? e.report(106) : Re(e, t, 16, e.getToken(), 0), i = e.tokenValue, c = K(e, t)) : s.type === "Identifier" ? (Re(e, t, 16, o, 0), c = s) : e.report(25, w[108]), n?.addBlockName(t, i, 8, 0), r.push(e.finishNode({
 				type: "ImportSpecifier",
 				local: c,
 				imported: s
-			}, a)), e.getToken() !== 1074790415 && D$1(e, t, 18);
+			}, a)), e.getToken() !== 1074790415 && D(e, t, 18);
 		}
-		return D$1(e, t, 1074790415), r;
+		return D(e, t, 1074790415), r;
 	}
 	function Yt(e, t, n) {
 		let r = dn(e, t, e.finishNode({
 			type: "Identifier",
 			name: "import"
 		}, n), n);
-		return r = W(e, t, void 0, r, 0, 0, n), r = B$1(e, t, void 0, 0, 0, n, r), e.getToken() === 18 && (r = R$1(e, t, void 0, 0, n, r)), P$1(e, t, r, n);
+		return r = W(e, t, void 0, r, 0, 0, n), r = B(e, t, void 0, 0, 0, n, r), e.getToken() === 18 && (r = R(e, t, void 0, 0, n, r)), P(e, t, r, n);
 	}
 	function Xt(e, t, n, r) {
 		let i = fn(e, t, n, 0, r);
-		return i = W(e, t, n, i, 0, 0, r), e.getToken() === 18 && (i = R$1(e, t, n, 0, r, i)), P$1(e, t, i, r);
+		return i = W(e, t, n, i, 0, 0, r), e.getToken() === 18 && (i = R(e, t, n, 0, r, i)), P(e, t, i, r);
 	}
 	function Zt(e, t, n) {
 		let r = e.leadingDecorators.decorators.length ? e.leadingDecorators.start : e.tokenStart;
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let i = [], a = null, o = null, s = [];
-		if (E$1(e, t | 32, 20561)) {
+		if (E(e, t | 32, 20561)) {
 			switch (e.getToken()) {
 				case 86104:
 					a = J(e, t, n, void 0, 4, 1, 1, 0, e.tokenStart);
@@ -20510,10 +20677,10 @@ var vot = (function(exports) {
 					let { tokenStart: r } = e;
 					a = K(e, t);
 					let { flags: i } = e;
-					i & 1 || (e.getToken() === 86104 ? a = J(e, t, n, void 0, 4, 1, 1, 1, r) : e.getToken() === 67174411 ? (a = Vn(e, t, void 0, a, 1, 1, 0, i, r), a = W(e, t, void 0, a, 0, 0, r), a = B$1(e, t, void 0, 0, 0, r, a)) : e.getToken() & 143360 && (n &&= lt(e, t, e.tokenValue), a = K(e, t), a = Fn(e, t, n, void 0, [a], 1, r)));
+					i & 1 || (e.getToken() === 86104 ? a = J(e, t, n, void 0, 4, 1, 1, 1, r) : e.getToken() === 67174411 ? (a = Vn(e, t, void 0, a, 1, 1, 0, i, r), a = W(e, t, void 0, a, 0, 0, r), a = B(e, t, void 0, 0, 0, r, a)) : e.getToken() & 143360 && (n &&= lt(e, t, e.tokenValue), a = K(e, t), a = Fn(e, t, n, void 0, [a], 1, r)));
 					break;
 				}
-				default: a = L$1(e, t, void 0, 1, 0, e.tokenStart), T$1(e, t | 32);
+				default: a = L(e, t, void 0, 1, 0, e.tokenStart), T(e, t | 32);
 			}
 			return n && e.declareUnboundVariable("default"), e.finishNode({
 				type: "ExportDefaultDeclaration",
@@ -20522,31 +20689,31 @@ var vot = (function(exports) {
 		}
 		switch (e.getToken()) {
 			case 8391476: {
-				A$1(e, t);
+				A(e, t);
 				let i = null;
-				E$1(e, t, 77932) && (n && e.declareUnboundVariable(e.tokenValue), i = _n(e, t)), D$1(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Export"), o = q(e, t);
+				E(e, t, 77932) && (n && e.declareUnboundVariable(e.tokenValue), i = _n(e, t)), D(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Export"), o = q(e, t);
 				let a = pn(e, t), s = {
 					type: "ExportAllDeclaration",
 					source: o,
 					exported: i,
 					attributes: a
 				};
-				return T$1(e, t | 32), e.finishNode(s, r);
+				return T(e, t | 32), e.finishNode(s, r);
 			}
 			case 2162700: {
-				A$1(e, t);
+				A(e, t);
 				let r = [], a = [], c = 0;
 				for (; e.getToken() & 143360 || e.getToken() === 134283267;) {
 					let { tokenStart: o, tokenValue: s } = e, l = _n(e, t);
 					l.type === "Literal" && (c = 1);
 					let u;
-					e.getToken() === 77932 ? (A$1(e, t), !(e.getToken() & 143360) && e.getToken() !== 134283267 && e.report(106), n && (r.push(e.tokenValue), a.push(s)), u = _n(e, t)) : (n && (r.push(e.tokenValue), a.push(e.tokenValue)), u = l), i.push(e.finishNode({
+					e.getToken() === 77932 ? (A(e, t), !(e.getToken() & 143360) && e.getToken() !== 134283267 && e.report(106), n && (r.push(e.tokenValue), a.push(s)), u = _n(e, t)) : (n && (r.push(e.tokenValue), a.push(e.tokenValue)), u = l), i.push(e.finishNode({
 						type: "ExportSpecifier",
 						local: l,
 						exported: u
-					}, o)), e.getToken() !== 1074790415 && D$1(e, t, 18);
+					}, o)), e.getToken() !== 1074790415 && D(e, t, 18);
 				}
-				D$1(e, t, 1074790415), E$1(e, t, 209011) ? (e.getToken() !== 134283267 && e.report(105, "Export"), o = q(e, t), s = pn(e, t), n && r.forEach((t) => e.declareUnboundVariable(t))) : (c && e.report(172), n && (r.forEach((t) => e.declareUnboundVariable(t)), a.forEach((t) => e.addBindingToExports(t)))), T$1(e, t | 32);
+				D(e, t, 1074790415), E(e, t, 209011) ? (e.getToken() !== 134283267 && e.report(105, "Export"), o = q(e, t), s = pn(e, t), n && r.forEach((t) => e.declareUnboundVariable(t))) : (c && e.report(172), n && (r.forEach((t) => e.declareUnboundVariable(t)), a.forEach((t) => e.addBindingToExports(t)))), T(e, t | 32);
 				break;
 			}
 			case 132:
@@ -20567,12 +20734,12 @@ var vot = (function(exports) {
 				break;
 			case 209005: {
 				let { tokenStart: r } = e;
-				if (A$1(e, t), !(e.flags & 1) && e.getToken() === 86104) {
+				if (A(e, t), !(e.flags & 1) && e.getToken() === 86104) {
 					a = J(e, t, n, void 0, 4, 1, 2, 1, r);
 					break;
 				}
 			}
-			default: e.report(30, w$1[e.getToken() & 255]);
+			default: e.report(30, w[e.getToken() & 255]);
 		}
 		let c = {
 			type: "ExportNamedDeclaration",
@@ -20583,27 +20750,27 @@ var vot = (function(exports) {
 		};
 		return e.finishNode(c, r);
 	}
-	function L$1(e, t, n, r, i, a) {
+	function L(e, t, n, r, i, a) {
 		let o = G(e, t, n, 2, 0, r, i, 1, a);
-		return o = W(e, t, n, o, i, 0, a), B$1(e, t, n, i, 0, a, o);
+		return o = W(e, t, n, o, i, 0, a), B(e, t, n, i, 0, a, o);
 	}
-	function R$1(e, t, n, r, i, a) {
+	function R(e, t, n, r, i, a) {
 		let o = [a];
-		for (; E$1(e, t | 32, 18);) o.push(L$1(e, t, n, 1, r, e.tokenStart));
+		for (; E(e, t | 32, 18);) o.push(L(e, t, n, 1, r, e.tokenStart));
 		return e.finishNode({
 			type: "SequenceExpression",
 			expressions: o
 		}, i);
 	}
-	function z$1(e, t, n, r, i, a) {
-		let o = L$1(e, t, n, i, r, a);
-		return e.getToken() === 18 ? R$1(e, t, n, r, a, o) : o;
+	function z(e, t, n, r, i, a) {
+		let o = L(e, t, n, i, r, a);
+		return e.getToken() === 18 ? R(e, t, n, r, a, o) : o;
 	}
-	function B$1(e, t, n, r, i, a, o) {
+	function B(e, t, n, r, i, a, o) {
 		let s = e.getToken();
 		if ((s & 4194304) == 4194304) {
-			e.assignable & 2 && e.report(26), (!i && s === 1077936155 && o.type === "ArrayExpression" || o.type === "ObjectExpression") && O(e, o), A$1(e, t | 32);
-			let c = L$1(e, t, n, 1, r, e.tokenStart);
+			e.assignable & 2 && e.report(26), (!i && s === 1077936155 && o.type === "ArrayExpression" || o.type === "ObjectExpression") && O(e, o), A(e, t | 32);
+			let c = L(e, t, n, 1, r, e.tokenStart);
 			return e.assignable = 2, e.finishNode(i ? {
 				type: "AssignmentPattern",
 				left: o,
@@ -20611,16 +20778,16 @@ var vot = (function(exports) {
 			} : {
 				type: "AssignmentExpression",
 				left: o,
-				operator: w$1[s & 255],
+				operator: w[s & 255],
 				right: c
 			}, a);
 		}
-		return (s & 8388608) == 8388608 && (o = H$1(e, t, n, r, a, 4, s, o)), E$1(e, t | 32, 22) && (o = V$1(e, t, n, o, a)), o;
+		return (s & 8388608) == 8388608 && (o = H(e, t, n, r, a, 4, s, o)), E(e, t | 32, 22) && (o = V(e, t, n, o, a)), o;
 	}
 	function Qt(e, t, n, r, i, a, o) {
 		let s = e.getToken();
-		A$1(e, t | 32);
-		let c = L$1(e, t, n, 1, r, e.tokenStart);
+		A(e, t | 32);
+		let c = L(e, t, n, 1, r, e.tokenStart);
 		return o = e.finishNode(i ? {
 			type: "AssignmentPattern",
 			left: o,
@@ -20628,14 +20795,14 @@ var vot = (function(exports) {
 		} : {
 			type: "AssignmentExpression",
 			left: o,
-			operator: w$1[s & 255],
+			operator: w[s & 255],
 			right: c
 		}, a), e.assignable = 2, o;
 	}
-	function V$1(e, t, n, r, i) {
-		let a = L$1(e, (t | 131072) ^ 131072, n, 1, 0, e.tokenStart);
-		D$1(e, t | 32, 21), e.assignable = 1;
-		let o = L$1(e, t, n, 1, 0, e.tokenStart);
+	function V(e, t, n, r, i) {
+		let a = L(e, (t | 131072) ^ 131072, n, 1, 0, e.tokenStart);
+		D(e, t | 32, 21), e.assignable = 1;
+		let o = L(e, t, n, 1, 0, e.tokenStart);
 		return e.assignable = 2, e.finishNode({
 			type: "ConditionalExpression",
 			test: r,
@@ -20643,24 +20810,24 @@ var vot = (function(exports) {
 			alternate: o
 		}, i);
 	}
-	function H$1(e, t, n, r, i, a, o, s) {
+	function H(e, t, n, r, i, a, o, s) {
 		let c = -((t & 131072) > 0) & 8673330, l, u;
-		for (e.assignable = 2; e.getToken() & 8388608 && (l = e.getToken(), u = l & 3840, (l & 524288 && o & 268435456 || o & 524288 && l & 268435456) && e.report(165), !(u + ((l === 8391735) << 8) - ((c === l) << 12) <= a));) A$1(e, t | 32), s = e.finishNode({
+		for (e.assignable = 2; e.getToken() & 8388608 && (l = e.getToken(), u = l & 3840, (l & 524288 && o & 268435456 || o & 524288 && l & 268435456) && e.report(165), !(u + ((l === 8391735) << 8) - ((c === l) << 12) <= a));) A(e, t | 32), s = e.finishNode({
 			type: l & 524288 || l & 268435456 ? "LogicalExpression" : "BinaryExpression",
 			left: s,
-			right: H$1(e, t, n, r, e.tokenStart, u, l, U(e, t, n, 0, r, 1)),
-			operator: w$1[l & 255]
+			right: H(e, t, n, r, e.tokenStart, u, l, U(e, t, n, 0, r, 1)),
+			operator: w[l & 255]
 		}, i);
 		return e.getToken() === 1077936155 && e.report(26), s;
 	}
 	function $t(e, t, n, r, i) {
 		r || e.report(0);
 		let { tokenStart: a } = e, o = e.getToken();
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let s = U(e, t, n, 0, i, 1);
 		return e.getToken() === 8391735 && e.report(33), t & 1 && o === 16863276 && (s.type === "Identifier" ? e.report(121) : Ve(s) && e.report(127)), e.assignable = 2, e.finishNode({
 			type: "UnaryExpression",
-			operator: w$1[o & 255],
+			operator: w[o & 255],
 			argument: s,
 			prefix: !0
 		}, a);
@@ -20669,15 +20836,15 @@ var vot = (function(exports) {
 		let c = e.getToken(), l = K(e, t), { flags: u } = e;
 		if (!(u & 1)) {
 			if (e.getToken() === 86104) return En(e, t, n, 1, r, s);
-			if (k$1(t, e.getToken())) return i || e.report(0), (e.getToken() & 36864) == 36864 && (e.flags |= 256), Bn(e, t, n, a, s);
+			if (k(t, e.getToken())) return i || e.report(0), (e.getToken() & 36864) == 36864 && (e.flags |= 256), Bn(e, t, n, a, s);
 		}
 		return !o && e.getToken() === 67174411 ? Vn(e, t, n, l, a, 1, 0, u, s) : e.getToken() === 10 ? (Ge(e, t, c), o && e.report(51), (c & 36864) == 36864 && (e.flags |= 256), Nn(e, t, n, e.tokenValue, l, o, a, 0, s)) : (e.assignable = 1, l);
 	}
 	function tn(e, t, n, r, i, a) {
 		if (r && (e.destructible |= 256), t & 1024) {
-			A$1(e, t | 32), t & 8192 && e.report(32), i || e.report(26), e.getToken() === 22 && e.report(124);
+			A(e, t | 32), t & 8192 && e.report(32), i || e.report(26), e.getToken() === 22 && e.report(124);
 			let r = null, o = !1;
-			return e.flags & 1 ? e.getToken() === 8391476 && e.report(30, w$1[e.getToken() & 255]) : (o = E$1(e, t | 32, 8391476), (e.getToken() & 77824 || o) && (r = L$1(e, t, n, 1, 0, e.tokenStart))), e.assignable = 2, e.finishNode({
+			return e.flags & 1 ? e.getToken() === 8391476 && e.report(30, w[e.getToken() & 255]) : (o = E(e, t | 32, 8391476), (e.getToken() & 77824 || o) && (r = L(e, t, n, 1, 0, e.tokenStart))), e.assignable = 2, e.finishNode({
 				type: "YieldExpression",
 				argument: r,
 				delegate: o
@@ -20689,25 +20856,25 @@ var vot = (function(exports) {
 		i && (e.destructible |= 128), t & 524288 && e.report(177);
 		let o = Mn(e, t, n);
 		if (o.type === "ArrowFunctionExpression" || !(e.getToken() & 65536)) {
-			if (t & 2048) throw new C$1(a, {
+			if (t & 2048) throw new C(a, {
 				index: e.startIndex,
 				line: e.startLine,
 				column: e.startColumn
 			}, 176);
-			if (t & 2 || t & 8192 && t & 2048) throw new C$1(a, {
+			if (t & 2 || t & 8192 && t & 2048) throw new C(a, {
 				index: e.startIndex,
 				line: e.startLine,
 				column: e.startColumn
 			}, 110);
 			return o;
 		}
-		if (t & 8192) throw new C$1(a, {
+		if (t & 8192) throw new C(a, {
 			index: e.startIndex,
 			line: e.startLine,
 			column: e.startColumn
 		}, 31);
 		if (t & 2048 || t & 2 && t & 8) {
-			if (r) throw new C$1(a, {
+			if (r) throw new C(a, {
 				index: e.startIndex,
 				line: e.startLine,
 				column: e.startColumn
@@ -20718,7 +20885,7 @@ var vot = (function(exports) {
 				argument: i
 			}, a);
 		}
-		if (t & 2) throw new C$1(a, {
+		if (t & 2) throw new C(a, {
 			index: e.startIndex,
 			line: e.startLine,
 			column: e.startColumn
@@ -20727,30 +20894,30 @@ var vot = (function(exports) {
 	}
 	function rn(e, t, n, r, i, a, o) {
 		let { tokenStart: s } = e;
-		D$1(e, t | 32, 2162700);
+		D(e, t | 32, 2162700);
 		let c = [];
 		if (e.getToken() !== 1074790415) {
 			for (; e.getToken() === 134283267;) {
 				let { index: n, tokenStart: r, tokenIndex: i, tokenValue: a } = e, s = e.getToken(), l = q(e, t);
 				if (Ie(e, n, i, a)) {
-					if (t |= 1, e.flags & 128) throw new C$1(r, e.currentLocation, 66);
-					if (e.flags & 64) throw new C$1(r, e.currentLocation, 9);
-					if (e.flags & 4096) throw new C$1(r, e.currentLocation, 15);
+					if (t |= 1, e.flags & 128) throw new C(r, e.currentLocation, 66);
+					if (e.flags & 64) throw new C(r, e.currentLocation, 9);
+					if (e.flags & 4096) throw new C(r, e.currentLocation, 15);
 					o?.reportScopeError();
 				}
 				c.push(wt(e, t, l, s, r));
 			}
 			t & 1 && (a && ((a & 537079808) == 537079808 && e.report(119), (a & 36864) == 36864 && e.report(40)), e.flags & 512 && e.report(119), e.flags & 256 && e.report(118));
 		}
-		for (e.flags = (e.flags | 4928) ^ 4928, e.destructible = (e.destructible | 256) ^ 256; e.getToken() !== 1074790415;) c.push(M$1(e, t, n, r, 4, {}));
-		return D$1(e, i & 24 ? t | 32 : t, 1074790415), e.flags &= -4289, e.getToken() === 1077936155 && e.report(26), e.finishNode({
+		for (e.flags = (e.flags | 4928) ^ 4928, e.destructible = (e.destructible | 256) ^ 256; e.getToken() !== 1074790415;) c.push(M(e, t, n, r, 4, {}));
+		return D(e, i & 24 ? t | 32 : t, 1074790415), e.flags &= -4289, e.getToken() === 1077936155 && e.report(26), e.finishNode({
 			type: "BlockStatement",
 			body: c
 		}, s);
 	}
 	function an(e, t) {
 		let { tokenStart: n } = e;
-		switch (A$1(e, t), e.getToken()) {
+		switch (A(e, t), e.getToken()) {
 			case 67108990: e.report(167);
 			case 67174411:
 				t & 512 || e.report(28), e.assignable = 2;
@@ -20767,22 +20934,22 @@ var vot = (function(exports) {
 		let o = e.tokenStart;
 		return W(e, t, n, G(e, t, n, 2, 0, r, i, a, o), i, 0, o);
 	}
-	function on(e, t, n, r) {
+	function on$1(e, t, n, r) {
 		e.assignable & 2 && e.report(55);
 		let i = e.getToken();
-		return A$1(e, t), e.assignable = 2, e.finishNode({
+		return A(e, t), e.assignable = 2, e.finishNode({
 			type: "UpdateExpression",
 			argument: n,
-			operator: w$1[i & 255],
+			operator: w[i & 255],
 			prefix: !1
 		}, r);
 	}
 	function W(e, t, n, r, i, a, o) {
-		if ((e.getToken() & 33619968) == 33619968 && !(e.flags & 1)) r = on(e, t, r, o);
+		if ((e.getToken() & 33619968) == 33619968 && !(e.flags & 1)) r = on$1(e, t, r, o);
 		else if ((e.getToken() & 67108864) == 67108864) {
 			switch (t = (t | 131072) ^ 131072, e.getToken()) {
 				case 67108877: {
-					A$1(e, (t | 262152) ^ 8), t & 16 && e.getToken() === 130 && e.tokenValue === "super" && e.report(173), e.assignable = 1;
+					A(e, (t | 262152) ^ 8), t & 16 && e.getToken() === 130 && e.tokenValue === "super" && e.report(173), e.assignable = 1;
 					let i = cn(e, t | 64, n);
 					r = e.finishNode({
 						type: "MemberExpression",
@@ -20795,9 +20962,9 @@ var vot = (function(exports) {
 				}
 				case 69271571: {
 					let a = !1;
-					(e.flags & 2048) == 2048 && (a = !0, e.flags = (e.flags | 2048) ^ 2048), A$1(e, t | 32);
-					let { tokenStart: s } = e, c = z$1(e, t, n, i, 1, s);
-					D$1(e, t, 20), e.assignable = 1, r = e.finishNode({
+					(e.flags & 2048) == 2048 && (a = !0, e.flags = (e.flags | 2048) ^ 2048), A(e, t | 32);
+					let { tokenStart: s } = e, c = z(e, t, n, i, 1, s);
+					D(e, t, 20), e.assignable = 1, r = e.finishNode({
 						type: "MemberExpression",
 						object: r,
 						computed: !0,
@@ -20820,7 +20987,7 @@ var vot = (function(exports) {
 					break;
 				}
 				case 67108990:
-					A$1(e, (t | 262152) ^ 8), e.flags |= 2048, e.assignable = 2, r = sn(e, t, n, r, o);
+					A(e, (t | 262152) ^ 8), e.flags |= 2048, e.assignable = 2, r = sn(e, t, n, r, o);
 					break;
 				default: (e.flags & 2048) == 2048 && e.report(166), e.assignable = 2, r = e.finishNode({
 					type: "TaggedTemplateExpression",
@@ -20838,9 +21005,9 @@ var vot = (function(exports) {
 	function sn(e, t, n, r, i) {
 		let a = !1, o;
 		if ((e.getToken() === 69271571 || e.getToken() === 67174411) && (e.flags & 2048) == 2048 && (a = !0, e.flags = (e.flags | 2048) ^ 2048), e.getToken() === 69271571) {
-			A$1(e, t | 32);
-			let { tokenStart: a } = e, s = z$1(e, t, n, 0, 1, a);
-			D$1(e, t, 20), e.assignable = 2, o = e.finishNode({
+			A(e, t | 32);
+			let { tokenStart: a } = e, s = z(e, t, n, 0, 1, a);
+			D(e, t, 20), e.assignable = 2, o = e.finishNode({
 				type: "MemberExpression",
 				object: r,
 				computed: !0,
@@ -20873,12 +21040,12 @@ var vot = (function(exports) {
 	function ln(e, t, n, r, i, a) {
 		r && e.report(56), i || e.report(0);
 		let o = e.getToken();
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let s = U(e, t, n, 0, 0, 1);
 		return e.assignable & 2 && e.report(55), e.assignable = 2, e.finishNode({
 			type: "UpdateExpression",
 			argument: s,
-			operator: w$1[o & 255],
+			operator: w[o & 255],
 			prefix: !0
 		}, a);
 	}
@@ -20923,8 +21090,8 @@ var vot = (function(exports) {
 			case 86106: return un(e, t, n, i, o, c);
 			case 8456256: if (e.options.jsx) return $n(e, t, n, 0, e.tokenStart);
 			default:
-				if (k$1(t, e.getToken())) return Mn(e, t, n);
-				e.report(30, w$1[e.getToken() & 255]);
+				if (k(t, e.getToken())) return Mn(e, t, n);
+				e.report(30, w[e.getToken() & 255]);
 		}
 	}
 	function un(e, t, n, r, i, a) {
@@ -20932,7 +21099,7 @@ var vot = (function(exports) {
 		return e.getToken() === 67108877 ? dn(e, t, o, a) : (r && e.report(142), o = fn(e, t, n, i, a), e.assignable = 2, W(e, t, n, o, i, 0, a));
 	}
 	function dn(e, t, n, r) {
-		t & 2 || e.report(169), A$1(e, t);
+		t & 2 || e.report(169), A(e, t);
 		let i = e.getToken();
 		return i !== 209030 && e.tokenValue !== "meta" ? e.report(174) : i & -2147483648 && e.report(175), e.assignable = 2, e.finishNode({
 			type: "MetaProperty",
@@ -20941,40 +21108,40 @@ var vot = (function(exports) {
 		}, r);
 	}
 	function fn(e, t, n, r, i) {
-		D$1(e, t | 32, 67174411), e.getToken() === 14 && e.report(143);
-		let a = L$1(e, t, n, 1, r, e.tokenStart), o = null;
-		e.getToken() === 18 && (D$1(e, t, 18), e.getToken() !== 16 && (o = L$1(e, (t | 131072) ^ 131072, n, 1, r, e.tokenStart)), E$1(e, t, 18));
+		D(e, t | 32, 67174411), e.getToken() === 14 && e.report(143);
+		let a = L(e, t, n, 1, r, e.tokenStart), o = null;
+		e.getToken() === 18 && (D(e, t, 18), e.getToken() !== 16 && (o = L(e, (t | 131072) ^ 131072, n, 1, r, e.tokenStart)), E(e, t, 18));
 		let s = {
 			type: "ImportExpression",
 			source: a,
 			options: o
 		};
-		return D$1(e, t, 16), e.finishNode(s, i);
+		return D(e, t, 16), e.finishNode(s, i);
 	}
 	function pn(e, t) {
-		if (!E$1(e, t, 20579)) return [];
-		D$1(e, t, 2162700);
-		let n = [], r = /* @__PURE__ */ new Set();
+		if (!E(e, t, 20579)) return [];
+		D(e, t, 2162700);
+		let n = [], r = new Set();
 		for (; e.getToken() !== 1074790415;) {
 			let i = e.tokenStart, a = hn(e, t);
-			D$1(e, t, 21);
+			D(e, t, 21);
 			let o = mn(e, t), s = a.type === "Literal" ? a.value : a.name;
 			r.has(s) && e.report(145, `${s}`), r.add(s), n.push(e.finishNode({
 				type: "ImportAttribute",
 				key: a,
 				value: o
-			}, i)), e.getToken() !== 1074790415 && D$1(e, t, 18);
+			}, i)), e.getToken() !== 1074790415 && D(e, t, 18);
 		}
-		return D$1(e, t, 1074790415), n;
+		return D(e, t, 1074790415), n;
 	}
 	function mn(e, t) {
 		if (e.getToken() === 134283267) return q(e, t);
-		e.report(30, w$1[e.getToken() & 255]);
+		e.report(30, w[e.getToken() & 255]);
 	}
 	function hn(e, t) {
 		if (e.getToken() === 134283267) return q(e, t);
 		if (e.getToken() & 143360) return K(e, t);
-		e.report(30, w$1[e.getToken() & 255]);
+		e.report(30, w[e.getToken() & 255]);
 	}
 	function gn(e, t) {
 		let n = t.length;
@@ -20986,11 +21153,11 @@ var vot = (function(exports) {
 	function _n(e, t) {
 		if (e.getToken() === 134283267) return gn(e, e.tokenValue), q(e, t);
 		if (e.getToken() & 143360) return K(e, t);
-		e.report(30, w$1[e.getToken() & 255]);
+		e.report(30, w[e.getToken() & 255]);
 	}
 	function vn(e, t) {
 		let { tokenRaw: n, tokenValue: r, tokenStart: i } = e;
-		A$1(e, t), e.assignable = 2;
+		A(e, t), e.assignable = 2;
 		let a = {
 			type: "Literal",
 			value: r,
@@ -21001,7 +21168,7 @@ var vot = (function(exports) {
 	function yn(e, t) {
 		e.assignable = 2;
 		let { tokenValue: n, tokenRaw: r, tokenStart: i } = e;
-		D$1(e, t, 67174409);
+		D(e, t, 67174409);
 		let a = [xn(e, n, r, i, !0)];
 		return e.finishNode({
 			type: "TemplateLiteral",
@@ -21012,15 +21179,15 @@ var vot = (function(exports) {
 	function bn(e, t, n) {
 		t = (t | 131072) ^ 131072;
 		let { tokenValue: r, tokenRaw: i, tokenStart: a } = e;
-		D$1(e, t & -65 | 32, 67174408);
-		let o = [xn(e, r, i, a, !1)], s = [z$1(e, t & -65, n, 0, 1, e.tokenStart)];
+		D(e, t & -65 | 32, 67174408);
+		let o = [xn(e, r, i, a, !1)], s = [z(e, t & -65, n, 0, 1, e.tokenStart)];
 		for (e.getToken() !== 1074790415 && e.report(83); e.setToken(je(e, t), !0) !== 67174409;) {
 			let { tokenValue: r, tokenRaw: i, tokenStart: a } = e;
-			D$1(e, t & -65 | 32, 67174408), o.push(xn(e, r, i, a, !1)), s.push(z$1(e, t, n, 0, 1, e.tokenStart)), e.getToken() !== 1074790415 && e.report(83);
+			D(e, t & -65 | 32, 67174408), o.push(xn(e, r, i, a, !1)), s.push(z(e, t, n, 0, 1, e.tokenStart)), e.getToken() !== 1074790415 && e.report(83);
 		}
 		{
 			let { tokenValue: n, tokenRaw: r, tokenStart: i } = e;
-			D$1(e, t, 67174409), o.push(xn(e, n, r, i, !0));
+			D(e, t, 67174409), o.push(xn(e, n, r, i, !0));
 		}
 		return e.finishNode({
 			type: "TemplateLiteral",
@@ -21041,30 +21208,30 @@ var vot = (function(exports) {
 	}
 	function Sn(e, t, n) {
 		let r = e.tokenStart;
-		t = (t | 131072) ^ 131072, D$1(e, t | 32, 14);
-		let i = L$1(e, t, n, 1, 0, e.tokenStart);
+		t = (t | 131072) ^ 131072, D(e, t | 32, 14);
+		let i = L(e, t, n, 1, 0, e.tokenStart);
 		return e.assignable = 1, e.finishNode({
 			type: "SpreadElement",
 			argument: i
 		}, r);
 	}
 	function Cn(e, t, n, r) {
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let i = [];
-		if (e.getToken() === 16) return A$1(e, t | 64), i;
-		for (; e.getToken() !== 16 && (e.getToken() === 14 ? i.push(Sn(e, t, n)) : i.push(L$1(e, t, n, 1, r, e.tokenStart)), !(e.getToken() !== 18 || (A$1(e, t | 32), e.getToken() === 16))););
-		return D$1(e, t | 64, 16), i;
+		if (e.getToken() === 16) return A(e, t | 64), i;
+		for (; e.getToken() !== 16 && (e.getToken() === 14 ? i.push(Sn(e, t, n)) : i.push(L(e, t, n, 1, r, e.tokenStart)), !(e.getToken() !== 18 || (A(e, t | 32), e.getToken() === 16))););
+		return D(e, t | 64, 16), i;
 	}
 	function K(e, t) {
 		let { tokenValue: n, tokenStart: r } = e;
-		return A$1(e, t | (n === "await" && !(e.getToken() & -2147483648) ? 32 : 0)), e.finishNode({
+		return A(e, t | (n === "await" && !(e.getToken() & -2147483648) ? 32 : 0)), e.finishNode({
 			type: "Identifier",
 			name: n
 		}, r);
 	}
 	function q(e, t) {
 		let { tokenValue: n, tokenRaw: r, tokenStart: i } = e;
-		return e.getToken() === 134283388 ? vn(e, t) : (A$1(e, t), e.assignable = 2, e.finishNode(e.options.raw ? {
+		return e.getToken() === 134283388 ? vn(e, t) : (A(e, t), e.assignable = 2, e.finishNode(e.options.raw ? {
 			type: "Literal",
 			value: n,
 			raw: r
@@ -21074,8 +21241,8 @@ var vot = (function(exports) {
 		}, i));
 	}
 	function wn(e, t) {
-		let n = e.tokenStart, r = w$1[e.getToken() & 255], i = e.getToken() === 86023 ? null : r === "true";
-		return A$1(e, t), e.assignable = 2, e.finishNode(e.options.raw ? {
+		let n = e.tokenStart, r = w[e.getToken() & 255], i = e.getToken() === 86023 ? null : r === "true";
+		return A(e, t), e.assignable = 2, e.finishNode(e.options.raw ? {
 			type: "Literal",
 			value: i,
 			raw: r
@@ -21086,15 +21253,15 @@ var vot = (function(exports) {
 	}
 	function Tn(e, t) {
 		let { tokenStart: n } = e;
-		return A$1(e, t), e.assignable = 2, e.finishNode({ type: "ThisExpression" }, n);
+		return A(e, t), e.assignable = 2, e.finishNode({ type: "ThisExpression" }, n);
 	}
 	function J(e, t, n, r, i, a, o, s, c) {
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let l = a ? Le(e, t, 8391476) : 0, u = null, d, f = n ? e.createScope() : void 0;
 		if (e.getToken() === 67174411) o & 1 || e.report(39, "Function");
 		else {
 			let r = i & 4 && (!(t & 8) || !(t & 2)) ? 4 : 64 | (s ? 1024 : 0) | (l ? 1024 : 0);
-			ze(e, t, e.getToken()), n && (r & 4 ? n.addVarName(t, e.tokenValue, r) : n.addBlockName(t, e.tokenValue, r, i), f = f?.createChildScope(128), o && o & 2 && e.declareUnboundVariable(e.tokenValue)), d = e.getToken(), e.getToken() & 143360 ? u = K(e, t) : e.report(30, w$1[e.getToken() & 255]);
+			ze(e, t, e.getToken()), n && (r & 4 ? n.addVarName(t, e.tokenValue, r) : n.addBlockName(t, e.tokenValue, r, i), f = f?.createChildScope(128), o && o & 2 && e.declareUnboundVariable(e.tokenValue)), d = e.getToken(), e.getToken() & 143360 ? u = K(e, t) : e.report(30, w[e.getToken() & 255]);
 		}
 		{
 			let e = 28416;
@@ -21112,7 +21279,7 @@ var vot = (function(exports) {
 		}, c);
 	}
 	function En(e, t, n, r, i, a) {
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let o = Le(e, t, 8391476), s = (r ? 2048 : 0) | (o ? 1024 : 0), c = null, l, u = e.createScopeIfLexical(), d = 552704;
 		e.getToken() & 143360 && (ze(e, (t | d) ^ d | s, e.getToken()), u = u?.createChildScope(128), l = e.getToken(), c = K(e, t)), t = (t | d) ^ d | 65536 | s | (o ? 0 : 262144), u = u?.createChildScope(256);
 		let f = In(e, (t | 8192) & -524289, u, n, i, 1), p = rn(e, t & -131229 | 36864, u?.createChildScope(64), n, 0, l, u);
@@ -21131,31 +21298,32 @@ var vot = (function(exports) {
 	}
 	function Y(e, t, n, r, i, a, o, s, c) {
 		let { tokenStart: l } = e;
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let u = [], d = 0;
-		for (t = (t | 131072) ^ 131072; e.getToken() !== 20;) if (E$1(e, t | 32, 18)) u.push(null);
+		for (t = (t | 131072) ^ 131072; e.getToken() !== 20;) if (E(e, t | 32, 18)) u.push(null);
 		else {
 			let i, { tokenStart: l, tokenValue: f } = e, p = e.getToken();
-			if (p & 143360) if (i = G(e, t, r, s, 0, 1, a, 1, l), e.getToken() === 1077936155) {
-				e.assignable & 2 && e.report(26), A$1(e, t | 32), n?.addVarOrBlock(t, f, s, c);
-				let u = L$1(e, t, r, 1, a, e.tokenStart);
-				i = e.finishNode(o ? {
-					type: "AssignmentPattern",
-					left: i,
-					right: u
-				} : {
-					type: "AssignmentExpression",
-					operator: "=",
-					left: i,
-					right: u
-				}, l), d |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0;
-			} else e.getToken() === 18 || e.getToken() === 20 ? (e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, f, s, c), d |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0) : (d |= s & 1 ? 32 : s & 2 ? 0 : 16, i = W(e, t, r, i, a, 0, l), e.getToken() !== 18 && e.getToken() !== 20 ? (e.getToken() !== 1077936155 && (d |= 16), i = B$1(e, t, r, a, o, l, i)) : e.getToken() !== 1077936155 && (d |= e.assignable & 2 ? 16 : 32));
-			else p & 2097152 ? (i = e.getToken() === 2162700 ? Q(e, t, n, r, 0, a, o, s, c) : Y(e, t, n, r, 0, a, o, s, c), d |= e.destructible, e.assignable = e.destructible & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 20 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (i = W(e, t, r, i, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && e.getToken() !== 20 ? i = B$1(e, t, r, a, o, l, i) : e.getToken() !== 1077936155 && (d |= e.assignable & 2 ? 16 : 32))) : p === 14 ? (i = X(e, t, n, r, 20, s, c, 0, a, o), d |= e.destructible, e.getToken() !== 18 && e.getToken() !== 20 && e.report(30, w$1[e.getToken() & 255])) : (i = U(e, t, r, 1, 0, 1), e.getToken() !== 18 && e.getToken() !== 20 ? (i = B$1(e, t, r, a, o, l, i), !(s & 3) && p === 67174411 && (d |= 16)) : e.assignable & 2 ? d |= 16 : p === 67174411 && (d |= e.assignable & 1 && s & 3 ? 32 : 16));
-			if (u.push(i), E$1(e, t | 32, 18)) {
+			if (p & 143360) {
+				if (i = G(e, t, r, s, 0, 1, a, 1, l), e.getToken() === 1077936155) {
+					e.assignable & 2 && e.report(26), A(e, t | 32), n?.addVarOrBlock(t, f, s, c);
+					let u = L(e, t, r, 1, a, e.tokenStart);
+					i = e.finishNode(o ? {
+						type: "AssignmentPattern",
+						left: i,
+						right: u
+					} : {
+						type: "AssignmentExpression",
+						operator: "=",
+						left: i,
+						right: u
+					}, l), d |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0;
+				} else e.getToken() === 18 || e.getToken() === 20 ? (e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, f, s, c), d |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0) : (d |= s & 1 ? 32 : s & 2 ? 0 : 16, i = W(e, t, r, i, a, 0, l), e.getToken() !== 18 && e.getToken() !== 20 ? (e.getToken() !== 1077936155 && (d |= 16), i = B(e, t, r, a, o, l, i)) : e.getToken() !== 1077936155 && (d |= e.assignable & 2 ? 16 : 32));
+			} else p & 2097152 ? (i = e.getToken() === 2162700 ? Q(e, t, n, r, 0, a, o, s, c) : Y(e, t, n, r, 0, a, o, s, c), d |= e.destructible, e.assignable = e.destructible & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 20 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (i = W(e, t, r, i, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && e.getToken() !== 20 ? i = B(e, t, r, a, o, l, i) : e.getToken() !== 1077936155 && (d |= e.assignable & 2 ? 16 : 32))) : p === 14 ? (i = X(e, t, n, r, 20, s, c, 0, a, o), d |= e.destructible, e.getToken() !== 18 && e.getToken() !== 20 && e.report(30, w[e.getToken() & 255])) : (i = U(e, t, r, 1, 0, 1), e.getToken() !== 18 && e.getToken() !== 20 ? (i = B(e, t, r, a, o, l, i), !(s & 3) && p === 67174411 && (d |= 16)) : e.assignable & 2 ? d |= 16 : p === 67174411 && (d |= e.assignable & 1 && s & 3 ? 32 : 16));
+			if (u.push(i), E(e, t | 32, 18)) {
 				if (e.getToken() === 20) break;
 			} else break;
 		}
-		D$1(e, t, 20);
+		D(e, t, 20);
 		let f = e.finishNode({
 			type: o ? "ArrayPattern" : "ArrayExpression",
 			elements: u
@@ -21163,8 +21331,8 @@ var vot = (function(exports) {
 		return !i && e.getToken() & 4194304 ? On(e, t, r, d, a, o, l, f) : (e.destructible = d, f);
 	}
 	function On(e, t, n, r, i, a, o, s) {
-		e.getToken() !== 1077936155 && e.report(26), A$1(e, t | 32), r & 16 && e.report(26), a || O(e, s);
-		let { tokenStart: c } = e, l = L$1(e, t, n, 1, i, c);
+		e.getToken() !== 1077936155 && e.report(26), A(e, t | 32), r & 16 && e.report(26), a || O(e, s);
+		let { tokenStart: c } = e, l = L(e, t, n, 1, i, c);
 		return e.destructible = (r | 72) ^ 72 | (e.destructible & 128 ? 128 : 0) | (e.destructible & 256 ? 256 : 0), e.finishNode(a ? {
 			type: "AssignmentPattern",
 			left: s,
@@ -21178,39 +21346,41 @@ var vot = (function(exports) {
 	}
 	function X(e, t, n, r, i, a, o, s, c, l) {
 		let { tokenStart: u } = e;
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let d = null, f = 0, { tokenValue: p, tokenStart: m } = e, h = e.getToken();
-		if (h & 143360) e.assignable = 1, d = G(e, t, r, a, 0, 1, c, 1, m), h = e.getToken(), d = W(e, t, r, d, c, 0, m), e.getToken() !== 18 && e.getToken() !== i && (e.assignable & 2 && e.getToken() === 1077936155 && e.report(71), f |= 16, d = B$1(e, t, r, c, l, m, d)), e.assignable & 2 ? f |= 16 : h === i || h === 18 ? n?.addVarOrBlock(t, p, a, o) : f |= 32, f |= e.destructible & 128 ? 128 : 0;
+		if (h & 143360) e.assignable = 1, d = G(e, t, r, a, 0, 1, c, 1, m), h = e.getToken(), d = W(e, t, r, d, c, 0, m), e.getToken() !== 18 && e.getToken() !== i && (e.assignable & 2 && e.getToken() === 1077936155 && e.report(71), f |= 16, d = B(e, t, r, c, l, m, d)), e.assignable & 2 ? f |= 16 : h === i || h === 18 ? n?.addVarOrBlock(t, p, a, o) : f |= 32, f |= e.destructible & 128 ? 128 : 0;
 		else if (h === i) e.report(41);
-		else if (h & 2097152) d = e.getToken() === 2162700 ? Q(e, t, n, r, 1, c, l, a, o) : Y(e, t, n, r, 1, c, l, a, o), h = e.getToken(), h !== 1077936155 && h !== i && h !== 18 ? (e.destructible & 8 && e.report(71), d = W(e, t, r, d, c, 0, m), f |= e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (f |= 16), d = B$1(e, t, r, c, l, m, d)) : ((e.getToken() & 8388608) == 8388608 && (d = H$1(e, t, r, 1, m, 4, h, d)), E$1(e, t | 32, 22) && (d = V$1(e, t, r, d, m)), f |= e.assignable & 2 ? 16 : 32)) : f |= i === 1074790415 && h !== 1077936155 ? 16 : e.destructible;
+		else if (h & 2097152) d = e.getToken() === 2162700 ? Q(e, t, n, r, 1, c, l, a, o) : Y(e, t, n, r, 1, c, l, a, o), h = e.getToken(), h !== 1077936155 && h !== i && h !== 18 ? (e.destructible & 8 && e.report(71), d = W(e, t, r, d, c, 0, m), f |= e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (f |= 16), d = B(e, t, r, c, l, m, d)) : ((e.getToken() & 8388608) == 8388608 && (d = H(e, t, r, 1, m, 4, h, d)), E(e, t | 32, 22) && (d = V(e, t, r, d, m)), f |= e.assignable & 2 ? 16 : 32)) : f |= i === 1074790415 && h !== 1077936155 ? 16 : e.destructible;
 		else {
 			f |= 32, d = U(e, t, r, 1, c, 1);
 			let { tokenStart: n } = e, a = e.getToken();
-			return a === 1077936155 ? (e.assignable & 2 && e.report(26), d = B$1(e, t, r, c, l, n, d), f |= 16) : (a === 18 ? f |= 16 : a !== i && (d = B$1(e, t, r, c, l, n, d)), f |= e.assignable & 1 ? 32 : 16), e.destructible = f, e.getToken() !== i && e.getToken() !== 18 && e.report(161), e.finishNode({
+			return a === 1077936155 ? (e.assignable & 2 && e.report(26), d = B(e, t, r, c, l, n, d), f |= 16) : (a === 18 ? f |= 16 : a !== i && (d = B(e, t, r, c, l, n, d)), f |= e.assignable & 1 ? 32 : 16), e.destructible = f, e.getToken() !== i && e.getToken() !== 18 && e.report(161), e.finishNode({
 				type: l ? "RestElement" : "SpreadElement",
 				argument: d
 			}, u);
 		}
-		if (e.getToken() !== i) if (a & 1 && (f |= s ? 16 : 32), E$1(e, t | 32, 1077936155)) {
-			f & 16 && e.report(26), O(e, d);
-			let n = L$1(e, t, r, 1, c, e.tokenStart);
-			d = e.finishNode(l ? {
-				type: "AssignmentPattern",
-				left: d,
-				right: n
-			} : {
-				type: "AssignmentExpression",
-				left: d,
-				operator: "=",
-				right: n
-			}, m), f = 16;
-		} else f |= 16;
+		if (e.getToken() !== i) {
+			if (a & 1 && (f |= s ? 16 : 32), E(e, t | 32, 1077936155)) {
+				f & 16 && e.report(26), O(e, d);
+				let n = L(e, t, r, 1, c, e.tokenStart);
+				d = e.finishNode(l ? {
+					type: "AssignmentPattern",
+					left: d,
+					right: n
+				} : {
+					type: "AssignmentExpression",
+					left: d,
+					operator: "=",
+					right: n
+				}, m), f = 16;
+			} else f |= 16;
+		}
 		return e.destructible = f, e.finishNode({
 			type: l ? "RestElement" : "SpreadElement",
 			argument: d
 		}, u);
 	}
-	function Z$1(e, t, n, r, i, a) {
+	function Z(e, t, n, r, i, a) {
 		let o = 11264 | (r & 64 ? 0 : 16896);
 		t = (t | o) ^ o | (r & 8 ? 1024 : 0) | (r & 16 ? 2048 : 0) | (r & 64 ? 16384 : 0) | 98560;
 		let s = e.createScopeIfLexical(256), c = An(e, (t | 8192) & -524289, s, n, r, 1, i);
@@ -21231,55 +21401,60 @@ var vot = (function(exports) {
 	}
 	function Q(e, t, n, r, i, a, o, s, c) {
 		let { tokenStart: l } = e;
-		A$1(e, t);
+		A(e, t);
 		let u = [], d = 0, f = 0;
 		for (t = (t | 131072) ^ 131072; e.getToken() !== 1074790415;) {
 			let { tokenValue: i, tokenStart: l } = e, p = e.getToken();
 			if (p === 14) u.push(X(e, t, n, r, 1074790415, s, c, 0, a, o));
 			else {
 				let m = 0, h = null, g;
-				if (e.getToken() & 143360 || e.getToken() === -2147483528 || e.getToken() === -2147483527) if (e.getToken() === -2147483527 && (d |= 16), h = K(e, t), e.getToken() === 18 || e.getToken() === 1074790415 || e.getToken() === 1077936155) if (m |= 4, t & 1 && (p & 537079808) == 537079808 ? d |= 16 : Re(e, t, s, p, 0), n?.addVarOrBlock(t, i, s, c), E$1(e, t | 32, 1077936155)) {
-					d |= 8;
-					let n = L$1(e, t, r, 1, a, e.tokenStart);
-					d |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0, g = e.finishNode({
-						type: "AssignmentPattern",
-						left: e.options.uniqueKeyInPattern ? Object.assign({}, h) : h,
-						right: n
-					}, l);
-				} else d |= (p === 209006 ? 128 : 0) | (p === -2147483528 ? 16 : 0), g = e.options.uniqueKeyInPattern ? Object.assign({}, h) : h;
-				else if (E$1(e, t | 32, 21)) {
-					let { tokenStart: l } = e;
-					if (i === "__proto__" && f++, e.getToken() & 143360) {
-						let i = e.getToken(), u = e.tokenValue;
-						g = G(e, t, r, s, 0, 1, a, 1, l);
-						let f = e.getToken();
-						g = W(e, t, r, g, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? f === 1077936155 || f === 1074790415 || f === 18 ? (d |= e.destructible & 128 ? 128 : 0, e.assignable & 2 ? d |= 16 : (i & 143360) == 143360 && n?.addVarOrBlock(t, u, s, c)) : d |= e.assignable & 1 ? 32 : 16 : (e.getToken() & 4194304) == 4194304 ? (e.assignable & 2 ? d |= 16 : f === 1077936155 ? n?.addVarOrBlock(t, u, s, c) : d |= 32, g = B$1(e, t, r, a, o, l, g)) : (d |= 16, (e.getToken() & 8388608) == 8388608 && (g = H$1(e, t, r, 1, l, 4, f, g)), E$1(e, t | 32, 22) && (g = V$1(e, t, r, g, l)));
-					} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? g = Qt(e, t, r, a, o, l, g) : ((e.getToken() & 8388608) == 8388608 && (g = H$1(e, t, r, 1, l, 4, p, g)), E$1(e, t | 32, 22) && (g = V$1(e, t, r, g, l)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, a, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && p !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B$1(e, t, r, a, o, l, g))));
-				} else e.getToken() === 69271571 ? (d |= 16, p === 209005 && (m |= 16), m |= (p === 209008 ? 256 : p === 209009 ? 512 : 1) | 2, h = $$1(e, t, r, a), d |= e.assignable, g = Z$1(e, t, r, m, a, e.tokenStart)) : e.getToken() & 143360 ? (d |= 16, p === -2147483528 && e.report(95), p === 209005 ? (e.flags & 1 && e.report(132), m |= 17) : p === 209008 ? m |= 256 : p === 209009 ? m |= 512 : e.report(0), h = K(e, t), g = Z$1(e, t, r, m, a, e.tokenStart)) : e.getToken() === 67174411 ? (d |= 16, m |= 1, g = Z$1(e, t, r, m, a, e.tokenStart)) : e.getToken() === 8391476 ? (d |= 16, p === 209008 ? e.report(42) : p === 209009 ? e.report(43) : p !== 209005 && e.report(30, w$1[52]), A$1(e, t), m |= 9 | (p === 209005 ? 16 : 0), e.getToken() & 143360 ? h = K(e, t) : (e.getToken() & 134217728) == 134217728 ? h = q(e, t) : e.getToken() === 69271571 ? (m |= 2, h = $$1(e, t, r, a), d |= e.assignable) : e.report(30, w$1[e.getToken() & 255]), g = Z$1(e, t, r, m, a, e.tokenStart)) : (e.getToken() & 134217728) == 134217728 ? (p === 209005 && (m |= 16), m |= p === 209008 ? 256 : p === 209009 ? 512 : 1, d |= 16, h = q(e, t), g = Z$1(e, t, r, m, a, e.tokenStart)) : e.report(133);
-				else if ((e.getToken() & 134217728) == 134217728) if (h = q(e, t), e.getToken() === 21) {
-					D$1(e, t | 32, 21);
-					let { tokenStart: l } = e;
-					if (i === "__proto__" && f++, e.getToken() & 143360) {
-						g = G(e, t, r, s, 0, 1, a, 1, l);
-						let { tokenValue: i } = e, u = e.getToken();
-						g = W(e, t, r, g, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? u === 1077936155 || u === 1074790415 || u === 18 ? e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, i, s, c) : d |= e.assignable & 1 ? 32 : 16 : e.getToken() === 1077936155 ? (e.assignable & 2 && (d |= 16), g = B$1(e, t, r, a, o, l, g)) : (d |= 16, g = B$1(e, t, r, a, o, l, g));
-					} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (e.destructible & 8) != 8 && (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? g = Qt(e, t, r, a, o, l, g) : ((e.getToken() & 8388608) == 8388608 && (g = H$1(e, t, r, 1, l, 4, p, g)), E$1(e, t | 32, 22) && (g = V$1(e, t, r, g, l)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B$1(e, t, r, a, o, l, g))));
-				} else e.getToken() === 67174411 ? (m |= 1, g = Z$1(e, t, r, m, a, e.tokenStart), d = e.assignable | 16) : e.report(134);
-				else if (e.getToken() === 69271571) if (h = $$1(e, t, r, a), d |= e.destructible & 256 ? 256 : 0, m |= 2, e.getToken() === 21) {
-					A$1(e, t | 32);
-					let { tokenStart: i, tokenValue: l } = e, u = e.getToken();
-					if (e.getToken() & 143360) {
-						g = G(e, t, r, s, 0, 1, a, 1, i);
-						let f = e.getToken();
-						g = W(e, t, r, g, a, 0, i), (e.getToken() & 4194304) == 4194304 ? (d |= e.assignable & 2 ? 16 : f === 1077936155 ? 0 : 32, g = Qt(e, t, r, a, o, i, g)) : e.getToken() === 18 || e.getToken() === 1074790415 ? f === 1077936155 || f === 1074790415 || f === 18 ? e.assignable & 2 ? d |= 16 : (u & 143360) == 143360 && n?.addVarOrBlock(t, l, s, c) : d |= e.assignable & 1 ? 32 : 16 : (d |= 16, g = B$1(e, t, r, a, o, i, g));
-					} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : d & 8 ? e.report(62) : (g = W(e, t, r, g, a, 0, i), d = e.assignable & 2 ? d | 16 : 0, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (d |= 16), g = Qt(e, t, r, a, o, i, g)) : ((e.getToken() & 8388608) == 8388608 && (g = H$1(e, t, r, 1, i, 4, p, g)), E$1(e, t | 32, 22) && (g = V$1(e, t, r, g, i)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, i), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B$1(e, t, r, a, o, i, g))));
-				} else e.getToken() === 67174411 ? (m |= 1, g = Z$1(e, t, r, m, a, e.tokenStart), d = 16) : e.report(44);
-				else if (p === 8391476) if (D$1(e, t | 32, 8391476), m |= 8, e.getToken() & 143360) {
-					let n = e.getToken();
-					if (h = K(e, t), m |= 1, e.getToken() === 67174411) d |= 16, g = Z$1(e, t, r, m, a, e.tokenStart);
-					else throw new C$1(e.tokenStart, e.currentLocation, n === 209005 ? 46 : n === 209008 || e.getToken() === 209009 ? 45 : 47, w$1[n & 255]);
-				} else (e.getToken() & 134217728) == 134217728 ? (d |= 16, h = q(e, t), m |= 1, g = Z$1(e, t, r, m, a, e.tokenStart)) : e.getToken() === 69271571 ? (d |= 16, m |= 3, h = $$1(e, t, r, a), g = Z$1(e, t, r, m, a, e.tokenStart)) : e.report(126);
-				else e.report(30, w$1[p & 255]);
+				if (e.getToken() & 143360 || e.getToken() === -2147483528 || e.getToken() === -2147483527) {
+					if (e.getToken() === -2147483527 && (d |= 16), h = K(e, t), e.getToken() === 18 || e.getToken() === 1074790415 || e.getToken() === 1077936155) {
+						if (m |= 4, t & 1 && (p & 537079808) == 537079808 ? d |= 16 : Re(e, t, s, p, 0), n?.addVarOrBlock(t, i, s, c), E(e, t | 32, 1077936155)) {
+							d |= 8;
+							let n = L(e, t, r, 1, a, e.tokenStart);
+							d |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0, g = e.finishNode({
+								type: "AssignmentPattern",
+								left: e.options.uniqueKeyInPattern ? Object.assign({}, h) : h,
+								right: n
+							}, l);
+						} else d |= (p === 209006 ? 128 : 0) | (p === -2147483528 ? 16 : 0), g = e.options.uniqueKeyInPattern ? Object.assign({}, h) : h;
+					} else if (E(e, t | 32, 21)) {
+						let { tokenStart: l } = e;
+						if (i === "__proto__" && f++, e.getToken() & 143360) {
+							let i = e.getToken(), u = e.tokenValue;
+							g = G(e, t, r, s, 0, 1, a, 1, l);
+							let f = e.getToken();
+							g = W(e, t, r, g, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? f === 1077936155 || f === 1074790415 || f === 18 ? (d |= e.destructible & 128 ? 128 : 0, e.assignable & 2 ? d |= 16 : (i & 143360) == 143360 && n?.addVarOrBlock(t, u, s, c)) : d |= e.assignable & 1 ? 32 : 16 : (e.getToken() & 4194304) == 4194304 ? (e.assignable & 2 ? d |= 16 : f === 1077936155 ? n?.addVarOrBlock(t, u, s, c) : d |= 32, g = B(e, t, r, a, o, l, g)) : (d |= 16, (e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, l, 4, f, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, l)));
+						} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? g = Qt(e, t, r, a, o, l, g) : ((e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, l, 4, p, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, l)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, a, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && p !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B(e, t, r, a, o, l, g))));
+					} else e.getToken() === 69271571 ? (d |= 16, p === 209005 && (m |= 16), m |= (p === 209008 ? 256 : p === 209009 ? 512 : 1) | 2, h = $(e, t, r, a), d |= e.assignable, g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() & 143360 ? (d |= 16, p === -2147483528 && e.report(95), p === 209005 ? (e.flags & 1 && e.report(132), m |= 17) : p === 209008 ? m |= 256 : p === 209009 ? m |= 512 : e.report(0), h = K(e, t), g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() === 67174411 ? (d |= 16, m |= 1, g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() === 8391476 ? (d |= 16, p === 209008 ? e.report(42) : p === 209009 ? e.report(43) : p !== 209005 && e.report(30, w[52]), A(e, t), m |= 9 | (p === 209005 ? 16 : 0), e.getToken() & 143360 ? h = K(e, t) : (e.getToken() & 134217728) == 134217728 ? h = q(e, t) : e.getToken() === 69271571 ? (m |= 2, h = $(e, t, r, a), d |= e.assignable) : e.report(30, w[e.getToken() & 255]), g = Z(e, t, r, m, a, e.tokenStart)) : (e.getToken() & 134217728) == 134217728 ? (p === 209005 && (m |= 16), m |= p === 209008 ? 256 : p === 209009 ? 512 : 1, d |= 16, h = q(e, t), g = Z(e, t, r, m, a, e.tokenStart)) : e.report(133);
+				} else if ((e.getToken() & 134217728) == 134217728) {
+					if (h = q(e, t), e.getToken() === 21) {
+						D(e, t | 32, 21);
+						let { tokenStart: l } = e;
+						if (i === "__proto__" && f++, e.getToken() & 143360) {
+							g = G(e, t, r, s, 0, 1, a, 1, l);
+							let { tokenValue: i } = e, u = e.getToken();
+							g = W(e, t, r, g, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? u === 1077936155 || u === 1074790415 || u === 18 ? e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, i, s, c) : d |= e.assignable & 1 ? 32 : 16 : e.getToken() === 1077936155 ? (e.assignable & 2 && (d |= 16), g = B(e, t, r, a, o, l, g)) : (d |= 16, g = B(e, t, r, a, o, l, g));
+						} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (e.destructible & 8) != 8 && (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? g = Qt(e, t, r, a, o, l, g) : ((e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, l, 4, p, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, l)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B(e, t, r, a, o, l, g))));
+					} else e.getToken() === 67174411 ? (m |= 1, g = Z(e, t, r, m, a, e.tokenStart), d = e.assignable | 16) : e.report(134);
+				} else if (e.getToken() === 69271571) {
+					if (h = $(e, t, r, a), d |= e.destructible & 256 ? 256 : 0, m |= 2, e.getToken() === 21) {
+						A(e, t | 32);
+						let { tokenStart: i, tokenValue: l } = e, u = e.getToken();
+						if (e.getToken() & 143360) {
+							g = G(e, t, r, s, 0, 1, a, 1, i);
+							let f = e.getToken();
+							g = W(e, t, r, g, a, 0, i), (e.getToken() & 4194304) == 4194304 ? (d |= e.assignable & 2 ? 16 : f === 1077936155 ? 0 : 32, g = Qt(e, t, r, a, o, i, g)) : e.getToken() === 18 || e.getToken() === 1074790415 ? f === 1077936155 || f === 1074790415 || f === 18 ? e.assignable & 2 ? d |= 16 : (u & 143360) == 143360 && n?.addVarOrBlock(t, l, s, c) : d |= e.assignable & 1 ? 32 : 16 : (d |= 16, g = B(e, t, r, a, o, i, g));
+						} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : d & 8 ? e.report(62) : (g = W(e, t, r, g, a, 0, i), d = e.assignable & 2 ? d | 16 : 0, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (d |= 16), g = Qt(e, t, r, a, o, i, g)) : ((e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, i, 4, p, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, i)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, i), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B(e, t, r, a, o, i, g))));
+					} else e.getToken() === 67174411 ? (m |= 1, g = Z(e, t, r, m, a, e.tokenStart), d = 16) : e.report(44);
+				} else if (p === 8391476) {
+					if (D(e, t | 32, 8391476), m |= 8, e.getToken() & 143360) {
+						let n = e.getToken();
+						if (h = K(e, t), m |= 1, e.getToken() === 67174411) d |= 16, g = Z(e, t, r, m, a, e.tokenStart);
+						else throw new C(e.tokenStart, e.currentLocation, n === 209005 ? 46 : n === 209008 || e.getToken() === 209009 ? 45 : 47, w[n & 255]);
+					} else (e.getToken() & 134217728) == 134217728 ? (d |= 16, h = q(e, t), m |= 1, g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() === 69271571 ? (d |= 16, m |= 3, h = $(e, t, r, a), g = Z(e, t, r, m, a, e.tokenStart)) : e.report(126);
+				} else e.report(30, w[p & 255]);
 				d |= e.destructible & 128 ? 128 : 0, e.destructible = d, u.push(e.finishNode({
 					type: "Property",
 					key: h,
@@ -21291,9 +21466,9 @@ var vot = (function(exports) {
 				}, l));
 			}
 			if (d |= e.destructible, e.getToken() !== 18) break;
-			A$1(e, t);
+			A(e, t);
 		}
-		D$1(e, t, 1074790415), f > 1 && (d |= 64);
+		D(e, t, 1074790415), f > 1 && (d |= 64);
 		let p = e.finishNode({
 			type: o ? "ObjectPattern" : "ObjectExpression",
 			properties: u
@@ -21301,61 +21476,61 @@ var vot = (function(exports) {
 		return !i && e.getToken() & 4194304 ? On(e, t, r, d, a, o, l, p) : (e.destructible = d, p);
 	}
 	function An(e, t, n, r, i, a, o) {
-		D$1(e, t, 67174411);
+		D(e, t, 67174411);
 		let s = [];
-		if (e.flags = (e.flags | 128) ^ 128, e.getToken() === 16) return i & 512 && e.report(37, "Setter", "one", ""), A$1(e, t), s;
+		if (e.flags = (e.flags | 128) ^ 128, e.getToken() === 16) return i & 512 && e.report(37, "Setter", "one", ""), A(e, t), s;
 		i & 256 && e.report(37, "Getter", "no", "s"), i & 512 && e.getToken() === 14 && e.report(38), t = (t | 131072) ^ 131072;
 		let c = 0, l = 0;
 		for (; e.getToken() !== 18;) {
 			let u = null, { tokenStart: d } = e;
 			if (e.getToken() & 143360 ? (t & 1 || ((e.getToken() & 36864) == 36864 && (e.flags |= 256), (e.getToken() & 537079808) == 537079808 && (e.flags |= 512)), u = Qn(e, t, n, i | 1, 0)) : (e.getToken() === 2162700 ? u = Q(e, t, n, r, 1, o, 1, a, 0) : e.getToken() === 69271571 ? u = Y(e, t, n, r, 1, o, 1, a, 0) : e.getToken() === 14 && (u = X(e, t, n, r, 16, a, 0, 0, o, 1)), l = 1, e.destructible & 48 && e.report(50)), e.getToken() === 1077936155) {
-				A$1(e, t | 32), l = 1;
-				let n = L$1(e, t, r, 1, 0, e.tokenStart);
+				A(e, t | 32), l = 1;
+				let n = L(e, t, r, 1, 0, e.tokenStart);
 				u = e.finishNode({
 					type: "AssignmentPattern",
 					left: u,
 					right: n
 				}, d);
 			}
-			if (c++, s.push(u), !E$1(e, t, 18) || e.getToken() === 16) break;
+			if (c++, s.push(u), !E(e, t, 18) || e.getToken() === 16) break;
 		}
-		return i & 512 && c !== 1 && e.report(37, "Setter", "one", ""), n?.reportScopeError(), l && (e.flags |= 128), D$1(e, t, 16), s;
+		return i & 512 && c !== 1 && e.report(37, "Setter", "one", ""), n?.reportScopeError(), l && (e.flags |= 128), D(e, t, 16), s;
 	}
-	function $$1(e, t, n, r) {
-		A$1(e, t | 32);
-		let i = L$1(e, (t | 131072) ^ 131072, n, 1, r, e.tokenStart);
-		return D$1(e, t, 20), i;
+	function $(e, t, n, r) {
+		A(e, t | 32);
+		let i = L(e, (t | 131072) ^ 131072, n, 1, r, e.tokenStart);
+		return D(e, t, 20), i;
 	}
 	function jn(e, t, n, r, i, a, o) {
 		e.flags = (e.flags | 128) ^ 128;
 		let s = e.tokenStart;
-		A$1(e, t | 262176);
+		A(e, t | 262176);
 		let c = e.createScopeIfLexical()?.createChildScope(512);
-		if (t = (t | 131072) ^ 131072, E$1(e, t, 16)) return Pn(e, t, c, n, [], r, 0, o);
+		if (t = (t | 131072) ^ 131072, E(e, t, 16)) return Pn(e, t, c, n, [], r, 0, o);
 		let l = 0;
 		e.destructible &= -385;
 		let u, d = [], f = 0, p = 0, m = 0, h = e.tokenStart;
 		for (e.assignable = 1; e.getToken() !== 16;) {
 			let { tokenStart: r } = e, o = e.getToken();
-			if (o & 143360) c?.addBlockName(t, e.tokenValue, 1, 0), (o & 537079808) == 537079808 ? p = 1 : (o & 36864) == 36864 && (m = 1), u = G(e, t, n, i, 0, 1, 1, 1, r), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (l |= 16, p = 1) : (e.getToken() === 1077936155 ? p = 1 : l |= 16, u = W(e, t, n, u, 1, 0, r), e.getToken() !== 16 && e.getToken() !== 18 && (u = B$1(e, t, n, 1, 0, r, u)));
-			else if ((o & 2097152) == 2097152) u = o === 2162700 ? Q(e, t | 262144, c, n, 0, 1, 0, i, a) : Y(e, t | 262144, c, n, 0, 1, 0, i, a), l |= e.destructible, p = 1, e.assignable = 2, e.getToken() !== 16 && e.getToken() !== 18 && (l & 8 && e.report(122), u = W(e, t, n, u, 0, 0, r), l |= 16, e.getToken() !== 16 && e.getToken() !== 18 && (u = B$1(e, t, n, 0, 0, r, u)));
+			if (o & 143360) c?.addBlockName(t, e.tokenValue, 1, 0), (o & 537079808) == 537079808 ? p = 1 : (o & 36864) == 36864 && (m = 1), u = G(e, t, n, i, 0, 1, 1, 1, r), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (l |= 16, p = 1) : (e.getToken() === 1077936155 ? p = 1 : l |= 16, u = W(e, t, n, u, 1, 0, r), e.getToken() !== 16 && e.getToken() !== 18 && (u = B(e, t, n, 1, 0, r, u)));
+			else if ((o & 2097152) == 2097152) u = o === 2162700 ? Q(e, t | 262144, c, n, 0, 1, 0, i, a) : Y(e, t | 262144, c, n, 0, 1, 0, i, a), l |= e.destructible, p = 1, e.assignable = 2, e.getToken() !== 16 && e.getToken() !== 18 && (l & 8 && e.report(122), u = W(e, t, n, u, 0, 0, r), l |= 16, e.getToken() !== 16 && e.getToken() !== 18 && (u = B(e, t, n, 0, 0, r, u)));
 			else if (o === 14) {
 				u = X(e, t, c, n, 16, i, a, 0, 1, 0), e.destructible & 16 && e.report(74), p = 1, f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), l |= 8;
 				break;
 			} else {
-				if (l |= 16, u = L$1(e, t, n, 1, 1, r), f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), e.getToken() === 18 && (f || (f = 1, d = [u])), f) {
-					for (; E$1(e, t | 32, 18);) d.push(L$1(e, t, n, 1, 1, e.tokenStart));
+				if (l |= 16, u = L(e, t, n, 1, 1, r), f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), e.getToken() === 18 && (f || (f = 1, d = [u])), f) {
+					for (; E(e, t | 32, 18);) d.push(L(e, t, n, 1, 1, e.tokenStart));
 					e.assignable = 2, u = e.finishNode({
 						type: "SequenceExpression",
 						expressions: d
 					}, h);
 				}
-				return D$1(e, t, 16), e.destructible = l, e.options.preserveParens ? e.finishNode({
+				return D(e, t, 16), e.destructible = l, e.options.preserveParens ? e.finishNode({
 					type: "ParenthesizedExpression",
 					expression: u
 				}, s) : u;
 			}
-			if (f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), !E$1(e, t | 32, 18)) break;
+			if (f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), !E(e, t | 32, 18)) break;
 			if (f || (f = 1, d = [u]), e.getToken() === 16) {
 				l |= 8;
 				break;
@@ -21364,7 +21539,7 @@ var vot = (function(exports) {
 		return f && (e.assignable = 2, u = e.finishNode({
 			type: "SequenceExpression",
 			expressions: d
-		}, h)), D$1(e, t, 16), l & 16 && l & 8 && e.report(151), l |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0, e.getToken() === 10 ? (l & 48 && e.report(49), t & 2050 && l & 128 && e.report(31), t & 1025 && l & 256 && e.report(32), p && (e.flags |= 128), m && (e.flags |= 256), Pn(e, t, c, n, f ? d : [u], r, 0, o)) : (l & 64 && e.report(63), l & 8 && e.report(144), e.destructible = (e.destructible | 256) ^ 256 | l, e.options.preserveParens ? e.finishNode({
+		}, h)), D(e, t, 16), l & 16 && l & 8 && e.report(151), l |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0, e.getToken() === 10 ? (l & 48 && e.report(49), t & 2050 && l & 128 && e.report(31), t & 1025 && l & 256 && e.report(32), p && (e.flags |= 128), m && (e.flags |= 256), Pn(e, t, c, n, f ? d : [u], r, 0, o)) : (l & 64 && e.report(63), l & 8 && e.report(144), e.destructible = (e.destructible | 256) ^ 256 | l, e.options.preserveParens ? e.finishNode({
 			type: "ParenthesizedExpression",
 			expression: u
 		}, s) : u);
@@ -21388,11 +21563,11 @@ var vot = (function(exports) {
 		return Fn(e, t, n, r, i, o, s);
 	}
 	function Fn(e, t, n, r, i, a, o) {
-		e.flags & 1 && e.report(48), D$1(e, t | 32, 10);
+		e.flags & 1 && e.report(48), D(e, t | 32, 10);
 		let s = 535552;
 		t = (t | s) ^ s | (a ? 2048 : 0);
 		let c = e.getToken() !== 2162700, l;
-		if (n?.reportScopeError(), c) e.flags = (e.flags | 4928) ^ 4928, l = L$1(e, t, r, 1, 0, e.tokenStart);
+		if (n?.reportScopeError(), c) e.flags = (e.flags | 4928) ^ 4928, l = L(e, t, r, 1, 0, e.tokenStart);
 		else {
 			n = n?.createChildScope(64);
 			let i = 131084;
@@ -21405,7 +21580,7 @@ var vot = (function(exports) {
 				case 22: e.report(117);
 				case 67174411: e.flags & 1 || e.report(116), e.flags |= 1024;
 			}
-			(e.getToken() & 8388608) == 8388608 && !(e.flags & 1) && e.report(30, w$1[e.getToken() & 255]), (e.getToken() & 33619968) == 33619968 && e.report(125);
+			(e.getToken() & 8388608) == 8388608 && !(e.flags & 1) && e.report(30, w[e.getToken() & 255]), (e.getToken() & 33619968) == 33619968 && e.report(125);
 		}
 		return e.assignable = 2, e.finishNode({
 			type: "ArrowFunctionExpression",
@@ -21417,31 +21592,31 @@ var vot = (function(exports) {
 		}, o);
 	}
 	function In(e, t, n, r, i, a) {
-		D$1(e, t, 67174411), e.flags = (e.flags | 128) ^ 128;
+		D(e, t, 67174411), e.flags = (e.flags | 128) ^ 128;
 		let o = [];
-		if (E$1(e, t, 16)) return o;
+		if (E(e, t, 16)) return o;
 		t = (t | 131072) ^ 131072;
 		let s = 0;
 		for (; e.getToken() !== 18;) {
 			let c, { tokenStart: l } = e, u = e.getToken();
-			if (u & 143360 ? (t & 1 || ((u & 36864) == 36864 && (e.flags |= 256), (u & 537079808) == 537079808 && (e.flags |= 512)), c = Qn(e, t, n, a | 1, 0)) : (u === 2162700 ? c = Q(e, t, n, r, 1, i, 1, a, 0) : u === 69271571 ? c = Y(e, t, n, r, 1, i, 1, a, 0) : u === 14 ? c = X(e, t, n, r, 16, a, 0, 0, i, 1) : e.report(30, w$1[u & 255]), s = 1, e.destructible & 48 && e.report(50)), e.getToken() === 1077936155) {
-				A$1(e, t | 32), s = 1;
-				let n = L$1(e, t, r, 1, i, e.tokenStart);
+			if (u & 143360 ? (t & 1 || ((u & 36864) == 36864 && (e.flags |= 256), (u & 537079808) == 537079808 && (e.flags |= 512)), c = Qn(e, t, n, a | 1, 0)) : (u === 2162700 ? c = Q(e, t, n, r, 1, i, 1, a, 0) : u === 69271571 ? c = Y(e, t, n, r, 1, i, 1, a, 0) : u === 14 ? c = X(e, t, n, r, 16, a, 0, 0, i, 1) : e.report(30, w[u & 255]), s = 1, e.destructible & 48 && e.report(50)), e.getToken() === 1077936155) {
+				A(e, t | 32), s = 1;
+				let n = L(e, t, r, 1, i, e.tokenStart);
 				c = e.finishNode({
 					type: "AssignmentPattern",
 					left: c,
 					right: n
 				}, l);
 			}
-			if (o.push(c), !E$1(e, t, 18) || e.getToken() === 16) break;
+			if (o.push(c), !E(e, t, 18) || e.getToken() === 16) break;
 		}
-		return s && (e.flags |= 128), (s || t & 1) && n?.reportScopeError(), D$1(e, t, 16), o;
+		return s && (e.flags |= 128), (s || t & 1) && n?.reportScopeError(), D(e, t, 16), o;
 	}
 	function Ln(e, t, n, r, i, a) {
 		let o = e.getToken();
 		if (o & 67108864) {
 			if (o === 67108877) {
-				A$1(e, t | 262144), e.assignable = 1;
+				A(e, t | 262144), e.assignable = 1;
 				let i = cn(e, t, n);
 				return Ln(e, t, n, e.finishNode({
 					type: "MemberExpression",
@@ -21452,9 +21627,9 @@ var vot = (function(exports) {
 				}, a), 0, a);
 			}
 			if (o === 69271571) {
-				A$1(e, t | 32);
-				let { tokenStart: o } = e, s = z$1(e, t, n, i, 1, o);
-				return D$1(e, t, 20), e.assignable = 1, Ln(e, t, n, e.finishNode({
+				A(e, t | 32);
+				let { tokenStart: o } = e, s = z(e, t, n, i, 1, o);
+				return D(e, t, 20), e.assignable = 1, Ln(e, t, n, e.finishNode({
 					type: "MemberExpression",
 					object: r,
 					computed: !0,
@@ -21472,11 +21647,11 @@ var vot = (function(exports) {
 	}
 	function Rn(e, t, n, r) {
 		let { tokenStart: i } = e, a = K(e, t | 32), { tokenStart: o } = e;
-		if (E$1(e, t, 67108877)) {
+		if (E(e, t, 67108877)) {
 			if (t & 65536 && e.getToken() === 209029) return e.assignable = 2, zn(e, t, a, i);
 			e.report(94);
 		}
-		e.assignable = 2, (e.getToken() & 16842752) == 16842752 && e.report(65, w$1[e.getToken() & 255]);
+		e.assignable = 2, (e.getToken() & 16842752) == 16842752 && e.report(65, w[e.getToken() & 255]);
 		let s = G(e, t, n, 2, 1, 0, r, 1, o);
 		t = (t | 131072) ^ 131072, e.getToken() === 67108990 && e.report(168);
 		let c = Ln(e, t, n, s, r, o);
@@ -21498,9 +21673,9 @@ var vot = (function(exports) {
 		return e.getToken() === 209006 && e.report(31), t & 1025 && e.getToken() === 241771 && e.report(32), Ge(e, t, e.getToken()), (e.getToken() & 36864) == 36864 && (e.flags |= 256), Nn(e, t & -524289 | 2048, n, e.tokenValue, K(e, t), 0, r, 1, i);
 	}
 	function Vn(e, t, n, r, i, a, o, s, c) {
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let l = e.createScopeIfLexical()?.createChildScope(512);
-		if (t = (t | 131072) ^ 131072, E$1(e, t, 16)) return e.getToken() === 10 ? (s & 1 && e.report(48), Pn(e, t, l, n, [], i, 1, c)) : e.finishNode({
+		if (t = (t | 131072) ^ 131072, E(e, t, 16)) return e.getToken() === 10 ? (s & 1 && e.report(48), Pn(e, t, l, n, [], i, 1, c)) : e.finishNode({
 			type: "CallExpression",
 			callee: r,
 			arguments: [],
@@ -21511,21 +21686,21 @@ var vot = (function(exports) {
 		let p = [];
 		for (; e.getToken() !== 16;) {
 			let { tokenStart: i } = e, s = e.getToken();
-			if (s & 143360) l?.addBlockName(t, e.tokenValue, a, 0), (s & 537079808) == 537079808 ? e.flags |= 512 : (s & 36864) == 36864 && (e.flags |= 256), d = G(e, t, n, a, 0, 1, 1, 1, i), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (u |= 16, f = 1) : (e.getToken() === 1077936155 ? f = 1 : u |= 16, d = W(e, t, n, d, 1, 0, i), e.getToken() !== 16 && e.getToken() !== 18 && (d = B$1(e, t, n, 1, 0, i, d)));
-			else if (s & 2097152) d = s === 2162700 ? Q(e, t, l, n, 0, 1, 0, a, o) : Y(e, t, l, n, 0, 1, 0, a, o), u |= e.destructible, f = 1, e.getToken() !== 16 && e.getToken() !== 18 && (u & 8 && e.report(122), d = W(e, t, n, d, 0, 0, i), u |= 16, (e.getToken() & 8388608) == 8388608 && (d = H$1(e, t, n, 1, c, 4, s, d)), E$1(e, t | 32, 22) && (d = V$1(e, t, n, d, c)));
+			if (s & 143360) l?.addBlockName(t, e.tokenValue, a, 0), (s & 537079808) == 537079808 ? e.flags |= 512 : (s & 36864) == 36864 && (e.flags |= 256), d = G(e, t, n, a, 0, 1, 1, 1, i), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (u |= 16, f = 1) : (e.getToken() === 1077936155 ? f = 1 : u |= 16, d = W(e, t, n, d, 1, 0, i), e.getToken() !== 16 && e.getToken() !== 18 && (d = B(e, t, n, 1, 0, i, d)));
+			else if (s & 2097152) d = s === 2162700 ? Q(e, t, l, n, 0, 1, 0, a, o) : Y(e, t, l, n, 0, 1, 0, a, o), u |= e.destructible, f = 1, e.getToken() !== 16 && e.getToken() !== 18 && (u & 8 && e.report(122), d = W(e, t, n, d, 0, 0, i), u |= 16, (e.getToken() & 8388608) == 8388608 && (d = H(e, t, n, 1, c, 4, s, d)), E(e, t | 32, 22) && (d = V(e, t, n, d, c)));
 			else if (s === 14) d = X(e, t, l, n, 16, a, o, 1, 1, 0), u |= (e.getToken() === 16 ? 0 : 16) | e.destructible, f = 1;
 			else {
-				for (d = L$1(e, t, n, 1, 0, i), u = e.assignable, p.push(d); E$1(e, t | 32, 18);) p.push(L$1(e, t, n, 1, 0, i));
-				return u |= e.assignable, D$1(e, t, 16), e.destructible = u | 16, e.assignable = 2, e.finishNode({
+				for (d = L(e, t, n, 1, 0, i), u = e.assignable, p.push(d); E(e, t | 32, 18);) p.push(L(e, t, n, 1, 0, i));
+				return u |= e.assignable, D(e, t, 16), e.destructible = u | 16, e.assignable = 2, e.finishNode({
 					type: "CallExpression",
 					callee: r,
 					arguments: p,
 					optional: !1
 				}, c);
 			}
-			if (p.push(d), !E$1(e, t | 32, 18)) break;
+			if (p.push(d), !E(e, t | 32, 18)) break;
 		}
-		return D$1(e, t, 16), u |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0, e.getToken() === 10 ? (u & 48 && e.report(27), (e.flags & 1 || s & 1) && e.report(48), u & 128 && e.report(31), t & 1025 && u & 256 && e.report(32), f && (e.flags |= 128), Pn(e, t | 2048, l, n, p, i, 1, c)) : (u & 64 && e.report(63), u & 8 && e.report(62), e.assignable = 2, e.finishNode({
+		return D(e, t, 16), u |= e.destructible & 256 ? 256 : 0 | e.destructible & 128 ? 128 : 0, e.getToken() === 10 ? (u & 48 && e.report(27), (e.flags & 1 || s & 1) && e.report(48), u & 128 && e.report(31), t & 1025 && u & 256 && e.report(32), f && (e.flags |= 128), Pn(e, t | 2048, l, n, p, i, 1, c)) : (u & 64 && e.report(63), u & 8 && e.report(62), e.assignable = 2, e.finishNode({
 			type: "CallExpression",
 			callee: r,
 			arguments: p,
@@ -21534,7 +21709,7 @@ var vot = (function(exports) {
 	}
 	function Hn(e, t) {
 		let { tokenRaw: n, tokenRegExp: r, tokenValue: i, tokenStart: a } = e;
-		A$1(e, t), e.assignable = 2;
+		A(e, t), e.assignable = 2;
 		let o = {
 			type: "Literal",
 			value: i,
@@ -21544,11 +21719,11 @@ var vot = (function(exports) {
 	}
 	function Un(e, t, n, r, i) {
 		let a, o;
-		e.leadingDecorators.decorators.length ? (e.getToken() === 132 && e.report(30, "@"), a = e.leadingDecorators.start, o = [...e.leadingDecorators.decorators], e.leadingDecorators.decorators.length = 0) : (a = e.tokenStart, o = Gn(e, t, r)), t = (t | 16385) ^ 16384, A$1(e, t);
+		e.leadingDecorators.decorators.length ? (e.getToken() === 132 && e.report(30, "@"), a = e.leadingDecorators.start, o = [...e.leadingDecorators.decorators], e.leadingDecorators.decorators.length = 0) : (a = e.tokenStart, o = Gn(e, t, r)), t = (t | 16385) ^ 16384, A(e, t);
 		let s = null, c = null, { tokenValue: l } = e;
 		e.getToken() & 4096 && e.getToken() !== 20565 ? (Be(e, t, e.getToken()) && e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), n && (n.addBlockName(t, l, 32, 0), i && i & 2 && e.declareUnboundVariable(l)), s = K(e, t)) : i & 1 || e.report(39, "Class");
 		let u = t;
-		E$1(e, t | 32, 20565) ? (c = U(e, t, r, 0, 0, 0), u |= 512) : u = (u | 512) ^ 512;
+		E(e, t | 32, 20565) ? (c = U(e, t, r, 0, 0, 0), u |= 512) : u = (u | 512) ^ 512;
 		let d = qn(e, u, t, n, r, 2, 8, 0);
 		return e.finishNode({
 			type: "ClassDeclaration",
@@ -21560,9 +21735,9 @@ var vot = (function(exports) {
 	}
 	function Wn(e, t, n, r, i) {
 		let a = null, o = null, s = Gn(e, t, n);
-		t = (t | 16385) ^ 16384, A$1(e, t), e.getToken() & 4096 && e.getToken() !== 20565 && (Be(e, t, e.getToken()) && e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), a = K(e, t));
+		t = (t | 16385) ^ 16384, A(e, t), e.getToken() & 4096 && e.getToken() !== 20565 && (Be(e, t, e.getToken()) && e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), a = K(e, t));
 		let c = t;
-		E$1(e, t | 32, 20565) ? (o = U(e, t, n, 0, r, 0), c |= 512) : c = (c | 512) ^ 512;
+		E(e, t | 32, 20565) ? (o = U(e, t, n, 0, r, 0), c |= 512) : c = (c | 512) ^ 512;
 		let l = qn(e, c, t, void 0, n, 2, 0, r);
 		return e.assignable = 2, e.finishNode({
 			type: "ClassExpression",
@@ -21579,7 +21754,7 @@ var vot = (function(exports) {
 	}
 	function Kn(e, t, n) {
 		let r = e.tokenStart;
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let i = G(e, t, n, 2, 0, 1, 0, 1, r);
 		return i = W(e, t, n, i, 0, 0, e.tokenStart), e.finishNode({
 			type: "Decorator",
@@ -21588,7 +21763,7 @@ var vot = (function(exports) {
 	}
 	function qn(e, t, n, r, i, a, o, s) {
 		let { tokenStart: c } = e, l = e.createPrivateScopeIfLexical(i);
-		D$1(e, t | 32, 2162700);
+		D(e, t | 32, 2162700);
 		let u = 655360;
 		t = (t | u) ^ u;
 		let d = e.flags & 32;
@@ -21596,13 +21771,13 @@ var vot = (function(exports) {
 		let f = [];
 		for (; e.getToken() !== 1074790415;) {
 			let i = e.tokenStart, o = Gn(e, t, l);
-			if (o.length > 0 && e.tokenValue === "constructor" && e.report(109), e.getToken() === 1074790415 && e.report(108), E$1(e, t, 1074790417)) {
+			if (o.length > 0 && e.tokenValue === "constructor" && e.report(109), e.getToken() === 1074790415 && e.report(108), E(e, t, 1074790417)) {
 				o.length > 0 && e.report(120);
 				continue;
 			}
 			f.push(Jn(e, t, r, l, n, a, o, 0, s, o.length > 0 ? i : e.tokenStart));
 		}
-		return D$1(e, o & 8 ? t | 32 : t, 1074790415), l?.validatePrivateIdentifierRefs(), e.flags = e.flags & -33 | d, e.finishNode({
+		return D(e, o & 8 ? t | 32 : t, 1074790415), l?.validatePrivateIdentifierRefs(), e.flags = e.flags & -33 | d, e.finishNode({
 			type: "ClassBody",
 			body: f
 		}, c);
@@ -21636,15 +21811,15 @@ var vot = (function(exports) {
 				e.options.next && (u |= 1024);
 			}
 		}
-		else if (f === 69271571) u |= 2, d = $$1(e, i, r, c);
+		else if (f === 69271571) u |= 2, d = $(e, i, r, c);
 		else if ((f & 134217728) == 134217728) d = q(e, t);
-		else if (f === 8391476) u |= 8, A$1(e, t);
+		else if (f === 8391476) u |= 8, A(e, t);
 		else if (e.getToken() === 130) u |= 8192, d = Yn(e, t | 16, r, 768);
 		else if ((e.getToken() & 1073741824) == 1073741824) u |= 128;
 		else if (s && f === 2162700) return Lt(e, t | 16, n, r, l);
-		else f === -2147483527 ? (d = K(e, t), e.getToken() !== 67174411 && e.report(30, w$1[e.getToken() & 255])) : e.report(30, w$1[e.getToken() & 255]);
-		if (u & 1816 && (e.getToken() & 143360 || e.getToken() === -2147483528 || e.getToken() === -2147483527 ? d = K(e, t) : (e.getToken() & 134217728) == 134217728 ? d = q(e, t) : e.getToken() === 69271571 ? (u |= 2, d = $$1(e, t, r, 0)) : e.getToken() === 130 ? (u |= 8192, d = Yn(e, t, r, u)) : e.report(135)), u & 2 || (e.tokenValue === "constructor" ? ((e.getToken() & 1073741824) == 1073741824 ? e.report(129) : !(u & 32) && e.getToken() === 67174411 && (u & 920 ? e.report(53, "accessor") : t & 512 || (e.flags & 32 ? e.report(54) : e.flags |= 32)), u |= 64) : !(u & 8192) && u & 32 && e.tokenValue === "prototype" && e.report(52)), u & 1024 || e.getToken() !== 67174411 && !(u & 768)) return Xn(e, t, r, d, u, o, l);
-		let p = Z$1(e, t | 16, r, u, c, e.tokenStart);
+		else f === -2147483527 ? (d = K(e, t), e.getToken() !== 67174411 && e.report(30, w[e.getToken() & 255])) : e.report(30, w[e.getToken() & 255]);
+		if (u & 1816 && (e.getToken() & 143360 || e.getToken() === -2147483528 || e.getToken() === -2147483527 ? d = K(e, t) : (e.getToken() & 134217728) == 134217728 ? d = q(e, t) : e.getToken() === 69271571 ? (u |= 2, d = $(e, t, r, 0)) : e.getToken() === 130 ? (u |= 8192, d = Yn(e, t, r, u)) : e.report(135)), u & 2 || (e.tokenValue === "constructor" ? ((e.getToken() & 1073741824) == 1073741824 ? e.report(129) : !(u & 32) && e.getToken() === 67174411 && (u & 920 ? e.report(53, "accessor") : t & 512 || (e.flags & 32 ? e.report(54) : e.flags |= 32)), u |= 64) : !(u & 8192) && u & 32 && e.tokenValue === "prototype" && e.report(52)), u & 1024 || e.getToken() !== 67174411 && !(u & 768)) return Xn(e, t, r, d, u, o, l);
+		let p = Z(e, t | 16, r, u, c, e.tokenStart);
 		return e.finishNode({
 			type: "MethodDefinition",
 			kind: !(u & 32) && u & 64 ? "constructor" : u & 256 ? "get" : u & 512 ? "set" : "method",
@@ -21657,9 +21832,9 @@ var vot = (function(exports) {
 	}
 	function Yn(e, t, n, r) {
 		let { tokenStart: i } = e;
-		A$1(e, t);
+		A(e, t);
 		let { tokenValue: a } = e;
-		return a === "constructor" && e.report(128), e.options.lexical && (n || e.report(4, a), r ? n.addPrivateIdentifier(a, r) : n.addPrivateIdentifierRef(a)), A$1(e, t), e.finishNode({
+		return a === "constructor" && e.report(128), e.options.lexical && (n || e.report(4, a), r ? n.addPrivateIdentifier(a, r) : n.addPrivateIdentifierRef(a)), A(e, t), e.finishNode({
 			type: "PrivateIdentifier",
 			name: a
 		}, i);
@@ -21667,13 +21842,13 @@ var vot = (function(exports) {
 	function Xn(e, t, n, r, i, a, o) {
 		let s = null;
 		if (i & 8 && e.report(0), e.getToken() === 1077936155) {
-			A$1(e, t | 32);
+			A(e, t | 32);
 			let { tokenStart: r } = e;
 			e.getToken() === 537079927 && e.report(119);
 			let a = 11264 | (i & 64 ? 0 : 16896);
-			t = (t | a) ^ a | (i & 8 ? 1024 : 0) | (i & 16 ? 2048 : 0) | (i & 64 ? 16384 : 0) | 65792, s = G(e, t | 16, n, 2, 0, 1, 0, 1, r), ((e.getToken() & 1073741824) != 1073741824 || (e.getToken() & 4194304) == 4194304) && (s = W(e, t | 16, n, s, 0, 0, r), s = B$1(e, t | 16, n, 0, 0, r, s));
+			t = (t | a) ^ a | (i & 8 ? 1024 : 0) | (i & 16 ? 2048 : 0) | (i & 64 ? 16384 : 0) | 65792, s = G(e, t | 16, n, 2, 0, 1, 0, 1, r), ((e.getToken() & 1073741824) != 1073741824 || (e.getToken() & 4194304) == 4194304) && (s = W(e, t | 16, n, s, 0, 0, r), s = B(e, t | 16, n, 0, 0, r, s));
 		}
-		return T$1(e, t), e.finishNode({
+		return T(e, t), e.finishNode({
 			type: i & 1024 ? "AccessorProperty" : "PropertyDefinition",
 			key: r,
 			value: s,
@@ -21684,7 +21859,7 @@ var vot = (function(exports) {
 	}
 	function Zn(e, t, n, r, i, a) {
 		if (e.getToken() & 143360 || !(t & 1) && e.getToken() === -2147483527) return Qn(e, t, n, i, a);
-		(e.getToken() & 2097152) != 2097152 && e.report(30, w$1[e.getToken() & 255]);
+		(e.getToken() & 2097152) != 2097152 && e.report(30, w[e.getToken() & 255]);
 		let o = e.getToken() === 69271571 ? Y(e, t, n, r, 1, 0, 1, i, a) : Q(e, t, n, r, 1, 0, 1, i, a);
 		return e.destructible & 16 && e.report(50), e.destructible & 32 && e.report(50), o;
 	}
@@ -21692,13 +21867,13 @@ var vot = (function(exports) {
 		let a = e.getToken();
 		t & 1 && ((a & 537079808) == 537079808 ? e.report(119) : ((a & 36864) == 36864 || a === -2147483527) && e.report(118)), (a & 20480) == 20480 && e.report(102), a === 241771 && (t & 1024 && e.report(32), t & 2 && e.report(111)), (a & 255) == 73 && r & 24 && e.report(100), a === 209006 && (t & 2048 && e.report(176), t & 2 && e.report(110));
 		let { tokenValue: o, tokenStart: s } = e;
-		return A$1(e, t), n?.addVarOrBlock(t, o, r, i), e.finishNode({
+		return A(e, t), n?.addVarOrBlock(t, o, r, i), e.finishNode({
 			type: "Identifier",
 			name: o
 		}, s);
 	}
 	function $n(e, t, n, r, i) {
-		if (r || D$1(e, t, 8456256), e.getToken() === 8390721) {
+		if (r || D(e, t, 8456256), e.getToken() === 8390721) {
 			let a = er(e, i), [o, s] = ir(e, t, n, r);
 			return e.finishNode({
 				type: "JSXFragment",
@@ -21707,7 +21882,7 @@ var vot = (function(exports) {
 				closingFragment: s
 			}, i);
 		}
-		e.getToken() === 8457014 && e.report(30, w$1[e.getToken() & 255]);
+		e.getToken() === 8457014 && e.report(30, w[e.getToken() & 255]);
 		let a = null, o = [], s = cr(e, t, n, r, i);
 		if (!s.selfClosing) {
 			[o, a] = rr(e, t, n, r);
@@ -21725,15 +21900,15 @@ var vot = (function(exports) {
 		return j(e), e.finishNode({ type: "JSXOpeningFragment" }, t);
 	}
 	function tr(e, t, n, r) {
-		D$1(e, t, 8457014);
+		D(e, t, 8457014);
 		let i = lr(e, t);
-		return e.getToken() !== 8390721 && e.report(25, w$1[65]), n ? j(e) : A$1(e, t), e.finishNode({
+		return e.getToken() !== 8390721 && e.report(25, w[65]), n ? j(e) : A(e, t), e.finishNode({
 			type: "JSXClosingElement",
 			name: i
 		}, r);
 	}
 	function nr(e, t, n, r) {
-		return D$1(e, t, 8457014), e.getToken() !== 8390721 && e.report(25, w$1[65]), n ? j(e) : A$1(e, t), e.finishNode({ type: "JSXClosingFragment" }, r);
+		return D(e, t, 8457014), e.getToken() !== 8390721 && e.report(25, w[65]), n ? j(e) : A(e, t), e.finishNode({ type: "JSXClosingFragment" }, r);
 	}
 	function rr(e, t, n, r) {
 		let i = [];
@@ -21756,7 +21931,7 @@ var vot = (function(exports) {
 		if (e.getToken() === 2162700) return hr(e, t, n, 1, 0);
 		if (e.getToken() === 8456256) {
 			let { tokenStart: i } = e;
-			return A$1(e, t), e.getToken() === 8457014 ? tr(e, t, r, i) : $n(e, t, n, 1, i);
+			return A(e, t), e.getToken() === 8457014 ? tr(e, t, r, i) : $n(e, t, n, 1, i);
 		}
 		e.report(0);
 	}
@@ -21765,13 +21940,13 @@ var vot = (function(exports) {
 		if (e.getToken() === 2162700) return hr(e, t, n, 1, 0);
 		if (e.getToken() === 8456256) {
 			let { tokenStart: i } = e;
-			return A$1(e, t), e.getToken() === 8457014 ? nr(e, t, r, i) : $n(e, t, n, 1, i);
+			return A(e, t), e.getToken() === 8457014 ? nr(e, t, r, i) : $n(e, t, n, 1, i);
 		}
 		e.report(0);
 	}
 	function sr(e, t) {
 		let n = e.tokenStart;
-		A$1(e, t);
+		A(e, t);
 		let r = {
 			type: "JSXText",
 			value: e.tokenValue
@@ -21781,7 +21956,7 @@ var vot = (function(exports) {
 	function cr(e, t, n, r, i) {
 		(e.getToken() & 143360) != 143360 && (e.getToken() & 4096) != 4096 && e.report(0);
 		let a = lr(e, t), o = dr(e, t, n), s = e.getToken() === 8457014;
-		return s && D$1(e, t, 8457014), e.getToken() !== 8390721 && e.report(25, w$1[65]), r || !s ? j(e) : A$1(e, t), e.finishNode({
+		return s && D(e, t, 8457014), e.getToken() !== 8390721 && e.report(25, w[65]), r || !s ? j(e) : A(e, t), e.finishNode({
 			type: "JSXOpeningElement",
 			name: a,
 			attributes: o,
@@ -21793,7 +21968,7 @@ var vot = (function(exports) {
 		st(e);
 		let r = vr(e, t);
 		if (e.getToken() === 21) return mr(e, t, r, n);
-		for (; E$1(e, t, 67108877);) st(e), r = ur(e, t, r, n);
+		for (; E(e, t, 67108877);) st(e), r = ur(e, t, r, n);
 		return r;
 	}
 	function ur(e, t, n, r) {
@@ -21811,9 +21986,9 @@ var vot = (function(exports) {
 	}
 	function fr(e, t, n) {
 		let r = e.tokenStart;
-		A$1(e, t), D$1(e, t, 14);
-		let i = L$1(e, t, n, 1, 0, e.tokenStart);
-		return D$1(e, t, 1074790415), e.finishNode({
+		A(e, t), D(e, t, 14);
+		let i = L(e, t, n, 1, 0, e.tokenStart);
+		return D(e, t, 1074790415), e.finishNode({
 			type: "JSXSpreadAttribute",
 			argument: i
 		}, r);
@@ -21842,7 +22017,7 @@ var vot = (function(exports) {
 		}, r);
 	}
 	function mr(e, t, n, r) {
-		D$1(e, t, 21);
+		D(e, t, 21);
 		let i = vr(e, t);
 		return e.finishNode({
 			type: "JSXNamespacedName",
@@ -21852,7 +22027,7 @@ var vot = (function(exports) {
 	}
 	function hr(e, t, n, r, i) {
 		let { tokenStart: a } = e;
-		A$1(e, t | 32);
+		A(e, t | 32);
 		let { tokenStart: o } = e;
 		if (e.getToken() === 14) return gr(e, t, n, a);
 		let s = null;
@@ -21860,15 +22035,15 @@ var vot = (function(exports) {
 			index: e.startIndex,
 			line: e.startLine,
 			column: e.startColumn
-		})) : s = L$1(e, t, n, 1, 0, o), e.getToken() !== 1074790415 && e.report(25, w$1[15]), r ? j(e) : A$1(e, t), e.finishNode({
+		})) : s = L(e, t, n, 1, 0, o), e.getToken() !== 1074790415 && e.report(25, w[15]), r ? j(e) : A(e, t), e.finishNode({
 			type: "JSXExpressionContainer",
 			expression: s
 		}, a);
 	}
 	function gr(e, t, n, r) {
-		D$1(e, t, 14);
-		let i = L$1(e, t, n, 1, 0, e.tokenStart);
-		return D$1(e, t, 1074790415), e.finishNode({
+		D(e, t, 14);
+		let i = L(e, t, n, 1, 0, e.tokenStart);
+		return D(e, t, 1074790415), e.finishNode({
 			type: "JSXSpreadChild",
 			expression: i
 		}, r);
@@ -21878,9 +22053,9 @@ var vot = (function(exports) {
 	}
 	function vr(e, t) {
 		let n = e.tokenStart;
-		e.getToken() & 143360 || e.report(30, w$1[e.getToken() & 255]);
+		e.getToken() & 143360 || e.report(30, w[e.getToken() & 255]);
 		let { tokenValue: r } = e;
-		return A$1(e, t), e.finishNode({
+		return A(e, t), e.finishNode({
 			type: "JSXIdentifier",
 			name: r
 		}, n);
@@ -22129,7 +22304,7 @@ var vot = (function(exports) {
 `);
 		}
 		return c;
-	})(se, n$1);
+	})(se, n);
 	//#endregion
 	//#region src/audioDownloader/strategies/webAbr.ts
 	var MEDIA_RANGE_SIZES = [
@@ -22195,7 +22370,7 @@ var vot = (function(exports) {
 		return ranges;
 	}
 	async function mintPagePoToken(pageWindow, binding, signal) {
-		const realms = /* @__PURE__ */ new Set([pageWindow]);
+		const realms = new Set([pageWindow]);
 		try {
 			realms.add(pageWindow.parent);
 			realms.add(pageWindow.top);
@@ -22376,61 +22551,33 @@ var vot = (function(exports) {
 			racyCheckOk: true
 		};
 	}
-	function selectAudioFormatFrom(audioFormats) {
-		const smallest = (key) => {
-			let best;
-			let bestValue = Number.POSITIVE_INFINITY;
-			for (const format of audioFormats) {
-				const raw = format[key];
-				const value = raw == null ? NaN : typeof raw === "number" ? raw : Number(String(raw));
-				if (Number.isFinite(value) && value > 0 && value < bestValue) {
-					best = format;
-					bestValue = value;
-				}
-			}
-			return best;
-		};
-		return smallest("contentLength") ?? smallest("averageBitrate") ?? audioFormats[0];
+	function audioLanguageMatches(trackLanguage, requestedLanguage) {
+		const track = normalizeAudioLanguageTag(trackLanguage);
+		const requested = normalizeAudioLanguageTag(requestedLanguage);
+		if (!track || !requested || requested === "auto") return false;
+		if (track === requested) return true;
+		return track.split("-")[0] === requested.split("-")[0];
 	}
-	function normalizeAudioLanguage(value) {
-		if (typeof value !== "string" || !value) return;
-		return normalizeLang$1(value.split(".")[0] ?? "") || void 0;
-	}
-	function getAudioTrackLanguage(format) {
-		return normalizeAudioLanguage(format.audioTrack?.languageCode ?? format.audioTrack?.id);
-	}
-	function normalizeRequestedLanguage(value) {
-		const language = normalizeAudioLanguage(value);
-		return language && language !== "auto" ? language : void 0;
-	}
-	function preferSourceLanguageAudioFormats(audioFormats, sourceLanguage) {
-		const requested = normalizeRequestedLanguage(sourceLanguage);
-		if (requested) {
-			const matches = audioFormats.filter((format) => getAudioTrackLanguage(format) === requested);
-			if (matches.length) {
-				const defaultMatches = matches.filter((format) => format.audioTrack?.audioIsDefault === true);
-				return defaultMatches.length ? defaultMatches : matches;
-			}
+	function isDrcAudioFormat(format) {
+		if (typeof format.xtags === "string" && format.xtags.includes("drc=1")) return true;
+		try {
+			const cipher = typeof format.signatureCipher === "string" ? new URLSearchParams(format.signatureCipher) : void 0;
+			const rawUrl = format.url ?? cipher?.get("url");
+			return (rawUrl ? new URL(rawUrl).searchParams.get("xtags") : null)?.includes("drc=1") === true;
+		} catch {
+			return false;
 		}
-		const defaults = audioFormats.filter((format) => format.audioTrack?.audioIsDefault === true);
-		return defaults.length ? defaults : audioFormats;
 	}
-	function selectAudioFormat(formats, sourceLanguage) {
-		if (!formats.length) throw new Error("Audio downloader. Empty adaptive formats");
-		const withUrl = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string");
-		const audioFormats = withUrl.filter(({ audioQuality, mimeType }) => !mimeType?.includes("video/") && (Boolean(audioQuality) || mimeType?.includes("audio/")));
-		if (audioFormats.length) return selectAudioFormatFrom(preferSourceLanguageAudioFormats(audioFormats, sourceLanguage));
-		const selected = withUrl.find(({ itag }) => itag === 18) ?? withUrl.filter(({ mimeType }) => /mp4a\.|opus/i.test(mimeType ?? "")).sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
-		if (!selected) {
-			debug.log("Audio downloader. no direct audio formats", JSON.stringify(formats.map((format) => ({
-				itag: format.itag,
-				mimeType: format.mimeType,
-				hasUrl: typeof format.url === "string",
-				hasCipher: typeof format.signatureCipher === "string",
-				contentLength: format.contentLength ?? "none"
-			}))));
-			throw new Error("Audio downloader. web ABR returned no direct audio formats");
-		}
+	function selectWebEmbeddedAudioFormat(formats, requestedLanguage) {
+		const audioOnly = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string").filter(({ mimeType }) => mimeType?.includes("audio/") && !mimeType?.includes("video/"));
+		const normalizedRequestedLanguage = normalizeAudioLanguageTag(requestedLanguage);
+		const exactLanguageCandidates = normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => getYoutubeAudioFormatLanguage(format) === normalizedRequestedLanguage) : [];
+		const requestedLanguageCandidates = exactLanguageCandidates.length > 0 ? exactLanguageCandidates : normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), normalizedRequestedLanguage)) : [];
+		const defaultAudioOnly = audioOnly.filter(({ audioTrack }) => audioTrack?.audioIsDefault === true);
+		const trackCandidates = requestedLanguageCandidates.length > 0 ? requestedLanguageCandidates : defaultAudioOnly.length > 0 ? defaultAudioOnly : audioOnly;
+		const nonDrcCandidates = trackCandidates.filter((format) => !isDrcAudioFormat(format));
+		const selected = selectSmallestAudioFormat(nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates);
+		if (!selected) throw new Error("Audio downloader. web ABR returned no direct audio-only formats");
 		return selected;
 	}
 	async function sha1(value) {
@@ -22492,7 +22639,7 @@ var vot = (function(exports) {
 	var N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;
 	function listPageFunctions(pageWindow) {
 		const found = [];
-		const seen = /* @__PURE__ */ new Set();
+		const seen = new Set();
 		let visited = 0;
 		const visit = (value, path, depth) => {
 			if (!value || seen.has(value) || depth > 3 || visited++ >= 5e3) return;
@@ -22523,7 +22670,7 @@ var vot = (function(exports) {
 	}
 	function pageUrlMethods(proto) {
 		if (!proto) return;
-		const descriptors = /* @__PURE__ */ new Map();
+		const descriptors = new Map();
 		for (let current = proto; current; current = Object.getPrototypeOf(current)) for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(current))) if (!descriptors.has(key)) descriptors.set(key, descriptor);
 		const get = descriptors.get("get")?.value;
 		const set = descriptors.get("set")?.value;
@@ -22556,13 +22703,13 @@ var vot = (function(exports) {
 		return decoded !== input && pattern.test(decoded) ? decoded : void 0;
 	}
 	function collectPageSolutions(pageWindow, challenge) {
-		const realms = /* @__PURE__ */ new Set([pageWindow]);
+		const realms = new Set([pageWindow]);
 		for (const relation of ["parent", "top"]) try {
 			const other = pageWindow[relation];
 			if (other) realms.add(other);
 		} catch {}
 		const solutions = [];
-		const seen = /* @__PURE__ */ new Set();
+		const seen = new Set();
 		const collect = (instance, methods, transform, factory) => {
 			const solution = {};
 			const readSignature = () => {
@@ -22617,7 +22764,7 @@ var vot = (function(exports) {
 			const values = new Set(solutions.map((solution) => solution[field]).filter(Boolean));
 			if (values.size === 1) consensus[field] = values.values().next().value;
 		}
-		const merged = /* @__PURE__ */ new Map();
+		const merged = new Map();
 		for (const solution of solutions) {
 			const candidate = {
 				signature: solution.signature ?? consensus.signature,
@@ -22681,7 +22828,7 @@ var vot = (function(exports) {
 		const complete = (solution) => (!signature || !!solution.signature) && (!n || !!solution.n);
 		candidates.sort((a, b) => Number(complete(b)) - Number(complete(a)));
 		let source;
-		const astSolutions = /* @__PURE__ */ new Map();
+		const astSolutions = new Map();
 		const solve = async (signature, n) => {
 			signal.throwIfAborted();
 			const key = JSON.stringify([signature, n]);
@@ -22701,7 +22848,7 @@ var vot = (function(exports) {
 			astSolutions.set(key, solved);
 			return solved;
 		};
-		const yielded = /* @__PURE__ */ new Set();
+		const yielded = new Set();
 		const errors = [];
 		for (const candidate of candidates) {
 			signal.throwIfAborted();
@@ -22829,62 +22976,357 @@ var vot = (function(exports) {
 		if (!(total > 0)) throw new Error("Audio downloader. web ABR content length unknown");
 		return total;
 	}
-	async function* downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl) {
-		if (!Number.isSafeInteger(contentLength) || contentLength < 1) throw new Error("Audio downloader. Invalid media content length");
-		let requestNumber = 0;
-		let pending = [];
-		let pendingSize = 0;
-		for (const { start, end } of buildMediaRanges(contentLength)) {
-			let buffer;
-			for (let attempt = 0; attempt < 3; attempt++) {
+	var WEB_ABR_TRANSPORTS = [
+		"parallel_4",
+		"4mb",
+		"parallel_8",
+		"8mb",
+		"parallel_2",
+		"2mb",
+		"stream",
+		"original"
+	];
+	function makeFixedRanges(contentLength, chunkSize) {
+		const ranges = [];
+		for (let start = 0; start < contentLength; start += chunkSize) ranges.push({
+			start,
+			end: Math.min(contentLength - 1, start + chunkSize - 1)
+		});
+		return ranges;
+	}
+	var WEB_ABR_RANGE_MAX_ATTEMPTS = 10;
+	var WEB_ABR_RANGE_REFRESH_EVERY_FAILURES = 2;
+	var WEB_ABR_RANGE_RETRY_BASE_DELAY_MS = 250;
+	var WEB_ABR_RANGE_RETRY_MAX_DELAY_MS = 1500;
+	var WEB_ABR_FATAL_MEDIA_STATUSES = new Set([
+		401,
+		403,
+		404,
+		410
+	]);
+	var MediaHttpError = class extends Error {
+		status;
+		constructor(status, message) {
+			super(message);
+			this.status = status;
+			this.name = "MediaHttpError";
+		}
+	};
+	function isFatalMediaError(error) {
+		return error instanceof MediaHttpError && WEB_ABR_FATAL_MEDIA_STATUSES.has(error.status);
+	}
+	async function refreshMediaUrl(urlState, refreshUrl, reason = null) {
+		if (!urlState.refreshPromise) {
+			const previousUrl = urlState.value;
+			const previousVersion = urlState.version ?? 0;
+			urlState.refreshPromise = Promise.resolve().then(() => refreshUrl()).then((nextUrl) => {
+				if (typeof nextUrl !== "string" || !nextUrl) throw new Error("Audio downloader. Failed to refresh media URL");
+				urlState.value = nextUrl;
+				urlState.version = previousVersion + 1;
+				debug.log("Audio downloader. web ABR media URL refresh applied", {
+					reason,
+					version: urlState.version,
+					urlChanged: nextUrl !== previousUrl
+				});
+				return nextUrl;
+			}).finally(() => {
+				urlState.refreshPromise = null;
+			});
+		}
+		return await urlState.refreshPromise;
+	}
+	async function fetchMediaRange(targetWindow, urlState, start, end, signal, refreshUrl, requestNumberRef) {
+		let lastError;
+		let refreshedFatal = false;
+		for (let attempt = 0; attempt < WEB_ABR_RANGE_MAX_ATTEMPTS; attempt++) {
+			signal.throwIfAborted();
+			if (attempt > 0 && urlState.refreshPromise) await urlState.refreshPromise;
+			try {
+				const urlVersion = urlState.version ?? 0;
+				const url = new URL(urlState.value);
+				url.searchParams.set("range", `${start}-${end}`);
+				url.searchParams.set("rn", String(++requestNumberRef.value));
+				url.searchParams.delete("ump");
+				const response = await targetWindow.fetch(url, {
+					signal,
+					cache: "no-store"
+				});
+				if (!response.ok) throw new MediaHttpError(response.status, `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`);
+				const bytes = new Uint8Array(await response.arrayBuffer());
 				signal.throwIfAborted();
-				try {
-					const url = new URL(streamUrl);
-					url.searchParams.set("range", `${start}-${end}`);
-					url.searchParams.set("rn", String(++requestNumber));
-					url.searchParams.delete("ump");
-					const response = await targetWindow.fetch(url, { signal });
-					if (!response.ok) throw new Error(`Audio downloader. Media request failed (${response.status}, range ${start}-${end})`);
-					const bytes = new Uint8Array(await response.arrayBuffer());
+				if (bytes.byteLength === end - start + 1) {
+					if (attempt > 0) debug.log("Audio downloader. web ABR range recovered", {
+						range: `${start}-${end}`,
+						attempt: attempt + 1,
+						maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+						urlVersion
+					});
+					return bytes;
+				}
+				const redirect = new TextDecoder("ascii").decode(bytes).match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
+				if (redirect) {
+					const next = new URL(redirect);
+					if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) throw new Error("Audio downloader. Invalid media redirect");
+					urlState.value = next.toString();
+					if (attempt + 1 < WEB_ABR_RANGE_MAX_ATTEMPTS) continue;
+				}
+				throw new Error(`Audio downloader. Incomplete web ABR chunk (${bytes.byteLength}/${end - start + 1}, range ${start}-${end})`);
+			} catch (error) {
+				signal.throwIfAborted();
+				lastError = error;
+				const failedAttempt = attempt + 1;
+				const fatal = isFatalMediaError(error);
+				const hasMoreAttempts = failedAttempt < WEB_ABR_RANGE_MAX_ATTEMPTS;
+				const shouldRefreshUrl = hasMoreAttempts && (fatal || failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0);
+				debug.log("Audio downloader. web ABR range request failed", {
+					range: `${start}-${end}`,
+					attempt: failedAttempt,
+					maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+					fatal,
+					refreshUrl: shouldRefreshUrl,
+					error: error instanceof Error ? error.message : String(error)
+				});
+				if (!hasMoreAttempts) break;
+				if (fatal && refreshedFatal) break;
+				await createAbortableDelay(Math.min(WEB_ABR_RANGE_RETRY_BASE_DELAY_MS * failedAttempt, WEB_ABR_RANGE_RETRY_MAX_DELAY_MS), signal);
+				if (shouldRefreshUrl) try {
+					await refreshMediaUrl(urlState, refreshUrl, {
+						range: `${start}-${end}`,
+						failedAttempt
+					});
+					if (fatal) refreshedFatal = true;
+					debug.log("Audio downloader. web ABR media URL refreshed for range retry", {
+						range: `${start}-${end}`,
+						nextAttempt: failedAttempt + 1,
+						urlVersion: urlState.version ?? 0
+					});
+				} catch (refreshError) {
 					signal.throwIfAborted();
-					if (bytes.byteLength === end - start + 1) {
-						buffer = bytes;
-						break;
-					}
-					const redirect = new TextDecoder("ascii").decode(bytes).match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
-					if (redirect) {
-						const next = new URL(redirect);
-						if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) throw new Error("Audio downloader. Invalid media redirect");
-						streamUrl = next.toString();
-						if (attempt < 2) continue;
-					}
-					throw new Error("Audio downloader. Incomplete web ABR chunk");
-				} catch (error) {
-					signal.throwIfAborted();
-					if (attempt === 2) throw error;
-					await createAbortableDelay(250 * (attempt + 1), signal);
-					if (attempt === 1) streamUrl = await refreshUrl();
+					debug.log("Audio downloader. web ABR media URL refresh failed", {
+						range: `${start}-${end}`,
+						nextAttempt: failedAttempt + 1,
+						error: refreshError instanceof Error ? refreshError.message : String(refreshError)
+					});
+					if (fatal) break;
+					lastError = refreshError;
 				}
 			}
-			if (!buffer) throw new Error("Audio downloader. Incomplete web ABR chunk");
-			pending.push(buffer);
-			pendingSize += buffer.byteLength;
-			const isLastChunk = end === contentLength - 1;
-			if (pendingSize >= config_default$1.minChunkSize || isLastChunk) {
+		}
+		throw lastError instanceof Error ? lastError : new Error("Audio downloader. Media range failed");
+	}
+	async function* emitOrderedBuffers(buffers, isLastBatch, pendingState) {
+		for (let bufferIndex = 0; bufferIndex < buffers.length; bufferIndex++) {
+			const buffer = buffers[bufferIndex];
+			pendingState.buffers.push(buffer);
+			pendingState.size += buffer.byteLength;
+			const isFinalBuffer = isLastBatch && bufferIndex === buffers.length - 1;
+			if (pendingState.size >= config_default$1.minChunkSize && !isFinalBuffer) {
 				yield {
-					buffer: concatBuffers(pending),
-					isLastChunk
+					buffer: concatBuffers(pendingState.buffers),
+					isLastChunk: false
 				};
-				pending = [];
-				pendingSize = 0;
+				pendingState.buffers = [];
+				pendingState.size = 0;
 			}
 		}
+		if (isLastBatch) {
+			if (pendingState.size < 1) throw new Error("Audio downloader. Final web ABR chunk is empty");
+			yield {
+				buffer: concatBuffers(pendingState.buffers),
+				isLastChunk: true
+			};
+			pendingState.buffers = [];
+			pendingState.size = 0;
+		}
 	}
-	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+	async function* downloadRangesSequential(targetWindow, streamUrl, _contentLength, signal, refreshUrl, ranges) {
+		const urlState = {
+			value: streamUrl,
+			refreshPromise: null,
+			version: 0
+		};
+		const requestNumberRef = { value: 0 };
+		const pendingState = {
+			buffers: [],
+			size: 0
+		};
+		for (let index = 0; index < ranges.length; index++) {
+			const { start, end } = ranges[index];
+			const buffer = await fetchMediaRange(targetWindow, urlState, start, end, signal, refreshUrl, requestNumberRef);
+			for await (const chunk of emitOrderedBuffers([buffer], index === ranges.length - 1, pendingState)) yield chunk;
+		}
+	}
+	async function* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, concurrency) {
+		const ranges = makeFixedRanges(contentLength, 4194304);
+		const urlState = {
+			value: streamUrl,
+			refreshPromise: null,
+			version: 0
+		};
+		const requestNumberRef = { value: 0 };
+		const pendingState = {
+			buffers: [],
+			size: 0
+		};
+		for (let index = 0; index < ranges.length; index += concurrency) {
+			signal.throwIfAborted();
+			const batch = ranges.slice(index, index + concurrency);
+			const buffers = await Promise.all(batch.map(({ start, end }) => fetchMediaRange(targetWindow, urlState, start, end, signal, refreshUrl, requestNumberRef)));
+			for await (const chunk of emitOrderedBuffers(buffers, index + batch.length >= ranges.length, pendingState)) yield chunk;
+		}
+	}
+	async function* downloadStream(targetWindow, streamUrl, signal) {
+		const url = new URL(streamUrl);
+		url.searchParams.delete("range");
+		url.searchParams.delete("rn");
+		url.searchParams.delete("ump");
+		const response = await targetWindow.fetch(url, { signal });
+		if (!response.ok) throw new Error(`Audio downloader. Stream request failed (${response.status})`);
+		if (!response.body) throw new Error("Audio downloader. Stream body is unavailable");
+		const reader = response.body.getReader();
+		const pending = [];
+		let pendingSize = 0;
+		let readyChunk = null;
+		try {
+			for (;;) {
+				signal.throwIfAborted();
+				const { value, done } = await reader.read();
+				if (done) break;
+				if (!value?.byteLength) continue;
+				const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+				pending.push(bytes);
+				pendingSize += bytes.byteLength;
+				if (pendingSize >= config_default$1.minChunkSize) {
+					const nextChunk = concatBuffers(pending);
+					pending.length = 0;
+					pendingSize = 0;
+					if (readyChunk) yield {
+						buffer: readyChunk,
+						isLastChunk: false
+					};
+					readyChunk = nextChunk;
+				}
+			}
+		} finally {
+			try {
+				reader.releaseLock();
+			} catch {}
+		}
+		if (pendingSize > 0) {
+			if (readyChunk) yield {
+				buffer: readyChunk,
+				isLastChunk: false
+			};
+			yield {
+				buffer: concatBuffers(pending),
+				isLastChunk: true
+			};
+			return;
+		}
+		if (!readyChunk?.byteLength) throw new Error("Audio downloader. Stream ended without audio data");
+		yield {
+			buffer: readyChunk,
+			isLastChunk: true
+		};
+	}
+	async function* downloadWithTransport(targetWindow, transport, streamUrl, contentLength, signal, refreshUrl) {
+		switch (transport) {
+			case "parallel_4":
+				yield* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, 4);
+				return;
+			case "parallel_2":
+				yield* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, 2);
+				return;
+			case "parallel_8":
+				yield* downloadRangesParallel(targetWindow, streamUrl, contentLength, signal, refreshUrl, 8);
+				return;
+			case "stream":
+				yield* downloadStream(targetWindow, streamUrl, signal);
+				return;
+			case "8mb":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, makeFixedRanges(contentLength, 8388608));
+				return;
+			case "4mb":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, makeFixedRanges(contentLength, 4194304));
+				return;
+			case "2mb":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, makeFixedRanges(contentLength, 2097152));
+				return;
+			case "original":
+				yield* downloadRangesSequential(targetWindow, streamUrl, contentLength, signal, refreshUrl, buildMediaRanges(contentLength));
+				return;
+			default: throw new Error(`Audio downloader. Unknown web ABR transport: ${transport}`);
+		}
+	}
+	async function* downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl) {
+		if (!Number.isSafeInteger(contentLength) || contentLength < 1) throw new Error("Audio downloader. Invalid media content length");
+		const transports = [...WEB_ABR_TRANSPORTS];
+		debug.log("Audio downloader. web ABR transport order", {
+			transports,
+			bufferBeforeEmit: true
+		});
+		let lastError;
+		for (const transport of transports) {
+			signal.throwIfAborted();
+			const startedAt = performance.now();
+			try {
+				debug.log("Audio downloader. web ABR transport started", {
+					transport,
+					contentLength,
+					bufferBeforeEmit: true
+				});
+				const bufferedChunks = [];
+				let downloadedBytes = 0;
+				for await (const chunk of downloadWithTransport(targetWindow, transport, streamUrl, contentLength, signal, refreshUrl)) {
+					if (!chunk?.buffer?.byteLength) throw new Error("Audio downloader. Web ABR transport produced an empty chunk");
+					bufferedChunks.push(chunk);
+					downloadedBytes += chunk.buffer.byteLength;
+				}
+				if (downloadedBytes !== contentLength) throw new Error(`Audio downloader. Incomplete web ABR download (${downloadedBytes}/${contentLength} bytes)`);
+				if (bufferedChunks.length < 1) throw new Error("Audio downloader. Web ABR transport returned no audio chunks");
+				for (let index = 0; index < bufferedChunks.length; index++) bufferedChunks[index] = {
+					...bufferedChunks[index],
+					isLastChunk: index === bufferedChunks.length - 1
+				};
+				debug.log("Audio downloader. web ABR transport fully buffered", {
+					transport,
+					chunks: bufferedChunks.length,
+					downloadedBytes,
+					elapsedMs: Math.round(performance.now() - startedAt)
+				});
+				for (const chunk of bufferedChunks) yield chunk;
+				debug.log("Audio downloader. web ABR transport finished", {
+					transport,
+					elapsedMs: Math.round(performance.now() - startedAt),
+					bufferBeforeEmit: true
+				});
+				return;
+			} catch (error) {
+				signal.throwIfAborted();
+				lastError = error;
+				debug.log("Audio downloader. web ABR transport failed", {
+					transport,
+					emitted: false,
+					bufferBeforeEmit: true,
+					elapsedMs: Math.round(performance.now() - startedAt),
+					error: error instanceof Error ? error.message : String(error)
+				});
+				if (isFatalMediaError(error)) {
+					debug.log("Audio downloader. web ABR transport matrix aborted", {
+						transport,
+						error: error instanceof Error ? error.message : String(error)
+					});
+					throw error;
+				}
+			}
+		}
+		throw lastError instanceof Error ? lastError : new Error("Audio downloader. All web ABR transports failed");
+	}
+	async function* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
 		if (typeof apiKey !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
-		const playerCodes = /* @__PURE__ */ new Map();
+		const playerCodes = new Map();
 		const fetchPlayerCode = (url = getPlayerUrl(config)) => {
 			if (!url) return Promise.resolve(void 0);
 			let code = playerCodes.get(url);
@@ -22956,7 +23398,7 @@ var vot = (function(exports) {
 					const status = playerResponse.playabilityStatus;
 					throw new Error(`Audio downloader. ${name} ${status?.status ?? "failed"}: ${status?.reason ?? status?.messages?.join(" ") ?? "no streaming data"}`);
 				}
-				const format = selectAudioFormat(formats, sourceLanguage);
+				const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
 				const fetchedFlags = fetchedConfig?.experimentFlags;
 				const poTokenBinding = selectGvsPoTokenBinding(videoId, {
 					loggedIn,
@@ -23005,9 +23447,33 @@ var vot = (function(exports) {
 				lastError = error;
 			}
 		}
-		const fallbackError = lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. no playable audio formats");
+		const fallbackError = lastError instanceof Error ? lastError : new Error("Audio downloader. no playable audio formats");
 		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Sign in to YouTube with an age-verified account and retry from the youtube.com watch page`, { cause: fallbackError });
 		throw fallbackError;
+	}
+	var WEB_ABR_DOWNLOAD_QUEUE = new Map();
+	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+		const queueKey = String(videoId);
+		const previous = WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
+		const hadPrevious = WEB_ABR_DOWNLOAD_QUEUE.has(queueKey);
+		let releaseCurrent;
+		const current = new Promise((resolve) => {
+			releaseCurrent = resolve;
+		});
+		WEB_ABR_DOWNLOAD_QUEUE.set(queueKey, current);
+		debug.log("Audio downloader. web ABR queued", {
+			videoId,
+			hasPrevious: hadPrevious
+		});
+		try {
+			await previous;
+			signal.throwIfAborted();
+			yield* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage);
+		} finally {
+			releaseCurrent?.();
+			if (WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) === current) WEB_ABR_DOWNLOAD_QUEUE.delete(queueKey);
+			debug.log("Audio downloader. web ABR queue released", { videoId });
+		}
 	}
 	//#endregion
 	//#region src/audioDownloader/strategies/mseProxyHandler.ts
@@ -23079,7 +23545,7 @@ var vot = (function(exports) {
 			}, 100);
 			const timeout = setTimeout(() => {
 				cleanup();
-				reject(/* @__PURE__ */ new Error(`Audio downloader. ${label} timed out`));
+				reject(new Error(`Audio downloader. ${label} timed out`));
 			}, timeoutMs);
 			signal.addEventListener("abort", onAbort, { once: true });
 			if (signal.aborted) onAbort();
@@ -23307,7 +23773,7 @@ var vot = (function(exports) {
 						if (finished) return;
 						if (totalSize === 0) {
 							debug.error("Audio downloader. MSE empty stream", { videoId });
-							onMseError(/* @__PURE__ */ new Error("Audio downloader. Empty MSE stream"));
+							onMseError(new Error("Audio downloader. Empty MSE stream"));
 						} else {
 							debug.log("Audio downloader. MSE stream finished", {
 								videoId,
@@ -23337,7 +23803,7 @@ var vot = (function(exports) {
 									videoId,
 									totalSize
 								});
-								onMseError(/* @__PURE__ */ new Error("Audio downloader. MSE source closed"));
+								onMseError(new Error("Audio downloader. MSE source closed"));
 								return;
 							}
 							if (!firstAppendLogged) {
@@ -23624,6 +24090,7 @@ var vot = (function(exports) {
 		if (!audioData) throw new Error("Audio downloader. Can not get audio data");
 		debug.log("Audio downloader. Url found", { audioDownloadType: attemptedStrategy });
 		const { getMediaBuffers, fileId } = audioData;
+		throwIfAborted(signal);
 		let index = 0;
 		let pending;
 		let sawTerminal = false;
@@ -23636,9 +24103,11 @@ var vot = (function(exports) {
 				index,
 				amount: isLastChunk ? index + 1 : 0
 			});
+			throwIfAborted(signal);
 			index++;
 		};
 		for await (const raw of getMediaBuffers()) {
+			throwIfAborted(signal);
 			if (sawTerminal) {
 				if (raw.buffer.byteLength === 0 && raw.isLastChunk) continue;
 				throw new Error("Audio downloader. Malformed audio stream after last chunk");
@@ -23664,7 +24133,7 @@ var vot = (function(exports) {
 			await dispatchChunk(pending.buffer, true);
 		} else if (!sawTerminal) throw new Error("Audio downloader. Stream ended without a last chunk");
 	}
-	var audioDownloadTails = /* @__PURE__ */ new Map();
+	var audioDownloadTails = new Map();
 	function waitForPreviousDownload(previous, signal) {
 		return new Promise((resolve, reject) => {
 			if (signal.aborted) {
@@ -23703,15 +24172,60 @@ var vot = (function(exports) {
 		return resolveOwn;
 	}
 	var AudioDownloader = class {
+		completedAudioCache = null;
+		collectingChunks = new Map();
 		onDownloadedAudio = new EventImpl();
 		onDownloadedPartialAudio = new EventImpl();
 		onDownloadAudioError = new EventImpl();
 		strategy;
 		constructor(strategy = WEB_ABR_STRATEGY) {
 			this.strategy = strategy;
+			this.onDownloadedPartialAudio.addListener((_translationId, data) => {
+				const chunks = this.collectingChunks.get(data.videoId);
+				if (!chunks) return;
+				chunks[data.index] = data.audioData.slice();
+				if (data.amount !== void 0 && data.amount > 0 && data.index === data.amount - 1) {
+					this.completedAudioCache = {
+						videoId: data.videoId,
+						fileId: data.fileId,
+						chunks: chunks.slice(0, data.amount),
+						version: data.version
+					};
+					this.collectingChunks.delete(data.videoId);
+					debug.log("[VOT][AudioDownload] prepared audio cached for retry", {
+						videoId: data.videoId,
+						chunks: data.amount
+					});
+				}
+			});
 			debug.log("Audio downloader created", { strategy });
 		}
+		clearCachedAudio(videoId) {
+			if (this.completedAudioCache?.videoId === videoId) this.completedAudioCache = null;
+			this.collectingChunks.delete(videoId);
+		}
+		async replayCachedAudio(videoId, translationId, signal) {
+			const cached = this.completedAudioCache;
+			if (cached?.videoId !== videoId) return false;
+			debug.log("[VOT][AudioDownload] replaying cached prepared audio", {
+				videoId,
+				chunks: cached.chunks.length
+			});
+			for (let index = 0; index < cached.chunks.length; index++) {
+				throwIfAborted(signal);
+				await this.onDownloadedPartialAudio.dispatchAsync(translationId, {
+					videoId,
+					fileId: cached.fileId,
+					audioData: cached.chunks[index] ?? new Uint8Array(),
+					version: cached.version,
+					index,
+					amount: index === cached.chunks.length - 1 ? cached.chunks.length : 0
+				});
+			}
+			return true;
+		}
 		async runAudioDownload(videoId, translationId, signal, sourceLanguage) {
+			if (await this.replayCachedAudio(videoId, translationId, signal)) return;
 			let release;
 			try {
 				release = await acquireAudioDownloadSlot(videoId, signal);
@@ -23724,7 +24238,11 @@ var vot = (function(exports) {
 				this.onDownloadAudioError.dispatch(translationId, videoId);
 				return;
 			}
+			let collecting;
 			try {
+				if (await this.replayCachedAudio(videoId, translationId, signal)) return;
+				collecting = [];
+				this.collectingChunks.set(videoId, collecting);
 				const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
 				for (const attemptedStrategy of attempts) try {
 					await handleCommonAudioDownloadRequest({
@@ -23758,6 +24276,7 @@ var vot = (function(exports) {
 				debug.error("Audio downloader. All audio download strategies failed", { videoId });
 				this.onDownloadAudioError.dispatch(translationId, videoId);
 			} finally {
+				if (collecting && this.collectingChunks.get(videoId) === collecting) this.collectingChunks.delete(videoId);
 				release();
 			}
 		}
@@ -23819,1362 +24338,7 @@ var vot = (function(exports) {
 		constructor(message) {
 			super(localizationProvider.getDefault(message));
 			this.unlocalizedMessage = message;
-			this.localizedMessage = localizationProvider.get(message);
-		}
-	};
-	//#endregion
-	//#region src/core/authWindow.ts
-	var AUTH_WINDOW_NAME = "votAuthWindow";
-	var AUTH_WINDOW_WIDTH = 520;
-	var AUTH_WINDOW_HEIGHT = 720;
-	function getViewportMetric(name) {
-		const value = globalThis[name];
-		return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
-	}
-	function getScreenOffset(name) {
-		const value = globalThis[name];
-		return typeof value === "number" && Number.isFinite(value) ? value : 0;
-	}
-	function getAuthWindowFeatures() {
-		const viewportWidth = getViewportMetric("outerWidth") ?? globalThis.screen?.availWidth ?? AUTH_WINDOW_WIDTH;
-		const viewportHeight = getViewportMetric("outerHeight") ?? globalThis.screen?.availHeight ?? AUTH_WINDOW_HEIGHT;
-		const left = Math.max(0, Math.round(getScreenOffset("screenX") + (viewportWidth - AUTH_WINDOW_WIDTH) / 2));
-		const top = Math.max(0, Math.round(getScreenOffset("screenY") + (viewportHeight - AUTH_WINDOW_HEIGHT) / 2));
-		return [
-			"popup=yes",
-			"resizable=yes",
-			"scrollbars=yes",
-			`width=${AUTH_WINDOW_WIDTH}`,
-			`height=${AUTH_WINDOW_HEIGHT}`,
-			`left=${left}`,
-			`top=${top}`
-		].join(",");
-	}
-	function openAuthWindow() {
-		globalThis.open(authLoginUrl, AUTH_WINDOW_NAME, getAuthWindowFeatures())?.focus?.();
-	}
-	//#endregion
-	//#region src/core/translationAuthError.ts
-	function isSessionRequired(value) {
-		return safeNestedGet(value, ["status"]) === VideoTranslationStatus.SESSION_REQUIRED || safeNestedGet(value, ["data", "status"]) === VideoTranslationStatus.SESSION_REQUIRED;
-	}
-	function getTranslationServerErrorMessage(value) {
-		const msg = safeNestedGet(value, ["data", "message"]);
-		return typeof msg === "string" && msg.length > 0 ? msg : void 0;
-	}
-	function getTranslationAuthErrorKind(value, context = {}) {
-		if (!isSessionRequired(value)) return null;
-		return context.hasAccountToken ? "session-expired" : "account-required";
-	}
-	function isTranslationAuthError(value, context = {}) {
-		return getTranslationAuthErrorKind(value, context) !== null;
-	}
-	//#endregion
-	//#region src/core/translationErrors.ts
-	function notifyTranslationFailureIfNeeded(options) {
-		if (options.aborted) return false;
-		if (!options.translateApiErrorsEnabled || !options.hadAsyncWait) return options.hadAsyncWait;
-		options.notify({
-			videoId: options.videoId,
-			message: options.error
-		});
-		return false;
-	}
-	//#endregion
-	//#region src/utils/timeFormatting.ts
-	var MAX_SECS_FRACTION = .66;
-	function formatTranslationEta(secs, getMessage) {
-		let minutes = Math.floor(secs / 60);
-		if (Math.floor(secs % 60) / 60 >= MAX_SECS_FRACTION) minutes += 1;
-		if (minutes >= 60) return getMessage("translationTakeMoreThanHour");
-		if (minutes <= 1) return getMessage("translationTakeAboutMinute");
-		const minutesStr = String(minutes);
-		if (minutes !== 11 && minutes % 10 === 1) return getMessage("translationTakeApproximatelyMinute2").replace("{0}", minutesStr);
-		if (![
-			12,
-			13,
-			14
-		].includes(minutes) && [
-			2,
-			3,
-			4
-		].includes(minutes % 10)) return getMessage("translationTakeApproximatelyMinute").replace("{0}", minutesStr);
-		return getMessage("translationTakeApproximatelyMinutes").replace("{0}", minutesStr);
-	}
-	//#endregion
-	//#region src/core/translationEtaCountdown.ts
-	var COUNTDOWN_TICK_MS = 1e3;
-	function normalizeRemainingTime(remainingTimeSeconds) {
-		if (!Number.isFinite(remainingTimeSeconds)) return 0;
-		return Math.max(0, Math.ceil(remainingTimeSeconds));
-	}
-	function createEtaMessage(remainingSeconds) {
-		if (remainingSeconds <= 0) return new VOTLocalizedError("TranslationDelayed");
-		return formatTranslationEta(remainingSeconds, (key) => localizationProvider.get(key));
-	}
-	function getMessageIdentity(message) {
-		return message instanceof VOTLocalizedError ? `${message.name}:${message.unlocalizedMessage}` : message;
-	}
-	var TranslationEtaCountdown = class {
-		updateMessage;
-		deadlineMs = 0;
-		generation = 0;
-		lastMessageIdentity = null;
-		signal;
-		timeoutId;
-		constructor(updateMessage) {
-			this.updateMessage = updateMessage;
-		}
-		async sync(remainingTimeSeconds, signal, options = {}) {
-			this.stop();
-			const remainingSeconds = normalizeRemainingTime(remainingTimeSeconds);
-			if (remainingSeconds <= 0 || signal.aborted) return;
-			const generation = ++this.generation;
-			this.deadlineMs = Date.now() + remainingSeconds * 1e3;
-			this.signal = signal;
-			await this.tick(generation, Boolean(options.countLongWaitOnFirstRender));
-		}
-		stop() {
-			this.generation += 1;
-			this.deadlineMs = 0;
-			this.lastMessageIdentity = null;
-			this.signal = void 0;
-			if (this.timeoutId !== void 0) {
-				clearTimeout(this.timeoutId);
-				this.timeoutId = void 0;
-			}
-		}
-		async tick(generation, countLongWait = false) {
-			if (generation !== this.generation) return;
-			const signal = this.signal;
-			if (!signal || signal.aborted) {
-				this.stop();
-				return;
-			}
-			const remainingSeconds = Math.max(0, Math.ceil((this.deadlineMs - Date.now()) / 1e3));
-			const message = createEtaMessage(remainingSeconds);
-			const messageIdentity = getMessageIdentity(message);
-			if (messageIdentity !== this.lastMessageIdentity) {
-				this.lastMessageIdentity = messageIdentity;
-				await this.updateMessage(message, signal, { countLongWait });
-			}
-			if (generation !== this.generation || signal.aborted) return;
-			if (remainingSeconds <= 0) {
-				this.timeoutId = void 0;
-				return;
-			}
-			this.timeoutId = setTimeout(() => {
-				this.tick(generation);
-			}, COUNTDOWN_TICK_MS);
-		}
-	};
-	//#endregion
-	//#region src/core/translationHandler.ts
-	function mapVotClientErrorForUi(error, hasProvidedAccountToken = false) {
-		const authErrorKind = getTranslationAuthErrorKind(error, { hasAccountToken: hasProvidedAccountToken });
-		if (authErrorKind) return new VOTLocalizedError(authErrorKind === "session-expired" ? "VOTYandexTokenExpired" : "VOTAccountRequired");
-		if (!error || typeof error !== "object") return error;
-		if (safeNestedGet(error, ["name"]) !== "VOTJSError") return error;
-		const message = typeof safeNestedGet(error, ["message"]) === "string" ? safeNestedGet(error, ["message"]) : "";
-		const serverMessage = safeNestedGet(error, ["data", "message"]);
-		const hasServerMessage = typeof serverMessage === "string" && serverMessage.length > 0;
-		if (message === "Yandex couldn't translate video" && !hasServerMessage) return new VOTLocalizedError("requestTranslationFailed");
-		if (message === "Failed to request video translation") return new VOTLocalizedError("requestTranslationFailed");
-		if (message === "Audio link wasn't received" || message === "Audio link wasn't received from VOT response") return new VOTLocalizedError("audioNotReceived");
-		return error;
-	}
-	function summarizeTranslationResponse(response) {
-		return {
-			status: response.status,
-			translated: response.translated,
-			remainingTime: response.remainingTime,
-			translationId: response.translationId
-		};
-	}
-	var VOTTranslationHandler = class VOTTranslationHandler {
-		videoHandler;
-		audioDownloader;
-		downloading;
-		downloadSettlers = new Set();
-		etaCountdown;
-		requestedFailAudio = new Set();
-		constructor(videoHandler) {
-			this.videoHandler = videoHandler;
-			this.audioDownloader = new AudioDownloader();
-			this.downloading = false;
-			this.etaCountdown = new TranslationEtaCountdown((message, signal, options) => this.videoHandler.updateTranslationErrorMsg(message, signal, options));
-			this.audioDownloader.addEventListener("downloadedAudio", this.onDownloadedAudio).addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio).addEventListener("downloadAudioError", this.onDownloadAudioError);
-		}
-		onDownloadedAudio = async (translationId, data) => {
-			debug.log("downloadedAudio", data);
-			if (!this.downloading) {
-				debug.log("skip downloadedAudio");
-				return;
-			}
-			const { videoId, fileId, audioData } = data;
-			const videoUrl = this.getCanonicalUrl(videoId);
-			try {
-				await this.retryAudioUpload(() => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
-					audioFile: audioData,
-					fileId
-				}));
-			} catch (error) {
-				debug.error("Failed to upload downloaded audio", error);
-				this.finishDownloadFailure(error instanceof Error ? error : new Error("Audio downloader failed while uploading full audio"));
-				return;
-			}
-			this.finishDownloadSuccess();
-		};
-		onDownloadedPartialAudio = async (translationId, data) => {
-			debug.log("downloadedPartialAudio", data);
-			if (!this.downloading) {
-				debug.log("skip downloadedPartialAudio");
-				return;
-			}
-			const { audioData, fileId, videoId, amount, version, index } = data;
-			const videoUrl = this.getCanonicalUrl(videoId);
-			try {
-				await this.retryAudioUpload(() => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
-					audioFile: audioData,
-					chunkId: index
-				}, {
-					audioPartsLength: amount ?? 0,
-					fileId,
-					version
-				}));
-			} catch (error) {
-				debug.error("Failed to upload downloaded audio chunk", error);
-				this.finishDownloadFailure(new Error("Audio downloader failed while uploading chunk"));
-				return;
-			}
-			if (amount !== void 0 && index === amount - 1) this.finishDownloadSuccess();
-		};
-		onDownloadAudioError = async (translationId, videoId) => {
-			if (!this.downloading) {
-				debug.log("skip downloadAudioError");
-				return;
-			}
-			debug.log(`Failed to download audio ${videoId}`);
-			const videoUrl = this.getCanonicalUrl(videoId);
-			if (!(this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload))) {
-				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"));
-				return;
-			}
-			try {
-				if (this.requestedFailAudio.has(videoUrl)) debug.log("fail-audio-js request already sent for this video");
-				else {
-					debug.log("Sending fail-audio-js request");
-					await this.videoHandler.votClient.provider.requestVtransFailAudio(videoUrl);
-					await this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
-						audioFile: /* @__PURE__ */ new Uint8Array(0),
-						fileId: `fallback-empty-audio:video-translation:${videoId}`
-					});
-					this.requestedFailAudio.add(videoUrl);
-				}
-				this.finishDownloadSuccess();
-			} catch (error) {
-				debug.error("fail-audio-js request failed", error);
-				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"));
-			}
-		};
-		finishDownloadSuccess() {
-			this.downloading = false;
-			this.settleDownloadWaiters();
-		}
-		finishDownloadFailure(error) {
-			this.downloading = false;
-			this.settleDownloadWaiters(error);
-		}
-		getCanonicalUrl(videoId) {
-			return `https://youtu.be/${videoId}`;
-		}
-		static AUDIO_UPLOAD_MAX_RETRIES = 2;
-		static AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
-		async retryAudioUpload(fn) {
-			const maxRetries = VOTTranslationHandler.AUDIO_UPLOAD_MAX_RETRIES;
-			const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
-			let lastError;
-			for (let attempt = 0; attempt <= maxRetries; attempt++) try {
-				return await fn();
-			} catch (error) {
-				lastError = error;
-				if (attempt === maxRetries) throw error;
-				debug.log(`[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
-				await new Promise((resolve) => setTimeout(resolve, delayMs));
-			}
-			throw lastError;
-		}
-		isLivelyVoiceUnavailableError(value) {
-			if (isTranslationAuthError(value)) return false;
-			const msg = getErrorMessage(value);
-			return !!msg && msg.toLowerCase().includes("обычная озвучка");
-		}
-		async scheduleRetry(fn, delayMs, signal) {
-			await createAbortableDelay(delayMs, signal, { onScheduled: (timeoutId) => {
-				this.videoHandler.autoRetry = timeoutId;
-			} });
-			return await fn();
-		}
-		static MAX_INITIAL_WAIT_SEC = 180;
-		static LONG_WAIT_MS = 12e4;
-		static RETRY_INTERVAL_MS = 3e4;
-		getRetryDelayMs(retryAttempt, remainingTimeSeconds = 0) {
-			if (retryAttempt > 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
-			const eta = remainingTimeSeconds ?? 0;
-			if (eta <= 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
-			if (eta <= VOTTranslationHandler.MAX_INITIAL_WAIT_SEC) return eta * 1e3;
-			return VOTTranslationHandler.LONG_WAIT_MS;
-		}
-		async handleTranslationUiError(uiError) {
-			if (!(uiError instanceof VOTLocalizedError)) return;
-			if (uiError.unlocalizedMessage === "VOTYandexTokenExpired") {
-				await deleteAccount(this.videoHandler);
-				openAuthWindow();
-			} else if (uiError.unlocalizedMessage === "VOTAccountRequired") openAuthWindow();
-		}
-		async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, options = {}) {
-			const { disableLivelyVoice = false, retryAttempt = 0 } = options;
-			clearTimeout(this.videoHandler.autoRetry);
-			this.finishDownloadSuccess();
-			const requestLangForApi = this.videoHandler.getRequestLangForTranslation(requestLang, responseLang);
-			debug.log("[Translation] translateVideoImpl start", {
-				videoId: videoData.videoId,
-				duration: videoData.duration,
-				requestLang,
-				requestLangForApi,
-				responseLang,
-				retryAttempt,
-				disableLivelyVoice,
-				shouldSendFailedAudio,
-				translationHelpCount: translationHelp?.length ?? 0
-			});
-			debug.log(videoData, `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`);
-			let livelyDisabled = disableLivelyVoice;
-			let translationResponse;
-			try {
-				throwIfAborted(signal);
-				const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(requestLangForApi, responseLang);
-				const translationAttempt = await this.requestTranslationWithLivelyFallback({
-					videoData,
-					requestLangForApi,
-					responseLang,
-					translationHelp,
-					shouldSendFailedAudio,
-					livelyDisabled,
-					livelyVoiceAllowed
-				});
-				livelyDisabled = translationAttempt.livelyDisabled;
-				const useLivelyVoice = translationAttempt.useLivelyVoice;
-				const res = translationAttempt.response;
-				translationResponse = res;
-				if (!res) throw new Error("Failed to get translation response");
-				if (isTranslationAuthError(res, { hasAccountToken: hasAccountToken(this.videoHandler.data?.account) })) throw mapVotClientErrorForUi(res, hasAccountToken(this.videoHandler.data?.account));
-				debug.log("[Translation] translateVideoImpl response", {
-					videoId: videoData.videoId,
-					useLivelyVoice,
-					...summarizeTranslationResponse(res)
-				});
-				throwIfAborted(signal);
-				if (res.translated && res.remainingTime < 1) {
-					this.etaCountdown.stop();
-					debug.log("[Translation] translation finished", {
-						videoId: videoData.videoId,
-						useLivelyVoice,
-						...summarizeTranslationResponse(res)
-					});
-					return {
-						...res,
-						usedLivelyVoice: useLivelyVoice
-					};
-				}
-				const message = res.message ?? localizationProvider.get("translationTakeFewMinutes");
-				debug.log("[Translation] translation still processing", {
-					videoId: videoData.videoId,
-					useLivelyVoice,
-					...summarizeTranslationResponse(res),
-					message
-				});
-				if (res.remainingTime > 0) await this.etaCountdown.sync(res.remainingTime, signal, { countLongWaitOnFirstRender: true });
-				else {
-					this.etaCountdown.stop();
-					await this.videoHandler.updateTranslationErrorMsg(message, signal);
-				}
-				if (res.status === VideoTranslationStatus.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
-					this.videoHandler.hadAsyncWait = true;
-					debug.log("[Translation] audio download started", {
-						videoId: videoData.videoId,
-						translationId: res.translationId
-					});
-					this.downloading = true;
-					debug.log("[Translation] waiting for audio download completion", {
-						videoId: videoData.videoId,
-						translationId: res.translationId,
-						timeoutMs: STREAM_TIMEOUT_MS
-					});
-					await Promise.all([this.waitForAudioDownloadCompletion(signal, STREAM_TIMEOUT_MS), this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, signal, videoData.detectedLanguage)]);
-					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
-						disableLivelyVoice: livelyDisabled,
-						retryAttempt
-					});
-				}
-			} catch (err) {
-				if (isAbortError(err)) {
-					this.etaCountdown.stop();
-					debug.log("[Translation] translation aborted", {
-						videoId: videoData.videoId,
-						retryAttempt
-					});
-					return null;
-				}
-				this.etaCountdown.stop();
-				const uiError = mapVotClientErrorForUi(err, hasAccountToken(this.videoHandler.data?.account));
-				debug.error("[Translation] translation failed", {
-					videoId: videoData.videoId,
-					retryAttempt,
-					error: err,
-					mappedError: uiError
-				});
-				await this.handleTranslationUiError(uiError);
-				await this.videoHandler.updateTranslationErrorMsg(getTranslationServerErrorMessage(uiError) ?? uiError, signal);
-				this.videoHandler.hadAsyncWait = notifyTranslationFailureIfNeeded({
-					aborted: Boolean(this.videoHandler.actionsAbortController?.signal?.aborted),
-					translateApiErrorsEnabled: Boolean(this.videoHandler.data?.translateAPIErrors),
-					hadAsyncWait: this.videoHandler.hadAsyncWait,
-					videoId: videoData.videoId,
-					error: err,
-					notify: (params) => this.videoHandler.notifier.translationFailed(params)
-				});
-				return null;
-			}
-			this.videoHandler.hadAsyncWait = true;
-			const retryDelayMs = this.getRetryDelayMs(retryAttempt, translationResponse?.remainingTime ?? null);
-			debug.log("[Translation] scheduling translation retry", {
-				videoId: videoData.videoId,
-				retryAttempt,
-				retryDelayMs,
-				remainingTime: translationResponse?.remainingTime
-			});
-			return this.scheduleRetry(() => this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, shouldSendFailedAudio, signal, {
-				disableLivelyVoice: livelyDisabled,
-				retryAttempt: retryAttempt + 1
-			}), retryDelayMs, signal);
-		}
-		stopTranslationEtaCountdown() {
-			this.etaCountdown.stop();
-		}
-		async requestTranslationWithLivelyFallback({ videoData, requestLangForApi, responseLang, translationHelp, shouldSendFailedAudio, livelyDisabled, livelyVoiceAllowed }) {
-			let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && this.videoHandler.data?.useLivelyVoice !== false;
-			debug.log("[Translation] requesting translation from VOT client", {
-				videoId: videoData.videoId,
-				requestLangForApi,
-				responseLang,
-				shouldSendFailedAudio,
-				livelyDisabled,
-				livelyVoiceAllowed,
-				useLivelyVoice,
-				translationHelpCount: translationHelp?.length ?? 0
-			});
-			while (true) {
-				try {
-					debug.log("[Translation] votClient.translateVideo call", {
-						videoId: videoData.videoId,
-						requestLangForApi,
-						responseLang,
-						useLivelyVoice,
-						shouldSendFailedAudio,
-						translationHelpCount: translationHelp?.length ?? 0
-					});
-					const response = await this.videoHandler.votClient.translateVideo({
-						videoData,
-						requestLang: requestLangForApi,
-						responseLang,
-						translationHelp,
-						extraOpts: {
-							useLivelyVoice,
-							videoTitle: this.videoHandler.videoData?.title
-						},
-						shouldSendFailedAudio
-					});
-					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
-						debug.log("[Translation] votClient.translateVideo resolved", {
-							videoId: videoData.videoId,
-							useLivelyVoice,
-							...summarizeTranslationResponse(response)
-						});
-						return {
-							response,
-							useLivelyVoice,
-							livelyDisabled
-						};
-					}
-					debug.warn("[Translation] lively voice unavailable in response", {
-						videoId: videoData.videoId,
-						useLivelyVoice,
-						...summarizeTranslationResponse(response)
-					});
-				} catch (err) {
-					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(err)) throw err;
-					debug.warn("[Translation] lively voice unavailable in error", {
-						videoId: videoData.videoId,
-						useLivelyVoice,
-						error: err
-					});
-				}
-				livelyDisabled = true;
-				useLivelyVoice = false;
-				debug.log("[Translation] retrying translation without lively voice", {
-					videoId: videoData.videoId,
-					requestLangForApi,
-					responseLang
-				});
-			}
-		}
-		waitForAudioDownloadCompletion(signal, timeoutMs) {
-			if (!this.downloading) return Promise.resolve();
-			const { promise, settle } = createAbortableWaiter(signal, timeoutMs);
-			this.downloadSettlers.add(settle);
-			return promise;
-		}
-		settleDownloadWaiters(error) {
-			if (!this.downloadSettlers.size) return;
-			const settlers = Array.from(this.downloadSettlers);
-			this.downloadSettlers.clear();
-			for (const settle of settlers) if (error) settle.reject(error);
-			else settle.resolve();
-		}
-	};
-	//#endregion
-	//#region src/core/translationOrchestrator.ts
-	var TranslationOrchestrator = class {
-		state = { status: "idle" };
-		deps;
-		constructor(deps) {
-			this.deps = deps;
-		}
-		get currentState() {
-			return this.state;
-		}
-		setState(next) {
-			this.state = next;
-			debug.log("[TranslationOrchestrator] state", next);
-		}
-		reset() {
-			this.setState({ status: "idle" });
-		}
-		async runAutoTranslationIfEligible() {
-			if (this.state.status !== "idle") return;
-			if (!(this.deps.isFirstPlay() && this.deps.isAutoTranslateEnabled() && this.deps.getVideoId())) return;
-			if (this.deps.isMobileYouTubeMuted?.()) {
-				debug.log("[TranslationOrchestrator] Mobile YouTube video is muted, deferring auto-translate");
-				this.setState({
-					status: "deferred",
-					reason: "muted"
-				});
-				this.deps.setMuteWatcher?.(() => {
-					debug.log("[TranslationOrchestrator] Video unmuted, running deferred auto-translate");
-					this.setState({ status: "idle" });
-					this.runAutoTranslationIfEligible();
-				});
-				return;
-			}
-			this.setState({
-				status: "pending",
-				reason: "auto"
-			});
-			try {
-				await this.deps.scheduleAutoTranslate();
-				this.deps.setFirstPlay(false);
-				this.reset();
-			} catch (err) {
-				this.setState({
-					status: "error",
-					message: err
-				});
-				throw err;
-			}
-		}
-	};
-	//#endregion
-	//#region src/core/lifecycleShared.ts
-	function resetLifecycleTranslation(host, options = {}) {
-		const { requireVideoData = false, clearVideoData = false } = options;
-		if (requireVideoData && !host.videoData) return;
-		if (clearVideoData) host.videoData = void 0;
-		host.stopTranslation();
-		host.resetSubtitlesWidget();
-	}
-	function hideLifecycleOverlay(overlayViewControls, options = {}) {
-		const { hideMenu = false } = options;
-		overlayViewControls?.setButtonHidden(true);
-		if (hideMenu) overlayViewControls?.setMenuHidden(true);
-	}
-	function resetAndHideLifecycle(host, overlayViewControls, options = {}) {
-		const { requireVideoData, clearVideoData, hideMenu } = options;
-		resetLifecycleTranslation(host, {
-			requireVideoData,
-			clearVideoData
-		});
-		hideLifecycleOverlay(overlayViewControls, { hideMenu });
-	}
-	//#endregion
-	//#region src/core/videoLifecycleController.ts
-	var YOUTUBE_TIMESTAMP_PARAMS = [
-		"t",
-		"start",
-		"time_continue"
-	];
-	function getYouTubeSourceKey(url, hasSrcObject) {
-		const stableUrl = new URL(url);
-		for (const param of YOUTUBE_TIMESTAMP_PARAMS) stableUrl.searchParams.delete(param);
-		return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
-	}
-	var VideoLifecycleController = class {
-		host;
-		lifecycleGeneration = 0;
-		lastSetCanPlaySourceKey = "";
-		activeSetCanPlaySourceKey = "";
-		setCanPlayRequested = false;
-		setCanPlayLoopPromise;
-		constructor(host) {
-			this.host = host;
-		}
-		isStale(generation) {
-			return generation !== this.lifecycleGeneration;
-		}
-		resetActions(reason) {
-			if (typeof this.host.resetActionsAbortController === "function") {
-				this.host.resetActionsAbortController(reason);
-				return;
-			}
-			this.host.actionsAbortController?.abort(reason);
-		}
-		invalidateActiveSession(reason) {
-			if (this.lifecycleGeneration === 0) return;
-			this.lifecycleGeneration += 1;
-			this.resetActions(`[VideoLifecycle] ${reason}`);
-			debug.log(`[VideoLifecycle] cancelled active session (active: ${this.lifecycleGeneration})`, { reason });
-		}
-		startSession(reason) {
-			this.lifecycleGeneration += 1;
-			const sessionId = this.lifecycleGeneration;
-			this.resetActions(`[VideoLifecycle][session:${sessionId}] ${reason}`);
-			debug.log(`[VideoLifecycle][session:${sessionId}] started`, { reason });
-			return sessionId;
-		}
-		shouldAbortHandleSrcChanged(callId, stage) {
-			if (!this.isStale(callId)) return false;
-			debug.log(`[VideoLifecycle][session:${callId}] handleSrcChanged aborted at ${stage} (active: ${this.lifecycleGeneration})`);
-			return true;
-		}
-		showOverlayButton(overlayView) {
-			overlayView.overlayViewControls?.setButtonHidden(false);
-			overlayView.overlayViewControls?.setButtonOpacity(1);
-			this.host.queueOverlayAutoHide?.();
-		}
-		teardown() {
-			this.setCanPlayRequested = false;
-			this.invalidateActiveSession("teardown");
-		}
-		getCurrentSourceKey() {
-			const hasSrcObject = this.host.video.srcObject ? "1" : "0";
-			if (this.host.site.host === "youtube") return getYouTubeSourceKey(new URL(globalThis.location.href), hasSrcObject);
-			const src = this.host.video.currentSrc || this.host.video.src || "";
-			return `${globalThis.location.href}||${src}||${hasSrcObject}`;
-		}
-		resolveContainer() {
-			const { site, video, container } = this.host;
-			if (!site.selector) return video.parentElement ?? container;
-			const matched = findConnectedContainerBySelector(video, site.selector);
-			if (matched) return matched;
-			if (container.isConnected && containsCrossShadow(container, video)) return container;
-			return video.parentElement ?? container;
-		}
-		async setCanPlay() {
-			this.setCanPlayRequested = true;
-			if (this.setCanPlayLoopPromise !== void 0) {
-				const incomingSourceKey = this.getCurrentSourceKey();
-				if (this.activeSetCanPlaySourceKey && incomingSourceKey !== this.activeSetCanPlaySourceKey) this.invalidateActiveSession("setCanPlay source changed while previous trigger is running");
-				else debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", { sourceKey: incomingSourceKey });
-				return await this.setCanPlayLoopPromise;
-			}
-			const loopPromise = (async () => {
-				while (this.setCanPlayRequested) {
-					this.setCanPlayRequested = false;
-					await this.runSetCanPlayOnce();
-				}
-			})();
-			this.setCanPlayLoopPromise = loopPromise;
-			try {
-				await loopPromise;
-			} finally {
-				if (this.setCanPlayLoopPromise === loopPromise) this.setCanPlayLoopPromise = void 0;
-			}
-		}
-		async runSetCanPlayOnce() {
-			const sourceKey = this.getCurrentSourceKey();
-			if (this.host.videoData?.videoId && sourceKey === this.lastSetCanPlaySourceKey) {
-				debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", { sourceKey });
-				return;
-			}
-			let nextVideoData;
-			try {
-				nextVideoData = await this.host.getVideoData();
-			} catch (err) {
-				debug.log(`[VideoLifecycle] getVideoData failed for source ${sourceKey}`, err);
-				this.host.videoData = void 0;
-				hideLifecycleOverlay(this.host.uiManager.votOverlayView.overlayViewControls, { hideMenu: true });
-				return;
-			}
-			if (this.getCurrentSourceKey() !== sourceKey) {
-				debug.log("[VideoLifecycle] discarded stale getVideoData result after source change", { sourceKey });
-				return;
-			}
-			this.host.videoData = nextVideoData;
-			this.activeSetCanPlaySourceKey = sourceKey;
-			const currentId = this.startSession(`setCanPlay (source: ${sourceKey})`);
-			debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay started`, { sourceKey });
-			try {
-				await this.handleSrcChanged(currentId, sourceKey);
-				if (this.isStale(currentId)) {
-					debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay aborted after src change (active: ${this.lifecycleGeneration})`);
-					return;
-				}
-				const autoSubtitlesPromise = this.runAutoSubtitlesIfEnabled(currentId);
-				await this.host.translationOrchestrator.runAutoTranslationIfEligible();
-				if (this.isStale(currentId)) {
-					debug.log(`[VideoLifecycle][session:${currentId}] auto-translation result ignored (stale session)`);
-					return;
-				}
-				await autoSubtitlesPromise;
-				if (this.isStale(currentId)) {
-					debug.log(`[VideoLifecycle][session:${currentId}] auto-subtitles result ignored (stale session)`);
-					return;
-				}
-				debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay finished`);
-			} finally {
-				if (this.activeSetCanPlaySourceKey === sourceKey) this.activeSetCanPlaySourceKey = "";
-			}
-		}
-		async runAutoSubtitlesIfEnabled(sessionId) {
-			if (!this.host.data.autoSubtitles || !this.host.videoData?.videoId) return;
-			try {
-				await this.host.enableSubtitlesForCurrentLangPair();
-			} catch (err) {
-				debug.log(`[VideoLifecycle][session:${sessionId}] auto-subtitles failed`, err);
-			}
-		}
-		async handleSrcChanged(callId, expectedSourceKey) {
-			const sessionId = typeof callId === "number" ? callId : this.startSession("manual handleSrcChanged");
-			const sourceKey = typeof expectedSourceKey === "string" && expectedSourceKey.length > 0 ? expectedSourceKey : this.getCurrentSourceKey();
-			if (this.shouldAbortHandleSrcChanged(sessionId, "before start")) return;
-			debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, { sourceKey });
-			this.host.firstPlay = true;
-			const overlayView = this.host.uiManager.votOverlayView;
-			const overlayViewControls = overlayView.overlayViewControls;
-			resetAndHideLifecycle(this.host, overlayViewControls, { requireVideoData: true });
-			if (!this.host.video.src && !this.host.video.currentSrc && !this.host.video.srcObject) hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
-			const nextContainer = this.resolveContainer();
-			if (nextContainer !== this.host.container) this.host.container = nextContainer;
-			if (this.shouldAbortHandleSrcChanged(sessionId, "before getVideoData")) return;
-			this.showOverlayButton(overlayView);
-			if (this.shouldAbortHandleSrcChanged(sessionId, "after getVideoData")) return;
-			if (!this.host.videoData?.videoId) {
-				debug.log(`[VideoLifecycle][session:${sessionId}] No videoId resolved, hiding overlay`);
-				hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
-				return;
-			}
-			const subtitleLanguage = this.host.getPreferredSubtitlesLanguage(this.host.videoData.detectedLanguage, this.host.videoData.responseLanguage);
-			if (subtitleLanguage) {
-				const cacheKey = this.host.getSubtitlesCacheKey(this.host.videoData.videoId, this.host.videoData.detectedLanguage, subtitleLanguage);
-				const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
-				this.host.subtitles = cachedSubtitles ?? [];
-				this.host.subtitlesCacheKey = cachedSubtitles === void 0 ? null : cacheKey;
-			} else {
-				this.host.subtitles = [];
-				this.host.subtitlesCacheKey = null;
-			}
-			await this.host.updateSubtitlesLangSelect();
-			if (this.shouldAbortHandleSrcChanged(sessionId, "after subtitles update")) return;
-			this.host.translateToLang = this.host.data.responseLanguage ?? "ru";
-			this.host.setSelectMenuValues(this.host.videoData.detectedLanguage, this.host.videoData.responseLanguage);
-			this.showOverlayButton(overlayView);
-			this.lastSetCanPlaySourceKey = sourceKey;
-			debug.log(`[VideoLifecycle][session:${sessionId}] src handling finished`);
-		}
-	};
-	//#endregion
-	//#region src/core/videoLifecycleHost.ts
-	function createVideoLifecycleHost(handler, resolveOverlayMount) {
-		const self = () => handler;
-		return {
-			get video() {
-				return self().video;
-			},
-			get site() {
-				return self().site;
-			},
-			get container() {
-				return self().container;
-			},
-			set container(value) {
-				if (self().container === value) return;
-				self().container = value;
-				self().uiManager.updateMount(resolveOverlayMount(value));
-			},
-			get firstPlay() {
-				return self().firstPlay;
-			},
-			set firstPlay(value) {
-				self().firstPlay = value;
-			},
-			stopTranslation: () => handler.stopTranslation(),
-			get uiManager() {
-				return self().uiManager;
-			},
-			getVideoData: () => handler.getVideoData(),
-			cacheManager: { getSubtitles: (key) => self().cacheManager.getSubtitles(key) },
-			getSubtitlesCacheKey: (videoId, detectedLanguage, subtitleLanguage) => handler.getSubtitlesCacheKey(videoId, detectedLanguage, subtitleLanguage),
-			getPreferredSubtitlesLanguage: (detectedLanguage, responseLanguage) => handler.getPreferredSubtitlesLanguage(detectedLanguage, responseLanguage),
-			updateSubtitlesLangSelect: () => handler.updateSubtitlesLangSelect(),
-			enableSubtitlesForCurrentLangPair: () => handler.enableSubtitlesForCurrentLangPair(),
-			setSelectMenuValues: (from, to) => handler.setSelectMenuValues(from, to),
-			get translateToLang() {
-				return self().translateToLang;
-			},
-			set translateToLang(value) {
-				self().translateToLang = value;
-			},
-			get data() {
-				return self().data ?? {};
-			},
-			get subtitles() {
-				return self().subtitles;
-			},
-			set subtitles(value) {
-				self().subtitles = value;
-			},
-			get subtitlesCacheKey() {
-				return self().subtitlesCacheKey;
-			},
-			set subtitlesCacheKey(value) {
-				self().subtitlesCacheKey = value;
-			},
-			get videoData() {
-				return self().videoData;
-			},
-			set videoData(value) {
-				const handler = self();
-				if (handler.videoData?.videoId !== value?.videoId) handler.downloadTranslation = null;
-				handler.videoData = value;
-			},
-			get actionsAbortController() {
-				return self().actionsAbortController;
-			},
-			set actionsAbortController(value) {
-				self().actionsAbortController = value;
-			},
-			resetActionsAbortController: (reason) => handler.resetActionsAbortController(reason),
-			translationOrchestrator: handler.translationOrchestrator,
-			resetSubtitlesWidget: () => handler.resetSubtitlesWidget(),
-			queueOverlayAutoHide: () => handler.overlayVisibility?.queueAutoHide()
-		};
-	}
-	//#endregion
-	//#region src/utils/text.ts
-	var MAX_TEXT_LENGTH = 450;
-	var REMOVABLE_TOKEN_FILTER = new RegExp([
-		String.raw`(?:https?:\/\/|www\.)\S+`,
-		String.raw`#[^\s#]+`,
-		String.raw`auto-generated\s+by\s+youtube`,
-		String.raw`provided\s+to\s+youtube\s+by`,
-		String.raw`released\s+on`,
-		String.raw`\bpaypal\b`,
-		String.raw`\b0x[a-f0-9]{40}\b`,
-		String.raw`\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b`,
-		String.raw`\b(?:bc1|tb1|bcrt1)[ac-hj-np-z02-9]{11,71}\b`,
-		String.raw`\b(?:-1|0):[a-f0-9]{64}\b`
-	].join("|"), "giu");
-	var NOISE_CHARACTER_FILTER = /[\p{N}\p{P}\p{S}]+/gu;
-	var WHITESPACE_FILTER = /\s+/g;
-	var LETTER_FILTER = /\p{L}/u;
-	function trimToMaxLength(text, maxLength) {
-		if (text.length <= maxLength) return text;
-		return text.slice(0, maxLength).trimEnd();
-	}
-	function cleanText(title, description) {
-		const raw = `${title ?? ""} ${description ?? ""}`.trim();
-		if (!raw) return "";
-		const cleaned = raw.normalize("NFKC").replace(REMOVABLE_TOKEN_FILTER, " ").replace(NOISE_CHARACTER_FILTER, " ").replace(WHITESPACE_FILTER, " ").trim();
-		if (!LETTER_FILTER.test(cleaned)) return "";
-		return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
-	}
-	//#endregion
-	//#region src/utils/volume.ts
-	var VIDEO_VOLUME_MIN_PERCENT = 0;
-	var VIDEO_VOLUME_MAX_PERCENT = 100;
-	var VIDEO_VOLUME_STEP_01 = .01;
-	var EPS = 1e-6;
-	function clampInt(value, min, max) {
-		return Math.trunc(clampNumber(value, min, max));
-	}
-	function clampPercentInt(value, min = VIDEO_VOLUME_MIN_PERCENT, max = VIDEO_VOLUME_MAX_PERCENT) {
-		if (!Number.isFinite(value)) return min;
-		return clampInt(Math.round(value), min, max);
-	}
-	function volume01ToPercent(volume01) {
-		return clampPercentInt(clampNumber(volume01, 0, 1) * 100);
-	}
-	function percentToVolume01(percent) {
-		return clampPercentInt(percent) / 100;
-	}
-	function quantizeToStep(value, step, direction) {
-		if (!Number.isFinite(value)) return value;
-		if (!Number.isFinite(step) || step <= 0) return value;
-		const inv = 1 / step;
-		const scaled = value * inv;
-		switch (direction) {
-			case "down": return Math.floor(scaled + EPS) / inv;
-			case "up": return Math.ceil(scaled - EPS) / inv;
-			default: return Math.round(scaled) / inv;
-		}
-	}
-	function snapVolume01(volume01, direction = "nearest", step = VIDEO_VOLUME_STEP_01) {
-		return clampNumber(quantizeToStep(clampNumber(volume01, 0, 1), step, direction), 0, 1);
-	}
-	function snapVolume01Towards(next, current, desired, step = VIDEO_VOLUME_STEP_01) {
-		const cur = clampNumber(current, 0, 1);
-		const des = clampNumber(desired, 0, 1);
-		if (des < cur) {
-			const q = snapVolume01(next, "down", step);
-			return Math.max(des, q);
-		}
-		if (des > cur) {
-			const q = snapVolume01(next, "up", step);
-			return Math.min(des, q);
-		}
-		return snapVolume01(next, "nearest", step);
-	}
-	//#endregion
-	//#region src/core/hostPolicies.ts
-	var EXTERNAL_VOLUME_HOSTS = new Set(["youtube", "googledrive"]);
-	var YOUTUBE_LIKE_HOSTS = EXTERNAL_VOLUME_HOSTS;
-	var MUTE_SYNC_DISABLED_HOSTS = new Set(["rutube", "ok"]);
-	var TRANSLATION_DOWNLOAD_HOSTS = new Set([
-		"youtube",
-		"invidious",
-		"piped"
-	]);
-	function isExternalVolumeHost(host) {
-		return EXTERNAL_VOLUME_HOSTS.has(host);
-	}
-	function isYouTubeLikeHost(host) {
-		return YOUTUBE_LIKE_HOSTS.has(host);
-	}
-	function isMuteSyncDisabledHost(host) {
-		return MUTE_SYNC_DISABLED_HOSTS.has(host);
-	}
-	function isDesktopYouTubeLikeSite(site) {
-		return isYouTubeLikeHost(site.host) && site.additionalData !== "mobile";
-	}
-	function isTranslationDownloadHost(host) {
-		return TRANSLATION_DOWNLOAD_HOSTS.has(host);
-	}
-	//#endregion
-	//#region src/core/videoManager.ts
-	var FORCED_DETECTED_LANGUAGE_BY_HOST = {
-		rutube: "ru",
-		"ok.ru": "ru",
-		mail_ru: "ru",
-		weverse: "ko",
-		niconico: "ja",
-		youku: "zh",
-		bilibili: "zh",
-		weibo: "zh",
-		zdf: "de"
-	};
-	var YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
-	var YT_PLAYER_VOLUME_STORAGE_KEY = "yt-player-volume";
-	var MIN_DETECT_TEXT_LENGTH = 35;
-	var MAX_SHARED_LANGUAGE_STATES = 500;
-	var REQUEST_LANG_SET = new Set(availableLangs);
-	function preserveYoutubeVolumeStorage(action) {
-		let snapshot;
-		try {
-			snapshot = globalThis.localStorage.getItem(YT_PLAYER_VOLUME_STORAGE_KEY);
-		} catch {
-			snapshot = void 0;
-		}
-		try {
-			return action();
-		} finally {
-			if (snapshot !== void 0) try {
-				if (snapshot === null) globalThis.localStorage.removeItem(YT_PLAYER_VOLUME_STORAGE_KEY);
-				else globalThis.localStorage.setItem(YT_PLAYER_VOLUME_STORAGE_KEY, snapshot);
-			} catch {}
-		}
-	}
-	var sharedLanguageStateByVideoId = new Map();
-	function getSharedLanguageState(videoId) {
-		const cachedState = sharedLanguageStateByVideoId.get(videoId);
-		if (cachedState) return cachedState;
-		const createdState = {};
-		sharedLanguageStateByVideoId.set(videoId, createdState);
-		while (sharedLanguageStateByVideoId.size > MAX_SHARED_LANGUAGE_STATES) {
-			const oldestVideoId = sharedLanguageStateByVideoId.keys().next().value;
-			if (typeof oldestVideoId !== "string") break;
-			sharedLanguageStateByVideoId.delete(oldestVideoId);
-		}
-		return createdState;
-	}
-	function normalizeToRequestLang(value) {
-		if (typeof value !== "string") return void 0;
-		const normalized = value.toLowerCase().split(/[-_]/)[0];
-		return REQUEST_LANG_SET.has(normalized) ? normalized : void 0;
-	}
-	function isResolvedLanguage(value) {
-		return Boolean(value && value !== "auto");
-	}
-	function buildDetectText(title, description) {
-		return cleanText(typeof title === "string" ? title : "", typeof description === "string" ? description : void 0);
-	}
-	function resolveHostDetectedLanguage(host) {
-		const forcedDetectedLanguage = FORCED_DETECTED_LANGUAGE_BY_HOST[host];
-		if (forcedDetectedLanguage) return forcedDetectedLanguage;
-		if (host === "vk") {
-			const trackLang = document.getElementsByTagName("track")?.[0]?.srclang;
-			return normalizeToRequestLang(trackLang);
-		}
-	}
-	function resolveYoutubeDetectedLanguageFromSubtitles(subtitles) {
-		if (!Array.isArray(subtitles)) return;
-		const candidates = subtitles.filter((subtitle) => Boolean(subtitle) && typeof subtitle === "object" && subtitle.source === "youtube" && typeof subtitle.translatedFromLanguage !== "string");
-		const pickLanguage = (predicate) => candidates.filter(predicate).map((candidate) => normalizeToRequestLang(candidate.language)).find(isResolvedLanguage);
-		return pickLanguage((candidate) => candidate.isAutoGenerated !== true) ?? pickLanguage(() => true);
-	}
-	async function resolveDetectedLanguageForVideo(options) {
-		if (options.isStream) return { detectedLanguage: "auto" };
-		if (options.userOverrideLanguage) return { detectedLanguage: options.userOverrideLanguage };
-		const hostDetectedLanguage = resolveHostDetectedLanguage(options.host);
-		if (isResolvedLanguage(hostDetectedLanguage)) return {
-			detectedLanguage: hostDetectedLanguage,
-			cacheLanguage: hostDetectedLanguage
-		};
-		const normalizedPossibleLanguage = normalizeToRequestLang(options.possibleLanguage);
-		if (isResolvedLanguage(normalizedPossibleLanguage)) return {
-			detectedLanguage: normalizedPossibleLanguage,
-			cacheLanguage: normalizedPossibleLanguage
-		};
-		const youtubeSubtitleDetectedLanguage = options.host === "youtube" ? resolveYoutubeDetectedLanguageFromSubtitles(options.subtitles) : void 0;
-		if (isResolvedLanguage(youtubeSubtitleDetectedLanguage)) return {
-			detectedLanguage: youtubeSubtitleDetectedLanguage,
-			cacheLanguage: youtubeSubtitleDetectedLanguage
-		};
-		if (options.cachedDetectedLanguage) return { detectedLanguage: options.cachedDetectedLanguage };
-		if (!options.allowTextLanguageDetection) return { detectedLanguage: "auto" };
-		const text = buildDetectText(options.title, options.description);
-		if (!text || text.length < MIN_DETECT_TEXT_LENGTH) return { detectedLanguage: "auto" };
-		const detectedLanguage = await options.detectLanguage(text);
-		if (!detectedLanguage) return { detectedLanguage: "auto" };
-		return {
-			detectedLanguage,
-			cacheLanguage: detectedLanguage
-		};
-	}
-	function getAriaValueNowPercent(selector) {
-		const el = document.querySelector(selector);
-		const rawNow = el?.getAttribute("aria-valuenow");
-		const rawMax = el?.getAttribute("aria-valuemax");
-		const now = rawNow == null ? NaN : Number.parseFloat(rawNow);
-		const max = rawMax == null ? NaN : Number.parseFloat(rawMax);
-		if (!Number.isFinite(now)) return null;
-		if (Number.isFinite(max) && max > 0) return clampPercentInt(now / max * 100);
-		return clampPercentInt(now);
-	}
-	var VOTVideoManager = class {
-		videoHandler;
-		constructor(videoHandler) {
-			this.videoHandler = videoHandler;
-		}
-		setDetectedLanguageCache(videoId, language) {
-			getSharedLanguageState(videoId).detectedLanguage = language;
-		}
-		rememberUserLanguageSelection(videoId, language) {
-			const normalizedLanguage = normalizeToRequestLang(language);
-			if (!isResolvedLanguage(normalizedLanguage)) {
-				const sharedLanguageState = sharedLanguageStateByVideoId.get(videoId);
-				if (sharedLanguageState) delete sharedLanguageState.userLanguageOverride;
-				return;
-			}
-			const sharedLanguageState = getSharedLanguageState(videoId);
-			sharedLanguageState.userLanguageOverride = normalizedLanguage;
-			sharedLanguageState.detectedLanguage = normalizedLanguage;
-		}
-		rememberDetectedLanguage(videoId, language) {
-			const normalizedLanguage = normalizeToRequestLang(language);
-			if (!isResolvedLanguage(normalizedLanguage)) return;
-			this.setDetectedLanguageCache(videoId, normalizedLanguage);
-			if (this.videoHandler.videoData?.videoId === videoId) this.videoHandler.videoData.detectedLanguage = normalizedLanguage;
-		}
-		async detectLanguageSingleFlight(videoId, text) {
-			const sharedLanguageState = getSharedLanguageState(videoId);
-			const inFlightDetect = sharedLanguageState.detectInFlight;
-			if (inFlightDetect !== void 0) return inFlightDetect;
-			const task = (async () => {
-				debug.log(`Detecting language text: ${text}`);
-				const language = normalizeToRequestLang(await detect(text));
-				return isResolvedLanguage(language) ? language : void 0;
-			})();
-			sharedLanguageState.detectInFlight = task;
-			try {
-				return await task;
-			} finally {
-				if (sharedLanguageState.detectInFlight === task) delete sharedLanguageState.detectInFlight;
-			}
-		}
-		async resolveVideoLanguage({ videoId, isStream, possibleLanguage, subtitles, title, description, allowTextLanguageDetection }) {
-			const sharedLanguageState = getSharedLanguageState(videoId);
-			const result = await resolveDetectedLanguageForVideo({
-				isStream,
-				host: this.videoHandler.site.host,
-				possibleLanguage,
-				subtitles,
-				userOverrideLanguage: sharedLanguageState.userLanguageOverride,
-				cachedDetectedLanguage: sharedLanguageState.detectedLanguage,
-				title,
-				description,
-				allowTextLanguageDetection,
-				detectLanguage: async (text) => await this.detectLanguageSingleFlight(videoId, text)
-			});
-			if (result.cacheLanguage) this.setDetectedLanguageCache(videoId, result.cacheLanguage);
-			return {
-				...result,
-				sharedLanguageState
-			};
-		}
-		async ensureDetectedLanguageForTranslation(videoData) {
-			if (!videoData?.videoId || videoData.detectedLanguage !== "auto") return;
-			const { detectedLanguage } = await this.resolveVideoLanguage({
-				videoId: videoData.videoId,
-				isStream: videoData.isStream,
-				possibleLanguage: videoData.detectedLanguage,
-				subtitles: videoData.subtitles,
-				title: videoData.title,
-				description: videoData.description,
-				allowTextLanguageDetection: true
-			});
-			if (!detectedLanguage || detectedLanguage === "auto") return;
-			this.videoHandler.setSelectMenuValues(detectedLanguage, this.videoHandler.translateToLang);
-		}
-		async getVideoData() {
-			const { duration, url, videoId, host, title, translationHelp = null, localizedTitle, description, detectedLanguage: possibleLanguage, subtitles, isStream = false } = await getVideoData(this.videoHandler.site, {
-				fetchFn: GM_fetch,
-				video: this.videoHandler.video,
-				language: localizationProvider.lang
-			});
-			const { detectedLanguage, sharedLanguageState } = await this.resolveVideoLanguage({
-				videoId,
-				isStream,
-				possibleLanguage,
-				subtitles,
-				title,
-				description,
-				allowTextLanguageDetection: false
-			});
-			const videoData = {
-				translationHelp,
-				isStream,
-				duration: duration || this.videoHandler.video?.duration || config_default$1.defaultDuration,
-				videoId,
-				url,
-				host,
-				detectedLanguage,
-				responseLanguage: this.videoHandler.translateToLang,
-				subtitles,
-				title,
-				localizedTitle,
-				description,
-				downloadTitle: localizedTitle ?? title ?? document.title ?? videoId
-			};
-			if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
-				debug.log("[VOT] Detected language:", detectedLanguage);
-				sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
-			}
-			return videoData;
-		}
-		async videoValidator() {
-			const videoData = this.videoHandler.videoData;
-			const data = this.videoHandler.data;
-			if (!videoData || !data) throw new VOTLocalizedError("VOTNoVideoIDFound");
-			debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
-			if (this.videoHandler.data.dontTranslateLanguages?.includes(this.videoHandler.videoData.detectedLanguage)) throw new VOTLocalizedError("VOTDisableFromYourLang");
-			if (this.videoHandler.videoData.isStream) throw new VOTLocalizedError("VOTStreamNotAvailable");
-			if (this.videoHandler.videoData.duration > 14400) throw new VOTLocalizedError("VOTVideoIsTooLong");
-			return true;
-		}
-		getVideoVolume() {
-			const video = this.videoHandler.video;
-			if (!video) return void 0;
-			if (isExternalVolumeHost(this.videoHandler.site.host)) {
-				const ariaPercent = getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR);
-				if (ariaPercent != null) return percentToVolume01(ariaPercent);
-				const extVolume = YoutubeHelper.getVolume();
-				if (typeof extVolume === "number" && Number.isFinite(extVolume)) return snapVolume01(extVolume);
-			}
-			return snapVolume01(video.volume);
-		}
-		setVideoVolume(volume, options = {}) {
-			const snapped = snapVolume01(volume);
-			if (!isExternalVolumeHost(this.videoHandler.site.host)) {
-				this.videoHandler.video.volume = snapped;
-				return this;
-			}
-			try {
-				const setExternalVolume = () => YoutubeHelper.setVolume(snapped);
-				const result = options.preserveYoutubeVolumeStorage ? preserveYoutubeVolumeStorage(setExternalVolume) : setExternalVolume();
-				if (typeof result === "boolean" && result || typeof result === "number" && Number.isFinite(result)) return this;
-			} catch {}
-			this.videoHandler.video.volume = snapped;
-			return this;
-		}
-		setVideoMuted(muted) {
-			if (this.videoHandler.video) this.videoHandler.video.muted = muted;
-			return this;
-		}
-		isMuted() {
-			if (!isExternalVolumeHost(this.videoHandler.site.host)) return this.videoHandler.video?.muted;
-			return YoutubeHelper.isMuted() || Boolean(this.videoHandler.video?.muted);
-		}
-		syncVideoVolumeSlider() {
-			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
-			if (!overlayViewControls) return this;
-			const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host) ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR) : null;
-			const volumePercent = this.isMuted() ? 0 : ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0);
-			overlayViewControls.setVideoVolume(volumePercent);
-			this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
-			return this;
-		}
-		setSelectMenuValues(from, to) {
-			const videoData = this.videoHandler.videoData;
-			if (!videoData) return this;
-			const normalizedFrom = normalizeToRequestLang(from) ?? "auto";
-			const langPairLogKey = `${normalizedFrom}->${to}`;
-			const sharedLanguageState = getSharedLanguageState(videoData.videoId);
-			if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
-				debug.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
-				sharedLanguageState.lastLoggedLangPair = langPairLogKey;
-			}
-			videoData.detectedLanguage = normalizedFrom;
-			videoData.responseLanguage = to;
-			this.videoHandler.translateFromLang = normalizedFrom;
-			this.videoHandler.translateToLang = to;
-			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
-			if (!overlayViewControls) return this;
-			overlayViewControls.setDetectedLanguage(normalizedFrom);
-			overlayViewControls.setResponseLanguage(to);
-			return this;
-		}
-	};
-	//#endregion
-	//#region src/notify.ts
-	function canSend(lastSentAt, key, cooldownMs) {
-		if (!cooldownMs) return true;
-		const prev = lastSentAt.get(key) ?? 0;
-		return Date.now() - prev >= cooldownMs;
-	}
-	function markSent(lastSentAt, key) {
-		lastSentAt.set(key, Date.now());
-	}
-	function resolveLocalizedErrorFromObject(message) {
-		if (!message || typeof message !== "object") return null;
-		const localizedError = message;
-		if (localizedError.name !== "VOTLocalizedError") return null;
-		if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) return localizedError.localizedMessage;
-		if (typeof localizedError.unlocalizedMessage === "string") return localizationProvider.get(localizedError.unlocalizedMessage);
-		return null;
-	}
-	function resolveLocalizedErrorMessage(message) {
-		const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
-		if (localizedObjectMessage) return localizedObjectMessage;
-		return localizationProvider.get(getErrorMessage(message) || "requestTranslationFailed");
-	}
-	function trySendViaUserscriptApi(details) {
-		try {
-			if (typeof GM_notification === "function") {
-				GM_notification(details);
-				return true;
-			}
-			const gmApi = globalThis.GM;
-			if (gmApi !== void 0 && typeof gmApi.notification === "function") {
-				const gmDetails = {
-					text: details.text,
-					title: details.title,
-					image: details.image,
-					onclick: details.onclick,
-					ondone: details.ondone
-				};
-				gmApi.notification(gmDetails);
-				return true;
-			}
-		} catch (err) {
-			debug.log("[notify] userscript api error", err);
-		}
-		return false;
-	}
-	var Notifier = class {
-		lastSentAt = new Map();
-		send(details, opts = {}) {
-			try {
-				const key = opts.key || details.tag || `${details.title ?? ""}|${details.text ?? ""}`;
-				const cooldownMs = opts.cooldownMs ?? 0;
-				if (!canSend(this.lastSentAt, key, cooldownMs)) return;
-				const normalized = {
-					...details,
-					title: details.title ?? getScriptTitle()
-				};
-				if (trySendViaUserscriptApi(normalized)) markSent(this.lastSentAt, key);
-				else debug.log("[notify] unavailable", normalized);
-			} catch (err) {
-				debug.log("[notify] send error", err);
-			}
-		}
-		translationCompleted(host) {
-			const text = localizationProvider.get("VOTTranslationCompletedNotify").replace("{0}", host);
-			this.send({
-				text,
-				title: getScriptTitle(),
-				timeout: 5e3,
-				silent: true,
-				tag: "VOTTranslationCompleted",
-				onclick: () => {
-					try {
-						globalThis.focus();
-					} catch {}
-				}
-			}, {
-				key: `translation_completed_${host}`,
-				cooldownMs: 1e4
-			});
-		}
-		translationFailed(params) {
-			const { videoId, message } = params;
-			if (isAbortError(message)) return;
-			const msg = resolveLocalizedErrorMessage(message);
-			const title = getScriptTitle();
-			this.send({
-				text: msg,
-				title,
-				timeout: 8e3,
-				silent: true,
-				tag: `VOTtranslationFailed_${videoId || "unknown"}`,
-				onclick: () => {
-					try {
-						globalThis.focus();
-					} catch {}
-				}
-			}, {
-				key: `translation_failed_${videoId || "unknown"}`,
-				cooldownMs: 3e4
-			});
+			this.localizedMessage = t$1(message);
 		}
 	};
 	//#endregion
@@ -26122,6 +25286,1914 @@ var vot = (function(exports) {
 		return props;
 	}
 	//#endregion
+	//#region node_modules/solid-js/store/dist/store.js
+	var $RAW = Symbol("store-raw");
+	var $NODE = Symbol("store-node");
+	var $HAS = Symbol("store-has");
+	var $SELF = Symbol("store-self");
+	function wrap$1(value) {
+		let p = value[$PROXY];
+		if (!p) {
+			Object.defineProperty(value, $PROXY, { value: p = new Proxy(value, proxyTraps$1) });
+			if (!Array.isArray(value)) {
+				const keys = Object.keys(value), desc = Object.getOwnPropertyDescriptors(value), proto = Object.getPrototypeOf(value);
+				const isClass = proto !== null && value !== null && typeof value === "object" && !Array.isArray(value) && proto !== Object.prototype;
+				if (isClass) {
+					const descriptors = Object.getOwnPropertyDescriptors(proto);
+					keys.push(...Object.keys(descriptors));
+					Object.assign(desc, descriptors);
+				}
+				for (let i = 0, l = keys.length; i < l; i++) {
+					const prop = keys[i];
+					if (isClass && prop === "constructor") continue;
+					if (desc[prop].get) Object.defineProperty(value, prop, {
+						configurable: true,
+						enumerable: desc[prop].enumerable,
+						get: desc[prop].get.bind(p)
+					});
+				}
+			}
+		}
+		return p;
+	}
+	function isWrappable(obj) {
+		let proto;
+		return obj != null && typeof obj === "object" && (obj[$PROXY] || !(proto = Object.getPrototypeOf(obj)) || proto === Object.prototype || Array.isArray(obj));
+	}
+	function unwrap(item, set = new Set()) {
+		let result, unwrapped, v, prop;
+		if (result = item != null && item[$RAW]) return result;
+		if (!isWrappable(item) || set.has(item)) return item;
+		if (Array.isArray(item)) {
+			if (Object.isFrozen(item)) item = item.slice(0);
+			else set.add(item);
+			for (let i = 0, l = item.length; i < l; i++) {
+				v = item[i];
+				if ((unwrapped = unwrap(v, set)) !== v) item[i] = unwrapped;
+			}
+		} else {
+			if (Object.isFrozen(item)) item = Object.assign({}, item);
+			else set.add(item);
+			const keys = Object.keys(item), desc = Object.getOwnPropertyDescriptors(item);
+			for (let i = 0, l = keys.length; i < l; i++) {
+				prop = keys[i];
+				if (desc[prop].get) continue;
+				v = item[prop];
+				if ((unwrapped = unwrap(v, set)) !== v) item[prop] = unwrapped;
+			}
+		}
+		return item;
+	}
+	function getNodes(target, symbol) {
+		let nodes = target[symbol];
+		if (!nodes) Object.defineProperty(target, symbol, { value: nodes = Object.create(null) });
+		return nodes;
+	}
+	function getNode(nodes, property, value) {
+		if (nodes[property]) return nodes[property];
+		const [s, set] = createSignal(value, {
+			equals: false,
+			internal: true
+		});
+		s.$ = set;
+		return nodes[property] = s;
+	}
+	function proxyDescriptor$1(target, property) {
+		const desc = Reflect.getOwnPropertyDescriptor(target, property);
+		if (!desc || desc.get || !desc.configurable || property === $PROXY || property === $NODE) return desc;
+		delete desc.value;
+		delete desc.writable;
+		desc.get = () => target[$PROXY][property];
+		return desc;
+	}
+	function trackSelf(target) {
+		getListener() && getNode(getNodes(target, $NODE), $SELF)();
+	}
+	function ownKeys(target) {
+		trackSelf(target);
+		return Reflect.ownKeys(target);
+	}
+	var proxyTraps$1 = {
+		get(target, property, receiver) {
+			if (property === $RAW) return target;
+			if (property === $PROXY) return receiver;
+			if (property === $TRACK) {
+				trackSelf(target);
+				return receiver;
+			}
+			const nodes = getNodes(target, $NODE);
+			const tracked = nodes[property];
+			let value = tracked ? tracked() : target[property];
+			if (property === $NODE || property === $HAS || property === "__proto__") return value;
+			if (!tracked) {
+				const desc = Object.getOwnPropertyDescriptor(target, property);
+				if (getListener() && (typeof value !== "function" || Object.prototype.hasOwnProperty.call(target, property)) && !(desc && desc.get)) value = getNode(nodes, property, value)();
+			}
+			return isWrappable(value) ? wrap$1(value) : value;
+		},
+		has(target, property) {
+			if (property === $RAW || property === $PROXY || property === $TRACK || property === $NODE || property === $HAS || property === "__proto__") return true;
+			getListener() && getNode(getNodes(target, $HAS), property)();
+			return property in target;
+		},
+		set() {
+			return true;
+		},
+		deleteProperty() {
+			return true;
+		},
+		ownKeys,
+		getOwnPropertyDescriptor: proxyDescriptor$1
+	};
+	function setProperty$1(state, property, value, deleting = false) {
+		if (property === "__proto__") return;
+		if (!deleting && state[property] === value) return;
+		const prev = state[property], len = state.length;
+		if (value === void 0) {
+			delete state[property];
+			if (state[$HAS] && state[$HAS][property] && prev !== void 0) state[$HAS][property].$();
+		} else {
+			state[property] = value;
+			if (state[$HAS] && state[$HAS][property] && prev === void 0) state[$HAS][property].$();
+		}
+		let nodes = getNodes(state, $NODE), node;
+		if (node = getNode(nodes, property, prev)) node.$(() => value);
+		if (Array.isArray(state) && state.length !== len) {
+			for (let i = state.length; i < len; i++) (node = nodes[i]) && node.$();
+			(node = getNode(nodes, "length", len)) && node.$(state.length);
+		}
+		(node = nodes[$SELF]) && node.$();
+	}
+	function mergeStoreNode(state, value) {
+		const keys = Object.keys(value);
+		for (let i = 0; i < keys.length; i += 1) {
+			const key = keys[i];
+			if (isUnsafeKey$1(key)) continue;
+			setProperty$1(state, key, value[key]);
+		}
+	}
+	function isUnsafeKey$1(property) {
+		return property === "__proto__" || property === "constructor" || property === "prototype";
+	}
+	function updateArray(current, next) {
+		if (typeof next === "function") next = next(current);
+		next = unwrap(next);
+		if (Array.isArray(next)) {
+			if (current === next) return;
+			let i = 0, len = next.length;
+			for (; i < len; i++) {
+				const value = next[i];
+				if (current[i] !== value) setProperty$1(current, i, value);
+			}
+			setProperty$1(current, "length", len);
+		} else mergeStoreNode(current, next);
+	}
+	function updatePath(current, path, traversed = []) {
+		let part, prev = current;
+		if (path.length > 1) {
+			part = path.shift();
+			const partType = typeof part, isArray = Array.isArray(current);
+			if (partType === "string" && (part === "__proto__" || path.length > 1 && isUnsafeKey$1(part))) return;
+			if (Array.isArray(part)) {
+				for (let i = 0; i < part.length; i++) updatePath(current, [part[i]].concat(path), traversed);
+				return;
+			} else if (isArray && partType === "function") {
+				for (let i = 0; i < current.length; i++) if (part(current[i], i)) updatePath(current, [i].concat(path), traversed);
+				return;
+			} else if (isArray && partType === "object") {
+				const { from = 0, to = current.length - 1, by = 1 } = part;
+				for (let i = from; i <= to; i += by) updatePath(current, [i].concat(path), traversed);
+				return;
+			} else if (path.length > 1) {
+				updatePath(current[part], path, [part].concat(traversed));
+				return;
+			}
+			prev = current[part];
+			traversed = [part].concat(traversed);
+		}
+		let value = path[0];
+		if (typeof value === "function") {
+			value = value(prev, traversed);
+			if (value === prev) return;
+		}
+		if (part === void 0 && value == void 0) return;
+		value = unwrap(value);
+		if (part === void 0 || isWrappable(prev) && isWrappable(value) && !Array.isArray(value)) mergeStoreNode(prev, value);
+		else setProperty$1(current, part, value);
+	}
+	function createStore(...[store, options]) {
+		const unwrappedStore = unwrap(store || {});
+		const isArray = Array.isArray(unwrappedStore);
+		const wrappedStore = wrap$1(unwrappedStore);
+		function setStore(...args) {
+			batch(() => {
+				isArray && args.length === 1 ? updateArray(unwrappedStore, args[0]) : updatePath(unwrappedStore, args);
+			});
+		}
+		return [wrappedStore, setStore];
+	}
+	var producers = new WeakMap();
+	var setterTraps = {
+		get(target, property) {
+			if (property === $RAW) return target;
+			const value = target[property];
+			if (property === $PROXY || property === $TRACK || property === $NODE || property === $HAS || property === "__proto__") return value;
+			let proxy;
+			return isWrappable(value) ? producers.get(value) || (producers.set(value, proxy = new Proxy(value, setterTraps)), proxy) : value;
+		},
+		set(target, property, value) {
+			setProperty$1(target, property, unwrap(value));
+			return true;
+		},
+		deleteProperty(target, property) {
+			setProperty$1(target, property, void 0, true);
+			return true;
+		}
+	};
+	function produce(fn) {
+		return (state) => {
+			if (isWrappable(state)) {
+				let proxy;
+				if (!(proxy = producers.get(state))) producers.set(state, proxy = new Proxy(state, setterTraps));
+				fn(proxy);
+			}
+			return state;
+		};
+	}
+	//#endregion
+	//#region src/stores/account.ts
+	function createInitialState$2() {
+		return {
+			isRefreshing: false,
+			isLoggedIn: false,
+			username: void 0,
+			avatarId: void 0,
+			expires: void 0,
+			token: void 0
+		};
+	}
+	var [account, setAccount] = createStore(createInitialState$2());
+	function resetAccount() {
+		setAccount(createInitialState$2());
+	}
+	function updateAccount(data) {
+		if (hasValidAccountToken(data)) return setAccount({
+			isLoggedIn: true,
+			...data
+		});
+		resetAccount();
+	}
+	async function updateAccountFromStorage() {
+		updateAccount(await votStorage.get("account", {}));
+	}
+	//#endregion
+	//#region src/core/auth/yandex.ts
+	function createCodeVerifier() {
+		return base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
+	}
+	async function createCodeChallenge(codeVerifier) {
+		const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
+		return base64UrlEncode(new Uint8Array(digest));
+	}
+	var isTokenError = (data) => {
+		return typeof data === "object" && data !== null && Object.hasOwn(data, "error") && typeof data.error === "string";
+	};
+	async function getOAuthTokenByCode(code) {
+		const data = await (await GM_fetch(YANDEX_AUTH_TOKEN_URL, {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({
+				grant_type: "authorization_code",
+				code,
+				client_id: YANDEX_AUTH_CLIENT_ID,
+				redirect_uri: YANDEX_AUTH_REDIRECT_URI,
+				code_verifier: sessionStorage.getItem("votYandexCodeVerifier") || ""
+			})
+		})).json();
+		if (isTokenError(data)) throw new Error(`Failed to fetch yandex OAuth token: ${data.error_description} (error: ${data.error})`);
+		return data;
+	}
+	var isAuthError = (data) => {
+		return typeof data === "object" && data !== null && Object.hasOwn(data, "status") && data.status === "error";
+	};
+	async function getUserInfo(token) {
+		const data = await (await GM_fetch(`${YANDEX_USER_INFO_URL}?format=json`, {
+			method: "GET",
+			headers: { Authorization: `OAuth ${token}` }
+		})).json();
+		if (isAuthError(data)) throw new Error(`[VOT] Failed to fetch yandex user info: ${data.message} (code: ${data.code})`);
+		return data;
+	}
+	async function updateAccountInfo() {
+		const account = await votStorage.get("account");
+		if (!account) throw new Error("[VOT] No account found");
+		let username;
+		let avatarId;
+		try {
+			setAccount("isRefreshing", true);
+			const userInfo = await getUserInfo(account.token);
+			username = userInfo.login;
+			avatarId = userInfo.default_avatar_id;
+			await votStorage.set("account", {
+				...account,
+				username,
+				avatarId
+			});
+			updateAccount({
+				...account,
+				token: account.token,
+				expires: account.expires
+			});
+		} catch (err) {
+			console.error("[VOT] Failed to fetch user info:", err);
+		} finally {
+			setAccount("isRefreshing", false);
+		}
+	}
+	async function updateAccountByCallbackData(data) {
+		const { state, code } = data;
+		const storedState = sessionStorage.getItem("votYandexState");
+		if (!state || state !== storedState) throw new Error("[VOT] Invalid state value");
+		if (!code) throw new Error("[VOT] Invalid auth code response");
+		const token = await getOAuthTokenByCode(code);
+		const expires = Date.now() + token.expires_in * 1e3;
+		const account = {
+			token: token.access_token,
+			expires,
+			username: void 0,
+			avatarId: void 0
+		};
+		await votStorage.set("account", account);
+		updateAccount(account);
+		sessionStorage.removeItem("votYandexState");
+		sessionStorage.removeItem("votYandexCodeVerifier");
+		await updateAccountInfo();
+	}
+	var createAuthLink = async () => {
+		const state = getUUID();
+		const codeVerifier = createCodeVerifier();
+		const codeChallenge = await createCodeChallenge(codeVerifier);
+		sessionStorage.setItem("votYandexCodeVerifier", codeVerifier);
+		sessionStorage.setItem("votYandexState", state);
+		return `${YANDEX_AUTH_URL}?${new URLSearchParams({
+			client_id: YANDEX_AUTH_CLIENT_ID,
+			response_type: "code",
+			redirect_uri: YANDEX_AUTH_REDIRECT_URI,
+			et: Date.now().toString(),
+			force_confirm: "1",
+			state,
+			code_challenge: codeChallenge,
+			code_challenge_method: "S256"
+		}).toString()}`;
+	};
+	//#endregion
+	//#region src/core/auth/window.ts
+	var AUTH_WINDOW_NAME = "votAuthWindow";
+	var AUTH_WINDOW_WIDTH = 520;
+	var AUTH_WINDOW_HEIGHT = 720;
+	function getViewportMetric(name) {
+		const value = globalThis[name];
+		return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+	}
+	function getScreenOffset(name) {
+		const value = globalThis[name];
+		return typeof value === "number" && Number.isFinite(value) ? value : 0;
+	}
+	function getAuthWindowFeatures() {
+		const viewportWidth = getViewportMetric("outerWidth") ?? globalThis.screen?.availWidth ?? AUTH_WINDOW_WIDTH;
+		const viewportHeight = getViewportMetric("outerHeight") ?? globalThis.screen?.availHeight ?? AUTH_WINDOW_HEIGHT;
+		const left = Math.max(0, Math.round(getScreenOffset("screenX") + (viewportWidth - AUTH_WINDOW_WIDTH) / 2));
+		const top = Math.max(0, Math.round(getScreenOffset("screenY") + (viewportHeight - AUTH_WINDOW_HEIGHT) / 2));
+		return [
+			"popup=yes",
+			"resizable=yes",
+			"scrollbars=yes",
+			`width=${AUTH_WINDOW_WIDTH}`,
+			`height=${AUTH_WINDOW_HEIGHT}`,
+			`left=${left}`,
+			`top=${top}`
+		].join(",");
+	}
+	async function openAuthWindow() {
+		globalThis.open(await createAuthLink(), AUTH_WINDOW_NAME, getAuthWindowFeatures())?.focus?.();
+	}
+	//#endregion
+	//#region src/core/translationAuthError.ts
+	function isSessionRequired(value) {
+		return safeNestedGet(value, ["status"]) === VideoTranslationStatus.SESSION_REQUIRED || safeNestedGet(value, ["data", "status"]) === VideoTranslationStatus.SESSION_REQUIRED;
+	}
+	function getTranslationServerErrorMessage(value) {
+		const msg = safeNestedGet(value, ["data", "message"]);
+		return typeof msg === "string" && msg.length > 0 ? msg : void 0;
+	}
+	function getTranslationAuthErrorKind(value, context = {}) {
+		if (!isSessionRequired(value)) return null;
+		return context.hasAccountToken ? "session-expired" : "account-required";
+	}
+	function isTranslationAuthError(value, context = {}) {
+		return getTranslationAuthErrorKind(value, context) !== null;
+	}
+	//#endregion
+	//#region src/core/translationErrors.ts
+	function notifyTranslationFailureIfNeeded(options) {
+		if (options.aborted) return false;
+		if (!options.translateApiErrorsEnabled || !options.hadAsyncWait) return options.hadAsyncWait;
+		options.notify({
+			videoId: options.videoId,
+			message: options.error
+		});
+		return false;
+	}
+	//#endregion
+	//#region src/utils/timeFormatting.ts
+	var MAX_SECS_FRACTION = .66;
+	function formatTranslationEta(secs, getMessage) {
+		let minutes = Math.floor(secs / 60);
+		if (Math.floor(secs % 60) / 60 >= MAX_SECS_FRACTION) minutes += 1;
+		if (minutes >= 60) return getMessage("translationTakeMoreThanHour");
+		if (minutes <= 1) return getMessage("translationTakeAboutMinute");
+		const minutesStr = String(minutes);
+		if (minutes !== 11 && minutes % 10 === 1) return getMessage("translationTakeApproximatelyMinute2").replace("{0}", minutesStr);
+		if (![
+			12,
+			13,
+			14
+		].includes(minutes) && [
+			2,
+			3,
+			4
+		].includes(minutes % 10)) return getMessage("translationTakeApproximatelyMinute").replace("{0}", minutesStr);
+		return getMessage("translationTakeApproximatelyMinutes").replace("{0}", minutesStr);
+	}
+	//#endregion
+	//#region src/core/translationEtaCountdown.ts
+	var COUNTDOWN_TICK_MS = 1e3;
+	function normalizeRemainingTime(remainingTimeSeconds) {
+		if (!Number.isFinite(remainingTimeSeconds)) return 0;
+		return Math.max(0, Math.ceil(remainingTimeSeconds));
+	}
+	function createEtaMessage(remainingSeconds) {
+		if (remainingSeconds <= 0) return new VOTLocalizedError("TranslationDelayed");
+		return formatTranslationEta(remainingSeconds, (key) => t$1(key));
+	}
+	function getMessageIdentity(message) {
+		return message instanceof VOTLocalizedError ? `${message.name}:${message.unlocalizedMessage}` : message;
+	}
+	var TranslationEtaCountdown = class {
+		updateMessage;
+		deadlineMs = 0;
+		generation = 0;
+		lastMessageIdentity = null;
+		signal;
+		timeoutId;
+		constructor(updateMessage) {
+			this.updateMessage = updateMessage;
+		}
+		async sync(remainingTimeSeconds, signal, options = {}) {
+			this.stop();
+			const remainingSeconds = normalizeRemainingTime(remainingTimeSeconds);
+			if (remainingSeconds <= 0 || signal.aborted) return;
+			const generation = ++this.generation;
+			this.deadlineMs = Date.now() + remainingSeconds * 1e3;
+			this.signal = signal;
+			await this.tick(generation, Boolean(options.countLongWaitOnFirstRender));
+		}
+		stop() {
+			this.generation += 1;
+			this.deadlineMs = 0;
+			this.lastMessageIdentity = null;
+			this.signal = void 0;
+			if (this.timeoutId !== void 0) {
+				clearTimeout(this.timeoutId);
+				this.timeoutId = void 0;
+			}
+		}
+		async tick(generation, countLongWait = false) {
+			if (generation !== this.generation) return;
+			const signal = this.signal;
+			if (!signal || signal.aborted) {
+				this.stop();
+				return;
+			}
+			const remainingSeconds = Math.max(0, Math.ceil((this.deadlineMs - Date.now()) / 1e3));
+			const message = createEtaMessage(remainingSeconds);
+			const messageIdentity = getMessageIdentity(message);
+			if (messageIdentity !== this.lastMessageIdentity) {
+				this.lastMessageIdentity = messageIdentity;
+				await this.updateMessage(message, signal, { countLongWait });
+			}
+			if (generation !== this.generation || signal.aborted) return;
+			if (remainingSeconds <= 0) {
+				this.timeoutId = void 0;
+				return;
+			}
+			this.timeoutId = setTimeout(() => {
+				this.tick(generation);
+			}, COUNTDOWN_TICK_MS);
+		}
+	};
+	//#endregion
+	//#region src/core/translationHandler.ts
+	function mapVotClientErrorForUi(error, hasProvidedAccountToken = false) {
+		const authErrorKind = getTranslationAuthErrorKind(error, { hasAccountToken: hasProvidedAccountToken });
+		if (authErrorKind) return new VOTLocalizedError(authErrorKind === "session-expired" ? "VOTYandexTokenExpired" : "VOTAccountRequired");
+		if (!error || typeof error !== "object") return error;
+		if (safeNestedGet(error, ["name"]) !== "VOTJSError") return error;
+		const message = typeof safeNestedGet(error, ["message"]) === "string" ? safeNestedGet(error, ["message"]) : "";
+		const serverMessage = safeNestedGet(error, ["data", "message"]);
+		const hasServerMessage = typeof serverMessage === "string" && serverMessage.length > 0;
+		if (message === "Yandex couldn't translate video" && !hasServerMessage) return new VOTLocalizedError("requestTranslationFailed");
+		if (message === "Failed to request video translation") return new VOTLocalizedError("requestTranslationFailed");
+		if (message === "Audio link wasn't received" || message === "Audio link wasn't received from VOT response") return new VOTLocalizedError("audioNotReceived");
+		return error;
+	}
+	function summarizeTranslationResponse(response) {
+		return {
+			status: response.status,
+			translated: response.translated,
+			remainingTime: response.remainingTime,
+			translationId: response.translationId
+		};
+	}
+	var VOTTranslationHandler = class VOTTranslationHandler {
+		videoHandler;
+		audioDownloader;
+		downloading;
+		downloadSettlers = new Set();
+		etaCountdown;
+		requestedFailAudio = new Set();
+		audioRunSeq = 0;
+		audioRunController = null;
+		audioRunExternalUnlinks = new Map();
+		audioRunTranslationId = null;
+		audioRunVideoId = null;
+		linkAudioRunAbort(externalSignal, controller) {
+			if (externalSignal === NEVER_ABORTED_SIGNAL) return;
+			if (this.audioRunExternalUnlinks.has(externalSignal)) return;
+			if (externalSignal.aborted) {
+				controller.abort(makeAbortError());
+				return;
+			}
+			const onAbort = () => controller.abort(makeAbortError());
+			externalSignal.addEventListener("abort", onAbort, { once: true });
+			this.audioRunExternalUnlinks.set(externalSignal, () => externalSignal.removeEventListener("abort", onAbort));
+		}
+		startAudioRun(externalSignal, translationId, videoId) {
+			this.audioRunSeq += 1;
+			const runId = this.audioRunSeq;
+			const existing = this.audioRunController;
+			if (existing && this.audioRunVideoId === videoId && !existing.signal.aborted) {
+				this.linkAudioRunAbort(externalSignal, existing);
+				this.audioRunTranslationId = translationId;
+				return {
+					signal: existing.signal,
+					runId
+				};
+			}
+			if (existing) {
+				existing.abort(makeAbortError("New audio run started"));
+				this.cleanupAudioRun();
+			}
+			const controller = new AbortController();
+			this.audioRunController = controller;
+			this.audioRunVideoId = videoId;
+			this.audioRunTranslationId = translationId;
+			this.linkAudioRunAbort(externalSignal, controller);
+			return {
+				signal: controller.signal,
+				runId
+			};
+		}
+		cleanupAudioRun() {
+			for (const unlink of this.audioRunExternalUnlinks.values()) unlink();
+			this.audioRunExternalUnlinks.clear();
+			this.audioRunController = null;
+			this.audioRunTranslationId = null;
+			this.audioRunVideoId = null;
+		}
+		finishAudioRun(runId) {
+			if (runId !== this.audioRunSeq) return;
+			this.cleanupAudioRun();
+		}
+		uploadResumeState = null;
+		constructor(videoHandler) {
+			this.videoHandler = videoHandler;
+			this.audioDownloader = new AudioDownloader();
+			this.downloading = false;
+			this.etaCountdown = new TranslationEtaCountdown((message, signal, options) => this.videoHandler.updateTranslationErrorMsg(message, signal, options));
+			this.audioDownloader.addEventListener("downloadedAudio", this.onDownloadedAudio).addEventListener("downloadedPartialAudio", this.onDownloadedPartialAudio).addEventListener("downloadAudioError", this.onDownloadAudioError);
+		}
+		onDownloadedAudio = async (translationId, data) => {
+			debug.log("downloadedAudio", data);
+			if (!this.downloading) {
+				debug.log("skip downloadedAudio");
+				return;
+			}
+			if (translationId !== this.audioRunTranslationId) {
+				debug.log("skip stale downloadedAudio", { translationId });
+				return;
+			}
+			const runId = this.audioRunSeq;
+			const signal = this.audioRunController?.signal ?? NEVER_ABORTED_SIGNAL;
+			const { videoId, fileId, audioData } = data;
+			const videoUrl = this.getCanonicalUrl(videoId);
+			try {
+				await this.retryAudioUpload((timeoutMs) => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
+					audioFile: audioData,
+					fileId
+				}, void 0, {}, { timeout: timeoutMs }), signal);
+			} catch (error) {
+				if (isAbortError(error) && signal.aborted) return;
+				debug.error("Failed to upload downloaded audio", error);
+				this.finishDownloadFailure(error instanceof Error ? error : new Error("Audio downloader failed while uploading full audio"), runId);
+				return;
+			}
+			this.audioDownloader.clearCachedAudio(videoId);
+			this.finishDownloadSuccess(runId);
+		};
+		onDownloadedPartialAudio = async (translationId, data) => {
+			debug.log("downloadedPartialAudio", data);
+			if (!this.downloading) {
+				debug.log("skip downloadedPartialAudio");
+				return;
+			}
+			if (translationId !== this.audioRunTranslationId) {
+				debug.log("skip stale downloadedPartialAudio", { translationId });
+				return;
+			}
+			const runId = this.audioRunSeq;
+			const signal = this.audioRunController?.signal ?? NEVER_ABORTED_SIGNAL;
+			const { audioData, fileId, videoId, amount, version, index } = data;
+			const videoUrl = this.getCanonicalUrl(videoId);
+			const resume = this.uploadResumeState;
+			if (resume?.failed && resume.videoId === videoId && resume.fileId === fileId && index <= resume.lastSuccessfulChunkId) {
+				debug.log("[VOT][AudioUpload] skipping already uploaded chunk", {
+					videoId,
+					fileId,
+					chunkId: index,
+					lastSuccessfulChunkId: resume.lastSuccessfulChunkId
+				});
+				return;
+			}
+			try {
+				await this.retryAudioUpload((timeoutMs) => this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
+					audioFile: audioData,
+					chunkId: index
+				}, {
+					audioPartsLength: amount ?? 0,
+					fileId,
+					version
+				}, {}, { timeout: timeoutMs }), signal);
+				this.uploadResumeState = {
+					videoId,
+					fileId,
+					lastSuccessfulChunkId: index,
+					failed: false
+				};
+			} catch (error) {
+				if (isAbortError(error) && signal.aborted) return;
+				debug.error("[VOT][AudioUpload] chunk PUT failed after all retries", {
+					videoId,
+					fileId,
+					chunkId: index,
+					amount,
+					bytes: audioData.byteLength,
+					error
+				});
+				this.uploadResumeState = {
+					videoId,
+					fileId,
+					lastSuccessfulChunkId: this.uploadResumeState?.videoId === videoId ? this.uploadResumeState.lastSuccessfulChunkId : index - 1,
+					failed: true
+				};
+				this.finishDownloadFailure(new VOTLocalizedError("VOTRetryTranslation"), runId);
+				return;
+			}
+			if (amount !== void 0 && index === amount - 1) {
+				this.uploadResumeState = null;
+				this.audioDownloader.clearCachedAudio(videoId);
+				this.finishDownloadSuccess(runId);
+			}
+		};
+		onDownloadAudioError = async (translationId, videoId) => {
+			if (!this.downloading) {
+				debug.log("skip downloadAudioError");
+				return;
+			}
+			if (translationId !== this.audioRunTranslationId) {
+				debug.log("skip stale downloadAudioError", { translationId });
+				return;
+			}
+			const runId = this.audioRunSeq;
+			debug.error("[VOT][AudioDownload] failed to download audio from source", { videoId });
+			const videoUrl = this.getCanonicalUrl(videoId);
+			if (!(this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload))) {
+				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"), runId);
+				return;
+			}
+			try {
+				if (this.requestedFailAudio.has(videoUrl)) debug.log("fail-audio-js request already sent for this video");
+				else {
+					debug.log("Sending fail-audio-js request");
+					await this.videoHandler.votClient.provider.requestVtransFailAudio(videoUrl);
+					await this.videoHandler.votClient.provider.requestVtransAudio(videoUrl, translationId, {
+						audioFile: new Uint8Array(0),
+						fileId: `fallback-empty-audio:video-translation:${videoId}`
+					});
+					this.requestedFailAudio.add(videoUrl);
+				}
+				this.finishDownloadSuccess(runId);
+			} catch (error) {
+				debug.error("fail-audio-js request failed", error);
+				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"), runId);
+			}
+		};
+		finishDownloadSuccess(runId) {
+			if (runId !== void 0 && runId !== this.audioRunSeq) return;
+			this.downloading = false;
+			this.settleDownloadWaiters();
+		}
+		finishDownloadFailure(error, runId) {
+			if (runId !== void 0 && runId !== this.audioRunSeq) return;
+			this.downloading = false;
+			this.settleDownloadWaiters(error);
+		}
+		getCanonicalUrl(videoId) {
+			return `https://youtu.be/${videoId}`;
+		}
+		static AUDIO_UPLOAD_MAX_RETRIES = 5;
+		static AUDIO_UPLOAD_RETRY_DELAY_MS = 1500;
+		static AUDIO_UPLOAD_TIMEOUTS_MS = [
+			15e3,
+			2e4,
+			3e4
+		];
+		async retryAudioUpload(fn, signal) {
+			const maxRetries = VOTTranslationHandler.AUDIO_UPLOAD_MAX_RETRIES;
+			const delayMs = VOTTranslationHandler.AUDIO_UPLOAD_RETRY_DELAY_MS;
+			const timeouts = VOTTranslationHandler.AUDIO_UPLOAD_TIMEOUTS_MS;
+			let lastError;
+			for (let attempt = 0; attempt <= maxRetries; attempt++) {
+				throwIfAborted(signal);
+				const timeoutMs = timeouts[Math.min(attempt, timeouts.length - 1)];
+				try {
+					return await fn(timeoutMs);
+				} catch (error) {
+					if (signal.aborted) throw isAbortError(error) ? error : makeAbortError();
+					lastError = error;
+					const details = error;
+					debug.error("[VOT][AudioUpload] PUT attempt failed", {
+						attempt: attempt + 1,
+						totalAttempts: maxRetries + 1,
+						status: details?.status,
+						code: details?.code,
+						message: details?.message ?? getErrorMessage(error)
+					});
+					if (attempt === maxRetries) throw error;
+					debug.log(`[VOT][AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
+					await createAbortableDelay(delayMs, signal);
+				}
+			}
+			throw lastError;
+		}
+		isLivelyVoiceUnavailableError(value) {
+			if (isTranslationAuthError(value)) return false;
+			const msg = getErrorMessage(value);
+			return !!msg && msg.toLowerCase().includes("обычная озвучка");
+		}
+		async scheduleRetry(fn, delayMs, signal) {
+			await createAbortableDelay(delayMs, signal, { onScheduled: (timeoutId) => {
+				this.videoHandler.autoRetry = timeoutId;
+			} });
+			return await fn();
+		}
+		static MAX_INITIAL_WAIT_SEC = 180;
+		static LONG_WAIT_MS = 12e4;
+		static RETRY_INTERVAL_MS = 3e4;
+		getRetryDelayMs(retryAttempt, remainingTimeSeconds = 0) {
+			if (retryAttempt > 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
+			const eta = remainingTimeSeconds ?? 0;
+			if (eta <= 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
+			if (eta <= VOTTranslationHandler.MAX_INITIAL_WAIT_SEC) return eta * 1e3;
+			return VOTTranslationHandler.LONG_WAIT_MS;
+		}
+		async handleTranslationUiError(uiError) {
+			if (!(uiError instanceof VOTLocalizedError)) return;
+			if (uiError.unlocalizedMessage === "VOTYandexTokenExpired") {
+				await deleteAccount(this.videoHandler);
+				await openAuthWindow();
+			} else if (uiError.unlocalizedMessage === "VOTAccountRequired") await openAuthWindow();
+		}
+		async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, options = {}) {
+			const { disableLivelyVoice = false, retryAttempt = 0 } = options;
+			clearTimeout(this.videoHandler.autoRetry);
+			this.finishDownloadSuccess();
+			const requestLangForApi = this.videoHandler.getRequestLangForTranslation(requestLang, responseLang);
+			debug.log("[Translation] translateVideoImpl start", {
+				videoId: videoData.videoId,
+				duration: videoData.duration,
+				requestLang,
+				requestLangForApi,
+				responseLang,
+				retryAttempt,
+				disableLivelyVoice,
+				shouldSendFailedAudio,
+				translationHelpCount: translationHelp?.length ?? 0
+			});
+			debug.log(videoData, `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`);
+			let livelyDisabled = disableLivelyVoice;
+			let translationResponse;
+			try {
+				throwIfAborted(signal);
+				const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(requestLangForApi, responseLang);
+				const translationAttempt = await this.requestTranslationWithLivelyFallback({
+					videoData,
+					requestLangForApi,
+					responseLang,
+					translationHelp,
+					shouldSendFailedAudio,
+					livelyDisabled,
+					livelyVoiceAllowed
+				});
+				livelyDisabled = translationAttempt.livelyDisabled;
+				const useLivelyVoice = translationAttempt.useLivelyVoice;
+				const res = translationAttempt.response;
+				translationResponse = res;
+				if (!res) throw new Error("Failed to get translation response");
+				if (isTranslationAuthError(res, { hasAccountToken: hasAccountToken(this.videoHandler.data?.account) })) throw mapVotClientErrorForUi(res, hasAccountToken(this.videoHandler.data?.account));
+				debug.log("[Translation] translateVideoImpl response", {
+					videoId: videoData.videoId,
+					useLivelyVoice,
+					...summarizeTranslationResponse(res)
+				});
+				throwIfAborted(signal);
+				if (res.translated && res.remainingTime < 1) {
+					this.etaCountdown.stop();
+					debug.log("[Translation] translation finished", {
+						videoId: videoData.videoId,
+						useLivelyVoice,
+						...summarizeTranslationResponse(res)
+					});
+					return {
+						...res,
+						usedLivelyVoice: useLivelyVoice
+					};
+				}
+				const message = res.message ?? t$1("translationTakeFewMinutes");
+				debug.log("[Translation] translation still processing", {
+					videoId: videoData.videoId,
+					useLivelyVoice,
+					...summarizeTranslationResponse(res),
+					message
+				});
+				if (res.remainingTime > 0) {
+					options.onTranslationWaiting?.();
+					await this.etaCountdown.sync(res.remainingTime, signal, { countLongWaitOnFirstRender: true });
+				} else {
+					this.etaCountdown.stop();
+					await this.videoHandler.updateTranslationErrorMsg(message, signal);
+				}
+				if (res.status === VideoTranslationStatus.AUDIO_REQUESTED && this.videoHandler.isYouTubeHosts()) {
+					this.videoHandler.hadAsyncWait = true;
+					debug.log("[Translation] audio download started", {
+						videoId: videoData.videoId,
+						translationId: res.translationId
+					});
+					this.downloading = true;
+					const { signal: audioSignal, runId } = this.startAudioRun(signal, res.translationId, videoData.videoId);
+					debug.log("[Translation] waiting for audio download completion", {
+						videoId: videoData.videoId,
+						translationId: res.translationId,
+						timeoutMs: STREAM_TIMEOUT_MS
+					});
+					const audioProducer = this.audioDownloader.runAudioDownload(videoData.videoId, res.translationId, audioSignal, requestLang);
+					try {
+						await Promise.all([this.waitForAudioDownloadCompletion(audioSignal, STREAM_TIMEOUT_MS), audioProducer]);
+					} finally {
+						if (runId === this.audioRunSeq) this.downloading = false;
+						audioProducer.then(() => this.finishAudioRun(runId), () => this.finishAudioRun(runId));
+					}
+					return await this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, true, signal, {
+						disableLivelyVoice: livelyDisabled,
+						retryAttempt,
+						onTranslationWaiting: options.onTranslationWaiting
+					});
+				}
+			} catch (err) {
+				if (isAbortError(err)) {
+					this.etaCountdown.stop();
+					debug.log("[Translation] translation aborted", {
+						videoId: videoData.videoId,
+						retryAttempt
+					});
+					return null;
+				}
+				this.etaCountdown.stop();
+				const uiError = mapVotClientErrorForUi(err, hasAccountToken(this.videoHandler.data?.account));
+				debug.error("[Translation] translation failed", {
+					videoId: videoData.videoId,
+					retryAttempt,
+					error: err,
+					mappedError: uiError
+				});
+				await this.handleTranslationUiError(uiError);
+				await this.videoHandler.updateTranslationErrorMsg(getTranslationServerErrorMessage(uiError) ?? uiError, signal);
+				this.videoHandler.hadAsyncWait = notifyTranslationFailureIfNeeded({
+					aborted: Boolean(this.videoHandler.actionsAbortController?.signal?.aborted),
+					translateApiErrorsEnabled: Boolean(this.videoHandler.data?.translateAPIErrors),
+					hadAsyncWait: this.videoHandler.hadAsyncWait,
+					videoId: videoData.videoId,
+					error: err,
+					notify: (params) => this.videoHandler.notifier.translationFailed(params)
+				});
+				return null;
+			}
+			this.videoHandler.hadAsyncWait = true;
+			const retryDelayMs = this.getRetryDelayMs(retryAttempt, translationResponse?.remainingTime ?? null);
+			debug.log("[Translation] scheduling translation retry", {
+				videoId: videoData.videoId,
+				retryAttempt,
+				retryDelayMs,
+				remainingTime: translationResponse?.remainingTime
+			});
+			return this.scheduleRetry(() => this.translateVideoImpl(videoData, requestLang, responseLang, translationHelp, shouldSendFailedAudio, signal, {
+				disableLivelyVoice: livelyDisabled,
+				retryAttempt: retryAttempt + 1,
+				onTranslationWaiting: options.onTranslationWaiting
+			}), retryDelayMs, signal);
+		}
+		stopTranslationEtaCountdown() {
+			this.etaCountdown.stop();
+		}
+		async requestTranslationWithLivelyFallback({ videoData, requestLangForApi, responseLang, translationHelp, shouldSendFailedAudio, livelyDisabled, livelyVoiceAllowed }) {
+			let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && this.videoHandler.data?.useLivelyVoice !== false;
+			debug.log("[Translation] requesting translation from VOT client", {
+				videoId: videoData.videoId,
+				requestLangForApi,
+				responseLang,
+				shouldSendFailedAudio,
+				livelyDisabled,
+				livelyVoiceAllowed,
+				useLivelyVoice,
+				translationHelpCount: translationHelp?.length ?? 0
+			});
+			while (true) {
+				try {
+					debug.log("[Translation] votClient.translateVideo call", {
+						videoId: videoData.videoId,
+						requestLangForApi,
+						responseLang,
+						useLivelyVoice,
+						shouldSendFailedAudio,
+						translationHelpCount: translationHelp?.length ?? 0
+					});
+					const response = await this.videoHandler.votClient.translateVideo({
+						videoData,
+						requestLang: requestLangForApi,
+						responseLang,
+						translationHelp,
+						extraOpts: {
+							useLivelyVoice,
+							videoTitle: this.videoHandler.videoData?.title
+						},
+						shouldSendFailedAudio
+					});
+					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+						debug.log("[Translation] votClient.translateVideo resolved", {
+							videoId: videoData.videoId,
+							useLivelyVoice,
+							...summarizeTranslationResponse(response)
+						});
+						return {
+							response,
+							useLivelyVoice,
+							livelyDisabled
+						};
+					}
+					debug.warn("[Translation] lively voice unavailable in response", {
+						videoId: videoData.videoId,
+						useLivelyVoice,
+						...summarizeTranslationResponse(response)
+					});
+				} catch (err) {
+					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(err)) throw err;
+					debug.warn("[Translation] lively voice unavailable in error", {
+						videoId: videoData.videoId,
+						useLivelyVoice,
+						error: err
+					});
+				}
+				livelyDisabled = true;
+				useLivelyVoice = false;
+				debug.log("[Translation] retrying translation without lively voice", {
+					videoId: videoData.videoId,
+					requestLangForApi,
+					responseLang
+				});
+			}
+		}
+		waitForAudioDownloadCompletion(signal, timeoutMs) {
+			if (!this.downloading) return Promise.resolve();
+			const { promise, settle } = createAbortableWaiter(signal, timeoutMs);
+			this.downloadSettlers.add(settle);
+			return promise.finally(() => {
+				this.downloadSettlers.delete(settle);
+			});
+		}
+		settleDownloadWaiters(error) {
+			if (!this.downloadSettlers.size) return;
+			const settlers = Array.from(this.downloadSettlers);
+			this.downloadSettlers.clear();
+			for (const settle of settlers) if (error) settle.reject(error);
+			else settle.resolve();
+		}
+	};
+	//#endregion
+	//#region src/core/translationOrchestrator.ts
+	var TranslationOrchestrator = class {
+		state = { status: "idle" };
+		deps;
+		constructor(deps) {
+			this.deps = deps;
+		}
+		get currentState() {
+			return this.state;
+		}
+		setState(next) {
+			this.state = next;
+			debug.log("[TranslationOrchestrator] state", next);
+		}
+		reset() {
+			this.setState({ status: "idle" });
+		}
+		async runAutoTranslationIfEligible() {
+			if (this.state.status !== "idle") return;
+			if (!(this.deps.isFirstPlay() && this.deps.isAutoTranslateEnabled() && this.deps.getVideoId())) return;
+			if (this.deps.isMobileYouTubeMuted?.()) {
+				debug.log("[TranslationOrchestrator] Mobile YouTube video is muted, deferring auto-translate");
+				this.setState({
+					status: "deferred",
+					reason: "muted"
+				});
+				this.deps.setMuteWatcher?.(() => {
+					debug.log("[TranslationOrchestrator] Video unmuted, running deferred auto-translate");
+					this.setState({ status: "idle" });
+					this.runAutoTranslationIfEligible();
+				});
+				return;
+			}
+			this.setState({
+				status: "pending",
+				reason: "auto"
+			});
+			try {
+				await this.deps.scheduleAutoTranslate();
+				this.deps.setFirstPlay(false);
+				this.reset();
+			} catch (err) {
+				this.setState({
+					status: "error",
+					message: err
+				});
+				throw err;
+			}
+		}
+	};
+	//#endregion
+	//#region src/core/lifecycleShared.ts
+	function resetLifecycleTranslation(host, options = {}) {
+		const { requireVideoData = false, clearVideoData = false } = options;
+		if (requireVideoData && !host.videoData) return;
+		if (clearVideoData) host.videoData = void 0;
+		host.stopTranslation();
+		host.resetSubtitlesWidget();
+	}
+	function hideLifecycleOverlay(overlayViewControls, options = {}) {
+		const { hideMenu = false } = options;
+		overlayViewControls?.setButtonHidden(true);
+		if (hideMenu) overlayViewControls?.setMenuHidden(true);
+	}
+	function resetAndHideLifecycle(host, overlayViewControls, options = {}) {
+		const { requireVideoData, clearVideoData, hideMenu } = options;
+		resetLifecycleTranslation(host, {
+			requireVideoData,
+			clearVideoData
+		});
+		hideLifecycleOverlay(overlayViewControls, { hideMenu });
+	}
+	//#endregion
+	//#region src/core/videoLifecycleController.ts
+	var YOUTUBE_TIMESTAMP_PARAMS = [
+		"t",
+		"start",
+		"time_continue"
+	];
+	function getYouTubeSourceKey(url, hasSrcObject) {
+		const stableUrl = new URL(url);
+		for (const param of YOUTUBE_TIMESTAMP_PARAMS) stableUrl.searchParams.delete(param);
+		return `${stableUrl.origin}${stableUrl.pathname}${stableUrl.search}||${hasSrcObject}`;
+	}
+	var VideoLifecycleController = class {
+		host;
+		lifecycleGeneration = 0;
+		lastSetCanPlaySourceKey = "";
+		activeSetCanPlaySourceKey = "";
+		setCanPlayRequested = false;
+		setCanPlayLoopPromise;
+		constructor(host) {
+			this.host = host;
+		}
+		isStale(generation) {
+			return generation !== this.lifecycleGeneration;
+		}
+		resetActions(reason) {
+			if (typeof this.host.resetActionsAbortController === "function") {
+				this.host.resetActionsAbortController(reason);
+				return;
+			}
+			this.host.actionsAbortController?.abort(reason);
+		}
+		invalidateActiveSession(reason) {
+			if (this.lifecycleGeneration === 0) return;
+			this.lifecycleGeneration += 1;
+			this.resetActions(`[VideoLifecycle] ${reason}`);
+			debug.log(`[VideoLifecycle] cancelled active session (active: ${this.lifecycleGeneration})`, { reason });
+		}
+		startSession(reason) {
+			this.lifecycleGeneration += 1;
+			const sessionId = this.lifecycleGeneration;
+			this.resetActions(`[VideoLifecycle][session:${sessionId}] ${reason}`);
+			debug.log(`[VideoLifecycle][session:${sessionId}] started`, { reason });
+			return sessionId;
+		}
+		shouldAbortHandleSrcChanged(callId, stage) {
+			if (!this.isStale(callId)) return false;
+			debug.log(`[VideoLifecycle][session:${callId}] handleSrcChanged aborted at ${stage} (active: ${this.lifecycleGeneration})`);
+			return true;
+		}
+		showOverlayButton(overlayView) {
+			overlayView.overlayViewControls?.setButtonHidden(false);
+			overlayView.overlayViewControls?.setButtonOpacity(1);
+			this.host.queueOverlayAutoHide?.();
+		}
+		teardown() {
+			this.setCanPlayRequested = false;
+			this.invalidateActiveSession("teardown");
+		}
+		getCurrentSourceKey() {
+			const hasSrcObject = this.host.video.srcObject ? "1" : "0";
+			if (this.host.site.host === "youtube") return getYouTubeSourceKey(new URL(globalThis.location.href), hasSrcObject);
+			const src = this.host.video.currentSrc || this.host.video.src || "";
+			return `${globalThis.location.href}||${src}||${hasSrcObject}`;
+		}
+		resolveContainer() {
+			const { site, video, container } = this.host;
+			if (!site.selector) return video.parentElement ?? container;
+			const matched = findConnectedContainerBySelector(video, site.selector);
+			if (matched) return matched;
+			if (container.isConnected && containsCrossShadow(container, video)) return container;
+			return video.parentElement ?? container;
+		}
+		async setCanPlay() {
+			this.setCanPlayRequested = true;
+			if (this.setCanPlayLoopPromise !== void 0) {
+				const incomingSourceKey = this.getCurrentSourceKey();
+				if (this.activeSetCanPlaySourceKey && incomingSourceKey !== this.activeSetCanPlaySourceKey) this.invalidateActiveSession("setCanPlay source changed while previous trigger is running");
+				else debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", { sourceKey: incomingSourceKey });
+				return await this.setCanPlayLoopPromise;
+			}
+			const loopPromise = (async () => {
+				while (this.setCanPlayRequested) {
+					this.setCanPlayRequested = false;
+					await this.runSetCanPlayOnce();
+				}
+			})();
+			this.setCanPlayLoopPromise = loopPromise;
+			try {
+				await loopPromise;
+			} finally {
+				if (this.setCanPlayLoopPromise === loopPromise) this.setCanPlayLoopPromise = void 0;
+			}
+		}
+		async runSetCanPlayOnce() {
+			const sourceKey = this.getCurrentSourceKey();
+			if (this.host.videoData?.videoId && sourceKey === this.lastSetCanPlaySourceKey) {
+				debug.log("[VideoLifecycle] setCanPlay deduplicated for same source", { sourceKey });
+				return;
+			}
+			let nextVideoData;
+			try {
+				nextVideoData = await this.host.getVideoData();
+			} catch (err) {
+				debug.log(`[VideoLifecycle] getVideoData failed for source ${sourceKey}`, err);
+				this.host.videoData = void 0;
+				hideLifecycleOverlay(this.host.uiManager.votOverlayView.overlayViewControls, { hideMenu: true });
+				return;
+			}
+			if (this.getCurrentSourceKey() !== sourceKey) {
+				debug.log("[VideoLifecycle] discarded stale getVideoData result after source change", { sourceKey });
+				return;
+			}
+			this.host.videoData = nextVideoData;
+			this.activeSetCanPlaySourceKey = sourceKey;
+			const currentId = this.startSession(`setCanPlay (source: ${sourceKey})`);
+			debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay started`, { sourceKey });
+			try {
+				await this.handleSrcChanged(currentId, sourceKey);
+				if (this.isStale(currentId)) {
+					debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay aborted after src change (active: ${this.lifecycleGeneration})`);
+					return;
+				}
+				const autoSubtitlesPromise = this.runAutoSubtitlesIfEnabled(currentId);
+				await this.host.translationOrchestrator.runAutoTranslationIfEligible();
+				if (this.isStale(currentId)) {
+					debug.log(`[VideoLifecycle][session:${currentId}] auto-translation result ignored (stale session)`);
+					return;
+				}
+				await autoSubtitlesPromise;
+				if (this.isStale(currentId)) {
+					debug.log(`[VideoLifecycle][session:${currentId}] auto-subtitles result ignored (stale session)`);
+					return;
+				}
+				debug.log(`[VideoLifecycle][session:${currentId}] setCanPlay finished`);
+			} finally {
+				if (this.activeSetCanPlaySourceKey === sourceKey) this.activeSetCanPlaySourceKey = "";
+			}
+		}
+		async runAutoSubtitlesIfEnabled(sessionId) {
+			if (!this.host.data.autoSubtitles || !this.host.videoData?.videoId) return;
+			try {
+				await this.host.enableSubtitlesForCurrentLangPair();
+			} catch (err) {
+				debug.log(`[VideoLifecycle][session:${sessionId}] auto-subtitles failed`, err);
+			}
+		}
+		async handleSrcChanged(callId, expectedSourceKey) {
+			const sessionId = typeof callId === "number" ? callId : this.startSession("manual handleSrcChanged");
+			const sourceKey = typeof expectedSourceKey === "string" && expectedSourceKey.length > 0 ? expectedSourceKey : this.getCurrentSourceKey();
+			if (this.shouldAbortHandleSrcChanged(sessionId, "before start")) return;
+			debug.log(`[VideoLifecycle][session:${sessionId}] src changed`, { sourceKey });
+			this.host.firstPlay = true;
+			const overlayView = this.host.uiManager.votOverlayView;
+			const overlayViewControls = overlayView.overlayViewControls;
+			resetAndHideLifecycle(this.host, overlayViewControls, { requireVideoData: true });
+			if (!this.host.video.src && !this.host.video.currentSrc && !this.host.video.srcObject) hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
+			const nextContainer = this.resolveContainer();
+			if (nextContainer !== this.host.container) this.host.container = nextContainer;
+			if (this.shouldAbortHandleSrcChanged(sessionId, "before getVideoData")) return;
+			this.showOverlayButton(overlayView);
+			if (this.shouldAbortHandleSrcChanged(sessionId, "after getVideoData")) return;
+			if (!this.host.videoData?.videoId) {
+				debug.log(`[VideoLifecycle][session:${sessionId}] No videoId resolved, hiding overlay`);
+				hideLifecycleOverlay(overlayViewControls, { hideMenu: true });
+				return;
+			}
+			const subtitleLanguage = this.host.getPreferredSubtitlesLanguage(this.host.videoData.detectedLanguage, this.host.videoData.responseLanguage);
+			if (subtitleLanguage) {
+				const cacheKey = this.host.getSubtitlesCacheKey(this.host.videoData.videoId, this.host.videoData.detectedLanguage, subtitleLanguage);
+				const cachedSubtitles = this.host.cacheManager.getSubtitles(cacheKey);
+				this.host.subtitles = cachedSubtitles ?? [];
+				this.host.subtitlesCacheKey = cachedSubtitles === void 0 ? null : cacheKey;
+			} else {
+				this.host.subtitles = [];
+				this.host.subtitlesCacheKey = null;
+			}
+			await this.host.updateSubtitlesLangSelect();
+			if (this.shouldAbortHandleSrcChanged(sessionId, "after subtitles update")) return;
+			this.host.translateToLang = this.host.data.responseLanguage ?? "ru";
+			this.host.setSelectMenuValues(this.host.videoData.detectedLanguage, this.host.videoData.responseLanguage);
+			this.showOverlayButton(overlayView);
+			this.lastSetCanPlaySourceKey = sourceKey;
+			debug.log(`[VideoLifecycle][session:${sessionId}] src handling finished`);
+		}
+	};
+	//#endregion
+	//#region src/core/videoLifecycleHost.ts
+	function createVideoLifecycleHost(handler, resolveOverlayMount) {
+		const self = () => handler;
+		return {
+			get video() {
+				return self().video;
+			},
+			get site() {
+				return self().site;
+			},
+			get container() {
+				return self().container;
+			},
+			set container(value) {
+				if (self().container === value) return;
+				self().container = value;
+				self().uiManager.updateMount(resolveOverlayMount(value));
+			},
+			get firstPlay() {
+				return self().firstPlay;
+			},
+			set firstPlay(value) {
+				self().firstPlay = value;
+			},
+			stopTranslation: () => handler.stopTranslation(),
+			get uiManager() {
+				return self().uiManager;
+			},
+			getVideoData: () => handler.getVideoData(),
+			cacheManager: { getSubtitles: (key) => self().cacheManager.getSubtitles(key) },
+			getSubtitlesCacheKey: (videoId, detectedLanguage, subtitleLanguage) => handler.getSubtitlesCacheKey(videoId, detectedLanguage, subtitleLanguage),
+			getPreferredSubtitlesLanguage: (detectedLanguage, responseLanguage) => handler.getPreferredSubtitlesLanguage(detectedLanguage, responseLanguage),
+			updateSubtitlesLangSelect: () => handler.updateSubtitlesLangSelect(),
+			enableSubtitlesForCurrentLangPair: () => handler.enableSubtitlesForCurrentLangPair(),
+			setSelectMenuValues: (from, to) => handler.setSelectMenuValues(from, to),
+			get translateToLang() {
+				return self().translateToLang;
+			},
+			set translateToLang(value) {
+				self().translateToLang = value;
+			},
+			get data() {
+				return self().data ?? {};
+			},
+			get subtitles() {
+				return self().subtitles;
+			},
+			set subtitles(value) {
+				self().subtitles = value;
+			},
+			get subtitlesCacheKey() {
+				return self().subtitlesCacheKey;
+			},
+			set subtitlesCacheKey(value) {
+				self().subtitlesCacheKey = value;
+			},
+			get videoData() {
+				return self().videoData;
+			},
+			set videoData(value) {
+				const handler = self();
+				if (handler.videoData?.videoId !== value?.videoId) handler.downloadTranslation = null;
+				handler.videoData = value;
+			},
+			get actionsAbortController() {
+				return self().actionsAbortController;
+			},
+			set actionsAbortController(value) {
+				self().actionsAbortController = value;
+			},
+			resetActionsAbortController: (reason) => handler.resetActionsAbortController(reason),
+			translationOrchestrator: handler.translationOrchestrator,
+			resetSubtitlesWidget: () => handler.resetSubtitlesWidget(),
+			queueOverlayAutoHide: () => handler.overlayVisibility?.queueAutoHide()
+		};
+	}
+	//#endregion
+	//#region src/utils/text.ts
+	var MAX_TEXT_LENGTH = 450;
+	var REMOVABLE_TOKEN_FILTER = new RegExp([
+		String.raw`(?:https?:\/\/|www\.)\S+`,
+		String.raw`#[^\s#]+`,
+		String.raw`auto-generated\s+by\s+youtube`,
+		String.raw`provided\s+to\s+youtube\s+by`,
+		String.raw`released\s+on`,
+		String.raw`\bpaypal\b`,
+		String.raw`\b0x[a-f0-9]{40}\b`,
+		String.raw`\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b`,
+		String.raw`\b(?:bc1|tb1|bcrt1)[ac-hj-np-z02-9]{11,71}\b`,
+		String.raw`\b(?:-1|0):[a-f0-9]{64}\b`
+	].join("|"), "giu");
+	var NOISE_CHARACTER_FILTER = /[\p{N}\p{P}\p{S}]+/gu;
+	var WHITESPACE_FILTER = /\s+/g;
+	var LETTER_FILTER = /\p{L}/u;
+	function trimToMaxLength(text, maxLength) {
+		if (text.length <= maxLength) return text;
+		return text.slice(0, maxLength).trimEnd();
+	}
+	function cleanText(title, description) {
+		const raw = `${title ?? ""} ${description ?? ""}`.trim();
+		if (!raw) return "";
+		const cleaned = raw.normalize("NFKC").replace(REMOVABLE_TOKEN_FILTER, " ").replace(NOISE_CHARACTER_FILTER, " ").replace(WHITESPACE_FILTER, " ").trim();
+		if (!LETTER_FILTER.test(cleaned)) return "";
+		return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
+	}
+	//#endregion
+	//#region src/utils/volume.ts
+	var VIDEO_VOLUME_MIN_PERCENT = 0;
+	var VIDEO_VOLUME_MAX_PERCENT = 100;
+	var VIDEO_VOLUME_STEP_01 = .01;
+	var EPS = 1e-6;
+	function clampInt(value, min, max) {
+		return Math.trunc(clampNumber(value, min, max));
+	}
+	function clampPercentInt(value, min = VIDEO_VOLUME_MIN_PERCENT, max = VIDEO_VOLUME_MAX_PERCENT) {
+		if (!Number.isFinite(value)) return min;
+		return clampInt(Math.round(value), min, max);
+	}
+	function volume01ToPercent(volume01) {
+		return clampPercentInt(clampNumber(volume01, 0, 1) * 100);
+	}
+	function percentToVolume01(percent) {
+		return clampPercentInt(percent) / 100;
+	}
+	function quantizeToStep(value, step, direction) {
+		if (!Number.isFinite(value)) return value;
+		if (!Number.isFinite(step) || step <= 0) return value;
+		const inv = 1 / step;
+		const scaled = value * inv;
+		switch (direction) {
+			case "down": return Math.floor(scaled + EPS) / inv;
+			case "up": return Math.ceil(scaled - EPS) / inv;
+			default: return Math.round(scaled) / inv;
+		}
+	}
+	function snapVolume01(volume01, direction = "nearest", step = VIDEO_VOLUME_STEP_01) {
+		return clampNumber(quantizeToStep(clampNumber(volume01, 0, 1), step, direction), 0, 1);
+	}
+	function snapVolume01Towards(next, current, desired, step = VIDEO_VOLUME_STEP_01) {
+		const cur = clampNumber(current, 0, 1);
+		const des = clampNumber(desired, 0, 1);
+		if (des < cur) {
+			const q = snapVolume01(next, "down", step);
+			return Math.max(des, q);
+		}
+		if (des > cur) {
+			const q = snapVolume01(next, "up", step);
+			return Math.min(des, q);
+		}
+		return snapVolume01(next, "nearest", step);
+	}
+	//#endregion
+	//#region src/core/hostPolicies.ts
+	var EXTERNAL_VOLUME_HOSTS = new Set(["youtube", "googledrive"]);
+	var YOUTUBE_LIKE_HOSTS = EXTERNAL_VOLUME_HOSTS;
+	var MUTE_SYNC_DISABLED_HOSTS = new Set(["rutube", "ok"]);
+	var TRANSLATION_DOWNLOAD_HOSTS = new Set([
+		"youtube",
+		"invidious",
+		"piped"
+	]);
+	function isExternalVolumeHost(host) {
+		return EXTERNAL_VOLUME_HOSTS.has(host);
+	}
+	function isYouTubeLikeHost(host) {
+		return YOUTUBE_LIKE_HOSTS.has(host);
+	}
+	function isMuteSyncDisabledHost(host) {
+		return MUTE_SYNC_DISABLED_HOSTS.has(host);
+	}
+	function isDesktopYouTubeLikeSite(site) {
+		return isYouTubeLikeHost(site.host) && site.additionalData !== "mobile";
+	}
+	function isTranslationDownloadHost(host) {
+		return TRANSLATION_DOWNLOAD_HOSTS.has(host);
+	}
+	//#endregion
+	//#region src/core/videoManager.ts
+	var FORCED_DETECTED_LANGUAGE_BY_HOST = {
+		rutube: "ru",
+		"ok.ru": "ru",
+		mail_ru: "ru",
+		weverse: "ko",
+		niconico: "ja",
+		youku: "zh",
+		bilibili: "zh",
+		weibo: "zh",
+		zdf: "de"
+	};
+	var YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
+	var YT_PLAYER_VOLUME_STORAGE_KEY = "yt-player-volume";
+	var MIN_DETECT_TEXT_LENGTH = 35;
+	var MAX_SHARED_LANGUAGE_STATES = 500;
+	var REQUEST_LANG_SET = new Set(availableLangs);
+	var SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set([
+		"ru",
+		"en",
+		"zh",
+		"ko",
+		"fr",
+		"it",
+		"es",
+		"de",
+		"ja"
+	]);
+	function preserveYoutubeVolumeStorage(action) {
+		let snapshot;
+		try {
+			snapshot = globalThis.localStorage.getItem(YT_PLAYER_VOLUME_STORAGE_KEY);
+		} catch {
+			snapshot = void 0;
+		}
+		try {
+			return action();
+		} finally {
+			if (snapshot !== void 0) try {
+				if (snapshot === null) globalThis.localStorage.removeItem(YT_PLAYER_VOLUME_STORAGE_KEY);
+				else globalThis.localStorage.setItem(YT_PLAYER_VOLUME_STORAGE_KEY, snapshot);
+			} catch {}
+		}
+	}
+	var sharedLanguageStateByVideoId = new Map();
+	function getSharedLanguageState(videoId) {
+		const cachedState = sharedLanguageStateByVideoId.get(videoId);
+		if (cachedState) return cachedState;
+		const createdState = {};
+		sharedLanguageStateByVideoId.set(videoId, createdState);
+		while (sharedLanguageStateByVideoId.size > MAX_SHARED_LANGUAGE_STATES) {
+			const oldestVideoId = sharedLanguageStateByVideoId.keys().next().value;
+			if (typeof oldestVideoId !== "string") break;
+			sharedLanguageStateByVideoId.delete(oldestVideoId);
+		}
+		return createdState;
+	}
+	function normalizeToRequestLang(value) {
+		if (typeof value !== "string") return void 0;
+		const normalized = value.toLowerCase().split(/[-_]/)[0];
+		return REQUEST_LANG_SET.has(normalized) ? normalized : void 0;
+	}
+	function isResolvedLanguage(value) {
+		return Boolean(value && value !== "auto");
+	}
+	function resolveSupportedYoutubeAudioLanguage() {
+		const response = YoutubeHelper.getPlayerResponse();
+		const selected = selectSmallestAudioFormat([...Array.isArray(response?.streamingData?.adaptiveFormats) ? response.streamingData.adaptiveFormats : [], ...Array.isArray(response?.streamingData?.formats) ? response.streamingData.formats : []].filter((format) => {
+			const mimeType = String(format?.mimeType ?? "");
+			return mimeType.includes("audio/") && !mimeType.includes("video/");
+		}).map((format) => {
+			return {
+				language: normalizeToRequestLang(getYoutubeAudioFormatLanguage(format, (value) => Boolean(normalizeToRequestLang(value)))),
+				contentLength: format?.contentLength,
+				averageBitrate: format?.averageBitrate
+			};
+		}).filter((c) => c.language && SUPPORTED_TRANSLATION_SOURCE_LANGS.has(c.language)));
+		return selected?.language && isResolvedLanguage(selected.language) ? selected.language : void 0;
+	}
+	function buildDetectText(title, description) {
+		return cleanText(typeof title === "string" ? title : "", typeof description === "string" ? description : void 0);
+	}
+	function resolveHostDetectedLanguage(host) {
+		const forcedDetectedLanguage = FORCED_DETECTED_LANGUAGE_BY_HOST[host];
+		if (forcedDetectedLanguage) return forcedDetectedLanguage;
+		if (host === "vk") {
+			const trackLang = document.getElementsByTagName("track")?.[0]?.srclang;
+			return normalizeToRequestLang(trackLang);
+		}
+	}
+	function resolveYoutubeDetectedLanguageFromSubtitles(subtitles) {
+		if (!Array.isArray(subtitles)) return;
+		const candidates = subtitles.filter((subtitle) => Boolean(subtitle) && typeof subtitle === "object" && subtitle.source === "youtube" && typeof subtitle.translatedFromLanguage !== "string");
+		const pickLanguage = (predicate) => candidates.filter(predicate).map((candidate) => normalizeToRequestLang(candidate.language)).find(isResolvedLanguage);
+		return pickLanguage((candidate) => candidate.isAutoGenerated !== true) ?? pickLanguage(() => true);
+	}
+	async function resolveDetectedLanguageForVideo(options) {
+		if (options.isStream) return { detectedLanguage: "auto" };
+		if (options.userOverrideLanguage) return { detectedLanguage: options.userOverrideLanguage };
+		const hostDetectedLanguage = resolveHostDetectedLanguage(options.host);
+		if (isResolvedLanguage(hostDetectedLanguage)) return {
+			detectedLanguage: hostDetectedLanguage,
+			cacheLanguage: hostDetectedLanguage
+		};
+		const normalizedPossibleLanguage = normalizeToRequestLang(options.possibleLanguage);
+		if (isResolvedLanguage(normalizedPossibleLanguage)) return {
+			detectedLanguage: normalizedPossibleLanguage,
+			cacheLanguage: normalizedPossibleLanguage
+		};
+		const youtubeSubtitleDetectedLanguage = options.host === "youtube" ? resolveYoutubeDetectedLanguageFromSubtitles(options.subtitles) : void 0;
+		if (isResolvedLanguage(youtubeSubtitleDetectedLanguage)) return {
+			detectedLanguage: youtubeSubtitleDetectedLanguage,
+			cacheLanguage: youtubeSubtitleDetectedLanguage
+		};
+		if (options.cachedDetectedLanguage) return { detectedLanguage: options.cachedDetectedLanguage };
+		if (!options.allowTextLanguageDetection) return { detectedLanguage: "auto" };
+		const text = buildDetectText(options.title, options.description);
+		if (!text || text.length < MIN_DETECT_TEXT_LENGTH) return { detectedLanguage: "auto" };
+		const detectedLanguage = await options.detectLanguage(text);
+		if (!detectedLanguage) return { detectedLanguage: "auto" };
+		return {
+			detectedLanguage,
+			cacheLanguage: detectedLanguage
+		};
+	}
+	function getAriaValueNowPercent(selector) {
+		const el = document.querySelector(selector);
+		const rawNow = el?.getAttribute("aria-valuenow");
+		const rawMax = el?.getAttribute("aria-valuemax");
+		const now = rawNow == null ? NaN : Number.parseFloat(rawNow);
+		const max = rawMax == null ? NaN : Number.parseFloat(rawMax);
+		if (!Number.isFinite(now)) return null;
+		if (Number.isFinite(max) && max > 0) return clampPercentInt(now / max * 100);
+		return clampPercentInt(now);
+	}
+	var VOTVideoManager = class {
+		videoHandler;
+		constructor(videoHandler) {
+			this.videoHandler = videoHandler;
+		}
+		setDetectedLanguageCache(videoId, language) {
+			getSharedLanguageState(videoId).detectedLanguage = language;
+		}
+		rememberUserLanguageSelection(videoId, language) {
+			const normalizedLanguage = normalizeToRequestLang(language);
+			if (!isResolvedLanguage(normalizedLanguage)) {
+				const sharedLanguageState = sharedLanguageStateByVideoId.get(videoId);
+				if (sharedLanguageState) delete sharedLanguageState.userLanguageOverride;
+				return;
+			}
+			const sharedLanguageState = getSharedLanguageState(videoId);
+			sharedLanguageState.userLanguageOverride = normalizedLanguage;
+			sharedLanguageState.detectedLanguage = normalizedLanguage;
+		}
+		rememberDetectedLanguage(videoId, language) {
+			const normalizedLanguage = normalizeToRequestLang(language);
+			if (!isResolvedLanguage(normalizedLanguage)) return;
+			this.setDetectedLanguageCache(videoId, normalizedLanguage);
+			if (this.videoHandler.videoData?.videoId === videoId) this.videoHandler.videoData.detectedLanguage = normalizedLanguage;
+		}
+		async detectLanguageSingleFlight(videoId, text) {
+			const sharedLanguageState = getSharedLanguageState(videoId);
+			const inFlightDetect = sharedLanguageState.detectInFlight;
+			if (inFlightDetect !== void 0) return inFlightDetect;
+			const task = (async () => {
+				debug.log(`Detecting language text: ${text}`);
+				const language = normalizeToRequestLang(await detect(text));
+				return isResolvedLanguage(language) ? language : void 0;
+			})();
+			sharedLanguageState.detectInFlight = task;
+			try {
+				return await task;
+			} finally {
+				if (sharedLanguageState.detectInFlight === task) delete sharedLanguageState.detectInFlight;
+			}
+		}
+		async resolveVideoLanguage({ videoId, isStream, possibleLanguage, subtitles, title, description, allowTextLanguageDetection }) {
+			const sharedLanguageState = getSharedLanguageState(videoId);
+			const result = await resolveDetectedLanguageForVideo({
+				isStream,
+				host: this.videoHandler.site.host,
+				possibleLanguage,
+				subtitles,
+				userOverrideLanguage: sharedLanguageState.userLanguageOverride,
+				cachedDetectedLanguage: sharedLanguageState.detectedLanguage,
+				title,
+				description,
+				allowTextLanguageDetection,
+				detectLanguage: async (text) => await this.detectLanguageSingleFlight(videoId, text)
+			});
+			if (result.cacheLanguage) this.setDetectedLanguageCache(videoId, result.cacheLanguage);
+			return {
+				...result,
+				sharedLanguageState
+			};
+		}
+		async ensureDetectedLanguageForTranslation(videoData) {
+			if (!videoData?.videoId) return;
+			if (videoData.detectedLanguage === "auto") {
+				const { detectedLanguage } = await this.resolveVideoLanguage({
+					videoId: videoData.videoId,
+					isStream: videoData.isStream,
+					possibleLanguage: videoData.detectedLanguage,
+					subtitles: videoData.subtitles,
+					title: videoData.title,
+					description: videoData.description,
+					allowTextLanguageDetection: true
+				});
+				if (detectedLanguage && detectedLanguage !== "auto") videoData.detectedLanguage = detectedLanguage;
+			}
+			const detected = normalizeToRequestLang(videoData.detectedLanguage);
+			if (detected && detected !== "auto" && SUPPORTED_TRANSLATION_SOURCE_LANGS.has(detected)) return;
+			if (this.videoHandler.site.host !== "youtube") return;
+			const supportedVideoLanguage = resolveSupportedYoutubeAudioLanguage();
+			if (!supportedVideoLanguage) {
+				debug.log("[language] no supported YouTube audio track found", {
+					videoId: videoData.videoId,
+					detectedLanguage: videoData.detectedLanguage
+				});
+				return;
+			}
+			const previousLanguage = videoData.detectedLanguage;
+			videoData.detectedLanguage = supportedVideoLanguage;
+			this.setDetectedLanguageCache(videoData.videoId, supportedVideoLanguage);
+			if (this.videoHandler.translateFromLang === "auto") {
+				this.videoHandler.translateFromLang = supportedVideoLanguage;
+				this.videoHandler.autoSourceLanguageOverrideVideoId = videoData.videoId;
+				this.videoHandler.setSelectMenuValues(supportedVideoLanguage, videoData.responseLanguage);
+			}
+			debug.log("[language] unsupported language switched immediately", {
+				videoId: videoData.videoId,
+				previousLanguage,
+				supportedVideoLanguage,
+				translateFromLang: this.videoHandler.translateFromLang
+			});
+		}
+		async getVideoData() {
+			const { duration, url, videoId, host, title, translationHelp = null, localizedTitle, description, detectedLanguage: possibleLanguage, subtitles, isStream = false } = await getVideoData(this.videoHandler.site, {
+				fetchFn: GM_fetch,
+				video: this.videoHandler.video,
+				language: localizationProvider.lang
+			});
+			const { detectedLanguage, sharedLanguageState } = await this.resolveVideoLanguage({
+				videoId,
+				isStream,
+				possibleLanguage,
+				subtitles,
+				title,
+				description,
+				allowTextLanguageDetection: false
+			});
+			const videoData = {
+				translationHelp,
+				isStream,
+				duration: duration || this.videoHandler.video?.duration || config_default$1.defaultDuration,
+				videoId,
+				url,
+				host,
+				detectedLanguage,
+				responseLanguage: this.videoHandler.translateToLang,
+				subtitles,
+				title,
+				localizedTitle,
+				description,
+				downloadTitle: localizedTitle ?? title ?? document.title ?? videoId
+			};
+			if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
+				debug.log("[VOT] Detected language:", detectedLanguage);
+				sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
+			}
+			return videoData;
+		}
+		async videoValidator() {
+			const videoData = this.videoHandler.videoData;
+			const data = this.videoHandler.data;
+			if (!videoData || !data) throw new VOTLocalizedError("VOTNoVideoIDFound");
+			debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
+			if (this.videoHandler.data.dontTranslateLanguages?.includes(this.videoHandler.videoData.detectedLanguage)) throw new VOTLocalizedError("VOTDisableFromYourLang");
+			if (this.videoHandler.videoData.isStream) throw new VOTLocalizedError("VOTStreamNotAvailable");
+			if (this.videoHandler.videoData.duration > 14400) throw new VOTLocalizedError("VOTVideoIsTooLong");
+			return true;
+		}
+		getVideoVolume() {
+			const video = this.videoHandler.video;
+			if (!video) return void 0;
+			if (isExternalVolumeHost(this.videoHandler.site.host)) {
+				const ariaPercent = getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR);
+				if (ariaPercent != null) return percentToVolume01(ariaPercent);
+				const extVolume = YoutubeHelper.getVolume();
+				if (typeof extVolume === "number" && Number.isFinite(extVolume)) return snapVolume01(extVolume);
+			}
+			return snapVolume01(video.volume);
+		}
+		setVideoVolume(volume, options = {}) {
+			const snapped = snapVolume01(volume);
+			if (!isExternalVolumeHost(this.videoHandler.site.host)) {
+				this.videoHandler.video.volume = snapped;
+				return this;
+			}
+			try {
+				const setExternalVolume = () => YoutubeHelper.setVolume(snapped);
+				const result = options.preserveYoutubeVolumeStorage ? preserveYoutubeVolumeStorage(setExternalVolume) : setExternalVolume();
+				if (typeof result === "boolean" && result || typeof result === "number" && Number.isFinite(result)) return this;
+			} catch {}
+			this.videoHandler.video.volume = snapped;
+			return this;
+		}
+		setVideoMuted(muted) {
+			if (this.videoHandler.video) this.videoHandler.video.muted = muted;
+			return this;
+		}
+		isMuted() {
+			if (!isExternalVolumeHost(this.videoHandler.site.host)) return this.videoHandler.video?.muted;
+			return YoutubeHelper.isMuted() || Boolean(this.videoHandler.video?.muted);
+		}
+		syncVideoVolumeSlider() {
+			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+			if (!overlayViewControls) return this;
+			const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host) ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR) : null;
+			const volumePercent = this.isMuted() ? 0 : ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0);
+			overlayViewControls.setVideoVolume(volumePercent);
+			this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
+			return this;
+		}
+		setSelectMenuValues(from, to) {
+			const videoData = this.videoHandler.videoData;
+			if (!videoData) return this;
+			const normalizedFrom = normalizeToRequestLang(from) ?? "auto";
+			const langPairLogKey = `${normalizedFrom}->${to}`;
+			const sharedLanguageState = getSharedLanguageState(videoData.videoId);
+			if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
+				debug.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+				sharedLanguageState.lastLoggedLangPair = langPairLogKey;
+			}
+			videoData.detectedLanguage = normalizedFrom;
+			videoData.responseLanguage = to;
+			this.videoHandler.translateFromLang = normalizedFrom;
+			this.videoHandler.translateToLang = to;
+			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+			if (!overlayViewControls) return this;
+			overlayViewControls.setDetectedLanguage(normalizedFrom);
+			overlayViewControls.setResponseLanguage(to);
+			return this;
+		}
+	};
+	//#endregion
+	//#region src/notify.ts
+	function canSend(lastSentAt, key, cooldownMs) {
+		if (!cooldownMs) return true;
+		const prev = lastSentAt.get(key) ?? 0;
+		return Date.now() - prev >= cooldownMs;
+	}
+	function markSent(lastSentAt, key) {
+		lastSentAt.set(key, Date.now());
+	}
+	function resolveLocalizedErrorFromObject(message) {
+		if (!message || typeof message !== "object") return null;
+		const localizedError = message;
+		if (localizedError.name !== "VOTLocalizedError") return null;
+		if (typeof localizedError.localizedMessage === "string" && localizedError.localizedMessage.trim()) return localizedError.localizedMessage;
+		if (typeof localizedError.unlocalizedMessage === "string") return t$1(localizedError.unlocalizedMessage);
+		return null;
+	}
+	function resolveLocalizedErrorMessage(message) {
+		const localizedObjectMessage = resolveLocalizedErrorFromObject(message);
+		if (localizedObjectMessage) return localizedObjectMessage;
+		return t$1(getErrorMessage(message) || "requestTranslationFailed");
+	}
+	function trySendViaUserscriptApi(details) {
+		try {
+			if (typeof GM_notification === "function") {
+				GM_notification(details);
+				return true;
+			}
+			const gmApi = globalThis.GM;
+			if (gmApi !== void 0 && typeof gmApi.notification === "function") {
+				const gmDetails = {
+					text: details.text,
+					title: details.title,
+					image: details.image,
+					onclick: details.onclick,
+					ondone: details.ondone
+				};
+				gmApi.notification(gmDetails);
+				return true;
+			}
+		} catch (err) {
+			debug.log("[notify] userscript api error", err);
+		}
+		return false;
+	}
+	var Notifier = class {
+		lastSentAt = new Map();
+		send(details, opts = {}) {
+			try {
+				const key = opts.key || details.tag || `${details.title ?? ""}|${details.text ?? ""}`;
+				const cooldownMs = opts.cooldownMs ?? 0;
+				if (!canSend(this.lastSentAt, key, cooldownMs)) return;
+				const normalized = {
+					...details,
+					title: details.title ?? getScriptTitle()
+				};
+				if (trySendViaUserscriptApi(normalized)) markSent(this.lastSentAt, key);
+				else debug.log("[notify] unavailable", normalized);
+			} catch (err) {
+				debug.log("[notify] send error", err);
+			}
+		}
+		translationCompleted(host) {
+			const text = localizationProvider.get("VOTTranslationCompletedNotify").replace("{0}", host);
+			this.send({
+				text,
+				title: getScriptTitle(),
+				timeout: 5e3,
+				silent: true,
+				tag: "VOTTranslationCompleted",
+				onclick: () => {
+					try {
+						globalThis.focus();
+					} catch {}
+				}
+			}, {
+				key: `translation_completed_${host}`,
+				cooldownMs: 1e4
+			});
+		}
+		translationFailed(params) {
+			const { videoId, message } = params;
+			if (isAbortError(message)) return;
+			const msg = resolveLocalizedErrorMessage(message);
+			const title = getScriptTitle();
+			this.send({
+				text: msg,
+				title,
+				timeout: 8e3,
+				silent: true,
+				tag: `VOTtranslationFailed_${videoId || "unknown"}`,
+				onclick: () => {
+					try {
+						globalThis.focus();
+					} catch {}
+				}
+			}, {
+				key: `translation_failed_${videoId || "unknown"}`,
+				cooldownMs: 3e4
+			});
+		}
+	};
+	//#endregion
 	//#region node_modules/solid-js/universal/dist/universal.js
 	var memo$1 = (fn) => createMemo(() => fn());
 	function createRenderer$1({ createElement, createTextNode, isTextNode, replaceText, insertNode, removeNode, setProperty, getParentNode, getFirstChild, getNextSibling }) {
@@ -26464,7 +27536,7 @@ var vot = (function(exports) {
 		listeners.set(key, listener);
 		element.addEventListener(eventName, listener, capture);
 	}
-	function setProperty$1(node, name, value, previous) {
+	function setProperty(node, name, value, previous) {
 		if (!(node instanceof Element)) return;
 		if (name === "innerHTML") throw new TypeError("[VOT] innerHTML is not supported by the CSP-safe renderer");
 		if (name === "style" && (node instanceof HTMLElement || node instanceof SVGElement)) {
@@ -26516,7 +27588,7 @@ var vot = (function(exports) {
 		isTextNode(node) {
 			return node.nodeType === Node.TEXT_NODE;
 		},
-		setProperty: setProperty$1,
+		setProperty,
 		insertNode(parent, node, anchor) {
 			parent.insertBefore(node, anchor ?? null);
 		},
@@ -28746,7 +29818,7 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{-webkit-user-select:none;user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{-webkit-user-select:none;user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;-webkit-user-select:none;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;line-height:1;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(56px, 12.5vh, 136px), calc(env(safe-area-inset-top,0px) + 8px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px));--vot-menu-side-top-offset:max(clamp(50px, 12.5vh, 120px), calc(env(safe-area-inset-top,0px) + 8px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:320px;max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;-webkit-user-select:none;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483647;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
+	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{-webkit-user-select:none;user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:300px;max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{-webkit-user-select:none;user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;-webkit-user-select:none;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;line-height:1;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(56px, 12.5vh, 136px), calc(env(safe-area-inset-top,0px) + 8px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px));--vot-menu-side-top-offset:max(clamp(50px, 12.5vh, 120px), calc(env(safe-area-inset-top,0px) + 8px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:320px;max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - (5rem + 32px + 16px) * 2);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;-webkit-user-select:none;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483647;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
 	var sharedShadowStyleSheet = null;
 	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
@@ -28900,7 +29972,7 @@ var vot = (function(exports) {
 				console.error("[VOT] Failed to translate subtitle token:", error);
 				if (this.tooltip && this.target === target) {
 					const { tokenText } = this.getContext();
-					this.tooltip.setTranslation(localizationProvider.get("requestTranslationFailed"), this.translatedContext || tokenText);
+					this.tooltip.setTranslation(t$1("requestTranslationFailed"), this.translatedContext || tokenText);
 				} else this.release();
 			}
 		};
@@ -31486,243 +32558,8 @@ var vot = (function(exports) {
 		return next;
 	}
 	//#endregion
-	//#region node_modules/solid-js/store/dist/store.js
-	var $RAW = Symbol("store-raw");
-	var $NODE = Symbol("store-node");
-	var $HAS = Symbol("store-has");
-	var $SELF = Symbol("store-self");
-	function wrap$1(value) {
-		let p = value[$PROXY];
-		if (!p) {
-			Object.defineProperty(value, $PROXY, { value: p = new Proxy(value, proxyTraps$1) });
-			if (!Array.isArray(value)) {
-				const keys = Object.keys(value), desc = Object.getOwnPropertyDescriptors(value), proto = Object.getPrototypeOf(value);
-				const isClass = proto !== null && value !== null && typeof value === "object" && !Array.isArray(value) && proto !== Object.prototype;
-				if (isClass) {
-					const descriptors = Object.getOwnPropertyDescriptors(proto);
-					keys.push(...Object.keys(descriptors));
-					Object.assign(desc, descriptors);
-				}
-				for (let i = 0, l = keys.length; i < l; i++) {
-					const prop = keys[i];
-					if (isClass && prop === "constructor") continue;
-					if (desc[prop].get) Object.defineProperty(value, prop, {
-						configurable: true,
-						enumerable: desc[prop].enumerable,
-						get: desc[prop].get.bind(p)
-					});
-				}
-			}
-		}
-		return p;
-	}
-	function isWrappable(obj) {
-		let proto;
-		return obj != null && typeof obj === "object" && (obj[$PROXY] || !(proto = Object.getPrototypeOf(obj)) || proto === Object.prototype || Array.isArray(obj));
-	}
-	function unwrap(item, set = new Set()) {
-		let result, unwrapped, v, prop;
-		if (result = item != null && item[$RAW]) return result;
-		if (!isWrappable(item) || set.has(item)) return item;
-		if (Array.isArray(item)) {
-			if (Object.isFrozen(item)) item = item.slice(0);
-			else set.add(item);
-			for (let i = 0, l = item.length; i < l; i++) {
-				v = item[i];
-				if ((unwrapped = unwrap(v, set)) !== v) item[i] = unwrapped;
-			}
-		} else {
-			if (Object.isFrozen(item)) item = Object.assign({}, item);
-			else set.add(item);
-			const keys = Object.keys(item), desc = Object.getOwnPropertyDescriptors(item);
-			for (let i = 0, l = keys.length; i < l; i++) {
-				prop = keys[i];
-				if (desc[prop].get) continue;
-				v = item[prop];
-				if ((unwrapped = unwrap(v, set)) !== v) item[prop] = unwrapped;
-			}
-		}
-		return item;
-	}
-	function getNodes(target, symbol) {
-		let nodes = target[symbol];
-		if (!nodes) Object.defineProperty(target, symbol, { value: nodes = Object.create(null) });
-		return nodes;
-	}
-	function getNode(nodes, property, value) {
-		if (nodes[property]) return nodes[property];
-		const [s, set] = createSignal(value, {
-			equals: false,
-			internal: true
-		});
-		s.$ = set;
-		return nodes[property] = s;
-	}
-	function proxyDescriptor$1(target, property) {
-		const desc = Reflect.getOwnPropertyDescriptor(target, property);
-		if (!desc || desc.get || !desc.configurable || property === $PROXY || property === $NODE) return desc;
-		delete desc.value;
-		delete desc.writable;
-		desc.get = () => target[$PROXY][property];
-		return desc;
-	}
-	function trackSelf(target) {
-		getListener() && getNode(getNodes(target, $NODE), $SELF)();
-	}
-	function ownKeys(target) {
-		trackSelf(target);
-		return Reflect.ownKeys(target);
-	}
-	var proxyTraps$1 = {
-		get(target, property, receiver) {
-			if (property === $RAW) return target;
-			if (property === $PROXY) return receiver;
-			if (property === $TRACK) {
-				trackSelf(target);
-				return receiver;
-			}
-			const nodes = getNodes(target, $NODE);
-			const tracked = nodes[property];
-			let value = tracked ? tracked() : target[property];
-			if (property === $NODE || property === $HAS || property === "__proto__") return value;
-			if (!tracked) {
-				const desc = Object.getOwnPropertyDescriptor(target, property);
-				if (getListener() && (typeof value !== "function" || Object.prototype.hasOwnProperty.call(target, property)) && !(desc && desc.get)) value = getNode(nodes, property, value)();
-			}
-			return isWrappable(value) ? wrap$1(value) : value;
-		},
-		has(target, property) {
-			if (property === $RAW || property === $PROXY || property === $TRACK || property === $NODE || property === $HAS || property === "__proto__") return true;
-			getListener() && getNode(getNodes(target, $HAS), property)();
-			return property in target;
-		},
-		set() {
-			return true;
-		},
-		deleteProperty() {
-			return true;
-		},
-		ownKeys,
-		getOwnPropertyDescriptor: proxyDescriptor$1
-	};
-	function setProperty(state, property, value, deleting = false) {
-		if (property === "__proto__") return;
-		if (!deleting && state[property] === value) return;
-		const prev = state[property], len = state.length;
-		if (value === void 0) {
-			delete state[property];
-			if (state[$HAS] && state[$HAS][property] && prev !== void 0) state[$HAS][property].$();
-		} else {
-			state[property] = value;
-			if (state[$HAS] && state[$HAS][property] && prev === void 0) state[$HAS][property].$();
-		}
-		let nodes = getNodes(state, $NODE), node;
-		if (node = getNode(nodes, property, prev)) node.$(() => value);
-		if (Array.isArray(state) && state.length !== len) {
-			for (let i = state.length; i < len; i++) (node = nodes[i]) && node.$();
-			(node = getNode(nodes, "length", len)) && node.$(state.length);
-		}
-		(node = nodes[$SELF]) && node.$();
-	}
-	function mergeStoreNode(state, value) {
-		const keys = Object.keys(value);
-		for (let i = 0; i < keys.length; i += 1) {
-			const key = keys[i];
-			if (isUnsafeKey$1(key)) continue;
-			setProperty(state, key, value[key]);
-		}
-	}
-	function isUnsafeKey$1(property) {
-		return property === "__proto__" || property === "constructor" || property === "prototype";
-	}
-	function updateArray(current, next) {
-		if (typeof next === "function") next = next(current);
-		next = unwrap(next);
-		if (Array.isArray(next)) {
-			if (current === next) return;
-			let i = 0, len = next.length;
-			for (; i < len; i++) {
-				const value = next[i];
-				if (current[i] !== value) setProperty(current, i, value);
-			}
-			setProperty(current, "length", len);
-		} else mergeStoreNode(current, next);
-	}
-	function updatePath(current, path, traversed = []) {
-		let part, prev = current;
-		if (path.length > 1) {
-			part = path.shift();
-			const partType = typeof part, isArray = Array.isArray(current);
-			if (partType === "string" && (part === "__proto__" || path.length > 1 && isUnsafeKey$1(part))) return;
-			if (Array.isArray(part)) {
-				for (let i = 0; i < part.length; i++) updatePath(current, [part[i]].concat(path), traversed);
-				return;
-			} else if (isArray && partType === "function") {
-				for (let i = 0; i < current.length; i++) if (part(current[i], i)) updatePath(current, [i].concat(path), traversed);
-				return;
-			} else if (isArray && partType === "object") {
-				const { from = 0, to = current.length - 1, by = 1 } = part;
-				for (let i = from; i <= to; i += by) updatePath(current, [i].concat(path), traversed);
-				return;
-			} else if (path.length > 1) {
-				updatePath(current[part], path, [part].concat(traversed));
-				return;
-			}
-			prev = current[part];
-			traversed = [part].concat(traversed);
-		}
-		let value = path[0];
-		if (typeof value === "function") {
-			value = value(prev, traversed);
-			if (value === prev) return;
-		}
-		if (part === void 0 && value == void 0) return;
-		value = unwrap(value);
-		if (part === void 0 || isWrappable(prev) && isWrappable(value) && !Array.isArray(value)) mergeStoreNode(prev, value);
-		else setProperty(current, part, value);
-	}
-	function createStore(...[store, options]) {
-		const unwrappedStore = unwrap(store || {});
-		const isArray = Array.isArray(unwrappedStore);
-		const wrappedStore = wrap$1(unwrappedStore);
-		function setStore(...args) {
-			batch(() => {
-				isArray && args.length === 1 ? updateArray(unwrappedStore, args[0]) : updatePath(unwrappedStore, args);
-			});
-		}
-		return [wrappedStore, setStore];
-	}
-	var producers = new WeakMap();
-	var setterTraps = {
-		get(target, property) {
-			if (property === $RAW) return target;
-			const value = target[property];
-			if (property === $PROXY || property === $TRACK || property === $NODE || property === $HAS || property === "__proto__") return value;
-			let proxy;
-			return isWrappable(value) ? producers.get(value) || (producers.set(value, proxy = new Proxy(value, setterTraps)), proxy) : value;
-		},
-		set(target, property, value) {
-			setProperty(target, property, unwrap(value));
-			return true;
-		},
-		deleteProperty(target, property) {
-			setProperty(target, property, void 0, true);
-			return true;
-		}
-	};
-	function produce(fn) {
-		return (state) => {
-			if (isWrappable(state)) {
-				let proxy;
-				if (!(proxy = producers.get(state))) producers.set(state, proxy = new Proxy(state, setterTraps));
-				fn(proxy);
-			}
-			return state;
-		};
-	}
-	//#endregion
 	//#region src/stores/settings.ts
-	function createInitialState$2() {
+	function createInitialState$1() {
 		return {
 			defaultVolume: 100,
 			responseLanguage: calculatedResLang,
@@ -31734,6 +32571,7 @@ var vot = (function(exports) {
 			enabledAutoVolume: true,
 			autoVolume: 15,
 			enabledSmartDucking: true,
+			smartDuckingStrength: 80,
 			showVideoSlider: true,
 			audioBooster: false,
 			syncVolume: false,
@@ -31762,7 +32600,7 @@ var vot = (function(exports) {
 			subtitlesOpacity: 20
 		};
 	}
-	var [settings, setSettings] = createStore(createInitialState$2());
+	var [settings, setSettings] = createStore(createInitialState$1());
 	//#endregion
 	//#region src/ui/buttonPlacement.ts
 	var SIDE_EDGE_FRACTION = .18;
@@ -32265,7 +33103,7 @@ var vot = (function(exports) {
 	function genSelectOptionsByLangs(langs) {
 		return langs.map((lang) => {
 			const phrase = `langs.${lang}`;
-			const label = localizationProvider.get(phrase);
+			const label = t$1(phrase);
 			return {
 				label: label === phrase ? lang.toUpperCase() : label,
 				value: lang
@@ -32301,6 +33139,7 @@ var vot = (function(exports) {
 			return result;
 		});
 		const currentOptions = () => searchOptions() ?? baseOptions();
+		const isSearchActive = () => Boolean(finalProps.search || finalProps.searchItemsProvider);
 		const visibleTitle = () => {
 			if (finalProps.multiple) return baseOptions().filter((o) => selectedValues().has(o.value)).map((o) => o.label).join(", ") || finalProps.title;
 			return baseOptions().find((o) => selectedValues().has(o.value))?.label || finalProps.title;
@@ -32470,12 +33309,12 @@ var vot = (function(exports) {
 			setProp(_el$5, "id", selectId);
 			insert(_el$5, createComponent(Show, {
 				get when() {
-					return finalProps.search || finalProps.searchItemsProvider;
+					return isSearchActive();
 				},
 				get children() {
 					return createComponent(Textfield, {
 						get labelText() {
-							return localizationProvider.get("searchField");
+							return t$1("searchField");
 						},
 						get value() {
 							return searchQuery();
@@ -32534,7 +33373,7 @@ var vot = (function(exports) {
 							return isSearching();
 						},
 						get fallback() {
-							return localizationProvider.get("notFound");
+							return t$1("notFound");
 						},
 						get children() {
 							return createComponent(LoadingDotsIcon, {});
@@ -32545,17 +33384,19 @@ var vot = (function(exports) {
 				}
 			}), null);
 			effect((_p$) => {
-				var _v$ = finalProps.disabled, _v$2 = !isOpen(), _v$3 = finalProps.loading ? "true" : void 0, _v$4 = finalProps.multiple ? "true" : void 0;
+				var _v$ = finalProps.disabled, _v$2 = { "vot-select-inner__static-width": isSearchActive() }, _v$3 = !isOpen(), _v$4 = finalProps.loading ? "true" : void 0, _v$5 = finalProps.multiple ? "true" : void 0;
 				_v$ !== _p$.e && (_p$.e = setProp(_el$, "aria-disabled", _v$, _p$.e));
-				_v$2 !== _p$.t && (_p$.t = setProp(_el$5, "hidden", _v$2, _p$.t));
-				_v$3 !== _p$.a && (_p$.a = setProp(_el$6, "aria-busy", _v$3, _p$.a));
-				_v$4 !== _p$.o && (_p$.o = setProp(_el$6, "aria-multiselectable", _v$4, _p$.o));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$5, "classList", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$5, "hidden", _v$3, _p$.a));
+				_v$4 !== _p$.o && (_p$.o = setProp(_el$6, "aria-busy", _v$4, _p$.o));
+				_v$5 !== _p$.i && (_p$.i = setProp(_el$6, "aria-multiselectable", _v$5, _p$.i));
 				return _p$;
 			}, {
 				e: void 0,
 				t: void 0,
 				a: void 0,
-				o: void 0
+				o: void 0,
+				i: void 0
 			});
 			return _el$;
 		})();
@@ -32646,16 +33487,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/components/Control/SliderLabel.tsx
-	function SliderLabelDesc(props) {
-		return (() => {
-			var _el$ = createElement("vot-block");
-			var _ref$ = props.ref;
-			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
-			setProp(_el$, "class", "vot-slider-label__text-desc");
-			insert(_el$, () => props.children);
-			return _el$;
-		})();
-	}
 	function SliderLabel(props) {
 		const finalProps = mergeProps$1({
 			disabled: false,
@@ -32799,7 +33630,7 @@ var vot = (function(exports) {
 				get children() {
 					return createComponent(ProgressIconButton, {
 						get ariaLabel() {
-							return localizationProvider.get("VOTDownloadTranslation");
+							return t$1("VOTDownloadTranslation");
 						},
 						get progress() {
 							return translationProgress();
@@ -32823,7 +33654,7 @@ var vot = (function(exports) {
 				get children() {
 					return createComponent(IconButton, {
 						get ariaLabel() {
-							return localizationProvider.get("VOTDownloadSubtitles");
+							return t$1("VOTDownloadSubtitles");
 						},
 						get onClick() {
 							return finalProps.onDownloadSubtitlesClick;
@@ -32837,7 +33668,7 @@ var vot = (function(exports) {
 			insert(_el$, createComponent(DebugYTAudioComponent, {}), null);
 			insert(_el$, createComponent(IconButton, {
 				get ariaLabel() {
-					return localizationProvider.get("VOTSettings");
+					return t$1("VOTSettings");
 				},
 				get onClick() {
 					return props.onSettingsClick;
@@ -32865,7 +33696,7 @@ var vot = (function(exports) {
 			setProp(_el$2, "class", "vot-langpair-select");
 			insert(_el$2, createComponent(Select, {
 				get title() {
-					return localizationProvider.get("videoLanguage");
+					return t$1("videoLanguage");
 				},
 				options: fromLangsOptions,
 				get selectedValue() {
@@ -32878,7 +33709,7 @@ var vot = (function(exports) {
 			insert(_el$3, createComponent(ArrowRightIcon, {}));
 			insert(_el$2, createComponent(Select, {
 				get title() {
-					return localizationProvider.get("translationLanguage");
+					return t$1("translationLanguage");
 				},
 				options: toLangsOptions,
 				get selectedValue() {
@@ -32899,7 +33730,7 @@ var vot = (function(exports) {
 			showTranslationVolume: false,
 			translationVolume: 100,
 			subtitlesOptions: [{
-				label: localizationProvider.get("VOTSubtitlesDisabled"),
+				label: t$1("VOTSubtitlesDisabled"),
 				value: "disabled"
 			}],
 			selectedSubtitles: "disabled",
@@ -32937,7 +33768,7 @@ var vot = (function(exports) {
 		});
 		return createComponent(Menu, {
 			get title() {
-				return localizationProvider.get("VOTSettings");
+				return t$1("VOTSettings");
 			},
 			get headerChildren() {
 				return createComponent(MenuHeaderContent, {
@@ -32981,7 +33812,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("VOTSubtitles");
+							return t$1("VOTSubtitles");
 						},
 						get options() {
 							return finalProps.subtitlesOptions;
@@ -32999,7 +33830,7 @@ var vot = (function(exports) {
 						},
 						onSelect: (option) => finalProps.onSubtitlesSelect?.(String(option.value)),
 						get children() {
-							return localizationProvider.get("VOTSubtitles");
+							return t$1("VOTSubtitles");
 						}
 					}),
 					createComponent(Show, {
@@ -33013,7 +33844,7 @@ var vot = (function(exports) {
 										return videoVolumeText();
 									},
 									get children() {
-										return localizationProvider.get("VOTVolume");
+										return t$1("VOTVolume");
 									}
 								}), createComponent(Slider, {
 									get value() {
@@ -33038,7 +33869,7 @@ var vot = (function(exports) {
 										return translationVolumeText();
 									},
 									get children() {
-										return localizationProvider.get("VOTVolumeTranslation");
+										return t$1("VOTVolumeTranslation");
 									}
 								}), createComponent(Slider, {
 									get max() {
@@ -33461,11 +34292,11 @@ var vot = (function(exports) {
 					queueMicrotask(() => anchor().focus());
 				}
 			});
-			insert(_el$6, () => voiceItem("standard", localizationProvider.get("VOTStandardVoicesTitle"), localizationProvider.get("VOTStandardVoicesSubtitle"), createComponent(StandardVoiceIcon, {})), _el$7);
+			insert(_el$6, () => voiceItem("standard", t$1("VOTStandardVoicesTitle"), t$1("VOTStandardVoicesSubtitle"), createComponent(StandardVoiceIcon, {})), _el$7);
 			setProp(_el$7, "class", "vot-voice-popover__divider");
-			insert(_el$6, () => voiceItem("live", localizationProvider.get("VOTLiveVoicesTitle"), localizationProvider.get("VOTLiveVoicesSubtitle"), createComponent(LiveVoiceIcon, {})), null);
+			insert(_el$6, () => voiceItem("live", t$1("VOTLiveVoicesTitle"), t$1("VOTLiveVoicesSubtitle"), createComponent(LiveVoiceIcon, {})), null);
 			effect((_p$) => {
-				var _v$4 = localizationProvider.get("VOTVoiceSelection"), _v$5 = !isOpen(), _v$6 = !isOpen(), _v$7 = !isOpen();
+				var _v$4 = t$1("VOTVoiceSelection"), _v$5 = !isOpen(), _v$6 = !isOpen(), _v$7 = !isOpen();
 				_v$4 !== _p$.e && (_p$.e = setProp(_el$6, "aria-label", _v$4, _p$.e));
 				_v$5 !== _p$.t && (_p$.t = setProp(_el$6, "aria-hidden", _v$5, _p$.t));
 				_v$6 !== _p$.a && (_p$.a = setProp(_el$6, "hidden", _v$6, _p$.a));
@@ -33642,7 +34473,7 @@ var vot = (function(exports) {
 								ref: (element) => setVoiceSelectionButton(element),
 								get buttonProps() {
 									return {
-										"aria-label": localizationProvider.get("VOTVoiceSelection"),
+										"aria-label": t$1("VOTVoiceSelection"),
 										"aria-haspopup": "menu",
 										"aria-expanded": isVoicePopoverOpen(),
 										onPointerEnter: handleVoiceTooltipPointerEnter,
@@ -33667,7 +34498,7 @@ var vot = (function(exports) {
 								get children() {
 									return [createComponent(ChevronIcon, {}), createComponent(Tooltip, {
 										get content() {
-											return localizationProvider.get("VOTVoiceSelection");
+											return t$1("VOTVoiceSelection");
 										},
 										get parentElement() {
 											return tooltipLayoutRoot();
@@ -33700,7 +34531,7 @@ var vot = (function(exports) {
 				get buttonProps() {
 					return {
 						"data-active": finalProps.isSubtitlesActive,
-						"aria-label": localizationProvider.get("VOTSubtitles"),
+						"aria-label": t$1("VOTSubtitles"),
 						"aria-pressed": finalProps.isSubtitlesActive,
 						onKeyDown: (event) => {
 							if (!isKeyboardActivation(event)) return;
@@ -33718,7 +34549,7 @@ var vot = (function(exports) {
 				get children() {
 					return [createComponent(SubtitlesIcon, {}), createComponent(Tooltip, {
 						get content() {
-							return localizationProvider.get("VOTSubtitles");
+							return t$1("VOTSubtitles");
 						},
 						get parentElement() {
 							return tooltipLayoutRoot();
@@ -33751,7 +34582,7 @@ var vot = (function(exports) {
 						ref: (element) => setPiPButton(element),
 						get buttonProps() {
 							return {
-								"aria-label": localizationProvider.get("VOTPiP"),
+								"aria-label": t$1("VOTPiP"),
 								onKeyDown: (event) => {
 									if (!isKeyboardActivation(event)) return;
 									event.preventDefault();
@@ -33768,7 +34599,7 @@ var vot = (function(exports) {
 						get children() {
 							return [createComponent(PiPIcon, {}), createComponent(Tooltip, {
 								get content() {
-									return localizationProvider.get("VOTPiP");
+									return t$1("VOTPiP");
 								},
 								get parentElement() {
 									return tooltipLayoutRoot();
@@ -33795,7 +34626,7 @@ var vot = (function(exports) {
 				ref: (element) => setMenuButton(element),
 				get buttonProps() {
 					return {
-						"aria-label": localizationProvider.get("VOTMenu"),
+						"aria-label": t$1("VOTMenu"),
 						"aria-haspopup": "dialog",
 						"aria-expanded": finalProps.menuOpened,
 						onKeyDown: (event) => {
@@ -33814,7 +34645,7 @@ var vot = (function(exports) {
 				get children() {
 					return [createComponent(MenuIcon, {}), createComponent(Tooltip, {
 						get content() {
-							return localizationProvider.get("VOTMenu");
+							return t$1("VOTMenu");
 						},
 						get parentElement() {
 							return tooltipLayoutRoot();
@@ -33934,13 +34765,13 @@ var vot = (function(exports) {
 		const [isDragging, setIsDragging] = createSignal(false);
 		const [isLoading, setIsLoading] = createSignal(false);
 		const [subtitlesOptions, setSubtitlesOptions] = createSignal([{
-			label: localizationProvider.get("VOTSubtitlesDisabled"),
+			label: t$1("VOTSubtitlesDisabled"),
 			value: "disabled"
 		}]);
 		const [selectedSubtitles, setSelectedSubtitles] = createSignal("disabled");
 		const [subtitlesLoading, setSubtitlesLoading] = createSignal(false);
 		const [status, setStatus] = createSignal(finalProps.status);
-		const [labelText, setLabelText] = createSignal(localizationProvider.get("translateVideo"));
+		const [labelText, setLabelText] = createSignal(t$1("translateVideo"));
 		const [showTranslationVolume, setShowTranslationVolume] = createSignal(false);
 		const [showDownloadTranslation, setShowDownloadTranslation] = createSignal(false);
 		const [showDownloadSubtitles, setShowDownloadSubtitles] = createSignal(false);
@@ -34230,14 +35061,12 @@ var vot = (function(exports) {
 			if (!segmentedButton) return;
 			segmentedButton.addEventListener("pointerdown", onButtonDragPointerDown);
 			segmentedButton.addEventListener("click", suppressClickAfterDrag, true);
-			segmentedButton.addEventListener("lostpointercapture", onButtonDragPointerCancel);
 		});
 		onCleanup(() => {
 			subtitlesLoadVersion += 1;
 			finishButtonDrag(false, false);
 			segmentedButton?.removeEventListener("pointerdown", onButtonDragPointerDown);
 			segmentedButton?.removeEventListener("click", suppressClickAfterDrag, true);
-			segmentedButton?.removeEventListener("lostpointercapture", onButtonDragPointerCancel);
 		});
 		return (() => {
 			var _el$ = createElement("vot-block");
@@ -34693,13 +35522,13 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/stores/locale.ts
-	function createInitialState$1() {
+	function createInitialState() {
 		return {
 			updatedAt: 0,
 			hash: ""
 		};
 	}
-	var [locale, setLocale] = createStore(createInitialState$1());
+	var [locale, setLocale] = createStore(createInitialState());
 	//#endregion
 	//#region src/components/Button/OutlinedButton.tsx
 	function OutlinedButton(props) {
@@ -34710,12 +35539,12 @@ var vot = (function(exports) {
 	function AboutSection(props) {
 		const envInfo = getEnvironmentInfo();
 		const safeGMInfo = typeof GM_info === "undefined" ? void 0 : GM_info;
-		const scriptVersion = envInfo.scriptVersion === "unknown" ? safeGMInfo?.script?.version || localizationProvider.get("notFound") : envInfo.scriptVersion;
+		const scriptVersion = envInfo.scriptVersion === "unknown" ? safeGMInfo?.script?.version || t$1("notFound") : envInfo.scriptVersion;
 		const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
-		const scriptAuthors = (safeGMInfo?.script)?.author || buildAuthors || localizationProvider.get("notFound");
+		const scriptAuthors = (safeGMInfo?.script)?.author || buildAuthors || t$1("notFound");
 		const browserInfo = `${envInfo.browser} (${envInfo.os})`;
 		const localeUpdatedAt = () => new Date(locale.updatedAt * 1e3).toLocaleString();
-		const localeHashValue = () => locale.hash || localizationProvider.get("notFound");
+		const localeHashValue = () => locale.hash || t$1("notFound");
 		return (() => {
 			var _el$ = createElement("vot-block");
 			var _ref$ = props.ref;
@@ -34723,19 +35552,19 @@ var vot = (function(exports) {
 			setProp(_el$, "class", "vot-about-section");
 			insert(_el$, createComponent(AboutItem, {
 				get label() {
-					return localizationProvider.get("VOTVersion");
+					return t$1("VOTVersion");
 				},
 				children: scriptVersion
 			}), null);
 			insert(_el$, createComponent(AboutItem, {
 				get label() {
-					return localizationProvider.get("VOTAuthors");
+					return t$1("VOTAuthors");
 				},
 				children: scriptAuthors
 			}), null);
 			insert(_el$, createComponent(AboutItem, {
 				get label() {
-					return localizationProvider.get("VOTLoader");
+					return t$1("VOTLoader");
 				},
 				get children() {
 					return envInfo.loader;
@@ -34743,13 +35572,13 @@ var vot = (function(exports) {
 			}), null);
 			insert(_el$, createComponent(AboutItem, {
 				get label() {
-					return localizationProvider.get("VOTBrowser");
+					return t$1("VOTBrowser");
 				},
 				children: browserInfo
 			}), null);
 			insert(_el$, createComponent(AboutItem, {
 				get label() {
-					return localizationProvider.get("VOTLocaleHash");
+					return t$1("VOTLocaleHash");
 				},
 				get children() {
 					return [
@@ -34761,7 +35590,7 @@ var vot = (function(exports) {
 							insertNode(_el$3, _el$5);
 							insertNode(_el$3, _el$6);
 							setProp(_el$3, "class", "vot-about-item__value_detail");
-							insert(_el$3, () => localizationProvider.get("VOTUpdatedAt"), _el$5);
+							insert(_el$3, () => t$1("VOTUpdatedAt"), _el$5);
 							insert(_el$3, localeUpdatedAt, _el$6);
 							return _el$3;
 						})()
@@ -34775,36 +35604,11 @@ var vot = (function(exports) {
 					globalThis.location.reload();
 				},
 				get children() {
-					return localizationProvider.get("VOTUpdateLocaleFiles");
+					return t$1("VOTUpdateLocaleFiles");
 				}
 			}), null);
 			return _el$;
 		})();
-	}
-	//#endregion
-	//#region src/stores/account.ts
-	function createInitialState() {
-		return {
-			isLoggedIn: false,
-			username: void 0,
-			avatarId: void 0,
-			expires: void 0,
-			token: void 0
-		};
-	}
-	var [account, setAccount] = createStore(createInitialState());
-	function resetAccount() {
-		setAccount(createInitialState());
-	}
-	function updateAccount(data) {
-		if (hasValidAccountToken(data)) return setAccount({
-			isLoggedIn: true,
-			...data
-		});
-		resetAccount();
-	}
-	async function updateAccountFromStorage() {
-		updateAccount(await votStorage.get("account", {}));
 	}
 	//#endregion
 	//#region src/components/Button/TextButton.tsx
@@ -34849,7 +35653,7 @@ var vot = (function(exports) {
 					var _el$2 = createElement("vot-block");
 					setProp(_el$2, "class", "vot-account-logout__content");
 					insert(_el$2, createComponent(LogoutIcon, {}), null);
-					insert(_el$2, () => localizationProvider.get("VOTLogout"), null);
+					insert(_el$2, () => t$1("VOTLogout"), null);
 					return _el$2;
 				}
 			}));
@@ -34883,10 +35687,18 @@ var vot = (function(exports) {
 				typeof _ref$ === "function" ? _ref$(r$) : props.ref = r$;
 			},
 			get ariaLabel() {
-				return localizationProvider.get("VOTRefresh");
+				return t$1("VOTRefresh");
+			},
+			get disabled() {
+				return account.isRefreshing;
 			},
 			onClick: async () => {
-				await updateAccountFromStorage();
+				if (account.isRefreshing) return;
+				try {
+					await updateAccountInfo();
+				} catch {
+					await updateAccountFromStorage();
+				}
 			},
 			get children() {
 				return createComponent(RefreshIcon, {});
@@ -34914,7 +35726,7 @@ var vot = (function(exports) {
 			insertNode(_el$5, _el$7);
 			setProp(_el$5, "class", "vot-account-info__content");
 			setProp(_el$6, "class", "vot-account-info__label");
-			insert(_el$6, () => localizationProvider.get("VOTSignedInAs"));
+			insert(_el$6, () => t$1("VOTSignedInAs"));
 			setProp(_el$7, "class", "vot-account-info__username");
 			insert(_el$7, () => props.username);
 			setProp(_el$8, "class", "vot-account-info__refresh");
@@ -34947,7 +35759,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/components/Account/AccountLogin.tsx
-	var TOKEN_LIFETIME = 3153418e4;
 	function AccountLogin(props) {
 		const finalProps = mergeProps$1({ disableExternalLogin: votStorage.isSupportOnlyLS }, props);
 		return (() => {
@@ -34966,22 +35777,22 @@ var vot = (function(exports) {
 			});
 			setProp(_el$3, "class", "vot-account-login__btn-icon");
 			setProp(_el$4, "class", "vot-account-login__btn-text");
-			insert(_el$4, () => localizationProvider.get("VOTSignInWithYandex"));
+			insert(_el$4, () => t$1("VOTSignInWithYandex"));
 			insert(_el$, createComponent(OrBlock, { get children() {
-				return localizationProvider.get("VOTOrUseToken");
+				return t$1("VOTOrUseToken");
 			} }), _el$5);
 			setProp(_el$5, "class", "vot-account-login__token");
 			insert(_el$5, createComponent(Textfield, {
 				get labelText() {
-					return localizationProvider.get("VOTLoginViaToken");
+					return t$1("VOTLoginViaToken");
 				},
 				get placeholder() {
-					return localizationProvider.get("VOTYandexToken");
+					return t$1("VOTYandexToken");
 				},
 				onChange: async (value) => {
 					const data = value ? {
 						token: value,
-						expires: Date.now() + TOKEN_LIFETIME
+						expires: Date.now() + YANDEX_TOKEN_DEFAULT_LIFETIME
 					} : {};
 					const isLoggedIn = Boolean(value);
 					await votStorage.set("account", { ...data });
@@ -35002,7 +35813,7 @@ var vot = (function(exports) {
 	function AccountMenu(props) {
 		const avatarId = () => account.avatarId ?? "0/0-0";
 		const username = () => account.username ?? "unnamed";
-		const avatarUrl = () => `${AVATAR_SERVER_URL}/${avatarId()}/islands-retina-middle`;
+		const avatarUrl = () => `${YANDEX_AUTH_AVATAR_BASE}/${avatarId()}/islands-retina-middle`;
 		return (() => {
 			var _el$ = createElement("vot-block");
 			var _ref$ = props.ref;
@@ -35201,7 +36012,7 @@ var vot = (function(exports) {
 					insert(_el$4, createComponent(IconButton, {
 						ref: (element) => closeButton = element,
 						get ariaLabel() {
-							return localizationProvider.get("VOTClose");
+							return t$1("VOTClose");
 						},
 						onClick: close,
 						get children() {
@@ -35386,21 +36197,21 @@ var vot = (function(exports) {
 	var STEP_AUTO_HIDE_BUTTON_DELAY = 100;
 	function SettingsAppearanceSection(props) {
 		const autoHideButtonDelaySecs = () => Math.round(settings.autoHideButtonDelay / STEP_AUTO_HIDE_BUTTON_DELAY) / 10;
-		const autoHideButtonDelayValueText = () => `${autoHideButtonDelaySecs()} ${localizationProvider.get("secs")}`;
+		const autoHideButtonDelayValueText = () => `${autoHideButtonDelaySecs()} ${t$1("secs")}`;
 		const buttonPositionOptions = positions.map((position) => ({
-			label: localizationProvider.get(`position.${position}`),
+			label: t$1(`position.${position}`),
 			value: position
 		}));
 		const langsOptions = genSelectOptionsByLangs(localizationProvider.getAvailableLangs());
 		return createComponent(SettingsSection, {
 			get title() {
-				return localizationProvider.get("appearance");
+				return t$1("appearance");
 			},
 			get children() {
 				return [
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTShowPiPButton");
+							return t$1("VOTShowPiPButton");
 						},
 						get checked() {
 							return settings.showPiPButton;
@@ -35419,7 +36230,7 @@ var vot = (function(exports) {
 								return autoHideButtonDelayValueText();
 							},
 							get children() {
-								return localizationProvider.get("autoHideButtonDelay");
+								return t$1("autoHideButtonDelay");
 							}
 						}), createComponent(Slider, {
 							min: MIN_AUTO_HIDE_BUTTON_DELAY,
@@ -35436,7 +36247,7 @@ var vot = (function(exports) {
 					} }),
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("buttonPosition");
+							return t$1("buttonPosition");
 						},
 						options: buttonPositionOptions,
 						get selectedValue() {
@@ -35447,12 +36258,12 @@ var vot = (function(exports) {
 							props.onButtonPositionSelect?.(option);
 						},
 						get children() {
-							return localizationProvider.get("buttonPosition");
+							return t$1("buttonPosition");
 						}
 					}),
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("VOTMenuLanguage");
+							return t$1("VOTMenuLanguage");
 						},
 						options: langsOptions,
 						get selectedValue() {
@@ -35463,7 +36274,7 @@ var vot = (function(exports) {
 						},
 						search: true,
 						get children() {
-							return localizationProvider.get("VOTMenuLanguage");
+							return t$1("VOTMenuLanguage");
 						}
 					})
 				];
@@ -35486,7 +36297,7 @@ var vot = (function(exports) {
 					return props.onBugReportClick;
 				},
 				get children() {
-					return localizationProvider.get("VOTBugReport");
+					return t$1("VOTBugReport");
 				}
 			}), null);
 			insert(_el$, createComponent(GeneralButton, {
@@ -35494,7 +36305,7 @@ var vot = (function(exports) {
 					return props.onResetSettingsClick;
 				},
 				get children() {
-					return localizationProvider.get("resetSettings");
+					return t$1("resetSettings");
 				}
 			}), null);
 			return _el$;
@@ -35562,9 +36373,9 @@ var vot = (function(exports) {
 		const keyText = () => {
 			const pressed = pressedKeys();
 			if (pressed.size > 0) return formatKeysComboDisplay(pressed);
-			if (recording()) return localizationProvider.get("PressTheKeyCombination");
+			if (recording()) return t$1("PressTheKeyCombination");
 			const currentKey = key();
-			return currentKey ? formatKeysComboDisplay(currentKey) : localizationProvider.get("None");
+			return currentKey ? formatKeysComboDisplay(currentKey) : t$1("None");
 		};
 		createRenderEffect(() => {
 			setKey(local.key);
@@ -35657,7 +36468,7 @@ var vot = (function(exports) {
 	function SettingsHotkeySection(props) {
 		return createComponent(SettingsSection, {
 			get title() {
-				return localizationProvider.get("hotkeysSettings");
+				return t$1("hotkeysSettings");
 			},
 			get children() {
 				return [createComponent(HotkeyButton, {
@@ -35669,7 +36480,7 @@ var vot = (function(exports) {
 						props.onTranslationHotkeyChange?.(newKey);
 					},
 					get children() {
-						return localizationProvider.get("translateVideo");
+						return t$1("translateVideo");
 					}
 				}), createComponent(HotkeyButton, {
 					get key() {
@@ -35680,7 +36491,7 @@ var vot = (function(exports) {
 						props.onSubtitlesHotkeyChange?.(newKey);
 					},
 					get children() {
-						return localizationProvider.get("VOTSubtitles");
+						return t$1("VOTSubtitles");
 					}
 				})];
 			}
@@ -35696,13 +36507,13 @@ var vot = (function(exports) {
 		const isWithoutAudioContext = () => !finalProps.isAudioContextSupported;
 		return createComponent(SettingsSection, {
 			get title() {
-				return localizationProvider.get("miscSettings");
+				return t$1("miscSettings");
 			},
 			get children() {
 				return [
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTTranslateAPIErrors");
+							return t$1("VOTTranslateAPIErrors");
 						},
 						get hidden() {
 							return localizationProvider.lang === "ru";
@@ -35717,10 +36528,10 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTNewAudioPlayer");
+							return t$1("VOTNewAudioPlayer");
 						},
 						get description() {
-							return memo(() => !!isWithoutAudioContext())() ? localizationProvider.get("VOTNeedWebAudioAPI") : void 0;
+							return memo(() => !!isWithoutAudioContext())() ? t$1("VOTNeedWebAudioAPI") : void 0;
 						},
 						get disabled() {
 							return isWithoutAudioContext();
@@ -35735,10 +36546,10 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTOnlyBypassMediaCSP");
+							return t$1("VOTOnlyBypassMediaCSP");
 						},
 						get description() {
-							return memo(() => !!finalProps.needBypassCSP)() ? localizationProvider.get("VOTMediaCSPEnabledOnSite") : void 0;
+							return memo(() => !!finalProps.needBypassCSP)() ? t$1("VOTMediaCSPEnabledOnSite") : void 0;
 						},
 						get checked() {
 							return settings.onlyBypassMediaCSP;
@@ -35763,9 +36574,9 @@ var vot = (function(exports) {
 	//#region src/components/Settings/SettingsProxySection.tsx
 	function SettingsProxySection(props) {
 		const translateProxyOptions = [
-			localizationProvider.get("VOTTranslateProxyDisabled"),
-			localizationProvider.get("VOTTranslateProxyEnabled"),
-			localizationProvider.get("VOTTranslateProxyEverything")
+			t$1("VOTTranslateProxyDisabled"),
+			t$1("VOTTranslateProxyEnabled"),
+			t$1("VOTTranslateProxyEverything")
 		].map((label, idx) => ({
 			label,
 			value: idx,
@@ -35773,12 +36584,12 @@ var vot = (function(exports) {
 		}));
 		return createComponent(SettingsSection, {
 			get title() {
-				return localizationProvider.get("proxySettings");
+				return t$1("proxySettings");
 			},
 			get children() {
 				return [createComponent(Textfield, {
 					get labelText() {
-						return localizationProvider.get("VOTProxyWorkerHost");
+						return t$1("VOTProxyWorkerHost");
 					},
 					placeholder: PROXY_WORKER_HOST,
 					get value() {
@@ -35789,7 +36600,7 @@ var vot = (function(exports) {
 					}
 				}), createComponent(Select, {
 					get title() {
-						return localizationProvider.get("VOTTranslateProxyStatus");
+						return t$1("VOTTranslateProxyStatus");
 					},
 					options: translateProxyOptions,
 					get selectedValue() {
@@ -35799,7 +36610,7 @@ var vot = (function(exports) {
 						return props.onTranslateProxyStatusSelect;
 					},
 					get children() {
-						return localizationProvider.get("VOTTranslateProxyStatus");
+						return t$1("VOTTranslateProxyStatus");
 					}
 				})];
 			}
@@ -35832,7 +36643,7 @@ var vot = (function(exports) {
 				value: AUTO_SUBTITLE_LANGUAGE_VALUE
 			},
 			{
-				label: localizationProvider.get("VOTOriginalVideoLanguage"),
+				label: t$1("VOTOriginalVideoLanguage"),
 				value: ORIGINAL_SUBTITLE_LANGUAGE_VALUE
 			},
 			...getAvailableSubtitleLanguages().map((language) => ({
@@ -35879,15 +36690,16 @@ var vot = (function(exports) {
 		};
 		return createComponent(SettingsSection, {
 			get title() {
-				return localizationProvider.get("subtitlesSettings");
+				return t$1("subtitlesSettings");
 			},
 			get children() {
 				return [
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("VOTDefaultSubtitlesLanguage");
+							return t$1("VOTDefaultSubtitlesLanguage");
 						},
 						options: subtitleLanguageOptions,
+						search: true,
 						get selectedValue() {
 							return settings.responseLanguageSubtitles;
 						},
@@ -35896,12 +36708,12 @@ var vot = (function(exports) {
 							props.onResponseLanguageSubtitlesSelect?.(option);
 						},
 						get children() {
-							return localizationProvider.get("VOTDefaultSubtitlesLanguage");
+							return t$1("VOTDefaultSubtitlesLanguage");
 						}
 					}),
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("VOTSubtitlesDownloadFormat");
+							return t$1("VOTSubtitlesDownloadFormat");
 						},
 						options: subtitlesDownloadFormatOptions,
 						get selectedValue() {
@@ -35912,12 +36724,12 @@ var vot = (function(exports) {
 							props.onSubtitlesDownloadFormatSelect?.(option);
 						},
 						get children() {
-							return localizationProvider.get("VOTSubtitlesDownloadFormat");
+							return t$1("VOTSubtitlesDownloadFormat");
 						}
 					}),
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("VOTSubtitlesFont");
+							return t$1("VOTSubtitlesFont");
 						},
 						get options() {
 							return buildSubtitleFontOptions(selectedSubtitleFontFamily());
@@ -35932,12 +36744,12 @@ var vot = (function(exports) {
 							props.onSubtitlesFontFamilySelect?.(value);
 						},
 						get children() {
-							return localizationProvider.get("VOTSubtitlesFont");
+							return t$1("VOTSubtitlesFont");
 						}
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTHighlightWords");
+							return t$1("VOTHighlightWords");
 						},
 						get checked() {
 							return settings.highlightWords;
@@ -35949,7 +36761,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("subtitlesSmartLayout");
+							return t$1("subtitlesSmartLayout");
 						},
 						get checked() {
 							return settings.subtitlesSmartLayout;
@@ -35965,7 +36777,7 @@ var vot = (function(exports) {
 								return settings.subtitlesMaxLength.toString();
 							},
 							get children() {
-								return localizationProvider.get("VOTSubtitlesMaxLength");
+								return t$1("VOTSubtitlesMaxLength");
 							}
 						}), createComponent(Slider, {
 							min: 50,
@@ -35989,7 +36801,7 @@ var vot = (function(exports) {
 								return `${settings.subtitlesFontSize}px`;
 							},
 							get children() {
-								return localizationProvider.get("VOTSubtitlesFontSize");
+								return t$1("VOTSubtitlesFontSize");
 							}
 						}), createComponent(Slider, {
 							min: 8,
@@ -36013,7 +36825,7 @@ var vot = (function(exports) {
 								return `${settings.subtitlesOpacity}%`;
 							},
 							get children() {
-								return localizationProvider.get("VOTSubtitlesOpacity");
+								return t$1("VOTSubtitlesOpacity");
 							}
 						}), createComponent(Slider, {
 							get value() {
@@ -36035,29 +36847,29 @@ var vot = (function(exports) {
 		const finalProps = mergeProps$1({ isAudioContextSupported: false }, props);
 		const dontTranslateLanguagesOptions = genSelectOptionsByLangs(availableLangs);
 		const translationTextServiceOptions = foswlyServices.map((service) => ({
-			label: localizationProvider.get(`services.${service}`),
+			label: t$1(`services.${service}`),
 			value: service
 		}));
 		const detectServiceOptions = detectServices.map((service) => ({
-			label: localizationProvider.get(`services.${service}`),
+			label: t$1(`services.${service}`),
 			value: service
 		}));
 		const [isAudioContextSupported, setIsAudioContextSupported] = createSignal(finalProps.isAudioContextSupported);
 		createRenderEffect(() => {
 			setIsAudioContextSupported(finalProps.isAudioContextSupported);
 		});
-		const autoVolumeText = () => `${settings.autoVolume}%`;
-		const useAudioDownloadDescription = () => isSupportGMXhr ? localizationProvider.get("VOTUseAudioDownloadWarning") : `${localizationProvider.get("VOTUseAudioDownloadWarning")}. ${localizationProvider.get("VOTNotSupportedByLoader")}`;
+		const autoVolumeText = () => `${settings.enabledSmartDucking ? settings.smartDuckingStrength : settings.autoVolume}%`;
+		const useAudioDownloadDescription = () => isSupportGMXhr ? t$1("VOTUseAudioDownloadWarning") : `${t$1("VOTUseAudioDownloadWarning")}. ${t$1("VOTNotSupportedByLoader")}`;
 		return createComponent(SettingsSection, {
 			isOpen: true,
 			get title() {
-				return localizationProvider.get("translationSettings");
+				return t$1("translationSettings");
 			},
 			get children() {
 				return [
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTAutoTranslate");
+							return t$1("VOTAutoTranslate");
 						},
 						get checked() {
 							return settings.autoTranslate;
@@ -36069,7 +36881,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTAutoPauseOnTranslate");
+							return t$1("VOTAutoPauseOnTranslate");
 						},
 						get checked() {
 							return settings.autoPauseOnTranslate;
@@ -36081,7 +36893,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTAutoSubtitles");
+							return t$1("VOTAutoSubtitles");
 						},
 						get checked() {
 							return settings.autoSubtitles;
@@ -36095,7 +36907,7 @@ var vot = (function(exports) {
 						multiple: true,
 						search: true,
 						get title() {
-							return localizationProvider.get("None");
+							return t$1("None");
 						},
 						options: dontTranslateLanguagesOptions,
 						get selectedValues() {
@@ -36107,12 +36919,12 @@ var vot = (function(exports) {
 							finalProps.onDontTranslateLanguagesChange?.(values, changedOption.value);
 						},
 						get children() {
-							return localizationProvider.get("DontTranslateSelectedLanguages");
+							return t$1("DontTranslateSelectedLanguages");
 						}
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTAutoReduceVolume");
+							return t$1("VOTAutoReduceVolume");
 						},
 						get checked() {
 							return settings.enabledAutoVolume;
@@ -36128,21 +36940,24 @@ var vot = (function(exports) {
 								return autoVolumeText();
 							},
 							get disabled() {
-								return !settings.enabledAutoVolume || settings.enabledSmartDucking;
+								return !settings.enabledAutoVolume;
 							},
 							get children() {
-								return [memo(() => localizationProvider.get("VOTReducedVolumeLevel")), createComponent(SliderLabelDesc, { get children() {
-									return localizationProvider.get("VOTIncompatibleWith").replace("{0}", localizationProvider.get("smartDucking"));
-								} })];
+								return memo(() => !!settings.enabledSmartDucking)() ? t$1("VOTSmartDuckingStrength") : t$1("VOTReducedVolumeLevel");
 							}
 						}), createComponent(Slider, {
 							get value() {
-								return settings.autoVolume;
+								return memo(() => !!settings.enabledSmartDucking)() ? settings.smartDuckingStrength : settings.autoVolume;
 							},
 							get disabled() {
-								return !settings.enabledAutoVolume || settings.enabledSmartDucking;
+								return !settings.enabledAutoVolume;
 							},
 							onInput: (val) => {
+								if (settings.enabledSmartDucking) {
+									setSettings("smartDuckingStrength", val);
+									finalProps.onSmartDuckingStrengthInput?.(val);
+									return;
+								}
 								setSettings("autoVolume", val);
 								finalProps.onAutoVolumeInput?.(val);
 							}
@@ -36150,10 +36965,10 @@ var vot = (function(exports) {
 					} }),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("smartDucking");
+							return t$1("smartDucking");
 						},
 						get description() {
-							return localizationProvider.get("VOTIncompatibleWith").replace("{0}", localizationProvider.get("VOTSyncVolume"));
+							return localizationProvider.get("VOTIncompatibleWith").replace("{0}", t$1("VOTSyncVolume"));
 						},
 						get disabled() {
 							return settings.syncVolume || !settings.enabledAutoVolume;
@@ -36168,7 +36983,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("showVideoVolumeSlider");
+							return t$1("showVideoVolumeSlider");
 						},
 						get checked() {
 							return settings.showVideoSlider;
@@ -36180,10 +36995,10 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTAudioBooster");
+							return t$1("VOTAudioBooster");
 						},
 						get description() {
-							return memo(() => !!isAudioContextSupported())() ? void 0 : localizationProvider.get("VOTNeedWebAudioAPI");
+							return memo(() => !!isAudioContextSupported())() ? void 0 : t$1("VOTNeedWebAudioAPI");
 						},
 						get checked() {
 							return settings.audioBooster;
@@ -36198,10 +37013,10 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTSyncVolume");
+							return t$1("VOTSyncVolume");
 						},
 						get description() {
-							return localizationProvider.get("VOTIncompatibleWith").replace("{0}", localizationProvider.get("smartDucking"));
+							return t$1("VOTIncompatibleWith").replace("{0}", t$1("smartDucking"));
 						},
 						get checked() {
 							return settings.syncVolume;
@@ -36217,10 +37032,10 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTDownloadWithName");
+							return t$1("VOTDownloadWithName");
 						},
 						get description() {
-							return isSupportGMXhr ? void 0 : localizationProvider.get("VOTNotSupportedByLoader");
+							return isSupportGMXhr ? void 0 : t$1("VOTNotSupportedByLoader");
 						},
 						disabled: !isSupportGMXhr,
 						get checked() {
@@ -36233,7 +37048,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTSendNotifyOnComplete");
+							return t$1("VOTSendNotifyOnComplete");
 						},
 						get checked() {
 							return settings.sendNotifyOnComplete;
@@ -36245,7 +37060,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Switch, {
 						get heading() {
-							return localizationProvider.get("VOTUseAudioDownload");
+							return t$1("VOTUseAudioDownload");
 						},
 						get description() {
 							return useAudioDownloadDescription();
@@ -36261,7 +37076,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("VOTTranslationTextService");
+							return t$1("VOTTranslationTextService");
 						},
 						options: translationTextServiceOptions,
 						get selectedValue() {
@@ -36274,12 +37089,12 @@ var vot = (function(exports) {
 						},
 						get children() {
 							return [
-								memo(() => localizationProvider.get("VOTTranslationTextService")),
+								memo(() => t$1("VOTTranslationTextService")),
 								createElement("br"),
 								(() => {
 									var _el$2 = createElement("vot-block");
 									setProp(_el$2, "class", "vot-select-label__description");
-									insert(_el$2, () => localizationProvider.get("VOTNotAffectToVoice"));
+									insert(_el$2, () => t$1("VOTNotAffectToVoice"));
 									return _el$2;
 								})()
 							];
@@ -36287,7 +37102,7 @@ var vot = (function(exports) {
 					}),
 					createComponent(Select, {
 						get title() {
-							return localizationProvider.get("VOTDetectService");
+							return t$1("VOTDetectService");
 						},
 						options: detectServiceOptions,
 						get selectedValue() {
@@ -36299,7 +37114,7 @@ var vot = (function(exports) {
 							finalProps.onDetectServiceSelect?.(value);
 						},
 						get children() {
-							return localizationProvider.get("VOTDetectService");
+							return t$1("VOTDetectService");
 						}
 					})
 				];
@@ -36321,7 +37136,7 @@ var vot = (function(exports) {
 				return props.onClose;
 			},
 			get title() {
-				return localizationProvider.get("VOTSettings");
+				return t$1("VOTSettings");
 			},
 			get footer() {
 				return createComponent(SettingsFooter, mergeProps(() => props.footer));
@@ -36330,7 +37145,7 @@ var vot = (function(exports) {
 				return [
 					createComponent(SettingsSection, {
 						get title() {
-							return localizationProvider.get("VOTMyAccount");
+							return t$1("VOTMyAccount");
 						},
 						isOpen: true,
 						get children() {
@@ -36345,7 +37160,7 @@ var vot = (function(exports) {
 					createComponent(SettingsAppearanceSection, mergeProps(() => props.appearance)),
 					createComponent(SettingsSection, {
 						get title() {
-							return localizationProvider.get("aboutExtension");
+							return t$1("aboutExtension");
 						},
 						get children() {
 							return createComponent(AboutSection, {});
@@ -36395,8 +37210,10 @@ var vot = (function(exports) {
 		videoHandler;
 		events = createSettingsEvents();
 		persistTimerIds = {};
-		onAuthRefreshMessage = (event) => {
-			if (!isAuthRefreshMessage(event.data)) return;
+		onAuthDataMessage = async (event) => {
+			if (!isAuthDataMessage(event.data)) return;
+			const { data } = event.data;
+			await updateAccountByCallbackData(data);
 			this.refreshAccountFromStorage();
 		};
 		root;
@@ -36489,7 +37306,7 @@ var vot = (function(exports) {
 							resetAccount();
 							return this.updateAccountInfo();
 						}
-						openAuthWindow();
+						await openAuthWindow();
 					} },
 					translation: {
 						isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
@@ -36507,7 +37324,14 @@ var vot = (function(exports) {
 							storageKey: "enabledAutoVolume",
 							afterPersist: () => this.videoHandler?.setupAudioSettings?.()
 						}),
-						onAutoVolumeInput: this.createBufferedNumericInputHandler({ storageKey: "autoVolume" }),
+						onAutoVolumeInput: this.createBufferedNumericInputHandler({
+							storageKey: "autoVolume",
+							dispatch: () => this.videoHandler?.setupAudioSettings?.()
+						}),
+						onSmartDuckingStrengthInput: this.createBufferedNumericInputHandler({
+							storageKey: "smartDuckingStrength",
+							dispatch: () => this.videoHandler?.setupAudioSettings?.()
+						}),
 						onEnabledSmartDuckingChange: this.createPersistedSettingHandler({
 							storageKey: "enabledSmartDucking",
 							afterPersist: () => this.videoHandler?.setupAudioSettings?.()
@@ -36633,7 +37457,7 @@ var vot = (function(exports) {
 		}
 		initUIEvents() {
 			if (!this.isInitialized()) throw new Error("[VOT] SettingsController isn't initialized");
-			globalThis.addEventListener("message", this.onAuthRefreshMessage);
+			globalThis.addEventListener("message", this.onAuthDataMessage);
 			this.bindAccountStorageListener();
 			return this;
 		}
@@ -36656,7 +37480,7 @@ var vot = (function(exports) {
 		doReleaseUIEvents() {
 			this.accountStorageListenerCleanup?.();
 			this.accountStorageListenerCleanup = void 0;
-			globalThis.removeEventListener("message", this.onAuthRefreshMessage);
+			globalThis.removeEventListener("message", this.onAuthDataMessage);
 			this.flushStoragePersists();
 			for (const event of Object.values(this.events)) event.clear();
 		}
@@ -36699,7 +37523,7 @@ var vot = (function(exports) {
 	}
 	async function prepareAuthStateForTranslation(videoHandler) {
 		if (!await deleteExpiredAccount(videoHandler)) return;
-		openAuthWindow();
+		await openAuthWindow();
 		throw new VOTLocalizedError("VOTYandexTokenExpired");
 	}
 	async function handleTranslationButtonCommand(deps) {
@@ -36711,8 +37535,9 @@ var vot = (function(exports) {
 			await videoHandler.stopTranslation();
 			return;
 		}
-		if (deps.currentStatus === "error" && !deps.currentLoading) deps.transformBtn("none", localizationProvider.get("translateVideo"));
-		if (deps.currentStatus !== "none" || deps.currentLoading) {
+		const isRetry = deps.currentStatus === "error" && !deps.currentLoading;
+		if (isRetry) deps.transformBtn("none", t$1("translateVideo"));
+		if (!isRetry && (deps.currentStatus !== "none" || deps.currentLoading)) {
 			debug.log("[handleTranslationBtnClick] translationBtn isn't in none state");
 			videoHandler.actionsAbortController.abort();
 			await videoHandler.stopTranslation();
@@ -36722,12 +37547,18 @@ var vot = (function(exports) {
 			await prepareAuthStateForTranslation(videoHandler);
 			debug.log("[handleTranslationBtnClick] trying execute translation");
 			const videoData = await getVideoDataForTranslation(videoHandler);
+			if (videoHandler.autoSourceLanguageOverrideVideoId && videoHandler.autoSourceLanguageOverrideVideoId !== videoData.videoId) {
+				videoHandler.translateFromLang = "auto";
+				videoHandler.autoSourceLanguageOverrideVideoId = void 0;
+				videoHandler.setSelectMenuValues("auto", videoData.responseLanguage);
+			}
 			await videoHandler.videoManager.ensureDetectedLanguageForTranslation(videoData);
 			debug.log("[handleTranslationBtnClick] Run translateFunc", videoData.videoId);
-			await videoHandler.translateFunc(videoData.videoId, videoData.isStream, videoData.detectedLanguage, videoData.responseLanguage, videoData.translationHelp);
+			const requestLang = videoHandler.translateFromLang === "auto" ? videoData.detectedLanguage : videoHandler.translateFromLang;
+			await videoHandler.translateFunc(videoData.videoId, videoData.isStream, requestLang, videoData.responseLanguage, videoData.translationHelp);
 		} catch (err) {
 			if (isAbortError(err)) {
-				deps.transformBtn("none", localizationProvider.get("translateVideo"));
+				deps.transformBtn("none", t$1("translateVideo"));
 				return;
 			}
 			console.error("[VOT]", err);
@@ -37079,8 +37910,8 @@ var vot = (function(exports) {
 			return this;
 		}
 		isLoadingText(text) {
-			const delayed = localizationProvider.get("TranslationDelayed");
-			return typeof text === "string" && (text.includes(localizationProvider.get("translationTake")) || (delayed ? text.includes(delayed) : false));
+			const delayed = t$1("TranslationDelayed");
+			return typeof text === "string" && (text.includes(t$1("translationTake")) || (delayed ? text.includes(delayed) : false));
 		}
 		transformBtn(status, text) {
 			if (!this.votOverlayView?.isInitialized()) throw new Error("[VOT] OverlayController isn't initialized");
@@ -37394,8 +38225,8 @@ var vot = (function(exports) {
 		runtime.baseline = baseline;
 		return baseline;
 	}
-	function resolveDesiredVolume(runtime, gateOpen, currentVideoVolume, baseline, duckingTarget01, config) {
-		const duckedTarget = Math.min(baseline, duckingTarget01);
+	function resolveDesiredVolume(runtime, gateOpen, currentVideoVolume, baseline, duckingStrength01, config) {
+		const duckedTarget = baseline * (1 - duckingStrength01);
 		if (gateOpen) {
 			runtime.isDucked = true;
 			return duckedTarget;
@@ -37465,7 +38296,7 @@ var vot = (function(exports) {
 				runtime: nextRuntime
 			};
 		}
-		const desired = resolveDesiredVolume(nextRuntime, gateOpen, currentVideoVolume, baseline, normalizeVolume01(input.duckingTarget01) ?? baseline, config);
+		const desired = resolveDesiredVolume(nextRuntime, gateOpen, currentVideoVolume, baseline, normalizeVolume01(input.duckingStrength01) ?? 0, config);
 		const quantized = snapVolume01Towards(smoothVolumeChange(desired, currentVideoVolume, dtMs, dtSec, config), currentVideoVolume, desired, config.volumeStep01);
 		const applyDeltaThreshold01 = config.applyDeltaThreshold01;
 		return buildVolumeDecision(nextRuntime, currentVideoVolume, quantized, applyDeltaThreshold01);
@@ -37727,7 +38558,7 @@ var vot = (function(exports) {
 		const currentVideoVolume = handler.getVideoVolume();
 		const hostVideo = handler.video;
 		const hostVideoActive = !(hostVideo && (hostVideo.paused || hostVideo.ended));
-		const dynamicDuckingTarget = clamp(handler.data?.autoVolume ?? 15, 0, 100) / 100;
+		const duckingStrength = clamp(handler.data?.smartDuckingStrength ?? 80, 0, 100) / 100;
 		const rms = audioIsPlaying && media ? getTranslatedAudioRms(handler, media) : 0;
 		const decision = computeSmartDuckingStep({
 			nowMs: now,
@@ -37738,7 +38569,7 @@ var vot = (function(exports) {
 			rms,
 			currentVideoVolume,
 			hostVideoActive,
-			duckingTarget01: dynamicDuckingTarget,
+			duckingStrength01: duckingStrength,
 			volumeOnStart: handler.volumeOnStart
 		}, readSmartDuckingRuntime(handler), SMART_DUCKING_DEFAULT_CONFIG);
 		switch (decision.kind) {
@@ -37762,8 +38593,13 @@ var vot = (function(exports) {
 			stopSmartVolumeDucking(this, { restoreVolume: this.smartVolumeDuckingBaseline ?? this.volumeOnStart });
 			return;
 		}
-		const targetVolume = clamp(this.data.autoVolume ?? 15, 0, 100) / 100;
 		if (!this.hasActiveSource()) return;
+		if (autoVolumeMode === "smart") {
+			restoreAutoVolumeMute(this);
+			startSmartVolumeDucking(this);
+			return;
+		}
+		const targetVolume = clamp(this.data.autoVolume ?? 15, 0, 100) / 100;
 		if (targetVolume === 0) {
 			if (this.smartVolumeDuckingInterval !== void 0) {
 				clearTimeout(this.smartVolumeDuckingInterval);
@@ -37778,10 +38614,6 @@ var vot = (function(exports) {
 			return;
 		}
 		restoreAutoVolumeMute(this);
-		if (autoVolumeMode === "smart") {
-			startSmartVolumeDucking(this);
-			return;
-		}
 		if (this.smartVolumeDuckingInterval !== void 0) {
 			clearTimeout(this.smartVolumeDuckingInterval);
 			this.smartVolumeDuckingInterval = void 0;
@@ -37871,11 +38703,11 @@ var vot = (function(exports) {
 		return parseSubtitleDescriptor(subtitles[index]);
 	}
 	function buildSubtitleLabel(subtitle) {
-		return `${localizationProvider.getLangLabel(subtitle.language)}${subtitle.translatedFromLanguage ? ` ${localizationProvider.get("VOTTranslatedFrom")} ${localizationProvider.getLangLabel(subtitle.translatedFromLanguage)}` : ""}${subtitle.source === "yandex" ? "" : `, ${globalThis.location.hostname}`}${subtitle.isAutoGenerated ? ` (${localizationProvider.get("VOTAutogenerated")})` : ""}`;
+		return `${localizationProvider.getLangLabel(subtitle.language)}${subtitle.translatedFromLanguage ? ` ${t$1("VOTTranslatedFrom")} ${localizationProvider.getLangLabel(subtitle.translatedFromLanguage)}` : ""}${subtitle.source === "yandex" ? "" : `, ${globalThis.location.hostname}`}${subtitle.isAutoGenerated ? ` (${t$1("VOTAutogenerated")})` : ""}`;
 	}
 	function buildSubtitlesSelectOptions(subtitleDescriptors) {
 		const options = [{
-			label: localizationProvider.get("VOTSubtitlesDisabled"),
+			label: t$1("VOTSubtitlesDisabled"),
 			value: DISABLED_SUBTITLES_VALUE
 		}];
 		for (const { descriptor, index } of subtitleDescriptors) options.push({
@@ -37955,7 +38787,13 @@ var vot = (function(exports) {
 		return translationHelp ?? null;
 	}
 	async function requestTranslationAudio(requester, options) {
-		const response = await requester.translateVideoImpl(options.videoData, options.requestLang, options.responseLang, normalizeTranslationHelp(options.translationHelp), !options.useAudioDownload, options.signal);
+		let waitingNotified = false;
+		const onTranslationWaiting = options.onTranslationWaiting ? () => {
+			if (waitingNotified) return;
+			waitingNotified = true;
+			options.onTranslationWaiting?.();
+		} : void 0;
+		const response = await requester.translateVideoImpl(options.videoData, options.requestLang, options.responseLang, normalizeTranslationHelp(options.translationHelp), !options.useAudioDownload, options.signal, { onTranslationWaiting });
 		if (!response?.url) return null;
 		return {
 			url: response.url,
@@ -38050,6 +38888,29 @@ var vot = (function(exports) {
 			await this.refreshTranslationAudio();
 		}
 	}
+	function pauseVideoForTranslation(handler) {
+		if (!handler.data?.autoPauseOnTranslate) return;
+		if (handler.pausedByTranslation) return;
+		if (handler.video.paused || handler.video.ended) return;
+		debug.log("[translateFunc] Pausing video until translation is ready");
+		handler.pausedByTranslation = true;
+		const onPlay = () => {
+			handler.pausedByTranslation = false;
+		};
+		handler.video.addEventListener("play", onPlay, { once: true });
+		handler.video.pause();
+		return () => handler.video.removeEventListener("play", onPlay);
+	}
+	function resumeVideoAfterTranslation(handler) {
+		if (!handler.pausedByTranslation) return;
+		handler.pausedByTranslation = false;
+		if (handler.hasActiveSource()) {
+			debug.log("[translateFunc] Resuming video after translation is ready");
+			handler.video.play().catch((playErr) => {
+				debug.log("[translateFunc] Failed to resume video", playErr);
+			});
+		}
+	}
 	async function requestApplyAndCacheTranslation(self, options) {
 		const translateRes = await requestTranslationAudio(self.translationHandler, {
 			videoData: options.videoData,
@@ -38057,7 +38918,8 @@ var vot = (function(exports) {
 			responseLang: options.responseLang,
 			translationHelp: options.translationHelp,
 			useAudioDownload: Boolean(self.data?.useAudioDownload),
-			signal: self.actionsAbortController.signal
+			signal: self.actionsAbortController.signal,
+			onTranslationWaiting: options.onTranslationWaiting
 		});
 		if (!translateRes) return null;
 		if (!await updateTranslationIfFresh({
@@ -38181,7 +39043,7 @@ var vot = (function(exports) {
 		}
 	}
 	function getTranslationActiveVoiceLabel(usedLivelyVoice) {
-		return localizationProvider.get(usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle");
+		return t$1(usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle");
 	}
 	async function updateTranslation(audioUrl, actionContext, usedLivelyVoice = this.data?.useLivelyVoice !== false) {
 		await this.waitForPendingStopTranslate();
@@ -38298,6 +39160,7 @@ var vot = (function(exports) {
 			gen: this.actionsGeneration,
 			videoId: VIDEO_ID
 		};
+		let cleanupPauseListener;
 		const translationPromise = (async () => {
 			if (this.isActionStale(actionContext)) {
 				debug.log("[translateFunc] Stale translation task - skipping");
@@ -38312,14 +39175,6 @@ var vot = (function(exports) {
 				debug.log("[translateFunc] Cached translation was received");
 				return;
 			}
-			if (this.data?.autoPauseOnTranslate && !this.video.paused && !this.video.ended) {
-				debug.log("[translateFunc] Pausing video until translation is ready");
-				this.pausedByTranslation = true;
-				this.video.addEventListener("play", () => {
-					this.pausedByTranslation = false;
-				}, { once: true });
-				this.video.pause();
-			}
 			const translateRes = await requestApplyAndCacheTranslation(this, {
 				videoData,
 				requestLang: reqLang,
@@ -38330,6 +39185,9 @@ var vot = (function(exports) {
 				cacheVideoId: VIDEO_ID,
 				cacheRequestLang: requestLang,
 				cacheResponseLang: responseLang,
+				onTranslationWaiting: () => {
+					cleanupPauseListener = pauseVideoForTranslation(this);
+				},
 				onBeforeCache: async () => {
 					const preferredSubtitleLanguage = this.getPreferredSubtitlesLanguage(videoData.detectedLanguage, videoData.responseLanguage);
 					if (!preferredSubtitleLanguage) return;
@@ -38363,19 +39221,14 @@ var vot = (function(exports) {
 			throw err;
 		} finally {
 			if (this.activeTranslation?.promise === translationPromise) this.activeTranslation = null;
-			if (!this.activeTranslation && this.pausedByTranslation) {
-				this.pausedByTranslation = false;
-				if (this.hasActiveSource()) {
-					debug.log("[translateFunc] Resuming video after translation is ready");
-					this.video.play().catch((playErr) => {
-						debug.log("[translateFunc] Failed to resume video", playErr);
-					});
-				}
+			if (!this.activeTranslation) {
+				cleanupPauseListener?.();
+				resumeVideoAfterTranslation(this);
 			}
 			const isLoading = this.uiManager.votOverlayView.overlayViewControls?.getIsLoading();
 			if (!this.activeTranslation && isLoading && !this.hasActiveSource()) {
 				debug.log("[translateFunc] clearing stale loading state");
-				this.transformBtn("none", localizationProvider.get("translateVideo"));
+				this.transformBtn("none", t$1("translateVideo"));
 			}
 		}
 	}
@@ -38498,6 +39351,7 @@ var vot = (function(exports) {
 	function bindAudioTrackLanguageSync(ctx) {
 		const { self } = ctx;
 		if (self.site.host !== "youtube" || self.site.additionalData === "mobile") return;
+		let lastSyncedAudioTrackLanguage;
 		const syncAudioTrackLanguage = async () => {
 			try {
 				if (!self.videoData) return;
@@ -38509,6 +39363,8 @@ var vot = (function(exports) {
 				if (!currentLanguageCode) return;
 				if (!availableLangs.includes(currentLanguageCode)) return;
 				const currentLanguage = currentLanguageCode;
+				if (currentLanguage === lastSyncedAudioTrackLanguage) return;
+				lastSyncedAudioTrackLanguage = currentLanguage;
 				if (currentLanguage === self.videoData.detectedLanguage) return;
 				self.videoManager.rememberDetectedLanguage(self.videoData.videoId, currentLanguage);
 				self.setSelectMenuValues(currentLanguage, self.videoData.responseLanguage);
@@ -38792,6 +39648,7 @@ var vot = (function(exports) {
 			enabledAutoVolume: true,
 			enabledSmartDucking: true,
 			autoVolume: 15,
+			smartDuckingStrength: 80,
 			buttonPos: "default",
 			showVideoSlider: true,
 			syncVolume: false,
@@ -38848,6 +39705,7 @@ var vot = (function(exports) {
 			enabledAutoVolume: this.data.enabledAutoVolume,
 			autoVolume: this.data.autoVolume,
 			enabledSmartDucking: this.data.enabledSmartDucking,
+			smartDuckingStrength: this.data.smartDuckingStrength,
 			showVideoSlider: this.data.showVideoSlider,
 			audioBooster: this.data.audioBooster,
 			syncVolume: this.data.syncVolume,
@@ -39488,6 +40346,14 @@ var vot = (function(exports) {
 		}
 		return subtitles;
 	};
+	var SubtitlesRequestError = class extends Error {
+		fallbackSubtitles;
+		constructor(message, fallbackSubtitles, cause) {
+			super(message, { cause });
+			this.name = "SubtitlesRequestError";
+			this.fallbackSubtitles = fallbackSubtitles;
+		}
+	};
 	var SubtitlesProcessor = {
 		processTokens(subtitles, descriptor) {
 			const lines = [];
@@ -39585,7 +40451,7 @@ var vot = (function(exports) {
 				let message = "Error in getSubtitles function";
 				if (error instanceof Error && error.message === "Timeout") message = "Failed to get Yandex subtitles: timeout";
 				console.error(`[VOT] ${message}`, error);
-				throw error;
+				throw new SubtitlesRequestError(message, sortSubtitles(extraSubtitles, requestLang), error);
 			}
 		}
 	};
@@ -39781,7 +40647,7 @@ var vot = (function(exports) {
 			this.subtitlesCacheKey = cacheKey;
 		} catch (error) {
 			console.error("[VOT] Failed to load subtitles:", error);
-			this.subtitles = [];
+			this.subtitles = error instanceof SubtitlesRequestError ? error.fallbackSubtitles : [];
 			this.subtitlesCacheKey = null;
 		}
 		await this.updateSubtitlesLangSelect();
@@ -39837,6 +40703,7 @@ var vot = (function(exports) {
 		container;
 		site;
 		translateFromLang = "auto";
+		autoSourceLanguageOverrideVideoId;
 		translateToLang = calculatedResLang;
 		data;
 		videoData;
@@ -40292,7 +41159,7 @@ var vot = (function(exports) {
 				this.longWaitingResCount = 0;
 				this.hadAsyncWait = false;
 				this.translationHandler?.stopTranslationEtaCountdown();
-				this.transformBtn("none", localizationProvider.get("translateVideo"));
+				this.transformBtn("none", t$1("translateVideo"));
 				debug.log(`Volume on start: ${this.volumeOnStart}`);
 				const restoreVolume = typeof this.smartVolumeDuckingBaseline === "number" ? this.smartVolumeDuckingBaseline : this.volumeOnStart;
 				stopSmartVolumeDucking(this, { restoreVolume });
@@ -40315,10 +41182,10 @@ var vot = (function(exports) {
 		}
 		async updateTranslationErrorMsg(errorMessage, signal, options = {}) {
 			if (signal?.aborted) return;
-			const translationTake = localizationProvider.get("translationTake");
+			const translationTake = t$1("translationTake");
 			const lang = localizationProvider.lang;
 			if (options.countLongWait !== false) {
-				this.longWaitingResCount = errorMessage === localizationProvider.get("translationTakeAboutMinute") ? this.longWaitingResCount + 1 : 0;
+				this.longWaitingResCount = errorMessage === t$1("translationTakeAboutMinute") ? this.longWaitingResCount + 1 : 0;
 				debug.log("longWaitingResCount", this.longWaitingResCount);
 				if (this.longWaitingResCount > 5) errorMessage = new VOTLocalizedError("TranslationDelayed");
 			}
@@ -40523,7 +41390,7 @@ var vot = (function(exports) {
 			isIframe: isIframe(),
 			href: String(globalThis.location.href || ""),
 			origin: globalThis.location.origin,
-			authOrigin: authServerUrl
+			authOrigin: YANDEX_AUTH_ORIGIN
 		});
 		if (globalThis.location.hostname === "drive.google.com") GM_addStyle(`
         section[data-fullscreen-control-supported="true"] {

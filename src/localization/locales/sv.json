@@ -265,5 +265,6 @@
   "VOTClose": "Stänga",
   "VOTLogin": "Logga",
   "VOTAutoPauseOnTranslate": "Pausa videon Tills översättningen är klar",
-  "VOTSmartDuckingStrength": "Adaptiv volymminskningsstyrka"
+  "VOTSmartDuckingStrength": "Adaptiv volymminskningsstyrka",
+  "VOTRetryTranslation": "Försök översätta igen"
 }

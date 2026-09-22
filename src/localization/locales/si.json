@@ -265,5 +265,6 @@
   "VOTClose": "වසා දමන්න",
   "VOTLogin": "පිවිසෙන්න",
   "VOTAutoPauseOnTranslate": "පරිවර්තනය සූදානම් වන තුරු වීඩියෝ විරාමයක්",
-  "VOTSmartDuckingStrength": "අනුවර්තන පරිමාව අඩු කිරීමේ ශක්තිය"
+  "VOTSmartDuckingStrength": "අනුවර්තන පරිමාව අඩු කිරීමේ ශක්තිය",
+  "VOTRetryTranslation": "පරිවර්තනය නැවත උත්සාහ කරන්න"
 }

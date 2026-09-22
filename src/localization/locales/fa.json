@@ -265,5 +265,6 @@
   "VOTClose": "نزدیک",
   "VOTLogin": "ورود به سایت",
   "VOTAutoPauseOnTranslate": "فیلم را مکث کنید تا ترجمه آماده شود",
-  "VOTSmartDuckingStrength": "قدرت کاهش حجم انطباقی"
+  "VOTSmartDuckingStrength": "قدرت کاهش حجم انطباقی",
+  "VOTRetryTranslation": "تلاش مجدد برای ترجمه"
 }
